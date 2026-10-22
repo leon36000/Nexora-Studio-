@@ -1,0 +1,126 @@
+---
+title: Workflows
+description: Create, edit, run, debug, and deploy workflows from Chat.
+---
+
+import { Image } from '@/components/ui/image'
+
+Ask Sim to build a workflow or change an existing one. Open the workflow in Chat's resource panel to inspect the result in the workflow builder. Creation, editing, execution, and deployment require the relevant workspace access.
+
+<Image
+  variant="overview"
+  src="/static/getting-started/first-run.webp"
+  alt="Sim showing a successful summary in Chat beside the two-block workflow"
+  width={2400}
+  height={1200}
+  background="ridges"
+/>
+
+## Create a workflow [#creating-workflows]
+
+Describe the trigger, inputs, processing steps, integrations, and expected output. For example:
+
+- "Build a workflow that takes a URL, reads the page, summarizes it with Claude, and sends the summary to a Slack channel."
+- "Create a webhook workflow that extracts invoice data from a PDF and writes it to the billing table."
+- "Create a lead enrichment workflow that takes an email from a form submission, looks up the company, and writes the enriched record to the leads table."
+
+Sim can create the blocks and connections and help configure the required accounts. Inspect the workflow and resolve any missing credentials or inputs before running it.
+
+## Edit the draft [#editing-workflows]
+
+Select the workflow through an `@`-mention or the **+** menu. It opens beside the conversation so you can inspect the draft. Name the change:
+
+- "Add a branch for confidence scores below 0.7."
+- "Use the same model as the research workflow on the summarizer block."
+- "Add a Slack notification containing the final output."
+
+Sim reads the existing structure before applying changes. Editing a deployed workflow changes its draft; the active deployment remains a snapshot until you successfully redeploy or activate another version.
+
+### Workflow variables
+
+Workflow variables hold values available across that workflow's blocks at runtime:
+
+- "Set API_ENDPOINT on the sync workflow to 'https://api.example.com/v2'."
+- "Set MAX_RETRIES on the pipeline workflow to 5."
+
+Reference them with `<variable.VARIABLE_NAME>`. These are workflow values, distinct from personal or workspace secrets referenced with `{{ENV_VAR}}`.
+
+## Run a workflow [#running-workflows]
+
+Specify whether you want to test the draft or run the deployed version, and provide the Start block's inputs:
+
+- "Run the deployed data sync workflow."
+- "Test the invoice processor draft with this PDF." Attach the file.
+- "Test the lead scoring draft with name=Acme and score=0.4."
+
+A live run in the workflow builder shows block-by-block progress. Background runs can be checked through their execution logs. Ask Sim for the outcome and the execution to inspect when a run finishes.
+
+Test runs can send messages, call APIs, and change data through connected services. Use inputs and accounts appropriate for those effects, and review any required tool approval before the run.
+
+## Read logs [#reading-logs]
+
+Ask about executions you can access:
+
+- "Show the last 10 runs of the pipeline workflow."
+- "Why did the invoice workflow fail yesterday?"
+- "What did the extractor block return in the most recent run?"
+
+Logs include block execution state, outputs, errors, and timing. Name the workflow and run or time range so Sim can inspect the intended execution.
+
+### Debug a failure [#debugging]
+
+Ask Sim to investigate and, when appropriate, fix the draft:
+
+- "Debug the last failed run of the content pipeline and test the fix."
+- "The summarizer block returns empty output. Check its inputs and the last run's logs."
+
+Inspect the proposed change and the verification result. A successful draft test does not update the deployed workflow.
+
+## Deploy a workflow [#deploying]
+
+Choose the interface callers need:
+
+| Interface | Result |
+| --- | --- |
+| API | An execution endpoint at `/api/v2/workflows/{id}/execute` on your deployment's configured host |
+| Chat | A conversational interface with a shareable URL and configured access settings |
+| MCP tool | The workflow added as a tool on a workflow MCP server |
+
+For example: "Deploy the invoice workflow as an API and generate an API key."
+
+Review the returned deployment status and URL. A pending or failed deployment attempt does not prove the requested version is serving. API keys are shown once in a secure copy control; copy a new key when it is created.
+
+Sim can also help configure reusable [custom blocks](/platform/enterprise/custom-blocks) where available. These appear in the workflow builder rather than creating another external endpoint.
+
+### Restore or roll back a version
+
+Be explicit about the state you want to change:
+
+- "Restore last Tuesday's version of the billing workflow into the draft."
+- "Roll the billing workflow's live deployment back to version 3."
+
+Restoring the draft does not change what callers run. Rolling back the active deployment changes the serving version and leaves the draft separate.
+
+## Organize workflows [#organizing-workflows]
+
+Ask Sim to create folders, move workflows or folders, and rename workflows:
+
+- "Create a folder called 'Data Pipelines' and move the sync workflow into it."
+- "Move the billing folder inside the finance folder."
+- "Rename 'test_v2' to 'lead-scorer' and move it to the research folder."
+
+## Delete workflows [#deleting-workflows]
+
+Deleting a workflow removes it from the active workspace and disables its deployments. Its API, chat, and MCP entry points stop working. Identify the exact workflows or folder contents before deleting them:
+
+- "Delete the old_api_prototype workflow."
+- "Delete all workflows in the deprecated folder."
+- "Delete the old-experiments folder and its contents."
+
+## Related docs
+
+- [Workflow variables](/workflows/variables)
+- [API deployment](/workflows/deployment/api)
+- [Chat deployment](/workflows/deployment/chat)
+- [MCP deployment](/workflows/deployment/mcp)
+- [Logs and debugging](/logs-debugging)

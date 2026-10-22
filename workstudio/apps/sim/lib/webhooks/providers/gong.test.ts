@@ -1,0 +1,106 @@
+import { createHash } from 'node:crypto'
+import * as jose from 'jose'
+import { NextRequest } from 'next/server'
+import { describe, expect, it } from 'vitest'
+import {
+  gongHandler,
+  normalizeGongPublicKeyPem,
+  verifyGongJwtAuth,
+} from '@/lib/webhooks/providers/gong'
+import { GONG_JWT_PUBLIC_KEY_CONFIG_KEY } from '@/lib/webhooks/providers/gong-config'
+
+describe('normalizeGongPublicKeyPem', () => {
+  it('wraps raw base64', () => {
+    const raw = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxfj3'
+    const out = normalizeGongPublicKeyPem(raw)
+    expect(out).toContain('BEGIN PUBLIC KEY')
+    expect(out).toContain('END PUBLIC KEY')
+    expect(out).toContain('MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxfj3')
+  })
+
+  it('returns null for garbage', () => {
+    expect(normalizeGongPublicKeyPem('not-base64!!!')).toBeNull()
+  })
+})
+
+describe('gongHandler verifyAuth (JWT)', () => {
+  it('returns null when JWT public key is not configured', async () => {
+    const request = new NextRequest('https://app.example.com/api/webhooks/trigger/abc', {
+      method: 'POST',
+      body: '{}',
+    })
+    const rawBody = '{}'
+    const res = await verifyGongJwtAuth({
+      webhook: {},
+      workflow: {},
+      request,
+      rawBody,
+      requestId: 't1',
+      providerConfig: {},
+    })
+    expect(res).toBeNull()
+  })
+
+  it('accepts a valid Gong-style JWT', async () => {
+    const { publicKey, privateKey } = await jose.generateKeyPair('RS256')
+    const spki = await jose.exportSPKI(publicKey)
+    const url = 'https://app.example.com/api/webhooks/trigger/test-path'
+    const rawBody = '{"callData":{}}'
+    const bodySha = createHash('sha256').update(rawBody, 'utf8').digest('hex')
+
+    const jwt = await new jose.SignJWT({
+      webhook_url: url,
+      body_sha256: bodySha,
+    })
+      .setProtectedHeader({ alg: 'RS256' })
+      .setExpirationTime('1h')
+      .sign(privateKey)
+
+    const request = new NextRequest(url, {
+      method: 'POST',
+      body: rawBody,
+      headers: { Authorization: `Bearer ${jwt}` },
+    })
+
+    const res = await gongHandler.verifyAuth!({
+      webhook: {},
+      workflow: {},
+      request,
+      rawBody,
+      requestId: 't3',
+      providerConfig: { [GONG_JWT_PUBLIC_KEY_CONFIG_KEY]: spki },
+    })
+    expect(res).toBeNull()
+  })
+
+  it('rejects JWT when body hash does not match', async () => {
+    const { publicKey, privateKey } = await jose.generateKeyPair('RS256')
+    const spki = await jose.exportSPKI(publicKey)
+    const url = 'https://app.example.com/api/webhooks/trigger/x'
+    const rawBody = '{"a":1}'
+
+    const jwt = await new jose.SignJWT({
+      webhook_url: url,
+      body_sha256: 'deadbeef',
+    })
+      .setProtectedHeader({ alg: 'RS256' })
+      .setExpirationTime('1h')
+      .sign(privateKey)
+
+    const request = new NextRequest(url, {
+      method: 'POST',
+      body: rawBody,
+      headers: { Authorization: jwt },
+    })
+
+    const res = await verifyGongJwtAuth({
+      webhook: {},
+      workflow: {},
+      request,
+      rawBody,
+      requestId: 't4',
+      providerConfig: { [GONG_JWT_PUBLIC_KEY_CONFIG_KEY]: spki },
+    })
+    expect(res?.status).toBe(401)
+  })
+})

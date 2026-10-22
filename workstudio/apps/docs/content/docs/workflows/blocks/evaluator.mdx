@@ -1,0 +1,66 @@
+---
+title: Evaluator
+description: Use a model to score text against named metrics.
+---
+
+import { BlockPreview, WorkflowPreview, EVALUATOR_GATE_WORKFLOW } from '@/components/workflow-preview'
+
+The **Evaluator block** asks a model for numeric scores against metrics you define. Use the scores to compare drafts or choose a quality-review path.
+
+<BlockPreview type="evaluator" />
+
+## Gate a draft
+
+<WorkflowPreview workflow={EVALUATOR_GATE_WORKFLOW} />
+
+Define **Accuracy** with a 1–5 range, score `<draft.content>`, then check `<evaluator.accuracy> >= 4` in a Condition. Connect the passing branch to the next action and the other to review or revision.
+
+## Configuration
+
+### Evaluation metrics
+
+Each metric has a **name**, **description**, and numeric **range**:
+
+| Name | Range | Description |
+| --- | --- | --- |
+| Accuracy | 1–5 | Are the claims supported by the supplied source material? |
+| Clarity | 1–5 | Can a reader understand the answer without rereading it? |
+| Relevance | 1–5 | Does the answer address the original question? |
+
+Complete every metric's name and range. Unnamed metrics are skipped. A missing range can leave a named score without a rubric; it is not a reliable way to disable a metric.
+
+The range guides the model, but Sim does not clamp every returned score to it. Validate bounds downstream if they are required for an action. Compare sample scores with human judgments before relying on a quality gate.
+
+### Content and model
+
+**Content** is the text to score, usually `<agent.content>`. Structured data is formatted as text. Images and audio are not scored directly.
+
+**Model** defaults to `claude-sonnet-5-5`. Select a supported model and evaluate its scores on representative content. **Temperature** and **System Prompt** are available in advanced fields. Sim Cloud supplies credentials for supported hosted models; other models and self-hosted deployments can require your own credentials.
+
+### Fallback models
+
+Under **Additional fields**, add up to five fallbacks. **Retry on fail** exhausts the selected model's attempts first; each fallback is then tried once. Attempts use the same content, metrics, and response schema.
+
+Hosted models use workspace BYOK or platform credentials where available. Same-provider fallbacks reuse the selected key; another provider can need a secret selected on its row. Supported tuning fields appear when settings cannot be inherited. Auto cannot be a fallback.
+
+## Outputs
+
+| Reference | Value |
+| --- | --- |
+| `<evaluator.accuracy>` | Score for Accuracy; each metric exposes its lowercase name, subject to the fallback behavior below |
+| `<evaluator.content>` | Original evaluated content |
+| `<evaluator.model>` | Model that answered |
+| `<evaluator.tokens>` | Model token usage |
+| `<evaluator.cost>` | Estimated cost in USD, as an object with `input`, `output`, and `total`; read `<evaluator.cost.total>` for the total |
+
+The Logs UI and run-resource API use credits. See [Costs](/platform/costs) for units and billing behavior.
+
+The requested JSON Schema has numeric fields and no extra text. Its field types do not enforce the metric ranges. Keep the same metrics and rubric when comparing variations.
+
+A missing score or unparseable response can produce `0` without failing the block. Zero alone does not prove that the model assessed the content. Present scores are converted with `Number()` without a finite-number check, so malformed values can produce `NaN` before serialization. Validate that scores are finite and within the required bounds before using them to authorize an action, especially when a low score permits it.
+
+## Related docs
+
+- [Condition](/workflows/blocks/condition)
+- [Agent](/workflows/blocks/agent)
+- [Parallel](/workflows/blocks/parallel)

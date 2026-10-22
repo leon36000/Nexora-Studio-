@@ -1,0 +1,71 @@
+---
+title: Prometheus
+sidebar:
+  label: "[prometheus] Prometheus"
+---
+import { Aside, LinkButton } from '@astrojs/starlight/components';
+
+<Aside type="note" title="Optional dependency">
+Prometheus is an **optional dependency**. The application works without it.
+</Aside>
+
+OpenGateLLM can expose metrics in Prometheus format for monitoring and observability. This allows you to track API performance, usage patterns, and system health in real-time.
+
+When Prometheus monitoring is enabled, OpenGateLLM exposes metrics at the `/metrics` endpoint in Prometheus format. These metrics can be scraped by a Prometheus server for visualization in tools like Grafana.
+
+## Metrics
+
+Once enabled, you can access the metrics endpoint at:
+
+```
+http://localhost:8000/metrics
+```
+
+This endpoint returns metrics in Prometheus text-based exposition format, which can be scraped by your Prometheus server.
+
+## List of metrics
+
+All default metrics of *prometheus-fastapi-instrumentator* are available, see their [README](https://github.com/trallnag/prometheus-fastapi-instrumentator) for more information.
+These metrics are prefixed by the namespace `ogl_`.
+
+In addition, OpenGateLLM exposes the following metrics for inference:
+| Metric | Type | Description |
+| --- | --- | --- |
+| `ogl_inference_requests_total` | Counter | Total number of LLM requests (`endpoint`, `model`, `status_code`). |
+| `ogl_inference_requests_duration_seconds` | Histogram | Duration of LLM requests in seconds (`endpoint`, `model`, `status_code`). |
+| `ogl_inference_ttft_milliseconds` | Histogram | Time to first token for streaming responses in milliseconds (`endpoint`, `model`, `status_code`). |
+| `ogl_inference_output_tokens_per_second` | Histogram | Output generation speed in tokens/second (`endpoint`, `model`). |
+| `ogl_inference_tokens_total` | Counter | Total number of consumed tokens with `type=prompt|completion` (`endpoint`, `model`, `type`). |
+
+## Grafana dashboard
+
+Two ready-to-use Grafana dashboards are provided in the [`grafana/`](https://github.com/etalab-ia/OpenGateLLM/tree/main/grafana) folder of the repository:
+
+| Dashboard | File | Content |
+| --- | --- | --- |
+| Inference | [`grafana/inference.json`](https://github.com/etalab-ia/OpenGateLLM/blob/main/grafana/inference.json) | LLM oriented metrics: request rate and success rate, request duration, time to first token, token consumption and output generation speed, all broken down by model and endpoint. |
+| Traffic | [`grafana/traffic.json`](https://github.com/etalab-ia/OpenGateLLM/blob/main/grafana/traffic.json) | API oriented metrics from *prometheus-fastapi-instrumentator*: request count, 2xx/5xx ratio, request duration percentiles, requests per second, process memory and CPU usage. |
+
+Both dashboards are filtered with template variables (*Datasource*, and *Model*, *Endpoint* and *Percentile* for the inference dashboard) so you can focus on a given model or endpoint.
+
+To import a dashboard, in Grafana go to **Dashboards** > **New** > **Import**, upload the JSON file (or paste its content) and select your Prometheus datasource.
+
+<Aside type="caution" title="Metrics namespace">
+The dashboards expect the OpenGateLLM metrics to be exposed with the default `ogl_` namespace and to be scraped by the Prometheus datasource you select at import time.
+</Aside>
+
+## Configuration
+
+To enable Prometheus metrics exposure, you need to configure the monitoring setting in the `settings` section of your `config.yml` file.  
+Check [Settings section](/configuration/configuration_file/#settings) in configuration file documentation for more information.
+
+Example:
+```yaml
+settings:
+    [...]
+    monitoring_prometheus_enabled: true
+```
+
+By default, Prometheus monitoring is enabled. Set it to `false` to disable the `/metrics` endpoint.
+
+<LinkButton href="/configuration/configuration_file" icon="external">Configuration file documentation</LinkButton>

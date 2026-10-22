@@ -1,0 +1,64 @@
+---
+title: Workflow
+description: Run a child workflow, wait for it, and read its result.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { BlockPreview, WorkflowPreview, WORKFLOW_CALL_WORKFLOW } from '@/components/workflow-preview'
+
+The **Workflow block** calls another workflow in the same workspace and waits for it to finish. Editor runs use the child's draft; deployed parent runs use its active deployment.
+
+<BlockPreview type="workflow" />
+
+## Call a child workflow
+
+<WorkflowPreview workflow={WORKFLOW_CALL_WORKFLOW} />
+
+In the child `enrich-lead`, define a Start field named `input`. Select that workflow in the parent and map **Inputs → input** to `<start.input>`. Read the result downstream as `<workflow.result>`.
+
+## Configuration
+
+| Field | Behavior |
+| --- | --- |
+| **Select Workflow** | Pick the child. The selector excludes the current workflow. |
+| **Workflow ID** | Advanced alternative for entering an ID or reference. The child still must be authorized in the same workspace. |
+| **Inputs** | Map each field defined in the child's Start schema to a literal or parent output. The child reads a field named `lead` with `<start.lead>`. |
+
+When Workflow is attached as an Agent tool, configure the named child inputs in its tool configuration.
+
+Older workflows can contain the legacy Workflow block, which shows **Input Variable** instead of **Inputs**. That value reaches the child as `<start.input>`. Its separate **Workflow Inputs** mapper appears only when that legacy block is attached as an Agent tool. New blocks use the child's named Start schema.
+
+Child workflows use their own configured blocks and tools. Workspace credentials and environment access remain subject to the execution's authorization context; the parent's tool list is not copied into the child.
+
+## Outputs
+
+| Reference | Value |
+| --- | --- |
+| `<workflow.result>` | Child's final workflow output |
+| `<workflow.success>` | Whether the child completed successfully |
+| `<workflow.error>` | Failure information when present |
+| `<workflow.childWorkflowName>` | Child workflow name |
+| `<workflow.childWorkflowId>` | Child workflow ID |
+
+A child failure raises an error in the parent. Connect the Workflow block's error port to recover; a normal downstream step is not a failure handler.
+
+## Drafts and deployments
+
+| Badge | Meaning |
+| --- | --- |
+| **Deployed** | The child has an active deployment. A deployed parent uses it; an editor parent still uses the draft. |
+| **Undeployed** | No active deployment. Editor runs can use the draft; deployed parent runs require a deployment. |
+| **Redeploy** | The child's draft changed since deployment. Redeploy to make those changes available to deployed parent runs. |
+
+<Callout type="warn">
+Deploy the child before deploying its parent. Editing a child draft does not update the version used by deployed parents until the child is redeployed.
+</Callout>
+
+## Nested calls
+
+The selector blocks direct self-selection, and Sim tracks nested calls with the internal `X-Sim-Via` chain. The maximum call-chain depth is 25 hops; a request that exceeds it is rejected with `409`. Keep reusable child workflows focused and avoid cycles.
+
+## Related docs
+
+- [API deployment](/workflows/deployment/api)
+- [Connections and error paths](/workflows/connections)

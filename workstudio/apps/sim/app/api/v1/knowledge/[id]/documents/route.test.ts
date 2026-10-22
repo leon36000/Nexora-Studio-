@@ -1,0 +1,221 @@
+/**
+ * Tests for the v1 knowledge document upload route's bounded multipart read.
+ */
+
+import { createRouteContext } from '@sim/testing/helpers/http'
+import {
+  billingAttributionMock,
+  billingAttributionMockFns,
+} from '@sim/testing/mocks/billing-attribution.mock'
+import {
+  billingUsageMonitorMock,
+  billingUsageMonitorMockFns,
+} from '@sim/testing/mocks/billing-usage-monitor.mock'
+import {
+  knowledgeDocumentsServiceMock,
+  knowledgeDocumentsServiceMockFns,
+} from '@sim/testing/mocks/knowledge-documents-service.mock'
+import { v1MiddlewareMock, v1MiddlewareMockFns } from '@sim/testing/mocks/v1-middleware.mock'
+import {
+  workspaceUploadsMock,
+  workspaceUploadsMockFns,
+} from '@sim/testing/mocks/workspace-uploads.mock'
+import { getErrorMessage } from '@sim/utils/errors'
+import { NextRequest } from 'next/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { mockResolveKnowledgeBase, mockValidateFileType } = vi.hoisted(() => ({
+  mockResolveKnowledgeBase: vi.fn(),
+  mockValidateFileType: vi.fn(),
+}))
+
+const SYSTEM_BILLING_ATTRIBUTION = {
+  actorUserId: 'owner-after-transfer',
+  workspaceId: 'ws-1',
+  organizationId: 'org-after-transfer',
+  billedAccountUserId: 'owner-after-transfer',
+  billingEntity: { type: 'organization' as const, id: 'org-after-transfer' },
+  billingPeriod: {
+    start: '2026-07-01T00:00:00.000Z',
+    end: '2026-08-01T00:00:00.000Z',
+  },
+  payerSubscription: null,
+}
+
+vi.mock('@/app/api/v1/middleware', () => v1MiddlewareMock)
+
+vi.mock('@/app/api/v1/knowledge/utils', () => ({
+  resolveKnowledgeBase: mockResolveKnowledgeBase,
+  serializeDate: (date: unknown) => (date instanceof Date ? date.toISOString() : date),
+  handleError: (_requestId: string, error: unknown) =>
+    new Response(JSON.stringify({ error: getErrorMessage(error, 'error') }), {
+      status: 500,
+    }),
+}))
+
+vi.mock('@/lib/billing/calculations/usage-monitor', () => billingUsageMonitorMock)
+
+vi.mock('@/lib/billing/core/attribution', () => billingAttributionMock)
+
+vi.mock('@/lib/uploads/contexts/workspace', () => workspaceUploadsMock)
+
+vi.mock('@/lib/uploads/utils/validation', () => ({
+  validateFileType: mockValidateFileType,
+  /** Shared upload/connector limits are read by the knowledge orchestration imports. */
+  MAX_FILE_SIZE: 100 * 1024 * 1024,
+  SUPPORTED_ARCHIVE_EXTENSIONS: [],
+}))
+
+vi.mock('@/lib/knowledge/documents/service', () => knowledgeDocumentsServiceMock)
+
+import { POST } from '@/app/api/v1/knowledge/[id]/documents/route'
+
+const { mockCreateSingleDocument, mockProcessDocumentsWithQueue } = knowledgeDocumentsServiceMockFns
+const { mockCheckActorUsageLimits } = billingUsageMonitorMockFns
+const { mockAuthenticateRequest } = v1MiddlewareMockFns
+
+const {
+  mockResolveBillingAttribution,
+  mockResolveSystemBillingAttribution,
+  mockCheckAttributedUsageLimits,
+} = billingAttributionMockFns
+const { mockUploadWorkspaceFile } = workspaceUploadsMockFns
+
+const routeContext = createRouteContext({ id: 'kb-1' })
+
+function buildFormData(file: File, workspaceId = 'ws-1'): FormData {
+  const formData = new FormData()
+  formData.append('workspaceId', workspaceId)
+  formData.append('file', file)
+  return formData
+}
+
+/**
+ * Builds a pull-based stream that emits fixed-size chunks on demand, so the
+ * size-capped reader's `reader.cancel()` simply stops future `pull` calls
+ * instead of racing an external (e.g. undici FormData) chunk producer.
+ */
+function makeChunkedOverLimitBody(
+  chunkBytes: number,
+  chunkCount: number
+): ReadableStream<Uint8Array> {
+  let emitted = 0
+  return new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (emitted >= chunkCount) {
+        controller.close()
+        return
+      }
+      emitted++
+      controller.enqueue(new Uint8Array(chunkBytes))
+    },
+  })
+}
+
+describe('v1 knowledge document upload route', () => {
+  beforeEach(() => {
+    mockAuthenticateRequest.mockResolvedValue({
+      requestId: 'req-1',
+      userId: 'user-1',
+      rateLimit: {},
+    })
+    mockResolveKnowledgeBase.mockResolvedValue({ kb: { id: 'kb-1', workspaceId: 'ws-1' } })
+    mockCheckActorUsageLimits.mockResolvedValue({ isExceeded: false })
+    mockResolveBillingAttribution.mockResolvedValue({
+      actorUserId: 'user-1',
+      workspaceId: 'ws-1',
+      billingEntity: { type: 'organization', id: 'org-1' },
+    })
+    mockResolveSystemBillingAttribution.mockResolvedValue(SYSTEM_BILLING_ATTRIBUTION)
+    mockCheckAttributedUsageLimits.mockResolvedValue({ isExceeded: false })
+    mockValidateFileType.mockReturnValue(null)
+    mockUploadWorkspaceFile.mockResolvedValue({
+      url: 'https://example.com/file.txt',
+    })
+    mockCreateSingleDocument.mockResolvedValue({
+      id: 'doc-1',
+      filename: 'file.txt',
+      fileSize: 100,
+      mimeType: 'text/plain',
+      enabled: true,
+      uploadedAt: new Date('2026-01-01T00:00:00.000Z'),
+    })
+    mockProcessDocumentsWithQueue.mockResolvedValue(undefined)
+  })
+
+  it('rejects a declared content-length above the limit before reading the body', async () => {
+    const formData = buildFormData(new File(['x'.repeat(10)], 'file.txt', { type: 'text/plain' }))
+    const req = new NextRequest('http://localhost:3000/api/v1/knowledge/kb-1/documents', {
+      method: 'POST',
+      headers: { 'content-length': String(200 * 1024 * 1024) },
+      body: formData,
+    })
+
+    const response = await POST(req, routeContext)
+    const data = await response.json()
+
+    expect(response.status).toBe(413)
+    expect(data.error).toContain('exceeds maximum size')
+    expect(mockUploadWorkspaceFile).not.toHaveBeenCalled()
+  })
+
+  it('rejects a chunked body without content-length once the streamed size trips the cap', async () => {
+    const body = makeChunkedOverLimitBody(1024 * 1024, 200)
+    const req = new NextRequest('http://localhost:3000/api/v1/knowledge/kb-1/documents', {
+      method: 'POST',
+      body,
+      // @ts-expect-error - duplex is required by undici for streamed bodies but missing from NextRequestInit types
+      duplex: 'half',
+    })
+    expect(req.headers.get('content-length')).toBeNull()
+
+    const response = await POST(req, routeContext)
+    const data = await response.json()
+
+    expect(response.status).toBe(413)
+    expect(data.error).toContain('exceeds maximum size')
+    expect(mockUploadWorkspaceFile).not.toHaveBeenCalled()
+  })
+
+  it('uses one atomic system actor and payer snapshot for a workspace API key', async () => {
+    mockAuthenticateRequest.mockResolvedValue({
+      requestId: 'req-1',
+      userId: 'key-creator',
+      rateLimit: { keyType: 'workspace' },
+    })
+    const file = new File(['hello world'], 'file.txt', { type: 'text/plain' })
+    const req = new NextRequest('http://localhost:3000/api/v1/knowledge/kb-1/documents', {
+      method: 'POST',
+      headers: { 'content-length': '1024' },
+      body: buildFormData(file),
+    })
+
+    const response = await POST(req, routeContext)
+
+    expect(response.status).toBe(200)
+    expect(mockResolveSystemBillingAttribution).toHaveBeenCalledWith('ws-1')
+    expect(mockResolveBillingAttribution).not.toHaveBeenCalled()
+    expect(mockCheckAttributedUsageLimits).toHaveBeenCalledWith(SYSTEM_BILLING_ATTRIBUTION)
+    expect(mockCreateSingleDocument).toHaveBeenCalledWith(
+      {
+        filename: 'file.txt',
+        fileUrl: 'https://example.com/file.txt',
+        fileSize: 11,
+        mimeType: 'text/plain',
+      },
+      'kb-1',
+      'req-1',
+      'owner-after-transfer',
+      undefined,
+      undefined
+    )
+    expect(mockProcessDocumentsWithQueue).toHaveBeenCalledWith(
+      expect.any(Array),
+      'kb-1',
+      {},
+      'req-1',
+      SYSTEM_BILLING_ATTRIBUTION,
+      'interactive'
+    )
+  })
+})

@@ -1,0 +1,591 @@
+from collections.abc import AsyncGenerator
+from typing import Any
+
+from fastapi import BackgroundTasks, Depends
+import redis.asyncio as redis
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.domain.auth import AuthSsoSessionValidator
+from api.domain.key import KeyEncoder, KeyRepository
+from api.domain.model import ModelEnvironmentalImpactsComputer, ModelQuery, ModelTokenizer
+from api.domain.organization import OrganizationRepository
+from api.domain.provider import (
+    ProviderClient,
+    ProviderLoadBalancer,
+    ProviderMetricsLogger,
+    ProviderRepository,
+)
+from api.domain.role import LimitRepository, PermissionRepository
+from api.domain.router import RouterRateLimiter
+from api.domain.usage import UsageContext, UsageRepository
+from api.domain.user import AuthenticatedUserQuery, UserPasswordEncoder
+from api.infrastructure.bcrypt import BcryptUserPasswordEncoder
+from api.infrastructure.configuration import Configuration, get_configuration
+from api.infrastructure.context import global_context
+from api.infrastructure.contextvars import ContextVarsUsageContext
+from api.infrastructure.ecologit import EcologitModelEnvironmentalImpactsComputer
+from api.infrastructure.fastapi.dependencies import request_context
+from api.infrastructure.http import HttpAuthSsoSessionValidator, HttpProviderAdapterBuilder, HttpProviderClient
+from api.infrastructure.jwt import JwtKeyEncoder
+from api.infrastructure.langfuse import LangfuseUsageRepository
+from api.infrastructure.postgres import (
+    AutocommitSession,
+    PostgresAuthenticatedUserQuery,
+    PostgresKeyRepository,
+    PostgresLimitRepository,
+    PostgresModelQuery,
+    PostgresOrganizationRepository,
+    PostgresPermissionRepository,
+    PostgresProviderRepository,
+    PostgresRolesRepository,
+    PostgresRouterRepository,
+    PostgresUsageRepository,
+    PostgresUserRepository,
+)
+from api.infrastructure.redis import RedisProviderLoadBalancer, RedisProviderMetricsLogger, RedisRouterRateLimiter
+from api.infrastructure.tiktoken import TiktokenModelTokenizer
+from api.use_cases.admin.keys import CreateKeyUseCase, DeleteKeyUseCase, GetKeysUseCase, GetOneKeyUseCase, UpdateKeyUseCase
+from api.use_cases.admin.organizations import (
+    CreateOrganizationUseCase,
+    DeleteOrganizationUseCase,
+    GetOneOrganizationUseCase,
+    GetOrganizationsUseCase,
+    UpdateOrganizationUseCase,
+)
+from api.use_cases.admin.providers import (
+    CreateProviderUseCase,
+    DeleteProviderUseCase,
+    GetOneProviderUseCase,
+    GetProvidersUseCase,
+    UpdateProviderUseCase,
+)
+from api.use_cases.admin.roles import CreateRoleUseCase, DeleteRoleUseCase, GetOneRoleUseCase, GetRolesUseCase, UpdateRoleUseCase
+from api.use_cases.admin.routers import CreateRouterUseCase, DeleteRouterUseCase, GetOneRouterUseCase, GetRoutersUseCase, UpdateRouterUseCase
+from api.use_cases.admin.users import CreateUserUseCase, DeleteUserUseCase, GetOneUserUseCase, GetUsersUseCase, UpdateUserUseCase
+from api.use_cases.audio import CreateAudioTranscriptionsUseCase
+from api.use_cases.auth import AuthLoginUseCase, AuthSsoLoginUseCase
+from api.use_cases.chat import CreateChatCompletionsUseCase
+from api.use_cases.embeddings import CreateEmbeddingsUseCase
+from api.use_cases.health import GetHealthModelsUseCase
+from api.use_cases.me import GetMeUseCase, UpdateMeUseCase
+from api.use_cases.models import GetModelsUseCase, GetOneModelUseCase
+from api.use_cases.ocr import CreateOCRUseCase
+from api.use_cases.reranks import CreateRerankUseCase
+from api.use_cases.services import ProviderCapabilitiesProbe
+from api.use_cases.usage import GetUsagesUseCase
+
+
+# infrastructure
+async def get_postgres_session() -> AsyncGenerator[AsyncSession]:
+    session_factory = global_context.postgres_session_factory
+    async with session_factory() as postgres_session:
+        try:
+            yield postgres_session
+            if postgres_session.in_transaction():
+                await postgres_session.commit()
+        except Exception:
+            if postgres_session.in_transaction():
+                await postgres_session.rollback()
+            raise
+
+
+async def get_autocommit_postgres_session() -> AsyncGenerator[AutocommitSession]:
+    session_factory = global_context.autocommit_postgres_session_factory
+    async with session_factory() as postgres_session:
+        yield postgres_session
+
+
+async def get_redis_client() -> AsyncGenerator[Redis, Any]:
+    client = redis.Redis(connection_pool=global_context.redis_pool)
+    yield client
+    await client.aclose()
+
+
+# queries
+def _authenticated_user_query(session: AutocommitSession = Depends(get_autocommit_postgres_session)) -> AuthenticatedUserQuery:
+    return PostgresAuthenticatedUserQuery(postgres_session=session)
+
+
+def _model_query(session: AsyncSession) -> ModelQuery:
+    return PostgresModelQuery(postgres_session=session)
+
+
+# helpers
+def _auth_sso_session_validator(configuration: Configuration = Depends(get_configuration)) -> AuthSsoSessionValidator:
+    return HttpAuthSsoSessionValidator(auth_playground_url=configuration.settings.auth_playground_url)
+
+
+def _key_encoder(configuration: Configuration = Depends(get_configuration)) -> KeyEncoder:
+    return JwtKeyEncoder(secret_key=configuration.settings.auth_secret_key)
+
+
+def _model_tokenizer() -> ModelTokenizer:
+    return TiktokenModelTokenizer(model=global_context.tokenizer)
+
+
+def _model_environmental_impacts_computer() -> ModelEnvironmentalImpactsComputer:
+    return EcologitModelEnvironmentalImpactsComputer()
+
+
+def _provider_metrics_logger(redis_client: Redis = Depends(get_redis_client)) -> ProviderMetricsLogger:
+    return RedisProviderMetricsLogger(redis_client=redis_client)
+
+
+def _provider_adapter_builder() -> HttpProviderAdapterBuilder:
+    return HttpProviderAdapterBuilder()
+
+
+def _provider_client(provider_adapter_builder: HttpProviderAdapterBuilder = Depends(_provider_adapter_builder)) -> ProviderClient:
+    return HttpProviderClient(adapter_builder=provider_adapter_builder)
+
+
+def _provider_load_balancer(redis_client: Redis = Depends(get_redis_client)) -> ProviderLoadBalancer:
+    return RedisProviderLoadBalancer(redis_client=redis_client)
+
+
+def _provider_capabilities_probe(provider_client: ProviderClient = Depends(_provider_client)) -> ProviderCapabilitiesProbe:
+    return ProviderCapabilitiesProbe(provider_client=provider_client)
+
+
+def _user_password_encoder() -> UserPasswordEncoder:
+    return BcryptUserPasswordEncoder()
+
+
+def _router_rate_limiter(background_tasks: BackgroundTasks, configuration: Configuration = Depends(get_configuration)) -> RouterRateLimiter:
+    return RedisRouterRateLimiter(
+        background_tasks=background_tasks,
+        redis_pool=global_context.redis_pool,
+        strategy=configuration.settings.rate_limiting_strategy,
+        cached_tokens_discount=configuration.settings.rate_limiting_cached_tokens_discount,
+    )
+
+
+def _usage_context() -> UsageContext:
+    return ContextVarsUsageContext(request_context=request_context)
+
+
+# repositories
+def _authentication_key_repository(
+    key_encoder: KeyEncoder = Depends(_key_encoder),
+    session: AutocommitSession = Depends(get_autocommit_postgres_session),
+) -> KeyRepository:
+    return PostgresKeyRepository(key_encoder=key_encoder, postgres_session=session)
+
+
+def _key_repository(key_encoder: KeyEncoder = Depends(_key_encoder), session: AsyncSession = Depends(get_postgres_session)) -> KeyRepository:
+    return PostgresKeyRepository(key_encoder=key_encoder, postgres_session=session)
+
+
+def _organization_repository(session: AsyncSession) -> OrganizationRepository:
+    return PostgresOrganizationRepository(postgres_session=session)
+
+
+def _user_repository(session: AsyncSession) -> PostgresUserRepository:
+    return PostgresUserRepository(postgres_session=session)
+
+
+def _role_repository(session: AsyncSession) -> PostgresRolesRepository:
+    return PostgresRolesRepository(postgres_session=session)
+
+
+def _router_repository(session: AsyncSession) -> PostgresRouterRepository:
+    return PostgresRouterRepository(postgres_session=session)
+
+
+def _limit_repository(session: AsyncSession) -> LimitRepository:
+    return PostgresLimitRepository(postgres_session=session)
+
+
+def _permission_repository(session: AsyncSession) -> PermissionRepository:
+    return PostgresPermissionRepository(postgres_session=session)
+
+
+def _provider_repository(session: AsyncSession) -> ProviderRepository:
+    return PostgresProviderRepository(postgres_session=session)
+
+
+def _usage_repository(
+    background_tasks: BackgroundTasks,
+    postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
+    configuration: Configuration = Depends(get_configuration),
+) -> UsageRepository:
+    if configuration.dependencies.langfuse is not None:
+        return LangfuseUsageRepository(client=global_context.langfuse)
+    return PostgresUsageRepository(postgres_session=postgres_session, background_tasks=background_tasks)
+
+
+# audio use cases
+def create_audio_transcriptions_use_case_factory(
+    postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
+    redis_client: Redis = Depends(get_redis_client),
+    router_rate_limiter: RouterRateLimiter = Depends(_router_rate_limiter),
+    model_environmental_impacts_computer: ModelEnvironmentalImpactsComputer = Depends(_model_environmental_impacts_computer),
+    model_tokenizer: ModelTokenizer = Depends(_model_tokenizer),
+    provider_client: ProviderClient = Depends(_provider_client),
+    usage_repository: UsageRepository = Depends(_usage_repository),
+    configuration: Configuration = Depends(get_configuration),
+) -> CreateAudioTranscriptionsUseCase:
+    return CreateAudioTranscriptionsUseCase(
+        model_environmental_impacts_computer=model_environmental_impacts_computer,
+        model_tokenizer=model_tokenizer,
+        provider_client=provider_client,
+        provider_load_balancer=_provider_load_balancer(redis_client),
+        provider_metrics_logger=_provider_metrics_logger(redis_client),
+        provider_repository=_provider_repository(postgres_session),
+        router_rate_limiter=router_rate_limiter,
+        router_repository=_router_repository(postgres_session),
+        usage_context=_usage_context(),
+        usage_repository=usage_repository,
+        audio_file_size_limit=configuration.settings.audio_file_size_limit,
+    )
+
+
+# chat use cases
+def create_chat_completions_use_case_factory(
+    postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
+    redis_client: Redis = Depends(get_redis_client),
+    router_rate_limiter: RouterRateLimiter = Depends(_router_rate_limiter),
+    model_environmental_impacts_computer: ModelEnvironmentalImpactsComputer = Depends(_model_environmental_impacts_computer),
+    model_tokenizer: ModelTokenizer = Depends(_model_tokenizer),
+    provider_client: ProviderClient = Depends(_provider_client),
+    usage_repository: UsageRepository = Depends(_usage_repository),
+) -> CreateChatCompletionsUseCase:
+    return CreateChatCompletionsUseCase(
+        model_environmental_impacts_computer=model_environmental_impacts_computer,
+        model_tokenizer=model_tokenizer,
+        provider_client=provider_client,
+        provider_load_balancer=_provider_load_balancer(redis_client),
+        provider_metrics_logger=_provider_metrics_logger(redis_client),
+        provider_repository=_provider_repository(postgres_session),
+        router_rate_limiter=router_rate_limiter,
+        router_repository=_router_repository(postgres_session),
+        usage_context=_usage_context(),
+        usage_repository=usage_repository,
+    )
+
+
+# auth use cases
+def auth_login_use_case_factory(
+    postgres_session: AsyncSession = Depends(get_postgres_session),
+    key_encoder: KeyEncoder = Depends(_key_encoder),
+    password_encoder: UserPasswordEncoder = Depends(_user_password_encoder),
+    configuration: Configuration = Depends(get_configuration),
+) -> AuthLoginUseCase:
+    return AuthLoginUseCase(
+        key_repository=PostgresKeyRepository(key_encoder=key_encoder, postgres_session=postgres_session),
+        user_repository=PostgresUserRepository(postgres_session=postgres_session),
+        user_password_encoder=password_encoder,
+        auth_login_type=configuration.settings.auth_login_type,
+        auth_login_session_duration=configuration.settings.auth_login_session_duration,
+    )
+
+
+def auth_sso_login_use_case_factory(
+    postgres_session: AsyncSession = Depends(get_postgres_session),
+    key_encoder: KeyEncoder = Depends(_key_encoder),
+    auth_sso_session_validator: AuthSsoSessionValidator = Depends(_auth_sso_session_validator),
+    configuration: Configuration = Depends(get_configuration),
+) -> AuthSsoLoginUseCase:
+    return AuthSsoLoginUseCase(
+        key_repository=_key_repository(key_encoder=key_encoder, session=postgres_session),
+        organization_repository=_organization_repository(session=postgres_session),
+        user_repository=_user_repository(session=postgres_session),
+        role_repository=_role_repository(session=postgres_session),
+        auth_sso_session_validator=auth_sso_session_validator,
+        auth_login_type=configuration.settings.auth_login_type,
+        auth_sso_default_role_id=configuration.settings.auth_sso_default_role_id,
+        auth_sso_default_organization_id=configuration.settings.auth_sso_default_organization_id,
+    )
+
+
+# health use cases
+def get_health_models_use_case_factory(
+    postgres_session: AsyncSession = Depends(get_postgres_session),
+    provider_client: ProviderClient = Depends(_provider_client),
+    redis_client: Redis = Depends(get_redis_client),
+) -> GetHealthModelsUseCase:
+    return GetHealthModelsUseCase(
+        provider_client=provider_client,
+        router_repository=_router_repository(postgres_session),
+        provider_repository=_provider_repository(postgres_session),
+    )
+
+
+# embeddings use cases
+def create_embeddings_use_case_factory(
+    postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
+    redis_client: Redis = Depends(get_redis_client),
+    router_rate_limiter: RouterRateLimiter = Depends(_router_rate_limiter),
+    model_environmental_impacts_computer: ModelEnvironmentalImpactsComputer = Depends(_model_environmental_impacts_computer),
+    model_tokenizer: ModelTokenizer = Depends(_model_tokenizer),
+    provider_client: ProviderClient = Depends(_provider_client),
+    usage_repository: UsageRepository = Depends(_usage_repository),
+) -> CreateEmbeddingsUseCase:
+    return CreateEmbeddingsUseCase(
+        model_environmental_impacts_computer=model_environmental_impacts_computer,
+        model_tokenizer=model_tokenizer,
+        provider_client=provider_client,
+        provider_load_balancer=_provider_load_balancer(redis_client),
+        provider_metrics_logger=_provider_metrics_logger(redis_client),
+        provider_repository=_provider_repository(postgres_session),
+        router_rate_limiter=router_rate_limiter,
+        router_repository=_router_repository(postgres_session),
+        usage_context=_usage_context(),
+        usage_repository=usage_repository,
+    )
+
+
+# keys use cases
+def create_key_use_case_factory(
+    key_repository: KeyRepository = Depends(_key_repository),
+    configuration: Configuration = Depends(get_configuration),
+) -> CreateKeyUseCase:
+    return CreateKeyUseCase(
+        key_repository=key_repository,
+        key_max_expiration_days=configuration.settings.auth_key_max_expiration_days,
+    )
+
+
+def create_me_key_use_case_factory(
+    key_repository: KeyRepository = Depends(_key_repository),
+    configuration: Configuration = Depends(get_configuration),
+) -> CreateKeyUseCase:
+    return CreateKeyUseCase(
+        key_repository=key_repository,
+        key_max_expiration_days=configuration.settings.auth_key_max_expiration_days,
+    )
+
+
+def get_keys_use_case_factory(key_repository: KeyRepository = Depends(_key_repository)) -> GetKeysUseCase:
+    return GetKeysUseCase(key_repository=key_repository)
+
+
+def get_one_key_use_case_factory(key_repository: KeyRepository = Depends(_key_repository)) -> GetOneKeyUseCase:
+    return GetOneKeyUseCase(key_repository=key_repository)
+
+
+def delete_key_use_case_factory(key_repository: KeyRepository = Depends(_key_repository)) -> DeleteKeyUseCase:
+    return DeleteKeyUseCase(key_repository=key_repository)
+
+
+def update_key_use_case_factory(key_repository: KeyRepository = Depends(_key_repository)) -> UpdateKeyUseCase:
+    return UpdateKeyUseCase(key_repository=key_repository)
+
+
+# me use cases
+def get_me_use_case_factory() -> GetMeUseCase:
+    return GetMeUseCase()
+
+
+def update_me_info_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> UpdateMeUseCase:
+    return UpdateMeUseCase(user_repository=_user_repository(postgres_session), user_password_encoder=_user_password_encoder())
+
+
+# usage use cases
+def get_usages_use_case_factory(usage_repository: UsageRepository = Depends(_usage_repository)) -> GetUsagesUseCase:
+    return GetUsagesUseCase(usage_repository=usage_repository)
+
+
+# models use cases
+def get_models_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetModelsUseCase:
+    return GetModelsUseCase(model_query=_model_query(postgres_session))
+
+
+def get_one_model_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetOneModelUseCase:
+    return GetOneModelUseCase(model_query=_model_query(postgres_session))
+
+
+# ocr use cases
+def create_ocr_use_case_factory(
+    postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
+    redis_client: Redis = Depends(get_redis_client),
+    router_rate_limiter: RouterRateLimiter = Depends(_router_rate_limiter),
+    model_environmental_impacts_computer: ModelEnvironmentalImpactsComputer = Depends(_model_environmental_impacts_computer),
+    model_tokenizer: ModelTokenizer = Depends(_model_tokenizer),
+    provider_client: ProviderClient = Depends(_provider_client),
+    usage_repository: UsageRepository = Depends(_usage_repository),
+) -> CreateOCRUseCase:
+    return CreateOCRUseCase(
+        model_environmental_impacts_computer=model_environmental_impacts_computer,
+        model_tokenizer=model_tokenizer,
+        provider_client=provider_client,
+        provider_load_balancer=_provider_load_balancer(redis_client),
+        provider_metrics_logger=_provider_metrics_logger(redis_client),
+        provider_repository=_provider_repository(postgres_session),
+        router_rate_limiter=router_rate_limiter,
+        router_repository=_router_repository(postgres_session),
+        usage_context=_usage_context(),
+        usage_repository=usage_repository,
+    )
+
+
+# organization use cases
+def create_organization_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> CreateOrganizationUseCase:
+    return CreateOrganizationUseCase(organization_repository=_organization_repository(postgres_session))
+
+
+def delete_organization_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> DeleteOrganizationUseCase:
+    return DeleteOrganizationUseCase(organization_repository=_organization_repository(session=postgres_session))
+
+
+def get_organizations_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetOrganizationsUseCase:
+    return GetOrganizationsUseCase(organization_repository=_organization_repository(session=postgres_session))
+
+
+def get_one_organization_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetOneOrganizationUseCase:
+    return GetOneOrganizationUseCase(organization_repository=_organization_repository(session=postgres_session))
+
+
+def update_organization_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> UpdateOrganizationUseCase:
+    return UpdateOrganizationUseCase(organization_repository=_organization_repository(session=postgres_session))
+
+
+# user use cases
+def create_user_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> CreateUserUseCase:
+    return CreateUserUseCase(user_repository=_user_repository(postgres_session), user_password_encoder=_user_password_encoder())
+
+
+def get_one_user_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetOneUserUseCase:
+    return GetOneUserUseCase(user_repository=_user_repository(postgres_session))
+
+
+def get_users_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetUsersUseCase:
+    return GetUsersUseCase(user_repository=_user_repository(postgres_session))
+
+
+def delete_user_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> DeleteUserUseCase:
+    return DeleteUserUseCase(user_repository=_user_repository(postgres_session))
+
+
+def update_user_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> UpdateUserUseCase:
+    return UpdateUserUseCase(user_repository=_user_repository(postgres_session), user_password_encoder=_user_password_encoder())
+
+
+# rerank use cases
+def create_rerank_use_case_factory(
+    postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
+    redis_client: Redis = Depends(get_redis_client),
+    router_rate_limiter: RouterRateLimiter = Depends(_router_rate_limiter),
+    model_environmental_impacts_computer: ModelEnvironmentalImpactsComputer = Depends(_model_environmental_impacts_computer),
+    model_tokenizer: ModelTokenizer = Depends(_model_tokenizer),
+    provider_client: ProviderClient = Depends(_provider_client),
+    usage_repository: UsageRepository = Depends(_usage_repository),
+) -> CreateRerankUseCase:
+    return CreateRerankUseCase(
+        model_environmental_impacts_computer=model_environmental_impacts_computer,
+        model_tokenizer=model_tokenizer,
+        provider_client=provider_client,
+        provider_load_balancer=_provider_load_balancer(redis_client),
+        provider_metrics_logger=_provider_metrics_logger(redis_client),
+        provider_repository=_provider_repository(postgres_session),
+        router_rate_limiter=router_rate_limiter,
+        router_repository=_router_repository(postgres_session),
+        usage_context=_usage_context(),
+        usage_repository=usage_repository,
+    )
+
+
+# roles use cases
+def create_role_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> CreateRoleUseCase:
+    return CreateRoleUseCase(
+        role_repository=_role_repository(postgres_session),
+        limit_repository=_limit_repository(postgres_session),
+        permission_repository=_permission_repository(postgres_session),
+    )
+
+
+def update_role_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> UpdateRoleUseCase:
+    return UpdateRoleUseCase(
+        role_repository=_role_repository(postgres_session),
+        limit_repository=_limit_repository(postgres_session),
+        permission_repository=_permission_repository(postgres_session),
+    )
+
+
+def get_roles_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetRolesUseCase:
+    return GetRolesUseCase(
+        role_repository=_role_repository(postgres_session),
+        limit_repository=_limit_repository(postgres_session),
+        permission_repository=_permission_repository(postgres_session),
+    )
+
+
+def get_one_role_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetOneRoleUseCase:
+    return GetOneRoleUseCase(
+        role_repository=_role_repository(postgres_session),
+    )
+
+
+def delete_role_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> DeleteRoleUseCase:
+    return DeleteRoleUseCase(
+        role_repository=_role_repository(postgres_session),
+    )
+
+
+# router use cases
+def get_one_router_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetOneRouterUseCase:
+    return GetOneRouterUseCase(
+        router_repository=_router_repository(postgres_session),
+    )
+
+
+def get_routers_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetRoutersUseCase:
+    return GetRoutersUseCase(
+        router_repository=_router_repository(postgres_session),
+    )
+
+
+def create_router_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> CreateRouterUseCase:
+    return CreateRouterUseCase(
+        router_repository=_router_repository(postgres_session),
+    )
+
+
+def delete_router_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> DeleteRouterUseCase:
+    return DeleteRouterUseCase(
+        router_repository=_router_repository(postgres_session),
+    )
+
+
+def update_router_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> UpdateRouterUseCase:
+    return UpdateRouterUseCase(
+        router_repository=_router_repository(postgres_session),
+    )
+
+
+# provider use cases
+def create_provider_use_case_factory(
+    postgres_session: AsyncSession = Depends(get_postgres_session),
+    provider_capabilities_probe: ProviderCapabilitiesProbe = Depends(_provider_capabilities_probe),
+) -> CreateProviderUseCase:
+    return CreateProviderUseCase(
+        router_repository=_router_repository(postgres_session),
+        provider_repository=_provider_repository(postgres_session),
+        provider_capabilities_probe=provider_capabilities_probe,
+    )
+
+
+def update_provider_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> UpdateProviderUseCase:
+    return UpdateProviderUseCase(
+        router_repository=_router_repository(postgres_session),
+        provider_repository=_provider_repository(postgres_session),
+    )
+
+
+def delete_provider_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> DeleteProviderUseCase:
+    return DeleteProviderUseCase(
+        provider_repository=_provider_repository(postgres_session),
+    )
+
+
+def get_one_provider_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetOneProviderUseCase:
+    return GetOneProviderUseCase(
+        provider_repository=_provider_repository(postgres_session),
+    )
+
+
+def get_providers_use_case_factory(postgres_session: AsyncSession = Depends(get_postgres_session)) -> GetProvidersUseCase:
+    return GetProvidersUseCase(
+        provider_repository=_provider_repository(postgres_session),
+    )

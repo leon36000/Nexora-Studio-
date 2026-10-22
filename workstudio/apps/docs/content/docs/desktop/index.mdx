@@ -1,0 +1,204 @@
+---
+title: Sim Desktop
+description: Install the macOS app and configure browser, terminal, local file, and available Mac app controls.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { Step, Steps } from 'fumadocs-ui/components/steps'
+import { Image } from '@/components/ui/image'
+
+Sim Desktop opens your Sim workspace in a macOS app. It adds a built-in browser, terminal sessions, local file tools, and native notifications. Available builds and deployments can also provide native Mac app control. Your account, workspaces, and workflows are shared with the web app.
+
+<Image
+  variant="overview"
+  background="san-francisco"
+  src="/static/getting-started/first-run.webp"
+  alt="Sim Desktop with Chat showing a workflow result beside the open workflow"
+  width={2400}
+  height={1200}
+/>
+
+## Download and requirements
+
+**[Download Sim Desktop for macOS](https://www.sim.ai/api/desktop/update/download)**
+
+The official build is signed and notarized. One universal installer supports Apple Silicon and Intel Macs running **macOS 12 Monterey or later**. Use the web app on other platforms.
+
+The download link redirects to the latest available desktop installer for that deployment. Results can be cached for five minutes. To install a specific version, download `Sim-<version>-universal.dmg` from [GitHub releases](https://github.com/simstudioai/sim/releases).
+
+You need outbound access to your Sim deployment and GitHub's release downloads. For a self-hosted deployment:
+
+- Use your own download endpoint, such as `https://sim.example.com/api/desktop/update/download`.
+- Allow the Sim server to reach both `api.github.com` and `github.com` for release lookup and manifests. Blocking either can make the download endpoint return `502`.
+- Use a certificate trusted by macOS. The app rejects certificate errors without an override; install a private CA in the system trust store if required.
+
+See [Desktop app on your deployment](/platform/self-hosting/desktop) for server URLs, update channels, and network troubleshooting.
+
+## Install and sign in
+
+<Steps>
+<Step>
+
+### Install in Applications
+
+Open the disk image and drag Sim to **Applications**. Launch it from there.
+
+<Callout type="warn">
+  Automatic self-update requires a Developer ID build installed in Applications. Builds elsewhere use the manual installer update path.
+</Callout>
+
+</Step>
+<Step>
+
+### Choose your server
+
+Fresh official installs open sim.ai. If you self-host, choose **Sim → Server…** in the menu bar and enter your deployment's origin before signing in.
+
+</Step>
+<Step>
+
+### Sign in
+
+Sign in with your existing Sim account. Google, Microsoft, and SSO sign-ins finish in your default browser, which hands the session back to the app.
+
+The app has its own session. Signing out of the app does not sign you out of Sim in your browser, or the reverse.
+
+</Step>
+</Steps>
+
+## Browser, terminal, and local files
+
+| Capability | Behavior |
+| --- | --- |
+| **Browser** | Open websites in tabs with their own sessions and saved passwords. Chat can use the sites you sign into here. |
+| **Terminal** | Open local shell sessions beside Chat. Chat can run commands in those sessions; tmux and shell integration are supported. |
+| **Local file tools** | Read and search folders you approve, import files, and use authorized files in browser uploads. |
+| **Notifications** | Receive a notification when Chat finishes responding. Clicking it opens that chat. Errors and turns with queued follow-up messages do not produce completion notifications. |
+| **Control Center** | Open recent chats from Sim's menu-bar icon. |
+| **Launch at login** | Optionally open Sim when you sign in to your Mac. The app restores its previous location when launched. |
+
+Browser and Terminal are enabled by default. Turn them off with **Let Chat browse the web** or **Let Chat run commands** in their Settings sections.
+
+### Local file access
+
+By default, local file tools ask for folder access when they need an unapproved path. A selected-folder grant is scoped to that folder, read-only through the filesystem tool interface, and revocable. Use **File → Folder Access…** to manage selected folders.
+
+**Settings → Account → Desktop → Full file access** is off by default. Enabling it lets local file tools access files without individual folder approvals.
+
+<Callout type="warn">
+  Granting a folder does not automatically upload its contents. Later reads send returned content to your Sim deployment and model. Chat can also import authorized local files or stage a granted file for upload to a website through the browser.
+</Callout>
+
+### Native Mac-app control
+
+**Computer Use** appears under **Settings → Account → Desktop** only when the deployment and installed app provide it. It requires **macOS 14 or later** and is off by default on each Mac. Browser, Terminal, and local file permissions are separate controls.
+
+To enable it when available:
+
+1. Open **Computer Use** and turn **Allow Mothership to use Mac apps** to **On** to allow Sim to use native apps.
+2. Use **Open System Settings** to grant **Accessibility** for app interaction and **Screen Recording** for screenshots. Grant these permissions yourself, then return to Sim to refresh their status.
+3. When Sim requests an app, choose **Allow for This Task**, **Always Allow**, or **Cancel**. **Always Allow** saves that app's permission on this Mac.
+
+Sim can read approved app windows and interact through clicks, text, keyboard shortcuts, scrolling, and supported accessibility controls. Screenshots and returned app content can be sent to your Sim deployment and model. Some actions require bringing the app to the foreground; app compatibility and macOS permissions can still limit what succeeds.
+
+The conversation shows the active app and action. Select **Stop**, or press **Cmd + Shift + Escape** when that shortcut is available, to cancel active and queued computer actions. Stopping cannot undo input already delivered to an app. Verify the app's current state before repeating an interrupted action.
+
+Use **Revoke** under **Approved apps** to remove a saved permission, or switch Computer Use off. Signing out or changing deployments clears the device opt-in and app approvals. Computer Use cannot operate Sim's own permission controls or macOS System Settings.
+
+### Terminal access
+
+Terminal commands run with your macOS account's permissions. They can modify files outside selected-folder grants; those grants do not confine the shell. Disable **Settings → Account → Terminal → Let Chat run commands** to remove this capability.
+
+Command confirmation depends on Chat's tool-permission settings and whether the run is interactive. With approvals enabled, command runs can wait for approval unless the tool is auto-allowed. Noninteractive runs do not wait for a per-command decision.
+
+## Settings
+
+Desktop settings appear under **Settings → Account** when the app exposes the corresponding capability. They apply to this Mac.
+
+### Desktop
+
+| Setting | Behavior |
+| --- | --- |
+| **Launch Sim at login** | Start Sim when you sign in to macOS. Off by default. |
+| **Prevent sleep while a chat is running** | Keep the Mac awake during Chat activity. On by default. |
+| **Show Sim in Control Center** | Show Sim's menu-bar icon and recent chats. |
+| **Automatically download updates** | Download available updates in the background. |
+| **Full file access** | Allow local file tools to access files without individual folder approvals. Off by default. |
+| **Enable desktop notifications** | Enable completion notifications. |
+| **Play notification sounds** | Play a sound with notifications. |
+| **Notify only when Sim isn't focused** | Suppress completion notifications while you are working in Sim. |
+
+This section also shows the installed version and a downloaded version waiting for restart.
+
+### Browser
+
+<Image
+  src="/static/docs-captures/browser-settings.webp"
+  alt="Browser settings with web access, search suggestions, theme, and zoom controls"
+  width={1640}
+  height={560}
+  variant="overview"
+  background="san-francisco"
+/>
+
+| Setting or action | Behavior |
+| --- | --- |
+| **Let Chat browse the web** | Enable or disable the built-in browser. |
+| **Search suggestions** | Send address-bar typing to Google for live completions. |
+| **Theme**, **Default zoom** | Set the browser's appearance and page zoom. |
+| **Download location** | Choose where browser downloads are saved. |
+| **Passwords** | Manage saved browser passwords. |
+| **Browsing data** | Clear cookies, site data, and cached images and files. |
+
+### Terminal
+
+Use **Let Chat run commands** to enable or disable Terminal. **Theme** and **Default zoom** control its appearance.
+
+The **Sim** menu also contains **Settings…**, **Server…**, **Check for Updates…**, and **Sign Out**.
+
+## Keyboard shortcuts
+
+The [workflow and table shortcuts](/keyboard-shortcuts) also work in Desktop. Focus determines whether a shortcut acts on Sim, the browser, or Terminal.
+
+| Shortcut | Action |
+| --- | --- |
+| `Cmd` + `K` | Open search |
+| `Cmd` + `B` | Toggle the sidebar |
+| `Cmd` + `N` | New chat |
+| `Cmd` + `Shift` + `N` | New window |
+| `Cmd` + `,` | Settings |
+| `Cmd` + `[` / `]` | Back / forward in Sim or the focused browser |
+| `Cmd` + `R` | Reload Sim or the focused browser; clear the focused terminal's screen |
+| `Cmd` + `0` / `+` / `-` | Reset / increase / decrease zoom in the focused surface |
+
+When Browser or Terminal is focused:
+
+| Shortcut | Action |
+| --- | --- |
+| `Cmd` + `T` | New tab |
+| `Cmd` + `W` | Close the focused tab |
+| `Cmd` + `Shift` + `T` | Reopen the last closed tab |
+| `Ctrl` + `Tab` / `Ctrl` + `Shift` + `Tab` | Next / previous tab |
+| `Cmd` + `1`–`8` | Jump to that tab |
+| `Cmd` + `9` | Jump to the last tab |
+| `Cmd` + `L` | Focus the browser address bar |
+| `Cmd` + `F` | Find on the browser page |
+
+The last two shortcuts apply to Browser. With Sim focused, `Cmd` + `L` opens Logs.
+
+## Updates
+
+The app checks the deployment it is connected to for updates. It does not force a restart during your session.
+
+| Installation | Update behavior |
+| --- | --- |
+| Developer ID build in **Applications** | The app can replace itself. With **Automatically download updates** on, it downloads in the background and offers to restart. Choose **Later** to apply the downloaded update when you next quit. With the setting off, **Sim → Check for Updates…** offers a version and waits for **Download**. |
+| Build outside **Applications**, or without Developer ID signing | The app offers an installer for you to download and install manually. |
+
+If the deployment's update feed is unavailable, an eligible stable build falls back to Sim's public GitHub releases. Prerelease builds skip the check instead. See [Desktop app on your deployment](/platform/self-hosting/desktop#what-an-installed-app-does-when-the-feed-fails) for feed failures and release selection.
+
+## Related docs
+
+- [Desktop app on your deployment](/platform/self-hosting/desktop)
+- [Chat](/chat)
+- [Keyboard shortcuts](/keyboard-shortcuts)

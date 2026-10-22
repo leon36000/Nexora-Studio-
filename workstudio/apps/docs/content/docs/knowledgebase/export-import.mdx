@@ -1,0 +1,87 @@
+---
+title: Export
+description: Download a knowledge base's documents, chunks, tags, and settings in one archive.
+---
+
+Export a knowledge base as a `.simkb.zip` archive. It carries the base's configuration, tag definitions and values, stored document files, and completed chunk text, with vectors included by default.
+
+## Access and scope
+
+Export requires at least workspace read access and the **Knowledge Base Export** capability. Enterprise permission groups can restrict members' exports. The API accepts supported personal credentials or a workspace API key; OAuth callers need `api:read`. A workspace API key uses its workspace role and operation policy rather than a member's permission group. See [API authentication](/api-reference/authentication).
+
+The archive includes active, included documents readable by the workspace as a whole. It does not include every document a particular member can personally access through source permissions. Archived, deleted, and excluded documents are left out.
+
+Documents with neither a stored file nor completed chunks are omitted. A document still processing can contribute its stored file, but not unfinished chunk text. Disabled flags are preserved for documents and chunks that are included.
+
+## Download the archive
+
+Right-click a base in the knowledge base list and choose **Export**, or open the base and choose **Export** in its header. The download is named `<base name>.simkb.zip`.
+
+### API
+
+```http
+GET /api/v2/knowledge/{knowledgeBaseId}/export?workspaceId={workspaceId}&vectors=true
+```
+
+The response is the ZIP archive. Set `vectors=false` to leave out embeddings. See [Export knowledge base](/api-reference/knowledge-bases/exportKnowledgeBase) for the request contract.
+
+### CLI
+
+```bash
+sim knowledge export <knowledgeBaseId> --output-file kb.zip
+sim knowledge export <knowledgeBaseId> --output-file kb.zip --no-vectors
+```
+
+The CLI uses the selected workspace profile. An existing output file requires `--force` to overwrite it. See the [CLI reference](/cli/reference).
+
+## Archive contents
+
+```text
+<base name>.simkb.zip
+├── manifest.json
+├── files/
+│   └── <documentId>/<filename>
+└── chunks/
+    └── <documentId>.ndjson
+```
+
+Files and chunk entries are present when the document has that content.
+
+| Entry | Contents |
+| --- | --- |
+| `manifest.json` | Format version `1`, export time, base name and description, chunking configuration, embedding model and dimensions, whether vectors are included, tag definitions, and the document list. |
+| `files/<documentId>/<filename>` | The document's original stored file, when available. |
+| `chunks/<documentId>.ndjson` | One JSON line per chunk: index, content, token count, start/end offsets, enabled flag, and an optional vector. NDJSON is newline-delimited JSON. |
+
+Each document entry records its filename, MIME type, file size, enabled flag, tag values, entry paths, and chunk, token, and character counts. [Connector](/knowledgebase/connectors) documents export as plain documents with their text and any stored file.
+
+## Vectors and portability
+
+Vectors are the embeddings used to compare chunks with a query. Each exported vector is encoded as base64 float32 values in its chunk's NDJSON line.
+
+The manifest records the base's embedding model and dimensions. Reusing its vectors requires both to match the destination configuration; equal dimensions alone do not make vectors from different models comparable. Use `vectors=false` or `--no-vectors` when you need a text-and-file archive without vectors.
+
+## What stays behind
+
+The archive does not include:
+
+- Access-control lists or source-permission grants.
+- Connector links and credentials.
+- Uploader identities.
+- Internal storage keys or secret-provenance sidecars.
+
+Live [Organization Search](/search) queries providers directly and has no document index to export. A legacy indexed organization Search backend is also outside a workspace knowledge-base export.
+
+## Limits and audit
+
+Export preflight accepts at most **2,000** active, included, workspace-readable document rows. A larger eligible set returns `413`, even if some empty documents would otherwise be omitted from the archive.
+
+The bundle format also bounds each document to **5,000 chunks** and each chunk's content to **100,000 characters**. These are format limits, independent of vector inclusion.
+
+Each authorized export records an audit event with the base, vector option, and document count.
+
+## Related docs
+
+- [Knowledge Base](/knowledgebase) — uploads, processing, and embedding compatibility.
+- [Connectors](/knowledgebase/connectors) — source content and access methods.
+- [Access control](/platform/enterprise/access-control) — permission-group restrictions.

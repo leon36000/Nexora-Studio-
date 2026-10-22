@@ -1,0 +1,172 @@
+import type {
+  IncidentioIncidentUpdatesListParams,
+  IncidentioIncidentUpdatesListResponse,
+} from '@/tools/incidentio/types'
+import type { ToolConfig } from '@/tools/types'
+
+export const incidentUpdatesListTool: ToolConfig<
+  IncidentioIncidentUpdatesListParams,
+  IncidentioIncidentUpdatesListResponse
+> = {
+  id: 'incidentio_incident_updates_list',
+  name: 'List Incident Updates',
+  description: 'List all updates for a specific incident in incident.io',
+  version: '1.0.0',
+
+  params: {
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'incident.io API Key',
+    },
+    incident_id: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'The ID of the incident to get updates for (e.g., "01FCNDV6P870EA6S7TK1DSYDG0"). If not provided, returns all updates',
+    },
+    page_size: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Number of results to return per page (e.g., 10, 25, 50)',
+    },
+    after: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Cursor for pagination (e.g., "01FCNDV6P870EA6S7TK1DSYDG0")',
+    },
+  },
+
+  request: {
+    url: (params) => {
+      const url = new URL('https://api.incident.io/v2/incident_updates')
+
+      if (params.incident_id) {
+        url.searchParams.set('incident_id', params.incident_id.trim())
+      }
+
+      if (params.page_size) {
+        url.searchParams.set('page_size', params.page_size.toString())
+      }
+
+      if (params.after) {
+        url.searchParams.set('after', params.after.trim())
+      }
+
+      return url.toString()
+    },
+    method: 'GET',
+    headers: (params) => ({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${params.apiKey}`,
+    }),
+  },
+
+  transformResponse: async (response: Response) => {
+    const data = await response.json()
+
+    return {
+      success: true,
+      output: {
+        incident_updates: data.incident_updates || data,
+        pagination_meta: data.pagination_meta,
+      },
+    }
+  },
+
+  outputs: {
+    incident_updates: {
+      type: 'array',
+      description: 'List of incident updates',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'The update ID' },
+          incident_id: { type: 'string', description: 'The incident ID' },
+          message: { type: 'string', description: 'The update message', optional: true },
+          merged_into_incident_id: {
+            type: 'string',
+            description: 'ID of the incident this incident was merged into',
+            optional: true,
+          },
+          new_severity: {
+            type: 'object',
+            description: 'New severity if changed',
+            optional: true,
+            properties: {
+              id: { type: 'string', description: 'Severity ID' },
+              name: { type: 'string', description: 'Severity name' },
+              rank: { type: 'number', description: 'Severity rank' },
+            },
+          },
+          new_incident_status: {
+            type: 'object',
+            description: 'The incident status after this update',
+            properties: {
+              id: { type: 'string', description: 'Status ID' },
+              name: { type: 'string', description: 'Status name' },
+              category: { type: 'string', description: 'Status category' },
+            },
+          },
+          updater: {
+            type: 'object',
+            description: 'Actor who created the update',
+            properties: {
+              user: {
+                type: 'object',
+                description: 'Set when a user made the update',
+                optional: true,
+                properties: {
+                  id: { type: 'string', description: 'User ID' },
+                  name: { type: 'string', description: 'User name' },
+                  email: { type: 'string', description: 'User email', optional: true },
+                },
+              },
+              api_key: {
+                type: 'object',
+                description: 'Set when an API key made the update',
+                optional: true,
+                properties: {
+                  id: { type: 'string', description: 'API key ID' },
+                  name: { type: 'string', description: 'API key name' },
+                },
+              },
+              workflow: {
+                type: 'object',
+                description: 'Set when a workflow made the update',
+                optional: true,
+                properties: {
+                  id: { type: 'string', description: 'Workflow ID' },
+                  name: { type: 'string', description: 'Workflow name' },
+                },
+              },
+              alert: {
+                type: 'object',
+                description: 'Set when an alert made the update',
+                optional: true,
+                properties: {
+                  id: { type: 'string', description: 'Alert ID' },
+                  title: { type: 'string', description: 'Alert title' },
+                },
+              },
+            },
+          },
+          created_at: { type: 'string', description: 'When the update was created' },
+        },
+      },
+    },
+    pagination_meta: {
+      type: 'object',
+      description: 'Pagination information',
+      optional: true,
+      properties: {
+        after: { type: 'string', description: 'Cursor for next page', optional: true },
+        page_size: { type: 'number', description: 'Number of results per page' },
+      },
+    },
+  },
+}

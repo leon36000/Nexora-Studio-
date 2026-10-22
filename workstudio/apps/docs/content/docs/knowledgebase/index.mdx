@@ -1,0 +1,66 @@
+---
+title: Knowledge bases
+description: Store documents that your agents can search and use in their answers.
+---
+
+A **knowledge base** stores documents for your agents to search. Sim extracts their text, splits it into passages called chunks, and creates embeddings: numerical representations used to match a question to relevant content. The [Knowledge block](/knowledgebase/using-in-workflows) retrieves those chunks for an Agent to use in its answer.
+
+Upload files for a fixed collection, or use a [connector](/knowledgebase/connectors) to keep content in sync with an external source. [Organization Search](/search) has a separate live-provider catalog; connecting a source to a knowledge base does not enable it in Search.
+
+## Create a knowledge base
+
+1. Open **Knowledge bases** in the sidebar and select **New base**.
+2. Enter a name and, optionally, a description. Leave **Chunking Strategy** on **Auto** unless you need different boundaries. See [chunking strategies](/knowledgebase/chunking-strategies) for the settings.
+3. Add files when creating the base, or open it and choose **New documents**.
+4. Wait for processing to finish before searching. A successful upload starts processing; it does not mean the document is indexed yet.
+
+Creating a base and adding documents require workspace write access and the relevant [permission-group capabilities](/platform/enterprise/access-control).
+
+## Supported files and limits
+
+| Content | File extensions |
+| --- | --- |
+| PDF | `.pdf` |
+| Word | `.doc`, `.docx` |
+| Text and Markdown | `.txt`, `.md` |
+| HTML | `.html`, `.htm` |
+| Excel and CSV | `.xls`, `.xlsx`, `.csv` |
+| PowerPoint | `.pptx` |
+| Structured data | `.json`, `.jsonl`, `.yaml`, `.yml` |
+
+Each file can be up to **100 MiB**. One upload action accepts at most **20 files**, with **500 MiB** total. Legacy `.ppt` files are not supported; convert them to `.pptx` first.
+
+Scanned PDFs need Azure-hosted Mistral OCR or [Mistral OCR](https://docs.mistral.ai/studio/document-processing/basic_ocr) configured on the deployment. Password-protected, malformed, or overly complex files can fail processing even when they meet the upload-size limit. Read the document's error to find the required change.
+
+## Verify processing
+
+Sim processes documents in the background:
+
+1. **Extract** text using the parser for the file type, with OCR for scanned PDFs.
+2. **Chunk** the text using the base's settings.
+3. **Embed** the chunks so a query can match them by meaning.
+
+A document becomes eligible for search when `processingStatus` is `completed`. It and its chunks must also be enabled, included, and readable by the caller. See [debugging retrieval](/knowledgebase/debugging-retrieval) for status and access checks.
+
+Open a completed document to inspect its chunks. For uploaded documents, you can edit, add, disable, or delete chunks. Connector-managed chunks are read-only; change their content at the source and sync again.
+
+## Retrieve and refine
+
+Add a [Knowledge block](/knowledgebase/using-in-workflows) before an Agent, then reference `<knowledge.results>` in the Agent's prompt. The block can retrieve by query, by [tags](/knowledgebase/tags), or by both. Its retrieval mode controls whether a query uses semantic matching alone or combines it with keyword matching.
+
+Inspect the returned content before changing settings. Use tags to select the relevant document set, and adjust [chunking](/knowledgebase/chunking-strategies) when passages lose context or combine unrelated topics.
+
+## Embedding compatibility
+
+Each base records its embedding model and dimensions at creation and retains them for later document processing. The default configuration uses `text-embedding-3-small` at 1,536 dimensions. Self-hosted operators can choose a supported model and width with [`KB_EMBEDDING_MODEL` and `EMBEDDING_OUTPUT_DIMS`](/platform/self-hosting/environment-variables), including an embedding model on their own Ollama server.
+
+A query search across multiple bases requires the same embedding model and dimensions in every base. Search incompatible bases separately, or rebuild them with matching configuration. Tag-only searches do not compare vectors and do not require this compatibility. Each Knowledge block selects one base; use separate blocks when a workflow needs several.
+
+## Related docs
+
+- [Using a knowledge base in a workflow](/knowledgebase/using-in-workflows) for retrieval and Agent setup
+- [Connectors](/knowledgebase/connectors) for syncing documents from external sources
+- [Tags and filtering](/knowledgebase/tags) for narrowing a search
+- [Debugging retrieval](/knowledgebase/debugging-retrieval) for missing or irrelevant results
+- [Chunking strategies](/knowledgebase/chunking-strategies) for passage sizes and boundaries
+- [Export](/knowledgebase/export-import) for downloading documents, chunks, tags, and settings

@@ -1,0 +1,117 @@
+[project]
+name = "opengatellm"
+version = "0.9.0"
+description = "OpenGateLLM project"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "jinja2==3.1.6",
+    "requests==2.34.2",
+    "pydantic==2.13.5",
+    "pydantic-settings==2.15.0",
+    "httpx==0.28.1",
+    "pyyaml==6.0.3",
+    "pycountry==26.2.16",
+]
+
+[project.optional-dependencies]
+playground = [
+    "reflex==0.9.12",
+    "sqlalchemy[asyncio]==2.1.2",
+]
+api = [
+    "alembic==1.20.0",
+    "asyncpg==0.31.0",
+    "bcrypt==5.0.0",
+    "ecologits==0.11.2",
+    "fastapi==0.135.1",
+    "gunicorn==25.1.0",
+    "humanize==4.16.0",
+    "itsdangerous==2.2.0",
+    "langfuse==4.15.1",
+    "limits==5.8.0",
+    "mistralai==2.0.0",
+    "openai==2.15.0",
+    "prometheus-fastapi-instrumentator==8.1.0",
+    "psycopg2-binary==2.9.13",
+    "pyjwt==2.15.1",
+    "python-multipart==0.0.32",
+    "redis==7.2.1",
+    "sentry-sdk[fastapi]==2.71.0",
+    "sqlalchemy-utils==0.43.0",
+    "sqlalchemy[asyncio]==2.1.2",
+    "tiktoken==0.14.0",
+    "uvicorn==0.54.0"
+]
+dev = [
+    "pre-commit>=4.5.1",
+    "ruff==0.16.10",
+    "tabulate==0.10.0",
+    "rich==14.3.4",
+]
+test = [
+    "factory-boy>=3.3.3",
+    "gevent>=25.9.1",
+    "openmockllm @ git+https://github.com/etalab-ia/openmockllm.git@main",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+    "pytest-xdist>=3.8.0",
+    "pytest>=9.0.2",
+    "responses>=0.26.0",
+    "respx>=0.22.0"
+]
+
+[tool.setuptools]
+py-modules = []
+
+[tool.ruff]
+line-length = 150
+target-version = "py312"
+exclude = [
+    "**/alembic",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+]
+ignore = [
+    "F403",  # import * 
+    "F841",  # never used variables
+    "E501",  # line too long
+    "N806",  # force lowercase
+    "UP031", # format specifiers instead of percent format
+    "W291",  # trailing whitespace
+    "N805",  # first argument of a class method call is self
+    "N815",  # mixed case variable name
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["config", "utils", "api", "app"]
+forced-separate = ["tests"]
+
+[tool.ruff.lint.isort.sections]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+filterwarnings = [
+    # Ignore warnings from external libraries
+    "ignore:builtin type Swig.*:DeprecationWarning",
+    # factory_boy doesn't fully support async SQLAlchemy sessions
+    "ignore:coroutine 'AsyncSession.flush' was never awaited:RuntimeWarning",
+]

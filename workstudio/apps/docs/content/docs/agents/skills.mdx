@@ -1,0 +1,111 @@
+---
+title: Agent skills
+description: Write reusable instructions for workflow Agents to load on demand or select them directly in Chat.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+A skill is reusable Markdown guidance, such as a scoring rubric, support procedure, or writing style guide. Sim workspace skills use the name, description, and instructions from the open [Agent Skills format](https://agentskills.io/specification).
+
+Skills supply guidance. Tools perform actions, and each action still requires its normal access and configuration.
+
+## Use a skill in an Agent
+
+1. Open an **Agent** block with a model that supports tools and skills.
+2. In **Skills**, select **Add skill...** and choose the skills it should have available.
+3. Run a task that matches a selected skill, then inspect the Agent's tool calls.
+
+Selected skills appear as cards that you can open or remove. Editing depends on your access to the skill.
+
+At runtime, the Agent's system prompt includes an `<available_skills>` section with the selected names and descriptions. Sim adds a `load_skill` tool with a `skill_name` input. When the model calls it, the full instructions return as a tool response. Selecting a skill makes it available; the model decides whether to load it.
+
+This uses standard tool calling across compatible models. Deep-research and evaluation models do not expose the ordinary Agent Tools and Skills controls.
+
+## Use a skill in Chat
+
+Type `/` in the Chat message box to open the skills menu. Select a skill or keep typing to filter by name. The selected skill appears as a tag, such as `/format-markdown`.
+
+Tagging a skill includes its full instructions in the request. Sim can use them immediately, without deciding to load them through a tool first. Instructions guide the response; they do not guarantee compliance or grant additional access.
+
+## Create a workspace skill
+
+You need **Write** or **Admin** workspace access to create a skill.
+
+1. Open **Integrations** in the workspace sidebar and select **Skills**.
+2. Select **Add to Sim**.
+3. Enter **Name**, **Description**, and **Content**, then save.
+
+| Field | Requirements |
+| --- | --- |
+| **Name** | A workspace-unique kebab-case identifier, such as `lead-scoring-rubric`; 1–64 lowercase letters, digits, and hyphens, with no leading, trailing, or consecutive hyphens. |
+| **Description** | Explain what the skill does and when to use it; required, up to 1,024 characters. |
+| **Content** | Full Markdown instructions; required, up to 50,000 characters. |
+
+Search the Skills tab by name or description. Open a skill's detail page to edit it, share editor access, or delete it. Built-in skills are read-only templates; workspace skills have the editor controls described below. Integration pages can also suggest curated skills for their service, which you can add from that page.
+
+### Write instructions
+
+Keep the task and activation conditions specific. Include the steps, expected output, and edge cases that the agent needs. Keep task-specific input in the Agent block's messages.
+
+For example, this skill defines how to score an inbound lead:
+
+```markdown
+---
+name: lead-scoring-rubric
+description: Score inbound sales leads using company fit and stated intent. Use when qualifying a lead or explaining its score.
+---
+
+# Lead scoring rubric
+
+1. Read the lead's company, role, use case, and stated timeline.
+2. Check the configured company-fit criteria. Identify missing evidence.
+3. Use available research tools only when more evidence is needed.
+4. Assign a score from 0 to 100 and a tier: high, medium, or low.
+5. Explain the factors behind the score. Do not invent missing facts.
+
+Return the score, tier, reason, and any missing information.
+Do not send outreach unless the task authorizes it.
+```
+
+The tool and response-format configuration belongs on the Agent block. Mentioning a tool or asking for fields in a skill does not create that configuration.
+
+Keep skills focused. The Agent Skills specification recommends keeping the main instructions under 500 lines; this is guidance, while Sim's content limit is 50,000 characters. For large workspace instructions, split them into separate skills that can be selected independently.
+
+### Import instructions
+
+Select **Import** on the create page to choose a `.md` file or a `.zip` containing `SKILL.md`. ZIP files have a 5 MiB size limit. If the archive contains several matching files, Sim selects the shallowest `SKILL.md`.
+
+Use simple single-line `name:` and `description:` frontmatter values followed by the Markdown body. Sim imports those three fields. Bundled scripts, reference files, assets, and other frontmatter metadata are not imported. Adapt instructions that depend on those files before using the skill.
+
+You can also paste a complete `SKILL.md` into **Content**. When it contains a `name` frontmatter field, Sim fills Name and Description from the frontmatter and uses the Markdown body as Content. Review all fields before saving.
+
+## Editors and access
+
+Workspace members can see and use workspace skills without being added as editors, subject to organization restrictions. New members receive the same use access.
+
+Each workspace skill has an explicit editors list:
+
+- The creator becomes an editor.
+- Editors can edit, delete, and manage the editors list while they retain workspace access, including editors with the Read workspace role.
+- Workspace Admins are editors automatically and cannot be removed from that derived access.
+
+Open the skill detail and use **Share** to add workspace members as editors. The **Skill Editors** list shows who can change it.
+
+<Callout type="warn">
+The editors list controls changes to a skill, not who can load its instructions. Treat skill content as shared team instructions, not as a secret. Organization restrictions can still block skill use during a workflow run.
+</Callout>
+
+On Enterprise-entitled workspaces, a workspace Admin can configure `disableSkills` in [permission groups](/platform/enterprise/access-control). The restriction applies separately from the skill's editors list.
+
+## Verify activation
+
+Run a representative task and inspect whether the Agent called `load_skill`. If it did not load the intended skill, make the description's task and conditions clearer. Also check the selected model, skill selection, and organization access.
+
+Test the resulting behavior as well as loading: instructions can be available while the model still produces an unsuitable answer.
+
+## Related docs
+
+- [Choosing what to use](/agents/choosing)
+- [Agent block reference](/workflows/blocks/agent)
+- [Agent Skills specification](https://agentskills.io/specification)
+- [Community skill examples](https://github.com/anthropics/skills)

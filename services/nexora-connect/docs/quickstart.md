@@ -1,0 +1,210 @@
+# Quickstart
+
+Install dependencies and start the local development servers:
+
+```bash
+npm install
+npm run dev
+```
+
+`npm install` and `npm run dev` create local generated files when they are missing or stale.
+
+Open the API reference at `http://localhost:3000/docs`.
+
+## Run A No-Auth Action
+
+Hacker News does not need credentials, so it is the fastest way to verify the runtime:
+
+```bash
+curl -s -X POST http://localhost:3000/v1/actions/hackernews.get_top_stories \
+  -H 'content-type: application/json' \
+  -d '{"input":{}}'
+```
+
+## Discover Actions
+
+List services that expose actions:
+
+```bash
+curl -s http://localhost:3000/v1/actions
+```
+
+List action contracts for one service:
+
+```bash
+curl -s "http://localhost:3000/v1/actions?service=hackernews"
+```
+
+Get a local markdown guide for one action:
+
+```bash
+curl -s http://localhost:3000/api/actions/hackernews.get_top_stories/agent.md
+```
+
+Inspect local connections and the account identity exposed to users and agents:
+
+```bash
+curl -s http://localhost:3000/api/connections
+```
+
+## Configure An API Key Connection
+
+Inspect the provider to see supported auth types and credential fields:
+
+```bash
+curl -s http://localhost:3000/api/providers/github
+```
+
+Store the default API key connection:
+
+```bash
+curl -s -X PUT http://localhost:3000/api/connections/github \
+  -H 'content-type: application/json' \
+  -d '{"authType":"api_key","values":{"apiKey":"github_pat_..."}}'
+```
+
+Store a named API key connection:
+
+```bash
+curl -s -X PUT http://localhost:3000/api/connections/github \
+  -H 'content-type: application/json' \
+  -d '{"authType":"api_key","connectionName":"work","values":{"apiKey":"github_pat_..."}}'
+```
+
+Execute an action with that default connection:
+
+```bash
+curl -s -X POST http://localhost:3000/v1/actions/github.get_current_user \
+  -H 'content-type: application/json' \
+  -d '{"input":{}}'
+```
+
+## Configure An OAuth2 Connection
+
+List OAuth configs and copy the `expectedRedirectUri` for your provider:
+
+```bash
+curl -s http://localhost:3000/api/oauth/configs
+```
+
+Paste that exact callback URL into your provider OAuth app. With the default port, GitHub uses:
+
+```text
+http://localhost:3000/oauth/callback
+```
+
+If you expose the runtime through another origin, set `OOMOL_CONNECT_ORIGIN` before starting it.
+
+Store the provider OAuth client:
+
+```bash
+curl -s -X PUT http://localhost:3000/api/oauth/configs/github \
+  -H 'content-type: application/json' \
+  -d '{"clientId":"...","clientSecret":"..."}'
+```
+
+Start authorization and open the returned `authorizationUrl`:
+
+```bash
+curl -s -X POST http://localhost:3000/api/oauth/authorizations \
+  -H 'content-type: application/json' \
+  -d '{"service":"github"}'
+```
+
+After the browser callback completes, the OAuth credential is stored as the default connection. Add
+`"connectionName":"work"` to the authorization request to store the result as a named connection.
+
+## Web Console
+
+For local development, open the Web Console at `http://localhost:5173`. The Vite dev server proxies
+API requests to the runtime on `http://localhost:3000`.
+
+For a built console served by the Node runtime, build the `web` workspace and start only the API
+server:
+
+```bash
+npm run build:web
+npm run start
+```
+
+## Cloudflare Workers Preview
+
+Create the Cloudflare resources, apply the D1 schema, and start a local Worker preview:
+
+```bash
+cp wrangler.example.jsonc wrangler.local.jsonc
+npx wrangler d1 create open-connector
+npx wrangler r2 bucket create open-connector-transit-files
+npx wrangler d1 migrations apply open-connector --local --config wrangler.local.jsonc
+npm run dev:cloudflare
+```
+
+For remote deploys, put the returned D1 `database_id` in ignored `wrangler.local.jsonc`, run the
+migration with `--remote --config wrangler.local.jsonc`, set secrets with
+`wrangler secret put --config wrangler.local.jsonc`, then run:
+
+```bash
+npm run deploy:cloudflare
+```
+
+The Worker runtime exposes catalog metadata, connection/token/OAuth state APIs, R2-backed transit
+files, and the same generated provider action executor registry used by the Node runtime.
+
+## Runtime Settings
+
+Local runtime state is stored in `./data/connect.sqlite` by default. Override the directory with:
+
+```bash
+OOMOL_CONNECT_DATA_DIR=/path/to/data npm run dev
+```
+
+With Docker Compose, the bundled `connector-data` volume is mounted at `/app/data`.
+
+To use PostgreSQL 15 or newer, explicitly apply migrations before the first start and before each
+upgrade that adds migrations:
+
+```bash
+OOMOL_CONNECT_DATABASE_URL="postgresql://open_connector:password@localhost:5432/open_connector" \
+npm run runtime:migrate
+
+OOMOL_CONNECT_DATABASE_URL="postgresql://open_connector:password@localhost:5432/open_connector" \
+npm run dev
+```
+
+The Node server checks that all required PostgreSQL migrations are present but never applies DDL at
+startup. SQLite remains the default when `OOMOL_CONNECT_DATABASE_URL` is unset; the two backends are
+not synchronized.
+
+Set `OOMOL_CONNECT_ENCRYPTION_KEY` to encrypt stored credentials, OAuth client configuration, and
+completed idempotent Action responses:
+
+```bash
+OOMOL_CONNECT_ENCRYPTION_KEY="replace-with-a-long-random-secret" npm run dev
+```
+
+Set an admin bearer token when the admin API or web console is reachable outside your own shell:
+
+```bash
+OOMOL_CONNECT_ADMIN_TOKEN="replace-with-an-admin-token" npm run dev
+curl -s http://localhost:3000/api/actions \
+  -H "authorization: Bearer replace-with-an-admin-token"
+```
+
+Use the admin token for `/api`, `/docs`, and the web console. Create persistent runtime tokens for
+`/v1` and `/mcp` from the web console Access tab or `POST /api/runtime-tokens`; only token hashes are
+stored in the selected runtime database. Persistent tokens have no provider proxy access unless their independent
+`allowedProxies` grant includes the provider service or `*`. `OOMOL_CONNECT_RUNTIME_TOKEN` remains
+available for bootstrap scripts.
+
+The server binds to `127.0.0.1` by default. Set `HOST=0.0.0.0` only when the runtime must be
+reachable from outside the local machine or container.
+
+Constrain executable actions with comma-separated action ids or provider wildcards:
+
+```bash
+OOMOL_CONNECT_ALLOWED_ACTIONS="hackernews.*,github.get_current_user" npm run dev
+```
+
+Provider proxies are controlled separately and are not affected by Action policy. Deployment and
+runtime rules use `OOMOL_CONNECT_ALLOWED_PROXIES` and `OOMOL_CONNECT_BLOCKED_PROXIES`; persistent
+runtime tokens must additionally grant each provider through `allowedProxies`.

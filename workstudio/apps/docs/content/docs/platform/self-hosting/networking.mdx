@@ -1,0 +1,362 @@
+---
+title: Networking
+description: Reverse proxies, TLS, WebSockets, timeouts, and request size limits
+---
+
+import { Tab, Tabs } from '@/components/ui/tabs'
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Configure ingress for long-lived WebSockets, server-sent event (SSE) streams, and large request bodies. Both the app and realtime service must be reachable from browsers.
+
+## Topology
+
+Two services need to be reachable. You can put them on one hostname or two.
+
+<Tabs items={['Single hostname', 'Two hostnames']}>
+  <Tab value="Single hostname">
+
+Route `/socket.io` to realtime and everything else to the app.
+
+```
+sim.yourdomain.com/           → app:3000
+sim.yourdomain.com/socket.io  → realtime:3002
+```
+
+`NEXT_PUBLIC_SOCKET_URL` can be left unset — the client defaults to the page origin.
+
+  </Tab>
+  <Tab value="Two hostnames">
+
+Use separate hostnames when your ingress setup cannot split paths across backends. GKE's example values use this layout.
+
+```
+sim.yourdomain.com     → app:3000
+sim-ws.yourdomain.com  → realtime:3002
+```
+
+Then tell the client where realtime lives, and tell realtime which origins to accept:
+
+```yaml
+app:
+  env:
+    NEXT_PUBLIC_APP_URL: "https://sim.yourdomain.com"
+    BETTER_AUTH_URL: "https://sim.yourdomain.com"
+    NEXT_PUBLIC_SOCKET_URL: "https://sim-ws.yourdomain.com"
+
+realtime:
+  env:
+    ALLOWED_ORIGINS: "https://sim.yourdomain.com"
+```
+
+`ALLOWED_ORIGINS` is the CORS allowlist realtime enforces on socket connections; it must contain the app's origin. The URL keys only need to be set once under `app.env` — the chart writes them into a Secret both Deployments consume.
+
+Both hostnames need DNS records and TLS certificates.
+
+  </Tab>
+</Tabs>
+
+## Reverse proxy configuration
+
+<Tabs items={['Caddy', 'Nginx', 'Traefik']}>
+  <Tab value="Caddy">
+
+Caddy handles certificates, WebSockets, and streaming correctly by default.
+
+```
+sim.yourdomain.com {
+    request_body {
+        max_size 250MB
+    }
+
+    handle /socket.io/* {
+        reverse_proxy localhost:3002
+    }
+
+    reverse_proxy localhost:3000 {
+        flush_interval -1
+    }
+}
+```
+
+`flush_interval -1` disables response buffering, which keeps streamed agent output flowing token by token instead of arriving in one block at the end.
+
+  </Tab>
+  <Tab value="Nginx">
+
+Nginx buffers responses and times out idle connections by default. Both need overriding.
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name sim.yourdomain.com;
+
+    # Clear the configured deployed-chat cap at this proxy layer.
+    client_max_body_size 250M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Streamed responses must not be buffered
+        proxy_buffering off;
+        proxy_cache off;
+
+        # Long-running workflow executions
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+```
+
+For an existing **ingress-nginx** deployment, the equivalent annotations are below. The community controller [retired in March 2026](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) and no longer receives security updates. For a new deployment, use a maintained controller supported by your cluster and apply that controller's equivalent settings. This retirement does not apply to the standalone Nginx example above.
+
+```yaml
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "250m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+```
+
+  </Tab>
+  <Tab value="Traefik">
+
+```yaml
+ingress:
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+```
+
+Set the read/idle timeouts on the entrypoint, since they are static configuration rather than per-ingress:
+
+```yaml
+entryPoints:
+  websecure:
+    address: ":443"
+    transport:
+      respondingTimeouts:
+        readTimeout: 3600s
+        idleTimeout: 3600s
+```
+
+Traefik streams responses by default and needs no buffering override.
+
+  </Tab>
+</Tabs>
+
+## Cloud load balancers
+
+### GKE (GCE ingress)
+
+<Callout type="warn">
+  The GCE load balancer defaults to a **30-second backend timeout**, which closes every WebSocket every 30 seconds. Clients reconnect, but repeated disconnects interrupt collaboration and add reconnect load. Fix it with a `BackendConfig` on the realtime Service.
+</Callout>
+
+```yaml
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: sim-realtime-backendconfig
+  namespace: simstudio
+spec:
+  timeoutSec: 3600
+  connectionDraining:
+    drainingTimeoutSec: 60
+```
+
+Then annotate the realtime Service so the load balancer picks it up. The chart renders no annotations on any Service, and `realtime.service` accepts only `type`, `port`, and `targetPort` — an annotations key there is silently dropped. Annotate the Service directly:
+
+```bash
+kubectl annotate service -n '<namespace>' \
+  -l 'app.kubernetes.io/instance=<release>,app.kubernetes.io/component=realtime' \
+  cloud.google.com/backend-config='{"default": "sim-realtime-backendconfig"}'
+```
+
+Re-apply it after any `helm upgrade` that recreates the Service, or manage the annotation with a kustomize patch so it survives.
+
+TLS on GKE typically uses a **ManagedCertificate**, which the chart references by annotation but **does not create** — create it yourself before the first deploy:
+
+```yaml
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: simstudio-ssl-cert
+  namespace: simstudio
+spec:
+  domains:
+    - sim.yourdomain.com
+    - sim-ws.yourdomain.com
+```
+
+```yaml
+ingress:
+  className: ""
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.global-static-ip-name: "sim-ip"
+    networking.gke.io/managed-certificates: "simstudio-ssl-cert"
+    kubernetes.io/ingress.allow-http: "false"
+  # TLS comes from the ManagedCertificate — leaving the chart's secret-based
+  # TLS on makes the ingress reference a Secret that does not exist.
+  tls:
+    enabled: false
+```
+
+GKE requires the `kubernetes.io/ingress.class: gce` annotation; it does not use `ingressClassName` for this controller. Certificate and load-balancer provisioning can take an hour or more. Check `kubectl describe managedcertificate -n simstudio simstudio-ssl-cert` for `CertificateStatus: Active`. See [Google's secure Ingress guide](https://docs.cloud.google.com/kubernetes-engine/docs/how-to/secure-traffic-management).
+
+### AWS (ALB ingress)
+
+```yaml
+ingress:
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:..."
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
+```
+
+ALB defaults to a 60-second **idle** timeout. Raise it for connections that can remain idle that long; it is not a fixed lifetime for WebSockets exchanging heartbeats. See [ALB attributes](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/edit-load-balancer-attributes.html).
+
+### Azure (Application Gateway)
+
+Application Gateway's backend request timeout defaults to **20 seconds**; raise it for long-running responses. This differs from connection idle timeout. See [Azure backend settings](https://learn.microsoft.com/en-us/azure/application-gateway/configuration-http-settings). For another AKS ingress controller, configure its corresponding stream, body-size, and timeout settings.
+
+## Request size limits
+
+Requests must fit every layer: your reverse proxy, Next.js Proxy, and the route's body cap. Raising one layer does not raise the others.
+
+| Variable | Default | Applies to |
+|---|---|---|
+| `API_MAX_JSON_BODY_BYTES` | 50 MiB | Configured cap; contract-validated API routes clamp it to 10 MiB, or a lower route cap |
+| `CHAT_MAX_REQUEST_BYTES` | 220 MiB | Configured cap for the public deployed-chat endpoint |
+| `WEBHOOK_MAX_REQUEST_BYTES` | 10 MiB | Public webhook receiver endpoints |
+
+A reverse-proxy limit of at least 250 MB clears these configured defaults; use the syntax and units your proxy accepts. You can lower it to match smaller app limits.
+
+Most `/api` requests also pass through Next.js Proxy. The current app configuration leaves its `proxyClientMaxBodySize` at 10 MiB. Larger bodies are truncated to that buffer rather than automatically rejected by Next.js; the route may then fail to parse them. Receiving larger custom-route bodies requires changing `experimental.proxyClientMaxBodySize` in the app build, which increases per-request memory use. The shared JSON parser separately clamps contract-validated bodies to 10 MiB, so raising the Next.js buffer alone does not increase their limit. See [Next.js proxy body buffering](https://nextjs.org/docs/app/api-reference/config/next-config-js/proxyClientMaxBodySize).
+
+**With object storage configured**, regular file uploads do not flow through the proxy — the browser `PUT`s them directly to the bucket using a presigned URL, so the proxy limits matter only for chat attachments, API payloads, and webhook bodies. On the default local-disk storage there is no presigned path and every upload goes through the proxy, so its body limit applies to all of them.
+
+## Outbound connectivity
+
+The app makes outbound calls to model providers, integration APIs, your email provider, object storage, and your telemetry backend. Whether `HTTP_PROXY` / `HTTPS_PROXY` apply depends on which of those paths a call takes — there is no single answer, and no global setting that covers all of them.
+
+The server runs on Bun, and Bun's native `fetch` honors `$HTTP_PROXY`, `$HTTPS_PROXY`, and `$NO_PROXY`. Sim installs no global dispatcher. Default `fetch` uses the configured proxy unless `NO_PROXY` excludes the destination. The rest either build their own HTTP agent or speak a non-HTTP protocol.
+
+This depends on the runtime. The published images run Bun. If you build the standalone output and run it under Node instead, Node ignores these variables unless started with `NODE_USE_ENV_PROXY=1` (Node 22.21+ / 24.5+), and the `fetch`-based "Yes" rows stop being proxied — model providers, Resend, Gmail sending, the desktop update feed, and the telemetry relay. The Azure Blob, GCS and Azure Communication Services rows still hold: those SDKs read the proxy variables through their own agents rather than through `fetch`. See [Bun fetch](https://bun.sh/docs/runtime/networking/fetch) and [Node proxy configuration](https://nodejs.org/learn/http/enterprise-network-configuration).
+
+| Outbound path | Honors `HTTP_PROXY` / `HTTPS_PROXY` |
+|---|---|
+| Model providers reached over the default `fetch` — Anthropic, OpenAI, Google/Gemini, Vertex, Groq, Cerebras, xAI, Mistral, DeepSeek, OpenRouter, Together, Fireworks, Ollama, LiteLLM, and the other OpenAI-compatible providers | Yes |
+| Email via Resend, Azure Communication Services, and Gmail sending | Yes |
+| The desktop update feed's calls to GitHub | Yes |
+| Object storage — Azure Blob and GCS | Yes — their SDK pipelines read the proxy variables |
+| Everything through the SSRF guard — the HTTP block, tools, connectors, outbound webhooks, content fetches, MCP servers | No |
+| Azure OpenAI, Azure Anthropic, vLLM | Only when the endpoint comes from `AZURE_OPENAI_ENDPOINT`, `AZURE_ANTHROPIC_ENDPOINT`, or `VLLM_BASE_URL`. An endpoint typed into the block is validated and pinned to its resolved IP, which bypasses the proxy |
+| Amazon Bedrock, and object storage on S3 | No — the AWS SDK uses its own request handler |
+| Email via SMTP | No — Nodemailer opens a raw TCP connection |
+| Email via Amazon SES | No — the AWS SDK transport, over HTTPS |
+| OTLP export from the server SDK | No |
+| The `/api/telemetry` relay that forwards browser events | Yes — it uses the default `fetch` |
+| Postgres and Redis | No — raw TCP |
+
+The practical consequence: a mandatory-egress-proxy environment can route most LLM traffic, Resend mail, and Azure/GCS storage through the proxy, but guarded integration calls, S3, Bedrock, SMTP, telemetry, and datastore traffic still need a transparent proxy or NAT-based egress.
+
+### Internal destinations and `NO_PROXY`
+
+Set `NO_PROXY` for every destination that is not on the public internet, not just model endpoints. The app reaches the realtime server (`SOCKET_SERVER_URL`), the Presidio PII service (`PII_URL`), and itself (`INTERNAL_API_BASE_URL`) over the same default `fetch`, alongside self-hosted Ollama, LiteLLM, and vLLM — so a proxy that cannot reach your internal network breaks live updates and PII redaction, not only inference.
+
+Set it in the application environment, not your shell — under `app.env` on Helm, or the service's `environment:` on Compose. On Helm the suffixes alone are not enough: the chart wires `SOCKET_SERVER_URL`, `PII_URL`, and `OLLAMA_URL` to bare Service names, which no domain suffix matches. Add those names too — `helm template` prints the rendered ones, and the prefix is the release name unless it already contains `sim`, in which case it is the release name alone:
+
+  ```yaml
+  # Helm — for a release named `acme`
+  app:
+    env:
+      NO_PROXY: "localhost,127.0.0.1,.svc,.svc.cluster.local,acme-sim-app,acme-sim-realtime,acme-sim-pii,acme-sim-ollama"
+  ```
+
+  ```yaml
+  # Docker Compose
+  services:
+    simstudio:
+      environment:
+        # Add any internal model service you run: ollama, litellm, vllm.
+        - NO_PROXY=localhost,127.0.0.1,simstudio,realtime,ollama
+  ```
+
+### Per-request proxy
+
+The HTTP block's `proxyUrl` is honored per request by the SSRF guard, which builds a proxy agent for that call instead of pinning the target IP. It applies only to that path — connectors, content fetches, and MCP calls take a different guarded transport with no per-request proxy option.
+
+<Callout type="warn">
+  `proxyUrl` must be an `http://` URL **and** must resolve to a public address. The guard validates the proxy host under a dedicated `proxy` profile that has no operator allowlist, so `EGRESS_ALLOWED_HOSTS` and `EGRESS_ALLOWED_IP_RANGES` do not reach it. A corporate proxy on an RFC 1918 address is refused even when that range is allowlisted for everything else. See [Security](/platform/self-hosting/security#the-ssrf-boundary).
+</Callout>
+
+## Additional ingress and Chat service routing
+
+The chart renders a second, independent Ingress from `ingressInternal` — its own class, hosts, TLS secret, and rules. Use it to expose the same Deployments on an internal-only hostname alongside the public one. Replace the example class with your controller's configured class.
+
+```yaml
+ingressInternal:
+  enabled: true
+  className: "your-internal-ingress-class"
+  app:
+    host: sim.internal.example.com
+    paths:
+      - path: /
+        pathType: Prefix
+  realtime:
+    host: sim.internal.example.com
+    paths:
+      - path: /socket.io
+        pathType: Prefix
+  tls:
+    enabled: true
+    secretName: sim-internal-tls
+```
+
+When `realtime.host` equals `app.host`, the realtime paths are folded into the app host's rule ahead of the catch-all — which is why `/socket.io` must come first. Give realtime a different host and it gets a rule of its own.
+
+Both `ingress` and `ingressInternal` accept an optional `copilot` block, commented out in `values.yaml` because the `copilot` service is off by default. It follows the same host-sharing rule:
+
+```yaml
+# The route renders only when the service itself is enabled.
+copilot:
+  enabled: true
+
+ingress:
+  copilot:
+    host: sim.yourdomain.com
+    paths:
+      - path: /copilot
+        pathType: Prefix
+```
+
+## Related docs
+
+- [Security and hardening](/platform/self-hosting/security)
+- [Object storage](/platform/self-hosting/object-storage)

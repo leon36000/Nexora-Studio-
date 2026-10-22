@@ -1,0 +1,72 @@
+---
+title: Webhook
+description: Send an outbound HTTP POST with optional HMAC signing.
+---
+
+import { BlockPreview, WorkflowPreview, WEBHOOK_NOTIFY_WORKFLOW, WEBHOOK_TRIGGER_WORKFLOW } from '@/components/workflow-preview'
+
+The **Webhook block** sends an HTTP POST to an external endpoint. It is an outbound action; the [Webhook trigger](/workflows/triggers/webhook) receives requests that start a run.
+
+<BlockPreview type="webhook" />
+
+## Notify an external service
+
+<WorkflowPreview workflow={WEBHOOK_NOTIFY_WORKFLOW} />
+
+Send the Agent's result as a JSON payload to a Slack incoming webhook or your own endpoint. Use the payload format required by that endpoint.
+
+## Configuration
+
+| Field | Behavior |
+| --- | --- |
+| **Webhook URL** | Static endpoint URL or a value assembled from earlier outputs. |
+| **Payload** | JSON request body. The AI wand can help generate it. |
+| **Signing Secret** | Optional `{{WEBHOOK_SECRET}}` or another secret reference for HMAC-SHA256 signing. |
+| **Additional Headers** | Key-value headers merged over the automatic headers. |
+
+```json
+{
+  "event": "workflow.completed",
+  "data": {
+    "result": "<agent.content>"
+  }
+}
+```
+
+### Automatic headers and signing
+
+| Header | Value |
+| --- | --- |
+| `Content-Type` | `application/json` |
+| `X-Webhook-Timestamp` | Unix timestamp in milliseconds |
+| `X-Delivery-ID` | UUID for this request |
+| `Idempotency-Key` | Same UUID as X-Delivery-ID |
+| `X-Webhook-Signature` | When a secret is supplied: `t=<timestamp>,v1=<signature>` |
+
+The signature is the hexadecimal `HMAC-SHA256(secret, "${timestamp}.${body}")`, using the exact request body. Verify that value against `v1` at the destination.
+
+Custom headers can override these defaults. Overriding signing or timestamp headers can break verification. A new request gets a new delivery ID; the key does not deduplicate separate workflow executions automatically.
+
+## Outputs and failures
+
+| Reference | Value |
+| --- | --- |
+| `<webhook.data>` | Endpoint response body |
+| `<webhook.status>` | Successful response's HTTP status |
+| `<webhook.headers>` | Response headers |
+
+Non-2xx responses and request failures use the block's error path. Connect the error port when the workflow should recover.
+
+## Send only when a condition passes
+
+<WorkflowPreview workflow={WEBHOOK_TRIGGER_WORKFLOW} />
+
+Connect the Condition's **if** port to the Webhook to start an external process only for the matching event.
+
+The Webhook block always uses POST. Use [API](/workflows/blocks/api) for another HTTP method, retry controls, or proxy configuration.
+
+## Related docs
+
+- [Webhook trigger](/workflows/triggers/webhook)
+- [API](/workflows/blocks/api)
+- [Credentials and secrets](/platform/credentials)

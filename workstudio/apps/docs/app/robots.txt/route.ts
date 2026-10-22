@@ -1,0 +1,34 @@
+import { DOCS_BASE_URL } from '@/lib/urls'
+
+export const revalidate = false
+
+export async function GET() {
+  const baseUrl = DOCS_BASE_URL
+
+  const robotsTxt = `# Robots.txt for Sim Documentation
+
+User-agent: *
+Disallow: /.next/
+Disallow: /api/internal/
+Disallow: /admin/
+Allow: /
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /llms.mdx/
+
+# Sitemaps
+Sitemap: ${baseUrl}/sitemap.xml
+
+# Additional resources for AI indexing
+# See https://github.com/AnswerDotAI/llms-txt for more info
+# LLM-friendly content:
+#   Manifest: ${baseUrl}/llms.txt
+#   Full content (excluding API reference operations): ${baseUrl}/llms-full.txt
+#   Individual pages: ${baseUrl}/[page-path].md`
+
+  return new Response(robotsTxt, {
+    headers: {
+      'Content-Type': 'text/plain',
+    },
+  })
+}

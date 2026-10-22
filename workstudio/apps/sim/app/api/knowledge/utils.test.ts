@@ -1,0 +1,248 @@
+/**
+ * Knowledge Utils Unit Tests
+ *
+ * This file contains unit tests for the knowledge base utility functions,
+ * including access checks, document processing, and embedding generation.
+ */
+import {
+  dbChainMockFns,
+  defaultMockEnv,
+  queueTableRows,
+  resetDbChainMock,
+  schemaMock,
+} from '@sim/testing'
+import { afterAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
+import * as billingAttributionModule from '@/lib/billing/core/attribution'
+import { env } from '@/lib/core/config/env'
+import * as documentsUtilsModule from '@/lib/knowledge/documents/utils'
+import * as workspacesUtilsModule from '@/lib/workspaces/utils'
+
+vi.mock('@/lib/core/rate-limiter/provider-admission', () => ({
+  PROVIDER_QUOTA_COOLDOWN_MS: 300_000,
+  ProviderQuotaExhaustedError: class ProviderQuotaExhaustedError extends Error {},
+  ProviderAdmissionTimeoutError: class ProviderAdmissionTimeoutError extends Error {},
+  isProviderQuotaExhausted: vi.fn().mockResolvedValue(false),
+  recordProviderCooldown: vi.fn().mockResolvedValue(undefined),
+  waitForProviderAdmission: vi.fn().mockResolvedValue(undefined),
+}))
+
+const envSnapshot = { ...env }
+
+afterAll(() => {
+  for (const key of Object.keys(env)) {
+    delete (env as Record<string, unknown>)[key]
+  }
+  Object.assign(env, envSnapshot)
+  resetDbChainMock()
+  retrySpy.mockRestore()
+  vi.mocked(workspacesUtilsModule.getWorkspaceBilledAccountUserId).mockRestore()
+  vi.mocked(billingAttributionModule.assertBillingAttributionSnapshot).mockRestore()
+  vi.mocked(billingAttributionModule.checkAttributedUsageLimits).mockRestore()
+  vi.mocked(billingAttributionModule.resolveBillingAttribution).mockRestore()
+  vi.mocked(billingAttributionModule.toBillingContext).mockRestore()
+})
+
+/**
+ * Spy on the real documents/utils namespace instead of vi.mock: the shared
+ * `@/lib/knowledge/embeddings` module may be cached bound to the real module,
+ * so patching the namespace is the only wiring that always applies.
+ */
+let retrySpy: MockInstance<typeof documentsUtilsModule.retryWithExponentialBackoff>
+beforeEach(() => {
+  retrySpy = vi
+    .spyOn(documentsUtilsModule, 'retryWithExponentialBackoff')
+    .mockImplementation(((fn: () => unknown) => fn()) as never)
+})
+
+const BILLING_ATTRIBUTION_FIXTURE = {
+  actorUserId: 'billing-user-1',
+  billedAccountUserId: 'billing-user-1',
+  billingEntity: { type: 'user', id: 'billing-user-1' },
+  billingPeriod: {
+    start: '2026-07-01T00:00:00.000Z',
+    end: '2026-08-01T00:00:00.000Z',
+  },
+  organizationId: null,
+  payerSubscription: null,
+  workspaceId: 'workspace1',
+} as never
+
+function applyBillingSpies() {
+  vi.spyOn(workspacesUtilsModule, 'getWorkspaceBilledAccountUserId').mockResolvedValue('user1')
+  vi.spyOn(billingAttributionModule, 'assertBillingAttributionSnapshot').mockImplementation(
+    ((value: unknown) => value) as never
+  )
+  vi.spyOn(billingAttributionModule, 'checkAttributedUsageLimits').mockResolvedValue({
+    isExceeded: false,
+    payerUsage: { currentUsage: 0, limit: 100 },
+  } as never)
+  vi.spyOn(billingAttributionModule, 'resolveBillingAttribution').mockResolvedValue(
+    BILLING_ATTRIBUTION_FIXTURE
+  )
+  vi.spyOn(billingAttributionModule, 'toBillingContext').mockImplementation((() => ({
+    billingEntity: { type: 'user', id: 'billing-user-1' },
+    billingPeriod: {
+      start: new Date('2026-07-01T00:00:00.000Z'),
+      end: new Date('2026-08-01T00:00:00.000Z'),
+    },
+  })) as never)
+}
+
+/**
+ * Billing helpers are spied on the real namespaces (not vi.mock'd) for the
+ * same shared-consumer reason as the retry spy above.
+ */
+applyBillingSpies()
+
+vi.mock('@/lib/knowledge/documents/processor', () => ({
+  processDocument: vi.fn().mockResolvedValue({
+    chunks: [
+      {
+        text: 'alpha',
+        tokenCount: 1,
+        metadata: { startIndex: 0, endIndex: 4 },
+      },
+      {
+        text: 'beta',
+        tokenCount: 1,
+        metadata: { startIndex: 5, endIndex: 8 },
+      },
+    ],
+    metadata: {
+      filename: 'dummy',
+      fileSize: 10,
+      mimeType: 'text/plain',
+      characterCount: 9,
+      tokenCount: 3,
+      chunkCount: 2,
+      processingMethod: 'file-parser',
+    },
+  }),
+}))
+
+const TEST_EMBEDDING_DIMENSION = 1536
+
+function createTestEmbedding(value: number): number[] {
+  return Array.from({ length: TEST_EMBEDDING_DIMENSION }, () => value)
+}
+
+function createEmbeddingResponse(values: number[], encoding: 'base64' | 'float'): Response {
+  return new Response(
+    JSON.stringify({
+      data: values.map((value, index) => ({
+        embedding:
+          encoding === 'base64'
+            ? Buffer.from(new Float32Array(createTestEmbedding(value)).buffer).toString('base64')
+            : createTestEmbedding(value),
+        index,
+      })),
+      usage: { prompt_tokens: values.length, total_tokens: values.length },
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
+  )
+}
+
+function createEmbeddingFetchMock() {
+  return vi.fn().mockResolvedValue(createEmbeddingResponse([0.1, 0.3], 'base64'))
+}
+
+import { processDocumentAsync } from '@/lib/knowledge/documents/service'
+
+describe('Knowledge Utils', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    // The document claim gates on the row it writes back, so an unstubbed
+    // `returning()` would abort processing before any completion write.
+    dbChainMockFns.returning.mockResolvedValue([{ id: 'doc1' }])
+    vi.stubGlobal('fetch', createEmbeddingFetchMock())
+    // Under `isolate: false` the shared `@/lib/knowledge/embeddings` module may
+    // be cached bound to the REAL env module, so reset the real `env` object
+    // per test instead of vi.mock'ing a file-local replacement that a cached
+    // consumer would never see.
+    for (const key of Object.keys(env)) {
+      delete (env as Record<string, unknown>)[key]
+    }
+    /** Keep provider selection independent of credentials loaded from local environment files. */
+    vi.stubEnv('OPENAI_API_KEY', '')
+    vi.stubEnv('OPENROUTER_API_KEY', '')
+    vi.stubEnv('AZURE_OPENAI_API_KEY', '')
+    Object.assign(env, { ...defaultMockEnv, OPENAI_API_KEY: 'test-key' })
+    retrySpy.mockImplementation(((fn: () => unknown) => fn()) as never)
+    applyBillingSpies()
+  })
+
+  describe('processDocumentAsync', () => {
+    it('should insert embeddings before updating document counters', async () => {
+      /** Context prefetch JOIN (document × knowledge_base × workspace). */
+      queueTableRows(schemaMock.document, [
+        {
+          workspaceId: 'workspace1',
+          knowledgeBaseUserId: 'user1',
+          chunkingConfig: { maxSize: 1024, minSize: 1, overlap: 200 },
+          embeddingModel: 'text-embedding-3-small',
+          embeddingDimension: 1536,
+          billedAccountUserId: 'billing-user-1',
+          uploadedBy: null,
+          filename: 'file.txt',
+          fileUrl: 'https://example.com/file.txt',
+          fileSize: 10,
+          mimeType: 'text/plain',
+        },
+      ])
+      /** Legacy untracked documents have exact-empty provenance. */
+      queueTableRows(schemaMock.document, [
+        {
+          filename: 'file.txt',
+          fileUrl: 'https://example.com/file.txt',
+          secretProvenanceVersion: null,
+        },
+      ])
+      /** Pre-commit connector and knowledge-base activity check. */
+      queueTableRows(schemaMock.document, [{ id: 'doc1' }])
+      /** In-transaction active-document recheck. */
+      queueTableRows(schemaMock.document, [{ id: 'doc1' }])
+
+      await processDocumentAsync(
+        'kb1',
+        'doc1',
+        {
+          filename: 'file.txt',
+          fileUrl: 'https://example.com/file.txt',
+          fileSize: 10,
+          mimeType: 'text/plain',
+        },
+        {},
+        {
+          actorUserId: 'billing-user-1',
+          billedAccountUserId: 'billing-user-1',
+          billingEntity: { type: 'user', id: 'billing-user-1' },
+          billingPeriod: {
+            start: '2026-07-01T00:00:00.000Z',
+            end: '2026-08-01T00:00:00.000Z',
+          },
+          organizationId: null,
+          payerSubscription: null,
+          workspaceId: 'workspace1',
+        }
+      )
+
+      /**
+       * Embeddings are inserted first, then the document counter update. The
+       * status→'processing' update precedes both and a usage_log billing insert
+       * (recordUsage) may trail after — assert relative order via the shared
+       * spies' invocation order rather than exact call sequences.
+       */
+      const setPayloads = dbChainMockFns.set.mock.calls.map((call) => call[0])
+      const completedIndex = setPayloads.findIndex((p) => p?.processingStatus === 'completed')
+      expect(setPayloads[completedIndex]).toMatchObject({
+        processingStatus: 'completed',
+        chunkCount: 2,
+      })
+
+      expect(dbChainMockFns.values.mock.calls[0][0]).toHaveLength(2)
+      expect(dbChainMockFns.values.mock.invocationCallOrder[0]).toBeLessThan(
+        dbChainMockFns.set.mock.invocationCallOrder[completedIndex]
+      )
+    })
+  })
+})

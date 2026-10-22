@@ -1,0 +1,48 @@
+---
+title: Jira
+description: Search Jira Cloud issues using your own account
+---
+
+Jira Search finds Cloud issues with your personal OAuth grant. It uses **Member accounts**, with no service mode or admin project filter. Jira Server and Data Center are not supported by this adapter.
+
+## Connect
+
+1. An admin adds **Jira** in **Settings → Sources → Add source**.
+2. Each teammate selects **Integrations → Jira → Connect** and authorizes their Atlassian account.
+3. Search a known issue, or ask Sim about it. Read the result and follow its Jira link.
+
+No project setup or indexing is needed after authorization. Sim Cloud supplies the OAuth app where available; self-hosted deployments configure their app below.
+
+## Queries and issue reads
+
+Sim resolves your accessible Atlassian sites and sends Jira Query Language (JQL) to the search API. Ask Sim to narrow a query by project, status, dates, or another supported field. These are per-query filters, not source settings.
+
+Search returns summaries and descriptions. Reads fetch the issue and available comments with the same account. Jira enforces project permissions, issue security, and app-access restrictions. Bounded responses may omit comments; open Jira for the full discussion.
+
+Search checks up to four accessible sites by default. A native query can select a cloud site ID and follow its continuation cursor. Changes follow Jira's search freshness. Live Search does not crawl attachments or retain an indexed issue copy, and does not edit issues. The shared account connection can request broader workflow permissions.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Jira missing | Ask an admin to add it in **Sources**. |
+| Issue missing | Check the connected account's access, issue security, project permissions, site, and JQL. |
+| Project visible, issues unavailable | Check app-access/data-security restrictions; project visibility does not grant issue access. |
+| **Reconnect** needed | Authorize the intended account with requested scopes. |
+| Popup blocked | Allow popups and retry **Connect**. |
+| Invalid callback | Check the deployment app and exact callback scheme, host, port, and path. |
+
+## Self-hosted operator setup
+
+Follow [Atlassian OAuth setup](/platform/self-hosting/integrations-oauth#atlassian) for the full Jira scope set, including Service Management, Assets, **User Identity API → read:me**, `offline_access`, and **Distribution**. Set `JIRA_CLIENT_ID` and `JIRA_CLIENT_SECRET`, verify `NEXT_PUBLIC_APP_URL`, and register:
+
+```text
+https://<your-sim-domain>/api/auth/oauth2/callback/jira
+```
+
+Search reads only, but the shared app also supports workflows. If only the app owner can connect, check **Distribution**. After client/scope changes, update the organization's saved provider configuration and reconnect affected members.
+
+## Related docs
+
+- [Atlassian OAuth guide](https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/)
+- [Connect your account](/search/connect-your-account)

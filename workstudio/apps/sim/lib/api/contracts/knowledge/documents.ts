@@ -1,0 +1,482 @@
+import { z } from 'zod'
+import {
+  documentBooleanFieldSchema,
+  documentDateFieldSchema,
+  documentNumberFieldSchema,
+  documentTagFieldSchema,
+  knowledgeBaseParamsSchema,
+  knowledgeDocumentFileUrlSchema,
+  knowledgeDocumentParamsSchema,
+  nullableWireDateSchema,
+  paginationSchema,
+  successResponseSchema,
+  wireDateSchema,
+} from '@/lib/api/contracts/knowledge/shared'
+import { privateSecretProvenanceBundleSchema } from '@/lib/api/contracts/primitives'
+import { defineRouteContract } from '@/lib/api/contracts/types'
+import { PRIVATE_SECRET_PROVENANCE_FIELD } from '@/lib/execution/private-tool-metadata'
+import {
+  getFieldTypeForSlot,
+  MAX_DOCUMENT_INDEXED_TEXT_LENGTH,
+  MAX_KNOWLEDGE_DOCUMENTS_PER_CREATE,
+} from '@/lib/knowledge/constants'
+import { DOCUMENT_PROCESSING_STATUSES } from '@/lib/knowledge/documents/types'
+import { getOperatorsForFieldType, isValidFilterValue } from '@/lib/knowledge/filters/types'
+import { knowledgeDocumentUploadMetadataSchema } from '@/lib/knowledge/upload-metadata'
+
+export const documentTagFilterSchema = z
+  .object({
+    tagSlot: z.string().min(1),
+    fieldType: z.enum(['text', 'number', 'date', 'boolean']),
+    operator: z.string().min(1),
+    value: z.unknown(),
+    valueTo: z.unknown().optional(),
+  })
+  .superRefine((filter, ctx) => {
+    // The tag slot determines the column type, so validate against the slot
+    // (the source of truth) — not just the client-supplied fieldType. Rejecting
+    // unknown slots, type mismatches, and bad operators at the boundary returns
+    // a 400 instead of the query builder silently dropping or mis-handling the
+    // filter (e.g. a text `contains` aimed at a numeric column).
+    const slotFieldType = getFieldTypeForSlot(filter.tagSlot)
+    if (slotFieldType === null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['tagSlot'],
+        message: `Unknown tag slot "${filter.tagSlot}"`,
+      })
+      return
+    }
+    if (slotFieldType !== filter.fieldType) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fieldType'],
+        message: `fieldType "${filter.fieldType}" does not match tag slot "${filter.tagSlot}" (expected "${slotFieldType}")`,
+      })
+      return
+    }
+    const validOperators = getOperatorsForFieldType(filter.fieldType).map((op) => op.value)
+    if (!validOperators.includes(filter.operator)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['operator'],
+        message: `Unsupported operator "${filter.operator}" for a ${filter.fieldType} tag filter`,
+      })
+      return
+    }
+    if (!isValidFilterValue(filter.fieldType, filter.value)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['value'],
+        message: `Invalid value for a ${filter.fieldType} tag filter`,
+      })
+    }
+    // `between` is only valid for number/date (enforced by the operator check
+    // above), and needs a usable upper bound.
+    if (filter.operator === 'between' && !isValidFilterValue(filter.fieldType, filter.valueTo)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['valueTo'],
+        message: `Invalid second value for a ${filter.fieldType} "between" tag filter`,
+      })
+    }
+  })
+export type DocumentTagFilter = z.output<typeof documentTagFilterSchema>
+
+export const listKnowledgeDocumentsQuerySchema = z.object({
+  enabledFilter: z.enum(['all', 'enabled', 'disabled']).optional(),
+  search: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+  sortBy: z
+    .enum([
+      'filename',
+      'fileSize',
+      'tokenCount',
+      'chunkCount',
+      'uploadedAt',
+      'processingStatus',
+      'enabled',
+    ])
+    .optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+  // A query param is a string on the wire, so `tagFilters` is carried as a JSON
+  // string and decoded by the route via `parseDocumentTagFiltersParam`. It must
+  // NOT be a `.transform()` to an array here: the client's `requestJson` parses
+  // the query before serializing it, so a transform would turn the string into
+  // an array that serializes to `tagFilters=[object Object]` and 400s the route.
+  tagFilters: z.string().optional(),
+})
+
+/**
+ * Decodes the `tagFilters` query string (a JSON array) into validated filters.
+ * Throws on malformed JSON or a shape mismatch; callers map that to a 400.
+ */
+export function parseDocumentTagFiltersParam(
+  value: string | undefined
+): DocumentTagFilter[] | undefined {
+  if (!value) return undefined
+  return z.array(documentTagFilterSchema).parse(JSON.parse(value))
+}
+
+/** A text tag value that fits its index row; see {@link MAX_DOCUMENT_INDEXED_TEXT_LENGTH}. */
+const documentTagValueSchema = z
+  .string()
+  .max(
+    MAX_DOCUMENT_INDEXED_TEXT_LENGTH,
+    `Tag values cannot exceed ${MAX_DOCUMENT_INDEXED_TEXT_LENGTH} characters`
+  )
+
+export const createDocumentBodySchema = z.object({
+  filename: z
+    .string()
+    .min(1, 'Filename is required')
+    .max(
+      MAX_DOCUMENT_INDEXED_TEXT_LENGTH,
+      `Filename cannot exceed ${MAX_DOCUMENT_INDEXED_TEXT_LENGTH} characters`
+    ),
+  fileUrl: knowledgeDocumentFileUrlSchema,
+  fileSize: z.number().min(1, 'File size must be greater than 0'),
+  mimeType: z.string().min(1, 'MIME type is required'),
+  tag1: documentTagValueSchema.optional(),
+  tag2: documentTagValueSchema.optional(),
+  tag3: documentTagValueSchema.optional(),
+  tag4: documentTagValueSchema.optional(),
+  tag5: documentTagValueSchema.optional(),
+  tag6: documentTagValueSchema.optional(),
+  tag7: documentTagValueSchema.optional(),
+  documentTagsData: z.string().optional(),
+})
+
+export const bulkCreateDocumentsBodySchema = z.object({
+  documents: z
+    .array(createDocumentBodySchema)
+    .min(1, 'At least one document is required')
+    .max(
+      MAX_KNOWLEDGE_DOCUMENTS_PER_CREATE,
+      `At most ${MAX_KNOWLEDGE_DOCUMENTS_PER_CREATE} documents may be created at once`
+    ),
+  processingOptions: knowledgeDocumentUploadMetadataSchema.shape.processingOptions,
+  bulk: z.literal(true),
+  workflowId: z.string().optional(),
+  [PRIVATE_SECRET_PROVENANCE_FIELD]: privateSecretProvenanceBundleSchema.optional(),
+})
+
+const singleCreateDocumentBodySchema = createDocumentBodySchema.extend({
+  bulk: z.literal(false),
+  workflowId: z.string().optional(),
+  [PRIVATE_SECRET_PROVENANCE_FIELD]: privateSecretProvenanceBundleSchema.optional(),
+})
+
+const createKnowledgeDocumentsBodyDiscriminatedUnion = z.discriminatedUnion('bulk', [
+  bulkCreateDocumentsBodySchema,
+  singleCreateDocumentBodySchema,
+])
+
+export const createKnowledgeDocumentsBodySchema = z
+  .object({ bulk: z.boolean().default(false) })
+  .passthrough()
+  .pipe(createKnowledgeDocumentsBodyDiscriminatedUnion)
+export type CreateKnowledgeDocumentsBody = z.input<typeof createKnowledgeDocumentsBodySchema>
+export type BulkCreateDocumentsBody = z.input<typeof bulkCreateDocumentsBodySchema>
+export type SingleCreateDocumentBody = z.input<typeof singleCreateDocumentBodySchema>
+
+export const upsertDocumentBodySchema = z.object({
+  documentId: z.string().optional(),
+  filename: z
+    .string()
+    .min(1, 'Filename is required')
+    .max(
+      MAX_DOCUMENT_INDEXED_TEXT_LENGTH,
+      `Filename cannot exceed ${MAX_DOCUMENT_INDEXED_TEXT_LENGTH} characters`
+    ),
+  fileUrl: knowledgeDocumentFileUrlSchema,
+  fileSize: z.number().min(1, 'File size must be greater than 0'),
+  mimeType: z.string().min(1, 'MIME type is required'),
+  documentTagsData: z.string().optional(),
+  processingOptions: knowledgeDocumentUploadMetadataSchema.shape.processingOptions,
+  workflowId: z.string().optional(),
+  [PRIVATE_SECRET_PROVENANCE_FIELD]: privateSecretProvenanceBundleSchema.optional(),
+})
+export type UpsertDocumentBody = z.output<typeof upsertDocumentBodySchema>
+
+export const bulkCreateDocumentsResponseSchema = z.object({
+  total: z.number(),
+  documentsCreated: z.array(
+    z.object({
+      documentId: z.string(),
+      filename: z.string(),
+      status: z.string(),
+    })
+  ),
+  processingMethod: z.string(),
+  processingConfig: z
+    .object({
+      maxConcurrentDocuments: z.number(),
+      batchSize: z.number(),
+      totalBatches: z.number(),
+    })
+    .passthrough(),
+})
+
+export const updateDocumentBodySchema = z.object({
+  filename: z
+    .string()
+    .min(1, 'Filename is required')
+    .max(
+      MAX_DOCUMENT_INDEXED_TEXT_LENGTH,
+      `Filename cannot exceed ${MAX_DOCUMENT_INDEXED_TEXT_LENGTH} characters`
+    )
+    .optional(),
+  enabled: z.boolean().optional(),
+  chunkCount: z.number().min(0).optional(),
+  tokenCount: z.number().min(0).optional(),
+  characterCount: z.number().min(0).optional(),
+  processingStatus: z.enum(['pending', 'processing', 'completed', 'failed']).optional(),
+  processingError: z.string().optional(),
+  markFailedDueToTimeout: z.boolean().optional(),
+  retryProcessing: z.boolean().optional(),
+  tag1: documentTagValueSchema.optional(),
+  tag2: documentTagValueSchema.optional(),
+  tag3: documentTagValueSchema.optional(),
+  tag4: documentTagValueSchema.optional(),
+  tag5: documentTagValueSchema.optional(),
+  tag6: documentTagValueSchema.optional(),
+  tag7: documentTagValueSchema.optional(),
+  number1: z.string().optional(),
+  number2: z.string().optional(),
+  number3: z.string().optional(),
+  number4: z.string().optional(),
+  number5: z.string().optional(),
+  date1: z.string().optional(),
+  date2: z.string().optional(),
+  boolean1: z.string().optional(),
+  boolean2: z.string().optional(),
+  boolean3: z.string().optional(),
+})
+
+export const updateDocumentTagsBodySchema = z.record(z.string(), z.string())
+
+export const bulkDocumentOperationBodySchema = z
+  .object({
+    operation: z.enum(['enable', 'disable', 'delete']),
+    documentIds: z.array(z.string()).min(1).max(100).optional(),
+    selectAll: z.boolean().optional(),
+    enabledFilter: z.enum(['all', 'enabled', 'disabled']).optional(),
+  })
+  .refine((data) => data.selectAll || (data.documentIds && data.documentIds.length > 0), {
+    message: 'Either selectAll must be true or documentIds must be provided',
+  })
+
+export const bulkDocumentOperationDataSchema = z.object({
+  operation: z.string().optional(),
+  successCount: z.number(),
+  failedCount: z.number().optional(),
+  updatedDocuments: z
+    .array(z.object({ id: z.string(), enabled: z.boolean().optional() }))
+    .optional(),
+})
+export type BulkDocumentOperationData = z.output<typeof bulkDocumentOperationDataSchema>
+
+export const documentDataSchema = z
+  .object({
+    id: z.string(),
+    knowledgeBaseId: z.string(),
+    filename: z.string(),
+    fileUrl: z.string(),
+    fileSize: z.number(),
+    mimeType: z.string(),
+    chunkCount: z.number(),
+    tokenCount: z.number(),
+    characterCount: z.number(),
+    processingStatus: z.enum(DOCUMENT_PROCESSING_STATUSES),
+    processingOutcome: z.literal('skipped').nullable().default(null),
+    /** When indexing was last dispatched to a worker, which precedes a worker starting it. */
+    processingQueuedAt: nullableWireDateSchema.optional(),
+    processingStartedAt: nullableWireDateSchema.optional(),
+    processingCompletedAt: nullableWireDateSchema.optional(),
+    processingError: z.string().nullable().optional(),
+    enabled: z.boolean(),
+    uploadedAt: wireDateSchema,
+    tag1: documentTagFieldSchema,
+    tag2: documentTagFieldSchema,
+    tag3: documentTagFieldSchema,
+    tag4: documentTagFieldSchema,
+    tag5: documentTagFieldSchema,
+    tag6: documentTagFieldSchema,
+    tag7: documentTagFieldSchema,
+    number1: documentNumberFieldSchema,
+    number2: documentNumberFieldSchema,
+    number3: documentNumberFieldSchema,
+    number4: documentNumberFieldSchema,
+    number5: documentNumberFieldSchema,
+    date1: documentDateFieldSchema,
+    date2: documentDateFieldSchema,
+    boolean1: documentBooleanFieldSchema,
+    boolean2: documentBooleanFieldSchema,
+    boolean3: documentBooleanFieldSchema,
+    connectorId: z.string().nullable().optional(),
+    connectorType: z.string().nullable().optional(),
+    sourceUrl: z.string().nullable().optional(),
+  })
+  /**
+   * Strict allow-list. The single-document presenter spreads the whole
+   * `document` row, so an unlisted column — `storageKey`, and now `acl` —
+   * would otherwise reach every client that can read a document.
+   */
+  .strip()
+export type DocumentData = z.output<typeof documentDataSchema>
+
+export const documentsPaginationSchema = paginationSchema
+export type DocumentsPagination = z.output<typeof documentsPaginationSchema>
+
+export const knowledgeDocumentsDataSchema = z.object({
+  documents: z.array(documentDataSchema),
+  pagination: documentsPaginationSchema,
+})
+export type KnowledgeDocumentsResponse = z.output<typeof knowledgeDocumentsDataSchema>
+
+export const getKnowledgeDocumentContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/knowledge/[id]/documents/[documentId]',
+  params: knowledgeDocumentParamsSchema,
+  response: {
+    mode: 'json',
+    schema: successResponseSchema(documentDataSchema),
+  },
+})
+
+export const listKnowledgeDocumentsContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/knowledge/[id]/documents',
+  params: knowledgeBaseParamsSchema,
+  query: listKnowledgeDocumentsQuerySchema,
+  response: {
+    mode: 'json',
+    schema: successResponseSchema(knowledgeDocumentsDataSchema),
+  },
+})
+
+/**
+ * Document creation from inline content has no HTTP route: `POST
+ * /api/knowledge/[id]/documents` was retired when tool operations moved
+ * in-process, and the surviving `GET`/`PATCH` on that path would answer a `POST`
+ * with 405. So these stay plain schemas rather than a `defineRouteContract` —
+ * `lib/internal/knowledge/execute-tool.ts` validates `knowledge_create_document`
+ * against them directly. Callers wanting an HTTP upload use v1 or v2, both of
+ * which take multipart file bodies rather than inline content.
+ */
+export const createKnowledgeDocumentsSchemas = {
+  params: knowledgeBaseParamsSchema,
+  body: createKnowledgeDocumentsBodySchema,
+} as const
+
+export const createKnowledgeDocumentsResponseSchema = successResponseSchema(
+  z.union([bulkCreateDocumentsResponseSchema, documentDataSchema])
+)
+
+export const updateKnowledgeDocumentContract = defineRouteContract({
+  method: 'PUT',
+  path: '/api/knowledge/[id]/documents/[documentId]',
+  params: knowledgeDocumentParamsSchema,
+  body: updateDocumentBodySchema,
+  response: {
+    mode: 'json',
+    schema: successResponseSchema(
+      z.union([
+        documentDataSchema,
+        z.object({ documentId: z.string(), status: z.string(), message: z.string() }),
+      ])
+    ),
+  },
+})
+export type UpdateKnowledgeDocumentResponseData = z.output<
+  typeof updateKnowledgeDocumentContract.response.schema
+>['data']
+
+export const updateKnowledgeDocumentTagsContract = defineRouteContract({
+  method: 'PUT',
+  path: '/api/knowledge/[id]/documents/[documentId]',
+  params: knowledgeDocumentParamsSchema,
+  body: updateDocumentTagsBodySchema,
+  response: {
+    mode: 'json',
+    schema: successResponseSchema(documentDataSchema),
+  },
+})
+
+export const deleteKnowledgeDocumentContract = defineRouteContract({
+  method: 'DELETE',
+  path: '/api/knowledge/[id]/documents/[documentId]',
+  params: knowledgeDocumentParamsSchema,
+  response: {
+    mode: 'json',
+    schema: successResponseSchema(z.unknown()),
+  },
+})
+
+export const bulkKnowledgeDocumentsContract = defineRouteContract({
+  method: 'PATCH',
+  path: '/api/knowledge/[id]/documents',
+  params: knowledgeBaseParamsSchema,
+  body: bulkDocumentOperationBodySchema,
+  response: {
+    mode: 'json',
+    schema: successResponseSchema(bulkDocumentOperationDataSchema),
+  },
+})
+
+export const upsertKnowledgeDocumentContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/knowledge/[id]/documents/upsert',
+  params: knowledgeBaseParamsSchema,
+  body: upsertDocumentBodySchema,
+  response: {
+    mode: 'json',
+    schema: successResponseSchema(
+      z.object({
+        documentsCreated: z.array(
+          z.object({
+            documentId: z.string(),
+            filename: z.string(),
+            status: z.literal('pending'),
+          })
+        ),
+        isUpdate: z.boolean(),
+        previousDocumentId: z.string().nullable(),
+        processingMethod: z.literal('background'),
+        processingConfig: z.object({
+          maxConcurrentDocuments: z.number(),
+          batchSize: z.number(),
+        }),
+      })
+    ),
+  },
+})
+
+/** Bounded indexed text returned by Search's document reader. */
+export const readSearchDocumentResultSchema = z.object({
+  documentId: z.string().min(1),
+  knowledgeBaseId: z.string().min(1),
+  documentName: z.string().nullable(),
+  sourceUrl: z.string().nullable(),
+  chunks: z
+    .array(
+      z.object({
+        content: z.string().max(8000),
+        chunkIndex: z.number().int().min(0),
+        startOffset: z.number().int().min(0),
+        endOffset: z.number().int().min(0),
+        totalCharacters: z.number().int().min(0),
+      })
+    )
+    .max(8),
+  hasMore: z.boolean(),
+  next: z
+    .object({
+      startChunkIndex: z.number().int().min(0),
+      startOffset: z.number().int().min(0),
+    })
+    .nullable(),
+})
+export type ReadSearchDocumentResult = z.output<typeof readSearchDocumentResultSchema>

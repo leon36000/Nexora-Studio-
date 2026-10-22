@@ -1,0 +1,210 @@
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
+
+from httpx import AsyncClient
+import pytest
+import pytest_asyncio
+from sqlalchemy import select
+
+from api.dependencies import create_user_use_case_factory
+from api.domain.organization.errors import OrganizationNotFoundError
+from api.domain.role.errors import RoleNotFoundError
+from api.domain.user.errors import UserAlreadyExistsError
+from api.infrastructure.fastapi.routes import EndpointRoute
+from api.infrastructure.postgres.models import User as UserTable
+from api.tests.helpers import create_key
+from api.tests.integration.factories.sql import OrganizationSQLFactory, RoleSQLFactory, UserSQLFactory
+
+URL = f"/v1{EndpointRoute.ADMIN_USERS}"
+
+
+def _valid_body(role_id: int, organization_id: int = 1, **overrides) -> dict:
+    body = {
+        "email": "newuser@test.com",
+        "password": "s3cr3tpw",
+        "role_id": role_id,
+        "organization_id": organization_id,
+    }
+    body.update(overrides)
+    return body
+
+
+@pytest.mark.asyncio(loop_scope="session")
+class TestCreateUser:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, db_session):
+        self.admin_user = UserSQLFactory(admin_user=True)
+        self.token = await create_key(db_session, name="admin_token", user=self.admin_user)
+
+    async def test_happy_path(self, client: AsyncClient, db_session):
+        role = RoleSQLFactory()
+        organization = OrganizationSQLFactory()
+        await db_session.flush()
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.token.token}"},
+            json=_valid_body(role_id=role.id, organization_id=organization.id),
+        )
+
+        assert response.status_code == 201, response.text
+        data = response.json()
+        assert data["email"] == "newuser@test.com"
+        assert isinstance(data["id"], int)
+        assert data["role_id"] == role.id
+        assert data["organization_id"] == organization.id
+        assert data["expires"] is None
+        assert isinstance(data["created"], int)
+        assert isinstance(data["updated"], int)
+
+    @pytest.mark.parametrize(
+        "expires_delta",
+        [
+            pytest.param(timedelta(days=-1), id="past"),
+            pytest.param(timedelta(days=30), id="future"),
+        ],
+    )
+    async def test_round_trips_expires_as_unix_timestamp(self, client: AsyncClient, db_session, expires_delta):
+        role = RoleSQLFactory()
+        organization = OrganizationSQLFactory()
+        await db_session.flush()
+        expires = int((datetime.now(tz=UTC) + expires_delta).timestamp())
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.token.token}"},
+            json=_valid_body(role_id=role.id, organization_id=organization.id, expires=expires),
+        )
+
+        assert response.status_code == 201, response.text
+        assert response.json()["expires"] == expires
+        stored = (await db_session.execute(select(UserTable.expires).where(UserTable.id == response.json()["id"]))).scalar_one()
+        assert stored == datetime.fromtimestamp(timestamp=expires, tz=UTC)
+
+    @pytest.mark.parametrize(
+        "body,expected_msg",
+        [
+            ({"email": "newuser@test.com", "role_id": 1}, "Field required"),
+            ({"email": "newuser@test.com", "role_id": 1, "password": None}, "Input should be a valid string"),
+        ],
+        ids=["missing_password", "null_password"],
+    )
+    async def test_rejects_missing_or_null_password(self, client: AsyncClient, body, expected_msg):
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.token.token}"},
+            json=body,
+        )
+
+        assert response.status_code == 422, response.text
+        password_errors = [error for error in response.json()["detail"] if error["loc"][-1] == "password"]
+        assert len(password_errors) == 1
+        assert password_errors[0]["msg"] == expected_msg
+
+    async def test_rejects_password_over_72_bytes(self, client: AsyncClient):
+        # Arrange
+        password_of_72_characters_and_73_bytes = "a" * 71 + "é"
+
+        # Act
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.token.token}"},
+            json=_valid_body(role_id=1, password=password_of_72_characters_and_73_bytes),
+        )
+
+        # Assert
+        assert response.status_code == 422, response.text
+        errors = response.json()["detail"]
+        assert len(errors) == 1
+        assert errors[0]["loc"] == ["body", "password"]
+        assert errors[0]["msg"] == "Value error, Password must be at most 72 bytes long."
+
+    async def test_accepts_password_at_72_bytes(self, client: AsyncClient, db_session):
+        # Arrange
+        role = RoleSQLFactory()
+        organization = OrganizationSQLFactory()
+        await db_session.flush()
+        password_of_72_bytes = "a" * 72
+
+        # Act
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.token.token}"},
+            json=_valid_body(role_id=role.id, organization_id=organization.id, password=password_of_72_bytes),
+        )
+
+        # Assert
+        assert response.status_code == 201, response.text
+
+    async def test_rejects_missing_organization(self, client: AsyncClient):
+        body = _valid_body(role_id=1)
+        del body["organization_id"]
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.token.token}"},
+            json=body,
+        )
+
+        assert response.status_code == 422, response.text
+        assert [error for error in response.json()["detail"] if error["loc"][-1] == "organization_id"]
+
+    @pytest.mark.parametrize(
+        "use_case_result,expected_status,expected_detail",
+        [
+            (
+                UserAlreadyExistsError(email="existing@test.com"),
+                409,
+                "User existing@test.com already exists.",
+            ),
+            (
+                RoleNotFoundError(id=99),
+                404,
+                "Role 99 not found.",
+            ),
+            (
+                OrganizationNotFoundError(id=99),
+                404,
+                "Organization 99 not found.",
+            ),
+        ],
+    )
+    async def test_error_maps_to_correct_http_status(self, client: AsyncClient, app, use_case_result, expected_status, expected_detail):
+        mock_use_case = AsyncMock()
+        mock_use_case.execute.return_value = use_case_result
+        app.dependency_overrides[create_user_use_case_factory] = lambda: mock_use_case
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.token.token}"},
+            json=_valid_body(role_id=1),
+        )
+
+        assert response.status_code == expected_status
+        assert response.json().get("detail") == expected_detail
+
+    async def test_rejects_non_admin_user(self, client: AsyncClient, db_session):
+        regular_user = UserSQLFactory(regular_user=True)
+        key = await create_key(db_session, name="regular_user_key", user=regular_user, never_expires=True)
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {key.token}"},
+            json=_valid_body(role_id=1),
+        )
+
+        assert response.status_code == 403, response.text
+        assert response.json().get("detail") == "User has no admin rights."
+
+    @pytest.mark.parametrize(
+        "headers,expected_status,expected_detail",
+        [
+            ({}, 401, "Not authenticated"),
+            ({"Authorization": "Bearer invalid-token"}, 401, "Invalid API key."),
+        ],
+    )
+    async def test_auth(self, client: AsyncClient, headers, expected_status, expected_detail):
+        response = await client.post(url=URL, headers=headers, json=_valid_body(role_id=1))
+
+        assert response.status_code == expected_status
+        assert response.json().get("detail") == expected_detail

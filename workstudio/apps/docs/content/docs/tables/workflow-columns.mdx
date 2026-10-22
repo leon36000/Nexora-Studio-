@@ -1,0 +1,96 @@
+---
+title: Workflow columns
+description: Configure per-row enrichments or deployed workflows and write selected results into table columns.
+---
+
+A workflow group runs a deployed workflow for each eligible row and writes selected outputs into columns on that row. Use it for classification, lead scoring, or other work that has the same shape for each record. A group can fill several columns in one run.
+
+## Choose an enrichment or workflow
+
+| Group | Use it for | Setup |
+| --- | --- | --- |
+| **Enrichment** | A built-in lookup maintained by Sim | Select it in **Enrichments**, map its inputs, and name its output columns. |
+| **Workflow** | Per-row logic you build | Create and deploy a workflow, then configure its inputs and outputs on the table. |
+
+Enrichments try available data providers in order. **Not found** means the lookup completed without a match; it does not mean every provider error is a no-match result.
+
+For aggregation across many rows, a one-off transform, or a decision tied to an incoming request, use a [standalone workflow](/workflows). To read table data during that work, see [Using tables in workflows](/tables/using-in-workflows).
+
+## Configure a workflow group
+
+1. Build a workflow with the [Start input fields](/workflows/triggers/start) it needs, then deploy it. The picker uses deployed workflows and their output definitions.
+2. In the table, select **New column → Workflow**.
+3. In **Configure workflow**, select **Workflow**, then choose **Output columns**. A single group can write several selected outputs.
+4. Open **Show additional fields → Workflow inputs**. Expand each Start field and choose its source **Column**.
+5. Leave **Auto-run workflow** off for manual runs, or enable it and select at least one **Run after** column.
+6. Select **Save**. Rename the created output columns if needed.
+
+Mapped column values populate the named Start fields. The workflow also receives row context: the row's other non-own-output cells, headers, row ID, table ID/name, and timestamp. When no input mappings are configured, non-own-output columns also supply the input values. Mappings do not restrict which row data the workflow can read.
+
+The group writes selected outputs automatically; unselected outputs are not added as group result columns. Table blocks inside the workflow can make additional changes to rows.
+
+### Dependencies
+
+**Run after** offers upstream columns to the group's left. It governs automatic runs and manual runs when **Auto-run workflow** is enabled. With auto-run off, manual runs bypass dependency checks.
+
+When dependencies are enforced, values must be nonempty: `null`, missing values, empty strings, and empty arrays are unmet. A Boolean dependency must be `true`; `false` leaves the group waiting.
+
+Dependencies can be ordinary columns or another group's output. For example:
+
+```text
+Company Domain → domain
+Company Info waits for domain → employee_count, description
+Lead Score waits for required company information → lead_score, priority, score_reasoning
+```
+
+Each row becomes eligible independently. When dependencies are enforced, an enrichment with no match for a required column leaves its downstream group **Waiting** until the required values or dependencies change.
+
+## Run rows
+
+New groups have auto-run off. With it enabled, eligible rows run without a manual action.
+
+For one row, use the row or cell's run control. The group header's run menu offers:
+
+| Control | Scope |
+| --- | --- |
+| **Run N selected rows** | The explicitly selected rows. |
+| **Run empty rows** | Unrun or failed/incomplete work eligible for the selected run mode. |
+| **Run 10 empty rows** / **Run 1,000 empty rows** | A smaller batch of eligible incomplete rows. |
+| **Run all rows** | All rows in scope, including completed work. |
+
+Table-wide controls honor the active filter and use **filtered rows** in their labels when a filter applies. **Run empty rows** does not necessarily rerun a completed row just because its result is blank: use **Run all rows** or **Re-run cell** for completed no-match or no-output work.
+
+### Automatic reruns
+
+Auto-run initially skips completed, errored, or cancelled attempts; errors do not retry continuously without a change. Changing a satisfied dependency or clearing an output can re-arm automatic work downstream. Changes during execution can cancel or restart dependent work and incur additional run cost.
+
+Normal table-run coordination avoids overlapping group work on the same row, but it is not a guarantee against edits, independent workflow writes, or degraded coordination. Do not use the run controls as an atomic row-claim mechanism.
+
+## Execution states
+
+| State | Meaning |
+| --- | --- |
+| **Waiting** | Required dependencies are unmet. |
+| **Pending** | Waiting for earlier workflow work or paused input. |
+| **Queued** | Eligible and waiting for an execution slot. |
+| **Running** | The current block or group is executing. |
+| **Error** | Execution failed; inspect the run for its error. |
+| **Cancelled** | The run stopped before completing. |
+| **Not found** | An enrichment completed without a match. |
+| **No output** | Workflow work completed without a value for this output. |
+
+A produced value replaces its status badge. Completed output cells can remain filled while other steps on the row are still running.
+
+The running-count control shows active work. Select **Stop all** to cancel active table runs, including work outside the current filter; completed values remain.
+
+## Inspect and retry a run
+
+Open a cell's menu and select **View execution** to inspect available block inputs, outputs, timing, status, and costs in its [run trace](/logs-debugging). On an error, check the resolved inputs and the failing step, then correct the configuration or data.
+
+Select **Re-run cell** to run the group again for that row. Its selected outputs update as results arrive. For a wider retry, choose the appropriate group-header action and check its filter and row scope before starting.
+
+## Related docs
+
+- [Using tables in workflows](/tables/using-in-workflows) for Table block operations
+- [Start trigger](/workflows/triggers/start) for input fields
+- [Logs](/logs-debugging) for tracing a failed row run

@@ -1,0 +1,194 @@
+import { execFileSync } from 'node:child_process'
+import { cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { type BuildOptions, build } from 'esbuild'
+import postcss from 'postcss'
+import loadPostcssConfig from 'postcss-load-config'
+import { identityForOrigin } from './channels'
+
+const watch = process.argv.includes('--watch')
+
+// Optional build-time default server origin (pre-release shares pointed at a
+// non-prod environment): SIM_DESKTOP_DEFAULT_ORIGIN=https://www.dev.sim.ai.
+// Baked into the bundle so it applies to fresh installs with no settings —
+// unlike the SIM_DESKTOP_ORIGIN env var, which only affects terminal-launched
+// processes. Official builds leave it unset (default https://www.sim.ai).
+const bakedDefaultOrigin = process.env.SIM_DESKTOP_DEFAULT_ORIGIN ?? ''
+if (
+  bakedDefaultOrigin &&
+  !/^https:\/\/[^\s/]+$/.test(bakedDefaultOrigin) &&
+  !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(bakedDefaultOrigin)
+) {
+  console.error(
+    `SIM_DESKTOP_DEFAULT_ORIGIN must be a bare https origin or http://localhost (got "${bakedDefaultOrigin}")`
+  )
+  process.exit(1)
+}
+if (bakedDefaultOrigin) {
+  console.log(`• Baking default server origin: ${bakedDefaultOrigin}`)
+}
+
+const appIcon = identityForOrigin(bakedDefaultOrigin).icon
+const generatedIcon = 'build/generated-icon.icon'
+rmSync(generatedIcon, { force: true, recursive: true })
+cpSync(appIcon, generatedIcon, { recursive: true })
+console.log(`• Selecting desktop icon: ${appIcon}`)
+
+/** Bundle the native helper; packaged builds sign it with the desktop distribution identity. */
+function compileComputerUse(): void {
+  if (process.platform !== 'darwin') return
+  const bundle = 'dist/native/Sim Computer Use.app'
+  const binaryDirectory = join(bundle, 'Contents', 'MacOS')
+  mkdirSync(binaryDirectory, { recursive: true })
+  cpSync('native/computer-use/Info.plist', join(bundle, 'Contents', 'Info.plist'))
+  const parts: string[] = []
+  for (const arch of ['arm64', 'x86_64']) {
+    const output = join('dist/native', `computer-use-${arch}`)
+    execFileSync(
+      'xcrun',
+      [
+        'swiftc',
+        '-parse-as-library',
+        '-O',
+        '-target',
+        `${arch}-apple-macosx14.0`,
+        'native/computer-use/ComputerUse.swift',
+        '-o',
+        output,
+      ],
+      { stdio: 'inherit' }
+    )
+    parts.push(output)
+  }
+  execFileSync(
+    'xcrun',
+    ['lipo', '-create', ...parts, '-output', join(binaryDirectory, 'SimComputerUse')],
+    { stdio: 'inherit' }
+  )
+  for (const part of parts) rmSync(part)
+  execFileSync('codesign', ['--force', '--sign', '-', bundle], { stdio: 'inherit' })
+  console.log('• Compiled native macOS Computer Use helper')
+}
+
+const common = {
+  bundle: true,
+  platform: 'node' as const,
+  format: 'cjs' as const,
+  target: 'node22',
+  sourcemap: true,
+  // node-pty resolves a prebuilt .node binary at runtime, so it must stay
+  // external and be loaded from node_modules rather than inlined here.
+  external: ['electron', '@lydell/node-pty'],
+  tsconfig: 'tsconfig.json',
+  logLevel: 'info' as const,
+  define: {
+    'process.env.SIM_DESKTOP_DEFAULT_ORIGIN': JSON.stringify(bakedDefaultOrigin),
+  },
+}
+
+/** Bundles the shared EMCN components and app tokens for offline shell use. */
+const renderer: BuildOptions = {
+  entryPoints: {
+    server: 'src/renderer/server/index.tsx',
+    offline: 'src/renderer/offline/index.tsx',
+    dialog: 'src/renderer/dialog/index.tsx',
+    'credential-picker': 'src/renderer/credential-picker/index.tsx',
+  },
+  outdir: 'dist/renderer',
+  bundle: true,
+  platform: 'browser',
+  format: 'iife',
+  target: 'chrome146',
+  minify: true,
+  tsconfig: 'tsconfig.json',
+  external: ['*.woff2'],
+  define: { 'process.env.NODE_ENV': '"production"', 'process.env': '{}' },
+  loader: { '.module.css': 'local-css' },
+  plugins: [
+    {
+      name: 'desktop-tailwind',
+      setup(builder) {
+        builder.onLoad({ filter: /shell\.css$/ }, async ({ path }) => {
+          const config = await loadPostcssConfig({}, resolve('../sim'))
+          const result = await postcss(config.plugins).process(readFileSync(path, 'utf8'), {
+            from: path,
+          })
+          return {
+            contents: result.css,
+            loader: 'css',
+            resolveDir: dirname(path),
+            watchFiles: result.messages.flatMap((message) =>
+              message.type === 'dependency' ? [message.file as string] : []
+            ),
+          }
+        })
+      },
+    },
+  ],
+}
+
+async function run(): Promise<void> {
+  execFileSync(process.execPath, ['run', 'scripts/build-native.ts'], { stdio: 'inherit' })
+  compileComputerUse()
+  if (watch) {
+    const { context } = await import('esbuild')
+    const rendererCtx = await context(renderer)
+    const shellPreloadCtx = await context({
+      ...common,
+      entryPoints: ['src/preload/shell.ts'],
+      outfile: 'dist/shell-preload.cjs',
+    })
+    const credentialPickerPreloadCtx = await context({
+      ...common,
+      entryPoints: ['src/preload/credential-picker.ts'],
+      outfile: 'dist/credential-picker-preload.cjs',
+    })
+    const mainCtx = await context({
+      ...common,
+      entryPoints: ['src/main/index.ts'],
+      outfile: 'dist/main.cjs',
+    })
+    const preloadCtx = await context({
+      ...common,
+      entryPoints: ['src/preload/index.ts'],
+      outfile: 'dist/preload.cjs',
+    })
+    // Separate from the main-window preload: this one is injected into
+    // untrusted pages in the built-in browser and must stay minimal.
+    const browserPreloadCtx = await context({
+      ...common,
+      entryPoints: ['src/preload/browser/index.ts'],
+      outfile: 'dist/browser-preload.cjs',
+    })
+    await Promise.all([
+      mainCtx.watch(),
+      preloadCtx.watch(),
+      browserPreloadCtx.watch(),
+      rendererCtx.watch(),
+      shellPreloadCtx.watch(),
+      credentialPickerPreloadCtx.watch(),
+    ])
+    return
+  }
+  await Promise.all([
+    build(renderer),
+    build({
+      ...common,
+      entryPoints: ['src/preload/credential-picker.ts'],
+      outfile: 'dist/credential-picker-preload.cjs',
+    }),
+    build({ ...common, entryPoints: ['src/preload/shell.ts'], outfile: 'dist/shell-preload.cjs' }),
+    build({ ...common, entryPoints: ['src/main/index.ts'], outfile: 'dist/main.cjs' }),
+    build({ ...common, entryPoints: ['src/preload/index.ts'], outfile: 'dist/preload.cjs' }),
+    build({
+      ...common,
+      entryPoints: ['src/preload/browser/index.ts'],
+      outfile: 'dist/browser-preload.cjs',
+    }),
+  ])
+}
+
+run().catch((error) => {
+  console.error(error)
+  process.exit(1)
+})

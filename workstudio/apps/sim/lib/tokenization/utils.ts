@@ -1,0 +1,145 @@
+/**
+ * Utility functions for tokenization
+ */
+
+import { createLogger } from '@sim/logger'
+import { toError } from '@sim/utils/errors'
+import { LLM_BLOCK_TYPES, TOKENIZATION_CONFIG } from '@/lib/tokenization/constants'
+import { createTokenizationError } from '@/lib/tokenization/errors'
+import type { TokenUsage } from '@/lib/tokenization/types'
+import type { BlockTokens } from '@/executor/types'
+import { getProviderFromModel } from '@/providers/utils'
+
+const logger = createLogger('TokenizationUtils')
+
+/**
+ * Extracts provider ID from model name
+ */
+export function getProviderForTokenization(model: string): string {
+  try {
+    return getProviderFromModel(model)
+  } catch (error) {
+    logger.warn(`Failed to get provider for model ${model}, using default`, {
+      model,
+      error: toError(error).message,
+    })
+    return TOKENIZATION_CONFIG.defaults.provider
+  }
+}
+
+/**
+ * Checks if a block type should be tokenized
+ */
+export function isTokenizableBlockType(blockType?: string): boolean {
+  if (!blockType) return false
+  return LLM_BLOCK_TYPES.includes(blockType as any)
+}
+
+/**
+ * Checks if tokens/cost data is meaningful (non-zero)
+ */
+export function hasRealTokenData(
+  tokens?: Pick<BlockTokens, 'total' | 'input' | 'output'>
+): boolean {
+  if (!tokens) return false
+  return (tokens.total ?? 0) > 0 || (tokens.input ?? 0) > 0 || (tokens.output ?? 0) > 0
+}
+
+/**
+ * Checks if cost data is meaningful (non-zero)
+ */
+export function hasRealCostData(cost?: {
+  total?: number
+  input?: number
+  output?: number
+}): boolean {
+  if (!cost) return false
+  return (cost.total || 0) > 0 || (cost.input || 0) > 0 || (cost.output || 0) > 0
+}
+
+/**
+ * Safely extracts text content from various input formats
+ */
+export function extractTextContent(input: unknown): string {
+  if (typeof input === 'string') {
+    return input.trim()
+  }
+
+  if (input && typeof input === 'object') {
+    try {
+      return JSON.stringify(input)
+    } catch (error) {
+      logger.warn('Failed to stringify input object', {
+        inputType: typeof input,
+        error: toError(error).message,
+      })
+      return ''
+    }
+  }
+
+  return String(input || '')
+}
+
+/**
+ * Validates tokenization input
+ */
+export function validateTokenizationInput(
+  model: string,
+  inputText: string,
+  outputText: string
+): void {
+  if (!model?.trim()) {
+    throw createTokenizationError('INVALID_MODEL', 'Model is required for tokenization', { model })
+  }
+
+  if (!inputText?.trim() && !outputText?.trim()) {
+    throw createTokenizationError(
+      'MISSING_TEXT',
+      'Either input text or output text must be provided',
+      {
+        inputLength: inputText?.length || 0,
+        outputLength: outputText?.length || 0,
+      }
+    )
+  }
+}
+
+/**
+ * Formats token count for display
+ */
+export function formatTokenCount(count: number): string {
+  if (count === 0) return '0'
+  if (count < 1000) return count.toString()
+  if (count < 1000000) return `${(count / 1000).toFixed(1)}K`
+  return `${(count / 1000000).toFixed(1)}M`
+}
+
+/**
+ * Logs tokenization operation details
+ */
+export function logTokenizationDetails(
+  operation: string,
+  details: {
+    blockId?: string
+    blockType?: string
+    model?: string
+    provider?: string
+    inputLength?: number
+    outputLength?: number
+    tokens?: TokenUsage
+    cost?: { input?: number; output?: number; total?: number }
+    method?: string
+  }
+): void {
+  logger.info(`${operation}`, {
+    blockId: details.blockId,
+    blockType: details.blockType,
+    model: details.model,
+    provider: details.provider,
+    inputLength: details.inputLength,
+    outputLength: details.outputLength,
+    tokens: details.tokens,
+    cost: details.cost,
+    method: details.method,
+  })
+}

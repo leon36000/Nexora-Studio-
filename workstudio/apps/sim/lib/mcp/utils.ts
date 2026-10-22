@@ -1,0 +1,312 @@
+import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js'
+import { StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import { McpError as McpSdkError } from '@modelcontextprotocol/sdk/types.js'
+import { generateShortId } from '@sim/utils/id'
+import { NextResponse } from 'next/server'
+import { DEFAULT_EXECUTION_TIMEOUT_MS, isTimeoutError } from '@/lib/core/execution-limits'
+import {
+  type McpApiResponse,
+  McpConnectionError,
+  McpOauthAuthorizationRequiredError,
+  McpServerCooldownError,
+} from '@/lib/mcp/types'
+import { isMcpTool, MCP } from '@/executor/constants'
+
+export const MCP_CONSTANTS = {
+  EXECUTION_TIMEOUT: DEFAULT_EXECUTION_TIMEOUT_MS,
+  CACHE_TIMEOUT: 5 * 60 * 1000,
+  DEFAULT_RETRIES: 3,
+  DEFAULT_CONNECTION_TIMEOUT: 30000,
+  MAX_CACHE_SIZE: 1000,
+  MAX_CONSECUTIVE_FAILURES: 3,
+} as const
+
+/**
+ * Core MCP tool parameter keys that are metadata, not user-entered test values.
+ * These should be preserved when cleaning up params during schema updates.
+ */
+export const MCP_TOOL_CORE_PARAMS = new Set(['serverId', 'serverUrl', 'toolName', 'serverName'])
+
+export const MANAGED_MCP_CONNECTION_PREFIX = 'mcp-cg-'
+const MANAGED_MCP_RANDOM_ID_LENGTH = 21
+const MANAGED_MCP_CONNECTION_ID_LENGTH =
+  MANAGED_MCP_CONNECTION_PREFIX.length + MANAGED_MCP_RANDOM_ID_LENGTH
+
+export function generateManagedMcpConnectionId(): string {
+  return `${MANAGED_MCP_CONNECTION_PREFIX}${generateShortId(MANAGED_MCP_RANDOM_ID_LENGTH)}`
+}
+
+export function isManagedMcpConnectionId(value: string): boolean {
+  return (
+    value.startsWith(MANAGED_MCP_CONNECTION_PREFIX) &&
+    value.length === MANAGED_MCP_CONNECTION_ID_LENGTH
+  )
+}
+
+/**
+ * Sanitizes a string by removing invisible Unicode characters that cause HTTP header errors.
+ * Handles characters like U+2028 (Line Separator) that can be introduced via copy-paste.
+ */
+export function sanitizeForHttp(value: string): string {
+  return value
+    .replace(/[\u2028\u2029\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .trim()
+}
+
+/**
+ * Sanitizes all header key-value pairs for HTTP usage.
+ */
+export function sanitizeHeaders(
+  headers: Record<string, string> | undefined
+): Record<string, string> | undefined {
+  if (!headers) return headers
+  return Object.fromEntries(
+    Object.entries(headers)
+      .map(([key, value]) => [sanitizeForHttp(key), sanitizeForHttp(value)])
+      .filter(([key, value]) => key !== '' && value !== '')
+  )
+}
+
+export const MCP_CLIENT_CONSTANTS = {
+  CLIENT_TIMEOUT: DEFAULT_EXECUTION_TIMEOUT_MS,
+  AUTO_REFRESH_INTERVAL: 5 * 60 * 1000,
+  /**
+   * Hard ceiling for the connect handshake, regardless of the server row's
+   * configured `timeout`.
+   *
+   * The clamp used to be `getMaxExecutionTimeout()`, the *workflow* ceiling of
+   * seven days, so the real bound became the row's own `timeout` — which the
+   * registration contract permits up to 300s — multiplied by the connect
+   * retries. A hostile-but-slow server could therefore hold a Node request for
+   * roughly twenty minutes. Connecting is not a workflow run, and `tools/list`
+   * already bounds itself at a minute; the handshake gets the same budget.
+   */
+  CONNECT_MAX_TIMEOUT_MS: 60_000,
+  /** Idle timeout for tools/list (gap between progress events); raised from 10s toward the SDK's 60s default. */
+  LIST_TOOLS_TIMEOUT_MS: 30_000,
+  /** Hard ceiling for tools/list regardless of progress (SDK maxTotalTimeout safeguard). */
+  LIST_TOOLS_MAX_TOTAL_TIMEOUT_MS: 60_000,
+  /** Max `tools/list` pages followed via `nextCursor` before truncating (see fetch loop). */
+  LIST_TOOLS_MAX_PAGES: 50,
+  /** Max tools aggregated across all pages before truncating. */
+  LIST_TOOLS_MAX_TOOLS: 1000,
+  /** Max total tool-payload bytes aggregated across all pages before truncating. */
+  LIST_TOOLS_MAX_BYTES: 5 * 1024 * 1024,
+  FAILURE_CACHE_TTL_MS: 120_000,
+} as const
+
+/**
+ * Create standardized MCP error response.
+ * Always returns the defaultMessage to clients to prevent leaking internal error details.
+ * Callers are responsible for logging the original error before calling this function.
+ */
+export function createMcpErrorResponse(
+  _error: unknown,
+  defaultMessage: string,
+  status = 500
+): NextResponse {
+  const response: McpApiResponse = {
+    success: false,
+    error: defaultMessage,
+  }
+
+  return NextResponse.json(response, { status })
+}
+
+/**
+ * Create standardized MCP success response
+ */
+export function createMcpSuccessResponse<T>(data: T, status = 200): NextResponse {
+  const response: McpApiResponse<T> = {
+    success: true,
+    data,
+  }
+
+  return NextResponse.json(response, { status })
+}
+
+/**
+ * Maps MCP orchestration error codes to safe HTTP statuses.
+ */
+export function mcpOrchestrationStatus(errorCode: string | undefined): number {
+  if (errorCode === 'validation') return 400
+  if (errorCode === 'forbidden') return 403
+  if (errorCode === 'not_found') return 404
+  if (errorCode === 'conflict') return 409
+  if (errorCode === 'bad_gateway') return 502
+  return 500
+}
+
+/**
+ * Reports whether a registered MCP server failed to answer usefully: it could not be
+ * reached, timed out, is cooling down after a recent failure, or answered `tools/list`
+ * with a protocol or HTTP error. Typed only, never matched on message text, because
+ * `McpConnectionError` interpolates the server's display name into its message. Check
+ * authorization errors first: `UnauthorizedError` is not one of these, but a caller that
+ * wants to answer reauthorization separately must do so before asking.
+ */
+export function isMcpServerUnavailableError(error: unknown): boolean {
+  return (
+    isTimeoutError(error) ||
+    error instanceof McpConnectionError ||
+    error instanceof McpSdkError ||
+    error instanceof StreamableHTTPError
+  )
+}
+
+/**
+ * Enhanced error categorization for more specific HTTP status codes.
+ * Returns safe, generic messages to prevent leaking internal details.
+ */
+export function categorizeError(error: unknown): { message: string; status: number } {
+  if (!(error instanceof Error)) {
+    return { message: 'Unknown error occurred', status: 500 }
+  }
+
+  // Typed dispatch first — our own classes carry definitive intent.
+  if (error instanceof McpOauthAuthorizationRequiredError || error instanceof UnauthorizedError) {
+    return { message: 'Authentication required', status: 401 }
+  }
+  if (error instanceof McpServerCooldownError) {
+    return { message: 'Server temporarily unavailable', status: 503 }
+  }
+  if (error instanceof McpConnectionError) {
+    return { message: 'Connection failed', status: 502 }
+  }
+
+  // Fall back to substring matching for SDK / third-party errors we don't
+  // own a typed class for.
+  const msg = error.message.toLowerCase()
+
+  if (msg.includes('timeout')) {
+    return { message: 'Request timed out', status: 408 }
+  }
+  if (msg.includes('cooldown')) {
+    return { message: 'Server temporarily unavailable', status: 503 }
+  }
+  if (msg.includes('not found') || msg.includes('not accessible')) {
+    return { message: 'Resource not found', status: 404 }
+  }
+  if (msg.includes('authentication') || msg.includes('unauthorized')) {
+    return { message: 'Authentication required', status: 401 }
+  }
+  if (msg.includes('invalid') || msg.includes('missing required') || msg.includes('validation')) {
+    return { message: 'Invalid request parameters', status: 400 }
+  }
+  return { message: 'Internal server error', status: 500 }
+}
+
+/**
+ * Create standardized MCP tool ID from server ID and tool name
+ */
+export function createMcpToolId(serverId: string, toolName: string): string {
+  const normalizedServerId = isMcpTool(serverId) ? serverId : `${MCP.TOOL_PREFIX}${serverId}`
+  return `${normalizedServerId}-${toolName}`
+}
+
+/**
+ * Parse MCP tool ID to extract server ID and tool name
+ */
+export function parseMcpToolId(toolId: string): { serverId: string; toolName: string } {
+  const parts = toolId.split('-')
+  if (parts.length < 3 || parts[0] !== 'mcp') {
+    throw new Error(`Invalid MCP tool ID format: ${toolId}. Expected: mcp-serverId-toolName`)
+  }
+
+  const serverId = `${parts[0]}-${parts[1]}`
+  const toolName = parts.slice(2).join('-')
+
+  return { serverId, toolName }
+}
+
+export type ParsedMcpToolTarget =
+  | { kind: 'shared_server'; serverId: string; toolName: string }
+  | { kind: 'managed_connection'; credentialId: string; toolName: string }
+
+export function parseMcpToolTarget(toolId: string): ParsedMcpToolTarget {
+  if (toolId.startsWith(MANAGED_MCP_CONNECTION_PREFIX)) {
+    if (
+      toolId.length <= MANAGED_MCP_CONNECTION_ID_LENGTH ||
+      toolId[MANAGED_MCP_CONNECTION_ID_LENGTH] !== '-'
+    ) {
+      throw new Error(
+        `Invalid managed MCP tool ID format: ${toolId}. Expected: mcp-cg-connectionId-toolName`
+      )
+    }
+    const credentialId = toolId.slice(0, MANAGED_MCP_CONNECTION_ID_LENGTH)
+    const toolName = toolId.slice(MANAGED_MCP_CONNECTION_ID_LENGTH + 1)
+    if (!toolName) throw new Error(`Invalid managed MCP tool ID format: ${toolId}`)
+    return { kind: 'managed_connection', credentialId, toolName }
+  }
+  const { serverId, toolName } = parseMcpToolId(toolId)
+  return { kind: 'shared_server', serverId, toolName }
+}
+
+/**
+ * Generate a deterministic MCP server ID based on workspace and URL.
+ *
+ * This ensures that re-adding the same MCP server (same URL in the same workspace)
+ * produces the same ID, preventing "server not found" errors when workflows
+ * reference the old server ID.
+ *
+ * The ID is a hash of: workspaceId + normalized URL
+ * Format: mcp-<8 char hash>
+ */
+export function generateMcpServerId(workspaceId: string, url: string): string {
+  const normalizedUrl = normalizeUrlForHashing(url)
+
+  const input = `${workspaceId}:${normalizedUrl}`
+  const hash = simpleHash(input)
+
+  return `mcp-${hash}`
+}
+
+/**
+ * Whether two URLs name the same MCP server destination: the same origin,
+ * credentials, and exact path. Only the query string and fragment may differ — paths can be
+ * case-sensitive, so this is stricter than the id hash.
+ */
+export function isSameMcpServerDestination(a: string, b: string): boolean {
+  try {
+    const parsedA = new URL(a)
+    const parsedB = new URL(b)
+    return (
+      parsedA.origin === parsedB.origin &&
+      parsedA.username === parsedB.username &&
+      parsedA.password === parsedB.password &&
+      parsedA.pathname === parsedB.pathname
+    )
+  } catch {
+    return a === b
+  }
+}
+
+/**
+ * Normalize URL for consistent hashing.
+ * - Converts to lowercase
+ * - Removes trailing slashes
+ * - Removes query parameters and fragments
+ */
+function normalizeUrlForHashing(url: string): string {
+  try {
+    const parsed = new URL(url)
+    const normalized = `${parsed.origin}${parsed.pathname}`.toLowerCase().replace(/\/+$/, '')
+    return normalized
+  } catch {
+    return url.toLowerCase().trim().replace(/\/+$/, '')
+  }
+}
+
+/**
+ * Simple deterministic hash function that produces an 8-character hex string.
+ * Uses a variant of djb2 hash algorithm.
+ */
+function simpleHash(str: string): string {
+  let hash = 5381
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) + hash + str.charCodeAt(i)
+    hash = hash >>> 0
+  }
+  return hash.toString(16).padStart(8, '0').slice(0, 8)
+}

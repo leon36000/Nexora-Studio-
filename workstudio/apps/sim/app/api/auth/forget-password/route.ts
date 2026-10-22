@@ -1,0 +1,93 @@
+import { createLogger } from '@sim/logger'
+import { type NextRequest, NextResponse } from 'next/server'
+import { forgetPasswordContract } from '@/lib/api/contracts'
+import { getValidationErrorMessage, parseRequest } from '@/lib/api/server'
+import { auth } from '@/lib/auth'
+import { getBetterAuthClientErrorStatus } from '@/lib/auth/better-auth-error'
+import {
+  enforceIpRateLimitWithIndependentBackstop,
+  enforceRecipientRateLimit,
+  type TokenBucketConfig,
+} from '@/lib/core/rate-limiter'
+import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+
+export const dynamic = 'force-dynamic'
+
+const logger = createLogger('ForgetPasswordAPI')
+
+/** Sized to absorb a frustrated user retrying, not to be tight. */
+const RESET_EMAIL_RATE_LIMIT: TokenBucketConfig = {
+  maxTokens: 5,
+  refillRate: 5,
+  refillIntervalMs: 15 * 60_000,
+}
+
+export const POST = withRouteHandler(async (request: NextRequest) => {
+  try {
+    const ipRateLimited = await enforceIpRateLimitWithIndependentBackstop(
+      'forget-password',
+      request
+    )
+    if (ipRateLimited) return ipRateLimited
+
+    const parsed = await parseRequest(
+      forgetPasswordContract,
+      request,
+      {},
+      {
+        validationErrorResponse: (error) => {
+          logger.warn('Invalid forget password request data', { errors: error.issues })
+          return NextResponse.json(
+            { message: getValidationErrorMessage(error, 'Invalid request data') },
+            { status: 400 }
+          )
+        },
+      }
+    )
+    if (!parsed.success) return parsed.response
+
+    const { email, redirectTo } = parsed.data.body
+
+    /**
+     * Enforced before any lookup, and identically whether or not the account
+     * exists, so a 429 discloses nothing the success response doesn't already.
+     */
+    const recipientRateLimited = await enforceRecipientRateLimit(
+      'forget-password',
+      email,
+      RESET_EMAIL_RATE_LIMIT
+    )
+    if (recipientRateLimited) return recipientRateLimited
+
+    await auth.api.requestPasswordReset({
+      body: {
+        email,
+        redirectTo,
+      },
+      method: 'POST',
+      headers: request.headers,
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    /**
+     * A refusal Better Auth raises is not a server fault, but it must not become a distinguishable
+     * answer either: this route replies identically whether or not an account exists, and a status
+     * the success path never produces would tell a caller which addresses are registered. So it is
+     * logged and answered like a success — only the reset half, where the caller already holds the
+     * token and has nothing left to enumerate, surfaces the refusal.
+     */
+    const clientStatus = getBetterAuthClientErrorStatus(error)
+    if (clientStatus !== undefined) {
+      logger.warn('Rejected a password reset request', { status: clientStatus })
+      return NextResponse.json({ success: true })
+    }
+
+    logger.error('Error requesting password reset:', { error })
+
+    return NextResponse.json(
+      { message: 'Failed to send password reset email. Please try again later.' },
+      { status: 500 }
+    )
+  }
+})

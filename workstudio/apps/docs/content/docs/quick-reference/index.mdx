@@ -1,0 +1,118 @@
+---
+title: Quick reference
+description: Look up workspace and workflow builder actions.
+---
+
+Look up an action by task, or use your browser's find command to search this page. `Mod` means `Cmd` on macOS and `Ctrl` on Windows and Linux. See [Keyboard shortcuts](/keyboard-shortcuts) for the full shortcut reference.
+
+Edit permissions, Admin permissions, and resource locks determine which controls are available.
+
+## Workspaces
+
+| Task | How |
+| --- | --- |
+| Create a workspace | Open the workspace dropdown → **New workspace**. |
+| Switch workspaces | Open the workspace dropdown and select a workspace. |
+| Invite teammates | Workspace dropdown → **Invite teammates**. Workspace Admin permission is required. Internal invites join the organization; external members receive workspace access only. See [Permissions](/platform/permissions). |
+| Rename a workspace | In the workspace dropdown, right-click the workspace → **Rename**. |
+| Delete a workspace | In the workspace dropdown, right-click the workspace → **Delete**, then review the confirmation. |
+
+## Workflows and folders
+
+| Task | How |
+| --- | --- |
+| Create a workflow | Click **+** beside **Workflows**. |
+| Reorder or move workflows | Drag a workflow within the list or onto a folder. |
+| Import a workflow | **Workflows → More actions → Import workflow**, then select the exported file. |
+| Select multiple workflows | `Mod` + click toggles selection; `Shift` + click selects a range. |
+| Open a workflow in a new tab | Right-click the workflow → **Open in new tab**. |
+| Rename a workflow | Right-click the workflow → **Rename**. |
+| Duplicate a workflow | Right-click the workflow → **Duplicate**. |
+| Export a workflow | Right-click the workflow → **Export**. Inspect literal values and configuration before sharing the export. |
+| Delete a workflow | Right-click the workflow → **Delete**, then review the confirmation. Its deployments become unavailable. |
+| Rename a folder | Right-click the folder → **Rename**. |
+| Create a workflow in a folder | Right-click the folder → **Create workflow**. |
+| Create a folder inside a folder | Right-click the folder → **Create folder**. |
+| Duplicate a folder | Right-click the folder → **Duplicate**. |
+| Export a folder | Right-click the folder → **Export**. Inspect the included workflows before sharing. |
+| Delete a folder | Right-click the folder → **Delete**, then review the confirmation. |
+
+## Blocks
+
+| Task | How |
+| --- | --- |
+| Add a block | Drag it from **Toolbar** into the builder, or right-click empty space → **Add Block**. |
+| Select multiple blocks | Drag over empty space in Select mode, or `Shift` + drag in Hand mode. `Mod` or `Shift` + click adds blocks to the selection. |
+| Copy blocks | Select the blocks → `Mod` + `C`. |
+| Paste blocks | `Mod` + `V`. Singleton blocks such as Start and Response cannot be duplicated into the same workflow. |
+| Duplicate blocks | Right-click the selection → **Duplicate**. The action is unavailable for singleton blocks. |
+| Delete blocks | Select them → `Delete` or `Backspace`, or right-click → **Delete**. |
+| Rename a block | Right-click → **Rename**, or double-click its name in **Editor**. |
+| Enable or disable a block | Right-click → **Enable** or **Disable**, depending on its current state. |
+| Lock or unlock a block | Hover the block and click **Lock** or **Unlock**, or use its context menu. Workspace Admin permission is required. |
+| Configure a block | Select it and edit its fields in **Editor**. |
+
+## Connections
+
+| Task | How |
+| --- | --- |
+| Create a connection | Drag from the upstream block's output handle to the downstream block's input handle. |
+| Delete a connection | Select the edge → `Delete` or `Backspace`, or click **Delete connection** on the selected edge. |
+| Use an output in another block | In the downstream block's **Editor → Connections**, drag the upstream output field into the input. You can also insert its [reference](/workflows/connections). |
+
+## Panels and views
+
+| Task | How |
+| --- | --- |
+| Search Toolbar | `Mod` + `Alt` + `F` opens **Toolbar** and focuses its search. |
+| Search workspace resources and commands | `Mod` + `K` opens search. |
+| Enter a manual selector ID | Where offered, choose **Switch to manual ID**. Choose **Switch to selector** to return to the option list. |
+| Collapse or expand the sidebar | Click **Toggle sidebar**, or press `Mod` + `B` outside an editable field. |
+
+## Run and inspect
+
+Workflow test chat runs the current workflow. The panel's **Chat** tab is where you ask Sim to help build it.
+
+| Task | How |
+| --- | --- |
+| Run a workflow | Click **Run**, or `Mod` + `Enter` outside an editable field. |
+| Stop a running workflow | Click **Stop**, or `Mod` + `Enter` while it runs. |
+| Test with chat | Click **Open chat** beside the workflow's More actions menu to open the test chat. |
+| Select outputs to display | In workflow test chat, open **Outputs** and choose the block and output fields. |
+| Clear test chat history | Workflow test chat → **Chat actions** (three dots) → **Clear**. |
+| Run from a block | Hover and click its run control, or right-click → **Run from block**. Run upstream blocks first to supply required outputs. Unavailable for notes and blocks inside subflows. |
+| Run until a block | Right-click → **Run until block**. Unavailable for triggers, notes, and blocks inside subflows. |
+| View execution logs | Expand **Logs** at the bottom, then select a block row to inspect its input and output. `Mod` + `L` opens the full Logs page. |
+| Filter logs | Use the workflow Logs filters, or right-click a row → **Filter by Block** or **Filter by Status**. |
+| Search a block's output | Select its log row → **Search in output**, or right-click inside the output → **Search**. |
+| Copy a block's output | Select its log row → **Copy output**, or right-click inside the output → **Copy Selection** or **Copy All**. |
+| Clear the workflow console | Click **Clear console**, or `Mod` + `D` outside an editable field. This clears the builder's console, not persisted run logs. |
+
+## Deployment
+
+Deploying and changing the live version require workspace Admin permission. Draft edits do not change an existing deployment until you update it.
+
+| Task | How |
+| --- | --- |
+| Deploy a workflow | Click **Deploy** at the top of the workflow panel. |
+| Update a deployment | Click **Update** after changing the draft and deploy the new version. |
+| View deployment status | The top chip reads **Deploy**, **Update**, or **Live**. Open it for deployment details. |
+| Restore an earlier live version | Deployment → **General → Versions → Version actions → Promote to live**, then confirm. **Load deployment** instead loads that version into the draft. |
+| Add a version description | **General → Versions → Add description** or **Edit description**. Enter text or choose **Generate**. |
+| Copy an API request example | Deployment → **API** → choose **cURL**, then copy the request sample. Keep its authentication headers and required inputs. |
+
+## Variables and secrets
+
+| Task | How |
+| --- | --- |
+| Add, edit, or delete a workflow variable | Workflow More actions menu → **Variables**. Click **+** to add, edit **Name**, **Type**, and **Value**, or use the variable's delete control. |
+| Add an environment variable | **Settings → Workspace → Secrets**. Enter a name and value in a workspace or personal row, then **Save**. See [Variables](/workflows/variables) for scope and overrides. |
+| Reference a workflow variable | Use `<variable.name>` in a block input. |
+| Reference an environment variable | Use `{{ENV_VAR}}` in a block input. |
+
+## Related docs
+
+- [Keyboard shortcuts](/keyboard-shortcuts)
+- [Connections](/workflows/connections)
+- [Logs and debugging](/logs-debugging)
+- [Deployment](/workflows/deployment)

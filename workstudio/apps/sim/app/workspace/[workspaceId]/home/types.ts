@@ -1,0 +1,235 @@
+import type { WorkspaceSearchFilters } from '@/lib/api/contracts/knowledge/search'
+import type { MothershipChat } from '@/lib/api/contracts/mothership-chats'
+import type { ManagedMcpConnectorId } from '@/lib/credential-groups/managed-mcp-connectors'
+import type { AssistantSearchLevel } from '@/lib/mothership/generated/assistant'
+import type { ToolActivity } from '@/lib/mothership/generated/protocol'
+import type { ChatContext } from '@/stores/panel'
+import type { BrowserTextSelection, TerminalTextSelection } from '@/stores/panel/types'
+
+export type {
+  MothershipResource,
+  MothershipResourceType,
+  WorkspaceResourceRef,
+} from '@/lib/mothership/resources/types'
+
+/** Union of all valid context kind strings, derived from {@link ChatContext}. */
+export type ChatContextKind = ChatContext['kind']
+
+export interface FileAttachmentForApi {
+  id: string
+  key: string
+  filename: string
+  media_type: string
+  size: number
+  path?: string
+}
+
+/** Assistant searches as the signed-in person and uses their connected accounts. */
+export type ChatRequestMode = MothershipChat['mode']
+
+/** What a chat send carries, whether it goes out now, waits in the queue or is handed over. */
+export interface SendPayload {
+  content: string
+  fileAttachments?: FileAttachmentForApi[]
+  contexts?: ChatContext[]
+  requestMode?: ChatRequestMode
+  assistantSearch?: WorkspaceSearchFilters
+  assistantSearchLevel?: AssistantSearchLevel
+}
+
+export interface QueuedMessage extends SendPayload {
+  id: string
+  /** Recovery dropped invalid contexts; the user must review the message before sending. */
+  hasUnavailableContexts?: boolean
+  /**
+   * An earlier attempt at this message got no answer, so the server may
+   * already hold it as sent. It goes out exactly as written, under that
+   * attempt's id, and cannot be edited into a different message. False once
+   * the server is known not to have it (it refused it, or it was never sent).
+   */
+  admissionUnknown?: boolean
+}
+
+export const ToolCallStatus = {
+  executing: 'executing',
+  /** Held for the user's Allow / Always allow / Skip decision; nothing has run yet. */
+  awaiting_approval: 'awaiting_approval',
+  success: 'success',
+  error: 'error',
+  cancelled: 'cancelled',
+  skipped: 'skipped',
+  rejected: 'rejected',
+  interrupted: 'interrupted',
+} as const
+export type ToolCallStatus = (typeof ToolCallStatus)[keyof typeof ToolCallStatus]
+
+interface ToolCallResult {
+  success: boolean
+  output?: unknown
+  error?: string
+}
+
+export interface ToolCallData {
+  id: string
+  toolName: string
+  displayTitle: string
+  activityDescription?: string
+  status: ToolCallStatus
+  /** Display grouping, held beside `params`. */
+  activity?: ToolActivity
+  params?: Record<string, unknown>
+  result?: ToolCallResult
+  streamingArgs?: string
+  /** When execution started, for rows whose label changes as it runs. */
+  startedAt?: number
+}
+
+export interface ToolCallInfo {
+  id: string
+  name: string
+  status: ToolCallStatus
+  displayTitle?: string
+  /** Model-authored activity text, separate from executable tool arguments. */
+  activityDescription?: string
+  /** Model-authored activity phrase for a gateway-resolved integration call. */
+  integrationDescription?: string
+  /** Display grouping, held beside `params`; older history carries it in `params.activity`. */
+  activity?: ToolActivity
+  params?: Record<string, unknown>
+  calledBy?: string
+  result?: ToolCallResult
+  streamingArgs?: string
+  /**
+   * Wall-clock the call opened. Carried separately from the block `timestamp`,
+   * which falls back to a wire seq and so cannot be read as a clock.
+   */
+  startedAtMs?: number
+}
+
+export interface OptionItem {
+  id: string
+  label: string
+}
+
+export const ContentBlockType = {
+  text: 'text',
+  thinking: 'thinking',
+  tool_call: 'tool_call',
+  subagent: 'subagent',
+  subagent_end: 'subagent_end',
+  subagent_text: 'subagent_text',
+  subagent_thinking: 'subagent_thinking',
+  options: 'options',
+  stopped: 'stopped',
+  task: 'task',
+} as const
+export type ContentBlockType = (typeof ContentBlockType)[keyof typeof ContentBlockType]
+
+export interface ContentBlock {
+  type: ContentBlockType
+  content?: string
+  /** The background task this block announces (task blocks only). */
+  task?: import('@/lib/mothership/request/types').TaskBlockInfo
+  subagent?: string
+  /** Orchestrator-chosen display name for a `subagent` start block (shown instead of the generic agent label). */
+  subagentName?: string
+  toolCall?: ToolCallInfo
+  options?: OptionItem[]
+  timestamp?: number
+  endedAt?: number
+  /** Terminal failure of this subagent span. */
+  error?: string
+  parentToolCallId?: string
+  /**
+   * Deterministic agent-run identity. `spanId` is the stable per-invocation id
+   * of the subagent that produced this block; `parentSpanId` links it to the
+   * run that invoked it (empty/"main" for top-level). These are the primary
+   * nesting keys used to build the agent tree; `parentToolCallId` is retained
+   * for tool linkage and legacy back-compat.
+   */
+  spanId?: string
+  parentSpanId?: string
+}
+
+export interface ChatMessageAttachment {
+  id: string
+  filename: string
+  media_type: string
+  size: number
+  previewUrl?: string
+}
+
+export interface ChatMessageContext {
+  kind: ChatContextKind
+  label: string
+  workflowId?: string
+  knowledgeId?: string
+  tableId?: string
+  viewId?: string
+  fileId?: string
+  dashboardId?: string
+  folderId?: string
+  chatId?: string
+  blockType?: string
+  skillId?: string
+  serverId?: string
+  managedConnectorId?: ManagedMcpConnectorId
+  /** Selected passage for a `file_selection` context. */
+  text?: string
+  /** Source file name for a `file_selection` context. */
+  fileName?: string
+  /** 1-based inclusive line range for a `file_selection` context. */
+  startLine?: number
+  endLine?: number
+  /** Source table name for a `table_selection` context. */
+  tableName?: string
+  /** Selected row ids for a `table_selection` context. */
+  rowIds?: string[]
+  /** Selected column ids for a `table_selection` cell range. */
+  columnIds?: string[]
+  tabId?: string
+  terminalId?: string
+  selection?: BrowserTextSelection | TerminalTextSelection
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  requestMode?: 'agent' | 'assistant' | 'plan'
+  content: string
+  /** "task": a background-task notification opened this turn, not the user (a system chip, not a bubble). */
+  origin?: 'task'
+  contentBlocks?: ContentBlock[]
+  attachments?: ChatMessageAttachment[]
+  fileAttachments?: FileAttachmentForApi[]
+  contexts?: ChatMessageContext[]
+  requestId?: string
+}
+
+export const SUBAGENT_LABELS: Record<string, string> = {
+  workflow: 'Workflow Agent',
+  debug: 'Debug Agent',
+  deploy: 'Deploy Agent',
+  auth: 'Auth Agent',
+  research: 'Research Agent',
+  knowledge: 'Knowledge Agent',
+  table: 'Table Agent',
+  custom_tool: 'Custom Tool Agent',
+  scout: 'Scout Agent',
+  search: 'Search Agent',
+  platform: 'Platform Agent',
+  superagent: 'Superagent',
+  run: 'Run Agent',
+  // The extensions subagent's wire/scope AgentID stays `agent` (pre-rename);
+  // `extensions` is its current model-facing trigger tool name.
+  agent: 'Extensions Agent',
+  extensions: 'Extensions Agent',
+  // The worker's general subagent; the lane header normally carries the
+  // model-chosen title, this label is only the pre-start race fallback.
+  task: 'Subagent',
+  // `job` retained as a backward-compat alias so historical transcripts still render a label.
+  job: 'Job Agent',
+  file: 'File Agent',
+  media: 'Media Agent',
+  browser: 'Browser Agent',
+} as const

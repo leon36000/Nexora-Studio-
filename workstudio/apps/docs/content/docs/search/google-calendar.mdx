@@ -1,0 +1,66 @@
+---
+title: Google Calendar
+description: Search events and agendas using your Calendar account
+---
+
+Search event text or request an agenda for a date range. Sim uses your Google Calendar account and preserves the details Google permits you to see. **Service account** mode adds calendar, user, and date-window restrictions; both modes require a personal connection.
+
+## Connect member accounts
+
+An admin adds **Google Calendar** in **Settings → Sources**, chooses **Member accounts**, and saves. Members connect Google Calendar in **Integrations**. Search for a known event and read the result.
+
+Member mode has no organization calendar or date-window filters. A query can select a calendar or dates. Connecting does not ingest events or build permission records; availability follows Google's API responses.
+
+## Set up a central service account
+
+1. Enable **Google Calendar API** and **Admin SDK API**. Create a Google service account and download its JSON key.
+2. Authorize domain-wide delegation in Workspace Admin for its numeric client ID with:
+
+   ```text
+   https://www.googleapis.com/auth/calendar.events.readonly
+   https://www.googleapis.com/auth/calendar.readonly
+   https://www.googleapis.com/auth/admin.directory.user.readonly
+   ```
+
+3. In **Settings → Sources → Google Calendar**, choose **Service account → Add connection**. Add or select the credential and set **Delegated administrator** to an active Workspace administrator with Directory user-read access.
+4. Choose calendars, users, date range, and optional event-text and attendee settings. Save and select the connection as the service source.
+5. Each member connects Calendar personally in **Integrations**.
+
+Event reads use `calendar.events.readonly`; the picker also needs `calendar.readonly` to list the administrator's calendars. [CalendarList authorization](https://developers.google.com/workspace/calendar/api/v3/reference/calendarList/list).
+
+The picker uses the delegated administrator's calendar list. `primary` means each connected member's primary calendar. A specific shared-calendar ID must be accessible to that member and through the source's delegation.
+
+## Source restrictions and event details
+
+Sim checks the account's primary-calendar identity, active Directory identity, Workspace customer, and any selected **Users**. Delegation targets that member's view.
+
+Search applies selected calendars and date bounds. Each event must also exist through the delegated credential, belong to an allowed calendar, be non-cancelled, and overlap the source's rolling window. The default service-source window is 30 days before and after the request. A source text query is verified against the exact event.
+
+Recurring events expand within the search window. All-day events use the calendar's timezone. **Include Attendees** controls attendee details; private event details remain limited by the member's access. Reads repeat these checks.
+
+Sim does not substitute the organizer's richer view or ingest event attachments, recordings, or transcripts. Member retrieval visits up to 20 calendars; provider paging and bounded traversal can limit coverage.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Calendar picker fails | Include `calendar.readonly` along with event and Directory delegation scopes. |
+| No matches | Check personal connection, primary Workspace identity, Users, calendars, and source window. |
+| Shared calendar missing | Confirm member and delegated source access to that calendar ID. |
+| Event outside allowed range | Adjust the service window or search within it. |
+| Delegation rejected | Check client ID, key, administrator access, and Workspace approval. |
+
+## Self-hosted member OAuth
+
+Follow [Google OAuth setup](/platform/self-hosting/integrations-oauth#google) for **Google Calendar API**, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, consent, and full member scopes. Match `NEXT_PUBLIC_APP_URL` to the callback origin and register:
+
+```text
+https://<your-sim-domain>/api/auth/oauth2/callback/google-calendar
+```
+
+The personal grant uses the broader `calendar` scope for workflows and is separate from service delegation. It remains required in service mode. One OAuth client can register each enabled Google service's callback. Client or scope changes require updating saved organization provider configuration and reconnecting affected members.
+
+## Related docs
+
+- [Google Meet transcripts](/search/google-meet)
+- [Shared Google service account](/search/google-drive#one-service-account-for-drive-gmail-and-calendar)

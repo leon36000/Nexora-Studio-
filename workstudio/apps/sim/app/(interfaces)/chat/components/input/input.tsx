@@ -1,0 +1,304 @@
+'use client'
+
+import type React from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import {
+  Badge,
+  Button,
+  cn,
+  scrollFadeAttributes,
+  scrollFadeClass,
+  Tooltip,
+  useScrollEdges,
+} from '@sim/emcn'
+import { ArrowUp, Paperclip, StopFilled, X } from '@sim/emcn/icons'
+import { createLogger } from '@sim/logger'
+import { generateId } from '@sim/utils/id'
+import { CHAT_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
+import { PublicChatActionButton } from '@/app/(interfaces)/chat/components/input/public-chat-action-button'
+import { isTouchMobileViewport } from '@/hooks/use-is-mobile'
+
+const logger = createLogger('ChatInput')
+
+const MAX_TEXTAREA_HEIGHT = 200
+
+interface AttachedFile {
+  id: string
+  name: string
+  size: number
+  type: string
+  file: File
+  dataUrl?: string
+}
+
+export const ChatInput: React.FC<{
+  onSubmit?: (value: string, files?: AttachedFile[]) => void
+  isStreaming?: boolean
+  onStopStreaming?: () => void
+}> = ({ onSubmit, isStreaming = false, onStopStreaming }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const attachmentsRef = useRef<HTMLDivElement>(null)
+  const [inputValue, setInputValue] = useState('')
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+  const [uploadErrors, setUploadErrors] = useState<string[]>([])
+  const [dragCounter, setDragCounter] = useState(0)
+  const isDragOver = dragCounter > 0
+  const attachmentEdges = useScrollEdges(attachmentsRef, { enabled: attachedFiles.length > 0 })
+
+  useLayoutEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`
+  }, [inputValue])
+
+  const handleFileSelect = async (selectedFiles: FileList | null) => {
+    if (!selectedFiles) return
+
+    const newFiles: AttachedFile[] = []
+    const maxSize = 10 * 1024 * 1024
+    const maxFiles = 15
+
+    for (const file of Array.from(selectedFiles)) {
+      if (attachedFiles.length + newFiles.length >= maxFiles) break
+
+      if (file.size > maxSize) {
+        setUploadErrors((prev) => [...prev, `${file.name} is too large (max 10MB)`])
+        continue
+      }
+
+      const isDuplicate = attachedFiles.some(
+        (existing) => existing.name === file.name && existing.size === file.size
+      )
+      if (isDuplicate) {
+        setUploadErrors((prev) => [...prev, `${file.name} already added`])
+        continue
+      }
+
+      let dataUrl: string | undefined
+      if (file.type.startsWith('image/')) {
+        try {
+          dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+        } catch (error) {
+          logger.error('Error reading file:', error)
+        }
+      }
+
+      newFiles.push({
+        id: generateId(),
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        file,
+        dataUrl,
+      })
+    }
+
+    if (newFiles.length > 0) {
+      setAttachedFiles((prev) => [...prev, ...newFiles])
+      setUploadErrors([])
+    }
+  }
+
+  const handleRemoveFile = (fileId: string) => {
+    setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId))
+  }
+
+  const handleSubmit = () => {
+    if (isStreaming) return
+    if (!inputValue.trim() && attachedFiles.length === 0) return
+    onSubmit?.(inputValue.trim(), attachedFiles)
+    setInputValue('')
+    setAttachedFiles([])
+    setUploadErrors([])
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (
+      e.key === 'Enter' &&
+      !e.shiftKey &&
+      !e.nativeEvent.isComposing &&
+      !isTouchMobileViewport()
+    ) {
+      e.preventDefault()
+      handleSubmit()
+    }
+  }
+
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button')) return
+    textareaRef.current?.focus()
+  }
+
+  const canSubmit = (inputValue.trim().length > 0 || attachedFiles.length > 0) && !isStreaming
+
+  return (
+    <div className='relative flex w-full shrink-0 items-center justify-center bg-linear-to-t from-[var(--bg)] to-transparent px-3 pb-[max(12px,env(safe-area-inset-bottom))] md:fixed md:right-0 md:bottom-0 md:left-0 md:px-0 md:pb-4'>
+      <div className='w-full max-w-3xl md:max-w-[748px]'>
+        {uploadErrors.length > 0 && (
+          <div className='mb-3 flex flex-col gap-2'>
+            {uploadErrors.map((error, idx) => (
+              <Badge key={`${error}-${idx}`} variant='red' size='lg' dot className='max-w-full'>
+                {error}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <div
+          role='group'
+          aria-label='Chat message input'
+          onClick={handleContainerClick}
+          className={cn(
+            'relative z-10 cursor-text rounded-2xl border border-[var(--border-1)] bg-[var(--surface-2)] px-2.5 py-2',
+            isDragOver && 'border-purple-500'
+          )}
+          onDragEnter={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (!isStreaming) setDragCounter((prev) => prev + 1)
+          }}
+          onDragOver={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (!isStreaming) e.dataTransfer.dropEffect = 'copy'
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setDragCounter((prev) => Math.max(0, prev - 1))
+          }}
+          onDrop={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setDragCounter(0)
+            if (!isStreaming) handleFileSelect(e.dataTransfer.files)
+          }}
+        >
+          {attachedFiles.length > 0 && (
+            <div
+              ref={attachmentsRef}
+              className={cn(
+                'mb-1.5 max-md:max-h-24 max-md:overflow-y-auto max-md:overscroll-contain',
+                scrollFadeClass
+              )}
+              {...scrollFadeAttributes(attachmentEdges)}
+            >
+              <div className='flex flex-wrap gap-1.5'>
+                {attachedFiles.map((file) => (
+                  <Tooltip.Root key={file.id}>
+                    <Tooltip.Trigger asChild>
+                      <div className='group relative size-[56px] shrink-0 cursor-pointer overflow-hidden rounded-[8px] border border-[var(--border-1)] bg-[var(--surface-3)]'>
+                        {file.dataUrl ? (
+                          <img
+                            src={file.dataUrl}
+                            alt={file.name}
+                            className='size-full object-cover'
+                          />
+                        ) : (
+                          <div className='flex size-full flex-col items-center justify-center gap-0.5 text-[var(--text-muted)]'>
+                            <Paperclip className='size-[18px]' />
+                            <span className='max-w-[48px] truncate px-[2px] text-[9px]'>
+                              {file.name.split('.').pop()}
+                            </span>
+                          </div>
+                        )}
+                        <Button
+                          variant='ghost'
+                          aria-label={`Remove ${file.name}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveFile(file.id)
+                          }}
+                          className='absolute top-[2px] right-[2px] size-11 items-start justify-end p-0 focus-visible:opacity-100 md:pointer-fine:size-[16px] md:pointer-fine:opacity-0 md:pointer-fine:group-hover:opacity-100'
+                        >
+                          <span className='flex size-7 items-center justify-center rounded-full bg-black/60 text-white md:pointer-fine:size-4'>
+                            <X className='size-[10px]' />
+                          </span>
+                        </Button>
+                      </div>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content side='top'>
+                      <p className='max-w-[200px] truncate'>{file.name}</p>
+                    </Tooltip.Content>
+                  </Tooltip.Root>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={isDragOver ? 'Drop files here...' : 'Enter a message...'}
+            rows={1}
+            aria-label='Message'
+            className='m-0 h-auto min-h-[24px] w-full resize-none overflow-y-auto overflow-x-hidden border-0 bg-transparent p-1 text-[var(--text-primary)] text-md leading-[24px] caret-[var(--text-primary)] outline-hidden [-ms-overflow-style:none] [scrollbar-width:none] placeholder:text-[var(--text-muted)] focus-visible:ring-0 focus-visible:ring-offset-0 max-md:max-h-[min(200px,calc(var(--mobile-viewport-height,100dvh)*0.25))] md:text-base [&::-webkit-scrollbar]:hidden'
+          />
+
+          <div className='flex items-center justify-between'>
+            <div>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <PublicChatActionButton
+                    aria-label='Attach files'
+                    variant='quiet'
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isStreaming || attachedFiles.length >= 15}
+                  >
+                    <Paperclip className='size-[16px]' />
+                  </PublicChatActionButton>
+                </Tooltip.Trigger>
+                <Tooltip.Content side='top'>
+                  <p>Attach files</p>
+                </Tooltip.Content>
+              </Tooltip.Root>
+
+              <input
+                ref={fileInputRef}
+                type='file'
+                multiple
+                accept={CHAT_ACCEPT_ATTRIBUTE}
+                onChange={(e) => {
+                  handleFileSelect(e.target.files)
+                  if (fileInputRef.current) fileInputRef.current.value = ''
+                }}
+                className='hidden'
+                disabled={isStreaming}
+              />
+            </div>
+
+            <div className='flex items-center gap-1.5'>
+              {isStreaming ? (
+                <PublicChatActionButton
+                  variant='primary'
+                  onClick={onStopStreaming}
+                  aria-label='Stop generation'
+                >
+                  <StopFilled className='block size-[14px] fill-current' />
+                </PublicChatActionButton>
+              ) : (
+                <PublicChatActionButton
+                  variant='primary'
+                  onClick={handleSubmit}
+                  disabled={!canSubmit}
+                  aria-label='Send message'
+                >
+                  <ArrowUp className='block size-[16px]' />
+                </PublicChatActionButton>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

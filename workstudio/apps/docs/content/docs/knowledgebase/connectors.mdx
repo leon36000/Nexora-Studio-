@@ -1,0 +1,234 @@
+---
+title: Connectors
+description: Sync external documents into a knowledge base and manage their access and lifecycle.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { Step, Steps } from 'fumadocs-ui/components/steps'
+
+Connectors sync documents from external services into a knowledge base. New content is indexed, changed content is reprocessed, and content removed from the selected source scope leaves search after reconciliation.
+
+This guide covers indexed knowledge bases. [Organization Search](/search) has its own live-provider catalog and queries supported providers on demand; adding a knowledge-base connector does not enable it there.
+
+## Choose a connection method
+
+Creating a connection requires workspace write access. For supported providers, **Connection method** controls who can search imported documents:
+
+| Method | Access |
+| --- | --- |
+| **Workspace** | Everyone with access to the workspace can search the synced documents. The connection does not mirror each person's source permissions. |
+| **Member accounts** | Members sync through their connected accounts; source access determines which documents they can read. |
+| **Admin or service account** / **Service account** | An administrative credential syncs content and supported source permissions. |
+
+The available methods depend on the provider and deployment configuration. A workspace Admin must configure permission-aware methods or switch a connection out of Workspace mode. The [Search source guides](/search) explain provider-specific permission setup.
+
+For GitLab in Workspace mode, a PAT with `read_api` and access to the selected project is enough. The administrator-token and non-admin CSV permission paths apply to its permission-aware method; see [GitLab](/search/gitlab).
+
+## Create a connection
+
+Open a knowledge base, choose **New connector**, and select the service.
+
+<Steps>
+<Step>
+
+### Authenticate
+
+For OAuth, select an accessible credential or choose **Connect &lt;service&gt; account**. The account picker can offer **Connect another &lt;service&gt; account** when accounts already exist. OAuth tokens refresh automatically while the grant remains valid.
+
+API-key and personal-access-token connections use the credential shown in their setup field. These examples identify the credential and any required companion fields:
+
+| Connector | Credential or prerequisite |
+| --- | --- |
+| Obsidian | Install the [Local REST API](https://github.com/coddingtonbear/obsidian-local-rest-api) plugin and copy its API key from the plugin settings. |
+| Coda | Generate an [API token](https://help.coda.io/hc/en-us/articles/39763414725389-Manage-your-Coda-account-settings) under **Account settings → API settings**; save it as a Coda service account credential. |
+| Fireflies | Copy the API key from **Settings → Developer settings** ([setup guide](https://guide.fireflies.ai/articles/3737786777-learn-about-fireflies-api)). |
+| Typeform | Generate a [personal access token](https://help.typeform.com/hc/en-us/articles/13599952215572-Typeform-API-personal-access-token) under **Your settings → Personal tokens**. |
+| Azure DevOps | PAT with Project and Team Read, Wiki Read, Work Items Read, and Code Read. |
+| GitLab | PAT with `read_api` and access to the selected project; permission-aware methods have additional requirements. |
+| YouTube | YouTube Data API key from Google Cloud Console. |
+| Amazon S3 | Secret Access Key; enter Access Key ID, region, and bucket as configuration fields. |
+| Sentry | Auth token with `project:read` and `event:read`. |
+| PagerDuty | Create a [REST API key](https://support.pagerduty.com/main/docs/api-access-keys) under **Integrations → Developer Tools → API Access Keys**. |
+| SFTP | Password or unencrypted private key, plus a required SHA-256 host-key fingerprint; enter host, port, username, and root path as configuration fields. |
+| Mintlify | Access Token only when the documentation site needs a bearer token. Public sites can sync from `llms.txt` without one. |
+| Databricks | Create a [personal access token](https://docs.databricks.com/aws/en/dev-tools/auth/pat) under **Settings → Developer → Access tokens → Manage**; enter the workspace host separately. |
+| Workday Help | Register an API client for integrations and enter `clientSecret:refreshToken`; configure client ID, tenant host, and tenant name separately. |
+
+Enter a key directly or type `{{` to select an accessible secret. A reference must be the whole value, such as `{{SOURCE_API_KEY}}`. Sim resolves it at setup and stores an encrypted token snapshot. Updating the secret later does not update that connection.
+
+If an OAuth grant is revoked, reconnect the account. API keys and PATs do not refresh automatically; a rotated directly entered key needs a replacement connection using the new key. For credentials managed as connected accounts or service accounts, update the credential through its supported account flow. Review the removal options for the old connection before replacing it.
+
+</Step>
+<Step>
+
+### Configure the source
+
+Fill in the service's source fields. Examples:
+
+- **Notion:** choose a workspace, database, or page tree.
+- **GitHub:** specify a repository, branch, and optional file-extension filter.
+- **GitLab:** select one project by path or ID and an instance host, or leave the host blank for GitLab.com in Workspace mode. Choose repository files, wiki pages, issues, or merge requests. Submodules need separate connections.
+- **Confluence:** enter the Atlassian site and select spaces, or **All** for spaces accessible at each sync. Filter by content type or label if needed. See [Confluence attachments](#confluence-attachments) for files and images.
+- **Azure DevOps:** choose wiki pages, work items, repository files, or all. Optional fields include work-item type/state, a WIQL query, and repository/branch/path filters.
+- **Amazon S3:** choose a bucket, optional key prefix, and file-extension allowlist. A custom endpoint supports S3-compatible stores such as Cloudflare R2 or MinIO.
+- **YouTube:** choose a channel by `@handle` or ID, or a playlist. Optional filters include published-after date and **Exclude Shorts**, which skips videos shorter than 60 seconds.
+- **Sentry:** set a query such as `is:unresolved`, environment, or time window. A custom host supports self-hosted Sentry.
+- **Obsidian:** enter the vault URL and, optionally, a folder path. The plugin's local default is `https://127.0.0.1:27124`.
+- **Fireflies:** optionally filter by host email or cap the transcript count.
+
+<Callout type="info">
+Sim Cloud cannot connect to localhost or private-network vault URLs. An Obsidian connection needs an allowed public HTTPS endpoint. On self-hosted deployments, the vault must be reachable from the Sim server and allowed by its [outbound-network policy](/platform/self-hosting/security#the-ssrf-boundary).
+</Callout>
+
+Sim validates source configuration when saving. A missing repository, inaccessible source, or invalid configuration can fail setup; permission-aware member syncing can also discover per-account failures during a later sync.
+
+</Step>
+<Step>
+
+### Choose the sync frequency
+
+| **Sync Frequency** | Interval |
+| --- | --- |
+| **Live** | Every 5 minutes. |
+| **Every hour** | Every 60 minutes. |
+| **Every 6 hours** | Every 360 minutes. |
+| **Daily** | Every 1,440 minutes; the default. |
+| **Weekly** | Every 10,080 minutes. |
+| **Manual only** | No scheduled content sync; use **Sync now**. |
+
+Sub-hourly syncing requires usable Max or Enterprise access on hosted workspaces with billing enabled. Self-hosted or billing-disabled workspaces do not have that plan gate.
+
+Permission-aware methods can check permissions hourly even when the content schedule is longer. With Manual only, documents can become unavailable after 24 hours without a successful permission check. Read the schedule hint shown for the selected connection method.
+
+</Step>
+<Step>
+
+### Select metadata tags
+
+If the connector exposes **Metadata tags**, uncheck fields you do not need. Setup enables them by default. For example, Notion can populate Labels and Last Modified; GitHub can populate Repository and File Path.
+
+Tags share the base's [17-slot capacity](/knowledgebase/tags). Compatible existing definitions can be reused; new ones consume slots. When capacity is exhausted, some metadata can be omitted, or setup can fail if none of the selected tags can be mapped. Uncheck optional fields or review existing definitions before retrying.
+
+Choose tags before connecting: the Settings tab does not offer a metadata-tag editor, and changing source configuration does not automatically free existing definitions' slots.
+
+</Step>
+<Step>
+
+### Connect and verify
+
+Choose **Connect & Sync** to save the connection and queue its first sync. Documents appear as they are fetched and processed; they become searchable only after indexing completes and the caller has access.
+
+Open **Connected Sources** to check the connection's status and sync history. If the initial sync could not be queued, follow its error and start **Sync now** after correcting the cause.
+
+</Step>
+</Steps>
+
+## Manage a connection
+
+**Connected Sources** shows the connected service, status, document count, and available last/next sync details. Open **Connection actions** for:
+
+| Action | Effect |
+| --- | --- |
+| **Sync now** | Queue a manual sync. Unavailable while queued or syncing; resume paused or disabled connections first. |
+| **Settings** | Edit source configuration or sync frequency and open the Documents tab. |
+| **Pause syncing** / **Resume syncing** | Stop or resume scheduled syncing. A paused connection must be resumed before a manual sync. |
+| **Sync history** / **Hide history** | Show or hide recent sync runs. |
+| **Remove connection** | Stop syncing and remove the connection, subject to its document-removal options. |
+
+After a healthy sync completes with no failed documents, a **one-minute cooldown** applies before another manual sync. Error recovery and failed runs bypass that cooldown.
+
+Before removing a connection, review its document consequence. In Workspace mode, **Also delete synced documents** is optional; otherwise the documents remain as plain documents. Permission-aware connections require deletion of their synced documents when removed. Logical removal can finish before physical storage cleanup completes.
+
+### Sync history
+
+History shows the latest **10 runs**, with time, state, document-change counts, and error or notice details. Counts identify documents added, updated, deleted, failed, or skipped; **No changes** means no content changes were recorded.
+
+**In progress…** means work is running. **Continuing** can mean a large listing is resuming across runs rather than failing. **Partial**, **Failed**, or **Interrupted** entries need their accompanying notice or error inspected. Member-account connections also report member sync progress and accounts that need reconnecting.
+
+## Exclude documents
+
+1. Open **Settings** for the connection and select **Documents**.
+2. Use the document-status picker to inspect **Included**, **Excluded**, **Failed**, or **Skipped** documents.
+3. Select **Exclude** on a document to remove it from search and skip it on later syncs, even if the source changes.
+
+To reverse this, select **Excluded** and choose **Restore**. Retained completed content can become available again; the next sync refreshes it from the source. For failed or skipped documents, read the reason and fix the source or configuration. Retry failed documents when offered, or sync again after correcting skipped source content.
+
+## Sync behavior and recovery
+
+A sync lists the selected source scope and compares it with stored content. New documents are processed; changed documents are re-chunked and re-embedded. Unchanged content usually avoids re-indexing, although the source may still be listed or read to verify changes and permissions.
+
+A base can have multiple connections. Each owns its documents, and a Knowledge block can search their combined content within the caller's access. Their metadata definitions share the same tag slots.
+
+### Content removed from the source scope
+
+Content deleted or removed from the selected source view leaves search after a successful reconciliation. Examples include:
+
+- Archived Confluence pages or Webflow CMS items.
+- Asana tasks whose projects are all archived; a task still reachable through an active project remains included.
+- Retired ServiceNow articles when no explicit workflow-state selection overrides the default.
+- Files in Google Drive trash or Outlook messages in Deleted Items.
+- Canceled incident.io incidents under the default filter; **All (including canceled)** or an explicit selection can include them.
+
+An incomplete source listing keeps unlisted documents instead of treating them all as deleted. Incremental listings also do not prove that an unlisted item was removed. Restoring content at the source makes it eligible for a later sync; its document ID is not guaranteed to change.
+
+### Statuses
+
+| Status | Meaning |
+| --- | --- |
+| **Active** | Available for its schedule or manual sync. |
+| **Pending** | A sync is queued. |
+| **Syncing** | A sync is in progress. |
+| **Paused** | Syncing is suspended; resume before starting another run. |
+| **Error** | A sync failed. Read the error; scheduled retries use backoff. |
+| **Disabled** | Syncing requires intervention, including after 10 consecutive full-sync failures. |
+
+A single-document failure can leave the rest of the sync running. Transient failures can be retried; unsupported or invalid content needs a source/configuration change. Read the Documents filters and history to distinguish failed indexing from a failed source listing.
+
+Full-sync failures increase the retry delay. After **10 consecutive failures**, the connection is disabled. Correct the source or credential issue, reconnect an invalid OAuth grant when needed, and choose **Resume syncing**. Resume alone does not repair a revoked credential.
+
+## Confluence attachments
+
+Matching pages and blog posts include PDF, Word (`.docx` and Word 97–2003 `.doc`), Excel (`.xlsx`), and PowerPoint (`.pptx`) attachments as separate documents. Attachment indexing requires `read:attachment:confluence`; include it in a service account's scoped token. See [Confluence setup](/search/confluence#using-a-service-account).
+
+Attachments are checked even when the parent page is unchanged. Files over **100 MiB** appear as skipped. Convert Word 6/95 files to `.docx`, `.xls` to `.xlsx`, and `.ppt` to `.pptx`. Existing connections pick up supported attachments on later syncs.
+
+### Image attachments
+
+**Image Attachments → Read with AI** converts PNG, JPEG, WebP, and GIF attachments into searchable text. GIF extraction uses the first frame. Tables become rows with headers, scans become extracted text, and diagrams or screenshots include visible text and a description. Decorative images remain documents with zero chunks.
+
+Images smaller than **2 KiB**, SVG, HEIC, and AVIF files are not indexed through this image path. It needs a Gemini key: an available workspace key first, otherwise the deployment's key. Without a key, images are deferred until one is configured.
+
+New knowledge-base Confluence connections enable image reading by default. Connections created before image support keep it off until you choose **Read with AI**; their next sync then indexes images.
+
+The default admission limit is **500 new or changed images per sync**. Remaining images wait for another sync. With **Member accounts**, each run that continues a sync can read up to 500. Self-hosted operators can configure `KB_IMAGE_EXTRACTIONS_PER_SYNC`. Unchanged images reuse their extraction, including during a full resync; transient or malformed responses can cause additional model requests.
+
+Image extraction follows [model billing](/platform/costs): BYOK usage is billed by the provider, while platform-key usage follows the deployment's Sim billing policy. Choose **Don't index** to stop image indexing; the next sync removes indexed images. Switching back processes them again and incurs the applicable model usage.
+
+## Available connectors
+
+The source picker lists the available services. Built-in connectors include:
+
+| Category | Connectors |
+| --- | --- |
+| Productivity | Coda, Notion, Confluence, Asana, Linear, Plane, Jira, Jira Service Management, Monday, Trello, ClickUp, Google Calendar, Google Sheets, Google Forms, Microsoft Excel, Typeform |
+| Cloud storage | Google Drive, Dropbox, OneDrive, SharePoint, Box, Amazon S3, SFTP |
+| Documents | Google Docs, Google Slides, Mintlify, WordPress, Webflow, DocuSign |
+| Development | GitHub, GitLab, Bitbucket, Azure DevOps, Sentry |
+| Communication | Slack, Discord, Microsoft Teams, Google Chat, Reddit, X, YouTube |
+| Email | Gmail, Outlook |
+| CRM | HubSpot, Salesforce |
+| Support | Help Scout, Intercom, ServiceNow, Zendesk, Zoho Desk |
+| Incident management | incident.io, Rootly, PagerDuty |
+| Data | Airtable, Databricks |
+| Note-taking | Obsidian |
+| Meetings | Zoom, Google Meet, Gong, Grain, Granola, Fathom, Fireflies, Circleback, Otter |
+| Recruiting | Greenhouse, Ashby |
+| HR | Workday Help |
+| Compliance | Google Vault |
+
+## Related docs
+
+- [Tags and filtering](/knowledgebase/tags) — definitions, slot capacity, and operators.
+- [Debugging retrieval](/knowledgebase/debugging-retrieval) — verify indexed content and access.
+- [Using a knowledge base in a workflow](/knowledgebase/using-in-workflows) — retrieve synced passages.
+- [Organization Search](/search) — live providers and permission-aware source setup.

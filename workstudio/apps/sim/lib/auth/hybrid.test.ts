@@ -1,0 +1,140 @@
+import { authMockFns } from '@sim/testing'
+import { authInternalMock, authInternalMockFns } from '@sim/testing/mocks/auth-internal.mock'
+import { NextRequest } from 'next/server'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { mockAuthenticateApiKeyFromHeader, mockUpdateApiKeyLastUsed } = vi.hoisted(() => ({
+  mockAuthenticateApiKeyFromHeader: vi.fn(),
+  mockUpdateApiKeyLastUsed: vi.fn(),
+}))
+
+const mockGetSession = authMockFns.mockGetSession
+
+afterAll(() => {
+  mockGetSession.mockReset()
+})
+
+vi.unmock('@/lib/auth/hybrid')
+
+vi.mock('@/lib/api-key/service', () => ({
+  authenticateApiKeyFromHeader: mockAuthenticateApiKeyFromHeader,
+  updateApiKeyLastUsed: mockUpdateApiKeyLastUsed,
+}))
+
+vi.mock('@/lib/auth/internal', () => authInternalMock)
+
+import { AuthType, checkHybridAuth, checkInternalAuth } from '@/lib/auth/hybrid'
+
+const { mockVerifyInternalToken } = authInternalMockFns
+
+function createRequest(headers: Record<string, string>): NextRequest {
+  return new NextRequest('http://localhost/api/test', { headers })
+}
+
+describe('checkHybridAuth credential precedence', () => {
+  beforeEach(() => {
+    mockVerifyInternalToken.mockResolvedValue({ valid: false })
+    mockGetSession.mockResolvedValue({
+      user: { id: 'session-user', name: 'Session User', email: 'session@example.com' },
+      session: { id: 'session-1' },
+    })
+  })
+
+  it('uses a valid explicit API key before a session cookie', async () => {
+    mockAuthenticateApiKeyFromHeader.mockResolvedValue({
+      success: true,
+      userId: 'api-user',
+      keyId: 'key-1',
+      keyType: 'personal',
+    })
+
+    const result = await checkHybridAuth(
+      createRequest({ cookie: 'session=value', 'x-api-key': 'valid-key' })
+    )
+
+    expect(result).toEqual({
+      success: true,
+      userId: 'api-user',
+      workspaceId: undefined,
+      authType: AuthType.API_KEY,
+      apiKeyType: 'personal',
+      principal: { kind: 'personal_api_key', userId: 'api-user', keyId: 'key-1' },
+    })
+    expect(mockUpdateApiKeyLastUsed).toHaveBeenCalledWith('key-1')
+    expect(mockGetSession).not.toHaveBeenCalled()
+  })
+
+  it.each(['invalid-key', ''])(
+    'does not fall through to a session when an explicit API key is invalid (%j)',
+    async (apiKey) => {
+      mockAuthenticateApiKeyFromHeader.mockResolvedValue({
+        success: false,
+        error: 'Invalid API key',
+      })
+
+      const result = await checkHybridAuth(
+        createRequest({ cookie: 'session=value', 'x-api-key': apiKey })
+      )
+
+      expect(result).toEqual({ success: false, error: 'Invalid API key' })
+      expect(mockAuthenticateApiKeyFromHeader).toHaveBeenCalledWith(apiKey)
+      expect(mockGetSession).not.toHaveBeenCalled()
+    }
+  )
+
+  it('returns the authenticated session principal when no explicit credential is present', async () => {
+    const result = await checkHybridAuth(createRequest({ cookie: 'session=value' }))
+
+    expect(result).toMatchObject({
+      success: true,
+      userId: 'session-user',
+      authType: AuthType.SESSION,
+      principal: { kind: 'session', userId: 'session-user', sessionId: 'session-1' },
+    })
+  })
+
+  it('keeps a valid internal JWT ahead of both API key and session credentials', async () => {
+    mockVerifyInternalToken.mockResolvedValue({ valid: true, userId: 'internal-user' })
+    mockAuthenticateApiKeyFromHeader.mockResolvedValue({
+      success: true,
+      userId: 'api-user',
+      keyId: 'key-1',
+      keyType: 'personal',
+    })
+
+    const result = await checkHybridAuth(
+      createRequest({
+        authorization: 'Bearer internal-token',
+        cookie: 'session=value',
+        'x-api-key': 'valid-key',
+      })
+    )
+
+    expect(result).toEqual({
+      success: true,
+      userId: 'internal-user',
+      authType: AuthType.INTERNAL_JWT,
+    })
+    expect(mockAuthenticateApiKeyFromHeader).not.toHaveBeenCalled()
+    expect(mockGetSession).not.toHaveBeenCalled()
+  })
+
+  it('propagates a signed Mothership sandbox profile through internal auth', async () => {
+    mockVerifyInternalToken.mockResolvedValue({
+      valid: true,
+      userId: 'internal-user',
+      sandboxProfile: 'mothership',
+    })
+
+    const result = await checkInternalAuth(
+      createRequest({ authorization: 'Bearer internal-token' })
+    )
+
+    expect(result).toEqual({
+      success: true,
+      userId: 'internal-user',
+      authType: AuthType.INTERNAL_JWT,
+      sandboxProfile: 'mothership',
+    })
+  })
+})

@@ -1,0 +1,90 @@
+from typing import assert_never
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Security
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+
+from api.dependencies import create_ocr_use_case_factory
+from api.domain.key.entities import Key
+from api.domain.model.errors import StatusCodeModelError, TooBusyModelError, UnknownModelError
+from api.domain.provider.errors import (
+    NoAvailableProviderError,
+    ProviderAdapterValidationRequestError,
+    ProviderAdapterValidationResponseError,
+    UnsupportedProviderEndpointError,
+)
+from api.domain.router.errors import RouterHasNoProvidersError, RouterHasWrongTypeError, RouterNotFoundError, RouterRateLimitExceededError
+from api.domain.user.errors import UserHasNoAccessToRouterError
+from api.domain.user.views import AuthenticatedUserView
+from api.infrastructure.fastapi.accesscontroller import AccessController
+from api.infrastructure.fastapi.dependencies import get_authenticated_key, get_authenticated_user
+from api.infrastructure.fastapi.documentation import get_documentation_responses
+from api.infrastructure.fastapi.endpoints.exceptions import (
+    ModelIsTooBusyExceptionHTTPException,
+    ModelNotFoundHTTPException,
+    RateLimitExceededHTTPException,
+    UnsupportedProviderEndpointHTTPException,
+    WrongModelTypeHTTPException,
+)
+from api.infrastructure.fastapi.routes import EndpointRoute, RouterName
+from api.infrastructure.fastapi.schemas.ocr import CreateOCRBody, OCRResponse
+from api.use_cases.ocr import CreateOCRCommand, CreateOCRUseCase, CreateOCRUseCaseSuccess
+
+router = APIRouter(prefix="/v1", tags=[RouterName.OCR.upper()])
+
+
+@router.post(
+    path=EndpointRoute.OCR,
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses(
+        [
+            ModelIsTooBusyExceptionHTTPException,
+            ModelNotFoundHTTPException,
+            RateLimitExceededHTTPException,
+            WrongModelTypeHTTPException,
+        ]
+    ),
+    response_model=OCRResponse,
+)
+async def create_ocr(
+    body: CreateOCRBody = Body(description="The OCR creation request."),
+    create_ocr_use_case: CreateOCRUseCase = Depends(create_ocr_use_case_factory),
+    authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
+    autenticated_key: Key = Depends(get_authenticated_key),
+) -> JSONResponse:
+    """
+    Extracts text from files using Mistral Document AI pipeline
+    """
+    command = CreateOCRCommand(payload=body.model_dump(), authenticated_user=authenticated_user, authenticated_key=autenticated_key)
+    result = await create_ocr_use_case.execute(command)
+
+    match result:
+        case CreateOCRUseCaseSuccess(data=data, headers=headers):
+            return JSONResponse(content=OCRResponse.model_validate(data.model_dump()).model_dump(), status_code=200, headers=headers)
+        case NoAvailableProviderError():
+            raise ModelIsTooBusyExceptionHTTPException()
+        case ProviderAdapterValidationRequestError(errors=errors):
+            raise HTTPException(status_code=422, detail=jsonable_encoder(errors))
+        case ProviderAdapterValidationResponseError(errors=errors):
+            raise HTTPException(status_code=422, detail=jsonable_encoder(errors))
+        case UnsupportedProviderEndpointError(endpoint=endpoint, provider_type=provider_type):
+            raise UnsupportedProviderEndpointHTTPException(endpoint=endpoint, provider_type=provider_type)
+        case RouterRateLimitExceededError(id=_, limit_type=limit_type, headers=headers):
+            raise RateLimitExceededHTTPException(limit_type=limit_type, headers=headers)
+        case RouterNotFoundError():
+            raise ModelNotFoundHTTPException(name=body.model)
+        case RouterHasNoProvidersError():
+            raise ModelNotFoundHTTPException(name=body.model)
+        case RouterHasWrongTypeError(actual_type=actual_type, expected_type=expected_type):
+            raise WrongModelTypeHTTPException(expected_type=expected_type, actual_type=actual_type)
+        case UserHasNoAccessToRouterError():
+            raise ModelNotFoundHTTPException(name=body.model)
+        case TooBusyModelError(detail=detail):
+            raise ModelIsTooBusyExceptionHTTPException()
+        case StatusCodeModelError(status_code=status_code, detail=detail):
+            raise HTTPException(status_code=status_code, detail=detail)
+        case UnknownModelError(detail=detail):
+            raise HTTPException(status_code=500, detail=detail)
+        case _ as unreachable:
+            assert_never(unreachable)

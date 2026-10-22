@@ -1,0 +1,317 @@
+---
+title: Credits, billing and limits
+description: Understand Cloud usage charges, BYOK, subscriptions, spend controls, and execution limits.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { Tab, Tabs } from '@/components/ui/tabs'
+
+Sim Cloud measures billable usage in **credits**: **1 credit = $0.005**, or **$1 = 200 credits**. For example, $10 of usage is 2,000 credits.
+
+The plan and execution tables below describe Cloud defaults. Enterprise agreements and deployment configuration can change them. Billing-disabled self-hosted deployments do not apply Sim plan-based usage billing; provider and infrastructure costs still apply. See [Self-hosted limits](#self-hosted-limits).
+
+## What a workflow run costs
+
+A billable workflow run can include:
+
+| Component | Charge |
+| --- | --- |
+| Base run | 1 credit ($0.005), including runs without model calls |
+| Hosted models | Recorded model usage at the applicable Sim rate |
+| Hosted tools | Operation charges when using Sim-provided provider keys |
+| Sandbox runtime | Applicable runtime charges, such as a Pi sandbox |
+
+With your own provider keys, you pay the provider directly for those calls. The workflow base charge and unrelated hosted-tool or sandbox usage still apply. Local Ollama or vLLM inference avoids an external model API charge, but still needs infrastructure and any enabled Sim run charge.
+
+For a simple uncached model call, with prices in USD per million tokens:
+
+```text
+modelCostUSD = (inputTokens × inputPrice + outputTokens × outputPrice) / 1,000,000
+runCredits = 1 + billableModelCostUSD × 200 + hostedToolCostUSD × 200 + sandboxCostUSD × 200
+```
+
+Cached input, cache writes, model routing, and provider-specific usage can change the calculation. Use the recorded run cost to compare configurations. Internal child executions that share their parent's base charge do not add another base fee.
+
+### Inspect recorded usage
+
+Open a run in **Logs → Overview** to inspect its cost rows, **Total**, and available input/output token counts. Current runs list ledger items such as **Base Run** and model or tool charges. Older runs may contain only a total. Displayed credit rows are apportioned so they add up to the displayed total.
+
+Chat, Knowledge Base processing, and dictation also record usage outside ordinary workflow runs. The **Agent block** source label in organization Insights refers to the **Sim Chat** workflow block, whose usage is metered separately from its containing workflow. Ordinary Agent model calls are part of Workflow usage. See [Usage monitoring](/platform/enterprise/usage-tracking) for attribution.
+
+### Hosted tool rates
+
+These are configured hosted-tool base rates in USD, not a provider's retail subscription price. Actual usage is recorded per operation. A provider credit, such as a Firecrawl credit, is a different unit from a Sim credit.
+
+| Provider | Operation | Base rate |
+| --- | --- | --- |
+| Firecrawl | Scrape, Crawl, Search, Extract, Map | $0.001 per Firecrawl credit reported by the operation |
+| Exa | Search, Get Contents, Find Similar Links, Answer | Cost returned by the API |
+| Serper | Search with up to 10 results | $0.001 |
+| Serper | Search with more than 10 results | $0.002 |
+| Perplexity | Search | $0.005 per request |
+| Perplexity | Chat | Token-based, depending on the model |
+| Linkup | Standard search | $0.006 |
+| Linkup | Deep search | $0.055 |
+| Parallel AI | Turbo or Fast search, up to 10 returned results | $0.001 |
+| Parallel AI | Basic or Advanced search, up to 10 returned results | $0.005 |
+| Parallel AI | Search results beyond 10 | $0.001 per additional returned result |
+| Parallel AI | Extract | $0.001 per URL |
+| Parallel AI | Deep Research | $0.005–$2.40, depending on processor tier |
+| Jina AI | Read URL | $0.20 per million tokens |
+| Jina AI | Search | $0.20 per million tokens, with a 10,000-token minimum |
+| Google Cloud | Translate / Detect | $0.00002 per character |
+| Google Maps | Geocode, Directions, Elevation, Timezone, Reverse Geocode, Geolocate, Validate Address | $0.005 per request |
+| Google Maps | Distance Matrix | $0.005 per returned matrix element |
+| Google Maps | Snap to Roads | $0.01 per request |
+| Google Maps | Place Details | $0.017 per request |
+| Google Maps | Places Search | $0.032 per request |
+| Google Cloud | PageSpeed; Books Search and Details | No hosted-tool charge |
+| Brandfetch | Search | No hosted-tool charge |
+| Brandfetch | Get Brand | $0.04 per request |
+
+Supported providers can use your own keys instead. A workflow containing a no-charge tool still has its base run charge.
+
+## Bring your own key (BYOK)
+
+Store your provider keys under **Settings → BYOK** to use them instead of Sim-hosted keys. BYOK avoids Sim's model or tool usage charge for the provider calls it covers; you pay that provider directly.
+
+### Key scope and precedence
+
+| Scope | Applies to | Who manages it | Cloud availability |
+| --- | --- | --- | --- |
+| **Workspace** | One workspace | Workspace Admin | Any plan |
+| **Organization** | Current and future workspaces in the organization | Organization Owner or Admin | Active Pro for Teams, Max for Teams, or Enterprise |
+
+Saved-key precedence is resolved separately for each provider:
+
+1. Use that provider's workspace key pool when one is configured.
+2. Otherwise, use its eligible organization key pool.
+3. Otherwise, use the next available configured source, including a Sim-hosted key where supported.
+
+A workspace OpenAI key does not override the organization's Anthropic key. The settings page marks inherited providers so you can inspect inheritance before adding an override. A nonempty workspace pool is exclusive; a corrupt workspace key is not a reason to borrow an organization key.
+
+### Add or remove keys
+
+1. Open **Settings → BYOK**.
+2. Choose **Workspace**, or **Organization** if you are an organization administrator.
+3. Select **Add Key** for the provider, enter the key, and save.
+
+You can store several keys for a provider in each scope. Requests rotate across the keys in the selected pool. Keys are encrypted at rest; the browser receives a masked display value, not the full saved key.
+
+Deleting the last workspace key lets that provider inherit an eligible organization key or use its next available configured source. Deleting an organization key affects workspaces that inherited it. Key deletion takes effect on subsequent resolution.
+
+If the organization's plan lapses, its keys stop applying and workspaces use their next available source. Saved organization keys remain, and organization administrators can delete them; adding or updating them requires an active organization plan.
+
+<Callout type="warn">
+The Pi block's **Create PR**, **Update PR**, and **Plan** modes run a model client inside a sandbox. The resolved key, including an inherited organization key, is exposed to that sandbox. To keep an organization key out, configure a workspace key for that provider. Pi web search requires an explicit block key and does not fall back to stored keys. See [Pi](/workflows/blocks/pi).
+</Callout>
+
+### Provider catalog
+
+The settings page groups keys into **Models**, **Search & web**, and **Enrichment**. It is the current catalog; the following lists describe the supported uses.
+
+<Tabs items={['Models', 'Search & web', 'Enrichment']}>
+  <Tab>
+    | Provider | Use |
+    | --- | --- |
+    | OpenAI | Model calls and Knowledge Base embeddings |
+    | Anthropic | Model calls |
+    | Google | Model calls |
+    | Mistral | Model calls and Knowledge Base OCR |
+    | Z.ai | Model calls |
+    | Cohere | Embeddings and Knowledge Base reranking |
+    | xAI | Model calls |
+    | Kimi | Model calls |
+    | TypeSafe | Jev evaluation models |
+    | Fireworks | Model calls |
+    | Together AI | Model calls |
+    | Baseten | Model calls |
+    | Nebius | Model calls |
+    | Ollama Cloud | Model calls |
+    | Kie | Model calls |
+    | Fal.ai | Image and video generation |
+  </Tab>
+  <Tab>
+    | Provider | Use |
+    | --- | --- |
+    | Firecrawl | Scraping, crawling, search, and extraction |
+    | Exa | Search and research |
+    | Context.dev | Scraping, crawling, search, and brand intelligence |
+    | TinyFish | Web agent automation, search, and page fetching |
+    | Serper | Google search API |
+    | Linkup | Search and content retrieval |
+    | Parallel AI | Search, extraction, and deep research |
+    | Perplexity | Chat and web search |
+    | Jina AI | Web reading and search |
+    | Google Cloud | Translate, Maps, PageSpeed, and Books APIs |
+  </Tab>
+  <Tab>
+    | Provider | Use |
+    | --- | --- |
+    | Brandfetch | Brand assets and company information |
+    | Hunter | Email finding, verification, and domain search |
+    | People Data Labs | Person and company enrichment, search, and identity |
+    | Findymail | Email finding, verification, and phone lookup |
+    | Prospeo | Person and company enrichment and search |
+    | Wiza | Prospect search, individual reveal, and company enrichment |
+    | Datagma | Email, phone, person, and company enrichment |
+    | Dropcontact | Contact enrichment and email finding |
+    | LeadMagic | Email finding, validation, and profile enrichment |
+    | Icypeas | Email finding and verification |
+    | Enrow | Email finding and verification |
+    | ZeroBounce | Email validation and deliverability checks |
+    | NeverBounce | Email verification and list cleaning |
+    | MillionVerifier | Email verification and deliverability checks |
+  </Tab>
+</Tabs>
+
+## Cloud plans and credit allowances
+
+Current monthly pricing and allocations are:
+
+| Plan | Monthly price | Included credits | Weekly refresh |
+| --- | --- | --- | --- |
+| Free | $0 | 1,000 one-time | None |
+| Pro | $25 per seat | 6,000/month per seat | 2,000/week per seat |
+| Max | $100 per seat | 25,000/month per seat | 4,000/week per seat |
+| Enterprise | By agreement | By agreement | By agreement |
+
+Pro and Max are available for individuals or teams. Team subscriptions pool credits across internal seats. For example, Max for Teams with three seats has a 75,000-credit monthly allocation and a 12,000-credit weekly refresh allowance. External collaborators do not add seats, but their work in an organization-owned workspace is billed to that organization.
+
+See [current pricing](https://www.sim.ai/pricing) and **Settings → Subscription** for the plan available to your account. Internal membership, external eligibility, and workspace migration are explained in [Roles and permissions](/platform/permissions#internal-and-external-membership).
+
+### Weekly refresh
+
+Each seven-day window from the billing period's start excludes usage up to the weekly refresh allowance from billable usage. It is an allowance against that week's usage, not an accumulating wallet balance. Unused allowance does not carry forward. Team allowances scale with seats.
+
+### Annual billing
+
+Pro and Max annual subscriptions have a 15% discount while retaining their advertised included credits. Team pricing uses the same per-seat rate.
+
+| Plan | Monthly billing | Annual equivalent per month | Annual price per seat |
+| --- | --- | --- | --- |
+| Pro | $25 | $21.25 | $255 |
+| Max | $100 | $85 | $1,020 |
+
+Use subscription settings to choose the billing interval. The usage display names the current billing period; check it when comparing usage across an interval change.
+
+## Control spending
+
+By default, paid usage is capped at the included allowance and any applied credit balance. Under **Settings → Subscription**, either:
+
+- Turn on **Allow usage to go past included usage** under **Enable on-demand usage** to remove the normal usage cap.
+- Set a higher **Usage limit** to allow overage up to a specific ceiling.
+
+Applied credit balance increases the covered allowance. A balance grant alone does not enable on-demand billing. Disabling on-demand returns the limit to the covered amount; the control is disabled while current usage is already above that amount, until usage falls back or the period resets.
+
+Organization owners and admins manage organization billing and spend limits. Workspace Admin access alone does not grant that authority. Organization **Manage credits** controls a member's usage cap; it is not a credit-purchase control.
+
+### Subscription and overage example
+
+If a Pro account has 7,000 billable credits after weekly-refresh deductions and applied credits, its charge is $25 for the subscription plus $5 for the 1,000-credit overage. Continuing beyond the allowance requires on-demand usage or a higher limit.
+
+For team plans, overage is calculated against the organization's pooled allowance. Usage in organization-owned workspaces is billed to that organization, including external collaborators' work. Attributed human usage can also count toward the person's organization member cap. The organization receives one bill. Enterprise usage and limits follow the agreement rather than ordinary Pro/Max overage billing.
+
+### Threshold billing
+
+The default incremental billing threshold is $100 of unbilled overage, equivalent to 20,000 credits. Sim automatically settles eligible overage during the billing period instead of waiting for one large period-end bill.
+
+| Point in period | Total overage | New settlement |
+| --- | --- | --- |
+| Day 10 | $120 | $120 |
+| Day 15 | $180 | None; only $60 remains unbilled |
+| Day 20 | $260 | $140, the unbilled amount since the first settlement |
+
+Any remaining eligible overage is settled at period end. Applied balances and billing eligibility affect the amount charged.
+
+## Cloud limits
+
+These defaults follow the paid tier: Pro and Pro for Teams share Pro limits; Max and Max for Teams share Max limits. Enterprise values may be customized. Request rate, concurrent runs, storage, and run duration are separate limits.
+
+### Workspaces
+
+Free accounts have one personal workspace by default and Pro accounts up to three. Organization workspaces are uncapped for eligible organization owners and admins. For Max and other current account limits, check the workspace creation controls and [pricing](https://www.sim.ai/pricing), rather than assuming a personal-workspace cap from another deployment.
+
+Accepting internal membership moves owned personal workspaces into the organization. See [Joining an organization](/platform/permissions#joining-an-organization) for the ownership and seat consequences.
+
+### Rate limits
+
+| Plan | Synchronous runs/minute | Asynchronous runs/minute |
+| --- | --- | --- |
+| Free | 50 | 200 |
+| Pro | 150 | 1,000 |
+| Max | 300 | 2,500 |
+| Enterprise default | 600 | 5,000 |
+
+Execution rate buckets can burst above the sustained per-minute rate. General API endpoint requests have a separate request bucket; these run rates do not describe every API call. See [API usage and limits](/api-reference/getting-started).
+
+### Concurrent executions
+
+| Plan | Concurrent runs |
+| --- | --- |
+| Free | 10 |
+| Pro | 50 |
+| Max | 200 |
+| Enterprise default | 1,000; customizable |
+
+The limit applies per billing account. An organization's workspaces, members, and API keys share its concurrency pool. An admitted async run holds a slot while queued and running; a synchronous run holds one while running. Workflow-in-workflow blocks execute within the parent run and do not consume another slot.
+
+### File storage
+
+| Plan | Storage default |
+| --- | --- |
+| Free | 5 GiB |
+| Pro | 50 GiB |
+| Max | 500 GiB |
+| Enterprise | 500 GiB; customizable |
+
+Organization storage is pooled across its workspaces. Storage limits are independent of the credit allowance.
+
+### Run time limits
+
+| Plan | Synchronous run | Asynchronous run |
+| --- | --- | --- |
+| Free | 5 minutes | 90 minutes |
+| Pro / Max, including team subscriptions | 50 minutes | 90 minutes |
+| Enterprise default | 50 minutes | 90 minutes; configurable up to 7 days |
+
+Synchronous execution waits for the workflow to finish and returns its result, or streams it when streaming is selected. Asynchronous API calls, webhooks, schedules, polling triggers, and table workflow columns run in the background.
+
+A direct async API request can shorten the account's timeout for that request; it cannot extend it. A run exceeding its limit fails with a timeout error. Individual blocks, remote sandboxes, and providers can have shorter independent limits. See [How workflows run](/workflows/how-it-runs).
+
+### Self-hosted limits
+
+Billing-disabled deployments have no default plan-based workspace cap, workflow timeout, or storage enforcement. Operators can opt into rate, storage, and workflow timeout enforcement with the corresponding free-tier environment settings. The hosted billing-account concurrency reservation applies only when hosting and billing are enabled.
+
+This does not remove protocol, provider, block, sandbox, or deployment resource limits. See [Self-hosting configuration](/platform/self-hosting/environment-variables) for exact settings.
+
+## Monitor usage through the UI or API
+
+Use **Settings → Subscription** to inspect the current allowance, usage limit, billing period, on-demand setting, and plan. Organization administrators can inspect [Usage monitoring](/platform/enterprise/usage-tracking) for source, workspace, and member attribution.
+
+For workspace billing information, use [Get billing status](/api-reference/billing/getBillingStatus). [List billing logs](/api-reference/billing/listBillingLogs) exposes billable events. Billing and run-resource responses use credits, while Logs endpoints explicitly report USD; use each endpoint's documented unit.
+
+The legacy `GET /api/users/me/usage-limits` endpoint accepts an API key in `X-API-Key`. It reports the authenticated account or key owner's usage and subscription, which can differ from a workflow's workspace payer. Its `usage.currentPeriodCost` and `usage.limit` are in USD. It also returns storage `usedBytes`, `limitBytes`, and `percentUsed`.
+
+Its rate fields are:
+
+| Field | Meaning |
+| --- | --- |
+| `requestsPerMinute` | Sustained token refill rate |
+| `maxBurst` | Maximum accumulated tokens |
+| `remaining` | Available tokens, up to `maxBurst` |
+| `resetAt` | Reported bucket reset time |
+
+See [API authentication](/api-reference/authentication) before selecting a personal or workspace key for monitoring.
+
+## Voice dictation usage
+
+Chat dictation uses ElevenLabs Scribe v2 Realtime. A workspace or organization dictation session has a three-minute maximum and records its charge when the token is issued, even if you stop speaking earlier. Its configured base cost is $0.024 per session, before the deployment's applicable cost policy.
+
+The deployment must configure `ELEVENLABS_API_KEY`; dictation controls are hidden when the service is unavailable. Deployed-chat voice mode is a separate surface; see [Chat deployments](/workflows/deployment/chat) for its setup rather than applying the dictation session limit to it.
+
+## Related docs
+
+- [Secrets](/platform/credentials)
+- [Logs](/logs-debugging/logging)
+- [API getting started](/api-reference/getting-started)

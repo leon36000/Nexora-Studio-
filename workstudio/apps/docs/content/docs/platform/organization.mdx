@@ -1,0 +1,58 @@
+---
+title: Organizing a workspace
+description: Group workflows with folders, nesting, ordering, and locks.
+---
+
+Folders group workflows in the sidebar. Use them to organize a workspace by team, customer, or purpose.
+
+You need **Write** or **Admin** access to arrange unlocked folders. Only a workspace **Admin** can lock or unlock them.
+
+## Name and nest folders
+
+Use category names for folders and action names for workflows. For example:
+
+```text
+Customer operations
+  Customer A
+    Send weekly summary
+    Check overdue invoices
+  Customer B
+    Send weekly summary
+Internal
+  Update support metrics
+```
+
+Choose **Create folder** from a folder's menu to add a subfolder. Choose **Rename** to change its name. Keep the hierarchy shallow enough that teammates can find a workflow without opening many levels.
+
+## Reorder and move folders
+
+Drag a folder up or down to change its order within a level. Drag it onto another folder to nest it there. Put frequently used folders near the top.
+
+Folder names, nesting, and order organize navigation. They do not give different members access to different branches of the workspace.
+
+## Lock a folder
+
+Choose **Lock** from the folder's menu to prevent editing. New folders are unlocked by default.
+
+A folder lock applies to its workflows and subfolders. A child cannot clear a lock inherited from its parent; unlock the parent first. Otherwise authorized workflows can still run while locked.
+
+Use a lock to prevent accidental changes to production logic. Workspace roles and resource permissions still govern access and execution.
+
+## Delete and restore a folder
+
+Deleting a folder also removes its contents from active lists. Check the affected workflows before choosing **Delete** and confirming the deletion.
+
+Deleted items remain recoverable under **Settings → Recently deleted** until retention cleanup removes them. Restore them there when needed. Recovery is subject to the workspace's effective [data retention policy](/platform/enterprise/data-retention).
+
+A locked folder cannot be deleted until its lock is cleared.
+
+## Choose folders or another workspace
+
+Keep work in folders when it shares the same team, access rules, and settings. Create another workspace when it needs its own members, credentials, secrets, or resource ownership—for example, a separate customer project with different collaborators.
+
+Use the same category names across related resources so a table, secret, and workflow are easy to associate. This is a naming convention, not an enforced relationship.
+
+## Related docs
+
+- [Workspace fundamentals](/platform/workspaces)
+- [Roles and permissions](/platform/permissions)

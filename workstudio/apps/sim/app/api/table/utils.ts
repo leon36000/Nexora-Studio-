@@ -1,0 +1,387 @@
+import { createLogger } from '@sim/logger'
+import { permissionSatisfies } from '@sim/platform-authz/workspace'
+import { toError } from '@sim/utils/errors'
+import { NextResponse } from 'next/server'
+import { orchestrationFailureResponse } from '@/lib/api/server/orchestration-response'
+import {
+  messageForOrchestrationError,
+  type OrchestrationErrorCode,
+  statusForOrchestrationError,
+} from '@/lib/core/orchestration/types'
+import type { MultipartError } from '@/lib/core/utils/multipart'
+import type { StaticPermissionGroupCapability } from '@/lib/permission-groups/capabilities'
+import {
+  capabilityRefusal,
+  isWorkspaceCapabilityWithheld,
+} from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
+import type { ColumnDefinition, Filter, TableDefinition, TablePredicate } from '@/lib/table'
+import { buildFilterClause, getTableById, TableQueryValidationError } from '@/lib/table'
+import { USER_TABLE_ROWS_SQL_NAME } from '@/lib/table/constants'
+import { TableLockedError } from '@/lib/table/mutation-locks'
+import { isTablePredicate } from '@/lib/table/query-builder/converters'
+import { validateStoragePredicate } from '@/lib/table/query-builder/validate'
+import type { TableLockKind } from '@/lib/table/types'
+import { checkWorkspaceAccess } from '@/lib/workspaces/permissions/utils'
+
+/**
+ * Maps a {@link TableLockedError} thrown by the service layer to a 423 response
+ * carrying `{ error, lock }`; returns `null` for any other error so the caller
+ * falls through to its existing handling. Call this as the FIRST statement of a
+ * table route's catch block — `TableLockedError` is an `HttpError`, not an
+ * `OrchestrationError`, so nothing else classifies it and it would otherwise
+ * reach the route's generic 500.
+ *
+ * The body deliberately omits a `details` array: the client's `isValidationError`
+ * treats any `ApiClientError` with array-valued `details` as a field-validation
+ * error and swallows its toast, so a lock rejection must not carry one.
+ */
+export function tableLockErrorResponse(error: unknown): NextResponse | null {
+  if (error instanceof TableLockedError) {
+    return NextResponse.json({ error: error.message, lock: error.lock }, { status: 423 })
+  }
+  return null
+}
+
+/**
+ * Validates a wire `filter` (either grammar) against the table's column schema,
+ * returning a 400 response on a bad field (or `null` when the filter is valid or
+ * absent). Shared by the routes that accept a filter (`delete-async`,
+ * `cancel-runs`, `columns/run`) so a bad field fails fast with a clear message.
+ *
+ * Pass the WIRE filter, not the `toLegacyFilter` downgrade: the downgrade
+ * compiles cleanly through `buildFilterClause` even when a predicate leaf names
+ * a column that doesn't exist, so validating only the downgraded form lets a
+ * typo'd field become a clause that silently matches nothing — a no-op where
+ * the sync bulk routes 400.
+ */
+export function tableFilterError(
+  filter: Filter | TablePredicate | undefined,
+  columns: ColumnDefinition[]
+): NextResponse | null {
+  if (!filter) return null
+  try {
+    if (isTablePredicate(filter)) {
+      // These routes speak storage keys (session grid uses column ids; system
+      // columns keep their names) — same keying the sync bulk routes validate.
+      validateStoragePredicate(filter, columns)
+    } else {
+      buildFilterClause(filter, USER_TABLE_ROWS_SQL_NAME, columns)
+    }
+    return null
+  } catch (error) {
+    if (error instanceof TableQueryValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    throw error
+  }
+}
+
+const logger = createLogger('TableUtils')
+
+/**
+ * Deepest `Error` message in the cause chain. Drizzle wraps DB errors in a
+ * `DrizzleQueryError` whose own message is just the failed SQL — substring
+ * classification must look at the root cause.
+ */
+export function rootErrorMessage(error: unknown): string {
+  let current: unknown = error
+  while (current instanceof Error && current.cause instanceof Error) {
+    current = current.cause
+  }
+  return toError(current).message
+}
+
+/**
+ * Maps a classified domain failure to its status, carrying the real message so
+ * client toasts can show the actual reason; `null` when the error carries no
+ * classification and the caller should log it and return its own generic 500 —
+ * an unrecognized error can hold SQL/internals that don't belong in a toast.
+ *
+ * This is the whole classification story for the UI and v1 table routes. It
+ * replaced per-route lists of message substrings, which decided a status by
+ * searching prose and so silently changed one whenever a message was reworded.
+ */
+export function orchestrationErrorResponse(error: unknown): NextResponse | null {
+  // A lock violation is a 423, and `TableLockedError` is an `HttpError` rather
+  // than an `OrchestrationError`, so it needs its own check first.
+  const lockResponse = tableLockErrorResponse(error)
+  if (lockResponse) return lockResponse
+
+  return orchestrationFailureResponse(error)
+}
+
+/**
+ * The failure half of a `lib/table/orchestration` result. Every `perform*`
+ * function returns this shape, so one projection serves all of them.
+ */
+export interface TableOrchestrationFailure {
+  error?: string
+  errorCode?: OrchestrationErrorCode
+  /** Which lock rejected the write. Set only when `errorCode` is `'locked'`. */
+  lock?: TableLockKind
+}
+
+/**
+ * Projects an orchestration failure RESULT onto its HTTP response, the
+ * counterpart of {@link orchestrationErrorResponse} for the functions that
+ * return a failure instead of throwing one.
+ *
+ * Routes go through this rather than reading `outcome.error` themselves, for
+ * two reasons the per-route spellings kept getting wrong:
+ *
+ * - An unclassified failure carries whatever text the fault happened to have —
+ *   a driver's failed SQL and its bound parameters — so it renders `fallback`
+ *   instead. Only a classified, caller-fixable failure keeps its own message.
+ * - A `'locked'` failure answers 423 with `{ error, lock }`. The lock kind is
+ *   the only thing that tells a client which lock to clear, and it is computed
+ *   by every `perform*` function already.
+ */
+export function orchestrationOutcomeErrorResponse(
+  outcome: TableOrchestrationFailure,
+  fallback: string
+): NextResponse {
+  return NextResponse.json(
+    {
+      error: messageForOrchestrationError(outcome, fallback),
+      ...(outcome.lock ? { lock: outcome.lock } : {}),
+    },
+    { status: statusForOrchestrationError(outcome.errorCode) }
+  )
+}
+
+/**
+ * Next.js buffers the request body for the proxy and silently truncates it past this
+ * size (`experimental.proxyClientMaxBodySize`, default 10MB). The synchronous CSV
+ * import routes reject bodies over the cap up front; larger files use the async
+ * direct-to-storage path instead.
+ */
+export const CSV_IMPORT_PROXY_BODY_CAP_BYTES = 10 * 1024 * 1024
+
+/** 413 response when a synchronous CSV upload would exceed (and be truncated at) the proxy cap; `null` otherwise. */
+export function csvProxyBodyCapResponse(request: { headers: Headers }): NextResponse | null {
+  const contentLength = Number(request.headers.get('content-length') ?? 0)
+  if (contentLength > CSV_IMPORT_PROXY_BODY_CAP_BYTES) {
+    return NextResponse.json(
+      {
+        error:
+          'File too large to import through the server. Files over 10MB import in the background.',
+      },
+      { status: 413 }
+    )
+  }
+  return null
+}
+
+/** Maps a {@link MultipartError} from the streaming CSV parser to its HTTP response. */
+export function multipartErrorResponse(error: MultipartError): NextResponse {
+  if (error.code === 'FILE_TOO_LARGE') {
+    return NextResponse.json({ error: 'CSV import file exceeds maximum size' }, { status: 413 })
+  }
+  const message =
+    error.code === 'NO_FILE' ? 'CSV file is required' : `Invalid CSV upload: ${error.message}`
+  return NextResponse.json({ error: message }, { status: 400 })
+}
+
+/**
+ * A denial carries `capability` when the caller's permission group withheld the
+ * Tables module, so {@link accessError} can say so rather than reporting the
+ * role failure it is not. Optional because the other two denials — the table
+ * does not exist, the role is too low — have no capability to name.
+ */
+export type AccessResult =
+  | { ok: true; table: TableDefinition }
+  | { ok: false; status: 404 | 403; capability?: StaticPermissionGroupCapability }
+
+interface ApiErrorResponse {
+  error: string
+  details?: unknown
+}
+
+/**
+ * Who is asking, for the purposes of {@link checkAccess}.
+ *
+ * A discriminated union rather than a user id, because the two kinds are
+ * indistinguishable as strings and the gate must treat them differently:
+ *
+ * - `user` — a session, a personal API key, or an internal JWT carrying the
+ *   run's actor. The id is answerable for the request, so the workspace role
+ *   check runs against it and this surface's `tables.use` gate applies. See
+ *   {@link capabilityGovernedUserId} for why the JWT case belongs here and
+ *   nonetheless must not be reused to attribute dispatched work.
+ * - `workspace_api_key` — a shared credential that authorizes as the workspace
+ *   itself. It has no user, so there is no group to resolve.
+ *   `keyCreatorUserId` is the id `authenticateApiKeyFromHeader` reports: the
+ *   person who *minted* the key, a bystander who may not even be the caller. It
+ *   carries the workspace role check that predates this union and nothing else.
+ *   Same rule, and the same reasoning, as `capabilityGovernedPrincipalUserId` in
+ *   `@/lib/core/application`.
+ *
+ * Required, and with no permissive default, for the same reason `capability` is
+ * required on `defineWorkspaceOperation`: an absent declaration cannot be told
+ * apart from an unreviewed one. A caller holding a workspace key cannot reach
+ * the gated behavior by passing a bare id, because a bare id no longer
+ * type-checks — it has to name a kind, and the only kind that skips the gate is
+ * the one that says so.
+ */
+export type TableAccessPrincipal =
+  | { kind: 'user'; userId: string }
+  | { kind: 'workspace_api_key'; keyCreatorUserId: string }
+
+/** The id the workspace ROLE check runs against, for either principal kind. */
+function roleSubjectUserId(principal: TableAccessPrincipal): string {
+  return principal.kind === 'user' ? principal.userId : principal.keyCreatorUserId
+}
+
+/**
+ * The id whose permission group governs THIS REQUEST, or `null` when no group
+ * does. Only a `user` principal has one — see {@link TableAccessPrincipal}.
+ *
+ * ## Two questions, two subjects
+ *
+ * A table route asks the permission group two things, and they take different
+ * answers for the same caller. Conflating them is how a run either stops working
+ * or gains grants it was never given:
+ *
+ *  1. MAY THIS REQUEST PROCEED — the role check and the `tables.use` gate in
+ *     {@link checkAccess}. Answered with the id the credential presents, this
+ *     function. An internal JWT presents the run's actor, and applying that
+ *     person's group here is deliberate: the answer can only withhold the table
+ *     from a run whose actor lost Tables, never open one. Failing closed on a
+ *     bystander's group is a conservative read of an id we already trust for the
+ *     role.
+ *  2. UNDER WHOSE GROUP DOES WORK THIS REQUEST STARTS RUN — the workflow and
+ *     enrichment cells a landed row auto-fires. Answered by
+ *     `capabilityGovernedAuthUserId` in `@/lib/auth/hybrid`, off the auth TYPE,
+ *     which names NOBODY for an internal JWT. Here the actor's group would run
+ *     the other way: it would grant a bystander's tools to an executor call, and
+ *     the executor's own withholding in `tableOperations` is what governs that
+ *     path instead.
+ *
+ * So: gate with this, dispatch with `capabilityGovernedAuthUserId`. Exported
+ * because both the gate and the callers that hand a subject to a batch write
+ * need question 1 answered the same way — a route must not gate one subject and
+ * check another.
+ */
+export function capabilityGovernedUserId(principal: TableAccessPrincipal): string | null {
+  return principal.kind === 'user' ? principal.userId : null
+}
+
+/**
+ * Access check returning `{ ok, table }` or `{ ok: false, status }`.
+ *
+ * The workspace role, then the permission group's `tables.use` capability — the
+ * one gate every raw table route under `/api/table/**` shares. These routes
+ * predate the operation boundary and query the table service directly, so the
+ * authorization funnel that applies `tables.use` to `tableOperations` never
+ * sees them; without this a member of a group denied Tables could still drive
+ * all of them.
+ *
+ * Capability comes second for the same reason it does in
+ * `authorizeWorkspaceOperation`: the role failure conceals whether the table
+ * exists, and refusing on capability first would tell a non-member which
+ * modules the organization withholds.
+ *
+ * The gate applies to a `user` principal only; see {@link TableAccessPrincipal}
+ * for why `/api/v1/tables/**`, which shares this helper under an API key, must
+ * reach the table ungated on a workspace key.
+ *
+ * Nothing here exempts the executor, and that is question 1 of the two in
+ * {@link capabilityGovernedUserId}: an internal JWT presents the run's actor, so
+ * this gate runs against the actor's group and can only refuse more. A workflow
+ * run that reaches tables through `tableOperations` instead is governed by that
+ * funnel's delegated-principal branch, which withholds capabilities from an
+ * executor subject outright. Neither answer is the one question 2 takes —
+ * a route dispatching cells off this request derives its subject from the auth
+ * type, not from the principal gated here.
+ */
+export async function checkAccess(
+  tableId: string,
+  principal: TableAccessPrincipal,
+  level: 'read' | 'write' | 'admin' = 'read'
+): Promise<AccessResult> {
+  const table = await getTableById(tableId)
+
+  if (!table) {
+    return { ok: false, status: 404 }
+  }
+
+  /**
+   * Resolved through {@link checkWorkspaceAccess} rather than `getUserEntityPermissions`, which
+   * delegates to it and returns the permission alone. Same single resolution, but it also hands
+   * back the workspace this check just loaded — and with it the owning organization the
+   * capability gate below would otherwise look up for itself.
+   */
+  const access = await checkWorkspaceAccess(table.workspaceId, roleSubjectUserId(principal))
+  if (!permissionSatisfies(access.permission, level)) {
+    return { ok: false, status: 403 }
+  }
+
+  // permission-group-enforced: tables.use — raw routes that query directly and predate the operation boundary
+  const governedUserId = capabilityGovernedUserId(principal)
+  if (
+    governedUserId &&
+    table.workspaceId &&
+    /**
+     * The organization is passed, not re-derived: omitting it makes the resolver load this very
+     * workspace a second time (see `getUserPermissionConfig`), which is one extra round trip on
+     * every raw table route. `access.workspace` is non-null on this line — a missing workspace
+     * resolves to a null permission, which the gate above already refused.
+     */
+    (await isWorkspaceCapabilityWithheld(
+      governedUserId,
+      table.workspaceId,
+      'tables.use',
+      access.workspace?.organizationId ?? null
+    ))
+  ) {
+    return { ok: false, status: 403, capability: 'tables.use' }
+  }
+
+  return { ok: true, table }
+}
+
+export function accessError(
+  result: Extract<AccessResult, { ok: false }>,
+  requestId: string,
+  context?: string
+): NextResponse {
+  if (result.capability) {
+    logger.warn(
+      `[${requestId}] ${capabilityRefusal(result.capability)}${context ? `: ${context}` : ''}`
+    )
+    return capabilityRefusalResponse(result.capability)
+  }
+
+  const message = result.status === 404 ? 'Table not found' : 'Access denied'
+  logger.warn(`[${requestId}] ${message}${context ? `: ${context}` : ''}`)
+  return NextResponse.json({ error: message }, { status: result.status })
+}
+
+export function errorResponse(
+  message: string,
+  status: number,
+  details?: unknown
+): NextResponse<ApiErrorResponse> {
+  const body: ApiErrorResponse = { error: message }
+  if (details !== undefined) {
+    body.details = details
+  }
+  return NextResponse.json(body, { status })
+}
+
+export function badRequestResponse(message: string, details?: unknown) {
+  return errorResponse(message, 400, details)
+}
+
+export function unauthorizedResponse(message = 'Authentication required') {
+  return errorResponse(message, 401)
+}
+
+export function forbiddenResponse(message = 'Access denied') {
+  return errorResponse(message, 403)
+}
+
+export function notFoundResponse(message = 'Resource not found') {
+  return errorResponse(message, 404)
+}

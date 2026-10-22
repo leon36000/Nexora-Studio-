@@ -1,0 +1,80 @@
+import { isRecordLike } from '@sim/utils/object'
+import { type McpOperationPolicy, normalizeMcpOperationPolicy } from '@/lib/mcp/operation-policy'
+import { normalizeMcpToolAttachments } from '@/lib/mcp/workflow-config'
+
+interface StoredToolSchema {
+  description?: string
+  properties?: Record<string, unknown>
+  required?: string[]
+  function?: {
+    name?: string
+    parameters?: {
+      properties?: Record<string, unknown>
+      required?: string[]
+    }
+  }
+}
+
+/**
+ * Represents a tool selected and configured in a workflow tool-input field.
+ */
+export interface StoredTool {
+  operationPolicy?: McpOperationPolicy
+  type: string
+  title?: string
+  toolId?: string
+  params?: Record<string, string>
+  isExpanded?: boolean
+  customToolId?: string
+  schema?: StoredToolSchema
+  code?: string
+  operation?: string
+  usageControl?: 'auto' | 'force' | 'none'
+  usageControlExpression?: string
+}
+
+export interface ParsedStoredTool extends Omit<StoredTool, 'params'> {
+  params?: Record<string, unknown>
+}
+
+export function parseStoredToolInputValue(value: unknown): ParsedStoredTool[] {
+  value = normalizeMcpToolAttachments(value)
+  if (!Array.isArray(value)) return []
+
+  return value.flatMap((tool) => {
+    if (!tool || typeof tool !== 'object' || Array.isArray(tool)) return []
+    const record = tool as Record<string, unknown>
+    if (typeof record.type !== 'string') return []
+
+    const params = isRecordLike(record.params)
+      ? (record.params as Record<string, unknown>)
+      : undefined
+
+    return [
+      {
+        type: record.type,
+        ...(record.type === 'mcp-server-advanced' && record.operationPolicy !== undefined
+          ? { operationPolicy: normalizeMcpOperationPolicy(record.operationPolicy) }
+          : {}),
+        title: typeof record.title === 'string' ? record.title : undefined,
+        toolId: typeof record.toolId === 'string' ? record.toolId : undefined,
+        operation: typeof record.operation === 'string' ? record.operation : undefined,
+        params,
+        customToolId: typeof record.customToolId === 'string' ? record.customToolId : undefined,
+        code: typeof record.code === 'string' ? record.code : undefined,
+        usageControl:
+          record.usageControl === 'auto' ||
+          record.usageControl === 'force' ||
+          record.usageControl === 'none'
+            ? record.usageControl
+            : undefined,
+        usageControlExpression:
+          typeof record.usageControlExpression === 'string'
+            ? record.usageControlExpression
+            : undefined,
+        isExpanded: typeof record.isExpanded === 'boolean' ? record.isExpanded : undefined,
+        schema: isRecordLike(record.schema) ? (record.schema as StoredToolSchema) : undefined,
+      },
+    ]
+  })
+}

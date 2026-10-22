@@ -1,0 +1,240 @@
+---
+title: Skills
+description: Create reusable agent instructions and manage their editors.
+---
+
+import { CommandTable } from '@/components/ui/command-table'
+
+Create reusable agent instructions and manage their editors.
+
+`sim skills` is also spelled `sim skill`.
+
+These commands accept the [global options](/cli/commands#global-options).
+
+## Skill instructions
+
+### List skills
+
+```bash
+sim skills list [options]
+```
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--search <value>` | No | Case-insensitive substring match against the skill name. |
+| `--sort-by <value>` | No | Field used to sort the result. Do not rely on case-insensitive ordering when sorting by `name`. Defaults to "createdAt". Accepted values: `name`, `createdAt`, `updatedAt`. |
+| `--sort-order <value>` | No | Sort direction. Defaults to "desc". Accepted values: `asc`, `desc`. |
+| `--limit <n>` | No | Maximum items to return (0 for everything). Defaults to `0`. |
+
+</CommandTable>
+
+API request and response schemas: [listSkills](/api-reference/skills/listSkills).
+
+### Get skill
+
+```bash
+sim skills get <skillId>
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `skillId` | Yes | Unique skill identifier. A built-in skill is `builtin-` followed by its name, for example `builtin-research`. |
+
+</CommandTable>
+
+API request and response schemas: [getSkill](/api-reference/skills/getSkill).
+
+### Create skill
+
+OAuth login or personal API key required.
+
+```bash
+sim skills create [options]
+```
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--name <value>` | Yes | Kebab-case name, unique within the workspace and not reserved by a built-in skill. |
+| `--description <value>` | Yes | One-line summary of when the skill applies. |
+| `--content <value>` | Yes | Skill body containing the instructions given to the agent. |
+
+</CommandTable>
+
+API request and response schemas: [createSkill](/api-reference/skills/createSkill).
+
+### Update skill
+
+OAuth login or personal API key required.
+
+```bash
+sim skills update <skillId> [options]
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `skillId` | Yes | Unique skill identifier. A built-in skill is `builtin-` followed by its name, for example `builtin-research`. |
+
+</CommandTable>
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--name <value>` | No | New kebab-case skill name. |
+| `--description <value>` | No | New one-line summary of when the skill applies. |
+| `--content <value>` | No | Replacement skill body. |
+
+</CommandTable>
+
+API request and response schemas: [updateSkill](/api-reference/skills/updateSkill).
+
+## Editors
+
+### List skill editors
+
+```bash
+sim skills editors list <skillId> [options]
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `skillId` | Yes | Unique skill identifier. A built-in skill is `builtin-` followed by its name, for example `builtin-research`. |
+
+</CommandTable>
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--sort-by <value>` | No | Field used to sort the result. Do not rely on case-insensitive ordering when sorting by `name`. Defaults to "email". Accepted values: `email`, `name`. |
+| `--sort-order <value>` | No | Sort direction. Defaults to "asc". Accepted values: `asc`, `desc`. |
+| `--limit <n>` | No | Maximum items to return (0 for everything). Defaults to `0`. |
+
+</CommandTable>
+
+API request and response schemas: [listSkillEditors](/api-reference/skills/listSkillEditors).
+
+### Grant skill editor
+
+OAuth login or personal API key required.
+
+```bash
+sim skills editors create <skillId> [options]
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `skillId` | Yes | Unique skill identifier. A built-in skill is `builtin-` followed by its name, for example `builtin-research`. |
+
+</CommandTable>
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--email <value>` | Yes | Email address of a current workspace member. |
+
+</CommandTable>
+
+API request and response schemas: [grantSkillEditor](/api-reference/skills/grantSkillEditor).
+
+### Revoke skill editor
+
+OAuth login or personal API key required.
+
+This revokes the explicit skill editor grant for the selected email.
+
+```bash
+sim skills editors delete <skillId> [options]
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `skillId` | Yes | Unique skill identifier. A built-in skill is `builtin-` followed by its name, for example `builtin-research`. |
+
+</CommandTable>
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--email <value>` | Yes | Email address of a current workspace member. |
+| `-y, --yes` | Yes | Confirm this operation. |
+
+</CommandTable>
+
+API request and response schemas: [revokeSkillEditor](/api-reference/skills/revokeSkillEditor).
+
+## Delete skills
+
+### Delete skill
+
+OAuth login or personal API key required.
+
+This deletes the skill.
+
+```bash
+sim skills delete <skillId> [options]
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `skillId` | Yes | Unique skill identifier. A built-in skill is `builtin-` followed by its name, for example `builtin-research`. |
+
+</CommandTable>
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `-y, --yes` | Yes | Confirm this operation. |
+
+</CommandTable>
+
+API request and response schemas: [deleteSkill](/api-reference/skills/deleteSkill).
+
+## Related docs
+
+- [Skills](/agents/skills)

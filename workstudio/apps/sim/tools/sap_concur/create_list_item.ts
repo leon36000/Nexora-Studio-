@@ -1,0 +1,119 @@
+import type { CreateListItemParams, SapConcurResponse } from '@/tools/sap_concur/types'
+import { baseSapConcurInput, transformSapConcurResponse } from '@/tools/sap_concur/utils'
+import type { InternalToolConfig } from '@/tools/types'
+
+export const createListItemTool: InternalToolConfig<CreateListItemParams, SapConcurResponse> = {
+  id: 'sap_concur_create_list_item',
+  name: 'SAP Concur Create List Item',
+  description: 'Create a list item (POST /list/v4/items).',
+  version: '1.0.0',
+  params: {
+    datacenter: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Concur datacenter base URL (defaults to us.api.concursolutions.com)',
+    },
+    grantType: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'OAuth grant type: client_credentials (default) or password',
+    },
+    clientId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Concur OAuth client ID',
+    },
+    clientSecret: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Concur OAuth client secret',
+    },
+    username: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Username (only for password grant)',
+    },
+    password: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Password (only for password grant)',
+    },
+    companyUuid: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Company UUID for multi-company access tokens',
+    },
+    body: {
+      type: 'json',
+      required: true,
+      visibility: 'user-or-llm',
+      description:
+        'List item payload. Required: listId, shortCode, value. Optional: parentId or parentCode (mutually exclusive). Note: Concur rejects shortCode/value containing hyphens.',
+    },
+  },
+  operation: {
+    input: (params) => ({
+      ...baseSapConcurInput(params),
+      path: '/list/v4/items',
+      method: 'POST',
+      body: params.body,
+    }),
+  },
+  transformResponse: transformSapConcurResponse,
+  outputs: {
+    status: { type: 'number', description: 'HTTP status code returned by Concur' },
+    data: {
+      type: 'json',
+      description: 'Created list item',
+      properties: {
+        id: { type: 'string', description: 'List item UUID', optional: true },
+        listId: {
+          type: 'string',
+          description: 'UUID of the list that contains the list item',
+          optional: true,
+        },
+        code: { type: 'string', description: 'Long code format for the item', optional: true },
+        shortCode: { type: 'string', description: 'Short code identifier', optional: true },
+        value: { type: 'string', description: 'Display value of the item', optional: true },
+        parentId: {
+          type: 'string',
+          description: 'Parent item UUID (omitted for first-level items)',
+          optional: true,
+        },
+        level: {
+          type: 'number',
+          description: 'Hierarchy level (1 for root items)',
+          optional: true,
+        },
+        isDeleted: {
+          type: 'boolean',
+          description: 'Deletion status across all containing lists',
+          optional: true,
+        },
+        lists: {
+          type: 'array',
+          description: 'Lists containing this item',
+          optional: true,
+          items: {
+            type: 'json',
+            properties: {
+              id: { type: 'string', description: 'List UUID', optional: true },
+              hasChildren: {
+                type: 'boolean',
+                description: 'Whether this item has children in the list',
+                optional: true,
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}

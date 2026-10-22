@@ -1,0 +1,310 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from typing import ClassVar
+
+from pydantic import BaseModel
+
+from api.domain import ForwardablePayload
+from api.domain.key.entities import Key
+from api.domain.model import ModelEnvironmentalImpactsComputer, ModelTokenizer
+from api.domain.model.errors import StatusCodeModelError, TooBusyModelError, UnknownModelError
+from api.domain.provider import ProviderClient, ProviderLoadBalancer, ProviderMetricsLogger, ProviderRepository
+from api.domain.provider.entities import Provider, ProviderEndpoint, ProviderRequest, ProviderResponse
+from api.domain.provider.errors import (
+    NoAvailableProviderError,
+    ProviderAdapterValidationRequestError,
+    ProviderAdapterValidationResponseError,
+    UnsupportedProviderEndpointError,
+)
+from api.domain.router import RouterRateLimiter, RouterRepository
+from api.domain.router.entities import Router, RouterRateLimitState, RouterType
+from api.domain.router.errors import RouterHasNoProvidersError, RouterHasWrongTypeError, RouterNotFoundError, RouterRateLimitExceededError
+from api.domain.usage import UsageContext, UsageRepository
+from api.domain.usage.entities import PromptTokensDetails, Usage
+from api.domain.user.errors import UserHasNoAccessToRouterError
+from api.domain.user.views import AuthenticatedUserView
+
+
+class ForwardingCommand[TPayload: ForwardablePayload](BaseModel):
+    payload: TPayload
+    authenticated_user: AuthenticatedUserView
+    authenticated_key: Key
+
+    @property
+    def model(self) -> str | None:
+        return self.payload.model
+
+    def get_prompts(self) -> list[str]:
+        return self.payload.get_prompts()
+
+
+@dataclass
+class ProviderRequestForwardingUseCaseSuccess[TData]:
+    data: TData
+    headers: dict[str, str]
+
+
+type ProviderRequestForwardingUseCaseError = (
+    NoAvailableProviderError
+    | ProviderAdapterValidationRequestError
+    | ProviderAdapterValidationResponseError
+    | RouterRateLimitExceededError
+    | RouterNotFoundError
+    | RouterHasNoProvidersError
+    | RouterHasWrongTypeError
+    | TooBusyModelError
+    | StatusCodeModelError
+    | UnknownModelError
+    | UnsupportedProviderEndpointError
+    | UserHasNoAccessToRouterError
+)
+type ProviderRequestForwardingUseCaseResult[TData] = ProviderRequestForwardingUseCaseSuccess[TData] | ProviderRequestForwardingUseCaseError
+
+
+class ProviderRequestForwardingUseCase[TCommand: ForwardingCommand, TResult]:
+    ROUTER_TYPE: ClassVar[RouterType]
+    ENDPOINT: ClassVar[ProviderEndpoint]
+
+    def __init__(
+        self,
+        model_environmental_impacts_computer: ModelEnvironmentalImpactsComputer,
+        model_tokenizer: ModelTokenizer,
+        provider_client: ProviderClient,
+        provider_load_balancer: ProviderLoadBalancer,
+        provider_metrics_logger: ProviderMetricsLogger,
+        provider_repository: ProviderRepository,
+        router_rate_limiter: RouterRateLimiter,
+        router_repository: RouterRepository,
+        usage_context: UsageContext,
+        usage_repository: UsageRepository,
+    ) -> None:
+        self.model_environmental_impacts_computer = model_environmental_impacts_computer
+        self.model_tokenizer = model_tokenizer
+        self.provider_client = provider_client
+        self.provider_load_balancer = provider_load_balancer
+        self.provider_metrics_logger = provider_metrics_logger
+        self.provider_repository = provider_repository
+
+        self.router_rate_limiter = router_rate_limiter
+        self.router_repository = router_repository
+
+        self.usage_context = usage_context
+        self.usage_repository = usage_repository
+
+    async def execute(self, command: TCommand) -> TResult:
+        authenticated_user = command.authenticated_user
+
+        if (error := self._check_command(command=command)) is not None:
+            return error
+
+        result = await self._resolve_router(authenticated_user=authenticated_user, model_name_or_alias=command.model)
+        match result:
+            case Router() as router:
+                pass
+            case error:
+                return error
+
+        prompt_tokens = self.model_tokenizer.compute_tokens(texts=command.get_prompts())
+
+        result = await self._check_rate_limits(authenticated_user=authenticated_user, router=router, prompt_tokens=prompt_tokens)
+        match result:
+            case RouterRateLimitState() as rate_limit_state:
+                pass
+            case error:
+                return error
+
+        request_id = self._start_record_usage(command=command, router=router)
+        try:
+            result = await self._send_request(
+                authenticated_user=authenticated_user,
+                router=router,
+                prompt_tokens=prompt_tokens,
+                payload=command.payload,
+                request_id=request_id,
+            )
+            match result:
+                case ProviderResponse() as provider_response:
+                    pass
+                case error:
+                    self.usage_repository.fail_record(message=type(error).__name__, status_code=503)
+                    return error
+
+            return self._build_success(command=command, response=provider_response, headers=rate_limit_state.build_limit_headers(prompt_tokens))
+        finally:
+            self.usage_repository.end_record()
+
+    def _check_command(self, command: TCommand) -> TResult | None:
+        return None
+
+    async def _resolve_router(
+        self,
+        authenticated_user: AuthenticatedUserView,
+        model_name_or_alias: str,
+    ) -> Router | RouterNotFoundError | RouterHasNoProvidersError | RouterHasWrongTypeError | UserHasNoAccessToRouterError:
+        result = await self.router_repository.get_router_by_name_or_alias(name_or_alias=model_name_or_alias)
+        match result:
+            case Router() as router:
+                pass
+            case error:
+                return error
+
+        self.usage_context.record_router(router_id=router.id, router_name=router.name)
+
+        if router.has_no_providers:
+            return RouterHasNoProvidersError(id=router.id)
+        if router.type != self.ROUTER_TYPE:
+            return RouterHasWrongTypeError(id=router.id, actual_type=router.type, expected_type=self.ROUTER_TYPE)
+        if authenticated_user.cannot_access_router(router_id=router.id):
+            return UserHasNoAccessToRouterError(id=router.id)
+
+        return router
+
+    async def _check_rate_limits(
+        self,
+        authenticated_user: AuthenticatedUserView,
+        router: Router,
+        prompt_tokens: int,
+    ) -> RouterRateLimitState | RouterRateLimitExceededError:
+
+        if not authenticated_user.is_admin:
+            limits = [limit for limit in authenticated_user.limits if limit.router_id == router.id]
+            rate_limit_state = await self.router_rate_limiter.get_rate_limit_state(
+                user_id=authenticated_user.id,
+                router_limits=limits,
+                router_id=router.id,
+            )
+            exceeded_limits = rate_limit_state.exceeded_limits(prompt_tokens=prompt_tokens)
+            if exceeded_limits:
+                limit_type = exceeded_limits[0]
+                return RouterRateLimitExceededError(
+                    id=router.id, limit_type=limit_type, headers=rate_limit_state.build_limit_headers(prompt_tokens, charged=False)
+                )
+        else:
+            rate_limit_state = RouterRateLimitState.admin_rate_limit_state()
+
+        return rate_limit_state
+
+    def _start_record_usage(self, command: TCommand, router: Router) -> str:
+        return self.usage_repository.start_record(
+            endpoint=self.ENDPOINT,
+            model=router.name,
+            user_id=command.authenticated_user.id,
+            router_id=router.id,
+            router_name=router.name,
+            user_email=command.authenticated_user.email,
+            key_id=command.authenticated_key.id,
+            key_name=command.authenticated_key.name,
+        )
+
+    async def _send_request(
+        self,
+        authenticated_user: AuthenticatedUserView,
+        router: Router,
+        prompt_tokens: int,
+        payload: ForwardablePayload,
+        request_id: str,
+    ) -> (
+        ProviderResponse
+        | ProviderAdapterValidationRequestError
+        | TooBusyModelError
+        | UnknownModelError
+        | StatusCodeModelError
+        | ProviderAdapterValidationResponseError
+        | UnsupportedProviderEndpointError
+    ):
+        provider = await self._select_provider(router=router)
+        request = ProviderRequest(id=request_id, endpoint=self.ENDPOINT, payload=payload)
+
+        async with self._inflight(provider=provider):
+            result = await self.provider_client.forward(provider=provider, request=request)
+            latency = self.usage_repository.compute_latency()
+
+        match result:
+            case ProviderResponse() as provider_response:
+                if provider_response.data is not None and "usage" in provider_response.data.model_fields_set:
+                    prompt_tokens = provider_response.data.usage.prompt_tokens
+                    completion_tokens = provider_response.data.usage.completion_tokens
+                    cached_tokens = provider_response.data.usage.prompt_tokens_details.cached_tokens
+                else:
+                    completion_tokens = self.model_tokenizer.compute_tokens(texts=provider_response.get_completions())
+                    cached_tokens = 0
+
+                usage = self._build_usage(
+                    provider=provider,
+                    router=router,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    cached_tokens=cached_tokens,
+                    latency=latency,
+                )
+
+                if provider_response.data is not None:
+                    provider_response.data.usage = usage
+
+            case error:
+                return error
+
+        self.usage_context.record_usage(request_id=request_id, usage=usage)
+        self.usage_repository.update_record(usage=usage, provider_id=provider.id, provider_model_name=provider.model_name)
+        self._charge_rate_limits(authenticated_user=authenticated_user, router=router, usage=usage)
+
+        return provider_response
+
+    async def _select_provider(self, router: Router) -> Provider:
+        providers = await self.provider_repository.get_all_providers_of_router(router_id=router.id)
+        provider = await self.provider_load_balancer.find_best_provider(strategy=router.load_balancing_strategy, providers=providers)
+        self.usage_context.record_provider(provider_id=provider.id, provider_model_name=provider.model_name)
+
+        return provider
+
+    @asynccontextmanager
+    async def _inflight(self, provider: Provider) -> AsyncIterator[None]:
+        is_incremented = await self.provider_metrics_logger.increment_inflight(provider_id=provider.id)
+        try:
+            yield
+        finally:
+            if is_incremented:
+                await self.provider_metrics_logger.decrement_inflight(provider_id=provider.id)
+
+    def _build_usage(
+        self, provider: Provider, router: Router, prompt_tokens: int, completion_tokens: int, cached_tokens: int, latency: float
+    ) -> Usage:
+        environmental_impacts = self.model_environmental_impacts_computer.compute(
+            model_active_params=provider.model_active_params,
+            model_total_params=provider.model_total_params,
+            model_zone=provider.model_hosting_zone,
+            completion_tokens=completion_tokens,
+            request_latency=latency,
+        )
+        cost = Usage.compute_request_cost(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            cost_prompt_tokens=router.cost_prompt_tokens,
+            cost_completion_tokens=router.cost_completion_tokens,
+        )
+
+        return Usage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=prompt_tokens + completion_tokens,
+            cost=cost,
+            impacts=environmental_impacts,
+            prompt_tokens_details=PromptTokensDetails(cached_tokens=cached_tokens),
+        )
+
+    def _charge_rate_limits(self, authenticated_user: AuthenticatedUserView, router: Router, usage: Usage) -> None:
+        if authenticated_user.is_admin:
+            return
+
+        self.router_rate_limiter.update_rate_limit_state(
+            user_id=authenticated_user.id,
+            router_limits=[limit for limit in authenticated_user.limits if limit.router_id == router.id],
+            router_id=router.id,
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens,
+            cached_tokens=usage.prompt_tokens_details.cached_tokens,
+        )
+
+    def _build_success(self, command: TCommand, response: ProviderResponse, headers: dict[str, str]) -> TResult:
+        return ProviderRequestForwardingUseCaseSuccess(data=response.data, headers=headers)

@@ -1,0 +1,59 @@
+---
+title: Schedule
+description: Start workflow runs with a configured frequency or cron expression.
+---
+
+import { BlockPreview } from '@/components/workflow-preview'
+
+The **Schedule trigger** starts runs on a configured timer. It is an entry point with no incoming connections or caller input.
+
+<BlockPreview type="schedule" />
+
+## Schedule
+
+Choose **Run frequency**, then fill in its fields:
+
+| Frequency | Configuration |
+| --- | --- |
+| **Every X Minutes** | **Interval (minutes)**; use a valid minute step such as `1`, `5`, `15`, or `30` |
+| **Hourly** | **Minute**, from `0` to `59` |
+| **Daily** | **Time** |
+| **Weekly** | **Day of week** and **Time** |
+| **Monthly** | **Day of month** and **Time** |
+| **Custom (Cron)** | **Cron expression** |
+
+Minute frequency uses a cron minute-field step, not a continuously elapsed timer. The minute step must fit within an hour; do not use values above `60`. Prefer Hourly, Daily, or a custom expression for longer cadences.
+
+For Daily, Weekly, Monthly, and Cron, confirm **Timezone**. New blocks preselect the browser's timezone; if no timezone is stored, execution falls back to UTC. Minute/hourly modes do not show a timezone selector.
+
+Common five-field cron expressions:
+
+| Expression | Schedule in the configured timezone |
+| --- | --- |
+| `0 9 * * 1-5` | Weekdays at 9 AM |
+| `*/15 * * * *` | Every quarter-hour |
+| `0 0 1 * *` | First day of each month at midnight |
+
+## Activation
+
+1. Configure the Schedule trigger and connect its downstream blocks.
+2. Deploy the workflow.
+3. Check its next run information and confirm executions in [Logs](/logs-debugging).
+
+Each Schedule block receives a separate schedule record with its own expression and failure counter. A workflow can have several Schedule triggers.
+
+Deployment starts the configured schedules. Updating deployment uses the new schedule configuration; undeploying removes the schedule registrations. A queued job checks the registration before starting, while an already-executing run is separate from new starts.
+
+Self-hosted deployments need an external scheduler calling the authenticated schedule endpoint. See [background jobs](/platform/self-hosting/background-jobs) for setup and verification.
+
+## Automatic disabling
+
+A schedule disables after 100 consecutive failures. A successful run resets the counter. The block shows a disabled badge; fix the cause, then use the badge to reactivate it.
+
+When execution admission is rate-limited with HTTP `429`, the schedule defers the attempt for five minutes without counting it as a workflow failure. Other failure classes, including repeated usage-limit refusals, can contribute to automatic disabling. Scheduled runs remain subject to the deployment's execution policy.
+
+## Related docs
+
+- [How workflows run](/workflows/how-it-runs)
+- [Deployment](/workflows/deployment)
+- [Self-hosted background jobs](/platform/self-hosting/background-jobs)

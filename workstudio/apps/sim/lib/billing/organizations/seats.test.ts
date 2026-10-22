@@ -1,0 +1,134 @@
+import {
+  auditMock,
+  dbChainMockFns,
+  queueTableRows,
+  resetDbChainMock,
+  resetEnvFlagsMock,
+  schemaMock,
+  setEnvFlags,
+} from '@sim/testing'
+import { billingOutboxHandlersMock } from '@sim/testing/mocks/billing-outbox-handlers.mock'
+import { billingSubscriptionSyncMock } from '@sim/testing/mocks/billing-subscription-sync.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { mockSyncSubscriptionUsageLimits } = vi.hoisted(() => ({
+  mockSyncSubscriptionUsageLimits: vi.fn(),
+}))
+
+vi.mock('@/lib/billing/organization', () => ({
+  syncSubscriptionUsageLimits: mockSyncSubscriptionUsageLimits,
+}))
+
+vi.mock('@/lib/billing/webhooks/subscription-sync', () => billingSubscriptionSyncMock)
+
+vi.mock('@/lib/billing/webhooks/outbox-handlers', () => billingOutboxHandlersMock)
+
+vi.mock('@sim/audit', () => auditMock)
+
+import { reconcileOrganizationSeats } from '@/lib/billing/organizations/seats'
+
+const teamSub = {
+  id: 'sub-1',
+  plan: 'team_6000',
+  status: 'active',
+  seats: 1,
+  stripeSubscriptionId: 'stripe_sub',
+}
+
+/** Queues the two in-transaction reads: locked subscription, then member count. */
+function queueReconcileReads(subscriptionRows: unknown[], memberCountRows: unknown[] = []) {
+  queueTableRows(schemaMock.subscription, subscriptionRows)
+  queueTableRows(schemaMock.member, memberCountRows)
+}
+
+afterAll(resetEnvFlagsMock)
+
+describe('reconcileOrganizationSeats', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    setEnvFlags({ isBillingEnabled: true })
+  })
+
+  afterAll(() => {
+    resetDbChainMock()
+  })
+
+  it('grows seats to the member count', async () => {
+    queueReconcileReads([teamSub], [{ value: 2 }])
+
+    const result = await reconcileOrganizationSeats({
+      organizationId: 'org-1',
+      reason: 'member-accepted-invite',
+    })
+
+    expect(result).toEqual({
+      changed: true,
+      previousSeats: 1,
+      seats: 2,
+      reason: undefined,
+      outboxEventId: 'subscription-seats-sync-event',
+    })
+    expect(dbChainMockFns.set).toHaveBeenCalledWith({ seats: 2 })
+    expect(mockSyncSubscriptionUsageLimits).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'sub-1', referenceId: 'org-1', seats: 2 })
+    )
+  })
+
+  it('reconciles a past-due Team subscription because it remains entitled', async () => {
+    queueReconcileReads([{ ...teamSub, status: 'past_due' }], [{ value: 2 }])
+
+    const result = await reconcileOrganizationSeats({
+      organizationId: 'org-1',
+      reason: 'member-accepted-invite',
+    })
+
+    expect(result.changed).toBe(true)
+    expect(dbChainMockFns.set).toHaveBeenCalledWith({ seats: 2 })
+  })
+
+  it('still records the seat audit when the post-commit usage-limit sync fails', async () => {
+    queueReconcileReads([teamSub], [{ value: 2 }])
+    mockSyncSubscriptionUsageLimits.mockRejectedValueOnce(new Error('sync unavailable'))
+
+    const result = await reconcileOrganizationSeats({
+      organizationId: 'org-1',
+      reason: 'member-accepted-invite',
+      actorId: 'user-1',
+    })
+
+    expect(result.changed).toBe(true)
+    expect(dbChainMockFns.set).toHaveBeenCalledWith({ seats: 2 })
+    expect(auditMock.recordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'user-1',
+        action: auditMock.AuditAction.ORG_SEAT_PROVISIONED,
+        resourceId: 'org-1',
+      })
+    )
+  })
+
+  it('reduces seats to the member count on removal', async () => {
+    queueReconcileReads([{ ...teamSub, seats: 3 }], [{ value: 2 }])
+
+    const result = await reconcileOrganizationSeats({
+      organizationId: 'org-1',
+      reason: 'member-removed',
+    })
+
+    expect(result.changed).toBe(true)
+    expect(result.seats).toBe(2)
+    expect(dbChainMockFns.set).toHaveBeenCalledWith({ seats: 2 })
+  })
+
+  it('never drops below one seat', async () => {
+    queueReconcileReads([{ ...teamSub, seats: 3 }], [{ value: 0 }])
+
+    const result = await reconcileOrganizationSeats({
+      organizationId: 'org-1',
+      reason: 'member-removed',
+    })
+
+    expect(result.seats).toBe(1)
+    expect(dbChainMockFns.set).toHaveBeenCalledWith({ seats: 1 })
+  })
+})

@@ -1,0 +1,79 @@
+import { describe, expect, it } from 'vitest'
+import { InstagramBlock } from '@/blocks/blocks/instagram'
+
+describe('InstagramBlock', () => {
+  const buildParams = InstagramBlock.tools.config.params!
+
+  it('clears stale operation parameters from the runtime input merge', () => {
+    const inputs = {
+      operation: 'instagram_get_conversation_messages',
+      oauthCredential: 'credential-1',
+      conversationId: 'conversation-1',
+      limit: '12',
+      after: 'message-cursor',
+      mediaId: 'stale-media-id',
+      filename: 'stale-filename.jpg',
+      caption: 'stale caption',
+    }
+    const finalInputs = { ...inputs, ...buildParams(inputs) }
+
+    expect(finalInputs).toMatchObject({
+      credential: 'credential-1',
+      conversationId: 'conversation-1',
+      limit: 12,
+      after: 'message-cursor',
+    })
+    expect(finalInputs.mediaId).toBeUndefined()
+    expect(finalInputs.filename).toBeUndefined()
+    expect(finalInputs.caption).toBeUndefined()
+  })
+
+  it('normalizes publishing files without accepting public URL strings', () => {
+    const file = {
+      id: 'file-1',
+      key: 'execution/workflow/execution/photo.jpg',
+      name: 'photo.jpg',
+      size: 1024,
+      type: 'image/jpeg',
+    }
+
+    expect(buildParams({ operation: 'instagram_publish_image', image: file }).image).toEqual(file)
+    expect(
+      buildParams({
+        operation: 'instagram_publish_carousel',
+        carouselMedia: JSON.stringify([file, { ...file, id: 'file-2', name: 'photo-2.jpg' }]),
+      }).media
+    ).toHaveLength(2)
+    expect(
+      buildParams({ operation: 'instagram_publish_image', image: 'https://example.com/photo.jpg' })
+        .image
+    ).toBeUndefined()
+  })
+
+  it('clears account insight parameters that do not apply to the selected period', () => {
+    const day = buildParams({
+      operation: 'instagram_get_account_insights',
+      period: 'day',
+      since: '2026-07-01',
+      until: '2026-07-13',
+      timeframe: 'this_month',
+    })
+    expect(day).toMatchObject({ period: 'day', since: '2026-07-01', until: '2026-07-13' })
+    expect(day.timeframe).toBeUndefined()
+
+    const lifetime = buildParams({
+      operation: 'instagram_get_account_insights',
+      period: 'lifetime',
+      since: '2026-07-01',
+      until: '2026-07-13',
+      timeframe: 'this_month',
+    })
+    expect(lifetime).toMatchObject({ period: 'lifetime', timeframe: 'this_month' })
+    expect(lifetime.since).toBeUndefined()
+    expect(lifetime.until).toBeUndefined()
+
+    expect(() =>
+      buildParams({ operation: 'instagram_get_account_insights', period: 'week' })
+    ).toThrow('Instagram account insights period must be day or lifetime')
+  })
+})

@@ -1,0 +1,174 @@
+import { db } from '@sim/db'
+import { apiKey as apiKeyTable, user as userTable } from '@sim/db/schema'
+import { createLogger, setRequestAuth } from '@sim/logger'
+import { and, eq, isNull, lt, or } from 'drizzle-orm'
+import { hashApiKey } from '@/lib/api-key/crypto'
+import { createDetachedTouch } from '@/lib/core/utils/background'
+import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
+import { getWorkspaceBillingSettings, type WorkspaceBillingSettings } from '@/lib/workspaces/utils'
+
+const logger = createLogger('ApiKeyService')
+
+export interface ApiKeyAuthOptions {
+  userId?: string
+  workspaceId?: string
+  keyTypes?: ('personal' | 'workspace')[]
+}
+
+export interface ApiKeyAuthResult {
+  success: boolean
+  userId?: string
+  keyId?: string
+  keyType?: 'personal' | 'workspace'
+  workspaceId?: string
+  error?: string
+}
+
+const INVALID = { success: false, error: 'Invalid API key' } as const
+
+interface HashCandidate {
+  id: string
+  userId: string
+  workspaceId: string | null
+  type: string
+  expiresAt: Date | null
+  userBanned: boolean | null
+  userSuspendedAt: Date | null
+}
+
+/**
+ * Authenticate an API key from header with flexible filtering options.
+ *
+ * Looks up a single row by `sha256(apiKeyHeader)` and applies the scope /
+ * expiry / permission gates. Any miss — no matching hash or a failed gate —
+ * returns `INVALID`.
+ */
+export async function authenticateApiKeyFromHeader(
+  apiKeyHeader: string,
+  options: ApiKeyAuthOptions = {}
+): Promise<ApiKeyAuthResult> {
+  if (!apiKeyHeader) {
+    return { success: false, error: 'API key required' }
+  }
+
+  try {
+    let workspaceSettings: WorkspaceBillingSettings | null = null
+
+    if (options.workspaceId) {
+      workspaceSettings = await getWorkspaceBillingSettings(options.workspaceId)
+      if (!workspaceSettings) {
+        return { success: false, error: 'Workspace not found' }
+      }
+    }
+
+    const keyHash = hashApiKey(apiKeyHeader)
+    const rows: HashCandidate[] = await db
+      .select({
+        id: apiKeyTable.id,
+        userId: apiKeyTable.userId,
+        workspaceId: apiKeyTable.workspaceId,
+        type: apiKeyTable.type,
+        expiresAt: apiKeyTable.expiresAt,
+        userBanned: userTable.banned,
+        userSuspendedAt: userTable.suspendedAt,
+      })
+      .from(apiKeyTable)
+      .leftJoin(userTable, eq(apiKeyTable.userId, userTable.id))
+      .where(eq(apiKeyTable.keyHash, keyHash))
+
+    if (rows.length === 0) return INVALID
+
+    const record = rows[0]
+    const keyType = record.type as 'personal' | 'workspace'
+
+    // Defense in depth: banning deletes a user's keys, but reject any survivor too.
+    if (record.userBanned) return INVALID
+
+    /**
+     * A suspension deliberately leaves the account's resources intact, so unlike
+     * a ban it does not delete the keys. Refusing a personal key here is what
+     * ends the member's own machine access. A workspace key is shared and
+     * belongs to the workspace, so one member's suspension does not break it.
+     */
+    if (record.userSuspendedAt && keyType === 'personal') return INVALID
+
+    if (options.userId && record.userId !== options.userId) return INVALID
+    if (options.keyTypes?.length && !options.keyTypes.includes(keyType)) return INVALID
+    if (record.expiresAt && record.expiresAt < new Date()) return INVALID
+
+    if (
+      options.workspaceId &&
+      keyType === 'workspace' &&
+      record.workspaceId !== options.workspaceId
+    ) {
+      return INVALID
+    }
+
+    if (options.workspaceId && keyType === 'personal') {
+      if (!workspaceSettings?.allowPersonalApiKeys) return INVALID
+      if (!record.userId) return INVALID
+
+      const permission = await getUserEntityPermissions(
+        record.userId,
+        'workspace',
+        options.workspaceId
+      )
+      if (permission === null) return INVALID
+    }
+
+    logger.debug('API key matched via hash lookup', { keyId: record.id, keyType })
+    setRequestAuth(
+      { kind: keyType === 'personal' ? 'personal_api_key' : 'workspace_api_key' },
+      { preserveExisting: true }
+    )
+
+    return {
+      success: true,
+      userId: record.userId,
+      keyId: record.id,
+      keyType,
+      workspaceId: record.workspaceId || options.workspaceId || undefined,
+    }
+  } catch (error) {
+    logger.error('API key authentication error:', error)
+    return { success: false, error: 'Authentication failed' }
+  }
+}
+
+const LAST_USED_STALENESS_WINDOW_MS = 10 * 60 * 1000
+
+const touchApiKeyLastUsed = createDetachedTouch({
+  label: 'API key last used',
+  write: writeLastUsed,
+  debounce: { intervalMs: LAST_USED_STALENESS_WINDOW_MS, maxKeys: 10_000 },
+})
+
+/**
+ * Record that an API key was used, without delaying the request.
+ *
+ * `lastUsed` is display-only, so the write is detached (see {@link createDetachedTouch}): a
+ * commit waiting on the database must never hold up an authenticated request. Across processes
+ * the write only fires when the stored value is older than {@link LAST_USED_STALENESS_WINDOW_MS},
+ * so high-traffic keys do not rewrite the same row on every request. The 10-minute window matches
+ * GitLab's personal-access-token last-used tracking.
+ */
+export function updateApiKeyLastUsed(keyId: string): void {
+  touchApiKeyLastUsed(keyId)
+}
+
+async function writeLastUsed(keyId: string): Promise<void> {
+  try {
+    const staleBefore = new Date(Date.now() - LAST_USED_STALENESS_WINDOW_MS)
+    await db
+      .update(apiKeyTable)
+      .set({ lastUsed: new Date() })
+      .where(
+        and(
+          eq(apiKeyTable.id, keyId),
+          or(isNull(apiKeyTable.lastUsed), lt(apiKeyTable.lastUsed, staleBefore))
+        )
+      )
+  } catch (error) {
+    logger.error('Error updating API key last used:', error)
+  }
+}

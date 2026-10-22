@@ -1,0 +1,102 @@
+---
+title: GitLab
+description: Search self-managed projects with live administrator checks or CSV grants
+---
+
+GitLab Search uses **Service account** mode, with one self-managed project per source. Teammates do not connect personal GitLab accounts. Sim matches their verified identity to the source's permission strategy on each search and read.
+
+## Choose a permission strategy
+
+| Requirement | Administrator token | Non-admin token |
+| --- | --- | --- |
+| Token owner | Active instance administrator | Account that can read the project's content |
+| PAT scopes | `read_api`; `admin_mode` when Admin Mode is enabled | `read_api` |
+| Reader authorization | Current GitLab identity, membership, roles, and supported restrictions | Admin-uploaded email mapping and project grants |
+| Membership changes | Checked during the request | Admin updates the CSV files |
+| Confidential issues | Only when supported permissions allow the reader | Always excluded |
+
+The administrator path requires self-managed GitLab 17.4 or later and its administrator identity/settings APIs. A project Maintainer or group Owner is not an instance administrator. Non-admin mode does not require those administrator APIs.
+
+The instance must be reachable from the Sim server and pass outbound-request protections. Use the self-managed host, not `gitlab.com`. Each source binds its host and project; a query cannot redirect the token elsewhere.
+
+## Add a project
+
+1. Create a read-only PAT with the chosen scopes and an appropriate expiry.
+2. Open **Settings → Sources → Add source → GitLab → Add project**.
+3. Choose **Administrator token** or **Non-admin token**.
+4. Enter the token, self-managed **Host**, and exact **Project** path or numeric ID.
+5. Choose content and filters. Non-admin mode requires both CSV files below.
+6. Save, then have a permitted teammate search and read known content. Repeat with a teammate who has no grant.
+
+Use **Add project** again for another project. There is no initial sync. Organization membership and a matching verified email are required, but membership alone does not grant project access.
+
+## Resource settings
+
+| Setting | Effect |
+| --- | --- |
+| Content | **Wiki & Issues** by default; the broader choice includes code and merge requests. |
+| Branch / tag | Code uses the selected ref; blank uses the default branch. |
+| Path prefix / file extensions | Restrict code results. |
+| Issue state | Restricts issues. |
+| Issue labels | Every configured label must match. |
+| Milestone | Exact issue milestone title. |
+
+Sim checks returned content against these restrictions independently of the query. Available search APIs depend on the GitLab version and enabled search capabilities. Unsupported searches are reported explicitly.
+
+## Non-admin CSV permissions
+
+Use **Download template** beside each field, replace the examples, and upload both files.
+
+**User mapping** maps numeric GitLab user IDs to verified Sim emails:
+
+```csv
+user_id,email
+123,alice@example.com
+456,bob@example.com
+```
+
+**Project permissions** grants mapped users access to the project:
+
+```csv
+project_path,user_id
+engineering/platform,123
+engineering/platform,456
+```
+
+Use the full namespace path even if **Project** contains a numeric ID. Include inherited members explicitly. A grant without an email mapping grants nothing; rows for other projects cannot expand this source.
+
+- Each file has exactly two columns in the shown order and at least one data row. Template headers or headerless data are accepted.
+- Use UTF-8 CSV, at most 4 MiB and 100,000 data rows per file. The full request must fit 10 MiB.
+- Identical rows are deduplicated. Conflicting user-ID/email mappings and malformed rows are rejected.
+
+These grants are admin-managed authorization. A granted reader can search allowed non-confidential content; Sim does not infer that person's actual GitLab role, restrictions, or membership from the non-admin token. Update both files when access changes.
+
+## Access checks
+
+The source token retrieves content. Administrator mode proves the reader's current GitLab identity from verified Sim email, then checks project/group membership and policy during the request. Unsupported restrictions fail closed.
+
+Non-admin mode uses saved source-local CSV grants and revalidates the token's current host/project identity. Confidential issues are excluded, including issues that became confidential after search.
+
+Reads recheck current settings, permissions, and metadata. A reference from another member, account, organization, project, or host cannot authorize a read. Live Search does not use a stored content or permission index.
+
+## Update permissions or rotate the token
+
+In project settings, replace either CSV file, retaining the other when appropriate. Sim validates the resulting pair before saving. Invalid or stale updates preserve saved grants. Removed readers lose access on the next operation.
+
+To rotate the PAT, supply its replacement in source settings. A blank token retains the saved token. Changing host, project, or permission strategy requires valid configuration for the new identity.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Administrator token required | Use an instance-admin PAT, or select **Non-admin token** and upload both CSVs. |
+| Host/project unreachable | Check host, server connectivity/outbound rules, project identity, and token access. |
+| No results | Check verified Sim email, membership, GitLab identity/role or CSV grant, content scope, and query. |
+| Confidential issue missing | Expected in CSV mode; otherwise check the reader's supported permissions. |
+| CSV upload fails | Correct reported rows and size limits; saved grants remain in effect. |
+| Permissions cannot be verified | Check the reported restriction. Do not broaden access to bypass verification. |
+| Search type unavailable | Check instance version and capabilities; connection alone does not enable every endpoint. |
+
+## Related docs
+
+- [Knowledge-base connectors](/knowledgebase/connectors) — separate ingestion and permission maintenance

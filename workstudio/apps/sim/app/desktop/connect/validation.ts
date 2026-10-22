@@ -1,0 +1,93 @@
+import { OAUTH_CREDENTIAL_DRAFT_CALLBACK_PARAM } from '@/lib/credentials/draft-constants'
+
+/**
+ * OAuth providerIds are kebab-case service slugs (e.g. "google-email"). The
+ * value is only used to start a better-auth oauth2.link flow, which validates
+ * it against the configured providers — this pattern just keeps junk out of
+ * URLs and logs.
+ */
+const PROVIDER_ID_PATTERN = /^[a-z0-9][a-z0-9-]{1,63}$/
+
+/** OAuth error codes forwarded to the desktop app's loopback (short slugs). */
+const ERROR_SLUG_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+
+export function isValidOAuthProviderId(value: unknown): value is string {
+  return typeof value === 'string' && PROVIDER_ID_PATTERN.test(value)
+}
+
+/**
+ * Sanitizes a provider/better-auth error code for the loopback URL. Anything
+ * that isn't a short slug collapses to a generic code rather than being
+ * forwarded verbatim.
+ */
+export function sanitizeOAuthErrorSlug(value: unknown): string | null {
+  if (typeof value !== 'string' || value === '') {
+    return null
+  }
+  return ERROR_SLUG_PATTERN.test(value) ? value : 'oauth_error'
+}
+
+/** Workspace/credential ids are opaque tokens; anything else never reaches a URL. */
+const OPAQUE_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/
+
+export function isValidOpaqueId(value: unknown): value is string {
+  return typeof value === 'string' && OPAQUE_ID_PATTERN.test(value)
+}
+
+/** Optional connect scope forwarded from the desktop app's credential chips. */
+export interface ConnectScope {
+  sourceRequestId?: string
+  workspaceId?: string
+  credentialId?: string
+  draftId?: string
+  /** The account the desktop app is signed in as; the flow is pinned to it. */
+  user?: string
+}
+
+/**
+ * Rebuilds the connect launcher's own path from validated parameters, for use
+ * as the post-login callbackUrl.
+ */
+export function buildDesktopConnectPath(
+  providerId: string,
+  state: string,
+  port: number,
+  scope: ConnectScope = {}
+): string {
+  const params = new URLSearchParams({ provider: providerId, state, port: String(port) })
+  if (scope.sourceRequestId) params.set('sourceRequestId', scope.sourceRequestId)
+  if (scope.workspaceId) params.set('workspaceId', scope.workspaceId)
+  if (scope.credentialId) params.set('credentialId', scope.credentialId)
+  if (scope.draftId) params.set('draftId', scope.draftId)
+  if (scope.user) params.set('user', scope.user)
+  return `/desktop/connect?${params.toString()}`
+}
+
+/**
+ * The same-origin path better-auth redirects the browser to after the OAuth
+ * callback — the complete page then bounces to the desktop app's loopback.
+ */
+export function buildConnectCompletePath(state: string, port: number, draftId?: string): string {
+  const params = new URLSearchParams({ state, port: String(port) })
+  if (draftId) params.set(OAUTH_CREDENTIAL_DRAFT_CALLBACK_PARAM, draftId)
+  return `/desktop/connect/complete?${params.toString()}`
+}
+
+/**
+ * Builds the desktop app's loopback URL for a finished connect flow (RFC 8252
+ * §7.3 — the `127.0.0.1` IP literal, mirroring the login handoff). A present
+ * `error` marks the flow failed; the app surfaces it as a toast.
+ */
+export function buildConnectLoopbackUrl(
+  state: string,
+  port: number,
+  error?: string,
+  credentialId?: string
+): string {
+  const params = new URLSearchParams({ state })
+  if (credentialId) params.set('credentialId', credentialId)
+  if (error) {
+    params.set('error', error)
+  }
+  return `http://127.0.0.1:${port}/connect/callback?${params.toString()}`
+}

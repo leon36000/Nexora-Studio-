@@ -1,0 +1,70 @@
+import {
+  type InstagramPublishResponse,
+  type InstagramPublishVideoParams,
+  PUBLISH_OUTPUTS,
+} from '@/tools/instagram/types'
+import { createPublishTransform } from '@/tools/instagram/utils'
+import type { InternalToolConfig } from '@/tools/types'
+
+export const instagramPublishVideoTool: InternalToolConfig<
+  InstagramPublishVideoParams,
+  InstagramPublishResponse
+> = {
+  id: 'instagram_publish_video',
+  name: 'Instagram Publish Video',
+  description:
+    'Create and publish a feed video from a Sim file (published as a Reel shared to the feed; polls until ready)',
+  version: '1.0.0',
+
+  oauth: {
+    required: true,
+    provider: 'instagram',
+  },
+
+  params: {
+    accessToken: {
+      type: 'string',
+      required: true,
+      visibility: 'hidden',
+      description: 'Access token for Instagram API',
+    },
+    igUserId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Instagram professional account user id (defaults to /me)',
+    },
+    video: {
+      type: 'file',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'Video uploaded to Sim or referenced from a previous block',
+    },
+    caption: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Post caption',
+    },
+    cover: {
+      type: 'file',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Optional JPEG cover uploaded to Sim or referenced from a previous block',
+    },
+  },
+
+  operation: {
+    input: (params: InstagramPublishVideoParams) => ({
+      accessToken: params.accessToken,
+      igUserId: params.igUserId,
+      video: params.video,
+      cover: params.cover,
+      caption: params.caption,
+    }),
+  },
+
+  transformResponse: createPublishTransform('Failed to publish video'),
+
+  outputs: PUBLISH_OUTPUTS,
+}

@@ -1,0 +1,30 @@
+{
+  "title": "Self-hosting",
+  "pages": [
+    "architecture",
+    "---Install---",
+    "reference-architectures",
+    "docker",
+    "kubernetes",
+    "platforms",
+    "---Configure---",
+    "environment-variables",
+    "authentication",
+    "integrations-oauth",
+    "object-storage",
+    "email",
+    "redis",
+    "sandboxes",
+    "background-jobs",
+    "networking",
+    "security",
+    "verify",
+    "desktop",
+    "---Operate---",
+    "observability",
+    "scaling",
+    "upgrades",
+    "troubleshooting"
+  ],
+  "defaultOpen": false
+}

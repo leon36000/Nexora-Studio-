@@ -1,0 +1,151 @@
+---
+title: Using tables in workflows
+description: Query rows, process their data, and write results with the Table block.
+---
+
+import { WorkflowPreview, OutputBundle, TABLE_ENRICH_WORKFLOW } from '@/components/workflow-preview'
+
+Use a [Table block](/integrations/table) for a read or write within a workflow. Use [workflow columns](/tables/workflow-columns) when the table should run the same work separately for each row.
+
+## Classify and update rows
+
+Create a `leads` table with `company`, `email`, `description`, `status`, `category`, and `score` columns. Use Number for `score` and Text for the other fields. Then build this sequence:
+
+1. Set a Table block's **Operation** to **Query Rows**, choose the table, and filter for `status` equal to `unprocessed`.
+2. Add a **For Each** [Loop](/workflows/blocks/loop) over `<table1.rows>`, replacing `table1` with your query block's name.
+3. Inside the loop, configure an Agent to classify `<loop.currentItem.data.description>`. Request `category` and `score` using a valid [response-format schema](/workflows/blocks/agent).
+4. Add **Update Row by ID** inside the loop. Use `<loop.currentItem.id>` as **Row ID** and valid JSON for **Row Data**:
+
+```json
+{
+  "category": "<agent.category>",
+  "score": "<agent.score>",
+  "status": "qualified"
+}
+```
+
+The references use your block names. Table writes can safely convert a numeric score string; still inspect the result if the Agent fails to produce the requested structure.
+
+<WorkflowPreview workflow={TABLE_ENRICH_WORKFLOW} height={300} />
+
+The status change keeps later runs from selecting completed rows. It does not claim a row atomically: overlapping workflow runs can query the same unprocessed row before either writes its result.
+
+## Read rows
+
+Choose **Operation** and **Table** on each Table block. **Query Rows** returns an array whose cells are nested under each row's `data`:
+
+```json
+{
+  "success": true,
+  "rows": [
+    {
+      "id": "row_8f2c",
+      "data": { "company": "Acme", "status": "unprocessed" },
+      "executions": {},
+      "position": 0,
+      "createdAt": "2026-06-01T09:00:00Z",
+      "updatedAt": "2026-06-01T09:00:00Z"
+    }
+  ],
+  "rowCount": 1,
+  "totalCount": 42,
+  "limit": 1,
+  "nextCursor": "cursor_from_the_query"
+}
+```
+
+Read `<table1.rows[0].data.company>` for a cell or `<table1.rows[0].id>` for its row ID. `rowCount` counts rows in this response. `totalCount` counts all matches on the first page and may be `null` on subsequent cursor pages.
+
+<OutputBundle
+  blockName="table1"
+  blockType="table_v2"
+  blockColor="#10B981"
+  duration="84ms"
+  values={[
+    {
+      key: 'rows', type: 'array', highlight: true,
+      children: [{
+        key: '0', type: 'object',
+        children: [
+          { key: 'id', type: 'string', value: '"row_8f2c"' },
+          { key: 'data', type: 'object', children: [
+            { key: 'company', type: 'string', value: '"Acme"' },
+            { key: 'status', type: 'string', value: '"unprocessed"' },
+          ] },
+        ],
+      }],
+    },
+    { key: 'rowCount', type: 'number', value: '1' },
+    { key: 'totalCount', type: 'number', value: '42' },
+  ]}
+/>
+
+### Filter, order, and projection
+
+Build **Filter** rules visually or supply a predicate. A condition names a field, operator, and value:
+
+```json
+{ "field": "status", "op": "eq", "value": "unprocessed" }
+```
+
+Combine conditions with `all` (AND) or `any` (OR), nesting groups for mixed logic:
+
+```json
+{
+  "all": [
+    { "field": "status", "op": "eq", "value": "unprocessed" },
+    { "field": "createdAt", "op": "gte", "value": "2026-06-01" }
+  ]
+}
+```
+
+**Order** accepts a list of field/direction pairs, such as `[{"field":"createdAt","direction":"desc"}]`. **Columns to Return** selects the cells you need. Built-in `id`, `createdAt`, and `updatedAt` fields are managed by Sim and can be used for filtering and sorting.
+
+Use **Get Row by ID** for a point lookup and **Get Schema** for column definitions. See the [Table block reference](/integrations/table) for all operators.
+
+## Write and update rows
+
+| Operation | Behavior |
+| --- | --- |
+| **Insert Row** | Adds one row and returns its generated ID and timestamps. |
+| **Batch Insert Rows** | Adds up to 1,000 rows from **Rows Data** and reports `insertedCount`. |
+| **Upsert Row** | Inserts or updates a match on a unique column; `operation` is `insert` or `update`. |
+| **Update Row by ID** | Patches only the supplied fields for one **Row ID**. |
+| **Update Rows by Filter** | Applies one patch to matching rows; reports `updatedCount` and `updatedRowIds`. |
+| **Delete Row by ID** | Removes the specified row and reports `deletedCount`. |
+| **Delete Rows by Filter** | Removes matching rows and reports `deletedCount`. |
+
+**Row Data** must be JSON with keys matching your column names. Do not include built-in IDs or timestamps on insert:
+
+```json
+{
+  "company": "Acme",
+  "email": "deals@acme.com",
+  "description": "Enterprise software buyer",
+  "status": "unprocessed"
+}
+```
+
+Upsert requires a unique column. If the table has several, select **Conflict Column** to choose the match target. Unlisted fields remain unchanged in a partial update.
+
+For different results per row, use a sequential Loop and **Update Row by ID**. A filter update applies the same values to every match; with no **Limit**, it walks all matches in batches. The 1,000 maximum applies to an explicitly supplied update limit, not the total for an unlimited filtered update.
+
+Stored values follow the column types. Safe conversions are accepted, but unsupported optional values can become empty in workflow writes; public v2 API writes reject invalid values. Inspect writes rather than relying on every bad value producing an error. Deleting rows removes their data; API changes are outside the editor's undo history.
+
+## Paginate large reads
+
+Set **Limit** for a bounded page. A page can end at that count or early when its row data reaches the byte budget, 5 MiB by default for bounded pages. Pass the returned `nextCursor` into **Cursor** until it is `null`. A short page does not establish completion.
+
+Without **Limit**, the Table block requests all matches in one response and rejects results over the fixed 5 MiB row-data budget. Narrow the filter or paginate. This block behavior differs from the public API's default page size.
+
+## Inspect a run
+
+Use [Logs](/logs-debugging) to inspect the submitted filter, order, row data, returned rows, and affected counts when those details are available. If a query is empty or a write changes nothing, compare its resolved inputs with the table schema and stored values.
+
+For a lookup during other work, query reference data mid-workflow—for example, a `pricing` table filtered by currency—then pass the result to the next step.
+
+## Related docs
+
+- [Table block reference](/integrations/table) for operation fields and filter operators
+- [Data flow](/workflows/data-flow) for output references
+- [Workflow columns](/tables/workflow-columns) for work started per row

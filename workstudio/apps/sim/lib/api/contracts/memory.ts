@@ -1,0 +1,107 @@
+import { z } from 'zod'
+import { privateSecretProvenanceBundleSchema } from '@/lib/api/contracts/primitives'
+import { defineRouteContract } from '@/lib/api/contracts/types'
+import { PRIVATE_SECRET_PROVENANCE_FIELD } from '@/lib/execution/private-tool-metadata'
+
+export const memoryIdParamsSchema = z.object({
+  id: z.string().min(1),
+})
+
+export const memoryWorkspaceQuerySchema = z.object({
+  workspaceId: z.string().uuid('Invalid workspace ID format'),
+})
+
+export const memoryListQuerySchema = z.object({
+  workspaceId: z.string().optional(),
+  query: z.string().nullable().optional(),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(1000, 'Cannot list more than 1000 memories per request')
+    .optional()
+    .default(50),
+})
+
+export const memoryMessageSchema = z
+  .object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.unknown().refine((value) => Boolean(value)),
+  })
+  .passthrough()
+
+export const memoryPostBodySchema = z
+  .object({
+    key: z.string().optional(),
+    data: z.unknown().optional(),
+    workspaceId: z.string().optional(),
+    [PRIVATE_SECRET_PROVENANCE_FIELD]: privateSecretProvenanceBundleSchema.optional(),
+  })
+  .passthrough()
+export type MemoryPostBody = z.input<typeof memoryPostBodySchema>
+
+export const memoryDeleteQuerySchema = z.object({
+  workspaceId: z.string().optional(),
+  conversationId: z.string().optional(),
+})
+
+const memorySuccessResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
+  z.object({
+    success: z.literal(true),
+    data: dataSchema,
+  })
+
+const memoryRecordSchema = z.object({
+  conversationId: z.string(),
+  data: z.unknown(),
+})
+
+export const listMemoriesContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/memory',
+  query: memoryListQuerySchema,
+  response: {
+    mode: 'json',
+    schema: memorySuccessResponseSchema(
+      z.object({
+        memories: z.array(memoryRecordSchema),
+      })
+    ),
+  },
+})
+
+export const createMemoryContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/memory',
+  body: memoryPostBodySchema,
+  response: {
+    mode: 'json',
+    schema: memorySuccessResponseSchema(memoryRecordSchema),
+  },
+})
+
+export const deleteMemoryByQueryContract = defineRouteContract({
+  method: 'DELETE',
+  path: '/api/memory',
+  query: memoryDeleteQuerySchema,
+  response: {
+    mode: 'json',
+    schema: memorySuccessResponseSchema(
+      z.object({
+        message: z.string(),
+        deletedCount: z.number(),
+      })
+    ),
+  },
+})
+
+export const getMemoryByIdContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/memory/[id]',
+  params: memoryIdParamsSchema,
+  query: memoryWorkspaceQuerySchema,
+  response: {
+    mode: 'json',
+    schema: memorySuccessResponseSchema(memoryRecordSchema.nullable()),
+  },
+})

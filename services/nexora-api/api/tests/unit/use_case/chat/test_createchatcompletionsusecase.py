@@ -1,0 +1,567 @@
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
+import json
+from unittest.mock import AsyncMock, create_autospec, patch
+
+import pytest
+
+from api.domain.chat.entities import ChatCompletion, CreateChatCompletionsBody
+from api.domain.model import ModelEnvironmentalImpactsComputer, ModelTokenizer
+from api.domain.model.errors import TooBusyModelError
+from api.domain.provider import ProviderClient, ProviderLoadBalancer, ProviderMetricsLogger, ProviderRepository
+from api.domain.provider.entities import ProviderChunkResponse, ProviderEndpoint, ProviderResponse, ProviderType
+from api.domain.provider.errors import ProviderAdapterValidationRequestError
+from api.domain.role.entities import LimitType
+from api.domain.router import RouterRateLimiter, RouterRepository
+from api.domain.router.entities import RouterRateLimitState, RouterType
+from api.domain.router.errors import RouterNotFoundError, RouterRateLimitExceededError
+from api.domain.usage import UsageContext, UsageRepository
+from api.domain.usage.entities import EnvironmentalImpacts
+from api.tests.unit.use_case.factories import AuthenticatedUserFactory, KeyFactory, ProviderFactory, RouterFactory
+from api.use_cases.chat import (
+    CreateChatCompletionsCommand,
+    CreateChatCompletionsStreamUseCaseSuccess,
+    CreateChatCompletionsUseCase,
+    CreateChatCompletionsUseCaseSuccess,
+)
+
+MODEL_NAME = "chat-router"
+REQUEST_ID = "req-123"
+TRACE_ID = "a" * 32
+
+
+@pytest.fixture
+def mock_model_tokenizer():
+    tokenizer = create_autospec(ModelTokenizer, instance=True, spec_set=True)
+    tokenizer.compute_tokens.side_effect = lambda texts: len(texts)
+    return tokenizer
+
+
+@pytest.fixture
+def mock_usage_recorder():
+    return create_autospec(UsageContext, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def mock_trace_recorder():
+    recorder = create_autospec(UsageRepository, instance=True, spec_set=True)
+    recorder.start_record.return_value = TRACE_ID
+    return recorder
+
+
+@pytest.fixture
+def router():
+    return RouterFactory(id=1, name=MODEL_NAME, type=RouterType.TEXT_GENERATION, providers=1)
+
+
+@pytest.fixture
+def provider():
+    return ProviderFactory(id=7, router_id=1)
+
+
+@pytest.fixture
+def admin_user():
+    return AuthenticatedUserFactory(id=1, admin=True)
+
+
+@pytest.fixture
+def make_command(admin_user):
+    def _make(*, stream: bool = False, tools: list[dict] | None = None, content: str = "hello"):
+        return CreateChatCompletionsCommand(
+            payload=CreateChatCompletionsBody(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": content}],
+                stream=stream,
+                tools=tools,
+            ),
+            authenticated_user=admin_user,
+            authenticated_key=KeyFactory(),
+        )
+
+    return _make
+
+
+@pytest.fixture
+def sample_completion():
+    return ChatCompletion(
+        id="chat-1",
+        model=MODEL_NAME,
+        object="chat.completion",
+        created=0,
+        choices=[{"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "hi there"}}],
+    )
+
+
+@pytest.fixture
+def use_case(mock_model_tokenizer, mock_usage_recorder, mock_trace_recorder) -> CreateChatCompletionsUseCase:
+    return CreateChatCompletionsUseCase(
+        model_environmental_impacts_computer=create_autospec(ModelEnvironmentalImpactsComputer, instance=True, spec_set=True),
+        model_tokenizer=mock_model_tokenizer,
+        provider_client=create_autospec(ProviderClient, instance=True, spec_set=True),
+        provider_load_balancer=create_autospec(ProviderLoadBalancer, instance=True, spec_set=True),
+        provider_metrics_logger=create_autospec(ProviderMetricsLogger, instance=True, spec_set=True),
+        provider_repository=create_autospec(ProviderRepository, instance=True, spec_set=True),
+        router_rate_limiter=create_autospec(RouterRateLimiter, instance=True, spec_set=True),
+        router_repository=create_autospec(RouterRepository, instance=True, spec_set=True),
+        usage_context=mock_usage_recorder,
+        usage_repository=mock_trace_recorder,
+    )
+
+
+async def _chunk_stream(*contents: str, status_code: int = 200) -> AsyncGenerator[ProviderChunkResponse]:
+    for content in contents:
+        yield ProviderChunkResponse(content=content, status_code=status_code)
+
+
+def _format_stream(use_case, router, provider, chunks, prompt_tokens=1):
+    return use_case._format_stream(
+        authenticated_user=AuthenticatedUserFactory(without_permission=True),
+        router=router,
+        provider=provider,
+        chunks=chunks,
+        prompt_tokens=prompt_tokens,
+        request_id=REQUEST_ID,
+    )
+
+
+class TestCreateChatCompletionsUseCase:
+    def test_should_use_text_generation_router_type(self):
+        assert CreateChatCompletionsUseCase.ROUTER_TYPE == RouterType.TEXT_GENERATION
+
+    def test_should_use_chat_completions_endpoint(self):
+        assert CreateChatCompletionsUseCase.ENDPOINT == ProviderEndpoint.CHAT_COMPLETIONS
+
+
+class TestCreateChatCompletionsUseCaseExecute:
+    @pytest.fixture(autouse=True)
+    def mock_collaborator_methods(self, use_case, router, sample_completion, provider):
+        use_case._resolve_router = AsyncMock(return_value=router)
+        use_case._check_rate_limits = AsyncMock(return_value=RouterRateLimitState.admin_rate_limit_state())
+        use_case._send_request = AsyncMock(return_value=ProviderResponse(data=sample_completion))
+        use_case._select_provider = AsyncMock(return_value=provider)
+        use_case.provider_client.forward_stream = AsyncMock(return_value=_chunk_stream())
+
+    @pytest.mark.asyncio
+    async def test_should_call_parent_methods_and_return_success(self, use_case, make_command, admin_user, router, sample_completion):
+        # Arrange
+        command = make_command()
+        rate_limit_state = RouterRateLimitState.admin_rate_limit_state()
+        use_case._check_rate_limits.return_value = rate_limit_state
+
+        # Act
+        result = await use_case.execute(command=command)
+
+        # Assert
+        use_case._resolve_router.assert_awaited_once_with(authenticated_user=admin_user, model_name_or_alias=MODEL_NAME)
+        use_case.model_tokenizer.compute_tokens.assert_called_once_with(texts=["hello"])
+        use_case._check_rate_limits.assert_awaited_once_with(authenticated_user=admin_user, router=router, prompt_tokens=1)
+        assert isinstance(result, CreateChatCompletionsUseCaseSuccess)
+        assert result.data is sample_completion
+        assert result.headers == rate_limit_state.build_limit_headers(1)
+        use_case.usage_repository.end_record.assert_called_once()
+        use_case.usage_repository.fail_record.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_return_stream_success_without_consuming_the_stream_when_stream_is_requested(self, use_case, make_command):
+        # Arrange
+        command = make_command(stream=True)
+
+        # Act
+        result = await use_case.execute(command=command)
+
+        # Assert
+        assert isinstance(result, CreateChatCompletionsStreamUseCaseSuccess)
+        use_case._send_request.assert_not_awaited()
+        use_case.provider_metrics_logger.increment_inflight.assert_not_awaited()  # the generator is returned unconsumed
+        forwarded_request = use_case.provider_client.forward_stream.call_args.kwargs["request"]
+        assert forwarded_request.id == TRACE_ID
+        use_case.usage_repository.end_record.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_stamp_streamed_chunks_with_the_generated_request_id(self, use_case, make_command, mock_usage_recorder):
+        # Arrange: the provider emits its own id; the gateway must replace it
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        use_case.provider_client.forward_stream.return_value = _chunk_stream(
+            'data: {"id": "provider-id", "choices": [{"delta": {"content": "hi"}}]}',
+            "data: [DONE]",
+        )
+
+        # Act
+        result = await use_case.execute(command=make_command(stream=True))
+        chunks = [chunk async for chunk in result.chunks]
+
+        # Assert
+        request_id = use_case.provider_client.forward_stream.call_args.kwargs["request"].id
+        assert request_id == TRACE_ID
+        relayed = json.loads(chunks[0].content.removeprefix("data: "))
+        usage_chunk = json.loads(chunks[1].content.removeprefix("data: "))
+        assert relayed["id"] == request_id
+        assert usage_chunk["id"] == request_id
+        assert mock_usage_recorder.record_usage.call_args.kwargs["request_id"] == request_id
+        use_case.usage_repository.end_record.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_should_return_the_error_when_the_router_cannot_be_resolved(self, use_case, make_command):
+        # Arrange
+        use_case._resolve_router.return_value = RouterNotFoundError(name=MODEL_NAME)
+
+        # Act
+        result = await use_case.execute(command=make_command())
+
+        # Assert
+        assert result == RouterNotFoundError(name=MODEL_NAME)
+        use_case._check_rate_limits.assert_not_awaited()
+        use_case.usage_repository.start_record.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_return_the_error_when_the_rate_limit_is_exceeded(self, use_case, make_command):
+        # Arrange
+        error = RouterRateLimitExceededError(id=1, limit_type=LimitType.RPM, headers={})
+        use_case._check_rate_limits.return_value = error
+
+        # Act
+        result = await use_case.execute(command=make_command())
+
+        # Assert
+        assert result is error
+        use_case._send_request.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_should_return_the_error_when_the_request_fails(self, use_case, make_command):
+        # Arrange
+        error = TooBusyModelError(status_code=503, detail="provider busy")
+        use_case._send_request.return_value = error
+
+        # Act
+        result = await use_case.execute(command=make_command())
+
+        # Assert
+        assert result is error
+        use_case.usage_repository.fail_record.assert_called_once_with(message="TooBusyModelError", status_code=503)
+        use_case.usage_repository.end_record.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_should_return_the_error_when_the_provider_client_refuses_to_open_the_stream(self, use_case, make_command):
+        # Arrange: forward_stream answers with a typed error instead of a generator
+        error = ProviderAdapterValidationRequestError(provider_type=ProviderType.VLLM, errors=[{"msg": "invalid"}])
+        use_case.provider_client.forward_stream.return_value = error
+
+        # Act
+        result = await use_case.execute(command=make_command(stream=True))
+
+        # Assert
+        assert result is error
+        use_case.provider_metrics_logger.increment_inflight.assert_not_awaited()
+        use_case.usage_repository.fail_record.assert_called_once_with(message="ProviderAdapterValidationRequestError", status_code=503)
+        use_case.usage_repository.end_record.assert_called_once()
+
+
+class TestCreateChatCompletionsUseCaseFormatStream:
+    @staticmethod
+    async def _collect(chunks) -> list[ProviderChunkResponse]:
+        return [chunk async for chunk in chunks]
+
+    @pytest.mark.asyncio
+    async def test_should_append_a_usage_chunk_before_the_done_chunk(self, use_case, router, provider, mock_usage_recorder):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream(
+            'data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}',
+            "data: [DONE]",
+        )
+
+        # Act
+        chunks = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=3))
+
+        # Assert
+        assert len(chunks) == 3
+        relayed = json.loads(chunks[0].content.removeprefix("data: "))
+        assert relayed["id"] == REQUEST_ID
+        usage_chunk = json.loads(chunks[1].content.removeprefix("data: "))
+        assert usage_chunk["id"] == REQUEST_ID
+        assert usage_chunk["choices"] == []
+        assert usage_chunk["usage"]["prompt_tokens"] == 3
+        assert usage_chunk["usage"]["completion_tokens"] == 1
+        assert chunks[2].content == "data: [DONE]"
+        mock_usage_recorder.record_usage.assert_called_once()
+        assert mock_usage_recorder.record_usage.call_args.kwargs["request_id"] == REQUEST_ID
+        use_case.usage_repository.update_record.assert_called_once()
+        use_case.router_rate_limiter.update_rate_limit_state.assert_called_once()
+        use_case.usage_repository.end_record.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_should_record_first_token_at_on_the_first_content_chunk(self, use_case, router, provider):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        first_token_at = datetime(2026, 9, 18, 15, 0, tzinfo=UTC)
+        chunks = _chunk_stream(
+            'data: {"id": "chat-1", "choices": [{"delta": {"role": "assistant"}}]}',
+            'data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}',
+            "data: [DONE]",
+        )
+
+        # Act
+        with patch("api.use_cases.chat._createchatcompletionsusecase.datetime") as mock_datetime:
+            mock_datetime.now.return_value = first_token_at
+            await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        use_case.usage_repository.update_record.assert_called_once()
+        assert use_case.usage_repository.update_record.call_args.kwargs["first_token_at"] == first_token_at
+        mock_datetime.now.assert_called_once_with(tz=UTC)
+
+    @pytest.mark.asyncio
+    async def test_should_append_usage_and_done_when_the_provider_emits_no_chunks(self, use_case, router, provider):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream()
+
+        # Act
+        collected = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        usage_chunk = json.loads(collected[0].content.removeprefix("data: "))
+        assert usage_chunk["id"] == REQUEST_ID
+        assert collected[-1].content == "data: [DONE]"
+        assert collected[-1].status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_should_append_a_usage_chunk_when_the_provider_closes_without_a_done_chunk(self, use_case, router, provider):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream('data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}')
+
+        # Act
+        chunks = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        assert len(chunks) == 3
+        assert json.loads(chunks[1].content.removeprefix("data: "))["choices"] == []
+        assert chunks[2].content == "data: [DONE]"
+
+    @pytest.mark.asyncio
+    async def test_should_stop_the_stream_and_forward_the_error_when_the_provider_fails(self, use_case, router, provider):
+        # Arrange
+        chunks = _chunk_stream('{"detail": "Model is too busy"}', status_code=503)
+
+        # Act
+        chunks = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        assert len(chunks) == 1
+        assert chunks[0].status_code == 503
+        use_case.usage_context.record_usage.assert_not_called()
+        use_case.usage_repository.update_record.assert_not_called()
+        use_case.router_rate_limiter.update_rate_limit_state.assert_not_called()
+        use_case.usage_repository.fail_record.assert_called_once_with(message="StatusCodeModelError", status_code=503)
+        use_case.usage_repository.end_record.assert_called_once()
+        use_case.provider_metrics_logger.decrement_inflight.assert_awaited_once_with(provider_id=provider.id)
+
+    @pytest.mark.asyncio
+    async def test_should_relay_data_chunks_under_the_router_name(self, use_case, router, provider):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream('data: {"id": "chat-1", "model": "provider-internal", "choices": [{"delta": {"content": "hi"}}]}', "data: [DONE]")
+
+        # Act
+        collected = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        relayed = json.loads(collected[0].content.removeprefix("data: "))
+        assert relayed["id"] == REQUEST_ID
+        assert relayed["model"] == router.name
+        assert relayed["choices"] == [{"delta": {"content": "hi"}}]
+
+    @pytest.mark.asyncio
+    async def test_should_stop_at_the_terminator_and_emit_a_single_usage_chunk(self, use_case, router, provider, mock_usage_recorder):
+        # Arrange: a provider that keeps talking after [DONE]
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream('data: {"id": "chat-1", "choices": []}', "data: [DONE]", "data: [DONE]")
+
+        # Act
+        collected = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        assert [chunk.content for chunk in collected].count("data: [DONE]") == 1
+        mock_usage_recorder.record_usage.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_should_relay_an_unparseable_line_untouched_and_keep_it_out_of_the_usage(self, use_case, router, provider):
+        # Arrange: an SSE keep-alive comment, which carries no completion to count
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream(": keep-alive", 'data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}', "data: [DONE]")
+
+        # Act
+        collected = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        assert collected[0].content == ": keep-alive"
+        usage_chunk = json.loads(collected[2].content.removeprefix("data: "))
+        assert usage_chunk["usage"]["completion_tokens"] == 1  # the comment never reached the buffer
+
+    @pytest.mark.asyncio
+    async def test_should_use_the_provider_usage_when_the_stream_reports_it(self, use_case, router, provider, mock_usage_recorder):
+        # Arrange: the tokenizer would count 3 prompt and 1 completion tokens, vLLM reports 12, 5 and 8 cached
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream(
+            'data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}',
+            'data: {"id": "chat-1", "choices": [], "usage": {"prompt_tokens": 12, "completion_tokens": 5, "total_tokens": 17, "prompt_tokens_details": {"cached_tokens": 8}}}',  # fmt: off
+            "data: [DONE]",
+        )
+
+        # Act
+        collected = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=3))
+
+        # Assert
+        assert len(collected) == 3  # the content chunk, our usage chunk, [DONE]: the provider's usage chunk is not relayed
+        recorded = mock_usage_recorder.record_usage.call_args.kwargs["usage"]
+        assert recorded.prompt_tokens == 12
+        assert recorded.completion_tokens == 5
+        assert recorded.prompt_tokens_details.cached_tokens == 8
+
+    @pytest.mark.asyncio
+    async def test_should_use_the_provider_usage_reported_on_a_content_chunk(self, use_case, router, provider, mock_usage_recorder):
+        # Arrange: Mistral reports the usage on its last content chunk instead of a separate `choices: []` chunk
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream(
+            'data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 12, "completion_tokens": 5, "total_tokens": 17}}',  # fmt: off
+            "data: [DONE]",
+        )
+
+        # Act
+        collected = await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=3))
+
+        # Assert
+        assert len(collected) == 3  # the content chunk, our usage chunk, [DONE]: the content chunk is still relayed
+        assert '"content": "hi"' in collected[0].content
+        recorded = mock_usage_recorder.record_usage.call_args.kwargs["usage"]
+        assert recorded.prompt_tokens == 12
+        assert recorded.completion_tokens == 5
+
+    @pytest.mark.asyncio
+    async def test_should_record_the_delivered_tokens_when_the_provider_fails_mid_stream(self, use_case, router, provider, mock_usage_recorder):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+
+        async def failing_stream() -> AsyncGenerator[ProviderChunkResponse]:
+            yield ProviderChunkResponse(content='data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}', status_code=200)
+            yield ProviderChunkResponse(content='{"detail": "Model is too busy"}', status_code=503)
+
+        # Act
+        collected = [chunk async for chunk in _format_stream(use_case, router=router, provider=provider, chunks=failing_stream(), prompt_tokens=3)]
+
+        # Assert
+        assert [chunk.status_code for chunk in collected] == [200, 503]
+        assert all("usage" not in chunk.content for chunk in collected), "an error chunk must not be followed by a usage event"
+        mock_usage_recorder.record_usage.assert_called_once()
+        recorded = mock_usage_recorder.record_usage.call_args.kwargs["usage"]
+        assert recorded.prompt_tokens == 3
+        assert recorded.completion_tokens == 1, "the chunk the client already received must be billed"
+
+    @pytest.mark.asyncio
+    async def test_should_close_the_provider_stream_when_the_consumer_abandons_the_stream(self, use_case, router, provider):
+        # Arrange: a provider that never stops, so the connection is still open when the client leaves
+        provider_stream_was_closed = False
+
+        async def provider_stream() -> AsyncGenerator[ProviderChunkResponse]:
+            nonlocal provider_stream_was_closed
+            try:
+                while True:
+                    yield ProviderChunkResponse(content='data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}', status_code=200)
+            finally:
+                provider_stream_was_closed = True  # where httpx releases the connection
+
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = provider_stream()  # the local reference is the point: no garbage collection can do this for us
+        stream = _format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1)
+
+        # Act
+        await stream.__anext__()
+        await stream.aclose()
+
+        # Assert
+        assert provider_stream_was_closed, (
+            "abandoning the stream must close the provider connection: without `aclosing` it stays open, and the whole "
+            "generator chain — including the parsed-chunk buffer — stays reachable with it"
+        )
+
+    @pytest.mark.asyncio
+    async def test_should_record_the_delivered_tokens_when_the_consumer_abandons_the_stream(self, use_case, router, provider, mock_usage_recorder):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream('data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}', "data: [DONE]")
+        stream = _format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=3)
+
+        # Act: read the first data chunk, then drop the generator before it reaches the usage event
+        await stream.__anext__()
+        await stream.aclose()
+
+        # Assert
+        mock_usage_recorder.record_usage.assert_called_once()
+        recorded = mock_usage_recorder.record_usage.call_args.kwargs["usage"]
+        assert recorded.completion_tokens == 1, "the chunk the client already received must be billed"
+
+    @pytest.mark.asyncio
+    async def test_should_bill_the_tokenizer_count_when_a_stream_with_running_counts_is_cut(self, use_case, router, provider, mock_usage_recorder):  # fmt: off
+        # Arrange: vLLM `continuous_usage_stats` puts a running count on every content chunk
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream(
+            'data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}], "usage": {"prompt_tokens": 12, "completion_tokens": 7, "total_tokens": 19}}',  # fmt: off
+            'data: {"id": "chat-1", "choices": [{"delta": {"content": " there"}}], "usage": {"prompt_tokens": 12, "completion_tokens": 9, "total_tokens": 21}}',  # fmt: off
+            "data: [DONE]",
+        )
+        stream = _format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=3)
+
+        # Act: read both content chunks, then drop the generator before it reaches the usage event
+        await stream.__anext__()
+        await stream.__anext__()
+        await stream.aclose()
+
+        # Assert
+        recorded = mock_usage_recorder.record_usage.call_args.kwargs["usage"]
+        assert recorded.prompt_tokens == 3
+        assert recorded.completion_tokens == 2, "a cut stream is billed the same whether or not the client asked for running counts"
+
+    @pytest.mark.asyncio
+    async def test_should_not_record_usage_when_the_consumer_abandons_before_any_chunk(self, use_case, router, provider, mock_usage_recorder):
+        # Arrange: an SSE comment is relayed but never enters the buffer, so nothing was delivered
+        chunks = _chunk_stream(": keep-alive", "data: [DONE]")
+        stream = _format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=3)
+
+        # Act
+        await stream.__anext__()
+        await stream.aclose()
+
+        # Assert
+        mock_usage_recorder.record_usage.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_release_the_inflight_counter_when_the_consumer_abandons_the_stream(self, use_case, router, provider):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        chunks = _chunk_stream('data: {"id": "chat-1", "choices": []}', "data: [DONE]")
+        stream = _format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1)
+
+        # Act: read one chunk, then drop the generator without exhausting it
+        await stream.__anext__()
+        await stream.aclose()
+
+        # Assert
+        use_case.provider_metrics_logger.decrement_inflight.assert_awaited_once_with(provider_id=provider.id)
+        use_case.usage_repository.end_record.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_should_release_the_inflight_counter_when_the_stream_completes(self, use_case, router, provider):
+        # Arrange
+        use_case.model_environmental_impacts_computer.compute.return_value = EnvironmentalImpacts(kWh=1.0, kgCO2eq=2.0)
+        use_case.provider_metrics_logger.increment_inflight.return_value = True
+        chunks = _chunk_stream(
+            'data: {"id": "chat-1", "choices": [{"delta": {"content": "hi"}}]}',
+            "data: [DONE]",
+        )
+
+        # Act
+        await self._collect(_format_stream(use_case, router=router, provider=provider, chunks=chunks, prompt_tokens=1))
+
+        # Assert
+        use_case.provider_metrics_logger.decrement_inflight.assert_awaited_once_with(provider_id=provider.id)

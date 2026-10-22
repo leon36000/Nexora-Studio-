@@ -1,0 +1,181 @@
+import {
+  billingOrganizationMock,
+  billingOrganizationMockFns,
+} from '@sim/testing/mocks/billing-organization.mock'
+import {
+  billingSubscriptionMock,
+  billingSubscriptionMockFns,
+} from '@sim/testing/mocks/billing-subscription.mock'
+import { billingSubscriptionUtilsMock } from '@sim/testing/mocks/billing-subscription-utils.mock'
+import {
+  dbChainMockFns,
+  hasMockCondition,
+  resetDbChainMock,
+} from '@sim/testing/mocks/database.mock'
+import { schemaMock } from '@sim/testing/mocks/schema.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { mockAssertNoUnresolved } = vi.hoisted(() => ({
+  mockAssertNoUnresolved: vi.fn(),
+}))
+
+vi.mock('@/lib/billing/core/organization', () => billingOrganizationMock)
+vi.mock('@/lib/billing/core/subscription', () => billingSubscriptionMock)
+vi.mock('@/lib/billing/subscriptions/utils', () => billingSubscriptionUtilsMock)
+vi.mock('@/lib/billing/enterprise-outbox', () => {
+  class EnterpriseIssuanceInProgressError extends Error {}
+  return {
+    EnterpriseIssuanceInProgressError,
+    assertNoUnresolvedEnterpriseIssuance: mockAssertNoUnresolved,
+  }
+})
+
+import {
+  assertPersonalCheckoutAllowed,
+  authorizeSubscriptionReference,
+  isPersonalCheckoutRequest,
+} from '@/lib/billing/authorization'
+import { EnterpriseIssuanceInProgressError } from '@/lib/billing/enterprise-outbox'
+
+const mockHasPaidSubscription = billingSubscriptionMockFns.mockHasPaidSubscription
+const mockIsOwnerOrAdmin = billingOrganizationMockFns.mockIsOrganizationOwnerOrAdmin
+const mockGetOrganizationCoverageForMember =
+  billingSubscriptionMockFns.mockGetOrganizationCoverageForMember
+
+beforeEach(() => {
+  resetDbChainMock()
+})
+
+afterAll(() => {
+  resetDbChainMock()
+})
+
+describe('isPersonalCheckoutRequest', () => {
+  it('defaults to personal without a reference unless customerType selects the organization', () => {
+    expect(isPersonalCheckoutRequest({}, 'user-1')).toBe(true)
+    expect(isPersonalCheckoutRequest({ customerType: 'user' }, 'user-1')).toBe(true)
+    expect(isPersonalCheckoutRequest({ customerType: 'organization' }, 'user-1')).toBe(false)
+  })
+})
+
+describe('authorizeSubscriptionReference', () => {
+  beforeEach(() => {
+    mockHasPaidSubscription.mockResolvedValue(false)
+    mockAssertNoUnresolved.mockResolvedValue(undefined)
+    mockIsOwnerOrAdmin.mockResolvedValue(true)
+    mockGetOrganizationCoverageForMember.mockResolvedValue({ status: 'not-covered' })
+  })
+
+  it('blocks an organization checkout while Enterprise issuance is unresolved', async () => {
+    mockAssertNoUnresolved.mockRejectedValueOnce(new EnterpriseIssuanceInProgressError())
+
+    await expect(
+      authorizeSubscriptionReference('owner-1', 'org-1', 'upgrade-subscription', 'team_6000')
+    ).rejects.toThrow(/Enterprise plan setup in progress/)
+
+    expect(mockAssertNoUnresolved).toHaveBeenCalledWith(expect.anything(), 'org-1')
+    expect(mockIsOwnerOrAdmin).not.toHaveBeenCalled()
+  })
+
+  it('blocks an organization checkout while its bound Stripe subscription is incomplete', async () => {
+    dbChainMockFns.limit.mockResolvedValueOnce([
+      { id: 'subscription-1', stripeSubscriptionId: 'sub_pending' },
+    ])
+
+    await expect(
+      authorizeSubscriptionReference('owner-1', 'org-1', 'upgrade-subscription', 'team_6000')
+    ).rejects.toThrow(/subscription payment is still processing/)
+
+    expect(mockHasPaidSubscription).not.toHaveBeenCalled()
+    expect(mockAssertNoUnresolved).not.toHaveBeenCalled()
+    expect(mockIsOwnerOrAdmin).not.toHaveBeenCalled()
+  })
+
+  it('rejects an organization checkout for a pro plan — org references only hold Team/Enterprise', async () => {
+    await expect(
+      authorizeSubscriptionReference('owner-1', 'org-1', 'upgrade-subscription', 'pro_6000')
+    ).rejects.toThrow('Organizations can only subscribe to Team or Enterprise plans.')
+
+    expect(mockHasPaidSubscription).not.toHaveBeenCalled()
+    expect(mockIsOwnerOrAdmin).not.toHaveBeenCalled()
+  })
+
+  it('rejects an organization checkout when the plan cannot be determined (fail closed)', async () => {
+    await expect(
+      authorizeSubscriptionReference('owner-1', 'org-1', 'upgrade-subscription')
+    ).rejects.toThrow('Organizations can only subscribe to Team or Enterprise plans.')
+  })
+
+  it('blocks an organization checkout when the organization already has an active subscription', async () => {
+    mockHasPaidSubscription.mockResolvedValueOnce(true)
+
+    await expect(
+      authorizeSubscriptionReference('owner-1', 'org-1', 'upgrade-subscription', 'team_6000')
+    ).rejects.toThrow(/already has an active subscription/)
+  })
+})
+
+describe('assertPersonalCheckoutAllowed', () => {
+  beforeEach(() => {
+    mockGetOrganizationCoverageForMember.mockResolvedValue({ status: 'not-covered' })
+  })
+
+  it('keeps abandoned, unbound checkout placeholders retryable', async () => {
+    await assertPersonalCheckoutAllowed('user-1')
+
+    const predicate = dbChainMockFns.where.mock.calls[0]?.[0]
+    expect(
+      hasMockCondition(
+        predicate,
+        (node) => node.type === 'eq' && node.left === schemaMock.subscription.referenceId
+      )
+    ).toBe(true)
+    expect(
+      hasMockCondition(
+        predicate,
+        (node) =>
+          node.type === 'eq' &&
+          node.left === schemaMock.subscription.status &&
+          node.right === 'incomplete'
+      )
+    ).toBe(true)
+    expect(
+      hasMockCondition(
+        predicate,
+        (node) =>
+          node.type === 'isNotNull' && node.column === schemaMock.subscription.stripeSubscriptionId
+      )
+    ).toBe(true)
+  })
+
+  it('blocks a personal checkout while its bound Stripe subscription is incomplete', async () => {
+    dbChainMockFns.limit.mockResolvedValueOnce([
+      { id: 'subscription-1', stripeSubscriptionId: 'sub_pending' },
+    ])
+
+    await expect(assertPersonalCheckoutAllowed('user-1')).rejects.toThrow(
+      /subscription payment is still processing/
+    )
+
+    expect(mockGetOrganizationCoverageForMember).not.toHaveBeenCalled()
+  })
+
+  it('rejects checkout when an organization subscription already covers the user', async () => {
+    mockGetOrganizationCoverageForMember.mockResolvedValueOnce({
+      status: 'covered',
+      organizationId: 'org-1',
+    })
+
+    await expect(assertPersonalCheckoutAllowed('user-1')).rejects.toThrow(
+      /already covered by your organization/
+    )
+  })
+
+  it('rejects checkout when coverage cannot be verified (fail closed)', async () => {
+    mockGetOrganizationCoverageForMember.mockResolvedValueOnce({ status: 'unknown' })
+
+    await expect(assertPersonalCheckoutAllowed('user-1')).rejects.toThrow(
+      /could not verify your billing status/
+    )
+  })
+})

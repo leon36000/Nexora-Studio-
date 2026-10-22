@@ -1,0 +1,693 @@
+from dataclasses import dataclass
+from unittest.mock import AsyncMock, Mock, create_autospec, patch
+from uuid import uuid4
+
+import pytest
+
+from api.domain import ForwardablePayload
+from api.domain.model import ModelEnvironmentalImpactsComputer, ModelTokenizer
+from api.domain.model.entities import ProviderJsonResponse
+from api.domain.model.errors import TooBusyModelError
+from api.domain.provider import ProviderClient, ProviderLoadBalancer, ProviderMetricsLogger, ProviderRepository
+from api.domain.provider.entities import ProviderEndpoint, ProviderResponse, ProviderType
+from api.domain.provider.errors import ProviderAdapterValidationRequestError, ProviderAdapterValidationResponseError
+from api.domain.role.entities import Limit, LimitType
+from api.domain.router import RouterRateLimiter, RouterRepository
+from api.domain.router.entities import RouterRateLimitState, RouterType, RpmRateLimitState, TpmRateLimitState
+from api.domain.router.errors import RouterHasNoProvidersError, RouterHasWrongTypeError, RouterNotFoundError, RouterRateLimitExceededError
+from api.domain.usage import UsageContext, UsageRepository
+from api.domain.usage.entities import EnvironmentalImpacts, PromptTokensDetails, Usage
+from api.domain.user.errors import UserHasNoAccessToRouterError
+from api.tests.unit.use_case.factories import AuthenticatedUserFactory, KeyFactory, ProviderFactory, RouterFactory
+from api.use_cases._providerrequestforwardingusecase import (
+    ForwardingCommand,
+    ProviderRequestForwardingUseCase,
+    ProviderRequestForwardingUseCaseResult,
+    ProviderRequestForwardingUseCaseSuccess,
+)
+
+REQUEST_ID = uuid4().hex
+
+
+class ForwardingTestPayload(ForwardablePayload):
+    model: str | None = "test-router"
+
+    def get_prompts(self) -> list[str]:
+        return ["hello"]
+
+
+class ForwardingTestData(ProviderJsonResponse):
+    id: str = "req-1"
+    usage: Usage | None = None
+
+    def get_completions(self) -> list[str]:
+        return ["world"]
+
+
+class ForwardingTestCommand(ForwardingCommand[ForwardingTestPayload]): ...
+
+
+@dataclass
+class ForwardingTestPreconditionError:
+    """Stands for the error a subclass returns from `_check_command` — `AudioFileSizeLimitExceededError` is the real one."""
+
+
+class ForwardingTestUseCase(ProviderRequestForwardingUseCase[ForwardingTestCommand, ProviderRequestForwardingUseCaseResult[ForwardingTestData]]):
+    ROUTER_TYPE = RouterType.TEXT_GENERATION
+    ENDPOINT = ProviderEndpoint.CHAT_COMPLETIONS
+
+
+@pytest.fixture
+def model_tokenizer():
+    tokenizer = create_autospec(ModelTokenizer, instance=True, spec_set=True)
+    tokenizer.compute_tokens.side_effect = lambda texts: len(texts)
+    return tokenizer
+
+
+@pytest.fixture
+def model_environmental_impacts_computer():
+    computer = create_autospec(ModelEnvironmentalImpactsComputer, instance=True, spec_set=True)
+    computer.compute.return_value = EnvironmentalImpacts(kgCO2eq=1.0, kWh=2.0)
+    return computer
+
+
+@pytest.fixture
+def provider_client():
+    return create_autospec(ProviderClient, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def provider_load_balancer():
+    return create_autospec(ProviderLoadBalancer, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def provider_metrics_logger():
+    return create_autospec(ProviderMetricsLogger, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def provider_repository():
+    return create_autospec(ProviderRepository, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def router_rate_limiter():
+    return create_autospec(RouterRateLimiter, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def router_repository():
+    return create_autospec(RouterRepository, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def usage_repository():
+    return create_autospec(UsageContext, instance=True, spec_set=True)
+
+
+@pytest.fixture
+def trace_recorder():
+    recorder = create_autospec(UsageRepository, instance=True, spec_set=True)
+    recorder.start_record.return_value = REQUEST_ID
+    return recorder
+
+
+@pytest.fixture
+def router():
+    return RouterFactory(
+        id=1,
+        name="test-router",
+        type=RouterType.TEXT_GENERATION,
+        providers=1,
+        load_balancing_strategy="shuffle",
+        cost_prompt_tokens=0.001,
+        cost_completion_tokens=0.002,
+    )
+
+
+@pytest.fixture
+def provider():
+    return ProviderFactory(id=1, router_id=1, type=ProviderType.VLLM, model_name="vllm-model")
+
+
+@pytest.fixture
+def sample_data():
+    return ForwardingTestData()
+
+
+@pytest.fixture
+def payload():
+    return ForwardingTestPayload()
+
+
+@pytest.fixture
+def admin_user():
+    return AuthenticatedUserFactory(id=1, admin=True)
+
+
+@pytest.fixture
+def user_with_router_access():
+    return AuthenticatedUserFactory(
+        id=1,
+        without_permission=True,
+        limits=[
+            Limit(router_id=1, type=LimitType.RPM, value=100),
+            Limit(router_id=999, type=LimitType.TPM, value=50),
+        ],
+    )
+
+
+@pytest.fixture
+def use_case(
+    model_environmental_impacts_computer,
+    model_tokenizer,
+    provider_client,
+    provider_load_balancer,
+    provider_metrics_logger,
+    provider_repository,
+    router_rate_limiter,
+    router_repository,
+    usage_repository,
+    trace_recorder,
+) -> ForwardingTestUseCase:
+    return ForwardingTestUseCase(
+        model_environmental_impacts_computer=model_environmental_impacts_computer,
+        model_tokenizer=model_tokenizer,
+        provider_client=provider_client,
+        provider_load_balancer=provider_load_balancer,
+        provider_metrics_logger=provider_metrics_logger,
+        provider_repository=provider_repository,
+        router_rate_limiter=router_rate_limiter,
+        router_repository=router_repository,
+        usage_context=usage_repository,
+        usage_repository=trace_recorder,
+    )
+
+
+class TestResolveRouter:
+    @pytest.mark.asyncio
+    async def test_should_return_repository_error_when_router_does_not_exist(self, use_case, admin_user):
+        # Arrange
+        use_case.router_repository.get_router_by_name_or_alias.return_value = RouterNotFoundError(name="test-router")
+
+        # Act
+        result = await use_case._resolve_router(authenticated_user=admin_user, model_name_or_alias="test-router")
+
+        # Assert
+        assert isinstance(result, RouterNotFoundError)
+        use_case.router_repository.get_router_by_name_or_alias.assert_awaited_once_with(name_or_alias="test-router")
+        use_case.usage_context.record_router.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_return_router_has_no_providers_error_when_router_has_no_providers(self, use_case, admin_user):
+        # Arrange
+        router = RouterFactory(id=1, name="test-router", type=RouterType.TEXT_GENERATION, providers=0)
+        use_case.router_repository.get_router_by_name_or_alias.return_value = router
+
+        # Act
+        result = await use_case._resolve_router(authenticated_user=admin_user, model_name_or_alias="test-router")
+
+        # Assert
+        assert isinstance(result, RouterHasNoProvidersError)
+        assert result.id == 1
+        use_case.usage_context.record_router.assert_called_once_with(router_id=router.id, router_name=router.name)
+
+    @pytest.mark.asyncio
+    async def test_should_return_router_has_wrong_type_error_when_router_type_does_not_match(self, use_case, admin_user):
+        # Arrange
+        router = RouterFactory(id=1, name="test-router", type=RouterType.TEXT_EMBEDDINGS_INFERENCE, providers=1)
+        use_case.router_repository.get_router_by_name_or_alias.return_value = router
+
+        # Act
+        result = await use_case._resolve_router(authenticated_user=admin_user, model_name_or_alias="test-router")
+
+        # Assert
+        assert isinstance(result, RouterHasWrongTypeError)
+        assert result.actual_type == RouterType.TEXT_EMBEDDINGS_INFERENCE
+        assert result.expected_type == RouterType.TEXT_GENERATION
+
+    @pytest.mark.asyncio
+    async def test_should_return_user_has_no_access_error_when_user_cannot_access_router(self, use_case, router):
+        # Arrange
+        user = AuthenticatedUserFactory(id=1, without_permission=True, limits=[])
+        use_case.router_repository.get_router_by_name_or_alias.return_value = router
+
+        # Act
+        result = await use_case._resolve_router(authenticated_user=user, model_name_or_alias="test-router")
+
+        # Assert
+        assert isinstance(result, UserHasNoAccessToRouterError)
+        assert result.id == router.id
+
+    @pytest.mark.asyncio
+    async def test_should_return_router_when_checks_pass(self, use_case, admin_user, router):
+        # Arrange
+        use_case.router_repository.get_router_by_name_or_alias.return_value = router
+
+        # Act
+        result = await use_case._resolve_router(authenticated_user=admin_user, model_name_or_alias="test-router")
+
+        # Assert
+        assert result is router
+        use_case.usage_context.record_router.assert_called_once_with(router_id=router.id, router_name=router.name)
+
+
+class TestCheckRateLimits:
+    @pytest.mark.asyncio
+    async def test_should_return_admin_rate_limit_state_without_calling_limiter_when_user_is_admin(self, use_case, admin_user, router):
+        # Act
+        result = await use_case._check_rate_limits(authenticated_user=admin_user, router=router, prompt_tokens=1)
+
+        # Assert
+        assert result == RouterRateLimitState.admin_rate_limit_state()
+        use_case.router_rate_limiter.get_rate_limit_state.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_should_return_rate_limit_exceeded_error_when_a_limit_is_exceeded(self, use_case, user_with_router_access, router):
+        # Arrange
+        rate_limit_state = RouterRateLimitState.admin_rate_limit_state()
+        rate_limit_state.rpm = RpmRateLimitState(value=10, remaining=0, reset=0)
+        use_case.router_rate_limiter.get_rate_limit_state.return_value = rate_limit_state
+
+        # Act
+        result = await use_case._check_rate_limits(authenticated_user=user_with_router_access, router=router, prompt_tokens=1)
+
+        # Assert
+        assert isinstance(result, RouterRateLimitExceededError)
+        assert result.id == router.id
+        assert result.limit_type == LimitType.RPM
+        assert result.headers == rate_limit_state.build_limit_headers(1)
+        use_case.router_rate_limiter.get_rate_limit_state.assert_awaited_once_with(
+            user_id=user_with_router_access.id,
+            router_limits=[Limit(router_id=1, type=LimitType.RPM, value=100)],
+            router_id=router.id,
+        )
+
+    @pytest.mark.asyncio
+    async def test_should_return_rate_limit_exceeded_error_without_updating_state_when_prompt_exceeds_remaining_tokens(
+        self, use_case, user_with_router_access, router
+    ):
+        # Arrange
+        rate_limit_state = RouterRateLimitState.admin_rate_limit_state()
+        rate_limit_state.tpm = TpmRateLimitState(value=100, remaining=9, reset=0)
+        use_case.router_rate_limiter.get_rate_limit_state.return_value = rate_limit_state
+
+        # Act
+        result = await use_case._check_rate_limits(authenticated_user=user_with_router_access, router=router, prompt_tokens=10)
+
+        # Assert
+        assert isinstance(result, RouterRateLimitExceededError)
+        assert result.id == router.id
+        assert result.limit_type == LimitType.TPM
+        assert result.headers["x-ratelimit-remaining-tokens"] == "9"
+        use_case.router_rate_limiter.get_rate_limit_state.assert_awaited_once_with(
+            user_id=user_with_router_access.id,
+            router_limits=[Limit(router_id=1, type=LimitType.RPM, value=100)],
+            router_id=router.id,
+        )
+
+    @pytest.mark.asyncio
+    async def test_should_return_rate_limit_state_when_non_admin_user_is_within_limits(self, use_case, user_with_router_access, router):
+        # Arrange
+        rate_limit_state = RouterRateLimitState.admin_rate_limit_state()
+        use_case.router_rate_limiter.get_rate_limit_state.return_value = rate_limit_state
+
+        # Act
+        result = await use_case._check_rate_limits(authenticated_user=user_with_router_access, router=router, prompt_tokens=1)
+
+        # Assert
+        assert result is rate_limit_state
+        use_case.router_rate_limiter.get_rate_limit_state.assert_awaited_once_with(
+            user_id=user_with_router_access.id,
+            router_limits=[Limit(router_id=1, type=LimitType.RPM, value=100)],
+            router_id=router.id,
+        )
+
+
+class TestSendRequest:
+    @pytest.fixture(autouse=True)
+    def configure_provider_flow(self, use_case, provider, sample_data):
+        use_case.provider_repository.get_all_providers_of_router.return_value = [provider]
+        use_case.provider_load_balancer.find_best_provider.return_value = provider
+        use_case.provider_metrics_logger.increment_inflight.return_value = True
+        use_case.provider_client.forward.return_value = ProviderResponse(data=sample_data)
+
+    @pytest.mark.asyncio
+    async def test_should_return_request_validation_error_when_provider_call_rejects_request(
+        self, use_case, router, provider, payload, user_with_router_access
+    ):
+        # Arrange
+        validation_error = ProviderAdapterValidationRequestError(provider_type=ProviderType.VLLM, errors=[{"msg": "invalid"}])
+        use_case.provider_client.forward.return_value = validation_error
+
+        # Act
+        result = await use_case._send_request(
+            authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+        )
+
+        # Assert
+        assert result == validation_error
+        use_case.provider_client.forward.assert_awaited_once()
+        forwarded_request = use_case.provider_client.forward.call_args.kwargs["request"]
+        assert forwarded_request.endpoint == ForwardingTestUseCase.ENDPOINT
+        assert forwarded_request.payload == payload
+        use_case.provider_metrics_logger.decrement_inflight.assert_awaited_once_with(provider_id=provider.id)
+        use_case.usage_context.record_provider.assert_called_once_with(provider_id=provider.id, provider_model_name=provider.model_name)
+        use_case.usage_context.record_usage.assert_not_called()
+        use_case.usage_repository.update_record.assert_not_called()
+        use_case.router_rate_limiter.update_rate_limit_state.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_return_forward_error_and_decrement_inflight_when_provider_call_fails(
+        self, use_case, router, provider, payload, user_with_router_access
+    ):
+        # Arrange
+        provider_error = TooBusyModelError(status_code=503, detail="busy")
+        use_case.provider_client.forward.return_value = provider_error
+
+        # Act
+        result = await use_case._send_request(
+            authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+        )
+
+        # Assert
+        assert result == provider_error
+        use_case.provider_metrics_logger.decrement_inflight.assert_awaited_once_with(provider_id=provider.id)
+        use_case.usage_context.record_usage.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_decrement_inflight_when_the_provider_call_raises(self, use_case, router, provider, payload, user_with_router_access):
+        # Arrange
+        use_case.provider_client.forward.side_effect = TypeError("adapter blew up while converting the response")
+
+        # Act
+        with pytest.raises(TypeError):
+            await use_case._send_request(
+                authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+            )
+
+        # Assert
+        use_case.provider_metrics_logger.decrement_inflight.assert_awaited_once_with(provider_id=provider.id)
+
+    @pytest.mark.asyncio
+    async def test_should_return_response_validation_error_without_decrementing_when_inflight_was_not_incremented(
+        self, use_case, router, payload, user_with_router_access
+    ):
+        # Arrange
+        use_case.provider_metrics_logger.increment_inflight.return_value = False
+        validation_error = ProviderAdapterValidationResponseError(provider_type=ProviderType.VLLM, errors=[{"msg": "invalid"}])
+        use_case.provider_client.forward.return_value = validation_error
+
+        # Act
+        result = await use_case._send_request(
+            authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+        )
+
+        # Assert
+        assert result == validation_error
+        use_case.provider_metrics_logger.decrement_inflight.assert_not_called()
+        use_case.usage_context.record_usage.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_enrich_usage_when_formatted_response_has_data(
+        self, use_case, router, provider, sample_data, payload, model_tokenizer, model_environmental_impacts_computer, user_with_router_access
+    ):
+        # Arrange
+        use_case.usage_repository.compute_latency.return_value = 12000
+        with patch("api.domain.usage.entities.Usage.compute_request_cost", return_value=0.03) as compute_request_cost:
+            # Act
+            result = await use_case._send_request(
+                authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+            )
+
+        # Assert
+        assert isinstance(result, ProviderResponse)
+        assert result.data is sample_data
+        assert result.data.usage == Usage(
+            prompt_tokens=1,
+            completion_tokens=1,
+            total_tokens=2,
+            cost=0.03,
+            impacts=EnvironmentalImpacts(kgCO2eq=1.0, kWh=2.0),
+        )
+        use_case.provider_repository.get_all_providers_of_router.assert_awaited_once_with(router_id=router.id)
+        use_case.provider_load_balancer.find_best_provider.assert_awaited_once_with(
+            strategy=router.load_balancing_strategy,
+            providers=[provider],
+        )
+        forwarded_request = use_case.provider_client.forward.call_args.kwargs["request"]
+        assert forwarded_request.endpoint == ForwardingTestUseCase.ENDPOINT
+        assert forwarded_request.payload == payload
+        assert forwarded_request.id == REQUEST_ID
+
+        use_case.provider_metrics_logger.decrement_inflight.assert_awaited_once_with(provider_id=provider.id)
+        model_tokenizer.compute_tokens.assert_called_once_with(texts=["world"])
+        model_environmental_impacts_computer.compute.assert_called_once_with(
+            model_active_params=provider.model_active_params,
+            model_total_params=provider.model_total_params,
+            model_zone=provider.model_hosting_zone,
+            completion_tokens=1,
+            request_latency=12000,
+        )
+        compute_request_cost.assert_called_once_with(
+            prompt_tokens=1,
+            completion_tokens=1,
+            cost_prompt_tokens=router.cost_prompt_tokens,
+            cost_completion_tokens=router.cost_completion_tokens,
+        )
+        use_case.usage_context.record_usage.assert_called_once_with(
+            request_id=REQUEST_ID,
+            usage=Usage(
+                prompt_tokens=1,
+                completion_tokens=1,
+                total_tokens=2,
+                cost=0.03,
+                impacts=EnvironmentalImpacts(kgCO2eq=1.0, kWh=2.0),
+            ),
+        )
+        use_case.usage_repository.update_record.assert_called_once_with(
+            usage=Usage(
+                prompt_tokens=1,
+                completion_tokens=1,
+                total_tokens=2,
+                cost=0.03,
+                impacts=EnvironmentalImpacts(kgCO2eq=1.0, kWh=2.0),
+            ),
+            provider_id=provider.id,
+            provider_model_name=provider.model_name,
+        )
+        use_case.router_rate_limiter.update_rate_limit_state.assert_called_once_with(
+            user_id=user_with_router_access.id,
+            router_limits=[Limit(router_id=router.id, type=LimitType.RPM, value=100)],
+            router_id=router.id,
+            prompt_tokens=1,
+            completion_tokens=1,
+            cached_tokens=0,
+        )
+
+    @pytest.mark.asyncio
+    async def test_should_use_provider_token_counts_when_provider_response_reports_usage(
+        self, use_case, router, provider, payload, model_tokenizer, user_with_router_access
+    ):
+        # Arrange
+        provider_data = ForwardingTestData(usage=Usage(prompt_tokens=67, completion_tokens=38, total_tokens=105))
+        use_case.provider_client.forward.return_value = ProviderResponse(data=provider_data)
+        use_case.usage_repository.compute_latency.return_value = 12000
+        expected_usage = Usage(
+            prompt_tokens=67,
+            completion_tokens=38,
+            total_tokens=105,
+            cost=0.03,
+            impacts=EnvironmentalImpacts(kgCO2eq=1.0, kWh=2.0),
+        )
+
+        with patch("api.domain.usage.entities.Usage.compute_request_cost", return_value=0.03) as compute_request_cost:
+            # Act
+            result = await use_case._send_request(
+                authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+            )
+
+        # Assert
+        assert isinstance(result, ProviderResponse)
+        assert result.data.usage == expected_usage
+        model_tokenizer.compute_tokens.assert_not_called()
+        compute_request_cost.assert_called_once_with(
+            prompt_tokens=67,
+            completion_tokens=38,
+            cost_prompt_tokens=router.cost_prompt_tokens,
+            cost_completion_tokens=router.cost_completion_tokens,
+        )
+        use_case.usage_repository.update_record.assert_called_once_with(
+            usage=expected_usage,
+            provider_id=provider.id,
+            provider_model_name=provider.model_name,
+        )
+        use_case.router_rate_limiter.update_rate_limit_state.assert_called_once_with(
+            user_id=user_with_router_access.id,
+            router_limits=[Limit(router_id=router.id, type=LimitType.RPM, value=100)],
+            router_id=router.id,
+            prompt_tokens=67,
+            completion_tokens=38,
+            cached_tokens=0,
+        )
+
+    @pytest.mark.asyncio
+    async def test_should_keep_provider_cached_tokens_when_provider_response_reports_usage(self, use_case, router, payload, user_with_router_access):
+        # Arrange
+        provider_data = ForwardingTestData(
+            usage=Usage(prompt_tokens=67, completion_tokens=38, total_tokens=105, prompt_tokens_details=PromptTokensDetails(cached_tokens=25))
+        )
+        use_case.provider_client.forward.return_value = ProviderResponse(data=provider_data)
+
+        # Act
+        result = await use_case._send_request(
+            authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+        )
+
+        # Assert
+        assert isinstance(result, ProviderResponse)
+        assert result.data.usage.prompt_tokens_details.cached_tokens == 25
+
+    @pytest.mark.asyncio
+    async def test_should_record_usage_without_attaching_it_when_formatted_response_has_no_data(
+        self, use_case, router, provider, payload, user_with_router_access
+    ):
+        # Arrange
+        use_case.provider_client.forward.return_value = ProviderResponse(text="hello world")
+        use_case.usage_repository.compute_latency.return_value = 12000
+        # Act
+        with patch("api.domain.usage.entities.Usage.compute_request_cost", return_value=0.03):
+            result = await use_case._send_request(
+                authenticated_user=user_with_router_access, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID
+            )
+
+        # Assert
+        assert isinstance(result, ProviderResponse)
+        assert result.data is None
+        use_case.usage_context.record_usage.assert_called_once_with(
+            request_id=REQUEST_ID,
+            usage=Usage(
+                prompt_tokens=1,
+                completion_tokens=1,
+                total_tokens=2,
+                cost=0.03,
+                impacts=EnvironmentalImpacts(kgCO2eq=1.0, kWh=2.0),
+            ),
+        )
+
+    @pytest.mark.asyncio
+    async def test_should_not_charge_rate_limits_when_user_is_admin(self, use_case, router, payload, admin_user):
+        # Act
+        result = await use_case._send_request(authenticated_user=admin_user, router=router, prompt_tokens=1, payload=payload, request_id=REQUEST_ID)
+
+        # Assert
+        assert isinstance(result, ProviderResponse)
+        use_case.router_rate_limiter.update_rate_limit_state.assert_not_called()
+
+
+class TestExecute:
+    @pytest.fixture(autouse=True)
+    def mock_collaborator_methods(self, use_case, router, sample_data):
+        formatted_response = ProviderResponse(data=sample_data)
+        use_case._resolve_router = AsyncMock(return_value=router)
+        use_case._check_rate_limits = AsyncMock(return_value=RouterRateLimitState.admin_rate_limit_state())
+        use_case._send_request = AsyncMock(return_value=formatted_response)
+
+    @pytest.fixture
+    def command(self, admin_user):
+        return ForwardingTestCommand(payload=ForwardingTestPayload(), authenticated_user=admin_user, authenticated_key=KeyFactory())
+
+    @pytest.mark.asyncio
+    async def test_should_return_check_command_error_without_resolving_the_router(self, use_case, command):
+        # Arrange
+        error = ForwardingTestPreconditionError()
+        use_case._check_command = Mock(return_value=error)
+
+        # Act
+        result = await use_case.execute(command=command)
+
+        # Assert
+        assert result is error
+        use_case._check_command.assert_called_once_with(command=command)
+        use_case._resolve_router.assert_not_awaited()
+        use_case.model_tokenizer.compute_tokens.assert_not_called()
+        use_case._check_rate_limits.assert_not_awaited()
+        use_case._send_request.assert_not_awaited()
+        use_case.usage_repository.start_record.assert_not_called()
+        use_case.usage_repository.end_record.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_should_return_resolve_router_error_without_checking_rate_limits_or_sending(self, use_case, command, admin_user):
+        # Arrange
+        error = RouterNotFoundError(name="test-router")
+        use_case._resolve_router.return_value = error
+
+        # Act
+        result = await use_case.execute(command=command)
+
+        # Assert
+        assert result is error
+        use_case._resolve_router.assert_awaited_once_with(authenticated_user=admin_user, model_name_or_alias="test-router")
+        use_case.model_tokenizer.compute_tokens.assert_not_called()
+        use_case._check_rate_limits.assert_not_awaited()
+        use_case._send_request.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_should_return_rate_limit_error_without_sending_request(self, use_case, command, admin_user, router):
+        # Arrange
+        error = RouterRateLimitExceededError(id=router.id, limit_type=LimitType.RPM, headers={})
+        use_case._check_rate_limits.return_value = error
+
+        # Act
+        result = await use_case.execute(command=command)
+
+        # Assert
+        assert result is error
+        use_case.model_tokenizer.compute_tokens.assert_called_once_with(texts=["hello"])
+        use_case._check_rate_limits.assert_awaited_once_with(authenticated_user=admin_user, router=router, prompt_tokens=1)
+        use_case._send_request.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_should_return_send_request_error(self, use_case, command, router):
+        # Arrange
+        error = TooBusyModelError(status_code=503, detail="busy")
+        use_case._send_request.return_value = error
+
+        # Act
+        result = await use_case.execute(command=command)
+
+        # Assert
+        assert result is error
+        use_case._send_request.assert_awaited_once_with(
+            authenticated_user=command.authenticated_user, router=router, prompt_tokens=1, payload=command.payload, request_id=REQUEST_ID
+        )
+        use_case.usage_repository.start_record.assert_called_once_with(
+            endpoint=ProviderEndpoint.CHAT_COMPLETIONS,
+            model=router.name,
+            user_id=command.authenticated_user.id,
+            router_id=router.id,
+            router_name=router.name,
+            user_email=command.authenticated_user.email,
+            key_id=command.authenticated_key.id,
+            key_name=command.authenticated_key.name,
+        )
+        use_case.usage_repository.fail_record.assert_called_once_with(message="TooBusyModelError", status_code=503)
+        use_case.usage_repository.end_record.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_should_return_success_with_formatted_data_and_rate_limit_headers(self, use_case, command, sample_data):
+        # Arrange
+        rate_limit_state = RouterRateLimitState.admin_rate_limit_state()
+        use_case._check_rate_limits.return_value = rate_limit_state
+
+        # Act
+        result = await use_case.execute(command=command)
+
+        # Assert
+        assert isinstance(result, ProviderRequestForwardingUseCaseSuccess)
+        assert result.data is sample_data
+        assert result.headers == rate_limit_state.build_limit_headers(1)
+        use_case.usage_repository.start_record.assert_called_once()
+        use_case.usage_repository.fail_record.assert_not_called()
+        use_case.usage_repository.end_record.assert_called_once()

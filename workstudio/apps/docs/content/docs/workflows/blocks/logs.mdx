@@ -1,0 +1,59 @@
+---
+title: Logs
+description: Query run IDs and read protected run details in the current workspace.
+---
+
+The **Logs block** finds workflow runs in the current workspace and reads their details. Use it to investigate failures or summarize runs without loading every trace at once.
+
+## Find failed runs
+
+Name the query block **Find Runs** and the detail block **Details** so the references below match.
+
+1. Set **Operation** to **Query Logs**, **Status** to `error`, and **Time Range** to **Past 24 hours**.
+2. Pass `<findruns.runIds>` to a ForEach Loop.
+3. Inside the loop, use **Get Run Details** with `<loop.currentItem>` as **Run ID**.
+4. Inspect `<details.traceSpans>` or pass the protected trace to an Agent for diagnosis.
+
+A [Sim trigger](/workflows/triggers/sim) can supply a `runId` directly, so you can skip the query when handling a specific run event.
+
+## Configuration
+
+### Query logs
+
+Returns matching run IDs. Newest first is the default order.
+
+| Field | Behavior |
+| --- | --- |
+| **Workflows** | Select workflows, or leave empty for all. Advanced mode accepts comma-separated IDs. |
+| **Status** | Filter by `info`, `error`, `running`, `pending`, or `cancelled`; leave empty for all. |
+| **Triggers** | Select trigger types, or leave empty for all. Advanced mode accepts comma-separated types such as `api`, `schedule`, or `slack`. |
+| **Time Range** | All time or a preset from 30 minutes to 30 days. Advanced **Start Date** and **End Date** accept ISO timestamps. |
+| **Cost** | Compare cost with a credit threshold, such as at least 10 credits. |
+| **Duration** | Compare duration with a threshold in milliseconds. |
+| **Limit** | Maximum IDs returned: default 100, maximum 200. |
+| **Sort By** / **Sort Order** | Advanced sorting by date, duration, cost, or status, ascending or descending. |
+
+### Get run details
+
+Enter one **Run ID** to fetch its protected trace, final output, and run metadata.
+
+## Outputs
+
+| Operation | Outputs |
+| --- | --- |
+| **Query Logs** | `runIds`: matching IDs; `count`: IDs returned |
+| **Get Run Details** | `runId`, `workflowId`, `workflowName`, `status`, `trigger`, `startedAt`, `durationMs`, `cost`, `traceSpans`, `finalOutput` |
+
+Read a block named **Details** with references such as `<details.traceSpans>` and `<details.finalOutput>`. Costs use credits in both filters and outputs.
+
+`traceSpans` and `finalOutput` use the protected log-facing projection described in [execution log protection](/platform/credentials#execution-log-protection). They do not expose every internal runtime value or change the workflow's runtime result.
+
+## Retention
+
+Queries can only return retained logs. On Sim Cloud, Free's default log retention is 30 days; paid plans have no default expiry. Organization and workspace policies can change effective retention. Billing-disabled self-hosted deployments have no plan-based default expiry, but configured retention still applies. See [data retention](/platform/enterprise/data-retention).
+
+## Related docs
+
+- [Logs](/logs-debugging)
+- [Loop](/workflows/blocks/loop)
+- [Sim trigger](/workflows/triggers/sim)

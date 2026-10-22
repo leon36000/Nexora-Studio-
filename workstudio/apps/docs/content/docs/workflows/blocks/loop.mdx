@@ -1,0 +1,78 @@
+---
+title: Loop
+description: Run blocks sequentially over a collection, a count, or a condition.
+---
+
+import { WorkflowPreview, LOOP_WORKFLOW } from '@/components/workflow-preview'
+
+The **Loop** container runs its blocks one iteration after another. Use [Parallel](/workflows/blocks/parallel) for independent work that can run concurrently.
+
+## Process a collection
+
+<WorkflowPreview workflow={LOOP_WORKFLOW} height={340} />
+
+Name the container **Process Reviews**, select **For Each**, and set **Collection Items** to your reviews array. Inside, the Agent reads `<loop.currentItem>`. After it finishes, the summary reads `<processreviews.results>`.
+
+## Loop types and settings
+
+| Type | Setting | Behavior |
+| --- | --- | --- |
+| **For Loop** | **Loop Iterations** | Run a fixed count. |
+| **For Each** | **Collection Items** | Run once per item in an array or object. |
+| **While Loop** | **While Condition** | Check before each iteration; the body can run zero times. |
+| **Do While Loop** | **While Condition** | Run once, then check whether to repeat. Without a condition, saved fixed-count configuration is used. |
+
+While conditions are boolean expressions. Calculate updates with Function and assign them with Variables when maintaining a counter:
+
+```javascript
+return <variable.i> + 1;
+```
+
+Set `i` to that Function's result before the next condition check. A Variables field does not evaluate `i + 1` itself.
+
+## References and outputs
+
+Inside a loop, generic references select the current loop context:
+
+| Reference | Value |
+| --- | --- |
+| `<loop.index>` | Iteration index, starting at 0 |
+| `<loop.currentItem>` | Current item, for For Each |
+| `<loop.items>` | Full collection, for For Each |
+
+Arrays yield their values as `currentItem`. Objects yield `[key, value]` pairs: `{ "a": 10 }` produces `currentItem` equal to `["a", 10]`. Read the key with `<loop.currentItem[0]>` and the value with `<loop.currentItem[1]>`.
+
+After the loop, reference its normalized block name, such as `<processreviews.results>`. Generic `<loop.*>` references require an enclosing loop and do not select a completed container by its display name. Names are lowercased with whitespace and periods removed; `loop`, `parallel`, and `variable` are reserved names for new blocks.
+
+Results group the inner block outputs by iteration. For a single Agent in each iteration, an abbreviated result is:
+
+```json
+[
+  [{ "content": "First review score" }],
+  [{ "content": "Second review score" }]
+]
+```
+
+Use `<processreviews.results[0][0].content>` for the first iteration's first block result. Additional blocks can contribute additional outputs per iteration.
+
+## Behavior and limits
+
+For uses the configured count; For Each uses the collection length. `1,000` is an execution default for some saved count configurations, not a hard ceiling. Overall workflow execution limits still apply.
+
+An empty array skips the body and returns empty results. Missing, null, or empty-string collection configuration is an error rather than an empty iteration set.
+
+While and conditional Do While have no fixed iteration ceiling. Ensure the condition eventually becomes false. Iterations add sequential execution time; connect error paths inside the loop when an item failure should be handled.
+
+Loops and Parallel containers can nest in either direction. Use the reference picker for the appropriate container scope in a nested flow.
+
+## Other patterns
+
+- Fetch API results, process each item, then summarize the collected results.
+- Generate a fixed number of variations and evaluate each one.
+- Repeat a polling step while a status is incomplete, with a Wait between checks.
+
+## Related docs
+
+- [Parallel](/workflows/blocks/parallel)
+- [Variables](/workflows/blocks/variables)
+- [Connections](/workflows/connections)

@@ -1,0 +1,112 @@
+import { createLogger } from '@sim/logger'
+import { toError } from '@sim/utils/errors'
+
+const logger = createLogger('OpenRouterUtils')
+
+interface OpenRouterModelData {
+  id: string
+  supported_parameters?: string[]
+  context_length?: number
+}
+
+interface ModelCapabilities {
+  supportsStructuredOutputs: boolean
+  supportsTools: boolean
+  contextWindow?: number
+}
+
+let modelCapabilitiesCache: Map<string, ModelCapabilities> | null = null
+let capabilitiesRefresh: Promise<void> | undefined
+let cacheTimestamp = 0
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const MODEL_CAPABILITIES_TIMEOUT_MS = 5000
+
+async function fetchModelCapabilities(): Promise<Map<string, ModelCapabilities> | undefined> {
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(MODEL_CAPABILITIES_TIMEOUT_MS),
+    })
+
+    if (!response.ok) {
+      await response.text().catch(() => {})
+      logger.warn('Failed to fetch OpenRouter model capabilities', {
+        status: response.status,
+      })
+      return undefined
+    }
+
+    const data = await response.json()
+    const capabilities = new Map<string, ModelCapabilities>()
+
+    for (const model of (data.data ?? []) as OpenRouterModelData[]) {
+      const supportedParams = model.supported_parameters ?? []
+      capabilities.set(model.id, {
+        supportsStructuredOutputs: supportedParams.includes('structured_outputs'),
+        supportsTools: supportedParams.includes('tools'),
+        ...(typeof model.context_length === 'number' &&
+        Number.isFinite(model.context_length) &&
+        model.context_length > 0
+          ? { contextWindow: model.context_length }
+          : {}),
+      })
+    }
+
+    logger.info('Cached OpenRouter model capabilities', {
+      modelCount: capabilities.size,
+      withStructuredOutputs: Array.from(capabilities.values()).filter(
+        (c) => c.supportsStructuredOutputs
+      ).length,
+    })
+
+    return capabilities
+  } catch (error) {
+    logger.error('Error fetching OpenRouter model capabilities', {
+      error: toError(error).message,
+    })
+    return undefined
+  }
+}
+
+/**
+ * Gets capabilities for a specific OpenRouter model.
+ * Shares cold loads; stale entries remain usable while one bounded refresh runs.
+ */
+export async function getOpenRouterModelCapabilities(
+  modelId: string,
+  signal?: AbortSignal
+): Promise<ModelCapabilities | null> {
+  signal?.throwIfAborted()
+  const now = Date.now()
+
+  if (!modelCapabilitiesCache || now - cacheTimestamp > CACHE_TTL_MS) {
+    capabilitiesRefresh ??= fetchModelCapabilities()
+      .then((capabilities) => {
+        modelCapabilitiesCache = capabilities ?? modelCapabilitiesCache ?? new Map()
+        cacheTimestamp = Date.now()
+      })
+      .finally(() => {
+        capabilitiesRefresh = undefined
+      })
+    if (!modelCapabilitiesCache) {
+      const refresh = capabilitiesRefresh
+      if (signal) {
+        await new Promise<void>((resolve, reject) => {
+          const abort = () => reject(signal.reason)
+          signal.addEventListener('abort', abort, { once: true })
+          refresh.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
+          if (signal.aborted) abort()
+        })
+      } else await refresh
+    }
+  }
+
+  signal?.throwIfAborted()
+  const normalizedId = modelId.replace(/^openrouter\//i, '')
+  return modelCapabilitiesCache?.get(normalizedId) ?? null
+}
+
+export async function supportsNativeStructuredOutputs(modelId: string): Promise<boolean> {
+  const capabilities = await getOpenRouterModelCapabilities(modelId)
+  return capabilities?.supportsStructuredOutputs ?? false
+}

@@ -1,0 +1,78 @@
+---
+title: How blocks pass data
+description: Read earlier block outputs by name and choose the values a workflow returns.
+---
+
+import { WorkflowPreview, OutputBundle, CLASSIFY_REPLY_WORKFLOW } from '@/components/workflow-preview'
+
+Blocks read earlier results through references. A connection determines when a block runs; a reference determines which value it reads.
+
+<WorkflowPreview workflow={CLASSIFY_REPLY_WORKFLOW} height={180} />
+
+Classify reads `<start.input>`. Reply reads `<classify.content>` after Classify finishes.
+
+## What an output is
+
+Sim stores each block's result for the run. An output usually contains several named values; `<classify.content>` reads the `content` field from the block named Classify.
+
+<OutputBundle
+  blockName="classify"
+  blockType="agent"
+  blockColor="#33C482"
+  duration="2.1s"
+  values={[
+    { key: 'content', type: 'string', value: '"Billing · high urgency"', highlight: true },
+    { key: 'model', type: 'string', value: '"claude-sonnet-5-5"', expanded: false },
+    {
+      key: 'tokens', type: 'object',
+      children: [
+        { key: 'input', type: 'number', value: '412' },
+        { key: 'output', type: 'number', value: '38' },
+        { key: 'total', type: 'number', value: '450' },
+      ],
+    },
+  ]}
+/>
+
+Different blocks produce different fields. An [API](/workflows/blocks/api) returns its successful response body under `data`; a [Function](/workflows/blocks/function) returns its value under `result`; a Table query returns rows and `rowCount`.
+
+## How a block references an output
+
+Insert a **connection tag** into a supported input field, such as an Agent message or API request body. Type `<` to browse available references, or drag an output into the field.
+
+A referenced output must exist when the receiving block runs. A connection from the source ensures that dependency; when several sources feed one block, it waits for their active paths. A block on an unselected branch produces no output.
+
+For a known block that did not run, references resolve empty: usually an empty string, or `null` in Function code. An unknown name can remain unsubstituted, while an invalid field can fail resolution. Inspect the source output rather than assuming every reference failure has the same result.
+
+See [connection syntax](/workflows/connections) for name normalization, nested fields, and arrays.
+
+## Data types
+
+The output panel shows each value's type:
+
+| Type | Example | How to use it |
+| --- | --- | --- |
+| `string` | `"Billing issue"` | Include text in a prompt or message |
+| `number` | `248` | Calculate or compare |
+| `boolean` | `true` | Check a condition |
+| `object` | `{ "category": "billing" }` | Read named fields |
+| `array` | `["billing", "urgent"]` | Index or iterate |
+| `null` | `null` | Handle an absent value |
+
+Files appear as metadata objects, including their name and URL. Table row cells are nested under each row's `data`. Check the actual output before choosing a path.
+
+Use a Function block to reshape or convert a value, then reference its `result` downstream. Text fields stringify objects; Function code can use the referenced value as its original type.
+
+## Choose the workflow result
+
+Block output and workflow output are different. A simple chain returns its last block's output. With several terminal branches, the last terminal block to finish supplies the default result, so its identity can vary between runs.
+
+Join branches into one final block or add a [Response block](/workflows/blocks/response) when a caller needs a deliberate result. Chat deployments and table workflow columns select the fields they consume. API `selectedOutputs` projects block values separately from the default result; synchronous v2 calls expose that projection in `data.blockOutputs`.
+
+The v2 API returns the workflow result in `data.output`. A Response block does not replace that API's HTTP status, headers, or envelope.
+
+## Related docs
+
+- [How workflows run](/workflows/how-it-runs)
+- [Connection syntax](/workflows/connections)
+- [Logs](/logs-debugging)

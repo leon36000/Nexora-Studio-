@@ -1,0 +1,9 @@
+Nexora
+Copyright 2026 Nexora
+
+Ce dépôt contient des logiciels de tiers, modifiés par Nexora.
+Voir THIRD_PARTY_NOTICES.md pour la liste des composants, leurs licences et leurs notices.
+
+Nexora WorkStudio includes software developed for the Sim project (Copyright 2026 Sim Studio), licensed under the Apache License, Version 2.0.
+Nexora Connect includes software from OOMOL Connect (open-connector), licensed under the Apache License, Version 2.0.
+Nexora API includes software from OpenGateLLM (etalab-ia), licensed under the MIT License.

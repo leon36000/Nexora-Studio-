@@ -1,0 +1,386 @@
+import { z } from 'zod'
+import { workspaceIdSchema } from '@/lib/api/contracts/primitives'
+import { defineRouteContract } from '@/lib/api/contracts/types'
+import {
+  usageLimitReadSchema,
+  usageLimitUpdateSchema,
+} from '@/lib/billing/application/usage-limit-validation'
+import { BillingCallbackBody, BillingCallbackHeaders } from '@/lib/mothership/generated/billing'
+
+const booleanQueryParamSchema = z
+  .preprocess((value) => {
+    if (value === 'true') return true
+    if (value === 'false') return false
+    return value
+  }, z.boolean())
+  .optional()
+  .default(false)
+
+export const billingUpdateCostBodySchema = BillingCallbackBody
+export type BillingUpdateCostBody = z.input<typeof billingUpdateCostBodySchema>
+export const billingUpdateCostHeadersSchema = BillingCallbackHeaders
+export type BillingUpdateCostHeaders = z.input<typeof billingUpdateCostHeadersSchema>
+
+export const billingSwitchPlanBodySchema = z.object({
+  targetPlanName: z.string(),
+  interval: z.enum(['month', 'year']).optional(),
+  workspaceId: workspaceIdSchema.optional(),
+})
+export type BillingSwitchPlanBody = z.input<typeof billingSwitchPlanBodySchema>
+
+export const billingQuerySchema = z.object({
+  context: z.enum(['user', 'organization']).optional().default('user'),
+  id: z.string().min(1).optional(),
+  includeOrg: booleanQueryParamSchema,
+  memberLimit: z.coerce.number().int().min(1).max(100).default(50),
+  memberOffset: z.coerce.number().int().min(0).default(0),
+})
+
+export const billingUsageDataSchema = z
+  .object({
+    current: z.number(),
+    limit: z.number(),
+    percentUsed: z.number(),
+    isWarning: z.boolean(),
+    isExceeded: z.boolean(),
+    billingPeriodStart: z.string().nullable(),
+    billingPeriodEnd: z.string().nullable(),
+    lastPeriodCost: z.number(),
+    lastPeriodCopilotCost: z.number(),
+    daysRemaining: z.number(),
+    copilotCost: z.number(),
+  })
+  .passthrough()
+
+export const subscriptionBillingDataSchema = z
+  .object({
+    type: z.enum(['individual', 'organization']),
+    plan: z.string(),
+    currentUsage: z.number(),
+    usageLimit: z.number(),
+    percentUsed: z.number(),
+    isWarning: z.boolean(),
+    isExceeded: z.boolean(),
+    daysRemaining: z.number(),
+    creditBalance: z.number(),
+    billingInterval: z.enum(['month', 'year']),
+    isPaid: z.boolean(),
+    isPro: z.boolean(),
+    isTeam: z.boolean(),
+    isEnterprise: z.boolean(),
+    isOrgScoped: z.boolean(),
+    organizationId: z.string().nullable(),
+    status: z.string().nullable(),
+    seats: z.number().nullable(),
+    metadata: z.unknown().nullable(),
+    stripeSubscriptionId: z.string().nullable(),
+    periodEnd: z.string().nullable(),
+    cancelAtPeriodEnd: z.boolean(),
+    usage: billingUsageDataSchema,
+    billingBlocked: z.boolean(),
+    billingBlockedReason: z.enum(['payment_failed', 'dispute']).nullable(),
+    blockedByOrgOwner: z.boolean(),
+    upgradeWorkspaceId: workspaceIdSchema.nullable(),
+    organization: z
+      .object({
+        id: z.string(),
+        role: z.enum(['owner', 'admin', 'member']),
+      })
+      .optional(),
+  })
+  .passthrough()
+
+export const subscriptionApiResponseSchema = z
+  .object({
+    success: z.boolean(),
+    context: z.string(),
+    data: subscriptionBillingDataSchema,
+  })
+  .passthrough()
+
+export const organizationBillingMemberSchema = z
+  .object({
+    id: z.string().optional(),
+    userId: z.string().optional(),
+    userName: z.string().nullable().optional(),
+    userEmail: z.string().nullable().optional(),
+    joinedAt: z.string().nullable().optional(),
+  })
+  .passthrough()
+
+export const organizationBillingDataSchema = z
+  .object({
+    organizationId: z.string(),
+    organizationName: z.string(),
+    subscriptionState: z.enum(['active', 'free', 'lapsed']),
+    hasSubscription: z.boolean(),
+    subscriptionPlan: z.string(),
+    subscriptionStatus: z.string().nullable(),
+    creditBalance: z.number(),
+    billingInterval: z.enum(['month', 'year']),
+    cancelAtPeriodEnd: z.boolean(),
+    totalSeats: z.number(),
+    usedSeats: z.number(),
+    seatsCount: z.number(),
+    totalCurrentUsage: z.number(),
+    totalUsageLimit: z.number(),
+    minimumBillingAmount: z.number(),
+    averageUsagePerMember: z.number(),
+    billingPeriodStart: z.string().nullable(),
+    billingPeriodEnd: z.string().nullable(),
+    membersTotal: z.number().int().min(0),
+    memberPagination: z.object({
+      total: z.number().int().min(0),
+      limit: z.number().int().min(1).max(100),
+      offset: z.number().int().min(0),
+      hasMore: z.boolean(),
+    }),
+    members: z.array(organizationBillingMemberSchema),
+    billingBlocked: z.boolean(),
+    billingBlockedReason: z.enum(['payment_failed', 'dispute']).nullable(),
+    blockedByOrgOwner: z.boolean(),
+    upgradeWorkspaceId: workspaceIdSchema.nullable(),
+  })
+  .passthrough()
+
+export const organizationBillingApiResponseSchema = z
+  .object({
+    success: z.boolean(),
+    context: z.literal('organization'),
+    data: organizationBillingDataSchema,
+    userRole: z.enum(['owner', 'admin', 'member']),
+    billingBlocked: z.boolean(),
+    billingBlockedReason: z.enum(['payment_failed', 'dispute']).nullable(),
+    blockedByOrgOwner: z.boolean(),
+  })
+  .passthrough()
+
+export const usageLimitDataSchema = z
+  .object({
+    currentLimit: z.number(),
+    canEdit: z.boolean(),
+    minimumLimit: z.number(),
+    plan: z.string(),
+    updatedAt: z.string().nullable(),
+    scope: z.enum(['user', 'organization']),
+    organizationId: z.string().nullable(),
+  })
+  .passthrough()
+
+export const usageQuerySchema = usageLimitReadSchema
+export const updateUsageLimitBodySchema = usageLimitUpdateSchema
+
+export const usageLimitApiResponseSchema = z
+  .object({
+    success: z.boolean(),
+    context: z.string(),
+    userId: z.string(),
+    organizationId: z.string().nullable(),
+    data: usageLimitDataSchema,
+  })
+  .passthrough()
+
+export const organizationUsageLimitApiResponseSchema = z
+  .object({
+    success: z.boolean(),
+    context: z.literal('organization'),
+    userId: z.string(),
+    organizationId: z.string(),
+    data: organizationBillingDataSchema.nullable(),
+  })
+  .passthrough()
+
+export const billingPortalBodySchema = z.object({
+  context: z.enum(['user', 'organization']).optional().default('user'),
+  organizationId: z.string().min(1).optional(),
+  returnUrl: z.string().min(1).optional(),
+})
+
+export const invoicesQuerySchema = z.object({
+  context: z.enum(['user', 'organization']).optional().default('user'),
+  organizationId: z.string().min(1).optional(),
+})
+
+export const invoiceItemSchema = z.object({
+  id: z.string(),
+  number: z.string().nullable(),
+  /** Invoice creation time as a Unix timestamp in seconds. */
+  created: z.number(),
+  /** Invoice total in the currency's minor units (e.g. cents). */
+  total: z.number(),
+  /** Amount paid in the currency's minor units (e.g. cents). */
+  amountPaid: z.number(),
+  currency: z.string(),
+  status: z.string().nullable(),
+  /** Primary line-item / invoice description, e.g. "Usage overage" or the plan name. */
+  description: z.string().nullable(),
+  hostedInvoiceUrl: z.string().nullable(),
+  invoicePdf: z.string().nullable(),
+})
+
+export const invoicesApiResponseSchema = z.object({
+  success: z.boolean(),
+  invoices: z.array(invoiceItemSchema),
+  /** True when Stripe has more invoices than the returned page (overflow). */
+  hasMore: z.boolean(),
+})
+
+export const getBillingContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/billing',
+  query: billingQuerySchema,
+  response: {
+    mode: 'json',
+    schema: z.union([subscriptionApiResponseSchema, organizationBillingApiResponseSchema]),
+  },
+})
+
+export const getUserBillingContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/billing',
+  query: billingQuerySchema.extend({
+    context: z.literal('user').optional().default('user'),
+  }),
+  response: {
+    mode: 'json',
+    schema: subscriptionApiResponseSchema,
+  },
+})
+
+export const getUsageLimitContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/usage',
+  query: usageQuerySchema,
+  response: {
+    mode: 'json',
+    schema: z.union([usageLimitApiResponseSchema, organizationUsageLimitApiResponseSchema]),
+  },
+})
+
+export const getUserUsageLimitContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/usage',
+  query: usageQuerySchema.extend({
+    context: z.literal('user').optional().default('user'),
+  }),
+  response: {
+    mode: 'json',
+    schema: usageLimitApiResponseSchema,
+  },
+})
+
+export const updateUsageLimitContract = defineRouteContract({
+  method: 'PUT',
+  path: '/api/usage',
+  body: updateUsageLimitBodySchema,
+  response: {
+    mode: 'json',
+    schema: z.union([usageLimitApiResponseSchema, organizationUsageLimitApiResponseSchema]),
+  },
+})
+
+export const createBillingPortalContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/billing/portal',
+  body: billingPortalBodySchema,
+  response: {
+    mode: 'json',
+    schema: z.object({
+      url: z.string().min(1),
+    }),
+  },
+})
+
+export const getInvoicesContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/billing/invoices',
+  query: invoicesQuerySchema,
+  response: {
+    mode: 'json',
+    schema: invoicesApiResponseSchema,
+  },
+})
+
+export const billingSwitchPlanResponseSchema = z.object({
+  success: z.literal(true),
+  plan: z.string().optional(),
+  interval: z.enum(['month', 'year']).optional(),
+  message: z.string().optional(),
+})
+
+/**
+ * The upgrade card's payload: the JSON body of a `<usage_upgrade>` tag in assistant text, which
+ * the chat renders as the usage card wherever that text appears (live, replayed, or reloaded).
+ * Sim decides the action and copy from the payer's plan; a worker ending a run at the usage
+ * limit writes the tag with this payload verbatim into its durable log.
+ */
+export const usageUpgradePayloadSchema = z.object({
+  reason: z.literal('usage_limit'),
+  action: z.enum(['upgrade_plan', 'increase_limit']),
+  message: z.string(),
+})
+export type UsageUpgradePayload = z.infer<typeof usageUpgradePayloadSchema>
+
+/**
+ * The payer's standing after a cost callback, read through the cached execution usage gate. It
+ * sits at the top level of the body, beside `success`, where the worker's shared
+ * `BillingCallbackResult` reads it, on a 200 and on a duplicate 409 alike. A worker that
+ * predates the fields ignores them.
+ */
+export const billingUsageVerdictSchema = z.discriminatedUnion('usageExceeded', [
+  z.object({
+    /** The payer is within its usage limit, or its standing could not be read. */
+    usageExceeded: z.literal(false),
+    usageUpgrade: z.never().optional(),
+  }),
+  z.object({
+    /** The payer is over its usage limit; the worker pauses the run at its next step boundary. */
+    usageExceeded: z.literal(true),
+    /** The card the worker writes to its log. */
+    usageUpgrade: usageUpgradePayloadSchema,
+  }),
+])
+export type BillingUsageVerdict = z.infer<typeof billingUsageVerdictSchema>
+
+export const billingUpdateCostResponseSchema = z
+  .object({
+    success: z.literal(true),
+    message: z.string().optional(),
+    data: z.object({
+      userId: z.string().optional(),
+      cost: z.number().optional(),
+      billingEnabled: z.boolean().optional(),
+      processedAt: z.string(),
+      requestId: z.string(),
+    }),
+  })
+  .and(billingUsageVerdictSchema)
+export type BillingUpdateCostResponse = z.infer<typeof billingUpdateCostResponseSchema>
+
+export const billingSwitchPlanContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/billing/switch-plan',
+  body: billingSwitchPlanBodySchema,
+  response: {
+    mode: 'json',
+    schema: billingSwitchPlanResponseSchema,
+  },
+})
+
+export const billingUpdateCostContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/billing/update-cost',
+  headers: billingUpdateCostHeadersSchema,
+  body: billingUpdateCostBodySchema,
+  response: {
+    mode: 'json',
+    schema: billingUpdateCostResponseSchema,
+  },
+})
+
+export type BillingUsageData = z.infer<typeof billingUsageDataSchema>
+export type SubscriptionBillingData = z.infer<typeof subscriptionBillingDataSchema>
+export type SubscriptionApiResponse = z.infer<typeof subscriptionApiResponseSchema>
+export type UsageLimitApiResponse = z.infer<typeof usageLimitApiResponseSchema>
+export type InvoiceItem = z.infer<typeof invoiceItemSchema>
+export type InvoicesApiResponse = z.infer<typeof invoicesApiResponseSchema>

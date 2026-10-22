@@ -1,0 +1,154 @@
+import { dbChainMockFns, queueTableRows, resetDbChainMock, schemaMock } from '@sim/testing'
+import { idMock, idMockFns } from '@sim/testing/mocks/id.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { getEditableSkillIdsMock } = vi.hoisted(() => ({
+  getEditableSkillIdsMock: vi.fn(),
+}))
+
+vi.mock('@sim/utils/id', () => idMock)
+vi.mock('@/lib/skills/access', () => ({
+  getEditableSkillIds: getEditableSkillIdsMock,
+}))
+
+import {
+  listSkillSummariesPage,
+  listSkills,
+  listSkillsForUser,
+} from '@/lib/workflows/skills/operations'
+
+idMockFns.mockGenerateId.mockReturnValue('gen-uuid')
+idMockFns.mockGenerateShortId.mockReturnValue('gen-id')
+
+describe('listSkills includeBuiltins', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+  })
+
+  afterAll(() => {
+    resetDbChainMock()
+  })
+
+  it('prepends builtin template skills by default', async () => {
+    const result = await listSkills({ workspaceId: 'ws-1' })
+    expect(result.length).toBeGreaterThan(0)
+    expect(result.every((s) => s.id.startsWith('builtin-'))).toBe(true)
+  })
+})
+
+/**
+ * The page is sliced after the built-ins are merged in and the merged array is
+ * re-sorted, so these assert the window over that merged sequence — not over
+ * the DB rows alone.
+ */
+describe('listSkillSummariesPage', () => {
+  const page = (limit: number, offset: number) =>
+    listSkillSummariesPage({
+      workspaceId: 'ws-1',
+      sortBy: 'name',
+      sortOrder: 'asc',
+      limit,
+      offset,
+    })
+
+  beforeEach(() => {
+    resetDbChainMock()
+  })
+
+  afterAll(() => {
+    resetDbChainMock()
+  })
+
+  it('returns at most `limit` skills and reports that more remain', async () => {
+    const result = await page(2, 0)
+
+    expect(result.skills).toHaveLength(2)
+    expect(result.hasMore).toBe(true)
+    expect(result).toMatchObject({ offset: 0, limit: 2 })
+  })
+
+  it('pages over the merged built-in and workspace sequence, not the DB rows alone', async () => {
+    queueTableRows(schemaMock.skill, [
+      { id: 'sk-1', name: 'aaa-mine', description: 'd', workspaceId: 'ws-1' },
+    ])
+
+    const result = await page(1, 0)
+
+    expect(result.skills.map((s) => s.id)).toEqual(['sk-1'])
+    expect(result.hasMore).toBe(true)
+  })
+
+  it('never selects the skill body for a list page', async () => {
+    await page(50, 0)
+
+    const projection = dbChainMockFns.select.mock.calls.at(-1)?.[0]
+    expect(projection).toBeDefined()
+    expect(projection).not.toHaveProperty('content')
+    expect(projection).toHaveProperty('name')
+  })
+})
+
+describe('listSkillsForUser', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    getEditableSkillIdsMock.mockResolvedValue({
+      canAdminWorkspace: false,
+      editorSkillIds: new Set(),
+    })
+  })
+
+  afterAll(() => {
+    resetDbChainMock()
+  })
+
+  it('returns every workspace skill tagged with edit access from editor rows', async () => {
+    queueTableRows(schemaMock.skill, [
+      { id: 'sk-mine', name: 'mine', description: 'd', content: 'c', workspaceId: 'ws-1' },
+      { id: 'sk-other', name: 'other', description: 'd', content: 'c', workspaceId: 'ws-1' },
+    ])
+    getEditableSkillIdsMock.mockResolvedValue({
+      canAdminWorkspace: false,
+      editorSkillIds: new Set(['sk-mine']),
+    })
+
+    const result = await listSkillsForUser({
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+      includeBuiltins: false,
+    })
+
+    expect(result).toHaveLength(2)
+    expect(result.find((s) => s.id === 'sk-mine')).toMatchObject({ canEdit: true })
+    expect(result.find((s) => s.id === 'sk-other')).toMatchObject({ canEdit: false })
+  })
+
+  it('tags every skill editable for workspace admins', async () => {
+    queueTableRows(schemaMock.skill, [
+      { id: 'sk-1', name: 'one', description: 'd', content: 'c', workspaceId: 'ws-1' },
+      { id: 'sk-2', name: 'two', description: 'd', content: 'c', workspaceId: 'ws-1' },
+    ])
+    getEditableSkillIdsMock.mockResolvedValue({
+      canAdminWorkspace: true,
+      editorSkillIds: new Set(),
+    })
+
+    const result = await listSkillsForUser({
+      workspaceId: 'ws-1',
+      userId: 'admin-1',
+      includeBuiltins: false,
+    })
+
+    expect(result.every((s) => s.canEdit)).toBe(true)
+  })
+
+  it('lets a workspace skill sharing a builtin name override it for everyone', async () => {
+    queueTableRows(schemaMock.skill, [
+      { id: 'sk-research', name: 'research', description: 'd', content: 'c', workspaceId: 'ws-1' },
+    ])
+
+    const result = await listSkillsForUser({ workspaceId: 'ws-1', userId: 'user-1' })
+
+    expect(result.some((s) => s.id === 'sk-research')).toBe(true)
+    expect(result.some((s) => s.id === 'builtin-research')).toBe(false)
+  })
+})

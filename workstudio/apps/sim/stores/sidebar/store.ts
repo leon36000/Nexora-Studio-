@@ -1,0 +1,141 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { SIDEBAR_WIDTH } from '@/stores/constants'
+import type { SidebarState } from '@/stores/sidebar/types'
+
+/**
+ * The widest the expanded sidebar may be at a given viewport width: 30% of the
+ * viewport, capped at {@link SIDEBAR_WIDTH.MAX}. It can never drop below
+ * {@link SIDEBAR_WIDTH.MIN}, so a narrow window (where the percentage falls under
+ * the minimum) still yields a usable rail instead of collapsing it to nothing.
+ *
+ * The one definition of the ceiling — the resize handle reads it, and the
+ * pre-paint script in `app/layout.tsx` mirrors it inline (it cannot import).
+ */
+export function getMaxSidebarWidth(viewportWidth: number): number {
+  return Math.max(
+    SIDEBAR_WIDTH.MIN,
+    Math.min(SIDEBAR_WIDTH.MAX, viewportWidth * SIDEBAR_WIDTH.MAX_PERCENTAGE)
+  )
+}
+
+/** Mobile navigation does not resize the saved desktop sidebar. */
+function clampSidebarWidth(width: number): number {
+  const target = Number.isFinite(width) ? width : SIDEBAR_WIDTH.DEFAULT
+  const max =
+    typeof window === 'undefined' || window.innerWidth < 768
+      ? SIDEBAR_WIDTH.MAX
+      : getMaxSidebarWidth(window.innerWidth)
+  return Math.min(Math.max(target, SIDEBAR_WIDTH.MIN), max)
+}
+
+/**
+ * Publishes both sidebar widths, owning the collapsed mapping so callers don't repeat it.
+ *
+ * `--sidebar-width` is the width the rail currently occupies (the collapsed width while
+ * collapsed), whereas `--sidebar-expanded-width` always holds the width to restore to.
+ * The desktop hover-peek needs the latter: it renders the sidebar at full width while
+ * the rail itself is still collapsed to zero.
+ */
+function applySidebarWidths(expandedWidth: number, collapsed: boolean) {
+  if (typeof window === 'undefined') return
+  const expanded = Number.isFinite(expandedWidth) ? expandedWidth : SIDEBAR_WIDTH.DEFAULT
+  const root = document.documentElement
+  root.style.setProperty('--sidebar-expanded-width', `${expanded}px`)
+  root.style.setProperty(
+    '--sidebar-width',
+    `${collapsed ? getCollapsedSidebarWidth() : expanded}px`
+  )
+}
+
+/** Reads the host-specific collapsed width established by the pre-paint layout script. */
+function getCollapsedSidebarWidth(): number {
+  if (typeof document === 'undefined') return SIDEBAR_WIDTH.COLLAPSED
+  const value = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--sidebar-collapsed-width')
+  )
+  return Number.isFinite(value) ? value : SIDEBAR_WIDTH.COLLAPSED
+}
+
+/**
+ * The `sidebar_collapsed` cookie is the single source of truth for collapse: the
+ * server layout reads it to render the correct structure on the first paint
+ * (it can't read `localStorage`), and the client seeds its initial state from it
+ * below. Width is the only field persisted to `localStorage`.
+ */
+function applyCollapsedCookie(collapsed: boolean) {
+  if (typeof document === 'undefined') return
+  document.cookie = `sidebar_collapsed=${collapsed ? '1' : '0'}; path=/; max-age=31536000; samesite=lax`
+}
+
+/** Reads the collapse state the server saw, so the client store seeds identically. Matches the
+ * cookie value strictly (`=1`) so `sidebar_collapsed=10` and the like aren't read as collapsed. */
+export function readCollapsedCookie(): boolean {
+  if (typeof document === 'undefined') return false
+  return document.cookie.match(/(?:^|;\s*)sidebar_collapsed=([^;]*)/)?.[1] === '1'
+}
+
+export const useSidebarStore = create<SidebarState>()(
+  persist(
+    (set, get) => ({
+      workspaceDropdownOpen: false,
+      sidebarWidth: SIDEBAR_WIDTH.DEFAULT,
+      renderedSidebarWidth: SIDEBAR_WIDTH.DEFAULT,
+      isCollapsed: readCollapsedCookie(),
+      _hasHydrated: false,
+      setWorkspaceDropdownOpen: (isOpen) => set({ workspaceDropdownOpen: isOpen }),
+      setSidebarWidth: (width) => {
+        if (get().isCollapsed) return
+        const clampedWidth = clampSidebarWidth(width)
+        set({ sidebarWidth: clampedWidth })
+        get().syncWidth()
+      },
+      toggleCollapsed: () => {
+        const nextCollapsed = !get().isCollapsed
+        set({ isCollapsed: nextCollapsed })
+        applyCollapsedCookie(nextCollapsed)
+        get().syncWidth()
+      },
+      syncWidth: () => {
+        const { isCollapsed, sidebarWidth } = get()
+        const clampedWidth = clampSidebarWidth(sidebarWidth)
+        set({
+          renderedSidebarWidth:
+            typeof window !== 'undefined' && window.innerWidth < 768
+              ? window.innerWidth
+              : clampedWidth,
+        })
+        applySidebarWidths(clampedWidth, isCollapsed)
+      },
+      setHasHydrated: (hasHydrated) => set({ _hasHydrated: hasHydrated }),
+    }),
+    {
+      name: 'sidebar-state',
+      /**
+       * Width is hydrated manually from a client-only effect (see Sidebar) so
+       * `_hasHydrated` is deterministically `false` during SSR and the first
+       * client render — both of which read collapse from the cookie-seeded prop.
+       * This is zustand's documented SSR pattern; it avoids relying on auto
+       * hydration's behavior when `localStorage` is absent on the server.
+       */
+      skipHydration: true,
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHasHydrated(true)
+          state.syncWidth()
+        }
+      },
+      /** Only width is persisted; collapse lives in the cookie. */
+      partialize: (state) => ({ sidebarWidth: state.sidebarWidth }),
+      /**
+       * Never lets a legacy persisted `isCollapsed` override the cookie-seeded
+       * value — the cookie is the source of truth (handles migration cleanly).
+       */
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<SidebarState>),
+        isCollapsed: current.isCollapsed,
+      }),
+    }
+  )
+)

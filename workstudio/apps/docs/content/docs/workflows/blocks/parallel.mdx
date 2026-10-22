@@ -1,0 +1,68 @@
+---
+title: Parallel
+description: Run copies of a contained flow concurrently, in bounded batches.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { WorkflowPreview, PARALLEL_WORKFLOW } from '@/components/workflow-preview'
+
+The **Parallel** container runs its blocks for multiple items or instances concurrently. Use it when the work is independent; use [Loop](/workflows/blocks/loop) when iterations must run in sequence.
+
+## Process tasks in batches
+
+<WorkflowPreview workflow={PARALLEL_WORKFLOW} height={340} />
+
+Name the container **Process Tasks** and distribute a task array. The inner API reads `<parallel.currentItem>`. After every batch finishes, the Function reads `<processtasks.results>`.
+
+## Configuration
+
+| Setting | Behavior |
+| --- | --- |
+| **Parallel Count** | Run a configured number of copies of the contained flow. |
+| **Parallel Each** | Distribute an array or object across instances. |
+| **Parallel Batch Size** | Concurrent branches, from 1 to 20; default 20. |
+
+Counts or collections larger than Parallel Batch Size run in serial batches. Lower Parallel Batch Size for rate-limited APIs. A Wait within each branch spaces that branch's work, but does not impose a global request rate across all branches or runs.
+
+## References and outputs
+
+Inside the container:
+
+| Reference | Value |
+| --- | --- |
+| `<parallel.index>` | Instance index, starting at 0 |
+| `<parallel.currentItem>` | Current item, for collection-based execution |
+| `<parallel.items>` | Full collection, for collection-based execution |
+
+Arrays yield their values as `currentItem`. Objects yield `[key, value]` pairs, so `<parallel.currentItem[0]>` is the key and `<parallel.currentItem[1]>` is its value.
+
+After completion, use the container's normalized name: `<processtasks.results>`. Generic `<parallel.*>` references select an enclosing parallel context, not a completed container outside it.
+
+Results retain input/instance order, even when branches finish out of order. Each entry contains that branch's block outputs. For a single API per branch, read a field with `<processtasks.results[10][0].data.id>`. Indexed paths hydrate oversized entries only when needed.
+
+## State and failures
+
+Each branch has its own item, index, and block outputs. Workflow variables are shared across branches; they are not an isolated per-branch store.
+
+<Callout type="warn">
+Avoid concurrent writes to the same workflow variable. An unhandled branch error fails the run and stops new work from starting, though already-running branches may finish. Connect an error path inside the container when other items should continue.
+</Callout>
+
+An empty collection skips the body and returns empty results. Parallel and Loop containers can nest in either direction; use the reference picker to select the intended scope.
+
+## Parallel or Loop
+
+| Behavior | Parallel | Loop |
+| --- | --- | --- |
+| Execution | Concurrent within each batch | Sequential |
+| Completion order | Can differ from input order | Iteration order |
+| Result order | Input/instance order | Iteration order |
+| Use when | Each item can stand alone | Later iterations depend on earlier work |
+
+A Parallel can compare the same prompt across several models or call an API for each record. Bound concurrency and collection size according to provider limits and the workflow's execution budget.
+
+## Related docs
+
+- [Loop](/workflows/blocks/loop)
+- [Wait](/workflows/blocks/wait)
+- [Variables](/workflows/blocks/variables)

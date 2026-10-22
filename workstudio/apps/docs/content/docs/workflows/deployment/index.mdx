@@ -1,0 +1,109 @@
+---
+title: Deploy workflows
+description: Create a live workflow snapshot, update it, and restore earlier versions.
+---
+
+Deploy a workflow when API callers, chat clients, MCP tools, or automatic triggers need to run it. Deployment captures a version of the workflow; later draft edits do not reach live callers until you update it.
+
+You need workspace **Admin** access to deploy or change live versions. Organization permission groups can also restrict API, chat, or MCP deployment.
+
+## Deploy and update [#the-deployment-model]
+
+1. Test the draft with **Run** in the workflow builder.
+2. Open **Deploy → General**.
+3. Click **Deploy** for the first version, or **Update** to deploy your current draft.
+4. Confirm **Live Workflow** and the live version in the **Versions** table. Check deployment status or errors before assuming the change is live.
+
+### Snapshot
+
+A snapshot freezes the workflow definition at deploy time. Editing blocks or connections changes the draft, not that snapshot. Referenced tables, files, secrets, and external services remain separate resources; deployment does not freeze their contents.
+
+### Version
+
+Each deployment records a numbered version, who deployed it, and when. **Update** creates the next snapshot; earlier versions remain available for comparison, naming, descriptions, restoring the draft, or promotion.
+
+### Live version
+
+One version is live at a time. **Live Workflow** shows the deployed snapshot in a read-only preview. API, chat, MCP, and automatic triggers use deployed configuration rather than unfinished draft edits.
+
+### Update
+
+When the draft differs from its deployed version, **Update** appears in the workflow builder toolbar. Click it to deploy an updated snapshot without reopening the modal.
+
+Redeploy after changing automatic trigger settings or the workflow inputs used by an MCP tool.
+
+## Manage versions
+
+Use a version's **⋮** menu:
+
+| Action | Effect |
+| --- | --- |
+| **Rename** | Give the version a descriptive name |
+| **Add description** / **Edit description** | Record what changed |
+| **Compare** | Compare workflow versions |
+| **Promote to live** | Activate an existing snapshot |
+| **Load deployment** | Replace the draft with that snapshot |
+
+**Load deployment** changes your draft. Preserve draft work you need before loading another version; it does not itself make that version live.
+
+### Promote to live
+
+Promote a previous version to restore its deployed definition. Promotion reuses the snapshot and does not create a new version or replace the draft. Confirm the active version after the operation succeeds.
+
+## Undeploy
+
+**Undeploy** takes the workflow's deployment offline and removes its automatic schedule registrations. New callers and triggers can no longer start runs through that deployment. Runs already executing are distinct from new or queued work; undeploying is not a substitute for cancelling a run.
+
+## Manage deployment through the API
+
+The legacy v1 API supports deploying the current draft, undeploying, and rolling back. It requires an API-key caller with Admin access to the workflow's workspace and the deployment capability; a workspace API key cannot satisfy the Admin requirement.
+
+```bash
+curl -X POST 'https://www.sim.ai/api/v1/workflows/{workflow-id}/deploy' \
+  -H "X-API-Key: $SIM_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Release 4","description":"Fixes the agent prompt"}'
+```
+
+The deploy body is optional. To undeploy:
+
+```bash
+curl -X DELETE 'https://www.sim.ai/api/v1/workflows/{workflow-id}/deploy' \
+  -H "X-API-Key: $SIM_API_KEY"
+```
+
+To activate the previous version, or pass `{"version": N}` for a specific version:
+
+```bash
+curl -X POST 'https://www.sim.ai/api/v1/workflows/{workflow-id}/rollback' \
+  -H "X-API-Key: $SIM_API_KEY"
+```
+
+See [Deploy Workflow](/api-reference/workflows/deployWorkflow), [Undeploy Workflow](/api-reference/workflows/undeployWorkflow), and [Rollback Workflow](/api-reference/workflows/rollbackWorkflow) for full contracts and deployment status.
+
+## Ways to call a workflow [#the-surfaces]
+
+A deployed workflow can accept calls through several interfaces:
+
+| Interface | Use it to |
+| --- | --- |
+| [API](/workflows/deployment/api) | Run a workflow with sync, SSE, or async execution |
+| [Chat](/workflows/deployment/chat) | Share a conversational interface; configure Agent Memory for multi-turn context |
+| [MCP](/workflows/deployment/mcp) | Expose a workflow as a tool an external assistant can call |
+
+A basic v2 API call sends named Start inputs inside `input`:
+
+```bash
+curl -X POST 'https://www.sim.ai/api/v2/workflows/{workflow-id}/execute' \
+  -H "X-API-Key: $SIM_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"input":{"message":"Refund request from customer #4821"}}'
+```
+
+Ordinary calls use the deployed snapshot. V2 also has an explicit manual draft mode for authorized personal API-key or OAuth callers with Write access; it does not support async execution. See [API deployment](/workflows/deployment/api) for modes and result envelopes.
+
+## Related docs
+
+- [API deployment](/workflows/deployment/api)
+- [Start inputs](/workflows/triggers/start)
+- [Logs](/logs-debugging) to verify the version a recorded run used

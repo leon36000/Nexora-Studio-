@@ -1,0 +1,118 @@
+---
+title: Using a knowledge base in a workflow
+description: Retrieve document chunks with the Knowledge block and pass them to an Agent.
+---
+
+import { WorkflowPreview, OutputBundle, SUPPORT_KB_WORKFLOW } from '@/components/workflow-preview'
+
+Use a **Knowledge block** to retrieve passages from a [knowledge base](/knowledgebase), then pass them to an [Agent](/workflows/blocks/agent). In this example, the workflow searches product docs for a customer's question and answers from the returned content.
+
+<WorkflowPreview workflow={SUPPORT_KB_WORKFLOW} height={180} />
+
+## Search and answer
+
+1. Set the Knowledge block's **Operation** to **Search**.
+2. Select a **Knowledge Base**.
+3. Set **Search Query** to `<start.input>`, the customer's question.
+4. Connect the Knowledge block to an Agent. Reference `<knowledge.results>` in the Agent's prompt, and tell it to answer from the returned `content` and cite `documentName` or `sourceUrl` where available.
+
+**Number of Results** (`topK`) defaults to **10** and accepts **1–100** chunks. Increase it when relevant passages fall outside the returned set; decrease it when the Agent receives too much unrelated content.
+
+Search only returns completed, enabled, included documents and enabled chunks that the acting principal can read. An upload or connector sync can finish its initial request before indexing completes. See [debugging retrieval](/knowledgebase/debugging-retrieval) if expected content is missing.
+
+## Query and tag filters
+
+A query matches chunks by meaning. For example, “refund timelines” can match “we process returns within 14 days.” Hybrid retrieval also uses keywords, as described under [Retrieval mode](#retrieval-mode).
+
+| Input | Behavior |
+| --- | --- |
+| Query only | Search readable documents using the selected retrieval mode. |
+| Tags only | Return matching chunks up to **Number of Results**, without vector ranking or a query-embedding call. |
+| Query and tags | Narrow the document set with tags, then retrieve within that set. |
+
+Provide a query, tag filters, or both.
+
+**Tag Filters** have a **Tag**, **Operator**, and **Value**. For example, `Department equals "Billing"` restricts the search to billing documents. Add filters with the **+** button; they combine with AND, so a document must match all of them. Values can be fixed strings or references such as `<start.department>`.
+
+Tags narrow candidates; they do not reduce the query-embedding charge. See [Tags and filtering](/knowledgebase/tags) for types, operators, and slot limits.
+
+## Outputs
+
+The block stores its output under its name. A later block reads `results` with `<knowledge.results>`:
+
+<OutputBundle
+  blockName="knowledge"
+  blockType="knowledge"
+  blockColor="#00B0B0"
+  duration="312ms"
+  values={[
+    {
+      key: 'results', type: 'array', highlight: true,
+      children: [
+        {
+          key: '0', type: 'object',
+          children: [
+            { key: 'content', type: 'string', value: '"Refunds are issued within 14 days…"' },
+            { key: 'documentName', type: 'string', value: '"refund-policy.pdf"' },
+            { key: 'similarity', type: 'number', value: '0.92' },
+            { key: 'rankScore', type: 'number', value: '0.92' },
+            { key: 'rank', type: 'number', value: '1' },
+            { key: 'sourceUrl', type: 'null', expanded: false },
+          ],
+        },
+      ],
+    },
+    { key: 'query', type: 'string', value: '"refund policy"' },
+    { key: 'totalResults', type: 'number', value: '1' },
+  ]}
+/>
+
+This example shows one result from Vector only retrieval without reranking. Each result can include:
+
+| Field | Meaning |
+| --- | --- |
+| `content` | The chunk text the Agent reads. |
+| `documentName` | The source document's name, useful for citation. |
+| `sourceUrl` | The original source link when available; `null` for uploaded files without an external source. |
+| `documentId` | The source document's ID. |
+| `chunkIndex` | The chunk's position in its document; `0` is the first chunk. |
+| `metadata` | Document tags, keyed by their display names. |
+| `similarity` | Cosine similarity to the query; higher values mean a closer match. It remains this value in Hybrid mode and is `1` for tag-only matches. |
+| `rankScore` | Retrieval score: cosine similarity for Vector only, fused score for Hybrid, or reranker score when reranking is applied. |
+| `rank` | One-based position in the returned order. Recency policy can affect this order. |
+| `rerankerScore` | Relevance score, present when reranking is applied. |
+
+The output also includes `query` and `totalResults`, the number of returned chunks. Keep the returned order when passing results to the Agent; sorting by `similarity` can discard Hybrid, recency, or reranker ordering.
+
+See [data flow](/workflows/data-flow) for references between blocks.
+
+## Retrieval mode
+
+**Retrieval Mode** is available in advanced mode:
+
+| Setting | Behavior |
+| --- | --- |
+| **Automatic** | The default. Use the workspace's retrieval policy. |
+| **Hybrid (full-text + vector)** | Combine keyword and semantic rankings. |
+| **Vector only** | Retrieve by semantic similarity. |
+
+Automatic uses Hybrid with a recency boost where member-scoped knowledge access is enabled, and Vector only without that boost elsewhere. An explicit mode overrides the retrieval choice; recency boosting remains a workspace policy.
+
+Try Hybrid for error codes, ticket keys such as `PROJ-1234`, SKUs, or rare names that readers search for verbatim. The keyword pass runs in the database and adds no model API call.
+
+## Rerank results
+
+Enable **Rerank Results** when retrieval finds relevant passages but puts them in an unhelpful order. Select a **Rerank Model**; self-hosted deployments also supply a **Cohere API Key**.
+
+Reranking sends candidates to a relevance model for a second pass. By default, Sim retrieves up to four times **Number of Results**, capped at 100 candidates. In advanced mode, **Documents Sent to Reranker** lets you choose the candidate count; Sim uses at least the requested result count and at most 100. These candidates are chunks, rather than whole source files.
+
+A reranker model call adds latency. Completed calls using a hosted key are metered as one search unit; with your own key, the provider bills your account. See [Costs](/platform/costs) for the deployment's billing policy.
+
+If reranking is unavailable, the search still succeeds: results keep their retrieval order and omit `rerankerScore`. Tag-only searches and searches with no candidates skip reranking.
+
+## Related docs
+
+- [Debugging retrieval](/knowledgebase/debugging-retrieval) — check returned content, processing, filters, and ranking.
+- [Tags and filtering](/knowledgebase/tags) — define the metadata used by **Tag Filters**.
+- [Chunking strategies](/knowledgebase/chunking-strategies) — change how documents become passages.
+- [Knowledge block reference](/integrations/knowledge) — document, chunk, tag, and connector operations.

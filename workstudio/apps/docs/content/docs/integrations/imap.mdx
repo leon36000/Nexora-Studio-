@@ -1,0 +1,61 @@
+---
+title: IMAP
+description: Start workflows from IMAP events
+integration:
+  type: "imap"
+  color: "#6366F1"
+---
+
+import { ReferenceDetails } from "@/components/ui/reference-details"
+
+
+{/* MANUAL-CONTENT-START:intro */}
+Use the IMAP Email trigger to start workflows from messages in an IMAP-enabled mailbox. Configure the mailbox connection and folder, then filter messages by sender, subject, or custom search criteria. Message content and attachments are available to subsequent workflow steps.
+{/* MANUAL-CONTENT-END */}
+
+## Triggers
+
+A trigger starts a workflow when a supported event occurs in this service.
+
+These triggers poll for new data on a schedule.
+
+### IMAP Email Trigger
+
+Start a workflow when an IMAP-enabled mailbox receives matching messages.
+
+<ReferenceDetails label="Configuration and outputs">
+
+#### Configuration
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `host` | string | Yes | IMAP server hostname \(e.g., imap.gmail.com, outlook.office365.com\) |
+| `port` | string | Yes | IMAP port \(993 for SSL/TLS, 143 for STARTTLS\) |
+| `secure` | boolean | No | Enable SSL/TLS encryption \(recommended for port 993\) |
+| `username` | string | Yes | Email address or username for authentication |
+| `password` | string | Yes | Password or app-specific password \(for Gmail, use an App Password\) |
+| `mailbox` | string | No | Choose which mailbox/folder\(s\) to monitor for new emails. Leave empty to monitor INBOX. |
+| `searchCriteria` | string | No | ImapFlow search criteria as JSON object. Default: unseen messages only. |
+| `markAsRead` | boolean | No | Automatically mark emails as read \(SEEN\) after processing |
+| `includeAttachments` | boolean | No | Download and include email attachments in the trigger payload |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `email` | object |  |
+|   ↳ `messageId` | string | RFC Message-ID header |
+|   ↳ `subject` | string | Email subject line |
+|   ↳ `from` | string | Sender email address |
+|   ↳ `to` | string | Recipient email address |
+|   ↳ `cc` | string | CC recipients |
+|   ↳ `date` | string | Email date in ISO format |
+|   ↳ `bodyText` | string | Plain text email body |
+|   ↳ `bodyHtml` | string | HTML email body |
+|   ↳ `mailbox` | string | Mailbox/folder where email was received |
+|   ↳ `hasAttachments` | boolean | Whether email has attachments |
+|   ↳ `attachments` | file[] | Array of email attachments as files \(if includeAttachments is enabled\) |
+| `timestamp` | string | Event timestamp |
+
+</ReferenceDetails>
+

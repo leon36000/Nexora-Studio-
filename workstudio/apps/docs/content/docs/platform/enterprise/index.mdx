@@ -1,0 +1,35 @@
+---
+title: Enterprise
+description: Configure organization access, provisioning, security, and operations
+---
+
+Sim Enterprise adds controls for organization access, member provisioning, security, operations, and branding. On Sim Cloud, these features require an Enterprise subscription. Organization owners and admins manage organization controls in **Settings → Organization**.
+
+| Feature | Use it to |
+| --- | --- |
+| [Permission groups](/platform/enterprise/access-control) | Restrict features, models, blocks, and tools by workspace and member |
+| [Single sign-on](/platform/enterprise/sso) | Connect a SAML or OIDC identity provider |
+| [Verified domains](/platform/enterprise/verified-domains) | Prove domain ownership for sign-in and provisioning |
+| [Directory provisioning](/platform/enterprise/scim) | Sync members and group-based access from your directory |
+| [Security](/platform/enterprise/security) | Find session controls and configured outbound IP addresses |
+| [Session policies](/platform/enterprise/session-policies) | Limit session lifetimes and revoke member sessions |
+| [Audit logs](/platform/enterprise/audit-logs) | Investigate configuration and security events |
+| [Insights](/platform/enterprise/usage-tracking) | Explore credit usage, workflow performance, and recorded Chat activity |
+| [Data retention](/platform/enterprise/data-retention) | Configure retention windows and PII redaction |
+| [Data drains](/platform/enterprise/data-drains) | Export logs and Chat records to your own destination |
+| [Custom blocks](/platform/enterprise/custom-blocks) | Share a workflow as a block across the organization |
+| [Workspace forks](/platform/enterprise/forks) | Copy a workspace and sync deployed workflow changes |
+| [White-labeling](/platform/enterprise/whitelabeling) | Configure organization branding |
+
+## Self-hosted setup
+
+On a self-hosted deployment with billing disabled, enable enterprise features through environment variables:
+
+```bash
+ENTERPRISE_ENABLED=true
+NEXT_PUBLIC_ENTERPRISE_ENABLED=true
+```
+
+Individual feature flags override the master switch. Most enterprise settings also need an organization that owns the workspace. Choose one instance-wide organization or provision separate organizations through the Admin API.
+
+See [Self-hosted enterprise](/platform/enterprise/self-hosted) for flags, organization setup, background schedules, and Admin API examples. Once enabled, configure features through the same Settings UI as Sim Cloud.

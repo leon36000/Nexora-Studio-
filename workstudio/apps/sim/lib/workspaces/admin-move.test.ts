@@ -1,0 +1,625 @@
+import {
+  invitation,
+  invitationWorkspaceGrant,
+  member,
+  organization,
+  outboxEvent,
+  project,
+  subscription,
+  workspace,
+} from '@sim/db/schema'
+import { dbChainMockFns, queueTableRows, resetDbChainMock } from '@sim/testing'
+import { auditMock } from '@sim/testing/mocks/audit.mock'
+import {
+  billingPayerTransferMock,
+  billingPayerTransferMockFns,
+} from '@sim/testing/mocks/billing-payer-transfer.mock'
+import { customBlockOperationsMock } from '@sim/testing/mocks/custom-block-operations.mock'
+import {
+  invitationsCoreMock,
+  invitationsCoreMockFns,
+} from '@sim/testing/mocks/invitations-core.mock'
+import {
+  invitationsSendMock,
+  invitationsSendMockFns,
+} from '@sim/testing/mocks/invitations-send.mock'
+import { organizationMembershipMock } from '@sim/testing/mocks/organization-membership.mock'
+import { outboxServiceMock } from '@sim/testing/mocks/outbox-service.mock'
+import { tableBillingMock } from '@sim/testing/mocks/table-billing.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { WorkspaceMoveError } from '@/lib/workspaces/admin-move'
+import {
+  buildPendingInvitationMergeScopeCondition,
+  classifyWorkspaceMoveState,
+  getWorkspaceMoveOperation,
+  getWorkspaceMovePreflight,
+  invitationMigrationOutboxHandlers,
+  moveWorkspaceToOrganization,
+  projectDestinationPendingSeatCount,
+} from '@/lib/workspaces/admin-move'
+import { MIGRATED_INVITATION_EMAIL_EVENT_TYPE } from '@/lib/workspaces/admin-move-event'
+import { WORKSPACE_MODE } from '@/lib/workspaces/policy'
+
+vi.unmock('drizzle-orm')
+
+const {
+  resolveMoveEntitlements,
+  findCrossOrgForkEdges,
+  findUnpublishableCustomBlocks,
+  findSourceOrgCustomBlocksForWorkspace,
+  cleanupSourceOrganizationArtifactsTx,
+  acquireInvitationMutationLocks,
+  countPendingSeatInvitations,
+  resolveSeatCapacity,
+  collectWorkspaceCredentialSummary,
+  getSourceOrganization,
+} = vi.hoisted(() => ({
+  resolveMoveEntitlements: vi.fn(() =>
+    Promise.resolve({
+      sourceIsEnterprise: false,
+      destinationIsEnterprise: false,
+      capabilitiesLost: [] as string[],
+    })
+  ),
+  findCrossOrgForkEdges: vi.fn(() => Promise.resolve([])),
+  findUnpublishableCustomBlocks: vi.fn(() => Promise.resolve({ items: [], total: 0 })),
+  findSourceOrgCustomBlocksForWorkspace: vi.fn(() => Promise.resolve([])),
+  cleanupSourceOrganizationArtifactsTx: vi.fn(() =>
+    Promise.resolve({ detachedPermissionGroupIds: [] })
+  ),
+  acquireInvitationMutationLocks: vi.fn(),
+  countPendingSeatInvitations: vi.fn(() => Promise.resolve(0)),
+  resolveSeatCapacity: vi.fn(() => Promise.resolve(10)),
+  collectWorkspaceCredentialSummary: vi.fn(),
+  getSourceOrganization: vi.fn(),
+}))
+
+const {
+  mockChangeProjectAndWorkspaceStoragePayersInTx: changeProjectAndWorkspaceStoragePayersInTx,
+} = billingPayerTransferMockFns
+
+const { mockGetInvitationById: getInvitationById, mockIsInvitationExpired: isInvitationExpired } =
+  invitationsCoreMockFns
+const { mockSendInvitationEmail: sendInvitationEmail } = invitationsSendMockFns
+
+const SOURCE_ORGANIZATION = {
+  id: 'org-source',
+  name: 'Source',
+  ownerId: 'source-owner',
+  ownerName: 'Source Owner',
+  ownerEmail: 'source-owner@example.com',
+}
+
+const EMPTY_CREDENTIALS = {
+  items: [] as Array<{
+    id: string
+    displayName: string
+    type: string
+    backedBySourceOrgMember: boolean
+  }>,
+  credentialGroupCount: 0,
+  environmentVariableKeys: [] as string[],
+  byokKeyCount: 0,
+  truncatedCredentials: 0,
+  truncatedEnvironmentVariableKeys: 0,
+}
+
+const POPULATED_CREDENTIALS = {
+  ...EMPTY_CREDENTIALS,
+  items: [
+    { id: 'credential-1', displayName: 'Slack', type: 'oauth', backedBySourceOrgMember: true },
+  ],
+  credentialGroupCount: 1,
+  environmentVariableKeys: ['OPENAI_API_KEY'],
+  byokKeyCount: 2,
+}
+
+vi.mock('@sim/audit', () => auditMock)
+vi.mock('@/lib/billing/organizations/membership', () => organizationMembershipMock)
+vi.mock('@/lib/billing/storage/payer-transfer', () => billingPayerTransferMock)
+vi.mock('@/lib/billing/validation/seat-management', () => ({
+  countPendingSeatInvitations,
+  planHasFixedSeatCap: vi.fn((plan: string) => plan === 'enterprise'),
+  resolveSeatCapacity,
+}))
+vi.mock('@/lib/core/outbox/service', () => outboxServiceMock)
+vi.mock('@/lib/invitations/core', () => invitationsCoreMock)
+vi.mock('@/lib/invitations/locks', () => ({ acquireInvitationMutationLocks }))
+vi.mock('@/lib/invitations/send', () => invitationsSendMock)
+vi.mock('@/lib/table/billing', () => tableBillingMock)
+vi.mock('@/lib/workflows/custom-blocks/operations', () => customBlockOperationsMock)
+vi.mock('@/lib/workspaces/admin-move-source-impact', () => ({
+  cleanupSourceOrganizationArtifactsTx,
+  collectWorkspaceCredentialSummary,
+  countRetentionRulesForWorkspace: vi.fn(() => ({
+    piiRedactionRules: 0,
+    retentionOverrides: 0,
+  })),
+  findAttachedPermissionGroups: vi.fn(() => Promise.resolve([])),
+  findCrossOrgForkEdges,
+  findInboundSourceOrgCustomBlockUsage: vi.fn(() => Promise.resolve([])),
+  findRetainedCollaboratorCaps: vi.fn(() => Promise.resolve([])),
+  findUnpublishableCustomBlocks,
+  findSourceOrgCustomBlocksForWorkspace,
+  getSourceOrganization,
+  resolveMoveEntitlements,
+  willBrandingChange: vi.fn(() => Promise.resolve(false)),
+}))
+
+const movedWorkspace = {
+  id: 'workspace-1',
+  projectId: 'project-1',
+  name: 'Already moved',
+  ownerId: 'workspace-owner',
+  ownerName: 'Workspace Owner',
+  ownerEmail: 'workspace-owner@example.com',
+  workspaceMode: WORKSPACE_MODE.ORGANIZATION,
+  organizationId: 'org-1',
+  billedAccountUserId: 'org-owner',
+  archivedAt: null,
+}
+
+const personalWorkspace = {
+  ...movedWorkspace,
+  name: 'Personal workspace',
+  workspaceMode: WORKSPACE_MODE.PERSONAL,
+  organizationId: null,
+  billedAccountUserId: 'workspace-owner',
+  storageUsedBytes: 128,
+}
+
+/** Organization-owned source, for the org-to-org path. */
+const organizationWorkspace = {
+  ...movedWorkspace,
+  name: 'Organization workspace',
+  workspaceMode: WORKSPACE_MODE.ORGANIZATION,
+  organizationId: 'org-source',
+  billedAccountUserId: 'source-org-owner',
+}
+
+const destination = {
+  id: 'org-1',
+  name: 'Destination',
+  ownerId: 'org-owner',
+  ownerName: 'Organization Owner',
+  ownerEmail: 'org-owner@example.com',
+}
+
+/**
+ * Queues the optimistic scope, locked workspace, Project transfer and summary reads. An already completed move skips the Project transfer.
+ */
+function queueMoveSelects(workspaceRow: Record<string, unknown>) {
+  queueTableRows(workspace, [workspaceRow])
+  queueTableRows(workspace, [workspaceRow])
+  if (workspaceRow.organizationId !== destination.id) {
+    queueTableRows(workspace, [{ id: workspaceRow.projectId }])
+    queueTableRows(workspace, [{ id: workspaceRow.id }])
+    queueTableRows(project, [
+      { id: workspaceRow.projectId, organizationId: workspaceRow.organizationId },
+    ])
+  }
+  queueTableRows(workspace, [workspaceRow])
+  queueTableRows(organization, [destination])
+}
+
+/**
+ * The reload path reads the completed operation, then the workspace twice — the
+ * applied-state check and the summary reload — and the destination once.
+ */
+function queueMoveOperationSelects(audit: Record<string, unknown>) {
+  queueTableRows(outboxEvent, [
+    {
+      eventType: 'admin.workspace-move-operation',
+      status: 'completed',
+      payload: {
+        request: {
+          workspaceId: movedWorkspace.id,
+          destinationOrganizationId: destination.id,
+          expectedOwnerId: movedWorkspace.ownerId,
+        },
+        audit,
+      },
+    },
+  ])
+  queueTableRows(workspace, [movedWorkspace])
+  queueTableRows(workspace, [movedWorkspace])
+  queueTableRows(organization, [destination])
+}
+
+afterAll(resetDbChainMock)
+
+beforeEach(() => {
+  resetDbChainMock()
+  dbChainMockFns.execute.mockResolvedValue([{ acquired: true }])
+  isInvitationExpired.mockReturnValue(false)
+  /**
+   * `vi.clearAllMocks` clears call records but keeps implementations, so a
+   * `mockResolvedValue` set by one case would otherwise leak into every case
+   * after it. The entitlement resolver is the dangerous one: leaking a
+   * downgrade verdict turns unrelated moves into `destination-entitlement-
+   * downgrade` failures that depend on test order.
+   */
+  resolveMoveEntitlements.mockResolvedValue({
+    sourceIsEnterprise: false,
+    destinationIsEnterprise: false,
+    capabilitiesLost: [],
+  })
+  collectWorkspaceCredentialSummary.mockResolvedValue(EMPTY_CREDENTIALS)
+  getSourceOrganization.mockResolvedValue(SOURCE_ORGANIZATION)
+  changeProjectAndWorkspaceStoragePayersInTx.mockResolvedValue({
+    billableBytes: 128,
+    newPayer: { type: 'organization', id: destination.id },
+    oldPayer: { type: 'user', id: personalWorkspace.billedAccountUserId },
+    repairedWorkspaceLedger: false,
+  })
+})
+
+describe('classifyWorkspaceMoveState', () => {
+  it('treats the exact destination postcondition as an idempotent success', () => {
+    expect(
+      classifyWorkspaceMoveState(
+        {
+          workspaceMode: WORKSPACE_MODE.ORGANIZATION,
+          organizationId: 'org-1',
+          archivedAt: new Date(),
+        },
+        'org-1'
+      )
+    ).toBe('already-moved')
+  })
+
+  it('rejects a drifted organization mode when no organization is assigned', () => {
+    expect(() =>
+      classifyWorkspaceMoveState(
+        {
+          workspaceMode: WORKSPACE_MODE.ORGANIZATION,
+          organizationId: null,
+          archivedAt: null,
+        },
+        'org-destination'
+      )
+    ).toThrowError(
+      expect.objectContaining<Partial<WorkspaceMoveError>>({
+        code: 'already-organization-workspace',
+      })
+    )
+  })
+
+  it('keeps archived personal workspaces movable so they cannot dodge organization purview', () => {
+    expect(
+      classifyWorkspaceMoveState(
+        { workspaceMode: WORKSPACE_MODE.PERSONAL, organizationId: null, archivedAt: new Date() },
+        'org-1'
+      )
+    ).toBe('move')
+  })
+})
+
+describe('workspace move invitation bounds', () => {
+  it('blocks a move preflight instead of truncating an oversized pending invitation set', async () => {
+    queueTableRows(workspace, [personalWorkspace])
+    queueTableRows(organization, [destination])
+    queueTableRows(
+      invitationWorkspaceGrant,
+      Array.from({ length: 1_001 }, (_, index) => ({
+        id: `invitation-${index}`,
+        email: `invitee-${index}@example.com`,
+        organizationId: null,
+        membershipIntent: 'internal',
+        permission: 'read',
+      }))
+    )
+
+    await expect(getWorkspaceMovePreflight('workspace-1', 'org-1')).rejects.toMatchObject({
+      code: 'invitation-volume-exceeded',
+      message: expect.stringContaining('none were migrated'),
+    })
+  })
+
+  it('reports a pending invitation as a blocker for an organization-owned source', async () => {
+    queueTableRows(workspace, [organizationWorkspace])
+    queueTableRows(organization, [destination])
+    queueTableRows(invitationWorkspaceGrant, [
+      {
+        id: 'invitation-1',
+        email: 'invitee@example.com',
+        organizationId: 'org-source',
+        membershipIntent: 'internal',
+        permission: 'read',
+      },
+    ])
+
+    const preflight = await getWorkspaceMovePreflight(organizationWorkspace.id, destination.id)
+
+    expect(preflight.blockers).toEqual([expect.stringContaining('pending invitation')])
+    expect(preflight.sourceOrganization).toMatchObject({ id: 'org-source' })
+  })
+
+  it('blocks a move when bounded invitation rows expand into too many workspace grants', async () => {
+    queueTableRows(workspace, [personalWorkspace])
+    queueTableRows(organization, [destination])
+    queueTableRows(invitationWorkspaceGrant, [
+      {
+        id: 'invitation-1',
+        email: 'one@example.com',
+        organizationId: null,
+        membershipIntent: 'internal',
+        permission: 'read',
+      },
+      {
+        id: 'invitation-2',
+        email: 'two@example.com',
+        organizationId: null,
+        membershipIntent: 'internal',
+        permission: 'read',
+      },
+    ])
+    queueTableRows(invitationWorkspaceGrant, [
+      { invitationId: 'invitation-1', value: 5_001 },
+      { invitationId: 'invitation-2', value: 5_000 },
+    ])
+
+    await expect(getWorkspaceMovePreflight('workspace-1', 'org-1')).rejects.toMatchObject({
+      code: 'invitation-volume-exceeded',
+      message: expect.stringContaining('none were migrated'),
+    })
+  })
+})
+
+describe('pending invitation destination identity', () => {
+  it('never selects an unrelated personal invitation as a merge target', () => {
+    expect(
+      buildPendingInvitationMergeScopeCondition({
+        email: 'invitee@example.com',
+        organizationId: null,
+        excludeInvitationId: 'invite-source',
+      })
+    ).toBeUndefined()
+  })
+})
+
+describe('workspace-move pending seat projection', () => {
+  it('includes existing destination pending seats plus distinct incoming internal invitees', () => {
+    expect(
+      projectDestinationPendingSeatCount({
+        currentDestinationPendingSeats: 1,
+        destinationOrganizationId: 'org-1',
+        movedWorkspaceInvitations: [
+          {
+            email: 'new@example.com',
+            organizationId: null,
+            membershipIntent: 'internal',
+          },
+          {
+            email: 'NEW@example.com',
+            organizationId: 'org-source',
+            membershipIntent: 'internal',
+          },
+          {
+            email: 'external@example.com',
+            organizationId: null,
+            membershipIntent: 'external',
+          },
+        ],
+        existingDestinationInternalEmails: [],
+        existingMemberEmails: [],
+      })
+    ).toBe(2)
+  })
+
+  it('does not double-count internal invitees already pending in the destination', () => {
+    expect(
+      projectDestinationPendingSeatCount({
+        currentDestinationPendingSeats: 2,
+        destinationOrganizationId: 'org-1',
+        movedWorkspaceInvitations: [
+          {
+            email: 'already@example.com',
+            organizationId: null,
+            membershipIntent: 'internal',
+          },
+          {
+            email: 'stamped@example.com',
+            organizationId: 'org-1',
+            membershipIntent: 'internal',
+          },
+        ],
+        existingDestinationInternalEmails: ['ALREADY@example.com', 'stamped@example.com'],
+        existingMemberEmails: [],
+      })
+    ).toBe(2)
+  })
+
+  it('does not count an incoming internal invitee who belongs to another organization', () => {
+    expect(
+      projectDestinationPendingSeatCount({
+        currentDestinationPendingSeats: 1,
+        destinationOrganizationId: 'org-1',
+        movedWorkspaceInvitations: [
+          {
+            email: 'member@example.com',
+            organizationId: null,
+            membershipIntent: 'internal',
+          },
+        ],
+        existingDestinationInternalEmails: [],
+        existingMemberEmails: ['MEMBER@example.com'],
+      })
+    ).toBe(1)
+  })
+})
+
+describe('migrated invitation email outbox', () => {
+  it('skips a split token that was cancelled before the settle window elapsed', async () => {
+    getInvitationById.mockResolvedValue({
+      id: 'invite-transient',
+      status: 'cancelled',
+    })
+
+    await invitationMigrationOutboxHandlers[MIGRATED_INVITATION_EMAIL_EVENT_TYPE](
+      { invitationId: 'invite-transient' },
+      {} as never
+    )
+
+    expect(sendInvitationEmail).not.toHaveBeenCalled()
+  })
+})
+
+describe('moveWorkspaceToOrganization retries', () => {
+  it('refuses a move that would exceed the locked Enterprise seat capacity', async () => {
+    queueMoveSelects(personalWorkspace)
+    queueTableRows(subscription, [
+      { id: 'subscription-1', plan: 'enterprise', status: 'active', metadata: { seats: 1 } },
+    ])
+    queueTableRows(member, [{ value: 1 }])
+    queueTableRows(invitation, [])
+    queueTableRows(invitation, [])
+    queueTableRows(invitationWorkspaceGrant, [
+      {
+        id: 'invitation-1',
+        email: 'new-seat@example.com',
+        organizationId: null,
+        membershipIntent: 'internal',
+        permission: 'read',
+      },
+    ])
+    queueTableRows(invitationWorkspaceGrant, [{ invitationId: 'invitation-1', value: 1 }])
+    resolveSeatCapacity.mockResolvedValueOnce(1)
+
+    await expect(
+      moveWorkspaceToOrganization({
+        workspaceId: personalWorkspace.id,
+        destinationOrganizationId: destination.id,
+        adminEmail: 'admin@sim.ai',
+      })
+    ).rejects.toMatchObject<Partial<WorkspaceMoveError>>({ code: 'seat-capacity-exceeded' })
+
+    expect(changeProjectAndWorkspaceStoragePayersInTx).not.toHaveBeenCalled()
+  })
+
+  it('reports the workspace credentials when a completed operation is reloaded', async () => {
+    collectWorkspaceCredentialSummary.mockResolvedValueOnce(POPULATED_CREDENTIALS)
+    queueMoveOperationSelects({
+      actor: { id: null, name: 'Admin Panel', email: 'admin@sim.ai' },
+      previousBillingOwnerId: personalWorkspace.billedAccountUserId,
+      newBillingOwnerId: destination.ownerId,
+      organizationAssignedAt: '2026-08-20T00:00:00.000Z',
+      sourceOrganizationId: 'org-source',
+    })
+
+    const view = await getWorkspaceMoveOperation(
+      movedWorkspace.id,
+      destination.id,
+      movedWorkspace.ownerId,
+      'operation-1'
+    )
+
+    /** Resolved against the recorded source, so `backedBySourceOrgMember` means something. */
+    expect(collectWorkspaceCredentialSummary).toHaveBeenCalledWith(movedWorkspace.id, 'org-source')
+    expect(view.credentials).toEqual(POPULATED_CREDENTIALS)
+  })
+
+  it('re-fences the payer transfer after a SourceOrganizationChangedError retry', async () => {
+    /**
+     * The optimistic pre-transaction organization read decides which
+     * organizations get locked. When the workspace moves between that read and
+     * the locked read, the attempt must abort and retry — otherwise the payer
+     * transfer is fenced on an organization the workspace has already left, and
+     * `changeProjectAndWorkspaceStoragePayersInTx`'s optimistic check is the only thing
+     * standing between that and a corrupted storage ledger.
+     *
+     * First locked read reports a different organization than the pre-read, so
+     * the loop retries; the second attempt fences on the organization it
+     * actually observed under the locks.
+     */
+    queueTableRows(workspace, [organizationWorkspace])
+    queueTableRows(workspace, [{ ...organizationWorkspace, organizationId: 'org-moved' }])
+    queueTableRows(workspace, [{ ...organizationWorkspace, organizationId: 'org-moved' }])
+    queueTableRows(workspace, [{ id: organizationWorkspace.projectId }])
+    queueTableRows(workspace, [{ id: organizationWorkspace.id }])
+    queueTableRows(project, [{ id: organizationWorkspace.projectId, organizationId: 'org-moved' }])
+    queueTableRows(workspace, [{ ...organizationWorkspace, organizationId: 'org-moved' }])
+    queueTableRows(organization, [destination])
+
+    await moveWorkspaceToOrganization({
+      workspaceId: organizationWorkspace.id,
+      destinationOrganizationId: destination.id,
+      adminEmail: 'admin@sim.ai',
+      durableOperationId: 'operation-1',
+    })
+
+    expect(changeProjectAndWorkspaceStoragePayersInTx).toHaveBeenCalledTimes(1)
+    expect(changeProjectAndWorkspaceStoragePayersInTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        workspaceChanges: [
+          expect.objectContaining({
+            expectedCurrentPayer: expect.objectContaining({ organizationId: 'org-moved' }),
+          }),
+        ],
+      })
+    )
+  })
+
+  it('refuses an organization source without a durable operation id', async () => {
+    queueMoveSelects(organizationWorkspace)
+
+    /**
+     * The source organization's audit is written after commit and cannot be
+     * reconstructed once the workspace has left, so the durable payload is the
+     * only place its id survives a crash. Unreachable in production (both
+     * non-durable callers select through `ownedAttachableWorkspacesWhere`,
+     * which requires a null `organizationId`), and pinned here so a new caller
+     * that forgets the id fails loudly instead of losing the record.
+     */
+    await expect(
+      moveWorkspaceToOrganization({
+        workspaceId: organizationWorkspace.id,
+        destinationOrganizationId: destination.id,
+        adminEmail: 'admin@sim.ai',
+      })
+    ).rejects.toThrow(/without a durable operation id/)
+
+    expect(changeProjectAndWorkspaceStoragePayersInTx).not.toHaveBeenCalled()
+  })
+
+  it('refuses an entitlement downgrade without mutating anything', async () => {
+    queueMoveSelects(organizationWorkspace)
+    resolveMoveEntitlements.mockResolvedValueOnce({
+      sourceIsEnterprise: true,
+      destinationIsEnterprise: false,
+      capabilitiesLost: ['permission groups', 'workspace forking'],
+    })
+
+    await expect(
+      moveWorkspaceToOrganization({
+        workspaceId: organizationWorkspace.id,
+        destinationOrganizationId: destination.id,
+        adminEmail: 'admin@sim.ai',
+        durableOperationId: 'operation-1',
+      })
+    ).rejects.toMatchObject<Partial<WorkspaceMoveError>>({
+      code: 'destination-entitlement-downgrade',
+    })
+
+    expect(changeProjectAndWorkspaceStoragePayersInTx).not.toHaveBeenCalled()
+  })
+
+  it('rejects a stale batch selection when workspace ownership changed', async () => {
+    queueMoveSelects({ ...personalWorkspace, ownerId: 'new-owner' })
+
+    await expect(
+      moveWorkspaceToOrganization({
+        workspaceId: personalWorkspace.id,
+        destinationOrganizationId: destination.id,
+        adminEmail: 'admin@sim.ai',
+        expectedOwnerId: personalWorkspace.ownerId,
+      })
+    ).rejects.toMatchObject<Partial<WorkspaceMoveError>>({
+      code: 'workspace-owner-changed',
+    })
+
+    expect(changeProjectAndWorkspaceStoragePayersInTx).not.toHaveBeenCalled()
+    expect(dbChainMockFns.update).not.toHaveBeenCalled()
+  })
+})

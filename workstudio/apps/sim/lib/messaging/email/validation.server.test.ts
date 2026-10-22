@@ -1,0 +1,54 @@
+import { describe, expect, it, vi } from 'vitest'
+
+const { mockResolveMx } = vi.hoisted(() => ({
+  mockResolveMx: vi.fn(),
+}))
+
+vi.mock('dns/promises', () => ({
+  default: { resolveMx: mockResolveMx },
+}))
+
+import { validateSignupEmailMx } from '@/lib/messaging/email/validation.server'
+
+const mx = (...hosts: string[]) =>
+  hosts.map((exchange, i) => ({ exchange, priority: (i + 1) * 10 }))
+
+describe('validateSignupEmailMx', () => {
+  it('blocks a domain whose MX backend is on the configured denylist', async () => {
+    mockResolveMx.mockResolvedValue(mx('smtp.blocked-backend.example'))
+    const result = await validateSignupEmailMx('user@rotated-domain.test', [
+      'blocked-backend.example',
+    ])
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('blocked_mx_backend')
+  })
+
+  it('matches the denylist as a case-insensitive substring of the MX exchange', async () => {
+    mockResolveMx.mockResolvedValue(mx('MX1.Blocked-Backend.Example'))
+    const result = await validateSignupEmailMx('user@another-domain.test', [
+      'blocked-backend.example',
+    ])
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('blocked_mx_backend')
+  })
+
+  it('blocks a domain with no MX records (ENOTFOUND)', async () => {
+    mockResolveMx.mockRejectedValue(Object.assign(new Error('not found'), { code: 'ENOTFOUND' }))
+    const result = await validateSignupEmailMx('x@no-such-domain.invalid', [])
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('no_mx')
+  })
+
+  it('blocks a domain that resolves to an empty MX set', async () => {
+    mockResolveMx.mockResolvedValue([])
+    const result = await validateSignupEmailMx('x@empty.example', [])
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('no_mx')
+  })
+
+  it('fails open on a transient DNS error (does not block legit users)', async () => {
+    mockResolveMx.mockRejectedValue(Object.assign(new Error('timeout'), { code: 'ETIMEOUT' }))
+    const result = await validateSignupEmailMx('user@some-real-domain.com', [])
+    expect(result.allowed).toBe(true)
+  })
+})

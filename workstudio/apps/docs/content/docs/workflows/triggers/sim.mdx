@@ -1,0 +1,99 @@
+---
+title: Sim Workspace Events
+description: Start a deployed workflow from workspace run events, deployment changes, or alert conditions.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+**Sim Workspace Events** starts a workflow when another workflow runs, changes deployment, or meets an alert condition. Use it to send an alert, escalate a failure, or run follow-up logic.
+
+## Configure the trigger
+
+1. Add Sim Workspace Events and choose **Event**. The default is **Run Error**.
+2. Optionally select **Workflows** to watch.
+3. For an alert condition, set its threshold and any time window.
+4. Connect the follow-up blocks and deploy the workflow.
+5. Produce the watched event and confirm the follow-up run in [Logs](/logs-debugging).
+
+## Events
+
+Plain events fire for each matching occurrence:
+
+| Event | Trigger |
+| --- | --- |
+| **Run Error** | A watched workflow's run fails |
+| **Run Success** | A watched workflow's run succeeds |
+| **Workflow Deployed** | Deployment, update, or activation of another version |
+| **Workflow Undeployed** | The watched workflow is undeployed |
+
+Run-backed alert conditions are evaluated when runs complete. Failure-based conditions evaluate on failed runs:
+
+| Condition | Rule | Default configuration |
+| --- | --- | --- |
+| **Consecutive Failures** | Last N runs failed | 3 failures |
+| **Failure Rate** | Failure percentage meets or exceeds the threshold; at least 5 runs required | 50% over 24 hours |
+| **Latency Threshold** | A run exceeds a duration | 30,000 ms |
+| **Latency Spike** | A run exceeds the recent average by a percentage; at least 5 runs required | 100% above average over 24 hours |
+| **Cost Threshold** | A run exceeds a credit amount | 200 credits |
+| **Error Count** | At least N errors occur in the window | 10 errors over 24 hours |
+
+**No Activity** is checked by a separate poller, not by completed runs. It watches deployed workflows for an absence of recorded non-Sim-trigger runs in the configured **Inactivity Window (hours)**, default 24 hours. A watched workflow with no runs can fire on the first eligible poll.
+
+For self-hosted deployments, configure the workspace-events polling job; see [background jobs](/platform/self-hosting/background-jobs).
+
+## Workflow scope
+
+Leave **Workflows** empty to watch the workspace, or select workflows to narrow it. The workflow containing this trigger is always excluded. No Activity watches only deployed, unarchived workflows.
+
+## Outputs
+
+All payloads identify the source workflow with `event`, `timestamp`, `workflowId`, and `workflowName`. The `event` is a wire value such as `execution_error`, rather than the display label Run Error.
+
+| Event class | Additional values |
+| --- | --- |
+| Run Error / Run Success | `runId`, `durationMs`, `cost` in credits, bounded `finalOutput` |
+| Run-backed alert | Run summary nested under `triggeringRun` |
+| Workflow Deployed | Activated deployment `version` |
+| Workflow Undeployed / No Activity | No additional event-specific values |
+
+Fields that do not apply are present as `null`. Large `finalOutput` values are truncated; the event payload is not a replacement for the full run log.
+
+For a trigger named Sim Events, read `<simevents.event>` or `<simevents.triggeringRun.runId>`. A run-backed alert payload has this shape:
+
+```json
+{
+  "event": "latency_threshold",
+  "timestamp": "2026-10-13T12:00:05.000Z",
+  "workflowId": "source-workflow-id",
+  "workflowName": "Customer support",
+  "runId": null,
+  "durationMs": null,
+  "cost": null,
+  "finalOutput": null,
+  "triggeringRun": {
+    "runId": "c7a92e15-3f4b-4d8c-a1e6-9b0d5f2c8e74",
+    "durationMs": 35000,
+    "cost": 4,
+    "finalOutput": { "answer": "..." }
+  },
+  "version": null
+}
+```
+
+For plain run events, those summary values are top-level and `triggeringRun` is null. Workflow Undeployed and No Activity leave all run/version fields null.
+
+## Behavior
+
+- Trigger configuration is captured at deployment. Deploy an update after changing the event, watched workflows, or thresholds.
+- Run-backed alerts fire at most once per hour for a trigger subscription. No Activity has a per-watched-workflow cooldown of at least one hour or the inactivity window, whichever is longer.
+- Delivery is fire-and-forget. Follow-up runs are billed like other runs and remain subject to workspace rate limits; a dispatch failure does not fail the source run.
+
+<Callout type="info">
+Runs started by Sim Workspace Events do not emit workspace events and are excluded from alert statistics. Follow-up workflows cannot chain workspace-event triggers into a recursive loop.
+</Callout>
+
+## Related docs
+
+- [Deployment](/workflows/deployment)
+- [Logs](/logs-debugging)
+- [Schedule](/workflows/triggers/schedule)

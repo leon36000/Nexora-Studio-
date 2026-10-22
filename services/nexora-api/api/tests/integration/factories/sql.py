@@ -1,0 +1,252 @@
+from datetime import UTC, datetime, timedelta
+import unicodedata
+
+import factory
+from factory import fuzzy
+from factory.alchemy import SQLAlchemyModelFactory
+from faker import Faker
+
+from api.domain.provider.entities import HostingZone, ProviderType
+from api.domain.role.entities import LimitType, PermissionType
+from api.domain.router.entities import RouterLoadBalancingStrategy, RouterType
+from api.infrastructure.postgres.models import Limit, Organization, Permission, Provider, Role, Router, RouterAlias, Token, Usage, User
+
+fake = Faker("fr_FR")
+
+
+class BaseSQLFactory(SQLAlchemyModelFactory):
+    class Meta:
+        abstract = True
+        sqlalchemy_session_persistence = "flush"
+
+
+class OrganizationSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Organization
+
+    name = factory.Sequence(lambda n: f"{fake.company()} {n}")
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+    updated = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+    class Params:
+        administration = factory.Trait(name=factory.Sequence(lambda n: f"Administration {n}"))
+        ministere = factory.Trait(name=factory.Sequence(lambda n: f"Ministere {n}"))
+
+
+class RoleSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Role
+
+    name = factory.Faker("bothify", text="role_????")
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+    updated = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+    @factory.post_generation
+    def permissions(self, create, extracted, **kwargs):
+        if extracted:
+            for permission in extracted:
+                PermissionSQLFactory(role=self, permission=permission)
+
+    @factory.post_generation
+    def limits(self, create, extracted, **kwargs):
+        if extracted:
+            for limit in extracted:
+                LimitSQLFactory(role=self, **limit)
+
+    class Params:
+        admin = factory.Trait(
+            name="admin",
+            admin_permission=factory.RelatedFactory(
+                "api.tests.integration.factories.sql.PermissionSQLFactory",
+                factory_related_name="role",
+                permission=PermissionType.ADMIN,
+            ),
+        )
+        user = factory.Trait(name="user")
+        guest = factory.Trait(name="guest")
+        moderator = factory.Trait(name="moderator")
+
+
+class PermissionSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Permission
+
+    role_id = None
+    role = factory.SubFactory(RoleSQLFactory)
+    permission = factory.Faker("random_element", elements=list(PermissionType))
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+    class Params:
+        admin = factory.Trait(permission=PermissionType.ADMIN, role=factory.SubFactory(RoleSQLFactory, admin=True))
+        read_metric = factory.Trait(permission=PermissionType.READ_METRIC)
+        provide_models = factory.Trait(permission=PermissionType.PROVIDE_MODELS)
+
+
+class UserSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = User
+        sqlalchemy_session_persistence = "flush"
+
+    name = factory.Faker("name", locale="fr_FR")
+    role_id = None
+    id = None
+    role = factory.SubFactory(RoleSQLFactory)
+    sub = None
+    iss = None
+    claims = None
+    organization = factory.SubFactory(OrganizationSQLFactory)
+    password = "$2b$12$I7iMWv/FqLtb7Az6iX9uTuPkvGWU1xh.Gtwb3qb0.fm8kCYJkLRwq"
+    priority = 0
+    expires = None
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+    updated = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+    @factory.lazy_attribute
+    def email(self):
+        name_normalized = unicodedata.normalize("NFKD", self.name)
+        name_ascii = name_normalized.encode("ascii", "ignore").decode("ascii")
+        fake = Faker("fr_FR")
+        domain = fake.free_email_domain()
+        clean_name = name_ascii.lower().replace(" ", ".")
+        return f"{clean_name}@{domain}"
+
+    class Params:
+        admin_user = factory.Trait(role=factory.SubFactory(RoleSQLFactory, admin=True), priority=10)
+        regular_user = factory.Trait(role=factory.SubFactory(RoleSQLFactory, user=True), priority=0)
+        guest_user = factory.Trait(role=factory.SubFactory(RoleSQLFactory, guest=True), priority=-1)
+
+
+class KeySQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Token
+
+    user_id = None
+    user = factory.SubFactory(UserSQLFactory)
+    token = "tmp"
+    name = factory.Sequence(lambda n: f"key_{n}")
+    expires = factory.LazyFunction(lambda: datetime.now(tz=UTC) + timedelta(days=30))
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+    revoked = False
+
+    class Params:
+        expired = factory.Trait(expires=factory.LazyFunction(lambda: datetime.now(tz=UTC) - timedelta(days=1)))
+        never_expires = factory.Trait(expires=None)
+        short_lived = factory.Trait(expires=factory.LazyFunction(lambda: datetime.now(tz=UTC) + timedelta(hours=1)))
+        long_lived = factory.Trait(expires=factory.LazyFunction(lambda: datetime.now(tz=UTC) + timedelta(days=365)))
+
+
+class RouterSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Router
+        sqlalchemy_session_persistence = "flush"
+
+    user_id = None
+    id = None
+    user = factory.SubFactory(UserSQLFactory)
+    name = factory.Sequence(lambda n: f"router-{n}")  # not "router_<n>": several tests use explicit "router_1" … "router_7" names
+    type = factory.Faker("random_element", elements=list(RouterType))
+    load_balancing_strategy = factory.Faker("random_element", elements=list(RouterLoadBalancingStrategy))
+    cost_prompt_tokens = factory.Faker("pyfloat", left_digits=1, right_digits=4, min_value=0, max_value=1)
+    cost_completion_tokens = factory.Faker("pyfloat", left_digits=1, right_digits=4, min_value=0, max_value=1)
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+    updated = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+    @factory.post_generation
+    def alias(self, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for alias_value in extracted:
+            RouterAliasSQLFactory(router=self, value=alias_value)
+
+    @factory.post_generation
+    def providers(self, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for i in range(extracted):
+            ProviderSQLFactory(router=self, user=self.user, model_name=f"{self.name}_provider_{i + 1}", **kwargs)
+
+    class Params:
+        free = factory.Trait(cost_prompt_tokens=0.0, cost_completion_tokens=0.0)
+        expensive = factory.Trait(
+            cost_prompt_tokens=factory.Faker("pyfloat", left_digits=1, right_digits=4, min_value=0.5, max_value=2),
+            cost_completion_tokens=factory.Faker("pyfloat", left_digits=1, right_digits=4, min_value=1, max_value=3),
+        )
+
+
+class RouterAliasSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = RouterAlias
+
+    router_id = None
+    router = factory.SubFactory(RouterSQLFactory)
+    value = factory.Faker("bothify", text="alias_????_####")
+
+
+class ProviderSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Provider
+        sqlalchemy_session_persistence = "flush"
+
+    id = None
+    router_id = None
+    router = factory.SubFactory(RouterSQLFactory)
+    user_id = None
+    user = factory.LazyAttribute(lambda o: o.router.user)
+    type = factory.Faker("random_element", elements=list(ProviderType))
+    url = factory.Faker("bothify", text="https://provider-##.example.com")
+    key = factory.Faker("uuid4")
+    basic_auth = None
+    timeout = factory.Faker("random_int", min=1, max=300)
+    model_name = factory.Faker("bothify", text="model-##-?????")
+    model_hosting_zone = factory.Faker("random_element", elements=list(HostingZone))
+    model_total_params = factory.Faker("random_int", min=1000000, max=2000000000)
+    model_active_params = factory.Faker("random_int", min=1000000, max=1000000000)
+    max_context_length = factory.Faker("random_element", elements=[2048, 4096, 8192, 16384, 32768, 128000])
+    vector_size = factory.Faker("random_element", elements=[384, 768, 1024, 1536, 3072])
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+    updated = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+
+class LimitSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Limit
+        sqlalchemy_session_persistence = "flush"
+
+    id = None
+    type = fuzzy.FuzzyChoice([LimitType.TPM, LimitType.TPD, LimitType.RPM, LimitType.RPD])
+    value = fuzzy.FuzzyInteger(100, 10000)
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+    role = factory.SubFactory(RoleSQLFactory)
+    router = factory.SubFactory(RouterSQLFactory)
+
+
+class UsageSQLFactory(BaseSQLFactory):
+    class Meta:
+        model = Usage
+
+    user_id = None
+    user = factory.SubFactory(UserSQLFactory)
+    token_id = None
+    router_id = None
+    provider_id = None
+    user_email = factory.LazyAttribute(lambda o: o.user.email if o.user is not None else None)
+    token_name = factory.Sequence(lambda n: f"key_{n}")
+    router_name = factory.Sequence(lambda n: f"model_{n}")
+    provider_model_name = None
+    request_id = factory.Sequence(lambda n: f"{n:032x}")
+    endpoint = "/v1/chat/completions"
+    latency = 100
+    ttft = 50
+    status = 200
+    prompt_tokens = 10
+    completion_tokens = 20
+    total_tokens = 30
+    cost = 0.1
+    kwh = 0.01
+    kgco2eq = 0.02
+    created = factory.LazyFunction(lambda: datetime.now(tz=UTC))
+
+    class Params:
+        failed = factory.Trait(status=500)
+        embeddings = factory.Trait(endpoint="/v1/embeddings")

@@ -1,0 +1,175 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { createLogger } from '@sim/logger'
+import { generateShortId } from '@sim/utils/id'
+import { ContentRefusedError } from '@/lib/core/application'
+import {
+  executeInIsolatedVM,
+  type IsolatedVMBrokerHandler,
+  type IsolatedVMExecutionRequest,
+} from '@/lib/execution/isolated-vm'
+import type { SandboxBrokerContext, SandboxTaskInput } from '@/lib/execution/sandbox/types'
+import { getSandboxTask, type SandboxTaskId } from '@/sandboxes/registry'
+
+const logger = createLogger('SandboxRunTask')
+
+export interface RunSandboxTaskOptions {
+  /** Private document compiles expose only their already-authorized, fixed input manifest. */
+  resolvePreparedFile?: SandboxBrokerContext['resolvePreparedFile']
+  /**
+   * Owner key used by the isolated-vm pool for fairness + distributed leases.
+   * Typically `user:<userId>` or `workspace:<workspaceId>`.
+   */
+  ownerKey?: string
+  /** Optional AbortSignal to cancel the execution early. */
+  signal?: AbortSignal
+  /** Records canonical workspace files whose bytes were successfully read by a task broker. */
+  onWorkspaceFileAccess?: SandboxBrokerContext['onWorkspaceFileAccess']
+  filePrincipal?: SandboxBrokerContext['filePrincipal']
+  /** Run id that brokers see as `ctx.requestId`, for callers that keep per-run broker state. */
+  requestId?: string
+}
+
+/**
+ * Thrown when the sandbox failure is attributable to the caller — user code
+ * errors (SyntaxError, ReferenceError, user-thrown exceptions), timeouts from
+ * user code, client aborts, or per-owner rate limits. Callers should translate
+ * this into a 4xx response so genuine 5xx remains a signal of server health.
+ *
+ * System-origin failures (worker crash, IPC failure, pool saturation, task
+ * misconfig) are tagged with `isSystemError` at the isolated-vm layer and
+ * surface as a plain `Error` → 500.
+ */
+export class SandboxUserCodeError extends Error {
+  constructor(message: string, name: string, stack?: string) {
+    super(message)
+    this.name = name || 'SandboxUserCodeError'
+    if (stack) this.stack = stack
+  }
+}
+
+/**
+ * Executes a sandbox task inside the shared isolated-vm pool and returns the
+ * binary result buffer. Throws with a human-readable message if the task fails
+ * so callers can propagate the error verbatim to UI.
+ */
+export async function runSandboxTask<TInput extends SandboxTaskInput>(
+  taskId: SandboxTaskId,
+  input: TInput,
+  options: RunSandboxTaskOptions = {}
+): Promise<Buffer> {
+  const task = getSandboxTask(taskId)
+  const requestId = options.requestId ?? generateShortId(12)
+
+  const brokerContext: SandboxBrokerContext = {
+    workspaceId: input.workspaceId,
+    requestId,
+    resolvePreparedFile: options.resolvePreparedFile,
+    onWorkspaceFileAccess: options.onWorkspaceFileAccess,
+    filePrincipal: options.filePrincipal,
+  }
+  const brokers: Record<string, IsolatedVMBrokerHandler> = {}
+  const runInCallerContext = AsyncLocalStorage.snapshot()
+  let brokerRefusals: Map<number, ContentRefusedError> | undefined
+  for (const broker of task.brokers) {
+    brokers[broker.name] = async (args, brokerId) => {
+      try {
+        return await runInCallerContext(() => broker.handle(brokerContext, args))
+      } catch (error) {
+        if (error instanceof ContentRefusedError) {
+          brokerRefusals ??= new Map()
+          brokerRefusals.set(brokerId, error)
+        }
+        throw error
+      }
+    }
+  }
+
+  const request: IsolatedVMExecutionRequest = {
+    code: input.code,
+    params: {},
+    envVars: {},
+    contextVariables: {},
+    timeoutMs: task.timeoutMs,
+    requestId,
+    ownerKey: options.ownerKey,
+    ownerWeight: 1,
+    task: {
+      id: task.id,
+      bundles: [...task.bundles],
+      bootstrap: task.bootstrap,
+      brokers: task.brokers.map((b) => b.name),
+      finalize: task.finalize,
+      ...(task.userModules
+        ? {
+            userModule: {
+              filename: input.codeFilename ?? `${task.id}.js`,
+              modules: { ...task.userModules },
+            },
+          }
+        : {}),
+    },
+  }
+
+  const start = Date.now()
+  const result = await executeInIsolatedVM(request, { brokers, signal: options.signal })
+  const elapsedMs = Date.now() - start
+
+  // Phase timings come from the worker (see executeTask). `queue` is the
+  // gap between client call and worker-side start — useful for diagnosing
+  // pool saturation vs. isolate-internal slowness.
+  const queueMs = result.timings ? Math.max(0, elapsedMs - result.timings.total) : undefined
+
+  if (result.error) {
+    const isSystemError = result.error.isSystemError === true
+    const logFn = isSystemError ? logger.error.bind(logger) : logger.warn.bind(logger)
+    logFn('Sandbox task failed', {
+      taskId,
+      requestId,
+      workspaceId: input.workspaceId,
+      elapsedMs,
+      queueMs,
+      timings: result.timings,
+      error: result.error.message,
+      errorName: result.error.name,
+      isSystemError,
+    })
+    if (isSystemError) {
+      const err = new Error(result.error.message)
+      err.name = result.error.name || 'SandboxSystemError'
+      if (result.error.stack) err.stack = result.error.stack
+      throw err
+    }
+    const brokerRefusal =
+      result.error.brokerErrorId === undefined
+        ? undefined
+        : brokerRefusals?.get(result.error.brokerErrorId)
+    if (brokerRefusal) throw brokerRefusal
+    throw new SandboxUserCodeError(
+      result.error.message,
+      result.error.name || 'SandboxTaskError',
+      result.error.stack
+    )
+  }
+
+  if (typeof result.bytesBase64 !== 'string' || result.bytesBase64.length === 0) {
+    logger.error('Sandbox task returned no bytes', {
+      taskId,
+      requestId,
+      workspaceId: input.workspaceId,
+      timings: result.timings,
+    })
+    throw new Error(`Sandbox task "${taskId}" finalize did not return any bytes`)
+  }
+
+  const bytes = Buffer.from(result.bytesBase64, 'base64')
+  logger.info('Sandbox task completed', {
+    taskId,
+    requestId,
+    workspaceId: input.workspaceId,
+    elapsedMs,
+    queueMs,
+    timings: result.timings,
+    bytes: bytes.length,
+  })
+  return task.toResult(new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength), input)
+}

@@ -1,0 +1,32 @@
+from typing import Annotated
+
+from pydantic import Field
+
+from api.domain import BaseModel, ForwardablePayload
+from api.domain.model.entities import ProviderJsonResponse
+from api.domain.usage.entities import Usage
+
+
+class CreateRerankBody(ForwardablePayload):
+    query: str
+    documents: list[str]
+    model: str
+    top_n: int | None
+
+    def get_prompts(self) -> list[str]:
+        return [self.query] + self.documents
+
+
+class RerankResult(BaseModel):
+    relevance_score: float
+    index: int
+
+
+class Rerank(ProviderJsonResponse):
+    id: str
+    model: str
+    results: list[RerankResult]
+    usage: Annotated[Usage, Field(default_factory=Usage)]
+
+    def get_completions(self) -> list[str]:
+        return []

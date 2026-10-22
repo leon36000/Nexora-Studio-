@@ -1,0 +1,63 @@
+---
+title: Response
+description: End a run with a selected response body, status, and headers.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { BlockPreview, WorkflowPreview, RESPONSE_API_WORKFLOW, RESPONSE_ERROR_WORKFLOW } from '@/components/workflow-preview'
+
+The **Response block** ends a workflow with a response you define. It controls the custom HTTP response on API surfaces that support block-defined responses; the v2 API keeps its own run-result envelope and HTTP contract.
+
+<BlockPreview type="response" />
+
+## Return an answer
+
+<WorkflowPreview workflow={RESPONSE_API_WORKFLOW} />
+
+Set the response body to include `<agent.content>` and status to `200`. See [API deployment](/workflows/deployment/api) for the response format of the endpoint you call.
+
+## Configuration
+
+### Response data mode
+
+**Builder** defines typed fields in **Response Structure**. **Editor** uses **Response Data**, a JSON editor. Both can reference earlier block outputs and workflow variables:
+
+```json
+{
+  "query": "<start.input>",
+  "answer": "<agent.content>",
+  "model": "<agent.model>"
+}
+```
+
+Nested objects and arrays are supported. Build branch-specific responses from values produced on that branch; a known block that did not run has no output.
+
+### Status code and headers
+
+**Status Code** defaults to `200`. Use success or error statuses that match the outcome, such as `201`, `400`, `404`, or `500`.
+
+**Response Headers** accepts key-value pairs, for example `Cache-Control: no-cache` or `X-API-Version: 1.0`.
+
+Custom HTTP responses are serialized as JSON with `Content-Type: application/json` and `X-Content-Type-Options: nosniff`. Cookie, redirect, security-policy, CORS, and transport headers are ignored. Ordinary custom headers and cache directives are preserved. The selected API surface can apply additional response rules.
+
+## Terminal behavior
+
+The first Response block to run fixes the final output and ends the workflow. Its `data`, `status`, and `headers` describe the selected response; no downstream block runs after it. Without a Response block, terminal block output determines the final result. Multiple terminal branches can finish in different orders, so use a Response when the API needs an explicit result.
+
+<Callout type="warn">
+Avoid Response on a parallel branch alongside important side effects. Other branches may already have run, still be running, or never start when the response ends the run.
+</Callout>
+
+A [Webhook trigger](/workflows/triggers/webhook) acknowledges its request after queueing the run. Configure the trigger's response to change that acknowledgement; a downstream Response block does not change it.
+
+## Return a status for each outcome
+
+<WorkflowPreview workflow={RESPONSE_ERROR_WORKFLOW} />
+
+Connect a Condition's valid branch to a `200` response and invalid branch to a `400` response. Keep a consistent body shape across both outcomes.
+
+## Related docs
+
+- [API deployment](/workflows/deployment/api)
+- [Condition](/workflows/blocks/condition)
+- [Router](/workflows/blocks/router)

@@ -1,0 +1,177 @@
+/**
+ * POST /api/v1/admin/workflows/import
+ *
+ * Import a single workflow into a workspace.
+ *
+ * Request Body:
+ *   {
+ *     workspaceId: string,           // Required: target workspace
+ *     folderId?: string,             // Optional: target folder
+ *     name?: string,                 // Optional: override workflow name
+ *     workflow: object | string      // The workflow JSON (from export or raw state)
+ *   }
+ *
+ * Response: { workflowId: string, name: string, success: true }
+ */
+
+import { db } from '@sim/db'
+import { workspace } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
+import {
+  assertFolderInWorkspace,
+  assertFolderMutable,
+  FolderLockedError,
+  FolderNotFoundError,
+} from '@sim/platform-authz/workflow'
+import { generateId } from '@sim/utils/id'
+import { and, eq, isNull } from 'drizzle-orm'
+import { NextResponse } from 'next/server'
+import { adminV1ImportWorkflowContract } from '@/lib/api/contracts/v1/admin'
+import { parseRequest } from '@/lib/api/server'
+import { asOrchestrationError } from '@/lib/core/orchestration/types'
+import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
+import { createWorkflowWithState } from '@/lib/workflows/orchestration/workflow-lifecycle'
+import { prepareWorkflowStateForPersistence } from '@/lib/workflows/persistence/prepare-state'
+import { normalizeImportedVariables } from '@/lib/workflows/variables/parse'
+import { withAdminAuth } from '@/app/api/v1/admin/middleware'
+import {
+  adminBadRequestResponse,
+  adminInternalErrorResponse,
+  adminNotFoundResponse,
+} from '@/app/api/v1/admin/responses'
+import { extractWorkflowMetadata, type WorkflowImportRequest } from '@/app/api/v1/admin/types'
+
+const logger = createLogger('AdminWorkflowImportAPI')
+
+interface ImportSuccessResponse {
+  workflowId: string
+  name: string
+  success: true
+}
+
+export const POST = withRouteHandler(
+  withAdminAuth(async (request) => {
+    try {
+      const parsed = await parseRequest(adminV1ImportWorkflowContract, request, {})
+      if (!parsed.success) return parsed.response
+
+      const body = parsed.data.body as WorkflowImportRequest
+      const { workspaceId, folderId, name: overrideName } = body
+
+      const [workspaceData] = await db
+        .select({ id: workspace.id, ownerId: workspace.ownerId })
+        .from(workspace)
+        .where(and(eq(workspace.id, workspaceId), isNull(workspace.archivedAt)))
+        .limit(1)
+
+      if (!workspaceData) {
+        return adminNotFoundResponse('Workspace')
+      }
+
+      /**
+       * Migration 0272 dropped the FK on `workflow.folder_id`, so nothing but this check
+       * stands between the caller and a folder in another workspace — or one from another
+       * resource's tree. A workflow filed under an unreachable folder still executes and
+       * bills, escapes the folder delete cascade, and never counts toward
+       * `guardLastWorkflows`.
+       *
+       * Ownership before lock state, mirroring `v1/workflows/import`: `assertFolderMutable`
+       * walks the ancestor chain without filtering on workspace, so checking it first would
+       * let a caller distinguish a locked folder in someone else's workspace (423) from a
+       * nonexistent one (404).
+       */
+      if (folderId) {
+        await assertFolderInWorkspace(folderId, workspaceId)
+      }
+      await assertFolderMutable(folderId ?? null)
+
+      const workflowContent =
+        typeof body.workflow === 'string' ? body.workflow : JSON.stringify(body.workflow)
+
+      const { data: workflowData, errors } = parseWorkflowJson(workflowContent)
+
+      if (!workflowData || errors.length > 0) {
+        return adminBadRequestResponse(`Invalid workflow: ${errors.join(', ')}`)
+      }
+
+      const parsedWorkflow =
+        typeof body.workflow === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(body.workflow)
+              } catch {
+                return null
+              }
+            })()
+          : body.workflow
+
+      const { name: workflowName, description: workflowDescription } = extractWorkflowMetadata(
+        parsedWorkflow,
+        overrideName
+      )
+
+      const workflowId = generateId()
+
+      /**
+       * Same normalization the editor and the v1 import API run, via the one
+       * shared implementation — without it this route wrote raw parsed state,
+       * so a dangling edge tripped the `workflow_edges` foreign key and a block
+       * missing its backfilled columns could land unopenable.
+       */
+      const { state: preparedState, warnings } = prepareWorkflowStateForPersistence(workflowData)
+      if (warnings.length > 0) {
+        logger.warn('Admin API: normalized imported workflow with warnings', { warnings })
+      }
+
+      const created = await createWorkflowWithState({
+        id: workflowId,
+        userId: workspaceData.ownerId,
+        workspaceId,
+        folderId: folderId || null,
+        name: workflowName,
+        description: workflowDescription,
+        variables: normalizeImportedVariables(workflowData.variables),
+        state: { ...workflowData, ...preparedState },
+        governance: {
+          /**
+           * Actorless. This is the platform-admin surface: the caller is a Sim
+           * operator restoring data, not a member of the target workspace, so no
+           * member's permission group governs the write. `check-capability-subject`
+           * excludes `v1/admin` for the same reason.
+           */
+          workspaceId: null,
+          subjectUserId: null,
+        },
+      })
+
+      if (!created.success) {
+        return adminInternalErrorResponse(`Failed to save workflow state: ${created.error}`)
+      }
+
+      logger.info(
+        `Admin API: Imported workflow ${workflowId} (${created.workflow.name}) into workspace ${workspaceId}`
+      )
+
+      const response: ImportSuccessResponse = {
+        workflowId,
+        name: created.workflow.name,
+        success: true,
+      }
+
+      return NextResponse.json(response)
+    } catch (error) {
+      if (asOrchestrationError(error)?.code === 'not_found') {
+        return adminNotFoundResponse('Workspace')
+      }
+      if (error instanceof FolderNotFoundError) {
+        return adminBadRequestResponse(error.message)
+      }
+      if (error instanceof FolderLockedError) {
+        return NextResponse.json({ error: error.message }, { status: error.status })
+      }
+      logger.error('Admin API: Failed to import workflow', { error })
+      return adminInternalErrorResponse('Failed to import workflow')
+    }
+  })
+)

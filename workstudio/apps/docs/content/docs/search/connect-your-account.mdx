@@ -1,0 +1,53 @@
+---
+title: Connect your account
+description: Authorize your provider accounts and manage their Search connections
+---
+
+After your admin adds a source in **Settings → Sources**, connect your own account in **Integrations**. This applies to admins too. A service source usually still requires your personal connection.
+
+## Connect and verify
+
+1. Join the Sim organization through its invitation or SSO. Use the verified email required by the provider connection.
+2. Open **Integrations**, find the provider, and select **Connect**.
+3. Complete authorization in the new tab. If the popup is blocked, allow it and select **Connect** again.
+4. Return to **Search** or **Home** and search for content your account can open. Read a result and follow its source link.
+
+The connection is usable when authorization completes; no initial indexing run is required. If a provider is missing, ask an admin to add it in **Sources**. `Not configured` means its app or deployment setup needs an admin's attention.
+
+You do not choose repositories, channels, labels, or an indexing method during personal authorization. Member mode uses your provider access; service mode further restricts results with the admin's source settings.
+
+## Provider exceptions
+
+| Source setup | Personal connection |
+| --- | --- |
+| **Member accounts** | Connect your own provider account. |
+| **GitHub App** | Connect GitHub once per Sim organization. Each selected repository must be readable by you and the installation. |
+| Google service account: Gmail, Calendar, Drive | Connect each corresponding Google service. The source verifies your identity and resource access through delegation. |
+| Confluence service account | Connect Confluence. Both your account and the service connection must read the selected content. |
+| Coda | Connect personal Coda MCP. Service mode also verifies the parent document with its REST token. |
+| GitLab | No personal connection. Your verified Sim email must match current GitLab identity and permissions, or the admin's CSV mapping and project grant. |
+| [Generic Secrets, Member mode](/search/generic-secrets) | Select **Manage secrets** in Integrations and save your own values for Build and Plan. |
+
+Gmail, Calendar, and Drive have separate grants. Connecting one does not authorize the others. Except for GitLab's permission model, a service account restricts resources rather than replacing your personal connection.
+
+## Reconnect or disconnect
+
+Use **Reconnect** when a grant expires, is revoked, or needs more scopes. A temporary provider outage does not necessarily require reconnecting.
+
+Disconnecting stops future use of the grant and can affect workflows sharing the account. Review the confirmation before removing it. Disconnecting does not remove your Sim membership.
+
+For an account-connection request, sign in as the verified Sim user associated with the requested email, then authorize the provider. The request does not invite you into the organization; membership and Search access are still required.
+
+## Find missing results
+
+- Confirm the connected account can open the original content.
+- Ask an admin to check service-source filters when that mode is selected.
+- Check scope errors, rate limits, and incomplete-coverage status.
+- Try the query in the provider's search; its limitations still apply.
+
+Live Search calls the provider for each request. Waiting for a Sim sync or retrying document indexing will not resolve a live Search failure.
+
+## Related docs
+
+- [Search access and freshness](/search#access-and-freshness)
+- [Knowledge-base connectors](/knowledgebase/connectors)

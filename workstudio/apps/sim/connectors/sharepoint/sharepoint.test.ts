@@ -1,0 +1,452 @@
+import { knowledgeDocumentsUtilsMock } from '@sim/testing/mocks/knowledge-documents-utils.mock'
+import {
+  knowledgeSecureFetchMock,
+  knowledgeSecureFetchMockFns,
+} from '@sim/testing/mocks/knowledge-secure-fetch.mock'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/knowledge/documents/utils', () => knowledgeDocumentsUtilsMock)
+vi.mock('@/lib/knowledge/documents/secure-fetch.server', () => knowledgeSecureFetchMock)
+
+import {
+  resolveFolderTarget,
+  serverRelativePathFromUrl,
+  sharepointConnector,
+} from '@/connectors/sharepoint/sharepoint'
+import {
+  appendPendingMicrosoftGraphFolders,
+  encodeMicrosoftGraphTraversalCursor,
+  MICROSOFT_GRAPH_MAX_PENDING_FOLDERS,
+  PER_MEMBER_LISTING_CONTEXT,
+} from '@/connectors/utils'
+
+const mockFetchWithRetry = knowledgeSecureFetchMockFns.mockFetchWithRetry
+
+const GRAPH = 'https://graph.microsoft.com/v1.0'
+const SITE_ID = 'contoso.sharepoint.com,site-guid,web-guid'
+const SITE_URL = 'contoso.sharepoint.com'
+const DEFAULT_DRIVE_ID = 'b!default'
+const POLICIES_DRIVE_ID = 'b!policies'
+
+interface GraphRoute {
+  status?: number
+  body?: unknown
+  /** Serve `body` as bytes, for the `/content` endpoint the downloader reads. */
+  raw?: boolean
+}
+
+/** Folder-shaped drive item for children listings. */
+function folder(id: string, name: string) {
+  return { id, name, folder: { childCount: 0 } }
+}
+
+/**
+ * Installs a URL-keyed fake Graph. Any URL without a route replies 404, which is
+ * what makes the "falls through to the next layer" assertions meaningful.
+ */
+function mockGraph(routes: Record<string, GraphRoute>) {
+  const requested: string[] = []
+  mockFetchWithRetry.mockImplementation(async (url: string) => {
+    requested.push(url)
+    const route = routes[url] ?? { status: 404 }
+    const status = route.status ?? 200
+    const responseBytes = Buffer.from(
+      route.raw ? String(route.body ?? '') : JSON.stringify(route.body ?? {})
+    )
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      headers: new Headers({ 'content-length': String(responseBytes.byteLength) }),
+      json: async () => route.body,
+      text: async () => JSON.stringify(route.body ?? {}),
+      /** `readBodyWithLimit` falls back to this when there is no stream body. */
+      arrayBuffer: async () => responseBytes,
+    } as unknown as Response
+  })
+  return requested
+}
+
+const defaultDriveRoute = {
+  [`${GRAPH}/sites/${SITE_ID}/drive?$select=id,name,webUrl`]: {
+    body: {
+      id: DEFAULT_DRIVE_ID,
+      name: 'Documents',
+      webUrl: 'https://contoso.sharepoint.com/Shared%20Documents',
+    },
+  },
+}
+
+const sitesDrivesRoute = {
+  [`${GRAPH}/sites/${SITE_ID}/drives?$select=id,name,webUrl`]: {
+    body: {
+      value: [
+        {
+          id: DEFAULT_DRIVE_ID,
+          name: 'Documents',
+          webUrl: 'https://contoso.sharepoint.com/Shared%20Documents',
+        },
+        {
+          id: POLICIES_DRIVE_ID,
+          name: 'Policies',
+          webUrl: 'https://contoso.sharepoint.com/Policies',
+        },
+      ],
+    },
+  },
+}
+
+function rootChildren(driveId: string, items: unknown[]) {
+  return {
+    [`${GRAPH}/drives/${driveId}/root/children?$top=200&$select=id,name,folder`]: {
+      body: { value: items },
+    },
+  }
+}
+
+/** Builds a Graph pagination chain with an optional continuation beyond the final allowed page. */
+function paginatedRoutes(
+  initialUrl: string,
+  routePrefix: string,
+  pageCount: number,
+  continueAfterLast: boolean
+): Record<string, GraphRoute> {
+  const routes: Record<string, GraphRoute> = {}
+
+  for (let page = 0; page < pageCount; page++) {
+    const url = page === 0 ? initialUrl : `${GRAPH}/${routePrefix}/${page}`
+    const hasNextPage = page < pageCount - 1 || continueAfterLast
+    routes[url] = {
+      body: {
+        value: [],
+        ...(hasNextPage ? { '@odata.nextLink': `${GRAPH}/${routePrefix}/${page + 1}` } : {}),
+      },
+    }
+  }
+
+  return routes
+}
+
+function resolve(folderPath?: string) {
+  return resolveFolderTarget('token', SITE_ID, SITE_URL, 'Contoso', folderPath)
+}
+
+describe('resolveFolderTarget', () => {
+  it('strips a leading document-library name that is not a real folder', async () => {
+    mockGraph({
+      ...defaultDriveRoute,
+      ...sitesDrivesRoute,
+      [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/root:/00%20IWW%20Library`]: {
+        body: folder('folder-1', '00 IWW Library'),
+      },
+    })
+
+    await expect(resolve('Shared Documents/00 IWW Library')).resolves.toEqual({
+      driveId: DEFAULT_DRIVE_ID,
+      driveName: 'Documents',
+      folderId: 'folder-1',
+    })
+  })
+
+  it('prefers a real folder named "Documents" over the library-name interpretation', async () => {
+    mockGraph({
+      ...defaultDriveRoute,
+      ...sitesDrivesRoute,
+      [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/root:/Documents/Reports`]: {
+        body: folder('real-nested', 'Reports'),
+      },
+      [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/root:/Reports`]: {
+        body: folder('wrong-one', 'Reports'),
+      },
+    })
+
+    await expect(resolve('Documents/Reports')).resolves.toMatchObject({
+      folderId: 'real-nested',
+    })
+  })
+
+  it('recovers a folder whose real name contains a non-breaking space', async () => {
+    mockGraph({
+      ...defaultDriveRoute,
+      ...sitesDrivesRoute,
+      ...rootChildren(DEFAULT_DRIVE_ID, [
+        folder('other', 'Archive'),
+        folder('folder-1', '00\u00a0IWW Library'),
+      ]),
+    })
+
+    await expect(resolve('00 IWW Library')).resolves.toMatchObject({ folderId: 'folder-1' })
+  })
+
+  it('refuses to guess when two sibling folders normalize identically', async () => {
+    mockGraph({
+      ...defaultDriveRoute,
+      ...sitesDrivesRoute,
+      ...rootChildren(DEFAULT_DRIVE_ID, [
+        folder('a', '00 IWW Library'),
+        folder('b', '00\u00a0IWW  Library'),
+      ]),
+    })
+
+    await expect(resolve('00 IWW Library')).rejects.toThrow(/matches more than one folder/)
+  })
+
+  it('rejects a path that resolves to a file', async () => {
+    mockGraph({
+      ...defaultDriveRoute,
+      [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/root:/notes.txt`]: {
+        body: { id: 'f1', name: 'notes.txt', file: { mimeType: 'text/plain' } },
+      },
+    })
+
+    await expect(resolve('notes.txt')).rejects.toThrow(/is not a folder/)
+  })
+
+  it('rejects a document-library listing that continues beyond its safety limit', async () => {
+    const initialUrl = `${GRAPH}/sites/${SITE_ID}/drives?$select=id,name,webUrl`
+    mockGraph({
+      ...defaultDriveRoute,
+      ...paginatedRoutes(initialUrl, 'drive-pages', 20, true),
+    })
+
+    await expect(resolve('Missing')).rejects.toThrow(
+      /document-library listing exceeded the 20-page safety limit/
+    )
+  })
+
+  it('rejects a folder listing that continues beyond its safety limit', async () => {
+    const initialUrl = `${GRAPH}/drives/${DEFAULT_DRIVE_ID}/root/children?$top=200&$select=id,name,folder`
+    mockGraph({
+      ...defaultDriveRoute,
+      ...sitesDrivesRoute,
+      ...paginatedRoutes(initialUrl, 'folder-pages', 50, true),
+    })
+
+    await expect(resolve('Missing')).rejects.toThrow(
+      /folder listing exceeded the 50-page safety limit/
+    )
+  })
+
+  it('rejects a tokenized sharing link with actionable guidance', async () => {
+    mockGraph({ ...defaultDriveRoute })
+
+    await expect(resolve('https://contoso.sharepoint.com/:f:/s/hr/Ei4xAbC?e=xyz')).rejects.toThrow(
+      /address bar/
+    )
+  })
+})
+
+const ITEM_SELECT =
+  'id,name,webUrl,size,file,folder,package,remoteItem,lastModifiedDateTime,createdDateTime,createdBy,parentReference'
+
+/** File-shaped drive item for children listings. */
+function file(id: string, name: string) {
+  return {
+    id,
+    name,
+    size: 10,
+    file: { mimeType: 'text/plain' },
+    lastModifiedDateTime: '2026-01-01T00:00:00Z',
+  }
+}
+
+function childrenRoute(driveId: string, folderId: string | null, items: unknown[]) {
+  const base = folderId
+    ? `${GRAPH}/drives/${driveId}/items/${folderId}/children`
+    : `${GRAPH}/drives/${driveId}/root/children`
+  return { [`${base}?$top=200&$select=${ITEM_SELECT}`]: { body: { value: items } } }
+}
+
+/** Pre-resolved context, so listDocuments goes straight to the children walk. */
+function listContext() {
+  return { siteId: SITE_ID, siteName: 'Contoso', driveId: DEFAULT_DRIVE_ID }
+}
+
+function list(maxFiles: string | undefined, syncContext: Record<string, unknown>) {
+  return sharepointConnector.listDocuments(
+    'token',
+    { siteUrl: SITE_URL, maxFiles },
+    undefined,
+    syncContext
+  )
+}
+
+describe('listDocuments', () => {
+  it('flags the listing capped when the cap hides items inside the final page', async () => {
+    mockGraph(
+      childrenRoute(DEFAULT_DRIVE_ID, null, [
+        file('f1', 'a.txt'),
+        file('f2', 'b.txt'),
+        file('f3', 'c.txt'),
+      ])
+    )
+    const syncContext = listContext()
+
+    const result = await list('2', syncContext)
+
+    expect(result.documents).toHaveLength(2)
+    expect(result.hasMore).toBe(false)
+    expect(syncContext.listingCapped).toBe(true)
+  })
+
+  it('does not flag the listing capped when the cap lands on the last item', async () => {
+    mockGraph(childrenRoute(DEFAULT_DRIVE_ID, null, [file('f1', 'a.txt'), file('f2', 'b.txt')]))
+    const syncContext = listContext()
+
+    const result = await list('2', syncContext)
+
+    expect(result.documents).toHaveLength(2)
+    expect(result.hasMore).toBe(false)
+    expect(syncContext.listingCapped).toBeUndefined()
+  })
+
+  it('skips a subfolder the member cannot reach and keeps their listing complete', async () => {
+    mockGraph({
+      ...childrenRoute(DEFAULT_DRIVE_ID, null, [
+        file('f1', 'a.txt'),
+        folder('open', 'Open'),
+        folder('locked', 'Locked'),
+      ]),
+      [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/items/locked/children?$top=200&$select=${ITEM_SELECT}`]:
+        { status: 403, body: {} },
+      ...childrenRoute(DEFAULT_DRIVE_ID, 'open', [file('f2', 'b.txt')]),
+    })
+    const syncContext = { ...listContext(), ...PER_MEMBER_LISTING_CONTEXT }
+
+    const result = await list(undefined, syncContext)
+
+    expect(result.documents.map((doc) => doc.externalId)).toEqual(['f1', 'f2'])
+    expect(result.hasMore).toBe(false)
+    expect(syncContext.listingCapped).toBeUndefined()
+  })
+
+  it('still fails a shared listing on a subfolder it cannot reach', async () => {
+    mockGraph({
+      ...childrenRoute(DEFAULT_DRIVE_ID, null, [file('f1', 'a.txt'), folder('locked', 'Locked')]),
+    })
+
+    const error = await list(undefined, listContext()).catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(Error)
+    expect(sharepointConnector.isListingScopeUnavailableError!(error)).toBe(true)
+  })
+
+  it('does not retain irrelevant folders after maxFiles has stopped traversal', async () => {
+    mockGraph(
+      childrenRoute(DEFAULT_DRIVE_ID, null, [file('f1', 'a.txt'), folder('overflow', 'Overflow')])
+    )
+    const cursor = encodeMicrosoftGraphTraversalCursor(
+      {
+        folderStack: Array.from(
+          { length: MICROSOFT_GRAPH_MAX_PENDING_FOLDERS },
+          (_, index) => `pending-${index}`
+        ),
+      },
+      'SharePoint'
+    )
+    const syncContext = listContext()
+
+    const result = await sharepointConnector.listDocuments(
+      'token',
+      { siteUrl: SITE_URL, maxFiles: '1' },
+      cursor,
+      syncContext
+    )
+
+    expect(result.documents.map((document) => document.externalId)).toEqual(['f1'])
+    expect(result.hasMore).toBe(false)
+    expect(syncContext.listingCapped).toBe(true)
+  })
+})
+
+describe('SharePoint traversal working-set bound', () => {
+  it('stops before retaining a folder page beyond the ceiling', () => {
+    const pending = Array.from(
+      { length: MICROSOFT_GRAPH_MAX_PENDING_FOLDERS },
+      (_, index) => `pending-${index}`
+    )
+
+    expect(() => appendPendingMicrosoftGraphFolders(pending, ['overflow'], 'SharePoint')).toThrow(
+      /Narrow the connector/
+    )
+    expect(pending).toHaveLength(MICROSOFT_GRAPH_MAX_PENDING_FOLDERS)
+  })
+})
+
+describe('getDocument content extraction', () => {
+  function _itemRoute(itemId: string, name: string) {
+    return {
+      [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/items/${itemId}?$select=${ITEM_SELECT}`]: {
+        body: file(itemId, name),
+      },
+    }
+  }
+
+  /** The content endpoint is fetched directly, not through the JSON `graphGet`. */
+  function _contentRoute(itemId: string, body: string) {
+    return {
+      [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/items/${itemId}/content`]: { body, raw: true },
+    }
+  }
+
+  function get(externalId: string) {
+    return sharepointConnector.getDocument!(
+      'token',
+      { siteUrl: SITE_URL },
+      externalId,
+      listContext()
+    )
+  }
+
+  it.each([{}, { id: 'f1', name: 'Missing facet' }, file('different', 'a.txt')])(
+    'rejects malformed metadata instead of replacing retained content',
+    async (metadata) => {
+      mockGraph({
+        [`${GRAPH}/drives/${DEFAULT_DRIVE_ID}/items/f1?$select=${ITEM_SELECT}`]: {
+          body: metadata,
+        },
+      })
+
+      await expect(get('f1')).rejects.toThrow(
+        'Microsoft Graph returned malformed SharePoint item metadata'
+      )
+    }
+  )
+})
+
+describe('serverRelativePathFromUrl', () => {
+  it('returns null for a tokenized sharing link', () => {
+    expect(
+      serverRelativePathFromUrl(
+        'https://contoso.sharepoint.com/:f:/s/hr/Ei4xAbC',
+        'contoso.sharepoint.com'
+      )
+    ).toBeNull()
+  })
+})
+
+describe('listing scope', () => {
+  it.each([403, 404])(
+    'reads a %s on the configured site as a scope the caller cannot reach',
+    async (status) => {
+      mockGraph({ [`${GRAPH}/sites/${SITE_URL}`]: { status, body: {} } })
+
+      const error = await sharepointConnector
+        .listDocuments('token', { siteUrl: SITE_URL })
+        .catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(Error)
+      expect(sharepointConnector.isListingScopeUnavailableError!(error)).toBe(true)
+    }
+  )
+
+  it('keeps any other failure retryable', async () => {
+    mockGraph({ [`${GRAPH}/sites/${SITE_URL}`]: { status: 500, body: {} } })
+
+    const error = await sharepointConnector
+      .listDocuments('token', { siteUrl: SITE_URL })
+      .catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(Error)
+    expect(sharepointConnector.isListingScopeUnavailableError!(error)).toBe(false)
+  })
+})

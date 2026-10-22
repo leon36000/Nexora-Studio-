@@ -1,0 +1,149 @@
+---
+title: Using MCP tools
+description: Connect external MCP servers and control which operations your workflow agents can call.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+MCP, the [Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro), connects AI applications to external tools. Register a remote server in your workspace, authorize its connection, and give its operations to an **Agent** block or run them through an **MCP** block.
+
+Registrations are workspace-scoped. Add a separate registration in each workspace that needs the server. To connect an external app to Sim itself, use the [Sim MCP server](/mcp/overview), [workflow deployment MCP](/workflows/deployment/mcp), or [Search MCP](/search/mcp).
+
+## Add a server
+
+You need **Write** or **Admin** access. Sim supports remote **Streamable HTTP** servers; a local stdio command is not a supported registration.
+
+1. Open **Settings → MCP tools** and select **Add server**. You can also select **Add MCP Server** in an Agent's **Tools** menu.
+2. Enter the **Server Name** and **Server URL**.
+3. Add authentication **Headers** if the provider requires them. Use saved secret references for sensitive values.
+4. If the provider requires an OAuth client that cannot be registered automatically, open **Advanced settings** and enter its **Client ID** and **Client Secret**.
+5. Select **Add server**. Sim tests the connection before saving.
+6. For OAuth authentication, select **Authorize** on the saved server and complete browser sign-in.
+
+Open the server detail to inspect **Tools**, including parameter names, types, and required flags. A successful connection can expose no tools. When editing a registration, use **Test connection** to check connectivity.
+
+The registration uses `streamable-http` and defaults to a 30,000 ms connection timeout. These are configuration values rather than selectable controls in the form. Each connection attempt is capped at 60,000 ms. OAuth requires HTTPS outside loopback development.
+
+**Edit JSON** accepts a remote configuration with a named `mcpServers` entry containing `url` and optional `headers`, or a configuration containing `url` directly. If several entries are present, it reads the first. It does not import a desktop client's executable command configuration.
+
+### Secrets in URLs and headers
+
+URLs and headers support `{{VAR_NAME}}` substitution from available saved secrets. Type `{{` in either field to open the secret picker:
+
+```text
+URL: https://api.example.com/mcp
+Authorization: Bearer {{MCP_API_TOKEN}}
+```
+
+When a secret is successfully substituted, Sim masks exact recognized values in stored MCP tool-call traces unless the secret's visibility setting exempts them. The real credentials are used for the provider request. See [Execution log protection](/platform/credentials#execution-log-protection) for model projection, visibility exceptions, and encoded or transformed values.
+
+### Connection identity
+
+Ordinary OAuth registrations use the acting user's OAuth connection. Unattended workflow runs use the run's trusted execution actor. Each member who needs an ordinary OAuth connection may need to authorize their own account.
+
+A managed connection uses the explicitly selected [Credential Group connection](/platform/connected-accounts) and its access grants. Servers managed by Connected accounts are configured there.
+
+<Callout type="warn">
+MCP calls use the authorized connection's headers or OAuth credential. Review its operations before giving them to an Agent, and restrict access where needed. Allowing a generic operation such as `execute_sql` does not restrict the SQL it can run.
+</Callout>
+
+## Add tools to an Agent
+
+1. Open an **Agent** block with a model that supports tools.
+2. Under **Tools**, select **Add tool...**.
+3. In **MCP Servers**, open the configured server.
+4. Select individual tools, or select **Configure operations access** to attach the server with an access policy.
+
+Individual tools expose their argument fields. The Agent chooses when to call the tools and supplies model-controlled inputs. Per-tool **Permission Mode** and current workspace, credential, and organization authorization still apply.
+
+### Dynamic server attachment
+
+Select **MCP Server (Advanced)** to supply a server or managed-connection ID directly, or reference an upstream value. The **Tool IDs** field accepts literal exact operation names, such as `search_docs`, without a Sim server prefix. These fields use plain inputs rather than server or operation catalog pickers.
+
+Operation names in **Tool IDs** are configuration, not model arguments or upstream references. The policy applies to whichever authorized connection the server reference resolves to at runtime.
+
+### Operations access
+
+| Mode | Behavior |
+| --- | --- |
+| **Only selected** | Allows the selected exact operation names. An empty selection allows nothing; newly discovered names stay excluded. |
+| **All except selected** | Denies the selected exact names. An empty selection allows everything otherwise permitted. Denied names remain saved if they temporarily disappear. |
+| **All permitted** | Allows every operation available to the authorized credential. |
+
+New restricted attachments start with an empty explicit selection. Existing saved configurations retain their prior access through normalization, subject to current authorization.
+
+The policy is saved on the Agent attachment. Discovery filters the tools offered to the model, and execution checks the resolved server, connection, and policy again before calling the provider. Names are case-sensitive. The policy can narrow credential access; it cannot grant access the credential lacks.
+
+Missing or forbidden operations, invalid connection scopes, unverifiable schemas, and malformed arguments fail the call. An Agent attachment with no permitted operations fails clearly. Operation restrictions match names; they do not inspect arguments.
+
+## Run or list operations with an MCP block
+
+Use an **MCP** block for explicit execution or authorized operation discovery. Select its **Action**:
+
+- **Run operation** executes one exact operation name. Configured operations show generated argument fields. If the name resolves at runtime, supply a JSON arguments object; Sim validates it against the discovered schema before execution.
+- **List operations** returns authorized operation names, descriptions, and input schemas without executing provider operations. **Search operations** filters names and descriptions. **Page size** accepts 1–100 and defaults to 100; it and **Cursor** are advanced fields.
+
+In Basic mode, select a configured connection under **MCP Server** and a discovered **Operation**. In Advanced mode, enter literal IDs/names or references. A runtime server reference requires JSON arguments. Listing hides the operation and argument fields.
+
+**MCP Server** accepts one shared-server ID or managed-connection ID. Sim resolves a managed connection's parent server and verifies workspace and credential access. Both actions use the same identifier. The standalone block runs its specified operation and has no separate Agent attachment policy.
+
+### Outputs and pagination
+
+| Output | Meaning |
+| --- | --- |
+| `serverId` | The supplied server or managed-connection ID |
+| `operations` | Listed operations with `name`, `description`, and `inputSchema` |
+| `nextCursor` | Cursor for the next list page, or `null` |
+| `hasMore` | Whether more authorized operations remain in the discovered inventory |
+| `content` | The MCP content array returned by a run operation |
+
+While `hasMore` is true, pass `nextCursor` into **Cursor** on the next list request. An authorized list can be empty. This pagination does not bypass the discovery limits below.
+
+## Refresh and troubleshoot
+
+Use **Refresh** on the server detail to fetch current schemas. Matching individual MCP bindings in draft Agent blocks receive updated schemas and server metadata. Removed operations remain referenced and can fail; review validation badges to see affected workflows. Deploy an updated draft when the deployed version needs those changes. Dynamic attachments discover authorized tools when they run.
+
+Discovery normally uses a five-minute cache. Failed server probes can be cached for two minutes; Refresh forces a retry. A cached or partially discovered inventory does not prove the provider has no other operations.
+
+### Discovery limits
+
+Client discovery follows the provider's `tools/list` pages within these bounds:
+
+| Budget | Hard limit |
+| --- | --- |
+| Pages | 50 |
+| Aggregated tools | 1,000 |
+| Combined tool payload | 5 MiB |
+| Aggregate discovery time | 60 seconds |
+
+Repeated provider cursors also stop discovery. Settings discovery may return a partial inventory after a bound or later-page failure. Runtime discovery requires completion and fails if the inventory is truncated. The standalone block's page size applies after this discovery and authorization.
+
+If a call fails, check the server's connectivity, authorization, current schema, and saved access policy. An Agent can receive the tool error and respond or try another action; a standalone block uses the workflow's configured error handling. Verify the provider's state before repeating an operation that may have side effects.
+
+## Permissions
+
+| Action | Required workspace role |
+| --- | --- |
+| View, discover, or execute available MCP operations | Read, Write, or Admin |
+| Register, edit, refresh, or delete external servers | Write or Admin |
+| Change a registered server's destination host or path | Admin |
+
+Adding or changing a workflow's tools also requires workflow edit access. Credential grants and organization permission-group restrictions apply separately. On Enterprise-entitled workspaces, a workspace Admin can configure `disableMcpTools` through [permission groups](/platform/enterprise/access-control).
+
+These permissions govern external server registrations. [Workflow MCP deployment](/workflows/deployment/mcp) has its own management and invocation requirements.
+
+## Self-hosted network policy
+
+Set `ALLOWED_MCP_DOMAINS` to a comma-separated list of exact approved hostnames to restrict server domains. When unset, there is no domain allowlist restriction.
+
+Domain approval and network reachability are separate checks. Private-address servers also need `EGRESS_ALLOWED_HOSTS` or `EGRESS_ALLOWED_IP_RANGES`; see [the SSRF boundary](/platform/self-hosting/security#the-ssrf-boundary).
+
+The domain allowlist applies to the configured server URL. For OAuth, an endpoint on that server's origin retains its reachability. An endpoint named by metadata on a different origin is treated as fetched content and must be publicly routable under the egress policy.
+
+## Related docs
+
+- [Choosing what to use](/agents/choosing)
+- [Connected accounts](/platform/connected-accounts)
+- [Sim MCP server](/mcp/overview)
+- [Workflow deployment MCP](/workflows/deployment/mcp)
+- [Search MCP](/search/mcp)

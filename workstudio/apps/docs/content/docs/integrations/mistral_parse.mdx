@@ -1,0 +1,67 @@
+---
+title: Mistral Parser
+description: Extract text from PDF documents
+integration:
+  type: "mistral_parse_v3"
+  color: "#000000"
+---
+
+import { ReferenceDetails } from "@/components/ui/reference-details"
+
+
+{/* MANUAL-CONTENT-START:intro */}
+Use [Mistral's OCR API](https://mistral.ai/) to extract text and page structure from a PDF uploaded to Sim or supplied by URL. The current parser returns page Markdown, image metadata, the model, and usage information. **Specific Pages** accepts zero-based indices such as `0,1,2`; leave it empty to process all pages. The block offers Markdown, plain-text, and JSON format values, but its current result uses the structured page output documented below. Base64 image data is a hidden tool input and has no block control.
+{/* MANUAL-CONTENT-END */}
+
+## Use the block [#usage-instructions]
+
+Extract text from uploaded PDF documents, or from a URL.
+
+## Actions
+
+### Mistral PDF Parser
+
+Parse PDF documents using Mistral OCR API
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `file` | file | Yes | Normalized UserFile from file upload or file reference |
+| `resultType` | string | No | Legacy parser output format \(markdown, text, or json; default markdown\). Versions 2 and 3 return structured OCR pages regardless of this value. |
+| `pages` | array | No | Specific pages to process \(array of page numbers, starting from 0\) |
+| `apiKey` | string | Yes | Mistral API key \(MISTRAL_API_KEY\) |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `pages` | array | Array of page objects from Mistral OCR |
+|   ↳ `index` | number | Page index \(zero-based\) |
+|   ↳ `markdown` | string | Extracted markdown content |
+|   ↳ `images` | array | Images extracted from this page with bounding boxes |
+|     ↳ `id` | string | Image identifier \(e.g., img-0.jpeg\) |
+|     ↳ `top_left_x` | number | Top-left X coordinate in pixels |
+|     ↳ `top_left_y` | number | Top-left Y coordinate in pixels |
+|     ↳ `bottom_right_x` | number | Bottom-right X coordinate in pixels |
+|     ↳ `bottom_right_y` | number | Bottom-right Y coordinate in pixels |
+|     ↳ `image_base64` | string | Base64-encoded image data; returned only when the hidden includeImageBase64 input is enabled |
+|   ↳ `dimensions` | object | Page dimensions |
+|     ↳ `dpi` | number | Dots per inch |
+|     ↳ `height` | number | Page height in pixels |
+|     ↳ `width` | number | Page width in pixels |
+|   ↳ `tables` | array | Separate table objects, referenced from the markdown via placeholders like \[tbl-0.html\]. Mistral populates these only when table_format is "markdown" or "html"; Sim never sets it, so tables stay inline in the markdown and this list is empty |
+|   ↳ `hyperlinks` | array | Array of URL strings detected in the page \(e.g., \["https://...", "mailto:..."\]\) |
+|   ↳ `header` | string | Page header content. Mistral returns it only when extract_header is true \(it defaults to false\); Sim never sets it, so this is not returned |
+|   ↳ `footer` | string | Page footer content. Mistral returns it only when extract_footer is true \(it defaults to false\); Sim never sets it, so this is not returned |
+| `model` | string | Mistral OCR model identifier \(e.g., mistral-ocr-latest\) |
+| `usage_info` | object | Usage and processing statistics |
+|   ↳ `pages_processed` | number | Total number of pages processed |
+|   ↳ `doc_size_bytes` | number | Document file size in bytes |
+| `document_annotation` | string | Structured annotation data as JSON string \(when applicable\) |
+
+</ReferenceDetails>
+
+

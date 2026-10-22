@@ -1,0 +1,123 @@
+import type {
+  GrafanaUpdateAnnotationParams,
+  GrafanaUpdateAnnotationResponse,
+} from '@/tools/grafana/types'
+import type { ToolConfig } from '@/tools/types'
+
+export const updateAnnotationTool: ToolConfig<
+  GrafanaUpdateAnnotationParams,
+  GrafanaUpdateAnnotationResponse
+> = {
+  id: 'grafana_update_annotation',
+  name: 'Grafana Update Annotation',
+  description: 'Update an existing annotation',
+  version: '1.0.0',
+
+  params: {
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grafana Service Account Token',
+    },
+    baseUrl: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Grafana instance URL (e.g., https://your-grafana.com)',
+    },
+    organizationId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Organization ID for multi-org Grafana instances (e.g., 1, 2)',
+    },
+    annotationId: {
+      type: 'number',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The ID of the annotation to update',
+    },
+    text: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'New text content for the annotation (PATCH supports partial updates)',
+    },
+    tags: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Comma-separated list of new tags',
+    },
+    time: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'New start time in epoch milliseconds (e.g., 1704067200000)',
+    },
+    timeEnd: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'New end time in epoch milliseconds (e.g., 1704153600000)',
+    },
+  },
+
+  request: {
+    url: (params) => `${params.baseUrl.replace(/\/$/, '')}/api/annotations/${params.annotationId}`,
+    method: 'PATCH',
+    headers: (params) => {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${params.apiKey}`,
+      }
+      if (params.organizationId) {
+        headers['X-Grafana-Org-Id'] = params.organizationId
+      }
+      return headers
+    },
+    body: (params) => {
+      const body: Record<string, unknown> = {}
+
+      if (params.text !== undefined) body.text = params.text
+      if (params.time) body.time = params.time
+      if (params.timeEnd) body.timeEnd = params.timeEnd
+
+      if (params.tags) {
+        body.tags = params.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter((t) => t)
+      }
+
+      return body
+    },
+  },
+
+  transformResponse: async (response: Response, params) => {
+    const data = await response.json()
+
+    return {
+      success: true,
+      output: {
+        annotationId: params?.annotationId ?? null,
+        message: (data.message as string) ?? null,
+      },
+    }
+  },
+
+  outputs: {
+    annotationId: {
+      type: 'number',
+      description:
+        'The annotation that was updated, echoed from the request — Grafana answers a patch with only a message and returns no id',
+      nullable: true,
+    },
+    message: {
+      type: 'string',
+      description: `Confirmation message from Grafana, e.g. "Annotation patched"`,
+      nullable: true,
+    },
+  },
+}

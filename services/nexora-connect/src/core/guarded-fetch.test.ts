@@ -1,0 +1,767 @@
+import type { GuardedFetchDnsLookup } from "./guarded-fetch.ts";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  createGuardedFetch,
+  crossOriginSafeHeaders,
+  resolveGuardedEgressTarget,
+  unwrapGuardedFetch,
+} from "./guarded-fetch.ts";
+import { setEgressTrustedHosts } from "./request.ts";
+
+interface RecordedCall {
+  url: string;
+  init: RequestInit | undefined;
+  request: Request | undefined;
+}
+
+function createTransport(responses: Response[]): { transport: typeof fetch; calls: RecordedCall[] } {
+  const calls: RecordedCall[] = [];
+  const transport = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    calls.push({
+      url: input instanceof Request ? input.url : String(input),
+      init,
+      request: input instanceof Request ? input : undefined,
+    });
+    const response = responses.shift();
+    if (!response) {
+      throw new Error("transport received an unexpected extra request");
+    }
+    return response;
+  }) as typeof fetch;
+  return { transport, calls };
+}
+
+function redirectTo(location: string, status = 302): Response {
+  return new Response(null, { status, headers: { location } });
+}
+
+function lookupTable(entries: Record<string, Array<{ address: string; family: number }>>): GuardedFetchDnsLookup {
+  return async (hostname: string) => {
+    const result = entries[hostname];
+    if (!result) {
+      throw new Error(`no lookup entry for ${hostname}`);
+    }
+    return result;
+  };
+}
+
+describe("resolveGuardedEgressTarget", () => {
+  it("returns every screened address for transports that pin DNS results", async () => {
+    const addresses = [
+      { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 },
+      { address: "93.184.216.34", family: 4 },
+    ];
+
+    const target = await resolveGuardedEgressTarget("https://MAIL.EXAMPLE.COM", {
+      fieldName: "mail host",
+      createError: (message) => new Error(message),
+      lookup: async () => addresses,
+    });
+
+    expect(target.url.hostname).toBe("mail.example.com");
+    expect(target.addresses).toEqual(addresses);
+  });
+
+  it("lets non-fetch transports classify DNS failures separately", async () => {
+    await expect(
+      resolveGuardedEgressTarget("https://mail.example.com", {
+        fieldName: "mail host",
+        createError: (message) => new Error(`guard: ${message}`),
+        createResolutionError: (message) => new Error(`dns: ${message}`),
+        lookup: async () => [],
+      }),
+    ).rejects.toThrow("dns: mail host could not be resolved for validation");
+  });
+});
+
+// Every header the cross-origin rule keeps, with a value of the shape the header
+// really carries. The 307 test sends the whole set in one hop and the fixture is
+// pinned name-for-name against `crossOriginSafeHeaders` below, so a trim fails
+// here instead of silently breaking a provider mid-upload, and a widening fails
+// here instead of silently re-opening the leak.
+const crossOriginSafeHeaderFixture: Record<string, string> = {
+  accept: "application/json",
+  "accept-charset": "utf-8",
+  "accept-encoding": "gzip",
+  "accept-language": "en-US",
+  "cache-control": "no-cache",
+  "content-disposition": 'attachment; filename="chunk.bin"',
+  "content-encoding": "identity",
+  "content-language": "en",
+  "content-length": "10",
+  "content-md5": "1B2M2Y8AsgTpgAmY7PhCfg==",
+  "content-range": "bytes 0-9/100",
+  "content-type": "application/octet-stream",
+  dnt: "1",
+  "idempotency-key": "abc",
+  "if-match": '"etag-1"',
+  "if-modified-since": "Wed, 21 Oct 2015 07:28:00 GMT",
+  "if-none-match": '"etag-2"',
+  "if-unmodified-since": "Wed, 21 Oct 2015 07:28:00 GMT",
+  range: "bytes=0-9",
+  "user-agent": "oomol-connect/0.1",
+  "x-correlation-id": "cid",
+  "x-request-id": "req-1",
+  "x-trace": "trace-1",
+};
+
+describe("createGuardedFetch redirects", () => {
+  it("follows public redirects with manual hops and returns the final response", async () => {
+    const { transport, calls } = createTransport([
+      redirectTo("https://cdn.example.net/file"),
+      new Response("payload", { status: 200 }),
+    ]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    const response = await guarded("https://api.example.com/download", { headers: { accept: "text/plain" } });
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("payload");
+    expect(calls.map((call) => call.url)).toEqual(["https://api.example.com/download", "https://cdn.example.net/file"]);
+    expect(calls.every((call) => call.init?.redirect === "manual")).toBe(true);
+  });
+
+  it("resolves relative redirect locations against the current URL", async () => {
+    const { transport, calls } = createTransport([redirectTo("/v2/download"), new Response("ok", { status: 200 })]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    await guarded("https://api.example.com/v1/download");
+
+    expect(calls[1]?.url).toBe("https://api.example.com/v2/download");
+  });
+
+  it("blocks redirects to metadata, loopback, link-local, and private targets by default", async () => {
+    for (const location of [
+      "http://169.254.169.254/latest/meta-data/",
+      "http://127.0.0.1:8080/admin",
+      "http://localhost:3000/",
+      "http://10.0.0.5/internal",
+      "http://metadata.google.internal/computeMetadata/v1/",
+      "https://[::1]/",
+    ]) {
+      const { transport, calls } = createTransport([redirectTo(location)]);
+      const guarded = createGuardedFetch({ fetch: transport });
+
+      await expect(guarded("https://attacker.example.com/api")).rejects.toThrow(/redirect location/u);
+      expect(calls).toHaveLength(1);
+    }
+  });
+
+  it("keeps reserved targets blocked on redirects even when private networks are allowed", async () => {
+    const { transport, calls } = createTransport([redirectTo("http://169.254.169.254/latest/meta-data/")]);
+    const guarded = createGuardedFetch({ fetch: transport, allowPrivateNetwork: () => true });
+
+    await expect(guarded("https://attacker.example.com/api")).rejects.toThrow(/redirect location/u);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("allows private redirect targets when the caller opted into private networks", async () => {
+    const { transport, calls } = createTransport([
+      redirectTo("http://10.0.0.5:3000/api"),
+      new Response("ok", { status: 200 }),
+    ]);
+    const guarded = createGuardedFetch({ fetch: transport, allowPrivateNetwork: () => true });
+
+    const response = await guarded("https://dokploy.example.com/api");
+
+    expect(response.status).toBe(200);
+    expect(calls[1]?.url).toBe("http://10.0.0.5:3000/api");
+  });
+
+  it("rejects non-http redirect schemes", async () => {
+    const { transport } = createTransport([redirectTo("ftp://files.example.com/x")]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    await expect(guarded("https://api.example.com/")).rejects.toThrow(/redirect location/u);
+  });
+
+  it("fails after too many redirect hops", async () => {
+    const { transport, calls } = createTransport([
+      redirectTo("https://api.example.com/1"),
+      redirectTo("https://api.example.com/2"),
+      redirectTo("https://api.example.com/3"),
+    ]);
+    const guarded = createGuardedFetch({ fetch: transport, maxRedirects: 2 });
+
+    await expect(guarded("https://api.example.com/0")).rejects.toThrow("redirected too many times");
+    expect(calls).toHaveLength(3);
+  });
+
+  it("follows a long public redirect chain by default (parity with native follow)", async () => {
+    // Previously provider egress used native redirect:"follow" (up to ~20 hops);
+    // the default must not fail a legitimate 6-hop CDN/signed-URL chain.
+    const responses = [];
+    for (let i = 1; i <= 6; i++) {
+      responses.push(redirectTo(`https://cdn.example.net/${i}`));
+    }
+    responses.push(new Response("payload", { status: 200 }));
+    const { transport, calls } = createTransport(responses);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    const response = await guarded("https://api.example.com/download");
+
+    expect(response.status).toBe(200);
+    expect(calls).toHaveLength(7);
+  });
+
+  it("returns redirect responses without a location header unchanged", async () => {
+    const { transport } = createTransport([new Response(null, { status: 302 })]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    const response = await guarded("https://api.example.com/");
+
+    expect(response.status).toBe(302);
+  });
+
+  it("rewrites POST to GET and drops the body on 301, 302, and 303 redirects", async () => {
+    for (const status of [301, 302, 303]) {
+      const { transport, calls } = createTransport([
+        redirectTo("https://api.example.com/next", status),
+        new Response("ok", { status: 200 }),
+      ]);
+      const guarded = createGuardedFetch({ fetch: transport });
+
+      await guarded("https://api.example.com/create", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ a: 1 }),
+      });
+
+      expect(calls[1]?.init?.method).toBe("GET");
+      expect(calls[1]?.init?.body).toBeUndefined();
+      expect(new Headers(calls[1]?.init?.headers).has("content-type")).toBe(false);
+    }
+  });
+
+  it("preserves method and body on 307 and 308 redirects", async () => {
+    for (const status of [307, 308]) {
+      const { transport, calls } = createTransport([
+        redirectTo("https://api.example.com/next", status),
+        new Response("ok", { status: 200 }),
+      ]);
+      const guarded = createGuardedFetch({ fetch: transport });
+
+      await guarded("https://api.example.com/create", { method: "POST", body: "payload" });
+
+      expect(calls[1]?.init?.method).toBe("POST");
+      expect(calls[1]?.init?.body).toBe("payload");
+    }
+  });
+
+  it("keeps non-POST methods on 301 and 302 redirects", async () => {
+    const { transport, calls } = createTransport([
+      redirectTo("https://api.example.com/next", 301),
+      new Response("ok", { status: 200 }),
+    ]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    await guarded("https://api.example.com/item", { method: "DELETE" });
+
+    expect(calls[1]?.init?.method).toBe("DELETE");
+  });
+
+  it("strips credential headers on cross-origin redirects and keeps them same-origin", async () => {
+    const { transport, calls } = createTransport([
+      redirectTo("https://api.example.com/moved"),
+      redirectTo("https://other.example.net/away"),
+      new Response("ok", { status: 200 }),
+    ]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    await guarded("https://api.example.com/", {
+      headers: {
+        authorization: "Bearer secret",
+        cookie: "sid=1",
+        "x-api-key": "provider-secret",
+        "x-auth-token": "tok",
+        "x-seq-apikey": "seq-secret",
+        "x-acs-security-token": "aliyun-sts-secret",
+        "x-n8n-api-key": "n8n-secret",
+        "x-shopify-access-token": "shopify-secret",
+        "x-vtex-api-appkey": "vtex-app-key",
+        "x-vtex-api-apptoken": "vtex-app-token",
+        "x-tomba-key": "tomba-secret",
+        "client-token": "client-secret",
+        "x-session-key": "session-secret",
+        "x-redmine-api-key": "redmine-secret",
+        authkey: "authkey-secret",
+        "x-oksign-authorization": "oksign-secret",
+        "x-filesapi-key": "files-secret",
+        "x-trace": "keep",
+        // Look-alike but non-credential headers must survive cross-origin.
+        "idempotency-key": "abc",
+        "x-correlation-id": "cid",
+      },
+    });
+
+    const sameOriginHeaders = new Headers(calls[1]?.init?.headers);
+    expect(sameOriginHeaders.get("authorization")).toBe("Bearer secret");
+    expect(sameOriginHeaders.get("x-api-key")).toBe("provider-secret");
+    expect(sameOriginHeaders.get("x-seq-apikey")).toBe("seq-secret");
+    expect(sameOriginHeaders.get("x-acs-security-token")).toBe("aliyun-sts-secret");
+    expect(sameOriginHeaders.get("x-n8n-api-key")).toBe("n8n-secret");
+    expect(sameOriginHeaders.get("x-shopify-access-token")).toBe("shopify-secret");
+    expect(sameOriginHeaders.get("x-vtex-api-appkey")).toBe("vtex-app-key");
+    expect(sameOriginHeaders.get("x-vtex-api-apptoken")).toBe("vtex-app-token");
+    expect(sameOriginHeaders.get("x-tomba-key")).toBe("tomba-secret");
+    expect(sameOriginHeaders.get("client-token")).toBe("client-secret");
+    expect(sameOriginHeaders.get("x-session-key")).toBe("session-secret");
+    expect(sameOriginHeaders.get("x-redmine-api-key")).toBe("redmine-secret");
+    expect(sameOriginHeaders.get("authkey")).toBe("authkey-secret");
+    expect(sameOriginHeaders.get("x-oksign-authorization")).toBe("oksign-secret");
+    expect(sameOriginHeaders.get("x-filesapi-key")).toBe("files-secret");
+    const crossOriginHeaders = new Headers(calls[2]?.init?.headers);
+    expect(crossOriginHeaders.has("authorization")).toBe(false);
+    expect(crossOriginHeaders.has("cookie")).toBe(false);
+    expect(crossOriginHeaders.has("x-api-key")).toBe(false);
+    expect(crossOriginHeaders.has("x-auth-token")).toBe(false);
+    expect(crossOriginHeaders.has("x-seq-apikey")).toBe(false);
+    expect(crossOriginHeaders.has("x-acs-security-token")).toBe(false);
+    expect(crossOriginHeaders.has("x-n8n-api-key")).toBe(false);
+    expect(crossOriginHeaders.has("x-shopify-access-token")).toBe(false);
+    expect(crossOriginHeaders.has("x-vtex-api-appkey")).toBe(false);
+    expect(crossOriginHeaders.has("x-vtex-api-apptoken")).toBe(false);
+    expect(crossOriginHeaders.has("x-tomba-key")).toBe(false);
+    expect(crossOriginHeaders.has("client-token")).toBe(false);
+    expect(crossOriginHeaders.has("x-session-key")).toBe(false);
+    expect(crossOriginHeaders.has("x-redmine-api-key")).toBe(false);
+    expect(crossOriginHeaders.has("authkey")).toBe(false);
+    expect(crossOriginHeaders.has("x-oksign-authorization")).toBe(false);
+    expect(crossOriginHeaders.has("x-filesapi-key")).toBe(false);
+    expect(crossOriginHeaders.get("x-trace")).toBe("keep");
+    expect(crossOriginHeaders.get("idempotency-key")).toBe("abc");
+    expect(crossOriginHeaders.get("x-correlation-id")).toBe("cid");
+  });
+
+  it("drops every unlisted header on a cross-origin redirect and keeps the safe set", async () => {
+    const { transport, calls } = createTransport([
+      redirectTo("https://api.example.com/moved"),
+      redirectTo("https://other.example.net/away"),
+      new Response("ok", { status: 200 }),
+    ]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    await guarded("https://api.example.com/", {
+      headers: {
+        // Provider credential headers no name list enumerated ahead of time.
+        "x-esri-authorization": "Bearer esri-secret",
+        "x-els-insttoken": "insttoken-secret",
+        secret: "autotask-secret",
+        session: "tanium-secret",
+        web_api_key: "finerworks-secret",
+        // A real stored credential (autotask) whose name matches no credential
+        // word, plus a header that is neither safe-listed nor credential-shaped.
+        // Both pin the rule as deny-by-default rather than a smarter heuristic.
+        apiintegrationcode: "autotask-integration-code",
+        "x-vendor-quirk": "anything",
+        // Non-credential headers that must survive a cross-origin hop.
+        "x-trace": "keep",
+        "idempotency-key": "abc",
+        "x-correlation-id": "cid",
+      },
+    });
+
+    const sameOriginHeaders = new Headers(calls[1]?.init?.headers);
+    expect(sameOriginHeaders.get("x-esri-authorization")).toBe("Bearer esri-secret");
+    expect(sameOriginHeaders.get("x-els-insttoken")).toBe("insttoken-secret");
+    expect(sameOriginHeaders.get("secret")).toBe("autotask-secret");
+    expect(sameOriginHeaders.get("session")).toBe("tanium-secret");
+    expect(sameOriginHeaders.get("web_api_key")).toBe("finerworks-secret");
+    expect(sameOriginHeaders.get("apiintegrationcode")).toBe("autotask-integration-code");
+    expect(sameOriginHeaders.get("x-vendor-quirk")).toBe("anything");
+    expect(sameOriginHeaders.get("x-trace")).toBe("keep");
+    expect(sameOriginHeaders.get("idempotency-key")).toBe("abc");
+    expect(sameOriginHeaders.get("x-correlation-id")).toBe("cid");
+    const crossOriginHeaders = new Headers(calls[2]?.init?.headers);
+    expect(crossOriginHeaders.has("x-esri-authorization")).toBe(false);
+    expect(crossOriginHeaders.has("x-els-insttoken")).toBe(false);
+    expect(crossOriginHeaders.has("secret")).toBe(false);
+    expect(crossOriginHeaders.has("session")).toBe(false);
+    expect(crossOriginHeaders.has("web_api_key")).toBe(false);
+    expect(crossOriginHeaders.has("apiintegrationcode")).toBe(false);
+    expect(crossOriginHeaders.has("x-vendor-quirk")).toBe(false);
+    expect(crossOriginHeaders.get("x-trace")).toBe("keep");
+    expect(crossOriginHeaders.get("idempotency-key")).toBe("abc");
+    expect(crossOriginHeaders.get("x-correlation-id")).toBe("cid");
+  });
+
+  it("pins the cross-origin safe list name-for-name to the fixture the redirect tests send", () => {
+    // Without this, adding a provider credential name to the safe list passes
+    // every other test: the 307 assertion compares the redirected hop against
+    // the fixture it sent, not against the list, so a name added to the list and
+    // never sent is invisible. Widening the rule has to be a two-place edit.
+    expect([...crossOriginSafeHeaders].sort()).toEqual(Object.keys(crossOriginSafeHeaderFixture).sort());
+  });
+
+  it("keeps every safe-listed header and nothing else on a cross-origin 307 redirect", async () => {
+    const { transport, calls } = createTransport([
+      redirectTo("https://cdn.example.net/upload", 307),
+      new Response("ok", { status: 200 }),
+    ]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    await guarded("https://api.example.com/upload", {
+      method: "PUT",
+      headers: { ...crossOriginSafeHeaderFixture, authorization: "Bearer secret" },
+      body: "0123456789",
+    });
+
+    expect(calls[1]?.init?.method).toBe("PUT");
+    expect(calls[1]?.init?.body).toBe("0123456789");
+    const redirectedHeaders = new Headers(calls[1]?.init?.headers);
+    expect(Object.fromEntries(redirectedHeaders.entries())).toEqual(crossOriginSafeHeaderFixture);
+  });
+
+  it("drops a caller-declared sensitive header with or without additionalSensitiveHeaders", async () => {
+    const headers = { "x-provider-credential": "secret", "x-trace": "keep" };
+    const declared = createTransport([
+      redirectTo("https://other.example.net/away"),
+      new Response("ok", { status: 200 }),
+    ]);
+    const undeclared = createTransport([
+      redirectTo("https://other.example.net/away"),
+      new Response("ok", { status: 200 }),
+    ]);
+
+    await createGuardedFetch({
+      fetch: declared.transport,
+      additionalSensitiveHeaders: ["X-Provider-Credential"],
+    })("https://api.example.com/", { headers });
+    await createGuardedFetch({ fetch: undeclared.transport })("https://api.example.com/", { headers });
+
+    // `additionalSensitiveHeaders` is inert: the safe list already drops the
+    // header, so both runs must reach the redirect target with the same headers.
+    const declaredHeaders = new Headers(declared.calls[1]?.init?.headers);
+    expect(declaredHeaders.has("x-provider-credential")).toBe(false);
+    expect(declaredHeaders.get("x-trace")).toBe("keep");
+    expect(Object.fromEntries(new Headers(undeclared.calls[1]?.init?.headers).entries())).toEqual(
+      Object.fromEntries(declaredHeaders.entries()),
+    );
+  });
+
+  it("passes through when the caller handles redirects manually", async () => {
+    const { transport, calls } = createTransport([redirectTo("http://169.254.169.254/")]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    const response = await guarded("https://api.example.com/", { redirect: "manual" });
+
+    expect(response.status).toBe(302);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.init?.redirect).toBe("manual");
+  });
+
+  it("passes redirect error mode through to the transport", async () => {
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    await guarded("https://api.example.com/", { redirect: "error" });
+
+    expect(calls[0]?.init?.redirect).toBe("error");
+  });
+});
+
+describe("createGuardedFetch request URL guard", () => {
+  it("blocks unsafe initial URLs before any request is issued", async () => {
+    const { transport, calls } = createTransport([]);
+    const guarded = createGuardedFetch({ fetch: transport });
+
+    for (const url of ["http://127.0.0.1/", "http://169.254.169.254/", "http://10.0.0.5/", "file:///etc/passwd"]) {
+      await expect(guarded(url)).rejects.toThrow(/request URL/u);
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it("uses the caller error factory for guard violations", async () => {
+    class PolicyError extends Error {}
+    const { transport } = createTransport([]);
+    const guarded = createGuardedFetch({ fetch: transport, createError: (message) => new PolicyError(message) });
+
+    await expect(guarded("http://127.0.0.1/")).rejects.toBeInstanceOf(PolicyError);
+  });
+
+  it("resolves the global fetch per call so test stubs apply", async () => {
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    vi.stubGlobal("fetch", transport);
+    try {
+      const guarded = createGuardedFetch();
+      await guarded("https://api.example.com/");
+      expect(calls).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("createGuardedFetch trusted egress hosts", () => {
+  afterEach(() => setEgressTrustedHosts([]));
+
+  it("lets a trusted host use private and VPN-mapped results while other hosts stay blocked", async () => {
+    setEgressTrustedHosts([".feishu.cn"]);
+    const mappedAddresses = [
+      { address: "198.18.0.196", family: 4 },
+      { address: "10.0.0.5", family: 4 },
+      { address: "fd00::1", family: 6 },
+      { address: "::ffff:198.18.0.196", family: 6 },
+    ];
+    const entries = {
+      "open.feishu.cn": mappedAddresses,
+      "open.other.example": mappedAddresses,
+    };
+
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    const allowed = createGuardedFetch({ fetch: transport, lookup: lookupTable(entries) });
+    await allowed("https://open.feishu.cn/open-apis/authen/v2/oauth/token");
+    expect(calls).toHaveLength(1);
+
+    const blocked = createGuardedFetch({ fetch: createTransport([]).transport, lookup: lookupTable(entries) });
+    await expect(blocked("https://open.other.example/")).rejects.toThrow(/must not resolve/u);
+  });
+
+  it("keeps the URL guard intact for a trusted host", async () => {
+    // The trusted-host setting covers only DNS results. A literal reserved address in the
+    // URL, a non-http scheme, and a redirect into a blocked target are all still
+    // rejected, so trusting a host does not turn off the guard for it.
+    setEgressTrustedHosts([".feishu.cn", "198.18.0.196"]);
+    const guarded = createGuardedFetch({
+      fetch: createTransport([]).transport,
+      lookup: lookupTable({ "open.feishu.cn": [{ address: "198.18.0.196", family: 4 }] }),
+    });
+    await expect(guarded("https://198.18.0.196/")).rejects.toThrow(/must not/u);
+    await expect(guarded("ftp://open.feishu.cn/")).rejects.toThrow(/must use http or https/u);
+
+    const redirecting = createGuardedFetch({
+      fetch: createTransport([redirectTo("http://169.254.169.254/latest/meta-data/")]).transport,
+      lookup: lookupTable({
+        "open.feishu.cn": [{ address: "198.18.0.196", family: 4 }],
+        "169.254.169.254": [{ address: "169.254.169.254", family: 4 }],
+      }),
+    });
+    await expect(redirecting("https://open.feishu.cn/")).rejects.toThrow(/must not/u);
+  });
+
+  it("keeps local and metadata DNS results blocked for a trusted host", async () => {
+    setEgressTrustedHosts(["metadata.attacker.com"]);
+
+    for (const address of [
+      "127.0.0.1",
+      "169.254.169.254",
+      "100.100.100.200",
+      "::1",
+      "fe80::1",
+      "::ffff:169.254.169.254",
+    ]) {
+      const { transport, calls } = createTransport([]);
+      const guarded = createGuardedFetch({
+        fetch: transport,
+        lookup: lookupTable({
+          "metadata.attacker.com": [{ address, family: address.includes(":") ? 6 : 4 }],
+        }),
+      });
+
+      await expect(guarded("https://metadata.attacker.com/latest/meta-data/")).rejects.toThrow(/must not resolve/u);
+      expect(calls).toHaveLength(0);
+    }
+  });
+
+  it("is re-read per request so a bootstrap after module load is honored", async () => {
+    const entries = { "open.feishu.cn": [{ address: "198.18.0.196", family: 4 }] };
+    const guarded = createGuardedFetch({
+      fetch: createTransport([new Response("ok", { status: 200 })]).transport,
+      lookup: lookupTable(entries),
+    });
+
+    await expect(guarded("https://open.feishu.cn/")).rejects.toThrow(/must not resolve/u);
+    setEgressTrustedHosts([".feishu.cn"]);
+    await expect(guarded("https://open.feishu.cn/")).resolves.toBeInstanceOf(Response);
+  });
+});
+
+describe("createGuardedFetch resolved-address validation", () => {
+  it("blocks hostnames resolving to reserved or metadata addresses", async () => {
+    const { transport, calls } = createTransport([]);
+    const guarded = createGuardedFetch({
+      fetch: transport,
+      lookup: lookupTable({ "metadata.attacker.com": [{ address: "169.254.169.254", family: 4 }] }),
+    });
+
+    await expect(guarded("http://metadata.attacker.com/latest/meta-data/")).rejects.toThrow(
+      "request URL must not resolve to private or reserved IP addresses",
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it("blocks hostnames resolving to private addresses unless private networks are allowed", async () => {
+    const entries = { "internal.attacker.com": [{ address: "10.0.0.5", family: 4 }] };
+    const blocked = createGuardedFetch({ fetch: createTransport([]).transport, lookup: lookupTable(entries) });
+    await expect(blocked("http://internal.attacker.com/")).rejects.toThrow(/must not resolve/u);
+
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    const allowed = createGuardedFetch({
+      fetch: transport,
+      lookup: lookupTable(entries),
+      allowPrivateNetwork: () => true,
+    });
+    await allowed("http://internal.attacker.com/");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("blocks IPv6 loopback, unique-local, and v4-embedded reserved lookup results", async () => {
+    for (const address of ["::1", "fd00::1", "::ffff:169.254.169.254", "fe80::1"]) {
+      const guarded = createGuardedFetch({
+        fetch: createTransport([]).transport,
+        lookup: lookupTable({ "host.example.com": [{ address, family: 6 }] }),
+      });
+      await expect(guarded("https://host.example.com/")).rejects.toThrow(/must not resolve/u);
+    }
+  });
+
+  it("rejects when any resolved address is blocked even if others are public", async () => {
+    const guarded = createGuardedFetch({
+      fetch: createTransport([]).transport,
+      lookup: lookupTable({
+        "rebind.example.com": [
+          { address: "93.184.216.34", family: 4 },
+          { address: "127.0.0.1", family: 4 },
+        ],
+      }),
+    });
+
+    await expect(guarded("https://rebind.example.com/")).rejects.toThrow(/must not resolve/u);
+  });
+
+  it("points at the operator opt-out without disclosing the resolved address", async () => {
+    const guarded = createGuardedFetch({
+      fetch: createTransport([]).transport,
+      lookup: lookupTable({ "open.vpn-mapped.example": [{ address: "198.18.0.196", family: 4 }] }),
+    });
+
+    // The rejection happens before any packet leaves the process, so on its own it
+    // is indistinguishable from a network failure; naming the opt-out is what makes
+    // it actionable. The address stays out — see host-pinning.test.ts.
+    await expect(guarded("https://open.vpn-mapped.example/token")).rejects.toThrow(
+      /OOMOL_CONNECT_EGRESS_TRUSTED_HOSTS/u,
+    );
+    await expect(guarded("https://open.vpn-mapped.example/token")).rejects.not.toThrow(/198\.18\.0\.196/u);
+  });
+
+  it("allows hostnames resolving to public addresses", async () => {
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    const guarded = createGuardedFetch({
+      fetch: transport,
+      lookup: lookupTable({
+        "api.example.com": [
+          { address: "93.184.216.34", family: 4 },
+          { address: "2606:2800:220:1:248:1893:25c8:1946", family: 6 },
+        ],
+      }),
+    });
+
+    await guarded("https://api.example.com/");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("skips DNS resolution for canonical IPv4 literals already validated by the URL guard", async () => {
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    const guarded = createGuardedFetch({
+      fetch: transport,
+      lookup: async (hostname) => {
+        throw new Error(`lookup must not run for literal ${hostname}`);
+      },
+    });
+
+    await guarded("https://93.184.216.34/");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("skips the resolved-address check when skipDnsValidation is set", async () => {
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    const guarded = createGuardedFetch({
+      fetch: transport,
+      skipDnsValidation: true,
+      lookup: () => {
+        throw new Error("lookup must not run when skipDnsValidation is set");
+      },
+    });
+
+    await guarded("https://api.example.com/");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("still validates the request URL and redirects when skipDnsValidation is set", async () => {
+    const { transport, calls } = createTransport([redirectTo("http://169.254.169.254/latest/meta-data/")]);
+    const guarded = createGuardedFetch({ fetch: transport, skipDnsValidation: true });
+
+    // URL literal + redirect Location guards still run; only the DNS check is skipped.
+    await expect(guarded("https://api.example.com/")).rejects.toThrow(/redirect location/u);
+    await expect(guarded("http://127.0.0.1/")).rejects.toThrow(/request URL/u);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("fails closed and does not call the transport when an enabled lookup fails", async () => {
+    const { transport, calls } = createTransport([]);
+    const guarded = createGuardedFetch({
+      fetch: transport,
+      lookup: async () => {
+        throw new Error("ENOTFOUND");
+      },
+    });
+
+    await expect(guarded("https://unresolvable.example.com/")).rejects.toThrow(/could not be resolved/u);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("fails closed when an enabled lookup returns no addresses", async () => {
+    const { transport, calls } = createTransport([]);
+    const guarded = createGuardedFetch({ fetch: transport, lookup: async () => [] });
+
+    await expect(guarded("https://unresolved.example.com/")).rejects.toThrow(/could not be resolved/u);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("re-validates resolved addresses for every redirect hop", async () => {
+    const { transport, calls } = createTransport([redirectTo("https://metadata.attacker.com/creds")]);
+    const guarded = createGuardedFetch({
+      fetch: transport,
+      lookup: lookupTable({
+        "api.example.com": [{ address: "93.184.216.34", family: 4 }],
+        "metadata.attacker.com": [{ address: "169.254.169.254", family: 4 }],
+      }),
+    });
+
+    await expect(guarded("https://api.example.com/")).rejects.toThrow(
+      "redirect location must not resolve to private or reserved IP addresses",
+    );
+    expect(calls).toHaveLength(1);
+  });
+
+  it("validates resolved addresses before manual-redirect passthrough requests", async () => {
+    const { transport, calls } = createTransport([]);
+    const guarded = createGuardedFetch({
+      fetch: transport,
+      lookup: lookupTable({ "metadata.attacker.com": [{ address: "169.254.169.254", family: 4 }] }),
+    });
+
+    await expect(guarded("http://metadata.attacker.com/", { redirect: "manual" })).rejects.toThrow(/must not resolve/u);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe("unwrapGuardedFetch", () => {
+  it("lets a private-network guard replace a public-only guard instead of stacking", async () => {
+    const { transport, calls } = createTransport([new Response("ok", { status: 200 })]);
+    const publicOnly = createGuardedFetch({ fetch: transport });
+    const privateAllowed = createGuardedFetch({ fetch: publicOnly, allowPrivateNetwork: () => true });
+
+    const response = await privateAllowed("http://10.0.0.2:3000/api");
+
+    expect(response.status).toBe(200);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("returns non-guarded fetchers unchanged", () => {
+    const { transport } = createTransport([]);
+    expect(unwrapGuardedFetch(transport)).toBe(transport);
+    expect(unwrapGuardedFetch(undefined)).toBeUndefined();
+  });
+});

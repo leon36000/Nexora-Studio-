@@ -1,0 +1,193 @@
+---
+title: Email
+description: Configure and verify transactional email delivery
+---
+
+import { Tabs, Tab } from '@/components/ui/tabs'
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Configure a mail provider for workspace invitations, email verification, password resets, and notifications. Use a sender address the provider is authorized to send as.
+
+<Callout type="warn">
+  Without a mail provider, Sim skips delivery and reports success. At INFO log level it records recipient, subject, and sender, but not the message body. Invitations and password resets will not arrive; the message cannot be recovered from those logs. Email verification is enforced only when a provider is configured.
+</Callout>
+
+## Provider selection
+
+There is no provider-selection flag. Every configured, usable provider participates in this fallback order:
+
+**Resend → AWS SES → SMTP → Azure Communication Services → Gmail**
+
+The first provider handles normal traffic. Later providers are tried only after a failure. Configure a single provider or verify the sender and permissions for every fallback you enable.
+
+## Shared settings
+
+| Variable | Behavior |
+| --- | --- |
+| `FROM_EMAIL_ADDRESS` | Sender, such as `Sim <noreply@example.com>`. |
+| `EMAIL_DOMAIN` | When the sender is unset, use `noreply@EMAIL_DOMAIN`. |
+| `EMAIL_VERIFICATION_ENABLED` | Set `true` to require signup verification when a mail provider is configured. |
+
+## Configure a provider [#providers]
+
+<Tabs items={['Resend', 'AWS SES', 'SMTP', 'Azure ACS', 'Gmail']}>
+<Tab value="Resend">
+
+```bash
+RESEND_API_KEY=re_...
+FROM_EMAIL_ADDRESS="Sim <noreply@yourdomain.com>"
+```
+
+Verify your sending domain and add Resend's DNS records before production delivery. See [Resend domain setup](https://resend.com/docs/dashboard/domains/introduction).
+
+</Tab>
+<Tab value="AWS SES">
+
+```bash
+AWS_SES_REGION=us-east-1
+FROM_EMAIL_ADDRESS="Sim <noreply@yourdomain.com>"
+```
+
+Credentials use the AWS default provider chain: environment/shared configuration, ECS/EKS roles, EC2 instance profile, or SSO. For EKS, an IRSA role can provide `ses:SendEmail` and `ses:SendRawEmail` without static keys. Verify your sending identity and configure DKIM in the chosen SES region.
+
+<Callout type="warn">
+  New SES accounts start in a region-specific sandbox and can send only to verified recipients or the mailbox simulator. Request production access before inviting unverified recipients. See [SES sandbox restrictions](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html).
+</Callout>
+
+</Tab>
+<Tab value="SMTP">
+
+Use a reachable relay such as Postfix, SendGrid, Mailgun, Google Workspace SMTP relay, or a local test relay:
+
+```bash
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=...
+FROM_EMAIL_ADDRESS="Sim <noreply@yourdomain.com>"
+```
+
+Set both `SMTP_USER` and `SMTP_PASS` for authenticated relays, or omit both for an unauthenticated relay. Port 465 enables implicit TLS automatically. Leave `SMTP_SECURE` unset for port 587/STARTTLS; forcing implicit TLS there prevents connection. Port 25 uses a non-implicit-TLS connection.
+
+Sim derives its EHLO hostname from `NEXT_PUBLIC_APP_URL`. If the relay needs another identity, set `SMTP_EHLO_NAME` to a fully qualified hostname it accepts.
+
+For a Google Workspace IP-authorized relay:
+
+```bash
+SMTP_HOST=smtp-relay.gmail.com
+SMTP_PORT=587
+```
+
+Configure the relay in Workspace administration to accept the deployment's public egress IP and permitted senders. This path does not require a service-account key or domain-wide delegation. If a stable IP is unavailable, consider authenticated SMTP or the Gmail API path. See [Google SMTP relay settings](https://knowledge.workspace.google.com/admin/gmail/advanced/route-outgoing-smtp-relay-messages-through-google).
+
+</Tab>
+<Tab value="Azure ACS">
+
+```bash
+AZURE_ACS_CONNECTION_STRING=endpoint=https://...;accesskey=...
+FROM_EMAIL_ADDRESS="Sim <noreply@yourdomain.com>"
+```
+
+Provision an Email Communication Service, verify its sending domain, and link that domain to the Communication Service. Use a sender from the linked domain. See [Azure's email-domain connection guide](https://learn.microsoft.com/en-us/azure/communication-services/quickstarts/email/connect-email-communication-resource).
+
+</Tab>
+<Tab value="Gmail">
+
+Use a service account to impersonate a Google Workspace sender:
+
+```bash
+GMAIL_CREDENTIALS_JSON='{"type":"service_account",...}'
+GMAIL_SENDER=noreply@yourdomain.com
+FROM_EMAIL_ADDRESS="Sim <noreply@yourdomain.com>"
+```
+
+1. Enable Gmail API in the Google Cloud project.
+2. Create a service account, enable domain-wide delegation, and download its JSON key.
+3. In Workspace administration, open **Security → Access and data control → API controls → Domain-wide delegation → Add new**. Add the service account's numeric `client_id` with `https://www.googleapis.com/auth/gmail.send`.
+4. Set `GMAIL_SENDER` to the Workspace user to impersonate. See [Google service-account credentials](https://developers.google.com/workspace/guides/create-credentials).
+
+<Callout type="warn">
+  `FROM_EMAIL_ADDRESS` must match `GMAIL_SENDER` or a registered alias. Gmail can rewrite an unrecognized sender even when delivery succeeds.
+</Callout>
+
+Paid Workspace accounts currently allow up to 2,000 messages per user over a rolling 24-hour period, with lower trial and separate recipient limits. Check [Google's sending limits](https://knowledge.workspace.google.com/admin/gmail/gmail-sending-limits-in-google-workspace) before choosing this path for your volume. SMTP relay has separate limits.
+
+For a single-line JSON secret:
+
+```bash
+jq -c . service-account-key.json
+```
+
+</Tab>
+</Tabs>
+
+## Apply configuration
+
+For Compose, save provider settings in `.env` beside the Compose file and recreate the app:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --force-recreate simstudio
+```
+
+For a source checkout, save them in `apps/sim/.env` and restart the app.
+
+### Kubernetes
+
+Choose one of the chart's [secret strategies](/platform/self-hosting/kubernetes#secret-stores):
+
+- **Inline mode:** set credentials under `app.env`; Helm writes them to a Secret but also retains them in release values. Do not commit secret values to Git.
+- **Existing Secret:** add the provider keys to the pre-created app Secret. Credentials set explicitly under `app.env` in this mode are inlined into pod specs.
+- **ESO:** map each credential under `externalSecrets.remoteRefs.app`; the chart-managed inline Secret is disabled. Use `app.envDefaults` for non-secret sender settings.
+
+For example, merge this into a complete ESO configuration whose store and core secrets are already configured:
+
+```yaml
+app:
+  envDefaults:
+    FROM_EMAIL_ADDRESS: "Sim <noreply@yourdomain.com>"
+externalSecrets:
+  remoteRefs:
+    app:
+      RESEND_API_KEY: "sim/app/resend-api-key"
+```
+
+Restart the affected app pods after the credentials have synchronized:
+
+```bash
+kubectl rollout restart deployment/sim-app -n simstudio
+```
+
+## Verify delivery [#verifying]
+
+Invite a test member from workspace settings, confirm the message arrives, and accept it. If verification is required, also test a new account's verification message and a password reset.
+
+Set `LOG_LEVEL=INFO` and restart/recreate the app before using logs to diagnose skipped delivery. The production default is `ERROR`; log-level values are uppercase.
+
+```bash
+kubectl logs -n simstudio -l app.kubernetes.io/component=app --tail=100 | grep -i mail
+```
+
+For Compose, use `docker compose -f docker-compose.prod.yml logs simstudio`.
+
+| Signal | Diagnosis |
+| --- | --- |
+| No-provider log with recipient, subject, and sender | Sim skipped delivery. Configure a usable provider. |
+| Provider error | Check the named provider's credentials, sender, permissions, and quotas. Later configured providers may be tried. |
+| Provider acceptance but no message | Check delivery status in its dashboard, recipient filtering, SPF, DKIM, and DMARC. Acceptance does not prove inbox delivery. |
+
+## Troubleshooting
+
+| Failure | Action |
+| --- | --- |
+| Gmail `unauthorized_client` or delegation denied | Match the JSON `client_id` to the Workspace delegation entry and confirm the exact `gmail.send` scope and impersonated user. |
+| Sender rejected or rewritten | Match the verified sender/domain; for Gmail, use the impersonated sender or its registered alias. |
+| SES rejects an unverified recipient | Request production access in the configured region. |
+| SMTP connection fails | Check host/port, reachability, matching username/password, and implicit TLS versus STARTTLS. |
+| SMTP rejects EHLO, such as `421-4.7.0` | Set `SMTP_EHLO_NAME` to a dotted hostname accepted by the relay. Older releases used `[127.0.0.1]` on Kubernetes; upgrade to use the public-domain derivation. |
+| Mail is filtered as spam | Verify sending-domain SPF, DKIM, and DMARC, then inspect provider delivery events. |
+
+## Related docs
+
+- [Authentication](/platform/self-hosting/authentication)
+- [Environment variables](/platform/self-hosting/environment-variables)
+- [Verify your install](/platform/self-hosting/verify)

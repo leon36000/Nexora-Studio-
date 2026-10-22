@@ -1,0 +1,79 @@
+---
+title: Workflows
+description: Connect blocks into reusable agent logic, then run a draft or deploy a version for callers and triggers.
+---
+
+import { WorkflowPreview, CLASSIFY_WORKFLOW } from '@/components/workflow-preview'
+
+A workflow connects blocks into a reusable procedure. A trigger supplies the input, blocks perform the work, and connections determine when each block runs.
+
+Ask Sim to build or refine a workflow in [Chat](/chat/workflows), then inspect it in the side panel. You can also add and configure blocks directly in the workflow builder.
+
+This example classifies a customer message by category and urgency. Its Agent requests structured output through **Response Format**:
+
+<WorkflowPreview workflow={CLASSIFY_WORKFLOW} />
+
+## The parts of a workflow
+
+### Trigger
+
+A **trigger** starts a run and supplies its input. A workflow can have several triggers, but each run enters through one.
+
+[Start](/workflows/triggers/start) accepts editor, API, and chat input. Event and timer triggers start runs automatically after deployment.
+
+### Block
+
+A **block** performs a step. An [Agent](/workflows/blocks/agent) calls a model and can use tools; a [Function](/workflows/blocks/function) runs code; a [Condition](/workflows/blocks/condition) chooses a branch.
+
+A **tool** is an action an Agent can call within its step, such as searching a knowledge base or sending a Slack message. The block fixes that step's place in the workflow; the Agent chooses when to call its configured tools.
+
+Function and Condition behavior is determined by the code or rule you supply. Model-driven blocks can produce different answers across runs.
+
+### Connection
+
+A **connection** sets execution order. A block becomes ready when its active upstream dependencies have finished; independent branches can run at the same time.
+
+Read an earlier output with a **connection tag**, such as `<start.input>` or `<agent.content>`. The tag's first segment is the block's name, not its type. See [how blocks pass data](/workflows/data-flow) and [connection syntax](/workflows/connections).
+
+### Output
+
+Each block produces its own output. A successful structured response in this example exposes `<agent.category>` and `<agent.urgency>`; ordinary Agent text appears in `content`. Check the output panel to confirm the actual shape.
+
+In a simple chain, the workflow returns its last block's output. If several branches end independently, the last terminal block to finish supplies the default result. Join the branches into a final block or use [Response](/workflows/blocks/response) to choose a deliberate result.
+
+Callers can select individual block fields for chat responses, table workflow columns, or API output projection. The v2 API keeps its run-resource envelope: a Response block's result appears inside `data.output`, without changing the endpoint's HTTP status or headers.
+
+## Kinds of blocks [#blocks]
+
+- **Work:** [Agent](/workflows/blocks/agent), [Function](/workflows/blocks/function), [API](/workflows/blocks/api), and [integrations](/integrations).
+- **Control flow:** [Condition](/workflows/blocks/condition), [Router](/workflows/blocks/router), [Loop](/workflows/blocks/loop), and [Parallel](/workflows/blocks/parallel).
+- **Run behavior:** [Response](/workflows/blocks/response), [Guardrails](/workflows/blocks/guardrails), [Wait](/workflows/blocks/wait), and other core blocks.
+
+An output can feed several downstream blocks without duplicating the source block.
+
+## How a workflow starts [#triggers]
+
+| Trigger | Starts a run from |
+| --- | --- |
+| [Start](/workflows/triggers/start) | Editor input, an API call, or a chat message |
+| [Schedule](/workflows/triggers/schedule) | A configured timer or cron expression |
+| [Webhook](/workflows/triggers/webhook) | An accepted HTTP request to its generated URL |
+| [RSS](/workflows/triggers/rss) | An unseen RSS or Atom feed item |
+| [Table](/workflows/triggers/table) | A row insert, update, or delete in a Sim table |
+| [Sim Workspace Events](/workflows/triggers/sim) | Run events, deployments, or workspace alert conditions |
+| Integration trigger | An event in a connected service, such as a GitHub push or new email |
+
+Editor runs use the draft. Automatic triggers use deployed configuration, so deploy an updated version after changing their blocks, connections, or settings.
+
+## Run and deploy [#how-it-runs]
+
+Use **Run** in the workflow builder to test a draft and inspect its block outputs. Open [Logs](/logs-debugging) to inspect recorded runs.
+
+[Deploy](/workflows/deployment) creates a versioned snapshot for API, chat, MCP, and automatic trigger runs. Editing the draft does not change the live version; **Update** deploys a new snapshot.
+
+## Related docs [#next]
+
+- [Data flow](/workflows/data-flow): outputs, references, and data types
+- [Execution order](/workflows/how-it-runs): dependencies, branches, failures, and duration
+- [Start](/workflows/triggers/start): inputs for editor, API, and chat runs
+- [Deployment](/workflows/deployment): live versions and caller access

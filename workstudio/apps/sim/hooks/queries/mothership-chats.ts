@@ -1,0 +1,895 @@
+import { toast } from '@sim/emcn'
+import { toError } from '@sim/utils/errors'
+import { isRecordLike } from '@sim/utils/object'
+import { backoffWithJitter } from '@sim/utils/retry'
+import {
+  keepPreviousData,
+  MutationObserver,
+  mutationOptions,
+  type QueryClient,
+  queryOptions,
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { isApiClientError } from '@/lib/api/client/errors'
+import { requestJson } from '@/lib/api/client/request'
+import {
+  deleteMothershipChatContract,
+  forkMothershipChatContract,
+  getMothershipChatContract,
+  getMothershipChatResponseSchema,
+  getMothershipChatStreamStatusContract,
+  listMothershipChatOlderMessagesContract,
+  listMothershipChatsContract,
+  type MothershipChat,
+  type MothershipChatScope,
+  markMothershipChatReadContract,
+  restoreMothershipChatContract,
+  type SetMothershipChatEffortBody,
+  setMothershipChatEffortContract,
+  updateMothershipChatContract,
+} from '@/lib/api/contracts/mothership-chats'
+import { mothershipResourceSchema } from '@/lib/api/contracts/mothership-resources'
+import { suspendDesktopChatScopes } from '@/lib/desktop/chat-scope'
+import type { PersistedMessage } from '@/lib/mothership/chat/persisted-message'
+import { normalizeMessage } from '@/lib/mothership/chat/persisted-message'
+import type { MothershipEffort } from '@/lib/mothership/model-options'
+import {
+  type FilePreviewSession,
+  isFilePreviewSession,
+} from '@/lib/mothership/request/session/file-preview-session-contract'
+import { isStreamBatchEvent, type StreamBatchEvent } from '@/lib/mothership/request/session/types'
+import type { MothershipResource } from '@/lib/mothership/resources/types'
+import { recentlyDeletedKeys } from '@/hooks/queries/utils/recently-deleted-keys'
+import { useMothershipEffortStore } from '@/stores/mothership-effort/store'
+import { useMothershipQueueStore } from '@/stores/mothership-queue/store'
+
+export interface MothershipChatMetadata {
+  mode?: MothershipChat['mode']
+  id: string
+  name: string
+  updatedAt: Date
+  isActive: boolean
+  isUnread: boolean
+  isPinned: boolean
+  deletedAt: Date | null
+}
+
+export interface MothershipChatHistory {
+  /** Absent only in locally optimistic cache entries before the server responds. */
+  mode?: MothershipChat['mode']
+  id: string
+  title: string | null
+  messages: PersistedMessage[]
+  activeStreamId: string | null
+  resources: MothershipResource[]
+  /** The effort the user picked for this chat; null or absent while it follows the default. */
+  effort?: MothershipEffort | null
+  streamSnapshot?: {
+    events: StreamBatchEvent[]
+    previewSessions: FilePreviewSession[]
+    status: string
+  } | null
+  /**
+   * Where the messages older than `messages` end, or null when `messages` starts the chat.
+   * Absent in a locally seeded entry, which holds a new chat's whole transcript.
+   */
+  olderCursor?: string | null
+  /**
+   * The first message of the window a reload extends; older messages come from
+   * `olderCursor` pages instead. Null when `messages` was read whole.
+   */
+  windowStartCursor?: string | null
+  /**
+   * How many of `messages` were loaded from `olderCursor` pages, ahead of the window the server
+   * last returned. Absent means none.
+   */
+  olderMessageCount?: number
+  /**
+   * Set when the page at `olderCursor` failed for good, so `messages` stops short of the chat's
+   * start and nothing loads it again until a reload replaces the window.
+   */
+  olderMessagesFailed?: boolean
+}
+
+export type MothershipChatOwner = string | { organizationId: string }
+
+/** Reports which chats were deleted when another request in the batch failed. */
+export class MothershipChatDeleteError extends Error {
+  constructor(
+    readonly deletedChatIds: string[],
+    cause: Error
+  ) {
+    super(cause.message, { cause })
+    this.name = 'MothershipChatDeleteError'
+  }
+}
+
+export const mothershipChatKeys = {
+  all: ['mothership-chats'] as const,
+  lists: () => [...mothershipChatKeys.all, 'list'] as const,
+  /** Prefix covering both the active and archived lists of one workspace. */
+  workspaceLists: (workspaceId: string | undefined) =>
+    [...mothershipChatKeys.lists(), workspaceId ?? ''] as const,
+  list: (workspaceId: string | undefined, scope: MothershipChatScope = 'active') =>
+    [...mothershipChatKeys.workspaceLists(workspaceId), scope] as const,
+  organizationLists: (organizationId: string | undefined) =>
+    [...mothershipChatKeys.lists(), 'organization', organizationId ?? ''] as const,
+  organizationList: (organizationId: string | undefined, scope: MothershipChatScope = 'active') =>
+    [...mothershipChatKeys.organizationLists(organizationId), scope] as const,
+  ownerLists: (owner?: MothershipChatOwner): readonly unknown[] =>
+    typeof owner === 'object'
+      ? mothershipChatKeys.organizationLists(owner.organizationId)
+      : mothershipChatKeys.workspaceLists(owner),
+  ownerList: (owner?: MothershipChatOwner): readonly unknown[] =>
+    typeof owner === 'object'
+      ? mothershipChatKeys.organizationList(owner.organizationId)
+      : mothershipChatKeys.list(owner),
+  details: () => [...mothershipChatKeys.all, 'detail'] as const,
+  detail: (chatId: string | undefined) => [...mothershipChatKeys.details(), chatId ?? ''] as const,
+  olderMessagePages: () => [...mothershipChatKeys.all, 'older-messages'] as const,
+  olderMessages: (chatId: string, cursor: string) =>
+    [...mothershipChatKeys.olderMessagePages(), chatId, cursor] as const,
+}
+
+/**
+ * How long a chat's first reload in flight holds back later requests. Past its hold a reload is
+ * presumed stuck and the next request replaces it, so a hung fetch never blocks the chat for good.
+ */
+const CHAT_DETAIL_REFRESH_HOLD_MS = 30 * 1000
+
+interface ChatDetailRefresh {
+  startedAt: number
+  /** Doubles with each stuck reload a chain replaces, so a slow load gets the time it needs. */
+  holdMs: number
+  requestedAgain: boolean
+}
+
+/** Per client, the chats with a reload in flight. */
+const chatDetailRefreshes = new WeakMap<QueryClient, Map<string, ChatDetailRefresh>>()
+
+/**
+ * Invalidates a chat's detail so a mounted transcript reloads, coalescing a burst of
+ * requests (a replayed or reconnected stream re-announces every resource it touched)
+ * into one reload in flight plus one trailing reload. The trailing reload starts after
+ * the last request, so the final read reflects every change requested meanwhile; a read
+ * already in flight may predate a request and is never trusted to include it. A reload
+ * in flight past its hold is cancelled and replaced, and the replacement holds twice as
+ * long, so a hung read is always replaced while a slow one is eventually left to finish.
+ */
+export function refreshMothershipChatDetail(queryClient: QueryClient, chatId: string): void {
+  const refreshes = chatDetailRefreshes.get(queryClient) ?? new Map<string, ChatDetailRefresh>()
+  chatDetailRefreshes.set(queryClient, refreshes)
+  const inFlight = refreshes.get(chatId)
+  if (inFlight && Date.now() - inFlight.startedAt < inFlight.holdMs) {
+    inFlight.requestedAgain = true
+    return
+  }
+  const refresh: ChatDetailRefresh = {
+    startedAt: Date.now(),
+    holdMs: inFlight ? inFlight.holdMs * 2 : CHAT_DETAIL_REFRESH_HOLD_MS,
+    requestedAgain: false,
+  }
+  refreshes.set(chatId, refresh)
+  const queryKey = mothershipChatKeys.detail(chatId)
+  // A query with no data yet joins its fetch in flight instead of replacing it, so a stuck
+  // one is cancelled first.
+  const reload = inFlight
+    ? queryClient
+        .cancelQueries({ queryKey, exact: true })
+        .then(() => queryClient.invalidateQueries({ queryKey }))
+    : queryClient.invalidateQueries({ queryKey })
+  void reload.finally(() => {
+    if (refreshes.get(chatId) !== refresh) return
+    refreshes.delete(chatId)
+    if (refresh.requestedAgain) refreshMothershipChatDetail(queryClient, chatId)
+  })
+}
+
+/** Shared by the `useMothershipChats` hook and the workspace sidebar prefetch. */
+export const MOTHERSHIP_CHAT_LIST_STALE_TIME = 60 * 1000
+export const MOTHERSHIP_CHAT_HISTORY_STALE_TIME = 30 * 1000
+
+function assertValid(condition: unknown, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message)
+  }
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+function parseStreamSnapshot(value: unknown): MothershipChatHistory['streamSnapshot'] {
+  if (!isRecordLike(value)) {
+    return null
+  }
+
+  const rawEvents = Array.isArray(value.events) ? value.events : []
+  const events: StreamBatchEvent[] = []
+  for (const entry of rawEvents) {
+    if (!isStreamBatchEvent(entry)) {
+      return null
+    }
+    events.push(entry)
+  }
+
+  const rawPreviewSessions = Array.isArray(value.previewSessions) ? value.previewSessions : []
+  const previewSessions: FilePreviewSession[] = []
+  for (const session of rawPreviewSessions) {
+    if (!isFilePreviewSession(session)) {
+      return null
+    }
+    previewSessions.push(session)
+  }
+
+  return {
+    events,
+    previewSessions,
+    status: typeof value.status === 'string' ? value.status : 'unknown',
+  }
+}
+
+function normalizeMessages(value: unknown): PersistedMessage[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(isRecordLike).map((message) => normalizeMessage(message))
+}
+
+function parseResource(value: unknown, context: string): MothershipResource {
+  const parsed = mothershipResourceSchema.safeParse(value)
+  assertValid(parsed.success, `${context} is invalid`)
+  return parsed.data
+}
+
+function parseResources(value: unknown, context: string): MothershipResource[] {
+  assertValid(Array.isArray(value), `${context} must be an array`)
+
+  return value.map((resource, index) => parseResource(resource, `${context}[${index}]`))
+}
+
+function parseStrictStreamSnapshot(
+  value: unknown,
+  context: string
+): MothershipChatHistory['streamSnapshot'] {
+  if (value === undefined || value === null) {
+    return null
+  }
+
+  const snapshot = parseStreamSnapshot(value)
+  assertValid(snapshot !== null, `${context} is invalid`)
+  return snapshot
+}
+
+function parseChatHistory(value: unknown): MothershipChatHistory {
+  const responseContext = 'Invalid chat response'
+  const chatContext = `${responseContext}: chat`
+
+  assertValid(isRecordLike(value), `${responseContext}: body must be an object`)
+  assertValid(isRecordLike(value.chat), `${chatContext} must be an object`)
+
+  const chat = value.chat
+
+  assertValid(typeof chat.id === 'string', `${chatContext}.id must be a string`)
+  assertValid(isNullableString(chat.title), `${chatContext}.title must be a string or null`)
+  assertValid(Array.isArray(chat.messages), `${chatContext}.messages must be an array`)
+  assertValid(
+    isNullableString(chat.activeStreamId),
+    `${chatContext}.activeStreamId must be a string or null`
+  )
+
+  const mode = getMothershipChatResponseSchema.shape.chat.shape.mode.parse(chat.mode)
+
+  return {
+    id: chat.id,
+    mode,
+    title: chat.title,
+    messages: normalizeMessages(chat.messages),
+    activeStreamId: chat.activeStreamId,
+    resources: parseResources(chat.resources, `${chatContext}.resources`),
+    effort: getMothershipChatResponseSchema.shape.chat.shape.effort.parse(chat.effort ?? null),
+    streamSnapshot: parseStrictStreamSnapshot(chat.streamSnapshot, `${chatContext}.streamSnapshot`),
+    olderCursor: typeof chat.olderCursor === 'string' ? chat.olderCursor : null,
+    windowStartCursor: typeof chat.windowStartCursor === 'string' ? chat.windowStartCursor : null,
+  }
+}
+
+export function mapChat(chat: MothershipChat): MothershipChatMetadata {
+  const updatedAt = new Date(chat.updatedAt)
+  return {
+    id: chat.id,
+    name: chat.title ?? 'New chat',
+    mode: chat.mode,
+    updatedAt,
+    isActive: chat.activeStreamId !== null,
+    isUnread:
+      chat.activeStreamId === null &&
+      (chat.lastSeenAt === null || updatedAt > new Date(chat.lastSeenAt)),
+    isPinned: chat.pinned,
+    deletedAt: chat.deletedAt ? new Date(chat.deletedAt) : null,
+  }
+}
+
+export async function fetchMothershipChats(
+  workspaceId: string,
+  scope: MothershipChatScope = 'active',
+  signal?: AbortSignal
+): Promise<MothershipChatMetadata[]> {
+  const data = await requestJson(listMothershipChatsContract, {
+    query: { workspaceId, scope },
+    signal,
+  })
+  return data.data.map(mapChat)
+}
+
+/**
+ * Fetches mothership chat chats for a workspace.
+ * These are workspace-scoped conversations from the Home page. Pass
+ * `scope: 'archived'` for soft-deleted chats (Recently Deleted).
+ */
+export function useMothershipChats(
+  workspaceId?: string,
+  options?: { scope?: MothershipChatScope; enabled?: boolean }
+) {
+  const scope = options?.scope ?? 'active'
+  return useQuery({
+    queryKey: mothershipChatKeys.list(workspaceId, scope),
+    queryFn: workspaceId
+      ? ({ signal }) => fetchMothershipChats(workspaceId, scope, signal)
+      : skipToken,
+    enabled: options?.enabled ?? true,
+    placeholderData: keepPreviousData,
+    staleTime: MOTHERSHIP_CHAT_LIST_STALE_TIME,
+  })
+}
+
+/** Private organization conversations use their own cache scope and current membership. */
+export function useOrganizationMothershipChats(
+  organizationId: string,
+  scope: MothershipChatScope = 'active'
+) {
+  return useQuery({
+    queryKey: mothershipChatKeys.organizationList(organizationId, scope),
+    queryFn: async ({ signal }) => {
+      const data = await requestJson(listMothershipChatsContract, {
+        query: { organizationId, scope },
+        signal,
+      })
+      return data.data.map(mapChat)
+    },
+    staleTime: MOTHERSHIP_CHAT_LIST_STALE_TIME,
+  })
+}
+
+async function readMothershipChatHistory(
+  chatId: string,
+  windowStartCursor: string | null | undefined,
+  signal?: AbortSignal
+): Promise<MothershipChatHistory> {
+  const data = await requestJson(getMothershipChatContract, {
+    params: { chatId },
+    query: windowStartCursor ? { from: windowStartCursor } : { window: 'latest' },
+    signal,
+  })
+  return parseChatHistory(data)
+}
+
+/**
+ * A reloaded window joined to the older messages the cache already holds before it, so a
+ * reload never drops history the user can scroll back to. A window the cache does not reach
+ * replaces it, and its `olderCursor` loads the rest again.
+ */
+function joinCachedOlderMessages(
+  cached: MothershipChatHistory | undefined,
+  fetched: MothershipChatHistory
+): MothershipChatHistory {
+  const firstId = fetched.messages[0]?.id
+  if (!cached || !fetched.windowStartCursor || firstId === undefined) return fetched
+  const overlap = cached.messages.findIndex((message) => message.id === firstId)
+  if (overlap <= 0) return fetched
+  return {
+    ...fetched,
+    messages: [...cached.messages.slice(0, overlap), ...fetched.messages],
+    olderCursor: cached.olderCursor ?? null,
+    olderMessageCount: overlap,
+    olderMessagesFailed: cached.olderMessagesFailed,
+  }
+}
+
+/**
+ * Reads a chat from the server: the newest messages on first load, then everything from the
+ * cached window's first message, joined to the older messages `readCached` holds. A chat this
+ * tab saw deleted that the server returns again was restored, so it takes queued sends again.
+ * Only a read that began after the delete counts: one already in flight can return the chat
+ * from before it.
+ */
+export async function fetchMothershipChatHistory(
+  chatId: string,
+  signal?: AbortSignal,
+  readCached?: () => MothershipChatHistory | undefined
+): Promise<MothershipChatHistory> {
+  const deleteSeen = useMothershipQueueStore.getState().cleared[chatId]
+  const history = await readMothershipChatHistory(chatId, readCached?.()?.windowStartCursor, signal)
+  if (deleteSeen !== undefined) useMothershipQueueStore.getState().liftDelete(chatId, deleteSeen)
+  return joinCachedOlderMessages(readCached?.(), history)
+}
+
+/**
+ * The stream a chat's server copy still lists as active, read without the
+ * transcript — for polling until a finished turn is saved.
+ */
+export async function fetchMothershipChatActiveStreamId(
+  chatId: string,
+  signal?: AbortSignal
+): Promise<string | null> {
+  const data = await requestJson(getMothershipChatStreamStatusContract, {
+    params: { chatId },
+    signal,
+  })
+  return data.activeStreamId
+}
+
+export function mothershipChatHistoryQueryOptions(chatId: string | undefined) {
+  const queryKey = mothershipChatKeys.detail(chatId)
+  return queryOptions({
+    queryKey,
+    queryFn: chatId
+      ? ({ signal, client }) =>
+          fetchMothershipChatHistory(chatId, signal, () =>
+            client.getQueryData<MothershipChatHistory>(queryKey)
+          )
+      : skipToken,
+    staleTime: MOTHERSHIP_CHAT_HISTORY_STALE_TIME,
+  })
+}
+
+/** A failed page is tried again while the chat stays open, at most every 30 s. */
+const OLDER_MESSAGES_BACKOFF = { baseMs: 1000, maxMs: 30 * 1000 }
+
+/** Tries a 404 gets: enough to outlast a deploy whose old servers lack the route (~2 min). */
+const OLDER_MESSAGES_NOT_FOUND_RETRIES = 8
+
+/**
+ * Whether a failed page is worth another try: a network failure or server error always, and a
+ * 404 a bounded number of times, since mid-deploy it can come from a server that predates the
+ * route while a deleted chat returns it for good. A refused cursor, lost access, or a body that
+ * fails its contract fails the same way every time.
+ */
+function shouldRetryOlderMessages(failureCount: number, error: unknown): boolean {
+  if (!isApiClientError(error)) return true
+  if (error.status === 404) return failureCount < OLDER_MESSAGES_NOT_FOUND_RETRIES
+  return error.status >= 500 || error.status === 408 || error.status === 429
+}
+
+/**
+ * Prepends the page of messages before `cursor` to a chat's cached transcript. A cache that
+ * has moved past `cursor` (a reload replaced the window) keeps its own state. The page lives
+ * only in the detail entry: its query is collected as soon as it settles.
+ */
+export async function loadOlderMothershipChatMessages(
+  queryClient: QueryClient,
+  chatId: string,
+  cursor: string
+): Promise<void> {
+  const page = await queryClient.fetchQuery({
+    queryKey: mothershipChatKeys.olderMessages(chatId, cursor),
+    queryFn: ({ signal }) =>
+      requestJson(listMothershipChatOlderMessagesContract, {
+        params: { chatId },
+        query: { before: cursor },
+        signal,
+      }),
+    gcTime: 0,
+    retry: shouldRetryOlderMessages,
+    retryDelay: (failureCount) => backoffWithJitter(failureCount, null, OLDER_MESSAGES_BACKOFF),
+  })
+  queryClient.setQueryData<MothershipChatHistory>(mothershipChatKeys.detail(chatId), (current) => {
+    if (!current || current.olderCursor !== cursor) return current
+    const held = new Set(current.messages.map((message) => message.id))
+    const older = normalizeMessages(page.messages).filter((message) => !held.has(message.id))
+    return {
+      ...current,
+      messages: [...older, ...current.messages],
+      olderCursor: page.olderCursor,
+      olderMessageCount: (current.olderMessageCount ?? 0) + older.length,
+    }
+  })
+}
+
+/**
+ * Fetches chat history for a single chat (mothership chat).
+ * Used by the chat page to load an existing conversation.
+ */
+export function useMothershipChatHistory(chatId: string | undefined) {
+  return useQuery(mothershipChatHistoryQueryOptions(chatId))
+}
+
+async function deleteChat(chatId: string): Promise<void> {
+  await requestJson(deleteMothershipChatContract, {
+    params: { chatId },
+  })
+}
+
+/**
+ * Soft-deletes a mothership chat and invalidates both the active and archived
+ * chat lists — the chat moves from the sidebar into Recently Deleted.
+ */
+export function useDeleteMothershipChat(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteChat,
+    onSuccess: async (_data, chatId) => {
+      await suspendDesktopChatScopes(chatId)
+      queryClient.removeQueries({ queryKey: mothershipChatKeys.detail(chatId) })
+      useMothershipQueueStore.getState().clearChat(chatId)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: mothershipChatKeys.ownerLists(owner) })
+    },
+  })
+}
+
+async function restoreChat(chatId: string): Promise<void> {
+  await requestJson(restoreMothershipChatContract, {
+    params: { chatId },
+  })
+}
+
+/**
+ * Restores a soft-deleted mothership chat and invalidates both the active and
+ * archived chat lists — the chat moves from Recently Deleted back into the
+ * sidebar.
+ */
+export function useRestoreMothershipChat(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: restoreChat,
+    /** The delete this restore undoes; one that lands while it is in flight stays. */
+    onMutate: (chatId) => ({ deleteSeen: useMothershipQueueStore.getState().cleared[chatId] }),
+    onSuccess: (_data, chatId, context) => {
+      if (context?.deleteSeen === undefined) return
+      useMothershipQueueStore.getState().liftDelete(chatId, context.deleteSeen)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: recentlyDeletedKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: mothershipChatKeys.ownerLists(owner) })
+    },
+  })
+}
+
+/**
+ * Deletes multiple mothership chat chats and invalidates the chat list.
+ */
+export function useDeleteMothershipChats(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (chatIds: string[]) => {
+      /** Reconcile only after every request settles, while cleaning up only deleted chats. */
+      const results = await Promise.allSettled(
+        chatIds.map(async (chatId) => {
+          await deleteChat(chatId)
+          await suspendDesktopChatScopes(chatId)
+          queryClient.removeQueries({ queryKey: mothershipChatKeys.detail(chatId) })
+          useMothershipQueueStore.getState().clearChat(chatId)
+        })
+      )
+      const failed = results.find((result) => result.status === 'rejected')
+      if (failed) {
+        const deletedChatIds = chatIds.filter((_, index) => results[index].status === 'fulfilled')
+        throw new MothershipChatDeleteError(deletedChatIds, toError(failed.reason))
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: mothershipChatKeys.ownerLists(owner) })
+    },
+  })
+}
+
+async function renameChat({ chatId, title }: { chatId: string; title: string }): Promise<void> {
+  await requestJson(updateMothershipChatContract, {
+    params: { chatId },
+    body: { title },
+  })
+}
+
+/**
+ * Renames a mothership chat chat with optimistic update.
+ */
+export function useRenameMothershipChat(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: renameChat,
+    onMutate: async ({ chatId, title }) => {
+      await queryClient.cancelQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+
+      const previousChats = queryClient.getQueryData<MothershipChatMetadata[]>(
+        mothershipChatKeys.ownerList(owner)
+      )
+
+      queryClient.setQueryData<MothershipChatMetadata[]>(
+        mothershipChatKeys.ownerList(owner),
+        (old) => old?.map((chat) => (chat.id === chatId ? { ...chat, name: title } : chat))
+      )
+
+      return { previousChats }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(mothershipChatKeys.ownerList(owner), context.previousChats)
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+      queryClient.invalidateQueries({ queryKey: mothershipChatKeys.detail(variables.chatId) })
+    },
+  })
+}
+
+async function markChatRead(chatId: string): Promise<void> {
+  await requestJson(markMothershipChatReadContract, {
+    body: { chatId },
+  })
+}
+
+async function markChatUnread(chatId: string): Promise<void> {
+  await requestJson(updateMothershipChatContract, {
+    params: { chatId },
+    body: { isUnread: true },
+  })
+}
+
+function applyUnreadFlag(
+  queryClient: ReturnType<typeof useQueryClient>,
+  owner: MothershipChatOwner | undefined,
+  chatId: string,
+  isUnread: boolean
+): void {
+  const current = queryClient.getQueryData<MothershipChatMetadata[]>(
+    mothershipChatKeys.ownerList(owner)
+  )
+  if (!current) return
+  queryClient.setQueryData<MothershipChatMetadata[]>(
+    mothershipChatKeys.ownerList(owner),
+    current.map((chat) => (chat.id === chatId ? { ...chat, isUnread } : chat))
+  )
+}
+
+/**
+ * Marks a chat as read with optimistic update.
+ *
+ * The server only updates `lastSeenAt`, never `updatedAt`, so we deliberately
+ * do not invalidate the list cache — that would trigger a refetch that can
+ * reorder the sidebar if any unrelated server-side update landed in between.
+ *
+ * If there is no cached list yet (initial fetch still in flight, e.g. on
+ * chat-page refresh), we skip cancellation entirely so the in-flight fetch
+ * can resolve normally — otherwise it would be orphaned and never refetched.
+ * `onSuccess` then reconciles whichever state the fetch produced.
+ */
+export function useMarkMothershipChatRead(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: markChatRead,
+    onMutate: async (chatId) => {
+      const previousChats = queryClient.getQueryData<MothershipChatMetadata[]>(
+        mothershipChatKeys.ownerList(owner)
+      )
+      if (!previousChats) return { previousChats }
+
+      await queryClient.cancelQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+      applyUnreadFlag(queryClient, owner, chatId, false)
+
+      return { previousChats }
+    },
+    onSuccess: (_data, chatId) => {
+      applyUnreadFlag(queryClient, owner, chatId, false)
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(mothershipChatKeys.ownerList(owner), context.previousChats)
+      }
+    },
+  })
+}
+
+/**
+ * Marks a chat as unread with optimistic update.
+ *
+ * Same rationale as `useMarkMothershipChatRead` — no list invalidation, since the server
+ * only flips `lastSeenAt` and the optimistic update fully reflects the change.
+ */
+export function useMarkMothershipChatUnread(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: markChatUnread,
+    onMutate: async (chatId) => {
+      const previousChats = queryClient.getQueryData<MothershipChatMetadata[]>(
+        mothershipChatKeys.ownerList(owner)
+      )
+      if (!previousChats) return { previousChats }
+
+      await queryClient.cancelQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+      applyUnreadFlag(queryClient, owner, chatId, true)
+
+      return { previousChats }
+    },
+    onSuccess: (_data, chatId) => {
+      applyUnreadFlag(queryClient, owner, chatId, true)
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(mothershipChatKeys.ownerList(owner), context.previousChats)
+      }
+    },
+  })
+}
+
+async function setChatPinned({
+  chatId,
+  pinned,
+}: {
+  chatId: string
+  pinned: boolean
+}): Promise<void> {
+  await requestJson(updateMothershipChatContract, {
+    params: { chatId },
+    body: { pinned },
+  })
+}
+
+/**
+ * Pins or unpins a chat with optimistic update. Pinned chats are sorted to
+ * the top of the list by the server; the optimistic reducer preserves that
+ * ordering by partitioning pinned and unpinned chats while keeping each
+ * partition in its existing order (server returns desc(updatedAt) within).
+ */
+export function useSetMothershipChatPinned(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: setChatPinned,
+    onMutate: async ({ chatId, pinned }) => {
+      await queryClient.cancelQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+      const previousChats = queryClient.getQueryData<MothershipChatMetadata[]>(
+        mothershipChatKeys.ownerList(owner)
+      )
+      if (!previousChats) return { previousChats: undefined }
+
+      const updated = previousChats.map((chat) =>
+        chat.id === chatId ? { ...chat, isPinned: pinned } : chat
+      )
+      const pinnedChats = updated.filter((chat) => chat.isPinned)
+      const unpinnedChats = updated.filter((chat) => !chat.isPinned)
+      queryClient.setQueryData<MothershipChatMetadata[]>(mothershipChatKeys.ownerList(owner), [
+        ...pinnedChats,
+        ...unpinnedChats,
+      ])
+
+      return { previousChats }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousChats) {
+        queryClient.setQueryData(mothershipChatKeys.ownerList(owner), context.previousChats)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+    },
+  })
+}
+
+async function setChatEffort({
+  chatId,
+  effort,
+}: SetMothershipChatEffortBody & { chatId: string }): Promise<void> {
+  await requestJson(setMothershipChatEffortContract, {
+    params: { chatId },
+    body: { effort },
+  })
+}
+
+/**
+ * Records the effort the user picked for a chat. The pick shows and sends at once from the
+ * session's pick map; saves for one chat run one at a time so the last pick is the one stored.
+ */
+export function useSetMothershipChatEffort(chatId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation(chatEffortMutationOptions(queryClient, chatId))
+}
+
+/**
+ * Saves a pick for a chat learned outside render, such as the chat a send just opened. It
+ * shares the hook's per-chat scope, so it lands in order with picks made in the composer.
+ */
+export function saveMothershipChatEffort(
+  queryClient: QueryClient,
+  chatId: string,
+  effort: MothershipEffort
+): void {
+  const observer = new MutationObserver(queryClient, chatEffortMutationOptions(queryClient, chatId))
+  // Detaching once the save settles lets the mutation cache collect it.
+  observer
+    .mutate(effort)
+    .catch(() => undefined)
+    .finally(() => observer.reset())
+}
+
+function chatEffortMutationOptions(queryClient: QueryClient, chatId: string | undefined) {
+  return mutationOptions({
+    mutationFn: (effort: MothershipEffort) => {
+      if (!chatId) throw new Error('A chat effort needs a chat')
+      return setChatEffort({ chatId, effort })
+    },
+    scope: { id: `mothership-chat-effort:${chatId ?? ''}` },
+    // Runs at once even while an earlier save for this chat holds the scope, so a failed
+    // save rolls back its own pick by token, never a later pick of the same value.
+    onMutate: (effort) => {
+      if (!chatId) return undefined
+      return { pick: useMothershipEffortStore.getState().setChatEffort(chatId, effort) }
+    },
+    onError: (_error, _effort, context) => {
+      if (!chatId || !context) return
+      if (useMothershipEffortStore.getState().dropChatEffort(chatId, context.pick)) {
+        toast.error("Couldn't change reasoning effort")
+      }
+    },
+    onSuccess: (_data, effort) => {
+      queryClient.setQueryData<MothershipChatHistory>(
+        mothershipChatKeys.detail(chatId),
+        (current) => current && { ...current, effort }
+      )
+    },
+  })
+}
+
+async function forkChat(params: {
+  chatId: string
+  upToMessageId: string
+}): Promise<{ id: string; failedFileCopies?: number }> {
+  const data = await requestJson(forkMothershipChatContract, {
+    params: { chatId: params.chatId },
+    body: { upToMessageId: params.upToMessageId },
+  })
+  return { id: data.id, failedFileCopies: data.failedFileCopies }
+}
+
+export function useForkMothershipChat(owner?: MothershipChatOwner) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: forkChat,
+    onSuccess: async (data, variables) => {
+      if (!owner) return
+      await queryClient.cancelQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+      const existing = queryClient.getQueryData<MothershipChatMetadata[]>(
+        mothershipChatKeys.ownerList(owner)
+      )
+      if (existing) {
+        const sourceChat = existing.find((t) => t.id === variables.chatId)
+        const baseName = (sourceChat?.name ?? 'New chat').replace(/^Fork \| /, '')
+        const optimisticChat: MothershipChatMetadata = {
+          id: data.id,
+          name: `Fork | ${baseName}`,
+          updatedAt: new Date(),
+          isActive: false,
+          isUnread: false,
+          isPinned: false,
+          deletedAt: null,
+        }
+        const pinnedCount = existing.findIndex((chat) => !chat.isPinned)
+        const insertAt = pinnedCount === -1 ? existing.length : pinnedCount
+        queryClient.setQueryData<MothershipChatMetadata[]>(mothershipChatKeys.ownerList(owner), [
+          ...existing.slice(0, insertAt),
+          optimisticChat,
+          ...existing.slice(insertAt),
+        ])
+      }
+    },
+    onSettled: () => {
+      if (!owner) return
+      queryClient.invalidateQueries({ queryKey: mothershipChatKeys.ownerList(owner) })
+    },
+  })
+}

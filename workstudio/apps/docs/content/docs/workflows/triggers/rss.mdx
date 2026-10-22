@@ -1,0 +1,58 @@
+---
+title: RSS feed
+description: Start a workflow for unseen items in an RSS or Atom feed.
+---
+
+import { BlockPreview } from '@/components/workflow-preview'
+
+The **RSS trigger** polls an RSS or Atom feed and starts a run for each selected unseen item. It needs a feed URL, with no connected account.
+
+<BlockPreview type="rss" />
+
+## Configuration
+
+1. Add an RSS trigger and enter **Feed URL**.
+2. Connect the blocks that should process each item.
+3. Deploy the workflow to register the trigger.
+4. Confirm new item runs in [Logs](/logs-debugging).
+
+Polling normally occurs once a minute. Self-hosted deployments need the RSS polling job configured; see [background jobs](/platform/self-hosting/background-jobs).
+
+## Outputs
+
+These examples use a trigger named RSS. Use your block's normalized name if different.
+
+| Reference | Value |
+| --- | --- |
+| `<rss.title>` | Item title |
+| `<rss.link>` | Item link |
+| `<rss.pubDate>` | Publication date |
+| `<rss.item>` | Parsed item with its available fields |
+| `<rss.feed>` | Feed `title`, `link`, and `description` |
+| `<rss.timestamp>` | Processing timestamp |
+
+Read fields such as `<rss.item.author>` or `<rss.feed.description>`. Item fields can include `guid`, `summary`, `content`, `contentSnippet`, `author`, `categories`, `enclosure`, and `isoDate`, depending on the feed. Feed metadata is a limited projection, not every field in the original feed.
+
+## Polling and deduplication
+
+Sim remembers up to 500 recent item identifiers. It uses the item's GUID, link, or title/publication-date combination when available, and an idempotency layer prevents repeated runs for the same identified item.
+
+Dated items at or before the subscription's creation time are excluded. Items without a usable date cannot be filtered by that historical boundary and may run even if they were already present in the feed. The last poll time is not the exclusion boundary, so a cached feed can reveal an unseen item later.
+
+Each poll selects at most 25 unseen items, newest first. Remaining unseen items stay eligible on later polls while they remain in the feed. Items left unattempted after an execution-admission refusal are also eligible later. This does not guarantee replay of an item that disappears from the feed before processing.
+
+## Fetch failures
+
+An unreachable feed or unsuccessful fetch counts as a failed poll and introduces backoff. The retry delay grows up to an hour, or longer when the source's `Retry-After` asks for it; skipped backoff polls do not count as failures.
+
+After 100 consecutive failed polls, the trigger disables itself. A successful poll resets the failure counter. Check the feed URL, reachability, and trigger status before reactivating it. Feed responses are bounded to 10 MiB.
+
+## Use a feed item [#use-cases]
+
+For release tracking, pass `<rss.title>` and `<rss.link>` to an Agent for a summary, then send that summary through an integration block. The trigger starts a separate run for each selected release item.
+
+## Related docs
+
+- [Deployment](/workflows/deployment)
+- [Connection syntax](/workflows/connections)
+- [Logs](/logs-debugging)

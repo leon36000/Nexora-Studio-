@@ -1,0 +1,76 @@
+---
+title: Search
+description: Find content in connected sources with your current account access
+---
+
+Search queries your connected sources when you ask. Results reflect your account's current access and your organization's source settings. Search does not copy documents into a Sim vector index or wait for a background sync.
+
+Use **Search** to find documents directly, or ask Sim on **Home** for an answer with sources. [Sim Search in Slack](/search/slack) and [Search MCP](/search/mcp) use the same retrieval and access rules. Search mode can search and read sources; it does not expose arbitrary integration actions.
+
+## Add your first source
+
+1. An organization admin opens **Settings → Sources → Add source** and chooses a provider.
+2. Choose **Member accounts**, or a service mode supported by that provider. Save the source; service modes also require a connection and resource settings.
+3. Each reader opens **Integrations** and connects their own provider account, including admins. GitLab uses configured project permissions instead of personal connections.
+4. Search for a distinctive phrase in content that account can open. Read the result and follow its source link.
+
+Adding a member source makes the integration available for members to connect. Provider app or deployment setup must be complete before authorization succeeds. [Connect your account](/search/connect-your-account) explains connection status and recovery.
+
+## Choose a connection mode
+
+| Mode | Admin setup | Search boundary |
+| --- | --- | --- |
+| **Member accounts** | Add the integration; no organization resource filters. | Content the connected member can access through the provider. |
+| **Service account** | Select a service connection and its folders, labels, spaces, or documents. | Content readable by the member and the service connection, within the source's current settings. |
+| **GitHub App** | Connect an installation and add each repository with **Add repository**. | Repositories allowed by both the installation and the member's GitHub account. |
+| **GitLab service account** | Add each self-managed project with **Add project**. Use an administrator token, or a non-admin token with CSV permissions. | Content retrieved by the source token and authorized for the reader by current GitLab checks or saved CSV grants. No personal connection. |
+
+A service source restricts resources; it does not grant access the member lacks. For example, a Gmail source limited to **INBOX** searches only allowed messages in the connected member's own mailbox. See [how INBOX filtering works](/search/gmail#how-inbox-filtering-works).
+
+Open a provider in **Sources** to manage its connection and resource settings. Removing a source stops it from authorizing later Search requests. Connecting an account does not add resource selections or start indexing. Credential Groups separately share account connections with workflows.
+
+## Supported sources
+
+Availability depends on deployment configuration and organization policy. Google Docs, Sheets, and Slides use the Drive source. Knowledge-base connectors do not automatically become Search sources.
+
+| Source | Searchable content | Modes |
+| --- | --- | --- |
+| [Coda](/search/coda) | Pages and table rows through personal MCP; legacy REST connections search document titles | Member or service |
+| [Confluence](/search/confluence) | Confluence Cloud pages and blog posts | Member or service |
+| [Fireflies](/search/fireflies) | Meeting titles and spoken transcripts | Member only |
+| [GitHub](/search/github) | Repositories, code, issues, pull request discussions, and commits | Member or GitHub App |
+| [GitLab](/search/gitlab) | Configured self-managed projects | Service only; admin or CSV permissions |
+| [Gmail](/search/gmail) | Messages and authorized conversation context | Member or service |
+| [Google Calendar](/search/google-calendar) | Calendar events | Member or service |
+| [Google Drive](/search/google-drive) | Files, supported document content, and comments on reads | Member or service |
+| [Google Meet](/search/google-meet) | Recent conference transcripts and generated-note links | Member only |
+| [Granola](/search/granola) | Meeting notes and transcripts | Member only |
+| [HubSpot](/search/hubspot) | Contacts, companies, deals, and tickets | Member only |
+| [Jira](/search/jira) | Jira Cloud issues and available comments | Member only |
+| [Linear](/search/linear) | Issues and their comment discussions | Member only |
+| [Lucid](/search/lucid) | Lucidchart diagrams and Lucidspark boards | Member only |
+| [Notion](/search/notion) | Notion pages and databases through personal MCP | Member only |
+| [Slack](/search/slack) | Accessible messages and files through real-time search | Member only |
+| [Zoom](/search/zoom) | Past meetings and available artifacts; requires organization enablement | Member only |
+
+**Generic Secrets** is also offered in Sources. Its **Organization** and **Member** modes store secrets for Build and Plan; they do not add searchable content. See [Generic Secrets](/search/generic-secrets).
+
+## Access and freshness
+
+Search checks current Sim membership, provider connections, and source settings on every request and document read. Admins follow the same reader rules as other members. GitLab administrator sources check permissions during the request; non-admin sources use saved CSV grants, which admins must update when access changes.
+
+Provider search freshness, supported content, pagination, rate limits, and bounded permission checks affect coverage. An empty result does not prove content is absent. Follow returned continuation cursors or narrow the query when coverage is incomplete; there is no Search indexing job to retry.
+
+To verify a service boundary, search for content inside and outside its configured scope. Repeat as a teammate with different access. After revoking provider access or updating GitLab CSV grants, repeat both search and read; provider changes must be reflected by the provider API.
+
+Conversations remain private to their author. An external account connection does not grant Sim organization membership. Invite teammates through **Settings → Members** or your organization's SSO.
+
+## Search and knowledge bases
+
+Workspace knowledge bases ingest, chunk, and index documents. Their connectors, processing status, and access settings are separate from live Search sources.
+
+## Related docs
+
+- [Connect your account](/search/connect-your-account)
+- [Search MCP](/search/mcp)
+- [Knowledge-base connectors](/knowledgebase/connectors)

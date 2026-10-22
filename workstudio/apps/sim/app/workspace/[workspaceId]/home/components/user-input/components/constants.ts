@@ -1,0 +1,151 @@
+import { cn } from '@sim/emcn'
+import { terminalIdFromResourceId } from '@/lib/terminal/resource-id'
+import type {
+  MothershipResource,
+  MothershipResourceType,
+} from '@/app/workspace/[workspaceId]/home/types'
+import type { ChatContext } from '@/stores/panel'
+
+export interface SpeechRecognitionEvent extends Event {
+  resultIndex: number
+  results: SpeechRecognitionResultList
+}
+
+export interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+}
+
+export interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start(): void
+  stop(): void
+  abort(): void
+  onstart: ((ev: Event) => void) | null
+  onend: ((ev: Event) => void) | null
+  onresult: ((ev: SpeechRecognitionEvent) => void) | null
+  onerror: ((ev: SpeechRecognitionErrorEvent) => void) | null
+}
+
+interface SpeechRecognitionStatic {
+  new (): SpeechRecognitionInstance
+}
+
+export type WindowWithSpeech = Window & {
+  SpeechRecognition?: SpeechRecognitionStatic
+  webkitSpeechRecognition?: SpeechRecognitionStatic
+}
+
+export interface PlusMenuHandle {
+  /** Opens the menu anchored at a viewport position (caret or trigger rect). */
+  open: (anchor: { left: number; top: number }, options?: { mention?: boolean }) => void
+  close: () => void
+  moveActive: (delta: number) => void
+  /**
+   * Confirms the highlighted candidate.
+   *
+   * - `selected` — a candidate was inserted.
+   * - `empty` — the lists are loaded and nothing matches, so the caller should
+   *   let the key through (Enter submits, Tab does its default).
+   * - `hydrating` — the lists are still loading, so "nothing matches" is not yet
+   *   knowable. The caller must swallow the key rather than submit a message
+   *   with the mention left as raw text.
+   */
+  selectActive: () => 'selected' | 'empty' | 'hydrating'
+}
+
+/** Shared draft typography for Build and Search composers. */
+export const PROMPT_TEXT_CLASSES =
+  'font-body text-md leading-[24px] tracking-[-0.015em] md:pointer-fine:text-sm'
+
+/**
+ * Box and typography shared by the textarea and its mirror overlay — both must
+ * produce identical line wrapping so the overlay text sits exactly over the
+ * (transparent) textarea text. The task modal inherits the same responsive
+ * prompt scale so its editor and the chat input wrap identically.
+ */
+export const PROMPT_FIELD_CLASSES = cn(
+  'm-0 box-border min-h-[24px] w-full [overflow-wrap:anywhere] border-0 bg-transparent',
+  'px-1 py-1',
+  PROMPT_TEXT_CLASSES
+)
+
+/**
+ * The textarea grows to its full content height (`h-auto`, no internal scroll);
+ * the shared scroller clips and scrolls it. PromptEditor makes the text
+ * transparent when its mention overlay paints the visible content.
+ */
+export const TEXTAREA_BASE_CLASSES = cn(
+  PROMPT_FIELD_CLASSES,
+  'block h-auto resize-none overflow-hidden',
+  'text-[var(--text-primary)] caret-[var(--text-primary)] outline-hidden',
+  'placeholder:text-[var(--text-muted)]',
+  'focus-visible:ring-0 focus-visible:ring-offset-0'
+)
+
+/**
+ * Pinned over the full-height textarea (`inset-0` of the sizer). Both are flow
+ * children of the same scroller, so they scroll together natively — no JS
+ * scroll-sync, so the caret and mirrored text never drift apart.
+ */
+export const OVERLAY_CLASSES = cn(
+  PROMPT_FIELD_CLASSES,
+  'pointer-events-none absolute inset-0 whitespace-pre-wrap',
+  'text-[var(--text-primary)]'
+)
+
+/** Single scroll container for the textarea + overlay; caps height and hides its scrollbar. */
+export const SCROLLER_CLASSES = cn(
+  'relative overflow-y-auto overflow-x-hidden max-md:overscroll-y-contain',
+  '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+)
+
+export const SPEECH_RECOGNITION_LANG = 'en-US'
+
+/**
+ * Maps a {@link MothershipResource} (resource-picker domain) to a
+ * {@link ChatContext} (chat-input domain). Keyed by `MothershipResourceType`
+ * so adding a new resource type fails compilation here until a conversion is
+ * supplied — preventing silent drift between the two taxonomies.
+ */
+// A browser resource is one live page and a terminal resource one live shell,
+// so each id is a precise pointer the agent can act on directly.
+const RESOURCE_TO_CONTEXT: Record<
+  MothershipResourceType,
+  (resource: MothershipResource) => ChatContext | null
+> = {
+  /** A saved query is panel state, not document evidence or an attachable resource. */
+  search: () => null,
+  sources: () => null,
+  browser: (r) => ({ kind: 'browser_tab', tabId: r.id, label: r.title }),
+  terminal: (r) => ({
+    kind: 'terminal_tab',
+    terminalId: terminalIdFromResourceId(r.id),
+    label: r.title,
+  }),
+  workflow: (r) => ({ kind: 'workflow', workflowId: r.id, label: r.title }),
+  knowledgebase: (r) => ({ kind: 'knowledge', knowledgeId: r.id, label: r.title }),
+  table: (r) => ({
+    kind: 'table',
+    tableId: r.id,
+    label: r.title,
+    ...(r.viewId ? { viewId: r.viewId } : {}),
+  }),
+  dashboard: (r) => ({ kind: 'dashboard', dashboardId: r.id, label: r.title }),
+  /** Sim reads a test through its file, `tests/<name>.test.js`, not a chat context. */
+  test: () => null,
+  file: (r) => ({ kind: 'file', fileId: r.id, label: r.title }),
+  folder: (r) => ({ kind: 'folder', folderId: r.id, label: r.title }),
+  filefolder: (r) => ({ kind: 'filefolder', fileFolderId: r.id, label: r.title }),
+  task: (r) => ({ kind: 'past_chat', chatId: r.id, label: r.title }),
+  // Context reads use execution identity; panel reads use the log row id.
+  // The saved resource address retains both across chat hydration.
+  log: (r) => ({ kind: 'logs', executionId: r.executionId ?? r.id, label: r.title }),
+  integration: (r) => ({ kind: 'integration', blockType: r.id, label: r.title }),
+  generic: (r) => ({ kind: 'docs', label: r.title }),
+}
+
+export function mapResourceToContext(resource: MothershipResource): ChatContext | null {
+  return RESOURCE_TO_CONTEXT[resource.type](resource)
+}

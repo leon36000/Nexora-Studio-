@@ -1,0 +1,62 @@
+---
+title: Run logs
+description: Find recorded runs, inspect their details, and compare them with the workflow that ran.
+---
+
+import { Image } from '@/components/ui/image'
+
+Use **Logs** to find recorded runs in your workspace. Use the workflow builder's console to watch a manual or chat run as it executes. For a debugging procedure, see [Trace a failure](/logs-debugging).
+
+## Find a run
+
+The list shows workflow, date, status, cost in credits, trigger, and duration. Filter by time range, status, trigger, folder, or workflow. Search text matches run IDs; it does not search arbitrary input or output text. Structured filters also support date, duration, and cost. For example:
+
+```text
+status:error workflow:"Support" duration:>5s
+```
+
+The list holds a stable snapshot. Select **Refresh**, **N new logs**, or **Updates available** to load new or changed runs. With editing access, select **Export** to download a CSV using the current filters.
+
+<Image
+  src="/static/docs-captures/logs.webp"
+  alt="Workspace Logs list with workflow, date, status, credits, trigger, and duration columns"
+  width={2400}
+  height={482}
+  variant="overview"
+  background="canyon"
+/>
+
+## Read log details
+
+Select an entry to open **Log Details**. The run records its execution ID, workflow ID, trigger, start and end timestamps, duration in milliseconds, final output, trace spans, and associated files where available. Use the copy controls to copy identifiers or data.
+
+### Overview
+
+**Overview** shows run metadata and available **Workflow Input**, **Workflow Output**, and cost details. Current usage-ledger itemization can include **Base Run**, model and tool usage, and token totals. Older runs may have a total without itemized rows.
+
+### Trace
+
+**Trace** shows the block and child spans with their timing and status. Select a span to inspect stacked, collapsible **Input**, **Output** or **Error**, and any **Thinking** or **Error message** sections. Inputs contain resolved variable values and referenced outputs. Structured data can be inspected and copied; agent text can render as Markdown.
+
+Workspace access settings govern which trace, workflow data, snapshot, and cost details are visible. Protected resolved secret values are masked in the log-facing copy, subject to documented exceptions. See [Permission groups](/platform/enterprise/access-control) and [Execution log protection](/platform/credentials#execution-log-protection).
+
+## Watch a manual run
+
+During manual or chat runs, the workflow builder's console highlights active blocks and shows outputs as they complete, per-block timing, and success or error status. Select a block and use its **Output** and **Input** tabs to inspect values as a typed tree. These console tabs are separate from the recorded run's trace sections.
+
+## Open the run snapshot
+
+Select **View Snapshot** to inspect the saved workflow structure, block configurations, and connections from that run, where available. Inspect its blocks and recorded inputs and outputs to compare the version that ran with your current draft.
+
+Some older migrated logs have no saved workflow state and show **Logged State Not Found**. A log's existence does not guarantee that a snapshot is available or that your access settings allow it.
+
+## Retention
+
+Sim Cloud Free defaults to 30 days. Paid plans and billing-disabled deployments have no plan-based default log expiry. Organization or workspace policies can change effective retention; cleanup removes expired data rather than providing a recoverable archive. See [Data retention](/platform/enterprise/data-retention).
+
+## Related docs
+
+- [Debug a run](/logs-debugging) for tracing errors through resolved values
+- [Alerts](/logs-debugging/alerts) for notifications on failures and slow runs
+- [Costs](/platform/costs) for run charges and credit units
+- [API getting started](/api-reference/getting-started) for programmatic log access

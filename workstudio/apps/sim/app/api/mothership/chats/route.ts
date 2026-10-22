@@ -1,0 +1,125 @@
+import { createLogger } from '@sim/logger'
+import { type NextRequest, NextResponse } from 'next/server'
+import {
+  createMothershipChatContract,
+  listMothershipChatsContract,
+} from '@/lib/api/contracts/mothership-chats'
+import { parseRequest } from '@/lib/api/server'
+import { asOrchestrationError } from '@/lib/core/orchestration/types'
+import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { createWorkspaceChat } from '@/lib/mothership/chat/application/create-workspace-chat'
+import {
+  ChatWorkspaceAccessError,
+  listWorkspaceChats,
+} from '@/lib/mothership/chat/application/use-cases'
+import {
+  createOrganizationChat,
+  listOrganizationChats,
+} from '@/lib/mothership/chat/organization-chats'
+import {
+  authenticateCopilotRequestSessionOnly,
+  createForbiddenResponse,
+  createInternalServerErrorResponse,
+  createUnauthorizedResponse,
+} from '@/lib/mothership/request/http'
+import { captureServerEvent } from '@/lib/posthog/server'
+import { isWorkspaceAccessDeniedError } from '@/lib/workspaces/permissions/utils'
+
+const logger = createLogger('MothershipChatsAPI')
+
+/**
+ * GET /api/mothership/chats?workspaceId=xxx
+ * Returns mothership (home) chats for the authenticated user in the given workspace.
+ */
+export const GET = withRouteHandler(async (request: NextRequest) => {
+  try {
+    const { userId, isAuthenticated, principal } = await authenticateCopilotRequestSessionOnly()
+    if (!isAuthenticated || !userId) {
+      return createUnauthorizedResponse()
+    }
+
+    const queryResult = await parseRequest(listMothershipChatsContract, request, {})
+    if (!queryResult.success) return queryResult.response
+    const { workspaceId, organizationId, scope } = queryResult.data.query
+
+    if (organizationId) {
+      if (!principal) return createUnauthorizedResponse()
+      const data = await listOrganizationChats.execute({
+        principal,
+        input: { organizationId, scope },
+      })
+      return NextResponse.json({ success: true, data })
+    }
+
+    if (!workspaceId) throw new Error('Conversation owner is required')
+    if (!principal) return createUnauthorizedResponse()
+    const data = await listWorkspaceChats.execute({ principal, input: { workspaceId, scope } })
+
+    return NextResponse.json({ success: true, data })
+  } catch (error) {
+    if (error instanceof ChatWorkspaceAccessError)
+      return createForbiddenResponse('Workspace access denied')
+    const code = asOrchestrationError(error)?.code
+    if (code === 'not_found' || code === 'forbidden')
+      return createForbiddenResponse('Organization access denied')
+    if (isWorkspaceAccessDeniedError(error)) {
+      return createForbiddenResponse('Workspace access denied')
+    }
+    logger.error('Error fetching mothership chats:', error)
+    return createInternalServerErrorResponse('Failed to fetch chats')
+  }
+})
+
+/**
+ * POST /api/mothership/chats
+ * Creates an empty mothership chat and returns its ID.
+ */
+export const POST = withRouteHandler(async (request: NextRequest) => {
+  let isWorkspaceRequest = false
+  try {
+    const { userId, isAuthenticated, principal } = await authenticateCopilotRequestSessionOnly()
+    if (!isAuthenticated || !userId) {
+      return createUnauthorizedResponse()
+    }
+
+    const validation = await parseRequest(createMothershipChatContract, request, {})
+    if (!validation.success) return validation.response
+    const { workspaceId, organizationId, mode } = validation.data.body
+    isWorkspaceRequest = Boolean(workspaceId)
+
+    if (organizationId) {
+      if (!principal) return createUnauthorizedResponse()
+      const chat = await createOrganizationChat.execute({
+        principal,
+        input: { organizationId, mode },
+      })
+      return NextResponse.json({ success: true, id: chat.id })
+    }
+
+    if (!workspaceId) throw new Error('Conversation owner is required')
+    if (!principal) return createUnauthorizedResponse()
+    const chat = await createWorkspaceChat.execute({ principal, input: { workspaceId, mode } })
+
+    captureServerEvent(
+      userId,
+      'task_created',
+      { workspace_id: workspaceId },
+      {
+        groups: { workspace: workspaceId },
+      }
+    )
+
+    return NextResponse.json({ success: true, id: chat.id })
+  } catch (error) {
+    const code = asOrchestrationError(error)?.code
+    if (
+      isWorkspaceAccessDeniedError(error) ||
+      (isWorkspaceRequest && (code === 'not_found' || code === 'forbidden'))
+    )
+      return createForbiddenResponse('Workspace access denied')
+    if (code === 'not_found' || code === 'forbidden')
+      return createForbiddenResponse('Organization access denied')
+    logger.error('Error creating mothership chat:', error)
+    return createInternalServerErrorResponse('Failed to create chat')
+  }
+})

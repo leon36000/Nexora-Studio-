@@ -1,0 +1,150 @@
+---
+title: Desktop app on your deployment
+description: Connect the macOS desktop app to a Sim deployment you operate
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { Step, Steps } from 'fumadocs-ui/components/steps'
+
+Install the official Sim desktop app and connect it to your deployment. You do not need a custom build to change servers. The app is currently macOS-only; use the web app on other platforms. See [Sim Desktop](/desktop) for general installation and use.
+
+## Server prerequisites [#requirements-for-the-server-url]
+
+- Use the origin your server serves, including scheme, hostname, and port. Paths are ignored.
+- HTTPS is required except for `localhost`, `127.0.0.1`, and `::1`, which allow HTTP for local testing.
+- Do not include credentials in the URL.
+- Use a certificate trusted by macOS.
+- Allow your Sim server to reach `api.github.com` and `github.com` for official installer and update lookup.
+
+<Callout type="warn">
+  Use the final served origin, not a redirecting alias. If `sim.example.com` redirects to `www.sim.example.com`, enter the `www` origin. The shell checks origins exactly; an alias can strand sign-in. Certificate errors are rejected without a “continue anyway” option. Install a private CA in the system trust store or use a publicly trusted certificate.
+</Callout>
+
+## Install and connect
+
+<Steps>
+<Step>
+
+### Resolve the installer
+
+From your installation directory:
+
+```bash
+bunx sim-setup desktop
+```
+
+The command reads Compose/Helm configuration, resolves the installer, and prints the download link and server URL. It offers to open the installer in your browser. Use `--no-open` to skip that prompt, or supply the public origin directly:
+
+```bash
+bunx sim-setup desktop --url https://sim.example.com --no-open
+```
+
+`--url` skips discovery. Without the CLI, open `https://<your-sim-origin>/api/desktop/update/download` in a browser.
+
+</Step>
+<Step>
+
+### Install the app
+
+Open the `.dmg` and drag Sim to **Applications**. Official installers are signed and notarized by Sim.
+
+</Step>
+<Step>
+
+### Connect to your server
+
+Launch Sim, choose **Sim → Server…**, enter your deployment origin, and select **Connect**. The app relaunches against that server and saves the setting across updates.
+
+</Step>
+</Steps>
+
+## What changes when you switch servers
+
+Each server has its own cookie and storage partition. Switching clears deployment-scoped state before the new server loads:
+
+| State | Result |
+| --- | --- |
+| Sign-in session | Sign in to the new deployment. |
+| Saved route | Open the workspace picker rather than the old deployment's workspace. |
+| Folder access | Grant directories again when needed. |
+| Built-in browser sessions | Sign in to sites again. |
+
+Window size, zoom, theme, notification preferences, tray, and launch-at-login settings remain. If deployment-scoped state cannot be cleared, the switch is refused; retry to complete it.
+
+## Recover a wrong server URL [#recovering-from-a-wrong-server-url]
+
+The **Can't connect** page reports a DNS, timeout, or TLS failure. Select **Change server** to open the picker with the current value prefilled. No filesystem change is needed to correct a typo.
+
+A private or self-signed certificate must be trusted by macOS; otherwise the app shows **Connection isn't secure**. A correct URL does not bypass certificate validation.
+
+## Installer and update endpoints [#your-deployment-already-serves-the-installer]
+
+Your deployment exposes two public endpoints:
+
+| Endpoint | Response |
+| --- | --- |
+| `/api/desktop/update/download` | `302` to the newest official installer for the deployment channel. |
+| `/api/desktop/update/latest-mac.yml` | `200` with a `text/yaml` update manifest. |
+
+Both resolve official GitHub release assets and cache lookups for five minutes. They return `404` when the channel has no release and `502` when GitHub lookup fails or candidates lack valid desktop artifacts.
+
+The server serves release selection and the manifest; clients download installers from GitHub. These endpoints cannot distribute your custom artifacts. Set `GITHUB_TOKEN` on the Sim server if its shared egress IP reaches GitHub's unauthenticated 60-requests/hour limit; authenticated user-token requests typically allow 5,000/hour. See [GitHub rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
+
+### Deployment channel [#which-channel-your-deployment-serves]
+
+`APPCONFIG_ENVIRONMENT` selects the channel:
+
+| Value | Channel | Repository |
+| --- | --- | --- |
+| `dev` | `dev` | `simstudioai/sim-desktop-releases` |
+| `staging` | `staging` | `simstudioai/sim-desktop-releases` |
+| Anything else, including unset | `latest` | `simstudioai/sim` |
+
+<Callout type="warn">
+  A self-hosted deployment with `APPCONFIG_ENVIRONMENT=dev` or `staging` serves prerelease installers. Leave it unset when you intend to offer the stable desktop app.
+</Callout>
+
+### Unavailable update feed [#what-an-installed-app-does-when-the-feed-fails]
+
+A feed `404` with the no-release header means no update is available. For `502`, timeout, or connection failure:
+
+- A stable build eligible for self-update falls back to Sim's packaged GitHub feed.
+- A `dev` or `staging` build skips the check because the stable fallback cannot update its bundle identity.
+- Other builds receive no update offer until the deployment feed answers again.
+
+Self-update requires a Developer ID build installed in **Applications**. Other packaged builds can offer manual downloads when the feed works. Release selection therefore follows your deployment only while its feed answers; an eligible stable app can use the fallback during an outage.
+
+## CLI discovery and probe failures
+
+The installer probe is required: failure exits `1`. Update-feed failure is a warning and still exits `0` if the installer resolved, so read both results before relying on updates.
+
+If detected configurations name different `NEXT_PUBLIC_APP_URL` origins, the command lists them and requires `--url`; there is no interactive selection. If none names an origin, it defaults to `http://localhost:3000`. `--url` also avoids the Docker/Helm discovery calls.
+
+## Build a custom shell [#building-your-own-shell]
+
+Use a custom build for a different bundle identity or signing identity, such as distribution through MDM with your organization's Developer ID. Start from a source checkout with dependencies installed. Packaging requires macOS with Xcode 26 or later for the Icon Composer asset.
+
+```bash
+cd apps/desktop
+SIM_DESKTOP_DEFAULT_ORIGIN=https://sim.example.com bun run package:mac
+```
+
+The default origin applies to fresh installs; the server picker remains available. The macOS target builds a universal binary. Output files are `apps/desktop/release/Sim-<version>-universal.dmg` and `.zip`. Pass `-c.appId=com.example.sim` to choose a bundle identifier.
+
+The baked default determines the app's channel identity, userData directory, and single-instance lock. Loopback, `dev.sim.ai`, and `staging.sim.ai` defaults produce separate Local, Dev, and Staging app identities; other origins use the production Sim identity. A Local build can still be pointed at another HTTPS server, but changing servers does not turn it into a production build or change its update eligibility.
+
+`package:share` instead writes `apps/desktop/release/<channel-slug>/<channel-slug>-<version>-<arch>.<ext>` and disables trusted timestamps. Use `package:mac` for notarized distribution.
+
+<Callout type="warn">
+  Your custom build needs your own signing and notarization. Set `CSC_LINK` and `CSC_KEY_PASSWORD` for Developer ID signing. Set `APPLE_API_KEY` to the absolute path of the App Store Connect `.p8` file, plus `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, and `APPLE_TEAM_ID`. A leading `~` is not expanded. `package:share` passes `-c.mac.timestamp=none`; Apple notarization requires a secure timestamp, so that output cannot be notarized even with credentials configured.
+</Callout>
+
+### Runtime override [#overriding-the-server-at-runtime]
+
+`SIM_DESKTOP_ORIGIN` overrides the saved server for one launch. It uses the same validation as the picker; an invalid value is logged and ignored. The override does not replace the saved server setting.
+
+## Related docs
+
+- [Verify your install](/platform/self-hosting/verify)
+- [Networking](/platform/self-hosting/networking)
+- [Sim Desktop](/desktop)

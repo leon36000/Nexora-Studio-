@@ -1,0 +1,151 @@
+---
+title: Human in the loop
+description: Pause a run for human input, then route on the submitted decision.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { BlockPreview, WorkflowPreview, HITL_APPROVAL_WORKFLOW, HITL_MULTISTAGE_WORKFLOW, HITL_VALIDATE_WORKFLOW } from '@/components/workflow-preview'
+
+The **Human** block pauses a run until a person submits input. Use it for approvals, feedback, or correcting extracted data. The pause has no automatic response timeout; it remains pending until resumed or cancelled.
+
+<BlockPreview type="human_in_the_loop" />
+
+## Approve before an action
+
+<WorkflowPreview workflow={HITL_APPROVAL_WORKFLOW} />
+
+Name the Human block **Approval** and add a boolean `approved` field. After submission, a Condition checks `<approval.approved> === true`. Only its passing branch sends the content to the publishing API; the other branch handles rejection.
+
+<Callout type="warn">
+Resuming a Human block does not itself approve the action. Check the submitted decision before sending an email, publishing content, or making another consequential change.
+</Callout>
+
+## Configuration
+
+### Display data
+
+**Display Data** is the context shown in the portal. Build fields using earlier outputs:
+
+```json
+{
+  "customerName": "<agent.name>",
+  "proposedAction": "Send the drafted email",
+  "accuracy": "<evaluator.accuracy>",
+  "generatedEmail": "<draft.content>"
+}
+```
+
+Define the matching Agent response fields and Evaluator metric before using their references.
+
+### Notification
+
+**Notification (Send URL)** configures tools that alert approvers. Include `<approval.url>` in the message. Supported tool choices include Slack, Gmail, Microsoft Teams, Twilio SMS, and Webhook, using their configured credentials.
+
+A notification Webhook sends the approval request to another system; that system must use the resume API to submit a decision. Sending a notification is separate from resuming the workflow.
+
+### Resume form
+
+**Resume Form** defines fields to submit, such as:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| `approved` | boolean | Approve or reject the action |
+| `comments` | string | Feedback or explanation |
+
+After resumption, read them with the Human block's name: `<approval.approved>` and `<approval.comments>`.
+
+## Outputs
+
+| Reference | Value |
+| --- | --- |
+| `<approval.url>` | Approval portal URL |
+| `<approval.resumeEndpoint>` | Resume API endpoint containing the pause context ID |
+| `<approval.response>` | Display data |
+| `<approval.submission>` | Form submission |
+| `<approval.resumeInput>` | Raw submitted resume input |
+| `<approval.submittedAt>` | ISO submission timestamp |
+| `<approval.fieldName>` | A configured Resume Form field after resumption |
+
+Use the block's reference name, not a literal `<blockId>` placeholder, in workflow fields. The paused API response also exposes a `_resume` object containing resume URLs and `contextId`.
+
+## Use the approval portal
+
+Open the generated URL to review the display data, fill in the resume form, and submit it. Share that URL through the configured notification tool. Portal access remains subject to the workflow's authorization requirements.
+
+HITL blocks are excluded from the selected-output picker because pause data is included automatically in the paused response.
+
+## Resume with the v2 API
+
+A v2 execute call can return `data.status: "paused"`. Read `contextId` from `data.output.data._resume` and the paused run's ID from `data.runId`:
+
+```bash
+curl -X POST 'https://www.sim.ai/api/v2/workflows/WORKFLOW_ID/runs/RUN_ID/resume' \
+  -H 'X-API-Key: YOUR_API_KEY' \
+  -H 'Content-Type: application/json' \
+  -d '{"contextId":"CONTEXT_ID","input":{"approved":true,"comments":"Ready to send"}}'
+```
+
+Replace the IDs, host, and key. Do not send a raw approval boolean instead of the `input` object.
+
+### Synchronous resumption
+
+For an originally synchronous run, the response waits for the resumed execution and returns a v2 run envelope. For example:
+
+```json
+{
+  "data": {
+    "runId": "RESUME_RUN_ID",
+    "workflowId": "WORKFLOW_ID",
+    "status": "completed",
+    "output": { "message": "Sent" },
+    "blockOutputs": null,
+    "error": null,
+    "startedAt": "2026-10-13T10:00:00.000Z",
+    "endedAt": "2026-10-13T10:00:01.234Z",
+    "durationMs": 1234
+  }
+}
+```
+
+A later Human block can pause the resumed run again, returning new pause data. The resumed attempt has its own `runId`.
+
+### Asynchronous and originally streaming runs
+
+The v2 resume endpoint returns JSON, not SSE. An originally asynchronous run resumes in the background. An originally streaming run also resumes asynchronously through v2. Both return `202` with a receipt:
+
+```json
+{
+  "data": {
+    "runId": "RESUME_RUN_ID",
+    "statusUrl": "https://www.sim.ai/api/v2/workflows/WORKFLOW_ID/runs/RESUME_RUN_ID"
+  }
+}
+```
+
+Poll the returned status URL with the same authentication and `includeOutput=true` to read the result. A queued response can also include `queuePosition`.
+
+## Legacy resume compatibility
+
+Existing callers can continue using `POST /api/resume/{workflowId}/{executionId}/{contextId}`. Its asynchronous receipt uses `jobId` and `/api/jobs/{jobId}`; its streaming path preserves legacy SSE behavior from the original execute call. See [workflow streaming](/workflows/deployment/agent-events) for the protocol distinction.
+
+The legacy `GET /api/resume/{workflowId}/{executionId}` lists a paused execution's pause points, statuses, and resume links. It returns `404` after the execution is no longer paused.
+
+Original streaming execution can stream selected outputs before the pause. A legacy streaming resume can stream the remaining selected outputs. This does not change v2 resume's JSON/async behavior.
+
+## Multiple approval steps
+
+<WorkflowPreview workflow={HITL_MULTISTAGE_WORKFLOW} />
+
+Check the manager's decision before asking the director, and check the director's decision before the final action. Earlier workflow steps have already run; only the remaining action is gated.
+
+## Review extracted data
+
+<WorkflowPreview workflow={HITL_VALIDATE_WORKFLOW} />
+
+Show the Agent's extracted fields and let a reviewer correct them through Resume Form before Function processes the submitted values.
+
+## Related docs
+
+- [Condition](/workflows/blocks/condition)
+- [Workflow streaming](/workflows/deployment/agent-events)
+- [API deployment](/workflows/deployment/api)

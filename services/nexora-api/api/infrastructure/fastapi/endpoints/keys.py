@@ -1,0 +1,226 @@
+from fastapi import APIRouter, Body, Depends, Path, Query, Security
+
+from api.dependencies import (
+    create_me_key_use_case_factory,
+    delete_key_use_case_factory,
+    get_keys_use_case_factory,
+    get_one_key_use_case_factory,
+    update_key_use_case_factory,
+)
+from api.domain import SortField, SortOrder
+from api.domain.key.entities import KeyStatus
+from api.domain.key.errors import KeyExpirationInvalidError, KeyNameReservedError, KeyNotFoundError
+from api.domain.user.errors import UserNotFoundError
+from api.domain.user.views import AuthenticatedUserView
+from api.infrastructure.fastapi.accesscontroller import AccessController
+from api.infrastructure.fastapi.dependencies import get_authenticated_user
+from api.infrastructure.fastapi.documentation import get_documentation_responses
+from api.infrastructure.fastapi.endpoints.exceptions import (
+    KeyExpirationInvalidHTTPException,
+    KeyNameReservedHTTPException,
+    KeyNotFoundHTTPException,
+    UserNotFoundHTTPException,
+)
+from api.infrastructure.fastapi.routes import EndpointRoute, RouterName
+from api.infrastructure.fastapi.schemas.admin.keys import KeyResponse, KeysResponse
+from api.infrastructure.fastapi.schemas.keys import CreateKeyBody, UpdateKeyBody
+from api.use_cases.admin.keys import (
+    CreateKeyCommand,
+    CreateKeyUseCase,
+    CreateKeyUseCaseSuccess,
+    DeleteKeyCommand,
+    DeleteKeyUseCase,
+    DeleteKeyUseCaseSuccess,
+    GetKeysCommand,
+    GetKeysUseCase,
+    GetKeysUseCaseSuccess,
+    GetOneKeyCommand,
+    GetOneKeyUseCase,
+    GetOneKeyUseCaseSuccess,
+    UpdateKeyCommand,
+    UpdateKeyUseCase,
+    UpdateKeyUseCaseSuccess,
+)
+
+router = APIRouter(prefix="/v1", tags=[RouterName.KEYS.title()])
+
+
+@router.post(
+    path="/me/keys",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=201,
+    responses=get_documentation_responses([KeyExpirationInvalidHTTPException, KeyNameReservedHTTPException, UserNotFoundHTTPException]),
+    deprecated=True,
+)
+@router.post(
+    path=EndpointRoute.KEYS,
+    dependencies=[Security(dependency=AccessController())],
+    status_code=201,
+    responses=get_documentation_responses([KeyExpirationInvalidHTTPException, KeyNameReservedHTTPException, UserNotFoundHTTPException]),
+)
+async def create_key(
+    body: CreateKeyBody = Body(description="The key creation request."),
+    create_me_key_use_case: CreateKeyUseCase = Depends(create_me_key_use_case_factory),
+    authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
+) -> KeyResponse:
+    """
+    Create a new API key for the authenticated user.
+    """
+
+    command = CreateKeyCommand(user_id=authenticated_user.id, name=body.name, expire=body.expires)
+    result = await create_me_key_use_case.execute(command)
+
+    match result:
+        case CreateKeyUseCaseSuccess(key=key):
+            return KeyResponse.model_validate(key, from_attributes=True)
+        case KeyExpirationInvalidError(max_expiration_days=max_expiration_days):
+            raise KeyExpirationInvalidHTTPException(max_expiration_days)
+        case KeyNameReservedError(name=name):
+            raise KeyNameReservedHTTPException(name)
+        case UserNotFoundError(id=user_id):
+            raise UserNotFoundHTTPException(user_id)
+
+
+@router.get(
+    path="/me/keys",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([]),
+    deprecated=True,
+)
+@router.get(
+    path=EndpointRoute.KEYS,
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([]),
+)
+async def get_keys(
+    offset: int = Query(default=0, ge=0, description="Number of keys to skip."),
+    limit: int = Query(default=10, ge=1, le=100, description="Maximum number of keys to return."),
+    sort_by: SortField = Query(default=SortField.ID, description="Field to sort by."),
+    sort_order: SortOrder = Query(default=SortOrder.ASC, description="Sort order."),
+    status: KeyStatus | None = Query(default=None, description="Filter by key status. Omit to return all keys."),
+    get_keys_use_case: GetKeysUseCase = Depends(get_keys_use_case_factory),
+    authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
+) -> KeysResponse:
+    """
+    Get all your keys.
+
+    Omit `status` to list every key. Use `active`, `expired`, or `revoked` to filter.
+    """
+
+    command = GetKeysCommand(
+        user_id=authenticated_user.id,
+        offset=offset,
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        status=status,
+    )
+    result = await get_keys_use_case.execute(command)
+
+    match result:
+        case GetKeysUseCaseSuccess(key_page=key_page):
+            return KeysResponse(
+                total=key_page.total,
+                offset=offset,
+                limit=limit,
+                data=[KeyResponse.model_validate(key, from_attributes=True) for key in key_page.data],
+            )
+
+
+@router.get(
+    path="/me/keys/{key_id}",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([KeyNotFoundHTTPException]),
+    deprecated=True,
+)
+@router.get(
+    path=EndpointRoute.KEYS + "/{key_id}",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([KeyNotFoundHTTPException]),
+)
+async def get_key(
+    key_id: int = Path(description="The ID of the key to get."),
+    get_one_key_use_case: GetOneKeyUseCase = Depends(get_one_key_use_case_factory),
+    authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
+) -> KeyResponse:
+    """
+    Get one of your API keys by ID.
+    """
+
+    command = GetOneKeyCommand(key_id=key_id, user_id=authenticated_user.id)
+    result = await get_one_key_use_case.execute(command)
+
+    match result:
+        case GetOneKeyUseCaseSuccess(key=key):
+            return KeyResponse.model_validate(key, from_attributes=True)
+        case KeyNotFoundError(id=not_found_key_id):
+            raise KeyNotFoundHTTPException(not_found_key_id)
+
+
+@router.patch(
+    path="/me/keys/{key_id}",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([KeyNotFoundHTTPException]),
+    deprecated=True,
+)
+@router.patch(
+    path=EndpointRoute.KEYS + "/{key_id}",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([KeyNotFoundHTTPException]),
+)
+async def update_key(
+    key_id: int = Path(description="The ID of the key to update."),
+    body: UpdateKeyBody = Body(description="The key update request."),
+    update_key_use_case: UpdateKeyUseCase = Depends(update_key_use_case_factory),
+    authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
+) -> KeyResponse:
+    """
+    Update an API key name.
+    """
+
+    command = UpdateKeyCommand(key_id=key_id, user_id=authenticated_user.id, name=body.name)
+    result = await update_key_use_case.execute(command)
+
+    match result:
+        case UpdateKeyUseCaseSuccess(key=key):
+            return KeyResponse.model_validate(key, from_attributes=True)
+        case KeyNotFoundError(id=not_found_key_id):
+            raise KeyNotFoundHTTPException(not_found_key_id)
+
+
+@router.delete(
+    path="/me/keys/{key_id}",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([KeyNotFoundHTTPException]),
+    deprecated=True,
+)
+@router.delete(
+    path=EndpointRoute.KEYS + "/{key_id}",
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([KeyNotFoundHTTPException]),
+)
+async def delete_key(
+    key_id: int = Path(description="The ID of the key to revoke."),
+    delete_key_use_case: DeleteKeyUseCase = Depends(delete_key_use_case_factory),
+    authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
+) -> KeyResponse:
+    """
+    Revoke an API key. A revoked key can no longer be used.
+    """
+
+    command = DeleteKeyCommand(key_id=key_id, user_id=authenticated_user.id)
+    result = await delete_key_use_case.execute(command)
+
+    match result:
+        case DeleteKeyUseCaseSuccess(key=key):
+            return KeyResponse.model_validate(key, from_attributes=True)
+        case KeyNotFoundError(id=not_found_key_id):
+            raise KeyNotFoundHTTPException(not_found_key_id)

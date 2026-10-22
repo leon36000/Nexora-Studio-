@@ -1,0 +1,491 @@
+import { AuditAction, AuditResourceType, recordAudit } from '@sim/audit'
+import { db } from '@sim/db'
+import { workspaceEnvironment } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
+import { getErrorMessage } from '@sim/utils/errors'
+import { generateId } from '@sim/utils/id'
+import { eq } from 'drizzle-orm'
+import { type NextRequest, NextResponse } from 'next/server'
+import {
+  removeWorkspaceEnvironmentContract,
+  upsertWorkspaceEnvironmentContract,
+} from '@/lib/api/contracts/environment'
+import { parseRequest } from '@/lib/api/server'
+import { getSession } from '@/lib/auth'
+import { encryptSecret } from '@/lib/core/security/encryption'
+import { generateRequestId } from '@/lib/core/utils/request'
+import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { lockWorkspaceEnvMap } from '@/lib/credentials/env-locks'
+import {
+  createWorkspaceEnvCredentials,
+  deleteWorkspaceEnvCredentials,
+  getPersonalEnvKeyRawAccess,
+  getWorkspaceEnvKeyAdminAccess,
+} from '@/lib/credentials/environment'
+import {
+  getPersonalAndWorkspaceEnv,
+  invalidateEffectiveDecryptedEnvCache,
+} from '@/lib/environment/utils'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
+import { captureServerEvent } from '@/lib/posthog/server'
+import {
+  getUserEntityPermissions,
+  getWorkspaceById,
+  type PermissionType,
+} from '@/lib/workspaces/permissions/utils'
+
+const logger = createLogger('WorkspaceEnvironmentAPI')
+
+/**
+ * Refuses when the caller's permission group withholds secrets, and `null` when
+ * it does not.
+ *
+ * permission-group-enforced: secrets.manage — this route predates the operation
+ * boundary and is raw `withRouteHandler`, so the authorization funnel that
+ * applies the capability to `secretOperations` never sees it. It reads and
+ * writes the very values the Secrets tab shows, which is what the capability
+ * describes, so it takes the same one the `secrets.*` operations declare.
+ *
+ * Every handler here authenticates with `getSession` alone, so the caller is
+ * always a user-bearing session principal — a workspace API key cannot reach
+ * this route, and there is no executor delegation to refuse. Call this only
+ * after the workspace role check has passed: a caller with no role must learn
+ * that the workspace is out of reach, not how their organization's group is
+ * configured.
+ */
+async function secretsCapabilityRefusal(
+  userId: string,
+  workspaceId: string
+): Promise<NextResponse | null> {
+  const withheld = await isWorkspaceCapabilityWithheld(userId, workspaceId, 'secrets.manage')
+  return withheld ? capabilityRefusalResponse('secrets.manage') : null
+}
+
+/**
+ * Reveals a workspace secret only to a workspace administrator, that secret's
+ * credential administrator, or a caller allowed to use a secret explicitly
+ * marked visible. The environment snapshot has already limited
+ * `workspaceUnredactedKeys` to secrets the caller may use.
+ */
+async function maskWorkspaceEnvForViewer({
+  workspaceDecrypted,
+  workspaceId,
+  userId,
+  permission,
+  workspaceUnredactedKeys,
+}: {
+  workspaceDecrypted: Record<string, string>
+  workspaceId: string
+  userId: string
+  permission: PermissionType
+  workspaceUnredactedKeys: readonly string[]
+}): Promise<Record<string, string>> {
+  const workspaceKeys = Object.keys(workspaceDecrypted)
+  const unredactedKeys = new Set(workspaceUnredactedKeys)
+  const { adminKeys } = await getWorkspaceEnvKeyAdminAccess({
+    workspaceId,
+    envKeys: workspaceKeys,
+    userId,
+  })
+
+  const masked: Record<string, string> = {}
+  for (const key of workspaceKeys) {
+    const canViewValue = permission === 'admin' || adminKeys.has(key) || unredactedKeys.has(key)
+    masked[key] = canViewValue ? workspaceDecrypted[key] : ''
+  }
+  return masked
+}
+
+async function maskPersonalEnvForViewer({
+  personalDecrypted,
+  personalOwners,
+  workspaceId,
+  userId,
+}: {
+  personalDecrypted: Record<string, string>
+  personalOwners: Record<string, string>
+  workspaceId: string
+  userId: string
+}): Promise<Record<string, string>> {
+  const personalKeys = Object.keys(personalDecrypted)
+  const { ownedKeys, adminKeys } = await getPersonalEnvKeyRawAccess({
+    workspaceId,
+    personalOwners,
+    userId,
+  })
+
+  return Object.fromEntries(
+    personalKeys.map((key) => [
+      key,
+      ownedKeys.has(key) || adminKeys.has(key) ? personalDecrypted[key] : '',
+    ])
+  )
+}
+
+export const GET = withRouteHandler(
+  async (_request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
+    const requestId = generateRequestId()
+    const workspaceId = (await params).id
+
+    try {
+      const session = await getSession()
+      if (!session?.user?.id) {
+        logger.warn(`[${requestId}] Unauthorized workspace env access attempt`)
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const userId = session.user.id
+
+      const ws = await getWorkspaceById(workspaceId)
+      if (!ws) {
+        return NextResponse.json({ error: 'Workspace not found' }, { status: 404 })
+      }
+
+      const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+      if (!permission) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const withheld = await secretsCapabilityRefusal(userId, workspaceId)
+      if (withheld) return withheld
+
+      const {
+        workspaceDecrypted,
+        personalDecrypted,
+        personalOwners,
+        conflicts,
+        workspaceUnredactedKeys,
+      } = await getPersonalAndWorkspaceEnv(userId, workspaceId)
+
+      const workspace = await maskWorkspaceEnvForViewer({
+        workspaceDecrypted,
+        workspaceId,
+        userId,
+        permission,
+        workspaceUnredactedKeys,
+      })
+      const personal = await maskPersonalEnvForViewer({
+        personalDecrypted,
+        personalOwners,
+        workspaceId,
+        userId,
+      })
+
+      return NextResponse.json(
+        {
+          data: {
+            workspace,
+            personal,
+            conflicts,
+          },
+        },
+        { status: 200 }
+      )
+    } catch (error) {
+      logger.error(`[${requestId}] Workspace env GET error`, error)
+      return NextResponse.json(
+        { error: getErrorMessage(error, 'Failed to load environment') },
+        { status: 500 }
+      )
+    }
+  }
+)
+
+/**
+ * Upserts workspace environment variables under tiered authorization: the caller
+ * needs some workspace permission, editing an existing secret requires
+ * credential-admin on that key, and adding a brand-new key requires workspace
+ * write/admin.
+ */
+export const PUT = withRouteHandler(
+  async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
+    const requestId = generateRequestId()
+    const workspaceId = (await context.params).id
+
+    try {
+      const session = await getSession()
+      if (!session?.user?.id) {
+        logger.warn(`[${requestId}] Unauthorized workspace env update attempt`)
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const userId = session.user.id
+
+      const parsed = await parseRequest(upsertWorkspaceEnvironmentContract, request, context)
+      if (!parsed.success) return parsed.response
+      const { variables } = parsed.data.body
+
+      const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+      if (!permission) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
+      const withheld = await secretsCapabilityRefusal(userId, workspaceId)
+      if (withheld) return withheld
+
+      const incomingKeys = Object.keys(variables)
+      if (incomingKeys.length === 0) {
+        return NextResponse.json({ success: true })
+      }
+      const { adminKeys, knownKeys } = await getWorkspaceEnvKeyAdminAccess({
+        workspaceId,
+        envKeys: incomingKeys,
+        userId,
+      })
+      const isKeyAdmin = (key: string) => permission === 'admin' || adminKeys.has(key)
+      const forbiddenExisting = incomingKeys.filter((k) => knownKeys.has(k) && !isKeyAdmin(k))
+      if (forbiddenExisting.length > 0) {
+        logger.warn(`[${requestId}] Workspace env update denied`, {
+          workspaceId,
+          userId,
+          reason: 'not-secret-admin',
+          keys: forbiddenExisting,
+        })
+        return NextResponse.json(
+          { error: 'You must be an admin of these secrets to edit them' },
+          { status: 403 }
+        )
+      }
+      if (
+        incomingKeys.some((k) => !knownKeys.has(k)) &&
+        permission !== 'admin' &&
+        permission !== 'write'
+      ) {
+        logger.warn(`[${requestId}] Workspace env update denied`, {
+          workspaceId,
+          userId,
+          reason: 'write-access-required',
+          keys: incomingKeys.filter((k) => !knownKeys.has(k)),
+        })
+        return NextResponse.json(
+          { error: 'Write access is required to add new secrets' },
+          { status: 403 }
+        )
+      }
+
+      const encryptedIncoming = await Promise.all(
+        Object.entries(variables).map(async ([key, value]) => {
+          const { encrypted } = await encryptSecret(value)
+          return [key, encrypted] as const
+        })
+      ).then((entries) => Object.fromEntries(entries))
+
+      const { merged } = await db.transaction(async (tx) => {
+        await lockWorkspaceEnvMap(tx, workspaceId)
+
+        const [existingRow] = await tx
+          .select()
+          .from(workspaceEnvironment)
+          .where(eq(workspaceEnvironment.workspaceId, workspaceId))
+          .limit(1)
+
+        const existing = ((existingRow?.variables as Record<string, string>) ?? {}) as Record<
+          string,
+          string
+        >
+        const mergedVars = { ...existing, ...encryptedIncoming }
+
+        await tx
+          .insert(workspaceEnvironment)
+          .values({
+            id: generateId(),
+            workspaceId,
+            variables: mergedVars,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [workspaceEnvironment.workspaceId],
+            set: { variables: mergedVars, updatedAt: new Date() },
+          })
+
+        /**
+         * Inside the transaction because a value committed without its
+         * credential row cannot be repaired by retrying: the key is in the map
+         * by then, so the next attempt reads it as pre-existing, computes an
+         * empty `newKeys`, and never creates the row.
+         */
+        const newKeys = Object.keys(variables).filter((k) => !(k in existing))
+        await createWorkspaceEnvCredentials({
+          workspaceId,
+          newKeys,
+          actingUserId: userId,
+          executor: tx,
+        })
+
+        return { merged: mergedVars }
+      })
+
+      invalidateEffectiveDecryptedEnvCache({ workspaceId })
+
+      recordAudit({
+        workspaceId,
+        actorId: userId,
+        actorName: session?.user?.name,
+        actorEmail: session?.user?.email,
+        action: AuditAction.ENVIRONMENT_UPDATED,
+        resourceType: AuditResourceType.ENVIRONMENT,
+        resourceId: workspaceId,
+        description: `Updated ${Object.keys(variables).length} workspace environment variable(s)`,
+        metadata: {
+          variableCount: Object.keys(variables).length,
+          updatedKeys: Object.keys(variables),
+          totalKeysAfterUpdate: Object.keys(merged).length,
+        },
+        request,
+      })
+
+      captureServerEvent(userId, 'environment_updated', {
+        workspace_id: workspaceId,
+        key_count: Object.keys(variables).length,
+      })
+
+      return NextResponse.json({ success: true })
+    } catch (error) {
+      logger.error(`[${requestId}] Workspace env PUT error`, error)
+      return NextResponse.json(
+        { error: getErrorMessage(error, 'Failed to update environment') },
+        { status: 500 }
+      )
+    }
+  }
+)
+
+/**
+ * Removes workspace environment variables. Deleting an existing secret requires
+ * credential-admin on that key; a key with no credential yet (legacy) falls back
+ * to workspace write/admin.
+ */
+export const DELETE = withRouteHandler(
+  async (request: NextRequest, context: { params: Promise<{ id: string }> }) => {
+    const requestId = generateRequestId()
+    const workspaceId = (await context.params).id
+
+    try {
+      const session = await getSession()
+      if (!session?.user?.id) {
+        logger.warn(`[${requestId}] Unauthorized workspace env delete attempt`)
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const userId = session.user.id
+
+      const parsed = await parseRequest(removeWorkspaceEnvironmentContract, request, context)
+      if (!parsed.success) return parsed.response
+      const { keys } = parsed.data.body
+
+      const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+      if (!permission) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
+      const withheld = await secretsCapabilityRefusal(userId, workspaceId)
+      if (withheld) return withheld
+
+      const { adminKeys, knownKeys } = await getWorkspaceEnvKeyAdminAccess({
+        workspaceId,
+        envKeys: keys,
+        userId,
+      })
+      const isKeyAdmin = (key: string) => permission === 'admin' || adminKeys.has(key)
+      const forbiddenExisting = keys.filter((k) => knownKeys.has(k) && !isKeyAdmin(k))
+      if (forbiddenExisting.length > 0) {
+        logger.warn(`[${requestId}] Workspace env delete denied`, {
+          workspaceId,
+          userId,
+          reason: 'not-secret-admin',
+          keys: forbiddenExisting,
+        })
+        return NextResponse.json(
+          { error: 'You must be an admin of these secrets to delete them' },
+          { status: 403 }
+        )
+      }
+      if (keys.some((k) => !knownKeys.has(k)) && permission !== 'admin' && permission !== 'write') {
+        logger.warn(`[${requestId}] Workspace env delete denied`, {
+          workspaceId,
+          userId,
+          reason: 'write-access-required',
+          keys: keys.filter((k) => !knownKeys.has(k)),
+        })
+        return NextResponse.json(
+          { error: 'Write access is required to remove these secrets' },
+          { status: 403 }
+        )
+      }
+
+      const result = await db.transaction(async (tx) => {
+        await lockWorkspaceEnvMap(tx, workspaceId)
+
+        const [existingRow] = await tx
+          .select()
+          .from(workspaceEnvironment)
+          .where(eq(workspaceEnvironment.workspaceId, workspaceId))
+          .limit(1)
+
+        if (!existingRow) return null
+
+        const current: Record<string, string> =
+          (existingRow.variables as Record<string, string>) ?? {}
+        let modified = false
+        for (const k of keys) {
+          if (k in current) {
+            delete current[k]
+            modified = true
+          }
+        }
+
+        if (!modified) return null
+
+        await tx
+          .update(workspaceEnvironment)
+          .set({ variables: current, updatedAt: new Date() })
+          .where(eq(workspaceEnvironment.workspaceId, workspaceId))
+
+        await deleteWorkspaceEnvCredentials({
+          workspaceId,
+          removedKeys: keys,
+          executor: tx,
+        })
+
+        return { remainingKeysCount: Object.keys(current).length }
+      })
+
+      if (!result) {
+        return NextResponse.json({ success: true })
+      }
+
+      invalidateEffectiveDecryptedEnvCache({ workspaceId })
+
+      recordAudit({
+        workspaceId,
+        actorId: userId,
+        actorName: session?.user?.name,
+        actorEmail: session?.user?.email,
+        action: AuditAction.ENVIRONMENT_DELETED,
+        resourceType: AuditResourceType.ENVIRONMENT,
+        resourceId: workspaceId,
+        description: `Removed ${keys.length} workspace environment variable(s)`,
+        metadata: {
+          removedKeys: keys,
+          remainingKeysCount: result.remainingKeysCount,
+        },
+        request,
+      })
+
+      captureServerEvent(userId, 'environment_deleted', {
+        workspace_id: workspaceId,
+        key_count: keys.length,
+      })
+
+      return NextResponse.json({ success: true })
+    } catch (error) {
+      logger.error(`[${requestId}] Workspace env DELETE error`, error)
+      return NextResponse.json(
+        { error: getErrorMessage(error, 'Failed to remove environment keys') },
+        { status: 500 }
+      )
+    }
+  }
+)

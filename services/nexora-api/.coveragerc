@@ -1,0 +1,16 @@
+[run]
+source = api
+branch = True
+relative_files = True
+omit =
+    */tests/*
+    */migrations/*
+    */__init__.py
+concurrency = gevent
+[report]
+show_missing = True
+precision = 2
+skip_covered = False
+
+[html]
+directory = htmlcov

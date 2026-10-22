@@ -1,0 +1,138 @@
+---
+title: Audit logs
+description: Investigate configuration and security events across your organization
+---
+
+Audit logs record the actor, time, and affected resource for configuration and security events. Organization owners and admins can investigate changes across the organization's workspaces, export CSV, or send events to a [data drain](/platform/enterprise/data-drains).
+
+Billing-enabled deployments require Enterprise. Billing-disabled deployments use audit-log feature configuration and still need an organization for the organization viewer and API. Workspace admin access alone does not grant organization audit access.
+
+## Find events
+
+Open **Settings → Organization → Audit logs**. Search actions, actors, resource names, or descriptions, then narrow by resource type and date. Links from a workspace's Insights view also scope the feed to that workspace; remove the workspace chip to return to the organization feed.
+
+| Column | Content |
+| --- | --- |
+| **Timestamp** | Time of the recorded action. |
+| **Event** | Action identifier, such as `workflow.created`. |
+| **Description** | Human-readable action summary. |
+| **Actor** | Email or name when available; a system fallback for actions without one. |
+
+By default, queries include actors who are current organization members and anonymous actions. API and CSV queries can set `includeDeparted=true` to include departed and external workspace actors. External workspace members may act on workspace resources without joining the organization; invitation metadata records internal or external membership.
+
+Historical visibility depends on current workspace ownership and stored organization attribution. Workspace moves or physical deletion can change which events an organization query returns. Export events you need to retain under independent archive controls.
+
+## Export and integrate
+
+Download CSV from the viewer, paginate the API, or use an audit-log drain for continuous delivery. CSV includes resource, workspace, and actor IDs; IP address; user agent; surface; and per-action metadata. The JSON API omits IP addresses and user agents.
+
+CSV is capped at **10,000 rows or 64 MiB**. An oversized record can also stop it early. `X-Export-Truncated: 1` indicates a partial download; narrow the filters and export again. CSV export is itself an audited operation.
+
+### Organization API
+
+For new integrations, use the [v2 audit-log reference](/api-reference/audit-logs/listAuditLogs). It supports `orgId`, `actorEmail`, UTC date filters, and the v2 pagination envelope. The v1 request below remains supported; changing only its URL to v2 does not preserve its query or response contract.
+
+```http
+GET /api/v1/audit-logs
+X-API-Key: <personal-api-key>
+```
+
+The key's owner must be an organization owner or admin. Workspace API keys are refused. Rate limits apply, and `X-RateLimit-*` headers report the current quota.
+
+| v1 query parameter | Behavior |
+| --- | --- |
+| `action` | Event identifier, such as `workflow.created`. |
+| `resourceType` | Resource type; accepts comma-separated types. |
+| `resourceId` | Specific resource ID. |
+| `workspaceId` | Workspace in the caller's organization. |
+| `actorId` | Current organization member's user ID. Departed-actor filtering is supported by CSV with `includeDeparted=true`. |
+| `startDate`, `endDate` | ISO 8601 lower and upper date bounds. |
+| `includeDeparted` | Includes actors outside current organization membership; default `false`. |
+| `limit` | Page size, 1–100; default 50. |
+| `cursor` | Opaque next-page cursor. |
+
+A v1 page contains `data`, an optional `nextCursor`, and `limits`. Each entry has `id`, `action`, `resourceType`, nullable resource ID/name, description, actor ID/name/email, workspace ID, arbitrary per-action `metadata`, and `createdAt`.
+
+```json
+{
+  "data": [
+    {
+      "id": "audit-event-id",
+      "action": "workflow.created",
+      "resourceType": "workflow",
+      "resourceId": "workflow-id",
+      "resourceName": "Customer onboarding",
+      "description": "Created workflow \"Customer onboarding\"",
+      "actorId": "user-id",
+      "actorName": "Alice Smith",
+      "actorEmail": "alice@example.com",
+      "workspaceId": "workspace-id",
+      "metadata": {},
+      "createdAt": "2026-04-20T21:16:00.000Z"
+    }
+  ],
+  "nextCursor": "opaque-next-page-cursor",
+  "limits": {
+    "workflowExecutionRateLimit": {
+      "sync": { "requestsPerMinute": 60, "maxBurst": 10, "remaining": 59, "resetAt": "2026-04-20T21:17:00.000Z" },
+      "async": { "requestsPerMinute": 30, "maxBurst": 5, "remaining": 30, "resetAt": "2026-04-20T21:17:00.000Z" }
+    },
+    "usage": { "currentPeriodCost": 1.25, "limit": 50, "plan": "enterprise", "isExceeded": false }
+  }
+}
+```
+
+The limits above are illustrative. Pass `nextCursor` as the next request's `cursor`; its absence ends pagination. Keep filters unchanged across pages.
+
+## Recorded events and limits
+
+Events use identifiers such as `resource.action`. These categories are representative, not an exhaustive event catalog.
+
+| Category | Example events |
+| --- | --- |
+| Authentication | `auth.login_succeeded`, `auth.login_failed`, `auth.logout`, `auth.impersonation_started`, `auth.impersonation_ended`, `auth.sessions_revoked` |
+| Workflows | `workflow.created`, `workflow.deleted`, `workflow.deployed`, `workflow.locked` |
+| Workspaces | `workspace.created`, `workspace.updated`, `workspace.deleted` |
+| Members | `member.invited`, `member.removed`, `member.role_changed` |
+| Permission groups | `permission_group.created`, `permission_group.updated`, `permission_group.deleted` |
+| Environments | `environment.updated`, `environment.deleted` |
+| Knowledge bases | `knowledge_base.created`, `knowledge_base.deleted`, `connector.synced` |
+| Tables | `table.created`, `table.updated`, `table.deleted` |
+| API keys | `api_key.created`, `api_key.revoked` |
+| Credentials | `credential.created`, `credential.deleted`, `oauth.disconnected` |
+| Organization | `organization.updated`, `org_member.added`, `org_member.role_changed`, `organization.sso_provider.updated` |
+| Exports and drains | `audit_logs.exported`, `data_drain.created`, `data_drain.updated`, `data_drain.ran`, `data_drain.tested` |
+
+Authentication failures and password-reset requests use an anonymous actor and record the target account separately. Impersonation and administrative session revocations identify the operator and target organization. Table-row mutations record summaries and counts without copying row contents.
+
+Most audit writes are best effort: an outage or process loss can prevent persistence after an action succeeds. Deployment activation uses an awaited, idempotent insert before its outbox checkpoint. The feed is not a complete tool-call stream or a guaranteed transactional ledger for every operation.
+
+The interface and API provide no audit-entry editing or deletion. Database administrators can alter stored records, and entries are not cryptographically sealed. Use a drain to retain your own archive.
+
+## Self-hosted setup
+
+On billing-disabled deployments, enable audit logs through enterprise configuration or explicitly set:
+
+```bash
+AUDIT_LOGS_ENABLED=true
+NEXT_PUBLIC_AUDIT_LOGS_ENABLED=true
+```
+
+Explicit feature values take precedence over the enterprise master setting. Billing-enabled self-hosted deployments retain the Enterprise gate. See [self-hosted enterprise setup](/platform/enterprise/self-hosted).
+
+### Deployment-admin API
+
+Operators can use a separate instance-wide API with `ADMIN_API_KEY`, without an organization or plan:
+
+```http
+GET /api/v1/admin/audit-logs
+x-admin-key: <admin-api-key>
+```
+
+This endpoint returns events across the deployment, including IP addresses and user agents. It supports the organization endpoint's event/resource/workspace/date filters plus `actorEmail`, omits `includeDeparted`, and uses `limit` (default 50, maximum 250) and `offset` (default 0) pagination. `GET /api/v1/admin/audit-logs/<id>` returns one entry. Keep the deployment-admin key separate from personal organization keys.
+
+## Related docs
+
+- [Data drains](/platform/enterprise/data-drains)
+- [Permission groups](/platform/enterprise/access-control)
+- [Audit-log CLI](/cli/audit-logs)

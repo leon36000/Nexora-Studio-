@@ -1,0 +1,77 @@
+---
+title: Gmail
+description: Search your mailbox and read authorized conversation context
+---
+
+Gmail Search finds matching messages in your connected mailbox. **Member accounts** uses your access and Gmail query syntax. **Service account** adds mailbox, label, date, and query restrictions. Each reader connects Gmail in both modes.
+
+## Connect member accounts
+
+An admin adds **Gmail** in **Settings → Sources**, chooses **Member accounts**, and saves. Members select **Integrations → Gmail → Connect**, then search for a known message and read it.
+
+Member mode has no admin label, date, category, or mailbox filters. Search does not send or modify messages, though the shared personal connection may request broader workflow scopes.
+
+## Set up a central service account
+
+1. Enable **Gmail API** and **Admin SDK API** in Google Cloud. Create a service account and download its JSON key.
+2. In Google Workspace Admin, authorize domain-wide delegation for its numeric client ID with:
+
+   ```text
+   https://www.googleapis.com/auth/gmail.readonly
+   https://www.googleapis.com/auth/admin.directory.user.readonly
+   ```
+
+3. In **Settings → Sources → Gmail**, choose **Service account → Add connection** and add or select the Google service credential.
+4. Set **Delegated administrator** to an active Workspace administrator with Directory user-read access. Configure **Users**, labels, date range, exclusions, or search filter, then save.
+5. Select the connection as Gmail's service source. Every reader still connects Gmail personally in **Integrations**.
+
+Selected users must use primary Workspace email addresses. An empty **Users** selection allows eligible connected mailboxes in the same Workspace customer, not other people's mailboxes. Delegation always targets the connected member's verified provider identity.
+
+## Service-source settings
+
+| Setting | Effect |
+| --- | --- |
+| **Users** | Optional allowed primary Workspace mailboxes. Other members get no matches through the source. |
+| **Labels** | Alternatives: any selected label can match. The picker uses the delegated administrator's mailbox and saves names, because custom label IDs differ between mailboxes. |
+| **Date Range** | Rolling window checked against each message. |
+| **Search Filter** | Gmail query that each message must also satisfy. |
+| **Exclude Promotions / Social** | Category exclusions; existing service-source defaults exclude both. |
+
+These settings apply only to service mode.
+
+## How INBOX filtering works
+
+With **Labels = INBOX**, Sim verifies the connected Gmail identity, active Workspace user, and customer match. Gmail searches that person's mailbox with the query, INBOX restriction, and category exclusions. Sim then uses the service account delegated to that same mailbox to check each candidate's current labels, rolling date window, and custom query.
+
+Custom labels are resolved in the member's mailbox. Custom queries are checked against the exact candidate message. A message outside INBOX is excluded even when the member can read it.
+
+A read includes the matching message and up to seven recent messages from its conversation, in chronological order. Every included message must independently pass the source's current restrictions before its body is fetched and again before content is returned. One allowed message cannot authorize the rest of a thread.
+
+Conversation content preserves sender, date, subject, and source link. Each message is limited to 24,000 characters. Omitted, truncated, or preview-only context is labeled; open Gmail for the remaining conversation. Reads exclude named attachments and bound MIME traversal to 32 levels and 256 parts.
+
+Gmail API search is message-based and differs from the UI's thread-wide matching and alias expansion. Attachment operators can find a message, but Search does not ingest attachment contents. [Google's filtering guide](https://developers.google.com/workspace/gmail/api/guides/filtering).
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Delegation rejected | Check numeric client ID, approved scopes, pending Workspace approval, and key. |
+| Directory user unavailable | Use an active primary user in the source's customer and an administrator with user-read access. |
+| No results | Check connected mailbox, Users, labels, date range, exclusions, and custom query. |
+| Custom label missing | Confirm the label exists in the member's mailbox; IDs need not match the admin's labels. |
+| Rate limit or incomplete coverage | Retry as directed or narrow the query. There is no indexing retry. |
+
+## Self-hosted member OAuth
+
+Follow [Google OAuth setup](/platform/self-hosting/integrations-oauth#google) for **Gmail API**, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, consent, and full member scopes. Set `NEXT_PUBLIC_APP_URL` to the callback origin and register:
+
+```text
+https://<your-sim-domain>/api/auth/oauth2/callback/google-email
+```
+
+This personal grant also supports workflows and uses Gmail modify/send/labels scopes. It is separate from the read-only delegation scopes above, and remains required in service mode. One OAuth client can register each enabled Google service's callback. After changing the client or scopes, update saved organization provider configuration and reconnect affected members.
+
+## Related docs
+
+- [One service account for Drive, Gmail, and Calendar](/search/google-drive#one-service-account-for-drive-gmail-and-calendar)
+- [Connect your account](/search/connect-your-account)

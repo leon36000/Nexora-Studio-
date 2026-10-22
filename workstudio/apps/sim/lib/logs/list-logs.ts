@@ -1,0 +1,544 @@
+import { dbReplica } from '@sim/db'
+import {
+  jobExecutionLogs,
+  pausedExecutions,
+  workflow,
+  workflowDeploymentVersion,
+  workflowExecutionLogs,
+} from '@sim/db/schema'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  ne,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm'
+import type { z } from 'zod'
+import type {
+  ListLogsResponse,
+  listLogsQuerySchema,
+  WorkflowLogSummary,
+} from '@/lib/api/contracts/logs'
+import { workflowExecutionOriginSql } from '@/lib/logs/execution-origin'
+import { jobCostTotal } from '@/lib/logs/fetch-log-detail'
+import { buildFilterConditions } from '@/lib/logs/filters'
+import { expandFolderIdsWithDescendants } from '@/lib/logs/folder-expansion'
+import {
+  buildLogSortCursorCondition,
+  decodeLogSortCursor,
+  encodeLogSortCursor,
+} from '@/lib/logs/sort-cursor'
+
+/** What a caller asks for: the contract's query, plus cancellation. */
+export type ListLogsParams = z.output<typeof listLogsQuerySchema> & {
+  signal?: AbortSignal
+}
+
+/**
+ * What the query actually runs with — the request, plus the viewer's spend
+ * projection.
+ *
+ * `hideCostInfo` is required and lives on this type rather than on
+ * {@link ListLogsParams} for two reasons that pull the same way. It is resolved
+ * by the application use case and never read off the query, so a client cannot
+ * ask for a row it is not entitled to; and being required rather than defaulted
+ * to `false`, a caller of this read that forgets it fails to compile instead of
+ * quietly disclosing every run's cost.
+ */
+export type ReadLogsParams = ListLogsParams & {
+  hideCostInfo: boolean
+}
+
+type SortBy = 'date' | 'duration' | 'cost' | 'status'
+type SortOrder = 'asc' | 'desc'
+
+/**
+ * Canonical logs list query after workspace authorization.
+ */
+export async function readLogs(params: ReadLogsParams): Promise<ListLogsResponse> {
+  params.signal?.throwIfAborted()
+  const folderIds = params.folderIds
+    ? await expandFolderIdsWithDescendants(params.workspaceId, params.folderIds)
+    : params.folderIds
+  const resolvedParams = { ...params, folderIds }
+  params.signal?.throwIfAborted()
+  if (params.includeRevision) {
+    return dbReplica.transaction((tx) => readLogsWithDatabase(resolvedParams, tx), {
+      isolationLevel: 'repeatable read',
+      accessMode: 'read only',
+    })
+  }
+  return readLogsWithDatabase(resolvedParams, dbReplica)
+}
+
+async function readLogsWithDatabase(
+  params: ReadLogsParams,
+  database: Pick<typeof dbReplica, 'select'>
+): Promise<ListLogsResponse> {
+  params.signal?.throwIfAborted()
+  const snapshotAt = params.snapshotAt === 'now' ? new Date().toISOString() : params.snapshotAt
+  const { hideCostInfo } = params
+  const sortBy = params.sortBy as SortBy
+  const sortOrder = params.sortOrder as SortOrder
+  const cursor = params.cursor ? decodeLogSortCursor(params.cursor) : null
+
+  const p = params
+
+  const workflowSortExpr: SQL<unknown> = (() => {
+    switch (sortBy) {
+      case 'duration':
+        return sql`${workflowExecutionLogs.totalDurationMs}`
+      case 'cost':
+        // Indexed projection of the usage_log ledger (dollars); no live aggregation.
+        return sql`${workflowExecutionLogs.costTotal}`
+      case 'status':
+        return sql`${workflowExecutionLogs.status}`
+      default:
+        return sql`${workflowExecutionLogs.startedAt}`
+    }
+  })()
+
+  const jobSortExpr: SQL<unknown> = (() => {
+    switch (sortBy) {
+      case 'duration':
+        return sql`${jobExecutionLogs.totalDurationMs}`
+      case 'cost':
+        return sql`(${jobExecutionLogs.cost}->>'total')::numeric`
+      case 'status':
+        return sql`${jobExecutionLogs.status}`
+      default:
+        return sql`${jobExecutionLogs.startedAt}`
+    }
+  })()
+
+  const dir = sortOrder === 'asc' ? asc : desc
+  const nullsLast = sql`NULLS LAST`
+  const orderByClause = (expr: SQL): SQL => sql`${dir(expr)} ${nullsLast}`
+
+  const buildCursorCondition = (sortExpr: unknown, idCol: unknown): SQL | undefined =>
+    buildLogSortCursorCondition(cursor, sortExpr, idCol, sortOrder)
+
+  const fetchSize = p.limit + 1
+
+  // Build workflow log conditions
+  const workflowConditions: SQL[] = [eq(workflowExecutionLogs.workspaceId, p.workspaceId)]
+  if (snapshotAt) {
+    workflowConditions.push(lte(workflowExecutionLogs.startedAt, new Date(snapshotAt)))
+  }
+  if (p.startedAfter) {
+    workflowConditions.push(gt(workflowExecutionLogs.startedAt, new Date(p.startedAfter)))
+  }
+
+  if (p.level && p.level !== 'all') {
+    const levels = p.level.split(',').filter(Boolean)
+    const levelConditions: SQL[] = []
+
+    for (const level of levels) {
+      if (level === 'error') {
+        levelConditions.push(eq(workflowExecutionLogs.level, 'error'))
+      } else if (level === 'info') {
+        const c = and(
+          eq(workflowExecutionLogs.level, 'info'),
+          isNotNull(workflowExecutionLogs.endedAt)
+        )
+        if (c) levelConditions.push(c)
+      } else if (level === 'running') {
+        const c = and(
+          eq(workflowExecutionLogs.level, 'info'),
+          isNull(workflowExecutionLogs.endedAt)
+        )
+        if (c) levelConditions.push(c)
+      } else if (level === 'pending') {
+        const c = and(
+          eq(workflowExecutionLogs.level, 'info'),
+          or(
+            sql`(${pausedExecutions.totalPauseCount} > 0 AND ${pausedExecutions.resumedCount} < ${pausedExecutions.totalPauseCount})`,
+            and(
+              isNotNull(pausedExecutions.status),
+              sql`${pausedExecutions.status} != 'fully_resumed'`
+            )
+          )
+        )
+        if (c) levelConditions.push(c)
+      }
+    }
+
+    if (levelConditions.length > 0) {
+      workflowConditions.push(
+        levelConditions.length === 1 ? levelConditions[0] : or(...levelConditions)!
+      )
+    }
+  }
+
+  const commonFilters = buildFilterConditions(p, { useSimpleLevelFilter: false })
+  if (commonFilters) workflowConditions.push(commonFilters)
+
+  // Snapshot the filter-only conditions (no pagination cursor) so an
+  // `includeTotal` count runs over the whole filtered set, not the tail.
+  const workflowFilterConditions = [...workflowConditions]
+
+  const workflowCursorCond = buildCursorCondition(workflowSortExpr, workflowExecutionLogs.id)
+  if (workflowCursorCond) workflowConditions.push(workflowCursorCond)
+
+  // Decide whether to include job logs
+  const hasWorkflowSpecificFilters = !!(
+    p.workflowIds ||
+    p.folderIds ||
+    p.workflowName ||
+    p.folderName
+  )
+  const triggersList = p.triggers?.split(',').filter(Boolean) || []
+  const triggersExcludeJobs =
+    triggersList.length > 0 && !triggersList.includes('all') && !triggersList.includes('mothership')
+  const levelList = p.level && p.level !== 'all' ? p.level.split(',').filter(Boolean) : []
+  const levelExcludesJobs =
+    levelList.length > 0 && !levelList.some((l) => l === 'error' || l === 'info')
+  const includeJobLogs = !hasWorkflowSpecificFilters && !triggersExcludeJobs && !levelExcludesJobs
+
+  const workflowQuery = p.countOnly
+    ? Promise.resolve([])
+    : database
+        .select({
+          id: workflowExecutionLogs.id,
+          workflowId: workflowExecutionLogs.workflowId,
+          executionId: workflowExecutionLogs.executionId,
+          deploymentVersionId: workflowExecutionLogs.deploymentVersionId,
+          level: workflowExecutionLogs.level,
+          status: workflowExecutionLogs.status,
+          trigger: workflowExecutionLogs.trigger,
+          startedAt: workflowExecutionLogs.startedAt,
+          endedAt: workflowExecutionLogs.endedAt,
+          totalDurationMs: workflowExecutionLogs.totalDurationMs,
+          costTotal: workflowExecutionLogs.costTotal,
+          createdAt: workflowExecutionLogs.createdAt,
+          workflowName: workflow.name,
+          workflowDescription: workflow.description,
+          workflowFolderId: workflow.folderId,
+          workflowWorkspaceId: workflow.workspaceId,
+          workflowCreatedAt: workflow.createdAt,
+          workflowUpdatedAt: workflow.updatedAt,
+          workflowArchivedAt: workflow.archivedAt,
+          pausedStatus: pausedExecutions.status,
+          pausedTotalPauseCount: pausedExecutions.totalPauseCount,
+          pausedResumedCount: pausedExecutions.resumedCount,
+          deploymentVersion: workflowDeploymentVersion.version,
+          deploymentVersionName: workflowDeploymentVersion.name,
+          executionOrigin: workflowExecutionOriginSql().as('execution_origin'),
+          sortValue: sql<unknown>`${workflowSortExpr}`.as('sort_value'),
+        })
+        .from(workflowExecutionLogs)
+        .leftJoin(
+          pausedExecutions,
+          eq(pausedExecutions.executionId, workflowExecutionLogs.executionId)
+        )
+        .leftJoin(
+          workflowDeploymentVersion,
+          eq(workflowDeploymentVersion.id, workflowExecutionLogs.deploymentVersionId)
+        )
+        .leftJoin(workflow, eq(workflowExecutionLogs.workflowId, workflow.id))
+        .where(and(...workflowConditions))
+        .orderBy(orderByClause(workflowSortExpr), dir(workflowExecutionLogs.id))
+        .limit(fetchSize)
+
+  const jobConditions: SQL[] = [eq(jobExecutionLogs.workspaceId, p.workspaceId)]
+  let jobFilterConditions: SQL[] = jobConditions
+
+  if (includeJobLogs) {
+    if (snapshotAt) {
+      jobConditions.push(lte(jobExecutionLogs.startedAt, new Date(snapshotAt)))
+    }
+    if (p.startedAfter) {
+      jobConditions.push(gt(jobExecutionLogs.startedAt, new Date(p.startedAfter)))
+    }
+    if (p.level && p.level !== 'all') {
+      const levels = p.level.split(',').filter(Boolean)
+      const jobLevelConditions: SQL[] = []
+      for (const level of levels) {
+        if (level === 'error') {
+          jobLevelConditions.push(eq(jobExecutionLogs.level, 'error'))
+        } else if (level === 'info') {
+          const c = and(eq(jobExecutionLogs.level, 'info'), isNotNull(jobExecutionLogs.endedAt))
+          if (c) jobLevelConditions.push(c)
+        }
+      }
+      if (jobLevelConditions.length > 0) {
+        jobConditions.push(
+          jobLevelConditions.length === 1 ? jobLevelConditions[0] : or(...jobLevelConditions)!
+        )
+      }
+    }
+
+    if (triggersList.length > 0 && !triggersList.includes('all')) {
+      jobConditions.push(inArray(jobExecutionLogs.trigger, triggersList))
+    }
+
+    if (p.startDate) {
+      jobConditions.push(gte(jobExecutionLogs.startedAt, new Date(p.startDate)))
+    }
+    if (p.endDate) {
+      jobConditions.push(lte(jobExecutionLogs.startedAt, new Date(p.endDate)))
+    }
+
+    if (p.search) {
+      jobConditions.push(sql`${jobExecutionLogs.executionId} ILIKE ${`%${p.search}%`}`)
+    }
+    if (p.executionId) {
+      jobConditions.push(eq(jobExecutionLogs.executionId, p.executionId))
+    }
+
+    if (p.costOperator && p.costValue !== undefined) {
+      const costField = sql`(${jobExecutionLogs.cost}->>'total')::numeric`
+      const ops = {
+        '=': sql`=`,
+        '>': sql`>`,
+        '<': sql`<`,
+        '>=': sql`>=`,
+        '<=': sql`<=`,
+        '!=': sql`!=`,
+      } as const
+      jobConditions.push(sql`${costField} ${ops[p.costOperator]} ${p.costValue}`)
+    }
+
+    if (p.durationOperator && p.durationValue !== undefined) {
+      const durationOps: Record<
+        string,
+        (field: typeof jobExecutionLogs.totalDurationMs, val: number) => SQL | undefined
+      > = {
+        '=': (f, v) => eq(f, v),
+        '>': (f, v) => gt(f, v),
+        '<': (f, v) => lt(f, v),
+        '>=': (f, v) => gte(f, v),
+        '<=': (f, v) => lte(f, v),
+        '!=': (f, v) => ne(f, v),
+      }
+      const durationCond = durationOps[p.durationOperator]?.(
+        jobExecutionLogs.totalDurationMs,
+        p.durationValue
+      )
+      if (durationCond) jobConditions.push(durationCond)
+    }
+
+    jobFilterConditions = [...jobConditions]
+
+    const jobCursorCond = buildCursorCondition(jobSortExpr, jobExecutionLogs.id)
+    if (jobCursorCond) jobConditions.push(jobCursorCond)
+  }
+
+  const jobQuery =
+    includeJobLogs && !p.countOnly
+      ? database
+          .select({
+            id: jobExecutionLogs.id,
+            executionId: jobExecutionLogs.executionId,
+            level: jobExecutionLogs.level,
+            status: jobExecutionLogs.status,
+            trigger: jobExecutionLogs.trigger,
+            startedAt: jobExecutionLogs.startedAt,
+            endedAt: jobExecutionLogs.endedAt,
+            totalDurationMs: jobExecutionLogs.totalDurationMs,
+            cost: jobExecutionLogs.cost,
+            createdAt: jobExecutionLogs.createdAt,
+            jobTitle: sql<string | null>`${jobExecutionLogs.executionData}->'trigger'->>'source'`,
+            sortValue: sql<unknown>`${jobSortExpr}`.as('sort_value'),
+          })
+          .from(jobExecutionLogs)
+          .where(and(...jobConditions))
+          .orderBy(orderByClause(jobSortExpr), dir(jobExecutionLogs.id))
+          .limit(fetchSize)
+      : Promise.resolve([])
+
+  const [workflowRows, jobRows] = await Promise.all([workflowQuery, jobQuery])
+  params.signal?.throwIfAborted()
+
+  type RowWithSort = {
+    id: string
+    sortValue: unknown
+    summary: WorkflowLogSummary
+  }
+
+  const workflowMapped: RowWithSort[] = workflowRows.map((log) => {
+    const totalPauseCount = Number(log.pausedTotalPauseCount ?? 0)
+    const resumedCount = Number(log.pausedResumedCount ?? 0)
+    const hasPendingPause =
+      (totalPauseCount > 0 && resumedCount < totalPauseCount) ||
+      (log.pausedStatus !== null && log.pausedStatus !== 'fully_resumed')
+
+    const summary: WorkflowLogSummary = {
+      id: log.id,
+      workflowId: log.workflowId,
+      executionId: log.executionId,
+      deploymentVersionId: log.deploymentVersionId,
+      deploymentVersion: log.deploymentVersion ?? null,
+      deploymentVersionName: log.deploymentVersionName ?? null,
+      level: log.level,
+      status: log.status,
+      duration: log.totalDurationMs ? `${log.totalDurationMs}ms` : null,
+      trigger: log.trigger,
+      executionOrigin: log.executionOrigin ?? null,
+      createdAt: log.startedAt.toISOString(),
+      workflow: log.workflowId
+        ? {
+            id: log.workflowId,
+            name: log.workflowName,
+            description: log.workflowDescription,
+            folderId: log.workflowFolderId,
+            workspaceId: log.workflowWorkspaceId,
+            createdAt: log.workflowCreatedAt?.toISOString() ?? null,
+            updatedAt: log.workflowUpdatedAt?.toISOString() ?? null,
+            archivedAt: log.workflowArchivedAt?.toISOString() ?? null,
+          }
+        : null,
+      jobTitle: null,
+      // List cost is the cost_total projection (faithful ledger sum). Null until
+      // completion (running) or until the one-time legacy backfill populates it.
+      cost: hideCostInfo || log.costTotal == null ? null : { total: Number(log.costTotal) },
+      pauseSummary: {
+        status: log.pausedStatus ?? null,
+        total: totalPauseCount,
+        resumed: resumedCount,
+      },
+      hasPendingPause,
+    }
+    return { id: log.id, sortValue: log.sortValue, summary }
+  })
+
+  const jobMapped: RowWithSort[] = (jobRows as Awaited<typeof jobQuery>).map((log) => {
+    const summary: WorkflowLogSummary = {
+      id: log.id,
+      workflowId: null,
+      executionId: log.executionId,
+      deploymentVersionId: null,
+      deploymentVersion: null,
+      deploymentVersionName: null,
+      level: log.level,
+      status: log.status,
+      duration: log.totalDurationMs ? `${log.totalDurationMs}ms` : null,
+      trigger: log.trigger,
+      executionOrigin: null,
+      createdAt: log.startedAt.toISOString(),
+      workflow: null,
+      jobTitle: log.jobTitle ?? null,
+      cost: hideCostInfo ? null : jobCostTotal(log.cost),
+      pauseSummary: { status: null, total: 0, resumed: 0 },
+      hasPendingPause: false,
+    }
+    return { id: log.id, sortValue: log.sortValue, summary }
+  })
+
+  const compareSortValues = (a: unknown, b: unknown): number => {
+    if (a instanceof Date && b instanceof Date) return a.getTime() - b.getTime()
+    if (typeof a === 'number' && typeof b === 'number') return a - b
+    const aStr = String(a)
+    const bStr = String(b)
+    if (sortBy === 'date') {
+      return new Date(aStr).getTime() - new Date(bStr).getTime()
+    }
+    const aNum = Number(aStr)
+    const bNum = Number(bStr)
+    if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum
+    return aStr.localeCompare(bStr)
+  }
+
+  const merged = [...workflowMapped, ...jobMapped].sort((a, b) => {
+    const aNull = a.sortValue === null || a.sortValue === undefined
+    const bNull = b.sortValue === null || b.sortValue === undefined
+    // Mirror SQL's NULLS LAST for both ASC and DESC so the cursor stays consistent.
+    if (aNull && !bNull) return 1
+    if (!aNull && bNull) return -1
+    if (!aNull && !bNull) {
+      const cmp = compareSortValues(a.sortValue, b.sortValue)
+      if (cmp !== 0) return sortOrder === 'asc' ? cmp : -cmp
+    }
+    const idCmp = a.id.localeCompare(b.id)
+    return sortOrder === 'asc' ? idCmp : -idCmp
+  })
+
+  const page = merged.slice(0, p.limit)
+  const hasMore = merged.length > p.limit
+  let nextCursor: string | null = null
+  if (hasMore && page.length > 0) {
+    const last = page[page.length - 1]
+    const v = last.sortValue
+    const cursorV =
+      v instanceof Date
+        ? v.toISOString()
+        : typeof v === 'number' || typeof v === 'string'
+          ? v
+          : v == null
+            ? null
+            : String(v)
+    nextCursor = encodeLogSortCursor({ v: cursorV, id: last.id })
+  }
+
+  let total: number | undefined
+  let revision: string | undefined
+  if (p.includeTotal || p.countOnly || p.includeRevision) {
+    const workflowRevisionValue =
+      sortBy === 'date'
+        ? sql`${workflowExecutionLogs.id}`
+        : sql`concat_ws(':', ${workflowExecutionLogs.id}, ${workflowSortExpr})`
+    const jobRevisionValue =
+      sortBy === 'date'
+        ? sql`${jobExecutionLogs.id}`
+        : sql`concat_ws(':', ${jobExecutionLogs.id}, ${jobSortExpr})`
+    const workflowCountBase = database
+      .select({
+        count: sql<number>`COUNT(*)`,
+        revision: p.includeRevision
+          ? sql<string>`COALESCE(bit_xor(hashtextextended(${workflowRevisionValue}, 0)), 0)::text`
+          : sql<null>`NULL`,
+      })
+      .from(workflowExecutionLogs)
+    const workflowCountWithPauses = levelList.includes('pending')
+      ? workflowCountBase.leftJoin(
+          pausedExecutions,
+          eq(pausedExecutions.executionId, workflowExecutionLogs.executionId)
+        )
+      : workflowCountBase
+    const workflowCountWithFilters = hasWorkflowSpecificFilters
+      ? workflowCountWithPauses.leftJoin(
+          workflow,
+          eq(workflowExecutionLogs.workflowId, workflow.id)
+        )
+      : workflowCountWithPauses
+    const workflowCountQuery = workflowCountWithFilters.where(and(...workflowFilterConditions))
+    const jobCountQuery = includeJobLogs
+      ? database
+          .select({
+            count: sql<number>`COUNT(*)`,
+            revision: p.includeRevision
+              ? sql<string>`COALESCE(bit_xor(hashtextextended(${jobRevisionValue}, 0)), 0)::text`
+              : sql<null>`NULL`,
+          })
+          .from(jobExecutionLogs)
+          .where(and(...jobFilterConditions))
+      : Promise.resolve([{ count: 0, revision: '0' }])
+    const [workflowCount, jobCount] = await Promise.all([workflowCountQuery, jobCountQuery])
+    params.signal?.throwIfAborted()
+    const workflowTotal = Number(workflowCount[0]?.count ?? 0)
+    const jobTotal = Number(jobCount[0]?.count ?? 0)
+    if (p.includeTotal || p.countOnly) total = workflowTotal + jobTotal
+    if (p.includeRevision) {
+      revision = `${workflowTotal}:${workflowCount[0]?.revision ?? '0'}:${jobTotal}:${jobCount[0]?.revision ?? '0'}`
+    }
+  }
+
+  params.signal?.throwIfAborted()
+  return {
+    data: page.map((row) => row.summary),
+    nextCursor,
+    ...(snapshotAt ? { snapshotAt } : {}),
+    ...(revision !== undefined ? { revision } : {}),
+    ...(total !== undefined ? { total } : {}),
+  }
+}

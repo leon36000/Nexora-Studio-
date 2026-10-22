@@ -1,0 +1,77 @@
+/**
+ * Tests for workflow access middleware — focused on the workspace-scoped
+ * API key boundary check in the `requireDeployment=false` branch.
+ */
+
+import {
+  hybridAuthMockFns,
+  workflowAuthzMockFns,
+  workflowsUtilsMock,
+  workflowsUtilsMockFns,
+} from '@sim/testing'
+import { NextRequest } from 'next/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/workflows/utils', () => workflowsUtilsMock)
+vi.mock('@/lib/api-key/service', () => ({
+  authenticateApiKeyFromHeader: vi.fn(),
+  updateApiKeyLastUsed: vi.fn(),
+}))
+
+import { WORKSPACE_KEY_SCOPE_DENIED } from '@/lib/api-key/policy-messages'
+import { validateWorkflowAccess } from '@/app/api/workflows/middleware'
+
+function makeRequest() {
+  return new NextRequest(new URL('https://example.com/api/workflows/wf-1'))
+}
+
+describe('validateWorkflowAccess (requireDeployment=false)', () => {
+  beforeEach(() => {
+    workflowsUtilsMockFns.mockGetWorkflowById.mockResolvedValue({
+      id: 'wf-1',
+      workspaceId: 'ws-A',
+      isDeployed: true,
+    })
+    workflowAuthzMockFns.mockAuthorizeWorkflowByWorkspacePermission.mockResolvedValue({
+      allowed: true,
+      status: 200,
+      workflow: { id: 'wf-1', workspaceId: 'ws-A' },
+    })
+  })
+
+  it('rejects a workspace-scoped API key issued for a different workspace', async () => {
+    hybridAuthMockFns.mockCheckHybridAuth.mockResolvedValueOnce({
+      success: true,
+      userId: 'user-1',
+      authType: 'api_key',
+      apiKeyType: 'workspace',
+      workspaceId: 'ws-B',
+    })
+
+    const result = await validateWorkflowAccess(makeRequest(), 'wf-1', false)
+
+    expect(result.error).toEqual({
+      message: WORKSPACE_KEY_SCOPE_DENIED,
+      status: 403,
+    })
+    expect(workflowAuthzMockFns.mockAuthorizeWorkflowByWorkspacePermission).not.toHaveBeenCalled()
+  })
+
+  it('still enforces workspace-permission rejection for personal keys', async () => {
+    hybridAuthMockFns.mockCheckHybridAuth.mockResolvedValueOnce({
+      success: true,
+      userId: 'user-1',
+      authType: 'api_key',
+      apiKeyType: 'personal',
+    })
+    workflowAuthzMockFns.mockAuthorizeWorkflowByWorkspacePermission.mockResolvedValueOnce({
+      allowed: false,
+      status: 403,
+      message: 'Access denied',
+    })
+
+    const result = await validateWorkflowAccess(makeRequest(), 'wf-1', false)
+
+    expect(result.error).toEqual({ message: 'Access denied', status: 403 })
+  })
+})

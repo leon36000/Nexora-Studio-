@@ -1,0 +1,85 @@
+---
+title: Variables
+description: Reuse run-scoped workflow values and resolve saved secrets by name.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Workflow variables hold values during a run, such as a counter or configuration object. Environment variables resolve saved secrets and configuration, such as API keys.
+
+## Workflow variables
+
+1. Open **⋯ → Variables** in the top-right of the workflow builder.
+2. Add a name, type, and initial value.
+3. Type `<` in a supported block input and select the variable, or enter `<variable.name>`.
+
+For example, `<variable.config.timeout>` reads the `timeout` field of an object variable named `config`.
+
+### Types
+
+| Type | Initial value example | Use |
+| --- | --- | --- |
+| **Plain** | `Hello` | Text |
+| **Number** | `42` | Calculations and comparisons |
+| **Boolean** | `true` | A true/false flag |
+| **Object** | `{ "timeout": 30 }` | Named fields |
+| **Array** | `[1, 2, 3]` | An ordered collection |
+
+Name matching ignores case and whitespace. `My Counter` resolves as `<variable.mycounter>`. Avoid periods in variable names: everything after the variable segment is interpreted as a path into its value.
+
+### Scope
+
+Each run starts with the saved initial values. The [Variables block](/workflows/blocks/variables) changes values for that run; it does not update the saved values used by later runs.
+
+Workflow variables are shared across all branches, including Parallel instances. Item/index context and block outputs are branch-specific. Avoid writing the same variable concurrently; collect branch outputs and combine them after Parallel instead.
+
+Variables assigns typed values and references. To increment a counter or perform another calculation, use Function first, then assign its result in Variables.
+
+## Reference sources [#one-syntax-named-sources]
+
+| Syntax | Reads | Example |
+| --- | --- | --- |
+| `<variable.name>` | A workflow variable | `<variable.counter>` |
+| `<blockname.field>` | A block's output | `<agent.content>` |
+| `<loop.field>` | Current enclosing Loop context | `<loop.currentItem>` |
+| `<parallel.field>` | Current enclosing Parallel context | `<parallel.index>` |
+| `{{KEY}}` | A saved environment variable | `{{OPENAI_API_KEY}}` |
+
+`variable`, `loop`, and `parallel` are reserved prefixes; a new block cannot use one as its normalized name. Loop and Parallel context resolve before workflow variables and block outputs. Environment variables use a separate syntax and cannot collide with angle-bracket references.
+
+An unknown reference can remain unsubstituted. A reference to a known block that did not run resolves empty; see [connection syntax](/workflows/connections) for the distinction.
+
+## Environment variables
+
+Create key-value pairs under **Settings → Secrets**, then type `{{` in a supported input to choose an available key:
+
+```text
+{{API_KEY}}
+```
+
+Names can contain only letters, numbers, and underscores. The Settings editor also requires the first character to be a letter or underscore.
+
+Most fields resolve secrets before their block runs. Function and Custom Tool code bind secret values separately at execution, preserving their exact string contents without inserting them into saved source code. Inside that code, `{{KEY}}` evaluates to a **string**: use `Number()`, compare with `'true'`, or use `JSON.parse()` when another type is needed. See [secret placeholders in code](/workflows/blocks/function#placeholders-are-always-strings).
+
+### Personal vs. workspace
+
+| Scope | Ownership and access |
+| --- | --- |
+| **Workspace** | Workspace-owned; available according to secret grants and workspace Admin access |
+| **Personal** | Owned by a person; workspace Admin access alone does not grant access to another person's personal secret |
+
+Existing explicit personal-secret grants can be honored during workflow resolution. This does not mean the current personal-secret UI offers a sharing action. See [Secrets](/platform/credentials) for current ownership and access controls.
+
+When an accessible workspace key and personal key share a name, the workspace value wins. The acting principal and execution surface determine which values may resolve.
+
+<Callout type="warn">
+Protected secrets successfully resolved through `{{KEY}}` have exact-value masking in live block logs and stored traces, and exact values are projected back to placeholders before model input. Workspace secrets marked **Unredacted** opt out of that protection. This is not a general filter for sensitive data or transformed secret values; read [execution log protection](/platform/credentials#execution-log-protection) for its scope.
+</Callout>
+
+Use a secret for a raw API key or configuration value. Use a [connected account](/platform/connected-accounts) or supported credential for OAuth and managed token refresh.
+
+## Related docs
+
+- [Variables block](/workflows/blocks/variables)
+- [Secrets](/platform/credentials)
+- [Connection syntax](/workflows/connections)

@@ -1,0 +1,289 @@
+import { billingCoreMock, billingCoreMockFns } from '@sim/testing/mocks/billing-core.mock'
+import { billingOutboxHandlersMock } from '@sim/testing/mocks/billing-outbox-handlers.mock'
+import { billingPlanMock, billingPlanMockFns } from '@sim/testing/mocks/billing-plan.mock'
+import { billingSubscriptionSyncMock } from '@sim/testing/mocks/billing-subscription-sync.mock'
+import { dbChainMockFns, resetDbChainMock } from '@sim/testing/mocks/database.mock'
+import {
+  organizationMembershipMock,
+  organizationMembershipMockFns,
+} from '@sim/testing/mocks/organization-membership.mock'
+import { outboxServiceMock } from '@sim/testing/mocks/outbox-service.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const {
+  mockEnsureOrganizationForTeamSubscriptionTx,
+  mockAssertNoUnresolvedEnterpriseIssuance,
+  mockGetPlanByName,
+  updateCalls,
+} = vi.hoisted(() => ({
+  mockEnsureOrganizationForTeamSubscriptionTx: vi.fn(),
+  mockAssertNoUnresolvedEnterpriseIssuance: vi.fn(),
+  mockGetPlanByName: vi.fn(),
+  updateCalls: { value: [] as Array<Record<string, unknown>> },
+}))
+
+vi.mock('@/lib/billing/core/billing', () => billingCoreMock)
+
+vi.mock('@/lib/billing/core/plan', () => billingPlanMock)
+
+vi.mock('@/lib/billing/organization', () => ({
+  ensureOrganizationForTeamSubscriptionTx: mockEnsureOrganizationForTeamSubscriptionTx,
+}))
+
+vi.mock('@/lib/billing/enterprise-outbox', () => ({
+  assertNoUnresolvedEnterpriseIssuance: mockAssertNoUnresolvedEnterpriseIssuance,
+}))
+
+vi.mock('@/lib/billing/organizations/membership', () => organizationMembershipMock)
+
+vi.mock('@/lib/billing/plans', () => ({
+  getPlanByName: mockGetPlanByName,
+}))
+
+vi.mock('@/lib/core/outbox/service', () => outboxServiceMock)
+
+vi.mock('@/lib/billing/webhooks/subscription-sync', () => billingSubscriptionSyncMock)
+
+vi.mock('@/lib/billing/webhooks/outbox-handlers', () => billingOutboxHandlersMock)
+
+import { ensureTeamOrganizationForAcceptance } from '@/lib/billing/organizations/provision-seat'
+
+const { mockAcquireOrganizationMutationLock } = organizationMembershipMockFns
+const mockGetOrganizationSubscription = billingCoreMockFns.mockGetOrganizationSubscription
+const mockGetHighestPriorityPersonalSubscription =
+  billingPlanMockFns.mockGetHighestPriorityPersonalSubscription
+
+/** The subscription row as the activation re-reads it under its lock. */
+function testExecutor(onSubscriptionLock: () => void = () => {}) {
+  const lockedRow = { cancelAtPeriodEnd: false, seats: 1, stripeSubscriptionId: 'stripe_sub' }
+  return {
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          for: () => {
+            onSubscriptionLock()
+            return { limit: () => Promise.resolve([lockedRow]) }
+          },
+        }),
+      }),
+    }),
+    update: () => ({
+      set: (values: Record<string, unknown>) => {
+        updateCalls.value.push(values)
+        return { where: () => Promise.resolve([]) }
+      },
+    }),
+  } as never
+}
+
+describe('ensureTeamOrganizationForAcceptance', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    updateCalls.value = []
+    mockGetPlanByName.mockReturnValue({
+      priceId: 'price_team_month',
+      annualDiscountPriceId: 'price_team_year',
+    })
+    mockAssertNoUnresolvedEnterpriseIssuance.mockResolvedValue(undefined)
+  })
+
+  afterAll(() => {
+    resetDbChainMock()
+  })
+
+  it('moves an org-scoped Pro subscription to the equivalent Team plan', async () => {
+    mockGetOrganizationSubscription.mockResolvedValue({
+      id: 'sub-pro',
+      plan: 'pro_6000',
+      status: 'active',
+      seats: 1,
+      stripeSubscriptionId: 'stripe_sub',
+    })
+
+    const executor = testExecutor()
+    const result = await ensureTeamOrganizationForAcceptance({
+      billingOwnerUserId: 'owner-1',
+      workspaceOrganizationId: 'org-1',
+      executor,
+      workspaceIdsToAttach: [],
+    })
+
+    expect(result).toEqual({
+      success: true,
+      organizationId: 'org-1',
+      fixedSeats: false,
+      postCommitEffects: {
+        planConversions: [
+          {
+            organizationId: 'org-1',
+            actorId: 'owner-1',
+            fromPlan: 'pro_6000',
+            toPlan: 'team_6000',
+          },
+        ],
+        usageLimitUserIds: [],
+      },
+    })
+    expect(updateCalls.value).toContainEqual(expect.objectContaining({ plan: 'team_6000' }))
+    expect(mockGetOrganizationSubscription).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ executor })
+    )
+    expect(dbChainMockFns.transaction).not.toHaveBeenCalled()
+  })
+
+  it('blocks an org-scoped Pro conversion while Enterprise issuance is unresolved', async () => {
+    mockAssertNoUnresolvedEnterpriseIssuance.mockRejectedValueOnce(
+      new Error('Enterprise issuance is unfinished')
+    )
+
+    await expect(
+      ensureTeamOrganizationForAcceptance({
+        billingOwnerUserId: 'owner-1',
+        workspaceOrganizationId: 'org-1',
+        executor: testExecutor(),
+        workspaceIdsToAttach: [],
+      })
+    ).rejects.toThrow('Enterprise issuance is unfinished')
+    expect(mockAcquireOrganizationMutationLock).toHaveBeenCalledWith(expect.anything(), 'org-1')
+    expect(mockGetOrganizationSubscription).not.toHaveBeenCalled()
+    expect(updateCalls.value).toHaveLength(0)
+  })
+
+  it('returns upgrade-required when the personal owner has no usable subscription', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue(null)
+
+    const executor = testExecutor()
+    const result = await ensureTeamOrganizationForAcceptance({
+      billingOwnerUserId: 'owner-1',
+      workspaceOrganizationId: null,
+      executor,
+      workspaceIdsToAttach: [],
+    })
+
+    expect(result).toEqual({ success: false, failureCode: 'upgrade-required' })
+    expect(mockEnsureOrganizationForTeamSubscriptionTx).not.toHaveBeenCalled()
+  })
+
+  it('converts a personal Pro subscription into a Team organization', async () => {
+    const lockOrder: string[] = []
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue({
+      id: 'sub-pro',
+      plan: 'pro_6000',
+      status: 'active',
+      stripeSubscriptionId: 'stripe_sub',
+      cancelAtPeriodEnd: false,
+    })
+    mockEnsureOrganizationForTeamSubscriptionTx.mockImplementationOnce(async () => {
+      lockOrder.push('organization')
+      return { referenceId: 'org-new', usageLimitUserIds: [] }
+    })
+
+    const executor = testExecutor(() => lockOrder.push('subscription'))
+    const result = await ensureTeamOrganizationForAcceptance({
+      billingOwnerUserId: 'owner-1',
+      workspaceOrganizationId: null,
+      executor,
+      workspaceIdsToAttach: ['workspace-1'],
+    })
+
+    expect(result).toMatchObject({
+      success: true,
+      organizationId: 'org-new',
+      fixedSeats: false,
+      postCommitEffects: {
+        planConversions: [
+          {
+            organizationId: 'org-new',
+            actorId: 'owner-1',
+            fromPlan: 'pro_6000',
+            toPlan: 'team_6000',
+          },
+        ],
+      },
+    })
+    expect(updateCalls.value).toContainEqual(
+      expect.objectContaining({ plan: 'team_6000', cancelAtPeriodEnd: false })
+    )
+    expect(mockEnsureOrganizationForTeamSubscriptionTx).toHaveBeenCalledWith(
+      executor,
+      expect.objectContaining({ plan: 'team_6000', referenceId: 'owner-1' })
+    )
+    expect(dbChainMockFns.transaction).not.toHaveBeenCalled()
+    expect(lockOrder).toEqual(['organization', 'subscription'])
+  })
+
+  it('blocks personal Pro conversion when the reused organization has unresolved Enterprise', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue({
+      id: 'sub-pro',
+      plan: 'pro_6000',
+      status: 'active',
+      stripeSubscriptionId: 'stripe_sub',
+      cancelAtPeriodEnd: false,
+    })
+    mockEnsureOrganizationForTeamSubscriptionTx.mockResolvedValue({
+      referenceId: 'org-reused',
+      usageLimitUserIds: [],
+    })
+    mockAssertNoUnresolvedEnterpriseIssuance.mockRejectedValueOnce(
+      new Error('Enterprise issuance is unfinished')
+    )
+
+    await expect(
+      ensureTeamOrganizationForAcceptance({
+        billingOwnerUserId: 'owner-1',
+        workspaceOrganizationId: null,
+        executor: testExecutor(),
+        workspaceIdsToAttach: ['workspace-1'],
+      })
+    ).rejects.toThrow('Enterprise issuance is unfinished')
+    expect(updateCalls.value).toHaveLength(0)
+  })
+
+  it('provisions an org for a legacy personal-scoped Team subscription without a plan change', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue({
+      id: 'sub-team',
+      plan: 'team',
+      status: 'active',
+      stripeSubscriptionId: 'stripe_sub',
+    })
+    mockEnsureOrganizationForTeamSubscriptionTx.mockResolvedValue({
+      referenceId: 'org-new',
+      usageLimitUserIds: [],
+    })
+
+    const result = await ensureTeamOrganizationForAcceptance({
+      billingOwnerUserId: 'owner-1',
+      workspaceOrganizationId: null,
+      executor: testExecutor(),
+      workspaceIdsToAttach: ['workspace-1'],
+    })
+
+    expect(result).toEqual({ success: true, organizationId: 'org-new', fixedSeats: false })
+    expect(mockEnsureOrganizationForTeamSubscriptionTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ plan: 'team', referenceId: 'owner-1' })
+    )
+  })
+
+  it('returns upgrade-required (no downgrade) when no eligible Team tier exists', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue({
+      id: 'sub-max',
+      plan: 'pro_25000',
+      status: 'active',
+      stripeSubscriptionId: 'stripe_sub',
+    })
+    // Team Max price is unconfigured in this deployment.
+    mockGetPlanByName.mockReturnValue(undefined)
+
+    const result = await ensureTeamOrganizationForAcceptance({
+      billingOwnerUserId: 'owner-1',
+      workspaceOrganizationId: null,
+      executor: testExecutor(),
+      workspaceIdsToAttach: [],
+    })
+
+    expect(result).toEqual({ success: false, failureCode: 'upgrade-required' })
+    expect(mockEnsureOrganizationForTeamSubscriptionTx).not.toHaveBeenCalled()
+  })
+})

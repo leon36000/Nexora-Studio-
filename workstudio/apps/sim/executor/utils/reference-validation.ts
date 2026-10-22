@@ -1,0 +1,156 @@
+import { REFERENCE } from '@/executor/constants'
+
+/**
+ * Body of an `{{ENV_VAR}}` reference. Excludes both braces for the same reason
+ * `createReferencePattern` excludes both angle brackets: a class that admits its
+ * own opening delimiter lets every offset in a run of `{` restart a full
+ * backtracking scan, which is quadratic in the length of the run. Env var names
+ * are `PATTERNS.ENV_VAR_NAME` (`[A-Za-z_][A-Za-z0-9_]*`), so no representable
+ * name is excluded by this.
+ */
+const ENV_VAR_BODY = '[^{}]+'
+
+/**
+ * Creates a regex pattern for matching variable references.
+ * Uses [^<>]+ to prevent matching across nested brackets (e.g., "<3 <real.ref>" matches separately).
+ */
+export function createReferencePattern(): RegExp {
+  return new RegExp(
+    `${REFERENCE.START}([^${REFERENCE.START}${REFERENCE.END}]+)${REFERENCE.END}`,
+    'g'
+  )
+}
+
+/**
+ * Creates a regex pattern for matching environment variables {{variable}}
+ */
+export function createEnvVarPattern(): RegExp {
+  return new RegExp(`\\${REFERENCE.ENV_VAR_START}(${ENV_VAR_BODY})\\${REFERENCE.ENV_VAR_END}`, 'g')
+}
+
+export interface EnvVarResolveOptions {
+  allowEmbedded?: boolean
+  resolveExactMatch?: boolean
+  trimKeys?: boolean
+  onMissing?: 'keep' | 'throw' | 'empty'
+  deep?: boolean
+  missingKeys?: string[]
+  onResolved?: (name: string, value: string) => void
+}
+
+/**
+ * Standard defaults for env var resolution across all contexts.
+ *
+ * - `resolveExactMatch: true` - Resolves `{{VAR}}` when it's the entire value
+ * - `allowEmbedded: true` - Resolves `{{VAR}}` embedded in strings like `https://{{HOST}}/api`
+ * - `trimKeys: true` - `{{ VAR }}` works the same as `{{VAR}}` (whitespace tolerant)
+ * - `onMissing: 'keep'` - Unknown patterns pass through (e.g., Grafana's `{{instance}}`)
+ * - `deep: false` - Only processes strings by default; set `true` for nested objects
+ */
+export const ENV_VAR_RESOLVE_DEFAULTS: Required<
+  Omit<EnvVarResolveOptions, 'missingKeys' | 'onResolved'>
+> = {
+  resolveExactMatch: true,
+  allowEmbedded: true,
+  trimKeys: true,
+  onMissing: 'keep',
+  deep: false,
+} as const
+
+/**
+ * Resolve {{ENV_VAR}} references in values using provided env vars.
+ */
+export function resolveEnvVarReferences(
+  value: unknown,
+  envVars: Record<string, string>,
+  options: EnvVarResolveOptions = {}
+): unknown {
+  const {
+    allowEmbedded = ENV_VAR_RESOLVE_DEFAULTS.allowEmbedded,
+    resolveExactMatch = ENV_VAR_RESOLVE_DEFAULTS.resolveExactMatch,
+    trimKeys = ENV_VAR_RESOLVE_DEFAULTS.trimKeys,
+    onMissing = ENV_VAR_RESOLVE_DEFAULTS.onMissing,
+    deep = ENV_VAR_RESOLVE_DEFAULTS.deep,
+  } = options
+
+  if (typeof value === 'string') {
+    if (resolveExactMatch) {
+      const exactMatchPattern = new RegExp(
+        `^\\${REFERENCE.ENV_VAR_START}(${ENV_VAR_BODY})\\${REFERENCE.ENV_VAR_END}$`
+      )
+      const exactMatch = exactMatchPattern.exec(value)
+      if (exactMatch) {
+        const envKey = trimKeys ? exactMatch[1].trim() : exactMatch[1]
+        const envValue = envVars[envKey]
+        if (envValue !== undefined) {
+          if (Object.hasOwn(envVars, envKey)) options.onResolved?.(envKey, envValue)
+          return envValue
+        }
+        if (options.missingKeys) options.missingKeys.push(envKey)
+        if (onMissing === 'throw') {
+          throw new Error(`Environment variable "${envKey}" was not found`)
+        }
+        if (onMissing === 'empty') {
+          return ''
+        }
+        return value
+      }
+    }
+
+    if (!allowEmbedded) return value
+
+    const envVarPattern = createEnvVarPattern()
+    return value.replace(envVarPattern, (match, varName) => {
+      const envKey = trimKeys ? String(varName).trim() : String(varName)
+      const envValue = envVars[envKey]
+      if (envValue !== undefined) {
+        if (Object.hasOwn(envVars, envKey)) options.onResolved?.(envKey, envValue)
+        return envValue
+      }
+      if (options.missingKeys) options.missingKeys.push(envKey)
+      if (onMissing === 'throw') {
+        throw new Error(`Environment variable "${envKey}" was not found`)
+      }
+      if (onMissing === 'empty') {
+        return ''
+      }
+      return match
+    })
+  }
+
+  if (deep && Array.isArray(value)) {
+    return value.map((item) => resolveEnvVarReferences(item, envVars, options))
+  }
+
+  if (deep && value !== null && typeof value === 'object') {
+    const resolved: Record<string, any> = {}
+    for (const [key, val] of Object.entries(value)) {
+      resolved[key] = resolveEnvVarReferences(val, envVars, options)
+    }
+    return resolved
+  }
+
+  return value
+}
+
+/**
+ * Creates a regex pattern for matching workflow variables <variable.name>
+ * Captures the variable name (after "variable.") in group 1
+ */
+export function createWorkflowVariablePattern(): RegExp {
+  return new RegExp(
+    `${REFERENCE.START}${REFERENCE.PREFIX.VARIABLE}\\${REFERENCE.PATH_DELIMITER}([^${REFERENCE.START}${REFERENCE.END}]+)${REFERENCE.END}`,
+    'g'
+  )
+}
+
+/**
+ * Collects every string leaf in a nested value — the shared walk for reference/env-token
+ * audits over block inputs (lint, deps, and the agent-cli mirrors each carried a copy).
+ */
+export function collectStringLeaves(value: unknown, out: string[]): void {
+  if (typeof value === 'string') out.push(value)
+  else if (Array.isArray(value)) for (const item of value) collectStringLeaves(item, out)
+  else if (typeof value === 'object' && value !== null)
+    for (const item of Object.values(value)) collectStringLeaves(item, out)
+}

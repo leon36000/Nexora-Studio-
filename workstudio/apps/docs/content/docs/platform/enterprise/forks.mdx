@@ -1,0 +1,201 @@
+---
+title: Workspace forks
+description: Create a linked workspace and push or pull deployed workflow changes between environments
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { Image } from '@/components/ui/image'
+
+A fork creates a child workspace linked to its source. Later, push or pull deployed workflow changes across that direct parent–child relationship. One workspace has at most one parent, and a parent can have many children. Siblings and grandparents cannot sync directly.
+
+Only deployed, synced workflows move. Sync replaces eligible target workflows rather than merging their editor changes. Target-native workflows and excluded workflows remain outside the sync.
+
+## Availability and permissions
+
+Billing-enabled deployments require Enterprise, including when self-hosted. Billing-disabled deployments require forking enabled in the deployment feature configuration; see [Self-hosted setup](#self-hosted-setup). Workspace-creation policies and storage/resource limits still apply.
+
+| Action | Required access |
+| --- | --- |
+| View forks or create a child | Admin of the source/current workspace. |
+| Sync or edit mappings | Admin of both workspaces on the direct edge. |
+| Change a workflow's sync checkbox | Admin of that workflow's workspace. |
+| Change the new-workflow default | Admin of any workspace in the lineage. |
+| Roll back | Admin of the target that received the sync. |
+| Disconnect | Admin of the acting side; other-workspace membership is not required. |
+| Open the other workspace | Membership in that workspace. |
+
+## Create a fork
+
+1. Open **Settings → Workspace → Workspace forks** in the source.
+2. Click **Create fork** and name the child. The default is `{workspace} (fork)`.
+3. Review **Copy resources**. Resources start selected; deselect only those you intend to reconnect or replace.
+4. Review the cleared-reference warning and click **Fork**.
+5. Open the child, configure credentials and secrets, and check **Activity** for background-copy results. Deploy its workflows when they are ready.
+
+<Image src="/static/enterprise/forks-create-warning.png" alt="Fork dialog warning that deselected resources clear references in copied workflows" width={1018} height={1078} className="mx-auto h-auto w-full max-w-md" />
+
+Deployed workflows arrive as drafts. Undeployed workflows and uncommitted drafts stay in the source. If no eligible workflow is copied, the child receives a blank starter workflow. Deselecting a referenced resource clears the corresponding child fields.
+
+The child stays in the source's organization and Project, inherits workspace mode and personal-key policy, and receives a snapshot of workspace memberships and roles, including external members. The creator becomes a child admin. Later membership changes do not sync automatically.
+
+Workspace-specific permission-group scopes and retention overrides are not copied onto the new workspace; organization fallback policies still apply. Table rows, knowledge documents, and file contents can continue copying after workspace creation. A created workspace is not proof that every copy finished.
+
+## Push or pull changes
+
+From the **child**, open **Settings → Workspace → Workspace forks**, open the **Parent** menu, and choose **Edit mappings**. Child rows on the parent offer **Open workspace** and **Disconnect**. Opening is disabled when you lack other-workspace access; disconnecting remains available to an admin on your side.
+
+### 1. Choose direction and review workflows
+
+- **Push** sends this workspace's deployed workflows to the other workspace.
+- **Pull** brings the other workspace's deployed workflows into this workspace.
+
+Review which workflows will be created, replaced, or archived and compare the source deployment with the target. Missing counterparts are created. A mapped counterpart is archived when its source was deleted; merely undeploying the source does not archive it. Native target workflows are left alone.
+
+<Callout type="warn">
+Sync overwrites the eligible target workflows, including target draft edits. Review the affected workflow and archive lists before confirming. There is no merge operation.
+</Callout>
+
+### 2. Map or copy resources
+
+| Choice | Use |
+| --- | --- |
+| **Map** | Keep each environment's existing resource and rewrite source references to its target counterpart. |
+| **Copy** | Create an independent target clone of a table, file, knowledge base, tool, skill, or supported MCP configuration. |
+
+For example, copy a Leads table into staging for experiments, but map each environment's Slack credential to its own connection. Mappings take precedence over copying. Resources used by the synced workflows default to selected for copy; **Not used by any workflow** resources default off.
+
+Credentials and environment-variable values are never copied. Map credentials to the same integration kind and secret names to target names such as `{{API_KEY}}`. Values remain in their own workspace. A secret reference used only inside a Note block does not block sync.
+
+Environment-variable mapping does not sanitize every literal value. Review inline configuration, copied MCP headers, and OAuth client configuration for values that should differ between environments.
+
+### 3. Reconfigure dependent fields
+
+Mapping a credential or parent resource can invalidate choices such as Gmail labels, Slack channels, or knowledge documents. Pick those fields again for the target; required fields block **Sync** until configured.
+
+<Image src="/static/enterprise/forks-reconfigure.png" alt="A mapped resource's dependent Document field marked required for sync" width={1662} height={446} className="mx-auto h-auto w-full max-w-xl" />
+
+Resolve **Blocking sync** entries by mapping, selecting a supported resource for copy, deploying a referenced source workflow, or fixing its source reference. For a resource deleted at the source, you may explicitly drop its reference. That choice clears every occurrence of that resource in the sync, rather than only the displayed field. Live source resources cannot be dropped this way.
+
+Published custom blocks keep invoking their published source environment. Map them to a custom block published in the target; copying a workflow does not turn that invocation into a local implementation. See [custom-block authority](/platform/enterprise/custom-blocks).
+
+### 4. Review trigger URLs and save
+
+In **Trigger URLs in** the target, review preserved URLs and any offered adoption choices for arriving triggers. Existing target trigger slots retain their own URLs. An arriving slot can use an offered retiring target path or request a new one. Retired webhook URLs stop serving; update external callers where needed.
+
+Save mapping and dependent-field changes. While they are unsaved, the header offers **Save** and **Discard**; after saving, it returns to **Sync**. Copy selections and trigger choices belong to the current sync review; saving mappings does not persist every review choice.
+
+### 5. Confirm and verify completion
+
+Click **Sync**, review the overwrite confirmation, and confirm. If the source or reviewed scope changed, reload and review again rather than applying a stale comparison.
+
+A push/pull acknowledgement can precede content copying and deployment activation. Open **See activity** or **Activity**, expand the operation, and inspect copy progress, deployment results, and warnings. If deployment requires configuration or fails, open the affected workflow, fix it, and redeploy. Verify the target's active deployment and trigger/chat endpoints before sending traffic there.
+
+### Automated preview and retry protocol
+
+The [API and CLI sync guide](/api-reference/workflow-sync) covers preview fingerprints, mappings, dependent values, copy choices, and trigger choices. Apply exactly the reviewed request with its `previewFingerprint` and a stable `requestId`.
+
+After an uncertain response, retry the identical payload with the original request ID or find the original operation by request ID. A fresh ID can repeat the mutation. A changed payload under the same ID or a stale preview is refused; obtain a new preview and ID for a revised request that was not committed.
+
+An operation receipt with `applied: true` means the transaction committed, including when follow-up work fails. Poll under the receipt's `workspaceId` while `status` is `processing`; inspect `issues`, `copyProgress`, admitted deployment `ready` values, and `pendingComponents`. Terminal status alone does not make a copied draft live. Fork-creation receipts belong to the source; push/pull receipts belong to the current workspace named in the request URL.
+
+## Synced workflows
+
+The **Synced workflows** list shows this workspace's deployed workflows in folder order. Checked workflows participate. Uncheck a workflow or folder to exclude it:
+
+- It is not sent by push, received when the other side pulls, or copied into new forks.
+- Sync into this workspace does not replace or archive it, even if its counterpart was deleted. It keeps its current deployment.
+
+Each workspace manages its own checkboxes. Unchecking here does not change the counterpart's checkbox. Existing identity mappings remain, so rechecking resumes updates to the same counterpart instead of creating a duplicate. Excluded workflows appear greyed out in the sync review with their workspace named.
+
+For example, staging can exclude a scratch experiment while production excludes a local billing hotfix that staging must not overwrite.
+
+### Sync new workflows by default
+
+| Setting | New workflow behavior |
+| --- | --- |
+| **Sync** (default) | Starts checked and can sync after deployment. |
+| **Don't sync** | Starts unchecked until an admin selects it. |
+
+This setting applies to the whole lineage: root, ancestors, descendants, and siblings. Any workspace admin in that lineage can change it; changed workspaces receive audit entries naming the originating workspace. New forks inherit it.
+
+The change is forward-only. It does not alter existing checkboxes. Creating, duplicating, importing, or creating a blank starter workflow uses this default. Workflows arriving through fork, push, or pull are already selected for sync and arrive synced regardless of the default.
+
+## Resource behavior
+
+| Resource | Fork | Sync |
+| --- | --- | --- |
+| Deployed workflows | Eligible workflows become drafts; only their needed workflow folders are copied. | Create or replace counterparts; archive mapped counterparts deleted at source. |
+| Workspace files | Optional copy; references clear when omitted. | Map or copy. |
+| Tables | Optional copy, with rows possibly filled in later. | Map an existing dataset or copy a new one. |
+| Knowledge bases | Optional copy with settings, tags, and uploaded documents. | Map or copy the base; documents follow it. |
+| Custom tools | Optional definition copy. | Map or copy. |
+| Skills | Optional content copy; references to other copied resources are rewritten. | Map or copy. |
+| External MCP servers | Optional connection-configuration copy; OAuth sign-in cleared. | Map or copy; copied servers need sign-in. |
+| Workflow MCP servers | Optional server shells and attachments to copied workflows. | Attachments stay aligned automatically. |
+| Published custom blocks | Remain invocations of their published source. | Map to a publication in the target. |
+| Chat deployments | Configuration and a new URL; child workflow must be deployed before serving. | Create only when the target has no existing chat record and is ready to deploy. |
+| Credentials | Never copied; workflow fields cleared. | Map only, with compatible integration kind. |
+| Secrets | Values never copied; `{{KEY}}` names retained. | Map names only. |
+| Public API | Child starts private. | Source flag follows the workflow. |
+| Schedules, webhooks, triggers | Inactive until the child deploys. | Activation follows target deployment. |
+| Run history, Sim API keys, memory, scheduled jobs, BYOK keys | Not copied. | Not copied. |
+
+### Files and folder scopes
+
+Copied files keep their containing folder structure. Referenced workspace folder scopes and their ancestors are mirrored even when empty; that does not copy every file within the scope. On sync, map folder scopes by canonical path. Matching paths are suggested; otherwise create or choose the intended target folder.
+
+For example, copying `Brand/brand-guide.pdf` and a workflow's empty `/Incoming` search scope creates both folders without copying unrelated incoming files. An empty **Folder** means anywhere in the workspace and does not block sync. **Include Subfolders** changes scope expansion only. External-provider folder choices remain credential-dependent values rather than workspace-folder mappings.
+
+### Connector-synced documents are not copied
+
+Knowledge-base copies include active uploaded documents, tag definitions, and settings. Connectors and their managed documents do not cross the edge.
+
+<Callout type="warn">
+A knowledge base containing only connector-managed content arrives with no documents. Add a connector in the child to populate it, or download source documents and upload them as an intentional frozen snapshot.
+</Callout>
+
+Skipping managed documents avoids stale detached copies alongside the child's later connector ingestion. If a document's connector was deleted at the source, it is no longer connector-managed and can copy like an uploaded document. When mapping to an existing knowledge base, reselect dependent documents from that target base.
+
+### MCP and chat configuration
+
+External MCP copies include URL, headers, transport, and supported OAuth client configuration, but never OAuth tokens. Reauthorize copied servers and inspect literal headers before using them. Workflow MCP attachments follow synced workflows rather than appearing as a separate resource-mapping list.
+
+Chat copies include authentication configuration, such as password hashes or allowed emails, and block selection, with a new URL. Conversation history is not copied. On sync, any existing target chat record—including an archived one—prevents creating another. Deploy child workflows before testing copied chat URLs.
+
+## Activity, rollback, and disconnect
+
+**See activity** includes forks, pushes, pulls, and rollbacks involving this workspace, including operations recorded from the other side. Expand an event for changed resources, copy progress, and warnings.
+
+### Rollback
+
+Rollback applies only to the last sync into the target. It restores eligible workflows' prior deployed versions, unarchives workflows that sync archived, and archives/undeploys workflows that sync created. It does not restore arbitrary prior drafts or remove copied tables, files, or knowledge bases. Created chats are archived with their workflows.
+
+Check restored deployment readiness. Activation can remain pending or fail after the restore commits; the undo point is retained while restored versions are not live so retrying can drive the remaining activations. Hard-deleted workflows or versions cannot be restored and are reported as skipped. A newer sync requires reviewing the newest undo point.
+
+### Disconnect
+
+Disconnect permanently deletes the edge, its mappings and saved dependent choices, workflow identity links, and pair sync history. Both workspaces and their data remain. Disconnecting also separates the fork subtree's Project grouping. The old edge cannot be reconnected; a later fork creates a new child.
+
+## Troubleshoot sync
+
+If **Sync** is disabled, resolve the listed blockers, required credentials or secrets, and required dependent fields. Wait for details to load; reload after a failed load. Save edited mappings before continuing.
+
+If a newly deployed workflow is missing from the plan, check its **Synced workflows** checkbox. Changing the lineage default affects future creations only. If a copied table or knowledge base looks empty, inspect Activity before repeating the fork or sync. For an OAuth MCP server, reconnect in the target. For a copied chat, check workflow deployment and any existing target chat record.
+
+## Self-hosted setup
+
+On billing-disabled deployments, enable forking through enterprise configuration or explicitly set:
+
+```bash
+FORKING_ENABLED=true
+NEXT_PUBLIC_FORKING_ENABLED=true
+```
+
+Explicit feature values take precedence over the master configuration. Billing-enabled self-hosted deployments still require Enterprise. See [self-hosted enterprise setup](/platform/enterprise/self-hosted).
+
+## Related docs
+
+- [API and CLI workflow sync](/api-reference/workflow-sync)
+- [Workflow deployment](/workflows/deployment)
+- [Custom blocks](/platform/enterprise/custom-blocks)
+- [Knowledge-base connectors](/knowledgebase/connectors)

@@ -1,0 +1,74 @@
+import type { Principal } from '@sim/auth/principal'
+
+/**
+ * Types for the sandbox task system.
+ *
+ * A `SandboxTask` is a recipe that tells the isolated-vm pool how to run a
+ * particular kind of user code: which pre-built library bundles to install,
+ * which host-side brokers to expose, and how to serialize the final result.
+ */
+
+export type SandboxBundleName = 'pptxgenjs' | 'docx' | 'pdf-lib' | 'vitest-expect'
+
+export interface SandboxBroker<TArgs = unknown, TResult = unknown> {
+  /**
+   * Name the isolate-side bootstrap references (e.g. `__brokers.workspaceFile`).
+   * Must be a plain JS identifier segment.
+   */
+  name: string
+  /**
+   * Host-side handler invoked when the isolate calls the broker.
+   * `ctx` carries per-execution metadata (workspaceId, requestId, etc.).
+   */
+  handle(ctx: SandboxBrokerContext, args: TArgs): Promise<TResult>
+}
+
+export interface SandboxBrokerContext {
+  workspaceId?: string
+  requestId: string
+  resolvePreparedFile?: (fileId: string) => { content: Buffer; contentType: string }
+  /** Host-side identity used to authorize and admit each actual broker read. Never sent to the isolate. */
+  filePrincipal?: Principal
+  onWorkspaceFileAccess?: (identity: {
+    fileId: string
+    key: string
+    context: 'workspace' | 'mothership'
+    contentUpdatedAt: Date
+  }) => void
+}
+
+export interface SandboxTaskInput {
+  workspaceId?: string
+  code: string
+  /** Module filename for `code` when the task sets `userModules`; appears in stack traces. */
+  codeFilename?: string
+}
+
+export interface SandboxTask<TInput extends SandboxTaskInput = SandboxTaskInput> {
+  /** Kebab-case stable identifier, used for logging + lookups. */
+  id: string
+  /** Script execution timeout inside the isolate. */
+  timeoutMs: number
+  /** Library bundles to load as isolate globals before the bootstrap runs. */
+  bundles: ReadonlyArray<SandboxBundleName>
+  /** Host-side brokers this task is allowed to call from inside the isolate. */
+  brokers: ReadonlyArray<SandboxBroker>
+  /**
+   * JS code run inside the isolate after bundles are installed and before
+   * user code. Should hoist bundle globals to friendly names and install any
+   * helper functions users expect (e.g. `getFileBase64`).
+   */
+  bootstrap: string
+  /**
+   * When set, user code runs as an ES module that may import only these modules
+   * (specifier -> module source). Each source reads what `bootstrap` installed.
+   */
+  userModules?: Readonly<Record<string, string>>
+  /**
+   * JS source that, when evaluated inside an async IIFE after user code, must
+   * return a `Uint8Array`. The bytes are transferred out via `ExternalCopy`.
+   */
+  finalize: string
+  /** Host-side transform from raw isolate bytes to the caller's return type. */
+  toResult(bytes: Uint8Array, input: TInput): Buffer
+}

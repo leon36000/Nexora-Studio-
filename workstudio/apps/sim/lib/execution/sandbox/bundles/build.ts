@@ -1,0 +1,209 @@
+#!/usr/bin/env bun
+/**
+ * Builds isolate-compatible bundles for the document-generation libraries.
+ *
+ * Each library is bundled with `target=browser, format=iife` so it can be
+ * evaluated inside a V8 isolate that has no Node APIs (`require`, `process`,
+ * `fs`). The emitted files attach their exports to `globalThis.__bundles[name]`
+ * and are checked in so production images don't need the bundler at runtime.
+ *
+ * Every bundle is evaluated in a bare context before it is written: the
+ * bundler can emit a reference to a runtime helper it never defines (Bun does
+ * this for docx's inlined CommonJS shim), and nothing else loads these files
+ * before a production document generation does.
+ *
+ * Run via: `bun run build:sandbox-bundles`.
+ */
+
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createLogger } from '@sim/logger'
+import { evaluateSandboxBundle } from '@/lib/execution/sandbox/bundles/verify'
+import type { SandboxBundleName } from '@/lib/execution/sandbox/types'
+
+const logger = createLogger('SandboxBundleBuild')
+
+interface BunBuildResult {
+  success: boolean
+  logs: unknown[]
+  outputs: Array<{ text: () => Promise<string> }>
+}
+interface BunBuildOptions {
+  entrypoints: string[]
+  target: string
+  format: string
+  minify: boolean
+  sourcemap: string
+  root: string
+}
+declare const Bun: { build: (opts: BunBuildOptions) => Promise<BunBuildResult> }
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const BUNDLES_DIR = HERE
+const ENTRIES_DIR = join(HERE, '.entries')
+const APP_SIM_ROOT = join(HERE, '..', '..', '..', '..')
+
+interface BundleSpec {
+  /** Key on `globalThis.__bundles`. */
+  name: SandboxBundleName
+  /** Short filename written under `bundles/<file>.cjs`. */
+  outFile: string
+  /** Source of the entry file bun will bundle. */
+  entry: string
+}
+
+const POLYFILLS_PATH = join(HERE, 'isolate-polyfills.ts')
+const EVENT_POLYFILLS_PATH = join(HERE, 'event-polyfills.ts')
+const POLYFILL_PRELUDE = `
+// Isolate-side polyfills must execute BEFORE any other import (process/browser
+// captures setTimeout at module-init time). Keep this as the first import.
+import '${POLYFILLS_PATH}'
+import { Buffer as __BufferPolyfill } from 'buffer'
+import * as __processPolyfill from 'process/browser'
+if (typeof globalThis.Buffer === 'undefined') globalThis.Buffer = __BufferPolyfill
+if (typeof globalThis.process === 'undefined') globalThis.process = __processPolyfill
+`
+
+const BUNDLES: ReadonlyArray<BundleSpec> = [
+  {
+    name: 'pdf-lib',
+    outFile: 'pdf-lib.cjs',
+    entry: `
+${POLYFILL_PRELUDE}
+import * as mod from 'pdf-lib'
+globalThis.__bundles = globalThis.__bundles || {}
+globalThis.__bundles['pdf-lib'] = mod
+`,
+  },
+  {
+    name: 'docx',
+    outFile: 'docx.cjs',
+    entry: `
+${POLYFILL_PRELUDE}
+import * as mod from 'docx'
+globalThis.__bundles = globalThis.__bundles || {}
+globalThis.__bundles['docx'] = mod
+`,
+  },
+  {
+    name: 'pptxgenjs',
+    outFile: 'pptxgenjs.cjs',
+    entry: `
+${POLYFILL_PRELUDE}
+import PptxGenJS from 'pptxgenjs'
+globalThis.__bundles = globalThis.__bundles || {}
+globalThis.__bundles['pptxgenjs'] = PptxGenJS
+`,
+  },
+  {
+    /**
+     * Vitest's own `expect` and spies for workflow tests. `vitest` itself can't be bundled for
+     * an isolate (its expect is entangled with the runner's worker RPC), so this builds the
+     * standalone packages vitest is made of the way vitest's `createExpect` assembles them.
+     */
+    name: 'vitest-expect',
+    outFile: 'vitest-expect.cjs',
+    entry: `
+import '${POLYFILLS_PATH}'
+import '${EVENT_POLYFILLS_PATH}'
+import { disableDefaultColors } from 'tinyrainbow'
+import * as chai from 'chai'
+import {
+  ASYMMETRIC_MATCHERS_OBJECT,
+  JestAsymmetricMatchers,
+  JestChaiExpect,
+  JestExtend,
+  getState,
+  setState,
+} from '@vitest/expect'
+import { fn, isMockFunction, spyOn } from '@vitest/spy'
+
+disableDefaultColors()
+chai.use(JestExtend)
+chai.use(JestChaiExpect)
+chai.use(JestAsymmetricMatchers)
+
+function createExpect() {
+  const expect = (value, message) => {
+    const { assertionCalls } = getState(expect)
+    setState({ assertionCalls: assertionCalls + 1 }, expect)
+    return chai.expect(value, message)
+  }
+  Object.assign(expect, chai.expect)
+  Object.assign(expect, globalThis[ASYMMETRIC_MATCHERS_OBJECT])
+  expect.getState = () => getState(expect)
+  expect.setState = (state) => setState(state, expect)
+  setState(
+    {
+      assertionCalls: 0,
+      isExpectingAssertions: false,
+      isExpectingAssertionsError: null,
+      expectedAssertionsNumber: null,
+      expectedAssertionsNumberErrorGen: null,
+    },
+    expect
+  )
+  expect.assert = chai.assert
+  expect.extend = (matchers) => chai.expect.extend(expect, matchers)
+  expect.unreachable = (message) =>
+    chai.assert.fail('expected' + (message ? ' "' + message + '" ' : ' ') + 'not to be reached')
+  return expect
+}
+
+globalThis.__bundles = globalThis.__bundles || {}
+globalThis.__bundles['vitest-expect'] = { createExpect, fn, spyOn, isMockFunction }
+`,
+  },
+]
+
+async function main(): Promise<void> {
+  rmSync(ENTRIES_DIR, { recursive: true, force: true })
+  mkdirSync(ENTRIES_DIR, { recursive: true })
+  mkdirSync(BUNDLES_DIR, { recursive: true })
+
+  for (const spec of BUNDLES) {
+    const entryPath = join(ENTRIES_DIR, `${spec.name}.entry.ts`)
+    writeFileSync(entryPath, spec.entry, 'utf-8')
+
+    const result = await Bun.build({
+      entrypoints: [entryPath],
+      target: 'browser',
+      format: 'iife',
+      minify: true,
+      sourcemap: 'none',
+      root: APP_SIM_ROOT,
+    })
+
+    if (!result.success) {
+      for (const log of result.logs) {
+        logger.error(String(log))
+      }
+      throw new Error(`Failed to build sandbox bundle: ${spec.name}`)
+    }
+
+    if (result.outputs.length === 0) {
+      throw new Error(`No output produced for sandbox bundle: ${spec.name}`)
+    }
+
+    const code = await result.outputs[0].text()
+    const banner = `// sandbox bundle: ${spec.name}\n// generated by apps/sim/lib/execution/sandbox/bundles/build.ts\n// do not edit by hand. run \`bun run build:sandbox-bundles\` to regenerate.\n`
+    const output = banner + code
+    try {
+      evaluateSandboxBundle(output, spec.name)
+    } catch (error) {
+      throw new Error(
+        `Sandbox bundle ${spec.name} does not evaluate in a bare isolate context: ${String(error)}`
+      )
+    }
+    writeFileSync(join(BUNDLES_DIR, spec.outFile), output, 'utf-8')
+    logger.info(`built and verified ${spec.outFile} (${code.length.toLocaleString()} chars)`)
+  }
+
+  rmSync(ENTRIES_DIR, { recursive: true, force: true })
+}
+
+main().catch((err) => {
+  logger.error('sandbox bundle build failed', err)
+  process.exit(1)
+})

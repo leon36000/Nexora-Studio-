@@ -1,0 +1,479 @@
+/**
+ * Tests for getUserUsageLimit.
+ *
+ * Legacy membership syncs may leave a null personal usage limit. The limit
+ * read must recover the plan/free base plus prepaid balance, and subsequent
+ * subscription syncs must preserve independent personal and organization pools.
+ */
+
+import { billingAccessMock } from '@sim/testing/mocks/billing-access.mock'
+import { billingPlanMock, billingPlanMockFns } from '@sim/testing/mocks/billing-plan.mock'
+import {
+  billingSubscriptionUtilsMock,
+  billingSubscriptionUtilsMockFns,
+} from '@sim/testing/mocks/billing-subscription-utils.mock'
+import { billingUsageLogMock } from '@sim/testing/mocks/billing-usage-log.mock'
+import { dbChainMockFns, queueTableRows, resetDbChainMock } from '@sim/testing/mocks/database.mock'
+import { emailMailerMock, emailMailerMockFns } from '@sim/testing/mocks/email-mailer.mock'
+import { emailTemplatesMock, emailTemplatesMockFns } from '@sim/testing/mocks/email-templates.mock'
+import {
+  emailUnsubscribeMock,
+  emailUnsubscribeMockFns,
+} from '@sim/testing/mocks/email-unsubscribe.mock'
+import { resetEnvFlagsMock, setEnvFlags } from '@sim/testing/mocks/env-flags.mock'
+import { schemaMock } from '@sim/testing/mocks/schema.mock'
+import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+afterAll(() => {
+  resetDbChainMock()
+})
+
+vi.mock('@/lib/billing/subscriptions/utils', () => billingSubscriptionUtilsMock)
+
+vi.mock('@/lib/billing/core/plan', () => billingPlanMock)
+
+vi.mock('@/lib/billing/core/access', () => billingAccessMock)
+
+vi.mock('@/lib/billing/core/usage-log', () => billingUsageLogMock)
+
+vi.mock('@/lib/billing/credits/weekly-refresh', () => ({
+  computeWeeklyRefreshConsumed: vi.fn(),
+}))
+
+vi.mock('@/components/emails', () => emailTemplatesMock)
+
+vi.mock('@/lib/messaging/email/mailer', () => emailMailerMock)
+
+vi.mock('@/lib/messaging/email/unsubscribe', () => emailUnsubscribeMock)
+
+vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
+
+const { mockIsDeletedAccountIdentity, mockUserHasDeletedAccountIdentity } = vi.hoisted(() => ({
+  mockIsDeletedAccountIdentity: vi.fn(),
+  mockUserHasDeletedAccountIdentity: vi.fn(),
+}))
+
+vi.mock('@/lib/users/deleted-identity', () => ({
+  isDeletedAccountIdentity: mockIsDeletedAccountIdentity,
+  userHasDeletedAccountIdentity: mockUserHasDeletedAccountIdentity,
+}))
+
+import {
+  ensureUserStatsExists,
+  getUserUsageLimit,
+  handleNewSignInAccount,
+  handleNewUser,
+  maybeSendUsageThresholdEmail,
+  syncUsageLimitsFromSubscription,
+} from '@/lib/billing/core/usage'
+
+const { mockGetEmailPreferences } = emailUnsubscribeMockFns
+const mockIsOrgAdminRole = workspaceAuthzMockFns.mockIsOrgAdminRole
+const {
+  mockGetFreeTierLimit,
+  mockGetPerUserMinimumLimit,
+  mockHasPaidSubscriptionStatus,
+  mockIsOrgScopedSubscription,
+} = billingSubscriptionUtilsMockFns
+const { mockGetHighestPrioritySubscription, mockGetHighestPriorityPersonalSubscription } =
+  billingPlanMockFns
+const {
+  mockGetEmailSubject,
+  mockGetLimitEmailSubject,
+  mockRenderCreditsExhaustedEmail: mockRenderCreditsExhausted,
+  mockRenderFreeTierUpgradeEmail: mockRenderFreeTierUpgrade,
+  mockRenderUsageLimitReachedEmail: mockRenderUsageLimitReached,
+  mockRenderUsageThresholdEmail: mockRenderUsageThreshold,
+} = emailTemplatesMockFns
+const { mockSendEmail } = emailMailerMockFns
+billingSubscriptionUtilsMockFns.mockGetPlanPricing.mockReturnValue({ basePrice: 20 } as never)
+mockGetEmailSubject.mockReturnValue('Subject')
+mockGetLimitEmailSubject.mockReturnValue('Limit subject')
+mockRenderCreditsExhausted.mockResolvedValue('<html>free</html>')
+mockRenderFreeTierUpgrade.mockResolvedValue('<html>nudge</html>')
+mockRenderUsageLimitReached.mockResolvedValue('<html>reached</html>')
+mockRenderUsageThreshold.mockResolvedValue('<html>warning</html>')
+mockSendEmail.mockResolvedValue({ success: true })
+
+const PRO_SUBSCRIPTION = {
+  id: 'sub-1',
+  plan: 'pro',
+  status: 'active',
+  referenceId: 'user-1',
+  seats: 1,
+  periodStart: null,
+  periodEnd: null,
+} as never
+
+describe('getUserUsageLimit', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    mockIsOrgScopedSubscription.mockReturnValue(false)
+    mockGetHighestPrioritySubscription.mockResolvedValue(null)
+  })
+
+  it('throws when no userStats row exists', async () => {
+    dbChainMockFns.limit.mockResolvedValueOnce([])
+
+    await expect(getUserUsageLimit('user-1', null)).rejects.toThrow('No user stats record found')
+  })
+
+  it('heals a null limit to the free-tier default for free users', async () => {
+    dbChainMockFns.limit.mockResolvedValueOnce([
+      { currentUsageLimit: null, creditBalance: '0.006', freeTierEligible: true },
+    ])
+    dbChainMockFns.returning.mockResolvedValueOnce([{ currentUsageLimit: '10.006' }])
+    mockGetFreeTierLimit.mockReturnValue(10)
+
+    const limit = await getUserUsageLimit('user-1', null)
+
+    expect(limit).toBe(10.006)
+    expect(dbChainMockFns.update).toHaveBeenCalledTimes(1)
+    expect(dbChainMockFns.set).toHaveBeenCalledWith({
+      currentUsageLimit: '10.006',
+      usageLimitUpdatedAt: expect.any(Date),
+    })
+    const [condition] = dbChainMockFns.where.mock.calls.at(-1) ?? []
+    expect(condition).toMatchObject({
+      type: 'and',
+      conditions: [{ type: 'eq', right: 'user-1' }, { type: 'isNull' }],
+    })
+  })
+
+  it('heals a null limit to the plan minimum for paid personal subscriptions', async () => {
+    dbChainMockFns.limit.mockResolvedValueOnce([
+      { currentUsageLimit: null, creditBalance: '1.25', freeTierEligible: true },
+    ])
+    dbChainMockFns.returning.mockResolvedValueOnce([{ currentUsageLimit: '41.25' }])
+    mockHasPaidSubscriptionStatus.mockReturnValue(true)
+    mockGetPerUserMinimumLimit.mockReturnValue(40)
+
+    const limit = await getUserUsageLimit('user-1', PRO_SUBSCRIPTION)
+
+    expect(limit).toBe(41.25)
+    expect(mockGetPerUserMinimumLimit).toHaveBeenCalledWith(PRO_SUBSCRIPTION, true)
+    expect(dbChainMockFns.set).toHaveBeenCalledWith({
+      currentUsageLimit: '41.25',
+      usageLimitUpdatedAt: expect.any(Date),
+    })
+  })
+
+  it('returns a concurrently written limit when the guarded heal matches no rows', async () => {
+    dbChainMockFns.limit.mockResolvedValueOnce([{ currentUsageLimit: null }])
+    dbChainMockFns.returning.mockResolvedValueOnce([])
+    dbChainMockFns.limit.mockResolvedValueOnce([{ currentUsageLimit: '30' }])
+    mockGetFreeTierLimit.mockReturnValue(10)
+
+    const limit = await getUserUsageLimit('user-1', null)
+
+    expect(limit).toBe(30)
+  })
+
+  it.each([
+    { plan: 'enterprise', configured: '12.005', seats: 3, expected: 12.005 },
+    { plan: 'enterprise', configured: '0', seats: 3, expected: 0 },
+    { plan: 'enterprise', configured: null, seats: 3, expected: 0 },
+    { plan: 'team', configured: '10', seats: 3, expected: 60 },
+    { plan: 'team', configured: '80', seats: 3, expected: 80 },
+    { plan: 'team', configured: null, seats: 0, expected: 20 },
+  ])(
+    'reads the $plan organization limit once for configured=$configured and seats=$seats',
+    async ({ plan, configured, seats, expected }) => {
+      mockIsOrgScopedSubscription.mockReturnValue(true)
+      queueTableRows(schemaMock.organization, [{ orgUsageLimit: configured }])
+      await expect(
+        getUserUsageLimit('user-1', {
+          referenceId: 'org-1',
+          plan,
+          seats,
+          status: 'active',
+          periodStart: null,
+          periodEnd: null,
+        })
+      ).resolves.toBe(expected)
+      expect(dbChainMockFns.select).toHaveBeenCalledTimes(1)
+      expect(dbChainMockFns.update).not.toHaveBeenCalled()
+    }
+  )
+
+  it('still rejects a missing organization without adopting the display fallback', async () => {
+    mockIsOrgScopedSubscription.mockReturnValue(true)
+    queueTableRows(schemaMock.organization, [])
+    await expect(
+      getUserUsageLimit('user-1', {
+        referenceId: 'org-missing',
+        plan: 'team',
+        seats: 3,
+        status: 'active',
+        periodStart: null,
+        periodEnd: null,
+      })
+    ).rejects.toThrow('Organization not found: org-missing for user: user-1')
+    expect(dbChainMockFns.select).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('syncUsageLimitsFromSubscription', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    mockIsOrgScopedSubscription.mockReturnValue(false)
+    mockHasPaidSubscriptionStatus.mockImplementation((status: string) => status === 'active')
+  })
+
+  it.each([
+    { plan: 'pro', minimum: 40 },
+    { plan: 'enterprise', minimum: 0 },
+  ])(
+    'preserves a personal $plan cap when the user also belongs to an enterprise organization',
+    async ({ plan, minimum }) => {
+      const personalSubscription = { plan, referenceId: 'user-1', status: 'active' }
+      mockGetHighestPriorityPersonalSubscription.mockResolvedValue(personalSubscription)
+      mockGetHighestPrioritySubscription.mockResolvedValue({
+        plan: 'enterprise',
+        referenceId: 'org-1',
+        status: 'active',
+      })
+      mockIsOrgScopedSubscription.mockReturnValue(true)
+      mockGetPerUserMinimumLimit.mockReturnValue(minimum)
+      dbChainMockFns.limit.mockResolvedValueOnce([
+        { currentUsageLimit: '80', creditBalance: '1', freeTierEligible: true },
+      ])
+
+      await syncUsageLimitsFromSubscription('user-1')
+
+      expect(mockGetHighestPriorityPersonalSubscription).toHaveBeenCalledExactlyOnceWith(
+        'user-1',
+        expect.objectContaining({ onError: 'throw' })
+      )
+      expect(mockGetHighestPrioritySubscription).not.toHaveBeenCalled()
+      expect(mockGetPerUserMinimumLimit).toHaveBeenCalledWith(personalSubscription, true)
+      const update = dbChainMockFns.set.mock.calls[0]?.[0]
+      expect(update?.currentUsageLimit).not.toBeNull()
+      expect(JSON.stringify(update?.currentUsageLimit)).toContain('greatest')
+    }
+  )
+
+  it('does not reset a personal cap when its subscription lookup fails', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockRejectedValueOnce(new Error('db unavailable'))
+    dbChainMockFns.limit.mockResolvedValueOnce([{ currentUsageLimit: '80' }])
+
+    await expect(syncUsageLimitsFromSubscription('user-1')).rejects.toThrow('db unavailable')
+    expect(dbChainMockFns.update).not.toHaveBeenCalled()
+  })
+
+  it('raises a paid personal limit to plan base plus the exact prepaid balance', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue(PRO_SUBSCRIPTION)
+    mockGetPerUserMinimumLimit.mockReturnValue(40)
+    dbChainMockFns.limit.mockResolvedValueOnce([
+      { currentUsageLimit: '40', creditBalance: '0.005' },
+    ])
+
+    await syncUsageLimitsFromSubscription('user-1')
+
+    const update = dbChainMockFns.set.mock.calls[0]?.[0]
+    const expression = JSON.stringify(update?.currentUsageLimit)
+    expect(expression).toContain('greatest')
+    expect(expression).toContain('creditBalance')
+    expect(expression).not.toContain('0.005')
+  })
+
+  it('restores free-tier base plus prepaid after a downgrade or org departure', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue(null)
+    mockGetPerUserMinimumLimit.mockReturnValue(10)
+    dbChainMockFns.limit.mockResolvedValueOnce([
+      { currentUsageLimit: null, creditBalance: '0.006', freeTierEligible: true },
+    ])
+
+    await syncUsageLimitsFromSubscription('user-1')
+
+    const update = dbChainMockFns.set.mock.calls[0]?.[0]
+    const expression = JSON.stringify(update?.currentUsageLimit)
+    expect(expression).toContain('creditBalance')
+    expect(expression).not.toContain('greatest')
+    expect(expression).not.toContain('0.006')
+  })
+
+  it('does not retain a higher paid custom cap after downgrade to free', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue(null)
+    mockGetPerUserMinimumLimit.mockReturnValue(10)
+    dbChainMockFns.limit.mockResolvedValueOnce([
+      { currentUsageLimit: '100', creditBalance: '0.006', freeTierEligible: true },
+    ])
+
+    await syncUsageLimitsFromSubscription('user-1')
+
+    const update = dbChainMockFns.set.mock.calls[0]?.[0]
+    const expression = JSON.stringify(update?.currentUsageLimit)
+    expect(expression).toContain('creditBalance')
+    expect(expression).not.toContain('greatest')
+    expect(expression).not.toContain('100')
+  })
+
+  it('preserves a higher custom personal limit', async () => {
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue(PRO_SUBSCRIPTION)
+    mockGetPerUserMinimumLimit.mockReturnValue(40)
+    dbChainMockFns.limit.mockResolvedValueOnce([{ currentUsageLimit: '50', creditBalance: '1' }])
+
+    await syncUsageLimitsFromSubscription('user-1')
+
+    const update = dbChainMockFns.set.mock.calls[0]?.[0]
+    const expression = JSON.stringify(update?.currentUsageLimit)
+    expect(expression).toContain('greatest')
+    expect(expression).toContain('creditBalance')
+  })
+})
+
+describe('maybeSendUsageThresholdEmail', () => {
+  const paidUser = {
+    scope: 'user' as const,
+    planName: 'Pro',
+    userId: 'user-1',
+    userEmail: 'user-1@example.com',
+    userName: 'Ada',
+    workspaceId: 'ws-1',
+    periodStart: new Date('2026-09-01T00:00:00.000Z'),
+    limit: 20,
+  }
+
+  beforeEach(() => {
+    resetDbChainMock()
+    setEnvFlags({ isBillingEnabled: true })
+    mockGetEmailPreferences.mockResolvedValue(null)
+    mockIsOrgAdminRole.mockReturnValue(true)
+    dbChainMockFns.returning.mockResolvedValue([{ id: 'claimed' }])
+  })
+
+  afterAll(() => {
+    resetEnvFlagsMock()
+  })
+
+  /** Who received which email, identified by its subject and rendered template. */
+  function sentMessages() {
+    return mockSendEmail.mock.calls.map(([message]) => ({
+      to: message.to,
+      subject: message.subject,
+      html: message.html,
+    }))
+  }
+
+  it('emails a paid personal account at 100% with the raise-your-limit template', async () => {
+    queueTableRows(schemaMock.userStats, [{ unclaimed: true }])
+    await maybeSendUsageThresholdEmail({
+      ...paidUser,
+      usageBefore: 19,
+      costDelta: 1,
+    })
+
+    expect(sentMessages()).toEqual([
+      { to: 'user-1@example.com', subject: 'Limit subject', html: '<html>reached</html>' },
+    ])
+  })
+
+  it('fans out to org admins at 100% and skips non-admin members', async () => {
+    mockIsOrgAdminRole.mockImplementation((role: unknown) => role === 'admin')
+    queueTableRows(schemaMock.organization, [{ unclaimed: true }])
+    queueTableRows(schemaMock.member, [
+      { email: 'admin@example.com', name: 'Admin', enabled: null, role: 'admin' },
+      { email: 'member@example.com', name: 'Member', enabled: null, role: 'member' },
+    ])
+
+    await maybeSendUsageThresholdEmail({
+      scope: 'organization',
+      planName: 'Team',
+      organizationId: 'org-1',
+      workspaceId: 'ws-1',
+      periodStart: new Date('2026-09-01T00:00:00.000Z'),
+      usageBefore: 499,
+      costDelta: 1,
+      limit: 500,
+    })
+
+    expect(sentMessages()).toEqual([
+      { to: 'admin@example.com', subject: 'Limit subject', html: '<html>reached</html>' },
+    ])
+  })
+})
+
+/**
+ * A returning deleted-account identity loses the free allowance by having
+ * `free_tier_eligible` cleared. These guard the two edges where that went wrong:
+ * a stats row created by the fallback after signup failed, and a first sign-in
+ * linked to a user that was not created in the same request.
+ */
+describe('withholding the free allowance from a returning deleted identity', () => {
+  const GITHUB = { userId: 'user-1', providerId: 'github', accountId: 'gh-1' }
+
+  const forfeited = () =>
+    dbChainMockFns.set.mock.calls.some(([values]) => values?.freeTierEligible === false)
+
+  beforeEach(() => {
+    resetDbChainMock()
+    mockIsOrgScopedSubscription.mockReturnValue(false)
+    mockGetHighestPriorityPersonalSubscription.mockResolvedValue(null)
+    mockIsDeletedAccountIdentity.mockReset().mockResolvedValue(true)
+    mockUserHasDeletedAccountIdentity.mockReset().mockResolvedValue(false)
+    queueTableRows(schemaMock.userStats, [
+      { currentUsageLimit: '5', creditBalance: '0', freeTierEligible: false },
+    ])
+    queueTableRows(schemaMock.account, [{ value: 1 }])
+  })
+
+  it('withholds it for a deleted sign-in that is the first account of a user created in the same request', async () => {
+    const signupRequest = {}
+    await handleNewUser('user-1', signupRequest)
+
+    await handleNewSignInAccount(GITHUB, signupRequest)
+
+    expect(forfeited()).toBe(true)
+  })
+
+  it('never withholds it when the sign-in is linked to a user created in another request', async () => {
+    await handleNewUser('user-1', {})
+
+    await handleNewSignInAccount(GITHUB, {})
+    await handleNewSignInAccount(GITHUB, null)
+
+    expect(forfeited()).toBe(false)
+  })
+
+  it('checks a stats row only the fallback created, and withholds a returning identity’s allowance', async () => {
+    mockUserHasDeletedAccountIdentity.mockResolvedValue(true)
+    dbChainMockFns.returning.mockResolvedValueOnce([])
+
+    await ensureUserStatsExists('user-1')
+    expect(mockUserHasDeletedAccountIdentity).not.toHaveBeenCalled()
+
+    dbChainMockFns.returning.mockResolvedValueOnce([{ id: 'stats-1' }])
+    await ensureUserStatsExists('user-1')
+
+    expect(forfeited()).toBe(true)
+  })
+
+  it('checks a fallback row’s linked sign-ins only for a user created in the same request', async () => {
+    mockUserHasDeletedAccountIdentity.mockImplementation(
+      async (_userId: string, { includeSignIns }: { includeSignIns: boolean }) => includeSignIns
+    )
+    dbChainMockFns.returning
+      .mockResolvedValueOnce([{ id: 'stats-1' }])
+      .mockResolvedValueOnce([{ id: 'stats-1' }])
+
+    await ensureUserStatsExists('user-1', {})
+    await ensureUserStatsExists('user-1')
+    expect(forfeited()).toBe(false)
+
+    const signupRequest = {}
+    await handleNewUser('user-1', signupRequest)
+    dbChainMockFns.returning.mockResolvedValueOnce([{ id: 'stats-1' }])
+    await ensureUserStatsExists('user-1', signupRequest)
+    expect(forfeited()).toBe(true)
+  })
+
+  it('never fails the caller when withholding from a fallback row fails', async () => {
+    mockUserHasDeletedAccountIdentity.mockResolvedValue(true)
+    dbChainMockFns.returning.mockResolvedValueOnce([{ id: 'stats-1' }])
+    dbChainMockFns.transaction.mockRejectedValueOnce(new Error('db unavailable'))
+
+    await expect(ensureUserStatsExists('user-1')).resolves.toBeUndefined()
+  })
+})

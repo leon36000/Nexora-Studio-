@@ -1,0 +1,85 @@
+---
+title: Getting started
+description: Build a workflow that summarizes text, then inspect its output.
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps'
+import { Image } from '@/components/ui/image'
+
+Build and run a simple summarizer with a Start block and an Agent block.
+
+You need a workspace where you can edit and run workflows, and access to a chat model. Configure model credentials if prompted. Model calls can incur [usage charges](/platform/costs).
+
+## Start in Chat
+
+Select **New chat** and ask:
+
+> Build a workflow that summarizes a product update in one sentence. Use a Start block and an Agent block, and open it beside this chat.
+
+Inspect the blocks and resolve any missing model credentials before running. You can ask Sim to refine the workflow or edit it directly in the side panel. See [Workflows in Chat](/chat/workflows).
+
+## Build it in the workflow builder
+
+To configure the same pattern yourself, follow these steps. This example keeps the update in the Agent's prompt; [connection tags](/workflows/connections) let you pass changing inputs later.
+
+<Steps>
+<Step>
+
+### Create a workflow
+
+Click **+** beside **Workflows** in the sidebar. The new workflow contains a **Start** block.
+
+Open **Toolbar**, search for **Agent**, and click it to add the block. Connect Start's output handle to Agent's input handle if they are not already connected.
+
+</Step>
+<Step>
+
+### Give the Agent a task
+
+Select Agent to open its fields in **Editor**. Choose an available chat model in **Model**. Rename the block **Summarize update** using the pencil beside its name.
+
+In **Messages**, set the message role to **User** and paste:
+
+```text
+Summarize this update in one sentence:
+
+We launched the new dashboard on Monday. Customers can now filter
+reports by team and export them as CSV. The mobile layout is still
+in progress.
+```
+
+</Step>
+<Step>
+
+### Run and check the result
+
+Click **Run**. Expand **Logs** at the bottom of the builder, select **Summarize update**, and open **Output**.
+
+The `content` field contains the summary. It should look like this; the wording may vary:
+
+> The new dashboard adds team filters and CSV exports, with the mobile layout still in progress.
+
+Change the update in **Messages** and run it again to see the result change.
+
+</Step>
+</Steps>
+
+<Image
+  src="/static/getting-started/first-run.webp"
+  alt="The summarizer workflow open beside Chat, with Sim showing its latest successful output"
+  width={2400}
+  height={1200}
+  variant="overview"
+  background="san-francisco"
+  caption="Keep the workflow open beside Chat to inspect its blocks and ask about a run."
+/>
+
+## If the run fails [#fix-a-failed-run]
+
+Select the failed block in **Logs** and read its error. Check the selected model and its credentials, then run again. See [Logs and debugging](/logs-debugging) for more help.
+
+## Next steps
+
+- [Build a research agent](/getting-started/research-agent): Add web search tools and structured output.
+- [Pass data between blocks](/workflows/connections): Use references such as `<start.input>`.
+- [Deploy your workflow](/workflows/deployment): Make it available through an API, chat, or MCP server.

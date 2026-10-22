@@ -1,0 +1,97 @@
+import type { CredentialValidators, ProviderExecutors, ProviderProxyExecutor } from "../../core/types.ts";
+import type { IntegrationDefinition } from "../../triggers/common/integration.ts";
+import type { AsanaActionHandler } from "./runtime.ts";
+
+import { compactObject, optionalString, requiredRecord } from "../../core/cast.ts";
+import {
+  combineProviderActionHandlers,
+  defineBearerProviderExecutors,
+  defineProviderProxy,
+  ProviderRequestError,
+} from "../provider-runtime.ts";
+import { attachmentActionHandlers } from "./runtime-attachments.ts";
+import { customFieldActionHandlers } from "./runtime-custom-fields.ts";
+import { projectSectionActionHandlers } from "./runtime-projects-sections.ts";
+import { storyTagActionHandlers } from "./runtime-stories-tags.ts";
+import { taskActionHandlers } from "./runtime-tasks.ts";
+import { workspaceUserTeamActionHandlers } from "./runtime-workspaces-users-teams.ts";
+import { asanaApiBaseUrl, requestAsana } from "./runtime.ts";
+import { readAsanaGrantedScopes } from "./scopes.ts";
+import { asanaTaskEvent } from "./trigger-on-task-event.ts";
+
+const service = "asana";
+const asanaValidationPath = "/users/me";
+
+export const executors: ProviderExecutors = defineBearerProviderExecutors(
+  service,
+  combineProviderActionHandlers<"asana", AsanaActionHandler>(
+    service,
+    workspaceUserTeamActionHandlers,
+    projectSectionActionHandlers,
+    taskActionHandlers,
+    storyTagActionHandlers,
+    customFieldActionHandlers,
+    attachmentActionHandlers,
+  ),
+);
+
+export const proxy: ProviderProxyExecutor = defineProviderProxy({
+  service,
+  baseUrl: asanaApiBaseUrl,
+  auth: { type: "bearer" },
+  skipDnsValidation: true,
+  customizeRequest({ headers }) {
+    headers.set("accept", "application/json");
+  },
+});
+
+export const credentialValidators: CredentialValidators = {
+  async apiKey(input, { fetcher, signal }) {
+    return validateAsanaCredential(input.apiKey, [], fetcher, signal);
+  },
+  async oauth2(input, { fetcher, signal }) {
+    return validateAsanaCredential(input.accessToken, readAsanaGrantedScopes(input.metadata.scope), fetcher, signal);
+  },
+};
+
+async function validateAsanaCredential(
+  accessToken: string,
+  grantedScopes: string[],
+  fetcher: typeof fetch,
+  signal?: AbortSignal,
+) {
+  const payload = await requestAsana({
+    path: asanaValidationPath,
+    context: {
+      accessToken,
+      fetcher,
+      signal,
+    },
+    phase: "validate",
+    query: {
+      opt_fields: ["name", "email"].join(","),
+    },
+  });
+
+  const user = requiredRecord(payload.data, "asana user response", (message) => new ProviderRequestError(502, message));
+  const userId = optionalString(user.gid);
+  const name = optionalString(user.name);
+  const email = optionalString(user.email);
+
+  return {
+    profile: {
+      accountId: userId,
+      displayName: name ?? email ?? userId ?? "Authenticated user",
+    },
+    grantedScopes,
+    metadata: compactObject({
+      apiBaseUrl: asanaApiBaseUrl,
+      validationEndpoint: asanaValidationPath,
+      userId,
+      name,
+      email,
+    }),
+  };
+}
+
+export const triggers: readonly IntegrationDefinition[] = [asanaTaskEvent];

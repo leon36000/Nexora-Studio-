@@ -1,0 +1,95 @@
+---
+title: Run tests
+sidebar:
+  label: "[lucide:check-circle] Run tests"
+  order: 2
+---
+import { Aside, FileTree, Steps } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Prerequisites" icon="approve-check-circle">
+- Python 3.12+
+- Docker and Docker Compose
+</Aside>
+
+OpenGateLLM uses a combination of unit, integration, and end-to-end tests to ensure the quality of the code.
+
+<FileTree>
+- api/
+  - tests/
+    - unit/
+    - integration/
+</FileTree>
+
+## Unit tests
+
+Unit tests are located in the `tests/unit` folder. They are written using the `pytest` framework.
+
+<Steps>
+1. Create a Python virtual environment (recommended)
+
+2. Install the dependencies with the following command:
+
+    ```bash
+    pip install ".[api,test]"
+    ```
+
+3. To run the tests, you can use the following command:
+
+    ```bash
+    pytest api/tests/unit --config-file=pyproject.toml --cov=./api --cov-report=html --cov-report=term-missing --cov-branch --cov-report=xml
+    ```
+
+    <Aside type="note" title="Open the HTML coverage report">
+    To check the coverage report, open the HTML file in your browser:
+    ```bash
+    open htmlcov/index.html  # macOS
+    xdg-open htmlcov/index.html  # Linux
+    ```
+    </Aside>
+</Steps>
+
+## Integration tests
+
+Integration tests are located in the `tests/integration` folder. They are written using the `pytest` framework and Docker compose to run the API and its dependencies in Docker containers.
+
+<Steps>
+1. Create a Python virtual environment (recommended)
+
+2. Install the dependencies with the following command:
+
+    ```bash
+    pip install ".[api,test]"
+    ```
+
+3. Start depencies services (postgres and redis) with the following command:
+
+    ```bash
+    docker compose --file compose.example.yml up --detach --quiet-pull --wait postgres redis
+    ```
+
+4. To run the tests, you can use the following command:
+
+    ```bash
+    pytest api/tests/integration --config-file=pyproject.toml
+    ```
+</Steps>
+
+To run the tests with VSCode, you can create a `.vscode/settings.json` file with the following content:
+
+```json
+  {
+      "python.terminal.activateEnvironment": true,
+      "python.testing.pytestArgs": [
+          "api", "-s", "--config-file=pyproject.toml"
+      ],
+      "python.testing.unittestEnabled": false,
+      "python.testing.pytestEnabled": true,
+      "python.envFile": "${workspaceFolder}/.env"
+  }
+```
+
+## Continuous integration
+
+The [Pull request](https://github.com/etalab-ia/OpenGateLLM/blob/main/.github/workflows/pull_request.yml) and [Main](https://github.com/etalab-ia/OpenGateLLM/blob/main/.github/workflows/main.yml) workflows run the [Tests](https://github.com/etalab-ia/OpenGateLLM/blob/main/.github/workflows/_run_tests.yml) workflow on every pull request targeting `main` and on every push to `main`. It runs the unit and the integration tests in two parallel jobs, each one measuring its coverage. On `main`, the deployment to dev waits for the tests.
+
+On every push to `main`, the [Coverage](https://github.com/etalab-ia/OpenGateLLM/blob/main/.github/workflows/_coverage.yml) workflow combines both measures with [python-coverage-comment-action](https://github.com/py-cov-action/python-coverage-comment-action). It writes the total coverage to the run summary, and publishes the README badge and an HTML coverage report to the [`python-coverage-comment-action-data`](https://github.com/etalab-ia/OpenGateLLM/tree/python-coverage-comment-action-data) branch. That branch is managed by the action: do not protect it nor commit to it.

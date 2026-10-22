@@ -1,0 +1,98 @@
+import type { InternalToolConfig } from '@/tools/types'
+import {
+  VANTA_PAGE_INFO_OUTPUT_PROPERTIES,
+  VANTA_VENDOR_OUTPUT_PROPERTIES,
+} from '@/tools/vanta/outputs'
+import type { VantaListVendorsParams, VantaListVendorsResponse } from '@/tools/vanta/types'
+import { createVantaTransformResponse } from '@/tools/vanta/utils'
+
+export const vantaListVendorsTool: InternalToolConfig<
+  VantaListVendorsParams,
+  VantaListVendorsResponse
+> = {
+  id: 'vanta_list_vendors',
+  name: 'Vanta List Vendors',
+  description:
+    'List the vendors tracked in a Vanta account with risk levels, contract dates, and security review schedules',
+  version: '1.0.0',
+
+  oauth: {
+    required: true,
+    provider: 'vanta',
+    credentialKind: 'service-account',
+    authoritativeParams: ['apiDomain'],
+    retryOnUnauthorized: true,
+  },
+
+  params: {
+    accessToken: {
+      type: 'string',
+      required: true,
+      visibility: 'hidden',
+      description: 'Access token supplied by the saved Vanta credential',
+    },
+    apiDomain: {
+      type: 'string',
+      required: true,
+      visibility: 'hidden',
+      description: 'API origin supplied by the saved Vanta credential',
+    },
+    name: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Filter vendors by name',
+    },
+    statusMatchesAny: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Comma-separated vendor statuses to filter by: MANAGED, ARCHIVED, IN_PROCUREMENT',
+    },
+    pageSize: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Maximum number of items per page (1-100, default 10)',
+    },
+    pageCursor: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Pagination cursor: pass the endCursor from the previous response to fetch the next page',
+    },
+  },
+
+  operation: {
+    input: (params) => ({
+      operation: 'vanta_list_vendors',
+      accessToken: params.accessToken,
+      apiDomain: params.apiDomain,
+      name: params.name,
+      statusMatchesAny: params.statusMatchesAny,
+      pageSize: params.pageSize,
+      pageCursor: params.pageCursor,
+    }),
+  },
+
+  transformResponse: createVantaTransformResponse<VantaListVendorsResponse>(
+    'Failed to list Vanta vendors'
+  ),
+
+  outputs: {
+    vendors: {
+      type: 'array',
+      description: 'Vendors matching the filters',
+      items: { type: 'object', properties: VANTA_VENDOR_OUTPUT_PROPERTIES },
+    },
+    pageInfo: {
+      type: 'json',
+      description:
+        'Cursor pagination info for the returned page; pass endCursor as pageCursor to fetch the next page',
+      nullable: true,
+      properties: VANTA_PAGE_INFO_OUTPUT_PROPERTIES,
+    },
+  },
+}

@@ -1,0 +1,273 @@
+from unittest.mock import AsyncMock, MagicMock
+
+from httpx import AsyncClient
+import pytest
+import pytest_asyncio
+import respx
+
+from api.dependencies import create_ocr_use_case_factory
+from api.domain.model.errors import StatusCodeModelError, TooBusyModelError, UnknownModelError
+from api.domain.provider.entities import HostingZone, ProviderEndpoint, ProviderType
+from api.domain.provider.errors import (
+    NoAvailableProviderError,
+    ProviderAdapterValidationRequestError,
+    ProviderAdapterValidationResponseError,
+    UnsupportedProviderEndpointError,
+)
+from api.domain.role.entities import Limit, LimitType
+from api.domain.router import RouterRateLimiter
+from api.domain.router.entities import RouterRateLimitState, RouterType
+from api.domain.router.errors import RouterHasNoProvidersError, RouterHasWrongTypeError, RouterNotFoundError, RouterRateLimitExceededError
+from api.domain.user.errors import UserHasNoAccessToRouterError
+from api.infrastructure.fastapi.routes import EndpointRoute
+from api.tests.helpers import INVALID_API_KEY, create_key
+from api.tests.integration.conftest import override_global_context
+from api.tests.integration.endpoints.utils import DEFAULT_PROVIDER_URL, mock_ocr_responses
+from api.tests.integration.factories.mistral import MistralOcrResponseFactory
+from api.tests.integration.factories.sql import LimitSQLFactory, RouterSQLFactory, UserSQLFactory
+
+URL = f"/v1{EndpointRoute.OCR}"
+
+DEFAULT_MODEL_NAME = "ocr-router"
+DEFAULT_DOCUMENT = {"type": "document_url", "document_url": "https://example.com/document.pdf"}
+SAMPLE_VALIDATION_ERRORS = [{"type": "missing", "loc": ["document"], "msg": "Field required", "input": {}}]
+
+
+def _valid_body(**overrides) -> dict:
+    body = {
+        "model": DEFAULT_MODEL_NAME,
+        "document": DEFAULT_DOCUMENT,
+    }
+    body.update(overrides)
+    return body
+
+
+@pytest.mark.asyncio(loop_scope="session")
+class TestCreateOCR:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, db_session, test_redis_pool):
+        self.user = UserSQLFactory(name="Alice", email="alice@example.com")
+        self.key = await create_key(db_session, name="user_key", user=self.user)
+        self.router_owner = UserSQLFactory(name="Bob", email="bob@example.com", admin_user=True)
+
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.encode.side_effect = lambda text: [0] * 10 if text else []  # OCR requests carry no textual prompt
+        with override_global_context(redis_pool=test_redis_pool, tokenizer=mock_tokenizer):
+            yield
+
+    @respx.mock
+    async def test_happy_path(self, client: AsyncClient, db_session):
+        admin_key = await create_key(db_session, name="admin_ocr_key", user=self.router_owner)
+        RouterSQLFactory(
+            user=self.router_owner,
+            name=DEFAULT_MODEL_NAME,
+            type=RouterType.IMAGE_TO_TEXT,
+            providers=1,
+            providers__type=ProviderType.MISTRAL,
+            providers__url=DEFAULT_PROVIDER_URL,
+            providers__model_hosting_zone=HostingZone.FRA,  # pin to an ecologits-resolvable zone (impacts now computed from OCR completion tokens)
+        )
+        await db_session.flush()
+
+        page_count = 2
+        mock_ocr_responses(
+            respx_mock=respx,
+            provider_type=ProviderType.MISTRAL,
+            body=MistralOcrResponseFactory(page_count=page_count),
+            status_code=MistralOcrResponseFactory._status_code,
+        )
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {admin_key.token}"},
+            json=_valid_body(),
+        )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert len(data["id"]) == 32
+        assert data["model"] == DEFAULT_MODEL_NAME
+        assert len(data["pages"]) == page_count
+        assert all("markdown" in page and "index" in page for page in data["pages"])
+        assert data["usage"]["prompt_tokens"] == 0
+        assert data["usage"]["completion_tokens"] == 10  # tokens of the extracted markdown (mock tokenizer: 10 per non-empty text)
+
+    async def _create_router_with_limits(self, db_session, limits: dict[LimitType, int]):
+        router = RouterSQLFactory(
+            user=self.router_owner,
+            name=DEFAULT_MODEL_NAME,
+            type=RouterType.IMAGE_TO_TEXT,
+            providers=1,
+            providers__type=ProviderType.MISTRAL,
+            providers__url=DEFAULT_PROVIDER_URL,
+            providers__model_hosting_zone=HostingZone.FRA,
+        )
+        for limit_type, value in limits.items():
+            LimitSQLFactory(role=self.user.role, router=router, type=limit_type, value=value)
+        await db_session.flush()
+        return router
+
+    async def _get_rate_limit_state(
+        self, router_rate_limiter: RouterRateLimiter, router_id: int, user_id: int, limits: dict[LimitType, int]
+    ) -> RouterRateLimitState:
+        return await router_rate_limiter.get_rate_limit_state(
+            user_id=user_id,
+            router_limits=[Limit(router_id=router_id, type=limit_type, value=value) for limit_type, value in limits.items()],
+            router_id=router_id,
+        )
+
+    @respx.mock
+    async def test_charges_the_router_limits(self, client: AsyncClient, db_session, router_rate_limiter):
+        # Arrange
+        limits = {LimitType.RPM: 100, LimitType.RPD: 200, LimitType.TPM: 1000, LimitType.TPD: 2000}
+        router = await self._create_router_with_limits(db_session, limits=limits)
+        mock_ocr_responses(
+            respx_mock=respx,
+            provider_type=ProviderType.MISTRAL,
+            body=MistralOcrResponseFactory(page_count=1),
+            status_code=MistralOcrResponseFactory._status_code,
+        )
+
+        # Act
+        response = await client.post(url=URL, headers={"Authorization": f"Bearer {self.key.token}"}, json=_valid_body())
+
+        # Assert
+        assert response.status_code == 200, response.text
+        total_tokens = response.json()["usage"]["total_tokens"]
+        state = await self._get_rate_limit_state(router_rate_limiter, router_id=router.id, user_id=self.user.id, limits=limits)
+        assert state.rpm.remaining == limits[LimitType.RPM] - 1
+        assert state.rpd.remaining == limits[LimitType.RPD] - 1
+        assert state.tpm.remaining == limits[LimitType.TPM] - total_tokens
+        assert state.tpd.remaining == limits[LimitType.TPD] - total_tokens
+
+    @respx.mock
+    async def test_rate_limited_request_does_not_charge_the_router_limits(self, client: AsyncClient, db_session, router_rate_limiter):
+        # Arrange: RPM=1, so the first request passes and the second is rejected
+        limits = {LimitType.RPM: 1, LimitType.RPD: 200, LimitType.TPM: 1000, LimitType.TPD: 2000}
+        router = await self._create_router_with_limits(db_session, limits=limits)
+        router_id = router.id
+        user_id = self.user.id
+        mock_ocr_responses(
+            respx_mock=respx,
+            provider_type=ProviderType.MISTRAL,
+            body=MistralOcrResponseFactory(page_count=1),
+            status_code=MistralOcrResponseFactory._status_code,
+        )
+        first_response = await client.post(url=URL, headers={"Authorization": f"Bearer {self.key.token}"}, json=_valid_body())
+        assert first_response.status_code == 200, first_response.text
+        total_tokens = first_response.json()["usage"]["total_tokens"]
+
+        # Act
+        response = await client.post(url=URL, headers={"Authorization": f"Bearer {self.key.token}"}, json=_valid_body())
+
+        # Assert: only the first request is counted
+        assert response.status_code == 429, response.text
+        state = await self._get_rate_limit_state(router_rate_limiter, router_id=router_id, user_id=user_id, limits=limits)
+        assert state.rpm.remaining == 0
+        assert state.rpd.remaining == limits[LimitType.RPD] - 1
+        assert state.tpm.remaining == limits[LimitType.TPM] - total_tokens
+        assert state.tpd.remaining == limits[LimitType.TPD] - total_tokens
+
+    @pytest.mark.parametrize(
+        "use_case_result,expected_status,expected_detail",
+        [
+            (
+                RouterNotFoundError(name=DEFAULT_MODEL_NAME),
+                404,
+                f"Model {DEFAULT_MODEL_NAME} not found.",
+            ),
+            (
+                RouterHasNoProvidersError(id=1),
+                404,
+                f"Model {DEFAULT_MODEL_NAME} not found.",
+            ),
+            (
+                UserHasNoAccessToRouterError(id=1),
+                404,
+                f"Model {DEFAULT_MODEL_NAME} not found.",
+            ),
+            (
+                RouterHasWrongTypeError(id=1, actual_type=RouterType.TEXT_GENERATION, expected_type=RouterType.IMAGE_TO_TEXT),
+                422,
+                "Model has wrong type. Expected: image-to-text. Actual: text-generation.",
+            ),
+            (
+                NoAvailableProviderError(router_id=1),
+                503,
+                "Model is too busy, please try again later.",
+            ),
+            (
+                TooBusyModelError(status_code=503, detail="provider busy"),
+                503,
+                "Model is too busy, please try again later.",
+            ),
+            (
+                RouterRateLimitExceededError(id=1, limit_type=LimitType.RPM, headers={}),
+                429,
+                "Request limit per minute exceeded.",
+            ),
+            (
+                StatusCodeModelError(status_code=400, detail="bad request"),
+                400,
+                "bad request",
+            ),
+            (
+                UnknownModelError(status_code=500, detail="upstream failure"),
+                500,
+                "upstream failure",
+            ),
+            (
+                UnsupportedProviderEndpointError(endpoint=ProviderEndpoint.OCR, provider_type=ProviderType.MISTRAL),
+                500,
+                "Model provider type mistral does not support the /ocr endpoint.",
+            ),
+        ],
+    )
+    async def test_error_maps_to_correct_http_status(self, client: AsyncClient, app, use_case_result, expected_status, expected_detail):
+        mock_use_case = AsyncMock()
+        mock_use_case.execute.return_value = use_case_result
+        app.dependency_overrides[create_ocr_use_case_factory] = lambda: mock_use_case
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.key.token}"},
+            json=_valid_body(),
+        )
+
+        assert response.status_code == expected_status
+        assert response.json().get("detail") == expected_detail
+
+    @pytest.mark.parametrize(
+        "use_case_result",
+        [
+            ProviderAdapterValidationRequestError(provider_type=ProviderType.MISTRAL, errors=SAMPLE_VALIDATION_ERRORS),
+            ProviderAdapterValidationResponseError(provider_type=ProviderType.MISTRAL, errors=SAMPLE_VALIDATION_ERRORS),
+        ],
+    )
+    async def test_adapter_validation_error_returns_422_with_errors(self, client: AsyncClient, app, use_case_result):
+        mock_use_case = AsyncMock()
+        mock_use_case.execute.return_value = use_case_result
+        app.dependency_overrides[create_ocr_use_case_factory] = lambda: mock_use_case
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.key.token}"},
+            json=_valid_body(),
+        )
+
+        assert response.status_code == 422
+        assert response.json().get("detail") == SAMPLE_VALIDATION_ERRORS
+
+    @pytest.mark.parametrize(
+        "headers,expected_status,expected_detail",
+        [
+            ({}, 401, "Not authenticated"),
+            ({"Authorization": "Bearer malformed-token"}, 401, "Invalid API key."),
+            ({"Authorization": f"Bearer {INVALID_API_KEY}"}, 401, "Invalid API key."),
+        ],
+    )
+    async def test_auth(self, client: AsyncClient, headers, expected_status, expected_detail):
+        response = await client.post(url=URL, headers=headers, json=_valid_body())
+
+        assert response.status_code == expected_status
+        assert response.json().get("detail") == expected_detail

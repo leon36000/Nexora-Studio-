@@ -1,0 +1,1061 @@
+---
+name: add-block
+description: Create or update a Sim integration block with correct subBlocks, conditions, dependsOn, modes, canonicalParamId usage, outputs, and tool wiring. Use when working on `apps/sim/blocks/blocks/{service}.ts` or aligning a block with its tools.
+argument-hint: <service-name>
+---
+
+# Add Block Skill
+
+You are an expert at creating block configurations for Sim. You understand the serializer, subBlock types, conditions, dependsOn, modes, and all UI patterns.
+
+## Your Task
+
+When the user asks you to create a block:
+1. Create the block file in `apps/sim/blocks/blocks/{service}.ts`
+2. Configure all subBlocks with proper types, conditions, and dependencies
+3. Wire up tools correctly
+
+## No guessed tool outputs
+
+Block outputs mirror tool outputs. When a tool's response schema is neither documented nor live-verified, don't infer field names or JSON shapes — ask the user for sample responses or test credentials, limit the block to operations whose outputs are documented, or leave the uncertain outputs out and say exactly what remains unknown.
+
+## Block Configuration Structure
+
+```typescript
+import { {ServiceName}Icon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+import { AuthMode, IntegrationType } from '@/blocks/types'
+import { getScopesForService } from '@/lib/oauth/utils'
+
+export const {ServiceName}Block: BlockConfig = {
+  type: '{service}',                    // snake_case identifier
+  name: '{Service Name}',               // Human readable
+  description: 'Brief description',     // One sentence
+  longDescription: 'Detailed description for docs',
+  docsLink: 'https://docs.sim.ai/integrations/{service}',
+  category: 'tools',                    // 'tools' | 'blocks' | 'triggers'
+  integrationType: IntegrationType.X,   // Primary category (see IntegrationType enum)
+  bgColor: '#HEXCOLOR',                 // Brand color
+  icon: {ServiceName}Icon,
+
+  // Auth mode
+  authMode: AuthMode.OAuth,             // or AuthMode.ApiKey
+
+  // Card summary sentences — see "Canvas Sentences" below
+  canvasPresentation: {
+    defaultTitle: '{Default Operation}',
+    sentences: { byOperation: { /* one per operation dropdown option id */ } },
+  },
+
+  subBlocks: [
+    // Define all UI fields here
+  ],
+
+  tools: {
+    access: ['tool_id_1', 'tool_id_2'], // Array of tool IDs this block can use
+    config: {
+      tool: (params) => `{service}_${params.operation}`,  // Tool selector function
+      params: (params) => ({
+        // Transform subBlock values to tool params
+      }),
+    },
+  },
+
+  inputs: {
+    // Required: the params the block accepts, keyed by tool param / canonical id
+  },
+
+  outputs: {
+    // Define outputs available to downstream blocks
+  },
+}
+```
+
+## SubBlock Types Reference
+
+**Critical:** Give every subblock a unique `id`: duplicates collide silently (the last definition wins). `blocks.test.ts` fails a duplicate within one condition unless the copies are a basic/advanced mode-swap pair, one basic plus trigger-mode copies, or all carry `canonicalParamId`. The only sanctioned cross-condition reuse is the hosted-key `apiKey` pair (`add-hosted-key` skill), where both fields deliberately share one value.
+
+### Text Inputs
+```typescript
+// Single-line input
+{ id: 'field', title: 'Label', type: 'short-input', placeholder: '...' }
+
+// Multi-line input
+{ id: 'field', title: 'Label', type: 'long-input', placeholder: '...', rows: 6 }
+
+// Password input
+{ id: 'apiKey', title: 'API Key', type: 'short-input', password: true }
+```
+
+### Selection Inputs
+```typescript
+// Dropdown (static options)
+{
+  id: 'operation',
+  title: 'Operation',
+  type: 'dropdown',
+  options: [
+    { label: 'Create', id: 'create' },
+    { label: 'Update', id: 'update' },
+  ],
+  value: () => 'create',  // Default value function
+}
+
+// Combobox (searchable dropdown)
+{
+  id: 'field',
+  title: 'Label',
+  type: 'combobox',
+  options: [...],
+  searchable: true,
+}
+```
+
+### Code/JSON Inputs
+```typescript
+{
+  id: 'code',
+  title: 'Code',
+  type: 'code',
+  language: 'javascript',  // 'javascript' | 'json' | 'python'
+  placeholder: '// Enter code...',
+}
+```
+
+### OAuth/Credentials
+```typescript
+{
+  id: 'credential',
+  title: 'Account',
+  type: 'oauth-input',
+  canonicalParamId: 'oauthCredential',
+  serviceId: '{service}',  // Must match OAuth provider service key
+  requiredScopes: getScopesForService('{service}'),  // Import from @/lib/oauth/utils
+  placeholder: 'Select account',
+  required: true,
+}
+```
+
+**Scopes:** Always use `getScopesForService(serviceId)` from `@/lib/oauth/utils` for `requiredScopes`. Never hardcode scope arrays — the single source of truth is `OAUTH_PROVIDERS` in `lib/oauth/oauth.ts`.
+
+**Scope descriptions:** When adding a new OAuth provider, also add human-readable descriptions for all scopes in `SCOPE_DESCRIPTIONS` within `lib/oauth/utils.ts`.
+
+**Service accounts (shared, app-level credentials):** A plain `oauth-input` already lets users *select* an existing service account — those credentials fold into the picker automatically (a Google service account created for any Google service appears in every Google block's picker). You only set `credentialKind` when you want to change the *connect* action:
+
+```typescript
+{
+  id: 'credential',
+  title: 'Account',
+  type: 'oauth-input',
+  serviceId: '{service}',
+  requiredScopes: getScopesForService('{service}'),
+  credentialKind: 'any',   // omit | 'service-account' | 'any'
+}
+```
+
+- **omit (default):** lists OAuth accounts + any existing service accounts; the only connect action is "Connect account" (OAuth). Use this for the common "let users pick a service account someone set up elsewhere, but don't offer inline setup" case — no config needed.
+- **`'service-account'`:** service-account credentials *only*, plus an inline setup action that opens the provider's connect modal. Use when a block accepts *only* an app credential.
+- **`'any'`:** merged picker — OAuth accounts *and* service accounts in one grouped dropdown, with a connect action for each. Use when a block supports both (e.g. Slack: a personal account *or* a custom bot).
+
+Optional companions: `credentialLabels` (override the picker's section/connect-row copy) and `allowServiceAccounts: true` (trigger-mode only — list service accounts, which triggers otherwise exclude; set only when the trigger's polling path can resolve a service-account token). The connect modal, provider families (Google JSON key, Atlassian token, token-paste, client-credential, Slack bot), and the preview gate are all resolved from `serviceAccountProviderId` — you don't wire them per block.
+
+### OAuth deployment availability (required for integration blocks)
+
+A visible tools-category block with OAuth is deployment-gated. Its `oauth-input.serviceId` is
+projected into `packages/deployment-config/src/integrations.json`, then resolved through
+`resolveOAuthClientCapabilityId()` in `packages/deployment-config/src/env-capabilities.ts`.
+
+When adding or changing an OAuth integration block:
+
+1. Keep exactly one distinct OAuth `serviceId` across the block's `oauth-input` subBlocks.
+2. Confirm that service ID resolves to an entry in `OAUTH_CLIENT_CAPABILITIES`. Google and
+   Microsoft service IDs intentionally share their provider-level capability; do not add duplicate
+   entries for those aliases.
+3. For a new capability, add its required client fields to `OAUTH_CLIENT_CAPABILITIES` and ensure
+   every referenced field exists in the env schema in `apps/sim/lib/core/config/env.ts`. Then add
+   the matching `text` or `secret` input modes to `OAUTH_CLIENT_SETUP_FIELDS` in
+   `packages/sim-setup/src/capability-config.ts`. The CLI catalog is exhaustively typed and checked
+   against the runtime field list; do not infer secrecy from the field name.
+4. If the canonical OAuth service declares `serviceAccountProviderId`, run
+   `bun run generate:deployment-config`; this regenerates the provider-ID facts in
+   `packages/deployment-config/src/service-account-providers.generated.ts`. Never hand-edit that
+   generated map. Add `deploymentRequirement` policy in
+   `packages/deployment-config/src/service-account-metadata.ts` only when the service-account path
+   is preview-gated or depends on the OAuth client fields; otherwise omit it.
+
+Missing capability metadata is a runtime configuration error, not a reason to make the integration
+silently available.
+
+### Selectors (with dynamic options)
+```typescript
+// Channel selector (Slack, Discord, etc.)
+{
+  id: 'channel',
+  title: 'Channel',
+  type: 'channel-selector',
+  selectorKey: '{service}.channels',
+  serviceId: '{service}',
+  placeholder: 'Select channel',
+  dependsOn: ['credential'],
+}
+
+// Project selector (Jira, etc.)
+{
+  id: 'project',
+  title: 'Project',
+  type: 'project-selector',
+  selectorKey: '{service}.projects',
+  serviceId: '{service}',
+  dependsOn: ['credential'],
+}
+
+// File selector (Google Drive, etc.)
+{
+  id: 'file',
+  title: 'File',
+  type: 'file-selector',
+  selectorKey: '{service}.files',
+  serviceId: '{service}',
+  mimeType: 'application/pdf',
+  dependsOn: ['credential'],
+}
+
+// User selector
+{
+  id: 'user',
+  title: 'User',
+  type: 'user-selector',
+  selectorKey: '{service}.users',
+  serviceId: '{service}',
+  dependsOn: ['credential'],
+}
+```
+
+### Other Types
+```typescript
+// Switch/toggle
+{ id: 'enabled', type: 'switch' }
+
+// Slider
+{ id: 'temperature', title: 'Temperature', type: 'slider', min: 0, max: 2, step: 0.1 }
+
+// Table (key-value pairs)
+{ id: 'headers', title: 'Headers', type: 'table', columns: ['Key', 'Value'] }
+
+// File upload
+{
+  id: 'files',
+  title: 'Attachments',
+  type: 'file-upload',
+  multiple: true,
+  acceptedTypes: 'image/*,application/pdf',
+}
+```
+
+## File Input Handling
+
+When your block accepts file uploads, use the basic/advanced mode pattern with `normalizeFileInput`.
+
+### Basic/Advanced File Pattern
+
+```typescript
+// Basic mode: Visual file upload
+{
+  id: 'uploadFile',
+  title: 'File',
+  type: 'file-upload',
+  canonicalParamId: 'file',  // Both map to 'file' param
+  placeholder: 'Upload file',
+  mode: 'basic',
+  multiple: false,
+  required: true,
+  condition: { field: 'operation', value: 'upload' },
+},
+// Advanced mode: Reference from other blocks
+{
+  id: 'fileRef',
+  title: 'File',
+  type: 'short-input',
+  canonicalParamId: 'file',  // Both map to 'file' param
+  placeholder: 'Reference file (e.g., {{file_block.output}})',
+  mode: 'advanced',
+  required: true,
+  condition: { field: 'operation', value: 'upload' },
+},
+```
+
+**Keep the pair to one logical thing.** Basic is the file upload, advanced is *only* a reference to
+a file from a previous block. Gmail attachments are the reference implementation
+(`apps/sim/blocks/blocks/gmail.ts` — `attachmentFiles` / `attachments`).
+
+Do not overload the advanced side with alternate identifiers (a remote URL, a provider asset ID, a
+path). A subblock whose meaning changes based on what the string looks like is impossible to reason
+about, forces the params function to sniff the value, and makes the field's type meaningless. Give
+each alternative its own subblock outside the pair:
+
+```typescript
+// ✓ Good — the pair is "a file"; other sources are their own fields
+{ id: 'mediaFile',    type: 'file-upload', canonicalParamId: 'media', mode: 'basic' },
+{ id: 'mediaFileRef', type: 'short-input', canonicalParamId: 'media', mode: 'advanced' },
+{ id: 'mediaId',      type: 'short-input', mode: 'advanced' },  // separate concept
+{ id: 'mediaLink',    type: 'short-input', mode: 'advanced' },  // separate concept
+
+// ✗ Bad — one field meaning three things, resolved by guessing
+{ id: 'mediaRef', type: 'short-input', canonicalParamId: 'media', mode: 'advanced',
+  placeholder: 'File reference, media ID, or public URL' },
+```
+
+When several fields are mutually exclusive alternatives, mark them all `required: false` and enforce
+"exactly one" at execution — a conditionally-required canonical pair rejects the workflow before the
+other paths ever get a chance to supply the value.
+
+**Constraints (block-wide):**
+- `canonicalParamId` may equal only the `id` of a member of its own group, as `channel` does in the canonicalParamId Pattern below; it must never equal any other subblock's `id`. (`blocks.test.ts` enforces the case of a subblock with no `canonicalParamId`.)
+- One canonical id links exactly one basic/advanced pair for one logical parameter. Groups are keyed by canonical id across every subblock and hold one `basicId`, so two operations that each need a pair need two canonical ids.
+- All members of a group share the same `required` status.
+
+### Normalizing File Input in tools.config
+
+Put the normalization in `tools.config.params`, never in `tools.config.tool` — `tool` runs at
+serialization, before variable resolution, so a `<block.output>` file reference is not yet a value
+there.
+
+```typescript
+import { normalizeFileInput } from '@/blocks/utils'
+
+tools: {
+  access: ['service_upload'],
+  config: {
+    tool: (params) => `service_${params.operation}`,
+    params: (params) => {
+      // Read the CANONICAL id, not the subblock ids
+      const { file: fileParam, ...rest } = params
+      const file = normalizeFileInput(fileParam, { single: true })
+      return {
+        ...rest,
+        ...(file ? { file } : {}),
+      }
+    },
+  },
+}
+```
+
+**Where the value actually lives at runtime.** The subblock `id` is where the UI *stores* the value,
+but it is not what the params function receives. `extractBlockParams`
+(`apps/sim/serializer/index.ts`) collapses each canonical group at serialization time:
+
+```typescript
+const sourceIds = [group.basicId, ...group.advancedIds].filter(Boolean)
+sourceIds.forEach((id) => delete params[id])   // subblock ids are deleted
+if (chosen !== undefined) params[group.canonicalId] = chosen
+```
+
+So by the time `tools.config.params(inputs)` runs (`executor/handlers/generic/handler.ts`),
+`params.uploadFile` and `params.fileRef` are **gone** and the value is under `params.file`. Reading a
+subblock id there yields `undefined` and silently sends no file.
+
+Only the active mode's value survives — `getCanonicalValues` returns the basic value in basic mode
+and the first non-empty advanced value in advanced mode, so a stale value in the dormant mode can
+never leak. `normalizeFileInput` then handles the JSON string that advanced-mode template resolution
+produces.
+
+Note that `generic/handler` merges rather than replaces (`{ ...inputs, ...transformedParams }`), so
+omitting a key from the returned object does not strip it from what the tool receives. Tools simply
+ignore params they do not declare.
+
+### File Input Types in `inputs`
+
+Declare the **canonical** id with `type: 'json'` — the subblock ids never reach `inputs`:
+
+```typescript
+inputs: {
+  file: { type: 'json', description: 'File to upload (UserFile or reference)' },
+}
+```
+
+### Multiple Files
+
+For multiple file uploads:
+
+```typescript
+{
+  id: 'attachments',
+  title: 'Attachments',
+  type: 'file-upload',
+  multiple: true,  // Allow multiple files
+  maxSize: 25,     // Max size in MB per file
+  acceptedTypes: 'image/*,application/pdf,.doc,.docx',
+}
+
+// In tools.config:
+const normalizedFiles = normalizeFileInput(
+  params.attachments || params.attachmentRefs,
+  // No { single: true } - returns array
+)
+if (normalizedFiles) {
+  params.files = normalizedFiles
+}
+```
+
+## Condition Syntax
+
+Controls when a field is shown based on other field values.
+
+### Simple Condition
+```typescript
+condition: { field: 'operation', value: 'create' }
+// Shows when operation === 'create'
+```
+
+### Multiple Values (OR)
+```typescript
+condition: { field: 'operation', value: ['create', 'update'] }
+// Shows when operation is 'create' OR 'update'
+```
+
+### Negation
+```typescript
+condition: { field: 'operation', value: 'delete', not: true }
+// Shows when operation !== 'delete'
+```
+
+### Compound (AND)
+```typescript
+condition: {
+  field: 'operation',
+  value: 'send',
+  and: {
+    field: 'type',
+    value: 'dm',
+    not: true,
+  }
+}
+// Shows when operation === 'send' AND type !== 'dm'
+```
+
+### Complex Example
+```typescript
+condition: {
+  field: 'operation',
+  value: ['list', 'search'],
+  not: true,
+  and: {
+    field: 'authMethod',
+    value: 'oauth',
+  }
+}
+// Shows when operation NOT in ['list', 'search'] AND authMethod === 'oauth'
+```
+
+## DependsOn Pattern
+
+Controls when a field is enabled and when its options are refetched.
+
+### Simple Array (all must be set)
+```typescript
+dependsOn: ['credential']
+// Enabled only when credential has a value
+// Options refetch when credential changes
+
+dependsOn: ['credential', 'projectId']
+// Enabled only when BOTH have values
+```
+
+### Complex (all + any)
+```typescript
+dependsOn: {
+  all: ['authMethod'],           // All must be set
+  any: ['credential', 'apiKey']  // At least one must be set
+}
+// Enabled when authMethod is set AND (credential OR apiKey is set)
+```
+
+## Required Pattern
+
+Can be boolean or condition-based.
+
+### Simple Boolean
+```typescript
+required: true
+required: false
+```
+
+### Conditional Required
+```typescript
+required: { field: 'operation', value: 'create' }
+// Required only when operation === 'create'
+
+required: { field: 'operation', value: ['create', 'update'] }
+// Required when operation is 'create' OR 'update'
+```
+
+## Mode Pattern (Basic vs Advanced)
+
+Controls which UI view shows the field.
+
+### Mode Options
+- `'basic'` - Only in basic view (default UI)
+- `'advanced'` - Only in advanced view
+- `'both'` - Both views (default if not specified)
+- `'trigger'` - Only in trigger configuration
+- `'trigger-advanced'` - The advanced side of a trigger field (a canonical pair member, or a standalone field under the block-level advanced toggle)
+
+### canonicalParamId Pattern
+
+Maps multiple UI fields to a single serialized parameter:
+
+```typescript
+// Basic mode: Visual selector
+{
+  id: 'channel',
+  title: 'Channel',
+  type: 'channel-selector',
+  mode: 'basic',
+  canonicalParamId: 'channel',  // Both map to 'channel' param
+  dependsOn: ['credential'],
+}
+
+// Advanced mode: Manual input
+{
+  id: 'channelId',
+  title: 'Channel ID',
+  type: 'short-input',
+  mode: 'advanced',
+  canonicalParamId: 'channel',  // Both map to 'channel' param
+  placeholder: 'Enter channel ID manually',
+}
+```
+
+**How it works:**
+- In basic mode: `channel` selector value → `params.channel`
+- In advanced mode: `channelId` input value → `params.channel`
+- The serializer consolidates based on current mode
+
+## WandConfig Pattern
+
+Enables AI-assisted field generation.
+
+```typescript
+{
+  id: 'query',
+  title: 'Query',
+  type: 'code',
+  language: 'json',
+  wandConfig: {
+    enabled: true,
+    prompt: 'Generate a query based on the user request. Return ONLY the JSON.',
+    placeholder: 'Describe what you want to query...',
+    generationType: 'json-object',  // Optional: affects AI behavior
+    maintainHistory: true,          // Optional: keeps conversation context
+  },
+}
+```
+
+### Generation Types
+- `'javascript-function-body'` - JS code generation
+- `'json-object'` - Raw JSON (adds "no markdown" instruction)
+- `'json-schema'` - JSON Schema definitions
+- `'sql-query'` - SQL statements
+- `'timestamp'` - Adds current date/time context
+
+Use `wandConfig` on fields that are hard to fill by hand — timestamps (`generationType: 'timestamp'` injects the current date), comma-separated ID lists, complex query strings. Keep the prompt specific about the return format (e.g. 'Return ONLY the ISO 8601 timestamp string').
+
+## Tools Configuration
+
+**Write operation ids and tool ids as string literals** in the `operation` dropdown `options` and
+`tools.access`, never through constants (`id: SEARCH`, `access: [SEARCH]`). `scripts/generate-docs.ts`
+reads them from source with regexes, so a constant parses as empty: the docs page loses its whole
+Actions section and the integration catalog ships blank operation descriptions, with no check failing.
+
+**Preferred:** Use tool names directly as dropdown option IDs to avoid switch cases:
+```typescript
+// Dropdown options use tool IDs directly
+options: [
+  { label: 'Create', id: 'service_create' },
+  { label: 'Read', id: 'service_read' },
+]
+
+// Tool selector just returns the operation value
+tool: (params) => params.operation,
+```
+
+### With Parameter Transformation
+```typescript
+tools: {
+  access: ['service_action'],
+  config: {
+    tool: (params) => 'service_action',
+    params: (params) => ({
+      id: params.resourceId,
+      data: typeof params.data === 'string' ? JSON.parse(params.data) : params.data,
+    }),
+  },
+}
+```
+
+### V2 Versioned Tool Selector
+```typescript
+import { createVersionedToolSelector } from '@/blocks/utils'
+
+tools: {
+  access: [
+    'service_create_v2',
+    'service_read_v2',
+    'service_update_v2',
+  ],
+  config: {
+    tool: createVersionedToolSelector({
+      baseToolSelector: (params) => `service_${params.operation}`,
+      suffix: '_v2',
+      fallbackToolId: 'service_create_v2',
+    }),
+  },
+}
+```
+
+## Outputs Definition
+
+Block outputs have a simpler schema than tool outputs. They do not support:
+- `optional: true` - This is only for tool outputs
+- `items` property - This is only for tool outputs with array types
+
+Block outputs only support:
+- `type` - The data type ('string', 'number', 'boolean', 'json', 'array', 'file', 'file[]', 'any')
+- `description` - Human readable description
+- `condition` - Optional visibility condition
+- `hiddenFromDisplay` - Optional flag to hide from the output display
+
+**Nested object/`properties` outputs are tool-output-only and will fail TypeScript at build time on block outputs.** For complex shapes use `type: 'json'` and describe the inner fields in the `description` string.
+
+```typescript
+outputs: {
+  // Simple outputs
+  id: { type: 'string', description: 'Resource ID' },
+  success: { type: 'boolean', description: 'Whether operation succeeded' },
+
+  // Use type: 'json' for complex objects or arrays (NOT type: 'array' with items)
+  items: { type: 'json', description: 'List of items' },
+  metadata: { type: 'json', description: 'Response metadata' },
+}
+```
+
+### Typed JSON Outputs
+
+When using `type: 'json'` and you know the object shape in advance, **describe the inner fields in the description** so downstream blocks know what properties are available. Keep the output flat and put the shape in the `description`:
+
+```typescript
+outputs: {
+  // BAD: Opaque json with no info about what's inside
+  plan: { type: 'json', description: 'Zone plan information' },
+
+  // GOOD: Describe the known fields in the description
+  plan: {
+    type: 'json',
+    description: 'Zone plan information (id, name, price, currency, frequency, is_subscribed)',
+  },
+}
+```
+
+## V2 Block Pattern
+
+When creating V2 blocks (alongside legacy V1):
+
+```typescript
+// V1 Block - mark as legacy
+export const ServiceBlock: BlockConfig = {
+  type: 'service',
+  name: 'Service (Legacy)',
+  hideFromToolbar: true,  // Hide from toolbar
+  // Required: drives the amber legacy badge and its click-to-upgrade action.
+  // `check-block-registry` fails a legacy block with no `replacedBy`, one whose
+  // target does not exist, or one whose target is itself sunset or still `preview`.
+  sunset: { status: 'legacy', replacedBy: 'service_v2' },
+  // ... rest of config
+}
+
+// V2 Block - visible, uses V2 tools
+export const ServiceV2Block: BlockConfig = {
+  type: 'service_v2',
+  name: 'Service',              // Clean name
+  hideFromToolbar: false,       // Visible
+  subBlocks: ServiceBlock.subBlocks,  // Reuse UI
+  tools: {
+    access: ServiceBlock.tools?.access?.map(id => `${id}_v2`) || [],
+    config: {
+      tool: createVersionedToolSelector({
+        baseToolSelector: (params) => ServiceBlock.tools.config?.tool(params) ?? 'service_default',
+        suffix: '_v2',
+        fallbackToolId: 'service_default_v2',
+      }),
+      params: ServiceBlock.tools?.config?.params,
+    },
+  },
+  outputs: {
+    // Flat, API-aligned outputs (not wrapped in content/metadata)
+  },
+}
+```
+
+## Registering Blocks
+
+Register the block in `apps/sim/blocks/registry-maps.ts` — add the import and an entry to each map alphabetically:
+
+```typescript
+import { ServiceBlock, ServiceBlockMeta } from '@/blocks/blocks/{service}'
+
+export const BLOCK_REGISTRY: Record<string, BlockConfig> = {
+  // ... existing blocks ...
+  service: ServiceBlock,
+}
+
+export const BLOCK_META_REGISTRY: Record<string, BlockMeta> = {
+  // ... existing metas ...
+  service: ServiceBlockMeta,
+}
+```
+
+## Complete Example
+
+```typescript
+import { ServiceIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+import { AuthMode, IntegrationType } from '@/blocks/types'
+import { getScopesForService } from '@/lib/oauth/utils'
+
+export const ServiceBlock: BlockConfig = {
+  type: 'service',
+  name: 'Service',
+  description: 'Integrate with Service API',
+  longDescription: 'Full description for documentation...',
+  docsLink: 'https://docs.sim.ai/integrations/service',
+  category: 'tools',
+  integrationType: IntegrationType.DevOps,
+  bgColor: '#FF6B6B',
+  icon: ServiceIcon,
+  authMode: AuthMode.OAuth,
+
+  // Sentence rules: apps/sim/blocks/AGENTS.md → "Canvas sentences"
+  canvasPresentation: {
+    defaultTitle: 'Create Resource',
+    sentences: {
+      byOperation: {
+        create: [{ text: 'Create resource', field: 'name', core: true }],
+        read: [{ text: 'Read resource', field: 'resourceId', core: true }],
+        update: [{ text: 'Update resource', field: 'resourceId', core: true }],
+        delete: [{ text: 'Delete resource', field: 'resourceId', core: true }],
+      },
+    },
+  },
+
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      options: [
+        { label: 'Create', id: 'create' },
+        { label: 'Read', id: 'read' },
+        { label: 'Update', id: 'update' },
+        { label: 'Delete', id: 'delete' },
+      ],
+      value: () => 'create',
+    },
+    {
+      id: 'credential',
+      title: 'Service Account',
+      type: 'oauth-input',
+      canonicalParamId: 'oauthCredential',
+      serviceId: 'service',
+      requiredScopes: getScopesForService('service'),
+      placeholder: 'Select account',
+      required: true,
+    },
+    {
+      id: 'resourceId',
+      title: 'Resource ID',
+      type: 'short-input',
+      placeholder: 'Enter resource ID',
+      condition: { field: 'operation', value: ['read', 'update', 'delete'] },
+      required: { field: 'operation', value: ['read', 'update', 'delete'] },
+    },
+    {
+      id: 'name',
+      title: 'Name',
+      type: 'short-input',
+      placeholder: 'Resource name',
+      condition: { field: 'operation', value: ['create', 'update'] },
+      required: { field: 'operation', value: 'create' },
+    },
+  ],
+
+  tools: {
+    access: ['service_create', 'service_read', 'service_update', 'service_delete'],
+    config: {
+      tool: (params) => `service_${params.operation}`,
+    },
+  },
+
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    oauthCredential: { type: 'string', description: 'Service access token' },
+    resourceId: { type: 'string', description: 'Resource ID' },
+    name: { type: 'string', description: 'Resource name' },
+  },
+
+  outputs: {
+    id: { type: 'string', description: 'Resource ID' },
+    name: { type: 'string', description: 'Resource name' },
+    createdAt: { type: 'string', description: 'Creation timestamp' },
+  },
+}
+```
+
+## Connecting Blocks with Triggers
+
+If the service supports webhooks, connect the block to its triggers.
+
+```typescript
+import { getTrigger } from '@/triggers'
+
+export const ServiceBlock: BlockConfig = {
+  // ... basic config ...
+
+  triggers: {
+    enabled: true,
+    available: ['service_event_a', 'service_event_b', 'service_webhook'],
+  },
+
+  subBlocks: [
+    // Tool subBlocks first...
+    { id: 'operation', /* ... */ },
+
+    // Then spread trigger subBlocks
+    ...getTrigger('service_event_a').subBlocks,
+    ...getTrigger('service_event_b').subBlocks,
+    ...getTrigger('service_webhook').subBlocks,
+  ],
+}
+```
+
+See the `/add-trigger` skill for creating triggers.
+
+## Icon Requirement
+
+If the icon doesn't already exist in `@/components/icons.tsx`, **do NOT search for it yourself**. After completing the block, ask the user to provide the SVG:
+
+```
+The block is complete, but I need an icon for {Service}.
+Please provide the SVG and I'll convert it to a React component.
+
+You can usually find this in the service's brand/press kit page, or copy it from their website.
+```
+
+When converting the SVG: a **monochrome** logo (single white or black mark) must
+use `fill='currentColor'`, never a hardcoded `#fff`/`#000000`. Block icons render
+both inside their `bgColor` tile and "bare" on a neutral page (the home Suggested
+actions list) in light and dark mode; a hardcoded white/black mark goes invisible
+bare on the matching background. Multi-color brand logos keep their own fills.
+Verify with `bun run check:bare-icons`.
+
+## Advanced Mode for Optional Fields
+
+Optional fields that are rarely used should be set to `mode: 'advanced'` so they don't clutter the basic UI. This includes:
+- Pagination tokens
+- Time range filters (start/end time)
+- Sort order options
+- Reply settings
+- Rarely used IDs (e.g., reply-to tweet ID, quote tweet ID)
+- Max results / limits
+
+```typescript
+{
+  id: 'startTime',
+  title: 'Start Time',
+  type: 'short-input',
+  placeholder: 'ISO 8601 timestamp',
+  condition: { field: 'operation', value: ['search', 'list'] },
+  mode: 'advanced',  // Rarely used, hide from basic view
+}
+```
+
+## BlockMeta (Required)
+
+Every block file must export a `{Service}BlockMeta` alongside the block — **minimum 7 templates**. Look at existing examples in `apps/sim/blocks/blocks/` (e.g. `browser_use.ts`, `google_sheets.ts`) for the pattern.
+
+```typescript
+import type { BlockMeta } from '@/blocks/types'
+
+export const {Service}BlockMeta = {
+  tags: ['tag1', 'tag2'],                  // IntegrationTag[]
+  url: 'https://{service}.com',            // external service homepage (verify it resolves) — NOT docs.sim.ai
+  templates: [
+    {
+      icon: {Service}Icon,
+      title: '{Service} <use-case>',        // 2–5 words
+      prompt: 'Build a workflow that...',   // specific use case, 1–3 sentences
+      modules: ['agent', 'workflows'],      // 'agent' | 'workflows' | 'tables' | 'files' | 'scheduled' | 'knowledge-base'
+      category: 'operations',              // 'operations' | 'marketing' | 'sales' | 'engineering' | 'productivity' | 'support' | 'popular'
+      tags: ['automation'],
+      alsoIntegrations: ['slack'],         // optional — other block IDs referenced in the prompt
+      featured: true,                      // optional
+    },
+    // ... at least 6 more
+  ],
+  skills: [                                // SuggestedSkill[] — 3–5 mainstream, 2–3 niche
+    {
+      name: 'summarize-thread',            // kebab-case, ≤64 chars, unique, verb-led
+      description: 'One line: what it does and when to use it.',  // ≤1024 chars
+      content:
+        '# Summarize Thread\n\n...\n\n## Steps\n1. ...\n\n## Output\n...',  // markdown
+    },
+    // ... more
+  ],
+} as const satisfies BlockMeta
+```
+
+Derive templates from the service's real use cases. Each prompt should name a concrete trigger, transformation, and output — not a generic description of what the service does.
+
+`skills` are curated, ready-to-add agent skills shown on the integration's detail page (users click **Add** to create them in their workspace). Two hard rules:
+
+- **Ground every skill in operations the block actually exposes** — cross-check each skill's steps against `tools.access`. Never describe an action the integration cannot perform.
+- **Derive skills from real, popular use cases found online — never invent them.** Web-search the service's documented use cases (vendor use-case/solutions pages, official docs describing the workflow, reputable "top automations for X" articles) and only add a skill you can source as something people genuinely do with the service. Do not hallucinate skills.
+
+## Canvas Sentences
+
+Every block declares a one-line prose summary that replaces its card's field rows:
+
+```
+Slack                                    ← header (already names the block)
+Post ⟨Ship it 🚀⟩ to ⟨#eng⟩              ← the sentence; ⟨…⟩ are live value chips
+```
+
+Write one `byOperation` entry per operation dropdown option (or a single `default`
+when the block has no operation dropdown).
+
+**The full authoring contract — voice, structure, and the four mistakes that break
+cards silently — is `apps/sim/blocks/AGENTS.md` → "Canvas sentences". Read it
+before writing any.** Two of those four are worth repeating here, because both
+are invisible at runtime:
+
+1. A clause naming only one member of a `canonicalParamId` pair drops the sentence
+   for every advanced-mode user. List all members:
+   `field: ['channelSelector', 'manualChannel']`.
+2. A clause referencing a subblock whose `condition` excludes that operation can
+   never render.
+
+Validate before finishing:
+
+```bash
+bun run apps/sim/scripts/check-canvas-sentences.ts --block={service}
+```
+
+## Generated artifacts
+
+When adding or changing `sunset.replacedBy`, run `bun run generate:block-successors` and commit
+`apps/sim/lib/permission-groups/block-successors.generated.ts`. Authorization uses this generated
+map to resolve legacy and current block IDs consistently without importing the executable registry.
+Verify it with `bun run check:block-successors`.
+
+Adding a block on its own needs no **tool metadata** regeneration — a block references existing
+tool IDs through `tools.access` and does not change any tool's shape.
+
+But if the same change also adds, edits **or removes** a tool, run `bun run generate:tool-metadata` and commit the result, or CI fails on stale artifacts. That matters here because a block's `outputs` are authored to match its tools' outputs, and the UI reads those from the generated metadata, not the executable registry — an unregenerated tool change makes the block's outputs disagree with what the panel renders. See `.agents/skills/tool-registry-boundary/SKILL.md`.
+
+A visible integration block does require the generated integration catalog and docs to be refreshed:
+`bun run generate:tool-metadata` (only when a tool changed), `bun run scripts/generate-docs.ts`,
+`bun run generate:deployment-config`, then `bun run check:audits`. Also run
+`bun run apps/sim/scripts/check-block-registry.ts origin/staging` (CI runs it outside `check:audits`). Commit the
+full generator output. For what each check verifies, see the `validate-integration` skill →
+Regenerate Derived Artifacts.
+
+## Checklist Before Finishing
+
+- [ ] `integrationType` is set to the correct `IntegrationType` enum value
+- [ ] `{Service}BlockMeta.tags` lists every applicable `IntegrationTag` (tags live on the meta, not the block)
+- [ ] All subBlocks have `id`, `title` (except switch), and `type`
+- [ ] Conditions use correct syntax (field, value, not, and)
+- [ ] DependsOn set for fields that need other values
+- [ ] Required fields marked correctly (boolean or condition)
+- [ ] OAuth inputs have correct `serviceId` and `requiredScopes: getScopesForService(serviceId)`
+- [ ] Every OAuth `serviceId` resolves through `resolveOAuthClientCapabilityId()` to the correct `OAUTH_CLIENT_CAPABILITIES` entry
+- [ ] Any new OAuth capability fields exist in `apps/sim/lib/core/config/env.ts`
+- [ ] If the OAuth service supports service accounts, `SERVICE_ACCOUNT_METADATA_BY_OAUTH_SERVICE_ID` matches its canonical `serviceAccountProviderId` and deployment requirement
+- [ ] Scope descriptions added to `SCOPE_DESCRIPTIONS` in `lib/oauth/utils.ts` for any new scopes
+- [ ] Tools.access lists all tool IDs (snake_case)
+- [ ] Tools.config.tool returns correct tool ID (snake_case)
+- [ ] Outputs match tool outputs
+- [ ] Block + meta registered in registry-maps.ts (`BLOCK_REGISTRY` / `BLOCK_META_REGISTRY`)
+- [ ] If `sunset.replacedBy` changed: regenerated and committed the block successor map; `bun run check:block-successors` passes
+- [ ] If any tool was added, changed or removed alongside the block: ran `bun run generate:tool-metadata` and committed the artifacts
+- [ ] Ran `bun run scripts/generate-docs.ts`, reviewed the generated diff, and committed the integration catalog changes
+- [ ] `bun run check:integration-catalog` passes
+- [ ] `bun run check:docs` passes (CI gate — fails on any stale generated docs page)
+- [ ] If icon missing: asked user to provide SVG
+- [ ] If triggers exist: `triggers` config set, trigger subBlocks spread
+- [ ] Optional/rarely-used fields set to `mode: 'advanced'`
+- [ ] Timestamps and complex inputs have `wandConfig` enabled
+- [ ] Exported `{Service}BlockMeta` with at least 7 templates
+- [ ] `url` set on `{Service}BlockMeta` to the external service's verified homepage (omit only for first-party blocks with no external service)
+- [ ] `skills` added to `{Service}BlockMeta`, each grounded in `tools.access` and sourced from a real online use case (not invented)
+- [ ] `canvasPresentation.sentences` covers every operation, and `bun run apps/sim/scripts/check-canvas-sentences.ts --block={service}` passes with 100% coverage
+
+## Final Validation (Required)
+
+Validate the block against every tool in `tools.access`:
+
+1. **Read each tool definition** in `tools.access`
+2. **For each tool, verify the block has correct:**
+   - SubBlock inputs that cover all required tool params (with correct `condition` to show for that operation)
+   - SubBlock input types that match the tool param types (e.g., dropdown for enums, short-input for strings)
+   - Each subBlock (or its `canonicalParamId`) is named exactly after the tool param it fills. A required `user-only` param that is only renamed in `tools.config.params` fails `bun run apps/sim/scripts/check-block-registry.ts origin/staging`; remap only optional or `user-or-llm` params
+   - Type coercions in `tools.config.params` for any params that need conversion (Number(), Boolean(), JSON.parse())
+3. **Verify block outputs** cover the key fields returned by all tools
+4. **Verify conditions** — each subBlock should only show for the operations that actually use it
+5. **Verify `{Service}BlockMeta` is exported** with at least 7 templates, each having `icon`, `title`, `prompt`, `modules`, `category`, and `tags`
+6. **List any tool outputs still unknown** rather than guessing block outputs
+7. **Verify the tool execution boundary** — blocks never create or call API routes. Every referenced
+   tool must already be either a registered `InternalToolConfig.operation` or an absolute external
+   HTTP(S) `ToolConfig.request`. If transport needs to change, use the `add-tools` skill; never add a
+   same-origin `/api/...` hop or a `directExecution` property from the block.
+
+## Option Lists: `selectorKey` or `options`, never a per-block fetcher
+
+A sub-block gets its choices from exactly one of two places. There is no third.
+
+**`selectorKey` — every remote list.** Use the `add-selector` skill to add browser-safe metadata in
+`apps/sim/lib/selectors/manifest.ts`. Attach `provider-server` selectors under
+`apps/sim/lib/selectors/server/providers/` and `internal-server` selectors in
+`apps/sim/lib/selectors/server/internal.ts`. Point the sub-block at that key. All remote selectors
+execute through `selectors.execute`; never add a client provider module or selector-only fetch route.
+
+```ts
+{ id: 'triggerCredentials', type: 'oauth-input', canonicalParamId: 'oauthCredential', mode: 'trigger' },
+{ id: 'labelIds', type: 'dropdown', multiSelect: true,
+  selectorKey: 'gmail.labels', dependsOn: ['triggerCredentials'], mode: 'trigger' },
+{ id: 'manualLabelIds', type: 'short-input', mode: 'trigger-advanced' },
+```
+
+`canonicalParamId: 'oauthCredential'` on the credential sub-block is the line people forget. The
+shared context builder projects only active `dependsOn` values and keys canonical pairs by their
+canonical id. Exact environment references such as `{{GMAIL_CREDENTIAL_ID}}` stay unresolved in the
+browser and are resolved only by the authorized server executor. The builder does not infer a
+nonstandard credential id from `type: 'oauth-input'`; give it
+`canonicalParamId: 'oauthCredential'`, or declare an explicit manifest `sourceFields` alias when a
+legacy source id must be retained.
+
+**`options` — everything else.** A static array, or a pure function of the block's own values for a list that narrows to a sibling's selection. No I/O.
+
+```ts
+options: (params) => {
+  const model = params?.values.model
+  return typeof model === 'string' ? effortsFor(model) : DEFAULT_EFFORTS
+}
+```
+
+**Never fetch inside `options`, and never reach into the stores from a block definition.** A fetcher that resolves its credential with `readSubBlockValue(blockId, ...)` only works on the canvas — every surface that is not the editor gets an empty list.
+
+Two rules the checks enforce:
+
+- **Selector query keys contain no context values.** This includes credential IDs, raw secrets,
+  unresolved references, and hashes of those values; the shared facade uses an opaque local revision.
+- **A sub-block that `dependsOn` a credential / knowledge-base / table selector must be reconfigurable at fork-sync time** — a `selectorKey`, a canonical pair whose basic member is a selector, or a `short-input`/`long-input`. `bun run check:fork-dependent-coverage` fails otherwise, because a fork sync clears those fields on every push and an unofferable one can never be set anywhere that sticks.

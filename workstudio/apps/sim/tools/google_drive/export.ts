@@ -1,0 +1,76 @@
+import type { UserFile } from '@/executor/types'
+import type { GoogleDriveToolParams } from '@/tools/google_drive/types'
+import type { InternalToolConfig, ToolResponse } from '@/tools/types'
+
+interface GoogleDriveExportParams extends GoogleDriveToolParams {
+  fileId: string
+  mimeType: string
+  fileName?: string
+}
+
+interface GoogleDriveExportResponse extends ToolResponse {
+  output: {
+    file: UserFile
+    exportedMimeType: string
+  }
+}
+
+export const exportTool: InternalToolConfig<GoogleDriveExportParams, GoogleDriveExportResponse> = {
+  id: 'google_drive_export',
+  name: 'Export Google Drive File',
+  description:
+    'Export a Google Workspace file (Docs, Sheets, Slides, Drawings) to a chosen format such as PDF, DOCX, XLSX, or CSV',
+  version: '1.0.0',
+
+  oauth: {
+    required: true,
+    provider: 'google-drive',
+  },
+
+  params: {
+    accessToken: {
+      type: 'string',
+      required: true,
+      visibility: 'hidden',
+      description: 'The access token for the Google Drive API',
+    },
+    fileId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The ID of the Google Workspace file to export',
+    },
+    mimeType: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The target MIME type to export to (e.g. application/pdf, text/csv)',
+    },
+    fileName: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Optional filename override for the exported file',
+    },
+  },
+
+  operation: {
+    input: (params) => ({
+      accessToken: params.accessToken,
+      fileId: params.fileId,
+      mimeType: params.mimeType,
+      fileName: params.fileName,
+    }),
+  },
+
+  outputs: {
+    file: {
+      type: 'file',
+      description: 'Exported file stored in execution files',
+    },
+    exportedMimeType: {
+      type: 'string',
+      description: 'The MIME type the file was exported to',
+    },
+  },
+}

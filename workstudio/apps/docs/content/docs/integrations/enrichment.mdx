@@ -1,0 +1,41 @@
+---
+title: Data Enrichment
+description: Enrich data with a Sim enrichment
+integration:
+  type: "enrichment"
+  color: "#9333EA"
+---
+
+
+{/* MANUAL-CONTENT-START:intro */}
+Use the built-in Data Enrichment block to fill missing fields such as work email, phone number, company domain, and company information. Select a registered enrichment and map the record's input fields; Sim uses the same ordered provider cascade as table enrichments until a provider returns a match.
+
+Read the result to determine whether a match was found and which provider supplied it. For example, map a person's name and company into **Work Email** rather than calling each provider separately.
+{/* MANUAL-CONTENT-END */}
+
+
+## Use the block [#usage-instructions]
+
+Run a Sim enrichment to look up data — work email, phone number, company domain, company info, and more — from the fields you map in. Uses the same provider cascade as table enrichments.
+
+## Actions
+
+### Run Enrichment
+
+Run a Sim enrichment (e.g. Work Email, Phone Number) and return its outputs
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `enrichmentId` | string | Yes | Registry enrichment id \(e.g. "work-email"\) |
+| `inputs` | json | Yes | Map of the enrichment's input ids to values |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `matched` | boolean | Whether the enrichment found a result |
+| `provider` | string | Provider whose result was returned \(e.g. "Hunter", "People Data Labs"\) |
+
+

@@ -1,0 +1,94 @@
+import { createTableDefinition, hybridAuthMockFns } from '@sim/testing'
+import { createRouteContext } from '@sim/testing/helpers/http'
+import {
+  permissionGroupsResolveMock,
+  permissionGroupsResolveMockFns,
+} from '@sim/testing/mocks/permission-groups-resolve.mock'
+import { createMockRequest } from '@sim/testing/mocks/request.mock'
+import {
+  tableRouteUtilsMock,
+  tableRouteUtilsMockFns,
+} from '@sim/testing/mocks/table-route-utils.mock'
+import {
+  tableRowsServiceMock,
+  tableRowsServiceMockFns,
+} from '@sim/testing/mocks/table-rows-service.mock'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/permission-groups/resolve.server', () => permissionGroupsResolveMock)
+
+vi.mock('@/app/api/table/utils', () => tableRouteUtilsMock)
+
+vi.mock('@/lib/table/rows/service', () => tableRowsServiceMock)
+
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
+import { GET } from '@/app/api/table/[tableId]/export/route'
+
+const { mockQueryRows } = tableRowsServiceMockFns
+const { mockCheckAccess } = tableRouteUtilsMockFns
+
+const mockGetUserPermissionConfig = permissionGroupsResolveMockFns.mockGetUserPermissionConfig
+
+/** Table with an id-native column whose stable id (`col_email`) differs from its display name. */
+
+function callGet(format: string) {
+  const req = createMockRequest({ url: `/api/table/tbl_1/export?format=${format}` })
+  return GET(req, createRouteContext({ tableId: 'tbl_1' }))
+}
+
+describe('table export route — id→name translation', () => {
+  beforeEach(() => {
+    hybridAuthMockFns.mockCheckSessionOrInternalAuth.mockResolvedValue({
+      success: true,
+      userId: 'user-1',
+      authType: 'session',
+    })
+    mockCheckAccess.mockResolvedValue({
+      ok: true,
+      table: createTableDefinition({
+        columns: [
+          { id: 'col_email', name: 'email', type: 'string' },
+          { name: 'legacy', type: 'string' }, // legacy: id == name
+        ],
+        rowCount: 1,
+        maxRows: 100,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      }),
+    })
+    // Row data is keyed by stable column id (`col_email`), not the display name.
+    mockGetUserPermissionConfig.mockResolvedValue(null)
+    mockQueryRows.mockResolvedValue({
+      rows: [{ id: 'r1', data: { col_email: 'a@b.c', legacy: 'x' }, executions: {}, position: 0 }],
+      rowCount: 1,
+      totalCount: 1,
+      limit: 1000,
+      offset: 0,
+    })
+  })
+
+  it('CSV: header uses display names and cell values resolve from id-keyed data', async () => {
+    const res = await callGet('csv')
+    expect(res.status).toBe(200)
+    const body = await res.text()
+    const [header, firstRow] = body.trim().split('\n')
+    expect(header).toBe('email,legacy')
+    // Without id→name resolution the email cell would be blank.
+    expect(firstRow).toBe('a@b.c,x')
+  })
+
+  it('refuses the stream when the group withholds tables.export', async () => {
+    mockGetUserPermissionConfig.mockResolvedValue({
+      ...DEFAULT_PERMISSION_GROUP_CONFIG,
+      disableTableExport: true,
+    })
+
+    const res = await callGet('csv')
+
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({
+      error: "Exporting a table is not available under your organization's permission group",
+      details: { code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' },
+    })
+  })
+})

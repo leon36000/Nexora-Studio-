@@ -1,0 +1,206 @@
+import { fetchAppConfigProfile } from '@/lib/core/config/appconfig'
+import type { AppConfigGateContext, AppConfigGateRule } from '@/lib/core/config/appconfig-rules'
+import { matchesRule, parseGateConfig } from '@/lib/core/config/appconfig-rules'
+import { env, isTruthy } from '@/lib/core/config/env'
+import { isAppConfigEnabled } from '@/lib/core/config/env-flags'
+
+/**
+ * Name of the AppConfig configuration profile holding the gated feature flags.
+ * Cross-repo contract: must match the `CfnConfigurationProfile` name created by
+ * the infra stack.
+ */
+const FEATURE_FLAGS_PROFILE = 'feature-flags'
+
+/**
+ * A single flag's gating rule. A flag is ON for a context when ANY clause matches:
+ * the global `enabled` default, the workspace/org/user allowlists, or
+ * `adminEnabled` for platform admins. An absent clause never matches. Shape shared with the other
+ * AppConfig gating documents via {@link AppConfigGateRule}.
+ */
+export type FeatureFlagRule = AppConfigGateRule
+
+export type FeatureFlagsConfig = Record<string, FeatureFlagRule>
+
+/**
+ * Per-request evaluation context. Pass only the ids you have — a missing id skips
+ * its clause. Admin status is resolved internally from `userId`; `isAdmin` is an
+ * optional fast-path override for callers that already know it (e.g. admin routes).
+ */
+export type FeatureFlagContext = AppConfigGateContext
+
+/**
+ * The single definition of a feature flag. Everything about a flag lives in one
+ * place: its name (the registry key), a human-readable `description`, and the
+ * optional `fallback` secret consulted when AppConfig is not the source of truth.
+ * A null fallback keeps the flag off outside AppConfig.
+ *
+ * Gating by workspace/org/user/admin is deliberately NOT part of a definition — it lives only
+ * in the hosted AppConfig document, so no environment can grant access from a code
+ * literal.
+ */
+interface FeatureFlagDefinition {
+  description: string
+  /** Null means AppConfig-only; otherwise a truthy env/secret enables the fallback. */
+  fallback: keyof typeof env | null
+}
+
+/** The single registry of known flags. To add a flag, add one entry here. */
+const FEATURE_FLAGS = {
+  dashboards: {
+    description:
+      'Enable dashboard resources, rendering, analytics, and Mothership authoring. Supports global and organization rollout; disabled by default.',
+    fallback: 'DASHBOARDS',
+  },
+  'mothership-computer-use': {
+    description:
+      'Enable native macOS computer use in Mothership. Supports global and organization rollout; ' +
+      'personal workspaces follow the global switch. Each device must also opt in.',
+    fallback: 'MSHIP_COMPUTER_USE',
+  },
+  'mothership-search-integration-tools': {
+    description:
+      'Give Search Assistant read-only integration discovery, calls, and matching prompt ' +
+      'instructions. Global AppConfig on/off only; disabled by default with no env fallback.',
+    fallback: null,
+  },
+  'workflow-tests': {
+    description:
+      'Enable workflow tests: the workspace Tests page, tests/<name>.test.js files, and the Sim tests tool. Supports global and organization rollout; disabled by default.',
+    fallback: 'WORKFLOW_TESTS',
+  },
+  changelog: {
+    description:
+      'Enable the workspace Changelog: the Changelog page, changelog/<id>.md release bodies, and the Sim changelog tool. Supports global and organization rollout; disabled by default.',
+    fallback: 'CHANGELOG',
+  },
+  'mothership-model-selector': {
+    description:
+      'Show the Mothership model selector, model-specific effort levels, and Fast for supported ' +
+      'models. Global on/off only; disabled uses Astra with simplified effort labels.',
+    fallback: 'MSHIP_MODEL_SELECTOR',
+  },
+  'agent-memory-history': {
+    description:
+      'Capture durable Workflow Agent tool history and continue existing retries. Supports workspace rollout targeting; version-aware memory storage remains active when capture is disabled.',
+    fallback: 'AGENT_MEMORY_HISTORY',
+  },
+  'zoom-search': {
+    description:
+      'Enable Zoom Search setup, personal authorization and retrieval. Organization targeting only; disabled by default. Standard workflow Zoom OAuth is unchanged.',
+    fallback: 'ZOOM_SEARCH',
+  },
+  'slack-search-shared-app': {
+    description:
+      'Enable the official shared Slack app for existing Search customers. Supports orgId ' +
+      'targeting for setup, personal connections, and bot execution. Off-AppConfig falls back ' +
+      'to SLACK_SEARCH_SHARED_APP.',
+    fallback: 'SLACK_SEARCH_SHARED_APP',
+  },
+  'trigger-eu-region': {
+    description:
+      'Route Trigger.dev runs to eu-central-1 instead of the default us-east-1. Global on/off ' +
+      'only — resolved without user/org context at every task-trigger call site via ' +
+      'resolveTriggerRegion, so the whole deployment switches regions together.',
+    fallback: 'TRIGGER_EU_REGION',
+  },
+  projects: {
+    description:
+      'Expose Projects and Project-scoped features, including files and memories. Global on/off only; ' +
+      'workspace creation assigns Projects and lifecycle protections apply either way. ' +
+      'Off-AppConfig falls back to PROJECTS.',
+    fallback: 'PROJECTS',
+  },
+  'knowledge-member-access': {
+    description:
+      'Organization Search (live) and the permission-aware workspace connector modes: members ' +
+      '(per-member sync, which also requires the Credential Groups entitlement) and admin (source ACL ' +
+      'mirroring, independent of managed identities). Organization Search UI, MCP, and ' +
+      'search APIs require this flag and the Credential Groups entitlement for the canonical orgId; ' +
+      'user/admin/workspace targeting cannot enable another organization. Workspace connector ' +
+      'modes use workspaceId; workspace retrieval defaults may additionally use user/admin ' +
+      'targeting. Off-AppConfig falls back to KNOWLEDGE_MEMBER_ACCESS.',
+    fallback: 'KNOWLEDGE_MEMBER_ACCESS',
+  },
+  'mothership-abandoned-run-takeover-disabled': {
+    description:
+      'Kill switch for Sim taking over Chat runs whose controller died (a deploy or a crash) and ' +
+      're-running their interrupted tool. Global on/off only; on stops every takeover scan. ' +
+      'Off by default, so takeovers run unless this is turned on.',
+    fallback: null,
+  },
+} satisfies Record<string, FeatureFlagDefinition>
+
+/**
+ * The closed set of known feature flags. Derived from the registry, so a flag
+ * cannot exist — or be checked — without a definition (and its explicit fallback policy).
+ */
+export type FeatureFlagName = keyof typeof FEATURE_FLAGS
+
+/** Build the fallback document from each flag's secret. Truthy secret ⇒ enabled. */
+function fallbackFlags(): FeatureFlagsConfig {
+  const flags: FeatureFlagsConfig = {}
+  for (const [name, def] of Object.entries(FEATURE_FLAGS) as Array<
+    [string, FeatureFlagDefinition]
+  >) {
+    flags[name] = { enabled: def.fallback !== null && isTruthy(env[def.fallback]) }
+  }
+  return flags
+}
+
+/**
+ * Resolve platform-admin status lazily. Dynamically imported so the DB-backed
+ * helper (and `@sim/db`) stay out of this config module's load graph for callers
+ * that never reach an admin-gated flag.
+ */
+async function resolveAdmin(userId: string): Promise<boolean> {
+  const { isPlatformAdmin } = await import('@/lib/permissions/super-user')
+  return isPlatformAdmin(userId)
+}
+
+/**
+ * The admin clause is resolved last and lazily: a global/userId/orgId/workspaceId
+ * match short-circuits before any DB read, a rule without `adminEnabled` never queries,
+ * and a missing `userId` resolves to `false` without a query.
+ */
+async function evaluate(
+  rule: FeatureFlagRule | undefined,
+  ctx: FeatureFlagContext
+): Promise<boolean> {
+  if (!rule) return false
+  if (matchesRule(rule, ctx, false)) return true
+  if (rule.adminEnabled) {
+    const admin = ctx.isAdmin ?? (ctx.userId ? await resolveAdmin(ctx.userId) : false)
+    if (admin) return true
+  }
+  return false
+}
+
+/**
+ * Resolve the full flag document. Reads from AWS AppConfig on hosted deployments
+ * (cached, ~30s TTL, never blocks after the first fetch), otherwise derives each
+ * flag's on/off state from its registered fallback secret ({@link fallbackFlags}).
+ */
+export async function getFeatureFlags(): Promise<FeatureFlagsConfig> {
+  if (!isAppConfigEnabled) return fallbackFlags()
+
+  const value = await fetchAppConfigProfile(
+    {
+      application: env.APPCONFIG_APPLICATION as string,
+      environment: env.APPCONFIG_ENVIRONMENT as string,
+      profile: FEATURE_FLAGS_PROFILE,
+    },
+    parseGateConfig,
+    { shareWithTriggerRuns: true }
+  )
+
+  return value ?? fallbackFlags()
+}
+
+/** Resolve a single flag for a context. Admin status is resolved internally from `userId`. */
+export async function isFeatureEnabled(
+  flag: FeatureFlagName,
+  ctx: FeatureFlagContext = {}
+): Promise<boolean> {
+  const flags = await getFeatureFlags()
+  return evaluate(flags[flag], ctx)
+}

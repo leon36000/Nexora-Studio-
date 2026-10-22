@@ -1,0 +1,81 @@
+/**
+ * Cryptographically secure random utilities built on `crypto.getRandomValues()`.
+ * Works in all contexts including non-secure (HTTP) browser environments.
+ */
+
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+
+const UINT32_SAMPLE_SPACE_SIZE = 0x100000000
+
+/**
+ * Generates cryptographically secure random bytes.
+ * @param length - Number of bytes to generate
+ * @returns Uint8Array of random bytes
+ * @public check:utils names this as the replacement for `crypto.randomBytes()`.
+ */
+export function generateRandomBytes(length: number): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(length))
+}
+
+/**
+ * Generates a cryptographically secure random hex string.
+ * @param length - Number of hex characters (default: 16)
+ * @returns Lowercase hex string of the given length
+ */
+export function generateRandomHex(length = 16): string {
+  const bytes = generateRandomBytes(Math.ceil(length / 2))
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, length)
+}
+
+/**
+ * Generates a cryptographically secure random alphanumeric string.
+ * @param length - Number of characters (default: 16)
+ * @returns Random string composed of A-Z, a-z, 0-9
+ */
+export function generateRandomString(length = 16): string {
+  const bytes = generateRandomBytes(length)
+  return Array.from(bytes)
+    .map((b) => CHARS[b % CHARS.length])
+    .join('')
+}
+
+/**
+ * Returns a cryptographically secure random float in [0, 1).
+ * Drop-in replacement for `Math.random()`.
+ */
+export function randomFloat(): number {
+  const [value] = crypto.getRandomValues(new Uint32Array(1))
+  return value / 0x100000000
+}
+
+/**
+ * Returns a cryptographically secure random integer in [min, max).
+ * Uses rejection sampling for uniform distribution (no modulo bias).
+ * @param min - Inclusive lower bound
+ * @param max - Exclusive upper bound
+ */
+export function randomInt(min: number, max: number): number {
+  const range = max - min
+  if (range <= 0) throw new RangeError(`randomInt: max (${max}) must be greater than min (${min})`)
+  if (range > UINT32_SAMPLE_SPACE_SIZE) {
+    throw new RangeError('randomInt: range must not exceed 2^32')
+  }
+  const threshold = UINT32_SAMPLE_SPACE_SIZE - (UINT32_SAMPLE_SPACE_SIZE % range)
+  let value: number
+  do {
+    ;[value] = crypto.getRandomValues(new Uint32Array(1))
+  } while (value >= threshold)
+  return min + (value % range)
+}
+
+/**
+ * Returns a uniformly random element from a non-empty array.
+ * @param items - Array to sample from (must have at least one element)
+ */
+export function randomItem<T>(items: readonly T[]): T {
+  if (items.length === 0) throw new RangeError('randomItem: array must not be empty')
+  return items[randomInt(0, items.length)]
+}

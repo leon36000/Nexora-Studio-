@@ -1,0 +1,81 @@
+---
+title: Choosing what to use
+description: Choose fixed workflow steps, Agent tools, reusable code, MCP connections, workflows as tools, or skills.
+---
+
+import { WorkflowPreview, LEAD_SCORER_WORKFLOW } from '@/components/workflow-preview'
+
+Start with who should decide to run an action. Put it on the workflow path when it must be attempted at that point. Give it to an **Agent** block as a tool when the model should decide whether and when to call it.
+
+Then choose how to provide the action or instructions:
+
+| Choice | Use it for | Configure it in |
+| --- | --- | --- |
+| Fixed workflow block | A required step on a workflow path | The workflow builder |
+| Agent tool | An action the model chooses during a run | The Agent block's **Tools** input |
+| Custom tool | Reusable JavaScript with a parameter schema | Workspace **Custom tools** settings, then the Agent tool list |
+| External MCP server | A toolset provided by a service or your own server | Workspace **MCP tools** settings, then the Agent tool list |
+| Workflow as a tool | A reusable procedure with several steps | A separate workflow, then the Agent tool list |
+| Skill | Reusable instructions for how to do the work | **Integrations → Skills**, then the Agent's **Skills** input or Chat |
+
+Custom tools, MCP operations, and workflows as tools are all ways to give an Agent callable actions. A skill supplies instructions for using those capabilities.
+
+## Fixed workflow block
+
+A block runs when the workflow reaches it. Use a fixed step for an API request, transformation, branch, or record that belongs on that path. The step can still fail; fixed execution does not guarantee a successful result.
+
+This lead-scoring workflow enriches a lead, reshapes the data, scores it, and appends the score to a sheet:
+
+<WorkflowPreview workflow={LEAD_SCORER_WORKFLOW} height={210} />
+
+The **Workflow** block runs enrichment before scoring. The **Function** block reshapes its result. The **Google Sheets** block records a score whenever execution reaches that step.
+
+## Agent tool
+
+An Agent tool is an action the model can call while it works. Eligible integrations from the [catalog](/integrations) can run as standalone blocks or as tools attached to an Agent.
+
+In the lead scorer, the Agent has Search and Send Email tools. It can search when a profile is incomplete or send an email when the task calls for outreach. A run may use either tool, both, or neither.
+
+Each tool's **Permission Mode** controls how it is offered:
+
+- **Auto** lets the model decide whether to call it.
+- **Force** requests a call on models that support forced tool use.
+- **None** hides the tool from the model without deleting its configuration.
+
+Force does not guarantee success. Use a separate block for an action that must be attempted on the workflow path, such as recording the scoring result. See the [Agent reference](/workflows/blocks/agent) for models and runtime permission modes.
+
+## Custom tool
+
+A [custom tool](/agents/custom-tools) combines an object parameter schema with a JavaScript function body. Save it once in the workspace, then attach it to Agents that need it.
+
+For example, `normalize_company_domain` can clean a website value before a lead scorer, deduplication agent, or reporting agent uses it. Pure transformations need no external account. Code that calls an API may need that service's credentials.
+
+Custom tools use the isolated JavaScript runtime. For a fixed code step or code requiring a supported remote sandbox, use [Function](/workflows/blocks/function).
+
+## External MCP server
+
+MCP, the Model Context Protocol, connects an external provider's tools to Sim. Register an [MCP server](/agents/mcp), authorize its connection, and select the operations the Agent may use.
+
+For example, a CRM server can expose account lookup and record updates. The provider maintains those operations, or your team can run its own MCP server. Choose this path when an existing server provides the toolset you need.
+
+## Workflow as a tool
+
+Attach another workflow through the Agent's tool list to make a multi-step procedure callable. The Agent supplies inputs to the child's [Start trigger](/workflows/triggers/start) and receives the child's output.
+
+The lead scorer has a **Deep Enrich** workflow as a tool. The Agent can call that procedure for an incomplete lead and skip it for a complete profile. The separate **Enrich** step in the diagram is the fixed case: a [Workflow block](/workflows/blocks/workflow) calls its child when the path reaches it.
+
+Child state follows the parent's execution context: draft runs use draft child state; deployed runs use deployed child state. See the Workflow reference for input mapping, permissions, outputs, and errors.
+
+## Skill
+
+A [skill](/agents/skills) is reusable Markdown guidance, such as a scoring rubric or writing style guide. A workflow Agent sees the selected skill's name and description, then calls `load_skill` when it decides the full instructions are relevant. In Chat, tagging a skill includes its instructions in the request.
+
+For example, `lead-scoring-rubric` can define score bands and disqualifiers. It tells the agent how to assess a lead; tools still perform searches, updates, and other actions.
+
+## Related docs
+
+- [Agents](/agents)
+- [Agent block reference](/workflows/blocks/agent)
+- [Custom tools](/agents/custom-tools)
+- [Using MCP tools](/agents/mcp)
+- [Agent skills](/agents/skills)

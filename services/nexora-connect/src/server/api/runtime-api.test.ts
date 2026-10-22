@@ -1,0 +1,347 @@
+import type { ConnectionSummary } from "../../connection-service.ts";
+import type { RuntimeActionHttpResult } from "./runtime-api.ts";
+
+import { Hono } from "hono";
+import { describe, expect, it } from "vitest";
+import { providerErrorCodes } from "../../core/provider-error-codes.ts";
+import {
+  parseRuntimeActionHttpResult,
+  serializeRuntimeAction,
+  serializeRuntimeActionResult,
+  serializeRuntimeConnectedApp,
+  serializeRuntimeFailure,
+  unknownActionFailure,
+  writeRuntimeActionHttpResult,
+  writeRuntimeFailure,
+} from "./runtime-api.ts";
+
+function actionStatusFor(code: string): number {
+  return serializeRuntimeActionResult({
+    actionId: "example.echo",
+    executionId: "execution-1",
+    auditPersisted: false,
+    result: { ok: false, error: { code, message: "Action failed." } },
+  }).status;
+}
+
+describe("provider error codes", () => {
+  it("names the codes the action route maps and a provider may set", () => {
+    expect(providerErrorCodes).toEqual([
+      "authorization_failed",
+      "insufficient_credit",
+      "invalid_input",
+      "provider_error",
+      "rate_limited",
+    ]);
+    expect(providerErrorCodes.map(actionStatusFor)).toEqual([403, 402, 400, 500, 429]);
+  });
+
+  it("leaves the connection and dispatch codes out of a provider's reach", () => {
+    expect(providerErrorCodes).not.toContain("oauth_token_expired");
+    expect(actionStatusFor("oauth_token_expired")).toBe(409);
+  });
+});
+
+describe("runtime action metadata", () => {
+  it("includes the execution status advertised by the runtime catalog", () => {
+    expect(
+      serializeRuntimeAction({
+        id: "example.echo",
+        service: "example",
+        name: "echo",
+        description: "Echo the provided value.",
+        operationType: "write",
+        requiredScopes: [],
+        providerPermissions: [],
+        inputSchema: { type: "object" },
+        outputSchema: { type: "object" },
+        execution: {
+          locallyExecutable: true,
+          catalogOnly: false,
+          requiredAuthTypes: ["api_key"],
+          noAuthRunnable: false,
+          needsCredential: true,
+        },
+      }),
+    ).toMatchObject({
+      execution: {
+        locallyExecutable: true,
+        catalogOnly: false,
+        requiredAuthTypes: ["api_key"],
+        noAuthRunnable: false,
+        needsCredential: true,
+      },
+    });
+  });
+});
+
+describe("runtime connected apps", () => {
+  const connection: ConnectionSummary = {
+    id: "marketplace:oomol:example",
+    service: "example",
+    connectionName: "marketplace_oomol",
+    authType: "marketplace",
+    configured: true,
+    virtual: true,
+    default: true,
+    profile: {
+      accountId: "marketplace:oomol:example",
+      displayName: "OOMOL",
+      grantedScopes: [],
+    },
+    marketplace: { id: "oomol", pricing: "metered" },
+  };
+
+  it("preserves Marketplace metadata", () => {
+    expect(serializeRuntimeConnectedApp(connection)).toMatchObject({
+      marketplace: { id: "oomol", pricing: "metered" },
+    });
+  });
+});
+
+describe("runtime action HTTP results", () => {
+  it("serializes a successful execution without changing its wire shape", () => {
+    expect(
+      serializeRuntimeActionResult({
+        actionId: "example.echo",
+        executionId: "execution-1",
+        auditPersisted: true,
+        result: { ok: true, output: { value: "hello" } },
+      }),
+    ).toEqual({
+      status: 200,
+      body: {
+        success: true,
+        message: "OK",
+        data: { value: "hello" },
+        meta: {
+          executionId: "execution-1",
+          actionId: "example.echo",
+          auditPersisted: true,
+        },
+      },
+    });
+  });
+
+  it.each([
+    ["authorization_failed", 403],
+    ["connection_not_allowed", 403],
+    ["connection_not_found", 404],
+    ["unknown_action", 404],
+    ["rate_limited", 429],
+    ["insufficient_credit", 402],
+    ["provider_error", 500],
+    ["internal_error", 500],
+    ["oauth_token_expired", 409],
+    ["oauth_token_refresh_failed", 409],
+    ["oauth_reauth_required", 409],
+    ["invalid_input", 400],
+  ] as const)("maps %s execution failures to status %i", (code, status) => {
+    expect(
+      serializeRuntimeActionResult({
+        actionId: "example.echo",
+        executionId: "execution-1",
+        auditPersisted: false,
+        result: {
+          ok: false,
+          error: { code, message: "Action failed.", details: { reason: "example" } },
+        },
+      }),
+    ).toEqual({
+      status,
+      body: {
+        success: false,
+        message: "Action failed.",
+        data: { reason: "example" },
+        errorCode: code,
+        meta: {
+          executionId: "execution-1",
+          actionId: "example.echo",
+          auditPersisted: false,
+        },
+      },
+    });
+  });
+
+  it("preserves an upstream task-not-found status for invalid_input", () => {
+    expect(
+      serializeRuntimeActionResult({
+        actionId: "example.get_task",
+        executionId: "execution-1",
+        auditPersisted: false,
+        result: {
+          ok: false,
+          error: { code: "invalid_input", message: "Task not found.", details: { status: 404 } },
+        },
+      }).status,
+    ).toBe(404);
+  });
+
+  it("preserves an upstream payload-too-large status the way the proxy route does", () => {
+    expect(
+      serializeRuntimeActionResult({
+        actionId: "example.download",
+        executionId: "execution-1",
+        auditPersisted: false,
+        result: {
+          ok: false,
+          error: { code: "invalid_input", message: "response exceeds 4 bytes", details: { status: 413 } },
+        },
+      }).status,
+    ).toBe(413);
+  });
+
+  it("serializes runtime failures for persistence", () => {
+    expect(
+      serializeRuntimeFailure({
+        status: 409,
+        errorCode: "idempotency_key_conflict",
+        message: "The idempotency key was reused for a different request.",
+      }),
+    ).toEqual({
+      status: 409,
+      body: {
+        success: false,
+        message: "The idempotency key was reused for a different request.",
+        data: null,
+        errorCode: "idempotency_key_conflict",
+        meta: {},
+      },
+    });
+  });
+
+  it.each([
+    { status: 201, body: { success: true, message: "OK", data: null, meta: {} } },
+    { status: 200, body: { success: false, message: "Failed", data: null, errorCode: "failed", meta: {} } },
+    { status: 500, body: { success: true, message: "OK", data: null, meta: {} } },
+    { status: 500, body: { success: false, message: "Failed", data: null, meta: {} } },
+    { status: 500, body: { success: false, message: "Failed", errorCode: "failed", meta: {} } },
+    { status: 500, body: { success: false, message: "Failed", data: null, errorCode: "failed", meta: [] } },
+  ])("rejects malformed persisted results %#", (result) => {
+    expect(() => parseRuntimeActionHttpResult(result)).toThrow("Invalid persisted action response");
+  });
+
+  it("accepts a valid persisted failure", () => {
+    const result = serializeRuntimeFailure({
+      status: 409,
+      errorCode: "idempotency_request_in_progress",
+      message: "The request is still in progress.",
+      meta: { actionId: "example.echo" },
+    });
+
+    expect(parseRuntimeActionHttpResult(result)).toEqual(result);
+  });
+
+  it("serializes a catalog miss as unknown_action", () => {
+    expect(serializeRuntimeFailure(unknownActionFailure("example.missing"))).toEqual({
+      status: 404,
+      body: {
+        success: false,
+        message: "Unknown action: example.missing",
+        data: null,
+        errorCode: "unknown_action",
+        meta: { actionId: "example.missing" },
+      },
+    });
+  });
+
+  it("writes a previously serialized result", async () => {
+    const result: RuntimeActionHttpResult = {
+      status: 409,
+      body: {
+        success: false,
+        message: "The request is still in progress.",
+        data: null,
+        errorCode: "idempotency_request_in_progress",
+        meta: {},
+      },
+    };
+    const app = new Hono().get("/", (context) => writeRuntimeActionHttpResult(context, result));
+
+    const response = await app.request("/");
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual(result.body);
+  });
+});
+
+describe("Retry-After on the action route", () => {
+  const rateLimited = serializeRuntimeActionResult({
+    actionId: "slack.list_conversations",
+    executionId: "execution-1",
+    auditPersisted: true,
+    result: {
+      ok: false,
+      error: {
+        code: "rate_limited",
+        message: "ratelimited",
+        details: { status: 429, details: { error: "ratelimited", retryAfterSeconds: 73 } },
+      },
+    },
+  });
+
+  async function write(result: RuntimeActionHttpResult): Promise<Response> {
+    const app = new Hono().post("/", (context) => writeRuntimeActionHttpResult(context, result));
+    return app.request("/", { method: "POST" });
+  }
+
+  it("answers a fresh provider 429 with the provider's Retry-After and keeps it in the body", async () => {
+    const response = await write(rateLimited);
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("73");
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      errorCode: "rate_limited",
+      data: { status: 429, details: { retryAfterSeconds: 73 } },
+    });
+  });
+
+  it("answers a proxy 429 with the provider's Retry-After", async () => {
+    const app = new Hono().post("/", (context) =>
+      writeRuntimeFailure(context, {
+        status: 429,
+        errorCode: "rate_limited",
+        message: "Rate limited.",
+        data: { status: 429, details: { retryAfterSeconds: 73 } },
+        meta: { service: "notion" },
+      }),
+    );
+    const response = await app.request("/", { method: "POST" });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("73");
+  });
+
+  it("re-emits the header on an idempotent replay from the persisted body", async () => {
+    const replayed = parseRuntimeActionHttpResult(JSON.parse(JSON.stringify(rateLimited)));
+    const response = await write(replayed);
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("73");
+    await expect(response.json()).resolves.toEqual(rateLimited.body);
+  });
+
+  it.each([
+    ["a 429 without the hint", { status: 429, data: { status: 429, details: { error: "ratelimited" } } }],
+    [
+      "a 429 whose hint is not an integer",
+      { status: 429, data: { status: 429, details: { retryAfterSeconds: "73" } } },
+    ],
+    ["a 429 whose hint is negative", { status: 429, data: { status: 429, details: { retryAfterSeconds: -1 } } }],
+    [
+      "a 429 whose hint is too large to print as digits",
+      { status: 429, data: { status: 429, details: { retryAfterSeconds: 1e21 } } },
+    ],
+    ["a 429 with null data", { status: 429, data: null }],
+    ["a non-429 carrying the hint", { status: 500, data: { status: 503, details: { retryAfterSeconds: 73 } } }],
+  ] as const)("sets no header for %s", async (_label, input) => {
+    const response = await write({
+      status: input.status,
+      body: { success: false, message: "Action failed.", data: input.data, errorCode: "provider_error", meta: {} },
+    });
+
+    expect(response.status).toBe(input.status);
+    expect(response.headers.get("retry-after")).toBeNull();
+  });
+});

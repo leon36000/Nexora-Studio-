@@ -1,0 +1,895 @@
+import {
+  IMMUTABLE_DAYTONA_SNAPSHOT_REF_ERROR,
+  IMMUTABLE_E2B_TEMPLATE_REF_ERROR,
+  isImmutableDaytonaSnapshotRef,
+  isImmutableE2BTemplateRef,
+  isValidSandboxReleaseGeneration,
+  SANDBOX_PROVIDER_IDS,
+  SANDBOX_RELEASE_GENERATION_ERROR,
+} from '@sim/utils/sandbox-references'
+import { createEnv } from '@t3-oss/env-nextjs'
+import { z } from 'zod'
+
+/**
+ * Attribute on the `<html>` element carrying the same `NEXT_PUBLIC_*` snapshot
+ * `<PublicEnvScript>` assigns to `window.__ENV`.
+ *
+ * That script is rendered from the component tree, so it lands at the end of
+ * `<head>` — measured at ~13 KB after the `<script async>` bootstrap tags React
+ * emits in the preamble. An `async` script runs the moment its fetch resolves,
+ * and Next's `appBootstrap` calls `hydrate()` **synchronously** when
+ * `self.__next_s` is empty, which it always is here: the local environment
+ * transport emits a plain inline tag rather than a `beforeInteractive` one, and
+ * that queue was the only thing that used to order the assignment ahead of
+ * hydration. So on a warm cache both module bodies and the first commit can run
+ * before the parser has reached the assignment.
+ *
+ * An attribute has no such ordering problem. `<html>` is the first tag in the
+ * document — ~490 bytes ahead of the first bootstrap script — so
+ * `document.documentElement` already carries this value by the time *any*
+ * script, framework or application, is able to execute. This is the race-free
+ * transport; `window.__ENV` stays the public global and the preferred read.
+ *
+ * Neither transport exists on a document that never ran the root layout (Next's
+ * bare `__next_error__` 404 shell, or `global-error`), so a tab that continues
+ * from one in place keeps reading an unset env. Deployment flags therefore reach
+ * workspace surfaces through the server-resolved host context instead — see
+ * `@/lib/core/config/deployment-shape`.
+ */
+export const PUBLIC_ENV_ATTRIBUTE = 'data-public-env'
+
+let cachedEnvAttribute: string | null = null
+let cachedEnvAttributeValues: Record<string, string> | null = null
+
+/**
+ * `NEXT_PUBLIC_*` values read off {@link PUBLIC_ENV_ATTRIBUTE}. Only consulted
+ * when `window.__ENV` has not been assigned yet, which is a window of
+ * milliseconds — but one that module bodies and the first commit both land in.
+ *
+ * The parse is memoized against the raw attribute, not against having run once,
+ * so the cache can never serve a value the document no longer carries. Each call
+ * costs one `getAttribute` and a string compare, and only until `window.__ENV`
+ * exists — after that {@link getEnv} short-circuits before reaching here.
+ */
+function readDocumentPublicEnv(): Record<string, string> | null {
+  if (typeof document === 'undefined') return null
+
+  const serialized = document.documentElement?.getAttribute(PUBLIC_ENV_ATTRIBUTE)
+  if (!serialized) return null
+  if (serialized === cachedEnvAttribute) return cachedEnvAttributeValues
+
+  cachedEnvAttribute = serialized
+  cachedEnvAttributeValues = null
+
+  try {
+    const parsed: unknown = JSON.parse(serialized)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      cachedEnvAttributeValues = parsed as Record<string, string>
+    }
+  } catch {
+    /* A malformed attribute must not take the page down; fall through to the other sources. */
+  }
+
+  return cachedEnvAttributeValues
+}
+
+/**
+ * Reads NEXT_PUBLIC_* env vars in both client and server contexts.
+ * Server reads `process.env`. The client prefers `window.__ENV` (assigned by
+ * `<PublicEnvScript>`), falling back to {@link PUBLIC_ENV_ATTRIBUTE} for reads
+ * that happen before the parser reaches that script — see the attribute's own
+ * docs for why that window exists.
+ *
+ * The local script transport avoids request-scoped APIs in this browser-safe
+ * getter, which can run from module initialization.
+ */
+const getEnv = (variable: string): string | undefined => {
+  if (typeof window === 'undefined') return process.env[variable]
+  return window.__ENV?.[variable] ?? readDocumentPublicEnv()?.[variable] ?? process.env[variable]
+}
+
+/**
+ * Whether `window.__ENV` was still unset when this module first evaluated in the
+ * browser. Always `false` on the server.
+ *
+ * This is the rate at which the ordering race described on
+ * {@link PUBLIC_ENV_ATTRIBUTE} is lost. It is no longer a correctness signal —
+ * {@link getEnv} resolves the same values off the `<html>` attribute in that
+ * window — but it stays reported so the race remains measurable rather than
+ * assumed, and so a regression that removes the attribute is visible as reads
+ * starting to fail again rather than as silence.
+ */
+export const publicEnvMissingAtModuleInit =
+  typeof window !== 'undefined' && window.__ENV === undefined
+
+// biome-ignore format: keep alignment for readability
+export const env = createEnv({
+  skipValidation: true,
+
+  server: {
+    OUTBOUND_ROUTING_SOURCE: z.enum(['env', 'appconfig']).optional(),
+    OUTBOUND_ROUTING_CONFIG: z.string().optional(),
+    OUTBOUND_GATEWAYS: z.string().optional(),
+    OUTBOUND_GATEWAY_CREDENTIALS: z.string().optional(),
+    // Core Database & Authentication
+    DATABASE_URL:                          z.string().url(),                       // Primary database connection string
+    DATABASE_REPLICA_URL:                  z.string().url().optional(),            // Read-replica connection string; opt-in reads fall back to the primary when unset
+    DB_APP_NAME:                           z.string().optional(),                  // Postgres application_name for query attribution (sim-app/sim-trigger/sim-realtime)
+    SIM_DB_ROLE:                           z.enum(['web', 'trigger', 'realtime']).optional(), // Per-process pool profile selector (read directly by @sim/db)
+    DATABASE_URL_WEB:                      z.string().url().optional(),            // Per-role primary URL override; @sim/db falls back to DATABASE_URL
+    DATABASE_URL_TRIGGER:                  z.string().url().optional(),            // Per-role primary URL override (trigger)
+    DATABASE_URL_REALTIME:                 z.string().url().optional(),            // Per-role primary URL override (realtime)
+    DATABASE_URL_CLEANUP:                  z.string().url().optional(),            // Sub-process pool URL override (cleanup jobs, via dbFor)
+    DATABASE_URL_EXEC:                     z.string().url().optional(),            // Sub-process pool URL override (inline execution writes, via dbFor)
+    DATABASE_REPLICA_URL_WEB:              z.string().url().optional(),            // Per-role replica URL override; falls back to DATABASE_REPLICA_URL
+    DATABASE_REPLICA_URL_TRIGGER:          z.string().url().optional(),            // Per-role replica URL override (trigger)
+    DATABASE_REPLICA_URL_REALTIME:         z.string().url().optional(),            // Per-role replica URL override (realtime)
+    BETTER_AUTH_URL:                       z.string().url(),                       // Base URL for Better Auth service
+    BETTER_AUTH_SECRET:                    z.string().min(32),                     // Secret key for Better Auth JWT signing
+    DISABLE_REGISTRATION:                  z.boolean().optional(),                 // Flag to disable new user registration
+    EMAIL_PASSWORD_SIGNUP_ENABLED:         z.boolean().optional().default(true),   // Enable email/password authentication (server-side enforcement)
+    DISABLE_AUTH:                          z.boolean().optional(),                 // Bypass authentication entirely (self-hosted only, creates anonymous session)
+    ALLOW_PRIVATE_DATABASE_HOSTS:          z.boolean().optional(),                 // Deprecated alias for the egress allowlist, kept so existing self-hosted deployments keep working. Equivalent to allowing every private, reserved, and loopback destination. Prefer EGRESS_ALLOWED_HOSTS / EGRESS_ALLOWED_IP_RANGES, which name specific destinations.
+    EGRESS_ALLOWED_HOSTS:                  z.string().optional(),                  // Comma-separated hostnames outbound requests may reach on a private network, leading wildcard allowed (e.g. "host.docker.internal,*.svc.cluster.local"). Self-hosted only; ignored on the hosted platform. Replaces ALLOW_PRIVATE_DATABASE_HOSTS.
+    EGRESS_ALLOWED_IP_RANGES:              z.string().optional(),                  // Comma-separated CIDRs or IPs outbound requests may reach on a private network (e.g. "10.0.0.0/8,192.168.65.254/32"). Self-hosted only; never lifts the cloud-metadata block.
+    ALLOWED_LOGIN_EMAILS:                  z.string().optional(),                  // Comma-separated list of allowed email addresses for login
+    ALLOWED_LOGIN_DOMAINS:                 z.string().optional(),                  // Comma-separated list of allowed email domains for login
+    BLOCKED_SIGNUP_DOMAINS:                z.string().optional(),                  // Comma-separated list of email domains blocked from signing up (e.g., "gmail.com,yahoo.com")
+    BLOCKED_EMAILS:                        z.string().optional(),                  // Comma-separated list of specific email addresses banned from the platform (signup, sign-in, executions)
+    SIGNUP_MX_VALIDATION_ENABLED:          z.boolean().optional(),                 // Opt-in: validate the email's MX backend at signup (blocks no-MX domains and denylisted shared spam backends). Off by default; enable on hosted/abuse-targeted deployments.
+    BLOCKED_EMAIL_MX_HOSTS:                z.string().optional(),                  // Comma-separated MX-host substrings blocked from signing up; matched against the domain's resolved MX backend to catch throwaway domains that share a mail backend. No defaults — operators supply their own list. Only used when SIGNUP_MX_VALIDATION_ENABLED is set.
+    TRUSTED_ORIGINS:                       z.string().optional(),                  // Comma-separated additional origins to trust for auth (e.g., "https://app.example.com,https://www.example.com"). Merged into Better Auth trustedOrigins.
+    TURNSTILE_SECRET_KEY:                  z.string().min(1).optional(),           // Cloudflare Turnstile secret key for captcha verification
+    ENCRYPTION_KEY:                        z.string().min(32),                     // Key for encrypting sensitive data
+    API_ENCRYPTION_KEY:                    z.string().min(32).optional(),          // Dedicated key for encrypting API keys (optional for OSS)
+    INTERNAL_API_SECRET:                   z.string().min(32),                     // Secret for internal API authentication
+    INTERNAL_JWT_SECRET:                   z.string().min(32).optional(),          // Dedicated signing key for internal JWTs (falls back to INTERNAL_API_SECRET); separating limits blast radius if one leaks
+
+    // Copilot
+    COPILOT_API_KEY:                       z.string().min(1).optional(),           // Secret for internal sim agent API authentication
+    /** Gates risky copilot tools behind an Allow / Skip prompt. Off by default. */
+    COPILOT_TOOL_PERMISSIONS_ENABLED:      z.boolean().optional(),
+    /** Enables the organization benchmark UI and its authenticated endpoints. */
+    MOTHERSHIP_BENCHMARK_ENABLED:          z.boolean().optional(),
+    MOTHERSHIP_BENCHMARK_URL:              z.string().url().optional(),
+    SIM_AGENT_API_URL:                     z.string().url().optional(),            // URL for internal sim agent API
+    MSHIP_SYSPROMPT_OVERRIDE:              z.string().min(1).optional(),           // Enterprise-only highest-priority Mothership system prompt override forwarded by Sim
+    COPILOT_SOURCE_ENV:                    z.enum(['dev', 'staging', 'prod']).optional(), // Source Sim environment sent to mothership for callbacks
+    COPILOT_DEV_URL:                       z.string().url().optional(),            // Sim agent API URL for the dev mothership environment
+    COPILOT_STAGING_URL:                   z.string().url().optional(),            // Sim agent API URL for the staging mothership environment
+    COPILOT_PROD_URL:                      z.string().url().optional(),            // Sim agent API URL for the production mothership environment
+    COPILOT_STREAM_TTL_SECONDS:            z.number().optional(),                  // Redis TTL for copilot SSE buffer
+    COPILOT_STREAM_EVENT_LIMIT:            z.number().optional(),                  // Max events retained per stream
+
+    // Database & Storage
+    REDIS_URL:                             z.string().url().optional(),            // Redis connection string for caching/sessions
+    REDIS_TLS_SERVERNAME:                  z.string().min(1).optional(),           // TLS SNI override; required when REDIS_URL targets an IP over rediss:// (e.g. trigger.dev PrivateLink VPCE IP) so cert hostname verification matches the ElastiCache cert's CN
+    /** Explicit file-storage backend; unset preserves Azure → S3 → GCS → local precedence. */
+    STORAGE_PROVIDER:                      z.enum(['local', 's3', 'azure', 'gcs']).optional(),
+    /** Explicit PDF OCR backend; legacy installs infer it from configured credentials. */
+    OCR_PROVIDER:                          z.enum(['local', 'mistral', 'azure-mistral']).optional(),
+
+    // Payment & Billing
+    STRIPE_SECRET_KEY:                     z.string().min(1).optional(),           // Stripe secret key for payment processing
+    STRIPE_WEBHOOK_SECRET:                 z.string().min(1).optional(),           // General Stripe webhook secret
+    STRIPE_FREE_PRICE_ID:                  z.string().min(1).optional(),           // Stripe price ID for free tier
+    FREE_TIER_COST_LIMIT:                  z.number().optional(),                  // Cost limit for free tier users
+    FREE_STORAGE_LIMIT_GB:                 z.number().optional(),                  // Free-tier storage limit in GB (default 5). With billing disabled, setting it explicitly opts into storage enforcement
+    PRO_TIER_COST_LIMIT:                   z.number().optional(),                  // Cost limit for pro tier users
+    PRO_STORAGE_LIMIT_GB:                  z.number().optional().default(50),      // Storage limit in GB for pro tier users
+    TEAM_TIER_COST_LIMIT:                  z.number().optional(),                  // Cost limit for team tier users
+    TEAM_STORAGE_LIMIT_GB:                 z.number().optional().default(500),     // Storage limit in GB for team tier organizations (pooled)
+    ENTERPRISE_TIER_COST_LIMIT:            z.number().optional(),                  // Cost limit for enterprise tier users
+    ENTERPRISE_STORAGE_LIMIT_GB:           z.number().optional().default(500),     // Default storage limit in GB for enterprise tier (can be overridden per org)
+    BILLING_CONCURRENCY_LIMIT_FREE:         z.string().optional(),                  // In-flight executions per free billing account
+    BILLING_CONCURRENCY_LIMIT_PRO:          z.string().optional(),                  // In-flight executions per Pro-tier billing account (Pro and Pro for Teams)
+    BILLING_CONCURRENCY_LIMIT_TEAM:         z.string().optional(),                  // In-flight executions per Max-tier billing account (Max and Max for Teams)
+    BILLING_CONCURRENCY_LIMIT_ENTERPRISE:   z.string().optional(),                  // In-flight executions per Enterprise billing account (metadata-overridable)
+    BILLING_ENABLED:                       z.boolean().optional(),                 // Enable billing enforcement and usage tracking
+    TRIGGER_EU_REGION:                     z.boolean().optional(),                 // Route Trigger.dev runs to eu-central-1 instead of the default us-east-1 (fallback for the trigger-eu-region flag when AppConfig is not the source of truth)
+
+    // Table feature limits (per plan). Apply when billing is disabled (free tier defaults) or for billed plans.
+    FREE_TABLES_LIMIT:                     z.number().optional(),                  // Max user tables per workspace on free tier (default: 5)
+    FREE_TABLE_ROWS_LIMIT:                 z.number().optional(),                  // Max rows per table on free tier (default: 50000)
+    PRO_TABLES_LIMIT:                      z.number().optional(),                  // Max user tables per workspace on pro tier (default: 100)
+    PRO_TABLE_ROWS_LIMIT:                  z.number().optional(),                  // Max rows per table on pro tier (default: 100000)
+    TEAM_TABLES_LIMIT:                     z.number().optional(),                  // Max user tables per workspace on team tier (default: 1000)
+    TEAM_TABLE_ROWS_LIMIT:                 z.number().optional(),                  // Max rows per table on team tier (default: 500000)
+    ENTERPRISE_TABLES_LIMIT:               z.number().optional(),                  // Max user tables per workspace on enterprise tier (default: 10000)
+    ENTERPRISE_TABLE_ROWS_LIMIT:           z.number().optional(),                  // Max rows per table on enterprise tier (default: 1000000)
+    TABLE_MAX_ROW_SIZE_BYTES:              z.number().optional(),                  // Max serialized size in bytes of a single user-table row (default: 409600)
+    TABLE_MAX_PAGE_BYTES:                  z.number().optional(),                  // Byte budget per row-page read; pages cut early past it (default: 5242880)
+    TABLE_DISPATCH_CONCURRENCY_FREE:       z.number().optional(),                  // Rows one table run executes in parallel on free tier (default: 20)
+    TABLE_DISPATCH_CONCURRENCY_PAID:       z.number().optional(),                  // Rows one table run executes in parallel on paid tiers (default: 50)
+
+    // Credit-tier Stripe prices (monthly)
+    STRIPE_PRICE_TIER_25_MO:               z.string().min(1).optional(),           // Pro: $25/mo (6,000 credits)
+    STRIPE_PRICE_TIER_100_MO:              z.string().min(1).optional(),           // Max: $100/mo (25,000 credits)
+
+    // Credit-tier Stripe prices (annual, 15% discount)
+    STRIPE_PRICE_TIER_25_YR:               z.string().min(1).optional(),           // Pro: $255/yr (15% off $300)
+    STRIPE_PRICE_TIER_100_YR:              z.string().min(1).optional(),           // Max: $1,020/yr (15% off $1,200)
+
+    // Team-specific Stripe prices (separate products for Billing Portal compat)
+    STRIPE_PRICE_TEAM_25_MO:               z.string().min(1).optional(),           // Team Pro: $25/seat/mo
+    STRIPE_PRICE_TEAM_25_YR:               z.string().min(1).optional(),           // Team Pro: $255/seat/yr
+    STRIPE_PRICE_TEAM_100_MO:              z.string().min(1).optional(),           // Team Max: $100/seat/mo
+    STRIPE_PRICE_TEAM_100_YR:              z.string().min(1).optional(),           // Team Max: $1,020/seat/yr
+    OVERAGE_THRESHOLD_DOLLARS:             z.number().optional().default(100),     // Dollar threshold for incremental overage billing (default: $100)
+
+    // Email & Communication
+    EMAIL_VERIFICATION_ENABLED:            z.boolean().optional(),                 // Enable email verification for user registration and login (defaults to false)
+    RESEND_API_KEY:                        z.string().min(1).optional(),           // Resend API key for transactional emails
+    FROM_EMAIL_ADDRESS:                    z.string().min(1).optional(),           // Complete from address (e.g., "Sim <noreply@domain.com>" or "noreply@domain.com")
+    PERSONAL_EMAIL_FROM:                   z.string().min(1).optional(),           // From address for personalized emails
+    EMAIL_DOMAIN:                          z.string().min(1).optional(),           // Domain for sending emails (fallback when FROM_EMAIL_ADDRESS not set)
+    AZURE_ACS_CONNECTION_STRING:           z.string().optional(),                  // Azure Communication Services connection string
+    AWS_SES_REGION:                        z.string().min(1).optional(),           // AWS region for SES (credentials resolved via default SDK provider chain)
+    SMTP_HOST:                             z.string().min(1).optional(),           // SMTP server hostname
+    SMTP_PORT:                             z.coerce.number().int().min(1).max(65535).optional(),
+    SMTP_USER:                             z.string().min(1).optional(),           // SMTP username
+    SMTP_PASS:                             z.string().min(1).optional(),           // SMTP password
+    SMTP_SECURE:                           z.boolean().optional(),                 // Force TLS on connect (defaults to true on port 465); read via envBoolean to handle string values from process.env
+    SMTP_EHLO_NAME:                        z.string().min(1).optional(),           // Hostname sent in the SMTP EHLO greeting (defaults to the app's own domain); set when the relay expects a different identity
+    GMAIL_CREDENTIALS_JSON:                z.string().optional(),                  // Inline Google service-account JSON with domain-wide delegation for the Gmail API mail provider
+    GMAIL_SENDER:                          z.string().min(1).optional(),           // Google Workspace user the Gmail service account impersonates when sending (e.g., noreply@yourdomain.com)
+
+    // SMS & Messaging
+    TWILIO_ACCOUNT_SID:                    z.string().min(1).optional(),           // Twilio Account SID for SMS sending
+    TWILIO_AUTH_TOKEN:                     z.string().min(1).optional(),           // Twilio Auth Token for API authentication
+    TWILIO_PHONE_NUMBER:                   z.string().min(1).optional(),           // Twilio phone number for sending SMS
+
+    // AI/LLM Provider API Keys
+    OPENAI_API_KEY:                        z.string().min(1).optional(),           // Primary OpenAI API key
+    OPENAI_API_KEY_1:                      z.string().min(1).optional(),           // Additional OpenAI API key for load balancing
+    OPENAI_API_KEY_2:                      z.string().min(1).optional(),           // Additional OpenAI API key for load balancing
+    OPENAI_API_KEY_3:                      z.string().min(1).optional(),           // Additional OpenAI API key for load balancing
+    OPENROUTER_API_KEY:                    z.string().min(1).optional(),           // OpenRouter API key; self-hosted fallback for OpenAI knowledge-base embeddings
+    MISTRAL_API_KEY:                       z.string().min(1).optional(),           // Mistral AI API key
+    ANTHROPIC_API_KEY_1:                   z.string().min(1).optional(),           // Primary Anthropic Claude API key
+    ANTHROPIC_API_KEY_2:                   z.string().min(1).optional(),           // Additional Anthropic API key for load balancing
+    ANTHROPIC_API_KEY_3:                   z.string().min(1).optional(),           // Additional Anthropic API key for load balancing
+    GEMINI_API_KEY:                        z.string().min(1).optional(),           // Singular Gemini API key (used as fallback when rotation keys are unset)
+    GEMINI_API_KEY_1:                      z.string().min(1).optional(),           // Primary Gemini API key
+    GEMINI_API_KEY_2:                      z.string().min(1).optional(),           // Additional Gemini API key for load balancing
+    GEMINI_API_KEY_3:                      z.string().min(1).optional(),           // Additional Gemini API key for load balancing
+    ZAI_API_KEY_1:                         z.string().min(1).optional(),           // Primary Z.ai API key for load balancing
+    ZAI_API_KEY_2:                         z.string().min(1).optional(),           // Additional Z.ai API key for load balancing
+    ZAI_API_KEY_3:                         z.string().min(1).optional(),           // Additional Z.ai API key for load balancing
+    KIMI_API_KEY_1:                        z.string().min(1).optional(),           // Primary Kimi (Moonshot AI) API key for load balancing
+    KIMI_API_KEY_2:                        z.string().min(1).optional(),           // Additional Kimi API key for load balancing
+    KIMI_API_KEY_3:                        z.string().min(1).optional(),           // Additional Kimi API key for load balancing
+    TYPESAFE_API_KEY_1:                    z.string().min(1).optional(),
+    TYPESAFE_API_KEY_2:                    z.string().min(1).optional(),
+    TYPESAFE_API_KEY_3:                    z.string().min(1).optional(),
+    XAI_API_KEY_1:                         z.string().min(1).optional(),           // Primary xAI API key for load balancing
+    XAI_API_KEY_2:                         z.string().min(1).optional(),           // Additional xAI API key for load balancing
+    XAI_API_KEY_3:                         z.string().min(1).optional(),           // Additional xAI API key for load balancing
+    OLLAMA_URL:                            z.string().url().optional(),            // Ollama local LLM server URL
+    VLLM_BASE_URL:                         z.string().url().optional(),            // vLLM self-hosted base URL (OpenAI-compatible)
+    VLLM_API_KEY:                          z.string().optional(),                  // Optional bearer token for vLLM
+    LITELLM_BASE_URL:                      z.string().url().optional(),            // LiteLLM proxy base URL (OpenAI-compatible)
+    LITELLM_API_KEY:                       z.string().optional(),                  // Optional bearer token for LiteLLM
+    FIREWORKS_API_KEY:                     z.string().optional(),                  // Platform Fireworks AI key backing the hosted sim-auto pool (and self-hosted model listing/inference)
+    FIREWORKS_API_KEY_1:                   z.string().min(1).optional(),           // Primary Fireworks API key for load balancing
+    FIREWORKS_API_KEY_2:                   z.string().min(1).optional(),           // Additional Fireworks API key for load balancing
+    FIREWORKS_API_KEY_3:                   z.string().min(1).optional(),           // Additional Fireworks API key for load balancing
+    TOGETHER_API_KEY:                      z.string().optional(),                  // Optional Together AI API key for model listing and inference
+    BASETEN_API_KEY:                       z.string().optional(),                  // Optional Baseten API key for model listing and inference
+    COHERE_API_KEY:                        z.string().min(1).optional(),           // Cohere API key for reranker (rerank-v4.0-pro, rerank-v4.0-fast, rerank-v3.5)
+    COHERE_API_KEY_1:                      z.string().min(1).optional(),           // Primary Cohere API key for rotation
+    COHERE_API_KEY_2:                      z.string().min(1).optional(),           // Additional Cohere API key for load balancing
+    COHERE_API_KEY_3:                      z.string().min(1).optional(),           // Additional Cohere API key for load balancing
+    ELEVENLABS_API_KEY:                    z.string().min(1).optional(),           // ElevenLabs API key for workspace speech-to-text
+    SERPER_API_KEY:                        z.string().min(1).optional(),           // Serper API key for online search
+    EXA_API_KEY:                           z.string().min(1).optional(),           // Exa AI API key for enhanced online search
+    BLACKLISTED_PROVIDERS:                 z.string().optional(),                  // Comma-separated provider IDs to hide (e.g., "openai,anthropic")
+    BLACKLISTED_MODELS:                    z.string().optional(),                  // Comma-separated model names/prefixes to hide (e.g., "gpt-4,claude-*")
+    ALLOWED_MCP_DOMAINS:                   z.string().optional(),                  // Comma-separated domains for MCP servers (e.g., "internal.company.com,mcp.example.org"). Empty = all allowed.
+    ALLOWED_INTEGRATIONS:                  z.string().optional(),                  // Comma-separated block types to allow (e.g., "slack,github,agent"). Empty = all allowed.
+    PREVIEW_BLOCKS:                        z.string().optional(),                  // Comma-separated preview block types to reveal off-AppConfig (e.g., "gmail_v2,notion_v3"). Empty = all preview blocks hidden.
+
+    // Azure Configuration - Shared credentials with feature-specific models
+    AZURE_OPENAI_ENDPOINT:                 z.string().url().optional(),            // Shared Azure OpenAI service endpoint
+    AZURE_OPENAI_API_VERSION:              z.string().optional(),                  // Shared Azure OpenAI API version
+    AZURE_OPENAI_API_KEY:                  z.string().min(1).optional(),           // Shared Azure OpenAI API key
+    AZURE_ANTHROPIC_ENDPOINT:              z.string().url().optional(),            // Azure Anthropic service endpoint
+    AZURE_ANTHROPIC_API_KEY:               z.string().min(1).optional(),           // Azure Anthropic API key
+    AZURE_ANTHROPIC_API_VERSION:           z.string().min(1).optional(),           // Azure Anthropic API version (e.g. 2023-06-01)
+    KB_OPENAI_MODEL_NAME:                  z.string().optional(),                  // Azure deployment name serving the configured KB embedding model (used only when AZURE_OPENAI_* credentials are set).
+    KB_EMBEDDING_MODEL:                    z.string().optional(),                  // Embedding model used for all new knowledge bases. Must be one of the supported model ids, or `ollama/<model>` for a model on OLLAMA_URL; defaults to text-embedding-3-small.
+    KB_IMAGE_EXTRACTION_MODEL:             z.string().optional(),                  // Vision model that extracts text from knowledge-base images on sources using semantic image extraction (Confluence). Must be a Gemini 3 model in the catalog; anything else falls back to gemini-3.8-flash.
+    KB_IMAGE_EXTRACTIONS_PER_SYNC:         z.number().optional(),                  // New or changed images one connector sync run may send for vision extraction (each member-accounts continuation run can read up to this many); the rest wait for the next sync. Defaults to 500.
+    EMBEDDING_OUTPUT_DIMS:                 z.coerce.number().int().positive().optional(), // Vector width new knowledge bases are stored at. One of 384, 768, 1024, 1536, 3072, and the configured KB_EMBEDDING_MODEL must emit it; anything else falls back to 1536.
+    WAND_OPENAI_MODEL_NAME:                z.string().optional(),                  // Wand generation OpenAI model name (works with both regular OpenAI and Azure OpenAI)
+    OCR_AZURE_ENDPOINT:                    z.string().url().optional(),            // Azure Mistral OCR service endpoint
+    OCR_AZURE_MODEL_NAME:                  z.string().optional(),                  // Azure Mistral OCR model name for document processing
+    OCR_AZURE_API_KEY:                     z.string().min(1).optional(),           // Azure Mistral OCR API key
+
+    // Vertex AI Configuration
+    VERTEX_PROJECT:                        z.string().optional(),                  // Google Cloud project ID for Vertex AI
+    VERTEX_LOCATION:                       z.string().optional(),                  // Google Cloud location/region for Vertex AI (defaults to us-central1)
+
+    // Monitoring & Analytics
+    TELEMETRY_ENDPOINT:                    z.string().url().optional(),            // Custom telemetry/analytics endpoint
+    FREEBUFF_API_KEY:                      z.string().min(1).optional(),           // Freebuff Ads key for server-side conversion postbacks (unset disables them)
+    COST_MULTIPLIER:                       z.number().optional(),                  // Multiplier for cost calculations
+    LOG_LEVEL:                             z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).optional(), // Minimum log level to display (defaults to ERROR in production, DEBUG in development)
+    GRAFANA_OTLP_ENDPOINT:                 z.string().url().optional(),            // Grafana Cloud OTLP HTTP gateway base URL (e.g., https://otlp-gateway-prod-us-east-0.grafana.net/otlp). Trigger.dev exporters append /v1/traces, /v1/logs, /v1/metrics.
+    GRAFANA_OTLP_HEADERS:                  z.string().min(1).optional(),           // Comma-separated key=value headers for OTLP requests (e.g., "Authorization=Basic <base64(instanceId:token)>"). Same format as the OTEL_EXPORTER_OTLP_HEADERS spec.
+    GRAFANA_DEPLOYMENT_ENVIRONMENT:        z.string().min(1).optional(),           // Deployment tier label (e.g., "production", "staging", "development"). Emitted as the stable `deployment.environment.name` resource attribute on Trigger.dev telemetry to match the rest of the Sim OTEL stack.
+
+    // External Services
+    BROWSERBASE_API_KEY:                   z.string().min(1).optional(),           // Browserbase API key for browser automation
+    BROWSERBASE_PROJECT_ID:                z.string().min(1).optional(),           // Browserbase project ID
+    GITHUB_TOKEN:                          z.string().optional(),                  // GitHub personal access token for API access
+
+    // Admin API
+    ADMIN_API_KEY:                         z.string().min(32).optional(),          // Admin API key for self-hosted GitOps access (generate with: openssl rand -hex 32)
+
+    // Mothership Admin
+    MOTHERSHIP_API_ADMIN_KEY:              z.string().min(1).optional(),           // Admin API key for mothership/copilot admin endpoints
+    MOTHERSHIP_DEV_URL:                    z.string().url().optional(),            // Mothership dev environment URL
+    MOTHERSHIP_STAGING_URL:                z.string().url().optional(),            // Mothership staging environment URL
+    MOTHERSHIP_PROD_URL:                   z.string().url().optional(),            // Mothership production environment URL
+
+    // Infrastructure & Deployment
+    NEXT_RUNTIME:                          z.string().optional(),                  // Next.js runtime environment
+    DOCKER_BUILD:                          z.boolean().optional(),                 // Flag indicating Docker build environment
+    NEXT_BUILD_SKIP_TYPE_CHECK:            z.boolean().optional(),                 // Skips `next build`'s TypeScript pass where another CI job type-checks
+
+    // Background Jobs & Scheduling
+    TRIGGER_PROJECT_ID:                    z.string().optional(),                  // Trigger.dev project ID
+    TRIGGER_SECRET_KEY:                    z.string().min(1).optional(),           // Trigger.dev secret key for background jobs
+    TRIGGER_DEV_ENABLED:                   z.boolean().optional(),                 // Toggle to enable/disable Trigger.dev for async jobs
+    CRON_SECRET:                           z.string().optional(),                  // Secret for authenticating cron job requests
+    SCHEDULE_EXECUTION_CONCURRENCY_LIMIT:  z.string().optional().default('30'),
+    WORKFLOW_EXECUTION_CONCURRENCY_LIMIT:  z.string().optional().default('75'),
+    WEBHOOK_EXECUTION_CONCURRENCY_LIMIT:   z.string().optional().default('75'),
+    RESUME_EXECUTION_CONCURRENCY_LIMIT:    z.string().optional().default('50'),
+    SCHEDULE_ENQUEUE_BUDGET_MULTIPLIER:    z.string().optional().default('2'),
+    SCHEDULE_JITTER_MAX_MS:                z.string().optional().default('30000'),
+    SCHEDULE_INFRA_RETRY_BASE_MS:          z.string().optional().default('60000'),
+    SCHEDULE_INFRA_RETRY_MAX_MS:           z.string().optional().default('300000'),
+    SCHEDULE_INFRA_RETRY_MAX_ATTEMPTS:     z.string().optional().default('10'),
+    WEBHOOK_INFRA_RETRY_BASE_MS:           z.string().optional().default('30000'),
+    WEBHOOK_INFRA_RETRY_MAX_MS:            z.string().optional().default('300000'),
+    WEBHOOK_INFRA_RETRY_MAX_ATTEMPTS:      z.string().optional().default('5'),
+
+    // Cloud Storage - AWS S3
+    AWS_REGION:                            z.string().optional(),                  // AWS region for S3 buckets
+    AWS_ACCESS_KEY_ID:                     z.string().optional(),                  // AWS access key ID
+    AWS_SECRET_ACCESS_KEY:                 z.string().optional(),                  // AWS secret access key
+    S3_BUCKET_NAME:                        z.string().optional(),                  // S3 bucket for general file storage
+    S3_KB_BUCKET_NAME:                     z.string().optional(),                  // S3 bucket for knowledge base files
+    S3_EXECUTION_FILES_BUCKET_NAME:        z.string().optional(),                  // S3 bucket for workflow execution files
+    S3_CHAT_BUCKET_NAME:                   z.string().optional(),                  // S3 bucket for chat logos
+    S3_COPILOT_BUCKET_NAME:                z.string().optional(),                  // S3 bucket for copilot files
+    S3_PROFILE_PICTURES_BUCKET_NAME:       z.string().optional(),                  // S3 bucket for profile pictures
+    S3_OG_IMAGES_BUCKET_NAME:              z.string().optional(),                  // S3 bucket for OpenGraph images
+    S3_WORKSPACE_LOGOS_BUCKET_NAME:        z.string().optional(),                  // S3 bucket for workspace logos
+    S3_ENDPOINT:                           z.string().optional(),                  // Custom endpoint for S3-compatible storage (Cloudflare R2, MinIO, Backblaze B2). Leave unset for AWS S3
+    S3_FORCE_PATH_STYLE:                   z.string().optional(),                  // Force path-style addressing (MinIO/Ceph RGW). Defaults to false (AWS S3, R2). Coerced via envBoolean at the consumption site
+
+    // Dynamic config - AWS AppConfig (hosted source of truth for signup/login gating lists; unset => env-var fallback)
+    APPCONFIG_APPLICATION:                 z.string().optional(),                  // AppConfig application id/name. On hosted deployments, when set with APPCONFIG_ENVIRONMENT, gating lists come from AppConfig instead of env vars
+    APPCONFIG_ENVIRONMENT:                 z.string().optional(),                  // AppConfig environment id/name. Profile name is an app-side constant ('access-control'), not an env var
+
+    // Cloud Storage - Azure Blob
+    AZURE_ACCOUNT_NAME:                    z.string().optional(),                  // Azure storage account name
+    AZURE_ACCOUNT_KEY:                     z.string().optional(),                  // Azure storage account key
+    AZURE_CONNECTION_STRING:               z.string().optional(),                  // Azure storage connection string
+    AZURE_STORAGE_CONTAINER_NAME:          z.string().optional(),                  // Azure container for general files
+    AZURE_STORAGE_KB_CONTAINER_NAME:       z.string().optional(),                  // Azure container for knowledge base files
+    AZURE_STORAGE_EXECUTION_FILES_CONTAINER_NAME: z.string().optional(),          // Azure container for workflow execution files
+    AZURE_STORAGE_CHAT_CONTAINER_NAME:     z.string().optional(),                  // Azure container for chat logos
+    AZURE_STORAGE_COPILOT_CONTAINER_NAME:  z.string().optional(),                  // Azure container for copilot files
+    AZURE_STORAGE_PROFILE_PICTURES_CONTAINER_NAME: z.string().optional(),          // Azure container for profile pictures
+    AZURE_STORAGE_OG_IMAGES_CONTAINER_NAME: z.string().optional(),                 // Azure container for OpenGraph images
+    AZURE_STORAGE_WORKSPACE_LOGOS_CONTAINER_NAME: z.string().optional(),            // Azure container for workspace logos
+
+    // Cloud Storage - Google Cloud Storage
+    GCS_PROJECT_ID:                        z.string().optional(),                  // GCP project ID (optional — inferred from credentials/ADC when unset)
+    GCS_CREDENTIALS_JSON:                  z.string().optional(),                  // Inline service-account JSON. Omit to use Application Default Credentials (Workload Identity, GOOGLE_APPLICATION_CREDENTIALS)
+    GCS_BUCKET_NAME:                       z.string().optional(),                  // GCS bucket for general file storage (enables GCS)
+    GCS_KB_BUCKET_NAME:                    z.string().optional(),                  // GCS bucket for knowledge base files
+    GCS_EXECUTION_FILES_BUCKET_NAME:       z.string().optional(),                  // GCS bucket for workflow execution files
+    GCS_CHAT_BUCKET_NAME:                  z.string().optional(),                  // GCS bucket for chat logos
+    GCS_COPILOT_BUCKET_NAME:               z.string().optional(),                  // GCS bucket for copilot files
+    GCS_PROFILE_PICTURES_BUCKET_NAME:      z.string().optional(),                  // GCS bucket for profile pictures
+    GCS_OG_IMAGES_BUCKET_NAME:             z.string().optional(),                  // GCS bucket for OpenGraph images
+    GCS_WORKSPACE_LOGOS_BUCKET_NAME:       z.string().optional(),                  // GCS bucket for workspace logos
+
+
+    // Admission & Burst Protection
+    ADMISSION_GATE_MAX_INFLIGHT:           z.string().optional().default('500'),   // Max concurrent in-flight execution requests per pod
+    API_MAX_JSON_BODY_BYTES:               z.string().optional().default('52428800'),// Default max JSON request body size for contract routes (50 MB)
+    CHAT_MAX_REQUEST_BYTES:                z.string().optional().default('230686720'),// Max request body size for the public deployed-chat endpoint (220 MB; covers 15 base64 file attachments)
+    WEBHOOK_MAX_REQUEST_BYTES:             z.string().optional().default('10485760'),// Max request body size for public webhook receiver endpoints (10 MB; provider payloads rarely exceed a few MB)
+
+    // Rate Limiting Configuration
+    RATE_LIMIT_WINDOW_MS:                  z.string().optional().default('60000'), // Rate limit window duration in milliseconds (default: 1 minute)
+    MANUAL_EXECUTION_LIMIT:                z.string().optional().default('999999'),// Manual execution bypass value (effectively unlimited)
+    RATE_LIMIT_FREE_SYNC:                  z.string().optional(),                  // Free tier sync API executions per minute (default 50). With billing disabled, setting it explicitly opts into rate limiting
+    RATE_LIMIT_FREE_ASYNC:                 z.string().optional(),                  // Free tier async API executions per minute (default 200). With billing disabled, setting it explicitly opts into rate limiting
+    RATE_LIMIT_FREE_API_ENDPOINT:          z.string().optional(),                  // Free tier v1 API endpoint requests per minute (default 30). With billing disabled, setting it explicitly opts into rate limiting
+    RATE_LIMIT_PRO_SYNC:                   z.string().optional().default('150'),   // Pro tier sync API executions per minute
+    RATE_LIMIT_PRO_ASYNC:                  z.string().optional().default('1000'),  // Pro tier async API executions per minute
+    RATE_LIMIT_TEAM_SYNC:                  z.string().optional().default('300'),   // Team tier sync API executions per minute
+    RATE_LIMIT_TEAM_ASYNC:                 z.string().optional().default('2500'),  // Team tier async API executions per minute
+    RATE_LIMIT_ENTERPRISE_SYNC:            z.string().optional().default('600'),   // Enterprise tier sync API executions per minute
+    RATE_LIMIT_ENTERPRISE_ASYNC:           z.string().optional().default('5000'),  // Enterprise tier async API executions per minute
+    // Timeout Configuration
+    EXECUTION_TIMEOUT_FREE:                z.string().optional(),                  // Free tier sync timeout in seconds (default 300). With billing disabled, setting it explicitly opts into sync timeouts
+    EXECUTION_TIMEOUT_PRO:                 z.string().optional().default('3000'),  // 50 minutes
+    EXECUTION_TIMEOUT_TEAM:                z.string().optional().default('3000'),  // 50 minutes
+    EXECUTION_TIMEOUT_ENTERPRISE:          z.string().optional().default('3000'),  // 50 minutes
+    EXECUTION_TIMEOUT_ASYNC_FREE:          z.string().optional(),                  // Free tier async timeout in seconds (default 5400). With billing disabled, setting it explicitly opts into async timeouts
+    EXECUTION_TIMEOUT_ASYNC_PRO:           z.string().optional().default('5400'),  // 90 minutes
+    EXECUTION_TIMEOUT_ASYNC_TEAM:          z.string().optional().default('5400'),  // 90 minutes
+    EXECUTION_TIMEOUT_ASYNC_ENTERPRISE:    z.string().optional().default('5400'),  // 90 minutes
+
+    // Agent Tool-Call Loop
+    MAX_TOOL_ITERATIONS:                   z.string().optional(),                  // Max model round trips per Agent block tool-call loop (unbounded when unset)
+
+    // Isolated-VM Worker Pool Configuration
+    IVM_POOL_SIZE:                         z.string().optional().default('4'),      // Max worker processes in pool
+    IVM_MAX_CONCURRENT:                    z.string().optional().default('10000'),  // Max concurrent executions globally
+    IVM_MAX_PER_WORKER:                    z.string().optional().default('2500'),   // Max concurrent executions per worker
+    IVM_WORKER_IDLE_TIMEOUT_MS:            z.string().optional().default('60000'),  // Worker idle cleanup timeout (ms)
+    IVM_MAX_QUEUE_SIZE:                    z.string().optional().default('10000'),  // Max pending queued executions in memory
+    IVM_MAX_FETCH_RESPONSE_BYTES:          z.string().optional().default('8388608'),// Max bytes read from sandbox fetch responses
+    IVM_MAX_FETCH_RESPONSE_CHARS:          z.string().optional().default('4000000'),// Max chars returned to sandbox from fetch body
+    IVM_MAX_FETCH_OPTIONS_JSON_CHARS:      z.string().optional().default('262144'), // Max JSON payload size for sandbox fetch options
+    IVM_MAX_FETCH_URL_LENGTH:              z.string().optional().default('8192'),   // Max URL length accepted by sandbox fetch
+    IVM_MAX_STDOUT_CHARS:                  z.string().optional().default('200000'), // Max captured stdout characters per execution
+    IVM_MAX_ACTIVE_PER_OWNER:              z.string().optional().default('200'),    // Max active executions per owner (per process)
+    IVM_MAX_QUEUED_PER_OWNER:              z.string().optional().default('2000'),   // Max queued executions per owner (per process)
+    IVM_MAX_OWNER_WEIGHT:                  z.string().optional().default('5'),      // Max accepted weight for weighted owner scheduling
+    IVM_DISTRIBUTED_MAX_INFLIGHT_PER_OWNER:z.string().optional().default('2200'),   // Max owner in-flight leases across replicas
+    IVM_DISTRIBUTED_LEASE_MIN_TTL_MS:      z.string().optional().default('120000'), // Min TTL for distributed in-flight leases (ms)
+    IVM_LEASE_REDIS_DEADLINE_MS:           z.string().optional().default('1000'),   // Deadline for one distributed lease round trip (ms)
+    IVM_QUEUE_TIMEOUT_MS:                  z.string().optional().default('300000'), // Max queue wait before rejection (ms)
+    IVM_MAX_EXECUTIONS_PER_WORKER:         z.string().optional().default('200'),    // Max lifetime executions before worker is recycled
+    IVM_MAX_BROKER_ARGS_JSON_CHARS:        z.string().optional().default('262144'),  // Max JSON payload size for sandbox task broker args (isolate→host)
+    IVM_MAX_BROKER_RESULT_JSON_CHARS:      z.string().optional().default('16777216'),// Max JSON payload size for sandbox task broker results (host→isolate)
+    IVM_MAX_BROKERS_PER_EXECUTION:         z.string().optional().default('1000'),    // Max broker calls per sandbox task execution
+
+    // Knowledge Base Processing Configuration - Shared across all processing methods
+    KB_CONFIG_MAX_DURATION:                z.number().optional().default(600),     // Max processing duration in seconds (10 minutes)
+    KB_CONFIG_MAX_ATTEMPTS:                z.number().optional().default(3),       // Max retry attempts
+    KB_CONFIG_RETRY_FACTOR:                z.number().optional().default(2),       // Retry backoff factor
+    KB_CONFIG_MIN_TIMEOUT:                 z.number().optional().default(1000),    // Min timeout in ms
+    KB_CONFIG_MAX_TIMEOUT:                 z.number().optional().default(10000),   // Max timeout in ms
+    KB_CONFIG_CONCURRENCY_LIMIT:           z.number().optional().default(20),      // Per-tenant concurrent document-processing runs in the interactive lane
+    KB_CONFIG_BACKFILL_CONCURRENCY_LIMIT:  z.number().optional().default(20),      // Per-tenant concurrent document-processing runs in the connector-backfill lane
+    KB_CONFIG_EMBEDDING_CONCURRENCY:       z.number().optional().default(8),       // Concurrent embedding API requests within one embed call
+    KB_CONFIG_PROJECTION_CONCURRENCY:      z.number().optional().default(8),       // Most documents one knowledge projector pass projects at once, each on its own connection
+    /** Deployment operating budgets shared by every caller using the same provider credential. */
+    KB_CONFIG_EMBEDDING_REQUESTS_PER_MINUTE: z.number().positive().optional().default(600),
+    KB_CONFIG_EMBEDDING_TOKENS_PER_MINUTE:   z.number().positive().optional().default(600000),
+    KB_CONFIG_OCR_REQUESTS_PER_MINUTE:       z.number().positive().optional().default(60),
+    KB_CONFIG_VISION_REQUESTS_PER_MINUTE:    z.number().positive().optional().default(300),
+    /** Mistral operating budgets, shared across indexing workers and interactive OCR. */
+    KB_CONFIG_MISTRAL_OCR_PAGES_PER_MINUTE:  z.number().positive().optional().default(1000),
+    KB_CONFIG_MISTRAL_OCR_PAGES_PER_REQUEST: z.number().int().positive().max(1000).optional().default(30),
+    KB_CONFIG_MISTRAL_OCR_MAX_CONCURRENT:    z.number().int().positive().max(64).optional().default(2),
+    /** JSON map from API-key SHA-256 fingerprints to organization IDs; keys in one org share capacity. */
+    MISTRAL_OCR_QUOTA_GROUPS:               z.string().optional(),
+    /** Explicit override for all rerank credentials; otherwise defaults to 60, or 600 for hosted Cohere. */
+    KB_CONFIG_RERANK_REQUESTS_PER_MINUTE:    z.number().positive().optional(),
+    /** Overrides the shared rerank setting only for Sim-hosted Cohere credentials. */
+    KB_CONFIG_HOSTED_RERANK_REQUESTS_PER_MINUTE: z.number().positive().optional(),
+    KB_CONFIG_DOCUMENT_CONCURRENCY:        z.number().optional().default(4),       // Concurrent documents in the in-process (non-Trigger) path
+    KB_CONFIG_BATCH_SIZE:                  z.number().optional().default(2000),    // Chunks to process per embedding batch
+    KB_CONFIG_DOCUMENT_BATCH_SIZE:         z.number().optional().default(10),      // Documents per batch in the in-process (non-Trigger) path
+    KB_CONFIG_DELAY_BETWEEN_BATCHES:       z.number().optional().default(0),       // Delay between batches in ms (0 for max speed)
+    KB_CONFIG_DELAY_BETWEEN_DOCUMENTS:     z.number().optional().default(50),      // Delay between documents in ms
+
+    // Real-time Communication
+    SOCKET_SERVER_URL:                     z.string().url().optional(),            // WebSocket server URL for real-time features
+    PORT:                                  z.number().optional(),                  // Main application port
+    SIM_MCP_URL:                           z.string().url().optional(),            // Public URL of the Sim MCP server when served on its own host (e.g., https://mcp.sim.ai/mcp); defaults to <NEXT_PUBLIC_APP_URL>/api/mcp
+    INTERNAL_API_BASE_URL:                 z.string().optional(),                  // Optional internal base URL for server-side self-calls; must include protocol if set (e.g., http://sim-app.namespace.svc.cluster.local:3000)
+    ALLOWED_ORIGINS:                       z.string().optional(),                  // CORS allowed origins
+    PII_URL:                               z.string().optional(),                  // Presidio PII service base URL serving /analyze + /anonymize (standalone ECS service; default http://localhost:5001 for local dev)
+    PII_MASK_CHUNK_CONCURRENCY:            z.coerce.number().int().positive().optional(), // Max in-flight mask-batch requests per redaction (default 64); tune to the Presidio fleet size behind the internal ALB, lower to 1 for a single instance
+    PII_REF_CONCURRENCY:                   z.coerce.number().int().positive().optional(), // Max large-value refs hydrated+masked+re-stored in parallel per payload (default 4); multiplies with PII_MASK_CHUNK_CONCURRENCY for total in-flight Presidio load
+    PII_SERVICE_CHUNK_CONCURRENCY:         z.coerce.number().int().positive().optional(), // Max Presidio requests in flight from a single mask-batch call (route -> Presidio fan-out, default 4); inner to PII_MASK_CHUNK_CONCURRENCY
+
+    // OAuth Integration Credentials - All optional, enables third-party integrations
+    GOOGLE_CLIENT_ID:                      z.string().optional(),                  // Google OAuth client ID for Google services
+    GOOGLE_CLIENT_SECRET:                  z.string().optional(),                  // Google OAuth client secret
+    GITHUB_CLIENT_ID:                      z.string().optional(),                  // GitHub OAuth client ID for GitHub integration
+    GITHUB_CLIENT_SECRET:                  z.string().optional(),                  // GitHub OAuth client secret
+    GITHUB_APP_CLIENT_ID: z.string().optional(),
+    GITHUB_APP_CLIENT_SECRET: z.string().optional(),
+    GREENHOUSE_CLIENT_ID: z.string().optional(),
+    GREENHOUSE_CLIENT_SECRET: z.string().optional(),
+    GITHUB_APP_ID: z.string().optional(),
+    GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+    GITHUB_APP_SLUG: z.string().optional(),
+    DISABLE_GOOGLE_AUTH:                   z.boolean().optional(),                 // Disable Google OAuth login even when credentials are configured
+    DISABLE_GITHUB_AUTH:                   z.boolean().optional(),                 // Disable GitHub OAuth login even when credentials are configured
+    DISABLE_MICROSOFT_AUTH:               z.boolean().optional(),                 // Disable Microsoft OAuth login even when credentials are configured
+    DISABLE_EMAIL_SIGNUP:                  z.boolean().optional(),                 // Block new email/password registrations while keeping email login working
+
+    X_CLIENT_ID:                           z.string().optional(),                  // X (Twitter) OAuth client ID
+    X_CLIENT_SECRET:                       z.string().optional(),                  // X (Twitter) OAuth client secret
+    TIKTOK_CLIENT_ID:                      z.string().optional(),                  // TikTok OAuth client key (TikTok calls this "client_key")
+    TIKTOK_CLIENT_SECRET:                  z.string().optional(),                  // TikTok OAuth client secret
+    CONFLUENCE_CLIENT_ID:                  z.string().optional(),                  // Atlassian Confluence OAuth client ID
+    CONFLUENCE_CLIENT_SECRET:              z.string().optional(),                  // Atlassian Confluence OAuth client secret
+    JIRA_CLIENT_ID:                        z.string().optional(),                  // Atlassian Jira OAuth client ID
+    JIRA_CLIENT_SECRET:                    z.string().optional(),                  // Atlassian Jira OAuth client secret
+    ASANA_CLIENT_ID:                       z.string().optional(),                  // Asana OAuth client ID
+    ASANA_CLIENT_SECRET:                   z.string().optional(),                  // Asana OAuth client secret
+    AIRTABLE_CLIENT_ID:                    z.string().optional(),                  // Airtable OAuth client ID
+    AIRTABLE_CLIENT_SECRET:                z.string().optional(),                  // Airtable OAuth client secret
+    BITBUCKET_CLIENT_ID:                   z.string().optional(),                  // Bitbucket OAuth consumer key
+    BITBUCKET_CLIENT_SECRET:               z.string().optional(),                  // Bitbucket OAuth consumer secret
+    NOTION_CLIENT_ID:                      z.string().optional(),                  // Notion OAuth client ID
+    NOTION_CLIENT_SECRET:                  z.string().optional(),                  // Notion OAuth client secret
+    MONDAY_CLIENT_ID:                      z.string().optional(),                  // Monday.com OAuth client ID
+    MONDAY_CLIENT_SECRET:                  z.string().optional(),                  // Monday.com OAuth client secret
+    DOCUSIGN_CLIENT_ID:                    z.string().optional(),                  // DocuSign OAuth client ID
+    DOCUSIGN_CLIENT_SECRET:                z.string().optional(),                  // DocuSign OAuth client secret
+    DOCUSIGN_AUTH_HOST:                    z.string().optional(),                  // DocuSign auth host: account-d.docusign.com (demo, default) or account.docusign.com (production)
+    MICROSOFT_CLIENT_ID:                   z.string().optional(),                  // Microsoft OAuth client ID for Office 365/Teams
+    MICROSOFT_CLIENT_SECRET:               z.string().optional(),                  // Microsoft OAuth client secret
+    HUBSPOT_MCP_CLIENT_ID:                 z.string().optional(),                  // HubSpot member MCP OAuth client ID
+    HUBSPOT_MCP_CLIENT_SECRET:             z.string().optional(),                  // HubSpot member MCP OAuth client secret
+    HUBSPOT_CLIENT_ID:                     z.string().optional(),                  // HubSpot OAuth client ID
+    HUBSPOT_CLIENT_SECRET:                 z.string().optional(),                  // HubSpot OAuth client secret
+    SALESFORCE_CLIENT_ID:                  z.string().optional(),                  // Salesforce OAuth client ID
+    SALESFORCE_CLIENT_SECRET:              z.string().optional(),                  // Salesforce OAuth client secret
+    ZOHO_CLIENT_ID:                        z.string().optional(),                  // Zoho OAuth client ID (Zoho Desk)
+    ZOHO_CLIENT_SECRET:                    z.string().optional(),                  // Zoho OAuth client secret (Zoho Desk)
+    WEALTHBOX_CLIENT_ID:                   z.string().optional(),                  // WealthBox OAuth client ID
+    WEALTHBOX_CLIENT_SECRET:               z.string().optional(),                  // WealthBox OAuth client secret
+    PIPEDRIVE_CLIENT_ID:                   z.string().optional(),                  // Pipedrive OAuth client ID
+    PIPEDRIVE_CLIENT_SECRET:               z.string().optional(),                  // Pipedrive OAuth client secret
+    LINEAR_CLIENT_ID:                      z.string().optional(),                  // Linear OAuth client ID
+    LINEAR_CLIENT_SECRET:                  z.string().optional(),                  // Linear OAuth client secret
+    CLICKUP_CLIENT_ID:                     z.string().optional(),                  // ClickUp OAuth client ID
+    CLICKUP_CLIENT_SECRET:                 z.string().optional(),                  // ClickUp OAuth client secret
+    BOX_CLIENT_ID:                         z.string().optional(),                  // Box OAuth client ID
+    BOX_CLIENT_SECRET:                     z.string().optional(),                  // Box OAuth client secret
+    DROPBOX_CLIENT_ID:                     z.string().optional(),                  // Dropbox OAuth client ID
+    DROPBOX_CLIENT_SECRET:                 z.string().optional(),                  // Dropbox OAuth client secret
+    SLACK_CLIENT_ID:                       z.string().optional(),                  // Slack OAuth client ID
+    SLACK_SEARCH_APP_ID:                   z.string().optional(),
+    SLACK_SEARCH_CLIENT_ID:                z.string().optional(),
+    SLACK_SEARCH_CLIENT_SECRET:            z.string().optional(),
+    SLACK_SEARCH_SIGNING_SECRET:           z.string().optional(),
+    SLACK_SEARCH_SHARED_APP:               z.boolean().optional(),
+    SLACK_CLIENT_SECRET:                   z.string().optional(),                  // Slack OAuth client secret
+    SLACK_SIGNING_SECRET:                  z.string().optional(),                  // Official Sim Slack app signing secret (verifies inbound events for the native OAuth trigger)
+    SLACK_EXTENDED_SCOPES:                 z.boolean().optional(),                 // Request app_mentions:read, assistant:write, im:history — only where the Slack app is approved for them
+    REDDIT_CLIENT_ID:                      z.string().optional(),                  // Reddit OAuth client ID
+    REDDIT_CLIENT_SECRET:                  z.string().optional(),                  // Reddit OAuth client secret
+    RAMP_CLIENT_ID:                        z.string().optional(),
+    RAMP_CLIENT_SECRET:                    z.string().optional(),
+    HELPSCOUT_CLIENT_ID:                   z.string().optional(),                  // Help Scout OAuth app ID
+    HELPSCOUT_CLIENT_SECRET:               z.string().optional(),                  // Help Scout OAuth app secret
+    WEBFLOW_CLIENT_ID:                     z.string().optional(),                  // Webflow OAuth client ID
+    WEBFLOW_CLIENT_SECRET:                 z.string().optional(),                  // Webflow OAuth client secret
+    TRELLO_API_KEY:                        z.string().optional(),                  // Trello API Key
+    LINKEDIN_CLIENT_ID:                    z.string().optional(),                  // LinkedIn OAuth client ID
+    LINKEDIN_CLIENT_SECRET:                z.string().optional(),                  // LinkedIn OAuth client secret
+    INSTAGRAM_CLIENT_ID:                   z.string().optional(),                  // Instagram App ID (Business Login)
+    INSTAGRAM_CLIENT_SECRET:               z.string().optional(),                  // Instagram App Secret (Business Login)
+    SHOPIFY_CLIENT_ID:                     z.string().optional(),                  // Shopify OAuth client ID
+    SHOPIFY_CLIENT_SECRET:                 z.string().optional(),                  // Shopify OAuth client secret
+    ZOOM_SEARCH:                           z.boolean().optional(),
+    ZOOM_MCP_CLIENT_ID:                    z.string().optional(),                  // Zoom Search MCP OAuth client ID
+    ZOOM_MCP_CLIENT_SECRET:                z.string().optional(),                  // Zoom Search MCP OAuth client secret
+    ZOOM_CLIENT_ID:                        z.string().optional(),                  // Zoom OAuth client ID
+    ZOOM_CLIENT_SECRET:                    z.string().optional(),                  // Zoom OAuth client secret
+    WORDPRESS_CLIENT_ID:                   z.string().optional(),                  // WordPress.com OAuth client ID
+    WORDPRESS_CLIENT_SECRET:               z.string().optional(),                  // WordPress.com OAuth client secret
+    SPOTIFY_CLIENT_ID:                     z.string().optional(),                  // Spotify OAuth client ID
+    SPOTIFY_CLIENT_SECRET:                 z.string().optional(),                  // Spotify OAuth client secret
+    CALCOM_CLIENT_ID:                      z.string().optional(),                  // Cal.com OAuth client ID
+    ATTIO_CLIENT_ID:                       z.string().optional(),                  // Attio OAuth client ID
+    ATTIO_CLIENT_SECRET:                   z.string().optional(),                  // Attio OAuth client secret
+
+    // AgentMail - Mothership Email Inbox
+    AGENTMAIL_API_KEY:                     z.string().min(1).optional(),           // AgentMail API key for mothership email inbox
+    AGENTMAIL_DOMAIN:                      z.string().optional(),                  // Custom domain for AgentMail inboxes (default: agentmail.to)
+    DASHBOARDS: z.boolean().optional(),
+    PROJECTS:                              z.boolean().optional(),                 // Fallback for the `projects` feature flag off AppConfig
+    MSHIP_COMPUTER_USE: z.boolean().optional(),
+    WORKFLOW_TESTS:                        z.boolean().optional(),                 // Fallback for the `workflow-tests` feature flag off AppConfig
+    CHANGELOG:                             z.boolean().optional(),                 // Fallback for the `changelog` feature flag off AppConfig
+    MSHIP_MODEL_SELECTOR: z.boolean().optional(),
+    INBOX_ENABLED:                         z.boolean().optional(),                 // Enable inbox (Sim Mailer) on self-hosted (bypasses hosted requirements)
+    SANDBOXES_ENABLED:                     z.boolean().optional(),                 // Enable custom sandboxes on self-hosted (bypasses hosted requirements)
+
+    // E2B Remote Code Execution
+    E2B_ENABLED:                           z.string().optional(),                  // Enable E2B remote code execution
+    E2B_API_KEY:                           z.string().optional(),                  // E2B API key for sandbox creation
+    E2B_FUNCTION_TEMPLATE_ID:               z.string().refine(isImmutableE2BTemplateRef, { message: `E2B_FUNCTION_TEMPLATE_ID ${IMMUTABLE_E2B_TEMPLATE_REF_ERROR}` }).optional(), // Immutable dedicated E2B build for Function JavaScript/Python/Shell and workspace sandbox layers; no Mothership fallback
+    E2B_FUNCTION_TEMPLATE_GENERATION:       z.string().refine(isValidSandboxReleaseGeneration, { message: `E2B_FUNCTION_TEMPLATE_GENERATION ${SANDBOX_RELEASE_GENERATION_ERROR}` }).optional(), // Monotonic release epoch printed by the Function E2B builder
+    MOTHERSHIP_E2B_TEMPLATE_ID:             z.string().optional(),                  // Mothership code-tool template; never a Function-base fallback
+    MOTHERSHIP_SIM_TRANSPORT:              z.enum(['direct', 'checkpoint']).optional(), // Server-side Sim delivery; hosted defaults to direct, self-hosted to outbound checkpoint delivery
+    MOTHERSHIP_SANDBOX_CLI_ENDPOINT:        z.string().optional(),                  // Sim API base the sandboxed sim CLI calls back to; defaults to NEXT_PUBLIC_APP_URL (set when the public URL is not reachable from the sandbox network)
+    MOTHERSHIP_E2B_DOC_TEMPLATE_ID:         z.string().optional(),                  // Dedicated E2B template with python-pptx/docx/openpyxl/reportlab for document generation; when set (and E2B enabled), docs compile via Python instead of the JS isolated-vm path
+    E2B_PI_TEMPLATE_ID:                     z.string().optional(),                  // E2B template ID/alias with the Pi CLI + git baked in (Create PR, its Babysit continuation, and Review Code)
+    PI_SANDBOX_LIFETIME_MS:                 z.string().optional(),                  // Lower the Pi sandbox lifetime (ms) below the default; E2B caps a sandbox at 1h on Hobby accounts and 24h on Pro
+    E2B_DOMAIN:                            z.string().optional(),                  // E2B control-plane domain (defaults to e2b.app, matching the SDK); only the template-delete endpoint the SDK omits reads this
+
+    // Remote Code Execution provider selection
+    SANDBOX_PROVIDER:                      z.enum(SANDBOX_PROVIDER_IDS).optional(), // Which sandbox provider serves remote executions: 'e2b' (default) or 'daytona'
+
+    // Daytona Remote Code Execution (used when SANDBOX_PROVIDER=daytona)
+    DAYTONA_API_KEY:                       z.string().optional(),                  // Daytona API key; needs write:snapshots to build images, write:sandboxes to run them
+    DAYTONA_FUNCTION_SNAPSHOT_ID:          z.string().refine(isImmutableDaytonaSnapshotRef, { message: `DAYTONA_FUNCTION_SNAPSHOT_ID ${IMMUTABLE_DAYTONA_SNAPSHOT_REF_ERROR}` }).optional(), // Immutable dedicated Daytona Function snapshot ID; no Mothership fallback
+    DAYTONA_SHELL_SNAPSHOT_ID:             z.string().optional(),                  // Mothership code-tool snapshot; never a Function-base fallback
+    DAYTONA_DOC_SNAPSHOT_ID:               z.string().optional(),                  // Daytona snapshot mirroring mothership-docs
+    DAYTONA_PI_SNAPSHOT_ID:                z.string().optional(),                  // Daytona snapshot mirroring the Pi template (Create PR, its Babysit continuation, and Review Code)
+
+    // Access Control (Permission Groups) - for self-hosted deployments
+    ACCESS_CONTROL_ENABLED:                z.boolean().optional(),                 // Enable access control on self-hosted (bypasses plan requirements)
+
+    // Enterprise master switch - for self-hosted deployments
+    ENTERPRISE_ENABLED:                    z.boolean().optional(),                 // Enable the whole enterprise suite on self-hosted; individual flags below override it per feature
+
+    // Enterprise Feature Overrides - for self-hosted deployments
+    WHITELABELING_ENABLED:                 z.boolean().optional(),                 // Enable whitelabeling on self-hosted (bypasses hosted requirements)
+    AUDIT_LOGS_ENABLED:                    z.boolean().optional(),                 // Enable audit logs on self-hosted (bypasses hosted requirements)
+    CUSTOM_BLOCKS_ENABLED:                 z.boolean().optional(),                 // Enable custom blocks on self-hosted (bypasses hosted requirements)
+    DATA_RETENTION_ENABLED:               z.boolean().optional(),                 // Enable data retention settings and retention deletion on self-hosted (bypasses hosted requirements)
+    DATA_DRAINS_ENABLED:                  z.boolean().optional(),                 // Enable data drains on self-hosted (bypasses hosted requirements)
+    SESSION_POLICIES_ENABLED:             z.boolean().optional(),                 // Enable org session policies on self-hosted (bypasses hosted requirements)
+    FORKING_ENABLED:                      z.boolean().optional(),                 // Enable workspace forking on self-hosted (bypasses hosted requirements)
+    AGENT_MEMORY_HISTORY:                 z.boolean().optional(),
+    CREDENTIAL_GROUPS:                    z.boolean().optional(),                 // Enable Credential Groups on self-hosted (bypasses hosted requirements)
+    KNOWLEDGE_MEMBER_ACCESS:              z.boolean().optional(),                 // Enable per-member knowledge connectors and hybrid-by-default retrieval globally
+
+    // Organizations - for self-hosted deployments
+    ORGANIZATIONS_ENABLED:                 z.boolean().optional(),                 // Enable organizations on self-hosted (bypasses plan requirements)
+
+    // Instance-tier organization - every user auto-joins this one org
+    INSTANCE_ORG_NAME:                     z.string().min(1).optional(),           // Display name of the instance organization; setting it turns instance-org mode on
+    INSTANCE_ORG_SLUG:                     z.string().min(1).optional(),           // Slug for the instance organization (derived from the name when omitted)
+    INSTANCE_ORG_OWNER_EMAIL:              z.string().min(1).optional(),           // Email of the user who owns the instance organization (defaults to the first user who triggers provisioning)
+
+    // Invitations - for self-hosted deployments
+    DISABLE_INVITATIONS:                   z.boolean().optional(),                 // Disable workspace invitations globally (for self-hosted deployments)
+    DISABLE_PUBLIC_API:                    z.boolean().optional(),                 // Disable public API access globally (for self-hosted deployments)
+
+    // Development Tools
+    REACT_GRAB_ENABLED:                    z.boolean().optional(),                 // Enable React Grab for UI element debugging in Cursor/AI agents (dev only)
+    REACT_SCAN_ENABLED:                    z.boolean().optional(),                 // Enable React Scan for performance debugging (dev only)
+
+    // Network / proxy trust
+    /** Comma-separated proxy IPs/CIDRs skipped while resolving the forwarded client chain. */
+    AUTH_TRUSTED_PROXIES:                  z.string().optional(),
+
+
+    // SSO Configuration (for script-based registration)
+    SSO_ENABLED:                           z.boolean().optional(),                 // Enable SSO functionality
+    /** Trust administrator domain claims without DNS proof on self-hosted deployments only. */
+    SSO_SKIP_DOMAIN_VERIFICATION:          z.boolean().optional(),
+    SCIM_ENABLED:                          z.boolean().optional(),                 // Enable SCIM directory provisioning
+    USAGE_MONITORING_ENABLED:              z.boolean().optional(),                 // Enable organization usage monitoring on self-hosted (bypasses hosted requirements)
+    SSO_PROVIDER_TYPE:                     z.enum(['oidc', 'saml']).optional(),    // [REQUIRED] SSO provider type
+    SSO_PROVIDER_ID:                       z.string().optional(),                  // [REQUIRED] SSO provider ID
+    SSO_ISSUER:                            z.string().optional(),                  // [REQUIRED] SSO issuer URL
+    SSO_DOMAIN:                            z.string().optional(),                  // [REQUIRED] SSO email domain
+    SSO_USER_EMAIL:                        z.string().optional(),                  // [REQUIRED] User email for SSO registration
+    SSO_ORGANIZATION_ID:                   z.string().optional(),                  // Organization ID for SSO registration (optional)
+    SSO_TRUSTED_PROVIDER_IDS:              z.string().optional(),                  // Comma-separated SSO provider IDs to trust for automatic account linking when an existing account shares the same email. Use for IdPs that do not assert email_verified. Merged into Better Auth accountLinking.trustedProviders.
+
+    // SSO Mapping Configuration (optional - sensible defaults provided)
+    SSO_MAPPING_ID:                        z.string().optional(),                  // Custom ID claim mapping (default: sub for OIDC, nameidentifier for SAML)
+    SSO_MAPPING_EMAIL:                     z.string().optional(),                  // Custom email claim mapping (default: email for OIDC, emailaddress for SAML)
+    SSO_MAPPING_NAME:                      z.string().optional(),                  // Custom name claim mapping (default: name for both)
+    SSO_MAPPING_IMAGE:                     z.string().optional(),                  // Custom image claim mapping (default: picture for OIDC)
+
+    // SSO OIDC Configuration
+    SSO_OIDC_CLIENT_ID:                    z.string().optional(),                  // [REQUIRED for OIDC] OIDC client ID
+    SSO_OIDC_CLIENT_SECRET:                z.string().optional(),                  // [REQUIRED for OIDC] OIDC client secret
+    SSO_OIDC_SCOPES:                       z.string().optional(),                  // OIDC scopes (default: openid,profile,email)
+    SSO_OIDC_PKCE:                         z.string().optional(),                  // Enable PKCE (default: true)
+    SSO_OIDC_AUTHORIZATION_ENDPOINT:       z.string().optional(),                  // OIDC authorization endpoint (optional, uses discovery)
+    SSO_OIDC_TOKEN_ENDPOINT:               z.string().optional(),                  // OIDC token endpoint (optional, uses discovery)
+    SSO_OIDC_USERINFO_ENDPOINT:            z.string().optional(),                  // OIDC userinfo endpoint (optional, uses discovery)
+    SSO_OIDC_JWKS_ENDPOINT:                z.string().optional(),                  // OIDC JWKS endpoint (optional, uses discovery)
+    SSO_OIDC_DISCOVERY_ENDPOINT:           z.string().optional(),                  // OIDC discovery endpoint (default: {issuer}/.well-known/openid-configuration)
+
+    // SSO SAML Configuration
+    SSO_SAML_ENTRY_POINT:                  z.string().optional(),                  // [REQUIRED for SAML] SAML IdP SSO URL
+    SSO_SAML_CERT:                         z.string().optional(),                  // [REQUIRED for SAML] SAML IdP certificate
+    SSO_SAML_CALLBACK_URL:                 z.string().optional(),                  // SAML callback URL (default: {issuer}/callback)
+    SSO_SAML_SP_METADATA:                  z.string().optional(),                  // SAML SP metadata XML (auto-generated if not provided)
+    SSO_SAML_IDP_METADATA:                 z.string().optional(),                  // SAML IdP metadata XML (optional)
+    SSO_SAML_AUDIENCE:                     z.string().optional(),                  // SAML audience restriction (default: issuer URL)
+    SSO_SAML_WANT_ASSERTIONS_SIGNED:       z.string().optional(),                  // Require signed SAML assertions (default: false)
+    SSO_SAML_SIGNATURE_ALGORITHM:          z.string().optional(),                  // SAML signature algorithm (optional)
+    SSO_SAML_DIGEST_ALGORITHM:             z.string().optional(),                  // SAML digest algorithm (optional)
+    SSO_SAML_IDENTIFIER_FORMAT:            z.string().optional(),                  // SAML identifier format (optional)
+  },
+
+  client: {
+    // Core Application URLs - Required for frontend functionality
+    NEXT_PUBLIC_APP_URL:                   z.string().url(),                       // Base URL of the application (e.g., https://www.sim.ai)
+
+    // Client-side Services
+    NEXT_PUBLIC_SOCKET_URL:                z.string().url().optional(),            // WebSocket server URL for real-time features
+    
+    // Billing
+    NEXT_PUBLIC_BILLING_ENABLED:           z.boolean().optional(),                 // Enable billing enforcement and usage tracking (client-side)
+    
+    // Analytics & Tracking
+    NEXT_PUBLIC_POSTHOG_ENABLED:           z.boolean().optional(),                 // Enable PostHog analytics (client-side)
+    NEXT_PUBLIC_POSTHOG_KEY:               z.string().optional(),                  // PostHog project API key
+
+    // UI Branding & Whitelabeling
+    NEXT_PUBLIC_BRAND_NAME:                z.string().optional(),                  // Custom brand name (defaults to "Sim")
+    NEXT_PUBLIC_BRAND_LOGO_URL:            z.string().url().optional(),            // Custom logo URL
+    NEXT_PUBLIC_BRAND_FAVICON_URL:         z.string().url().optional(),            // Custom favicon URL
+    NEXT_PUBLIC_CUSTOM_CSS_URL:            z.string().url().optional(),            // Custom CSS stylesheet URL
+    NEXT_PUBLIC_SUPPORT_EMAIL:             z.string().email().optional(),          // Custom support email
+
+    NEXT_PUBLIC_E2B_ENABLED:               z.string().optional(),
+    NEXT_PUBLIC_SANDBOXES_ENABLED:         z.string().optional(),              // Client twin of isRemoteSandboxEnabled — true under either sandbox provider
+    NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS: z.string().optional(),              // Hide Bedrock credential fields when deployment uses AWS default credential chain (IAM roles, instance profiles, ECS task roles, IRSA)
+    NEXT_PUBLIC_AZURE_CONFIGURED:          z.string().optional(),              // Hide Azure credential fields when endpoint/key/version are pre-configured server-side
+    NEXT_PUBLIC_COHERE_CONFIGURED:         z.string().optional(),              // Hide Cohere API key field on Knowledge block when COHERE_API_KEY is pre-configured server-side
+    NEXT_PUBLIC_ENABLE_PLAYGROUND:         z.string().optional(),                  // Enable component playground at /playground
+    NEXT_PUBLIC_DOCUMENTATION_URL:         z.string().url().optional(),            // Custom documentation URL
+    NEXT_PUBLIC_TERMS_URL:                 z.string().url().optional(),            // Custom terms of service URL
+    NEXT_PUBLIC_PRIVACY_URL:               z.string().url().optional(),            // Custom privacy policy URL
+
+    // Theme Customization
+    NEXT_PUBLIC_BRAND_PRIMARY_COLOR:       z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),     // Primary brand color (hex format, e.g., "#33c482")
+    NEXT_PUBLIC_BRAND_PRIMARY_HOVER_COLOR: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),     // Primary brand hover state (hex format)
+    NEXT_PUBLIC_BRAND_ACCENT_COLOR:        z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),     // Accent brand color (hex format)
+    NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR:  z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),     // Accent brand hover state (hex format)
+    NEXT_PUBLIC_BRAND_BACKGROUND_COLOR:    z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),     // Brand background color (hex format)
+
+    // Feature Flags
+    NEXT_PUBLIC_ENTERPRISE_ENABLED:        z.boolean().optional(),                   // Client twin of ENTERPRISE_ENABLED — set both together
+    NEXT_PUBLIC_SSO_ENABLED:               z.boolean().optional(),                   // Enable SSO login UI components
+    NEXT_PUBLIC_SCIM_ENABLED:              z.boolean().optional(),                   // Enable SCIM settings UI
+    NEXT_PUBLIC_ACCESS_CONTROL_ENABLED:    z.boolean().optional(),                   // Enable access control (permission groups) on self-hosted
+    NEXT_PUBLIC_SLACK_EXTENDED_SCOPES:     z.boolean().optional(),                   // Client twin of SLACK_EXTENDED_SCOPES — set both together
+    NEXT_PUBLIC_WHITELABELING_ENABLED:     z.boolean().optional(),                   // Enable whitelabeling on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_AUDIT_LOGS_ENABLED:        z.boolean().optional(),                   // Enable audit logs on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_CUSTOM_BLOCKS_ENABLED:     z.boolean().optional(),                   // Enable custom blocks on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_USAGE_MONITORING_ENABLED:  z.boolean().optional(),                   // Enable organization usage monitoring on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_DATA_RETENTION_ENABLED:   z.boolean().optional(),                   // Enable data retention settings on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_DATA_DRAINS_ENABLED:      z.boolean().optional(),                   // Enable data drains on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_SESSION_POLICIES_ENABLED: z.boolean().optional(),                   // Enable org session policies on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_FORKING_ENABLED:          z.boolean().optional(),                   // Enable workspace forking on self-hosted (bypasses hosted requirements)
+    NEXT_PUBLIC_ORGANIZATIONS_ENABLED:     z.boolean().optional(),                   // Enable organizations on self-hosted (bypasses plan requirements)
+    NEXT_PUBLIC_DISABLE_INVITATIONS:       z.boolean().optional(),                   // Disable workspace invitations globally (for self-hosted deployments)
+    NEXT_PUBLIC_DISABLE_PUBLIC_API:        z.boolean().optional(),                   // Disable public API access UI toggle globally
+    NEXT_PUBLIC_INBOX_ENABLED:             z.boolean().optional(),                   // Enable inbox (Sim Mailer) on self-hosted
+    NEXT_PUBLIC_CHAT_DISABLED:             z.boolean().optional(),                   // Hide the Chat module (Chat is shown when unset)
+    NEXT_PUBLIC_STATUS_NOTICE_PREVIEW:     z.boolean().optional(),                   // Force the sidebar service-status notice into its critical preview state
+    NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED: z.boolean().optional().default(true), // Control visibility of email/password login forms
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY:        z.string().min(1).optional(),           // Cloudflare Turnstile site key for captcha widget
+  },
+
+  // Variables available on both server and client
+  shared: {
+    NODE_ENV:                              z.enum(['development', 'test', 'production']).optional(), // Runtime environment
+    NEXT_TELEMETRY_DISABLED:               z.string().optional(),                                    // Disable Next.js telemetry collection
+  },
+
+  experimental__runtimeEnv: {
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_BILLING_ENABLED: process.env.NEXT_PUBLIC_BILLING_ENABLED,
+    NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
+    NEXT_PUBLIC_BRAND_NAME: process.env.NEXT_PUBLIC_BRAND_NAME,
+    NEXT_PUBLIC_BRAND_LOGO_URL: process.env.NEXT_PUBLIC_BRAND_LOGO_URL,
+    NEXT_PUBLIC_BRAND_FAVICON_URL: process.env.NEXT_PUBLIC_BRAND_FAVICON_URL,
+    NEXT_PUBLIC_CUSTOM_CSS_URL: process.env.NEXT_PUBLIC_CUSTOM_CSS_URL,
+    NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
+    NEXT_PUBLIC_DOCUMENTATION_URL: process.env.NEXT_PUBLIC_DOCUMENTATION_URL,
+    NEXT_PUBLIC_TERMS_URL: process.env.NEXT_PUBLIC_TERMS_URL,
+    NEXT_PUBLIC_PRIVACY_URL: process.env.NEXT_PUBLIC_PRIVACY_URL,
+    NEXT_PUBLIC_BRAND_PRIMARY_COLOR: process.env.NEXT_PUBLIC_BRAND_PRIMARY_COLOR,
+    NEXT_PUBLIC_BRAND_PRIMARY_HOVER_COLOR: process.env.NEXT_PUBLIC_BRAND_PRIMARY_HOVER_COLOR,
+    NEXT_PUBLIC_BRAND_ACCENT_COLOR: process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR,
+    NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR: process.env.NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR,
+    NEXT_PUBLIC_BRAND_BACKGROUND_COLOR: process.env.NEXT_PUBLIC_BRAND_BACKGROUND_COLOR,
+    NEXT_PUBLIC_SSO_ENABLED: process.env.NEXT_PUBLIC_SSO_ENABLED,
+    NEXT_PUBLIC_SCIM_ENABLED: process.env.NEXT_PUBLIC_SCIM_ENABLED,
+    NEXT_PUBLIC_ACCESS_CONTROL_ENABLED: process.env.NEXT_PUBLIC_ACCESS_CONTROL_ENABLED,
+    NEXT_PUBLIC_SLACK_EXTENDED_SCOPES: process.env.NEXT_PUBLIC_SLACK_EXTENDED_SCOPES,
+    NEXT_PUBLIC_WHITELABELING_ENABLED: process.env.NEXT_PUBLIC_WHITELABELING_ENABLED,
+    NEXT_PUBLIC_AUDIT_LOGS_ENABLED: process.env.NEXT_PUBLIC_AUDIT_LOGS_ENABLED,
+    NEXT_PUBLIC_CUSTOM_BLOCKS_ENABLED: process.env.NEXT_PUBLIC_CUSTOM_BLOCKS_ENABLED,
+    NEXT_PUBLIC_USAGE_MONITORING_ENABLED: process.env.NEXT_PUBLIC_USAGE_MONITORING_ENABLED,
+    NEXT_PUBLIC_DATA_RETENTION_ENABLED: process.env.NEXT_PUBLIC_DATA_RETENTION_ENABLED,
+    NEXT_PUBLIC_DATA_DRAINS_ENABLED: process.env.NEXT_PUBLIC_DATA_DRAINS_ENABLED,
+    NEXT_PUBLIC_SESSION_POLICIES_ENABLED: process.env.NEXT_PUBLIC_SESSION_POLICIES_ENABLED,
+    NEXT_PUBLIC_FORKING_ENABLED: process.env.NEXT_PUBLIC_FORKING_ENABLED,
+    NEXT_PUBLIC_ENTERPRISE_ENABLED: process.env.NEXT_PUBLIC_ENTERPRISE_ENABLED,
+    NEXT_PUBLIC_ORGANIZATIONS_ENABLED: process.env.NEXT_PUBLIC_ORGANIZATIONS_ENABLED,
+    NEXT_PUBLIC_DISABLE_INVITATIONS: process.env.NEXT_PUBLIC_DISABLE_INVITATIONS,
+    NEXT_PUBLIC_DISABLE_PUBLIC_API: process.env.NEXT_PUBLIC_DISABLE_PUBLIC_API,
+    NEXT_PUBLIC_INBOX_ENABLED: process.env.NEXT_PUBLIC_INBOX_ENABLED,
+    NEXT_PUBLIC_CHAT_DISABLED: process.env.NEXT_PUBLIC_CHAT_DISABLED,
+    NEXT_PUBLIC_STATUS_NOTICE_PREVIEW: process.env.NEXT_PUBLIC_STATUS_NOTICE_PREVIEW,
+    NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED: process.env.NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED,
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+    NEXT_PUBLIC_E2B_ENABLED: process.env.NEXT_PUBLIC_E2B_ENABLED,
+    NEXT_PUBLIC_SANDBOXES_ENABLED: process.env.NEXT_PUBLIC_SANDBOXES_ENABLED,
+    NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS: process.env.NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS,
+    NEXT_PUBLIC_AZURE_CONFIGURED: process.env.NEXT_PUBLIC_AZURE_CONFIGURED,
+    NEXT_PUBLIC_COHERE_CONFIGURED: process.env.NEXT_PUBLIC_COHERE_CONFIGURED,
+    NEXT_PUBLIC_ENABLE_PLAYGROUND: process.env.NEXT_PUBLIC_ENABLE_PLAYGROUND,
+    NEXT_PUBLIC_POSTHOG_ENABLED: process.env.NEXT_PUBLIC_POSTHOG_ENABLED,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    NODE_ENV: process.env.NODE_ENV,
+    NEXT_TELEMETRY_DISABLED: process.env.NEXT_TELEMETRY_DISABLED,
+  },
+})
+
+// Need this utility because t3-env is returning string for boolean values.
+export const isTruthy = (value: string | boolean | number | undefined) =>
+  typeof value === 'string' ? value.toLowerCase() === 'true' || value === '1' : Boolean(value)
+
+// Utility to check if a value is explicitly false (defaults to false only if explicitly set)
+export const isFalsy = (value: string | boolean | number | undefined) =>
+  typeof value === 'string' ? value.toLowerCase() === 'false' || value === '0' : value === false
+
+export { getEnv }
+
+/**
+ * Coerce an env-derived value to a finite number ≥ `min`, falling back to the
+ * provided default when the value is unset, empty, non-finite, or below `min`.
+ * `min` defaults to `0` so configs like `KB_CONFIG_DELAY_BETWEEN_BATCHES=0`
+ * (meaning "no delay / max throughput") are honored. Pass `min: 1` for configs
+ * where zero is invalid (e.g. Redis TTLs, capacity limits).
+ *
+ * `createEnv` is configured with `skipValidation: true`, so values declared as
+ * `z.number()` arrive as raw strings when sourced from `process.env` or Helm.
+ * Use this helper anywhere a numeric env override is consumed to normalize the
+ * type at the boundary instead of relying on JS implicit coercion.
+ *
+ * Skipping validation also means the schema never runs, so a `.default(...)` in
+ * the declaration above never executes: **the fallback passed here is the real
+ * default**, and the declared one is documentation. Keep the two in agreement —
+ * a variable read in more than one place with a different fallback each time has
+ * no single default at all, which is how one knob came to set both the
+ * document-processing queue depth and the embedding request fan-out.
+ */
+export function envNumber(
+  value: number | string | undefined | null,
+  fallback: number,
+  options: { min?: number; integer?: boolean } = {}
+): number {
+  const min = options.min ?? 0
+  if (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= min &&
+    (!options.integer || Number.isInteger(value))
+  ) {
+    return value
+  }
+  if (value === undefined || value === null || String(value).trim() === '') return fallback
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= min && (!options.integer || Number.isInteger(parsed))
+    ? parsed
+    : fallback
+}
+
+/**
+ * Coerce an env-derived value to a boolean. Returns `undefined` when unset
+ * so callers can apply context-aware defaults. Required because
+ * `Boolean("false") === true`, so `z.coerce.boolean()` would silently flip
+ * the meaning of `MY_FLAG=false`.
+ */
+export function envBoolean(value: boolean | string | undefined | null): boolean | undefined {
+  if (typeof value === 'boolean') return value
+  if (value === undefined || value === null || value === '') return undefined
+  const normalized = String(value).trim().toLowerCase()
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on'
+}

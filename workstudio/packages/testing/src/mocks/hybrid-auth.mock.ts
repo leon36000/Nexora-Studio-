@@ -1,0 +1,73 @@
+import { vi } from 'vitest'
+import { authMockFns } from './auth.mock'
+
+/**
+ * Auth type constants matching `@/lib/auth/hybrid` AuthType. Included in
+ * `hybridAuthMock.AuthType` so route code can reference `AuthType.SESSION` etc.
+ */
+const AuthTypeMock = {
+  SESSION: 'session',
+  API_KEY: 'api_key',
+  INTERNAL_JWT: 'internal_jwt',
+} as const
+
+/**
+ * Default session-delegating implementation for `checkSessionOrInternalAuth`.
+ * Mirrors the real function's session-auth path so tests that only mock
+ * `getSession` (via `authMockFns.mockGetSession`) continue to work when the
+ * hybrid module is globally mocked.
+ */
+const defaultCheckSessionOrInternalAuth = async () => {
+  const session = await authMockFns.mockGetSession()
+  if (session?.user?.id) {
+    return {
+      success: true,
+      userId: session.user.id,
+      userName: session.user.name,
+      userEmail: session.user.email,
+      authType: AuthTypeMock.SESSION,
+    }
+  }
+  return { success: false, error: 'Unauthorized' }
+}
+
+/**
+ * Controllable mock functions for `@/lib/auth/hybrid`. Override per-test with
+ * `hybridAuthMockFns.mockCheckHybridAuth.mockResolvedValueOnce(...)`.
+ */
+export const hybridAuthMockFns = {
+  mockCheckHybridAuth: vi.fn(defaultCheckSessionOrInternalAuth),
+  mockCheckSessionOrInternalAuth: vi.fn(defaultCheckSessionOrInternalAuth),
+  mockCheckInternalAuth: vi.fn(),
+}
+
+/**
+ * Static mock module for `@/lib/auth/hybrid`.
+ *
+ * @example
+ * ```ts
+ * vi.mock('@/lib/auth/hybrid', () => hybridAuthMock)
+ * ```
+ */
+export const hybridAuthMock = {
+  AuthType: AuthTypeMock,
+  /**
+   * The real derivation, not a vi.fn(): it is a pure branch on fields the test
+   * already controls through the auth result, and a stub returning undefined
+   * would silently un-gate every consumer. Mirrors `capabilityGovernedAuthUserId`
+   * in `@/lib/auth/hybrid` — only a session or a personal API key names a
+   * governed subject.
+   */
+  capabilityGovernedAuthUserId: (auth?: {
+    userId?: string
+    authType?: string
+    apiKeyType?: string
+  }): string | null => {
+    if (!auth?.userId) return null
+    if (auth.authType === 'session') return auth.userId
+    return auth.authType === 'api_key' && auth.apiKeyType === 'personal' ? auth.userId : null
+  },
+  checkHybridAuth: hybridAuthMockFns.mockCheckHybridAuth,
+  checkSessionOrInternalAuth: hybridAuthMockFns.mockCheckSessionOrInternalAuth,
+  checkInternalAuth: hybridAuthMockFns.mockCheckInternalAuth,
+}

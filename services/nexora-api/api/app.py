@@ -1,0 +1,99 @@
+from importlib import import_module
+import logging
+from uuid import uuid4
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+import sentry_sdk
+from sentry_sdk.integrations.logging import LoggingIntegration
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
+
+from api.infrastructure.configuration import Configuration, get_configuration
+from api.infrastructure.fastapi import RequestContext, RequestLogMiddleware, record_http_exception, record_validation_exception
+from api.infrastructure.fastapi.dependencies import request_context
+from api.infrastructure.fastapi.monitoring import setup_prometheus
+from api.infrastructure.fastapi.routes import RouterName
+from api.infrastructure.logging import configure_logging
+from api.lifespan import lifespan
+
+logger = logging.getLogger(__name__)
+
+
+def create_app(
+    configuration: Configuration | None = None,
+    skip_lifespan: bool = False,
+) -> FastAPI:
+    if configuration is None:
+        configuration = get_configuration()
+
+    configure_logging(configuration.settings)
+    _setup_sentry(configuration)
+
+    app = FastAPI(
+        title=configuration.settings.app_title,
+        summary=configuration.settings.swagger_summary,
+        version=configuration.settings.swagger_version,
+        description=configuration.settings.swagger_description,
+        terms_of_service=configuration.settings.swagger_terms_of_service,
+        contact=configuration.settings.swagger_contact,
+        license_info=configuration.settings.swagger_license_info,
+        openapi_tags=configuration.settings.swagger_openapi_tags,
+        docs_url=configuration.settings.swagger_docs_url,
+        redoc_url=configuration.settings.swagger_redoc_url,
+        lifespan=None if skip_lifespan else lifespan,
+    )
+
+    _setup_middleware(app, configuration)
+    _setup_exception_handlers(app)
+    _register_routers(app, configuration)
+    _setup_monitoring(app, configuration)
+
+    return app
+
+
+def _setup_sentry(configuration: Configuration) -> None:
+    if configuration.dependencies.sentry:
+        logger.info("Initializing Sentry SDK.")
+        sentry_sdk.init(integrations=[LoggingIntegration(event_level=None)], **configuration.dependencies.sentry.model_dump())
+
+
+def _setup_middleware(app: FastAPI, configuration: Configuration) -> None:
+    app.add_middleware(RequestLogMiddleware)
+    app.add_middleware(SessionMiddleware, secret_key=configuration.settings.auth_secret_key)
+
+    @app.middleware("http")
+    async def set_request_context(request: Request, call_next):
+        request_id = uuid4().hex
+        request_context.set(RequestContext(id=request_id, method=request.method, endpoint=request.url.path))
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
+def _setup_exception_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(StarletteHTTPException, record_http_exception)
+    app.add_exception_handler(RequestValidationError, record_validation_exception)
+
+
+def _register_routers(app: FastAPI, configuration: Configuration) -> None:
+    disabled_routers = set(configuration.settings.disabled_routers)
+    hidden_routers = set(configuration.settings.hidden_routers)
+    enabled_routers = (router for router in RouterName if router not in disabled_routers and router.module_path is not None)
+    for enabled_router in enabled_routers:
+        module = import_module(enabled_router.module_path)
+        router = getattr(module, "router", None)
+        if router is None:
+            raise AttributeError(f"Module {enabled_router.module_path} has no 'router' attribute")
+        include_in_schema = enabled_router not in hidden_routers
+        app.include_router(router=router, include_in_schema=include_in_schema)
+
+
+def _setup_monitoring(app: FastAPI, configuration: Configuration) -> None:
+    if RouterName.MONITORING in configuration.settings.disabled_routers:
+        return
+
+    include_in_schema = RouterName.MONITORING not in configuration.settings.hidden_routers
+
+    if configuration.settings.monitoring_prometheus_enabled:
+        setup_prometheus(app, prometheus_multiproc_dir=configuration.prometheus_multiproc_dir, include_in_schema=include_in_schema)

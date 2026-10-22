@@ -1,0 +1,123 @@
+/**
+ * Returns a new object with the given keys removed.
+ *
+ * @example
+ * omit({ a: 1, b: 2, c: 3 }, ['b', 'c']) // { a: 1 }
+ */
+export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
+  const result = { ...obj }
+  for (const key of keys) {
+    delete result[key]
+  }
+  return result
+}
+
+/**
+ * Returns a shallow copy of `obj` with all `undefined`-valued keys removed.
+ * Useful for building query-param or request-body objects where undefined
+ * fields should not be serialized.
+ *
+ * Replaces the common `Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined))` pattern.
+ */
+export function filterUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>
+}
+
+/**
+ * Returns true only for object-map values, excluding arrays and null.
+ */
+export function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+/**
+ * Returns true for any non-null, non-array object — the LOOSE record check.
+ * Unlike {@link isPlainRecord}, this does NOT inspect the prototype, so it also
+ * accepts class instances, Date, Map, etc. Use this when you only need to know a
+ * value is an indexable object (e.g. before spreading or Object.entries), and
+ * reach for isPlainRecord when you must exclude exotic objects.
+ */
+export function isRecordLike(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Coerces {@link value} to a record, falling back to an empty object. The
+ * coercion counterpart to {@link isRecordLike}, for the common
+ * `isRecordLike(v) ? v : {}` shape when reading an untyped payload whose absence
+ * should read as "no fields" rather than as an error.
+ *
+ * @remarks Returns a fresh `{}` on every miss, so the result is never shared.
+ */
+export function toRecord(value: unknown): Record<string, unknown> {
+  return isRecordLike(value) ? value : {}
+}
+
+/**
+ * Coerces {@link value} to a record, falling back to `null`. Use over
+ * {@link toRecord} when callers must distinguish "absent or malformed" from
+ * "present but empty".
+ */
+export function toRecordOrNull(value: unknown): Record<string, unknown> | null {
+  return isRecordLike(value) ? value : null
+}
+
+/**
+ * Coerces {@link value} to an array, falling back to an empty one. The array
+ * counterpart to {@link toRecord}, for the common `Array.isArray(v) ? v : []`
+ * shape when reading an untyped payload whose absence should read as "no items".
+ *
+ * @remarks Returns a fresh `[]` on every miss, so the result is never shared. A
+ * hit returns the original array rather than a copy, matching the inline form.
+ * The element type is the caller's assertion: nothing here inspects the members,
+ * so prefer the inline `Array.isArray` check where the source is already typed —
+ * that narrows, while this asserts.
+ */
+export function toArray<T = unknown>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : []
+}
+
+/**
+ * Recursively sorts the keys of every plain object reachable from {@link value},
+ * preserving array order while recursing into array elements. Primitives and
+ * `null` are returned unchanged. Produces a structurally equivalent value with
+ * deterministic key ordering, suitable for stable comparison or serialization.
+ *
+ * @remarks Only string keys are sorted and retained; symbol keys are dropped,
+ * matching the stable-serialization callers this serves.
+ */
+export function sortObjectKeysDeep(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortObjectKeysDeep)
+  }
+  if (value !== null && typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+    return Object.keys(obj)
+      .sort()
+      .reduce((result: Record<string, unknown>, key: string) => {
+        result[key] = sortObjectKeysDeep(obj[key])
+        return result
+      }, {})
+  }
+  return value
+}
+
+/** Reads a dot-and-bracket path such as `items[0].name`; missing segments return undefined. */
+export function getValueAtPath(source: unknown, path: string): unknown {
+  if (source === null || source === undefined || !path) return source
+  const segments = path
+    .replace(/\[(\w+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean)
+  let cursor: unknown = source
+  for (const segment of segments) {
+    if (cursor === null || typeof cursor !== 'object') return undefined
+    cursor = (cursor as Record<string, unknown>)[segment]
+  }
+  return cursor
+}

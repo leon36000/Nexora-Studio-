@@ -1,0 +1,94 @@
+---
+title: Supported models
+sidebar:
+  label: "[lucide:cpu] Supported models"
+---
+import { Aside, Card, LinkButton } from '@astrojs/starlight/components';
+import ProviderCardGrid from '../../../components/ProviderCardGrid.astro';
+
+<Aside type="caution">
+🚧 This page is under construction. 🚧
+</Aside>
+
+## Endpoints enabled by model type
+
+When you create a model router, you need to specify the model type.
+The model type determines the capabilities of the model and enables a specific set of endpoints.
+
+| Model type | Endpoint enabled | Description |
+| --- | --- | --- |
+| `text-generation` | `/v1/chat/completions` | LLM models for text generation, including multi-modal chat. |
+| `text-classification` | `/v1/rerank` | Reranking models for text classification. |
+| `text-embeddings-inference` | `/v1/embeddings` | Text embeddings models for text similarity and clustering. |
+| `image-to-text` | `/v1/ocr` | OCR models for image to text conversion (only Mistral On-Premise supported). |
+| `automatic-speech-recognition` | `/v1/audio/transcriptions` | Automatic speech recognition models for audio to text conversion. |
+
+## Supported self-hosted API providers
+
+<ProviderCardGrid>
+	<Card title="Mistral On-Prem" icon="lobe:mistral-color">
+		Mistral On-Prem is the solution of Mistral AI to self-hosted their commercial models.
+    <br></br>
+		<LinkButton
+			href="https://mistral.ai/products/studio/"
+			variant="secondary"
+			icon="external"
+			iconPlacement="start"
+			style="font-size: var(--sl-text-sm); padding: 0.25rem 0.7rem; gap: 0.35em;"
+		>
+			See documentation
+		</LinkButton>
+	</Card>
+	<Card title="Ollama" icon="lobe:ollama">
+		Ollama is a local-first model runtime for self-hosted models. To add it as a provider, you need to set `openai` as the provider type.
+    <br></br>
+		<LinkButton
+			href="https://ollama.com/"
+			variant="secondary"
+			icon="external"
+			iconPlacement="start"
+			style="font-size: var(--sl-text-sm); padding: 0.25rem 0.7rem; gap: 0.35em;"
+		>
+			See documentation
+		</LinkButton>
+	</Card>
+	<Card title="Text Embeddings Inference" icon="lobe:huggingface-color">
+		Hugging Face Text Embeddings Inference is an open-source API dedicated for embeddings and reranking. Is a great choice for self-hosted models.
+    <br></br>
+		<LinkButton
+			href="https://github.com/huggingface/text-embeddings-inference"
+			variant="secondary"
+			icon="external"
+			iconPlacement="start"
+			style="font-size: var(--sl-text-sm); padding: 0.25rem 0.7rem; gap: 0.35em;"
+		>
+			See documentation
+		</LinkButton>
+	</Card>
+	<Card title="vLLM" icon="lobe:vllm-color">
+		vLLM is open-source production-grade LLM server. It supports a wide range of models and is a great choice for self-hosted models.
+    <br></br>
+		<LinkButton
+			href="https://docs.vllm.ai/"
+			variant="secondary"
+			icon="external"
+			iconPlacement="start"
+			style="font-size: var(--sl-text-sm); padding: 0.25rem 0.7rem; gap: 0.35em;"
+		>
+			See documentation
+		</LinkButton>
+	</Card>
+	<Card title="WhisperX" icon="lobe:openai">
+		WhisperX is a open-source framework to run Whisper with fast inference and a Pyannote diarization integration. Deploy it behind an OpenAI-compatible API and set `openai` as the provider type.
+    <br></br>
+		<LinkButton
+			href="https://github.com/etalab-ia/whisperx-openai-api"
+			variant="secondary"
+			icon="external"
+			iconPlacement="start"
+			style="font-size: var(--sl-text-sm); padding: 0.25rem 0.7rem; gap: 0.35em;"
+		>
+			See documentation
+		</LinkButton>
+	</Card>
+</ProviderCardGrid>

@@ -1,0 +1,22 @@
+from typing import Annotated
+
+from pydantic import ConfigDict, Field
+
+from api.domain import BaseModel, UtcDatetime
+from api.domain.model.entities import ModelCosts
+from api.domain.router.entities import RouterType
+
+
+class ModelView(BaseModel):
+    """Read model of a router exposed as a model by the models API."""
+
+    model_config = ConfigDict(frozen=True)
+
+    router_id: int
+    id: str
+    type: RouterType
+    aliases: list[str] = []
+    created: UtcDatetime
+    owned_by: str
+    max_context_length: int | None = None
+    costs: Annotated[ModelCosts, Field(default_factory=ModelCosts)]

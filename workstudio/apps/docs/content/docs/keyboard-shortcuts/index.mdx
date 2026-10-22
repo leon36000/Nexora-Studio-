@@ -1,0 +1,103 @@
+---
+title: Keyboard shortcuts
+description: Keyboard and pointer controls for workspace navigation, workflows, and tables.
+---
+
+`Mod` means `Cmd` on macOS and `Ctrl` on Windows and Linux. Editing shortcuts act on the focused surface. Some workspace commands also work while you are typing; an editor can keep a shortcut it owns.
+
+The macOS app adds window, tab, and browser controls. See [Sim Desktop](/desktop#keyboard-shortcuts).
+
+## Workspace navigation
+
+| Shortcut | Action |
+| --- | --- |
+| `Mod` + `K` | Open search |
+| `Mod` + `B` | Collapse or expand the sidebar, outside an editable field |
+| `Mod` + `Shift` + `P` | Create a workflow, outside an editable field |
+| `Mod` + `L` | Open Logs; a focused Desktop browser uses it for the address bar |
+
+## Workflow builder
+
+### Keyboard actions
+
+Keep focus outside an editable field for running, clipboard, history, layout, and Toolbar shortcuts.
+
+| Shortcut | Action |
+| --- | --- |
+| `Mod` + `Enter` | Run the workflow, or stop it while running |
+| `Mod` + `Shift` + `A` | Add an Agent block to the active workflow |
+| `Mod` + `Z` | Undo |
+| `Mod` + `Shift` + `Z` | Redo |
+| `Mod` + `C` / `X` / `V` | Copy / cut / paste selected blocks |
+| `Delete` or `Backspace` | Delete selected blocks or connections |
+| `Shift` + `L` | Auto-layout the workflow |
+| `Mod` + `Shift` + `F` | Fit the workflow to the view |
+| `Mod` + `F` | Open workflow search and replace |
+| `Mod` + `Shift` + `Enter` | Accept Sim's proposed workflow changes |
+| `Mod` + `Alt` + `F` | Open Toolbar and focus its search |
+| `Mod` + `D` | Clear the workflow console; persisted run logs remain |
+
+### Pointer controls
+
+| Task | Control |
+| --- | --- |
+| Pan the builder | Middle-drag, left-drag in Hand mode, or scroll / use a trackpad |
+| Select multiple blocks | Left-drag on empty space in Select mode, or `Shift` + drag in Hand mode |
+| Move a block | Left-drag its header |
+| Add blocks to the selection | `Mod` or `Shift` + click |
+
+## Tables
+
+Select a cell and keep the table focused. Navigation and selection shortcuts apply while no cell is being edited. Editing, cut, paste, clearing cells, and adding rows require the corresponding permissions; table locks can prevent changes.
+
+### Navigation
+
+| Shortcut | Action |
+| --- | --- |
+| Arrow keys | Move one cell |
+| `Mod` + Arrow keys | Jump to the edge of the table |
+| `Tab` / `Shift` + `Tab` | Move to the next / previous cell |
+| `Escape` | Close table find if open; otherwise clear the selection |
+
+### Selection
+
+| Shortcut | Action |
+| --- | --- |
+| `Shift` + Arrow keys | Extend the selection by one cell |
+| `Mod` + `Shift` + Arrow keys | Extend the selection to the edge |
+| `Shift` + `Space` | Select the current row |
+| `Mod` + `Space` | Select the current column |
+| `Mod` + `A` | Select all table rows; press again to clear the selection |
+
+### Editing
+
+| Shortcut | Action |
+| --- | --- |
+| `Enter` or `F2` | Open the selected cell's editor; toggle a boolean cell |
+| Any character | Start editing the selected cell with that character |
+| `Escape` | Cancel the current edit |
+| `Shift` + `Enter` | Insert a row below; open the new-row form when required fields need values |
+| `Space` | Open the selected row's editor |
+| `Mod` + `D` | Fill selected cells down from the top of the selection |
+
+### Clipboard and history
+
+| Shortcut | Action |
+| --- | --- |
+| `Mod` + `C` / `X` / `V` | Copy / cut / paste cells |
+| `Delete` or `Backspace` | Clear selected cells |
+| `Mod` + `Z` | Undo |
+| `Mod` + `Y` | Redo |
+
+### Find
+
+| Shortcut | Action |
+| --- | --- |
+| `Mod` + `F` | Open table find |
+| `Escape` | Close table find |
+
+## Related docs
+
+- [Quick reference](/quick-reference)
+- [Tables](/tables)
+- [Sim Desktop](/desktop#keyboard-shortcuts)

@@ -1,0 +1,161 @@
+import { Readable } from 'node:stream'
+import { resetEnvFlagsMock, setEnvFlags } from '@sim/testing'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { mockAgent, mockUndiciRequest, capturedAgentOptions } = vi.hoisted(() => {
+  const capturedAgentOptions: unknown[] = []
+  class MockAgent {
+    constructor(options: unknown) {
+      capturedAgentOptions.push(options)
+    }
+    close() {
+      return Promise.resolve()
+    }
+    destroy() {
+      return Promise.resolve()
+    }
+  }
+  return {
+    mockAgent: MockAgent,
+    mockUndiciRequest: vi.fn(),
+    capturedAgentOptions,
+  }
+})
+
+vi.mock('undici', () => ({ Agent: mockAgent, request: mockUndiciRequest }))
+
+declare module '@/lib/core/security/input-validation.server?pinned-fetch-test' {
+  // biome-ignore lint/suspicious/noExportsInTest: ambient re-declaration for the query-suffixed specifier
+  export * from '@/lib/core/security/input-validation.server'
+}
+
+import { createPinnedFetch } from '@/lib/core/security/input-validation.server?pinned-fetch-test'
+
+type LookupCallback = (err: Error | null, address: string, family: number) => void
+type PinnedLookup = (hostname: string, options: { all?: boolean }, callback: LookupCallback) => void
+
+function byteStream(text: string): Readable {
+  const stream = new Readable({ read() {} })
+  stream.push(Buffer.from(text))
+  stream.push(null)
+  return stream
+}
+
+function undiciReply(statusCode: number, headers: Record<string, string>, body: Readable) {
+  return { statusCode, headers, body, trailers: {}, opaque: null, context: {} }
+}
+
+afterEach(resetEnvFlagsMock)
+
+describe('createPinnedFetch', () => {
+  beforeEach(() => {
+    capturedAgentOptions.length = 0
+    mockUndiciRequest.mockResolvedValue(undiciReply(200, {}, byteStream('ok')))
+  })
+
+  it('builds an undici Agent whose pinned lookup always resolves to the validated IP', async () => {
+    createPinnedFetch('93.184.216.34', { profile: 'configuredEndpoint' })
+
+    expect(capturedAgentOptions).toHaveLength(1)
+    const { connect } = capturedAgentOptions[0] as { connect: { lookup: PinnedLookup } }
+    expect(typeof connect.lookup).toBe('function')
+
+    const resolved = await new Promise<{ address: string; family: number }>((resolve) => {
+      connect.lookup('rebind.attacker.tld', {}, (_err, address, family) =>
+        resolve({ address, family })
+      )
+    })
+    expect(resolved).toEqual({ address: '93.184.216.34', family: 4 })
+  })
+
+  it('uses IPv6 family when the validated IP is IPv6', async () => {
+    createPinnedFetch('2606:4700:4700::1111', { profile: 'configuredEndpoint' })
+    const { connect } = capturedAgentOptions[0] as { connect: { lookup: PinnedLookup } }
+    const resolved = await new Promise<{ address: string; family: number }>((resolve) => {
+      connect.lookup('example.com', {}, (_err, address, family) => resolve({ address, family }))
+    })
+    expect(resolved).toEqual({ address: '2606:4700:4700::1111', family: 6 })
+  })
+
+  it('honors redirect mode carried on a Request input (not just init)', async () => {
+    mockUndiciRequest.mockResolvedValueOnce(
+      undiciReply(302, { location: 'https://login.example.com/' }, byteStream(''))
+    )
+    const pinned = createPinnedFetch('93.184.216.34', { profile: 'configuredEndpoint' })
+
+    const response = await pinned(new Request('https://mcp.example.com/', { redirect: 'manual' }))
+
+    expect(mockUndiciRequest).toHaveBeenCalledTimes(1)
+    expect(response.status).toBe(302)
+  })
+
+  it('follows redirects by default and DROPS headers on a cross-origin hop (no api-key leak)', async () => {
+    mockUndiciRequest
+      .mockResolvedValueOnce(
+        undiciReply(307, { location: 'https://other-origin.example/final' }, byteStream(''))
+      )
+      .mockResolvedValueOnce(undiciReply(200, {}, byteStream('done')))
+    const pinned = createPinnedFetch('93.184.216.34', { profile: 'configuredEndpoint' })
+
+    const response = await pinned('https://azure.example.com/v1/responses', {
+      method: 'GET',
+      headers: { 'api-key': 'secret' },
+    })
+
+    expect(mockUndiciRequest).toHaveBeenCalledTimes(2)
+    // Second (cross-origin) hop must not carry the provider credential — no headers forwarded.
+    const secondHopHeaders = (mockUndiciRequest.mock.calls[1][1].headers ?? {}) as Record<
+      string,
+      string
+    >
+    expect(secondHopHeaders['api-key']).toBeUndefined()
+    expect(secondHopHeaders).toEqual({ 'user-agent': 'undici' })
+    expect(response.status).toBe(200)
+    expect(response.url).toBe('https://other-origin.example/final')
+    expect(response.redirected).toBe(true)
+    expect(await response.text()).toBe('done')
+  })
+
+  it('reaches a private IP-literal URL the operator allowlisted', async () => {
+    setEnvFlags({ egressAllowedIpRanges: '10.0.0.0/8' })
+    mockUndiciRequest.mockResolvedValueOnce(undiciReply(200, {}, byteStream('mcp')))
+    const pinned = createPinnedFetch('10.0.0.5', { profile: 'configuredEndpoint' })
+
+    // A self-hosted MCP on a private address connects because the deployment
+    // named that range, not because the address happened to be the pinned one.
+    const response = await pinned('http://10.0.0.5:3000/mcp', { method: 'POST', body: '{}' })
+
+    expect(mockUndiciRequest).toHaveBeenCalledTimes(1)
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe('mcp')
+  })
+
+  it('still blocks a redirect to a private IP outside the allowlist', async () => {
+    setEnvFlags({ egressAllowedIpRanges: '10.0.0.0/8' })
+    // A genuine private address outside the allowlisted range, not the metadata
+    // endpoint — that one is refused unconditionally, so it would pass here even
+    // if the allowlist had regressed to permitting all private addresses.
+    mockUndiciRequest.mockResolvedValueOnce(
+      undiciReply(302, { location: 'https://192.168.1.5/internal' }, byteStream(''))
+    )
+    const pinned = createPinnedFetch('10.0.0.5', { profile: 'configuredEndpoint' })
+
+    await expect(pinned('http://10.0.0.5:3000/mcp', { method: 'GET' })).rejects.toThrow(
+      /private or reserved address/
+    )
+    // The initial request happened; the redirect out of the range was refused.
+    expect(mockUndiciRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it('still blocks a redirect to the metadata endpoint from inside the allowlist', async () => {
+    setEnvFlags({ egressAllowedIpRanges: '10.0.0.0/8,169.254.0.0/16' })
+    mockUndiciRequest.mockResolvedValueOnce(
+      undiciReply(302, { location: 'http://169.254.169.254/latest/meta-data/' }, byteStream(''))
+    )
+    const pinned = createPinnedFetch('10.0.0.5', { profile: 'configuredEndpoint' })
+
+    await expect(pinned('http://10.0.0.5:3000/mcp', { method: 'GET' })).rejects.toThrow(
+      /cloud metadata endpoint/
+    )
+  })
+})

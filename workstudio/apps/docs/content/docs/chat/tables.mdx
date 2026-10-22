@@ -1,0 +1,78 @@
+---
+title: Tables
+description: Create tables, query or update rows, and export data from Chat.
+---
+
+Ask Sim to create a workspace table, inspect its data, or change rows. Reference the table by name or with an `@`-mention. Tables can open in Chat's resource panel for review.
+
+Table reads, writes, creation, and exports follow your workspace access and organization policy. Storage and row limits depend on the plan and deployment configuration.
+
+## Create or import a table [#creating-tables]
+
+Describe the columns and types, or attach a CSV for Sim to import:
+
+- "Create a leads table with name, email, company, status, and created date columns."
+- "Create a table matching this CSV." Attach the file.
+- "Create an errors table with message and workflow text columns, a timestamp date column, and a resolved boolean."
+
+Inspect the schema and imported rows before using the table in an agent. Specify unique or required columns when the data needs those constraints.
+
+## Query data [#querying-data]
+
+Name the table, fields, filters, and time range:
+
+- "How many leads have status 'qualified'?"
+- "Show leads from the past seven days with score above 0.8."
+- "Find duplicate emails in the contacts table."
+- "Calculate conversion from 'contacted' to 'meeting booked' in this month's pipeline data."
+
+Sim can query the matching rows and compute summaries. It can also read multiple tables and combine their results: describe the relationship, such as matching `company_id` between contacts and companies. This does not create a persistent join between the tables.
+
+Chat can mask tracked secret values or omit rows and selected cells it cannot safely check. Matching-row totals and pagination cursors still describe the database query; a shorter response does not prove that every match was shown. Summaries based on returned rows can be incomplete.
+
+Large reads may need pagination or an export. Name the subset you need instead of requesting every row when a filter can answer the question.
+
+## Add or update rows [#adding-and-updating-rows]
+
+Provide values by column name. For bulk changes, state the condition:
+
+- "Add a leads row with company=Acme Corp, email=jane@acme.com, and status=pending."
+- "Mark queue rows as processed where createdAt is before today."
+- "Set price to 49 for rows where tier is 'pro'."
+
+`createdAt` is the built-in creation timestamp. Use the actual custom column name when you mean a separate date field.
+
+Review the affected records and ask Sim to verify the updated values. Table writes can also trigger configured workflow automation.
+
+A write can be saved even when its returned row is withheld from Chat. Inspect the table before repeating a change whose result could not be shown.
+
+### Delete rows
+
+Deleting rows removes their stored data. Identify the table and condition before asking for a destructive action:
+
+- "Delete all rows in the test_events table."
+- "Delete contacts with status 'test' from the contacts table."
+
+Removing rows does not undo external actions previously performed by workflows using them.
+
+## Export data [#exporting]
+
+Export the whole table or a filtered subset as CSV:
+
+- "Export the leads table as leads.csv in workspace Files."
+- "Export pipeline rows where status is 'closed' and save them as closed-deals.csv."
+
+Wait for the export to complete, then inspect its row count and download the file. A CSV created from rows returned to Chat can omit rows unavailable to Chat. Use the table's own export control when you need an authorized export of the stored data. A saved workspace CSV can be referenced by other workflows.
+
+## Use a table in a workflow [#using-tables-in-workflows]
+
+Ask Sim to configure a Table block or tool with the intended table and operation, or select the table in the workflow builder. The table must be available to the workflow's execution context; naming it in Chat does not replace the block's configuration.
+
+For per-row enrichment, ask Sim to connect a deployed workflow to table columns so its outputs populate each row. See [workflow columns](/tables/workflow-columns) for dependencies and execution behavior.
+
+## Related docs
+
+- [Tables](/tables)
+- [Using tables in workflows](/tables/using-in-workflows)
+- [Table integration](/integrations/table)
+- [Files and documents in Chat](/chat/files)

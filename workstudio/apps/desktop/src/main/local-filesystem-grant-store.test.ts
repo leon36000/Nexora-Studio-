@@ -1,0 +1,90 @@
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('electron', () => import('@/test/electron-mock'))
+
+import { createEncryptedLocalFilesystemGrantStore } from '@/main/local-filesystem-grant-store'
+
+function testEncryption(available = true) {
+  return {
+    isEncryptionAvailable: vi.fn(() => available),
+    encryptString: vi.fn((value: string) => Buffer.from(`protected:${value}`, 'utf8')),
+    decryptString: vi.fn((value: Buffer) => value.toString('utf8').replace(/^protected:/, '')),
+  }
+}
+
+describe('createEncryptedLocalFilesystemGrantStore', () => {
+  it.each([
+    {},
+    { dev: 1, ino: Number.MAX_SAFE_INTEGER },
+    { dev: '1', ino: '18446744073709551615' },
+  ])('encrypts grants at rest and restores their exact identity %j', async (identity) => {
+    const directory = await mkdtemp(join(tmpdir(), 'sim-localfs-store-'))
+    const filePath = join(directory, 'grants.json')
+    const encryption = testEncryption()
+    const store = createEncryptedLocalFilesystemGrantStore(filePath, encryption)
+    const grants = [
+      {
+        id: 'grant-1',
+        name: 'project',
+        rootPath: '/Users/example/private-project',
+        bookmark: 'security-scoped-bookmark',
+        ...identity,
+      },
+    ]
+
+    await expect(store.save(grants)).resolves.toBe(true)
+
+    const raw = await readFile(filePath, 'utf8')
+    expect(raw).not.toContain(grants[0].rootPath)
+    expect(raw).not.toContain(grants[0].bookmark)
+    await expect(store.load()).resolves.toEqual(grants)
+
+    await store.clear()
+    await expect(readFile(filePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('does not let an earlier save recreate the store after a later clear', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'sim-localfs-store-'))
+    const filePath = join(directory, 'grants.json')
+    const store = createEncryptedLocalFilesystemGrantStore(filePath, testEncryption())
+    const grants = [{ id: 'grant-1', name: 'project', rootPath: '/private/project' }]
+
+    await store.load()
+    const saving = store.save(grants)
+    const clearing = store.clear()
+    await Promise.all([saving, clearing])
+
+    await expect(readFile(filePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('does not write a plaintext fallback when OS encryption is unavailable', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'sim-localfs-store-'))
+    const filePath = join(directory, 'grants.json')
+    const store = createEncryptedLocalFilesystemGrantStore(filePath, testEncryption(false))
+
+    await expect(
+      store.save([{ id: 'grant-1', name: 'project', rootPath: '/private/project' }])
+    ).resolves.toBe(false)
+    await expect(readFile(filePath, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
+  })
+
+  it('preserves an invalid existing store until an explicit clear', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'sim-localfs-store-'))
+    const filePath = join(directory, 'grants.json')
+    const original = '{not valid json'
+    await writeFile(filePath, original)
+    const store = createEncryptedLocalFilesystemGrantStore(filePath, testEncryption())
+    const grants = [{ id: 'grant-1', name: 'project', rootPath: '/private/project' }]
+
+    await expect(store.load()).resolves.toEqual([])
+    await expect(store.save(grants)).resolves.toBe(false)
+    await expect(readFile(filePath, 'utf8')).resolves.toBe(original)
+
+    await store.clear()
+    await expect(store.save(grants)).resolves.toBe(true)
+    await expect(store.load()).resolves.toEqual(grants)
+  })
+})

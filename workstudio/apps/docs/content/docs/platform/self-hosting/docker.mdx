@@ -1,0 +1,243 @@
+---
+title: Docker
+description: Deploy Sim with Docker Compose and verify its services
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Use the production Compose stack for a single-node installation. It starts the app, realtime, PostgreSQL with pgvector, Redis, migrations, and the scheduler.
+
+## Prerequisites
+
+- Docker Engine or Docker Desktop, running.
+- Docker Compose 2.24.0 or later. The file uses optional `env_file` entries introduced in that version.
+- Bun for `bunx`, and Node.js 20 or later for the published `sim-setup` executable.
+- Available host ports 3000 and 3002, with enough resources for your workload. See [resource examples](/platform/self-hosting#requirements).
+- A public domain and TLS proxy for remote access.
+
+## Quick start
+
+```bash
+bunx sim-setup
+```
+
+The wizard creates `./sim` with a generated `.env` and production Compose file, then starts published container images. Pass `--dir <path>` for another directory. Open [http://localhost:3000](http://localhost:3000).
+
+For a manual installation, obtain the Compose file from a source checkout:
+
+```bash
+git clone https://github.com/simstudioai/sim.git
+cd sim
+```
+
+Then follow the configuration steps below.
+
+## Production setup
+
+### 1. Configure the environment
+
+For a new installation, create `.env` next to `docker-compose.prod.yml`:
+
+```bash
+umask 077
+cat > .env << EOF
+BETTER_AUTH_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+INTERNAL_API_SECRET=$(openssl rand -hex 32)
+API_ENCRYPTION_KEY=$(openssl rand -hex 32)
+CRON_SECRET=$(openssl rand -hex 32)
+NEXT_PUBLIC_APP_URL=https://sim.yourdomain.com
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=$(openssl rand -hex 24)
+POSTGRES_DB=simstudio
+EOF
+```
+
+If you already ran the wizard or have an existing installation, edit that `.env` and retain its keys and database credentials. Do not rerun this creation command over it.
+
+Compose derives `BETTER_AUTH_URL` from `NEXT_PUBLIC_APP_URL` and `DATABASE_URL` from `POSTGRES_*`. Setting either derived variable in `.env` does not override the service definition. To use an external database, maintain a Compose configuration that supplies the same external DSN to the app, realtime, and migrations and adjusts their bundled-database dependencies.
+
+Keep `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` URL-safe: letters, digits, `.`, `_`, `~`, or `-`. Compose inserts them into the DSN without escaping; values containing `@`, `/`, `?`, `#`, `%`, or spaces can initialize PostgreSQL but prevent app connections. Hex output from `openssl` is safe.
+
+<Callout type="error">
+  Back up `ENCRYPTION_KEY` and `API_ENCRYPTION_KEY` separately from the server. Restoring the database with different keys leaves encrypted values unreadable. `ENCRYPTION_KEY` protects environment variables, provider keys, MCP OAuth credentials, and deployment/Chat secrets. `API_ENCRYPTION_KEY` protects stored Sim API-key material; when absent, legacy API keys can be stored in plain text.
+</Callout>
+
+Compose refuses startup without `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, `INTERNAL_API_SECRET`, or `POSTGRES_PASSWORD`. PostgreSQL applies its credentials only when initializing a new volume; changing `.env` does not change an existing database password. See [Postgres on Compose](/platform/self-hosting/security#postgres-on-compose) before rotating it.
+
+Set `CRON_SECRET` for scheduled work. Without it, the cron service prints instructions and exits; the other services can still run. Images use `latest` unless you set `SIM_VERSION`; the separate scheduler image uses `SIM_CRON_VERSION`. Pin and upgrade deliberately using [Upgrades](/platform/self-hosting/upgrades).
+
+### 2. Configure durable uploads
+
+<Callout type="warn">
+  The production Compose file persists PostgreSQL but does not mount `/app/apps/sim/uploads`. Recreating the app container loses uploads stored there. Configure object storage or a persistent mount before saving files you need to retain.
+</Callout>
+
+Follow [Object storage](/platform/self-hosting/object-storage) for AWS S3, Azure Blob, Google Cloud Storage, or local-volume configuration. Local disk is not shared across app replicas.
+
+### 3. Start and verify services
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml ps -a
+docker compose -f docker-compose.prod.yml logs migrations
+curl -fsS http://localhost:3000/api/health
+```
+
+| Service | Host port | Purpose |
+| --- | --- | --- |
+| `simstudio` | 3000 | App; 8G memory limit. |
+| `realtime` | 3002 | WebSocket service; 1G memory limit. |
+| `db` | Not published | PostgreSQL 17 with pgvector. |
+| `redis` | Not published | Shared coordination, pub/sub, and caches. |
+| `cron` | None | Calls background job endpoints. |
+| `migrations` | None | Applies migrations once, then exits. |
+
+Expect five services running and `migrations` exited successfully. The migrator has no healthcheck because it is a one-shot job.
+
+```bash
+docker compose -f docker-compose.prod.yml logs -f cron
+```
+
+Confirm the scheduler calls succeed, then run [Verify your install](/platform/self-hosting/verify).
+
+### 4. Serve the public origin over TLS
+
+A host-installed Caddy proxy can obtain and renew certificates for your domain. For example:
+
+```text
+sim.yourdomain.com {
+    request_body {
+        max_size 250MB
+    }
+
+    handle /socket.io/* {
+        reverse_proxy localhost:3002
+    }
+
+    reverse_proxy localhost:3000 {
+        flush_interval -1
+    }
+}
+```
+
+Route `/socket.io` to realtime on 3002 and other requests to the app on 3000. The 250 MB decimal Caddy limit clears the configured 220 MiB deployed-chat cap, but the app's current Next.js proxy buffer still limits matching requests to 10 MiB. See [Request size limits](/platform/self-hosting/networking#request-size-limits) before increasing payload sizes. `flush_interval -1` explicitly disables response buffering; Caddy already flushes SSE immediately. It also keeps the upstream request running if the client disconnects. See [Caddy streaming behavior](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#streaming).
+
+This example assumes Caddy runs on the Docker host. A containerized proxy needs reachable Compose service addresses instead of its own `localhost`. For Nginx, Traefik, cloud load balancers, or separate socket hosts, see [Networking](/platform/self-hosting/networking).
+
+## Ollama
+
+### External Ollama
+
+For production, keep this Compose stack and point `OLLAMA_URL` at an Ollama server. If it runs on the Docker host, save the address in `.env` so later recreations retain it:
+
+```bash
+OLLAMA_URL=http://host.docker.internal:11434
+```
+
+Production Compose maps `host.docker.internal` to the host gateway, including on Linux. You can instead use a reachable host IP. The Ollama server must listen on an interface reachable from the container.
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+<Callout type="warn">
+  Container `localhost` is the container itself. The default `http://localhost:11434` does not reach an Ollama server on the host.
+</Callout>
+
+### Development Ollama stack
+
+`docker-compose.ollama.yml` builds the app, realtime, and migrations from source. It does not bundle Redis or cron. Without Redis, pub/sub is process-local and CLI pairing approval has no fallback; idempotency and execution-progress storage can fall back to PostgreSQL. Without a scheduler, background jobs do not run.
+
+Use a server profile together with `setup`; `setup` alone starts no Ollama server and the model setup waits:
+
+```bash
+# NVIDIA GPU
+docker compose -f docker-compose.ollama.yml --profile gpu --profile setup up -d
+
+# CPU only
+docker compose -f docker-compose.ollama.yml --profile cpu --profile setup up -d
+```
+
+Setup pulls `gemma3:4b`. To pull another model:
+
+```bash
+# GPU profile
+docker compose -f docker-compose.ollama.yml exec ollama ollama pull llama3.2
+
+# CPU profile
+docker compose -f docker-compose.ollama.yml exec ollama-cpu ollama pull llama3.2
+```
+
+## LM Studio
+
+Start [LM Studio's local server](https://lmstudio.ai/docs/developer/core/server), load a model, enable **Serve on Local Network**, and [configure API authentication](https://lmstudio.ai/docs/developer/core/authentication). Save these values beside your Compose file:
+
+```bash
+VLLM_BASE_URL=http://host.docker.internal:1234
+VLLM_API_KEY=your_lm_studio_api_token
+```
+
+Use a reachable host IP when needed. Sim accepts the server root or a `/v1` URL. Models appear with a `vllm/` prefix, which Sim removes before sending the model ID to LM Studio.
+
+Recreate the app using the file that started your installation:
+
+```bash
+COMPOSE_FILE=docker-compose.prod.yml
+# For a source-built stack, use docker-compose.local.yml or docker-compose.ollama.yml.
+docker compose -f "$COMPOSE_FILE" up -d --force-recreate simstudio
+```
+
+## The `sim-setup` CLI
+
+Invoke commands as `bunx sim-setup <command>` unless the package is installed globally. Run `doctor`, `config`, and the wizard from the configuration directory. Lifecycle commands discover running production/local Compose stacks, source checkouts, and Helm releases; Ollama-stack installs are not managed.
+
+| Command | Behavior |
+| --- | --- |
+| `sim-setup` | Wizard. `--quick` uses defaults and asks essential questions; `--mode compose\|dev\|k8s` chooses the target. Dev and Kubernetes modes require a source checkout. |
+| `status` | Reports detected installations and health. |
+| `logs` | Follows Compose logs or the Kubernetes app deployment. In dev mode, prints container log commands; the app runs in your terminal. |
+| `start` / `stop` / `restart` | Starts, stops, or restarts Compose services. In dev mode, manages only PostgreSQL and Redis; start/stop the dev server yourself. For Kubernetes, prints port-forward or scale commands without applying them. |
+| `update` | Pulls or rebuilds Compose images and applies them. Refuses dev and Kubernetes installs, which use git and `helm upgrade`. |
+| `down` | Confirms before removing managed containers or uninstalling the Helm release. Compose/dev data volumes remain. |
+| `reset` | Confirms before archiving env files and removing managed Compose/dev data. On Helm it uninstalls the release; PostgreSQL StatefulSet PVCs remain and must be deleted separately to erase data. |
+| `config` | Reports configured capabilities and integrations. |
+| `doctor` | Checks env files and reachable services. `--fix` writes supported repairs; `--json` emits structured findings. |
+| `add <feature>` | Configures `email`, `storage`, `sandbox`, `jobs`, `cache`, `knowledge`, `knowledge-embeddings`, `chat`, `llm`, or `integration <slug>`. Requires one writable configuration; refuses ambiguous destinations and Helm releases. |
+| `desktop` | Prints this deployment's installer/server links. `--url <url>` skips discovery; `--no-open` skips the browser-opening prompt. |
+
+`--dir <path>` works with every command and scopes standalone lifecycle commands to that installation.
+
+For Compose, `reset` archives `.env` beside the Compose file. For dev, Kubernetes, or no detected install, it archives `apps/sim/.env`, `apps/realtime/.env`, `packages/db/.env`, and root `.env`. Preserve any backups before intentionally removing volumes.
+
+`add` writes beside the Compose file or to `apps/sim/.env` on a source checkout. Recreate containers that read the change: `cache` changes `REDIS_URL` for both app and realtime. For a source checkout, mirror shared values into `apps/realtime/.env`. `restart` alone does not apply changed container environment. Desktop discovery refuses configurations naming different origins; pass `--url` to choose.
+
+## Back up and update [#commands]
+
+For the default database role/name:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T db pg_dump -U postgres simstudio > backup.sql
+```
+
+Restore only to the intended database:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T db psql -U postgres simstudio < backup.sql
+```
+
+Use your configured role/database if you changed `POSTGRES_*`. `-T` disables TTY allocation for redirected input/output. Compose stores database data in the `postgres_data` volume; file uploads and encryption keys need separate backups.
+
+For an image update, change the pinned `SIM_VERSION` in `.env`, then:
+
+```bash
+bunx sim-setup update
+```
+
+Read [Upgrades](/platform/self-hosting/upgrades) before updating or restoring an existing installation.
+
+## Related docs
+
+- [Environment variables](/platform/self-hosting/environment-variables)
+- [Background jobs](/platform/self-hosting/background-jobs)
+- [Security](/platform/self-hosting/security)

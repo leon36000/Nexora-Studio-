@@ -1,0 +1,279 @@
+# Sim Desktop (macOS)
+
+A thin Electron shell around the hosted Sim web app. The renderer loads the configured origin (default `https://www.sim.ai` — the origin the server actually serves; the apex 301s there) as a normal top-level page in a bundled, pinned Chromium — rendering is identical to Chrome of that version on every machine. No UI is re-implemented and no server stack is bundled.
+
+## Layout
+
+```
+src/main/           # main process (bundled to dist/main.cjs)
+  index.ts          # lifecycle + wiring
+  ipc.ts            # the single channel table: gate, version floor, handler
+  config.ts         # origin + settings store (userData/settings.json)
+  app-routes.ts     # Sim routes the shell navigates to (menu + tray share them)
+  atomic-json-file.ts # crash-safe write for the encrypted userData stores
+  navigation.ts     # navigation classifier + openExternalSafe
+  windows.ts        # window.open policy (full app windows, MCP popup, blank children)
+  window.ts         # secure BrowserWindow, permissions, crash/hang recovery
+  security-guards.ts# global web-contents guards, TLS policy
+  csp.ts            # Content-Security-Policy fallback header
+  handoff.ts        # 127.0.0.1 loopback login handoff + token redeem
+  session-lifecycle.ts # sign-out teardown, 401 watcher, connect intercept
+  load-health.ts    # offline/error page, auto-retry, watchdog
+  local-pages.ts    # sim-shell: scheme for the bundled pages (file: cannot read app.asar with its privileges fused off)
+  local-filesystem.ts # session-scoped read-only directory grants + localfs:// broker
+  local-filesystem-grant-store.ts # those grants, encrypted at rest
+  desktop-settings.ts # renderer-facing settings surface
+  downloads.ts      # will-download handling
+  context-menu.ts   # native right-click + spellcheck
+  telemetry-policy.ts # third-party analytics blocking
+  observability.ts  # JSONL event log (userData/logs/desktop-events.log)
+  updater.ts        # electron-updater wiring, channels, downgrade/block guards
+  menu.ts           # role-based macOS menus
+  tray.ts           # tray icon, recent-chat menu, environment marker
+  browser-agent/    # the agent browser: tab lifecycle, panel geometry, CDP driver
+  terminal/         # the agent terminal: PTY sessions, tmux, shell integration
+  browser-credentials/ # saved passwords, OS-auth gated, safeStorage at rest
+  browser-sites/    # imported site directory, safeStorage at rest
+  browser-import/   # one-shot import of profiles, cookies and passwords
+src/preload/        # isolated renderer bridges
+  index.ts          # hosted-app contextBridge IPC bridge (dist/preload.cjs)
+  browser/          # minimal agent-browser credential helper (dist/browser-preload.cjs)
+native/             # Node-API bridges for directory enumeration and macOS Help docs search
+static/             # bundled local pages (offline.html, server.html), served over sim-shell:
+e2e/                # Playwright _electron smoke suite
+```
+
+## Local development
+
+```bash
+bun install                 # workspace root
+cd apps/desktop
+bun run dev                 # bundle + launch against https://www.sim.ai
+SIM_DESKTOP_ORIGIN=http://localhost:3000 bun run dev   # against local sim
+```
+
+- `bun run test` — vitest unit suite (electron is mocked; runs anywhere).
+- `bun run test:e2e` — Playwright `_electron` smoke suite against a fixture origin (macOS, real Electron window).
+- `bun run type-check` / `lint:check` — standard workspace checks; CI picks these up automatically via `turbo run`.
+- `SIM_DESKTOP_USER_DATA=<dir>` isolates settings/partition state (used by e2e).
+
+The main process and two preloads are bundled by esbuild into `dist/main.cjs`, `dist/preload.cjs`, and `dist/browser-preload.cjs`, including `electron-updater` and the `@sim/*` packages. The native `@lydell/node-pty` packages stay external so Electron can load their architecture-specific prebuilds from the packaged runtime `node_modules`; `npmRebuild` remains disabled because those Node-API prebuilds are already ABI-stable. There is no `package-lock.json`.
+
+## Auth model (read before touching auth)
+
+- The app loads the hosted origin top-level; better-auth session cookies live in a persistent partition (`persist:sim`, per-origin for self-hosts). Email/password and verified-lenient providers (GitHub) sign in fully in-window.
+- **Google / Microsoft / SSO cannot OAuth inside an embedded browser** (`disallowed_useragent`; UA spoofing is fingerprint-defeated — do not ship it). Navigation to those hosts from an auth surface is intercepted and rerouted through the **system-browser handoff**:
+  1. App starts a one-shot `127.0.0.1` loopback listener on an ephemeral port and opens `<origin>/desktop/auth?state=<random>&port=<port>` in the browser. The state is single-use, in-memory (the app is always running when the callback returns, so nothing is persisted), and constant-time compared.
+  2. `apps/sim/app/desktop/auth/page.tsx` requires a browser session (redirects through `/login?callbackUrl=…`) and renders a **Continue** gesture gate; only that click mints a one-time token (`POST /api/desktop/auth/handoff`) and sends the browser to the loopback (`http://127.0.0.1:<port>/auth/callback?token=…&state=…`, RFC 8252 §7.3). The gate is the security boundary — state and port are attacker-choosable in a crafted link, so a bare GET must never mint. The loopback is the single hand-back channel: no OS scheme registration, works identically in dev and packaged builds. Interception of loopback is mitigated the way PKCE mitigates it: the token is single-use, short-TTL, and bound to a 128-bit state the app compares in constant time. (RFC 8252's *most*-preferred callback is claimed-`https` / macOS universal links, which bind the OS to a verified app identity — a future hardening step that needs an associated-domains entitlement + `apple-app-site-association` on the origin.)
+  3. The loopback fires the callback in the main process: the app validates the state, then a renderer in the app partition POSTs the token to `/api/auth/one-time-token/verify` (same-origin ⇒ trustedOrigins/CSRF pass; better-auth sets the session cookie and burns the token) and loads `/workspace`.
+- **The app gets its own session, never the browser's.** The token is minted by `POST /api/desktop/auth/handoff` (`apps/sim/lib/auth/desktop-handoff.ts`), which creates a *new* session row for the user and points the one-time token at that. Better-auth's own `generateOneTimeToken` binds to the *calling* session, so using it directly made the app and the authorizing browser share one row: signing out of either deleted the row the other was still presenting, and — because the session cookie cache is not revalidated against the database — the survivor kept looking signed in while every database-backed session resolution failed (the socket handshake logged `Session not found` and 401-looped). A session per device is what better-auth's own device authorization grant does and what RFC 8252 assumes: sign-out, revocation, and expiry apply to one surface at a time. **Do not "simplify" this back to `generateOneTimeToken`.**
+- Integration connects are **same-window redirects** (`client.oauth2.link`), not popups. Unknown provider hosts stay in-window (lenient default); Google/Microsoft connects get a native dialog offering to finish in the browser — the browser is signed in after the login handoff, tokens land server-side, the app just refreshes.
+- The MCP OAuth popup (`mcp-oauth-*`) is allowed as a same-partition child so `window.opener.postMessage` keeps working.
+- Sign-out **revokes server-side first** (`POST /api/auth/sign-out` from the app-origin renderer — a main-process `session.fetch` would be rejected by better-auth's origin check), then clears cookies/localStorage/IndexedDB/cache/service workers plus any pending handoff state. The revoke is not optional: since the app owns its own session row, clearing the partition alone would strand a live 30-day credential that nothing can revoke. Two signals trigger teardown: the `/login?fromLogout=true` navigation (fast path) **and** deletion of the better-auth session cookie confirmed by a `get-session` probe (robust backstop — catches every sign-out path, not just the settings one, and rotation can't cause a false teardown). API 401s (probe-confirmed) surface a native re-auth prompt.
+
+Deviations from the original plan doc (deliberate):
+- **One hand-back channel, not two.** The plan proposed a `sim://` deep link with a loopback fallback; that was collapsed to loopback-only. The app is always running when the callback returns (it started the loopback), so the custom scheme added complexity and a dev-only failure mode without buying anything — loopback works identically everywhere. No `sim://` scheme is registered.
+- No launch-time session probe; the server's own redirect to `/login` covers the signed-out launch, and the last route is restored otherwise.
+- Browser-initiated `/desktop/auth` visits without a valid `state`+`port` render a friendly error and never mint a token.
+
+## Provider matrix (U5 spike — keep current)
+
+The host list lives in `src/main/navigation.ts` (`SYSTEM_BROWSER_IDP_HOSTS`) and now applies to **integration connects only** — sign-in always goes through the system-browser handoff whatever the IdP, so no provider needs to be classified as embed-tolerant for login. (The old `IN_WINDOW_IDP_HOSTS` list existed to keep GitHub sign-in in-window; embedding a login is a one-way door in a chrome-less shell and splits better-auth's OAuth state across two cookie jars, so it was removed.) Verified so far: Google + Microsoft block embedding by policy. **Before GA, run the spike** for connects: a sample of integration connects (Notion, Slack, Linear, Atlassian, Box, Dropbox) plus SSO and Turnstile-on-signup in a packaged build, then update the list and this section.
+
+## Web-app coupling contract (audit on web-app changes)
+
+A thin shell over a hosted web app unavoidably knows a few of the web app's conventions. They are listed here so a web-app change that would break the desktop app is auditable in one place. Each is a documented, deliberate coupling — not accidental. The robust long-term de-coupling for all of them is a two-way preload bridge (see "Desktop-only features" below): the web app signals intent (`signalLogout()`, `markAuthSurface()`) instead of the shell inferring it.
+
+| Shell code | Depends on | Breaks if the web app… | Failure mode | Mitigation today |
+|---|---|---|---|---|
+| `session-lifecycle.ts` `isLogoutNavigation` | `/login?fromLogout=true` on sign-out | renames the param/route | fast-path teardown misses | **Cookie backstop** (session-cookie deletion + probe) still tears down — no residue |
+| `session-lifecycle.ts` `isSessionCookieName` | better-auth cookie ends `session_token` | changes the cookie name/prefix | backstop misses (fast path still works for settings sign-out) | better-auth library contract; stable. Revisit on better-auth major |
+| `navigation.ts` `AUTH_SURFACE_PREFIXES` | auth routes `/login /signup /sso /reset-password /verify` | adds/renames an auth route | SSO from the new route gets the connect dialog instead of login | Update the list; unknown hosts from non-auth pages still default sensibly |
+| `navigation.ts` IdP host lists | provider OAuth hostnames + embedded-UA policy | a provider changes hostnames/policy | that provider's sign-in/connect misroutes until a new release | Ships with the app; the U5 spike + upgrade checklist re-verify. Server-delivered config is the future fix |
+| `session-lifecycle.ts` / `handoff.ts` `/workspace` default | `/workspace` is the post-login home | changes the default landing route | post-login/last-route restore lands on a redirect/404 | Web app's own routing usually redirects; low blast radius |
+| `navigation.ts` `mcp-oauth-*` frame name | `hooks/queries/mcp.ts` opens `mcp-oauth-${id}` | renames the popup frame | MCP popup treated as generic → opener lost, flow hangs | String contract; add a shared constant if it churns |
+| `window.ts` theme probe | `document.documentElement.classList.contains('dark')` (next-themes `attribute='class'`) | drops the `dark` class convention | pre-paint background may flash once | Cosmetic only; self-corrects on next load |
+| `handoff.ts` redeem | `POST /api/auth/one-time-token/verify` sets the cookie | better-auth changes the endpoint | handoff sign-in fails | better-auth built-in endpoint; pinned by the `better-auth` version |
+| `apps/sim/lib/auth/desktop-handoff.ts` mint | better-auth stores one-time tokens as `verification` rows keyed `one-time-token:<token>`, unhashed (`storeToken: 'plain'` default) | better-auth renames the namespace or hashes by default | every redeem fails with `Invalid token` | Single constant in one module; the covering test asserts the identifier shape. Revisit on better-auth major |
+
+Overall this is **within normal thin-wrapper coupling** — every item is either backstopped (sign-out), cosmetic (theme), or a stable library/route contract. The only one that genuinely can't self-heal without a release is the IdP host list, which is inherent to the "pin Chromium, ship a binary" model and is managed by the upgrade program.
+
+## Packaging & release
+
+Local unsigned build: `bun run package:dir` (app in `release/mac-universal/`). Signed: `bun run package:mac` with `CSC_LINK`/`CSC_KEY_PASSWORD` exported.
+
+Local unsigned pre-release share: `SIM_DESKTOP_DEFAULT_ORIGIN=https://www.dev.sim.ai bun run package:share` builds a DMG whose fresh installs default to that origin (baked at build time; official builds leave it unset → prod) and skips per-file signature timestamps. Recipients must clear quarantine once: `xattr -cr /Applications/Sim.app`.
+
+The build also derives the app icon from `SIM_DESKTOP_DEFAULT_ORIGIN`. Every channel uses the exact production icon with its white background and black `sim` mark. Non-production channels add a thin outline using existing platform colors: dev uses orange, staging uses Loop blue, and localhost uses Workflow violet. The macOS menu-bar icon also carries a compact `D`, `S`, or `L` subscript for those environments; production remains unmarked. Native Icon Composer assets live in `build/`; `scripts/build.ts` copies the selected variant to the ignored `build/generated-icon.icon` path consumed by electron-builder. Electron-builder compiles it to `Assets.car` and derives the legacy `.icns` fallback from the same source. Matching 512px PNGs in `static/` provide the Dock icon for unpackaged runs.
+
+CI (`.github/workflows/desktop-release.yml`, wired into `ci.yml`):
+- Stable builds run only after `release` on a `vX.Y.Z:` commit to main — **never before**: `scripts/create-single-release.ts` skips creation if the tag exists, so a desktop job publishing first would eat the changelog. Stable assets remain on `simstudioai/sim`; dev/staging assets publish to the public `simstudioai/sim-desktop-releases` repository so source-repository followers are not notified for internal shell builds. The job builds `--publish never`; reruns verify the size and SHA-256 digest of existing release assets instead of overwriting them.
+- **Secrets gate**: `desktop-signing` in `ci.yml` probes the six Apple secrets and skips the desktop job with a warning until they exist — releases never fail on a missing Apple account, and the first release after the secrets land ships desktop artifacts automatically. Manual/one-off builds: Actions → "desktop-release" → Run workflow with a `vX.Y.Z` version (`publish: false` uploads artifacts to the run instead of the release).
+- The product semver is **injected** from the release tag into `apps/desktop/package.json` at build time (repo package versions are placeholders). A mismatch guard fails the build.
+- Fuses are flipped at package time (`electronFuses` in `electron-builder.yml`): runAsNode off, NODE_OPTIONS off, inspect args off, ASAR-only + integrity validation, and cookie encryption on. The packaged smoke test asserts every fuse byte so Electron upgrades fail until new fuses receive an explicit policy.
+- **Cookie-encryption go/no-go**: on every Electron bump, verify a packaged build keeps its session across relaunch (there are historical cookie-persistence bugs with the `EnableCookieEncryption` fuse). If it reproduces, set `enableCookieEncryption: false` and record it here.
+
+Required repo secrets (owner: whoever holds the Apple Developer account; calendar the expiries — an expired cert/API key breaks every release):
+
+| Secret | Contents |
+|---|---|
+| `CSC_LINK` | base64 of the Developer ID Application `.p12` |
+| `CSC_KEY_PASSWORD` | `.p12` password |
+| `APPLE_API_KEY_P8` | App Store Connect API key file contents (`.p8`) |
+| `APPLE_API_KEY_ID` | API key ID |
+| `APPLE_API_ISSUER` | API issuer ID |
+| `APPLE_TEAM_ID` | Developer team ID |
+| `DESKTOP_RELEASE_TOKEN` | Fine-grained GitHub token with `Contents: write` on only `simstudioai/sim-desktop-releases`; used to create, upload, publish, and prune dev/staging releases |
+
+## Desktop-only features (how to add them cleanly)
+
+Yes — the architecture has a single, clean seam for native features, and nothing about "the renderer is the hosted web app" gets in the way. The rules:
+
+1. **One bridge.** The preload (`src/preload/index.ts`) exposes `window.simDesktop` via `contextBridge` on the main window. This is the *only* channel between web content and native capability. It exposes narrow, typed methods — never raw `ipcRenderer` (Electron security checklist item 20).
+2. **Feature-detect, never assume.** The same web app is served to browsers and to the desktop from one origin, so a desktop feature is progressive enhancement: `if (window.simDesktop) { … }`. In a browser `window.simDesktop` is `undefined` and the feature is simply absent. (`isHosted` already tags these sessions for analytics.)
+3. **Gate in main.** Every channel is validated in `src/main/ipc.ts` by sender frame — app-origin for capability calls, the bundled `sim-shell://pages/…` documents for shell-control calls (checklist item 17). A new native feature adds one gated channel there.
+4. **Single-source the contract.** `apps/sim` cannot import from `apps/desktop` (monorepo rule: `apps/* → packages/*` only). The bridge interface lives in the shared types-only `packages/desktop-bridge` package, which both the preload and web app consume.
+
+Concrete example — a "Reveal in Finder" button:
+
+```ts
+// packages/desktop-bridge/index.ts  (shared contract)
+export interface SimDesktopApi { showItemInFolder(path: string): void /* …existing methods… */ }
+
+// apps/desktop/src/preload/index.ts   (implement)
+showItemInFolder: (path: string) => ipcRenderer.send('desktop:show-item', path),
+
+// apps/desktop/src/main/ipc.ts        (gate)
+ipcMain.on('desktop:show-item', (event, path) => {
+  if (!isAppOriginSender(event, deps.appOrigin()) || typeof path !== 'string') return
+  shell.showItemInFolder(path)
+})
+
+// apps/sim  (consume — progressive enhancement)
+const desktop = useDesktop()
+{desktop && <Button onClick={() => desktop.showItemInFolder(file.path)}>Reveal in Finder</Button>}
+```
+
+Good fits for the bridge: OS notifications + dock badge on workflow completion, global shortcuts, "reveal in Finder", tray, secure OS-keychain storage. Anything that touches the server/DB still goes through normal APIs — the bridge is only for **native** capability. This same bridge is also the robust way to retire the web-app couplings in the table above: have the web app *tell* the shell (`signalLogout()`, `markAuthSurface()`) instead of the shell inferring from URLs.
+
+### Browser authentication and Sim previews
+
+Browser tabs for the exact configured Sim origin share the desktop app's existing
+Electron session. This includes dev: authenticated file previews and deployed chat
+pages use the current login without copying cookies or exposing tokens to the model.
+Normal resource permissions and any separate deployed-chat password still apply.
+External websites use the independent `persist:sim-browser-agent` partition.
+
+Crossing between Sim and an external site opens a tab in the destination session and
+preserves the source tab's history; an unused blank tab adopts its first destination's
+session. A cross-session form POST is blocked instead of replayed as a GET. Restored
+tabs and popups select their session from the destination origin. Sign-out and account
+or server changes use the existing browser teardown. Browser views retain their own
+permission/download policy, SSRF guards, and minimal preload with no `simDesktop` API.
+
+Generated HTML remains inside its `allow-scripts` sandbox. The driver can inspect and
+interact with inline frames through isolated Chromium worlds, including out-of-process
+frames; it does not grant those pages access to the parent app. These shell changes
+require a desktop update, not just a hosted web deployment.
+
+### Local filesystem access
+
+Copilot can inspect user-selected local directories through the ordinary VFS tools. Granted folders appear beneath the top-level `user-local/` namespace, and `glob`, `grep`, and `read` are routed to Electron only when their path/pattern is explicitly scoped there. This capability is:
+
+- **Explicit and read-only:** only a user click may open the native folder picker or revoke a grant; model tool calls cannot do either. There are no write/delete/execute/upload operations.
+- **Remembered securely:** grants are encrypted in Electron's private app data with OS-backed `safeStorage` and restored with the same opaque URI after a normal app restart. (A security-scoped bookmark is stored alongside each grant, but it is a no-op in the current Developer ID build — only the macOS App Sandbox consumes it — and is kept purely for forward-compatibility should a sandboxed/MAS build ever ship.) There is no plaintext fallback: when secure storage is unavailable, the returned mount has `remembered: false` and lasts only for that app session.
+- **Revocable:** File → Folder Access adds folders and removes individual grants. All grants are removed on explicit sign-out or server-origin change so another Sim account or server cannot inherit them. Normal app quit only releases active OS handles and keeps the encrypted grants.
+- **Opaque:** the model sees canonical paths such as `user-local/Project--<mount-id>/README.md`, never host paths or internal `localfs://` URIs. Electron resolves every request, checks lexical and realpath containment, and refuses symlink escapes.
+- **Desktop-only:** the web app advertises `desktopCapabilities.localFilesystem` only when the Electron bridge is present. Mothership adds the `user-local/` prompt surface and per-call client routing only for that capability, including delegated and resumed work.
+- **Bound to a live Copilot call:** before a native read/search or browser action, Electron asks the authenticated Sim origin for the pending tool-call record. Local requests must exactly match its persisted operation, path, and options; browser actions run with the persisted arguments rather than renderer-supplied ones. Completed, failed, and aborted runs are rejected.
+- **Abort-aware and bounded:** stop/cancel propagates to active native scans and reads. File size, aggregate grep bytes, line, result, traversal-depth, and scan-count limits remain enforced in Electron, and unsafe regular expressions are rejected before execution.
+
+The native `read_local_file` and `import_local_files` tools also accept absolute or `~/` paths. They reuse the same remembered folder grants as the VFS tools. For an unapproved path, Electron displays a bundled, isolated dialog showing the canonical folder and connected server. **Allow folder** grants read and import access to that folder and its subfolders across chats and normal app restarts. A file request proposes its containing folder explicitly; no wider folder is approved silently. Closing or declining the dialog returns no contents. Users can add or forget folders through **File → Folder Access**. As with VFS grants, sign-out and server changes clear access, and unavailable secure storage limits persistence to the app session. Concurrent requests for the same folder share one allow or deny decision. New consent prompts are serialized, but reads of approved folders proceed independently. Existing encrypted path-based approvals retain their scope and acquire folder-identity metadata on their first restore.
+
+**Desktop settings → Local files → Full file access** bypasses folder prompts for authorized native reads and imports. It is off by default, persists across ordinary restarts, and resets on sign-out or server changes. Turning it off restores folder consent checks. Call authorization, cancellation, file identity, and resource limits still apply, and VFS access continues to use explicit mounts. A failed settings write reports an error and leaves full access disabled in the running app.
+
+Approved native reads can return bounded text, directory listings, images, or PDFs to the chat. Approved imports transfer file bytes to Workspace Files. Electron revalidates every pending call before using a grant, including remembered grants, checks canonical containment and grant identity throughout the operation, and opens files with no-follow and descriptor identity checks. Directory enumeration uses `fdopendir` on the verified descriptor, so replacing a parent path cannot redirect the listing. Listings scan at most 1,001 entries and return up to 1,000 sorted names with an explicit truncation flag; the cap bounds both memory and filesystem work, rather than promising the globally first 1,000 names in an arbitrarily large directory. Imports reject truncated listings. A model or hosted renderer cannot answer the local consent dialog. These permissions govern the native file tools; the separately enabled terminal still runs with the user's OS privileges.
+
+## Auto-update, channels, rollout, rollback
+
+- `electron-updater` reads the deployment's `/api/desktop/update` feed; production resolves stable releases from `simstudioai/sim`, while dev/staging resolve prereleases from `simstudioai/sim-desktop-releases`. Artifact downloads go directly to GitHub and deltas use `.zip.blockmap`. Sim validates every candidate before starting its download. Developer ID builds installed under `/Applications` use a prompt (Restart and update / Later; Later installs on quit); other packaged builds offer a validated installer download — never forced mid-session. A staged or offered update keeps being re-checked on the normal cadence, and a newer release replaces it, so a shell left running across several releases installs the latest build in one restart instead of the stale one followed by another prompt.
+- Streams: production follows stable `X.Y.Z` releases, dev follows `-dev.N`, and staging follows `-staging.N`. The feed still recognizes legacy `-alpha.N`/`-beta.N` releases during migration.
+- Restart becomes available only after Squirrel confirms native staging. Replacing a staged update returns the UI to downloading; a failed transfer can retain the previous staged build, but a failure after the native feed is replaced requires a retry. Diagnostics record `update_downloaded` after native staging, `update_install` when an explicit restart is committed, and `update_install_result` on the next launch with the expected and installed versions. The staging checkpoint also covers updates installed on a normal quit.
+- `bun run test:e2e e2e/updater.spec.ts` exercises the real Electron process, MacUpdater, downloads, retries, and installation checkpoints. Native verification and bundle replacement are simulated. Set `DESKTOP_UPDATER_REPORT_PATH` to choose the JSON report path; by default it is included in Playwright's test results and uploaded by CI on failure.
+- Staged rollout: after publishing, edit `stagingPercentage: 10` into the release's `latest-mac.yml`, then raise as crash metrics stay clean.
+- Rollback: a pulled release must be superseded by a **higher** version — users on the broken build will not reinstall an equal one. (A blocked-versions kill-switch was removed as unwired dead code; reintroduce it in `updater.ts` if a remote config source ever exists to feed it.)
+- Ship the DMG and tell users to install to `/Applications` — App Translocation breaks Squirrel.Mac updates from quarantined paths.
+
+## Self-hosting
+
+- Point Settings… (`Cmd+,`) at your instance. HTTPS required (HTTP for localhost only); each origin gets an isolated cookie partition.
+- Deploy the `/desktop/auth` page (ships with `apps/sim`) and include your desktop users' origin in `TRUSTED_ORIGINS` if it differs from `NEXT_PUBLIC_APP_URL`.
+- TLS must be **system-trusted** — the shell hard-rejects certificate errors (no in-app bypass). Install private CA roots in the macOS keychain.
+- `DISABLE_AUTH` instances: the web app serves an anonymous session; the shell needs no special handling, but understand that anyone with the app and your origin has full access.
+- Forks: repoint `publish.owner/repo` in `electron-builder.yml` or strip the updater.
+
+## Known caveats
+
+- The hosted Sim renderer may request microphone access for voice input from the configured app origin; camera access remains denied. On macOS the shell also requires the operating-system microphone grant. Separately, a page in the agent browser may request microphone or camera only from its main frame after a recent native user gesture; Sim then requires an explicit document-scoped prompt and the operating-system grant where applicable.
+- The built-in agent browser is not a general-purpose download manager. Both browser session types apply the same bounded policy to every download, including one started by a direct user click: at most 2 GiB per file, two active downloads per task, six app-wide, and a 1 GiB free-disk reserve. A rejected download appears in the browser's downloads menu; use a normal browser for an intentionally larger transfer.
+- Default Electron ships H.264/AAC/MP3 — do not swap in the codec-free ffmpeg build.
+- Third-party web analytics (GTM/GA) are blocked at the network layer by default (`blockThirdPartyAnalytics`); first-party PostHog `/ingest` is untouched.
+- `Cmd+F` opens the native find overlay in built-in browser tabs. The hosted Sim workspace continues to use Monaco- and table-specific find surfaces.
+- Sign-in uses only the `127.0.0.1` loopback callback, which needs no OS registration — so it completes identically under `bun run dev` (unpackaged) and in a packaged build. There is no custom URL scheme.
+
+## Electron upgrades
+
+Cadence: Electron ships a major every ~8 weeks and supports the latest 3 — budget a bump every ~4–6 months and adopt security patches within ~2 weeks. Follow `docs/electron-upgrade-checklist.md`; the `desktop-e2e.yml` canary leg (electron@latest) is the early-warning signal.
+
+
+## Native Mac computer use
+
+Mothership's `computer` tool is available on macOS 14+ when the global runtime flag
+`mothership-computer-use` is enabled and the user opts in under **Settings → Desktop → Computer Use**.
+The flag defaults off; local/self-hosted deployments use `MSHIP_COMPUTER_USE=true`, while hosted
+rollout uses the existing AppConfig feature-flags document. Older desktop builds omit this optional
+bridge and continue to work.
+
+The user grants Accessibility and Screen Recording through macOS, then approves each app for the
+current task or persistently. Persistent app approvals are listed in Settings and can be revoked.
+Sign-out and deployment changes clear computer-use approval and opt-in. The conversation shows the
+active app/action and a Stop button; **⌘⇧Esc** also stops active work when the shortcut is available.
+Stop cancels queued actions, in-flight authorization, approval prompts and the native helper.
+Already completed input cannot be undone.
+
+The tool lists installed/running apps, reads window accessibility trees, captures selected-window
+screenshots, activates apps explicitly, and performs clicks, text input, keyboard shortcuts,
+scrolling, dragging, value changes and accessibility actions. Semantic actions can run in the
+background. Coordinate mouse actions require explicit foreground activation and a fresh observation;
+they validate the target app/window before dispatch. Each mutation consumes its snapshot and the
+model observes again to verify results. Secure accessibility values are suppressed. See
+[`native/computer-use/README.md`](native/computer-use/README.md) for native bounds and compatibility
+limits; screenshots can still contain sensitive content visibly rendered by the approved app.
+
+Every execution is authorized and claimed once by `/api/desktop/computer/authorize` using the
+stored tool arguments, current chat access, run/Stop state and current flag. Renderer-supplied
+arguments are not execution authority. The main process serializes native work and binds snapshots
+to the authorized chat. The Swift helper communicates over private stdio and is packaged outside
+ASAR as `Contents/Resources/Sim Computer Use.app`.
+
+Distribution signing must cover the nested helper with the same stable Developer ID identity.
+Development ad-hoc builds can lose macOS grants when rebuilt. macOS can attribute permission
+requests to the responsible parent app (Sim, Electron, or the terminal/IDE that launched a test),
+so confirm the name in the system permission dialog. Test a Finder/LaunchServices-launched signed
+build for release acceptance; terminal-launched helper tests do not establish that app's TCC grants.
+
+Validation includes desktop lifecycle/transport unit tests, the Electron authorization/Stop test
+in `e2e/computer-use.spec.ts`, the native protocol and live fixture tests, Sim authorization/stream
+regressions, and Mothership's opt-in `apps/server/scripts/computer-use-live.ts` real-model trial.
+The live trial uses only the disposable fixture and verifies mutations by fresh state; visual mode
+also asks the model to identify a drawn shape unavailable in accessibility text.
+
+
+September 24 acceptance: 1,909 desktop regression tests, the Electron canonical-authorization/
+replay/Stop test, native pure/protocol tests, and the live fixture GUI suite passed. A real native
+Calculator background test verified `2 + 3 = 5` without changing the foreground app. The signed
+arm64 test bundle and nested universal helper passed strict code-signature verification. Its
+LaunchServices-launched acceptance remained blocked on that app identity's Accessibility and
+Screen Recording grants; the separately granted development helper's tests do not satisfy this
+last release-onboarding check. The disposable packaged test follows the existing packaged-smoke
+suite's mock-keychain convention; native TCC permissions remain real.

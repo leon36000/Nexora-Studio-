@@ -1,0 +1,59 @@
+---
+title: ZeroBounce
+description: Validate email deliverability and check account credits
+integration:
+  type: "zerobounce"
+  color: "#FFFFFF"
+---
+
+
+{/* MANUAL-CONTENT-START:intro */}
+Use ZeroBounce to validate one email address or check remaining validation credits. Inspect the returned status for invalid, catch-all, spamtrap, abuse, or do-not-mail addresses before using the contact in an outreach workflow.
+{/* MANUAL-CONTENT-END */}
+
+
+## Use the block [#usage-instructions]
+
+Integrate ZeroBounce to validate email deliverability in real time — detect invalid, catch-all, spamtrap, abuse, and do-not-mail addresses — and check your remaining validation credits.
+
+## Actions
+
+### ZeroBounce Verify Email
+
+Validate an email address deliverability in real time. Uses one validation credit.
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `email` | string | Yes | Email address to validate \(e.g., john@example.com\) |
+| `apiKey` | string | Yes | ZeroBounce API Key |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `email` | string | The validated email address |
+| `status` | string | Validation status \(valid, invalid, catch_all, unknown, spamtrap, abuse, do_not_mail\) |
+| `deliverable` | boolean | Whether the email is valid and safe to send |
+| `subStatus` | string | Detailed sub-status from ZeroBounce |
+| `freeEmail` | boolean | Whether the address is on a free email provider |
+| `didYouMean` | string | Suggested correction for a likely typo |
+
+### ZeroBounce Get Credits
+
+Retrieve the remaining validation credits for the authenticated account.
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `apiKey` | string | Yes | ZeroBounce API Key |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `credits` | number | Remaining validation credits \(-1 if unavailable\) |
+
+

@@ -1,0 +1,156 @@
+import { ConfluenceIcon } from '@/components/icons'
+import { ALL_SOURCE_ITEMS } from '@/connectors/selection'
+import type { ConnectorMeta } from '@/connectors/types'
+
+export const confluenceConnectorMeta: ConnectorMeta = {
+  search: true,
+  searchDocsUrl: 'https://docs.sim.ai/search/confluence',
+  id: 'confluence',
+  name: 'Confluence',
+  description: 'Sync pages from a Confluence space',
+  version: '1.1.0',
+  icon: ConfluenceIcon,
+
+  auth: {
+    mode: 'oauth',
+    provider: 'confluence',
+    adminCredentialType: 'service_account',
+    /** Attachment access is optional so older credentials can keep syncing parent content. */
+    requiredScopes: [
+      'read:confluence-content.all',
+      'read:page:confluence',
+      'read:blogpost:confluence',
+      'read:space:confluence',
+      'read:label:confluence',
+      'search:confluence',
+      'offline_access',
+    ],
+    /** Mirroring also reads ancestor restrictions, space roles, and user/group identities. */
+    serviceAccountScopes: [
+      'read:confluence-content.all',
+      'read:page:confluence',
+      'read:blogpost:confluence',
+      'read:attachment:confluence',
+      'read:space:confluence',
+      'read:label:confluence',
+      'search:confluence',
+      'read:confluence-space.summary',
+      'read:content.metadata:confluence',
+      'read:space.permission:confluence',
+      'read:confluence-user',
+      'read:user:confluence',
+      'read:group:confluence',
+    ],
+  },
+
+  /**
+   * Confluence pages can transclude other pages (Include Page / Excerpt macros).
+   * Editing an included page changes a container page's rendered `view` without
+   * bumping the container's version, so its version-based hash can't detect the
+   * change. A full resync re-hydrates and re-indexes to pick up that drift. This
+   * lives on the meta so the client can offer "Full resync" only where it applies.
+   */
+  rehydrateOnFullSync: true,
+
+  /** Image attachments hold tables, scans and screenshots, so they go through the vision extractor. */
+  imageExtraction: { settingId: 'imageAttachments' },
+
+  /** New connectors read images; existing ones keep them off until their owner opts in. */
+  defaultSourceConfig: { imageAttachments: 'semantic' },
+
+  /** CQL search under a member's token returns only content that member may view. */
+  permissionScopedListing: { capFieldIds: ['maxPages'] },
+
+  /**
+   * Space permissions and page restrictions are both readable, so one crawl
+   * under an administrative credential can mirror them. Unlike Drive they come
+   * back per page rather than with the listing, which is what
+   * `getDocumentAcls` exists for.
+   */
+  mirrorsSourceAcls: true,
+  requiresMemberIdentity: true,
+
+  configFields: [
+    {
+      id: 'domain',
+      title: 'Confluence site',
+      type: 'short-input',
+      placeholder: 'yoursite.atlassian.net',
+      required: true,
+    },
+    {
+      id: 'spaceSelector',
+      title: 'Spaces',
+      type: 'selector',
+      selectorKey: 'confluence.spaces',
+      canonicalParamId: 'spaceKey',
+      mode: 'basic',
+      multi: true,
+      allowSelectAll: true,
+      selectAllValue: ALL_SOURCE_ITEMS,
+      preserveValueOnModeChange: true,
+      dependsOn: ['domain'],
+      placeholder: 'Select one or more spaces',
+      required: true,
+    },
+    {
+      id: 'spaceKey',
+      title: 'Space Keys',
+      type: 'short-input',
+      canonicalParamId: 'spaceKey',
+      mode: 'advanced',
+      multi: true,
+      placeholder: 'e.g. ENG, PRODUCT (comma-separated for multiple)',
+      required: true,
+    },
+    {
+      id: 'contentType',
+      setupGroup: 'options',
+      title: 'Content Type',
+      placeholder: 'Pages only',
+      type: 'dropdown',
+      required: false,
+      options: [
+        { label: 'Pages only', id: 'page' },
+        { label: 'Blog posts only', id: 'blogpost' },
+        { label: 'All content', id: 'all' },
+      ],
+    },
+    {
+      id: 'imageAttachments',
+      setupGroup: 'options',
+      title: 'Image Attachments',
+      placeholder: "Don't index",
+      type: 'dropdown',
+      required: false,
+      description:
+        'Read with AI turns tables, scans and screenshots into searchable text, billed per image. Logos and icons are kept but not searched.',
+      options: [
+        { label: 'Read with AI', id: 'semantic' },
+        { label: "Don't index", id: 'off' },
+      ],
+    },
+    {
+      id: 'labelFilter',
+      setupGroup: 'options',
+      title: 'Filter by Label',
+      type: 'short-input',
+      required: false,
+      placeholder: 'e.g. published, engineering',
+    },
+    {
+      id: 'maxPages',
+      setupGroup: 'options',
+      title: 'Max Pages',
+      type: 'short-input',
+      required: false,
+      placeholder: 'e.g. 500 (default: unlimited)',
+    },
+  ],
+
+  tagDefinitions: [
+    { id: 'labels', displayName: 'Labels', fieldType: 'text' },
+    { id: 'version', displayName: 'Version', fieldType: 'number' },
+    { id: 'lastModified', displayName: 'Last Modified', fieldType: 'date' },
+  ],
+}

@@ -1,0 +1,74 @@
+import { TABLE_LIMITS } from '@/lib/table/constants'
+import { enrichTableToolSchema } from '@/tools/schema-enrichers'
+import { TABLE_ID_PARAM } from '@/tools/table/params'
+import { tableSuccess } from '@/tools/table/response'
+import type { TableBulkOperationResponse, TableDeleteByFilterParams } from '@/tools/table/types'
+import type { InternalToolConfig } from '@/tools/types'
+
+export const tableDeleteRowsByFilterTool: InternalToolConfig<
+  TableDeleteByFilterParams,
+  TableBulkOperationResponse
+> = {
+  id: 'table_delete_rows_by_filter',
+  name: 'Delete Rows by Filter',
+  description:
+    'Delete multiple rows that match filter criteria. Use with caution - supports optional limit for safety.',
+  version: '1.0.0',
+
+  toolEnrichment: {
+    dependsOn: 'tableId',
+    enrichTool: (tableId, schema, desc, context) =>
+      enrichTableToolSchema(tableId, 'table_delete_rows_by_filter', schema, desc, context),
+  },
+
+  params: {
+    tableId: TABLE_ID_PARAM,
+    filter: {
+      type: 'object',
+      required: true,
+      description:
+        'Filter criteria using operators like $eq, $ne, $gt, $lt, $contains, $ncontains, $startsWith, $endsWith, $in, $nin, $empty, etc.',
+      visibility: 'user-or-llm',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      description: `Maximum number of rows to delete (default: no limit, max: ${TABLE_LIMITS.MAX_BULK_OPERATION_SIZE})`,
+      visibility: 'user-or-llm',
+    },
+  },
+
+  operation: {
+    input: (params: TableDeleteByFilterParams) => {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required in execution context')
+      }
+
+      return {
+        tableId: params.tableId,
+        filter: params.filter,
+        limit: params.limit,
+        workspaceId,
+      }
+    },
+  },
+
+  transformResponse: async (response): Promise<TableBulkOperationResponse> => {
+    const result = await response.json()
+    const data = result.data || result
+
+    return tableSuccess({
+      deletedCount: data.deletedCount || 0,
+      deletedRowIds: data.deletedRowIds || [],
+      message: data.message || 'Rows deleted successfully',
+    })
+  },
+
+  outputs: {
+    success: { type: 'boolean', description: 'Whether rows were deleted' },
+    deletedCount: { type: 'number', description: 'Number of rows deleted' },
+    deletedRowIds: { type: 'array', description: 'IDs of deleted rows' },
+    message: { type: 'string', description: 'Status message' },
+  },
+}

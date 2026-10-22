@@ -1,0 +1,109 @@
+---
+title: Insights
+description: Compare organization credit usage with workflow performance and recorded Chat activity
+---
+
+Insights shows credit consumption by source, member, workspace, and model, alongside retained workflow and Chat activity. Use it to find spending drivers, investigate workflow performance, and export credit events for reporting.
+
+Organization owners and admins open **Settings → Organization → Insights**. Regular members cannot view organization usage, including their own contribution. Billing-enabled deployments require Enterprise; billing-disabled deployments use the feature configuration under [Self-hosted setup](#self-hosted-setup).
+
+## Choose a period
+
+| Period | Scope |
+| --- | --- |
+| **Current period** | Organization's current billing period. |
+| **Previous period** | Immediately preceding billing period. |
+| **Last 7 days** / **Last 30 days** | Rolling window ending now. |
+| **Custom range** | Selected dates, up to 92 days. |
+
+The period applies to every tab's charts and breakdowns. The **Usage heatmap** below the credit chart in Overview and workspace details always shows the last 365 days, including today's partial day. Hover, select, or use the arrow keys to inspect a day. A positive charge below one displayed credit reads **&lt;1 credit** and remains colored.
+
+Daily bars and heatmap cells use your browser's timezone, while billing periods begin at a fixed UTC instant. The first and last bars can be partial. Different timezones can split the same total differently across days.
+
+Spend is in **credits**, where 1 credit = $0.005; the UI rounds displayed credits. [Logs](/logs-debugging/logging) and Logs API costs are in USD, while Billing and run-resource API amounts use their documented credit units. Check the endpoint contract before comparing amounts. See [cost calculation](/platform/costs).
+
+## Read the tabs
+
+| Tab | Shows |
+| --- | --- |
+| **Overview** | Credit consumption, recorded activity, workflow failure rate, and sources. |
+| **Activity** | Run trends and performance by workspace, workflow, chat member, or trigger. |
+| **Members** | Credit consumption attributed to people. |
+| **Workspaces** | Credit consumption by workspace; select one to drill in. |
+| **Models** | Paid model usage. |
+
+A workspace detail splits usage into **Sources** and **Workflows**. Sources covers all attributed credits; Workflows covers only the workflow-run ledger. For example, 4,274 Chat credits plus 161 Workflow credits totals 4,435, while the workflow list accounts for 161. **Open logs**, where available, opens [audit logs](/platform/enterprise/audit-logs) filtered to that workspace.
+
+## Activity and performance
+
+In **Activity**, group by **Workspaces**, **Workflows**, **Members**, or **Triggers**. Sort by run volume, failure count, or average workflow duration. Members rank recorded Chat runs. Pages limit visible rows; totals and sorting cover the whole selected period. Select a workspace to narrow results and use **All workspaces** to clear it.
+
+| Metric | Definition |
+| --- | --- |
+| Workflow runs | Retained execution records starting in the period, including running, paused, and cancelled runs. |
+| Recorded chat runs | Distinct recorded execution IDs across workspace and organization chats. Continuations count once, at the first retained start; calls without a persisted run are excluded. |
+| Members with chat activity | Distinct users attributed to those recorded runs. This is not a login or all-active-member count. |
+| Workflow failure rate | Failed ÷ (completed + failed). Paused, cancelled, and unfinished runs are excluded; a dash means no completed/failed sample. |
+| Average duration | Known nonnegative durations of completed or failed workflows. Missing durations are excluded; a dash means none are available. |
+
+These metrics follow retained history and current workspace/organization ownership. Deletion or moving a workspace can change historical totals. Outcome and duration reflect the latest recorded state even when a run started earlier. Activity does not read Chat transcripts or workflow trace payloads.
+
+Credits come from a separate billing ledger, so activity counts need not match credit-event counts. The credit export does not export activity. This view does not provide exact per-chat cost, connector/skill adoption, or attribution of generated artifacts.
+
+## Credit sources
+
+Each charge has one source. The exact **Agent block** label in Insights refers to the **Sim Chat** workflow block (`mothership_block`), rather than the ordinary Agent block.
+
+| Source | Recorded charges |
+| --- | --- |
+| **Workflow** | Workflow model calls on hosted keys, hosted-key tool calls, and the per-run base charge. |
+| **Sim Chat** | Chat panel, API agent calls, and email Inbox usage, combined. |
+| **Agent block** | Sim Chat workflow-block usage, metered separately from its containing workflow. |
+| **Knowledge Base** | Upload/connector embedding and semantic search. |
+| **Wand** | Inline AI generation in editors. |
+| **Enrichment** | Table enrichment. |
+| **Voice input** | Voice sessions. |
+| **Voice output** | Spoken responses in deployed chats. |
+| **API tool call** | Direct hosted-key tool calls through the tool API outside a workflow run. |
+| **Sim Chat (MCP)** | Retired source visible in historical periods. |
+
+An ordinary Agent block's hosted model calls remain under Workflow. The Workflow base charge applies even without model calls. To assess a workflow using the Sim Chat block, read its Workflow charges and the separately metered Agent block source; neither charge is counted twice.
+
+A hosted-key tool called inside a workflow belongs to Workflow; the same tool called directly belongs to API tool call. Chat panel, API agent, and Inbox charges cannot be separated by source. Dedicated workspace attribution can distinguish them when those surfaces actually name different workspaces. Usage without a workspace link appears under **Unassigned usage** and remains part of the organization total. This includes organization-level activity and retained charges from permanently deleted workspaces; the row cannot distinguish between them.
+
+### Reconcile totals
+
+Members, Workspaces, and Sources are separate groupings of the same ledger. Each covers the period's charges; adding groupings together double-counts. Rounding can obscure small differences.
+
+Models covers model charges only. Base charges, hosted tools, and fixed charges explain why it can be lower than the total. The current billing period lets you compare consumption with Billing; rolling windows do not align with invoices, and consumption is not a complete invoice including other fees or taxes.
+
+## Bring your own keys
+
+A workflow model call using a workspace or organization provider key has zero model credits while its token usage is still recorded. Those tokens are not broken out in the Insights panel's credit totals. This statement describes verified workflow-model recording; other own-key surfaces do not have an equivalent breakdown here.
+
+BYOK does not remove the workflow base charge or separate hosted-tool and sandbox charges. Confirm which key was used when investigating an expected zero-cost model call.
+
+## Export credit events
+
+Click **Export** for the selected period and filters, or **All events** for the individual ledger entries and their filters. CSV columns are `Date, Source, Description, Workflow, Credits`; credits are numeric with four decimal places and can be summed.
+
+Exports stop at **100,000 events**. A truncated export still downloads and shows a notice; narrow the date range and export the remaining periods. Fractional CSV values can differ from whole-credit UI rounding.
+
+For automation, use the organization usage [summary](/api-reference/organizations/getOrganizationUsageSummary), [breakdown](/api-reference/organizations/getOrganizationUsageBreakdown), and [events](/api-reference/organizations/listOrganizationUsageEvents) APIs. [Billing CLI](/cli/billing) account reads are a separate view from this organization report.
+
+## Self-hosted setup
+
+Enable Insights through enterprise configuration or explicitly set:
+
+```bash
+USAGE_MONITORING_ENABLED=true
+NEXT_PUBLIC_USAGE_MONITORING_ENABLED=true
+```
+
+Explicit values take precedence over the enterprise master configuration. Billing-enabled deployments retain the Enterprise gate. Organization owner/admin access is still required. See [self-hosted enterprise setup](/platform/enterprise/self-hosted).
+
+## Related docs
+
+- [Costs and credits](/platform/costs)
+- [Audit logs](/platform/enterprise/audit-logs)
+- [Data retention](/platform/enterprise/data-retention)

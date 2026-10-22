@@ -1,0 +1,1125 @@
+import Ajv from 'ajv'
+import { afterAll, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
+import type { ExecutorDelegationOrigin } from '@/executor/types'
+import { mergeToolParameters } from '@/tools/merge-params'
+import * as toolMetadata from '@/tools/metadata'
+import {
+  createLLMToolSchema,
+  createUserToolSchema,
+  filterSchemaForLLM,
+  getSubBlocksForToolInput,
+  isPasswordParameter,
+  type ToolSchema,
+  ToolSchemaEnrichmentError,
+} from '@/tools/params'
+import type { HttpMethod, ParameterVisibility } from '@/tools/types'
+
+const mockToolConfig = {
+  id: 'test_tool',
+  name: 'Test Tool',
+  description: 'A test tool for parameter handling',
+  version: '1.0.0',
+  params: {
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only' as ParameterVisibility,
+      description: 'API key for authentication',
+    },
+    message: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm' as ParameterVisibility,
+      description: 'Message to send',
+    },
+    channel: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only' as ParameterVisibility,
+      description: 'Channel to send message to',
+    },
+    timeout: {
+      type: 'number',
+      required: false,
+      visibility: 'user-only' as ParameterVisibility,
+      default: 5000,
+      description: 'Request timeout in milliseconds',
+    },
+  },
+  request: {
+    url: 'https://api.example.com/test',
+    method: 'POST' as HttpMethod,
+    headers: () => ({}),
+  },
+}
+
+/**
+ * Spy on the real module namespace instead of vi.mock: under `isolate: false`
+ * `@/tools/params` may already be cached bound to the real `@/tools/metadata`
+ * module, so patching the shared namespace is the only wiring that always
+ * applies.
+ */
+let getToolSpy: MockInstance<typeof toolMetadata.getToolMetadata>
+beforeEach(() => {
+  getToolSpy = vi.spyOn(toolMetadata, 'getToolMetadata').mockImplementation(((toolId: string) => {
+    if (toolId === 'test_tool') {
+      return mockToolConfig
+    }
+    if (toolId === 'workflow_executor') {
+      return {
+        id: 'workflow_executor',
+        name: 'Workflow Executor',
+        description: '',
+        version: '1.0.0',
+        params: {},
+      }
+    }
+    if (toolId === 'bool_tool') {
+      return {
+        ...mockToolConfig,
+        id: 'bool_tool',
+        params: {
+          includeAttachments: {
+            type: 'boolean',
+            required: false,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Download attachment file contents',
+          },
+          payload: {
+            type: 'json',
+            required: false,
+            visibility: 'user-or-llm' as ParameterVisibility,
+          },
+        },
+      }
+    }
+    if (toolId === 'checkbox_tool') {
+      return {
+        ...mockToolConfig,
+        id: 'checkbox_tool',
+        params: {
+          completed: {
+            type: 'boolean',
+            required: false,
+            visibility: 'user-or-llm' as ParameterVisibility,
+          },
+        },
+      }
+    }
+    return null
+  }) as unknown as typeof toolMetadata.getToolMetadata)
+})
+
+afterAll(() => {
+  getToolSpy.mockRestore()
+})
+
+describe('Tool Parameters Utils', () => {
+  describe('createLLMToolSchema', () => {
+    it('preserves structured object properties and nested array item constraints', async () => {
+      const structuredTool = {
+        ...mockToolConfig,
+        id: 'structured_tool',
+        params: {
+          payload: {
+            type: 'object',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Structured payload',
+            items: {
+              type: 'object',
+              required: ['recipients'],
+              properties: {
+                recipients: {
+                  type: 'array',
+                  minItems: 1,
+                  maxItems: 10,
+                  items: {
+                    type: 'object',
+                    required: ['id'],
+                    properties: { id: { type: 'string', minLength: 1 } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }
+
+      const { schema } = await createLLMToolSchema(structuredTool, {})
+
+      expect(schema.properties.payload).toMatchObject({
+        type: 'object',
+        required: ['recipients'],
+        properties: {
+          recipients: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 10,
+            items: {
+              type: 'object',
+              required: ['id'],
+              properties: { id: { type: 'string', minLength: 1 } },
+            },
+          },
+        },
+      })
+    })
+
+    it('does not reinterpret legacy JSON item metadata as a root object schema', async () => {
+      const legacyJsonTool = {
+        ...mockToolConfig,
+        id: 'legacy_json_tool',
+        params: {
+          payload: {
+            type: 'json',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Legacy JSON array payload',
+            items: {
+              type: 'object',
+              properties: { id: { type: 'string' } },
+            },
+          },
+        },
+      }
+
+      const { schema } = await createLLMToolSchema(legacyJsonTool, {})
+
+      expect(schema.properties.payload).toEqual({
+        description: 'Legacy JSON array payload',
+      })
+    })
+
+    it('lets a json or any param take an array as well as an object', async () => {
+      const untypedTool = {
+        ...mockToolConfig,
+        id: 'untyped_tool',
+        params: {
+          orgIds: {
+            type: 'json',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Organization IDs, e.g. [129410, 1034157]',
+          },
+          value: {
+            type: 'any',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+          },
+        },
+      }
+
+      const { schema: llmSchema } = await createLLMToolSchema(untypedTool, {})
+      const userSchema = createUserToolSchema(untypedTool, { surface: 'copilot' })
+
+      for (const schema of [llmSchema, userSchema]) {
+        const validate = new Ajv({ strict: false }).compile(schema)
+        expect(validate({ orgIds: [129410, 1034157], value: ['a'] })).toBe(true)
+        expect(validate({ orgIds: { id: 129410 }, value: { a: 1 } })).toBe(true)
+        expect(schema.properties.orgIds.description).toBe(
+          'Organization IDs, e.g. [129410, 1034157]'
+        )
+      }
+    })
+
+    it.concurrent('should create schema excluding user-provided parameters', async () => {
+      const userProvidedParams = {
+        apiKey: 'user-provided-key',
+        channel: '#general',
+      }
+
+      const { schema } = await createLLMToolSchema(mockToolConfig, userProvidedParams)
+
+      expect(schema.properties).not.toHaveProperty('apiKey') // user-only, excluded
+      expect(schema.properties).not.toHaveProperty('channel') // user-provided, excluded
+      expect(schema.properties).toHaveProperty('message') // user-or-llm, included
+      expect(schema.properties).not.toHaveProperty('timeout') // user-only, excluded
+      expect(schema.required).toContain('message') // user-or-llm + required: true
+      expect(schema.required).not.toContain('apiKey') // user-only, never required for LLM
+    })
+
+    it.concurrent('should include all parameters when none are user-provided', async () => {
+      const { schema } = await createLLMToolSchema(mockToolConfig, {})
+
+      expect(schema.properties).not.toHaveProperty('apiKey') // user-only, never shown to LLM
+      expect(schema.properties).toHaveProperty('message') // user-or-llm, shown to LLM
+      expect(schema.properties).not.toHaveProperty('channel') // user-only, never shown to LLM
+      expect(schema.properties).not.toHaveProperty('timeout') // user-only, never shown to LLM
+      expect(schema.required).not.toContain('apiKey') // user-only, never required for LLM
+      expect(schema.required).toContain('message') // user-or-llm + required: true
+    })
+
+    it('wraps tool enrichment failures so execution boundaries can fail fast', async () => {
+      const cause = new Error('table metadata unavailable')
+      const toolConfig = {
+        ...mockToolConfig,
+        toolEnrichment: {
+          dependsOn: 'tableId',
+          enrichTool: vi.fn().mockRejectedValue(cause),
+        },
+      }
+
+      const error = await createLLMToolSchema(toolConfig, { tableId: 'tbl_123' }).catch(
+        (caught) => caught
+      )
+
+      expect(error).toBeInstanceOf(ToolSchemaEnrichmentError)
+      expect(error).toMatchObject({
+        message: 'Failed to enrich schema for tool "test_tool"',
+        cause,
+      })
+    })
+  })
+
+  describe('createUserToolSchema', () => {
+    it.concurrent('should include user-only parameters and omit hidden ones', () => {
+      const toolWithHiddenParam = {
+        ...mockToolConfig,
+        id: 'user_schema_tool',
+        params: {
+          ...mockToolConfig.params,
+          spreadsheetId: {
+            type: 'string',
+            required: true,
+            visibility: 'user-only' as ParameterVisibility,
+            description: 'Spreadsheet ID to operate on',
+          },
+          accessToken: {
+            type: 'string',
+            required: true,
+            visibility: 'hidden' as ParameterVisibility,
+            description: 'OAuth access token',
+          },
+        },
+      }
+
+      const schema = createUserToolSchema(toolWithHiddenParam)
+
+      expect(schema.properties).toHaveProperty('spreadsheetId')
+      expect(schema.required).toContain('spreadsheetId')
+      expect(schema.properties).not.toHaveProperty('accessToken')
+      expect(schema.required).not.toContain('accessToken')
+      expect(schema.properties).toHaveProperty('message')
+    })
+
+    it.concurrent('keeps the hosted key param optional when hosted keys are supported', () => {
+      const hostedTool = {
+        ...mockToolConfig,
+        id: 'hosted_key_tool',
+        params: {
+          query: {
+            type: 'string',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Search query',
+          },
+          apiKey: {
+            type: 'string',
+            required: true,
+            visibility: 'user-only' as ParameterVisibility,
+            description: 'Exa AI API Key',
+          },
+        },
+        hosting: {
+          envKeyPrefix: 'EXA_API_KEY',
+          apiKeyParam: 'apiKey',
+          byokProviderId: 'exa',
+          pricing: { type: 'per_request' as const, cost: 0.005 },
+          rateLimit: { mode: 'per_request' as const, requestsPerMinute: 100 },
+        },
+      }
+
+      const hostedSchema = createUserToolSchema(hostedTool, {
+        surface: 'copilot',
+        hostedKeySupport: true,
+      })
+
+      // The key stays available as a bring-your-own-key override but is never
+      // a required argument — the executor injects the hosted key server-side.
+      expect(hostedSchema.properties).toHaveProperty('apiKey')
+      expect(hostedSchema.required).not.toContain('apiKey')
+      expect(hostedSchema.properties.apiKey.description).toContain('hosted key')
+      expect(hostedSchema.required).toContain('query')
+    })
+
+    it.concurrent('keeps the hosted key param required without hosted key support', () => {
+      const hostedTool = {
+        ...mockToolConfig,
+        id: 'hosted_key_tool_self_hosted',
+        params: {
+          apiKey: {
+            type: 'string',
+            required: true,
+            visibility: 'user-only' as ParameterVisibility,
+            description: 'Exa AI API Key',
+          },
+        },
+        hosting: {
+          envKeyPrefix: 'EXA_API_KEY',
+          apiKeyParam: 'apiKey',
+          byokProviderId: 'exa',
+          pricing: { type: 'per_request' as const, cost: 0.005 },
+          rateLimit: { mode: 'per_request' as const, requestsPerMinute: 100 },
+        },
+      }
+
+      const selfHostedSchema = createUserToolSchema(hostedTool, { surface: 'copilot' })
+
+      expect(selfHostedSchema.required).toContain('apiKey')
+      expect(selfHostedSchema.properties.apiKey.description).not.toContain('hosted key')
+    })
+
+    it.concurrent('keeps the key required for conditionally hosted tools', () => {
+      const enabled = Object.assign(
+        (params: Record<string, unknown>) => params.provider === 'falai',
+        {
+          condition: { field: 'provider', operator: 'equals' as const, value: 'falai' },
+        }
+      )
+      const conditionalTool = {
+        ...mockToolConfig,
+        id: 'conditional_hosted_tool',
+        params: {
+          apiKey: {
+            type: 'string',
+            required: true,
+            visibility: 'user-only' as ParameterVisibility,
+            description: 'Provider API Key',
+          },
+        },
+        hosting: {
+          enabled,
+          envKeyPrefix: 'FALAI_API_KEY',
+          apiKeyParam: 'apiKey',
+          byokProviderId: 'falai',
+          pricing: { type: 'per_request' as const, cost: 0.01 },
+          rateLimit: { mode: 'per_request' as const, requestsPerMinute: 100 },
+        },
+      }
+
+      const schema = createUserToolSchema(conditionalTool, {
+        surface: 'copilot',
+        hostedKeySupport: true,
+      })
+
+      // Injection only happens when the predicate passes at runtime, so the
+      // schema must not promise a hosted key for every configuration.
+      expect(schema.required).toContain('apiKey')
+      expect(schema.properties.apiKey.description).not.toContain('hosted key')
+    })
+
+    it.concurrent('does not relax required keys on tools without hosting', () => {
+      const plainTool = {
+        ...mockToolConfig,
+        id: 'plain_key_tool',
+        params: {
+          apiKey: {
+            type: 'string',
+            required: true,
+            visibility: 'user-only' as ParameterVisibility,
+            description: 'Service API Key',
+          },
+        },
+      }
+
+      const schema = createUserToolSchema(plainTool, {
+        surface: 'copilot',
+        hostedKeySupport: true,
+      })
+
+      expect(schema.required).toContain('apiKey')
+    })
+
+    it.concurrent('adds credentialId only for copilot-facing oauth schemas', () => {
+      const oauthTool = {
+        ...mockToolConfig,
+        id: 'oauth_schema_tool',
+        oauth: {
+          required: true,
+          provider: 'google-email',
+        },
+        params: {
+          message: {
+            type: 'string',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Message to send',
+          },
+          accessToken: {
+            type: 'string',
+            required: true,
+            visibility: 'hidden' as ParameterVisibility,
+            description: 'OAuth access token',
+          },
+        },
+      }
+
+      const defaultSchema = createUserToolSchema(oauthTool)
+      const copilotSchema = createUserToolSchema(oauthTool, { surface: 'copilot' })
+
+      expect(defaultSchema.properties).not.toHaveProperty('credentialId')
+      expect(copilotSchema.properties).toHaveProperty('credentialId')
+      expect(copilotSchema.properties.credentialId).toMatchObject({
+        type: 'string',
+      })
+      expect(copilotSchema.required).toContain('credentialId')
+    })
+
+    it.concurrent('emits file params as reference strings by default', () => {
+      const toolWithFileParams = {
+        ...mockToolConfig,
+        id: 'file_schema_tool',
+        params: {
+          attachment: {
+            type: 'file',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Attachment file',
+          },
+          attachments: {
+            type: 'file[]',
+            required: false,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Attachment files',
+          },
+        },
+      }
+
+      const schema = createUserToolSchema(toolWithFileParams)
+
+      // `file` is not a JSON Schema type, so emitting it verbatim produced a
+      // schema no provider could validate. A model cannot synthesize a file
+      // object's key or url either, so the reference string is both valid and
+      // the only thing it can actually supply.
+      expect(schema.properties.attachment).toMatchObject({ type: 'string' })
+      expect(schema.properties.attachment.description).toContain('Attachment file')
+      expect(schema.properties.attachments).toMatchObject({
+        type: 'array',
+        items: { type: 'string' },
+      })
+    })
+
+    it.concurrent('expands file params for copilot-facing schemas', () => {
+      const toolWithFileParams = {
+        ...mockToolConfig,
+        id: 'copilot_file_schema_tool',
+        params: {
+          attachment: {
+            type: 'file',
+            required: true,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Attachment file',
+          },
+          attachments: {
+            type: 'file[]',
+            required: false,
+            visibility: 'user-or-llm' as ParameterVisibility,
+            description: 'Attachment files',
+          },
+        },
+      }
+
+      const schema = createUserToolSchema(toolWithFileParams, { surface: 'copilot' })
+
+      expect(schema.properties.attachment).toMatchObject({
+        type: 'object',
+        required: ['id', 'name', 'url', 'size', 'type', 'key'],
+      })
+      expect(schema.properties.attachment.description).toContain('canonical workspace file IDs')
+      expect(schema.properties.attachments).toMatchObject({
+        type: 'array',
+      })
+      expect(schema.properties.attachments.description).toContain('canonical workspace file IDs')
+    })
+  })
+
+  describe('mergeToolParameters', () => {
+    it.concurrent('should merge parameters with user-provided taking precedence', () => {
+      const userProvided = {
+        apiKey: 'user-key',
+        channel: '#general',
+      }
+      const llmGenerated = {
+        message: 'Hello world',
+        channel: '#random',
+        timeout: 10000,
+      }
+
+      const merged = mergeToolParameters(userProvided, llmGenerated)
+
+      expect(merged.apiKey).toBe('user-key')
+      expect(merged.channel).toBe('#general')
+      expect(merged.message).toBe('Hello world')
+      expect(merged.timeout).toBe(10000)
+    })
+
+    it.concurrent('should skip empty strings so LLM values are used', () => {
+      const userProvided = {
+        apiKey: 'user-key',
+        channel: '', // User cleared this field
+        message: '', // User cleared this field too
+      }
+      const llmGenerated = {
+        message: 'Hello world',
+        channel: '#random',
+        timeout: 10000,
+      }
+
+      const merged = mergeToolParameters(userProvided, llmGenerated)
+
+      expect(merged.apiKey).toBe('user-key') // Non-empty user value preserved
+      expect(merged.channel).toBe('#random') // LLM value used because user value was empty
+      expect(merged.message).toBe('Hello world') // LLM value used because user value was empty
+      expect(merged.timeout).toBe(10000)
+    })
+
+    it.concurrent('should skip null and undefined values', () => {
+      const userProvided = {
+        apiKey: 'user-key',
+        channel: null,
+        message: undefined,
+      }
+      const llmGenerated = {
+        message: 'Hello world',
+        channel: '#random',
+      }
+
+      const merged = mergeToolParameters(userProvided, llmGenerated)
+
+      expect(merged.apiKey).toBe('user-key')
+      expect(merged.channel).toBe('#random') // LLM value used
+      expect(merged.message).toBe('Hello world') // LLM value used
+    })
+  })
+
+  describe('filterSchemaForLLM', () => {
+    it.concurrent('should filter out user-provided parameters from schema', () => {
+      const originalSchema: ToolSchema = {
+        type: 'object' as const,
+        properties: {
+          apiKey: { type: 'string', description: 'API key' },
+          message: { type: 'string', description: 'Message' },
+          channel: { type: 'string', description: 'Channel' },
+        },
+        required: ['apiKey', 'message'],
+      }
+
+      const userProvidedParams = {
+        apiKey: 'user-key',
+        channel: '#general',
+      }
+
+      const filtered = filterSchemaForLLM(originalSchema, userProvidedParams)
+
+      expect(filtered.properties).not.toHaveProperty('apiKey')
+      expect(filtered.properties).not.toHaveProperty('channel')
+      expect(filtered.properties).toHaveProperty('message')
+      expect(filtered.required).not.toContain('apiKey')
+      expect(filtered.required).toContain('message')
+    })
+  })
+
+  describe('isPasswordParameter', () => {
+    it.concurrent('should identify password parameters correctly', () => {
+      expect(isPasswordParameter('password')).toBe(true)
+      expect(isPasswordParameter('apiKey')).toBe(true)
+      expect(isPasswordParameter('token')).toBe(true)
+      expect(isPasswordParameter('secret')).toBe(true)
+      expect(isPasswordParameter('accessToken')).toBe(true)
+      expect(isPasswordParameter('message')).toBe(false)
+      expect(isPasswordParameter('channel')).toBe(false)
+      expect(isPasswordParameter('timeout')).toBe(false)
+    })
+  })
+
+  describe('workflow_executor inputMapping handling', () => {
+    const mockWorkflowExecutorConfig = {
+      id: 'workflow_executor',
+      name: 'Workflow Executor',
+      description: 'Execute another workflow',
+      version: '1.0.0',
+      params: {
+        workflowId: {
+          type: 'string',
+          required: true,
+          visibility: 'user-or-llm' as ParameterVisibility,
+          description: 'The ID of the workflow to execute',
+        },
+        inputMapping: {
+          type: 'object',
+          required: false,
+          visibility: 'user-or-llm' as ParameterVisibility,
+          description: 'Map inputs to the selected workflow',
+        },
+      },
+      request: {
+        url: 'https://api.example.com/workflows',
+        method: 'POST' as HttpMethod,
+        headers: () => ({}),
+      },
+    }
+
+    describe('createLLMToolSchema - inputMapping always included', () => {
+      it.concurrent(
+        'should include inputMapping in schema even when user provides empty object',
+        async () => {
+          const userProvidedParams = {
+            workflowId: 'workflow-123',
+            inputMapping: '{}',
+          }
+
+          const { schema } = await createLLMToolSchema(
+            mockWorkflowExecutorConfig,
+            userProvidedParams
+          )
+
+          expect(schema.properties).toHaveProperty('inputMapping')
+          expect(schema.properties.inputMapping.type).toBe('object')
+        }
+      )
+
+      it.concurrent(
+        'should include inputMapping in schema even when user provides object with empty values',
+        async () => {
+          const userProvidedParams = {
+            workflowId: 'workflow-123',
+            inputMapping: '{"query": "", "limit": ""}',
+          }
+
+          const { schema } = await createLLMToolSchema(
+            mockWorkflowExecutorConfig,
+            userProvidedParams
+          )
+
+          expect(schema.properties).toHaveProperty('inputMapping')
+        }
+      )
+
+      it.concurrent(
+        'should include inputMapping when user has not provided it at all',
+        async () => {
+          const userProvidedParams = {
+            workflowId: 'workflow-123',
+          }
+
+          const { schema } = await createLLMToolSchema(
+            mockWorkflowExecutorConfig,
+            userProvidedParams
+          )
+
+          expect(schema.properties).toHaveProperty('inputMapping')
+        }
+      )
+
+      it.concurrent('should exclude workflowId from schema when user provides it', async () => {
+        const userProvidedParams = {
+          workflowId: 'workflow-123',
+        }
+
+        const { schema } = await createLLMToolSchema(mockWorkflowExecutorConfig, userProvidedParams)
+
+        expect(schema.properties).not.toHaveProperty('workflowId')
+        expect(schema.properties).toHaveProperty('inputMapping')
+      })
+    })
+
+    describe('createLLMToolSchema - child workflow input enrichment', () => {
+      const mockReadWorkflowInputFields = vi.fn()
+      const executorDelegationOrigin: ExecutorDelegationOrigin = {
+        subjectUserId: 'user-1',
+        workflowId: 'parent-workflow',
+        executionId: 'execution-1',
+        principal: { kind: 'session', userId: 'user-1', sessionId: 'session-1' },
+        currentWorkflow: { workflowId: 'parent-workflow', mode: 'draft' },
+      }
+
+      beforeEach(() => {
+        mockReadWorkflowInputFields.mockReset()
+        mockReadWorkflowInputFields.mockResolvedValue([
+          { name: 'email', type: 'string', description: 'Recipient address' },
+          { name: 'attempts', type: 'number' },
+        ])
+      })
+
+      it('binds the delegation to the execution subject and the target workflow', async () => {
+        const { schema } = await createLLMToolSchema(
+          mockWorkflowExecutorConfig,
+          { workflowId: 'child-workflow' },
+          {
+            userId: 'user-1',
+            workflowId: 'parent-workflow',
+            executionId: 'execution-1',
+            workspaceId: 'workspace-1',
+            executorDelegationOrigin,
+          },
+          mockReadWorkflowInputFields
+        )
+
+        expect(mockReadWorkflowInputFields).toHaveBeenCalledWith('child-workflow', {
+          userId: 'user-1',
+          workflowId: 'parent-workflow',
+          executionId: 'execution-1',
+          workspaceId: 'workspace-1',
+          executorDelegationOrigin,
+        })
+        expect(schema.properties.inputMapping.properties).toEqual({
+          email: { type: 'string', description: 'Recipient address' },
+          attempts: { type: 'number', description: 'Input field: attempts' },
+        })
+        expect(schema.properties.inputMapping.required).toEqual(['email', 'attempts'])
+      })
+
+      it('carries the executionId when the target is the running workflow', async () => {
+        await createLLMToolSchema(
+          mockWorkflowExecutorConfig,
+          { workflowId: 'parent-workflow' },
+          {
+            userId: 'user-1',
+            workflowId: 'parent-workflow',
+            executionId: 'execution-1',
+            executorDelegationOrigin,
+          },
+          mockReadWorkflowInputFields
+        )
+
+        expect(mockReadWorkflowInputFields).toHaveBeenCalledWith('parent-workflow', {
+          userId: 'user-1',
+          workflowId: 'parent-workflow',
+          executionId: 'execution-1',
+          executorDelegationOrigin,
+        })
+      })
+
+      it('leaves inputMapping untyped and issues no request without trusted execution authority', async () => {
+        const { schema } = await createLLMToolSchema(
+          mockWorkflowExecutorConfig,
+          { workflowId: 'child-workflow' },
+          { workflowId: 'parent-workflow', executionId: 'execution-1' },
+          mockReadWorkflowInputFields
+        )
+
+        expect(mockReadWorkflowInputFields).not.toHaveBeenCalled()
+        expect(schema.properties.inputMapping.properties).toBeUndefined()
+      })
+
+      it('leaves inputMapping untyped when the workflow read is rejected', async () => {
+        mockReadWorkflowInputFields.mockRejectedValue(new Error('Unauthorized'))
+
+        const { schema } = await createLLMToolSchema(
+          mockWorkflowExecutorConfig,
+          { workflowId: 'child-workflow' },
+          {
+            userId: 'user-1',
+            workflowId: 'parent-workflow',
+            executorDelegationOrigin,
+          },
+          mockReadWorkflowInputFields
+        )
+
+        expect(mockReadWorkflowInputFields).toHaveBeenCalledWith('child-workflow', {
+          userId: 'user-1',
+          workflowId: 'parent-workflow',
+          executorDelegationOrigin,
+        })
+        expect(schema.properties.inputMapping.properties).toBeUndefined()
+      })
+    })
+
+    describe('mergeToolParameters - inputMapping deep merge', () => {
+      it.concurrent('should deep merge inputMapping when user provides empty object', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+          inputMapping: '{}',
+        }
+        const llmGenerated = {
+          inputMapping: { query: 'search term', limit: 10 },
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.inputMapping).toEqual({ query: 'search term', limit: 10 })
+        expect(merged.workflowId).toBe('workflow-123')
+      })
+
+      it.concurrent('should deep merge inputMapping when user provides partial values', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+          inputMapping: '{"query": "", "customField": "user-value"}',
+        }
+        const llmGenerated = {
+          inputMapping: { query: 'llm-search', limit: 10 },
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.inputMapping).toEqual({
+          query: 'llm-search',
+          limit: 10,
+          customField: 'user-value',
+        })
+      })
+
+      it.concurrent('should preserve user inputMapping values when they are non-empty', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+          inputMapping: '{"query": "user-search", "limit": 5}',
+        }
+        const llmGenerated = {
+          inputMapping: { query: 'llm-search', limit: 10, extra: 'field' },
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.inputMapping).toEqual({
+          query: 'user-search',
+          limit: 5,
+          extra: 'field',
+        })
+      })
+
+      it.concurrent('should handle inputMapping as object (not JSON string)', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+          inputMapping: { query: '', customField: 'user-value' },
+        }
+        const llmGenerated = {
+          inputMapping: { query: 'llm-search', limit: 10 },
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.inputMapping).toEqual({
+          query: 'llm-search',
+          limit: 10,
+          customField: 'user-value',
+        })
+      })
+
+      it.concurrent('should use LLM inputMapping when user does not provide it', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+        }
+        const llmGenerated = {
+          inputMapping: { query: 'llm-search', limit: 10 },
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.inputMapping).toEqual({ query: 'llm-search', limit: 10 })
+      })
+
+      it.concurrent('should use user inputMapping when LLM does not provide it', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+          inputMapping: '{"query": "user-search"}',
+        }
+        const llmGenerated = {}
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.inputMapping).toEqual({ query: 'user-search' })
+      })
+
+      it.concurrent('should handle invalid JSON in user inputMapping gracefully', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+          inputMapping: 'not valid json {',
+        }
+        const llmGenerated = {
+          inputMapping: { query: 'llm-search' },
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.inputMapping).toEqual({ query: 'llm-search' })
+      })
+
+      it.concurrent(
+        'should fill field when user typed something then removed it (field becomes empty string)',
+        () => {
+          const userProvided = {
+            workflowId: 'workflow-123',
+            inputMapping: '{"query": ""}',
+          }
+          const llmGenerated = {
+            inputMapping: { query: 'llm-generated-search' },
+          }
+
+          const merged = mergeToolParameters(userProvided, llmGenerated)
+
+          expect(merged.inputMapping).toEqual({ query: 'llm-generated-search' })
+        }
+      )
+
+      it.concurrent('should not affect other parameters - normal override behavior', () => {
+        const userProvided = {
+          apiKey: 'user-key',
+          channel: '#general',
+        }
+        const llmGenerated = {
+          message: 'Hello world',
+          channel: '#random',
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        expect(merged.apiKey).toBe('user-key')
+        expect(merged.channel).toBe('#general')
+        expect(merged.message).toBe('Hello world')
+      })
+
+      it.concurrent('should preserve 0 and false as valid user values in inputMapping', () => {
+        const userProvided = {
+          workflowId: 'workflow-123',
+          inputMapping: '{"limit": 0, "enabled": false, "query": ""}',
+        }
+        const llmGenerated = {
+          inputMapping: { limit: 10, enabled: true, query: 'llm-search' },
+        }
+
+        const merged = mergeToolParameters(userProvided, llmGenerated)
+
+        // 0 and false should be preserved (they're valid values)
+        // empty string should be filled by LLM
+        expect(merged.inputMapping).toEqual({
+          limit: 0,
+          enabled: false,
+          query: 'llm-search',
+        })
+      })
+    })
+  })
+})
+
+describe('custom block agent-tool rendering', () => {
+  // Mirrors buildCustomBlockConfig: hidden workflowId/inputMapping wiring + per-field
+  // sub-blocks keyed by the source field's stable id.
+  const customBlockConfig = {
+    subBlocks: [
+      { id: 'workflowId', type: 'short-input', hidden: true },
+      { id: 'inputMapping', type: 'code', language: 'json', hidden: true },
+      { id: 'field-question', title: 'Question', type: 'short-input', required: true },
+      { id: 'field-files', title: 'Attachments', type: 'file-upload', multiple: true },
+    ],
+  } as any
+
+  describe('getSubBlocksForToolInput', () => {
+    it('returns field sub-blocks as user-or-llm and drops reserved/hidden wiring', () => {
+      const result = getSubBlocksForToolInput(
+        'workflow_executor',
+        'custom_block_abc',
+        undefined,
+        undefined,
+        customBlockConfig
+      )
+      expect(result).not.toBeNull()
+      expect(result!.subBlocks.map((sb) => sb.id)).toEqual(['field-question', 'field-files'])
+      expect(result!.subBlocks.every((sb) => sb.paramVisibility === 'user-or-llm')).toBe(true)
+    })
+  })
+})
+
+describe('getSubBlocksForToolInput synthesis', () => {
+  it('synthesizes a field for every user-facing param the block does not declare', () => {
+    const result = getSubBlocksForToolInput('test_tool', 'test_block', undefined, undefined, {
+      subBlocks: [{ id: 'message', title: 'Message', type: 'long-input' }],
+    } as any)
+
+    expect(result).not.toBeNull()
+    const byId = new Map(result!.subBlocks.map((sb) => [sb.id, sb]))
+
+    // Declared by the block: kept verbatim, never re-synthesized as a short-input.
+    expect(byId.get('message')?.type).toBe('long-input')
+    // Not declared: synthesized from the param's own type.
+    expect(byId.get('apiKey')?.type).toBe('short-input')
+    expect(byId.get('apiKey')?.password).toBe(true)
+    expect(byId.get('timeout')?.type).toBe('short-input')
+    expect(byId.get('timeout')?.paramVisibility).toBe('user-only')
+    expect(result!.subBlocks).toHaveLength(4)
+  })
+
+  it('maps a boolean param to a switch rather than a text box', () => {
+    const result = getSubBlocksForToolInput('bool_tool', 'bool_block', undefined, undefined, {
+      subBlocks: [],
+    } as any)
+    const byId = new Map(result!.subBlocks.map((sb) => [sb.id, sb]))
+    expect(byId.get('includeAttachments')?.type).toBe('switch')
+    expect(byId.get('payload')?.type).toBe('code')
+    expect(byId.get('payload')?.language).toBe('json')
+  })
+
+  it('does not resurrect a param whose sub-block exists but whose condition fails', () => {
+    const result = getSubBlocksForToolInput(
+      'test_tool',
+      'test_block',
+      { operation: 'other' },
+      undefined,
+      {
+        subBlocks: [
+          {
+            id: 'message',
+            title: 'Message',
+            type: 'long-input',
+            condition: { field: 'operation', value: 'send' },
+          },
+        ],
+      } as any
+    )
+
+    expect(result!.subBlocks.map((sb) => sb.id)).not.toContain('message')
+  })
+
+  it('does not synthesize a param already claimed by a canonical group member', () => {
+    const result = getSubBlocksForToolInput('test_tool', 'test_block', undefined, undefined, {
+      subBlocks: [
+        {
+          id: 'channelSelector',
+          type: 'channel-selector',
+          canonicalParamId: 'channel',
+          mode: 'basic',
+        },
+        { id: 'manualChannel', type: 'short-input', canonicalParamId: 'channel', mode: 'advanced' },
+      ],
+    } as any)
+
+    expect(result!.subBlocks.map((sb) => sb.id)).not.toContain('channel')
+  })
+
+  it('does not synthesize a boolean claimed by a checkbox-list option', () => {
+    const result = getSubBlocksForToolInput(
+      'checkbox_tool',
+      'checkbox_block',
+      undefined,
+      undefined,
+      {
+        subBlocks: [
+          {
+            id: 'filters',
+            type: 'checkbox-list',
+            options: [{ label: 'Completed', id: 'completed' }],
+          },
+        ],
+      } as any
+    )
+    expect(result!.subBlocks.map((sb) => sb.id)).not.toContain('completed')
+  })
+
+  it('still returns fields for a block that declares no sub-blocks at all', () => {
+    const result = getSubBlocksForToolInput('test_tool', 'bare_block', undefined, undefined, {
+      subBlocks: [],
+    } as any)
+
+    expect(result).not.toBeNull()
+    expect(result!.subBlocks.map((sb) => sb.id).sort()).toEqual([
+      'apiKey',
+      'channel',
+      'message',
+      'timeout',
+    ])
+  })
+
+  it('returns null for an unknown tool', () => {
+    expect(getSubBlocksForToolInput('non_existent_tool', 'test_block')).toBeNull()
+  })
+})

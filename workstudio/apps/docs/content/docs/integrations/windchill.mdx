@@ -1,0 +1,1044 @@
+---
+title: Windchill
+description: Manage documents, revisions, and content in PTC Windchill
+integration:
+  type: "windchill"
+  color: "#FFFFFF"
+---
+
+import { ReferenceDetails } from "@/components/ui/reference-details"
+
+
+{/* MANUAL-CONTENT-START:intro */}
+Use [PTC Windchill](https://www.ptc.com/en/products/windchill) REST Services (WRS) 2.7 to manage engineering documents. Documents have a number, revision and iteration, lifecycle state, folder, security labels, and checkout status.
+
+## Connection and identifiers
+
+Connect with a Basic-authenticated account and a complete versioned OData service root, such as `https://your-host/Windchill/servlet/odata/v6`. OAuth-fronted deployments are not supported. Most actions require an object identifier (OID), such as `OR:wt.doc.WTDocument:48796581`, returned by a list or get action; a document number is not an OID.
+
+## Working with documents
+
+List actions accept OData filters, sorting, field selection, page size, and latest-version filtering. Structure lookup follows usage links to child documents, including their versions and states.
+
+Create one document or a batch in a container and optional folder. Update editable attributes separately from **Update Common Properties**, which changes Name, Number, and Organization and is refused while the document is checked out.
+
+Check out and check in documents with notes, undo checkout, revise, inspect valid state transitions, or change lifecycle state. Bulk lifecycle and document actions use atomic provider requests: a rejected object rolls back the collection action.
+
+Download primary content or an attachment by OID as a Sim file. Upload primary content to a document that has none, or add attachments. Sim handles the CSRF token and multi-step upload handshake.
+{/* MANUAL-CONTENT-END */}
+
+## Use the block [#usage-instructions]
+
+Integrate PTC Windchill REST Services 2.7 document management into your workflow using Basic authentication. Read and update document metadata, perform version and lifecycle actions, and transfer primary content and attachments. Windchill OAuth deployments are not currently supported.
+
+## Actions
+
+### Windchill List Documents
+
+List documents with an OData query, sorting, and pagination
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `select` | string | No | Comma-separated normalized document properties to return |
+| `filter` | string | No | OData $filter expression |
+| `orderBy` | string | No | OData $orderby expression |
+| `top` | number | No | Maximum documents in the OData result set \($top\), from 1 to 2000 |
+| `skip` | number | No | Documents to skip |
+| `count` | boolean | No | Ask Windchill to include the total matching count |
+| `latestVersion` | boolean | No | Return only the latest version of matching documents |
+| `nextLink` | string | No | Verified @odata.nextLink from a previous list response |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `documents` | array | Windchill documents |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+| `pageInfo` | object | OData pagination information |
+|   ↳ `count` | number | Number of items returned in this page |
+|   ↳ `totalCount` | number | Total matching items |
+|   ↳ `nextLink` | string | URL returned by Windchill for the next page |
+
+</ReferenceDetails>
+
+### Windchill Get Document
+
+Get a WT.Document by OID
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `select` | string | No | Comma-separated normalized document properties to return |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `document` | object | Windchill document |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Get Document Structure
+
+Retrieve recursive document usage links and their parent and child documents
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `structureDepth` | number | No | Document structure expansion depth, from 1 to 3 |
+| `nextLink` | string | No | Verified @odata.nextLink from a previous structure response |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `structure` | array | Document usage links, including recursively expanded child links |
+|   ↳ `id` | string | Document usage link OID |
+|   ↳ `parent` | object | Parent document |
+|     ↳ `id` | string | Windchill object identifier |
+|     ↳ `name` | string | Document name |
+|     ↳ `number` | string | Document number |
+|     ↳ `title` | string | Document title |
+|     ↳ `description` | string | Document description |
+|     ↳ `state` | string | Internal life cycle state value |
+|     ↳ `stateDisplay` | string | Displayed life cycle state value |
+|     ↳ `versionId` | string | Version identifier |
+|     ↳ `revision` | string | Revision identifier |
+|     ↳ `version` | string | Version and iteration |
+|     ↳ `latest` | boolean | Whether this is the latest version |
+|     ↳ `checkoutState` | string | Checkout state |
+|     ↳ `folderName` | string | Folder name |
+|     ↳ `folderLocation` | string | Folder path |
+|   ↳ `child` | object | Child document |
+|     ↳ `id` | string | Windchill object identifier |
+|     ↳ `name` | string | Document name |
+|     ↳ `number` | string | Document number |
+|     ↳ `title` | string | Document title |
+|     ↳ `description` | string | Document description |
+|     ↳ `state` | string | Internal life cycle state value |
+|     ↳ `stateDisplay` | string | Displayed life cycle state value |
+|     ↳ `versionId` | string | Version identifier |
+|     ↳ `revision` | string | Revision identifier |
+|     ↳ `version` | string | Version and iteration |
+|     ↳ `latest` | boolean | Whether this is the latest version |
+|     ↳ `checkoutState` | string | Checkout state |
+|     ↳ `folderName` | string | Folder name |
+|     ↳ `folderLocation` | string | Folder path |
+|   ↳ `children` | array | Nested child usage links with the same recursive shape |
+| `pageInfo` | object | OData pagination information |
+|   ↳ `count` | number | Number of items returned in this page |
+|   ↳ `totalCount` | number | Total matching items |
+|   ↳ `nextLink` | string | URL returned by Windchill for the next page |
+
+</ReferenceDetails>
+
+### Windchill Get Valid State Transitions
+
+Get lifecycle states a document can transition to from its current state
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `states` | array | Valid lifecycle transitions |
+|   ↳ `value` | string | Internal state value |
+|   ↳ `display` | string | Displayed state value |
+
+</ReferenceDetails>
+
+### Windchill Get Primary Content
+
+Get primary-content metadata for a document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `content` | object | Primary-content metadata |
+|   ↳ `id` | string | Content object identifier |
+|   ↳ `fileName` | string | Content file name |
+|   ↳ `description` | string | Content description |
+|   ↳ `format` | string | Windchill content format |
+|   ↳ `mimeType` | string | Content MIME type |
+|   ↳ `fileSize` | number | Content size in bytes |
+|   ↳ `contentType` | string | Windchill OData content entity type |
+|   ↳ `displayName` | string | Displayed content name |
+|   ↳ `urlLocation` | string | URL-data location |
+|   ↳ `externalLocation` | string | External-storage location |
+
+</ReferenceDetails>
+
+### Windchill List Attachments
+
+List attachment metadata for a document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `nextLink` | string | No | Verified @odata.nextLink from a previous attachment response |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `attachments` | array | Document attachments |
+|   ↳ `id` | string | Content object identifier |
+|   ↳ `fileName` | string | Content file name |
+|   ↳ `description` | string | Content description |
+|   ↳ `format` | string | Windchill content format |
+|   ↳ `mimeType` | string | Content MIME type |
+|   ↳ `fileSize` | number | Content size in bytes |
+|   ↳ `contentType` | string | Windchill OData content entity type |
+|   ↳ `displayName` | string | Displayed content name |
+|   ↳ `urlLocation` | string | URL-data location |
+|   ↳ `externalLocation` | string | External-storage location |
+| `pageInfo` | object | OData pagination information |
+|   ↳ `count` | number | Number of items returned in this page |
+|   ↳ `totalCount` | number | Total matching items |
+|   ↳ `nextLink` | string | URL returned by Windchill for the next page |
+
+</ReferenceDetails>
+
+### Windchill Create Document
+
+Create one WT.Document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `name` | string | Yes | Document name |
+| `containerOid` | string | Yes | Container OID in which to create the document |
+| `number` | string | No | Optional document number when manual numbering is enabled |
+| `title` | string | No | Document title |
+| `description` | string | No | Document description |
+| `folderOid` | string | No | Optional folder OID for the new document |
+| `attributes` | json | No | Optional installed Windchill document attributes as a JSON object |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Create Documents
+
+Create several documents in one atomic Windchill request
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documents` | array | Yes | Document inputs as a JSON array; each item requires name and containerOid |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `documents` | array | Documents returned by Windchill when the operation returns them |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Update Document
+
+Update one document's editable attributes
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `attributes` | json | Yes | Editable attributes as a JSON object. Name, Number, and Organization require the Update Common Properties operation and are not supported here. |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Update Common Properties
+
+Update a document's Name, Number, and other common properties
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581. The document must not be checked out. |
+| `commonProperties` | json | Yes | Common properties as a JSON object, for example \{"Name":"New name","Number":"NEW-001"\}. Enumerated properties take a value/display pair. |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Update Documents
+
+Update several documents' editable attributes in one atomic request
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documents` | array | Yes | Document updates as a JSON array; each item requires id and the editable attributes to set. Name, Number, and Organization are not supported. |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `documents` | array | Documents returned by Windchill when the operation returns them |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Delete Document
+
+Delete one document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+
+</ReferenceDetails>
+
+### Windchill Delete Documents
+
+Delete multiple documents atomically
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOids` | array | Yes | WT.Document OIDs to process atomically |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+
+</ReferenceDetails>
+
+### Windchill Check Out Document
+
+Check out one document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `checkOutNote` | string | No | Checkout note |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Check Out Documents
+
+Check out multiple documents atomically
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOids` | array | Yes | WT.Document OIDs to process atomically |
+| `checkOutNote` | string | No | Checkout note |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `documents` | array | Documents returned by Windchill when the operation returns them |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Check In Document
+
+Check in one document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `checkInNote` | string | No | Check-in note |
+| `keepCheckedOut` | boolean | No | Keep the document checked out after checking it in |
+| `checkOutNote` | string | No | Checkout note |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Check In Documents
+
+Check in multiple documents atomically
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOids` | array | Yes | WT.Document OIDs to process atomically |
+| `checkInNote` | string | No | Check-in note |
+| `keepCheckedOut` | boolean | No | Keep the document checked out after checking it in |
+| `checkOutNote` | string | No | Checkout note |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `documents` | array | Documents returned by Windchill when the operation returns them |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Undo Check Out Document
+
+Undo checkout for one document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Undo Check Out Documents
+
+Undo checkout for multiple documents atomically
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOids` | array | Yes | WT.Document OIDs to process atomically |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `documents` | array | Documents returned by Windchill when the operation returns them |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Revise Document
+
+Create a new revision of one document
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `versionId` | string | No | Optional target revision identifier when override-on-revise is enabled |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Revise Documents
+
+Create new revisions of multiple documents atomically
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOids` | array | Yes | WT.Document OIDs to process atomically |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `documents` | array | Documents returned by Windchill when the operation returns them |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Set Lifecycle State
+
+Transition a document to a valid lifecycle state
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `stateValue` | string | Yes | Internal value of the target lifecycle state |
+| `stateDisplay` | string | Yes | Display value of the target lifecycle state |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `document` | object | Document returned by Windchill when the operation returns one |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Update Document Security Labels
+
+Update installed security-label attributes for one or more documents
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `securityLabelUpdates` | array | Yes | Array of document IDs and installed security-label values |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the operation |
+| `documents` | array | Documents returned by Windchill when the operation returns them |
+|   ↳ `id` | string | Windchill object identifier |
+|   ↳ `name` | string | Document name |
+|   ↳ `number` | string | Document number |
+|   ↳ `title` | string | Document title |
+|   ↳ `description` | string | Document description |
+|   ↳ `state` | string | Internal life cycle state value |
+|   ↳ `stateDisplay` | string | Displayed life cycle state value |
+|   ↳ `versionId` | string | Version identifier |
+|   ↳ `revision` | string | Revision identifier |
+|   ↳ `version` | string | Version and iteration |
+|   ↳ `latest` | boolean | Whether this is the latest version |
+|   ↳ `checkoutState` | string | Checkout state |
+|   ↳ `folderName` | string | Folder name |
+|   ↳ `folderLocation` | string | Folder path |
+
+</ReferenceDetails>
+
+### Windchill Download Primary Content
+
+Download primary content into a canonical UserFile
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `fileName` | string | No | Optional downloaded file name override |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `file` | file | Downloaded content stored as a canonical UserFile |
+| `fileName` | string | Downloaded file name |
+| `mimeType` | string | Downloaded content MIME type |
+
+</ReferenceDetails>
+
+### Windchill Upload Primary Content
+
+Upload a primary-content file to a document that has none
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `primaryFile` | file | Yes | Primary content file to upload |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the upload |
+| `uploadedFileNames` | array | Names of files accepted by Windchill |
+
+</ReferenceDetails>
+
+### Windchill Download Attachment
+
+Download a document attachment into a canonical UserFile
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `attachmentOid` | string | Yes | Windchill attachment content OID |
+| `fileName` | string | No | Optional downloaded file name override |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `file` | file | Downloaded content stored as a canonical UserFile |
+| `fileName` | string | Downloaded file name |
+| `mimeType` | string | Downloaded content MIME type |
+
+</ReferenceDetails>
+
+### Windchill Upload Attachments
+
+Upload one or more files as document attachments
+
+<ReferenceDetails>
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `baseUrl` | string | Yes | Complete WRS 2.7 versioned service root using Basic authentication, for example https://host/Windchill/servlet/odata/v6 |
+| `username` | string | Yes | Windchill service-account username |
+| `password` | string | Yes | Windchill service-account password |
+| `documentOid` | string | Yes | WT.Document OID, for example OR:wt.doc.WTDocument:48796581 |
+| `attachmentFiles` | file[] | Yes | Attachment files to upload |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `operation` | string | Windchill operation that was executed |
+| `affectedIds` | array | Document identifiers affected by the upload |
+| `uploadedFileNames` | array | Names of files accepted by Windchill |
+
+</ReferenceDetails>
+
+

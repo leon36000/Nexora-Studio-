@@ -1,0 +1,83 @@
+import type { SapConcurResponse, SearchUsersParams } from '@/tools/sap_concur/types'
+import {
+  baseSapConcurInput,
+  scimListResponseOutputProperties,
+  transformSapConcurResponse,
+} from '@/tools/sap_concur/utils'
+import type { InternalToolConfig } from '@/tools/types'
+
+export const searchUsersTool: InternalToolConfig<SearchUsersParams, SapConcurResponse> = {
+  id: 'sap_concur_search_users',
+  name: 'SAP Concur Search Users',
+  description:
+    'Search users via SCIM .search endpoint (POST /profile/identity/v4.1/Users/.search).',
+  version: '1.0.0',
+  params: {
+    datacenter: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Concur datacenter base URL (defaults to us.api.concursolutions.com)',
+    },
+    grantType: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'OAuth grant type: client_credentials (default) or password',
+    },
+    clientId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Concur OAuth client ID',
+    },
+    clientSecret: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Concur OAuth client secret',
+    },
+    username: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Username (only for password grant)',
+    },
+    password: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Password (only for password grant)',
+    },
+    companyUuid: {
+      type: 'string',
+      required: false,
+      visibility: 'user-only',
+      description: 'Company UUID for multi-company access tokens',
+    },
+    body: {
+      type: 'json',
+      required: true,
+      visibility: 'user-or-llm',
+      description:
+        'SCIM search payload. Required: schemas: ["urn:ietf:params:scim:api:messages:concur:2.0:SearchRequest"] (Concur-specific URN, not the standard SearchRequest URN). Optional: filter, count (1-1000), attributes, excludedAttributes, cursor (the nextCursor value from a prior response). The startIndex request parameter is not supported (responses still return a startIndex value).',
+    },
+  },
+  operation: {
+    input: (params) => ({
+      ...baseSapConcurInput(params),
+      path: `/profile/identity/v4.1/Users/.search`,
+      method: 'POST',
+      body: params.body,
+    }),
+  },
+  transformResponse: transformSapConcurResponse,
+  outputs: {
+    status: { type: 'number', description: 'HTTP status code returned by Concur' },
+    data: {
+      type: 'json',
+      description: 'SCIM search ListResponse',
+      properties: scimListResponseOutputProperties,
+    },
+  },
+}

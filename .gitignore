@@ -1,0 +1,23 @@
+# Copies locales de sources tierces (docs Mistral, spec OpenAPI, transcriptions, captures de vidéos).
+# Référence de travail uniquement : ne pas publier.
+docs/recherche/mistral-studio/sources/
+
+# Dépendances et artefacts de build
+node_modules/
+.next/
+.turbo/
+dist/
+__pycache__/
+*.pyc
+.venv/
+coverage/
+
+# Secrets et fichiers locaux
+.env
+.env.*
+!.env.example
+!**/.env.example
+deploy/.env
+*.local.md
+.claude/ralph-loop.local.md
+.claude/settings.local.json

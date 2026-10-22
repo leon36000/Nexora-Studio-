@@ -1,0 +1,49 @@
+import { TABLE_ID_PARAM } from '@/tools/table/params'
+import { tableSuccess } from '@/tools/table/response'
+import type { TableRowGetParams, TableRowResponse } from '@/tools/table/types'
+import type { InternalToolConfig } from '@/tools/types'
+
+export const tableGetRowTool: InternalToolConfig<TableRowGetParams, TableRowResponse> = {
+  id: 'table_get_row',
+  name: 'Get Row',
+  description: 'Get a single row by ID',
+  version: '1.0.0',
+
+  params: {
+    tableId: TABLE_ID_PARAM,
+    rowId: {
+      type: 'string',
+      required: true,
+      description: 'Row ID to retrieve',
+      visibility: 'user-or-llm',
+    },
+  },
+
+  operation: {
+    secretProvenance: { response: { incomplete: 'propagate' } },
+    input: (params: TableRowGetParams) => {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required in execution context')
+      }
+
+      return { tableId: params.tableId, rowId: params.rowId, workspaceId }
+    },
+  },
+
+  transformResponse: async (response): Promise<TableRowResponse> => {
+    const result = await response.json()
+    const data = result.data || result
+
+    return tableSuccess({
+      row: data.row,
+      message: data.message || 'Row retrieved successfully',
+    })
+  },
+
+  outputs: {
+    success: { type: 'boolean', description: 'Whether row was retrieved' },
+    row: { type: 'json', description: 'Row data' },
+    message: { type: 'string', description: 'Status message' },
+  },
+}

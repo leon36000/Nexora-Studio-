@@ -1,0 +1,345 @@
+import { CHANGELOG_MEDIA_ORIGIN } from '../../changelog/media'
+import { CONSENT_BACKEND_URL } from '../../consent/constants'
+import { env, envBoolean, getEnv } from '../config/env'
+import { isDev, isHosted, isReactGrabEnabled } from '../config/env-flags'
+
+/**
+ * Content Security Policy (CSP) configuration builder
+ *
+ * NOTE: This file is loaded by next.config.ts at build time, before @/ path
+ * aliases are resolved. Do NOT import from ../utils/urls (which uses @/ imports).
+ * Keep URL constants local to this file, or in a leaf module reachable by a
+ * relative import that itself pulls in no `@/` paths (../../consent/constants).
+ */
+
+/** File responses select CSP at runtime; JSON and error responses retain the main policy. */
+export const FILE_DELIVERY_CSP_PATH_PATTERN =
+  '/(?:api/files/serve/.+|api/files/public/[^/]+/(?:content|inline)|api/projects/[^/]+/files/(?:inline|download|[^/]+/(?:content|artifact|export|versions/[^/]+/content))|api/workspaces/[^/]+/files/(?:inline|download|[^/]+/versions/[^/]+/content)|api/v2/projects/[^/]+/files/(?:bulk-download|[^/]+/(?:content|export|versions/[^/]+/content))|api/v2/files/(?:bulk-download|[^/]+(?:/versions/[^/]+/content)?))'
+
+const DEFAULT_SOCKET_URL = 'http://localhost:3002'
+const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
+
+function toWebSocketUrl(httpUrl: string): string {
+  return httpUrl.replace('http://', 'ws://').replace('https://', 'wss://')
+}
+
+/**
+ * Kept in sync with LOCALHOST_HOSTNAMES in ../utils/urls by hand: this module is
+ * loaded by next.config.ts before `@/` aliases resolve, so it cannot import from
+ * there (see the note above).
+ */
+const LOCALHOST_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
+
+/** Mirrors getSocketUrl's localhost check — those origins fall back to DEFAULT_SOCKET_URL. */
+function isLocalhostUrl(url: string): boolean {
+  if (!url) return false
+  try {
+    return LOCALHOST_HOSTNAMES.has(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+
+function getHostnameFromUrl(url: string | undefined): string[] {
+  if (!url) return []
+  try {
+    return [`https://${new URL(url).hostname}`]
+  } catch {
+    return []
+  }
+}
+
+const IPV4_HOSTNAME = /^\d{1,3}(\.\d{1,3}){3}$/
+
+/**
+ * Origins the browser PUTs presigned uploads to for a custom `S3_ENDPOINT`. The
+ * endpoint origin itself is always allowed: the S3 SDK falls back to path-style
+ * for IP hosts and bucket names that aren't DNS-safe even without
+ * `S3_FORCE_PATH_STYLE`. Virtual-hosted addressing also needs the bucket
+ * subdomains, which a `*.` source matches (never the bare host). Ports are kept
+ * because a host-source without one only matches the scheme's default port.
+ */
+function getS3EndpointSources(
+  endpoint: string | undefined,
+  forcePathStyle: string | undefined
+): string[] {
+  if (!endpoint) return []
+  let url: URL
+  try {
+    url = new URL(endpoint)
+  } catch {
+    return []
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return []
+  const origin = `${url.protocol}//${url.host}`
+  const isIpHost = IPV4_HOSTNAME.test(url.hostname) || url.hostname.startsWith('[')
+  if (envBoolean(forcePathStyle) || isIpHost) return [origin]
+  return [origin, `${url.protocol}//*.${url.host}`]
+}
+
+interface CSPDirectives {
+  'default-src'?: string[]
+  'script-src'?: string[]
+  'style-src'?: string[]
+  'img-src'?: string[]
+  'media-src'?: string[]
+  'font-src'?: string[]
+  'connect-src'?: string[]
+  'worker-src'?: string[]
+  'frame-src'?: string[]
+  'frame-ancestors'?: string[]
+  'form-action'?: string[]
+  'base-uri'?: string[]
+  'object-src'?: string[]
+}
+
+/**
+ * Static CSP sources shared between build-time and runtime.
+ * Add new domains here — both paths pick them up automatically.
+ */
+const STATIC_SCRIPT_SRC = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isDev ? ["'unsafe-eval'"] : []),
+  'https://*.google.com',
+  'https://apis.google.com',
+  'https://challenges.cloudflare.com',
+  // Cal.com booking embed (landing /demo) — embed.js is served from app.cal.com
+  'https://app.cal.com',
+  ...(isReactGrabEnabled ? ['https://unpkg.com'] : []),
+  ...(isHosted
+    ? [
+        'https://www.googletagmanager.com',
+        'https://www.google-analytics.com',
+        // Google Ads conversion tag — gtag.js pulls conversion_async.js from
+        // googleadservices and the remarketing tag from googleads.doubleclick
+        'https://www.googleadservices.com',
+        'https://googleads.g.doubleclick.net',
+        'https://analytics.ahrefs.com',
+        // X (Twitter) conversion pixel (landing pages) — the base code injects
+        // uwt.js as a <script> tag from static.ads-twitter.com
+        'https://static.ads-twitter.com',
+        // Freebuff Ads conversion tag — freebuff-tag.js
+        'https://freebuff.com',
+      ]
+    : []),
+] as const
+
+const STATIC_IMG_SRC = ["'self'", 'data:', 'blob:', 'https:'] as const
+
+const STATIC_CONNECT_SRC = [
+  "'self'",
+  CHANGELOG_MEDIA_ORIGIN,
+  'https://api.browser-use.com',
+  'https://api.elevenlabs.io',
+  'wss://api.elevenlabs.io',
+  'https://api.exa.ai',
+  'https://api.firecrawl.dev',
+  'https://*.googleapis.com',
+  'https://*.amazonaws.com',
+  'https://*.s3.amazonaws.com',
+  'https://*.blob.core.windows.net',
+  'https://*.atlassian.com',
+  'https://*.supabase.co',
+  'https://api.github.com',
+  'https://github.com/*',
+  'https://status.sim.ai',
+  'https://challenges.cloudflare.com',
+  // Cal.com booking embed (landing /demo) — embed XHR/availability calls
+  'https://app.cal.com',
+  'https://cal.com',
+  ...(isReactGrabEnabled ? ['https://www.react-grab.com'] : []),
+  ...(isDev ? ['ws://localhost:4722'] : []),
+  ...(isHosted
+    ? [
+        // Blocked here, the consent runtime silently falls back to an offline
+        // policy and the banner shows to every visitor worldwide.
+        CONSENT_BACKEND_URL,
+        'https://www.googletagmanager.com',
+        'https://*.google-analytics.com',
+        'https://*.analytics.google.com',
+        'https://analytics.google.com',
+        'https://www.google.com',
+        'https://analytics.ahrefs.com',
+        'https://*.g.doubleclick.net',
+        // Google Ads conversion tag — conversion beacons
+        'https://www.googleadservices.com',
+        // X (Twitter) conversion pixel — uwt.js sends conversion beacons here
+        // via fetch/sendBeacon. The t.co image-pixel fallback is already
+        // covered by the `https:` wildcard in img-src.
+        'https://analytics.twitter.com',
+        // Freebuff Ads conversion tag — beacons to /api/advertisers/conversions/client
+        'https://freebuff.com',
+      ]
+    : []),
+] as const
+
+const STATIC_FRAME_SRC = [
+  "'self'",
+  'blob:',
+  'https://challenges.cloudflare.com',
+  // Cal.com booking embed (landing /demo) — the booking iframe
+  'https://app.cal.com',
+  'https://cal.com',
+  'https://drive.google.com',
+  'https://docs.google.com',
+  'https://*.google.com',
+  // Google Ads conversion tag — the conversion linker writes its cookie from
+  // a hidden iframe on these origins; without them the ping still fires but
+  // cross-domain click attribution silently drops. Hosted-only, like the
+  // script-src and connect-src entries: the consent provider that loads the
+  // tag never mounts off hosted, so nothing self-hosted can frame these.
+  ...(isHosted ? ['https://td.doubleclick.net', 'https://www.googleadservices.com'] : []),
+  'https://www.youtube.com',
+  'https://player.vimeo.com',
+  'https://www.dailymotion.com',
+  'https://player.twitch.tv',
+  'https://clips.twitch.tv',
+  'https://streamable.com',
+  'https://fast.wistia.net',
+  'https://www.tiktok.com',
+  'https://w.soundcloud.com',
+  'https://open.spotify.com',
+  'https://embed.music.apple.com',
+  'https://www.loom.com',
+  'https://www.facebook.com',
+  'https://www.instagram.com',
+  'https://platform.twitter.com',
+  'https://rumble.com',
+  'https://play.vidyard.com',
+  'https://iframe.cloudflarestream.com',
+  'https://www.mixcloud.com',
+  'https://tenor.com',
+  'https://giphy.com',
+] as const
+
+// Build-time CSP directives (for next.config.ts)
+const buildTimeCSPDirectives: CSPDirectives = {
+  'default-src': ["'self'"],
+  'script-src': [...STATIC_SCRIPT_SRC],
+  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+
+  'img-src': [...STATIC_IMG_SRC],
+
+  'media-src': ["'self'", 'blob:', CHANGELOG_MEDIA_ORIGIN],
+  'worker-src': ["'self'", 'blob:'],
+  'font-src': ["'self'", 'https://fonts.gstatic.com'],
+
+  'connect-src': [
+    ...STATIC_CONNECT_SRC,
+    env.NEXT_PUBLIC_APP_URL || '',
+    ...(env.OLLAMA_URL ? [env.OLLAMA_URL] : isDev ? [DEFAULT_OLLAMA_URL] : []),
+    ...(env.NEXT_PUBLIC_SOCKET_URL
+      ? [env.NEXT_PUBLIC_SOCKET_URL, toWebSocketUrl(env.NEXT_PUBLIC_SOCKET_URL)]
+      : isDev
+        ? [DEFAULT_SOCKET_URL, toWebSocketUrl(DEFAULT_SOCKET_URL)]
+        : []),
+    ...getHostnameFromUrl(env.NEXT_PUBLIC_BRAND_LOGO_URL),
+    ...getHostnameFromUrl(env.NEXT_PUBLIC_PRIVACY_URL),
+    ...getHostnameFromUrl(env.NEXT_PUBLIC_TERMS_URL),
+    ...getS3EndpointSources(env.S3_ENDPOINT, env.S3_FORCE_PATH_STYLE),
+  ],
+
+  'frame-src': [...STATIC_FRAME_SRC],
+  'frame-ancestors': ["'self'"],
+  'form-action': ["'self'"],
+  'base-uri': ["'self'"],
+  'object-src': ["'none'"],
+}
+
+/**
+ * Build CSP string from directives object
+ */
+export function buildCSPString(directives: CSPDirectives): string {
+  return Object.entries(directives)
+    .map(([directive, sources]) => {
+      if (!sources || sources.length === 0) return ''
+      const validSources = sources.filter((source: string) => source && source.trim() !== '')
+      if (validSources.length === 0) return ''
+      return `${directive} ${validSources.join(' ')}`
+    })
+    .filter(Boolean)
+    .join('; ')
+}
+
+/**
+ * Generate runtime CSP header with dynamic environment variables.
+ * Composes from the same STATIC_* constants as buildTimeCSPDirectives,
+ * but resolves env vars at request time via getEnv() to fix Docker
+ * deployments where build-time values may be stale placeholders.
+ */
+export function generateRuntimeCSP(): string {
+  const appUrl = getEnv('NEXT_PUBLIC_APP_URL') || ''
+
+  // Must permit whatever getSocketUrl() actually connects to, or the browser
+  // blocks the handshake and Socket.IO retries forever. That helper falls back
+  // to DEFAULT_SOCKET_URL whenever the page is served from localhost — which
+  // includes a production build (docker compose sets NODE_ENV=production), so
+  // keying this on isDev alone left the bundled stack with a CSP that forbade
+  // its own realtime port. A non-localhost origin still resolves to the page
+  // origin, which appUrl already covers, so nothing is loosened there.
+  const socketUrl =
+    getEnv('NEXT_PUBLIC_SOCKET_URL') || (isDev || isLocalhostUrl(appUrl) ? DEFAULT_SOCKET_URL : '')
+  const socketWsUrl = socketUrl ? toWebSocketUrl(socketUrl) : ''
+  const ollamaUrl = getEnv('OLLAMA_URL') || (isDev ? DEFAULT_OLLAMA_URL : '')
+
+  const brandLogoDomains = getHostnameFromUrl(getEnv('NEXT_PUBLIC_BRAND_LOGO_URL'))
+  const privacyDomains = getHostnameFromUrl(getEnv('NEXT_PUBLIC_PRIVACY_URL'))
+  const termsDomains = getHostnameFromUrl(getEnv('NEXT_PUBLIC_TERMS_URL'))
+  const s3EndpointSources = getS3EndpointSources(
+    getEnv('S3_ENDPOINT'),
+    getEnv('S3_FORCE_PATH_STYLE')
+  )
+
+  const runtimeDirectives: CSPDirectives = {
+    ...buildTimeCSPDirectives,
+
+    'img-src': [...STATIC_IMG_SRC],
+
+    'connect-src': [
+      ...STATIC_CONNECT_SRC,
+      appUrl,
+      ollamaUrl,
+      socketUrl,
+      socketWsUrl,
+      ...brandLogoDomains,
+      ...privacyDomains,
+      ...termsDomains,
+      ...s3EndpointSources,
+    ],
+  }
+
+  return buildCSPString(runtimeDirectives)
+}
+
+/**
+ * Get the main CSP policy string (build-time)
+ */
+export function getMainCSPPolicy(): string {
+  return buildCSPString(buildTimeCSPDirectives)
+}
+
+/**
+ * Permissive CSP for workflow execution endpoints
+ */
+export function getWorkflowExecutionCSPPolicy(): string {
+  return "default-src * 'unsafe-inline' 'unsafe-eval'; connect-src *;"
+}
+
+/**
+ * CSP for embeddable chat pages.
+ * Extends the shared embed policy with Microsoft Office.js sources so the
+ * chat page can serve as an Office (Excel/Word/Outlook) add-in surface
+ * when loaded with `?embed=office`.
+ */
+export function getChatEmbedCSPPolicy(): string {
+  return buildCSPString({
+    ...buildTimeCSPDirectives,
+    'script-src': [...STATIC_SCRIPT_SRC, 'https://appsforoffice.microsoft.com'],
+    'connect-src': [
+      ...(buildTimeCSPDirectives['connect-src'] ?? []),
+      'https://appsforoffice.microsoft.com',
+    ],
+    'frame-ancestors': ['*'],
+  })
+}

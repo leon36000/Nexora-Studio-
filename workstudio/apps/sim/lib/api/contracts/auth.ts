@@ -1,0 +1,129 @@
+import { z } from 'zod'
+import { organizationIdSchema } from '@/lib/api/contracts/primitives'
+import type { ContractJsonResponse } from '@/lib/api/contracts/types'
+import { defineRouteContract } from '@/lib/api/contracts/types'
+import { ssoRegistrationInputSchema } from '@/lib/auth/sso/registration-input'
+
+export const ssoProvidersQuerySchema = z.object({
+  organizationId: z.string().min(1).optional(),
+})
+
+export const authProviderStatusResponseSchema = z.object({
+  githubAvailable: z.boolean(),
+  googleAvailable: z.boolean(),
+  microsoftAvailable: z.boolean(),
+  registrationDisabled: z.boolean(),
+})
+
+export const ssoRegistrationBodySchema = z.discriminatedUnion('providerType', [
+  ssoRegistrationInputSchema.options[0].omit({ organizationId: true }).extend({
+    orgId: organizationIdSchema,
+  }),
+  ssoRegistrationInputSchema.options[1].omit({ organizationId: true }).extend({
+    orgId: organizationIdSchema,
+  }),
+])
+export type SsoRegistrationBody = z.input<typeof ssoRegistrationBodySchema>
+
+export const ssoRegistrationContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/auth/sso/register',
+  body: ssoRegistrationBodySchema,
+  response: {
+    mode: 'json',
+    schema: z.object({
+      success: z.literal(true),
+      providerId: z.string(),
+      providerType: z.enum(['oidc', 'saml']),
+      message: z.string(),
+    }),
+  },
+})
+
+const ssoProviderListEntrySchema = z.object({
+  id: z.string(),
+  providerId: z.string(),
+  domain: z.string(),
+  issuer: z.string(),
+  oidcConfig: z.string().nullable(),
+  samlConfig: z.string().nullable(),
+  userId: z.string(),
+  organizationId: z.string().nullable(),
+  jitProvisioningEnabled: z.boolean(),
+  /** The domain as sign-in compares it: trimmed, lower-cased, a leading `*.` dropped. Providers sharing it share a primary. */
+  domainKey: z.string(),
+  /** Whether this provider's domain is verified, so it can sign people in. */
+  domainVerified: z.boolean(),
+  /** Whether sign-in for this provider's domain goes through it. */
+  isPrimary: z.boolean(),
+  providerType: z.enum(['oidc', 'saml']),
+})
+
+export const listSsoProvidersContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/auth/sso/providers',
+  query: ssoProvidersQuerySchema,
+  response: {
+    mode: 'json',
+    schema: z.object({
+      providers: z.array(ssoProviderListEntrySchema),
+    }),
+  },
+})
+
+export type SsoProviderView = z.output<typeof ssoProviderListEntrySchema>
+
+/** Moves sign-in for a provider's verified domain to that provider. The body names the only change it makes. */
+export const setPrimarySsoProviderContract = defineRouteContract({
+  method: 'PATCH',
+  path: '/api/auth/sso/providers/[providerId]',
+  params: z.object({ providerId: z.string().min(1) }),
+  body: z.object({ isPrimary: z.literal(true) }),
+  response: {
+    mode: 'json',
+    schema: z.object({ success: z.literal(true), providerId: z.string() }),
+  },
+})
+
+export const deleteSsoProviderContract = defineRouteContract({
+  method: 'DELETE',
+  path: '/api/auth/sso/providers/[providerId]',
+  params: z.object({ providerId: z.string().min(1) }),
+  response: {
+    mode: 'json',
+    schema: z.object({ success: z.literal(true), providerId: z.string() }),
+  },
+})
+
+/**
+ * Which identity provider signs in an email address.
+ *
+ * Sign-in names the provider explicitly rather than letting the SSO plugin pick
+ * one by domain: its lookup is unordered and does not prefer a verified domain,
+ * so an organization with several providers, or a stale unverified claim on the
+ * same domain elsewhere, would route people nondeterministically.
+ */
+export const resolveSsoProviderContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/auth/sso/resolve',
+  body: z.object({
+    email: z.string().trim().toLowerCase().email().max(320),
+    /** A test sign-in link names a provider; it is honored only when that provider serves the address. */
+    providerId: z.string().min(1).optional(),
+  }),
+  response: {
+    mode: 'json',
+    schema: z.object({ providerId: z.string() }),
+  },
+})
+
+export const getAuthProvidersContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/auth/providers',
+  response: {
+    mode: 'json',
+    schema: authProviderStatusResponseSchema,
+  },
+})
+
+export type AuthProviderStatusResponse = ContractJsonResponse<typeof getAuthProvidersContract>

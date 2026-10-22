@@ -1,0 +1,184 @@
+import { createMockRequest } from '@sim/testing'
+import { rateLimiterMock, rateLimiterMockFns } from '@sim/testing/mocks/rate-limiter.mock'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const {
+  mockPollApproval,
+  mockCompleteApproval,
+  mockReleaseMint,
+  mockGenerateCopilotApiKey,
+  mockCreatePersonalApiKey,
+  mockCreateWorkspaceApiKey,
+} = vi.hoisted(() => ({
+  mockPollApproval: vi.fn(),
+  mockCompleteApproval: vi.fn(),
+  mockReleaseMint: vi.fn(),
+  mockGenerateCopilotApiKey: vi.fn(),
+  mockCreatePersonalApiKey: vi.fn(),
+  mockCreateWorkspaceApiKey: vi.fn(),
+}))
+
+vi.mock('@/lib/cli-auth/approval-store', () => ({
+  pollApproval: mockPollApproval,
+  completeApproval: mockCompleteApproval,
+  releaseMint: mockReleaseMint,
+}))
+
+vi.mock('@/lib/mothership/server/api-keys', () => ({
+  generateCopilotApiKey: mockGenerateCopilotApiKey,
+  CopilotApiKeyError: class extends Error {},
+}))
+
+vi.mock('@/lib/api-key/orchestration', () => ({
+  performCreatePersonalApiKey: mockCreatePersonalApiKey,
+  performCreateWorkspaceApiKey: mockCreateWorkspaceApiKey,
+}))
+
+vi.mock('@/lib/core/rate-limiter', () => rateLimiterMock)
+
+import { POST } from '@/app/api/cli/auth/poll/route'
+
+const mockEnforceIpRateLimit = rateLimiterMockFns.mockEnforceIpRateLimit
+
+const REQUEST = 'a'.repeat(43)
+const VERIFIER = 'b'.repeat(43)
+
+function pollRequest(body: Record<string, unknown>) {
+  return createMockRequest('POST', body)
+}
+
+/** What `pollApproval` returns for an approval recorded at the given scope. */
+function approved(overrides: Record<string, unknown> = {}) {
+  return {
+    status: 'approved',
+    userId: 'user-1',
+    scope: 'copilot',
+    workspaceId: null,
+    workspaceBound: false,
+    ...overrides,
+  }
+}
+
+describe('POST /api/cli/auth/poll', () => {
+  beforeEach(() => {
+    mockEnforceIpRateLimit.mockResolvedValue(null)
+    mockGenerateCopilotApiKey.mockResolvedValue({ id: 'key-1', apiKey: 'sk-test' })
+    mockCreatePersonalApiKey.mockResolvedValue({
+      success: true,
+      key: { id: 'key-2', name: 'CLI', key: 'sim_personal', createdAt: new Date() },
+    })
+    mockCreateWorkspaceApiKey.mockResolvedValue({
+      success: true,
+      key: { id: 'key-3', name: 'CLI', key: 'sim_workspace', createdAt: new Date() },
+    })
+    mockCompleteApproval.mockResolvedValue(undefined)
+    mockReleaseMint.mockResolvedValue(undefined)
+  })
+
+  it('returns pending without minting while unapproved', async () => {
+    mockPollApproval.mockResolvedValue({ status: 'pending' })
+    const response = await POST(pollRequest({ request: REQUEST, verifier: VERIFIER }))
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ status: 'pending' })
+    expect(mockGenerateCopilotApiKey).not.toHaveBeenCalled()
+  })
+
+  it('mints, then consumes the approval, once approved', async () => {
+    mockPollApproval.mockResolvedValue(approved())
+    const response = await POST(pollRequest({ request: REQUEST, verifier: VERIFIER }))
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      status: 'complete',
+      key: { id: 'key-1', apiKey: 'sk-test' },
+      scope: 'copilot',
+      workspaceId: null,
+      workspaceBound: false,
+    })
+    // Second precision, not day: a date-only name made the second login of the
+    // day fail after the user had already approved in the browser.
+    expect(mockGenerateCopilotApiKey).toHaveBeenCalledWith(
+      'user-1',
+      expect.stringMatching(/^CLI \(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}Z\)$/)
+    )
+    expect(mockCompleteApproval).toHaveBeenCalledWith(REQUEST)
+    expect(mockReleaseMint).not.toHaveBeenCalled()
+  })
+
+  it('scope comes from the approval, never from the poll body', async () => {
+    mockPollApproval.mockResolvedValue(approved({ scope: 'copilot' }))
+    const response = await POST(
+      pollRequest({ request: REQUEST, verifier: VERIFIER, scope: 'platform' })
+    )
+    await expect(response.json()).resolves.toMatchObject({ scope: 'copilot' })
+    expect(mockCreatePersonalApiKey).not.toHaveBeenCalled()
+  })
+
+  /**
+   * `/api/cli/auth/approve` is where the session exists to check workspace-admin
+   * permission and the `api_keys.manage` capability, so it must be impossible to
+   * reach a workspace-key mint by driving this endpoint instead.
+   */
+  describe('cannot be driven past the approval-time capability gate', () => {
+    it('ignores a workspace binding asserted by the poll body', async () => {
+      mockPollApproval.mockResolvedValue(approved({ scope: 'platform' }))
+
+      const response = await POST(
+        pollRequest({
+          request: REQUEST,
+          verifier: VERIFIER,
+          workspaceId: 'ws-1',
+          bindKeyToWorkspace: true,
+        })
+      )
+
+      expect(response.status).toBe(200)
+      expect(mockCreateWorkspaceApiKey).not.toHaveBeenCalled()
+      expect(mockCreatePersonalApiKey).toHaveBeenCalled()
+      await expect(response.json()).resolves.toMatchObject({
+        workspaceId: null,
+        workspaceBound: false,
+      })
+    })
+
+    it('mints nothing at all when approval was refused, however often it is polled', async () => {
+      // A refusal at approve writes no record, so the store answers `pending`
+      // forever — there is no state here for a caller to advance.
+      mockPollApproval.mockResolvedValue({ status: 'pending' })
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const response = await POST(pollRequest({ request: REQUEST, verifier: VERIFIER }))
+        expect(response.status).toBe(200)
+        await expect(response.json()).resolves.toEqual({ status: 'pending' })
+      }
+
+      expect(mockCreateWorkspaceApiKey).not.toHaveBeenCalled()
+      expect(mockCreatePersonalApiKey).not.toHaveBeenCalled()
+      expect(mockGenerateCopilotApiKey).not.toHaveBeenCalled()
+    })
+  })
+
+  it('releases the reservation (keeps the approval) when minting fails', async () => {
+    mockPollApproval.mockResolvedValue(approved())
+    mockGenerateCopilotApiKey.mockRejectedValue(new Error('mothership down'))
+    const response = await POST(pollRequest({ request: REQUEST, verifier: VERIFIER }))
+    expect(response.status).toBe(500)
+    expect(mockReleaseMint).toHaveBeenCalledWith(REQUEST)
+    expect(mockCompleteApproval).not.toHaveBeenCalled()
+  })
+
+  it('still returns the key when post-mint cleanup fails — never releases the lock', async () => {
+    mockPollApproval.mockResolvedValue(approved())
+    mockCompleteApproval.mockRejectedValue(new Error('redis blip'))
+    const response = await POST(pollRequest({ request: REQUEST, verifier: VERIFIER }))
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      status: 'complete',
+      key: { id: 'key-1', apiKey: 'sk-test' },
+      scope: 'copilot',
+      workspaceId: null,
+      workspaceBound: false,
+    })
+    // A cleanup failure must not release the mint lock — that would allow a re-mint.
+    expect(mockReleaseMint).not.toHaveBeenCalled()
+  })
+})

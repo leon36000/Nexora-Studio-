@@ -1,0 +1,1529 @@
+import { loggerMock } from '@sim/testing'
+import { storageServiceMockFns } from '@sim/testing/mocks/storage-service.mock'
+import { uploadsMock } from '@sim/testing/mocks/uploads.mock'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { readSSEStream } from '@/lib/core/utils/sse'
+import { clearLargeValueCacheForTests } from '@/lib/execution/payloads/cache'
+import {
+  AGENT_STREAM_PROTOCOL_HEADER,
+  AGENT_STREAM_PROTOCOL_V1,
+  CHAT_OUTPUT_PROTOCOL_V1,
+} from '@/lib/workflows/streaming/agent-stream-protocol'
+import {
+  agentStreamProtocolResponseHeaders,
+  createStreamingResponse,
+} from '@/lib/workflows/streaming/streaming'
+import type { ExecutionResult } from '@/executor/types'
+import type { AgentStreamSink } from '@/providers/stream-events'
+
+const mockDownloadFile = storageServiceMockFns.mockDownloadFile
+
+const workflowStreamingLoggerCallIndex = loggerMock.createLogger.mock.calls.findIndex(
+  ([name]) => name === 'WorkflowStreaming'
+)
+const workflowStreamingLogger =
+  loggerMock.createLogger.mock.results[workflowStreamingLoggerCallIndex]?.value
+if (!workflowStreamingLogger) {
+  throw new Error('WorkflowStreaming logger mock was not initialized')
+}
+
+vi.mock('@/lib/uploads', () => uploadsMock)
+
+const manifestChunk = [{ id: 1 }]
+const manifestChunkBytes = Buffer.byteLength(JSON.stringify(manifestChunk), 'utf8')
+const manifest = {
+  __simLargeArrayManifest: true,
+  version: 2,
+  kind: 'array',
+  totalCount: 1,
+  chunkCount: 1,
+  byteSize: manifestChunkBytes,
+  chunks: [
+    {
+      ref: {
+        __simLargeValueRef: true,
+        version: 1,
+        id: 'lv_ABCDEFGHIJKL',
+        kind: 'array',
+        size: manifestChunkBytes,
+        key: 'execution/workspace-1/workflow-1/execution-1/large-value-lv_ABCDEFGHIJKL.json',
+        executionId: 'execution-1',
+      },
+      count: 1,
+      byteSize: manifestChunkBytes,
+    },
+  ],
+  preview: [{ id: 1 }],
+}
+
+async function collectSSEEvents(
+  stream: ReadableStream<Uint8Array>
+): Promise<Record<string, unknown>[]> {
+  const reader = stream.getReader()
+  const decoder = new TextDecoder()
+  const events: Record<string, unknown>[] = []
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        buffer += decoder.decode()
+        break
+      }
+      buffer += decoder.decode(value, { stream: true })
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  for (const chunk of buffer.split('\n\n')) {
+    if (!chunk.startsWith('data: ')) {
+      continue
+    }
+    const payload = chunk.substring(6)
+    if (payload === '[DONE]') {
+      continue
+    }
+    const event = JSON.parse(payload) as unknown
+    if (event === '[DONE]') {
+      continue
+    }
+    events.push(event as Record<string, unknown>)
+  }
+
+  return events
+}
+
+describe('createStreamingResponse', () => {
+  beforeEach(() => {
+    clearLargeValueCacheForTests()
+  })
+
+  it('emits selected files from a block that already streamed its answer', async () => {
+    const file = {
+      id: 'file-image',
+      name: 'image.png',
+      size: 3,
+      type: 'image/png',
+      key: 'execution/image.png',
+      url: '/api/files/serve/execution%2Fimage.png',
+      base64: 'YWJj',
+    }
+    const stream = await createStreamingResponse({
+      requestId: 'request-streamed-chat-files',
+      executionId: 'execution-1',
+      requestHeaders: new Headers({
+        [AGENT_STREAM_PROTOCOL_HEADER]: `${AGENT_STREAM_PROTOCOL_V1}, ${CHAT_OUTPUT_PROTOCOL_V1}`,
+      }),
+      streamConfig: {
+        selectedOutputs: ['agent_content', 'agent_files'],
+        workflowTriggerType: 'chat',
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onStream, onBlockComplete }) => {
+        await onStream({
+          blockId: 'agent',
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode('Your image.'))
+              controller.close()
+            },
+          }),
+          execution: { success: true, output: {} },
+        })
+        await onBlockComplete('agent', { content: 'Your image.', files: [file] })
+        return { success: true, output: {}, logs: [], metadata: { duration: 1 } }
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events.filter((event) => 'chunk' in event)).toEqual([
+      { blockId: 'agent', chunk: 'Your image.' },
+    ])
+    expect(events).toContainEqual({ blockId: 'agent', event: 'output', data: [file] })
+  })
+
+  it('emits composite response-format selections once as structured outputs', async () => {
+    const result = {
+      content: 'Your image.',
+      files: [
+        {
+          id: 'file-image',
+          name: 'image.png',
+          size: 3,
+          type: 'image/png',
+          key: 'execution/image.png',
+          url: '/api/files/serve/execution%2Fimage.png',
+          base64: 'YWJj',
+        },
+      ],
+      count: 1,
+    }
+    const stream = await createStreamingResponse({
+      requestId: 'request-chat-composite',
+      requestHeaders: new Headers({ [AGENT_STREAM_PROTOCOL_HEADER]: CHAT_OUTPUT_PROTOCOL_V1 }),
+      streamConfig: {
+        selectedOutputs: ['agent_result'],
+        workflowTriggerType: 'chat',
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onStream, onBlockComplete }) => {
+        await onStream({
+          blockId: 'agent',
+          clientStreamTransformed: true,
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode(JSON.stringify(result)))
+              controller.close()
+            },
+          }),
+          execution: { success: true, output: {} },
+        })
+        await onBlockComplete('agent', { result })
+        return { success: true, output: {}, logs: [], metadata: { duration: 1 } }
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events.filter((event) => 'chunk' in event)).toEqual([])
+    expect(events.filter((event) => event.event === 'output')).toEqual([
+      { blockId: 'agent', event: 'output', data: result },
+    ])
+  })
+
+  it('enforces the aggregate inline byte limit for structured chat outputs', async () => {
+    const value = { text: 'x'.repeat(9 * 1024 * 1024) }
+    const stream = await createStreamingResponse({
+      requestId: 'request-chat-output-limit',
+      requestHeaders: new Headers({ [AGENT_STREAM_PROTOCOL_HEADER]: CHAT_OUTPUT_PROTOCOL_V1 }),
+      streamConfig: {
+        selectedOutputs: ['block_first', 'block_second'],
+        workflowTriggerType: 'chat',
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        await onBlockComplete('block', { first: value, second: value })
+        return { success: true, output: {}, logs: [], metadata: { duration: 1 } }
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events.filter((event) => event.event === 'output')).toHaveLength(1)
+    expect(events).toContainEqual({
+      blockId: 'block',
+      event: 'error',
+      error:
+        'Selected output is too large to inline; select a nested field or use pagination/preview.',
+    })
+    expect(events.some((event) => event.event === 'final')).toBe(false)
+  })
+
+  it.each([
+    {
+      trigger: 'chat' as const,
+      protocol: `${AGENT_STREAM_PROTOCOL_V1}, ${CHAT_OUTPUT_PROTOCOL_V1}`,
+      structured: true,
+    },
+    { trigger: 'chat' as const, protocol: AGENT_STREAM_PROTOCOL_V1, structured: false },
+    {
+      trigger: 'api' as const,
+      protocol: `${AGENT_STREAM_PROTOCOL_V1}, ${CHAT_OUTPUT_PROTOCOL_V1}`,
+      structured: false,
+    },
+  ])(
+    'preserves selected output data only for capable chat clients: $trigger / $protocol',
+    async ({ trigger, protocol, structured }) => {
+      const files = [
+        {
+          id: 'file-image',
+          name: 'image.png',
+          size: 3,
+          type: 'image/png',
+          key: 'execution/image.png',
+          url: '/api/files/serve/execution%2Fimage.png',
+          base64: 'YWJj',
+        },
+      ]
+      const output = { files, emptyFiles: [] }
+      const stream = await createStreamingResponse({
+        requestId: 'request-chat-files',
+        executionId: 'execution-1',
+        requestHeaders: new Headers({ [AGENT_STREAM_PROTOCOL_HEADER]: protocol }),
+        streamConfig: {
+          selectedOutputs: ['block_files', 'block_emptyFiles'],
+          workflowTriggerType: trigger,
+          includeFileBase64: false,
+        },
+        executeFn: async ({ onBlockComplete }) => {
+          await onBlockComplete('block', output)
+          return { success: true, output: {}, logs: [], metadata: { duration: 1 } }
+        },
+      })
+
+      const events = await collectSSEEvents(stream)
+      if (structured) {
+        expect(events).toContainEqual({ blockId: 'block', event: 'output', data: files })
+        expect(events).toContainEqual({ blockId: 'block', event: 'output', data: [] })
+        expect(events.some((event) => 'chunk' in event)).toBe(false)
+      } else {
+        expect(events).toContainEqual({ blockId: 'block', chunk: JSON.stringify(files, null, 2) })
+        expect(events).toContainEqual({ blockId: 'block', chunk: '\n\n[]' })
+        expect(events.some((event) => event.event === 'output')).toBe(false)
+      }
+      expect(events).toContainEqual({ event: 'final', data: { success: true, output: {} } })
+    }
+  )
+
+  it('emits an immediate keepalive and repeats it while execution is silent', async () => {
+    vi.useFakeTimers()
+    let finishExecution!: (result: ExecutionResult) => void
+    try {
+      const stream = await createStreamingResponse({
+        requestId: 'request-keepalive',
+        executionId: 'execution-1',
+        streamConfig: {},
+        executeFn: async () =>
+          await new Promise<ExecutionResult>((resolve) => {
+            finishExecution = resolve
+          }),
+      })
+      const reader = stream.getReader()
+      const decoder = new TextDecoder()
+
+      expect(decoder.decode((await reader.read()).value)).toBe(': keepalive\n\n')
+      await vi.advanceTimersByTimeAsync(15_000)
+      expect(decoder.decode((await reader.read()).value)).toBe(': keepalive\n\n')
+
+      finishExecution({
+        success: true,
+        status: 'completed',
+        output: {},
+        logs: [],
+        metadata: { duration: 1 },
+      })
+      while (!(await reader.read()).done) {}
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('projects stream failures for logs without changing the terminal error frame', async () => {
+    const secret = 'streaming-secret-value'
+    const message = `Provider exposed ${secret} __var_API_KEY __sim_code_1_binding_0`
+    const rawError = new Error(message)
+    const stream = await createStreamingResponse({
+      requestId: 'request-secret-failure',
+      executionId: 'execution-1',
+      streamConfig: {},
+      executeFn: async () => {
+        throw rawError
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+
+    expect(events).toContainEqual({ event: 'error', error: message })
+    expect(events.some((event) => event.event === 'final')).toBe(false)
+    expect(workflowStreamingLogger.error).toHaveBeenCalledWith(
+      '[request-secret-failure] Stream error',
+      {
+        errorType: 'error',
+        hasStack: true,
+      }
+    )
+    const loggerPayload = JSON.stringify(workflowStreamingLogger.error.mock.calls)
+    expect(loggerPayload).not.toContain(secret)
+    expect(loggerPayload).not.toContain('__var_')
+    expect(loggerPayload).not.toContain('__sim_')
+    expect(rawError.message).toBe(message)
+  })
+
+  it('fails closed when a block stream reader rejects while preserving the raw stream frame', async () => {
+    const secret = 'block-stream-secret-7f3a91'
+    const message = `reader failed ${secret} __var_API_KEY __sim_code_2_binding_0`
+    const rawError = new Error(message)
+    const stream = await createStreamingResponse({
+      requestId: 'request-block-stream-failure',
+      executionId: 'execution-1',
+      streamConfig: {},
+      executeFn: async ({ onStream }) => {
+        await onStream({
+          blockId: 'agent-1',
+          stream: new ReadableStream({
+            start(controller) {
+              controller.error(rawError)
+            },
+          }),
+          execution: {
+            blockId: 'agent-1',
+            success: false,
+            output: {},
+            logs: [],
+            metadata: {},
+          },
+        } as any)
+
+        return {
+          success: true,
+          output: {},
+          logs: [],
+          metadata: { duration: 1 },
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+
+    expect(events).toContainEqual({ event: 'stream_error', blockId: 'agent-1', error: message })
+    expect(workflowStreamingLogger.error).toHaveBeenCalledWith(
+      '[request-block-stream-failure] Error reading stream for block agent-1',
+      { errorType: 'error', hasStack: true }
+    )
+    const loggerPayload = JSON.stringify(workflowStreamingLogger.error.mock.calls)
+    expect(loggerPayload).not.toContain(secret)
+    expect(loggerPayload).not.toContain('__var_')
+    expect(loggerPayload).not.toContain('__sim_')
+    expect(rawError.message).toBe(message)
+  })
+
+  it('emits workflow-scoped block IDs for a nested agent stream', async () => {
+    const stream = await createStreamingResponse({
+      requestId: 'request-nested-agent',
+      executionId: 'execution-1',
+      streamConfig: {
+        selectedOutputs: ['child-workflow.agent-1_content'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onStream }) => {
+        await onStream({
+          blockId: 'child-workflow.agent-1',
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode('Nested answer'))
+              controller.close()
+            },
+          }),
+          execution: {
+            success: true,
+            output: { content: 'Nested answer' },
+            logs: [],
+            metadata: {},
+          },
+        })
+        return {
+          success: true,
+          output: {},
+          logs: [],
+          metadata: { duration: 1 },
+        }
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events).toContainEqual({
+      blockId: 'child-workflow.agent-1',
+      chunk: 'Nested answer',
+    })
+  })
+
+  it('extracts selected outputs from JSON content payloads', async () => {
+    const output = { content: JSON.stringify({ answer: 'ok' }) }
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      executionId: 'execution-1',
+      streamConfig: {
+        selectedOutputs: ['block_answer'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        await onBlockComplete('block', output)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    await expect(readSSEStream(stream)).resolves.toBe('ok')
+  })
+
+  it('auto-materializes whole manifest selected outputs under the inline cap', async () => {
+    mockDownloadFile.mockResolvedValue(Buffer.from(JSON.stringify(manifestChunk), 'utf8'))
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      executionId: 'execution-1',
+      workspaceId: 'workspace-1',
+      workflowId: 'workflow-1',
+      streamConfig: {
+        selectedOutputs: ['block_issues'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        const output = { issues: manifest }
+        await onBlockComplete('block', output)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    await expect(readSSEStream(stream)).resolves.toBe(JSON.stringify(manifestChunk, null, 2))
+  })
+
+  it('inlines materialized selected outputs without recompacting them into refs', async () => {
+    const largeString = 'x'.repeat(8 * 1024 * 1024 + 1)
+    const largeStringJson = JSON.stringify(largeString)
+    const ref = {
+      __simLargeValueRef: true,
+      version: 1,
+      id: 'lv_LARGESTRING1',
+      kind: 'string',
+      size: Buffer.byteLength(largeStringJson, 'utf8'),
+      key: 'execution/workspace-1/workflow-1/execution-1/large-value-lv_LARGESTRING1.json',
+      executionId: 'execution-1',
+    }
+    mockDownloadFile.mockResolvedValue(Buffer.from(largeStringJson, 'utf8'))
+
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      executionId: 'execution-1',
+      workspaceId: 'workspace-1',
+      workflowId: 'workflow-1',
+      streamConfig: {
+        selectedOutputs: ['block_text'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        const output = { text: ref }
+        await onBlockComplete('block', output)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const streamed = await readSSEStream(stream)
+    expect(streamed).toHaveLength(largeString.length)
+    expect(streamed).not.toContain('__simLargeValueRef')
+  })
+
+  it('deduplicates repeated equivalent selected outputs before streaming', async () => {
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      executionId: 'execution-1',
+      streamConfig: {
+        selectedOutputs: ['block_text', 'block.text', 'block_text'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        const output = { text: 'ok' }
+        await onBlockComplete('block', output)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    const chunkEvents = events.filter((event) => 'chunk' in event)
+    expect(chunkEvents).toHaveLength(1)
+    expect(chunkEvents[0]).toMatchObject({ blockId: 'block', chunk: 'ok' })
+  })
+
+  it('fails closed when selected-output materialization logs a secret-bearing error', async () => {
+    const secret = 'selected-output-secret-7f3a91'
+    const message = `download failed ${secret} __var_API_KEY __sim_code_3_binding_0`
+    const rawError = new Error(message)
+    const value = {
+      toJSON() {
+        throw rawError
+      },
+    }
+
+    const stream = await createStreamingResponse({
+      requestId: 'request-selected-output-failure',
+      executionId: 'execution-1',
+      streamConfig: {
+        selectedOutputs: ['block_value'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        await onBlockComplete('block', { value })
+        return {
+          success: true,
+          output: {},
+          logs: [],
+          metadata: { duration: 1 },
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+
+    expect(events).toContainEqual({ event: 'error', blockId: 'block', error: message })
+    expect(workflowStreamingLogger.warn).toHaveBeenCalledWith(
+      '[request-selected-output-failure] Failed to materialize selected output',
+      {
+        blockId: 'block',
+        outputId: 'block_value',
+        errorType: 'error',
+        hasStack: true,
+      }
+    )
+    const loggerPayload = JSON.stringify(workflowStreamingLogger.warn.mock.calls)
+    expect(loggerPayload).not.toContain(secret)
+    expect(loggerPayload).not.toContain('__var_')
+    expect(loggerPayload).not.toContain('__sim_')
+    expect(rawError.message).toBe(message)
+  })
+
+  it('fails when distinct selected outputs aggregate over the inline cap', async () => {
+    const largeString = 'x'.repeat(9 * 1024 * 1024)
+    const largeStringJson = JSON.stringify(largeString)
+    const largeStringBytes = Buffer.byteLength(largeStringJson, 'utf8')
+    const firstRef = {
+      __simLargeValueRef: true,
+      version: 1,
+      id: 'lv_MULTIREF0001',
+      kind: 'string',
+      size: largeStringBytes,
+      key: 'execution/workspace-1/workflow-1/execution-1/large-value-lv_MULTIREF0001.json',
+      executionId: 'execution-1',
+    }
+    const secondRef = {
+      __simLargeValueRef: true,
+      version: 1,
+      id: 'lv_MULTIREF0002',
+      kind: 'string',
+      size: largeStringBytes,
+      key: 'execution/workspace-1/workflow-1/execution-1/large-value-lv_MULTIREF0002.json',
+      executionId: 'execution-1',
+    }
+    mockDownloadFile.mockImplementation(async ({ key }) => {
+      if (key === firstRef.key || key === secondRef.key) {
+        return Buffer.from(largeStringJson, 'utf8')
+      }
+      throw new Error(`Unexpected key: ${key}`)
+    })
+
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      executionId: 'execution-1',
+      workspaceId: 'workspace-1',
+      workflowId: 'workflow-1',
+      streamConfig: {
+        selectedOutputs: ['block_first', 'block_second'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        const output = { first: firstRef, second: secondRef }
+        await onBlockComplete('block', output)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events).toContainEqual({
+      event: 'error',
+      blockId: 'block',
+      error:
+        'Selected output is too large to inline; select a nested field or use pagination/preview.',
+    })
+    expect(events.some((event) => event.event === 'final')).toBe(false)
+  })
+
+  it('accounts escaped string JSON bytes against the aggregate selected-output cap', async () => {
+    const first = '\\'.repeat(Math.floor((16 * 1024 * 1024 - 2) / 2))
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      executionId: 'execution-1',
+      streamConfig: {
+        selectedOutputs: ['block_first', 'block_second'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        const output = { first, second: 'ok' }
+        await onBlockComplete('block', output)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events).toContainEqual({
+      event: 'error',
+      blockId: 'block',
+      error:
+        'Selected output is too large to inline; select a nested field or use pagination/preview.',
+    })
+    expect(events.some((event) => event.event === 'final')).toBe(false)
+  })
+
+  it('fails clearly instead of streaming raw manifest internals when selected output is over cap', async () => {
+    const oversizedManifest = {
+      ...manifest,
+      byteSize: 16 * 1024 * 1024 + 1,
+      chunks: [
+        {
+          ...manifest.chunks[0],
+          ref: {
+            ...manifest.chunks[0].ref,
+            size: 16 * 1024 * 1024 + 1,
+          },
+          byteSize: 16 * 1024 * 1024 + 1,
+        },
+      ],
+    }
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      executionId: 'execution-1',
+      workspaceId: 'workspace-1',
+      workflowId: 'workflow-1',
+      streamConfig: {
+        selectedOutputs: ['block_issues'],
+        includeFileBase64: false,
+      },
+      executeFn: async ({ onBlockComplete }) => {
+        const output = { issues: oversizedManifest }
+        await onBlockComplete('block', output)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events).toContainEqual({
+      event: 'error',
+      blockId: 'block',
+      error:
+        'Selected output is too large to inline; select a nested field or use pagination/preview.',
+    })
+    expect(events.some((event) => event.event === 'final')).toBe(false)
+    expect(JSON.stringify(events)).not.toContain('__simLargeArrayManifest')
+    expect(mockDownloadFile).not.toHaveBeenCalled()
+  })
+})
+
+describe('final envelope tool payloads', () => {
+  const agentOutput = {
+    content: 'Done',
+    toolCalls: {
+      count: 1,
+      list: [
+        {
+          name: 'get_weather',
+          duration: 12,
+          arguments: { city: 'private' },
+          result: { temperature: 72 },
+        },
+      ],
+    },
+  }
+
+  function executeFnReturning(output: Record<string, unknown>) {
+    return async () =>
+      ({
+        success: true,
+        output,
+        logs: [
+          {
+            blockId: 'agent-1',
+            output,
+            startedAt: new Date().toISOString(),
+            endedAt: new Date().toISOString(),
+            durationMs: 1,
+            success: true,
+          },
+        ],
+      }) as any
+  }
+
+  it('redacts tool arguments and results for public chat', async () => {
+    // No outputConfigs means the whole block output rides the envelope, which
+    // must not become a side channel around the tool-frame gate.
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      streamConfig: { isSecureMode: true, selectedOutputs: [] },
+      executeFn: executeFnReturning(agentOutput),
+    })
+
+    const events = await collectSSEEvents(stream)
+    const final = events.find((event) => event.event === 'final')
+    const toolCall = (final?.data as any).output.toolCalls.list[0]
+
+    expect(toolCall).toEqual({ name: 'get_weather', duration: 12 })
+    expect(JSON.stringify(final)).not.toContain('private')
+    expect(JSON.stringify(final)).not.toContain('72')
+  })
+
+  /**
+   * A deployment almost always selects outputs, so redaction that only covered
+   * the empty-selection branch would be dead in the case it exists for.
+   */
+  it('redacts tool payloads when the deployment selects toolCalls directly', async () => {
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      streamConfig: { isSecureMode: true, selectedOutputs: ['block_toolCalls'] },
+      executeFn: async ({ onBlockComplete }) => {
+        const toolOnlyOutput = { toolCalls: agentOutput.toolCalls }
+        await onBlockComplete('block', toolOnlyOutput)
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'block',
+              output: toolOnlyOutput,
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    // The payload rides the chunk frame, not `final`, so assert on the whole
+    // stream — sanitizing only the envelope would still leak here.
+    const events = await collectSSEEvents(stream)
+    const serialized = JSON.stringify(events)
+
+    expect(serialized).not.toContain('private')
+    expect(serialized).not.toContain('72')
+    expect(serialized).toContain('get_weather')
+  })
+
+  it('keeps tool results for the authenticated workflow API', async () => {
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      streamConfig: { isSecureMode: false, selectedOutputs: [] },
+      executeFn: executeFnReturning(agentOutput),
+    })
+
+    const events = await collectSSEEvents(stream)
+    const final = events.find((event) => event.event === 'final')
+    const toolCall = (final?.data as any).output.toolCalls.list[0]
+
+    expect(toolCall.arguments).toEqual({ city: 'private' })
+    expect(toolCall.result).toEqual({ temperature: 72 })
+  })
+})
+
+describe('agent stream protocol response headers', () => {
+  const requestHeaders = new Headers({
+    'x-sim-stream-protocol': 'agent-events-v1',
+  })
+
+  it('echoes the protocol whenever the client negotiated it', () => {
+    // v1 framing (live text + chunk_reset) is in effect on client capability
+    // alone, so the echo must not depend on the event policies.
+    expect(agentStreamProtocolResponseHeaders({ requestHeaders })).toEqual({
+      'x-sim-stream-protocol': 'agent-events-v1',
+    })
+  })
+})
+
+describe('createStreamingResponse agent-events-v1', () => {
+  beforeEach(() => {
+    clearLargeValueCacheForTests()
+  })
+
+  function createAgentStreamExecuteFn(options: {
+    thinking?: string[]
+    answer: string
+    fail?: boolean
+    tools?: Array<
+      | { type: 'tool_call_start'; id: string; name: string; args?: unknown }
+      | {
+          type: 'tool_call_end'
+          id: string
+          name: string
+          status: string
+          result?: unknown
+        }
+    >
+  }) {
+    return async ({
+      onStream,
+      abortSignal,
+    }: {
+      onStream: (streamingExec: any) => Promise<void>
+      onBlockComplete: (blockId: string, output: unknown) => Promise<void>
+      abortSignal: AbortSignal
+    }) => {
+      let textController!: ReadableStreamDefaultController<Uint8Array>
+      let sink: { onEvent: (event: unknown) => void | Promise<void> } | undefined
+      const textStream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          textController = controller
+        },
+      })
+
+      const onStreamPromise = onStream({
+        blockId: 'agent-1',
+        stream: textStream,
+        streamFormat: 'text',
+        subscribe: (nextSink: { onEvent: (event: unknown) => void | Promise<void> }) => {
+          sink = nextSink
+          return () => {
+            sink = undefined
+          }
+        },
+        execution: {
+          blockId: 'agent-1',
+          success: true,
+          output: { content: options.answer },
+          logs: [],
+          metadata: {},
+        },
+      })
+
+      if (options.fail) {
+        textController.error(new Error('provider reset'))
+        await onStreamPromise.catch(() => {})
+        throw new Error('provider reset')
+      }
+
+      for (const text of options.thinking ?? []) {
+        await sink?.onEvent({ type: 'thinking_delta', text })
+      }
+      for (const toolEvent of options.tools ?? []) {
+        await sink?.onEvent(toolEvent)
+      }
+      // Mirror the pump: text dispatches to the sink first, then projects to bytes.
+      await sink?.onEvent({ type: 'text_delta', text: options.answer, turn: 'final' })
+      textController.enqueue(new TextEncoder().encode(options.answer))
+      textController.close()
+      await onStreamPromise
+
+      expect(abortSignal).toBeDefined()
+
+      return {
+        success: true,
+        output: { content: options.answer },
+        logs: [
+          {
+            blockId: 'agent-1',
+            output: { content: '' },
+            startedAt: new Date().toISOString(),
+            endedAt: new Date().toISOString(),
+            durationMs: 1,
+            success: true,
+          },
+        ],
+      } as any
+    }
+  }
+
+  async function collectSSEPayloads(stream: ReadableStream<Uint8Array>): Promise<string[]> {
+    const reader = stream.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        buffer += decoder.decode()
+        break
+      }
+      buffer += decoder.decode(value, { stream: true })
+    }
+    return buffer
+      .split('\n\n')
+      .map((chunk) => chunk.trim())
+      .filter((chunk) => chunk.startsWith('data: '))
+      .map((chunk) => chunk.slice(6))
+  }
+
+  /**
+   * A client that never declared a protocol version has no contract for frame
+   * shapes, so policy alone must not expose them.
+   */
+  it('stays text-only without the protocol header even with both policies on', async () => {
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      streamConfig: {
+        includeThinking: true,
+        includeToolCalls: true,
+        selectedOutputs: ['agent-1_content'],
+      },
+      executeFn: createAgentStreamExecuteFn({
+        thinking: ['a thought'],
+        answer: 'Hello',
+        tools: [{ type: 'tool_call_start', id: 'toolu_1', name: 'get_weather' }],
+      }),
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events.some((event) => event.event === 'thinking')).toBe(false)
+    expect(events.some((event) => event.event === 'tool')).toBe(false)
+    expect(events).toContainEqual({ blockId: 'agent-1', chunk: 'Hello' })
+    expect(events.some((event) => event.event === 'final')).toBe(true)
+  })
+
+  it('header + includeThinking emits thinking on data and answer on chunk', async () => {
+    const headers = new Headers({
+      'x-sim-stream-protocol': 'agent-events-v1',
+    })
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      requestHeaders: headers,
+      streamConfig: {
+        includeThinking: true,
+        includeToolCalls: false,
+        selectedOutputs: ['agent-1_content'],
+      },
+      executeFn: createAgentStreamExecuteFn({
+        thinking: ['hmm ', 'yes'],
+        answer: 'Answer',
+      }),
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events.filter((event) => event.event === 'thinking')).toEqual([
+      { blockId: 'agent-1', event: 'thinking', data: 'hmm ' },
+      { blockId: 'agent-1', event: 'thinking', data: 'yes' },
+    ])
+    expect(events).toContainEqual({ blockId: 'agent-1', chunk: 'Answer' })
+    expect(events.some((event) => event.event === 'final')).toBe(true)
+  })
+
+  it('includeToolCalls emits tool start/end frames without exposing args or results', async () => {
+    const headers = new Headers({
+      'x-sim-stream-protocol': 'agent-events-v1',
+    })
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      requestHeaders: headers,
+      streamConfig: {
+        includeThinking: false,
+        includeToolCalls: true,
+        selectedOutputs: ['agent-1_content'],
+      },
+      executeFn: createAgentStreamExecuteFn({
+        answer: 'Done',
+        tools: [
+          {
+            type: 'tool_call_start',
+            id: 'toolu_1',
+            name: 'get_weather',
+            args: { city: 'private' },
+          },
+          {
+            type: 'tool_call_end',
+            id: 'toolu_1',
+            name: 'get_weather',
+            status: 'success',
+            result: { temperature: 72 },
+          },
+        ],
+      }),
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events.filter((event) => event.event === 'tool')).toEqual([
+      {
+        blockId: 'agent-1',
+        event: 'tool',
+        phase: 'start',
+        id: 'toolu_1',
+        name: 'get_weather',
+      },
+      {
+        blockId: 'agent-1',
+        event: 'tool',
+        phase: 'end',
+        id: 'toolu_1',
+        name: 'get_weather',
+        status: 'success',
+      },
+    ])
+    expect(events).toContainEqual({ blockId: 'agent-1', chunk: 'Done' })
+    expect(
+      events.some(
+        (event) =>
+          typeof event.chunk === 'string' &&
+          (String(event.chunk).includes('toolu_1') || String(event.chunk).includes('get_weather'))
+      )
+    ).toBe(false)
+  })
+
+  it('tool-only policy streams pending text live and resets intermediate turns', async () => {
+    const headers = new Headers({
+      'x-sim-stream-protocol': 'agent-events-v1',
+    })
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      requestHeaders: headers,
+      streamConfig: {
+        includeThinking: false,
+        includeToolCalls: true,
+        selectedOutputs: ['agent-1_content'],
+      },
+      executeFn: async ({ onStream }) => {
+        let textController!: ReadableStreamDefaultController<Uint8Array>
+        let sink: AgentStreamSink | undefined
+        const textStream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            textController = controller
+          },
+        })
+
+        const onStreamPromise = onStream({
+          blockId: 'agent-1',
+          stream: textStream,
+          streamFormat: 'text',
+          subscribe: (nextSink: AgentStreamSink) => {
+            sink = nextSink
+            return () => {}
+          },
+          execution: {
+            blockId: 'agent-1',
+            success: true,
+            output: { content: 'Final answer' },
+            logs: [],
+            metadata: {},
+          },
+        } as any)
+
+        // Turn 1: live preamble, then tools follow → intermediate turn_end.
+        await sink?.onEvent({ type: 'text_delta', text: 'Checking…', turn: 'pending' })
+        await sink?.onEvent({ type: 'tool_call_start', id: 'toolu_1', name: 'get_weather' })
+        await sink?.onEvent({ type: 'turn_end', turn: 'intermediate' })
+        await sink?.onEvent({
+          type: 'tool_call_end',
+          id: 'toolu_1',
+          name: 'get_weather',
+          status: 'success',
+        })
+        // Turn 2: live final answer; pump projects it to bytes at turn_end.
+        await sink?.onEvent({ type: 'text_delta', text: 'Final ', turn: 'pending' })
+        await sink?.onEvent({ type: 'text_delta', text: 'answer', turn: 'pending' })
+        await sink?.onEvent({ type: 'turn_end', turn: 'final' })
+        textController.enqueue(new TextEncoder().encode('Final answer'))
+        textController.close()
+        await onStreamPromise
+
+        return {
+          success: true,
+          output: { content: 'Final answer' },
+          logs: [
+            {
+              blockId: 'agent-1',
+              output: { content: '' },
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+
+    // Live text arrives as chunk frames in stream order, with a reset between turns.
+    const answerFlow = events
+      .filter((event) => event.chunk !== undefined || event.event === 'chunk_reset')
+      .map((event) => (event.event === 'chunk_reset' ? 'RESET' : event.chunk))
+    expect(answerFlow).toEqual(['Checking…', 'RESET', 'Final ', 'answer'])
+
+    // The byte-path flush of the same final text must not duplicate chunk frames.
+    expect(events.filter((event) => event.chunk !== undefined).map((event) => event.chunk)).toEqual(
+      ['Checking…', 'Final ', 'answer']
+    )
+  })
+
+  it('streams answer text live for a negotiated client with both policies off', async () => {
+    // Answer cadence follows client capability, not event policy: a chat with
+    // thinking and tools both disabled must still stream token by token, the
+    // way it did before streaming tool loops existed.
+    const headers = new Headers({
+      'x-sim-stream-protocol': 'agent-events-v1',
+    })
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      requestHeaders: headers,
+      streamConfig: {
+        includeThinking: false,
+        includeToolCalls: false,
+        selectedOutputs: ['agent-1_content'],
+      },
+      executeFn: async ({ onStream }) => {
+        let textController!: ReadableStreamDefaultController<Uint8Array>
+        let sink: AgentStreamSink | undefined
+        const textStream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            textController = controller
+          },
+        })
+
+        const onStreamPromise = onStream({
+          blockId: 'agent-1',
+          stream: textStream,
+          streamFormat: 'text',
+          subscribe: (nextSink: AgentStreamSink) => {
+            sink = nextSink
+            return () => {}
+          },
+          execution: {
+            blockId: 'agent-1',
+            success: true,
+            output: { content: 'Final answer' },
+            logs: [],
+            metadata: {},
+          },
+        } as any)
+
+        await sink?.onEvent({ type: 'thinking_delta', text: 'secret reasoning' })
+        await sink?.onEvent({ type: 'tool_call_start', id: 'toolu_1', name: 'get_weather' })
+        await sink?.onEvent({ type: 'turn_end', turn: 'intermediate' })
+        await sink?.onEvent({
+          type: 'tool_call_end',
+          id: 'toolu_1',
+          name: 'get_weather',
+          status: 'success',
+        })
+        await sink?.onEvent({ type: 'text_delta', text: 'Final ', turn: 'pending' })
+        await sink?.onEvent({ type: 'text_delta', text: 'answer', turn: 'pending' })
+        await sink?.onEvent({ type: 'turn_end', turn: 'final' })
+        textController.enqueue(new TextEncoder().encode('Final answer'))
+        textController.close()
+        await onStreamPromise
+
+        return {
+          success: true,
+          output: { content: 'Final answer' },
+          logs: [
+            {
+              blockId: 'agent-1',
+              output: { content: '' },
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+
+    expect(events.filter((event) => event.chunk !== undefined).map((event) => event.chunk)).toEqual(
+      ['Final ', 'answer']
+    )
+    // Capability alone must not expose either gated event type.
+    expect(events.some((event) => event.event === 'thinking')).toBe(false)
+    expect(events.some((event) => event.event === 'tool')).toBe(false)
+  })
+
+  it('dual gate keeps byte-path chunks for response-format transformed streams', async () => {
+    const headers = new Headers({
+      'x-sim-stream-protocol': 'agent-events-v1',
+    })
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      requestHeaders: headers,
+      streamConfig: {
+        includeThinking: true,
+        includeToolCalls: false,
+        selectedOutputs: ['agent-1_content'],
+      },
+      executeFn: async ({ onStream }) => {
+        let textController!: ReadableStreamDefaultController<Uint8Array>
+        let sink: { onEvent: (event: unknown) => void | Promise<void> } | undefined
+        const textStream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            textController = controller
+          },
+        })
+
+        const onStreamPromise = onStream({
+          blockId: 'agent-1',
+          stream: textStream,
+          streamFormat: 'text',
+          subscribe: (nextSink: { onEvent: (event: unknown) => void | Promise<void> }) => {
+            sink = nextSink
+            return () => {}
+          },
+          clientStreamTransformed: true,
+          execution: {
+            blockId: 'agent-1',
+            success: true,
+            output: { content: '{"answer":"extracted"}' },
+            logs: [],
+            metadata: {},
+          },
+        } as any)
+
+        // Sink text must NOT become chunk frames — bytes are a different projection.
+        await sink?.onEvent({ type: 'text_delta', text: '{"answer":"', turn: 'pending' })
+        await sink?.onEvent({ type: 'text_delta', text: 'extracted"}', turn: 'pending' })
+        await sink?.onEvent({ type: 'turn_end', turn: 'final' })
+        textController.enqueue(new TextEncoder().encode('extracted'))
+        textController.close()
+        await onStreamPromise
+
+        return {
+          success: true,
+          output: { content: '{"answer":"extracted"}' },
+          logs: [
+            {
+              blockId: 'agent-1',
+              output: { content: '' },
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(events.filter((event) => event.chunk !== undefined).map((event) => event.chunk)).toEqual(
+      ['extracted']
+    )
+    expect(events.some((event) => event.event === 'chunk_reset')).toBe(false)
+  })
+
+  it('provider failure emits one terminal error, no final, then [DONE]', async () => {
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      streamConfig: {},
+      executeFn: createAgentStreamExecuteFn({
+        answer: 'partial',
+        fail: true,
+      }),
+    })
+
+    const payloads = await collectSSEPayloads(stream)
+    const events = payloads
+      .filter((payload) => payload !== '[DONE]' && payload !== '"[DONE]"')
+      .map((payload) => JSON.parse(payload) as Record<string, unknown>)
+
+    expect(events.filter((event) => event.event === 'error')).toHaveLength(1)
+    expect(events.some((event) => event.event === 'final')).toBe(false)
+    expect(payloads.some((payload) => payload === '[DONE]' || payload === '"[DONE]"')).toBe(true)
+  })
+
+  it('requestSignal abort propagates to executeFn abortSignal', async () => {
+    const requestAbort = new AbortController()
+    let sawAbort = false
+
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      requestSignal: requestAbort.signal,
+      streamConfig: {},
+      executeFn: async ({ abortSignal }) => {
+        requestAbort.abort()
+        sawAbort = abortSignal.aborted
+        return {
+          success: false,
+          status: 'cancelled',
+          output: {},
+          logs: [],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    expect(sawAbort).toBe(true)
+    expect(events.some((event) => event.event === 'final')).toBe(false)
+    expect(events).toContainEqual({ event: 'error', error: 'Client cancelled request' })
+  })
+
+  it('stops writing frames once the client cancels the response stream', async () => {
+    let finishExecution!: (result: ExecutionResult) => void
+    let completeBlock!: (blockId: string, output: unknown) => Promise<void>
+    const stream = await createStreamingResponse({
+      requestId: 'request-client-cancel',
+      streamConfig: { selectedOutputs: ['block_answer'], includeFileBase64: false },
+      executeFn: async ({ onBlockComplete }) => {
+        completeBlock = onBlockComplete
+        return await new Promise<ExecutionResult>((resolve) => {
+          finishExecution = resolve
+        })
+      },
+    })
+    const reader = stream.getReader()
+    await reader.read()
+    await reader.cancel()
+
+    await expect(completeBlock('block', { answer: 'late answer' })).resolves.toBeUndefined()
+    finishExecution({ success: false, status: 'cancelled', output: {}, logs: [] })
+
+    await vi.waitFor(() =>
+      expect(workflowStreamingLogger.info).toHaveBeenCalledWith(
+        '[request-client-cancel] Streaming execution aborted by client disconnect'
+      )
+    )
+    expect(workflowStreamingLogger.error).not.toHaveBeenCalledWith(
+      '[request-client-cancel] Stream error',
+      expect.anything()
+    )
+  })
+
+  it('thinking never enters streamedChunks / log content rewrite', async () => {
+    const headers = new Headers({
+      'x-sim-stream-protocol': 'agent-events-v1',
+    })
+    let rewrittenContent: string | undefined
+
+    const stream = await createStreamingResponse({
+      requestId: 'request-1',
+      requestHeaders: headers,
+      streamConfig: {
+        includeThinking: true,
+        includeToolCalls: false,
+        selectedOutputs: ['agent-1_content'],
+      },
+      executeFn: async ({ onStream }) => {
+        let textController!: ReadableStreamDefaultController<Uint8Array>
+        let sink: AgentStreamSink | undefined
+        const textStream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            textController = controller
+          },
+        })
+
+        const onStreamPromise = onStream({
+          blockId: 'agent-1',
+          stream: textStream,
+          streamFormat: 'text',
+          subscribe: (nextSink: AgentStreamSink) => {
+            sink = nextSink
+            return () => {
+              sink = undefined
+            }
+          },
+          execution: {
+            blockId: 'agent-1',
+            success: true,
+            output: { content: 'visible' },
+            logs: [],
+            metadata: {},
+          },
+        } as any)
+
+        await sink?.onEvent({ type: 'thinking_delta', text: 'PRIVATE_THINKING' })
+        textController.enqueue(new TextEncoder().encode('visible'))
+        textController.close()
+        await onStreamPromise
+
+        return {
+          success: true,
+          output: {},
+          logs: [
+            {
+              blockId: 'agent-1',
+              output: { content: '' },
+              startedAt: new Date().toISOString(),
+              endedAt: new Date().toISOString(),
+              durationMs: 1,
+              success: true,
+            },
+          ],
+        } as any
+      },
+    })
+
+    const events = await collectSSEEvents(stream)
+    const answerChunks = events.filter((event) => typeof event.chunk === 'string')
+    expect(answerChunks.every((event) => !String(event.chunk).includes('PRIVATE_THINKING'))).toBe(
+      true
+    )
+    expect(events).toContainEqual({
+      blockId: 'agent-1',
+      event: 'thinking',
+      data: 'PRIVATE_THINKING',
+    })
+    // Force consumption of stream so log rewrite runs
+    expect(events.some((event) => event.event === 'final')).toBe(true)
+    void rewrittenContent
+  })
+})

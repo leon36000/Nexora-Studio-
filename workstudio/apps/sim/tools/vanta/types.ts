@@ -1,0 +1,755 @@
+import type { UserFile } from '@/executor/types'
+import type { ToolResponse } from '@/tools/types'
+
+export interface VantaCredentialParams {
+  accessToken: string
+  apiDomain: string
+}
+
+interface VantaPaginationParams {
+  pageSize?: number
+  pageCursor?: string
+}
+
+export interface VantaListFrameworksParams extends VantaCredentialParams, VantaPaginationParams {}
+
+export interface VantaGetFrameworkParams extends VantaCredentialParams {
+  frameworkId: string
+}
+
+export interface VantaListFrameworkControlsParams
+  extends VantaCredentialParams,
+    VantaPaginationParams {
+  frameworkId: string
+}
+
+export interface VantaListControlsParams extends VantaCredentialParams, VantaPaginationParams {
+  frameworkMatchesAny?: string
+}
+
+export interface VantaGetControlParams extends VantaCredentialParams {
+  controlId: string
+}
+
+export interface VantaListControlTestsParams extends VantaCredentialParams, VantaPaginationParams {
+  controlId: string
+}
+
+export interface VantaListControlDocumentsParams
+  extends VantaCredentialParams,
+    VantaPaginationParams {
+  controlId: string
+}
+
+export interface VantaListTestsParams extends VantaCredentialParams, VantaPaginationParams {
+  statusFilter?: string
+  categoryFilter?: string
+  frameworkFilter?: string
+  integrationFilter?: string
+  controlFilter?: string
+  ownerFilter?: string
+  isInRollout?: boolean
+}
+
+export interface VantaGetTestParams extends VantaCredentialParams {
+  testId: string
+}
+
+export interface VantaListTestEntitiesParams extends VantaCredentialParams, VantaPaginationParams {
+  testId: string
+  entityStatus?: string
+}
+
+export interface VantaListDocumentsParams extends VantaCredentialParams, VantaPaginationParams {
+  frameworkMatchesAny?: string
+  statusMatchesAny?: string
+}
+
+export interface VantaGetDocumentParams extends VantaCredentialParams {
+  documentId: string
+}
+
+export interface VantaListDocumentUploadsParams
+  extends VantaCredentialParams,
+    VantaPaginationParams {
+  documentId: string
+}
+
+export interface VantaUploadDocumentFileParams extends VantaCredentialParams {
+  documentId: string
+  file?: unknown
+  fileContent?: string
+  fileName?: string
+  mimeType?: string
+  description?: string
+  effectiveAtDate?: string
+}
+
+export interface VantaDownloadDocumentFileParams extends VantaCredentialParams {
+  documentId: string
+  uploadedFileId: string
+}
+
+export interface VantaSubmitDocumentParams extends VantaCredentialParams {
+  documentId: string
+}
+
+export interface VantaListPeopleParams extends VantaCredentialParams, VantaPaginationParams {
+  emailAndNameFilter?: string
+  employmentStatus?: string
+  groupIdsMatchesAny?: string
+  tasksSummaryStatusMatchesAny?: string
+  taskTypeMatchesAny?: string
+  taskStatusMatchesAny?: string
+}
+
+export interface VantaGetPersonParams extends VantaCredentialParams {
+  personId: string
+}
+
+export interface VantaListPoliciesParams extends VantaCredentialParams, VantaPaginationParams {}
+
+export interface VantaGetPolicyParams extends VantaCredentialParams {
+  policyId: string
+}
+
+export interface VantaListMonitoredComputersParams
+  extends VantaCredentialParams,
+    VantaPaginationParams {
+  complianceStatusFilterMatchesAny?: string
+}
+
+export interface VantaListRiskScenariosParams extends VantaCredentialParams, VantaPaginationParams {
+  searchString?: string
+  includeIgnored?: boolean
+  type?: string
+  ownerMatchesAny?: string
+  categoryMatchesAny?: string
+  ciaCategoryMatchesAny?: string
+  treatmentTypeMatchesAny?: string
+  inherentScoreGroupMatchesAny?: string
+  residualScoreGroupMatchesAny?: string
+  reviewStatusMatchesAny?: string
+  orderBy?: string
+}
+
+export interface VantaGetRiskScenarioParams extends VantaCredentialParams {
+  riskScenarioId: string
+}
+
+export interface VantaListVulnerabilityRemediationsParams
+  extends VantaCredentialParams,
+    VantaPaginationParams {
+  integrationId?: string
+  severity?: string
+  isRemediatedOnTime?: boolean
+  remediatedAfterDate?: string
+  remediatedBeforeDate?: string
+}
+
+export interface VantaListVulnerableAssetsParams
+  extends VantaCredentialParams,
+    VantaPaginationParams {
+  q?: string
+  integrationId?: string
+  assetType?: string
+  assetExternalAccountId?: string
+}
+
+export interface VantaGetVulnerableAssetParams extends VantaCredentialParams {
+  vulnerableAssetId: string
+}
+
+export interface VantaListVendorsParams extends VantaCredentialParams, VantaPaginationParams {
+  name?: string
+  statusMatchesAny?: string
+}
+
+export interface VantaGetVendorParams extends VantaCredentialParams {
+  vendorId: string
+}
+
+export interface VantaListVulnerabilitiesParams
+  extends VantaCredentialParams,
+    VantaPaginationParams {
+  q?: string
+  severity?: string
+  isFixAvailable?: boolean
+  isDeactivated?: boolean
+  includeVulnerabilitiesWithoutSlas?: boolean
+  packageIdentifier?: string
+  externalVulnerabilityId?: string
+  integrationId?: string
+  vulnerableAssetId?: string
+  slaDeadlineAfterDate?: string
+  slaDeadlineBeforeDate?: string
+}
+
+export interface VantaPageInfo {
+  startCursor: string | null
+  endCursor: string | null
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+export interface VantaOwner {
+  id: string | null
+  displayName: string | null
+  emailAddress: string | null
+}
+
+export interface VantaCustomField {
+  label: string | null
+  value: string | string[] | null
+}
+
+export interface VantaFramework {
+  id: string | null
+  displayName: string | null
+  shorthandName: string | null
+  description: string | null
+  numControlsCompleted: number | null
+  numControlsTotal: number | null
+  numDocumentsPassing: number | null
+  numDocumentsTotal: number | null
+  numTestsPassing: number | null
+  numTestsTotal: number | null
+}
+
+export interface VantaFrameworkRequirementControl {
+  id: string | null
+  externalId: string | null
+  name: string | null
+  description: string | null
+}
+
+export interface VantaFrameworkRequirement {
+  id: string | null
+  name: string | null
+  shorthand: string | null
+  description: string | null
+  controls: VantaFrameworkRequirementControl[]
+}
+
+export interface VantaFrameworkRequirementCategory {
+  id: string | null
+  name: string | null
+  shorthand: string | null
+  requirements: VantaFrameworkRequirement[]
+}
+
+export interface VantaFrameworkDetail extends VantaFramework {
+  requirementCategories: VantaFrameworkRequirementCategory[]
+}
+
+export interface VantaControl {
+  id: string | null
+  externalId: string | null
+  name: string | null
+  description: string | null
+  source: string | null
+  domains: string[]
+  owner: VantaOwner | null
+  role: string | null
+  customFields: VantaCustomField[]
+  creationDate: string | null
+  modificationDate: string | null
+}
+
+export interface VantaControlDetail extends VantaControl {
+  note: string | null
+  status: string | null
+  numDocumentsPassing: number | null
+  numDocumentsTotal: number | null
+  numTestsPassing: number | null
+  numTestsTotal: number | null
+}
+
+interface VantaTestVersion {
+  major: number | null
+  minor: number | null
+}
+
+interface VantaTestDeactivatedStatusInfo {
+  isDeactivated: boolean | null
+  deactivatedReason: string | null
+  lastUpdatedDate: string | null
+}
+
+interface VantaTestRemediationStatusInfo {
+  status: string | null
+  soonestRemediateByDate: string | null
+  itemCount: number | null
+}
+
+export interface VantaTest {
+  id: string | null
+  name: string | null
+  description: string | null
+  failureDescription: string | null
+  remediationDescription: string | null
+  category: string | null
+  status: string | null
+  integrations: string[]
+  lastTestRunDate: string | null
+  latestFlipDate: string | null
+  version: VantaTestVersion | null
+  deactivatedStatusInfo: VantaTestDeactivatedStatusInfo | null
+  remediationStatusInfo: VantaTestRemediationStatusInfo | null
+  owner: VantaOwner | null
+}
+
+export interface VantaTestEntity {
+  id: string | null
+  entityStatus: string | null
+  displayName: string | null
+  responseType: string | null
+  deactivatedReason: string | null
+  createdDate: string | null
+  lastUpdatedDate: string | null
+}
+
+export interface VantaDocument {
+  id: string | null
+  title: string | null
+  description: string | null
+  category: string | null
+  ownerId: string | null
+  isSensitive: boolean | null
+  uploadStatus: string | null
+  uploadStatusDate: string | null
+  url: string | null
+}
+
+interface VantaDocumentDeactivatedStatus {
+  isDeactivated: boolean | null
+  reason: string | null
+  creationDate: string | null
+  expiration: string | null
+}
+
+export interface VantaDocumentDetail extends VantaDocument {
+  note: string | null
+  nextRenewalDate: string | null
+  renewalCadence: string | null
+  reminderWindow: string | null
+  subscribers: string[]
+  deactivatedStatus: VantaDocumentDeactivatedStatus | null
+}
+
+interface VantaUploadedByActor {
+  id: string | null
+  type: string | null
+}
+
+export interface VantaUploadedFile {
+  id: string | null
+  fileName: string | null
+  title: string | null
+  description: string | null
+  mimeType: string | null
+  uploadedBy: VantaUploadedByActor | null
+  creationDate: string | null
+  updatedDate: string | null
+  deletionDate: string | null
+  effectiveDate: string | null
+  url: string | null
+}
+
+interface VantaPersonName {
+  first: string | null
+  last: string | null
+  display: string | null
+}
+
+interface VantaPersonEmployment {
+  status: string | null
+  startDate: string | null
+  endDate: string | null
+  jobTitle: string | null
+}
+
+interface VantaPersonLeaveInfo {
+  status: string | null
+  startDate: string | null
+  endDate: string | null
+}
+
+interface VantaPersonTasksSummary {
+  status: string | null
+  dueDate: string | null
+  completionDate: string | null
+}
+
+export interface VantaPerson {
+  id: string | null
+  userId: string | null
+  emailAddress: string | null
+  name: VantaPersonName | null
+  employment: VantaPersonEmployment | null
+  leaveInfo: VantaPersonLeaveInfo | null
+  groupIds: string[]
+  tasksSummary: VantaPersonTasksSummary | null
+}
+
+export interface VantaPolicyDocument {
+  language: string | null
+  slugId: string | null
+  url: string | null
+}
+
+interface VantaPolicyLatestApprovedVersion {
+  versionId: string | null
+  documents: VantaPolicyDocument[]
+}
+
+export interface VantaPolicy {
+  id: string | null
+  name: string | null
+  description: string | null
+  status: string | null
+  approvedAtDate: string | null
+  latestVersionStatus: string | null
+  latestApprovedVersion: VantaPolicyLatestApprovedVersion | null
+}
+
+interface VantaVendorAuthDetails {
+  method: string | null
+  passwordMFA: boolean | null
+  passwordMinimumLength: number | null
+  passwordRequiresNumber: boolean | null
+  passwordRequiresSymbol: boolean | null
+}
+
+interface VantaVendorContractAmount {
+  amount: number | null
+  currency: string | null
+}
+
+interface VantaVendorDecision {
+  status: string | null
+  lastUpdatedAt: string | null
+}
+
+interface VantaVendorProcurementRequest {
+  url: string | null
+  service: string | null
+}
+
+export interface VantaVendor {
+  id: string | null
+  name: string | null
+  status: string | null
+  websiteUrl: string | null
+  category: string | null
+  servicesProvided: string | null
+  additionalNotes: string | null
+  accountManagerName: string | null
+  accountManagerEmail: string | null
+  securityOwnerUserId: string | null
+  businessOwnerUserId: string | null
+  inherentRiskLevel: string | null
+  residualRiskLevel: string | null
+  isRiskAutoScored: boolean | null
+  isVisibleToAuditors: boolean | null
+  riskAttributeIds: string[]
+  vendorHeadquarters: string | null
+  contractStartDate: string | null
+  contractRenewalDate: string | null
+  contractTerminationDate: string | null
+  contractAmount: VantaVendorContractAmount | null
+  nextSecurityReviewDueDate: string | null
+  lastSecurityReviewCompletionDate: string | null
+  authDetails: VantaVendorAuthDetails | null
+  customFields: VantaCustomField[]
+  latestDecision: VantaVendorDecision | null
+  linkedTaskTrackerTaskProcurementRequest: VantaVendorProcurementRequest | null
+}
+
+interface VantaVulnerabilityDeactivateMetadata {
+  isVulnDeactivatedIndefinitely: boolean | null
+  deactivatedUntilDate: string | null
+  deactivationReason: string | null
+  deactivatedOnDate: string | null
+  deactivatedBy: string | null
+}
+
+export interface VantaVulnerability {
+  id: string | null
+  name: string | null
+  description: string | null
+  severity: string | null
+  vulnerabilityType: string | null
+  integrationId: string | null
+  targetId: string | null
+  packageIdentifier: string | null
+  cvssSeverityScore: number | null
+  scannerScore: number | null
+  isFixable: boolean | null
+  fixedVersion: string | null
+  remediateByDate: string | null
+  firstDetectedDate: string | null
+  sourceDetectedDate: string | null
+  lastDetectedDate: string | null
+  scanSource: string | null
+  externalURL: string | null
+  relatedVulns: string[]
+  relatedUrls: string[]
+  deactivateMetadata: VantaVulnerabilityDeactivateMetadata | null
+}
+
+interface VantaOperatingSystem {
+  type: string | null
+  version: string | null
+}
+
+export interface VantaMonitoredComputer {
+  id: string | null
+  integrationId: string | null
+  lastCheckDate: string | null
+  screenlock: string | null
+  diskEncryption: string | null
+  passwordManager: string | null
+  antivirusInstallation: string | null
+  operatingSystem: VantaOperatingSystem | null
+  owner: VantaOwner | null
+  serialNumber: string | null
+  udid: string | null
+}
+
+export interface VantaRiskScenario {
+  riskId: string | null
+  description: string | null
+  likelihood: number | null
+  impact: number | null
+  residualLikelihood: number | null
+  residualImpact: number | null
+  categories: string[]
+  ciaCategories: string[]
+  treatment: string | null
+  owner: string | null
+  note: string | null
+  riskRegister: string | null
+  customFields: VantaCustomField[]
+  isArchived: boolean | null
+  reviewStatus: string | null
+  requiredApprovers: string[]
+  type: string | null
+  identificationDate: string | null
+}
+
+export interface VantaVulnerabilityRemediation {
+  id: string | null
+  vulnerabilityId: string | null
+  vulnerableAssetId: string | null
+  severity: string | null
+  detectedDate: string | null
+  slaDeadlineDate: string | null
+  remediationDate: string | null
+}
+
+interface VantaAssetTag {
+  key: string | null
+  value: string | null
+}
+
+export interface VantaVulnerableAssetScanner {
+  resourceId: string | null
+  integrationId: string | null
+  targetId: string | null
+  imageDigest: string | null
+  imagePushedAtDate: string | null
+  imageTags: string[]
+  assetTags: VantaAssetTag[]
+  parentAccountOrOrganization: string | null
+  biosUuid: string | null
+  ipv4s: string[]
+  ipv6s: string[]
+  macAddresses: string[]
+  hostnames: string[]
+  fqdns: string[]
+  operatingSystems: string[]
+}
+
+export interface VantaVulnerableAsset {
+  id: string | null
+  name: string | null
+  assetType: string | null
+  hasBeenScanned: boolean | null
+  imageScanTag: string | null
+  scanners: VantaVulnerableAssetScanner[]
+}
+
+export interface VantaListFrameworksResponse extends ToolResponse {
+  output: {
+    frameworks: VantaFramework[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaGetFrameworkResponse extends ToolResponse {
+  output: {
+    framework: VantaFrameworkDetail
+  }
+}
+
+export interface VantaListControlsResponse extends ToolResponse {
+  output: {
+    controls: VantaControl[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaGetControlResponse extends ToolResponse {
+  output: {
+    control: VantaControlDetail
+  }
+}
+
+export interface VantaListTestsResponse extends ToolResponse {
+  output: {
+    tests: VantaTest[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaGetTestResponse extends ToolResponse {
+  output: {
+    test: VantaTest
+  }
+}
+
+export interface VantaListTestEntitiesResponse extends ToolResponse {
+  output: {
+    entities: VantaTestEntity[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaListDocumentsResponse extends ToolResponse {
+  output: {
+    documents: VantaDocument[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaGetDocumentResponse extends ToolResponse {
+  output: {
+    document: VantaDocumentDetail
+  }
+}
+
+export interface VantaListDocumentUploadsResponse extends ToolResponse {
+  output: {
+    uploads: VantaUploadedFile[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaUploadDocumentFileResponse extends ToolResponse {
+  output: {
+    upload: VantaUploadedFile
+  }
+}
+
+export interface VantaDownloadDocumentFileResponse extends ToolResponse {
+  output: {
+    file: UserFile
+    name: string
+    mimeType: string
+    size: number
+  }
+}
+
+export interface VantaSubmitDocumentResponse extends ToolResponse {
+  output: {
+    documentId: string
+    submitted: boolean
+  }
+}
+
+export interface VantaGetPersonResponse extends ToolResponse {
+  output: {
+    person: VantaPerson
+  }
+}
+
+export interface VantaGetPolicyResponse extends ToolResponse {
+  output: {
+    policy: VantaPolicy
+  }
+}
+
+export interface VantaListMonitoredComputersResponse extends ToolResponse {
+  output: {
+    computers: VantaMonitoredComputer[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaListRiskScenariosResponse extends ToolResponse {
+  output: {
+    riskScenarios: VantaRiskScenario[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaGetRiskScenarioResponse extends ToolResponse {
+  output: {
+    riskScenario: VantaRiskScenario
+  }
+}
+
+export interface VantaListVulnerabilityRemediationsResponse extends ToolResponse {
+  output: {
+    remediations: VantaVulnerabilityRemediation[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaListVulnerableAssetsResponse extends ToolResponse {
+  output: {
+    assets: VantaVulnerableAsset[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaGetVulnerableAssetResponse extends ToolResponse {
+  output: {
+    asset: VantaVulnerableAsset
+  }
+}
+
+export interface VantaListPeopleResponse extends ToolResponse {
+  output: {
+    people: VantaPerson[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaListPoliciesResponse extends ToolResponse {
+  output: {
+    policies: VantaPolicy[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaListVendorsResponse extends ToolResponse {
+  output: {
+    vendors: VantaVendor[]
+    pageInfo: VantaPageInfo | null
+  }
+}
+
+export interface VantaGetVendorResponse extends ToolResponse {
+  output: {
+    vendor: VantaVendor
+  }
+}
+
+export interface VantaListVulnerabilitiesResponse extends ToolResponse {
+  output: {
+    vulnerabilities: VantaVulnerability[]
+    pageInfo: VantaPageInfo | null
+  }
+}

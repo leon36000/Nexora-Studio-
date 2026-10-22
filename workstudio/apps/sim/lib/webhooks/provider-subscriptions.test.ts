@@ -1,0 +1,210 @@
+import { environmentUtilsMockFns, resetEnvironmentUtilsMock } from '@sim/testing'
+import {
+  billingAttributionMock,
+  billingAttributionMockFns,
+} from '@sim/testing/mocks/billing-attribution.mock'
+import type { NextRequest } from 'next/server'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { mockGetEffectiveDecryptedEnv, mockGetExecutionEnvironment } = environmentUtilsMockFns
+
+afterAll(resetEnvironmentUtilsMock)
+
+const { mockGetProviderHandler } = vi.hoisted(() => ({
+  mockGetProviderHandler: vi.fn(),
+}))
+
+vi.mock('@/lib/webhooks/providers', () => ({
+  getProviderHandler: mockGetProviderHandler,
+}))
+
+vi.mock('@/lib/billing/core/attribution', () => billingAttributionMock)
+
+import {
+  cleanupExternalWebhook,
+  createExternalWebhookSubscription,
+} from '@/lib/webhooks/provider-subscriptions'
+
+const mockGetWorkspaceBilledAccountUserId =
+  billingAttributionMockFns.mockGetWorkspaceBilledAccountUserId
+
+describe('createExternalWebhookSubscription', () => {
+  beforeEach(() => {
+    mockGetEffectiveDecryptedEnv.mockResolvedValue({ ASHBY_API_KEY: 'real-secret-key' })
+  })
+
+  it.each([
+    ['{{ASHBY_API_KEY}}', '{{ASHBY_API_KEY}}'],
+    ['real-secret-key', '[REDACTED_SECRET]'],
+  ])(
+    'projects configured credential %s out of provider failures while preserving status',
+    async (apiKey, replacement) => {
+      const failure = Object.assign(new Error('Provider refused real-secret-key'), { status: 429 })
+      mockGetProviderHandler.mockReturnValue({
+        createSubscription: async () => {
+          throw failure
+        },
+      })
+      await expect(
+        createExternalWebhookSubscription(
+          {} as NextRequest,
+          { provider: 'ashby', providerConfig: { apiKey } },
+          { workspaceId: 'ws-1' },
+          'user-1',
+          'req-1'
+        )
+      ).rejects.toMatchObject({ message: `Provider refused ${replacement}`, status: 429 })
+    }
+  )
+
+  it('resolves {{ENV_VAR}} references in providerConfig before calling the provider', async () => {
+    const createSubscription = vi.fn().mockResolvedValue({
+      providerConfigUpdates: { externalId: 'ext-1' },
+    })
+    mockGetProviderHandler.mockReturnValue({ createSubscription })
+
+    const webhookData = {
+      provider: 'ashby',
+      providerConfig: { apiKey: '{{ASHBY_API_KEY}}', triggerId: 'ashby_application_submit' },
+    }
+    const workflow = { id: 'wf-1', workspaceId: 'ws-1' }
+
+    await createExternalWebhookSubscription(
+      {} as NextRequest,
+      webhookData,
+      workflow,
+      'user-1',
+      'req-1'
+    )
+
+    expect(mockGetEffectiveDecryptedEnv).toHaveBeenCalledWith('user-1', 'ws-1')
+    const passedWebhook = createSubscription.mock.calls[0][0].webhook
+    expect(passedWebhook.providerConfig.apiKey).toBe('real-secret-key')
+  })
+
+  it('persists the unresolved providerConfig, not the resolved one, back to the caller', async () => {
+    const createSubscription = vi.fn().mockResolvedValue({
+      providerConfigUpdates: { externalId: 'ext-1' },
+    })
+    mockGetProviderHandler.mockReturnValue({ createSubscription })
+
+    const webhookData = {
+      provider: 'ashby',
+      providerConfig: { apiKey: '{{ASHBY_API_KEY}}', triggerId: 'ashby_application_submit' },
+    }
+    const workflow = { id: 'wf-1', workspaceId: 'ws-1' }
+
+    const result = await createExternalWebhookSubscription(
+      {} as NextRequest,
+      webhookData,
+      workflow,
+      'user-1',
+      'req-1'
+    )
+
+    expect(result.updatedProviderConfig.apiKey).toBe('{{ASHBY_API_KEY}}')
+    expect(result.updatedProviderConfig.externalId).toBe('ext-1')
+  })
+})
+
+describe('cleanupExternalWebhook', () => {
+  beforeEach(() => {
+    mockGetEffectiveDecryptedEnv.mockResolvedValue({ CALENDLY_API_KEY: 'real-secret-key' })
+    mockGetWorkspaceBilledAccountUserId.mockResolvedValue('billing-1')
+    mockGetExecutionEnvironment.mockResolvedValue({
+      personalDecrypted: {},
+      workspaceDecrypted: { CALENDLY_API_KEY: 'real-secret-key' },
+    })
+  })
+
+  /**
+   * Cleanup resolves through the same two-identity reader as the delivery that
+   * created the subscription — owner for personal variables, the workspace
+   * billing account for workspace ones. Reading both slices as the owner let a
+   * non-admin owner without a credential grant leave `{{VAR}}` unresolved, and
+   * the provider was handed the literal reference as its credential.
+   */
+  it.each([
+    ['{{CALENDLY_API_KEY}}', '{{CALENDLY_API_KEY}}'],
+    ['real-secret-key', '[REDACTED_SECRET]'],
+  ])(
+    'keeps configured cleanup credential %s out of retryable deployment failures',
+    async (apiKey, replacement) => {
+      mockGetProviderHandler.mockReturnValue({
+        deleteSubscription: async () => {
+          throw new Error('Provider refused real-secret-key')
+        },
+      })
+      await expect(
+        cleanupExternalWebhook(
+          { provider: 'calendly', providerConfig: { apiKey } },
+          { userId: 'user-1', workspaceId: 'workspace-1' },
+          'req-1',
+          { throwOnError: true }
+        )
+      ).rejects.toThrow(`Provider refused ${replacement}`)
+    }
+  )
+
+  it('cleans the tracked prior subscription when the replacement has no deletion handler', async () => {
+    const external = new Set(['previous-registration'])
+    mockGetProviderHandler.mockImplementation((provider: string) =>
+      provider === 'plane'
+        ? {
+            deleteSubscription: async () => {
+              external.delete('previous-registration')
+            },
+          }
+        : {}
+    )
+    await cleanupExternalWebhook(
+      {
+        provider: 'webhook',
+        providerConfig: {
+          previousSubscription: {
+            provider: 'plane',
+            providerConfig: { externalId: 'previous-registration' },
+          },
+        },
+      },
+      { userId: 'user-1', workspaceId: 'workspace-1' },
+      'request-1',
+      { throwOnError: true }
+    )
+    expect(external.size).toBe(0)
+  })
+
+  it('resolves {{ENV_VAR}} references before deleting the provider subscription', async () => {
+    const deleteSubscription = vi.fn().mockResolvedValue(undefined)
+    mockGetProviderHandler.mockReturnValue({ deleteSubscription })
+
+    const webhook = {
+      id: 'webhook-1',
+      provider: 'calendly',
+      providerConfig: {
+        apiKey: '{{CALENDLY_API_KEY}}',
+        externalId: 'external-1',
+      },
+    }
+    const workflow = {
+      id: 'workflow-1',
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+    }
+
+    await cleanupExternalWebhook(webhook, workflow, 'request-1')
+
+    expect(mockGetExecutionEnvironment).toHaveBeenCalledWith('user-1', 'billing-1', 'workspace-1')
+    expect(deleteSubscription).toHaveBeenCalledWith(
+      expect.objectContaining({
+        webhook: expect.objectContaining({
+          providerConfig: {
+            apiKey: 'real-secret-key',
+            externalId: 'external-1',
+          },
+        }),
+      })
+    )
+    expect(webhook.providerConfig.apiKey).toBe('{{CALENDLY_API_KEY}}')
+  })
+})

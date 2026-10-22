@@ -1,0 +1,156 @@
+---
+title: MCP deployment
+description: Expose deployed workflows as tools for external MCP clients.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Model Context Protocol (MCP) lets an assistant discover and call tools. A Sim workflow MCP server groups deployed workflows into tools an external client can invoke.
+
+You need workspace **Admin** access to create or change workflow MCP servers and add or remove workflow tools. Organization permission groups can also restrict MCP deployment. Read access lets members view servers.
+
+## Create an MCP server [#creating-and-managing-mcp-servers]
+
+1. Open **Settings → MCP Servers** and click **Add**.
+2. Enter a name and optional description.
+3. Choose **API Key** or **Public** access.
+4. Optionally select already-deployed workflows to add immediately.
+5. Click **Add Server**, then open **Details** and copy its URL.
+
+Private clients send `X-API-Key` when connecting. For public servers, omit that header.
+
+<Callout type="warn">
+A public server exposes its configured workflow tools without authentication. Review the actions and outputs of every tool on the server before enabling public access.
+</Callout>
+
+## Add a workflow as a tool [#adding-a-workflow-as-a-tool]
+
+Deploy the workflow before adding it to a server:
+
+1. Open the workflow's **Deploy → MCP** tab.
+2. Enter the tool name and description.
+3. Review the parameters derived from the deployed Start inputs.
+4. Select the MCP servers that should expose the tool.
+5. Click **Save Tool**.
+6. Connect a client and confirm that it lists and can call the tool. Check the run in [Logs](/logs-debugging).
+
+Tools execute the workflow's active deployment, like ordinary API calls. Deploy an update after changing workflow logic or inputs.
+
+## Tool configuration
+
+### Tool name
+
+Use lowercase letters, numbers, and underscores, such as `search_documents`. Choose a name that distinguishes the action from other tools on the server.
+
+### Description
+
+Describe what the workflow does and when it should be called. A blank description falls back to the workflow's description when available.
+
+### Parameters
+
+The workflow's deployed input fields become tool parameters. Their descriptions default to the descriptions on Start's **Inputs**. Set a per-tool override only when that tool needs different wording; it does not edit Start.
+
+Redeploy to make changes to Start fields and default descriptions available to the tool. Preserve meaningful descriptions so the client knows what values to supply.
+
+## Connect an MCP client [#connecting-mcp-clients]
+
+Open your server's **Details**, copy its URL, and choose a client under **MCP Client**. The UI offers client presets, but check the current client documentation when its configuration differs from a generated example.
+
+The examples below connect directly over HTTP. Replace `YOUR_SERVER_URL`; private servers also require a valid Sim API key. For public servers, remove the authentication header settings.
+
+### Cursor
+
+In `.cursor/mcp.json`, use Cursor's environment interpolation syntax:
+
+```json
+{
+  "mcpServers": {
+    "my-sim-workflows": {
+      "url": "YOUR_SERVER_URL",
+      "headers": { "X-API-Key": "${env:SIM_API_KEY}" }
+    }
+  }
+}
+```
+
+Make `SIM_API_KEY` available to the Cursor process. Cursor also has a one-click install link in Sim's server details. See [Cursor's MCP configuration](https://cursor.com/docs/mcp#config-interpolation).
+
+### Codex
+
+In `~/.codex/config.toml`:
+
+```toml
+[mcp_servers."my-sim-workflows"]
+url = "YOUR_SERVER_URL"
+env_http_headers = { "X-API-Key" = "SIM_API_KEY" }
+```
+
+Set `SIM_API_KEY` in the environment before starting Codex. `env_http_headers` maps a header name to an environment-variable name; it does not contain the key itself. See [official OpenAI MCP documentation](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+### Claude Code
+
+```bash
+claude mcp add --transport http my-sim-workflows 'YOUR_SERVER_URL' \
+  --header "X-API-Key: $SIM_API_KEY"
+```
+
+The shell expands the variable in this command. Follow [Claude Code's MCP instructions](https://code.claude.com/docs/en/mcp#option-1-add-a-remote-http-server) for configuration scope and authentication.
+
+### Claude Desktop
+
+Add a remote custom connector with the server URL. For a private server, add `X-API-Key` and its value under **Request headers**. For a public server, use the no-sign-in configuration without a key.
+
+Remote connectors reach the server from Anthropic's infrastructure, even when used in Claude Desktop. The server must be reachable from that service; a URL reachable only on your computer is insufficient. Team/Enterprise connector administration also has its own Claude-side permissions. See [Claude's current custom-connector setup](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
+
+### VS Code
+
+Use direct HTTP in `.vscode/mcp.json`. An input prompt keeps the key out of the checked-in configuration:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "sim-api-key",
+      "description": "Sim API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "my-sim-workflows": {
+      "type": "http",
+      "url": "YOUR_SERVER_URL",
+      "headers": { "X-API-Key": "${input:sim-api-key}" }
+    }
+  }
+}
+```
+
+For a public server, remove `headers` and the unused input. See [VS Code's MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration).
+
+### Sim
+
+Choose **Sim** in the server's client picker to use the supported Sim connection flow. [Using MCP tools](/agents/mcp) explains connected server tools in Agent blocks.
+
+## Server management
+
+From **Settings → MCP Servers**, open the server to view its URL and tools, add deployed workflows, or remove tools. Removing a tool removes that exposure; it does not delete the workflow.
+
+Deleting a server removes the server and its configured tools. Disconnect clients that used its URL, or point them at a replacement server.
+
+### Permission requirements
+
+| Action | Required workspace role |
+| --- | --- |
+| View workflow MCP servers | Read, Write, or Admin |
+| Create, update, or delete workflow MCP servers | Admin |
+| Add or remove workflow tools | Admin |
+
+These management operations do not accept workspace API keys. Invoking a private server is a separate authenticated operation with its own key/OAuth access and scope requirements.
+
+## Related docs
+
+- [Deployment](/workflows/deployment)
+- [Start inputs](/workflows/triggers/start)
+- [Using MCP tools](/agents/mcp)
+- [Workflow MCP server API](/api-reference/mcp-servers/listWorkflowMcpServers)

@@ -1,0 +1,94 @@
+import type { InternalToolConfig } from '@/tools/types'
+import {
+  VANTA_MONITORED_COMPUTER_OUTPUT_PROPERTIES,
+  VANTA_PAGE_INFO_OUTPUT_PROPERTIES,
+} from '@/tools/vanta/outputs'
+import type {
+  VantaListMonitoredComputersParams,
+  VantaListMonitoredComputersResponse,
+} from '@/tools/vanta/types'
+import { createVantaTransformResponse } from '@/tools/vanta/utils'
+
+export const vantaListMonitoredComputersTool: InternalToolConfig<
+  VantaListMonitoredComputersParams,
+  VantaListMonitoredComputersResponse
+> = {
+  id: 'vanta_list_monitored_computers',
+  name: 'Vanta List Monitored Computers',
+  description:
+    'List the monitored computers in a Vanta account with screenlock, disk encryption, password manager, and antivirus check outcomes',
+  version: '1.0.0',
+
+  oauth: {
+    required: true,
+    provider: 'vanta',
+    credentialKind: 'service-account',
+    authoritativeParams: ['apiDomain'],
+    retryOnUnauthorized: true,
+  },
+
+  params: {
+    accessToken: {
+      type: 'string',
+      required: true,
+      visibility: 'hidden',
+      description: 'Access token supplied by the saved Vanta credential',
+    },
+    apiDomain: {
+      type: 'string',
+      required: true,
+      visibility: 'hidden',
+      description: 'API origin supplied by the saved Vanta credential',
+    },
+    complianceStatusFilterMatchesAny: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Comma-separated compliance issues to filter by: PWM_NOT_INSTALLED, HD_NOT_ENCRYPTED, AV_NOT_INSTALLED, SCREENLOCK_NOT_CONFIGURED, LAST_CHECK_OVER_14_DAYS',
+    },
+    pageSize: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Maximum number of items per page (1-100, default 10)',
+    },
+    pageCursor: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'Pagination cursor: pass the endCursor from the previous response to fetch the next page',
+    },
+  },
+
+  operation: {
+    input: (params) => ({
+      operation: 'vanta_list_monitored_computers',
+      accessToken: params.accessToken,
+      apiDomain: params.apiDomain,
+      complianceStatusFilterMatchesAny: params.complianceStatusFilterMatchesAny,
+      pageSize: params.pageSize,
+      pageCursor: params.pageCursor,
+    }),
+  },
+
+  transformResponse: createVantaTransformResponse<VantaListMonitoredComputersResponse>(
+    'Failed to list Vanta monitored computers'
+  ),
+
+  outputs: {
+    computers: {
+      type: 'array',
+      description: 'Monitored computers matching the filters',
+      items: { type: 'object', properties: VANTA_MONITORED_COMPUTER_OUTPUT_PROPERTIES },
+    },
+    pageInfo: {
+      type: 'json',
+      description:
+        'Cursor pagination info for the returned page; pass endCursor as pageCursor to fetch the next page',
+      nullable: true,
+      properties: VANTA_PAGE_INFO_OUTPUT_PROPERTIES,
+    },
+  },
+}

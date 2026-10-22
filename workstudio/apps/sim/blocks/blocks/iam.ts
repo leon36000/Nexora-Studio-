@@ -1,0 +1,1007 @@
+import { IAMIcon } from '@/components/icons'
+import type { BlockConfig, BlockMeta } from '@/blocks/types'
+import { AuthMode, IntegrationType } from '@/blocks/types'
+
+/**
+ * Raised when `contextEntries` is not a JSON array of context entries.
+ *
+ * A simulation that quietly drops the caller's condition context keys returns a
+ * *wrong* permission answer — `aws:SourceIp` never applies, so a policy that should
+ * have denied reports `allowed`. Rejecting the input is the only safe outcome.
+ */
+const CONTEXT_ENTRIES_SHAPE_ERROR =
+  'Condition Context Keys must be a JSON array of { contextKeyName, contextKeyValues, contextKeyType }'
+
+export const IAMBlock: BlockConfig = {
+  type: 'iam',
+  name: 'AWS IAM',
+  description: 'Manage AWS IAM users, roles, policies, and groups',
+  longDescription: 'Create and manage users, roles, policies, groups, and access keys.',
+  docsLink: 'https://docs.sim.ai/integrations/iam',
+  category: 'tools',
+  integrationType: IntegrationType.Security,
+  bgColor: 'linear-gradient(45deg, #BD0816 0%, #FF5252 100%)',
+  icon: IAMIcon,
+  authMode: AuthMode.ApiKey,
+  canvasPresentation: {
+    defaultTitle: 'AWS IAM',
+    sentences: {
+      byOperation: {
+        list_users: [
+          'List users',
+          { text: ', under path', field: 'pathPrefix' },
+          { text: ', up to', field: 'maxItems' },
+        ],
+        get_user: [{ text: 'Fetch user', field: 'userName', core: true }],
+        create_user: [
+          { text: 'Create user', field: 'userName', core: true },
+          { text: ', under path', field: 'path' },
+        ],
+        delete_user: [{ text: 'Delete user', field: 'userName', core: true }],
+        list_roles: [
+          'List roles',
+          { text: ', under path', field: 'pathPrefix' },
+          { text: ', up to', field: 'maxItems' },
+        ],
+        get_role: [{ text: 'Fetch role', field: 'roleName', core: true }],
+        create_role: [
+          { text: 'Create role', field: 'roleName', core: true },
+          { text: ', with trust policy', field: 'assumeRolePolicyDocument' },
+        ],
+        delete_role: [{ text: 'Delete role', field: 'roleName', core: true }],
+        attach_user_policy: [
+          { text: 'Attach policy', field: 'policyArn', core: true },
+          { text: 'to user', field: 'userName', core: true },
+        ],
+        detach_user_policy: [
+          { text: 'Detach policy', field: 'policyArn', core: true },
+          { text: 'from user', field: 'userName', core: true },
+        ],
+        attach_role_policy: [
+          { text: 'Attach policy', field: 'policyArn', core: true },
+          { text: 'to role', field: 'roleName', core: true },
+        ],
+        detach_role_policy: [
+          { text: 'Detach policy', field: 'policyArn', core: true },
+          { text: 'from role', field: 'roleName', core: true },
+        ],
+        get_policy: [{ text: 'Fetch policy', field: 'policyArn', core: true }],
+        list_access_keys: ['List access keys', { text: ', for user', field: 'userName' }],
+        update_access_key: [
+          { text: 'Set access key', field: 'accessKeyIdToUpdate', core: true },
+          { text: 'to', field: 'accessKeyStatus', core: true },
+          { text: 'for user', field: 'userName' },
+        ],
+        list_policies: [
+          'List managed policies',
+          { text: ', under path', field: 'pathPrefix' },
+          { text: ', up to', field: 'maxItems' },
+        ],
+        create_access_key: [
+          { text: 'Create an access key for user', field: 'userName', core: true },
+        ],
+        delete_access_key: [
+          { text: 'Delete access key', field: 'accessKeyIdToDelete', core: true },
+          { text: 'from user', field: 'userName' },
+        ],
+        list_groups: [
+          'List groups',
+          { text: ', under path', field: 'pathPrefix' },
+          { text: ', up to', field: 'maxItems' },
+        ],
+        add_user_to_group: [
+          { text: 'Add user', field: 'userName', core: true },
+          { text: 'to group', field: 'groupName', core: true },
+        ],
+        remove_user_from_group: [
+          { text: 'Remove user', field: 'userName', core: true },
+          { text: 'from group', field: 'groupName', core: true },
+        ],
+        list_attached_role_policies: [
+          { text: 'List policies attached to role', field: 'roleName', core: true },
+          { text: ', under path', field: 'pathPrefix' },
+        ],
+        list_attached_user_policies: [
+          { text: 'List policies attached to user', field: 'userName', core: true },
+          { text: ', under path', field: 'pathPrefix' },
+        ],
+        simulate_principal_policy: [
+          { text: 'Simulate', field: 'actionNames', core: true },
+          { text: 'for', field: 'policySourceArn', core: true },
+          { text: 'on', field: 'resourceArns' },
+        ],
+      },
+    },
+  },
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      options: [
+        { label: 'List Users', id: 'list_users' },
+        { label: 'Get User', id: 'get_user' },
+        { label: 'Create User', id: 'create_user' },
+        { label: 'Delete User', id: 'delete_user' },
+        { label: 'List Roles', id: 'list_roles' },
+        { label: 'Get Role', id: 'get_role' },
+        { label: 'Create Role', id: 'create_role' },
+        { label: 'Delete Role', id: 'delete_role' },
+        { label: 'Attach User Policy', id: 'attach_user_policy' },
+        { label: 'Detach User Policy', id: 'detach_user_policy' },
+        { label: 'Attach Role Policy', id: 'attach_role_policy' },
+        { label: 'Detach Role Policy', id: 'detach_role_policy' },
+        { label: 'List Policies', id: 'list_policies' },
+        { label: 'Get Policy', id: 'get_policy' },
+        { label: 'Create Access Key', id: 'create_access_key' },
+        { label: 'Delete Access Key', id: 'delete_access_key' },
+        { label: 'List Access Keys', id: 'list_access_keys' },
+        { label: 'Update Access Key', id: 'update_access_key' },
+        { label: 'List Groups', id: 'list_groups' },
+        { label: 'Add User to Group', id: 'add_user_to_group' },
+        { label: 'Remove User from Group', id: 'remove_user_from_group' },
+        { label: 'List Attached Role Policies', id: 'list_attached_role_policies' },
+        { label: 'List Attached User Policies', id: 'list_attached_user_policies' },
+        { label: 'Simulate Principal Policy', id: 'simulate_principal_policy' },
+      ],
+      value: () => 'list_users',
+    },
+    {
+      id: 'region',
+      title: 'AWS Region',
+      type: 'short-input',
+      placeholder: 'us-east-1',
+      required: true,
+    },
+    {
+      id: 'accessKeyId',
+      title: 'AWS Access Key ID',
+      type: 'short-input',
+      placeholder: 'AKIA...',
+      password: true,
+      required: true,
+    },
+    {
+      id: 'secretAccessKey',
+      title: 'AWS Secret Access Key',
+      type: 'short-input',
+      placeholder: 'Your secret access key',
+      password: true,
+      required: true,
+    },
+    {
+      id: 'userName',
+      title: 'User Name',
+      type: 'short-input',
+      placeholder: 'my-iam-user',
+      condition: {
+        field: 'operation',
+        value: [
+          'get_user',
+          'create_user',
+          'delete_user',
+          'attach_user_policy',
+          'detach_user_policy',
+          'create_access_key',
+          'delete_access_key',
+          'list_access_keys',
+          'update_access_key',
+          'add_user_to_group',
+          'remove_user_from_group',
+          'list_attached_user_policies',
+        ],
+      },
+      required: {
+        field: 'operation',
+        value: [
+          'create_user',
+          'delete_user',
+          'attach_user_policy',
+          'detach_user_policy',
+          'add_user_to_group',
+          'remove_user_from_group',
+          'list_attached_user_policies',
+        ],
+      },
+    },
+    {
+      id: 'roleName',
+      title: 'Role Name',
+      type: 'short-input',
+      placeholder: 'my-iam-role',
+      condition: {
+        field: 'operation',
+        value: [
+          'get_role',
+          'create_role',
+          'delete_role',
+          'attach_role_policy',
+          'detach_role_policy',
+          'list_attached_role_policies',
+        ],
+      },
+      required: {
+        field: 'operation',
+        value: [
+          'get_role',
+          'create_role',
+          'delete_role',
+          'attach_role_policy',
+          'detach_role_policy',
+          'list_attached_role_policies',
+        ],
+      },
+    },
+    {
+      id: 'policyArn',
+      title: 'Policy ARN',
+      type: 'short-input',
+      placeholder: 'arn:aws:iam::aws:policy/ReadOnlyAccess',
+      condition: {
+        field: 'operation',
+        value: [
+          'attach_user_policy',
+          'detach_user_policy',
+          'attach_role_policy',
+          'detach_role_policy',
+          'get_policy',
+        ],
+      },
+      required: {
+        field: 'operation',
+        value: [
+          'attach_user_policy',
+          'detach_user_policy',
+          'attach_role_policy',
+          'detach_role_policy',
+          'get_policy',
+        ],
+      },
+    },
+    {
+      id: 'assumeRolePolicyDocument',
+      title: 'Trust Policy (JSON)',
+      type: 'code',
+      placeholder:
+        '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}',
+      condition: { field: 'operation', value: 'create_role' },
+      required: { field: 'operation', value: 'create_role' },
+      wandConfig: {
+        enabled: true,
+        prompt:
+          'Generate an AWS IAM trust policy JSON document. The policy should use Version "2012-10-17" and contain a Statement array with Effect, Principal, and Action fields. Return ONLY the JSON - no explanations, no extra text.',
+        generationType: 'json-object',
+      },
+    },
+    {
+      id: 'groupName',
+      title: 'Group Name',
+      type: 'short-input',
+      placeholder: 'my-iam-group',
+      condition: {
+        field: 'operation',
+        value: ['add_user_to_group', 'remove_user_from_group'],
+      },
+      required: {
+        field: 'operation',
+        value: ['add_user_to_group', 'remove_user_from_group'],
+      },
+    },
+    {
+      id: 'accessKeyIdToDelete',
+      title: 'Access Key ID to Delete',
+      canvasNoun: 'an access key ID',
+      type: 'short-input',
+      placeholder: 'AKIA...',
+      condition: { field: 'operation', value: 'delete_access_key' },
+      required: { field: 'operation', value: 'delete_access_key' },
+    },
+    {
+      id: 'accessKeyIdToUpdate',
+      title: 'Access Key ID to Update',
+      canvasNoun: 'an access key ID',
+      type: 'short-input',
+      placeholder: 'AKIA...',
+      condition: { field: 'operation', value: 'update_access_key' },
+      required: { field: 'operation', value: 'update_access_key' },
+    },
+    {
+      id: 'accessKeyStatus',
+      title: 'Access Key Status',
+      type: 'dropdown',
+      options: [
+        { label: 'Active', id: 'Active' },
+        { label: 'Inactive', id: 'Inactive' },
+      ],
+      value: () => 'Inactive',
+      condition: { field: 'operation', value: 'update_access_key' },
+      required: { field: 'operation', value: 'update_access_key' },
+    },
+    {
+      id: 'path',
+      title: 'Path',
+      type: 'short-input',
+      placeholder: '/division_abc/',
+      condition: { field: 'operation', value: ['create_user', 'create_role'] },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'description',
+      title: 'Description',
+      type: 'short-input',
+      placeholder: 'Role description',
+      condition: { field: 'operation', value: 'create_role' },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'maxSessionDuration',
+      title: 'Max Session Duration (seconds)',
+      type: 'short-input',
+      placeholder: '3600',
+      condition: { field: 'operation', value: 'create_role' },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'scope',
+      title: 'Policy Scope',
+      type: 'dropdown',
+      options: [
+        { label: 'All', id: 'All' },
+        { label: 'AWS Managed', id: 'AWS' },
+        { label: 'Customer Managed', id: 'Local' },
+      ],
+      value: () => 'All',
+      condition: { field: 'operation', value: 'list_policies' },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'onlyAttached',
+      title: 'Only Attached',
+      type: 'dropdown',
+      options: [
+        { label: 'No', id: 'false' },
+        { label: 'Yes', id: 'true' },
+      ],
+      value: () => 'false',
+      condition: { field: 'operation', value: 'list_policies' },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'policySourceArn',
+      title: 'Principal ARN',
+      type: 'short-input',
+      placeholder: 'arn:aws:iam::123456789012:user/alice',
+      condition: { field: 'operation', value: 'simulate_principal_policy' },
+      required: { field: 'operation', value: 'simulate_principal_policy' },
+    },
+    {
+      id: 'actionNames',
+      title: 'Actions (comma-separated)',
+      type: 'short-input',
+      placeholder: 's3:GetObject,ec2:DescribeInstances',
+      condition: { field: 'operation', value: 'simulate_principal_policy' },
+      required: { field: 'operation', value: 'simulate_principal_policy' },
+      wandConfig: {
+        enabled: true,
+        prompt:
+          'Generate a comma-separated list of AWS IAM action names to simulate (e.g., s3:GetObject,ec2:DescribeInstances,iam:ListUsers). Return ONLY the comma-separated list - no explanations, no extra text.',
+        placeholder: 'Describe the actions you want to check',
+      },
+    },
+    {
+      id: 'resourceArns',
+      title: 'Resource ARNs (comma-separated)',
+      type: 'short-input',
+      placeholder: 'arn:aws:s3:::my-bucket/*',
+      condition: { field: 'operation', value: 'simulate_principal_policy' },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'contextEntries',
+      title: 'Condition Context Keys (JSON)',
+      type: 'code',
+      placeholder:
+        '[{"contextKeyName":"aws:SourceIp","contextKeyValues":["203.0.113.10"],"contextKeyType":"ip"}]',
+      condition: { field: 'operation', value: 'simulate_principal_policy' },
+      required: false,
+      mode: 'advanced',
+      wandConfig: {
+        enabled: true,
+        prompt:
+          'Generate a JSON array of AWS IAM simulation context entries. Each element must have contextKeyName (a full condition context key such as aws:SourceIp), contextKeyValues (an array of strings), and contextKeyType (one of string, stringList, numeric, numericList, boolean, booleanList, ip, ipList, binary, binaryList, date, dateList). Return ONLY the JSON array - no explanations, no extra text.',
+        generationType: 'json-array',
+        placeholder: 'Describe the request conditions to simulate, e.g. "from IP 203.0.113.10"',
+      },
+    },
+    {
+      id: 'pathPrefix',
+      title: 'Path Prefix',
+      type: 'short-input',
+      placeholder: '/division_abc/',
+      condition: {
+        field: 'operation',
+        value: [
+          'list_users',
+          'list_roles',
+          'list_policies',
+          'list_groups',
+          'list_attached_role_policies',
+          'list_attached_user_policies',
+        ],
+      },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'maxItems',
+      title: 'Max Items',
+      type: 'short-input',
+      placeholder: '100',
+      condition: {
+        field: 'operation',
+        value: [
+          'list_users',
+          'list_roles',
+          'list_policies',
+          'list_groups',
+          'list_attached_role_policies',
+          'list_attached_user_policies',
+          'list_access_keys',
+          'simulate_principal_policy',
+        ],
+      },
+      required: false,
+      mode: 'advanced',
+    },
+    {
+      id: 'marker',
+      title: 'Pagination Marker',
+      type: 'short-input',
+      placeholder: 'Pagination marker',
+      condition: {
+        field: 'operation',
+        value: [
+          'list_users',
+          'list_roles',
+          'list_policies',
+          'list_groups',
+          'list_attached_role_policies',
+          'list_attached_user_policies',
+          'list_access_keys',
+          'simulate_principal_policy',
+        ],
+      },
+      required: false,
+      mode: 'advanced',
+    },
+  ],
+  tools: {
+    access: [
+      'iam_list_users',
+      'iam_get_user',
+      'iam_create_user',
+      'iam_delete_user',
+      'iam_list_roles',
+      'iam_get_role',
+      'iam_create_role',
+      'iam_delete_role',
+      'iam_attach_user_policy',
+      'iam_detach_user_policy',
+      'iam_attach_role_policy',
+      'iam_detach_role_policy',
+      'iam_list_policies',
+      'iam_get_policy',
+      'iam_create_access_key',
+      'iam_delete_access_key',
+      'iam_list_access_keys',
+      'iam_update_access_key',
+      'iam_list_groups',
+      'iam_add_user_to_group',
+      'iam_remove_user_from_group',
+      'iam_list_attached_role_policies',
+      'iam_list_attached_user_policies',
+      'iam_simulate_principal_policy',
+    ],
+    config: {
+      tool: (params) => {
+        switch (params.operation) {
+          case 'list_users':
+            return 'iam_list_users'
+          case 'get_user':
+            return 'iam_get_user'
+          case 'create_user':
+            return 'iam_create_user'
+          case 'delete_user':
+            return 'iam_delete_user'
+          case 'list_roles':
+            return 'iam_list_roles'
+          case 'get_role':
+            return 'iam_get_role'
+          case 'create_role':
+            return 'iam_create_role'
+          case 'delete_role':
+            return 'iam_delete_role'
+          case 'attach_user_policy':
+            return 'iam_attach_user_policy'
+          case 'detach_user_policy':
+            return 'iam_detach_user_policy'
+          case 'attach_role_policy':
+            return 'iam_attach_role_policy'
+          case 'detach_role_policy':
+            return 'iam_detach_role_policy'
+          case 'list_policies':
+            return 'iam_list_policies'
+          case 'get_policy':
+            return 'iam_get_policy'
+          case 'create_access_key':
+            return 'iam_create_access_key'
+          case 'delete_access_key':
+            return 'iam_delete_access_key'
+          case 'list_access_keys':
+            return 'iam_list_access_keys'
+          case 'update_access_key':
+            return 'iam_update_access_key'
+          case 'list_groups':
+            return 'iam_list_groups'
+          case 'add_user_to_group':
+            return 'iam_add_user_to_group'
+          case 'remove_user_from_group':
+            return 'iam_remove_user_from_group'
+          case 'list_attached_role_policies':
+            return 'iam_list_attached_role_policies'
+          case 'list_attached_user_policies':
+            return 'iam_list_attached_user_policies'
+          case 'simulate_principal_policy':
+            return 'iam_simulate_principal_policy'
+          default:
+            throw new Error(`Invalid IAM operation: ${params.operation}`)
+        }
+      },
+      params: (params) => {
+        const {
+          operation,
+          maxItems,
+          maxSessionDuration,
+          onlyAttached,
+          resourceArns,
+          contextEntries,
+          ...rest
+        } = params
+
+        const connectionConfig = {
+          region: rest.region,
+          accessKeyId: rest.accessKeyId,
+          secretAccessKey: rest.secretAccessKey,
+        }
+
+        const result: Record<string, unknown> = { ...connectionConfig }
+
+        switch (operation) {
+          case 'list_users':
+          case 'list_roles':
+          case 'list_groups':
+            if (rest.pathPrefix) result.pathPrefix = rest.pathPrefix
+            if (maxItems) {
+              const parsed = Number.parseInt(String(maxItems), 10)
+              if (!Number.isNaN(parsed)) result.maxItems = parsed
+            }
+            if (rest.marker) result.marker = rest.marker
+            break
+          case 'get_user':
+            if (rest.userName) result.userName = rest.userName
+            break
+          case 'delete_user':
+            result.userName = rest.userName
+            break
+          case 'create_user':
+            result.userName = rest.userName
+            if (rest.path) result.path = rest.path
+            break
+          case 'get_role':
+          case 'delete_role':
+            result.roleName = rest.roleName
+            break
+          case 'create_role':
+            result.roleName = rest.roleName
+            result.assumeRolePolicyDocument = rest.assumeRolePolicyDocument
+            if (rest.description) result.description = rest.description
+            if (rest.path) result.path = rest.path
+            if (maxSessionDuration) {
+              const parsed = Number.parseInt(String(maxSessionDuration), 10)
+              if (!Number.isNaN(parsed)) result.maxSessionDuration = parsed
+            }
+            break
+          case 'attach_user_policy':
+          case 'detach_user_policy':
+            result.userName = rest.userName
+            result.policyArn = rest.policyArn
+            break
+          case 'attach_role_policy':
+          case 'detach_role_policy':
+            result.roleName = rest.roleName
+            result.policyArn = rest.policyArn
+            break
+          case 'list_policies':
+            if (rest.scope) result.scope = rest.scope
+            if (onlyAttached === 'true' || onlyAttached === true) result.onlyAttached = true
+            if (rest.pathPrefix) result.pathPrefix = rest.pathPrefix
+            if (maxItems) {
+              const parsed = Number.parseInt(String(maxItems), 10)
+              if (!Number.isNaN(parsed)) result.maxItems = parsed
+            }
+            if (rest.marker) result.marker = rest.marker
+            break
+          case 'get_policy':
+            result.policyArn = rest.policyArn
+            break
+          case 'create_access_key':
+            if (rest.userName) result.userName = rest.userName
+            break
+          case 'delete_access_key':
+            result.accessKeyIdToDelete = rest.accessKeyIdToDelete
+            if (rest.userName) result.userName = rest.userName
+            break
+          case 'list_access_keys':
+            if (rest.userName) result.userName = rest.userName
+            if (maxItems) {
+              const parsed = Number.parseInt(String(maxItems), 10)
+              if (!Number.isNaN(parsed)) result.maxItems = parsed
+            }
+            if (rest.marker) result.marker = rest.marker
+            break
+          case 'update_access_key':
+            result.accessKeyIdToUpdate = rest.accessKeyIdToUpdate
+            result.status = rest.accessKeyStatus
+            if (rest.userName) result.userName = rest.userName
+            break
+          case 'add_user_to_group':
+          case 'remove_user_from_group':
+            result.userName = rest.userName
+            result.groupName = rest.groupName
+            break
+          case 'list_attached_role_policies':
+            result.roleName = rest.roleName
+            if (rest.pathPrefix) result.pathPrefix = rest.pathPrefix
+            if (maxItems) {
+              const parsed = Number.parseInt(String(maxItems), 10)
+              if (!Number.isNaN(parsed)) result.maxItems = parsed
+            }
+            if (rest.marker) result.marker = rest.marker
+            break
+          case 'list_attached_user_policies':
+            result.userName = rest.userName
+            if (rest.pathPrefix) result.pathPrefix = rest.pathPrefix
+            if (maxItems) {
+              const parsed = Number.parseInt(String(maxItems), 10)
+              if (!Number.isNaN(parsed)) result.maxItems = parsed
+            }
+            if (rest.marker) result.marker = rest.marker
+            break
+          case 'simulate_principal_policy':
+            result.policySourceArn = rest.policySourceArn
+            result.actionNames = rest.actionNames
+            if (resourceArns) result.resourceArns = resourceArns
+            if (contextEntries) {
+              let parsed: unknown = contextEntries
+              if (typeof contextEntries === 'string') {
+                try {
+                  parsed = JSON.parse(contextEntries)
+                } catch {
+                  throw new Error(CONTEXT_ENTRIES_SHAPE_ERROR)
+                }
+              }
+              if (!Array.isArray(parsed)) {
+                throw new Error(CONTEXT_ENTRIES_SHAPE_ERROR)
+              }
+              if (parsed.length > 0) result.contextEntries = parsed
+            }
+            if (maxItems) {
+              const parsed = Number.parseInt(String(maxItems), 10)
+              if (!Number.isNaN(parsed)) result.maxResults = parsed
+            }
+            if (rest.marker) result.marker = rest.marker
+            break
+        }
+
+        return result
+      },
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'IAM operation to perform' },
+    region: { type: 'string', description: 'AWS region' },
+    accessKeyId: { type: 'string', description: 'AWS access key ID' },
+    secretAccessKey: { type: 'string', description: 'AWS secret access key' },
+    userName: { type: 'string', description: 'IAM user name' },
+    roleName: { type: 'string', description: 'IAM role name' },
+    policyArn: { type: 'string', description: 'Policy ARN' },
+    assumeRolePolicyDocument: { type: 'string', description: 'Trust policy JSON' },
+    groupName: { type: 'string', description: 'IAM group name' },
+    accessKeyIdToDelete: { type: 'string', description: 'Access key ID to delete' },
+    accessKeyIdToUpdate: { type: 'string', description: 'Access key ID to activate or deactivate' },
+    accessKeyStatus: { type: 'string', description: 'Access key status to set (Active, Inactive)' },
+    path: { type: 'string', description: 'Resource path' },
+    description: { type: 'string', description: 'Role description' },
+    maxSessionDuration: { type: 'number', description: 'Max session duration in seconds' },
+    scope: { type: 'string', description: 'Policy scope filter (All, AWS, Local)' },
+    onlyAttached: { type: 'string', description: 'Only return attached policies' },
+    pathPrefix: { type: 'string', description: 'Path prefix filter' },
+    maxItems: { type: 'number', description: 'Maximum number of items to return' },
+    marker: { type: 'string', description: 'Pagination marker' },
+    policySourceArn: { type: 'string', description: 'ARN of the principal to simulate' },
+    actionNames: { type: 'string', description: 'Comma-separated AWS actions to simulate' },
+    resourceArns: {
+      type: 'string',
+      description: 'Comma-separated resource ARNs to simulate against',
+    },
+    contextEntries: {
+      type: 'json',
+      description:
+        'Condition context keys supplied to the simulation, as a JSON array of { contextKeyName, contextKeyValues, contextKeyType }',
+    },
+  },
+  outputs: {
+    message: {
+      type: 'string',
+      description: 'Operation status message',
+    },
+    users: {
+      type: 'json',
+      description: 'List of IAM users (userName, userId, arn, path, createDate, passwordLastUsed)',
+    },
+    roles: {
+      type: 'json',
+      description:
+        'List of IAM roles (roleName, roleId, arn, path, createDate, description, maxSessionDuration)',
+    },
+    policies: {
+      type: 'json',
+      description:
+        'List of IAM policies (policyName, policyId, arn, path, attachmentCount, isAttachable, createDate, updateDate)',
+    },
+    groups: {
+      type: 'json',
+      description: 'List of IAM groups (groupName, groupId, arn, path, createDate)',
+    },
+    userName: {
+      type: 'string',
+      description: 'User name',
+    },
+    userId: {
+      type: 'string',
+      description: 'User ID',
+    },
+    roleName: {
+      type: 'string',
+      description: 'Role name',
+    },
+    roleId: {
+      type: 'string',
+      description: 'Role ID',
+    },
+    arn: {
+      type: 'string',
+      description: 'Resource ARN',
+    },
+    path: {
+      type: 'string',
+      description: 'Resource path',
+    },
+    createDate: {
+      type: 'string',
+      description: 'Creation date',
+    },
+    passwordLastUsed: {
+      type: 'string',
+      description: 'Date password was last used',
+    },
+    permissionsBoundaryArn: {
+      type: 'string',
+      description: 'ARN of the permissions boundary policy',
+    },
+    tags: {
+      type: 'json',
+      description: 'Tags attached to the resource (key, value pairs)',
+    },
+    description: {
+      type: 'string',
+      description: 'Role description',
+    },
+    maxSessionDuration: {
+      type: 'number',
+      description: 'Maximum session duration in seconds',
+    },
+    assumeRolePolicyDocument: {
+      type: 'string',
+      description: 'Trust policy document (JSON)',
+    },
+    roleLastUsedDate: {
+      type: 'string',
+      description: 'Date the role was last used',
+    },
+    roleLastUsedRegion: {
+      type: 'string',
+      description: 'AWS region where the role was last used',
+    },
+    accessKeyId: {
+      type: 'string',
+      description: 'Access key ID',
+    },
+    secretAccessKey: {
+      type: 'string',
+      description:
+        'Secret access key, returned only when the key is created. Hidden from logs and the trace; reference it downstream rather than printing it.',
+      hiddenFromDisplay: true,
+    },
+    status: {
+      type: 'string',
+      description: 'Access key status',
+    },
+    isTruncated: {
+      type: 'boolean',
+      description: 'Whether there are more results',
+    },
+    marker: {
+      type: 'string',
+      description: 'Pagination marker',
+    },
+    count: {
+      type: 'number',
+      description: 'Number of items returned',
+    },
+    attachedPolicies: {
+      type: 'json',
+      description: 'List of attached managed policies with policyName and policyArn',
+    },
+    accessKeys: {
+      type: 'json',
+      description:
+        "An IAM user's access key metadata (accessKeyId, userName, status, createDate). The secret is never returned by this operation.",
+    },
+    policyName: {
+      type: 'string',
+      description: 'Policy name',
+    },
+    policyId: {
+      type: 'string',
+      description: 'Policy ID',
+    },
+    attachmentCount: {
+      type: 'number',
+      description: 'Number of entities the policy is attached to',
+    },
+    isAttachable: {
+      type: 'boolean',
+      description: 'Whether the policy can be attached to an entity',
+    },
+    updateDate: {
+      type: 'string',
+      description: 'Date the resource was last updated',
+    },
+    defaultVersionId: {
+      type: 'string',
+      description: 'Identifier of the default policy version',
+    },
+    permissionsBoundaryUsageCount: {
+      type: 'number',
+      description: 'Number of entities using the policy as a permissions boundary',
+    },
+    evaluationResults: {
+      type: 'json',
+      description:
+        'One result per simulated action. evalDecision is the AGGREGATE, most-restrictive decision across every resource ARN (any explicitDeny makes the whole result explicitDeny), and evalResourceName is the resource-type ARN template AWS echoes back, not a customer ARN. Read the verdict for an individual ARN from resourceSpecificResults[]: evalResourceName, evalResourceDecision, matchedStatements, missingContextValues, permissionsBoundaryAllowed.',
+    },
+  },
+}
+
+export const IAMBlockMeta = {
+  tags: ['cloud', 'identity'],
+  url: 'https://aws.amazon.com/iam',
+  templates: [
+    {
+      icon: IAMIcon,
+      title: 'IAM permission drift detector',
+      prompt:
+        'Build a scheduled workflow that diffs AWS IAM policies against the Terraform source of truth, alerts on drift, and writes the drift report to a security Slack channel.',
+      modules: ['scheduled', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['devops', 'monitoring'],
+      alsoIntegrations: ['slack'],
+    },
+    {
+      icon: IAMIcon,
+      title: 'IAM wildcard policy auditor',
+      prompt:
+        'Create a scheduled workflow that scans AWS IAM policies for wildcard permissions, scores each by blast radius, and writes a remediation queue to a security table.',
+      modules: ['scheduled', 'tables', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['legal', 'enterprise'],
+    },
+    {
+      icon: IAMIcon,
+      title: 'IAM access-review automator',
+      prompt:
+        'Build a scheduled quarterly workflow that posts AWS IAM access-review requests to role owners in Slack, captures attestations, and writes the audit log to a compliance table.',
+      modules: ['scheduled', 'tables', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['legal', 'enterprise'],
+      alsoIntegrations: ['slack'],
+    },
+    {
+      icon: IAMIcon,
+      title: 'IAM stale-key sweeper',
+      prompt:
+        'Create a scheduled workflow that reviews IAM users for aged access keys, notifies the owner via Slack, and rotates the key with a fresh one or removes it after a grace period.',
+      modules: ['scheduled', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['devops', 'enterprise'],
+      alsoIntegrations: ['slack'],
+    },
+    {
+      icon: IAMIcon,
+      title: 'IAM unused-role cleaner',
+      prompt:
+        'Build a scheduled monthly workflow that finds IAM roles with no recent activity, requires owner approval in Slack, and removes the role to reduce attack surface.',
+      modules: ['scheduled', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['devops', 'enterprise'],
+      alsoIntegrations: ['slack'],
+    },
+    {
+      icon: IAMIcon,
+      title: 'IAM least-privilege recommender',
+      prompt:
+        'Create a workflow that simulates IAM principal policies against expected actions, generates least-privilege policy suggestions for over-permissioned roles, and opens Linear tickets for engineers to apply.',
+      modules: ['agent', 'workflows'],
+      category: 'operations',
+      tags: ['devops', 'enterprise'],
+      alsoIntegrations: ['linear'],
+    },
+    {
+      icon: IAMIcon,
+      title: 'IAM policy guardrail watcher',
+      prompt:
+        'Build a scheduled workflow that snapshots AWS IAM managed policies and role attachments, classifies risk on each change, and pings the security team in Slack when a change broadens permissions.',
+      modules: ['scheduled', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['devops', 'enterprise'],
+      alsoIntegrations: ['slack'],
+    },
+  ],
+  skills: [
+    {
+      name: 'audit-iam-permissions',
+      description:
+        'List IAM users, roles, and their attached policies to produce an access audit. Use for security reviews and least-privilege checks.',
+      content:
+        '# Audit IAM Permissions\n\nReport who and what has access in IAM.\n\n## Steps\n1. List users and roles to establish the inventory.\n2. For each principal of interest, list attached user or role policies. Get a policy by ARN when you need its description to judge intent — list policies never returns one.\n3. List each user’s access keys to find keys that are stale or still Active but unused.\n4. Optionally simulate principal policy to confirm whether a principal can perform sensitive actions, reading the per-resource verdict from resourceSpecificResults.\n5. Flag overly broad policies, unused principals, or access keys that should be rotated.\n\n## Output\nAn audit summary: principals, their attached policies, and their access key inventory, with risky or excessive grants called out. Do not expose secret values.',
+    },
+    {
+      name: 'check-effective-permissions',
+      description:
+        'Use IAM policy simulation to verify whether a user or role can perform specific actions on resources. Use for troubleshooting access and validating changes.',
+      content:
+        '# Check Effective Permissions\n\nDetermine whether a principal is actually allowed to do something.\n\n## Steps\n1. Identify the principal (user or role) and the actions and resource ARNs to test.\n2. Run simulate principal policy for those actions against the resources. If any policy is gated by a condition, supply the condition context keys so it does not simulate as denied for missing context.\n3. Read the per-resource verdict from resourceSpecificResults — evalResourceName plus evalResourceDecision. The top-level evalDecision is the aggregate across every ARN you passed, so one explicitly denied bucket makes the whole action read as explicitDeny; do not report that as a denial on the other resources. The top-level evalResourceName is a resource-type ARN template, not one of your ARNs.\n4. If a resource is denied unexpectedly, read its matchedStatements and missingContextValues, then inspect the attached policies to explain why.\n\n## Output\nA verdict per action AND per resource ARN, with the governing policy for each, and a plain-language explanation of any denial.',
+    },
+    {
+      name: 'provision-iam-principal',
+      description:
+        'Create an IAM user or role, attach managed policies, and place users into groups to grant scoped access. Use for onboarding and standing up service roles.',
+      content:
+        '# Provision IAM Principal\n\nStand up a new IAM user or role with the right permissions.\n\n## Steps\n1. Decide whether to create a user (for a person or app) or a role (for a service or cross-account access).\n2. For a user, create the user, then add them to the relevant groups or attach the needed managed policy ARNs. For a role, create the role with a trust policy that names the allowed principal, then attach the policy ARNs.\n3. Prefer attaching existing managed policies over broad wildcards; grant only the actions required.\n4. Confirm the result by listing the attached user or role policies.\n\n## Output\nReport the created principal name and ARN and the policies now attached. Do not print any generated secret values.',
+    },
+    {
+      name: 'rotate-access-keys',
+      description:
+        'Create a fresh IAM access key for a user and delete the old one to complete a safe rotation. Use for scheduled key rotation and remediating aged keys.',
+      content:
+        '# Rotate Access Keys\n\nReplace a user’s access key following the two-step rotation pattern.\n\n## Steps\n1. List the user’s access keys to see which keys exist, their status, and their age.\n2. Create a new access key for the target user so two keys exist briefly.\n3. Hand the new key to its consumer securely and let dependents switch over and verify they still work.\n4. Deactivate the old key by updating its status to Inactive, and leave it that way long enough to prove nothing still depends on it. Reactivate it if something breaks.\n5. Once the new key is confirmed in use, delete the old access key by its ID.\n6. List the access keys again to confirm only the intended key remains for the user.\n\n## Output\nReport the user, that a new key was issued, and the old key ID that was deactivated and then deleted. Never print the secret access key value — reference keys only by their access key ID.',
+    },
+  ],
+} as const satisfies BlockMeta

@@ -1,0 +1,1093 @@
+import { StripeIcon } from '@/components/icons'
+import type { BlockConfig, BlockMeta } from '@/blocks/types'
+import { AuthMode, IntegrationType } from '@/blocks/types'
+import { getTrigger } from '@/triggers'
+
+/**
+ * Capture amount, whichever of the two amount inputs the operation exposes —
+ * `capture_payment_intent` shows both, and either one carries the value.
+ */
+const CAPTURE_AMOUNT_FIELD = ['amount_to_capture', 'amount'] as const
+
+export const StripeBlock: BlockConfig = {
+  type: 'stripe',
+  name: 'Stripe',
+  description: 'Process payments and manage Stripe data',
+  authMode: AuthMode.ApiKey,
+  longDescription:
+    'Manage payment intents, customers, subscriptions, invoices, charges, products, prices, and events. Supported Stripe events can start workflows.',
+  docsLink: 'https://docs.sim.ai/integrations/stripe',
+  category: 'tools',
+  integrationType: IntegrationType.Commerce,
+  bgColor: '#635BFF',
+  iconColor: '#635BFF',
+  icon: StripeIcon,
+  canvasPresentation: {
+    defaultTitle: 'Stripe',
+    /* The webhook URL and signing secret are plumbing; the event selection is
+       the whole of what the trigger watches, and leaving it empty really does
+       mean every event — which is what the chip's noun says. */
+    triggerSentences: {
+      default: ['Run on', { field: 'eventTypes', core: true }],
+    },
+    sentences: {
+      byOperation: {
+        create_payment_intent: [
+          { text: 'Create a payment intent for', field: 'amount', core: true },
+          { text: 'in', field: 'currency' },
+          { text: ', charging customer', field: 'customer' },
+        ],
+        retrieve_payment_intent: [{ text: 'Fetch payment intent', field: 'id', core: true }],
+        update_payment_intent: [
+          { text: 'Update payment intent', field: 'id', core: true },
+          { text: ', setting amount to', field: 'amount' },
+          { text: ', describing it as', field: 'description' },
+        ],
+        confirm_payment_intent: [
+          { text: 'Confirm payment intent', field: 'id', core: true },
+          { text: ', with payment method', field: 'payment_method' },
+        ],
+        capture_payment_intent: [
+          { text: 'Capture payment intent', field: 'id', core: true },
+          { text: ', for', field: CAPTURE_AMOUNT_FIELD },
+        ],
+        cancel_payment_intent: [
+          { text: 'Cancel payment intent', field: 'id', core: true },
+          { text: ', citing', field: 'cancellation_reason' },
+        ],
+        list_payment_intents: ['List payment intents', { text: ', up to', field: 'limit' }],
+        search_payment_intents: [
+          {
+            text: 'Search payment intents matching',
+            field: 'query',
+            core: true,
+          },
+          { text: ', up to', field: 'limit' },
+        ],
+        create_customer: [
+          { text: 'Create customer', field: 'name', core: true },
+          { text: ', with email', field: 'email' },
+        ],
+        retrieve_customer: [{ text: 'Fetch customer', field: 'id', core: true }],
+        update_customer: [
+          { text: 'Update customer', field: 'id', core: true },
+          { text: ', renaming to', field: 'name' },
+          { text: ', setting email to', field: 'email' },
+        ],
+        delete_customer: [{ text: 'Delete customer', field: 'id', core: true }],
+        list_customers: ['List customers', { text: ', up to', field: 'limit' }],
+        search_customers: [
+          { text: 'Search customers matching', field: 'query', core: true },
+          { text: ', up to', field: 'limit' },
+        ],
+        create_subscription: [
+          { text: 'Subscribe customer', field: 'customer', core: true },
+          { text: 'to', field: 'items' },
+          { text: ', after a', field: 'trial_period_days', after: 'day trial' },
+        ],
+        retrieve_subscription: [{ text: 'Fetch subscription', field: 'id', core: true }],
+        update_subscription: [
+          { text: 'Update subscription', field: 'id', core: true },
+          { text: ', setting items to', field: 'items' },
+        ],
+        cancel_subscription: [{ text: 'Cancel subscription', field: 'id', core: true }],
+        resume_subscription: [{ text: 'Resume subscription', field: 'id', core: true }],
+        list_subscriptions: [
+          'List subscriptions',
+          { text: ', with status', field: 'status' },
+          { text: ', up to', field: 'limit' },
+        ],
+        search_subscriptions: [
+          {
+            text: 'Search subscriptions matching',
+            field: 'query',
+            core: true,
+          },
+          { text: ', up to', field: 'limit' },
+        ],
+        create_invoice: [
+          { text: 'Create an invoice for customer', field: 'customer', core: true },
+          { text: ', described as', field: 'description' },
+        ],
+        retrieve_invoice: [{ text: 'Fetch invoice', field: 'id', core: true }],
+        update_invoice: [
+          { text: 'Update invoice', field: 'id', core: true },
+          { text: ', describing it as', field: 'description' },
+        ],
+        delete_invoice: [{ text: 'Delete draft invoice', field: 'id', core: true }],
+        finalize_invoice: [{ text: 'Finalize draft invoice', field: 'id', core: true }],
+        pay_invoice: [{ text: 'Pay invoice', field: 'id', core: true }],
+        void_invoice: [{ text: 'Void invoice', field: 'id', core: true }],
+        send_invoice: [
+          { text: 'Email invoice', field: 'id', core: true, after: 'to its customer' },
+        ],
+        list_invoices: [
+          'List invoices',
+          { text: ', with status', field: 'status' },
+          { text: ', up to', field: 'limit' },
+        ],
+        search_invoices: [
+          { text: 'Search invoices matching', field: 'query', core: true },
+          { text: ', up to', field: 'limit' },
+        ],
+        create_charge: [
+          { text: 'Charge', field: 'amount', core: true },
+          { text: 'in', field: 'currency' },
+          { text: 'to customer', field: 'customer' },
+        ],
+        retrieve_charge: [{ text: 'Fetch charge', field: 'id', core: true }],
+        update_charge: [
+          { text: 'Update charge', field: 'id', core: true },
+          { text: ', describing it as', field: 'description' },
+        ],
+        capture_charge: [
+          { text: 'Capture charge', field: 'id', core: true },
+          { text: ', for', field: 'amount' },
+        ],
+        list_charges: [
+          { text: 'List charges for customer', field: 'customer', core: true },
+          { text: ', up to', field: 'limit' },
+        ],
+        search_charges: [
+          { text: 'Search charges matching', field: 'query', core: true },
+          { text: ', up to', field: 'limit' },
+        ],
+        create_product: [
+          { text: 'Create product', field: 'name', core: true },
+          { text: ', described as', field: 'description' },
+        ],
+        retrieve_product: [{ text: 'Fetch product', field: 'id', core: true }],
+        update_product: [
+          { text: 'Update product', field: 'id', core: true },
+          { text: ', renaming to', field: 'name' },
+        ],
+        delete_product: [{ text: 'Delete product', field: 'id', core: true }],
+        list_products: ['List products', { text: ', up to', field: 'limit' }],
+        search_products: [
+          { text: 'Search products matching', field: 'query', core: true },
+          { text: ', up to', field: 'limit' },
+        ],
+        create_price: [
+          { text: 'Create a price of', field: 'unit_amount', core: true },
+          { text: 'in', field: 'currency' },
+          { text: ', for product', field: 'product' },
+        ],
+        retrieve_price: [{ text: 'Fetch price', field: 'id', core: true }],
+        update_price: [{ text: 'Update price', field: 'id', core: true }],
+        list_prices: ['List prices', { text: ', up to', field: 'limit' }],
+        search_prices: [
+          { text: 'Search prices matching', field: 'query', core: true },
+          { text: ', up to', field: 'limit' },
+        ],
+        retrieve_event: [{ text: 'Fetch event', field: 'id', core: true }],
+        list_events: [
+          'List events',
+          { text: ', of type', field: 'type' },
+          { text: ', up to', field: 'limit' },
+        ],
+      },
+    },
+  },
+  subBlocks: [
+    {
+      id: 'operation',
+      title: 'Operation',
+      type: 'dropdown',
+      options: [
+        { label: 'Create Payment Intent', id: 'create_payment_intent' },
+        { label: 'Retrieve Payment Intent', id: 'retrieve_payment_intent' },
+        { label: 'Update Payment Intent', id: 'update_payment_intent' },
+        { label: 'Confirm Payment Intent', id: 'confirm_payment_intent' },
+        { label: 'Capture Payment Intent', id: 'capture_payment_intent' },
+        { label: 'Cancel Payment Intent', id: 'cancel_payment_intent' },
+        { label: 'List Payment Intents', id: 'list_payment_intents' },
+        { label: 'Search Payment Intents', id: 'search_payment_intents' },
+        { label: 'Create Customer', id: 'create_customer' },
+        { label: 'Retrieve Customer', id: 'retrieve_customer' },
+        { label: 'Update Customer', id: 'update_customer' },
+        { label: 'Delete Customer', id: 'delete_customer' },
+        { label: 'List Customers', id: 'list_customers' },
+        { label: 'Search Customers', id: 'search_customers' },
+        { label: 'Create Subscription', id: 'create_subscription' },
+        { label: 'Retrieve Subscription', id: 'retrieve_subscription' },
+        { label: 'Update Subscription', id: 'update_subscription' },
+        { label: 'Cancel Subscription', id: 'cancel_subscription' },
+        { label: 'Resume Subscription', id: 'resume_subscription' },
+        { label: 'List Subscriptions', id: 'list_subscriptions' },
+        { label: 'Search Subscriptions', id: 'search_subscriptions' },
+        { label: 'Create Invoice', id: 'create_invoice' },
+        { label: 'Retrieve Invoice', id: 'retrieve_invoice' },
+        { label: 'Update Invoice', id: 'update_invoice' },
+        { label: 'Delete Invoice', id: 'delete_invoice' },
+        { label: 'Finalize Invoice', id: 'finalize_invoice' },
+        { label: 'Pay Invoice', id: 'pay_invoice' },
+        { label: 'Void Invoice', id: 'void_invoice' },
+        { label: 'Send Invoice', id: 'send_invoice' },
+        { label: 'List Invoices', id: 'list_invoices' },
+        { label: 'Search Invoices', id: 'search_invoices' },
+        { label: 'Create Charge', id: 'create_charge' },
+        { label: 'Retrieve Charge', id: 'retrieve_charge' },
+        { label: 'Update Charge', id: 'update_charge' },
+        { label: 'Capture Charge', id: 'capture_charge' },
+        { label: 'List Charges', id: 'list_charges' },
+        { label: 'Search Charges', id: 'search_charges' },
+        { label: 'Create Product', id: 'create_product' },
+        { label: 'Retrieve Product', id: 'retrieve_product' },
+        { label: 'Update Product', id: 'update_product' },
+        { label: 'Delete Product', id: 'delete_product' },
+        { label: 'List Products', id: 'list_products' },
+        { label: 'Search Products', id: 'search_products' },
+        { label: 'Create Price', id: 'create_price' },
+        { label: 'Retrieve Price', id: 'retrieve_price' },
+        { label: 'Update Price', id: 'update_price' },
+        { label: 'List Prices', id: 'list_prices' },
+        { label: 'Search Prices', id: 'search_prices' },
+        { label: 'Retrieve Event', id: 'retrieve_event' },
+        { label: 'List Events', id: 'list_events' },
+      ],
+      value: () => 'create_payment_intent',
+    },
+    {
+      id: 'apiKey',
+      title: 'Stripe API Key',
+      type: 'short-input',
+      password: true,
+      placeholder: 'Enter your Stripe secret key (sk_test_... or sk_live_...)',
+      required: true,
+    },
+    {
+      id: 'id',
+      title: 'ID',
+      type: 'short-input',
+      placeholder: 'Enter the ID',
+      condition: {
+        field: 'operation',
+        value: [
+          'retrieve_payment_intent',
+          'update_payment_intent',
+          'confirm_payment_intent',
+          'capture_payment_intent',
+          'cancel_payment_intent',
+          'retrieve_customer',
+          'update_customer',
+          'delete_customer',
+          'retrieve_subscription',
+          'update_subscription',
+          'cancel_subscription',
+          'resume_subscription',
+          'retrieve_invoice',
+          'update_invoice',
+          'delete_invoice',
+          'finalize_invoice',
+          'pay_invoice',
+          'void_invoice',
+          'send_invoice',
+          'retrieve_charge',
+          'update_charge',
+          'capture_charge',
+          'retrieve_product',
+          'update_product',
+          'delete_product',
+          'retrieve_price',
+          'update_price',
+          'retrieve_event',
+        ],
+      },
+      required: true,
+    },
+    {
+      id: 'amount',
+      title: 'Amount (in cents)',
+      type: 'short-input',
+      placeholder: 'e.g., 1000 for $10.00',
+      condition: {
+        field: 'operation',
+        value: ['create_payment_intent', 'create_charge'],
+      },
+      required: true,
+    },
+    {
+      id: 'amount',
+      title: 'Amount (in cents)',
+      type: 'short-input',
+      placeholder: 'e.g., 1000 for $10.00',
+      condition: {
+        field: 'operation',
+        value: ['update_payment_intent', 'capture_payment_intent', 'capture_charge'],
+      },
+    },
+    {
+      id: 'currency',
+      title: 'Currency',
+      type: 'short-input',
+      placeholder: 'e.g., usd, eur, gbp',
+      condition: {
+        field: 'operation',
+        value: ['create_payment_intent', 'create_charge', 'create_price'],
+      },
+      required: true,
+    },
+    {
+      id: 'currency',
+      title: 'Currency',
+      type: 'short-input',
+      placeholder: 'e.g., usd, eur, gbp',
+      condition: {
+        field: 'operation',
+        value: ['update_payment_intent'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'payment_method',
+      title: 'Payment Method ID',
+      type: 'short-input',
+      placeholder: 'e.g., pm_1234567890',
+      condition: {
+        field: 'operation',
+        value: ['create_payment_intent', 'confirm_payment_intent', 'create_customer'],
+      },
+    },
+    {
+      id: 'customer',
+      title: 'Customer ID',
+      type: 'short-input',
+      placeholder: 'e.g., cus_1234567890',
+      condition: {
+        field: 'operation',
+        value: ['create_subscription', 'create_invoice'],
+      },
+      required: true,
+    },
+    {
+      id: 'customer',
+      title: 'Customer ID',
+      type: 'short-input',
+      placeholder: 'e.g., cus_1234567890',
+      condition: {
+        field: 'operation',
+        value: ['create_payment_intent', 'update_payment_intent', 'create_charge', 'list_charges'],
+      },
+    },
+    {
+      id: 'email',
+      title: 'Email',
+      type: 'short-input',
+      placeholder: 'customer@example.com',
+      condition: {
+        field: 'operation',
+        value: ['create_customer', 'update_customer'],
+      },
+    },
+    {
+      id: 'name',
+      title: 'Name',
+      type: 'short-input',
+      placeholder: 'Product Name',
+      condition: {
+        field: 'operation',
+        value: ['create_product'],
+      },
+      required: true,
+    },
+    {
+      id: 'name',
+      title: 'Name',
+      type: 'short-input',
+      placeholder: 'Customer or Product Name',
+      condition: {
+        field: 'operation',
+        value: ['create_customer', 'update_customer', 'update_product'],
+      },
+    },
+    {
+      id: 'phone',
+      title: 'Phone',
+      type: 'short-input',
+      placeholder: '+1234567890',
+      condition: {
+        field: 'operation',
+        value: ['create_customer', 'update_customer'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'address',
+      title: 'Address (JSON)',
+      type: 'code',
+      placeholder: '{"line1": "123 Main St", "city": "New York", "country": "US"}',
+      condition: {
+        field: 'operation',
+        value: ['create_customer', 'update_customer'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'items',
+      title: 'Items (JSON Array)',
+      type: 'code',
+      placeholder: '[{"price": "price_1234567890", "quantity": 1}]',
+      condition: {
+        field: 'operation',
+        value: ['create_subscription'],
+      },
+      required: true,
+    },
+    {
+      id: 'items',
+      title: 'Items (JSON Array)',
+      type: 'code',
+      placeholder: '[{"price": "price_1234567890", "quantity": 1}]',
+      condition: {
+        field: 'operation',
+        value: ['update_subscription'],
+      },
+    },
+    {
+      id: 'trial_period_days',
+      title: 'Trial Period (days)',
+      type: 'short-input',
+      placeholder: 'e.g., 14',
+      condition: {
+        field: 'operation',
+        value: 'create_subscription',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'default_payment_method',
+      title: 'Default Payment Method',
+      type: 'short-input',
+      placeholder: 'e.g., pm_1234567890',
+      condition: {
+        field: 'operation',
+        value: 'create_subscription',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'cancel_at_period_end',
+      title: 'Cancel at Period End',
+      type: 'dropdown',
+      options: [
+        { label: 'Yes', id: 'true' },
+        { label: 'No', id: 'false' },
+      ],
+      condition: {
+        field: 'operation',
+        value: ['create_subscription', 'update_subscription'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'collection_method',
+      title: 'Collection Method',
+      type: 'dropdown',
+      options: [
+        { label: 'Charge Automatically', id: 'charge_automatically' },
+        { label: 'Send Invoice', id: 'send_invoice' },
+      ],
+      condition: {
+        field: 'operation',
+        value: 'create_invoice',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'auto_advance',
+      title: 'Auto Advance',
+      type: 'dropdown',
+      options: [
+        { label: 'Yes', id: 'true' },
+        { label: 'No', id: 'false' },
+      ],
+      condition: {
+        field: 'operation',
+        value: ['create_invoice', 'update_invoice', 'finalize_invoice'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'source',
+      title: 'Payment Source',
+      type: 'short-input',
+      placeholder: 'e.g., tok_visa, card ID',
+      condition: {
+        field: 'operation',
+        value: 'create_charge',
+      },
+    },
+    {
+      id: 'capture',
+      title: 'Capture Immediately',
+      type: 'dropdown',
+      options: [
+        { label: 'Yes', id: 'true' },
+        { label: 'No', id: 'false' },
+      ],
+      condition: {
+        field: 'operation',
+        value: 'create_charge',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'active',
+      title: 'Active',
+      type: 'dropdown',
+      options: [
+        { label: 'Yes', id: 'true' },
+        { label: 'No', id: 'false' },
+      ],
+      condition: {
+        field: 'operation',
+        value: ['create_product', 'update_product', 'update_price'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'images',
+      title: 'Images (JSON Array)',
+      type: 'code',
+      placeholder: '["https://example.com/image1.jpg", "https://example.com/image2.jpg"]',
+      condition: {
+        field: 'operation',
+        value: ['create_product', 'update_product'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'product',
+      title: 'Product ID',
+      type: 'short-input',
+      placeholder: 'e.g., prod_1234567890',
+      condition: {
+        field: 'operation',
+        value: 'create_price',
+      },
+      required: true,
+    },
+    {
+      id: 'unit_amount',
+      title: 'Unit Amount (in cents)',
+      type: 'short-input',
+      placeholder: 'e.g., 1000 for $10.00',
+      condition: {
+        field: 'operation',
+        value: 'create_price',
+      },
+    },
+    {
+      id: 'recurring',
+      title: 'Recurring (JSON)',
+      type: 'code',
+      placeholder: '{"interval": "month", "interval_count": 1}',
+      condition: {
+        field: 'operation',
+        value: 'create_price',
+      },
+    },
+    {
+      id: 'description',
+      title: 'Description',
+      type: 'long-input',
+      placeholder: 'Enter description',
+      condition: {
+        field: 'operation',
+        value: [
+          'create_payment_intent',
+          'update_payment_intent',
+          'create_customer',
+          'update_customer',
+          'create_invoice',
+          'update_invoice',
+          'create_charge',
+          'update_charge',
+          'create_product',
+          'update_product',
+        ],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'metadata',
+      title: 'Metadata (JSON)',
+      type: 'code',
+      placeholder: '{"key1": "value1", "key2": "value2"}',
+      condition: {
+        field: 'operation',
+        value: [
+          'create_payment_intent',
+          'update_payment_intent',
+          'create_customer',
+          'update_customer',
+          'create_subscription',
+          'update_subscription',
+          'create_invoice',
+          'update_invoice',
+          'create_charge',
+          'update_charge',
+          'create_product',
+          'update_product',
+          'create_price',
+          'update_price',
+        ],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'limit',
+      title: 'Limit',
+      type: 'short-input',
+      placeholder: 'Max results (default: 10)',
+      condition: {
+        field: 'operation',
+        value: [
+          'list_payment_intents',
+          'list_customers',
+          'list_subscriptions',
+          'list_invoices',
+          'list_charges',
+          'list_products',
+          'list_prices',
+          'list_events',
+          'search_payment_intents',
+          'search_customers',
+          'search_subscriptions',
+          'search_invoices',
+          'search_charges',
+          'search_products',
+          'search_prices',
+        ],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'query',
+      title: 'Search Query',
+      type: 'long-input',
+      placeholder: 'Enter Stripe search query',
+      condition: {
+        field: 'operation',
+        value: [
+          'search_payment_intents',
+          'search_customers',
+          'search_subscriptions',
+          'search_invoices',
+          'search_charges',
+          'search_products',
+          'search_prices',
+        ],
+      },
+      required: true,
+    },
+    {
+      id: 'starting_after',
+      title: 'Starting After',
+      type: 'short-input',
+      placeholder: 'Last subscription ID from the previous page',
+      condition: { field: 'operation', value: 'list_subscriptions' },
+      mode: 'advanced',
+    },
+    {
+      id: 'ending_before',
+      title: 'Ending Before',
+      type: 'short-input',
+      placeholder: 'First subscription ID from the current page',
+      condition: { field: 'operation', value: 'list_subscriptions' },
+      mode: 'advanced',
+    },
+    {
+      id: 'page',
+      title: 'Search Page',
+      type: 'short-input',
+      placeholder: 'Token from metadata.next_page; omit for the first page',
+      condition: { field: 'operation', value: 'search_subscriptions' },
+      mode: 'advanced',
+    },
+    {
+      id: 'status',
+      title: 'Status',
+      type: 'short-input',
+      placeholder: 'e.g., succeeded, pending',
+      condition: {
+        field: 'operation',
+        value: ['list_subscriptions', 'list_invoices'],
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'receipt_email',
+      title: 'Receipt Email',
+      type: 'short-input',
+      placeholder: 'customer@example.com',
+      condition: {
+        field: 'operation',
+        value: 'create_payment_intent',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'cancellation_reason',
+      title: 'Cancellation Reason',
+      type: 'short-input',
+      placeholder: 'e.g., requested_by_customer',
+      condition: {
+        field: 'operation',
+        value: 'cancel_payment_intent',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'amount_to_capture',
+      title: 'Amount to Capture (in cents)',
+      type: 'short-input',
+      placeholder: 'Leave empty to capture full amount',
+      condition: {
+        field: 'operation',
+        value: 'capture_payment_intent',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'prorate',
+      title: 'Prorate',
+      type: 'dropdown',
+      options: [
+        { label: 'Yes', id: 'true' },
+        { label: 'No', id: 'false' },
+      ],
+      condition: {
+        field: 'operation',
+        value: 'cancel_subscription',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'invoice_now',
+      title: 'Invoice Now',
+      type: 'dropdown',
+      options: [
+        { label: 'Yes', id: 'true' },
+        { label: 'No', id: 'false' },
+      ],
+      condition: {
+        field: 'operation',
+        value: 'cancel_subscription',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'paid_out_of_band',
+      title: 'Paid Out of Band',
+      type: 'dropdown',
+      options: [
+        { label: 'Yes', id: 'true' },
+        { label: 'No', id: 'false' },
+      ],
+      condition: {
+        field: 'operation',
+        value: 'pay_invoice',
+      },
+      mode: 'advanced',
+    },
+    {
+      id: 'type',
+      title: 'Event Type',
+      type: 'short-input',
+      placeholder: 'e.g., payment_intent.succeeded',
+      condition: {
+        field: 'operation',
+        value: 'list_events',
+      },
+      mode: 'advanced',
+    },
+    ...getTrigger('stripe_webhook').subBlocks,
+  ],
+  tools: {
+    access: [
+      'stripe_create_payment_intent',
+      'stripe_retrieve_payment_intent',
+      'stripe_update_payment_intent',
+      'stripe_confirm_payment_intent',
+      'stripe_capture_payment_intent',
+      'stripe_cancel_payment_intent',
+      'stripe_list_payment_intents',
+      'stripe_search_payment_intents',
+      'stripe_create_customer',
+      'stripe_retrieve_customer',
+      'stripe_update_customer',
+      'stripe_delete_customer',
+      'stripe_list_customers',
+      'stripe_search_customers',
+      'stripe_create_subscription',
+      'stripe_retrieve_subscription',
+      'stripe_update_subscription',
+      'stripe_cancel_subscription',
+      'stripe_resume_subscription',
+      'stripe_list_subscriptions',
+      'stripe_search_subscriptions',
+      'stripe_create_invoice',
+      'stripe_retrieve_invoice',
+      'stripe_update_invoice',
+      'stripe_delete_invoice',
+      'stripe_finalize_invoice',
+      'stripe_pay_invoice',
+      'stripe_void_invoice',
+      'stripe_send_invoice',
+      'stripe_list_invoices',
+      'stripe_search_invoices',
+      'stripe_create_charge',
+      'stripe_retrieve_charge',
+      'stripe_update_charge',
+      'stripe_capture_charge',
+      'stripe_list_charges',
+      'stripe_search_charges',
+      'stripe_create_product',
+      'stripe_retrieve_product',
+      'stripe_update_product',
+      'stripe_delete_product',
+      'stripe_list_products',
+      'stripe_search_products',
+      'stripe_create_price',
+      'stripe_retrieve_price',
+      'stripe_update_price',
+      'stripe_list_prices',
+      'stripe_search_prices',
+      'stripe_retrieve_event',
+      'stripe_list_events',
+    ],
+    config: {
+      tool: (params) => {
+        return `stripe_${params.operation}`
+      },
+      params: (params) => {
+        const {
+          operation,
+          apiKey,
+          address,
+          metadata,
+          items,
+          images,
+          recurring,
+          cancel_at_period_end,
+          auto_advance,
+          capture,
+          active,
+          prorate,
+          invoice_now,
+          paid_out_of_band,
+          ...rest
+        } = params
+
+        let parsedAddress: any | undefined
+        let parsedMetadata: any | undefined
+        let parsedItems: any | undefined
+        let parsedImages: any | undefined
+        let parsedRecurring: any | undefined
+
+        try {
+          if (address) parsedAddress = JSON.parse(address)
+          if (metadata) parsedMetadata = JSON.parse(metadata)
+          if (items) parsedItems = JSON.parse(items)
+          if (images) parsedImages = JSON.parse(images)
+          if (recurring) parsedRecurring = JSON.parse(recurring)
+        } catch (error: any) {
+          throw new Error(`Invalid JSON input: ${error.message}`)
+        }
+
+        const parsedBooleans: Record<string, boolean | undefined> = {}
+        if (cancel_at_period_end !== undefined)
+          parsedBooleans.cancel_at_period_end = cancel_at_period_end === 'true'
+        if (auto_advance !== undefined) parsedBooleans.auto_advance = auto_advance === 'true'
+        if (capture !== undefined) parsedBooleans.capture = capture === 'true'
+        if (active !== undefined) parsedBooleans.active = active === 'true'
+        if (prorate !== undefined) parsedBooleans.prorate = prorate === 'true'
+        if (invoice_now !== undefined) parsedBooleans.invoice_now = invoice_now === 'true'
+        if (paid_out_of_band !== undefined)
+          parsedBooleans.paid_out_of_band = paid_out_of_band === 'true'
+
+        return {
+          apiKey,
+          ...rest,
+          ...(parsedAddress && { address: parsedAddress }),
+          ...(parsedMetadata && { metadata: parsedMetadata }),
+          ...(parsedItems && { items: parsedItems }),
+          ...(parsedImages && { images: parsedImages }),
+          ...(parsedRecurring && { recurring: parsedRecurring }),
+          ...parsedBooleans,
+        }
+      },
+    },
+  },
+  inputs: {
+    operation: { type: 'string', description: 'Operation to perform' },
+    apiKey: { type: 'string', description: 'Stripe secret API key' },
+    id: { type: 'string', description: 'Resource ID' },
+    amount: { type: 'number', description: 'Amount in cents' },
+    currency: { type: 'string', description: 'Three-letter ISO currency code' },
+    description: { type: 'string', description: 'Description of the resource' },
+    metadata: { type: 'json', description: 'Set of key-value pairs' },
+    customer: { type: 'string', description: 'Customer ID' },
+    email: { type: 'string', description: 'Customer email address' },
+    name: { type: 'string', description: 'Customer or product name' },
+    phone: { type: 'string', description: 'Customer phone number' },
+    address: { type: 'json', description: 'Customer address object' },
+    payment_method: { type: 'string', description: 'Payment method ID' },
+    source: { type: 'string', description: 'Payment source' },
+    receipt_email: { type: 'string', description: 'Email for receipt' },
+    items: { type: 'json', description: 'Subscription items array' },
+    trial_period_days: { type: 'number', description: 'Trial period in days' },
+    cancel_at_period_end: { type: 'boolean', description: 'Cancel at period end' },
+    prorate: { type: 'boolean', description: 'Prorate cancellation' },
+    invoice_now: { type: 'boolean', description: 'Invoice immediately' },
+    collection_method: { type: 'string', description: 'Collection method' },
+    auto_advance: { type: 'boolean', description: 'Auto-finalize invoice' },
+    paid_out_of_band: { type: 'boolean', description: 'Paid outside Stripe' },
+    capture: { type: 'boolean', description: 'Capture immediately' },
+    amount_to_capture: { type: 'number', description: 'Amount to capture in cents' },
+    cancellation_reason: { type: 'string', description: 'Cancellation reason' },
+    active: { type: 'boolean', description: 'Whether resource is active' },
+    images: { type: 'json', description: 'Product images array' },
+    product: { type: 'string', description: 'Product ID' },
+    unit_amount: { type: 'number', description: 'Unit amount in cents' },
+    recurring: { type: 'json', description: 'Recurring billing configuration' },
+    limit: { type: 'number', description: 'Maximum results to return' },
+    starting_after: { type: 'string', description: 'Next-page subscription ID cursor' },
+    ending_before: { type: 'string', description: 'Previous-page subscription ID cursor' },
+    page: { type: 'string', description: 'Subscription search token from metadata.next_page' },
+    query: { type: 'string', description: 'Search query' },
+    status: { type: 'string', description: 'Status filter' },
+    type: { type: 'string', description: 'Event type filter' },
+  },
+  outputs: {
+    payment_intent: { type: 'json', description: 'Payment intent object' },
+    payment_intents: { type: 'json', description: 'Array of payment intents' },
+    customer: { type: 'json', description: 'Customer object' },
+    customers: { type: 'json', description: 'Array of customers' },
+    subscription: { type: 'json', description: 'Subscription object' },
+    subscriptions: { type: 'json', description: 'Array of subscriptions' },
+    invoice: { type: 'json', description: 'Invoice object' },
+    invoices: { type: 'json', description: 'Array of invoices' },
+    charge: { type: 'json', description: 'Charge object' },
+    charges: { type: 'json', description: 'Array of charges' },
+    product: { type: 'json', description: 'Product object' },
+    products: { type: 'json', description: 'Array of products' },
+    price: { type: 'json', description: 'Price object' },
+    prices: { type: 'json', description: 'Array of prices' },
+    event: { type: 'json', description: 'Event object' },
+    events: { type: 'json', description: 'Array of events' },
+    metadata: { type: 'json', description: 'Operation metadata' },
+    deleted: { type: 'boolean', description: 'Whether resource was deleted' },
+  },
+  triggers: {
+    enabled: true,
+    available: ['stripe_webhook'],
+  },
+}
+
+export const StripeBlockMeta = {
+  tags: ['payments', 'subscriptions', 'webhooks'],
+  url: 'https://stripe.com',
+  templates: [
+    {
+      icon: StripeIcon,
+      title: 'Stripe weekly metrics report',
+      prompt:
+        'Build a scheduled workflow that pulls data from Stripe and my database every Monday, calculates key metrics like MRR, churn, new subscriptions, and failed payments, writes results to Google Sheets, and sends the team a Slack summary with week-over-week trends.',
+      modules: ['scheduled', 'tables', 'agent', 'workflows'],
+      category: 'productivity',
+      tags: ['founder', 'finance', 'reporting'],
+      alsoIntegrations: ['google_sheets', 'slack'],
+    },
+    {
+      icon: StripeIcon,
+      title: 'Stripe revenue dashboard',
+      prompt:
+        'Create a scheduled daily workflow that pulls payment data from Stripe, calculates MRR, net revenue, failed payments, and new subscriptions, logs everything to a table with historical tracking, and sends a daily Slack summary with trends and anomalies.',
+      modules: ['tables', 'scheduled', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['finance', 'founder', 'reporting', 'monitoring'],
+      alsoIntegrations: ['slack'],
+    },
+    {
+      icon: StripeIcon,
+      title: 'Stripe failed payment recovery',
+      prompt:
+        'Build a workflow that listens for Stripe failed-payment events, looks up the customer, classifies the failure reason, drafts a tailored recovery email and a Slack alert to the success team, and logs the attempt in a tracking table so recovery rate can be measured.',
+      modules: ['tables', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['finance', 'support', 'automation'],
+      alsoIntegrations: ['gmail', 'slack'],
+    },
+    {
+      icon: StripeIcon,
+      title: 'Stripe churn flagger',
+      prompt:
+        'Create a scheduled daily workflow that lists Stripe subscriptions canceled or scheduled for cancellation, enriches each customer with usage and support history, scores the churn risk, and logs the cohort to a table with recommended save plays for the success team.',
+      modules: ['scheduled', 'tables', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['finance', 'support', 'analysis'],
+      alsoIntegrations: ['slack'],
+    },
+    {
+      icon: StripeIcon,
+      title: 'Stripe invoice chaser',
+      prompt:
+        'Build a scheduled workflow that lists Stripe invoices overdue by more than seven days, sends a polite chase email tailored to the customer history, escalates to a Slack alert at thirty days, and writes every action into a collections tracking table.',
+      modules: ['scheduled', 'tables', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['finance', 'automation', 'reporting'],
+      alsoIntegrations: ['gmail', 'slack'],
+    },
+    {
+      icon: StripeIcon,
+      title: 'Stripe customer welcome flow',
+      prompt:
+        'Create a workflow triggered when a new Stripe customer is created. Send a personalized welcome email, create their onboarding checklist in a table, schedule a follow-up meeting via Calendly, and post a Slack notification to the customer success channel.',
+      modules: ['tables', 'agent', 'workflows'],
+      category: 'operations',
+      tags: ['finance', 'sales', 'automation'],
+      alsoIntegrations: ['gmail', 'calendly', 'slack'],
+    },
+    {
+      icon: StripeIcon,
+      title: 'Stripe refund pattern analyzer',
+      prompt:
+        'Build a scheduled weekly workflow that lists Stripe charge and dispute events, classifies each refund or dispute by reason and product, identifies recurring patterns or fraud signals, writes a narrative report file, and Slacks finance with the top concerns and recommended actions.',
+      modules: ['scheduled', 'agent', 'files', 'workflows'],
+      category: 'operations',
+      tags: ['finance', 'analysis', 'reporting'],
+      alsoIntegrations: ['slack'],
+    },
+  ],
+  skills: [
+    {
+      name: 'collect-payment',
+      description:
+        'Create and confirm a Stripe payment intent to collect a charge from a customer.',
+      content:
+        '# Collect Payment\n\nCharge a customer by creating and confirming a payment intent.\n\n## Steps\n1. Run Create Payment Intent with the amount, currency, and customer.\n2. Confirm the intent with Confirm Payment Intent and a payment method. If the confirmed intent has status requires_capture, run Capture Payment Intent to collect the authorized funds.\n3. If a charge needs to be aborted, run Cancel Payment Intent instead.\n\n## Output\nReturn the payment intent ID, its status (succeeded, requires action, or canceled), and the captured amount.',
+    },
+    {
+      name: 'manage-subscription',
+      description:
+        'Create a Stripe subscription, manage its cancellation, or resume a paused subscription.',
+      content:
+        '# Manage Subscription\n\nHandle the lifecycle of a recurring subscription.\n\n## Steps\n1. To start a subscription, run Create Subscription with the customer and price items.\n2. Use Update Subscription with cancel_at_period_end to schedule or reverse a cancellation before it takes effect. Use Cancel Subscription only for immediate cancellation. Resume Subscription applies only to a paused subscription; it does not restart a canceled subscription.\n3. Confirm the current state with Retrieve Subscription.\n\n## Output\nReturn the subscription ID, its status, and the returned subscription items, and note exactly what changed.',
+    },
+    {
+      name: 'issue-invoice',
+      description: 'Create, finalize, and send a Stripe invoice to a customer, then track payment.',
+      content:
+        '# Issue Invoice\n\nBill a customer with a Stripe invoice.\n\n## Steps\n1. Run Create Invoice for the customer. This tool does not add line items; add them in Stripe and verify the draft with Retrieve Invoice before finalizing.\n2. Run Finalize Invoice to lock it, then Send Invoice to deliver it to the customer.\n3. Track payment with Retrieve Invoice, or run Pay Invoice to charge a saved payment method. Use Void Invoice to cancel an unpaid invoice.\n\n## Output\nReturn the invoice ID, its status (draft, open, paid, or void), the amount due, and the hosted invoice URL when available.',
+    },
+    {
+      name: 'find-customer-activity',
+      description:
+        'Look up a Stripe customer and search their charges and payments for a financial summary.',
+      content:
+        '# Find Customer Activity\n\nBuild a payment history view for a single customer.\n\n## Steps\n1. Run Search Customers or Retrieve Customer to identify the customer and their ID.\n2. Run Search Charges or List Charges filtered to that customer to pull their transactions.\n3. Optionally run Search Payment Intents and List Invoices for a complete picture.\n\n## Output\nReturn the customer ID and email plus a summary of their charges and invoices, including total amount, successful versus failed payments, and any refunds.',
+    },
+  ],
+} as const satisfies BlockMeta

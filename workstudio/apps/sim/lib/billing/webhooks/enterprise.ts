@@ -1,0 +1,677 @@
+import { AuditAction, AuditResourceType, recordAudit } from '@sim/audit'
+import { db } from '@sim/db'
+import { foldedEmail, organization, outboxEvent, session, subscription, user } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
+import { generateId } from '@sim/utils/id'
+import { toRecord } from '@sim/utils/object'
+import { normalizeEmail } from '@sim/utils/string'
+import { and, eq, inArray, sql } from 'drizzle-orm'
+import type Stripe from 'stripe'
+import { getEmailSubject, renderEnterpriseSubscriptionEmail } from '@/components/emails'
+import {
+  invalidateMembershipCache,
+  invalidateSecurityPolicyVersionCache,
+} from '@/lib/auth/security-policy'
+import { deriveEnterpriseCreditLimits } from '@/lib/billing/enterprise-credit-limits'
+import {
+  type EnterpriseProvisionPayload,
+  enterpriseMetadataDeliveryIsVerified,
+  enterpriseMetadataIntentMatchesStripeSubscription,
+  enterpriseMetadataSyncPayloadSchema,
+  enterpriseOperationMatchesStripeSubscription,
+  parseEnterpriseProvisionPayload,
+} from '@/lib/billing/enterprise-outbox'
+import {
+  ENTERPRISE_INVITE_PEOPLE_EVENT_TYPE,
+  ENTERPRISE_MEMBER_RECONCILIATION_EVENT_TYPE,
+  ENTERPRISE_METADATA_SYNC_EVENT_TYPE,
+  ENTERPRISE_PROVISION_EVENT_TYPE,
+  ENTERPRISE_WORKSPACE_MOVE_EVENT_TYPE,
+} from '@/lib/billing/enterprise-outbox-events'
+import { getEnterpriseIssuanceSeatRequirement } from '@/lib/billing/enterprise-provisioning'
+import { acquireOrganizationMutationLock } from '@/lib/billing/organizations/membership'
+import { requireStripeClient } from '@/lib/billing/stripe-client'
+import {
+  ENTITLED_SUBSCRIPTION_STATUSES,
+  hasPaidSubscriptionStatus,
+} from '@/lib/billing/subscriptions/utils'
+import {
+  assertEnterpriseReconciliationLeaseHeld,
+  type EnterpriseReconciliationLease,
+  withEnterpriseReconciliationLease,
+} from '@/lib/billing/webhooks/enterprise-reconciliation-lease'
+import {
+  enqueueOutboxEvent,
+  enqueueOutboxEvents,
+  patchOutboxEventPayload,
+} from '@/lib/core/outbox/service'
+import { acquireAdvisoryXactLock } from '@/lib/db/advisory-locks'
+import { sendEmail } from '@/lib/messaging/email/mailer'
+import { getFromEmailAddress } from '@/lib/messaging/email/utils'
+import { captureServerEvent } from '@/lib/posthog/server'
+import { parseEnterpriseSubscriptionMetadata } from '../types'
+
+const logger = createLogger('BillingEnterprise')
+
+/**
+ * Reconciles an Enterprise Stripe subscription onto the organization its metadata references.
+ *
+ * Transient conditions (lease or lock contention, database errors, an issuance whose Stripe
+ * writes have not landed yet) throw so Stripe redelivers the event. A referenced organization
+ * that does not exist is permanent: issuance commits the organization before it creates the
+ * Stripe subscription, and a deleted organization never returns, so the event is acknowledged
+ * with an error log instead of being retried until Stripe drops it.
+ */
+export async function handleManualEnterpriseSubscription(event: Stripe.Event) {
+  return processManualEnterpriseSubscription(event)
+}
+
+async function processManualEnterpriseSubscription(event: Stripe.Event) {
+  const eventSubscription = event.data.object as Stripe.Subscription
+  const rawPreviousAttributes: unknown = event.data.previous_attributes
+  const previousAttributes: Record<string, unknown> = toRecord(rawPreviousAttributes)
+  return withEnterpriseReconciliationLease(eventSubscription.id, (lease) =>
+    reconcileManualEnterpriseSubscription(eventSubscription, lease, {
+      eventType: event.type,
+      created: event.type === 'customer.subscription.created',
+      previousStatus:
+        typeof previousAttributes.status === 'string' ? previousAttributes.status : null,
+    })
+  )
+}
+
+async function reconcileManualEnterpriseSubscription(
+  eventSubscription: Stripe.Subscription,
+  reconciliationLease: EnterpriseReconciliationLease,
+  trigger: { eventType: string; created: boolean; previousStatus: string | null }
+) {
+  // Stripe does not promise webhook ordering. Read the current object before
+  // taking DB locks so a delayed created/updated event cannot overwrite newer
+  // status or metadata that Stripe has already accepted.
+  const stripeSubscription = await requireStripeClient().subscriptions.retrieve(
+    eventSubscription.id
+  )
+
+  const metaPlan = (stripeSubscription.metadata?.plan as string | undefined)?.toLowerCase() || ''
+
+  if (metaPlan !== 'enterprise') {
+    logger.info('[subscription] Enterprise metadata was removed before reconciliation', {
+      subscriptionId: stripeSubscription.id,
+      plan: metaPlan || 'unknown',
+    })
+    return
+  }
+
+  const stripeCustomerId =
+    typeof stripeSubscription.customer === 'string'
+      ? stripeSubscription.customer
+      : stripeSubscription.customer?.id
+
+  if (!stripeCustomerId) {
+    logger.error('[subscription.created] Missing Stripe customer ID', {
+      subscriptionId: stripeSubscription.id,
+    })
+    throw new Error('Missing Stripe customer ID on subscription')
+  }
+
+  const metadata = stripeSubscription.metadata || {}
+
+  const referenceId =
+    typeof metadata.referenceId === 'string' && metadata.referenceId.length > 0
+      ? metadata.referenceId
+      : null
+
+  if (!referenceId) {
+    logger.error('[subscription.created] Unable to resolve referenceId', {
+      subscriptionId: stripeSubscription.id,
+      stripeCustomerId,
+    })
+    throw new Error('Unable to resolve referenceId for subscription')
+  }
+
+  const enterpriseMetadata = parseEnterpriseSubscriptionMetadata(metadata)
+  if (!enterpriseMetadata) {
+    logger.error('[subscription.created] Invalid enterprise metadata shape', {
+      subscriptionId: stripeSubscription.id,
+      metadata,
+    })
+    throw new Error('Invalid enterprise metadata for subscription')
+  }
+
+  const { seats, invoiceAmountUsd } = enterpriseMetadata
+  // Get the first subscription item which contains the period information
+  const referenceItem = stripeSubscription.items?.data?.[0]
+  if (
+    stripeSubscription.items?.data?.length !== 1 ||
+    referenceItem?.price.currency !== 'usd' ||
+    referenceItem.price.unit_amount === null ||
+    Math.abs(referenceItem.price.unit_amount / 100 - invoiceAmountUsd) > 1e-8 ||
+    (referenceItem.price.recurring?.interval !== 'month' &&
+      referenceItem.price.recurring?.interval !== 'year') ||
+    (referenceItem.price.recurring.interval_count ?? 1) !== 1
+  ) {
+    throw new Error(
+      'Enterprise subscription must have one USD monthly or annual Price matching its metadata'
+    )
+  }
+
+  const subscriptionRow = {
+    id: generateId(),
+    plan: 'enterprise',
+    referenceId,
+    stripeCustomerId,
+    stripeSubscriptionId: stripeSubscription.id,
+    status: stripeSubscription.status || null,
+    periodStart: referenceItem?.current_period_start
+      ? new Date(referenceItem.current_period_start * 1000)
+      : null,
+    periodEnd: referenceItem?.current_period_end
+      ? new Date(referenceItem.current_period_end * 1000)
+      : null,
+    cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end ?? null,
+    cancelAt: stripeSubscription.cancel_at ? new Date(stripeSubscription.cancel_at * 1000) : null,
+    canceledAt: stripeSubscription.canceled_at
+      ? new Date(stripeSubscription.canceled_at * 1000)
+      : null,
+    endedAt: stripeSubscription.ended_at ? new Date(stripeSubscription.ended_at * 1000) : null,
+    seats: 1, // Enterprise uses metadata.seats for actual seat count, column is always 1
+    trialStart: stripeSubscription.trial_start
+      ? new Date(stripeSubscription.trial_start * 1000)
+      : null,
+    trialEnd: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
+    billingInterval: referenceItem?.price?.recurring?.interval ?? null,
+    metadata: metadata as Record<string, unknown>,
+  }
+  const isEntitled = hasPaidSubscriptionStatus(subscriptionRow.status)
+
+  const coreResult = await db.transaction(async (tx) => {
+    await acquireOrganizationMutationLock(tx, referenceId)
+    await acquireAdvisoryXactLock(
+      tx,
+      'stripe_subscription',
+      `stripe-subscription:${stripeSubscription.id}`
+    )
+    // The authoritative Stripe read happened under a durable subscription
+    // lease. Fence the write before touching billing state so a crashed holder
+    // whose lease was reclaimed cannot apply an older snapshot.
+    await assertEnterpriseReconciliationLeaseHeld(tx, reconciliationLease)
+    const [organizationRow] = await tx
+      .select({ creditBalance: organization.creditBalance })
+      .from(organization)
+      .where(eq(organization.id, referenceId))
+      .for('update')
+      .limit(1)
+    if (!organizationRow) return { outcome: 'organization-missing' as const }
+
+    const operationId = metadata.enterpriseOperationId
+    let correlatedOperation: EnterpriseProvisionPayload | null = null
+    let operationNewlyApplied = false
+    if (typeof operationId === 'string' && operationId.length > 0) {
+      const [operationRow] = await tx
+        .select({ eventType: outboxEvent.eventType, payload: outboxEvent.payload })
+        .from(outboxEvent)
+        .where(eq(outboxEvent.id, operationId))
+        .for('update')
+        .limit(1)
+      const operationPayload = operationRow
+        ? parseEnterpriseProvisionPayload(operationRow.payload)
+        : null
+      const [operationOwner] = operationPayload
+        ? await tx
+            .select({ stripeCustomerId: user.stripeCustomerId })
+            .from(user)
+            .where(eq(user.id, operationPayload.request.ownerUserId))
+            .limit(1)
+        : []
+      const validCorrelation = Boolean(
+        operationRow?.eventType === ENTERPRISE_PROVISION_EVENT_TYPE &&
+          operationPayload &&
+          operationPayload.request.organizationId === referenceId &&
+          operationOwner?.stripeCustomerId === stripeCustomerId &&
+          (!operationPayload.stripeProgress.subscriptionId ||
+            operationPayload.stripeProgress.subscriptionId === stripeSubscription.id) &&
+          (!operationPayload.applicationResult ||
+            operationPayload.applicationResult.subscriptionId === stripeSubscription.id) &&
+          enterpriseOperationMatchesStripeSubscription(
+            operationPayload,
+            stripeSubscription,
+            referenceId
+          )
+      )
+      if (validCorrelation && operationPayload) {
+        correlatedOperation = operationPayload
+        operationNewlyApplied = isEntitled && !operationPayload.applicationResult
+      } else if (
+        operationRow?.eventType === ENTERPRISE_PROVISION_EVENT_TYPE &&
+        (!operationPayload || !operationPayload.applicationResult)
+      ) {
+        /**
+         * An admin issuance is only complete once Stripe reflects the exact
+         * commercial terms recorded in its durable outbox intent. In
+         * particular, paused collection is applied immediately after the
+         * subscription create call, so the create webhook can race ahead of
+         * that second Stripe write. Treating the interim object as an
+         * unrelated manual subscription would grant the wrong entitlement and
+         * strand the issuance in `awaiting_webhook`.
+         *
+         * Throwing makes Stripe retry. The next delivery performs another
+         * authoritative Stripe read and can apply once the worker has finished
+         * the external operation. Already-applied operations are intentionally
+         * excluded so later manual metadata edits still reconcile normally.
+         */
+        logger.warn('[subscription] Enterprise operation is not ready for reconciliation', {
+          operationId,
+          subscriptionId: stripeSubscription.id,
+          referenceId,
+        })
+        throw new Error(
+          `Enterprise issuance operation ${operationId} does not yet match the Stripe subscription`
+        )
+      } else {
+        logger.warn('[subscription] Ignoring invalid Enterprise operation correlation', {
+          operationId,
+          subscriptionId: stripeSubscription.id,
+          referenceId,
+        })
+      }
+    }
+
+    const seatRequirement = await getEnterpriseIssuanceSeatRequirement({
+      executor: tx,
+      organizationId: referenceId,
+      workspaceIds:
+        operationNewlyApplied && correlatedOperation
+          ? correlatedOperation.request.workspaceIds
+          : [],
+      invitationEmails:
+        operationNewlyApplied && correlatedOperation
+          ? correlatedOperation.request.invitations.map((invite) => invite.email)
+          : [],
+    })
+    if (isEntitled && seats < seatRequirement.requiredSeats) {
+      throw new Error(
+        `Enterprise seat capacity ${seats} is below ${seatRequirement.requiredSeats} occupied or reserved seats`
+      )
+    }
+
+    const entitledSubscriptions = await tx
+      .select({ id: subscription.id, stripeSubscriptionId: subscription.stripeSubscriptionId })
+      .from(subscription)
+      .where(
+        and(
+          eq(subscription.referenceId, referenceId),
+          inArray(subscription.status, ENTITLED_SUBSCRIPTION_STATUSES)
+        )
+      )
+    const conflictingEntitlement = entitledSubscriptions.find(
+      (row) => row.stripeSubscriptionId !== stripeSubscription.id
+    )
+    if (conflictingEntitlement) {
+      throw new Error(
+        `Organization ${referenceId} already has a different entitled subscription (${conflictingEntitlement.id})`
+      )
+    }
+
+    const [existing] = await tx
+      .select({
+        id: subscription.id,
+        referenceId: subscription.referenceId,
+        status: subscription.status,
+        metadata: subscription.metadata,
+      })
+      .from(subscription)
+      .where(eq(subscription.stripeSubscriptionId, stripeSubscription.id))
+      .limit(1)
+
+    if (existing && existing.referenceId !== referenceId) {
+      throw new Error(
+        `Stripe subscription ${stripeSubscription.id} is already bound to reference ${existing.referenceId}, not organization ${referenceId}`
+      )
+    }
+
+    const configOperationId = metadata.simConfigOperationId
+    const existingMetadata = toRecord(existing?.metadata)
+    const configurationAlreadyApplied =
+      typeof configOperationId === 'string' &&
+      configOperationId.length > 0 &&
+      existingMetadata.simConfigOperationId === configOperationId
+    if (
+      typeof configOperationId === 'string' &&
+      configOperationId.length > 0 &&
+      !configurationAlreadyApplied
+    ) {
+      const [configurationRow] = await tx
+        .select({ eventType: outboxEvent.eventType, payload: outboxEvent.payload })
+        .from(outboxEvent)
+        .where(eq(outboxEvent.id, configOperationId))
+        .for('update')
+        .limit(1)
+      const configurationPayload = enterpriseMetadataSyncPayloadSchema.safeParse(
+        configurationRow?.payload
+      )
+      const validConfiguration = Boolean(
+        existing &&
+          configurationRow?.eventType === ENTERPRISE_METADATA_SYNC_EVENT_TYPE &&
+          configurationPayload.success &&
+          configurationPayload.data.subscriptionId === existing.id &&
+          enterpriseMetadataDeliveryIsVerified(configurationPayload.data) &&
+          enterpriseMetadataIntentMatchesStripeSubscription(
+            configurationPayload.data,
+            configOperationId,
+            stripeSubscription
+          )
+      )
+      if (!validConfiguration) {
+        throw new Error(
+          `Enterprise configuration operation ${configOperationId} does not exactly match the Stripe subscription`
+        )
+      }
+    }
+
+    if (existing) {
+      await tx
+        .update(subscription)
+        .set({
+          plan: subscriptionRow.plan,
+          referenceId: subscriptionRow.referenceId,
+          stripeCustomerId: subscriptionRow.stripeCustomerId,
+          status: subscriptionRow.status,
+          periodStart: subscriptionRow.periodStart,
+          periodEnd: subscriptionRow.periodEnd,
+          cancelAtPeriodEnd: subscriptionRow.cancelAtPeriodEnd,
+          cancelAt: subscriptionRow.cancelAt,
+          canceledAt: subscriptionRow.canceledAt,
+          endedAt: subscriptionRow.endedAt,
+          seats: 1,
+          trialStart: subscriptionRow.trialStart,
+          trialEnd: subscriptionRow.trialEnd,
+          billingInterval: subscriptionRow.billingInterval,
+          metadata: subscriptionRow.metadata,
+        })
+        .where(eq(subscription.id, existing.id))
+    } else {
+      await tx.insert(subscription).values(subscriptionRow)
+    }
+
+    const creditLimits = deriveEnterpriseCreditLimits({
+      metadata,
+      invoiceAmountUsd,
+      prepaidBalanceDollars: organizationRow.creditBalance,
+    })
+    await tx
+      .update(organization)
+      .set({
+        orgUsageLimit: creditLimits.effectiveUsageLimitDollars,
+        updatedAt: new Date(),
+      })
+      .where(eq(organization.id, referenceId))
+
+    if (operationNewlyApplied && correlatedOperation) {
+      await enqueueOutboxEvents(
+        tx,
+        ENTERPRISE_WORKSPACE_MOVE_EVENT_TYPE,
+        correlatedOperation.request.workspaceIds.map((workspaceId, sequence) => ({
+          provisioningOperationId: operationId,
+          workspaceId,
+          destinationOrganizationId: referenceId,
+          expectedOwnerId: correlatedOperation.request.ownerUserId,
+          adminUserId: correlatedOperation.request.requestedByUserId,
+          adminName: correlatedOperation.request.requestedByName,
+          adminEmail: correlatedOperation.request.requestedByEmail,
+          sequence,
+        }))
+      )
+      if (correlatedOperation.request.invitations.length > 0) {
+        await enqueueOutboxEvents(
+          tx,
+          ENTERPRISE_INVITE_PEOPLE_EVENT_TYPE,
+          correlatedOperation.request.invitations.map((invite, sequence) => ({
+            provisioningOperationId: operationId,
+            organizationId: referenceId,
+            ownerUserId: correlatedOperation.request.ownerUserId,
+            sequence,
+            ...invite,
+          }))
+        )
+      }
+      if (correlatedOperation.request.logoutOwnerOnApply) {
+        await tx
+          .delete(session)
+          .where(
+            and(
+              eq(session.userId, correlatedOperation.request.ownerUserId),
+              sql`${session.impersonatedBy} IS NULL`
+            )
+          )
+        await tx
+          .update(organization)
+          .set({
+            securityPolicyVersion: sql`${organization.securityPolicyVersion} + 1`,
+          })
+          .where(eq(organization.id, referenceId))
+      }
+    }
+
+    const wasEntitled = hasPaidSubscriptionStatus(existing?.status)
+    const triggerRestoredEntitlement = Boolean(
+      trigger.previousStatus && !hasPaidSubscriptionStatus(trigger.previousStatus)
+    )
+    if (
+      isEntitled &&
+      (operationNewlyApplied ||
+        !existing ||
+        !wasEntitled ||
+        trigger.created ||
+        triggerRestoredEntitlement)
+    ) {
+      await enqueueOutboxEvent(tx, ENTERPRISE_MEMBER_RECONCILIATION_EVENT_TYPE, {
+        organizationId: referenceId,
+        provisioningOperationId:
+          operationNewlyApplied && typeof operationId === 'string' ? operationId : null,
+        afterUserId: null,
+      })
+    }
+
+    if (isEntitled && correlatedOperation && typeof operationId === 'string') {
+      const operationPatched = await patchOutboxEventPayload(tx, operationId, {
+        applicationResult: {
+          appliedAt: correlatedOperation.applicationResult?.appliedAt ?? new Date().toISOString(),
+          subscriptionId: stripeSubscription.id,
+        },
+      })
+      if (!operationPatched) {
+        throw new Error(`Enterprise issuance operation ${operationId} disappeared during apply`)
+      }
+    }
+
+    return {
+      outcome: 'reconciled' as const,
+      subscriptionId: existing?.id ?? subscriptionRow.id,
+      requestedByEmail: correlatedOperation?.request.requestedByEmail ?? null,
+      requestedByUserId: correlatedOperation?.request.requestedByUserId ?? null,
+      operationNewlyApplied,
+      hasCorrelatedOperation: Boolean(correlatedOperation),
+      subscriptionNewlyInserted: !existing,
+      queuedWorkspaceCount:
+        operationNewlyApplied && correlatedOperation
+          ? correlatedOperation.request.workspaceIds.length
+          : 0,
+      loggedOutOwnerId:
+        operationNewlyApplied && correlatedOperation?.request.logoutOwnerOnApply
+          ? correlatedOperation.request.ownerUserId
+          : null,
+      ...creditLimits,
+    }
+  })
+
+  if (coreResult.outcome === 'organization-missing') {
+    logger.error(
+      '[subscription] Enterprise subscription references an organization that does not exist; acknowledging without reconciling',
+      {
+        stripeSubscriptionId: stripeSubscription.id,
+        eventType: trigger.eventType,
+        referenceId,
+        stripeCustomerId,
+        status: stripeSubscription.status,
+      }
+    )
+    return
+  }
+
+  const {
+    subscriptionId,
+    requestedByEmail,
+    requestedByUserId,
+    operationNewlyApplied,
+    hasCorrelatedOperation,
+    subscriptionNewlyInserted,
+    queuedWorkspaceCount,
+    loggedOutOwnerId,
+    configuredUsageLimitCredits,
+    prepaidCredits,
+    effectiveUsageLimitCredits,
+  } = coreResult
+  if (loggedOutOwnerId) {
+    invalidateMembershipCache(loggedOutOwnerId)
+    invalidateSecurityPolicyVersionCache(referenceId)
+  }
+  const shouldAnnounce = hasCorrelatedOperation ? operationNewlyApplied : subscriptionNewlyInserted
+
+  logger.info('[subscription.created] Upserted enterprise subscription', {
+    subscriptionId,
+    referenceId: subscriptionRow.referenceId,
+    plan: subscriptionRow.plan,
+    status: subscriptionRow.status,
+    invoiceAmountUsd,
+    effectiveUsageLimitCredits,
+    prepaidCredits,
+    seats,
+    queuedWorkspaceCount,
+    note: 'Seats from metadata, Stripe quantity set to 1',
+  })
+
+  let actorId: string | null = null
+  let actorName = 'Stripe Webhook'
+  let actorEmail: string | null = requestedByEmail
+  try {
+    const [operationUser] = await db
+      .select({ id: user.id, name: user.name, email: user.email })
+      .from(user)
+      .where(
+        requestedByUserId
+          ? eq(user.id, requestedByUserId)
+          : requestedByEmail
+            ? eq(foldedEmail(user.email), normalizeEmail(requestedByEmail))
+            : eq(user.stripeCustomerId, stripeCustomerId)
+      )
+      .limit(1)
+    actorId = operationUser?.id ?? requestedByUserId
+    actorName = operationUser?.name ?? (requestedByEmail ? 'Admin Panel' : 'Stripe Webhook')
+    actorEmail = operationUser?.email ?? requestedByEmail
+  } catch (error) {
+    logger.warn('Failed to resolve Enterprise issuance actor; falling back to reference id', {
+      referenceId,
+      error,
+    })
+  }
+
+  if (shouldAnnounce) {
+    recordAudit({
+      actorId,
+      actorName,
+      actorEmail,
+      action: AuditAction.ENTERPRISE_SUBSCRIPTION_PROVISIONED,
+      resourceType: AuditResourceType.SUBSCRIPTION,
+      resourceId: subscriptionId,
+      description: `Enterprise subscription provisioned for organization ${referenceId} (${seats} seats)`,
+      metadata: {
+        organizationId: referenceId,
+        stripeCustomerId,
+        stripeSubscriptionId: stripeSubscription.id,
+        seats,
+        invoiceAmountUsd,
+        configuredUsageLimitCredits,
+        effectiveUsageLimitCredits,
+        prepaidCredits,
+        currency: 'usd',
+      },
+    })
+    captureServerEvent(actorId ?? referenceId, 'enterprise_subscription_created', {
+      reference_id: referenceId,
+      seats,
+      invoice_amount: invoiceAmountUsd,
+      billing_interval: subscriptionRow.billingInterval === 'year' ? 'year' : 'month',
+      currency: 'usd',
+    })
+  }
+
+  if (shouldAnnounce) {
+    try {
+      const userDetails = await db
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        })
+        .from(user)
+        .where(eq(user.stripeCustomerId, stripeCustomerId))
+        .limit(1)
+
+      const orgDetails = await db
+        .select({
+          id: organization.id,
+          name: organization.name,
+        })
+        .from(organization)
+        .where(eq(organization.id, referenceId))
+        .limit(1)
+
+      if (userDetails.length > 0 && orgDetails.length > 0) {
+        const user = userDetails[0]
+        const org = orgDetails[0]
+
+        const html = await renderEnterpriseSubscriptionEmail(user.name || user.email)
+
+        const emailResult = await sendEmail({
+          to: user.email,
+          subject: getEmailSubject('enterprise-subscription'),
+          html,
+          from: getFromEmailAddress(),
+          emailType: 'transactional',
+        })
+
+        if (emailResult.success) {
+          logger.info('[subscription.created] Enterprise subscription email sent successfully', {
+            userId: user.id,
+            email: user.email,
+            organizationId: org.id,
+            subscriptionId,
+          })
+        } else {
+          logger.warn('[subscription.created] Failed to send enterprise subscription email', {
+            userId: user.id,
+            email: user.email,
+            error: emailResult.message,
+          })
+        }
+      } else {
+        logger.warn(
+          '[subscription.created] Could not find user or organization for email notification',
+          {
+            userFound: userDetails.length > 0,
+            orgFound: orgDetails.length > 0,
+            stripeCustomerId,
+            referenceId,
+          }
+        )
+      }
+    } catch (emailError) {
+      logger.error('[subscription.created] Error sending enterprise subscription email', {
+        error: emailError,
+        stripeCustomerId,
+        referenceId,
+        subscriptionId,
+      })
+    }
+  }
+}

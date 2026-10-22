@@ -1,0 +1,45 @@
+from fastapi import APIRouter, Depends, Security
+from fastapi.responses import JSONResponse
+
+from api.dependencies import get_health_models_use_case_factory
+from api.domain.user.views import AuthenticatedUserView
+from api.infrastructure.fastapi.accesscontroller import AccessController
+from api.infrastructure.fastapi.dependencies import get_authenticated_user
+from api.infrastructure.fastapi.documentation import get_documentation_responses
+from api.infrastructure.fastapi.routes import EndpointRoute, RouterName
+from api.infrastructure.fastapi.schemas.health import ModelHealthStatus, ModelsHealthResponse
+from api.use_cases.health import GetHealthModelsCommand, GetHealthModelsUseCase, GetHealthModelsUseCaseSuccess
+
+router = APIRouter(tags=[RouterName.HEALTH.title()])
+
+
+@router.get(path=EndpointRoute.HEALTH, status_code=200)
+def get_health() -> JSONResponse:
+    """
+    Get the health of the API.
+    """
+    return JSONResponse(content={"status": "ok"}, status_code=200)
+
+
+@router.get(
+    path=EndpointRoute.HEALTH_MODELS,
+    dependencies=[Security(dependency=AccessController())],
+    status_code=200,
+    responses=get_documentation_responses([]),
+)
+async def get_health_models(
+    get_health_models_use_case: GetHealthModelsUseCase = Depends(get_health_models_use_case_factory),
+    authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
+) -> JSONResponse:
+    """
+    Get the health of the models.
+    """
+
+    command = GetHealthModelsCommand(authenticated_user=authenticated_user)
+    result = await get_health_models_use_case.execute(command=command)
+    match result:
+        case GetHealthModelsUseCaseSuccess(models):
+            return JSONResponse(
+                content=ModelsHealthResponse(data=[ModelHealthStatus.model_validate(model, from_attributes=True) for model in models]).model_dump(),
+                status_code=200,
+            )

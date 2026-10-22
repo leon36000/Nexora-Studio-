@@ -1,0 +1,51 @@
+from http import HTTPMethod
+from typing import Annotated
+from urllib.parse import urljoin
+
+from pydantic import StringConstraints, ValidationError
+
+from api.domain.provider.entities import Provider, ProviderEndpoint, ProviderRequest, ProviderResponse
+from api.domain.provider.errors import ProviderAdapterValidationRequestError, ProviderAdapterValidationResponseError
+from api.infrastructure.http._httpproviderrequest import HttpProviderRequest
+from api.infrastructure.http._httpproviderresponse import HttpProviderResponse
+
+
+class HttpProviderAdapter:
+    SOURCE_ENDPOINT: ProviderEndpoint
+    TARGET_ENDPOINT_ROUTE: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, pattern=r"^/", to_lower=True)]
+    TARGET_ENDPOINT_METHOD: HTTPMethod
+    RESPONSE_TYPE: type | None
+
+    def __init__(self, provider: Provider):
+        self.provider = provider
+
+    def to_http_request(self, request: ProviderRequest) -> HttpProviderRequest | ProviderAdapterValidationRequestError:
+        target_url = self._build_target_url(base_url=self.provider.url, target_endpoint_route=self.TARGET_ENDPOINT_ROUTE)
+        http_request = HttpProviderRequest(
+            method=self.TARGET_ENDPOINT_METHOD,
+            url=target_url,
+            body=request.payload.model_dump(exclude_none=True) if request.payload else {},
+        )
+
+        if "model" in http_request.body:
+            http_request.body["model"] = self.provider.model_name
+
+        return http_request
+
+    def to_provider_response(
+        self,
+        http_response: HttpProviderResponse,
+        request: ProviderRequest,
+    ) -> ProviderResponse | ProviderAdapterValidationResponseError:
+        try:
+            data = self.RESPONSE_TYPE(**{**http_response.data, "id": request.id, "model": request.payload.model})
+        except ValidationError as e:
+            return ProviderAdapterValidationResponseError(provider_type=self.provider.type, errors=e.errors())
+
+        return ProviderResponse(data=data)
+
+    @staticmethod
+    def _build_target_url(base_url: str, target_endpoint_route: str | None) -> str:
+        base_url = base_url + "/" if not base_url.endswith("/") else base_url
+        url = base_url if target_endpoint_route is None else urljoin(base=base_url, url=target_endpoint_route.lstrip("/"))
+        return url

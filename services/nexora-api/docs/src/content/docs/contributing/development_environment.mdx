@@ -1,0 +1,140 @@
+---
+title: Development environment
+sidebar:
+  label: "[lucide:terminal] Development environment"
+  order: 1
+---
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Prerequisites" icon="approve-check-circle">
+- Python 3.12+
+- Docker and Docker Compose
+</Aside>
+
+OpenGateLLM is composed of several services:
+- API ([FastAPI](https://fastapi.tiangolo.com/))
+- Playground ([Reflex](https://reflex.dev/))
+- Dependencies (see [dependencies](/configuration/dependencies/))
+
+To simplify development, we have created a make command that allows you to launch the services locally in development mode. Follow the steps below to setup your development environment.
+
+<Steps>
+1. **Create a Python virtual environment (recommended)**
+
+2. **Install the dependencies**
+
+    ```bash
+    pip install ".[api,playground,dev,test]"
+    ```
+
+3. **Install the pre-commit hooks**
+
+    ```bash
+    pre-commit install
+    ```
+
+4. **Launch services locally**
+
+    Start services locally with the following command:
+
+    ```bash
+    make dev
+    ```
+    The API will be available at http://localhost:8000 and the playground at http://localhost:8501. 
+
+5. **Create the API key for the admin user**
+
+    The default created user will be `admin` as email and its password `changeme`.
+
+    Open another terminal and create a new API key with the following command:
+
+    ```bash
+    make create-api-key
+    ```
+
+6. **Setup your models**
+
+    To add your models, you can refer to the [documentation](/getting-started/models) to setup your models.
+
+</Steps>
+
+## Commit
+
+### Commit convention
+
+Please respect the following convention for your commits:
+
+```
+[doc|feat|fix](theme) commit object (in english)
+
+# example
+feat(collections): collection name retriever
+```
+
+### Rebase (required)
+
+Keep a **linear history**: update your branch with rebase, never with merge commits (`git merge main` / `git pull` without `--rebase`). 
+Linear history keeps reviews and bisects readable.
+
+Update your branch on top of `main`:
+
+```bash
+git pull --rebase origin main
+```
+
+Rewrite or clean up your last `x` commits before opening/updating a PR:
+
+```bash
+git rebase -i HEAD~x
+```
+For each commit, you can use the following options:
+- f (fixup) : apply the commit on the previous commit (like a squash but without the commit message)
+- s (squash) : merge the commit into the previous commit (like a fixup but with the commit message)
+- r (reword) : change the commit message
+
+If the branch was already pushed, update the remote with `git push --force-with-lease` after a rebase.
+Example:
+```bash
+git rebase -i HEAD~3
+```
+
+## Dependencies
+
+The dependency versions are locked in [uv.lock](https://github.com/etalab-ia/OpenGateLLM/blob/main/uv.lock), which the API and playground images install from. The CI fails a pull request whose `uv.lock` does not match `pyproject.toml`.
+
+After changing the dependencies in `pyproject.toml`, update the lock with [uv](https://docs.astral.sh/uv/) and commit it with your change:
+
+```bash
+uv lock
+```
+
+If a rebase conflicts on `uv.lock`, keep either version, then run `uv lock` again to regenerate it.
+
+[Dependabot](https://github.com/etalab-ia/OpenGateLLM/blob/main/.github/dependabot.yml) proposes the updates as pull requests:
+- security fixes, as soon as an alert is published, in one pull request for Python and one for the documentation;
+- other Python updates, once a week, for releases at least 14 days old: minor and patch updates in one pull request, each major update in its own;
+- GitHub Actions updates, once a week, in one pull request.
+
+## Linter
+
+The project linter is [Ruff](https://docs.astral.sh/ruff/). The specific project formatting rules are in the [pyproject.toml](https://github.com/etalab-ia/OpenGateLLM/blob/main/pyproject.toml) file.
+
+Please install the pre-commit hooks to run the linter at each commit:
+
+```bash
+pre-commit install
+```
+  
+To run the linter manually:
+
+```bash
+make lint
+```
+
+## Semgrep
+
+Semgrep is a fast, open-source, static analysis tool for finding bugs and enforcing code standards. To run the semgrep manually, you can use the following command:
+
+```bash
+make semgrep
+```

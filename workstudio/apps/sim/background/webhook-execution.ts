@@ -1,0 +1,1373 @@
+import {
+  parsePrincipal,
+  type SerializedPrincipalV1,
+  serializePrincipal,
+  type WorkflowExecutionPrincipal,
+} from '@sim/auth/principal'
+import { db } from '@sim/db'
+import { account, webhook } from '@sim/db/schema'
+import { createLogger, type RequestContext, runWithRequestContext } from '@sim/logger'
+import { toError } from '@sim/utils/errors'
+import { interruptibleSleep } from '@sim/utils/helpers'
+import { generateId } from '@sim/utils/id'
+import { isRecordLike, toRecord } from '@sim/utils/object'
+import { backoffWithJitter } from '@sim/utils/retry'
+import { task, timeout } from '@trigger.dev/sdk'
+import { eq } from 'drizzle-orm'
+import {
+  refreshExecutionSlotExpiry,
+  releaseExecutionSlot,
+} from '@/lib/billing/calculations/usage-reservation'
+import {
+  assertBillingAttributionSnapshot,
+  type BillingAttributionSnapshot,
+} from '@/lib/billing/core/attribution'
+import { getJobQueue } from '@/lib/core/async-jobs'
+import type { AsyncExecutionCorrelation } from '@/lib/core/async-jobs/types'
+import { env, envNumber } from '@/lib/core/config/env'
+import type { ExecutionScope } from '@/lib/core/errors/execution-scope-deleted'
+import { logFailureOnce } from '@/lib/core/errors/failure-log'
+import {
+  describeRetryableInfrastructureError,
+  isRetryableInfrastructureError,
+  isRetryableSetupError,
+  RetryableSetupError,
+} from '@/lib/core/errors/retryable-infrastructure'
+import {
+  capExecutionTimeoutMs,
+  createTimeoutAbortController,
+  getAsyncExecutionTimeoutForBillingAttribution,
+  getExecutionDeadlineAt,
+  getTimeoutErrorMessage,
+  RESERVATION_TTL_BUFFER_MS,
+  toTriggerMaxDurationSeconds,
+} from '@/lib/core/execution-limits'
+import {
+  IdempotencyService,
+  WEBHOOK_IN_PROGRESS_LEASE_SECONDS,
+  webhookIdempotency,
+} from '@/lib/core/idempotency'
+import { withResourceOutboundScope } from '@/lib/core/network/resource-scope.server'
+import {
+  type EnvironmentResolutionSnapshot,
+  getEffectiveEnvironmentSnapshot,
+  getExecutionEnvironment,
+} from '@/lib/environment/utils'
+import { preprocessExecution } from '@/lib/execution/preprocessing'
+import { LoggingSession } from '@/lib/logs/execution/logging-session'
+import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
+import { resolveOAuthAccountId } from '@/lib/oauth/credential-service'
+import {
+  type WebhookAttachment,
+  WebhookAttachmentProcessor,
+} from '@/lib/webhooks/attachment-processor'
+import {
+  resolveWebhookRecordProviderConfig,
+  type WebhookEnvResolutionOptions,
+} from '@/lib/webhooks/env-resolver'
+import {
+  assertWebhookExecutionPrincipal,
+  createWebhookExecutionPrincipal,
+} from '@/lib/webhooks/execution-principal'
+import { getProviderHandler } from '@/lib/webhooks/providers'
+import { SlackExecutionStreamController } from '@/lib/webhooks/slack-execution-stream'
+import { readSlackStreamResponseConfig } from '@/lib/webhooks/slack-stream-config'
+import {
+  executeWorkflowCore,
+  type PreloadedExecutionEnvironment,
+} from '@/lib/workflows/executor/execution-core'
+import { handlePostExecutionPauseState } from '@/lib/workflows/executor/pause-persistence'
+import {
+  isRecordedWorkflowFailure,
+  resolveDeletedExecutionScope,
+} from '@/lib/workflows/executor/recorded-failure'
+import {
+  loadDeployedWorkflowState,
+  loadWorkflowDeploymentVersionState,
+} from '@/lib/workflows/persistence/utils'
+import { WEBHOOK_EXECUTION_CONCURRENCY_LIMIT } from '@/background/concurrency-limits'
+import { getBlock } from '@/blocks'
+import { ExecutionSnapshot } from '@/executor/execution/snapshot'
+import type { ExecutionMetadata } from '@/executor/execution/types'
+import type { ExecutionResult } from '@/executor/types'
+import { hasExecutionResult } from '@/executor/utils/errors'
+import {
+  createIncompleteResolvedSecretTraceRegistry,
+  createResolvedSecretTraceRegistry,
+} from '@/executor/utils/resolved-secret-trace-registry'
+import { safeAssign } from '@/tools/safe-assign'
+import { getTrigger, isTriggerValid } from '@/triggers'
+
+const logger = createLogger('TriggerWebhookExecution')
+
+type WebhookAttachmentInput = Omit<WebhookAttachment, 'data'> & { data: unknown }
+
+function isSerializedBuffer(value: unknown): value is { type: 'Buffer'; data: number[] } {
+  return isRecordLike(value) && value.type === 'Buffer' && Array.isArray(value.data)
+}
+
+function hasSupportedAttachmentData(value: unknown): boolean {
+  return (
+    Buffer.isBuffer(value) ||
+    typeof value === 'string' ||
+    value instanceof ArrayBuffer ||
+    ArrayBuffer.isView(value) ||
+    Array.isArray(value) ||
+    isSerializedBuffer(value)
+  )
+}
+
+function toAttachmentBuffer(data: unknown, name: string): Buffer {
+  if (Buffer.isBuffer(data)) {
+    return data
+  }
+
+  if (isSerializedBuffer(data)) {
+    return Buffer.from(data.data)
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data)
+  }
+
+  if (ArrayBuffer.isView(data)) {
+    return Buffer.from(data.buffer, data.byteOffset, data.byteLength)
+  }
+
+  if (Array.isArray(data)) {
+    return Buffer.from(data)
+  }
+
+  if (typeof data === 'string') {
+    const trimmed = data.trim()
+    if (trimmed.startsWith('data:')) {
+      const [, base64Data] = trimmed.split(',')
+      return Buffer.from(base64Data ?? '', 'base64')
+    }
+    return Buffer.from(trimmed, 'base64')
+  }
+
+  throw new Error(`Attachment '${name}' has unsupported data format`)
+}
+
+function isWebhookAttachmentInput(value: unknown): value is WebhookAttachmentInput {
+  if (!isRecordLike(value)) {
+    return false
+  }
+
+  return (
+    typeof value.name === 'string' &&
+    typeof value.size === 'number' &&
+    hasSupportedAttachmentData(value.data) &&
+    (value.contentType === undefined || typeof value.contentType === 'string') &&
+    (value.mimeType === undefined || typeof value.mimeType === 'string')
+  )
+}
+
+function normalizeWebhookAttachment(value: unknown): WebhookAttachment | null {
+  if (!isWebhookAttachmentInput(value)) {
+    return null
+  }
+
+  return {
+    name: value.name,
+    data: toAttachmentBuffer(value.data, value.name),
+    contentType: value.contentType,
+    mimeType: value.mimeType,
+    size: value.size,
+  }
+}
+
+function normalizeWebhookAttachments(value: unknown): WebhookAttachment[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap((attachment) => {
+    const normalized = normalizeWebhookAttachment(attachment)
+    return normalized ? [normalized] : []
+  })
+}
+
+export function buildWebhookCorrelation(
+  payload: WebhookExecutionJobPayload
+): AsyncExecutionCorrelation {
+  const executionId = payload.executionId || generateId()
+  const requestId = payload.requestId || payload.correlation?.requestId || executionId.slice(0, 8)
+
+  return {
+    executionId,
+    requestId,
+    source: 'webhook',
+    workflowId: payload.workflowId,
+    webhookId: payload.webhookId,
+    path: payload.path,
+    provider: payload.provider,
+    triggerType: payload.correlation?.triggerType || 'webhook',
+  }
+}
+
+/**
+ * Process trigger outputs based on their schema definitions.
+ * Finds outputs marked as 'file' or 'file[]' and uploads them to execution storage.
+ */
+async function processTriggerFileOutputs(
+  input: unknown,
+  triggerOutputs: Record<string, unknown>,
+  context: {
+    workspaceId: string
+    workflowId: string
+    executionId: string
+    requestId: string
+    userId?: string
+    projectDiagnosticError: (
+      error: unknown,
+      details?: Record<string, unknown>
+    ) => Record<string, unknown>
+  },
+  path = ''
+): Promise<unknown> {
+  if (!input || typeof input !== 'object') {
+    return input
+  }
+
+  const processed = (Array.isArray(input) ? [] : {}) as Record<string, unknown>
+
+  for (const [key, value] of Object.entries(input)) {
+    const currentPath = path ? `${path}.${key}` : key
+    const outputDef = triggerOutputs[key] as Record<string, unknown> | undefined
+
+    if (outputDef?.type === 'file[]' && Array.isArray(value)) {
+      try {
+        processed[key] = await WebhookAttachmentProcessor.processAttachments(
+          normalizeWebhookAttachments(value),
+          context
+        )
+      } catch {
+        processed[key] = []
+      }
+    } else if (outputDef?.type === 'file' && value) {
+      const attachment = normalizeWebhookAttachment(value)
+      if (!attachment) {
+        processed[key] = value
+        continue
+      }
+
+      try {
+        const [processedFile] = await WebhookAttachmentProcessor.processAttachments(
+          [attachment],
+          context
+        )
+        processed[key] = processedFile
+      } catch (error) {
+        logger.error(
+          `[${context.requestId}] Error processing ${currentPath}`,
+          context.projectDiagnosticError(error, { path: currentPath })
+        )
+        processed[key] = value
+      }
+    } else if (
+      outputDef &&
+      typeof outputDef === 'object' &&
+      (outputDef.type === 'object' || outputDef.type === 'json') &&
+      outputDef.properties
+    ) {
+      processed[key] = await processTriggerFileOutputs(
+        value,
+        outputDef.properties as Record<string, unknown>,
+        context,
+        currentPath
+      )
+    } else if (outputDef && typeof outputDef === 'object' && !outputDef.type) {
+      processed[key] = await processTriggerFileOutputs(
+        value,
+        outputDef as Record<string, unknown>,
+        context,
+        currentPath
+      )
+    } else {
+      processed[key] = value
+    }
+  }
+
+  return processed
+}
+
+export type WebhookExecutionPayload = {
+  webhookId: string
+  workflowId: string
+  principal: SerializedPrincipalV1
+  userId: string
+  billingAttribution: BillingAttributionSnapshot
+  executionId?: string
+  requestId?: string
+  correlation?: AsyncExecutionCorrelation
+  provider: string
+  body: unknown
+  headers: Record<string, string>
+  /** Request URL query parameters; absent when the request had none or on legacy queued jobs. */
+  query?: Record<string, string>
+  /** HTTP method the delivery arrived with; absent on legacy queued jobs. */
+  method?: string
+  path: string
+  blockId?: string
+  /** Immutable deployment admitted by webhook ingress; absent on legacy queued jobs. */
+  deploymentVersionId?: string
+  workspaceId: string
+  credentialId?: string
+  /** Epoch ms when the webhook HTTP request was first received (for dispatch-latency metrics). */
+  webhookReceivedAt?: number
+  /** Epoch ms of the originating provider interaction (e.g. Slack x-slack-request-timestamp). */
+  triggerTimestampMs?: number
+  /** Trusted attempt budget resolved before the webhook enters the queue. */
+  executionTimeoutMs?: number
+  /**
+   * How many times this delivery was already requeued after a retryable
+   * infrastructure failure during setup (before any block ran). Absent on
+   * first delivery and on legacy queued jobs.
+   */
+  infraRetryCount?: number
+}
+
+const WEBHOOK_INFRA_RETRY_BASE_MS = envNumber(env.WEBHOOK_INFRA_RETRY_BASE_MS, 30_000, {
+  min: 1,
+  integer: true,
+})
+
+const WEBHOOK_INFRA_RETRY_MAX_MS = envNumber(env.WEBHOOK_INFRA_RETRY_MAX_MS, 5 * 60_000, {
+  min: 1,
+  integer: true,
+})
+
+/** Set to 0 to disable setup-failure requeues and restore fail-on-first-error behavior. */
+export const WEBHOOK_INFRA_RETRY_MAX_ATTEMPTS = envNumber(env.WEBHOOK_INFRA_RETRY_MAX_ATTEMPTS, 5, {
+  min: 0,
+  integer: true,
+})
+
+function hasRemainingWebhookInfraRetry(payload: WebhookExecutionPayload): boolean {
+  return (payload.infraRetryCount ?? 0) < WEBHOOK_INFRA_RETRY_MAX_ATTEMPTS
+}
+
+/** Bounded, jittered delay for webhook setup-failure requeues. Attempt is 1-indexed. */
+function calculateWebhookInfraRetryDelayMs(retryAttempt: number): number {
+  return Math.min(
+    WEBHOOK_INFRA_RETRY_MAX_MS,
+    Math.round(
+      backoffWithJitter(retryAttempt, null, {
+        baseMs: WEBHOOK_INFRA_RETRY_BASE_MS,
+        maxMs: WEBHOOK_INFRA_RETRY_MAX_MS,
+      })
+    )
+  )
+}
+
+/**
+ * Re-enqueues a delivery whose setup failed on retryable infrastructure,
+ * preserving the execution identity (execution id, request id, idempotency
+ * inputs) so the retry is the same delivery, not a duplicate. Returns false
+ * when the enqueue itself fails, in which case the caller must surface the
+ * original error so the run fails loudly instead of losing the delivery
+ * silently.
+ */
+async function requeueWebhookExecutionAfterSetupFailure(
+  payload: WebhookExecutionPayload,
+  correlation: AsyncExecutionCorrelation,
+  error: RetryableSetupError
+): Promise<boolean> {
+  const retryAttempt = (payload.infraRetryCount ?? 0) + 1
+  const delayMs = calculateWebhookInfraRetryDelayMs(retryAttempt)
+
+  try {
+    const retryPayload: WebhookExecutionPayload = {
+      ...payload,
+      executionId: correlation.executionId,
+      requestId: correlation.requestId,
+      correlation,
+      infraRetryCount: retryAttempt,
+    }
+    const jobId = await (await getJobQueue()).enqueue('webhook-execution', retryPayload, {
+      delayMs,
+      metadata: {
+        workflowId: payload.workflowId,
+        workspaceId: payload.workspaceId,
+        userId: payload.userId,
+        correlation,
+      },
+      maxDurationSeconds: toTriggerMaxDurationSeconds(payload.executionTimeoutMs),
+      /**
+       * The database backend executes jobs only through an in-process runner
+       * and does not apply `delayMs` to it, so the runner sleeps out the
+       * backoff itself (abort-aware, so cancellation and shutdown don't wait
+       * out the timer); the trigger.dev backend ignores this field and delays
+       * server-side.
+       */
+      runner: async (_queuedPayload: unknown, signal: AbortSignal) => {
+        await interruptibleSleep(delayMs, signal)
+        if (signal.aborted) return undefined
+        return executeWebhookJob(retryPayload, signal)
+      },
+    })
+
+    logger.warn(
+      `[${correlation.requestId}] Requeued webhook execution after retryable setup failure`,
+      {
+        workflowId: payload.workflowId,
+        webhookId: payload.webhookId,
+        executionId: correlation.executionId,
+        provider: payload.provider,
+        retryAttempt,
+        maxAttempts: WEBHOOK_INFRA_RETRY_MAX_ATTEMPTS,
+        delayMs,
+        jobId,
+        error: error.message,
+        cause: error.cause,
+      }
+    )
+    return true
+  } catch (enqueueError) {
+    logger.error(
+      `[${correlation.requestId}] Failed to requeue webhook execution after setup failure`,
+      {
+        workflowId: payload.workflowId,
+        webhookId: payload.webhookId,
+        executionId: correlation.executionId,
+        retryAttempt,
+        error: enqueueError,
+      }
+    )
+    return false
+  }
+}
+
+/**
+ * Records a terminal setup failure when no replacement will run and setup
+ * either never reached preprocessing or suppressed its failure row for a retry.
+ * Best-effort by design:
+ * the same infrastructure outage that broke setup may also break this write,
+ * in which case the faulted run remains the only signal — matching how
+ * preprocessing's own error logging degrades.
+ */
+async function recordSetupFailureWithoutRequeue(
+  payload: WebhookExecutionPayload,
+  correlation: AsyncExecutionCorrelation,
+  error: RetryableSetupError
+): Promise<void> {
+  try {
+    const loggingSession = new LoggingSession(
+      payload.workflowId,
+      correlation.executionId,
+      payload.provider,
+      correlation.requestId
+    )
+    await loggingSession.safeStart({
+      userId: payload.userId,
+      workspaceId: payload.workspaceId,
+      variables: {},
+      triggerData: { correlation },
+    })
+    await loggingSession.safeCompleteWithError({
+      error: {
+        message: error.message,
+        stackTrace: undefined,
+      },
+      traceSpans: [],
+      skipCost: true,
+    })
+  } catch (loggingError) {
+    logger.error(`[${correlation.requestId}] Failed to record terminal webhook setup failure`, {
+      workflowId: payload.workflowId,
+      executionId: correlation.executionId,
+      error: loggingError,
+    })
+  }
+}
+
+type LegacyWebhookExecutionPayload = Omit<WebhookExecutionPayload, 'principal'> & {
+  /** Jobs queued before execution principals were introduced omit this field. */
+  principal?: undefined
+}
+
+type WebhookExecutionJobPayload = WebhookExecutionPayload | LegacyWebhookExecutionPayload
+
+/** Reconstructs the exact system authority recorded by the pre-principal webhook payload. */
+function parseWebhookJobPrincipal(payload: WebhookExecutionJobPayload): WorkflowExecutionPrincipal {
+  if (payload.principal !== undefined) return parsePrincipal(payload.principal)
+  return createWebhookExecutionPrincipal({
+    webhookId: payload.webhookId,
+    workflowId: payload.workflowId,
+    workspaceId: payload.workspaceId,
+    provider: payload.provider,
+  })
+}
+
+export async function executeWebhookJob(
+  payload: WebhookExecutionJobPayload,
+  externalAbortSignal?: AbortSignal
+) {
+  const correlation = buildWebhookCorrelation(payload)
+  const executionId = correlation.executionId
+  const requestId = correlation.requestId
+  let authenticatedPayload: WebhookExecutionPayload
+  let payloadBillingAttribution: BillingAttributionSnapshot
+  let principal: WorkflowExecutionPrincipal
+  try {
+    principal = parseWebhookJobPrincipal(payload)
+    assertWebhookExecutionPrincipal(principal, payload)
+    authenticatedPayload = {
+      ...payload,
+      principal: payload.principal ?? serializePrincipal(principal),
+    }
+    payloadBillingAttribution = assertBillingAttributionSnapshot(
+      authenticatedPayload.billingAttribution
+    )
+    if (
+      payloadBillingAttribution.actorUserId !== authenticatedPayload.userId ||
+      payloadBillingAttribution.workspaceId !== authenticatedPayload.workspaceId
+    ) {
+      throw new Error('Webhook job billing attribution does not match its actor and workspace')
+    }
+  } catch (error) {
+    await releaseExecutionSlot(executionId)
+    throw error
+  }
+  const timeoutController = createTimeoutAbortController(
+    capExecutionTimeoutMs(
+      getAsyncExecutionTimeoutForBillingAttribution(payloadBillingAttribution),
+      authenticatedPayload.executionTimeoutMs
+    ),
+    externalAbortSignal
+  )
+  let operationStarted = false
+
+  try {
+    const executionDeadlineAt = getExecutionDeadlineAt(timeoutController.signal)?.getTime()
+    let admissionCompleted = true
+    if (executionDeadlineAt !== undefined) {
+      try {
+        admissionCompleted = await refreshExecutionSlotExpiry(
+          executionId,
+          executionDeadlineAt + RESERVATION_TTL_BUFFER_MS
+        )
+      } catch (error) {
+        if (!isRetryableInfrastructureError(error)) throw error
+        /** No idempotency claim or workflow block exists yet; only the usage lease was refreshed. */
+        throw new RetryableSetupError(toError(error).message, { cause: error })
+      }
+    }
+    if (!admissionCompleted) {
+      logger.warn('Queued webhook reservation expired; repeating usage admission', {
+        workflowId: authenticatedPayload.workflowId,
+        executionId,
+      })
+    }
+
+    /** A trigger, not a client, started this run. */
+    const requestContext: RequestContext = {
+      requestId,
+      client: { surface: 'webhook', source: 'trigger' },
+    }
+    return await runWithRequestContext(requestContext, async () => {
+      logger.info(`[${requestId}] Starting webhook execution`, {
+        webhookId: authenticatedPayload.webhookId,
+        workflowId: authenticatedPayload.workflowId,
+        provider: authenticatedPayload.provider,
+        userId: authenticatedPayload.userId,
+        executionId,
+      })
+
+      const idempotencyKey = IdempotencyService.createWebhookIdempotencyKey(
+        authenticatedPayload.webhookId,
+        authenticatedPayload.headers,
+        authenticatedPayload.body,
+        authenticatedPayload.provider
+      )
+
+      const runOperation = async () => {
+        operationStarted = true
+        return await executeWebhookJobInternal(
+          authenticatedPayload,
+          principal,
+          correlation,
+          timeoutController,
+          admissionCompleted
+        )
+      }
+
+      const execution = await webhookIdempotency.executeOrSkipInProgress(
+        authenticatedPayload.provider,
+        idempotencyKey,
+        runOperation,
+        undefined,
+        {
+          inProgressExpiresAt:
+            executionDeadlineAt === undefined
+              ? Date.now() + WEBHOOK_IN_PROGRESS_LEASE_SECONDS * 1000
+              : executionDeadlineAt + RESERVATION_TTL_BUFFER_MS,
+        }
+      )
+      if (!operationStarted) {
+        await releaseExecutionSlot(executionId)
+      }
+      if (execution.outcome === 'in-progress') {
+        // Ingress already acknowledged this delivery and nothing reads this job's result,
+        // so waiting on the live holder would only pin the machine and queue slot.
+        logger.info(`[${requestId}] Skipping duplicate webhook delivery already in progress`, {
+          webhookId: authenticatedPayload.webhookId,
+          workflowId: authenticatedPayload.workflowId,
+          provider: authenticatedPayload.provider,
+          executionId,
+        })
+        return {
+          success: true,
+          duplicate: true,
+          workflowId: authenticatedPayload.workflowId,
+          executionId,
+          output: {},
+          executedAt: new Date().toISOString(),
+          provider: authenticatedPayload.provider,
+        }
+      }
+      return execution.result
+    })
+  } catch (error) {
+    await releaseExecutionSlot(executionId)
+
+    /**
+     * Only typed setup failures certify that no block ran and any idempotency
+     * claim was released (or never acquired). The replacement re-admits usage
+     * and reclaims the same delivery; arbitrary execution errors must not replay.
+     */
+    if (isRetryableSetupError(error)) {
+      const hasRemainingRetry = hasRemainingWebhookInfraRetry(authenticatedPayload)
+      if (
+        hasRemainingRetry &&
+        !timeoutController.signal.aborted &&
+        (await requeueWebhookExecutionAfterSetupFailure(authenticatedPayload, correlation, error))
+      ) {
+        return {
+          success: false,
+          requeued: true,
+          workflowId: authenticatedPayload.workflowId,
+          executionId,
+          output: {},
+          executedAt: new Date().toISOString(),
+          provider: authenticatedPayload.provider,
+        }
+      }
+      if (!operationStarted || hasRemainingRetry) {
+        await recordSetupFailureWithoutRequeue(authenticatedPayload, correlation, error)
+      }
+    }
+    throw error
+  } finally {
+    timeoutController.cleanup()
+  }
+}
+
+/**
+ * Resolves `{{VAR}}` references inside a webhook's provider config.
+ *
+ * `userId` is the workflow owner, which is the personal-variable identity this
+ * config was authored against. `actorUserId` is who the run acts as, and the
+ * two are resolved separately for the same reason the executor resolves them
+ * separately: workspace variables authorize against the running identity, while
+ * personal ones stay with whoever owns them. Reading both slices as the owner —
+ * as this did — meant a webhook stopped resolving its own signing secret the
+ * moment that person left the workspace, even though the run itself was acting
+ * as the workspace billing account the whole time.
+ *
+ * Omitting `actorUserId` keeps the single-identity behavior, for callers with no
+ * run to speak of.
+ */
+export async function resolveWebhookExecutionProviderConfig<
+  T extends { id: string; providerConfig?: unknown },
+>(
+  webhookRecord: T,
+  provider: string,
+  userId: string,
+  workspaceId?: string,
+  options?: WebhookEnvResolutionOptions & {
+    onEnvironmentSnapshot?: (snapshot: EnvironmentResolutionSnapshot) => void | Promise<void>
+    actorUserId?: string
+    /** The same environment load, already started by a caller that had its identities early. */
+    environment?: Promise<EnvironmentResolutionSnapshot>
+  }
+): Promise<T & { providerConfig: Record<string, unknown> }> {
+  try {
+    if (!options) {
+      return await resolveWebhookRecordProviderConfig(webhookRecord, userId, workspaceId)
+    }
+
+    const { onEnvironmentSnapshot, actorUserId, environment, ...resolutionOptions } = options
+    if (onEnvironmentSnapshot && resolutionOptions.envVars === undefined) {
+      const snapshot = await (environment ??
+        (actorUserId && workspaceId
+          ? getExecutionEnvironment(userId, actorUserId, workspaceId)
+          : getEffectiveEnvironmentSnapshot(userId, workspaceId)))
+      await onEnvironmentSnapshot(snapshot)
+      resolutionOptions.envVars = {
+        ...snapshot.personalDecrypted,
+        ...snapshot.workspaceDecrypted,
+      }
+    }
+
+    return await resolveWebhookRecordProviderConfig(
+      webhookRecord,
+      userId,
+      workspaceId,
+      resolutionOptions
+    )
+  } catch (error) {
+    const errorMessage = toError(error).message
+    throw new Error(
+      `Failed to resolve webhook provider config for ${provider} webhook ${webhookRecord.id}: ${errorMessage}`,
+      { cause: toError(error) }
+    )
+  }
+}
+
+/**
+ * The user who owns the OAuth account behind a credential. `accountless` credentials
+ * (service accounts, managed OAuth such as a custom Slack bot) have no account row by
+ * design; `missing` means the credential or its account no longer exists.
+ */
+async function resolveCredentialAccountUserId(
+  credentialId: string
+): Promise<{ status: 'resolved'; userId: string } | { status: 'accountless' | 'missing' }> {
+  const resolved = await resolveOAuthAccountId(credentialId)
+  if (!resolved) {
+    return { status: 'missing' }
+  }
+  if (
+    resolved.credentialType === 'service_account' ||
+    resolved.credentialType === 'managed_oauth'
+  ) {
+    return { status: 'accountless' }
+  }
+  const [credentialRecord] = await db
+    .select({ userId: account.userId })
+    .from(account)
+    .where(eq(account.id, resolved.accountId))
+    .limit(1)
+  return credentialRecord
+    ? { status: 'resolved', userId: credentialRecord.userId }
+    : { status: 'missing' }
+}
+
+/**
+ * Handle execution result status (timeout, pause, resume).
+ * Shared between all provider paths to eliminate duplication.
+ */
+async function handleExecutionResult(
+  executionResult: ExecutionResult,
+  ctx: {
+    loggingSession: LoggingSession
+    timeoutController: ReturnType<typeof createTimeoutAbortController>
+    requestId: string
+    executionId: string
+    workflowId: string
+  }
+) {
+  if (
+    executionResult.status === 'cancelled' &&
+    ctx.timeoutController.isTimedOut() &&
+    ctx.timeoutController.timeoutMs
+  ) {
+    const timeoutErrorMessage = getTimeoutErrorMessage(ctx.timeoutController.timeoutMs)
+    logger.info(`[${ctx.requestId}] Webhook execution timed out`, {
+      timeoutMs: ctx.timeoutController.timeoutMs,
+    })
+    await ctx.loggingSession.markAsFailed(timeoutErrorMessage)
+  } else {
+    await handlePostExecutionPauseState({
+      result: executionResult,
+      workflowId: ctx.workflowId,
+      executionId: ctx.executionId,
+      loggingSession: ctx.loggingSession,
+    })
+  }
+
+  await ctx.loggingSession.waitForPostExecution()
+}
+
+async function executeWebhookJobInternal(
+  payload: WebhookExecutionPayload,
+  principal: WorkflowExecutionPrincipal,
+  correlation: AsyncExecutionCorrelation,
+  timeoutController: ReturnType<typeof createTimeoutAbortController>,
+  admissionCompleted: boolean
+) {
+  const { executionId, requestId } = correlation
+  const loggingSession = new LoggingSession(
+    payload.workflowId,
+    executionId,
+    payload.provider,
+    requestId
+  )
+  loggingSession.setExecutionDeadlineAt(getExecutionDeadlineAt(timeoutController.signal))
+
+  const preprocessResult = await preprocessExecution({
+    workflowId: payload.workflowId,
+    userId: payload.userId,
+    triggerType: 'webhook',
+    executionId,
+    requestId,
+    triggerData: { correlation },
+    checkRateLimit: false,
+    checkDeployment: false,
+    skipUsageLimits: admissionCompleted,
+    suppressRetryableFailureLogs: hasRemainingWebhookInfraRetry(payload),
+    workspaceId: payload.workspaceId,
+    loggingSession,
+    billingAttribution: payload.billingAttribution,
+    executionType: 'async',
+    executionDeadlineAt: getExecutionDeadlineAt(timeoutController.signal)?.getTime(),
+  })
+
+  if (!preprocessResult.success) {
+    const failure = preprocessResult.error
+    const failureMessage = failure?.message || 'Preprocessing failed in background job'
+    if (failure && failure.statusCode >= 500 && failure.retryable === true) {
+      throw new RetryableSetupError(failureMessage, { cause: failure.cause })
+    }
+    throw new Error(failureMessage)
+  }
+
+  const { actorUserId, billingAttribution, workflowRecord } = preprocessResult
+  if (!workflowRecord) {
+    throw new Error(`Workflow ${payload.workflowId} not found during preprocessing`)
+  }
+  if (!workflowRecord.isDeployed || workflowRecord.archivedAt) {
+    /**
+     * A queued delivery racing an undeploy/archive is an expected terminal
+     * condition, not a job fault: acknowledge and skip so workers do not
+     * record a failed job (or burn retries) for work that must never run.
+     */
+    logger.info(`[${requestId}] Skipping webhook execution for undeployed workflow`, {
+      workflowId: payload.workflowId,
+      archived: Boolean(workflowRecord.archivedAt),
+    })
+    await releaseExecutionSlot(executionId)
+    return {
+      success: false,
+      skipped: true,
+      workflowId: payload.workflowId,
+      executionId,
+      output: {},
+      executedAt: new Date().toISOString(),
+      provider: payload.provider,
+    }
+  }
+
+  const workspaceId = workflowRecord.workspaceId
+  if (!workspaceId) {
+    throw new Error(`Workflow ${payload.workflowId} has no associated workspace`)
+  }
+
+  const workflowVariables = (workflowRecord.variables as Record<string, unknown>) || {}
+
+  let deploymentVersionId: string | undefined
+  /**
+   * Flipped immediately before `executeWorkflowCore` is invoked. While false,
+   * no block has run and no execution effect exists, so a retryable
+   * infrastructure error may be surfaced as a `RetryableSetupError` and the
+   * whole delivery safely re-attempted. Once true, errors are never
+   * reclassified as retryable — retrying after the executor started could
+   * double-run the workflow.
+   */
+  let workflowCoreStarted = false
+
+  try {
+    return await withResourceOutboundScope({ workspaceId }, async () => {
+      /**
+       * The run's environment depends only on identities preprocessing already
+       * settled, so it loads alongside the workflow state rather than after it.
+       */
+      const environment = getExecutionEnvironment(workflowRecord.userId, actorUserId, workspaceId)
+      environment.catch(() => {})
+      const workflowStatePromise = payload.deploymentVersionId
+        ? loadWorkflowDeploymentVersionState(
+            payload.workflowId,
+            payload.deploymentVersionId,
+            workspaceId
+          )
+        : loadDeployedWorkflowState(payload.workflowId, workspaceId)
+      const [workflowData, webhookRows, credentialAccount] = await Promise.all([
+        workflowStatePromise,
+        db.select().from(webhook).where(eq(webhook.id, payload.webhookId)).limit(1),
+        payload.credentialId
+          ? resolveCredentialAccountUserId(payload.credentialId)
+          : Promise.resolve(undefined),
+      ])
+      const credentialAccountUserId =
+        credentialAccount?.status === 'resolved' ? credentialAccount.userId : undefined
+      if (credentialAccount?.status === 'missing') {
+        logger.warn(
+          `[${requestId}] Failed to resolve credential account for credential ${payload.credentialId}`
+        )
+      }
+
+      if (!workflowData) {
+        throw new Error(
+          'Workflow state not found. The workflow may not be deployed or the deployment data may be corrupted.'
+        )
+      }
+
+      const { blocks, edges, loops, parallels } = workflowData
+      deploymentVersionId =
+        'deploymentVersionId' in workflowData
+          ? (workflowData.deploymentVersionId as string)
+          : undefined
+
+      const handler = getProviderHandler(payload.provider)
+
+      let input: Record<string, unknown> | null = null
+      let skipMessage: string | undefined
+
+      const webhookRecord = webhookRows[0]
+      if (!webhookRecord) {
+        throw new Error(`Webhook record not found: ${payload.webhookId}`)
+      }
+
+      const secretScope = { userId: workflowRecord.userId, workspaceId }
+      let resolvedSecretTraceRegistry = createIncompleteResolvedSecretTraceRegistry(secretScope)
+      let preloadedEnvironment: PreloadedExecutionEnvironment | undefined
+      const resolvedWebhookRecord = await resolveWebhookExecutionProviderConfig(
+        webhookRecord,
+        payload.provider,
+        workflowRecord.userId,
+        workspaceId,
+        {
+          /**
+           * The identity preprocessing already elected for this run, so the
+           * provider config resolves against exactly the workspace variables the
+           * run's own blocks will see rather than against a second, narrower
+           * selection derived from the workflow owner.
+           */
+          actorUserId,
+          environment,
+          onEnvironmentSnapshot: async (secretEnvironment) => {
+            preloadedEnvironment = {
+              personalUserId: workflowRecord.userId,
+              workspaceUserId: actorUserId,
+              workspaceId,
+              snapshot: secretEnvironment,
+            }
+            try {
+              resolvedSecretTraceRegistry = await createResolvedSecretTraceRegistry({
+                personalEncrypted: secretEnvironment.personalEncrypted,
+                workspaceEncrypted: secretEnvironment.workspaceEncrypted,
+                personalDecrypted: secretEnvironment.personalDecrypted,
+                workspaceDecrypted: secretEnvironment.workspaceDecrypted,
+                decryptionFailures: secretEnvironment.decryptionFailures,
+                personalOwners: secretEnvironment.personalOwners,
+                workspaceUnredactedKeys: secretEnvironment.workspaceUnredactedKeys,
+                scope: secretScope,
+              })
+            } catch (error) {
+              logger.warn(
+                `[${requestId}] Failed to build webhook trace secret catalog`,
+                loggingSession.projectDiagnosticError(error)
+              )
+              resolvedSecretTraceRegistry = createIncompleteResolvedSecretTraceRegistry(secretScope)
+            }
+            loggingSession.setResolvedSecretTraceRegistry(resolvedSecretTraceRegistry)
+          },
+          onResolved: (name, value) => {
+            resolvedSecretTraceRegistry.recordResolved(name, value)
+          },
+        }
+      )
+
+      if (handler.formatInput) {
+        const result = await handler.formatInput({
+          webhook: resolvedWebhookRecord,
+          workflow: { id: payload.workflowId, userId: payload.userId },
+          body: payload.body,
+          headers: payload.headers,
+          query: payload.query ?? {},
+          method: payload.method ?? '',
+          requestId,
+        })
+        input = result.input as Record<string, unknown> | null
+        skipMessage = result.skip?.message
+      } else {
+        input = payload.body as Record<string, unknown> | null
+      }
+
+      if (!input && handler.handleEmptyInput) {
+        const skipResult = handler.handleEmptyInput(requestId)
+        if (skipResult) {
+          skipMessage = skipResult.message
+        }
+      }
+
+      if (skipMessage) {
+        await loggingSession.safeStart({
+          userId: actorUserId,
+          actorUserId,
+          billingAttribution,
+          workspaceId,
+          variables: {},
+          triggerData: {
+            isTest: false,
+            correlation,
+          },
+          deploymentVersionId,
+        })
+
+        await loggingSession.safeComplete({
+          endedAt: new Date().toISOString(),
+          totalDurationMs: 0,
+          finalOutput: { message: skipMessage },
+          traceSpans: [],
+        })
+
+        return {
+          success: true,
+          workflowId: payload.workflowId,
+          executionId,
+          output: { message: skipMessage },
+          executedAt: new Date().toISOString(),
+        }
+      }
+
+      if (input && payload.blockId && blocks[payload.blockId]) {
+        try {
+          const triggerBlock = blocks[payload.blockId]
+          const rawSelectedTriggerId = triggerBlock?.subBlocks?.selectedTriggerId?.value
+          const rawTriggerId = triggerBlock?.subBlocks?.triggerId?.value
+
+          let resolvedTriggerId = [rawSelectedTriggerId, rawTriggerId].find(
+            (candidate): candidate is string =>
+              typeof candidate === 'string' && isTriggerValid(candidate)
+          )
+
+          if (!resolvedTriggerId) {
+            const blockConfig = getBlock(triggerBlock.type)
+            if (blockConfig?.category === 'triggers' && isTriggerValid(triggerBlock.type)) {
+              resolvedTriggerId = triggerBlock.type
+            } else if (triggerBlock.triggerMode && blockConfig?.triggers?.enabled) {
+              const available = blockConfig.triggers?.available?.[0]
+              if (available && isTriggerValid(available)) {
+                resolvedTriggerId = available
+              }
+            }
+          }
+
+          if (resolvedTriggerId) {
+            const triggerConfig = getTrigger(resolvedTriggerId)
+
+            if (triggerConfig.outputs) {
+              const processedInput = await processTriggerFileOutputs(input, triggerConfig.outputs, {
+                workspaceId,
+                workflowId: payload.workflowId,
+                executionId,
+                requestId,
+                userId: payload.userId,
+                projectDiagnosticError: (error, details) =>
+                  loggingSession.projectDiagnosticError(error, details),
+              })
+              safeAssign(input, processedInput as Record<string, unknown>)
+            }
+          }
+        } catch (error) {
+          logger.error(
+            `[${requestId}] Error processing trigger file outputs`,
+            loggingSession.projectDiagnosticError(error)
+          )
+        }
+      }
+
+      if (input && handler.processInputFiles && payload.blockId && blocks[payload.blockId]) {
+        try {
+          await handler.processInputFiles({
+            input,
+            blocks,
+            blockId: payload.blockId,
+            workspaceId,
+            workflowId: payload.workflowId,
+            executionId,
+            requestId,
+            userId: payload.userId,
+          })
+        } catch (error) {
+          logger.error(
+            `[${requestId}] Error processing provider-specific files`,
+            loggingSession.projectDiagnosticError(error)
+          )
+        }
+      }
+
+      logger.info(`[${requestId}] Executing workflow for ${payload.provider} webhook`)
+
+      const metadata: ExecutionMetadata = {
+        requestId,
+        executionId,
+        workflowId: payload.workflowId,
+        workspaceId,
+        userId: actorUserId!,
+        principal,
+        billingAttribution,
+        sessionUserId: undefined,
+        workflowUserId: workflowRecord.userId,
+        triggerType: payload.provider || 'webhook',
+        triggerBlockId: payload.blockId,
+        useDraftState: false,
+        startTime: new Date().toISOString(),
+        isClientSession: false,
+        credentialAccountUserId,
+        correlation,
+        workflowStateOverride: {
+          blocks,
+          edges,
+          loops: loops || {},
+          parallels: parallels || {},
+          deploymentVersionId,
+        },
+      }
+
+      const triggerInput = input || {}
+
+      /**
+       * Surface the pre-execution latency that per-block timings cannot see: the
+       * gap between webhook receipt and the first block running, and — for
+       * trigger_id-bound providers like Slack — the true age of the interaction
+       * against its 3s expiry window. Logged structured so it is queryable/alarmable.
+       */
+      if (payload.webhookReceivedAt !== undefined || payload.triggerTimestampMs !== undefined) {
+        const now = Date.now()
+        logger.info(`[${requestId}] Webhook dispatch latency`, {
+          workflowId: payload.workflowId,
+          provider: payload.provider,
+          dispatchLatencyMs:
+            payload.webhookReceivedAt !== undefined ? now - payload.webhookReceivedAt : undefined,
+          triggerAgeMs:
+            payload.triggerTimestampMs !== undefined ? now - payload.triggerTimestampMs : undefined,
+        })
+      }
+
+      const persistedProviderConfig = toRecord(resolvedWebhookRecord.providerConfig)
+      const slackStreamConfig =
+        payload.provider === 'slack' || payload.provider === 'slack_app'
+          ? readSlackStreamResponseConfig(persistedProviderConfig)
+          : null
+      if (slackStreamConfig && payload.provider !== 'slack') {
+        throw new Error('Slack trigger response streaming is only supported for custom bots')
+      }
+      const slackStreamCredentialId =
+        typeof persistedProviderConfig.credentialId === 'string'
+          ? persistedProviderConfig.credentialId
+          : null
+      if (slackStreamConfig && !slackStreamCredentialId) {
+        throw new Error('Slack stream configuration is missing its custom bot credential')
+      }
+      const slackStreamController = slackStreamConfig
+        ? await SlackExecutionStreamController.create({
+            credentialId: slackStreamCredentialId!,
+            workspaceId,
+            workflowId: payload.workflowId,
+            executionId,
+            userId: actorUserId,
+            triggerInput,
+            config: slackStreamConfig,
+            loggingSession,
+            abortSignal: timeoutController.signal,
+          })
+        : null
+
+      if (slackStreamConfig) {
+        metadata.agentEvents = true
+        metadata.includeThinking = slackStreamConfig.includeThinking
+        metadata.includeToolCalls = slackStreamConfig.includeToolCalls
+      }
+
+      const snapshot = new ExecutionSnapshot(
+        metadata,
+        workflowRecord,
+        triggerInput,
+        workflowVariables,
+        slackStreamController?.selectedOutputs ?? []
+      )
+
+      workflowCoreStarted = true
+      let executionResult: ExecutionResult
+      try {
+        executionResult = await executeWorkflowCore({
+          snapshot,
+          callbacks: slackStreamController?.callbacks ?? {},
+          ...(slackStreamController
+            ? {
+                finalizeDelivery: async (result: ExecutionResult) => {
+                  await slackStreamController.finalize(result)
+                  slackStreamController.assertSucceeded()
+                },
+              }
+            : {}),
+          loggingSession,
+          trustedInitialResolvedSecretTraceProvenance:
+            resolvedSecretTraceRegistry.exportProvenanceForValue(triggerInput),
+          preloadedEnvironment,
+          includeFileBase64: false,
+          base64MaxBytes: undefined,
+          abortSignal: timeoutController.signal,
+        })
+      } catch (error) {
+        if (slackStreamController) {
+          await slackStreamController.finalize({
+            success: false,
+            output: {},
+            error: toError(error).message,
+          })
+        }
+        throw error
+      }
+      await handleExecutionResult(executionResult, {
+        loggingSession,
+        timeoutController,
+        requestId,
+        executionId,
+        workflowId: payload.workflowId,
+      })
+
+      logger.info(`[${requestId}] Webhook execution completed`, {
+        success: executionResult.success,
+        workflowId: payload.workflowId,
+        provider: payload.provider,
+      })
+
+      return {
+        success: executionResult.success,
+        workflowId: payload.workflowId,
+        executionId,
+        output: executionResult.output,
+        executedAt: new Date().toISOString(),
+        provider: payload.provider,
+      }
+    })
+  } catch (error: unknown) {
+    const errorMessage = toError(error).message
+    const errorStack = error instanceof Error ? error.stack : undefined
+
+    /**
+     * Mirrors the schedule executor's setup boundary: an infrastructure error
+     * raised before the workflow core started left no execution effect, so it
+     * is surfaced as a `RetryableSetupError` — releasing the idempotency claim
+     * and, while attempts remain, requeueing without recording a terminal
+     * failed row for an attempt that will be retried. Exhausted retries fall
+     * through to normal failure handling but still throw typed so a provider
+     * redelivery is not rejected for a run that never happened.
+     */
+    const retryableSetupCause =
+      !workflowCoreStarted && isRetryableInfrastructureError(error)
+        ? describeRetryableInfrastructureError(error)
+        : undefined
+    if (retryableSetupCause && hasRemainingWebhookInfraRetry(payload)) {
+      logger.warn(`[${requestId}] Retryable setup failure before webhook workflow started`, {
+        workflowId: payload.workflowId,
+        provider: payload.provider,
+        cause: retryableSetupCause,
+      })
+      throw new RetryableSetupError(errorMessage, { cause: retryableSetupCause })
+    }
+
+    logFailureOnce(logger, `[${requestId}] Webhook execution failed`, error, {
+      metadata: () =>
+        loggingSession.projectDiagnosticError(error, {
+          workflowId: payload.workflowId,
+          provider: payload.provider,
+        }),
+      executionId,
+    })
+
+    const failedRunResult = () => ({
+      success: false,
+      workflowId: payload.workflowId,
+      executionId,
+      output: hasExecutionResult(error) ? error.executionResult.output : {},
+      executedAt: new Date().toISOString(),
+      provider: payload.provider,
+    })
+    const completeWithDeletedScope = (scope: ExecutionScope) => {
+      logger.info(`[${requestId}] Webhook execution ended: its ${scope} was deleted`, {
+        workflowId: payload.workflowId,
+        executionId,
+      })
+      return failedRunResult()
+    }
+
+    const deletedScope = await resolveDeletedExecutionScope(error, loggingSession)
+    if (deletedScope) return completeWithDeletedScope(deletedScope)
+
+    // A failure inside workflow execution (block error, provider 4xx, missing required field, etc.)
+    // is finalized by core and already recorded in the execution logs. That is a user/workflow error,
+    // not a trigger.dev job fault — complete the run normally so we don't fire a false alert. Errors
+    // that were not finalized came from the webhook pipeline itself, so we re-throw to fault below.
+    if (await isRecordedWorkflowFailure(error, executionId, loggingSession)) {
+      return failedRunResult()
+    }
+
+    try {
+      await loggingSession.safeStart({
+        userId: actorUserId,
+        actorUserId,
+        billingAttribution,
+        workspaceId,
+        variables: {},
+        triggerData: {
+          isTest: false,
+          correlation,
+        },
+        deploymentVersionId,
+      })
+
+      const executionResult = hasExecutionResult(error)
+        ? error.executionResult
+        : {
+            success: false,
+            output: {},
+            logs: [],
+          }
+      const { traceSpans } = buildTraceSpans(executionResult)
+
+      await loggingSession.safeCompleteWithError({
+        endedAt: new Date().toISOString(),
+        totalDurationMs: 0,
+        error: {
+          message: errorMessage || 'Webhook execution failed',
+          stackTrace: errorStack,
+        },
+        traceSpans,
+        executionState: executionResult.executionState,
+      })
+    } catch (loggingError) {
+      logger.error(
+        `[${requestId}] Failed to complete logging session`,
+        loggingSession.projectDiagnosticError(loggingError)
+      )
+    }
+
+    const scopeDeletedOnCompletion = loggingSession.getDeletedScope()
+    if (scopeDeletedOnCompletion) return completeWithDeletedScope(scopeDeletedOnCompletion)
+
+    if (retryableSetupCause) {
+      throw new RetryableSetupError(errorMessage, { cause: retryableSetupCause })
+    }
+    throw error
+  }
+}
+
+export const webhookExecution = task({
+  id: 'webhook-execution',
+  maxDuration: timeout.None,
+  machine: 'medium-1x',
+  retry: {
+    maxAttempts: 1,
+  },
+  queue: {
+    concurrencyLimit: WEBHOOK_EXECUTION_CONCURRENCY_LIMIT,
+  },
+  run: async (payload: WebhookExecutionJobPayload, { signal }: { signal: AbortSignal }) =>
+    executeWebhookJob(payload, signal),
+})

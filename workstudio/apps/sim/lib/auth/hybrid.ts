@@ -1,0 +1,279 @@
+import type { WorkflowExecutionPrincipal } from '@sim/auth/principal'
+import { createLogger } from '@sim/logger'
+import type { NextRequest } from 'next/server'
+import { API_KEY_HEADER, BEARER_PREFIX } from '@/lib/api/server/credential-headers'
+import { authenticateApiKeyFromHeader, updateApiKeyLastUsed } from '@/lib/api-key/service'
+import { getSession } from '@/lib/auth'
+import { type InternalSandboxProfile, verifyInternalToken } from '@/lib/auth/internal'
+
+const logger = createLogger('HybridAuth')
+
+export const AuthType = {
+  SESSION: 'session',
+  API_KEY: 'api_key',
+  INTERNAL_JWT: 'internal_jwt',
+} as const
+
+export type AuthTypeValue = (typeof AuthType)[keyof typeof AuthType]
+
+export interface AuthResult {
+  success: boolean
+  userId?: string
+  workspaceId?: string
+  userName?: string | null
+  userEmail?: string | null
+  authType?: AuthTypeValue
+  apiKeyType?: 'personal' | 'workspace'
+  sandboxProfile?: InternalSandboxProfile
+  principal?: WorkflowExecutionPrincipal
+  error?: string
+}
+
+/**
+ * The id whose permission group governs a request authenticated by
+ * `checkSessionOrInternalAuth`, or `null` when none does.
+ *
+ * An internal JWT's `auth.userId` is the subject the executor embedded, so
+ * keying on its presence would hand the run's actor's capabilities to a caller
+ * the executor exemption deliberately passes ungated. `authType` is the
+ * authoritative signal, and `apiKeyType` covers the personal-key case. The
+ * principal rules live on `capabilityGovernedPrincipalUserId` in
+ * `@/lib/core/application`; this reads the same decision off an `AuthResult`.
+ */
+export function capabilityGovernedAuthUserId(auth: AuthResult | undefined): string | null {
+  if (!auth?.userId) return null
+  if (auth.authType === AuthType.SESSION) return auth.userId
+  return auth.authType === AuthType.API_KEY && auth.apiKeyType === 'personal' ? auth.userId : null
+}
+
+/**
+ * Resolves userId from a verified internal JWT token.
+ * Only trusts the userId embedded in the JWT payload — never from user-controlled sources.
+ */
+function resolveUserFromJwt(
+  verification: { userId?: string; sandboxProfile?: InternalSandboxProfile },
+  options: { requireWorkflowId?: boolean }
+): AuthResult {
+  if (verification.userId) {
+    return {
+      success: true,
+      userId: verification.userId,
+      authType: AuthType.INTERNAL_JWT,
+      ...(verification.sandboxProfile ? { sandboxProfile: verification.sandboxProfile } : {}),
+    }
+  }
+
+  if (options.requireWorkflowId !== false) {
+    return { success: false, error: 'userId required but not present in JWT' }
+  }
+
+  return {
+    success: true,
+    authType: AuthType.INTERNAL_JWT,
+    ...(verification.sandboxProfile ? { sandboxProfile: verification.sandboxProfile } : {}),
+  }
+}
+
+/**
+ * Check for internal JWT authentication only.
+ * Use this for routes that should ONLY be accessible by the executor (server-to-server).
+ * Rejects session and API key authentication.
+ *
+ * @param request - The incoming request
+ * @param options - Optional configuration
+ * @param options.requireWorkflowId - Whether workflowId/userId is required (default: true)
+ */
+export async function checkInternalAuth(
+  request: NextRequest,
+  options: { requireWorkflowId?: boolean } = {}
+): Promise<AuthResult> {
+  try {
+    const authHeader = request.headers.get('authorization')
+
+    const apiKeyHeader = request.headers.get(API_KEY_HEADER)
+    if (apiKeyHeader) {
+      return {
+        success: false,
+        error: 'API key access not allowed for this endpoint. Use workflow execution instead.',
+      }
+    }
+
+    if (!authHeader?.startsWith(BEARER_PREFIX)) {
+      return {
+        success: false,
+        error: 'Internal authentication required',
+      }
+    }
+
+    const token = authHeader.split(' ')[1]
+    const verification = await verifyInternalToken(token)
+
+    if (!verification.valid) {
+      return { success: false, error: 'Invalid internal token' }
+    }
+
+    return resolveUserFromJwt(verification, options)
+  } catch (error) {
+    logger.error('Error in internal authentication:', error)
+    return {
+      success: false,
+      error: 'Authentication error',
+    }
+  }
+}
+
+/**
+ * Check for session or internal JWT authentication.
+ * Use this for routes that should be accessible by the UI and executor,
+ * but NOT by external API keys.
+ *
+ * @param request - The incoming request
+ * @param options - Optional configuration
+ * @param options.requireWorkflowId - Whether workflowId/userId is required for JWT (default: true)
+ */
+export async function checkSessionOrInternalAuth(
+  request: NextRequest,
+  options: { requireWorkflowId?: boolean } = {}
+): Promise<AuthResult> {
+  try {
+    // 1. Reject API keys first
+    const apiKeyHeader = request.headers.get(API_KEY_HEADER)
+    if (apiKeyHeader) {
+      return {
+        success: false,
+        error: 'API key access not allowed for this endpoint',
+      }
+    }
+
+    // 2. Check for internal JWT token
+    const authHeader = request.headers.get('authorization')
+    if (authHeader?.startsWith(BEARER_PREFIX)) {
+      const token = authHeader.split(' ')[1]
+      const verification = await verifyInternalToken(token)
+
+      if (verification.valid) {
+        return resolveUserFromJwt(verification, options)
+      }
+    }
+
+    // 3. Try session auth (for web UI)
+    const session = await getSession()
+    if (session?.user?.id) {
+      if (!session.session?.id) throw new Error('Authenticated session is missing its session ID')
+      return {
+        success: true,
+        userId: session.user.id,
+        userName: session.user.name,
+        userEmail: session.user.email,
+        authType: AuthType.SESSION,
+        principal: {
+          kind: 'session',
+          userId: session.user.id,
+          sessionId: session.session.id,
+        },
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Unauthorized',
+    }
+  } catch (error) {
+    logger.error('Error in session/internal authentication:', error)
+    return {
+      success: false,
+      error: 'Authentication error',
+    }
+  }
+}
+
+/**
+ * Check for authentication using any of the 3 supported methods:
+ * 1. Internal JWT authentication (Authorization: Bearer header)
+ * 2. Explicit API key authentication (X-API-Key header)
+ * 3. Session authentication (cookies)
+ *
+ * For internal JWT calls, requires workflowId to determine user context
+ */
+export async function checkHybridAuth(
+  request: NextRequest,
+  options: { requireWorkflowId?: boolean } = {}
+): Promise<AuthResult> {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader?.startsWith(BEARER_PREFIX)) {
+      const token = authHeader.split(' ')[1]
+      const verification = await verifyInternalToken(token)
+
+      if (verification.valid) {
+        return resolveUserFromJwt(verification, options)
+      }
+    }
+
+    if (request.headers.has(API_KEY_HEADER)) {
+      const apiKeyHeader = request.headers.get(API_KEY_HEADER) ?? ''
+      const result = await authenticateApiKeyFromHeader(apiKeyHeader)
+      if (result.success) {
+        if (!result.keyId || !result.keyType || !result.userId) {
+          throw new Error('API key authentication returned incomplete identity')
+        }
+        let principal: WorkflowExecutionPrincipal
+        if (result.keyType === 'personal') {
+          principal = { kind: 'personal_api_key', userId: result.userId, keyId: result.keyId }
+        } else {
+          if (!result.workspaceId) {
+            throw new Error('Workspace API key authentication returned no workspace scope')
+          }
+          principal = {
+            kind: 'workspace_api_key',
+            workspaceId: result.workspaceId,
+            keyId: result.keyId,
+          }
+        }
+        updateApiKeyLastUsed(result.keyId)
+        return {
+          success: true,
+          userId: result.userId,
+          workspaceId: result.workspaceId,
+          authType: AuthType.API_KEY,
+          apiKeyType: result.keyType,
+          principal,
+        }
+      }
+
+      return {
+        success: false,
+        error: 'Invalid API key',
+      }
+    }
+
+    const session = await getSession()
+    if (session?.user?.id) {
+      if (!session.session?.id) throw new Error('Authenticated session is missing its session ID')
+      return {
+        success: true,
+        userId: session.user.id,
+        userName: session.user.name,
+        userEmail: session.user.email,
+        authType: AuthType.SESSION,
+        principal: {
+          kind: 'session',
+          userId: session.user.id,
+          sessionId: session.session.id,
+        },
+      }
+    }
+
+    // No authentication found
+    return {
+      success: false,
+      error: 'Unauthorized',
+    }
+  } catch (error) {
+    logger.error('Error in hybrid authentication:', error)
+    return {
+      success: false,
+      error: 'Authentication error',
+    }
+  }
+}

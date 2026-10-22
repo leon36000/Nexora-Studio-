@@ -1,0 +1,37 @@
+---
+title: Connector types
+description: Discover knowledge connectors and their authentication and source-configuration schemas.
+---
+
+import { CommandTable } from '@/components/ui/command-table'
+
+Discover knowledge connectors and their authentication and source-configuration schemas.
+
+Use `--detail full` to inspect a connector’s configuration before creating it.
+
+These commands accept the [global options](/cli/commands#global-options).
+
+## List connector types
+
+```bash
+sim connector-types list [options]
+```
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--search <value>` | No | Case-insensitive substring match against the connector name. |
+| `--detail <value>` | No | Projection of each item. `summary` (the default) carries the identifier, name, description, and auth mode; `full` adds the version, the complete auth settings, the `sourceConfig` field schema, incremental-sync support, and tag definitions. Accepted values: `summary`, `full`. |
+| `--limit <n>` | No | Maximum items to return (0 for everything). Defaults to `100`. |
+| `--cursor <value>` | No | Continue from nextCursor returned by a previous result. |
+
+</CommandTable>
+
+API request and response schemas: [listConnectorTypes](/api-reference/catalog/listConnectorTypes).
+
+## Related docs
+
+- [Create and sync knowledge connectors](/cli/knowledge#connectors)

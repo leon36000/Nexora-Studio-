@@ -1,0 +1,85 @@
+import { TABLE_LIMITS } from '@/lib/table/constants'
+import { selectTableRowSecretProvenance } from '@/lib/table/secret-provenance-selection'
+import { enrichTableToolSchema } from '@/tools/schema-enrichers'
+import { TABLE_ID_PARAM } from '@/tools/table/params'
+import { tableSuccess } from '@/tools/table/response'
+import type { TableBulkOperationResponse, TableUpdateByFilterParams } from '@/tools/table/types'
+import type { InternalToolConfig } from '@/tools/types'
+
+export const tableUpdateRowsByFilterTool: InternalToolConfig<
+  TableUpdateByFilterParams,
+  TableBulkOperationResponse
+> = {
+  id: 'table_update_rows_by_filter',
+  name: 'Update Rows by Filter',
+  description:
+    'Update multiple rows that match filter criteria. Data is merged with existing row data.',
+  version: '1.0.0',
+
+  toolEnrichment: {
+    dependsOn: 'tableId',
+    enrichTool: (tableId, schema, desc, context) =>
+      enrichTableToolSchema(tableId, 'table_update_rows_by_filter', schema, desc, context),
+  },
+
+  params: {
+    tableId: TABLE_ID_PARAM,
+    filter: {
+      type: 'object',
+      required: true,
+      description:
+        'Filter criteria using operators like $eq, $ne, $gt, $lt, $contains, $ncontains, $startsWith, $endsWith, $in, $nin, $empty, etc.',
+      visibility: 'user-or-llm',
+    },
+    data: {
+      type: 'object',
+      required: true,
+      description: 'Fields to update (merged with existing data)',
+      visibility: 'user-or-llm',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      description: `Maximum number of rows to update (default: no limit, max: ${TABLE_LIMITS.MAX_BULK_OPERATION_SIZE})`,
+      visibility: 'user-or-llm',
+    },
+  },
+
+  operation: {
+    secretProvenance: {
+      request: (params) => selectTableRowSecretProvenance([params.data]),
+    },
+    input: (params: TableUpdateByFilterParams) => {
+      const workspaceId = params._context?.workspaceId
+      if (!workspaceId) {
+        throw new Error('Workspace ID is required in execution context')
+      }
+
+      return {
+        tableId: params.tableId,
+        filter: params.filter,
+        data: params.data,
+        limit: params.limit,
+        workspaceId,
+      }
+    },
+  },
+
+  transformResponse: async (response): Promise<TableBulkOperationResponse> => {
+    const result = await response.json()
+    const data = result.data || result
+
+    return tableSuccess({
+      updatedCount: data.updatedCount || 0,
+      updatedRowIds: data.updatedRowIds || [],
+      message: data.message || 'Rows updated successfully',
+    })
+  },
+
+  outputs: {
+    success: { type: 'boolean', description: 'Whether rows were updated' },
+    updatedCount: { type: 'number', description: 'Number of rows updated' },
+    updatedRowIds: { type: 'array', description: 'IDs of updated rows' },
+    message: { type: 'string', description: 'Status message' },
+  },
+}

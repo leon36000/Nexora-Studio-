@@ -1,0 +1,47 @@
+from dataclasses import dataclass
+
+
+@dataclass
+class UserHasProvidersError:
+    id: int
+
+
+@dataclass
+class UserHasRoutersError:
+    id: int
+
+
+@dataclass
+class InvalidUserPasswordError:
+    pass
+
+
+@dataclass
+class UserAlreadyExistsError:
+    email: str
+
+
+@dataclass
+class UserNotFoundError:
+    id: int | None = None
+    email: str | None = None
+
+
+@dataclass
+class UserIsNotAdminError:
+    pass
+
+
+@dataclass
+class UserExpiredError:
+    pass
+
+
+@dataclass
+class UserHasNoAccessToRouterError:
+    id: int
+
+
+@dataclass
+class IncorrectCurrentPasswordError:
+    user_id: int

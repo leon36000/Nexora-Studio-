@@ -1,0 +1,32 @@
+name: Delete pull request images
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ closed ]
+
+permissions: {}
+
+jobs:
+  delete-ghcr-images:
+    name: Delete the ${{ github.head_ref }} images from GHCR
+    # Fork branches cannot be built by "Run workflow" in this repository, so they leave no image to delete.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - name: Delete the ${{ github.head_ref }} images
+        run: |
+          # The branch tag, sanitized like docker/metadata-action does.
+          TAG="$(printf '%s' "$HEAD_REF" | tr -cs 'a-zA-Z0-9._-' '-')"
+          for IMAGE in api playground; do
+            VERSIONS_URL="/orgs/etalab-ia/packages/container/opengatellm%2F$IMAGE/versions"
+            VERSION_ID="$(gh api --paginate "$VERSIONS_URL" --jq ".[] | select(.metadata.container.tags | index(\"$TAG\")) | .id")"
+            if [ -n "$VERSION_ID" ]; then
+              gh api --silent --method DELETE "$VERSIONS_URL/$VERSION_ID"
+            fi
+          done

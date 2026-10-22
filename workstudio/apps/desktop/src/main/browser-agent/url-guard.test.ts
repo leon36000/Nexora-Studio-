@@ -1,0 +1,253 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+// url-guard pulls in @/main/navigation, which imports electron.
+vi.mock('electron', () => import('@/test/electron-mock'))
+
+const { mockLookup } = vi.hoisted(() => ({ mockLookup: vi.fn() }))
+
+// The real resolveHostAddresses runs; only the resolver under it is mocked, so
+// its deadline and all-addresses behaviour stay covered here.
+vi.mock('node:dns/promises', () => ({
+  default: { lookup: mockLookup },
+}))
+
+import {
+  checkAgentUrl,
+  clearHostVerdictCache,
+  isBlockedRequestUrl,
+  isBlockedSubresourceUrl,
+  subresourceNeedsResolution,
+} from '@/main/browser-agent/url-guard'
+
+describe('checkAgentUrl', () => {
+  beforeEach(() => {
+    mockLookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
+  })
+
+  it('rejects non-http(s) schemes without resolving', async () => {
+    const result = await checkAgentUrl('file:///etc/passwd')
+    expect(result.ok).toBe(false)
+    expect(mockLookup).not.toHaveBeenCalled()
+  })
+
+  it('blocks private IP literals without resolving', async () => {
+    expect((await checkAgentUrl('http://169.254.169.254/latest/meta-data')).ok).toBe(false)
+    expect((await checkAgentUrl('http://10.0.0.5/')).ok).toBe(false)
+    expect((await checkAgentUrl('http://192.168.1.1/')).ok).toBe(false)
+    expect((await checkAgentUrl('http://[fd00::1]/')).ok).toBe(false)
+    expect(mockLookup).not.toHaveBeenCalled()
+  })
+
+  it('allows loopback, so a local dev server can be opened', async () => {
+    // The panel exists to browse from this machine, and the agent already has
+    // an unrestricted shell on it. The LAN and the metadata endpoint above are
+    // a different matter and stay blocked.
+    expect((await checkAgentUrl('http://127.0.0.1:3000/')).ok).toBe(true)
+    expect((await checkAgentUrl('http://[::1]:3000/')).ok).toBe(true)
+    expect(mockLookup).not.toHaveBeenCalled()
+  })
+
+  it('still blocks a host that resolves to the LAN alongside loopback', async () => {
+    mockLookup.mockResolvedValue([
+      { address: '127.0.0.1', family: 4 },
+      { address: '192.168.0.9', family: 4 },
+    ])
+    expect((await checkAgentUrl('http://sneaky.test/')).ok).toBe(false)
+  })
+
+  it('blocks hostnames that resolve to a private address (DNS rebinding)', async () => {
+    mockLookup.mockResolvedValue([{ address: '10.1.2.3', family: 4 }])
+    expect((await checkAgentUrl('https://rebind.evil.test/')).ok).toBe(false)
+  })
+
+  it('fails closed when DNS resolution fails', async () => {
+    mockLookup.mockRejectedValue(new Error('ENOTFOUND'))
+    expect((await checkAgentUrl('https://nope.invalid/')).ok).toBe(false)
+  })
+
+  it('fails closed when the DNS lookup exceeds the deadline', async () => {
+    vi.useFakeTimers()
+    try {
+      mockLookup.mockReturnValue(new Promise(() => {})) // never resolves
+      const pending = checkAgentUrl('https://slow.test/')
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect((await pending).ok).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('isBlockedRequestUrl', () => {
+  it('blocks literal private/reserved hosts', () => {
+    expect(isBlockedRequestUrl('http://169.254.169.254/latest/meta-data')).toBe(true)
+    expect(isBlockedRequestUrl('http://10.0.0.5/x')).toBe(true)
+    expect(isBlockedRequestUrl('https://[fd00::1]/')).toBe(true)
+  })
+
+  it('allows loopback subresources, so a local page can load its own assets', () => {
+    expect(isBlockedRequestUrl('http://127.0.0.1:8080/app.js')).toBe(false)
+    expect(isBlockedRequestUrl('http://[::1]:8080/app.css')).toBe(false)
+  })
+})
+
+describe('isBlockedSubresourceUrl', () => {
+  beforeEach(() => {
+    clearHostVerdictCache()
+    mockLookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
+  })
+
+  it('blocks a public hostname whose A record points at a private address', async () => {
+    mockLookup.mockResolvedValue([{ address: '10.0.0.5', family: 4 }])
+
+    await expect(isBlockedSubresourceUrl('https://10-0-0-5.evil.example/probe.json')).resolves.toBe(
+      true
+    )
+  })
+
+  it('catches what the synchronous literal-IP backstop cannot', async () => {
+    mockLookup.mockResolvedValue([{ address: '10.0.0.5', family: 4 }])
+    const url = 'https://10-0-0-5.evil.example/probe.json'
+
+    // The gap this guard exists to close: the sync check only sees literals, so
+    // a hostname with a private A record sailed through it.
+    expect(isBlockedRequestUrl(url)).toBe(false)
+    await expect(isBlockedSubresourceUrl(url)).resolves.toBe(true)
+  })
+
+  it('blocks a websocket to a privately-resolving host', async () => {
+    mockLookup.mockResolvedValue([{ address: '172.16.4.4', family: 4 }])
+
+    await expect(isBlockedSubresourceUrl('ws://internal.evil.example/socket')).resolves.toBe(true)
+  })
+
+  it('blocks IPv6-mapped and link-local literals without resolving', async () => {
+    await expect(isBlockedSubresourceUrl('http://169.254.169.254/latest/meta-data')).resolves.toBe(
+      true
+    )
+    await expect(isBlockedSubresourceUrl('http://[::ffff:10.0.0.5]/x')).resolves.toBe(true)
+    expect(mockLookup).not.toHaveBeenCalled()
+  })
+
+  it('keeps the deliberate loopback carve-out', async () => {
+    await expect(isBlockedSubresourceUrl('http://127.0.0.1:3000/x')).resolves.toBe(false)
+    expect(mockLookup).not.toHaveBeenCalled()
+  })
+
+  it('re-resolves once the verdict expires', async () => {
+    vi.useFakeTimers()
+    try {
+      await isBlockedSubresourceUrl('https://example.com/a.js')
+      expect(mockLookup).toHaveBeenCalledTimes(1)
+
+      await vi.advanceTimersByTimeAsync(30_001)
+      mockLookup.mockResolvedValue([{ address: '10.0.0.5', family: 4 }])
+      await expect(isBlockedSubresourceUrl('https://example.com/a.js')).resolves.toBe(true)
+      expect(mockLookup).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('caches a blocked verdict too, not only an allowed one', async () => {
+    mockLookup.mockResolvedValue([{ address: '10.0.0.5', family: 4 }])
+
+    await expect(isBlockedSubresourceUrl('https://internal.example/a.js')).resolves.toBe(true)
+    await expect(isBlockedSubresourceUrl('https://internal.example/b.js')).resolves.toBe(true)
+
+    expect(mockLookup).toHaveBeenCalledTimes(1)
+  })
+
+  it('shares one lookup across concurrent requests to the same host', async () => {
+    // Sequential calls would pass on the result cache alone; a page issues these
+    // in parallel, and one getaddrinfo per request saturates the libuv pool.
+    await Promise.all([
+      isBlockedSubresourceUrl('https://example.com/a.js'),
+      isBlockedSubresourceUrl('https://example.com/b.js'),
+      isBlockedSubresourceUrl('https://example.com/c.js'),
+      isBlockedSubresourceUrl('wss://example.com/socket'),
+    ])
+
+    expect(mockLookup).toHaveBeenCalledTimes(1)
+  })
+
+  it('bounds DNS concurrency across distinct hostile hostnames', async () => {
+    let active = 0
+    let peak = 0
+    const releases: Array<() => void> = []
+    mockLookup.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          active++
+          peak = Math.max(peak, active)
+          releases.push(() => {
+            active--
+            resolve([{ address: '93.184.216.34', family: 4 }])
+          })
+        })
+    )
+
+    const verdicts = Array.from({ length: 24 }, (_, index) =>
+      isBlockedSubresourceUrl(`https://parallel-${index}.example/app.js`)
+    )
+    await vi.waitFor(() => expect(mockLookup).toHaveBeenCalledTimes(8))
+    releases.splice(0).forEach((release) => release())
+    await vi.waitFor(() => expect(mockLookup).toHaveBeenCalledTimes(16))
+    releases.splice(0).forEach((release) => release())
+    await vi.waitFor(() => expect(mockLookup).toHaveBeenCalledTimes(24))
+    releases.splice(0).forEach((release) => release())
+    await Promise.all(verdicts)
+
+    expect(peak).toBe(8)
+    expect(mockLookup).toHaveBeenCalledTimes(24)
+  })
+
+  it('bounds queued requests by the original DNS deadline', async () => {
+    vi.useFakeTimers()
+    try {
+      mockLookup.mockReturnValue(new Promise(() => {}))
+      const verdicts = Array.from({ length: 16 }, (_, index) =>
+        isBlockedSubresourceUrl(`https://slow-${index}.example/app.js`)
+      )
+      await vi.advanceTimersByTimeAsync(5_000)
+
+      await expect(Promise.all(verdicts)).resolves.toEqual(Array(16).fill(true))
+      expect(mockLookup).toHaveBeenCalledTimes(8)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('fails closed when the host does not resolve, without caching that', async () => {
+    mockLookup.mockRejectedValueOnce(new Error('ENOTFOUND'))
+    await expect(isBlockedSubresourceUrl('https://flaky.example/a.js')).resolves.toBe(true)
+
+    mockLookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
+    await expect(isBlockedSubresourceUrl('https://flaky.example/a.js')).resolves.toBe(false)
+  })
+
+  it('bounds the verdict cache', async () => {
+    for (let i = 0; i < 300; i++) {
+      await isBlockedSubresourceUrl(`https://host-${i}.example/a.js`)
+    }
+    mockLookup.mockClear()
+
+    // The earliest hosts were evicted, so they resolve again; the newest do not.
+    await isBlockedSubresourceUrl('https://host-0.example/a.js')
+    await isBlockedSubresourceUrl('https://host-299.example/a.js')
+    expect(mockLookup).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('subresourceNeedsResolution', () => {
+  it('exempts only fonts from hostname resolution', () => {
+    expect(subresourceNeedsResolution('font')).toBe(false)
+  })
+
+  it('checks an unrecognised label rather than exempting it', () => {
+    // fetch is `xhr` on some Chromium versions and `other` on others; a label
+    // this code has never heard of must not be the one that skips the check.
+    expect(subresourceNeedsResolution('other')).toBe(true)
+    expect(subresourceNeedsResolution('someFutureType')).toBe(true)
+  })
+})

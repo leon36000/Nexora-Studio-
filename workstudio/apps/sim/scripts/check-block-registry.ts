@@ -1,0 +1,428 @@
+#!/usr/bin/env bun
+
+/**
+ * CI check: enforces block-registry invariants that protect the runtime.
+ *
+ * Checks run in sequence:
+ *
+ * 1. **Subblock ID stability** — diffs the current registry against a base ref
+ *    and fails if any subblock ID was removed without a corresponding entry in
+ *    `SUBBLOCK_ID_MIGRATIONS`. Removing IDs without a migration breaks
+ *    deployed workflows.
+ *
+ * 2. **Canonical-id contract** — for every (block, tool) pair where the tool
+ *    param is `required: true` and `visibility: 'user-only'`, the block must
+ *    expose a subBlock whose `id` or `canonicalParamId` equals the tool param
+ *    id. The serializer's pre-execution validator depends on this contract to
+ *    resolve values via direct lookup; mismatches false-flag fields as missing
+ *    at submit time.
+ *
+ * 3. **Selector coercions** — a block's inline `tools.config.tool` may not
+ *    assign a coerced value (`Number(...)`, `parseInt(...)`, `JSON.parse(...)`,
+ *    `!!x`, unary `+`, a template literal, a comparison, …) back onto its params,
+ *    nor write to a param with a compound assignment (`+=`, `??=`, …) or `++`/`--`.
+ *    `selectToolId` runs the selector during serialization on the object that
+ *    becomes the serialized block's `params`, before `<Block.output>` references
+ *    resolve, so `params.x = Number(params.x)` turns a reference into `NaN`.
+ *    Coercions belong in `tools.config.params`, which the executor runs on
+ *    resolved inputs.
+ *
+ * Integration BlockMeta coverage and sunset `replacedBy` targets are checked too.
+ *
+ * Usage:
+ *   bun run apps/sim/scripts/check-block-registry.ts [base-ref]
+ *
+ * `base-ref` defaults to `HEAD~1`. In a PR CI pipeline, pass the merge base:
+ *   bun run apps/sim/scripts/check-block-registry.ts origin/main
+ */
+
+import { execFileSync } from 'node:child_process'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import ts from '@typescript/typescript6'
+import { SUBBLOCK_ID_MIGRATIONS } from '@/lib/workflows/migrations/subblock-migrations'
+import { getAllBlocks, getBlock, getBlockMeta, getBlockRegistry } from '@/blocks/registry'
+import { readBlockRegistryAtRef } from '@/scripts/block-registry-snapshot'
+import { getToolParams } from '@/tools/metadata'
+
+const baseRef = process.argv[2] || 'HEAD~1'
+
+const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf-8' }).trim()
+const gitOpts = { encoding: 'utf-8' as const, cwd: gitRoot }
+
+type IdMap = Record<string, Set<string>>
+
+function getCurrentIds(): IdMap {
+  const map: IdMap = {}
+  for (const block of Object.values(getBlockRegistry())) {
+    map[block.type] = new Set(block.subBlocks.map((sb) => sb.id))
+  }
+  return map
+}
+
+function getPreviousIds(): IdMap | null {
+  const changed = execFileSync(
+    'git',
+    ['diff', '--name-only', baseRef, '--', 'apps/sim/blocks', 'apps/sim/triggers'],
+    gitOpts
+  ).trim()
+  if (!changed) return null
+
+  const previous = readBlockRegistryAtRef(gitRoot, baseRef)
+  return Object.fromEntries(Object.entries(previous).map(([type, ids]) => [type, new Set(ids)]))
+}
+
+type CheckResult =
+  | { kind: 'pass'; message: string }
+  | { kind: 'skip'; message: string }
+  | { kind: 'fail'; errors: string[] }
+
+function checkSubblockIdStability(): CheckResult {
+  const previous = getPreviousIds()
+
+  if (previous === null) {
+    return {
+      kind: 'skip',
+      message: 'No block definition changes detected — skipping subblock ID stability check',
+    }
+  }
+
+  const current = getCurrentIds()
+  const errors: string[] = []
+
+  for (const [blockType, prevIds] of Object.entries(previous)) {
+    const currIds = current[blockType]
+    if (!currIds) continue
+
+    const migrations = SUBBLOCK_ID_MIGRATIONS[blockType] ?? []
+
+    for (const oldId of prevIds) {
+      if (currIds.has(oldId)) continue
+      if (migrations.some((migration) => migration.from === oldId)) continue
+
+      errors.push(
+        `Block "${blockType}": subblock ID "${oldId}" was removed.\n` +
+          `  → Add a migration in SUBBLOCK_ID_MIGRATIONS (lib/workflows/migrations/subblock-migrations.ts)\n` +
+          `    mapping "${oldId}" to its replacement ID.`
+      )
+    }
+  }
+
+  if (errors.length === 0) {
+    return { kind: 'pass', message: 'Subblock ID stability check passed' }
+  }
+  return { kind: 'fail', errors }
+}
+
+function checkCanonicalIdContract(): CheckResult {
+  const errors: string[] = []
+
+  for (const block of getAllBlocks()) {
+    const access: string[] = block.tools?.access ?? []
+    if (access.length === 0) continue
+
+    // A subBlock with `canonicalParamId` has its raw `id` deleted from `params` during
+    // canonical-group resolution in `extractParams` (serializer/index.ts), so the raw id is
+    // NOT a valid lookup key at execution time — only the canonical is. Tool params must
+    // align with the canonical, not the raw id.
+    const subBlockKeys = new Set<string>()
+    for (const sb of block.subBlocks ?? []) {
+      const canonical = (sb as { canonicalParamId?: string }).canonicalParamId
+      if (canonical) {
+        subBlockKeys.add(canonical)
+      } else if (sb.id) {
+        subBlockKeys.add(sb.id)
+      }
+    }
+
+    for (const toolId of access) {
+      const toolParams = getToolParams(toolId)
+      if (!toolParams) continue
+
+      for (const [paramId, paramConfig] of Object.entries(toolParams)) {
+        if (!paramConfig || typeof paramConfig !== 'object') continue
+        const required = (paramConfig as { required?: boolean }).required === true
+        const userOnly = (paramConfig as { visibility?: string }).visibility === 'user-only'
+        if (!required || !userOnly) continue
+
+        if (!subBlockKeys.has(paramId)) {
+          errors.push(
+            `Block "${block.type}" → tool "${toolId}": required user-only param "${paramId}" has no subBlock with id or canonicalParamId === "${paramId}".\n` +
+              '  → Rename a subBlock id or canonicalParamId to match the tool param id,\n' +
+              "    and update the block's inputs + tools.config.params mapper to read from that key."
+          )
+        }
+      }
+    }
+  }
+
+  if (errors.length === 0) {
+    return { kind: 'pass', message: 'Canonical-id contract check passed' }
+  }
+  return { kind: 'fail', errors }
+}
+
+/**
+ * Every catalog-visible integration block must expose a `BlockMeta` entry in
+ * `BLOCK_META_REGISTRY`. The integration detail pages
+ * (`getTemplatesForBlock`/`getSuggestedSkillsForBlock`) and the landing catalog
+ * read metas by block type; a `tools`-category block that ships in the toolbar
+ * without a meta renders an empty detail page (no templates, no skills).
+ *
+ * "Catalog-visible integration" mirrors the `isIntegrationBlock` predicate in
+ * `scripts/generate-docs.ts`: `category === 'tools' && !hideFromToolbar`. Core
+ * primitives (`agent`/`api`/`function`/…), hidden/legacy base versions, and
+ * first-party `blocks`-category blocks intentionally carry no meta and are not
+ * checked. `getBlockMeta` resolves through the version suffix, so a versioned
+ * block (e.g. `github_v2`) passes via its base meta.
+ */
+function checkIntegrationMetaCoverage(): CheckResult {
+  const errors: string[] = []
+
+  for (const block of getAllBlocks()) {
+    // Unreleased preview blocks ship no BlockMeta until GA (they are absent
+    // from every catalog surface), so meta coverage must not force one. The
+    // registry projection already hides them here (no visibility context in a
+    // script), but the explicit check keeps this true regardless.
+    const isCatalogIntegration =
+      block.category === 'tools' && !block.hideFromToolbar && !block.preview
+    if (!isCatalogIntegration) continue
+
+    if (!getBlockMeta(block.type)) {
+      errors.push(
+        `Block "${block.type}" is a catalog integration (category: 'tools', not hidden) but has no BlockMeta.\n` +
+          `  → Export a \`${block.type}\`-keyed \`{Service}BlockMeta\` (tags + templates + skills) from its block file\n` +
+          '    and register it in BLOCK_META_REGISTRY (apps/sim/blocks/registry-maps.ts), alphabetically.'
+      )
+    }
+  }
+
+  if (errors.length === 0) {
+    return { kind: 'pass', message: 'Integration meta coverage check passed' }
+  }
+  return { kind: 'fail', errors }
+}
+
+function checkSunsetReplacedBy(): CheckResult {
+  const errors: string[] = []
+
+  for (const block of getAllBlocks()) {
+    const sunset = block.sunset
+    if (!sunset) continue
+
+    if (!sunset.replacedBy) {
+      // `legacy` needs a successor to render its badge + upgrade action; `deprecated`
+      // (red) legitimately badges without one.
+      if (sunset.status === 'legacy') {
+        errors.push(
+          `Block "${block.type}" is sunset (legacy) but has no replacedBy — legacy blocks must name a successor or they render no badge.`
+        )
+      }
+      continue
+    }
+
+    const target = getBlock(sunset.replacedBy)
+    if (!target) {
+      errors.push(
+        `Block "${block.type}" is sunset with replacedBy: '${sunset.replacedBy}', but no such block exists.`
+      )
+      continue
+    }
+    if (target.sunset) {
+      errors.push(
+        `Block "${block.type}" points replacedBy: '${sunset.replacedBy}', but that block is itself sunset.`
+      )
+    }
+    if (target.preview) {
+      errors.push(
+        `Block "${block.type}" points replacedBy: '${sunset.replacedBy}', but that block is preview (not GA).`
+      )
+    }
+  }
+
+  if (errors.length === 0) {
+    return { kind: 'pass', message: 'Sunset replacedBy check passed' }
+  }
+  return { kind: 'fail', errors }
+}
+
+const COERCION_CALLEES = new Set([
+  'BigInt',
+  'Boolean',
+  'JSON.parse',
+  'Number',
+  'Number.parseFloat',
+  'Number.parseInt',
+  'String',
+  'parseFloat',
+  'parseInt',
+])
+
+const COERCING_UNARY = new Set([
+  ts.SyntaxKind.PlusToken,
+  ts.SyntaxKind.MinusToken,
+  ts.SyntaxKind.ExclamationToken,
+  ts.SyntaxKind.TildeToken,
+])
+
+const COMPARISON_OPERATORS = new Set([
+  ts.SyntaxKind.EqualsEqualsToken,
+  ts.SyntaxKind.EqualsEqualsEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsToken,
+  ts.SyntaxKind.ExclamationEqualsEqualsToken,
+  ts.SyntaxKind.LessThanToken,
+  ts.SyntaxKind.LessThanEqualsToken,
+  ts.SyntaxKind.GreaterThanToken,
+  ts.SyntaxKind.GreaterThanEqualsToken,
+])
+
+/**
+ * Whether `expression` derives a new value anywhere in it — a coercing call, a unary `+ - ! ~`,
+ * a template literal with substitutions, or a comparison — including under `??`, `||`, or a
+ * conditional. Any of these turns an unresolved `<Block.output>` reference into a fixed value.
+ */
+function isCoercion(expression: ts.Node): boolean {
+  if (ts.isPrefixUnaryExpression(expression) && COERCING_UNARY.has(expression.operator)) return true
+  if (ts.isCallExpression(expression) && COERCION_CALLEES.has(expression.expression.getText())) {
+    return true
+  }
+  if (ts.isTemplateExpression(expression)) return true
+  if (
+    ts.isBinaryExpression(expression) &&
+    COMPARISON_OPERATORS.has(expression.operatorToken.kind)
+  ) {
+    return true
+  }
+  return ts.forEachChild(expression, (child) => (isCoercion(child) ? true : undefined)) ?? false
+}
+
+function findSelectorCoercions(file: string, source: ts.SourceFile): string[] {
+  const errors: string[] = []
+  const visit = (node: ts.Node) => {
+    const selector =
+      ts.isPropertyAssignment(node) || ts.isMethodDeclaration(node) ? node : undefined
+    const config = selector?.parent.parent
+    if (
+      selector &&
+      ts.isIdentifier(selector.name) &&
+      selector.name.text === 'tool' &&
+      config &&
+      ts.isPropertyAssignment(config) &&
+      ts.isIdentifier(config.name) &&
+      config.name.text === 'config'
+    ) {
+      const fn = ts.isMethodDeclaration(selector) ? selector : selector.initializer
+      const paramsName =
+        (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn) || ts.isMethodDeclaration(fn)) &&
+        fn.parameters[0] &&
+        ts.isIdentifier(fn.parameters[0].name)
+          ? fn.parameters[0].name.text
+          : undefined
+      const isParamsMember = (target: ts.Expression) =>
+        (ts.isPropertyAccessExpression(target) || ts.isElementAccessExpression(target)) &&
+        ts.isIdentifier(target.expression) &&
+        target.expression.text === paramsName
+      const findAssignments = (inner: ts.Node) => {
+        const operator = ts.isBinaryExpression(inner) ? inner.operatorToken.kind : undefined
+        const derivedWrite =
+          (ts.isBinaryExpression(inner) &&
+            isParamsMember(inner.left) &&
+            ((operator === ts.SyntaxKind.EqualsToken && isCoercion(inner.right)) ||
+              (operator !== undefined &&
+                operator >= ts.SyntaxKind.FirstCompoundAssignment &&
+                operator <= ts.SyntaxKind.LastCompoundAssignment))) ||
+          ((ts.isPrefixUnaryExpression(inner) || ts.isPostfixUnaryExpression(inner)) &&
+            (inner.operator === ts.SyntaxKind.PlusPlusToken ||
+              inner.operator === ts.SyntaxKind.MinusMinusToken) &&
+            isParamsMember(inner.operand))
+        if (derivedWrite) {
+          const line = source.getLineAndCharacterOfPosition(inner.getStart()).line + 1
+          errors.push(
+            `${file}:${line}: \`${inner.getText()}\` coerces a param inside tools.config.tool.\n` +
+              '  → Return the coerced value from tools.config.params instead.'
+          )
+        }
+        ts.forEachChild(inner, findAssignments)
+      }
+      if (paramsName) findAssignments(fn)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return errors
+}
+
+function checkSelectorCoercions(): CheckResult {
+  const blocksDir = join(gitRoot, 'apps/sim/blocks/blocks')
+  const errors: string[] = []
+  for (const name of readdirSync(blocksDir)) {
+    if (!name.endsWith('.ts') || name.endsWith('.test.ts')) continue
+    const path = join(blocksDir, name)
+    const source = ts.createSourceFile(
+      path,
+      readFileSync(path, 'utf-8'),
+      ts.ScriptTarget.Latest,
+      true
+    )
+    errors.push(...findSelectorCoercions(`apps/sim/blocks/blocks/${name}`, source))
+  }
+  if (errors.length === 0) {
+    return { kind: 'pass', message: 'Selector coercion check passed' }
+  }
+  return { kind: 'fail', errors }
+}
+
+function reportResult(label: string, failureHeader: string, result: CheckResult): boolean {
+  if (result.kind === 'pass') {
+    console.log(`✓ ${result.message}`)
+    return true
+  }
+  if (result.kind === 'skip') {
+    console.log(`⚠ ${result.message}`)
+    return true
+  }
+  console.error(`\n✗ ${label} FAILED\n`)
+  if (failureHeader) console.error(`${failureHeader}\n`)
+  for (const err of result.errors) {
+    console.error(`  ${err}\n`)
+  }
+  return false
+}
+
+const stabilityResult = checkSubblockIdStability()
+const canonicalResult = checkCanonicalIdContract()
+const metaCoverageResult = checkIntegrationMetaCoverage()
+const sunsetResult = checkSunsetReplacedBy()
+const selectorCoercionResult = checkSelectorCoercions()
+
+const stabilityOk = reportResult(
+  'Subblock ID stability check',
+  'Removing subblock IDs breaks deployed workflows.\nEither revert the rename or add a migration entry.',
+  stabilityResult
+)
+
+const canonicalOk = reportResult(
+  'Canonical-id contract check',
+  "Misaligned ids cause the serializer's pre-execution validator to false-flag fields as missing at submit time.",
+  canonicalResult
+)
+
+const metaCoverageOk = reportResult(
+  'Integration meta coverage check',
+  'Catalog integrations without a BlockMeta render empty detail pages (no templates, no skills).',
+  metaCoverageResult
+)
+
+const sunsetOk = reportResult(
+  'Sunset replacedBy check',
+  'A sunset block must point replacedBy at a real, GA, non-sunset successor.',
+  sunsetResult
+)
+
+const selectorCoercionOk = reportResult(
+  'Selector coercion check',
+  'tools.config.tool runs at serialization, before references resolve, so a coerced reference becomes NaN.',
+  selectorCoercionResult
+)
+
+process.exit(stabilityOk && canonicalOk && metaCoverageOk && sunsetOk && selectorCoercionOk ? 0 : 1)

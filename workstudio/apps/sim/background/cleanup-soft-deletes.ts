@@ -1,0 +1,634 @@
+import { dbFor } from '@sim/db'
+import {
+  copilotChats,
+  document,
+  folder as folderTable,
+  knowledgeBase,
+  mcpServers,
+  memory,
+  userTableDefinitions,
+  workflow,
+  workflowMcpServer,
+  workspaceFiles,
+} from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
+import { chunkArray } from '@sim/utils/helpers'
+import { task } from '@trigger.dev/sdk'
+import { and, asc, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm'
+import { type CleanupJobPayload, runCleanupWithLimits } from '@/lib/billing/cleanup-dispatcher'
+import {
+  batchDeleteByWorkspaceAndTimestamp,
+  chunkedBatchDelete,
+  chunkedBatchDeleteByScope,
+  consumeRowBudget,
+  DEFAULT_DELETE_CHUNK_SIZE,
+  type RowBudget,
+  selectRowsByIdChunks,
+} from '@/lib/cleanup/batch-delete'
+import { prepareChatCleanup } from '@/lib/cleanup/chat-cleanup'
+import type { CleanupBudgets, LimitedCleanupPayload } from '@/lib/cleanup/limits'
+import { retentionCleanupQueue } from '@/lib/cleanup/queue'
+import {
+  type CleanupOwnerScope,
+  cleanupOwnerCondition,
+  resolveCleanupOwnerScope,
+} from '@/lib/cleanup/resource-scope'
+import { beginFileArchiveCleanup, fileRetentionOwners } from '@/lib/file-retention'
+import { deduplicateFolderName } from '@/lib/folders/naming'
+import { requireWorkspaceFolder } from '@/lib/folders/scope'
+import { settleDetachedConnectorReservations } from '@/lib/knowledge/connectors/detachment'
+import { hardDeleteDocuments } from '@/lib/knowledge/documents/service'
+import { isUsingCloudStorage, StorageService } from '@/lib/uploads'
+import { deleteFileMetadata } from '@/lib/uploads/server/metadata'
+import { deduplicateWorkflowName } from '@/lib/workflows/utils'
+
+const logger = createLogger('CleanupSoftDeletes')
+
+/** Resource cleanup queries run on the dedicated cleanup pool. */
+const cleanupDb = dbFor('cleanup')
+
+const KB_ORPHAN_BINDING_BATCH_SIZE = 500
+const KB_ORPHAN_BINDING_TOTAL_LIMIT = 5_000
+/**
+ * Grace window before an unreferenced KB binding is swept. Comfortably longer
+ * than any presign → upload → document-insert flow, so an in-flight upload is
+ * never mistaken for an abandoned one.
+ */
+const KB_ORPHAN_BINDING_GRACE_HOURS = 7 * 24
+const KB_ORPHAN_BINDING_OWNER_CHUNK_SIZE = 50
+const KB_RETENTION_BATCH_SIZE = 100
+const KB_DOCUMENT_DELETE_BATCH_SIZE = 500
+const KB_DOCUMENT_DELETE_MAX_BATCHES = 50
+
+async function hardDeleteKnowledgeBaseDocuments(
+  knowledgeBaseIds: string[],
+  label: string
+): Promise<void> {
+  for (let batch = 0; batch < KB_DOCUMENT_DELETE_MAX_BATCHES; batch++) {
+    const documentRows = await cleanupDb
+      .select({ id: document.id })
+      .from(document)
+      .where(inArray(document.knowledgeBaseId, knowledgeBaseIds))
+      .orderBy(asc(document.id))
+      .limit(KB_DOCUMENT_DELETE_BATCH_SIZE)
+    if (documentRows.length === 0) return
+
+    const documentIds = documentRows.map(({ id }) => id)
+    const deleted = await hardDeleteDocuments(documentIds, `${label}/knowledgeBase`)
+    if (deleted === 0) {
+      throw new Error('Knowledge-base document hard-delete made no progress')
+    }
+  }
+
+  const remaining = await cleanupDb
+    .select({ id: document.id })
+    .from(document)
+    .where(inArray(document.knowledgeBaseId, knowledgeBaseIds))
+    .limit(1)
+  if (remaining.length > 0) {
+    throw new Error('Knowledge-base document hard-delete batch limit reached')
+  }
+}
+
+async function cleanupExpiredKnowledgeBases(
+  scope: CleanupOwnerScope,
+  retentionDate: Date,
+  label: string,
+  budget?: RowBudget
+) {
+  const options = {
+    budget,
+    tableDef: knowledgeBase,
+    tableName: `${label}/knowledgeBase`,
+    batchSize: KB_RETENTION_BATCH_SIZE,
+    dbClient: cleanupDb,
+    selectChunk: (chunkIds: string[], limit: number) =>
+      cleanupDb
+        .select({ id: knowledgeBase.id })
+        .from(knowledgeBase)
+        .where(
+          and(
+            cleanupOwnerCondition(knowledgeBase, scope, chunkIds),
+            isNotNull(knowledgeBase.deletedAt),
+            lt(knowledgeBase.deletedAt, retentionDate)
+          )
+        )
+        .limit(limit),
+    /**
+     * Re-asserted on the DELETE because `onBatch` hard-deletes documents first, which leaves a
+     * real window in which a restore can land.
+     *
+     * This narrows the window rather than closing it: the base row survives, but documents
+     * already hard-deleted by `onBatch` do not come back, so a restore landing mid-batch
+     * returns an emptied knowledge base. Closing it properly means holding a row lock across
+     * select → onBatch → delete.
+     */
+    deleteFilter: and(
+      cleanupOwnerCondition(knowledgeBase, scope),
+      isNotNull(knowledgeBase.deletedAt),
+      lt(knowledgeBase.deletedAt, retentionDate)
+    ),
+    /**
+     * The bases' DELETE cascades their connectors away, so a detached connector's reservation is
+     * settled here: an overdrawn one before the documents (their deletion floors usage at zero),
+     * the rest after them, so a deletion that fails partway leaves every step's ledger consistent.
+     */
+    onBatch: async (rows: { id: string }[]) => {
+      const knowledgeBaseIds = rows.map(({ id }) => id)
+      await settleDetachedConnectorReservations(knowledgeBaseIds, 'overdrawn')
+      await hardDeleteKnowledgeBaseDocuments(knowledgeBaseIds, label)
+      await settleDetachedConnectorReservations(knowledgeBaseIds, 'remaining')
+    },
+  }
+  return scope.kind === 'workspace'
+    ? chunkedBatchDelete({ ...options, workspaceIds: scope.ids })
+    : chunkedBatchDeleteByScope({ ...options, scopeIds: scope.ids })
+}
+
+/**
+ * Tables cleaned by the generic workspace-scoped batched DELETE. Tables whose
+ * hard-delete triggers external side effects (workflow → copilot chats cascade,
+ * workspace files → S3 storage) are handled explicitly so the SELECT that drives
+ * the external cleanup and the SELECT that drives the DB delete see the same rows.
+ */
+/** Per-run values an `onBatch` hook needs but `CLEANUP_TARGETS` cannot know at module scope. */
+interface CleanupBatchContext {
+  retentionDate: Date
+  label: string
+}
+
+/** Retry a colliding name without letting one child permanently stall unrelated folder cleanup. */
+async function reRootOne(
+  preferred: () => Promise<unknown>,
+  withUniqueName: () => Promise<unknown>,
+  subject: string,
+  label: string
+): Promise<void> {
+  try {
+    await preferred()
+    return
+  } catch (error) {
+    logger.warn(`[${label}] Re-rooting ${subject} under its deduplicated name failed; retrying`, {
+      error,
+    })
+  }
+
+  try {
+    await withUniqueName()
+  } catch (error) {
+    logger.error(`[${label}] Could not re-root ${subject}; its folder delete may stall`, { error })
+  }
+}
+
+/** Surviving workflow children need collision-free root names before their folder FK clears. */
+async function reRootActiveFolderChildren(
+  folderIds: string[],
+  retentionDate: Date,
+  label: string
+): Promise<void> {
+  if (folderIds.length === 0) return
+  /**
+   * The SELECTs below are guarded for the same reason `reRootOne` swallows: this hook rejecting
+   * IS the aborted batch it exists to prevent. A transient read failure should leave the DELETE
+   * to succeed or fail on its own merits, not turn into a guaranteed stall.
+   */
+  try {
+    await reRootActiveFolderChildrenUnguarded(folderIds, retentionDate, label)
+  } catch (error) {
+    logger.error(`[${label}] Re-rooting children of purged folders failed`, { error })
+  }
+}
+
+async function reRootActiveFolderChildrenUnguarded(
+  folderIds: string[],
+  retentionDate: Date,
+  label: string
+): Promise<void> {
+  /**
+   * Re-asserted here, not just on the DELETE. `deleteFilter` already skips a folder restored
+   * between the SELECT and this hook — but without the same check here, this hook would still
+   * strip and rename the children of a folder that then survives, leaving a live folder
+   * emptied out. Every other side effect in this sweep only touches rows that are on their way
+   * out; this one mutates rows that stay, so it is the one place where losing that race is
+   * visible to the user.
+   *
+   * This narrows the window to match the DELETE's own re-assertion rather than closing it.
+   * Closing it properly means holding a row lock across select → onBatch → delete, which
+   * nothing in this sweep does today.
+   */
+  const stillExpired = await cleanupDb
+    .select({ id: folderTable.id })
+    .from(folderTable)
+    .where(
+      and(
+        inArray(folderTable.id, folderIds),
+        isNotNull(folderTable.deletedAt),
+        lt(folderTable.deletedAt, retentionDate)
+      )
+    )
+
+  const expiredIds = stillExpired.map(({ id }) => id)
+  if (expiredIds.length === 0) return
+
+  const workflows = await cleanupDb
+    .select({ id: workflow.id, name: workflow.name, workspaceId: workflow.workspaceId })
+    .from(workflow)
+    .where(and(inArray(workflow.folderId, expiredIds), isNull(workflow.archivedAt)))
+
+  for (const row of workflows) {
+    const workspaceId = row.workspaceId
+    if (!workspaceId) continue
+    await reRootOne(
+      async () => {
+        const name = await deduplicateWorkflowName(row.name, workspaceId, null, cleanupDb)
+        await cleanupDb
+          .update(workflow)
+          .set({ folderId: null, name })
+          .where(eq(workflow.id, row.id))
+      },
+      () =>
+        cleanupDb
+          .update(workflow)
+          .set({ folderId: null, name: `${row.name} (${row.id})` })
+          .where(eq(workflow.id, row.id)),
+      `workflow ${row.id}`,
+      label
+    )
+  }
+
+  /**
+   * Subfolders are exposed to exactly the same failure. `folder.parentId` is itself
+   * `ON DELETE SET NULL`, and `folder_workspace_resource_parent_name_active_unique` keys on
+   * `coalesce(parent_id, '')`, so purging a parent re-roots a surviving active child into a
+   * namespace where its name may already be taken — the identical 23505 stall. Subfolder names therefore need the same collision handling.
+   */
+  const childFolders = await cleanupDb
+    .select({
+      id: folderTable.id,
+      name: folderTable.name,
+      workspaceId: folderTable.workspaceId,
+      resourceType: folderTable.resourceType,
+      projectId: folderTable.projectId,
+    })
+    .from(folderTable)
+    .where(and(inArray(folderTable.parentId, expiredIds), isNull(folderTable.deletedAt)))
+
+  for (const childFolder of childFolders) {
+    const row = requireWorkspaceFolder(childFolder)
+    await reRootOne(
+      async () => {
+        const name = await deduplicateFolderName(
+          cleanupDb,
+          row.workspaceId,
+          null,
+          row.name,
+          row.resourceType
+        )
+        await cleanupDb
+          .update(folderTable)
+          .set({ parentId: null, name })
+          .where(eq(folderTable.id, row.id))
+      },
+      () =>
+        cleanupDb
+          .update(folderTable)
+          .set({ parentId: null, name: `${row.name} (${row.id})` })
+          .where(eq(folderTable.id, row.id)),
+      `folder ${row.id}`,
+      label
+    )
+  }
+
+  if (workflows.length > 0) {
+    logger.warn(`[${label}] Re-rooted ${workflows.length} workflow(s) out of folders being purged`)
+  }
+}
+
+const CLEANUP_TARGETS = [
+  {
+    table: folderTable,
+    softDeleteCol: folderTable.deletedAt,
+    wsCol: folderTable.workspaceId,
+    additionalPredicate: inArray(folderTable.resourceType, ['workflow', 'knowledge_base', 'table']),
+    onBatch: (rows: { id: string }[], ctx: CleanupBatchContext) =>
+      reRootActiveFolderChildren(
+        rows.map(({ id }) => id),
+        ctx.retentionDate,
+        ctx.label
+      ),
+    budgetKey: 'folders',
+    name: 'folder',
+  },
+  {
+    table: userTableDefinitions,
+    softDeleteCol: userTableDefinitions.archivedAt,
+    wsCol: userTableDefinitions.workspaceId,
+    budgetKey: 'userTables',
+    name: 'userTableDefinitions',
+  },
+  {
+    table: memory,
+    softDeleteCol: memory.deletedAt,
+    wsCol: memory.workspaceId,
+    budgetKey: 'memories',
+    name: 'memory',
+  },
+  {
+    table: mcpServers,
+    softDeleteCol: mcpServers.deletedAt,
+    wsCol: mcpServers.workspaceId,
+    budgetKey: 'mcpServers',
+    name: 'mcpServers',
+  },
+  {
+    table: workflowMcpServer,
+    softDeleteCol: workflowMcpServer.deletedAt,
+    wsCol: workflowMcpServer.workspaceId,
+    budgetKey: 'workflowMcpServers',
+    name: 'workflowMcpServer',
+  },
+] as const
+
+/**
+ * Sweep abandoned knowledge-base ownership bindings. Knowledge upload sessions write a
+ * `workspace_files` binding before the object is stored and before any document is created.
+ * If the upload is never completed, that binding is orphaned — no
+ * `document.storageKey` ever references its key. Such bindings are inert (read access requires
+ * a live document, and the move re-point only follows referenced keys), but they accumulate,
+ * so we drop the best-effort object and soft-delete the binding once they are older than the
+ * grace window.
+ */
+async function cleanupOrphanedKnowledgeBaseBindings(
+  scope: CleanupOwnerScope,
+  label: string,
+  budget?: RowBudget
+): Promise<{ total: number; deleted: number; failed: number }> {
+  const stats = { total: 0, deleted: 0, failed: 0 }
+  if (scope.ids.length === 0) return stats
+
+  const orphanCutoff = new Date(Date.now() - KB_ORPHAN_BINDING_GRACE_HOURS * 60 * 60 * 1000)
+
+  for (const chunkIds of chunkArray(scope.ids, KB_ORPHAN_BINDING_OWNER_CHUNK_SIZE)) {
+    let attempted = 0
+    while (attempted < KB_ORPHAN_BINDING_TOTAL_LIMIT && budget?.remaining !== 0) {
+      const limit = Math.min(
+        KB_ORPHAN_BINDING_BATCH_SIZE,
+        KB_ORPHAN_BINDING_TOTAL_LIMIT - attempted,
+        budget?.remaining ?? KB_ORPHAN_BINDING_BATCH_SIZE
+      )
+      const rows = await cleanupDb
+        .select({ key: workspaceFiles.key })
+        .from(workspaceFiles)
+        .where(
+          and(
+            cleanupOwnerCondition(workspaceFiles, scope, chunkIds),
+            eq(workspaceFiles.context, 'knowledge-base'),
+            isNull(workspaceFiles.deletedAt),
+            lt(workspaceFiles.uploadedAt, orphanCutoff),
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${document} AS doc
+              WHERE doc.storage_key = ${workspaceFiles.key}
+            )`
+          )
+        )
+        .orderBy(asc(workspaceFiles.uploadedAt), asc(workspaceFiles.key))
+        .limit(limit)
+
+      if (rows.length === 0) break
+
+      consumeRowBudget(budget, rows.length)
+      const keys = rows.map((row) => row.key)
+      stats.total += keys.length
+      attempted += keys.length
+
+      let deletableKeys = keys
+      if (isUsingCloudStorage()) {
+        const result = await StorageService.deleteFiles(keys, 'knowledge-base')
+        stats.failed += result.failed.length
+        const failedKeys = new Set(result.failed.map(({ key }) => key))
+        deletableKeys = keys.filter((key) => !failedKeys.has(key))
+        for (const { key, error } of result.failed) {
+          logger.error(`[${label}] Failed to delete orphan KB object ${key}:`, { error })
+        }
+      }
+
+      let deletedThisBatch = 0
+      for (const key of deletableKeys) {
+        try {
+          await deleteFileMetadata(key)
+          deletedThisBatch++
+        } catch (error) {
+          stats.failed++
+          logger.error(`[${label}] Failed to delete orphan KB binding ${key}:`, { error })
+        }
+      }
+      stats.deleted += deletedThisBatch
+      if (budget && stats.failed) throw new Error('Orphan binding cleanup failed')
+
+      // No progress (every delete failed) — stop rather than reselect the same rows.
+      if (deletedThisBatch === 0) break
+    }
+  }
+
+  logger.info(
+    `[${label}/kb_orphan_bindings] Complete: ${stats.deleted}/${stats.total} bindings cleaned, ${stats.failed} failed`
+  )
+  return stats
+}
+
+export async function runCleanupSoftDeletes(
+  payload: CleanupJobPayload,
+  budgets?: CleanupBudgets
+): Promise<void> {
+  const startTime = Date.now()
+  const { workspaceIds, retentionHours, label } = payload
+  const scope = resolveCleanupOwnerScope(payload)
+  const fileOwners = fileRetentionOwners(payload)
+  if (scope.ids.length === 0 && fileOwners.length === 0) {
+    logger.info(`[${label}] No resource owners to process`)
+    return
+  }
+
+  const retentionDate = new Date(Date.now() - retentionHours * 60 * 60 * 1000)
+  logger.info(
+    `[${label}] Processing ${scope.ids.length} ${scope.kind} owners, cutoff: ${retentionDate.toISOString()}`
+  )
+
+  // Select workflows + files + soft-deleted chats once. These sets drive BOTH
+  // external cleanup (chats + S3) AND the DB deletes below — selecting twice
+  // could return different subsets above the LIMIT cap and orphan or
+  // prematurely purge data.
+  const [doomedWorkflows, fileArchiveCleanup, expiredSoftDeletedChats] = await Promise.all([
+    selectRowsByIdChunks(
+      workspaceIds,
+      (chunkIds, chunkLimit) =>
+        cleanupDb
+          .select({ id: workflow.id })
+          .from(workflow)
+          .where(
+            and(
+              inArray(workflow.workspaceId, chunkIds),
+              isNotNull(workflow.archivedAt),
+              lt(workflow.archivedAt, retentionDate)
+            )
+          )
+          .limit(chunkLimit),
+      { budget: budgets?.workflows }
+    ),
+    beginFileArchiveCleanup(fileOwners, {
+      cutoff: retentionDate,
+      plan: payload.plan,
+      label,
+      budgets,
+    }),
+    selectRowsByIdChunks(
+      scope.ids,
+      (chunkIds, chunkLimit) =>
+        cleanupDb
+          .select({ id: copilotChats.id })
+          .from(copilotChats)
+          .where(
+            and(
+              cleanupOwnerCondition(copilotChats, scope, chunkIds),
+              isNotNull(copilotChats.deletedAt),
+              lt(copilotChats.deletedAt, retentionDate)
+            )
+          )
+          .limit(chunkLimit),
+      { budget: budgets?.chats }
+    ),
+  ])
+
+  const doomedWorkflowIds = doomedWorkflows.map((w) => w.id)
+  const softDeletedChatIds = expiredSoftDeletedChats.map((c) => c.id)
+  let chatCleanup: { execute: () => Promise<void> } | null = null
+
+  const doomedChatIds = new Set(softDeletedChatIds)
+  if (doomedWorkflowIds.length > 0) {
+    const workflowChats = await selectRowsByIdChunks(doomedWorkflowIds, (chunkIds, chunkLimit) =>
+      cleanupDb
+        .select({ id: copilotChats.id })
+        .from(copilotChats)
+        .where(inArray(copilotChats.workflowId, chunkIds))
+        .limit(chunkLimit)
+    )
+    for (const chat of workflowChats) {
+      doomedChatIds.add(chat.id)
+    }
+  }
+  if (doomedChatIds.size > 0) {
+    chatCleanup = await prepareChatCleanup([...doomedChatIds], label)
+  }
+
+  const fileCleanup = await fileArchiveCleanup.cleanupStorage()
+
+  let totalDeleted = 0
+
+  // Delete the workflow + file rows using the exact IDs we already selected.
+  // Re-check the archive cutoff in the DELETE so a workflow restored between
+  // selection and this point survives — and with it, its chats: their rows are
+  // never cascaded, so chatCleanup.execute()'s row-existence re-check also
+  // spares their backend data and files.
+  for (const batch of chunkArray(doomedWorkflowIds, DEFAULT_DELETE_CHUNK_SIZE)) {
+    try {
+      const deleted = await cleanupDb
+        .delete(workflow)
+        .where(
+          and(
+            inArray(workflow.id, batch),
+            isNotNull(workflow.archivedAt),
+            lt(workflow.archivedAt, retentionDate)
+          )
+        )
+        .returning({ id: workflow.id })
+      totalDeleted += deleted.length
+    } catch (error) {
+      if (budgets) throw error
+      logger.error(`[${label}/workflow] Archived workflow delete failed`, { error })
+    }
+  }
+
+  // Workflow-scoped chats above are removed by the workflow FK cascade;
+  // soft-deleted mothership chats have no workflow and need their own delete.
+  // Re-check the soft-delete cutoff in the DELETE itself so a chat restored
+  // between selection and this point survives (chatCleanup.execute() below
+  // also re-checks row existence before purging external data).
+  for (const batch of chunkArray(softDeletedChatIds, DEFAULT_DELETE_CHUNK_SIZE)) {
+    try {
+      const deleted = await cleanupDb
+        .delete(copilotChats)
+        .where(
+          and(
+            inArray(copilotChats.id, batch),
+            cleanupOwnerCondition(copilotChats, scope),
+            isNotNull(copilotChats.deletedAt),
+            lt(copilotChats.deletedAt, retentionDate)
+          )
+        )
+        .returning({ id: copilotChats.id })
+      totalDeleted += deleted.length
+    } catch (error) {
+      if (budgets) throw error
+      logger.error(`[${label}/copilotChats] Soft-deleted chat delete failed`, { error })
+    }
+  }
+
+  totalDeleted += await fileCleanup.deleteRows()
+
+  const knowledgeBaseResult = await cleanupExpiredKnowledgeBases(
+    scope,
+    retentionDate,
+    label,
+    budgets?.knowledgeBases
+  )
+  totalDeleted += knowledgeBaseResult.deleted
+
+  for (const target of scope.kind === 'workspace' ? CLEANUP_TARGETS : []) {
+    const result = await batchDeleteByWorkspaceAndTimestamp({
+      budget: budgets?.[target.budgetKey],
+      tableDef: target.table,
+      workspaceIdCol: target.wsCol,
+      timestampCol: target.softDeleteCol,
+      workspaceIds,
+      retentionDate,
+      tableName: `${label}/${target.name}`,
+      requireTimestampNotNull: true,
+      additionalPredicate: 'additionalPredicate' in target ? target.additionalPredicate : undefined,
+      onBatch:
+        'onBatch' in target
+          ? (rows: { id: string }[]) => target.onBatch(rows, { retentionDate, label })
+          : undefined,
+      dbClient: cleanupDb,
+    })
+    totalDeleted += result.deleted
+  }
+
+  const orphanBindingStats = await cleanupOrphanedKnowledgeBaseBindings(
+    scope,
+    label,
+    budgets?.orphanKnowledgeBaseBindings
+  )
+
+  logger.info(
+    `[${label}] Complete: ${totalDeleted} rows deleted, ${fileCleanup.filesDeleted} files cleaned, ${orphanBindingStats.deleted} orphan KB bindings cleaned`
+  )
+
+  // Clean up copilot backend + chat storage files after DB rows are gone
+  if (chatCleanup) {
+    await chatCleanup.execute()
+  }
+
+  const timeElapsed = (Date.now() - startTime) / 1000
+  logger.info(`[${label}] Job completed in ${timeElapsed.toFixed(2)}s`)
+}
+
+export const cleanupSoftDeletesTask = task({
+  id: 'cleanup-soft-deletes',
+  machine: 'large-1x',
+  queue: retentionCleanupQueue,
+  retry: { maxAttempts: 1 },
+  run: (payload: CleanupJobPayload | LimitedCleanupPayload) =>
+    'limits' in payload
+      ? runCleanupWithLimits('cleanup-soft-deletes', payload.limits, runCleanupSoftDeletes)
+      : runCleanupSoftDeletes(payload),
+})

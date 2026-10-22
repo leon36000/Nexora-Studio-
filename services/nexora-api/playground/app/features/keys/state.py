@@ -1,0 +1,284 @@
+import datetime as dt
+import math
+
+import httpx
+import reflex as rx
+
+from app.core.configuration import configuration
+from app.features.keys.models import Key
+from app.shared.components.toasts import httpx_error_toast
+from app.shared.states.entity_state import EntityState
+from app.shared.utils.timestamps import date_to_timestamp, format_datetime, format_local_date, is_past, local_now
+
+
+class KeysState(EntityState):
+    """API keys management state."""
+
+    ############################################################
+    # Load entities
+    ############################################################
+    entities: list[Key] = []
+
+    def _format_key(self, key: dict) -> Key:
+        """Format key."""
+
+        return Key(
+            id=key["id"],
+            name=key["name"],
+            token=key["value"],
+            expires=format_datetime(key["expires"], default="never"),
+            created=format_datetime(key["created"]),
+            is_expired=is_past(key["expires"]),
+            is_revoked=key.get("revoked", False),
+        )
+
+    @rx.var
+    def keys(self) -> list[Key]:
+        """Get keys list with correct typing for Reflex."""
+        return self.entities
+
+    def _default_expiry_date(self) -> str:
+        """Default expiry date: today + 1 year, capped at the configured maximum if any."""
+        default = local_now() + dt.timedelta(days=365)
+        if configuration.settings.auth_key_max_expiration_days is not None:
+            max_date = local_now() + dt.timedelta(days=configuration.settings.auth_key_max_expiration_days - 1)
+            default = min(default, max_date)
+        return format_local_date(default)
+
+    @rx.event
+    async def load_entities(self):
+        """Load entities."""
+        if not self.is_authenticated or not self.api_key:
+            return
+
+        if not self.entity_to_create.expires:
+            self.entity_to_create.expires = self._default_expiry_date()
+
+        self.entities_loading = True
+        yield
+
+        params = {
+            "offset": (self.page - 1) * self.per_page,
+            "limit": self.per_page,
+            "sort_by": self.order_by_value,
+            "sort_order": self.order_direction_value,
+        }
+        if self.status_filter != "All keys":
+            params["status"] = self.status_filter.lower()
+
+        response = None
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url=f"{self.opengatellm_url}/v1/keys",
+                    params=params,
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    timeout=self.opengatellm_timeout,
+                )
+
+                response.raise_for_status()
+                data = response.json()
+                self.entities = []
+
+                for key in data.get("data", []):
+                    if key["name"] not in ["_system_playground_key"]:
+                        self.entities.append(self._format_key(key))
+
+            self.total = data.get("total", 0)
+        except Exception as e:
+            yield httpx_error_toast(exception=e, response=response)
+        finally:
+            self.entities_loading = False
+            yield
+
+    ############################################################
+    # Delete entity
+    ############################################################
+    entity_to_delete: Key = Key()
+
+    @rx.event
+    def set_entity_to_delete(self, entity: Key):
+        """Set entity to delete."""
+        self.entity_to_delete = entity
+
+    @rx.var
+    def is_delete_entity_dialog_open(self) -> bool:
+        """Check if delete dialog should be open."""
+        return self.entity_to_delete.id is not None
+
+    @rx.event
+    def handle_delete_entity_dialog_change(self, is_open: bool):
+        """Handle delete entity dialog open/close state change."""
+        if not is_open:
+            self.entity_to_delete = Key()
+
+    async def delete_entity(self):
+        """Revoke a key."""
+        self.delete_entity_loading = True
+        yield
+
+        response = None
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.delete(
+                    url=f"{self.opengatellm_url}/v1/keys/{self.entity_to_delete.id}",
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    timeout=self.opengatellm_timeout,
+                )
+                response.raise_for_status()
+
+                self.handle_delete_entity_dialog_change(is_open=False)
+                yield rx.toast.success("Key revoked successfully", position="bottom-right")
+                async for _ in self.load_entities():
+                    yield
+
+        except Exception as e:
+            yield httpx_error_toast(exception=e, response=response)
+        finally:
+            self.delete_entity_loading = False
+            yield
+
+    ############################################################
+    # Create entity
+    ############################################################
+    entity_to_create: Key = Key()
+    is_created_dialog_open: bool = False
+    created_key: str = ""  # Store the created key to show once
+
+    @rx.event
+    def clear_created_key(self):
+        """Clear the created key message."""
+        self.created_key = ""
+        self.is_created_dialog_open = False
+
+    @rx.event
+    def handle_created_dialog_change(self, is_open: bool):
+        """Handle created key dialog open/close state change."""
+        self.is_created_dialog_open = is_open
+        if not is_open:
+            self.created_key = ""
+
+    @rx.var
+    def min_expiry_date(self) -> str:
+        """Get today's date as minimum for expiry date picker."""
+        return format_local_date(local_now())
+
+    @rx.var
+    def max_expiry_date(self) -> str:
+        """Get the maximum expiry date."""
+        if configuration.settings.auth_key_max_expiration_days is not None:
+            return format_local_date(local_now() + dt.timedelta(days=configuration.settings.auth_key_max_expiration_days - 1))
+        return ""
+
+    @rx.event
+    def set_new_entity_attribut(self, attribute: str, value: str | bool | None):
+        """Set new entity attributes."""
+        if isinstance(value, str):
+            setattr(self.entity_to_create, attribute, value.strip())
+        else:
+            setattr(self.entity_to_create, attribute, value)
+
+    @rx.event
+    async def create_entity(self):
+        """Create a user."""
+        if not self.entity_to_create.name:
+            yield rx.toast.warning("Name is required", position="bottom-right")
+            return
+
+        self.create_entity_loading = True
+        yield
+
+        payload = {"name": self.entity_to_create.name}
+
+        if self.entity_to_create.expires:
+            payload["expires"] = date_to_timestamp(self.entity_to_create.expires)
+
+        response = None
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url=f"{self.opengatellm_url}/v1/keys",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {self.api_key}"},
+                    timeout=self.opengatellm_timeout,
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                # Store the created key to display in dialog
+                self.created_key = data.get("value", "")
+                self.is_created_dialog_open = True
+
+                # Reset the create form, keeping the default 1-year expiry
+                self.entity_to_create = Key(expires=self._default_expiry_date())
+
+                yield rx.toast.success("Key created successfully", position="bottom-right")
+                async for _ in self.load_entities():
+                    yield
+
+        except Exception as e:
+            yield httpx_error_toast(exception=e, response=response)
+        finally:
+            self.create_entity_loading = False
+            yield
+
+    ############################################################
+    # Pagination & filters
+    ############################################################
+    page: int = 1
+    per_page: int = 20
+    total: int = 0
+    status_filter: str = "All keys"
+    status_options: list[str] = ["All keys", "Active", "Expired", "Revoked"]
+    order_by_value: str = "id"
+    order_direction: str = "asc"
+    order_direction_options: list[str] = ["asc", "desc"]
+    order_direction_value: str = "asc"
+    order_by_options: list[str] = ["id", "name", "created"]
+
+    @rx.var
+    def total_pages(self) -> int:
+        return max(1, math.ceil(self.total / self.per_page))
+
+    @rx.event
+    async def set_status_filter(self, value: str):
+        """Filter keys by status and reload."""
+        self.status_filter = value
+        self.page = 1
+        yield
+        async for _ in self.load_entities():
+            yield
+
+    @rx.event
+    async def set_order_by(self, value: str):
+        """Set order by field and reload."""
+        self.order_by_value = value
+        self.page = 1
+        yield
+        async for _ in self.load_entities():
+            yield
+
+    @rx.event
+    async def set_order_direction(self, value: str):
+        """Set order direction and reload."""
+        self.order_direction_value = value
+        self.page = 1
+        yield
+        async for _ in self.load_entities():
+            yield
+
+    @rx.event
+    async def prev_page(self):
+        if self.page > 1:
+            self.page -= 1
+            yield
+            async for _ in self.load_entities():
+                yield
+
+    @rx.event
+    async def next_page(self):
+        if self.page < self.total_pages:
+            self.page += 1
+            yield
+            async for _ in self.load_entities():
+                yield

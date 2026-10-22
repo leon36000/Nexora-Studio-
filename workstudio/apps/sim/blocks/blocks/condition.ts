@@ -1,0 +1,42 @@
+import { ConditionalIcon } from '@/components/icons'
+import type { BlockConfig } from '@/blocks/types'
+
+export const ConditionBlock: BlockConfig = {
+  type: 'condition',
+  name: 'Condition',
+  description: 'Add a condition',
+  longDescription:
+    'This is a core workflow block. Add a condition to the workflow to branch the execution path based on a boolean expression.',
+  bestPractices: `
+  - Write the conditions using standard javascript syntax except referencing the outputs of previous blocks using <> syntax, and keep them as simple as possible. No hacky fallbacks.
+  - Can reference workflow variables using <blockName.output> syntax as usual within conditions.
+  `,
+  docsLink: 'https://docs.sim.ai/workflows/blocks/condition',
+  bgColor: '#FF752F',
+  icon: ConditionalIcon,
+  category: 'blocks',
+  subBlocks: [
+    {
+      id: 'conditions',
+      type: 'condition-input',
+    },
+  ],
+  tools: {
+    access: [],
+  },
+  inputs: {},
+  outputs: {
+    conditionResult: {
+      type: 'boolean',
+      description:
+        "Whether the selected branch's own test passed: true when an if/else-if condition matched, false when the else branch or no branch fired",
+    },
+    selectedPath: { type: 'json', description: 'Selected execution path' },
+    selectedOption: { type: 'string', description: 'Selected condition option ID' },
+    selectedTitle: {
+      type: 'string',
+      description:
+        'Title of the selected branch (e.g. "if", "else if", "else"); null when no branch fired',
+    },
+  },
+}

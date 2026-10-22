@@ -1,0 +1,116 @@
+---
+title: Architecture
+description: Services, dependencies, request paths, and durable state in a self-hosted deployment
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Sim runs an app, a realtime server, PostgreSQL, Redis, and a scheduler. This page shows their dependencies and the state you need to preserve.
+
+## Services
+
+| Service | Image | Port | State | Required |
+|---|---|---|---|---|
+| **app** | `ghcr.io/simstudioai/simstudio` | 3000 | Local uploads unless shared storage is configured | Yes |
+| **realtime** | `ghcr.io/simstudioai/realtime` | 3002 | In-flight collaboration state | Yes |
+| **migrations** | `ghcr.io/simstudioai/migrations` | — | One-shot schema and data migrations | Yes |
+| **postgresql** | `pgvector/pgvector:pg17` | 5432 | Durable application data | Yes |
+| **redis** | `redis:7-alpine` | 6379 | Cache, coordination, and live events | Bundled by default; required across replicas |
+| **cron** | `ghcr.io/simstudioai/cron` (Compose) / `curlimages/curl` (Kubernetes) | — | None | Required for scheduled work |
+| **pii** | `ghcr.io/simstudioai/pii` | 5001 | None | Optional |
+| **ollama** | `ollama/ollama` | 11434 | Model cache | Optional |
+| **telemetry** | `otel/opentelemetry-collector-contrib` | 4317/4318 | None | Optional |
+
+### App
+
+The Next.js app serves the workflow builder, API routes, and workflow orchestration. Local JavaScript runs in Node child workers using isolated-vm inside the app container. The app and those workers share the container's memory budget. The Helm chart requests 4 GiB and limits the app to 8 GiB; `docker-compose.prod.yml` sets an 8 GB memory limit without a reservation.
+
+E2B or Daytona moves supported code execution to a remote sandbox. `TRIGGER_DEV_ENABLED` routes asynchronous jobs to Trigger.dev; the default deployment uses database-backed jobs. See [Sandboxes](/platform/self-hosting/sandboxes) for the provider and image requirements.
+
+Any replica can serve files once shared object storage is configured. Before adding replicas, configure storage, Redis, and database connection capacity as described in [Scaling and high availability](/platform/self-hosting/scaling).
+
+### Realtime
+
+The Bun Socket.IO server carries collaborative editing, live execution updates, and collaborative documents. Clients connect at `/socket.io`.
+
+Realtime shares PostgreSQL and `BETTER_AUTH_SECRET` with the app, using Better Auth's shared-database-session pattern. It authenticates the same accounts without a separate login.
+
+<Callout type="warn">
+  More than one realtime replica requires `REDIS_URL`. The Socket.IO Redis adapter carries events between replicas; without it, members connected to different pods do not see each other's edits.
+</Callout>
+
+A realtime server must exist for editing and live updates. Set `realtime.enabled: false` in Helm only when `app.env.SOCKET_SERVER_URL` points to a realtime instance you run separately.
+
+### Migrations
+
+The migrator applies Drizzle SQL and registered data migrations, then exits. Compose runs it as a one-shot service. Helm runs it as an app init container, so migrations complete before that app pod starts. Later pods and rollouts run the migrator again; already-applied migrations are skipped.
+
+Migrations are forward-only. See [Upgrades](/platform/self-hosting/upgrades) for backup and rollback procedures.
+
+### PostgreSQL
+
+Sim requires PostgreSQL with the pgvector extension for knowledge base embeddings. The bundled image uses PostgreSQL 17 and includes pgvector. On managed PostgreSQL, make the extension available; migrations issue `CREATE EXTENSION` where permissions allow.
+
+PostgreSQL holds workflows, runs, logs, accounts, organizations, credentials, knowledge base chunks and embeddings, table data, and upload-session state.
+
+### Redis
+
+Redis carries live events and stores shared coordination state. Some stores fall back to PostgreSQL or process-local state, but cross-pod collaboration has no local fallback. CLI API-key pairing also requires Redis, even with one replica; OAuth login uses a separate path. See [Redis](/platform/self-hosting/redis) for the full fallback matrix.
+
+### Scheduler
+
+Scheduled workflows, polling triggers, connector syncs, subscription renewal, and maintenance jobs call authenticated app endpoints. Helm provides CronJobs; Compose provides a supercronic service. See [Background jobs](/platform/self-hosting/background-jobs) for the shipped inventory and the additional upload-session cleanup schedule operators must configure.
+
+### Optional Chat service
+
+The chart can also render the optional `copilot` service, its separate PostgreSQL database, and its migration job. These are separate from the app and workflow database. Enabling them requires the service's image, license, credentials, and database configuration; see the chart's `copilot` values and [reference architectures](/platform/self-hosting/reference-architectures).
+
+## Where state lives
+
+| Store | Contents | Backup |
+|---|---|---|
+| **PostgreSQL** | Application data, including any separately enabled Chat-service database | `pg_dump`, managed snapshots, and point-in-time recovery |
+| **Object storage** | Files, knowledge base documents, execution outputs, avatars, and logos | Bucket versioning and lifecycle policies |
+| **Secrets** | `ENCRYPTION_KEY`, `API_ENCRYPTION_KEY`, `BETTER_AUTH_SECRET`, `INTERNAL_API_SECRET`, `CRON_SECRET` | Secret manager and separate recovery copies |
+
+<Callout type="error">
+  Neither the production Compose file nor the Helm chart mounts a volume for local uploads. Without configured cloud storage or your own volume, recreating the app container loses those files. Local files are also invisible to other replicas. Configure [object storage](/platform/self-hosting/object-storage) before storing durable files or scaling.
+</Callout>
+
+<Callout type="error">
+  Back up `ENCRYPTION_KEY` separately from PostgreSQL. A database restore with a different key cannot decrypt workspace and personal environment variables, stored provider keys, MCP OAuth credentials, or deployment/chat secrets. Recovery requires the original key or re-encryption before rotation.
+</Callout>
+
+Redis is a cache and message bus, not the owner of committed application data. Losing it interrupts in-flight coordination and live updates; completed data remains in PostgreSQL and object storage.
+
+## Request paths
+
+| Traffic | Path |
+|---|---|
+| Editor / API | Browser → ingress or reverse proxy → app:3000 → PostgreSQL, Redis, storage |
+| Collaboration | Browser → ingress → realtime:3002 (`/socket.io`, WebSocket upgrade) → Redis → other realtime pods |
+| Cloud upload | Browser → app opens upload session → signed transfer instructions → browser uploads directly to storage → app verifies completion and records metadata |
+| Local upload | Browser → app opens upload session → bytes stream through `/api/v2/uploads/...` to local disk |
+| Workflow execution | Manual, API, webhook, or schedule trigger → app enqueues or orchestrates run → local code workers or remote sandbox → results/logs to PostgreSQL, progress markers to Redis |
+| Background work | Scheduler → `Authorization: Bearer $CRON_SECRET` → internal app endpoint |
+
+Cloud uploads use a single `PUT` through 50 MiB and multipart above that. Local uploads use a single `PUT` through 8 MiB and multipart above that. Cloud buckets need CORS for the Sim origin and must be reachable from browsers; downloads are proxied through the app. Local uploads need no bucket CORS configuration.
+
+## Network boundaries
+
+| From | To | Purpose |
+|---|---|---|
+| Internet | app:3000, realtime:3002 | Browser/API traffic |
+| App, realtime | PostgreSQL:5432, Redis:6379 | Data and coordination |
+| App | Object-storage endpoint | Storage operations and proxied downloads |
+| Browser | Object-storage endpoint | Signed uploads |
+| App | Model/integration APIs and email provider | Outbound calls |
+| Scheduler | Internal app:3000 | Scheduled work |
+
+The proxy must support WebSocket upgrades, streams, and long-lived connections. The chart's optional NetworkPolicy excludes cloud metadata addresses from broad egress, but its default ingress peer is broad. Configure the actual peers and managed-datastore paths before enabling it.
+
+## Related docs
+
+- [Reference architectures](/platform/self-hosting/reference-architectures)
+- [Networking](/platform/self-hosting/networking)
+- [Security and hardening](/platform/self-hosting/security)

@@ -1,0 +1,216 @@
+# Cloudflare Deployment
+
+OpenConnector supports Cloudflare Workers as a metadata and runtime-state deployment target. The
+Worker runtime uses:
+
+- Workers for the HTTP runtime.
+- D1 for connections, OAuth config/state, runtime tokens, run logs, and Action idempotency records.
+- R2 or Workers KV for temporary transit files.
+- Static Assets for the Web Console.
+
+## SaaS OAuth deployment
+
+Set OOMOL_CONNECT_ORIGIN explicitly to the public Console origin and configure encrypted storage
+before saving a project key. The SaaS callback returns to that origin's completion page; the
+browser synchronization POST must carry the same origin. Reverse proxies must preserve it.
+Workers do not infer trusted SaaS origin from the incoming request.
+
+Apply D1 migrations through 0015_saas_cleanup_runtime.sql, deploy the scheduled handler and
+copy the once-per-minute triggers.crons from the example configuration. Verify actual scheduled
+invocations and cleanup progress after deployment; HTTP traffic does not replace cron.
+See [SaaS OAuth](saas-oauth.md) and [D1 maintenance](saas-maintenance.md#offline-d1-maintenance).
+The temporary reset Worker has automatic batch/retry coverage; real D1 reset remains a dedicated
+test-database acceptance step, not a claim established by local test adapters.
+
+## Prerequisites
+
+- A Cloudflare account with Workers, D1, and either R2 or Workers KV access.
+- Wrangler available through `npx wrangler`.
+- Node.js 22 or newer.
+
+## Create Local Config
+
+Install dependencies and copy the example Wrangler config:
+
+```bash
+npm install
+cp wrangler.example.jsonc wrangler.local.jsonc
+```
+
+`wrangler.local.jsonc` is ignored by git. Fill it with your Cloudflare resource IDs before remote
+deployment.
+
+## Log In With Wrangler
+
+Skip this step if you are already logged in:
+
+```bash
+npx wrangler login
+```
+
+## Create Cloudflare Resources
+
+Create the D1 database:
+
+```bash
+npx wrangler d1 create open-connector
+```
+
+Then choose one transit-file backend. R2 is the default and supports files larger than 25 MiB:
+
+```bash
+npx wrangler r2 bucket create open-connector-transit-files
+```
+
+Alternatively, create a Workers KV namespace for lightweight deployments that do not need files
+larger than 25 MiB:
+
+```bash
+npx wrangler kv namespace create open-connector-transit-files
+```
+
+Put the returned D1 `database_id` and R2 bucket name or KV namespace `id` into
+`wrangler.local.jsonc`. For KV, comment out the `r2_buckets` block, uncomment the
+`kv_namespaces` block, and set `TRANSIT_FILES_BACKEND` to `"kv"` as shown in the example config.
+Only one backend may use the `TRANSIT_FILES` binding. All Wrangler commands that read the Worker
+config should use `--config wrangler.local.jsonc`.
+
+## Local Worker Preview
+
+The local Worker preview stores its D1, R2, and KV data under the ignored `.wrangler` directory.
+This data is separate from the remote Cloudflare resources.
+
+Remote secrets set with `wrangler secret put` are not available to the local preview. To test local
+admin authentication and encryption of credentials, OAuth client configuration, and completed
+idempotent Action responses, add separate local values to the ignored `.env` file before starting
+the Worker:
+
+```dotenv
+OOMOL_CONNECT_ADMIN_TOKEN=replace-with-a-local-admin-token
+OOMOL_CONNECT_ENCRYPTION_KEY=replace-with-a-local-encryption-key
+```
+
+Apply the migrations to Wrangler's local D1 state, then start the Worker:
+
+```bash
+npx wrangler d1 migrations apply open-connector --local --config wrangler.local.jsonc
+npm run dev:cloudflare
+```
+
+`npm run dev:cloudflare` generates the catalog, builds the Web Console, copies catalog assets, and
+runs `wrangler dev --config wrangler.local.jsonc`. The local Worker preview uses the same generated
+provider Action executor registry as the Node runtime.
+
+Check the local Worker and open the Web Console at `http://localhost:8787`:
+
+```bash
+curl http://localhost:8787/health
+```
+
+The health endpoint should return `{"ok":true}`.
+
+## Remote Deployment
+
+Apply all pending migrations to the remote D1 database before the initial deployment and every
+upgrade. `npm run deploy:cloudflare` does not apply D1 migrations:
+
+```bash
+npx wrangler d1 migrations apply open-connector --remote --config wrangler.local.jsonc
+```
+
+Generate two independent random values by running this command twice:
+
+```bash
+openssl rand -base64 32
+```
+
+Store the encryption key in a password manager or another external secrets vault. If it is lost or
+replaced without first re-encrypting existing D1 records, encrypted credentials, OAuth client
+configuration, and completed idempotent Action responses cannot be recovered. Keep the admin token
+available to operators who need the Web Console or admin API.
+
+Paste the generated values when Wrangler prompts for each secret:
+
+```bash
+npx wrangler secret put OOMOL_CONNECT_ADMIN_TOKEN --config wrangler.local.jsonc
+npx wrangler secret put OOMOL_CONNECT_ENCRYPTION_KEY --config wrangler.local.jsonc
+```
+
+Deploy:
+
+```bash
+npm run deploy:cloudflare
+```
+
+`npm run deploy:cloudflare` generates the catalog, builds the Web Console, copies catalog assets,
+and runs `wrangler deploy --config wrangler.local.jsonc --minify`. The copied
+`wrangler.local.jsonc` already maps the built Web Console assets to the `ASSETS` binding used by
+the Worker. `--minify` matters on Workers beyond the upload size limit: a heap snapshot of the
+running isolate (taken through the `wrangler dev` inspector) shows the script source retained as one
+string for as long as the isolate lives, so the 13.8 MiB minified script costs about half the
+isolate memory of the 28.7 MiB unminified one, out of the 128 MB each Worker isolate gets.
+
+Use the Worker URL printed by Wrangler to check the deployed runtime, then open the same URL in a
+browser and enter the admin token to access the Web Console:
+
+```bash
+curl https://open-connector.example.workers.dev/health
+```
+
+The health endpoint should return `{"ok":true}`. Replace the example URL with the deployed Worker
+URL or your custom domain.
+
+## ChatGPT-compatible MCP OAuth
+
+To enable OAuth for clients that cannot supply an Authorization header, create a dedicated Workers KV namespace and bind it as `OAUTH_KV`:
+
+```bash
+npx wrangler kv namespace create open-connector-oauth --binding OAUTH_KV
+```
+
+Add the returned namespace ID to `kv_namespaces` in `wrangler.local.jsonc`. Keep your existing administrator token and encryption key, and set `OOMOL_CONNECT_ORIGIN` to the gateway's canonical public origin. The example configuration includes the required `global_fetch_strictly_public` flag and routes `/.well-known/*` to the Worker before static assets. OAuth stays disabled without the `OAUTH_KV` binding.
+
+Use the public `/mcp` URL with OAuth authentication in ChatGPT. Discovery, CIMD, dynamic client registration, S256 PKCE, rotating refresh tokens, and token revocation are provided by `@cloudflare/workers-oauth-provider`. The authorization page requires explicit consent and the administrator token. It grants Action execution through connected accounts, including write Actions, subject to deployment policies; it grants neither administrator access nor raw proxy or trigger access. The administrator token is never issued to the client.
+
+Each approval creates a separate `MCP OAuth • <client name>` API Key. Delete that key in the console to immediately revoke access and refresh. OAuth access tokens expire after one hour and grants after 30 days; expired or superseded grants may leave inactive keys in the console, which can be deleted. Existing runtime tokens continue to work. With OAuth enabled, runtime endpoints remain authenticated even before the first key is created or after the last key is deleted.
+
+Run `python3 scripts/test-mcp-oauth.py` against a running Worker to verify discovery, browser-bound consent, PKCE, audience validation, replay rejection, refresh, revocation, permission isolation, and legacy token compatibility. Set `MCP_TEST_ORIGIN` and provide `MCP_TEST_ADMIN_TOKEN` or `MCP_TEST_ADMIN_TOKEN_FILE`; for localhost only, the default test token is `test-admin-token`. The suite creates temporary test API Keys and revokes them on exit. It never follows the client callback or accesses a ChatGPT account. Browser tests should also verify a real form submission and callback: request-origin and Content Security Policy behavior cannot be proven by an HTTP client alone.
+
+## Runtime Behavior
+
+The Cloudflare runtime serves catalog metadata, `/api` and `/v1` metadata endpoints, connections,
+runtime tokens, OAuth config/state, transit files backed by the configured R2 bucket or KV
+namespace, and the generated provider Action executor registry.
+
+Configure an R2 lifecycle rule for the transit bucket if you want unread expired transit files
+cleaned up automatically. Workers KV applies the configured TTL when each file is written and
+deletes it automatically. KV clamps `OOMOL_CONNECT_TRANSIT_FILE_TTL_SECONDS` to a minimum of 60
+seconds and `OOMOL_CONNECT_TRANSIT_FILE_MAX_BYTES` to a maximum of 25 MiB.
+
+## Response Compression
+
+Cloudflare negotiates and applies response compression on egress, so the Worker leaves compression
+to the edge instead of running it in the application. Workers build responses with `encodeBody` set
+to `"automatic"`, which means the runtime encodes the body itself to satisfy the `Content-Encoding`
+header; a body the application had already compressed would be encoded a second time and arrive
+undecodable. Node deployments have no edge in front of them and keep compressing in the application.
+
+[Cloudflare's default compressible content types][cf-compression] include `application/json`, so
+eligible `/api` and `/v1` metadata responses are compressed for clients that advertise support.
+Eligibility also requires a `200` status and a body of at least 48 bytes for gzip or 50 bytes for
+Brotli and Zstandard, so the smallest responses stay uncompressed whatever their content type. The
+list has `text/x-markdown` but not `text/markdown`, which `/api/actions/:actionId/agent.md` returns,
+so agent guides are served uncompressed. They are small — around 1.5 KiB for a typical action and
+20 KiB for the largest one in the catalog — so this is usually not worth acting on. Add a
+Compression Rule matching `text/markdown` if your deployment serves agent guides heavily.
+
+[cf-compression]: https://developers.cloudflare.com/speed/optimization/content/compression/
+
+## Configuration
+
+Cloudflare uses the same environment variable names for origin, auth tokens, action policy, transit
+file limits, and credential encryption. `PORT`, `HOST`, `OOMOL_CONNECT_DATA_DIR`,
+`OOMOL_CONNECT_CATALOG_LAZY_SCHEMAS`, and `OOMOL_CONNECT_CATALOG_SCHEMA_CACHE_FILES` are local
+Node-only settings on Workers.
+
+See [configuration.md](configuration.md) for all runtime environment variables.

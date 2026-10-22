@@ -1,0 +1,461 @@
+import type { Principal } from '@sim/auth/principal'
+import { createLogger, type Logger } from '@sim/logger'
+import { toError } from '@sim/utils/errors'
+import { OrchestrationError } from '@/lib/core/orchestration/types'
+import { isPayloadSizeLimitError } from '@/lib/core/utils/stream-limits'
+import { isUserFileWithMetadata } from '@/lib/core/utils/user-file'
+import { getExecutionKeyParts } from '@/lib/execution/payloads/access-keys'
+import {
+  getLargeValueMaterializationError,
+  isGrantedLargeValueKey,
+  isLargeValueRef,
+  isLargeValueStorageKey,
+  type LargeValueRef,
+} from '@/lib/execution/payloads/large-value-ref'
+import {
+  MAX_DURABLE_LARGE_VALUE_BYTES,
+  MAX_FUNCTION_FILE_BYTES,
+  MAX_FUNCTION_INLINE_BYTES,
+  MAX_INLINE_MATERIALIZATION_BYTES,
+} from '@/lib/execution/payloads/limits'
+import { ExecutionResourceLimitError } from '@/lib/execution/resource-errors'
+import { createKnowledgeAccessProvider } from '@/lib/knowledge/access/scope'
+import type { StorageContext } from '@/lib/uploads'
+import type { WorkspaceFileSecretProvenanceIdentity } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
+import {
+  bufferToBase64,
+  inferContextFromKey,
+  isGeneratedDocumentSourceType,
+  isPublicStorageContext,
+} from '@/lib/uploads/utils/file'
+import { downloadServableFileFromStorage } from '@/lib/uploads/utils/file.server'
+import { rebindWorkspaceFileDelegatedPrincipal } from '@/lib/workspace-files/application/delegated-principal'
+import {
+  readStoredWorkspaceFileRecordByKey,
+  StoredWorkspaceFileUnavailableError,
+} from '@/lib/workspace-files/application/read-stored-workspace-file-record-by-key'
+import type { UserFile } from '@/executor/types'
+
+const logger = createLogger('ExecutionPayloadMaterialization')
+
+export interface ExecutionMaterializationContext {
+  principal?: Principal
+  workflowId?: string
+  workspaceId?: string
+  executionId?: string
+  largeValueExecutionIds?: string[]
+  largeValueKeys?: string[]
+  fileKeys?: string[]
+  allowLargeValueWorkflowScope?: boolean
+  userId?: string
+  requestId?: string
+  logger?: Logger
+}
+
+export interface MaterializeLargeValueOptions extends ExecutionMaterializationContext {
+  maxBytes?: number
+}
+
+export interface ReadUserFileContentOptions extends ExecutionMaterializationContext {
+  maxBytes?: number
+  maxSourceBytes?: number
+  offset?: number
+  length?: number
+  chunked?: boolean
+  encoding: 'base64' | 'text'
+}
+
+export interface ReadUserFileContentResult {
+  content: string
+  contributingFiles?: readonly WorkspaceFileSecretProvenanceIdentity[]
+  /** Subset transformed by the renderer; consumers apply their own admission policy. */
+  renderedContributingFiles?: readonly WorkspaceFileSecretProvenanceIdentity[]
+}
+
+function getLogger(options: ExecutionMaterializationContext): Logger {
+  return options.logger ?? logger
+}
+
+export function assertDurableLargeValueSize(
+  size: number,
+  limitBytes = MAX_DURABLE_LARGE_VALUE_BYTES
+): void {
+  if (size > limitBytes) {
+    throw new ExecutionResourceLimitError({
+      resource: 'execution_payload_bytes',
+      attemptedBytes: size,
+      limitBytes,
+    })
+  }
+}
+
+export function assertInlineMaterializationSize(size: number, maxBytes?: number): void {
+  const limit = maxBytes ?? MAX_INLINE_MATERIALIZATION_BYTES
+  if (size > limit) {
+    throw new ExecutionResourceLimitError({
+      resource: 'execution_payload_bytes',
+      attemptedBytes: size,
+      limitBytes: limit,
+    })
+  }
+}
+
+export function isValidLargeValueKey(ref: LargeValueRef): boolean {
+  return Boolean(ref.key && isLargeValueStorageKey(ref.key, ref.id, ref.executionId))
+}
+
+export function assertLargeValueRefAccess(
+  ref: LargeValueRef,
+  context: ExecutionMaterializationContext
+): void {
+  if (!context.executionId) {
+    throw new Error('Large execution value requires an execution context.')
+  }
+  const allowedExecutionIds = new Set([
+    context.executionId,
+    ...(context.largeValueExecutionIds ?? []),
+  ])
+
+  const parts = ref.key?.split('/') ?? []
+  const [, workspaceId, workflowId, executionId] = parts
+
+  if (!ref.key) {
+    if (ref.executionId && !allowedExecutionIds.has(ref.executionId)) {
+      throw new Error('Large execution value is not available in this execution.')
+    }
+    return
+  }
+  if (!context.workspaceId || !context.workflowId) {
+    throw new Error('Large execution value requires workspace and workflow context.')
+  }
+  const workflowScopeAllowed =
+    context.allowLargeValueWorkflowScope &&
+    context.workspaceId === workspaceId &&
+    context.workflowId === workflowId
+  if (context.workspaceId && workspaceId !== context.workspaceId) {
+    throw new Error('Large execution value is not available in this execution.')
+  }
+  if (context.workflowId && workflowId !== context.workflowId) {
+    throw new Error('Large execution value is not available in this execution.')
+  }
+  if (isGrantedLargeValueKey(ref.key, context)) {
+    return
+  }
+  if (ref.executionId && !allowedExecutionIds.has(ref.executionId) && !workflowScopeAllowed) {
+    throw new Error('Large execution value is not available in this execution.')
+  }
+  if (!allowedExecutionIds.has(executionId) && !workflowScopeAllowed) {
+    throw new Error('Large execution value is not available in this execution.')
+  }
+}
+
+export async function readLargeValueRefFromStorage(
+  ref: LargeValueRef,
+  options: MaterializeLargeValueOptions = {}
+): Promise<unknown | undefined> {
+  const log = getLogger(options)
+  if (!isLargeValueRef(ref) || !ref.key || !isValidLargeValueKey(ref)) {
+    return undefined
+  }
+
+  assertLargeValueRefAccess(ref, options)
+  assertInlineMaterializationSize(ref.size, options.maxBytes)
+  const maxBytes = options.maxBytes ?? MAX_INLINE_MATERIALIZATION_BYTES
+
+  try {
+    const { StorageService } = await import('@/lib/uploads')
+    const buffer = await StorageService.downloadFile({
+      key: ref.key,
+      context: 'execution',
+      maxBytes,
+    })
+    if (buffer.length > maxBytes) {
+      throw new ExecutionResourceLimitError({
+        resource: 'execution_payload_bytes',
+        attemptedBytes: buffer.length,
+        limitBytes: maxBytes,
+      })
+    }
+    return JSON.parse(buffer.toString('utf8'))
+  } catch (error) {
+    if (isPayloadSizeLimitError(error)) {
+      throw new ExecutionResourceLimitError({
+        resource: 'execution_payload_bytes',
+        attemptedBytes: error.observedBytes ?? maxBytes + 1,
+        limitBytes: maxBytes,
+      })
+    }
+    if (error instanceof ExecutionResourceLimitError) {
+      throw error
+    }
+    log.warn('Failed to materialize persisted large execution value', {
+      id: ref.id,
+      key: ref.key,
+      error: toError(error).message,
+    })
+    return undefined
+  }
+}
+
+function normalizeRange(buffer: Buffer, options: ReadUserFileContentOptions): Buffer {
+  const offset = Math.max(0, Math.floor(options.offset ?? 0))
+  const maxLength = options.maxBytes ?? MAX_FUNCTION_INLINE_BYTES
+  const requestedLength = options.length === undefined ? maxLength : Math.floor(options.length)
+  const length = Math.max(0, Math.min(requestedLength, maxLength))
+  return buffer.subarray(offset, offset + length)
+}
+
+export class ExecutionFileAccessError extends Error {
+  constructor() {
+    super('File is not available in this execution.')
+    this.name = 'ExecutionFileAccessError'
+  }
+}
+
+function assertExecutionFileScope(key: string, options: ExecutionMaterializationContext): void {
+  const parts = getExecutionKeyParts(key)
+  if (!parts) {
+    throw new ExecutionFileAccessError()
+  }
+
+  const allowedExecutionIds = new Set([
+    options.executionId,
+    ...(options.largeValueExecutionIds ?? []),
+  ])
+  const allowedFileKeys = new Set(options.fileKeys ?? [])
+  const workflowScopeAllowed =
+    options.allowLargeValueWorkflowScope &&
+    options.workspaceId === parts.workspaceId &&
+    options.workflowId === parts.workflowId
+
+  if (options.workspaceId && parts.workspaceId !== options.workspaceId) {
+    throw new ExecutionFileAccessError()
+  }
+
+  /**
+   * An explicit grant names one exact key the run may read, even from another workflow or run,
+   * without opening that run's neighboring files. Grants must only be minted for keys the run's
+   * principal may already read: a stored input reference is granted only when a workspace member
+   * supplied it (see `getStoredFileReferenceScope`), otherwise only for this execution's own files.
+   */
+  if (allowedFileKeys.has(key)) {
+    return
+  }
+
+  if (options.workflowId && parts.workflowId !== options.workflowId) {
+    throw new ExecutionFileAccessError()
+  }
+
+  if (
+    !options.executionId ||
+    (!allowedExecutionIds.has(parts.executionId) && !workflowScopeAllowed)
+  ) {
+    throw new ExecutionFileAccessError()
+  }
+}
+
+function getVerifiedStorageContext(file: Pick<UserFile, 'key' | 'context'>): StorageContext {
+  if (!file.key) {
+    throw new Error('File content requires a storage key.')
+  }
+
+  const inferredContext = inferContextFromKey(file.key)
+  if (
+    file.context &&
+    file.context !== inferredContext &&
+    !(inferredContext === 'workspace' && file.context === 'mothership')
+  ) {
+    throw new Error('File context does not match its storage key.')
+  }
+
+  return inferredContext
+}
+
+export async function assertUserFileContentAccess(
+  file: Pick<UserFile, 'key' | 'context'>,
+  options: ExecutionMaterializationContext
+): Promise<void> {
+  const context = getVerifiedStorageContext(file)
+
+  if (context === 'execution') {
+    assertExecutionFileScope(file.key, options)
+    return
+  }
+
+  if (isPublicStorageContext(context)) {
+    return
+  }
+
+  if (context === 'workspace' && options.principal && options.workspaceId) {
+    const principal =
+      options.principal.kind === 'delegated'
+        ? rebindWorkspaceFileDelegatedPrincipal({
+            principal: options.principal,
+            workspaceId: options.workspaceId,
+            delegationId: `execution-file-read:${options.requestId ?? 'unknown'}`,
+            ...(options.principal.resourceScope?.fileId
+              ? { fileId: options.principal.resourceScope.fileId }
+              : {}),
+            ...(options.principal.resourceScope?.chatId
+              ? { chatId: options.principal.resourceScope.chatId }
+              : {}),
+            ...(options.executionId ? { executionId: options.executionId } : {}),
+          })
+        : options.principal
+    try {
+      await readStoredWorkspaceFileRecordByKey.execute({
+        principal,
+        input: {
+          key: file.key,
+          assertedWorkspaceId: options.workspaceId,
+        },
+      })
+      return
+    } catch (error) {
+      if (!(error instanceof OrchestrationError && error.code === 'not_found')) throw error
+      if (error instanceof StoredWorkspaceFileUnavailableError) throw error
+      /** Legacy storage metadata cannot prove a delegated file or chat identity. */
+      if (
+        options.principal.kind === 'delegated' &&
+        (options.principal.resourceScope?.fileId !== undefined ||
+          options.principal.resourceScope?.chatId !== undefined)
+      ) {
+        throw error
+      }
+    }
+  }
+
+  if (context === 'workspace' && file.context === 'mothership') {
+    throw new Error('Chat upload access requires canonical file authorization.')
+  }
+
+  if (!options.userId) {
+    throw new Error('File access requires an authenticated user.')
+  }
+
+  const { verifyFileAccess } = await import('@/app/api/files/authorization')
+  /**
+   * A knowledge-base file is read as the principal behind the run, when there
+   * is one; `options.userId` alone may be the workflow owner standing in for an
+   * actorless run and must not widen what the run can read.
+   */
+  const knowledgeAccess =
+    context === 'knowledge-base' && options.principal
+      ? createKnowledgeAccessProvider(options.principal, { workspaceId: options.workspaceId })
+      : undefined
+  const hasAccess = await verifyFileAccess(file.key, options.userId, undefined, context, {
+    knowledgeAccess,
+  })
+  if (!hasAccess) {
+    throw new Error('File is not available in this execution.')
+  }
+}
+
+/**
+ * Reads the bytes a consumer should receive. For generated documents, updates the
+ * file's size to the rendered artifact size so downstream attachment routing does
+ * not make decisions from the smaller generation-source size.
+ */
+export async function readUserFileContentWithContributors(
+  file: unknown,
+  options: ReadUserFileContentOptions
+): Promise<ReadUserFileContentResult> {
+  if (!isUserFileWithMetadata(file)) {
+    throw new Error('Expected a file object with metadata.')
+  }
+
+  let sourceIdentity: WorkspaceFileSecretProvenanceIdentity | undefined
+  const storageContext = file.key ? inferContextFromKey(file.key) : undefined
+  if (
+    (storageContext === 'execution' || storageContext === 'workspace') &&
+    options.principal &&
+    options.workspaceId
+  ) {
+    const { resolveStoredFileProvenanceSource } = await import(
+      '@/lib/execution/payloads/file-secret-provenance'
+    )
+    sourceIdentity = (
+      await resolveStoredFileProvenanceSource(file, {
+        ...options,
+        principal: options.principal,
+        workspaceId: options.workspaceId,
+      })
+    )?.identity
+  } else {
+    await assertUserFileContentAccess(file, options)
+  }
+
+  const maxSourceBytes = options.maxSourceBytes ?? MAX_FUNCTION_FILE_BYTES
+  if (Number.isFinite(file.size) && file.size > maxSourceBytes) {
+    throw new ExecutionResourceLimitError({
+      resource: 'execution_payload_bytes',
+      attemptedBytes: file.size,
+      limitBytes: maxSourceBytes,
+    })
+  }
+
+  let buffer: Buffer | null = null
+  let contributingFiles: readonly WorkspaceFileSecretProvenanceIdentity[] | undefined
+  let renderedContributingFiles: readonly WorkspaceFileSecretProvenanceIdentity[] | undefined
+  const log = getLogger(options)
+  const requestId = options.requestId ?? 'unknown'
+
+  try {
+    const servable = await downloadServableFileFromStorage(file, requestId, log, {
+      maxBytes: maxSourceBytes,
+    })
+    buffer = servable.buffer
+    renderedContributingFiles = servable.contributingFiles
+    contributingFiles = sourceIdentity
+      ? [sourceIdentity, ...(servable.contributingFiles ?? [])]
+      : servable.contributingFiles
+  } catch (error) {
+    if (isPayloadSizeLimitError(error)) {
+      if (isGeneratedDocumentSourceType(file.type) && error.observedBytes !== undefined) {
+        file.size = error.observedBytes
+      }
+      throw new ExecutionResourceLimitError({
+        resource: 'execution_payload_bytes',
+        attemptedBytes: error.observedBytes ?? maxSourceBytes + 1,
+        limitBytes: maxSourceBytes,
+      })
+    }
+    throw error
+  }
+
+  if (!buffer) {
+    throw new Error(`File content for ${file.name} is unavailable.`)
+  }
+  if (isGeneratedDocumentSourceType(file.type)) {
+    file.size = buffer.length
+  }
+  if (buffer.length > maxSourceBytes) {
+    throw new ExecutionResourceLimitError({
+      resource: 'execution_payload_bytes',
+      attemptedBytes: buffer.length,
+      limitBytes: maxSourceBytes,
+    })
+  }
+
+  const shouldSlice =
+    options.chunked || options.offset !== undefined || options.length !== undefined
+  const selected = shouldSlice ? normalizeRange(buffer, options) : buffer
+  assertInlineMaterializationSize(selected.length, options.maxBytes ?? MAX_FUNCTION_INLINE_BYTES)
+
+  return {
+    content: options.encoding === 'base64' ? bufferToBase64(selected) : selected.toString('utf8'),
+    ...(contributingFiles && contributingFiles.length > 0 ? { contributingFiles } : {}),
+    ...(renderedContributingFiles?.length ? { renderedContributingFiles } : {}),
+  }
+}
+
+export async function readUserFileContent(
+  file: unknown,
+  options: ReadUserFileContentOptions
+): Promise<string> {
+  return (await readUserFileContentWithContributors(file, options)).content
+}
+
+export function unavailableLargeValueError(ref: LargeValueRef): Error {
+  return getLargeValueMaterializationError(ref)
+}

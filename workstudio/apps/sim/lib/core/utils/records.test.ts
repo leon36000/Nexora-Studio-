@@ -1,0 +1,42 @@
+import { describe, expect, it } from 'vitest'
+import { normalizeStringRecord, normalizeWorkflowVariables } from '@/lib/core/utils/records'
+
+describe('record normalization utilities', () => {
+  it('normalizes string records for environment-like values', () => {
+    expect(
+      normalizeStringRecord({
+        TOKEN: 'secret',
+        RETRIES: 3,
+        ENABLED: true,
+        EMPTY: null,
+      })
+    ).toEqual({
+      TOKEN: 'secret',
+      RETRIES: '3',
+      ENABLED: 'true',
+    })
+    expect(normalizeStringRecord([])).toEqual({})
+  })
+
+  it('preserves own __proto__ keys without changing the record prototype', () => {
+    const normalized = normalizeStringRecord(Object.fromEntries([['__proto__', 'secret-value']]))
+
+    expect(Object.hasOwn(normalized, '__proto__')).toBe(true)
+    expect(normalized.__proto__).toBe('secret-value')
+    expect(Object.getPrototypeOf(normalized)).toBe(Object.prototype)
+  })
+
+  it('normalizes legacy workflow variable arrays into records', () => {
+    const variableWithId = { id: 'var-1', name: 'brand', type: 'plain', value: 'myfitness' }
+    const variableWithName = { name: 'channel', type: 'plain', value: 'whatsapp' }
+
+    expect(normalizeWorkflowVariables([variableWithId, variableWithName, []])).toEqual({
+      'var-1': variableWithId,
+      channel: variableWithName,
+    })
+    expect(normalizeWorkflowVariables({ existing: variableWithId })).toEqual({
+      existing: variableWithId,
+    })
+    expect(normalizeWorkflowVariables('not-a-record')).toEqual({})
+  })
+})

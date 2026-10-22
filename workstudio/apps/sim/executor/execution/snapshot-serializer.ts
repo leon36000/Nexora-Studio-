@@ -1,0 +1,427 @@
+import { unboxJsonPrimitive } from '@/lib/core/utils/boxed-primitives'
+import { LARGE_VALUE_THRESHOLD_BYTES } from '@/lib/execution/payloads/large-value-ref'
+import type { DAG } from '@/executor/dag/builder'
+import type { EdgeManager } from '@/executor/execution/edge-manager'
+import { ExecutionSnapshot } from '@/executor/execution/snapshot'
+import type { ExecutionMetadata, SerializableExecutionState } from '@/executor/execution/types'
+import type { ExecutionContext, SerializedSnapshot } from '@/executor/types'
+import { RESOLVED_SECRET_TRACE_CHECKPOINT_VERSION } from '@/executor/utils/resolved-secret-trace-registry'
+
+const JSON_SYNTAX_BYTES = {
+  QUOTE: 1,
+  COLON: 1,
+  COMMA: 1,
+  ARRAY_BRACKETS: 2,
+  OBJECT_BRACES: 2,
+  NULL: 4,
+} as const
+
+function getEscapedJsonStringByteLength(value: string): number {
+  let bytes = JSON_SYNTAX_BYTES.QUOTE * 2
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index)
+    if (code === 0x22 || code === 0x5c) {
+      bytes += 2
+    } else if (code === 0x08 || code === 0x09 || code === 0x0a || code === 0x0c || code === 0x0d) {
+      bytes += 2
+    } else if (code < 0x20) {
+      bytes += 6
+    } else if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1)
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        bytes += 4
+        index++
+      } else {
+        bytes += 6
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      bytes += 6
+    } else if (code < 0x80) {
+      bytes += 1
+    } else if (code < 0x800) {
+      bytes += 2
+    } else {
+      bytes += 3
+    }
+  }
+  return bytes
+}
+
+function getPrimitiveJsonByteLength(value: unknown): number | undefined {
+  if (value === null) {
+    return JSON_SYNTAX_BYTES.NULL
+  }
+  if (typeof value === 'string') {
+    return getEscapedJsonStringByteLength(value)
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value)
+      ? Buffer.byteLength(String(value), 'utf8')
+      : JSON_SYNTAX_BYTES.NULL
+  }
+  if (typeof value === 'boolean') {
+    return value ? 4 : 5
+  }
+  if (typeof value === 'bigint') {
+    throw new TypeError('Do not know how to serialize a BigInt')
+  }
+  return undefined
+}
+
+function getBoundedJsonByteLength(
+  value: unknown,
+  maxBytes: number,
+  seen = new WeakSet<object>()
+): number | undefined {
+  const primitiveSize = getPrimitiveJsonByteLength(value)
+  if (primitiveSize !== undefined) {
+    return primitiveSize
+  }
+
+  if (value === undefined || typeof value === 'function' || typeof value === 'symbol') {
+    return undefined
+  }
+
+  if (!value || typeof value !== 'object') {
+    return undefined
+  }
+
+  if (seen.has(value)) {
+    throw new TypeError('Converting circular structure to JSON')
+  }
+  seen.add(value)
+
+  let bytes = Array.isArray(value)
+    ? JSON_SYNTAX_BYTES.ARRAY_BRACKETS
+    : JSON_SYNTAX_BYTES.OBJECT_BRACES
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index++) {
+      if (index > 0) bytes += JSON_SYNTAX_BYTES.COMMA
+      const itemSize = getBoundedJsonByteLength(value[index], maxBytes - bytes, seen)
+      bytes += itemSize ?? JSON_SYNTAX_BYTES.NULL
+      if (bytes > maxBytes) return bytes
+    }
+    seen.delete(value)
+    return bytes
+  }
+
+  let hasEntries = false
+  for (const key of Object.keys(value)) {
+    const entryValue = (value as Record<string, unknown>)[key]
+    if (
+      entryValue === undefined ||
+      typeof entryValue === 'function' ||
+      typeof entryValue === 'symbol'
+    ) {
+      continue
+    }
+    if (hasEntries) bytes += JSON_SYNTAX_BYTES.COMMA
+    bytes += getEscapedJsonStringByteLength(key) + JSON_SYNTAX_BYTES.COLON
+    const entrySize = getBoundedJsonByteLength(entryValue, maxBytes - bytes, seen)
+    bytes += entrySize ?? JSON_SYNTAX_BYTES.NULL
+    hasEntries = true
+    if (bytes > maxBytes) return bytes
+  }
+
+  seen.delete(value)
+  return bytes
+}
+
+function assertSnapshotValueIsCompact(value: unknown, label: string): void {
+  const byteLength = getBoundedJsonByteLength(value, LARGE_VALUE_THRESHOLD_BYTES)
+  if (byteLength !== undefined && byteLength > LARGE_VALUE_THRESHOLD_BYTES) {
+    throw new Error(`Cannot serialize pause snapshot with oversized ${label}; compact it first.`)
+  }
+}
+
+function mapFromEntries<T>(map?: Map<string, T>): Record<string, T> | undefined {
+  if (!map) return undefined
+  return Object.fromEntries(map)
+}
+
+function serializeLoopExecutions(
+  loopExecutions?: Map<string, any>
+): Record<string, any> | undefined {
+  if (!loopExecutions) return undefined
+  const result: Record<string, any> = {}
+  for (const [loopId, scope] of loopExecutions.entries()) {
+    let currentIterationOutputs: any
+    if (scope.currentIterationOutputs instanceof Map) {
+      currentIterationOutputs = Object.fromEntries(scope.currentIterationOutputs)
+    } else {
+      currentIterationOutputs = scope.currentIterationOutputs ?? {}
+    }
+
+    result[loopId] = {
+      ...scope,
+      currentIterationOutputs,
+    }
+  }
+  return result
+}
+
+function serializeParallelExecutions(
+  parallelExecutions?: Map<string, any>
+): Record<string, any> | undefined {
+  if (!parallelExecutions) return undefined
+  const result: Record<string, any> = {}
+  for (const [parallelId, scope] of parallelExecutions.entries()) {
+    const branchOutputs =
+      scope.branchOutputs instanceof Map
+        ? Object.fromEntries(scope.branchOutputs)
+        : (scope.branchOutputs ?? {})
+    const accumulatedOutputs =
+      scope.accumulatedOutputs instanceof Map
+        ? Object.fromEntries(scope.accumulatedOutputs)
+        : (scope.accumulatedOutputs ?? {})
+
+    result[parallelId] = {
+      ...scope,
+      branchOutputs,
+      accumulatedOutputs,
+    }
+  }
+  return result
+}
+
+function buildExecutionSnapshot(
+  context: ExecutionContext,
+  triggerBlockIds: string[],
+  dag?: DAG,
+  edgeManager?: EdgeManager
+): { snapshot: ExecutionSnapshot; state: SerializableExecutionState } {
+  const metadataFromContext = context.metadata as ExecutionMetadata | undefined
+  let useDraftState: boolean
+  if (metadataFromContext?.useDraftState !== undefined) {
+    useDraftState = metadataFromContext.useDraftState
+  } else if (context.isDeployedContext === true) {
+    useDraftState = false
+  } else {
+    useDraftState = true
+  }
+
+  const dagIncomingEdges: Record<string, string[]> | undefined = dag
+    ? Object.fromEntries(
+        Array.from(dag.nodes.entries()).map(([nodeId, node]) => [
+          nodeId,
+          Array.from(node.incomingEdges),
+        ])
+      )
+    : undefined
+
+  const state: SerializableExecutionState = {
+    blockStates: Object.fromEntries(context.blockStates),
+    executedBlocks: Array.from(context.executedBlocks),
+    blockLogs: context.blockLogs,
+    decisions: {
+      router: Object.fromEntries(context.decisions.router),
+      condition: Object.fromEntries(context.decisions.condition),
+    },
+    completedLoops: Array.from(context.completedLoops),
+    loopExecutions: serializeLoopExecutions(context.loopExecutions),
+    parallelExecutions: serializeParallelExecutions(context.parallelExecutions),
+    parallelBlockMapping: mapFromEntries(context.parallelBlockMapping),
+    activeExecutionPath: Array.from(context.activeExecutionPath),
+    pendingQueue: triggerBlockIds,
+    dagIncomingEdges,
+    deactivatedEdges: edgeManager?.getDeactivatedEdges(),
+    nodesWithActivatedEdge: edgeManager?.getNodesWithActivatedEdge(),
+    sourceExecutionId: context.executionId,
+    trustedLargeValueAccess: {
+      executionIds: Array.from(
+        new Set(
+          [context.executionId, ...(context.largeValueExecutionIds ?? [])].filter(
+            (id): id is string => Boolean(id)
+          )
+        )
+      ),
+      largeValueKeys: Array.from(new Set(context.largeValueKeys ?? [])),
+      fileKeys: Array.from(new Set(context.fileKeys ?? [])),
+    },
+    resolvedSecretTraceProvenance:
+      context.resolvedSecretTraceRegistry?.exportCheckpointProvenance(),
+    workflowVariableResolvedSecretTraceProvenance:
+      context.workflowVariableResolvedSecretTraceProvenance,
+    workflowInputResolvedSecretTraceProvenance: context.workflowInputResolvedSecretTraceProvenance,
+    finalOutputResolvedSecretTraceProvenance: context.finalOutputResolvedSecretTraceProvenance,
+    resolvedSecretTraceCheckpointVersion: context.resolvedSecretTraceRegistry
+      ? RESOLVED_SECRET_TRACE_CHECKPOINT_VERSION
+      : undefined,
+  }
+
+  assertSnapshotValueIsCompact(context.workflowVariables, 'workflow variables')
+  assertSnapshotValueIsCompact(state.loopExecutions, 'loop execution state')
+
+  const workspaceId = metadataFromContext?.workspaceId ?? context.workspaceId
+  if (!workspaceId) {
+    throw new Error(
+      `Cannot serialize pause snapshot: missing workspaceId for workflow ${context.workflowId}`
+    )
+  }
+  const principal = metadataFromContext?.principal ?? context.principal
+  if (!principal) {
+    throw new Error(
+      `Cannot serialize pause snapshot: missing principal for workflow ${context.workflowId}`
+    )
+  }
+
+  const executionMetadata: ExecutionMetadata = {
+    requestId:
+      metadataFromContext?.requestId ?? context.executionId ?? context.workflowId ?? 'unknown',
+    executionId: context.executionId ?? 'unknown',
+    workflowId: context.workflowId,
+    workspaceId,
+    userId: metadataFromContext?.userId ?? '',
+    /**
+     * The gate's subject, tri-state and carried verbatim. `userId` above is the
+     * billing/rate actor, and for a trigger with no acting person it names the
+     * workspace's billing owner — so a rebuild that dropped this would resume a
+     * paused run gating on that bystander (`governedSubjectUserId` reads an
+     * absent field as "not declared" and falls back to the actor). A declared
+     * `null` is the actorless run and must survive as `null`, not as absence.
+     */
+    capabilityGovernedUserId: metadataFromContext?.capabilityGovernedUserId,
+    principal,
+    billingAttribution: metadataFromContext?.billingAttribution,
+    sessionUserId: metadataFromContext?.sessionUserId,
+    workflowUserId: metadataFromContext?.workflowUserId,
+    triggerType: metadataFromContext?.triggerType ?? 'manual',
+    triggerBlockId: triggerBlockIds[0],
+    useDraftState,
+    startTime: metadataFromContext?.startTime ?? new Date().toISOString(),
+    isClientSession: metadataFromContext?.isClientSession,
+    /**
+     * Both identity flags survive pause/resume. Dropping them would silently
+     * re-resolve a resumed run's personal variables as the workflow owner even
+     * though the original run authorized as its caller.
+     */
+    enforceCredentialAccess: metadataFromContext?.enforceCredentialAccess,
+    isPublicApiAccess: metadataFromContext?.isPublicApiAccess,
+    executionMode: metadataFromContext?.executionMode,
+    /** Preserve deployed-chat thinking gate across HITL pause/resume. */
+    includeThinking: metadataFromContext?.includeThinking === true ? true : undefined,
+    /** Preserve false as distinct from a legacy snapshot with no independent tool policy. */
+    includeToolCalls:
+      typeof metadataFromContext?.includeToolCalls === 'boolean'
+        ? metadataFromContext.includeToolCalls
+        : undefined,
+    /** Preserve the run-level agent-events opt-in across HITL pause/resume. */
+    agentEvents: metadataFromContext?.agentEvents === true ? true : undefined,
+    stopAfterBlockId: metadataFromContext?.stopAfterBlockId,
+  }
+
+  const snapshot = new ExecutionSnapshot(
+    executionMetadata,
+    context.workflow,
+    {},
+    context.workflowVariables,
+    context.selectedOutputs,
+    state
+  )
+  return { snapshot, state }
+}
+
+export function serializePauseSnapshot(
+  context: ExecutionContext,
+  triggerBlockIds: string[],
+  dag?: DAG,
+  edgeManager?: EdgeManager
+): SerializedSnapshot {
+  return {
+    snapshot: buildExecutionSnapshot(context, triggerBlockIds, dag, edgeManager).snapshot.toJSON(),
+    triggerIds: triggerBlockIds,
+  }
+}
+
+const LIVE_EXECUTION_STATE = Symbol('liveExecutionState')
+
+/**
+ * Throws exactly where `JSON.stringify(value)` would — a cycle or a BigInt,
+ * after applying `toJSON` — without building the string. Iterative, so nesting
+ * that native serialization handles cannot overflow the JS stack here.
+ */
+function assertJsonSerializable(value: unknown): void {
+  type Frame = { node: object; keys: string[] | undefined; length: number; index: number }
+  const ancestors = new Set<object>()
+  const stack: Frame[] = []
+
+  const enter = (raw: unknown, key: string): void => {
+    let current = raw
+    if (
+      (typeof current === 'object' && current !== null) ||
+      typeof current === 'function' ||
+      typeof current === 'bigint'
+    ) {
+      const toJSON = (current as { toJSON?: unknown }).toJSON
+      if (typeof toJSON === 'function') current = toJSON.call(current, key)
+    }
+    if (typeof current === 'object' && current !== null) current = unboxJsonPrimitive(current)
+    if (typeof current === 'bigint') {
+      throw new TypeError('Do not know how to serialize a BigInt')
+    }
+    if (typeof current !== 'object' || current === null) return
+    if (ancestors.has(current)) {
+      throw new TypeError('Converting circular structure to JSON')
+    }
+    ancestors.add(current)
+    const keys = Array.isArray(current) ? undefined : Object.keys(current)
+    stack.push({
+      node: current,
+      keys,
+      length: keys ? keys.length : (current as unknown[]).length,
+      index: 0,
+    })
+  }
+
+  enter(value, '')
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1]
+    if (frame.index >= frame.length) {
+      ancestors.delete(frame.node)
+      stack.pop()
+      continue
+    }
+    const index = frame.index++
+    const key = frame.keys ? frame.keys[index] : String(index)
+    enter((frame.node as Record<string, unknown>)[key], key)
+  }
+}
+
+/**
+ * Execution state for a run whose blocks have all settled. Validates and fails
+ * exactly like `JSON.parse(serializePauseSnapshot(...).snapshot).state`, but
+ * skips that full JSON clone: block logs and block states are shallow copies
+ * sharing their inputs and outputs with the run, and JSON normalization is left
+ * to whoever serializes the state.
+ */
+export function buildCompletedExecutionState(
+  context: ExecutionContext,
+  dag?: DAG,
+  edgeManager?: EdgeManager
+): SerializableExecutionState {
+  const { snapshot, state } = buildExecutionSnapshot(context, [], dag, edgeManager)
+  assertJsonSerializable(snapshot.toSerializable())
+  const completed: SerializableExecutionState = {
+    ...state,
+    blockLogs: state.blockLogs.map((log) => ({ ...log })),
+    blockStates: Object.fromEntries(
+      Object.entries(state.blockStates).map(([blockId, blockState]) => [blockId, { ...blockState }])
+    ),
+  }
+  // Enumerable so object spreads carry it; JSON serialization ignores symbol keys.
+  Object.defineProperty(completed, LIVE_EXECUTION_STATE, { value: true, enumerable: true })
+  return completed
+}
+
+/**
+ * Whether execution state came from {@link buildCompletedExecutionState} (or a
+ * spread of it) and so still holds live, not-yet-JSON-normalized values.
+ * Other states came out of a JSON round-trip already.
+ */
+export function isLiveExecutionState(state: unknown): boolean {
+  return (
+    typeof state === 'object' &&
+    state !== null &&
+    (state as Record<symbol, unknown>)[LIVE_EXECUTION_STATE] === true
+  )
+}

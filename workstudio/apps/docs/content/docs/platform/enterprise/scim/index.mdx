@@ -1,0 +1,206 @@
+---
+title: Directory provisioning (SCIM)
+description: Sync organization members and group-based access from your identity provider
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { Step, Steps } from 'fumadocs-ui/components/steps'
+import { Tab, Tabs } from '@/components/ui/tabs'
+
+Directory provisioning uses SCIM 2.0, a standard protocol for syncing accounts, to create, update, and deactivate organization members from your identity provider. Map directory groups to workspace access, permission groups, or the organization admin role.
+
+Configure [SSO](/platform/enterprise/sso) separately for authentication. SCIM can manage membership without a saved SSO provider.
+
+## Before you start
+
+- On Sim Cloud, use an Enterprise organization and an organization owner or admin account.
+- [Verify every email domain](/platform/enterprise/verified-domains) you will provision. Sim refuses account creation or an email change to an unverified domain.
+- On self-hosted deployments, enable SSO to reach **Single sign-on → Provisioning**, and enable SCIM. The enterprise master pair enables both; individual setup uses `SSO_ENABLED`, `NEXT_PUBLIC_SSO_ENABLED`, `SCIM_ENABLED`, and `NEXT_PUBLIC_SCIM_ENABLED`. See [Self-hosted SSO setup](/platform/enterprise/sso#self-hosted-setup) and [Deployment and upgrades](#deployment-and-upgrades).
+
+## What it does
+
+| Directory request | Sim behavior |
+| --- | --- |
+| Provision a person | Creates or links an account and adds new organization members as Members. Workspace access requires a mapping or existing grant. |
+| Update name or email | Updates the account. An email change ends its sessions. |
+| Deactivate a person | Suspends sign-in and personal API keys, and blocks scheduled runs or triggers acting as that person. Ownership, credentials, grants, and workspace history are retained. Shared workspace keys keep working. |
+| Reactivate a person | Lifts the suspension. Current group memberships and mappings govern directory access. |
+| Send SCIM `DELETE` | Removes organization membership, ends sessions, deletes personal API keys, and reassigns owned resources. The Sim account survives. |
+| Add or remove group membership | Applies or withdraws the group's mapped access. |
+
+Deactivation itself does not withdraw grants. Group or mapping changes can still withdraw access and reassign ownership while someone is suspended. A deactivated member keeps their seat until removed from the organization.
+
+Deactivation deletes the member's sessions and stops personal API-key authentication when it completes. Organization security-version invalidation reaches cached browser sessions on other application instances within up to 60 seconds.
+
+Sim refuses directory suspension or removal of an organization owner. Transfer ownership in Sim first.
+
+### Match an existing account
+
+Sim links an account already in your organization or in no organization, using its verified-domain email. An account in another organization causes a conflict: a Sim account can belong to only one organization, so remove it there before provisioning here.
+
+New members follow the organization's seat policy. Fixed-seat plans reject a join when full; add seats and let the provider retry. Team seat policies grow the billed seat count with membership. Cloud SCIM availability still requires Enterprise.
+
+## Enable provisioning
+
+<Steps>
+<Step>
+### Verify domains
+
+Verify each provisioned email domain under **Settings → Organization → Single sign-on → Domains**. This prevents a directory from claiming addresses its organization does not own.
+</Step>
+
+<Step>
+### Enable the connection
+
+Open **Single sign-on → Provisioning** and turn on **Enable directory provisioning**. Copy the **Base URL** under **Connection**:
+
+```
+https://<your-sim-domain>/api/scim/v2
+```
+</Step>
+
+<Step>
+### Issue a token
+
+Under **Tokens**, choose **Never expires**, **Expires in 90 days**, or **Expires in 1 year**, then select **Issue token**. Copy the token before closing the dialog; Sim shows it once.
+
+At most two tokens can be active. To rotate, issue a replacement, update the provider, confirm a successful provisioning request, then revoke the old token.
+</Step>
+
+<Step>
+### Configure the provider
+
+<Tabs items={['Okta', 'Microsoft Entra ID', 'OneLogin', 'JumpCloud']}>
+<Tab value="Okta">
+
+Follow [Okta provisioning](/platform/enterprise/scim/okta) for integration selection, setup, and lifecycle checks. The evaluation **SCIM 2.0 Test App (Header Auth)** template expects the complete `Authorization` header in **API Token**:
+
+```
+Bearer <your-sim-token>
+```
+
+Classic OIDC apps need a separate provisioning integration; OIDC apps created in the newer Okta Integration Wizard can support SCIM. The guide separates evaluation templates from production integration requirements. Keep app-assignment groups separate from Group Push groups.
+
+Okta sends deactivation rather than SCIM user `DELETE`, so offboarding suspends access while retaining membership and the seat.
+</Tab>
+<Tab value="Microsoft Entra ID">
+
+Follow [Microsoft Entra provisioning](/platform/enterprise/scim/entra) to create a non-gallery application, configure **Bearer authentication**, and test assigned users before starting the automatic job.
+
+Use the Sim Base URL as **Tenant URL**. Enter the token alone in **Secret token**, without `Bearer `. User provisioning is available with Entra ID Free; group provisioning requires P1 or higher.
+
+Entra's incremental cycles normally run about every 40 minutes. Unassignment and soft deletion deactivate a Sim member; permanent deletion can send SCIM `DELETE` while the provisioning job still manages the account. See the guide for the 30-day directory deletion window, early purge, and on-demand limits.
+</Tab>
+<Tab value="OneLogin">
+
+Add **SCIM Provisioner with SAML (SCIM v2 Core)**. Use version 2.0; Sim does not support SCIM 1.1.
+
+| Field | Value |
+| --- | --- |
+| **SCIM Base URL** | `https://<your-sim-domain>/api/scim/v2` |
+| **SCIM Bearer Token** | Your Sim token |
+
+In **Parameters**, map `scimusername` to the account's email. Confirm that **SCIM JSON Template** uses `urn:ietf:params:scim:schemas:core:2.0:User` and sends the email as `userName` or in `emails`. Save, enable the API connection, then enable provisioning. See [OneLogin custom connectors](https://onelogin.service-now.com/kb?id=kb_article_view&sysparm_article=KB0013904).
+
+Choose the deletion behavior: **Suspend** suspends the Sim account; **Delete** removes organization membership. If administrative approval is enabled, approve pending actions before expecting synchronization. See [OneLogin provisioning tests](https://developers.onelogin.com/docs/scim/test-your-scim/).
+</Tab>
+<Tab value="JumpCloud">
+
+Open the application's **Provisioning** tab and configure **Custom SCIM**. Use an existing application, a custom SAML application, or a URL Bookmark for provisioning without SAML.
+
+| Field | Value |
+| --- | --- |
+| **Base URL** | `https://<your-sim-domain>/api/scim/v2` |
+| **Token** or **Token Key** | Your Sim token |
+| **Test User Email** | An unused address in a domain verified by your Sim organization |
+
+Select **Test Connection**, enable group management if you will map groups, then select **Activate**. Activation creates and deletes a test account and, with group management enabled, a test group. The test email must not already exist in Sim. See [JumpCloud custom SCIM](https://jumpcloud.com/support/provision-and-manage-users-and-groups-in-apps-using-custom-scim-identity-management-integration).
+</Tab>
+</Tabs>
+</Step>
+
+<Step>
+### Map directory groups
+
+Under **Provisioning → Group mappings**, map each synced group to one or more targets:
+
+- A **Permission group**, which governs models, integrations, and capabilities.
+- A **Workspace**, with **Read**, **Write**, or **Admin** access.
+- The **Organization admin** role.
+
+When multiple groups grant the same workspace at different levels, the strongest grant wins. The organization's default permission group cannot be a mapping target.
+
+<Callout type="warn">
+  Mapping a permission group permanently switches it to explicit membership: it applies only to its members, and an empty mapped group applies to nobody. A group that previously applied to everyone in its workspaces stops doing so when mapped. Use permission groups created for directory membership rather than existing organization-wide groups.
+</Callout>
+
+Under **Provisioning rules → Manage rules**, **Match permission groups by name** maps new or renamed directory groups to existing non-default permission groups with an exact, case-sensitive name match. Sim does not create permission groups. A rename updates automatic mappings and preserves manually added ones.
+
+For groups already synced before enabling name matching, select **Reconcile now** or wait for scheduled reconciliation.
+</Step>
+</Steps>
+
+## How access is withdrawn
+
+Sim tracks grants made through directory mappings. Removing a member from a group or removing its mapping withdraws the tracked access.
+
+**Lock managed membership** is enabled by default on a new connection. It makes the directory authoritative for provisioned members: Sim refuses manual invitations, workspace grants, workspace role changes, and organization role changes for them. Manual access already held when a mapping begins covering it becomes directory-managed and is withdrawn with that mapping. Administrators can still remove access in an emergency.
+
+With locking off, prior manual workspace access is preserved. If a member had manual Read access and a directory mapping raises it to Admin, removing the mapping restores Read. A role manually raised above the directory's level also remains. [Older grants have a baseline limitation](#deployment-and-upgrades).
+
+You can manually invite people the directory does not manage. For managed members with locking on, grant access through directory groups.
+
+## Provisioning and SSO together
+
+An active provisioned member can authenticate through SSO configured for the same verified domain. Both systems resolve to the same account.
+
+To prevent SSO from adding new organization members, enable **Provisioning rules → Manage rules → Disable just-in-time provisioning**. While the SCIM connection is active and entitled, this overrides **Sign-in → First sign-in → Automatic**. Existing members can still sign in, including members added by invitation; they do not all have to be SCIM-provisioned.
+
+## Inspect activity and reconcile access
+
+Connection switches, rules, tokens, and mappings save immediately. **Provisioning** has no page-level Save button.
+
+**Provisioning → Activity** shows recent authenticated requests, their status, and failure details. A wrong, expired, or revoked token cannot be associated with a connection, so its authentication error appears only in the provider's logs.
+
+**Reconcile now** reapplies group mappings and changed connection rules. For scheduled reconciliation, call `GET /api/cron/scim-reconcile` with the configured `CRON_SECRET`. Helm and production Docker Compose include an hourly schedule when their cron service is configured and running. This endpoint runs directly; it does not require Trigger.dev. See [Background schedules](/platform/enterprise/self-hosted#schedule-the-background-jobs).
+
+## Disable provisioning
+
+Turning the connection off stops synchronization; it does not reverse suspension or prior access changes. Deactivated members stay deactivated. To restore an account without the directory, remove it from the organization and invite it again.
+
+## Deployment and upgrades
+
+Apply database migrations before the new application code. The SCIM tables and suspension fields are additive, allowing older code to run against the expanded schema during rollout.
+
+<Callout type="warn">
+  Keep `SCIM_ENABLED=false` and `NEXT_PUBLIC_SCIM_ENABLED=false` until all older application instances and workers are drained. Older code does not enforce SCIM suspension or explicit permission-group membership. These explicit flags also override the hosted default.
+</Callout>
+
+After SCIM has suspended accounts or established managed access, rolling back to code that predates SCIM is unsafe: it cannot enforce those restrictions. Disabling synchronization does not undo suspension or restore earlier membership semantics.
+
+Migration `0325_scim_manual_workspace_baseline` tracks prior manual workspace access, but cannot reconstruct levels overwritten by older SCIM code. Review existing directory-owned grants before withdrawing mappings with locking off. Restore prior manual access explicitly where needed.
+
+## Protocol reference
+
+| Item | Contract |
+| --- | --- |
+| Base URL | `https://<your-sim-domain>/api/scim/v2` |
+| Authentication | `Authorization: Bearer <token>` |
+| Resources | `/Users`, `/Groups`, `/ServiceProviderConfig`, `/ResourceTypes`, `/Schemas` |
+| Filters | `eq` only, up to 10 terms joined by `and` |
+| User filter fields | `id`, `userName`, `externalId`, `emails.value`, `emails[type eq "work"].value`, `active` |
+| Group filter fields | `id`, `displayName`, `externalId` |
+| Request rate | Sustained 1,500 requests per minute per connection; burst capacity 3,000 |
+| Request body | Maximum 1,000,000 bytes (1 MB) |
+| Group membership | Maximum 5,000 members per group |
+| List page | Maximum 100 resources per request |
+
+Sim stores and returns `userName` in lowercase. Group display names are unique within a connection, ignoring case. Unmodeled top-level attributes and custom schema extensions are retained; a `PUT` preserves those it omits. Passwords are neither stored nor returned. Sim controls `id`, `meta`, and group membership.
+
+## Related docs
+
+- [Single sign-on](/platform/enterprise/sso)
+- [Verified domains](/platform/enterprise/verified-domains)
+- [Okta provisioning](/platform/enterprise/scim/okta)
+- [Microsoft Entra provisioning](/platform/enterprise/scim/entra)
+- [Permission groups](/platform/enterprise/access-control)

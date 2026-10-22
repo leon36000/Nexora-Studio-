@@ -1,0 +1,140 @@
+---
+title: Permission groups
+description: Limit models, blocks, tools, and platform actions for people in your organization's workspaces
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Permission groups restrict what people can use in an organization's workspaces. Set a provider or block allowlist, deny individual models or tool operations, or limit platform actions such as exports and deployments. Workspace membership and roles still determine which resources a person can access; a group does not grant access.
+
+Organization owners and admins manage groups under **Settings → Organization → Permission groups**. Billing-enabled deployments require Enterprise. Billing-disabled deployments use the feature configuration described under [Self-hosted setup](#self-hosted-setup). Workspaces without an organization have no permission groups.
+
+## Create and configure a group
+
+1. Open **Settings → Organization → Permission groups** and click **Create group**.
+2. Enter a name and optional description. Select at least one workspace, or make the group the **Default group** for the organization.
+3. Open the group's row. Configure its **General**, **Model Providers**, **Blocks**, and **Platform** tabs.
+4. Click **Save** to save its name, description, and permission configuration.
+
+<Callout type="warn">
+Changes to workspace scope, the default-group switch, and membership take effect immediately. **Discard** only discards the buffered name, description, and permission changes.
+</Callout>
+
+In the provider, block, and platform permission lists, a checked box allows the item. Clear it to restrict the item. The **Project Issues** project checklist is an exception: checked projects are restricted.
+
+### General
+
+The **General** tab sets the name, description, workspaces, members, and default-group status. Sim selects a single governing group for each person and workspace:
+
+1. A non-default group targeting that workspace with the person as an explicit member.
+2. Otherwise, a non-default group targeting that workspace in inheritance membership mode with no named members. It governs all workspace members, including external members.
+3. Otherwise, the organization's default group, if configured.
+4. Otherwise, no permission-group restrictions.
+
+The default is a fallback. Its restrictions are not combined with a selected workspace group. Only one group can be the organization default; it applies across the organization's workspaces and ignores a named-member list.
+
+An ordinary workspace group starts by governing all members of its selected workspaces. Adding named members narrows it to those people. Removing its last member can make it govern everyone again. **SCIM explicit-membership groups behave differently:** an empty explicit group governs nobody. See [SCIM provisioning](/platform/enterprise/scim).
+
+Assignment checks allow at most one all-members group per workspace and at most one explicit group per person on a shared workspace. Conflicting individual assignments are rejected; conflicting people in bulk additions are skipped. Scope changes or removing the last inheritance-mode member can also be rejected if they would create a conflict. Sim does not silently move memberships between groups.
+
+A non-default group needs a workspace when created, but you can later remove all its workspaces. It then governs nobody until you add a workspace. External workspace members cannot be selected as named organization members; the workspace's all-members group or organization default can still govern them.
+
+### Model Providers
+
+All providers are allowed by default. Select a subset to allow only those providers. Expand a provider to deny individual models while leaving its other models available.
+
+The **Agent default** chooses the initial model for new Agent blocks. Choose an allowed model, or **Platform default** to use Sim's default. This setting does not itself restrict models or rewrite existing blocks.
+
+### Blocks
+
+**Core Blocks** contains blocks such as Agent, API, and Function; **Tools** contains integration blocks. All are allowed by default. Select a subset to restrict block types, then expand an integration to deny individual operations—for example, allow reads while refusing deletes.
+
+The `start_trigger` entry block is always allowed. Existing workflows are not rewritten when a restriction changes. A run fails if it reaches a blocked type, provider, model, or tool operation.
+
+### Platform
+
+Most platform restrictions refuse the protected operation at the server as well as limiting its UI. **Trace Spans** and **Execution Cost** instead control which fields an otherwise authorized log read or export returns.
+
+| Category | Permission | Effect when restricted |
+| --- | --- | --- |
+| Modules | Chat | Prevents using Chat to ask Sim to build or edit. |
+| Modules | Sim Mailer | Prevents reading or sending through the Sim Mailer inbox. |
+| Modules | Sandboxes | Prevents viewing, creating, or changing workspace sandboxes. |
+| Knowledge Base | Knowledge Base | Prevents opening, searching, or querying knowledge bases. |
+| Knowledge Base | Knowledge Base Creation | Prevents creating bases; existing permitted bases remain usable. |
+| Knowledge Base | Knowledge Base Uploads | Prevents local document uploads. |
+| Knowledge Base | Knowledge Base Export | Prevents exporting a knowledge base. |
+| Tables | Tables | Prevents table reads and writes. |
+| Tables | Table Creation | Prevents creating tables. |
+| Tables | Table Export | Prevents whole-table CSV or JSON downloads. |
+| Files | Files | Prevents listing, uploading, or downloading workspace files. |
+| Files | Public Sharing | Prevents creating file-share links. |
+| Files | Bulk Download | Prevents downloading folders as archives. |
+| Deployment | Public API | Refuses governed public API access to deployed workflows. |
+| Deployment | API Deployment | Prevents deploying workflows as API endpoints. |
+| Deployment | MCP Server | Prevents exposing workflows through MCP servers. |
+| Deployment | Chat Deployment | Prevents deploying workflows as chats. |
+| Deployment | Webhook Triggers | Prevents exposing workflows through inbound webhooks. |
+| Tools | MCP Tools | Prevents agents from calling MCP tools. |
+| Tools | Custom Tools | Prevents agents from calling custom tools. |
+| Tools | Skills | Prevents agents from loading skills. |
+| Tools | Tool Auto-Approval | Prevents storing an always-allow preference for tool calls. |
+| Logs | Trace Spans | Withholds per-block spans from log reads and API responses. |
+| Logs | Log Export | Prevents CSV execution-log downloads. |
+| Logs | Execution Cost | Omits cost and token spend from governed logs and member exports. Organization-admin data drains are not projected this way. |
+| Collaboration | Invitations | Prevents workspace or organization invitations in the applicable scope. |
+| Collaboration | Workspace Creation | Prevents creating workspaces. |
+| Collaboration | Member Directory | Withholds other members' names and emails; organization owners and admins retain roster access. |
+| Credentials & Access | Integrations | Prevents viewing, adding, or removing integration connections. |
+| Credentials & Access | Secrets | Prevents reading, adding, or changing workspace environment variables. |
+| Credentials & Access | API Keys | Prevents listing, creating, or revoking workspace API keys. |
+| Credentials & Access | Personal API Keys | Prevents using personal API keys against the workspace. |
+| Credentials & Access | Personal Credentials | Prevents connecting personal credentials, leaving workspace-shared credentials available. |
+| Credentials & Access | CLI Access | Prevents CLI login approval and use of CLI OAuth tokens for the public API. API keys retain their separate policies. |
+| Credentials & Access | OAuth App Access | Prevents OAuth apps from accessing governed workspaces. |
+
+Additional lists narrow selected capabilities:
+
+- **Knowledge Base** has a connector allowlist. Leave it unrestricted to allow all connectors, or select permitted sources.
+- **Public Sharing** has an auth-mode allowlist: Anyone with link, Password, Email, and SSO.
+- **Chat Deployment** has an auth-mode allowlist: Public, Password, Email, and SSO.
+- **Project Issues** restricts issue access for the checked projects. Governed teammates must have workspace access to every active environment in a selected project.
+
+Restricting **Tool Auto-Approval** prevents remembering approval for future calls. It does not undo approval of the current call or force confirmation for tools that do not require it. Future calls that require confirmation prompt again.
+
+#### Organization-level permissions
+
+**Workspace Creation** and **Member Directory** read only the organization default, because those actions have no workspace scope. Other groups show them as inactive with an **Organization** tag, and **Select All** skips them. A newly created workspace uses the organization default until you add it to a workspace group.
+
+**Integrations**, **API Keys**, **Invitations**, **Personal API Keys**, **CLI Access**, and **OAuth App Access** use the selected workspace group for workspace operations. Account-level operations use the organization default: minting a personal key, sending organization invitations, approving CLI login, authorizing or refreshing OAuth, and account-level billing or audit reads.
+
+## How enforcement applies
+
+A human's governing group applies to session, personal API-key, OAuth, and delegated operations. Workflow restrictions are checked during execution, including deployments invoked by API, schedule, or webhook, using the operation's authorized identity. They do not replace workspace roles, credential access, or OAuth scopes.
+
+A **workspace API key** acts as the workspace. It has workspace-role and operation policies but no human user's permission group; Sim does not apply the key creator's group as a substitute. A human's permission to create or manage that key is still governed.
+
+Chat filters restricted blocks from its available block catalog. Generated steps can still reference a restricted MCP tool, custom tool, or skill; execution rejects the restricted operation when reached. After changing a group, verify both the person's available UI and a representative authorized run. For an existing workflow that fails, remove the restricted item or change the governing policy.
+
+## Self-hosted setup
+
+On billing-disabled deployments, enable permission groups through the enterprise feature configuration or explicitly set:
+
+```bash
+ACCESS_CONTROL_ENABLED=true
+NEXT_PUBLIC_ACCESS_CONTROL_ENABLED=true
+```
+
+The enterprise master configuration can enable the feature; an explicit feature value takes precedence. Billing-enabled self-hosted deployments still require Enterprise. See [self-hosted enterprise setup](/platform/enterprise/self-hosted).
+
+`ALLOWED_INTEGRATIONS` adds an instance-wide block allowlist. A block must satisfy both that list and the applicable group policy; `start_trigger` remains available.
+
+```bash
+ALLOWED_INTEGRATIONS=slack,gmail,agent,function,condition
+```
+
+## Related docs
+
+- [Workspace permissions](/platform/workspaces)
+- [SCIM provisioning](/platform/enterprise/scim)
+- [Audit logs](/platform/enterprise/audit-logs)

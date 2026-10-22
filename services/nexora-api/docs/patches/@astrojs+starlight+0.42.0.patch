@@ -1,0 +1,57 @@
+diff --git a/node_modules/@astrojs/starlight/dist/user-components/Icon.astro b/node_modules/@astrojs/starlight/dist/user-components/Icon.astro
+index 1937f24..cda887c 100644
+--- a/node_modules/@astrojs/starlight/dist/user-components/Icon.astro
++++ b/node_modules/@astrojs/starlight/dist/user-components/Icon.astro
+@@ -1,8 +1,9 @@
+ ---
+ import { Icons, type StarlightIcon } from '../components-internals/Icons';
++import { Icon as AstroIcon } from 'astro-icon/components';
+ 
+ interface Props {
+-	name: StarlightIcon;
++	name: string;
+ 	label?: string;
+ 	color?: string;
+ 	size?: string;
+@@ -11,17 +12,32 @@ interface Props {
+ 
+ const { name, label, size = '1em', color } = Astro.props;
+ const a11yAttrs = label ? ({ 'aria-label': label } as const) : ({ 'aria-hidden': 'true' } as const);
++const isExternalIcon = typeof name === 'string' && name.includes(':');
++const astroIconName = name.startsWith('local:') ? name.slice('local:'.length) : name;
+ ---
+ 
+-<svg
+-	{...a11yAttrs}
+-	class={Astro.props.class}
+-	width="16"
+-	height="16"
+-	viewBox="0 0 24 24"
+-	fill="currentColor"
+-	set:html={Icons[name]}
+-/>
++{
++	isExternalIcon ? (
++		<AstroIcon
++			{...a11yAttrs}
++			name={astroIconName}
++			class={Astro.props.class}
++			width="1em"
++			height="1em"
++			style={`font-size:${size};color:${color || 'currentColor'}`}
++		/>
++	) : (
++		<svg
++			{...a11yAttrs}
++			class={Astro.props.class}
++			width="16"
++			height="16"
++			viewBox="0 0 24 24"
++			fill="currentColor"
++			set:html={Icons[name as StarlightIcon]}
++		/>
++	)
++}
+ 
+ <style define:vars={{ 'sl-icon-color': color, 'sl-icon-size': size }}>
+ 	@layer starlight.components {

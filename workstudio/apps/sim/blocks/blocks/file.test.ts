@@ -1,0 +1,189 @@
+import { describe, expect, it } from 'vitest'
+import { fileManageWriteBodySchema } from '@/lib/api/contracts/tools/file'
+import { FileV4Block, FileV5Block } from '@/blocks/blocks/file'
+import { fileWriteTool } from '@/tools/file/write'
+
+describe('FileV4Block', () => {
+  const buildParams = FileV4Block.tools.config.params
+
+  it('rejects inline content for fetch', () => {
+    expect(() =>
+      buildParams({
+        operation: 'file_fetch',
+        fileUrl: '\u0001\u0002raw jpeg bytes',
+      })
+    ).toThrow('File URL must be a valid http or https URL')
+  })
+
+  it('rejects data URLs for fetch', () => {
+    expect(() =>
+      buildParams({
+        operation: 'file_fetch',
+        fileUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD',
+      })
+    ).toThrow('File URL must use http or https')
+  })
+})
+
+describe('FileV5Block', () => {
+  const buildParams = FileV5Block.tools.config.params
+
+  it.each([
+    [null, null],
+    ['', null],
+    [undefined, undefined],
+    ['', 'image/png'],
+  ])(
+    'writes a produced file with blank content %s and MIME override %s',
+    (content, contentType) => {
+      const file = {
+        id: 'file_execution-output',
+        name: 'test-card-160x90.png',
+        url: '/api/files/serve/execution-output.png',
+        key: 'execution/workspace-1/workflow-1/run-1/output.png',
+        context: 'execution',
+        type: 'image/png',
+        size: 514,
+      }
+      const inputs = {
+        operation: 'file_write',
+        fileName: 'test-card-160x90.png',
+        writeFolderRef: '/Media%20Studio%20Tests',
+        writeFileInput: file,
+        content,
+        contentType,
+        overwrite: false,
+        _context: { workspaceId: 'workspace-1' },
+      }
+      // GenericBlockHandler retains raw inputs when applying a block's transform.
+      const params = { ...inputs, ...buildParams(inputs) }
+      const parsed = fileManageWriteBodySchema.parse(fileWriteTool.operation.input(params))
+      expect(parsed.fileInput).toEqual(file)
+      expect(parsed.content).toBeUndefined()
+      expect(parsed.contentType).toBe(contentType ?? undefined)
+      expect(parsed.folderPath).toBe('/Media%20Studio%20Tests')
+    }
+  )
+
+  it('preserves empty text writes and rejects a file combined with nonempty text', () => {
+    const text = { operation: 'file_write', fileName: 'empty.txt', content: '', contentType: null }
+    const parsed = fileManageWriteBodySchema.parse(
+      fileWriteTool.operation.input({ ...text, ...buildParams(text) })
+    )
+    expect(parsed.content).toBe('')
+    expect(parsed.fileInput).toBeUndefined()
+    const both = { ...text, content: 'conflict', writeFileInput: { id: 'file-output' } }
+    expect(
+      fileManageWriteBodySchema.safeParse(
+        fileWriteTool.operation.input({ ...both, ...buildParams(both) })
+      ).success
+    ).toBe(false)
+  })
+
+  it('rejects invalid non-string MIME values at the existing contract', () => {
+    const inputs = {
+      operation: 'file_write',
+      fileName: 'note.txt',
+      content: 'keep this text',
+      contentType: 42,
+    }
+    expect(
+      fileManageWriteBodySchema.safeParse(
+        fileWriteTool.operation.input({ ...inputs, ...buildParams(inputs) })
+      ).success
+    ).toBe(false)
+  })
+
+  it('keeps the builder-configured search limit as a fixed hard cap', () => {
+    expect(
+      buildParams({
+        operation: 'file_search',
+        query: '',
+        maxResults: '25',
+      })
+    ).toEqual({ query: '', mode: 'regex', maxResults: 25 })
+
+    const query = FileV5Block.subBlocks.find((subBlock) => subBlock.id === 'query')
+    const mode = FileV5Block.subBlocks.find((subBlock) => subBlock.id === 'mode')
+    const maxResults = FileV5Block.subBlocks.find((subBlock) => subBlock.id === 'maxResults')
+    expect(query?.paramVisibility).toBe('user-or-llm')
+    expect(mode?.paramVisibility).toBe('user-only')
+    expect(maxResults?.paramVisibility).toBe('user-only')
+    expect(query?.canonicalParamId).toBeUndefined()
+    expect(maxResults?.canonicalParamId).toBeUndefined()
+    expect(maxResults?.value?.()).toBe('50')
+    expect(mode?.value?.()).toBe('regex')
+  })
+
+  it.each([
+    [undefined, 'regex'],
+    ['exact', 'exact'],
+    ['regex', 'regex'],
+    ['glob', 'regex'],
+  ])('resolves the builder-configured match mode %s to %s', (mode, expected) => {
+    expect(buildParams({ operation: 'file_search', query: 'needle', mode })).toMatchObject({
+      mode: expected,
+    })
+  })
+
+  it.each(['10.5', '10results', '0', '201'])(
+    'rejects invalid builder-configured search cap %s',
+    (maxResults) => {
+      expect(() =>
+        buildParams({
+          operation: 'file_search',
+          query: 'needle',
+          maxResults,
+        })
+      ).toThrow('Maximum Results must be an integer between 1 and 200')
+    }
+  )
+
+  it('resolves canonical IDs for get content', () => {
+    expect(
+      buildParams({
+        operation: 'file_get_content',
+        getContentInput: '["file-1","file-2"]',
+        _context: { workspaceId: 'workspace-1' },
+      })
+    ).toEqual({
+      fileId: ['file-1', 'file-2'],
+      workspaceId: 'workspace-1',
+    })
+  })
+
+  it('throws when neither a file nor a folder is provided for get content', () => {
+    expect(() => buildParams({ operation: 'file_get_content' })).toThrow(
+      'File or folder is required for get content'
+    )
+  })
+
+  it('maps manage sharing to public access for a canonical file ID', () => {
+    expect(
+      buildParams({
+        operation: 'file_manage_sharing',
+        shareInput: 'file-1',
+        shareVisibility: 'public',
+        _context: { workspaceId: 'workspace-1' },
+      })
+    ).toEqual({
+      fileId: 'file-1',
+      isActive: true,
+      authType: 'public',
+      password: undefined,
+      allowedEmails: undefined,
+      workspaceId: 'workspace-1',
+    })
+  })
+
+  it('rejects multiple file IDs for manage sharing', () => {
+    expect(() =>
+      buildParams({
+        operation: 'file_manage_sharing',
+        shareInput: '["file-1","file-2"]',
+        shareVisibility: 'public',
+        _context: { workspaceId: 'workspace-1' },
+      })
+    ).toThrow('Manage Sharing accepts a single file at a time')
+  })
+})

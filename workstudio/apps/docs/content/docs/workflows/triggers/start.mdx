@@ -1,0 +1,81 @@
+---
+title: Start trigger
+description: Define typed inputs for editor, API, and deployed chat runs.
+---
+
+import { Tab, Tabs } from '@/components/ui/tabs'
+
+**Start** is the default entry point on a new workflow. It accepts editor input, API input, and deployed chat messages. Keep it when those callers should share the same downstream logic; add other triggers for events or schedules.
+
+## Input format
+
+Open Start's **Inputs** and add fields. Each field has a name, type, description, and optional default value.
+
+| Setting | Behavior |
+| --- | --- |
+| Name | Downstream reference, such as `<start.customerId>` |
+| Type | `string`, `number`, `boolean`, `object`, `array`, or a file field (`file[]` / `files`) |
+| Description | Explains the input; also supplies the default MCP parameter description |
+| Default value | Prefills editor runs and supplies a fallback when input is omitted or `null` |
+| Order | Controls the editor form's field order |
+
+A supplied value overrides the default, including an empty string. Sim coerces supported primitive values; an invalid declared number or boolean can fail the run at input validation. Add an early Condition when your workflow needs stricter validation, such as a nonempty customer ID.
+
+## Per entry point
+
+<Tabs items={['Editor run', 'API', 'Chat']}>
+  <Tab>
+    Click **Run** to fill the form created from Inputs. Defaults prefill it; submitting sends those values to `<start.fieldName>`. File fields accept uploads into their named output.
+  </Tab>
+  <Tab>
+    Put fields inside the API request's `input` value:
+
+    ```json
+    {
+      "input": {
+        "customerId": 4821,
+        "message": "Please check my order"
+      }
+    }
+    ```
+
+    These values are available as `<start.customerId>` and `<start.message>`. File fields use uploaded-file metadata: upload the file first, then invoke the workflow. See [API deployment](/workflows/deployment/api).
+  </Tab>
+  <Tab>
+    Deployed chat supplies the latest message in `<start.input>`, the conversation ID in `<start.conversationId>`, and attachments in `<start.files>`. Custom fields use their declared defaults unless the execution surface supplies a matching value.
+
+    The public chat POST accepts `input`, `conversationId`, and `files`, plus its authentication fields; it is not a general structured-input launch API. Configure [Agent Memory](/workflows/blocks/agent#memory) if later messages should use prior conversation context.
+  </Tab>
+</Tabs>
+
+## Outputs
+
+These examples use a block named Start:
+
+| Reference | Value |
+| --- | --- |
+| `<start.fieldName>` | A named input field |
+| `<start.input>` | Built-in input, including the latest message for Chat |
+| `<start.conversationId>` | Supplied conversation ID, commonly from Chat |
+| `<start.files>` | Supplied attachments normalized for the run |
+
+The built-in fields are not restricted to Chat; they are populated when the caller or configured input supplies them. Start also passes through supported additional runtime fields. Check the output panel rather than assuming a missing field is populated.
+
+### Run metadata
+
+In advanced mode, enable **Add run metadata** to expose trusted server-built identity and run context under `<start.metadata>`: `subject`, `workspaceId`, `workflowId`, `executionId`, `executionType`, `executionMode`, and `startTime`.
+
+The subject identifies the authenticated Sim user, chat email, or supported external identity without exposing credentials. When enabled, `metadata` is reserved; a caller cannot replace it with its own value. Execution-control field names are also reserved and rejected as Start outputs.
+
+## Multiple triggers
+
+A workflow can have several trigger blocks. When the editor chooses among alternatives on the same path, Start takes priority, followed by Schedule and external triggers. Choose an external trigger explicitly when testing that entry point; its expected output shape can supply a mock payload.
+
+The v2 manual API requires `run.entry.blockId` when several triggers are runnable. If you request a mock payload, do not also supply `input`. Each execution begins at its selected trigger; deployment is required for automatic events, while editor runs test the draft.
+
+## Related docs
+
+- [API deployment](/workflows/deployment/api)
+- [Chat deployment](/workflows/deployment/chat)
+- [Webhook](/workflows/triggers/webhook)
+- [Schedule](/workflows/triggers/schedule)

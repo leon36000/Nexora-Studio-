@@ -1,0 +1,177 @@
+/**
+ * Anthropic adapter emits AgentStreamEvent objects (thinking + text)
+ * from Messages stream fixtures; tool_use deltas are handled by the tool loop.
+ */
+import { collectStream } from '@sim/testing/helpers/async'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  anthropicRedactedThinkingAssembledContent,
+  anthropicRedactedThinkingExpectedText,
+  anthropicRedactedThinkingExpectedTraceThinking,
+  anthropicRedactedThinkingStreamEvents,
+  anthropicThinkingTextToolAssembledContent,
+  anthropicThinkingTextToolExpectedText,
+  anthropicThinkingTextToolExpectedThinking,
+  anthropicThinkingTextToolStreamEvents,
+} from '@/providers/__fixtures__/anthropic'
+import { createReadableStreamFromAnthropicStream } from '@/providers/anthropic/utils'
+
+describe('createReadableStreamFromAnthropicStream', () => {
+  it('keeps citation deltas in the native text block', async () => {
+    const onComplete = vi.fn()
+    const citation = {
+      type: 'char_location' as const,
+      cited_text: 'fact',
+      document_index: 0,
+      document_title: 'Source',
+      start_char_index: 0,
+      end_char_index: 4,
+    }
+    await collectStream(
+      createReadableStreamFromAnthropicStream(
+        (async function* () {
+          yield {
+            type: 'content_block_start' as const,
+            index: 0,
+            content_block: { type: 'text' as const, text: '', citations: [] },
+          }
+          yield {
+            type: 'content_block_delta' as const,
+            index: 0,
+            delta: { type: 'text_delta' as const, text: 'Fact' },
+          }
+          yield {
+            type: 'content_block_delta' as const,
+            index: 0,
+            delta: { type: 'citations_delta' as const, citation },
+          }
+        })(),
+        onComplete
+      )
+    )
+    expect(onComplete.mock.calls[0][0].nativeContent).toEqual([
+      { type: 'text', text: 'Fact', citations: [citation] },
+    ])
+  })
+
+  it('emits thinking_delta then text_delta and ignores tool_use (thinking+text+tool fixture)', async () => {
+    const onComplete = vi.fn()
+    const stream = createReadableStreamFromAnthropicStream(
+      (async function* () {
+        yield* anthropicThinkingTextToolStreamEvents
+      })() as AsyncIterable<any>,
+      onComplete
+    )
+
+    const events = await collectStream(stream)
+
+    expect(events.filter((e) => e.type === 'thinking_delta').map((e) => e.text)).toEqual([
+      'I should check the weather before answering. ',
+      'Calling get_weather for SF.',
+    ])
+    expect(events.filter((e) => e.type === 'text_delta')).toEqual([
+      {
+        type: 'text_delta',
+        text: anthropicThinkingTextToolExpectedText,
+        turn: 'final',
+      },
+    ])
+    expect(events.some((e) => e.type === 'tool_call_start' || e.type === 'tool_call_end')).toBe(
+      false
+    )
+
+    expect(onComplete).toHaveBeenCalledTimes(1)
+    expect(onComplete.mock.calls[0][0].nativeContent).toContainEqual(
+      anthropicThinkingTextToolAssembledContent[0]
+    )
+    expect(onComplete.mock.calls[0][0]).toMatchObject({
+      content: anthropicThinkingTextToolExpectedText,
+      thinking: anthropicThinkingTextToolExpectedThinking,
+      usage: { input: 42, output: expect.any(Number) },
+    })
+  })
+
+  it('captures stream cache usage once from cumulative message events', async () => {
+    const onComplete = vi.fn()
+    const stream = createReadableStreamFromAnthropicStream(
+      (async function* () {
+        yield {
+          type: 'message_start',
+          message: {
+            usage: {
+              input_tokens: 10,
+              output_tokens: 0,
+              cache_read_input_tokens: 20,
+              cache_creation_input_tokens: 30,
+              cache_creation: {
+                ephemeral_5m_input_tokens: 10,
+                ephemeral_1h_input_tokens: 20,
+              },
+            },
+          },
+        }
+        yield {
+          type: 'message_delta',
+          usage: {
+            input_tokens: 10,
+            output_tokens: 40,
+            cache_read_input_tokens: 20,
+            cache_creation_input_tokens: 30,
+          },
+        }
+      })() as AsyncIterable<any>,
+      onComplete
+    )
+
+    await collectStream(stream)
+
+    expect(onComplete.mock.calls[0][0].usage).toMatchObject({
+      input: 10,
+      output: 40,
+      cacheRead: 20,
+      cacheWriteFiveMinute: 10,
+      cacheWriteOneHour: 20,
+    })
+  })
+
+  it('records [redacted] for redacted_thinking blocks and streams text', async () => {
+    const onComplete = vi.fn()
+    const stream = createReadableStreamFromAnthropicStream(
+      (async function* () {
+        yield* anthropicRedactedThinkingStreamEvents
+      })() as AsyncIterable<any>,
+      onComplete
+    )
+
+    const events = await collectStream(stream)
+    expect(events.filter((e) => e.type === 'thinking_delta').map((e) => e.text)).toEqual([
+      'Visible follow-up reasoning after redaction.',
+    ])
+    expect(events.filter((e) => e.type === 'text_delta')).toEqual([
+      {
+        type: 'text_delta',
+        text: anthropicRedactedThinkingExpectedText,
+        turn: 'final',
+      },
+    ])
+    expect(onComplete.mock.calls[0][0]).toMatchObject({
+      content: anthropicRedactedThinkingExpectedText,
+      thinking: anthropicRedactedThinkingExpectedTraceThinking,
+      nativeContent: anthropicRedactedThinkingAssembledContent,
+    })
+  })
+
+  it('errors the readable stream when the source throws', async () => {
+    const stream = createReadableStreamFromAnthropicStream(
+      (async function* () {
+        yield {
+          type: 'content_block_delta',
+          delta: { type: 'text_delta', text: 'partial' },
+        }
+        throw new Error('provider reset')
+      })() as AsyncIterable<any>
+    )
+
+    await expect(collectStream(stream)).rejects.toThrow('provider reset')
+  })
+})

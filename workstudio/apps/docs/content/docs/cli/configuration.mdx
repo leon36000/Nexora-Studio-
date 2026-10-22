@@ -1,0 +1,186 @@
+---
+title: Configuration
+description: Select profiles and resolve endpoint, credential, workspace, and output settings.
+---
+
+The installed CLI resolves an endpoint, credential, workspace, and output format independently. A saved default can be overridden for one command.
+
+Commands Sim runs inside Chat receive their identity, endpoint, and workspace from Chat. Local `login`, `logout`, `whoami`, `profiles`, `configure`, `update`, and `telemetry` commands are unavailable there; local profiles and config files do not apply.
+
+## Profiles
+
+A profile stores defaults and normally uses its same-named stored login. A workspace profile can share another profile's authentication through `auth_profile`.
+
+Select a profile with `-P`, `--profile`, or `SIM_PROFILE`. A flag wins over the environment; omission selects `default`:
+
+```bash
+sim workflows list --profile dev
+SIM_PROFILE=dev sim workflows list
+sim profiles --output table
+```
+
+In table output, `*` marks the selected profile. JSON output includes an `active` boolean. An explicitly named profile must exist; `login` and `configure --set-*` can create one.
+
+## Setting defaults
+
+Use `configure` to save settings for the selected profile:
+
+```bash
+sim configure --set-endpoint http://localhost:3000 --profile dev
+sim configure --set-workspace 5c81f3a6-0e27-4b94-8d15-a7f60c39b2e8 --profile dev
+sim configure --set-output table
+```
+
+| Option | Saved setting |
+| --- | --- |
+| `--set-endpoint <url>` | Sim deployment |
+| `--set-workspace <id>` | Default workspace for workspace-scoped commands |
+| `--set-output <format>` | `table`, `json`, `yaml`, or `text` |
+| `--unset <key...>` | Remove `endpoint`, `workspace`, or `output` settings |
+
+Without setter flags, `sim configure` prints the profile's stored settings as text. Credentials are set through [login](/cli/authentication), or supplied with `SIM_API_KEY` for CI.
+
+The global `--endpoint`, `--workspace`, and `--output` flags affect one invocation. `configure` rejects them; use the corresponding `--set-*` flag to persist a setting.
+
+## Where settings come from
+
+The first applicable source wins for each setting:
+
+| Rank | Source |
+| --- | --- |
+| 1 | Command-line flag: `--endpoint`, `--workspace`, `--output` |
+| 2 | Environment: `SIM_ENDPOINT`, `SIM_API_KEY`, `SIM_WORKSPACE`, `SIM_OUTPUT` |
+| 3 | Selected profile in `~/.sim/config`; its stored login in `~/.sim/credentials`, or the login named by `auth_profile` |
+| 4 | Defaults: endpoint `https://www.sim.ai`, output `json`; no default credential or workspace |
+
+`SIM_API_KEY` overrides a stored OAuth login or API key. There is no command-line API-key option. Use `sim whoami` to see each resolved value and its source; `--no-verify` skips API requests.
+
+## The files
+
+Non-secret settings live in `~/.sim/config` and can be kept in a dotfiles repository:
+
+```ini title="~/.sim/config"
+[default]
+endpoint = https://www.sim.ai
+workspace = 2f6d0b1c-8a34-4d92-b7e5-31c8a0f45d67
+output = table
+
+[profile dev]
+endpoint = http://localhost:3000
+workspace = 5c81f3a6-0e27-4b94-8d15-a7f60c39b2e8
+
+[profile acme]
+auth_profile = default
+workspace = 7e2d9c14-6b83-4a55-8f01-c4d3e9a76b28
+```
+
+API keys and OAuth tokens live in `~/.sim/credentials`, written with `0600` permissions. Never commit that file:
+
+```ini title="~/.sim/credentials"
+[default]
+api_key = sim_…
+
+[dev]
+api_key = sim_…
+```
+
+Named config sections use `[profile dev]`; credentials use `[dev]`. The default section is `[default]` in both files. See [Stored logins](/cli/authentication#where-the-login-is-stored) for OAuth fields and refresh behavior.
+
+### Shared authentication
+
+`auth_profile` names one direct authentication profile. It shares that profile's endpoint and stored OAuth login or API key; workspace and output stay local. References cannot be chained. A shared profile cannot set its own endpoint or stored login.
+
+Create a shared profile from a stored login:
+
+```bash
+sim profile add acme --workspace 7e2d9c14-6b83-4a55-8f01-c4d3e9a76b28
+sim --profile acme tables list
+```
+
+`profile add` refuses environment-only credentials and endpoint overrides because those values would not persist in a new shell. Save the endpoint and sign in before creating the profile.
+
+An OAuth login is bound to its issuing deployment. Log out before changing or removing that authentication profile's endpoint. Change a shared endpoint on the authentication profile, not its workspace profiles.
+
+## Choosing a workspace
+
+Workspace-scoped commands need a target. Set it for one command, in the profile, or in the environment:
+
+```bash
+sim tables list --workspace 9b4c7e02-1d58-4f36-a0c9-6e2b85df413a
+sim configure --set-workspace 2f6d0b1c-8a34-4d92-b7e5-31c8a0f45d67
+export SIM_WORKSPACE=2f6d0b1c-8a34-4d92-b7e5-31c8a0f45d67
+```
+
+To select an accessible workspace interactively, omit `--workspace` from `sim profile add <name>`. The picker accepts at most 1,000 workspaces; above that, supply an ID. Non-interactive scripts must always supply it.
+
+`sim billing status`, `sim billing logs`, and `sim audit-logs list` accept `--all-workspaces` to omit the workspace filter. Do not combine it with an explicit `--workspace`.
+
+## Environment variables
+
+| Variable | Effect |
+| --- | --- |
+| `SIM_PROFILE` | Select a profile |
+| `SIM_ENDPOINT` | Select a deployment |
+| `SIM_API_KEY` | Authenticate with an existing key; overrides stored authentication |
+| `SIM_WORKSPACE` | Select a workspace |
+| `SIM_OUTPUT` | Select an output format |
+| `SIM_CONFIG_DIR` | Relocate config, credentials, usage state, and update cache; file-specific overrides still win |
+| `SIM_CONFIG_FILE` | Relocate only the config file |
+| `SIM_CREDENTIALS_FILE` | Relocate only the credentials file |
+| `SIM_TIMEOUT_SECONDS` | Per-request timeout, default `3600` seconds; `0` removes the CLI timeout |
+| `SIM_DEBUG` | Write request method, URL, status, and duration to stderr |
+| `SIM_NO_UPDATE_CHECK` | Disable automatic update checks and notices |
+| `SIM_TELEMETRY_DISABLED` | Disable anonymous usage reporting |
+| `DO_NOT_TRACK` | Cross-tool usage-reporting opt-out; takes precedence over the CLI setting |
+
+For CI, supply `SIM_API_KEY` and `SIM_WORKSPACE`; a saved login or config file is not required. `SIM_CONFIG_DIR` can point at a writable runner directory.
+
+The request timeout does not change server execution limits. Run/operation waits have a separate `--wait-timeout`; see [Scripting](/cli/scripting#exit-codes). Debug URLs can include request selectors, so review them before sharing diagnostics. See [Usage data](/cli/usage-data) for the separate anonymous event fields.
+
+## Updates
+
+Eligible interactive invocations check for a newer stable release using a daily cache. A notice goes to stderr and the command continues. Installation happens only when you run:
+
+```bash
+sim update
+```
+
+Manual updates also work in CI and when automatic checks are disabled. They require a global installation and verify that the selected package manager owns the running copy. Supported managers are Bun, npm, pnpm, and Yarn Classic. Select one explicitly for a custom installation:
+
+```bash
+sim update --package-manager bun
+```
+
+Update project-local dependencies and temporary package-runner copies through their package manager. A manual update preserves the stable, staging, or dev release channel. The updater refuses older registry/mirror releases and installs the resolved exact version. Concurrent updates are refused; installation errors stop the command. Installer output goes to stderr.
+
+### Automatic notices
+
+Checks are skipped in CI, when stderr is redirected, for prerelease versions, from a repository checkout, and for temporary/project-local installations including `npm exec` and `npx`. Set `SIM_NO_UPDATE_CHECK=1` to disable them.
+
+The cache lives at `~/.sim/update-check.json`, or under `SIM_CONFIG_DIR`. `SIM_CONFIG_FILE` and `SIM_CREDENTIALS_FILE` do not move it. A failed cache write or concurrent invocations can cause additional checks.
+
+Registry checks have a one-second deadline and fail quietly. Package-manager installation has a five-minute deadline and reports failures.
+
+### Registry and proxy behavior
+
+Automatic checks use `registry.npmjs.org` unless `npm_config_registry` supplies another HTTP(S) registry. They send no Sim API key, workspace, or command. Configured query-string credentials are preserved; username/password URL userinfo is rejected. Empty registry values use the default, malformed non-empty values disable checking, and redirects are not followed.
+
+Node's `fetch` reads `HTTP(S)_PROXY` when opted in with `NODE_USE_ENV_PROXY=1` on Node 22.21+ or 24.0+. The `--use-env-proxy` flag requires Node 22.21+ or 24.5+. See [Node's proxy options](https://nodejs.org/api/cli.html#node_use_env_proxy1).
+
+## Repairing a bad setting
+
+An invalid output format stops profile resolution. Temporarily override it through the environment, then save a valid default:
+
+```bash
+SIM_OUTPUT=json sim configure --set-output json
+SIM_OUTPUT=json sim configure --profile dev --set-output json
+```
+
+If the invalid value comes from `SIM_OUTPUT`, correct or unset that variable too. A higher-priority environment value still overrides the repaired profile.
+
+## Related docs
+
+- [Authentication](/cli/authentication)
+- [Output formats](/cli/output)
+- [Profiles commands](/cli/profiles)
+- [Troubleshooting](/cli/troubleshooting)

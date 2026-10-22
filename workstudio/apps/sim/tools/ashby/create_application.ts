@@ -1,0 +1,131 @@
+import type { AshbyApplication } from '@/tools/ashby/types'
+import {
+  APPLICATION_OUTPUTS,
+  ASHBY_ON_BEHALF_OF_PARAM,
+  ashbyAuthHeaders,
+  ashbyErrorMessage,
+  mapApplication,
+} from '@/tools/ashby/utils'
+import type { ToolConfig, ToolResponse } from '@/tools/types'
+
+interface AshbyCreateApplicationParams {
+  apiKey: string
+  onBehalfOfUserId?: string
+  candidateId: string
+  jobId: string
+  interviewPlanId?: string
+  interviewStageId?: string
+  sourceId?: string
+  creditedToUserId?: string
+  createdAt?: string
+  applicationHistory?: unknown[]
+}
+
+interface AshbyCreateApplicationResponse extends ToolResponse {
+  output: AshbyApplication
+}
+
+export const createApplicationTool: ToolConfig<
+  AshbyCreateApplicationParams,
+  AshbyCreateApplicationResponse
+> = {
+  id: 'ashby_create_application',
+  name: 'Ashby Create Application',
+  description:
+    'Creates a new application for a candidate on a job. Optionally specify interview plan, stage, source, and credited user.',
+  version: '1.0.0',
+
+  params: {
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Ashby API Key',
+    },
+    ...ASHBY_ON_BEHALF_OF_PARAM,
+    candidateId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The UUID of the candidate to consider for the job',
+    },
+    jobId: {
+      type: 'string',
+      required: true,
+      visibility: 'user-or-llm',
+      description: 'The UUID of the job to consider the candidate for',
+    },
+    interviewPlanId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'UUID of the interview plan to use (defaults to the job default plan)',
+    },
+    interviewStageId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description:
+        'UUID of the interview stage to place the application in, or FirstPreInterviewScreen (defaults to the first Lead stage)',
+    },
+    sourceId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'UUID of the source to set on the application',
+    },
+    creditedToUserId: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'UUID of the user the application is credited to',
+    },
+    createdAt: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'ISO 8601 timestamp to set as the application creation date (defaults to now)',
+    },
+    applicationHistory: {
+      type: 'json',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Optional documented application history entries to create with the application',
+    },
+  },
+
+  request: {
+    url: 'https://api.ashbyhq.com/application.create',
+    method: 'POST',
+    headers: (params) => ashbyAuthHeaders(params.apiKey, params.onBehalfOfUserId),
+    body: (params) => {
+      const body: Record<string, unknown> = {
+        candidateId: params.candidateId.trim(),
+        jobId: params.jobId.trim(),
+      }
+      if (params.interviewPlanId) body.interviewPlanId = params.interviewPlanId.trim()
+      if (params.interviewStageId) body.interviewStageId = params.interviewStageId.trim()
+      if (params.sourceId) body.sourceId = params.sourceId.trim()
+      if (params.creditedToUserId) body.creditedToUserId = params.creditedToUserId.trim()
+      if (params.createdAt) body.createdAt = params.createdAt
+      if (Array.isArray(params.applicationHistory) && params.applicationHistory.length > 0)
+        body.applicationHistory = params.applicationHistory
+      return body
+    },
+  },
+
+  transformResponse: async (response: Response) => {
+    const data = await response.json()
+
+    if (!data.success) {
+      throw new Error(ashbyErrorMessage(data, 'Failed to create application'))
+    }
+
+    return {
+      success: true,
+      output: mapApplication(data.results),
+    }
+  },
+
+  outputs: APPLICATION_OUTPUTS,
+}

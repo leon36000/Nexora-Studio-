@@ -1,0 +1,88 @@
+---
+title: Authentication
+description: Choose an API key or delegated OAuth token and understand its access.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+
+Authenticate API requests with a Sim API key, or an OAuth access token when your deployment enables OAuth. The Python and TypeScript SDKs use API keys. The CLI and registered OAuth applications can act with the permissions you approve.
+
+## Choose a key [#key-types]
+
+| | Personal key | Workspace key |
+| --- | --- | --- |
+| Identity | The key owner | The workspace |
+| Scope | Workspaces the owner can currently access | One workspace |
+| Access | The owner's current role and applicable permission-group restrictions | Only operations that allow workspace keys; no admin access |
+| Managed by | The account owner, subject to key-management policy | Workspace Admins, subject to key-management policy |
+| Hosted usage payer | The workspace's billing account | The workspace's billing account |
+
+A personal key identifies the acting member; it does not choose who pays. Hosted workspace usage is billed to the workspace's organization or personal billing account. In an organization, usage attributed to a member counts toward that member's cap. See [Credits, billing and limits](/platform/costs).
+
+Workspace Admins can turn off **Allow personal API keys**. The workspace policy also blocks delegated OAuth access to that workspace. Permission groups can restrict personal-key and OAuth access further. Workspace keys do not inherit their creator's role or permission group; each endpoint's workspace-key policy determines whether they can call it.
+
+## Create and store a key [#generating-api-keys]
+
+1. Open **Account settings → Sim API keys** to create a personal key, or **Workspace settings → Sim API keys** to create a workspace key.
+2. Select **Create API key**, enter a name, and create it. Workspace-key creation requires workspace **Admin** access and the applicable key-management permission.
+3. Copy the key and store it in a server-side environment variable such as `SIM_API_KEY`.
+
+<Callout type="warn">
+Sim shows the complete key once, immediately after creation. Copy it before closing the dialog. If you lose it, create a replacement and delete the old key.
+</Callout>
+
+Delete a key from the same settings page to revoke it. Update applications that used it with a replacement key.
+
+## Send an API key [#using-api-keys]
+
+Send the key in `X-API-Key`. The v2 API accepts `Authorization: Bearer` only for [OAuth access tokens](#oauth-access-tokens), not API keys. For example, with `SIM_API_KEY` and `WORKFLOW_ID` set:
+
+```bash
+curl --fail-with-body -X POST \
+  "https://www.sim.ai/api/v2/workflows/$WORKFLOW_ID/execute" \
+  -H "X-API-Key: $SIM_API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"input": {}}'
+```
+
+This runs the active deployment. Use your deployment's origin for self-hosted requests. [Getting started](/api-reference/getting-started) includes complete HTTP examples and response handling; [Python](/api-reference/python) and [TypeScript](/api-reference/typescript) show SDK calls.
+
+Keys authenticate workflow execution, logs, deployed MCP servers, and other API resources that accept their key type. See each endpoint for its required access.
+
+## OAuth access tokens
+
+Run `sim login` to authorize the CLI in your browser, or `sim login --read-only` to request read access. The CLI stores the login locally and refreshes its access token. See [CLI authentication](/cli/authentication) for profiles, sign-in, and sign-out.
+
+Registered applications obtain tokens through the authorization-code flow with PKCE (S256). Send the access token in `Authorization: Bearer`:
+
+```bash
+curl --fail-with-body 'https://www.sim.ai/api/v2/workspaces' \
+  -H "Authorization: Bearer $SIM_ACCESS_TOKEN"
+```
+
+Use `X-API-Key` for API keys and the Bearer header for OAuth access tokens. Send one credential scheme per request.
+
+| Scope | Access |
+| --- | --- |
+| `api:read` | Read operations, including searches sent as POST requests |
+| `api:write` | Includes read access, mutations, and execution, including operations that start external work |
+| `offline_access` | Refresh tokens for continued access after the access token expires |
+
+Scopes limit the application's actions; your current workspace membership, role, credential access, and permission policies still apply. Each endpoint declares its required scope. Some GET endpoints that perform external discovery require `api:write`, so HTTP method alone does not determine access.
+
+Manage grants in **Settings → General → Authorized apps**. Revoking an application revokes all its logins for your account. For an OAuth login, `sim logout` revokes the current login and removes it locally; the CLI reports if server revocation fails. Removing a locally stored API key does not revoke that key on the server.
+
+The Python and TypeScript SDKs do not manage OAuth sign-in or token refresh.
+
+## Protect credentials [#security]
+
+Keep API keys and OAuth tokens on your server. A browser application should call an authenticated backend that checks which resources the caller may use before sending a Sim request. Do not put keys in client-side code or source control.
+
+Sim supports modern `sk-sim-` and legacy `sim_` API keys. On self-hosted deployments, stored API keys are encrypted when `API_ENCRYPTION_KEY` is configured; deployments without it retain the legacy plaintext storage behavior. Configure it using the [environment-variable reference](/platform/self-hosting/environment-variables).
+
+## Related docs
+
+- [API getting started](/api-reference/getting-started)
+- [CLI authentication](/cli/authentication)
+- [Permissions](/platform/permissions)
+- [Python SDK](/api-reference/python) and [TypeScript SDK](/api-reference/typescript)

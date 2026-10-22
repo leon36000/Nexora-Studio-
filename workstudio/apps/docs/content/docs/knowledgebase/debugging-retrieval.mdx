@@ -1,0 +1,91 @@
+---
+title: Debugging retrieval
+description: Check missing, irrelevant, or duplicate Knowledge block results.
+---
+
+Inspect the Knowledge block's output in [Logs](/logs-debugging) before changing the Agent's prompt. Check which chunks came back, whether they answer the question, and which documents they came from.
+
+## Read the results
+
+A search returns a `results` array. An empty array means no eligible chunk was returned. For a populated result, inspect:
+
+| Field | What to check |
+| --- | --- |
+| `content` | Does the passage contain the answer and enough context to interpret it? |
+| `documentName`, `documentId` | Is this the intended source document? |
+| `sourceUrl` | Open the external source when available; uploaded files without an external source have `null`. |
+| `chunkIndex` | Find the passage within the document. Index `0` is the first chunk. |
+| `metadata` | Compare the document's tag values, keyed by display name, with your filters. |
+| `rank` | The result's one-based position in the returned order. |
+| `rankScore` | Retrieval score, or reranker score when reranking is applied. |
+| `similarity` | Cosine similarity to the query. It does not determine Hybrid or reranker ordering. |
+| `rerankerScore` | Present when a reranker applied its relevance ordering. |
+
+Read the content alongside the scores. A high similarity means the passage is close in meaning; it does not guarantee that it answers the question. There is no universal relevance cutoff across embedding models and document collections. Recency policy can also affect returned order, so use `rank` to read that order.
+
+Tag-only retrieval has no query to compare and returns `similarity: 1` for every match. It returns up to **Number of Results** without vector ranking.
+
+## Empty results
+
+### Check processing
+
+Use **List Documents** to inspect `processingStatus`. Only `completed` documents are eligible for search:
+
+| `processingStatus` | Meaning | Eligible for search |
+| --- | --- | --- |
+| `pending` | Queued for processing. | No |
+| `processing` | Text extraction, chunking, or embedding is in progress. | No |
+| `completed` | Processing finished. | Yes, if enabled, included, and accessible. |
+| `failed` | Processing failed. | No |
+
+An upload or sync request can succeed before indexing finishes. For `pending` or `processing`, wait and check the status again. For `failed`, inspect `processingError` with **Get Document**, fix the cause, and choose **Retry** from the document menu. Replace or re-upload the file when the error calls for different content or a supported format.
+
+The UI can also show **Skipped**, a separate indexing outcome for content that cannot be indexed safely. Read its reason. Decorative connector images can complete with zero chunks; they have no text to retrieve.
+
+### Check enabled state and access
+
+Confirm that both the document and its relevant chunks are enabled. **Update Chunk** with `enabled: false` removes a chunk from search without deleting it; connector-managed chunks are read-only.
+
+Excluded, archived, or deleted documents do not appear in search. For connector documents, inspect whether they are included and whether the acting principal has current source access. A workspace-shared connection and a permission-aware connection can expose different document sets. See [Connectors](/knowledgebase/connectors).
+
+### Check tag filters
+
+[Tag filters](/knowledgebase/tags) combine with AND. `Department equals "engineering"` excludes documents without that value, and an additional date or status filter can exclude the remaining documents.
+
+Use **Get Document** to inspect assigned values and **List Tags** to check definitions. Text matching is case-insensitive; other types need valid values. Remove filters temporarily and search by query alone to isolate the cause.
+
+Connector metadata uses the same tag slots as manual definitions. Check the definition and its actual values instead of assuming an available slot belongs to your manual tag.
+
+### Check the stored content
+
+Use **List Chunks** for the expected document and read the text Sim indexed. If the answer is absent, update the uploaded content or the connector source. If it is present, try a more specific query and check the [retrieval mode](/knowledgebase/using-in-workflows#retrieval-mode).
+
+## Wrong results or low relevance
+
+If chunks return but do not answer the question, work through these changes:
+
+1. **Use the exact identifier.** For error codes, SKUs, or ticket keys, include the literal string and try **Hybrid (full-text + vector)**.
+2. **Narrow the scope.** Use a tag filter when the question belongs to a known department, date range, or document category. Check that the filter describes the intended content.
+3. **Retrieve more candidates.** Increase **Number of Results** if the useful passage falls outside the returned set.
+4. **Try reranking.** Enable **Rerank Results** when the initial set contains relevant passages but the order is unhelpful. Its advanced candidate-count setting can widen the second pass.
+5. **Inspect chunk boundaries.** Large chunks can mix topics; small ones can separate an answer from its subject or definition. Try a different size on representative content and compare the results. For example, evaluate 256–512-token chunks against the default 1,024-token setting rather than assuming one size suits every source.
+
+Overlap can preserve context across adjacent chunks. Its default is 200 tokens for strategies that apply overlap. See [chunking strategies](/knowledgebase/chunking-strategies) before changing boundaries or reprocessing documents.
+
+Reranking adds a model call and latency. Completed hosted-key calls are metered as one search unit; BYOK calls are billed by the provider. If the reranker is unavailable, the search retains its retrieval order and does not add `rerankerScore`. See [workflow retrieval](/knowledgebase/using-in-workflows) and [Costs](/platform/costs).
+
+## Duplicates
+
+Compare `documentId`, `documentName`, and `chunkIndex` on repeated results:
+
+- **Same document, adjacent chunk indexes:** overlap can make neighboring chunks share text and both match. Lower overlap to reduce repetition, then check whether queries still retrieve enough context.
+- **Different documents, identical content:** the material may have been uploaded twice or synced from multiple locations. Consolidate duplicate uploads or exclude the unwanted connector document.
+
+Do not sort Hybrid results by `similarity` to remove apparent ordering differences. Keep the returned order and inspect whether repeated chunks provide distinct context.
+
+## Related docs
+
+- [Using a knowledge base in a workflow](/knowledgebase/using-in-workflows) — settings and result fields.
+- [Chunking strategies](/knowledgebase/chunking-strategies) — sizes, overlap, and record boundaries.
+- [Tags and filtering](/knowledgebase/tags) — types and filter operators.
+- [Connectors](/knowledgebase/connectors) — source access, exclusions, and sync errors.

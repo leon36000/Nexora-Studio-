@@ -1,0 +1,65 @@
+---
+title: Logs
+description: Trace a workflow failure through the inputs, outputs, and errors recorded for its run.
+---
+
+import { Image } from '@/components/ui/image'
+
+Open **Logs** to inspect a recorded workflow run. Start with its error, then follow the resolved inputs back to the block that supplied an unexpected value. The [Run logs reference](/logs-debugging/logging) explains filters, refresh, the editor console, and snapshots.
+
+## Read a run trace
+
+Each run has a unique execution ID, a trigger, status, duration, and recorded cost in credits. Triggers include manual, API, schedule, webhook, MCP, and **Sim agent** for runs started through Chat.
+
+Select a run to open **Log Details**. **Overview** contains run metadata and available workflow input, output, cost, and files. **Trace** shows timed spans for blocks, nested workflows, model requests, and tool calls. Access settings can hide trace, snapshot, or cost details.
+
+<Image
+  variant="detail"
+  background="canyon"
+  src="/static/docs-captures/log-trace.webp"
+  alt="Trace for the summarizer workflow, showing Start and Summarize update with their durations"
+  width={1036}
+  height={650}
+/>
+
+Select a span to read its collapsible **Input**, **Output** or **Error**, and any **Thinking** or **Error message** sections. Input shows the values after references resolve; output shows what that step returned. Compare these values with the [data references](/workflows/data-flow) in your workflow.
+
+Protected resolved secret values are masked in the log-facing copy. Workspace **Unredacted** exceptions and transformed values have different boundaries; see [Execution log protection](/platform/credentials#execution-log-protection).
+
+A handled block error can appear in a successful run. For a failed run, find the unhandled error rather than assuming every error span caused the final status.
+
+## Trace a failure backward
+
+1. Open the failed run and select its failed span in **Trace**. Read the error message.
+2. Expand **Input** to see what the step received after references resolved.
+3. Check required fields, types, and nested keys against the block's expected input.
+4. Find the upstream block referenced by the incorrect input. Inspect its output and confirm that it ran.
+5. Correct the reference, configuration, or upstream behavior, then run the workflow again.
+6. Compare the new trace with the failed run. Confirm that the input is correct and the step completes successfully.
+
+### Common failures
+
+| Failure | What to check |
+| --- | --- |
+| Missing input | A required field is empty or its reference resolves to no value. |
+| Wrong reference | The block or output field named in the reference does not exist. |
+| Type mismatch | A step receives a string where it expects an object, or another incompatible type. |
+| Missing nested key | The object exists, but the requested field does not. |
+| Empty agent message | An [Agent](/workflows/blocks/agent) returns no content for the next step to read. |
+| External error | A tool or API returns an error; inspect its message and request inputs. |
+
+Use a [Function](/workflows/blocks/function) block to reshape a value when the next step expects a different structure.
+
+## Troubleshoot in Chat
+
+When available on a failed run, select **Troubleshoot in Chat** to give Sim its debugging context. This action depends on Chat being enabled and the run supporting troubleshooting. Verify any proposed fix by rerunning the workflow and comparing traces.
+
+## Retention
+
+Sim Cloud Free defaults to 30 days of log retention. Paid plans and billing-disabled deployments have no plan-based default expiry; configured policies can still remove older logs. See [Data retention](/platform/enterprise/data-retention) for the effective policy and cleanup behavior.
+
+## Related docs
+
+- [Run logs](/logs-debugging/logging) for filters, details, console, and snapshots
+- [Alerts](/logs-debugging/alerts) for failure and operational notifications
+- [Data flow](/workflows/data-flow) for resolving block references

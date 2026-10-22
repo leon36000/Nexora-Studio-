@@ -1,0 +1,58 @@
+---
+title: Workspace fundamentals
+description: Understand the resources, ownership, and access a workspace scopes.
+---
+
+A **workspace** holds workflows and the resources they use. Its members, settings, and resource permissions determine who can build, run, and manage that work.
+
+Use folders to organize work for the same team. Use another workspace when it needs different members, settings, or resource ownership.
+
+## Resources in a workspace
+
+| Resource | Purpose |
+| --- | --- |
+| [Workflows](/workflows) | Saved procedures made of blocks, with an editable draft and deployed versions |
+| [Tables](/tables) | Structured data that workflows read and update |
+| [Files](/files) | Documents and other files stored and organized for the team |
+| [Knowledge bases](/knowledgebase) | Documents and structured data agents search for context |
+| [Integrations](/integrations) | Tools for third-party services, using connected accounts or other credentials |
+| [Secrets](/platform/credentials) | API keys and variables referenced by name at runtime |
+| [Logs](/logs-debugging) | Execution records showing triggers, block inputs and outputs, errors, and costs |
+
+An integration can have several account connections. Each credential has its own access rules; workspace membership alone does not grant use of every connected account or secret.
+
+## Roles and resource access
+
+Members have **Read**, **Write**, or **Admin** workspace access:
+
+- **Read** can inspect workflows and available execution records.
+- **Write** can create and edit workflows and run drafts in the workflow builder.
+- **Admin** can also manage members, settings, and deployments.
+
+The workspace owner has a fixed **Admin** role. Organization owners and admins inherit Admin access to the organization's workspaces. Credential grants and [permission groups](/platform/enterprise/access-control) add controls for particular resources and actions. See [Roles and permissions](/platform/permissions) for API execution, sharing, and inherited-role rules.
+
+Workspace secrets require current use access. Personal secrets belong to their owner; workspace and organization Admin roles do not grant access to them. Runtime resolution respects current credential grants.
+
+Switch to another workspace to edit resources you can access there. Moving or copying a workflow changes where it lives; it does not grant access to the destination.
+
+## Drafts, deployments, and sharing
+
+A deployment serves a version of a workflow through an API, chat, or MCP server. Editing the draft does not change the active deployment until you promote the new version. To roll back, promote an earlier version. See [Deployments](/workflows/deployment).
+
+Deployments and explicit sharing can make selected resources available outside normal workspace membership. They have their own access rules; they do not expose the whole workspace.
+
+## Personal and organization ownership
+
+A **personal workspace** belongs to an individual account. On Sim Cloud, the account's plan controls workspace creation limits.
+
+An **organization workspace** belongs to an organization. On billing-enabled deployments, an active team or Enterprise plan allows organization owners and admins to create shared workspaces. Internal members join the organization; external collaborators receive selected workspace access without joining it.
+
+When you accept an invitation as an internal organization member, personal workspaces you own move into the organization, including archived workspaces. The acceptance screen names them before you accept. An external invitation does not move your workspaces. Read the [joining consequences](/platform/permissions#joining-an-organization) before accepting.
+
+Billing-disabled deployments have no plan-based workspace creation cap, and organization members may create organization workspaces subject to deployment and permission settings. See [Credits, billing and limits](/platform/costs) for Cloud limits and [Self-hosting](/platform/self-hosting) for deployment configuration.
+
+## Related docs
+
+- [Organizing a workspace](/platform/organization)
+- [Roles and permissions](/platform/permissions)
+- [Credential Groups](/platform/connected-accounts)

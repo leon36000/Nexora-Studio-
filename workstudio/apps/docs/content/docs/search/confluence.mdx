@@ -1,0 +1,81 @@
+---
+title: Confluence
+description: Search Confluence Cloud pages and blog posts with your current access
+---
+
+Search Confluence Cloud with your own account. **Member accounts** uses your provider permissions; **Service account** also limits results by site, spaces, content type, and labels. Both modes require each reader's personal connection. This adapter does not support Server or Data Center.
+
+## Connect member accounts
+
+1. An admin adds **Confluence** in **Settings → Sources** and selects **Member accounts**, or configures the service source below.
+2. Each teammate opens **Integrations → Confluence → Connect** and authorizes their Atlassian account.
+3. Search a page or blog post that account can access, then read a result.
+
+Member mode has no admin space or label filters. The default search covers pages and blog posts; ask Sim to use Confluence Query Language (CQL) to narrow a query by content type or space. Site access comes from your connected account.
+
+## Using a service account
+
+The service credential must have access to the configured site, spaces, and restricted content. Admin status does not bypass page restrictions.
+
+Create a scoped API token in **Atlassian Administration → Directory → Service accounts** with the shared service-credential read scopes:
+
+```text
+read:confluence-content.all
+read:page:confluence
+read:blogpost:confluence
+read:attachment:confluence
+read:space:confluence
+read:label:confluence
+search:confluence
+read:confluence-space.summary
+read:content.metadata:confluence
+read:space.permission:confluence
+read:confluence-user
+read:user:confluence
+read:group:confluence
+```
+
+See [Atlassian's token instructions](https://support.atlassian.com/user-management/docs/manage-api-tokens-for-service-accounts/). This token is separate from the shared OAuth app that members authorize.
+
+## Set up a central source
+
+1. Add Confluence in Sources, choose **Service account**, then **Add connection** or an existing connection.
+2. In **Connect Confluence site**, use **Service account → Add service account**, paste the token, and enter its matching site hostname; or select an existing service credential.
+3. Select **Spaces** with the picker or manual space keys. **All** includes spaces currently accessible to the service account.
+4. Choose pages, blog posts, or both, and an optional label filter. Save and select the connection as the service source.
+5. Each reader connects Confluence personally in **Integrations**.
+
+Multiple labels are alternatives: any selected label satisfies the filter. Missing required space selection does not broaden access.
+
+## Search boundaries and reads
+
+Search sends your query through your OAuth grant and incorporates service filters where supported. Before returning a result, Sim verifies its current site, status, space, content type, labels, and readability with the service credential. Reads use your account and repeat those checks.
+
+For a plain query without date sorting, Sim uses Confluence relevance search when more pages match every word than fit on one page. That result is partial and has no continuation cursor; narrow the query or use native CQL for pagination. If relevance ranking fails, Sim keeps the original all-terms page and its cursor, marked partial. Native CQL and date-sorted queries keep their provider ordering.
+
+Reads return page or blog-post content exposed by the API. Live Search does not ingest attachments or run OCR. It checks up to four accessible Atlassian sites by default; a native CQL query can select a cloud site ID and follow its continuation cursor. Confluence search freshness and limits still apply.
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Empty spaces picker | Check site, access, and scopes, or enter space keys manually. |
+| Service validation fails | Check token expiry, site, app access, and required read scopes. |
+| No results | Confirm both the personal account and service credential can open the content. |
+| Blog post or labeled page missing | Check content type, labels, spaces, and Confluence's own search. |
+| Results changed after source settings changed | Review the new boundary and credential; later searches and reads use it. |
+
+## Self-hosted operator setup
+
+Follow [Atlassian OAuth setup](/platform/self-hosting/integrations-oauth#atlassian) for the shared member app, full current Confluence scopes, **User Identity API → read:me**, `offline_access`, and distribution settings. Set `CONFLUENCE_CLIENT_ID` and `CONFLUENCE_CLIENT_SECRET`, verify `NEXT_PUBLIC_APP_URL`, and register:
+
+```text
+https://<your-sim-domain>/api/auth/oauth2/callback/confluence
+```
+
+The callback must match scheme, hostname, port, and path. If only the app owner can connect, check **Distribution**. After client or scope changes, update the organization's saved provider configuration and reconnect affected members. Service-token scopes above do not replace member OAuth scopes.
+
+## Related docs
+
+- [Connect your account](/search/connect-your-account)
+- [Atlassian OAuth guide](https://developer.atlassian.com/cloud/confluence/oauth-2-3lo-apps/)

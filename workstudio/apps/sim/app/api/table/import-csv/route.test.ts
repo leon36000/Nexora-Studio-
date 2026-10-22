@@ -1,0 +1,242 @@
+import {
+  hybridAuthMockFns,
+  permissionGroupScopeMock,
+  permissionGroupScopeMockFns,
+  permissionsMock,
+  permissionsMockFns,
+  resetPermissionGroupScopeMock,
+} from '@sim/testing'
+import { idMock, idMockFns } from '@sim/testing/mocks/id.mock'
+import { tableBillingMock, tableBillingMockFns } from '@sim/testing/mocks/table-billing.mock'
+import {
+  tableRouteUtilsMock,
+  tableRouteUtilsMockFns,
+} from '@sim/testing/mocks/table-route-utils.mock'
+import {
+  tableRowsServiceMock,
+  tableRowsServiceMockFns,
+} from '@sim/testing/mocks/table-rows-service.mock'
+import { tableServiceMock, tableServiceMockFns } from '@sim/testing/mocks/table-service.mock'
+import type { NextRequest } from 'next/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@sim/utils/id', () => idMock)
+
+// Mock only the DB-backed service/billing functions; the real `./import` helpers
+// (createCsvParser, inferSchemaFromCsv, coerceRowsForTable, …) run for real so the
+// streaming multipart + CSV pipeline is exercised end-to-end.
+vi.mock('@/lib/table/service', () => tableServiceMock)
+
+vi.mock('@/lib/table/rows/service', () => tableRowsServiceMock)
+vi.mock('@/lib/table/billing', () => tableBillingMock)
+vi.mock('@/app/api/table/utils', () => tableRouteUtilsMock)
+vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
+vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
+
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
+import { TableLockedError } from '@/lib/table/mutation-locks'
+import { POST } from '@/app/api/table/import-csv/route'
+
+const { mockBatchInsertRows } = tableRowsServiceMockFns
+const { mockGetWorkspaceTableLimits: mockGetLimits } = tableBillingMockFns
+
+tableRouteUtilsMockFns.mockCsvProxyBodyCapResponse.mockReturnValue(null)
+tableRouteUtilsMockFns.mockMultipartErrorResponse.mockImplementation((error) =>
+  Response.json({ error: error.message }, { status: error.code === 'FILE_TOO_LARGE' ? 413 : 400 })
+)
+const { mockCreateTable, mockDeleteTable } = tableServiceMockFns
+idMockFns.mockGenerateId.mockReturnValue('deadbeefcafef00d')
+idMockFns.mockGenerateShortId.mockReturnValue('short-id')
+
+type Part =
+  | { name: string; value: string }
+  | { name: string; filename: string; value: string; contentType?: string }
+
+const BOUNDARY = '----testboundaryCSV'
+
+function buildBody(parts: Part[]): Buffer {
+  const segments: Buffer[] = []
+  for (const part of parts) {
+    let header = `--${BOUNDARY}\r\nContent-Disposition: form-data; name="${part.name}"`
+    if ('filename' in part) {
+      header += `; filename="${part.filename}"\r\nContent-Type: ${part.contentType ?? 'text/csv'}`
+    }
+    header += '\r\n\r\n'
+    segments.push(Buffer.from(header, 'utf8'), Buffer.from(part.value, 'utf8'), Buffer.from('\r\n'))
+  }
+  segments.push(Buffer.from(`--${BOUNDARY}--\r\n`, 'utf8'))
+  return Buffer.concat(segments)
+}
+
+function makeRequest(parts: Part[], chunkSize?: number): NextRequest {
+  const body = buildBody(parts)
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (chunkSize) {
+        for (let i = 0; i < body.length; i += chunkSize) {
+          controller.enqueue(new Uint8Array(body.subarray(i, i + chunkSize)))
+        }
+      } else {
+        controller.enqueue(new Uint8Array(body))
+      }
+      controller.close()
+    },
+  })
+  return {
+    headers: new Headers({ 'content-type': `multipart/form-data; boundary=${BOUNDARY}` }),
+    body: stream,
+    signal: undefined,
+  } as unknown as NextRequest
+}
+
+function csvWithRows(count: number): string {
+  const lines = ['name,age']
+  for (let i = 0; i < count; i++) lines.push(`Person${i},${20 + (i % 50)}`)
+  return `${lines.join('\n')}\n`
+}
+
+function uploadParts(csv: string): Part[] {
+  return [
+    { name: 'workspaceId', value: 'workspace-1' },
+    { name: 'file', filename: 'data.csv', value: csv },
+  ]
+}
+
+describe('POST /api/table/import-csv', () => {
+  beforeEach(() => {
+    resetPermissionGroupScopeMock()
+    hybridAuthMockFns.mockCheckSessionOrInternalAuth.mockResolvedValue({
+      success: true,
+      userId: 'user-1',
+      authType: 'session',
+    })
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('write')
+    mockGetLimits.mockResolvedValue({ maxRowsPerTable: 1_000_000, maxTables: 50 })
+    mockCreateTable.mockImplementation(async (data) => ({
+      id: 'tbl_1',
+      name: data.name,
+      description: data.description ?? null,
+      schema: data.schema,
+      workspaceId: data.workspaceId,
+      maxRows: data.maxRows,
+      rowCount: 0,
+      createdBy: 'user-1',
+      archivedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+    mockBatchInsertRows.mockImplementation(async ({ rows }: { rows: unknown[] }) =>
+      rows.map((_, i) => ({ id: `row-${i}` }))
+    )
+    mockDeleteTable.mockResolvedValue(undefined)
+  })
+
+  it('parses a body delivered in tiny chunks (regression: missing final boundary)', async () => {
+    const response = await POST(makeRequest(uploadParts(csvWithRows(5)), 7))
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data.data.table.rowCount).toBe(5)
+  })
+
+  it('returns 400 when the file precedes required fields', async () => {
+    const response = await POST(
+      makeRequest([
+        { name: 'file', filename: 'data.csv', value: csvWithRows(3) },
+        { name: 'workspaceId', value: 'workspace-1' },
+      ])
+    )
+
+    expect(response.status).toBe(400)
+    expect(mockCreateTable).not.toHaveBeenCalled()
+  })
+
+  it('rolls back the created table when a batch insert fails mid-stream', async () => {
+    mockBatchInsertRows
+      .mockResolvedValueOnce(Array.from({ length: 100 }, () => ({ id: 'row' })))
+      .mockRejectedValueOnce(new Error('insert boom'))
+
+    const response = await POST(makeRequest(uploadParts(csvWithRows(250))))
+
+    expect(response.status).toBe(500)
+    expect(mockDeleteTable).toHaveBeenCalledWith('tbl_1', expect.any(String))
+  })
+
+  it('names the lock that rejected the import on a 423', async () => {
+    // The lock kind is the only thing that tells a client which lock to clear; rendering the
+    // outcome by hand is how the field gets dropped from one route and not its sibling.
+    mockBatchInsertRows.mockRejectedValueOnce(new TableLockedError('insert'))
+
+    const response = await POST(makeRequest(uploadParts(csvWithRows(250))))
+    const data = await response.json()
+
+    expect(response.status).toBe(423)
+    expect(data.lock).toBe('insert')
+    expect(data.error).toMatch(/lock/i)
+  })
+
+  it('returns 403 without write permission', async () => {
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('read')
+    const response = await POST(makeRequest(uploadParts(csvWithRows(3))))
+    expect(response.status).toBe(403)
+  })
+
+  /**
+   * A CSV import creates a table, so `tables.create` governs it. A group that
+   * only sets `disableTableCreation` leaves Tables visible and usable, which is
+   * exactly the configuration a `tables.use` gate would let through.
+   */
+  it('refuses the import when the group disables table creation', async () => {
+    permissionGroupScopeMockFns.mockResolvePermissionGroupConfig.mockResolvedValue({
+      ...DEFAULT_PERMISSION_GROUP_CONFIG,
+      disableTableCreation: true,
+    })
+
+    const response = await POST(makeRequest(uploadParts(csvWithRows(3))))
+
+    expect(response.status).toBe(403)
+    expect((await response.json()).details).toEqual({
+      code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED',
+    })
+    expect(mockCreateTable).not.toHaveBeenCalled()
+  })
+
+  /**
+   * `checkSessionOrInternalAuth` also accepts an internal JWT, whose user id is
+   * the run's actor rather than someone asking for a table. Gating on it would
+   * refuse an executor call for a bystander's group, and dispatching under it
+   * would run the table's cells with that bystander's capabilities.
+   */
+  it('leaves an internal-JWT import ungoverned rather than gating on the run actor', async () => {
+    hybridAuthMockFns.mockCheckSessionOrInternalAuth.mockResolvedValue({
+      success: true,
+      userId: 'billing-owner',
+      authType: 'internal_jwt',
+    })
+    permissionGroupScopeMockFns.mockResolvePermissionGroupConfig.mockResolvedValue({
+      ...DEFAULT_PERMISSION_GROUP_CONFIG,
+      disableTableCreation: true,
+    })
+
+    const response = await POST(makeRequest(uploadParts(csvWithRows(3))))
+
+    expect(response.status).toBe(200)
+    expect(permissionGroupScopeMockFns.mockResolvePermissionGroupConfig).not.toHaveBeenCalled()
+    expect(mockBatchInsertRows).toHaveBeenCalledWith(
+      expect.objectContaining({ capabilityGovernedUserId: null }),
+      expect.anything(),
+      expect.any(String)
+    )
+  })
+
+  it('dispatches a session import under the person it gated', async () => {
+    const response = await POST(makeRequest(uploadParts(csvWithRows(3))))
+
+    expect(response.status).toBe(200)
+    expect(mockBatchInsertRows).toHaveBeenCalledWith(
+      expect.objectContaining({ capabilityGovernedUserId: 'user-1' }),
+      expect.anything(),
+      expect.any(String)
+    )
+  })
+})

@@ -1,0 +1,113 @@
+---
+title: A2A
+description: Interact with external A2A-compatible agents
+integration:
+  type: "a2a"
+  color: "#4151B5"
+---
+
+{/* MANUAL-CONTENT-START:intro */}
+Use the A2A (Agent-to-Agent) protocol to send messages, structured data, and files to external agents, inspect their Agent Cards, and track or cancel tasks. Provide the agent's endpoint URL and, when required, an API key. Sim sends that key in `X-API-Key` for task requests; agents that require a different authentication scheme need a compatible endpoint. Agent Card discovery runs before authentication, so the card must be reachable without that key.
+{/* MANUAL-CONTENT-END */}
+
+## Actions [#tools]
+
+### A2A Send Message
+
+Send a message to an external A2A agent and return its response.
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `agentUrl` | string | Yes | The A2A agent endpoint URL |
+| `message` | string | Yes | The message text to send |
+| `data` | json | No | Structured JSON data to attach |
+| `files` | array | No | Files to attach, uploaded or referenced from a previous block |
+| `taskId` | string | No | Existing task ID to continue |
+| `contextId` | string | No | Conversation context ID to continue |
+| `apiKey` | string | No | API key for authentication \(if required\) |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `content` | string | Agent response text |
+| `taskId` | string | Task identifier |
+| `contextId` | string | Conversation/context identifier |
+| `state` | string | Task lifecycle state: `submitted`, `working`, `input-required`, `auth-required`, `completed`, `failed`, `canceled`, or `rejected` |
+| `artifacts` | array | Structured task output artifacts |
+
+### A2A Get Task
+
+Retrieve the current state and result of an A2A task.
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `agentUrl` | string | Yes | The A2A agent endpoint URL |
+| `taskId` | string | Yes | The task ID to retrieve |
+| `historyLength` | number | No | Maximum number of history messages to include |
+| `apiKey` | string | No | API key for authentication \(if required\) |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `content` | string | Agent response text |
+| `taskId` | string | Task identifier |
+| `contextId` | string | Conversation/context identifier |
+| `state` | string | Task lifecycle state |
+| `artifacts` | array | Structured task output artifacts |
+
+### A2A Cancel Task
+
+Request cancellation of an in-progress A2A task.
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `agentUrl` | string | Yes | The A2A agent endpoint URL |
+| `taskId` | string | Yes | The task ID to cancel |
+| `apiKey` | string | No | API key for authentication \(if required\) |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `taskId` | string | Task identifier |
+| `state` | string | Task lifecycle state after cancellation |
+| `canceled` | boolean | Whether the task reached the canceled state |
+
+### A2A Get Agent Card
+
+Fetch the Agent Card (discovery document) for an external A2A agent.
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `agentUrl` | string | Yes | The A2A agent endpoint URL |
+| `apiKey` | string | No | API key for authentication \(if required\) |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `name` | string | Agent display name |
+| `description` | string | Agent description |
+| `url` | string | Agent endpoint URL |
+| `version` | string | The agent's own version |
+| `protocolVersion` | string | A2A protocol version the agent exposes |
+| `capabilities` | json | Agent capability flags |
+| `skills` | array | Skills the agent can perform |
+| `defaultInputModes` | array | Default accepted input media types |
+| `defaultOutputModes` | array | Default produced output media types |
+
+## Task behavior and limits [#notes]
+
+- **A2A Send Message** requests blocking execution until the agent reaches a terminal (`completed`, `failed`, `canceled`, `rejected`) or interrupted (`input-required`, `auth-required`) state. Use **A2A Get Task** to poll a task you continue later, and branch on `state`.
+- Sim limits each agent HTTP response to 10 MiB, each Agent Card discovery HTTP request to 30 seconds, and task RPC requests to 300 seconds. Discovery tries up to three candidate paths. A blocking request can time out before the remote task completes; use its task ID to check the remote state before retrying.
+- Task IDs are scoped to the external agent, not to Sim. Anyone who knows an agent URL and task ID can read or cancel that task unless the agent enforces its own authentication — set an API key for agents that require one.

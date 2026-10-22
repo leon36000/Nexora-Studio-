@@ -1,0 +1,69 @@
+---
+title: Condition
+description: Choose a branch by evaluating JavaScript boolean expressions.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import { BlockPreview, WorkflowPreview, CONDITION_ROUTE_WORKFLOW, CONDITION_MODERATE_WORKFLOW } from '@/components/workflow-preview'
+
+The **Condition block** checks branches in order and follows the first true expression. It makes no model call. Use a [Router](/workflows/blocks/router) when the decision depends on understanding intent or unstructured text.
+
+<BlockPreview type="condition" />
+
+## Route by priority
+
+<WorkflowPreview workflow={CONDITION_ROUTE_WORKFLOW} />
+
+Check `<start.priority> === 'high'` in the **if** branch. Connect that port to escalation and **else** to a standard reply.
+
+## Configuration
+
+**Conditions** contains an **if** branch, optional **else if** branches, and **else**. Each expression uses JavaScript operators and methods and connects to its own path. Put specific checks before general ones: the first match wins.
+
+```javascript
+<agent.score> > 75
+<ticket.subject>.toLowerCase().includes('urgent')
+<user.email>.endsWith('@company.com') && <user.plan> === 'pro'
+```
+
+Comparisons, logical operators, string/array methods, math, and Date comparisons work in expressions. Move lengthy logic to a [Function](/workflows/blocks/function) and branch on its result.
+
+[Environment variables](/workflows/variables#environment-variables) use `{{KEY}}`:
+
+```javascript
+{{MAX_RETRIES}} === 3
+{{FEATURE_ON}} === true
+{{TIER}} === 'pro'
+```
+
+Numbers, booleans, and `null` compare as literals here. Other environment values are bound as strings, so quotes or newlines inside a secret cannot become expression code. This differs from [Function placeholders](/workflows/blocks/function#placeholders-are-always-strings), which always remain strings.
+
+## Outputs
+
+| Reference | Value |
+| --- | --- |
+| `<condition.conditionResult>` | `true` for a matching expression; `false` when else is selected or no branch matches |
+| `<condition.selectedOption>` | Selected branch ID, or `null` if none |
+| `<condition.selectedPath>` | Destination object containing `blockId`, `blockType`, and `blockTitle`, or `null` when no destination is connected |
+
+Only the chosen path runs. A reference to a known block on a skipped path has no output.
+
+## Errors and unmatched input
+
+Connect **else** to handle input that matches no expression. An unconnected else path ends without an error. A final `true` expression is another catch-all when you deliberately omit else.
+
+<Callout type="warn">
+An expression that throws fails the block. Guard missing values with optional chaining (`?.`) or a null check, and connect the error port when the workflow should recover.
+</Callout>
+
+## Gate on a model score
+
+<WorkflowPreview workflow={CONDITION_MODERATE_WORKFLOW} />
+
+Give the Agent a Response Format containing numeric `toxicity`, then check `<moderate.toxicity> > 0.7`. The high-score branch blocks the content; else sends it to the publishing endpoint. The same pattern can route accounts by a structured `tier` field.
+
+## Related docs
+
+- [Router](/workflows/blocks/router)
+- [Function](/workflows/blocks/function)
+- [Connections](/workflows/connections)

@@ -1,0 +1,253 @@
+import type { UserFileLike } from '@/lib/core/utils/user-file'
+import type { UserFile } from '@/executor/types'
+import type { ToolFileData, ToolResponse } from '@/tools/types'
+
+interface DropboxFileMetadata {
+  '.tag': 'file'
+  id: string
+  name: string
+  path_display?: string
+  path_lower?: string
+  size: number
+  client_modified: string
+  server_modified: string
+  rev: string
+  content_hash?: string
+  is_downloadable?: boolean
+}
+
+interface DropboxFolderMetadata {
+  '.tag': 'folder'
+  id: string
+  name: string
+  path_display?: string
+  path_lower?: string
+}
+
+interface DropboxDeletedMetadata {
+  '.tag': 'deleted'
+  name: string
+  path_display?: string
+  path_lower?: string
+}
+
+type DropboxMetadata = DropboxFileMetadata | DropboxFolderMetadata | DropboxDeletedMetadata
+
+interface DropboxSharedLinkMetadata {
+  url: string
+  name: string
+  path_lower: string
+  link_permissions: {
+    can_revoke: boolean
+    resolved_visibility: {
+      '.tag': 'public' | 'team_only' | 'password' | 'team_and_password' | 'shared_folder_only'
+    }
+    revoke_failure_reason?: {
+      '.tag': string
+    }
+  }
+  expires?: string
+  id?: string
+}
+
+interface DropboxSearchMatch {
+  match_type: {
+    '.tag': 'filename' | 'content' | 'both'
+  }
+  metadata: {
+    '.tag': 'metadata'
+    metadata: DropboxMetadata
+  }
+}
+
+interface DropboxBaseParams {
+  accessToken?: string
+}
+
+export interface DropboxUploadParams extends DropboxBaseParams {
+  path: string
+  file?: UserFileLike
+  // Legacy field for backwards compatibility
+  fileContent?: string
+  fileName?: string
+  mode?: 'add' | 'overwrite'
+  autorename?: boolean
+  mute?: boolean
+}
+
+export interface DropboxUploadResponse extends ToolResponse {
+  output: {
+    file?: DropboxFileMetadata
+  }
+}
+
+export interface DropboxDownloadParams extends DropboxBaseParams {
+  path: string
+}
+
+export interface DropboxDownloadResponse extends ToolResponse {
+  output: {
+    file?: ToolFileData
+    content?: string // Base64 encoded file content
+    metadata?: DropboxFileMetadata
+    temporaryLink?: string
+  }
+}
+
+export interface DropboxDownloadV2Response<File = UserFile> extends ToolResponse {
+  output: Omit<DropboxDownloadResponse['output'], 'file' | 'content'> & {
+    file?: File
+  }
+}
+
+export interface DropboxListFolderParams extends DropboxBaseParams {
+  path: string
+  recursive?: boolean
+  includeDeleted?: boolean
+  includeMediaInfo?: boolean
+  limit?: number
+}
+
+export interface DropboxListFolderResponse extends ToolResponse {
+  output: {
+    entries?: DropboxMetadata[]
+    cursor?: string
+    hasMore?: boolean
+  }
+}
+
+export interface DropboxCreateFolderParams extends DropboxBaseParams {
+  path: string
+  autorename?: boolean
+}
+
+export interface DropboxCreateFolderResponse extends ToolResponse {
+  output: {
+    folder?: DropboxFolderMetadata
+  }
+}
+
+export interface DropboxDeleteParams extends DropboxBaseParams {
+  path: string
+}
+
+export interface DropboxDeleteResponse extends ToolResponse {
+  output: {
+    metadata?: DropboxMetadata
+    deleted?: boolean
+  }
+}
+
+export interface DropboxCopyParams extends DropboxBaseParams {
+  fromPath: string
+  toPath: string
+  autorename?: boolean
+}
+
+export interface DropboxCopyResponse extends ToolResponse {
+  output: {
+    metadata?: DropboxMetadata
+  }
+}
+
+export interface DropboxMoveParams extends DropboxBaseParams {
+  fromPath: string
+  toPath: string
+  autorename?: boolean
+}
+
+export interface DropboxMoveResponse extends ToolResponse {
+  output: {
+    metadata?: DropboxMetadata
+  }
+}
+
+export interface DropboxGetMetadataParams extends DropboxBaseParams {
+  path: string
+  includeMediaInfo?: boolean
+  includeDeleted?: boolean
+}
+
+export interface DropboxGetMetadataResponse extends ToolResponse {
+  output: {
+    metadata?: DropboxMetadata
+  }
+}
+
+export interface DropboxCreateSharedLinkParams extends DropboxBaseParams {
+  path: string
+  requestedVisibility?: 'public' | 'team_only' | 'password'
+  linkPassword?: string
+  expires?: string
+}
+
+export interface DropboxCreateSharedLinkResponse extends ToolResponse {
+  output: {
+    sharedLink?: DropboxSharedLinkMetadata
+  }
+}
+
+export interface DropboxSearchParams extends DropboxBaseParams {
+  query: string
+  path?: string
+  fileExtensions?: string
+  maxResults?: number
+}
+
+export interface DropboxSearchResponse extends ToolResponse {
+  output: {
+    matches?: DropboxSearchMatch[]
+    hasMore?: boolean
+    cursor?: string
+  }
+}
+
+export interface DropboxListSharedLinksParams extends DropboxBaseParams {
+  path?: string
+  directOnly?: boolean
+  cursor?: string
+}
+
+export interface DropboxListSharedLinksResponse extends ToolResponse {
+  output: {
+    links?: DropboxSharedLinkMetadata[]
+    hasMore?: boolean
+    cursor?: string
+  }
+}
+
+interface DropboxFileRevision {
+  '.tag': 'file'
+  id: string
+  name: string
+  path_display?: string
+  path_lower?: string
+  size: number
+  rev: string
+  server_modified: string
+}
+
+export interface DropboxListRevisionsParams extends DropboxBaseParams {
+  path: string
+  limit?: number
+  beforeRev?: string
+}
+
+export interface DropboxListRevisionsResponse extends ToolResponse {
+  output: {
+    entries?: DropboxFileRevision[]
+    isDeleted?: boolean
+    hasMore?: boolean
+  }
+}
+
+export interface DropboxRestoreParams extends DropboxBaseParams {
+  path: string
+  rev: string
+}
+
+export interface DropboxRestoreResponse extends ToolResponse {
+  output: {
+    metadata?: DropboxFileMetadata
+  }
+}

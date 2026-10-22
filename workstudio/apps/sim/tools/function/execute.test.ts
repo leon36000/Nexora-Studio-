@@ -1,0 +1,221 @@
+import { describe, expect, it } from 'vitest'
+import { functionExecuteBodySchema } from '@/lib/api/contracts/hotspots'
+import { DEFAULT_EXECUTION_TIMEOUT_MS } from '@/lib/execution/constants'
+import {
+  MOUNTED_WORKSPACE_FILES_PROVENANCE_KEY,
+  PRIVATE_SECRET_PROVENANCE_FIELD,
+} from '@/lib/execution/private-tool-metadata'
+import { MAX_FUNCTION_CODE_LENGTH } from '@/lib/function-execution/limits'
+import { buildFunctionExecuteBody, functionExecuteTool } from '@/tools/function/execute'
+import { createLLMToolSchema, createUserToolSchema } from '@/tools/params'
+
+describe('Function Execute Tool', () => {
+  it.each(['default', 'copilot'] as const)(
+    'advertises secret-name arrays accepted by the Function boundary on %s',
+    (surface) => {
+      const schema = createUserToolSchema(functionExecuteTool, { surface })
+      expect(schema.properties.mountedSecrets).toMatchObject({
+        type: 'array',
+        items: { type: 'string' },
+      })
+      expect(schema.required).not.toContain('mountedSecrets')
+
+      for (const mountedSecrets of [undefined, [], ['SERVICE_TOKEN']]) {
+        const body = functionExecuteTool.operation.input({
+          code: 'return 1',
+          secretScope: 'selected',
+          mountedSecrets,
+        })
+        const parsed = functionExecuteBodySchema.parse(body)
+        expect(parsed.secretScope).toBe('selected')
+        expect(parsed.mountedSecrets).toEqual(mountedSecrets)
+      }
+      for (const mountedSecrets of [{}, [1]]) {
+        expect(
+          functionExecuteBodySchema.safeParse({ code: 'return 1', mountedSecrets }).success
+        ).toBe(false)
+      }
+    }
+  )
+
+  it('keeps mounted secret names under author control for Agent tool calls', async () => {
+    const { schema, modelBlockedParams } = await createLLMToolSchema(functionExecuteTool, {
+      secretScope: 'selected',
+      mountedSecrets: ['SERVICE_TOKEN'],
+    })
+    expect(schema.properties).not.toHaveProperty('mountedSecrets')
+    expect(schema.properties).not.toHaveProperty('secretScope')
+    expect(modelBlockedParams).toEqual(expect.arrayContaining(['secretScope', 'mountedSecrets']))
+  })
+
+  it('joins serialized code blocks and applies the default timeout', () => {
+    const body = buildFunctionExecuteBody({
+      code: [
+        { content: 'const x = 40;', id: 'block1' },
+        { content: 'return x + 2;', id: 'block2' },
+      ],
+    })
+
+    expect(body.code).toBe('const x = 40;\nreturn x + 2;')
+    expect(body.timeout).toBe(DEFAULT_EXECUTION_TIMEOUT_MS)
+  })
+
+  it('sends display code the route accepts when inlined references outgrow the source cap', () => {
+    const inlinedValue = 'x'.repeat(MAX_FUNCTION_CODE_LENGTH)
+    const body = buildFunctionExecuteBody({
+      code: 'return __blockRef_0.length',
+      sourceCode: `return "${inlinedValue}".length`,
+      contextVariables: { __blockRef_0: inlinedValue },
+    })
+
+    expect(functionExecuteBodySchema.safeParse(body).success).toBe(true)
+    expect(body.sourceCode).toBeUndefined()
+
+    const withinCap = buildFunctionExecuteBody({
+      code: 'return __blockRef_0',
+      sourceCode: 'return <api.data>',
+    })
+    expect(withinCap.sourceCode).toBe('return <api.data>')
+  })
+
+  it('preserves reference context and large-value authorization', () => {
+    const body = buildFunctionExecuteBody({
+      code: 'return contextVariables.previous.result',
+      contextVariables: { previous: { result: 42 } },
+      _context: {
+        workflowId: 'workflow-1',
+        executionId: 'execution-1',
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        largeValueExecutionIds: ['execution-parent'],
+        largeValueKeys: ['large-value-key'],
+        fileKeys: ['file-key'],
+        allowLargeValueWorkflowScope: true,
+      },
+    })
+
+    expect(body).toMatchObject({
+      contextVariables: { previous: { result: 42 } },
+      workflowId: 'workflow-1',
+      executionId: 'execution-1',
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+      largeValueExecutionIds: ['execution-parent'],
+      largeValueKeys: ['large-value-key'],
+      fileKeys: ['file-key'],
+      allowLargeValueWorkflowScope: true,
+    })
+  })
+
+  it('keeps mounted-file provenance inside the private operation envelope', () => {
+    const bundle = {
+      version: 1 as const,
+      complete: true,
+      selections: [
+        {
+          key: MOUNTED_WORKSPACE_FILES_PROVENANCE_KEY,
+          provenance: {
+            version: 1 as const,
+            complete: true,
+            entries: [{ encryptedValue: 'encrypted-secret' }],
+          },
+        },
+      ],
+    }
+    const body = buildFunctionExecuteBody({
+      code: 'return 42',
+      [PRIVATE_SECRET_PROVENANCE_FIELD]: bundle,
+    })
+
+    expect(body[PRIVATE_SECRET_PROVENANCE_FIELD]).toEqual(bundle)
+    expect(JSON.stringify(body)).not.toContain('plaintext')
+  })
+
+  it('preserves sandbox cost in a successful Function result', async () => {
+    const cost = { input: 0, output: 0, total: 0.00012345 }
+    const result = await functionExecuteTool.transformResponse?.(
+      Response.json({
+        success: true,
+        output: { result: 42, stdout: 'done', cost },
+      }),
+      { code: 'return 42' }
+    )
+
+    expect(result).toMatchObject({
+      success: true,
+      output: { result: 42, stdout: 'done', cost },
+    })
+  })
+
+  it('preserves explicit workspace export receipts alongside the computed value', async () => {
+    const exported = {
+      message: 'Exported report.csv',
+      files: [
+        {
+          fileId: 'file-1',
+          fileName: 'report.csv',
+          vfsPath: 'files/report.csv',
+          size: 12,
+          sha256: 'digest',
+          unchanged: false,
+        },
+      ],
+    }
+    const result = await functionExecuteTool.transformResponse?.(
+      Response.json({
+        success: true,
+        output: { result: [{ count: 2 }], stdout: 'done', exported },
+      }),
+      { code: 'return [{ count: 2 }]' }
+    )
+    expect(result?.output).toMatchObject({ result: [{ count: 2 }], stdout: 'done', exported })
+    expect(result?.output.files).toEqual([])
+  })
+
+  it('preserves sandbox cost in a failed Function result', async () => {
+    const cost = { input: 0, output: 0, total: 0.00012345 }
+    const result = await functionExecuteTool.transformResponse?.(
+      Response.json(
+        {
+          success: false,
+          error: 'boom',
+          output: { result: null, stdout: 'trace', cost },
+        },
+        { status: 422 }
+      ),
+      { code: 'throw new Error("boom")' }
+    )
+
+    expect(result).toMatchObject({
+      success: false,
+      output: { result: null, stdout: 'trace', cost },
+      error: 'boom',
+    })
+  })
+
+  it('preserves sandboxSession in successful and failed Function results', async () => {
+    const success = await functionExecuteTool.transformResponse?.(
+      Response.json({
+        success: true,
+        output: { result: 1, stdout: 'ok', sandboxSession: 'reused' },
+      }),
+      { code: 'return 1' }
+    )
+    expect(success?.output.sandboxSession).toBe('reused')
+
+    const failure = await functionExecuteTool.transformResponse?.(
+      Response.json(
+        { success: false, error: 'boom', output: { stdout: 'trace', sandboxSession: 'created' } },
+        { status: 422 }
+      ),
+      { code: 'throw new Error("boom")' }
+    )
+    expect(failure?.output.sandboxSession).toBe('created')
+
+    const oneShot = await functionExecuteTool.transformResponse?.(
+      Response.json({ success: true, output: { result: 1, stdout: 'ok' } }),
+      { code: 'return 1' }
+    )
+    expect(oneShot?.output.sandboxSession).toBeUndefined()
+  })
+})

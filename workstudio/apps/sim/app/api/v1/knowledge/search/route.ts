@@ -1,0 +1,356 @@
+import { type NextRequest, NextResponse } from 'next/server'
+import { v1KnowledgeSearchContract } from '@/lib/api/contracts/v1/knowledge'
+import { parseRequest } from '@/lib/api/server'
+import {
+  resolveBillingAttribution,
+  resolveSystemBillingAttribution,
+} from '@/lib/billing/core/attribution'
+import { checkSearchUsageLimits } from '@/lib/billing/core/usage-gate-cache'
+import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { ALL_TAG_SLOTS } from '@/lib/knowledge/constants'
+import { toKbEmbeddingDimensions } from '@/lib/knowledge/embedding-models'
+import {
+  generateSearchEmbedding,
+  type KbEmbeddingTarget,
+  recordSearchEmbeddingUsage,
+} from '@/lib/knowledge/embeddings'
+import { SearchDeadlineError } from '@/lib/knowledge/search/budget'
+import type { SearchResult } from '@/lib/knowledge/search/candidates'
+import { resolveKnowledgeSearchDefaults } from '@/lib/knowledge/search/defaults'
+import {
+  type KnowledgeRetrievalResult,
+  retrieveKnowledgeSearch,
+} from '@/lib/knowledge/search/queries'
+import { getDocumentTagDefinitions } from '@/lib/knowledge/tags/service'
+import { buildUndefinedTagsError, validateTagValue } from '@/lib/knowledge/tags/utils'
+import type { StructuredFilter } from '@/lib/knowledge/types'
+import { checkKnowledgeBaseAccess, type KnowledgeBaseAccessResult } from '@/app/api/knowledge/utils'
+import { handleError, resolveV1KnowledgeReadAccess } from '@/app/api/v1/knowledge/utils'
+import {
+  authenticateRequest,
+  capabilityGovernedUserId,
+  v1ValidationErrorResponse,
+  validateWorkspaceAccess,
+} from '@/app/api/v1/middleware'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+/** POST /api/v1/knowledge/search — Vector search across knowledge bases. */
+export const POST = withRouteHandler(async (request: NextRequest) => {
+  const auth = await authenticateRequest(request, 'knowledge-search')
+  if (auth instanceof NextResponse) return auth
+  const { requestId, userId, rateLimit } = auth
+
+  try {
+    const parsed = await parseRequest(
+      v1KnowledgeSearchContract,
+      request,
+      {},
+      {
+        validationErrorResponse: v1ValidationErrorResponse,
+      }
+    )
+    if (!parsed.success) return parsed.response
+
+    const {
+      workspaceId,
+      topK,
+      query,
+      tagFilters,
+      searchMode: requestedSearchMode,
+    } = parsed.data.body
+
+    const accessError = await validateWorkspaceAccess(
+      rateLimit,
+      userId,
+      workspaceId,
+      'knowledge.use'
+    )
+    if (accessError) return accessError
+
+    const hasBillableQuery = Boolean(query?.trim())
+    const billingAttribution = hasBillableQuery
+      ? rateLimit.keyType === 'workspace'
+        ? await resolveSystemBillingAttribution(workspaceId)
+        : await resolveBillingAttribution({ actorUserId: userId, workspaceId })
+      : undefined
+    const billingActorUserId = billingAttribution?.actorUserId ?? userId
+
+    /**
+     * Query embeddings incur hosted cost; tag-only searches do not. Workspace
+     * keys resolve their system actor and immutable payer from one workspace read.
+     */
+    if (billingAttribution) {
+      const usage = await checkSearchUsageLimits(billingAttribution)
+      if (usage.isExceeded) {
+        return NextResponse.json(
+          { error: usage.message || 'Usage limit exceeded. Please upgrade your plan to continue.' },
+          { status: 402 }
+        )
+      }
+    }
+
+    const knowledgeBaseIds = Array.isArray(parsed.data.body.knowledgeBaseIds)
+      ? parsed.data.body.knowledgeBaseIds
+      : [parsed.data.body.knowledgeBaseIds]
+
+    const accessChecks = await Promise.all(
+      knowledgeBaseIds.map((kbId) => checkKnowledgeBaseAccess(kbId, userId))
+    )
+    const accessibleKbs = accessChecks
+      .filter(
+        (ac): ac is KnowledgeBaseAccessResult =>
+          ac.hasAccess === true && ac.knowledgeBase.workspaceId === workspaceId
+      )
+      .map((ac) => ac.knowledgeBase)
+    const accessibleKbIds = accessibleKbs.map((kb) => kb.id)
+
+    if (accessibleKbIds.length === 0) {
+      return NextResponse.json(
+        { error: 'Knowledge base not found or access denied' },
+        { status: 404 }
+      )
+    }
+
+    const inaccessibleKbIds = knowledgeBaseIds.filter((id) => !accessibleKbIds.includes(id))
+    if (inaccessibleKbIds.length > 0) {
+      return NextResponse.json(
+        { error: `Knowledge bases not found or access denied: ${inaccessibleKbIds.join(', ')}` },
+        { status: 404 }
+      )
+    }
+
+    let structuredFilters: StructuredFilter[] = []
+    const tagDefsCache = new Map<string, Awaited<ReturnType<typeof getDocumentTagDefinitions>>>()
+
+    if (tagFilters && tagFilters.length > 0 && accessibleKbIds.length > 1) {
+      return NextResponse.json(
+        { error: 'Tag filters are only supported when searching a single knowledge base' },
+        { status: 400 }
+      )
+    }
+
+    if (tagFilters && tagFilters.length > 0 && accessibleKbIds.length > 0) {
+      const kbId = accessibleKbIds[0]
+      const tagDefs = await getDocumentTagDefinitions(kbId)
+      tagDefsCache.set(kbId, tagDefs)
+
+      const displayNameToTagDef: Record<string, { tagSlot: string; fieldType: string }> = {}
+      tagDefs.forEach((def) => {
+        displayNameToTagDef[def.displayName] = {
+          tagSlot: def.tagSlot,
+          fieldType: def.fieldType,
+        }
+      })
+
+      const undefinedTags: string[] = []
+      const typeErrors: string[] = []
+
+      for (const filter of tagFilters) {
+        const tagDef = displayNameToTagDef[filter.tagName]
+        if (!tagDef) {
+          undefinedTags.push(filter.tagName)
+          continue
+        }
+        const validationError = validateTagValue(
+          filter.tagName,
+          String(filter.value),
+          tagDef.fieldType
+        )
+        if (validationError) {
+          typeErrors.push(validationError)
+        }
+      }
+
+      if (undefinedTags.length > 0 || typeErrors.length > 0) {
+        const errorParts: string[] = []
+        if (undefinedTags.length > 0) {
+          errorParts.push(buildUndefinedTagsError(undefinedTags))
+        }
+        if (typeErrors.length > 0) {
+          errorParts.push(...typeErrors)
+        }
+        return NextResponse.json({ error: errorParts.join('\n') }, { status: 400 })
+      }
+
+      structuredFilters = tagFilters.map((filter) => {
+        const tagDef = displayNameToTagDef[filter.tagName]!
+        return {
+          tagSlot: tagDef.tagSlot,
+          fieldType: tagDef.fieldType,
+          operator: filter.operator,
+          value: filter.value,
+          valueTo: filter.valueTo,
+        }
+      })
+    }
+
+    const hasQuery = query && query.trim().length > 0
+    const hasFilters = structuredFilters.length > 0
+
+    /**
+     * One query embedding serves every base in the request, so all of them must
+     * be indexed the same way — including the vector width, which selects the
+     * pgvector column each comparison reads.
+     *
+     * Built only for a query search. A tag-only request never embeds anything,
+     * so resolving a width it will not use would let one base recorded at an
+     * unstorable width fail a request that does not depend on it.
+     */
+    const embeddingTargets = new Map(
+      accessibleKbs.map((kb) => [
+        `${kb.embeddingModel}:${kb.embeddingDimension}`,
+        { model: kb.embeddingModel, dimensions: kb.embeddingDimension },
+      ])
+    )
+    if (hasQuery && embeddingTargets.size > 1) {
+      return NextResponse.json(
+        {
+          error:
+            'Selected knowledge bases use different embedding models or vector widths and cannot be searched together. Search them separately.',
+        },
+        { status: 400 }
+      )
+    }
+    const selectedTarget = [...embeddingTargets.values()][0]
+    const queryEmbeddingModel = selectedTarget.model
+    /**
+     * The width is narrowed to a storable one only for a query search, which is
+     * the only kind that reads a vector column. A tag-only search must not fail
+     * on a width it never uses.
+     */
+    const queryEmbeddingTarget: KbEmbeddingTarget | undefined = hasQuery
+      ? {
+          model: selectedTarget.model,
+          dimensions: toKbEmbeddingDimensions(selectedTarget.dimensions),
+        }
+      : undefined
+
+    let retrieved: KnowledgeRetrievalResult
+    let queryEmbeddingIsBYOK: boolean | null = null
+    const [readAccess, { searchMode, boostRecency }] = await Promise.all([
+      resolveV1KnowledgeReadAccess(userId, rateLimit, workspaceId),
+      resolveKnowledgeSearchDefaults({
+        workspaceId,
+        /** A personal key acts as its user; a workspace key has no person behind it. */
+        userId: capabilityGovernedUserId(rateLimit) ?? undefined,
+        requestedMode: requestedSearchMode,
+      }),
+    ])
+
+    const accessProvider = 'get' in readAccess ? readAccess : undefined
+    const access = 'get' in readAccess ? await readAccess.get() : readAccess
+
+    if (!hasQuery && hasFilters) {
+      retrieved = await retrieveKnowledgeSearch({
+        knowledgeBaseIds: accessibleKbIds,
+        topK,
+        access,
+        accessProvider,
+        searchMode,
+        boostRecency,
+        structuredFilters,
+      })
+    } else if (hasQuery) {
+      const queryEmbeddingResult = await generateSearchEmbedding(
+        query!,
+        queryEmbeddingTarget!,
+        workspaceId
+      )
+      queryEmbeddingIsBYOK = queryEmbeddingResult.isBYOK
+      retrieved = await retrieveKnowledgeSearch({
+        knowledgeBaseIds: accessibleKbIds,
+        topK,
+        access,
+        accessProvider,
+        searchMode,
+        boostRecency,
+        query,
+        queryVector: {
+          vector: JSON.stringify(queryEmbeddingResult.embedding),
+          dimensions: queryEmbeddingTarget!.dimensions,
+          model: queryEmbeddingTarget!.model,
+        },
+        structuredFilters: hasFilters ? structuredFilters : undefined,
+      })
+    } else {
+      return NextResponse.json(
+        { error: 'Either query or tagFilters must be provided' },
+        { status: 400 }
+      )
+    }
+
+    if (queryEmbeddingIsBYOK !== null) {
+      await recordSearchEmbeddingUsage({
+        userId: billingActorUserId,
+        workspaceId,
+        embeddingModel: queryEmbeddingModel,
+        query: query!,
+        isBYOK: queryEmbeddingIsBYOK,
+        sourceReference: `v1-kb-search:${requestId}`,
+        billingAttribution,
+      })
+    }
+
+    const tagDefsResults = await Promise.all(
+      accessibleKbIds.map(async (kbId) => {
+        try {
+          const tagDefs = tagDefsCache.get(kbId) ?? (await getDocumentTagDefinitions(kbId))
+          const map: Record<string, string> = {}
+          tagDefs.forEach((def) => {
+            map[def.tagSlot] = def.displayName
+          })
+          return { kbId, map }
+        } catch {
+          return { kbId, map: {} as Record<string, string> }
+        }
+      })
+    )
+    const tagDefinitionsMap: Record<string, Record<string, string>> = {}
+    tagDefsResults.forEach(({ kbId, map }) => {
+      tagDefinitionsMap[kbId] = map
+    })
+
+    /** v1 cannot express an incomplete search, so a leg that ran out of time fails the request. */
+    if (retrieved.retrieval.status === 'partial') throw new SearchDeadlineError()
+    const results = retrieved.rows
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        results: results.map((result, index) => {
+          const kbTagMap = tagDefinitionsMap[result.knowledgeBaseId] || {}
+          const tags: Record<string, string | number | boolean | Date | null> = {}
+
+          ALL_TAG_SLOTS.forEach((slot) => {
+            const tagValue = result[slot as keyof SearchResult]
+            if (tagValue !== null && tagValue !== undefined) {
+              const displayName = kbTagMap[slot] || slot
+              tags[displayName] = tagValue as string | number | boolean | Date | null
+            }
+          })
+
+          const similarity = hasQuery ? 1 - result.distance : 1
+          return {
+            documentId: result.documentId,
+            documentName: result.filename || undefined,
+            sourceUrl: result.sourceUrl,
+            content: result.content,
+            chunkIndex: result.chunkIndex,
+            metadata: tags,
+            similarity,
+            rankScore: result.rankScore ?? similarity,
+            rank: index + 1,
+          }
+        }),
+        query: query || '',
+        knowledgeBaseIds: accessibleKbIds,
+        topK,
+        totalResults: results.length,
+      },
+    })
+  } catch (error) {
+    return handleError(requestId, error, 'Failed to perform search')
+  }
+})

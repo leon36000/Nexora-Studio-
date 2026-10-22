@@ -1,0 +1,86 @@
+from httpx import AsyncClient
+import pytest
+import pytest_asyncio
+import respx
+
+from api.domain.provider.entities import ProviderType
+from api.domain.router.entities import RouterType
+from api.infrastructure.fastapi.routes import EndpointRoute
+from api.tests.helpers import INVALID_API_KEY, create_key
+from api.tests.integration.endpoints.utils import DEFAULT_PROVIDER_URL, mock_metrics_responses
+from api.tests.integration.factories.sql import LimitSQLFactory, ProviderSQLFactory, RouterSQLFactory, UserSQLFactory
+
+HEALTH_URL = EndpointRoute.HEALTH
+HEALTH_MODELS_URL = EndpointRoute.HEALTH_MODELS
+
+HEALTH_MODEL_NAME = "health-model"
+METRICS_BODY = (
+    "# HELP vllm:num_requests_running\n"
+    "# TYPE vllm:num_requests_running gauge\n"
+    f'vllm:num_requests_running{{model_name="{HEALTH_MODEL_NAME}"}} 0.0\n'
+    f'vllm:num_requests_waiting{{model_name="{HEALTH_MODEL_NAME}"}} 0.0\n'
+)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+class TestGetHealth:
+    async def test_happy_path(self, client: AsyncClient):
+        response = await client.get(url=HEALTH_URL)
+
+        assert response.status_code == 200, response.text
+        assert response.json() == {"status": "ok"}
+
+
+@pytest.mark.asyncio(loop_scope="session")
+class TestGetHealthModels:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, db_session):
+        self.user = UserSQLFactory(name="Alice", email="alice@example.com")
+        self.key = await create_key(db_session, name="user_key", user=self.user)
+        self.router_owner = UserSQLFactory(name="Bob", email="bob@example.com", admin_user=True)
+
+    @respx.mock
+    async def test_happy_path(self, client: AsyncClient, db_session):
+        router = RouterSQLFactory(
+            user=self.router_owner,
+            name="router_1",
+            type=RouterType.TEXT_GENERATION,
+        )
+        ProviderSQLFactory(
+            router=router,
+            user=self.router_owner,
+            type=ProviderType.VLLM,
+            url=DEFAULT_PROVIDER_URL,
+            model_name=HEALTH_MODEL_NAME,
+        )
+        RouterSQLFactory(
+            user=self.router_owner,
+            name="router_no_access",
+            type=RouterType.TEXT_GENERATION,
+            providers=1,
+        )
+        LimitSQLFactory(role=self.user.role, router=router)
+        await db_session.flush()
+
+        mock_metrics_responses(respx, ProviderType.VLLM, METRICS_BODY, 200)
+        response = await client.get(
+            url=HEALTH_MODELS_URL,
+            headers={"Authorization": f"Bearer {self.key.token}"},
+        )
+
+        assert response.status_code == 200, response.text
+        assert response.json() == {"data": [{"id": "router_1", "status": "green"}]}
+
+    @pytest.mark.parametrize(
+        "headers,expected_status,expected_detail",
+        [
+            ({}, 401, "Not authenticated"),
+            ({"Authorization": "Bearer malformed-token"}, 401, "Invalid API key."),
+            ({"Authorization": f"Bearer {INVALID_API_KEY}"}, 401, "Invalid API key."),
+        ],
+    )
+    async def test_auth(self, client: AsyncClient, headers, expected_status, expected_detail):
+        response = await client.get(url=HEALTH_MODELS_URL, headers=headers)
+
+        assert response.status_code == expected_status
+        assert response.json().get("detail") == expected_detail

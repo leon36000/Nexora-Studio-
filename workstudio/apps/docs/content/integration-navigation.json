@@ -1,0 +1,104 @@
+{
+  "guides": {
+    "airtable-service-account": {
+      "integration": "airtable",
+      "title": "Personal access tokens"
+    },
+    "asana-service-account": {
+      "integration": "asana",
+      "title": "Service accounts and personal access tokens"
+    },
+    "atlassian-service-account": {
+      "title": "Atlassian service accounts"
+    },
+    "attio-service-account": {
+      "integration": "attio",
+      "title": "API keys"
+    },
+    "box-service-account": {
+      "integration": "box",
+      "title": "Service accounts"
+    },
+    "calcom-service-account": {
+      "integration": "calcom",
+      "title": "API keys"
+    },
+    "clickup-service-account": {
+      "integration": "clickup",
+      "title": "API tokens"
+    },
+    "google-service-account": {
+      "title": "Google service accounts"
+    },
+    "hubspot-service-account": {
+      "integration": "hubspot",
+      "title": "Private app tokens"
+    },
+    "hubspot-setup": {
+      "integration": "hubspot",
+      "title": "Setup guide"
+    },
+    "linear-service-account": {
+      "integration": "linear",
+      "title": "API keys"
+    },
+    "monday-service-account": {
+      "integration": "monday",
+      "title": "API tokens"
+    },
+    "netsuite-service-account": {
+      "integration": "netsuite",
+      "title": "Service account"
+    },
+    "notion-service-account": {
+      "integration": "notion",
+      "title": "Internal integrations"
+    },
+    "pipedrive-service-account": {
+      "integration": "pipedrive",
+      "title": "API tokens"
+    },
+    "salesforce-service-account": {
+      "integration": "salesforce",
+      "title": "Integration users"
+    },
+    "shopify-service-account": {
+      "integration": "shopify",
+      "title": "Admin API tokens"
+    },
+    "snowflake-service-account": {
+      "integration": "snowflake",
+      "title": "Programmatic access tokens"
+    },
+    "trello-service-account": {
+      "integration": "trello",
+      "title": "API tokens"
+    },
+    "wealthbox-service-account": {
+      "integration": "wealthbox",
+      "title": "API access tokens"
+    },
+    "webflow-service-account": {
+      "integration": "webflow",
+      "title": "Site tokens"
+    },
+    "zoho-desk-service-account": {
+      "integration": "zoho_desk",
+      "title": "Self clients"
+    },
+    "zoom-service-account": {
+      "integration": "zoom",
+      "title": "Server-to-server OAuth apps"
+    }
+  },
+  "relatedPages": [
+    {
+      "integration": "logs",
+      "path": "workflows/blocks/logs",
+      "title": "Use Logs in workflows"
+    }
+  ],
+  "redirects": {
+    "openai": "embeddings"
+  }
+}

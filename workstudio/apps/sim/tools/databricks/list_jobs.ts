@@ -1,0 +1,157 @@
+import type { DatabricksListJobsParams, DatabricksListJobsResponse } from '@/tools/databricks/types'
+import { JOB_CLUSTERS_OUTPUT, JOB_TASK_OUTPUT } from '@/tools/databricks/types'
+import { databricksUrl } from '@/tools/databricks/utils'
+import type { ToolConfig } from '@/tools/types'
+
+export const listJobsTool: ToolConfig<DatabricksListJobsParams, DatabricksListJobsResponse> = {
+  id: 'databricks_list_jobs',
+  name: 'Databricks List Jobs',
+  description: 'List all jobs in a Databricks workspace with optional filtering by name.',
+  version: '1.0.0',
+
+  params: {
+    host: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Databricks workspace host (e.g., dbc-abc123.cloud.databricks.com)',
+    },
+    apiKey: {
+      type: 'string',
+      required: true,
+      visibility: 'user-only',
+      description: 'Databricks Personal Access Token',
+    },
+    limit: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Maximum number of jobs to return (range 1-100, default 20)',
+    },
+    pageToken: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Token for the next or previous page; takes precedence over legacy offset',
+    },
+    offset: {
+      type: 'number',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Legacy Jobs 2.1 offset; prefer pageToken',
+    },
+    name: {
+      type: 'string',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Filter jobs by exact name (case-insensitive)',
+    },
+    expandTasks: {
+      type: 'boolean',
+      required: false,
+      visibility: 'user-or-llm',
+      description: 'Include task and cluster details in the response (max 100 elements)',
+    },
+  },
+
+  request: {
+    url: (params) => {
+      const url = new URL(
+        databricksUrl(
+          params.host,
+          `/api/${params.offset != null && !params.pageToken ? '2.1' : '2.2'}/jobs/list`
+        )
+      )
+      if (params.limit) url.searchParams.set('limit', String(params.limit))
+      if (params.pageToken) url.searchParams.set('page_token', params.pageToken)
+      else if (params.offset != null) url.searchParams.set('offset', String(params.offset))
+      if (params.name) url.searchParams.set('name', params.name)
+      if (params.expandTasks) url.searchParams.set('expand_tasks', 'true')
+      return url.toString()
+    },
+    method: 'GET',
+    headers: (params) => ({
+      Accept: 'application/json',
+      Authorization: `Bearer ${params.apiKey}`,
+    }),
+  },
+
+  transformResponse: async (response: Response) => {
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error?.message || 'Failed to list jobs')
+    }
+
+    const jobs = (data.jobs ?? []).map(
+      (job: {
+        job_id?: number
+        settings?: {
+          name?: string
+          max_concurrent_runs?: number
+          format?: string
+          tasks?: Record<string, unknown>[]
+          job_clusters?: Record<string, unknown>[]
+        }
+        has_more?: boolean
+        created_time?: number
+        creator_user_name?: string
+      }) => ({
+        tasks: job.settings?.tasks ?? [],
+        jobClusters: job.settings?.job_clusters ?? [],
+        hasMore: job.has_more ?? false,
+        jobId: job.job_id ?? 0,
+        name: job.settings?.name ?? '',
+        createdTime: job.created_time ?? 0,
+        creatorUserName: job.creator_user_name ?? '',
+        maxConcurrentRuns: job.settings?.max_concurrent_runs ?? 1,
+        format: job.settings?.format ?? '',
+      })
+    )
+
+    return {
+      success: true,
+      output: {
+        jobs,
+        hasMore: Boolean(data.next_page_token) || (data.has_more ?? false),
+        nextPageToken: data.next_page_token ?? null,
+        prevPageToken: data.prev_page_token ?? null,
+      },
+    }
+  },
+
+  outputs: {
+    prevPageToken: { type: 'string', nullable: true, description: 'Token for the previous page' },
+    jobs: {
+      type: 'array',
+      description: 'List of jobs in the workspace',
+      items: {
+        type: 'object',
+        properties: {
+          tasks: JOB_TASK_OUTPUT,
+          jobClusters: JOB_CLUSTERS_OUTPUT,
+          hasMore: {
+            type: 'boolean',
+            description: 'Whether tasks or job clusters have additional pages',
+          },
+
+          jobId: { type: 'number', description: 'Unique job identifier' },
+          name: { type: 'string', description: 'Job name' },
+          createdTime: { type: 'number', description: 'Job creation timestamp (epoch ms)' },
+          creatorUserName: { type: 'string', description: 'Email of the job creator' },
+          maxConcurrentRuns: { type: 'number', description: 'Maximum number of concurrent runs' },
+          format: { type: 'string', description: 'Job format (SINGLE_TASK or MULTI_TASK)' },
+        },
+      },
+    },
+    hasMore: {
+      type: 'boolean',
+      description: 'Whether more jobs are available for pagination',
+    },
+    nextPageToken: {
+      type: 'string',
+      description: 'Token for fetching the next page of results',
+      nullable: true,
+    },
+  },
+}

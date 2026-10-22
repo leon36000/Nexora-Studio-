@@ -1,0 +1,122 @@
+/**
+ * Billing System Types
+ * Centralized type definitions for the billing system
+ */
+import { z } from 'zod'
+import { MAX_BILLING_CONCURRENCY_LIMIT } from '@/lib/billing/concurrency-defaults'
+import {
+  MAX_WORKFLOW_EXECUTION_TIMEOUT_SECONDS,
+  parseWorkflowExecutionTimeoutSeconds,
+} from '@/lib/billing/execution-timeout-defaults'
+
+export const enterpriseSubscriptionMetadataSchema = z
+  .object({
+    plan: z
+      .string()
+      .transform((v) => v.toLowerCase())
+      .pipe(z.literal('enterprise')),
+    referenceId: z.string().min(1),
+    invoiceAmountCents: z.coerce.number().int().positive().optional(),
+    /** Legacy monthly Enterprise metadata retained for existing subscriptions. */
+    monthlyPrice: z.coerce.number().positive().optional(),
+    seats: z.coerce.number().int().positive(),
+    reportingPeriodAnchorDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .refine((value) => {
+        const parsed = new Date(`${value}T00:00:00.000Z`)
+        return (
+          Number.isFinite(parsed.getTime()) &&
+          parsed.toISOString().slice(0, 10) === value &&
+          parsed.getTime() <= Date.now()
+        )
+      }, 'Reporting-period anchor must be a valid UTC date that is not in the future')
+      .optional(),
+    reportingPeriodInterval: z.enum(['month', 'year']).optional(),
+    concurrencyLimit: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MAX_BILLING_CONCURRENCY_LIMIT)
+      .optional(),
+    workflowExecutionTimeoutSeconds: z.preprocess(
+      (value) => parseWorkflowExecutionTimeoutSeconds(value) ?? undefined,
+      z.number().int().positive().max(MAX_WORKFLOW_EXECUTION_TIMEOUT_SECONDS).optional()
+    ),
+  })
+  .refine(
+    (metadata) => metadata.invoiceAmountCents !== undefined || metadata.monthlyPrice !== undefined,
+    { error: 'Enterprise invoice amount metadata is required' }
+  )
+  .transform((metadata) => ({
+    ...metadata,
+    invoiceAmountUsd:
+      metadata.invoiceAmountCents !== undefined
+        ? metadata.invoiceAmountCents / 100
+        : (metadata.monthlyPrice as number),
+  }))
+
+export type EnterpriseSubscriptionMetadata = z.infer<typeof enterpriseSubscriptionMetadataSchema>
+
+export function parseEnterpriseSubscriptionMetadata(
+  value: unknown
+): EnterpriseSubscriptionMetadata | null {
+  const result = enterpriseSubscriptionMetadataSchema.safeParse(value)
+  return result.success ? result.data : null
+}
+
+export interface UsageData {
+  currentUsage: number
+  limit: number
+  percentUsed: number
+  isWarning: boolean
+  isExceeded: boolean
+  billingPeriodStart: Date | null
+  billingPeriodEnd: Date | null
+  lastPeriodCost: number
+}
+
+export interface UsageLimitInfo {
+  currentLimit: number
+  canEdit: boolean
+  minimumLimit: number
+  plan: string
+  updatedAt: Date | null
+  /**
+   * Whether the limit is stored on the user (`'user'`) or the organization
+   * (`'organization'`). Callers should route edits to the matching API
+   * context. Org-scoped includes any subscription whose `referenceId` is
+   * an organization id, regardless of plan name.
+   */
+  scope: 'user' | 'organization'
+  /** Present only when `scope === 'organization'`. */
+  organizationId: string | null
+}
+
+export interface BillingData {
+  currentPeriodCost: number
+  projectedCost: number
+  limit: number
+  billingPeriodStart: Date | null
+  billingPeriodEnd: Date | null
+  daysRemaining: number
+}
+
+// Utility Types
+export type PlanType = 'free' | 'pro' | 'team' | 'enterprise'
+export type SubscriptionStatus =
+  | 'active'
+  | 'canceled'
+  | 'past_due'
+  | 'unpaid'
+  | 'trialing'
+  | 'incomplete'
+  | 'incomplete_expired'
+export type BillingEntityType = 'user' | 'organization'
+export type BillingPeriodType = 'monthly' | 'annual'
+export type UsagePeriodStatus = 'active' | 'finalized' | 'billed'
+export type BillingStatusType = 'ok' | 'warning' | 'exceeded'
+
+// Error Types
+
+// Hook Types for React

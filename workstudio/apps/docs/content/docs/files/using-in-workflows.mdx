@@ -1,0 +1,98 @@
+---
+title: Using files in workflows
+description: Read a workspace file, summarize it with an Agent, and save the result.
+---
+
+import { WorkflowPreview, FILE_SUMMARY_WORKFLOW } from '@/components/workflow-preview'
+
+Use a File block to read `report.pdf`, an Agent to summarize it, and another File block to save `summary.md`. You can also pass a file directly to a compatible block, such as an email attachment or image input.
+
+<WorkflowPreview workflow={FILE_SUMMARY_WORKFLOW} height={200} />
+
+Before running the example, upload `report.pdf` to workspace **Files** and choose an Agent model and provider that support PDF attachments. The execution identity must have access to the file and permission to create the summary.
+
+## Read the file [#reading-a-file-in]
+
+1. Add a [File](/integrations/file) block named `File`.
+2. Select **Read** and choose `report.pdf` in the file picker.
+3. Connect it to an Agent block named `Agent`.
+
+Read returns `files`, an array of file objects. Reference the first file as `<file.files[0]>`, or the array as `<file.files>`. Each object carries its ID, name, URL, byte size, MIME type, and storage key. See the [file object fields](/files/passing-files#file-objects).
+
+In advanced mode, Read can take a canonical workspace file ID. Use that for a file saved earlier in the same run. If another block already returned the file object you need, pass that object directly to a compatible input.
+
+## Summarize with Agent [#processing-the-file]
+
+In the Agent block:
+
+1. Set **Files** to `<file.files[0]>`.
+2. Add the instruction “Summarize this document” to **Messages**.
+3. Select a model and provider that support the file's format.
+
+The summary is available as `<agent.content>`. Attachment support varies by model and provider. Sim does not automatically turn an unsupported attachment into prompt text; use **Get Content** and reference the extracted string in **Messages** for a text-only path.
+
+## Save the summary [#writing-a-file-out]
+
+1. Connect the Agent to a second File block.
+2. Select **Write**.
+3. Set **File Name** to `summary.md`.
+4. Set **Content** to `<agent.content>` and leave **File** empty.
+5. Run the workflow, then open **Files** to verify the saved summary.
+
+Write returns `id`, `name`, `size`, `url`, `version`, and `revision`. By default, a duplicate name in the destination folder gets a numeric suffix. Turn on **Overwrite Existing File** only when you want to replace that file's contents.
+
+Saving is optional. You can return the summary, send it to Slack, or email it as text without creating a workspace file. To save a binary file returned by another block, use Write's **File** input instead of **Content**; see [Generating files](/files/generating).
+
+## Choose another file operation [#the-file-block]
+
+These operations cover common file-processing paths:
+
+| Operation | Use it for | Outputs |
+| --- | --- | --- |
+| **Read** | Obtain workspace file objects by picker, canonical ID, or folder selection | `files` |
+| **Get Content** | Extract text from supported files | `contents`, and `lineRanges` when a line window is requested |
+| **Fetch** | Download and parse an HTTP(S) file URL, with optional request headers | `files`, `combinedContent` |
+| **Write** | Save text or an existing file object to workspace Files | `id`, `name`, `size`, `url`, `version`, `revision` |
+| **Append** | Add text to an existing file | `id`, `name`, `size`, `url`, `version`, `revision` |
+
+The current File block also supports listing, searching, applying edits, archives, sharing, and folder operations. See the [File block reference](/integrations/file) for their inputs and limits.
+
+### Extract text
+
+Select **Get Content** when the next step needs text rather than the original file. Its `contents` array has one extracted string per selected file: `<file.contents[0]>` reads the first one. Optional offset and limit fields request a line window; line numbers refer to extracted text, not PDF pages or spreadsheet rows.
+
+Read and Get Content can select folders. A folder selection expands at run time and includes nested folders by default, so newly added files can be picked up by a later run. Turn off the subfolder option to include direct files only.
+
+### Fetch a URL
+
+Select **Fetch**, enter the file URL, and provide request headers when needed, such as `Authorization: Bearer …`. The URL must pass the deployment's network validation and download limits. Fetch returns file objects in `files` and extracted text in `combinedContent`. It does not automatically save the fetched file to workspace Files.
+
+### Process with Function
+
+For deterministic CSV or JSON processing, use **Get Content** and reference its text in a [Function](/workflows/blocks/function). For example, parse a JSON file after extraction:
+
+```javascript
+return JSON.parse(<file.contents[0]>);
+```
+
+For a text file, JavaScript without imports can read the original file bytes with a helper:
+
+```javascript
+const file = <file.files[0]>;
+return await sim.files.readText(file);
+```
+
+`readText` decodes file bytes; it does not extract PDF text. Use Get Content for document parsing. Python, Shell, and JavaScript with imports can use an indexed file-path reference such as `<file.files[0].path>` to request a sandbox mount under `/tmp/sim/inputs`. This special reference resolves to the mounted path; `.path` is not a stored property you can read after assigning the whole object to a variable.
+
+Files written under `/tmp/sim/outputs` return as Function `files` output. Pass them to a compatible attachment/upload input, or use File Write to save them. See [Generating files](/files/generating#what-produces-file-content).
+
+### Append to an existing file
+
+Select **Append**, choose an existing file, and provide the text to add. Use it for a running `notes.md` or log. Selecting a file directly avoids ambiguous names; when using a name, specify a folder scope if the name exists in several folders.
+
+## Related docs [#composing-the-steps]
+
+- [Passing files](/files/passing-files): object fields, API input, and authenticated downloads
+- [Generating files](/files/generating): text and binary persistence
+- [Function](/workflows/blocks/function): code, file mounts, and sandbox exports
+- [File block](/integrations/file): complete operation reference

@@ -1,0 +1,199 @@
+import type { Principal } from '@sim/auth/principal'
+import type { OperationUseCase, WorkspaceOperation } from '@/lib/core/application'
+import { admitContent } from '@/lib/core/application'
+import { OrchestrationError } from '@/lib/core/orchestration/types'
+import {
+  type ActiveWorkspaceFileContext,
+  getWorkspaceFileByName,
+  loadActiveWorkspaceFileContext,
+  resolveWorkspaceFileReference as resolveStoredWorkspaceFileReference,
+  type WorkspaceFileLookupOptions,
+  type WorkspaceFileRecord,
+} from '@/lib/uploads/contexts/workspace/file-manager'
+import { getFileMetadataByKey } from '@/lib/uploads/server/metadata'
+import { VfsPathError } from '@/lib/vfs/path'
+import { defineAuthorizedWorkspaceFileUseCase } from '@/lib/workspace-files/application/authorized-workspace-file-use-case'
+import { assertOwnedFileAccess } from '@/lib/workspace-files/application/file-context'
+import { fileOperations } from '@/lib/workspace-files/application/operations'
+
+export interface ResolveWorkspaceFileReferenceInput {
+  principal: Principal
+  operation: WorkspaceOperation
+  workspaceId: string
+  reference: string
+  /** Resolve `reference` as an exact file name in this folder instead of as a path or id. */
+  folderId?: string | null
+  /** Trusted internal chat scope; never accepted from public file contracts. */
+  chatId?: string
+}
+
+interface WorkspaceFileReferenceInput {
+  workspaceId: string
+  reference: string
+  folderId?: string | null
+  /** Trusted internal caller scope; public route contracts do not expose it. */
+  chatId?: string
+}
+
+interface WorkspaceFileReferenceResult {
+  file: WorkspaceFileRecord
+}
+
+/** Canonical file context plus the record the reference resolved to. */
+export interface ReferencedWorkspaceFileContext extends ActiveWorkspaceFileContext {
+  file: WorkspaceFileRecord
+}
+
+/**
+ * Reads may reach a chat upload through its explicit `uploads/<name>` reference (or its
+ * own id) and a test file through `tests/<name>.test.js`; every other file operation resolves workspace files only, so no
+ * move, rename, delete, or share can land on any of them.
+ */
+const READ_CONTENT_LOOKUP: WorkspaceFileLookupOptions = {
+  includeChatUploads: true,
+  includeOwnedFiles: true,
+}
+
+/** Content writes reach test files; no other write can. */
+const CONTENT_WRITE_LOOKUP: WorkspaceFileLookupOptions = {
+  includeOwnedFiles: true,
+}
+
+/**
+ * Resolves a VFS reference to its canonical authorization context, carrying the resolved
+ * record so the caller needs no second load. Chat uploads are reachable only on opt-in.
+ */
+export async function resolveReferencedWorkspaceFileContext(
+  principal: Principal,
+  input: WorkspaceFileReferenceInput,
+  options?: WorkspaceFileLookupOptions
+): Promise<ReferencedWorkspaceFileContext> {
+  const chatId =
+    (principal.kind === 'delegated' && principal.serviceId === 'copilot'
+      ? principal.resourceScope?.chatId
+      : undefined) ?? input.chatId
+  const lookup = chatId === undefined ? options : { ...options, chatId }
+  const file =
+    input.folderId === undefined
+      ? await resolveStoredWorkspaceFileReference(input.workspaceId, input.reference, lookup).catch(
+          (error: unknown) => {
+            if (!(error instanceof VfsPathError)) throw error
+            throw new OrchestrationError(
+              'validation',
+              `"${input.reference}" is not a valid workspace file path or ID: ${error.message}`
+            )
+          }
+        )
+      : await getWorkspaceFileByName(input.workspaceId, input.reference, {
+          folderId: input.folderId,
+        })
+  if (!file) throw new OrchestrationError('not_found', 'File not found')
+  const canonical = await loadActiveWorkspaceFileContext(file.id, options)
+  if (!canonical || canonical.workspaceId !== input.workspaceId) {
+    throw new OrchestrationError('not_found', 'File not found')
+  }
+  await assertOwnedFileAccess(principal, canonical)
+  return { ...canonical, file }
+}
+
+function defineWorkspaceFileReferenceUseCase<const O extends WorkspaceOperation>(
+  operation: O,
+  options?: WorkspaceFileLookupOptions
+) {
+  return defineAuthorizedWorkspaceFileUseCase({
+    operation,
+    resolveContext: ({
+      principal,
+      input,
+    }: {
+      principal: Principal
+      input: WorkspaceFileReferenceInput
+    }) => resolveReferencedWorkspaceFileContext(principal, input, options),
+    async execute({ context, principal }): Promise<WorkspaceFileReferenceResult> {
+      /** Resolution authorizes under the content operation but returns only the file's record. */
+      await admitContent(principal, [])
+      return { file: context.file }
+    },
+  })
+}
+
+type WorkspaceFileReferenceUseCase = OperationUseCase<
+  WorkspaceOperation,
+  WorkspaceFileReferenceInput,
+  WorkspaceFileReferenceResult
+>
+
+const workspaceFileReferenceUseCases = {
+  [fileOperations.readContent.id]: defineWorkspaceFileReferenceUseCase(
+    fileOperations.readContent,
+    READ_CONTENT_LOOKUP
+  ),
+  [fileOperations.create.id]: defineWorkspaceFileReferenceUseCase(fileOperations.create),
+  [fileOperations.rename.id]: defineWorkspaceFileReferenceUseCase(fileOperations.rename),
+  [fileOperations.updateContent.id]: defineWorkspaceFileReferenceUseCase(
+    fileOperations.updateContent,
+    CONTENT_WRITE_LOOKUP
+  ),
+  [fileOperations.move.id]: defineWorkspaceFileReferenceUseCase(fileOperations.move),
+  [fileOperations.delete.id]: defineWorkspaceFileReferenceUseCase(fileOperations.delete),
+  [fileOperations.updateShare.id]: defineWorkspaceFileReferenceUseCase(fileOperations.updateShare),
+} satisfies Record<string, WorkspaceFileReferenceUseCase>
+
+function getWorkspaceFileReferenceUseCase(operation: WorkspaceOperation) {
+  const operationId = operation.id as keyof typeof workspaceFileReferenceUseCases
+  const useCase: WorkspaceFileReferenceUseCase | undefined =
+    workspaceFileReferenceUseCases[operationId]
+  if (!useCase || useCase.operation !== operation) {
+    throw new Error(`No workspace file reference resolver is defined for ${operation.id}`)
+  }
+  return useCase
+}
+
+/** Resolve one workspace-file reference under an explicit semantic operation policy. */
+export async function resolveWorkspaceFileReference({
+  principal,
+  operation,
+  workspaceId,
+  reference,
+  folderId,
+  chatId,
+}: ResolveWorkspaceFileReferenceInput): Promise<WorkspaceFileRecord> {
+  const useCase = getWorkspaceFileReferenceUseCase(operation)
+  const result = await useCase.execute({
+    principal,
+    input: {
+      workspaceId,
+      reference,
+      ...(folderId === undefined ? {} : { folderId }),
+      ...(chatId === undefined ? {} : { chatId }),
+    },
+  })
+  return result.file
+}
+
+/**
+ * Resolve the workspace file whose current content lives at a storage key, under the same policy
+ * as a reference to its id. A key that is not that file's current revision in this workspace (a
+ * superseded version, another workspace's object, an unregistered upload) is not found.
+ */
+export async function resolveWorkspaceFileStorageKey({
+  principal,
+  operation,
+  workspaceId,
+  key,
+}: Pick<ResolveWorkspaceFileReferenceInput, 'principal' | 'operation' | 'workspaceId'> & {
+  key: string
+}): Promise<WorkspaceFileRecord> {
+  const metadata = await getFileMetadataByKey(key, 'workspace')
+  if (!metadata || metadata.workspaceId !== workspaceId) {
+    throw new OrchestrationError('not_found', 'File not found')
+  }
+  const file = await resolveWorkspaceFileReference({
+    principal,
+    operation,
+    workspaceId,
+    reference: metadata.id,
+  })
+  if (file.key !== key) throw new OrchestrationError('not_found', 'File not found')
+  return file
+}

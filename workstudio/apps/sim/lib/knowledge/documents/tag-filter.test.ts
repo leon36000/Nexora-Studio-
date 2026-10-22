@@ -1,0 +1,91 @@
+import { describe, expect, it } from 'vitest'
+import { WORKSPACE_ACCESS_SCOPE } from '@/lib/knowledge/access/scope'
+import { getDocuments } from '@/lib/knowledge/documents/service'
+import { buildTagFilterCondition } from '@/lib/knowledge/documents/tag-filter'
+import { validateTagValue } from '@/lib/knowledge/tags/utils'
+
+/**
+ * The global `drizzle-orm` mock renders `sql` fragments to a `?`-placeholder
+ * string via `toSQL()` and returns plain `{ type, left, right }` objects for the
+ * comparison operators, so we can assert the exact predicate each filter builds.
+ */
+function rendered(condition: ReturnType<typeof buildTagFilterCondition>) {
+  return (condition as unknown as { toSQL: () => { sql: string; params: unknown[] } }).toSQL()
+}
+
+describe('buildTagFilterCondition', () => {
+  describe('text', () => {
+    it('escapes LIKE wildcards in contains', () => {
+      const { params } = rendered(
+        buildTagFilterCondition({
+          tagSlot: 'tag1',
+          fieldType: 'text',
+          operator: 'contains',
+          value: '50%_off',
+        })
+      )
+      expect(params).toContain('%50\\%\\_off%')
+    })
+  })
+
+  describe('date', () => {
+    it('ignores values that are not YYYY-MM-DD', () => {
+      expect(
+        buildTagFilterCondition({
+          tagSlot: 'date1',
+          fieldType: 'date',
+          operator: 'eq',
+          value: 'not-a-date',
+        })
+      ).toBeUndefined()
+    })
+  })
+
+  describe('agreement with the value the tag-value gate validated', () => {
+    it('compiles a date the gate trimmed rather than dropping the filter', () => {
+      expect(validateTagValue('due', ' 2026-04-21', 'date')).toBeNull()
+      const { sql, params } = rendered(
+        buildTagFilterCondition({
+          tagSlot: 'date1',
+          fieldType: 'date',
+          operator: 'eq',
+          value: ' 2026-04-21',
+        })
+      )
+      expect(sql).toBe('? >= ?::date::timestamp AND ? < (?::date + 1)::timestamp')
+      expect(params).toEqual(['document.date1', '2026-04-21', 'document.date1', '2026-04-21'])
+    })
+
+    it('compiles a trimmed between bound too', () => {
+      const { params } = rendered(
+        buildTagFilterCondition({
+          tagSlot: 'date1',
+          fieldType: 'date',
+          operator: 'between',
+          value: '2026-04-01',
+          valueTo: ' 2026-04-30 ',
+        })
+      )
+      expect(params).toEqual(['document.date1', '2026-04-01', 'document.date1', '2026-04-30'])
+    })
+  })
+})
+
+describe('getDocuments tag filters', () => {
+  it('raises rather than dropping a filter it cannot compile', async () => {
+    await expect(
+      getDocuments(
+        'kb-1',
+        {
+          limit: 10,
+          offset: 0,
+          tagFilters: [
+            { tagSlot: 'not_a_real_slot', fieldType: 'text', operator: 'eq', value: 'x' },
+          ],
+        },
+        'req-1',
+        WORKSPACE_ACCESS_SCOPE
+      )
+    ).rejects.toThrow(/Tag filter on slot "not_a_real_slot" could not be applied/)
+  })
+})

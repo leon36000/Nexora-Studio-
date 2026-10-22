@@ -1,0 +1,108 @@
+import type { CodeLanguage } from '@/lib/execution/languages'
+import type { PrivateSecretProvenanceBundleV1 } from '@/lib/execution/model-input-provenance'
+import type { SandboxExportReceipt } from '@/lib/function-execution/output'
+import type { UserFile } from '@/executor/types'
+import type { ToolResponse } from '@/tools/types'
+
+export interface CodeExecutionInput {
+  code: Array<{ content: string; id: string }> | string
+  /** Original user-authored code used for error display after execution-time reference resolution. */
+  sourceCode?: string
+  language?: CodeLanguage
+  useLocalVM?: boolean
+  /**
+   * Workflow Function blocks pass milliseconds. Copilot/Mothership tool calls pass seconds
+   * and are converted at the request boundary.
+   */
+  timeout?: number
+  memoryLimit?: number
+  title?: string
+  outputPath?: string
+  outputFormat?: 'json' | 'csv' | 'txt' | 'md' | 'html'
+  outputTable?: string
+  outputSandboxPath?: string
+  outputMimeType?: string
+  overwriteFileId?: string
+  inputs?: {
+    files?: Array<{ path: string; sandboxPath?: string }>
+    directories?: Array<{ path: string; sandboxPath?: string }>
+    tables?: Array<{ path?: string; tableId?: string; sandboxPath?: string }>
+  }
+  outputs?: {
+    files?: Array<{
+      path: string
+      mode: 'create' | 'overwrite'
+      sandboxPath?: string
+      format?: 'json' | 'csv' | 'txt' | 'md' | 'html'
+      mimeType?: string
+    }>
+  }
+  /**
+   * Platform file objects mounted into the sandbox before the code runs. Unlike
+   * {@link CodeExecutionInput.inputs}, which names workspace VFS paths, these are
+   * the objects tools exchange — so an upstream block's output reaches the
+   * sandbox without a trip through the workspace.
+   */
+  files?: UserFile[]
+  /** Workspace sandbox whose dependency set this execution runs against. */
+  sandboxId?: string
+  /**
+   * Reusable session-sandbox identity (one per Mothership chat). Honored only
+   * for trusted Mothership executions; workspace callers cannot opt in.
+   */
+  sandboxSessionKey?: string
+  /**
+   * Which workspace secrets the code may read. Unset and `'all'` both mean every
+   * secret, resolved at execution so ones added later are included.
+   */
+  secretScope?: 'all' | 'selected'
+  /** Secret names visible to the code when {@link secretScope} is `'selected'`. */
+  mountedSecrets?: string[]
+  /** Names the caller's registry certifies as redaction-exempt; exported files carrying only these values are not provenance-locked. */
+  unredactedSecretNames?: string[]
+  envVars?: Record<string, string>
+  workflowVariables?: Record<string, unknown>
+  blockData?: Record<string, unknown>
+  blockNameMapping?: Record<string, string>
+  blockOutputSchemas?: Record<string, Record<string, unknown>>
+  /** Pre-resolved block output variables from the executor, injected as VM globals. */
+  contextVariables?: Record<string, unknown>
+  _context?: {
+    workflowId?: string
+    executionId?: string
+    largeValueExecutionIds?: string[]
+    largeValueKeys?: string[]
+    fileKeys?: string[]
+    allowLargeValueWorkflowScope?: boolean
+    userId?: string
+    workspaceId?: string
+    copilotToolExecution?: boolean
+  }
+  isCustomTool?: boolean
+  _sandboxFiles?: Array<
+    | { type?: 'content'; path: string; content: string; encoding?: 'base64' }
+    | { type: 'url'; path: string; url: string }
+  >
+  __privateSecretProvenance?: PrivateSecretProvenanceBundleV1
+}
+
+export interface CodeExecutionOutput extends ToolResponse {
+  output: {
+    result: any
+    stdout: string
+    /** Files harvested from the sandbox output directory, already persisted. */
+    files: UserFile[]
+    /** Explicit workspace exports survive adapter projection for Mothership post-processing. */
+    exported?: SandboxExportReceipt
+    cost?: {
+      input: number
+      output: number
+      total: number
+    }
+    /**
+     * Present for session-sandbox executions (Mothership chats): `reused` means
+     * earlier state in the sandbox survived; `created` means it started fresh.
+     */
+    sandboxSession?: 'created' | 'reused'
+  }
+}

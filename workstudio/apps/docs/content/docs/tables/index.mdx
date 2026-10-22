@@ -1,0 +1,67 @@
+---
+title: Tables
+description: Store typed records that your workflows and agents read and write.
+---
+
+import { Image } from '@/components/ui/image'
+
+A table stores rows of typed data in your workspace. Use one for reference data, workflow results, or records that an agent processes.
+
+Start in [Chat](/chat/tables): describe the columns you need, or name an existing table and ask Sim to query it. Open the table beside the conversation to inspect the rows and make changes directly.
+
+<Image
+  variant="overview"
+  background="san-francisco"
+  src="/static/docs-captures/tables.webp"
+  alt="Sim summarizing shipped and planned work in Chat beside the release tracker table"
+  width={2400}
+  height={1200}
+/>
+
+## Create and edit a table
+
+1. Open **Tables** in the sidebar and select **New table**.
+2. Use **New column** to define your columns and their types.
+3. Enter values in cells, paste rows from a spreadsheet, or use **Import CSV** to load data.
+4. Use the toolbar to filter and sort the view without changing stored values. See [Keyboard shortcuts](/keyboard-shortcuts) for editing and navigation.
+
+## Column types
+
+The type determines how a column stores and displays values.
+
+| Type | Holds | Example |
+| --- | --- | --- |
+| **Text** | A string | `"Acme Corp"` |
+| **Number** | A numeric value | `42` |
+| **Currency** | A number displayed in the column's selected currency | `$1,234.56` |
+| **Boolean** | `true` or `false` | `true` |
+| **Date** | A date, or date and time | `2026-03-16` |
+| **Expiration** | A deletion timestamp with `Z` or an explicit UTC offset | `2026-12-01T00:00:00Z` |
+| **JSON** | Any JSON value | `{ "tier": "pro" }` |
+| **Select** | One or several configured options | `Pro` |
+
+Safe conversions are accepted, such as a numeric string into a Number column. Unsupported optional values can become empty in the editor or workflow writes; the public v2 API rejects invalid writes. Produce typed values and inspect the saved result.
+
+Currency stores the number itself, which filters, sorts, and exports use. Changing the selected currency relabels existing amounts; it does not convert them.
+
+### Expiration
+
+A table can have one Expiration column. Rows with a timestamp at or before the cleanup time are eligible for scheduled deletion; blank values do not expire. Shipped Compose and Helm schedules check every 15 minutes, so deletion is not immediate at the timestamp. Delete locks can prevent cleanup. Set this column only when scheduled removal is intended.
+
+## Use tables in workflows
+
+A [Table block](/tables/using-in-workflows) reads and writes rows within a workflow. A [workflow column](/tables/workflow-columns) runs per-row work and writes selected outputs beside the source data. Use a Function or Agent block for calculations; tables do not evaluate spreadsheet formulas. Tables are also available through the [API](/api-reference/getting-started).
+
+## Limits and behavior
+
+Row and table counts depend on the plan and deployment configuration. The maximum row-data size defaults to 400 KiB and is configurable per deployment. Tables have a fixed ceiling of 1,000 columns. Query pages have a default 5 MiB row-data budget, which can be configured for bounded pages. A query requesting all matches has a fixed 5 MiB budget. Use pagination for large reads.
+
+Individual row writes are atomic, but a workflow's read → process → write sequence is not one transaction. Concurrent workflows can operate on the same table and affect the same records.
+
+In the editor, `Cmd/Ctrl+Z` undoes recent cell edits, row insertions, and row deletions. That history clears when you leave the editor and does not include changes made through the API.
+
+## Related docs
+
+- [Using tables in workflows](/tables/using-in-workflows) for Table block operations and pagination
+- [Workflow columns](/tables/workflow-columns) for per-row enrichments and workflows
+- [Keyboard shortcuts](/keyboard-shortcuts) for table editing

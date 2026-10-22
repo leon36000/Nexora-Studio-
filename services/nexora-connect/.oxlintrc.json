@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import"],
+  "categories": {},
+  "rules": {
+    "import/consistent-type-specifier-style": ["error", "prefer-top-level"]
+  },
+  "settings": {
+    "vitest": {
+      "typecheck": false
+    }
+  },
+  "env": {
+    "builtin": true
+  },
+  "globals": {},
+  "ignorePatterns": ["dist", "node_modules", "/catalog", "deploy/helm/open-connector/templates"]
+}

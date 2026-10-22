@@ -1,0 +1,349 @@
+import { createLogger } from '@sim/logger'
+import { getErrorMessage } from '@sim/utils/errors'
+import { omit, toRecord } from '@sim/utils/object'
+import type { NextRequest } from 'next/server'
+import { withResourceOutboundScope } from '@/lib/core/network/resource-scope.server'
+import { isSensitiveKey } from '@/lib/core/security/redaction'
+import {
+  resolveBackgroundWebhookEnv,
+  resolveWebhookProviderConfig,
+  resolveWebhookRecordProviderConfig,
+} from '@/lib/webhooks/env-resolver'
+import { getProviderHandler } from '@/lib/webhooks/providers'
+import { WebhookDeploymentConfigurationError } from '@/lib/webhooks/providers/errors'
+import {
+  createResolvedSecretMatcher,
+  projectResolvedSecretContent,
+} from '@/executor/utils/resolved-secret-content-projection'
+import { OPAQUE_RESOLVED_SECRET_REPLACEMENT } from '@/executor/utils/resolved-secret-matcher'
+
+const logger = createLogger('WebhookProviderSubscriptions')
+
+/** Resolving credentials must not make a provider's exception a durable plaintext export. */
+function projectProviderFailure(
+  error: unknown,
+  secrets: ReadonlyMap<string, string>,
+  providerConfig: Record<string, unknown>
+): Error {
+  let message = 'Webhook provider request failed'
+  try {
+    const matches = [...secrets].map(([name, plaintext]) => ({
+      plaintext,
+      replacement: `{{${name}}}`,
+    }))
+    const resolvedValues = new Set(secrets.values())
+    for (const [field, value] of Object.entries(providerConfig)) {
+      if (isSensitiveKey(field) && typeof value === 'string' && !resolvedValues.has(value)) {
+        matches.push({ plaintext: value, replacement: OPAQUE_RESOLVED_SECRET_REPLACEMENT })
+      }
+    }
+    const matcher = createResolvedSecretMatcher(matches)
+    const projection = matcher
+      ? projectResolvedSecretContent(getErrorMessage(error), matcher)
+      : { safe: true, value: getErrorMessage(error) }
+    if (projection.safe && typeof projection.value === 'string') message = projection.value
+  } catch {
+    /** Uninspectable diagnostics retain no provider-controlled content. */
+  }
+  const projected =
+    error instanceof WebhookDeploymentConfigurationError
+      ? new WebhookDeploymentConfigurationError(message)
+      : new Error(message)
+  if (error instanceof Error && 'status' in error && typeof error.status === 'number')
+    Object.assign(projected, { status: error.status })
+  return projected
+}
+
+type ExternalSubscriptionResult = {
+  updatedProviderConfig: Record<string, unknown>
+  externalSubscriptionCreated: boolean
+}
+
+type RecreateCheckInput = {
+  previousProvider: string
+  nextProvider: string
+  previousConfig: Record<string, unknown>
+  nextConfig: Record<string, unknown>
+}
+
+/** System-managed fields that should not trigger recreation. */
+const SYSTEM_MANAGED_FIELDS = new Set([
+  'externalId',
+  'previousSubscription',
+  'subscriptionActivationPending',
+  'externalSubscriptionId',
+  'eventTypes',
+  'webhookTag',
+  'webhookSecret',
+  'signingSecret',
+  'secretToken',
+  'historyId',
+  'lastCheckedTimestamp',
+  'lastSeenGuids',
+  'etag',
+  'lastModified',
+  'pollBackoffUntil',
+  'pollSourceFailures',
+  'setupCompleted',
+  'subscriptionExpiration',
+  'userId',
+  // Zoho Desk provider-managed: the persisted data-center Desk base, set by
+  // createSubscription (not a user trigger field), so it must not count as a
+  // config change that forces delete/recreate.
+  'apiDomain',
+])
+
+/**
+ * Returns the user-controlled projection used for stable registration identity.
+ *
+ * Provider-managed subscription metadata and mutable polling cursors are intentionally omitted.
+ */
+export function projectDesiredWebhookProviderConfig(
+  providerConfig: Readonly<Record<string, unknown>>
+): Record<string, unknown> {
+  return omit(providerConfig, [...SYSTEM_MANAGED_FIELDS])
+}
+
+/** Returns true when user-controlled persisted webhook configuration changed. */
+export function hasWebhookConfigChanged(
+  previousConfig: Record<string, unknown>,
+  nextConfig: Record<string, unknown>
+): boolean {
+  const allKeys = new Set([...Object.keys(previousConfig), ...Object.keys(nextConfig)])
+
+  for (const key of allKeys) {
+    if (SYSTEM_MANAGED_FIELDS.has(key)) continue
+
+    const previousValue = previousConfig[key]
+    const nextValue = nextConfig[key]
+    const previousComparable =
+      typeof previousValue === 'object' ? JSON.stringify(previousValue ?? null) : previousValue
+    const nextComparable =
+      typeof nextValue === 'object' ? JSON.stringify(nextValue ?? null) : nextValue
+
+    if (previousComparable !== nextComparable) return true
+  }
+
+  return false
+}
+
+/**
+ * Determine whether a webhook with provider-managed registration should be
+ * recreated after its persisted provider config changes.
+ *
+ * Only user-controlled fields are considered; provider-managed fields such as
+ * external IDs and generated secrets are ignored.
+ */
+export function shouldRecreateExternalWebhookSubscription({
+  previousProvider,
+  nextProvider,
+  previousConfig,
+  nextConfig,
+}: RecreateCheckInput): boolean {
+  const hasSubscription = (provider: string) => {
+    const handler = getProviderHandler(provider)
+    return Boolean(handler.createSubscription)
+  }
+
+  if (previousProvider !== nextProvider) {
+    return hasSubscription(previousProvider) || hasSubscription(nextProvider)
+  }
+
+  if (!hasSubscription(nextProvider)) {
+    return false
+  }
+
+  return hasWebhookConfigChanged(previousConfig, nextConfig)
+}
+
+/**
+ * Ask the provider handler to create an external webhook subscription, if that
+ * provider supports automatic registration.
+ *
+ * `providerConfig` may contain unresolved `{{ENV_VAR}}` references (e.g. an
+ * API key field backed by an environment variable) — these are resolved here
+ * before the provider call so deploy-triggered registration (this function is
+ * also called from the async deployment outbox, not just the interactive
+ * webhook-save route) behaves the same as a manual save. The persisted
+ * `providerConfig` returned to the caller stays unresolved; only the
+ * provider-managed fields from `result.providerConfigUpdates` get merged in.
+ *
+ * The returned provider-managed fields are merged back into `providerConfig`
+ * by the caller.
+ */
+export async function createExternalWebhookSubscription(
+  request: NextRequest,
+  webhookData: Record<string, unknown>,
+  workflow: Record<string, unknown>,
+  userId: string,
+  requestId: string,
+  options: { signal?: AbortSignal } = {}
+): Promise<ExternalSubscriptionResult> {
+  const provider = webhookData.provider as string
+  const providerConfig = toRecord(webhookData.providerConfig)
+  const handler = getProviderHandler(provider)
+
+  if (!handler.createSubscription) {
+    return { updatedProviderConfig: providerConfig, externalSubscriptionCreated: false }
+  }
+
+  const workspaceId = typeof workflow.workspaceId === 'string' ? workflow.workspaceId : undefined
+
+  const secrets = new Map<string, string>()
+  const resolvedProviderConfig = await resolveWebhookProviderConfig(
+    providerConfig,
+    userId,
+    workspaceId,
+    { onResolved: (name, value) => secrets.set(name, value) }
+  )
+
+  /**
+   * Last abort check before the irreversible external call: a lease-expired
+   * outbox handler must not mint a provider resource it can no longer
+   * durably record.
+   */
+  const result = await withResourceOutboundScope({ workspaceId }, () => {
+    options.signal?.throwIfAborted()
+    return handler.createSubscription!({
+      webhook: { ...webhookData, providerConfig: resolvedProviderConfig },
+      workflow,
+      userId,
+      requestId,
+      request,
+    })
+  }).catch((error: unknown) => {
+    throw projectProviderFailure(error, secrets, resolvedProviderConfig)
+  })
+
+  if (!result) {
+    return { updatedProviderConfig: providerConfig, externalSubscriptionCreated: false }
+  }
+
+  return {
+    updatedProviderConfig: { ...providerConfig, ...result.providerConfigUpdates },
+    externalSubscriptionCreated: true,
+  }
+}
+
+/** Activates provider state after the authorized caller has durably stored its external ID and credentials. */
+export async function activateExternalWebhookSubscription(
+  request: NextRequest,
+  webhookData: Record<string, unknown>,
+  workflow: Record<string, unknown>,
+  userId: string,
+  requestId: string,
+  options: { signal?: AbortSignal } = {}
+): Promise<void> {
+  const handler = getProviderHandler(String(webhookData.provider))
+  const activateSubscription = handler.activateSubscription
+  if (
+    !activateSubscription ||
+    toRecord(webhookData.providerConfig).subscriptionActivationPending === false
+  )
+    return
+  const workspaceId = typeof workflow.workspaceId === 'string' ? workflow.workspaceId : undefined
+  const secrets = new Map<string, string>()
+  const providerConfig = await resolveWebhookProviderConfig(
+    toRecord(webhookData.providerConfig),
+    userId,
+    workspaceId,
+    { onResolved: (name, value) => secrets.set(name, value) }
+  )
+  await withResourceOutboundScope({ workspaceId }, () => {
+    options.signal?.throwIfAborted()
+    return activateSubscription({
+      request,
+      webhook: { ...webhookData, providerConfig },
+      workflow,
+      userId,
+      requestId,
+    })
+  }).catch((error: unknown) => {
+    throw projectProviderFailure(error, secrets, providerConfig)
+  })
+}
+
+/**
+ * Clean up external webhook subscriptions for a webhook.
+ *
+ * Resolves persisted `{{ENV_VAR}}` references the same way the delivery that
+ * created the subscription resolved them — owner for personal variables, the
+ * workspace billing account for workspace ones. Reading both slices as the owner
+ * meant cleanup could see a narrower selection than execution did: a non-admin
+ * owner without a credential grant for the referenced key left `{{VAR}}`
+ * unresolved (`onMissing` defaults to `keep`), and the provider was then handed
+ * the literal reference as its credential. Since the failure below is non-fatal
+ * by default, that silently orphaned the subscription at the provider.
+ *
+ * By default, cleanup failure is logged but non-fatal for legacy best-effort callers.
+ * Deployment outbox cleanup passes `throwOnError` so provider failures stay retryable.
+ */
+export async function cleanupExternalWebhook(
+  webhook: Record<string, unknown>,
+  workflow: Record<string, unknown>,
+  requestId: string,
+  options: { throwOnError?: boolean } = {}
+): Promise<void> {
+  const provider = webhook.provider as string
+  const handler = getProviderHandler(provider)
+  const previousSubscription = toRecord(toRecord(webhook.providerConfig).previousSubscription)
+
+  if (!handler.deleteSubscription && typeof previousSubscription.provider !== 'string') {
+    return
+  }
+
+  const secrets = new Map<string, string>()
+  let resolvedProviderConfig: Record<string, unknown> = {}
+  try {
+    if (typeof workflow.userId !== 'string') {
+      throw new Error('Cannot resolve webhook credentials without a workflow owner')
+    }
+
+    const workspaceId = typeof workflow.workspaceId === 'string' ? workflow.workspaceId : undefined
+    const envVars = await resolveBackgroundWebhookEnv(workflow.userId, workspaceId)
+    const resolvedWebhook = await resolveWebhookRecordProviderConfig(
+      webhook,
+      workflow.userId,
+      workspaceId,
+      { envVars, onResolved: (name, value) => secrets.set(name, value) }
+    )
+    resolvedProviderConfig = resolvedWebhook.providerConfig
+    if (typeof previousSubscription.provider === 'string') {
+      await cleanupExternalWebhook(
+        {
+          ...webhook,
+          provider: previousSubscription.provider,
+          providerConfig: previousSubscription.providerConfig,
+        },
+        workflow,
+        requestId,
+        options
+      )
+    }
+
+    if (!handler.deleteSubscription) return
+
+    /** Workspace archival precedes provider cleanup; routing still uses its canonical owner. */
+    await withResourceOutboundScope(
+      { workspaceId },
+      () =>
+        handler.deleteSubscription!({
+          webhook: resolvedWebhook,
+          workflow,
+          requestId,
+          strict: options.throwOnError,
+        }),
+      { includeArchived: true }
+    )
+  } catch (error) {
+    const projected = projectProviderFailure(error, secrets, resolvedProviderConfig)
+    logger.warn(`[${requestId}] Error cleaning up external webhook (non-fatal)`, {
+      provider,
+      webhookId: webhook.id,
+      error: projected.message,
+    })
+    if (options.throwOnError) {
+      throw projected
+    }
+  }
+}

@@ -1,0 +1,61 @@
+from abc import ABC, abstractmethod
+
+from api.domain import SortOrder
+from api.domain.provider.entities import BasicAuth, HostingZone, Provider, ProviderPage, ProviderSortField, ProviderType
+from api.domain.provider.errors import ProviderAlreadyExistsError, ProviderNotFoundError
+
+
+class ProviderRepository(ABC):
+    @abstractmethod
+    async def create_provider(
+        self,
+        router_id: int,
+        user_id: int,
+        provider_type: ProviderType,
+        url: str,
+        key: str | None,
+        basic_auth: BasicAuth | None,
+        timeout: int,
+        model_name: str,
+        model_hosting_zone: HostingZone,
+        model_total_params: int,
+        model_active_params: int,
+        vector_size: int,
+        max_context_length: int,
+    ) -> Provider | ProviderAlreadyExistsError:
+        pass
+
+    @abstractmethod
+    async def delete_provider(self, provider_id: int) -> Provider | ProviderNotFoundError:
+        pass
+
+    @abstractmethod
+    async def get_one_provider(self, provider_id: int) -> Provider | ProviderNotFoundError:
+        pass
+
+    @abstractmethod
+    async def get_providers_page(
+        self,
+        router_id: int | None,
+        limit: int,
+        offset: int,
+        sort_by: ProviderSortField = ProviderSortField.ID,
+        sort_order: SortOrder = SortOrder.ASC,
+    ) -> ProviderPage:
+        pass
+
+    @abstractmethod
+    async def update_provider(self, provider: Provider) -> Provider | ProviderAlreadyExistsError:
+        pass
+
+    @abstractmethod
+    async def get_all_providers(self) -> list[Provider]:
+        pass
+
+    @abstractmethod
+    async def get_provider_ids_by_user_id(self, user_id: int) -> list[int]:
+        pass
+
+    @abstractmethod
+    async def get_all_providers_of_router(self, router_id: int) -> list[Provider]:
+        pass

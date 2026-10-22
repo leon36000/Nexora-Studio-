@@ -1,0 +1,94 @@
+import type { McpOperationPolicy } from '@/lib/mcp/operation-policy'
+import type { FallbackModelEntry } from '@/lib/workflows/blocks/fallback-models'
+import type { ResolvedSecretInputPath } from '@/executor/utils/resolved-secret-trace-registry'
+import type { Message as ProviderMessage } from '@/providers/types'
+
+export interface FileNameProjection {
+  name: string
+  inputPath?: ResolvedSecretInputPath
+}
+
+export interface SkillInput {
+  skillId: string
+  name?: string
+  description?: string
+}
+
+export interface AgentInputs {
+  evaluationState?: unknown
+  evaluationQuestions?: unknown
+  model?: string
+  responseFormat?: string | object
+  tools?: ToolInput[]
+  skills?: SkillInput[]
+  // Legacy inputs (backward compatible)
+  systemPrompt?: string
+  userPrompt?: string | object
+  memories?: any // Legacy memory block output
+  // New message array input (from messages-input subblock)
+  messages?: Message[]
+  // Memory configuration
+  memoryType?: 'none' | 'conversation' | 'sliding_window' | 'sliding_window_tokens'
+  conversationId?: string // Required for all non-none memory types
+  slidingWindowSize?: string // For message-based sliding window
+  slidingWindowTokens?: string // For token-based sliding window
+  // Deep research multi-turn
+  previousInteractionId?: string // Interactions API previous interaction reference
+  // LLM parameters
+  temperature?: string | number
+  maxTokens?: string | number
+  apiKey?: string
+  azureEndpoint?: string
+  azureApiVersion?: string
+  vertexProject?: string
+  vertexLocation?: string
+  vertexCredential?: string
+  bedrockAccessKeyId?: string
+  bedrockSecretKey?: string
+  bedrockRegion?: string
+  reasoningEffort?: string
+  verbosity?: string
+  thinkingLevel?: string
+  promptCaching?: boolean
+  files?: unknown
+  /** Ordered models tried when the request to `model` fails; see `normalizeFallbackModels`. */
+  fallbackModels?: Array<Partial<FallbackModelEntry> & { model: string }>
+}
+
+/**
+ * Represents a tool input for the agent block.
+ *
+ * @remarks
+ * Valid types include:
+ * - Standard block types (e.g., 'api', 'search', 'function')
+ * - 'custom-tool': User-defined tools with custom code
+ * - 'mcp': Individual MCP tool from a connected server
+ * - 'mcp-server-advanced': All tools available to the executing subject from one MCP server
+ */
+export interface ToolInput {
+  operationPolicy?: McpOperationPolicy
+  /** Tool type identifier */
+  type?: string
+  schema?: any
+  title?: string
+  code?: string
+  /** Tool parameters */
+  params?: Record<string, any>
+  timeout?: number
+  usageControl?: 'auto' | 'force' | 'none'
+  /** Resolved value from the variable-capable tool mode input. */
+  usageControlExpression?: unknown
+  operation?: string
+  /** Database ID for custom tools (new reference format) */
+  customToolId?: string
+}
+
+export interface Message extends ProviderMessage {
+  executionId?: string
+}
+
+export interface StreamingConfig {
+  shouldUseStreaming: boolean
+  isBlockSelectedForOutput: boolean
+  hasOutgoingConnections: boolean
+}

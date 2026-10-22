@@ -1,0 +1,1135 @@
+/**
+ * Integration tests for webhook trigger API route
+ */
+import { createRouteContext } from '@sim/testing/helpers/http'
+import { admissionGateMock, admissionGateMockFns } from '@sim/testing/mocks/admission-gate.mock'
+import { encryptionMock } from '@sim/testing/mocks/encryption.mock'
+import {
+  executionPreprocessingMock,
+  executionPreprocessingMockFns,
+} from '@sim/testing/mocks/execution-preprocessing.mock'
+import { loggingSessionMock } from '@sim/testing/mocks/logging-session.mock'
+import { rateLimiterMock } from '@sim/testing/mocks/rate-limiter.mock'
+import { createMockRequest } from '@sim/testing/mocks/request.mock'
+import {
+  workflowsPersistenceUtilsMock,
+  workflowsPersistenceUtilsMockFns,
+} from '@sim/testing/mocks/workflows-persistence-utils.mock'
+import { workflowsUtilsMock } from '@sim/testing/mocks/workflows-utils.mock'
+import {
+  workspacesUtilsMock,
+  workspacesUtilsMockFns,
+} from '@sim/testing/mocks/workspaces-utils.mock'
+import { type NextRequest, NextResponse } from 'next/server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  ADMISSION_ERROR_CODE,
+  ADMISSION_ERROR_DESCRIPTOR,
+  ADMISSION_RETRY_AFTER_SECONDS,
+} from '@/lib/core/admission/transient-failure'
+import { INTERNAL_TRIGGER_PROVIDERS, POLLING_PROVIDERS } from '@/triggers/constants'
+
+vi.mock('@/lib/core/security/encryption', () => encryptionMock)
+
+vi.mock('@/lib/logs/execution/trace-spans/trace-spans', () => ({
+  buildTraceSpans: vi.fn().mockReturnValue({ traceSpans: [], totalDuration: 100 }),
+}))
+
+vi.mock('@/lib/workflows/utils', () => workflowsUtilsMock)
+
+vi.mock('@/serializer', () => ({
+  Serializer: vi.fn().mockImplementation(() => ({
+    serializeWorkflow: vi.fn().mockReturnValue({
+      version: '1.0',
+      blocks: [
+        {
+          id: 'starter-id',
+          metadata: { id: 'starter', name: 'Start' },
+          config: {},
+          inputs: {},
+          outputs: {},
+          position: { x: 100, y: 100 },
+          enabled: true,
+        },
+        {
+          id: 'agent-id',
+          metadata: { id: 'agent', name: 'Agent 1' },
+          config: {},
+          inputs: {},
+          outputs: {},
+          position: { x: 634, y: -167 },
+          enabled: true,
+        },
+      ],
+      edges: [
+        {
+          id: 'edge-1',
+          source: 'starter-id',
+          target: 'agent-id',
+          sourceHandle: 'source',
+          targetHandle: 'target',
+        },
+      ],
+      loops: {},
+      parallels: {},
+    }),
+  })),
+}))
+
+/**
+ * Test data store - isolated per test via beforeEach reset
+ * This replaces the global mutable state pattern with local test data
+ */
+interface TestWebhook {
+  id: string
+  provider: string | null
+  path: string
+  isActive: boolean
+  providerConfig?: Record<string, unknown>
+  routingKey?: string | null
+  workflowId: string
+  blockId?: string
+  rateLimitCount?: number
+  rateLimitPeriod?: number
+}
+
+interface TestWorkflow {
+  id: string
+  userId: string
+  workspaceId?: string
+}
+
+interface TestDispatchOptions {
+  requestId: string
+  path: string
+  receivedAt: number
+  triggerTimestampMs?: number
+}
+
+const testData = {
+  webhooks: [] as TestWebhook[],
+  workflows: [] as TestWorkflow[],
+}
+
+const {
+  handleWhatsAppVerificationMock,
+  handleSlackChallengeMock,
+  processWhatsAppDeduplicationMock,
+  processGenericDeduplicationMock,
+  processWebhookMock,
+  executeMock,
+  checkWebhookPreprocessingMock,
+  handleWebhookEventFilterMock,
+  queueWebhookExecutionMock,
+  dispatchResolvedWebhookTargetMock,
+  shouldSkipWebhookEventMock,
+  getLegacySlackCustomBotCredentialIdMock,
+  verifySlackCustomBotCredentialRequestMock,
+  dispatchSlackCustomBotCredentialMock,
+} = vi.hoisted(() => ({
+  handleWhatsAppVerificationMock: vi.fn().mockResolvedValue(null),
+  handleSlackChallengeMock: vi.fn().mockReturnValue(null),
+  processWhatsAppDeduplicationMock: vi.fn().mockResolvedValue(null),
+  processGenericDeduplicationMock: vi.fn().mockResolvedValue(null),
+  processWebhookMock: vi.fn().mockResolvedValue(new Response('Webhook processed', { status: 200 })),
+  executeMock: vi.fn().mockResolvedValue({
+    success: true,
+    output: { response: 'Webhook execution success' },
+    logs: [],
+    metadata: {
+      duration: 100,
+      startTime: new Date().toISOString(),
+      endTime: new Date().toISOString(),
+    },
+  }),
+  checkWebhookPreprocessingMock: vi.fn().mockResolvedValue({
+    error: null,
+    actorUserId: 'test-user-id',
+    billingAttribution: {
+      actorUserId: 'test-user-id',
+      workspaceId: 'test-workspace-id',
+      organizationId: null,
+      billedAccountUserId: 'test-user-id',
+      billingEntity: { type: 'user', id: 'test-user-id' },
+      billingPeriod: {
+        start: '2026-07-01T00:00:00.000Z',
+        end: '2026-08-01T00:00:00.000Z',
+      },
+      payerSubscription: null,
+    },
+    executionId: 'preprocess-execution-id',
+    correlation: {
+      executionId: 'preprocess-execution-id',
+      requestId: 'mock-request-id',
+      source: 'webhook',
+      workflowId: 'test-workflow-id',
+      webhookId: 'generic-webhook-id',
+      path: 'test-path',
+      provider: 'generic',
+      triggerType: 'webhook',
+    },
+  }),
+  handleWebhookEventFilterMock: vi.fn().mockResolvedValue(null),
+  queueWebhookExecutionMock: vi.fn().mockImplementation(async () => {
+    const { NextResponse } = await import('next/server')
+    return NextResponse.json({ message: 'Webhook processed' })
+  }),
+  dispatchResolvedWebhookTargetMock: vi.fn(),
+  shouldSkipWebhookEventMock: vi.fn().mockReturnValue(false),
+  getLegacySlackCustomBotCredentialIdMock: vi.fn(),
+  verifySlackCustomBotCredentialRequestMock: vi.fn(),
+  dispatchSlackCustomBotCredentialMock: vi.fn(),
+}))
+
+vi.mock('@/lib/core/admission/gate', () => admissionGateMock)
+
+vi.mock('@/lib/webhooks/slack-custom-ingress', () => ({
+  getLegacySlackCustomBotCredentialId: getLegacySlackCustomBotCredentialIdMock,
+  verifySlackCustomBotCredentialRequest: verifySlackCustomBotCredentialRequestMock,
+  dispatchSlackCustomBotCredential: dispatchSlackCustomBotCredentialMock,
+}))
+
+vi.mock('@/background/webhook-execution', () => ({
+  executeWebhookJob: vi.fn().mockResolvedValue({
+    success: true,
+    workflowId: 'test-workflow-id',
+    executionId: 'test-exec-id',
+    output: {},
+    executedAt: new Date().toISOString(),
+  }),
+}))
+
+vi.mock('@/lib/webhooks/utils', () => ({
+  handleWhatsAppVerification: handleWhatsAppVerificationMock,
+  handleSlackChallenge: handleSlackChallengeMock,
+  processWhatsAppDeduplication: processWhatsAppDeduplicationMock,
+  processGenericDeduplication: processGenericDeduplicationMock,
+  processWebhook: processWebhookMock,
+}))
+
+vi.mock('@/executor', () => ({
+  Executor: vi.fn().mockImplementation(() => ({
+    execute: executeMock,
+  })),
+}))
+
+vi.mock('@/lib/execution/preprocessing', () => executionPreprocessingMock)
+
+vi.mock('@/lib/logs/execution/logging-session', () => loggingSessionMock)
+
+vi.mock('@/lib/workspaces/utils', () => workspacesUtilsMock)
+
+vi.mock('@/lib/core/rate-limiter', () => rateLimiterMock)
+
+vi.mock('@/lib/workflows/persistence/utils', () => workflowsPersistenceUtilsMock)
+
+vi.mock('@/lib/webhooks/processor', () => ({
+  findAllWebhooksForPath: vi.fn().mockImplementation(async (options: { path: string }) => {
+    // Filter webhooks by path from testData
+    const matchingWebhooks = testData.webhooks.filter(
+      (wh) => wh.path === options.path && wh.isActive
+    )
+
+    if (matchingWebhooks.length === 0) {
+      return []
+    }
+
+    // Return array of {webhook, workflow} objects
+    return matchingWebhooks.map((wh) => {
+      const matchingWorkflow = testData.workflows.find((w) => w.id === wh.workflowId) || {
+        id: wh.workflowId || 'test-workflow-id',
+        userId: 'test-user-id',
+        workspaceId: 'test-workspace-id',
+      }
+      return {
+        webhook: wh,
+        workflow: matchingWorkflow,
+      }
+    })
+  }),
+  parseWebhookBody: vi.fn().mockImplementation(async (request: NextRequest) => {
+    try {
+      const cloned = request.clone()
+      const rawBody = await cloned.text()
+      const body = rawBody ? JSON.parse(rawBody) : {}
+      return { body, rawBody }
+    } catch {
+      return { body: {}, rawBody: '' }
+    }
+  }),
+  handleProviderChallenges: vi.fn().mockResolvedValue(null),
+  handlePreLookupWebhookVerification: vi
+    .fn()
+    .mockImplementation(
+      async (
+        method: string,
+        body: Record<string, unknown> | undefined,
+        _requestId: string,
+        path: string
+      ) => {
+        if (path !== 'pending-verification-path') {
+          return null
+        }
+
+        const isVerificationProbe =
+          method === 'GET' ||
+          method === 'HEAD' ||
+          (method === 'POST' && (!body || Object.keys(body).length === 0 || !body.type))
+
+        if (!isVerificationProbe) {
+          return null
+        }
+
+        const { NextResponse } = require('next/server')
+        return NextResponse.json({ status: 'ok', message: 'Webhook endpoint verified' })
+      }
+    ),
+  handleProviderReachabilityTest: vi.fn().mockReturnValue(null),
+  handleWebhookEventFilter: handleWebhookEventFilterMock,
+  dispatchResolvedWebhookTarget: dispatchResolvedWebhookTargetMock.mockImplementation(
+    async (
+      foundWebhook: TestWebhook,
+      foundWorkflow: TestWorkflow,
+      body: unknown,
+      request: NextRequest,
+      options: TestDispatchOptions
+    ) => {
+      if (shouldSkipWebhookEventMock(foundWebhook, body, options.requestId)) {
+        return {
+          outcome: 'ignored',
+          reason: 'filtered',
+          response: NextResponse.json({ message: 'Webhook event ignored' }),
+        }
+      }
+
+      const eventFilterResponse = await handleWebhookEventFilterMock(
+        foundWebhook,
+        foundWorkflow,
+        body,
+        request,
+        options.requestId
+      )
+      if (eventFilterResponse) {
+        return {
+          outcome: eventFilterResponse.ok ? 'ignored' : 'failed',
+          reason: 'event-mismatch',
+          response: eventFilterResponse,
+        }
+      }
+
+      if (
+        foundWebhook.blockId &&
+        !(await workflowsPersistenceUtilsMockFns.mockBlockExistsInDeployment(
+          foundWorkflow.id,
+          foundWebhook.blockId
+        ))
+      ) {
+        return {
+          outcome: 'ignored',
+          reason: 'block-missing',
+          response: new NextResponse('Trigger block not found in deployment', { status: 404 }),
+        }
+      }
+
+      const preprocessResult = await checkWebhookPreprocessingMock(
+        foundWorkflow,
+        foundWebhook,
+        options.requestId
+      )
+      if (preprocessResult.error) {
+        return {
+          outcome: 'failed',
+          reason: 'preprocessing',
+          response: preprocessResult.error,
+        }
+      }
+
+      return {
+        outcome: 'queued',
+        reason: 'queued',
+        response: await queueWebhookExecutionMock(foundWebhook, foundWorkflow, body, request, {
+          ...options,
+          actorUserId: preprocessResult.actorUserId,
+          billingAttribution: preprocessResult.billingAttribution,
+          executionId: preprocessResult.executionId,
+          correlation: preprocessResult.correlation,
+        }),
+      }
+    }
+  ),
+  verifyProviderAuth: vi
+    .fn()
+    .mockImplementation(
+      async (
+        foundWebhook: TestWebhook,
+        _foundWorkflow: TestWorkflow,
+        request: NextRequest,
+        _rawBody: string,
+        _requestId: string
+      ) => {
+        // Implement generic webhook auth verification for tests
+        if (foundWebhook.provider === 'generic') {
+          const providerConfig = foundWebhook.providerConfig || {}
+          if (providerConfig.requireAuth) {
+            const configToken = providerConfig.token
+            const secretHeaderName = providerConfig.secretHeaderName
+
+            if (configToken) {
+              let isTokenValid = false
+
+              if (secretHeaderName) {
+                // Custom header auth
+                const headerValue = request.headers.get(secretHeaderName.toLowerCase())
+                if (headerValue === configToken) {
+                  isTokenValid = true
+                }
+              } else {
+                // Bearer token auth
+                const authHeader = request.headers.get('authorization')
+                if (authHeader?.toLowerCase().startsWith('bearer ')) {
+                  const token = authHeader.substring(7)
+                  if (token === configToken) {
+                    isTokenValid = true
+                  }
+                }
+              }
+
+              if (!isTokenValid) {
+                const { NextResponse } = await import('next/server')
+                return new NextResponse('Unauthorized - Invalid authentication token', {
+                  status: 401,
+                })
+              }
+            } else {
+              // Auth required but no token configured
+              const { NextResponse } = await import('next/server')
+              return new NextResponse('Unauthorized - Authentication required but not configured', {
+                status: 401,
+              })
+            }
+          }
+        }
+        return null
+      }
+    ),
+  checkWebhookPreprocessing: checkWebhookPreprocessingMock,
+  formatProviderErrorResponse: vi.fn().mockImplementation((_webhook, error, status) => {
+    const { NextResponse } = require('next/server')
+    return NextResponse.json({ error }, { status })
+  }),
+  shouldSkipWebhookEvent: shouldSkipWebhookEventMock,
+  handlePreDeploymentVerification: vi.fn().mockReturnValue(null),
+}))
+
+vi.mock('drizzle-orm/postgres-js', () => ({
+  drizzle: vi.fn().mockReturnValue({}),
+}))
+
+vi.mock('postgres', () => vi.fn().mockReturnValue({}))
+
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test'
+
+import {
+  handlePreLookupWebhookVerification,
+  handleProviderChallenges,
+} from '@/lib/webhooks/processor'
+import { DELETE, GET, POST } from '@/app/api/webhooks/trigger/[path]/route'
+
+const getWorkspaceBilledAccountUserIdMock =
+  workspacesUtilsMockFns.mockGetWorkspaceBilledAccountUserId
+getWorkspaceBilledAccountUserIdMock.mockImplementation(
+  async (workspaceId: string | null | undefined) => (workspaceId ? 'test-user-id' : null)
+)
+workspacesUtilsMockFns.mockGetWorkspaceBillingSettings.mockResolvedValue(null)
+
+const { mockAdmissionRejectedResponse: admissionRejectedResponseMock, mockTryAdmit: tryAdmitMock } =
+  admissionGateMockFns
+
+describe('Webhook Trigger API Route', () => {
+  beforeEach(() => {
+    const gateDescriptor = ADMISSION_ERROR_DESCRIPTOR.GATE_CAPACITY
+    admissionRejectedResponseMock.mockImplementation(() =>
+      NextResponse.json(
+        {
+          error: 'Too many requests',
+          message: 'Server is at capacity. Please retry shortly.',
+          code: gateDescriptor.code,
+          retryable: gateDescriptor.retryable,
+          retryAfterSeconds: gateDescriptor.retryAfterSeconds,
+        },
+        {
+          status: gateDescriptor.statusCode,
+          headers: { 'Retry-After': String(gateDescriptor.retryAfterSeconds) },
+        }
+      )
+    )
+
+    // Reset test data arrays
+    testData.webhooks.length = 0
+    testData.workflows.length = 0
+
+    executionPreprocessingMockFns.mockPreprocessExecution.mockResolvedValue({
+      success: true,
+      actorUserId: 'test-user-id',
+      workflowRecord: {
+        id: 'test-workflow-id',
+        userId: 'test-user-id',
+        isDeployed: true,
+        workspaceId: 'test-workspace-id',
+      },
+    })
+
+    workflowsPersistenceUtilsMockFns.mockLoadWorkflowFromNormalizedTables.mockResolvedValue({
+      blocks: {},
+      edges: [],
+      loops: {},
+      parallels: {},
+      isFromNormalizedTables: true,
+    })
+    workflowsPersistenceUtilsMockFns.mockBlockExistsInDeployment.mockResolvedValue(true)
+    handleWebhookEventFilterMock.mockResolvedValue(null)
+    shouldSkipWebhookEventMock.mockReturnValue(false)
+    getLegacySlackCustomBotCredentialIdMock.mockImplementation((foundWebhook: TestWebhook) => {
+      const providerConfig = foundWebhook.providerConfig ?? {}
+      return providerConfig.ingressMode === 'legacy_custom_bot'
+        ? (providerConfig.credentialId as string)
+        : null
+    })
+    verifySlackCustomBotCredentialRequestMock.mockResolvedValue(null)
+    dispatchSlackCustomBotCredentialMock.mockResolvedValue([
+      {
+        outcome: 'queued',
+        reason: 'queued',
+        response: new NextResponse(null, { status: 200 }),
+      },
+    ])
+
+    // Set up default workflow for tests
+    testData.workflows.push({
+      id: 'test-workflow-id',
+      userId: 'test-user-id',
+      workspaceId: 'test-workspace-id',
+    })
+
+    handleWhatsAppVerificationMock.mockResolvedValue(null)
+    processGenericDeduplicationMock.mockResolvedValue(null)
+    processWebhookMock.mockResolvedValue(new Response('Webhook processed', { status: 200 }))
+  })
+
+  it('returns a stable retryable response when the webhook admission gate is full', async () => {
+    tryAdmitMock.mockReturnValueOnce(null)
+
+    const response = await POST(
+      createMockRequest('POST', { event: 'test' }),
+      createRouteContext({ path: 'test-path' })
+    )
+
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe(String(ADMISSION_RETRY_AFTER_SECONDS))
+    await expect(response.json()).resolves.toMatchObject({
+      code: ADMISSION_ERROR_CODE.GATE_CAPACITY,
+      retryable: true,
+      retryAfterSeconds: ADMISSION_RETRY_AFTER_SECONDS,
+    })
+    expect(admissionRejectedResponseMock).toHaveBeenCalledOnce()
+    expect(checkWebhookPreprocessingMock).not.toHaveBeenCalled()
+    expect(queueWebhookExecutionMock).not.toHaveBeenCalled()
+  })
+
+  it('should return 405 for GET requests on unknown webhook paths', async () => {
+    const req = createMockRequest(
+      'GET',
+      undefined,
+      {},
+      'http://localhost:3000/api/webhooks/trigger/non-existent-path'
+    )
+
+    const params = Promise.resolve({ path: 'non-existent-path' })
+
+    const response = await GET(req, { params })
+
+    expect(response.status).toBe(405)
+  })
+
+  it('should return 200 for GET verification probes on registered pending paths', async () => {
+    const req = createMockRequest(
+      'GET',
+      undefined,
+      {},
+      'http://localhost:3000/api/webhooks/trigger/pending-verification-path'
+    )
+
+    const params = Promise.resolve({ path: 'pending-verification-path' })
+
+    const response = await GET(req, { params })
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      status: 'ok',
+      message: 'Webhook endpoint verified',
+    })
+  })
+
+  describe('Non-path trigger providers', () => {
+    /** Sourced from the registries so a newly added trigger is covered automatically. */
+    it.each([...INTERNAL_TRIGGER_PROVIDERS, ...POLLING_PROVIDERS, 'tiktok'])(
+      'rejects HTTP deliveries to %s trigger paths with 404',
+      async (provider) => {
+        testData.webhooks.push({
+          id: `${provider}-webhook-id`,
+          provider,
+          path: 'internal-path',
+          isActive: true,
+          providerConfig: { eventType: 'execution_error' },
+          workflowId: 'test-workflow-id',
+        })
+
+        const req = createMockRequest('POST', { event: 'execution_error', forged: true })
+        const params = Promise.resolve({ path: 'internal-path' })
+
+        const response = await POST(req, { params })
+
+        expect(response.status).toBe(404)
+        expect(queueWebhookExecutionMock).not.toHaveBeenCalled()
+        expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+      }
+    )
+  })
+
+  /**
+   * Both handshakes are answered from the request alone, before any webhook lookup, so their
+   * order relative to each other and to the load-shed gate is the behavior — and it is invisible
+   * to every other test here, which is how an earlier refactor inverted it unnoticed.
+   */
+  describe('pre-lookup handshake ordering', () => {
+    /**
+     * Meta verifies a WhatsApp URL with a GET challenge. Answering it behind the load-shed gate
+     * means a busy instance returns 429 and the webhook silently fails to verify, at setup time
+     * only — so the challenge must be answered without taking a ticket at all.
+     */
+    it('answers a provider challenge without taking an admission ticket', async () => {
+      vi.mocked(handleProviderChallenges).mockResolvedValueOnce(
+        new NextResponse('hub-challenge-123', { status: 200 })
+      )
+
+      const req = createMockRequest(
+        'GET',
+        undefined,
+        {},
+        'http://localhost:3000/api/webhooks/trigger/verify-path?hub.challenge=hub-challenge-123'
+      )
+
+      const response = await GET(req, createRouteContext({ path: 'verify-path' }))
+
+      expect(response.status).toBe(200)
+      await expect(response.text()).resolves.toBe('hub-challenge-123')
+      expect(tryAdmitMock).not.toHaveBeenCalled()
+    })
+
+    /**
+     * A challenge is the more specific answer: the provider is echoing a token it chose, where a
+     * pending verification only claims the URL is reachable. Answering the generic 200 first
+     * fails the handshake that actually had a token to return.
+     */
+    it('prefers a provider challenge over a pending setup verification', async () => {
+      vi.mocked(handleProviderChallenges).mockResolvedValueOnce(
+        new NextResponse('hub-challenge-123', { status: 200 })
+      )
+
+      const req = createMockRequest(
+        'GET',
+        undefined,
+        {},
+        'http://localhost:3000/api/webhooks/trigger/verify-path?hub.challenge=hub-challenge-123'
+      )
+
+      const response = await GET(req, createRouteContext({ path: 'verify-path' }))
+
+      await expect(response.text()).resolves.toBe('hub-challenge-123')
+      expect(handlePreLookupWebhookVerification).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('GET deliveries', () => {
+    /**
+     * The compatibility guarantee for the route: a generic webhook deployed before the flag
+     * existed has no flag, so it answers exactly as it did before — 405, no execution.
+     */
+    it('rejects a GET delivery to a generic webhook that has not opted in', async () => {
+      testData.webhooks.push({
+        id: 'generic-webhook-id',
+        provider: 'generic',
+        path: 'opt-out-path',
+        isActive: true,
+        providerConfig: { requireAuth: false },
+        workflowId: 'test-workflow-id',
+      })
+
+      const req = createMockRequest(
+        'GET',
+        undefined,
+        {},
+        'http://localhost:3000/api/webhooks/trigger/opt-out-path?srcId=123'
+      )
+
+      const response = await GET(req, createRouteContext({ path: 'opt-out-path' }))
+
+      expect(response.status).toBe(405)
+      expect(response.headers.get('Allow')).toBe('POST')
+      expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+    })
+
+    it('rejects a GET delivery to a provider that only accepts POST', async () => {
+      testData.webhooks.push({
+        id: 'stripe-webhook-id',
+        provider: 'stripe',
+        path: 'post-only-path',
+        isActive: true,
+        providerConfig: {},
+        workflowId: 'test-workflow-id',
+      })
+
+      const req = createMockRequest(
+        'GET',
+        undefined,
+        {},
+        'http://localhost:3000/api/webhooks/trigger/post-only-path'
+      )
+
+      const response = await GET(req, createRouteContext({ path: 'post-only-path' }))
+
+      expect(response.status).toBe(405)
+      expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+    })
+  })
+
+  it('does not let an acknowledged admission refusal mask another target that must retry', async () => {
+    testData.webhooks.push(
+      {
+        id: 'refused-webhook',
+        provider: 'generic',
+        path: 'fan-out-path',
+        isActive: true,
+        providerConfig: {},
+        workflowId: 'test-workflow-id',
+      },
+      {
+        id: 'failing-webhook',
+        provider: 'generic',
+        path: 'fan-out-path',
+        isActive: true,
+        providerConfig: {},
+        workflowId: 'test-workflow-id',
+      }
+    )
+    dispatchResolvedWebhookTargetMock
+      .mockResolvedValueOnce({
+        outcome: 'ignored',
+        reason: 'admission-rejected',
+        response: new NextResponse(null, { status: 200 }),
+      })
+      .mockResolvedValueOnce({
+        outcome: 'failed',
+        reason: 'preprocessing',
+        response: new NextResponse(null, { status: 503 }),
+      })
+
+    const response = await POST(
+      createMockRequest('POST', { event: 'x' }),
+      createRouteContext({ path: 'fan-out-path' })
+    )
+
+    expect(response.status).toBe(503)
+  })
+
+  it('answers with a failing target rather than a missing block so the sender retries', async () => {
+    testData.webhooks.push(
+      {
+        id: 'missing-block-webhook',
+        provider: 'generic',
+        path: 'mixed-path',
+        isActive: true,
+        providerConfig: {},
+        workflowId: 'test-workflow-id',
+      },
+      {
+        id: 'failing-webhook',
+        provider: 'generic',
+        path: 'mixed-path',
+        isActive: true,
+        providerConfig: {},
+        workflowId: 'test-workflow-id',
+      }
+    )
+    dispatchResolvedWebhookTargetMock
+      .mockResolvedValueOnce({
+        outcome: 'ignored',
+        reason: 'block-missing',
+        response: new NextResponse('Trigger block not found in deployment', {
+          status: 404,
+          headers: { 'x-slack-no-retry': '1' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        outcome: 'failed',
+        reason: 'queue-failed',
+        response: new NextResponse(null, { status: 500 }),
+      })
+
+    const response = await POST(
+      createMockRequest('POST', { event: 'x' }),
+      createRouteContext({ path: 'mixed-path' })
+    )
+
+    expect(response.status).toBe(500)
+    expect(response.headers.get('x-slack-no-retry')).toBeNull()
+  })
+
+  it('tells Slack not to redeliver a POST to a path with no webhook', async () => {
+    const req = createMockRequest('POST', { type: 'event_callback' })
+
+    const response = await POST(req, createRouteContext({ path: 'deleted-path' }))
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get('x-slack-no-retry')).toBe('1')
+  })
+
+  describe('PUT, PATCH and DELETE deliveries', () => {
+    /**
+     * Every non-POST rejection is the same 405, whether the path is unknown, holds only
+     * non-path triggers, or holds a trigger that has not opted in — so a probe cannot tell
+     * a configured path from an unused one.
+     */
+    it('returns the same 405 for a DELETE to a non-path trigger as to an unknown path', async () => {
+      testData.webhooks.push({
+        id: 'internal-webhook-id',
+        provider: 'sim',
+        path: 'internal-path',
+        isActive: true,
+        providerConfig: {},
+        workflowId: 'test-workflow-id',
+      })
+
+      const req = createMockRequest(
+        'DELETE',
+        undefined,
+        {},
+        'http://localhost:3000/api/webhooks/trigger/internal-path'
+      )
+
+      const response = await DELETE(req, createRouteContext({ path: 'internal-path' }))
+
+      expect(response.status).toBe(405)
+      expect(response.headers.get('Allow')).toBe('POST')
+      expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Migrated legacy Slack paths', () => {
+    it('authenticates by custom-bot credential and replaces direct dispatch with fan-out', async () => {
+      testData.webhooks.push({
+        id: 'legacy-slack-webhook',
+        provider: 'slack',
+        path: 'legacy-slack-path',
+        routingKey: 'credential-1',
+        isActive: true,
+        providerConfig: {
+          triggerId: 'slack_webhook',
+          credentialId: 'credential-1',
+          ingressMode: 'legacy_custom_bot',
+        },
+        workflowId: 'test-workflow-id',
+      })
+
+      const response = await POST(
+        createMockRequest('POST', { type: 'event_callback' }),
+        createRouteContext({ path: 'legacy-slack-path' })
+      )
+
+      expect(response.status).toBe(200)
+      expect(verifySlackCustomBotCredentialRequestMock).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId: 'credential-1' })
+      )
+      expect(dispatchSlackCustomBotCredentialMock).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId: 'credential-1' })
+      )
+      expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+    })
+
+    it('rejects a legacy alias when its credential signature is invalid', async () => {
+      testData.webhooks.push({
+        id: 'legacy-slack-webhook',
+        provider: 'slack',
+        path: 'legacy-slack-path',
+        routingKey: 'credential-1',
+        isActive: true,
+        providerConfig: {
+          triggerId: 'slack_webhook',
+          credentialId: 'credential-1',
+          ingressMode: 'legacy_custom_bot',
+        },
+        workflowId: 'test-workflow-id',
+      })
+      verifySlackCustomBotCredentialRequestMock.mockResolvedValueOnce(
+        new NextResponse('Unauthorized', { status: 401 })
+      )
+
+      const response = await POST(
+        createMockRequest('POST', { type: 'event_callback' }),
+        createRouteContext({ path: 'legacy-slack-path' })
+      )
+
+      expect(response.status).toBe(401)
+      expect(dispatchSlackCustomBotCredentialMock).not.toHaveBeenCalled()
+      expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+    })
+
+    it('continues past a missing credential to another valid legacy credential', async () => {
+      testData.webhooks.push(
+        {
+          id: 'missing-legacy-slack-webhook',
+          provider: 'slack',
+          path: 'shared-legacy-slack-path',
+          routingKey: 'missing-credential',
+          isActive: true,
+          providerConfig: {
+            triggerId: 'slack_webhook',
+            credentialId: 'missing-credential',
+            ingressMode: 'legacy_custom_bot',
+          },
+          workflowId: 'test-workflow-id',
+        },
+        {
+          id: 'valid-legacy-slack-webhook',
+          provider: 'slack',
+          path: 'shared-legacy-slack-path',
+          routingKey: 'valid-credential',
+          isActive: true,
+          providerConfig: {
+            triggerId: 'slack_webhook',
+            credentialId: 'valid-credential',
+            ingressMode: 'legacy_custom_bot',
+          },
+          workflowId: 'test-workflow-id',
+        }
+      )
+      verifySlackCustomBotCredentialRequestMock.mockImplementation(
+        async ({ credentialId }: { credentialId: string }) =>
+          credentialId === 'missing-credential' ? new NextResponse(null, { status: 404 }) : null
+      )
+
+      const response = await POST(
+        createMockRequest('POST', { type: 'event_callback' }),
+        createRouteContext({ path: 'shared-legacy-slack-path' })
+      )
+
+      expect(response.status).toBe(200)
+      expect(dispatchSlackCustomBotCredentialMock).toHaveBeenCalledOnce()
+      expect(dispatchSlackCustomBotCredentialMock).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId: 'valid-credential' })
+      )
+    })
+
+    it('propagates a legacy fan-out failure when no target queues successfully', async () => {
+      testData.webhooks.push({
+        id: 'legacy-slack-webhook',
+        provider: 'slack',
+        path: 'legacy-slack-path',
+        routingKey: 'credential-1',
+        isActive: true,
+        providerConfig: {
+          triggerId: 'slack_webhook',
+          credentialId: 'credential-1',
+          ingressMode: 'legacy_custom_bot',
+        },
+        workflowId: 'test-workflow-id',
+      })
+      dispatchSlackCustomBotCredentialMock.mockResolvedValueOnce([
+        {
+          outcome: 'failed',
+          reason: 'preprocessing',
+          response: NextResponse.json({ error: 'Preprocessing failed' }, { status: 500 }),
+        },
+      ])
+
+      const response = await POST(
+        createMockRequest('POST', { type: 'event_callback' }),
+        createRouteContext({ path: 'legacy-slack-path' })
+      )
+
+      expect(response.status).toBe(500)
+      expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+    })
+
+    it('acknowledges a legacy fan-out when every target filters the event', async () => {
+      testData.webhooks.push({
+        id: 'legacy-slack-webhook',
+        provider: 'slack',
+        path: 'legacy-slack-path',
+        routingKey: 'credential-1',
+        isActive: true,
+        providerConfig: {
+          triggerId: 'slack_webhook',
+          credentialId: 'credential-1',
+          ingressMode: 'legacy_custom_bot',
+        },
+        workflowId: 'test-workflow-id',
+      })
+      dispatchSlackCustomBotCredentialMock.mockResolvedValueOnce([
+        {
+          outcome: 'ignored',
+          reason: 'filtered',
+          response: NextResponse.json({ message: 'Webhook event ignored' }),
+        },
+      ])
+
+      const response = await POST(
+        createMockRequest('POST', { type: 'event_callback' }),
+        createRouteContext({ path: 'legacy-slack-path' })
+      )
+
+      expect(response.status).toBe(200)
+      await expect(response.json()).resolves.toEqual({ message: 'Webhook event ignored' })
+      expect(dispatchResolvedWebhookTargetMock).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Reservation-free filtering', () => {
+    it('skips filtered webhook events before preprocessing reserves a slot', async () => {
+      testData.webhooks.push({
+        id: 'generic-webhook-id',
+        provider: 'generic',
+        path: 'filtered-path',
+        isActive: true,
+        providerConfig: { requireAuth: false },
+        workflowId: 'test-workflow-id',
+      })
+      shouldSkipWebhookEventMock.mockReturnValueOnce(true)
+
+      await POST(
+        createMockRequest('POST', { event: 'ignored' }),
+        createRouteContext({ path: 'filtered-path' })
+      )
+
+      expect(checkWebhookPreprocessingMock).not.toHaveBeenCalled()
+      expect(queueWebhookExecutionMock).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Generic Webhook Authentication', () => {
+    it('should handle case insensitive Bearer token authentication', async () => {
+      testData.webhooks.push({
+        id: 'generic-webhook-id',
+        provider: 'generic',
+        path: 'test-path',
+        isActive: true,
+        providerConfig: { requireAuth: true, token: 'case-test-token' },
+        workflowId: 'test-workflow-id',
+      })
+      testData.workflows.push({
+        id: 'test-workflow-id',
+        userId: 'test-user-id',
+        workspaceId: 'test-workspace-id',
+      })
+
+      const testCases = [
+        'Bearer case-test-token',
+        'bearer case-test-token',
+        'BEARER case-test-token',
+        'BeArEr case-test-token',
+      ]
+
+      for (const authHeader of testCases) {
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+        }
+        const req = createMockRequest('POST', { event: 'case.test' }, headers)
+        const params = Promise.resolve({ path: 'test-path' })
+
+        const response = await POST(req, { params })
+
+        expect(response.status).toBe(200)
+      }
+    })
+
+    it('should reject wrong Bearer token', async () => {
+      testData.webhooks.push({
+        id: 'generic-webhook-id',
+        provider: 'generic',
+        path: 'test-path',
+        isActive: true,
+        providerConfig: { requireAuth: true, token: 'correct-token' },
+        workflowId: 'test-workflow-id',
+      })
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer wrong-token',
+      }
+      const req = createMockRequest('POST', { event: 'wrong.token.test' }, headers)
+      const params = Promise.resolve({ path: 'test-path' })
+
+      const response = await POST(req, { params })
+
+      expect(response.status).toBe(401)
+      expect(await response.text()).toContain('Unauthorized - Invalid authentication token')
+      expect(processWebhookMock).not.toHaveBeenCalled()
+    })
+
+    it('should reject Bearer token when custom header is configured', async () => {
+      testData.webhooks.push({
+        id: 'generic-webhook-id',
+        provider: 'generic',
+        path: 'test-path',
+        isActive: true,
+        providerConfig: {
+          requireAuth: true,
+          token: 'exclusive-token',
+          secretHeaderName: 'X-Only-Header',
+        },
+        workflowId: 'test-workflow-id',
+      })
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer exclusive-token',
+      }
+      const req = createMockRequest('POST', { event: 'exclusivity.test' }, headers)
+      const params = Promise.resolve({ path: 'test-path' })
+
+      const response = await POST(req, { params })
+
+      expect(response.status).toBe(401)
+      expect(await response.text()).toContain('Unauthorized - Invalid authentication token')
+      expect(processWebhookMock).not.toHaveBeenCalled()
+    })
+
+    it('should reject when auth is required but no token is configured', async () => {
+      testData.webhooks.push({
+        id: 'generic-webhook-id',
+        provider: 'generic',
+        path: 'test-path',
+        isActive: true,
+        providerConfig: { requireAuth: true },
+        workflowId: 'test-workflow-id',
+      })
+      testData.workflows.push({ id: 'test-workflow-id', userId: 'test-user-id' })
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer any-token',
+      }
+      const req = createMockRequest('POST', { event: 'no.token.config.test' }, headers)
+      const params = Promise.resolve({ path: 'test-path' })
+
+      const response = await POST(req, { params })
+
+      expect(response.status).toBe(401)
+      expect(await response.text()).toContain(
+        'Unauthorized - Authentication required but not configured'
+      )
+      expect(processWebhookMock).not.toHaveBeenCalled()
+    })
+  })
+})

@@ -1,0 +1,395 @@
+/**
+ * Import-job table-data write operations — bulk insert, schema setup, and
+ * append/replace used by `import-runner.ts` and the import route. Distinct from
+ * `import.ts` (CSV parsing) and `import-runner.ts` (the job runner).
+ */
+
+import { db } from '@sim/db'
+import { userTableDefinitions, userTableRows } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
+import { generateId } from '@sim/utils/id'
+import { and, eq } from 'drizzle-orm'
+import { OrchestrationError } from '@/lib/core/orchestration/types'
+import { assertRowCapacity, notifyTableRowUsage } from '@/lib/table/billing'
+import { CSV_MAX_BATCH_SIZE } from '@/lib/table/import'
+import type { ImportedRowProvenance } from '@/lib/table/import-provenance'
+import { assertRowDelete, assertRowInsert, assertSchemaMutable } from '@/lib/table/mutation-locks'
+import { nKeysBetween } from '@/lib/table/order-key'
+import type { DbTransaction } from '@/lib/table/planner'
+import { lockLiveTableSchema, refitRowToSchema, withLiveSchema } from '@/lib/table/rows/live-schema'
+import { guardBatch, type MutationRevalidator } from '@/lib/table/rows/ordering'
+import {
+  createExactEmptyTableRowSecretProvenance,
+  mutateTableRowsWithSecretProvenance,
+} from '@/lib/table/rows/secret-provenance'
+import { batchInsertRowsWithTx, replaceTableRowsWithTx } from '@/lib/table/rows/service'
+import { lockUniqueColumns } from '@/lib/table/rows/unique-locks'
+import { addTableColumnsWithTx, auditTableColumnsAdded, getTableById } from '@/lib/table/service'
+import type {
+  ReplaceRowsResult,
+  RowData,
+  TableDefinition,
+  TableRow,
+  TableSchema,
+} from '@/lib/table/types'
+import {
+  checkBatchUniqueConstraintsDb,
+  coerceRowToSchema,
+  getUniqueColumns,
+  validateRowSize,
+} from '@/lib/table/validation'
+
+const logger = createLogger('TableImportData')
+
+/** One batch of rows for a background import (see {@link bulkInsertImportBatch}). */
+export interface BulkImportBatch {
+  tableId: string
+  workspaceId: string
+  userId?: string
+  rows: RowData[]
+  /** Position of the first row in this batch; rows get contiguous positions from here. */
+  startPosition: number
+  /** Previous batch's last `order_key` (the append anchor); null for the first batch / empty table. */
+  afterOrderKey?: string | null
+  /** Provenance each row inherits from its source; absent, rows are exact-empty. */
+  rowProvenance?: ImportedRowProvenance
+  /** Each row's cells as the source held them, aligned with `rows`; see `importedRowSources`. */
+  rowSources?: readonly RowData[]
+}
+
+/**
+ * Inserts one batch of rows for an async import in a single committed statement.
+ *
+ * Differs from {@link batchInsertRowsWithTx} for the bulk-load case: caller-supplied
+ * contiguous order keys (no max-key scan; the caller threads each batch's
+ * anchor from the previous one), no `RETURNING`, and **no `fireTableTrigger` /
+ * `runWorkflowColumn`** (a 1M-row import must not dispatch a workflow run per row).
+ * Append and replace imports run this against the live table, so other writers can
+ * race it: the batch holds the table's unique columns exclusively while it checks and
+ * inserts, and checks the rows against the schema it reads under the schema lock, which
+ * may have changed since the job resolved the table. `row_count` is maintained set-based
+ * by the statement-level trigger. There is no surrounding transaction and no rollback:
+ * each batch commits on its own, so committed batches persist even if a later batch fails.
+ *
+ * Throws on row-size/schema/unique violations or if the statement-level trigger rejects
+ * the batch for crossing `max_rows`; the caller marks the import failed.
+ */
+export async function bulkInsertImportBatch(
+  data: BulkImportBatch,
+  table: TableDefinition,
+  requestId: string,
+  /** Re-asserts the insert lock inside the write transaction. See {@link guardBatch}. */
+  revalidate?: MutationRevalidator
+): Promise<{ inserted: number; lastOrderKey: string | null }> {
+  // Superseded by the in-tx revalidation when one is supplied; asserting
+  // the caller's snapshot too would reject a since-cleared lock.
+  if (!revalidate) assertRowInsert(table)
+
+  const rawRows = data.rows.map((row) => ({ ...row }))
+  for (let i = 0; i < data.rows.length; i++) {
+    const sizeValidation = validateRowSize(data.rows[i])
+    if (!sizeValidation.valid) {
+      throw new OrchestrationError(
+        'validation',
+        `Row ${i + 1}: ${sizeValidation.errors.join(', ')}`
+      )
+    }
+    // A CSV cell that does not fit its mapped column blanks that cell rather
+    // than failing the file: the import has no caller waiting on a 400, and one
+    // malformed cell in a 100k-row upload must not reject the other 99,999.
+    const schemaValidation = coerceRowToSchema(data.rows[i], table.schema, 'null')
+    if (!schemaValidation.valid) {
+      throw new OrchestrationError(
+        'validation',
+        `Row ${i + 1}: ${schemaValidation.errors.join(', ')}`
+      )
+    }
+  }
+
+  const now = new Date()
+  // Append keys after the anchor the caller threads from the previous batch's last key — no
+  // per-batch max(order_key) scan over a growing table.
+  const orderKeys = nKeysBetween(data.afterOrderKey ?? null, null, data.rows.length)
+  const rowsToInsert = data.rows.map((rowData, i) => ({
+    id: `row_${generateId().replace(/-/g, '')}`,
+    tableId: data.tableId,
+    workspaceId: data.workspaceId,
+    data: rowData,
+    position: data.startPosition + i,
+    orderKey: orderKeys[i],
+    createdAt: now,
+    updatedAt: now,
+    ...(data.userId ? { createdBy: data.userId } : {}),
+  }))
+
+  const inserted = await db.transaction(async (trx) => {
+    const fresh = await guardBatch(trx, data.tableId, revalidate)
+    const live = fresh ? withLiveSchema(table, fresh.schema) : await lockLiveTableSchema(trx, table)
+    if (live !== table) {
+      for (let i = 0; i < data.rows.length; i++) {
+        const refit = refitRowToSchema(data.rows[i], rawRows[i], table.schema, live.schema, 'null')
+        if (!refit.valid) {
+          throw new OrchestrationError('validation', `Row ${i + 1}: ${refit.errors.join(', ')}`)
+        }
+      }
+    }
+    if (getUniqueColumns(live.schema).length > 0) {
+      // The whole-table unique lock, not per-value: a batch is far more values than the value-lock cap.
+      await lockUniqueColumns(trx, live)
+      const uniqueResult = await checkBatchUniqueConstraintsDb(
+        data.tableId,
+        data.rows,
+        live.schema,
+        trx
+      )
+      if (!uniqueResult.valid) {
+        throw new OrchestrationError(
+          'validation',
+          uniqueResult.errors.map((e) => `Row ${e.row + 1}: ${e.errors.join(', ')}`).join('; ')
+        )
+      }
+    }
+    return mutateTableRowsWithSecretProvenance(trx, {
+      rows: rowsToInsert.map((row, index) => ({
+        rowId: row.id,
+        provenance: data.rowProvenance
+          ? data.rowProvenance(row.data, data.rowSources?.[index])
+          : createExactEmptyTableRowSecretProvenance(row.data),
+      })),
+      rowState: 'new',
+      mode: 'replace',
+      mutate: async () => {
+        const inserted = await trx
+          .insert(userTableRows)
+          .values(rowsToInsert)
+          .returning({ id: userTableRows.id })
+        return { value: inserted.length, affectedRowIds: inserted.map((row) => row.id) }
+      },
+    })
+  })
+  if (inserted !== rowsToInsert.length) {
+    throw new Error('Bulk table import inserted an unexpected row count')
+  }
+  logger.info(`[${requestId}] Bulk-imported ${inserted} rows into table ${data.tableId}`)
+  return {
+    inserted,
+    lastOrderKey: orderKeys[orderKeys.length - 1] ?? data.afterOrderKey ?? null,
+  }
+}
+
+/** Deletes every row of a table (set-based; the statement-level trigger zeroes `row_count`). */
+export async function deleteAllTableRows(
+  table: TableDefinition,
+  /** Re-asserts the delete lock inside the write transaction. See {@link guardBatch}. */
+  revalidate?: MutationRevalidator
+): Promise<void> {
+  // Superseded by the in-tx revalidation when one is supplied; asserting
+  // the caller's snapshot too would reject a since-cleared lock.
+  if (!revalidate) assertRowDelete(table)
+  await db.transaction(async (trx) => {
+    await guardBatch(trx, table.id, revalidate)
+    await trx
+      .delete(userTableRows)
+      .where(
+        and(eq(userTableRows.tableId, table.id), eq(userTableRows.workspaceId, table.workspaceId))
+      )
+  })
+}
+
+/**
+ * Adds columns to a table during an import (the `createColumns` flow), wrapping the
+ * tx-bound {@link addTableColumnsWithTx} in its own transaction. Returns the updated table.
+ */
+export async function addImportColumns(
+  table: TableDefinition,
+  additions: { name: string; type: string }[],
+  requestId: string,
+  actingUserId?: string,
+  /** Re-asserts the schema lock inside the write transaction. See {@link guardBatch}. */
+  revalidate?: MutationRevalidator
+): Promise<TableDefinition> {
+  const updated = await db.transaction(async (trx) => {
+    // `addTableColumnsWithTx` re-asserts the schema lock, so hand it the
+    // freshly-read definition — asserting the caller's snapshot would reject a
+    // lock that has since been cleared.
+    const fresh = await guardBatch(trx, table.id, revalidate)
+    return addTableColumnsWithTx(trx, fresh ?? table, additions, requestId)
+  })
+  auditTableColumnsAdded(
+    table,
+    additions.map((c) => c.name),
+    actingUserId
+  )
+  return updated
+}
+
+/** Overwrites a table's schema during an import (used when inferring columns from the file). */
+export async function setTableSchemaForImport(
+  table: TableDefinition,
+  schema: TableSchema,
+  /** Re-asserts the schema lock inside the write transaction. See {@link guardBatch}. */
+  revalidate?: MutationRevalidator
+): Promise<void> {
+  // Superseded by the in-tx revalidation when one is supplied; asserting
+  // the caller's snapshot too would reject a since-cleared lock.
+  if (!revalidate) assertSchemaMutable(table)
+  await db.transaction(async (trx) => {
+    await guardBatch(trx, table.id, revalidate)
+    await trx
+      .update(userTableDefinitions)
+      .set({ schema, updatedAt: new Date() })
+      .where(
+        and(
+          eq(userTableDefinitions.id, table.id),
+          eq(userTableDefinitions.workspaceId, table.workspaceId)
+        )
+      )
+  })
+}
+
+/**
+ * Re-reads the table under its schema advisory lock inside the caller's
+ * transaction. The sync import paths own their transaction rather than taking a
+ * revalidator, so they refresh here: a lock committed while the CSV was being
+ * parsed must be visible to the asserts in `addTableColumnsWithTx` /
+ * `batchInsertRowsWithTx` / `replaceTableRowsWithTx`, which all read the
+ * definition they are handed.
+ */
+async function refreshUnderLock(
+  trx: DbTransaction,
+  table: TableDefinition
+): Promise<TableDefinition> {
+  const fresh = await guardBatch(trx, table.id, async (tx) => {
+    const latest = await getTableById(table.id, { tx, includeArchived: true })
+    if (!latest || latest.workspaceId !== table.workspaceId) {
+      throw new OrchestrationError('not_found', 'Table not found')
+    }
+    return latest
+  })
+  if (!fresh) throw new Error('Table refresh did not return a canonical table')
+  return fresh
+}
+
+/**
+ * Owns the append-import transaction so the API route never holds a `trx`:
+ * optionally creates the new columns, then inserts every row in CSV-sized
+ * batches — all atomic. Caller fires {@link dispatchAfterBatchInsert} after this
+ * resolves (post-commit), mirroring the other batch-insert sites.
+ */
+export async function importAppendRows(
+  table: TableDefinition,
+  additions: { id?: string; name: string; type: string; required?: boolean; unique?: boolean }[],
+  rows: RowData[],
+  ctx: {
+    workspaceId: string
+    userId?: string
+    requestId: string
+    /** Gate subject for cells the appended rows auto-fire — the subject the
+     *  importing surface resolved from its principal, or `null` for none. */
+    capabilityGovernedUserId: string | null
+  }
+): Promise<{ inserted: TableRow[]; table: TableDefinition }> {
+  // Gate capacity before opening the tx — the lookup is a separate pool read.
+  const rowLimit = await assertRowCapacity({
+    workspaceId: ctx.workspaceId,
+    currentRowCount: table.rowCount,
+    addedRows: rows.length,
+  })
+  const result = await db.transaction(async (trx) => {
+    let working = await refreshUnderLock(trx, table)
+    // Lock the unique columns whole: per-value locks for every row of an import would flood the
+    // server's lock table.
+    await lockUniqueColumns(trx, working)
+    if (additions.length > 0) {
+      working = await addTableColumnsWithTx(trx, working, additions, ctx.requestId)
+    }
+    const inserted: TableRow[] = []
+    for (let i = 0; i < rows.length; i += CSV_MAX_BATCH_SIZE) {
+      const batch = rows.slice(i, i + CSV_MAX_BATCH_SIZE)
+      const batchInserted = await batchInsertRowsWithTx(
+        trx,
+        {
+          tableId: working.id,
+          rows: batch,
+          workspaceId: ctx.workspaceId,
+          userId: ctx.userId,
+          capabilityGovernedUserId: ctx.capabilityGovernedUserId,
+          secretProvenance: batch.map(createExactEmptyTableRowSecretProvenance),
+        },
+        working,
+        generateId().slice(0, 8),
+        { uniqueColumnsLocked: true }
+      )
+      inserted.push(...batchInserted.rows)
+    }
+    return { inserted, table: working }
+  })
+  // Audit post-commit — a mid-import rollback means the columns weren't added.
+  if (additions.length > 0) {
+    auditTableColumnsAdded(
+      table,
+      additions.map((c) => c.name),
+      ctx.userId
+    )
+  }
+  notifyTableRowUsage({
+    workspaceId: ctx.workspaceId,
+    currentRowCount: table.rowCount,
+    addedRows: result.inserted.length,
+    limit: rowLimit,
+  })
+  return result
+}
+
+/**
+ * Owns the replace-import transaction: optionally creates the new columns, then
+ * replaces all rows — atomically. Keeps `trx` out of the API route.
+ */
+export async function importReplaceRows(
+  table: TableDefinition,
+  additions: { id?: string; name: string; type: string; required?: boolean; unique?: boolean }[],
+  data: { rows: RowData[]; workspaceId: string; userId?: string },
+  requestId: string
+): Promise<ReplaceRowsResult> {
+  // Replace deletes all existing rows, so the footprint is just the new set. Gate
+  // before opening the tx — the plan lookup is a separate pool read.
+  const rowLimit = await assertRowCapacity({
+    workspaceId: data.workspaceId,
+    currentRowCount: 0,
+    addedRows: data.rows.length,
+  })
+  const result = await db.transaction(async (trx) => {
+    let working = await refreshUnderLock(trx, table)
+    await lockUniqueColumns(trx, working)
+    if (additions.length > 0) {
+      working = await addTableColumnsWithTx(trx, working, additions, requestId)
+    }
+    return replaceTableRowsWithTx(
+      trx,
+      {
+        tableId: working.id,
+        rows: data.rows,
+        workspaceId: data.workspaceId,
+        userId: data.userId,
+        secretProvenance: data.rows.map(createExactEmptyTableRowSecretProvenance),
+      },
+      working,
+      requestId
+    )
+  })
+  // Audit post-commit (see importAppendRows).
+  if (additions.length > 0) {
+    auditTableColumnsAdded(
+      table,
+      additions.map((c) => c.name),
+      data.userId
+    )
+  }
+  notifyTableRowUsage({
+    workspaceId: data.workspaceId,
+    currentRowCount: 0,
+    addedRows: result.insertedCount,
+    limit: rowLimit,
+  })
+  return result
+}

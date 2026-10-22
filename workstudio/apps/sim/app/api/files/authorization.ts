@@ -1,0 +1,817 @@
+import { db } from '@sim/db'
+import { document, knowledgeBase, workspaceFile } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
+import { permissionSatisfies } from '@sim/platform-authz/workspace'
+import { and, eq, isNotNull, isNull, or } from 'drizzle-orm'
+import { NextResponse } from 'next/server'
+import type { ResourceScope } from '@/lib/core/resource-scope'
+import { resourceScopeCondition } from '@/lib/core/resource-scope.server'
+import {
+  createUserKnowledgeAccessProvider,
+  WORKSPACE_ACCESS_SCOPE,
+} from '@/lib/knowledge/access/scope'
+import { type KnowledgeReadAccess, knowledgeReadAccessBatches } from '@/lib/knowledge/read-access'
+import { getFileMetadata } from '@/lib/uploads'
+import type { StorageContext } from '@/lib/uploads/config'
+import { findWorkspaceFileVersionKeys } from '@/lib/uploads/contexts/workspace/file-version-store'
+import type { StorageConfig } from '@/lib/uploads/core/storage-client'
+import { getFileMetadataByKey } from '@/lib/uploads/server/metadata'
+import { isWorkspaceScopedContext } from '@/lib/uploads/shared/types'
+import { inferContextFromKey } from '@/lib/uploads/utils/file'
+import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
+
+const logger = createLogger('FileAuthorization')
+
+/** Thrown by utility functions when file access is denied, so route handlers can return 404. */
+export class FileAccessDeniedError extends Error {
+  constructor() {
+    super('File not found')
+    this.name = 'FileAccessDeniedError'
+  }
+}
+
+type WorkspacePermission = 'read' | 'write' | 'admin'
+
+/**
+ * Whether a resolved workspace permission satisfies a file operation. Read and
+ * download paths accept any membership; destructive operations (`requireWrite`)
+ * require write or admin, matching the permission needed to create the file.
+ */
+function workspacePermissionSatisfies(
+  permission: WorkspacePermission | null,
+  requireWrite: boolean
+): boolean {
+  return permissionSatisfies(permission, requireWrite ? 'write' : 'read')
+}
+
+/**
+ * Lookup the workspace-scoped binding for a storage key.
+ *
+ * Matches either context stored under the `workspace/` prefix rather than
+ * `workspace` alone: the prefix does not say which module owns the object, and
+ * both are authorized identically here — by membership of the owning workspace.
+ * Filtering to one of them would silently miss the other and fall through to the
+ * weaker object-metadata path, which cannot see a soft delete.
+ *
+ * @param key Storage key to lookup
+ * @returns Workspace file info or null if not found
+ */
+async function lookupWorkspaceFileByKey(
+  key: string,
+  options?: { includeDeleted?: boolean }
+): Promise<{ workspaceId: string } | null> {
+  try {
+    const { includeDeleted = false } = options ?? {}
+    // Priority 1: Check new workspaceFiles table
+    const record = await getFileMetadataByKey(key, undefined, { includeDeleted })
+    const fileRecord = isWorkspaceScopedContext(record?.context) ? record : undefined
+
+    if (fileRecord) {
+      return {
+        workspaceId: fileRecord.workspaceId || '',
+      }
+    }
+
+    // Priority 2: Check legacy workspace_file table (for backward compatibility during migration)
+    try {
+      const [legacyFile] = await db
+        .select({
+          workspaceId: workspaceFile.workspaceId,
+        })
+        .from(workspaceFile)
+        .where(
+          includeDeleted
+            ? eq(workspaceFile.key, key)
+            : and(eq(workspaceFile.key, key), isNull(workspaceFile.deletedAt))
+        )
+        .limit(1)
+
+      if (legacyFile) {
+        return {
+          workspaceId: legacyFile.workspaceId,
+        }
+      }
+    } catch (legacyError) {
+      // Ignore errors when checking legacy table (it may not exist after migration)
+      logger.debug('Legacy workspace_file table check failed (may not exist):', legacyError)
+    }
+
+    return null
+  } catch (error) {
+    logger.error('Error looking up workspace file by key:', { key, error })
+    return null
+  }
+}
+
+/**
+ * Verify file access based on file path patterns and metadata
+ * @param cloudKey The file key/path (e.g., "workspace_id/workflow_id/execution_id/filename" or "kb/filename")
+ * @param userId The authenticated user ID
+ * @param customConfig Optional custom storage configuration
+ * @param context Optional explicit storage context
+ * @returns Promise<boolean> True if user has access, false otherwise
+ */
+export async function verifyFileAccess(
+  cloudKey: string,
+  userId: string,
+  customConfig?: StorageConfig,
+  context?: StorageContext | 'general',
+  options?: { requireWrite?: boolean; knowledgeAccess?: KnowledgeFileAccess }
+): Promise<boolean> {
+  /** Organization images require the Principal-aware Assistant application resolver. */
+  if (
+    cloudKey.startsWith('assistant/') ||
+    cloudKey.startsWith('chat-images/') ||
+    cloudKey.startsWith('project/') ||
+    context === 'project'
+  )
+    return false
+  const requireWrite = options?.requireWrite ?? false
+  try {
+    const canonical = await getFileMetadataByKey(cloudKey, undefined, { includeDeleted: true })
+    if (canonical?.projectId != null || canonical?.context === 'project') return false
+    if (canonical && isWorkspaceScopedContext(canonical.context)) {
+      if (canonical.deletedAt || !canonical.workspaceId) return false
+      const permission = await getUserEntityPermissions(userId, 'workspace', canonical.workspaceId)
+      return workspacePermissionSatisfies(permission, requireWrite)
+    }
+    const keyContext = inferContextFromKey(cloudKey)
+    /** Organization logos are changed only through the organization-authorized upload lifecycle. */
+    if (keyContext === 'organization-logos') return !requireWrite
+    if (keyContext === 'knowledge-base') {
+      return requireWrite
+        ? verifyKBFileWriteAccess(cloudKey, userId)
+        : verifyKBFileAccess(cloudKey, userId, options?.knowledgeAccess)
+    }
+    if (context === 'general') {
+      return await verifyRegularFileAccess(cloudKey, userId, customConfig, requireWrite)
+    }
+
+    // Infer context from key if not explicitly provided
+    const inferredContext = context || inferContextFromKey(cloudKey)
+
+    // 0. Public contexts: profile pictures, OG images, and workspace logos are world-readable, so reads short-circuit; writes require proof of ownership
+    if (
+      inferredContext === 'profile-pictures' ||
+      inferredContext === 'og-images' ||
+      inferredContext === 'workspace-logos'
+    ) {
+      if (requireWrite) {
+        return await verifyPublicAssetWriteAccess(cloudKey, userId, inferredContext, customConfig)
+      }
+      logger.info('Public file access allowed', { cloudKey, context: inferredContext })
+      return true
+    }
+
+    // 1. Workspace / mothership files: Check database first (most reliable for both local and cloud)
+    if (isWorkspaceScopedContext(inferredContext)) {
+      return await verifyWorkspaceFileAccess(cloudKey, userId, customConfig, requireWrite)
+    }
+
+    // 2. Execution files: workspace_id/workflow_id/execution_id/filename
+    if (inferredContext === 'execution') {
+      return await verifyExecutionFileAccess(cloudKey, userId, requireWrite)
+    }
+
+    // 3. Copilot files: Check database first, then metadata, then path pattern (legacy)
+    if (inferredContext === 'copilot') {
+      return await verifyCopilotFileAccess(cloudKey, userId, customConfig)
+    }
+
+    // 4. KB files: kb/filename
+    if (inferredContext === 'knowledge-base') {
+      return requireWrite
+        ? verifyKBFileWriteAccess(cloudKey, userId)
+        : verifyKBFileAccess(cloudKey, userId, options?.knowledgeAccess)
+    }
+
+    // 5. Chat files: chat/filename
+    if (inferredContext === 'chat') {
+      return await verifyChatFileAccess(cloudKey, userId, customConfig, requireWrite)
+    }
+
+    // 6. Regular uploads: UUID-filename or timestamp-filename
+    // Check metadata for userId/workspaceId, or database for workspace files
+    return await verifyRegularFileAccess(cloudKey, userId, customConfig, requireWrite)
+  } catch (error) {
+    logger.error('Error verifying file access:', { cloudKey, userId, error })
+    // Deny access on error to be safe
+    return false
+  }
+}
+
+/**
+ * A retained file version keeps the storage metadata of the write that created it, so a metadata
+ * fallback would authorize a replaced or archived file's old bytes by key. Versions are served only
+ * through the version routes, which authorize against their file, so key-addressed access refuses
+ * them before any metadata fallback.
+ */
+async function isRetainedVersionKey(cloudKey: string, userId: string): Promise<boolean> {
+  if ((await findWorkspaceFileVersionKeys([cloudKey])).size === 0) return false
+  logger.warn('File access denied for a retained version key', { userId, cloudKey })
+  return true
+}
+
+/**
+ * Verify access to workspace files
+ * Priority: Database lookup > Metadata > Deny
+ */
+async function verifyWorkspaceFileAccess(
+  cloudKey: string,
+  userId: string,
+  customConfig?: StorageConfig,
+  requireWrite = false
+): Promise<boolean> {
+  try {
+    const anyRecord = await getFileMetadataByKey(cloudKey, undefined, {
+      includeDeleted: true,
+    })
+    const anyWorkspaceFileRecord = isWorkspaceScopedContext(anyRecord?.context)
+      ? anyRecord
+      : undefined
+    if (anyWorkspaceFileRecord?.deletedAt) {
+      logger.warn('Workspace file access denied for archived file', {
+        userId,
+        cloudKey,
+      })
+      return false
+    }
+
+    // Priority 1: Check database (most reliable, works for both local and cloud)
+    const workspaceFileRecord = await lookupWorkspaceFileByKey(cloudKey)
+    if (workspaceFileRecord) {
+      const permission = await getUserEntityPermissions(
+        userId,
+        'workspace',
+        workspaceFileRecord.workspaceId
+      )
+      if (workspacePermissionSatisfies(permission, requireWrite)) {
+        logger.debug('Workspace file access granted (database lookup)', {
+          userId,
+          workspaceId: workspaceFileRecord.workspaceId,
+          cloudKey,
+        })
+        return true
+      }
+      logger.warn('User does not have workspace access for file', {
+        userId,
+        workspaceId: workspaceFileRecord.workspaceId,
+        cloudKey,
+      })
+      return false
+    }
+
+    if (await isRetainedVersionKey(cloudKey, userId)) return false
+
+    // Priority 2: Check metadata (works for both local and cloud files)
+    const config: StorageConfig = customConfig || {}
+    const metadata = await getFileMetadata(cloudKey, config)
+    const workspaceId = metadata.workspaceId
+
+    if (workspaceId) {
+      const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+      if (workspacePermissionSatisfies(permission, requireWrite)) {
+        logger.debug('Workspace file access granted (metadata)', {
+          userId,
+          workspaceId,
+          cloudKey,
+        })
+        return true
+      }
+      logger.warn('User does not have workspace access for file (metadata)', {
+        userId,
+        workspaceId,
+        cloudKey,
+      })
+      return false
+    }
+
+    logger.warn('Workspace file missing authorization metadata', { cloudKey, userId })
+    return false
+  } catch (error) {
+    logger.error('Error verifying workspace file access', { cloudKey, userId, error })
+    return false
+  }
+}
+
+/**
+ * Authorize a destructive operation (delete) on a "public" asset context:
+ * `profile-pictures`, `workspace-logos`, or `og-images`. These contexts are
+ * world-readable, so {@link verifyFileAccess} short-circuits reads — but a write
+ * must prove ownership of the user/workspace the object belongs to and never
+ * short-circuit to `true`.
+ *
+ * - `workspace-logos` carry a trusted `workspace_files` binding written at upload
+ *   time; require write/admin on the owning workspace.
+ * - `profile-pictures` are owned by a single user, recorded in the storage
+ *   object's `userId` metadata at upload time; require an exact owner match.
+ * - `og-images` are platform/blog assets with no per-user or per-workspace owner
+ *   and no user-facing delete path; always deny.
+ */
+async function verifyPublicAssetWriteAccess(
+  cloudKey: string,
+  userId: string,
+  context: 'profile-pictures' | 'og-images' | 'workspace-logos',
+  customConfig?: StorageConfig
+): Promise<boolean> {
+  try {
+    if (context === 'workspace-logos') {
+      const binding = await getFileMetadataByKey(cloudKey, 'workspace-logos')
+      if (!binding?.workspaceId || binding.organizationId || binding.deletedAt) {
+        logger.warn('workspace-logos delete denied: no ownership binding', { userId, cloudKey })
+        return false
+      }
+      const permission = await getUserEntityPermissions(userId, 'workspace', binding.workspaceId)
+      if (!workspacePermissionSatisfies(permission, true)) {
+        logger.warn('workspace-logos delete denied: write/admin required on owner workspace', {
+          userId,
+          workspaceId: binding.workspaceId,
+          cloudKey,
+        })
+        return false
+      }
+      return true
+    }
+
+    if (context === 'profile-pictures') {
+      const config: StorageConfig = customConfig || {}
+      const metadata = await getFileMetadata(cloudKey, config)
+      if (metadata.userId && metadata.userId === userId) {
+        return true
+      }
+      // Fail closed when the owner cannot be established. Distinguish a missing
+      // owner record (no `userId` metadata — e.g. an object predating owner
+      // tagging) from a genuine ownership mismatch so the denial is diagnosable.
+      if (!metadata.userId) {
+        logger.warn(
+          'profile-pictures delete denied: file has no owner metadata to verify against',
+          {
+            userId,
+            cloudKey,
+          }
+        )
+      } else {
+        logger.warn('profile-pictures delete denied: caller does not own the file', {
+          userId,
+          fileUserId: metadata.userId,
+          cloudKey,
+        })
+      }
+      return false
+    }
+
+    logger.warn('og-images delete denied: no user-facing delete path', { userId, cloudKey })
+    return false
+  } catch (error) {
+    logger.error('Error verifying public asset write access', { cloudKey, userId, error })
+    return false
+  }
+}
+
+/**
+ * Verify access to execution files
+ * Modern format: execution/workspace_id/workflow_id/execution_id/filename
+ * Legacy format: workspace_id/workflow_id/execution_id/filename
+ */
+async function verifyExecutionFileAccess(
+  cloudKey: string,
+  userId: string,
+  requireWrite = false
+): Promise<boolean> {
+  const parts = cloudKey.split('/')
+
+  // Determine if this is modern prefixed or legacy format
+  let workspaceId: string
+  if (parts[0] === 'execution') {
+    // Modern format: execution/workspaceId/workflowId/executionId/filename
+    if (parts.length < 5) {
+      logger.warn('Invalid execution file path format (modern)', { cloudKey })
+      return false
+    }
+    workspaceId = parts[1]
+  } else {
+    // Legacy format: workspaceId/workflowId/executionId/filename
+    if (parts.length < 4) {
+      logger.warn('Invalid execution file path format (legacy)', { cloudKey })
+      return false
+    }
+    workspaceId = parts[0]
+  }
+
+  if (!workspaceId) {
+    logger.warn('Could not extract workspaceId from execution file path', { cloudKey })
+    return false
+  }
+
+  const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+  if (!workspacePermissionSatisfies(permission, requireWrite)) {
+    logger.warn('User does not have workspace access for execution file', {
+      userId,
+      workspaceId,
+      cloudKey,
+    })
+    return false
+  }
+
+  logger.debug('Execution file access granted', { userId, workspaceId, cloudKey })
+  return true
+}
+
+/**
+ * Verify access to copilot files
+ * Priority: Database lookup > Metadata > Path pattern (legacy)
+ */
+async function verifyCopilotFileAccess(
+  cloudKey: string,
+  userId: string,
+  customConfig?: StorageConfig
+): Promise<boolean> {
+  try {
+    // Priority 1: Check workspaceFiles table (new system)
+    const fileRecord = await getFileMetadataByKey(cloudKey, 'copilot')
+
+    if (fileRecord) {
+      if (fileRecord.userId === userId) {
+        logger.debug('Copilot file access granted (workspaceFiles table)', {
+          userId,
+          cloudKey,
+        })
+        return true
+      }
+      logger.warn('User does not own copilot file', {
+        userId,
+        fileUserId: fileRecord.userId,
+        cloudKey,
+      })
+      return false
+    }
+
+    // Priority 2: Check metadata (for files not yet in database)
+    const config: StorageConfig = customConfig || {}
+    const metadata = await getFileMetadata(cloudKey, config)
+    const fileUserId = metadata.userId
+
+    if (fileUserId) {
+      if (fileUserId === userId) {
+        logger.debug('Copilot file access granted (metadata)', { userId, cloudKey })
+        return true
+      }
+      logger.warn('User does not own copilot file (metadata)', {
+        userId,
+        fileUserId,
+        cloudKey,
+      })
+      return false
+    }
+
+    // Priority 3: Legacy path pattern check (userId/filename format)
+    // This handles old copilot files that may have been stored with userId prefix
+    const parts = cloudKey.split('/')
+    if (parts.length >= 2) {
+      const fileUserId = parts[0]
+      if (fileUserId && fileUserId === userId) {
+        logger.debug('Copilot file access granted (path pattern)', { userId, cloudKey })
+        return true
+      }
+      logger.warn('User does not own copilot file (path pattern)', {
+        userId,
+        fileUserId,
+        cloudKey,
+      })
+      return false
+    }
+
+    logger.warn('Copilot file missing authorization metadata', { cloudKey, userId })
+    return false
+  } catch (error) {
+    logger.error('Error verifying copilot file access', { cloudKey, userId, error })
+    return false
+  }
+}
+
+/**
+ * Checks whether a readable, active document references the exact storage key
+ * within the binding's canonical scope. Live source proof uses only candidate
+ * IDs; document existence is checked with the complete access predicate.
+ */
+async function hasActiveKbDocumentForKey(
+  cloudKey: string,
+  scope: ResourceScope,
+  access: KnowledgeReadAccess
+): Promise<boolean> {
+  const conditions = [
+    resourceScopeCondition(knowledgeBase, scope),
+    eq(document.storageKey, cloudKey),
+    eq(document.userExcluded, false),
+    isNull(document.archivedAt),
+    isNull(document.deletedAt),
+    isNull(knowledgeBase.deletedAt),
+    !('get' in access) && access.kind === 'system'
+      ? undefined
+      : or(isNull(document.connectorId), isNotNull(document.contentHash)),
+  ]
+  for await (const accessCondition of knowledgeReadAccessBatches(access, conditions)) {
+    const rows = await db
+      .select({ id: document.id })
+      .from(document)
+      .innerJoin(knowledgeBase, eq(document.knowledgeBaseId, knowledgeBase.id))
+      .where(and(...conditions, accessCondition))
+      .limit(1)
+    if (rows.length > 0) return true
+  }
+  return false
+}
+
+/**
+ * How a KB file read identifies the reader for document access. `'user'` is
+ * for a session-authenticated person; an access provider carries the principal
+ * behind an execution and resolves current source permissions. The system scope is for
+ * a background job reading a connector-owned row it is processing, which in
+ * members mode is hidden until the sync materializes its readers. Anything
+ * else — an internal token, a tool running with the workflow owner's id —
+ * reads as the workspace, never as the person whose id it happens to carry.
+ */
+export type KnowledgeFileAccess = 'user' | KnowledgeReadAccess
+
+async function resolveKnowledgeFileAccess(
+  knowledgeAccess: KnowledgeFileAccess | undefined,
+  userId: string,
+  workspaceId: string
+): Promise<KnowledgeReadAccess> {
+  if (knowledgeAccess === 'user') return createUserKnowledgeAccessProvider(userId, { workspaceId })
+  return knowledgeAccess ?? WORKSPACE_ACCESS_SCOPE
+}
+
+/**
+ * Verify access to KB files (`kb/<key>`).
+ *
+ * Authorization is determined entirely by clear state:
+ *   1. Ownership — the trusted `workspace_files` binding (exact key) names the
+ *      owning workspace; the caller must have permission on it. Ownership is
+ *      never inferred from an attacker-authorable `document.fileUrl`.
+ *   2. Readability — an active document must reference the exact key and satisfy
+ *      the caller's complete document and live source access predicates.
+ *
+ * A missing binding denies (the ownership backfill populates bindings for
+ * pre-existing objects before this path is deployed).
+ */
+async function verifyKBFileAccess(
+  cloudKey: string,
+  userId: string,
+  knowledgeAccess?: KnowledgeFileAccess
+): Promise<boolean> {
+  try {
+    const binding = await getFileMetadataByKey(cloudKey, 'knowledge-base', {
+      includeDeleted: true,
+    })
+
+    if (!binding) {
+      logger.warn('KB file access denied: no ownership binding', { userId, cloudKey })
+      return false
+    }
+    if (binding.deletedAt) {
+      logger.warn('KB file access denied for deleted file binding', { userId, cloudKey })
+      return false
+    }
+    if (binding.organizationId) {
+      if (
+        binding.workspaceId ||
+        typeof knowledgeAccess !== 'object' ||
+        'get' in knowledgeAccess ||
+        knowledgeAccess.kind !== 'system'
+      )
+        return false
+      return hasActiveKbDocumentForKey(
+        cloudKey,
+        { kind: 'organization', organizationId: binding.organizationId },
+        knowledgeAccess
+      )
+    }
+    if (!binding.workspaceId) {
+      logger.warn('KB file binding missing workspace owner', { userId, cloudKey })
+      return false
+    }
+
+    const permission = await getUserEntityPermissions(userId, 'workspace', binding.workspaceId)
+    if (permission === null) {
+      logger.warn('User does not have workspace access for KB file', {
+        userId,
+        workspaceId: binding.workspaceId,
+        cloudKey,
+      })
+      return false
+    }
+
+    const access = await resolveKnowledgeFileAccess(knowledgeAccess, userId, binding.workspaceId)
+    if (
+      !(await hasActiveKbDocumentForKey(
+        cloudKey,
+        { kind: 'workspace', workspaceId: binding.workspaceId },
+        access
+      ))
+    ) {
+      logger.warn('KB file access denied: no readable document references the file', {
+        userId,
+        cloudKey,
+        accessScopeKind: 'get' in access ? 'reader' : access.kind,
+      })
+      return false
+    }
+
+    logger.debug('KB file access granted (ownership binding)', {
+      userId,
+      workspaceId: binding.workspaceId,
+      cloudKey,
+    })
+    return true
+  } catch (error) {
+    logger.error('Error verifying KB file access', { cloudKey, userId, error })
+    return false
+  }
+}
+
+/**
+ * Authorize a destructive operation (delete) on a KB file.
+ *
+ * Binding-only: resolves the owning workspace from the trusted ownership binding
+ * and requires write/admin permission. Never uses the transitional read fallback,
+ * so a not-yet-bound key cannot be deleted cross-tenant.
+ */
+export async function verifyKBFileWriteAccess(cloudKey: string, userId: string): Promise<boolean> {
+  try {
+    const binding = await getFileMetadataByKey(cloudKey, 'knowledge-base')
+    if (!binding?.workspaceId || binding.organizationId || binding.deletedAt) {
+      logger.warn('KB file delete denied: no ownership binding', { userId, cloudKey })
+      return false
+    }
+    const permission = await getUserEntityPermissions(userId, 'workspace', binding.workspaceId)
+    if (permission !== 'write' && permission !== 'admin') {
+      logger.warn('KB file delete denied: write/admin required on owner workspace', {
+        userId,
+        workspaceId: binding.workspaceId,
+        cloudKey,
+      })
+      return false
+    }
+    return true
+  } catch (error) {
+    logger.error('Error verifying KB file write access', { cloudKey, userId, error })
+    return false
+  }
+}
+
+/**
+ * Verify access to chat files
+ * Chat files: chat/filename
+ */
+async function verifyChatFileAccess(
+  cloudKey: string,
+  userId: string,
+  customConfig?: StorageConfig,
+  requireWrite = false
+): Promise<boolean> {
+  try {
+    const config: StorageConfig = customConfig || (await getChatStorageConfig())
+
+    const metadata = await getFileMetadata(cloudKey, config)
+    const workspaceId = metadata.workspaceId
+
+    if (!workspaceId) {
+      logger.warn('Chat file missing workspaceId in metadata', { cloudKey, userId })
+      return false
+    }
+
+    const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+    if (!workspacePermissionSatisfies(permission, requireWrite)) {
+      logger.warn('User does not have workspace access for chat file', {
+        userId,
+        workspaceId,
+        cloudKey,
+      })
+      return false
+    }
+
+    logger.debug('Chat file access granted', { userId, workspaceId, cloudKey })
+    return true
+  } catch (error) {
+    logger.error('Error verifying chat file access', { cloudKey, userId, error })
+    return false
+  }
+}
+
+/**
+ * Verify access to regular uploads
+ * Regular uploads: UUID-filename or timestamp-filename
+ * Priority: Database lookup (for workspace files) > Metadata > Deny
+ */
+async function verifyRegularFileAccess(
+  cloudKey: string,
+  userId: string,
+  customConfig?: StorageConfig,
+  requireWrite = false
+): Promise<boolean> {
+  try {
+    // Priority 1: Check if this might be a workspace file (check database)
+    // This handles legacy files that might not have metadata
+    const workspaceFileRecord = await lookupWorkspaceFileByKey(cloudKey)
+    if (workspaceFileRecord) {
+      const permission = await getUserEntityPermissions(
+        userId,
+        'workspace',
+        workspaceFileRecord.workspaceId
+      )
+      if (workspacePermissionSatisfies(permission, requireWrite)) {
+        logger.debug('Regular file access granted (workspace file from database)', {
+          userId,
+          workspaceId: workspaceFileRecord.workspaceId,
+          cloudKey,
+        })
+        return true
+      }
+      logger.warn('User does not have workspace access for file', {
+        userId,
+        workspaceId: workspaceFileRecord.workspaceId,
+        cloudKey,
+      })
+      return false
+    }
+
+    if (await isRetainedVersionKey(cloudKey, userId)) return false
+
+    // Priority 2: Check metadata (works for both local and cloud files)
+    const config: StorageConfig = customConfig || {}
+    const metadata = await getFileMetadata(cloudKey, config)
+    const fileUserId = metadata.userId
+    const workspaceId = metadata.workspaceId
+
+    // If file has userId, verify ownership
+    if (fileUserId) {
+      if (fileUserId === userId) {
+        logger.debug('Regular file access granted (userId match)', { userId, cloudKey })
+        return true
+      }
+      logger.warn('User does not own file', { userId, fileUserId, cloudKey })
+      return false
+    }
+
+    // If file has workspaceId, verify workspace membership
+    if (workspaceId) {
+      const permission = await getUserEntityPermissions(userId, 'workspace', workspaceId)
+      if (workspacePermissionSatisfies(permission, requireWrite)) {
+        logger.debug('Regular file access granted (workspace membership)', {
+          userId,
+          workspaceId,
+          cloudKey,
+        })
+        return true
+      }
+      logger.warn('User does not have workspace access for file', {
+        userId,
+        workspaceId,
+        cloudKey,
+      })
+      return false
+    }
+
+    // No ownership info available - deny access for security
+    logger.warn('File missing ownership metadata', { cloudKey, userId })
+    return false
+  } catch (error) {
+    logger.error('Error verifying regular file access', { cloudKey, userId, error })
+    return false
+  }
+}
+
+/**
+ * Guard helper for tool routes that download user files from storage.
+ *
+ * Validates that `key` is a non-empty string, that `userId` is present, and
+ * that the authenticated user owns the file. Returns a 404 `NextResponse` on
+ * any failure so callers can `return` it immediately; returns `null` when
+ * access is granted.
+ */
+export async function assertToolFileAccess(
+  key: unknown,
+  userId: string,
+  requestId: string,
+  routeLogger: ReturnType<typeof createLogger>
+): Promise<NextResponse | null> {
+  if (typeof key !== 'string' || key.length === 0) {
+    routeLogger.warn(`[${requestId}] File access check rejected: missing key`)
+    return NextResponse.json({ success: false, error: 'File not found' }, { status: 404 })
+  }
+  const hasAccess = await verifyFileAccess(key, userId)
+  if (!hasAccess) {
+    routeLogger.warn(`[${requestId}] File access denied for user`, { userId, key })
+    return NextResponse.json({ success: false, error: 'File not found' }, { status: 404 })
+  }
+  return null
+}
+
+/**
+ * Get chat storage configuration based on current storage provider
+ */
+async function getChatStorageConfig(): Promise<StorageConfig> {
+  const { getStorageConfig } = await import('@/lib/uploads/config')
+  return getStorageConfig('chat')
+}

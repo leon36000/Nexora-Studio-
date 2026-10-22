@@ -1,0 +1,458 @@
+import type {
+  AssetsBinding,
+  D1DatabaseBinding,
+  D1PreparedStatementBinding,
+  KVNamespaceBinding,
+  R2BucketBinding,
+  R2ObjectBinding,
+} from "./cloudflare/cloudflare-bindings.ts";
+import type { CloudflareEnv } from "./cloudflare/cloudflare-env.ts";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+import worker from "./cloudflare.ts";
+import { createWorkerSecretCodec } from "./secrets/worker-secret-codec.ts";
+import { D1RuntimeDatabase } from "./storage/d1/runtime-store.ts";
+import { SqliteD1Database } from "./storage/d1/test-database.ts";
+
+const provider = {
+  service: "example",
+  displayName: "Example",
+  categories: ["Developer Tools"],
+  authTypes: ["no_auth"],
+  auth: [{ type: "no_auth" }],
+  actions: [],
+};
+
+describe("cloudflare worker", () => {
+  it.each(["", " ", "\t\n"])(
+    "fails closed for an empty or whitespace administrator token with OAuth enabled (%j)",
+    async (adminToken) => {
+      const env: CloudflareEnv = {
+        ...createEnv(),
+        OAUTH_KV: new MemoryKVNamespace(),
+        OOMOL_CONNECT_ORIGIN: "https://connect.example.com",
+        OOMOL_CONNECT_ENCRYPTION_KEY: "test-encryption-key",
+        OOMOL_CONNECT_ADMIN_TOKEN: adminToken,
+      };
+      const response = await worker.fetch(
+        new Request("https://connect.example.com/oauth/mcp/authorize"),
+        env,
+        createExecutionContext(),
+      );
+      expect(response.status).toBe(503);
+    },
+  );
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("deduplicates concurrent app creation and retries after a transient catalog failure", async () => {
+    // The app and catalog caches live in module state, so this test needs an isolate of its own:
+    // the shared `worker` above has already cached a healthy catalog. The reimported copy also
+    // gets a fresh `guarded-fetch` module, which `vitest.setup.ts` no longer holds off real DNS —
+    // keep this instance on local routes that perform no provider egress.
+    vi.resetModules();
+    const { default: isolatedWorker } = await import("./cloudflare.ts");
+    const fallback = memoryAssets(chunkedCatalog());
+    let indexAttempts = 0;
+    const assets: AssetsBinding = {
+      async fetch(request) {
+        if (new URL(request.url).pathname === "/catalog/index.json" && ++indexAttempts === 1) {
+          return new Response("upstream", { status: 500 });
+        }
+        return fallback.fetch(request);
+      },
+    };
+    const env: CloudflareEnv = {
+      DB: new EmptyMarketplaceD1Database(),
+      TRANSIT_FILES: new UnusedR2Bucket(),
+      ASSETS: assets,
+    };
+    const request = (): Request => new Request("https://catalog-retry.example.com/api/auth/session");
+    const failures = await Promise.allSettled([
+      isolatedWorker.fetch(request(), env, createExecutionContext()),
+      isolatedWorker.fetch(request(), env, createExecutionContext()),
+    ]);
+
+    for (const failure of failures) {
+      expect(failure).toMatchObject({
+        status: "rejected",
+        reason: {
+          message: "Cloudflare asset catalog request failed: /catalog/index.json returned 500",
+        },
+      });
+    }
+    expect(indexAttempts).toBe(1);
+
+    const response = await isolatedWorker.fetch(request(), env, createExecutionContext());
+    expect(response.status).toBe(200);
+    expect(indexAttempts).toBe(2);
+  });
+
+  it("rejects SaaS configuration when the origin comes only from the request URL", async () => {
+    const env = { ...createEnv(), OOMOL_CONNECT_ENCRYPTION_KEY: "saas-origin-test" };
+    const response = await worker.fetch(
+      new Request("https://untrusted-request.example/api/oauth/managed-project", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ baseUrl: "https://saas.example", projectApiKey: "project-secret" }),
+      }),
+      env,
+      createExecutionContext(),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: { code: "oauth_source_configuration_error" } });
+  });
+
+  it("writes connection logs to console", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const response = await worker.fetch(
+      new Request("https://connect.example.com/api/connections/example", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          authType: "no_auth",
+          connectionName: "work",
+          values: {
+            apiKey: "unused-secret",
+          },
+        }),
+      }),
+      createEnv(),
+      createExecutionContext(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(info).toHaveBeenCalledWith(
+      "connection started",
+      expect.objectContaining({
+        service: "example",
+        authType: "no_auth",
+        connectionName: "work",
+      }),
+    );
+    expect(info).toHaveBeenCalledWith(
+      "connection completed",
+      expect.objectContaining({
+        service: "example",
+        authType: "no_auth",
+        connectionName: "work",
+      }),
+    );
+    expect(JSON.stringify(info.mock.calls)).not.toContain("unused-secret");
+  });
+
+  it("leaves dashboard JSON uncompressed for edge compression", async () => {
+    const response = await worker.fetch(
+      new Request("https://compression.example.com/api/auth/session", {
+        headers: { "accept-encoding": "gzip" },
+      }),
+      createEnv(),
+      createExecutionContext(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-encoding")).toBeNull();
+    await expect(response.json()).resolves.toEqual({
+      adminAuthConfigured: false,
+      authenticated: true,
+    });
+  });
+
+  it("selects the KV backend and round-trips a file when TRANSIT_FILES_BACKEND is kv", async () => {
+    const namespace = new MemoryKVNamespace();
+    // A distinct host keeps this out of the R2 test's cached app instance.
+    const origin = "https://kv.example.com";
+    const env: CloudflareEnv = {
+      DB: new EmptyMarketplaceD1Database(),
+      TRANSIT_FILES: namespace,
+      TRANSIT_FILES_BACKEND: "kv",
+      ASSETS: memoryAssets(chunkedCatalog()),
+    };
+
+    const form = new FormData();
+    form.set("file", new File(["kv-payload"], "note.txt", { type: "text/plain" }));
+    const uploadResponse = await worker.fetch(
+      new Request(`${origin}/api/files`, { method: "POST", body: form }),
+      env,
+      createExecutionContext(),
+    );
+    expect(uploadResponse.status).toBe(200);
+    const upload = (await uploadResponse.json()) as { fileId: string };
+    expect(upload.fileId).toMatch(/^[a-f0-9]{32}\.txt$/);
+
+    // Only KVTransitFileService writes an expirationTtl; its presence proves the KV
+    // backend (not R2) was selected end-to-end from the TRANSIT_FILES_BACKEND flag.
+    expect(namespace.entry(`transit/${upload.fileId}`)?.expirationTtl).toBe(86_400);
+
+    const getResponse = await worker.fetch(
+      new Request(`${origin}/api/files/${upload.fileId}`),
+      env,
+      createExecutionContext(),
+    );
+    expect(getResponse.status).toBe(200);
+    await expect(getResponse.text()).resolves.toBe("kv-payload");
+  });
+
+  it("defaults to the R2 backend when TRANSIT_FILES_BACKEND is unset and round-trips a file", async () => {
+    const bucket = new MemoryR2Bucket();
+    // A distinct host keeps this out of the other tests' cached app instances.
+    const origin = "https://r2.example.com";
+    const env: CloudflareEnv = {
+      DB: new EmptyMarketplaceD1Database(),
+      TRANSIT_FILES: bucket,
+      // TRANSIT_FILES_BACKEND intentionally omitted -> must fall back to R2.
+      ASSETS: memoryAssets(chunkedCatalog()),
+    };
+
+    const form = new FormData();
+    form.set("file", new File(["r2-payload"], "note.txt", { type: "text/plain" }));
+    const uploadResponse = await worker.fetch(
+      new Request(`${origin}/api/files`, { method: "POST", body: form }),
+      env,
+      createExecutionContext(),
+    );
+    expect(uploadResponse.status).toBe(200);
+    const upload = (await uploadResponse.json()) as { fileId: string };
+    expect(upload.fileId).toMatch(/^[a-f0-9]{32}\.txt$/);
+
+    // Only R2TransitFileService writes httpMetadata.contentType (KV never does); its
+    // presence proves the R2 backend was selected by default from an absent flag.
+    expect(bucket.stored(`transit/${upload.fileId}`)?.httpMetadata?.contentType).toBe("text/plain");
+
+    const getResponse = await worker.fetch(
+      new Request(`${origin}/api/files/${upload.fileId}`),
+      env,
+      createExecutionContext(),
+    );
+    expect(getResponse.status).toBe(200);
+    await expect(getResponse.text()).resolves.toBe("r2-payload");
+  });
+});
+
+function createEnv(): CloudflareEnv {
+  return {
+    DB: new EmptyMarketplaceD1Database(),
+    TRANSIT_FILES: new UnusedR2Bucket(),
+    ASSETS: memoryAssets(chunkedCatalog()),
+  };
+}
+
+function createExecutionContext(): Parameters<typeof worker.fetch>[2] {
+  return {
+    waitUntil() {},
+    passThroughOnException() {},
+  };
+}
+
+/** The asset layout `scripts/copy-catalog-assets.ts` emits, so the worker tests boot the shipped path. */
+function chunkedCatalog(): Record<string, unknown> {
+  return {
+    "/catalog/index.json": { version: 1, providerCount: 1, chunks: ["apps-0000.json"] },
+    "/catalog/apps-0000.json": [provider],
+  };
+}
+
+function memoryAssets(files: Record<string, unknown>): AssetsBinding {
+  return {
+    async fetch(request) {
+      const pathname = new URL(request.url).pathname;
+      if (!(pathname in files)) {
+        return new Response("not found", { status: 404 });
+      }
+
+      return Response.json(files[pathname]);
+    },
+  };
+}
+
+class EmptyMarketplaceD1Database implements D1DatabaseBinding {
+  async batch(): Promise<{ results: Record<string, unknown>[] }[]> {
+    throw new Error("Unexpected D1 batch");
+  }
+  prepare(query: string): D1PreparedStatementBinding {
+    if (query === "select value from marketplace_config where id = 1") {
+      return new EmptyMarketplaceConfigStatement();
+    }
+    throw new Error(`Unexpected D1 query: ${query}`);
+  }
+}
+
+class EmptyMarketplaceConfigStatement implements D1PreparedStatementBinding {
+  bind(): D1PreparedStatementBinding {
+    throw new Error("Unexpected D1 bind");
+  }
+
+  async first<T = Record<string, unknown>>(): Promise<T | null> {
+    return null;
+  }
+
+  async all<T = Record<string, unknown>>(): Promise<{ results: T[] }> {
+    throw new Error("Unexpected D1 all");
+  }
+
+  async run(): Promise<{ success: boolean; meta: { changes?: number } }> {
+    throw new Error("Unexpected D1 run");
+  }
+}
+
+class UnusedR2Bucket implements R2BucketBinding {
+  async put(): Promise<unknown> {
+    throw new Error("Unexpected R2 put");
+  }
+
+  async get(): Promise<R2ObjectBinding | null> {
+    throw new Error("Unexpected R2 get");
+  }
+
+  async delete(): Promise<void> {
+    throw new Error("Unexpected R2 delete");
+  }
+}
+
+class MemoryKVNamespace implements KVNamespaceBinding {
+  private readonly store = new Map<string, { bytes: ArrayBuffer; expirationTtl?: number }>();
+
+  async put(
+    key: string,
+    value: string | ArrayBuffer | ArrayBufferView | ReadableStream,
+    options?: { expirationTtl?: number; expiration?: number },
+  ): Promise<void> {
+    this.store.set(key, { bytes: await toArrayBuffer(value), expirationTtl: options?.expirationTtl });
+  }
+
+  get(key: string, type: "text"): Promise<string | null>;
+  get(key: string, type: "arrayBuffer"): Promise<ArrayBuffer | null>;
+  async get(key: string, type: "text" | "arrayBuffer"): Promise<string | ArrayBuffer | null> {
+    const stored = this.store.get(key);
+    if (!stored) {
+      return null;
+    }
+    return type === "text" ? new TextDecoder().decode(stored.bytes) : stored.bytes.slice(0);
+  }
+
+  async delete(key: string): Promise<void> {
+    this.store.delete(key);
+  }
+
+  entry(key: string): { bytes: ArrayBuffer; expirationTtl?: number } | undefined {
+    return this.store.get(key);
+  }
+}
+
+class MemoryR2Bucket implements R2BucketBinding {
+  private readonly objects = new Map<string, MemoryR2Object>();
+
+  async put(
+    key: string,
+    value: ReadableStream | ArrayBuffer | ArrayBufferView | string | Blob,
+    options?: { httpMetadata?: { contentType?: string } },
+  ): Promise<unknown> {
+    this.objects.set(key, new MemoryR2Object(await toArrayBuffer(value), options?.httpMetadata));
+    return {};
+  }
+
+  async get(key: string): Promise<R2ObjectBinding | null> {
+    return this.objects.get(key) ?? null;
+  }
+
+  async delete(key: string): Promise<void> {
+    this.objects.delete(key);
+  }
+
+  stored(key: string): MemoryR2Object | undefined {
+    return this.objects.get(key);
+  }
+}
+
+class MemoryR2Object implements R2ObjectBinding {
+  readonly body: ReadableStream;
+  readonly httpMetadata?: { contentType?: string };
+
+  private readonly bytes: ArrayBuffer;
+
+  constructor(bytes: ArrayBuffer, httpMetadata?: { contentType?: string }) {
+    this.bytes = bytes;
+    this.body = new Blob([bytes]).stream();
+    this.httpMetadata = httpMetadata;
+  }
+
+  async arrayBuffer(): Promise<ArrayBuffer> {
+    return this.bytes.slice(0);
+  }
+}
+
+async function toArrayBuffer(
+  value: string | ArrayBuffer | ArrayBufferView | ReadableStream | Blob,
+): Promise<ArrayBuffer> {
+  if (typeof value === "string") {
+    return new TextEncoder().encode(value).buffer;
+  }
+  if (value instanceof Blob) {
+    return await value.arrayBuffer();
+  }
+  if (value instanceof ArrayBuffer) {
+    return value.slice(0);
+  }
+  if (ArrayBuffer.isView(value)) {
+    const bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+    return new Uint8Array(bytes).buffer;
+  }
+
+  return await new Response(value).arrayBuffer();
+}
+
+it("processes scheduled cleanup without an HTTP request, public origin or asset bindings", async () => {
+  const binding = new SqliteD1Database();
+  const secretCodec = await createWorkerSecretCodec("scheduled-key");
+  const database = new D1RuntimeDatabase(binding, { secretCodec });
+  const project = { id: "managed", projectId: "project", baseUrl: "https://saas.example", apiKey: "project-key" };
+  await database.saasProjectStore.saveProject(project);
+  const now = new Date().toISOString();
+  const lease = await database.connectionRequestStore.createSaas({
+    connectionRequestId: crypto.randomUUID(),
+    connectionId: crypto.randomUUID(),
+    connectionName: "scheduled",
+    owner: "admin",
+    service: "example",
+    managedProjectId: "managed",
+    providerConfigId: "config",
+    externalUserId: "user",
+    createdAt: now,
+    expiresAt: new Date(Date.now() + 600_000).toISOString(),
+  });
+  await database.connectionRequestStore.saveSaasRequest(lease, "remote");
+  await database.connectionRequestStore.saveSaasCandidate(lease, {
+    connectedAccountId: "account",
+    status: "active",
+    comment: null,
+    profile: { accountId: "user", displayName: "User", grantedScopes: [] },
+  });
+  await database.connectionRequestStore.cancelSaas(lease.pending.connectionRequestId, "admin");
+  const fetcher = vi.fn<typeof fetch>(async () =>
+    Response.json({ success: true, data: { connectedAccountId: "account", deleted: true } }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const pending: Promise<unknown>[] = [];
+  try {
+    await worker.scheduled(
+      {},
+      { DB: binding, TRANSIT_FILES: new UnusedR2Bucket(), OOMOL_CONNECT_ENCRYPTION_KEY: "scheduled-key" },
+      {
+        waitUntil(promise) {
+          pending.push(promise);
+        },
+        passThroughOnException() {},
+      },
+    );
+    expect(pending).toHaveLength(1);
+    await Promise.all(pending);
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(fetcher.mock.calls[0][1]?.method).toBe("DELETE");
+    expect(await database.saasProjectStore.getCleanupStats()).toMatchObject({ pending: 0, manual: 0 });
+  } finally {
+    binding.close();
+    vi.unstubAllGlobals();
+  }
+});

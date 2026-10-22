@@ -1,0 +1,958 @@
+import { EventEmitter } from 'node:events'
+import {
+  getMockLogger,
+  inputValidationMock,
+  inputValidationMockFns,
+  redisConfigMockFns,
+  setEnv,
+} from '@sim/testing'
+import { networkConfigMock, networkConfigMockFns } from '@sim/testing/mocks/network-config.mock'
+import { sleep } from '@sim/utils/helpers'
+import { describe, expect, it, vi } from 'vitest'
+
+type MockProc = EventEmitter & {
+  connected: boolean
+  stderr: EventEmitter
+  send: (message: unknown) => boolean
+  kill: () => boolean
+}
+
+type SpawnFactory = () => MockProc
+type RedisEval = (...args: unknown[]) => unknown | Promise<unknown>
+type SecureFetchImpl = (...args: unknown[]) => unknown | Promise<unknown>
+
+function createBaseProc(): MockProc {
+  const proc = new EventEmitter() as MockProc
+  proc.connected = true
+  proc.stderr = new EventEmitter()
+  proc.send = () => true
+  proc.kill = () => {
+    if (!proc.connected) return true
+    proc.connected = false
+    setImmediate(() => proc.emit('exit', 0))
+    return true
+  }
+  return proc
+}
+
+function createStartupFailureProc(): MockProc {
+  const proc = createBaseProc()
+  setImmediate(() => {
+    proc.connected = false
+    proc.emit('exit', 1)
+  })
+  return proc
+}
+
+function createReadyProc(result: unknown): MockProc {
+  const proc = createBaseProc()
+  proc.send = (message: unknown) => {
+    const msg = message as { type?: string; executionId?: number }
+    if (msg.type === 'execute') {
+      setImmediate(() => {
+        proc.emit('message', {
+          type: 'result',
+          executionId: msg.executionId,
+          result: { result, stdout: '' },
+        })
+      })
+    }
+    return true
+  }
+  setImmediate(() => proc.emit('message', { type: 'ready' }))
+  return proc
+}
+
+function createReadyProcWithDelay(delayMs: number): MockProc {
+  const proc = createBaseProc()
+  proc.send = (message: unknown) => {
+    const msg = message as { type?: string; executionId?: number; request?: { requestId?: string } }
+    if (msg.type === 'execute') {
+      setTimeout(() => {
+        proc.emit('message', {
+          type: 'result',
+          executionId: msg.executionId,
+          result: { result: msg.request?.requestId ?? 'unknown', stdout: '' },
+        })
+      }, delayMs)
+    }
+    return true
+  }
+  setImmediate(() => proc.emit('message', { type: 'ready' }))
+  return proc
+}
+
+type ControllableReadyProc = {
+  spawn: SpawnFactory
+  dispatched: Promise<void>
+  release: (result?: unknown) => void
+}
+
+/**
+ * A ready worker whose execution is held open until {@link ControllableReadyProc.release}
+ * is called. {@link ControllableReadyProc.dispatched} resolves the moment the worker
+ * receives its `execute` message — i.e. once the scheduler has counted the execution as
+ * active — giving tests a deterministic, event-driven signal that the concurrency slot is
+ * occupied without relying on wall-clock delays. The proc is built inside {@link spawn} so
+ * its `ready` event is emitted only after the module attaches its listeners.
+ */
+function createControllableReadyProc(): ControllableReadyProc {
+  let markDispatched: () => void = () => {}
+  const dispatched = new Promise<void>((resolve) => {
+    markDispatched = resolve
+  })
+  let proc: MockProc | undefined
+  let lastExecutionId = 0
+
+  const spawn: SpawnFactory = () => {
+    const current = createBaseProc()
+    current.send = (message: unknown) => {
+      const msg = message as { type?: string; executionId?: number }
+      if (msg.type === 'execute') {
+        lastExecutionId = msg.executionId ?? 0
+        markDispatched()
+      }
+      return true
+    }
+    setImmediate(() => current.emit('message', { type: 'ready' }))
+    proc = current
+    return current
+  }
+
+  const release = (result: unknown = 'released') => {
+    proc?.emit('message', {
+      type: 'result',
+      executionId: lastExecutionId,
+      result: { result, stdout: '' },
+    })
+  }
+
+  return { spawn, dispatched, release }
+}
+
+function createReadyFetchProxyProc(fetchMessage: { url: string; optionsJson?: string }): MockProc {
+  const proc = createBaseProc()
+  let currentExecutionId = 0
+
+  proc.send = (message: unknown) => {
+    const msg = message as { type?: string; executionId?: number; request?: { requestId?: string } }
+
+    if (msg.type === 'execute') {
+      currentExecutionId = msg.executionId ?? 0
+      setImmediate(() => {
+        proc.emit('message', {
+          type: 'fetch',
+          executionId: currentExecutionId,
+          fetchId: 1,
+          requestId: msg.request?.requestId ?? 'fetch-test',
+          url: fetchMessage.url,
+          optionsJson: fetchMessage.optionsJson,
+        })
+      })
+      return true
+    }
+
+    if (msg.type === 'fetchResponse') {
+      const fetchResponse = message as { response?: string }
+      setImmediate(() => {
+        proc.emit('message', {
+          type: 'result',
+          executionId: currentExecutionId,
+          result: { result: fetchResponse.response ?? '', stdout: '' },
+        })
+      })
+      return true
+    }
+
+    return true
+  }
+
+  setImmediate(() => proc.emit('message', { type: 'ready' }))
+  return proc
+}
+
+const { mockSpawn, mockExecSync } = vi.hoisted(() => ({
+  mockSpawn: vi.fn(),
+  mockExecSync: vi.fn(() => Buffer.from('v23.11.0')),
+}))
+
+const mockSecureFetch = inputValidationMockFns.mockSecureFetchWithValidation
+const mockGetRedisClient = redisConfigMockFns.mockGetRedisClient
+const mockResolveOutboundRoute = networkConfigMockFns.mockResolveOutboundRoute
+networkConfigMockFns.mockIsOutboundRoutingEnabled.mockReturnValue(true)
+
+vi.mock('@/lib/core/security/input-validation.server', () => inputValidationMock)
+vi.mock('@/lib/core/network/config.server', () => networkConfigMock)
+vi.mock('node:child_process', () => ({
+  execSync: mockExecSync,
+  spawn: mockSpawn,
+}))
+
+async function loadExecutionModule(options: {
+  envOverrides?: Record<string, string>
+  spawns: SpawnFactory[]
+  redisEvalImpl?: RedisEval
+  secureFetchImpl?: SecureFetchImpl
+}) {
+  const spawnQueue = [...options.spawns]
+  mockSpawn.mockImplementation(() => {
+    const next = spawnQueue.shift()
+    if (!next) {
+      throw new Error('No mock spawn factory configured')
+    }
+    return next() as ReturnType<typeof mockSpawn>
+  })
+
+  if (options.secureFetchImpl) {
+    mockSecureFetch.mockImplementation(options.secureFetchImpl)
+  } else {
+    mockSecureFetch.mockImplementation(async () => ({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: new Map<string, string>(),
+      text: async () => '',
+      json: async () => ({}),
+      arrayBuffer: async () => new ArrayBuffer(0),
+    }))
+  }
+
+  setEnv({
+    IVM_POOL_SIZE: '1',
+    IVM_MAX_CONCURRENT: '100',
+    IVM_MAX_PER_WORKER: '100',
+    IVM_WORKER_IDLE_TIMEOUT_MS: '60000',
+    IVM_MAX_QUEUE_SIZE: '10',
+    IVM_MAX_ACTIVE_PER_OWNER: '100',
+    IVM_MAX_QUEUED_PER_OWNER: '10',
+    IVM_MAX_OWNER_WEIGHT: '5',
+    IVM_DISTRIBUTED_MAX_INFLIGHT_PER_OWNER: '100',
+    IVM_DISTRIBUTED_LEASE_MIN_TTL_MS: '1000',
+    IVM_LEASE_REDIS_DEADLINE_MS: '1000',
+    IVM_QUEUE_TIMEOUT_MS: '1000',
+    IVM_MAX_FETCH_RESPONSE_BYTES: '',
+    IVM_MAX_FETCH_RESPONSE_CHARS: '',
+    IVM_MAX_FETCH_URL_LENGTH: '',
+    IVM_MAX_FETCH_OPTIONS_JSON_CHARS: '',
+    REDIS_URL: '',
+    ...(options.envOverrides ?? {}),
+  })
+
+  const redisEval = options.redisEvalImpl ? vi.fn(options.redisEvalImpl) : undefined
+  mockGetRedisClient.mockImplementation(() =>
+    redisEval
+      ? ({
+          eval: redisEval,
+        } as unknown)
+      : null
+  )
+
+  vi.resetModules()
+
+  const mod = await import('@/lib/execution/isolated-vm')
+  return { ...mod, spawnMock: mockSpawn, secureFetchMock: mockSecureFetch }
+}
+
+describe('isolated-vm scheduler', () => {
+  it('recovers from an initial spawn failure and drains queued work', async () => {
+    const { executeInIsolatedVM, spawnMock } = await loadExecutionModule({
+      spawns: [createStartupFailureProc, () => createReadyProc('ok')],
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "ok"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-1',
+    })
+
+    expect(result.error).toBeUndefined()
+    expect(result.result).toBe('ok')
+    expect(spawnMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('spawns workers with an allowlisted env, never the parent process.env', async () => {
+    const ALLOWED_WORKER_ENV_KEYS = new Set([
+      'PATH',
+      'NODE_ENV',
+      'IVM_MAX_STDOUT_CHARS',
+      'IVM_MAX_FETCH_OPTIONS_JSON_CHARS',
+      'TZ',
+      'LANG',
+      'LC_ALL',
+      'SYSTEMROOT',
+      'WINDIR',
+      'COMSPEC',
+      'PATHEXT',
+      'TEMP',
+      'TMP',
+    ])
+    vi.stubEnv('SIM_SANDBOX_SECRET_CANARY', 'must-not-reach-worker')
+    try {
+      const { executeInIsolatedVM, spawnMock } = await loadExecutionModule({
+        spawns: [() => createReadyProc('ok')],
+      })
+
+      await executeInIsolatedVM({
+        code: 'return "ok"',
+        params: {},
+        envVars: {},
+        contextVariables: {},
+        timeoutMs: 100,
+        requestId: 'req-env',
+      })
+
+      expect(spawnMock).toHaveBeenCalledTimes(1)
+      const spawnOptions = spawnMock.mock.calls[0]?.[2] as
+        | { env?: Record<string, string> }
+        | undefined
+      expect(spawnOptions?.env).toBeDefined()
+      const workerEnv = spawnOptions?.env ?? {}
+
+      expect(workerEnv.SIM_SANDBOX_SECRET_CANARY).toBeUndefined()
+      for (const secretKey of [
+        'DATABASE_URL',
+        'REDIS_URL',
+        'ENCRYPTION_KEY',
+        'BETTER_AUTH_SECRET',
+        'STRIPE_SECRET_KEY',
+        'OPENAI_API_KEY',
+        'AWS_SECRET_ACCESS_KEY',
+      ]) {
+        expect(workerEnv[secretKey]).toBeUndefined()
+      }
+      for (const key of Object.keys(workerEnv)) {
+        expect(
+          ALLOWED_WORKER_ENV_KEYS.has(key),
+          `unexpected env var forwarded to sandbox worker: ${key}`
+        ).toBe(true)
+      }
+      expect(workerEnv.PATH).toBe(process.env.PATH)
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('rejects new requests when the queue is full', async () => {
+    const holder = createControllableReadyProc()
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        IVM_MAX_CONCURRENT: '1',
+        IVM_MAX_QUEUE_SIZE: '1',
+        IVM_QUEUE_TIMEOUT_MS: '50',
+      },
+      spawns: [holder.spawn],
+    })
+
+    // Occupy the single global concurrency slot with an active execution. Awaiting
+    // `dispatched` is event-driven, so the queue state below is fully deterministic.
+    const holderPromise = executeInIsolatedVM({
+      code: 'return "holder"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 1000,
+      requestId: 'req-holder',
+      ownerKey: 'user:holder',
+    })
+    await holder.dispatched
+
+    // With the slot held, this request lands in the queue (size 1, now full)...
+    const queuedPromise = executeInIsolatedVM({
+      code: 'return 1',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-2',
+      ownerKey: 'user:a',
+    })
+
+    // ...and this one overflows it and is rejected immediately.
+    const rejected = await executeInIsolatedVM({
+      code: 'return 2',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-3',
+      ownerKey: 'user:b',
+    })
+
+    expect(rejected.error?.message).toContain('at capacity')
+
+    const queued = await queuedPromise
+    expect(queued.error?.message).toContain('timed out waiting')
+
+    holder.release()
+    await holderPromise
+  })
+
+  it('enforces per-owner queued limit', async () => {
+    const holder = createControllableReadyProc()
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        IVM_MAX_CONCURRENT: '1',
+        IVM_MAX_QUEUED_PER_OWNER: '1',
+        IVM_QUEUE_TIMEOUT_MS: '50',
+      },
+      spawns: [holder.spawn],
+    })
+
+    // Hold the single global slot with one of the owner's executions so the next
+    // requests deterministically queue instead of dispatching.
+    const holderPromise = executeInIsolatedVM({
+      code: 'return "holder"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 1000,
+      requestId: 'req-holder',
+      ownerKey: 'user:hog',
+    })
+    await holder.dispatched
+
+    // First queued request for the owner fills their per-owner queue allowance...
+    const queuedPromise = executeInIsolatedVM({
+      code: 'return 1',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-4',
+      ownerKey: 'user:hog',
+    })
+
+    // ...so the second is rejected for exceeding the per-owner queued limit.
+    const rejected = await executeInIsolatedVM({
+      code: 'return 2',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-5',
+      ownerKey: 'user:hog',
+    })
+
+    expect(rejected.error?.message).toContain('Too many concurrent')
+
+    const queued = await queuedPromise
+    expect(queued.error?.message).toContain('timed out waiting')
+
+    holder.release()
+    await holderPromise
+  })
+
+  it('enforces distributed owner in-flight lease limit when Redis is configured', async () => {
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        IVM_DISTRIBUTED_MAX_INFLIGHT_PER_OWNER: '1',
+        REDIS_URL: 'redis://localhost:6379',
+      },
+      spawns: [() => createReadyProc('ok')],
+      redisEvalImpl: (...args: unknown[]) => {
+        const script = String(args[0] ?? '')
+        if (script.includes('ZREMRANGEBYSCORE')) {
+          return 0
+        }
+        return 1
+      },
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "blocked"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-6',
+      ownerKey: 'user:distributed',
+    })
+
+    expect(result.error?.message).toContain('Too many concurrent')
+    expect(result.result).toBeNull()
+  })
+
+  it('falls back to local limits when no Redis client is available', async () => {
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        REDIS_URL: 'redis://localhost:6379',
+      },
+      spawns: [() => createReadyProc('ok')],
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "ok"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-7',
+      ownerKey: 'user:redis-down',
+    })
+
+    expect(result.error).toBeUndefined()
+    expect(result.result).toBe('ok')
+  })
+
+  it('falls back to local limits when the lease evaluation errors', async () => {
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        REDIS_URL: 'redis://localhost:6379',
+      },
+      spawns: [() => createReadyProc('ok')],
+      redisEvalImpl: (...args: unknown[]) => {
+        const script = String(args[0] ?? '')
+        if (script.includes('ZREMRANGEBYSCORE')) {
+          throw new Error('redis timeout')
+        }
+        return 1
+      },
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "ok"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-8',
+      ownerKey: 'user:redis-error',
+    })
+
+    expect(result.error).toBeUndefined()
+    expect(result.result).toBe('ok')
+  })
+
+  it('falls back to local limits when the lease round trip exceeds its deadline', async () => {
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        REDIS_URL: 'redis://localhost:6379',
+        IVM_LEASE_REDIS_DEADLINE_MS: '5',
+      },
+      spawns: [() => createReadyProc('ok')],
+      redisEvalImpl: (...args: unknown[]) => {
+        const script = String(args[0] ?? '')
+        // Never settles, so only the deadline can decide the outcome.
+        if (script.includes('ZREMRANGEBYSCORE')) {
+          return new Promise<number>(() => {})
+        }
+        return 1
+      },
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "ok"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-9',
+      ownerKey: 'user:redis-slow',
+    })
+
+    expect(result.error).toBeUndefined()
+    expect(result.result).toBe('ok')
+  })
+
+  it('releases a lease that Redis registers after the local deadline', async () => {
+    const scripts: string[] = []
+    let completeAcquire!: (value: number) => void
+    const lateAcquire = new Promise<number>((resolve) => {
+      completeAcquire = resolve
+    })
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        REDIS_URL: 'redis://localhost:6379',
+        IVM_LEASE_REDIS_DEADLINE_MS: '5',
+      },
+      spawns: [() => createReadyProc('ok')],
+      redisEvalImpl: (...args: unknown[]) => {
+        const script = String(args[0] ?? '')
+        scripts.push(script)
+        // Settles only once the test says so, standing in for a script the
+        // deadline abandoned locally but that Redis still runs to completion.
+        if (script.includes('ZREMRANGEBYSCORE')) return lateAcquire
+        return 1
+      },
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "ok"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-11',
+      ownerKey: 'user:redis-late',
+    })
+    completeAcquire(1)
+
+    expect(result.error).toBeUndefined()
+    expect(scripts.some((script) => script.includes("'ZREM'"))).toBe(true)
+  })
+
+  it('ignores a non-positive configured deadline instead of abandoning every lease', async () => {
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        IVM_DISTRIBUTED_MAX_INFLIGHT_PER_OWNER: '1',
+        IVM_LEASE_REDIS_DEADLINE_MS: '-1',
+        REDIS_URL: 'redis://localhost:6379',
+      },
+      spawns: [() => createReadyProc('ok')],
+      redisEvalImpl: async (...args: unknown[]) => {
+        const script = String(args[0] ?? '')
+        if (script.includes('ZREMRANGEBYSCORE')) {
+          // Arrives after a non-positive timer would already have fired, so the
+          // answer only lands in time when the default deadline is restored.
+          await sleep(25)
+          return 0
+        }
+        return 1
+      },
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "ok"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-12',
+      ownerKey: 'user:negative-deadline',
+    })
+
+    expect(result.error?.message).toContain('Too many concurrent')
+  })
+
+  it('releases the lease when abort races an undetermined acquisition', async () => {
+    const scripts: string[] = []
+    let markLeaseRequested!: () => void
+    const leaseRequested = new Promise<void>((resolve) => {
+      markLeaseRequested = resolve
+    })
+    const { executeInIsolatedVM, spawnMock } = await loadExecutionModule({
+      envOverrides: {
+        REDIS_URL: 'redis://localhost:6379',
+        IVM_LEASE_REDIS_DEADLINE_MS: '5',
+      },
+      spawns: [() => createReadyProc('unused')],
+      redisEvalImpl: (...args: unknown[]) => {
+        const script = String(args[0] ?? '')
+        scripts.push(script)
+        // Never settles, so the deadline decides and Redis may still register
+        // the lease id afterwards.
+        if (script.includes('ZREMRANGEBYSCORE')) {
+          markLeaseRequested()
+          return new Promise<number>(() => {})
+        }
+        return 1
+      },
+    })
+    const controller = new AbortController()
+
+    const execution = executeInIsolatedVM(
+      {
+        code: 'return "unused"',
+        params: {},
+        envVars: {},
+        contextVariables: {},
+        timeoutMs: 100,
+        requestId: 'req-abort-undetermined',
+        ownerKey: 'user:cancelled-undetermined',
+      },
+      { signal: controller.signal }
+    )
+    await leaseRequested
+    controller.abort(new DOMException('user', 'AbortError'))
+
+    await expect(execution).resolves.toMatchObject({
+      termination: 'cancelled',
+      error: { name: 'AbortError' },
+    })
+    expect(scripts.some((script) => script.includes("'ZREM'"))).toBe(true)
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it('reports cancellation when abort races a rejected distributed lease', async () => {
+    const scripts: string[] = []
+    let resolveLease!: (value: number) => void
+    let markLeaseRequested!: () => void
+    const leaseResult = new Promise<number>((resolve) => {
+      resolveLease = resolve
+    })
+    const leaseRequested = new Promise<void>((resolve) => {
+      markLeaseRequested = resolve
+    })
+    const { executeInIsolatedVM, spawnMock } = await loadExecutionModule({
+      envOverrides: {
+        REDIS_URL: 'redis://localhost:6379',
+      },
+      spawns: [() => createReadyProc('unused')],
+      redisEvalImpl: (...args: unknown[]) => {
+        const script = String(args[0] ?? '')
+        scripts.push(script)
+        if (script.includes('ZREMRANGEBYSCORE')) {
+          markLeaseRequested()
+          return leaseResult
+        }
+        return 1
+      },
+    })
+    const controller = new AbortController()
+
+    const execution = executeInIsolatedVM(
+      {
+        code: 'return "unused"',
+        params: {},
+        envVars: {},
+        contextVariables: {},
+        timeoutMs: 100,
+        requestId: 'req-abort-lease',
+        ownerKey: 'user:cancelled',
+      },
+      { signal: controller.signal }
+    )
+    await leaseRequested
+    controller.abort(new DOMException('user', 'AbortError'))
+    resolveLease(0)
+
+    await expect(execution).resolves.toMatchObject({
+      termination: 'cancelled',
+      error: { name: 'AbortError' },
+    })
+    // Redis answered before its ZADD, so there is nothing to remove.
+    expect(scripts.some((script) => script.includes("'ZREM'"))).toBe(false)
+    expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it('applies weighted owner scheduling when draining queued executions', async () => {
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      envOverrides: {
+        IVM_MAX_PER_WORKER: '1',
+      },
+      spawns: [() => createReadyProcWithDelay(1)],
+    })
+
+    const completionOrder: string[] = []
+    const pushCompletion = (label: string) => (res: { result: unknown }) => {
+      completionOrder.push(String(res.result ?? label))
+      return res
+    }
+
+    const p1 = executeInIsolatedVM({
+      code: 'return 1',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 500,
+      requestId: 'a-1',
+      ownerKey: 'user:a',
+      ownerWeight: 2,
+    }).then(pushCompletion('a-1'))
+
+    const p2 = executeInIsolatedVM({
+      code: 'return 2',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 500,
+      requestId: 'a-2',
+      ownerKey: 'user:a',
+      ownerWeight: 2,
+    }).then(pushCompletion('a-2'))
+
+    const p3 = executeInIsolatedVM({
+      code: 'return 3',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 500,
+      requestId: 'b-1',
+      ownerKey: 'user:b',
+      ownerWeight: 1,
+    }).then(pushCompletion('b-1'))
+
+    const p4 = executeInIsolatedVM({
+      code: 'return 4',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 500,
+      requestId: 'b-2',
+      ownerKey: 'user:b',
+      ownerWeight: 1,
+    }).then(pushCompletion('b-2'))
+
+    const p5 = executeInIsolatedVM({
+      code: 'return 5',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 500,
+      requestId: 'a-3',
+      ownerKey: 'user:a',
+      ownerWeight: 2,
+    }).then(pushCompletion('a-3'))
+
+    await Promise.all([p1, p2, p3, p4, p5])
+
+    expect(completionOrder.slice(0, 3)).toEqual(['a-1', 'a-2', 'a-3'])
+    expect(completionOrder).toEqual(['a-1', 'a-2', 'a-3', 'b-1', 'b-2'])
+  })
+
+  it('restores each execution owner when a reused worker emits outside its scope', async () => {
+    const { executeInIsolatedVM, spawnMock } = await loadExecutionModule({
+      spawns: [
+        () => {
+          const proc = createReadyFetchProxyProc({ url: 'https://example.com' })
+          const emit = proc.emit.bind(proc)
+          proc.emit = (event, ...args: unknown[]) => {
+            const message = args[0] as { type?: string } | undefined
+            return event === 'message' && message?.type === 'fetch'
+              ? context.runWithOutboundOrganization('wrong-ambient', () => emit(event, ...args))
+              : emit(event, ...args)
+          }
+          return proc
+        },
+      ],
+      secureFetchImpl: async () => {
+        await context.resolveCurrentOutboundRoute()
+        return new Response('ok')
+      },
+    })
+    const context = await import('@/lib/core/network/context.server')
+
+    for (const organizationId of ['org_a', 'org_b']) {
+      const result = await context.runWithOutboundOrganization(organizationId, () =>
+        executeInIsolatedVM({
+          code: 'return "fetch"',
+          params: {},
+          envVars: {},
+          contextVariables: {},
+          timeoutMs: 1000,
+          requestId: organizationId,
+        })
+      )
+      expect(result.error).toBeUndefined()
+    }
+    expect(spawnMock).toHaveBeenCalledOnce()
+    expect(mockResolveOutboundRoute.mock.calls).toEqual([['org_a'], ['org_b']])
+  })
+
+  it.each([undefined, -1])(
+    'rejects fetch IPC with missing or inactive execution ID %s',
+    async (executionId) => {
+      const { executeInIsolatedVM, secureFetchMock } = await loadExecutionModule({
+        spawns: [
+          () => {
+            const proc = createReadyFetchProxyProc({ url: 'https://example.com' })
+            const emit = proc.emit.bind(proc)
+            proc.emit = (event, ...args: unknown[]) => {
+              const message = args[0] as { type?: string } | undefined
+              if (event === 'message' && message?.type === 'fetch') {
+                return emit(event, { ...message, executionId })
+              }
+              return emit(event, ...args)
+            }
+            return proc
+          },
+        ],
+      })
+      const result = await executeInIsolatedVM({
+        code: 'return "fetch"',
+        params: {},
+        envVars: {},
+        contextVariables: {},
+        timeoutMs: 1000,
+        requestId: 'inactive-fetch',
+      })
+      expect(JSON.parse(String(result.result))).toEqual({ error: 'Execution no longer active' })
+      expect(secureFetchMock).not.toHaveBeenCalled()
+    }
+  )
+
+  it('rejects oversized fetch options payloads before outbound call', async () => {
+    const { executeInIsolatedVM, secureFetchMock } = await loadExecutionModule({
+      envOverrides: {
+        IVM_MAX_FETCH_OPTIONS_JSON_CHARS: '50',
+      },
+      spawns: [
+        () =>
+          createReadyFetchProxyProc({
+            url: 'https://example.com',
+            optionsJson: 'x'.repeat(100),
+          }),
+      ],
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "fetch-options"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-fetch-options',
+    })
+
+    const payload = JSON.parse(String(result.result))
+    expect(payload.error).toContain('Fetch options exceed maximum payload size')
+    expect(secureFetchMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects overly long fetch URLs before outbound call', async () => {
+    const { executeInIsolatedVM, secureFetchMock } = await loadExecutionModule({
+      envOverrides: {
+        IVM_MAX_FETCH_URL_LENGTH: '30',
+      },
+      spawns: [
+        () =>
+          createReadyFetchProxyProc({
+            url: 'https://example.com/path/to/a/very/long/resource',
+          }),
+      ],
+    })
+
+    const result = await executeInIsolatedVM({
+      code: 'return "fetch-url"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-fetch-url',
+    })
+
+    const payload = JSON.parse(String(result.result))
+    expect(payload.error).toContain('fetch URL exceeds maximum length')
+    expect(secureFetchMock).not.toHaveBeenCalled()
+  })
+
+  it('does not log a resolved secret from a failed fetch URL or error', async () => {
+    const secret = 'fetch-path-secret-value'
+    const requestUrl = `https://example.com/${secret}`
+    const { executeInIsolatedVM } = await loadExecutionModule({
+      spawns: [() => createReadyFetchProxyProc({ url: requestUrl })],
+      secureFetchImpl: async () => {
+        throw new Error(`Request failed for ${requestUrl}`)
+      },
+    })
+    const mockLogger = getMockLogger('IsolatedVMExecution')
+
+    const result = await executeInIsolatedVM({
+      code: 'return "fetch-secret"',
+      params: {},
+      envVars: {},
+      contextVariables: {},
+      timeoutMs: 100,
+      requestId: 'req-fetch-secret',
+    })
+
+    expect(JSON.parse(String(result.result)).error).toContain(secret)
+    expect(JSON.stringify(mockLogger.warn.mock.calls)).not.toContain(secret)
+    expect(mockLogger.warn).toHaveBeenCalledWith('[req-fetch-secret] Isolated fetch failed', {
+      errorName: 'Error',
+    })
+  })
+})

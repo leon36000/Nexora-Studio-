@@ -1,0 +1,705 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { act, Suspense, startTransition } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+// jsdom has no real IndexedDB; fake idb-keyval with an in-memory map so draft persistence is
+// deterministic and inspectable without depending on a browser implementation.
+const { fakeDraftStore } = vi.hoisted(() => ({ fakeDraftStore: new Map<string, unknown>() }))
+vi.mock('idb-keyval', () => ({
+  get: vi.fn((key: string) => Promise.resolve(fakeDraftStore.get(key))),
+  set: vi.fn((key: string, value: unknown) => {
+    fakeDraftStore.set(key, value)
+    return Promise.resolve()
+  }),
+  del: vi.fn((key: string) => {
+    fakeDraftStore.delete(key)
+    return Promise.resolve()
+  }),
+}))
+
+import { type SaveStatus, useAutosave } from '@/hooks/use-autosave'
+
+interface ProbeProps {
+  content: string
+  savedContent: string
+  onSave: (overrideContent?: string) => Promise<void>
+  delay?: number
+  enabled?: boolean
+  pauseSaving?: boolean
+  draftKey?: string
+  onRestoreDraft?: (content: string) => void
+  onDiscardCorrectionFailed?: () => void
+}
+
+interface HookHandle {
+  status: () => SaveStatus
+  isDirty: () => boolean
+  saveImmediately: () => Promise<void>
+  discard: () => void
+  rerender: (next: Partial<ProbeProps>) => void
+  unmount: () => void
+}
+
+/**
+ * Minimal dependency-free hook harness (the repo has no `@testing-library/react`). Mounts the hook
+ * in a real React 19 root under jsdom so effects, refs, and timers run exactly as in the app.
+ */
+function renderAutosave(initial: ProbeProps): { handle: HookHandle; props: ProbeProps } {
+  ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+  const container = document.createElement('div')
+  const root: Root = createRoot(container)
+  const props = { ...initial }
+  let latest = {
+    saveStatus: 'idle' as SaveStatus,
+    isDirty: false,
+    saveImmediately: async () => {},
+    discard: () => {},
+  }
+
+  function Probe(p: ProbeProps) {
+    latest = useAutosave(p)
+    return null
+  }
+
+  const render = () => {
+    act(() => {
+      root.render(<Probe {...props} />)
+    })
+  }
+  render()
+
+  const handle: HookHandle = {
+    status: () => latest.saveStatus,
+    isDirty: () => latest.isDirty,
+    saveImmediately: () => latest.saveImmediately(),
+    discard: () => latest.discard(),
+    rerender: (next) => {
+      Object.assign(props, next)
+      render()
+    },
+    unmount: () => act(() => root.unmount()),
+  }
+  return { handle, props }
+}
+
+/** Flush pending microtasks (awaited promises) inside an act() boundary. */
+async function flush() {
+  await act(async () => {
+    await Promise.resolve()
+    await Promise.resolve()
+  })
+}
+
+/** Holds the committed UI while a transition renders a suspended draft. */
+function renderSuspendingAutosave(initial: ProbeProps) {
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  const pending = new Promise<void>(() => {})
+  let latest: ReturnType<typeof useAutosave> | null = null
+
+  function Probe({ suspend, ...options }: ProbeProps & { suspend: boolean }) {
+    const autosave = useAutosave(options)
+    if (suspend) throw pending
+    latest = autosave
+    return <div>{options.content}</div>
+  }
+
+  const render = async (options: ProbeProps, suspend = false) => {
+    const view = (
+      <Suspense fallback={<div>Loading</div>}>
+        <Probe {...options} suspend={suspend} />
+      </Suspense>
+    )
+    await act(async () => {
+      if (suspend) startTransition(() => root.render(view))
+      else root.render(view)
+    })
+  }
+
+  return {
+    container,
+    render,
+    mount: () => render(initial),
+    current: () => {
+      if (!latest) throw new Error('Autosave probe has not committed')
+      return latest
+    },
+    unmount: () => act(async () => root.unmount()),
+  }
+}
+
+describe('useAutosave', () => {
+  beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+    vi.useFakeTimers()
+    fakeDraftStore.clear()
+  })
+  afterEach(() => {
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+  })
+
+  it('keeps saving and local recovery tied to the committed draft after a suspended render', async () => {
+    const committedSave = vi.fn(async () => {})
+    const abandonedSave = vi.fn(async () => {})
+    const options: ProbeProps = {
+      content: 'committed draft',
+      savedContent: 'baseline',
+      onSave: committedSave,
+      delay: 60_000,
+      draftKey: 'committed-file',
+    }
+    const view = renderSuspendingAutosave(options)
+    try {
+      await view.mount()
+      const committed = view.current()
+      await view.render({ ...options, content: 'abandoned draft', onSave: abandonedSave }, true)
+      expect(view.container.textContent).toBe('committed draft')
+
+      await act(async () => vi.advanceTimersByTime(400))
+      expect(fakeDraftStore.get('autosave-draft:committed-file')).toEqual({
+        content: 'committed draft',
+        savedContent: 'baseline',
+      })
+
+      await act(async () => committed.saveImmediately())
+      expect(committedSave).toHaveBeenCalledOnce()
+      expect(abandonedSave).not.toHaveBeenCalled()
+    } finally {
+      await view.unmount()
+    }
+  })
+
+  it('retains a failed discard correction when an abandoned render changes draft and file identity', async () => {
+    let resolveSave: (() => void) | undefined
+    const onSave = vi
+      .fn<(overrideContent?: string) => Promise<void>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSave = resolve
+          })
+      )
+      .mockRejectedValueOnce(new Error('correction failed'))
+      .mockResolvedValue(undefined)
+    const options: ProbeProps = {
+      content: 'baseline',
+      savedContent: 'baseline',
+      onSave,
+      delay: 60_000,
+      draftKey: 'committed-file',
+    }
+    const view = renderSuspendingAutosave(options)
+    try {
+      await view.mount()
+      await view.render({ ...options, content: 'local draft' })
+      let pendingSave: Promise<void> | undefined
+      await act(async () => {
+        pendingSave = view.current().saveImmediately()
+      })
+      act(() => view.current().discard())
+      await view.render(options)
+      await act(async () => {
+        resolveSave?.()
+        await pendingSave
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(2)
+      expect(view.current().saveStatus).toBe('error')
+
+      const committed = view.current()
+      await view.render({ ...options, content: 'abandoned edit', draftKey: 'abandoned-file' }, true)
+      expect(view.container.textContent).toBe('baseline')
+      await act(async () => committed.saveImmediately())
+      expect(onSave).toHaveBeenCalledTimes(3)
+      expect(onSave).toHaveBeenLastCalledWith('baseline')
+    } finally {
+      await view.unmount()
+    }
+  })
+
+  it('persists the latest content when an edit lands during an in-flight save (no data loss)', async () => {
+    const saved: string[] = []
+    let resolveSave: (() => void) | undefined
+    const { handle, props } = renderAutosave({
+      content: 'a',
+      savedContent: 'a',
+      onSave: () =>
+        new Promise<void>((resolve) => {
+          saved.push(props.content)
+          resolveSave = resolve
+        }),
+    })
+
+    handle.rerender({ content: 'a1' })
+    await act(async () => {
+      vi.advanceTimersByTime(1500)
+    })
+    await flush()
+    expect(saved).toEqual(['a1'])
+
+    // While the PUT is in flight, the user types more.
+    handle.rerender({ content: 'a12' })
+
+    // The in-flight save resolves; consumer advances baseline to what was written.
+    handle.rerender({ savedContent: 'a1' })
+    await act(async () => {
+      resolveSave?.()
+    })
+    await flush()
+    // The trailing-resave chain must pick up the newer content after the display window.
+    await act(async () => {
+      vi.advanceTimersByTime(600)
+    })
+    await flush()
+    expect(saved).toEqual(['a1', 'a12'])
+  })
+
+  it('flushes the latest content on unmount when still dirty', async () => {
+    const onSave = vi.fn(async () => {})
+    const { handle } = renderAutosave({ content: 'a', savedContent: 'a', onSave })
+
+    handle.rerender({ content: 'a1' })
+    // Unmount before the debounce fires — the cleanup flush must still persist the edit.
+    handle.unmount()
+    await flush()
+    expect(onSave).toHaveBeenCalledTimes(1)
+  })
+
+  it('writes a local backup on unmount even if the network flush fails', async () => {
+    const onSave = vi.fn(async () => {
+      throw new Error('offline')
+    })
+    const { handle } = renderAutosave({
+      content: 'a',
+      savedContent: 'a',
+      onSave,
+      draftKey: 'file-unmount',
+    })
+
+    handle.rerender({ content: 'a1' })
+    // Unmount before the 400ms local-draft debounce fires — the pending timer is cancelled, so
+    // the cleanup itself must persist the draft, not just attempt (and here, fail) the network flush.
+    handle.unmount()
+    await flush()
+    expect(fakeDraftStore.get('autosave-draft:file-unmount')).toEqual({
+      content: 'a1',
+      savedContent: 'a',
+    })
+  })
+
+  describe('local draft persistence (draftKey)', () => {
+    it('clears the local draft once the network save succeeds and the caller advances savedContent', async () => {
+      let resolveSave: (() => void) | undefined
+      const onSave = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSave = resolve
+          })
+      )
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-2',
+      })
+
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      // The network save is in flight; the local draft is still the only record of the edit.
+      expect(fakeDraftStore.has('autosave-draft:file-2')).toBe(true)
+
+      handle.rerender({ savedContent: 'a1' })
+      await act(async () => {
+        resolveSave?.()
+      })
+      await flush()
+      expect(fakeDraftStore.has('autosave-draft:file-2')).toBe(false)
+    })
+
+    it('does not clear the local draft when a newer edit lands while the save is in flight', async () => {
+      let resolveSave: (() => void) | undefined
+      const onSave = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSave = resolve
+          })
+      )
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-2b',
+      })
+
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      expect(fakeDraftStore.has('autosave-draft:file-2b')).toBe(true)
+
+      // A further edit lands while the first save is still in flight.
+      handle.rerender({ content: 'a12' })
+      await act(async () => {
+        vi.advanceTimersByTime(400)
+      })
+      await flush()
+
+      // The first save resolves; the caller advances savedContent only to the snapshot it saved.
+      handle.rerender({ savedContent: 'a1' })
+      await act(async () => {
+        resolveSave?.()
+      })
+      await flush()
+      // Still dirty ('a12' !== 'a1') — the local backup for the untransmitted edit must survive,
+      // even though `save()`'s success no longer explicitly clears it.
+      expect(fakeDraftStore.has('autosave-draft:file-2b')).toBe(true)
+      expect(fakeDraftStore.get('autosave-draft:file-2b')).toMatchObject({ content: 'a12' })
+    })
+
+    it('does not clobber a fresh edit made while the recovery read was still in flight', async () => {
+      fakeDraftStore.set('autosave-draft:file-6', { content: 'recovered', savedContent: 'a' })
+      const onSave = vi.fn(async () => {})
+      const onRestoreDraft = vi.fn()
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-6',
+        onRestoreDraft,
+      })
+
+      // The user types before the async IndexedDB read resolves.
+      handle.rerender({ content: 'user-typed' })
+      await flush()
+      expect(onRestoreDraft).not.toHaveBeenCalled()
+    })
+
+    it('discards and purges a stale draft when the server baseline has moved on', async () => {
+      fakeDraftStore.set('autosave-draft:file-5', {
+        content: 'stale-edit',
+        savedContent: 'old-baseline',
+      })
+      const onSave = vi.fn(async () => {})
+      const onRestoreDraft = vi.fn()
+      renderAutosave({
+        content: 'new-baseline',
+        savedContent: 'new-baseline',
+        onSave,
+        draftKey: 'file-5',
+        onRestoreDraft,
+      })
+
+      await flush()
+      expect(onRestoreDraft).not.toHaveBeenCalled()
+      // Purged, not merely skipped — otherwise a later open where the baseline coincidentally
+      // matches this stale snapshot again would silently resurrect the outdated edit.
+      expect(fakeDraftStore.has('autosave-draft:file-5')).toBe(false)
+    })
+
+    it('discard clears the local draft immediately and blocks any further write, even mid-race with unmount', async () => {
+      const onSave = vi.fn(async () => {})
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-discard',
+      })
+
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(400)
+      })
+      await flush()
+      expect(fakeDraftStore.has('autosave-draft:file-discard')).toBe(true)
+
+      // Discard fires before the caller's content===savedContent reset has landed — the hook's
+      // own flag must block persistence regardless of that race, not just the IndexedDB delete.
+      act(() => handle.discard())
+      await flush()
+      expect(fakeDraftStore.has('autosave-draft:file-discard')).toBe(false)
+
+      // Simulate the unmount flush racing in right after discard, while still (from the hook's
+      // perspective) dirty: neither the local draft nor the network save must fire.
+      handle.unmount()
+      await flush()
+      expect(fakeDraftStore.has('autosave-draft:file-discard')).toBe(false)
+      expect(onSave).not.toHaveBeenCalled()
+    })
+
+    it('corrects the server with the captured baseline, even if the caller never resets content in time', async () => {
+      let resolveSave: (() => void) | undefined
+      const onSave = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSave = resolve
+          })
+      )
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-discard-3',
+      })
+
+      // A save is genuinely in flight (discardedRef can't stop it — it already started).
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(1)
+
+      // The user discards while that save is still pending. Deliberately do NOT rerender content
+      // back to the baseline here — the correction must not depend on that caller-side reset
+      // landing before this continuation runs; it must push the baseline it captured at discard().
+      act(() => handle.discard())
+
+      await act(async () => {
+        resolveSave?.()
+      })
+      await flush()
+      // The stale in-flight write landed; a corrective save fires with the captured baseline ('a'),
+      // not whatever the still-dirty ambient content ('a1') happened to be.
+      expect(onSave).toHaveBeenCalledTimes(2)
+      expect(onSave).toHaveBeenNthCalledWith(2, 'a')
+    })
+
+    it('surfaces a corrective save failure instead of only logging it', async () => {
+      let resolveSave: (() => void) | undefined
+      const onSave = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveSave = resolve
+          })
+      )
+      const onDiscardCorrectionFailed = vi.fn()
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-discard-6',
+        onDiscardCorrectionFailed,
+      })
+
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      act(() => handle.discard())
+
+      // The corrective save (the second call) fails.
+      onSave.mockImplementationOnce(() => Promise.reject(new Error('offline')))
+      await act(async () => {
+        resolveSave?.()
+      })
+      await flush()
+      expect(onDiscardCorrectionFailed).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not let a stale discard correction clobber a genuinely new edit made afterward', async () => {
+      const resolvers: Array<() => void> = []
+      const onSave = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolvers.push(resolve)
+          })
+      )
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-discard-8',
+      })
+
+      // A save is in flight when the user discards.
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(1)
+      act(() => handle.discard())
+
+      // The caller resets content to the baseline, then the user types something genuinely new
+      // before the in-flight save (and its scheduled correction) has settled.
+      handle.rerender({ content: 'a' })
+      handle.rerender({ content: 'a2' })
+
+      // The in-flight save resolves; the correction runs but must defer, since content has
+      // moved on to something that's neither the discarded baseline nor what it was at discard.
+      await act(async () => {
+        resolvers[0]?.()
+      })
+      await flush()
+      await act(async () => {
+        vi.advanceTimersByTime(600)
+      })
+      await flush()
+
+      // A fresh save for the new edit fires instead of a correction pushing the stale baseline.
+      const targets = onSave.mock.calls.map((call) => call[0])
+      expect(targets).not.toContain('a')
+      expect(onSave.mock.calls.length).toBeGreaterThan(1)
+
+      resolvers[resolvers.length - 1]?.()
+      await flush()
+    })
+
+    it('does not let discard suppression from a previous file block saves for a newly switched-to file', async () => {
+      const onSave = vi.fn(async () => {})
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-x',
+      })
+
+      handle.rerender({ content: 'a1' })
+      act(() => handle.discard())
+      handle.rerender({ content: 'a' })
+
+      // Switch to a different file whose content coincidentally equals the previous file's
+      // discard target — without keying discard suppression to draftKey, this would stay
+      // wrongly suppressed forever, since content would never differ from the stale target.
+      handle.rerender({ draftKey: 'file-y', savedContent: 'z', content: 'a' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(1)
+    })
+
+    it('autosaves an edit made while a discard correction was in flight, once the correction settles', async () => {
+      const resolvers: Array<() => void> = []
+      const onSave = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolvers.push(resolve)
+          })
+      )
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-discard-12',
+      })
+
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(1)
+      act(() => handle.discard())
+      handle.rerender({ content: 'a' })
+
+      // The original save resolves; the correction starts and holds the savingRef mutex.
+      await act(async () => {
+        resolvers[0]?.()
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(2)
+
+      // The user keeps typing while the correction is still in flight. The debounce effect sees
+      // savingRef held and bails — without a re-chain once the mutex frees, this edit would never
+      // autosave until some unrelated future change happened to fire the effect again.
+      handle.rerender({ content: 'a2' })
+      await act(async () => {
+        vi.advanceTimersByTime(1500)
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(2)
+
+      await act(async () => {
+        resolvers[1]?.()
+      })
+      await flush()
+      expect(onSave).toHaveBeenCalledTimes(3)
+      expect(onSave).toHaveBeenLastCalledWith()
+    })
+
+    it.each([false, true])(
+      'retains and reports a paused discard correction (unmounted=%s)',
+      async (unmounted) => {
+        const pending = Promise.withResolvers<void>()
+        const onSave = vi
+          .fn<(content?: string) => Promise<void>>()
+          .mockReturnValueOnce(pending.promise)
+          .mockResolvedValue(undefined)
+        const onDiscardCorrectionFailed = vi.fn()
+        const { handle } = renderAutosave({
+          content: 'baseline',
+          savedContent: 'baseline',
+          onSave,
+          draftKey: 'paused-correction',
+          onDiscardCorrectionFailed,
+        })
+        handle.rerender({ content: 'discarded draft' })
+        await act(async () => vi.advanceTimersByTime(1500))
+        expect(onSave).toHaveBeenCalledOnce()
+        act(() => handle.discard())
+        handle.rerender({ content: 'baseline', pauseSaving: true })
+        if (unmounted) handle.unmount()
+        await act(async () => pending.resolve())
+        await flush()
+        expect(onSave).toHaveBeenCalledOnce()
+        expect(onDiscardCorrectionFailed).toHaveBeenCalledOnce()
+        if (!unmounted) {
+          expect(handle.status()).toBe('error')
+          handle.rerender({ pauseSaving: false })
+          expect(onSave).toHaveBeenCalledOnce()
+          await act(async () => handle.saveImmediately())
+          expect(onSave).toHaveBeenLastCalledWith('baseline')
+          expect(onSave).toHaveBeenCalledTimes(2)
+          expect(handle.status()).toBe('idle')
+          handle.unmount()
+        }
+      }
+    )
+
+    it('serializes IndexedDB writes and deletes so a slow write cannot resurrect a discarded draft', async () => {
+      let resolveWrite: (() => void) | undefined
+      const idbKeyval = await import('idb-keyval')
+      vi.mocked(idbKeyval.set).mockImplementationOnce(
+        (key: string, value: unknown) =>
+          new Promise<void>((resolve) => {
+            resolveWrite = () => {
+              fakeDraftStore.set(key, value)
+              resolve()
+            }
+          })
+      )
+      const onSave = vi.fn(async () => {})
+      const { handle } = renderAutosave({
+        content: 'a',
+        savedContent: 'a',
+        onSave,
+        draftKey: 'file-race',
+      })
+
+      handle.rerender({ content: 'a1' })
+      await act(async () => {
+        vi.advanceTimersByTime(400)
+      })
+      await flush()
+      // The write is now in flight (not yet resolved) when discard's delete is queued behind it.
+      act(() => handle.discard())
+      await flush()
+      expect(fakeDraftStore.has('autosave-draft:file-race')).toBe(false)
+
+      // The slow write finally resolves — it must not resurrect the entry the queued delete removed.
+      resolveWrite?.()
+      await flush()
+      expect(fakeDraftStore.has('autosave-draft:file-race')).toBe(false)
+    })
+  })
+})

@@ -1,0 +1,251 @@
+import { vi } from 'vitest'
+import { envMockFns, mockEnvObject } from './env.mock'
+import { envFlagsMock } from './env-flags.mock'
+
+/** Mirrors the real `LOCALHOST_HOSTNAMES` from `@/lib/core/utils/urls`. */
+const LOCALHOST_HOSTNAMES_MOCK: ReadonlySet<string> = new Set([
+  'localhost',
+  '127.0.0.1',
+  '[::1]',
+  '::1',
+])
+
+/** Mirrors the real `CANONICAL_SITE_HOST` from `@/lib/core/utils/urls`. */
+const CANONICAL_SITE_HOST_MOCK = 'www.sim.ai'
+
+const DEFAULT_SOCKET_URL = 'http://localhost:3002'
+const DEFAULT_OLLAMA_URL = 'http://localhost:11434'
+
+function readEnv(key: string): string | undefined {
+  return envMockFns.getEnv(key)
+}
+
+function hasHttpProtocol(url: string): boolean {
+  return /^https?:\/\//i.test(url)
+}
+
+/**
+ * Mirrors the real module's `normalizeBaseUrl`: protocol-less values get
+ * https:// under isProd, then trailing slashes are stripped so `${base}/path`
+ * stays single-slashed at every call site.
+ */
+function normalizeBaseUrl(url: string): string {
+  const protocol = envFlagsMock.isProd ? 'https://' : 'http://'
+  const withProtocol = hasHttpProtocol(url) ? url : `${protocol}${url}`
+  return withProtocol.replace(/\/+$/, '')
+}
+
+function getBaseUrlImpl(): string {
+  const baseUrl = readEnv('NEXT_PUBLIC_APP_URL')?.trim()
+  if (!baseUrl) {
+    throw new Error(
+      'NEXT_PUBLIC_APP_URL must be configured for webhooks and callbacks to work correctly'
+    )
+  }
+  return normalizeBaseUrl(baseUrl)
+}
+
+function getInternalApiBaseUrlImpl(): string {
+  const internalBaseUrl = readEnv('INTERNAL_API_BASE_URL')?.trim()
+  // Mirrors the real module: the internal URL names a route that resolves only
+  // from inside the app container, so a Trigger.dev worker must ignore it.
+  // `DB_APP_NAME='sim-trigger'` is the worker-only marker trigger.config.ts syncs.
+  if (!internalBaseUrl || readEnv('DB_APP_NAME') === 'sim-trigger') return getBaseUrlImpl()
+  if (!hasHttpProtocol(internalBaseUrl)) {
+    throw new Error(
+      'INTERNAL_API_BASE_URL must include protocol (http:// or https://), e.g. http://sim-app.default.svc.cluster.local:3000'
+    )
+  }
+  return normalizeBaseUrl(internalBaseUrl)
+}
+
+function ensureAbsoluteUrlImpl(pathOrUrl: string): string {
+  if (!pathOrUrl) throw new Error('URL is required')
+  return pathOrUrl.startsWith('/') ? `${getBaseUrlImpl()}${pathOrUrl}` : pathOrUrl
+}
+
+function getBaseDomainImpl(): string {
+  try {
+    return new URL(getBaseUrlImpl()).host
+  } catch {
+    const fallbackUrl = readEnv('NEXT_PUBLIC_APP_URL') || 'http://localhost:3000'
+    try {
+      return new URL(fallbackUrl).host
+    } catch {
+      // Mirrors the real module's unparseable-URL fallback per environment.
+      return envFlagsMock.isProd ? 'sim.ai' : 'localhost:3000'
+    }
+  }
+}
+
+function getEmailDomainImpl(): string {
+  const baseDomain = getBaseDomainImpl()
+  return baseDomain.startsWith('www.') ? baseDomain.substring(4) : baseDomain
+}
+
+function isLoopbackHostnameImpl(hostname: string): boolean {
+  return LOCALHOST_HOSTNAMES_MOCK.has(hostname)
+}
+
+/** Mirrors the real `stripWwwPrefix` from `@/lib/core/utils/urls`. */
+function stripWwwPrefix(host: string): string {
+  return host.startsWith('www.') ? host.slice(4) : host
+}
+
+function isNonCanonicalSimHostImpl(host: string): boolean {
+  const first = host.split(',')[0]?.trim() ?? ''
+  const hostname = stripWwwPrefix(first.toLowerCase().split(':')[0])
+  const canonical = stripWwwPrefix(CANONICAL_SITE_HOST_MOCK)
+  return hostname !== canonical && hostname.endsWith(`.${canonical}`)
+}
+
+function parseOriginListImpl(
+  raw: string | undefined | null,
+  onInvalid?: (value: string) => void
+): string[] {
+  if (!raw) return []
+  const seen = new Set<string>()
+  const origins: string[] = []
+  for (const candidate of raw.split(',')) {
+    const trimmed = candidate.trim()
+    if (!trimmed) continue
+    try {
+      const { origin } = new URL(trimmed)
+      if (!seen.has(origin)) {
+        seen.add(origin)
+        origins.push(origin)
+      }
+    } catch {
+      onInvalid?.(trimmed)
+    }
+  }
+  return origins
+}
+
+function isLocalhostUrlImpl(url: string): boolean {
+  try {
+    return LOCALHOST_HOSTNAMES_MOCK.has(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+
+function getBrowserOriginImpl(): string | null {
+  return typeof window !== 'undefined' ? window.location.origin : null
+}
+
+function isSafeHttpUrlImpl(url: string): boolean {
+  try {
+    const parsed = new URL(url, getBrowserOriginImpl() ?? undefined)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function getSocketServerUrlImpl(): string {
+  const value = mockEnvObject.SOCKET_SERVER_URL
+  return (typeof value === 'string' && value) || DEFAULT_SOCKET_URL
+}
+
+function getSocketUrlImpl(): string {
+  const explicit = readEnv('NEXT_PUBLIC_SOCKET_URL')?.trim()
+  if (explicit) return explicit
+  const browserOrigin = getBrowserOriginImpl()
+  if (browserOrigin && !LOCALHOST_HOSTNAMES_MOCK.has(new URL(browserOrigin).hostname)) {
+    return browserOrigin
+  }
+  return DEFAULT_SOCKET_URL
+}
+
+function getOllamaUrlImpl(): string {
+  const value = mockEnvObject.OLLAMA_URL
+  return (typeof value === 'string' && value) || DEFAULT_OLLAMA_URL
+}
+
+function isOllamaUrlConfiguredImpl(): boolean {
+  return Boolean(mockEnvObject.OLLAMA_URL)
+}
+
+/**
+ * Controllable mock functions for `@/lib/core/utils/urls`. Each defaults to a
+ * faithful implementation of the real module that reads through the shared env
+ * mock (so `setEnv({ NEXT_PUBLIC_APP_URL: ... })` changes the derived URLs).
+ * Override per-test and restore with {@link resetUrlsMock}.
+ *
+ * @example
+ * ```ts
+ * import { urlsMockFns } from '@sim/testing/mocks/urls.mock'
+ *
+ * urlsMockFns.mockGetBaseUrl.mockReturnValue('https://custom.example.com')
+ * ```
+ */
+export const urlsMockFns = {
+  mockGetBaseUrl: vi.fn(getBaseUrlImpl),
+  mockGetInternalApiBaseUrl: vi.fn(getInternalApiBaseUrlImpl),
+  mockEnsureAbsoluteUrl: vi.fn(ensureAbsoluteUrlImpl),
+  mockGetBaseDomain: vi.fn(getBaseDomainImpl),
+  mockGetEmailDomain: vi.fn(getEmailDomainImpl),
+  mockIsLoopbackHostname: vi.fn(isLoopbackHostnameImpl),
+  mockIsNonCanonicalSimHost: vi.fn(isNonCanonicalSimHostImpl),
+  mockParseOriginList: vi.fn(parseOriginListImpl),
+  mockIsLocalhostUrl: vi.fn(isLocalhostUrlImpl),
+  mockGetBrowserOrigin: vi.fn(getBrowserOriginImpl),
+  mockIsSafeHttpUrl: vi.fn(isSafeHttpUrlImpl),
+  mockGetSocketServerUrl: vi.fn(getSocketServerUrlImpl),
+  mockGetSocketUrl: vi.fn(getSocketUrlImpl),
+  mockGetOllamaUrl: vi.fn(getOllamaUrlImpl),
+  mockIsOllamaUrlConfigured: vi.fn(isOllamaUrlConfiguredImpl),
+}
+
+/**
+ * Restores every urls mock function to its default (real-behavior)
+ * implementation.
+ */
+export function resetUrlsMock(): void {
+  urlsMockFns.mockGetBaseUrl.mockReset().mockImplementation(getBaseUrlImpl)
+  urlsMockFns.mockGetInternalApiBaseUrl.mockReset().mockImplementation(getInternalApiBaseUrlImpl)
+  urlsMockFns.mockEnsureAbsoluteUrl.mockReset().mockImplementation(ensureAbsoluteUrlImpl)
+  urlsMockFns.mockGetBaseDomain.mockReset().mockImplementation(getBaseDomainImpl)
+  urlsMockFns.mockGetEmailDomain.mockReset().mockImplementation(getEmailDomainImpl)
+  urlsMockFns.mockIsLoopbackHostname.mockReset().mockImplementation(isLoopbackHostnameImpl)
+  urlsMockFns.mockIsNonCanonicalSimHost.mockReset().mockImplementation(isNonCanonicalSimHostImpl)
+  urlsMockFns.mockParseOriginList.mockReset().mockImplementation(parseOriginListImpl)
+  urlsMockFns.mockIsLocalhostUrl.mockReset().mockImplementation(isLocalhostUrlImpl)
+  urlsMockFns.mockGetBrowserOrigin.mockReset().mockImplementation(getBrowserOriginImpl)
+  urlsMockFns.mockIsSafeHttpUrl.mockReset().mockImplementation(isSafeHttpUrlImpl)
+  urlsMockFns.mockGetSocketServerUrl.mockReset().mockImplementation(getSocketServerUrlImpl)
+  urlsMockFns.mockGetSocketUrl.mockReset().mockImplementation(getSocketUrlImpl)
+  urlsMockFns.mockGetOllamaUrl.mockReset().mockImplementation(getOllamaUrlImpl)
+  urlsMockFns.mockIsOllamaUrlConfigured.mockReset().mockImplementation(isOllamaUrlConfiguredImpl)
+}
+
+/**
+ * Complete mock module for `@/lib/core/utils/urls`, installed globally in
+ * `apps/sim/vitest.setup.ts`. Every export of the real module is present.
+ *
+ * @example
+ * ```ts
+ * vi.mock('@/lib/core/utils/urls', () => urlsMock)
+ * ```
+ */
+export const urlsMock = {
+  SITE_URL: 'https://www.sim.ai',
+  LOCALHOST_HOSTNAMES: LOCALHOST_HOSTNAMES_MOCK,
+  CANONICAL_SITE_HOST: CANONICAL_SITE_HOST_MOCK,
+  getBaseUrl: urlsMockFns.mockGetBaseUrl,
+  getInternalApiBaseUrl: urlsMockFns.mockGetInternalApiBaseUrl,
+  ensureAbsoluteUrl: urlsMockFns.mockEnsureAbsoluteUrl,
+  getBaseDomain: urlsMockFns.mockGetBaseDomain,
+  getEmailDomain: urlsMockFns.mockGetEmailDomain,
+  isLoopbackHostname: urlsMockFns.mockIsLoopbackHostname,
+  isNonCanonicalSimHost: urlsMockFns.mockIsNonCanonicalSimHost,
+  parseOriginList: urlsMockFns.mockParseOriginList,
+  isLocalhostUrl: urlsMockFns.mockIsLocalhostUrl,
+  getBrowserOrigin: urlsMockFns.mockGetBrowserOrigin,
+  isSafeHttpUrl: urlsMockFns.mockIsSafeHttpUrl,
+  getSocketServerUrl: urlsMockFns.mockGetSocketServerUrl,
+  getSocketUrl: urlsMockFns.mockGetSocketUrl,
+  getOllamaUrl: urlsMockFns.mockGetOllamaUrl,
+  isOllamaUrlConfigured: urlsMockFns.mockIsOllamaUrlConfigured,
+}

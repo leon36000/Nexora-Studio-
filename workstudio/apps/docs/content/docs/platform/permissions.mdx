@@ -1,0 +1,138 @@
+---
+title: Roles and permissions
+description: Understand organization roles, workspace access, credential grants, and invitations.
+---
+
+Organization roles, workspace roles, and credential grants control different kinds of access. Administrator roles inherit downward, while resource grants and permission groups govern specific credentials and actions.
+
+## How roles inherit
+
+| Level | Roles | What it governs |
+| --- | --- | --- |
+| Organization | Owner, Admin, Member | Organization membership, settings, billing, and workspace creation |
+| Workspace | Read, Write, Admin | Resources and actions inside one workspace |
+| Shared credential | Member, Admin | Use and management of an account connection or workspace secret |
+
+An organization **Owner** or **Admin** automatically has **Admin** access to every workspace in that organization. A workspace **Admin** automatically administers its shared credentials: OAuth connections, service accounts, and workspace secrets.
+
+Inherited roles are locked in member lists. Their tooltip names the source, such as **Workspace owner** or **Organization admins are automatically workspace admins**. Change the role at its source; it cannot be lowered in a child resource's member list. Inheritance adds a role but does not bypass a permission-group restriction on an action.
+
+Personal secrets belong to their owner. Workspace and organization Admin roles do not grant access to them. Workflow resolution respects current credential grants; the current Secrets editor manages your own personal values and does not offer personal-secret sharing.
+
+## Workspace permission levels
+
+| Action | Read | Write | Admin |
+| --- | --- | --- | --- |
+| View workflows and available execution records | Yes | Yes | Yes |
+| Create, edit, or delete unlocked workflows | No | Yes | Yes |
+| Run a draft in the workflow builder | No | Yes | Yes |
+| Deploy workflows | No | No | Yes |
+| Create workspace secrets | No | Yes | Yes |
+| Manage an existing workspace secret | With that secret's Admin grant | With that secret's Admin grant | Yes |
+| Invite or remove workspace members; manage workspace settings | No | No | Yes |
+| Delete the workspace | No | No | Yes |
+
+Write and Admin members can collaborate on workflow editing in real time. Credential grants and permission-group controls still apply to the relevant action. Read access to a secret name does not mean its value can be revealed or used.
+
+Authenticated execution of an already deployed workflow through the API has a **Read** workspace-role floor. The API credential must also satisfy the endpoint's credential policy and OAuth scope where applicable. Manual draft execution requires **Write** and a supported human credential. See [API authentication](/api-reference/authentication).
+
+### Workspace owner
+
+The workspace owner is an Admin with a fixed role, not another permission tier. Other Admins can manage the workspace and delete it.
+
+Organization owners and admins cannot be removed through a workspace's member list; change their organization role or membership first. If a removable owner of an organization workspace is removed, ownership transfers to the workspace's protected billing account, normally the organization's owner. That account cannot be removed from the workspace. The owner of a personal workspace cannot remove themselves.
+
+## Organization roles
+
+| Role | Access |
+| --- | --- |
+| **Owner** | Admin capabilities, plus transferring organization ownership; one owner per organization |
+| **Admin** | Manage members and roles, organization settings, billing and seats; inherit Admin access to every organization workspace |
+| **Member** | Work in workspaces they are granted; view the member directory when permitted; cannot administer the organization |
+
+On billing-enabled deployments, organization owners and admins create shared workspaces under an active team or Enterprise plan. On billing-disabled deployments, organization members may also create them, subject to deployment settings and permission-group restrictions.
+
+## Invite someone to a workspace
+
+Open **Invite teammates** from the workspace header. For an organization workspace:
+
+1. Enter the **Emails** to invite.
+2. Select one or more **Workspaces**.
+3. Choose **Workspace access**: **Read**, **Write**, or **Admin**.
+4. Choose **Organization membership**: **Member**, **Admin**, or **External**.
+5. Send the invitation.
+
+Only an organization owner or admin can grant organization Admin membership. A workspace Admin can grant workspace access without gaining organization billing authority.
+
+For an internal builder, choose Member with Write workspace access. For an external stakeholder who only needs visibility, choose External with Read access, subject to the eligibility rules below.
+
+### Invite someone to the organization
+
+An organization-only invitation uses **Emails** and **Role**. It grants membership without selecting workspaces. Organization Members need a workspace grant to work there; Owners and Admins inherit workspace Admin access.
+
+A Sim account can belong to at most one organization. An organization-only invitation to someone in another organization is rejected until they leave it. A workspace invitation can instead give them external access.
+
+### Pending invitations and revocation
+
+Pending workspace invitations to the same person can combine selected workspaces into one invitation link. They accept the combined grants once.
+
+Revoking from a workspace's **Teammates** list withdraws only that workspace's grant. Other grants remain pending; removing the last one cancels the invitation. Revoking from organization settings cancels the whole invitation and requires organization admin authority or Admin access to every workspace it covers.
+
+## Internal and external membership
+
+**Internal members** belong to the organization and use seats on billing-enabled team plans. **External collaborators** have only the selected workspace grants. They do not join your organization, use one of its seats, or bring their own workspaces into it. They appear in the roster with an **External** label and still have Read, Write, or Admin workspace access.
+
+On Sim Cloud and other billing-enabled deployments:
+
+- An external collaborator must already have paid Sim access through their own Pro or Max plan or membership in another paid organization. Otherwise, invite them as Member or Admin to add a seat.
+- Someone already in another organization joins an invited workspace as external, rather than becoming an internal member of a second organization.
+- Enterprise invitations require available fixed seat capacity. Team plans add a seat when a new internal member accepts.
+- Inviting from a paid personal workspace can create an organization and convert the subscription to its team tier when the invitation is accepted.
+- Existing shared workspaces remain accessible to current members after the organization plan lapses. New invitations are blocked until an eligible plan is restored.
+
+Billing-disabled deployments do not require paid external access or paid seats. Workspace and organization authorization still applies.
+
+See [Credits, billing and limits](/platform/costs) for credit pooling, spend controls, and current plan limits.
+
+## Joining an organization
+
+The acceptance screen names the granted workspaces, membership role, seat consequence, and personal workspaces that will move. Review these before accepting an internal invitation:
+
+- Every personal workspace you own moves into the organization, including archived workspaces.
+- You keep Admin access to those workspaces. Organization Owners and Admins also gain Admin access through inheritance.
+- Usage in the moved workspaces is attributed to the organization.
+- Existing collaborators keep their workspace access as external collaborators; they do not join the organization or consume a seat as a side effect.
+- The moved workspaces remain with the organization if you later leave or are removed.
+
+An external invitation grants only the invited workspace access. Your owned workspaces stay where they are.
+
+### Removal and credential effects
+
+Removing an internal organization member revokes their organization workspace access and reassigns their workflows so deployed work can continue. Workspaces they brought into the organization remain there.
+
+Credentials backed by their personal identity, such as OAuth accounts and their personal environment keys, can stop resolving in those workspaces. The removal dialog identifies affected credentials before confirmation. Reconnect affected accounts with a remaining member, and move production secrets to workspace scope with appropriate grants.
+
+Removing a member's last organization workspace grant can also remove their organization membership and seat. Organization owners and admins retain inherited workspace access until their organization role or membership changes.
+
+## Credential access
+
+Shared OAuth connections, service accounts, and workspace secrets have two credential roles:
+
+| Role | Access |
+| --- | --- |
+| **Member** | Use the credential in authorized workflows |
+| **Admin** | Use, edit, delete, and share the credential |
+
+Creators administer their credentials. Workspace Admins inherit Admin access to every shared credential; those inherited roles cannot be demoted in the credential's member list. Read and Write workspace members need an active credential grant to use a shared credential. Pending or revoked grants do not authorize use.
+
+For workspace secrets, Admin authority also allows revealing the value. A Credential Member can reveal it only when **Show value in logs and Chat** is enabled. Personal secrets do not inherit workspace Admin access. Among values the execution actor may use, a workspace secret takes precedence over a personal secret with the same name; an inaccessible workspace value does not shadow an authorized personal value.
+
+See [Secrets](/platform/credentials) for management, runtime identity, and disclosure controls. [Credential Groups](/platform/connected-accounts) use separate organization account-pool grants.
+
+## Permission groups
+
+Enterprise-entitled organizations can restrict model providers, integrations, individual tools, deployments, invitations, and other platform actions with [permission groups](/platform/enterprise/access-control). A group restricts access; it does not grant workspace membership or a credential role.
+
+Sim chooses one governing group for a person in each workspace: an explicit member group first, then an empty inheritance-mode group for that workspace, then the organization default. An empty explicit-membership group, including a SCIM-managed group, governs nobody. Removing the last member of an inheritance-mode group can broaden it to all workspace members.
+
+These restrictions govern human principals, including personal API keys and OAuth credentials, in the resource's owning workspace. A workspace API key has no user's group; it follows its workspace scope, allowed endpoint policies, and role ceiling. Creating or managing that key remains an authorized action.

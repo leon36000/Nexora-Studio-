@@ -1,0 +1,132 @@
+import type { InternalToolConfig } from '@/tools/types'
+import {
+  VANTA_PAGE_INFO_OUTPUT_PROPERTIES,
+  VANTA_TEST_OUTPUT_PROPERTIES,
+} from '@/tools/vanta/outputs'
+import type { VantaListTestsParams, VantaListTestsResponse } from '@/tools/vanta/types'
+import { createVantaTransformResponse } from '@/tools/vanta/utils'
+
+export const vantaListTestsTool: InternalToolConfig<VantaListTestsParams, VantaListTestsResponse> =
+  {
+    id: 'vanta_list_tests',
+    name: 'Vanta List Tests',
+    description:
+      'List the automated compliance tests in a Vanta account, with filters for status, framework, integration, control, owner, and category',
+    version: '1.0.0',
+
+    oauth: {
+      required: true,
+      provider: 'vanta',
+      credentialKind: 'service-account',
+      authoritativeParams: ['apiDomain'],
+      retryOnUnauthorized: true,
+    },
+
+    params: {
+      accessToken: {
+        type: 'string',
+        required: true,
+        visibility: 'hidden',
+        description: 'Access token supplied by the saved Vanta credential',
+      },
+      apiDomain: {
+        type: 'string',
+        required: true,
+        visibility: 'hidden',
+        description: 'API origin supplied by the saved Vanta credential',
+      },
+      statusFilter: {
+        type: 'string',
+        required: false,
+        visibility: 'user-or-llm',
+        description:
+          'Filter by test status: OK, DEACTIVATED, NEEDS_ATTENTION, IN_PROGRESS, INVALID, or NOT_APPLICABLE',
+      },
+      frameworkFilter: {
+        type: 'string',
+        required: false,
+        visibility: 'user-or-llm',
+        description: 'Filter by framework ID (e.g., soc2)',
+      },
+      integrationFilter: {
+        type: 'string',
+        required: false,
+        visibility: 'user-or-llm',
+        description: 'Filter by integration ID (e.g., aws)',
+      },
+      controlFilter: {
+        type: 'string',
+        required: false,
+        visibility: 'user-or-llm',
+        description: 'Filter by control ID',
+      },
+      ownerFilter: {
+        type: 'string',
+        required: false,
+        visibility: 'user-or-llm',
+        description: 'Filter by owner user ID',
+      },
+      categoryFilter: {
+        type: 'string',
+        required: false,
+        visibility: 'user-or-llm',
+        description:
+          'Filter by test category (e.g., ACCOUNTS_ACCESS, COMPUTERS, INFRASTRUCTURE, POLICIES, VULNERABILITY_MANAGEMENT)',
+      },
+      isInRollout: {
+        type: 'boolean',
+        required: false,
+        visibility: 'user-or-llm',
+        description: 'Filter by whether the test is in rollout',
+      },
+      pageSize: {
+        type: 'number',
+        required: false,
+        visibility: 'user-or-llm',
+        description: 'Maximum number of items per page (1-100, default 10)',
+      },
+      pageCursor: {
+        type: 'string',
+        required: false,
+        visibility: 'user-or-llm',
+        description:
+          'Pagination cursor: pass the endCursor from the previous response to fetch the next page',
+      },
+    },
+
+    operation: {
+      input: (params) => ({
+        operation: 'vanta_list_tests',
+        accessToken: params.accessToken,
+        apiDomain: params.apiDomain,
+        statusFilter: params.statusFilter,
+        frameworkFilter: params.frameworkFilter,
+        integrationFilter: params.integrationFilter,
+        controlFilter: params.controlFilter,
+        ownerFilter: params.ownerFilter,
+        categoryFilter: params.categoryFilter,
+        isInRollout: params.isInRollout,
+        pageSize: params.pageSize,
+        pageCursor: params.pageCursor,
+      }),
+    },
+
+    transformResponse: createVantaTransformResponse<VantaListTestsResponse>(
+      'Failed to list Vanta tests'
+    ),
+
+    outputs: {
+      tests: {
+        type: 'array',
+        description: 'Tests matching the filters',
+        items: { type: 'object', properties: VANTA_TEST_OUTPUT_PROPERTIES },
+      },
+      pageInfo: {
+        type: 'json',
+        description:
+          'Cursor pagination info for the returned page; pass endCursor as pageCursor to fetch the next page',
+        nullable: true,
+        properties: VANTA_PAGE_INFO_OUTPUT_PROPERTIES,
+      },
+    },
+  }

@@ -1,0 +1,625 @@
+import { buildCliActionExample, buildSdkActionExample, shellSingleQuote } from "./client-onboarding";
+
+/** The setup projection supplied by Open Connector, without OAuth protocol configuration. */
+export type AuthDefinition =
+  | { type: "no_auth" }
+  | { type: "api_key"; fields?: CredentialField[] }
+  | { type: "custom_credential"; label?: string; description?: string; fields: CredentialField[] }
+  | {
+      type: "oauth2";
+      scopes: string[];
+      optionalScopes?: string[];
+      authorizationOptions?: OAuthAuthorizationOption[];
+      clientFields?: CredentialField[];
+      clientSetup?: OAuthClientSetup;
+    };
+
+export interface OAuthAuthorizationOption {
+  id: string;
+  label: string;
+  description: string;
+  required: boolean;
+  defaultSelected: boolean;
+  risk: "standard" | "sensitive" | "destructive";
+  requires?: string[];
+}
+
+export type ProviderScenario =
+  | "ai"
+  | "cross-border-ecommerce"
+  | "investment"
+  | "communication"
+  | "productivity"
+  | "marketing"
+  | "data-storage"
+  | "developer"
+  | "other";
+
+/** How to register the provider OAuth app, shown while configuring the client. */
+export interface OAuthClientSetup {
+  docsUrl?: string;
+  steps: string[];
+}
+
+export interface CredentialField {
+  key: string;
+  label: string;
+  inputType: "text" | "password" | "textarea" | "json";
+  required: boolean;
+  secret: boolean;
+  placeholder?: string;
+  description?: string;
+  location?: "extra" | "secretExtra";
+  defaultValue?: string;
+}
+
+export type JsonSchema = Record<string, unknown>;
+
+/**
+ * Action as returned by `/api/providers`, which omits the JSON schemas to keep
+ * the catalog listing small. Use {@link FullActionDefinition} where schemas are
+ * required; load it from `/api/actions/:actionId`.
+ */
+export interface ActionDefinition {
+  id: string;
+  service: string;
+  name: string;
+  description: string;
+  requiredScopes: string[];
+  inputSchema?: JsonSchema;
+  outputSchema?: JsonSchema;
+  execution: {
+    locallyExecutable: boolean;
+    catalogOnly: boolean;
+    requiredAuthTypes: string[];
+    noAuthRunnable: boolean;
+    needsCredential: boolean;
+  };
+}
+
+/** Action with schemas, as returned by `/api/actions/:actionId`. */
+export interface FullActionDefinition extends ActionDefinition {
+  inputSchema: JsonSchema;
+  outputSchema: JsonSchema;
+}
+
+export interface ProviderDefinition {
+  service: string;
+  displayName: string;
+  description?: string;
+  categories: string[];
+  scenario?: ProviderScenario | "docs";
+  authTypes: string[];
+  auth: AuthDefinition[];
+  homepageUrl?: string;
+  iconUrl?: string;
+  actions: ActionDefinition[];
+}
+
+export interface ConnectionRecord {
+  saas?: { managedProjectId: string; providerConfigId: string };
+  id?: string;
+  service: string;
+  connectionName?: string;
+  authType: string;
+  configured?: boolean;
+  virtual?: boolean;
+  default?: boolean;
+  profile?: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface MarketplaceState {
+  configured: boolean;
+  enabled: boolean;
+  discoveryUrl: string;
+  status: "disabled" | "available" | "unavailable" | "auth_error";
+  marketplace?: { version: 1; id: string; name: string; pricing: "free" | "metered" };
+  compatibleActionCount: number;
+  compatibleProviderCount: number;
+  error?: string;
+}
+
+export interface ProviderPreference {
+  service: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OAuthSource =
+  | { mode: "local" }
+  | {
+      mode: "saas";
+      managedProjectId: string;
+      projectId: string;
+      providerConfigId: string;
+    };
+
+export interface SaasProjectState {
+  configured: boolean;
+  projectId: string | null;
+  baseUrl: string | null;
+  status: "unconfigured" | "available" | "unavailable" | "auth_error";
+  cleanup: { pending: number; manual: number; paused: boolean };
+}
+
+export interface SaasProviderConfig {
+  id: string;
+  service: string;
+  displayName: string;
+  callbackUrl: string;
+  effectiveScopes: string[];
+  actionIds: string[];
+  proxyAvailable: boolean;
+}
+
+export interface OAuthConfig {
+  oauthSource?: OAuthSource;
+  service: string;
+  configured: boolean;
+  customClientAvailable?: boolean;
+  clientId: string | null;
+  expectedRedirectUri?: string;
+  requestedScopes?: string[] | null;
+  effectiveScopes?: string[];
+  extra?: Record<string, string>;
+}
+
+export interface RuntimeTokenSummary {
+  id: string;
+  name: string;
+  allowedActions: string[];
+  blockedActions: string[];
+  allowedProxies: string[];
+  allowedTriggers?: string[];
+  allowedConnections: string[];
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+export interface PolicyRules {
+  allowedActions: string[];
+  blockedActions: string[];
+  allowedProxies: string[];
+  allowedTriggers?: string[];
+  blockedProxies: string[];
+  blockedTriggers?: string[];
+}
+
+export interface RuntimePolicyState {
+  deployment: PolicyRules;
+  runtime: PolicyRules;
+  updatedAt?: string;
+}
+
+export interface PolicyCheck {
+  source: "deployment" | "runtime" | "token";
+  outcome: "allow_match" | "block_match" | "allow_miss";
+  rule?: string;
+}
+
+export interface PolicyDecision {
+  allowed: boolean;
+  code?: string;
+  message?: string;
+  checks: PolicyCheck[];
+}
+
+export interface RuntimeTokenCreation {
+  token: string;
+  record: RuntimeTokenSummary;
+}
+
+export interface RunLog {
+  id: string;
+  service: string;
+  actionId: string;
+  caller: "http" | "mcp" | "web";
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  ok: boolean;
+  connectionId?: string;
+  runtimeTokenId?: string;
+  policy?: PolicyDecision;
+  connectionProfile?: {
+    displayName?: string;
+  };
+  inputSummary?: unknown;
+  outputSummary?: unknown;
+  errorCode?: string;
+  errorMessage?: string;
+}
+
+export interface RunLogPage {
+  items: RunLog[];
+  nextCursor?: string;
+}
+
+export interface ExecutionResult {
+  ok: boolean;
+  output?: unknown;
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+}
+
+export interface RuntimeActionResponse {
+  success: boolean;
+  message?: string;
+  data?: unknown;
+  errorCode?: string;
+}
+
+export interface AppData {
+  providers: ProviderDefinition[];
+  connections: ConnectionRecord[];
+  oauthConfigs: OAuthConfig[];
+  runtimeTokens: RuntimeTokenSummary[];
+  runtimePolicy?: RuntimePolicyState;
+  runs: RunLog[];
+  runsNextCursor?: string;
+  marketplace?: MarketplaceState;
+  providerPreferences?: ProviderPreference[];
+}
+
+export interface OverviewSummary {
+  providerCount: number;
+  actionCount: number;
+  locallyExecutableActionCount: number;
+  connectedCount: number;
+  activeTokenCount: number;
+  failedRunCount: number;
+  failedRuns: RunLog[];
+}
+
+export interface ProviderConnectionStatus {
+  noSetupRequired: boolean;
+  connected: boolean;
+  oauthClientRequired: boolean;
+  connections: ConnectionRecord[];
+  connection?: ConnectionRecord;
+  marketplaceConnection?: ConnectionRecord;
+}
+
+const firstProviderService = "fusion-api";
+const recommendedProviderServices = [
+  "googlesheets",
+  "gmail",
+  "slack",
+  "googlecalendar",
+  "googledrive",
+  "github",
+  "notion",
+  "hubspot",
+  "googleforms",
+  "airtable",
+  "trello",
+  "asana",
+  "jira",
+  "linear",
+  "clickup",
+  "monday",
+  "googledocs",
+  "googleslides",
+  "dropbox",
+  "box",
+  "confluence",
+  "outlook",
+  "discord",
+  "telegram",
+  "twilio",
+  "sendgrid",
+  "mailchimp",
+  "shopify",
+  "stripe",
+  "googleanalytics",
+  "googlesearchconsole",
+  "linkedin",
+  "pipedrive",
+  "zendesk",
+  "intercom",
+  "openai",
+  "anthropic",
+  "gemini",
+  "perplexity",
+  "deepseek",
+  "gitlab",
+  "dockerhub",
+  "vercel",
+  "cloudflareworker",
+  "awss3",
+  "cloudflarer2",
+  "googlebigquery",
+] as const;
+const recommendedProviderServiceRank = new Map(
+  recommendedProviderServices.map((service, index) => [compactProviderService(service), index]),
+);
+
+export const emptyData: AppData = {
+  providers: [],
+  connections: [],
+  oauthConfigs: [],
+  runtimeTokens: [],
+  runtimePolicy: {
+    deployment: emptyPolicyRules(),
+    runtime: emptyPolicyRules(),
+  },
+  runs: [],
+  providerPreferences: [],
+};
+
+function emptyPolicyRules(): PolicyRules {
+  return {
+    allowedActions: [],
+    blockedActions: [],
+    allowedProxies: [],
+    blockedProxies: [],
+  };
+}
+
+export function createOverviewSummary(data: AppData): OverviewSummary {
+  const actions = data.providers.flatMap((provider) => provider.actions);
+  const failedRuns = data.runs.filter((run) => !run.ok);
+  return {
+    providerCount: data.providers.length,
+    actionCount: actions.length,
+    locallyExecutableActionCount: actions.filter((action) => action.execution.locallyExecutable).length,
+    connectedCount: data.connections.filter(isUsableCredentialConnection).length,
+    activeTokenCount: data.runtimeTokens.length,
+    failedRunCount: failedRuns.length,
+    failedRuns: failedRuns.slice(0, 5),
+  };
+}
+
+export function resolveProviderConnectionStatus(
+  provider: ProviderDefinition,
+  connections: ConnectionRecord[],
+  oauthConfigs: OAuthConfig[],
+): ProviderConnectionStatus {
+  const noSetupRequired = isNoAuthOnlyProvider(provider);
+  const serviceConnections = noSetupRequired ? [] : usableConnectionsForService(connections, provider.service);
+  const connection = pickUsableCredentialConnection(serviceConnections);
+  const marketplaceConnection = serviceConnections.find((item) => item.authType === "marketplace");
+  return {
+    noSetupRequired,
+    connected: connection != null,
+    oauthClientRequired:
+      connection == null && providerRequiresOAuth(provider) && !oauthClientConfigured(provider.service, oauthConfigs),
+    connections: serviceConnections,
+    connection,
+    marketplaceConnection,
+  };
+}
+
+export function usableConnectionsForService(connections: ConnectionRecord[], service: string): ConnectionRecord[] {
+  return connections.filter((connection) => connection.service === service && isUsableCredentialConnection(connection));
+}
+
+export function isNoAuthOnlyProvider(provider: ProviderDefinition): boolean {
+  const authTypes = provider.auth.length > 0 ? provider.auth.map((auth) => auth.type) : provider.authTypes;
+  return authTypes.length === 0 || authTypes.every((authType) => authType === "no_auth");
+}
+
+function pickUsableCredentialConnection(connections: ConnectionRecord[]): ConnectionRecord | undefined {
+  const usableConnections = connections.filter(isUsableCredentialConnection);
+  return usableConnections.find((connection) => connection.default) ?? usableConnections[0];
+}
+
+function isUsableCredentialConnection(connection: ConnectionRecord | undefined): connection is ConnectionRecord {
+  return (
+    connection != null &&
+    connection.authType !== "no_auth" &&
+    (connection.virtual !== true || connection.authType === "marketplace") &&
+    connection.configured !== false
+  );
+}
+
+function providerRequiresOAuth(provider: ProviderDefinition): boolean {
+  const authTypes = provider.auth.length > 0 ? provider.auth.map((auth) => auth.type) : provider.authTypes;
+  return authTypes.includes("oauth2") && authTypes.every((authType) => authType === "oauth2");
+}
+
+function oauthClientConfigured(service: string, oauthConfigs: OAuthConfig[]): boolean {
+  return oauthConfigs.some(
+    (config) => config.service === service && (config.configured || config.oauthSource?.mode === "saas"),
+  );
+}
+
+export function credentialFieldsFor(auth: AuthDefinition): CredentialField[] {
+  return auth.type === "api_key" || auth.type === "custom_credential" ? (auth.fields ?? []) : [];
+}
+
+export function filterProviders(providers: ProviderDefinition[], query: string): ProviderDefinition[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return providers;
+  return providers.filter((provider) =>
+    [provider.displayName, provider.service, provider.categories.join(" "), provider.authTypes.join(" ")]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalized),
+  );
+}
+
+export function filterProvidersByCategory(providers: ProviderDefinition[], category: string): ProviderDefinition[] {
+  if (category === "all") return providers;
+  return providers.filter((provider) => provider.categories.includes(category));
+}
+
+export function providerCategoryCounts(providers: ProviderDefinition[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const provider of providers) {
+    for (const category of provider.categories) {
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+export function sortProviders(
+  providers: ProviderDefinition[],
+  connectionsByService: Map<string, ConnectionRecord>,
+): ProviderDefinition[] {
+  return [...providers].sort((left, right) => {
+    const leftConnected = isUsableCredentialConnection(connectionsByService.get(left.service));
+    const rightConnected = isUsableCredentialConnection(connectionsByService.get(right.service));
+    if (leftConnected !== rightConnected) {
+      return leftConnected ? -1 : 1;
+    }
+
+    const leftPinned = left.service === firstProviderService;
+    const rightPinned = right.service === firstProviderService;
+    if (leftPinned !== rightPinned) {
+      return leftPinned ? -1 : 1;
+    }
+
+    const recommendedRank =
+      getRecommendedProviderServiceRank(left.service) - getRecommendedProviderServiceRank(right.service);
+    if (recommendedRank !== 0) return recommendedRank;
+
+    return left.displayName.localeCompare(right.displayName);
+  });
+}
+
+function getRecommendedProviderServiceRank(service: string): number {
+  return recommendedProviderServiceRank.get(compactProviderService(service)) ?? Number.MAX_SAFE_INTEGER;
+}
+
+function compactProviderService(service: string): string {
+  return service
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, "");
+}
+
+export function filterActions(actions: ActionDefinition[], query: string, service: string | null): ActionDefinition[] {
+  const normalized = query.trim().toLowerCase();
+  return actions.filter((action) => {
+    if (service && action.service !== service) return false;
+    if (!normalized) return true;
+    return [action.id, action.name, action.description, action.requiredScopes.join(" ")]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalized);
+  });
+}
+
+export function exampleInput(schema: JsonSchema): string {
+  const properties = readProperties(schema);
+  const required = readRequired(schema);
+  const value: Record<string, unknown> = {};
+  for (const key of required) {
+    value[key] = exampleValue(properties[key]);
+  }
+  return JSON.stringify(value, null, 2);
+}
+
+export function parameterSummaries(
+  schema: JsonSchema,
+): Array<{ name: string; required: boolean; type: string; description: string }> {
+  const required = new Set(readRequired(schema));
+  return Object.entries(readProperties(schema)).map(([name, property]) => ({
+    name,
+    required: required.has(name),
+    type: describeSchemaType(property),
+    description: typeof property.description === "string" ? property.description : "",
+  }));
+}
+
+export function buildActionExamples(
+  action: FullActionDefinition,
+  origin: string,
+  connectionName?: string,
+): { curl: string; typescript: string; cli: string; sdk: string } {
+  const endpoint = `${origin}/v1/actions/${action.id}`;
+  const body = { input: JSON.parse(exampleInput(action.inputSchema)) as unknown };
+  const bodyText = JSON.stringify(body, null, 2);
+  const clientAction = { id: action.id, service: action.service, name: action.name, input: body.input, connectionName };
+  return {
+    curl: [
+      `curl -s ${endpoint} \\`,
+      "  -H 'content-type: application/json' \\",
+      '  -H "Authorization: Bearer $OOMOL_CONNECT_RUNTIME_TOKEN" \\',
+      ...(connectionName ? [`  -H ${shellSingleQuote(`x-oo-connector-alias: ${connectionName}`)} \\`] : []),
+      `  -d ${shellSingleQuote(JSON.stringify(body))}`,
+    ].join("\n"),
+    typescript: [
+      'const headers = new Headers({ "content-type": "application/json" });',
+      "const runtimeToken = process.env.OOMOL_CONNECT_RUNTIME_TOKEN;",
+      'if (runtimeToken) headers.set("authorization", `Bearer ${runtimeToken}`);',
+      ...(connectionName ? [`headers.set("x-oo-connector-alias", ${JSON.stringify(connectionName)});`] : []),
+      `const response = await fetch(${JSON.stringify(endpoint)}, {`,
+      `  method: "POST",`,
+      `  headers,`,
+      `  body: JSON.stringify(${bodyText}),`,
+      `});`,
+      `const result = await response.json();`,
+    ].join("\n"),
+    cli: buildCliActionExample(origin, clientAction),
+    sdk: buildSdkActionExample(origin, clientAction),
+  };
+}
+
+export function formatDate(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
+}
+
+export function formatDuration(run: RunLog): string {
+  const ms =
+    typeof run.durationMs === "number"
+      ? run.durationMs
+      : Math.max(0, new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime());
+  return `${ms} ms`;
+}
+
+export function compactJson(value: unknown): string {
+  if (value == null) {
+    return "";
+  }
+
+  const text = JSON.stringify(value);
+  return text.length > 120 ? `${text.slice(0, 117)}...` : text;
+}
+
+// These mirror src/core/json-schema.ts (readSchemaProperties/readSchemaRequired/describeSchemaType) and must be
+// kept in sync by hand because the web build cannot import src/.
+function readProperties(schema: JsonSchema): Record<string, JsonSchema> {
+  return schema.properties && typeof schema.properties === "object" && !Array.isArray(schema.properties)
+    ? (schema.properties as Record<string, JsonSchema>)
+    : {};
+}
+
+function readRequired(schema: JsonSchema): string[] {
+  return Array.isArray(schema.required)
+    ? schema.required.filter((value): value is string => typeof value === "string")
+    : [];
+}
+
+function describeSchemaType(schema: JsonSchema | undefined): string {
+  if (!schema) return "unknown";
+  if (schema.const !== undefined) return JSON.stringify(schema.const);
+  if (Array.isArray(schema.enum)) return schema.enum.map((value) => JSON.stringify(value)).join(" | ");
+  if (Array.isArray(schema.anyOf))
+    return schema.anyOf.map((value) => describeSchemaType(value as JsonSchema)).join(" | ");
+  return typeof schema.type === "string" ? schema.type : "unknown";
+}
+
+function exampleValue(schema: JsonSchema | undefined): unknown {
+  if (!schema) return "";
+  if (schema.default !== undefined) return schema.default;
+  if (schema.const !== undefined) return schema.const;
+  if (Array.isArray(schema.enum)) return schema.enum[0];
+  if (schema.type === "integer" || schema.type === "number") return 1;
+  if (schema.type === "boolean") return false;
+  if (schema.type === "array") return [];
+  if (schema.type === "object") return {};
+  return "";
+}

@@ -1,0 +1,173 @@
+/**
+ * Regression test: `revokeMcpOauthTokens` must route both metadata discovery
+ * and the RFC 7009 revocation POST through the SSRF-guarded fetch, since
+ * `revocation_endpoint` comes from attacker-controlled server metadata. Uses
+ * the real `createSsrfGuardedMcpFetch` so it fails if revoke.ts regresses to a
+ * raw `fetch`.
+ */
+
+import { dbChainMockFns, queueTableRows, resetDbChainMock, schemaMock } from '@sim/testing'
+import { encryptionMock } from '@sim/testing/mocks/encryption.mock'
+import {
+  inputValidationMock,
+  inputValidationMockFns,
+} from '@sim/testing/mocks/input-validation.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const BLOCKED_ENDPOINT = 'http://169.254.170.2/v2/credentials/'
+const PUBLIC_SERVER_URL = 'https://mcp.attacker.com'
+const PUBLIC_SERVER_IP = '203.0.113.10'
+
+const {
+  mockUndiciFetch,
+  mockValidateMcpServerSsrf,
+  mockDiscoverOAuthServerInfo,
+  mockLoadOauthRow,
+} = vi.hoisted(() => ({
+  mockUndiciFetch: vi.fn(),
+  mockValidateMcpServerSsrf: vi.fn(),
+  mockDiscoverOAuthServerInfo: vi.fn(),
+  mockLoadOauthRow: vi.fn(),
+}))
+
+vi.mock('@/lib/core/security/input-validation.server', () => inputValidationMock)
+/**
+ * Stubbed so the suite's `203.0.113.10` reads as an ordinary public address.
+ * The real classifier treats TEST-NET-3 as reserved, which would route every
+ * "public IP" case down the pinned-private branch instead.
+ */
+vi.mock('@sim/security/ssrf', () => ({
+  isPrivateIp: (ip: string) => ip.startsWith('127.') || ip.startsWith('10.') || ip === '::1',
+}))
+vi.mock('@/lib/mcp/domain-check', () => ({
+  MCP_EGRESS_PROFILE: 'selfHostedService',
+  OAUTH_EGRESS_PROFILE: 'contentFetch',
+  McpSsrfError: class McpSsrfError extends Error {},
+  validateMcpServerSsrf: mockValidateMcpServerSsrf,
+}))
+vi.mock('@modelcontextprotocol/sdk/client/auth.js', () => ({
+  discoverOAuthServerInfo: mockDiscoverOAuthServerInfo,
+}))
+vi.mock('@/lib/mcp/oauth/storage', () => ({
+  loadOauthRow: mockLoadOauthRow,
+}))
+vi.mock('@/lib/core/security/encryption', () => encryptionMock)
+
+import { revokeMcpOauthTokens } from './revoke'
+
+inputValidationMockFns.mockCreateSsrfGuardedFetchWithDispatcher.mockImplementation(() => ({
+  fetch: mockUndiciFetch,
+  dispatcher: { destroy: vi.fn(() => Promise.resolve()) },
+}))
+
+function wireServerRow(row: Record<string, unknown>) {
+  queueTableRows(schemaMock.mcpServers, [row])
+}
+
+describe('revokeMcpOauthTokens — SSRF guard', () => {
+  afterAll(() => {
+    resetDbChainMock()
+  })
+
+  beforeEach(() => {
+    resetDbChainMock()
+
+    mockLoadOauthRow.mockResolvedValue({
+      tokens: {
+        access_token: 'access-secret',
+        refresh_token: 'refresh-secret',
+        issuer: PUBLIC_SERVER_URL,
+      },
+      clientInformation: { client_id: 'client-123' },
+    })
+
+    wireServerRow({
+      url: PUBLIC_SERVER_URL,
+      oauthClientId: 'client-123',
+      oauthClientSecret: null,
+    })
+
+    mockDiscoverOAuthServerInfo.mockResolvedValue({
+      authorizationServerUrl: PUBLIC_SERVER_URL,
+      authorizationServerMetadata: {
+        issuer: PUBLIC_SERVER_URL,
+        revocation_endpoint: BLOCKED_ENDPOINT,
+      },
+    })
+
+    mockUndiciFetch.mockResolvedValue(new Response('ok'))
+
+    // Catches a regression to raw globalThis.fetch without hitting the network.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'))
+
+    // Public server host resolves; the revocation endpoint is blocked.
+    mockValidateMcpServerSsrf.mockImplementation(async (target: string) => {
+      if (target.startsWith(BLOCKED_ENDPOINT) || target.includes('169.254.')) {
+        throw new Error('MCP server URL resolves to a blocked IP address')
+      }
+      return PUBLIC_SERVER_IP
+    })
+  })
+
+  it('routes metadata discovery through the SSRF-guarded fetch', async () => {
+    await revokeMcpOauthTokens('server-1', 'workspace-1')
+
+    expect(mockDiscoverOAuthServerInfo).toHaveBeenCalledTimes(1)
+    const [, options] = mockDiscoverOAuthServerInfo.mock.calls[0]
+    expect(typeof options?.fetchFn).toBe('function')
+  })
+
+  it('validates the attacker-controlled revocation_endpoint before issuing the request', async () => {
+    await revokeMcpOauthTokens('server-1', 'workspace-1')
+
+    expect(mockValidateMcpServerSsrf).toHaveBeenCalledWith(BLOCKED_ENDPOINT, 'contentFetch')
+  })
+
+  it.each([
+    ['issued by a different authorization server', 'https://previous-issuer.example.com'],
+    ['without a recorded issuer', undefined],
+  ])('never revokes tokens %s', async (_case, issuer) => {
+    mockLoadOauthRow.mockResolvedValue({
+      tokens: { access_token: 'access-secret', refresh_token: 'refresh-secret', issuer },
+      clientInformation: { client_id: 'client-123' },
+    })
+
+    await revokeMcpOauthTokens('server-1', 'workspace-1')
+
+    expect(mockValidateMcpServerSsrf).not.toHaveBeenCalledWith(BLOCKED_ENDPOINT, 'contentFetch')
+  })
+
+  it('never issues an outbound request to the blocked revocation endpoint', async () => {
+    await revokeMcpOauthTokens('server-1', 'workspace-1')
+
+    const allCalls = [
+      ...mockUndiciFetch.mock.calls,
+      ...(globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls,
+    ]
+    for (const call of allCalls) {
+      const target = typeof call[0] === 'string' ? call[0] : String(call[0])
+      expect(target).not.toContain('169.254.170.2')
+    }
+  })
+
+  it('swallows the SSRF rejection — revocation is best-effort and never throws', async () => {
+    await expect(revokeMcpOauthTokens('server-1', 'workspace-1')).resolves.toBeUndefined()
+  })
+
+  it('loads no OAuth tokens when the server is outside the authorized workspace', async () => {
+    resetDbChainMock()
+    queueTableRows(schemaMock.mcpServers, [])
+
+    await revokeMcpOauthTokens('server-1', 'workspace-other')
+
+    expect(mockLoadOauthRow).not.toHaveBeenCalled()
+    expect(mockDiscoverOAuthServerInfo).not.toHaveBeenCalled()
+    expect(dbChainMockFns.where).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conditions: expect.arrayContaining([
+          expect.objectContaining({ type: 'eq', right: 'workspace-other' }),
+        ]),
+      })
+    )
+  })
+})

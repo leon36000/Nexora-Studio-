@@ -1,0 +1,1421 @@
+/**
+ * Core workflow execution logic - shared by all execution paths
+ * This is the SINGLE source of truth for workflow execution
+ */
+
+import { resolvePrincipalSubject } from '@sim/auth/principal'
+import { db } from '@sim/db'
+import { organization, workspace } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
+import { getErrorMessage, redactBoundParameters, toError } from '@sim/utils/errors'
+import { filterUndefined, isPlainRecord, isRecordLike } from '@sim/utils/object'
+import { mergeSubblockStateWithValues } from '@sim/workflow-persistence/subblocks'
+import type { Edge } from '@xyflow/react'
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
+import { type EffectivePiiRedaction, resolveEffectivePiiRedaction } from '@/lib/billing/retention'
+import { runWorkflowOutsideContentDelivery } from '@/lib/core/application/content-delivery'
+import { ExecutionScopeDeletedError } from '@/lib/core/errors/execution-scope-deleted'
+import { logFailureOnce } from '@/lib/core/errors/failure-log'
+import { UserFailure } from '@/lib/core/errors/user-failure'
+import {
+  getExecutionDeadlineAt,
+  getTimeoutErrorMessage,
+  isTimeoutAbortReason,
+} from '@/lib/core/execution-limits'
+import { isOutboundRoutingEnabled } from '@/lib/core/network/config.server'
+import { runWithOutboundOrganization } from '@/lib/core/network/context.server'
+import { withDatabaseReadRetry } from '@/lib/db/read-retry'
+import {
+  type EnvironmentResolutionSnapshot,
+  getExecutionEnvironment,
+} from '@/lib/environment/utils'
+import { clearExecutionCancellation } from '@/lib/execution/cancellation'
+import { getStoredFileReferenceScope, processInputFileFields } from '@/lib/execution/files'
+import { warmLargeValueRefs } from '@/lib/execution/payloads/hydration'
+import { parseLargeExecutionValue } from '@/lib/execution/payloads/large-execution-value'
+import { connectExecutionSignalHub } from '@/lib/execution/signal'
+import type { LoggingSession } from '@/lib/logs/execution/logging-session'
+import { redactLargeValueRefsInValue } from '@/lib/logs/execution/pii-large-values'
+import { redactObjectStrings } from '@/lib/logs/execution/pii-redaction'
+import { buildTraceSpans } from '@/lib/logs/execution/trace-spans/trace-spans'
+import { resolveActiveWorkflowApplicationContext } from '@/lib/workflows/application/context'
+import { waitForChildRuns } from '@/lib/workflows/custom-blocks/child-execution'
+import { getCustomBlockRowsForWorkspace } from '@/lib/workflows/custom-blocks/operations'
+import { resolveStartBlockRunIdentity } from '@/lib/workflows/executor/start-run-identity'
+import {
+  loadDeployedWorkflowState,
+  loadWorkflowDeploymentVersionState,
+  loadWorkflowFromNormalizedTables,
+  type NormalizedWorkflowData,
+} from '@/lib/workflows/persistence/utils'
+import { TriggerUtils } from '@/lib/workflows/triggers/triggers'
+import { updateWorkflowRunCounts } from '@/lib/workflows/utils'
+import { withCustomBlockOverlay } from '@/blocks/custom/server-overlay'
+import { Executor } from '@/executor'
+import type { ExecutionSnapshot } from '@/executor/execution/snapshot'
+import type {
+  BlockCompletionCallbackData,
+  ChildWorkflowContext,
+  ContextExtensions,
+  ExecutionCallbacks,
+  ExecutionTestHooks,
+  IterationContext,
+  SerializableExecutionState,
+} from '@/executor/execution/types'
+import type { ExecutionResult, StartBlockRunMetadata } from '@/executor/types'
+import { hasExecutionResult } from '@/executor/utils/errors'
+import { projectResolvedSecretDiagnosticError } from '@/executor/utils/resolved-secret-content-projection'
+import {
+  createResolvedSecretTraceRegistry,
+  isResolvedSecretTraceProvenanceV1,
+  type ResolvedSecretTraceProvenanceV1,
+  type ResolvedSecretTraceRegistry,
+} from '@/executor/utils/resolved-secret-trace-registry'
+import { isRunMetadataEnabled } from '@/executor/utils/start-block'
+import {
+  buildLoopSentinelEndId,
+  buildParallelSentinelEndId,
+} from '@/executor/utils/subflow-node-id-codec'
+import { Serializer } from '@/serializer'
+
+const logger = createLogger('ExecutionCore')
+
+const EnvVarsSchema = z.record(z.string(), z.string())
+
+/**
+ * Surfaces the underlying driver error from a wrapped error chain.
+ *
+ * Drizzle wraps the original `postgres`/Node driver error as `error.cause`,
+ * which the logger's Error serializer drops (it only emits own-enumerable
+ * keys). Walking the chain from `error` itself and preferring the first error
+ * carrying a `code` exposes the diagnostic fields — notably the Postgres
+ * `code` — that distinguish a connection drop (`08006`), a rejected connection
+ * (`53300`), and a statement timeout (`57014`) behind an opaque "Failed query"
+ * message. Starting at `error` also captures a bare driver error that reaches
+ * this path unwrapped; when no error in the chain carries a `code`, it falls
+ * back to the first wrapped cause (the top-level error is already logged on its
+ * own, so it is not echoed here).
+ */
+function describeErrorCause(error: unknown): Record<string, unknown> | undefined {
+  try {
+    let driver: (Error & Record<string, unknown>) | undefined
+    let current: unknown = error
+    for (let depth = 0; depth < 10 && current instanceof Error; depth++) {
+      const candidate = current as Error & Record<string, unknown>
+      if (candidate.code !== undefined) {
+        driver = candidate
+        break
+      }
+      if (depth === 1) driver = candidate
+      current = candidate.cause
+    }
+    if (!driver) return undefined
+    return filterUndefined({
+      name: driver.name,
+      message: redactBoundParameters(driver.message),
+      code: driver.code,
+      severity: driver.severity,
+      detail: driver.detail,
+      routine: driver.routine,
+      errno: driver.errno,
+      syscall: driver.syscall,
+    })
+  } catch {
+    return undefined
+  }
+}
+
+/** An execution environment together with the identities it was resolved for. */
+export interface PreloadedExecutionEnvironment {
+  personalUserId: string | undefined
+  workspaceUserId: string
+  workspaceId: string
+  snapshot: EnvironmentResolutionSnapshot
+}
+
+export interface ExecuteWorkflowCoreOptions {
+  snapshot: ExecutionSnapshot
+  callbacks: ExecutionCallbacks
+  loggingSession: LoggingSession
+  /** Required delivery must settle before the workflow can persist a successful outcome. */
+  finalizeDelivery?: (result: ExecutionResult) => Promise<void>
+  skipLogCreation?: boolean
+  abortSignal?: AbortSignal
+  includeFileBase64?: boolean
+  base64MaxBytes?: number
+  stopAfterBlockId?: string
+  testHooks?: ExecutionTestHooks
+  /** Trusted encrypted provenance captured by a server-only pre-execution boundary. */
+  trustedInitialResolvedSecretTraceProvenance?: ResolvedSecretTraceProvenanceV1
+  /** Immutable deployment admitted by the durable parent log for a resumed execution. */
+  resumeDeploymentVersionId?: string
+  /**
+   * Draft state the caller already loaded for this draft-state run. Reused instead of
+   * reading the draft tables again, so the graph that executes is the snapshot the
+   * caller validated its trigger and output selectors against.
+   */
+  draftState?: NormalizedWorkflowData
+  /**
+   * Environment the caller already resolved for this run, reused instead of loading
+   * and decrypting it again. Used only when it was resolved for exactly the
+   * identities and workspace this run resolves its environment for.
+   */
+  preloadedEnvironment?: PreloadedExecutionEnvironment
+  /** Run-from-block mode: execute starting from a specific block using cached upstream outputs */
+  runFromBlock?: {
+    startBlockId: string
+    sourceSnapshot: SerializableExecutionState
+    sourceExecutionId?: string
+    /** Mocked upstream outputs (block name/id → output object) overlaid on the snapshot. */
+    variableInputs?: Record<string, unknown>
+  }
+}
+
+function parseVariableValueByType(value: unknown, type: string): unknown {
+  const refValue = parseLargeExecutionValue(value)
+  if (refValue !== undefined) {
+    return refValue
+  }
+
+  if (value === null || value === undefined) {
+    switch (type) {
+      case 'number':
+        return 0
+      case 'boolean':
+        return false
+      case 'array':
+        return []
+      case 'object':
+        return {}
+      default:
+        return ''
+    }
+  }
+
+  if (type === 'number') {
+    if (typeof value === 'number') return value
+    if (typeof value === 'string') {
+      const num = Number(value)
+      return Number.isNaN(num) ? 0 : num
+    }
+    return 0
+  }
+
+  if (type === 'boolean') {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true'
+    }
+    return Boolean(value)
+  }
+
+  if (type === 'array') {
+    if (Array.isArray(value)) return value
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        return JSON.parse(value)
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
+  if (type === 'object') {
+    if (isRecordLike(value)) return value
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        return JSON.parse(value)
+      } catch {
+        return {}
+      }
+    }
+    return {}
+  }
+
+  // string or plain
+  return typeof value === 'string' ? value : String(value)
+}
+
+function restoreBlockStateSecretProvenance(
+  redacted: SerializableExecutionState['blockStates'],
+  original: SerializableExecutionState['blockStates']
+): SerializableExecutionState['blockStates'] {
+  for (const [blockId, originalState] of Object.entries(original)) {
+    const redactedState = redacted[blockId]
+    if (redactedState && originalState.resolvedSecretTraceProvenance) {
+      redacted[blockId] = {
+        ...redactedState,
+        resolvedSecretTraceProvenance: originalState.resolvedSecretTraceProvenance,
+      }
+    }
+  }
+  return redacted
+}
+
+type ExecutionErrorWithFinalizationFlag = Error & {
+  executionFinalizedByCore?: boolean
+}
+
+export const FINALIZED_EXECUTION_ID_TTL_MS = 5 * 60 * 1000
+
+const finalizedExecutionIds = new Map<string, number>()
+
+function cleanupExpiredFinalizedExecutionIds(now = Date.now()): void {
+  for (const [executionId, expiresAt] of finalizedExecutionIds.entries()) {
+    if (expiresAt <= now) {
+      finalizedExecutionIds.delete(executionId)
+    }
+  }
+}
+
+function rememberFinalizedExecutionId(executionId: string): void {
+  const now = Date.now()
+
+  cleanupExpiredFinalizedExecutionIds(now)
+  finalizedExecutionIds.set(executionId, now + FINALIZED_EXECUTION_ID_TTL_MS)
+}
+
+async function clearExecutionCancellationSafely(
+  executionId: string,
+  requestId: string
+): Promise<void> {
+  try {
+    await clearExecutionCancellation(executionId)
+  } catch (error) {
+    logger.error(`[${requestId}] Failed to clear execution cancellation`, { error, executionId })
+  }
+}
+
+function markExecutionFinalizedByCore(error: unknown, executionId: string): void {
+  rememberFinalizedExecutionId(executionId)
+
+  if (error instanceof Error) {
+    ;(error as ExecutionErrorWithFinalizationFlag).executionFinalizedByCore = true
+  }
+}
+
+export function wasExecutionFinalizedByCore(error: unknown, executionId?: string): boolean {
+  cleanupExpiredFinalizedExecutionIds()
+
+  if (executionId && finalizedExecutionIds.has(executionId)) {
+    return true
+  }
+
+  return (
+    error instanceof Error &&
+    (error as ExecutionErrorWithFinalizationFlag).executionFinalizedByCore === true
+  )
+}
+
+/**
+ * Counts a settled run — completed, failed, or cancelled alike — on the
+ * workflow and stamps `lastRunAt`. Paused runs are not settled and are counted
+ * when they finish. Awaited from the finalization path rather than fired and
+ * forgotten, so a process reload after the log write cannot drop it. A run
+ * whose workspace or workflow was deleted has no row left to count on.
+ */
+async function recordSettledRun(
+  workflowId: string,
+  requestId: string,
+  loggingSession: LoggingSession
+): Promise<void> {
+  if (loggingSession.getDeletedScope()) return
+  try {
+    await updateWorkflowRunCounts(workflowId)
+  } catch (error) {
+    logger.error(`[${requestId}] Failed to update run counts`, { error })
+  }
+}
+
+/**
+ * Builds a run's trace spans for its log. Spans are diagnostics: a failure to
+ * build them is logged and the run is finalized without them, so the log,
+ * pause, billing, and run counts still settle.
+ */
+function buildTraceSpansForLog(
+  result: ExecutionResult,
+  loggingSession: LoggingSession,
+  requestId: string,
+  executionId: string
+): ReturnType<typeof buildTraceSpans> {
+  try {
+    return buildTraceSpans(result)
+  } catch (error) {
+    logger.error(
+      `[${requestId}] Failed to build trace spans; finalizing without them`,
+      loggingSession.projectDiagnosticError(error, { executionId })
+    )
+    return { traceSpans: [], totalDuration: result.metadata?.duration ?? 0 }
+  }
+}
+
+async function finalizeExecutionOutcome(params: {
+  result: ExecutionResult
+  loggingSession: LoggingSession
+  workflowId: string
+  executionId: string
+  requestId: string
+  workflowInput: unknown
+  abortSignal?: AbortSignal
+}): Promise<void> {
+  const { result, loggingSession, workflowId, executionId, requestId, workflowInput, abortSignal } =
+    params
+  const { traceSpans, totalDuration } = buildTraceSpansForLog(
+    result,
+    loggingSession,
+    requestId,
+    executionId
+  )
+  const endedAt = new Date().toISOString()
+
+  try {
+    if (result.status === 'cancelled' && isTimeoutAbortReason(abortSignal?.reason)) {
+      await loggingSession.safeCompleteWithError({
+        endedAt,
+        totalDurationMs: totalDuration || 0,
+        error: { message: getTimeoutErrorMessage() },
+        traceSpans: traceSpans || [],
+        executionState: result.executionState,
+      })
+    } else if (result.status === 'cancelled') {
+      await loggingSession.safeCompleteWithCancellation({
+        endedAt,
+        totalDurationMs: totalDuration || 0,
+        traceSpans: traceSpans || [],
+        executionState: result.executionState,
+      })
+    } else if (result.status === 'paused') {
+      await loggingSession.safeCompleteWithPause({
+        endedAt,
+        totalDurationMs: totalDuration || 0,
+        traceSpans: traceSpans || [],
+        workflowInput,
+        executionState: result.executionState,
+      })
+      if (
+        loggingSession.hasCompleted() &&
+        loggingSession.getPersistedCompletionStatus() === 'cancelled'
+      ) {
+        await clearExecutionCancellationSafely(executionId, requestId)
+      }
+      return
+    } else {
+      await loggingSession.safeComplete({
+        endedAt,
+        totalDurationMs: totalDuration || 0,
+        finalOutput: result.output || {},
+        traceSpans: traceSpans || [],
+        workflowInput,
+        executionState: result.executionState,
+      })
+    }
+
+    if (loggingSession.hasCompleted()) {
+      await clearExecutionCancellationSafely(executionId, requestId)
+    }
+  } catch (error) {
+    logger.warn(
+      `[${requestId}] Post-execution finalization failed`,
+      loggingSession.projectDiagnosticError(error, {
+        executionId,
+        status: result.status,
+      })
+    )
+  }
+
+  // Every non-paused outcome above is a settled run; the paused branch returned.
+  await recordSettledRun(workflowId, requestId, loggingSession)
+}
+
+async function finalizeExecutionError(params: {
+  error: unknown
+  loggingSession: LoggingSession
+  workflowId: string
+  executionId: string
+  requestId: string
+}): Promise<boolean> {
+  const { error, loggingSession, workflowId, executionId, requestId } = params
+  const executionResult = hasExecutionResult(error) ? error.executionResult : undefined
+  const { traceSpans } = executionResult
+    ? buildTraceSpansForLog(executionResult, loggingSession, requestId, executionId)
+    : { traceSpans: [] }
+
+  let finalized = false
+  try {
+    await loggingSession.safeCompleteWithError({
+      endedAt: new Date().toISOString(),
+      totalDurationMs: executionResult?.metadata?.duration || 0,
+      error: {
+        message: getErrorMessage(error, 'Execution failed'),
+        stackTrace: error instanceof Error ? error.stack : undefined,
+      },
+      traceSpans,
+      executionState: executionResult?.executionState,
+    })
+
+    finalized = loggingSession.hasCompleted()
+    if (finalized) {
+      await clearExecutionCancellationSafely(executionId, requestId)
+    }
+  } catch (postExecError) {
+    logger.error(
+      `[${requestId}] Post-execution error logging failed`,
+      loggingSession.projectDiagnosticError(postExecError, { executionId })
+    )
+  }
+
+  // A run that threw after starting is a failed run, and failed runs count.
+  await recordSettledRun(workflowId, requestId, loggingSession)
+  return finalized
+}
+
+interface ExecutionEnvironmentIdentities {
+  /** Undefined for an anonymous public-API run, which lends no personal namespace. */
+  personalEnvUserId: string | undefined
+  workspaceEnvUserId: string
+}
+
+/** Whose personal and workspace variables this run resolves; throws on incomplete metadata. */
+function resolveExecutionEnvironmentIdentities(
+  metadata: ExecutionSnapshot['metadata']
+): ExecutionEnvironmentIdentities {
+  /**
+   * Personal variables belong to whoever is running, whenever that is knowable.
+   * `enforceCredentialAccess` is the principal layer's own answer to "is there
+   * an identifiable caller": it is set from `principal.kind !== 'workspace_api_key'`,
+   * so a session, personal API key, or delegated run reads its own personal
+   * variables rather than borrowing the workflow owner's.
+   *
+   * The workflow owner remains the fallback for a workspace API key, schedule,
+   * or webhook. Someone in the workspace configured each of those, and a
+   * deployed workflow is routinely authored against its owner's personal keys.
+   *
+   * An anonymous public-API run resolves no personal variables at all. Anyone
+   * can call that endpoint, so there is no caller to read as and no person whose
+   * private namespace it would be reasonable to lend — such a workflow runs on
+   * workspace secrets alone.
+   */
+  const identifiedCallerUserId =
+    (metadata.isClientSession && metadata.sessionUserId) ||
+    (metadata.enforceCredentialAccess ? metadata.userId : undefined)
+
+  const personalEnvUserId = metadata.isPublicApiAccess
+    ? undefined
+    : identifiedCallerUserId || metadata.workflowUserId
+
+  if (!metadata.isPublicApiAccess && !personalEnvUserId) {
+    throw new Error('Missing workflowUserId in execution metadata')
+  }
+
+  /**
+   * The actor already carries the identity each trigger kind should authorize
+   * workspace secrets against: the caller for a session, personal API key, or
+   * delegated principal, and the workspace billing account for a workspace API
+   * key, schedule, webhook, or anonymous public-API call, where no caller is
+   * identifiable. Deriving it again here would only risk disagreeing with the
+   * principal layer.
+   */
+  const workspaceEnvUserId = metadata.userId || personalEnvUserId
+  if (!workspaceEnvUserId) {
+    throw new Error('Missing execution actor in execution metadata')
+  }
+
+  return { personalEnvUserId, workspaceEnvUserId }
+}
+
+function readPiiPolicyRow(workspaceId: string) {
+  return db
+    .select({ orgSettings: organization.dataRetentionSettings })
+    .from(workspace)
+    .leftJoin(organization, eq(organization.id, workspace.organizationId))
+    .where(eq(workspace.id, workspaceId))
+    .limit(1)
+    .then(([row]) => row)
+}
+
+/**
+ * Reads that depend only on who the run is and which workspace it runs in, so they
+ * can start before the custom-block overlay is resolved.
+ */
+interface ExecutionReads {
+  environment: Promise<EnvironmentResolutionSnapshot>
+  /**
+   * The org/workspace PII redaction policy, resolved once for both the input stage
+   * and the block-outputs stage. Stored rules are the source of truth; absence
+   * yields the disabled default.
+   */
+  piiPolicyRow: Promise<Awaited<ReturnType<typeof readPiiPolicyRow>>>
+}
+
+function startExecutionReads(
+  options: ExecuteWorkflowCoreOptions,
+  workspaceId: string,
+  { personalEnvUserId, workspaceEnvUserId }: ExecutionEnvironmentIdentities
+): ExecutionReads {
+  const { preloadedEnvironment } = options
+  const environment =
+    preloadedEnvironment &&
+    preloadedEnvironment.personalUserId === personalEnvUserId &&
+    preloadedEnvironment.workspaceUserId === workspaceEnvUserId &&
+    preloadedEnvironment.workspaceId === workspaceId
+      ? Promise.resolve(preloadedEnvironment.snapshot)
+      : withDatabaseReadRetry(
+          () => getExecutionEnvironment(personalEnvUserId, workspaceEnvUserId, workspaceId),
+          { label: 'getExecutionEnvironment' }
+        )
+  const piiPolicyRow = withDatabaseReadRetry(() => readPiiPolicyRow(workspaceId), {
+    label: 'resolvePiiRedactionPolicy',
+  })
+  // Awaited later by the run; a run that fails first must not leave them unhandled.
+  environment.catch(() => {})
+  piiPolicyRow.catch(() => {})
+  return { environment, piiPolicyRow }
+}
+
+/**
+ * Starts the run's identity-scoped reads ahead of the overlay. Metadata that cannot
+ * name those identities starts nothing here: the run itself rejects it, inside its
+ * own error handling.
+ */
+function prefetchExecutionReads(options: ExecuteWorkflowCoreOptions): ExecutionReads | undefined {
+  const { metadata } = options.snapshot
+  if (!metadata.workspaceId) return undefined
+  let identities: ExecutionEnvironmentIdentities
+  try {
+    identities = resolveExecutionEnvironmentIdentities(metadata)
+  } catch {
+    return undefined
+  }
+  return startExecutionReads(options, metadata.workspaceId, identities)
+}
+
+/**
+ * Establish the custom-block registry overlay for the execution's organization,
+ * then run the core. Wrapping here — the shared choke point for the sync route and
+ * the background job — puts `custom_block_*` types in scope for serialization,
+ * execution, and any nested child-workflow serialization (ALS propagates to the
+ * whole async subtree).
+ *
+ * Also begins the execution-signal subscriber's connection first: every
+ * execution subscribes to cancellation signals once its engine starts, so
+ * starting that handshake here — the one path all of them share — lets it
+ * overlap the reads and preprocessing ahead of the subscribe instead of being
+ * paid inside its readiness budget. Connecting on intent rather than at worker
+ * start keeps the tasks that never execute a workflow, most of the fleet by
+ * volume, from opening a connection they would never use.
+ *
+ * Runs under `runWorkflowOutsideContentDelivery`, so a run Chat started reads what any run reads.
+ */
+export function executeWorkflowCore(options: ExecuteWorkflowCoreOptions): Promise<ExecutionResult> {
+  return runWorkflowOutsideContentDelivery(() => executeWorkflowCoreInRun(options))
+}
+
+async function executeWorkflowCoreInRun(
+  options: ExecuteWorkflowCoreOptions
+): Promise<ExecutionResult> {
+  connectExecutionSignalHub()
+  const workspaceId = options.snapshot.metadata.workspaceId
+  const prefetchedReads = prefetchExecutionReads(options)
+  const [rows, outboundContext] = await Promise.all([
+    workspaceId
+      ? withDatabaseReadRetry(() => getCustomBlockRowsForWorkspace(workspaceId), {
+          label: 'getCustomBlockRowsForWorkspace',
+        })
+      : [],
+    isOutboundRoutingEnabled()
+      ? resolveActiveWorkflowApplicationContext({
+          workflowId: options.snapshot.metadata.workflowId,
+          assertedWorkspaceId: workspaceId,
+        })
+      : undefined,
+  ])
+  const execute = () =>
+    withCustomBlockOverlay(rows, () => executeWorkflowCoreImpl(options, prefetchedReads))
+  if (!outboundContext) return execute()
+  return runWithOutboundOrganization(outboundContext.workspaceOrganizationId, execute)
+}
+
+async function executeWorkflowCoreImpl(
+  options: ExecuteWorkflowCoreOptions,
+  prefetchedReads: ExecutionReads | undefined
+): Promise<ExecutionResult> {
+  const {
+    snapshot,
+    callbacks,
+    loggingSession,
+    skipLogCreation,
+    abortSignal,
+    includeFileBase64,
+    base64MaxBytes,
+    testHooks,
+    runFromBlock,
+    resumeDeploymentVersionId,
+    draftState,
+  } = options
+  loggingSession.setExecutionDeadlineAt(getExecutionDeadlineAt(abortSignal))
+  const { metadata, input, workflowVariables, selectedOutputs } = snapshot
+  const { requestId, workflowId, userId, triggerType, executionId, triggerBlockId, useDraftState } =
+    metadata
+  const { onBlockStart, onBlockComplete, onStream, onChildWorkflowInstanceReady } = callbacks
+
+  const providedWorkspaceId = metadata.workspaceId
+  if (!providedWorkspaceId) {
+    throw new Error(`Execution metadata missing workspaceId for workflow ${workflowId}`)
+  }
+  const resumeFromSnapshot = metadata.resumeFromSnapshot === true
+  const stopAfterBlockId =
+    options.stopAfterBlockId ?? (resumeFromSnapshot ? metadata.stopAfterBlockId : undefined)
+  if (!resumeFromSnapshot && resumeDeploymentVersionId !== undefined) {
+    throw new Error('Deployment version authority can only be supplied for a resumed execution')
+  }
+  if (resumeFromSnapshot && useDraftState && resumeDeploymentVersionId !== undefined) {
+    throw new Error('Draft resume cannot carry deployment version authority')
+  }
+  if (resumeFromSnapshot && !useDraftState && !resumeDeploymentVersionId) {
+    throw new Error('Deployed resume requires its admitted deployment version')
+  }
+
+  let processedInput = input || {}
+  let deploymentVersionId: string | undefined
+  let loggingStarted = false
+  let resolvedSecretTraceRegistry: ResolvedSecretTraceRegistry | undefined
+  const pendingLifecycleCallbacks = new Set<Promise<void>>()
+
+  const trackLifecycleCallback = (promise: Promise<void>) => {
+    pendingLifecycleCallbacks.add(promise)
+    void promise
+      .finally(() => {
+        pendingLifecycleCallbacks.delete(promise)
+      })
+      .catch(() => {})
+  }
+
+  const waitForLifecycleCallbacks = async () => {
+    while (pendingLifecycleCallbacks.size > 0) {
+      await Promise.allSettled([...pendingLifecycleCallbacks])
+    }
+    // A custom block's child is a separate execution with its own log row, and
+    // the engine does not drain in-flight nodes on cancel/timeout — await it here
+    // (bounded) so the row is not left `running` when this run finishes or the
+    // worker exits.
+    await waitForChildRuns(executionId)
+  }
+
+  try {
+    const identities = resolveExecutionEnvironmentIdentities(metadata)
+    const reads = prefetchedReads ?? startExecutionReads(options, providedWorkspaceId, identities)
+    const { personalEnvUserId, workspaceEnvUserId } = identities
+
+    /**
+     * Resolves the workflow state from the override, the draft tables, or the
+     * deployed snapshot. The async load (draft/deployed) has no data dependency
+     * on the environment load, so the two are awaited concurrently below.
+     */
+    const loadWorkflowState = async () => {
+      if (resumeFromSnapshot && !useDraftState) {
+        if (!resumeDeploymentVersionId) {
+          throw new Error('Deployed resume requires its admitted deployment version')
+        }
+        const deployedData = await loadWorkflowDeploymentVersionState(
+          workflowId,
+          resumeDeploymentVersionId,
+          providedWorkspaceId
+        )
+        logger.info(`[${requestId}] Using admitted historical deployment state (resumed execution)`)
+        return {
+          blocks: deployedData.blocks,
+          edges: deployedData.edges,
+          loops: deployedData.loops,
+          parallels: deployedData.parallels,
+          deploymentVersionId: deployedData.deploymentVersionId,
+        }
+      }
+
+      if (metadata.workflowStateOverride) {
+        const override = metadata.workflowStateOverride
+        logger.info(`[${requestId}] Using workflow state override (diff workflow execution)`, {
+          blocksCount: Object.keys(override.blocks).length,
+          edgesCount: override.edges.length,
+        })
+        return {
+          blocks: override.blocks,
+          edges: override.edges,
+          loops: override.loops || {},
+          parallels: override.parallels || {},
+          deploymentVersionId: override.deploymentVersionId,
+        }
+      }
+
+      if (useDraftState) {
+        const draftData = draftState ?? (await loadWorkflowFromNormalizedTables(workflowId))
+
+        if (!draftData) {
+          throw new Error('Workflow not found or not yet saved')
+        }
+
+        logger.info(
+          `[${requestId}] Using draft workflow state from normalized tables (client execution)`
+        )
+        return {
+          blocks: draftData.blocks,
+          edges: draftData.edges,
+          loops: draftData.loops,
+          parallels: draftData.parallels,
+          deploymentVersionId: undefined,
+        }
+      }
+
+      const deployedData = await loadDeployedWorkflowState(workflowId, providedWorkspaceId)
+      logger.info(`[${requestId}] Using deployed workflow state (deployed execution)`)
+      return {
+        blocks: deployedData.blocks,
+        edges: deployedData.edges,
+        loops: deployedData.loops,
+        parallels: deployedData.parallels,
+        deploymentVersionId: deployedData.deploymentVersionId,
+      }
+    }
+
+    const [workflowState, env, piiPolicyRow] = await Promise.all([
+      withDatabaseReadRetry(loadWorkflowState, { label: 'loadWorkflowState' }),
+      reads.environment,
+      reads.piiPolicyRow,
+    ])
+
+    const { blocks, loops, parallels } = workflowState
+    const edges: Edge[] = workflowState.edges
+    deploymentVersionId = workflowState.deploymentVersionId
+
+    const mergedStates = mergeSubblockStateWithValues(blocks)
+
+    const {
+      personalEncrypted,
+      workspaceEncrypted,
+      personalDecrypted,
+      workspaceDecrypted,
+      decryptionFailures,
+      personalOwners,
+      workspaceUnredactedKeys,
+    } = env
+
+    // Use encrypted values for logging (don't log decrypted secrets)
+    const variables = EnvVarsSchema.parse({ ...personalEncrypted, ...workspaceEncrypted })
+
+    // Use already-decrypted values for execution (no redundant decryption)
+    const decryptedEnvVars: Record<string, string> = { ...personalDecrypted, ...workspaceDecrypted }
+
+    const restoredState =
+      runFromBlock?.sourceSnapshot ?? (resumeFromSnapshot ? snapshot.state : undefined)
+    const restoreTrusted = resumeFromSnapshot || Boolean(runFromBlock?.sourceExecutionId)
+    // An EMPTY snapshot (the server-synthesized base for a pure-mock isolated
+    // block run) restores no values at all, so there is nothing whose provenance
+    // could be untrusted — latching incomplete here withheld every isolated
+    // unit-test result from the model. Any snapshot WITH content keeps the guard.
+    const restoredStateEmpty =
+      restoredState !== undefined &&
+      Object.keys(restoredState.blockStates ?? {}).length === 0 &&
+      (restoredState.executedBlocks ?? []).length === 0
+    const trustedLargeValueAccess = restoreTrusted
+      ? restoredState?.trustedLargeValueAccess
+      : undefined
+    const requireRestoredProvenance = restoredState !== undefined && !restoredStateEmpty
+    resolvedSecretTraceRegistry = await createResolvedSecretTraceRegistry({
+      personalEncrypted,
+      workspaceEncrypted,
+      personalDecrypted,
+      workspaceDecrypted,
+      decryptionFailures,
+      personalOwners,
+      workspaceUnredactedKeys,
+      restoredProvenance: restoreTrusted ? restoredState?.resolvedSecretTraceProvenance : undefined,
+      restoredCheckpointVersion: restoredState?.resolvedSecretTraceCheckpointVersion,
+      restoreTrusted,
+      requireRestoredProvenance,
+      scope: { userId: personalEnvUserId ?? workspaceEnvUserId, workspaceId: providedWorkspaceId },
+    })
+    if (restoredState && !restoreTrusted && !restoredStateEmpty) {
+      resolvedSecretTraceRegistry.markIncomplete('restored-provenance-untrusted')
+    }
+    if (options.trustedInitialResolvedSecretTraceProvenance !== undefined) {
+      await resolvedSecretTraceRegistry.importProvenance(
+        options.trustedInitialResolvedSecretTraceProvenance,
+        { trusted: true, origin: 'executionCore.initialProvenance' }
+      )
+    }
+    loggingSession.setResolvedSecretTraceRegistry(resolvedSecretTraceRegistry)
+
+    loggingStarted = await loggingSession.safeStart({
+      userId,
+      billingAttribution: metadata.billingAttribution,
+      workspaceId: providedWorkspaceId,
+      variables,
+      triggerData: metadata.correlation ? { correlation: metadata.correlation } : undefined,
+      skipLogCreation,
+      deploymentVersionId,
+      workflowState: { blocks, edges, loops, parallels },
+    })
+    /**
+     * A start that failed because the run's workspace or workflow is gone ends the run here,
+     * before any block spends on providers: nothing could ever record it or stop it.
+     */
+    const deletedScope = loggingSession.getDeletedScope()
+    if (deletedScope) throw new ExecutionScopeDeletedError(executionId, deletedScope)
+
+    // Use edges directly - trigger-to-trigger edges are prevented at creation time
+    const filteredEdges = edges
+
+    // Check if this is a resume execution before trigger resolution
+    const resumePendingQueue = snapshot.state?.pendingQueue
+    const resumeRemainingEdges = snapshot.state?.remainingEdges
+    const resumeTerminalNoop = metadata.resumeTerminalNoop === true
+
+    let resolvedTriggerBlockId = triggerBlockId
+
+    // Resume executions derive their queue from the snapshot. Even an empty
+    // queue is meaningful: a terminal pause block has no downstream work.
+    if (
+      resumeFromSnapshot &&
+      (resumePendingQueue !== undefined || resumeRemainingEdges !== undefined || resumeTerminalNoop)
+    ) {
+      resolvedTriggerBlockId = undefined
+      logger.info(`[${requestId}] Skipping trigger resolution for resume execution`, {
+        pendingQueueLength: resumePendingQueue?.length ?? 0,
+        remainingEdgeCount: resumeRemainingEdges?.length ?? 0,
+        resumeTerminalNoop,
+      })
+    } else if (!triggerBlockId) {
+      const executionKind =
+        triggerType === 'api' || triggerType === 'chat'
+          ? (triggerType as 'api' | 'chat')
+          : triggerType === 'webhook' || triggerType === 'schedule'
+            ? 'external'
+            : 'manual'
+
+      const startBlock = TriggerUtils.findStartBlock(mergedStates, executionKind, false)
+
+      if (!startBlock) {
+        throw new UserFailure('No start block found. Add a start block to this workflow.')
+      }
+
+      resolvedTriggerBlockId = startBlock.blockId
+      logger.info(`[${requestId}] Identified trigger block for ${executionKind} execution:`, {
+        blockId: resolvedTriggerBlockId,
+        blockType: startBlock.block.type,
+        path: startBlock.path,
+      })
+    }
+
+    // Serialize workflow
+    const serializedWorkflow = new Serializer().serializeWorkflow(
+      mergedStates,
+      filteredEdges,
+      loops,
+      parallels,
+      true
+    )
+    const inputFileKeys = new Set<string>()
+    processedInput =
+      resumeFromSnapshot || runFromBlock
+        ? (input ?? {})
+        : await processInputFileFields(
+            input ?? {},
+            serializedWorkflow.blocks,
+            { workspaceId: providedWorkspaceId, workflowId, executionId },
+            requestId,
+            userId,
+            resolvedTriggerBlockId,
+            (file) => {
+              if (file.key) inputFileKeys.add(file.key)
+            },
+            getStoredFileReferenceScope(metadata.principal)
+          )
+
+    // Resolve stopAfterBlockId for loop/parallel containers to their sentinel-end IDs
+    let resolvedStopAfterBlockId = stopAfterBlockId
+    if (stopAfterBlockId) {
+      if (serializedWorkflow.loops?.[stopAfterBlockId]) {
+        resolvedStopAfterBlockId = buildLoopSentinelEndId(stopAfterBlockId)
+      } else if (serializedWorkflow.parallels?.[stopAfterBlockId]) {
+        resolvedStopAfterBlockId = buildParallelSentinelEndId(stopAfterBlockId)
+      } else if (
+        !serializedWorkflow.blocks.some((block) => block.id === stopAfterBlockId && block.enabled)
+      ) {
+        // The engine stops on an exact node id and skips disabled blocks, so an absent or
+        // disabled target would run everything.
+        throw new Error(
+          `Stop block ${stopAfterBlockId} is not an enabled block in the workflow being executed`
+        )
+      }
+    }
+
+    // Create and execute workflow with callbacks
+    if (resumeFromSnapshot) {
+      logger.info(`[${requestId}] Resume execution detected`, {
+        resumePendingQueue,
+        hasState: !!snapshot.state,
+        stateBlockStatesCount: snapshot.state
+          ? Object.keys(snapshot.state.blockStates || {}).length
+          : 0,
+        executedBlocksCount: snapshot.state?.executedBlocks?.length ?? 0,
+        useDraftState,
+      })
+    }
+
+    const wrappedOnBlockComplete = (
+      blockId: string,
+      blockName: string,
+      blockType: string,
+      output: BlockCompletionCallbackData,
+      iterationContext?: IterationContext,
+      childWorkflowContext?: ChildWorkflowContext
+    ) => {
+      let persistenceSucceeded = false
+      const persistencePromise = (async () => {
+        await loggingSession.onBlockComplete(blockId, blockName, blockType, output)
+        persistenceSucceeded = true
+      })().catch((error) => {
+        logger.warn(
+          `[${requestId}] Block completion persistence failed`,
+          loggingSession.projectDiagnosticError(error, {
+            executionId,
+            blockId,
+            blockType,
+          })
+        )
+      })
+
+      const lifecyclePromise = (async () => {
+        await persistencePromise
+        if (!persistenceSucceeded || !onBlockComplete) return
+
+        try {
+          await onBlockComplete(
+            blockId,
+            blockName,
+            blockType,
+            output,
+            iterationContext,
+            childWorkflowContext
+          )
+        } catch (error) {
+          logger.warn(
+            `[${requestId}] Block completion callback failed`,
+            loggingSession.projectDiagnosticError(error, {
+              executionId,
+              blockId,
+              blockType,
+            })
+          )
+        }
+      })()
+
+      trackLifecycleCallback(lifecyclePromise)
+      return persistencePromise
+    }
+
+    const wrappedOnBlockStart = (
+      blockId: string,
+      blockName: string,
+      blockType: string,
+      executionOrder: number,
+      iterationContext?: IterationContext,
+      childWorkflowContext?: ChildWorkflowContext
+    ) => {
+      let persistenceSucceeded = false
+      const persistencePromise = (async () => {
+        await loggingSession.onBlockStart(blockId, blockName, blockType, new Date().toISOString())
+        persistenceSucceeded = true
+      })().catch((error) => {
+        logger.warn(
+          `[${requestId}] Block start persistence failed`,
+          loggingSession.projectDiagnosticError(error, {
+            executionId,
+            blockId,
+            blockType,
+          })
+        )
+      })
+
+      const lifecyclePromise = (async () => {
+        await persistencePromise
+        if (!persistenceSucceeded || !onBlockStart) return
+
+        try {
+          await onBlockStart(
+            blockId,
+            blockName,
+            blockType,
+            executionOrder,
+            iterationContext,
+            childWorkflowContext
+          )
+        } catch (error) {
+          logger.warn(
+            `[${requestId}] Block start callback failed`,
+            loggingSession.projectDiagnosticError(error, {
+              executionId,
+              blockId,
+              blockType,
+            })
+          )
+        }
+      })()
+
+      trackLifecycleCallback(lifecyclePromise)
+      return persistencePromise
+    }
+
+    const largeValueExecutionIds = Array.from(
+      new Set(
+        [
+          executionId,
+          runFromBlock?.sourceExecutionId,
+          ...(metadata.largeValueExecutionIds ?? []),
+          ...(trustedLargeValueAccess?.executionIds ?? []),
+        ].filter((id): id is string => Boolean(id))
+      )
+    )
+    const largeValueKeys = Array.from(
+      new Set([
+        ...(metadata.largeValueKeys ?? []),
+        ...(trustedLargeValueAccess?.largeValueKeys ?? []),
+      ])
+    )
+    const fileKeys = Array.from(
+      new Set([
+        ...(metadata.fileKeys ?? []),
+        ...(trustedLargeValueAccess?.fileKeys ?? []),
+        ...inputFileKeys,
+      ])
+    )
+    const allowLargeValueWorkflowScope =
+      metadata.allowLargeValueWorkflowScope === true ||
+      metadata.resumeFromSnapshot === true ||
+      Boolean(runFromBlock?.sourceSnapshot && !runFromBlock.sourceExecutionId) ||
+      Boolean(runFromBlock?.sourceExecutionId && !trustedLargeValueAccess)
+    loggingSession.setTraceLargeValueAccess({
+      largeValueExecutionIds,
+      largeValueKeys,
+      fileKeys,
+      allowLargeValueWorkflowScope,
+    })
+
+    const piiRedaction: EffectivePiiRedaction = resolveEffectivePiiRedaction({
+      orgSettings: piiPolicyRow?.orgSettings,
+      workspaceId: providedWorkspaceId,
+    })
+
+    if (piiRedaction.input.enabled) {
+      // Redact the input before the workflow sees it. `onFailure: 'throw'` aborts
+      // the run (handled by the surrounding catch) rather than feeding a scrub
+      // marker into execution or leaking unredacted input. A large input may
+      // already be offloaded to a large-value ref (opaque to the string walk), so
+      // hydrate → mask → re-store refs first, then mask inline strings.
+      const inputOpts = {
+        entityTypes: piiRedaction.input.entityTypes,
+        language: piiRedaction.input.language,
+        customPatterns: piiRedaction.input.customPatterns,
+        onFailure: 'throw' as const,
+      }
+      processedInput = await redactLargeValueRefsInValue(processedInput, {
+        ...inputOpts,
+        store: {
+          workspaceId: providedWorkspaceId,
+          workflowId,
+          executionId,
+          largeValueExecutionIds,
+          largeValueKeys,
+          allowLargeValueWorkflowScope,
+          userId: userId ?? undefined,
+        },
+      })
+      processedInput = await redactObjectStrings(processedInput, inputOpts)
+    }
+
+    if (piiRedaction.blockOutputs.enabled) {
+      // Resume / run-from-block restore prior block outputs into state. If those
+      // predate the blockOutputs stage being enabled, re-mask them so downstream
+      // blocks can't read unredacted PII from restored snapshot state. Masking is
+      // idempotent, so outputs already masked in the original run are unaffected.
+      //
+      // Two disjoint passes cover the whole state: `redactLargeValueRefsInValue`
+      // hydrates → masks → re-stores any value offloaded to large-value storage
+      // (>8MB refs the string walk treats as opaque), then `redactObjectStrings`
+      // masks the remaining inline string leaves. Both fail-fast (`throw`), so an
+      // unmaskable restored value aborts the resume rather than warming raw PII
+      // into `blockStates` for downstream blocks.
+      const blockOutputOpts = {
+        entityTypes: piiRedaction.blockOutputs.entityTypes,
+        language: piiRedaction.blockOutputs.language,
+        customPatterns: piiRedaction.blockOutputs.customPatterns,
+        onFailure: 'throw' as const,
+      }
+      const largeRefOpts = {
+        ...blockOutputOpts,
+        store: {
+          workspaceId: providedWorkspaceId,
+          workflowId,
+          executionId,
+          largeValueExecutionIds,
+          largeValueKeys,
+          allowLargeValueWorkflowScope,
+          userId: userId ?? undefined,
+        },
+      }
+      if (snapshot.state?.blockStates) {
+        const originalBlockStates = snapshot.state.blockStates
+        const hydrated = await redactLargeValueRefsInValue(originalBlockStates, largeRefOpts)
+        snapshot.state.blockStates = restoreBlockStateSecretProvenance(
+          await redactObjectStrings(hydrated, blockOutputOpts),
+          originalBlockStates
+        )
+      }
+      if (runFromBlock?.sourceSnapshot?.blockStates) {
+        const originalBlockStates = runFromBlock.sourceSnapshot.blockStates
+        const hydrated = await redactLargeValueRefsInValue(originalBlockStates, largeRefOpts)
+        runFromBlock.sourceSnapshot.blockStates = restoreBlockStateSecretProvenance(
+          await redactObjectStrings(hydrated, blockOutputOpts),
+          originalBlockStates
+        )
+      }
+    }
+
+    let startRunMetadata: StartBlockRunMetadata | undefined
+    if (resolvedTriggerBlockId) {
+      const entryBlock = serializedWorkflow.blocks.find(
+        (block) => block.id === resolvedTriggerBlockId
+      )
+      if (entryBlock && isRunMetadataEnabled(entryBlock)) {
+        const runIdentity = await withDatabaseReadRetry(
+          () => resolveStartBlockRunIdentity(metadata.principal),
+          { label: 'resolveStartBlockRunIdentity' }
+        )
+        startRunMetadata = {
+          ...runIdentity,
+          workspaceId: providedWorkspaceId,
+          workflowId,
+          executionId,
+          executionType: triggerType,
+          executionMode: metadata.executionMode ?? 'sync',
+          startTime: metadata.startTime,
+        }
+      }
+    }
+
+    const hasRestoredWorkflowInputProvenance =
+      restoreTrusted &&
+      restoredState !== undefined &&
+      Object.hasOwn(restoredState, 'workflowInputResolvedSecretTraceProvenance')
+    const restoredWorkflowInputProvenance = hasRestoredWorkflowInputProvenance
+      ? isResolvedSecretTraceProvenanceV1(restoredState.workflowInputResolvedSecretTraceProvenance)
+        ? restoredState.workflowInputResolvedSecretTraceProvenance
+        : { version: 1 as const, complete: false, entries: [] }
+      : undefined
+    const workflowInputResolvedSecretTraceProvenance = restoredState
+      ? restoredWorkflowInputProvenance
+      : resolvedSecretTraceRegistry.exportCommittedProvenanceForValue(processedInput)
+
+    const principalSubject = resolvePrincipalSubject(metadata.principal)
+    const contextExtensions: ContextExtensions = {
+      stream: !!onStream,
+      selectedOutputs,
+      executionId,
+      largeValueExecutionIds,
+      largeValueKeys,
+      fileKeys,
+      allowLargeValueWorkflowScope,
+      workspaceId: providedWorkspaceId,
+      userId,
+      principal: metadata.principal,
+      executorDelegationOrigin: {
+        ...(principalSubject?.kind === 'sim_user'
+          ? { subjectUserId: principalSubject.userId }
+          : {}),
+        workflowId,
+        ...(executionId ? { executionId } : {}),
+        principal: metadata.principal,
+        currentWorkflow: deploymentVersionId
+          ? { workflowId, mode: 'deployment', deploymentVersionId }
+          : { workflowId, mode: 'draft' },
+      },
+      isDeployedContext: metadata.useDraftState !== true,
+      enforceCredentialAccess: metadata.enforceCredentialAccess ?? false,
+      piiBlockOutputRedaction: piiRedaction.blockOutputs,
+      onBlockStart: wrappedOnBlockStart,
+      onBlockComplete: wrappedOnBlockComplete,
+      onStream,
+      resumeFromSnapshot,
+      resumePendingQueue,
+      remainingEdges: snapshot.state?.remainingEdges?.map((edge) => ({
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle ?? undefined,
+        targetHandle: edge.targetHandle ?? undefined,
+      })),
+      dagIncomingEdges: snapshot.state?.dagIncomingEdges,
+      snapshotState: snapshot.state,
+      resolvedSecretTraceRegistry,
+      ...(workflowInputResolvedSecretTraceProvenance
+        ? { workflowInputResolvedSecretTraceProvenance }
+        : {}),
+      metadata: {
+        ...metadata,
+        stopAfterBlockId,
+        stopAfterBlockReached:
+          resumeFromSnapshot &&
+          stopAfterBlockId !== undefined &&
+          snapshot.state?.completedPauseContexts?.includes(stopAfterBlockId) === true,
+      },
+      startRunMetadata,
+      abortSignal,
+      includeFileBase64,
+      base64MaxBytes,
+      stopAfterBlockId: resolvedStopAfterBlockId,
+      ...(testHooks ? { testHooks } : {}),
+      onChildWorkflowInstanceReady,
+      callChain: metadata.callChain,
+      // The live block stream has a single known, authenticated Sim viewer only on
+      // a client session — the execute route rejects `isClientSession` for API-key
+      // and public-API callers, so it implies an authenticated session. Every other
+      // surface (chat deployments, webhooks, schedules, background jobs) leaves this
+      // unset, which is what keeps a custom block from streaming its SOURCE
+      // workspace's block events to a consumer who may be an anonymous visitor.
+      ...(metadata.isClientSession ? { liveTraceViewerUserId: userId } : {}),
+      // The RAW callbacks, not the `wrapped*` composites above: these emit to the stream
+      // without writing this run's progress markers. Only a custom block's child uses them.
+      liveStreamCallbacks: { onBlockStart, onBlockComplete },
+    }
+
+    if (snapshot.state) {
+      await warmLargeValueRefs(snapshot.state, {
+        workspaceId: providedWorkspaceId,
+        workflowId,
+        executionId,
+        largeValueExecutionIds,
+        largeValueKeys,
+        fileKeys,
+        allowLargeValueWorkflowScope,
+        userId,
+      })
+    }
+    for (const variable of Object.values(workflowVariables)) {
+      if (
+        isPlainRecord(variable) &&
+        variable.value !== undefined &&
+        typeof variable.type === 'string'
+      ) {
+        variable.value = parseVariableValueByType(variable.value, variable.type)
+      }
+    }
+
+    const executorInstance = new Executor({
+      workflow: serializedWorkflow,
+      envVarValues: decryptedEnvVars,
+      workflowInput: processedInput,
+      workflowVariables,
+      contextExtensions,
+    })
+
+    const result = runFromBlock
+      ? ((await executorInstance.executeFromBlock(
+          workflowId,
+          runFromBlock.startBlockId,
+          runFromBlock.sourceSnapshot,
+          runFromBlock.variableInputs
+        )) as ExecutionResult)
+      : ((await executorInstance.execute(workflowId, resolvedTriggerBlockId)) as ExecutionResult)
+
+    await waitForLifecycleCallbacks()
+
+    if (options.finalizeDelivery) {
+      try {
+        await options.finalizeDelivery(result)
+      } catch (error) {
+        throw Object.assign(toError(error), { executionResult: result })
+      }
+    }
+
+    loggingSession.setPostExecutionPromise(
+      (async () => {
+        try {
+          await finalizeExecutionOutcome({
+            result,
+            loggingSession,
+            workflowId,
+            executionId,
+            requestId,
+            workflowInput: processedInput,
+            abortSignal,
+          })
+        } catch (postExecError) {
+          logger.error(
+            `[${requestId}] Post-execution logging failed`,
+            loggingSession.projectDiagnosticError(postExecError, { executionId })
+          )
+        }
+      })()
+    )
+
+    logger.info(`[${requestId}] Workflow execution completed`, {
+      success: result.success,
+      status: result.status,
+      duration: result.metadata?.duration,
+    })
+
+    return result
+  } catch (error: unknown) {
+    logFailureOnce(logger, `[${requestId}] Execution failed:`, error, {
+      metadata: () => {
+        const errorCause = describeErrorCause(error)
+        return projectResolvedSecretDiagnosticError(error, resolvedSecretTraceRegistry, {
+          workflowId,
+          ...(errorCause ? { cause: errorCause } : {}),
+        })
+      },
+      executionId,
+    })
+
+    await waitForLifecycleCallbacks()
+
+    if (!loggingStarted) {
+      loggingStarted = await loggingSession.safeStart({
+        userId,
+        billingAttribution: metadata.billingAttribution,
+        workspaceId: providedWorkspaceId,
+        variables: {},
+        triggerData: metadata.correlation ? { correlation: metadata.correlation } : undefined,
+        skipLogCreation,
+        deploymentVersionId,
+      })
+    }
+
+    loggingSession.setPostExecutionPromise(
+      (async () => {
+        try {
+          const finalized = loggingStarted
+            ? await finalizeExecutionError({
+                error,
+                loggingSession,
+                workflowId,
+                executionId,
+                requestId,
+              })
+            : false
+
+          if (finalized) {
+            markExecutionFinalizedByCore(error, executionId)
+          }
+        } catch (postExecError) {
+          logger.error(
+            `[${requestId}] Post-execution error logging failed`,
+            loggingSession.projectDiagnosticError(postExecError, { executionId })
+          )
+        }
+      })()
+    )
+
+    throw error
+  }
+}

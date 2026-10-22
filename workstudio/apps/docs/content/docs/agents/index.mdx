@@ -1,0 +1,46 @@
+---
+title: Agents
+description: Build workflow agents with models, tools, reusable instructions, and your data.
+---
+
+import { WorkflowPreview, BUILD_AGENT_WORKFLOW } from '@/components/workflow-preview'
+
+Build a workflow agent by connecting one or more **Agent** blocks to the steps it needs. Each Agent block sends messages to a model, lets it call configured tools, and returns a result for later blocks.
+
+## Build a workflow agent
+
+A simple agent reads an input, scores it, and returns the score:
+
+<WorkflowPreview workflow={BUILD_AGENT_WORKFLOW} height={200} highlightBlock="agent" />
+
+1. Add an [Agent block](/workflows/blocks/agent) after a [Start trigger](/workflows/triggers/start).
+2. Select a **Model**. In **Messages**, use a system message for the task and rules, and a user message for the input, such as `<start.input>`.
+3. Add the tools or context the task needs, then run the workflow and inspect the result.
+
+Without **Response Format**, later blocks read the answer as `<agent.content>`. Model, token, tool-call, and cost details are also available. The example requests a structured score, so its Response block reads `<agent.score>` after successful JSON parsing. See the [Agent reference](/workflows/blocks/agent) for model selection, settings, and outputs.
+
+## Add capabilities
+
+| Need | Configure |
+| --- | --- |
+| Take an action | Attach integration tools, [custom tools](/agents/custom-tools), [MCP tools](/agents/mcp), or another workflow as a tool. The model decides which available tools to call. |
+| Follow a reusable procedure | Select [skills](/agents/skills), such as a lead-scoring rubric. The agent sees their names and descriptions, then loads instructions when they apply. |
+| Answer from your documents | Add the [Knowledge](/integrations/knowledge) tool and select the knowledge base to search. |
+| Read a file | Use the Agent block's **Files** input with a model that supports the file type. |
+| Remember earlier runs | Configure [memory](/workflows/blocks/agent#memory) and a conversation ID. The memory mode controls which history reaches the model. |
+| Return fields for later blocks | Set **Response Format** to request a JSON shape, then reference successful structured fields directly, such as `<agent.tier>`. Provider support and malformed-output behavior vary. |
+
+Tools and skills need a compatible model and the required workspace, credential, and organization access. Adding a skill supplies instructions; adding a tool gives the model an action it can call.
+
+## Choose where an action runs
+
+Use a separate workflow block when an action must be attempted whenever that path runs. Attach it as an Agent tool when the model should decide whether it is needed. For example, a lead-scoring agent might search for missing company information, while a Google Sheets block records every score that reaches it.
+
+The same integration can serve either role. See [Choosing what to use](/agents/choosing) for the differences among fixed steps, Agent tools, custom tools, MCP connections, workflows as tools, and skills.
+
+## Related docs
+
+- [Agent block reference](/workflows/blocks/agent)
+- [Choosing what to use](/agents/choosing)
+- [How blocks pass data](/workflows/data-flow)
+- [Chat](/chat)

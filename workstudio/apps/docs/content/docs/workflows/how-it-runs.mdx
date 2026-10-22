@@ -1,0 +1,85 @@
+---
+title: How workflows run
+description: Understand dependency order, concurrent branches, errors, and execution duration.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout'
+import {
+  COMBINATION_WORKFLOW,
+  CONCURRENCY_WORKFLOW,
+  ERROR_PATH_WORKFLOW,
+  ROUTING_WORKFLOW,
+  WorkflowPreview,
+} from '@/components/workflow-preview'
+
+Sim orders a run from its connections. A block becomes ready when the active upstream blocks it depends on have finished.
+
+## Blocks run as soon as they can
+
+Independent blocks can execute at the same time:
+
+<WorkflowPreview workflow={CONCURRENCY_WORKFLOW} height={220} />
+
+Customer Support and Deep Researcher each depend only on Start, so neither waits for the other.
+
+## A block waits for all its inputs
+
+When several blocks feed one block, it waits for every feeder on an active path, then runs once with their outputs available. An unselected branch does not hold up the join.
+
+<WorkflowPreview workflow={COMBINATION_WORKFLOW} height={220} />
+
+Combine runs after both agents finish. It reads each output by name; you do not need a separate merge operation to make those outputs available.
+
+If several branches end without joining, the last terminal block to finish supplies the default workflow result. Use a final block or [Response](/workflows/blocks/response) to choose the result explicitly.
+
+## Branches follow one path
+
+[Condition](/workflows/blocks/condition) selects a branch using a rule. [Router](/workflows/blocks/router) lets a model choose a route. Only the selected path runs:
+
+<WorkflowPreview workflow={ROUTING_WORKFLOW} height={400} />
+
+A skipped block produces no output. A reference to that known block resolves empty; see [connection syntax](/workflows/connections).
+
+[Loop](/workflows/blocks/loop) repeats its inner blocks over a collection, a count, or a condition. [Parallel](/workflows/blocks/parallel) runs inner blocks for several items at once. Their item/index context and block outputs are scoped to the iteration or branch, but workflow variables are shared across the run. Avoid concurrent writes to the same variable.
+
+<Callout type="info">
+Sim tracks calls between workflows through Workflow blocks, MCP tools, and API blocks. It rejects a call chain at the 25-hop limit, preventing unbounded recursion through those paths.
+</Callout>
+
+## When a block fails
+
+An unhandled block error fails the run. Already-running blocks may finish, but no new work starts. Connect the block's **error port** to handle the failure and continue along an error path:
+
+<WorkflowPreview workflow={ERROR_PATH_WORKFLOW} height={260} />
+
+When throwError fails, handleError runs through the red error port; handleSuccess is skipped. A handled error can appear in the trace without failing the whole run.
+
+For an API block, non-2xx HTTP responses, network failures, and timeouts follow its error behavior. Do not expect a normal downstream status check to catch an unsuccessful request.
+
+## How long a run can take
+
+Current billing-enabled defaults are:
+
+| Plan | Synchronous run | Asynchronous run |
+| --- | --- | --- |
+| Community | 5 minutes | 90 minutes |
+| Pro / Max / Team | 50 minutes | 90 minutes |
+| Enterprise | 50 minutes | 90 minutes; configurable up to 7 days |
+
+The effective policy and deployment configuration determine the limit. An async API caller can shorten the account policy with `executionTimeoutSeconds`, but cannot extend it. A timeout fails the run with `Execution timed out`.
+
+Large loops and slow model or API calls can use up the budget. Batch a large collection or use [async API execution](/workflows/deployment/api#asynchronous) when appropriate. Async runs still have a limit.
+
+Billing-disabled self-hosted deployments run without a plan-based timeout by default. Operators can set execution timeout environment variables; see [self-hosted limits](/platform/self-hosting/environment-variables#limits).
+
+## Watching a run
+
+The workflow builder shows live block states while an editor run executes. Open [Logs](/logs-debugging) to inspect recorded inputs, outputs, and errors. Available history depends on access and retention; a request rejected before a run starts may not have an execution log.
+
+Editor runs use the draft. API, chat, MCP, and automatic trigger runs normally use a deployed snapshot; [deployment](/workflows/deployment) explains updates and the v2 API's explicit manual draft mode.
+
+## Related docs
+
+- [How blocks pass data](/workflows/data-flow)
+- [Deployment](/workflows/deployment)
+- [Logs](/logs-debugging)

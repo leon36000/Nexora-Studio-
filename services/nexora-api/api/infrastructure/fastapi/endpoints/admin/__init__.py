@@ -1,0 +1,7 @@
+from fastapi import APIRouter
+
+from api.infrastructure.fastapi.routes import RouterName
+
+router = APIRouter(prefix="/v1", tags=[RouterName.ADMIN.title()])
+
+from . import keys, organizations, providers, roles, routers, users  # noqa: F401 E402

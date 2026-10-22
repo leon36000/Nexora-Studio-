@@ -1,0 +1,987 @@
+import { MICROSOFT_DATAVERSE_PROVIDER_ID } from './microsoft-dataverse'
+import { OAUTH_PROVIDERS } from './oauth'
+import type {
+  OAuthProvider,
+  OAuthServiceConfig,
+  OAuthServiceMetadata,
+  ProviderConfig,
+} from './types'
+
+/**
+ * Centralized human-readable descriptions for OAuth scopes.
+ * Used by the OAuth Required Modal and available for any UI that needs to display scope info.
+ */
+export const SCOPE_DESCRIPTIONS: Record<string, string> = {
+  'harvest:application_stages:list': 'View Greenhouse application stages',
+  'harvest:applications:convert_to_candidate':
+    'Convert prospects to candidates for Greenhouse applications',
+  'harvest:applications:create': 'Create Greenhouse applications',
+  'harvest:applications:destroy': 'Delete Greenhouse applications',
+  'harvest:applications:hire': 'Mark Greenhouse applications as hired',
+  'harvest:applications:list': 'View Greenhouse applications',
+  'harvest:applications:move': 'Move Greenhouse applications between stages or jobs',
+  'harvest:applications:reject': 'Reject Greenhouse applications',
+  'harvest:applications:unreject': 'Reverse Greenhouse application rejections',
+  'harvest:applications:update': 'Update Greenhouse applications',
+  'harvest:applied_candidate_tags:create': 'Apply Greenhouse tags to candidates',
+  'harvest:applied_candidate_tags:destroy': 'Remove Greenhouse tags from candidates',
+  'harvest:applied_candidate_tags:list': 'View Greenhouse applied candidate tags',
+  'harvest:attachments:create': 'Create Greenhouse attachments',
+  'harvest:attachments:destroy': 'Delete Greenhouse attachments',
+  'harvest:attachments:list': 'View Greenhouse attachments',
+  'harvest:candidate_educations:list': 'View Greenhouse candidate education histories',
+  'harvest:candidate_employments:list': 'View Greenhouse candidate employment histories',
+  'harvest:candidate_tags:create': 'Create Greenhouse candidate tags',
+  'harvest:candidate_tags:list': 'View Greenhouse candidate tags',
+  'harvest:candidates:create': 'Create Greenhouse candidates',
+  'harvest:candidates:destroy': 'Delete Greenhouse candidates',
+  'harvest:candidates:list': 'View Greenhouse candidates',
+  'harvest:candidates:update': 'Update Greenhouse candidates',
+  'harvest:close_reasons:list': 'View Greenhouse close reasons',
+  'harvest:custom_field_options:list': 'View Greenhouse custom field options',
+  'harvest:custom_fields:list': 'View Greenhouse custom fields',
+  'harvest:departments:list': 'View Greenhouse departments',
+  'harvest:email_templates:list': 'View Greenhouse email templates',
+  'harvest:interviews:list': 'View Greenhouse interviews',
+  'harvest:job_hiring_managers:list': 'View Greenhouse job hiring managers',
+  'harvest:job_interview_stages:list': 'View Greenhouse job interview stages',
+  'harvest:job_owners:list': 'View Greenhouse job owners',
+  'harvest:jobs:list': 'View Greenhouse jobs',
+  'harvest:notes:create': 'Create Greenhouse notes',
+  'harvest:notes:list': 'View Greenhouse notes',
+  'harvest:offers:list': 'View Greenhouse offers',
+  'harvest:offices:list': 'View Greenhouse offices',
+  'harvest:openings:list': 'View Greenhouse openings',
+  'harvest:prospect_pool_stages:list': 'View Greenhouse prospect pool stages',
+  'harvest:prospect_pools:list': 'View Greenhouse prospect pools',
+  'harvest:referrers:list': 'View Greenhouse referrers',
+  'harvest:rejection_reasons:list': 'View Greenhouse rejection reasons',
+  'harvest:scorecards:list': 'View Greenhouse scorecards',
+  'harvest:sources:list': 'View Greenhouse sources',
+  'harvest:users:list': 'View Greenhouse users',
+
+  'business:read': 'View Ramp business details and balances',
+  'transactions:read': 'View Ramp transactions',
+  'cards:read': 'View Ramp physical and virtual card details',
+  'vendors:read': 'View Ramp vendors',
+  'bills:read': 'View Ramp bills',
+  'reimbursements:read': 'View Ramp reimbursements',
+  'memos:read': 'View Ramp transaction memos',
+  'memos:write': 'Create and update Ramp transaction memos',
+  'https://analysis.windows.net/powerbi/api/Workspace.Read.All': 'View Power BI workspaces',
+  'https://analysis.windows.net/powerbi/api/Report.Read.All': 'View Power BI reports',
+  'https://analysis.windows.net/powerbi/api/Dataset.ReadWrite.All':
+    'Read, create, update, refresh, and delete Power BI semantic models within your account’s permissions',
+  'users.profile:write': 'Update Slack user profiles',
+  'users.profile:read': 'View Slack user profiles',
+  'channels:join': 'Join public Slack channels',
+  'users:write': 'Change Slack presence',
+  'usergroups:write': 'Manage Slack user groups and their members',
+  'usergroups:read': 'View Slack user groups and their members',
+  'team:read': 'View Slack workspace details',
+  'pins:write': 'Pin and unpin Slack messages',
+  'pins:read': 'View pinned Slack messages',
+  'links:write': 'Add custom previews to shared Slack links',
+  'emoji:read': 'View custom Slack emoji',
+  'dnd:read': 'View Slack Do Not Disturb settings',
+  'bookmarks:write': 'Add, edit, and remove Slack channel bookmarks',
+  'bookmarks:read': 'View Slack channel bookmarks',
+  // Zoho Desk scopes
+  'Desk.tickets.CREATE': 'Create support tickets',
+  'Desk.contacts.CREATE': 'Create contacts',
+  'Desk.contacts.UPDATE': 'Update contacts',
+  'Desk.accounts.READ': 'View customer accounts',
+  'Desk.accounts.CREATE': 'Create customer accounts',
+  'Desk.accounts.UPDATE': 'Update customer accounts',
+  'Desk.search.READ': 'Search tickets, contacts, and accounts',
+  'Desk.departments.READ': 'View departments',
+  'Desk.tickets.READ': 'View tickets, threads, comments, and attachments',
+  'Desk.tickets.UPDATE': 'Update tickets, send replies, and manage comments',
+  'Desk.contacts.READ': 'View contacts',
+  'Desk.articles.READ': 'View knowledge base articles',
+  'Desk.organization.READ': 'View organization details',
+  'Desk.agents.READ': 'View agents',
+  'Desk.basic.READ': 'View basic data such as organizations, agents, and departments',
+  'Desk.webhooks.CREATE': 'Create webhooks',
+  'Desk.webhooks.DELETE': 'Delete webhooks',
+  'aaaserver.profile.READ': 'View your Zoho profile',
+  // ManageEngine ServiceDesk Plus Cloud scopes
+  'SDPOnDemand.requests.CREATE': 'Create requests',
+  'SDPOnDemand.requests.READ': 'View requests and their notes',
+  'SDPOnDemand.requests.UPDATE': 'Update requests and add notes',
+  'SDPOnDemand.requests.DELETE': 'Delete requests',
+  'SDPOnDemand.problems.CREATE': 'Create problems',
+  'SDPOnDemand.problems.READ': 'View problems and their notes',
+  'SDPOnDemand.problems.UPDATE': 'Update problems and add notes',
+  'SDPOnDemand.problems.DELETE': 'Delete problems',
+  'SDPOnDemand.changes.CREATE': 'Create changes',
+  'SDPOnDemand.changes.READ': 'View changes and their notes',
+  'SDPOnDemand.changes.UPDATE': 'Update changes and add notes',
+  'SDPOnDemand.changes.DELETE': 'Delete changes',
+  'SDPOnDemand.assets.CREATE': 'Create assets',
+  'SDPOnDemand.assets.READ': 'View assets',
+  'SDPOnDemand.assets.UPDATE': 'Update assets',
+  'SDPOnDemand.assets.DELETE': 'Delete assets',
+  'SDPOnDemand.solutions.CREATE': 'Create knowledge base solutions',
+  'SDPOnDemand.solutions.READ': 'View knowledge base solutions',
+  'SDPOnDemand.solutions.UPDATE': 'Update knowledge base solutions',
+  'SDPOnDemand.solutions.DELETE': 'Delete knowledge base solutions',
+  // Google scopes
+  'https://www.googleapis.com/auth/gmail.send': 'Send emails',
+  'https://www.googleapis.com/auth/gmail.labels': 'View and manage email labels',
+  'https://www.googleapis.com/auth/gmail.readonly': 'View email messages and settings',
+  'https://www.googleapis.com/auth/gmail.modify': 'Read, compose, send, and modify email messages',
+  'https://www.googleapis.com/auth/drive.file':
+    'View and manage Google Drive files you open or create with Sim',
+  'https://www.googleapis.com/auth/drive': 'View, edit, create, and delete all Google Drive files',
+  'https://www.googleapis.com/auth/calendar.readonly': 'View calendars and events',
+  'https://www.googleapis.com/auth/calendar': 'View and manage calendar',
+  'https://www.googleapis.com/auth/contacts': 'View and manage Google Contacts',
+  'https://www.googleapis.com/auth/tasks': 'Create, read, update, and delete Google Tasks',
+  'https://www.googleapis.com/auth/userinfo.email': 'View email address',
+  'https://www.googleapis.com/auth/userinfo.profile': 'View basic profile info',
+  'https://www.googleapis.com/auth/forms.body': 'View and manage Google Forms',
+  'https://www.googleapis.com/auth/forms.responses.readonly': 'View responses to Google Forms',
+  'https://www.googleapis.com/auth/adwords': 'Manage Google Ads campaigns and reporting',
+  'https://www.googleapis.com/auth/bigquery': 'View and manage data in Google BigQuery',
+  'https://www.googleapis.com/auth/ediscovery': 'Manage Google Vault matters, holds, and exports',
+  'https://www.googleapis.com/auth/ediscovery.readonly':
+    'View Google Vault matters, holds, and saved queries',
+  'https://www.googleapis.com/auth/devstorage.read_only': 'Read files from Google Cloud Storage',
+  'https://www.googleapis.com/auth/admin.directory.group': 'Manage Google Workspace groups',
+  'https://www.googleapis.com/auth/admin.directory.group.member':
+    'Manage Google Workspace group memberships',
+  'https://www.googleapis.com/auth/admin.directory.group.readonly': 'View Google Workspace groups',
+  'https://www.googleapis.com/auth/admin.directory.group.member.readonly':
+    'View Google Workspace group memberships',
+  'https://www.googleapis.com/auth/chat.spaces.readonly':
+    'View Google Chat spaces you are a member of',
+  'https://www.googleapis.com/auth/chat.messages.readonly':
+    'View messages in Google Chat spaces you are a member of',
+  'https://www.googleapis.com/auth/meetings.space.created':
+    'Create and manage Google Meet meeting spaces created by Sim',
+  'https://www.googleapis.com/auth/meetings.space.readonly':
+    'View information about your Google Meet conferences',
+  'https://www.googleapis.com/auth/cloud-platform': 'View and manage all Google Cloud data',
+
+  // Confluence scopes
+  'read:confluence-content.all': 'Read all Confluence content',
+  'read:confluence-space.summary': 'Read Confluence space information',
+  'read:space:confluence': 'View Confluence spaces',
+  'read:space-details:confluence': 'View detailed Confluence space information',
+  'write:confluence-content': 'Create and edit Confluence pages, blog posts, and comments',
+  'write:confluence-space': 'Manage Confluence spaces',
+  'write:confluence-file': 'Upload files to Confluence',
+  'read:content:confluence': 'Read Confluence content',
+  'read:page:confluence': 'View Confluence pages',
+  'write:page:confluence': 'Create and update Confluence pages',
+  'read:comment:confluence': 'View comments on Confluence pages',
+  'write:comment:confluence': 'Create and update comments',
+  'delete:comment:confluence': 'Delete comments from Confluence pages',
+  'read:attachment:confluence': 'View attachments on Confluence pages',
+  'write:attachment:confluence': 'Upload and manage attachments',
+  'delete:attachment:confluence': 'Delete attachments from Confluence pages',
+  'delete:page:confluence': 'Delete Confluence pages',
+  'read:label:confluence': 'View labels on Confluence content',
+  'write:label:confluence': 'Add and remove labels',
+  'search:confluence': 'Search Confluence content',
+  'readonly:content.attachment:confluence': 'View attachments',
+  'read:blogpost:confluence': 'View Confluence blog posts',
+  'write:blogpost:confluence': 'Create and update Confluence blog posts',
+  'read:content.property:confluence': 'View properties on Confluence content',
+  'write:content.property:confluence': 'Create and manage content properties',
+  'read:hierarchical-content:confluence': 'View page hierarchy (children and ancestors)',
+  'read:content.metadata:confluence': 'View content metadata (required for ancestors)',
+  'read:user:confluence': 'View Confluence user profiles',
+  'read:group:confluence': 'View Confluence groups and memberships',
+  'read:confluence-user': 'View Confluence user profiles (v1 API)',
+  'read:task:confluence': 'View Confluence inline tasks',
+  'write:task:confluence': 'Update Confluence inline tasks',
+  'delete:blogpost:confluence': 'Delete Confluence blog posts',
+  'write:space:confluence': 'Create and update Confluence spaces',
+  'delete:space:confluence': 'Delete Confluence spaces',
+  'read:space.property:confluence': 'View Confluence space properties',
+  'write:space.property:confluence': 'Create and manage space properties',
+  'read:space.permission:confluence': 'View Confluence space permissions',
+
+  // Common scopes
+  'read:me': 'Read profile information',
+  offline_access: 'Access account when not using the application',
+  openid: 'Standard authentication',
+  profile: 'Access profile information',
+  email: 'Access email address',
+  'com.intuit.quickbooks.accounting':
+    'Access and manage accounting data in the connected QuickBooks Online company',
+
+  // Notion scopes
+  'database.read': 'Read database',
+  'database.write': 'Write to database',
+  'projects.read': 'Read projects',
+  'page.read': 'Read Notion pages',
+  'page.write': 'Write to Notion pages',
+  'workspace.content': 'Read Notion content',
+  'workspace.name': 'Read Notion workspace name',
+  'workspace.read': 'Read Notion workspace',
+  'workspace.write': 'Write to Notion workspace',
+  'user.email:read': 'Read email address',
+
+  // GitHub scopes
+  repo: 'Access repositories',
+  workflow: 'Manage repository workflows',
+  'read:user': 'Read public user information',
+  'user:email': 'Access email address',
+
+  // X (Twitter) scopes
+  'tweet.read': 'Read tweets and timeline',
+  'tweet.write': 'Post, repost, and delete tweets',
+  'tweet.moderate.write': 'Hide and unhide replies to tweets',
+  'users.read': 'Read user profiles and account information',
+  'follows.read': 'View followers and following lists',
+  'follows.write': 'Follow and unfollow users',
+  'bookmark.read': 'View bookmarked tweets',
+  'bookmark.write': 'Add and remove bookmarks',
+  'like.read': 'View liked tweets and liking users',
+  'like.write': 'Like and unlike tweets',
+  'block.read': 'View blocked users',
+  'block.write': 'Block and unblock users',
+  'mute.read': 'View muted users',
+  'mute.write': 'Mute and unmute users',
+  'offline.access': 'Access account when not using the application',
+
+  // TikTok scopes
+  'user.info.basic': "Read a user's profile info (open id, avatar, display name)",
+  'user.info.profile': "Read a user's profile info (bio, verification status, username)",
+  'user.info.stats': "Read a user's stats (follower, following, likes, and video counts)",
+  'video.upload': "Share content to a creator's account as a draft for further edit and post",
+  'video.list': "Read a user's public TikTok videos",
+
+  // Airtable scopes
+  'data.records:read': 'Read records',
+  'data.records:write': 'Create, edit, and delete records',
+  'schema.bases:read': 'View bases and tables',
+  'webhook:manage': 'Create, view, and delete base webhooks and read their payloads',
+
+  // Jira scopes
+  'read:jira-user': 'View Jira user profiles, including email addresses',
+  'read:jira-work': 'View Jira projects and issues, and search issues',
+  'write:jira-work': 'Create, edit, and delete Jira issues, comments, and worklogs',
+  'manage:jira-webhook': 'Register and manage Jira webhooks',
+  'read:webhook:jira': 'View Jira webhooks',
+  'write:webhook:jira': 'Create and update Jira webhooks',
+  'delete:webhook:jira': 'Delete Jira webhooks',
+  'read:issue-event:jira': 'Read Jira issue events',
+  'write:issue:jira': 'Write to Jira issues',
+  'read:project:jira': 'Read Jira projects',
+  'read:issue-type:jira': 'Read Jira issue types',
+  'read:issue-meta:jira': 'Read Jira issue meta',
+  'read:issue-security-level:jira': 'Read Jira issue security level',
+  'read:issue.vote:jira': 'Read Jira issue votes',
+  'read:issue.changelog:jira': 'Read Jira issue changelog',
+  'read:avatar:jira': 'Read Jira avatar',
+  'read:issue:jira': 'Read Jira issues',
+  'read:status:jira': 'Read Jira status',
+  'read:user:jira': 'View Jira users',
+  'read:field-configuration:jira': 'Read Jira field configuration',
+  'read:issue-details:jira': 'Read Jira issue details',
+  'read:field:jira': 'Read Jira field configurations',
+  'read:jql:jira': 'Use JQL to filter Jira issues',
+  'read:comment.property:jira': 'Read Jira comment properties',
+  'read:issue.property:jira': 'Read Jira issue properties',
+  'delete:issue:jira': 'Delete Jira issues',
+  'write:comment:jira': 'Add and update comments on Jira issues',
+  'read:comment:jira': 'Read comments on Jira issues',
+  'delete:comment:jira': 'Delete comments from Jira issues',
+  'read:attachment:jira': 'Read attachments from Jira issues',
+  'write:attachment:jira': 'Add attachments to Jira issues',
+  'delete:attachment:jira': 'Delete attachments from Jira issues',
+  'write:issue-worklog:jira': 'Add and update worklog entries on Jira issues',
+  'read:issue-worklog:jira': 'Read worklog entries from Jira issues',
+  'delete:issue-worklog:jira': 'Delete worklog entries from Jira issues',
+  'write:issue-link:jira': 'Create links between Jira issues',
+  'delete:issue-link:jira': 'Delete links between Jira issues',
+
+  // Jira Service Management scopes
+  'read:servicedesk-request': 'View service desk requests',
+  'write:servicedesk-request': 'Create and update service desk requests',
+  'manage:servicedesk-customer': 'Manage service desk customers and organizations',
+  'read:servicedesk:jira-service-management': 'View service desks and their settings',
+  'read:requesttype:jira-service-management': 'View request types available in service desks',
+  'read:request:jira-service-management': 'View customer requests in service desks',
+  'write:request:jira-service-management': 'Create customer requests in service desks',
+  'read:request.comment:jira-service-management': 'View comments on customer requests',
+  'write:request.comment:jira-service-management': 'Add comments to customer requests',
+  'read:customer:jira-service-management': 'View customer information',
+  'write:customer:jira-service-management': 'Create and manage customers',
+  'read:servicedesk.customer:jira-service-management': 'View customers linked to service desks',
+  'write:servicedesk.customer:jira-service-management':
+    'Add and remove customers from service desks',
+  'read:organization:jira-service-management': 'View organizations',
+  'write:organization:jira-service-management': 'Create and manage organizations',
+  'read:servicedesk.organization:jira-service-management':
+    'View organizations linked to service desks',
+  'write:servicedesk.organization:jira-service-management':
+    'Add and remove organizations from service desks',
+  'read:organization.user:jira-service-management': 'View users in organizations',
+  'write:organization.user:jira-service-management': 'Add and remove users from organizations',
+  'read:organization.property:jira-service-management': 'View organization properties',
+  'write:organization.property:jira-service-management':
+    'Create and manage organization properties',
+  'read:organization.profile:jira-service-management': 'View organization profiles',
+  'write:organization.profile:jira-service-management': 'Update organization profiles',
+  'read:queue:jira-service-management': 'View service desk queues and their issues',
+  'read:request.sla:jira-service-management': 'View SLA information for customer requests',
+  'read:request.status:jira-service-management': 'View status of customer requests',
+  'write:request.status:jira-service-management': 'Transition customer request status',
+  'read:request.participant:jira-service-management': 'View participants on customer requests',
+  'write:request.participant:jira-service-management':
+    'Add and remove participants from customer requests',
+  'read:request.approval:jira-service-management': 'View approvals on customer requests',
+  'write:request.approval:jira-service-management': 'Approve or decline customer requests',
+  'read:cmdb-object:jira': 'View Assets objects and run AQL searches',
+  'write:cmdb-object:jira': 'Create and update Assets objects',
+  'delete:cmdb-object:jira': 'Delete Assets objects',
+  'read:cmdb-schema:jira': 'View Assets object schemas',
+  'read:cmdb-type:jira': 'View Assets object types',
+  'read:cmdb-attribute:jira': 'View Assets object type attributes',
+
+  // Microsoft scopes
+  'User.Read': 'Sign in and read your profile',
+  'Chat.Read': 'Read your Teams chat messages',
+  'Chat.ReadWrite': 'Read and write your Teams chat messages',
+  'Chat.ReadBasic': 'Read names and members of your Teams chats',
+  'ChatMessage.Send': 'Send chat messages',
+  'Channel.ReadBasic.All': 'Read channel names and descriptions',
+  'ChannelMessage.Send': 'Send channel messages',
+  'ChannelMessage.Read.All': 'Read channel messages',
+  'ChannelMessage.ReadWrite': 'Read and write channel messages',
+  'ChannelMember.Read.All': 'Read team channel members',
+  'Group.Read.All': 'Read all groups, memberships, and group content',
+  'Group.ReadWrite.All': 'Read and write all groups',
+  'Team.ReadBasic.All': 'Read team names and descriptions',
+  'TeamMember.Read.All': 'Read team members',
+  'Mail.ReadWrite': 'Read, create, update, and delete your email',
+  'Mail.ReadBasic': 'Read email properties, excluding body and attachments',
+  'Mail.Read': 'Read your email',
+  'Mail.Send': 'Send emails',
+  'Calendars.ReadWrite': 'Read and manage Outlook calendar events',
+  'Files.Read': 'Read OneDrive files',
+  'Files.ReadWrite': 'Read and write OneDrive files',
+  'Files.Read.All': 'Read all files you can access, including SharePoint libraries',
+  'Files.ReadWrite.All': 'Read and write files you have access to, including SharePoint libraries',
+  'Tasks.ReadWrite': 'Read and manage Planner tasks',
+  'Sites.Read.All': 'Read documents and list items in all SharePoint sites',
+  'Sites.ReadWrite.All':
+    'Create, edit, and delete documents and list items in all SharePoint sites',
+  'Sites.Manage.All': 'Create and delete lists and document libraries in all SharePoint sites',
+  'https://dynamics.microsoft.com/user_impersonation': 'Access Microsoft Dataverse on your behalf',
+  'User.ReadWrite.All': 'Read and write all user profiles',
+  'GroupMember.ReadWrite.All': 'Read and write all group memberships',
+  'Directory.Read.All': 'Read directory data',
+  'LicenseAssignment.Read.All': 'Read license assignments and subscribed SKUs',
+  'LicenseAssignment.ReadWrite.All': 'Assign and remove user licenses',
+  'UserAuthenticationMethod.ReadWrite.All':
+    'Read and reset authentication methods and passwords for all users',
+  'AuditLog.Read.All': 'Read sign-in and directory audit logs',
+  'Application.Read.All': 'Read all applications and service principals',
+  'AppRoleAssignment.ReadWrite.All':
+    'Manage app role assignments and permission grants for any app',
+  'RoleManagement.ReadWrite.Directory': 'Read and manage directory role assignments',
+  'Device.Read.All': 'Read all devices',
+  'DeviceManagementManagedDevices.Read.All': 'View Intune managed devices and detected apps',
+  'DeviceManagementConfiguration.Read.All':
+    'View Intune compliance policies, device configurations, and their device statuses',
+  'DeviceManagementManagedDevices.PrivilegedOperations.All':
+    'Perform remote Intune device actions, including syncing, rebooting, locking, and retiring devices',
+  'Policy.Read.All': 'Read conditional access and other policies',
+
+  // Reddit scopes
+  identity: 'View your Reddit username and signup date',
+  submit: 'Submit posts and comments',
+  vote: 'Vote on posts and comments',
+  save: 'Save and unsave posts and comments',
+  edit: 'Edit and delete your posts and comments',
+  subscribe: 'Subscribe and unsubscribe from subreddits',
+  history: 'View your voting history and saved or hidden posts',
+  privatemessages: 'Access inbox and send private messages',
+  account: 'Update account preferences and settings',
+  mysubreddits: 'Access subscribed and moderated subreddits',
+  flair: 'Select your user flair and change flair on your posts',
+  report: 'Report content and hide or show posts',
+  modposts: 'Approve, remove, and moderate posts in moderated subreddits',
+  modflair: 'Manage flair in moderated subreddits',
+  modmail: 'Access and respond to moderator mail',
+
+  // Wealthbox scopes
+  login: 'Access Wealthbox account',
+  data: 'Access Wealthbox data',
+
+  // Linear scopes
+  read: 'Read access to connected account data',
+  write: 'Write access to connected account data',
+
+  // Slack scopes
+  'channels:read': 'View public channels',
+  'channels:history': 'Read public channel messages',
+  'channels:manage': 'Create, archive, and rename public channels',
+  'groups:read': 'View private channels',
+  'groups:history': 'Read private channel messages',
+  'groups:write': 'Create, archive, and manage private channels',
+  'chat:write': 'Send messages',
+  'chat:write.public': 'Post to public channels without joining them',
+  'chat:write.customize': 'Customize message username and icon',
+  'assistant:write': 'Manage assistant status, titles, and suggested prompts',
+  'im:write': 'Start direct messages',
+  'im:history': 'Read direct message history',
+  'app_mentions:read': 'View messages that mention the app',
+  'im:read': 'View direct message channels',
+  'users:read': 'View workspace users',
+  'users:read.email': 'View user email addresses',
+  'files:write': 'Upload, edit, and delete files',
+  'files:read': 'Download and read files',
+  'lists:read': 'Read Slack Lists, rows, and column schemas',
+  'lists:write': 'Create and rename Slack Lists and create, update, or delete rows',
+  'canvases:read': 'Read canvas sections',
+  'canvases:write': 'Create, edit, and delete canvas documents',
+  'reactions:write': 'Add emoji reactions to messages',
+  'reactions:read': 'View emoji reactions on messages',
+
+  // Webflow scopes
+  'sites:read': 'View Webflow sites',
+  'sites:write': 'Manage webhooks and site settings',
+  'cms:read': 'View CMS content',
+  'cms:write': 'Manage CMS content',
+  'forms:read': 'View form submissions',
+
+  // HubSpot scopes
+  'crm.objects.contacts.read': 'Read HubSpot contacts',
+  'crm.objects.contacts.write': 'Create, update, and delete HubSpot contacts',
+  'crm.objects.companies.read': 'Read HubSpot companies',
+  'crm.objects.companies.write': 'Create, update, and delete HubSpot companies',
+  'crm.objects.deals.read': 'Read HubSpot deals',
+  'crm.objects.deals.write': 'Create, update, and delete HubSpot deals',
+  'crm.objects.owners.read': 'Read HubSpot object owners',
+  'crm.objects.users.read': 'Read HubSpot users',
+  'crm.objects.users.write': 'Create and update HubSpot users',
+  'crm.objects.marketing_events.read': 'Read HubSpot marketing events',
+  'crm.objects.marketing_events.write': 'Create and update HubSpot marketing events',
+  'crm.objects.line_items.read': 'Read HubSpot line items',
+  'crm.objects.line_items.write': 'Create, update, and delete HubSpot line items',
+  'crm.objects.quotes.read': 'Read HubSpot quotes',
+  'crm.objects.quotes.write': 'Create and update HubSpot quotes',
+  'crm.objects.appointments.read': 'Read HubSpot appointments',
+  'crm.objects.appointments.write': 'Create and update HubSpot appointments',
+  'crm.objects.carts.read': 'Read HubSpot shopping carts',
+  'crm.objects.carts.write': 'Create and update HubSpot shopping carts',
+  'sales-email-read': 'Read the content of HubSpot email engagements',
+  'crm.import': 'Import data into HubSpot',
+  'crm.lists.read': 'Read HubSpot lists',
+  'crm.lists.write': 'Create and update HubSpot lists',
+  'crm.objects.tickets.read': 'Read HubSpot tickets',
+  'crm.objects.tickets.write': 'Create and update HubSpot tickets',
+  tickets: 'Create, read, update, and delete HubSpot tickets',
+  oauth: 'Authenticate with HubSpot OAuth',
+
+  // Salesforce scopes
+  api: 'Access Salesforce API',
+  refresh_token: 'Maintain long-term access to Salesforce account',
+
+  // Asana scopes
+  default: 'Full access to everything the account can reach in Asana',
+
+  // Pipedrive scopes
+  base: 'Basic access to Pipedrive account',
+  'deals:read': 'Read Pipedrive deals',
+  'deals:full': 'Full access to manage Pipedrive deals',
+  'contacts:read': 'Read Pipedrive contacts',
+  'contacts:full': 'Full access to manage Pipedrive contacts',
+  'leads:read': 'Read Pipedrive leads',
+  'leads:full': 'Full access to manage Pipedrive leads',
+  'activities:read': 'Read Pipedrive activities',
+  'activities:full': 'Full access to manage Pipedrive activities',
+  'mail:read': 'Read Pipedrive emails',
+  'mail:full': 'Full access to manage Pipedrive emails',
+  'projects:read': 'Read Pipedrive projects',
+  'projects:full': 'Full access to manage Pipedrive projects',
+  'webhooks:full': 'Full access to manage Pipedrive webhooks',
+
+  // LinkedIn scopes
+  w_member_social: 'Post, comment, and like posts on your behalf',
+
+  // Instagram scopes (Business Login for Instagram)
+  instagram_business_basic: 'Access Instagram professional profile and media',
+  instagram_business_content_publish: 'Publish photos, videos, reels, and stories',
+  instagram_business_manage_comments: 'Read, reply to, hide, and delete comments',
+  instagram_business_manage_messages: 'Read conversations and send Instagram Direct messages',
+  instagram_business_manage_insights: 'Read account and media insights',
+
+  // Box scopes
+  root_readwrite: 'Read and write all files and folders in Box account',
+  root_readonly: 'Read all files and folders in Box account',
+  'sign_requests.readwrite': 'Create and manage Box Sign e-signature requests',
+
+  // Shopify scopes
+  write_products: 'Read and manage Shopify products',
+  write_orders: 'Read and manage Shopify orders',
+  write_customers: 'Read and manage Shopify customers',
+  write_inventory: 'Read and manage Shopify inventory levels',
+  read_locations: 'View store locations',
+  write_merchant_managed_fulfillment_orders:
+    'Read and fulfill orders assigned to merchant-managed locations',
+
+  // Zoom scopes
+  'user:read:user': 'View Zoom profile information',
+  'meeting:write:meeting': 'Create Zoom meetings',
+  'meeting:read:meeting': 'View Zoom meeting details',
+  'meeting:read:list_meetings': 'List Zoom meetings',
+  'meeting:update:meeting': 'Update Zoom meetings',
+  'meeting:delete:meeting': 'Delete Zoom meetings',
+  'meeting:read:invitation': 'View Zoom meeting invitations',
+  'meeting:read:list_past_participants': 'View past meeting participants',
+  'cloud_recording:read:list_user_recordings': 'List Zoom cloud recordings',
+  'cloud_recording:read:list_recording_files': 'View recording files',
+  'cloud_recording:delete:recording_file': 'Delete individual cloud recording files',
+
+  // Dropbox scopes
+  'account_info.read': 'View Dropbox account information',
+  'files.metadata.read': 'View file and folder names, sizes, and dates',
+  'files.metadata.write': 'Modify file and folder metadata',
+  'files.content.read': 'Download and read Dropbox files',
+  'files.content.write': 'Upload, copy, move, and delete files in Dropbox',
+  'sharing.read': 'View shared files and folders',
+  'sharing.write': 'Share files and folders with others',
+
+  // WordPress.com scopes
+  global: 'Full access to every WordPress.com site the account can manage',
+
+  // Spotify scopes
+  'user-read-private': 'View Spotify account details',
+  'user-read-email': 'View email address on Spotify',
+  'user-library-read': 'View saved tracks and albums',
+  'user-library-modify': 'Save and remove tracks and albums from library',
+  'playlist-read-private': 'View private playlists',
+  'playlist-read-collaborative': 'View collaborative playlists',
+  'playlist-modify-public': 'Create and manage public playlists',
+  'playlist-modify-private': 'Create and manage private playlists',
+  'user-read-playback-state': 'View current playback state',
+  'user-modify-playback-state': 'Control playback on Spotify devices',
+  'user-read-currently-playing': 'View currently playing track',
+  'user-read-recently-played': 'View recently played tracks',
+  'user-top-read': 'View top artists and tracks',
+  'user-follow-read': 'View followed artists and users',
+  'user-follow-modify': 'Follow and unfollow artists and users',
+  'user-read-playback-position': 'View playback position in podcasts',
+  'ugc-image-upload': 'Upload images to Spotify playlists',
+
+  // DocuSign scopes
+  signature: 'Send, track, and manage envelopes with the eSignature API',
+  extended: 'Keep access active by extending the refresh token lifetime',
+
+  // Attio scopes
+  'record_permission:read-write': 'Read and write CRM records',
+  'object_configuration:read-write': 'Read and manage object schemas',
+  'list_configuration:read-write': 'Read and manage list configurations',
+  'list_entry:read-write': 'Read and write list entries',
+  'note:read-write': 'Read and write notes',
+  'task:read-write': 'Read and write tasks',
+  'comment:read-write': 'Read and write comments and threads',
+  'user_management:read': 'View workspace members',
+  'webhook:read-write': 'Manage webhooks',
+
+  // Monday.com scopes
+  'boards:read': 'Read boards, items, and columns',
+  'boards:write': 'Create and modify boards, items, and groups',
+  'updates:read': 'Read updates and comments',
+  'updates:write': 'Create and edit updates and comments',
+  'webhooks:read': 'Read webhook subscriptions',
+  'webhooks:write': 'Create and manage webhook subscriptions',
+  'me:read': 'Read your user profile',
+}
+
+/** Scope labels that cannot be keyed by scope alone because providers reuse names. */
+const PROVIDER_SCOPE_DESCRIPTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+  ramp: {
+    'users:read': 'View Ramp users and roles',
+  },
+  /**
+   * Word documents are ordinary drive items, so the integration asks for the
+   * generic Files permissions. The shared labels name OneDrive specifically,
+   * which reads as the wrong product on the Word consent screen and omits the
+   * SharePoint libraries the same scopes cover.
+   */
+  'microsoft-word': {
+    'Files.Read': 'Read your Word documents in OneDrive',
+    'Files.ReadWrite': 'Read, create, and edit your Word documents in OneDrive',
+    'Files.Read.All': 'Read Word documents you can access, including SharePoint libraries',
+    'Files.ReadWrite.All':
+      'Read, create, and edit Word documents you have access to, including SharePoint libraries',
+  },
+  bitbucket: {
+    account: 'View your Bitbucket account and workspace memberships',
+    repository: 'View repositories and source code',
+    'repository:write': 'Push to repositories and create or delete branches',
+    pullrequest: 'View and comment on pull requests',
+    'pullrequest:write': 'Create, update, approve, decline, and merge pull requests',
+    pipeline: 'View pipelines, steps, and logs',
+    'pipeline:write': 'Run and stop pipelines',
+    webhook: 'Manage repository webhooks',
+  },
+  linear: {
+    read: 'Read issues, projects, teams, and other workspace data',
+    write: 'Create and update issues, projects, comments, and other workspace data',
+  },
+  reddit: {
+    read: 'Read posts and comments through your account',
+  },
+  trello: {
+    read: 'Read boards, lists, cards, and workspaces',
+    write: 'Create and update boards, lists, and cards',
+  },
+}
+
+/**
+ * Get a human-readable description for a scope.
+ * Falls back to the raw scope string if no description is found.
+ */
+export function getScopeDescription(scope: string, providerId?: string): string {
+  return (
+    PROVIDER_SCOPE_DESCRIPTIONS[providerId ?? '']?.[scope] || SCOPE_DESCRIPTIONS[scope] || scope
+  )
+}
+
+/**
+ * Returns a flat list of all available OAuth services with metadata.
+ * This is safe to use on the server as it doesn't include React components.
+ */
+export function getAllOAuthServices(): OAuthServiceMetadata[] {
+  const services: OAuthServiceMetadata[] = []
+
+  for (const [baseProviderId, provider] of Object.entries(OAUTH_PROVIDERS)) {
+    for (const [serviceId, service] of Object.entries(provider.services)) {
+      services.push({
+        serviceId,
+        providerId: service.providerId,
+        serviceAccountProviderId: service.serviceAccountProviderId,
+        additionalProviderIds: service.additionalProviderIds,
+        name: service.name,
+        description: service.description,
+        baseProvider: baseProviderId,
+        clientConfiguration: service.clientConfiguration,
+        authType: service.authType ?? 'oauth',
+      })
+    }
+  }
+
+  return services
+}
+
+export function getServiceByProviderAndId(
+  provider: OAuthProvider,
+  serviceId?: string
+): OAuthServiceConfig {
+  const providerConfig = OAUTH_PROVIDERS[provider]
+  if (!providerConfig) {
+    throw new Error(`Provider ${provider} not found`)
+  }
+
+  if (!serviceId) {
+    return providerConfig.services[providerConfig.defaultService]
+  }
+
+  return (
+    providerConfig.services[serviceId] || providerConfig.services[providerConfig.defaultService]
+  )
+}
+
+export function getProviderIdFromServiceId(serviceId: string): string {
+  for (const provider of Object.values(OAUTH_PROVIDERS)) {
+    for (const [id, service] of Object.entries(provider.services)) {
+      if (id === serviceId) {
+        return service.providerId
+      }
+    }
+  }
+
+  return serviceId
+}
+
+/**
+ * Looks up the OAuth service registered under the given service id (the key in
+ * a provider's `services` map). Returns `null` when no provider registers it.
+ */
+export function getServiceConfigByServiceId(serviceId: string): OAuthServiceConfig | null {
+  for (const provider of Object.values(OAUTH_PROVIDERS)) {
+    const service = provider.services[serviceId]
+    if (service) return service
+  }
+  return null
+}
+
+export function getServiceConfigByProviderId(providerId: string): OAuthServiceConfig | null {
+  for (const provider of Object.values(OAUTH_PROVIDERS)) {
+    for (const [key, service] of Object.entries(provider.services)) {
+      // Also resolve a service-account provider id (e.g. `slack-custom-bot`) back
+      // to its owning service so its credentials group under that integration.
+      if (
+        service.providerId === providerId ||
+        key === providerId ||
+        service.serviceAccountProviderId === providerId ||
+        service.additionalProviderIds?.includes(providerId)
+      ) {
+        return service
+      }
+    }
+  }
+
+  return null
+}
+
+export function usesCredentialConfiguredOAuthClient(providerId: string): boolean {
+  return Boolean(getServiceConfigByProviderId(providerId)?.clientConfiguration)
+}
+
+export function getServiceAccountProviderForProviderId(providerId: string): string | undefined {
+  const serviceConfig = getServiceConfigByProviderId(providerId)
+  return serviceConfig?.serviceAccountProviderId
+}
+
+/**
+ * The two provider ids a service answers to. Structurally satisfied by both
+ * `OAuthServiceConfig` and the lighter `OAuthServiceMatch` that catalog
+ * resolution returns, so callers pass whichever they already hold.
+ */
+export interface ServiceProviderIdentity {
+  providerId: string
+  serviceAccountProviderId?: string
+  additionalProviderIds?: readonly string[]
+}
+
+/**
+ * Whether a stored credential's `providerId` authenticates the given service.
+ *
+ * A service is reachable by its own OAuth `providerId` (`jira`), the
+ * service-account provider its family issues (`atlassian-service-account`),
+ * and any `additionalProviderIds` naming a second authorization server for the
+ * same service (`salesforce-sandbox`). One Atlassian API token authenticates
+ * Jira, Jira Service Management, and Confluence alike, so matching on the
+ * OAuth `providerId` alone hides a service-account credential from every
+ * product page it actually powers — and a sandbox credential from the
+ * Salesforce block entirely.
+ *
+ * Prefer this over comparing `getServiceConfigByProviderId(id)?.providerId`
+ * against a service: that resolver walks `OAUTH_PROVIDERS` in declaration
+ * order and answers "which service owns this id", which for a family-wide
+ * service-account id is an arbitrary single winner — `atlassian-service-account`
+ * resolves to the `Atlassian Service Account` pseudo-service and
+ * `google-service-account` to whichever Google service is declared first.
+ */
+export function credentialProviderMatchesService(
+  credentialProviderId: string,
+  service: ServiceProviderIdentity
+): boolean {
+  return (
+    service.providerId === credentialProviderId ||
+    service.serviceAccountProviderId === credentialProviderId ||
+    (service.additionalProviderIds?.includes(credentialProviderId) ?? false)
+  )
+}
+
+/**
+ * Every OAuth provider id whose credentials authenticate the service that
+ * `providerId` names — the id itself plus any `additionalProviderIds`.
+ *
+ * The SQL counterpart to {@link credentialProviderMatchesService}: list
+ * endpoints filter `account.providerId` / `credential.providerId` with
+ * `inArray(...)` on this, so the query and the predicate can't disagree and
+ * hide a credential the rest of the app considers usable.
+ *
+ * Widens only when `providerId` IS the service's primary OAuth id. Passing a
+ * service-account id or an alternate server's id returns just that id, so a
+ * query scoped to one credential family never broadens into another.
+ */
+export function providerIdsForService(providerId: string): string[] {
+  const service = getServiceConfigByProviderId(providerId)
+  if (!service || service.providerId !== providerId || !service.additionalProviderIds?.length) {
+    return [providerId]
+  }
+  return [providerId, ...service.additionalProviderIds]
+}
+
+/**
+ * Folds an alternate authorization server's provider id back onto the service
+ * it belongs to (`salesforce-sandbox` → `salesforce`), leaving every other id
+ * untouched. The inverse of {@link providerIdsForService}.
+ *
+ * Deliberately narrower than {@link credentialProviderMatchesService}: a
+ * service-account id is shared by a whole family (one `google-service-account`
+ * matches Gmail, Drive, Sheets…), so folding it onto the first matching
+ * service would arbitrarily single out one product as connected.
+ */
+export function canonicalizeServiceProviderId(
+  credentialProviderId: string,
+  service: ServiceProviderIdentity | undefined
+): string {
+  return service?.additionalProviderIds?.includes(credentialProviderId)
+    ? service.providerId
+    : credentialProviderId
+}
+
+export function getCanonicalScopesForProvider(providerId: string): string[] {
+  const service = getServiceConfigByProviderId(providerId)
+  return service?.scopes ? [...service.scopes] : []
+}
+
+/**
+ * Returns scopes that must be supplied on the link request instead of inherited from the static
+ * Better Auth connector. Dataverse has both a legacy grant and an environment-specific grant;
+ * leaving either on the connector makes Better Auth append it to the other resource audience.
+ */
+export function getPerRequestOAuthLinkScopes(providerId: string): string[] | undefined {
+  return providerId === MICROSOFT_DATAVERSE_PROVIDER_ID
+    ? getCanonicalScopesForProvider(providerId)
+    : undefined
+}
+
+/**
+ * Get canonical scopes for a service by its serviceId key in OAUTH_PROVIDERS.
+ * Useful for block definitions to reference scopes from the single source of truth.
+ */
+export function getScopesForService(serviceId: string): string[] {
+  for (const provider of Object.values(OAUTH_PROVIDERS)) {
+    const service = provider.services[serviceId]
+    if (service) {
+      return [...service.scopes]
+    }
+  }
+  return []
+}
+
+/**
+ * Scopes that control token behavior but are not returned in OAuth token responses.
+ * These should be ignored when validating credential scopes.
+ */
+const IGNORED_SCOPES = new Set([
+  'offline_access', // Microsoft - requests refresh token
+  'refresh_token', // Salesforce - requests refresh token
+  'offline.access', // Airtable - requests refresh token (note: dot not underscore)
+])
+
+/**
+ * Compute which of the provided requiredScopes are NOT granted by the credential.
+ * Note: Ignores special OAuth scopes that control token behavior (like offline_access)
+ * as they are not returned in the token response's scope list even when granted.
+ */
+export function getMissingRequiredScopes(
+  credential: { scopes?: string[]; type?: string } | undefined,
+  requiredScopes: string[] = []
+): string[] {
+  if (!credential) {
+    return requiredScopes.filter((s) => !IGNORED_SCOPES.has(s))
+  }
+
+  /**
+   * A service account names its scopes in the JWT it signs for each request, so
+   * it has no granted-scope list to compare against — `scopes` is always null.
+   * Measuring it against `requiredScopes` reports every scope missing and
+   * prompts a reconnect that would grant nothing.
+   */
+  if (credential.type === 'service_account') return []
+
+  const granted = new Set(credential.scopes || [])
+  const missing: string[] = []
+
+  for (const s of requiredScopes) {
+    if (IGNORED_SCOPES.has(s)) continue
+
+    if (!granted.has(s) && !isScopeSatisfiedBy(s, granted)) missing.push(s)
+  }
+
+  return missing
+}
+
+/**
+ * Whether a granted scope already covers `required` despite not matching it verbatim.
+ *
+ * A read-write scope subsumes its `.readonly` sibling — a credential holding
+ * `.../auth/ediscovery` is accepted by every method that documents
+ * `.../auth/ediscovery.readonly`. Without this, narrowing a consumer to the
+ * least-privileged scope would report every already-connected credential as
+ * missing it and prompt a re-consent that grants nothing new.
+ *
+ * Only the direct scope sibling is accepted: `drive.file` does not grant
+ * `drive.readonly`, and a read-only grant never satisfies a write scope.
+ */
+export function isScopeSatisfiedBy(required: string, granted: ReadonlySet<string>): boolean {
+  const readonlySuffix = '.readonly'
+  if (!required.endsWith(readonlySuffix)) return false
+  return granted.has(required.slice(0, -readonlySuffix.length))
+}
+
+/**
+ * Build a mapping of providerId -> { baseProvider, serviceKey } from OAUTH_PROVIDERS
+ * This is computed once at module load time
+ */
+const PROVIDER_ID_TO_BASE_PROVIDER: Record<string, { baseProvider: string; serviceKey: string }> =
+  {}
+
+for (const [baseProviderId, providerConfig] of Object.entries(OAUTH_PROVIDERS)) {
+  for (const [serviceKey, service] of Object.entries(providerConfig.services)) {
+    PROVIDER_ID_TO_BASE_PROVIDER[service.providerId] = {
+      baseProvider: baseProviderId,
+      serviceKey,
+    }
+    // Service-account credentials are stored under `serviceAccountProviderId`
+    // (e.g. `claude-platform-service-account`). Map it to the same base so
+    // icon/name resolution doesn't fall back to a mis-split base provider — the
+    // hyphen split only recovers a single-segment base (`google`), not a
+    // multi-segment one (`claude-platform`). First service to claim it wins.
+    const saProviderId = service.serviceAccountProviderId
+    if (saProviderId && !PROVIDER_ID_TO_BASE_PROVIDER[saProviderId]) {
+      PROVIDER_ID_TO_BASE_PROVIDER[saProviderId] = {
+        baseProvider: baseProviderId,
+        serviceKey,
+      }
+    }
+    // A second authorization server for the same service (`salesforce-sandbox`)
+    // maps to the same base and service key, so its credentials resolve the
+    // same icon and name. Without this the hyphen split would answer
+    // `{ base: 'salesforce', feature: 'sandbox' }` — a service that does not
+    // exist.
+    for (const extraProviderId of service.additionalProviderIds ?? []) {
+      if (!PROVIDER_ID_TO_BASE_PROVIDER[extraProviderId]) {
+        PROVIDER_ID_TO_BASE_PROVIDER[extraProviderId] = {
+          baseProvider: baseProviderId,
+          serviceKey,
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Parse a provider string into its base provider and feature type.
+ * Uses the pre-computed mapping from OAUTH_PROVIDERS for accuracy.
+ */
+export function parseProvider(provider: OAuthProvider): ProviderConfig {
+  const mapping = PROVIDER_ID_TO_BASE_PROVIDER[provider]
+  if (mapping) {
+    return {
+      baseProvider: mapping.baseProvider,
+      featureType: mapping.serviceKey,
+    }
+  }
+
+  // Handle compound providers (e.g., 'google-email' -> { baseProvider: 'google', featureType: 'email' })
+  const [base, feature] = provider.split('-')
+
+  if (feature) {
+    return {
+      baseProvider: base,
+      featureType: feature,
+    }
+  }
+
+  return {
+    baseProvider: provider,
+    featureType: 'default',
+  }
+}

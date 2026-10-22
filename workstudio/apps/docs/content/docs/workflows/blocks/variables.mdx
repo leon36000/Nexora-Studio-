@@ -1,0 +1,52 @@
+---
+title: Variables
+description: Update typed workflow variables during a run.
+---
+
+import { BlockPreview, WorkflowPreview, VARIABLES_RETRY_WORKFLOW, VARIABLES_CONFIG_WORKFLOW } from '@/components/workflow-preview'
+
+The **Variables block** updates variables created in the workflow's **Variables** panel. Read their current values with `<variable.name>`. Each run starts from the panel's initial values.
+
+<BlockPreview type="variables" />
+
+## Update a counter
+
+Create a number variable `retryCount` with initial value `0`. In the retry pattern below, failed requests increment it until the While condition becomes false; a successful request sets it to `3` to end retries.
+
+Calculate the next value in a Function block named **Increment**:
+
+```javascript
+return <variable.retryCount> + 1;
+```
+
+Then select `retryCount` in a Variables block and set its value to `<increment.result>`.
+
+<WorkflowPreview workflow={VARIABLES_RETRY_WORKFLOW} height={440} />
+
+## Configuration
+
+**Variable Assignments** contains the variables to update and their new values. Select an existing variable, then enter a literal value or an earlier output, such as `<api.data.email>`.
+
+The block converts each value to the selected variable's type. It does not evaluate JavaScript arithmetic. Use a Function for calculations, then assign its result.
+
+Assignments are written in order, but all references are resolved before the assignments run. A later row in the same block does not read a value just written by an earlier row.
+
+## Outputs and scope
+
+Read variables from any block with `<variable.name>`, such as `<variable.retryCount>`. Assigned values are also available on the Variables block, for example `<update.retryCount>` for a block named **Update**.
+
+Variables last for one execution. Multiple Variables blocks share the workflow's variable namespace, and a later assignment can overwrite an earlier value. Parallel branches share that namespace too; avoid concurrent writes to the same variable.
+
+References ignore case, whitespace, and periods. Avoid names that normalize to the same value, such as `retryCount` and `Retry Count`.
+
+## Store configuration for later steps
+
+<WorkflowPreview workflow={VARIABLES_CONFIG_WORKFLOW} />
+
+Create `userId` and `userTier` variables in the Variables panel. Assign their values from the API response once, then read them later with `<variable.userTier>`.
+
+## Related docs
+
+- [Workflow variables](/workflows/variables)
+- [Function](/workflows/blocks/function)
+- [Loop](/workflows/blocks/loop)

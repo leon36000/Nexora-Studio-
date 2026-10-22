@@ -1,0 +1,122 @@
+import { resetEnvMock, setEnv } from '@sim/testing'
+import {
+  inputValidationMock,
+  inputValidationMockFns,
+} from '@sim/testing/mocks/input-validation.mock'
+import { providersModelsMock } from '@sim/testing/mocks/providers-models.mock'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ProviderRequest } from '@/providers/types'
+
+const { mockAnthropic, anthropicArgs, mockExecuteAnthropic, sentinelFetch } = vi.hoisted(() => {
+  const anthropicArgs: Array<Record<string, unknown>> = []
+  const sentinelFetch = vi.fn()
+  class MockAnthropic {
+    constructor(opts: Record<string, unknown>) {
+      anthropicArgs.push(opts)
+    }
+  }
+  return {
+    mockAnthropic: MockAnthropic,
+    anthropicArgs,
+    mockExecuteAnthropic: vi.fn(),
+    sentinelFetch,
+  }
+})
+
+vi.mock('@anthropic-ai/sdk', () => ({ default: mockAnthropic }))
+vi.mock('@/lib/core/security/input-validation.server', () => inputValidationMock)
+vi.mock('@/providers/anthropic/core', () => ({
+  executeAnthropicProviderRequest: mockExecuteAnthropic,
+}))
+vi.mock('@/providers/models', () => providersModelsMock)
+
+import { azureAnthropicProvider } from '@/providers/azure-anthropic/index'
+
+const mockCreatePinnedFetch = inputValidationMockFns.mockCreatePinnedFetch
+mockCreatePinnedFetch.mockImplementation(() => sentinelFetch)
+const mockValidate = inputValidationMockFns.mockValidateUrlWithDNS
+
+function request(overrides: Partial<ProviderRequest>): ProviderRequest {
+  return { model: 'azure-anthropic/claude-3-5-sonnet', apiKey: 'k', messages: [], ...overrides }
+}
+
+/** Invokes the createClient factory handed to the Anthropic core and returns the SDK options it built. */
+function buildClientOptions(): Record<string, unknown> {
+  const config = mockExecuteAnthropic.mock.calls[0][1]
+  config.createClient('k')
+  return anthropicArgs[0]
+}
+
+afterAll(resetEnvMock)
+
+describe('azureAnthropicProvider — SSRF pinning', () => {
+  beforeEach(() => {
+    anthropicArgs.length = 0
+    setEnv({ AZURE_ANTHROPIC_ENDPOINT: undefined, AZURE_ANTHROPIC_API_VERSION: undefined })
+    mockExecuteAnthropic.mockResolvedValue({ content: 'ok' })
+  })
+
+  it('validates and pins the connection to the resolved IP for a user-supplied endpoint', async () => {
+    mockValidate.mockResolvedValue({ isValid: true, resolvedIP: '203.0.113.10' })
+
+    await azureAnthropicProvider.executeRequest(
+      request({ azureEndpoint: 'https://rebind.attacker.tld' })
+    )
+
+    expect(mockValidate).toHaveBeenCalledWith(
+      'https://rebind.attacker.tld',
+      'azureEndpoint',
+      'configuredEndpoint'
+    )
+    expect(mockCreatePinnedFetch).toHaveBeenCalledWith('203.0.113.10', {
+      profile: 'configuredEndpoint',
+    })
+    expect(buildClientOptions()).toMatchObject({ fetch: sentinelFetch })
+  })
+
+  it('does not pin when the endpoint comes from trusted server env', async () => {
+    setEnv({ AZURE_ANTHROPIC_ENDPOINT: 'https://trusted.services.ai.azure.com' })
+
+    await azureAnthropicProvider.executeRequest(request({ azureEndpoint: undefined }))
+
+    expect(mockValidate).not.toHaveBeenCalled()
+    expect(mockCreatePinnedFetch).not.toHaveBeenCalled()
+    expect(buildClientOptions()).not.toHaveProperty('fetch')
+  })
+
+  it('keeps the registry model in core and resolves a separate Azure wire model', async () => {
+    setEnv({ AZURE_ANTHROPIC_ENDPOINT: 'https://identity.services.ai.azure.com' })
+    const providerRequest = request({})
+
+    await azureAnthropicProvider.executeRequest(providerRequest)
+
+    const [forwardedRequest, config] = mockExecuteAnthropic.mock.calls[0]
+    expect(forwardedRequest.model).toBe('azure-anthropic/claude-3-5-sonnet')
+    expect(config.resolveWireModel(forwardedRequest)).toBe('claude-3-5-sonnet')
+    expect(buildClientOptions().defaultHeaders).not.toHaveProperty('anthropic-beta')
+  })
+
+  it('preserves custom deployment casing when removing an uppercase routing prefix', async () => {
+    setEnv({ AZURE_ANTHROPIC_ENDPOINT: 'https://custom.services.ai.azure.com' })
+    const providerRequest = request({ model: 'AZURE-ANTHROPIC/Team-Claude-Deployment' })
+
+    await azureAnthropicProvider.executeRequest(providerRequest)
+
+    const [forwardedRequest, config] = mockExecuteAnthropic.mock.calls[0]
+    expect(forwardedRequest.model).toBe('AZURE-ANTHROPIC/Team-Claude-Deployment')
+    expect(config.resolveWireModel(forwardedRequest)).toBe('Team-Claude-Deployment')
+  })
+
+  it('throws and never builds a client when validation blocks the endpoint', async () => {
+    mockValidate.mockResolvedValue({ isValid: false, error: 'resolves to a blocked IP address' })
+
+    await expect(
+      azureAnthropicProvider.executeRequest(
+        request({ azureEndpoint: 'https://rebind.attacker.tld' })
+      )
+    ).rejects.toThrow('Invalid Azure Anthropic endpoint')
+
+    expect(mockCreatePinnedFetch).not.toHaveBeenCalled()
+    expect(mockExecuteAnthropic).not.toHaveBeenCalled()
+  })
+})

@@ -1,0 +1,85 @@
+---
+title: Usage data
+description: Inspect CLI usage fields, reporting controls, and local state.
+---
+
+The installed CLI sends anonymous usage events by default when its build includes a reporting destination. The events record which commands execute, their outcomes, and duration. Disable reporting for this installation with:
+
+```bash
+sim telemetry disable
+sim telemetry status
+```
+
+Telemetry commands always print text, regardless of `--output`.
+
+## Turning it off
+
+Reporting follows this precedence. `sim telemetry status` names the first reason that disables it:
+
+| Priority | Control | Scope |
+| --- | --- | --- |
+| 1 | `DO_NOT_TRACK=1` | Cross-tool environment opt-out |
+| 2 | `SIM_TELEMETRY_DISABLED=1` | CLI environment opt-out |
+| 3 | `sim telemetry disable` | Saved preference in this installation's usage state |
+| 4 | No destination configured in the build | No event can be sent |
+
+```bash
+export DO_NOT_TRACK=1
+export SIM_TELEMETRY_DISABLED=1
+sim telemetry disable
+```
+
+Use whichever control matches your environment. `sim telemetry enable` changes the saved preference but cannot override an environment opt-out or add a missing build destination.
+
+Disabling reporting also withholds the coding-agent name from Sim API requests. Requests still identify the CLI and its version/runtime through client headers; that request attribution is separate from the anonymous usage event.
+
+## What is sent
+
+When enabled, reporting sends one event after an executed command finishes. Telemetry commands, help/version output, parse failures before execution, and the run that displays the first notice are excluded.
+
+| Field | Example | Contents |
+| --- | --- | --- |
+| Command | `workflows list` | Registered command name, without argument values |
+| Flags | `--output`, `--workspace` | Names of supplied flags, without values |
+| Argument count | `1` | Count of positional arguments |
+| Outcome | exit `0`, `SimApiError`, HTTP `404`, `NOT_FOUND` | Exit code, error class, HTTP status, and API error code when available; no message |
+| Duration | `1432` ms | Time from process start to completion |
+| CLI, Node, OS, CPU | `2.1.2`, `22.14.0`, `darwin`, `arm64` | Runtime/version information |
+| Terminal and CI | `is_tty`, `is_ci` | Whether stdout is a terminal and whether a CI environment was detected |
+| Coding agent | `claude-code` or `none` | Detected coding agent driving the shell |
+| Deployment kind | `hosted` or `self_hosted` | Deployment classification, without its address |
+| Device/session IDs | Random UUIDs | Installation identifier and a time-based command session |
+
+These are illustrative values, not a required CLI or Node version.
+
+## What is never sent
+
+The usage payload excludes argument values, flag values, file paths, workflow/workspace IDs, error messages, environment-variable values, credentials, and the deployment address. It includes no Sim account identity and requests no analytics person profile.
+
+A separate short-lived process sends the event. It is not given your Sim API key, and the CLI does not wait for delivery before returning your prompt.
+
+## Identity
+
+Usage state is stored in `~/.sim/telemetry.json`, or under `SIM_CONFIG_DIR`. The random device ID is not derived from hardware, account, or network information. Reported commands less than 30 minutes apart share a session ID and sequence number.
+
+Deleting `telemetry.json` resets the device ID, notice state, and saved enabled/disabled preference. Reporting can return to its default. Environment opt-outs still apply.
+
+## Location
+
+The event contains no location field. The receiving analytics service sees the request's IP address and can derive an approximate country/city from it. This network-derived information is separate from the client payload's device and session IDs.
+
+## The first-run notice
+
+The first eligible interactive run prints a notice on stderr and does not report that run. The notice is shown once per saved device state. It is not shown in CI or when stderr is redirected; those conditions alone do not disable reporting.
+
+## Self-hosted deployments
+
+Reporting follows the CLI build, not the Sim deployment it calls. A configured build can report while targeting a self-hosted endpoint.
+
+Building from the repository without `SIM_CLI_TELEMETRY_KEY` supplies no reporting destination. Set that build-time variable to your own PostHog project token to configure a destination; `SIM_CLI_TELEMETRY_HOST` can select its host. Run `sim telemetry status` to inspect the effective state of your installed build.
+
+## Related docs
+
+- [Telemetry commands](/cli/telemetry)
+- [Configuration](/cli/configuration)
+- [Output formats](/cli/output)
