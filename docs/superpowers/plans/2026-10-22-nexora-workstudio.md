@@ -297,16 +297,16 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 ## Tâche 15 — Vérification finale et revue
 
 - [x] Lancer l'un après l'autre : `check-no-ee.sh`, `check-brand.sh`, `check-licenses.sh`, `check-i18n.sh`, `tsc`, les tests unitaires des fichiers modifiés (`git diff --name-only main...workstudio-v1`), `compose up`, puis `smoke.sh`.
-- [ ] `superpowers:requesting-code-review` sur la branche ; traiter les retours.
-- [ ] Mettre à jour le ledger avec les preuves ; mettre à jour la mémoire du projet.
-- [ ] Fusionner `workstudio-v1` dans `main` en local (fast-forward ou merge). **Pas de push.**
+- [x] `superpowers:requesting-code-review` sur la branche ; traiter les retours.
+- [x] Mettre à jour le ledger avec les preuves ; mettre à jour la mémoire du projet.
+- [x] Fusionner `workstudio-v1` dans `main` en local (fast-forward ou merge). **Pas de push.**
 - [ ] Seulement après la Tâche 16 : émettre la promesse de fin de boucle.
 
 ## Tâche 16 — Installation en une commande (spec §5.8)
 
-- [ ] Compose : noms d'images paramétrables (`NEXORA_IMAGE_PREFIX`, `NEXORA_VERSION`) ; service `ollama` optionnel (profil `ollama`) pour un modèle 100 % local.
-- [ ] CI `images.yml` : étiquettes `latest` (tags v*) et `edge` (branche main), en plus de la version et du SHA.
-- [ ] `install.sh` à la racine : prérequis (Docker, compose v2, démon, disque), paquet de déploiement (archive GitHub ou `NEXORA_BUNDLE` local), assistant (lecture sur `/dev/tty`) ou mode `--yes` piloté par variables, `.env` généré, images tirées (repli : construction depuis les sources), attente de l'état sain, commande `nexora`. Tests shell.
-- [ ] `nexora` (CLI) : start, stop, restart, status, logs, update, smoke, uninstall (volumes conservés sauf `--purge`, confirmation).
-- [ ] README et guide : la commande unique en tête ; installation manuelle en second.
+- [x] Compose : noms d'images paramétrables (`NEXORA_IMAGE_PREFIX`, `NEXORA_VERSION`) ; service `ollama` optionnel (profil `ollama`) pour un modèle 100 % local.
+- [x] CI `images.yml` : étiquettes `latest` (tags v*) et `edge` (branche main), en plus de la version et du SHA.
+- [x] `install.sh` à la racine : prérequis (Docker, compose v2, démon, disque), paquet de déploiement (archive GitHub ou `NEXORA_BUNDLE` local), assistant (lecture sur `/dev/tty`) ou mode `--yes` piloté par variables, `.env` généré, images tirées (repli : construction depuis les sources), attente de l'état sain, commande `nexora`. Tests shell.
+- [x] `nexora` (CLI) : start, stop, restart, status, logs, update, smoke, uninstall (volumes conservés sauf `--purge`, confirmation).
+- [x] README et guide : la commande unique en tête ; installation manuelle en second.
 - [ ] Vérification sur pc6 : installation non interactive dans un dossier et un projet compose séparés, ports distincts, puis `smoke.sh` 11/11 ; désinstallation propre.
