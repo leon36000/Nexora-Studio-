@@ -280,7 +280,7 @@ describe('internal executor delegation claims', () => {
           },
         },
       })
-    ).rejects.toThrow('Non-Sim workflow subjects cannot be represented as Nexora users')
+    ).rejects.toThrow('Non-Nexora workflow subjects cannot be represented as Nexora users')
 
     await expect(
       generateInternalDelegationToken({
@@ -294,7 +294,7 @@ describe('internal executor delegation claims', () => {
           subject: { kind: 'authenticated_email', email: 'person@example.com' },
         },
       })
-    ).rejects.toThrow('Non-Sim workflow subjects cannot be represented as Nexora users')
+    ).rejects.toThrow('Non-Nexora workflow subjects cannot be represented as Nexora users')
   })
 
   it('rejects a signed delegation that pairs a non-Sim principal with a Nexora user subject', async () => {

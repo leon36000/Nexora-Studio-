@@ -202,3 +202,25 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
     - bloc « Nexora Chat » (ex-Sim Chat, dépend du copilot) encore visible dans la barre d'outils, à masquer ;
     - sections « Nexora Mailer » et « Marque blanche » visibles sans être utiles en v1.
   - `bun run check:audits` : 12 audits du dépôt échouaient (métadonnées générées périmées, `any` dans nos remplacements `ee/`, motifs de test, exports inutilisés…). Le chantier est confié à un sous-agent.
+- 22/10/2026 — **Tâche 15, revue de code** (sous-agent, lecture seule) : 8 constats.
+  - Déjà traités :
+    - **marketing** : `/knowledge/github/…` et `/enterprise/claim/…` ne sont plus redirigés (le retour d'installation de l'application GitHub en dépendait). Test écrit avant le correctif, 53/53 avec le proxy ;
+    - **liste réseau** : `host.docker.internal` retiré de `EGRESS_ALLOWED_HOSTS` (seuls `nexora-api` et `nexora-connect` restent) ;
+    - **compose** :
+      - adresse d'écoute séparée pour API et Connect (`NEXORA_SERVICES_BIND_ADDRESS`, 127.0.0.1) ;
+      - origine de Connect configurable (`NEXORA_CONNECT_PUBLIC_URL`) ;
+      - attente de l'état sain de Connect ;
+      - inscriptions encadrées par `NEXORA_ALLOWED_EMAIL_DOMAINS` (→ `ALLOWED_LOGIN_DOMAINS`, appliqué à toute création de session, OIDC compris), `NEXORA_REGISTRATION_DISABLED` et `NEXORA_EMAIL_VERIFICATION` ;
+    - **`init-env.sh`** : un échec d'`openssl` n'écrit plus de secrets vides, et le fichier temporaire est nettoyé (3 nouveaux tests, 20/20) ;
+    - **clé administrateur (constat 8)** :
+      - l'amorçage crée un utilisateur `workstudio@nexora.local`, avec un rôle sans permission d'administration et une limite `null` (illimitée) sur chaque modèle, resynchronisée à chaque démarrage, puis une clé pour cet utilisateur (`POST /v1/admin/keys`) ;
+      - une ancienne clé administrateur est remplacée ;
+      - 5 tests sur un faux Nexora API (une limite absente bloque les requêtes, d'où les limites explicites).
+  - Reste à traiter après le sous-agent des audits :
+    - (1) Connect accessible à tout inscrit : inscription désormais encadrée, plus documentation ;
+    - (2) confiance OIDC pour le rattachement de comptes ;
+    - (3) l'OIDC ignore `DISABLE_REGISTRATION` ;
+    - (4) espaces non rattachés à l'organisation créée ;
+    - (7) consommation de toute l'instance visible par tous ;
+    - barre oblique finale de l'émetteur OIDC ;
+    - modèle par défaut tant que la liste n'est pas chargée.

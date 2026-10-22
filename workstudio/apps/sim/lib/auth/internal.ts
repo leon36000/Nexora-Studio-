@@ -141,7 +141,7 @@ export async function generateInternalDelegationToken(
     : undefined
   const principalSubject = input.principal ? resolvePrincipalSubject(input.principal) : null
   if (principalSubject && principalSubject.kind !== 'sim_user' && suppliedSubjectUserId) {
-    throw new Error('Non-Sim workflow subjects cannot be represented as Nexora users')
+    throw new Error('Non-Nexora workflow subjects cannot be represented as Nexora users')
   }
   if (!principalSubject && input.principal && suppliedSubjectUserId) {
     throw new Error('Actorless workflow principals cannot be represented as Nexora users')

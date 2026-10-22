@@ -1,14 +1,16 @@
 """Gives Nexora WorkStudio its Nexora API key.
 
-Runs once per `docker compose up`, after Nexora API is healthy: signs in as the bootstrap
-admin, creates a key named `workstudio`, and writes `export VLLM_API_KEY=...` to the shared
-bootstrap volume, where the WorkStudio container reads it at startup. A key that still works
-is kept, so restarts do not pile up keys. Standard library only.
+Runs once per `docker compose up`, after Nexora API is healthy. Signs in as the bootstrap admin,
+keeps a dedicated `workstudio` user (role without admin permission, unlimited on every model)
+in sync, and writes that user's key as `export VLLM_API_KEY=...` to the shared bootstrap volume,
+where the WorkStudio container reads it at startup. A key that still belongs to that user is
+kept, so restarts do not pile up keys. Standard library only.
 """
 from __future__ import annotations
 
 import json
 import os
+import secrets
 import sys
 import time
 import urllib.error
@@ -69,22 +71,73 @@ def _write_private(path: Path, content: str) -> None:
     os.replace(tmp, path)
 
 
+WORKSTUDIO_NAME = "workstudio"
+WORKSTUDIO_EMAIL = "workstudio@nexora.local"
+LIMIT_TYPES = ("rpm", "rpd", "tpm", "tpd")
+
+
+def _call(method: str, url: str, token: str, body: dict | None = None) -> dict:
+    status, payload = _request(method, url, token=token, body=body)
+    if status not in (200, 201):
+        raise BootstrapError(f"{method} {url.split('/v1/', 1)[-1]} failed (HTTP {status})")
+    return payload
+
+
+def _find(items: list, **match) -> dict | None:
+    return next((item for item in items if all(item.get(k) == v for k, v in match.items())), None)
+
+
+def _sync_workstudio_user(base_url: str, admin_token: str) -> int:
+    """Role without admin permission, unlimited on every model; its organization and user."""
+    api = f"{base_url}/v1/admin"
+    routers = _call("GET", f"{api}/routers?limit=100", admin_token).get("data", [])
+    limits = [{"router_id": r["id"], "type": t, "value": None} for r in routers for t in LIMIT_TYPES]
+    role_body = {"name": WORKSTUDIO_NAME, "permissions": [], "limits": limits}
+    role = _find(_call("GET", f"{api}/roles?limit=100", admin_token).get("data", []), name=WORKSTUDIO_NAME)
+    if role:
+        _call("PATCH", f"{api}/roles/{role['id']}", admin_token, role_body)
+        role_id = role["id"]
+    else:
+        role_id = _call("POST", f"{api}/roles", admin_token, role_body)["id"]
+
+    org = _find(_call("GET", f"{api}/organizations?limit=100", admin_token).get("data", []), name=WORKSTUDIO_NAME)
+    org_id = org["id"] if org else _call("POST", f"{api}/organizations", admin_token, {"name": WORKSTUDIO_NAME})["id"]
+
+    users = _call("GET", f"{api}/users?email={WORKSTUDIO_EMAIL}&limit=100", admin_token).get("data", [])
+    user = _find(users, email=WORKSTUDIO_EMAIL)
+    if user:
+        return user["id"]
+    return _call("POST", f"{api}/users", admin_token, {
+        "email": WORKSTUDIO_EMAIL,
+        "name": "Nexora WorkStudio",
+        "password": secrets.token_hex(24),
+        "role_id": role_id,
+        "organization_id": org_id,
+    })["id"]
+
+
+def _is_workstudio_key(base_url: str, key: str) -> bool:
+    status, me = _request("GET", f"{base_url}/v1/me", token=key)
+    return status == 200 and me.get("email") == WORKSTUDIO_EMAIL and "admin" not in me.get("permissions", [])
+
+
 def ensure_workstudio_key(base_url: str, admin: str, password: str, out: Path, wait_seconds: int = 300) -> str:
+    """WorkStudio's model key: owned by a dedicated user with model access only (least privilege)."""
     base_url = base_url.rstrip("/")
     _wait_until_healthy(base_url, wait_seconds)
-
-    existing = _read_existing_key(out)
-    if existing and _request("GET", f"{base_url}/v1/me/info", token=existing)[0] == 200:
-        return existing
 
     status, session = _request("POST", f"{base_url}/v1/auth/login", body={"email": admin, "password": password})
     if status != 200 or not session.get("value"):
         raise BootstrapError(f"Nexora API admin sign-in failed (HTTP {status}); check NEXORA_API_ADMIN_PASSWORD")
+    user_id = _sync_workstudio_user(base_url, session["value"])
 
-    status, created = _request("POST", f"{base_url}/v1/me/keys", token=session["value"], body={"name": "workstudio"})
-    if status not in (200, 201) or not created.get("value"):
-        raise BootstrapError(f"Nexora API key creation failed (HTTP {status})")
+    existing = _read_existing_key(out)
+    if existing and _is_workstudio_key(base_url, existing):
+        return existing
 
+    created = _call("POST", f"{base_url}/v1/admin/keys", session["value"], {"name": WORKSTUDIO_NAME, "user": user_id})
+    if not created.get("value"):
+        raise BootstrapError("Nexora API returned no key value")
     _write_private(out, f"export VLLM_API_KEY={created['value']}\n")
     return created["value"]
 
@@ -97,7 +150,7 @@ def main() -> int:
             os.environ["NEXORA_API_ADMIN_PASSWORD"],
             Path(os.environ.get("NEXORA_BOOTSTRAP_FILE", "/bootstrap/nexora-api.env")),
         )
-    except (BootstrapError, KeyError) as error:
+    except (BootstrapError, KeyError, OSError, ValueError) as error:
         print(f"bootstrap: {error}", file=sys.stderr)
         return 1
     print("bootstrap: WorkStudio key ready")

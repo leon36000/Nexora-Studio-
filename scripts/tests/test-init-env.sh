@@ -19,4 +19,8 @@ before="$(sha256sum "$d/deploy/.env")"; NEXORA_ROOT="$d" bash "$SCRIPT" >/dev/nu
 [ "$before" = "$after" ] && ok "never rewrites an existing file" || ko "never rewrites an existing file"
 d2="$(mktemp -d)"; mkdir -p "$d2/deploy"; cp "$d/deploy/.env.example" "$d2/deploy/"; NEXORA_ROOT="$d2" bash "$SCRIPT" >/dev/null 2>&1
 [ "$(grep ^ENCRYPTION_KEY= "$d/deploy/.env")" != "$(grep ^ENCRYPTION_KEY= "$d2/deploy/.env")" ] && ok "secrets differ between installs" || ko "secrets differ between installs"
+d3="$(mktemp -d)"; mkdir -p "$d3/deploy" "$d3/bin"; cp "$d/deploy/.env.example" "$d3/deploy/"; printf '#!/bin/sh\nexit 1\n' > "$d3/bin/openssl"; chmod +x "$d3/bin/openssl"
+PATH="$d3/bin:$PATH" NEXORA_ROOT="$d3" bash "$SCRIPT" >/dev/null 2>&1 && ko "fails when openssl fails" || ok "fails when openssl fails"
+[ ! -e "$d3/deploy/.env" ] && ok "writes no .env with empty secrets" || ko "writes no .env with empty secrets"
+[ -z "$(ls "$d3/deploy" | grep -v '^.env.example$')" ] && ok "leaves no temporary file" || ko "leaves no temporary file"
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

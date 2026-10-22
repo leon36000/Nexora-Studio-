@@ -77,7 +77,7 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:
-      - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_API_PORT:-8000}:8000'
+      - '${NEXORA_SERVICES_BIND_ADDRESS:-127.0.0.1}:${NEXORA_API_PORT:-8000}:8000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,11 +119,11 @@ services:
       NEXORA_CONNECT_ENCRYPTION_KEY: ${NEXORA_CONNECT_ENCRYPTION_KEY:?run scripts/init-env.sh first}
       NEXORA_CONNECT_RUNTIME_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN:?run scripts/init-env.sh first}
       NEXORA_CONNECT_ADMIN_TOKEN: ${NEXORA_CONNECT_ADMIN_TOKEN:?run scripts/init-env.sh first}
-      NEXORA_CONNECT_ORIGIN: http://localhost:${NEXORA_CONNECT_PORT:-8400}
+      NEXORA_CONNECT_ORIGIN: ${NEXORA_CONNECT_PUBLIC_URL:-http://localhost:${NEXORA_CONNECT_PORT:-8400}}
     volumes:
       - connect-data:/app/data
     ports:
-      - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_CONNECT_PORT:-8400}:3000'
+      - '${NEXORA_SERVICES_BIND_ADDRESS:-127.0.0.1}:${NEXORA_CONNECT_PORT:-8400}:3000'
 
   workstudio-migrations:
     build:
@@ -186,7 +186,7 @@ services:
       # Tools: Nexora Connect is preconfigured as an MCP server in every workspace.
       NEXORA_CONNECT_MCP_URL: http://nexora-connect:3000/mcp
       NEXORA_CONNECT_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN}
-      EGRESS_ALLOWED_HOSTS: nexora-api,nexora-connect,host.docker.internal
+      EGRESS_ALLOWED_HOSTS: nexora-api,nexora-connect
       # Governance shipped with Nexora: organizations, audit log, usage dashboard.
       ORGANIZATIONS_ENABLED: 'true'
       NEXT_PUBLIC_ORGANIZATIONS_ENABLED: 'true'
@@ -202,6 +202,10 @@ services:
       NEXT_PUBLIC_WHITELABELING_ENABLED: 'false'
       SESSION_POLICIES_ENABLED: 'false'
       NEXT_PUBLIC_SESSION_POLICIES_ENABLED: 'false'
+      # Who may create an account: restrict to your email domains, and close sign-ups once the team is in.
+      ALLOWED_LOGIN_DOMAINS: ${NEXORA_ALLOWED_EMAIL_DOMAINS:-}
+      DISABLE_REGISTRATION: ${NEXORA_REGISTRATION_DISABLED:-false}
+      EMAIL_VERIFICATION_ENABLED: ${NEXORA_EMAIL_VERIFICATION:-false}
       # Optional single sign-on (OIDC) and outgoing email.
       NEXT_PUBLIC_NEXORA_OIDC_NAME: ${NEXORA_OIDC_NAME:-}
       NEXORA_OIDC_ISSUER: ${NEXORA_OIDC_ISSUER:-}
@@ -225,7 +229,7 @@ services:
       nexora-bootstrap:
         condition: service_completed_successfully
       nexora-connect:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/login']
       interval: 30s

@@ -37,6 +37,8 @@ describe('resolveMarketingRedirect (Nexora edition: upstream marketing site is n
     '/invite/x',
     '/api/health',
     '/o/org',
+    '/knowledge/github/setup',
+    '/enterprise/claim/abc',
   ])('leaves application path %s alone', (path) => {
     expect(resolveMarketingRedirect(path, none)).toBeNull()
   })
