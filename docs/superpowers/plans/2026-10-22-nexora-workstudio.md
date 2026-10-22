@@ -309,4 +309,4 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 - [x] `install.sh` à la racine : prérequis (Docker, compose v2, démon, disque), paquet de déploiement (archive GitHub ou `NEXORA_BUNDLE` local), assistant (lecture sur `/dev/tty`) ou mode `--yes` piloté par variables, `.env` généré, images tirées (repli : construction depuis les sources), attente de l'état sain, commande `nexora`. Tests shell.
 - [x] `nexora` (CLI) : start, stop, restart, status, logs, update, smoke, uninstall (volumes conservés sauf `--purge`, confirmation).
 - [x] README et guide : la commande unique en tête ; installation manuelle en second.
-- [ ] Vérification sur pc6 : installation non interactive dans un dossier et un projet compose séparés, ports distincts, puis `smoke.sh` 11/11 ; désinstallation propre.
+- [x] Vérification sur pc6 : installation non interactive dans un dossier et un projet compose séparés, ports distincts, puis `smoke.sh` 11/11 ; désinstallation propre.

@@ -42,6 +42,9 @@ class FakeApi(BaseHTTPRequestHandler):
 
     def do_GET(self):
         s, caller, path = self.state, self._caller(), self.path.split("?")[0]
+        if path.startswith("/v1/admin") and s.get("expire_next_session"):
+            s["expire_next_session"] = False
+            return self._json(401, {})
         if path == "/health":
             return self._json(200, {})
         if path == "/v1/me":
@@ -179,6 +182,11 @@ class BootstrapTest(unittest.TestCase):
         key = self.run_bootstrap()
         self.assertNotEqual(key, "admin-key")
         self.assertNotIn("admin", FakeApi.state["keys"][key]["permissions"])
+
+    def test_signs_in_again_when_the_admin_session_expires_mid_run(self):
+        FakeApi.state["expire_next_session"] = True
+        key = self.run_bootstrap()
+        self.assertEqual(FakeApi.state["keys"][key]["email"], bootstrap.WORKSTUDIO_EMAIL)
 
     def test_fails_loudly_on_wrong_admin_password(self):
         with self.assertRaises(bootstrap.BootstrapError):

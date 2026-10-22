@@ -27,6 +27,7 @@ Il suffit d'avoir Docker. L'installateur :
 | `--no-start` | Prépare tout sans démarrer |
 | `NEXORA_HOME` | Dossier d'installation (`~/nexora` par défaut) |
 | `NEXORA_VERSION` | Version des images (`latest` par défaut, `edge` pour la branche principale) |
+| `NEXORA_OLLAMA_THREADS` | Threads du modèle local (par défaut la moitié des cœurs : sur une machine partagée, un modèle qui prend tous les cœurs devient cent fois plus lent) |
 
 Relancer l'installateur ne touche jamais une configuration existante ; `nexora update` met à jour le paquet et les images en la conservant.
 

@@ -257,4 +257,10 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
     - `nexora update` : paquet rafraîchi, configuration gardée ; l'amorçage a réorienté le modèle vers `qwen2.5:7b` de l'hôte (découverte de R9).
     - Exécutions toujours en échec : la machine est saturée par des processus qui ne sont pas les nôtres (`rustc`, `decompile`) ; le 7b tombe à 0,17 jeton/s. **Fumée 11/11 de l'instance installée à refaire quand la charge baisse.**
   - Disque : 59 → 28 Go libres pendant les essais ; ménage de mon cache de construction (par identifiant, entrées créées depuis le 21/10) → 80 Go libres.
+- 22/10/2026 — **Tâche 16, vérification terminée** (`docs/verification/smoke-install-2026-10-22.json`).
+  - Cause de la lenteur : pas la charge seule. llama.cpp lance un thread par cœur (20) ; dès que d'autres programmes prennent des cœurs, le 7b tombe de ~20 à 0,15 jeton/s. Limité à 8 threads (`PARAMETER num_thread`) : **21,65 jetons/s**. Le conteneur `nexora-dev-ollama` a désormais son propre volume de modèles (copie de `~/.ollama/models`, celui-ci n'est pas modifié).
+  - Produit : `install.sh` fixe le modèle local à la moitié des cœurs (`NEXORA_OLLAMA_THREADS`), commande vérifiée sur un vrai conteneur Ollama.
+  - Instance installée par `install.sh` (`nexora-itest`) : **fumée 11/11** (5 modèles PME de 5,6 à 22,9 s) ; puis `nexora uninstall --purge` : aucun conteneur, volume, dossier ni commande ne restent.
+  - Amorçage : un 401 transitoire (session admin de Nexora API réutilisée jusqu'à son expiration) faisait échouer `nexora-bootstrap` ; nouvelle connexion puis un seul nouvel essai, testé. Pile principale : fournisseur conservé (id 1), **fumée 11/11**.
+  - Non vérifié faute de publication : le téléchargement des images depuis GHCR (il suppose l'envoi sur GitHub, qui attend l'accord du fondateur).
 

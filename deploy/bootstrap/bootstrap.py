@@ -29,6 +29,10 @@ class BootstrapError(RuntimeError):
     pass
 
 
+class SessionExpiredError(BootstrapError):
+    """The admin session ended mid-run: Nexora API reuses its session key until it expires."""
+
+
 def _request(method: str, url: str, token: str | None = None, body: dict | None = None) -> tuple[int, dict]:
     data = json.dumps(body).encode() if body is not None else None
     request = urllib.request.Request(url, data=data, method=method)
@@ -85,6 +89,8 @@ LIMIT_TYPES = ("rpm", "rpd", "tpm", "tpd")
 
 def _call(method: str, url: str, token: str, body: dict | None = None) -> dict:
     status, payload = _request(method, url, token=token, body=body)
+    if status == 401:
+        raise SessionExpiredError(f"{method} {url.split('/v1/', 1)[-1]} failed (HTTP 401)")
     if status not in (200, 201, 204):
         raise BootstrapError(f"{method} {url.split('/v1/', 1)[-1]} failed (HTTP {status})")
     return payload
@@ -167,7 +173,13 @@ def ensure_workstudio_key(
     """WorkStudio's model key: owned by a dedicated user with model access only (least privilege)."""
     base_url = base_url.rstrip("/")
     _wait_until_healthy(base_url, wait_seconds)
+    try:
+        return _ensure_signed_in(base_url, admin, password, out, upstream)
+    except SessionExpiredError:
+        return _ensure_signed_in(base_url, admin, password, out, upstream)
 
+
+def _ensure_signed_in(base_url: str, admin: str, password: str, out: Path, upstream: dict | None) -> str:
     status, session = _request("POST", f"{base_url}/v1/auth/login", body={"email": admin, "password": password})
     if status != 200 or not session.get("value"):
         raise BootstrapError(f"Nexora API admin sign-in failed (HTTP {status}); check NEXORA_API_ADMIN_PASSWORD")

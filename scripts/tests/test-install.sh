@@ -85,6 +85,7 @@ e3="$h3/deploy/.env"
 grep -q "compose .* pull" "$h3.log" && ok "pulls published images" || ko "pulls published images"
 grep -q "compose .* up -d" "$h3.log" && ! grep -q -- "--build" "$h3.log" && ok "starts without building" || ko "starts without building"
 grep -q "ollama pull" "$h3.log" && ok "downloads the local model" || ko "downloads the local model"
+grep -q "num_thread" "$h3.log" && grep -q "ollama create" "$h3.log" && ok "caps the model threads so a busy machine stays fast" || ko "caps the model threads so a busy machine stays fast"
 first_up="$(grep -n "compose .* up -d" "$h3.log" | head -1)"; model_pull="$(grep -n "ollama pull" "$h3.log" | head -1 | cut -d: -f1)"
 case "$first_up" in *"up -d --wait ollama"*) ok "starts the model server first" ;; *) ko "starts the model server first ($first_up)" ;; esac
 last_up="$(grep -n "compose .* up -d$" "$h3.log" | tail -1 | cut -d: -f1)"

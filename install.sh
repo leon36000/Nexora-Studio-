@@ -302,6 +302,15 @@ start() {
     compose "${up[@]}" --wait ollama || start_failed
     step "Téléchargement du modèle local $model (une seule fois)"
     compose exec -T ollama ollama pull "$model" || die "Téléchargement du modèle $model impossible. Vérifiez la connexion, puis relancez « nexora update »."
+    # llama.cpp starts one thread per core and collapses (x100 slower) when other programs take
+    # cores; half the cores keeps nearly all the speed of a dedicated machine.
+    local cores threads
+    cores="$(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 4)"
+    threads="${NEXORA_OLLAMA_THREADS:-$(( cores > 1 ? cores / 2 : 1 ))}"
+    case "$model$threads" in *[!A-Za-z0-9._:/-]*) die "Nom de modèle ou nombre de threads invalide." ;; esac
+    compose exec -T ollama sh -c "printf 'FROM $model\\nPARAMETER num_thread $threads\\n' > /tmp/Modelfile && ollama create $model -f /tmp/Modelfile" > /dev/null \
+      || warn "Réglage des threads du modèle impossible : il fonctionnera, plus lentement sur une machine chargée."
+    info "Modèle $model prêt ($threads threads)."
   fi
   compose "${up[@]}" || start_failed
 
