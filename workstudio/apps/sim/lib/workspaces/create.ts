@@ -5,6 +5,7 @@ import { getPostgresConstraintName, getPostgresErrorCode } from '@sim/utils/erro
 import { generateId } from '@sim/utils/id'
 import { PlatformEvents } from '@/lib/core/telemetry'
 import type { DbTransaction } from '@/lib/db/types'
+import { ensureNexoraConnectServer } from '@/lib/nexora/connect'
 import { createProjectRecord } from '@/lib/projects/membership'
 import { buildDefaultWorkflowArtifacts } from '@/lib/workflows/defaults'
 import { insertNewWorkflowRow } from '@/lib/workflows/persistence/new-workflow-row'
@@ -59,7 +60,10 @@ export interface CreatedWorkspace {
   updatedAt: Date
 }
 
-/** Emits the canonical best-effort workspace-created platform event after commit. */
+/**
+ * Emits the canonical best-effort workspace-created platform event after commit.
+ * Nexora edition: also registers Nexora Connect in the new workspace, in the background.
+ */
 export function emitWorkspaceCreatedPlatformEvent(params: {
   workspaceId: string
   userId: string
@@ -68,6 +72,7 @@ export function emitWorkspaceCreatedPlatformEvent(params: {
   try {
     PlatformEvents.workspaceCreated(params)
   } catch {}
+  void ensureNexoraConnectServer({ workspaceId: params.workspaceId, userId: params.userId })
 }
 
 /** {@link CreateWorkspaceParams} plus the pre-transaction entitlement answer. */

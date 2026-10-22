@@ -99,3 +99,10 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Tests `providers`, hooks et permissions : 197 fichiers et 2 319 tests verts. `tsc` : aucune erreur dans ces fichiers (les 7 erreurs restantes sont dans les tables en cours de traduction).
   - `scripts/dev/up.sh` ajoute à `.env.local` le fichier local ignoré `scripts/dev/.extra-env`.
   - Reste à vérifier visuellement après la tâche 6 : le choix par défaut « Nexora › nexora-qwen » dans l'éditeur.
+- 22/10/2026 — **Tâche 8 terminée.**
+  - `lib/nexora/connect.ts` : `ensureNexoraConnectServer` enregistre « Nexora Connect » (streamable-http, en-tête `Authorization: Bearer <NEXORA_CONNECT_TOKEN>`, `existingServerBehavior: 'reject'`). L'opération est idempotente (conflit = déjà présent), ne lève jamais d'exception et ne fait rien sans configuration ; 4 tests écrits avant le code.
+  - Appel non bloquant depuis `emitWorkspaceCreatedPlatformEvent`, déclenché après validation de la transaction par les trois chemins de création (création classique, projet, espace du propriétaire entreprise).
+  - Nouvelles variables d'environnement : `NEXORA_CONNECT_MCP_URL`, `NEXORA_CONNECT_TOKEN`.
+  - Vérification réelle (environnement de développement + Nexora Connect du test) : un nouvel espace « Atelier Nexora » contient le serveur « Nexora Connect », et la découverte renvoie 5 outils (`list_apps`, `list_connections`, `search_actions`, `get_action_guide`, `execute_action`). 28 fichiers et 190 tests verts.
+  - R15 : les espaces créés avant la configuration ne sont pas rattrapés en v1 ; ajout manuel possible dans Réglages > MCP.
+- 22/10/2026 — **6.5 (journaux, intégrations) livrée par sous-agent** : `check-i18n` OK (59 fichiers), parité de leurs clés OK, tests de zone verts.

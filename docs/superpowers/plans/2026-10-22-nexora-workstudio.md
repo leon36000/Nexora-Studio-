@@ -194,11 +194,11 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 - le point d'appel à la création d'un workspace ;
 - `.env.example`.
 
-- [ ] Test :
+- [x] Test :
   - la création d'un workspace avec la variable insère un seul serveur « Nexora Connect » (idempotence : un second appel n'en crée pas de nouveau) ;
   - sans la variable, rien n'est inséré.
-- [ ] Le jeton (`NEXORA_CONNECT_TOKEN`) est stocké comme en-tête, par le même chemin que la création manuelle d'un serveur MCP, chiffrement compris.
-- [ ] Hôte ajouté par défaut à la liste d'autorisation des sorties réseau (`EGRESS_ALLOWED_HOSTS`) dans le compose.
+- [x] Le jeton (`NEXORA_CONNECT_TOKEN`) est stocké comme en-tête, par le même chemin que la création manuelle d'un serveur MCP, chiffrement compris.
+- [x] Hôte ajouté par défaut à la liste d'autorisation des sorties réseau (`EGRESS_ALLOWED_HOSTS`) dans le compose.
 
 **Vérification** : tests verts ; dans le navigateur, un nouveau workspace liste « Nexora Connect » et ses 5 outils.
 
