@@ -9,8 +9,8 @@ import { SaasFeedback } from "./saas-feedback";
 afterEach(() => vi.unstubAllGlobals());
 
 it.each([
-  ["encryption_required", "OOMOL_CONNECT_ENCRYPTION_KEY"],
-  ["origin_required", "OOMOL_CONNECT_ORIGIN"],
+  ["encryption_required", "NEXORA_CONNECT_ENCRYPTION_KEY"],
+  ["origin_required", "NEXORA_CONNECT_ORIGIN"],
   ["invalid_url", "Fake-IP"],
   ["dns", "无法解析云端域名"],
   ["timeout", "连接云端超时"],

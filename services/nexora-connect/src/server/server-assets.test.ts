@@ -67,7 +67,7 @@ describe("resolveServerAssets", () => {
 });
 
 async function createTempCwd(): Promise<string> {
-  const cwd = await mkdtemp(join(tmpdir(), "oomol-connect-assets-"));
+  const cwd = await mkdtemp(join(tmpdir(), "nexora-connect-assets-"));
   tempDirs.push(cwd);
   vi.spyOn(process, "cwd").mockReturnValue(cwd);
   return cwd;

@@ -4,7 +4,7 @@ import { isAbortLikeError, providerUserAgent, ProviderRequestError } from "../pr
 export const aliyunStsEndpoint = "https://sts.aliyuncs.com/";
 export const aliyunStsApiVersion = "2015-04-01";
 const stsTimeoutMs = 10_000;
-const defaultRoleSessionName = "oomol-connect";
+const defaultRoleSessionName = "nexora-connect";
 
 export interface AliyunStsCredential {
   accessKeyId: string;

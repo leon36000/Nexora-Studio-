@@ -1615,7 +1615,7 @@ describe("ConnectServer", () => {
       expect(callbackText).not.toContain('postMessage(message,"*"');
       expect(callbackText).toContain("Connection complete");
       expect(callbackText).toContain("Close this window to continue where you started.");
-      expect(callbackText).not.toContain("OOMOL Connect");
+      expect(callbackText).not.toContain("Nexora Connect");
       expect(callbackText).toContain("card");
       expect(callbackText).toContain("badge");
       expect(callbackText).toContain(`Automatically closing in ${oauthCloseDelaySeconds ?? 5} seconds.`);
@@ -1654,13 +1654,13 @@ describe("ConnectServer", () => {
         headers: { authorization: "Bearer local-token" },
       });
       expect(authorized.status).toBe(200);
-      expect(authorized.headers.get("set-cookie")).toContain("oomol_connect_admin_session=");
+      expect(authorized.headers.get("set-cookie")).toContain("nexora_connect_admin_session=");
       expect(authorized.headers.get("set-cookie")).not.toContain("local-token");
       expect(authorized.headers.get("set-cookie")).toContain("Max-Age=2592000");
 
       const logout = await app.request("/api/auth/logout", { method: "POST" });
       expect(logout.status).toBe(200);
-      expect(logout.headers.get("set-cookie")).toContain("oomol_connect_admin_session=;");
+      expect(logout.headers.get("set-cookie")).toContain("nexora_connect_admin_session=;");
       expect(logout.headers.get("set-cookie")).toContain("Max-Age=0");
     } finally {
       await rm(staticRoot, { recursive: true, force: true });
@@ -1683,7 +1683,7 @@ describe("ConnectServer", () => {
       headers: { authorization: "Bearer local-token" },
     });
     expect(bearer.status).toBe(200);
-    expect(bearer.headers.get("set-cookie")).toContain("oomol_connect_admin_session=");
+    expect(bearer.headers.get("set-cookie")).toContain("nexora_connect_admin_session=");
     expect(bearer.headers.get("set-cookie")).not.toContain("local-token");
     await expect(bearer.json()).resolves.toEqual({
       adminAuthConfigured: true,
@@ -1694,7 +1694,7 @@ describe("ConnectServer", () => {
       headers: { authorization: "bearer local-token" },
     });
     expect(lowercaseBearer.status).toBe(200);
-    expect(lowercaseBearer.headers.get("set-cookie")).toContain("oomol_connect_admin_session=");
+    expect(lowercaseBearer.headers.get("set-cookie")).toContain("nexora_connect_admin_session=");
     expect(lowercaseBearer.headers.get("set-cookie")).not.toContain("local-token");
     await expect(lowercaseBearer.json()).resolves.toEqual({
       adminAuthConfigured: true,
@@ -4060,7 +4060,7 @@ function createTestLogger(): { entries: TestLogEntry[]; logger: Logger } {
 }
 
 async function createTempDir(): Promise<string> {
-  return mkdtemp(join(tmpdir(), "oomol-connect-files-"));
+  return mkdtemp(join(tmpdir(), "nexora-connect-files-"));
 }
 
 async function createTestStaticRoot(): Promise<string> {

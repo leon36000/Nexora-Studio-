@@ -37,7 +37,7 @@ export interface IMcpToolSummary {
 }
 
 const mcpServerInstructions = [
-  "Use OpenConnector to discover and execute provider actions through a small tool set.",
+  "Use Nexora Connect to discover and execute provider actions through a small tool set.",
   "Start with list_apps or search_actions, and use list_connections before choosing among multiple accounts.",
   "Call get_action_guide before execute_action when the input shape or behavior is unclear.",
   "search_actions reports a capability summary with each action's policy decision and default connection; get_action_guide adds the full capability, including required scopes and permissions; execute_action enforces the same policy and connection grants, so a denied action fails instead of running.",
@@ -145,7 +145,7 @@ export function listMcpToolSummaries(): IMcpToolSummary[] {
 export function createMcpServer(options: IMcpServerOptions): McpServer {
   const server = new McpServer(
     {
-      name: "oomol-connect",
+      name: "nexora-connect",
       version: "0.1.0",
     },
     {

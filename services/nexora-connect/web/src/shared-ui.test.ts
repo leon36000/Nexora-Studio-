@@ -16,30 +16,22 @@ function provider(options: Partial<ProviderDefinition> & Pick<ProviderDefinition
 }
 
 describe("providerIconSource", () => {
-  it("prefers the provider definition icon", () => {
+  it("prefers the provider definition icon from the local catalog", () => {
     expect(
-      providerIconSource(provider({ service: "example", iconUrl: " https://example.com/icon.svg " }), {
-        example: "https://static.oomol.com/example.svg",
-      }),
+      providerIconSource(
+        provider({ service: "example", iconUrl: " https://example.com/icon.svg ", homepageUrl: "https://example.org" }),
+      ),
     ).toEqual({ kind: "url", value: "https://example.com/icon.svg" });
   });
 
-  it("uses the bundled OOMOL catalog icon", () => {
-    expect(
-      providerIconSource(provider({ service: "example" }), {
-        example: "https://static.oomol.com/example.svg",
-      }),
-    ).toEqual({ kind: "url", value: "https://static.oomol.com/example.svg" });
-  });
-
   it("uses favicon.im when no icon is mapped", () => {
-    expect(providerIconSource(provider({ service: "example", homepageUrl: "https://example.com/docs" }), {})).toEqual({
+    expect(providerIconSource(provider({ service: "example", homepageUrl: "https://example.com/docs" }))).toEqual({
       kind: "url",
       value: "https://a.favicon.im/example.com?larger=true&throw-error-on-404=true",
     });
   });
 
   it("falls back to initials when no icon or valid homepage is available", () => {
-    expect(providerIconSource(provider({ service: "example", homepageUrl: "not a URL" }), {})).toBeUndefined();
+    expect(providerIconSource(provider({ service: "example", homepageUrl: "not a URL" }))).toBeUndefined();
   });
 });

@@ -12,7 +12,7 @@ import { readVercelTeamScope, validateVercelCredential, vercelActionHandlers, ve
 import { vercelDeploymentEvent } from "./trigger-on-deployment-event.ts";
 
 const service = "vercel";
-const vercelProxyUserAgent = "oomol-connector/1.0 (+https://oomol.com)";
+const vercelProxyUserAgent = "nexora-connect/1.0 (+https://github.com/leon36000/Nexora-Studio-)";
 
 export const executors: ProviderExecutors = defineProviderExecutors<VercelActionContext>({
   service,

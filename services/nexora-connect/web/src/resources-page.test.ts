@@ -26,8 +26,9 @@ describe("ResourcesPage", () => {
 
     expect(markup).toContain("http://localhost:4321/mcp");
     expect(markup).toContain("mcpServers");
-    expect(markup).toContain("open-connector");
-    expect(markup).not.toContain("oomol-connect");
+    expect(markup).toContain("nexora-connect");
+    expect(markup).not.toMatch(/oomol|oo connector|@oomol-lab/i);
+    expect(markup).toContain("services/nexora-connect/docs/runtime-api.md#mcp");
     expect(markup).toContain("Bearer &lt;RUNTIME_TOKEN&gt;");
     expect(markup).toContain("Copy code");
     expect(markup).toContain("Choose a client");

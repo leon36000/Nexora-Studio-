@@ -110,7 +110,7 @@ export async function withProviderHttpDispatchResult<T>(
 /**
  * Default User-Agent sent by local provider executors.
  */
-export const providerUserAgent = "oomol-connect/0.1";
+export const providerUserAgent = "nexora-connect/0.1";
 
 /**
  * Provider-native handler shape. The provider owns `TContext`; the shared

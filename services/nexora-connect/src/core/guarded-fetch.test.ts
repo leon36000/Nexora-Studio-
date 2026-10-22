@@ -100,7 +100,7 @@ const crossOriginSafeHeaderFixture: Record<string, string> = {
   "if-none-match": '"etag-2"',
   "if-unmodified-since": "Wed, 21 Oct 2015 07:28:00 GMT",
   range: "bytes=0-9",
-  "user-agent": "oomol-connect/0.1",
+  "user-agent": "nexora-connect/0.1",
   "x-correlation-id": "cid",
   "x-request-id": "req-1",
   "x-trace": "trace-1",

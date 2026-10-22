@@ -30,7 +30,7 @@ const service = "aws_sts";
 const stsApiVersion = "2011-06-15";
 const awsServiceName = "sts";
 const defaultRegion = "ap-southeast-1";
-const defaultRoleSessionName = "oomol-connect";
+const defaultRoleSessionName = "nexora-connect";
 const awsStsFetch = createProviderFetch();
 
 interface AwsStsContext {

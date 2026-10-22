@@ -24,6 +24,7 @@ import {
   Moon,
   RefreshCw,
   Settings,
+  Store,
   Sun,
   TerminalSquare,
 } from "lucide-react";
@@ -32,7 +33,7 @@ import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-route
 import { AccessPage } from "./access-page";
 import { ActionsPage } from "./actions-page";
 import { ApiError, apiGet, apiPost } from "./api";
-import oomolConnectLogoUrl from "./assets/oomol-connect-logo.png";
+import nexoraConnectMarkUrl from "./assets/nexora-connect-mark.svg";
 import { normalizeGatewayUrl } from "./client-onboarding";
 import { persistLang, supportedLangs } from "./i18n";
 import { emptyData } from "./model";
@@ -60,7 +61,7 @@ const navItems = [
   { path: "/resources", labelKey: "nav.docs", icon: BookOpen },
 ] as const;
 
-const oauthCompletionChannelName = "oomol-connect-oauth";
+const oauthCompletionChannelName = "nexora-connect-oauth";
 const oauthCompletedType = "oauth.completed";
 
 const themeOptions = [
@@ -346,10 +347,9 @@ function AppShell(props: {
   const clientBaseUrl =
     normalizeGatewayUrl(clientGatewayUrl) ??
     (typeof window === "undefined" ? "http://localhost:3000" : window.location.origin);
-  const connectionSettingsParams = new URLSearchParams(location.pathname === "/providers" ? location.search : "");
-  connectionSettingsParams.set("onekey", "overview");
-  connectionSettingsParams.delete("features");
-  const connectionSettingsUrl = `/providers?${connectionSettingsParams}`;
+  const marketplaceSettingsParams = new URLSearchParams(location.pathname === "/providers" ? location.search : "");
+  marketplaceSettingsParams.set("marketplace", "overview");
+  const marketplaceSettingsUrl = `/providers?${marketplaceSettingsParams}`;
   const heading = headingForPath(location.pathname);
   const section = location.pathname.split("/").filter(Boolean)[0];
   const isOverviewPage = heading === "overview";
@@ -369,9 +369,9 @@ function AppShell(props: {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-mark" src={oomolConnectLogoUrl} alt="" />
+          <img className="brand-mark" src={nexoraConnectMarkUrl} alt="" />
           <div>
-            <div className="brand-name">Open Connector</div>
+            <div className="brand-name">Nexora Connect</div>
             <div className="brand-subtitle">{t("brand.subtitle")}</div>
           </div>
         </div>
@@ -432,12 +432,12 @@ function AppShell(props: {
               </div>
               <div className="console-settings-section">
                 <Button asChild variant="outline">
-                  <Link to={connectionSettingsUrl} onClick={() => setSettingsOpen(false)}>
-                    <Cable size={15} aria-hidden="true" />
-                    {t("providers.hostedAccess.restore")}
+                  <Link to={marketplaceSettingsUrl} onClick={() => setSettingsOpen(false)}>
+                    <Store size={15} aria-hidden="true" />
+                    {t("nav.marketplace")}
                   </Link>
                 </Button>
-                <p className="console-settings-feature-description">{t("shell.oomolKeyDescription")}</p>
+                <p className="console-settings-feature-description">{t("shell.marketplaceDescription")}</p>
               </div>
               <div className="console-settings-runtime">
                 <div className="runtime-status">
@@ -465,7 +465,7 @@ function AppShell(props: {
             <Route index element={<Navigate to="/overview" replace />} />
             <Route path="/overview" element={<OverviewPage data={props.data} onRefresh={props.onRefresh} />} />
             <Route path="/providers" element={<ProvidersPage data={props.data} onRefresh={props.onRefresh} />} />
-            <Route path="/marketplace" element={<Navigate to="/providers?onekey=1" replace />} />
+            <Route path="/marketplace" element={<Navigate to="/providers?marketplace=1" replace />} />
             <Route
               path="/providers/:service"
               element={<ProvidersPage data={props.data} onRefresh={props.onRefresh} />}
@@ -534,9 +534,9 @@ export function UnlockView(props: UnlockViewProps): ReactNode {
     <main className="unlock-screen">
       <section className="unlock-panel">
         <div className="brand">
-          <img className="brand-mark" src={oomolConnectLogoUrl} alt="" />
+          <img className="brand-mark" src={nexoraConnectMarkUrl} alt="" />
           <div>
-            <div className="brand-name">Open Connector</div>
+            <div className="brand-name">Nexora Connect</div>
             <div className="brand-subtitle">{t("brand.adminAccess")}</div>
           </div>
         </div>

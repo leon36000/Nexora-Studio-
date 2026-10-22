@@ -1742,7 +1742,7 @@ async function stageRemoteDeploymentFile(fileUrl: string, fetcher: typeof fetch,
       "invalid_input",
     );
   }
-  const directory = await mkdtemp(join(tmpdir(), "oomol-connector-vercel-"));
+  const directory = await mkdtemp(join(tmpdir(), "nexora-connect-vercel-"));
   const filePath = join(directory, "deployment-file");
   const hasher = createHash("sha1");
   let size = 0;

@@ -6,7 +6,7 @@ import { optionalString } from "../../core/cast.ts";
 import { defineApiKeyProviderExecutors, ProviderRequestError, providerUserAgent } from "../provider-runtime.ts";
 
 export const projectmanagerApiBaseUrl = "https://api.projectmanager.com";
-const integrationName = "Oomol Connector";
+const integrationName = "Nexora Connect";
 
 type ProjectmanagerActionContext = {
   apiKey: string;

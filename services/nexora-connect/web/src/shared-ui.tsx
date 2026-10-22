@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 
 import { CircleAlert, Inbox } from "lucide-react";
 import { useState } from "react";
-import providerIconUrls from "virtual:oomol-provider-icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge as UiBadge } from "@/components/ui/badge";
 
@@ -72,18 +71,14 @@ interface ProviderIconSource {
   value: string;
 }
 
-export function providerIconSource(
-  provider: ProviderDefinition,
-  catalogIconUrls: Readonly<Record<string, string>> = providerIconUrls,
-): ProviderIconSource | undefined {
+/**
+ * Resolves a provider logo from the local catalog only: the provider definition's own `iconUrl`
+ * (served by `/api/providers`), then the homepage favicon, then initials.
+ */
+export function providerIconSource(provider: ProviderDefinition): ProviderIconSource | undefined {
   const iconUrl = provider.iconUrl?.trim();
   if (iconUrl) {
     return { kind: "url", value: iconUrl };
-  }
-
-  const catalogIconUrl = catalogIconUrls[provider.service]?.trim();
-  if (catalogIconUrl) {
-    return { kind: "url", value: catalogIconUrl };
   }
 
   const hostname = providerHomepageHostname(provider.homepageUrl);

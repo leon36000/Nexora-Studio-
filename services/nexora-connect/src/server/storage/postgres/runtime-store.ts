@@ -107,7 +107,7 @@ export class PostgresRuntimeDatabase implements RuntimeDatabase {
     options: PostgresRuntimeDatabaseOptions = {},
   ): Promise<PostgresRuntimeDatabase> {
     const pool = new Pool({
-      application_name: "open-connector",
+      application_name: "nexora-connect",
       connectionString,
       connectionTimeoutMillis: options.connectionTimeoutMs ?? 10_000,
       max: options.poolMax ?? 10,

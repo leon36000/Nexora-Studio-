@@ -35,6 +35,8 @@ describe("buildActionExamples", () => {
       examples.curl.startsWith("curl -s https://connector.example.com/v1/actions/github.get_current_user \\"),
     ).toBe(true);
     expect(examples.typescript).toContain('fetch("https://connector.example.com/v1/actions/github.get_current_user"');
+    expect(examples.curl).toContain('"Authorization: Bearer $NEXORA_CONNECT_RUNTIME_TOKEN"');
+    expect(examples.typescript).toContain("process.env.NEXORA_CONNECT_RUNTIME_TOKEN");
     expect(examples.curl).not.toContain("localhost");
     expect(examples.typescript).not.toContain("localhost");
   });
@@ -125,7 +127,7 @@ describe("sortProviders", () => {
   it("places connected providers before pinned, recommended, and display-name ordering", () => {
     const providers = [
       provider("airtable", "Airtable"),
-      provider("fusion-api", "OOMOL Fusion API"),
+      provider("brevo", "Brevo"),
       provider("github", "GitHub"),
       provider("zendesk", "Zendesk"),
     ];
@@ -136,7 +138,7 @@ describe("sortProviders", () => {
 
     expect(sortProviders(providers, connections).map((item) => item.service)).toEqual([
       "zendesk",
-      "fusion-api",
+      "brevo",
       "github",
       "airtable",
     ]);

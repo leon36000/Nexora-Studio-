@@ -51,7 +51,7 @@ export const proxy: ProviderProxyExecutor = defineProviderProxy({
       {
         name: "user-agent",
         source: { type: "credential_value", name: "email" },
-        prefix: "oomol-connect (",
+        prefix: "nexora-connect (",
         suffix: ")",
       },
     ],

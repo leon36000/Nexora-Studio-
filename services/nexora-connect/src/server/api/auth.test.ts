@@ -129,7 +129,7 @@ describe("createLocalAuthMiddleware", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("set-cookie")).toContain("oomol_connect_admin_session=");
+    expect(response.headers.get("set-cookie")).toContain("nexora_connect_admin_session=");
     expect(response.headers.get("set-cookie")).not.toContain("admin-secret");
   });
 

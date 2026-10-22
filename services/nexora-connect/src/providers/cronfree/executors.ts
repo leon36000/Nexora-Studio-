@@ -67,7 +67,7 @@ export const credentialValidators: CredentialValidators = {
   async apiKey(input, { fetcher, signal }) {
     await requestCronfree({
       path: "/unschedule",
-      body: { hookUrl: `https://connector.oomol.com/cronfree-validation/${crypto.randomUUID()}` },
+      body: { hookUrl: `https://hooks.invalid/cronfree-validation/${crypto.randomUUID()}` },
       context: { apiKey: input.apiKey, fetcher, signal },
       phase: "validate",
     });

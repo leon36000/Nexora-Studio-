@@ -61,7 +61,7 @@ export async function validateEvervault(
     fetcher,
     signal,
   };
-  await request("/encrypt", "oomol-evervault-credential-check", context, "validate");
+  await request("/encrypt", "nexora-evervault-credential-check", context, "validate");
   const fingerprint = createHash("sha256").update(context.apiKey).digest("hex").slice(0, 16);
   return {
     profile: { accountId: `evervault:${context.appId}:key:${fingerprint}`, displayName: `Evervault ${context.appId}` },

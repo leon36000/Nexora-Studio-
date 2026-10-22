@@ -355,7 +355,7 @@ export function saasMaintenanceTests(
     let database = getDatabase();
     const identity = await database.saasProjectStore.getInstanceId();
     await database.saasProjectStore.saveProject(project);
-    const request = { ...pending(), returnUri: "oomol://return/private" };
+    const request = { ...pending(), returnUri: "https://app.example/return/private" };
     const lease = await database.connectionRequestStore.createSaas(request);
     await database.connectionRequestStore.saveSaasRequest(lease, "remote-request");
     await database.connectionRequestStore.saveSaasCandidate(lease, candidate);

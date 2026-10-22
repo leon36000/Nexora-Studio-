@@ -294,7 +294,7 @@ function composeContent(body: string, inline: string[], attachments: string[], p
 function encodeMultipart(kind: string, parts: string[], preamble = "", epilogue = ""): string {
   let boundary: string;
   do {
-    boundary = `oomol_${crypto.randomUUID()}`;
+    boundary = `nexora_${crypto.randomUUID()}`;
   } while (parts.some((part) => part.includes(boundary)) || preamble.includes(boundary) || epilogue.includes(boundary));
   const prefix = preamble && !preamble.endsWith("\n") ? `${preamble}\r\n` : preamble;
   const type =

@@ -10,7 +10,7 @@ describe("renderOAuthCompletionPage", () => {
     expect(html).toContain('"type":"oauth.completed"');
     expect(html).toContain('"service":"oauth_\\u003cexample>\\""');
     expect(html).toContain("BroadcastChannel");
-    expect(html).not.toContain("OOMOL Connect");
+    expect(html).not.toContain("Nexora Connect");
     expect(html).not.toContain("OAuth finished");
   });
 

@@ -41,7 +41,7 @@ export const proxy: ProviderProxyExecutor = defineProviderProxy({
   skipDnsValidation: true,
   customizeRequest({ headers }) {
     headers.set("accept", "application/json");
-    headers.set("x-pdfvector-source", "oomol-connector");
+    headers.set("x-pdfvector-source", "nexora-connect");
   },
 });
 export const credentialValidators: CredentialValidators = {
@@ -103,7 +103,7 @@ async function requestJson(input: {
         authorization: `Bearer ${input.context.apiKey}`,
         "content-type": "application/json",
         "user-agent": providerUserAgent,
-        "x-pdfvector-source": "oomol-connector",
+        "x-pdfvector-source": "nexora-connect",
         ...(input.documentId ? { "x-pdfvector-document-id": input.documentId } : {}),
       },
       body: JSON.stringify(input.body),

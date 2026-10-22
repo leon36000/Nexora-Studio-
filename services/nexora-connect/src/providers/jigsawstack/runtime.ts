@@ -7,7 +7,7 @@ import { providerUserAgent, ProviderRequestError, runProviderRequest } from "../
 
 const jigsawstackApiBaseUrl = "https://api.jigsawstack.com";
 const jigsawstackValidationPath = "/v1/web/search/suggest";
-const jigsawstackValidationQuery = "oomol";
+const jigsawstackValidationQuery = "nexora";
 
 type JigsawstackRequestPhase = "validate" | "execute";
 

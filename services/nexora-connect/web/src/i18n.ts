@@ -11,7 +11,7 @@ import zhTW from "./locales/zh-TW.json";
 export type AppLang = "en" | "zh-CN" | "zh-TW" | "ja" | "ru" | "fr";
 
 export const supportedLangs = ["en", "zh-CN", "zh-TW", "ja", "ru", "fr"] as const satisfies readonly AppLang[];
-export const langStorageKey = "oomol-connect.lang";
+export const langStorageKey = "nexora-connect.lang";
 
 const locales = {
   en,

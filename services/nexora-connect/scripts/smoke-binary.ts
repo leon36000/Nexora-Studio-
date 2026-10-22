@@ -378,7 +378,7 @@ async function checkMcp(baseUrl: string): Promise<void> {
   const body = await response.text();
   assert(response.status === 200, `POST /mcp initialize returned ${response.status}: ${body.slice(0, 300)}`);
   assert(
-    body.includes('"name":"oomol-connect"'),
+    body.includes('"name":"nexora-connect"'),
     `POST /mcp initialize body has no server info: ${body.slice(0, 300)}`,
   );
 
@@ -406,7 +406,7 @@ async function checkDocs(baseUrl: string): Promise<void> {
   assert(response.status === 200, `GET /docs returned ${response.status}: ${body.slice(0, 300)}`);
   const contentType = response.headers.get("content-type") ?? "";
   assert(contentType.startsWith("text/html"), `GET /docs content-type is ${contentType || "missing"}`);
-  assert(body.includes("OOMOL Connect API Reference"), "GET /docs body does not contain the API reference title");
+  assert(body.includes("Nexora Connect API Reference"), "GET /docs body does not contain the API reference title");
 }
 
 /** Return `data` of a `{ success: true, data }` envelope. */

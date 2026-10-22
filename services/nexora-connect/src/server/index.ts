@@ -13,12 +13,15 @@ import { DEFAULT_OAUTH_CLOSE_DELAY_SECONDS } from "./api/oauth-completion-page.t
 import { registerStaticRoutes } from "./api/static-routes.ts";
 import { createConnectorRuntime } from "./connector-runtime.ts";
 import { logger } from "./logger.ts";
+import { applyNexoraEnvAliases, assertEncryptionConfigured } from "./nexora-env.ts";
 import { resolveServerAssets } from "./server-assets.ts";
 import { createDirectoryMigrationSource } from "./storage/migration-source.ts";
 import { migratePostgresRuntimeDatabase, sqliteMigrationsNotice } from "./storage/node-runtime-database.ts";
 import { DEFAULT_RUN_LIMIT } from "./storage/runtime-store.ts";
 
 setGlobalProxyFromEnv();
+applyNexoraEnvAliases(process.env);
+assertEncryptionConfigured(process.env);
 
 const port = Number(process.env.PORT ?? 3000);
 const hostname = process.env.HOST ?? "127.0.0.1";
@@ -49,7 +52,7 @@ try {
   } else if (command === "migrate" && rest.length === 0) {
     await runMigrateCommand();
   } else {
-    console.error("Usage: open-connector [migrate]");
+    console.error("Usage: nexora-connect [migrate]");
     process.exitCode = 1;
   }
 } catch (error) {

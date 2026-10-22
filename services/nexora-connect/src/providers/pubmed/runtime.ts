@@ -201,7 +201,7 @@ export class PubmedRequestGatePool {
 export const pubmedApiBaseUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
 const citationMatcherUrl = "https://pubmed.ncbi.nlm.nih.gov/api/citmatch/";
 const idConverterUrl = "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/";
-const pubmedToolName = "openconnector";
+const pubmedToolName = "nexoraconnect";
 const pubmedSortValues: Record<PubmedSort, string> = {
   first_author: "Author",
   journal: "JournalName",

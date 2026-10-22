@@ -51,7 +51,7 @@ export const provider: ProviderDefinition = {
           secret: true,
           placeholder: "-----BEGIN PRIVATE KEY-----",
           description:
-            "The PEM-encoded RSA private key paired with the configured OCI API key. OpenConnector treats this as a secret; configure OOMOL_CONNECT_ENCRYPTION_KEY to encrypt stored credentials at rest.",
+            "The PEM-encoded RSA private key paired with the configured OCI API key. Nexora Connect treats this as a secret; configure OOMOL_CONNECT_ENCRYPTION_KEY to encrypt stored credentials at rest.",
         },
         {
           key: "privateKeyPassphrase",

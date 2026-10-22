@@ -1094,7 +1094,7 @@ describe("SqliteRuntimeDatabase", () => {
 });
 
 async function createDatabasePath(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "oomol-connect-"));
+  const dir = await mkdtemp(join(tmpdir(), "nexora-connect-"));
   tempDirs.push(dir);
   return join(dir, "connect.sqlite");
 }

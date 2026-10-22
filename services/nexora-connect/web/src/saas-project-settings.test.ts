@@ -10,16 +10,15 @@ it("explains the project credential boundary before enabling configuration", () 
     createElement(
       I18nProvider,
       { i18n: createAppI18n("en") },
-      createElement(SaasProjectSettings, { onRefresh: vi.fn() }),
+      createElement(SaasProjectSettings, { baseUrl: "https://cloud.example", onRefresh: vi.fn() }),
     ),
   );
   expect(html).toContain("Project API key");
   expect(html).toContain("not a Marketplace key");
   expect(html).toContain('type="password"');
   expect(html).not.toContain('type="url"');
-  expect(html).toContain('href="https://console.oomol.com/projects"');
-  expect(html).toContain("Open cloud projects");
-  expect(html).toContain("Action inputs and results pass through OOMOL cloud");
+  expect(html).not.toMatch(/oomol/i);
+  expect(html).toContain("Action inputs and results pass through the cloud service");
   expect(html).toContain("no spending limit is set here");
   expect(html).toContain("disabled");
 });
@@ -48,9 +47,9 @@ it("keeps an existing remote source visible while discovery loads", () => {
   );
   expect(html).toContain("Applies to new connections only");
   expect(html).toContain("Existing connections keep their source");
-  expect(html).toContain("Action inputs and results pass through OOMOL cloud");
+  expect(html).toContain("Action inputs and results pass through the cloud service");
   expect(html).toContain("Loading");
-  expect(html).toContain("OOMOL cloud");
+  expect(html).toContain("Cloud service");
   expect(html).not.toContain("The saved cloud configuration is unavailable");
   expect(html).not.toContain("No compatible cloud configurations");
 });

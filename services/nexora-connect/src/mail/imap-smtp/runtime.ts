@@ -552,7 +552,7 @@ async function resolveOutgoingAttachments(attachments: ParsedOutgoingAttachment[
       const { filePath, cleanup } = await writeWebStreamToTempFile(
         response.body,
         attachment.filename,
-        `oomol-connect-${context.config.attachmentFallbackPrefix}-send-`,
+        `nexora-connect-${context.config.attachmentFallbackPrefix}-send-`,
         mailSendAttachmentByteLimit,
         context.config.displayName,
       );

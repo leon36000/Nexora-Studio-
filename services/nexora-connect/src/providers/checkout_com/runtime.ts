@@ -16,7 +16,7 @@ interface CheckoutContext {
   fetcher: typeof fetch;
   signal?: AbortSignal;
 }
-const validationCustomer = "oomol-connector-validation@invalid.example";
+const validationCustomer = "nexora-connect-validation@invalid.example";
 export async function createCheckoutContext(
   context: ExecutionContext,
   fetcher: typeof fetch,

@@ -53,7 +53,7 @@ export function createMcpOAuthHandler(origin: string, runtime: RuntimeHandler): 
     requiredScopes: [accessScope],
     accessTokenTTL: 3600,
     refreshTokenTTL: 30 * 86400,
-    resourceMetadata: { resource, authorization_servers: [origin], resource_name: "OpenConnector" },
+    resourceMetadata: { resource, authorization_servers: [origin], resource_name: "Nexora Connect" },
     apiHandler: {
       async fetch(request: Request, env: CloudflareEnv, context: McpAuthorizedContext): Promise<Response> {
         const props = context.props;

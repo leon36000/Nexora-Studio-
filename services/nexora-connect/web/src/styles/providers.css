@@ -32,15 +32,6 @@
   border: 0;
   border-radius: 0;
 }
-.provider-hosted-section > .marketplace-preview-embedded {
-  border: 0;
-  border-top: 1px solid var(--border);
-  border-radius: 0;
-  box-shadow: none;
-}
-.provider-hosted-chevron-open {
-  transform: rotate(180deg);
-}
 
 .provider-hosted-access-icon {
   display: grid;

@@ -157,7 +157,7 @@ export class ConnectServer {
     app.use("*", createLocalAuthMiddleware(auth));
 
     // Health and runtime discovery / execution endpoints
-    app.get("/v1/health", (context) => writeRuntimeSuccess(context, { ok: true, runtime: "oomol-connect" }));
+    app.get("/v1/health", (context) => writeRuntimeSuccess(context, { ok: true, runtime: "nexora-connect" }));
 
     app.route(
       "/v1",

@@ -128,7 +128,7 @@ export async function validateFormstackDocumentsCredential(
     fetcher,
     phase: "validate",
     operation: "validate credentials",
-    query: { search: "__oomol_connector_validation__" },
+    query: { search: "__nexora_connect_validation__" },
   });
   requireArray(payload, "credential validation");
   return {

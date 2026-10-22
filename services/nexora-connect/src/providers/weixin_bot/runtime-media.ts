@@ -45,7 +45,7 @@ export async function sendWeixinMedia(
       filesize: ciphertext.byteLength,
       no_need_thumb: true,
       aeskey: key.toString("hex"),
-      base_info: { channel_version: "1.0.0", bot_agent: "OpenConnector/1.0.0" },
+      base_info: { channel_version: "1.0.0", bot_agent: "NexoraConnect/1.0.0" },
     },
   });
   const uploadUrl = resolveCdnUrl(upload.upload_full_url, upload.upload_param, "upload", filekey);
@@ -129,7 +129,7 @@ async function sendItem(
         context_token: contextToken,
         item_list: [item],
       },
-      base_info: { channel_version: "1.0.0", bot_agent: "OpenConnector/1.0.0" },
+      base_info: { channel_version: "1.0.0", bot_agent: "NexoraConnect/1.0.0" },
     },
   });
 }

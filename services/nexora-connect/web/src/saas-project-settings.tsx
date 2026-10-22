@@ -2,7 +2,6 @@ import type { OAuthConfig, SaasProjectState, SaasProviderConfig } from "./model"
 import type { ReactNode, SubmitEvent } from "react";
 
 import { useTranslate } from "@embra/i18n/react";
-import { ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiDelete, apiGet, apiPut } from "./api";
 import { SaasFeedback } from "./saas-feedback";
@@ -15,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const projectPath = "/api/oauth/managed-project";
 
 interface SaasProjectSettingsProps {
+  /** Hosted cloud that implements the SaaS project API (see `saasCloudBaseUrl`). */
+  baseUrl: string;
   onRefresh(): void;
 }
 
@@ -59,7 +60,7 @@ export function SaasProjectSettings(props: SaasProjectSettingsProps): ReactNode 
     setError(undefined);
     try {
       const state = await apiPut<SaasProjectState>(projectPath, {
-        baseUrl: project?.baseUrl ?? "https://connector.oomol.com",
+        baseUrl: project?.baseUrl ?? props.baseUrl,
         projectApiKey,
       });
       setProject(state);
@@ -108,12 +109,6 @@ export function SaasProjectSettings(props: SaasProjectSettingsProps): ReactNode 
           </div>
           <p>{t("saas.projectDescription")}</p>
         </div>
-        <Button asChild variant="ghost" size="sm">
-          <a href="https://console.oomol.com/projects" target="_blank" rel="noopener noreferrer">
-            {t("saas.openProjects")}
-            <ArrowUpRight size={15} aria-hidden="true" />
-          </a>
-        </Button>
       </header>
       <form className="form-grid saas-settings" onSubmit={(event) => void save(event)}>
         {project?.configured ? (

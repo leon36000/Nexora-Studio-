@@ -1,4 +1,4 @@
-const oauthCompletionChannelName = "oomol-connect-oauth";
+const oauthCompletionChannelName = "nexora-connect-oauth";
 const oauthCompletedType = "oauth.completed";
 
 // Client-side translations. English is also the server-rendered default in the
@@ -24,7 +24,7 @@ export const oauthCompletionStrings = {
     failed: "Authorization could not be completed. Return to the initiating client.",
     network: "Could not reach Connect. Check your connection and try again.",
     notFound: "This request was not found or has expired. Return to the initiating client.",
-    forbidden: "Synchronization was rejected. Check that OOMOL_CONNECT_ORIGIN matches your Console address.",
+    forbidden: "Synchronization was rejected. Check that NEXORA_CONNECT_ORIGIN matches your Console address.",
   },
   "zh-CN": {
     badge: "已连接",
@@ -44,7 +44,7 @@ export const oauthCompletionStrings = {
     failed: "授权未能完成，请返回发起授权的应用查看。",
     network: "无法连接到 Connect，请检查网络后重试。",
     notFound: "授权请求不存在或已过期，请返回发起授权的应用。",
-    forbidden: "同步请求被拒绝，请检查 OOMOL_CONNECT_ORIGIN 是否与控制台地址一致。",
+    forbidden: "同步请求被拒绝，请检查 NEXORA_CONNECT_ORIGIN 是否与控制台地址一致。",
   },
   "zh-TW": {
     badge: "已連線",
@@ -64,7 +64,7 @@ export const oauthCompletionStrings = {
     failed: "授權未能完成，請返回發起授權的應用查看。",
     network: "無法連線至 Connect，請檢查網路後重試。",
     notFound: "授權請求不存在或已過期，請返回發起授權的應用。",
-    forbidden: "同步請求遭拒，請檢查 OOMOL_CONNECT_ORIGIN 是否與控制台位址一致。",
+    forbidden: "同步請求遭拒，請檢查 NEXORA_CONNECT_ORIGIN 是否與控制台位址一致。",
   },
   ja: {
     badge: "接続済み",
@@ -84,7 +84,7 @@ export const oauthCompletionStrings = {
     failed: "認可を完了できませんでした。元のアプリで確認してください。",
     network: "Connect に接続できません。ネットワークを確認して再試行してください。",
     notFound: "リクエストが見つからないか期限切れです。元のアプリに戻ってください。",
-    forbidden: "同期が拒否されました。OOMOL_CONNECT_ORIGIN とコンソールのアドレスを確認してください。",
+    forbidden: "同期が拒否されました。NEXORA_CONNECT_ORIGIN とコンソールのアドレスを確認してください。",
   },
   fr: {
     badge: "Connecté",
@@ -104,7 +104,7 @@ export const oauthCompletionStrings = {
     failed: "L’autorisation a échoué. Consultez l’application de départ.",
     network: "Connect est inaccessible. Vérifiez votre connexion et réessayez.",
     notFound: "Cette demande est introuvable ou expirée. Revenez à l’application de départ.",
-    forbidden: "Synchronisation refusée. Vérifiez que OOMOL_CONNECT_ORIGIN correspond à l’adresse de la Console.",
+    forbidden: "Synchronisation refusée. Vérifiez que NEXORA_CONNECT_ORIGIN correspond à l’adresse de la Console.",
   },
   ru: {
     badge: "Подключено",
@@ -125,7 +125,7 @@ export const oauthCompletionStrings = {
     failed: "Не удалось завершить авторизацию. Проверьте исходное приложение.",
     network: "Нет связи с Connect. Проверьте сеть и повторите попытку.",
     notFound: "Запрос не найден или истёк. Вернитесь в исходное приложение.",
-    forbidden: "Синхронизация отклонена. Проверьте соответствие OOMOL_CONNECT_ORIGIN адресу консоли.",
+    forbidden: "Синхронизация отклонена. Проверьте соответствие NEXORA_CONNECT_ORIGIN адресу консоли.",
   },
 };
 
@@ -241,7 +241,7 @@ a.button{text-decoration:none}
 .actions{justify-content:flex-start}
 `;
 
-export const oauthCompletionLocaleScript = `const pick=()=>{try{const stored=localStorage.getItem("oomol-connect.lang");if(Object.hasOwn(STR,stored))return stored;}catch{}const langs=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||"en"];for(const raw of langs){const l=String(raw).toLowerCase();if(l.startsWith("zh"))return (!l.includes("hans")&&(l.includes("tw")||l.includes("hk")||l.includes("mo")||l.includes("hant")))?"zh-TW":"zh-CN";const primary=l.split("-")[0];if(STR[raw])return raw;if(STR[primary])return primary;}return "en";};`;
+export const oauthCompletionLocaleScript = `const pick=()=>{try{const stored=localStorage.getItem("nexora-connect.lang");if(Object.hasOwn(STR,stored))return stored;}catch{}const langs=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||"en"];for(const raw of langs){const l=String(raw).toLowerCase();if(l.startsWith("zh"))return (!l.includes("hans")&&(l.includes("tw")||l.includes("hk")||l.includes("mo")||l.includes("hant")))?"zh-TW":"zh-CN";const primary=l.split("-")[0];if(STR[raw])return raw;if(STR[primary])return primary;}return "en";};`;
 
 /** Seconds the OAuth completion page counts down before it tries to close its window. */
 export const DEFAULT_OAUTH_CLOSE_DELAY_SECONDS = 5;

@@ -447,7 +447,7 @@ async function withDownloadedZhihuFile<T>(
   consume: (filePath: string) => Promise<T>,
 ) {
   if (typeof fileUrl !== "string") throw new ProviderRequestError(400, "fileUrl is required");
-  const directory = await mkdtemp(join(tmpdir(), "oomol-zhihu-upload-"));
+  const directory = await mkdtemp(join(tmpdir(), "nexora-zhihu-upload-"));
   const filePath = join(directory, fileName);
   const timeout = createProviderTimeout(undefined, zhihuUploadDownloadTimeoutMs);
   try {

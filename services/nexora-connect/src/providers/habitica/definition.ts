@@ -33,7 +33,7 @@ export const provider: ProviderDefinition = {
           inputType: "text",
           required: true,
           secret: false,
-          placeholder: "<habitica_user_id>-oomol-connect",
+          placeholder: "<habitica_user_id>-nexora-connect",
           description:
             "The exact X-Client header value required by Habitica for third-party tools. Follow the official API usage guideline format <creator Habitica UserID>-<appname>: https://github.com/HabitRPG/habitica/wiki/API-Usage-Guidelines",
         },

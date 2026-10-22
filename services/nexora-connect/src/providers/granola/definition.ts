@@ -23,7 +23,7 @@ export const provider: ProviderDefinition = {
         docsUrl: "https://docs.granola.ai/help-center/sharing/integrations/mcp",
         steps: [
           "Copy the Callback URL shown below.",
-          'POST {"client_name":"Open Connector","redirect_uris":["<Callback URL>"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none","scope":"openid profile email offline_access"} as JSON to https://mcp-auth.granola.ai/oauth2/register.',
+          'POST {"client_name":"Nexora Connect","redirect_uris":["<Callback URL>"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none","scope":"openid profile email offline_access"} as JSON to https://mcp-auth.granola.ai/oauth2/register.',
           "Copy the returned client_id into the Client ID field below and leave Client Secret empty.",
           "Connect with OAuth for MCP access. The free plan covers personal notes from the last 30 days; some tools require a paid plan.",
         ],

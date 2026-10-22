@@ -31,7 +31,7 @@ await writeFile(
     {
       name: source.name,
       version: source.version,
-      description: "Embeddable Open Connector runtime for Node.js and Bun.",
+      description: "Embeddable Nexora Connect runtime for Node.js and Bun.",
       license: "Apache-2.0",
       type: "module",
       exports: {
@@ -41,9 +41,9 @@ await writeFile(
       dependencies: source.dependencies,
       engines: { node: ">=22.18.0" },
       keywords: ["connector", "oauth", "mcp", "agents", "integrations"],
-      homepage: "https://github.com/oomol-lab/open-connector#readme",
-      bugs: { url: "https://github.com/oomol-lab/open-connector/issues" },
-      repository: { type: "git", url: "git+https://github.com/oomol-lab/open-connector.git" },
+      homepage: "https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect#readme",
+      bugs: { url: "https://github.com/leon36000/Nexora-Studio-/issues" },
+      repository: { type: "git", url: "git+https://github.com/leon36000/Nexora-Studio-.git" },
     },
     null,
     2,

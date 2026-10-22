@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 
 const consumer = resolve(process.argv[2]);
 const { getConnectorBuildOptions } = (await import(
-  import.meta.resolve("@oomol-lab/open-connector/build", join(consumer, "package.json"))
+  import.meta.resolve("@nexora/connect/build", join(consumer, "package.json"))
 )) as typeof import("../src/server/connector-build.ts");
 const execution = await mkdtemp(join(tmpdir(), "connector-build-smoke-"));
 const entrypoint = join(consumer, "headless-host.mjs");

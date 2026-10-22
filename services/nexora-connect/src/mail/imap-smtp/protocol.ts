@@ -380,7 +380,7 @@ export function createMailProtocol(config: MailProtocolConfig, deps: MailProtoco
         const { filePath, cleanup } = await writeAsyncIterableToTempFile(
           downloaded.content,
           filename,
-          `oomol-connect-${config.attachmentFallbackPrefix}-download-`,
+          `nexora-connect-${config.attachmentFallbackPrefix}-download-`,
         );
         return {
           attachmentId,

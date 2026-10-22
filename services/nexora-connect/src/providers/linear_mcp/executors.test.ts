@@ -231,7 +231,7 @@ describe("linear_mcp definition", () => {
     expect(match).not.toBeNull();
     expect(match![2]).toBe("https://mcp.linear.app/register");
     expect(JSON.parse(match![1]!)).toEqual({
-      client_name: "Open Connector",
+      client_name: "Nexora Connect",
       redirect_uris: ["<Callback URL>"],
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],

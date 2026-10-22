@@ -8,7 +8,7 @@ export { compactObject };
 export const githubApiBaseUrl = "https://api.github.com";
 export const githubApiVersion = "2022-11-28";
 export const githubDefaultAcceptHeader = "application/vnd.github+json";
-export const githubUserAgent = "oomol-connect";
+export const githubUserAgent = "nexora-connect";
 
 export type GitHubActionContext = {
   accessToken: string;

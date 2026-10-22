@@ -97,7 +97,7 @@ describe("defaultMigrationSource", () => {
 });
 
 async function createMigrationDirectory(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "oomol-connect-migrations-"));
+  const directory = await mkdtemp(join(tmpdir(), "nexora-connect-migrations-"));
   tempDirs.push(directory);
   await mkdir(join(directory, "postgresql"));
   return directory;

@@ -12,7 +12,7 @@ export const proxy: ProviderProxyExecutor = defineProviderProxy({
   skipDnsValidation: true,
   customizeRequest({ headers }) {
     headers.set("accept", "application/json");
-    headers.set("x-integration-name", "Oomol Connector");
+    headers.set("x-integration-name", "Nexora Connect");
   },
 });
 

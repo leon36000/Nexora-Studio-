@@ -43,7 +43,7 @@ export const pandadocDocumentEvent: IntegrationDefinition = {
           endpoint,
           method: "POST",
           body: {
-            name: "OOMOL document status",
+            name: "Nexora Connect document status",
             url: context.endpointUrl,
             active: true,
             triggers: ["document_state_changed"],

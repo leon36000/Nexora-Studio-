@@ -51,7 +51,7 @@ describe("MQTT guarded WebSocket handoff", () => {
     );
     expect(guardedOptions?.allowPrivateNetwork).toBeTypeOf("function");
     expect(mqttOptions).toMatchObject({ forceNativeWebSocket: true, protocolVersion: 5, reconnectPeriod: 0 });
-    expect(mqttOptions?.clientId).toMatch(/^oomol-connect-/);
+    expect(mqttOptions?.clientId).toMatch(/^nexora-connect-/);
   });
 
   it("passes a configured Client ID through without changing the generic MQTT credentials", async () => {

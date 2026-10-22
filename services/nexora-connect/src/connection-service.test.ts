@@ -245,7 +245,7 @@ describe("ConnectionService", () => {
       connectionName: "marketplace_community",
       authType: "marketplace",
     });
-    await expect(service.getConnectionSummary("uptimerobot", "marketplace_oomol")).rejects.toMatchObject({
+    await expect(service.getConnectionSummary("uptimerobot", "marketplace_other")).rejects.toMatchObject({
       code: "connection_not_found",
     });
   });

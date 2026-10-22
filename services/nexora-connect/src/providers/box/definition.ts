@@ -26,8 +26,8 @@ export const provider: ProviderDefinition = {
         steps: [
           "Create a Custom App with OAuth 2.0 in the Box Developer Console.",
           "Enable read and write access to files and folders for the app.",
-          "Add the callback URL shown by OOMOL Connect to the app's OAuth 2.0 redirect URIs.",
-          "Copy the client ID and client secret into OOMOL Connect.",
+          "Add the callback URL shown by Nexora Connect to the app's OAuth 2.0 redirect URIs.",
+          "Copy the client ID and client secret into Nexora Connect.",
         ],
       },
     },

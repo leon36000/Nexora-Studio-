@@ -54,7 +54,7 @@ export const pipedriveCrmEvent: IntegrationDefinition = {
             event_action: action,
             event_object: entity,
             version: "2.0",
-            http_auth_user: "oomol",
+            http_auth_user: "nexora",
             http_auth_password: context.callbackSecret,
           },
         });
@@ -79,7 +79,7 @@ export const pipedriveCrmEvent: IntegrationDefinition = {
     return result;
   },
   receive(context) {
-    const expected = basicAuthorizationHeader(`oomol:${context.callbackSecret}`);
+    const expected = basicAuthorizationHeader(`nexora:${context.callbackSecret}`);
     if (!sameSecret(context.header("authorization"), expected))
       return { outcome: "respond", status: 401, body: "", contentType: "text/plain" };
     const companyId = context.state?.subscription.companyId;

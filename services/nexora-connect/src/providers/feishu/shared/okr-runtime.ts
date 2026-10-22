@@ -273,8 +273,8 @@ async function createProgress(input: Record<string, unknown>, request: FeishuJso
       content: contentBlockV1(requiredString(input.content, "content"), []),
       target_id: requiredString(input.targetId, "targetId"),
       target_type: targetType === "objective" ? 2 : 3,
-      source_title: optionalString(input.sourceTitle) ?? "Oomol Connector",
-      source_url: optionalString(input.sourceUrl) ?? "https://oomol.com",
+      source_title: optionalString(input.sourceTitle) ?? "Nexora Connect",
+      source_url: optionalString(input.sourceUrl) ?? "https://github.com/leon36000/Nexora-Studio-",
       progress_rate: progressRate(input.percent, input.status),
     }),
   });

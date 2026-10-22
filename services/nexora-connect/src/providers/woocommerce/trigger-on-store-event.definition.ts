@@ -30,7 +30,7 @@ export const snapshot: TriggerKeySnapshot & { readonly type: "integration" } = {
       handle: "webhookName",
       jsonSchema: s.string({ maxLength: 120, minLength: 1 }),
       nullable: false,
-      value: "OOMOL Trigger",
+      value: "Nexora Connect Trigger",
     },
   ],
   definitionVersion: 2,

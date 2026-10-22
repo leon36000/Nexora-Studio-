@@ -12,7 +12,7 @@ const identityBaseUrl = "https://api.xero.com";
 const xeroUserinfoBaseUrl = "https://identity.xero.com";
 const xeroUserinfoPath = "/connect/userinfo";
 const xeroUserinfoUrl = `${xeroUserinfoBaseUrl}${xeroUserinfoPath}`;
-const apiPackage = "OpenConnector";
+const apiPackage = "NexoraConnect";
 
 type XeroHandler = ProviderRuntimeHandler<OAuthProviderContext>;
 

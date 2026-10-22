@@ -8,7 +8,7 @@ import { jsonError } from "./http-utils.ts";
 import { writeRuntimeFailure } from "./runtime-api.ts";
 
 const bearerScheme = "bearer";
-const authCookieName = "oomol_connect_admin_session";
+const authCookieName = "nexora_connect_admin_session";
 const authCookieVersion = "v1";
 const authCookieMaxAgeSeconds = 2_592_000;
 const authCookieMaxAgeMs = authCookieMaxAgeSeconds * 1000;

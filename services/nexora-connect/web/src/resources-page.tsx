@@ -2,25 +2,13 @@ import type { ReactNode } from "react";
 
 import { useTranslate } from "@embra/i18n/react";
 import { useClipboard } from "foxact/use-clipboard";
-import {
-  ArrowRight,
-  BookOpen,
-  Check,
-  Code2,
-  Copy,
-  ExternalLink,
-  KeyRound,
-  Link2,
-  Plug,
-  TerminalSquare,
-} from "lucide-react";
+import { ArrowRight, BookOpen, Check, Copy, ExternalLink, KeyRound, Link2, Plug, TerminalSquare } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import {
-  buildCliClientSetup,
+  buildHttpClientSetup,
+  buildHttpFirstAction,
   buildMcpClientConfig,
-  buildPowerShellClientSetup,
-  buildSdkClientSetup,
   normalizeGatewayUrl,
 } from "./client-onboarding";
 import { Badge } from "./shared-ui";
@@ -48,24 +36,17 @@ interface DocCardProps {
   href: string;
 }
 
-type ClientMethod = "mcp" | "cli" | "sdk";
+type ClientMethod = "mcp" | "http";
+
+const runtimeApiGuideUrl =
+  "https://github.com/leon36000/Nexora-Studio-/blob/main/services/nexora-connect/docs/runtime-api.md";
 
 export function ResourcesPage(props: ResourcesPageProps): ReactNode {
   const t = useTranslate();
   const [method, setMethod] = useState<ClientMethod>("mcp");
   const [authenticated, setAuthenticated] = useState(true);
-  const [platform, setPlatform] = useState("unix");
   const baseUrl = normalizeGatewayUrl(props.gatewayUrl);
   const exampleUrl = baseUrl ?? "https://connect.example.com";
-  const sdkCode = [
-    buildSdkClientSetup(exampleUrl, authenticated),
-    "",
-    "await gateway.health();",
-    'const matches = await gateway.catalog.search("top stories");',
-    'const action = await gateway.catalog.action("hackernews.get_top_stories");',
-    'const result = await gateway.execute("hackernews.get_top_stories", {});',
-    "console.log(result);",
-  ].join("\n");
 
   return (
     <div className="client-onboarding">
@@ -160,13 +141,9 @@ export function ResourcesPage(props: ResourcesPageProps): ReactNode {
               <Plug size={15} aria-hidden="true" />
               MCP<span>{t("resources.onboarding.mcpAudience")}</span>
             </TabsTrigger>
-            <TabsTrigger value="cli">
+            <TabsTrigger value="http">
               <TerminalSquare size={15} aria-hidden="true" />
-              CLI<span>{t("resources.onboarding.cliAudience")}</span>
-            </TabsTrigger>
-            <TabsTrigger value="sdk">
-              <Code2 size={15} aria-hidden="true" />
-              SDK<span>{t("resources.onboarding.sdkAudience")}</span>
+              HTTP<span>{t("resources.onboarding.httpAudience")}</span>
             </TabsTrigger>
           </TabsList>
           <TabsContent value="mcp" className="onboarding-method-content">
@@ -180,11 +157,7 @@ export function ResourcesPage(props: ResourcesPageProps): ReactNode {
                 <li>{t("resources.onboarding.mcpExecute")}</li>
               </ol>
               <code className="onboarding-endpoint">{exampleUrl}/mcp</code>
-              <a
-                href="https://github.com/oomol-lab/open-connector/blob/main/docs/runtime-api.md#mcp"
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a href={`${runtimeApiGuideUrl}#mcp`} target="_blank" rel="noreferrer">
                 {t("resources.onboarding.fullGuide")}
                 <ExternalLink size={13} aria-hidden="true" />
               </a>
@@ -202,106 +175,33 @@ export function ResourcesPage(props: ResourcesPageProps): ReactNode {
               />
             </div>
           </TabsContent>
-          <TabsContent value="cli" className="onboarding-method-content">
+          <TabsContent value="http" className="onboarding-method-content">
             <div className="onboarding-instructions">
-              <Badge>oo CLI</Badge>
-              <h4>{t("resources.onboarding.cliTitle")}</h4>
-              <p>{t("resources.onboarding.cliHelp")}</p>
+              <Badge>REST</Badge>
+              <h4>{t("resources.onboarding.httpTitle")}</h4>
+              <p>{t("resources.onboarding.httpHelp")}</p>
               <ol>
-                <li>{t("resources.onboarding.cliInstall")}</li>
-                <li>{t("resources.onboarding.cliConfigure")}</li>
-                <li>{t("resources.onboarding.cliExecute")}</li>
+                <li>{t("resources.onboarding.httpConfigure")}</li>
+                <li>{t("resources.onboarding.httpDiscover")}</li>
+                <li>{t("resources.onboarding.httpExecute")}</li>
               </ol>
-              <a
-                href="https://github.com/oomol-lab/oo-cli/blob/main/docs/self-hosted-connector.md"
-                target="_blank"
-                rel="noreferrer"
-              >
+              <code className="onboarding-endpoint">{exampleUrl}/v1</code>
+              <a href={`${runtimeApiGuideUrl}#http-runtime-api`} target="_blank" rel="noreferrer">
                 {t("resources.onboarding.fullGuide")}
                 <ExternalLink size={13} aria-hidden="true" />
               </a>
             </div>
             <div className="onboarding-snippets">
-              <ToggleGroup
-                type="single"
-                value={platform}
-                onValueChange={(value) => {
-                  if (value) setPlatform(value);
-                }}
-                aria-label={t("resources.onboarding.platform")}
-              >
-                <ToggleGroupItem value="unix">macOS / Linux</ToggleGroupItem>
-                <ToggleGroupItem value="windows">Windows PowerShell</ToggleGroupItem>
-              </ToggleGroup>
-              <CodeBlock
-                title={t("resources.onboarding.install")}
-                code={
-                  platform === "unix"
-                    ? "curl -fsSL https://cli.oomol.com/install.sh | bash"
-                    : "irm https://cli.oomol.com/install.ps1 | iex"
-                }
-              />
               <CodeBlock
                 title={t("resources.onboarding.configure")}
-                code={
-                  platform === "unix"
-                    ? buildCliClientSetup(exampleUrl, authenticated)
-                    : buildPowerShellClientSetup(exampleUrl, authenticated)
-                }
+                code={buildHttpClientSetup(exampleUrl, authenticated)}
                 disabled={!baseUrl}
               />
               <CodeBlock
                 title={t("resources.onboarding.firstAction")}
-                code={
-                  "oo connector search \"top stories\"\noo connector schema hackernews.get_top_stories\noo connector run hackernews --action get_top_stories --data '{}'"
-                }
+                code={buildHttpFirstAction(authenticated)}
                 disabled={!baseUrl}
               />
-            </div>
-          </TabsContent>
-          <TabsContent value="sdk" className="onboarding-method-content">
-            <div className="onboarding-instructions">
-              <Badge>TypeScript</Badge>
-              <h4>{t("resources.onboarding.sdkTitle")}</h4>
-              <p>{t("resources.onboarding.sdkHelp")}</p>
-              <ol>
-                <li>{t("resources.onboarding.sdkInstall")}</li>
-                <li>{t("resources.onboarding.sdkConfigure")}</li>
-                <li>{t("resources.onboarding.sdkExecute")}</li>
-              </ol>
-              <a href="https://github.com/oomol-lab/connector-sdk#self-hosted-runtime" target="_blank" rel="noreferrer">
-                {t("resources.onboarding.fullGuide")}
-                <ExternalLink size={13} aria-hidden="true" />
-              </a>
-            </div>
-            <div className="onboarding-snippets">
-              <CodeBlock title={t("resources.onboarding.install")} code="npm install @oomol-lab/connector" />
-              {authenticated ? (
-                <ToggleGroup
-                  type="single"
-                  value={platform}
-                  onValueChange={(value) => {
-                    if (value) setPlatform(value);
-                  }}
-                  aria-label={t("resources.onboarding.platform")}
-                >
-                  <ToggleGroupItem value="unix">macOS / Linux</ToggleGroupItem>
-                  <ToggleGroupItem value="windows">Windows PowerShell</ToggleGroupItem>
-                </ToggleGroup>
-              ) : null}
-              {authenticated ? (
-                <CodeBlock
-                  title={t("resources.onboarding.tokenEnv")}
-                  code={
-                    platform === "unix"
-                      ? "export OOMOL_CONNECT_RUNTIME_TOKEN='<RUNTIME_TOKEN>'"
-                      : '$env:OOMOL_CONNECT_RUNTIME_TOKEN = "<RUNTIME_TOKEN>"'
-                  }
-                />
-              ) : null}
-              <CodeBlock title={t("resources.onboarding.firstAction")} code={sdkCode} disabled={!baseUrl} />
-              <p className="onboarding-run-help">{t("resources.onboarding.sdkRunHelp")}</p>
-              <CodeBlock title={t("resources.onboarding.runExample")} code="node client.mjs" disabled={!baseUrl} />
             </div>
           </TabsContent>
         </Tabs>

@@ -94,7 +94,7 @@ export async function getConnectorBuildOptions(options: ConnectorBuildOptions = 
         });
         build.onEnd((result) => {
           if (result.success && !replaced)
-            throw new Error("The build did not load Open Connector's executor registry.");
+            throw new Error("The build did not load Nexora Connect's executor registry.");
         });
       },
     };

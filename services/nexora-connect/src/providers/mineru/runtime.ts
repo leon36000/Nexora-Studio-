@@ -7,7 +7,7 @@ import { assertPublicHttpUrl } from "../../core/request.ts";
 import { providerUserAgent, ProviderRequestError, requiredInputString } from "../provider-runtime.ts";
 
 export const mineruApiBaseUrl = "https://mineru.net";
-const mineruValidationTaskId = "oomol-connector-validation";
+const mineruValidationTaskId = "nexora-connect-validation";
 
 type MineruRequestPhase = "validate" | "execute";
 type MineruActionContext = Pick<ApiKeyProviderContext, "apiKey" | "fetcher" | "signal">;

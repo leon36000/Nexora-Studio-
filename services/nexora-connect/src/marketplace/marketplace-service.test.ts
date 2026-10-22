@@ -76,7 +76,7 @@ describe("MarketplaceService", () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       jsonResponse({
         version: 1,
-        id: "oomol",
+        id: "community",
         name: "Default",
         pricing: "metered",
         validate: "/validate",

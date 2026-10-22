@@ -77,24 +77,24 @@ describe("runtime action metadata", () => {
 
 describe("runtime connected apps", () => {
   const connection: ConnectionSummary = {
-    id: "marketplace:oomol:example",
+    id: "marketplace:community:example",
     service: "example",
-    connectionName: "marketplace_oomol",
+    connectionName: "marketplace_community",
     authType: "marketplace",
     configured: true,
     virtual: true,
     default: true,
     profile: {
-      accountId: "marketplace:oomol:example",
-      displayName: "OOMOL",
+      accountId: "marketplace:community:example",
+      displayName: "Community",
       grantedScopes: [],
     },
-    marketplace: { id: "oomol", pricing: "metered" },
+    marketplace: { id: "community", pricing: "metered" },
   };
 
   it("preserves Marketplace metadata", () => {
     expect(serializeRuntimeConnectedApp(connection)).toMatchObject({
-      marketplace: { id: "oomol", pricing: "metered" },
+      marketplace: { id: "community", pricing: "metered" },
     });
   });
 });

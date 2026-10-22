@@ -28,7 +28,7 @@ export const provider: ProviderDefinition = {
         docsUrl: "https://developers.notion.com/guides/mcp/build-mcp-client",
         steps: [
           "Copy the Callback URL shown below.",
-          'POST {"client_name":"Open Connector","redirect_uris":["<Callback URL>"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"} as JSON to https://mcp.notion.com/register.',
+          'POST {"client_name":"Nexora Connect","redirect_uris":["<Callback URL>"],"grant_types":["authorization_code","refresh_token"],"response_types":["code"],"token_endpoint_auth_method":"none"} as JSON to https://mcp.notion.com/register.',
           "Copy the returned client_id into the Client ID field below and leave Client Secret empty.",
           "Connect with OAuth. Notion MCP is in beta: tool names and result shapes can change without notice, and some search filters need a Business or Enterprise plan.",
         ],

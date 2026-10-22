@@ -8,13 +8,13 @@ const service = "cloudflare_mcp";
  * Cloudflare provider backed by Cloudflare's official unified MCP service.
  *
  * API tokens work directly. OAuth clients use Cloudflare's dynamic client
- * registration endpoint and the local Open Connector OAuth callback URL.
+ * registration endpoint and the local Nexora Connect OAuth callback URL.
  */
 export const provider: ProviderDefinition = {
   service,
   displayName: "Cloudflare MCP",
   description:
-    "Search Cloudflare documentation and API schemas, then manage Cloudflare resources through the official unified MCP service. API tokens connect directly; OAuth uses a public client registered through https://mcp.cloudflare.com/register with this Open Connector deployment's callback URL.",
+    "Search Cloudflare documentation and API schemas, then manage Cloudflare resources through the official unified MCP service. API tokens connect directly; OAuth uses a public client registered through https://mcp.cloudflare.com/register with this Nexora Connect deployment’s callback URL.",
   categories: ["Developer Tools", "Infrastructure"],
   authTypes: ["oauth2", "api_key"],
   auth: [

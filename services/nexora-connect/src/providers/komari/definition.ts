@@ -16,7 +16,7 @@ export const provider: ProviderDefinition = {
       label: "API Key",
       placeholder: "Enter your Komari API key",
       description:
-        "The API key configured in the Komari dashboard. Komari accepts it as a Bearer token and currently grants administrator-level API access, so use a dedicated secret and restrict exposed actions in OpenConnector.",
+        "The API key configured in the Komari dashboard. Komari accepts it as a Bearer token and currently grants administrator-level API access, so use a dedicated secret and restrict exposed actions in Nexora Connect.",
       extraFields: [
         {
           key: "baseUrl",
@@ -26,7 +26,7 @@ export const provider: ProviderDefinition = {
           secret: false,
           placeholder: "https://komari.example.com",
           description:
-            "The HTTP or HTTPS root URL of your Komari 1.3.2 or newer instance. Public addresses work by default; private-network targets require a self-hosted OpenConnector runtime with OOMOL_CONNECT_ALLOW_PRIVATE_NETWORK enabled. Loopback, link-local, reserved, and cloud-metadata targets remain blocked.",
+            "The HTTP or HTTPS root URL of your Komari 1.3.2 or newer instance. Public addresses work by default; private-network targets require a self-hosted Nexora Connect runtime with OOMOL_CONNECT_ALLOW_PRIVATE_NETWORK enabled. Loopback, link-local, reserved, and cloud-metadata targets remain blocked.",
         },
       ],
     },

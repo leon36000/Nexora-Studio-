@@ -56,12 +56,12 @@ export async function createNodeRuntimeDatabase(options: NodeRuntimeDatabaseOpti
 export const sqliteMigrationsNotice =
   "SQLite migrations are applied automatically when the local runtime database opens.";
 
-/** Validate the URL, open a single-connection pool named open-connector-migrate, apply pending migrations, and close the pool. */
+/** Validate the URL, open a single-connection pool named nexora-connect-migrate, apply pending migrations, and close the pool. */
 export async function migratePostgresRuntimeDatabase(options: MigratePostgresRuntimeDatabaseOptions): Promise<void> {
   assertPostgresDatabaseUrl(options.connectionString);
   const { Pool } = await import("pg");
   const pool = new Pool({
-    application_name: "open-connector-migrate",
+    application_name: "nexora-connect-migrate",
     connectionString: options.connectionString,
     connectionTimeoutMillis: options.connectionTimeoutMs,
     max: 1,

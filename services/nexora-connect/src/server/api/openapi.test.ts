@@ -38,6 +38,10 @@ const provider: ProviderDefinition = {
 };
 
 describe("action execution OpenAPI", () => {
+  it("titles the document with the Nexora Connect brand", () => {
+    expect((createOpenApiDocument([provider]).info as { title: string }).title).toBe("Nexora Connect Local Runtime");
+  });
+
   it.each([
     ["generic", {}],
     ["concrete", { actionId: "example.echo" }],

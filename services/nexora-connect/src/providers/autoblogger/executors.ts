@@ -24,7 +24,7 @@ import {
 const service = "autoblogger";
 const autobloggerApiBaseUrl = "https://dash.autoblogging.ai/api/v1";
 const articlesPath = "/articles";
-const validationArticleId = "oomol-connect-validation";
+const validationArticleId = "nexora-connect-validation";
 const autobloggerFetch = createProviderFetch({ skipDnsValidation: true });
 
 interface AutobloggerContext {

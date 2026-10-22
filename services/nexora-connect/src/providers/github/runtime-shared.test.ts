@@ -6,7 +6,7 @@ describe("GitHub text responses", () => {
     const fetcher = vi.fn<typeof fetch>(async () => chunkedTextResponse(["hello ", "world"]));
 
     const result = await githubRequestTextTail({
-      path: "/repos/oomol/test/actions/jobs/1/logs",
+      path: "/repos/example/test/actions/jobs/1/logs",
       accessToken: "secret",
       fetcher,
       maxBytes: 32,
@@ -19,7 +19,7 @@ describe("GitHub text responses", () => {
       truncated: false,
     });
     expect(fetcher).toHaveBeenCalledWith(
-      "https://api.github.com/repos/oomol/test/actions/jobs/1/logs",
+      "https://api.github.com/repos/example/test/actions/jobs/1/logs",
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: "Bearer secret" }),
       }),

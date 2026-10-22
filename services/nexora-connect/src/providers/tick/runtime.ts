@@ -222,7 +222,7 @@ async function requestTickJson(input: TickRequestInput): Promise<unknown> {
         accept: "application/json",
         authorization: `Token token=${input.credential.apiKey}`,
         "content-type": "application/json; charset=utf-8",
-        "user-agent": `oomol-connect (${input.credential.email})`,
+        "user-agent": `nexora-connect (${input.credential.email})`,
       },
       body: input.body == null ? undefined : JSON.stringify(input.body),
       signal,

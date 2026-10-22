@@ -239,17 +239,17 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 ## Tâche 11 — Services : Nexora API et Nexora Connect
 
-- [ ] 11.1 Nexora API (`services/nexora-api`) :
+- [x] 11.1 Nexora API (`services/nexora-api`) :
   - Dockerfile multi-architecture, sans le playground (cf. test réel) ;
   - `config.example.yml` avec un modèle `nexora-default` derrière le connecteur `openai` (URL et clé par variables d'environnement) ;
   - marque : titre OpenAPI « Nexora API », textes Etalab ou Albert retirés de l'interface et des docs servies ;
   - test : `pytest` sur les tests existants qui touchent la configuration, s'ils tournent sans services ; sinon, test de fumée HTTP en tâche 13.
-- [ ] 11.2 Nexora Connect (`services/nexora-connect`) :
+- [x] 11.2 Nexora Connect (`services/nexora-connect`) :
   - repérer et désactiver tout appel vers les services d'OOMOL (télémétrie, registre distant, OAuth hébergé) ;
   - chiffrement obligatoire (clé par variable, refus de démarrer sans elle) ;
   - marque Nexora dans les textes servis ;
   - tests du projet verts.
-- [ ] `check-brand.sh` étendu à `services/`.
+- [x] `check-brand.sh` étendu à `services/`.
 
 **Vérification** : les tests des deux services passent ; `check-brand.sh` sort avec 0.
 

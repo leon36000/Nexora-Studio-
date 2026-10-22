@@ -455,7 +455,7 @@ export function createOpenApiDocument(
   return {
     openapi: "3.1.0",
     info: {
-      title: "OOMOL Connect Local Runtime",
+      title: "Nexora Connect Local Runtime",
       version: "0.1.0",
     },
     tags: [

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslate } from "@embra/i18n/react";
 import { Fingerprint, Search, Settings } from "lucide-react";
 import { useMemo, useState } from "react";
+import { saasCloudBaseUrl } from "./edition";
 import { OAuthAppDialog } from "./oauth-app-form";
 import { SaasProjectSettings } from "./saas-project-settings";
 import { Badge, EmptyState, ProviderIcon } from "./shared-ui";
@@ -30,7 +31,7 @@ export function OAuthAppsPage(props: OAuthAppsPageProps): ReactNode {
 
   return (
     <div className="grid gap-4">
-      <SaasProjectSettings onRefresh={props.onRefresh} />
+      {saasCloudBaseUrl ? <SaasProjectSettings baseUrl={saasCloudBaseUrl} onRefresh={props.onRefresh} /> : null}
       <section className="oauth-apps-panel">
         <header className="oauth-apps-header">
           <div>

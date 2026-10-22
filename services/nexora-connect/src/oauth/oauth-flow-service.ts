@@ -563,7 +563,7 @@ export function validateReturnUri(value?: string): void {
   } catch {
     throw new OAuthFlowError("invalid_input", "returnUri must be a valid URL.");
   }
-  if (!["http:", "https:", "oomol:"].includes(url.protocol)) {
+  if (!["http:", "https:"].includes(url.protocol)) {
     throw new OAuthFlowError("invalid_input", "returnUri scheme is not allowed.");
   }
 }

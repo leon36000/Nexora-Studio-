@@ -1,4 +1,4 @@
-import { createConnectorRuntime, getConnectorAssetDirectory } from "@oomol-lab/open-connector";
+import { createConnectorRuntime, getConnectorAssetDirectory } from "@nexora/connect";
 import assert from "node:assert/strict";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";

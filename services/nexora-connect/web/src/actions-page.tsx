@@ -344,7 +344,7 @@ function ParameterList(props: { schema: JsonSchema }): ReactNode {
 
 function ExampleTabs(props: ExampleTabsProps): ReactNode {
   const t = useTranslate();
-  const [active, setActive] = useState<"sdk" | "cli" | "curl" | "typescript" | "agent">("sdk");
+  const [active, setActive] = useState<"curl" | "typescript" | "agent">("curl");
   const [connectionName, setConnectionName] = useState(() => initialActionConnectionName(props.connections));
   const connectionSignature = props.connections.map(actionConnectionName).join("\0");
   const connectionsRef = useRef(props.connections);
@@ -357,8 +357,6 @@ function ExampleTabs(props: ExampleTabsProps): ReactNode {
   const { copy, copied } = useClipboard();
   const agent = buildAgentPrompt(props.action, props.gatewayUrl);
   const tabs = [
-    { id: "sdk", label: "SDK", code: examples.sdk },
-    { id: "cli", label: "CLI", code: examples.cli },
     { id: "curl", label: "cURL", code: examples.curl },
     { id: "typescript", label: "HTTP / TS", code: examples.typescript },
     { id: "agent", label: "Agent.md", code: agent.prompt },

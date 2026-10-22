@@ -14,7 +14,7 @@ export const typeformResponse: IntegrationDefinition = {
     if (typeof formId != "string" || !formId) throw new PermanentIntegrationError("Choose a Typeform form.");
     // A stable tag makes retries update the same webhook after a lost response.
     const hash = await crypto.subtle.digest("SHA-256", bytes(context.endpointUrl));
-    const tag = `oomol-${Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+    const tag = `nexora-${Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
     const endpoint = `/forms/${encodeURIComponent(formId)}/webhooks/${tag}`;
     context.signal?.throwIfAborted();
     const result = await context.connector.execute(

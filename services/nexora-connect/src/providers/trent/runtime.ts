@@ -15,7 +15,7 @@ const trentChatPath = "/v1/chat";
 const trentRenewalUrl = "https://app.trent.ai/api-keys/renew?client=openclaw";
 const trentDefaultRequestTimeoutMs = 300_000;
 const trentClientInfo = {
-  client_type: "oomol-connect",
+  client_type: "nexora-connect",
   client_version: "1.0",
 };
 

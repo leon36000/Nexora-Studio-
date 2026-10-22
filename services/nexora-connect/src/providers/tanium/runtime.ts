@@ -16,8 +16,8 @@ import {
 
 export const taniumGatewayPath = "/plugin/products/gateway/graphql";
 
-const taniumValidationOperationName = "OomolConnectValidation";
-const taniumValidationQuery = "query OomolConnectValidation { __typename }";
+const taniumValidationOperationName = "NexoraConnectValidation";
+const taniumValidationQuery = "query NexoraConnectValidation { __typename }";
 
 type TaniumPhase = "validate" | "execute";
 type TaniumActionHandler = (input: Record<string, unknown>, context: TaniumContext) => Promise<unknown>;

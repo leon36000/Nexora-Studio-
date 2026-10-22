@@ -76,7 +76,7 @@ async function sync() {
       login.hidden = true;
       close.hidden = false;
       const message = { type: 'oauth.completed', service: result.request.service };
-      if (typeof BroadcastChannel !== 'undefined') { const channel = new BroadcastChannel('oomol-connect-oauth'); channel.postMessage(message); channel.close(); }
+      if (typeof BroadcastChannel !== 'undefined') { const channel = new BroadcastChannel('nexora-connect-oauth'); channel.postMessage(message); channel.close(); }
       if (window.opener) window.opener.postMessage(message, location.origin);
       if (result.returnUri) { location.assign(result.returnUri); return; }
       note.hidden = false;

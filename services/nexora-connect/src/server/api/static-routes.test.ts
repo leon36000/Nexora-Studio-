@@ -137,7 +137,7 @@ async function createEmbeddedApp(): Promise<Hono> {
 }
 
 async function createConsoleRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "oomol-connect-static-"));
+  const root = await mkdtemp(join(tmpdir(), "nexora-connect-static-"));
   tempDirs.push(root);
   await mkdir(join(root, "assets"), { recursive: true });
   await writeFile(join(root, "index.html"), indexHtml);

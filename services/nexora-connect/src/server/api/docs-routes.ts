@@ -12,7 +12,7 @@ export function loadDocsHandler(openapiUrl = "/openapi.json"): Promise<Middlewar
   return docsHandler.get(openapiUrl, async () => {
     const { Scalar } = await import("@scalar/hono-api-reference");
     return Scalar({
-      pageTitle: "OOMOL Connect API Reference",
+      pageTitle: "Nexora Connect API Reference",
       url: openapiUrl,
       theme: "default",
       darkMode: false,

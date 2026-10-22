@@ -6,6 +6,7 @@ import { ExternalLink, Settings, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiPut } from "./api";
 import { CredentialInput } from "./credential-input";
+import { saasCloudBaseUrl } from "./edition";
 import { OAuthSourceForm } from "./saas-project-settings";
 import { FormStatus } from "./shared-ui";
 import { Button } from "@/components/ui/button";
@@ -28,30 +29,37 @@ interface OAuthAppDialogProps extends OAuthAppFormProps {
 
 export function OAuthAppDialog(props: OAuthAppDialogProps): ReactNode {
   const t = useTranslate();
+  const localConfiguration = (
+    <OAuthAppForm
+      provider={props.provider}
+      auth={props.auth}
+      config={props.config}
+      onRefresh={props.onRefresh}
+      onSaved={() => {
+        props.onSaved?.();
+        props.onOpenChange(false);
+      }}
+    />
+  );
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-h-[calc(100svh-2rem)] max-w-[min(560px,calc(100vw-2rem))] overflow-y-auto sm:max-w-[min(560px,calc(100vw-2rem))]">
         <DialogHeader>
           <DialogTitle>{t("saas.settingsTitle", { name: props.provider.displayName })}</DialogTitle>
-          <DialogDescription>{t("saas.settingsDescription")}</DialogDescription>
+          <DialogDescription>
+            {t(saasCloudBaseUrl ? "saas.settingsDescription" : "oauthApps.description")}
+          </DialogDescription>
         </DialogHeader>
-        <OAuthSourceForm
-          service={props.provider.service}
-          config={props.config}
-          onRefresh={props.onRefresh}
-          localConfiguration={
-            <OAuthAppForm
-              provider={props.provider}
-              auth={props.auth}
-              config={props.config}
-              onRefresh={props.onRefresh}
-              onSaved={() => {
-                props.onSaved?.();
-                props.onOpenChange(false);
-              }}
-            />
-          }
-        />
+        {saasCloudBaseUrl || props.config?.oauthSource?.mode === "saas" ? (
+          <OAuthSourceForm
+            service={props.provider.service}
+            config={props.config}
+            onRefresh={props.onRefresh}
+            localConfiguration={localConfiguration}
+          />
+        ) : (
+          localConfiguration
+        )}
       </DialogContent>
     </Dialog>
   );

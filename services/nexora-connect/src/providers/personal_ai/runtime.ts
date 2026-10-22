@@ -102,7 +102,7 @@ export async function validatePersonalAiCredential(
       body: {
         Text: "Hello",
         DomainName: domainName,
-        SourceName: "oomol-connect",
+        SourceName: "nexora-connect",
         is_draft: true,
       },
     },

@@ -106,3 +106,10 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Vérification réelle (environnement de développement + Nexora Connect du test) : un nouvel espace « Atelier Nexora » contient le serveur « Nexora Connect », et la découverte renvoie 5 outils (`list_apps`, `list_connections`, `search_actions`, `get_action_guide`, `execute_action`). 28 fichiers et 190 tests verts.
   - R15 : les espaces créés avant la configuration ne sont pas rattrapés en v1 ; ajout manuel possible dans Réglages > MCP.
 - 22/10/2026 — **6.5 (journaux, intégrations) livrée par sous-agent** : `check-i18n` OK (59 fichiers), parité de leurs clés OK, tests de zone verts.
+- 22/10/2026 — **Tâche 11 terminée** (Nexora Connect par sous-agent, vérifié par moi).
+  - `check-brand --only services` OK (aucune exemption ajoutée). vitest : 301 fichiers et 4 115 tests verts (tests des modules retirés supprimés), typecheck OK, build web OK.
+  - Le plugin de build qui téléchargeait les icônes depuis `connector.oomol.com` est supprimé ; les icônes viennent du catalogue local.
+  - OneKey/« OOMOL Key » supprimé. Le marketplace devient une fonction générique, sans URL par défaut. Les projets SaaS sont masqués (`web/src/edition.ts`). La CLI `oo` et le SDK OOMOL sont remplacés par des exemples MCP et HTTP.
+  - Les identifiants envoyés aux services tiers (user agents, sources d'intégration) passent à Nexora ; les signatures AWS SigV4 de référence ont été recalculées.
+  - Conservés volontairement : les sels de chiffrement `oomol-connect-*-secret-store-v1` (les changer rendrait illisibles les secrets existants), les en-têtes d'API `x-oo-connector-alias` / `X-OpenConnector-Request`, et les noms internes `OOMOL_CONNECT_*`.
+  - Reste pour la tâche 14 : les docs `services/nexora-connect/docs/*.md` et le README citent encore `@oomol-lab/open-connector` et le schéma `oomol:`.

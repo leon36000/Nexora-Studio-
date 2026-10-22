@@ -456,7 +456,7 @@ export const oracleCloudActions: ActionDefinition[] = [
         displayName: s.nonEmptyString("Command display name."),
         script: s.nonEmptyString("Plain-text script to execute."),
         executionTimeoutInSeconds: s.positiveInteger(
-          "On-host command timeout in seconds. OpenConnector waits at most four minutes for completion.",
+          "On-host command timeout in seconds. Nexora Connect waits at most four minutes for completion.",
           { maximum: oracleInstanceAgentMaxWaitSeconds },
         ),
       },

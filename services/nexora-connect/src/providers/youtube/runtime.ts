@@ -883,7 +883,7 @@ async function resolveUploadSource(input: {
     bytes,
     fileName: input.fileName ?? inferFileNameFromUrl(input.url),
     mimeType: input.mimeType ?? inferMimeType(response.headers.get("content-type")),
-    boundary: `oomol-youtube-${randomUUID()}`,
+    boundary: `nexora-youtube-${randomUUID()}`,
   };
 }
 

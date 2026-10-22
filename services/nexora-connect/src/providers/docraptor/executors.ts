@@ -21,9 +21,9 @@ const docraptorValidationBody = {
   doc: {
     test: true,
     hosted: true,
-    name: "oomol-connect-validation.pdf",
+    name: "nexora-connect-validation.pdf",
     type: "pdf",
-    document_content: "<html><body>OOMOL Connect validation</body></html>",
+    document_content: "<html><body>Nexora Connect validation</body></html>",
   },
 };
 

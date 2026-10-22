@@ -3,7 +3,7 @@ import * as React from "react";
 export type ThemeMode = "auto" | "light" | "dark";
 export type ResolvedThemeMode = "light" | "dark";
 
-const themeStorageKey = "oomol-connect.theme-mode";
+const themeStorageKey = "nexora-connect.theme-mode";
 const darkSchemeQuery = "(prefers-color-scheme: dark)";
 const fallbackSnapshot: ThemeSnapshot = { theme: "auto", resolvedTheme: "light" };
 

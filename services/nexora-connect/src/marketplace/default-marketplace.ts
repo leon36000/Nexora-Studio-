@@ -1,17 +1,5 @@
-export const defaultMarketplaceDiscoveryUrl = "https://connector.oomol.com/.well-known/oomol-connector-marketplace";
-
-/** Identifies the default source by URL, never by a remote name or provider ID. */
-export function isDefaultMarketplace(discoveryUrl: string): boolean {
-  try {
-    const url = new URL(discoveryUrl.trim());
-    return (
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash &&
-      url.href.replace(/\/$/, "") === defaultMarketplaceDiscoveryUrl
-    );
-  } catch {
-    return false;
-  }
-}
+/**
+ * Nexora edition: no third-party marketplace is queried by default. The reserved `.invalid`
+ * TLD never resolves, so discovery fails locally until an operator configures a source.
+ */
+export const defaultMarketplaceDiscoveryUrl = "https://marketplace.invalid/.well-known/connector-marketplace";

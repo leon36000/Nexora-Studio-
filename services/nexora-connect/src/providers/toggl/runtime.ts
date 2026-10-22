@@ -5,7 +5,7 @@ import { compactObject, optionalBoolean, optionalInteger, optionalRecord, option
 import { providerUserAgent, ProviderRequestError } from "../provider-runtime.ts";
 
 export const togglApiBaseUrl: string = "https://api.track.toggl.com/api/v9";
-const defaultCreatedWith = "oomol-connect";
+const defaultCreatedWith = "nexora-connect";
 
 type TogglRequestPhase = "validate" | "execute";
 

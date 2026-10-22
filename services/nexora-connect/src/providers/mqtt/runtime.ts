@@ -245,7 +245,7 @@ export async function openMqttClient(
   let handedOff = false;
   const options: IClientOptions = {
     clean: true,
-    clientId: credential.clientId ?? `oomol-connect-${randomUUID()}`,
+    clientId: credential.clientId ?? `nexora-connect-${randomUUID()}`,
     connectTimeout: 15_000,
     forceNativeWebSocket: true,
     protocolVersion: credential.protocolVersion === "5.0" ? 5 : 4,

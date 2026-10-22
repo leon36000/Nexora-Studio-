@@ -35,7 +35,7 @@ type WeixinBotActionHandler = (
 
 const apiBaseUrl = "https://ilinkai.weixin.qq.com";
 const channelVersion = "1.0.0";
-const botAgent = "oomol-connect/0.1";
+const botAgent = "nexora-connect/0.1";
 const appClientVersion = "65536";
 
 export const weixinBotActionHandlers: ProviderActionHandlers<"weixin_bot", WeixinBotActionHandler> = {

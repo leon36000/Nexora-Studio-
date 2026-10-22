@@ -164,7 +164,7 @@ describe("subscribeToOAuthCompletions", () => {
     const unsubscribe = subscribeToOAuthCompletions(refresh);
     FakeBroadcastChannel.instance?.emit({ type: "oauth.completed", service: "gmail" });
 
-    expect(FakeBroadcastChannel.instance?.name).toBe("oomol-connect-oauth");
+    expect(FakeBroadcastChannel.instance?.name).toBe("nexora-connect-oauth");
     expect(addEventListener).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalledWith({ type: "oauth.completed", service: "gmail" });
     unsubscribe();

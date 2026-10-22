@@ -14,7 +14,7 @@ import {
 import { ProviderRequestError, providerUserAgent, runProviderRequest } from "../provider-runtime.ts";
 
 export const smartsheetApiBaseUrl = "https://api.smartsheet.com/2.0";
-const smartsheetIntegrationSource = "AI,OOMOL,oomol-connect";
+const smartsheetIntegrationSource = "AI,Nexora,nexora-connect";
 
 type SmartsheetPhase = "validate" | "execute";
 type SmartsheetActionHandler = (input: Record<string, unknown>, context: ApiKeyProviderContext) => Promise<unknown>;

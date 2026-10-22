@@ -106,7 +106,7 @@ export const credentialValidators: CredentialValidators = {
   async apiKey(input, { fetcher, signal }) {
     const validationEndpoint = "/v0.1/checkouts";
     const url = new URL(validationEndpoint, "https://api.sumup.com");
-    url.searchParams.set("checkout_reference", "open-connector-credential-validation");
+    url.searchParams.set("checkout_reference", "nexora-connect-credential-validation");
     const response = await fetcher(url, {
       headers: {
         accept: "application/json",

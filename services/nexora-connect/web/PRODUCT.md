@@ -6,11 +6,11 @@ product
 
 ## Users
 
-Developers and operators running OOMOL Connect locally. They use the console to inspect provider capabilities, configure credentials, run actions, and understand execution results without exposing raw provider secrets to agents.
+Developers and operators running Nexora Connect locally. They use the console to inspect provider capabilities, configure credentials, run actions, and understand execution results without exposing raw provider secrets to agents.
 
 ## Product Purpose
 
-OOMOL Connect is a local connector runtime for AI agents and SDK-style clients. The web console should make runtime state, provider actions, credential readiness, request schemas, examples, and run history easy to inspect and trust.
+Nexora Connect is a local connector runtime for AI agents and SDK-style clients. The web console should make runtime state, provider actions, credential readiness, request schemas, examples, and run history easy to inspect and trust.
 
 ## Brand Personality
 

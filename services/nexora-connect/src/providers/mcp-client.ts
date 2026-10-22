@@ -41,7 +41,7 @@ export async function withMcpClient<T>(options: McpClientOptions, run: (client: 
         ? new SSEClientTransport(options.endpoint, transportOptions)
         : new StreamableHTTPClientTransport(options.endpoint, transportOptions);
     const client = new Client(
-      { name: "open-connector", version: "1.0.0" },
+      { name: "nexora-connect", version: "1.0.0" },
       {
         jsonSchemaValidator: mcpJsonSchemaValidator,
         versionNegotiation: { mode: resolveVersionNegotiationMode(options.protocolVersion) },

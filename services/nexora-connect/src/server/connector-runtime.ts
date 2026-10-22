@@ -120,7 +120,7 @@ export { getConnectorAssetDirectory } from "./connector-assets.ts";
 /** Create a headless runtime without opening a listener or installing process signal handlers. */
 export async function createConnectorRuntime(options: ConnectorRuntimeOptions): Promise<ConnectorRuntime> {
   if (runtimeActive)
-    throw new Error("Only one Open Connector runtime may be active per process. Close it before creating another.");
+    throw new Error("Only one Nexora Connect runtime may be active per process. Close it before creating another.");
   runtimeActive = true;
   try {
     return await openRuntime(options);
@@ -262,7 +262,7 @@ async function openRuntime(options: ConnectorRuntimeOptions): Promise<ConnectorR
       close() {
         if (!closing) {
           closing = Promise.resolve().then(async () => {
-            shutdown.abort(new Error("Open Connector runtime is closing."));
+            shutdown.abort(new Error("Nexora Connect runtime is closing."));
             await Promise.allSettled([...pending, saasCleanup.close(), triggerMaintenance.close()]);
             try {
               await database.close();

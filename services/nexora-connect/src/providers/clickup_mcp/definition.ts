@@ -24,7 +24,7 @@ export const provider: ProviderDefinition = {
         docsUrl: "https://developer.clickup.com/docs/connect-an-ai-assistant-to-clickups-mcp-server",
         steps: [
           "Copy the Callback URL shown below.",
-          'POST {"client_name":"Open Connector","redirect_uris":["<Callback URL>"],"grant_types":["authorization_code"],"response_types":["code"],"token_endpoint_auth_method":"none"} as JSON to https://mcp.clickup.com/oauth/register.',
+          'POST {"client_name":"Nexora Connect","redirect_uris":["<Callback URL>"],"grant_types":["authorization_code"],"response_types":["code"],"token_endpoint_auth_method":"none"} as JSON to https://mcp.clickup.com/oauth/register.',
           "Copy the returned client_id into the Client ID field below and leave Client Secret empty.",
         ],
       },

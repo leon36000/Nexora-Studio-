@@ -1,15 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildCliActionExample,
-  buildCliClientSetup,
+  buildHttpClientSetup,
+  buildHttpFirstAction,
   buildMcpClientConfig,
-  buildPowerShellClientSetup,
-  buildSdkActionExample,
   normalizeGatewayUrl,
 } from "./client-onboarding";
 
 describe("client gateway setup", () => {
-  it("preserves a reverse-proxy prefix and rejects URLs the CLI cannot connect to", () => {
+  it("preserves a reverse-proxy prefix and rejects URLs clients cannot connect to", () => {
     expect(normalizeGatewayUrl(" https://connect.example.com/gateway/ ")).toBe("https://connect.example.com/gateway");
     for (const url of [
       "localhost:3000",
@@ -27,33 +25,24 @@ describe("client gateway setup", () => {
     const baseUrl = "https://connect.example.com/gateway";
     const authenticated = JSON.parse(buildMcpClientConfig(baseUrl, true));
     const anonymous = JSON.parse(buildMcpClientConfig(baseUrl, false));
-    expect(authenticated.mcpServers["open-connector"]).toEqual({
+    expect(authenticated.mcpServers["nexora-connect"]).toEqual({
       url: `${baseUrl}/mcp`,
       headers: { Authorization: "Bearer <RUNTIME_TOKEN>" },
     });
-    expect(anonymous.mcpServers["open-connector"]).toEqual({ url: `${baseUrl}/mcp` });
-    expect(buildCliClientSetup(baseUrl, true)).toContain(`OO_CONNECTOR_URL='${baseUrl}'`);
-    expect(buildCliClientSetup(baseUrl, false)).toContain("unset OO_CONNECTOR_TOKEN");
+    expect(anonymous.mcpServers["nexora-connect"]).toEqual({ url: `${baseUrl}/mcp` });
+    expect(buildHttpClientSetup(baseUrl, true)).toContain(`NEXORA_CONNECT_URL='${baseUrl}'`);
+    expect(buildHttpClientSetup(baseUrl, false)).toContain("unset NEXORA_CONNECT_RUNTIME_TOKEN");
+    expect(buildHttpFirstAction(true)).toContain("Authorization: Bearer $NEXORA_CONNECT_RUNTIME_TOKEN");
+    expect(buildHttpFirstAction(false)).not.toContain("Authorization");
   });
-  it("quotes gateway URLs as literal values in both shell families", () => {
+  it("quotes gateway URLs as literal shell values", () => {
     const baseUrl = "https://example.com/a'b$(echo example)";
-    expect(buildCliClientSetup(baseUrl, true)).toContain("'https://example.com/a'\\''b$(echo example)'");
-    expect(buildPowerShellClientSetup(baseUrl, true)).toContain("'https://example.com/a''b$(echo example)'");
+    expect(buildHttpClientSetup(baseUrl, true)).toContain("'https://example.com/a'\\''b$(echo example)'");
   });
-  it("selects the same named connection in CLI and SDK calls", () => {
-    const action = {
-      id: "github.get_current_user",
-      service: "github",
-      name: "get_current_user",
-      input: {},
-      connectionName: "work",
-    };
-    const url = "https://connect.example.com";
-    expect(buildCliActionExample(url, action)).toContain("--connection-name 'work'");
-    expect(buildSdkActionExample(url, action)).toContain('baseUrl: "https://connect.example.com"');
-    expect(buildSdkActionExample(url, action)).toContain(
-      'gateway.execute("github.get_current_user", {}, {"connectionName":"work"})',
-    );
-    expect(buildSdkActionExample(url, action)).not.toContain('baseUrl: "https://connect.example.com/v1"');
+  it("calls the /v1 search, schema and execution routes", () => {
+    const example = buildHttpFirstAction(true);
+    expect(example).toContain('"$NEXORA_CONNECT_URL/v1/actions/search?q=top%20stories"');
+    expect(example).toContain('-X POST "$NEXORA_CONNECT_URL/v1/actions/hackernews.get_top_stories"');
+    expect(example).toContain(`-d '{"input":{}}'`);
   });
 });

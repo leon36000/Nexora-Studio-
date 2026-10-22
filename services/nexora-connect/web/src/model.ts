@@ -1,6 +1,6 @@
-import { buildCliActionExample, buildSdkActionExample, shellSingleQuote } from "./client-onboarding";
+import { shellSingleQuote } from "./client-onboarding";
 
-/** The setup projection supplied by Open Connector, without OAuth protocol configuration. */
+/** The setup projection supplied by the runtime, without OAuth protocol configuration. */
 export type AuthDefinition =
   | { type: "no_auth" }
   | { type: "api_key"; fields?: CredentialField[] }
@@ -285,7 +285,8 @@ export interface ProviderConnectionStatus {
   marketplaceConnection?: ConnectionRecord;
 }
 
-const firstProviderService = "fusion-api";
+/** Nexora edition: Brevo (French email and CRM service) leads the catalogue. */
+const firstProviderService = "brevo";
 const recommendedProviderServices = [
   "googlesheets",
   "gmail",
@@ -534,22 +535,21 @@ export function buildActionExamples(
   action: FullActionDefinition,
   origin: string,
   connectionName?: string,
-): { curl: string; typescript: string; cli: string; sdk: string } {
+): { curl: string; typescript: string } {
   const endpoint = `${origin}/v1/actions/${action.id}`;
   const body = { input: JSON.parse(exampleInput(action.inputSchema)) as unknown };
   const bodyText = JSON.stringify(body, null, 2);
-  const clientAction = { id: action.id, service: action.service, name: action.name, input: body.input, connectionName };
   return {
     curl: [
       `curl -s ${endpoint} \\`,
       "  -H 'content-type: application/json' \\",
-      '  -H "Authorization: Bearer $OOMOL_CONNECT_RUNTIME_TOKEN" \\',
+      '  -H "Authorization: Bearer $NEXORA_CONNECT_RUNTIME_TOKEN" \\',
       ...(connectionName ? [`  -H ${shellSingleQuote(`x-oo-connector-alias: ${connectionName}`)} \\`] : []),
       `  -d ${shellSingleQuote(JSON.stringify(body))}`,
     ].join("\n"),
     typescript: [
       'const headers = new Headers({ "content-type": "application/json" });',
-      "const runtimeToken = process.env.OOMOL_CONNECT_RUNTIME_TOKEN;",
+      "const runtimeToken = process.env.NEXORA_CONNECT_RUNTIME_TOKEN;",
       'if (runtimeToken) headers.set("authorization", `Bearer ${runtimeToken}`);',
       ...(connectionName ? [`headers.set("x-oo-connector-alias", ${JSON.stringify(connectionName)});`] : []),
       `const response = await fetch(${JSON.stringify(endpoint)}, {`,
@@ -559,8 +559,6 @@ export function buildActionExamples(
       `});`,
       `const result = await response.json();`,
     ].join("\n"),
-    cli: buildCliActionExample(origin, clientAction),
-    sdk: buildSdkActionExample(origin, clientAction),
   };
 }
 

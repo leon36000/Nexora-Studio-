@@ -47,7 +47,7 @@ async function callTool(context: ApiKeyProviderContext, toolName: string, args: 
           ...args,
           _client_info: args._client_info ?? {
             os: typeof process === "undefined" ? "unknown" : process.platform,
-            agent: "Oomol Connect",
+            agent: "Nexora Connect",
           },
         },
       },

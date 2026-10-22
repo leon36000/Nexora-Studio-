@@ -2,7 +2,6 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig, loadEnv } from "vite";
-import { providerIconsPlugin } from "./provider-icons-plugin.ts";
 
 const envDir = fileURLToPath(new URL(".", import.meta.url));
 
@@ -10,7 +9,7 @@ export default defineConfig(({ mode }) => {
   const apiTarget = loadEnv(mode, envDir, "VITE_").VITE_API_TARGET || `http://localhost:${process.env.PORT ?? "3000"}`;
 
   return {
-    plugins: [react(), tailwindcss(), providerIconsPlugin()],
+    plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),

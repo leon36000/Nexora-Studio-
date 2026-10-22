@@ -171,7 +171,7 @@ async function setup(adminToken: string | undefined = "admin") {
   calls.length = 0;
   const start = async (
     path = "/v1/connections/example/connect",
-    body: unknown = { returnUri: "oomol://connect/done?keep=yes" },
+    body: unknown = { returnUri: "https://app.example/connect/done?keep=yes" },
   ) => {
     const response = await call(path, { method: "POST", body });
     const json = await response.json();
@@ -202,14 +202,14 @@ it("starts remotely without a local client config, keeps cookie GET read-only, a
     alias: `connect-${data.connectionRequestId}`,
     returnUri: `https://connect.example/oauth/saas/complete?request=${data.connectionRequestId}`,
   });
-  expect(JSON.stringify(env.calls)).not.toContain("oomol://");
+  expect(JSON.stringify(env.calls)).not.toContain("app.example");
   const before = env.calls.length;
   const page = await env.call(`/oauth/saas/complete?request=${data.connectionRequestId}&status=success`, {
     token: null,
   });
   expect(page.status).toBe(200);
   expect(page.headers.get("cache-control")).toBe("private, no-store");
-  expect(await page.text()).not.toContain("oomol://connect/done");
+  expect(await page.text()).not.toContain("https://app.example/connect/done");
   env.tick(660_000);
   const readonly = await env.call(`/v1/connection-requests/${data.connectionRequestId}`, { token: null, cookie });
   expect((await readonly.json()).data.status).toBe("expired");
@@ -227,7 +227,9 @@ it("starts remotely without a local client config, keeps cookie GET read-only, a
     cookie,
     headers: { origin: "https://connect.example", "x-openconnector-request": "sync" },
   });
-  expect((await browser.json()).returnUri).toBe("oomol://connect/done?keep=yes&status=success&service=example");
+  expect((await browser.json()).returnUri).toBe(
+    "https://app.example/connect/done?keep=yes&status=success&service=example",
+  );
 });
 
 it("requires same-origin protected POST and does not fall back from an invalid bearer to a valid cookie", async () => {

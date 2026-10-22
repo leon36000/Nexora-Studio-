@@ -18,7 +18,7 @@ const createContentPath = "/create_content/";
 const getPostsPath = "/get_posts/";
 const getTemplatesPath = "/get_templates/";
 const maxResponseBytes = 10 * 1024 * 1024;
-const validationBrandId = "__oomol_validation_brand__";
+const validationBrandId = "__nexora_validation_brand__";
 
 type PredisAiPhase = "validate" | "execute";
 

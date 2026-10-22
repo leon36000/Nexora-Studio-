@@ -67,7 +67,7 @@ export const doubaoSpeechActionHandlers: ProviderActionHandlers<
       context,
       "auc/bigmodel/submit",
       {
-        user: { uid: "oomol-connector" },
+        user: { uid: "nexora-connect" },
         audio: {
           url: requiredInputString(input.audioUrl, "audioUrl"),
           format: requiredInputString(input.format, "format"),

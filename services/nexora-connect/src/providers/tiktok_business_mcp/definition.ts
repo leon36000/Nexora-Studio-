@@ -27,7 +27,7 @@ export const provider: ProviderDefinition = {
         steps: [
           "Create a TikTok for Business developer application with MCP access.",
           "Add the callback URL shown here to the application's redirect URLs.",
-          "Copy the client ID and client secret into OOMOL Connect.",
+          "Copy the client ID and client secret into Nexora Connect.",
         ],
       },
     },

@@ -27,7 +27,7 @@ const context: ExecutionContext = {
 
 // Key material from the AWS SigV4 test suite. The Authorization values below
 // were frozen from the signing path; they cover the fixed User-Agent
-// (`oomol-connect/0.1`) and must stay byte-identical across refactors of the
+// (`nexora-connect/0.1`) and must stay byte-identical across refactors of the
 // shared SigV4 helpers.
 const goldenAccessKeyId = "AKIDEXAMPLE";
 const goldenSecretAccessKey = "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY";
@@ -35,7 +35,7 @@ const goldenSessionToken = "AQoDYXdzEJr//////////wEaABC+de/f0g==";
 const goldenSigningTime = new Date("2015-08-30T12:36:00.000Z");
 const goldenRoleArn = "arn:aws:iam::123456789012:role/demo";
 const goldenBody =
-  "Action=AssumeRole&Version=2011-06-15&RoleArn=arn%3Aaws%3Aiam%3A%3A123456789012%3Arole%2Fdemo&RoleSessionName=oomol-connect";
+  "Action=AssumeRole&Version=2011-06-15&RoleArn=arn%3Aaws%3Aiam%3A%3A123456789012%3Arole%2Fdemo&RoleSessionName=nexora-connect";
 
 const assumeRoleResponseXml = `<?xml version="1.0" encoding="UTF-8"?>
 <AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
@@ -105,7 +105,7 @@ describe("AWS STS SigV4 golden vectors", () => {
     expect(requests[0]?.headers.get("x-amz-date")).toBe("20150830T123600Z");
     expect(requests[0]?.headers.has("x-amz-security-token")).toBe(false);
     expect(requests[0]?.headers.get("authorization")).toBe(
-      "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/ap-southeast-1/sts/aws4_request, SignedHeaders=accept;content-type;host;user-agent;x-amz-date, Signature=70ac4788e89158ec83bfea354cbf19a3a8895893bff3f8c57b027668a3ba6928",
+      "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/ap-southeast-1/sts/aws4_request, SignedHeaders=accept;content-type;host;user-agent;x-amz-date, Signature=f7dd2bce4cbb4b77a1da3e743cc9b505dbcd602bdd6e6deec98c34d5faee19d5",
     );
   });
 
@@ -120,7 +120,7 @@ describe("AWS STS SigV4 golden vectors", () => {
     expect(requests[0]?.body).toBe(goldenBody);
     expect(requests[0]?.headers.get("x-amz-security-token")).toBe(goldenSessionToken);
     expect(requests[0]?.headers.get("authorization")).toBe(
-      "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/ap-southeast-1/sts/aws4_request, SignedHeaders=accept;content-type;host;user-agent;x-amz-date;x-amz-security-token, Signature=c09ce94c7b086c98337b1f6ea786ef6dcf18cb99fddf21f7eea491c0f9be0ad1",
+      "AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/ap-southeast-1/sts/aws4_request, SignedHeaders=accept;content-type;host;user-agent;x-amz-date;x-amz-security-token, Signature=41c69015c56d732da8129dd2fe64147b1b9f9ae6185b2a152da66e1b07b318a3",
     );
   });
 });
