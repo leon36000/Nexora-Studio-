@@ -10,6 +10,8 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
 | R2 | 22/10/2026 | 0 | Import par `git archive` (sans historique amont) ; base Sim v0.9.31 `ec64b00` | Le `.git` du clone de travail contient les objets `ee/` d'origine |
 | R3 | 22/10/2026 | 12 | Images amd64 construites par la CI (workflow fourni), non vérifiées localement | Construire en amd64 sur pc6 exigerait d'installer binfmt/QEMU, un réglage système |
 | R4 | 22/10/2026 | 4 | Liens de documentation : `docsUrl()` ; à défaut de `NEXT_PUBLIC_DOCUMENTATION_URL`, renvoi vers le guide du dépôt | Nexora n'a pas encore de site de documentation |
+| R5 | 22/10/2026 | 15 | Modèle de test servi par un conteneur `nexora-dev-ollama` (`ollama/ollama:0.12.6`, modèles de `~/.ollama` montés en lecture seule, écoute sur 172.17.0.1:18141, CPU) | Après le redémarrage de pc6 (14 h 31), l'Ollama préinstallé et vLLM ne tournent plus et le binaire d'Ollama est absent ; aucun réglage système n'est touché |
+| R6 | 22/10/2026 | 15 | Dès que le SSO est configuré, l'inscription par e-mail et mot de passe est fermée ; l'OIDC n'est pas un fournisseur de confiance | Empêche la pré-inscription d'une adresse de salarié avant sa première connexion SSO (prise de compte) |
 
 ## Journal
 
@@ -224,3 +226,13 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
     - (7) consommation de toute l'instance visible par tous ;
     - barre oblique finale de l'émetteur OIDC ;
     - modèle par défaut tant que la liste n'est pas chargée.
+- 22/10/2026 — **Tâche 15, suite de la revue** (commits `6962fb8e`, `3ef3989d`).
+  - Audits : le sous-agent a remis les 60 audits au vert. `check:test-types` signalait 2 régressions dans nos tests (route `organizations` appelée sans contexte, traducteur next-intl mal typé) : corrigées, référence resserrée (2 931 erreurs historiques, aucune nouvelle).
+  - (2) et (3) OIDC : retiré de `trustedProviders` ; `disableSignUp`/`disableImplicitSignUp` suivent `DISABLE_REGISTRATION` ; l'émetteur est conservé tel quel (barre oblique finale comprise), seule l'URL de découverte la retire. Inscription par e-mail fermée quand le SSO est configuré (`isNexoraOidcEnabled` dans `env-flags`, calculé sans import pour respecter la frontière de `next.config.ts`).
+  - (4) Organisation créée sans facturation : `attachOwnedWorkspacesToOrganization` (archives comprises, collaborateurs d'une autre organisation gardés en externes).
+  - (7) `/api/nexora/usage` : 403 hors propriétaires et administrateurs d'organisation ; l'écran l'explique et précise que les chiffres couvrent toute l'instance.
+  - (1) Guide : « Qui peut créer un compte » (installation) et sécurité du SSO.
+  - Bloc « Nexora Chat » masqué de la barre d'outils.
+  - Modèle par défaut : déjà prêt seulement après le chargement de la liste noire (`use-operation-access.ts`), rien à faire.
+  - Tests écrits avant le code pour chaque correctif.
+  - Vérification complète : tsc 0 ; vitest 3 339 fichiers, 37 861 tests verts ; 60 audits ; `check:test-types` ; check-no-ee, check-brand, check-licenses, check-i18n : OK.

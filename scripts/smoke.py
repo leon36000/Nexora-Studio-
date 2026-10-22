@@ -129,12 +129,15 @@ def main() -> int:
         return run
 
     def usage():
+        # Instance-wide figures: reserved to organization owners and admins (the audit step founded one).
         status, body = s.call("GET", "/api/nexora/usage?days=7")
         require(status == 200, f"usage returned HTTP {status}")
         require(body["totals"]["requests"] > 0, "no request metered by Nexora API")
         return f"{body['totals']['requests']} requêtes, {body['totals']['totalTokens']} jetons"
 
     def audit():
+        status, _ = s.call("GET", "/api/nexora/usage?days=7")
+        require(status == 403, f"usage visible outside an organization (HTTP {status})")
         status, body = s.call("POST", "/api/organizations", {"name": "PME Fumée", "slug": f"pme-fumee-{secrets.token_hex(3)}"}, timeout=180)
         require(status == 200 and body.get("organizationId"), f"organization creation returned HTTP {status}")
         _, logs = s.call("GET", f"/api/audit-logs?organizationId={body['organizationId']}&limit=10")
@@ -148,8 +151,8 @@ def main() -> int:
     s.check("Nexora Connect et ses outils MCP", connect_tools)
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
-    s.check("Consommation mesurée par Nexora API", usage)
     s.check("Journal d'audit", audit)
+    s.check("Consommation mesurée par Nexora API", usage)
 
     failed = [r for r in s.results if r["status"] != "pass"]
     print(f"\n{len(s.results) - len(failed)}/{len(s.results)} contrôles réussis")
