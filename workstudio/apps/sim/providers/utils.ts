@@ -5,7 +5,11 @@ import type OpenAI from 'openai'
 import type { BillingAttributionSnapshot } from '@/lib/billing/core/attribution'
 import { formatCreditCost } from '@/lib/billing/credits/conversion'
 import { env } from '@/lib/core/config/env'
-import { getBlacklistedProvidersFromEnv, isHosted } from '@/lib/core/config/env-flags'
+import {
+  getBlacklistedProvidersFromEnv,
+  isHosted,
+  isNexoraOnlyModels,
+} from '@/lib/core/config/env-flags'
 import {
   normalizeRecord,
   normalizeStringRecord,
@@ -41,6 +45,7 @@ import {
   PROVIDER_DEFINITIONS,
   updateOllamaModels as updateOllamaModelsInDefinitions,
 } from '@/providers/models'
+import { effectiveBlacklistedProviders } from '@/providers/nexora'
 import {
   getModelPricing as getRegisteredModelPricing,
   resolveModelTokenPricing,
@@ -284,8 +289,17 @@ export function getAllProviderIds(): ProviderId[] {
   return Object.keys(providers) as ProviderId[]
 }
 
+/** Providers hidden on this deployment: `BLACKLISTED_PROVIDERS`, widened by `NEXORA_ONLY_MODELS`. */
+export function getEffectiveBlacklistedProviders(): string[] {
+  return effectiveBlacklistedProviders(
+    getAllProviderIds(),
+    getBlacklistedProvidersFromEnv(),
+    isNexoraOnlyModels
+  )
+}
+
 export function isProviderBlacklisted(providerId: string): boolean {
-  return getBlacklistedProvidersFromEnv().includes(providerId.toLowerCase())
+  return getEffectiveBlacklistedProviders().includes(providerId.toLowerCase())
 }
 
 /**

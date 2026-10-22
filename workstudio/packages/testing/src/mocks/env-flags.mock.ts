@@ -13,6 +13,7 @@ interface EnvFlagsMockState {
   isTest: boolean
   isHosted: boolean
   isChatEnabled: boolean
+  isNexoraOnlyModels: boolean
   isStatusNoticePreviewEnabled: boolean
   isCopilotToolPermissionsEnabled: boolean
   isMothershipBenchmarkEnabled: boolean
@@ -67,6 +68,7 @@ const defaultEnvFlagsState: EnvFlagsMockState = {
   isTest: true,
   isHosted: false,
   isChatEnabled: true,
+  isNexoraOnlyModels: false,
   isStatusNoticePreviewEnabled: false,
   isCopilotToolPermissionsEnabled: false,
   isMothershipBenchmarkEnabled: false,

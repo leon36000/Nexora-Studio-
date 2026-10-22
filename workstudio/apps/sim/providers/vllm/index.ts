@@ -58,8 +58,8 @@ const VLLM_VERSION = '1.0.0'
 
 export const vllmProvider: ProviderConfig = {
   id: 'vllm',
-  name: 'vLLM',
-  description: 'Self-hosted vLLM with OpenAI-compatible API',
+  name: 'Nexora',
+  description: 'Models served by Nexora API (OpenAI-compatible)',
   version: VLLM_VERSION,
   models: getProviderModels('vllm'),
   defaultModel: getProviderDefaultModel('vllm'),

@@ -23,6 +23,7 @@ import {
   LitellmIcon,
   MetaIcon,
   MistralIcon,
+  NexoraIcon,
   NvidiaIcon,
   OllamaIcon,
   OpenAIIcon,
@@ -31,7 +32,6 @@ import {
   TogetherIcon,
   TypeSafeIcon,
   VertexIcon,
-  VllmIcon,
   xAIIcon,
   ZaiIcon,
 } from '@/components/icons'
@@ -509,9 +509,9 @@ export const PROVIDER_DEFINITIONS: Record<string, ProviderDefinition> = {
   vllm: {
     id: 'vllm',
     fileAttachment: { maxBytes: 25 * 1024 * 1024, strategy: 'remote-url' },
-    name: 'vLLM',
-    icon: VllmIcon,
-    description: 'Self-hosted vLLM with an OpenAI-compatible API',
+    name: 'Nexora',
+    icon: NexoraIcon,
+    description: 'Models served by Nexora API (OpenAI-compatible)',
     defaultModel: 'vllm/generic',
     modelPatterns: [/^vllm\//],
     capabilities: {

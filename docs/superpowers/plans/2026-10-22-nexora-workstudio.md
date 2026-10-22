@@ -178,12 +178,12 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 **Fichiers** : `apps/sim/providers/vllm/**` (libellé et icône), `providers/models.ts` (métadonnées d'affichage), `blocks/blocks/agent.ts` (modèle par défaut), `lib/core/config/env.ts` (`NEXORA_ONLY_MODELS`), et la liste des fournisseurs affichés.
 
-- [ ] Test d'abord :
+- [x] Test d'abord :
   - avec `NEXORA_ONLY_MODELS=true`, la liste des fournisseurs proposés se limite à `vllm`, affiché « Nexora » ;
   - le modèle par défaut du bloc Agent est le premier modèle `vllm/` disponible ;
   - sans la variable, le comportement d'origine est conservé.
-- [ ] Libellé « Nexora » et icône Nexora pour le fournisseur `vllm`. L'identifiant interne `vllm` est conservé, pour la compatibilité des workflows.
-- [ ] Réutiliser le mécanisme existant de liste noire ou de filtrage des fournisseurs s'il existe (chercher `BLACKLISTED_PROVIDERS` ou un équivalent), plutôt que d'en créer un.
+- [x] Libellé « Nexora » et icône Nexora pour le fournisseur `vllm`. L'identifiant interne `vllm` est conservé, pour la compatibilité des workflows.
+- [x] Réutiliser le mécanisme existant de liste noire ou de filtrage des fournisseurs s'il existe (chercher `BLACKLISTED_PROVIDERS` ou un équivalent), plutôt que d'en créer un.
 
 **Vérification** : tests verts ; dans le navigateur, le bloc Agent propose « Nexora › nexora-qwen » par défaut.
 

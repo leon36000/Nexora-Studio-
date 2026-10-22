@@ -17,6 +17,8 @@ import {
 import { useBlacklistedProviders } from '@/hooks/queries/allowed-providers'
 import { usePermissionConfig } from '@/hooks/use-permission-config'
 import { PROVIDER_DEFINITIONS } from '@/providers/models'
+import { NEXORA_MODEL_PROVIDER, pickNexoraDefaultModel } from '@/providers/nexora'
+import { useProvidersStore } from '@/stores/providers'
 
 export interface OperationAccess {
   agentDefaultModel: string | null
@@ -90,6 +92,7 @@ export function useOperationAccess(): OperationAccess {
     refetchPermissionConfig,
   } = usePermissionConfig()
   const blacklistedProviders = useBlacklistedProviders()
+  const nexoraModels = useProvidersStore((state) => state.providers.vllm.models)
   const refetchModelSettings = useCallback(
     async (options?: RefetchOptions) => {
       await Promise.all([refetchPermissionConfig(options), blacklistedProviders.refetch(options)])
@@ -98,23 +101,28 @@ export function useOperationAccess(): OperationAccess {
   )
 
   return useMemo(() => {
+    /** Group default first; when only Nexora API is offered, its first model (Nexora edition). */
+    const resolveDefaultAgentModel = (availableProviderIds: string[]) =>
+      resolveAgentDefaultModel(config, { allowAuto: hosted, availableProviderIds }) ??
+      (availableProviderIds.length === 1 && availableProviderIds[0] === NEXORA_MODEL_PROVIDER
+        ? pickNexoraDefaultModel(nexoraModels)
+        : null)
     const isReady = !isLoading
     const isAgentDefaultReady =
       isReady &&
       isPermissionReady &&
       !isPermissionFetching &&
-      (!config.defaultAgentModel || blacklistedProviders.isSuccess)
+      blacklistedProviders.isSuccess
     return {
       isAgentDefaultReady,
       refetchModelSettings,
       agentDefaultModel:
         isAgentDefaultReady && blacklistedProviders.isSuccess
-          ? resolveAgentDefaultModel(config, {
-              allowAuto: hosted,
-              availableProviderIds: Object.keys(PROVIDER_DEFINITIONS).filter(
+          ? resolveDefaultAgentModel(
+              Object.keys(PROVIDER_DEFINITIONS).filter(
                 (provider) => !blacklistedProviders.data.blacklistedProviders.includes(provider)
-              ),
-            })
+              )
+            )
           : null,
       isPermissionLoading: isLoading,
       getDeniedOperations: (block, operationIds) =>
@@ -146,5 +154,6 @@ export function useOperationAccess(): OperationAccess {
     hosted,
     blacklistedProviders.isSuccess,
     blacklistedProviders.data,
+    nexoraModels,
   ])
 }

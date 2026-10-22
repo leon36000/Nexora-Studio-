@@ -694,6 +694,9 @@ export function getPreviewBlocksFromEnv(): string[] {
  * Returns the list of blacklisted provider IDs from the environment variable.
  * If not set or empty, returns an empty array (meaning no providers are blacklisted).
  */
+/** Nexora edition: only the models served by Nexora API are offered. */
+export const isNexoraOnlyModels = isTruthy(env.NEXORA_ONLY_MODELS)
+
 export function getBlacklistedProvidersFromEnv(): string[] {
   if (!env.BLACKLISTED_PROVIDERS) return []
   return env.BLACKLISTED_PROVIDERS.split(',')

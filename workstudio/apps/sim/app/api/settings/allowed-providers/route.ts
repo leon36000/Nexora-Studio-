@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { getBlacklistedProvidersFromEnv } from '@/lib/core/config/env-flags'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { getEffectiveBlacklistedProviders } from '@/providers/utils'
 
 export const GET = withRouteHandler(async () => {
   const session = await getSession()
@@ -10,6 +10,6 @@ export const GET = withRouteHandler(async () => {
   }
 
   return NextResponse.json({
-    blacklistedProviders: getBlacklistedProvidersFromEnv(),
+    blacklistedProviders: getEffectiveBlacklistedProviders(),
   })
 })

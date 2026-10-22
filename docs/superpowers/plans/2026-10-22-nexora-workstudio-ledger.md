@@ -90,3 +90,12 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - `deploy/bootstrap/bootstrap.py` : clé Nexora API pour WorkStudio, gardée tant qu'elle fonctionne, fichier 600 attribué à l'uid 1001 de WorkStudio ; 4 tests avec un faux serveur ;
   - `deploy/compose.yml` (9 services, ports sur `NEXORA_BIND_ADDRESS`) : `docker compose config` valide.
   - R14 : WorkStudio charge `VLLM_API_KEY` depuis le volume `bootstrap` à son démarrage (`sh -c '. /bootstrap/nexora-api.env && exec bun apps/sim/bootstrap.js'`).
+- 22/10/2026 — **Tâche 7 terminée.**
+  - `providers/nexora.ts` : liste noire effective et modèle Nexora par défaut ; 7 tests écrits avant le code.
+  - `NEXORA_ONLY_MODELS` (env + `isNexoraOnlyModels`) masque tous les fournisseurs sauf `vllm`, à la fois dans `isProviderBlacklisted` (serveur) et dans `/api/settings/allowed-providers` (sélecteur client).
+  - Le modèle par défaut des nouveaux blocs Agent est le modèle du groupe de permissions s'il existe, sinon le premier modèle Nexora API quand Nexora est le seul fournisseur. Le hook attend la liste noire avant de se déclarer prêt.
+  - Le fournisseur `vllm` s'affiche « Nexora », avec l'icône Nexora ; l'identifiant interne est conservé pour la compatibilité.
+  - Vérification HTTP sur l'environnement de développement branché sur la Nexora API du test : 27 fournisseurs masqués, `vllm` visible, modèles `["vllm/nexora-qwen"]`.
+  - Tests `providers`, hooks et permissions : 197 fichiers et 2 319 tests verts. `tsc` : aucune erreur dans ces fichiers (les 7 erreurs restantes sont dans les tables en cours de traduction).
+  - `scripts/dev/up.sh` ajoute à `.env.local` le fichier local ignoré `scripts/dev/.extra-env`.
+  - Reste à vérifier visuellement après la tâche 6 : le choix par défaut « Nexora › nexora-qwen » dans l'éditeur.
