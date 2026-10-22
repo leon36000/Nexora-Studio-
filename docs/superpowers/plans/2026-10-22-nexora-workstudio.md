@@ -257,18 +257,18 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 **Fichiers** : `deploy/compose.yml`, `deploy/.env.example`, `deploy/nexora-api/config.yml.tmpl`, `scripts/init-env.sh`, Dockerfiles de WorkStudio (reprise de `workstudio/docker/*.Dockerfile`), `.github/workflows/images.yml` (buildx amd64+arm64, **non exécuté localement**).
 
-- [ ] `init-env.sh` :
+- [x] `init-env.sh` :
   - génère `deploy/.env` (chmod 600) avec des secrets aléatoires : `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, `INTERNAL_API_SECRET`, mots de passe Postgres, clé maîtresse de Nexora API, clé de chiffrement de Nexora Connect ;
   - ne réécrit jamais un `.env` existant ;
   - test : deux exécutions de suite ne changent pas le fichier.
-- [ ] Compose :
+- [x] Compose :
   - services `workstudio`, `workstudio-realtime`, `workstudio-migrations`, `postgres` (pgvector), `redis`, `nexora-api` (avec son propre Postgres ou une base dédiée, et son Redis), `nexora-connect` ;
   - réseau unique, noms de services uniques, `healthcheck`s, `depends_on: condition` ;
   - ports `127.0.0.1:3000` (WorkStudio), `127.0.0.1:8000` (API) et `127.0.0.1:8400` (Connect) ;
   - fournisseur de modèles amont configurable (`NEXORA_UPSTREAM_URL`, `NEXORA_UPSTREAM_MODEL`, `NEXORA_UPSTREAM_KEY`) : par défaut l'Ollama de l'hôte via `host.docker.internal`.
-- [ ] Après la création de la clé de Nexora API, `VLLM_API_KEY` de WorkStudio doit être renseignée automatiquement par un service `nexora-bootstrap` éphémère ou un script `scripts/bootstrap.sh`. Consigner le choix.
-- [ ] Construire les images arm64 en local, en surveillant le disque.
-- [ ] Arrêter les conteneurs `spike-*` du test **seulement si** les ports entrent en conflit ou si le disque manque. Ce sont des conteneurs de ce travail ; le relais TCP 18141 est conservé tant qu'il est utile.
+- [x] Après la création de la clé de Nexora API, `VLLM_API_KEY` de WorkStudio doit être renseignée automatiquement par un service `nexora-bootstrap` éphémère ou un script `scripts/bootstrap.sh`. Consigner le choix.
+- [x] Construire les images arm64 en local, en surveillant le disque.
+- [x] Arrêter les conteneurs `spike-*` du test **seulement si** les ports entrent en conflit ou si le disque manque. Ce sont des conteneurs de ce travail ; le relais TCP 18141 est conservé tant qu'il est utile.
 
 **Vérification** : `docker compose -f deploy/compose.yml up -d` ; tous les services sont `healthy` ; WorkStudio répond sur 127.0.0.1:3000.
 
@@ -276,14 +276,14 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 **Fichier** : `scripts/smoke.sh` (bash + curl + jq), et éventuellement `scripts/smoke/*.ts` si des appels API complexes sont nécessaires.
 
-- [ ] Vérifications :
+- [x] Vérifications :
   1. inscription d'un compte de test par l'API Better Auth (identifiants générés, non affichés) ;
   2. `GET /` renvoie `lang="fr"` et un texte français connu ;
   3. création d'un workflow Agent (import du modèle « Devis »), déploiement, exécution par clé d'API : réponse non vide, servie par le modèle Nexora ;
   4. l'API MCP du workspace liste les outils de Nexora Connect ;
   5. `GET /v1/me/usage` sur Nexora API, avec un nombre de jetons > 0 après l'exécution ;
   6. les 5 modèles PME s'exécutent : sortie non vide pour chacun.
-- [ ] Sortie avec 0 si tout passe, tableau récapitulatif.
+- [x] Sortie avec 0 si tout passe, tableau récapitulatif.
 
 **Vérification** : `scripts/smoke.sh` sort avec 0 ; sortie consignée dans le ledger.
 

@@ -174,3 +174,13 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
     - marque remplacée dans les docs techniques ; `NOTICE.md` et `UPSTREAM.md` restent intacts.
   - `deploy/compose.yml` transmet `NEXORA_DEFAULT_MODEL` (à partir de `NEXORA_MODEL_NAME`) aux modèles PME.
   - Disque : la construction Next.js est descendue à 22 Go libres (98 %). Mes clones de recherche dans le scratchpad sont supprimés (≈ 17 Go), ce qui remonte à 36 Go ; rien d'autre n'est touché.
+- 22/10/2026 — **Tâches 12 et 13 terminées (déploiement réel sur pc6, arm64).**
+  - **Défaut corrigé** : le `.dockerignore` de WorkStudio n'excluait que les `.env*` de la racine. Le `.env.local` de développement entrait dans le contexte de build, et Next.js figeait `NEXT_PUBLIC_NEXORA_OIDC_NAME` (« Keycloak PME ») dans 6 fichiers de l'image. Il exclut maintenant `**/.env*`. Image reconstruite et vérifiée : 0 valeur figée, et aucune des valeurs secrètes de développement dans l'image (recherche par valeur, sans affichage).
+  - **Sécurité** : le relais Ollama du test écoutait sur `0.0.0.0:18141`, donc sur le réseau local. Il est redémarré sur le pont Docker `172.17.0.1` seulement, toujours joignable par `host.docker.internal`.
+  - **Disque** (tombé à 8 Go libres, 100 %) :
+    - piles du test « Sim officiel » et « LibreChat » supprimées (conteneurs, volumes, images) ;
+    - mes 189 entrées de cache de construction supprimées une par une par identifiant, sans toucher au cache ancien des autres usages ;
+    - résultat : 44 Go libres.
+  - `docker compose -f deploy/compose.yml --env-file deploy/.env up -d` (ports 3200/3202/8000/8400 sur 127.0.0.1, l'instance du test occupant 3000/3002) : 7 services sains, `nexora-bootstrap` et `workstudio-migrations` terminés avec le code 0 (« WorkStudio key ready »). Démarrage en 18 s une fois les images construites.
+  - **Fumée sur le déploiement : 11/11** en 29 s (rapport `docs/verification/smoke-deploy-2026-10-22.json`) : inscription, interface `lang="fr"` sans marque tierce, 5 modèles PME, Nexora Connect et 5 outils, 5 exécutions réelles par Nexora API (Ollama qwen2.5:7b via le relais), consommation (6 requêtes, 2 124 jetons), journal d'audit.
+  - Images arm64 locales : `nexora/workstudio` 4,87 Go, `workstudio-realtime` 1,34 Go, `workstudio-migrations` 1,12 Go, `connect` 603 Mo, `api` 544 Mo. amd64 : workflow de CI à écrire (R3).

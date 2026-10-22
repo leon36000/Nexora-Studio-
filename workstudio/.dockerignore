@@ -15,9 +15,9 @@ docs/
 *.swp
 *.swo
 
-# Environment and config
-.env*
-!.env.example
+# Environment and config (every folder: a developer's .env.local must never reach an image)
+**/.env*
+!**/.env.example
 .prettierrc
 .prettierignore
 .eslintrc*
