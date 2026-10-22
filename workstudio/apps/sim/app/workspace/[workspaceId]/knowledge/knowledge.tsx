@@ -7,6 +7,7 @@ import { Database, FolderPlus, Pencil, Plus, Trash } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { MAX_KNOWLEDGE_BATCH_ITEMS } from '@/lib/knowledge/constants'
 import type { KnowledgeBaseData } from '@/lib/knowledge/types'
@@ -65,7 +66,7 @@ import {
   EMPTY_CELL_PLACEHOLDER,
   Resource,
 } from '@/app/workspace/[workspaceId]/components/resource/resource'
-import { selectionLabel } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
+import { useSelectionLabels } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 import { useResourceRowSelection } from '@/app/workspace/[workspaceId]/components/resource/use-resource-row-selection'
 import { BaseTagsModal } from '@/app/workspace/[workspaceId]/knowledge/[id]/components/base-tags-modal'
 import {
@@ -116,38 +117,28 @@ type KnowledgeResourceItem =
   | { kind: 'base'; base: KnowledgeBaseData }
   | { kind: 'folder'; folder: WorkflowFolder }
 
-const COLUMNS: ResourceColumn[] = [
-  { id: 'name', header: 'Name' },
-  { id: 'documents', header: 'Documents', widthMultiplier: 0.6 },
-  { id: 'tokens', header: 'Tokens', widthMultiplier: 0.6 },
-  { id: 'connectors', header: 'Connectors', widthMultiplier: 0.7 },
-  { id: 'created', header: 'Created' },
-  { id: 'owner', header: 'Owner' },
-  { id: 'updated', header: 'Last Updated' },
+/** Column ids with their width; headers are translated at render (`knowledge.list.columns`). */
+const COLUMN_DEFS: Array<Omit<ResourceColumn, 'header'>> = [
+  { id: 'name' },
+  { id: 'documents', widthMultiplier: 0.6 },
+  { id: 'tokens', widthMultiplier: 0.6 },
+  { id: 'connectors', widthMultiplier: 0.7 },
+  { id: 'created' },
+  { id: 'owner' },
+  { id: 'updated' },
 ]
-
-const SEARCH_COLUMNS: ResourceColumn[] = [...COLUMNS, FOLDER_LOCATION_COLUMN]
 
 const KNOWLEDGE_BASE_ICON = <Database className='size-[14px]' />
 
-const CONNECTOR_FILTER_OPTIONS: ChipDropdownOption[] = [
-  { value: 'all', label: 'All' },
-  { value: 'connected', label: 'With connectors' },
-  { value: 'unconnected', label: 'Without connectors' },
-]
+const CONNECTOR_FILTER_VALUES = ['all', 'connected', 'unconnected'] as const
 
-const CONTENT_FILTER_OPTIONS: ChipDropdownOption[] = [
-  { value: 'all', label: 'All' },
-  { value: 'has-docs', label: 'Has documents' },
-  { value: 'empty', label: 'Empty' },
-]
+const CONTENT_FILTER_VALUES = ['all', 'has-docs', 'empty'] as const
 
 /** This list's private drag MIME, so a drag started on another list is never mistaken for one
  *  of these rows. */
 const KNOWLEDGE_ROW_DRAG_MIME = 'application/x-sim-workspace-knowledge-rows'
 
 const FOLDER_RESOURCE_TYPE = 'knowledge_base' as const
-const ROOT_BREADCRUMB_LABEL = FOLDERED_RESOURCE_HEADERS[FOLDER_RESOURCE_TYPE].rootLabel
 
 function connectorCell(connectorTypes?: string[]): ResourceCell {
   if (!connectorTypes || connectorTypes.length === 0) {
@@ -206,6 +197,25 @@ export function Knowledge() {
 }
 
 function KnowledgeContent() {
+  const t = useTranslations('knowledge.list')
+  const rootLabel = t('rootLabel')
+  const { selectionLabel } = useSelectionLabels()
+  const columns: ResourceColumn[] = useMemo(
+    () => COLUMN_DEFS.map((column) => ({ ...column, header: t(`columns.${column.id}`) })),
+    [t]
+  )
+  const searchColumns: ResourceColumn[] = useMemo(
+    () => [...columns, { ...FOLDER_LOCATION_COLUMN, header: t('columns.location') }],
+    [columns, t]
+  )
+  const connectorFilterOptions: ChipDropdownOption[] = useMemo(
+    () => CONNECTOR_FILTER_VALUES.map((value) => ({ value, label: t(`connectorFilter.${value}`) })),
+    [t]
+  )
+  const contentFilterOptions: ChipDropdownOption[] = useMemo(
+    () => CONTENT_FILTER_VALUES.map((value) => ({ value, label: t(`contentFilter.${value}`) })),
+    [t]
+  )
   const params = useParams()
   const router = useRouter()
   const workspaceId = params.workspaceId as string
@@ -455,7 +465,7 @@ function KnowledgeContent() {
             updates: { name },
           })
         } catch (renameError) {
-          toast.error(getErrorMessage(renameError, 'Failed to rename folder'))
+          toast.error(getErrorMessage(renameError, t('renameFolderFailed')))
           throw renameError
         }
       }
@@ -480,7 +490,7 @@ function KnowledgeContent() {
           updates: { name },
         })
       } catch (renameError) {
-        toast.error(getErrorMessage(renameError, 'Failed to rename folder'))
+        toast.error(getErrorMessage(renameError, t('renameFolderFailed')))
         throw renameError
       }
     },
@@ -685,11 +695,7 @@ function KnowledgeContent() {
               /** A folder's location is its parent's path, not its own. */
               location: isSearching
                 ? {
-                    label: folderLocationLabel(
-                      item.folder.parentId,
-                      folderById,
-                      ROOT_BREADCRUMB_LABEL
-                    ),
+                    label: folderLocationLabel(item.folder.parentId, folderById, rootLabel),
                   }
                 : EMPTY_LOCATION_CELL,
             },
@@ -716,12 +722,12 @@ function KnowledgeContent() {
             owner: ownerCell(base.userId, membersById),
             updated: timeCell(base.updatedAt),
             location: isSearching
-              ? { label: folderLocationLabel(base.folderId, folderById, ROOT_BREADCRUMB_LABEL) }
+              ? { label: folderLocationLabel(base.folderId, folderById, rootLabel) }
               : EMPTY_LOCATION_CELL,
           },
         }
       }),
-    [sortedEntries, membersById, folderById, isSearching]
+    [sortedEntries, membersById, folderById, isSearching, rootLabel]
   )
 
   /**
@@ -931,7 +937,7 @@ function KnowledgeContent() {
       listRenameRef.current.startRename(folderRowId(folder.id), folder.name)
     } catch (createError) {
       logger.error('Failed to create folder', createError)
-      toast.error(getErrorMessage(createError, 'Failed to create folder'))
+      toast.error(getErrorMessage(createError, t('createFolderFailed')))
     }
   }, [workspaceId])
 
@@ -984,7 +990,7 @@ function KnowledgeContent() {
       }
     } catch (deleteError) {
       logger.error('Failed to delete folder', deleteError)
-      toast.error(getErrorMessage(deleteError, 'Failed to delete folder'))
+      toast.error(getErrorMessage(deleteError, t('deleteFolderFailed')))
     }
   }, [workspaceId, openFolder, canDeleteFolder])
 
@@ -1014,18 +1020,18 @@ function KnowledgeContent() {
       activeFolder
         ? buildMoveOptionsExcludingSubtrees({
             folders,
-            rootLabel: ROOT_BREADCRUMB_LABEL,
+            rootLabel,
             excludeFolderIds: [activeFolder.id],
             descendantsByFolderId,
           })
         : [],
-    [folders, activeFolder, descendantsByFolderId]
+    [folders, activeFolder, descendantsByFolderId, rootLabel]
   )
 
   /** Move targets for a knowledge base: every folder, since a base has no subtree. */
   const knowledgeBaseMoveOptions: MoveOptionNode[] = useMemo(
-    () => buildMoveOptions({ folders, rootLabel: ROOT_BREADCRUMB_LABEL }),
-    [folders]
+    () => buildMoveOptions({ folders, rootLabel }),
+    [folders, rootLabel]
   )
 
   /** Shared by the "Move to" submenu and by dropping a folder row onto another folder. */
@@ -1040,7 +1046,7 @@ function KnowledgeContent() {
         })
       } catch (moveError) {
         logger.error('Failed to move folder', moveError)
-        toast.error(getErrorMessage(moveError, 'Failed to move folder'))
+        toast.error(getErrorMessage(moveError, t('moveFolderFailed')))
       }
     },
     // mutation objects are unstable; mutateAsync is stable in v5
@@ -1054,7 +1060,7 @@ function KnowledgeContent() {
         await updateKnowledgeBaseMutation({ knowledgeBaseId, updates: { folderId } })
       } catch (moveError) {
         logger.error('Failed to move knowledge base', moveError)
-        toast.error(getErrorMessage(moveError, 'Failed to move knowledge base'))
+        toast.error(getErrorMessage(moveError, t('moveBaseFailed')))
       }
     },
     [updateKnowledgeBaseMutation]
@@ -1096,7 +1102,7 @@ function KnowledgeContent() {
     (rows: { knowledgeBaseIds: string[]; folderIds: string[] }, targetFolderId: string | null) => {
       if (rows.knowledgeBaseIds.length === 0 && rows.folderIds.length === 0) return
       if (rows.knowledgeBaseIds.length + rows.folderIds.length > MAX_KNOWLEDGE_BATCH_ITEMS) {
-        toast.error(`Select ${MAX_KNOWLEDGE_BATCH_ITEMS} or fewer items to move at once`)
+        toast.error(t('moveBatchCap', { max: MAX_KNOWLEDGE_BATCH_ITEMS }))
         return
       }
       bulkMoveKnowledgeBases.mutate(
@@ -1135,7 +1141,7 @@ function KnowledgeContent() {
     if (!canDeleteSelection) return
     if (selectedKnowledgeBaseIds.length === 0 && selectedFolderIds.length === 0) return
     if (exceedsBatchCap) {
-      toast.error(`Select ${MAX_KNOWLEDGE_BATCH_ITEMS} or fewer items to delete at once`)
+      toast.error(t('deleteBatchCap', { max: MAX_KNOWLEDGE_BATCH_ITEMS }))
       return
     }
     setIsBulkDeleteModalOpen(true)
@@ -1166,11 +1172,11 @@ function KnowledgeContent() {
     () =>
       buildMoveOptionsExcludingSubtrees({
         folders,
-        rootLabel: ROOT_BREADCRUMB_LABEL,
+        rootLabel,
         excludeFolderIds: selectedFolderIds,
         descendantsByFolderId,
       }),
-    [selectedFolderIds, folders, descendantsByFolderId]
+    [selectedFolderIds, folders, descendantsByFolderId, rootLabel]
   )
 
   const activeMoveOptions = hasMultiSelection ? bulkMoveOptions : knowledgeBaseMoveOptions
@@ -1213,8 +1219,8 @@ function KnowledgeContent() {
     getRowLabel: (rowId) => {
       const parsed = parseFolderedRowId(rowId)
       return parsed.kind === 'folder'
-        ? (folderByIdRef.current.get(parsed.id)?.name ?? 'Folder')
-        : (knowledgeBaseByIdRef.current.get(parsed.id)?.name ?? 'Knowledge base')
+        ? (folderByIdRef.current.get(parsed.id)?.name ?? t('folderFallback'))
+        : (knowledgeBaseByIdRef.current.get(parsed.id)?.name ?? t('baseFallback'))
     },
     onMoveRows: ({ folderIds, resourceIds }, targetFolderId) =>
       moveRowsTo({ folderIds, knowledgeBaseIds: resourceIds }, targetFolderId),
@@ -1227,26 +1233,26 @@ function KnowledgeContent() {
   const headerActions: ResourceAction[] = useMemo(
     () => [
       {
-        text: 'New folder',
+        text: t('newFolder'),
         icon: FolderPlus,
         onSelect: handleCreateFolder,
         disabled: createFolder.isPending || !canEdit,
       },
       {
-        text: 'New base',
+        text: t('newBase'),
         icon: Plus,
         onSelect: handleOpenCreateModal,
         disabled: !canEdit,
         variant: 'primary',
       },
     ],
-    [handleOpenCreateModal, handleCreateFolder, createFolder.isPending, canEdit]
+    [handleOpenCreateModal, handleCreateFolder, createFolder.isPending, canEdit, t]
   )
 
   const listBreadcrumbs: BreadcrumbItem[] = useMemo(
     () =>
       folderBreadcrumbItems({
-        rootLabel: ROOT_BREADCRUMB_LABEL,
+        rootLabel,
         rootIcon: FOLDERED_RESOURCE_HEADERS[FOLDER_RESOURCE_TYPE].rootIcon,
         breadcrumbs,
         onNavigate: openFolder,
@@ -1265,7 +1271,7 @@ function KnowledgeContent() {
           canEdit && breadcrumbs.length > 0
             ? [
                 {
-                  label: 'Rename',
+                  label: t('rename'),
                   icon: Pencil,
                   onClick: () => {
                     const folder = breadcrumbs[breadcrumbs.length - 1]
@@ -1275,7 +1281,7 @@ function KnowledgeContent() {
                 ...(canDeleteFolder(breadcrumbs[breadcrumbs.length - 1].id)
                   ? [
                       {
-                        label: 'Delete',
+                        label: t('delete'),
                         icon: Trash,
                         onClick: () => setFolderPendingDelete(breadcrumbs[breadcrumbs.length - 1]),
                       },
@@ -1293,6 +1299,8 @@ function KnowledgeContent() {
       breadcrumbRename.editingId,
       breadcrumbRename.editValue,
       breadcrumbRename.isSaving,
+      rootLabel,
+      t,
     ]
   )
 
@@ -1301,27 +1309,19 @@ function KnowledgeContent() {
       value: urlSearchQuery,
       onChange: setSearchQuery,
       onClearAll: () => setSearchQuery(''),
-      placeholder: 'Search knowledge bases...',
+      placeholder: t('searchPlaceholder'),
     }),
-    [urlSearchQuery, setSearchQuery]
+    [urlSearchQuery, setSearchQuery, t]
   )
 
   const sortConfig: SortConfig = useMemo(
     () => ({
-      options: [
-        { id: 'name', label: 'Name' },
-        { id: 'documents', label: 'Documents' },
-        { id: 'tokens', label: 'Tokens' },
-        { id: 'connectors', label: 'Connectors' },
-        { id: 'created', label: 'Created' },
-        { id: 'owner', label: 'Owner' },
-        { id: 'updated', label: 'Last Updated' },
-      ],
+      options: COLUMN_DEFS.map(({ id }) => ({ id, label: t(`columns.${id}`) })),
       active: activeSort,
       onSort: setListSort,
       onClear: clearListSort,
     }),
-    [activeSort, setListSort, clearListSort]
+    [activeSort, setListSort, clearListSort, t]
   )
 
   const memberOptions: ChipDropdownOption[] = useMemo(
@@ -1339,19 +1339,19 @@ function KnowledgeContent() {
       <div className='flex w-[260px] flex-col gap-3 p-3'>
         <div className='flex flex-col gap-2'>
           <div className='flex h-5 items-center justify-between'>
-            <span className={FILTER_SECTION_LABEL_CLASS}>Connectors</span>
+            <span className={FILTER_SECTION_LABEL_CLASS}>{t('filters.connectors')}</span>
             {connectorFilter.length > 0 && (
               <Button
                 variant='ghost'
                 onClick={() => setConnectorFilter([])}
                 className='-mr-1 h-auto px-1 py-0.5 text-[var(--text-muted)] text-xs hover-hover:text-[var(--text-secondary)]'
               >
-                Clear
+                {t('filters.clear')}
               </Button>
             )}
           </div>
           <ChipDropdown
-            options={CONNECTOR_FILTER_OPTIONS}
+            options={connectorFilterOptions}
             value={connectorFilter[0] ?? 'all'}
             onChange={(value) => setConnectorFilter(value === 'all' ? [] : [value])}
             align='start'
@@ -1360,19 +1360,19 @@ function KnowledgeContent() {
         </div>
         <div className='flex flex-col gap-2'>
           <div className='flex h-5 items-center justify-between'>
-            <span className={FILTER_SECTION_LABEL_CLASS}>Content</span>
+            <span className={FILTER_SECTION_LABEL_CLASS}>{t('filters.content')}</span>
             {contentFilter.length > 0 && (
               <Button
                 variant='ghost'
                 onClick={() => setContentFilter([])}
                 className='-mr-1 h-auto px-1 py-0.5 text-[var(--text-muted)] text-xs hover-hover:text-[var(--text-secondary)]'
               >
-                Clear
+                {t('filters.clear')}
               </Button>
             )}
           </div>
           <ChipDropdown
-            options={CONTENT_FILTER_OPTIONS}
+            options={contentFilterOptions}
             value={contentFilter[0] ?? 'all'}
             onChange={(value) => setContentFilter(value === 'all' ? [] : [value])}
             align='start'
@@ -1382,14 +1382,14 @@ function KnowledgeContent() {
         {memberOptions.length > 0 && (
           <div className='flex flex-col gap-2'>
             <div className='flex h-5 items-center justify-between'>
-              <span className={FILTER_SECTION_LABEL_CLASS}>Owner</span>
+              <span className={FILTER_SECTION_LABEL_CLASS}>{t('filters.owner')}</span>
               {ownerFilter.length > 0 && (
                 <Button
                   variant='ghost'
                   onClick={() => setOwnerFilter([])}
                   className='-mr-1 h-auto px-1 py-0.5 text-[var(--text-muted)] text-xs hover-hover:text-[var(--text-secondary)]'
                 >
-                  Clear
+                  {t('filters.clear')}
                 </Button>
               )}
             </div>
@@ -1398,9 +1398,9 @@ function KnowledgeContent() {
               options={memberOptions}
               value={ownerFilter}
               onChange={setOwnerFilter}
-              allLabel='All'
+              allLabel={t('filters.all')}
               searchable
-              searchPlaceholder='Search members...'
+              searchPlaceholder={t('filters.searchMembers')}
               align='start'
               fullWidth
             />
@@ -1416,6 +1416,9 @@ function KnowledgeContent() {
       setConnectorFilter,
       setContentFilter,
       setOwnerFilter,
+      connectorFilterOptions,
+      contentFilterOptions,
+      t,
     ]
   )
 
@@ -1455,22 +1458,36 @@ function KnowledgeContent() {
     if (connectorFilter.length > 0) {
       const label =
         connectorFilter.length === 1
-          ? `Connectors: ${connectorFilter[0] === 'connected' ? 'With connectors' : 'Without connectors'}`
-          : `Connectors: ${connectorFilter.length} types`
+          ? t('filterTags.connectors', {
+              value: t(
+                connectorFilter[0] === 'connected'
+                  ? 'connectorFilter.connected'
+                  : 'connectorFilter.unconnected'
+              ),
+            })
+          : t('filterTags.connectorsCount', { count: connectorFilter.length })
       tags.push({ label, onRemove: () => setConnectorFilter([]) })
     }
     if (contentFilter.length > 0) {
       const label =
         contentFilter.length === 1
-          ? `Content: ${contentFilter[0] === 'has-docs' ? 'Has documents' : 'Empty'}`
-          : `Content: ${contentFilter.length} types`
+          ? t('filterTags.content', {
+              value: t(
+                contentFilter[0] === 'has-docs' ? 'contentFilter.has-docs' : 'contentFilter.empty'
+              ),
+            })
+          : t('filterTags.contentCount', { count: contentFilter.length })
       tags.push({ label, onRemove: () => setContentFilter([]) })
     }
     if (ownerFilter.length > 0) {
       const label =
         ownerFilter.length === 1
-          ? `Owner: ${members?.find((m) => m.userId === ownerFilter[0])?.name ?? '1 member'}`
-          : `Owner: ${ownerFilter.length} members`
+          ? t('filterTags.owner', {
+              value:
+                members?.find((m) => m.userId === ownerFilter[0])?.name ??
+                t('filterTags.oneMember'),
+            })
+          : t('filterTags.ownerCount', { count: ownerFilter.length })
       tags.push({ label, onRemove: () => setOwnerFilter([]) })
     }
     return tags
@@ -1482,6 +1499,7 @@ function KnowledgeContent() {
     setConnectorFilter,
     setContentFilter,
     setOwnerFilter,
+    t,
   ])
 
   const listState = resourceListState({
@@ -1507,7 +1525,7 @@ function KnowledgeContent() {
       <Resource onContextMenu={handleContentContextMenu}>
         <Resource.Header
           icon={FOLDERED_RESOURCE_HEADERS[FOLDER_RESOURCE_TYPE].rootIcon}
-          title={ROOT_BREADCRUMB_LABEL}
+          title={rootLabel}
           breadcrumbs={listBreadcrumbs}
           actions={headerActions}
           breadcrumbDrop={rowDragDropConfig.breadcrumb}
@@ -1519,7 +1537,7 @@ function KnowledgeContent() {
           filter={filterConfig}
         />
         <Resource.Table
-          columns={isSearching ? SEARCH_COLUMNS : COLUMNS}
+          columns={isSearching ? searchColumns : columns}
           rows={rows}
           emptyState={
             listState === 'empty' ? (
@@ -1596,9 +1614,7 @@ function KnowledgeContent() {
           canEdit={canEdit}
           canDelete={hasMultiSelection ? canDeleteSelection : canEdit}
           deleteDisabledReason={
-            searchIndexFolders.has(activeFolder.id)
-              ? 'Delete the search knowledge base first'
-              : undefined
+            searchIndexFolders.has(activeFolder.id) ? t('deleteSearchBaseFirst') : undefined
           }
           selectedCount={selectedRowIds.size}
         />
@@ -1609,38 +1625,38 @@ function KnowledgeContent() {
         onOpenChange={(open) => {
           if (!open) setFolderPendingDelete(null)
         }}
-        srTitle='Delete Folder'
-        title='Delete Folder'
+        srTitle={t('deleteFolder.title')}
+        title={t('deleteFolder.title')}
         text={[
-          'Are you sure you want to delete ',
-          { text: folderPendingDelete?.name ?? 'this folder', bold: true },
-          '? This also deletes the knowledge bases and folders inside it. You can restore them from Recently Deleted in Settings.',
+          t('confirmPrefix'),
+          { text: folderPendingDelete?.name ?? t('deleteFolder.thisFolder'), bold: true },
+          t('deleteFolder.suffix'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('delete'),
           onClick: handleConfirmFolderDelete,
           pending: deleteFolder.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleting'),
         }}
       />
 
       <ChipConfirmModal
         open={isBulkDeleteModalOpen}
         onOpenChange={setIsBulkDeleteModalOpen}
-        srTitle='Delete Selected'
-        title='Delete Selected'
+        srTitle={t('deleteSelected.title')}
+        title={t('deleteSelected.title')}
         text={[
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: bulkDeleteLabel, bold: true },
           selectedFolderIds.length > 0
-            ? '? This also deletes the knowledge bases and folders inside the selected folders. You can restore them from Recently Deleted in Settings.'
-            : '? You can restore them from Recently Deleted in Settings.',
+            ? t('deleteSelected.suffixWithFolders')
+            : t('deleteSelected.suffix'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('delete'),
           onClick: confirmBulkDelete,
           pending: bulkDeleteKnowledgeBases.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleting'),
         }}
       />
 

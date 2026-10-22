@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Chip, toast } from '@sim/emcn'
 import { Check, Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { captureEvent } from '@/lib/posthog/client'
 import { SkillTile } from '@/app/workspace/[workspaceId]/components/skill-tile'
@@ -30,6 +31,7 @@ interface SkillRowProps {
 }
 
 function SkillRow({ skill, added, pending, disabled, onAdd }: SkillRowProps) {
+  const t = useTranslations('integrations.skills')
   return (
     <SettingsResourceRow
       iconVariant='custom'
@@ -39,11 +41,11 @@ function SkillRow({ skill, added, pending, disabled, onAdd }: SkillRowProps) {
       trailing={
         added ? (
           <Chip leftIcon={Check} disabled>
-            Added
+            {t('added')}
           </Chip>
         ) : (
           <Chip variant='primary' leftIcon={Plus} onClick={onAdd} disabled={disabled}>
-            {pending ? 'Adding...' : 'Add'}
+            {pending ? t('adding') : t('add')}
           </Chip>
         )
       }
@@ -62,6 +64,7 @@ export function IntegrationSkillsSection({
   workspaceId,
   integrationType,
 }: IntegrationSkillsSectionProps) {
+  const t = useTranslations('integrations.skills')
   const posthog = usePostHog()
   const { data: existingSkills = [], isPending, isPlaceholderData } = useSkills(workspaceId)
   const createSkill = useCreateSkill()
@@ -90,9 +93,9 @@ export function IntegrationSkillsSection({
       // everyone with workspace access can already see and use it, so there is
       // nothing to request and retrying can never succeed.
       if (isSkillNameConflictError(error)) {
-        toast.error(`"${skill.name}" is already in this workspace`)
+        toast.error(t('alreadyInWorkspace', { name: skill.name }))
       } else {
-        toast.error(`Failed to add "${skill.name}" — please try again`)
+        toast.error(t('addFailed', { name: skill.name }))
       }
     } finally {
       inFlight.delete(skill.name)
@@ -105,7 +108,7 @@ export function IntegrationSkillsSection({
   }
 
   return (
-    <SettingsSection label='Skills'>
+    <SettingsSection label={t('title')}>
       <div className={RESOURCE_LIST_STACK}>
         {skills.map((skill, index) => (
           <SkillRow

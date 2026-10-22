@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from '@sim/emcn/icons'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SettingsPanel } from '@/app/workspace/[workspaceId]/settings/components/settings-panel'
 
 interface CreditUsageLoadingProps {
@@ -13,16 +14,17 @@ interface CreditUsageLoadingProps {
  */
 export function CreditUsageLoading({ backHref }: CreditUsageLoadingProps) {
   const router = useRouter()
+  const t = useTranslations('settings.creditUsage')
 
   return (
     <SettingsPanel
       back={{
-        text: 'Subscription',
+        text: t('back'),
         icon: ArrowLeft,
         onSelect: () => router.push(backHref),
       }}
-      title='Credit usage'
-      description='Every credit-consuming event behind your usage.'
+      title={t('title')}
+      description={t('description')}
     />
   )
 }

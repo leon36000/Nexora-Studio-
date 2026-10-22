@@ -13,6 +13,7 @@ import {
 } from '@sim/emcn'
 import { ChevronDown, ChevronsUpDown, ChevronUp, Plus, Trash } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import Editor from 'react-simple-code-editor'
 import { isElseConditionTitle } from '@/lib/workflows/conditions'
 import {
@@ -134,6 +135,7 @@ export function ConditionInput({
   disabled = false,
   mode = 'condition',
 }: ConditionInputProps) {
+  const t = useTranslations('editor.subBlock.conditionInput')
   const activeSearchTarget = useActiveSearchTarget()
   const isRouterMode = mode === 'router'
   const { workspaceId } = useWorkflowScope()
@@ -888,7 +890,7 @@ export function ConditionInput({
   if (!isReady || conditionalBlocks.length === 0) {
     return (
       <div className='flex min-h-[150px] items-center justify-center text-muted-foreground'>
-        Loading conditions…
+        {t('loading')}
       </div>
     )
   }
@@ -918,7 +920,7 @@ export function ConditionInput({
               )}
             >
               <span className='text-[var(--text-tertiary)] text-sm'>
-                {isRouterMode ? `Route ${index + 1}` : block.title}
+                {isRouterMode ? t('routeTitle', { number: index + 1 }) : block.title}
               </span>
               <div className='flex items-center gap-2'>
                 <Tooltip.Root>
@@ -934,10 +936,10 @@ export function ConditionInput({
                       className='h-auto p-0'
                     >
                       <Plus className='size-[14px]' />
-                      <span className='sr-only'>Add Block</span>
+                      <span className='sr-only'>{t('addBlock')}</span>
                     </Button>
                   </Tooltip.Trigger>
-                  <Tooltip.Content>Add Block</Tooltip.Content>
+                  <Tooltip.Content>{t('addBlock')}</Tooltip.Content>
                 </Tooltip.Root>
 
                 <Tooltip.Root>
@@ -954,10 +956,10 @@ export function ConditionInput({
                       className='h-auto p-0'
                     >
                       <ChevronUp className='size-[14px]' />
-                      <span className='sr-only'>Move Up</span>
+                      <span className='sr-only'>{t('moveUp')}</span>
                     </Button>
                   </Tooltip.Trigger>
-                  <Tooltip.Content>Move Up</Tooltip.Content>
+                  <Tooltip.Content>{t('moveUp')}</Tooltip.Content>
                 </Tooltip.Root>
 
                 <Tooltip.Root>
@@ -976,10 +978,10 @@ export function ConditionInput({
                       className='h-auto p-0'
                     >
                       <ChevronDown className='size-[14px]' />
-                      <span className='sr-only'>Move Down</span>
+                      <span className='sr-only'>{t('moveDown')}</span>
                     </Button>
                   </Tooltip.Trigger>
-                  <Tooltip.Content>Move Down</Tooltip.Content>
+                  <Tooltip.Content>{t('moveDown')}</Tooltip.Content>
                 </Tooltip.Root>
 
                 <Tooltip.Root>
@@ -993,11 +995,11 @@ export function ConditionInput({
                       className='h-auto p-0 text-[var(--text-error)] hover-hover:text-[var(--text-error)]'
                     >
                       <Trash className='size-[14px]' />
-                      <span className='sr-only'>Delete Block</span>
+                      <span className='sr-only'>{t('deleteBlock')}</span>
                     </Button>
                   </Tooltip.Trigger>
                   <Tooltip.Content>
-                    {isRouterMode ? 'Delete Route' : 'Delete Condition'}
+                    {isRouterMode ? t('deleteRoute') : t('deleteCondition')}
                   </Tooltip.Content>
                 </Tooltip.Root>
               </div>
@@ -1065,7 +1067,7 @@ export function ConditionInput({
                       overlay.scrollLeft = e.currentTarget.scrollLeft
                     }
                   }}
-                  placeholder='Describe when this route should be taken...'
+                  placeholder={t('routeDescriptionPlaceholder')}
                   disabled={disabled || isPreview}
                   className='min-h-[100px] resize-none rounded-none border-0 px-3 py-2 text-sm text-transparent caret-foreground [letter-spacing:inherit] placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0'
                   rows={4}

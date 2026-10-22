@@ -1,1 +1,22 @@
-{}
+{
+  "notFound": {
+    "metaTitle": "Page introuvable",
+    "title": "Page introuvable",
+    "description": "La page que vous recherchez n’existe pas ou a été déplacée."
+  },
+  "globalError": {
+    "title": "Une erreur est survenue",
+    "description": "Une erreur inattendue s’est produite. Veuillez réessayer.",
+    "retry": "Réessayer"
+  },
+  "workspaceError": {
+    "title": "Une erreur est survenue",
+    "description": "Une erreur inattendue s’est produite. Veuillez réessayer ou actualiser la page."
+  },
+  "workspaceNotFound": {
+    "title": "Page introuvable",
+    "description": "La page que vous recherchez n’existe pas ou a été déplacée. Revenez à votre espace de travail pour poursuivre votre travail.",
+    "goBack": "Retour",
+    "returnHome": "Retour à l’accueil"
+  }
+}

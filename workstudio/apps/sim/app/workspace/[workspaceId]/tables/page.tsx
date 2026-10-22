@@ -1,14 +1,16 @@
 import { Suspense } from 'react'
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { getSession } from '@/lib/auth'
 import { getQueryClient } from '@/app/_shell/providers/get-query-client'
 import TablesLoading from '@/app/workspace/[workspaceId]/tables/loading'
 import { prefetchTables } from '@/app/workspace/[workspaceId]/tables/prefetch'
 import { Tables } from './tables'
 
-export const metadata: Metadata = {
-  title: 'Tables',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('tables.list')
+  return { title: t('title') }
 }
 
 /**

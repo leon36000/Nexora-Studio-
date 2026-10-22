@@ -2,6 +2,7 @@
 
 import type { TerminalAppearanceTheme, TerminalThemeProfile } from '@sim/desktop-bridge'
 import { ChipCombobox } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { withSelectedProfile } from '@/lib/desktop/appearance'
 
 interface TerminalThemePickerProps {
@@ -12,11 +13,7 @@ interface TerminalThemePickerProps {
   onProfileSelect: (profile: TerminalThemeProfile) => void
 }
 
-const BUILT_INS = [
-  { value: 'app', label: 'Default' },
-  { value: 'light', label: 'Nexora Light' },
-  { value: 'dark', label: 'Nexora Dark' },
-] as const
+const BUILT_IN_THEMES = ['app', 'light', 'dark'] as const
 
 function sourceLabel(source: TerminalThemeProfile['source']): string {
   return source === 'iterm2' ? 'iTerm2' : 'Terminal'
@@ -30,24 +27,25 @@ export function TerminalThemePicker({
   onBuiltInSelect,
   onProfileSelect,
 }: TerminalThemePickerProps) {
+  const t = useTranslations('settings.terminal.themePicker')
   const availableProfiles = withSelectedProfile(profiles, value)
   const selectedValue = typeof value === 'string' ? value : value.id
 
   return (
     <div className='w-[240px] max-w-[55%] shrink-0 md:max-w-none'>
       <ChipCombobox
-        aria-label='Terminal theme'
+        aria-label={t('label')}
         align='start'
         searchable
-        searchPlaceholder='Search themes'
+        searchPlaceholder={t('searchPlaceholder')}
         dropdownWidth={240}
         value={selectedValue}
         disabled={disabled}
-        placeholder='Select theme'
+        placeholder={t('placeholder')}
         options={[
-          ...BUILT_INS,
+          ...BUILT_IN_THEMES.map((theme) => ({ value: theme, label: t(`builtIn.${theme}`) })),
           ...availableProfiles.map((profile) => ({
-            label: `${sourceLabel(profile.source)} · ${profile.name}`,
+            label: t('profileOption', { source: sourceLabel(profile.source), name: profile.name }),
             value: profile.id,
           })),
         ]}

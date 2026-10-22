@@ -1,19 +1,24 @@
+import { createTranslator } from 'next-intl'
 import { describe, expect, it } from 'vitest'
 import {
   ACCOUNT_SETTINGS_ITEMS,
   ACCOUNT_SETTINGS_PATH_ALIASES,
+  buildUnifiedSettingsCatalog,
   canMutateWorkspaceSettingsSection,
   getOrganizationSettingsFeatures,
   getWorkspaceSettingsHref,
   isOrganizationSettingsSectionAvailable,
   isSelfHostedOverrideEnabled,
+  ORGANIZATION_SETTINGS_ITEMS,
   parseSettingsPathSection,
   resolveOrganizationSectionAccess,
   resolveWorkspaceNavigation,
+  SELFHOST_SETTINGS_ITEMS,
   WORKSPACE_SETTINGS_ITEMS,
   WORKSPACE_SETTINGS_PATH_ALIASES,
 } from '@/components/settings/navigation'
 import type { DeploymentShape } from '@/lib/api/contracts/workspaces'
+import { MESSAGES } from '@/i18n/messages'
 
 const SELF_HOSTED: DeploymentShape = {
   hosted: false,
@@ -207,4 +212,38 @@ describe('settings navigation boundaries', () => {
     expect(canMutateWorkspaceSettingsSection('api-keys', writer)).toBe(false)
     expect(canMutateWorkspaceSettingsSection('inbox', writer)).toBe(false)
   })
+})
+
+describe('settings navigation messages', () => {
+  const catalogs = {
+    unified: buildUnifiedSettingsCatalog(),
+    account: ACCOUNT_SETTINGS_ITEMS,
+    selfhost: SELFHOST_SETTINGS_ITEMS,
+    workspace: WORKSPACE_SETTINGS_ITEMS,
+    organization: ORGANIZATION_SETTINGS_ITEMS,
+  }
+
+  /**
+   * Sidebars and headers render an item through its `messageKey`; a key that misses the
+   * messages throws at render in every locale, and one whose English drifted from the
+   * catalog would show different copy in metadata and on screen.
+   */
+  it.each(Object.entries(catalogs))(
+    'resolve %s items to their own copy in every locale',
+    (_, items) => {
+      for (const locale of ['en', 'fr'] as const) {
+        const t = createTranslator({ locale, messages: MESSAGES[locale], namespace: 'settings' })
+        for (const item of items) {
+          const label = t(`${item.messageKey}.label`)
+          const description = item.description ? t(`${item.messageKey}.description`) : ''
+          if (locale === 'en')
+            expect({ label, description }).toEqual({
+              label: item.label,
+              description: item.description,
+            })
+          else expect(label.trim()).not.toBe('')
+        }
+      }
+    }
+  )
 })

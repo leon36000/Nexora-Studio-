@@ -19,11 +19,9 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { Check, Pencil, Pin, Plus, Trash } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { TableViewWire } from '@/lib/api/contracts/tables'
 import { resolveTableViewSelection } from '@/app/workspace/[workspaceId]/tables/[tableId]/view-state'
-
-/** Legacy label for tables that do not yet have a persisted default view. */
-export const ALL_ROWS_VIEW_LABEL = 'All'
 
 /** Matches the breadcrumb location popover's hover-intent grace period. */
 const POPOVER_CLOSE_DELAY_MS = 120
@@ -64,6 +62,9 @@ export const ViewsMenu = memo(function ViewsMenu({
   onNewView,
   canEdit,
 }: ViewsMenuProps) {
+  const t = useTranslations('tables.views')
+  /** Legacy label for tables that do not yet have a persisted default view. */
+  const allRowsViewLabel = t('allRows')
   const [open, setOpen] = useState(false)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -71,7 +72,7 @@ export const ViewsMenu = memo(function ViewsMenu({
   const { activeView, defaultView } = resolveTableViewSelection(views, activeViewId)
   const deleteTarget = views.find((view) => view.id === deleteTargetId)
   const hasDefaultView = defaultView !== null
-  const label = activeView?.name ?? ALL_ROWS_VIEW_LABEL
+  const label = activeView?.name ?? allRowsViewLabel
 
   const cancelScheduledClose = () => {
     if (closeTimeoutRef.current) {
@@ -112,7 +113,7 @@ export const ViewsMenu = memo(function ViewsMenu({
       <PopoverAnchor asChild>
         <button
           type='button'
-          aria-label='Views'
+          aria-label={t('title')}
           onClick={openPopover}
           onFocus={openPopover}
           onBlur={scheduleClose}
@@ -149,11 +150,11 @@ export const ViewsMenu = memo(function ViewsMenu({
         }}
         onFocusCapture={cancelScheduledClose}
       >
-        <PopoverSection>Views</PopoverSection>
+        <PopoverSection>{t('title')}</PopoverSection>
         <div className='flex flex-col gap-0.5'>
           {!hasDefaultView && (
             <ViewRow
-              label={ALL_ROWS_VIEW_LABEL}
+              label={allRowsViewLabel}
               isActive={activeViewId === null}
               onSelect={() => runAndClose(() => onSelect(null))}
             />
@@ -179,15 +180,13 @@ export const ViewsMenu = memo(function ViewsMenu({
                   ? [
                       {
                         icon: Pencil,
-                        label: 'Rename',
+                        label: t('rename'),
                         onClick: () => runAndClose(() => onRename(view.id)),
                       },
                       {
                         icon: Trash,
-                        label: 'Delete',
-                        disabledReason: view.isDefault
-                          ? 'Default view cannot be deleted'
-                          : undefined,
+                        label: t('delete'),
+                        disabledReason: view.isDefault ? t('defaultCannotDelete') : undefined,
                         onClick: () => runAndClose(() => setDeleteTargetId(view.id)),
                       },
                     ]
@@ -203,7 +202,7 @@ export const ViewsMenu = memo(function ViewsMenu({
               <span className='flex size-[14px] shrink-0 items-center justify-center'>
                 <Plus className='size-[14px] text-[var(--text-icon)]' />
               </span>
-              <OverflowText label='New view' className='flex-1 text-left' />
+              <OverflowText label={t('newView')} className='flex-1 text-left' />
             </PopoverItem>
           </>
         )}
@@ -213,16 +212,16 @@ export const ViewsMenu = memo(function ViewsMenu({
         onOpenChange={(nextOpen) => {
           if (!nextOpen) setDeleteTargetId(null)
         }}
-        srTitle='Delete View'
-        title='Delete View'
+        srTitle={t('deleteTitle')}
+        title={t('deleteTitle')}
         text={[
-          'Are you sure you want to delete ',
-          { text: deleteTarget?.name ?? 'this view', bold: true },
-          '? ',
-          { text: 'This action cannot be undone.', error: true },
+          t('deletePrefix'),
+          { text: deleteTarget?.name ?? t('thisView'), bold: true },
+          t('deleteQuestionEnd'),
+          { text: t('cannotUndo'), error: true },
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('delete'),
           onClick: () => {
             if (!deleteTargetId) return
             onDelete(deleteTargetId)
@@ -262,6 +261,7 @@ interface ViewRowProps {
  * underneath them.
  */
 function ViewRow({ label, isActive, onSelect, defaultState, actions }: ViewRowProps) {
+  const t = useTranslations('tables.views')
   const actionCount = (actions?.length ?? 0) + (defaultState ? 1 : 0)
 
   return (
@@ -327,8 +327,8 @@ function ViewRow({ label, isActive, onSelect, defaultState, actions }: ViewRowPr
               type='button'
               variant='quiet'
               size='icon'
-              aria-label={defaultState.isDefault ? 'Current default view' : 'Set as default'}
-              title={defaultState.isDefault ? 'Current default view' : 'Set as default'}
+              aria-label={defaultState.isDefault ? t('currentDefault') : t('setDefault')}
+              title={defaultState.isDefault ? t('currentDefault') : t('setDefault')}
               disabled={!defaultState.onSetDefault}
               // A disabled Button defaults to pointer-events-none, which would let
               // clicks fall through this pointer-events-none overlay to the row and

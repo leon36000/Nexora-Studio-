@@ -6,6 +6,7 @@ import { sleep } from '@sim/utils/helpers'
 import { generateId } from '@sim/utils/id'
 import { isRecordLike } from '@sim/utils/object'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import {
   type AgentStreamToolCall,
@@ -394,6 +395,7 @@ function createAgentStreamChrome({ executionIdRef, updateConsole }: AgentStreamC
 }
 
 export function useWorkflowExecution() {
+  const t = useTranslations('editor.execution')
   const hydrationWorkspaceId = useWorkflowRegistry((s) => s.hydration.workspaceId)
   const queryClient = useQueryClient()
   const currentWorkflow = useCurrentWorkflow()
@@ -502,11 +504,11 @@ export function useWorkflowExecution() {
 
       return {
         isValid: false,
-        error: `Cannot perform debug operation - missing: ${missing.join(', ')}. Try restarting debug mode.`,
+        error: t('debugMissing', { missing: missing.join(', ') }),
       }
     }
     return { isValid: true }
-  }, [executor, debugContext, pendingBlocks])
+  }, [executor, debugContext, pendingBlocks, t])
 
   /**
    * Resets all debug-related state
@@ -707,7 +709,7 @@ export function useWorkflowExecution() {
             })
             preparedWorkflowInput = { ...workflowInput, files: uploadedAttachments }
           } catch (error) {
-            const message = getErrorMessage(error, 'Unexpected error uploading files')
+            const message = getErrorMessage(error, t('uploadFilesFailed'))
             logger.error('Error uploading workflow attachments', { message })
             currentChatExecutionIdRef.current = null
             finishOwnedExecution(activeWorkflowId, persistenceExecution)
@@ -902,7 +904,7 @@ export function useWorkflowExecution() {
               }
               const errorResult = {
                 success: false,
-                error: error.message || 'Workflow execution failed',
+                error: error.message || t('executionFailed'),
                 output: {},
                 logs: [],
                 metadata: {
@@ -986,9 +988,9 @@ export function useWorkflowExecution() {
 
   const executeWorkflow = async (
     workflowInput?: any,
-    onStream?: (se: StreamingExecution) => Promise<void>,
+    onStream?: (se: StreamingExecution) => Promise<void>, // i18n-ignore: type signature
     executionId?: string,
-    onBlockComplete?: (blockId: string, output: any) => Promise<void>,
+    onBlockComplete?: (blockId: string, output: any) => Promise<void>, // i18n-ignore: type signature
     overrideTriggerType?: 'chat' | 'manual' | 'api',
     stopAfterBlockId?: string,
     onStreamReset?: (blockId: string) => void,
@@ -1090,7 +1092,7 @@ export function useWorkflowExecution() {
           TriggerUtils.getTriggerValidationMessage('chat', 'missing'),
           'validation',
           'validation',
-          'Workflow Validation'
+          t('validationBlockName')
         )
       }
 
@@ -1102,10 +1104,10 @@ export function useWorkflowExecution() {
 
       if (candidates.length === 0) {
         const error = new WorkflowValidationError(
-          'Workflow requires at least one trigger block to execute',
+          t('noTrigger'),
           'validation',
           'validation',
-          'Workflow Validation'
+          t('validationBlockName')
         )
         logger.error('No trigger blocks found for manual run', {
           allBlockTypes: Object.values(enabledStates).map((b) => b.type),
@@ -1120,10 +1122,10 @@ export function useWorkflowExecution() {
       )
       if (apiCandidates.length > 1) {
         const error = new WorkflowValidationError(
-          'Multiple API Trigger blocks found. Keep only one.',
+          t('multipleApiTriggers'),
           'validation',
           'validation',
-          'Workflow Validation'
+          t('validationBlockName')
         )
         logger.error('Multiple API triggers found')
         if (activeWorkflowId) finishOwnedExecution(activeWorkflowId, persistenceExecution)
@@ -1142,10 +1144,10 @@ export function useWorkflowExecution() {
         if (outgoingConnections.length === 0) {
           const triggerName = selectedTrigger.name || selectedTrigger.type
           const error = new WorkflowValidationError(
-            `${triggerName} must be connected to other blocks to execute`,
+            t('triggerNotConnected', { name: triggerName }),
             'validation',
             'validation',
-            'Workflow Validation'
+            t('validationBlockName')
           )
           logger.error('Trigger has no outgoing connections', { triggerName, startBlockId })
           if (activeWorkflowId) finishOwnedExecution(activeWorkflowId, persistenceExecution)
@@ -1170,10 +1172,10 @@ export function useWorkflowExecution() {
 
     if (!startBlockId) {
       const error = new WorkflowValidationError(
-        'No valid trigger block found to start execution',
+        t('noValidTrigger'),
         'validation',
         'validation',
-        'Workflow Validation'
+        t('validationBlockName')
       )
       logger.error('No startBlockId found after trigger search')
       if (activeWorkflowId) finishOwnedExecution(activeWorkflowId, persistenceExecution)
@@ -1739,7 +1741,7 @@ export function useWorkflowExecution() {
       let iterationCount = 0
       const maxIterations = 500 // Safety to prevent infinite loops
 
-      while (currentPendingBlocks.length > 0 && iterationCount < maxIterations) {
+      while (iterationCount < maxIterations && currentPendingBlocks.length > 0) {
         logger.info(
           `Resume iteration ${iterationCount + 1}, executing ${currentPendingBlocks.length} blocks`
         )
@@ -2138,9 +2140,7 @@ export function useWorkflowExecution() {
 
               if (isWorkflowModified) {
                 clearLastExecutionSnapshot(workflowId)
-                toast.error(
-                  'Workflow was modified. Run the workflow again to enable running from block.'
-                )
+                toast.error(t('workflowModified'))
               }
 
               handleExecutionErrorConsole({
@@ -2185,7 +2185,7 @@ export function useWorkflowExecution() {
         } else if ((error as Error).name !== 'AbortError') {
           logger.error('Run-from-block failed:', error)
           if (!executionIdRef.current) {
-            handlePreExecutionError(getErrorMessage(error, 'Run-from-block request failed'))
+            handlePreExecutionError(getErrorMessage(error, t('runFromBlockFailed')))
           }
         }
       } finally {

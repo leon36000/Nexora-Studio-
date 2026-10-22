@@ -17,7 +17,7 @@ export function LibraryFileDetail({ file }: LibraryFileDetailProps) {
       {file.type === 'PDF' && (
         <div aria-hidden='true' inert>
           <PreviewToolbar
-            navigation={{ current: 1, total: 1, label: 'page', onPrevious: noop, onNext: noop }}
+            navigation={{ current: 1, total: 1, unit: 'page', onPrevious: noop, onNext: noop }}
             zoom={{
               label: '100%',
               onZoomOut: noop,

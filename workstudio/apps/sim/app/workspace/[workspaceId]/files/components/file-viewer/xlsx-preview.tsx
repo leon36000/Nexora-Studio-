@@ -4,6 +4,7 @@ import { memo, useEffect, useRef, useState } from 'react'
 import { Chip } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import type { WorkBook } from 'xlsx'
 import { assertOoxmlPreviewWithinLimits } from '@/lib/file-parsers/ooxml-preview-guard'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
@@ -35,6 +36,7 @@ export const XlsxPreview = memo(function XlsxPreview({
   file: WorkspaceFileRecord
   workspaceId: string
 }) {
+  const t = useTranslations('files.preview')
   const scrollRef = useHorizontalWheelScroll()
   const preview = useDocPreviewBinary(workspaceId, file)
   const fileData = preview.data
@@ -64,9 +66,9 @@ export const XlsxPreview = memo(function XlsxPreview({
         }
       } catch (err) {
         if (!cancelled) {
-          const msg = toError(err).message || 'Failed to parse spreadsheet'
+          const msg = toError(err).message
           logger.error('XLSX parse failed', { error: msg })
-          setRenderError(msg)
+          setRenderError(msg || t('parseSpreadsheetFailed'))
         }
       }
     }
@@ -75,7 +77,7 @@ export const XlsxPreview = memo(function XlsxPreview({
     return () => {
       cancelled = true
     }
-  }, [fileData])
+  }, [fileData, t])
 
   useEffect(() => {
     if (sheetNames.length === 0 || !workbookRef.current) return
@@ -100,9 +102,9 @@ export const XlsxPreview = memo(function XlsxPreview({
         }
       } catch (err) {
         if (!cancelled) {
-          const msg = toError(err).message || 'Failed to parse sheet'
+          const msg = toError(err).message
           logger.error('XLSX sheet parse failed', { error: msg })
-          setRenderError(msg)
+          setRenderError(msg || t('parseSheetFailed'))
         }
       }
     }
@@ -111,10 +113,10 @@ export const XlsxPreview = memo(function XlsxPreview({
     return () => {
       cancelled = true
     }
-  }, [sheetNames, activeSheet])
+  }, [sheetNames, activeSheet, t])
 
   const error = resolvePreviewError(preview.error, renderError)
-  if (error) return <PreviewError label='spreadsheet' error={error} />
+  if (error) return <PreviewError kind='spreadsheet' error={error} />
   if (!fileData || currentSheet === null) {
     return <PreviewLoadingFrame className='flex flex-1 flex-col overflow-hidden' />
   }
@@ -140,11 +142,11 @@ export const XlsxPreview = memo(function XlsxPreview({
         {(currentSheet.rowTruncated || currentSheet.columnTruncated) && (
           <p className='mt-3 text-center text-[var(--text-muted)] text-caption'>
             {currentSheet.rowTruncated && currentSheet.columnTruncated
-              ? `Showing first ${XLSX_MAX_ROWS.toLocaleString()} rows and ${XLSX_MAX_COLUMNS.toLocaleString()} columns.`
+              ? t('xlsxTruncatedBoth', { rows: XLSX_MAX_ROWS, columns: XLSX_MAX_COLUMNS })
               : currentSheet.rowTruncated
-                ? `Showing first ${XLSX_MAX_ROWS.toLocaleString()} rows.`
-                : `Showing first ${XLSX_MAX_COLUMNS.toLocaleString()} columns.`}{' '}
-            Download the file to view all data.
+                ? t('xlsxTruncatedRows', { rows: XLSX_MAX_ROWS })
+                : t('xlsxTruncatedColumns', { columns: XLSX_MAX_COLUMNS })}{' '}
+            {t('xlsxDownloadHint')}
           </p>
         )}
       </div>

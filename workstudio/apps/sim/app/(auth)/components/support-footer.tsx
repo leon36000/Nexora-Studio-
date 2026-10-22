@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { useBrandConfig } from '@/ee/whitelabeling'
 
 export interface SupportFooterProps {
@@ -18,6 +19,7 @@ export interface SupportFooterProps {
 
 export function SupportFooter({ position = 'fixed' }: SupportFooterProps) {
   const brandConfig = useBrandConfig()
+  const t = useTranslations('auth.supportFooter')
 
   return (
     <div
@@ -27,13 +29,16 @@ export function SupportFooter({ position = 'fixed' }: SupportFooterProps) {
         position
       )}
     >
-      Need help?{' '}
-      <a
-        href={`mailto:${brandConfig.supportEmail}`}
-        className='text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text-body)] hover:underline'
-      >
-        Contact support
-      </a>
+      {t.rich('text', {
+        link: (chunks) => (
+          <a
+            href={`mailto:${brandConfig.supportEmail}`}
+            className='text-[var(--text-muted)] underline-offset-4 transition-colors hover:text-[var(--text-body)] hover:underline'
+          >
+            {chunks}
+          </a>
+        ),
+      })}
     </div>
   )
 }

@@ -106,7 +106,7 @@ export function useMentionTokens({
    */
   const findRangeContaining = useCallback(
     (pos: number): MentionRange | undefined => {
-      return mentionRanges.find((r) => pos > r.start && pos < r.end)
+      return mentionRanges.find((r) => r.start < pos && pos < r.end)
     },
     [mentionRanges]
   )

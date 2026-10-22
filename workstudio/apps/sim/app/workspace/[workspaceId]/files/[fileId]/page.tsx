@@ -1,15 +1,16 @@
 import { Suspense } from 'react'
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { getSession } from '@/lib/auth'
 import { getQueryClient } from '@/app/_shell/providers/get-query-client'
 import FilesFileLoading from '@/app/workspace/[workspaceId]/files/[fileId]/loading'
 import { Files } from '@/app/workspace/[workspaceId]/files/files'
 import { prefetchFilesBrowser } from '@/app/workspace/[workspaceId]/files/prefetch'
 
-export const metadata: Metadata = {
-  title: 'Files',
-  robots: { index: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('files.page')
+  return { title: t('title'), robots: { index: false } }
 }
 
 /**

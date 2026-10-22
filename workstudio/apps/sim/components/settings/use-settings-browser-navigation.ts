@@ -79,7 +79,7 @@ function installBrowserNavigationGuard() {
     currentIndex = nextIndex
     currentUrl = new URL(window.location.href)
     for (const index of trackedRoutes.keys()) {
-      if (index > nextIndex || index < nextIndex - history.length + 1) trackedRoutes.delete(index)
+      if (index > nextIndex || nextIndex - history.length + 1 > index) trackedRoutes.delete(index)
     }
     trackedRoutes.set(nextIndex, route(currentUrl))
   }

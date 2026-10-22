@@ -13,6 +13,7 @@ import {
 } from '@sim/emcn'
 import { Check } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import Editor from 'react-simple-code-editor'
 import { CodeLanguage } from '@/lib/execution/languages'
 import {
@@ -265,7 +266,7 @@ interface CodeProps {
   readOnly?: boolean
   collapsible?: boolean
   defaultCollapsed?: boolean
-  defaultValue?: string | number | boolean | Record<string, unknown> | Array<unknown>
+  defaultValue?: string | number | boolean | Record<string, unknown> | unknown[]
   showCopyButton?: boolean
   onValidationChange?: (isValid: boolean) => void
   wandConfig: {
@@ -284,7 +285,7 @@ interface CodeProps {
 export const Code = memo(function Code({
   blockId,
   subBlockId,
-  placeholder = 'Write JavaScript...',
+  placeholder,
   password = false,
   language = 'javascript',
   generationType = 'javascript-function-body',
@@ -300,6 +301,7 @@ export const Code = memo(function Code({
   wandControlRef,
   hideInternalWand = false,
 }: CodeProps) {
+  const t = useTranslations('editor.subBlock.code')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
 
@@ -362,42 +364,42 @@ export const Code = memo(function Code({
   const aiPromptPlaceholder = useMemo(() => {
     switch (generationType) {
       case 'json-schema':
-        return 'Describe the JSON schema to generate...'
+        return t('describeJsonSchema')
       case 'json-object':
       case 'table-schema':
-        return 'Describe the JSON object to generate...'
+        return t('describeJsonObject')
       default:
-        return 'Describe the JavaScript code to generate...'
+        return t('describeJavascript')
     }
-  }, [generationType])
+  }, [t, generationType])
 
   const dynamicPlaceholder = useMemo(() => {
     if (languageValue === CodeLanguage.Python) {
-      return 'Write Python...'
+      return t('writePython')
     }
     if (languageValue === CodeLanguage.Shell) {
-      return 'Write shell commands...'
+      return t('writeShell')
     }
-    return placeholder
-  }, [languageValue, placeholder])
+    return placeholder ?? t('writeJavascript')
+  }, [t, languageValue, placeholder])
 
   const dynamicWandConfig = useMemo(() => {
     if (languageValue === CodeLanguage.Python) {
       return {
         ...wandConfig,
         prompt: PYTHON_AI_PROMPT,
-        placeholder: 'Describe the Python script you want to create...',
+        placeholder: t('describePython'),
       }
     }
     if (languageValue === CodeLanguage.Shell) {
       return {
         ...wandConfig,
         prompt: SHELL_AI_PROMPT,
-        placeholder: 'Describe the shell commands you want to run...',
+        placeholder: t('describeShell'),
       }
     }
     return wandConfig
-  }, [wandConfig, languageValue])
+  }, [t, wandConfig, languageValue])
 
   const [tableIdValue] = useSubBlockValue<string>(blockId, 'tableId')
   const [sandboxIdValue] = useSubBlockValue<string>(blockId, 'sandboxId')
@@ -911,7 +913,7 @@ export const Code = memo(function Code({
           onClick={handleCopy}
           disabled={!code}
           leftIcon={copied ? Check : Duplicate}
-          aria-label='Copy code'
+          aria-label={t('copyCode')}
         />
       )}
       {!hideInternalWand && (
@@ -937,7 +939,7 @@ export const Code = memo(function Code({
               <WandButton
                 onClick={isPromptVisible ? hidePromptInline : showPromptInline}
                 disabled={isAiLoading || isAiStreaming}
-                aria-label='Generate code with AI'
+                aria-label={t('generateWithAi')}
               />
             )}
         </div>

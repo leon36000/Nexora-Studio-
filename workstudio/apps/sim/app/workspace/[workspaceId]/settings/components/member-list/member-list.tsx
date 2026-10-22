@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { Avatar, OverflowText } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 
@@ -52,16 +53,12 @@ interface MemberSectionProps {
  * Labeled section wrapping a group of {@link MemberRow}s. Matches the
  * Teammates section rhythm (label, divider, negative-margin row group).
  */
-export function MemberSection({
-  label,
-  isEmpty = false,
-  emptyText = 'No members yet',
-  children,
-}: MemberSectionProps) {
+export function MemberSection({ label, isEmpty = false, emptyText, children }: MemberSectionProps) {
+  const t = useTranslations('settings.memberList')
   return (
     <SettingsSection label={label}>
       {isEmpty ? (
-        <SettingsEmptyState variant='inline'>{emptyText}</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{emptyText ?? t('empty')}</SettingsEmptyState>
       ) : (
         <div className='-mx-2 flex flex-col gap-y-0.5'>{children}</div>
       )}

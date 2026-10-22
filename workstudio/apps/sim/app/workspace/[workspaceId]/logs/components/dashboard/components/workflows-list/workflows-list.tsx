@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { cn, handleKeyboardActivation } from '@sim/emcn'
 import { Workflow } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { DELETED_WORKFLOW_LABEL } from '@/lib/workflows/labels'
 import { FloatingOverflowText } from '@/app/workspace/[workspaceId]/components/resource/components/floating-overflow-text'
 import { StatusBar, type StatusBarSegment } from '..'
@@ -25,17 +26,18 @@ function WorkflowsListInner({
   onToggleWorkflow,
   searchQuery,
 }: WorkflowsListProps) {
+  const t = useTranslations('logs.dashboard')
   return (
     <div className='flex h-full flex-col overflow-hidden rounded-md bg-[var(--surface-2)] dark:bg-[var(--surface-1)]'>
       {/* Table header */}
       <div className='shrink-0 rounded-t-[6px] bg-[var(--surface-3)] px-6 py-2.5 dark:bg-[var(--surface-3)]'>
         <div className='flex items-center gap-4'>
           <span className='w-[160px] shrink-0 text-[var(--text-tertiary)] text-caption'>
-            Workflow
+            {t('workflowColumn')}
           </span>
-          <span className='flex-1 text-[var(--text-tertiary)] text-caption'>Logs</span>
+          <span className='flex-1 text-[var(--text-tertiary)] text-caption'>{t('logsColumn')}</span>
           <span className='w-[100px] shrink-0 pl-4 text-[var(--text-tertiary)] text-caption'>
-            Success Rate
+            {t('successRateColumn')}
           </span>
         </div>
       </div>
@@ -45,7 +47,9 @@ function WorkflowsListInner({
         {filteredExecutions.length === 0 ? (
           <div className='flex items-center justify-center py-8'>
             <span className='text-[var(--text-secondary)] text-small'>
-              {searchQuery ? `No workflows found matching "${searchQuery}"` : 'No workflows found'}
+              {searchQuery
+                ? t('noWorkflowsMatching', { query: searchQuery })
+                : t('noWorkflowsFound')}
             </span>
           </div>
         ) : (
@@ -80,7 +84,7 @@ function WorkflowsListInner({
                   <div className='flex w-[160px] shrink-0 items-center gap-2 pr-2'>
                     <Workflow className='size-[14px] shrink-0 text-[var(--text-icon)]' />
                     <FloatingOverflowText
-                      label={workflow.workflowName}
+                      label={isDeletedWorkflow ? t('deletedWorkflow') : workflow.workflowName}
                       className='block truncate text-[var(--text-primary)] text-caption'
                     />
                   </div>

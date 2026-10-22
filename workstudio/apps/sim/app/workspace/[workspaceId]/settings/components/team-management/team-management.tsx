@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Plus } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { useSettingsUnsavedGuard } from '@/components/settings/use-settings-unsaved-guard'
 import { useSession } from '@/lib/auth/client'
 import { getSubscriptionAccessState } from '@/lib/billing/client/utils'
@@ -54,6 +55,7 @@ export function TeamManagement({
   billingHref,
   canInviteMembers,
 }: TeamManagementProps) {
+  const t = useTranslations('settings.teamManagement')
   const { data: session } = useSession()
   const { billingEnabled } = useDeploymentShape()
   const { isInvitationsDisabled } = usePermissionConfig()
@@ -120,7 +122,9 @@ export function TeamManagement({
   const [transferDialogOpen, setTransferDialogOpen] = useState(false)
   const [transferPortalError, setTransferPortalError] = useState<string | null>(null)
   const defaultOrgName =
-    (hasTeamPlan || hasEnterprisePlan) && session?.user?.name ? `${session.user.name}'s Team` : ''
+    (hasTeamPlan || hasEnterprisePlan) && session?.user?.name
+      ? t('defaultOrgName', { name: session.user.name })
+      : ''
   const defaultOrganization = { name: defaultOrgName, slug: generateSlug(defaultOrgName) }
   const [organizationDraft, setOrganizationDraft] = useState<{
     baseline: typeof defaultOrganization
@@ -212,8 +216,8 @@ export function TeamManagement({
 
     const isLeavingSelf = member.user?.email === session.user.email
     const displayName = isLeavingSelf
-      ? 'yourself'
-      : member.user?.name || member.user?.email || 'this member'
+      ? t('removeMemberDialog.yourself')
+      : member.user?.name || member.user?.email || t('removeMemberDialog.thisMember')
 
     setRemoveMemberDialog({
       open: true,
@@ -301,9 +305,7 @@ export function TeamManagement({
         onError: (error) => {
           portalWindow?.close()
           logger.error('Failed to open billing portal from transfer dialog', { error })
-          setTransferPortalError(
-            getErrorMessage(error, 'Failed to open Stripe billing portal. Please try again.')
-          )
+          setTransferPortalError(getErrorMessage(error, t('openPortalFailed')))
         },
       }
     )
@@ -323,7 +325,7 @@ export function TeamManagement({
       <SettingsPanel>
         <SettingsQueryErrorState
           error={orgError}
-          fallback='Failed to load organization'
+          fallback={t('loadOrganizationFailed')}
           isRetrying={isOrganizationFetching}
           onRetry={() => void refetchOrganization()}
         />
@@ -348,7 +350,7 @@ export function TeamManagement({
         isCreatingOrg={createOrgMutation.isPending}
         error={
           createOrgMutation.error
-            ? getErrorMessage(createOrgMutation.error, 'Failed to create organization')
+            ? getErrorMessage(createOrgMutation.error, t('createOrganizationFailed'))
             : null
         }
         createOrgDialogOpen={createOrgDialogOpen}
@@ -363,18 +365,18 @@ export function TeamManagement({
         search={{
           value: memberQuery,
           onChange: setMemberQuery,
-          placeholder: 'Search members...',
+          placeholder: t('searchMembers'),
         }}
         actions={
           adminOrOwner
             ? [
                 {
-                  text: 'Invite',
+                  text: t('invite'),
                   icon: Plus,
                   variant: 'primary',
                   onSelect: () => setInviteModalOpen(true),
                   disabled: invitationsDisabled,
-                  tooltip: invitationsDisabled ? 'Invitations are disabled' : undefined,
+                  tooltip: invitationsDisabled ? t('invitationsDisabled') : undefined,
                 },
               ]
             : []
@@ -387,7 +389,7 @@ export function TeamManagement({
           organizationBillingData === undefined ? (
             <SettingsQueryErrorState
               error={organizationBillingError}
-              fallback='Failed to load seat information'
+              fallback={t('loadSeatsFailed')}
               isRetrying={isOrganizationBillingFetching}
               onRetry={() => void refetchOrganizationBilling()}
               variant='inline'
@@ -404,12 +406,12 @@ export function TeamManagement({
           ))}
 
         {isLoadingRoster && !isRosterFetchedAfterMount ? (
-          <SettingsEmptyState variant='inline'>Loading members…</SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('loadingMembers')}</SettingsEmptyState>
         ) : (rosterError || (isRosterFetching && isRosterFetchedAfterMount)) &&
           roster === undefined ? (
           <SettingsQueryErrorState
             error={rosterError}
-            fallback='Failed to load organization members'
+            fallback={t('loadMembersFailed')}
             isRetrying={isRosterFetching}
             onRetry={() => void refetchRoster()}
             variant='inline'

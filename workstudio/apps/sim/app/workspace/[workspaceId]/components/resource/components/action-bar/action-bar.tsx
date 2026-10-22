@@ -12,6 +12,7 @@ import {
   Trash,
 } from '@sim/emcn'
 import { Download } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { MoveOptionNode } from '@/app/workspace/[workspaceId]/components/folders'
 import { renderMoveOptions } from '@/app/workspace/[workspaceId]/components/folders'
 
@@ -78,6 +79,7 @@ export function ResourceActionBar({
   maxSelectable,
   className,
 }: ResourceActionBarProps) {
+  const t = useTranslations('shell.actionBar')
   if (selectedCount === 0) return null
 
   const exceedsLimit = maxSelectable !== undefined && selectedCount > maxSelectable
@@ -99,14 +101,14 @@ export function ResourceActionBar({
           )}
         >
           {exceedsLimit
-            ? `${selectedCount} selected · select ${maxSelectable} or fewer`
-            : `${selectedCount} selected`}
+            ? t('selectedOverLimit', { count: selectedCount, max: maxSelectable })
+            : t('selected', { count: selectedCount })}
         </span>
         <div className='flex items-center gap-[5px]'>
           {onDownload && (
             <ActionButton
               icon={Download}
-              label='Download'
+              label={t('download')}
               onClick={onDownload}
               disabled={actionsDisabled}
             />
@@ -116,12 +118,12 @@ export function ResourceActionBar({
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <DropdownMenuTrigger asChild>
-                    <BulkActionButton aria-label='Move' disabled={actionsDisabled}>
+                    <BulkActionButton aria-label={t('move')} disabled={actionsDisabled}>
                       <Folder className='size-[12px]' />
                     </BulkActionButton>
                   </DropdownMenuTrigger>
                 </Tooltip.Trigger>
-                <Tooltip.Content side='top'>Move</Tooltip.Content>
+                <Tooltip.Content side='top'>{t('move')}</Tooltip.Content>
               </Tooltip.Root>
               <DropdownMenuContent
                 side='top'
@@ -135,7 +137,7 @@ export function ResourceActionBar({
           {onDelete && (
             <ActionButton
               icon={Trash}
-              label='Delete'
+              label={t('delete')}
               onClick={onDelete}
               disabled={actionsDisabled}
             />

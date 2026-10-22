@@ -1,4 +1,5 @@
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { EmptyState } from '@/components/empty-state/empty-state'
 import { HAIRLINE } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/hairline'
 import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/mask'
@@ -9,7 +10,7 @@ import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resourc
  * drawn rather than as more placeholder.
  */
 const INK = {
-  title: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)',
+  title: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)', // i18n-ignore: CSS color
   detail: 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
   mark: 'color-mix(in srgb, var(--text-secondary) 46%, var(--bg))',
 } as const
@@ -115,11 +116,6 @@ function TestsGraphic() {
 
 /** Empty state for a workspace with no tests yet. */
 export function TestsEmptyState() {
-  return (
-    <EmptyState
-      graphic={<TestsGraphic />}
-      title='Tests'
-      description='Write tests to check your workflows behave before you deploy.'
-    />
-  )
+  const t = useTranslations('shell.emptyStates.tests')
+  return <EmptyState graphic={<TestsGraphic />} title={t('title')} description={t('description')} />
 }

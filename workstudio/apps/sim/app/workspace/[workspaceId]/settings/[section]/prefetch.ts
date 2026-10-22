@@ -14,7 +14,7 @@ export interface SettingsSectionPrefetchContext {
 export const SECTION_PREFETCHERS: Partial<
   Record<
     SettingsSection,
-    (queryClient: QueryClient, context: SettingsSectionPrefetchContext) => Promise<unknown>
+    (queryClient: QueryClient, context: SettingsSectionPrefetchContext) => Promise<unknown> // i18n-ignore: type signature
   >
 > = {
   general: (queryClient) => prefetchCurrentUserSettings(queryClient),

@@ -12,6 +12,7 @@ import {
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH } from '@/lib/knowledge/constants'
 import type { ChunkingConfig } from '@/lib/knowledge/types'
 
@@ -24,7 +25,7 @@ interface EditKnowledgeBaseModalProps {
   initialName: string
   initialDescription: string
   chunkingConfig?: ChunkingConfig
-  onSave: (id: string, name: string, description: string) => Promise<void>
+  onSave: (id: string, name: string, description: string) => Promise<void> // i18n-ignore: TypeScript type, not interface text
 }
 
 /**
@@ -39,6 +40,8 @@ export const EditKnowledgeBaseModal = memo(function EditKnowledgeBaseModal({
   chunkingConfig,
   onSave,
 }: EditKnowledgeBaseModalProps) {
+  const t = useTranslations('knowledge.editBase')
+  const tForm = useTranslations('knowledge.createBase')
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState(initialDescription)
   const [nameError, setNameError] = useState<string | null>(null)
@@ -66,17 +69,21 @@ export const EditKnowledgeBaseModal = memo(function EditKnowledgeBaseModal({
     let firstError: string | null = null
 
     if (!name.trim()) {
-      setNameError('Name is required')
-      firstError ??= 'Name is required'
+      const message = tForm('validation.nameRequired')
+      setNameError(message)
+      firstError ??= message
     } else if (name.trim().length > 100) {
-      setNameError('Name must be less than 100 characters')
-      firstError ??= 'Name must be less than 100 characters'
+      const message = tForm('validation.nameTooLong')
+      setNameError(message)
+      firstError ??= message
     } else {
       setNameError(null)
     }
 
     if (description.length > KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH) {
-      const message = `Description must be ${KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH} characters or less`
+      const message = tForm('validation.descriptionTooLong', {
+        descriptionMax: KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH,
+      })
       setDescriptionError(message)
       firstError ??= message
     } else {
@@ -101,7 +108,7 @@ export const EditKnowledgeBaseModal = memo(function EditKnowledgeBaseModal({
       onOpenChange(false)
     } catch (err) {
       logger.error('Error updating knowledge base:', err)
-      setError(getErrorMessage(err, 'Failed to update knowledge base'))
+      setError(getErrorMessage(err, t('updateFailed')))
     } finally {
       setIsSubmitting(false)
     }
@@ -111,50 +118,50 @@ export const EditKnowledgeBaseModal = memo(function EditKnowledgeBaseModal({
   const isDirty = name !== initialName || description !== initialDescription
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Edit Knowledge Base'>
-      <ChipModalHeader onClose={() => onOpenChange(false)}>Edit Knowledge Base</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('title')}>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{t('title')}</ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='input'
-          title='Name'
+          title={tForm('name')}
           value={name}
           onChange={setName}
-          placeholder='Enter knowledge base name'
+          placeholder={tForm('namePlaceholder')}
           required
           error={nameError ?? undefined}
           autoComplete='off'
         />
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={tForm('description')}
           value={description}
           onChange={setDescription}
-          placeholder='Describe this knowledge base (optional)'
+          placeholder={tForm('descriptionPlaceholder')}
           rows={4}
           error={descriptionError ?? undefined}
         />
         {chunkingConfig && (
-          <ChipModalField type='custom' title='Chunking Configuration'>
+          <ChipModalField type='custom' title={t('chunkingConfiguration')}>
             <div className='grid grid-cols-3 gap-2'>
               <div className='rounded-sm border border-[var(--border-1)] bg-[var(--surface-2)] px-2.5 py-2'>
-                <p className='text-[var(--text-tertiary)] text-xs leading-tight'>Max Size</p>
+                <p className='text-[var(--text-tertiary)] text-xs leading-tight'>{t('maxSize')}</p>
                 <p className='text-[var(--text-primary)] text-sm'>
                   {chunkingConfig.maxSize.toLocaleString()}
-                  <span className='ml-0.5 text-[var(--text-tertiary)] text-xs'>tokens</span>
+                  <span className='ml-0.5 text-[var(--text-tertiary)] text-xs'>{t('tokens')}</span>
                 </p>
               </div>
               <div className='rounded-sm border border-[var(--border-1)] bg-[var(--surface-2)] px-2.5 py-2'>
-                <p className='text-[var(--text-tertiary)] text-xs leading-tight'>Min Size</p>
+                <p className='text-[var(--text-tertiary)] text-xs leading-tight'>{t('minSize')}</p>
                 <p className='text-[var(--text-primary)] text-sm'>
                   {chunkingConfig.minSize.toLocaleString()}
-                  <span className='ml-0.5 text-[var(--text-tertiary)] text-xs'>chars</span>
+                  <span className='ml-0.5 text-[var(--text-tertiary)] text-xs'>{t('chars')}</span>
                 </p>
               </div>
               <div className='rounded-sm border border-[var(--border-1)] bg-[var(--surface-2)] px-2.5 py-2'>
-                <p className='text-[var(--text-tertiary)] text-xs leading-tight'>Overlap</p>
+                <p className='text-[var(--text-tertiary)] text-xs leading-tight'>{t('overlap')}</p>
                 <p className='text-[var(--text-primary)] text-sm'>
                   {chunkingConfig.overlap.toLocaleString()}
-                  <span className='ml-0.5 text-[var(--text-tertiary)] text-xs'>tokens</span>
+                  <span className='ml-0.5 text-[var(--text-tertiary)] text-xs'>{t('tokens')}</span>
                 </p>
               </div>
             </div>
@@ -166,7 +173,7 @@ export const EditKnowledgeBaseModal = memo(function EditKnowledgeBaseModal({
         onCancel={() => onOpenChange(false)}
         cancelDisabled={isSubmitting}
         primaryAction={{
-          label: isSubmitting ? 'Saving...' : 'Save',
+          label: isSubmitting ? t('saving') : t('save'),
           onClick: handleSubmit,
           disabled: !isValid || !isDirty || isSubmitting,
         }}

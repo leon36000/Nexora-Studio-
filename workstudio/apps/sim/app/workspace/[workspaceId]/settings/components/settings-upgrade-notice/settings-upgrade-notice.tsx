@@ -2,6 +2,7 @@
 
 import { Chip, cn } from '@sim/emcn'
 import { ArrowRight } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { useSettingsNavigation } from '@/hooks/use-settings-navigation'
 
 interface SettingsUpgradeNoticeProps {
@@ -34,6 +35,7 @@ export function SettingsUpgradeNotice({
   canUpgrade = false,
   compact = false,
 }: SettingsUpgradeNoticeProps) {
+  const t = useTranslations('settings.upgradeNotice')
   const { navigateToSettings } = useSettingsNavigation()
 
   return (
@@ -50,7 +52,7 @@ export function SettingsUpgradeNotice({
           rightIcon={ArrowRight}
           onClick={() => navigateToSettings({ section: 'billing' })}
         >
-          Upgrade to Max
+          {t('upgradeToMax')}
         </Chip>
       )}
     </div>

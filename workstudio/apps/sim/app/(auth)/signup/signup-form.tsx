@@ -4,6 +4,7 @@ import { Suspense, useRef, useState } from 'react'
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 import { createLogger } from '@sim/logger'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { trackFreebuffConversion } from '@/lib/analytics/freebuff'
 import { trackGoogleEvent } from '@/lib/analytics/google'
@@ -12,7 +13,6 @@ import { useTrackingConsent } from '@/lib/consent/tracking-consent'
 import { getEnv, isFalsy } from '@/lib/core/config/env'
 import { isSsoEnabled } from '@/lib/core/config/env-flags'
 import { validateCallbackUrl } from '@/lib/core/security/input-validation'
-import { quickValidateEmail } from '@/lib/messaging/email/validation'
 import { captureEvent } from '@/lib/posthog/client'
 import {
   buildAuthCrossLink,
@@ -31,65 +31,28 @@ import {
   AuthLegalFooter,
   AuthNavPrompt,
   AuthSubmitButton,
+  getNexoraOidcName,
+  NexoraOidcButton,
   PasswordInput,
   SocialLoginButtons,
   SSOLoginButton,
 } from '@/app/(auth)/components'
+import { useEmailFieldValidation } from '@/app/(auth)/components/use-email-field-validation'
 import { useCaptureWhenReady } from '@/hooks/use-capture-when-ready'
 
 const logger = createLogger('SignupForm')
 
-const PASSWORD_VALIDATIONS = {
-  minLength: { regex: /.{8,}/, message: 'Password must be at least 8 characters long.' },
-  uppercase: {
-    regex: /(?=.*?[A-Z])/,
-    message: 'Password must include at least one uppercase letter.',
-  },
-  lowercase: {
-    regex: /(?=.*?[a-z])/,
-    message: 'Password must include at least one lowercase letter.',
-  },
-  number: { regex: /(?=.*?[0-9])/, message: 'Password must include at least one number.' },
-  special: {
-    regex: /(?=.*?[#?!@$%^&*-])/,
-    message: 'Password must include at least one special character.',
-  },
-}
+/** Each password rule with the `signup.passwordRules` message shown when it fails, in display order. */
+const PASSWORD_RULES = [
+  { regex: /.{8,}/, messageKey: 'minLength' },
+  { regex: /(?=.*?[A-Z])/, messageKey: 'uppercase' },
+  { regex: /(?=.*?[a-z])/, messageKey: 'lowercase' },
+  { regex: /(?=.*?[0-9])/, messageKey: 'number' },
+  { regex: /(?=.*?[#?!@$%^&*-])/, messageKey: 'special' },
+] as const
 
-const NAME_VALIDATIONS = {
-  required: {
-    test: (value: string) => Boolean(value && typeof value === 'string'),
-    message: 'Name is required.',
-  },
-  notEmpty: {
-    test: (value: string) => value.trim().length > 0,
-    message: 'Name cannot be empty.',
-  },
-  validCharacters: {
-    regex: /^[\p{L}\s\-']+$/u,
-    message: 'Name can only contain letters, spaces, hyphens, and apostrophes.',
-  },
-  noConsecutiveSpaces: {
-    regex: /^(?!.*\s\s).*$/,
-    message: 'Name cannot contain consecutive spaces.',
-  },
-}
-
-const validateEmailField = (emailValue: string): string[] => {
-  const errors: string[] = []
-
-  if (!emailValue || !emailValue.trim()) {
-    errors.push('Email is required.')
-    return errors
-  }
-
-  const validation = quickValidateEmail(emailValue.trim().toLowerCase())
-  if (!validation.isValid) {
-    errors.push(validation.reason || 'Please enter a valid email address.')
-  }
-
-  return errors
-}
+const NAME_VALID_CHARACTERS = /^[\p{L}\s\-']+$/u
+const NAME_NO_CONSECUTIVE_SPACES = /^(?!.*\s\s).*$/
 
 interface SignupFormProps {
   githubAvailable: boolean
@@ -109,6 +72,8 @@ function SignupFormContent({
 }: SignupFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations('auth')
+  const validateEmailField = useEmailFieldValidation()
   const { refetch: refetchSession } = useSession()
   const posthog = usePostHog()
   const { measurement, marketing } = useTrackingConsent()
@@ -142,53 +107,22 @@ function SignupFormContent({
   const [nameErrors, setNameErrors] = useState<string[]>([])
   const [showNameValidationError, setShowNameValidationError] = useState(false)
 
-  const validatePassword = (passwordValue: string): string[] => {
-    const errors: string[] = []
-
-    if (!PASSWORD_VALIDATIONS.minLength.regex.test(passwordValue)) {
-      errors.push(PASSWORD_VALIDATIONS.minLength.message)
-    }
-
-    if (!PASSWORD_VALIDATIONS.uppercase.regex.test(passwordValue)) {
-      errors.push(PASSWORD_VALIDATIONS.uppercase.message)
-    }
-
-    if (!PASSWORD_VALIDATIONS.lowercase.regex.test(passwordValue)) {
-      errors.push(PASSWORD_VALIDATIONS.lowercase.message)
-    }
-
-    if (!PASSWORD_VALIDATIONS.number.regex.test(passwordValue)) {
-      errors.push(PASSWORD_VALIDATIONS.number.message)
-    }
-
-    if (!PASSWORD_VALIDATIONS.special.regex.test(passwordValue)) {
-      errors.push(PASSWORD_VALIDATIONS.special.message)
-    }
-
-    return errors
-  }
+  const validatePassword = (passwordValue: string): string[] =>
+    PASSWORD_RULES.filter(({ regex }) => !regex.test(passwordValue)).map(({ messageKey }) =>
+      t(`signup.passwordRules.${messageKey}`)
+    )
 
   const validateName = (nameValue: string): string[] => {
+    if (!nameValue) return [t('signup.nameRules.required')]
+    if (nameValue.trim().length === 0) return [t('signup.nameRules.notEmpty')]
+
     const errors: string[] = []
-
-    if (!NAME_VALIDATIONS.required.test(nameValue)) {
-      errors.push(NAME_VALIDATIONS.required.message)
-      return errors
+    if (!NAME_VALID_CHARACTERS.test(nameValue.trim())) {
+      errors.push(t('signup.nameRules.validCharacters'))
     }
-
-    if (!NAME_VALIDATIONS.notEmpty.test(nameValue)) {
-      errors.push(NAME_VALIDATIONS.notEmpty.message)
-      return errors
+    if (!NAME_NO_CONSECUTIVE_SPACES.test(nameValue)) {
+      errors.push(t('signup.nameRules.noConsecutiveSpaces'))
     }
-
-    if (!NAME_VALIDATIONS.validCharacters.regex.test(nameValue.trim())) {
-      errors.push(NAME_VALIDATIONS.validCharacters.message)
-    }
-
-    if (!NAME_VALIDATIONS.noConsecutiveSpaces.regex.test(nameValue)) {
-      errors.push(NAME_VALIDATIONS.noConsecutiveSpaces.message)
-    }
-
     return errors
   }
 
@@ -259,7 +193,7 @@ function SignupFormContent({
       }
 
       if (trimmedName.length > 100) {
-        setNameErrors(['Name will be truncated to 100 characters. Please shorten your name.'])
+        setNameErrors([t('signup.nameRules.tooLong')])
         setShowNameValidationError(true)
         setIsLoading(false)
         return
@@ -276,7 +210,7 @@ function SignupFormContent({
           captureEvent(posthog, 'signup_failed', {
             error_code: 'captcha_client_failure',
           })
-          setFormError('Captcha verification failed. Please try again.')
+          setFormError(t('signup.errors.captchaFailed'))
           setIsLoading(false)
           return
         }
@@ -295,41 +229,41 @@ function SignupFormContent({
           },
           onError: (ctx) => {
             logger.warn('Signup error:', ctx.error)
-            const errorMessage: string[] = ['Failed to create account']
+            const errorMessage: string[] = [t('signup.errors.createFailed')]
 
             let errorCode = 'unknown'
             if (ctx.error.code?.includes('USER_ALREADY_EXISTS')) {
               errorCode = 'user_already_exists'
-              setEmailError('An account with this email already exists. Please sign in instead.')
+              setEmailError(t('signup.errors.userExists'))
             } else if (
               ctx.error.code?.includes('BAD_REQUEST') ||
               ctx.error.message?.includes('Email and password sign up is not enabled')
             ) {
               errorCode = 'signup_disabled'
-              errorMessage.push('Email signup is currently disabled.')
+              errorMessage.push(t('signup.errors.signupDisabled'))
               setEmailError(errorMessage[0])
             } else if (ctx.error.code?.includes('INVALID_EMAIL')) {
               errorCode = 'invalid_email'
-              errorMessage.push('Please enter a valid email address.')
+              errorMessage.push(t('emailValidation.invalid'))
               setEmailError(errorMessage[0])
             } else if (ctx.error.code?.includes('PASSWORD_TOO_SHORT')) {
               errorCode = 'password_too_short'
-              errorMessage.push('Password must be at least 8 characters long.')
+              errorMessage.push(t('signup.passwordRules.minLength'))
               setPasswordErrors(errorMessage)
               setShowValidationError(true)
             } else if (ctx.error.code?.includes('PASSWORD_TOO_LONG')) {
               errorCode = 'password_too_long'
-              errorMessage.push('Password must be less than 128 characters long.')
+              errorMessage.push(t('signup.errors.passwordTooLong'))
               setPasswordErrors(errorMessage)
               setShowValidationError(true)
             } else if (ctx.error.code?.includes('network')) {
               errorCode = 'network_error'
-              errorMessage.push('Network error. Please check your connection and try again.')
+              errorMessage.push(t('errors.network'))
               setPasswordErrors(errorMessage)
               setShowValidationError(true)
             } else if (ctx.error.code?.includes('rate limit')) {
               errorCode = 'rate_limited'
-              errorMessage.push('Too many requests. Please wait a moment before trying again.')
+              errorMessage.push(t('errors.rateLimited'))
               setPasswordErrors(errorMessage)
               setShowValidationError(true)
             } else {
@@ -387,7 +321,8 @@ function SignupFormContent({
   const ssoEnabled = isSsoEnabled
   const emailEnabled =
     !isFalsy(getEnv('NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED')) && emailSignupEnabled
-  const hasSocial = githubAvailable || googleAvailable || microsoftAvailable
+  const hasNexoraOidc = getNexoraOidcName() !== null
+  const hasSocial = githubAvailable || googleAvailable || microsoftAvailable || hasNexoraOidc
   const hasOnlySSO = ssoEnabled && !emailEnabled && !hasSocial
   const showBottomSection = hasSocial || (ssoEnabled && !hasOnlySSO)
   const showDivider = (emailEnabled || hasOnlySSO) && showBottomSection
@@ -405,7 +340,7 @@ function SignupFormContent({
 
   return (
     <div className='space-y-6'>
-      <AuthHeader title='Create an account' description='Create an account or log in' />
+      <AuthHeader title={t('signup.title')} description={t('signup.description')} />
 
       {hasOnlySSO && (
         <SSOLoginButton callbackURL={redirectUrl || DEFAULT_POST_AUTH_ROUTE} variant='primary' />
@@ -414,25 +349,25 @@ function SignupFormContent({
       {emailEnabled && (
         <form onSubmit={onSubmit} className='space-y-6'>
           <div className='space-y-5'>
-            <AuthField htmlFor='name' label='Full name' errors={nameFieldErrors}>
+            <AuthField htmlFor='name' label={t('signup.nameLabel')} errors={nameFieldErrors}>
               <AuthInput
                 id='name'
                 name='name'
-                placeholder='Enter your name'
+                placeholder={t('signup.namePlaceholder')}
                 type='text'
                 autoCapitalize='words'
                 autoComplete='name'
-                title='Name can only contain letters, spaces, hyphens, and apostrophes'
+                title={t('signup.nameTitle')}
                 value={name}
                 onChange={handleNameChange}
                 error={nameFieldErrors.length > 0}
               />
             </AuthField>
-            <AuthField htmlFor='email' label='Email' errors={emailFieldErrors}>
+            <AuthField htmlFor='email' label={t('signup.emailLabel')} errors={emailFieldErrors}>
               <AuthInput
                 id='email'
                 name='email'
-                placeholder='Enter your email'
+                placeholder={t('signup.emailPlaceholder')}
                 autoCapitalize='none'
                 autoComplete='email'
                 autoCorrect='off'
@@ -441,13 +376,17 @@ function SignupFormContent({
                 error={emailHasError}
               />
             </AuthField>
-            <AuthField htmlFor='password' label='Password' errors={passwordFieldErrors}>
+            <AuthField
+              htmlFor='password'
+              label={t('signup.passwordLabel')}
+              errors={passwordFieldErrors}
+            >
               <PasswordInput
                 id='password'
                 name='password'
                 autoCapitalize='none'
                 autoComplete='new-password'
-                placeholder='Enter your password'
+                placeholder={t('signup.passwordPlaceholder')}
                 autoCorrect='off'
                 value={password}
                 onChange={handlePasswordChange}
@@ -472,15 +411,15 @@ function SignupFormContent({
 
           <AuthSubmitButton
             loading={isLoading}
-            loadingLabel='Creating account…'
+            loadingLabel={t('signup.submitting')}
             disabled={!canSubmit}
           >
-            Create account
+            {t('signup.submit')}
           </AuthSubmitButton>
         </form>
       )}
 
-      {showDivider && <AuthDivider label='Or continue with' />}
+      {showDivider && <AuthDivider label={t('divider.orContinueWith')} />}
 
       {showBottomSection && (
         <SocialLoginButtons
@@ -490,6 +429,7 @@ function SignupFormContent({
           microsoftAvailable={microsoftAvailable}
           callbackURL={redirectUrl || DEFAULT_POST_AUTH_ROUTE}
         >
+          <NexoraOidcButton callbackURL={redirectUrl || DEFAULT_POST_AUTH_ROUTE} />
           {ssoEnabled && !hasOnlySSO && (
             <SSOLoginButton
               callbackURL={redirectUrl || DEFAULT_POST_AUTH_ROUTE}
@@ -500,12 +440,12 @@ function SignupFormContent({
       )}
 
       <AuthNavPrompt
-        prompt='Already have an account?'
+        prompt={t('signup.haveAccount')}
         href={buildAuthCrossLink('/login', { callbackUrl: redirectUrl || null, isInviteFlow })}
-        linkLabel='Sign in'
+        linkLabel={t('signup.signIn')}
       />
 
-      <AuthLegalFooter action='creating an account' />
+      <AuthLegalFooter action='creatingAccount' />
     </div>
   )
 }
@@ -517,9 +457,12 @@ export default function SignupPage({
   emailSignupEnabled,
   emailVerificationEnabled,
 }: SignupFormProps) {
+  const t = useTranslations('auth.signup')
   return (
     <Suspense
-      fallback={<div className='flex min-h-[320px] items-center justify-center'>Loading…</div>}
+      fallback={
+        <div className='flex min-h-[320px] items-center justify-center'>{t('loading')}</div>
+      }
     >
       <SignupFormContent
         githubAvailable={githubAvailable}

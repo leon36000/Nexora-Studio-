@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { runPreDeployChecks } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/hooks/predeploy-checks'
 import { useDeployWorkflow } from '@/hooks/queries/deployments'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
@@ -25,6 +26,8 @@ interface UseDeploymentProps {
  * Already deployed: opens modal directly (validation happens on Update in modal).
  */
 export function useDeployment({ workflowId, isDeployed, deployReadiness }: UseDeploymentProps) {
+  const t = useTranslations('editor.deploy.deployment')
+  const tPreDeploy = useTranslations('editor.deploy.preDeploy')
   const { mutateAsync, isPending: isDeploying } = useDeployWorkflow()
   const [isFinalizingDeploy, setIsFinalizingDeploy] = useState(false)
 
@@ -36,7 +39,7 @@ export function useDeployment({ workflowId, isDeployed, deployReadiness }: UseDe
     }
 
     if (!tryAcquireDeployAction(workflowId)) {
-      toast({ message: 'Deployment is already in progress.' })
+      toast({ message: t('alreadyInProgress') })
       return { success: false, shouldOpenModal: false }
     }
 
@@ -63,9 +66,10 @@ export function useDeployment({ workflowId, isDeployed, deployReadiness }: UseDe
         loops,
         parallels,
         workflowId,
+        t: tPreDeploy,
       })
       if (!checkResult.passed) {
-        toast.error(checkResult.error || 'Pre-deploy validation failed')
+        toast.error(checkResult.error || t('preDeployFailed'))
         return { success: false, shouldOpenModal: false }
       }
 
@@ -75,7 +79,7 @@ export function useDeployment({ workflowId, isDeployed, deployReadiness }: UseDe
         if (useWorkflowRegistry.getState().activeWorkflowId !== workflowId) {
           return { success: false, shouldOpenModal: false }
         }
-        const errorMessage = toError(error).message || 'Failed to deploy workflow'
+        const errorMessage = toError(error).message || t('deployFailed')
         toast.error(errorMessage)
         return { success: false, shouldOpenModal: false }
       }
@@ -86,8 +90,7 @@ export function useDeployment({ workflowId, isDeployed, deployReadiness }: UseDe
           if (useWorkflowRegistry.getState().activeWorkflowId === workflowId) {
             logger.warn('Workflow deployed, but local draft sync was deferred', { workflowId })
             toast({
-              message:
-                'Deployment succeeded, but local sync is still catching up. Refresh if the status looks stale.',
+              message: t('syncDeferred'),
             })
           }
           return { success: true, shouldOpenModal: false }
@@ -101,8 +104,7 @@ export function useDeployment({ workflowId, isDeployed, deployReadiness }: UseDe
           error: toError(error).message,
         })
         toast({
-          message:
-            'Deployment succeeded, but local sync failed. Refresh if the status looks stale.',
+          message: t('syncFailed'),
         })
       }
 
@@ -111,7 +113,7 @@ export function useDeployment({ workflowId, isDeployed, deployReadiness }: UseDe
       releaseDeployAction(workflowId)
       setIsFinalizingDeploy(false)
     }
-  }, [workflowId, isDeployed, deployReadiness, mutateAsync])
+  }, [workflowId, isDeployed, deployReadiness, mutateAsync, t, tPreDeploy])
 
   return {
     isDeploying: isDeploying || isFinalizingDeploy,

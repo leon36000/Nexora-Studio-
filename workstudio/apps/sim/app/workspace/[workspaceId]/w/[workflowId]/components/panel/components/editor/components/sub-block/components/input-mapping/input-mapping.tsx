@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge, CollapsibleCard, cn, Input, Label } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { extractInputFieldsFromBlocks } from '@/lib/workflows/input-format'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import { TagDropdown } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/tag-dropdown/tag-dropdown'
@@ -57,6 +58,7 @@ export function InputMapping({
   disabled = false,
   previewContextValues,
 }: InputMappingProps) {
+  const t = useTranslations('editor.subBlock.inputMapping')
   const activeSearchTarget = useActiveSearchTarget()
   const subBlockId = subBlock.id
   const [mapping, setMapping] = useSubBlockValue(blockId, subBlockId)
@@ -134,10 +136,8 @@ export function InputMapping({
     return (
       <div className='flex h-32 items-center justify-center rounded-sm border border-[var(--border-1)] border-dashed bg-[var(--surface-3)] dark:bg-[var(--code-bg)]'>
         <div className='text-center'>
-          <p className='text-[var(--text-secondary)] text-sm'>No workflow selected</p>
-          <p className='mt-1 text-[var(--text-muted)] text-xs'>
-            Select a workflow above to configure inputs
-          </p>
+          <p className='text-[var(--text-secondary)] text-sm'>{t('noWorkflowSelected')}</p>
+          <p className='mt-1 text-[var(--text-muted)] text-xs'>{t('selectWorkflowAbove')}</p>
         </div>
       </div>
     )
@@ -148,7 +148,7 @@ export function InputMapping({
       <div className='space-y-2'>
         <InputMappingField
           key='loading'
-          fieldName='loading...'
+          fieldName={t('loadingField')}
           value=''
           onChange={() => {}}
           blockId={blockId}
@@ -165,7 +165,7 @@ export function InputMapping({
   }
 
   if (!childInputFields || childInputFields.length === 0) {
-    return <p className='text-[var(--text-muted)] text-sm'>No inputs available</p>
+    return <p className='text-[var(--text-muted)] text-sm'>{t('noInputsAvailable')}</p>
   }
 
   return (
@@ -219,6 +219,7 @@ function InputMappingField({
   onToggleCollapse,
   workflowSearchHighlight,
 }: InputMappingFieldProps) {
+  const t = useTranslations('editor.subBlock.inputMapping')
   const fieldId = fieldName
   const fieldState = inputController.fieldHelpers.getFieldState(fieldId)
   const handlers = inputController.fieldHelpers.createFieldHandlers(fieldId, value, onChange)
@@ -249,7 +250,7 @@ function InputMappingField({
       onToggleCollapse={onToggleCollapse}
     >
       <div className='flex flex-col gap-1.5'>
-        <Label>Value</Label>
+        <Label>{t('value')}</Label>
         <div className='relative'>
           <Input
             ref={(el) => {
@@ -269,7 +270,7 @@ function InputMappingField({
                 input && handleScroll({ currentTarget: input } as any)
               }, 0)
             }
-            placeholder='Enter value or reference'
+            placeholder={t('valuePlaceholder')}
             disabled={disabled}
             autoComplete='off'
             className={cn(

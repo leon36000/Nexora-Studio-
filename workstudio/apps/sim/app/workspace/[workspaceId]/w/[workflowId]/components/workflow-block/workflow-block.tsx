@@ -30,6 +30,7 @@ import {
   useUpdateNodeInternals,
 } from '@xyflow/react'
 import { isEqual } from 'es-toolkit'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
@@ -200,7 +201,11 @@ function getDisplayableMcpParamNames(schemaValue: unknown, argsValue: unknown): 
 interface BlockSunset {
   status: 'legacy' | 'deprecated'
   kind: 'block' | 'model'
-  tooltip: string
+  /** Message key under `editor.workflowBlock.sunset`, with the model it names. */
+  tooltip: {
+    key: 'legacyBlock' | 'deprecatedBlock' | 'deprecatedModel' | 'legacyModel'
+    model: string
+  }
   prompt: string
 }
 
@@ -233,7 +238,7 @@ function getBlockSunset(
       return {
         status: 'legacy',
         kind: 'block',
-        tooltip: 'This is a legacy block. Click to upgrade',
+        tooltip: { key: 'legacyBlock', model: '' },
         prompt: `The "${name}" block is legacy. ${migrationPrompt(name, target)}${hasModel ? ' Also pick a current, non-deprecated model.' : ''}`,
       }
     }
@@ -241,7 +246,7 @@ function getBlockSunset(
     return {
       status: 'deprecated',
       kind: 'block',
-      tooltip: 'This block is no longer supported. Click to replace',
+      tooltip: { key: 'deprecatedBlock', model: '' },
       prompt: target
         ? `The "${name}" block is no longer supported. ${migrationPrompt(name, target)}`
         : `The "${name}" block is no longer supported and has no direct successor. Replace it with current blocks that achieve the same result and rewire the connections.`,
@@ -254,7 +259,7 @@ function getBlockSunset(
       return {
         status: 'deprecated',
         kind: 'model',
-        tooltip: `${model} is no longer available. Click to switch models`,
+        tooltip: { key: 'deprecatedModel', model },
         prompt: `The "${name}" block uses "${model}", which the provider has retired — calls to it now fail. Switch it to the latest equivalent model.`,
       }
     }
@@ -262,7 +267,7 @@ function getBlockSunset(
       return {
         status: 'legacy',
         kind: 'model',
-        tooltip: `${model} is a legacy model. Click to upgrade`,
+        tooltip: { key: 'legacyModel', model },
         prompt: `The "${name}" block uses the legacy model "${model}". Switch it to the latest equivalent model.`,
       }
     }
@@ -648,6 +653,7 @@ export const WorkflowBlock = memo(function WorkflowBlock({
   data,
   selected,
 }: NodeProps<WorkflowBlockNode>) {
+  const t = useTranslations('editor.workflowBlock')
   const { type, config, name, isPending } = data
 
   const contentRef = useRef<HTMLDivElement>(null)
@@ -1302,7 +1308,9 @@ export const WorkflowBlock = memo(function WorkflowBlock({
         }
       }}
       sunsetStatus={sunset?.status}
-      sunsetTooltip={sunset?.tooltip}
+      sunsetTooltip={
+        sunset ? t(`sunset.${sunset.tooltip.key}`, { model: sunset.tooltip.model }) : undefined
+      }
       canFixSunset={canEditWorkflow && chatEnabled}
       onFixSunset={onFixSunset}
       shouldShowScheduleBadge={shouldShowScheduleBadge}

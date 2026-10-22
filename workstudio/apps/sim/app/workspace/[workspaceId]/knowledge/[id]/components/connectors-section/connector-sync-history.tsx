@@ -2,6 +2,7 @@
 
 import { cn } from '@sim/emcn'
 import { format } from 'date-fns'
+import { useTranslations } from 'next-intl'
 import type {
   ConnectorData,
   ConnectorDetailData,
@@ -34,6 +35,7 @@ export function ConnectorSyncHistory({
   knowledgeBaseId,
   detail,
 }: ConnectorSyncHistoryProps) {
+  const t = useTranslations('knowledge.connectors.history')
   const query = useConnectorDetail(
     detail ? undefined : knowledgeBaseId,
     detail ? undefined : connector.id
@@ -44,7 +46,7 @@ export function ConnectorSyncHistory({
     return (
       <SettingsQueryErrorState
         error={query.error}
-        fallback='Could not load sync history'
+        fallback={t('loadFailed')}
         isRetrying={query.isFetching}
         onRetry={() => void query.refetch()}
         variant='inline'
@@ -63,15 +65,6 @@ export function ConnectorSyncHistory({
 }
 
 type SyncLogState = 'running' | 'interrupted' | 'failed' | 'completed' | 'partial' | 'continuing'
-
-const SYNC_LOG_LABELS: Record<SyncLogState, string> = {
-  running: 'In progress…',
-  interrupted: 'Interrupted',
-  failed: 'Failed',
-  completed: 'Completed',
-  partial: 'Partial',
-  continuing: 'Continuing',
-}
 
 /** Reclaimed stale locks leave started log rows behind; both views use the engine's own TTL. */
 function getSyncLogState(
@@ -97,12 +90,13 @@ interface SyncHistoryRowProps {
 }
 
 function SyncHistoryRow({ startedAt, state, description, notice }: SyncHistoryRowProps) {
+  const t = useTranslations('knowledge.connectors.history.logState')
   return (
     <SettingsResourceRow
       title={
         <time dateTime={startedAt}>
           {format(new Date(startedAt), 'MMM d, h:mm a')}
-          {state === 'completed' && <span className='sr-only'> · {SYNC_LOG_LABELS[state]}</span>}
+          {state === 'completed' && <span className='sr-only'> · {t(state)}</span>}
         </time>
       }
       description={[description, notice].filter(Boolean).join(' · ') || undefined}
@@ -114,7 +108,7 @@ function SyncHistoryRow({ startedAt, state, description, notice }: SyncHistoryRo
               state === 'failed' ? 'text-[var(--text-error)]' : 'text-[var(--text-muted)]'
             )}
           >
-            {SYNC_LOG_LABELS[state]}
+            {t(state)}
           </span>
         )
       }
@@ -128,10 +122,10 @@ interface SyncHistoryProps {
 }
 
 export function SyncHistory({ logs, isLoading }: SyncHistoryProps) {
-  if (isLoading)
-    return <SettingsEmptyState variant='inline'>Loading sync history…</SettingsEmptyState>
+  const t = useTranslations('knowledge.connectors.history')
+  if (isLoading) return <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
   if (logs.length === 0)
-    return <SettingsEmptyState variant='inline'>No sync history yet.</SettingsEmptyState>
+    return <SettingsEmptyState variant='inline'>{t('empty')}</SettingsEmptyState>
 
   const now = Date.now()
   return (
@@ -146,11 +140,11 @@ export function SyncHistory({ logs, isLoading }: SyncHistoryProps) {
           ? 'continuing'
           : getSyncLogState(log, CONNECTOR_SYNC_STALE_LOCK_TTL_MS, now)
         const changes = [
-          log.docsAdded > 0 && `${log.docsAdded} added`,
-          log.docsUpdated > 0 && `${log.docsUpdated} updated`,
-          log.docsDeleted > 0 && `${log.docsDeleted} deleted`,
-          log.docsFailed > 0 && `${log.docsFailed} failed`,
-          log.docsSkipped > 0 && `${log.docsSkipped} skipped`,
+          log.docsAdded > 0 && t('added', { count: log.docsAdded }),
+          log.docsUpdated > 0 && t('updated', { count: log.docsUpdated }),
+          log.docsDeleted > 0 && t('deleted', { count: log.docsDeleted }),
+          log.docsFailed > 0 && t('failed', { count: log.docsFailed }),
+          log.docsSkipped > 0 && t('skipped', { count: log.docsSkipped }),
         ]
           .filter(Boolean)
           .join(' · ')
@@ -165,7 +159,7 @@ export function SyncHistory({ logs, isLoading }: SyncHistoryProps) {
                 ? (log.errorMessage ?? undefined)
                 : state === 'completed' || state === 'partial' || state === 'continuing'
                   ? changes ||
-                    (state === 'continuing' || log.errorMessage ? undefined : 'No changes')
+                    (state === 'continuing' || log.errorMessage ? undefined : t('noChanges'))
                   : undefined
             }
           />
@@ -183,17 +177,14 @@ interface MemberSyncHistoryProps {
 
 /** Several partial member runs can form one drain; they are not failed syncs. */
 function MemberSyncHistory({ logs, members, isLoading }: MemberSyncHistoryProps) {
+  const t = useTranslations('knowledge.connectors.history')
   if (isLoading)
-    return <SettingsEmptyState variant='inline'>Loading member sync history…</SettingsEmptyState>
+    return <SettingsEmptyState variant='inline'>{t('loadingMembers')}</SettingsEmptyState>
 
   const now = Date.now()
   const accountWarnings = [
-    members &&
-      members.suspended > 0 &&
-      `${members.suspended} ${members.suspended === 1 ? 'account needs' : 'accounts need'} reconnecting`,
-    members &&
-      members.stale > 0 &&
-      `${members.stale} ${members.stale === 1 ? 'account' : 'accounts'} not synced recently`,
+    members && members.suspended > 0 && t('accountsNeedReconnecting', { count: members.suspended }),
+    members && members.stale > 0 && t('accountsStale', { count: members.stale }),
   ]
     .filter(Boolean)
     .join(' · ')
@@ -201,7 +192,7 @@ function MemberSyncHistory({ logs, members, isLoading }: MemberSyncHistoryProps)
     <div className={RESOURCE_LIST_STACK}>
       {accountWarnings && <SettingsResourceRow title={accountWarnings} />}
       {logs.length === 0 ? (
-        <SettingsEmptyState variant='inline'>No member sync history yet.</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('emptyMembers')}</SettingsEmptyState>
       ) : (
         logs.map((log) => {
           const continuing =
@@ -215,22 +206,20 @@ function MemberSyncHistory({ logs, members, isLoading }: MemberSyncHistoryProps)
             ? 'continuing'
             : getSyncLogState(log, MEMBER_SYNC_STALE_LOCK_TTL_MS, now)
           const changes = [
-            log.docsAdded > 0 && `${log.docsAdded} added`,
-            log.docsUpdated > 0 && `${log.docsUpdated} updated`,
+            log.docsAdded > 0 && t('added', { count: log.docsAdded }),
+            log.docsUpdated > 0 && t('updated', { count: log.docsUpdated }),
             log.docsTombstoned + log.docsPurged > 0 &&
-              `${log.docsTombstoned + log.docsPurged} deleted`,
-            (log.docsFailed ?? 0) > 0 && `${log.docsFailed} failed`,
+              t('deleted', { count: log.docsTombstoned + log.docsPurged }),
+            (log.docsFailed ?? 0) > 0 && t('failed', { count: log.docsFailed ?? 0 }),
             (log.processingDispatchFailed ?? 0) > 0 &&
-              `${log.processingDispatchFailed} failed to queue`,
+              t('failedToQueue', { count: log.processingDispatchFailed ?? 0 }),
           ]
             .filter(Boolean)
             .join(' · ')
           const description = [
-            changes || (continuing || log.errorMessage ? undefined : 'No changes'),
-            log.membersFailed > 0 &&
-              `${log.membersFailed} ${log.membersFailed === 1 ? 'account' : 'accounts'} failed`,
-            log.membersIncomplete > 0 &&
-              `${log.membersIncomplete} ${log.membersIncomplete === 1 ? 'account' : 'accounts'} incomplete`,
+            changes || (continuing || log.errorMessage ? undefined : t('noChanges')),
+            log.membersFailed > 0 && t('accountsFailed', { count: log.membersFailed }),
+            log.membersIncomplete > 0 && t('accountsIncomplete', { count: log.membersIncomplete }),
           ]
             .filter(Boolean)
             .join(' · ')

@@ -10,7 +10,7 @@ interface RenameTarget {
 
 interface UseFlyoutInlineRenameProps {
   itemType: string
-  onSave: (id: string, name: string) => Promise<void>
+  onSave: (id: string, name: string) => Promise<void> // i18n-ignore: type annotation
 }
 
 export function useFlyoutInlineRename({ itemType, onSave }: UseFlyoutInlineRenameProps) {

@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { cn, Input } from '@sim/emcn'
 import { useReactFlow } from '@xyflow/react'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import {
@@ -88,6 +89,7 @@ export const ShortInput = memo(function ShortInput({
   allowReferences = true,
   onBlur,
 }: ShortInputProps) {
+  const t = useTranslations('editor.subBlock.common')
   const activeSearchTarget = useActiveSearchTarget()
   const [localContent, setLocalContent] = useState<string>('')
   const [isFocused, setIsFocused] = useState(false)
@@ -312,7 +314,7 @@ export const ShortInput = memo(function ShortInput({
           onSubmit={(prompt: string) => wandHook.generateStream({ prompt })}
           onCancel={wandHook.isStreaming ? wandHook.cancelGeneration : wandHook.hidePromptInline}
           onChange={(newValue: string) => wandHook.updatePromptValue(newValue)}
-          placeholder={config.wandConfig?.placeholder || 'Describe what you want to generate...'}
+          placeholder={config.wandConfig?.placeholder || t('describeToGenerate')}
         />
       )}
 
@@ -410,7 +412,7 @@ export const ShortInput = memo(function ShortInput({
                 wandHook.isPromptVisible ? wandHook.hidePromptInline : wandHook.showPromptInline
               }
               disabled={wandHook.isLoading || wandHook.isStreaming || disabled}
-              aria-label='Generate content with AI'
+              aria-label={t('generateContentWithAi')}
             />
           </div>
         )}

@@ -5,6 +5,7 @@ import { memo } from 'react'
 import { Library } from '@sim/emcn'
 import { Database, Table } from '@sim/emcn/icons'
 import { Command } from 'cmdk'
+import { useTranslations } from 'next-intl'
 import {
   MemoizedActionItem,
   MemoizedCommandItem,
@@ -26,15 +27,18 @@ import type { SearchBlockItem } from '@/stores/modals/search/types'
 export const BlocksGroup = memo(function BlocksGroup({
   items,
   onSelect,
-  heading = 'Blocks',
+  heading,
 }: {
   items: SearchBlockItem[]
   onSelect: (block: SearchBlockItem) => void
+  /** Defaults to the translated "Blocks" heading; `null` renders no heading. */
   heading?: string | null
 }) {
+  const t = useTranslations('shell.searchModal')
   if (items.length === 0) return null
+  const groupHeading = heading === undefined ? t('sections.blocks') : heading
   return (
-    <Command.Group heading={heading ?? undefined} className={GROUP_HEADING_CLASSNAME}>
+    <Command.Group heading={groupHeading ?? undefined} className={GROUP_HEADING_CLASSNAME}>
       {items.map((block) => (
         <MemoizedCommandItem
           key={block.id}
@@ -58,9 +62,10 @@ export const ToolsGroup = memo(function ToolsGroup({
   items: SearchBlockItem[]
   onSelect: (tool: SearchBlockItem) => void
 }) {
+  const t = useTranslations('shell.searchModal')
   if (items.length === 0) return null
   return (
-    <Command.Group heading='Tools' className={GROUP_HEADING_CLASSNAME}>
+    <Command.Group heading={t('sections.tools')} className={GROUP_HEADING_CLASSNAME}>
       {items.map((tool) => (
         <MemoizedCommandItem
           key={tool.id}

@@ -4,6 +4,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Chip } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { truncate } from '@sim/utils/string'
+import { useTranslations } from 'next-intl'
 import { captureClientEvent, captureClientException } from '@/lib/posthog/client'
 import { ErrorShell } from '@/app/workspace/[workspaceId]/components/error'
 
@@ -21,15 +22,12 @@ interface ErrorUIProps {
   onReset?: () => void
 }
 
-export function ErrorUI({
-  title = 'Something went wrong',
-  message = 'An unexpected error occurred. Please try again or refresh the page.',
-  onReset,
-}: ErrorUIProps) {
+export function ErrorUI({ title, message, onReset }: ErrorUIProps) {
+  const t = useTranslations('editor.errorBoundary')
   return (
-    <ErrorShell title={title} description={message}>
+    <ErrorShell title={title ?? t('title')} description={message ?? t('message')}>
       <Chip variant='primary' onClick={onReset ?? (() => window.location.reload())}>
-        Try again
+        {t('tryAgain')}
       </Chip>
     </ErrorShell>
   )

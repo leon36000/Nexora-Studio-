@@ -10,6 +10,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { assessTextPaste, formatPasteLimit, PASTE_LIMITS } from '@sim/utils/paste'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import type { RunLimit, RunMode, TableFindMatch } from '@/lib/api/contracts/tables'
 import { attachSelectionContextToClipboard } from '@/lib/mothership/chat/selection-clipboard'
 import type {
@@ -33,7 +34,7 @@ import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/provide
 import { getTimezoneEditBlockedMessage } from '@/app/workspace/[workspaceId]/tables/[tableId]/components/timezone-editing'
 import type { RemoteTableSelection } from '@/app/workspace/[workspaceId]/tables/[tableId]/hooks/use-table-room'
 import type { BlockedTableAction } from '@/app/workspace/[workspaceId]/tables/[tableId]/lock-copy'
-import { LOCK_TOOLTIPS } from '@/app/workspace/[workspaceId]/tables/[tableId]/lock-copy'
+import { lockTooltip } from '@/app/workspace/[workspaceId]/tables/[tableId]/lock-copy'
 import { useTimezoneState } from '@/hooks/queries/general-settings'
 import {
   useAddTableColumn,
@@ -345,6 +346,8 @@ function cellToText(value: unknown, column?: DisplayColumn): string {
  * @returns True when it handled the copy, false to fall through to the paged path.
  */
 function writeLoadedRowsWithChip(opts: {
+  /** Translator scoped to `tables.grid`, for the copied toast. */
+  t: (key: string, values?: Record<string, string | number>) => string
   clipboardData: DataTransfer | null
   workspaceId: string
   rows: TableRowType[]
@@ -368,7 +371,7 @@ function writeLoadedRowsWithChip(opts: {
     rows.map((row) => opts.buildCells(row).join('\t')).join('\n')
   )
   attachSelectionContextToClipboard(opts.clipboardData, context, opts.workspaceId)
-  toast.success(`Copied ${rows.length} ${rows.length === 1 ? 'row' : 'rows'}`)
+  toast.success(opts.t('clipboard.copied', { count: rows.length }))
   return true
 }
 
@@ -420,7 +423,7 @@ async function chunkBatchUpdates(
   updates: Array<{ rowId: string; data: Record<string, unknown> }>,
   mutateAsync: (args: {
     updates: Array<{ rowId: string; data: Record<string, unknown> }>
-  }) => Promise<unknown>
+  }) => Promise<unknown> // i18n-ignore: type syntax, not text
 ): Promise<void> {
   const size = TABLE_LIMITS.MAX_BULK_OPERATION_SIZE
   const chunks: Array<Array<{ rowId: string; data: Record<string, unknown> }>> = []
@@ -486,6 +489,9 @@ export function TableGrid({
   confirmDeleteColumnsSinkRef,
   pushTableRenameUndoSinkRef,
 }: TableGridProps) {
+  const t = useTranslations('tables.grid')
+  const tLocks = useTranslations('tables.locks')
+  const tTimezone = useTranslations('tables.timezone')
   const params = useParams()
   const workspaceId = propWorkspaceId || (params.workspaceId as string)
   const tableId = propTableId || (params.tableId as string)
@@ -1604,7 +1610,7 @@ export function TableGrid({
       const sel = computeNormalizedSelection(selectionAnchorRef.current, selectionFocusRef.current)
       const contextRowArrayIndex = currentRows.findIndex((r) => r.id === contextRow.id)
       const isInSelection =
-        sel !== null && contextRowArrayIndex >= sel.startRow && contextRowArrayIndex <= sel.endRow
+        sel !== null && contextRowArrayIndex >= sel.startRow && contextRowArrayIndex <= sel.endRow // i18n-ignore: comparison, not text
 
       if (isInSelection && sel) {
         snapshots = collectRowSnapshots(currentRows.slice(sel.startRow, sel.endRow + 1))
@@ -1745,7 +1751,7 @@ export function TableGrid({
     } catch (error) {
       isAppendingRowRef.current = false
       logger.error('Failed to load remaining rows before appending', { error })
-      toast.error('Failed to load all rows. Try again.', { duration: 5000 })
+      toast.error(t('toasts.loadAllRowsFailed'), { duration: 5000 })
       return
     }
 
@@ -2352,7 +2358,7 @@ export function TableGrid({
         }
       }
       // No-op if dropping the dragged run onto itself.
-      if (anchorStart >= runStart && anchorEnd <= runEnd) {
+      if (runStart <= anchorStart && anchorEnd <= runEnd) {
         setDragColumnName(null)
         setDropTargetColumnName(null)
         setDropSide('left')
@@ -2984,7 +2990,7 @@ export function TableGrid({
           await chunkBatchUpdates(batchUpdates, batchUpdateAsyncRef.current)
         })().catch((error) => {
           logger.error('Failed to clear selected cells', { error })
-          toast.error('Failed to clear cells — please try again')
+          toast.error(t('toasts.clearCellsFailed'))
         })
         return
       }
@@ -3250,7 +3256,7 @@ export function TableGrid({
             await chunkBatchUpdates(batchUpdates, batchUpdateAsyncRef.current)
           })().catch((error) => {
             logger.error('Failed to clear column values', { error })
-            toast.error('Failed to clear column values — please try again')
+            toast.error(t('toasts.clearColumnFailed'))
           })
           return
         }
@@ -3274,7 +3280,7 @@ export function TableGrid({
         }
         void chunkBatchUpdates(batchUpdates, batchUpdateAsyncRef.current).catch((error) => {
           logger.error('Failed to clear selected cells', { error })
-          toast.error('Failed to clear cells — please try again')
+          toast.error(t('toasts.clearCellsFailed'))
         })
         if (undoCells.length > 0) {
           pushUndoRef.current({ type: 'clear-cells', cells: undoCells })
@@ -3319,16 +3325,16 @@ export function TableGrid({
      * `MAX_COPY_ROWS` and points the user at Export CSV.
      */
     const writeSelectionToClipboard = (opts: {
-      loadRows: () => Promise<{ rows: TableRowType[]; hasMore: boolean }>
+      loadRows: () => Promise<{ rows: TableRowType[]; hasMore: boolean }> // i18n-ignore: type syntax, not text
       selectRow: (row: TableRowType) => boolean
       buildCells: (row: TableRowType) => string[]
       verb: 'Copied' | 'Cut'
       /** Best-known row count for the in-progress toast (exact count is shown on completion). */
       estimatedCount: number
-      afterCopy?: (copiedRows: TableRowType[]) => Promise<void> | void
+      afterCopy?: (copiedRows: TableRowType[]) => Promise<void> | void // i18n-ignore: type syntax, not text
     }) => {
       if (typeof ClipboardItem === 'undefined' || !navigator.clipboard) {
-        toast.error('Clipboard access is unavailable in this context')
+        toast.error(t('clipboard.unavailable'))
         return
       }
       const isCopy = opts.verb === 'Copied'
@@ -3337,7 +3343,7 @@ export function TableGrid({
       // duration:0 keeps the in-progress toast up through long page loads; it is
       // dismissed explicitly on every settle path below.
       const loadingToastId = toast({
-        message: `${isCopy ? 'Copying' : 'Cutting'} ${estimate.toLocaleString()} ${estimate === 1 ? 'row' : 'rows'}…`,
+        message: t(isCopy ? 'clipboard.copying' : 'clipboard.cutting', { count: estimate }),
         duration: 0,
       })
       let rowCount = 0
@@ -3372,7 +3378,7 @@ export function TableGrid({
           // a DOMException (e.g. lost transient activation) serializes to `{}`.
           logger.error(`Failed to ${verbLower} rows`, { error: getErrorMessage(error) })
           dismissToastRef.current(loadingToastId)
-          toast.error(`Failed to ${verbLower} — please try again`)
+          toast.error(t(isCopy ? 'clipboard.copyFailed' : 'clipboard.cutFailed'))
           return
         }
         // The clipboard now holds the data; a clear failure must not be reported
@@ -3382,18 +3388,18 @@ export function TableGrid({
         } catch (error) {
           logger.error('Failed to clear cut cells', { error })
           dismissToastRef.current(loadingToastId)
-          toast.error('Copied to clipboard, but clearing the cells failed — please try again')
+          toast.error(t('clipboard.clearAfterCutFailed'))
           return
         }
         dismissToastRef.current(loadingToastId)
         if (truncated) {
           toast({
-            message: `${opts.verb} first ${TABLE_LIMITS.MAX_COPY_ROWS.toLocaleString()} rows — export to CSV for the rest`,
+            message: t(isCopy ? 'clipboard.copiedFirst' : 'clipboard.cutFirst', {
+              max: TABLE_LIMITS.MAX_COPY_ROWS.toLocaleString(),
+            }),
           })
         } else {
-          toast.success(
-            `${opts.verb} ${rowCount.toLocaleString()} ${rowCount === 1 ? 'row' : 'rows'}`
-          )
+          toast.success(t(isCopy ? 'clipboard.copied' : 'clipboard.cut', { count: rowCount }))
         }
       })()
     }
@@ -3447,6 +3453,7 @@ export function TableGrid({
         if (rowSel.kind === 'some') {
           const selectedRows = currentRows.filter((row) => rowSelectionIncludes(rowSel, row.id))
           const handled = writeLoadedRowsWithChip({
+            t,
             clipboardData: e.clipboardData,
             workspaceId: workspaceIdRef.current,
             rows: selectedRows,
@@ -3495,6 +3502,7 @@ export function TableGrid({
         // A column-header selection spans every row, and its fall-through pages
         // in the rest — so the chip path applies only once all of them are here.
         const handled = writeLoadedRowsWithChip({
+          t,
           clipboardData: e.clipboardData,
           workspaceId: workspaceIdRef.current,
           rows: currentRows,
@@ -3637,7 +3645,7 @@ export function TableGrid({
       e.clipboardData?.setData('text/plain', lines.join('\n'))
       void chunkBatchUpdates(batchUpdates, batchUpdateAsyncRef.current).catch((error) => {
         logger.error('Failed to cut selected cells', { error })
-        toast.error('Failed to cut — please try again')
+        toast.error(t('clipboard.cutFailed'))
       })
       if (undoCells.length > 0) {
         pushUndoRef.current({ type: 'clear-cells', cells: undoCells })
@@ -3661,14 +3669,18 @@ export function TableGrid({
         maxPastedBytes: PASTE_LIMITS.STRUCTURED_BYTES,
       })
       if (!admission.accepted) {
-        toast.warning('Paste is too large for the table editor', {
-          description: `Paste up to ${formatPasteLimit(PASTE_LIMITS.STRUCTURED_BYTES)} at once, or use CSV import for larger datasets.`,
+        toast.warning(t('paste.tooLargeTitle'), {
+          description: t('paste.tooLargeDescription', {
+            limit: formatPasteLimit(PASTE_LIMITS.STRUCTURED_BYTES),
+          }),
         })
         return
       }
       if (exceedsTablePasteRowLimit(text, TABLE_LIMITS.MAX_BATCH_INSERT_SIZE)) {
-        toast.warning('Paste has too many rows', {
-          description: `Paste up to ${TABLE_LIMITS.MAX_BATCH_INSERT_SIZE.toLocaleString()} rows at once, or use CSV import for larger datasets.`,
+        toast.warning(t('paste.tooManyRowsTitle'), {
+          description: t('paste.tooManyRowsDescription', {
+            max: TABLE_LIMITS.MAX_BATCH_INSERT_SIZE.toLocaleString(),
+          }),
         })
         return
       }
@@ -3686,7 +3698,7 @@ export function TableGrid({
         })
       )
       if (touchesDateEditor) {
-        const message = getTimezoneEditBlockedMessage(timezoneStateRef.current)
+        const message = getTimezoneEditBlockedMessage(timezoneStateRef.current, tTimezone)
         if (message) {
           toast.error(message)
           return
@@ -3877,7 +3889,7 @@ export function TableGrid({
       const normalizedValue = value ?? null
       const column = columnsRef.current.find((c) => c.key === columnName)
       if (column && columnTypeOf(column).editor === 'date') {
-        const message = getTimezoneEditBlockedMessage(timezoneStateRef.current)
+        const message = getTimezoneEditBlockedMessage(timezoneStateRef.current, tTimezone)
         if (message) {
           toast.error(message)
           setEditingCell(null)
@@ -4052,7 +4064,7 @@ export function TableGrid({
       const sel = computeNormalizedSelection(selectionAnchorRef.current, selectionFocusRef.current)
       if (sel && sel.startCol !== sel.endCol) {
         const clickedIdx = cols.findIndex((c) => c.key === columnName)
-        if (clickedIdx >= sel.startCol && clickedIdx <= sel.endCol) {
+        if (sel.startCol <= clickedIdx && clickedIdx <= sel.endCol) {
           const names: string[] = []
           for (let c = sel.startCol; c <= sel.endCol; c++) {
             if (c < cols.length) names.push(cols[c].key)
@@ -4264,7 +4276,7 @@ export function TableGrid({
     if (sel) {
       const contextRowArrayIndex = rows.findIndex((r) => r.id === contextRow.id)
       const isInSelection =
-        contextRowArrayIndex >= sel.startRow && contextRowArrayIndex <= sel.endRow
+        contextRowArrayIndex >= sel.startRow && contextRowArrayIndex <= sel.endRow // i18n-ignore: comparison, not text
       if (isInSelection) {
         const ids: string[] = []
         const start = Math.max(0, sel.startRow)
@@ -4689,10 +4701,8 @@ export function TableGrid({
       <div className='flex h-full flex-col items-center justify-center gap-3'>
         <TableX className='size-[32px] text-[var(--text-muted)]' />
         <div className='flex flex-col items-center gap-1'>
-          <h2 className='text-[20px] text-[var(--text-secondary)]'>Table not found</h2>
-          <p className='text-[var(--text-muted)] text-small'>
-            This table may have been deleted or moved
-          </p>
+          <h2 className='text-[20px] text-[var(--text-secondary)]'>{t('notFound.title')}</h2>
+          <p className='text-[var(--text-muted)] text-small'>{t('notFound.description')}</p>
         </div>
       </div>
     )
@@ -4707,7 +4717,7 @@ export function TableGrid({
       <div className='relative flex min-h-0 flex-1'>
         {findOpen && (
           <FindBar
-            ariaLabel='Find in table'
+            ariaLabel={t('findInTable')}
             query={findQuery}
             onQueryChange={setFindQuery}
             onNext={handleFindNext}
@@ -4792,10 +4802,10 @@ export function TableGrid({
                                 onSelectGroup={handleGroupSelect}
                                 onOpenConfig={() => handleConfigureWorkflowGroup(g.groupId)}
                                 schemaLockedReason={
-                                  locks?.schemaLocked ? LOCK_TOOLTIPS.schema : undefined
+                                  locks?.schemaLocked ? lockTooltip(tLocks, 'schema') : undefined
                                 }
                                 deleteLockedReason={
-                                  locks?.deleteLocked ? LOCK_TOOLTIPS.delete : undefined
+                                  locks?.deleteLocked ? lockTooltip(tLocks, 'delete') : undefined
                                 }
                                 onRunColumn={userPermissions.canEdit ? handleRunColumn : undefined}
                                 hasActiveFilter={Boolean(effectiveFilter)}
@@ -4939,10 +4949,10 @@ export function TableGrid({
                             sourceInfo={columnSourceInfo.get(column.key)}
                             onOpenConfig={handleConfigureColumn}
                             schemaLockedReason={
-                              locks?.schemaLocked ? LOCK_TOOLTIPS.schema : undefined
+                              locks?.schemaLocked ? lockTooltip(tLocks, 'schema') : undefined
                             }
                             deleteLockedReason={
-                              locks?.deleteLocked ? LOCK_TOOLTIPS.delete : undefined
+                              locks?.deleteLocked ? lockTooltip(tLocks, 'delete') : undefined
                             }
                             onViewWorkflow={handleViewWorkflow}
                             onSortColumn={onSortColumn}
@@ -5108,7 +5118,7 @@ export function TableGrid({
           {!isLoadingTable && !isLoadingRows && userPermissions.canEdit && (
             <AddRowButton
               onClick={handleAddRowClick}
-              blockedReason={locks?.insertLocked ? LOCK_TOOLTIPS.insert : undefined}
+              blockedReason={locks?.insertLocked ? lockTooltip(tLocks, 'insert') : undefined}
             />
           )}
         </div>
@@ -5168,7 +5178,7 @@ export function TableGrid({
         columns={displayColumns}
         onSave={handleInlineSave}
         canEdit={userPermissions.canEdit}
-        saveBlockedReason={locks?.updateLocked ? LOCK_TOOLTIPS.update : undefined}
+        saveBlockedReason={locks?.updateLocked ? lockTooltip(tLocks, 'update') : undefined}
         scrollContainer={scrollRef.current}
       />
     </div>

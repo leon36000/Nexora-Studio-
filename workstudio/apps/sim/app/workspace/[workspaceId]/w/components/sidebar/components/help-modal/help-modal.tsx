@@ -14,6 +14,7 @@ import { createLogger } from '@sim/logger'
 import { useMutation } from '@tanstack/react-query'
 import imageCompression from 'browser-image-compression'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -28,18 +29,14 @@ const SUCCESS_RESET_DELAY_MS = 2000
 
 const DEFAULT_REQUEST_TYPE = 'bug'
 
-const REQUEST_TYPE_OPTIONS = [
-  { label: 'Bug report', value: 'bug' },
-  { label: 'Feedback', value: 'feedback' },
-  { label: 'Feature request', value: 'feature_request' },
-  { label: 'Other', value: 'other' },
-]
+const REQUEST_TYPES = ['bug', 'feedback', 'feature_request', 'other'] as const
 
+/** Validation messages are message keys under `shell.helpModal`, translated where the error renders. */
 const formSchema = z.object({
-  subject: z.string().min(1, 'Subject is required'),
-  message: z.string().min(1, 'Message is required'),
-  type: z.enum(['bug', 'feedback', 'feature_request', 'other'], {
-    error: 'Please select a request type',
+  subject: z.string().min(1, 'validation.subjectRequired'),
+  message: z.string().min(1, 'validation.messageRequired'),
+  type: z.enum(REQUEST_TYPES, {
+    error: 'validation.typeRequired',
   }),
 })
 
@@ -116,6 +113,12 @@ async function submitHelpRequest({ data, images, workflowId, workspaceId }: Subm
 }
 
 export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpModalProps) {
+  const t = useTranslations('shell.helpModal')
+  const requestTypeOptions = REQUEST_TYPES.map((value) => ({
+    label: t(`requestTypes.${value}`),
+    value,
+  }))
+  const errorText = (key: string | undefined) => (key ? t(key) : undefined)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const imagesRef = useRef<ImageWithPreview[]>([])
 
@@ -250,8 +253,8 @@ export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpM
   }
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Contact support' size='md'>
-      <ChipModalHeader onClose={() => onOpenChange(false)}>Contact support</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('title')} size='md'>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{t('title')}</ChipModalHeader>
 
       <form onSubmit={handleSubmit(onSubmit)} className='flex min-h-0 flex-1 flex-col'>
         <button type='submit' hidden disabled={helpMutation.isPending || isProcessing} />
@@ -262,12 +265,12 @@ export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpM
             render={({ field, fieldState }) => (
               <ChipModalField
                 type='dropdown'
-                title='Request'
+                title={t('request')}
                 value={field.value}
                 onChange={field.onChange}
-                options={REQUEST_TYPE_OPTIONS}
-                placeholder='Select a request type'
-                error={fieldState.error?.message}
+                options={requestTypeOptions}
+                placeholder={t('requestPlaceholder')}
+                error={errorText(fieldState.error?.message)}
               />
             )}
           />
@@ -277,11 +280,11 @@ export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpM
             render={({ field, fieldState }) => (
               <ChipModalField
                 type='input'
-                title='Subject'
+                title={t('subject')}
                 value={field.value}
                 onChange={field.onChange}
-                placeholder='Brief description of your request'
-                error={fieldState.error?.message}
+                placeholder={t('subjectPlaceholder')}
+                error={errorText(fieldState.error?.message)}
               />
             )}
           />
@@ -291,27 +294,27 @@ export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpM
             render={({ field, fieldState }) => (
               <ChipModalField
                 type='textarea'
-                title='Message'
+                title={t('message')}
                 value={field.value}
                 onChange={field.onChange}
-                placeholder='Please provide details about your request...'
+                placeholder={t('messagePlaceholder')}
                 rows={6}
-                error={fieldState.error?.message}
+                error={errorText(fieldState.error?.message)}
               />
             )}
           />
           <ChipModalField
             type='file'
-            title='Attach images (optional)'
-            label='Drop images here or click to browse'
-            description='PNG, JPEG, WebP, GIF (max 20MB each)'
+            title={t('attachImages')}
+            label={t('dropImages')}
+            description={t('imageFormats')}
             accept={ACCEPTED_IMAGE_TYPES.join(',')}
             multiple
             onChange={processFiles}
           />
 
           {images.length > 0 && (
-            <ChipModalField type='custom' title='Uploaded images'>
+            <ChipModalField type='custom' title={t('uploadedImages')}>
               <div className='grid grid-cols-2 gap-3'>
                 {images.map((image, index) => (
                   <div
@@ -321,14 +324,14 @@ export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpM
                     <div className='relative flex max-h-[120px] min-h-[80px] w-full items-center justify-center'>
                       <Image
                         src={image.preview}
-                        alt={`Preview ${index + 1}`}
+                        alt={t('preview', { index: index + 1 })}
                         fill
                         unoptimized
                         sizes='(max-width: 768px) 100vw, 50vw'
                         className='object-contain'
                       />
                       <button
-                        aria-label='Remove image'
+                        aria-label={t('removeImage')}
                         type='button'
                         className='absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100'
                         onClick={() => removeImage(index)}
@@ -349,12 +352,12 @@ export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpM
           cancelDisabled={helpMutation.isPending}
           primaryAction={{
             label: helpMutation.isPending
-              ? 'Submitting...'
+              ? t('submitting')
               : submitStatus === 'error'
-                ? 'Error'
+                ? t('error')
                 : submitStatus === 'success'
-                  ? 'Success'
-                  : 'Submit',
+                  ? t('success')
+                  : t('submit'),
             onClick: () => void handleSubmit(onSubmit)(),
             disabled: helpMutation.isPending || isProcessing,
           }}

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button, ChipInput, cn } from '@sim/emcn'
 import { Search, X } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition, WorkflowGroup } from '@/lib/table'
 import { ALL_ENRICHMENTS } from '@/enrichments'
 import { getEnrichment } from '@/enrichments/registry'
@@ -26,10 +27,11 @@ interface EnrichmentsSidebarProps {
  * sliding panel (input mapping + outputs), which creates an enrichment column.
  */
 export function EnrichmentsSidebar({ open, ...rest }: EnrichmentsSidebarProps) {
+  const t = useTranslations('tables.enrichments')
   return (
     <aside
       role='dialog'
-      aria-label='Enrichments'
+      aria-label={t('title')}
       className={cn(
         'absolute top-0 right-0 bottom-0 z-[var(--z-modal)] flex w-full flex-col overflow-hidden border-[var(--border)] border-l bg-[var(--bg)] transition-transform duration-200 ease-out motion-reduce:transition-none md:w-[400px]',
         open ? 'translate-x-0 shadow-overlay' : 'translate-x-full'
@@ -47,6 +49,7 @@ function EnrichmentsSidebarBody({
   tableId,
   editGroup,
 }: Omit<EnrichmentsSidebarProps, 'open'>) {
+  const t = useTranslations('tables.enrichments')
   const [selected, setSelected] = useState<EnrichmentDef | null>(null)
   const [query, setQuery] = useState('')
 
@@ -72,22 +75,21 @@ function EnrichmentsSidebarBody({
     return (
       <div className='flex h-full flex-col'>
         <div className='flex min-h-[48px] items-center justify-between border-[var(--border)] border-b px-3 py-[8.5px] max-md:pointer-coarse:py-0.5'>
-          <h2 className='text-[var(--text-primary)] text-small'>Enrichment</h2>
+          <h2 className='text-[var(--text-primary)] text-small'>{t('singular')}</h2>
           <Button
             variant='ghost'
             size='sm'
             onClick={onClose}
             iconPadding='sm'
             className='size-7 flex-none max-md:pointer-coarse:size-11'
-            aria-label='Close'
+            aria-label={t('close')}
           >
             <X className='size-[14px]' />
           </Button>
         </div>
         <div className='flex flex-1 items-center justify-center px-6 text-center'>
           <p className='text-[var(--text-tertiary)] text-small'>
-            This enrichment ("{editGroup.enrichmentId}") is no longer available. Delete the column
-            and add a current enrichment.
+            {t('unavailable', { id: editGroup.enrichmentId ?? '' })}
           </p>
         </div>
       </div>
@@ -119,14 +121,14 @@ function EnrichmentsSidebarBody({
   return (
     <div className='flex h-full flex-col'>
       <div className='flex min-h-[48px] items-center justify-between border-[var(--border)] border-b px-3 py-[8.5px] max-md:pointer-coarse:py-0.5'>
-        <h2 className='text-[var(--text-primary)] text-small'>Enrichments</h2>
+        <h2 className='text-[var(--text-primary)] text-small'>{t('title')}</h2>
         <Button
           variant='ghost'
           size='sm'
           onClick={onClose}
           iconPadding='sm'
           className='size-7 flex-none max-md:pointer-coarse:size-11'
-          aria-label='Close'
+          aria-label={t('close')}
         >
           <X className='size-[14px]' />
         </Button>
@@ -137,7 +139,7 @@ function EnrichmentsSidebarBody({
           icon={Search}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder='Search'
+          placeholder={t('search')}
           spellCheck={false}
           autoComplete='off'
         />
@@ -145,7 +147,7 @@ function EnrichmentsSidebarBody({
 
       <div className='flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 [overflow-anchor:none]'>
         {filtered.length === 0 ? (
-          <p className='px-1 pt-2 text-[var(--text-tertiary)] text-small'>No enrichments found.</p>
+          <p className='px-1 pt-2 text-[var(--text-tertiary)] text-small'>{t('empty')}</p>
         ) : (
           <ul className='flex flex-col'>
             {filtered.map((enrichment) => {

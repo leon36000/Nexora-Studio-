@@ -1,6 +1,7 @@
 'use client'
 
 import { Avatar, AvatarFallback, AvatarImage, cn, Tooltip } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { getUserColor } from '@/lib/workspaces/colors'
 
 /** Minimal presence shape the avatar stack renders — shared by workflow and files. */
@@ -23,6 +24,7 @@ interface UserAvatarProps {
  * with their initial. Wrapped in a name tooltip when the name is known.
  */
 function UserAvatar({ user, index }: UserAvatarProps) {
+  const t = useTranslations('shell.presence')
   const color = getUserColor(user.userId)
   const initials = user.userName ? user.userName.charAt(0).toUpperCase() : '?'
 
@@ -31,7 +33,7 @@ function UserAvatar({ user, index }: UserAvatarProps) {
       {user.avatarUrl && (
         <AvatarImage
           src={user.avatarUrl}
-          alt={user.userName ? `${user.userName}'s avatar` : 'User avatar'}
+          alt={user.userName ? t('avatarOf', { name: user.userName }) : t('userAvatar')}
           referrerPolicy='no-referrer'
         />
       )}
@@ -76,6 +78,7 @@ export function PresenceAvatars({
   maxVisible = DEFAULT_MAX_VISIBLE,
   className,
 }: PresenceAvatarsProps) {
+  const t = useTranslations('shell.presence')
   // Reverse so the rightmost avatar stays stable as new ones reveal on the left.
   // slice() already returns a fresh array, so the in-place reverse is safe.
   const visibleUsers = users.slice(0, maxVisible).reverse()
@@ -93,7 +96,7 @@ export function PresenceAvatars({
             <Avatar
               size='xs'
               style={{ zIndex: 0 }}
-              aria-label={`${overflowCount} more ${overflowCount === 1 ? 'user' : 'users'}`}
+              aria-label={t('moreUsers', { count: overflowCount })}
             >
               <AvatarFallback className='border-0 bg-gray-700 font-semibold text-[7px] text-white'>
                 +{overflowCount}
@@ -101,7 +104,7 @@ export function PresenceAvatars({
             </Avatar>
           </Tooltip.Trigger>
           <Tooltip.Content side='bottom'>
-            {overflowCount} more user{overflowCount > 1 ? 's' : ''}
+            {t('moreUsers', { count: overflowCount })}
           </Tooltip.Content>
         </Tooltip.Root>
       )}

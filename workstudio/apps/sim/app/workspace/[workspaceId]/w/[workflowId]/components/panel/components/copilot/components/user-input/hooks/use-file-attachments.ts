@@ -5,6 +5,7 @@ import { toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import {
   getMothershipAttachmentPreviewUrl,
   getMothershipAttachmentUrl,
@@ -105,6 +106,7 @@ interface UseFileAttachmentsProps {
  * @returns File attachment state and operations
  */
 export function useFileAttachments(props: UseFileAttachmentsProps) {
+  const t = useTranslations('editor.copilot.attachments')
   const { userId, workspaceId, organizationId, requestMode, disabled } = props
   const imagesOnly = Boolean(organizationId) && requestMode !== 'agent' && requestMode !== 'plan'
 
@@ -192,7 +194,7 @@ export function useFileAttachments(props: UseFileAttachmentsProps) {
           imagesOnly &&
           Array.from(fileList).some((file) => !isAssistantImageType(resolveFileType(file)))
         ) {
-          toast.error('Attach PNG, JPEG, GIF, or WebP images.')
+          toast.error(t('imagesOnly'))
           return
         }
         assertMultiFileUploadAdmission(fileList, {
@@ -206,7 +208,7 @@ export function useFileAttachments(props: UseFileAttachmentsProps) {
             : {}),
         })
       } catch (error) {
-        toast.error("Couldn't add files", { description: toError(error).message })
+        toast.error(t('addFailed'), { description: toError(error).message })
         return
       }
 
@@ -267,7 +269,7 @@ export function useFileAttachments(props: UseFileAttachmentsProps) {
         } catch (error) {
           if (!controller.signal.aborted) {
             logger.error(`File upload failed: ${error}`)
-            toast.error(`Couldn't upload "${file.name}"`, {
+            toast.error(t('uploadFailed', { name: file.name }), {
               description: toError(error).message,
             })
           }
@@ -278,7 +280,7 @@ export function useFileAttachments(props: UseFileAttachmentsProps) {
         }
       })
     },
-    [userId, workspaceId, organizationId, requestMode, imagesOnly, updateAttachedFiles]
+    [userId, workspaceId, organizationId, requestMode, imagesOnly, updateAttachedFiles, t]
   )
 
   /**

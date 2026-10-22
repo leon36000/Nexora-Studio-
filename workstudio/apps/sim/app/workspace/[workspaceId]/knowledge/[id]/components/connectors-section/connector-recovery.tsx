@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Chip } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { ConnectorData } from '@/lib/api/contracts/knowledge/connectors'
 import { type ResourceScope, resourceScopeFields } from '@/lib/core/resource-scope'
 import {
@@ -36,6 +37,7 @@ export function ConnectorRecovery({
   disabled = false,
   onEdit,
 }: ConnectorRecoveryProps) {
+  const t = useTranslations('knowledge.connectors.recovery')
   const [showOAuthModal, setShowOAuthModal] = useState(false)
   const connectorDef = CONNECTOR_META_REGISTRY[connector.connectorType]
   const serviceId = connectorDef?.auth.mode === 'oauth' ? connectorDef.auth.provider : undefined
@@ -88,19 +90,14 @@ export function ConnectorRecovery({
   const credentialRevoked =
     connector.lastSyncError === CREDENTIAL_REVOKED_SYNC_ERROR && Boolean(connector.credentialId)
   const reconnectRequired = credentialRemoved || credentialRevoked
-  const pausedTitle = reconnectRequired
-    ? 'Reconnect to resume syncing'
-    : 'Sync paused after repeated failures'
+  const pausedTitle = reconnectRequired ? t('reconnectToResume') : t('pausedAfterFailures')
 
   return (
     <>
       {connector.accessMode === 'members' && connector.memberSyncStatus === 'disabled' && (
         <SettingsResourceRow
-          title='Member sync is disabled'
-          description={
-            connector.lastMemberSyncError ??
-            'Members cannot search this source until its access settings are fixed.'
-          }
+          title={t('memberSyncDisabled')}
+          description={connector.lastMemberSyncError ?? t('memberSyncDisabledDescription')}
         />
       )}
       {connector.status === 'disabled' || reconnectRequired ? (
@@ -109,33 +106,33 @@ export function ConnectorRecovery({
             !canEdit
               ? pausedTitle
               : requiresAccountSettings
-                ? 'Update the source account, then resume syncing'
+                ? t('updateSourceAccount')
                 : serviceId
-                  ? 'Reconnect to resume syncing'
+                  ? t('reconnectToResume')
                   : pausedTitle
           }
           trailing={
             canEdit && requiresAccountSettings && onEdit ? (
               <Chip disabled={disabled} onClick={onEdit}>
-                Settings
+                {t('settings')}
               </Chip>
             ) : canEdit && !requiresAccountSettings && serviceId && providerId ? (
               <Chip
                 disabled={disabled || Boolean(connector.credentialId && !selectedCredential)}
                 onClick={openReconnect}
               >
-                Reconnect
+                {t('reconnect')}
               </Chip>
             ) : undefined
           }
         />
       ) : missingScopes.length > 0 ? (
         <SettingsResourceRow
-          title='Additional permissions required'
+          title={t('additionalPermissions')}
           trailing={
             canEdit ? (
               <Chip disabled={disabled} onClick={openReconnect}>
-                Update access
+                {t('updateAccess')}
               </Chip>
             ) : undefined
           }

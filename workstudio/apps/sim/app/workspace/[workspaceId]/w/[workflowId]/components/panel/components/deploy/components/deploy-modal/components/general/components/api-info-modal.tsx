@@ -16,6 +16,7 @@ import {
   Label,
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { getMeaningfulWorkflowDescription } from '@/lib/mcp/workflow-tool-schema'
 import { normalizeInputFormatValue } from '@/lib/workflows/input-format'
 import { isInputDefinitionTrigger } from '@/lib/workflows/triggers/input-definition-triggers'
@@ -37,6 +38,7 @@ interface ApiInfoModalProps {
 }
 
 export function ApiInfoModal({ open, onOpenChange, workflowId }: ApiInfoModalProps) {
+  const t = useTranslations('editor.deploy.apiInfo')
   const { workspaceId } = useWorkflowScope()
   const blocks = useWorkflowStore((state) => state.blocks)
   const setValue = useSubBlockStore((state) => state.setValue)
@@ -191,7 +193,7 @@ export function ApiInfoModal({ open, onOpenChange, workflowId }: ApiInfoModalPro
 
       onOpenChange(false)
     } catch (err: unknown) {
-      const message = getErrorMessage(err, 'Failed to update access settings')
+      const message = getErrorMessage(err, t('saveFailed'))
       setSaveError(message)
     } finally {
       setIsSaving(false)
@@ -203,38 +205,36 @@ export function ApiInfoModal({ open, onOpenChange, workflowId }: ApiInfoModalPro
       <ChipModal
         open={open}
         onOpenChange={(openState) => !openState && handleCloseAttempt()}
-        srTitle='Edit API Info'
+        srTitle={t('title')}
       >
-        <ChipModalHeader onClose={() => onOpenChange(false)}>Edit API Info</ChipModalHeader>
+        <ChipModalHeader onClose={() => onOpenChange(false)}>{t('title')}</ChipModalHeader>
         <ChipModalBody>
           <ChipModalField
             type='textarea'
-            title='Description'
+            title={t('description')}
             value={description}
             onChange={setDescription}
-            placeholder='Describe what this workflow API does...'
+            placeholder={t('descriptionPlaceholder')}
             minHeight={80}
           />
 
           {!isPublicApiDisabled && (
-            <ChipModalField type='custom' title='Access'>
+            <ChipModalField type='custom' title={t('access')}>
               <ChipButtonGroup
                 value={accessMode}
                 onValueChange={(val) => setAccessMode(val as 'api_key' | 'public')}
               >
-                <ChipButtonGroupItem value='api_key'>API Key</ChipButtonGroupItem>
-                <ChipButtonGroupItem value='public'>Public</ChipButtonGroupItem>
+                <ChipButtonGroupItem value='api_key'>{t('apiKey')}</ChipButtonGroupItem>
+                <ChipButtonGroupItem value='public'>{t('public')}</ChipButtonGroupItem>
               </ChipButtonGroup>
               <p className='mt-1 text-[var(--text-secondary)] text-caption'>
-                {accessMode === 'public'
-                  ? 'Anyone can call this API without authentication. You will be billed for all usage.'
-                  : 'Requires a valid API key to call this endpoint.'}
+                {accessMode === 'public' ? t('publicHint') : t('apiKeyHint')}
               </p>
             </ChipModalField>
           )}
 
           {inputFormat.length > 0 && (
-            <ChipModalField type='custom' title={`Parameters (${inputFormat.length})`}>
+            <ChipModalField type='custom' title={t('parameters', { count: inputFormat.length })}>
               <div className='flex flex-col gap-2'>
                 {inputFormat.map((field) => (
                   <div
@@ -253,11 +253,11 @@ export function ApiInfoModal({ open, onOpenChange, workflowId }: ApiInfoModalPro
                     </div>
                     <div className='rounded-b-[4px] border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 pt-1.5 pb-2.5'>
                       <div className='flex flex-col gap-1.5'>
-                        <Label className='text-small'>Description</Label>
+                        <Label className='text-small'>{t('description')}</Label>
                         <Input
                           value={paramDescriptions[field.name] || ''}
                           onChange={(e) => handleParamDescriptionChange(field.name, e.target.value)}
-                          placeholder={`Enter description for ${field.name}`}
+                          placeholder={t('parameterPlaceholder', { name: field.name })}
                         />
                       </div>
                     </div>
@@ -273,7 +273,7 @@ export function ApiInfoModal({ open, onOpenChange, workflowId }: ApiInfoModalPro
           onCancel={handleCloseAttempt}
           cancelDisabled={isSaving}
           primaryAction={{
-            label: 'Save',
+            label: t('save'),
             onClick: handleSave,
             disabled: !hasChanges || isSaving,
           }}
@@ -283,12 +283,12 @@ export function ApiInfoModal({ open, onOpenChange, workflowId }: ApiInfoModalPro
       <ChipConfirmModal
         open={showUnsavedChangesAlert}
         onOpenChange={setShowUnsavedChangesAlert}
-        srTitle='Unsaved Changes'
-        title='Unsaved Changes'
-        text='You have unsaved changes. Are you sure you want to discard them?'
-        dismissLabel='Keep editing'
+        srTitle={t('unsaved.title')}
+        title={t('unsaved.title')}
+        text={t('unsaved.text')}
+        dismissLabel={t('unsaved.keepEditing')}
         confirm={{
-          label: 'Discard Changes',
+          label: t('unsaved.discard'),
           onClick: handleDiscardChanges,
         }}
       />

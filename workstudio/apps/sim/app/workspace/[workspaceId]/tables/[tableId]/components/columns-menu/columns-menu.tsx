@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@sim/emcn'
 import { Columns3, Eye, EyeOff } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition, WorkflowGroup } from '@/lib/table'
 import { getColumnId } from '@/lib/table/column-keys'
 
@@ -34,6 +35,7 @@ export const ColumnsMenu = memo(function ColumnsMenu({
   hiddenColumns,
   onChange,
 }: ColumnsMenuProps) {
+  const t = useTranslations('tables.columnsMenu')
   const [open, setOpen] = useState(false)
   const hiddenSet = new Set(hiddenColumns)
 
@@ -54,11 +56,11 @@ export const ColumnsMenu = memo(function ColumnsMenu({
       plain: plainColumns,
       groups: [...byGroup.entries()].map(([groupId, children]) => ({
         groupId,
-        name: groupById.get(groupId)?.name ?? 'Workflow',
+        name: groupById.get(groupId)?.name ?? t('workflowFallback'),
         children,
       })),
     }
-  }, [columns, workflowGroups])
+  }, [columns, workflowGroups, t])
 
   /**
    * Flips one or more columns. Rejects a change that would hide every column —
@@ -82,7 +84,7 @@ export const ColumnsMenu = memo(function ColumnsMenu({
         {/* `active` alone signals that something is hidden — the label stays fixed
             so the bar doesn't reflow as columns are toggled. */}
         <Chip active={hiddenCount > 0} leftIcon={Columns3} mobileIconOnly>
-          Columns
+          {t('label')}
         </Chip>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -112,7 +114,7 @@ export const ColumnsMenu = memo(function ColumnsMenu({
                 <ColumnToggleRow
                   label={group.name}
                   visible={visibleCount === childIds.length}
-                  partial={visibleCount > 0 && visibleCount < childIds.length}
+                  partial={visibleCount > 0 && childIds.length > visibleCount}
                   onToggle={(nextVisible) => toggle(childIds, !nextVisible)}
                 />
                 {group.children.map((col) => {

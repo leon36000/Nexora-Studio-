@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { cn } from '@sim/emcn'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SettingsMobileNavigation } from '@/components/settings/mobile-navigation'
 import {
   ACCOUNT_SETTINGS_GROUPS,
@@ -14,7 +15,6 @@ import {
   parseSettingsPathSection,
   SELFHOST_SETTINGS_GROUPS,
   SELFHOST_SETTINGS_ITEMS,
-  SETTINGS_PLANE_CHROME,
   toSettingsHeaderMeta,
 } from '@/components/settings/navigation'
 import { SettingsHeaderProvider, SettingsHeaderShell } from '@/components/settings/settings-header'
@@ -22,6 +22,7 @@ import { SettingsNavigationProvider } from '@/components/settings/settings-navig
 import { SettingsSectionProvider } from '@/components/settings/settings-panel'
 import { SettingsPendingSection } from '@/components/settings/settings-pending-section'
 import { SettingsSidebar } from '@/components/settings/settings-sidebar'
+import { useSettingsNavCopy } from '@/components/settings/use-settings-nav-copy'
 import type { DeploymentShape } from '@/lib/api/contracts/workspaces'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { SIDEBAR_NO_MOTION_CLASS } from '@/app/workspace/[workspaceId]/w/components/sidebar/constants'
@@ -54,6 +55,8 @@ export function StandaloneSettingsShell(props: StandaloneSettingsShellProps) {
   const { children, plane } = props
   useSeedDeploymentShape(props.deployment)
   const pathname = usePathname()
+  const t = useTranslations('settings.nav.chrome')
+  const navCopy = useSettingsNavCopy()
   const { hosted, billingEnabled } = useDeploymentShape()
   const isSuperUser = plane === 'account' ? (props.isSuperUser ?? false) : false
 
@@ -117,7 +120,7 @@ export function StandaloneSettingsShell(props: StandaloneSettingsShellProps) {
             'hidden h-full w-[var(--sidebar-expanded-width)] shrink-0 flex-col overflow-hidden bg-[var(--surface-1)] pt-3 md:flex',
             SIDEBAR_NO_MOTION_CLASS
           )}
-          aria-label={`${SETTINGS_PLANE_CHROME[plane].label} settings navigation`}
+          aria-label={t('planeNavigation', { plane: navCopy.plane(plane) })}
         >
           {sidebar}
         </aside>

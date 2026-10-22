@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { Chip, ChipInput } from '@sim/emcn'
 import { ArrowUp } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface GeneratePromptControlProps {
   isLoading: boolean
@@ -21,6 +22,7 @@ export function GeneratePromptControl({
   isStreaming,
   onSubmit,
 }: GeneratePromptControlProps) {
+  const t = useTranslations('shell.customTool')
   const [isActive, setIsActive] = useState(false)
   const [prompt, setPrompt] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -43,7 +45,7 @@ export function GeneratePromptControl({
   if (!isActive) {
     return (
       <Chip onClick={activate} disabled={isLoading || isStreaming}>
-        Generate
+        {t('generate')}
       </Chip>
     )
   }
@@ -52,7 +54,7 @@ export function GeneratePromptControl({
     <div className='flex items-center gap-1'>
       <ChipInput
         ref={inputRef}
-        value={isStreaming ? 'Generating...' : prompt}
+        value={isStreaming ? t('generating') : prompt}
         onChange={(e) => setPrompt(e.target.value)}
         onBlur={() => {
           if (!prompt.trim() && !isStreaming) setIsActive(false)
@@ -69,11 +71,11 @@ export function GeneratePromptControl({
         }}
         disabled={isStreaming}
         className='w-[220px]'
-        placeholder='Describe what to generate...'
+        placeholder={t('generatePlaceholder')}
       />
       <Chip
         leftIcon={ArrowUp}
-        aria-label='Generate'
+        aria-label={t('generate')}
         disabled={!prompt.trim() || isStreaming}
         onMouseDown={(e) => {
           e.preventDefault()

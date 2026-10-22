@@ -5,6 +5,7 @@ import { Plus, Wrench } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import dynamic from 'next/dynamic'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -37,6 +38,7 @@ const CustomToolDetail = dynamic(() => loadCustomToolDetail().then((m) => m.Cust
 })
 
 export function CustomTools() {
+  const t = useTranslations('settings.customTools')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workspacePermissions = useUserPermissionsContext()
@@ -78,7 +80,7 @@ export function CustomTools() {
   const actions: SettingsAction[] = canEdit
     ? [
         {
-          text: 'Add tool',
+          text: t('addTool'),
           icon: Plus,
           variant: 'primary',
           onSelect: () => setIsCreating(true),
@@ -117,17 +119,15 @@ export function CustomTools() {
       search={{
         value: searchTerm,
         onChange: setSearchTerm,
-        placeholder: 'Search tools...',
+        placeholder: t('searchPlaceholder'),
         disabled: isLoading,
       }}
       actions={actions}
     >
       {error ? (
-        <SettingsEmptyState>{getErrorMessage(error, 'Failed to load tools')}</SettingsEmptyState>
+        <SettingsEmptyState>{getErrorMessage(error, t('loadFailed'))}</SettingsEmptyState>
       ) : isLoading ? null : showEmptyState ? (
-        <SettingsEmptyState>
-          {canEdit ? 'Click "Add tool" above to get started' : 'No custom tools configured'}
-        </SettingsEmptyState>
+        <SettingsEmptyState>{canEdit ? t('emptyEditable') : t('emptyReadOnly')}</SettingsEmptyState>
       ) : (
         <div className={RESOURCE_LIST_STACK}>
           {filteredTools.map((tool) => (
@@ -135,16 +135,16 @@ export function CustomTools() {
               key={tool.id}
               icon={<Wrench className='text-[var(--text-icon)]' />}
               iconFilled
-              title={tool.title || 'Unnamed Tool'}
+              title={tool.title || t('unnamedTool')}
               description={tool.schema?.function?.description || undefined}
               onClick={() => void setSelectedToolId(tool.id)}
-              clickLabel={`Open ${tool.title || 'Unnamed Tool'}`}
+              clickLabel={t('openTool', { name: tool.title || t('unnamedTool') })}
               navigable
             />
           ))}
           {showNoResults && (
             <SettingsEmptyState variant='inline'>
-              No tools found matching "{searchTerm}"
+              {t('noResults', { searchTerm })}
             </SettingsEmptyState>
           )}
         </div>

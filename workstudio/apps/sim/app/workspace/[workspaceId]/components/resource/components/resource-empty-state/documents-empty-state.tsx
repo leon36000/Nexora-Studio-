@@ -1,5 +1,6 @@
 import { Chip, cn } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { EmptyState } from '@/components/empty-state/empty-state'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { EmptyStateDocsLink } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/docs-link'
@@ -14,7 +15,7 @@ const KNOWLEDGE_DOCS_URL = docsUrl('/knowledgebase')
  * rather than as blank ruling.
  */
 const INK = {
-  heading: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)',
+  heading: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)', // i18n-ignore: CSS color
   body: 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
 } as const
 
@@ -123,15 +124,16 @@ export function DocumentsEmptyState({
   onAddDocuments,
   addDisabled = false,
 }: DocumentsEmptyStateProps) {
+  const t = useTranslations('shell.emptyStates.documents')
   return (
     <EmptyState
       graphic={<DocumentsGraphic />}
-      title='Documents'
-      description='Upload documents so your agents can search this base.'
+      title={t('title')}
+      description={t('description')}
       action={
         <>
           <Chip variant='primary' onClick={onAddDocuments} disabled={addDisabled} leftIcon={Plus}>
-            New documents
+            {t('action')}
           </Chip>
           <EmptyStateDocsLink href={KNOWLEDGE_DOCS_URL} />
         </>

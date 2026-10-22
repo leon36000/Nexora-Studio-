@@ -3,6 +3,7 @@
 import type React from 'react'
 import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Button, Tooltip } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { TableRow as TableRowType } from '@/lib/table'
 import { columnTypeOf } from '@/lib/table/column-types'
 import { useTimezone } from '@/hooks/queries/general-settings'
@@ -44,6 +45,7 @@ export function ExpandedCellPopover({
   saveBlockedReason,
   scrollContainer,
 }: ExpandedCellPopoverProps) {
+  const t = useTranslations('tables.grid.expanded')
   const rootRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null)
@@ -158,7 +160,7 @@ export function ExpandedCellPopover({
     <div
       ref={rootRef}
       role='dialog'
-      aria-label={`Expanded view of ${target.column.name}`}
+      aria-label={t('ariaLabel', { name: target.column.name })}
       className='fixed z-50 flex flex-col overflow-hidden rounded-md border border-[var(--border-1)] bg-[var(--bg)] shadow-md'
       style={{ top, left, width, height: EXPANDED_CELL_HEIGHT }}
     >
@@ -185,12 +187,12 @@ export function ExpandedCellPopover({
                 {displayText}
               </pre>
             ) : (
-              <span className='text-[var(--text-tertiary)] text-small'>(empty)</span>
+              <span className='text-[var(--text-tertiary)] text-small'>{t('empty')}</span>
             )}
           </div>
           <div className='flex items-center justify-end border-[var(--border)] border-t bg-[var(--surface-2)] px-2 py-1.5'>
             <Button variant='ghost' size='sm' onClick={onClose}>
-              Close
+              {t('close')}
             </Button>
           </div>
         </>
@@ -223,6 +225,7 @@ function ExpandedCellEditor({
   onClose,
   textareaRef,
 }: ExpandedCellEditorProps) {
+  const t = useTranslations('tables.grid.expanded')
   const [draftValue, setDraftValue] = useState(initialValue)
   const [parseError, setParseError] = useState<string | null>(null)
   const timeZone = useTimezone()
@@ -243,7 +246,7 @@ function ExpandedCellEditor({
     try {
       cleaned = cleanCellValue(raw, column, timeZone)
     } catch {
-      setParseError('Invalid JSON')
+      setParseError(t('invalidJson'))
       return
     }
     if (cleaned === null && draftValue.trim() !== '') {
@@ -285,23 +288,25 @@ function ExpandedCellEditor({
         ) : saveBlockedReason ? (
           // Saving is refused, so the ↵ half of the shortcut hint would be a lie.
           <span className='text-[var(--text-tertiary)] text-caption'>
-            <kbd className='font-mono'>esc</kbd> close
+            {t.rich('hintClose', { kbd: (chunks) => <kbd className='font-mono'>{chunks}</kbd> })}
           </span>
         ) : (
           <span className='text-[var(--text-tertiary)] text-caption'>
-            <kbd className='font-mono'>↵</kbd> save · <kbd className='font-mono'>esc</kbd> cancel
+            {t.rich('hintSaveCancel', {
+              kbd: (chunks) => <kbd className='font-mono'>{chunks}</kbd>,
+            })}
           </span>
         )}
         <div className='flex items-center gap-1.5'>
           <Button variant='ghost' size='sm' onClick={onClose}>
-            Cancel
+            {t('cancel')}
           </Button>
           {saveBlockedReason ? (
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
                 <span className='inline-flex'>
                   <Button size='sm' variant='primary' disabled>
-                    Save
+                    {t('save')}
                   </Button>
                 </span>
               </Tooltip.Trigger>
@@ -309,7 +314,7 @@ function ExpandedCellEditor({
             </Tooltip.Root>
           ) : (
             <Button size='sm' variant='primary' onClick={handleSave}>
-              Save
+              {t('save')}
             </Button>
           )}
         </div>

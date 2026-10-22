@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { normalizeEmail } from '@sim/utils/string'
 import { useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { client, useSession } from '@/lib/auth/client'
 import { SSO_REQUIRED_ERROR_CODE } from '@/lib/auth/constants'
 import { validateCallbackUrl } from '@/lib/core/security/input-validation'
@@ -65,7 +66,7 @@ interface UseVerificationReturn {
   hasEmailService: boolean
   isProduction: boolean
   isEmailVerificationEnabled: boolean
-  verifyCode: () => Promise<void>
+  verifyCode: () => Promise<void> // i18n-ignore: type signature
   resendCode: () => void
   handleOtpChange: (value: string) => void
 }
@@ -76,6 +77,7 @@ export function useVerification({
   isEmailVerificationEnabled,
 }: UseVerificationParams): UseVerificationReturn {
   const searchParams = useSearchParams()
+  const t = useTranslations('auth.verify.errors')
   const { data: session, refetch: refetchSession } = useSession()
   const [otp, setOtp] = useState('')
   const [storedEmail, setStoredEmail] = useState('')
@@ -130,22 +132,22 @@ export function useVerification({
         const message =
           response?.error?.code === SSO_REQUIRED_ERROR_CODE && response.error.message
             ? response.error.message
-            : 'Invalid verification code. Please check and try again.'
+            : t('invalidCode')
         setStatus('error')
         setErrorMessage(message)
         logger.info('Error state after API error:', { errorMessage: message })
         setOtp('')
       }
     } catch (error: any) {
-      let message = 'Verification failed. Please check your code and try again.'
+      let message = t('failed')
 
       if (error.message?.includes('expired')) {
-        message = 'The verification code has expired. Please request a new one.'
+        message = t('expired')
       } else if (error.message?.includes('invalid')) {
         logger.info('Setting invalid OTP state - caught error')
-        message = 'Invalid verification code. Please check and try again.'
+        message = t('invalidCode')
       } else if (error.message?.includes('attempts')) {
-        message = 'Too many failed attempts. Please request a new code.'
+        message = t('tooManyAttempts')
       }
 
       setStatus('error')
@@ -170,7 +172,7 @@ export function useVerification({
       })
       .then(() => {})
       .catch(() => {
-        setErrorMessage('Failed to resend verification code. Please try again later.')
+        setErrorMessage(t('resendFailed'))
       })
       .finally(() => {
         setIsResending(false)

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@sim/emcn'
 import { ChevronDown } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { SortDirection, WorkflowGroup } from '@/lib/table'
 import { HeaderLabel } from '@/app/workspace/[workspaceId]/tables/[tableId]/components/table-grid/headers/header-label'
 import type { WorkflowMetadata } from '@/stores/workflows/registry/types'
@@ -102,6 +103,7 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
   stickyLeft,
   isLastPinned,
 }: ColumnHeaderMenuProps) {
+  const t = useTranslations('tables.grid.header')
   const renameInputRef = useRef<HTMLInputElement>(null)
   const didDragRef = useRef(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -116,10 +118,10 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
   // Workflow-output column with siblings → "Hide column" (non-destructive,
   // re-addable from sidebar). Last output of a group → "Delete column"
   // (removes the entire group). Plain column → undefined (default "Delete column").
-  const deleteLabel = ownGroup
+  const deleteVariant: 'hide' | 'delete' | undefined = ownGroup
     ? ownGroup.outputs.length > 1
-      ? 'Hide column'
-      : 'Delete column'
+      ? 'hide'
+      : 'delete'
     : undefined
   useEffect(() => {
     if (isRenaming && renameInputRef.current) {
@@ -341,7 +343,7 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
             className='flex h-full shrink-0 cursor-pointer items-center pr-2.5 pl-0.5 text-[var(--text-muted)] opacity-0 pointer-coarse:opacity-100 transition-opacity hover:text-[var(--text-primary)] group-hover:opacity-100 max-md:min-w-8 max-md:justify-center max-md:opacity-100'
             onClick={handleChevronClick}
             draggable={false}
-            aria-label='Column options'
+            aria-label={t('columnOptions')}
           >
             <ChevronDown className='size-[10px] shrink-0' />
           </button>
@@ -350,7 +352,7 @@ export const ColumnHeaderMenu = React.memo(function ColumnHeaderMenu({
             onOpenChange={setMenuOpen}
             position={menuPosition}
             column={column}
-            deleteLabel={deleteLabel}
+            deleteVariant={deleteVariant}
             onOpenConfig={onOpenConfig}
             schemaLockedReason={schemaLockedReason}
             deleteLockedReason={deleteLockedReason}

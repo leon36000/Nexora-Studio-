@@ -17,6 +17,7 @@ import {
 import { ChevronDown, ChevronRight } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import type { McpAuthType, McpTransport } from '@/lib/mcp/types'
 import {
   checkEnvVarTrigger,
@@ -59,7 +60,7 @@ export interface McpServerFormModalProps {
   onOpenChange: (open: boolean) => void
   mode: 'add' | 'edit'
   initialData?: McpServerFormData
-  onSubmit: (config: McpServerFormConfig) => Promise<void>
+  onSubmit: (config: McpServerFormConfig) => Promise<void> // i18n-ignore: type signature
   workspaceId: string
   availableEnvVars?: Set<string>
   allowedMcpDomains: string[] | null
@@ -110,15 +111,19 @@ interface EnvVarDropdownConfig {
   onClose: () => void
 }
 
+const SERVER_NAME_EXAMPLE = '{ "mcpServers": { "name": { "url": "..." } } }'
+
+/** `t` is scoped to `settings.mcp.form`. */
 function getTestButtonLabel(
+  t: ReturnType<typeof useTranslations>,
   testResult: { success: boolean; error?: string; authRequired?: boolean } | null,
   isTestingConnection: boolean
 ): string {
-  if (isTestingConnection) return 'Testing...'
-  if (testResult?.success) return 'Connection success'
-  if (testResult?.authRequired) return 'Requires OAuth'
-  if (testResult && !testResult.success) return 'No connection: retry'
-  return 'Test connection'
+  if (isTestingConnection) return t('testing')
+  if (testResult?.success) return t('connectionSuccess')
+  if (testResult?.authRequired) return t('requiresOauth')
+  if (testResult && !testResult.success) return t('noConnectionRetry')
+  return t('testConnection')
 }
 
 interface FormattedInputProps {
@@ -220,6 +225,7 @@ function HeaderRow({
   onEnvVarSelect,
   onEnvVarClose,
 }: HeaderRowProps) {
+  const t = useTranslations('settings.mcp.form')
   const isKeyActive =
     showEnvVars && activeInputField === 'header-key' && activeHeaderIndex === index
   const isValueActive =
@@ -236,7 +242,7 @@ function HeaderRow({
   return (
     <div className='relative flex items-center gap-2'>
       <FormattedInput
-        placeholder='Name'
+        placeholder={t('headerName')}
         value={header.key || ''}
         scrollLeft={headerScrollLeft[`key-${index}`] || 0}
         showEnvVars={isKeyActive}
@@ -248,7 +254,7 @@ function HeaderRow({
       />
 
       <FormattedInput
-        placeholder='Value'
+        placeholder={t('headerValue')}
         value={header.value || ''}
         scrollLeft={headerScrollLeft[`value-${index}`] || 0}
         showEnvVars={isValueActive}
@@ -317,6 +323,8 @@ export function McpServerFormModal({
   domainPolicyUnavailable = false,
   domainPolicyError,
 }: McpServerFormModalProps) {
+  const t = useTranslations('settings.mcp.form')
+  const tShared = useTranslations('settings.shared')
   const urlInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState<McpServerFormData>(DEFAULT_FORM_DATA)
@@ -429,7 +437,7 @@ export function McpServerFormModal({
   const isDomainBlocked =
     !!formData.url?.trim() && !isDomainAllowed(formData.url, allowedMcpDomains)
   const isFormValid = !!(formData.name.trim() && formData.url?.trim())
-  const testButtonLabel = getTestButtonLabel(testResult, isTestingConnection)
+  const testButtonLabel = getTestButtonLabel(t, testResult, isTestingConnection)
 
   const computeHasChanges = (): boolean => {
     if (mode === 'add') return true
@@ -461,17 +469,15 @@ export function McpServerFormModal({
       if (parsed.mcpServers && typeof parsed.mcpServers === 'object') {
         const entries = Object.entries(parsed.mcpServers)
         if (entries.length === 0) {
-          setJsonError('No servers found in mcpServers')
+          setJsonError(t('noServersInJson'))
           return null
         }
         if (entries.length > 1) {
-          setJsonError(
-            `Only the first server ("${entries[0][0]}") will be imported. Paste each config separately to add others.`
-          )
+          setJsonError(t('onlyFirstServer', { name: entries[0][0] }))
         }
         const [name, config] = entries[0] as [string, Record<string, unknown>]
         if (!config.url || typeof config.url !== 'string') {
-          setJsonError('Server config must include a "url" field')
+          setJsonError(t('urlFieldRequired'))
           return null
         }
         if (entries.length <= 1) setJsonError(null)
@@ -483,10 +489,10 @@ export function McpServerFormModal({
         return { name: '', url: parsed.url, headers: extractStringHeaders(parsed.headers) }
       }
 
-      setJsonError('JSON must contain "mcpServers" or a "url" field')
+      setJsonError(t('jsonMustContain'))
       return null
     } catch {
-      setJsonError('Invalid JSON')
+      setJsonError(t('invalidJson'))
       return null
     }
   }
@@ -526,9 +532,7 @@ export function McpServerFormModal({
       })
 
       if (!connectionResult.success && !connectionResult.authRequired) {
-        setSubmitError(
-          connectionResult.error || 'Connection test failed. Please check the URL and try again.'
-        )
+        setSubmitError(connectionResult.error || t('connectionTestFailed'))
         return
       }
 
@@ -555,7 +559,7 @@ export function McpServerFormModal({
 
       onOpenChange(false)
     } catch (error) {
-      setSubmitError(getErrorMessage(error, 'Failed to save server'))
+      setSubmitError(getErrorMessage(error, t('saveFailed')))
       logger.error('Failed to save MCP server:', error)
     } finally {
       setIsSubmitting(false)
@@ -568,12 +572,12 @@ export function McpServerFormModal({
     if (!config) return
 
     if (!config.name) {
-      setJsonError('Server name is required. Use: { "mcpServers": { "name": { "url": "..." } } }')
+      setJsonError(t('nameRequired', { example: SERVER_NAME_EXAMPLE }))
       return
     }
 
     if (!isDomainAllowed(config.url, allowedMcpDomains)) {
-      setJsonError('Domain not permitted by server policy')
+      setJsonError(t('domainNotPermitted'))
       return
     }
 
@@ -590,9 +594,7 @@ export function McpServerFormModal({
       })
 
       if (!connectionResult.success && !connectionResult.authRequired) {
-        setSubmitError(
-          connectionResult.error || 'Connection test failed. Please check the URL and try again.'
-        )
+        setSubmitError(connectionResult.error || t('connectionTestFailed'))
         return
       }
 
@@ -607,7 +609,7 @@ export function McpServerFormModal({
 
       onOpenChange(false)
     } catch (error) {
-      setSubmitError(getErrorMessage(error, 'Failed to save server'))
+      setSubmitError(getErrorMessage(error, t('saveFailed')))
       logger.error('Failed to save MCP server from JSON:', error)
     } finally {
       setIsSubmitting(false)
@@ -621,8 +623,8 @@ export function McpServerFormModal({
     isDomainBlocked ||
     (mode === 'edit' && !hasChanges)
 
-  const title = mode === 'add' ? 'Add MCP server' : 'Edit MCP server'
-  const submitLabel = mode === 'add' ? 'Add server' : 'Save'
+  const title = mode === 'add' ? t('titleAdd') : t('titleEdit')
+  const submitLabel = mode === 'add' ? t('submitAdd') : tShared('save')
 
   const handleToggleJsonMode = () => {
     if (testResult) clearTestResult()
@@ -634,7 +636,7 @@ export function McpServerFormModal({
   const secondaryAction: ChipModalFooterAction | undefined =
     mode === 'add'
       ? {
-          label: formMode === 'form' ? 'Edit JSON' : 'Edit form',
+          label: formMode === 'form' ? t('editJson') : t('editForm'),
           onClick: handleToggleJsonMode,
         }
       : formMode === 'form'
@@ -649,12 +651,12 @@ export function McpServerFormModal({
   const primaryAction: ChipModalFooterAction =
     formMode === 'json'
       ? {
-          label: isSubmitting ? 'Adding...' : submitLabel,
+          label: isSubmitting ? t('adding') : submitLabel,
           onClick: handleSubmitJson,
           disabled: domainPolicyUnavailable || isSubmitting || !jsonInput.trim(),
         }
       : {
-          label: isSubmitting ? (mode === 'add' ? 'Adding...' : 'Saving...') : submitLabel,
+          label: isSubmitting ? (mode === 'add' ? t('adding') : tShared('saving')) : submitLabel,
           onClick: handleSubmitForm,
           disabled: isSubmitDisabled,
         }
@@ -666,7 +668,7 @@ export function McpServerFormModal({
         {formMode === 'json' ? (
           <ChipModalField
             type='textarea'
-            title='Configuration'
+            title={t('configuration')}
             value={jsonInput}
             onChange={(value) => {
               setJsonInput(value)
@@ -701,24 +703,24 @@ export function McpServerFormModal({
             />
             <ChipModalField
               type='input'
-              title='Server Name'
+              title={t('serverName')}
               value={formData.name}
               onChange={(value) => {
                 if (testResult) clearTestResult()
                 if (submitError) setSubmitError(null)
                 setFormData((prev) => ({ ...prev, name: value }))
               }}
-              placeholder='e.g., My MCP Server'
+              placeholder={t('serverNamePlaceholder')}
             />
 
             <ChipModalField
               type='custom'
-              title='Server URL'
-              error={isDomainBlocked ? 'Domain not permitted by server policy' : undefined}
+              title={t('serverUrl')}
+              error={isDomainBlocked ? t('domainNotPermitted') : undefined}
             >
               <FormattedInput
                 ref={urlInputRef}
-                placeholder='https://mcp.server.dev/{{YOUR_API_KEY}}/sse'
+                placeholder='https://mcp.server.dev/{{YOUR_API_KEY}}/sse' // i18n-ignore: example URL
                 value={formData.url || ''}
                 scrollLeft={urlScrollLeft}
                 showEnvVars={showEnvVars && activeInputField === 'url'}
@@ -735,7 +737,7 @@ export function McpServerFormModal({
               />
             </ChipModalField>
 
-            <ChipModalField type='custom' title='Headers'>
+            <ChipModalField type='custom' title={t('headers')}>
               <div className='flex max-h-[140px] flex-col gap-2 overflow-y-auto'>
                 {(formData.headers || []).map((header, index) => (
                   <HeaderRow
@@ -770,13 +772,13 @@ export function McpServerFormModal({
               ) : (
                 <ChevronRight className='size-[14px]' />
               )}
-              Advanced settings
+              {t('advancedSettings')}
             </Button>
             {showAdvanced && (
               <>
-                <ChipModalField type='custom' title='Client ID'>
+                <ChipModalField type='custom' title={t('clientId')}>
                   <ChipInput
-                    placeholder='OAuth Client ID (optional)'
+                    placeholder={t('clientIdPlaceholder')}
                     value={formData.oauthClientId || ''}
                     name='mcp_oauth_client_id'
                     autoComplete='off'
@@ -793,11 +795,11 @@ export function McpServerFormModal({
                 </ChipModalField>
                 <ChipModalField
                   type='custom'
-                  title='Client Secret'
-                  hint="Only needed for servers that don't support automatic client registration."
+                  title={t('clientSecret')}
+                  hint={t('clientSecretHint')}
                 >
                   <SecretInput
-                    placeholder='OAuth Client Secret (optional)'
+                    placeholder={t('clientSecretPlaceholder')}
                     value={formData.oauthClientSecret || ''}
                     name='mcp_oauth_client_secret'
                     autoComplete='new-password'

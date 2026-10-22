@@ -113,3 +113,42 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Les identifiants envoyés aux services tiers (user agents, sources d'intégration) passent à Nexora ; les signatures AWS SigV4 de référence ont été recalculées.
   - Conservés volontairement : les sels de chiffrement `oomol-connect-*-secret-store-v1` (les changer rendrait illisibles les secrets existants), les en-têtes d'API `x-oo-connector-alias` / `X-OpenConnector-Request`, et les noms internes `OOMOL_CONNECT_*`.
   - Reste pour la tâche 14 : les docs `services/nexora-connect/docs/*.md` et le README citent encore `@oomol-lab/open-connector` et le schéma `oomol:`.
+- 22/10/2026 — **Tâche 6 (traduction) : les six sous-agents ont terminé.**
+  - Messages par zone (fr et en) :
+    - auth 156 + errors 12 ;
+    - shell 488 ;
+    - éditeur 1 009 ;
+    - logs et intégrations (≈ 270 lignes JSON chacun) ;
+    - réglages 1 242 ;
+    - tables 468, fichiers 322, connaissances 586.
+  - Anglais identique à l'original, ce qui garde les tests existants valides. Français vouvoyé, avec espace insécable avant `? ! : ;`.
+  - `check-i18n` sur les 17 dossiers couverts : **OK (1 043 fichiers)**.
+  - R19 : le message d'accueil par défaut du chat déployé est en français ; il est enregistré tel quel au déploiement.
+  - Restes connus en anglais (hors zones couvertes) : textes de `lib/` partagés (types de colonnes, coûts, libellés de blocs et d'outils), composants `ee/` secondaires (événements d'usage, politiques de session), boutons génériques du système de design (`packages/emcn`), dates date-fns en Knowledge, tailles de fichiers B/KB/MB. À traiter après la v1.
+  - Faux positifs du contrôleur (types TS `=> Promise<…>`, comparaisons) neutralisés par `// i18n-ignore` ; amélioration du contrôleur notée pour plus tard.
+- 22/10/2026 — **Tâche 9** :
+  - **Journal d'audit** : composant `ee/audit-logs` (salle blanche) avec recherche, tableau, « Afficher plus » et export CSV, branché sur `/api/audit-logs` du cœur (`AUDIT_LOGS_ENABLED`) ; hook `hooks/queries/audit-logs.ts`.
+  - **Consommation** :
+    - `lib/nexora/usage.ts` : tranches journalières de `GET /v1/me/usage` de Nexora API (4 tests) ;
+    - route `/api/nexora/usage` et contrat ;
+    - composant `ee/organization-usage/usage-monitoring` (totaux et tableau par jour).
+  - **SSO OIDC** :
+    - `lib/nexora/oidc.ts` : fournisseur `nexora-oidc` dans `genericOAuth`, découverte via `/.well-known/openid-configuration`, PKCE, déclaré fournisseur de confiance pour le rattachement de comptes (2 tests) ;
+    - bouton « Se connecter avec {name} » sur la connexion et l'inscription (`NEXT_PUBLIC_NEXORA_OIDC_NAME`).
+  - **Organisations sans facturation (R17)** : `/api/organizations` crée l'organisation sans abonnement quand la facturation est désactivée ; 409 si l'utilisateur en administre déjà une. Les deux anciens tests épinglent maintenant `isBillingEnabled: true` ; 2 nouveaux tests ont été écrits **après** le code (écart TDD assumé : comportement vérifié aussi en réel).
+  - Vérification réelle (dev) :
+    - organisation « PME Exemple » créée, et le journal montre `organization.created` ;
+    - `/api/nexora/usage` renvoie les vraies tranches de Nexora API ;
+    - SSO OIDC : test réel avec un vrai fournisseur (Keycloak) **pas encore fait**.
+  - R16 : SSO par `genericOAuth` (configuration par variables d'environnement) plutôt que par le plugin `sso` administré en base, dont l'interface `ee/` n'existe pas chez nous.
+- 22/10/2026 — **Tâche 10** :
+  - `lib/nexora/templates.ts` : 5 modèles (devis, relance de facture, support FAQ, tri d'e-mails, compte rendu) et un constructeur Start → Agent(s), modèle `vllm/<NEXORA_DEFAULT_MODEL>`. 9 tests, dont la validation par le vrai `parseWorkflowJson`.
+  - `lib/nexora/seed-templates.ts` : dossier « Modèles PME » et les 5 workflows à la création de chaque espace ; best-effort, désactivable par `NEXORA_TEMPLATES_DISABLED` (3 tests).
+  - R18 : le tri d'e-mails enchaîne deux Agents (classification, puis brouillon) au lieu d'une Condition, qui dépend du bac à sable de code.
+  - Vérification réelle (dev) : un nouvel espace reçoit les 5 modèles dans le dossier, et « Devis client » s'exécute via Nexora API (tableau HT/TVA/TTC).
+- 22/10/2026 — **Tâche 13, script écrit** : `scripts/smoke.py` + `scripts/smoke.sh` (11 contrôles, rapport JSON en option). Sur l'environnement de développement : **11/11**. La validation officielle reste à faire sur le déploiement Docker.
+- 22/10/2026 — **Vérification consolidée (tâches 6, 9 partielle, 10)** :
+  - `tsc` à **0 erreur**, après correction de 3 erreurs issues du travail parallèle : la propriété `unit` d'une page marketing, une date `?? ''` dans les tables, et le schéma de requête de la route d'usage ;
+  - suite unitaire complète : **3 337 fichiers, 37 852 tests verts**, 50 en « skip » ;
+  - contrôles verts : `check-no-ee` (32 201 fichiers), `check-licenses`, `check-brand` (23 025 fichiers, workstudio + services), `check-i18n` (1 043 fichiers), tests des scripts et de l'amorçage.
+  - Les tâches 6 et 10 sont cochées, ainsi que 9.2 et 9.3. 9.1 attend le test réel du SSO.

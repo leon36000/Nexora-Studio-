@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage, toError } from '@sim/utils/errors'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import type { V2KnowledgeDocumentSummary } from '@/lib/api/contracts/v2/knowledge'
 import type { KnowledgeDocumentUploadRecipe } from '@/lib/knowledge/upload-metadata'
 import {
@@ -70,6 +71,7 @@ class KnowledgeUploadError extends Error {
 }
 
 export function useKnowledgeUpload(options: UseKnowledgeUploadOptions = {}) {
+  const t = useTranslations('knowledge.upload')
   const queryClient = useQueryClient()
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
     stage: 'idle',
@@ -183,7 +185,7 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions = {}) {
 
     if (failed.length > 0) {
       throw new KnowledgeUploadError(
-        `Failed to upload ${failed.length} file(s)`,
+        t('partialFailure', { count: failed.length }),
         'PARTIAL_UPLOAD_FAILURE',
         { failedFiles: failed, uploadedDocuments: succeeded }
       )
@@ -240,7 +242,7 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions = {}) {
             ? { message: err.message, code: err.code, timestamp: Date.now() }
             : err instanceof Error
               ? { message: err.message, timestamp: Date.now() }
-              : { message: 'Unknown error occurred during upload', timestamp: Date.now() }
+              : { message: t('unknownError'), timestamp: Date.now() }
 
       setUploadError(error)
       options.onError?.(error)

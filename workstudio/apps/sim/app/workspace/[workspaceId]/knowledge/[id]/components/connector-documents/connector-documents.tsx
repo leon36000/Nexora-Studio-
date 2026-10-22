@@ -2,6 +2,7 @@
 
 import { Chip, ChipInput, ChipLink, Skeleton } from '@sim/emcn'
 import { RefreshCw, Search, SquareArrowUpRight } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ConnectorDocumentFilter } from '@/lib/api/contracts/knowledge/connectors'
 import { getDocumentIndexingStatus } from '@/lib/knowledge/documents/types'
 import { ConnectorDocumentStatusFilter } from '@/app/workspace/[workspaceId]/knowledge/[id]/components/connector-documents/connector-document-status-filter'
@@ -39,6 +40,7 @@ export function ConnectorDocuments({
   showToolbar = true,
   onFilterChange,
 }: ConnectorDocumentsProps) {
+  const t = useTranslations('knowledge.connectorDocuments')
   const query = useConnectorDocuments(knowledgeBaseId, connectorId, {
     filter,
     search,
@@ -75,7 +77,7 @@ export function ConnectorDocuments({
             {searchControl && (
               <ChipInput
                 icon={Search}
-                placeholder='Search documents...'
+                placeholder={t('searchPlaceholder')}
                 value={searchControl.value}
                 onChange={(event) => searchControl.onChange(event.target.value)}
                 autoComplete='off'
@@ -96,7 +98,7 @@ export function ConnectorDocuments({
               error={query.error}
               isRetrying={query.isFetching}
               onRetry={() => query.refetch()}
-              fallback='Could not load documents'
+              fallback={t('loadFailed')}
               variant='inline'
             />
           ) : isLoading ? (
@@ -107,14 +109,14 @@ export function ConnectorDocuments({
           ) : visibleDocumentCount === 0 ? (
             <SettingsEmptyState variant='inline'>
               {search?.trim()
-                ? 'No documents match your search'
+                ? t('empty.search')
                 : filter === 'excluded'
-                  ? 'No excluded documents'
+                  ? t('empty.excluded')
                   : filter === 'failed'
-                    ? 'No failed documents'
+                    ? t('empty.failed')
                     : filter === 'skipped'
-                      ? 'No skipped documents'
-                      : 'No documents yet'}
+                      ? t('empty.skipped')
+                      : t('empty.none')}
             </SettingsEmptyState>
           ) : (
             documents.map((doc) => (
@@ -123,15 +125,15 @@ export function ConnectorDocuments({
                 title={doc.filename}
                 description={
                   getDocumentIndexingStatus(doc) === 'failed'
-                    ? 'Indexing failed'
+                    ? t('status.failed')
                     : getDocumentIndexingStatus(doc) === 'skipped'
                       ? doc.processingError
-                        ? `Skipped · ${doc.processingError}`
-                        : 'Skipped'
+                        ? t('status.skippedWithReason', { reason: doc.processingError })
+                        : t('status.skipped')
                       : doc.processingStatus === 'pending'
-                        ? 'Waiting to index'
+                        ? t('status.pending')
                         : doc.processingStatus === 'processing'
-                          ? 'Indexing'
+                          ? t('status.processing')
                           : undefined
                 }
                 trailing={
@@ -142,7 +144,7 @@ export function ConnectorDocuments({
                         target='_blank'
                         rel='noopener noreferrer'
                         leftIcon={SquareArrowUpRight}
-                        aria-label={`Open ${doc.filename}`}
+                        aria-label={t('open', { name: doc.filename })}
                       />
                     )}
                     {getDocumentIndexingStatus(doc) === 'failed' && !doc.userExcluded && (
@@ -157,7 +159,7 @@ export function ConnectorDocuments({
                           })
                         }}
                       >
-                        Retry indexing
+                        {t('retryIndexing')}
                       </Chip>
                     )}
                     <Chip
@@ -178,7 +180,7 @@ export function ConnectorDocuments({
                             })
                       }}
                     >
-                      {doc.userExcluded ? 'Restore' : 'Exclude'}
+                      {doc.userExcluded ? t('restore') : t('exclude')}
                     </Chip>
                   </div>
                 }
@@ -188,14 +190,14 @@ export function ConnectorDocuments({
           {query.isFetchNextPageError ? (
             <SettingsQueryErrorState
               error={query.error}
-              fallback='Could not load more documents'
+              fallback={t('loadMoreFailed')}
               isRetrying={isFetchingNextPage}
               onRetry={() => void fetchNextPage()}
               variant='inline'
             />
           ) : !isLoading && hasMoreVisibleDocuments ? (
             <Chip disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>
-              {isFetchingNextPage ? 'Loading…' : 'Load more documents'}
+              {isFetchingNextPage ? t('loading') : t('loadMore')}
             </Chip>
           ) : null}
         </div>

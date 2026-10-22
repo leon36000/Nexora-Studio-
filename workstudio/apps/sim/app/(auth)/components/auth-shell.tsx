@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { SimWordmark } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { DesktopTitleBarLane } from '@/app/_shell/desktop-title-bar'
 import { LogoMark } from '@/app/(landing)/components/navbar/components'
 
@@ -31,12 +32,13 @@ interface AuthShellProps {
  * collapse to nothing and `.desktop-title-bar-page` is exactly `min-h-screen`.
  */
 export function AuthShell({ children, footer }: AuthShellProps) {
+  const t = useTranslations('auth.shell')
   return (
     <div className='light desktop-title-bar-page relative flex flex-col bg-[var(--bg)] text-[var(--text-primary)]'>
       <DesktopTitleBarLane />
       <header>
         <nav className='mx-auto flex w-full max-w-[1446px] items-center px-12 py-4 max-sm:px-5 max-lg:px-8'>
-          <a href='/' aria-label='Nexora home' className='flex h-[30px] items-center'>
+          <a href='/' aria-label={t('homeAriaLabel')} className='flex h-[30px] items-center'>
             <LogoMark>
               <SimWordmark />
             </LogoMark>

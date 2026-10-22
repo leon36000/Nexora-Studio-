@@ -12,29 +12,31 @@ import {
 
 export type SandboxLanguage = Sandbox['language']
 
-/** Shared by the settings page and the picker's create modal so the wall reads identically. */
-export const SANDBOX_UPGRADE_TITLE = 'Sandboxes require an active Max plan'
-export const SANDBOX_UPGRADE_DESCRIPTION =
-  'Upgrade to Max and ensure billing is active to add dependencies, system packages, and managed CLI tools to Function blocks.'
+/** Translated runs of the delete confirmation, in reading order around the sandbox name. */
+export interface SandboxDeleteConfirmCopy {
+  intro: string
+  consequence: string
+  irreversible: string
+}
 
 /** Delete-confirmation copy, matching the custom tool detail's wording. Names the
  *  sandbox so the dialog is self-evidently about the one you opened it from. */
-export function sandboxDeleteConfirmText(name: string) {
+export function sandboxDeleteConfirmText(name: string, copy: SandboxDeleteConfirmCopy) {
   return [
-    'This will permanently delete ',
+    copy.intro,
     { text: name, bold: true },
     {
-      text: ' and remove it from any Function blocks that are using it.',
+      text: copy.consequence,
       error: true,
     },
-    ' This action cannot be undone.',
+    copy.irreversible,
   ]
 }
 
 /** Ordered to match the Function block's own `language` dropdown. */
 export const LANGUAGE_OPTIONS = [
   { label: 'JavaScript', value: 'javascript' },
-  { label: 'Python', value: 'python' },
+  { label: 'Python', value: 'python' }, // i18n-ignore: language name
 ] as const
 
 export const CLI_TOOL_GROUPS = SANDBOX_CLI_TOOL_CATEGORIES.map((category) => ({

@@ -3,6 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode, useId } from 'react'
 import { ChipModal, ChipModalBody, ChipModalHeader, Loader, toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 
 const logger = createLogger('ExecutionSnapshotBoundary')
 
@@ -10,6 +11,10 @@ interface SnapshotBoundaryProps {
   children: ReactNode
   isOpen: boolean
   onLoadError: () => void
+}
+
+interface SnapshotBoundaryInnerProps extends SnapshotBoundaryProps {
+  loadErrorMessage: string
 }
 
 interface SnapshotBoundaryState {
@@ -24,6 +29,7 @@ interface SnapshotModalFallbackProps {
 }
 
 export function SnapshotModalFallback({ isOpen, onClose }: SnapshotModalFallbackProps) {
+  const t = useTranslations('logs.snapshot')
   const descriptionId = useId()
 
   return (
@@ -32,19 +38,19 @@ export function SnapshotModalFallback({ isOpen, onClose }: SnapshotModalFallback
       onOpenChange={(open) => {
         if (!open) onClose()
       }}
-      srTitle='Workflow State'
+      srTitle={t('title')}
       aria-describedby={descriptionId}
       size='full'
       className='h-[90vh] [&>div]:h-full'
     >
-      <ChipModalHeader onClose={onClose}>Workflow State</ChipModalHeader>
+      <ChipModalHeader onClose={onClose}>{t('title')}</ChipModalHeader>
       <ChipModalBody fullBleed className='items-center justify-center'>
         <p id={descriptionId} className='sr-only'>
-          Loading the workflow state snapshot for this execution
+          {t('loadingDescription')}
         </p>
         <div className='flex items-center gap-2 text-[var(--text-secondary)]'>
           <Loader className='size-[16px]' animate />
-          <span className='text-small'>Loading run snapshot…</span>
+          <span className='text-small'>{t('loading')}</span>
         </div>
       </ChipModalBody>
     </ChipModal>
@@ -69,7 +75,12 @@ export function SnapshotModalFallback({ isOpen, onClose }: SnapshotModalFallback
  * via remount; without both transitions, a failed pre-warm would leave the
  * later open action stuck in the already-tripped state.
  */
-export class SnapshotBoundary extends Component<SnapshotBoundaryProps, SnapshotBoundaryState> {
+export function SnapshotBoundary(props: SnapshotBoundaryProps) {
+  const t = useTranslations('logs.snapshot')
+  return <SnapshotBoundaryInner {...props} loadErrorMessage={t('loadFailed')} />
+}
+
+class SnapshotBoundaryInner extends Component<SnapshotBoundaryInnerProps, SnapshotBoundaryState> {
   public state: SnapshotBoundaryState = { hasError: false }
 
   public static getDerivedStateFromError(): SnapshotBoundaryState {
@@ -86,7 +97,7 @@ export class SnapshotBoundary extends Component<SnapshotBoundaryProps, SnapshotB
     }
 
     if (this.props.isOpen) {
-      toast.error('Could not load the workflow snapshot. Refresh and try again.')
+      toast.error(this.props.loadErrorMessage)
       this.props.onLoadError()
     }
   }

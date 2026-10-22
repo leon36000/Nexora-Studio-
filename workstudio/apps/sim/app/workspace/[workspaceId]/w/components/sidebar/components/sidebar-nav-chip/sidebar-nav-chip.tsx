@@ -3,6 +3,7 @@
 import { forwardRef } from 'react'
 import { Chip, ChipLink, cn } from '@sim/emcn'
 import { Lock } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { SIDEBAR_RAIL_CHIP_CLASS } from '@/app/workspace/[workspaceId]/w/components/sidebar/constants'
 
 export interface SidebarNavItemData {
@@ -47,6 +48,7 @@ export const SidebarNavChip = forwardRef<HTMLElement, SidebarNavChipProps>(funct
   { item, active, className, ...props },
   ref
 ) {
+  const t = useTranslations('shell.sidebarNavChip')
   const chipClassName = cn(SIDEBAR_RAIL_CHIP_CLASS, className)
 
   if (item.href) {
@@ -57,7 +59,7 @@ export const SidebarNavChip = forwardRef<HTMLElement, SidebarNavChipProps>(funct
         data-item-id={item.id}
         leftIcon={item.icon}
         rightIcon={item.restricted ? Lock : undefined}
-        aria-label={item.restricted ? `${item.label}: access required` : undefined}
+        aria-label={item.restricted ? t('accessRequired', { label: item.label }) : undefined}
         active={active}
         fullWidth
         className={chipClassName}

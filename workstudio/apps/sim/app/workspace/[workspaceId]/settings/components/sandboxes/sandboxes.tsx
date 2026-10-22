@@ -5,6 +5,7 @@ import { ChipConfirmModal, toast } from '@sim/emcn'
 import { ArrowLeft, Plus } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { CodeIcon } from '@/components/icons'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
@@ -25,8 +26,6 @@ import {
   draftFromSandbox,
   emptyDraft,
   extractIssues,
-  SANDBOX_UPGRADE_DESCRIPTION,
-  SANDBOX_UPGRADE_TITLE,
   type SandboxDraft,
   sandboxDeleteConfirmText,
   toSubmittedLines,
@@ -48,6 +47,8 @@ import {
 } from '@/hooks/queries/sandboxes'
 
 export function Sandboxes() {
+  const t = useTranslations('settings.sandboxes')
+  const tShared = useTranslations('settings.shared')
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
@@ -163,9 +164,9 @@ export function Sandboxes() {
         setSystemPackageIssues(lineIssues.field === 'systemPackages' ? lineIssues.issues : [])
         return
       }
-      toast.error(getErrorMessage(error, 'Failed to save sandbox'))
+      toast.error(getErrorMessage(error, t('saveFailed')))
     }
-  }, [current, isCreating, selected, workspaceId, createSandbox, updateSandbox, closeEditor])
+  }, [current, isCreating, selected, workspaceId, createSandbox, updateSandbox, closeEditor, t])
 
   const handleDelete = useCallback(
     async (sandbox: Sandbox) => {
@@ -174,10 +175,10 @@ export function Sandboxes() {
         await deleteSandbox.mutateAsync({ workspaceId, sandboxId: sandbox.id })
         if (selectedId === sandbox.id) closeEditor()
       } catch (error) {
-        toast.error(getErrorMessage(error, 'Failed to delete sandbox'))
+        toast.error(getErrorMessage(error, t('deleteFailed')))
       }
     },
-    [deleteSandbox, workspaceId, selectedId, closeEditor]
+    [deleteSandbox, workspaceId, selectedId, closeEditor, t]
   )
 
   const handleRetry = useCallback(async () => {
@@ -200,9 +201,9 @@ export function Sandboxes() {
         systemPackages: selected.systemPackages,
         cliTools: selected.cliTools,
       })
-      toast.success('Sandbox build queued')
+      toast.success(t('buildQueued'))
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to retry sandbox build'))
+      toast.error(getErrorMessage(error, t('retryFailed')))
     }
   }, [
     canAdmin,
@@ -212,6 +213,7 @@ export function Sandboxes() {
     updateSandbox,
     updateSandbox.isPending,
     workspaceId,
+    t,
   ])
 
   const filtered = useMemo(() => {
@@ -231,7 +233,7 @@ export function Sandboxes() {
   if (isLoading) {
     return (
       <SettingsPanel>
-        <SettingsEmptyState>Loading sandboxes...</SettingsEmptyState>
+        <SettingsEmptyState>{t('loading')}</SettingsEmptyState>
       </SettingsPanel>
     )
   }
@@ -239,9 +241,7 @@ export function Sandboxes() {
   if (error && data === undefined) {
     return (
       <SettingsPanel>
-        <SettingsEmptyState>
-          {getErrorMessage(error, 'Failed to load sandboxes')}
-        </SettingsEmptyState>
+        <SettingsEmptyState>{getErrorMessage(error, t('loadFailed'))}</SettingsEmptyState>
       </SettingsPanel>
     )
   }
@@ -250,8 +250,8 @@ export function Sandboxes() {
     return (
       <SettingsPanel>
         <SettingsUpgradeNotice
-          title={SANDBOX_UPGRADE_TITLE}
-          description={SANDBOX_UPGRADE_DESCRIPTION}
+          title={t('upgradeTitle')}
+          description={t('upgradeDescription')}
           canUpgrade={canAdmin}
         />
       </SettingsPanel>
@@ -264,10 +264,10 @@ export function Sandboxes() {
     return (
       <>
         <SettingsPanel
-          title={isCreating ? 'New sandbox' : (selected?.name ?? 'Sandbox')}
-          description='Dependencies, system packages, and managed CLI tools available to your Function blocks.'
+          title={isCreating ? t('newSandbox') : (selected?.name ?? t('sandboxFallbackTitle'))}
+          description={t('editorDescription')}
           back={{
-            text: 'Sandboxes',
+            text: t('backLabel'),
             icon: ArrowLeft,
             onSelect: () => guard.guardBack(closeEditor),
           }}
@@ -284,7 +284,7 @@ export function Sandboxes() {
               ? [
                   {
                     id: 'delete',
-                    text: deleteSandbox.isPending ? 'Deleting...' : 'Delete',
+                    text: deleteSandbox.isPending ? tShared('deleting') : tShared('delete'),
                     onSelect: () => setShowDeleteConfirm(true),
                     disabled: deleteSandbox.isPending,
                   },
@@ -316,10 +316,14 @@ export function Sandboxes() {
           <ChipConfirmModal
             open={showDeleteConfirm}
             onOpenChange={setShowDeleteConfirm}
-            srTitle='Delete Sandbox'
-            title='Delete Sandbox'
-            text={sandboxDeleteConfirmText(selected.name)}
-            confirm={{ label: 'Delete', onClick: () => void handleDelete(selected) }}
+            srTitle={t('deleteTitle')}
+            title={t('deleteTitle')}
+            text={sandboxDeleteConfirmText(selected.name, {
+              intro: t('deleteConfirm.intro'),
+              consequence: t('deleteConfirm.consequence'),
+              irreversible: t('deleteConfirm.irreversible'),
+            })}
+            confirm={{ label: tShared('delete'), onClick: () => void handleDelete(selected) }}
           />
         )}
       </>
@@ -328,12 +332,12 @@ export function Sandboxes() {
 
   return (
     <SettingsPanel
-      search={{ value: searchTerm, onChange: setSearchTerm, placeholder: 'Search sandboxes...' }}
+      search={{ value: searchTerm, onChange: setSearchTerm, placeholder: t('searchPlaceholder') }}
       actions={
         canAdmin
           ? [
               {
-                text: 'New sandbox',
+                text: t('newSandbox'),
                 icon: Plus,
                 variant: 'primary' as const,
                 onSelect: () => {
@@ -350,9 +354,7 @@ export function Sandboxes() {
     >
       {filtered.length === 0 ? (
         <SettingsEmptyState variant={searchTerm ? 'inline' : 'fill'}>
-          {searchTerm
-            ? 'No sandboxes match your search.'
-            : 'No sandboxes yet. Create one to add dependencies, system packages, and managed CLI tools to Function blocks.'}
+          {searchTerm ? t('noSearchResults') : t('empty')}
         </SettingsEmptyState>
       ) : (
         <div className={RESOURCE_LIST_STACK}>
@@ -362,9 +364,16 @@ export function Sandboxes() {
               icon={<CodeIcon className='text-[var(--text-icon)]' />}
               iconFilled
               title={sandbox.name}
-              description={`${sandbox.language === 'python' ? 'Python' : 'JavaScript'} · ${sandbox.dependencies.length} ${sandbox.dependencies.length === 1 ? 'dependency' : 'dependencies'} · ${sandbox.systemPackages.length} ${sandbox.systemPackages.length === 1 ? 'system package' : 'system packages'} · ${sandbox.cliTools.length} ${sandbox.cliTools.length === 1 ? 'managed CLI' : 'managed CLIs'}`}
+              description={t('rowDescription', {
+                language: sandbox.language === 'python' ? 'Python' : 'JavaScript',
+                counts: t('counts', {
+                  dependencies: sandbox.dependencies.length,
+                  systemPackages: sandbox.systemPackages.length,
+                  cliTools: sandbox.cliTools.length,
+                }),
+              })}
               onClick={() => void setSelectedId(sandbox.id)}
-              clickLabel={`Open ${sandbox.name}`}
+              clickLabel={t('openSandbox', { name: sandbox.name })}
               navigable
             />
           ))}

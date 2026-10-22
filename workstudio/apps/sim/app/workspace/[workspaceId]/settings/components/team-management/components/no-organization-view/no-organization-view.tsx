@@ -9,6 +9,7 @@ import {
   ChipModalHeader,
   Label,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { getBaseDomain } from '@/lib/core/utils/urls'
 import { useSettingsNavigation } from '@/hooks/use-settings-navigation'
 
@@ -19,7 +20,7 @@ interface NoOrganizationViewProps {
   orgSlug: string
   setOrgSlug: (slug: string) => void
   onOrgNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  onCreateOrganization: () => Promise<void>
+  onCreateOrganization: () => Promise<void> // i18n-ignore: type annotation, not UI text
   isCreatingOrg: boolean
   error: string | null
   createOrgDialogOpen: boolean
@@ -39,6 +40,8 @@ export function NoOrganizationView({
   createOrgDialogOpen,
   setCreateOrgDialogOpen,
 }: NoOrganizationViewProps) {
+  const t = useTranslations('settings.teamManagement.noOrganization')
+  const tShared = useTranslations('settings.shared')
   const { navigateToSettings } = useSettingsNavigation()
 
   if (hasTeamPlan || hasEnterprisePlan) {
@@ -46,10 +49,9 @@ export function NoOrganizationView({
       <div>
         <div className='flex flex-col gap-5'>
           <div>
-            <h4 className='text-[var(--text-primary)] text-base'>Create your organization</h4>
+            <h4 className='text-[var(--text-primary)] text-base'>{t('createTitle')}</h4>
             <p className='mt-1 text-[var(--text-muted)] text-small'>
-              You're subscribed to a {hasEnterprisePlan ? 'enterprise' : 'team'} plan. Create your
-              organization to start collaborating with your team.
+              {hasEnterprisePlan ? t('subscribedEnterprise') : t('subscribedTeam')}
             </p>
           </div>
 
@@ -63,16 +65,16 @@ export function NoOrganizationView({
               tabIndex={-1}
               readOnly
               aria-hidden='true'
-              aria-label='Ignore this field'
+              aria-label={t('ignoreField')}
             />
             <div>
-              <Label htmlFor='team-name-field'>Team Name</Label>
+              <Label htmlFor='team-name-field'>{t('teamName')}</Label>
               <ChipInput
                 disabled={isCreatingOrg}
                 id='team-name-field'
                 value={orgName}
                 onChange={onOrgNameChange}
-                placeholder='My Team'
+                placeholder={t('teamNamePlaceholder')}
                 className='mt-1'
                 name='team_name_field'
                 autoComplete='off'
@@ -84,7 +86,7 @@ export function NoOrganizationView({
             </div>
 
             <div>
-              <Label htmlFor='orgSlug'>Team URL</Label>
+              <Label htmlFor='orgSlug'>{t('teamUrl')}</Label>
               <div className='mt-1 flex items-center'>
                 <div className='rounded-l-[6px] border border-[var(--border-1)] border-r-0 bg-[var(--surface-4)] px-3 py-1.5 text-[var(--text-muted)] text-small'>
                   {getBaseDomain()}/team/
@@ -110,7 +112,7 @@ export function NoOrganizationView({
                   onClick={onCreateOrganization}
                   disabled={!orgName || !orgSlug || isCreatingOrg}
                 >
-                  {isCreatingOrg ? 'Creating...' : 'Create organization'}
+                  {isCreatingOrg ? tShared('creating') : t('createOrganization')}
                 </Button>
               </div>
             </div>
@@ -120,10 +122,10 @@ export function NoOrganizationView({
         <ChipModal
           open={createOrgDialogOpen}
           onOpenChange={setCreateOrgDialogOpen}
-          srTitle='Create Team Organization'
+          srTitle={t('createModalTitle')}
         >
           <ChipModalHeader onClose={() => setCreateOrgDialogOpen(false)}>
-            Create Team Organization
+            {t('createModalTitle')}
           </ChipModalHeader>
           <ChipModalBody>
             {/* Decoy field: absorbs browser autofill so it can't target the real inputs. */}
@@ -135,23 +137,23 @@ export function NoOrganizationView({
               tabIndex={-1}
               readOnly
               aria-hidden='true'
-              aria-label='Ignore this field'
+              aria-label={t('ignoreField')}
             />
             <ChipModalField
               type='input'
-              title='Organization Name'
+              title={t('organizationName')}
               value={orgName}
               onChange={(value) =>
                 onOrgNameChange({ target: { value } } as React.ChangeEvent<HTMLInputElement>)
               }
-              placeholder='Enter organization name'
+              placeholder={t('organizationNamePlaceholder')}
               disabled={isCreatingOrg}
               autoComplete='off'
               required
             />
             <ChipModalField
               type='input'
-              title='Organization Slug'
+              title={t('organizationSlug')}
               value={orgSlug}
               onChange={setOrgSlug}
               placeholder='organization-slug'
@@ -164,7 +166,7 @@ export function NoOrganizationView({
             onCancel={() => setCreateOrgDialogOpen(false)}
             cancelDisabled={isCreatingOrg}
             primaryAction={{
-              label: isCreatingOrg ? 'Creating...' : 'Create Organization',
+              label: isCreatingOrg ? tShared('creating') : t('createOrganizationModal'),
               onClick: onCreateOrganization,
               disabled: isCreatingOrg || !orgName.trim(),
             }}
@@ -177,16 +179,13 @@ export function NoOrganizationView({
   return (
     <div className='flex flex-col gap-5'>
       <div className='flex flex-col gap-2'>
-        <h3 className='text-[var(--text-primary)] text-base'>No Team Workspace</h3>
-        <p className='text-[var(--text-secondary)] text-small'>
-          You don't have a team workspace yet. To collaborate with others, first upgrade to a team
-          or enterprise plan.
-        </p>
+        <h3 className='text-[var(--text-primary)] text-base'>{t('noTeamTitle')}</h3>
+        <p className='text-[var(--text-secondary)] text-small'>{t('noTeamDescription')}</p>
       </div>
 
       <div>
         <Button variant='primary' onClick={() => navigateToSettings({ section: 'billing' })}>
-          Upgrade to Team Plan
+          {t('upgrade')}
         </Button>
       </div>
     </div>

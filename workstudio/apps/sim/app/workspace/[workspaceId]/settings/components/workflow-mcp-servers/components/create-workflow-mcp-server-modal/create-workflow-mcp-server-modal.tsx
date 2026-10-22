@@ -14,6 +14,7 @@ import {
   type ComboboxOption,
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { useCreateWorkflowMcpServer } from '@/hooks/queries/workflow-mcp-servers'
 
 const logger = createLogger('CreateWorkflowMcpServerModal')
@@ -37,6 +38,7 @@ export function CreateWorkflowMcpServerModal({
   workspaceId,
   workflowOptions,
 }: CreateWorkflowMcpServerModalProps) {
+  const t = useTranslations('settings.workflowMcpServers')
   const createServerMutation = useCreateWorkflowMcpServer()
 
   const [formData, setFormData] = useState({ ...INITIAL_FORM_DATA })
@@ -73,59 +75,57 @@ export function CreateWorkflowMcpServerModal({
   const showWorkflows = workflowOptions !== undefined
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Add New MCP Server'>
-      <ChipModalHeader onClose={() => onOpenChange(false)}>Add New MCP Server</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('create.title')}>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{t('create.title')}</ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='input'
-          title='Server Name'
+          title={t('common.serverName')}
           value={formData.name}
           onChange={(value) => setFormData({ ...formData, name: value })}
           required
-          placeholder='e.g., My MCP Server'
+          placeholder={t('common.serverNamePlaceholder')}
         />
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={t('common.description')}
           value={formData.description}
           onChange={(value) => setFormData({ ...formData, description: value })}
-          placeholder='Describe what this MCP server does (optional)'
+          placeholder={t('common.descriptionPlaceholder')}
         />
         {showWorkflows && (
-          <ChipModalField type='custom' title='Workflows'>
+          <ChipModalField type='custom' title={t('create.workflows')}>
             <ChipSelect
               options={workflowOptions ?? []}
               multiSelect
               multiSelectValues={selectedWorkflowIds}
               onMultiSelectChange={setSelectedWorkflowIds}
-              placeholder='Select workflows...'
+              placeholder={t('create.selectPlaceholder')}
               searchable
-              searchPlaceholder='Search workflows...'
+              searchPlaceholder={t('common.searchWorkflows')}
               disabled={createServerMutation.isPending}
               fullWidth
               dropdownWidth='trigger'
               align='start'
               displayLabel={
                 selectedWorkflowIds.length > 0
-                  ? `${selectedWorkflowIds.length} workflow${selectedWorkflowIds.length !== 1 ? 's' : ''} selected`
+                  ? t('create.selectedCount', { count: selectedWorkflowIds.length })
                   : undefined
               }
             />
           </ChipModalField>
         )}
-        <ChipModalField type='custom' title='Access'>
+        <ChipModalField type='custom' title={t('common.access')}>
           <div className='flex items-center gap-3'>
             <ChipButtonGroup
               value={formData.isPublic ? 'public' : 'private'}
               onValueChange={(value) => setFormData({ ...formData, isPublic: value === 'public' })}
             >
-              <ChipButtonGroupItem value='private'>Private</ChipButtonGroupItem>
-              <ChipButtonGroupItem value='public'>Public</ChipButtonGroupItem>
+              <ChipButtonGroupItem value='private'>{t('common.private')}</ChipButtonGroupItem>
+              <ChipButtonGroupItem value='public'>{t('common.public')}</ChipButtonGroupItem>
             </ChipButtonGroup>
             {formData.isPublic && (
-              <span className='text-[var(--text-muted)] text-caption'>
-                No authentication required
-              </span>
+              <span className='text-[var(--text-muted)] text-caption'>{t('create.noAuth')}</span>
             )}
           </div>
         </ChipModalField>
@@ -134,7 +134,7 @@ export function CreateWorkflowMcpServerModal({
       <ChipModalFooter
         onCancel={() => onOpenChange(false)}
         primaryAction={{
-          label: createServerMutation.isPending ? 'Adding...' : 'Add Server',
+          label: createServerMutation.isPending ? t('common.adding') : t('create.submit'),
           onClick: handleCreateServer,
           disabled: !isFormValid || createServerMutation.isPending,
         }}

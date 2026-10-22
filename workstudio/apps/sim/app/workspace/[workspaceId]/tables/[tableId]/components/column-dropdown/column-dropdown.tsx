@@ -13,12 +13,13 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { Lock, Plus, Sparkles } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition } from '@/lib/table'
 import {
   type ColumnTypeOption,
   columnTypeOptionsForTable,
 } from '@/app/workspace/[workspaceId]/tables/[tableId]/components/column-config-sidebar'
-import { LOCK_TOOLTIPS } from '@/app/workspace/[workspaceId]/tables/[tableId]/lock-copy'
+import { lockTooltip } from '@/app/workspace/[workspaceId]/tables/[tableId]/lock-copy'
 
 const CELL_HEADER =
   'border-[var(--border)] border-r border-b bg-[var(--bg)] px-2 py-[7px] text-left align-middle'
@@ -84,6 +85,9 @@ export function ColumnDropdown({
   onPickEnrichment,
   blocked,
 }: ColumnDropdownProps) {
+  const t = useTranslations('tables.columnDropdown')
+  const tTypes = useTranslations('tables.columnTypes')
+  const tLocks = useTranslations('tables.locks')
   const Icon = blocked ? Lock : Plus
   const triggerButton =
     trigger === 'header' ? (
@@ -94,7 +98,7 @@ export function ColumnDropdown({
         aria-disabled={blocked || undefined}
       >
         <Icon className={chipContentIconClass} />
-        <span className={chipContentLabelClass}>New column</span>
+        <span className={chipContentLabelClass}>{t('newColumn')}</span>
         <ChipChevronDown />
       </button>
     ) : (
@@ -108,7 +112,7 @@ export function ColumnDropdown({
         aria-disabled={blocked || undefined}
       >
         <Icon className='size-[14px] shrink-0 text-[var(--text-icon)]' />
-        <span className='text-[var(--text-body)] text-small'>New column</span>
+        <span className='text-[var(--text-body)] text-small'>{t('newColumn')}</span>
       </button>
     )
 
@@ -116,7 +120,7 @@ export function ColumnDropdown({
     const lockedTrigger = (
       <Tooltip.Root>
         <Tooltip.Trigger asChild>{triggerButton}</Tooltip.Trigger>
-        <Tooltip.Content>{LOCK_TOOLTIPS.schema}</Tooltip.Content>
+        <Tooltip.Content>{lockTooltip(tLocks, 'schema')}</Tooltip.Content>
       </Tooltip.Root>
     )
     return trigger === 'inline-header' ? (
@@ -130,7 +134,7 @@ export function ColumnDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
       <DropdownMenuContent align='start' side='bottom' sideOffset={4}>
-        {columnTypeOptionsForTable(columns, undefined).map((option) => {
+        {columnTypeOptionsForTable(columns, undefined, tTypes).map((option) => {
           const onSelect =
             option.type === 'workflow'
               ? onPickWorkflow
@@ -139,7 +143,7 @@ export function ColumnDropdown({
         })}
         <DropdownMenuItem onSelect={onPickEnrichment}>
           <Sparkles className='size-[14px] text-[var(--text-icon)]' />
-          Enrichments
+          {t('enrichments')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

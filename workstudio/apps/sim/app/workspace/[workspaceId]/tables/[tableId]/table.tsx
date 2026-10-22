@@ -7,6 +7,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { isEqual } from 'es-toolkit'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { usePostHog } from 'posthog-js/react'
 import type { MothershipTableViewContext } from '@/lib/api/contracts/mothership-resources'
@@ -97,8 +98,8 @@ import { useTable, useTableEventStream, useTableRoom } from './hooks'
 import {
   type BlockedTableAction,
   describeBlockedAction,
-  LOCK_TOOLTIPS,
-  lockedNouns,
+  lockedKinds,
+  lockTooltip,
 } from './lock-copy'
 import {
   ALL_VIEW_PARAM,
@@ -201,6 +202,9 @@ export function Table({
   workspaceId: propWorkspaceId,
   tableId: propTableId,
 }: TableProps = {}) {
+  const t = useTranslations('tables.detail')
+  const tLocks = useTranslations('tables.locks')
+  const tList = useTranslations('tables.list')
   const params = useParams()
   const router = useRouter()
   const workspaceId = propWorkspaceId || (params.workspaceId as string)
@@ -215,7 +219,7 @@ export function Table({
   // depend on the identity), so a stable reference buys nothing here.
   const onUsageLimitReached = ({ message }: { dispatchId?: string; message: string }) => {
     toast.error(message, {
-      action: { label: 'Upgrade', onClick: () => navigateToSettings({ section: 'billing' }) },
+      action: { label: t('upgrade'), onClick: () => navigateToSettings({ section: 'billing' }) },
     })
   }
   useTableEventStream({ tableId, workspaceId, onUsageLimitReached })
@@ -507,7 +511,7 @@ export function Table({
       if (viewId) {
         updateViewMutation.mutate(
           { viewId, configPatch: patch },
-          { onError: (error) => toast.error(getErrorMessage(error, 'Failed to save layout')) }
+          { onError: (error) => toast.error(getErrorMessage(error, t('toasts.saveLayoutFailed'))) }
         )
         return
       }
@@ -555,7 +559,7 @@ export function Table({
         { viewId, configPatch },
         {
           onSuccess: () => releasePersistedViewState(viewId, configPatch),
-          onError: (error) => toast.error(getErrorMessage(error, 'Failed to save view')),
+          onError: (error) => toast.error(getErrorMessage(error, t('toasts.saveViewFailed'))),
         }
       )
     },
@@ -813,7 +817,7 @@ export function Table({
     updateViewMutation.mutate(
       { viewId, isDefault: true },
       {
-        onError: (error) => toast.error(getErrorMessage(error, 'Failed to set default view')),
+        onError: (error) => toast.error(getErrorMessage(error, t('toasts.setDefaultViewFailed'))),
       }
     )
   }, [])
@@ -847,7 +851,7 @@ export function Table({
         { viewId, configPatch },
         {
           onSuccess: () => releasePersistedViewState(viewId, configPatch),
-          onError: (error) => toast.error(getErrorMessage(error, 'Failed to save view')),
+          onError: (error) => toast.error(getErrorMessage(error, t('toasts.saveViewFailed'))),
         }
       )
     },
@@ -898,7 +902,7 @@ export function Table({
       if (target) {
         updateViewMutation.mutate(
           { viewId: target, configPatch: patch },
-          { onError: (error) => toast.error(getErrorMessage(error, 'Failed to save layout')) }
+          { onError: (error) => toast.error(getErrorMessage(error, t('toasts.saveLayoutFailed'))) }
         )
         return
       }
@@ -919,7 +923,7 @@ export function Table({
         { viewId: viewModal.viewId, name },
         {
           onSuccess: () => setViewModal(null),
-          onError: (error) => toast.error(getErrorMessage(error, 'Failed to rename view')),
+          onError: (error) => toast.error(getErrorMessage(error, t('toasts.renameViewFailed'))),
         }
       )
       return
@@ -947,7 +951,7 @@ export function Table({
           // the `view` write above into one URL update.
           applyViewConfig(view.config)
         },
-        onError: (error) => toast.error(getErrorMessage(error, 'Failed to create view')),
+        onError: (error) => toast.error(getErrorMessage(error, t('toasts.createViewFailed'))),
       }
     )
   }
@@ -955,7 +959,7 @@ export function Table({
   const handleDeleteView = useCallback(
     (viewId: string) => {
       if (views.some((view) => view.id === viewId && view.isDefault)) {
-        toast.error('Set another view as default before deleting this view')
+        toast.error(t('toasts.deleteDefaultView'))
         return
       }
       deleteViewMutation.mutate(viewId, {
@@ -964,7 +968,7 @@ export function Table({
           const defaultView = views.find((view) => view.isDefault && view.id !== viewId)
           setTableParams({ view: defaultView?.id ?? ALL_VIEW_PARAM })
         },
-        onError: (error) => toast.error(getErrorMessage(error, 'Failed to delete view')),
+        onError: (error) => toast.error(getErrorMessage(error, t('toasts.deleteViewFailed'))),
       })
     },
     [activeViewId, views, setTableParams]
@@ -1184,7 +1188,7 @@ export function Table({
       if (exported.status === 'completed') {
         await downloadExportResult(workspaceId, exported.id)
       } else {
-        toast.success('Export started — the download will begin when it finishes')
+        toast.success(t('toasts.exportStarted'))
       }
       captureEvent(posthogRef.current, 'table_exported', {
         table_id: tableData.id,
@@ -1192,7 +1196,7 @@ export function Table({
       })
     } catch (err) {
       logger.error('Failed to export table:', err)
-      toast.error('Failed to export table')
+      toast.error(tList('toasts.exportFailed'))
     }
   }, [tableData, workspaceId])
 
@@ -1319,21 +1323,21 @@ export function Table({
                   : undefined,
                 dropdownItems: [
                   {
-                    label: 'Rename',
+                    label: t('menu.rename'),
                     icon: Pencil,
                     onClick: handleStartTableRename,
                   },
                   ...(userPermissions.canAdmin
                     ? [
                         {
-                          label: 'Table Security',
+                          label: tLocks('title'),
                           icon: Lock,
                           onClick: () => setShowLockSettings(true),
                         },
                       ]
                     : []),
                   {
-                    label: 'Delete',
+                    label: t('menu.delete'),
                     icon: Trash,
                     onClick: onRequestDeleteTable,
                     disabled: userPermissions.canEdit !== true || tableData.locks.deleteLocked,
@@ -1356,6 +1360,8 @@ export function Table({
       tableHeaderRename.cancelRename,
       handleStartTableRename,
       onRequestDeleteTable,
+      t,
+      tLocks,
     ]
   )
 
@@ -1370,7 +1376,7 @@ export function Table({
     (action: BlockedTableAction) => {
       if (!tableData) return
       if (blockedToastIdRef.current) toast.dismiss(blockedToastIdRef.current)
-      const { title, text } = describeBlockedAction(action, tableData.locks)
+      const { title, text } = describeBlockedAction(action, tableData.locks, tLocks)
       // 'status' is the on-open announcement — nothing was refused, so it reads
       // as information rather than a warning.
       const notify = action === 'status' ? toast.info : toast.warning
@@ -1378,14 +1384,14 @@ export function Table({
         description: text,
         ...(canOpenLockSettings
           ? {
-              action: { label: 'Table Security', onClick: () => setShowLockSettings(true) },
+              action: { label: tLocks('title'), onClick: () => setShowLockSettings(true) },
               // An action would otherwise pin the toast open until dismissed.
               duration: BLOCKED_TOAST_MS,
             }
           : {}),
       })
     },
-    [tableData, canOpenLockSettings]
+    [tableData, canOpenLockSettings, tLocks]
   )
 
   // Announce the lock state once per table on open. Unlike the re-rendering
@@ -1396,7 +1402,7 @@ export function Table({
     if (!tableData || userPermissions.isLoading) return
     if (announcedLockTableIdRef.current === tableData.id) return
     announcedLockTableIdRef.current = tableData.id
-    if (lockedNouns(tableData.locks).length === 0) return
+    if (lockedKinds(tableData.locks).length === 0) return
     showBlockedToast('status')
   }, [tableData, userPermissions.isLoading, showBlockedToast])
 
@@ -1431,7 +1437,7 @@ export function Table({
     if (!tableData) return undefined
     return [
       {
-        label: 'Import CSV',
+        label: tList('actions.importCsv'),
         icon: Upload,
         onClick: onRequestImportCsv,
         // An import always inserts, so the insert lock disables it outright
@@ -1439,13 +1445,13 @@ export function Table({
         disabled: userPermissions.canEdit !== true || tableData.locks.insertLocked,
       },
       {
-        label: 'Export CSV',
+        label: t('menu.exportCsv'),
         icon: Download,
         onClick: () => void handleExportCsv(),
         disabled: tableData.rowCount === 0,
       },
     ]
-  }, [tableData, userPermissions.canEdit, handleExportCsv, onRequestImportCsv])
+  }, [tableData, userPermissions.canEdit, handleExportCsv, onRequestImportCsv, t, tList])
 
   // Adding a column is a schema change. The trigger stays visible when the
   // table is schema-locked and explains itself instead of disappearing.
@@ -1755,9 +1761,7 @@ export function Table({
         onColumnRename={onColumnRename}
         readOnly={!canMutateSchema}
         readOnlyReason={
-          tableData?.locks.schemaLocked
-            ? LOCK_TOOLTIPS.schema
-            : 'You don’t have permission to change columns.'
+          tableData?.locks.schemaLocked ? lockTooltip(tLocks, 'schema') : t('noColumnPermission')
         }
       />
       <EnrichmentsSidebar
@@ -1837,15 +1841,15 @@ export function Table({
         onOpenChange={(open) => {
           if (!open) setDeletingAll(null)
         }}
-        srTitle='Delete rows'
-        title='Delete rows'
-        text={`Delete ${deletingAll ? deletingAll.estimatedCount.toLocaleString() : 0} ${
-          deletingAll?.estimatedCount === 1 ? 'row' : 'rows'
-        }${effectiveFilter ? ' matching the current filter' : ''}? This can't be undone.`}
+        srTitle={t('deleteRows.title')}
+        title={t('deleteRows.title')}
+        text={t(effectiveFilter ? 'deleteRows.textFiltered' : 'deleteRows.text', {
+          count: deletingAll ? deletingAll.estimatedCount : 0,
+        })}
         confirm={{
-          label: 'Delete',
+          label: tList('confirm.delete'),
           pending: deleteRowsAsyncMutation.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: tList('confirm.deleting'),
           onClick: () => {
             if (!deletingAll) return
             const { excludeRowIds, estimatedCount } = deletingAll
@@ -1871,36 +1875,39 @@ export function Table({
         }}
         srTitle={
           deletingColumns && deletingColumns.length > 1
-            ? `Delete ${deletingColumns.length} Columns`
-            : 'Delete Column'
+            ? t('deleteColumns.titleMany', { count: deletingColumns.length })
+            : t('deleteColumns.titleOne')
         }
         title={
           deletingColumns && deletingColumns.length > 1
-            ? `Delete ${deletingColumns.length} Columns`
-            : 'Delete Column'
+            ? t('deleteColumns.titleMany', { count: deletingColumns.length })
+            : t('deleteColumns.titleOne')
         }
         defaultAction='dismiss'
         text={[
-          'Are you sure you want to delete ',
+          tList('confirm.prefix'),
           deletingColumns && deletingColumns.length > 1
-            ? { text: `${deletingColumns.length} columns`, bold: true }
+            ? { text: t('deleteColumns.countLabel', { count: deletingColumns.length }), bold: true }
             : {
                 text:
                   (deletingColumns &&
                     columns.find((c) => getColumnId(c) === deletingColumns[0])?.name) ??
                   deletingColumns?.[0] ??
-                  'this column',
+                  t('deleteColumns.fallbackName'),
                 bold: true,
               },
-          '? ',
+          tList('confirm.questionEnd'),
           {
-            text: `This will remove all data in ${deletingColumns && deletingColumns.length > 1 ? 'these columns' : 'this column'}.`,
+            text:
+              deletingColumns && deletingColumns.length > 1
+                ? t('deleteColumns.removeDataMany')
+                : t('deleteColumns.removeDataOne'),
             error: true,
           },
-          ' You can undo this action.',
+          t('deleteColumns.undoHint'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: tList('confirm.delete'),
           onClick: handleConfirmDeleteColumns,
         }}
       />
@@ -1908,21 +1915,24 @@ export function Table({
         <ChipConfirmModal
           open={showDeleteTableConfirm}
           onOpenChange={setShowDeleteTableConfirm}
-          srTitle='Delete Table'
-          title='Delete Table'
+          srTitle={tList('deleteTable.title')}
+          title={tList('deleteTable.title')}
           defaultAction='dismiss'
           text={[
-            'Are you sure you want to delete ',
-            { text: tableData?.name ?? 'this table', bold: true },
-            '? ',
-            { text: `All ${tableData?.rowCount ?? 0} rows will be removed.`, error: true },
-            ' You can restore it from Recently Deleted in Settings.',
+            tList('confirm.prefix'),
+            { text: tableData?.name ?? tList('deleteTable.fallbackName'), bold: true },
+            tList('confirm.questionEnd'),
+            {
+              text: tList('deleteTable.rowsRemoved', { count: tableData?.rowCount ?? 0 }),
+              error: true,
+            },
+            tList('deleteTable.restoreHint'),
           ]}
           confirm={{
-            label: 'Delete',
+            label: tList('confirm.delete'),
             onClick: handleDeleteTable,
             pending: deleteTableMutation.isPending,
-            pendingLabel: 'Deleting...',
+            pendingLabel: tList('confirm.deleting'),
           }}
         />
       )}

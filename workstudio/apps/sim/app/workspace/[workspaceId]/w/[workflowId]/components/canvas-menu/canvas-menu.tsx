@@ -2,6 +2,7 @@
 
 import type { RefObject } from 'react'
 import { Popover, PopoverAnchor, PopoverContent, PopoverDivider, PopoverItem } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 /**
  * Props for CanvasMenu component
@@ -69,6 +70,7 @@ export function CanvasMenu({
   allBlocksLocked = false,
   hasBlocks = false,
 }: CanvasMenuProps) {
+  const t = useTranslations('editor.canvasMenu')
   return (
     <Popover open={isOpen} onOpenChange={(open) => !open && onClose()} size='sm'>
       <PopoverAnchor
@@ -90,7 +92,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          <span>Undo</span>
+          <span>{t('undo')}</span>
           <span className='ml-auto opacity-70 group-hover:opacity-100'>⌘Z</span>
         </PopoverItem>
         <PopoverItem
@@ -101,7 +103,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          <span>Redo</span>
+          <span>{t('redo')}</span>
           <span className='ml-auto opacity-70 group-hover:opacity-100'>⌘⇧Z</span>
         </PopoverItem>
         <PopoverItem
@@ -112,7 +114,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          <span>Paste</span>
+          <span>{t('paste')}</span>
           <span className='ml-auto opacity-70 group-hover:opacity-100'>⌘V</span>
         </PopoverItem>
 
@@ -126,7 +128,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          <span>Add Block</span>
+          <span>{t('addBlock')}</span>
           <span className='ml-auto opacity-70 group-hover:opacity-100'>⌘K</span>
         </PopoverItem>
         <PopoverItem
@@ -136,9 +138,9 @@ export function CanvasMenu({
             onAutoLayout()
             onClose()
           }}
-          title={hasLockedBlocks ? 'Unlock blocks to use auto-layout' : undefined}
+          title={hasLockedBlocks ? t('unlockForAutoLayout') : undefined}
         >
-          <span>Auto-layout</span>
+          <span>{t('autoLayout')}</span>
           <span className='ml-auto opacity-70 group-hover:opacity-100'>⇧L</span>
         </PopoverItem>
         {canAdmin && onToggleWorkflowLock && (
@@ -149,7 +151,7 @@ export function CanvasMenu({
               onClose()
             }}
           >
-            <span>{allBlocksLocked ? 'Unlock workflow' : 'Lock workflow'}</span>
+            <span>{allBlocksLocked ? t('unlockWorkflow') : t('lockWorkflow')}</span>
           </PopoverItem>
         )}
         <PopoverItem
@@ -158,7 +160,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          Fit to View
+          {t('fitToView')}
         </PopoverItem>
 
         {/* Navigation actions */}
@@ -170,7 +172,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          <span>Search and replace</span>
+          <span>{t('searchReplace')}</span>
           <span className='ml-auto opacity-70 group-hover:opacity-100'>⌘F</span>
         </PopoverItem>
         <PopoverItem
@@ -180,7 +182,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          <span>Open Logs</span>
+          <span>{t('openLogs')}</span>
           <span className='ml-auto opacity-70 group-hover:opacity-100'>⌘L</span>
         </PopoverItem>
         <PopoverItem
@@ -189,7 +191,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          {isVariablesOpen ? 'Close Variables' : 'Open Variables'}
+          {isVariablesOpen ? t('closeVariables') : t('openVariables')}
         </PopoverItem>
         <PopoverItem
           onClick={() => {
@@ -197,7 +199,7 @@ export function CanvasMenu({
             onClose()
           }}
         >
-          {isChatOpen ? 'Close Chat' : 'Open Chat'}
+          {isChatOpen ? t('closeChat') : t('openChat')}
         </PopoverItem>
       </PopoverContent>
     </Popover>

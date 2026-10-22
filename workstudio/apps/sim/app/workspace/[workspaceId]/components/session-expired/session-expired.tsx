@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Chip, cn, useNativeSurfaceOcclusionReady } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { useSession } from '@/lib/auth/client'
 import { recoverFromStaleSession } from '@/lib/auth/stale-session-recovery'
 
@@ -27,6 +28,7 @@ import { recoverFromStaleSession } from '@/lib/auth/stale-session-recovery'
  * would recreate the redirect loop.
  */
 export function SessionExpired() {
+  const t = useTranslations('shell.sessionExpired')
   const { data: session, isPending, error } = useSession()
   const startedRef = useRef(false)
   const [sawSession, setSawSession] = useState(false)
@@ -60,8 +62,6 @@ export function SessionExpired() {
     return null
   }
 
-  const subject = wasImpersonation ? 'The impersonation session expired' : 'Your session expired'
-
   return (
     <main
       className='fixed inset-0 z-[var(--z-takeover)] flex flex-col items-center justify-center gap-3 bg-[var(--bg)] p-6 text-center'
@@ -74,11 +74,17 @@ export function SessionExpired() {
           failed ? 'text-[var(--text-error)]' : 'text-[var(--text-secondary)]'
         )}
       >
-        {failed ? `${subject}, but signing out failed.` : `${subject}. Signing you out…`}
+        {wasImpersonation
+          ? failed
+            ? t('impersonationSignOutFailed')
+            : t('impersonationSigningOut')
+          : failed
+            ? t('signOutFailed')
+            : t('signingOut')}
       </p>
       {failed && (
         <Chip variant='primary' onClick={attemptRecovery}>
-          Try again
+          {t('tryAgain')}
         </Chip>
       )}
     </main>

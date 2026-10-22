@@ -1,0 +1,37 @@
+{
+  "auditLogs": {
+    "searchPlaceholder": "Rechercher dans le journal",
+    "export": "Exporter (CSV)",
+    "loading": "Chargement du journal…",
+    "loadFailed": "Le journal d'audit n'a pas pu être chargé.",
+    "empty": "Aucun événement pour le moment.",
+    "system": "Système",
+    "loadMore": "Afficher plus",
+    "loadingMore": "Chargement…",
+    "columns": {
+      "date": "Date",
+      "actor": "Auteur",
+      "action": "Action",
+      "resource": "Ressource",
+      "description": "Détail"
+    }
+  },
+  "usage": {
+    "loading": "Chargement de la consommation…",
+    "unavailable": "La consommation n'est pas disponible : Nexora API ne répond pas.",
+    "period": "Consommation de modèles des {days} derniers jours, mesurée par Nexora API.",
+    "empty": "Aucune utilisation sur la période.",
+    "totals": {
+      "requests": "Requêtes",
+      "promptTokens": "Jetons en entrée",
+      "completionTokens": "Jetons en sortie",
+      "totalTokens": "Jetons au total"
+    },
+    "columns": {
+      "date": "Jour",
+      "requests": "Requêtes",
+      "promptTokens": "Jetons en entrée",
+      "completionTokens": "Jetons en sortie"
+    }
+  }
+}

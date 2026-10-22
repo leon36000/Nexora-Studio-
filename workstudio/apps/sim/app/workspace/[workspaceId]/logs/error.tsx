@@ -1,14 +1,16 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { type ErrorBoundaryProps, ErrorState } from '@/app/workspace/[workspaceId]/components/error'
 
 export default function LogsError({ error, reset }: ErrorBoundaryProps) {
+  const t = useTranslations('logs.error')
   return (
     <ErrorState
       error={error}
       reset={reset}
-      title='Failed to load logs'
-      description='Something went wrong while loading the logs. Please try again.'
+      title={t('title')}
+      description={t('description')}
       loggerName='LogsError'
     />
   )

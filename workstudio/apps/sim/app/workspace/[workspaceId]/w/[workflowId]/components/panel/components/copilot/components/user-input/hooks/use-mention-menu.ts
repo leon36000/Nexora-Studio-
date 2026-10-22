@@ -101,7 +101,7 @@ export function useMentionMenu({
             }
 
             // Also check if cursor is inside the completed token (including spaces)
-            if (pos > tokenStart && pos < tokenEnd) {
+            if (tokenStart < pos && pos < tokenEnd) {
               return null
             }
 
@@ -171,7 +171,7 @@ export function useMentionMenu({
               return null
             }
 
-            if (pos > tokenStart && pos < tokenEnd) {
+            if (tokenStart < pos && pos < tokenEnd) {
               return null
             }
 

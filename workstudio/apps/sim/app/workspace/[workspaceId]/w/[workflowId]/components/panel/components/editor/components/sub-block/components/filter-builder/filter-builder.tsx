@@ -3,6 +3,7 @@
 import { useCallback, useMemo } from 'react'
 import { Button } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { useTableColumns } from '@/lib/table/hooks'
 import type { FilterRule } from '@/lib/table/query-builder/constants'
 import { useFilterBuilder } from '@/lib/table/query-builder/use-query-builder'
@@ -32,6 +33,7 @@ export function FilterBuilder({
   columns: propColumns,
   tableIdSubBlockId = 'tableId',
 }: FilterBuilderProps) {
+  const t = useTranslations('editor.subBlock.filterBuilder')
   const activeSearchTarget = useActiveSearchTarget()
   const [storeValue, setStoreValue] = useSubBlockValue<FilterRule[]>(blockId, subBlockId)
   const tableIdValue = useCanonicalSubBlockValue<string>(blockId, tableIdSubBlockId)
@@ -52,6 +54,15 @@ export function FilterBuilder({
     setRules: setStoreValue,
     isReadOnly,
   })
+
+  const translatedComparisonOptions = useMemo(
+    () => comparisonOptions.map((op) => ({ ...op, label: t(`operators.${op.value}`) })),
+    [comparisonOptions, t]
+  )
+  const translatedLogicalOptions = useMemo(
+    () => logicalOptions.map((op) => ({ ...op, label: t(`logicalOperators.${op.value}`) })),
+    [logicalOptions, t]
+  )
 
   const inputController = useSubBlockInput({
     blockId,
@@ -90,7 +101,7 @@ export function FilterBuilder({
         className='h-7 w-full justify-start gap-1.5 border border-[var(--border-1)] border-dashed text-[var(--text-muted)] text-small'
       >
         <Plus className='size-[14px]' />
-        Add filter condition
+        {t('addCondition')}
       </Button>
     )
   }
@@ -109,8 +120,8 @@ export function FilterBuilder({
             rule={displayRule}
             index={index}
             columns={columns}
-            comparisonOptions={comparisonOptions}
-            logicalOptions={logicalOptions}
+            comparisonOptions={translatedComparisonOptions}
+            logicalOptions={translatedLogicalOptions}
             isReadOnly={isReadOnly}
             isPreview={isPreview}
             disabled={disabled}

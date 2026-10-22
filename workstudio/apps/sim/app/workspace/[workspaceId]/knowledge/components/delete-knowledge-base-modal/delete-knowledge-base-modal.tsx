@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { ChipConfirmModal } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 interface DeleteKnowledgeBaseModalProps {
   /**
@@ -37,39 +38,40 @@ export const DeleteKnowledgeBaseModal = memo(function DeleteKnowledgeBaseModal({
   isDeleting,
   knowledgeBaseName,
 }: DeleteKnowledgeBaseModalProps) {
+  const t = useTranslations('knowledge.deleteBase')
   return (
     <ChipConfirmModal
       open={isOpen}
       onOpenChange={onClose}
-      srTitle='Delete Knowledge Base'
-      title='Delete Knowledge Base'
+      srTitle={t('title')}
+      title={t('title')}
       defaultAction='dismiss'
       text={
         knowledgeBaseName
           ? [
-              'Are you sure you want to delete ',
+              t('confirmNamedPrefix'),
               { text: knowledgeBaseName, bold: true },
-              '? ',
+              t('confirmNamedSuffix'),
               {
-                text: 'All associated documents, chunks, and embeddings will be removed.',
+                text: t('warning'),
                 error: true,
               },
-              ' You can restore it from Recently Deleted in Settings.',
+              t('restoreHint'),
             ]
           : [
-              'Are you sure you want to delete this knowledge base? ',
+              t('confirmUnnamed'),
               {
-                text: 'All associated documents, chunks, and embeddings will be removed.',
+                text: t('warning'),
                 error: true,
               },
-              ' You can restore it from Recently Deleted in Settings.',
+              t('restoreHint'),
             ]
       }
       confirm={{
-        label: 'Delete',
+        label: t('confirm'),
         onClick: onConfirm,
         pending: isDeleting,
-        pendingLabel: 'Deleting...',
+        pendingLabel: t('pending'),
       }}
     />
   )

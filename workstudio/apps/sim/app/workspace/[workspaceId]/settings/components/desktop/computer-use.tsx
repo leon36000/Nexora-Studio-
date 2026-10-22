@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ComputerUseAppPermission } from '@sim/desktop-bridge'
 import { Chip, ChipSwitch, Label, toast } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { ComputerUseActivity } from '@/components/computer-use/activity'
 import { getDesktopBridge } from '@/lib/desktop'
 import { useFeatureFlag } from '@/app/workspace/[workspaceId]/providers/feature-flags-provider'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import { useComputerUseStatus } from '@/hooks/use-computer-use-status'
+
+type SettingsAction = () => Promise<void> // i18n-ignore: type signature
 
 export function ComputerUseSettings() {
   return (
@@ -19,6 +22,8 @@ export function ComputerUseSettings() {
 }
 
 function ComputerUseSettingsControls() {
+  const t = useTranslations('settings.computerUse')
+  const tShared = useTranslations('settings.shared')
   const requestVersion = useRef(0)
   const bridge = getDesktopBridge()?.computerUse
   const enabled = useFeatureFlag('mothership-computer-use')
@@ -32,7 +37,7 @@ function ComputerUseSettingsControls() {
       const approved = await bridge.listAppPermissions()
       if (version === requestVersion.current) setApps(approved)
     } catch {
-      if (version === requestVersion.current) toast.error('Could not load approved apps')
+      if (version === requestVersion.current) toast.error(t('loadAppsError'))
     }
   }, [bridge])
   useEffect(() => {
@@ -43,28 +48,28 @@ function ComputerUseSettingsControls() {
     }
   }, [enabled, refreshApps, status?.activeAction])
   if (!bridge || !enabled || status?.supported === false) return null
-  const update = async (action: () => Promise<void>) => {
+  const update = async (action: SettingsAction) => {
     setPending(true)
     try {
       await action()
     } catch {
-      toast.error('Could not update Computer Use settings')
+      toast.error(t('updateError'))
     } finally {
       setPending(false)
     }
   }
   return (
-    <SettingsSection label='Computer Use'>
+    <SettingsSection label={t('title')}>
       <div className='flex flex-col gap-3'>
         <div className='flex items-center justify-between'>
           <Label asChild>
-            <span>Allow Mothership to use Mac apps</span>
+            <span>{t('allowMacApps')}</span>
           </Label>
           <ChipSwitch
-            aria-label='Allow Mothership to use Mac apps'
+            aria-label={t('allowMacApps')}
             options={[
-              { value: 'off', label: 'Off' },
-              { value: 'on', label: 'On' },
+              { value: 'off', label: t('off') },
+              { value: 'on', label: t('on') },
             ]}
             value={status?.enabled ? 'on' : 'off'}
             disabled={pending || !status}
@@ -73,41 +78,37 @@ function ComputerUseSettingsControls() {
             }
           />
         </div>
-        <p className='text-[var(--text-muted)] text-sm'>
-          Off by default. Each app requires your approval. You can stop an action from the
-          conversation or revoke an app below.
-        </p>
+        <p className='text-[var(--text-muted)] text-sm'>{t('intro')}</p>
         {error && (
           <div className='flex items-center justify-between text-sm'>
-            <span>Could not connect to the computer helper.</span>
-            <Chip onClick={() => void refresh()}>Retry</Chip>
+            <span>{t('helperError')}</span>
+            <Chip onClick={() => void refresh()}>{tShared('retry')}</Chip>
           </div>
         )}
         {(['accessibility', 'screenCapture'] as const).map((permission) => (
           <div className='flex items-center justify-between' key={permission}>
-            <Label>{permission === 'accessibility' ? 'Accessibility' : 'Screen Recording'}</Label>
+            <Label>{t(`permissions.${permission}`)}</Label>
             {status?.permissions[permission] ? (
-              <span className='text-[var(--text-muted)] text-sm'>Allowed</span>
+              <span className='text-[var(--text-muted)] text-sm'>{t('allowed')}</span>
             ) : (
               <Chip
-                aria-label={`Open System Settings for ${permission === 'accessibility' ? 'Accessibility' : 'Screen Recording'}`}
+                aria-label={t('openSystemSettingsFor', {
+                  permission: t(`permissions.${permission}`),
+                })}
                 disabled={pending || !status?.enabled}
                 onClick={() =>
                   void update(async () => setStatus(await bridge.requestPermission(permission)))
                 }
               >
-                Open System Settings
+                {t('openSystemSettings')}
               </Chip>
             )}
           </div>
         ))}
-        <p className='text-[var(--text-muted)] text-sm'>
-          Accessibility allows interaction with approved apps. Screen Recording allows screenshots.
-          Return here after granting access to refresh the status.
-        </p>
+        <p className='text-[var(--text-muted)] text-sm'>{t('permissionsHint')}</p>
         {apps.length > 0 && (
           <div className='flex flex-col gap-2'>
-            <Label>Approved apps</Label>
+            <Label>{t('approvedApps')}</Label>
             {apps.map((app) => (
               <div className='flex items-center justify-between gap-3' key={app.bundleId}>
                 <span className='truncate text-sm' title={app.bundleId}>
@@ -123,7 +124,7 @@ function ComputerUseSettingsControls() {
                     })
                   }
                 >
-                  Revoke
+                  {t('revoke')}
                 </Chip>
               </div>
             ))}

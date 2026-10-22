@@ -11,6 +11,7 @@ import {
   Switch,
 } from '@sim/emcn'
 import { ArrowLeft, Clock, Key, Send } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { SaveDiscardChips } from '@/components/settings/save-discard-actions'
 import { SettingsActionChips } from '@/components/settings/settings-header'
@@ -45,12 +46,10 @@ interface SecretDetailProps {
 type SecretUsageTab = 'references' | 'logs'
 
 /** Logs leads: it is the default tab, and what "See usage" opened before References existed. */
-const SECRET_USAGE_TABS = [
-  { value: 'logs', label: 'Logs' },
-  { value: 'references', label: 'References' },
-] as const
+const SECRET_USAGE_TAB_VALUES = ['logs', 'references'] as const
 
 export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
+  const t = useTranslations('settings.secretDetail')
   const secretsHref = `/workspace/${workspaceId}/settings/secrets`
 
   const { data: credential = null, isPending, error } = useWorkspaceCredential(credentialId)
@@ -86,7 +85,7 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
 
   const back = (
     <ChipLink href={secretsHref} onClick={form.handleBackClick} leftIcon={ArrowLeft}>
-      Secrets
+      {t('back')}
     </ChipLink>
   )
 
@@ -110,23 +109,21 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
         actions={[
           {
             id: 'usage',
-            text: 'See usage',
+            text: t('seeUsage'),
             icon: Clock,
             onSelect: () => void setView('usage'),
             disabled: !canViewUsage,
             ...(canViewUsage
               ? {}
               : {
-                  tooltip: isPersonal
-                    ? 'Only the owner of this secret can see its usage'
-                    : 'Only admins of this secret can see its usage',
+                  tooltip: isPersonal ? t('ownerOnlyUsage') : t('adminOnlyUsage'),
                 }),
           },
           ...(isWorkspaceSecretAdmin
             ? [
                 {
                   id: 'share',
-                  text: 'Share',
+                  text: t('share'),
                   icon: Send,
                   onSelect: () => setIsShareModalOpen(true),
                 },
@@ -148,7 +145,7 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
   if (isPending && !credential) {
     return (
       <CredentialDetailLayout back={back} actions={actions}>
-        <SettingsEmptyState variant='inline'>Loading…</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
       </CredentialDetailLayout>
     )
   }
@@ -162,9 +159,7 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
     return (
       <CredentialDetailLayout back={back} actions={actions}>
         <SettingsEmptyState variant='inline'>
-          {isApiClientError(error) && error.status === 403
-            ? 'You do not have access to this secret.'
-            : 'Could not load this secret.'}
+          {isApiClientError(error) && error.status === 403 ? t('noAccess') : t('loadFailed')}
         </SettingsEmptyState>
       </CredentialDetailLayout>
     )
@@ -173,7 +168,7 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
   if (!credential) {
     return (
       <CredentialDetailLayout back={back} actions={actions}>
-        <SettingsEmptyState variant='inline'>Secret not found.</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('notFound')}</SettingsEmptyState>
       </CredentialDetailLayout>
     )
   }
@@ -202,13 +197,13 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
             {credential.envKey || credential.displayName}
           </Chip>
         }
-        title='Usage'
+        title={t('usageTitle')}
       >
         <ChipModalTabs
-          tabs={SECRET_USAGE_TABS}
+          tabs={SECRET_USAGE_TAB_VALUES.map((value) => ({ value, label: t(`tabs.${value}`) }))}
           value={usageTab}
           onChange={(value) => void setUsageTab(value as SecretUsageTab)}
-          aria-label='Secret usage views'
+          aria-label={t('tabs.ariaLabel')}
         />
         {usageTab === 'references' ? (
           <SecretReferencesPanel
@@ -232,17 +227,17 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
           subtitle={
             isPersonal
               ? valueField.isConflicted
-                ? 'Overridden by a workspace variable'
-                : 'Personal secret'
-              : 'Workspace secret'
+                ? t('subtitle.overridden')
+                : t('subtitle.personal')
+              : t('subtitle.workspace')
           }
         />
 
-        <DetailSection title='Key'>
-          <ChipCopyInput value={credential.envKey || ''} copyLabel='Copy key' />
+        <DetailSection title={t('key')}>
+          <ChipCopyInput value={credential.envKey || ''} copyLabel={t('copyKey')} />
         </DetailSection>
 
-        <DetailSection title='Value'>
+        <DetailSection title={t('value')}>
           <SecretValueField
             value={valueField.value}
             onChange={valueField.setValue}
@@ -250,18 +245,18 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
             canReveal={!isPersonal && credential.unredacted}
             unmasked={valueField.isConflicted}
             readOnly={valueField.isConflicted}
-            placeholder='Enter value'
+            placeholder={t('valuePlaceholder')}
           />
         </DetailSection>
 
         {!isPersonal && (
-          <DetailSection title='Description'>
+          <DetailSection title={t('description')}>
             <ChipTextarea
               id='secret-description'
               rows={4}
               value={form.descriptionDraft}
               onChange={(event) => form.setDescriptionDraft(event.target.value)}
-              placeholder='Add a description...'
+              placeholder={t('descriptionPlaceholder')}
               maxLength={500}
               autoComplete='off'
               data-lpignore='true'
@@ -271,15 +266,11 @@ export function SecretDetail({ workspaceId, credentialId }: SecretDetailProps) {
         )}
 
         {!isPersonal && (
-          <DetailSection title='Visibility'>
+          <DetailSection title={t('visibility')}>
             <div className='flex items-center justify-between'>
               <div className='flex flex-col gap-1'>
-                <Label htmlFor='secret-unredacted'>Show value in logs and Chat</Label>
-                <p className='text-[var(--text-muted)] text-caption'>
-                  {
-                    'The value is visible to anyone who can see this workspace’s runs — in logs, Chat, and the API, including shared log links.'
-                  }
-                </p>
+                <Label htmlFor='secret-unredacted'>{t('showInLogs')}</Label>
+                <p className='text-[var(--text-muted)] text-caption'>{t('showInLogsHint')}</p>
               </div>
               <Switch
                 id='secret-unredacted'

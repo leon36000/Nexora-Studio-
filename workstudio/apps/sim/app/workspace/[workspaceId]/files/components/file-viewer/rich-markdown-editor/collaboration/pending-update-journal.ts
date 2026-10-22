@@ -64,7 +64,7 @@ function liveDocuments(value: unknown, now: number): JournalDocument[] {
   if (candidate.version !== JOURNAL_VERSION || !Array.isArray(candidate.documents)) return []
   return candidate.documents
     .filter(isRecovery)
-    .filter((document) => now - document.updatedAt <= JOURNAL_TTL_MS)
+    .filter((document) => JOURNAL_TTL_MS >= now - document.updatedAt)
     .sort(
       (left, right) =>
         Number(left.quarantined === true) - Number(right.quarantined === true) ||
@@ -149,9 +149,9 @@ export class PendingFileDocUpdateJournal {
     recoverySnapshot: Uint8Array
   ): Promise<JournalSaveResult> {
     const pendingWithinLimit =
-      pendingUpdate.byteLength > 0 && pendingUpdate.byteLength <= FILE_DOC_LIMITS.updateBytes
+      0 < pendingUpdate.byteLength && pendingUpdate.byteLength <= FILE_DOC_LIMITS.updateBytes
     const snapshotWithinLimit =
-      recoverySnapshot.byteLength > 0 && recoverySnapshot.byteLength <= RECOVERY_SNAPSHOT_MAX_BYTES
+      0 < recoverySnapshot.byteLength && recoverySnapshot.byteLength <= RECOVERY_SNAPSHOT_MAX_BYTES
     const limited: JournalSaveResult = { pendingUpdate, status: 'limit-exceeded' }
     if (!pendingWithinLimit || !snapshotWithinLimit) return Promise.resolve(limited)
 
@@ -265,7 +265,10 @@ export class PendingFileDocUpdateJournal {
     )
   }
 
-  private enqueue<T>(operation: () => Promise<T>, fallback: T): Promise<T> {
+  private enqueue<T>(
+    operation: () => Promise<T>, // i18n-ignore: type signature
+    fallback: T
+  ): Promise<T> {
     const result = this.mutationQueue.then(operation, operation)
     this.mutationQueue = result.then(
       () => undefined,

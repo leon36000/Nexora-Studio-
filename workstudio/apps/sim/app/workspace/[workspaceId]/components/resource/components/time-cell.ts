@@ -1,45 +1,21 @@
+import { useCallback } from 'react'
+import { createTranslator, type Messages, useLocale, useTranslations } from 'next-intl'
 import type { ResourceCell } from '@/app/workspace/[workspaceId]/components/resource/resource'
+import enShell from '@/messages/en/shell.json'
 
 const SECOND = 1000
 const MINUTE = 60 * SECOND
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
-const ORDINAL_RULES: [number, string][] = [
-  [1, 'st'],
-  [2, 'nd'],
-  [3, 'rd'],
-]
+type Translate = (key: string, values?: Record<string, string | number>) => string
 
-function ordinalSuffix(day: number): string {
-  if (day >= 11 && day <= 13) return 'th'
-  return ORDINAL_RULES.find(([d]) => day % 10 === d)?.[1] ?? 'th'
-}
-
-const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const
-
-function formatFullDate(date: Date): string {
-  const month = MONTH_NAMES[date.getMonth()]
-  const day = date.getDate()
-  const year = date.getFullYear()
-  return `${month} ${day}${ordinalSuffix(day)}, ${year}`
-}
-
-function pluralize(value: number, unit: string): string {
-  return `${value} ${unit}${value === 1 ? '' : 's'}`
+function formatFullDate(date: Date, t: Translate, locale: string): string {
+  return t('fullDate', {
+    month: new Intl.DateTimeFormat(locale, { month: 'long' }).format(date),
+    day: date.getDate(),
+    year: String(date.getFullYear()),
+  })
 }
 
 /**
@@ -51,7 +27,11 @@ function pluralize(value: number, unit: string): string {
  * - Under 2 days: "X day(s) ago" / "X day(s)"
  * - Beyond 2 days: full date (e.g. "March 4th, 2026")
  */
-export function timeCell(dateValue: string | Date | null | undefined): ResourceCell {
+function formatTimeCell(
+  dateValue: string | Date | null | undefined,
+  t: Translate,
+  locale: string
+): ResourceCell {
   if (!dateValue) return { label: null }
 
   const date = dateValue instanceof Date ? dateValue : new Date(dateValue)
@@ -60,22 +40,45 @@ export function timeCell(dateValue: string | Date | null | undefined): ResourceC
   const absDiff = Math.abs(diff)
   const isPast = diff > 0
 
-  if (absDiff < MINUTE) return { label: 'Now' }
+  if (absDiff < MINUTE) return { label: t('now') }
 
   if (absDiff < HOUR) {
-    const minutes = Math.floor(absDiff / MINUTE)
-    return { label: isPast ? `${pluralize(minutes, 'minute')} ago` : pluralize(minutes, 'minute') }
+    const count = Math.floor(absDiff / MINUTE)
+    return { label: t(isPast ? 'minutesAgo' : 'minutes', { count }) }
   }
 
   if (absDiff < DAY) {
-    const hours = Math.floor(absDiff / HOUR)
-    return { label: isPast ? `${pluralize(hours, 'hour')} ago` : pluralize(hours, 'hour') }
+    const count = Math.floor(absDiff / HOUR)
+    return { label: t(isPast ? 'hoursAgo' : 'hours', { count }) }
   }
 
   if (absDiff < 2 * DAY) {
-    const days = Math.floor(absDiff / DAY)
-    return { label: isPast ? `${pluralize(days, 'day')} ago` : pluralize(days, 'day') }
+    const count = Math.floor(absDiff / DAY)
+    return { label: t(isPast ? 'daysAgo' : 'days', { count }) }
   }
 
-  return { label: formatFullDate(date) }
+  return { label: formatFullDate(date, t, locale) }
+}
+
+/** Translated {@link timeCell} for client components. */
+export function useTimeCell() {
+  const t = useTranslations('shell.timeCell')
+  const locale = useLocale()
+  return useCallback(
+    (dateValue: string | Date | null | undefined) => formatTimeCell(dateValue, t, locale),
+    [t, locale]
+  )
+}
+
+const englishMessages: Messages = { shell: enShell }
+
+const englishTranslate = createTranslator({
+  locale: 'en',
+  messages: englishMessages,
+  namespace: 'shell.timeCell',
+})
+
+/** English-only variant for row builders outside React; prefer {@link useTimeCell}. */
+export function timeCell(dateValue: string | Date | null | undefined): ResourceCell {
+  return formatTimeCell(dateValue, englishTranslate, 'en')
 }

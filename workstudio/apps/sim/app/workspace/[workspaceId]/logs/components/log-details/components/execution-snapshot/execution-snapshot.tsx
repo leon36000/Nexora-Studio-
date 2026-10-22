@@ -15,6 +15,7 @@ import {
   Loader,
 } from '@sim/emcn'
 import { CircleAlert } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { createPortal } from 'react-dom'
 import { Preview } from '@/app/workspace/[workspaceId]/w/components/preview'
 import { useExecutionSnapshot } from '@/hooks/queries/logs'
@@ -59,6 +60,7 @@ export function ExecutionSnapshot({
   isOpen = false,
   onClose = () => {},
 }: ExecutionSnapshotProps) {
+  const t = useTranslations('logs.snapshot')
   const { data, isLoading, error } = useExecutionSnapshot(executionId)
   const modalDescriptionId = useId()
 
@@ -95,7 +97,7 @@ export function ExecutionSnapshot({
         >
           <div className='flex items-center gap-2 text-[var(--text-secondary)]'>
             <Loader className='size-[16px]' animate />
-            <span className='text-small'>Loading run snapshot…</span>
+            <span className='text-small'>{t('loading')}</span>
           </div>
         </div>
       )
@@ -109,7 +111,7 @@ export function ExecutionSnapshot({
         >
           <div className='flex items-center gap-2 text-[var(--text-error)]'>
             <CircleAlert className='size-[16px]' />
-            <span className='text-small'>Failed to load run snapshot: {error.message}</span>
+            <span className='text-small'>{t('loadError', { message: error.message })}</span>
           </div>
         </div>
       )
@@ -123,7 +125,7 @@ export function ExecutionSnapshot({
         >
           <div className='flex items-center gap-2 text-[var(--text-secondary)]'>
             <Loader className='size-[16px]' animate />
-            <span className='text-small'>Loading run snapshot…</span>
+            <span className='text-small'>{t('loading')}</span>
           </div>
         </div>
       )
@@ -137,14 +139,13 @@ export function ExecutionSnapshot({
         >
           <div className='flex items-center gap-3 text-[var(--warning)]'>
             <CircleAlert className='size-[20px]' />
-            <span className='text-base'>Logged State Not Found</span>
+            <span className='text-base'>{t('notFoundTitle')}</span>
           </div>
           <div className='max-w-md text-center text-[var(--text-secondary)] text-small'>
-            This log was migrated from the old logging system. The workflow state at the time of
-            this run is not available.
+            {t('migratedDescription')}
           </div>
           <div className='text-[var(--text-tertiary)] text-caption'>
-            Note: {workflowState._note}
+            {t('note', { note: workflowState._note ?? '' })}
           </div>
         </div>
       )
@@ -193,7 +194,7 @@ export function ExecutionSnapshot({
             >
               <DropdownMenuItem onSelect={handleCopyExecutionId}>
                 <Duplicate />
-                Copy Run ID
+                {t('copyRunId')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>,
@@ -211,15 +212,15 @@ export function ExecutionSnapshot({
               onClose()
             }
           }}
-          srTitle='Workflow State'
+          srTitle={t('title')}
           aria-describedby={modalDescriptionId}
           size='full'
           className='h-[90vh] [&>div]:h-full'
         >
-          <ChipModalHeader onClose={onClose}>Workflow State</ChipModalHeader>
+          <ChipModalHeader onClose={onClose}>{t('title')}</ChipModalHeader>
           <ChipModalBody fullBleed>
             <p id={modalDescriptionId} className='sr-only'>
-              View the workflow state snapshot for this execution
+              {t('viewDescription')}
             </p>
             {renderContent()}
           </ChipModalBody>

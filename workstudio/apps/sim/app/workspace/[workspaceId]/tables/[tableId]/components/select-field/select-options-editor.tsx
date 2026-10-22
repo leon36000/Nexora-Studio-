@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, ChipInput } from '@sim/emcn'
 import { X } from '@sim/emcn/icons'
 import { generateShortId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import type { SelectOption } from '@/lib/table'
 
 interface SelectOptionsEditorProps {
@@ -18,6 +19,7 @@ interface SelectOptionsEditorProps {
  * option and focus jumps into it so typing flows straight through.
  */
 export function SelectOptionsEditor({ options, onChange }: SelectOptionsEditorProps) {
+  const t = useTranslations('tables.selectField')
   const inputElementsRef = useRef<Map<string, HTMLInputElement> | null>(null)
   const inputRefs = (inputElementsRef.current ??= new Map())
   const trailingRef = useRef<HTMLInputElement>(null)
@@ -70,7 +72,7 @@ export function SelectOptionsEditor({ options, onChange }: SelectOptionsEditorPr
                 trailingRef.current?.focus()
               }
             }}
-            placeholder='Option name'
+            placeholder={t('optionName')}
             spellCheck={false}
             autoComplete='off'
             className='min-w-0 flex-1'
@@ -81,7 +83,7 @@ export function SelectOptionsEditor({ options, onChange }: SelectOptionsEditorPr
             onClick={() => remove(option.id)}
             iconPadding='sm'
             className='size-7 shrink-0'
-            aria-label={`Remove ${option.name || 'option'}`}
+            aria-label={t('remove', { name: option.name || t('optionFallback') })}
           >
             <X className='size-[12px]' />
           </Button>
@@ -94,7 +96,7 @@ export function SelectOptionsEditor({ options, onChange }: SelectOptionsEditorPr
           onChange={(e) => {
             if (e.target.value) materialize(e.target.value)
           }}
-          placeholder='Add option'
+          placeholder={t('addOption')}
           spellCheck={false}
           autoComplete='off'
           className='min-w-0 flex-1'

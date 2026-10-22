@@ -6,6 +6,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { formatDate } from '@sim/utils/formatting'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   RoleLockTooltip,
   type WorkspaceRoleSource,
@@ -39,11 +40,7 @@ import {
 } from '@/hooks/queries/workspace'
 import { useWorkspaceInvitePolicy } from '@/hooks/use-workspace-invite-policy'
 
-const ROLE_OPTIONS = [
-  { value: 'read', label: 'Read' },
-  { value: 'write', label: 'Write' },
-  { value: 'admin', label: 'Admin' },
-] as const
+const ROLE_VALUES = ['read', 'write', 'admin'] as const
 
 interface Teammate {
   key: string
@@ -66,8 +63,12 @@ interface Teammate {
  * organization. Shown on the status line rather than the role chip, which
  * carries the workspace permission — a separate axis from membership.
  */
-function withExternalLabel(status: string, isExternal: boolean | undefined): string {
-  return isExternal ? `${status} \u00b7 External` : status
+function withExternalLabel(
+  status: string,
+  isExternal: boolean | undefined,
+  externalLabel: string
+): string {
+  return isExternal ? `${status} \u00b7 ${externalLabel}` : status
 }
 
 function copyToClipboard(text: string) {
@@ -79,6 +80,9 @@ function buildInviteLink(invitationId: string, token: string) {
 }
 
 export function Teammates() {
+  const t = useTranslations('settings.teammates')
+  const tShared = useTranslations('settings.shared')
+  const roleOptions = ROLE_VALUES.map((value) => ({ value, label: t(`roles.${value}`) }))
   const params = useParams()
   const workspaceId = (params?.workspaceId as string) || ''
 
@@ -136,8 +140,9 @@ export function Teammates() {
       image: member.image,
       role: member.permissionType,
       status: withExternalLabel(
-        `Joined ${formatDate(new Date(member.joinedAt))}`,
-        member.isExternal
+        t('joined', { date: formatDate(new Date(member.joinedAt)) }),
+        member.isExternal,
+        t('external')
       ),
       isPending: false,
       userId: member.userId,
@@ -152,14 +157,14 @@ export function Teammates() {
       name: invitation.email,
       image: null,
       role: invitation.permissionType,
-      status: withExternalLabel('Invite pending', invitation.isExternal),
+      status: withExternalLabel(t('invitePending'), invitation.isExternal, t('external')),
       isPending: true,
       invitationId: invitation.invitationId,
       token: invitation.token,
     }))
 
     return [...members, ...pending]
-  }, [permissions, invitations])
+  }, [permissions, invitations, t])
 
   const filteredTeammates = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()
@@ -186,13 +191,13 @@ export function Teammates() {
         search={{
           value: searchTerm,
           onChange: setSearchTerm,
-          placeholder: 'Search teammates...',
+          placeholder: t('searchPlaceholder'),
         }}
         actions={
           canManage
             ? [
                 {
-                  text: 'Invite',
+                  text: t('invite'),
                   icon: Plus,
                   variant: 'primary',
                   onSelect: handleInvite,
@@ -204,11 +209,9 @@ export function Teammates() {
         }
       >
         <MemberSection
-          label={`Teammates (${teammates.length})`}
+          label={t('sectionLabel', { count: teammates.length })}
           isEmpty={showNoResults}
-          emptyText={
-            searchTerm.trim() ? `No teammates found matching “${searchTerm}”` : 'No teammates yet'
-          }
+          emptyText={searchTerm.trim() ? t('noMatches', { query: searchTerm }) : t('empty')}
         >
           {filteredTeammates.map((teammate) => {
             const lockReason = teammate.isPending
@@ -241,7 +244,7 @@ export function Teammates() {
                     <ChipDropdown
                       value={teammate.role}
                       onChange={(role) => handleRoleChange(teammate, role as WorkspacePermission)}
-                      options={ROLE_OPTIONS}
+                      options={roleOptions}
                       matchTriggerWidth={false}
                       disabled={
                         teammate.isPending ||
@@ -254,16 +257,16 @@ export function Teammates() {
                 }
                 menu={
                   <RowActionsMenu
-                    label='Teammate actions'
+                    label={t('actionsLabel')}
                     actions={[
                       {
-                        label: 'Copy email',
+                        label: t('copyEmail'),
                         onSelect: () => copyToClipboard(teammate.email),
                       },
                       ...(canManage && teammate.isPending
                         ? [
                             {
-                              label: 'Resend invite',
+                              label: t('resendInvite'),
                               onSelect: () => {
                                 if (teammate.invitationId) {
                                   resendInvitation.mutate({
@@ -274,7 +277,7 @@ export function Teammates() {
                               },
                             },
                             {
-                              label: 'Copy invite link',
+                              label: t('copyInviteLink'),
                               onSelect: () => {
                                 if (teammate.invitationId && teammate.token) {
                                   copyToClipboard(
@@ -284,7 +287,7 @@ export function Teammates() {
                               },
                             },
                             {
-                              label: 'Revoke invite',
+                              label: t('revokeInvite'),
                               destructive: true,
                               onSelect: () => {
                                 if (teammate.invitationId) {
@@ -300,7 +303,7 @@ export function Teammates() {
                       ...(canManage && !teammate.isPending && teammate.userId !== viewer?.userId
                         ? [
                             {
-                              label: 'Remove',
+                              label: tShared('remove'),
                               destructive: true,
                               disabled: removalLockReason !== null,
                               tooltip: removalLockReason ?? undefined,
@@ -310,11 +313,8 @@ export function Teammates() {
                                     { userId: teammate.userId, workspaceId },
                                     {
                                       onError: (error) => {
-                                        toast.error("Couldn't remove teammate", {
-                                          description: getErrorMessage(
-                                            error,
-                                            'Please try again in a moment.'
-                                          ),
+                                        toast.error(t('removeFailed'), {
+                                          description: getErrorMessage(error, t('tryAgain')),
                                         })
                                       },
                                     }
@@ -338,7 +338,7 @@ export function Teammates() {
           open={isInviteModalOpen}
           onOpenChange={setIsInviteModalOpen}
           workspaceId={workspaceId}
-          workspaceName={activeWorkspace?.name ?? 'Workspace'}
+          workspaceName={activeWorkspace?.name ?? t('workspaceFallback')}
           inviteDisabledReason={inviteDisabledReason}
           organizationId={activeWorkspace?.organizationId ?? null}
           canInvite={canManage}

@@ -1,4 +1,5 @@
 import { Badge } from '@sim/emcn'
+import { useLocale, useTranslations } from 'next-intl'
 import { parseCronToHumanReadable } from '@/lib/workflows/schedules/utils'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { useRedeployWorkflowSchedule, useScheduleQuery } from '@/hooks/queries/schedules'
@@ -16,6 +17,8 @@ interface ScheduleInfoProps {
  * Schedule creation/deletion is handled during workflow deploy/undeploy.
  */
 export function ScheduleInfo({ blockId, isPreview = false }: ScheduleInfoProps) {
+  const t = useTranslations('editor.subBlock.scheduleInfo')
+  const locale = useLocale()
   const { workflowId } = useWorkflowScope()
 
   const scheduleTimezone = useSubBlockStore((state) => state.getValue(blockId, 'timezone')) as
@@ -58,7 +61,7 @@ export function ScheduleInfo({ blockId, isPreview = false }: ScheduleInfoProps) 
                 }}
                 onClick={handleRedeploy}
               >
-                {redeployMutation.isPending ? 'redeploying...' : 'disabled'}
+                {redeployMutation.isPending ? t('redeploying') : t('disabled')}
               </Badge>
             ) : failedCount > 0 ? (
               <Badge
@@ -68,19 +71,17 @@ export function ScheduleInfo({ blockId, isPreview = false }: ScheduleInfoProps) 
                   color: 'var(--warning)',
                 }}
               >
-                {failedCount} failed
+                {t('failedCount', { count: failedCount })}
               </Badge>
             ) : null}
           </div>
           {failedCount >= MAX_CONSECUTIVE_FAILURES && isDisabled && (
             <p className='text-[var(--text-tertiary)] text-caption'>
-              Disabled after {MAX_CONSECUTIVE_FAILURES} consecutive failures
+              {t('disabledAfterFailures', { count: MAX_CONSECUTIVE_FAILURES })}
             </p>
           )}
           {redeployMutation.isError && (
-            <p className='text-[var(--text-error)] text-caption'>
-              Failed to redeploy. Please try again.
-            </p>
+            <p className='text-[var(--text-error)] text-caption'>{t('redeployFailed')}</p>
           )}
         </div>
       )}
@@ -95,14 +96,14 @@ export function ScheduleInfo({ blockId, isPreview = false }: ScheduleInfoProps) 
             <>
               {schedule?.cronExpression && <span className='mx-1'>·</span>}
               <span>
-                Next:{' '}
-                {nextRunAt.toLocaleString('en-US', {
+                {t('next')}{' '}
+                {nextRunAt.toLocaleString(locale, {
                   timeZone: timezone,
                   month: 'short',
                   day: 'numeric',
                   hour: 'numeric',
                   minute: '2-digit',
-                  hour12: true,
+                  hour12: locale.startsWith('en'),
                 })}
               </span>
             </>

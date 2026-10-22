@@ -12,6 +12,7 @@ import {
   SecretInput,
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
 import {
   resourceScopeFields,
@@ -25,6 +26,7 @@ import {
   type ClientCredentialAccountFieldId,
   partitionClientCredentialFields,
 } from '@/lib/credentials/client-credential-accounts/descriptors'
+import { useConnectNounTranslator } from '@/app/workspace/[workspaceId]/integrations/components/connect-service-account-modal/use-service-account-connect'
 import { withBrandIcon } from '@/blocks/brand-icon'
 import {
   useCreateScopedCredential,
@@ -33,17 +35,16 @@ import {
 
 const logger = createLogger('ClientCredentialAccountModal')
 
-const FALLBACK_ERROR_MESSAGE = "We couldn't save this credential. Try again in a moment."
-
 /**
  * Maps server `error.code` values from client-credential verification (a real
  * token mint against the provider) to user-facing messages, personalized with
- * the provider's field labels.
+ * the provider's field labels. `t` is scoped to `integrations.serviceAccount`.
  */
 function messageForClientCredentialError(
   err: unknown,
   descriptor: ClientCredentialAccountDescriptor,
-  requiredFields: ClientCredentialAccountField[]
+  requiredFields: ClientCredentialAccountField[],
+  t: ReturnType<typeof useTranslations>
 ): string {
   if (isApiClientError(err) && err.code) {
     // Names the fields the *selected* auth method needed, so a JWT failure
@@ -51,25 +52,34 @@ function messageForClientCredentialError(
     const fieldLabels = requiredFields.map((field) => field.label).join(', ')
     switch (err.code) {
       case 'invalid_credentials':
-        return `We couldn't authenticate with those credentials. Check that the ${fieldLabels} all belong to the same ${descriptor.serviceLabel} app and that the app is authorized.`
+        return t('clientCredential.errors.invalidCredentials', {
+          fieldLabels,
+          serviceLabel: descriptor.serviceLabel,
+        })
       case 'permission_conflict':
-        return 'Use the same permissions for connections to this application, or create a separate application for different permissions.'
+        return t('clientCredential.errors.permissionConflict')
       case 'site_not_found': {
         // "host field" named a label no provider renders — Salesforce calls it
         // My Domain host, and Zoom/Box/Zoho Desk have no host field at all.
         const hostFieldLabel =
-          descriptor.fields.find((field) => field.id === 'orgId')?.label ?? 'host'
-        return `We couldn't find a ${descriptor.serviceLabel} account at that host. Check the ${hostFieldLabel} field and try again.`
+          descriptor.fields.find((field) => field.id === 'orgId')?.label ??
+          t('clientCredential.hostFallback')
+        return t('clientCredential.errors.siteNotFound', {
+          serviceLabel: descriptor.serviceLabel,
+          hostFieldLabel,
+        })
       }
       case 'provider_unavailable':
-        return `We couldn't reach ${descriptor.serviceLabel} to verify these credentials. Try again in a moment.`
+        return t('clientCredential.errors.providerUnavailable', {
+          serviceLabel: descriptor.serviceLabel,
+        })
       case 'duplicate_display_name':
-        return 'A credential with that name already exists in this workspace.'
+        return t('atlassian.errors.duplicateDisplayName')
       default:
-        return FALLBACK_ERROR_MESSAGE
+        return t('clientCredential.errors.fallback')
     }
   }
-  return FALLBACK_ERROR_MESSAGE
+  return t('clientCredential.errors.fallback')
 }
 
 type FieldValues = Partial<Record<ClientCredentialAccountFieldId, string>>
@@ -130,6 +140,9 @@ function ClientCredentialAccountModalForm({
   initialDescription,
   onCreated,
 }: ClientCredentialAccountModalProps) {
+  const t = useTranslations('integrations.serviceAccount')
+  const tConnect = useTranslations('integrations.serviceAccountConnect')
+  const noun = useConnectNounTranslator()(descriptor.connectNoun)
   const [values, setValues] = useState<FieldValues>({})
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
   const [description, setDescription] = useState(initialDescription ?? '')
@@ -169,7 +182,9 @@ function ClientCredentialAccountModalForm({
 
   const isPending = createCredential.isPending || updateCredential.isPending
   const isDisabled = missingRequired || isPending
-  const actionLabel = credentialId ? 'Reconnect' : 'Add'
+  const title = credentialId
+    ? t('common.reconnectTitle', { serviceName, noun })
+    : t('common.addTitle', { serviceName, noun })
 
   const setField = (id: ClientCredentialAccountFieldId, value: string) => {
     setValues((current) => ({ ...current, [id]: value }))
@@ -217,19 +232,15 @@ function ClientCredentialAccountModalForm({
       if (connectedCredentialId) onCreated?.(connectedCredentialId)
       onOpenChange(false)
     } catch (err: unknown) {
-      setError(messageForClientCredentialError(err, descriptor, required))
+      setError(messageForClientCredentialError(err, descriptor, required, t))
       logger.error(`Failed to save ${descriptor.serviceLabel} service account credential`, err)
     }
   }
 
   return (
-    <ChipModal
-      open={open}
-      onOpenChange={onOpenChange}
-      srTitle={`${actionLabel} ${serviceName} ${descriptor.connectNoun}`}
-    >
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={title}>
       <ChipModalHeader icon={withBrandIcon(ServiceIcon)} onClose={() => onOpenChange(false)}>
-        {actionLabel} {serviceName} {descriptor.connectNoun}
+        {title}
       </ChipModalHeader>
       <ChipModalBody>
         {visibleFields.map((field) => {
@@ -339,19 +350,21 @@ function ClientCredentialAccountModalForm({
 
         <ChipModalField
           type='input'
-          title='Display name'
+          title={t('common.displayName')}
           value={displayName}
           onChange={setDisplayName}
-          placeholder={`Defaults to the ${descriptor.serviceLabel} account name`}
+          placeholder={t('common.accountNamePlaceholder', {
+            serviceLabel: descriptor.serviceLabel,
+          })}
           autoComplete='off'
         />
 
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={t('common.description')}
           value={description}
           onChange={setDescription}
-          placeholder='Optional description'
+          placeholder={t('common.optionalDescription')}
           maxLength={500}
           minHeight={80}
         />
@@ -362,16 +375,18 @@ function ClientCredentialAccountModalForm({
         onCancel={() => onOpenChange(false)}
         secondaryActions={[
           {
-            label: 'Setup guide',
+            label: t('common.setupGuide'),
             onClick: () => openDocs(descriptor.docsUrl),
           },
         ]}
         primaryAction={{
           label: isPending
             ? credentialId
-              ? 'Reconnecting...'
-              : 'Adding...'
-            : `${actionLabel} ${descriptor.connectNoun}`,
+              ? t('common.reconnecting')
+              : t('common.adding')
+            : credentialId
+              ? t('common.reconnectNoun', { noun })
+              : tConnect('addNoun', { noun }),
           onClick: handleSubmit,
           disabled: isDisabled,
         }}

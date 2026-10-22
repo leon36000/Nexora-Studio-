@@ -14,6 +14,7 @@ import {
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { type CreatedApiKey, useCreateApiKey } from '@/hooks/queries/api-keys'
 
 const logger = createLogger('CreateApiKeyModal')
@@ -47,6 +48,8 @@ export function CreateApiKeyModal({
   source = 'settings',
   onKeyCreated,
 }: CreateApiKeyModalProps) {
+  const t = useTranslations('settings.apiKeys.createModal')
+  const tShared = useTranslations('settings.shared')
   const [keyName, setKeyName] = useState('')
   const [keyType, setKeyType] = useState<'personal' | 'workspace'>(defaultKeyType)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -90,8 +93,8 @@ export function CreateApiKeyModal({
     if (isDuplicate) {
       setCreateError(
         keyType === 'workspace'
-          ? `A workspace API key named "${trimmedName}" already exists. Please choose a different name.`
-          : `A personal API key named "${trimmedName}" already exists. Please choose a different name.`
+          ? t('duplicateWorkspace', { name: trimmedName })
+          : t('duplicatePersonal', { name: trimmedName })
       )
       return
     }
@@ -116,11 +119,11 @@ export function CreateApiKeyModal({
       onKeyCreated?.(data.key)
     } catch (error: unknown) {
       logger.error('API key creation failed:', { error })
-      const errorMessage = getErrorMessage(error, 'Failed to create API key. Please try again.')
+      const errorMessage = getErrorMessage(error, t('createFailed'))
       if (errorMessage.toLowerCase().includes('already exists')) {
         setCreateError(errorMessage)
       } else {
-        setCreateError('Failed to create API key. Please check your connection and try again.')
+        setCreateError(t('createFailedConnection'))
       }
     }
   }
@@ -137,12 +140,12 @@ export function CreateApiKeyModal({
           if (!createApiKeyMutation.isPending) onOpenChange(nextOpen)
         }}
         dismissDisabled={createApiKeyMutation.isPending}
-        srTitle='Create new API key'
+        srTitle={t('title')}
       >
-        <ChipModalHeader onClose={handleClose}>Create new API key</ChipModalHeader>
+        <ChipModalHeader onClose={handleClose}>{t('title')}</ChipModalHeader>
         <ChipModalBody>
           {canManageWorkspaceKeys && (
-            <ChipModalField type='custom' title='Key type'>
+            <ChipModalField type='custom' title={t('keyType')}>
               <ChipButtonGroup
                 value={keyType}
                 onValueChange={(value) => {
@@ -151,21 +154,21 @@ export function CreateApiKeyModal({
                 }}
               >
                 <ChipButtonGroupItem value='personal' disabled={!allowPersonalApiKeys}>
-                  Personal
+                  {t('personal')}
                 </ChipButtonGroupItem>
-                <ChipButtonGroupItem value='workspace'>Workspace</ChipButtonGroupItem>
+                <ChipButtonGroupItem value='workspace'>{t('workspace')}</ChipButtonGroupItem>
               </ChipButtonGroup>
             </ChipModalField>
           )}
           <ChipModalField
             type='input'
-            title='Name'
+            title={t('name')}
             value={keyName}
             onChange={(value) => {
               setKeyName(value)
               if (createError) setCreateError(null)
             }}
-            placeholder='e.g., Development, Production'
+            placeholder={t('namePlaceholder')}
             autoComplete='off'
             required
           />
@@ -184,7 +187,7 @@ export function CreateApiKeyModal({
         <ChipModalFooter
           onCancel={handleClose}
           primaryAction={{
-            label: createApiKeyMutation.isPending ? 'Creating...' : 'Create',
+            label: createApiKeyMutation.isPending ? tShared('creating') : tShared('create'),
             onClick: handleCreateKey,
             disabled: !keyName.trim() || createApiKeyMutation.isPending || !canCreateKeyType,
           }}
@@ -199,19 +202,19 @@ export function CreateApiKeyModal({
             setNewKey(null)
           }
         }}
-        srTitle='Your API key has been created'
+        srTitle={t('createdTitle')}
       >
         <ChipModalHeader onClose={() => setShowNewKeyDialog(false)}>
-          Your API key has been created
+          {t('createdTitle')}
         </ChipModalHeader>
         <ChipModalBody>
-          <ChipModalField type='custom' title="Copy it now — it won't be shown again">
+          <ChipModalField type='custom' title={t('copyNow')}>
             {newKey && <SecretReveal value={newKey.key} />}
           </ChipModalField>
         </ChipModalBody>
         <ChipModalFooter
           onCancel={() => setShowNewKeyDialog(false)}
-          primaryAction={{ label: 'Done', onClick: () => setShowNewKeyDialog(false) }}
+          primaryAction={{ label: tShared('done'), onClick: () => setShowNewKeyDialog(false) }}
         />
       </ChipModal>
     </>

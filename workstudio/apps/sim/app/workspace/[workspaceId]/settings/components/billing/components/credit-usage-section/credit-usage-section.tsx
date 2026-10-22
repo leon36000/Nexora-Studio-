@@ -1,7 +1,7 @@
 'use client'
 
 import { ChipLink } from '@sim/emcn'
-import { formatCreditsLabel } from '@/lib/billing/credits/conversion'
+import { useTranslations } from 'next-intl'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import { useUsageSummary } from '@/hooks/queries/usage-logs'
 
@@ -20,18 +20,19 @@ interface CreditUsageSectionProps {
 export function CreditUsageSection({
   href = '/account/settings/billing/credit-usage',
 }: CreditUsageSectionProps) {
+  const t = useTranslations('settings.billing.creditUsageSection')
   const { data: totalCredits, isPending, isError } = useUsageSummary(SUMMARY_PERIOD)
 
   return (
-    <SettingsSection label='Credit usage'>
+    <SettingsSection label={t('label')}>
       <div className='flex items-center justify-between px-2'>
         <div className='flex flex-col justify-center gap-[1px]'>
           <span className='text-[var(--text-body)] text-sm'>
-            {isPending || isError ? '—' : formatCreditsLabel(totalCredits ?? 0)}
+            {isPending || isError ? '—' : t('credits', { count: totalCredits ?? 0 })}
           </span>
-          <span className='text-[var(--text-muted)] text-caption'>Last 30 days</span>
+          <span className='text-[var(--text-muted)] text-caption'>{t('last30Days')}</span>
         </div>
-        <ChipLink href={href}>View usage logs</ChipLink>
+        <ChipLink href={href}>{t('viewUsageLogs')}</ChipLink>
       </div>
     </SettingsSection>
   )

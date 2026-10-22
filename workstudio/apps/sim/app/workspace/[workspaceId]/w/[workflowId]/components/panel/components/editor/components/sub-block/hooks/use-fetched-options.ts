@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { getSelectorManifestEntry, type SelectorKey } from '@/lib/selectors/manifest'
 import { buildSelectorContextFromBlock } from '@/lib/workflows/subblocks/context'
 import { getBlock } from '@/blocks/registry'
@@ -76,6 +77,7 @@ export function useFetchedOptions({
   valuesToHydrate,
   localOptions,
 }: UseFetchedOptionsProps): UseFetchedOptionsResult {
+  const t = useTranslations('editor.subBlock.common')
   const activeWorkflowId = useWorkflowRegistry((state) => state.activeWorkflowId)
   const workspaceId = useWorkflowRegistry((state) => state.hydration.workspaceId)
   const block = useWorkflowStore((state) => state.blocks[blockId])
@@ -129,7 +131,7 @@ export function useFetchedOptions({
   const detailIds = useMemo(
     () =>
       (valuesToHydrate ?? []).filter(
-        (id) => id && !id.startsWith('<') && !hasLocalOption(localOptions, id)
+        (id) => id && !id.startsWith('<') && !hasLocalOption(localOptions, id) // i18n-ignore: reference prefix
       ),
     [localOptions, valuesToHydrate]
   )
@@ -168,7 +170,7 @@ export function useFetchedOptions({
     hasMore: list.hasMore,
     truncated: list.truncated,
     hasLoadedOptions: list.isSuccess,
-    fetchError: list.error ? getErrorMessage(list.error, 'Failed to fetch options') : null,
+    fetchError: list.error ? getErrorMessage(list.error, t('failedToFetchOptions')) : null,
     hydratedOption: detail.data ?? null,
     hydratedOptions: details.data,
     missingOptionId:

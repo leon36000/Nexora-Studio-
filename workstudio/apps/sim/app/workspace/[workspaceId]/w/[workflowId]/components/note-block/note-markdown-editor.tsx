@@ -2,6 +2,7 @@
 
 import { cn } from '@sim/emcn'
 import type { NoteContentEditorProps } from '@sim/workflow-renderer'
+import { useTranslations } from 'next-intl'
 import { RichMarkdownField } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/rich-markdown-field'
 import { useNoteImageUpload } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/note-block/use-note-image-upload'
 
@@ -65,6 +66,7 @@ export function NoteMarkdownEditor({
   openedAt,
   onChange,
 }: NoteContentEditorProps) {
+  const t = useTranslations('editor.noteBlock')
   const uploadImage = useNoteImageUpload()
 
   return (
@@ -74,7 +76,7 @@ export function NoteMarkdownEditor({
       surface='bare'
       autoFocus
       autoFocusAt={openedAt}
-      placeholder="Add note, or press '/' for commands…"
+      placeholder={t('placeholder')}
       proseClassName={cn(NOTE_EDITOR_PROSE_CLASS_NAME, selectionClassName)}
       editorClassName={caretClassName}
       uploadImage={uploadImage}

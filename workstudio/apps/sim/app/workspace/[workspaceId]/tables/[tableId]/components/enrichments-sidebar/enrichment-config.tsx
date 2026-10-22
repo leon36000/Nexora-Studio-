@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, X } from '@sim/emcn/icons'
 import { toError } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import type { AddWorkflowGroupBodyInput } from '@/lib/api/contracts/tables'
 import type { ColumnDefinition, WorkflowGroup, WorkflowGroupOutput } from '@/lib/table'
 import { columnMatchesRef, getColumnId } from '@/lib/table/column-keys'
@@ -68,6 +69,8 @@ export function EnrichmentConfig({
   onClose,
   existingGroup,
 }: EnrichmentConfigProps) {
+  const t = useTranslations('tables.sidebar')
+  const tEnrichments = useTranslations('tables.enrichments')
   const addWorkflowGroup = useAddWorkflowGroup({ workspaceId, tableId })
   const updateWorkflowGroup = useUpdateWorkflowGroup({ workspaceId, tableId })
   const updateColumn = useUpdateColumn({ workspaceId, tableId })
@@ -132,17 +135,17 @@ export function EnrichmentConfig({
    *  current column so renaming to its existing name isn't flagged. */
   function outputNameError(outputId: string): string | null {
     const value = (outputNames[outputId] ?? '').trim()
-    if (!value) return 'Required'
+    if (!value) return t('required')
     const lower = value.toLowerCase()
     const ownOriginal = originalOutputName(outputId)?.toLowerCase()
     if (
       allColumns.some((c) => c.name.toLowerCase() === lower && c.name.toLowerCase() !== ownOriginal)
     )
-      return 'Column already exists'
+      return t('columnExists')
     const dup = enrichment.outputs.some(
       (o) => o.id !== outputId && (outputNames[o.id] ?? '').trim().toLowerCase() === lower
     )
-    return dup ? 'Duplicate name' : null
+    return dup ? t('duplicateName') : null
   }
   const outputsInvalid = enrichment.outputs.some((o) => outputNameError(o.id) !== null)
   const saveDisabled =
@@ -184,7 +187,7 @@ export function EnrichmentConfig({
             })
           }
         }
-        toast.success(`Updated "${enrichment.name}"`)
+        toast.success(tEnrichments('updated', { name: enrichment.name }))
         onClose()
       } catch (err) {
         toast.error(toError(err).message)
@@ -223,7 +226,7 @@ export function EnrichmentConfig({
     }
     try {
       await addWorkflowGroup.mutateAsync({ group, outputColumns })
-      toast.success(`Added "${enrichment.name}"`)
+      toast.success(tEnrichments('added', { name: enrichment.name }))
       onClose()
     } catch (err) {
       toast.error(toError(err).message)
@@ -240,7 +243,7 @@ export function EnrichmentConfig({
             onClick={onBack}
             iconPadding='sm'
             className='size-7 flex-none max-md:pointer-coarse:size-11'
-            aria-label='Back to enrichments'
+            aria-label={t('backToEnrichments')}
           >
             <ArrowLeft className='size-[14px]' />
           </Button>
@@ -252,7 +255,7 @@ export function EnrichmentConfig({
           onClick={onClose}
           iconPadding='sm'
           className='size-7 flex-none max-md:pointer-coarse:size-11'
-          aria-label='Close'
+          aria-label={t('close')}
         >
           <X className='size-[14px]' />
         </Button>
@@ -260,10 +263,12 @@ export function EnrichmentConfig({
 
       <div className='flex-1 overflow-y-auto overflow-x-hidden px-2 pt-3 pb-2 [overflow-anchor:none]'>
         <div className='flex flex-col gap-[9.5px]'>
-          <Label className='flex items-baseline gap-1.5 whitespace-nowrap pl-0.5'>Inputs</Label>
+          <Label className='flex items-baseline gap-1.5 whitespace-nowrap pl-0.5'>
+            {tEnrichments('inputs')}
+          </Label>
           {enrichment.inputs.length === 0 ? (
             <p className='pl-0.5 text-[var(--text-tertiary)] text-caption'>
-              This enrichment needs no inputs.
+              {tEnrichments('noInputs')}
             </p>
           ) : (
             <div className='flex flex-col gap-2'>
@@ -281,16 +286,16 @@ export function EnrichmentConfig({
                     setCollapsed((prev) => ({ ...prev, [input.id]: !prev[input.id] }))
                   }
                 >
-                  <Label className='text-small'>Column</Label>
+                  <Label className='text-small'>{t('column')}</Label>
                   <ChipCombobox
                     searchable
-                    searchPlaceholder='Search columns…'
+                    searchPlaceholder={t('searchColumns')}
                     className='w-full'
                     dropdownWidth='trigger'
                     maxHeight={240}
                     disabled={columnOptions.length === 0}
-                    emptyMessage='No columns.'
-                    placeholder='Select a column'
+                    emptyMessage={t('noColumns')}
+                    placeholder={t('selectColumn')}
                     options={columnOptions}
                     value={inputMappings[input.id] ?? ''}
                     onChange={(columnName: string) =>
@@ -298,7 +303,7 @@ export function EnrichmentConfig({
                     }
                   />
                   {showValidation && input.required && !inputMappings[input.id] && (
-                    <FieldError message='Required' />
+                    <FieldError message={t('required')} />
                   )}
                 </CollapsibleCard>
               ))}
@@ -309,7 +314,7 @@ export function EnrichmentConfig({
         <FieldDivider />
 
         <div className='flex flex-col gap-[9.5px]'>
-          <Label className='pl-0.5'>Output columns</Label>
+          <Label className='pl-0.5'>{tEnrichments('outputColumns')}</Label>
           <div className='flex flex-col gap-2'>
             {enrichment.outputs.map((output) => {
               const outErr = showValidation ? outputNameError(output.id) : null
@@ -330,7 +335,7 @@ export function EnrichmentConfig({
                     }))
                   }
                 >
-                  <Label className='text-small'>Column name</Label>
+                  <Label className='text-small'>{t('columnName')}</Label>
                   <ChipInput
                     value={outputNames[output.id] ?? ''}
                     onChange={(e) =>
@@ -350,7 +355,7 @@ export function EnrichmentConfig({
         <FieldDivider />
 
         <div className='flex items-center justify-between pl-0.5'>
-          <Label htmlFor='enrichment-auto-run'>Auto-run</Label>
+          <Label htmlFor='enrichment-auto-run'>{t('autoRun')}</Label>
           <Switch
             id='enrichment-auto-run'
             checked={autoRun}
@@ -364,7 +369,7 @@ export function EnrichmentConfig({
               depOptions={allColumns}
               deps={deps}
               onChangeDeps={setDeps}
-              error={showValidation && deps.length === 0 ? 'Select at least one column' : null}
+              error={showValidation && deps.length === 0 ? t('selectAtLeastOneColumn') : null}
             />
           </>
         )}
@@ -377,7 +382,7 @@ export function EnrichmentConfig({
           onClick={onClose}
           className='max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11'
         >
-          Cancel
+          {t('cancel')}
         </Button>
         <Button
           variant='primary'
@@ -386,7 +391,7 @@ export function EnrichmentConfig({
           disabled={saveDisabled}
           className='max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11'
         >
-          {isEditing ? 'Update' : 'Save'}
+          {isEditing ? t('update') : t('save')}
         </Button>
       </div>
     </div>

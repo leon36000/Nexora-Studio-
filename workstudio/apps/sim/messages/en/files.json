@@ -1,1 +1,412 @@
-{}
+{
+  "page": {
+    "title": "Files",
+    "fileTitle": "File"
+  },
+  "error": {
+    "title": "Failed to load files",
+    "description": "Something went wrong while loading your files. Please try again."
+  },
+  "list": {
+    "title": "Files",
+    "columns": {
+      "name": "Name",
+      "size": "Size",
+      "type": "Type",
+      "created": "Created",
+      "owner": "Owner",
+      "updated": "Last Updated"
+    },
+    "types": {
+      "folder": "Folder",
+      "file": "File",
+      "text": "Text",
+      "page": "Page",
+      "audio": "Audio",
+      "video": "Video",
+      "image": "Image"
+    },
+    "actions": {
+      "upload": "Upload",
+      "newFolder": "New folder",
+      "newFile": "New file",
+      "download": "Download",
+      "rename": "Rename",
+      "share": "Share",
+      "delete": "Delete",
+      "edit": "Edit",
+      "split": "Split",
+      "preview": "Preview",
+      "copyLink": "Copy Link",
+      "copied": "Copied!"
+    },
+    "searchPlaceholder": "Search files...",
+    "newFolderName": "New folder",
+    "newFolderNameNumbered": "New folder ({counter})",
+    "toasts": {
+      "folderUploadBlocked": "Cannot upload the folder \"{name}\"",
+      "folderUploadBlockedDescription": "Create a folder in Files, then upload the files inside it.",
+      "fileTooLarge": "{name} exceeds the 5 GiB upload limit",
+      "filesTooLarge": "{count} files exceed the 5 GiB upload limit",
+      "uploadFileFailed": "Failed to upload \"{name}\"",
+      "uploadFailed": "Failed to upload files",
+      "downloadFileFailed": "Failed to download \"{name}\"",
+      "downloadSelectionFailed": "Failed to download the selected files",
+      "saveFailed": "Failed to save \"{name}\"",
+      "saveFailedFallbackName": "file",
+      "retry": "Retry",
+      "linkCopied": "Copied link to clipboard",
+      "linkCopyFailed": "Failed to copy link"
+    },
+    "filters": {
+      "all": "All",
+      "selected": "{count} selected",
+      "fileType": "File Type",
+      "size": "Size",
+      "uploadedBy": "Uploaded By",
+      "searchMembers": "Search members...",
+      "clearAll": "Clear all filters",
+      "oneMember": "1 member",
+      "members": "{count} members",
+      "documents": "Documents",
+      "images": "Images",
+      "audio": "Audio",
+      "video": "Video",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large",
+      "smallRange": "Small (< 1 MB)",
+      "mediumRange": "Medium (1–10 MB)",
+      "largeRange": "Large (> 10 MB)",
+      "tagType": "Type: {value}",
+      "tagSize": "Size: {value}",
+      "tagUploadedBy": "Uploaded by: {value}"
+    },
+    "unsaved": {
+      "title": "Unsaved Changes",
+      "text": "You have unsaved changes. Are you sure you want to discard them?",
+      "keepEditing": "Keep editing",
+      "discard": "Discard Changes"
+    },
+    "findAriaLabel": "Find in files",
+    "dropToUpload": "Drop to upload",
+    "dropToUploadHint": "Release files here to add them to this workspace",
+    "unzip": {
+      "title": "Unzip archive?",
+      "textBefore": "This will unzip ",
+      "fallbackName": "this archive",
+      "textAfter": " into a new folder beside it.",
+      "confirm": "Unzip",
+      "pending": "Unzipping..."
+    },
+    "selectedItem": "selected item",
+    "selectedItems": "{count} selected items"
+  },
+  "deleteModal": {
+    "titleItems": "Delete Items",
+    "titleFolder": "Delete Folder",
+    "titleFile": "Delete File",
+    "consequenceFolders": "This will also delete files and folders inside any selected folders.",
+    "consequenceFolder": "This will also delete files and folders inside it.",
+    "consequenceRestoreMany": "You can restore them from Recently Deleted in Settings.",
+    "consequenceRestoreOne": "You can restore it from Recently Deleted in Settings.",
+    "textBefore": "Are you sure you want to delete ",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
+    "textAfter": "? {consequence}",
+    "confirm": "Delete",
+    "pending": "Deleting..."
+  },
+  "rowMenu": {
+    "open": "Open",
+    "copyLink": "Copy Link",
+    "download": "Download",
+    "downloadMany": "{count, plural, one {Download # item} other {Download # items}}",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "rename": "Rename",
+    "share": "Share",
+    "moveTo": "Move to",
+    "moveMany": "{count, plural, one {Move # item} other {Move # items}}",
+    "delete": "Delete",
+    "deleteMany": "{count, plural, one {Delete # item} other {Delete # items}}"
+  },
+  "listMenu": {
+    "upload": "Upload",
+    "newFolder": "New folder",
+    "newFile": "New file"
+  },
+  "share": {
+    "access": {
+      "public": "Public",
+      "password": "Password",
+      "email": "Email",
+      "sso": "SSO"
+    },
+    "actions": {
+      "share": "Share",
+      "sharing": "Sharing...",
+      "update": "Update",
+      "updating": "Updating...",
+      "unshare": "Unshare",
+      "unsharing": "Unsharing..."
+    },
+    "success": {
+      "share": "File shared",
+      "update": "Sharing updated",
+      "unshare": "File unshared"
+    },
+    "hints": {
+      "loadError": "Unable to load the current sharing settings. Close and try again.",
+      "modeDisallowed": "This sharing method is disabled by an administrator.",
+      "publicDisabled": "Public sharing is disabled for this workspace by an administrator.",
+      "password": "Anyone with the link and the password can view and download this file.",
+      "email": "Only allowed emails can access this file after a one-time code.",
+      "sso": "Only allowed emails signed in via SSO can access this file.",
+      "publicActive": "Anyone with the link can view and download this file.",
+      "publicShare": "Share to make this file accessible to anyone with the link.",
+      "publicUpdate": "Update to make this file accessible to anyone with the link."
+    },
+    "srTitle": "Share {name}",
+    "title": "Share file",
+    "accessTitle": "Access",
+    "accessAriaLabel": "File access",
+    "passwordTitle": "Password",
+    "passwordKeepHint": "Leave blank to keep the current password.",
+    "passwordRequiredHint": "Anyone with the link must enter this password.",
+    "passwordPlaceholder": "Enter a password",
+    "emailsTitle": "Allowed emails",
+    "emailsPlaceholder": "Enter emails or domains",
+    "emailsPlaceholderWithTags": "Add email or domain",
+    "copied": "Copied!",
+    "copyLink": "Copy link",
+    "unshareConfirm": {
+      "title": "Unshare file?",
+      "text": "Are you sure you want to unshare this file? Anyone with the link will lose access."
+    }
+  },
+  "preview": {
+    "notAvailable": "Preview not available",
+    "notAvailableForExt": "Preview not available for .{ext} files",
+    "notAvailableForFile": "Preview not available for this file",
+    "downloadHint": "Use the download button to view this file",
+    "failed": "Failed to preview {label}",
+    "kinds": {
+      "csv": "CSV",
+      "document": "document",
+      "file": "file",
+      "pdf": "PDF",
+      "presentation": "presentation",
+      "spreadsheet": "spreadsheet",
+      "audio": "audio",
+      "video": "video"
+    },
+    "unexpectedError": "An unexpected error occurred",
+    "docNotReady": "Couldn't generate this document preview. Re-run the file generation to rebuild it.",
+    "toolbar": {
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "previousSlide": "Previous slide",
+      "nextSlide": "Next slide",
+      "resetZoom": "Reset zoom",
+      "reset": "Reset",
+      "zoomOut": "Zoom out",
+      "zoomIn": "Zoom in"
+    },
+    "noData": "No data to display",
+    "renderDocumentFailed": "Failed to render document",
+    "renderPresentationFailed": "Failed to render presentation",
+    "parseSpreadsheetFailed": "Failed to parse spreadsheet",
+    "parseSheetFailed": "Failed to parse sheet",
+    "xlsxTruncatedBoth": "Showing first {rows, number} rows and {columns, number} columns.",
+    "xlsxTruncatedRows": "Showing first {rows, number} rows.",
+    "xlsxTruncatedColumns": "Showing first {columns, number} columns.",
+    "xlsxDownloadHint": "Download the file to view all data.",
+    "tooLarge": "This file is too large to preview. Download it to view its contents.",
+    "htmlTitle": "HTML Preview",
+    "svgAlt": "SVG preview",
+    "zoomable": "Zoomable preview"
+  },
+  "csvImport": {
+    "importing": "Importing \"{name}\" as a table",
+    "importingDescription": "This runs in the background.",
+    "viewTables": "View tables",
+    "truncated": "Showing the first {count, number} rows",
+    "truncatedDescription": "Import this file as a table to view all of its rows.",
+    "importAsTable": "Import as a table"
+  },
+  "pdf": {
+    "failed": "Failed to preview PDF",
+    "loadFailed": "Failed to load PDF",
+    "pageAriaLabel": "{filename} page {page}"
+  },
+  "mermaid": {
+    "rendering": "Rendering…",
+    "invalid": "Invalid diagram"
+  },
+  "chart": {
+    "readTableFailed": "Failed to read table",
+    "defaultLabel": "Chart"
+  },
+  "editorMenu": {
+    "addToChat": "Add to Chat",
+    "cut": "Cut",
+    "copy": "Copy",
+    "copyAll": "Copy all",
+    "paste": "Paste",
+    "selectAll": "Select all",
+    "find": "Find"
+  },
+  "saveConflict": {
+    "message": "Saving paused: the file changed elsewhere. Your local draft is preserved. Reload replaces it with the latest version.",
+    "downloadDraft": "Download local draft",
+    "reloadFailed": "Could not reload the file. Your local draft is unchanged.",
+    "reloading": "Reloading…",
+    "discardAndReload": "Discard draft and reload"
+  },
+  "editableContent": {
+    "reloadBeforeSaving": "Reload the latest file before saving this draft",
+    "versionUnavailable": "The file version is unavailable; reload before saving",
+    "savedVersionUnavailable": "Saved file version is unavailable; reload before continuing",
+    "discardFailed": "Failed to discard \"{name}\" — the server may still have the discarded edit",
+    "waitForAgent": "Wait for the agent edit to finish before reloading",
+    "agentStartedWhileReloading": "An agent edit started while reloading. Retry after it finishes.",
+    "draftChangedWhileReloading": "Your draft changed while reloading. Download it or retry reload.",
+    "latestVersionUnavailable": "The latest file version is unavailable",
+    "loadFailed": "Failed to load file content"
+  },
+  "textEditor": {
+    "pasteTooLarge": "Paste would make this file too large to edit",
+    "pasteTooLargeDescription": "Inline editing supports files up to {limit}. Import or replace the file to keep larger content available without loading it into the editor.",
+    "resizeSplit": "Resize split",
+    "splitValueText": "{source}% source, {preview}% preview"
+  },
+  "editor": {
+    "placeholder": "Write something, or press '/' for commands…",
+    "documentPreview": "Document preview",
+    "findInDocument": "Find in document",
+    "paste": {
+      "formattingSkipped": "Pasted text kept without automatic formatting",
+      "formattingSkippedDescription": "Adding that formatting would exceed the rich-text editing limit.",
+      "tooLarge": "Paste is too large for rich-text editing",
+      "tooLargeDescription": "Rich-text editing supports up to {count, number} characters. Use the source editor for larger documents.",
+      "fieldTooLargeDescription": "Keep this document under {limit}, or import the content as a file."
+    },
+    "images": {
+      "uploading": "Uploading \"{name}\"…",
+      "notInserted": "The image was uploaded to the workspace but was not inserted.",
+      "locationChanged": "The insertion location changed. Choose a new location and select the image again.",
+      "resize": "Resize image"
+    },
+    "imageUpload": {
+      "uploading": "Uploading {label}…",
+      "cancel": "Cancel insertion",
+      "cancelAriaLabel": "Cancel insertion of {label}",
+      "cancelTitle": "The file may still finish uploading to the workspace."
+    },
+    "sourceRequired": "This document needs source editing to preserve its content or handle its size.",
+    "editSource": "Edit source",
+    "reconnecting": "Reconnecting…",
+    "writeAccessLost": "You no longer have edit access to this document.",
+    "liveEditingUnavailable": "Live editing is unavailable.",
+    "find": {
+      "replacementTooLarge": "Replacement is too large",
+      "replacementTooLargeDescription": "Use the source editor for changes that exceed the rich-text editing limit."
+    },
+    "bubbleMenu": {
+      "linkEditing": "Link editing",
+      "textFormatting": "Text formatting",
+      "removeLink": "Remove link",
+      "applyLink": "Apply link",
+      "addToChat": "Add to Chat",
+      "textStyle": "Text style",
+      "style": "Style",
+      "text": "Text",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "bulletedList": "Bulleted list",
+      "numberedList": "Numbered list",
+      "checklist": "Checklist",
+      "quote": "Quote",
+      "bold": "Bold",
+      "italic": "Italic",
+      "link": "Link",
+      "moreFormatting": "More formatting",
+      "strikethrough": "Strikethrough",
+      "highlight": "Highlight",
+      "code": "Code"
+    },
+    "link": {
+      "urlLabel": "Link URL",
+      "urlPlaceholder": "Paste or type a link…",
+      "dialog": "Link",
+      "apply": "Apply link",
+      "copied": "Copied",
+      "copy": "Copy link",
+      "edit": "Edit link",
+      "remove": "Remove link"
+    },
+    "tableMenu": {
+      "label": "Table editing",
+      "insertRowAbove": "Insert row above",
+      "insertRowBelow": "Insert row below",
+      "deleteRow": "Delete row",
+      "insertColumnLeft": "Insert column left",
+      "insertColumnRight": "Insert column right",
+      "deleteColumn": "Delete column",
+      "deleteTable": "Delete table"
+    },
+    "codeBlock": {
+      "plainText": "Plain text",
+      "showDashboard": "Show dashboard",
+      "showDiff": "Show diff",
+      "showDiagram": "Show diagram",
+      "showSource": "Show source",
+      "language": "Code language",
+      "toggleWrap": "Toggle line wrap",
+      "copied": "Copied",
+      "copyDiff": "Copy diff",
+      "copyCode": "Copy code"
+    },
+    "slashCommands": {
+      "ariaLabel": "Commands",
+      "noResults": "No results",
+      "groups": {
+        "basic": "Basic",
+        "lists": "Lists",
+        "blocks": "Blocks",
+        "media": "Media"
+      },
+      "items": {
+        "text": "Text",
+        "heading1": "Heading 1",
+        "heading2": "Heading 2",
+        "heading3": "Heading 3",
+        "bulletedList": "Bulleted list",
+        "numberedList": "Numbered list",
+        "checklist": "Checklist",
+        "quote": "Quote",
+        "codeBlock": "Code block",
+        "chart": "Chart",
+        "table": "Table",
+        "divider": "Divider",
+        "image": "Image"
+      }
+    },
+    "mentions": {
+      "ariaLabel": "Mentions",
+      "loading": "Loading…",
+      "noResults": "No results",
+      "groups": {
+        "files": "Files",
+        "folders": "Folders",
+        "tables": "Tables",
+        "knowledgeBases": "Knowledge bases",
+        "workflows": "Workflows",
+        "skills": "Skills",
+        "integrations": "Integrations"
+      }
+    },
+    "collaborator": "Collaborator"
+  }
+}

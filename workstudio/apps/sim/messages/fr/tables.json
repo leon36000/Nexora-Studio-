@@ -1,1 +1,604 @@
-{}
+{
+  "list": {
+    "title": "Tables",
+    "searchPlaceholder": "Rechercher des tables…",
+    "columns": {
+      "name": "Nom",
+      "columns": "Colonnes",
+      "rows": "Lignes",
+      "created": "Créée le",
+      "owner": "Propriétaire",
+      "updated": "Dernière modification"
+    },
+    "actions": {
+      "importCsv": "Importer un CSV",
+      "newFolder": "Nouveau dossier",
+      "newTable": "Nouvelle table"
+    },
+    "error": {
+      "title": "Échec du chargement des tables",
+      "description": "Une erreur s’est produite lors du chargement des tables. Veuillez réessayer."
+    },
+    "folderActions": {
+      "rename": "Renommer",
+      "delete": "Supprimer"
+    },
+    "filters": {
+      "all": "Toutes",
+      "selectedCount": "{count, plural, one {# sélectionné} other {# sélectionnés}}",
+      "memberCount": "{count, plural, one {# membre} other {# membres}}",
+      "rowCount": {
+        "label": "Nombre de lignes",
+        "empty": "Vide",
+        "small": "Petite (1–100 lignes)",
+        "large": "Grande (101+ lignes)",
+        "smallShort": "Petite (1–100)",
+        "largeShort": "Grande (101+)",
+        "smallTag": "Petite",
+        "largeTag": "Grande"
+      },
+      "owner": "Propriétaire",
+      "searchMembers": "Rechercher des membres…",
+      "clearAll": "Effacer tous les filtres",
+      "rowsTag": "Lignes : {value}",
+      "rowsTagCount": "Lignes : {count, plural, one {# sélectionnée} other {# sélectionnées}}",
+      "ownerTag": "Propriétaire : {value}",
+      "ownerTagCount": "Propriétaire : {count, plural, one {# membre} other {# membres}}"
+    },
+    "toasts": {
+      "renameFolderFailed": "Échec du renommage du dossier",
+      "moveFolderFailed": "Échec du déplacement du dossier",
+      "deleteFolderFailed": "Échec de la suppression du dossier",
+      "createFolderFailed": "Échec de la création du dossier",
+      "moveLimit": "Sélectionnez au maximum {max} éléments à déplacer en une fois",
+      "deleteLimit": "Sélectionnez au maximum {max} éléments à supprimer en une fois",
+      "noCsvSelected": "Aucun fichier CSV ou TSV sélectionné",
+      "importingInBackground": "Importation de « {name} » en arrière-plan",
+      "importFailed": "Échec de l’importation du CSV",
+      "exportStarted": "Exportation lancée",
+      "exportFailed": "Échec de l’exportation de la table"
+    },
+    "dragLabel": {
+      "folder": "Dossier",
+      "table": "Table"
+    },
+    "confirm": {
+      "prefix": "Voulez-vous vraiment supprimer ",
+      "questionEnd": " ? ",
+      "delete": "Supprimer",
+      "deleting": "Suppression…",
+      "restoreTablesHint": " Vous pourrez restaurer ces tables depuis Éléments supprimés récemment, dans les Paramètres."
+    },
+    "deleteTable": {
+      "title": "Supprimer la table",
+      "fallbackName": "cette table",
+      "rowsRemoved": "{count, plural, one {La ligne sera supprimée.} other {Les # lignes seront supprimées.}}",
+      "restoreHint": " Vous pourrez la restaurer depuis Éléments supprimés récemment, dans les Paramètres."
+    },
+    "deleteFolder": {
+      "title": "Supprimer le dossier",
+      "fallbackName": "ce dossier",
+      "cascade": "Toutes les tables et tous les sous-dossiers qu’il contient seront également supprimés."
+    },
+    "deleteSelected": {
+      "title": "Supprimer la sélection",
+      "foldersCascade": "Toutes les tables et tous les sous-dossiers des dossiers sélectionnés seront également supprimés.",
+      "rowsRemoved": "Toutes leurs lignes seront supprimées."
+    }
+  },
+  "detail": {
+    "metaTitle": "Table",
+    "error": {
+      "title": "Échec du chargement de la table",
+      "description": "Une erreur s’est produite lors du chargement de cette table. Elle a peut-être été supprimée, ou vous n’avez pas l’autorisation de la consulter.",
+      "goBack": "Retour"
+    },
+    "upgrade": "Mettre à niveau",
+    "toasts": {
+      "saveLayoutFailed": "Échec de l’enregistrement de la disposition",
+      "saveViewFailed": "Échec de l’enregistrement de la vue",
+      "setDefaultViewFailed": "Échec de la définition de la vue par défaut",
+      "renameViewFailed": "Échec du renommage de la vue",
+      "createViewFailed": "Échec de la création de la vue",
+      "deleteViewFailed": "Échec de la suppression de la vue",
+      "deleteDefaultView": "Définissez une autre vue par défaut avant de supprimer celle-ci",
+      "exportStarted": "Exportation lancée — le téléchargement commencera une fois terminée"
+    },
+    "menu": {
+      "rename": "Renommer",
+      "delete": "Supprimer",
+      "exportCsv": "Exporter en CSV"
+    },
+    "noColumnPermission": "Vous n’avez pas l’autorisation de modifier les colonnes.",
+    "deleteRows": {
+      "title": "Supprimer des lignes",
+      "text": "Supprimer {count, plural, one {# ligne} other {# lignes}} ? Cette action est irréversible.",
+      "textFiltered": "Supprimer {count, plural, one {# ligne correspondant} other {# lignes correspondant}} au filtre actuel ? Cette action est irréversible."
+    },
+    "deleteColumns": {
+      "titleMany": "Supprimer {count} colonnes",
+      "titleOne": "Supprimer la colonne",
+      "countLabel": "{count} colonnes",
+      "fallbackName": "cette colonne",
+      "removeDataMany": "Toutes les données de ces colonnes seront supprimées.",
+      "removeDataOne": "Toutes les données de cette colonne seront supprimées.",
+      "undoHint": " Vous pourrez annuler cette action."
+    },
+    "exportToasts": {
+      "ready": "Export prêt — téléchargement en cours",
+      "downloadFailed": "L’export est terminé mais le téléchargement a échoué — réessayez depuis le menu de la table",
+      "failed": "Échec de l’exportation"
+    }
+  },
+  "contextMenu": {
+    "viewSchema": "Voir le schéma",
+    "rename": "Renommer",
+    "importCsv": "Importer un CSV",
+    "exportCsv": "Exporter en CSV",
+    "moveTo": "Déplacer vers",
+    "moveCount": "Déplacer {count, plural, one {# élément} other {# éléments}}",
+    "unpin": "Désépingler",
+    "pin": "Épingler",
+    "copyId": "Copier l’ID",
+    "delete": "Supprimer",
+    "deleteCount": "Supprimer {count, plural, one {# élément} other {# éléments}}"
+  },
+  "importProgress": {
+    "importedInto": "{rows} lignes importées dans « {name} »",
+    "deleteFailedFor": "Échec de la suppression pour « {name} »",
+    "backfillFailedFor": "Échec du remplissage de colonne pour « {name} »",
+    "importFailedFor": "Échec de l’importation pour « {name} »",
+    "downloadFailed": "Échec du téléchargement — l’export a peut-être expiré",
+    "download": "Télécharger",
+    "stage": {
+      "exportFailed": "Échec de l’exportation de {name}",
+      "somethingWentWrong": "Une erreur s’est produite",
+      "exported": "{name} exportée",
+      "exporting": "Exportation de {name}",
+      "rows": "{rows} lignes",
+      "failed": "Échec : {name}",
+      "imported": "{name} importé",
+      "processing": "Traitement de {name}",
+      "uploading": "Téléversement de {name}"
+    }
+  },
+  "importCsv": {
+    "errors": {
+      "moreSuffix": ", +{extra} autres",
+      "uniqueConflict": "{count, plural, one {# ligne entre} other {# lignes entrent}} en conflit sur la colonne unique « {column} » ({preview}{suffix})",
+      "missingRequired": "Colonne(s) obligatoire(s) manquante(s) : {columns}",
+      "unsupportedFile": "Seuls les fichiers CSV et TSV sont pris en charge",
+      "parseFailed": "Échec de l’analyse du CSV",
+      "duplicateTargets": "Plusieurs colonnes CSV ciblent : {columns} (choisissez-en une)"
+    },
+    "mapping": {
+      "doNotImport": "Ne pas importer",
+      "createNewColumn": "+ Créer une colonne",
+      "requiredColumn": "{name} (obligatoire)",
+      "title": "Correspondance des colonnes",
+      "createForUnmapped": "Créer des colonnes pour les {count} non associées",
+      "csvColumn": "Colonne CSV",
+      "targetColumn": "Colonne cible",
+      "mapped": "{count, plural, one {# associée} other {# associées}}",
+      "newColumns": " · {count, plural, one {# nouvelle colonne} other {# nouvelles colonnes}}",
+      "skipped": "{count, plural, one {# ignorée} other {# ignorées}}"
+    },
+    "importingInBackground": "Importation de « {file} » dans « {table} » en arrière-plan",
+    "titleInto": "Importer un CSV dans {name}",
+    "title": "Importer un CSV",
+    "parsing": "Analyse…",
+    "dropzone": "Déposez un fichier CSV ou TSV ici, ou cliquez pour parcourir",
+    "dropzoneDescription": "Associez les colonnes pour ajouter ou remplacer des lignes dans cette table",
+    "file": "Fichier",
+    "columnCount": "{count, plural, one {# colonne} other {# colonnes}}",
+    "changeFile": "Changer de fichier",
+    "mode": "Mode",
+    "append": "Ajouter",
+    "replaceAll": "Remplacer toutes les lignes",
+    "replaceWarning": "Le remplacement supprimera définitivement les {rows} ligne(s) existante(s) avant d’insérer les nouvelles lignes.",
+    "submit": {
+      "replacing": "Remplacement…",
+      "importing": "Importation…",
+      "replace": "Remplacer les lignes",
+      "append": "Ajouter les lignes"
+    }
+  },
+  "locks": {
+    "title": "Sécurité de la table",
+    "fields": {
+      "insert": {
+        "noun": "l’insertion de lignes",
+        "label": "Insertion de lignes",
+        "hint": "Autoriser permet d’ajouter de nouvelles lignes, y compris via les importations CSV, l’API, les workflows et Nexora. Refuser bloque l’ajout de lignes depuis toutes les surfaces.",
+        "about": "À propos de l’insertion de lignes"
+      },
+      "update": {
+        "noun": "la modification de lignes",
+        "label": "Modification de lignes",
+        "hint": "Autoriser permet de modifier les valeurs existantes des cellules. Refuser bloque les modifications depuis toutes les surfaces. Les colonnes de workflow et d’enrichissement continuent de se remplir.",
+        "about": "À propos de la modification de lignes"
+      },
+      "delete": {
+        "noun": "la suppression de lignes",
+        "label": "Suppression de lignes",
+        "hint": "Autoriser permet de supprimer des lignes et d’archiver la table. Refuser bloque ces actions ainsi que les modifications destructives de colonnes.",
+        "about": "À propos de la suppression de lignes"
+      },
+      "schema": {
+        "noun": "la modification du schéma de la table",
+        "label": "Modification du schéma",
+        "hint": "Autoriser permet d’ajouter, de renommer, de changer le type ou de supprimer des colonnes. Refuser bloque les modifications du schéma. Supprimer une colonne ou en changer le type exige aussi que Suppression de lignes soit sur Autoriser.",
+        "about": "À propos de la modification du schéma"
+      }
+    },
+    "tooltips": {
+      "insert": "L’insertion de lignes est désactivée dans Sécurité de la table.",
+      "update": "La modification de lignes est désactivée dans Sécurité de la table.",
+      "delete": "La suppression de lignes est désactivée dans Sécurité de la table.",
+      "schema": "La modification du schéma de la table est désactivée dans Sécurité de la table."
+    },
+    "blocked": {
+      "insertTitle": "L’insertion de lignes est désactivée",
+      "insertText": "Un administrateur a réglé Insertion de lignes sur Refuser dans Sécurité de la table.",
+      "schemaTitle": "La modification du schéma de la table est désactivée",
+      "schemaText": "Un administrateur a réglé Modification du schéma sur Refuser dans Sécurité de la table : les colonnes ne peuvent pas être ajoutées, renommées, changées de type ni supprimées.",
+      "deleteTitle": "La suppression de lignes est désactivée",
+      "deleteColumnText": "Supprimer une colonne efface sa valeur dans toutes les lignes : Suppression de lignes doit donc être sur Autoriser dans Sécurité de la table.",
+      "updateTitle": "La modification de lignes est désactivée",
+      "updateText": "Un administrateur a réglé Modification de lignes sur Refuser dans Sécurité de la table.",
+      "statusDenied": "Un administrateur a refusé {actions} sur cette table.",
+      "statusAllAllowed": "Toutes les actions sont autorisées sur cette table."
+    },
+    "deny": "Refuser",
+    "allow": "Autoriser",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer"
+  },
+  "timezone": {
+    "loadingMessage": "Votre paramètre de fuseau horaire est encore en cours de chargement. Réessayez dans un instant.",
+    "errorMessage": "Impossible de charger votre paramètre de fuseau horaire. Réessayez avant de modifier des cellules de date.",
+    "invalidMessage": "Votre fuseau horaire enregistré « {timezone} » n’est pas valide. Mettez-le à jour dans Paramètres → Général avant de modifier des cellules de date.",
+    "loading": "Chargement du fuseau horaire…",
+    "invalid": "Fuseau horaire non valide",
+    "unavailable": "Fuseau horaire indisponible",
+    "timeWithOffset": "Heure ({offset})"
+  },
+  "grid": {
+    "clipboard": {
+      "copied": "{count, plural, one {# ligne copiée} other {# lignes copiées}}",
+      "cut": "{count, plural, one {# ligne coupée} other {# lignes coupées}}",
+      "copying": "Copie de {count, plural, one {# ligne} other {# lignes}}…",
+      "cutting": "Coupe de {count, plural, one {# ligne} other {# lignes}}…",
+      "unavailable": "L’accès au presse-papiers n’est pas disponible dans ce contexte",
+      "copyFailed": "Échec de la copie — veuillez réessayer",
+      "cutFailed": "Échec de la coupe — veuillez réessayer",
+      "clearAfterCutFailed": "Copié dans le presse-papiers, mais l’effacement des cellules a échoué — veuillez réessayer",
+      "copiedFirst": "{max} premières lignes copiées — exportez en CSV pour le reste",
+      "cutFirst": "{max} premières lignes coupées — exportez en CSV pour le reste"
+    },
+    "toasts": {
+      "loadAllRowsFailed": "Échec du chargement de toutes les lignes. Réessayez.",
+      "clearCellsFailed": "Échec de l’effacement des cellules — veuillez réessayer",
+      "clearColumnFailed": "Échec de l’effacement des valeurs de la colonne — veuillez réessayer"
+    },
+    "paste": {
+      "tooLargeTitle": "Le contenu collé est trop volumineux pour l’éditeur de table",
+      "tooLargeDescription": "Collez jusqu’à {limit} à la fois, ou utilisez l’importation CSV pour les jeux de données plus volumineux.",
+      "tooManyRowsTitle": "Le contenu collé comporte trop de lignes",
+      "tooManyRowsDescription": "Collez jusqu’à {max} lignes à la fois, ou utilisez l’importation CSV pour les jeux de données plus volumineux."
+    },
+    "notFound": {
+      "title": "Table introuvable",
+      "description": "Cette table a peut-être été supprimée ou déplacée"
+    },
+    "findInTable": "Rechercher dans la table",
+    "cell": {
+      "running": "Le bloc est en cours d’exécution.",
+      "paused": "En pause — en attente d’une saisie pour reprendre.",
+      "pendingUpstream": "En attente d’un bloc précédent de cette exécution.",
+      "cancelled": "Arrêté avant la fin — relancez pour réessayer.",
+      "queuedTip": "En file d’attente — démarre dès qu’un créneau de lot se libère.",
+      "queued": "En file d’attente",
+      "waitingTip": "En attente de {labels}",
+      "waiting": "En attente",
+      "none": "Aucune",
+      "notFoundTip": "Aucune correspondance trouvée pour cette ligne.",
+      "notFound": "Introuvable",
+      "noOutputTip": "Terminé sans valeur pour cette cellule.",
+      "noOutput": "Aucune sortie",
+      "editColumn": "Modifier {name}"
+    },
+    "simResource": {
+      "workflow": "Workflow",
+      "table": "Table",
+      "knowledge": "Base de connaissances",
+      "file": "Fichier"
+    },
+    "expanded": {
+      "ariaLabel": "Vue agrandie de {name}",
+      "empty": "(vide)",
+      "close": "Fermer",
+      "invalidJson": "JSON non valide",
+      "hintClose": "<kbd>échap</kbd> fermer",
+      "hintSaveCancel": "<kbd>↵</kbd> enregistrer · <kbd>échap</kbd> annuler",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "row": {
+      "select": "Sélectionner la ligne {number}",
+      "stopRunning": "Arrêter {count, plural, one {# exécution en cours} other {# exécutions en cours}}",
+      "run": "Exécuter la ligne"
+    },
+    "newRow": "Nouvelle ligne",
+    "header": {
+      "sourceBlockMissing": "Le bloc source de cette colonne n’existe plus dans le workflow.",
+      "columnOptions": "Options de la colonne",
+      "run": {
+        "label": "Exécuter",
+        "all": "Exécuter toutes les lignes",
+        "allFiltered": "Exécuter toutes les lignes filtrées",
+        "empty": "Exécuter les lignes vides",
+        "emptyFiltered": "Exécuter les lignes filtrées vides",
+        "limited": "Exécuter {max} lignes vides",
+        "limitedFiltered": "Exécuter {max} lignes filtrées vides",
+        "selected": "{count, plural, one {Exécuter {count} ligne sélectionnée} other {Exécuter {count} lignes sélectionnées}}"
+      },
+      "clearSort": "Effacer le tri",
+      "sortAscending": "Tri croissant",
+      "sortDescending": "Tri décroissant",
+      "viewWorkflow": "Voir le workflow",
+      "editColumn": "Modifier la colonne",
+      "unpinColumn": "Désépingler la colonne",
+      "pinColumn": "Épingler la colonne",
+      "insertLeft": "Insérer une colonne à gauche",
+      "insertRight": "Insérer une colonne à droite",
+      "hideColumn": "Masquer la colonne",
+      "deleteColumn": "Supprimer la colonne",
+      "enrichmentFallback": "Enrichissement",
+      "workflowFallback": "Workflow",
+      "runGroup": "Exécuter le groupe"
+    }
+  },
+  "columnTypes": {
+    "workflow": "Workflow",
+    "limitOne": "Une seule colonne {label} autorisée par table",
+    "limitMany": "{max} colonnes {label} au maximum par table"
+  },
+  "columnDropdown": {
+    "newColumn": "Nouvelle colonne",
+    "enrichments": "Enrichissements"
+  },
+  "columnsMenu": {
+    "workflowFallback": "Workflow",
+    "label": "Colonnes"
+  },
+  "rowContextMenu": {
+    "deleteRows": "Supprimer {count} lignes",
+    "deleteRow": "Supprimer la ligne",
+    "runCellOnRows": "Exécuter la cellule sur {count} lignes",
+    "runCell": "Exécuter la cellule",
+    "runEmptyOnRows": "Exécuter les cellules vides ou en échec sur {count} lignes",
+    "runEmpty": "Exécuter les cellules vides ou en échec",
+    "rerunCellOnRows": "Réexécuter la cellule sur {count} lignes",
+    "rerunCell": "Réexécuter la cellule",
+    "rerunAllOnRows": "Réexécuter toutes les cellules sur {count} lignes",
+    "rerunAll": "Réexécuter toutes les cellules",
+    "stopRunningOne": "Arrêter le workflow en cours",
+    "stopRunningMany": "Arrêter les {count} workflows en cours",
+    "addCellRangeToChat": "Ajouter la plage de cellules au Chat",
+    "addRowsToChat": "Ajouter {count} lignes au Chat",
+    "addRowToChat": "Ajouter la ligne au Chat",
+    "editCell": "Modifier la cellule",
+    "filterByCellValue": "Filtrer par valeur de cellule",
+    "viewExecution": "Voir l’exécution",
+    "insertAbove": "Insérer une ligne au-dessus",
+    "insertBelow": "Insérer une ligne en dessous",
+    "duplicateRow": "Dupliquer la ligne"
+  },
+  "actionBar": {
+    "runCells": "Exécuter {count} cellules vides ou en échec",
+    "rerunCells": "Réexécuter {count} cellules",
+    "selected": "{count, plural, one {# cellule de workflow sélectionnée} other {# cellules de workflow sélectionnées}}"
+  },
+  "enrichments": {
+    "title": "Enrichissements",
+    "singular": "Enrichissement",
+    "close": "Fermer",
+    "unavailable": "Cet enrichissement (« {id} ») n’est plus disponible. Supprimez la colonne et ajoutez un enrichissement actuel.",
+    "search": "Rechercher",
+    "empty": "Aucun enrichissement trouvé.",
+    "updated": "« {name} » mis à jour",
+    "added": "« {name} » ajouté",
+    "inputs": "Entrées",
+    "noInputs": "Cet enrichissement ne nécessite aucune entrée.",
+    "outputColumns": "Colonnes de sortie"
+  },
+  "sidebar": {
+    "required": "Obligatoire",
+    "columnExists": "Cette colonne existe déjà",
+    "duplicateName": "Nom en double",
+    "backToEnrichments": "Retour aux enrichissements",
+    "close": "Fermer",
+    "column": "Colonne",
+    "searchColumns": "Rechercher des colonnes…",
+    "noColumns": "Aucune colonne.",
+    "selectColumn": "Sélectionnez une colonne",
+    "columnName": "Nom de la colonne",
+    "autoRun": "Exécution automatique",
+    "selectAtLeastOneColumn": "Sélectionnez au moins une colonne",
+    "cancel": "Annuler",
+    "update": "Mettre à jour",
+    "save": "Enregistrer",
+    "runAfter": "Exécuter après",
+    "search": "Rechercher…",
+    "noUpstreamColumns": "Aucune colonne en amont.",
+    "selectedCount": "{count, plural, one {# sélectionnée} other {# sélectionnées}}",
+    "workflowInputs": "Entrées du workflow",
+    "noStartInputs": "Ce workflow n’a aucune entrée de bloc Start."
+  },
+  "workflowSidebar": {
+    "titleCreate": "Ajouter un workflow",
+    "titleEditGroup": "Configurer le workflow",
+    "titleEditOutput": "Configurer la colonne de sortie",
+    "saved": "« {name} » enregistré",
+    "added": "« {name} » ajouté",
+    "workflowFallback": "Workflow",
+    "columnNameRequired": "Le nom de la colonne est obligatoire",
+    "preview": "Aperçu du workflow",
+    "openWorkflow": "Ouvrir le workflow",
+    "previewUnavailable": "Impossible de charger l’aperçu",
+    "workflow": "Workflow",
+    "selectWorkflow": "Sélectionnez un workflow",
+    "noDeployedWorkflows": "Aucun workflow déployé disponible",
+    "searchWorkflows": "Rechercher des workflows…",
+    "output": "Sortie",
+    "outputColumns": "Colonnes de sortie",
+    "searchOutputs": "Rechercher des sorties…",
+    "loadingWorkflow": "Chargement du workflow…",
+    "noOutputs": "Aucune sortie trouvée.",
+    "selectOutputs": "Sélectionnez des sorties",
+    "pickOutput": "Choisissez une sortie",
+    "pickAtLeastOneOutput": "Choisissez au moins une colonne de sortie",
+    "autoRunWorkflow": "Exécuter le workflow automatiquement",
+    "hideAdditional": "Masquer les champs supplémentaires",
+    "showAdditional": "Afficher les champs supplémentaires",
+    "saving": "Enregistrement…"
+  },
+  "columnSidebar": {
+    "title": "Configurer la colonne",
+    "options": {
+      "atLeastOne": "Ajoutez au moins une option",
+      "emptyName": "Les noms d’option ne peuvent pas être vides",
+      "uniqueNames": "Les noms d’option doivent être uniques",
+      "label": "Options"
+    },
+    "added": "« {name} » ajoutée",
+    "saved": "« {name} » enregistrée",
+    "nameRequired": "Le nom de la colonne est obligatoire",
+    "type": "Type",
+    "selectType": "Sélectionnez un type",
+    "currency": "Devise",
+    "selectCurrency": "Sélectionnez une devise",
+    "searchCurrencies": "Rechercher des devises",
+    "multiselect": "Sélection multiple",
+    "unique": "Unique",
+    "saving": "Enregistrement…"
+  },
+  "enrichmentDetails": {
+    "status": {
+      "matched": "Trouvé",
+      "no_match": "Aucune correspondance",
+      "error": "Erreur",
+      "not_run": "Non exécuté",
+      "cancelled": "Annulé",
+      "skipped": "Ignoré"
+    },
+    "tabs": {
+      "result": "Résultat",
+      "cascade": "Cascade"
+    },
+    "loading": "Chargement…",
+    "empty": "Aucun détail d’enrichissement pour cette exécution",
+    "timestamp": "Horodatage",
+    "enrichment": "Enrichissement",
+    "statusLabel": "Statut",
+    "duration": "Durée",
+    "totalCost": "Coût total",
+    "matchedProvider": "Fournisseur trouvé",
+    "providersRan": "Fournisseurs exécutés",
+    "error": "Erreur",
+    "providerCount": "{count, plural, one {# fournisseur} other {# fournisseurs}}",
+    "resize": "Redimensionner le panneau des détails d’enrichissement",
+    "ariaLabel": "Panneau latéral des détails d’enrichissement",
+    "title": "Détails de l’enrichissement",
+    "close": "Fermer"
+  },
+  "runStatus": {
+    "queueing": "Mise en file d’attente",
+    "running": "en cours",
+    "stopping": "Arrêt…",
+    "stopAll": "Tout arrêter"
+  },
+  "views": {
+    "newView": "Nouvelle vue",
+    "renameView": "Renommer la vue",
+    "name": "Nom",
+    "namePlaceholder": "ex. Clients actifs",
+    "creating": "Création…",
+    "create": "Créer",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer",
+    "allRows": "Toutes",
+    "title": "Vues",
+    "rename": "Renommer",
+    "delete": "Supprimer",
+    "defaultCannotDelete": "La vue par défaut ne peut pas être supprimée",
+    "deleteTitle": "Supprimer la vue",
+    "deletePrefix": "Voulez-vous vraiment supprimer ",
+    "thisView": "cette vue",
+    "deleteQuestionEnd": " ? ",
+    "cannotUndo": "Cette action est irréversible.",
+    "currentDefault": "Vue par défaut actuelle",
+    "setDefault": "Définir par défaut"
+  },
+  "selectField": {
+    "optionName": "Nom de l’option",
+    "remove": "Retirer {name}",
+    "optionFallback": "l’option",
+    "addOption": "Ajouter une option",
+    "selectOptions": "Sélectionnez des options",
+    "none": "Aucune",
+    "selectOption": "Sélectionnez une option"
+  },
+  "filter": {
+    "add": "Ajouter un filtre",
+    "clear": "Effacer les filtres",
+    "apply": "Appliquer le filtre",
+    "where": "Où",
+    "logical": {
+      "and": "et",
+      "or": "ou"
+    },
+    "column": "Colonne",
+    "operator": "Opérateur",
+    "selectValue": "Sélectionnez une valeur",
+    "enterValue": "Saisissez une valeur",
+    "remove": "Retirer le filtre"
+  },
+  "rowModal": {
+    "invalidJson": "JSON non valide pour le champ : {name}",
+    "addFailed": "Échec de l’ajout de la ligne",
+    "editFailed": "Échec de la modification de la ligne",
+    "deleteFailed": "Échec de la suppression de la ou des lignes",
+    "delete": {
+      "titleOne": "Supprimer la ligne",
+      "titleMany": "Supprimer {count} lignes",
+      "questionOne": "Voulez-vous vraiment supprimer cette ligne ? ",
+      "questionMany": "Voulez-vous vraiment supprimer ces {count} lignes ? ",
+      "removeDataOne": "Toutes les données de cette ligne seront définitivement supprimées.",
+      "removeDataMany": "Toutes les données de ces lignes seront définitivement supprimées.",
+      "cannotUndo": " Cette action est irréversible.",
+      "confirm": "Supprimer",
+      "deleting": "Suppression…"
+    },
+    "addTitle": "Ajouter une ligne",
+    "editTitle": "Modifier la ligne",
+    "fillValuesFor": "Renseignez les valeurs pour {name}",
+    "updateValuesFor": "Mettez à jour les valeurs pour {name}",
+    "tableFallback": "la table",
+    "adding": "Ajout…",
+    "updating": "Mise à jour…",
+    "updateRow": "Mettre à jour la ligne",
+    "unique": "(unique)",
+    "currencyType": "devise ({code})",
+    "typeHint": "Type : {type}",
+    "typeHintOptional": "Type : {type} (facultatif)",
+    "noValue": "Aucune valeur",
+    "editField": "Modifier {name}",
+    "true": "Vrai",
+    "false": "Faux",
+    "jsonPlaceholder": "'{'\"key\": \"value\"'}'",
+    "selectDate": "Sélectionnez une date",
+    "enterField": "Saisissez {name}"
+  }
+}

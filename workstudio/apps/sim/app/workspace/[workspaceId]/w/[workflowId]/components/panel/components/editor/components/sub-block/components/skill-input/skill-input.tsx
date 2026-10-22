@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Combobox, type ComboboxOptionGroup } from '@sim/emcn'
 import { Plus, X } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { AgentSkillsIcon } from '@/components/icons'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { SkillModal } from '@/app/workspace/[workspaceId]/skills/components/skill-modal'
@@ -33,6 +34,7 @@ export function SkillInput({
   previewValue,
   disabled,
 }: SkillInputProps) {
+  const t = useTranslations('editor.subBlock.skillInput')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
 
@@ -74,7 +76,7 @@ export function SkillInput({
       groups.push({
         items: [
           {
-            label: 'Create Skill',
+            label: t('createSkill'),
             value: 'action-create-skill',
             icon: Plus,
             onSelect: () => {
@@ -89,7 +91,7 @@ export function SkillInput({
     const availableSkills = workspaceSkills.filter((s) => !selectedIds.has(s.id))
     if (!skillsDisabled && availableSkills.length > 0) {
       groups.push({
-        section: 'Skills',
+        section: t('skillsSection'),
         items: availableSkills.map((s) => {
           return {
             label: s.name,
@@ -105,7 +107,7 @@ export function SkillInput({
     }
 
     return groups
-  }, [workspaceSkills, selectedIds, selectedSkills, setValue, isPreview, skillsDisabled])
+  }, [t, workspaceSkills, selectedIds, selectedSkills, setValue, isPreview, skillsDisabled])
 
   const handleRemove = useCallback(
     (skillId: string) => {
@@ -135,12 +137,12 @@ export function SkillInput({
         <Combobox
           options={[]}
           groups={skillGroups}
-          placeholder='Add skill...'
+          placeholder={t('addSkill')}
           disabled={disabled}
           searchable
-          searchPlaceholder='Search skills...'
+          searchPlaceholder={t('searchSkills')}
           maxHeight={240}
-          emptyMessage='No skills found'
+          emptyMessage={t('noSkillsFound')}
         />
 
         {selectedSkills.length > 0 &&
@@ -185,7 +187,7 @@ export function SkillInput({
                           handleRemove(stored.skillId)
                         }}
                         className='flex items-center justify-center text-[var(--text-tertiary)] transition-colors hover-hover:text-[var(--text-primary)]'
-                        aria-label='Remove skill'
+                        aria-label={t('removeSkill')}
                       >
                         <X className='size-[13px]' />
                       </button>

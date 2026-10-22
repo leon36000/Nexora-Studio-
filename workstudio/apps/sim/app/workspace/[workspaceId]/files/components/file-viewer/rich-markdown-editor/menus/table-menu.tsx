@@ -4,6 +4,7 @@ import { NodeSelection, PluginKey } from '@tiptap/pm/state'
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
+import { useTranslations } from 'next-intl'
 import { isImageNode } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/image-node'
 import { BUBBLE_MENU_CLASS } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/menus/bubble-menu-chrome'
 import {
@@ -34,6 +35,7 @@ const shouldShowTableMenu = ({ editor }: { editor: Editor }) => {
  * format; capability checks omit operations that would remove it or insert a body row before it.
  */
 export function TableBubbleMenu({ editor, scrollContainerRef }: TableBubbleMenuProps) {
+  const t = useTranslations('files.editor.tableMenu')
   const [menuKey] = useState(() => new PluginKey('markdownTableMenu'))
 
   const active = useEditorState({
@@ -74,48 +76,48 @@ export function TableBubbleMenu({ editor, scrollContainerRef }: TableBubbleMenuP
       <div
         {...toolbar}
         role='toolbar'
-        aria-label='Table editing'
+        aria-label={t('label')}
         className='flex items-center gap-0.5'
       >
         {active.addRowBefore && (
           <ToolbarButton
             icon={ArrowUp}
-            label='Insert row above'
+            label={t('insertRowAbove')}
             onClick={() => editor.chain().focus().addRowBefore().run()}
           />
         )}
         <ToolbarButton
           icon={ArrowDown}
-          label='Insert row below'
+          label={t('insertRowBelow')}
           onClick={() => editor.chain().focus().addRowAfter().run()}
         />
         {active.deleteRow && (
           <ToolbarButton
             icon={Rows3}
-            label='Delete row'
+            label={t('deleteRow')}
             onClick={() => editor.chain().focus().deleteRow().run()}
           />
         )}
         <ToolbarDivider />
         <ToolbarButton
           icon={ArrowLeft}
-          label='Insert column left'
+          label={t('insertColumnLeft')}
           onClick={() => editor.chain().focus().addColumnBefore().run()}
         />
         <ToolbarButton
           icon={ArrowRight}
-          label='Insert column right'
+          label={t('insertColumnRight')}
           onClick={() => editor.chain().focus().addColumnAfter().run()}
         />
         <ToolbarButton
           icon={Columns3}
-          label='Delete column'
+          label={t('deleteColumn')}
           onClick={() => editor.chain().focus().deleteColumn().run()}
         />
         <ToolbarDivider />
         <ToolbarButton
           icon={Trash}
-          label='Delete table'
+          label={t('deleteTable')}
           onClick={() => editor.chain().focus().deleteTable().run()}
         />
       </div>

@@ -1,5 +1,8 @@
 import type { ImportRow } from './use-workspace-imports'
 
+/** Translator scoped to the `tables.importProgress` namespace. */
+type Translate = (key: string, values?: Record<string, string | number>) => string
+
 type ProgressStatus = 'pending' | 'success' | 'error'
 
 /** Uniform view model for a tray entry — every stage fills the same slots. */
@@ -22,7 +25,7 @@ export interface ImportStageView {
  * server is processing we only know the committed row count (polled from the table row), so the
  * detail line reads `{rows} rows` with no percent.
  */
-export function getImportStage(entry: ImportRow): ImportStageView {
+export function getImportStage(entry: ImportRow, t: Translate): ImportStageView {
   const rows = entry.rowsProcessed.toLocaleString()
   const name = entry.title
   const meta = typeof entry.percent === 'number' ? `${entry.percent}%` : undefined
@@ -31,8 +34,8 @@ export function getImportStage(entry: ImportRow): ImportStageView {
     if (entry.phase === 'failed') {
       return {
         status: 'error',
-        title: `Export failed for ${name}`,
-        detail: entry.error ?? 'Something went wrong',
+        title: t('stage.exportFailed', { name }),
+        detail: entry.error ?? t('stage.somethingWentWrong'),
         dismissible: true,
       }
     }
@@ -40,15 +43,15 @@ export function getImportStage(entry: ImportRow): ImportStageView {
       // The menu replaces `detail` with a Download action for ready exports.
       return {
         status: 'success',
-        title: `Exported ${name}`,
-        detail: `${rows} rows`,
+        title: t('stage.exported', { name }),
+        detail: t('stage.rows', { rows }),
         dismissible: true,
       }
     }
     return {
       status: 'pending',
-      title: `Exporting ${name}`,
-      detail: `${rows} rows`,
+      title: t('stage.exporting', { name }),
+      detail: t('stage.rows', { rows }),
       dismissible: false,
     }
   }
@@ -56,8 +59,8 @@ export function getImportStage(entry: ImportRow): ImportStageView {
   if (entry.phase === 'failed') {
     return {
       status: 'error',
-      title: `Failed ${name}`,
-      detail: entry.error ?? 'Something went wrong',
+      title: t('stage.failed', { name }),
+      detail: entry.error ?? t('stage.somethingWentWrong'),
       dismissible: true,
     }
   }
@@ -65,8 +68,8 @@ export function getImportStage(entry: ImportRow): ImportStageView {
   if (entry.phase === 'ready') {
     return {
       status: 'success',
-      title: `Imported ${name}`,
-      detail: `${rows} rows`,
+      title: t('stage.imported', { name }),
+      detail: t('stage.rows', { rows }),
       dismissible: true,
     }
   }
@@ -75,10 +78,10 @@ export function getImportStage(entry: ImportRow): ImportStageView {
   if (entry.rowsProcessed > 0) {
     return {
       status: 'pending',
-      title: `Processing ${name}`,
-      detail: `${rows} rows`,
+      title: t('stage.processing', { name }),
+      detail: t('stage.rows', { rows }),
       dismissible: false,
     }
   }
-  return { status: 'pending', title: `Uploading ${name}`, meta, dismissible: false }
+  return { status: 'pending', title: t('stage.uploading', { name }), meta, dismissible: false }
 }

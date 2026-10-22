@@ -3,6 +3,7 @@ import { Button, cn } from '@sim/emcn'
 import { Trash } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { EnvVarDropdown } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/env-var-dropdown'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
@@ -274,6 +275,7 @@ export function Table({
   previewValue,
   disabled = false,
 }: TableProps) {
+  const t = useTranslations('editor.subBlock.table')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
   const [storeValue, setStoreValue] = useSubBlockValue<WorkflowTableRow[]>(blockId, subBlockId)
@@ -419,7 +421,7 @@ export function Table({
     !disabled && (
       <td className='w-0 p-0'>
         <Button
-          aria-label='Delete row'
+          aria-label={t('deleteRow')}
           variant='ghost'
           className='-translate-y-1/2 absolute top-1/2 right-[8px] opacity-0 transition-opacity group-hover:opacity-100'
           onClick={() => handleDeleteRow(rowIndex)}

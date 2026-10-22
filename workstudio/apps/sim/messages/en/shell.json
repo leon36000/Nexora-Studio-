@@ -1,1 +1,632 @@
-{}
+{
+  "actionBar": {
+    "selectedOverLimit": "{count} selected · select {max} or fewer",
+    "selected": "{count} selected",
+    "download": "Download",
+    "move": "Move",
+    "delete": "Delete"
+  },
+  "bulkOutcome": {
+    "moved": {
+      "single": "{name} could not be moved: {reason}",
+      "multiple": "{count} items could not be moved. {name}: {reason}",
+      "missingOne": "One item was no longer available and was not moved.",
+      "missingMany": "{count} items were no longer available and were not moved."
+    },
+    "deleted": {
+      "single": "{name} could not be deleted: {reason}",
+      "multiple": "{count} items could not be deleted. {name}: {reason}",
+      "missingOne": "One item was no longer available and was not deleted.",
+      "missingMany": "{count} items were no longer available and were not deleted."
+    }
+  },
+  "collapsedMenu": {
+    "pinned": "Pinned",
+    "renameChat": "Rename chat {name}",
+    "chatOptions": "Chat options",
+    "renameWorkflow": "Rename workflow {name}",
+    "workflowOptions": "Workflow options",
+    "openInNewTab": "Open in new tab",
+    "rename": "Rename"
+  },
+  "connectOAuthModal": {
+    "completeConfiguration": "Complete every OAuth app configuration field.",
+    "displayNameRequired": "Display name is required.",
+    "connectFailed": "Failed to start OAuth connection",
+    "duplicateName": "An integration named \"{name}\" already exists.",
+    "updateAccess": "Update access",
+    "reconnect": "Reconnect",
+    "connect": "Connect",
+    "titleUpdateAccess": "Update {provider} access",
+    "titleReconnect": "Reconnect {provider}",
+    "titleConnect": "Connect {provider}",
+    "approvePermissions": "Approve the requested permissions to continue syncing.",
+    "continueToRestore": "Continue to {provider} to restore this connection.",
+    "toolRequiresAccess": "The \"{tool}\" tool requires access to your account.",
+    "environment": "Environment",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "Integration name",
+    "redirectUri": "Redirect URI",
+    "copyRedirectUri": "Copy redirect URI",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional description",
+    "permissionsRequested": "Permissions requested",
+    "newScope": "New",
+    "setupGuide": "Setup guide",
+    "connecting": "Connecting...",
+    "dataverse": {
+      "invalidUrl": "Enter a valid public-cloud Dataverse environment URL.",
+      "environmentUrl": "Environment URL",
+      "copyEnvironmentUrl": "Copy environment URL",
+      "lockedHint": "This connection is locked to the environment selected by the workflow or credential.",
+      "restrictedHint": "This credential is restricted to one public-cloud Dataverse environment."
+    }
+  },
+  "contextMenu": {
+    "openInNewTab": "Open in new tab",
+    "copyLink": "Copy link",
+    "markAsRead": "Mark as read",
+    "markAsUnread": "Mark as unread",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "rename": "Rename",
+    "createWorkflow": "Create workflow",
+    "createFolder": "Create folder",
+    "uploadLogo": "Upload logo",
+    "lock": "Lock",
+    "unlock": "Unlock",
+    "duplicate": "Duplicate",
+    "export": "Export",
+    "delete": "Delete",
+    "leave": "Leave",
+    "close": "Close",
+    "closeOthers": "Close Others",
+    "closeTabsToRight": "Close Tabs to the Right"
+  },
+  "createWorkspaceModal": {
+    "title": "Create workspace",
+    "createFailed": "Failed to create workspace",
+    "name": "Name",
+    "namePlaceholder": "Workspace name",
+    "creating": "Creating...",
+    "create": "Create"
+  },
+  "credentialDetail": {
+    "unsavedChanges": {
+      "title": "Unsaved Changes",
+      "text": "You have unsaved changes. Are you sure you want to discard them?",
+      "keepEditing": "Keep editing",
+      "discard": "Discard Changes"
+    },
+    "members": "Members ({count})",
+    "saveFailed": "Couldn't save changes",
+    "tryAgainLater": "Please try again in a moment."
+  },
+  "customTool": {
+    "schemaPromptPlaceholder": "Describe the function parameters and structure...",
+    "codePromptPlaceholder": "Describe the JavaScript function to generate...",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "generatePlaceholder": "Describe what to generate...",
+    "availableParametersInline": "Available parameters:",
+    "autocompleteHint": "Start typing a parameter name for autocomplete.",
+    "availableParameters": "Available Parameters",
+    "functionNameLocked": "Function name cannot be changed after creation. To use a different name, delete this tool and create a new one.",
+    "deleteWarning": "This will permanently delete the tool and remove it from any workflows that are using it.",
+    "irreversible": "This action cannot be undone.",
+    "schemaErrors": {
+      "missingType": "Missing \"type\": \"function\"",
+      "missingFunctionName": "Missing function.name field",
+      "missingParameters": "Missing function.parameters object",
+      "missingParametersType": "Missing parameters.type field",
+      "missingProperties": "Missing parameters.properties field",
+      "propertiesNotObject": "parameters.properties must be an object",
+      "invalidJson": "Invalid JSON format"
+    }
+  },
+  "deleteModal": {
+    "titles": {
+      "workflows": "Delete workflows",
+      "workflow": "Delete workflow",
+      "folders": "Delete folders",
+      "folder": "Delete folder",
+      "chats": "Delete chats",
+      "chat": "Delete chat",
+      "items": "Delete items",
+      "workspace": "Delete workspace"
+    },
+    "confirmPrefix": "Are you sure you want to delete ",
+    "confirmSuffix": "? ",
+    "warnings": {
+      "workflow": "All associated blocks, executions, and configuration will be removed.",
+      "folders": "All workflows and contents within these folders will be archived.",
+      "folder": "All associated workflows and contents will be archived.",
+      "chat": "The chat and its conversation history will be archived.",
+      "mixed": "All selected workflows and folders, including their contents, will be archived.",
+      "workspace": "This will permanently remove all associated workflows, tables, files, logs, and knowledge bases."
+    },
+    "chatCount": "{count} chats",
+    "confirmThisWorkflow": "Are you sure you want to delete this workflow? ",
+    "confirmThisFolder": "Are you sure you want to delete this folder? ",
+    "confirmThisChat": "Are you sure you want to delete this chat? ",
+    "confirmSelectedItems": "Are you sure you want to delete the selected items? ",
+    "confirmThisWorkspace": "Are you sure you want to delete this workspace? ",
+    "restorable": "You can restore it from Recently deleted in Settings.",
+    "irreversible": "This action cannot be undone.",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "typeToConfirm": "Type <highlight>{name}</highlight> to confirm"
+  },
+  "dragDrop": {
+    "partialMove": "Only some items moved",
+    "moveFailed": "Failed to move items"
+  },
+  "emptyStates": {
+    "docs": "Docs",
+    "changelog": {
+      "title": "Changelog",
+      "description": "Nexora publishes a release here when it ships changes to this workspace."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "description": "Nexora will build your dashboard here once your workspace is set up."
+    },
+    "documents": {
+      "title": "Documents",
+      "description": "Upload documents so your agents can search this base.",
+      "action": "New documents"
+    },
+    "files": {
+      "title": "Files",
+      "description": "Upload files to share them across your team and every agent.",
+      "action": "Upload"
+    },
+    "knowledge": {
+      "title": "Knowledge bases",
+      "description": "Upload documents to give your agents a memory they can search.",
+      "action": "New base"
+    },
+    "logs": {
+      "title": "Logs",
+      "description": "Every workflow execution lands here, traced block by block.",
+      "stamps": {
+        "now": "Now",
+        "minutesAgo": "12 min ago",
+        "hourAgo": "1h ago",
+        "date": "Jul 8"
+      }
+    },
+    "tables": {
+      "title": "Tables",
+      "description": "Create a table to store structured data your agents can read and write.",
+      "action": "New table"
+    },
+    "tests": {
+      "title": "Tests",
+      "description": "Write tests to check your workflows behave before you deploy."
+    },
+    "noResults": {
+      "title": "No results",
+      "titleWithQuery": "No results for “{query}”",
+      "searchedEveryFolder": "Searched every folder in this workspace.",
+      "filtersThisFolder": "Filters apply to this folder only.",
+      "clearSearchAndFilters": "Clear search and filters",
+      "clearSearch": "Clear search",
+      "clearFilters": "Clear filters"
+    }
+  },
+  "findBar": {
+    "counter": "{current} of {total}{more}",
+    "noResults": "No results",
+    "hideReplace": "Hide replace",
+    "showReplace": "Show replace",
+    "search": "Search",
+    "clearSearch": "Clear search",
+    "previousMatch": "Previous match",
+    "previousMatchTitle": "Previous match (Shift+Enter)",
+    "nextMatch": "Next match",
+    "nextMatchTitle": "Next match (Enter)",
+    "closeFind": "Close find",
+    "closeTitle": "Close (Esc)",
+    "replace": "Replace",
+    "replaceInDocument": "Replace in document",
+    "narrowToReplaceAll": "Narrow the search to replace all",
+    "replaceAllMatches": "Replace all matches",
+    "all": "All"
+  },
+  "folderContextMenu": {
+    "noActions": "No actions available",
+    "open": "Open",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "copyId": "Copy ID",
+    "rename": "Rename",
+    "move": "Move",
+    "moveTo": "Move to",
+    "delete": "Delete"
+  },
+  "folderItem": {
+    "createFolderFailed": "Failed to create folder",
+    "ariaExpanded": "{name} folder, expanded",
+    "ariaCollapsed": "{name} folder, collapsed",
+    "locked": "Folder is locked",
+    "options": "Folder options"
+  },
+  "helpModal": {
+    "title": "Contact support",
+    "requestTypes": {
+      "bug": "Bug report",
+      "feedback": "Feedback",
+      "feature_request": "Feature request",
+      "other": "Other"
+    },
+    "validation": {
+      "subjectRequired": "Subject is required",
+      "messageRequired": "Message is required",
+      "typeRequired": "Please select a request type"
+    },
+    "request": "Request",
+    "requestPlaceholder": "Select a request type",
+    "subject": "Subject",
+    "subjectPlaceholder": "Brief description of your request",
+    "message": "Message",
+    "messagePlaceholder": "Please provide details about your request...",
+    "attachImages": "Attach images (optional)",
+    "dropImages": "Drop images here or click to browse",
+    "imageFormats": "PNG, JPEG, WebP, GIF (max 20MB each)",
+    "uploadedImages": "Uploaded images",
+    "preview": "Preview {index}",
+    "removeImage": "Remove image",
+    "submitting": "Submitting...",
+    "error": "Error",
+    "success": "Success",
+    "submit": "Submit"
+  },
+  "impersonationBanner": {
+    "thisUser": "this user",
+    "text": "Impersonating {user}. Changes will apply to this account until you switch back.",
+    "textWithEmail": "Impersonating {user} ({email}). Changes will apply to this account until you switch back.",
+    "returning": "Returning...",
+    "stop": "Stop impersonating"
+  },
+  "integrationTabs": {
+    "integrations": "Integrations",
+    "skills": "Skills"
+  },
+  "invitations": {
+    "viewInvitations": "View invitations",
+    "organizationFallback": "Organization",
+    "workspaceFallback": "Workspace",
+    "joined": "Joined {name}",
+    "acceptFailed": "Could not accept the invitation. It may have expired.",
+    "declineFailed": "Could not decline the invitation.",
+    "pendingTitle": "Pending invitations",
+    "title": "Invitations",
+    "loadFailed": "Could not load invitations",
+    "loading": "Loading invitations…",
+    "empty": "No pending invitations.",
+    "declineAria": "Decline invitation to {name}",
+    "decline": "Decline",
+    "accept": "Accept",
+    "invitationAria": "Invitation to {name}",
+    "invitedBy": "Invited by {name}",
+    "invited": "Invited",
+    "permissionAccess": "{permission} access",
+    "permissions": {
+      "admin": "admin",
+      "write": "write",
+      "read": "read"
+    },
+    "beforeYouJoin": "Before you join",
+    "refresh": "Refresh invitation",
+    "workspaceAccess": "Workspace access",
+    "done": "Done"
+  },
+  "inviteModal": {
+    "failures": {
+      "none": "None of the {count} invitations could be sent.",
+      "some": "{failed} of {attempted} invitations could not be sent.",
+      "more": "And {count} more."
+    },
+    "thisWorkspace": "This workspace",
+    "access": {
+      "admin": "Admin",
+      "write": "Write",
+      "read": "Read"
+    },
+    "membership": {
+      "member": "Member",
+      "admin": "Admin",
+      "external": "External"
+    },
+    "seatLimit": "{count, plural, one {Only # seat available} other {Only # seats available}} — invites beyond that may fail. External collaborators and existing members do not use seats.",
+    "invalidEmail": "Invalid email",
+    "cannotInviteYourself": "You cannot invite yourself",
+    "membersAdded": "{count, plural, one {# member added} other {# members added}}",
+    "invitesSent": "{count, plural, one {# invite sent} other {# invites sent}}",
+    "unexpectedError": "An unexpected error occurred. Please try again.",
+    "srTitle": "Invite teammates to {target}",
+    "organizationTarget": "organization",
+    "workspaceTarget": "workspace",
+    "title": "Invite teammates",
+    "emails": "Emails",
+    "emailsPlaceholder": "Enter emails",
+    "adminsOnly": "Only administrators can invite new teammates",
+    "workspaces": "Workspaces",
+    "selectWorkspaces": "Select workspaces",
+    "searchWorkspaces": "Search workspaces...",
+    "workspaceAccess": "Workspace access",
+    "selectAccess": "Select access",
+    "role": "Role",
+    "organizationMembership": "Organization membership",
+    "selectMembership": "Select membership",
+    "externalHint": "Access to the selected workspaces only — no seat. Only available for people already on a paid Nexora plan.",
+    "sending": "Sending...",
+    "send": "Send invites"
+  },
+  "logoUpload": {
+    "uploadFailed": "Failed to upload workspace logo"
+  },
+  "messageActions": {
+    "filesNotCopied": "{count, plural, one {# file could not be copied to the fork} other {# files could not be copied to the fork}}",
+    "forkFailed": "Failed to fork chat",
+    "copyMessage": "Copy message",
+    "copiedMessage": "Copied message",
+    "like": "Like",
+    "goodResponse": "Good response",
+    "dislike": "Dislike",
+    "badResponse": "Bad response",
+    "fork": "Fork in new chat",
+    "giveFeedback": "Give feedback",
+    "feedback": "Feedback",
+    "helpfulPlaceholder": "Tell us what was helpful...",
+    "wrongPlaceholder": "Tell us what went wrong...",
+    "copied": "Copied",
+    "copyId": "Copy ID",
+    "submit": "Submit"
+  },
+  "errorState": {
+    "tryAgain": "Try again"
+  },
+  "moveOptions": {
+    "moveHere": "Move here"
+  },
+  "navItemMenu": {
+    "openInNewTab": "Open in new tab",
+    "copyLink": "Copy link"
+  },
+  "presence": {
+    "avatarOf": "{name}'s avatar",
+    "userAvatar": "User avatar",
+    "moreUsers": "{count, plural, one {# more user} other {# more users}}"
+  },
+  "railFlyout": {
+    "noTables": "No tables yet",
+    "noFiles": "No files yet"
+  },
+  "resource": {
+    "selectAll": "Select all",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "pinned": "Pinned",
+    "selectRow": "Select row",
+    "actionsFor": "Actions for {label}",
+    "rowActions": "Row actions"
+  },
+  "resourceHeader": {
+    "path": "Path"
+  },
+  "resourceOptions": {
+    "filter": "Filter",
+    "searchPlaceholder": "Search...",
+    "clearSearch": "Clear search",
+    "sort": "Sort",
+    "clearSort": "Clear sort"
+  },
+  "searchModal": {
+    "keyboardShortcut": "Keyboard shortcut {shortcut}",
+    "pages": {
+      "integrations": "Integrations",
+      "skills": "Skills",
+      "tables": "Tables",
+      "files": "Files",
+      "knowledgeBases": "Knowledge bases",
+      "logs": "Logs",
+      "secrets": "Secrets",
+      "help": "Help",
+      "settings": "Settings"
+    },
+    "actions": {
+      "runWorkflow": "Run workflow",
+      "deployWorkflow": "Deploy workflow",
+      "fitToView": "Fit workflow to view",
+      "copyWorkflowLink": "Copy workflow link",
+      "newChat": "New chat",
+      "createWorkflow": "Create workflow",
+      "createFolder": "Create folder",
+      "importWorkflow": "Import workflow",
+      "inviteTeammates": "Invite teammates",
+      "newTable": "New table",
+      "newFolder": "New folder",
+      "importCsv": "Import CSV",
+      "exportCsv": "Export CSV",
+      "newColumn": "New column",
+      "newFile": "New file",
+      "upload": "Upload",
+      "download": "Download",
+      "rename": "Rename",
+      "share": "Share",
+      "delete": "Delete",
+      "newBase": "New base",
+      "newDocuments": "New documents",
+      "newConnector": "New connector",
+      "editTags": "Edit tags",
+      "refresh": "Refresh",
+      "export": "Export",
+      "switchToDashboard": "Switch to Dashboard",
+      "switchToLogs": "Switch to Logs"
+    },
+    "triggerName": "{name} Trigger",
+    "newChatFromQuery": "New chat: {query}",
+    "startNewChat": "Start a new chat",
+    "sections": {
+      "actions": "Nexora",
+      "pageActions": "Actions",
+      "blocks": "Blocks",
+      "triggers": "Triggers",
+      "tools": "Tools",
+      "toolOperations": "Tool operations",
+      "pages": "Pages",
+      "workflows": "Workflows",
+      "workspaces": "Workspaces",
+      "files": "Files",
+      "tables": "Tables",
+      "knowledgeBases": "Knowledge Bases",
+      "logs": "Logs",
+      "connectedAccounts": "Connected Integrations",
+      "integrations": "Integrations",
+      "chats": "Chats"
+    },
+    "search": "Search",
+    "noResults": "No results found.",
+    "askNexora": "Ask Nexora",
+    "searchAnything": "Search anything",
+    "askNexoraPlaceholder": "Ask Nexora anything...",
+    "searchAnythingPlaceholder": "Search anything...",
+    "tabToSearch": "⇥ Search",
+    "tabToAsk": "⇥ Ask Nexora"
+  },
+  "selection": {
+    "selectedItem": "selected item",
+    "selectedItems": "{count} selected items",
+    "countedAction": "{action} {count, plural, one {# item} other {# items}}",
+    "enable": "Enable",
+    "disable": "Disable",
+    "actionSelectedItems": "{action} selected items"
+  },
+  "sessionExpired": {
+    "signingOut": "Your session expired. Signing you out…",
+    "signOutFailed": "Your session expired, but signing out failed.",
+    "impersonationSigningOut": "The impersonation session expired. Signing you out…",
+    "impersonationSignOutFailed": "The impersonation session expired, but signing out failed.",
+    "tryAgain": "Try again"
+  },
+  "settingsSidebar": {
+    "back": "Back",
+    "organization": "Organization",
+    "maxPlan": "Max",
+    "accessRequired": "{label}: access required"
+  },
+  "sidebar": {
+    "desktopActivity": {
+      "needsInput": "Needs input",
+      "waiting": "Waiting for {deviceName} to come back online",
+      "running": "Running on {deviceName}"
+    },
+    "chatOptions": "Chat options",
+    "nav": {
+      "newChat": "New chat",
+      "newWorkflow": "New workflow",
+      "dashboard": "Dashboard",
+      "changelog": "Changelog",
+      "integrations": "Integrations",
+      "tables": "Tables",
+      "files": "Files",
+      "knowledgeBases": "Knowledge bases",
+      "tests": "Tests",
+      "logs": "Logs",
+      "organization": "Organization"
+    },
+    "unknownWorkflow": "Unknown workflow",
+    "ariaLabel": "Workspace sidebar",
+    "search": "Search",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "resizeSidebar": "Resize sidebar",
+    "sections": {
+      "chats": "Chats",
+      "workspace": "Workspace",
+      "workflows": "Workflows"
+    },
+    "noChats": "No chats yet",
+    "seeMore": "See more",
+    "seeLess": "See less",
+    "moreActions": "More actions",
+    "importing": "Importing...",
+    "importWorkflow": "Import workflow",
+    "creatingFolder": "Creating folder...",
+    "createFolder": "Create folder",
+    "creatingWorkflow": "Creating workflow...",
+    "noWorkflows": "No workflows yet"
+  },
+  "sidebarFooter": {
+    "downloadingUpdate": "Downloading update…",
+    "downloadingUpdatePercent": "Downloading update {percent}%",
+    "restartToUpdate": "Restart to update",
+    "update": "Update",
+    "settings": "Settings",
+    "signOut": "Sign out",
+    "helpUpdateAvailableTooltip": "Help — update available",
+    "helpUpdateAvailable": "Help, update available",
+    "help": "Help",
+    "docs": "Docs",
+    "reportIssue": "Report an issue",
+    "contactSupport": "Contact support"
+  },
+  "sidebarNavChip": {
+    "accessRequired": "{label}: access required"
+  },
+  "statusNotice": {
+    "issues": "Nexora is having issues",
+    "viewStatus": "View status"
+  },
+  "timeCell": {
+    "now": "Now",
+    "minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
+    "minutes": "{count, plural, one {# minute} other {# minutes}}",
+    "hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
+    "hours": "{count, plural, one {# hour} other {# hours}}",
+    "daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "fullDate": "{month} {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}, {year}"
+  },
+  "workflowItem": {
+    "locked": "Workflow is locked",
+    "options": "Workflow options"
+  },
+  "workspaceAccessDenied": {
+    "title": "Workspace access denied",
+    "description": "You do not have access to this workspace. Ask a workspace administrator for access or choose another workspace.",
+    "viewWorkspaces": "View your workspaces"
+  },
+  "workspaceChrome": {
+    "back": "Back",
+    "forward": "Forward",
+    "closeNavigation": "Close navigation",
+    "openNavigation": "Open navigation",
+    "navigation": "Navigation",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar"
+  },
+  "workspaceHeader": {
+    "leaveFailed": "Couldn't leave workspace",
+    "tryAgainLater": "Please try again in a moment.",
+    "expandSidebar": "Expand sidebar",
+    "logoAlt": "Workspace logo",
+    "switchWorkspace": "Switch workspace",
+    "backToOrganization": "Back to organization",
+    "searchPlaceholder": "Search workspaces...",
+    "noResults": "No results for \"{query}\"",
+    "renameWorkspace": "Rename workspace {name}",
+    "pinned": "Pinned",
+    "workspaceOptions": "Workspace options",
+    "newWorkspace": "New workspace",
+    "inviteTeammates": "Invite teammates",
+    "workspaceFallback": "Workspace",
+    "leaveWorkspace": "Leave workspace",
+    "leaveConfirmPrefix": "Are you sure you want to leave ",
+    "thisWorkspace": "this workspace",
+    "leaveConfirmSuffix": "? You will lose access to all workflows and data in this workspace. This action cannot be undone.",
+    "leaving": "Leaving..."
+  }
+}

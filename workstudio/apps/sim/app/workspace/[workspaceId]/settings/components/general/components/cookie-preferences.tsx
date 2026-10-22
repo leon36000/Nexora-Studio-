@@ -5,10 +5,12 @@ import { useConsentManager } from '@c15t/nextjs/headless'
 import { toast } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { CONSENT_LINK_CLASS, ConsentPreferences } from '@/app/_shell/consent/consent-preferences'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 
 function CookiePreferencesBody() {
+  const t = useTranslations('settings.general.cookies')
   const { saveConsents } = useConsentManager()
   const [saving, setSaving] = useState(false)
 
@@ -29,27 +31,29 @@ function CookiePreferencesBody() {
       await saveConsents('custom', { uiSource: 'settings' })
     } catch (error) {
       revert()
-      toast.error(getErrorMessage(error, 'Could not save your cookie preferences'))
+      toast.error(getErrorMessage(error, t('saveFailed')))
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <SettingsSection label='Cookies'>
+    <SettingsSection label={t('title')}>
       <div className='flex flex-col gap-3'>
         <ConsentPreferences onChange={commit} disabled={saving} />
         <p className='text-[var(--text-muted)] text-small'>
-          Your choice applies to this browser and is kept for 365 days. The{' '}
-          <Link
-            href='/cookie-policy'
-            target='_blank'
-            rel='noopener noreferrer'
-            className={CONSENT_LINK_CLASS}
-          >
-            Cookie Policy
-          </Link>{' '}
-          lists what each category covers.
+          {t.rich('notice', {
+            link: (chunks) => (
+              <Link
+                href='/cookie-policy'
+                target='_blank'
+                rel='noopener noreferrer'
+                className={CONSENT_LINK_CLASS}
+              >
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       </div>
     </SettingsSection>

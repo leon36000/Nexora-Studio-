@@ -11,6 +11,7 @@ import { Button, cn, Popover, PopoverContent, PopoverItem, PopoverTrigger } from
 import { ChevronDown, ChevronsUpDown, ChevronUp, Plus, Trash } from '@sim/emcn/icons'
 import { generateShortId } from '@sim/utils/id'
 import { isEqual } from 'es-toolkit'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { EnvVarDropdown } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/env-var-dropdown'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
@@ -88,6 +89,7 @@ export function MessagesInput({
   disabled = false,
   wandControlRef,
 }: MessagesInputProps) {
+  const t = useTranslations('editor.subBlock.messagesInput')
   const activeSearchTarget = useActiveSearchTarget()
   const [messages, setMessages] = useSubBlockValue<Message[]>(blockId, subBlockId, false)
   const [localMessages, setLocalMessages] = useState<Message[]>([{ role: 'user', content: '' }])
@@ -395,9 +397,7 @@ export function MessagesInput({
   /**
    * Capitalizes the first letter of the role
    */
-  const formatRole = (role: string): string => {
-    return role.charAt(0).toUpperCase() + role.slice(1)
-  }
+  const formatRole = (role: Message['role']): string => t(`roles.${role}`)
 
   /**
    * Handles header click to focus the textarea
@@ -594,7 +594,7 @@ export function MessagesInput({
                 {/* Header with role label and add button */}
                 <div
                   role='group'
-                  aria-label={`Message ${index + 1}`}
+                  aria-label={t('messageNumber', { number: index + 1 })}
                   className='flex cursor-pointer items-center justify-between px-2 pt-1.5'
                   onClick={(e) => handleHeaderClick(index, e)}
                   onKeyDown={(event) => {
@@ -620,7 +620,7 @@ export function MessagesInput({
                             'cursor-default hover-hover:bg-transparent hover-hover:text-[var(--text-primary)]'
                         )}
                         onClick={(e) => e.stopPropagation()}
-                        aria-label='Select message role'
+                        aria-label={t('selectRole')}
                       >
                         {formatRole(message.role)}
                         {!isPreview && !disabled && (
@@ -663,7 +663,7 @@ export function MessagesInput({
                             }}
                             disabled={disabled}
                             className='-my-1 -mr-1 size-6 p-0'
-                            aria-label='Delete message'
+                            aria-label={t('deleteMessage')}
                           >
                             <Trash className='size-3' />
                           </Button>
@@ -675,7 +675,7 @@ export function MessagesInput({
                             }}
                             disabled={disabled || index === 0}
                             className='-my-1 -mr-1 size-6 p-0'
-                            aria-label='Move message up'
+                            aria-label={t('moveUp')}
                           >
                             <ChevronUp className='size-3' />
                           </Button>
@@ -687,7 +687,7 @@ export function MessagesInput({
                             }}
                             disabled={disabled || index === currentMessages.length - 1}
                             className='-my-1 -mr-1 size-6 p-0'
-                            aria-label='Move message down'
+                            aria-label={t('moveDown')}
                           >
                             <ChevronDown className='size-3' />
                           </Button>
@@ -701,7 +701,7 @@ export function MessagesInput({
                         }}
                         disabled={disabled}
                         className='-mr-1.5 -my-1 size-6 p-0'
-                        aria-label='Add message below'
+                        aria-label={t('addBelow')}
                       >
                         <Plus className='size-3.5' />
                       </Button>
@@ -716,7 +716,7 @@ export function MessagesInput({
                       textareaRefs.current[fieldId] = el
                     }}
                     className='relative z-[2] m-0 box-border h-auto min-h-[80px] w-full resize-none overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words border-none bg-transparent p-2 font-sans text-sm text-transparent leading-[1.5] caret-[var(--text-primary)] outline-hidden [-ms-overflow-style:none] [letter-spacing:inherit] [scrollbar-width:none] placeholder:text-[var(--text-muted)] focus:outline-hidden focus-visible:outline-hidden disabled:cursor-not-allowed [&::-webkit-scrollbar]:hidden'
-                    placeholder='Enter message content...'
+                    placeholder={t('contentPlaceholder')}
                     value={message.content}
                     onChange={fieldHandlers.onChange}
                     onKeyDown={(e) => {
@@ -725,7 +725,7 @@ export function MessagesInput({
                         const direction = e.shiftKey ? -1 : 1
                         const nextIndex = index + direction
 
-                        if (nextIndex >= 0 && nextIndex < currentMessages.length) {
+                        if (nextIndex >= 0 && currentMessages.length > nextIndex) {
                           const nextFieldId = `message-${nextIndex}`
                           const nextTextarea = textareaRefs.current[nextFieldId]
                           if (nextTextarea) {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChipCombobox, type ChipModalFieldAria, type ComboboxOption } from '@sim/emcn'
 import { isEqual } from 'es-toolkit'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { type ResourceScope, resourceScopeFromOwner } from '@/lib/core/resource-scope'
 import { projectSelectorContext } from '@/lib/selectors/context'
 import { getSelectorManifestEntry, type SelectorKey } from '@/lib/selectors/manifest'
@@ -52,6 +53,7 @@ export function ConnectorSelectorField({
   selectedLabels,
   disabled,
 }: ConnectorSelectorFieldProps) {
+  const t = useTranslations('knowledge.connectorSelector')
   const params = useParams<{ workspaceId?: string; organizationId?: string }>()
   const scope = explicitScope ?? resourceScopeFromOwner(params)
   const isMulti = Boolean(field.multi)
@@ -109,7 +111,9 @@ export function ConnectorSelectorField({
   }, [field.dependsOn, sourceConfig, configFields, canonicalModes])
 
   const isEnabled = !disabled && !!credentialId && depsResolved
-  const missingDependencyMessage = `Select ${getDependencyLabel(field, configFields)} first`
+  const missingDependencyMessage = t('selectDependencyFirst', {
+    field: getDependencyLabel(field, configFields),
+  })
   const debouncedSearch = useDebounce(searchTerm.trim(), SEARCH_DEBOUNCE_MS)
   const {
     data: options = [],
@@ -169,10 +173,11 @@ export function ConnectorSelectorField({
     surfaceId: `connector:${field.id}`,
   })
 
-  const emptyMessage = getEmptyMessage(field.title.toLowerCase(), {
-    error,
-    truncated,
-  })
+  const emptyMessage = error
+    ? t('loadOptionsFailed')
+    : truncated
+      ? t('tooManyToList')
+      : t('noneFound', { noun: field.title.toLowerCase() })
 
   const comboboxOptions = useMemo<ComboboxOption[]>(() => {
     const base = options.map((opt) => ({ label: opt.label, value: opt.id }))
@@ -229,7 +234,7 @@ export function ConnectorSelectorField({
     if (field.selectAllValue) {
       bulkGenerationRef.current += 1
       setBulkError(null)
-      onChange([field.selectAllValue], [{ id: field.selectAllValue, label: 'All' }])
+      onChange([field.selectAllValue], [{ id: field.selectAllValue, label: 'All' }]) // i18n-ignore: stored selection label (data), not rendered copy
       return
     }
     const generation = ++bulkGenerationRef.current
@@ -239,10 +244,7 @@ export function ConnectorSelectorField({
     if (result.status !== 'complete') {
       setBulkError({
         context,
-        message:
-          result.status === 'partial'
-            ? 'There are too many results to select all. Select items individually or enter keys.'
-            : 'Could not load all options. Try again.',
+        message: result.status === 'partial' ? t('tooManyToSelectAll') : t('loadAllFailed'),
       })
       return
     }
@@ -265,7 +267,7 @@ export function ConnectorSelectorField({
               ? [
                   {
                     value: field.selectAllValue ?? '',
-                    label: 'All',
+                    label: t('all'),
                     disabled: !isEnabled || hasSearch || isFetching || isLoadingAll,
                     onSelect: () => void selectAll(),
                     keepOpen: true,
@@ -279,13 +281,13 @@ export function ConnectorSelectorField({
           onMultiSelectChange={handleChange}
           searchable
           onSearchChange={handleSearchChange}
-          searchPlaceholder={`Search ${field.title.toLowerCase()}...`}
+          searchPlaceholder={t('searchField', { field: field.title.toLowerCase() })}
           placeholder={
             !credentialId
-              ? 'Connect an account first'
+              ? t('connectAccountFirst')
               : !depsResolved
                 ? missingDependencyMessage
-                : field.placeholder || `Select ${field.title.toLowerCase()}`
+                : field.placeholder || t('selectField', { field: field.title.toLowerCase() })
           }
           disabled={disabled || !credentialId || !depsResolved}
           isLoading={isEnabled && (isLoading || (options.length === 0 && isLoadingSelectedOptions))}
@@ -316,13 +318,13 @@ export function ConnectorSelectorField({
       onChange={handleChange}
       searchable
       onSearchChange={handleSearchChange}
-      searchPlaceholder={`Search ${field.title.toLowerCase()}...`}
+      searchPlaceholder={t('searchField', { field: field.title.toLowerCase() })}
       placeholder={
         !credentialId
-          ? 'Connect an account first'
+          ? t('connectAccountFirst')
           : !depsResolved
             ? missingDependencyMessage
-            : field.placeholder || `Select ${field.title.toLowerCase()}`
+            : field.placeholder || t('selectField', { field: field.title.toLowerCase() })
       }
       disabled={disabled || !credentialId || !depsResolved}
       isLoading={isEnabled && (isLoading || (options.length === 0 && isLoadingSelectedOptions))}
@@ -336,18 +338,6 @@ export function ConnectorSelectorField({
       error={error?.message}
     />
   )
-}
-
-function getEmptyMessage(
-  noun: string,
-  state: {
-    error: Error | null
-    truncated: boolean
-  }
-): string {
-  if (state.error) return 'Could not load options. Try again.'
-  if (state.truncated) return 'No match — too many to list. Try a more exact term'
-  return `No ${noun} found`
 }
 
 function resolveDepValue(

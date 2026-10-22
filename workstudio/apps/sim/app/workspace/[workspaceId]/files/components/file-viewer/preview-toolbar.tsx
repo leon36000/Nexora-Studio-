@@ -1,10 +1,12 @@
 import { Chip, cn } from '@sim/emcn'
 import { ChevronLeft, ChevronRight, RefreshCw, ZoomIn, ZoomOut } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface PreviewNavigationControls {
   current: number
   total: number
-  label: string
+  /** What one navigation step moves by, named in the buttons' accessible labels. */
+  unit: 'page' | 'slide'
   onPrevious: () => void
   onNext: () => void
   canPrevious?: boolean
@@ -47,19 +49,20 @@ export function PreviewToolbar({ navigation, zoom, className }: PreviewToolbarPr
 function PreviewNavigationControls({
   current,
   total,
-  label,
+  unit,
   onPrevious,
   onNext,
   canPrevious = current > 1,
   canNext = current < total,
 }: PreviewNavigationControls) {
+  const t = useTranslations('files.preview.toolbar')
   return (
     <>
       <Chip
         leftIcon={ChevronLeft}
         onClick={onPrevious}
         disabled={!canPrevious}
-        aria-label={`Previous ${label}`}
+        aria-label={unit === 'page' ? t('previousPage') : t('previousSlide')}
       />
       <span className='min-w-[4.5rem] text-center text-[var(--text-body)] text-sm'>
         {total > 0 ? `${current} / ${total}` : '0 / 0'}
@@ -68,7 +71,7 @@ function PreviewNavigationControls({
         leftIcon={ChevronRight}
         onClick={onNext}
         disabled={!canNext}
-        aria-label={`Next ${label}`}
+        aria-label={unit === 'page' ? t('nextPage') : t('nextSlide')}
       />
     </>
   )
@@ -82,16 +85,22 @@ function PreviewZoomControls({
   canZoomIn = true,
   onReset,
 }: PreviewZoomControls) {
+  const t = useTranslations('files.preview.toolbar')
   return (
     <>
       {onReset && (
-        <Chip leftIcon={RefreshCw} mobileIconOnly onClick={onReset} aria-label='Reset zoom'>
-          Reset
+        <Chip leftIcon={RefreshCw} mobileIconOnly onClick={onReset} aria-label={t('resetZoom')}>
+          {t('reset')}
         </Chip>
       )}
-      <Chip leftIcon={ZoomOut} onClick={onZoomOut} disabled={!canZoomOut} aria-label='Zoom out' />
+      <Chip
+        leftIcon={ZoomOut}
+        onClick={onZoomOut}
+        disabled={!canZoomOut}
+        aria-label={t('zoomOut')}
+      />
       <span className='min-w-[3.25rem] text-center text-[var(--text-body)] text-sm'>{label}</span>
-      <Chip leftIcon={ZoomIn} onClick={onZoomIn} disabled={!canZoomIn} aria-label='Zoom in' />
+      <Chip leftIcon={ZoomIn} onClick={onZoomIn} disabled={!canZoomIn} aria-label={t('zoomIn')} />
     </>
   )
 }

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { useSession } from '@/lib/auth/client'
 import type { WorkspaceCredential } from '@/hooks/queries/credentials'
 import {
@@ -38,6 +39,7 @@ interface UseSecretValueParams {
  *   value changes upstream (e.g. a concurrent save by another admin).
  */
 export function useSecretValue({ workspaceId, credential }: UseSecretValueParams) {
+  const t = useTranslations('settings.secrets')
   const { data: session } = useSession()
   const isPersonal = credential?.type === 'env_personal'
   const envKey = credential?.envKey ?? ''
@@ -75,8 +77,8 @@ export function useSecretValue({ workspaceId, credential }: UseSecretValueParams
       if (isPersonal) {
         const { data: latest } = await refetchPersonal()
         if (!latest) {
-          toast.error("Couldn't save value", {
-            description: 'Could not load your latest secrets. Please try again in a moment.',
+          toast.error(t('saveFailed'), {
+            description: t('latestUnavailable'),
           })
           logger.warn('Aborted personal secret save: latest environment unavailable')
           return false
@@ -91,8 +93,8 @@ export function useSecretValue({ workspaceId, credential }: UseSecretValueParams
       }
       return true
     } catch (error) {
-      toast.error("Couldn't save value", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('saveFailed'), {
+        description: getErrorMessage(error, t('tryAgain')),
       })
       logger.error('Failed to save secret value', error)
       return false
@@ -110,6 +112,7 @@ export function useSecretValue({ workspaceId, credential }: UseSecretValueParams
     refetchPersonal,
     savePersonal.mutateAsync,
     upsertWorkspace.mutateAsync,
+    t,
   ])
 
   const discard = useCallback(() => setDraft(currentValue), [currentValue])

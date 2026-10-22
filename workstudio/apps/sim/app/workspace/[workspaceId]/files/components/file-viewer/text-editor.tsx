@@ -19,6 +19,7 @@ import { cn, toast } from '@sim/emcn'
 import { formatPasteLimit, PASTE_LIMITS } from '@sim/utils/paste'
 import type { editor as MonacoEditorTypes } from 'monaco-editor'
 import dynamic from 'next/dynamic'
+import { useTranslations } from 'next-intl'
 import { readSeparatorKey } from '@/lib/core/utils/separator-keys'
 import {
   buildFileSelectionLabel,
@@ -395,6 +396,8 @@ function useMonacoTheme(): string {
   return isDark ? 'sim-dark' : 'sim-light'
 }
 
+type SaveRetry = () => Promise<void> // i18n-ignore: type signature
+
 interface TextEditorProps {
   file: WorkspaceFileRecord
   workspaceId: string
@@ -402,14 +405,11 @@ interface TextEditorProps {
   previewMode: PreviewMode
   autoFocus?: boolean
   onDirtyChange?: (isDirty: boolean) => void
-  onSaveStatusChange?: (
-    status: 'idle' | 'saving' | 'saved' | 'error',
-    retry?: () => Promise<void>
-  ) => void
+  onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error', retry?: SaveRetry) => void
   onSaveError?: (error: unknown) => void
   preview?: ReactNode
   sourceSide?: 'start' | 'end'
-  saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
+  saveRef?: React.MutableRefObject<SaveRetry | null>
   downloadSourceRef?: React.MutableRefObject<FileDownloadSource | null>
   discardRef?: React.MutableRefObject<(() => void) | null>
   streamingContent?: string
@@ -437,6 +437,8 @@ export const TextEditor = memo(function TextEditor({
   disableStreamingAutoScroll,
   previewContextKey,
 }: TextEditorProps) {
+  const t = useTranslations('files.textEditor')
+  const tContent = useTranslations('files.editableContent')
   const containerRef = useRef<HTMLDivElement>(null)
   const monacoEditorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const lastEditorValueRef = useRef('')
@@ -729,8 +731,10 @@ export const TextEditor = memo(function TextEditor({
 
     event.preventDefault()
     event.stopPropagation()
-    toast.warning('Paste would make this file too large to edit', {
-      description: `Inline editing supports files up to ${formatPasteLimit(PASTE_LIMITS.TEXT_EDITOR_BYTES)}. Import or replace the file to keep larger content available without loading it into the editor.`,
+    toast.warning(t('pasteTooLarge'), {
+      description: t('pasteTooLargeDescription', {
+        limit: formatPasteLimit(PASTE_LIMITS.TEXT_EDITOR_BYTES),
+      }),
     })
   }
 
@@ -779,7 +783,7 @@ export const TextEditor = memo(function TextEditor({
     return (
       <div className='flex flex-1 items-center justify-center'>
         <p className='text-[var(--text-muted)] text-small'>
-          {contentError ?? 'Failed to load file content'}
+          {contentError ?? tContent('loadFailed')}
         </p>
       </div>
     )
@@ -842,12 +846,15 @@ export const TextEditor = memo(function TextEditor({
                   tabIndex={0}
                   role='separator'
                   aria-orientation='vertical'
-                  aria-label='Resize split'
+                  aria-label={t('resizeSplit')}
                   aria-controls={sourcePaneId}
                   aria-valuemin={SPLIT_MIN_PCT}
                   aria-valuemax={SPLIT_MAX_PCT}
                   aria-valuenow={splitPct}
-                  aria-valuetext={`${Math.round(splitPct)}% source, ${Math.round(100 - splitPct)}% preview`}
+                  aria-valuetext={t('splitValueText', {
+                    source: Math.round(splitPct),
+                    preview: Math.round(100 - splitPct),
+                  })}
                 />
                 {isResizing && (
                   <div className='-translate-x-[0.5px] pointer-events-none absolute top-0 z-20 h-full w-[2px] bg-[var(--selection)]' />

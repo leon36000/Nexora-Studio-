@@ -8,6 +8,7 @@ import {
   ChipModalFooter,
   ChipModalHeader,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 interface SaveViewModalProps {
   open: boolean
@@ -32,6 +33,7 @@ export function SaveViewModal({
   onSubmit,
   isSubmitting,
 }: SaveViewModalProps) {
+  const t = useTranslations('tables.views')
   const [name, setName] = useState(initialName)
   // Seed the field on each open rather than syncing in an effect: the modal stays
   // mounted between opens, so without this a second open shows the stale name.
@@ -42,7 +44,7 @@ export function SaveViewModal({
   }
 
   const trimmed = name.trim()
-  const title = mode === 'new' ? 'New view' : 'Rename view'
+  const title = mode === 'new' ? t('newView') : t('renameView')
 
   const handleSubmit = () => {
     if (!trimmed || isSubmitting) return
@@ -56,10 +58,10 @@ export function SaveViewModal({
         {/* Enter fires the footer's primary action automatically — no key wiring. */}
         <ChipModalField
           type='input'
-          title='Name'
+          title={t('name')}
           value={name}
           onChange={setName}
-          placeholder='e.g. Active customers'
+          placeholder={t('namePlaceholder')}
           required
         />
       </ChipModalBody>
@@ -70,11 +72,11 @@ export function SaveViewModal({
           label:
             mode === 'new'
               ? isSubmitting
-                ? 'Creating...'
-                : 'Create'
+                ? t('creating')
+                : t('create')
               : isSubmitting
-                ? 'Saving...'
-                : 'Save',
+                ? t('saving')
+                : t('save'),
           onClick: handleSubmit,
           disabled: !trimmed || isSubmitting,
         }}

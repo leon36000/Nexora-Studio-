@@ -1,6 +1,7 @@
 'use client'
 
-import { type ComponentType, useMemo } from 'react'
+import { type ComponentType, useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   getServiceAccountConnectNoun,
   getServiceAccountGatingBlockType,
@@ -47,6 +48,48 @@ export interface ServiceAccountConnectTarget {
   hidden: boolean
 }
 
+/**
+ * Message keys under `integrations.serviceAccountConnect.nouns` for the connect nouns the
+ * providers declare; a noun missing here is shown as declared.
+ */
+const CONNECT_NOUN_KEYS: Record<string, string> = {
+  'custom bot': 'customBot',
+  'API key': 'apiKey',
+  'database connection': 'databaseConnection',
+  'service account': 'serviceAccount',
+  'access token': 'accessToken',
+  'admin API token': 'adminApiToken',
+  'API credential': 'apiCredential',
+  'API token': 'apiToken',
+  app: 'app',
+  application: 'application',
+  'integration secret': 'integrationSecret',
+  'integration user': 'integrationUser',
+  'integration user app': 'integrationUserApp',
+  'OAuth certificate': 'oauthCertificate',
+  'personal access token': 'personalAccessToken',
+  'private app token': 'privateAppToken',
+  'programmatic access token': 'programmaticAccessToken',
+  'Self Client': 'selfClient',
+  'server-to-server app': 'serverToServerApp',
+  'site token': 'siteToken',
+}
+
+/**
+ * Translates a provider's connect noun ("API key", "server-to-server app") for use in
+ * `integrations.serviceAccountConnect.addNoun` and the connect modal titles.
+ */
+export function useConnectNounTranslator(): (noun: string) => string {
+  const t = useTranslations('integrations.serviceAccountConnect')
+  return useCallback(
+    (noun: string) => {
+      const key = CONNECT_NOUN_KEYS[noun]
+      return key ? t(`nouns.${key}`) : noun
+    },
+    [t]
+  )
+}
+
 interface UseServiceAccountConnectTargetArgs {
   serviceAccountProviderId: ServiceAccountProviderId | undefined
   serviceName: string | undefined
@@ -63,6 +106,8 @@ export function useServiceAccountConnectTarget({
   serviceName,
   serviceIcon,
 }: UseServiceAccountConnectTargetArgs): ServiceAccountConnectTarget | null {
+  const t = useTranslations('integrations.serviceAccountConnect')
+  const translateNoun = useConnectNounTranslator()
   const blockOverlayVersion = useCustomBlockOverlayVersion()
 
   const isSlackBot = serviceAccountProviderId === SLACK_CUSTOM_BOT_PROVIDER_ID
@@ -81,8 +126,10 @@ export function useServiceAccountConnectTarget({
     if (!serviceAccountProviderId || !serviceName || !serviceIcon) return null
 
     const label = isSlackBot
-      ? 'Set up a custom bot'
-      : `Add ${getServiceAccountConnectNoun(serviceAccountProviderId)}`
+      ? t('setUpCustomBot')
+      : t('addNoun', {
+          noun: translateNoun(getServiceAccountConnectNoun(serviceAccountProviderId)),
+        })
 
     const familyName = getServiceAccountFamilyName(serviceAccountProviderId)
     const familyIcon = getServiceAccountFamilyIcon(serviceAccountProviderId)
@@ -94,5 +141,5 @@ export function useServiceAccountConnectTarget({
       label,
       hidden,
     }
-  }, [serviceAccountProviderId, serviceName, serviceIcon, isSlackBot, hidden])
+  }, [serviceAccountProviderId, serviceName, serviceIcon, isSlackBot, hidden, t, translateNoun])
 }

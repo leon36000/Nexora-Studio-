@@ -279,7 +279,7 @@ export const KeyboardNavigationHandler: React.FC<KeyboardNavigationHandlerProps>
       case 'Enter':
       case 'Tab':
         if (e.key === 'Tab' && e.shiftKey) break
-        if (selected && selectedIndex >= 0 && selectedIndex < flatTagList.length) {
+        if (selected && selectedIndex >= 0 && flatTagList.length > selectedIndex) {
           e.preventDefault()
           e.stopPropagation()
           handleTagSelect(selected.tag, selected.group)

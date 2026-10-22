@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Button, Chip, Combobox, type ComboboxOption, Label, Tooltip } from '@sim/emcn'
 import { ChevronDown, ChevronUp, Plus, Trash } from '@sim/emcn/icons'
 import { generateShortId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { writePendingCredentialCreateRequest } from '@/lib/credentials/client-state'
 import {
@@ -11,7 +12,6 @@ import {
   changeFallbackRowApiKey,
   changeFallbackRowModel,
   changeFallbackRowTuning,
-  FALLBACK_TUNING_LABELS,
   type FallbackModelEntry,
   type FallbackTuningKnob,
   fallbackRowNeedsApiKey,
@@ -21,7 +21,6 @@ import {
   isWholeEnvVarReference,
   MAX_FALLBACK_MODELS,
   moveFallbackRow,
-  ordinalChoiceLabel,
   removeFallbackRow,
 } from '@/lib/workflows/blocks/fallback-models'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
@@ -97,6 +96,7 @@ const FallbackRow = memo(function FallbackRow({
   onMove,
   onRemove,
 }: FallbackRowProps) {
+  const t = useTranslations('editor.subBlock.modelFallbackList')
   /** Credential visibility follows the server-resolved shape, including late hydration. */
   useDeploymentShape()
   const modelOptions = useMemo(
@@ -121,11 +121,12 @@ const FallbackRow = memo(function FallbackRow({
 
   /** Only a reference is ever shown; anything else that reached the store reads as unset. */
   const apiKeyValue = isWholeEnvVarReference(row.apiKey) ? row.apiKey : ''
+  const choice = t('choice', { n: index + 2 })
 
   return (
     <div data-fallback-row-id={row.id} className='min-w-0 rounded-sm border border-[var(--border)]'>
       <div className='flex items-center justify-between gap-2 rounded-t-[4px] bg-[var(--surface-4)] px-2 py-1'>
-        <span className='text-[var(--text-secondary)] text-small'>{ordinalChoiceLabel(index)}</span>
+        <span className='text-[var(--text-secondary)] text-small'>{choice}</span>
         <div className='flex shrink-0 items-center gap-1'>
           {canMove && (
             <>
@@ -137,12 +138,12 @@ const FallbackRow = memo(function FallbackRow({
                     size='icon'
                     onClick={() => onMove(row.id, -1)}
                     disabled={readOnly || index === 0}
-                    aria-label='Move up'
+                    aria-label={t('moveUp')}
                   >
                     <ChevronUp className='size-[14px]' />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content>Move up</Tooltip.Content>
+                <Tooltip.Content>{t('moveUp')}</Tooltip.Content>
               </Tooltip.Root>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
@@ -152,12 +153,12 @@ const FallbackRow = memo(function FallbackRow({
                     size='icon'
                     onClick={() => onMove(row.id, 1)}
                     disabled={readOnly || isLast}
-                    aria-label='Move down'
+                    aria-label={t('moveDown')}
                   >
                     <ChevronDown className='size-[14px]' />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content>Move down</Tooltip.Content>
+                <Tooltip.Content>{t('moveDown')}</Tooltip.Content>
               </Tooltip.Root>
             </>
           )}
@@ -169,12 +170,12 @@ const FallbackRow = memo(function FallbackRow({
                 size='icon'
                 onClick={() => onRemove(row.id)}
                 disabled={readOnly}
-                aria-label='Remove fallback model'
+                aria-label={t('removeAria')}
               >
                 <Trash className='size-[14px]' />
               </Button>
             </Tooltip.Trigger>
-            <Tooltip.Content>Remove</Tooltip.Content>
+            <Tooltip.Content>{t('remove')}</Tooltip.Content>
           </Tooltip.Root>
         </div>
       </div>
@@ -184,40 +185,40 @@ const FallbackRow = memo(function FallbackRow({
           options={modelOptions}
           value={row.model}
           onChange={(model) => onChangeModel(row.id, model)}
-          placeholder='Select a model'
-          aria-label={`${ordinalChoiceLabel(index)} model`}
+          placeholder={t('selectModel')}
+          aria-label={t('modelAria', { choice })}
           disabled={readOnly}
           searchable
-          searchPlaceholder='Search models...'
+          searchPlaceholder={t('searchModels')}
           maxHeight={240}
-          emptyMessage='No models available'
+          emptyMessage={t('noModels')}
         />
         {needsApiKey && (
           <div className='flex flex-col gap-2.5'>
-            <Label className='pl-0.5'>API key</Label>
+            <Label className='pl-0.5'>{t('apiKey')}</Label>
             <Combobox
               options={envVarOptions}
               value={apiKeyValue}
               onChange={(apiKey) => onChangeApiKey(row.id, apiKey)}
-              placeholder='Select a secret'
-              aria-label={`${ordinalChoiceLabel(index)} API key`}
+              placeholder={t('selectSecret')}
+              aria-label={t('apiKeyAria', { choice })}
               disabled={readOnly}
               searchable
-              searchPlaceholder='Search secrets...'
+              searchPlaceholder={t('searchSecrets')}
               maxHeight={240}
-              emptyMessage='No secrets'
+              emptyMessage={t('noSecrets')}
             />
           </div>
         )}
         {tuningFields.map(({ knob, options }) => (
           <div key={knob} className='flex flex-col gap-2.5'>
-            <Label className='pl-0.5'>{FALLBACK_TUNING_LABELS[knob]}</Label>
+            <Label className='pl-0.5'>{t(`tuning.${knob}.label`)}</Label>
             <Combobox
               options={options}
               value={row[knob] ?? options[0]?.value ?? ''}
               onChange={(value) => onChangeTuning(row.id, knob, value)}
-              placeholder={`Select ${FALLBACK_TUNING_LABELS[knob].toLowerCase()}`}
-              aria-label={`${ordinalChoiceLabel(index)} ${FALLBACK_TUNING_LABELS[knob].toLowerCase()}`}
+              placeholder={t(`tuning.${knob}.placeholder`)}
+              aria-label={t(`tuning.${knob}.aria`, { choice })}
               disabled={readOnly}
               className='w-full'
             />
@@ -246,6 +247,7 @@ export function ModelFallbackList({
   previewPrimary,
   disabled = false,
 }: ModelFallbackListProps) {
+  const t = useTranslations('editor.subBlock.modelFallbackList')
   const { workspaceId } = useWorkflowScope()
   const { navigateToSettings } = useSettingsNavigation()
   const { isModelUsable } = usePermissionConfig()
@@ -328,7 +330,7 @@ export function ModelFallbackList({
       value: `{{${name}}}`,
     }))
     options.push({
-      label: 'Create Secret',
+      label: t('createSecret'),
       value: CREATE_SECRET_VALUE,
       icon: Plus,
       onSelect: () => {
@@ -343,7 +345,7 @@ export function ModelFallbackList({
       },
     })
     return options
-  }, [workspaceId, workspaceEnv, personalEnv, navigateToSettings])
+  }, [workspaceId, workspaceEnv, personalEnv, navigateToSettings, t])
 
   /**
    * Handlers read the latest rows through a ref so their identity survives an
@@ -423,7 +425,7 @@ export function ModelFallbackList({
           onClick={handleAdd}
           disabled={rows.length >= MAX_FALLBACK_MODELS}
         >
-          Add fallback model
+          {t('add')}
         </Chip>
       )}
     </div>

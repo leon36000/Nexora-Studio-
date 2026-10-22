@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { highlight, languages } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import {
   isLikelyReferenceSegment,
   SYSTEM_REFERENCE_PREFIXES,
@@ -21,11 +22,11 @@ import type { BlockState } from '@/stores/workflows/workflow/types'
  */
 const SUBFLOW_CONFIG = {
   loop: {
-    typeLabels: {
-      for: 'For Loop',
-      forEach: 'For Each',
-      while: 'While Loop',
-      doWhile: 'Do While Loop',
+    typeLabelKeys: {
+      for: 'forLoop',
+      forEach: 'forEach',
+      while: 'whileLoop',
+      doWhile: 'doWhileLoop',
     },
     typeKey: 'loopType' as const,
     storeKey: 'loops' as const,
@@ -36,7 +37,7 @@ const SUBFLOW_CONFIG = {
     } as any,
   },
   parallel: {
-    typeLabels: { count: 'Parallel Count', collection: 'Parallel Each' },
+    typeLabelKeys: { count: 'parallelCount', collection: 'parallelEach' },
     typeKey: 'parallelType' as const,
     storeKey: 'parallels' as const,
     configKeys: {
@@ -54,6 +55,7 @@ const SUBFLOW_CONFIG = {
  * @returns Subflow editor state and handlers
  */
 export function useSubflowEditor(currentBlock: BlockState | null, currentBlockId: string | null) {
+  const t = useTranslations('editor.panelEditor.subflow.types')
   const { workspaceId } = useWorkflowScope()
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -370,9 +372,9 @@ export function useSubflowEditor(currentBlock: BlockState | null, currentBlockId
   // Type options for combobox
   const typeOptions =
     isSubflow && subflowConfig
-      ? Object.entries(subflowConfig.typeLabels).map(([value, label]) => ({
+      ? Object.entries(subflowConfig.typeLabelKeys).map(([value, labelKey]) => ({
           value,
-          label,
+          label: t(labelKey),
         }))
       : []
 

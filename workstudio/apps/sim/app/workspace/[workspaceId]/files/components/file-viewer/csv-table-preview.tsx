@@ -1,6 +1,7 @@
 'use client'
 
 import { memo } from 'react'
+import { useTranslations } from 'next-intl'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
 import { useHorizontalWheelScroll } from '@/app/workspace/[workspaceId]/files/components/file-viewer/use-horizontal-wheel-scroll'
 import { useWorkspaceCsvPreview } from '@/hooks/queries/workspace-file-table'
@@ -20,6 +21,7 @@ export const CsvTablePreview = memo(function CsvTablePreview({
   file: WorkspaceFileRecord
   workspaceId: string
 }) {
+  const t = useTranslations('files.preview')
   const scrollRef = useHorizontalWheelScroll()
   const version = Number(new Date(file.updatedAt)) || file.size
   const {
@@ -30,7 +32,7 @@ export const CsvTablePreview = memo(function CsvTablePreview({
   useCsvTruncationImport(workspaceId, file, data?.truncated ?? false)
 
   const error = resolvePreviewError((fetchError as Error | null) ?? null, null)
-  if (error) return <PreviewError label='CSV' error={error} />
+  if (error) return <PreviewError kind='csv' error={error} />
   if (isLoading || !data) {
     return <PreviewLoadingFrame className='flex flex-1 flex-col overflow-hidden' />
   }
@@ -38,7 +40,7 @@ export const CsvTablePreview = memo(function CsvTablePreview({
   if (data.headers.length === 0) {
     return (
       <div className='flex h-full items-center justify-center p-6'>
-        <p className='text-[var(--text-muted)] text-small'>No data to display</p>
+        <p className='text-[var(--text-muted)] text-small'>{t('noData')}</p>
       </div>
     )
   }

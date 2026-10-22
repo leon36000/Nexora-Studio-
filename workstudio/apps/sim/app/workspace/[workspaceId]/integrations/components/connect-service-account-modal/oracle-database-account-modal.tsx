@@ -1,6 +1,5 @@
 'use client'
 
-import { docsUrl } from '@/lib/branding/docs-url'
 import { type ComponentType, useState } from 'react'
 import {
   ChipModal,
@@ -12,7 +11,9 @@ import {
   ChipTextarea,
   SecretInput,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   resourceScopeFields,
   resourceScopeFromOwner,
@@ -72,6 +73,7 @@ function OracleDatabaseAccountForm({
   initialDescription,
   onCreated,
 }: OracleDatabaseAccountModalProps) {
+  const t = useTranslations('integrations.serviceAccount')
   const [values, setValues] = useState<ConnectionFields>({
     host: '',
     port: '1521',
@@ -90,7 +92,7 @@ function OracleDatabaseAccountForm({
   const createCredential = useCreateScopedCredential()
   const updateCredential = useUpdateScopedCredential()
   const isPending = createCredential.isPending || updateCredential.isPending
-  const action = credentialId ? 'Reconnect' : 'Add'
+  const title = credentialId ? t('oracle.reconnectTitle') : t('oracle.addTitle')
   const identifier = values.connectionType === 'sid' ? values.sid : values.serviceName
   const disabled =
     isPending ||
@@ -150,24 +152,20 @@ function OracleDatabaseAccountForm({
     } catch (error) {
       setError(
         isApiClientError(error) && error.code === 'duplicate_display_name'
-          ? 'A credential with that name already exists. Choose a different display name.'
-          : 'Could not verify the Oracle Database connection. Check the connection details, network access, and database permissions.'
+          ? t('oracle.duplicateDisplayName')
+          : t('oracle.verifyFailed')
       )
     }
   }
   return (
-    <ChipModal
-      open={open}
-      onOpenChange={onOpenChange}
-      srTitle={`${action} Oracle Database connection`}
-    >
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={title}>
       <ChipModalHeader icon={withBrandIcon(ServiceIcon)} onClose={() => onOpenChange(false)}>
-        {action} Oracle Database connection
+        {title}
       </ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='input'
-          title='Host'
+          title={t('oracle.host')}
           value={values.host}
           onChange={(value) => setField('host', value)}
           placeholder='db.example.com'
@@ -176,7 +174,7 @@ function OracleDatabaseAccountForm({
         />
         <ChipModalField
           type='input'
-          title='Port'
+          title={t('oracle.port')}
           value={values.port}
           onChange={(value) => setField('port', value)}
           placeholder='1521'
@@ -185,31 +183,27 @@ function OracleDatabaseAccountForm({
         />
         <ChipModalField
           type='dropdown'
-          title='Protocol'
+          title={t('oracle.protocol')}
           value={values.protocol}
           onChange={(value) => setField('protocol', value)}
           options={[
             { value: 'tcps', label: 'TCPS (TLS)' },
             { value: 'tcp', label: 'TCP' },
           ]}
-          placeholder='Choose a protocol'
+          placeholder={t('oracle.protocolPlaceholder')}
           required
-          hint={
-            values.protocol === 'tcp'
-              ? 'TCP sends database traffic without TLS.'
-              : 'TCPS verifies the server certificate and hostname.'
-          }
+          hint={values.protocol === 'tcp' ? t('oracle.tcpHint') : t('oracle.tcpsHint')}
         />
         <ChipModalField
           type='dropdown'
-          title='Connection identifier'
+          title={t('oracle.connectionIdentifier')}
           value={values.connectionType}
           onChange={(value) => setField('connectionType', value)}
           options={[
-            { value: 'serviceName', label: 'Service name' },
+            { value: 'serviceName', label: t('oracle.serviceName') },
             { value: 'sid', label: 'SID' },
           ]}
-          placeholder='Choose an identifier type'
+          placeholder={t('oracle.identifierPlaceholder')}
           required
         />
         {values.connectionType === 'sid' ? (
@@ -224,7 +218,7 @@ function OracleDatabaseAccountForm({
         ) : (
           <ChipModalField
             type='input'
-            title='Service name'
+            title={t('oracle.serviceName')}
             value={values.serviceName}
             onChange={(value) => setField('serviceName', value)}
             placeholder='FREEPDB1'
@@ -233,20 +227,20 @@ function OracleDatabaseAccountForm({
         )}
         <ChipModalField
           type='input'
-          title='Username'
+          title={t('oracle.username')}
           value={values.username}
           onChange={(value) => setField('username', value)}
           placeholder='app_user'
           required
           autoComplete='off'
         />
-        <ChipModalField type='custom' title='Password' required>
+        <ChipModalField type='custom' title={t('oracle.password')} required>
           {(aria) => (
             <SecretInput
               {...aria}
               value={values.password}
               onChange={(value) => setField('password', value)}
-              placeholder='Enter the database password'
+              placeholder={t('oracle.passwordPlaceholder')}
               autoComplete='new-password'
               data-lpignore='true'
             />
@@ -256,15 +250,15 @@ function OracleDatabaseAccountForm({
           <>
             <ChipModalField
               type='custom'
-              title='PEM wallet'
-              hint='Optional ewallet.pem content for mutual TLS; up to 1 MiB.'
+              title={t('oracle.pemWallet')}
+              hint={t('oracle.pemWalletHint')}
             >
               {(aria) => (
                 <ChipTextarea
                   {...aria}
                   value={values.walletContent}
                   onChange={(event) => setField('walletContent', event.target.value)}
-                  placeholder='Paste ewallet.pem content'
+                  placeholder={t('oracle.pemWalletPlaceholder')}
                   className='min-h-[120px]'
                   spellCheck={false}
                   autoComplete='off'
@@ -276,13 +270,13 @@ function OracleDatabaseAccountForm({
               )}
             </ChipModalField>
             {values.walletContent && (
-              <ChipModalField type='custom' title='Wallet password'>
+              <ChipModalField type='custom' title={t('oracle.walletPassword')}>
                 {(aria) => (
                   <SecretInput
                     {...aria}
                     value={values.walletPassword}
                     onChange={(value) => setField('walletPassword', value)}
-                    placeholder='Password for an encrypted PEM wallet'
+                    placeholder={t('oracle.walletPasswordPlaceholder')}
                     autoComplete='new-password'
                     data-lpignore='true'
                   />
@@ -293,17 +287,17 @@ function OracleDatabaseAccountForm({
         )}
         <ChipModalField
           type='input'
-          title='Display name'
+          title={t('common.displayName')}
           value={displayName}
           onChange={setDisplayName}
-          placeholder='Defaults to the database username'
+          placeholder={t('oracle.displayNamePlaceholder')}
         />
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={t('common.description')}
           value={description}
           onChange={setDescription}
-          placeholder='Optional description'
+          placeholder={t('common.optionalDescription')}
           maxLength={500}
           minHeight={80}
         />
@@ -313,17 +307,17 @@ function OracleDatabaseAccountForm({
         onCancel={() => onOpenChange(false)}
         secondaryActions={[
           {
-            label: 'Setup guide',
+            label: t('common.setupGuide'),
             onClick: () =>
-              window.open(
-                docsUrl('/integrations/oracledb'),
-                '_blank',
-                'noopener,noreferrer'
-              ),
+              window.open(docsUrl('/integrations/oracledb'), '_blank', 'noopener,noreferrer'),
           },
         ]}
         primaryAction={{
-          label: isPending ? 'Verifying...' : `${action} connection`,
+          label: isPending
+            ? t('oracle.verifying')
+            : credentialId
+              ? t('oracle.reconnectConnection')
+              : t('oracle.addConnection'),
           onClick: submit,
           disabled,
         }}

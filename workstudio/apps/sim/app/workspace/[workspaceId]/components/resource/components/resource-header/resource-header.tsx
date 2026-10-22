@@ -38,6 +38,7 @@ import {
   useIsOverflowing,
 } from '@sim/emcn'
 import { ArrowUpLeft } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { createPortal } from 'react-dom'
 import { HEADER_ACTION_CLUSTER, TITLE_BAR_LANE_PT } from '@/components/page-header-bar'
 import { orderHeaderActions, SettingsActionChip } from '@/components/settings/settings-header'
@@ -477,6 +478,7 @@ function BreadcrumbLocationPopover({
   veilBoundaryRef,
   drag,
 }: BreadcrumbLocationPopoverProps) {
+  const t = useTranslations('shell.resourceHeader')
   const [open, setOpen] = useState(false)
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const rootBreadcrumb = breadcrumbs[0]
@@ -535,7 +537,7 @@ function BreadcrumbLocationPopover({
           <Chip
             type='button'
             mobileIconOnly
-            aria-label={rootBreadcrumb?.label ?? 'Path'}
+            aria-label={rootBreadcrumb?.label ?? t('path')}
             aria-expanded={open}
             aria-haspopup='dialog'
             onClick={() => {
@@ -590,7 +592,7 @@ function BreadcrumbLocationPopover({
         >
           <PopoverSection>
             <span className='inline-flex items-center gap-1'>
-              <span>Path</span>
+              <span>{t('path')}</span>
               <span className='opacity-70'>/</span>
             </span>
           </PopoverSection>

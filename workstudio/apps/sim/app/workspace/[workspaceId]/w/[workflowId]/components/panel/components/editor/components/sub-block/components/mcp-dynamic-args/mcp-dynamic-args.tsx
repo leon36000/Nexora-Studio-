@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Combobox, FieldDivider, Label, Slider, Switch } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import { LongInput } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/long-input/long-input'
@@ -82,14 +83,16 @@ interface McpDynamicArgsProps {
  * Creates a minimal SubBlockConfig for MCP tool parameters
  */
 function createParamConfig(
+  t: ReturnType<typeof useTranslations>,
   paramName: string,
   paramSchema: any,
   inputType: 'long-input' | 'short-input'
 ): SubBlockConfig {
   const placeholder =
     jsonSchemaType(paramSchema) === 'array'
-      ? `Enter JSON array, e.g. ["item1", "item2"] or comma-separated values`
-      : paramSchema.description || `Enter ${formatParameterLabel(paramName).toLowerCase()}`
+      ? t('enterJsonArray')
+      : paramSchema.description ||
+        t('enterParam', { name: formatParameterLabel(paramName).toLowerCase() })
 
   return {
     id: paramName,
@@ -107,6 +110,7 @@ export function McpDynamicArgs({
   previewValue,
   previewContextValues,
 }: McpDynamicArgsProps) {
+  const t = useTranslations('editor.subBlock.mcpDynamicArgs')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
   const { mcpTools, isLoading } = useMcpTools(workspaceId)
@@ -297,7 +301,9 @@ export function McpDynamicArgs({
                   updateParameter(paramName, (paramSchema.enum as unknown[])[memberIndex])
                 }
               }}
-              placeholder={`Select ${formatParameterLabel(paramName).toLowerCase()}`}
+              placeholder={t('selectParam', {
+                name: formatParameterLabel(paramName).toLowerCase(),
+              })}
               disabled={disabled}
               editable={false}
               filterOptions={true}
@@ -352,7 +358,7 @@ export function McpDynamicArgs({
       }
 
       case 'long-input': {
-        const config = createParamConfig(paramName, paramSchema, 'long-input')
+        const config = createParamConfig(t, paramName, paramSchema, 'long-input')
         const needsJsonValue = requiresJsonValue(paramSchema)
         const valueSignature = JSON.stringify(value ?? null)
         const draft = invalidJsonDrafts[paramName]
@@ -418,7 +424,7 @@ export function McpDynamicArgs({
           paramName.toLowerCase().includes('token')
         const numericType = jsonSchemaType(paramSchema)
         const isNumeric = numericType === 'number' || numericType === 'integer'
-        const config = createParamConfig(paramName, paramSchema, 'short-input')
+        const config = createParamConfig(t, paramName, paramSchema, 'short-input')
 
         return (
           <ShortInput
@@ -457,15 +463,15 @@ export function McpDynamicArgs({
   if (argumentsMode === 'json') {
     return (
       <div className='flex flex-col gap-[9px]'>
-        <Label>JSON arguments</Label>
+        <Label>{t('jsonArguments')}</Label>
         <LongInput
           blockId={blockId}
           subBlockId={subBlockId}
           config={{
             id: subBlockId,
             type: 'long-input',
-            title: 'JSON arguments',
-            placeholder: 'JSON arguments or an upstream reference',
+            title: t('jsonArguments'),
+            placeholder: t('jsonArgumentsPlaceholder'),
           }}
           disabled={disabled}
           isPreview={isPreview}
@@ -478,7 +484,7 @@ export function McpDynamicArgs({
   if (!selectedTool) {
     return (
       <div className='rounded-lg border p-8 text-center'>
-        <p className='text-muted-foreground text-sm'>Select a tool to configure its parameters</p>
+        <p className='text-muted-foreground text-sm'>{t('selectTool')}</p>
       </div>
     )
   }
@@ -486,23 +492,19 @@ export function McpDynamicArgs({
   if (selectedTool && !cachedSchema && !selectedToolConfig && isLoading) {
     return (
       <div className='rounded-lg border p-8 text-center'>
-        <p className='text-muted-foreground text-sm'>Loading tool schema…</p>
+        <p className='text-muted-foreground text-sm'>{t('loadingSchema')}</p>
       </div>
     )
   }
 
   if (!toolSchema) {
-    return (
-      <p className='text-[var(--text-error)] text-small'>
-        Operation schema unavailable. Refresh or select an available operation.
-      </p>
-    )
+    return <p className='text-[var(--text-error)] text-small'>{t('schemaUnavailable')}</p>
   }
 
   if (!toolSchema?.properties || Object.keys(toolSchema.properties).length === 0) {
     return (
       <div className='rounded-lg border p-8 text-center'>
-        <p className='text-muted-foreground text-sm'>This tool requires no parameters</p>
+        <p className='text-muted-foreground text-sm'>{t('noParameters')}</p>
       </div>
     )
   }

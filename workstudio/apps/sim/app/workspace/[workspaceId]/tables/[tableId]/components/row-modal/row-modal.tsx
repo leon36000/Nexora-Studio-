@@ -18,6 +18,7 @@ import {
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition, TableInfo, TableRow } from '@/lib/table'
 import { getColumnId } from '@/lib/table/column-keys'
 import { columnTypeOf } from '@/lib/table/column-types'
@@ -82,7 +83,12 @@ function cleanRowData(
   rowData: Record<string, unknown>,
   timeZone: string,
   dateEditorsReady: boolean,
-  options: { mode: 'add' | 'edit'; baseline?: Record<string, unknown> }
+  options: {
+    mode: 'add' | 'edit'
+    baseline?: Record<string, unknown>
+    /** Message for a JSON field whose draft does not parse. */
+    invalidJsonMessage: (fieldName: string) => string
+  }
 ): Record<string, unknown> {
   const cleanData: Record<string, unknown> = {}
 
@@ -100,7 +106,7 @@ function cleanRowData(
     try {
       cleaned = cleanCellValue(value, col, timeZone)
     } catch {
-      throw new Error(`Invalid JSON for field: ${col.name}`)
+      throw new Error(options.invalidJsonMessage(col.name))
     }
     if (options.baseline && cellValueUnchanged(cleaned, options.baseline[columnId])) return
     cleanData[columnId] = cleaned
@@ -129,6 +135,8 @@ export function RowModal({
   insertAt,
   onSuccess,
 }: RowModalProps) {
+  const t = useTranslations('tables.rowModal')
+  const tTimezone = useTranslations('tables.timezone')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const tableId = table.id
@@ -161,7 +169,7 @@ export function RowModal({
     deleteRowsMutation.isPending
   const isAddMode = mode === 'add'
 
-  const timezoneBlockedMessage = getTimezoneEditBlockedMessage(timezoneState)
+  const timezoneBlockedMessage = getTimezoneEditBlockedMessage(timezoneState, tTimezone)
   const hasEditableColumn = columns.some(
     (column) => columnTypeOf(column).editor !== 'date' || dateEditorsReady
   )
@@ -183,6 +191,7 @@ export function RowModal({
       const cleanData = cleanRowData(columns, rowData, timeZone, dateEditorsReady, {
         mode: isAddMode ? 'add' : 'edit',
         baseline: isAddMode ? undefined : row?.data,
+        invalidJsonMessage: (name) => t('invalidJson', { name }),
       })
 
       if (isAddMode) {
@@ -198,7 +207,7 @@ export function RowModal({
     } catch (err) {
       const action = isAddMode ? 'add' : 'edit'
       logger.error(`Failed to ${action} row:`, err)
-      setError(getErrorMessage(err, `Failed to ${action} row`))
+      setError(getErrorMessage(err, isAddMode ? t('addFailed') : t('editFailed')))
     }
   }
 
@@ -217,7 +226,7 @@ export function RowModal({
       onSuccess()
     } catch (err) {
       logger.error('Failed to delete row(s):', err)
-      setError(getErrorMessage(err, 'Failed to delete row(s)'))
+      setError(getErrorMessage(err, t('deleteFailed')))
     }
   }
 
@@ -234,21 +243,21 @@ export function RowModal({
       <ChipConfirmModal
         open={isOpen}
         onOpenChange={handleClose}
-        srTitle={`Delete ${isSingleRow ? 'Row' : `${deleteCount} Rows`}`}
-        title={`Delete ${isSingleRow ? 'Row' : `${deleteCount} Rows`}`}
+        srTitle={isSingleRow ? t('delete.titleOne') : t('delete.titleMany', { count: deleteCount })}
+        title={isSingleRow ? t('delete.titleOne') : t('delete.titleMany', { count: deleteCount })}
         text={[
-          `Are you sure you want to delete ${isSingleRow ? 'this row' : `these ${deleteCount} rows`}? `,
+          isSingleRow ? t('delete.questionOne') : t('delete.questionMany', { count: deleteCount }),
           {
-            text: `This will permanently remove all data in ${isSingleRow ? 'this row' : 'these rows'}.`,
+            text: isSingleRow ? t('delete.removeDataOne') : t('delete.removeDataMany'),
             error: true,
           },
-          ' This action cannot be undone.',
+          t('delete.cannotUndo'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('delete.confirm'),
           onClick: handleDelete,
           pending: isSubmitting,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('delete.deleting'),
         }}
       >
         <ChipModalError>{error}</ChipModalError>
@@ -260,13 +269,17 @@ export function RowModal({
     <ChipModal
       open={isOpen}
       onOpenChange={handleClose}
-      srTitle={isAddMode ? 'Add Row' : 'Edit Row'}
+      srTitle={isAddMode ? t('addTitle') : t('editTitle')}
       size='lg'
     >
-      <ChipModalHeader onClose={handleClose}>{isAddMode ? 'Add Row' : 'Edit Row'}</ChipModalHeader>
+      <ChipModalHeader onClose={handleClose}>
+        {isAddMode ? t('addTitle') : t('editTitle')}
+      </ChipModalHeader>
       <ChipModalBody>
         <p className='px-2 text-[var(--text-tertiary)] text-small'>
-          {isAddMode ? 'Fill in values for' : 'Update values for'} {table?.name ?? 'table'}
+          {isAddMode
+            ? t('fillValuesFor', { name: table?.name ?? t('tableFallback') })
+            : t('updateValuesFor', { name: table?.name ?? t('tableFallback') })}
         </p>
         <form onSubmit={handleFormSubmit} className='contents'>
           <button type='submit' hidden disabled={isSubmitting || !canSubmit} />
@@ -302,11 +315,11 @@ export function RowModal({
         primaryAction={{
           label: isAddMode
             ? isSubmitting
-              ? 'Adding...'
-              : 'Add Row'
+              ? t('adding')
+              : t('addTitle')
             : isSubmitting
-              ? 'Updating...'
-              : 'Update Row',
+              ? t('updating')
+              : t('updateRow'),
           onClick: () => handleFormSubmit(),
           disabled: isSubmitting || !canSubmit,
         }}
@@ -323,22 +336,30 @@ interface ColumnFieldProps {
 }
 
 function ColumnTitle({ column }: { column: ColumnDefinition }) {
+  const t = useTranslations('tables.rowModal')
   return (
     <>
       {column.name}
       {column.unique && (
-        <span className='ml-1.5 font-normal text-[var(--text-tertiary)] text-xs'>(unique)</span>
+        <span className='ml-1.5 font-normal text-[var(--text-tertiary)] text-xs'>
+          {t('unique')}
+        </span>
       )}
     </>
   )
 }
 
-function columnFieldHint(column: ColumnDefinition): string {
+function columnFieldHint(
+  column: ColumnDefinition,
+  t: (key: string, values?: Record<string, string | number>) => string
+): string {
   const typeLabel =
     column.type === 'currency'
-      ? `currency (${resolveCurrencyCode(column.currencyCode)})`
+      ? t('currencyType', { code: resolveCurrencyCode(column.currencyCode) })
       : column.type
-  return `Type: ${typeLabel}${column.required ? '' : ' (optional)'}`
+  return column.required
+    ? t('typeHint', { type: typeLabel })
+    : t('typeHintOptional', { type: typeLabel })
 }
 
 interface TimezoneBlockedColumnFieldProps {
@@ -354,20 +375,22 @@ function TimezoneBlockedColumnField({
   status,
   onAttemptEdit,
 }: TimezoneBlockedColumnFieldProps) {
+  const t = useTranslations('tables.rowModal')
+  const tTimezone = useTranslations('tables.timezone')
   const rawValue =
     typeof value === 'string'
       ? value
       : value === null || value === undefined
         ? ''
         : JSON.stringify(value)
-  const displayValue = status === 'loading' ? 'Loading timezone…' : rawValue || 'No value'
+  const displayValue = status === 'loading' ? tTimezone('loading') : rawValue || t('noValue')
 
   return (
     <ChipModalField
       type='custom'
       title={<ColumnTitle column={column} />}
       required={column.required}
-      hint={columnFieldHint(column)}
+      hint={columnFieldHint(column, t)}
     >
       {(aria) => (
         <Chip
@@ -375,7 +398,7 @@ function TimezoneBlockedColumnField({
           variant='border'
           fullWidth
           onClick={onAttemptEdit}
-          aria-label={`Edit ${column.name}`}
+          aria-label={t('editField', { name: column.name })}
         >
           {displayValue}
         </Chip>
@@ -385,9 +408,11 @@ function TimezoneBlockedColumnField({
 }
 
 function ColumnField({ column, value, timeZone, onChange }: ColumnFieldProps) {
+  const t = useTranslations('tables.rowModal')
+  const tTimezone = useTranslations('tables.timezone')
   const checkboxId = useId()
   const title = <ColumnTitle column={column} />
-  const hint = columnFieldHint(column)
+  const hint = columnFieldHint(column, t)
   const definition = columnTypeOf(column)
 
   if (definition.editor === 'toggle') {
@@ -403,7 +428,7 @@ function ColumnField({ column, value, timeZone, onChange }: ColumnFieldProps) {
             htmlFor={checkboxId}
             className='font-normal text-[var(--text-tertiary)] text-small'
           >
-            {value ? 'True' : 'False'}
+            {value ? t('true') : t('false')}
           </Label>
         </div>
       </ChipModalField>
@@ -423,7 +448,7 @@ function ColumnField({ column, value, timeZone, onChange }: ColumnFieldProps) {
         mono
         value={formatValueForInput(value, column.type)}
         onChange={onChange}
-        placeholder='{"key": "value"}'
+        placeholder={t('jsonPlaceholder')}
         rows={4}
       />
     )
@@ -454,12 +479,14 @@ function ColumnField({ column, value, timeZone, onChange }: ColumnFieldProps) {
           }
           today={pickerToday}
           showTime
-          timeLabel={offsetParts ? `Time (${offsetParts.offset})` : undefined}
+          timeLabel={
+            offsetParts ? tTimezone('timeWithOffset', { offset: offsetParts.offset }) : undefined
+          }
           onChange={(picked) => {
             const [day, time] = picked.split('T')
             onChange(valueFromParts(day, time ?? null))
           }}
-          placeholder='Select date'
+          placeholder={t('selectDate')}
           fullWidth
         />
       </ChipModalField>
@@ -488,7 +515,7 @@ function ColumnField({ column, value, timeZone, onChange }: ColumnFieldProps) {
       }
       value={formatValueForInput(value, column.type)}
       onChange={onChange}
-      placeholder={`Enter ${column.name}`}
+      placeholder={t('enterField', { name: column.name })}
     />
   )
 }

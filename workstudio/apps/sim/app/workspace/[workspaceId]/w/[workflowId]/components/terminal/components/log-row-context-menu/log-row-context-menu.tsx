@@ -2,6 +2,7 @@
 
 import { memo, type RefObject } from 'react'
 import { Popover, PopoverAnchor, PopoverContent, PopoverDivider, PopoverItem } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import type {
   ContextMenuPosition,
@@ -40,6 +41,7 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
   onClearConsole,
   onFixInCopilot,
 }: LogRowContextMenuProps) {
+  const t = useTranslations('editor.runPanels.terminal.logRowMenu')
   const { chatEnabled } = useDeploymentShape()
   const hasRunId = entry?.executionId != null
 
@@ -68,7 +70,7 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
                 onClose()
               }}
             >
-              Copy Run ID
+              {t('copyRunId')}
             </PopoverItem>
             <PopoverDivider />
           </>
@@ -83,7 +85,7 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
                 onClose()
               }}
             >
-              Fix in Chat
+              {t('fixInChat')}
             </PopoverItem>
             <PopoverDivider />
           </>
@@ -99,7 +101,7 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
                 onClose()
               }}
             >
-              Filter by Block
+              {t('filterByBlock')}
             </PopoverItem>
             <PopoverItem
               showCheck={isStatusFiltered}
@@ -108,7 +110,7 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
                 onClose()
               }}
             >
-              Filter by Status
+              {t('filterByStatus')}
             </PopoverItem>
           </>
         )}
@@ -121,7 +123,7 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
             onClose()
           }}
         >
-          Clear Console
+          {t('clearConsole')}
         </PopoverItem>
       </PopoverContent>
     </Popover>

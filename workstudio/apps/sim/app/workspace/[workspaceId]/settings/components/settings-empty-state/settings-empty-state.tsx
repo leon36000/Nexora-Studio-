@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Chip, cn } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 
 interface SettingsEmptyStateProps {
   children: ReactNode
@@ -45,12 +46,13 @@ export function SettingsQueryErrorState({
   onRetry,
   variant,
 }: SettingsQueryErrorStateProps) {
+  const t = useTranslations('settings.emptyState')
   return (
     <SettingsEmptyState variant={variant}>
       <div className='flex flex-col items-center gap-2'>
         <span role='alert'>{getErrorMessage(error, fallback)}</span>
         <Chip variant='border' disabled={isRetrying} onClick={onRetry}>
-          {isRetrying ? 'Retrying…' : 'Try again'}
+          {isRetrying ? t('retrying') : t('tryAgain')}
         </Chip>
       </div>
     </SettingsEmptyState>

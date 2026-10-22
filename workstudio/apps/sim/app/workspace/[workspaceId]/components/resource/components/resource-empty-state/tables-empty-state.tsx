@@ -1,5 +1,6 @@
 import { Chip, cn } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { EmptyState, type EmptyStateProps } from '@/components/empty-state/empty-state'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { EmptyStateDocsLink } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/docs-link'
@@ -117,15 +118,13 @@ type TablesEmptyStateProps = CreateTableEmptyStateProps | Omit<EmptyStateProps, 
 
 /** Shared table illustration and actions for empty or unavailable tables. */
 export function TablesEmptyState(props: TablesEmptyStateProps) {
+  const t = useTranslations('shell.emptyStates.tables')
   const content = 'title' in props ? props : undefined
   return (
     <EmptyState
       graphic={<TablesGraphic />}
-      title={content?.title ?? 'Tables'}
-      description={
-        content?.description ??
-        'Create a table to store structured data your agents can read and write.'
-      }
+      title={content?.title ?? t('title')}
+      description={content?.description ?? t('description')}
       action={
         <>
           {'onCreate' in props ? (
@@ -135,7 +134,7 @@ export function TablesEmptyState(props: TablesEmptyStateProps) {
               disabled={props.createDisabled}
               leftIcon={Plus}
             >
-              New table
+              {t('action')}
             </Chip>
           ) : (
             content?.action

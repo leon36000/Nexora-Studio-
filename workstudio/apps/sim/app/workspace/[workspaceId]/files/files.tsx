@@ -23,6 +23,7 @@ import { Check, Download, Link, Send } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage, toError } from '@sim/utils/errors'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { usePostHog } from 'posthog-js/react'
 import { getDocumentIcon } from '@/components/icons/document-icons'
@@ -101,7 +102,6 @@ import {
   EMPTY_CELL_PLACEHOLDER,
   Resource,
 } from '@/app/workspace/[workspaceId]/components/resource/resource'
-import { selectionLabel } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 import { useResourceRowSelection } from '@/app/workspace/[workspaceId]/components/resource/use-resource-row-selection'
 import { DeleteConfirmModal } from '@/app/workspace/[workspaceId]/files/components/delete-confirm-modal'
 import { FileRowContextMenu } from '@/app/workspace/[workspaceId]/files/components/file-row-context-menu'
@@ -164,6 +164,7 @@ import { useUrlSort } from '@/hooks/use-url-sort'
 import type { ResourceListPreference } from '@/stores/resource-list-preferences'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+type SaveRetry = () => Promise<void> // i18n-ignore: type signature
 type FileResourceItem =
   | { kind: 'file'; id: string; file: WorkspaceFileRecord }
   | { kind: 'folder'; id: string; folder: WorkspaceFileFolderApi }
@@ -185,31 +186,24 @@ const FILES_HEADER = FOLDERED_RESOURCE_HEADERS.file
 
 const FOLDER_ICON = <Folder className='size-[14px]' />
 
-/** Folders' value in the `type` column — also their sort key when that column is active. */
-const FOLDER_TYPE_LABEL = 'Folder' as const
-
 /**
  * Debounce window for `search` URL writes and filtering; the input itself stays
  * instant. Intentionally shorter than the shared `SEARCH_DEBOUNCE_MS` (300).
  */
 const FILES_SEARCH_DEBOUNCE_MS = 200 as const
 
-const COLUMNS: ResourceColumn[] = [
-  { id: 'name', header: 'Name', widthMultiplier: 1.15 },
-  { id: 'size', header: 'Size', widthMultiplier: 0.85 },
-  { id: 'type', header: 'Type', widthMultiplier: 1.0 },
-  { id: 'created', header: 'Created' },
-  { id: 'owner', header: 'Owner' },
-  { id: 'updated', header: 'Last Updated' },
-]
+/** Translated generic labels the `type` column falls back to when no format name applies. */
+interface FileTypeLabels {
+  folder: string
+  file: string
+  text: string
+  page: string
+  audio: string
+  video: string
+  image: string
+}
 
-/**
- * Deliberately absent from {@link filesSortParams}, so the location column is not offered in
- * the sort menu — those columns are a URL contract, and ordering by path is not worth
- * persisting in a shared link before anyone asks for it.
- */
-const SEARCH_COLUMNS: ResourceColumn[] = [...COLUMNS, FOLDER_LOCATION_COLUMN]
-
+/** Format names shown as-is in every language. */
 const MIME_TYPE_LABELS: Record<string, string> = {
   'application/pdf': 'PDF',
   'application/zip': 'ZIP',
@@ -222,10 +216,13 @@ const MIME_TYPE_LABELS: Record<string, string> = {
   'application/json': 'JSON',
   'application/x-yaml': 'YAML',
   'text/csv': 'CSV',
-  'text/plain': 'Text',
   'text/html': 'HTML',
-  'text/x-sim-page': 'Page',
   'text/markdown': 'Markdown',
+}
+
+const TRANSLATED_MIME_TYPE_LABELS: Record<string, 'text' | 'page'> = {
+  'text/plain': 'text',
+  'text/x-sim-page': 'page',
 }
 
 const EMPTY_WORKSPACE_FILES: WorkspaceFileRecord[] = []
@@ -235,33 +232,40 @@ const EMPTY_FIND_MATCH_IDS: readonly string[] = Object.freeze([])
 const hasExternalFiles = (dataTransfer: DataTransfer): boolean =>
   dataTransfer.types.includes('Files')
 
-function formatFileType(storedType: string | null, filename: string): string {
+function formatFileType(
+  storedType: string | null,
+  filename: string,
+  labels: FileTypeLabels
+): string {
   const mimeType = resolveEffectiveMimeType(storedType, filename)
 
   if (MIME_TYPE_LABELS[mimeType]) {
     return MIME_TYPE_LABELS[mimeType]
   }
+  const translated = TRANSLATED_MIME_TYPE_LABELS[mimeType]
+  if (translated) return labels[translated]
 
-  if (mimeType.startsWith('audio/')) return 'Audio'
-  if (mimeType.startsWith('video/')) return 'Video'
-  if (mimeType.startsWith('image/')) return 'Image'
+  if (mimeType.startsWith('audio/')) return labels.audio
+  if (mimeType.startsWith('video/')) return labels.video
+  if (mimeType.startsWith('image/')) return labels.image
 
   const ext = getFileExtension(filename)
   if (ext) return ext.toUpperCase()
 
-  return storedType ?? 'File'
+  return storedType ?? labels.file
 }
 
-function getDroppedFiles(dataTransfer: DataTransfer): File[] {
+function getDroppedFiles(
+  dataTransfer: DataTransfer,
+  onDirectoryRejected: (name: string) => void
+): File[] {
   if (dataTransfer.items.length === 0) return Array.from(dataTransfer.files)
   const files: File[] = []
   for (const item of Array.from(dataTransfer.items)) {
     if (item.kind !== 'file') continue
     const entry = item.webkitGetAsEntry?.()
     if (entry?.isDirectory) {
-      toast.error(`Cannot upload the folder "${entry.name}"`, {
-        description: 'Create a folder in Files, then upload the files inside it.',
-      })
+      onDirectoryRejected(entry.name)
       continue
     }
     const file = item.getAsFile()
@@ -279,9 +283,10 @@ export function Files() {
 }
 
 function FilesContent() {
+  const t = useTranslations('files.list')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const uploadQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const saveRef = useRef<(() => Promise<void>) | null>(null)
+  const uploadQueueRef = useRef<Promise<void>>(Promise.resolve()) // i18n-ignore: type signature
+  const saveRef = useRef<(() => Promise<void>) | null>(null) // i18n-ignore: type signature
   const downloadSourceRef = useRef<FileDownloadSource | null>(null)
   const discardRef = useRef<(() => void) | null>(null)
 
@@ -380,6 +385,47 @@ function FilesContent() {
   }, [files])
   const fileByIdRef = useRef(fileById)
   fileByIdRef.current = fileById
+
+  const fileTypeLabels = useMemo<FileTypeLabels>(
+    () => ({
+      folder: t('types.folder'),
+      file: t('types.file'),
+      text: t('types.text'),
+      page: t('types.page'),
+      audio: t('types.audio'),
+      video: t('types.video'),
+      image: t('types.image'),
+    }),
+    [t]
+  )
+  const columns = useMemo<ResourceColumn[]>(
+    () => [
+      { id: 'name', header: t('columns.name'), widthMultiplier: 1.15 },
+      { id: 'size', header: t('columns.size'), widthMultiplier: 0.85 },
+      { id: 'type', header: t('columns.type'), widthMultiplier: 1.0 },
+      { id: 'created', header: t('columns.created') },
+      { id: 'owner', header: t('columns.owner') },
+      { id: 'updated', header: t('columns.updated') },
+    ],
+    [t]
+  )
+  /**
+   * Deliberately absent from {@link filesSortParams}, so the location column is not offered in
+   * the sort menu — those columns are a URL contract, and ordering by path is not worth
+   * persisting in a shared link before anyone asks for it.
+   */
+  const searchColumns = useMemo<ResourceColumn[]>(
+    () => [...columns, FOLDER_LOCATION_COLUMN],
+    [columns]
+  )
+  const rejectDroppedDirectory = useCallback(
+    (name: string) => {
+      toast.error(t('toasts.folderUploadBlocked', { name }), {
+        description: t('toasts.folderUploadBlockedDescription'),
+      })
+    },
+    [t]
+  )
 
   const [uploadProgress, setUploadProgress] = useState({
     completed: 0,
@@ -681,7 +727,7 @@ function FilesContent() {
     if (sizeFilter.length > 0) {
       result = result.filter((f) => {
         if (sizeFilter.includes('small') && f.size < 1_048_576) return true
-        if (sizeFilter.includes('medium') && f.size >= 1_048_576 && f.size <= 10_485_760)
+        if (sizeFilter.includes('medium') && f.size <= 10_485_760 && f.size >= 1_048_576)
           return true
         if (sizeFilter.includes('large') && f.size > 10_485_760) return true
         return false
@@ -716,7 +762,7 @@ function FilesContent() {
           sortColumn === 'size'
             ? (folderSizeMap.get(folder.id) ?? 0)
             : sortColumn === 'type'
-              ? FOLDER_TYPE_LABEL
+              ? fileTypeLabels.folder
               : sortColumn === 'created'
                 ? new Date(folder.createdAt).getTime()
                 : sortColumn === 'updated'
@@ -736,7 +782,7 @@ function FilesContent() {
           sortColumn === 'size'
             ? file.size
             : sortColumn === 'type'
-              ? formatFileType(file.type, file.name)
+              ? formatFileType(file.type, file.name, fileTypeLabels)
               : sortColumn === 'created'
                 ? new Date(file.uploadedAt).getTime()
                 : sortColumn === 'updated'
@@ -757,6 +803,7 @@ function FilesContent() {
     folderSizeMap,
     pinnedFolderIds,
     pinnedFileIds,
+    fileTypeLabels,
   ])
 
   const baseRows: ResourceRow[] = useMemo(
@@ -781,7 +828,7 @@ function FilesContent() {
               },
               type: {
                 icon: FOLDER_ICON,
-                label: FOLDER_TYPE_LABEL,
+                label: fileTypeLabels.folder,
               },
               created: timeCell(folder.createdAt),
               owner: ownerCell(folder.userId, membersById),
@@ -815,7 +862,7 @@ function FilesContent() {
             },
             type: {
               icon: <Icon className='size-[14px]' />,
-              label: formatFileType(file.type, file.name),
+              label: formatFileType(file.type, file.name, fileTypeLabels),
             },
             created: timeCell(file.uploadedAt),
             owner: ownerCell(file.uploadedBy, membersById),
@@ -826,7 +873,7 @@ function FilesContent() {
           },
         }
       }),
-    [sortedEntries, membersById, folderSizeMap, folderById, isSearching]
+    [sortedEntries, membersById, folderSizeMap, folderById, isSearching, fileTypeLabels]
   )
 
   const rows: ResourceRow[] = useMemo(() => {
@@ -968,8 +1015,8 @@ function FilesContent() {
       if (oversized.length > 0) {
         toast.error(
           oversized.length === 1
-            ? `${oversized[0]} exceeds the 5 GiB upload limit`
-            : `${oversized.length} files exceed the 5 GiB upload limit`
+            ? t('toasts.fileTooLarge', { name: oversized[0] })
+            : t('toasts.filesTooLarge', { count: oversized.length })
         )
       }
 
@@ -994,7 +1041,9 @@ function FilesContent() {
             if (/storage limit/i.test(message)) {
               notifyLimit('storage', message)
             } else {
-              toast.error(`Failed to upload "${allowedFiles[i].name}"`, { description: message })
+              toast.error(t('toasts.uploadFileFailed', { name: allowedFiles[i].name }), {
+                description: message,
+              })
             }
           } finally {
             setUploadProgress({
@@ -1010,7 +1059,7 @@ function FilesContent() {
     }
     uploadQueueRef.current = uploadQueueRef.current.then(uploadBatch).catch((error) => {
       logger.error('Error uploading files:', error)
-      toast.error(getErrorMessage(error, 'Failed to upload files'))
+      toast.error(getErrorMessage(error, t('toasts.uploadFailed')))
     })
     return uploadQueueRef.current
   }
@@ -1025,8 +1074,8 @@ function FilesContent() {
     getRowLabel: (rowId) => {
       const parsed = parseFolderedRowId(rowId)
       return parsed.kind === 'folder'
-        ? (folderByIdRef.current.get(parsed.id)?.name ?? 'Folder')
-        : (fileByIdRef.current.get(parsed.id)?.name ?? 'File')
+        ? (folderByIdRef.current.get(parsed.id)?.name ?? fileTypeLabels.folder)
+        : (fileByIdRef.current.get(parsed.id)?.name ?? fileTypeLabels.file)
     },
     onMoveRows: ({ folderIds, resourceIds }, targetFolderId) => {
       void moveItems
@@ -1059,7 +1108,7 @@ function FilesContent() {
       matches: hasExternalFiles,
       onDropIntoFolder: (dataTransfer, targetFolderId) => {
         dismissUploadOverlay()
-        const dropped = getDroppedFiles(dataTransfer)
+        const dropped = getDroppedFiles(dataTransfer, rejectDroppedDirectory)
         if (dropped.length > 0) void uploadFiles(dropped, targetFolderId)
       },
     },
@@ -1101,7 +1150,7 @@ function FilesContent() {
      */
     rowDragDropConfig.externalDropHandled()
     dismissUploadOverlay()
-    const dropped = getDroppedFiles(e.dataTransfer)
+    const dropped = getDroppedFiles(e.dataTransfer, rejectDroppedDirectory)
     if (dropped.length > 0) await uploadFiles(dropped)
   }
 
@@ -1116,10 +1165,10 @@ function FilesContent() {
         })
       } catch (err) {
         logger.error('Failed to download file:', err)
-        toast.error(getErrorMessage(err, `Failed to download "${file.name}"`))
+        toast.error(getErrorMessage(err, t('toasts.downloadFileFailed', { name: file.name })))
       }
     },
-    [workspaceId]
+    [workspaceId, t]
   )
 
   const deleteTargetRef = useRef(deleteTarget)
@@ -1172,14 +1221,20 @@ function FilesContent() {
     await saveRef.current()
   }, [])
 
-  const handleSaveStatusChange = useCallback((status: SaveStatus, retry?: () => Promise<void>) => {
-    setSaveStatus(status)
-    if (status === 'error') {
-      toast.error(`Failed to save "${selectedFileRef.current?.name ?? 'file'}"`, {
-        action: { label: 'Retry', onClick: () => void retry?.() },
-      })
-    }
-  }, [])
+  const handleSaveStatusChange = useCallback(
+    (status: SaveStatus, retry?: SaveRetry) => {
+      setSaveStatus(status)
+      if (status === 'error') {
+        toast.error(
+          t('toasts.saveFailed', {
+            name: selectedFileRef.current?.name ?? t('toasts.saveFailedFallbackName'),
+          }),
+          { action: { label: t('toasts.retry'), onClick: () => void retry?.() } }
+        )
+      }
+    },
+    [t]
+  )
 
   const handleNavigateFromFileDetail = useCallback(
     (url: string) => {
@@ -1220,17 +1275,17 @@ function FilesContent() {
 
   const handleBulkDelete = useCallback(() => {
     if (selectedFileIds.length === 0 && selectedFolderIds.length === 0) return
+    const count = selectedFileIds.length + selectedFolderIds.length
+    const firstName =
+      files.find((file) => file.id === selectedFileIds[0])?.name ??
+      folders.find((folder) => folder.id === selectedFolderIds[0])?.name
     setDeleteTarget({
       fileIds: selectedFileIds,
       folderIds: selectedFolderIds,
-      name: selectionLabel(
-        selectedFileIds.length + selectedFolderIds.length,
-        files.find((file) => file.id === selectedFileIds[0])?.name ??
-          folders.find((folder) => folder.id === selectedFolderIds[0])?.name
-      ),
+      name: count === 1 ? (firstName ?? t('selectedItem')) : t('selectedItems', { count }),
     })
     setShowDeleteConfirm(true)
-  }, [selectedFileIds, selectedFolderIds, files, folders])
+  }, [selectedFileIds, selectedFolderIds, files, folders, t])
 
   const [isDownloadingArchive, setIsDownloadingArchive] = useState(false)
   // Ref as well as state: two clicks in the same tick would both pass a state check,
@@ -1246,13 +1301,13 @@ function FilesContent() {
         await triggerArchiveDownload({ workspaceId, ...selection })
       } catch (err) {
         logger.error('Failed to download selection:', err)
-        toast.error(getErrorMessage(err, 'Failed to download the selected files'))
+        toast.error(getErrorMessage(err, t('toasts.downloadSelectionFailed')))
       } finally {
         archiveDownloadInFlightRef.current = false
         setIsDownloadingArchive(false)
       }
     },
-    [workspaceId]
+    [workspaceId, t]
   )
 
   const handleBulkDownload = useCallback(async () => {
@@ -1293,12 +1348,12 @@ function FilesContent() {
               }
             : undefined,
           dropdownItems: [
-            { label: 'Download', icon: Download, onClick: handleDownloadSelected },
+            { label: t('actions.download'), icon: Download, onClick: handleDownloadSelected },
             ...(canEdit
               ? [
-                  { label: 'Rename', icon: Pencil, onClick: handleStartHeaderRename },
-                  { label: 'Share', icon: Send, onClick: handleShareSelected },
-                  { label: 'Delete', icon: Trash, onClick: handleDeleteSelected },
+                  { label: t('actions.rename'), icon: Pencil, onClick: handleStartHeaderRename },
+                  { label: t('actions.share'), icon: Send, onClick: handleShareSelected },
+                  { label: t('actions.delete'), icon: Trash, onClick: handleDeleteSelected },
                 ]
               : []),
           ],
@@ -1317,6 +1372,7 @@ function FilesContent() {
     handleDownloadSelected,
     handleShareSelected,
     handleDeleteSelected,
+    t,
   ])
 
   const handleDiscardChanges = () => {
@@ -1373,10 +1429,10 @@ function FilesContent() {
         .filter((folder) => (folder.parentId ?? null) === currentFolderId)
         .map((folder) => folder.name)
     )
-    let name = 'New folder'
+    let name = t('newFolderName')
     let counter = 1
     while (existingNames.has(name)) {
-      name = `New folder (${counter})`
+      name = t('newFolderNameNumbered', { counter })
       counter++
     }
 
@@ -1398,7 +1454,7 @@ function FilesContent() {
       logger.error('Failed to create folder:', error)
       toast.error(toError(error).message)
     }
-  }, [workspaceId, folders, currentFolderId, listRename.startRename, setSearchTerm])
+  }, [workspaceId, folders, currentFolderId, listRename.startRename, setSearchTerm, t])
 
   const handleRowContextMenu = useCallback(
     (e: React.MouseEvent, rowId: string) => {
@@ -1461,12 +1517,12 @@ function FilesContent() {
       void copyFileLink(
         `${window.location.origin}/workspace/${workspaceId}/files/${item.file.id}`
       ).then((copied) => {
-        if (copied) toast.success('Copied link to clipboard')
-        else toast.error('Failed to copy link')
+        if (copied) toast.success(t('toasts.linkCopied'))
+        else toast.error(t('toasts.linkCopyFailed'))
       })
     }
     closeContextMenu()
-  }, [closeContextMenu, copyFileLink, workspaceId])
+  }, [closeContextMenu, copyFileLink, workspaceId, t])
 
   const handleContextMenuRename = useCallback(() => {
     const item = contextMenuItemRef.current
@@ -1674,7 +1730,11 @@ function FilesContent() {
     const hasSplitView = canEditText && canPreview && !isInlineMarkdown && !isSimPage
     const showPreviewToggle = canPreview && !isInlineMarkdown && !isSimPage
     const nextModeLabel =
-      previewMode === 'editor' ? 'Split' : previewMode === 'split' ? 'Preview' : 'Edit'
+      previewMode === 'editor'
+        ? t('actions.split')
+        : previewMode === 'split'
+          ? t('actions.preview')
+          : t('actions.edit')
     const nextModeIcon =
       previewMode === 'editor' ? Columns2 : previewMode === 'split' ? Eye : Pencil
 
@@ -1690,7 +1750,7 @@ function FilesContent() {
         : showPreviewToggle
           ? [
               {
-                text: previewMode === 'preview' ? 'Edit' : 'Preview',
+                text: previewMode === 'preview' ? t('actions.edit') : t('actions.preview'),
                 icon: previewMode === 'preview' ? Pencil : Eye,
                 onSelect: handleTogglePreview,
               },
@@ -1698,7 +1758,7 @@ function FilesContent() {
           : []),
       {
         id: 'copy-link',
-        text: copiedFileLink ? 'Copied!' : 'Copy Link',
+        text: copiedFileLink ? t('actions.copied') : t('actions.copyLink'),
         icon: copiedFileLink ? Check : Link,
         onSelect: () =>
           void copyFileLink(
@@ -1706,20 +1766,20 @@ function FilesContent() {
           ),
       },
       {
-        text: 'Download',
+        text: t('actions.download'),
         icon: Download,
         onSelect: handleDownloadSelected,
       },
       ...(canEdit
         ? [
             {
-              text: 'Share',
+              text: t('actions.share'),
               icon: Send,
               onSelect: handleShareSelected,
             },
             {
               id: 'delete',
-              text: 'Delete',
+              text: t('actions.delete'),
               icon: Trash,
               onSelect: handleDeleteSelected,
             },
@@ -1738,6 +1798,7 @@ function FilesContent() {
     workspaceId,
     handleShareSelected,
     handleDeleteSelected,
+    t,
   ])
 
   const listRenameRef = useRef(listRename)
@@ -1809,16 +1870,16 @@ function FilesContent() {
       value: urlSearchTerm,
       onChange: setSearchTerm,
       onClearAll: () => setSearchTerm(''),
-      placeholder: 'Search files...',
+      placeholder: t('searchPlaceholder'),
     }),
-    [urlSearchTerm, setSearchTerm]
+    [urlSearchTerm, setSearchTerm, t]
   )
 
   const uploadButtonLabel = uploading
-    ? uploadProgress.currentPercent > 0 && uploadProgress.currentPercent < 100
+    ? uploadProgress.currentPercent > 0 && uploadProgress.currentPercent < 100 // i18n-ignore: comparison
       ? `${uploadProgress.completed}/${uploadProgress.total} · ${uploadProgress.currentPercent}%`
       : `${uploadProgress.completed}/${uploadProgress.total}`
-    : 'Upload'
+    : t('actions.upload')
 
   const headerActionsConfig = useMemo<ResourceAction[]>(
     () => [
@@ -1829,13 +1890,13 @@ function FilesContent() {
         disabled: uploading || !canEdit,
       },
       {
-        text: 'New folder',
+        text: t('actions.newFolder'),
         icon: FolderPlus,
         onSelect: handleCreateFolder,
         disabled: createFolder.isPending || !canEdit,
       },
       {
-        text: 'New file',
+        text: t('actions.newFile'),
         icon: Plus,
         onSelect: handleCreateFile,
         disabled: uploading || creatingFile || !canEdit,
@@ -1851,6 +1912,7 @@ function FilesContent() {
       canEdit,
       uploading,
       creatingFile,
+      t,
     ]
   )
 
@@ -1903,7 +1965,7 @@ function FilesContent() {
           openListFolder && (canEdit || userPermissions.isLoading)
             ? [
                 {
-                  label: 'Rename',
+                  label: t('actions.rename'),
                   icon: Pencil,
                   disabled: !canEdit,
                   onClick: () =>
@@ -1924,6 +1986,7 @@ function FilesContent() {
       breadcrumbRename.submitRename,
       breadcrumbRename.cancelRename,
       breadcrumbRename.startRename,
+      t,
     ]
   )
 
@@ -1941,73 +2004,82 @@ function FilesContent() {
     () =>
       buildMoveOptionsExcludingSubtrees({
         folders,
-        rootLabel: 'Files',
+        rootLabel: t('title'),
         excludeFolderIds: selectedFolderIds,
         descendantsByFolderId: descendantFolderIdsByFolderId,
       }),
-    [folders, selectedFolderIds, descendantFolderIdsByFolderId]
+    [folders, selectedFolderIds, descendantFolderIdsByFolderId, t]
   )
 
   const sortConfig: SortConfig = useMemo(
     () => ({
       options: [
-        { id: 'name', label: 'Name' },
-        { id: 'size', label: 'Size' },
-        { id: 'type', label: 'Type' },
-        { id: 'created', label: 'Created' },
-        { id: 'updated', label: 'Last Updated' },
-        { id: 'owner', label: 'Owner' },
+        { id: 'name', label: t('columns.name') },
+        { id: 'size', label: t('columns.size') },
+        { id: 'type', label: t('columns.type') },
+        { id: 'created', label: t('columns.created') },
+        { id: 'updated', label: t('columns.updated') },
+        { id: 'owner', label: t('columns.owner') },
       ],
       active: activeSort,
       onSort: setListSort,
       onClear: clearListSort,
     }),
-    [activeSort, setListSort, clearListSort]
+    [activeSort, setListSort, clearListSort, t]
   )
 
   const hasActiveFilters =
     typeFilter.length > 0 || sizeFilter.length > 0 || uploadedByFilter.length > 0
 
+  const typeFilterLabels = useMemo<Record<string, string>>(
+    () => ({
+      document: t('filters.documents'),
+      image: t('filters.images'),
+      audio: t('filters.audio'),
+      video: t('filters.video'),
+    }),
+    [t]
+  )
+  const sizeFilterLabels = useMemo<Record<string, string>>(
+    () => ({
+      small: t('filters.small'),
+      medium: t('filters.medium'),
+      large: t('filters.large'),
+    }),
+    [t]
+  )
+
   const filterContent = useMemo(() => {
     const typeDisplayLabel =
       typeFilter.length === 0
-        ? 'All'
+        ? t('filters.all')
         : typeFilter.length === 1
-          ? ((
-              {
-                document: 'Documents',
-                image: 'Images',
-                audio: 'Audio',
-                video: 'Video',
-              } as Record<string, string>
-            )[typeFilter[0]] ?? typeFilter[0])
-          : `${typeFilter.length} selected`
+          ? (typeFilterLabels[typeFilter[0]] ?? typeFilter[0])
+          : t('filters.selected', { count: typeFilter.length })
 
     const sizeDisplayLabel =
       sizeFilter.length === 0
-        ? 'All'
+        ? t('filters.all')
         : sizeFilter.length === 1
-          ? (({ small: 'Small', medium: 'Medium', large: 'Large' } as Record<string, string>)[
-              sizeFilter[0]
-            ] ?? sizeFilter[0])
-          : `${sizeFilter.length} selected`
+          ? (sizeFilterLabels[sizeFilter[0]] ?? sizeFilter[0])
+          : t('filters.selected', { count: sizeFilter.length })
 
     const uploadedByDisplayLabel =
       uploadedByFilter.length === 0
-        ? 'All'
+        ? t('filters.all')
         : uploadedByFilter.length === 1
-          ? (membersById.get(uploadedByFilter[0])?.name ?? '1 member')
-          : `${uploadedByFilter.length} members`
+          ? (membersById.get(uploadedByFilter[0])?.name ?? t('filters.oneMember'))
+          : t('filters.members', { count: uploadedByFilter.length })
 
     return (
       <ResourceFilterPanel>
-        <ResourceFilterSection label='File Type'>
+        <ResourceFilterSection label={t('filters.fileType')}>
           <ChipCombobox
             options={[
-              { value: 'document', label: 'Documents' },
-              { value: 'image', label: 'Images' },
-              { value: 'audio', label: 'Audio' },
-              { value: 'video', label: 'Video' },
+              { value: 'document', label: typeFilterLabels.document },
+              { value: 'image', label: typeFilterLabels.image },
+              { value: 'audio', label: typeFilterLabels.audio },
+              { value: 'video', label: typeFilterLabels.video },
             ]}
             multiSelect
             multiSelectValues={typeFilter}
@@ -2015,16 +2087,16 @@ function FilesContent() {
             overlayLabel={typeDisplayLabel}
             overlayContent={typeDisplayLabel}
             showAllOption
-            allOptionLabel='All'
+            allOptionLabel={t('filters.all')}
             className='w-full'
           />
         </ResourceFilterSection>
-        <ResourceFilterSection label='Size'>
+        <ResourceFilterSection label={t('filters.size')}>
           <ChipCombobox
             options={[
-              { value: 'small', label: 'Small (< 1 MB)' },
-              { value: 'medium', label: 'Medium (1–10 MB)' },
-              { value: 'large', label: 'Large (> 10 MB)' },
+              { value: 'small', label: t('filters.smallRange') },
+              { value: 'medium', label: t('filters.mediumRange') },
+              { value: 'large', label: t('filters.largeRange') },
             ]}
             multiSelect
             multiSelectValues={sizeFilter}
@@ -2032,12 +2104,12 @@ function FilesContent() {
             overlayLabel={sizeDisplayLabel}
             overlayContent={sizeDisplayLabel}
             showAllOption
-            allOptionLabel='All'
+            allOptionLabel={t('filters.all')}
             className='w-full'
           />
         </ResourceFilterSection>
         {memberOptions.length > 0 && (
-          <ResourceFilterSection label='Uploaded By'>
+          <ResourceFilterSection label={t('filters.uploadedBy')}>
             <ChipCombobox
               options={memberOptions}
               multiSelect
@@ -2046,9 +2118,9 @@ function FilesContent() {
               overlayLabel={uploadedByDisplayLabel}
               overlayContent={uploadedByDisplayLabel}
               searchable
-              searchPlaceholder='Search members...'
+              searchPlaceholder={t('filters.searchMembers')}
               showAllOption
-              allOptionLabel='All'
+              allOptionLabel={t('filters.all')}
               className='w-full'
             />
           </ResourceFilterSection>
@@ -2059,7 +2131,7 @@ function FilesContent() {
             onClick={clearFileFilters}
             className='h-[32px] w-full text-caption hover-hover:bg-[var(--surface-active)]'
           >
-            Clear all filters
+            {t('filters.clearAll')}
           </Button>
         )}
       </ResourceFilterPanel>
@@ -2075,6 +2147,9 @@ function FilesContent() {
     setSizeFilter,
     setUploadedByFilter,
     clearFileFilters,
+    typeFilterLabels,
+    sizeFilterLabels,
+    t,
   ])
 
   /** Stable identity so the memoized `Resource.Options` can bail; an inline object cannot. */
@@ -2083,35 +2158,30 @@ function FilesContent() {
   const filterTags: FilterTag[] = useMemo(() => {
     const tags: FilterTag[] = []
     if (typeFilter.length > 0) {
-      const typeLabels: Record<string, string> = {
-        document: 'Documents',
-        image: 'Images',
-        audio: 'Audio',
-        video: 'Video',
-      }
-      const label =
-        typeFilter.length === 1
-          ? `Type: ${typeLabels[typeFilter[0]]}`
-          : `Type: ${typeFilter.length} selected`
+      const label = t('filters.tagType', {
+        value:
+          typeFilter.length === 1
+            ? typeFilterLabels[typeFilter[0]]
+            : t('filters.selected', { count: typeFilter.length }),
+      })
       tags.push({ label, onRemove: () => setTypeFilter([]) })
     }
     if (sizeFilter.length > 0) {
-      const sizeLabels: Record<string, string> = {
-        small: 'Small',
-        medium: 'Medium',
-        large: 'Large',
-      }
-      const label =
-        sizeFilter.length === 1
-          ? `Size: ${sizeLabels[sizeFilter[0]]}`
-          : `Size: ${sizeFilter.length} selected`
+      const label = t('filters.tagSize', {
+        value:
+          sizeFilter.length === 1
+            ? sizeFilterLabels[sizeFilter[0]]
+            : t('filters.selected', { count: sizeFilter.length }),
+      })
       tags.push({ label, onRemove: () => setSizeFilter([]) })
     }
     if (uploadedByFilter.length > 0) {
-      const label =
-        uploadedByFilter.length === 1
-          ? `Uploaded by: ${membersById.get(uploadedByFilter[0])?.name ?? '1 member'}`
-          : `Uploaded by: ${uploadedByFilter.length} members`
+      const label = t('filters.tagUploadedBy', {
+        value:
+          uploadedByFilter.length === 1
+            ? (membersById.get(uploadedByFilter[0])?.name ?? t('filters.oneMember'))
+            : t('filters.members', { count: uploadedByFilter.length }),
+      })
       tags.push({ label, onRemove: () => setUploadedByFilter([]) })
     }
     return tags
@@ -2123,6 +2193,9 @@ function FilesContent() {
     setTypeFilter,
     setSizeFilter,
     setUploadedByFilter,
+    typeFilterLabels,
+    sizeFilterLabels,
+    t,
   ])
 
   const listState = resourceListState({
@@ -2188,11 +2261,11 @@ function FilesContent() {
             <ChipConfirmModal
               open={showUnsavedChangesAlert}
               onOpenChange={setShowUnsavedChangesAlert}
-              srTitle='Unsaved Changes'
-              title='Unsaved Changes'
-              text='You have unsaved changes. Are you sure you want to discard them?'
-              dismissLabel='Keep editing'
-              confirm={{ label: 'Discard Changes', onClick: handleDiscardChanges }}
+              srTitle={t('unsaved.title')}
+              title={t('unsaved.title')}
+              text={t('unsaved.text')}
+              dismissLabel={t('unsaved.keepEditing')}
+              confirm={{ label: t('unsaved.discard'), onClick: handleDiscardChanges }}
             />
           </Resource>
         </FileDocRoomProvider>
@@ -2245,7 +2318,7 @@ function FilesContent() {
           filter={filterConfig}
         />
         <Resource.Table
-          columns={isSearching ? SEARCH_COLUMNS : COLUMNS}
+          columns={isSearching ? searchColumns : columns}
           rows={displayRows}
           apiRef={tableApiRef}
           emptyState={
@@ -2270,7 +2343,7 @@ function FilesContent() {
             <>
               {findOpen && (
                 <FindBar
-                  ariaLabel='Find in files'
+                  ariaLabel={t('findAriaLabel')}
                   query={findQuery}
                   onQueryChange={setFindQuery}
                   onNext={handleFindNext}
@@ -2297,10 +2370,8 @@ function FilesContent() {
                 <div className='pointer-events-none absolute inset-0 z-[var(--z-dropdown)] flex flex-col items-center justify-center gap-2 border border-[var(--brand-secondary)] border-dashed bg-[var(--white)] transition-colors dark:bg-[var(--surface-4)]'>
                   <Upload className='size-5 text-[var(--brand-secondary)]' />
                   <div className='flex flex-col gap-0.5 text-center'>
-                    <p className='text-[var(--brand-secondary)] text-sm'>Drop to upload</p>
-                    <p className='text-[var(--text-tertiary)] text-xs'>
-                      Release files here to add them to this workspace
-                    </p>
+                    <p className='text-[var(--brand-secondary)] text-sm'>{t('dropToUpload')}</p>
+                    <p className='text-[var(--text-tertiary)] text-xs'>{t('dropToUploadHint')}</p>
                   </div>
                 </div>
               ) : null}
@@ -2352,19 +2423,19 @@ function FilesContent() {
       <ChipConfirmModal
         open={Boolean(extractTarget)}
         onOpenChange={(open) => !open && setExtractTargetId(null)}
-        title='Unzip archive?'
+        title={t('unzip.title')}
         defaultAction='confirm'
         text={[
-          'This will unzip ',
-          { text: extractTarget?.name ?? 'this archive', bold: true },
-          ' into a new folder beside it.',
+          t('unzip.textBefore'),
+          { text: extractTarget?.name ?? t('unzip.fallbackName'), bold: true },
+          t('unzip.textAfter'),
         ]}
         confirm={{
-          label: 'Unzip',
+          label: t('unzip.confirm'),
           onClick: () => void handleExtract(),
           variant: 'primary',
           pending: extractFile.isPending,
-          pendingLabel: 'Unzipping...',
+          pendingLabel: t('unzip.pending'),
           disabled: !canEdit,
         }}
       />

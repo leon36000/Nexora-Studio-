@@ -16,6 +16,7 @@ import {
 } from '@sim/emcn'
 import { ArrowLeft, ChevronRight, Pencil, Server, Wrench, X } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { McpIcon, WorkflowIcon } from '@/components/icons'
 import { McpOperationPolicyEditor } from '@/components/mcp/operation-policy-editor'
 import { getManagedMcpConnectorIcon } from '@/lib/credential-groups/managed-mcp-connector-icons'
@@ -119,17 +120,6 @@ import {
 
 const logger = createLogger('ToolInput')
 
-const ADVANCED_MCP_SERVER_TOOL_SCHEMA: McpToolSchema = {
-  type: 'object',
-  properties: {
-    serverId: {
-      type: 'string',
-      description: 'MCP server or managed connection ID, or upstream reference',
-    },
-  },
-  required: ['serverId'],
-}
-
 function WorkflowToolDeployBadge({
   workflowId,
   onDeploySuccess,
@@ -137,6 +127,7 @@ function WorkflowToolDeployBadge({
   workflowId: string
   onDeploySuccess?: () => void
 }) {
+  const t = useTranslations('editor.subBlock.toolInput')
   const { data, isLoading } = useDeploymentInfo(workflowId)
   const { mutate, isPending: isDeploying } = useDeployWorkflow()
   const userPermissions = useUserPermissionsContext()
@@ -181,16 +172,16 @@ function WorkflowToolDeployBadge({
             }
           }}
         >
-          {isDeploying ? 'Deploying...' : !isDeployed ? 'undeployed' : 'redeploy'}
+          {isDeploying ? t('deploying') : !isDeployed ? t('undeployed') : t('redeploy')}
         </Badge>
       </Tooltip.Trigger>
       <Tooltip.Content>
         <span className='text-sm'>
           {!userPermissions.canAdmin
-            ? 'Admin permission required to deploy'
+            ? t('adminRequired')
             : !isDeployed
-              ? 'Click to deploy'
-              : 'Click to redeploy'}
+              ? t('clickToDeploy')
+              : t('clickToRedeploy')}
         </span>
       </Tooltip.Content>
     </Tooltip.Root>
@@ -350,19 +341,17 @@ function IconComponent({
   return <Icon className={className} />
 }
 
-const UNSUPPORTED_CUSTOM_TOOL_MESSAGE = 'Custom tools are not supported by this block yet'
-const UNSUPPORTED_MCP_TOOL_MESSAGE = 'MCP tools are not supported by this block yet'
-
 /**
  * Trailing "Unavailable" affordance for a tool category the consuming block
  * cannot execute. Rendered as the combobox item's suffix so the greyed-out row
  * still surfaces a tooltip explaining why on hover.
  */
 function UnsupportedToolBadge({ message }: { message: string }) {
+  const t = useTranslations('editor.subBlock.toolInput')
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
-        <span className='text-[var(--text-tertiary)] text-xs'>Unavailable</span>
+        <span className='text-[var(--text-tertiary)] text-xs'>{t('unavailable')}</span>
       </Tooltip.Trigger>
       <Tooltip.Content>
         <span className='text-sm'>{message}</span>
@@ -382,7 +371,21 @@ export const ToolInput = memo(function ToolInput({
   disabled = false,
   allowExpandInPreview,
 }: ToolInputProps) {
+  const t = useTranslations('editor.subBlock.toolInput')
   const { workspaceId, workflowId } = useWorkflowScope()
+  const advancedMcpServerToolSchema = useMemo(
+    (): McpToolSchema => ({
+      type: 'object',
+      properties: {
+        serverId: {
+          type: 'string',
+          description: t('advancedMcpServerIdDescription'),
+        },
+      },
+      required: ['serverId'],
+    }),
+    [t]
+  )
   const activeSearchTarget = useActiveSearchTarget()
   const [storeValue, setStoreValue] = useSubBlockValue(blockId, subBlockId)
   const [open, setOpen] = useState(false)
@@ -498,8 +501,8 @@ export const ToolInput = memo(function ToolInput({
   const { mcpTools, isLoading: mcpLoading } = useMcpTools(workspaceId)
   const mcpToolNamesById = useMemo(() => {
     const names = new Map<string, string>()
-    for (const t of mcpTools) {
-      if (!names.has(t.id)) names.set(t.id, t.name)
+    for (const mcpTool of mcpTools) {
+      if (!names.has(mcpTool.id)) names.set(mcpTool.id, mcpTool.name)
     }
     return names
   }, [mcpTools])
@@ -551,10 +554,10 @@ export const ToolInput = memo(function ToolInput({
         connectionStatus: s.connectionStatus,
         lastError: s.lastError ?? undefined,
       }))
-      const discoveredTools = mcpTools.map((t) => ({
-        serverId: t.serverId,
-        name: t.name,
-        inputSchema: t.inputSchema,
+      const discoveredTools = mcpTools.map((mcpTool) => ({
+        serverId: mcpTool.serverId,
+        name: mcpTool.name,
+        inputSchema: mcpTool.inputSchema,
       }))
 
       // Try to get fresh schema from DB (enables real-time updates after MCP refresh)
@@ -902,7 +905,7 @@ export const ToolInput = memo(function ToolInput({
     (serverId: string | undefined) => {
       if (isPreview || disabled || !serverId) return
       const updatedTools = selectedTools.filter(
-        (t) => !(t.type === 'mcp' && t.params?.serverId === serverId)
+        (candidate) => !(candidate.type === 'mcp' && candidate.params?.serverId === serverId)
       )
       setToolsWithReindexedModes(updatedTools)
     },
@@ -1168,7 +1171,7 @@ export const ToolInput = memo(function ToolInput({
       const ServerIcon = server?.managedConnectorId
         ? getManagedMcpConnectorIcon(server.managedConnectorId)
         : Server
-      const serverName = tools[0]?.serverName || server?.name || 'Unknown Server'
+      const serverName = tools[0]?.serverName || server?.name || t('unknownServer')
       const allAlreadySelected = selectedTools.some(
         (tool) =>
           tool.type === MCP_SERVER_ADVANCED_TOOL_TYPE &&
@@ -1177,7 +1180,7 @@ export const ToolInput = memo(function ToolInput({
       const serverToolItems: ComboboxOption[] = []
 
       serverToolItems.push({
-        label: 'Back',
+        label: t('back'),
         value: `mcp-server-back`,
         iconElement: <ArrowLeft className='size-[14px] text-[var(--text-tertiary)]' />,
         onSelect: () => {
@@ -1188,7 +1191,7 @@ export const ToolInput = memo(function ToolInput({
 
       if (supportsAdvancedMcpServer) {
         serverToolItems.push({
-          label: 'Configure operations access',
+          label: t('configureOperationsAccess'),
           value: `mcp-server-all-${mcpServerDrilldown}`,
           iconElement: createToolIcon(
             getManagedMcpConnectorBgColor(server?.managedConnectorId) ?? 'var(--brand-agent)',
@@ -1265,7 +1268,7 @@ export const ToolInput = memo(function ToolInput({
     const actionItems: ComboboxOption[] = []
     if (!permissionConfig.disableCustomTools) {
       actionItems.push({
-        label: 'Create Tool',
+        label: t('createTool'),
         value: 'action-create-tool',
         icon: Wrench,
         onSelect: () => {
@@ -1274,13 +1277,13 @@ export const ToolInput = memo(function ToolInput({
         },
         disabled: isPreview || customUnsupported,
         suffixElement: customUnsupported ? (
-          <UnsupportedToolBadge message={UNSUPPORTED_CUSTOM_TOOL_MESSAGE} />
+          <UnsupportedToolBadge message={t('customToolsUnsupported')} />
         ) : undefined,
       })
     }
     if (!permissionConfig.disableMcpTools) {
       actionItems.push({
-        label: 'Add MCP Server',
+        label: t('addMcpServer'),
         value: 'action-add-mcp',
         icon: McpIcon,
         onSelect: () => {
@@ -1289,7 +1292,7 @@ export const ToolInput = memo(function ToolInput({
         },
         disabled: isPreview || mcpUnsupported,
         suffixElement: mcpUnsupported ? (
-          <UnsupportedToolBadge message={UNSUPPORTED_MCP_TOOL_MESSAGE} />
+          <UnsupportedToolBadge message={t('mcpToolsUnsupported')} />
         ) : undefined,
       })
     }
@@ -1299,7 +1302,7 @@ export const ToolInput = memo(function ToolInput({
 
     if (!permissionConfig.disableCustomTools && !customUnsupported && customTools.length > 0) {
       groups.push({
-        section: 'Custom Tools',
+        section: t('sections.customTools'),
         items: customTools.map((customTool) => {
           const alreadySelected = isCustomToolAlreadySelected(selectedTools, customTool.id)
           return {
@@ -1334,14 +1337,14 @@ export const ToolInput = memo(function ToolInput({
         if (!server.enabled) continue
         const serverId = server.id
         const tools = mcpToolsByServer.get(serverId) ?? []
-        const serverName = tools[0]?.serverName || server?.name || 'Unknown Server'
+        const serverName = tools[0]?.serverName || server?.name || t('unknownServer')
         const toolCount = tools.length
         const ServerIcon = server.managedConnectorId
           ? getManagedMcpConnectorIcon(server.managedConnectorId)
           : Server
 
         serverItems.push({
-          label: `${serverName} (${toolCount} tools)`,
+          label: t('serverWithToolCount', { server: serverName, count: toolCount }),
           value: `mcp-server-folder-${serverId}`,
           iconElement: createToolIcon(
             getManagedMcpConnectorBgColor(server.managedConnectorId) ?? '#6366F1',
@@ -1356,7 +1359,7 @@ export const ToolInput = memo(function ToolInput({
       }
 
       groups.push({
-        section: 'MCP Servers',
+        section: t('sections.mcpServers'),
         items: serverItems,
       })
     }
@@ -1366,7 +1369,7 @@ export const ToolInput = memo(function ToolInput({
 
     if (builtInTools.length > 0) {
       groups.push({
-        section: 'Built-in Tools',
+        section: t('sections.builtInTools'),
         items: builtInTools.map((block) => {
           const toolId = getToolIdForOperation(block.type, undefined, block)
           const alreadySelected = toolId ? isToolAlreadySelected(toolId, block.type) : false
@@ -1383,7 +1386,7 @@ export const ToolInput = memo(function ToolInput({
 
     if (integrations.length > 0) {
       groups.push({
-        section: 'Integrations',
+        section: t('sections.integrations'),
         items: integrations.map((block) => {
           const toolId = getToolIdForOperation(block.type, undefined, block)
           const alreadySelected = toolId ? isToolAlreadySelected(toolId, block.type) : false
@@ -1401,7 +1404,7 @@ export const ToolInput = memo(function ToolInput({
     // Workflows section - shows available workflows that can be executed as tools
     if (availableWorkflows.length > 0) {
       groups.push({
-        section: 'Workflows',
+        section: t('sections.workflows'),
         items: availableWorkflows.map((workflow) => {
           const alreadySelected = isWorkflowAlreadySelected(selectedTools, workflow.id)
           return {
@@ -1412,7 +1415,7 @@ export const ToolInput = memo(function ToolInput({
               if (alreadySelected) return
               const newTool: StoredTool = {
                 type: 'workflow_input',
-                title: 'Workflow',
+                title: 'Workflow', // i18n-ignore: persisted tool title
                 toolId: 'workflow_executor',
                 params: {
                   workflowId: workflow.id,
@@ -1434,10 +1437,10 @@ export const ToolInput = memo(function ToolInput({
 
     if (!permissionConfig.disableMcpTools && supportsAdvancedMcpServer) {
       groups.push({
-        section: 'Advanced',
+        section: t('sections.advanced'),
         items: [
           {
-            label: 'MCP Server (Advanced)',
+            label: t('mcpServerAdvanced'),
             value: 'action-mcp-server-advanced',
             icon: Server,
             onSelect: () => {
@@ -1455,7 +1458,7 @@ export const ToolInput = memo(function ToolInput({
             },
             disabled: isPreview || disabled || mcpUnsupported,
             suffixElement: mcpUnsupported ? (
-              <UnsupportedToolBadge message={UNSUPPORTED_MCP_TOOL_MESSAGE} />
+              <UnsupportedToolBadge message={t('mcpToolsUnsupported')} />
             ) : undefined,
           },
         ],
@@ -1485,6 +1488,7 @@ export const ToolInput = memo(function ToolInput({
     availableWorkflows,
     isToolAlreadySelected,
     setToolsWithReindexedModes,
+    t,
   ])
 
   return (
@@ -1492,16 +1496,16 @@ export const ToolInput = memo(function ToolInput({
       <Combobox
         options={EMPTY_COMBOBOX_OPTIONS}
         groups={toolGroups}
-        placeholder='Add tool...'
+        placeholder={t('addTool')}
         /* Every list this picker offers — blocks, operations, MCP and custom
            tools — reads as unrestricted until the permission config resolves,
            and adding a tool is a one-shot write that nothing revisits. Closed
            rather than optimistic for that beat. */
         disabled={disabled || isPermissionLoading}
         searchable
-        searchPlaceholder='Search tools...'
+        searchPlaceholder={t('searchTools')}
         maxHeight={240}
-        emptyMessage='No tools found'
+        emptyMessage={t('noToolsFound')}
         onOpenChange={handleComboboxOpenChange}
         onArrowLeft={mcpServerDrilldown ? () => setMcpServerDrilldown(null) : undefined}
       />
@@ -1568,7 +1572,9 @@ export const ToolInput = memo(function ToolInput({
               buildCanonicalIndex(toolBlock.subBlocks)
             : null
 
-          const mcpTool = isMcpTool ? mcpTools.find((t) => t.id === tool.toolId) : null
+          const mcpTool = isMcpTool
+            ? mcpTools.find((candidate) => candidate.id === tool.toolId)
+            : null
           const advancedMcpServer = isAdvancedMcpServer
             ? mcpServers.find((server) => server.id === tool.params?.serverId)
             : undefined
@@ -1587,8 +1593,8 @@ export const ToolInput = memo(function ToolInput({
           // (same policy as the canvas summary — see resolveStoredToolName).
           const toolDisplayName = isAdvancedMcpServer
             ? (mcpServers.find((server) => server.id === tool.params?.serverId)?.name ??
-              'MCP Server (Advanced)')
-            : (resolveStoredToolName(tool, { customTools, mcpToolNamesById }) ?? 'Unknown Tool')
+              t('mcpServerAdvanced'))
+            : (resolveStoredToolName(tool, { customTools, mcpToolNamesById }) ?? t('unknownTool'))
 
           /**
            * Every field this tool row renders, as `SubBlockConfig`s. A registry tool's
@@ -1598,10 +1604,8 @@ export const ToolInput = memo(function ToolInput({
            */
           const displaySubBlocks: BlockSubBlockConfig[] = isMcpFamily
             ? buildSubBlocksFromJsonSchema(
-                isAdvancedMcpServer
-                  ? ADVANCED_MCP_SERVER_TOOL_SCHEMA
-                  : (mcpToolSchema ?? undefined),
-                isAdvancedMcpServer ? () => 'MCP Server' : formatParameterLabel
+                isAdvancedMcpServer ? advancedMcpServerToolSchema : (mcpToolSchema ?? undefined),
+                isAdvancedMcpServer ? () => t('mcpServer') : formatParameterLabel
               )
             : (subBlocksResult?.subBlocks ?? []).filter(
                 (sb) =>
@@ -1722,11 +1726,15 @@ export const ToolInput = memo(function ToolInput({
                                 navigateToSettings({ section: 'mcp', mcpServerId: serverId })
                               }}
                             >
-                              {getIssueBadgeLabel(issue)}
+                              {getIssueBadgeLabel(issue) === 'stale'
+                                ? t('mcpIssueStale')
+                                : t('mcpIssueUnavailable')}
                             </Badge>
                           </Tooltip.Trigger>
                           <Tooltip.Content>
-                            <span className='text-sm'>{issue.message}: click to open settings</span>
+                            <span className='text-sm'>
+                              {t('mcpIssueTooltip', { message: issue.message })}
+                            </span>
                           </Tooltip.Content>
                         </Tooltip.Root>
                       )
@@ -1741,7 +1749,7 @@ export const ToolInput = memo(function ToolInput({
                     <Button
                       variant='ghost'
                       size='icon'
-                      aria-label='Edit custom tool'
+                      aria-label={t('editCustomTool')}
                       onClick={(event) => {
                         event.stopPropagation()
                         handleEditCustomTool(toolIndex)
@@ -1753,7 +1761,9 @@ export const ToolInput = memo(function ToolInput({
                   )}
                   {isMcpTool &&
                   selectedTools.filter(
-                    (t) => t.type === 'mcp' && t.params?.serverId === tool.params?.serverId
+                    (candidate) =>
+                      candidate.type === 'mcp' &&
+                      candidate.params?.serverId === tool.params?.serverId
                   ).length > 1 ? (
                     <Popover
                       open={mcpRemovePopoverIndex === toolIndex}
@@ -1773,7 +1783,7 @@ export const ToolInput = memo(function ToolInput({
                             setMcpRemovePopoverIndex(toolIndex)
                           }}
                           className='flex items-center justify-center text-[var(--text-tertiary)] transition-colors hover-hover:text-[var(--text-primary)]'
-                          aria-label='Remove tool'
+                          aria-label={t('removeTool')}
                         >
                           <X className='size-[13px]' />
                         </button>
@@ -1792,7 +1802,7 @@ export const ToolInput = memo(function ToolInput({
                             setMcpRemovePopoverIndex(null)
                           }}
                         >
-                          Remove
+                          {t('remove')}
                         </PopoverItem>
                         <PopoverItem
                           onClick={() => {
@@ -1800,7 +1810,9 @@ export const ToolInput = memo(function ToolInput({
                             setMcpRemovePopoverIndex(null)
                           }}
                         >
-                          Remove all from {tool.params?.serverName || 'server'}
+                          {t('removeAllFromServer', {
+                            server: tool.params?.serverName || t('serverFallback'),
+                          })}
                         </PopoverItem>
                       </PopoverContent>
                     </Popover>
@@ -1811,7 +1823,7 @@ export const ToolInput = memo(function ToolInput({
                         handleRemoveTool(toolIndex)
                       }}
                       className='flex items-center justify-center text-[var(--text-tertiary)] transition-colors hover-hover:text-[var(--text-primary)]'
-                      aria-label='Remove tool'
+                      aria-label={t('removeTool')}
                     >
                       <X className='size-[13px]' />
                     </button>
@@ -1873,7 +1885,9 @@ export const ToolInput = memo(function ToolInput({
 
                     return (
                       <div className='relative space-y-1.5'>
-                        <div className='text-[var(--text-primary)] text-small'>Operation</div>
+                        <div className='text-[var(--text-primary)] text-small'>
+                          {t('operation')}
+                        </div>
                         <Combobox
                           options={operationOptions.map((option) => ({
                             label: option.label,
@@ -1882,7 +1896,7 @@ export const ToolInput = memo(function ToolInput({
                           }))}
                           value={selectedOperation}
                           onChange={(value) => handleOperationChange(toolIndex, value)}
-                          placeholder='Select operation'
+                          placeholder={t('selectOperation')}
                           /* Denied operations only drop out once the config
                              resolves, and picking one rewrites the stored tool. */
                           disabled={disabled || isPermissionLoading}
@@ -1980,9 +1994,10 @@ export const ToolInput = memo(function ToolInput({
 
                 if (resolved) {
                   const dbTool = storedTool.customToolId
-                    ? customTools.find((t) => t.id === storedTool.customToolId)
+                    ? customTools.find((candidate) => candidate.id === storedTool.customToolId)
                     : customTools.find(
-                        (t) => t.schema?.function?.name === resolved.schema?.function?.name
+                        (candidate) =>
+                          candidate.schema?.function?.name === resolved.schema?.function?.name
                       )
 
                   return {

@@ -6,10 +6,15 @@ import {
 } from '@/app/workspace/[workspaceId]/settings/components/general/timezone-picker'
 
 const timezoneOptions = [{ label: 'Los Angeles (GMT-07:00)', value: 'America/Los_Angeles' }]
+const labels = {
+  auto: (timezone: string) => `Auto: ${timezone}`,
+  invalid: (timezone: string) => `Invalid: ${timezone}`,
+  empty: '(empty)',
+}
 
 describe('getTimezonePickerPresentation', () => {
   it('surfaces an invalid saved timezone without making it selectable', () => {
-    expect(getTimezonePickerPresentation('Mars/Olympus', 'UTC', timezoneOptions)).toEqual({
+    expect(getTimezonePickerPresentation('Mars/Olympus', 'UTC', timezoneOptions, labels)).toEqual({
       value: INVALID_TIMEZONE_OPTION_VALUE,
       options: [
         { label: 'Auto: UTC', value: AUTO_TIMEZONE_OPTION_VALUE },

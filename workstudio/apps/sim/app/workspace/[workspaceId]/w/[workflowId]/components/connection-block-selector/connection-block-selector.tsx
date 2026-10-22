@@ -14,6 +14,7 @@ import { X } from '@sim/emcn/icons'
 import { WorkflowBlockBorder, type WorkflowBorderPort } from '@sim/workflow-renderer'
 import { Handle, type Node, type NodeProps, Position } from '@xyflow/react'
 import { Command } from 'cmdk'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { captureEvent } from '@/lib/posthog/client'
 import {
@@ -153,6 +154,7 @@ function isRecentSelection(value: unknown): value is RecentSelection {
  * temporary edge reads as connected to the block that will replace it.
  */
 export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockSelectorNode>) {
+  const t = useTranslations('editor.connectionBlockSelector')
   const { workspaceId } = useWorkflowScope()
   const currentWorkflowId = useScopedWorkflowId()
   const posthog = usePostHog()
@@ -422,7 +424,7 @@ export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockS
   return (
     <div
       role='dialog'
-      aria-label='Add a connected block'
+      aria-label={t('addConnectedBlock')}
       className='workflow-drag-handle relative h-[352px] w-[250px] cursor-grab select-none rounded-2xl [&:active]:cursor-grabbing'
     >
       <WorkflowBlockBorder
@@ -438,13 +440,13 @@ export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockS
         className='-top-[28px] pointer-events-auto absolute right-[24px] z-30 flex h-[28px] w-[140px] items-center justify-between gap-1.5 overflow-hidden py-0.5 pr-[0.2rem] pl-5'
       >
         <span className='min-w-max shrink-0 whitespace-nowrap font-medium text-[var(--surface-2)] text-sm leading-5'>
-          Add block
+          {t('addBlock')}
         </span>
         <Button
           variant='ghost'
           onClick={data.onClose}
-          aria-label='Close block selector'
-          title='Close'
+          aria-label={t('closeSelector')}
+          title={t('close')}
           className="nodrag nopan [&_svg]:-translate-x-[6px] h-[24px]! w-[40px]! shrink-0 rounded-md border-none bg-[color-mix(in_srgb,var(--surface-2)_18%,transparent)]! p-0 text-[color-mix(in_srgb,var(--text-inverse)_72%,transparent)]! transition-[background-color,color,opacity,transform] duration-150 [clip-path:path('M16.25_0A8_8_0_0_1_22.4_2.88L36.59_19.9A2.5_2.5_0_0_1_34.66_24L4_24A4_4_0_0_1_0_20L0_4A4_4_0_0_1_4_0Z')] hover-hover:bg-[var(--surface-2)]! hover-hover:text-[var(--text-primary)]! active:scale-[0.96] [&_svg]:translate-y-px"
         >
           <X className='size-[14px]' />
@@ -460,7 +462,7 @@ export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockS
       />
 
       <Command
-        label='Add a connected block'
+        label={t('addConnectedBlock')}
         shouldFilter={false}
         value={resolvedSelectedValue}
         onValueChange={setSelectedValue}
@@ -476,7 +478,7 @@ export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockS
             )}
           >
             <Command.Empty className='flex items-center justify-center px-4 py-8 text-center text-[var(--text-subtle)] text-sm'>
-              No blocks found.
+              {t('noBlocksFound')}
             </Command.Empty>
             {isSearching ? (
               searchResults.length > 0 && (
@@ -503,7 +505,7 @@ export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockS
             ) : (
               <>
                 {recentResults.length > 0 && (
-                  <Command.Group heading='Recently used' className={GROUP_HEADING_CLASSNAME}>
+                  <Command.Group heading={t('recentlyUsed')} className={GROUP_HEADING_CLASSNAME}>
                     {recentResults.map((result) => {
                       if (result.kind === 'tool_operation') {
                         return (
@@ -537,11 +539,15 @@ export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockS
                     })}
                   </Command.Group>
                 )}
-                <BlocksGroup items={popularBlocks} onSelect={handleBlockSelect} heading='Popular' />
+                <BlocksGroup
+                  items={popularBlocks}
+                  onSelect={handleBlockSelect}
+                  heading={t('popular')}
+                />
                 <BlocksGroup
                   items={visibleBrowseBlocks}
                   onSelect={handleBlockSelect}
-                  heading='All blocks'
+                  heading={t('allBlocks')}
                 />
                 <ToolsGroup items={visibleBrowseTools} onSelect={handleToolSelect} />
                 {hasMoreBrowseResults && (
@@ -554,10 +560,10 @@ export function ConnectionBlockSelector({ id, data }: NodeProps<ConnectionBlockS
             ref={inputRef}
             surface='canvas'
             autoFocus
-            aria-label='Search blocks'
+            aria-label={t('searchBlocks')}
             value={search}
             onValueChange={handleSearchChange}
-            placeholder='Search blocks...'
+            placeholder={t('searchBlocksPlaceholder')}
           />
         </div>
       </Command>

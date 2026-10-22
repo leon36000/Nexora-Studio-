@@ -1,1 +1,1315 @@
-{}
+{
+  "actionBar": {
+    "blockRunning": "Block running",
+    "stopWorkflow": "Stop workflow",
+    "runBlock": "Run block",
+    "connectionLost": "Connection lost - please refresh",
+    "readOnly": "Read-only mode",
+    "stop": "Stop",
+    "run": "Run",
+    "blockLocked": "Block is locked",
+    "runPreviousFirst": "Run previous blocks first",
+    "disable": "Disable",
+    "enable": "Enable",
+    "parentDisabled": "Parent container is disabled",
+    "noteColor": "Note color",
+    "color": "Color",
+    "noteColors": {
+      "white": "White",
+      "light-gray": "Light gray",
+      "carbon": "Graphite"
+    },
+    "unlock": "Unlock",
+    "lock": "Lock",
+    "parentLocked": "Parent container is locked",
+    "duplicate": "Duplicate",
+    "removeFromSubflow": "Remove from Subflow",
+    "delete": "Delete"
+  },
+  "triggerPaste": {
+    "legacyStartPaste": "Cannot paste trigger blocks when a legacy Start block exists.",
+    "legacyStartDuplicate": "Cannot duplicate trigger blocks when a legacy Start block exists.",
+    "singleTriggerPaste": "A workflow can only have one {name} trigger block. Please remove the existing one before pasting.",
+    "singleTriggerDuplicate": "A workflow can only have one {name} trigger block. Cannot duplicate.",
+    "singleBlockPaste": "A workflow can only have one {name} block. Please remove the existing one before pasting.",
+    "singleBlockDuplicate": "A workflow can only have one {name} block. Cannot duplicate."
+  },
+  "workflow": {
+    "modelSettingsNotReady": "Model settings are not ready. Try again.",
+    "cannotDeleteLocked": "Cannot delete locked blocks or blocks inside locked containers",
+    "skippedProtected": "Skipped {count} protected block(s)",
+    "triggerInSubflow": "Triggers cannot be placed inside loop or parallel subflows.",
+    "pasteSubflowIntoItself": "Cannot paste a subflow inside itself or its own descendant.",
+    "lockedByFolder": "This workflow is locked by folder \"{name}\"",
+    "lockedByParentFolder": "This workflow is locked by a parent folder",
+    "locked": "This workflow is locked",
+    "lockedAskAdmin": "This workflow is locked. Ask an admin to unlock it.",
+    "unlockWorkflow": "Unlock Workflow",
+    "legacyStartAdd": "Cannot add new trigger blocks when a legacy Start block exists. Available in newer workflows.",
+    "singleTriggerAdd": "A workflow can only have one {name} trigger block. Please remove the existing one before adding a new one.",
+    "singleGenericTriggerAdd": "A workflow can only have one trigger trigger block. Please remove the existing one before adding a new one.",
+    "singleBlockAdd": "A workflow can only have one {name} block. Please remove the existing one before adding a new one.",
+    "unlockToAddBlocks": "Unlock the workflow to add blocks.",
+    "cannotConnectLocked": "Cannot connect to locked blocks or blocks inside locked containers",
+    "cannotMoveLockedOut": "Cannot move locked blocks out of locked containers",
+    "containerIntoDescendant": "Cannot place a container inside one of its own nested containers",
+    "cannotRemoveLockedConnections": "Cannot remove connections to locked blocks",
+    "unableToLoad": "Unable to load workflow",
+    "cannotRunInsideSubflow": "Cannot run from inside subflow",
+    "runPreviousFirst": "Run previous blocks first"
+  },
+  "blockMenu": {
+    "disable": "Disable",
+    "enable": "Enable",
+    "toggleEnabled": "Toggle Enabled",
+    "unlock": "Unlock",
+    "lock": "Lock",
+    "toggleLock": "Toggle Lock",
+    "copy": "Copy",
+    "cut": "Cut",
+    "paste": "Paste",
+    "duplicate": "Duplicate",
+    "parentDisabled": "Parent is disabled",
+    "removeFromSubflow": "Remove from Subflow",
+    "parentLocked": "Parent is locked",
+    "rename": "Rename",
+    "addImage": "Add Image",
+    "openEditor": "Open Editor",
+    "runFromBlock": "Run from block",
+    "runUntilBlock": "Run until block",
+    "delete": "Delete"
+  },
+  "canvasMenu": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "paste": "Paste",
+    "addBlock": "Add Block",
+    "unlockForAutoLayout": "Unlock blocks to use auto-layout",
+    "autoLayout": "Auto-layout",
+    "unlockWorkflow": "Unlock workflow",
+    "lockWorkflow": "Lock workflow",
+    "fitToView": "Fit to View",
+    "searchReplace": "Search and replace",
+    "openLogs": "Open Logs",
+    "closeVariables": "Close Variables",
+    "openVariables": "Open Variables",
+    "closeChat": "Close Chat",
+    "openChat": "Open Chat"
+  },
+  "commandList": {
+    "newAgent": "New Agent",
+    "logs": "Logs",
+    "searchBlocks": "Search Blocks"
+  },
+  "connectionBlockSelector": {
+    "addConnectedBlock": "Add a connected block",
+    "addBlock": "Add block",
+    "closeSelector": "Close block selector",
+    "close": "Close",
+    "noBlocksFound": "No blocks found.",
+    "recentlyUsed": "Recently used",
+    "popular": "Popular",
+    "allBlocks": "All blocks",
+    "searchBlocks": "Search blocks",
+    "searchBlocksPlaceholder": "Search blocks..."
+  },
+  "diffControls": {
+    "rejectChanges": "Reject changes",
+    "reject": "Reject",
+    "acceptChanges": "Accept changes (⇧⌘⏎)",
+    "accept": "Accept"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "An unexpected error occurred. Please try again or refresh the page.",
+    "tryAgain": "Try again"
+  },
+  "noteBlock": {
+    "placeholder": "Add note, or press '/' for commands…"
+  },
+  "toolbar": {
+    "requestAccessTo": "Request access to {name}",
+    "add": "Add {name}",
+    "title": "Toolbar",
+    "search": "Search toolbar",
+    "triggers": "Triggers",
+    "triggersTooltip": "Events that start a workflow",
+    "coreBlocks": "Core Blocks",
+    "coreBlocksTooltip": "Core building blocks for agent logic",
+    "customBlocks": "Custom Blocks",
+    "customBlocksTooltip": "Workflows published as reusable blocks across your organization",
+    "integrations": "Integrations",
+    "integrationsTooltip": "Connect agents to external services",
+    "accessRequired": "Access required",
+    "accessRequiredTooltip": "Ask your organization admin to enable these blocks for your permission group.",
+    "contextMenu": {
+      "addToCanvas": "Add to canvas",
+      "viewDocumentation": "View documentation"
+    }
+  },
+  "panel": {
+    "workflow": "Workflow",
+    "workflowPanel": "Workflow panel",
+    "backToCanvas": "Back to canvas",
+    "workflowActions": "Workflow actions",
+    "unlockForAutoLayout": "Unlock blocks to use auto-layout",
+    "autoLayout": "Auto layout",
+    "variables": "Variables",
+    "lockedAtRowOrFolder": "Workflow is locked at the row or folder level — release it from the workflow notification or folder menu",
+    "unlockWorkflow": "Unlock workflow",
+    "lockWorkflow": "Lock workflow",
+    "exportWorkflow": "Export workflow",
+    "duplicateWorkflow": "Duplicate workflow",
+    "deleteWorkflow": "Delete workflow",
+    "closeChat": "Close chat",
+    "openChat": "Open chat",
+    "stop": "Stop",
+    "run": "Run",
+    "chatTab": "Chat",
+    "toolbarTab": "Toolbar",
+    "editorTab": "Editor",
+    "newChat": "New Chat",
+    "chatHistory": "Chat history",
+    "noChatsYet": "No chats yet",
+    "recent": "Recent",
+    "deleteChat": "Delete chat",
+    "resizePanel": "Resize panel",
+    "deleteModal": {
+      "title": "Delete Workflow",
+      "prefix": "Are you sure you want to delete ",
+      "thisWorkflow": "this workflow",
+      "questionEnd": "? ",
+      "consequence": "All associated blocks, executions, and configuration will be removed.",
+      "restoreHint": " You can restore it from Recently Deleted in Settings.",
+      "confirm": "Delete",
+      "deleting": "Deleting..."
+    }
+  },
+  "searchReplace": {
+    "snapshotReadonly": "Snapshot view is readonly",
+    "workflowLocked": "Workflow is locked",
+    "replacementStoppedReason": "Replacement stopped: {reason}",
+    "replacementStoppedCount": "Replacement stopped: {count} match changed. Re-run search and try again.",
+    "noEligibleMatches": "No eligible matches to replace.",
+    "replacementNotApplied": "Replacement could not be applied in the current workflow state.",
+    "replacedFields": "Replaced {count, plural, one {# field} other {# fields}}.",
+    "noResults": "No results",
+    "matchPosition": "{current} of {total}",
+    "title": "Search and replace",
+    "closeSearch": "Close search",
+    "hideReplaceControls": "Hide replace controls",
+    "showReplaceControls": "Show replace controls",
+    "searchPlaceholder": "Search",
+    "previousMatch": "Previous match",
+    "nextMatch": "Next match",
+    "controls": {
+      "chooseReplacement": "Choose replacement...",
+      "searchResources": "Search resources...",
+      "noValidReplacements": "No valid replacements available",
+      "replacePlaceholder": "Replace",
+      "replaceableMatches": "{count, plural, one {# replaceable match} other {# replaceable matches}}",
+      "replace": "Replace",
+      "replacing": "Replacing...",
+      "replaceAll": "Replace All"
+    }
+  },
+  "wandPromptBar": {
+    "placeholder": "Describe what you want to generate...",
+    "generating": "Generating...",
+    "close": "Close AI prompt",
+    "generate": "Generate content"
+  },
+  "workflowControls": {
+    "mover": "Mover",
+    "pointer": "Pointer",
+    "changeMode": "Change canvas mode",
+    "undo": "Undo",
+    "redo": "Redo",
+    "fitToView": "Fit to View",
+    "hideControls": "Hide canvas controls"
+  },
+  "workflowBlock": {
+    "sunset": {
+      "legacyBlock": "This is a legacy block. Click to upgrade",
+      "deprecatedBlock": "This block is no longer supported. Click to replace",
+      "deprecatedModel": "{model} is no longer available. Click to switch models",
+      "legacyModel": "{model} is a legacy model. Click to upgrade"
+    }
+  },
+  "wand": {
+    "emptyPrompt": "Prompt cannot be empty.",
+    "notEnabled": "Wand is not enabled.",
+    "usageLimitReached": "Usage limit reached",
+    "upgrade": "Upgrade",
+    "generationFailed": "Generation failed"
+  },
+  "blockOutputFields": {
+    "subflowResults": "Array of results from the loop/parallel execution"
+  },
+  "execution": {
+    "debugMissing": "Cannot perform debug operation - missing: {missing}. Try restarting debug mode.",
+    "uploadFilesFailed": "Unexpected error uploading files",
+    "executionFailed": "Workflow execution failed",
+    "validationBlockName": "Workflow Validation",
+    "noTrigger": "Workflow requires at least one trigger block to execute",
+    "multipleApiTriggers": "Multiple API Trigger blocks found. Keep only one.",
+    "triggerNotConnected": "{name} must be connected to other blocks to execute",
+    "noValidTrigger": "No valid trigger block found to start execution",
+    "workflowModified": "Workflow was modified. Run the workflow again to enable running from block.",
+    "runFromBlockFailed": "Run-from-block request failed"
+  },
+  "terminalRows": {
+    "validation": "Workflow Validation",
+    "timeoutError": "Timeout Error",
+    "runError": "Run Error",
+    "runCancelled": "Run Cancelled"
+  },
+  "copilot": {
+    "attachments": {
+      "imagesOnly": "Attach PNG, JPEG, GIF, or WebP images.",
+      "addFailed": "Couldn't add files",
+      "uploadFailed": "Couldn't upload \"{name}\""
+    }
+  },
+  "page": {
+    "title": "Workflow"
+  },
+  "deploy": {
+    "button": {
+      "stillLoading": "Workflow is still loading",
+      "emptyWorkflow": "Cannot deploy an empty workflow",
+      "adminRequired": "Admin permissions required",
+      "locked": "Workflow is locked",
+      "deploying": "Deploying...",
+      "settling": "Syncing deployment state...",
+      "updateDeployment": "Update deployment",
+      "activeDeployment": "Active deployment",
+      "deployWorkflow": "Deploy workflow",
+      "update": "Update",
+      "live": "Live",
+      "deploy": "Deploy"
+    },
+    "readiness": {
+      "deploy": "Deploy",
+      "noWorkflow": "No workflow selected",
+      "syncFailed": "Sync failed",
+      "saveFailed": "Some changes failed to save. Reconnect or refresh before deploying.",
+      "saving": "Saving...",
+      "savingTooltip": "Saving workflow changes before deployment",
+      "reviewing": "Reviewing...",
+      "reviewingTooltip": "Accept or reject the current copilot changes before deploying",
+      "syncing": "Syncing...",
+      "syncingTooltip": "Syncing the latest workflow changes before deployment",
+      "ready": "Ready",
+      "readyTooltip": "Ready to deploy"
+    },
+    "preDeploy": {
+      "invalidSchedule": "Invalid schedule configuration: {error}",
+      "validationFailed": "Workflow validation failed"
+    },
+    "deployment": {
+      "alreadyInProgress": "Deployment is already in progress.",
+      "preDeployFailed": "Pre-deploy validation failed",
+      "deployFailed": "Failed to deploy workflow",
+      "syncDeferred": "Deployment succeeded, but local sync is still catching up. Refresh if the status looks stale.",
+      "syncFailed": "Deployment succeeded, but local sync failed. Refresh if the status looks stale."
+    },
+    "modal": {
+      "tabs": {
+        "general": "General",
+        "api": "API",
+        "mcp": "MCP",
+        "chat": "Chat"
+      },
+      "preparationFailed": "Deployment preparation failed",
+      "workspaceApiKeys": "Workspace API keys",
+      "personalApiKeys": "Personal API keys",
+      "toasts": {
+        "deployed": "Workflow deployed",
+        "promoted": "Promoted v{version} to live",
+        "undeployed": "Workflow undeployed",
+        "redeployed": "Workflow redeployed"
+      },
+      "errors": {
+        "deployFailed": "Failed to deploy workflow",
+        "promoteFailed": "Failed to promote v{version} to live",
+        "undeployFailed": "Failed to undeploy workflow",
+        "preDeployFailed": "Pre-deploy validation failed",
+        "redeployFailed": "Failed to redeploy workflow"
+      },
+      "chatAction": {
+        "updated": "Updated",
+        "launched": "Launched",
+        "updating": "Updating...",
+        "launching": "Launching...",
+        "update": "Update",
+        "launch": "Launch Chat"
+      },
+      "title": "Workflow Deployment",
+      "description": "Configure and manage workflow deployment settings including API, MCP, and chat options.",
+      "tabsAriaLabel": "Deployment settings",
+      "editApiInfo": "Edit API Info",
+      "generateApiKey": "Generate API Key",
+      "delete": "Delete",
+      "manage": "Manage",
+      "saving": "Saving...",
+      "saveTool": "Save Tool",
+      "undeployConfirm": {
+        "title": "Undeploy API",
+        "text": "Are you sure you want to undeploy this workflow? ",
+        "warning": "This will remove the API endpoint and make it unavailable to external users."
+      },
+      "undeploy": "Undeploy",
+      "undeploying": "Undeploying...",
+      "deploy": "Deploy",
+      "update": "Update",
+      "status": {
+        "retrying": "Retrying",
+        "pending": "Pending",
+        "retryingLive": "Retrying automatically. The current version stays live until cutover completes.",
+        "retryingNew": "Retrying automatically. The workflow goes live once activation completes.",
+        "preparingLive": "A new version is being prepared. The current version stays live until cutover completes.",
+        "preparingNew": "Triggers and schedules are being registered. The workflow goes live once activation completes.",
+        "failed": "Failed",
+        "preparationFailed": "Deployment preparation failed.",
+        "previousStillLive": "The previously deployed version is still live.",
+        "remainsUndeployed": "The workflow remains undeployed.",
+        "updateDeployment": "Update deployment",
+        "live": "Live"
+      }
+    },
+    "chat": {
+      "defaultWelcomeMessage": "Hi there! How can I help you today?",
+      "errors": {
+        "identifierRequired": "Identifier is required",
+        "titleRequired": "Title is required",
+        "passwordRequired": "Password is required when using password protection",
+        "passwordWhitespace": "Password cannot contain only whitespace",
+        "emailsRequired": "At least one email or domain is required when using email access control",
+        "emailsRequiredSso": "At least one email or domain is required when using SSO access control",
+        "outputRequired": "Please select at least one output block",
+        "identifierPending": "Please wait for identifier validation to complete",
+        "deleteFailed": "An unexpected error occurred while deleting"
+      },
+      "title": "Title",
+      "titlePlaceholder": "Customer Support Assistant",
+      "output": "Output",
+      "outputPlaceholder": "Select which block outputs to use",
+      "includeThinking": "Include thinking",
+      "includeToolCalls": "Include tool calls",
+      "welcomeMessage": "Welcome message",
+      "welcomeMessagePlaceholder": "Enter a welcome message for your chat",
+      "welcomeMessageHint": "This message will be displayed when users first open the chat",
+      "passwordChange": {
+        "srTitle": "Change deployment password",
+        "title": "Change deployment password?",
+        "text": "Are you sure you want to change the password for this deployment?",
+        "confirm": "Change Password and Redeploy",
+        "pending": "Updating..."
+      },
+      "deleteConfirm": {
+        "title": "Delete Chat",
+        "prefix": "Are you sure you want to delete ",
+        "fallbackName": "this chat",
+        "suffix": "? ",
+        "warning": "This will remove the chat at \"{url}\" and make it unavailable to all users.",
+        "irreversible": " This action cannot be undone.",
+        "confirm": "Delete",
+        "pending": "Deleting..."
+      },
+      "identifier": {
+        "invalidPattern": "Identifier can only contain lowercase letters, numbers, and hyphens",
+        "inUse": "This identifier is already in use",
+        "checkFailed": "Error checking identifier availability",
+        "available": "Name is available",
+        "liveAt": "Live at:",
+        "hint": "The unique URL path where your chat will be accessible"
+      },
+      "auth": {
+        "accessControl": "Access control",
+        "types": {
+          "public": "Public",
+          "password": "Password",
+          "email": "Email",
+          "sso": "SSO"
+        },
+        "password": "Password",
+        "passwordPlaceholder": "Enter password",
+        "passwordPlaceholderChange": "Enter new password to change",
+        "passwordHelperKeep": "Leave empty to keep the current password",
+        "passwordHelperRequired": "This password will be required to access your chat",
+        "revealFailed": "Failed to load the current password",
+        "allowedEmails": "Allowed emails",
+        "allowedSsoEmails": "Allowed SSO emails",
+        "emailsPlaceholder": "Enter emails or domains",
+        "emailsPlaceholderWithTags": "Add email or domain"
+      }
+    },
+    "mcp": {
+      "toolNameTooLong": "Tool name must be {max} characters or fewer",
+      "toolNameInvalid": "Use lowercase letters and numbers, separated by single underscores",
+      "selectServerToSave": "Select a server to save this tool",
+      "errors": {
+        "addFailed": "Failed to add to {serverName}",
+        "removeFailed": "Failed to remove from {serverName}",
+        "updateFailed": "Failed to update on {serverName}"
+      },
+      "selectServers": "Select servers...",
+      "serverCount": "{count, plural, one {# server} other {# servers}}",
+      "serversSelected": "{count} servers selected",
+      "deployFirst": "Deploy your workflow first to add it as an MCP tool.",
+      "emptyState": "Create an MCP Server to expose your workflows as tools.",
+      "createServer": "Create MCP Server",
+      "toolName": "Tool name",
+      "toolNamePlaceholder": "e.g., book_flight",
+      "toolNameHint": "Use lowercase letters, numbers, and underscores only",
+      "description": "Description",
+      "descriptionDefault": "Defaults to the workflow description: {description}",
+      "descriptionPlaceholder": "Describe what this tool does...",
+      "parameters": "Parameters ({count})",
+      "parametersHint": "Descriptions default to your Start block inputs; edit to override for this tool.",
+      "describeParameter": "Describe {name}",
+      "servers": "Servers",
+      "searchServers": "Search servers...",
+      "enterToolName": "Enter a tool name to select servers",
+      "fixToolName": "Fix the tool name to select servers"
+    },
+    "api": {
+      "language": "Language",
+      "runWorkflow": "Run workflow",
+      "copyCommand": "Copy command",
+      "copied": "Copied",
+      "copy": "Copy",
+      "runWorkflowStream": "Run workflow (stream response)",
+      "selectOutputs": "Select outputs",
+      "runWorkflowAsync": "Run workflow (async)",
+      "asyncExamples": {
+        "execute": "Start Execution",
+        "status": "Check Status",
+        "rateLimits": "Usage Limits"
+      }
+    },
+    "general": {
+      "liveWorkflow": "Live Workflow",
+      "live": "Live",
+      "seePreview": "See preview",
+      "emptyPreview": "Deploy your workflow to see a preview",
+      "versions": "Versions",
+      "loadConfirm": {
+        "title": "Load Deployment",
+        "prefix": "Are you sure you want to load ",
+        "suffix": "? ",
+        "warning": "This will replace your current workflow with the deployed version.",
+        "confirm": "Load deployment"
+      },
+      "promoteConfirm": {
+        "title": "Promote to live",
+        "prefix": "Are you sure you want to promote ",
+        "suffix": " to live? This version will become the active deployment and serve all API requests."
+      },
+      "previewSrTitle": "Workflow preview",
+      "previewDescription": "Visual preview of the selected workflow version."
+    },
+    "apiInfo": {
+      "saveFailed": "Failed to update access settings",
+      "title": "Edit API Info",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what this workflow API does...",
+      "access": "Access",
+      "apiKey": "API Key",
+      "public": "Public",
+      "publicHint": "Anyone can call this API without authentication. You will be billed for all usage.",
+      "apiKeyHint": "Requires a valid API key to call this endpoint.",
+      "parameters": "Parameters ({count})",
+      "parameterPlaceholder": "Enter description for {name}",
+      "save": "Save",
+      "unsaved": {
+        "title": "Unsaved Changes",
+        "text": "You have unsaved changes. Are you sure you want to discard them?",
+        "keepEditing": "Keep editing",
+        "discard": "Discard Changes"
+      }
+    },
+    "compare": {
+      "draft": "Draft",
+      "liveLabel": "{label} (live)",
+      "title": "Compare",
+      "fromAriaLabel": "Compare from {label}",
+      "toAriaLabel": "Compare to {label}"
+    },
+    "versionDescription": {
+      "title": "Version Description",
+      "editFor": "Edit the description for <version>{name}</version>",
+      "addFor": "Add a description for <version>{name}</version>",
+      "tooLong": "Description exceeds the {max, number}-character limit (currently {count, number})",
+      "placeholder": "Describe the changes in this deployment version...",
+      "generating": "Generating...",
+      "generate": "Generate",
+      "saving": "Saving...",
+      "save": "Save",
+      "unsaved": {
+        "title": "Unsaved Changes",
+        "text": "You have unsaved changes. Are you sure you want to discard them?",
+        "keepEditing": "Keep editing",
+        "discard": "Discard Changes"
+      }
+    },
+    "versions": {
+      "empty": "No deployments yet",
+      "columns": {
+        "version": "Version",
+        "deployedBy": "Deployed by",
+        "timestamp": "Timestamp"
+      },
+      "status": {
+        "live": "Live",
+        "pending": "Pending",
+        "failed": "Failed",
+        "inactive": "Inactive"
+      },
+      "rowLabels": {
+        "live": "live",
+        "pending": "pending",
+        "failed": "failed",
+        "selected": "selected"
+      },
+      "unknown": "Unknown",
+      "editDescription": "Edit description",
+      "addDescription": "Add description",
+      "actions": "Version actions",
+      "rename": "Rename",
+      "compare": "Compare",
+      "promoteToLive": "Promote to live",
+      "loadDeployment": "Load deployment"
+    }
+  },
+  "runPanels": {
+    "terminal": {
+      "panel": {
+        "terminal": "Terminal",
+        "resizeTerminal": "Resize terminal",
+        "logs": "Logs",
+        "sortByTimestamp": "Sort by timestamp",
+        "sortByTime": "Sort by time",
+        "componentPlayground": "Component Playground",
+        "exportConsoleCsv": "Export console CSV",
+        "exportCsv": "Export CSV",
+        "clearConsole": "Clear console",
+        "terminalOptions": "Terminal options",
+        "openOnRun": "Open on run",
+        "noLogsYet": "No logs yet",
+        "iteration": "Iteration {current}",
+        "iterationOfTotal": "Iteration {current} / {total}",
+        "unknownError": "Unknown error",
+        "unknownBlock": "Unknown Block",
+        "fixMessage": "{errorMessage}\n\nError in {blockName}.\n\nPlease fix this."
+      },
+      "status": {
+        "running": "Running",
+        "canceled": "canceled"
+      },
+      "toggleTerminal": "Toggle terminal",
+      "logRowMenu": {
+        "copyRunId": "Copy Run ID",
+        "fixInChat": "Fix in Chat",
+        "filterByBlock": "Filter by Block",
+        "filterByStatus": "Filter by Status",
+        "clearConsole": "Clear Console"
+      },
+      "outputMenu": {
+        "copySelection": "Copy Selection",
+        "copyAll": "Copy All",
+        "search": "Search",
+        "structuredView": "Structured View",
+        "wrapText": "Wrap Text",
+        "openOnRun": "Open on Run",
+        "clearConsole": "Clear Console"
+      },
+      "outputPanel": {
+        "resizeOutputPanel": "Resize output panel",
+        "backToLogs": "Back to logs",
+        "showOutput": "Show output",
+        "output": "Output",
+        "showInput": "Show input",
+        "input": "Input",
+        "closeSearch": "Close search",
+        "searchInOutput": "Search in output",
+        "search": "Search",
+        "componentPlayground": "Component Playground",
+        "copyOutput": "Copy output",
+        "copied": "Copied",
+        "exportConsoleCsv": "Export console CSV",
+        "exportCsv": "Export CSV",
+        "clearConsole": "Clear console",
+        "terminalOptions": "Terminal options",
+        "structuredView": "Structured view",
+        "wrapText": "Wrap text",
+        "openOnRun": "Open on run",
+        "searchPlaceholder": "Search...",
+        "noResults": "No results",
+        "previousMatch": "Previous match",
+        "nextMatch": "Next match"
+      },
+      "structuredOutput": {
+        "running": "Running",
+        "itemCount": "{count, plural, one {# item} other {# items}}",
+        "keyCount": "{count, plural, one {# key} other {# keys}}"
+      }
+    },
+    "chat": {
+      "dialogLabel": "Chat",
+      "title": "Chat",
+      "addInputsTitle": "Add chat inputs to Start block",
+      "addInputs": "Add inputs",
+      "outputs": "Outputs",
+      "chatActions": "Chat actions",
+      "export": "Export",
+      "clear": "Clear",
+      "closeChat": "Close chat",
+      "noMessagesYet": "No messages yet",
+      "fileUploadError": "File upload error",
+      "dropFilesHere": "Drop files here...",
+      "typeMessage": "Type a message...",
+      "attachFile": "Attach file",
+      "stopGeneration": "Stop generation",
+      "sendMessage": "Send message",
+      "removeFile": "Remove file",
+      "executionFailed": "Workflow execution failed",
+      "executionFailedSentence": "Workflow execution failed.",
+      "errorMessage": "Error: {message}",
+      "fileTooLarge": "{name} is too large (max 10MB)",
+      "fileAlreadyAdded": "{name} already added",
+      "outputSelect": {
+        "selectOutputs": "Select outputs",
+        "selectedCount": "{count, plural, one {# output} other {# outputs}}",
+        "outputs": "Outputs",
+        "back": "Back"
+      }
+    },
+    "variables": {
+      "dialogLabel": "Variables",
+      "title": "Variables",
+      "addVariable": "Add new variable",
+      "closePanel": "Close variables panel",
+      "emptyState": "No variables yet",
+      "fallbackName": "Variable {index}",
+      "deleteNamed": "Delete {name}",
+      "deleteIndexed": "Delete variable {index}",
+      "deleteVariable": "Delete Variable",
+      "labels": {
+        "name": "Name",
+        "type": "Type",
+        "value": "Value"
+      },
+      "placeholders": {
+        "plain": "Plain text value"
+      },
+      "types": {
+        "plain": "Plain",
+        "number": "Number",
+        "boolean": "Boolean",
+        "object": "Object",
+        "array": "Array"
+      },
+      "errors": {
+        "emptyName": "Variable name cannot be empty",
+        "duplicateName": "Two variables cannot have the same name"
+      }
+    }
+  },
+  "subBlock": {
+    "slackSetupWizard": {
+      "launcher": "Set up Slack app",
+      "steps": {
+        "configure": "Configure your bot",
+        "create": "Create the app in Slack",
+        "token": "Install and paste your Bot Token",
+        "secret": "Paste your Signing Secret",
+        "done": "Save and verify the Request URL"
+      },
+      "botName": "Bot name",
+      "groups": {
+        "trigger": "Triggers",
+        "action": "Actions"
+      },
+      "create": {
+        "openSlack": "Open Slack with your manifest already filled in:",
+        "loadingWebhook": "Loading the webhook URL…",
+        "webhookUnavailable": "Webhook URL unavailable. Reload the workflow and try again.",
+        "selectWorkspace": "Select your workspace, review the configuration, then click <strong>Create</strong>."
+      },
+      "secret": {
+        "openBasicInfo": "In your new Slack app, open <strong>Basic Information</strong>.",
+        "findSecret": "Find <strong>Signing Secret</strong> and click <strong>Show</strong>, then copy it.",
+        "placeholder": "Paste your signing secret"
+      },
+      "token": {
+        "install": "In Slack, open <strong>OAuth & Permissions</strong> → <strong>Install to Workspace</strong> and authorize.",
+        "copy": "Copy the <strong>Bot User OAuth Token</strong> (starts with <code>xoxb-</code>)."
+      },
+      "pasteBelow": "Paste it into the field below.",
+      "signingSecret": "Signing Secret",
+      "botToken": "Bot Token",
+      "done": {
+        "instructions": "Click Done, then save and deploy the workflow with these credentials. In Slack, open App Manifest and verify the event Request URL before using the trigger.",
+        "notSaved": "(not saved yet)"
+      },
+      "wizard": {
+        "back": "Back",
+        "next": "Next",
+        "done": "Done",
+        "description": "Multi-step wizard"
+      }
+    },
+    "toolInput": {
+      "deploying": "Deploying...",
+      "undeployed": "undeployed",
+      "redeploy": "redeploy",
+      "adminRequired": "Admin permission required to deploy",
+      "clickToDeploy": "Click to deploy",
+      "clickToRedeploy": "Click to redeploy",
+      "unavailable": "Unavailable",
+      "customToolsUnsupported": "Custom tools are not supported by this block yet",
+      "mcpToolsUnsupported": "MCP tools are not supported by this block yet",
+      "advancedMcpServerIdDescription": "MCP server or managed connection ID, or upstream reference",
+      "unknownServer": "Unknown Server",
+      "back": "Back",
+      "configureOperationsAccess": "Configure operations access",
+      "createTool": "Create Tool",
+      "addMcpServer": "Add MCP Server",
+      "sections": {
+        "customTools": "Custom Tools",
+        "mcpServers": "MCP Servers",
+        "builtInTools": "Built-in Tools",
+        "integrations": "Integrations",
+        "workflows": "Workflows",
+        "advanced": "Advanced"
+      },
+      "serverWithToolCount": "{server} ({count} tools)",
+      "mcpServerAdvanced": "MCP Server (Advanced)",
+      "mcpServer": "MCP Server",
+      "addTool": "Add tool...",
+      "searchTools": "Search tools...",
+      "noToolsFound": "No tools found",
+      "unknownTool": "Unknown Tool",
+      "mcpIssueStale": "stale",
+      "mcpIssueUnavailable": "unavailable",
+      "mcpIssueTooltip": "{message}: click to open settings",
+      "editCustomTool": "Edit custom tool",
+      "removeTool": "Remove tool",
+      "remove": "Remove",
+      "removeAllFromServer": "Remove all from {server}",
+      "serverFallback": "server",
+      "operation": "Operation",
+      "selectOperation": "Select operation",
+      "usageControl": {
+        "switchToSelector": "Switch to selector",
+        "switchToVariable": "Switch to variable",
+        "permissionMode": "Permission Mode",
+        "expressionPlaceholder": "\"auto\", \"force\", or \"none\"",
+        "notSupported": "(not supported by model)",
+        "modes": {
+          "auto": {
+            "label": "Auto",
+            "hint": "(model decides)"
+          },
+          "force": {
+            "label": "Force",
+            "hint": "(always use)"
+          },
+          "none": {
+            "label": "None",
+            "hint": "(disable tool)"
+          }
+        }
+      },
+      "customToolModal": {
+        "tabs": {
+          "schema": "Schema",
+          "code": "Code"
+        },
+        "loadError": "Failed to load tool data. Please try again.",
+        "schemaEmpty": "Schema cannot be empty",
+        "saveError": "Failed to save custom tool",
+        "deleteErrorTitle": "Couldn't delete tool",
+        "deleteErrorDescription": "Please try again in a moment.",
+        "editTitle": "Edit Agent Tool",
+        "createTitle": "Create Agent Tool",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "next": "Next",
+        "back": "Back",
+        "updateTool": "Update Tool",
+        "saveTool": "Save Tool",
+        "deleteTitle": "Delete Custom Tool",
+        "deleting": "Deleting...",
+        "unsavedTitle": "Unsaved Changes",
+        "unsavedText": "You have unsaved changes. Are you sure you want to discard them?",
+        "keepEditing": "Keep editing",
+        "discardChanges": "Discard Changes"
+      }
+    },
+    "modelFallbackList": {
+      "choice": "{n, selectordinal, one {#st choice} two {#nd choice} few {#rd choice} other {#th choice}}",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "removeAria": "Remove fallback model",
+      "remove": "Remove",
+      "selectModel": "Select a model",
+      "modelAria": "{choice} model",
+      "searchModels": "Search models...",
+      "noModels": "No models available",
+      "apiKey": "API key",
+      "selectSecret": "Select a secret",
+      "apiKeyAria": "{choice} API key",
+      "searchSecrets": "Search secrets...",
+      "noSecrets": "No secrets",
+      "tuning": {
+        "reasoningEffort": {
+          "label": "Reasoning effort",
+          "placeholder": "Select reasoning effort",
+          "aria": "{choice} reasoning effort"
+        },
+        "thinkingLevel": {
+          "label": "Thinking level",
+          "placeholder": "Select thinking level",
+          "aria": "{choice} thinking level"
+        },
+        "verbosity": {
+          "label": "Verbosity",
+          "placeholder": "Select verbosity",
+          "aria": "{choice} verbosity"
+        }
+      },
+      "createSecret": "Create Secret",
+      "add": "Add fallback model"
+    },
+    "inputFormat": {
+      "fieldTitle": "Field",
+      "inputTitle": "Input",
+      "defaultValuePlaceholder": "Enter default value",
+      "returnValuePlaceholder": "Enter return value",
+      "descriptionPlaceholder": "Describe this field",
+      "types": {
+        "string": "String",
+        "number": "Number",
+        "boolean": "Boolean",
+        "object": "Object",
+        "array": "Array",
+        "files": "Files"
+      },
+      "switchToJson": "Switch to JSON",
+      "switchToUploader": "Switch to file uploader",
+      "itemTitle": "{title} {number}",
+      "addItemSr": "Add {title}",
+      "deleteFieldSr": "Delete Field",
+      "selectValue": "Select value",
+      "name": "Name",
+      "type": "Type",
+      "description": "Description",
+      "value": "Value"
+    },
+    "variablesInput": {
+      "emptyTitle": "No variable assignments defined",
+      "emptyDescription": "Add variables in the Variables panel to get started",
+      "noVariables": "No variables available",
+      "variableTitle": "Variable {number}",
+      "addVariableSr": "Add Variable",
+      "deleteVariableSr": "Delete Variable",
+      "variable": "Variable",
+      "selectVariable": "Select a variable...",
+      "value": "Value",
+      "switchToSelector": "Switch to selector",
+      "switchToManual": "Switch to manual value",
+      "selectValue": "Select value",
+      "typedValue": "{type} value"
+    },
+    "filterBuilder": {
+      "addCondition": "Add filter condition",
+      "conditionTitle": "Condition {number}",
+      "addConditionSr": "Add Condition",
+      "deleteConditionSr": "Delete Condition",
+      "enterValue": "Enter value",
+      "logic": "Logic",
+      "column": "Column",
+      "selectColumn": "Select column",
+      "operator": "Operator",
+      "selectOperator": "Select operator",
+      "value": "Value",
+      "operators": {
+        "eq": "equals",
+        "ne": "not equals",
+        "contains": "contains",
+        "ncontains": "does not contain",
+        "startsWith": "starts with",
+        "endsWith": "ends with",
+        "gt": "greater than",
+        "gte": "greater or equal",
+        "lt": "less than",
+        "lte": "less or equal",
+        "in": "in array",
+        "nin": "not in array",
+        "isEmpty": "is empty",
+        "isNotEmpty": "is not empty"
+      },
+      "logicalOperators": {
+        "and": "and",
+        "or": "or"
+      }
+    },
+    "conditionInput": {
+      "loading": "Loading conditions…",
+      "routeTitle": "Route {number}",
+      "addBlock": "Add Block",
+      "moveUp": "Move Up",
+      "moveDown": "Move Down",
+      "deleteBlock": "Delete Block",
+      "deleteRoute": "Delete Route",
+      "deleteCondition": "Delete Condition",
+      "routeDescriptionPlaceholder": "Describe when this route should be taken..."
+    },
+    "knowledgeTagFilters": {
+      "title": "Tag Filters",
+      "appliedCount": "{count} filter(s) applied",
+      "noFilters": "No filters",
+      "filterTitle": "Filter {number}",
+      "fieldTypes": {
+        "text": "Text",
+        "number": "Number",
+        "date": "Date",
+        "boolean": "Boolean"
+      },
+      "addFilterSr": "Add Filter",
+      "deleteFilterSr": "Delete Filter",
+      "placeholders": {
+        "text": "Enter value",
+        "number": "Enter number",
+        "date": "YYYY-MM-DD",
+        "boolean": "true or false"
+      },
+      "operators": {
+        "text": {
+          "eq": "equals",
+          "neq": "not equals",
+          "contains": "contains",
+          "not_contains": "does not contain",
+          "starts_with": "starts with",
+          "ends_with": "ends with"
+        },
+        "number": {
+          "eq": "equals",
+          "neq": "not equals",
+          "gt": "greater than",
+          "gte": "greater than or equal",
+          "lt": "less than",
+          "lte": "less than or equal",
+          "between": "between"
+        },
+        "date": {
+          "eq": "equals",
+          "neq": "not equals",
+          "gt": "after",
+          "gte": "on or after",
+          "lt": "before",
+          "lte": "on or before",
+          "between": "between"
+        },
+        "boolean": {
+          "eq": "is",
+          "neq": "is not"
+        }
+      },
+      "tag": "Tag",
+      "selectTag": "Select tag",
+      "operator": "Operator",
+      "selectOperator": "Select operator",
+      "value": "Value",
+      "rangeTo": "to"
+    },
+    "documentTagEntry": {
+      "title": "Document Tags",
+      "configuredCount": "{count} tag(s) configured",
+      "noTags": "No tags",
+      "emptyTitle": "No tags defined for this knowledge base",
+      "emptyDescription": "Define tags at the knowledge base level first",
+      "tagTitle": "Tag {number}",
+      "fieldTypes": {
+        "text": "Text",
+        "number": "Number",
+        "date": "Date",
+        "boolean": "Boolean"
+      },
+      "addTagSr": "Add Tag",
+      "deleteTagSr": "Delete Tag",
+      "placeholders": {
+        "text": "Enter value",
+        "number": "Enter number",
+        "date": "YYYY-MM-DD",
+        "boolean": "true or false"
+      },
+      "tag": "Tag",
+      "selectTag": "Select tag",
+      "value": "Value"
+    },
+    "sortBuilder": {
+      "addSort": "Add sort",
+      "sortTitle": "Sort {number}",
+      "addSortSr": "Add Sort",
+      "deleteSortSr": "Delete Sort",
+      "column": "Column",
+      "selectColumn": "Select column",
+      "direction": "Direction",
+      "selectDirection": "Select direction",
+      "directions": {
+        "asc": "ascending",
+        "desc": "descending"
+      }
+    },
+    "common": {
+      "invalidJson": "Invalid JSON",
+      "copyValue": "Copy value",
+      "copied": "Copied!",
+      "copy": "Copy",
+      "generate": "Generate",
+      "generating": "Generating...",
+      "generateWithAiPlaceholder": "Generate with AI...",
+      "switchToSelector": "Switch to selector",
+      "switchToManualId": "Switch to manual ID",
+      "viewTable": "View table",
+      "viewKnowledgeBase": "View knowledge base",
+      "describeToGenerate": "Describe what you want to generate...",
+      "generateContentWithAi": "Generate content with AI",
+      "failedToLoadFolders": "Failed to load folders",
+      "failedToFetchOptions": "Failed to fetch options"
+    },
+    "code": {
+      "writeJavascript": "Write JavaScript...",
+      "writePython": "Write Python...",
+      "writeShell": "Write shell commands...",
+      "describeJsonSchema": "Describe the JSON schema to generate...",
+      "describeJsonObject": "Describe the JSON object to generate...",
+      "describeJavascript": "Describe the JavaScript code to generate...",
+      "describePython": "Describe the Python script you want to create...",
+      "describeShell": "Describe the shell commands you want to run...",
+      "copyCode": "Copy code",
+      "generateWithAi": "Generate code with AI"
+    },
+    "envVarDropdown": {
+      "workspace": "Workspace",
+      "personal": "Personal",
+      "createSecret": "Create Secret"
+    },
+    "evalInput": {
+      "metricTitle": "Metric {number}",
+      "addMetric": "Add Metric",
+      "deleteMetric": "Delete Metric",
+      "name": "Name",
+      "namePlaceholder": "Accuracy",
+      "description": "Description",
+      "descriptionPlaceholder": "How accurate is the response?",
+      "minValue": "Min Value",
+      "maxValue": "Max Value"
+    },
+    "fileUpload": {
+      "loadingFiles": "Loading files...",
+      "selectOrUpload": "Select or upload file",
+      "removeFile": "Remove file",
+      "fileTooLarge": "{name} exceeds the maximum file size of {size}MB",
+      "unknownError": "Unknown error",
+      "uploadNewFile": "Upload New File",
+      "cloudStorageRequired": "Cloud storage (S3 or Blob) is required for file uploads. Configure S3_BUCKET_NAME and AWS_REGION, or Azure Blob env vars.",
+      "folderScopeUploadBlocked": "Choose one available folder to upload a new file. Existing files can still be selected.",
+      "uploading": "Uploading...",
+      "uploadComplete": "Upload complete!",
+      "addMore": "+ Add More"
+    },
+    "groupedCheckboxList": {
+      "noneSelected": "None selected",
+      "allSelected": "All selected",
+      "countSelected": "{count} selected",
+      "otherGroup": "Other",
+      "configurePiiTypes": "Configure PII Types",
+      "selectPiiTypes": "Select PII Types to Detect",
+      "piiTypes": "PII types",
+      "piiTypesHint": "Choose which types of personally identifiable information to detect and block.",
+      "selectAllEntities": "Select all entities",
+      "clear": "Clear"
+    },
+    "inputMapping": {
+      "noWorkflowSelected": "No workflow selected",
+      "selectWorkflowAbove": "Select a workflow above to configure inputs",
+      "loadingField": "loading...",
+      "noInputsAvailable": "No inputs available",
+      "value": "Value",
+      "valuePlaceholder": "Enter value or reference"
+    },
+    "knowledgeBaseSelector": {
+      "selectMultiple": "Select knowledge bases",
+      "selectSingle": "Select knowledge base",
+      "remove": "Remove {name}",
+      "searchPlaceholder": "Search knowledge bases...",
+      "memberScopedNotice": "Documents synced per member are returned only when the person who triggers the run has connected their account. Scheduled, API, webhook, and chat runs see workspace-visible documents only."
+    },
+    "mcpDynamicArgs": {
+      "enterJsonArray": "Enter JSON array, e.g. [\"item1\", \"item2\"] or comma-separated values",
+      "enterParam": "Enter {name}",
+      "selectParam": "Select {name}",
+      "jsonArguments": "JSON arguments",
+      "jsonArgumentsPlaceholder": "JSON arguments or an upstream reference",
+      "selectTool": "Select a tool to configure its parameters",
+      "loadingSchema": "Loading tool schema…",
+      "schemaUnavailable": "Operation schema unavailable. Refresh or select an available operation.",
+      "noParameters": "This tool requires no parameters"
+    },
+    "mcpServerModal": {
+      "selectServer": "Select MCP server",
+      "selectTool": "Select tool",
+      "selectServerFirst": "Select server first"
+    },
+    "messagesInput": {
+      "roles": {
+        "system": "System",
+        "user": "User",
+        "assistant": "Assistant"
+      },
+      "messageNumber": "Message {number}",
+      "selectRole": "Select message role",
+      "deleteMessage": "Delete message",
+      "moveUp": "Move message up",
+      "moveDown": "Move message down",
+      "addBelow": "Add message below",
+      "contentPlaceholder": "Enter message content..."
+    },
+    "scheduleInfo": {
+      "redeploying": "redeploying...",
+      "disabled": "disabled",
+      "failedCount": "{count} failed",
+      "disabledAfterFailures": "Disabled after {count} consecutive failures",
+      "redeployFailed": "Failed to redeploy. Please try again.",
+      "next": "Next:"
+    },
+    "selectorCombobox": {
+      "selectChannels": "Select channels",
+      "remove": "Remove {name}",
+      "selectOption": "Select an option",
+      "clearSelection": "Clear selection"
+    },
+    "skillInput": {
+      "createSkill": "Create Skill",
+      "skillsSection": "Skills",
+      "addSkill": "Add skill...",
+      "searchSkills": "Search skills...",
+      "noSkillsFound": "No skills found",
+      "removeSkill": "Remove skill"
+    },
+    "table": {
+      "deleteRow": "Delete row"
+    },
+    "workflowInputMapper": {
+      "selectWorkflow": "Select a workflow to configure its inputs",
+      "noInputFields": "This workflow has no custom input fields",
+      "enterField": "Enter {name}",
+      "enterFieldWithType": "Enter {name} ({type})"
+    },
+    "tagDropdown": {
+      "back": "Back",
+      "noMatchingTags": "No matching tags found",
+      "variables": "Variables"
+    },
+    "credentialSelector": {
+      "selectCredential": "Select credential",
+      "addProviderKey": "Add {provider} key",
+      "connectAnotherAccount": "Connect another {provider} account",
+      "connectAccount": "Connect {provider} account",
+      "providerAccounts": "{provider} accounts",
+      "serviceAccounts": "Service accounts",
+      "fillRequiredFieldsFirst": "Fill in required fields above first",
+      "searchCredentials": "Search credentials...",
+      "dataverse": {
+        "updateAccess": "Update access",
+        "connectMatchingAccount": "Connect matching account",
+        "additionalPermissionsRequired": "Additional permissions required",
+        "invalidEnvironment": "Enter a valid Dynamics environment before selecting a credential",
+        "credentialNotConnectedToEnvironment": "This credential is not connected to this Dynamics environment"
+      }
+    },
+    "combobox": {
+      "createSandbox": "Create Sandbox",
+      "typeOrSelect": "Type or select an option..."
+    },
+    "dropdown": {
+      "selectOption": "Select an option...",
+      "search": "Search..."
+    },
+    "timeInput": {
+      "selectTime": "Select time"
+    },
+    "tableSelector": {
+      "selectTable": "Select a table",
+      "search": "Search..."
+    },
+    "selectorInput": {
+      "notSupported": "Selector not supported for service: {serviceId}",
+      "notImplemented": "This selector is not implemented for {serviceId}",
+      "selectResource": "Select resource"
+    },
+    "workflowSelector": {
+      "selectWorkflow": "Select workflow...",
+      "deletedWorkflow": "Deleted Workflow"
+    },
+    "workspaceFolderSelector": {
+      "workspaceRoot": "Workspace root",
+      "anywhere": "Anywhere in the workspace",
+      "searchFolders": "Search folders...",
+      "noFoldersFound": "No folders found"
+    }
+  },
+  "panelEditor": {
+    "title": "Editor",
+    "unlockBlock": "Unlock block",
+    "ancestorLocked": "Ancestor container is locked",
+    "blockLocked": "Block is locked",
+    "saveName": "Save name",
+    "renameBlock": "Rename block",
+    "focusOnBlock": "Focus on block",
+    "openDocumentation": "Open documentation",
+    "openDocs": "Open docs",
+    "selectBlockToEdit": "Select a block to edit",
+    "workflowPreview": "Workflow Preview",
+    "openWorkflow": "Open workflow",
+    "unableToLoadPreview": "Unable to load preview",
+    "noSubblocks": "This block has no subblocks",
+    "hideAdditionalFields": "Hide additional fields",
+    "showAdditionalFields": "Show additional fields",
+    "additionalFields": "Additional fields",
+    "expandConnections": "Expand connections",
+    "collapseConnections": "Collapse connections",
+    "connections": "Connections",
+    "subflow": {
+      "types": {
+        "forLoop": "For Loop",
+        "forEach": "For Each",
+        "whileLoop": "While Loop",
+        "doWhileLoop": "Do While Loop",
+        "parallelCount": "Parallel Count",
+        "parallelEach": "Parallel Each"
+      },
+      "loopType": "Loop Type",
+      "parallelType": "Parallel Type",
+      "selectType": "Select type...",
+      "loopIterations": "Loop Iterations",
+      "parallelIterations": "Parallel Iterations",
+      "whileCondition": "While Condition",
+      "collectionItems": "Collection Items",
+      "parallelItems": "Parallel Items",
+      "wholeNumberHint": "Enter a whole number greater than 0.",
+      "parallelBatchSize": "Parallel Batch Size",
+      "batchSizeHint": "Run 1 to 20 parallel branches at a time."
+    },
+    "retry": {
+      "retryOnFail": "Retry on fail",
+      "maxTries": "Max tries",
+      "waitBetweenTries": "Wait between tries (ms)"
+    }
+  }
+}

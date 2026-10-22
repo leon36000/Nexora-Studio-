@@ -5,6 +5,7 @@ import enCommon from '@/messages/en/common.json'
 import enEditor from '@/messages/en/editor.json'
 import enErrors from '@/messages/en/errors.json'
 import enFiles from '@/messages/en/files.json'
+import enGovernance from '@/messages/en/governance.json'
 import enHome from '@/messages/en/home.json'
 import enIntegrations from '@/messages/en/integrations.json'
 import enKnowledge from '@/messages/en/knowledge.json'
@@ -17,6 +18,7 @@ import frCommon from '@/messages/fr/common.json'
 import frEditor from '@/messages/fr/editor.json'
 import frErrors from '@/messages/fr/errors.json'
 import frFiles from '@/messages/fr/files.json'
+import frGovernance from '@/messages/fr/governance.json'
 import frHome from '@/messages/fr/home.json'
 import frIntegrations from '@/messages/fr/integrations.json'
 import frKnowledge from '@/messages/fr/knowledge.json'
@@ -39,6 +41,7 @@ export const MESSAGE_NAMESPACES = [
   'files',
   'knowledge',
   'errors',
+  'governance',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -56,6 +59,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     files: frFiles,
     knowledge: frKnowledge,
     errors: frErrors,
+    governance: frGovernance,
   },
   en: {
     common: enCommon,
@@ -70,6 +74,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     files: enFiles,
     knowledge: enKnowledge,
     errors: enErrors,
+    governance: enGovernance,
   },
 }
 

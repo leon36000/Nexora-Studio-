@@ -1,4 +1,5 @@
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { EmptyState } from '@/components/empty-state/empty-state'
 import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/mask'
 
@@ -8,7 +9,7 @@ import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resourc
  * the one drawn entry rather than more placeholder.
  */
 const INK = {
-  title: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)',
+  title: 'color-mix(in srgb, var(--text-secondary) 30%, transparent)', // i18n-ignore: CSS color
   detail: 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
   mark: 'color-mix(in srgb, var(--text-secondary) 46%, var(--bg))',
 } as const
@@ -95,11 +96,8 @@ function ChangelogGraphic() {
 
 /** Empty state for a workspace that has no published releases yet. */
 export function ChangelogEmptyState() {
+  const t = useTranslations('shell.emptyStates.changelog')
   return (
-    <EmptyState
-      graphic={<ChangelogGraphic />}
-      title='Changelog'
-      description='Nexora publishes a release here when it ships changes to this workspace.'
-    />
+    <EmptyState graphic={<ChangelogGraphic />} title={t('title')} description={t('description')} />
   )
 }

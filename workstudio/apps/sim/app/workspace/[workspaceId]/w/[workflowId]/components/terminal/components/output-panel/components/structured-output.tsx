@@ -20,6 +20,7 @@ import {
   disclosureChevronClass,
 } from '@sim/emcn'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useTranslations } from 'next-intl'
 import { isUserFileDisplayMetadata } from '@/lib/core/utils/user-file'
 import {
   isLargeArrayManifest,
@@ -184,18 +185,26 @@ function buildEntries(value: unknown, basePath: string): NodeEntry[] {
   return entries
 }
 
-function getCollapsedSummary(value: unknown): string | null {
+interface CollapsedSummary {
+  kind: 'itemCount' | 'keyCount'
+  count: number
+}
+
+function getCollapsedSummary(value: unknown): CollapsedSummary | null {
   const displayValue = getDisplayValue(value)
 
   if (Array.isArray(displayValue)) {
-    const len = displayValue.length
-    return `${len} item${len !== 1 ? 's' : ''}`
+    return { kind: 'itemCount', count: displayValue.length }
   }
   if (typeof displayValue === 'object' && displayValue !== null) {
-    const count = buildEntries(displayValue, '').length
-    return `${count} key${count !== 1 ? 's' : ''}`
+    return { kind: 'keyCount', count: buildEntries(displayValue, '').length }
   }
   return null
+}
+
+function CollapsedSummaryText({ summary }: { summary: CollapsedSummary }) {
+  const t = useTranslations('editor.runPanels.terminal.structuredOutput')
+  return <span className={STYLES.summary}>{t(summary.kind, { count: summary.count })}</span>
 }
 
 function computeInitialPaths(data: unknown, isError: boolean): Set<string> {
@@ -432,9 +441,7 @@ const StructuredNode = memo(function StructuredNode({
         <Badge variant={badgeVariant} className={STYLES.badge}>
           {type}
         </Badge>
-        {!isExpanded && collapsedSummary && (
-          <span className={STYLES.summary}>{collapsedSummary}</span>
-        )}
+        {!isExpanded && collapsedSummary && <CollapsedSummaryText summary={collapsedSummary} />}
         <ChevronDown className={cn(STYLES.chevron, !isExpanded && '-rotate-90')} />
       </div>
 
@@ -488,7 +495,7 @@ interface FlatRow {
   valueType: ValueType
   isExpanded: boolean
   isError: boolean
-  collapsedSummary: string | null
+  collapsedSummary: CollapsedSummary | null
   displayText: string
   matchIndices: number[]
 }
@@ -693,7 +700,7 @@ function VirtualizedRow({
             {row.valueType}
           </Badge>
           {!row.isExpanded && row.collapsedSummary && (
-            <span className={STYLES.summary}>{row.collapsedSummary}</span>
+            <CollapsedSummaryText summary={row.collapsedSummary} />
           )}
           <ChevronDown className={cn(STYLES.chevron, !row.isExpanded && '-rotate-90')} />
         </div>
@@ -758,6 +765,7 @@ export const StructuredOutput = memo(function StructuredOutput({
   onMatchCountChange,
   contentRef,
 }: StructuredOutputProps) {
+  const t = useTranslations('editor.runPanels.terminal.structuredOutput')
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() =>
     computeInitialPaths(data, isError)
   )
@@ -939,7 +947,7 @@ export const StructuredOutput = memo(function StructuredOutput({
         <div className={STYLES.row}>
           <span className={STYLES.keyName}>running</span>
           <Badge variant='green' className={STYLES.badge}>
-            Running
+            {t('running')}
           </Badge>
         </div>
       </div>

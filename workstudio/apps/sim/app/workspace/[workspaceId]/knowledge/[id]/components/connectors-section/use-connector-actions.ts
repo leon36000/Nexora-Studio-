@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import type { SettingsAction } from '@/components/settings/settings-header'
 import type { ConnectorData } from '@/lib/api/contracts/knowledge/connectors'
 import { getConnectorSyncState } from '@/app/workspace/[workspaceId]/knowledge/[id]/components/connectors-section/connector-sync-state'
@@ -29,6 +30,7 @@ export function useConnectorActions({
   onEdit,
   onRemoved,
 }: ConnectorActionsOptions) {
+  const t = useTranslations('knowledge.connectors.sync')
   const sync = useTriggerSync()
   const update = useUpdateConnector()
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -70,20 +72,20 @@ export function useConnectorActions({
     ? [
         {
           id: 'sync',
-          text: state.syncLabel,
+          text: t(state.syncLabelKey),
           variant: primarySync ? 'primary' : undefined,
           disabled: state.syncDisabled || actionsDisabled,
-          tooltip: state.syncTooltip,
+          tooltip: state.syncTooltipKey ? t(state.syncTooltipKey) : undefined,
           onSelect: () => triggerSync(),
         },
         ...(onEdit
-          ? [{ id: 'settings', text: 'Settings', disabled: actionsDisabled, onSelect: onEdit }]
+          ? [{ id: 'settings', text: t('settings'), disabled: actionsDisabled, onSelect: onEdit }]
           : []),
         {
           id: 'pause',
-          text: state.canResume ? 'Resume syncing' : 'Pause syncing',
+          text: state.canResume ? t('resume') : t('pause'),
           disabled: pauseDisabled,
-          tooltip: syncRunning ? 'Wait for the current sync to finish' : undefined,
+          tooltip: syncRunning ? t('waitForSync') : undefined,
           onSelect: () => {
             if (!canEdit || pauseDisabled) return
             resetErrors()
@@ -96,7 +98,7 @@ export function useConnectorActions({
         },
         {
           id: 'delete',
-          text: 'Remove connection',
+          text: t('removeConnection'),
           disabled: actionsDisabled,
           onSelect: () => {
             if (actionsDisabled) return

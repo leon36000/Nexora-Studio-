@@ -14,6 +14,7 @@ import {
 import { Plus } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { formatDate } from '@sim/utils/formatting'
+import { useTranslations } from 'next-intl'
 import { RowActionsMenu } from '@/app/workspace/[workspaceId]/settings/components/row-actions-menu'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import type { SettingsAction } from '@/app/workspace/[workspaceId]/settings/components/settings-header/settings-header'
@@ -32,17 +33,13 @@ import {
 
 const logger = createLogger('CopilotSettings')
 
-/** Formats a key's last-used timestamp, falling back to "Never" when unset. */
-function formatLastUsed(dateString?: string | null): string {
-  if (!dateString) return 'Never'
-  return formatDate(new Date(dateString))
-}
-
 /**
  * Copilot Keys management component for handling API keys used with the Copilot feature.
  * Provides functionality to create, view, and delete copilot API keys.
  */
 export function Copilot() {
+  const t = useTranslations('settings.copilot')
+  const tSettings = useTranslations('settings')
   const { data: keys = [], isLoading } = useCopilotKeys()
   const generateKey = useGenerateCopilotKey()
   const deleteKeyMutation = useDeleteCopilotKey()
@@ -71,9 +68,7 @@ export function Copilot() {
     const trimmedName = newKeyName.trim()
     const isDuplicate = keys.some((k) => k.name === trimmedName)
     if (isDuplicate) {
-      setCreateError(
-        `A Chat API key named "${trimmedName}" already exists. Please choose a different name.`
-      )
+      setCreateError(t('duplicateName', { name: trimmedName }))
       return
     }
 
@@ -89,7 +84,7 @@ export function Copilot() {
       }
     } catch (error) {
       logger.error('Failed to generate copilot API key', { error })
-      setCreateError('Failed to create API key. Please check your connection and try again.')
+      setCreateError(t('createFailed'))
     }
   }
 
@@ -112,7 +107,7 @@ export function Copilot() {
 
   const actions: SettingsAction[] = [
     {
-      text: 'Create API key',
+      text: t('createApiKey'),
       icon: Plus,
       variant: 'primary',
       onSelect: () => {
@@ -129,30 +124,32 @@ export function Copilot() {
         search={{
           value: searchTerm,
           onChange: setSearchTerm,
-          placeholder: 'Search API keys...',
+          placeholder: t('searchPlaceholder'),
         }}
         actions={actions}
       >
         {isLoading ? null : showEmptyState ? (
-          <SettingsEmptyState>Click "Create API key" above to get started</SettingsEmptyState>
+          <SettingsEmptyState>{t('emptyState')}</SettingsEmptyState>
         ) : (
           <div className={RESOURCE_LIST_STACK}>
             {filteredKeys.map((key) => (
               <SettingsResourceRow
                 key={key.id}
-                title={key.name || 'Unnamed Key'}
+                title={key.name || t('unnamedKey')}
                 description={key.displayKey}
                 badge={
                   <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
-                    {`last used ${formatLastUsed(key.lastUsed).toLowerCase()}`}
+                    {key.lastUsed
+                      ? t('lastUsed', { date: formatDate(new Date(key.lastUsed)).toLowerCase() })
+                      : t('neverUsed')}
                   </span>
                 }
                 trailing={
                   <RowActionsMenu
-                    label={`Actions for ${key.name || 'Unnamed Key'}`}
+                    label={t('actionsFor', { name: key.name || t('unnamedKey') })}
                     actions={[
                       {
-                        label: 'Delete',
+                        label: tSettings('shared.delete'),
                         destructive: true,
                         onSelect: () => {
                           setDeleteKey(key)
@@ -166,7 +163,7 @@ export function Copilot() {
             ))}
             {showNoResults && (
               <SettingsEmptyState variant='inline'>
-                No API keys found matching "{searchTerm}"
+                {t('noResults', { term: searchTerm })}
               </SettingsEmptyState>
             )}
           </div>
@@ -176,25 +173,24 @@ export function Copilot() {
       <ChipModal
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        srTitle='Create new API key'
+        srTitle={t('createModal.title')}
       >
         <ChipModalHeader onClose={() => setIsCreateDialogOpen(false)}>
-          Create new API key
+          {t('createModal.title')}
         </ChipModalHeader>
         <ChipModalBody>
           <p className='px-2 text-[var(--text-secondary)] text-sm'>
-            This key will allow access to Chat features. Make sure to copy it after creation as you
-            won't be able to see it again.
+            {t('createModal.description')}
           </p>
           <ChipModalField
             type='input'
-            title='Key name'
+            title={t('createModal.keyName')}
             value={newKeyName}
             onChange={(value) => {
               setNewKeyName(value)
               if (createError) setCreateError(null)
             }}
-            placeholder='e.g., Development, Production'
+            placeholder={t('createModal.keyNamePlaceholder')}
             required
           />
           <ChipModalError>{createError}</ChipModalError>
@@ -206,7 +202,9 @@ export function Copilot() {
             setCreateError(null)
           }}
           primaryAction={{
-            label: generateKey.isPending ? 'Creating...' : 'Create',
+            label: generateKey.isPending
+              ? tSettings('shared.creating')
+              : tSettings('shared.create'),
             onClick: handleCreateKey,
             disabled: !newKeyName.trim() || generateKey.isPending,
           }}
@@ -221,7 +219,7 @@ export function Copilot() {
             setNewKey(null)
           }
         }}
-        srTitle='Your API key has been created'
+        srTitle={t('createdModal.title')}
       >
         <ChipModalHeader
           onClose={() => {
@@ -229,10 +227,10 @@ export function Copilot() {
             setNewKey(null)
           }}
         >
-          Your API key has been created
+          {t('createdModal.title')}
         </ChipModalHeader>
         <ChipModalBody>
-          <ChipModalField type='custom' title="Copy it now — it won't be shown again">
+          <ChipModalField type='custom' title={t('createdModal.copyNow')}>
             {newKey && <SecretReveal value={newKey} />}
           </ChipModalField>
         </ChipModalBody>
@@ -242,7 +240,7 @@ export function Copilot() {
             setNewKey(null)
           }}
           primaryAction={{
-            label: 'Done',
+            label: tSettings('shared.done'),
             onClick: () => {
               setShowNewKeyDialog(false)
               setNewKey(null)
@@ -259,20 +257,20 @@ export function Copilot() {
             setDeleteKey(null)
           }
         }}
-        srTitle='Delete API key'
-        title='Delete API key'
+        srTitle={t('deleteModal.title')}
+        title={t('deleteModal.title')}
         text={[
-          'Deleting ',
-          { text: deleteKey?.name || 'Unnamed Key', bold: true },
+          t('deleteModal.prefix'),
+          { text: deleteKey?.name || t('unnamedKey'), bold: true },
           ' ',
-          { text: 'will immediately revoke access for any integrations using it.', error: true },
-          ' This action cannot be undone.',
+          { text: t('deleteModal.consequence'), error: true },
+          t('deleteModal.suffix'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: tSettings('shared.delete'),
           onClick: handleDeleteKey,
           pending: deleteKeyMutation.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: tSettings('shared.deleting'),
         }}
       />
     </>

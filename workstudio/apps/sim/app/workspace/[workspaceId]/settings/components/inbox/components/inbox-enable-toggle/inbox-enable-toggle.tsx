@@ -14,14 +14,15 @@ import {
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useInboxConfig, useToggleInbox } from '@/hooks/queries/inbox'
 
-const INBOX_OPTIONS = [
-  { value: 'enabled', label: 'On' },
-  { value: 'disabled', label: 'Off' },
-] as const
-
 export function InboxEnableToggle() {
+  const t = useTranslations('settings.inbox.enableToggle')
+  const inboxOptions = [
+    { value: 'enabled', label: t('on') },
+    { value: 'disabled', label: t('off') },
+  ] as const
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
@@ -64,22 +65,18 @@ export function InboxEnableToggle() {
     )
   }
 
-  const error = toggleInbox.error
-    ? getErrorMessage(toggleInbox.error, 'Failed to update inbox')
-    : null
+  const error = toggleInbox.error ? getErrorMessage(toggleInbox.error, t('updateFailed')) : null
 
   return (
     <>
       <div className='flex items-center justify-between'>
         <div className='flex flex-col gap-1'>
-          <Label>Enable email inbox</Label>
-          <p className='text-[var(--text-muted)] text-caption'>
-            Allow this workspace to receive tasks via email
-          </p>
+          <Label>{t('enableTitle')}</Label>
+          <p className='text-[var(--text-muted)] text-caption'>{t('enableDescription')}</p>
         </div>
         <ChipSwitch
-          aria-label='Enable email inbox'
-          options={INBOX_OPTIONS}
+          aria-label={t('enableTitle')}
+          options={inboxOptions}
           value={config?.enabled ? 'enabled' : 'disabled'}
           onChange={(value) => handleToggle(value === 'enabled')}
           disabled={toggleInbox.isPending}
@@ -89,33 +86,28 @@ export function InboxEnableToggle() {
       <ChipModal
         open={isEnableOpen}
         onOpenChange={handleEnableOpenChange}
-        srTitle='Enable email inbox'
+        srTitle={t('enableTitle')}
       >
         <ChipModalHeader onClose={() => handleEnableOpenChange(false)}>
-          Enable email inbox
+          {t('enableTitle')}
         </ChipModalHeader>
         <ChipModalBody>
-          <p className='px-2 text-[var(--text-secondary)] text-sm'>
-            An email address will be created for this workspace. Anyone in the allowed senders list
-            can email it to create tasks.
-          </p>
+          <p className='px-2 text-[var(--text-secondary)] text-sm'>{t('enableModalDescription')}</p>
           <ChipModalField
             type='input'
-            title='Email prefix'
+            title={t('emailPrefix')}
             value={enableUsername}
             onChange={setEnableUsername}
-            placeholder='Optional — leave blank to auto-generate'
+            placeholder={t('emailPrefixPlaceholder')}
           />
-          <p className='px-2 text-[var(--text-muted)] text-sm'>
-            Leave blank for an auto-generated address.
-          </p>
+          <p className='px-2 text-[var(--text-muted)] text-sm'>{t('emailPrefixHint')}</p>
           <ChipModalError>{error}</ChipModalError>
         </ChipModalBody>
         <ChipModalFooter
           onCancel={() => handleEnableOpenChange(false)}
           cancelDisabled={toggleInbox.isPending}
           primaryAction={{
-            label: toggleInbox.isPending ? 'Enabling...' : 'Enable',
+            label: toggleInbox.isPending ? t('enabling') : t('enable'),
             onClick: handleEnable,
             disabled: toggleInbox.isPending,
           }}
@@ -125,24 +117,25 @@ export function InboxEnableToggle() {
       <ChipConfirmModal
         open={isDisableOpen}
         onOpenChange={setIsDisableOpen}
-        srTitle='Disable email inbox'
-        title='Disable email inbox'
-        text={[
-          'Are you sure you want to disable the inbox',
-          config?.address && ' ',
-          config?.address && { text: config.address, bold: true },
-          '? Any emails sent to this address after disabling will not be delivered. This action cannot be undone.',
-        ]}
+        srTitle={t('disableTitle')}
+        title={t('disableTitle')}
+        text={
+          config?.address
+            ? [
+                t('disableConfirmPrefix'),
+                { text: config.address, bold: true },
+                t('disableConfirmSuffix'),
+              ]
+            : t('disableConfirmNoAddress')
+        }
         confirm={{
-          label: 'Disable inbox',
+          label: t('disableInbox'),
           onClick: handleDisable,
           pending: toggleInbox.isPending,
-          pendingLabel: 'Disabling...',
+          pendingLabel: t('disabling'),
         }}
       >
-        <p className='px-2 text-[var(--text-secondary)] text-sm'>
-          Your existing conversations and task history will be preserved.
-        </p>
+        <p className='px-2 text-[var(--text-secondary)] text-sm'>{t('historyPreserved')}</p>
         <ChipModalError>{error}</ChipModalError>
       </ChipConfirmModal>
     </>

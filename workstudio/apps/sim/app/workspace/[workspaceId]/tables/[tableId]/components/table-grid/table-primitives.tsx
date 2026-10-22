@@ -3,6 +3,7 @@
 import React from 'react'
 import { Button, Checkbox, cn, Tooltip } from '@sim/emcn'
 import { Lock, Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { ADD_COL_WIDTH, CELL_HEADER_CHECKBOX, COL_WIDTH } from './constants'
 import type { DisplayColumn } from './types'
 
@@ -67,6 +68,7 @@ export const AddRowButton = React.memo(function AddRowButton({
   onClick,
   blockedReason,
 }: AddRowButtonProps) {
+  const t = useTranslations('tables.grid')
   const Icon = blockedReason ? Lock : Plus
   const button = (
     <Button
@@ -81,7 +83,7 @@ export const AddRowButton = React.memo(function AddRowButton({
       onClick={blockedReason ? undefined : onClick}
     >
       <Icon className='size-[14px] shrink-0 text-[var(--text-icon)]' />
-      <span className='text-small'>New row</span>
+      <span className='text-small'>{t('newRow')}</span>
     </Button>
   )
   return (

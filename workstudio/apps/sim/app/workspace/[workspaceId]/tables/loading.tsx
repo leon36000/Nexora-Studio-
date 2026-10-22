@@ -2,34 +2,34 @@
 
 import { Plus, Upload } from '@sim/emcn'
 import { FolderPlus, Table as TableIcon } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import {
   type ChromeActionSpec,
   ResourceChromeFallback,
 } from '@/app/workspace/[workspaceId]/components/resource/components/resource-chrome-fallback'
 
-const COLUMNS = [
-  { id: 'name', header: 'Name' },
-  { id: 'columns', header: 'Columns' },
-  { id: 'rows', header: 'Rows' },
-  { id: 'created', header: 'Created' },
-  { id: 'owner', header: 'Owner' },
-  { id: 'updated', header: 'Last Updated' },
-]
-
-const ACTIONS: ChromeActionSpec[] = [
-  { text: 'Import CSV', icon: Upload },
-  { text: 'New folder', icon: FolderPlus },
-  { text: 'New table', icon: Plus, variant: 'primary' },
-]
-
 export default function TablesLoading() {
+  const t = useTranslations('tables.list')
+  const columns = [
+    { id: 'name', header: t('columns.name') },
+    { id: 'columns', header: t('columns.columns') },
+    { id: 'rows', header: t('columns.rows') },
+    { id: 'created', header: t('columns.created') },
+    { id: 'owner', header: t('columns.owner') },
+    { id: 'updated', header: t('columns.updated') },
+  ]
+  const actions: ChromeActionSpec[] = [
+    { text: t('actions.importCsv'), icon: Upload },
+    { text: t('actions.newFolder'), icon: FolderPlus },
+    { text: t('actions.newTable'), icon: Plus, variant: 'primary' },
+  ]
   return (
     <ResourceChromeFallback
       icon={TableIcon}
-      title='Tables'
-      columns={COLUMNS}
-      actions={ACTIONS}
-      searchPlaceholder='Search tables...'
+      title={t('title')}
+      columns={columns}
+      actions={actions}
+      searchPlaceholder={t('searchPlaceholder')}
       hasSort
       hasFilter
     />

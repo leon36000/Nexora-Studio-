@@ -1,5 +1,6 @@
 import type { Ref } from 'react'
 import type { ChainedCommands } from '@tiptap/core'
+import { useTranslations } from 'next-intl'
 import { normalizeLinkHref } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/markdown-fidelity'
 import { ToolbarInput } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/menus/toolbar-input'
 
@@ -33,7 +34,13 @@ interface LinkUrlInputProps {
 
 /** Inline link field shared by the text-selection toolbar and link hover card. */
 export function LinkUrlInput(props: LinkUrlInputProps) {
+  const t = useTranslations('files.editor.link')
   return (
-    <ToolbarInput {...props} label='Link URL' inputMode='url' placeholder='Paste or type a link…' />
+    <ToolbarInput
+      {...props}
+      label={t('urlLabel')}
+      inputMode='url'
+      placeholder={t('urlPlaceholder')}
+    />
   )
 }

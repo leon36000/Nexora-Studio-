@@ -1,1 +1,22 @@
-{}
+{
+  "notFound": {
+    "metaTitle": "Page Not Found",
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved."
+  },
+  "globalError": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try again.",
+    "retry": "Try again"
+  },
+  "workspaceError": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try again or refresh the page."
+  },
+  "workspaceNotFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved. Head back to your workspace to keep building.",
+    "goBack": "Go back",
+    "returnHome": "Return home"
+  }
+}

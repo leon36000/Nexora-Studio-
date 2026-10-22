@@ -1,4 +1,7 @@
+import { useCallback } from 'react'
 import { toast } from '@sim/emcn'
+import { createTranslator, type Messages, useTranslations } from 'next-intl'
+import enShell from '@/messages/en/shell.json'
 
 /** An item the batch reached but could not act on, with a reason worth showing. */
 interface BulkFailure {
@@ -16,6 +19,11 @@ export interface BulkOutcome {
   notFound: BulkMissing[]
 }
 
+/** The bulk operations whose partial outcome is reported. */
+export type BulkVerb = 'moved' | 'deleted'
+
+type Translate = (key: string, values?: Record<string, string | number>) => string
+
 /**
  * Reports the parts of a bulk operation that did not happen.
  *
@@ -25,18 +33,16 @@ export interface BulkOutcome {
  * the list simply refetching leaves the user to notice a row survived.
  *
  * Success stays silent, matching the single-item move and delete paths.
- *
- * @param verb Past-tense verb for the failure sentence, e.g. `'moved'` or `'deleted'`.
  */
-export function reportBulkOutcome(outcome: BulkOutcome, verb: string): void {
+function reportBulkOutcomeWith(outcome: BulkOutcome, verb: BulkVerb, t: Translate): void {
   const { failed, notFound } = outcome
 
   if (failed.length > 0) {
     const [first] = failed
     toast.error(
       failed.length === 1
-        ? `${first.name} could not be ${verb}: ${first.reason}`
-        : `${failed.length} items could not be ${verb}. ${first.name}: ${first.reason}`,
+        ? t(`${verb}.single`, { name: first.name, reason: first.reason })
+        : t(`${verb}.multiple`, { count: failed.length, name: first.name, reason: first.reason }),
       { duration: 5000 }
     )
     return
@@ -45,9 +51,31 @@ export function reportBulkOutcome(outcome: BulkOutcome, verb: string): void {
   if (notFound.length > 0) {
     toast.error(
       notFound.length === 1
-        ? `One item was no longer available and was not ${verb}.`
-        : `${notFound.length} items were no longer available and were not ${verb}.`,
+        ? t(`${verb}.missingOne`)
+        : t(`${verb}.missingMany`, { count: notFound.length }),
       { duration: 5000 }
     )
   }
+}
+
+/** Translated {@link reportBulkOutcome} for client components. */
+export function useReportBulkOutcome() {
+  const t = useTranslations('shell.bulkOutcome')
+  return useCallback(
+    (outcome: BulkOutcome, verb: BulkVerb) => reportBulkOutcomeWith(outcome, verb, t),
+    [t]
+  )
+}
+
+const englishMessages: Messages = { shell: enShell }
+
+const englishTranslate = createTranslator({
+  locale: 'en',
+  messages: englishMessages,
+  namespace: 'shell.bulkOutcome',
+})
+
+/** English-only variant for callers outside React; prefer {@link useReportBulkOutcome}. */
+export function reportBulkOutcome(outcome: BulkOutcome, verb: BulkVerb): void {
+  reportBulkOutcomeWith(outcome, verb, englishTranslate)
 }

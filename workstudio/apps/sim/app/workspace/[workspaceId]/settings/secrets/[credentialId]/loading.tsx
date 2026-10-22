@@ -3,6 +3,7 @@
 import { ChipLink } from '@sim/emcn'
 import { ArrowLeft } from '@sim/emcn/icons'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { CredentialDetailLayout } from '@/app/workspace/[workspaceId]/components/credential-detail'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 
@@ -11,17 +12,18 @@ import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/compo
  * detail's `useQueryState` needs, so the chrome never flashes between the two.
  */
 export default function SecretDetailLoading() {
+  const t = useTranslations('settings.secretDetail')
   const { workspaceId } = useParams<{ workspaceId: string }>()
 
   return (
     <CredentialDetailLayout
       back={
         <ChipLink href={`/workspace/${workspaceId}/settings/secrets`} leftIcon={ArrowLeft}>
-          Secrets
+          {t('back')}
         </ChipLink>
       }
     >
-      <SettingsEmptyState variant='inline'>Loading…</SettingsEmptyState>
+      <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
     </CredentialDetailLayout>
   )
 }

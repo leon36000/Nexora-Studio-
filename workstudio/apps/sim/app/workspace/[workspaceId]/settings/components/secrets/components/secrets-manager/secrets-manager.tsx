@@ -2,6 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { type SecretRowAccess, SecretsEditor } from '@/components/secrets/secrets-editor'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
 import { useWorkspaceCredentials } from '@/hooks/queries/credentials'
@@ -16,6 +17,7 @@ import { workspaceCredentialKeys } from '@/hooks/queries/utils/credential-keys'
 import { useWorkspacePermissionsQuery } from '@/hooks/queries/workspace'
 
 export function SecretsManager() {
+  const t = useTranslations('settings.secrets')
   const params = useParams()
   const workspaceId = (params?.workspaceId as string) || ''
   const personal = usePersonalEnvironment()
@@ -50,7 +52,7 @@ export function SecretsManager() {
   }
   return (
     <SecretsEditor
-      sectionLabel='Workspace'
+      sectionLabel={t('workspace')}
       workspaceId={workspaceId}
       variables={workspace.data?.workspace}
       canCreate={canCreate}

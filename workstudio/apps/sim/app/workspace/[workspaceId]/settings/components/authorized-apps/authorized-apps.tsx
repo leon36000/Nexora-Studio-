@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Chip, ChipConfirmModal, toast } from '@sim/emcn'
 import { ArrowLeft } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
-import { formatDate } from '@sim/utils/formatting'
+import { useLocale, useTranslations } from 'next-intl'
 import { summarizeOAuthAccess } from '@/lib/auth/oauth-provider'
 import { RowActionsMenu } from '@/app/workspace/[workspaceId]/settings/components/row-actions-menu'
 import {
@@ -29,6 +29,8 @@ interface AuthorizedAppsProps {
  * request it makes fails and the next sign-in asks again.
  */
 export function AuthorizedApps({ onBack }: AuthorizedAppsProps) {
+  const t = useTranslations('settings.authorizedApps')
+  const locale = useLocale()
   const [searchTerm, setSearchTerm] = useSettingsSearch()
   const apps = useAuthorizedApps(searchTerm.trim())
   const revoke = useRevokeAuthorizedApp()
@@ -39,10 +41,10 @@ export function AuthorizedApps({ onBack }: AuthorizedAppsProps) {
 
   const confirmRevoke = () => {
     if (!pendingRevokeClientId) return
-    const appName = pendingRevoke?.name ?? 'app'
+    const appName = pendingRevoke?.name ?? t('appFallback')
     revoke.mutate(pendingRevokeClientId, {
-      onSuccess: () => toast.success(`Revoked ${appName}`),
-      onError: (error) => toast.error(getErrorMessage(error, 'Failed to revoke access')),
+      onSuccess: () => toast.success(t('revokedToast', { name: appName })),
+      onError: (error) => toast.error(getErrorMessage(error, t('revokeError'))),
       /** Keep the modal open so its pending state remains visible through the mutation. */
       onSettled: () => setPendingRevokeClientId(null),
     })
@@ -52,35 +54,33 @@ export function AuthorizedApps({ onBack }: AuthorizedAppsProps) {
     <>
       <SettingsPanel
         back={{
-          text: 'General',
+          text: t('back'),
           icon: ArrowLeft,
           onSelect: () => {
             setSearchTerm('')
             onBack()
           },
         }}
-        title='Authorized apps'
-        description='Review and revoke apps that can act on your account.'
+        title={t('title')}
+        description={t('description')}
         search={{
           value: searchTerm,
           onChange: setSearchTerm,
-          placeholder: 'Search authorized apps...',
+          placeholder: t('searchPlaceholder'),
         }}
       >
         {apps.isError && apps.data === undefined ? (
           <SettingsQueryErrorState
             error={apps.error}
-            fallback='Failed to load authorized apps'
+            fallback={t('loadError')}
             isRetrying={apps.isFetching}
             onRetry={() => apps.refetch()}
           />
         ) : apps.isPending ? (
-          <SettingsEmptyState>Loading authorized apps…</SettingsEmptyState>
+          <SettingsEmptyState>{t('loading')}</SettingsEmptyState>
         ) : list.length === 0 ? (
           <SettingsEmptyState>
-            {searchTerm.trim()
-              ? `No apps found matching "${searchTerm}"`
-              : 'No apps have access to your account'}
+            {searchTerm.trim() ? t('noResults', { term: searchTerm }) : t('empty')}
           </SettingsEmptyState>
         ) : (
           <div className={RESOURCE_LIST_STACK}>
@@ -91,15 +91,21 @@ export function AuthorizedApps({ onBack }: AuthorizedAppsProps) {
                 description={summarizeOAuthAccess(app.scopes)}
                 badge={
                   <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
-                    {`authorized ${formatDate(new Date(app.authorizedAt))}`}
+                    {t('authorizedOn', {
+                      date: new Date(app.authorizedAt).toLocaleDateString(locale, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      }),
+                    })}
                   </span>
                 }
                 trailing={
                   <RowActionsMenu
-                    label='Authorized app actions'
+                    label={t('actionsLabel')}
                     actions={[
                       {
-                        label: 'Revoke',
+                        label: t('revoke'),
                         destructive: true,
                         onSelect: () => setPendingRevokeClientId(app.clientId),
                       },
@@ -111,7 +117,7 @@ export function AuthorizedApps({ onBack }: AuthorizedAppsProps) {
             {apps.isError && (
               <SettingsQueryErrorState
                 error={apps.error}
-                fallback='Failed to load authorized apps'
+                fallback={t('loadError')}
                 isRetrying={apps.isFetching}
                 onRetry={() => (apps.isFetchNextPageError ? apps.fetchNextPage() : apps.refetch())}
                 variant='inline'
@@ -119,7 +125,7 @@ export function AuthorizedApps({ onBack }: AuthorizedAppsProps) {
             )}
             {apps.hasNextPage && !apps.isError && (
               <Chip fullWidth disabled={apps.isFetching} onClick={() => apps.fetchNextPage()}>
-                {apps.isFetchingNextPage ? 'Loading…' : 'Load more'}
+                {apps.isFetchingNextPage ? t('loadingMore') : t('loadMore')}
               </Chip>
             )}
           </div>
@@ -131,20 +137,20 @@ export function AuthorizedApps({ onBack }: AuthorizedAppsProps) {
         onOpenChange={(open) => {
           if (!open) setPendingRevokeClientId(null)
         }}
-        srTitle='Revoke access'
-        title='Revoke access'
+        srTitle={t('revokeTitle')}
+        title={t('revokeTitle')}
         text={[
-          'Revoking ',
-          { text: pendingRevoke?.name ?? 'this app', bold: true },
+          t('revokeConfirm.before'),
+          { text: pendingRevoke?.name ?? t('revokeConfirm.thisApp'), bold: true },
           ' ',
-          { text: 'immediately signs it out everywhere.', error: true },
-          ' You will have to authorize it again to reconnect.',
+          { text: t('revokeConfirm.consequence'), error: true },
+          t('revokeConfirm.after'),
         ]}
         confirm={{
-          label: 'Revoke',
+          label: t('revoke'),
           onClick: confirmRevoke,
           pending: revoke.isPending,
-          pendingLabel: 'Revoking...',
+          pendingLabel: t('revoking'),
         }}
       />
     </>

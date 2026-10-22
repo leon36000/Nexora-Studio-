@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useState } from 'react'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
 import { PptxSandboxHost } from '@/app/workspace/[workspaceId]/files/components/file-viewer/pptx-sandbox-host'
 import {
@@ -25,6 +26,7 @@ export const PptxPreview = memo(function PptxPreview({
   file: WorkspaceFileRecord
   workspaceId: string
 }) {
+  const t = useTranslations('files.preview')
   const preview = useDocPreviewBinary(workspaceId, file)
   const fileData = preview.data
   const cacheKey = pptxCacheKey(file.id, preview.dataUpdatedAt, fileData?.byteLength ?? 0)
@@ -47,12 +49,12 @@ export const PptxPreview = memo(function PptxPreview({
 
   function handleRenderError(message: string) {
     logger.error('PPTX render failed', { error: message })
-    setRenderError(message || 'Failed to render presentation')
+    setRenderError(message || t('renderPresentationFailed'))
   }
 
   const error = resolvePreviewError(preview.error, renderError)
 
-  if (error) return <PreviewError label='presentation' error={error} />
+  if (error) return <PreviewError kind='presentation' error={error} />
 
   if (!fileData) {
     return <PreviewLoadingFrame className='h-full flex-1' tone='surface' />

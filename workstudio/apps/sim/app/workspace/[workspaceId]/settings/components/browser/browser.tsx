@@ -10,6 +10,7 @@ import type {
 } from '@sim/desktop-bridge'
 import { Chip, ChipConfirmModal, Label, Switch, toast } from '@sim/emcn'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { getDesktopBridge } from '@/lib/desktop'
 import { AppearanceThemeSelect } from '@/app/workspace/[workspaceId]/settings/components/appearance-theme-select'
 import { PasswordsView } from '@/app/workspace/[workspaceId]/settings/components/browser/components/passwords-view/passwords-view'
@@ -20,13 +21,12 @@ import { useDesktopPreferenceMutation } from '@/hooks/use-desktop-preference-mut
 
 interface DataRow {
   kind: BrowserDataKind
-  label: string
-  action: string
   /**
-   * What the user actually loses. Not shown in the row — the action names
+   * Message key for the row's label, action, and consequence. The consequence is
+   * what the user actually loses: not shown in the row — the action names
    * itself — but spelled out in the confirmation, where it matters.
    */
-  consequence: string
+  key: 'cookies' | 'siteData' | 'cache'
 }
 
 /**
@@ -34,27 +34,14 @@ interface DataRow {
  * configured folder without retaining a separate browsing-history record.
  */
 const DATA_ROWS: DataRow[] = [
-  {
-    kind: 'cookies',
-    label: 'Cookies',
-    action: 'Delete cookies',
-    consequence: 'sign the browser out of every site it is currently signed into',
-  },
-  {
-    kind: 'site-data',
-    label: 'Site data',
-    action: 'Delete site data',
-    consequence: 'erase the data sites have stored locally, such as drafts and preferences',
-  },
-  {
-    kind: 'cache',
-    label: 'Cached images and files',
-    action: 'Delete cached images and files',
-    consequence: 'free up space and make sites load more slowly the first time',
-  },
+  { kind: 'cookies', key: 'cookies' },
+  { kind: 'site-data', key: 'siteData' },
+  { kind: 'cache', key: 'cache' },
 ]
 
 export function Browser() {
+  const t = useTranslations('settings.browser')
+  const tShared = useTranslations('settings.shared')
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -72,13 +59,13 @@ export function Browser() {
 
   const { pending: themePending, mutate: setTheme } = useDesktopPreferenceMutation(
     (bridge, theme: DesktopAppearanceTheme) => bridge.settings.setBrowserTheme(theme),
-    'Could not update browser appearance',
+    t('errors.theme'),
     setPreferences
   )
 
   const { pending: zoomPending, mutate: setDefaultZoom } = useDesktopPreferenceMutation(
     (bridge, zoom: DesktopZoomPercent) => bridge.settings.setBrowserDefaultZoom(zoom),
-    'Could not update the default browser zoom',
+    t('errors.zoom'),
     setPreferences
   )
 
@@ -86,7 +73,7 @@ export function Browser() {
   const { pending: downloadDirectoryPending, mutate: chooseDownloadDirectory } =
     useDesktopPreferenceMutation(
       (bridge) => bridge.settings.chooseBrowserDownloadDirectory(),
-      'Could not update the browser download location',
+      t('errors.downloadDirectory'),
       setPreferences
     )
 
@@ -105,12 +92,12 @@ export function Browser() {
     }
     void Promise.all([bridge.settings.getPreferences(), refreshCredentials()])
       .then(([next]) => setPreferences(next))
-      .catch(() => toast.error('Could not load browser settings'))
+      .catch(() => toast.error(t('errors.load')))
   }, [refreshCredentials, router, workspaceId])
 
   const { pending: togglePending, mutate: setEnabled } = useDesktopPreferenceMutation(
     (bridge, enabled: boolean) => bridge.settings.setPreference('browserEnabled', enabled),
-    'Could not update browser settings',
+    t('errors.update'),
     setPreferences
   )
 
@@ -118,7 +105,7 @@ export function Browser() {
     useDesktopPreferenceMutation(
       async (bridge, enabled: boolean) =>
         bridge.settings.setBrowserSearchSuggestionsEnabled?.(enabled),
-      'Could not update browser search suggestions',
+      t('errors.searchSuggestions'),
       setPreferences
     )
 
@@ -130,7 +117,7 @@ export function Browser() {
       await desktop.browserAgent.clearBrowsingData(kinds)
       setConfirming(null)
     } catch {
-      toast.error('Could not delete browsing data')
+      toast.error(t('errors.clear'))
     } finally {
       setClearPending(false)
     }
@@ -139,13 +126,13 @@ export function Browser() {
   const actions = [
     {
       id: 'passwords',
-      text: 'Passwords',
+      text: t('actions.passwords'),
       onSelect: () => setShowPasswords(true),
       disabled: !preferences,
     },
     {
       id: 'clear-all',
-      text: 'Clear all',
+      text: t('actions.clearAll'),
       variant: 'destructive' as const,
       onSelect: () => setConfirming('all'),
       disabled: !preferences || clearPending,
@@ -177,10 +164,10 @@ export function Browser() {
   return (
     <>
       <SettingsPanel actions={actions}>
-        <SettingsSection label='General'>
+        <SettingsSection label={t('sections.general')}>
           <div className='flex flex-col gap-3'>
             <div className='flex items-center justify-between'>
-              <Label htmlFor='browser-enabled'>Let Chat browse the web</Label>
+              <Label htmlFor='browser-enabled'>{t('enabled')}</Label>
               <Switch
                 id='browser-enabled'
                 checked={enabled}
@@ -192,9 +179,9 @@ export function Browser() {
             {supportsSearchSuggestions && (
               <div className='flex items-center justify-between gap-4'>
                 <div className='flex min-w-0 flex-col gap-1'>
-                  <Label htmlFor='browser-search-suggestions'>Search suggestions</Label>
+                  <Label htmlFor='browser-search-suggestions'>{t('searchSuggestions')}</Label>
                   <p className='text-[var(--text-muted)] text-caption'>
-                    Send address-bar typing to Google for live completions
+                    {t('searchSuggestionsDescription')}
                   </p>
                 </div>
                 <Switch
@@ -207,9 +194,9 @@ export function Browser() {
             )}
 
             <div className='flex items-center justify-between gap-4'>
-              <Label>Theme</Label>
+              <Label>{t('theme')}</Label>
               <AppearanceThemeSelect
-                ariaLabel='Browser theme'
+                ariaLabel={t('themeAriaLabel')}
                 value={preferences.browserTheme}
                 disabled={themePending}
                 onChange={(theme) => void setTheme(theme)}
@@ -217,7 +204,7 @@ export function Browser() {
             </div>
 
             <div className='flex items-center justify-between gap-4'>
-              <Label>Default zoom</Label>
+              <Label>{t('defaultZoom')}</Label>
               <DefaultZoomSelect
                 value={preferences.browserDefaultZoom}
                 onChange={(zoom) => void setDefaultZoom(zoom)}
@@ -227,7 +214,7 @@ export function Browser() {
 
             <div className='flex items-center justify-between gap-4'>
               <div className='flex min-w-0 flex-col gap-1'>
-                <Label>Download location</Label>
+                <Label>{t('downloadLocation')}</Label>
                 <p
                   className='max-w-[520px] truncate text-[var(--text-muted)] text-caption'
                   title={preferences.browserDownloadDirectory}
@@ -239,19 +226,19 @@ export function Browser() {
                 disabled={downloadDirectoryPending}
                 onClick={() => void chooseDownloadDirectory()}
               >
-                {downloadDirectoryPending ? 'Choosing...' : 'Change'}
+                {downloadDirectoryPending ? t('choosing') : t('change')}
               </Chip>
             </div>
           </div>
         </SettingsSection>
 
-        <SettingsSection label='Browsing data'>
+        <SettingsSection label={t('sections.browsingData')}>
           <div className='flex flex-col gap-3'>
             {DATA_ROWS.map((row) => (
               <div key={row.kind} className='flex items-center justify-between'>
-                <Label>{row.label}</Label>
+                <Label>{t(`dataRows.${row.key}.label`)}</Label>
                 <Chip disabled={clearPending} onClick={() => setConfirming(row)}>
-                  {row.action}
+                  {t(`dataRows.${row.key}.action`)}
                 </Chip>
               </div>
             ))}
@@ -262,22 +249,22 @@ export function Browser() {
       <ChipConfirmModal
         open={confirming !== null}
         onOpenChange={(open) => !open && setConfirming(null)}
-        title={target ? target.action : 'Clear all browsing data'}
+        title={target ? t(`dataRows.${target.key}.action`) : t('clearConfirm.allTitle')}
         defaultAction={target?.kind === 'cache' ? 'confirm' : 'dismiss'}
         text={[
-          'This will ',
+          t('clearConfirm.before'),
           {
             text: target
-              ? target.consequence
-              : 'sign the browser out of every site and erase its cookies, site data, and cache',
+              ? t(`dataRows.${target.key}.consequence`)
+              : t('clearConfirm.allConsequence'),
             bold: true,
           },
-          '. Your Nexora account and saved passwords are not affected.',
+          t('clearConfirm.after'),
         ]}
         confirm={{
-          label: target ? target.action : 'Clear all',
+          label: target ? t(`dataRows.${target.key}.action`) : t('actions.clearAll'),
           pending: clearPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: tShared('deleting'),
           onClick: () => void clear(target ? [target.kind] : BROWSER_DATA_KINDS),
         }}
       />

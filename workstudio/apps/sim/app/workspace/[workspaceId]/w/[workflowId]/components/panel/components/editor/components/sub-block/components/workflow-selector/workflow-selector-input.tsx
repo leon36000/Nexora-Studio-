@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { DELETED_WORKFLOW_LABEL } from '@/lib/workflows/labels'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { SelectorCombobox } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/selector-combobox/selector-combobox'
 import type { SubBlockConfig } from '@/blocks/types'
@@ -23,6 +23,7 @@ export function WorkflowSelectorInput({
   isPreview = false,
   previewValue,
 }: WorkflowSelectorInputProps) {
+  const t = useTranslations('editor.subBlock.workflowSelector')
   const { workspaceId } = useWorkflowScope()
   const activeWorkflowId = useWorkflowRegistry((s) => s.activeWorkflowId)
 
@@ -43,8 +44,8 @@ export function WorkflowSelectorInput({
       disabled={disabled}
       isPreview={isPreview}
       previewValue={previewValue}
-      placeholder={subBlock.placeholder || 'Select workflow...'}
-      missingOptionLabel={DELETED_WORKFLOW_LABEL}
+      placeholder={subBlock.placeholder || t('selectWorkflow')}
+      missingOptionLabel={t('deletedWorkflow')}
     />
   )
 }

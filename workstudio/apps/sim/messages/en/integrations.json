@@ -1,1 +1,294 @@
-{}
+{
+  "error": {
+    "title": "Failed to load integrations",
+    "description": "Something went wrong while loading your integrations. Please try again."
+  },
+  "page": {
+    "title": "Integrations",
+    "connectedTitle": "Connected Integration",
+    "blockTitle": "{name} Integration",
+    "blockFallbackTitle": "Integration"
+  },
+  "showcase": {
+    "exploreInChat": "Explore in chat"
+  },
+  "list": {
+    "unavailable": "Unavailable in this deployment. Contact your administrator.",
+    "open": "Open {name}",
+    "explorePrompt": "Explain the integrations in Nexora and what I should connect.",
+    "searchPlaceholder": "Search integrations...",
+    "noResultsMatching": "No integrations found matching “{query}”",
+    "noResultsInCategory": "No integrations in this category"
+  },
+  "categories": {
+    "all": "All",
+    "featured": "Featured",
+    "connected": "Connected",
+    "ai": "AI",
+    "analytics": "Analytics",
+    "commerce": "Commerce",
+    "communication": "Communication",
+    "databases": "Databases",
+    "devops": "DevOps",
+    "documents": "Documents",
+    "email": "Email",
+    "hr": "HR",
+    "marketing": "Marketing",
+    "observability": "Observability",
+    "productivity": "Productivity",
+    "sales": "Sales",
+    "search": "Search",
+    "security": "Security",
+    "support": "Support"
+  },
+  "skills": {
+    "added": "Added",
+    "adding": "Adding...",
+    "add": "Add",
+    "alreadyInWorkspace": "\"{name}\" is already in this workspace",
+    "addFailed": "Failed to add \"{name}\" — please try again",
+    "title": "Skills"
+  },
+  "detail": {
+    "addServiceAccount": "Add service account",
+    "connectWithOAuth": "Connect with OAuth",
+    "explorePrompt": "Explore {name}. What can I do?",
+    "back": "Integrations",
+    "addPersonalToken": "Add personal token",
+    "addToNexora": "Add to Nexora",
+    "unavailable": "Unavailable",
+    "connected": "Connected",
+    "open": "Open {name}",
+    "templates": "Templates",
+    "useTemplate": "Use template {title}"
+  },
+  "connected": {
+    "reconnectFailed": "Couldn't start reconnect",
+    "tryAgainLater": "Please try again in a moment.",
+    "disconnectFailed": "Couldn't disconnect",
+    "back": "Integrations",
+    "reconnect": "Reconnect",
+    "share": "Share",
+    "disconnect": "Disconnect",
+    "loading": "Loading…",
+    "notFound": "Credential not found.",
+    "unknownService": "Unknown service",
+    "connectedService": "Connected service",
+    "credentialId": "Credential ID",
+    "copyCredentialId": "Copy credential ID",
+    "displayName": "Display Name",
+    "description": "Description",
+    "descriptionPlaceholder": "Add a description...",
+    "gitlabInstance": "GitLab instance",
+    "copyGitlabInstance": "Copy GitLab instance",
+    "disconnectTitle": "Disconnect Integration",
+    "disconnectConfirmBefore": "Are you sure you want to disconnect ",
+    "disconnectConfirmAfter": "? This action cannot be undone.",
+    "disconnecting": "Disconnecting..."
+  },
+  "serviceAccountConnect": {
+    "setUpCustomBot": "Set up a custom bot",
+    "addNoun": "Add {noun}",
+    "nouns": {
+      "customBot": "custom bot",
+      "apiKey": "API key",
+      "databaseConnection": "database connection",
+      "serviceAccount": "service account",
+      "accessToken": "access token",
+      "adminApiToken": "admin API token",
+      "apiCredential": "API credential",
+      "apiToken": "API token",
+      "app": "app",
+      "application": "application",
+      "integrationSecret": "integration secret",
+      "integrationUser": "integration user",
+      "integrationUserApp": "integration user app",
+      "oauthCertificate": "OAuth certificate",
+      "personalAccessToken": "personal access token",
+      "privateAppToken": "private app token",
+      "programmaticAccessToken": "programmatic access token",
+      "selfClient": "Self Client",
+      "serverToServerApp": "server-to-server app",
+      "siteToken": "site token"
+    }
+  },
+  "personalToken": {
+    "title": "Connect your GitLab account",
+    "host": "GitLab host",
+    "token": "Personal access token",
+    "tokenHint": "Only you can use this connection.",
+    "connecting": "Connecting…",
+    "reconnect": "Reconnect",
+    "connect": "Connect",
+    "createToken": "Create a token"
+  },
+  "serviceAccount": {
+    "common": {
+      "optional": "Optional",
+      "setupGuide": "Setup guide",
+      "reconnecting": "Reconnecting...",
+      "adding": "Adding...",
+      "reconnect": "Reconnect",
+      "displayName": "Display name",
+      "description": "Description",
+      "optionalDescription": "Optional description",
+      "addServiceAccountTitle": "Add {serviceName} service account",
+      "addServiceAccount": "Add service account",
+      "addTitle": "Add {serviceName} {noun}",
+      "accountNamePlaceholder": "Defaults to the {serviceLabel} account name",
+      "reconnectTitle": "Reconnect {serviceName} {noun}",
+      "reconnectNoun": "Reconnect {noun}"
+    },
+    "oci": {
+      "addFailed": "Failed to add OCI API-key credential",
+      "addTitle": "Add {serviceName} API key",
+      "reconnectTitle": "Reconnect {serviceName} API key",
+      "tenancyOcid": "Tenancy OCID",
+      "userOcid": "User OCID",
+      "fingerprint": "Fingerprint",
+      "privateKey": "Private key",
+      "passphrase": "Private-key passphrase",
+      "region": "Region",
+      "displayNamePlaceholder": "Defaults to the OCI user OCID",
+      "addApiKey": "Add API key"
+    },
+    "google": {
+      "onlyJson": "Only .json files are supported",
+      "pasteKey": "Paste the service account JSON key.",
+      "invalidJson": "Invalid JSON",
+      "addFailed": "Failed to add service account",
+      "jsonKey": "JSON key",
+      "jsonKeyPlaceholder": "Paste your service account JSON key here",
+      "uploadFile": "Or upload a file",
+      "uploaded": "Uploaded {fileName} — click or drop to replace",
+      "dropFile": "Drag & drop a .json file, or click to browse",
+      "displayNamePlaceholder": "Auto-populated from client_email"
+    },
+    "atlassian": {
+      "errors": {
+        "invalidCredentials": "We couldn't authenticate with that API token. Double-check the token and that the service account has access to this site.",
+        "siteNotFound": "We couldn't find an Atlassian site at that domain. Check the spelling — it should look like your-team.atlassian.net.",
+        "duplicateDisplayName": "A credential with that name already exists in this workspace.",
+        "atlassianUnavailable": "We couldn't reach Atlassian to verify these credentials. Try again in a moment.",
+        "fallback": "We couldn't add this service account. Try again in a moment."
+      },
+      "apiToken": "API token",
+      "confluenceHint": "Use a service-account token with Confluence access. Required scopes are listed in the setup guide.",
+      "apiTokenPlaceholder": "Paste API token",
+      "siteDomain": "Site domain",
+      "domainHint": "Atlassian sites usually look like your-team.atlassian.net.",
+      "displayNamePlaceholder": "Defaults to the account's Atlassian display name"
+    },
+    "clientCredential": {
+      "hostFallback": "host",
+      "errors": {
+        "invalidCredentials": "We couldn't authenticate with those credentials. Check that the {fieldLabels} all belong to the same {serviceLabel} app and that the app is authorized.",
+        "permissionConflict": "Use the same permissions for connections to this application, or create a separate application for different permissions.",
+        "siteNotFound": "We couldn't find a {serviceLabel} account at that host. Check the {hostFieldLabel} field and try again.",
+        "providerUnavailable": "We couldn't reach {serviceLabel} to verify these credentials. Try again in a moment.",
+        "fallback": "We couldn't save this credential. Try again in a moment."
+      }
+    },
+    "oracle": {
+      "addTitle": "Add Oracle Database connection",
+      "reconnectTitle": "Reconnect Oracle Database connection",
+      "duplicateDisplayName": "A credential with that name already exists. Choose a different display name.",
+      "verifyFailed": "Could not verify the Oracle Database connection. Check the connection details, network access, and database permissions.",
+      "host": "Host",
+      "port": "Port",
+      "protocol": "Protocol",
+      "protocolPlaceholder": "Choose a protocol",
+      "tcpHint": "TCP sends database traffic without TLS.",
+      "tcpsHint": "TCPS verifies the server certificate and hostname.",
+      "connectionIdentifier": "Connection identifier",
+      "serviceName": "Service name",
+      "identifierPlaceholder": "Choose an identifier type",
+      "username": "Username",
+      "password": "Password",
+      "passwordPlaceholder": "Enter the database password",
+      "pemWallet": "PEM wallet",
+      "pemWalletHint": "Optional ewallet.pem content for mutual TLS; up to 1 MiB.",
+      "pemWalletPlaceholder": "Paste ewallet.pem content",
+      "walletPassword": "Wallet password",
+      "walletPasswordPlaceholder": "Password for an encrypted PEM wallet",
+      "displayNamePlaceholder": "Defaults to the database username",
+      "verifying": "Verifying...",
+      "addConnection": "Add connection",
+      "reconnectConnection": "Reconnect connection"
+    }
+  },
+  "slackBot": {
+    "errors": {
+      "slashCommandIncomplete": "Every slash command needs a command and description.",
+      "slashCommandFormat": "Slash commands must be one word beginning with /.",
+      "slashCommandLength": "Slash commands must be 32 characters or fewer.",
+      "slashCommandUnique": "Each slash command must be unique.",
+      "descriptionLength": "Slack Agent View descriptions must be 300 characters or fewer.",
+      "configurationTooLarge": "This app configuration is too large to open in Slack. Shorten or remove slash commands.",
+      "connectFailed": "Could not connect the Slack bot."
+    },
+    "titles": {
+      "searchSetup": "Set up Slack for search",
+      "reconnect": "Reconnect a custom Slack bot",
+      "create": "Create a custom Slack bot"
+    },
+    "done": {
+      "verifying": "Verifying your bot and connecting…",
+      "tryAgain": "Try again",
+      "appConnected": "Slack app connected",
+      "botConnected": "Bot connected",
+      "verifyMembers": "Click Done to verify member access.",
+      "selectable": "It's now selectable in Slack triggers and actions across this workspace. Click Done to finish.",
+      "label": "Done"
+    },
+    "steps": {
+      "nameApp": "Name your Slack app",
+      "configure": "Configure your bot",
+      "openApp": "Open your app in Slack",
+      "createApp": "Create the app in Slack",
+      "installToken": "Install and paste your Bot Token",
+      "pasteSecret": "Paste your Signing Secret",
+      "allSet": "All set"
+    },
+    "configure": {
+      "appName": "App name",
+      "botName": "Bot name",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "descriptionProfilePlaceholder": "Optional — shown on the bot's Slack profile",
+      "permissions": "Additional permissions",
+      "allPermissionsHint": "All additional permissions enabled — the bot can read messages, react, access files and users, and people can authorize it through Connected accounts.",
+      "noPermissions": "No additional permissions"
+    },
+    "slashCommands": {
+      "title": "Slash commands (optional)",
+      "add": "Add",
+      "commandLabel": "Slash command {index}",
+      "descriptionPlaceholder": "Short description shown in Slack",
+      "descriptionLabel": "Slash command {index} description",
+      "usageHintPlaceholder": "Usage hint (optional), e.g. question or task",
+      "usageHintLabel": "Slash command {index} usage hint",
+      "removeLabel": "Remove slash command {index}"
+    },
+    "create": {
+      "openExisting": "Open your existing app on the <link>Slack Apps page</link>.",
+      "keepManifest": "Keep its existing App Manifest and permissions. Reconnecting updates only the credentials saved in Nexora.",
+      "openWithManifest": "Open Slack with the manifest for your selected permissions already filled in:",
+      "selectWorkspace": "Select your workspace, review the configuration, then click <strong>Create</strong>."
+    },
+    "secret": {
+      "openBasicInfo": "In your Slack app, open <strong>Basic Information</strong>.",
+      "findSecret": "Find <strong>Signing Secret</strong> and click <strong>Show</strong>, then copy it.",
+      "pasteBelow": "Paste it into the field below.",
+      "label": "Signing Secret",
+      "placeholder": "Paste your signing secret"
+    },
+    "token": {
+      "openPermissionsReconnect": "Open <strong>OAuth & Permissions</strong> in your existing Slack app. Reinstall only if Slack requests it.",
+      "install": "In Slack, open <strong>OAuth & Permissions</strong> → <strong>Install to Workspace</strong> and approve access.",
+      "copyToken": "Copy the <strong>Bot User OAuth Token</strong> (starts with <code>xoxb-</code>).",
+      "pasteBelow": "Paste it into the field below, then click Next.",
+      "label": "Bot Token"
+    }
+  }
+}

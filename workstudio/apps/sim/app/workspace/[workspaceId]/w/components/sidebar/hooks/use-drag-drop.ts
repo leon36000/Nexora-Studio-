@@ -3,6 +3,7 @@ import { toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { noop } from '@sim/utils/helpers'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { getFolderPath } from '@/lib/folders/tree'
 import { compareByOrder } from '@/app/workspace/[workspaceId]/w/components/sidebar/utils'
 import { useReorderFolders } from '@/hooks/queries/folders'
@@ -159,6 +160,7 @@ const isLeavingElement = (e: React.DragEvent<HTMLElement>): boolean =>
 
 export function useDragDrop(options: UseDragDropOptions = {}) {
   const { disabled = false } = options
+  const t = useTranslations('shell.dragDrop')
   const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null)
   /**
    * Mirrors `dropIndicator` synchronously. `drop` can fire before React commits the last
@@ -532,9 +534,7 @@ export function useDragDrop(options: UseDragDropOptions = {}) {
          * transport-level text never reaches the user.
          */
         toast.error(
-          error instanceof ReorderFailedError && error.partial
-            ? 'Only some items moved'
-            : 'Failed to move items'
+          error instanceof ReorderFailedError && error.partial ? t('partialMove') : t('moveFailed')
         )
       }
     },
@@ -546,6 +546,7 @@ export function useDragDrop(options: UseDragDropOptions = {}) {
       collectMovingItems,
       getInsertIndexInRemaining,
       buildAndSubmitUpdates,
+      t,
     ]
   )
 

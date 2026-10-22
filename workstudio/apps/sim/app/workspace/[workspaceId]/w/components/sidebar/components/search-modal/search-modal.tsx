@@ -38,6 +38,7 @@ import {
 import { createLogger } from '@sim/logger'
 import { Command } from 'cmdk'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { createPortal } from 'react-dom'
 import { supportsAtomicBrowserPanelOcclusion } from '@/lib/browser-agent/transport'
@@ -79,7 +80,6 @@ import {
   PAGE_CONTEXT_HOISTED_SECTION,
   PAGE_MATCH_TIER,
   SEARCH_SECTIONS,
-  SECTION_LABELS,
   scoreActions,
   scoreSectionItems,
 } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/search-modal/utils'
@@ -153,6 +153,7 @@ function SearchModalContent({
   onCreateFolder,
   onImportWorkflow,
 }: SearchModalContentProps) {
+  const t = useTranslations('shell.searchModal')
   const params = useParams()
   const router = useRouter()
   const { chatEnabled } = useDeploymentShape()
@@ -265,66 +266,67 @@ function SearchModalContent({
       [
         {
           id: 'integrations',
-          name: 'Integrations',
+          name: t('pages.integrations'),
           icon: Integration,
           href: `/workspace/${workspaceId}/integrations`,
           hidden: permissionConfig.hideIntegrationsTab && !accessRequestsEnabled,
         },
         {
           id: 'skills',
-          name: 'Skills',
+          name: t('pages.skills'),
           icon: Hammer,
           href: `/workspace/${workspaceId}/skills`,
           hidden: permissionConfig.hideIntegrationsTab,
         },
         {
           id: 'tables',
-          name: 'Tables',
+          name: t('pages.tables'),
           icon: Table,
           href: `/workspace/${workspaceId}/tables`,
           hidden: permissionConfig.hideTablesTab && !accessRequestsEnabled,
         },
         {
           id: 'files',
-          name: 'Files',
+          name: t('pages.files'),
           icon: File,
           href: `/workspace/${workspaceId}/files`,
           hidden: permissionConfig.hideFilesTab && !accessRequestsEnabled,
         },
         {
           id: 'knowledge-base',
-          name: 'Knowledge bases',
+          name: t('pages.knowledgeBases'),
           icon: Database,
           href: `/workspace/${workspaceId}/knowledge`,
           hidden: permissionConfig.hideKnowledgeBaseTab && !accessRequestsEnabled,
         },
         {
           id: 'logs',
-          name: 'Logs',
+          name: t('pages.logs'),
           icon: Library,
           href: `/workspace/${workspaceId}/logs`,
           shortcut: '⇧⌘L',
         },
         {
           id: 'secrets',
-          name: 'Secrets',
+          name: t('pages.secrets'),
           icon: Key,
           href: `/workspace/${workspaceId}/settings/secrets`,
         },
         {
           id: 'help',
-          name: 'Help',
+          name: t('pages.help'),
           icon: HelpCircle,
           onClick: openHelpModal,
         },
         {
           id: 'settings',
-          name: 'Settings',
+          name: t('pages.settings'),
           icon: Settings,
           onClick: navigateToSettings,
         },
       ].filter((page) => !page.hidden),
     [
+      t,
       workspaceId,
       openHelpModal,
       navigateToSettings,
@@ -347,7 +349,7 @@ function SearchModalContent({
 
     list.push({
       id: 'run-workflow',
-      name: 'Run workflow',
+      name: t('actions.runWorkflow'),
       keywords: 'execute start play test',
       icon: Play,
       shortcut: '⌘↵',
@@ -357,7 +359,7 @@ function SearchModalContent({
     if (canAdmin) {
       list.push({
         id: 'deploy-workflow',
-        name: 'Deploy workflow',
+        name: t('actions.deployWorkflow'),
         keywords: 'ship release publish api',
         exactQueries: ['deploy'],
         icon: Rocket,
@@ -368,7 +370,7 @@ function SearchModalContent({
     list.push(
       {
         id: 'fit-to-view',
-        name: 'Fit workflow to view',
+        name: t('actions.fitToView'),
         keywords: 'zoom center recenter canvas reset',
         icon: SelectAll,
         shortcut: '⇧⌘F',
@@ -377,7 +379,7 @@ function SearchModalContent({
       },
       {
         id: 'copy-workflow-url',
-        name: 'Copy workflow link',
+        name: t('actions.copyWorkflowLink'),
         keywords: 'url share clipboard',
         exactQueries: ['copy'],
         icon: Duplicate,
@@ -392,7 +394,7 @@ function SearchModalContent({
     if (chatEnabled) {
       list.push({
         id: 'new-chat',
-        name: 'New chat',
+        name: t('actions.newChat'),
         keywords: 'chat chats message ask sim assistant home',
         exactQueries: ['chats'],
         icon: Home,
@@ -403,7 +405,7 @@ function SearchModalContent({
     if (canEdit && onCreateWorkflow) {
       list.push({
         id: 'create-workflow',
-        name: 'Create workflow',
+        name: t('actions.createWorkflow'),
         keywords: 'new add build workflows',
         exactQueries: ['workflows'],
         icon: Plus,
@@ -414,7 +416,7 @@ function SearchModalContent({
     if (canEdit && onCreateFolder) {
       list.push({
         id: 'create-folder',
-        name: 'Create folder',
+        name: t('actions.createFolder'),
         keywords: 'new add group',
         icon: FolderPlus,
         context: 'global',
@@ -424,7 +426,7 @@ function SearchModalContent({
     if (canEdit && onImportWorkflow) {
       list.push({
         id: 'import-workflow',
-        name: 'Import workflow',
+        name: t('actions.importWorkflow'),
         keywords: 'upload add',
         icon: Upload,
         context: 'global',
@@ -433,7 +435,7 @@ function SearchModalContent({
     }
     list.push({
       id: 'invite-teammates',
-      name: 'Invite teammates',
+      name: t('actions.inviteTeammates'),
       keywords: 'members people add user organization',
       icon: Send,
       context: 'global',
@@ -444,7 +446,7 @@ function SearchModalContent({
       list.push(
         {
           id: 'tables-new-table',
-          name: 'New table',
+          name: t('actions.newTable'),
           keywords: 'create add',
           icon: Plus,
           context: 'tables',
@@ -452,7 +454,7 @@ function SearchModalContent({
         },
         {
           id: 'tables-new-folder',
-          name: 'New folder',
+          name: t('actions.newFolder'),
           keywords: 'create add group',
           icon: FolderPlus,
           context: 'tables',
@@ -460,7 +462,7 @@ function SearchModalContent({
         },
         {
           id: 'tables-import-csv',
-          name: 'Import CSV',
+          name: t('actions.importCsv'),
           keywords: 'upload tsv spreadsheet',
           icon: Upload,
           context: 'tables',
@@ -471,7 +473,7 @@ function SearchModalContent({
     if (pageContext === 'tableDetail') {
       list.push({
         id: 'table-export-csv',
-        name: 'Export CSV',
+        name: t('actions.exportCsv'),
         keywords: 'download spreadsheet',
         icon: Download,
         context: 'tableDetail',
@@ -482,7 +484,7 @@ function SearchModalContent({
       list.push(
         {
           id: 'table-new-column',
-          name: 'New column',
+          name: t('actions.newColumn'),
           keywords: 'create add field',
           icon: Columns3,
           context: 'tableDetail',
@@ -490,7 +492,7 @@ function SearchModalContent({
         },
         {
           id: 'table-import-csv',
-          name: 'Import CSV',
+          name: t('actions.importCsv'),
           keywords: 'upload tsv spreadsheet',
           icon: Upload,
           context: 'tableDetail',
@@ -502,7 +504,7 @@ function SearchModalContent({
       list.push(
         {
           id: 'files-new-file',
-          name: 'New file',
+          name: t('actions.newFile'),
           keywords: 'create add document markdown',
           icon: File,
           context: 'files',
@@ -510,7 +512,7 @@ function SearchModalContent({
         },
         {
           id: 'files-new-folder',
-          name: 'New folder',
+          name: t('actions.newFolder'),
           keywords: 'create add group',
           icon: FolderPlus,
           context: 'files',
@@ -518,7 +520,7 @@ function SearchModalContent({
         },
         {
           id: 'files-upload',
-          name: 'Upload',
+          name: t('actions.upload'),
           keywords: 'add import file',
           icon: Upload,
           context: 'files',
@@ -529,7 +531,7 @@ function SearchModalContent({
     if (pageContext === 'fileDetail') {
       list.push({
         id: 'file-download',
-        name: 'Download',
+        name: t('actions.download'),
         keywords: 'save export',
         icon: Download,
         context: 'fileDetail',
@@ -539,7 +541,7 @@ function SearchModalContent({
         list.push(
           {
             id: 'file-rename',
-            name: 'Rename',
+            name: t('actions.rename'),
             keywords: 'edit name',
             icon: Pencil,
             context: 'fileDetail',
@@ -547,7 +549,7 @@ function SearchModalContent({
           },
           {
             id: 'file-share',
-            name: 'Share',
+            name: t('actions.share'),
             keywords: 'link send',
             icon: Send,
             context: 'fileDetail',
@@ -555,7 +557,7 @@ function SearchModalContent({
           },
           {
             id: 'file-delete',
-            name: 'Delete',
+            name: t('actions.delete'),
             keywords: 'remove trash',
             icon: Trash,
             context: 'fileDetail',
@@ -568,7 +570,7 @@ function SearchModalContent({
       list.push(
         {
           id: 'knowledge-new-base',
-          name: 'New base',
+          name: t('actions.newBase'),
           keywords: 'create add knowledge kb',
           icon: Plus,
           context: 'knowledge',
@@ -576,7 +578,7 @@ function SearchModalContent({
         },
         {
           id: 'knowledge-new-folder',
-          name: 'New folder',
+          name: t('actions.newFolder'),
           keywords: 'create add group',
           icon: FolderPlus,
           context: 'knowledge',
@@ -588,7 +590,7 @@ function SearchModalContent({
       list.push(
         {
           id: 'knowledge-base-new-documents',
-          name: 'New documents',
+          name: t('actions.newDocuments'),
           keywords: 'add upload document',
           icon: Plus,
           context: 'knowledgeBase',
@@ -596,7 +598,7 @@ function SearchModalContent({
         },
         {
           id: 'knowledge-base-new-connector',
-          name: 'New connector',
+          name: t('actions.newConnector'),
           keywords: 'add sync source connect',
           icon: Integration,
           context: 'knowledgeBase',
@@ -604,7 +606,7 @@ function SearchModalContent({
         },
         {
           id: 'knowledge-base-rename',
-          name: 'Rename',
+          name: t('actions.rename'),
           keywords: 'edit name',
           icon: Pencil,
           context: 'knowledgeBase',
@@ -612,7 +614,7 @@ function SearchModalContent({
         },
         {
           id: 'knowledge-base-tags',
-          name: 'Edit tags',
+          name: t('actions.editTags'),
           keywords: 'label metadata',
           icon: TagIcon,
           context: 'knowledgeBase',
@@ -620,7 +622,7 @@ function SearchModalContent({
         },
         {
           id: 'knowledge-base-delete',
-          name: 'Delete',
+          name: t('actions.delete'),
           keywords: 'remove trash',
           icon: Trash,
           context: 'knowledgeBase',
@@ -631,7 +633,7 @@ function SearchModalContent({
     if (pageContext === 'logs' || pageContext === 'logsDashboard') {
       list.push({
         id: 'logs-refresh',
-        name: 'Refresh',
+        name: t('actions.refresh'),
         keywords: 'reload update',
         icon: RefreshCw,
         context: pageContext,
@@ -640,7 +642,7 @@ function SearchModalContent({
       if (canEdit) {
         list.push({
           id: 'logs-export',
-          name: 'Export',
+          name: t('actions.export'),
           keywords: 'download csv',
           icon: Download,
           context: pageContext,
@@ -651,7 +653,7 @@ function SearchModalContent({
         pageContext === 'logs'
           ? {
               id: 'logs-show-dashboard',
-              name: 'Switch to Dashboard',
+              name: t('actions.switchToDashboard'),
               keywords: 'charts stats overview',
               icon: Library,
               context: 'logs',
@@ -659,7 +661,7 @@ function SearchModalContent({
             }
           : {
               id: 'logs-show-logs',
-              name: 'Switch to Logs',
+              name: t('actions.switchToLogs'),
               keywords: 'list executions runs',
               icon: Library,
               context: 'logsDashboard',
@@ -669,6 +671,7 @@ function SearchModalContent({
     }
     return list
   }, [
+    t,
     workspaceId,
     canEdit,
     canAdmin,
@@ -1053,10 +1056,12 @@ function SearchModalContent({
         ? triggers.map((trigger) => ({
             ...trigger,
             baseName: trigger.name,
-            name: trigger.name.endsWith('Trigger') ? trigger.name : `${trigger.name} Trigger`,
+            name: trigger.name.endsWith('Trigger')
+              ? trigger.name
+              : t('triggerName', { name: trigger.name }),
           }))
         : [],
-    [onCanvas, triggers]
+    [onCanvas, triggers, t]
   )
 
   const entriesBySection = useMemo((): Record<SearchSection, SearchEntry[]> => {
@@ -1225,7 +1230,9 @@ function SearchModalContent({
         : [],
     [orderedSections, entriesBySection, isSearching]
   )
-  const askSimLabel = searchQuery ? `New chat: ${searchQuery}` : 'Start a new chat'
+  const askSimLabel = searchQuery
+    ? t('newChatFromQuery', { query: searchQuery })
+    : t('startNewChat')
   const sectionGroups = useMemo(() => {
     if (isSearching) return []
     const actionEntriesByLabel = (label: ActionGroupLabel) =>
@@ -1234,7 +1241,7 @@ function SearchModalContent({
       )
     const entityGroup = (section: SearchSection) => ({
       key: section,
-      heading: SECTION_LABELS[section],
+      heading: t(`sections.${section}`),
       entries: entriesBySection[section],
     })
 
@@ -1244,7 +1251,7 @@ function SearchModalContent({
         ? [
             {
               key: 'page-actions',
-              heading: 'Actions',
+              heading: t('sections.pageActions'),
               entries: actionEntriesByLabel('Actions'),
             },
           ]
@@ -1272,7 +1279,7 @@ function SearchModalContent({
       remaining = 0
       return truncated
     })
-  }, [entriesBySection, pageContext, hoistedSection, isSearching])
+  }, [entriesBySection, pageContext, hoistedSection, isSearching, t])
 
   const entryHandlers = useMemo(
     (): SearchEntryHandlers => ({
@@ -1327,7 +1334,7 @@ function SearchModalContent({
         role='dialog'
         aria-modal={visuallyOpen}
         aria-hidden={!visuallyOpen}
-        aria-label='Search'
+        aria-label={t('search')}
         className={cn(
           '-translate-x-1/2 fixed top-[15%] z-[var(--z-modal)] w-[min(500px,calc(100%-32px))] rounded-xl border border-[var(--border-muted)] bg-[var(--surface-4)] p-[3px] dark:bg-[var(--surface-5)]',
           visuallyOpen ? 'visible opacity-100' : 'invisible opacity-0'
@@ -1342,7 +1349,7 @@ function SearchModalContent({
       >
         <div className='overflow-hidden rounded-lg border border-[var(--border-1)] bg-[var(--bg)]'>
           <Command
-            label='Search'
+            label={t('search')}
             shouldFilter={false}
             loop
             value={askMode ? askSimLabel : undefined}
@@ -1363,7 +1370,7 @@ function SearchModalContent({
                 )}
               >
                 <Command.Empty className='flex items-center justify-center px-4 py-6 text-[var(--text-subtle)] text-sm'>
-                  No results found.
+                  {t('noResults')}
                 </Command.Empty>
 
                 {askMode ? (
@@ -1396,15 +1403,15 @@ function SearchModalContent({
                 surface='palette'
                 cycleResultsOnTab={!chatEnabled}
                 autoFocus={!atomicBrowserOcclusion}
-                aria-label={askMode ? 'Ask Nexora' : 'Search anything'}
+                aria-label={askMode ? t('askNexora') : t('searchAnything')}
                 value={search}
                 onValueChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
-                placeholder={askMode ? 'Ask Nexora anything...' : 'Search anything...'}
+                placeholder={askMode ? t('askNexoraPlaceholder') : t('searchAnythingPlaceholder')}
                 endAdornment={
                   chatEnabled ? (
                     <span className='shrink-0 whitespace-nowrap text-[var(--text-subtle)] text-xs'>
-                      {askMode ? '⇥ Search' : '⇥ Ask Nexora'}
+                      {askMode ? t('tabToSearch') : t('tabToAsk')}
                     </span>
                   ) : undefined
                 }

@@ -11,7 +11,7 @@ interface UseItemRenameProps {
   /**
    * Callback to save the new name
    */
-  onSave: (newName: string) => Promise<void>
+  onSave: (newName: string) => Promise<void> // i18n-ignore: type annotation
   /**
    * Item type for logging
    */

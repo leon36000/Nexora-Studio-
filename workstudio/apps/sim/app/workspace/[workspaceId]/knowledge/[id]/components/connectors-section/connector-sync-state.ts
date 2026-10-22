@@ -9,7 +9,10 @@ const MEMBER_STATUS = {
   disabled: 'disabled',
 } as const
 
-/** Member sync runs independently; an explicit pause or disable still takes precedence. */
+/**
+ * Member sync runs independently; an explicit pause or disable still takes precedence.
+ * `syncLabelKey` and `syncTooltipKey` are message keys under `knowledge.connectors.sync`.
+ */
 export function getConnectorSyncState(connector: ConnectorData) {
   const syncsPerMember = connector.accessMode === 'members'
   const syncInFlight = isConnectorSyncingOrPending(connector)
@@ -25,20 +28,19 @@ export function getConnectorSyncState(connector: ConnectorData) {
       syncsPerMember && connector.status === 'active'
         ? MEMBER_STATUS[connector.memberSyncStatus]
         : connector.status,
-    syncLabel:
-      canResume || memberSyncDisabled
-        ? 'Sync now'
-        : connector.status === 'pending' ||
-            (syncsPerMember && connector.memberSyncStatus === 'pending')
-          ? 'Sync queued'
-          : syncInFlight
-            ? 'Syncing…'
-            : 'Sync now',
-    syncTooltip: canResume
-      ? 'Resume to sync'
+    syncLabelKey: (canResume || memberSyncDisabled
+      ? 'syncNow'
+      : connector.status === 'pending' ||
+          (syncsPerMember && connector.memberSyncStatus === 'pending')
+        ? 'syncQueued'
+        : syncInFlight
+          ? 'syncing'
+          : 'syncNow') as 'syncNow' | 'syncQueued' | 'syncing',
+    syncTooltipKey: (canResume
+      ? 'resumeToSync'
       : memberSyncDisabled
-        ? 'Member sync is disabled'
-        : undefined,
+        ? 'memberSyncDisabled'
+        : undefined) as 'resumeToSync' | 'memberSyncDisabled' | undefined,
     lastSyncAt: syncsPerMember ? connector.lastMemberSyncAt : connector.lastSyncAt,
     nextSyncAt: syncsPerMember ? connector.nextMemberSyncAt : connector.nextSyncAt,
     lastSyncError: syncsPerMember

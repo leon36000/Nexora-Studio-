@@ -201,6 +201,10 @@ export interface CommandItemProps {
   meta?: string
 }
 
+/**
+ * English section names the fuzzy ranker matches queries against (typing "tables" lifts the
+ * Tables section). Display headings are translated separately, under `shell.searchModal.sections`.
+ */
 export const SECTION_LABELS: Record<SearchSection, string> = {
   actions: 'Nexora',
   blocks: 'Blocks',

@@ -5,6 +5,7 @@ import { ChipConfirmModal, ChipModalError, ChipModalField } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { sleep } from '@sim/utils/helpers'
 import { formatQuotedNameList, normalizeEmail } from '@sim/utils/string'
+import { useTranslations } from 'next-intl'
 import { signOut } from '@/lib/auth/client'
 import { useAccountDeletionPlan, useDeleteAccount } from '@/hooks/queries/account-deletion'
 import { clearUserData } from '@/stores'
@@ -41,6 +42,7 @@ function names(workspaces: { name: string }[]): string {
  * cost a deliberate action, not a hunt for the right button.
  */
 export function DeleteAccountModal({ open, onOpenChange, email }: DeleteAccountModalProps) {
+  const t = useTranslations('settings.general.deleteAccount')
   const [confirmEmail, setConfirmEmail] = useState('')
   const { data: plan, isFetching: isPlanFetching, error: planError } = useAccountDeletionPlan(open)
   const deleteAccount = useDeleteAccount()
@@ -84,9 +86,7 @@ export function DeleteAccountModal({ open, onOpenChange, email }: DeleteAccountM
     )
   }
 
-  const errorMessage =
-    deleteAccount.error?.message ??
-    (planError ? 'Could not check whether this account can be deleted. Try again.' : null)
+  const errorMessage = deleteAccount.error?.message ?? (planError ? t('planFailed') : null)
 
   return (
     <ChipConfirmModal
@@ -95,24 +95,20 @@ export function DeleteAccountModal({ open, onOpenChange, email }: DeleteAccountM
         if (!next) close()
       }}
       size='md'
-      title='Delete account'
+      title={t('title')}
       defaultAction='none'
       confirm={{
-        label: 'Delete account',
-        pendingLabel: 'Deleting...',
+        label: t('confirm'),
+        pendingLabel: t('pending'),
         onClick: handleDelete,
         pending: isPending,
         disabled: isBlocked || isPlanFetching || !isConfirmed || !plan,
-        disabledTooltip: isBlocked
-          ? 'Resolve the items above first'
-          : isConfirmed
-            ? undefined
-            : 'Enter your account email to confirm',
+        disabledTooltip: isBlocked ? t('resolveFirst') : isConfirmed ? undefined : t('enterEmail'),
       }}
     >
       {isBlocked ? (
         <div className='flex flex-col gap-2 px-2'>
-          <p className='text-[var(--text-primary)] text-sm'>Your account can’t be deleted yet:</p>
+          <p className='text-[var(--text-primary)] text-sm'>{t('blocked')}</p>
           <ul className='flex list-disc flex-col gap-1 pl-4'>
             {blockers.map((blocker) => (
               <li key={blocker.code} className='text-[var(--text-secondary)] text-sm'>
@@ -124,21 +120,28 @@ export function DeleteAccountModal({ open, onOpenChange, email }: DeleteAccountM
       ) : (
         <div className='flex flex-col gap-2 px-2'>
           <p className='text-[var(--text-primary)] text-sm'>
-            This permanently deletes <span className='font-medium'>{email}</span> along with its
-            workflows, chats, files, knowledge bases and credentials.{' '}
-            <span className='text-[var(--text-error)]'>This cannot be undone.</span>
+            {t.rich('warning', {
+              email,
+              b: (chunks) => <span className='font-medium'>{chunks}</span>,
+              danger: (chunks) => <span className='text-[var(--text-error)]'>{chunks}</span>,
+            })}
           </p>
           {toDelete.length > 0 && (
             <p className='text-[var(--text-secondary)] text-sm'>
-              {toDelete.length === 1 ? 'The workspace ' : 'The workspaces '}
-              <span className='text-[var(--text-primary)]'>{names(toDelete)}</span> and everything
-              in {toDelete.length === 1 ? 'it' : 'them'} will be deleted.
+              {t.rich('workspacesDeleted', {
+                count: toDelete.length,
+                names: names(toDelete),
+                b: (chunks) => <span className='text-[var(--text-primary)]'>{chunks}</span>,
+              })}
             </p>
           )}
           {toTransfer.length > 0 && (
             <p className='text-[var(--text-secondary)] text-sm'>
-              Billing for <span className='text-[var(--text-primary)]'>{names(toTransfer)}</span>{' '}
-              moves to another admin. Nothing in {toTransfer.length === 1 ? 'it' : 'them'} changes.
+              {t.rich('workspacesTransferred', {
+                count: toTransfer.length,
+                names: names(toTransfer),
+                b: (chunks) => <span className='text-[var(--text-primary)]'>{chunks}</span>,
+              })}
             </p>
           )}
         </div>
@@ -146,7 +149,7 @@ export function DeleteAccountModal({ open, onOpenChange, email }: DeleteAccountM
       {!isBlocked && (
         <ChipModalField
           type='email'
-          title='Confirm your email'
+          title={t('confirmEmail')}
           value={confirmEmail}
           onChange={setConfirmEmail}
           placeholder={email}

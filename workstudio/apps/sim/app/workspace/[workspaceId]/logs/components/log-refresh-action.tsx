@@ -1,5 +1,6 @@
 import { cn } from '@sim/emcn'
 import { RefreshCw } from '@sim/emcn/icons'
+import type { useTranslations } from 'next-intl'
 import type { ResourceAction } from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
 
 interface RefreshIconProps {
@@ -23,6 +24,8 @@ interface LogsRefreshActionOptions {
   hasUpdates?: boolean
   isRefreshing: boolean
   onRefresh: () => void
+  /** Translator scoped to the `logs` namespace. */
+  t: ReturnType<typeof useTranslations>
 }
 
 export function getLogsRefreshAction({
@@ -30,20 +33,21 @@ export function getLogsRefreshAction({
   hasUpdates = false,
   isRefreshing,
   onRefresh,
+  t,
 }: LogsRefreshActionOptions): ResourceAction {
   const hasNewLogs = newLogCount > 0
   return {
     id: 'refresh',
     text: hasNewLogs
-      ? `${newLogCount} new ${newLogCount === 1 ? 'log' : 'logs'}`
+      ? t('actions.newLogs', { count: newLogCount })
       : hasUpdates
-        ? 'Updates available'
-        : 'Refresh',
+        ? t('actions.updatesAvailable')
+        : t('actions.refresh'),
     tooltip: hasNewLogs
-      ? 'Refresh to see new logs'
+      ? t('actions.refreshToSeeNew')
       : hasUpdates
-        ? 'Refresh to see updated logs'
-        : 'Refresh',
+        ? t('actions.refreshToSeeUpdated')
+        : t('actions.refresh'),
     icon: isRefreshing
       ? SpinningRefreshIcon
       : hasNewLogs || hasUpdates

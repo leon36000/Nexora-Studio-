@@ -1,20 +1,19 @@
 import { StatusPageContent } from '@sim/emcn'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { ReturnHomeLink } from '@/components/status-page/return-home-link'
 import { LogoShell } from '@/app/(landing)/components/logo-shell'
 
-export const metadata: Metadata = {
-  title: 'Page Not Found',
-  robots: { index: false, follow: true },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('errors.notFound')
+  return { title: t('metaTitle'), robots: { index: false, follow: true } }
 }
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getTranslations('errors.notFound')
   return (
     <LogoShell center theme='inherit'>
-      <StatusPageContent
-        title='Page not found'
-        description="The page you're looking for doesn't exist or has been moved."
-      >
+      <StatusPageContent title={t('title')} description={t('description')}>
         <ReturnHomeLink />
       </StatusPageContent>
     </LogoShell>

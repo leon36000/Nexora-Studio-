@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { ChipDropdown } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition } from '@/lib/table'
 import { SelectPill, selectedOptionIds } from './select-pill'
 
@@ -29,6 +30,7 @@ export function SelectValueEditor({
   fullWidth,
   align = 'start',
 }: SelectValueEditorProps) {
+  const t = useTranslations('tables.selectField')
   const isMulti = !!column.multiple
   const options = useMemo(
     () =>
@@ -56,7 +58,7 @@ export function SelectValueEditor({
         // `allLabel` when nothing is selected — which would read as if every
         // option were chosen. There is no "All" entry here, so this is the
         // empty label.
-        allLabel='Select options'
+        allLabel={t('selectOptions')}
         align={align}
         fullWidth={fullWidth}
         matchTriggerWidth={false}
@@ -69,7 +71,10 @@ export function SelectValueEditor({
   const singleOptions = column.required
     ? options
     : [
-        { value: CLEAR_VALUE, label: <span className='text-[var(--text-muted)]'>None</span> },
+        {
+          value: CLEAR_VALUE,
+          label: <span className='text-[var(--text-muted)]'>{t('none')}</span>,
+        },
         ...options,
       ]
 
@@ -78,7 +83,7 @@ export function SelectValueEditor({
       value={selectedOptionIds(column, value)[0] ?? CLEAR_VALUE}
       onChange={(id) => onChange(id === CLEAR_VALUE ? null : id)}
       options={singleOptions}
-      placeholder='Select an option'
+      placeholder={t('selectOption')}
       align={align}
       fullWidth={fullWidth}
       matchTriggerWidth={false}

@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   Tooltip,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 export interface RowAction {
   label: string
@@ -41,6 +42,7 @@ interface RowActionsMenuProps {
  * "Remove" with no reason attached.
  */
 export function RowActionsMenu({ label, actions, triggerClassName }: RowActionsMenuProps) {
+  const t = useTranslations('settings.rowActions')
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -57,7 +59,7 @@ export function RowActionsMenu({ label, actions, triggerClassName }: RowActionsM
               disabled={action.disabled}
               aria-label={
                 action.disabled && action.tooltip
-                  ? `${action.label} — ${action.tooltip}`
+                  ? t('disabledLabel', { label: action.label, tooltip: action.tooltip })
                   : undefined
               }
               className={action.destructive ? 'text-[var(--text-error)]' : undefined}

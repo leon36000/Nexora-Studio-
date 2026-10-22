@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { BrowserCredentialMetadata } from '@sim/desktop-bridge'
 import { ArrowLeft, ChipConfirmModal, Plus, toast } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { BrowserCredentialIcon } from '@/components/browser-credential-icon'
 import { BrowserImportDialog } from '@/components/browser-import/browser-import-dialog'
 import { getDesktopBridge } from '@/lib/desktop'
@@ -19,17 +20,13 @@ function siteLabel(origin: string): string {
   return origin.replace(/^https?:\/\//, '')
 }
 
-function pluralize(count: number, noun: string): string {
-  return `${count} ${count === 1 ? noun : `${noun}s`}`
-}
-
 interface PasswordsViewProps {
   credentials: BrowserCredentialMetadata[]
   initialImportOpen?: boolean
   onChange: (credentials: BrowserCredentialMetadata[]) => void
   onBack: () => void
   /** Lets the Browser page refresh its own counts after an import. */
-  onImported: () => Promise<unknown>
+  onImported: () => Promise<unknown> // i18n-ignore: type signature
 }
 
 /**
@@ -44,6 +41,8 @@ export function PasswordsView({
   onBack,
   onImported,
 }: PasswordsViewProps) {
+  const t = useTranslations('settings.browser.passwords')
+  const tShared = useTranslations('settings.shared')
   const [searchTerm, setSearchTerm] = useSettingsSearch()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmingDeleteAll, setConfirmingDeleteAll] = useState(false)
@@ -57,9 +56,9 @@ export function PasswordsView({
     try {
       onChange(await bridge.forgetAll())
       setConfirmingDeleteAll(false)
-      toast.success('Deleted every saved password')
+      toast.success(t('deleteAllSuccess'))
     } catch {
-      toast.error('Could not delete saved passwords')
+      toast.error(t('deleteAllError'))
     } finally {
       setDeleteAllPending(false)
     }
@@ -90,15 +89,15 @@ export function PasswordsView({
   return (
     <>
       <SettingsPanel
-        back={{ text: 'Browser', icon: ArrowLeft, onSelect: onBack }}
-        title='Passwords'
-        description='Saved logins for the built-in browser, encrypted on this device.'
-        search={{ value: searchTerm, onChange: setSearchTerm, placeholder: 'Search passwords...' }}
+        back={{ text: t('back'), icon: ArrowLeft, onSelect: onBack }}
+        title={t('title')}
+        description={t('description')}
+        search={{ value: searchTerm, onChange: setSearchTerm, placeholder: t('searchPlaceholder') }}
         actions={[
           ...(credentials.length > 0
             ? [
                 {
-                  text: 'Delete all',
+                  text: t('deleteAll'),
                   variant: 'destructive' as const,
                   onSelect: () => setConfirmingDeleteAll(true),
                   disabled: deleteAllPending,
@@ -108,7 +107,7 @@ export function PasswordsView({
           ...(canImport
             ? [
                 {
-                  text: 'Import',
+                  text: t('import'),
                   icon: Plus,
                   variant: 'primary' as const,
                   onSelect: () => setImportOpen(true),
@@ -118,9 +117,7 @@ export function PasswordsView({
         ]}
       >
         {credentials.length === 0 ? (
-          <SettingsEmptyState>
-            No saved passwords yet. Import them from another browser to bring them over.
-          </SettingsEmptyState>
+          <SettingsEmptyState>{t('empty')}</SettingsEmptyState>
         ) : (
           <>
             <div className={RESOURCE_LIST_GRID}>
@@ -130,9 +127,9 @@ export function PasswordsView({
                   icon={<BrowserCredentialIcon icon={credential.icon} />}
                   iconFill
                   title={siteLabel(credential.origin)}
-                  description={credential.username || 'No username'}
+                  description={credential.username || t('noUsername')}
                   onClick={() => setSelectedId(credential.id)}
-                  clickLabel={`Open ${siteLabel(credential.origin)}`}
+                  clickLabel={t('open', { site: siteLabel(credential.origin) })}
                   navigable
                 />
               ))}
@@ -140,7 +137,7 @@ export function PasswordsView({
 
             {filtered.length === 0 && (
               <SettingsEmptyState variant='inline'>
-                No passwords found matching &ldquo;{searchTerm}&rdquo;
+                {t('noResults', { term: searchTerm })}
               </SettingsEmptyState>
             )}
           </>
@@ -152,16 +149,16 @@ export function PasswordsView({
       <ChipConfirmModal
         open={confirmingDeleteAll}
         onOpenChange={(open) => !open && setConfirmingDeleteAll(false)}
-        title='Delete all passwords'
+        title={t('deleteAllTitle')}
         text={[
-          'This permanently deletes ',
-          { text: `all ${pluralize(credentials.length, 'saved password')}`, bold: true },
-          ' from this device. Your accounts on those sites are not affected, and you can import again from another browser.',
+          t('deleteAllConfirm.before'),
+          { text: t('deleteAllConfirm.count', { count: credentials.length }), bold: true },
+          t('deleteAllConfirm.after'),
         ]}
         confirm={{
-          label: 'Delete all',
+          label: t('deleteAll'),
           pending: deleteAllPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: tShared('deleting'),
           onClick: () => void forgetAll(),
         }}
       />

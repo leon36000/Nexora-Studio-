@@ -63,8 +63,8 @@ function imageMarkdown(node: JSONContent): string {
   const height = attrs.height
   let image: string
   if (width || height) {
-    const parts = [`src="${escapeAttr(src)}"`, `alt="${escapeAttr(alt)}"`]
-    if (title) parts.push(`title="${escapeAttr(title)}"`)
+    const parts = [`src="${escapeAttr(src)}"`, `alt="${escapeAttr(alt)}"`] // i18n-ignore: serialized markup
+    if (title) parts.push(`title="${escapeAttr(title)}"`) // i18n-ignore: serialized markup
     if (width) parts.push(`width="${escapeAttr(String(width))}"`)
     if (height) parts.push(`height="${escapeAttr(String(height))}"`)
     image = `<img ${parts.join(' ')}>`

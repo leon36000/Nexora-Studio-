@@ -5,6 +5,7 @@ import { ChipConfirmModal, toast } from '@sim/emcn'
 import { ArrowLeft } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { saveDiscardActions } from '@/components/settings/save-discard-actions'
 import { useSettingsUnsavedGuard } from '@/components/settings/use-settings-unsaved-guard'
 import {
@@ -55,6 +56,8 @@ export function CustomToolDetail({
   onBack,
   onCreated,
 }: CustomToolDetailProps) {
+  const t = useTranslations('settings.customTools')
+  const tShared = useTranslations('settings.shared')
   const isEditing = !!tool
 
   const createTool = useCreateCustomTool()
@@ -145,7 +148,7 @@ export function CustomToolDetail({
     if (saving) return
 
     if (!jsonSchema.trim()) {
-      setSchemaError('Schema cannot be empty')
+      setSchemaError(t('detail.schemaEmpty'))
       return
     }
 
@@ -185,7 +188,7 @@ export function CustomToolDetail({
       }
     } catch (error) {
       logger.error('Failed to save custom tool', error)
-      const message = getErrorMessage(error, 'Failed to save custom tool')
+      const message = getErrorMessage(error, t('detail.saveFailed'))
       setSchemaError(
         message.includes('Cannot change function name') ? FUNCTION_NAME_LOCKED : message
       )
@@ -200,8 +203,8 @@ export function CustomToolDetail({
       onBack()
     } catch (error) {
       logger.error('Failed to delete custom tool', error)
-      toast.error("Couldn't delete tool", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('detail.deleteFailed'), {
+        description: getErrorMessage(error, t('detail.tryAgainShortly')),
       })
     }
   }
@@ -209,12 +212,10 @@ export function CustomToolDetail({
   return (
     <>
       <SettingsPanel
-        back={{ text: 'Custom tools', icon: ArrowLeft, onSelect: () => guard.guardBack(onBack) }}
-        title={identity.name || tool?.title || 'New tool'}
+        back={{ text: t('detail.back'), icon: ArrowLeft, onSelect: () => guard.guardBack(onBack) }}
+        title={identity.name || tool?.title || t('detail.newTool')}
         description={
-          identity.description ||
-          tool?.schema.function.description ||
-          'Define the JSON schema your agents call, and the code that runs.'
+          identity.description || tool?.schema.function.description || t('detail.description')
         }
         actions={[
           ...(readOnly
@@ -231,7 +232,7 @@ export function CustomToolDetail({
             ? [
                 {
                   id: 'delete',
-                  text: deleteTool.isPending ? 'Deleting...' : 'Delete',
+                  text: deleteTool.isPending ? tShared('deleting') : tShared('delete'),
                   onSelect: () => setShowDeleteConfirm(true),
                   disabled: deleteTool.isPending,
                 },
@@ -241,7 +242,7 @@ export function CustomToolDetail({
       >
         <div className='flex flex-col gap-7'>
           <SettingsSection
-            label='Schema'
+            label={t('detail.schema')}
             headerAccessory={
               schemaError ? <FieldErrorText>{schemaError}</FieldErrorText> : undefined
             }
@@ -271,7 +272,7 @@ export function CustomToolDetail({
           </SettingsSection>
 
           <SettingsSection
-            label='Code'
+            label={t('detail.code')}
             headerAccessory={codeError ? <FieldErrorText>{codeError}</FieldErrorText> : undefined}
             action={
               controlsDisabled ? undefined : (
@@ -305,14 +306,14 @@ export function CustomToolDetail({
       <ChipConfirmModal
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        srTitle='Delete Custom Tool'
-        title='Delete Custom Tool'
+        srTitle={t('detail.deleteTitle')}
+        title={t('detail.deleteTitle')}
         text={CUSTOM_TOOL_DELETE_CONFIRM_TEXT}
         confirm={{
-          label: 'Delete',
+          label: tShared('delete'),
           onClick: handleConfirmDelete,
           pending: deleteTool.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: tShared('deleting'),
         }}
       />
     </>

@@ -1,6 +1,7 @@
 'use client'
 
 import { ChipCopyInput } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { SettingsPanel } from '@/components/settings/settings-panel'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import {
@@ -18,12 +19,13 @@ interface OrganizationSecuritySettingsProps {
 export function OrganizationSecuritySettings({
   organizationId,
 }: OrganizationSecuritySettingsProps) {
+  const t = useTranslations('settings.organizationSecurity')
   const { hosted, features } = useDeploymentShape()
 
   return (
     <div className='flex flex-col gap-7'>
       {hosted || features.sessionPolicies ? (
-        <SettingsSection label='Session policies'>
+        <SettingsSection label={t('sessionPolicies')}>
           <SessionPolicySettings key={organizationId} organizationId={organizationId} />
         </SettingsSection>
       ) : (
@@ -35,34 +37,33 @@ export function OrganizationSecuritySettings({
 }
 
 function OrganizationNetworkSection({ organizationId }: OrganizationSecuritySettingsProps) {
+  const t = useTranslations('settings.organizationSecurity')
   const { data, error, isPending, isFetching, refetch } = useOrganizationNetwork(organizationId)
 
   return (
-    <SettingsSection label='Outbound IP addresses'>
+    <SettingsSection label={t('outboundIps')}>
       {isPending ? (
         <SettingsEmptyState variant='inline'>
-          <span role='status'>Loading network settings…</span>
+          <span role='status'>{t('loading')}</span>
         </SettingsEmptyState>
       ) : error || data?.mode === 'unavailable' ? (
         <SettingsQueryErrorState
           error={error}
-          fallback='Could not load network settings'
+          fallback={t('loadError')}
           isRetrying={isFetching}
           onRetry={() => void refetch()}
           variant='inline'
         />
       ) : data?.mode === 'gateway' && data.publicIps.length > 0 ? (
         <div className='flex flex-col gap-3'>
-          <p className='text-[var(--text-muted)] text-caption'>
-            Allowlist every address below for supported HTTPS connections.
-          </p>
+          <p className='text-[var(--text-muted)] text-caption'>{t('allowlistHint')}</p>
           <div className='flex flex-col gap-2'>
             {data.publicIps.map((ip) => (
               <ChipCopyInput
                 key={ip}
                 value={`${ip}/32`}
-                aria-label={`Outbound IP ${ip}`}
-                copyLabel={`Copy ${ip}/32`}
+                aria-label={t('ipAriaLabel', { ip })}
+                copyLabel={t('copyIp', { address: `${ip}/32` })}
                 inputClassName='font-mono'
               />
             ))}
@@ -71,10 +72,10 @@ function OrganizationNetworkSection({ organizationId }: OrganizationSecuritySett
       ) : data ? (
         <p role='status' className='text-[var(--text-muted)] text-sm'>
           {data.mode === 'blocked'
-            ? 'Supported HTTPS connections are paused.'
+            ? t('paused')
             : data.mode === 'gateway'
-              ? 'Your outbound IP addresses aren’t available yet.'
-              : 'Outbound IP addresses are not configured for this organization.'}
+              ? t('notAvailableYet')
+              : t('notConfigured')}
         </p>
       ) : null}
     </SettingsSection>

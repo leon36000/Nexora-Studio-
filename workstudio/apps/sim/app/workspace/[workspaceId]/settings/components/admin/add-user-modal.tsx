@@ -11,19 +11,14 @@ import {
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import { isValidEmailSyntax } from '@sim/utils/string'
+import { useTranslations } from 'next-intl'
 import { type AdminUser, useAddUser } from '@/hooks/queries/admin-users'
 
-const EMAIL_STATUS_OPTIONS = [
-  { value: 'verified', label: 'Verified' },
-  { value: 'unverified', label: 'Unverified' },
-] as const
+const EMAIL_STATUSES = ['verified', 'unverified'] as const
 
-const PASSWORD_MODE_OPTIONS = [
-  { value: 'set', label: 'Set a password' },
-  { value: 'email', label: 'Email a reset link' },
-] as const
+const PASSWORD_MODES = ['set', 'email'] as const
 
-type PasswordMode = (typeof PASSWORD_MODE_OPTIONS)[number]['value']
+type PasswordMode = (typeof PASSWORD_MODES)[number]
 
 interface AddUserModalProps {
   open: boolean
@@ -38,6 +33,7 @@ interface AddUserModalProps {
 }
 
 export function AddUserModal({ open, onOpenChange, onCreated }: AddUserModalProps) {
+  const t = useTranslations('settings.admin.addUserModal')
   const addUser = useAddUser()
   const submissionInFlightRef = useRef(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,13 +46,11 @@ export function AddUserModal({ open, onOpenChange, onCreated }: AddUserModalProp
   const setsPassword = passwordMode === 'set'
   const normalizedName = name.trim()
   const normalizedEmail = email.trim().toLowerCase()
-  const nameError = name.length > 0 && !normalizedName ? 'Name is required' : undefined
+  const nameError = name.length > 0 && !normalizedName ? t('nameRequired') : undefined
   const emailError =
-    email.length > 0 && !isValidEmailSyntax(normalizedEmail) ? 'Enter a valid email' : undefined
+    email.length > 0 && !isValidEmailSyntax(normalizedEmail) ? t('invalidEmail') : undefined
   const passwordError =
-    password.length > 0 && password.length < 8
-      ? 'Password must be at least 8 characters'
-      : undefined
+    password.length < 8 && password.length > 0 ? t('passwordTooShort') : undefined
   const isSubmissionPending = isSubmitting || addUser.isPending
   const canSubmit =
     normalizedName.length > 0 &&
@@ -111,22 +105,22 @@ export function AddUserModal({ open, onOpenChange, onCreated }: AddUserModalProp
       onOpenChange={(next) => {
         if (!next) handleClose()
       }}
-      srTitle='Add user'
+      srTitle={t('title')}
     >
       <ChipModalHeader onClose={handleClose} closeDisabled={isSubmissionPending}>
-        Add user
+        {t('title')}
       </ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='input'
-          title='Name'
+          title={t('name')}
           value={name}
           onChange={(value) => {
             setName(value)
             addUser.reset()
           }}
           error={nameError}
-          placeholder='Canary Writer'
+          placeholder={t('namePlaceholder')}
           maxLength={100}
           autoComplete='off'
           disabled={isSubmissionPending}
@@ -134,7 +128,7 @@ export function AddUserModal({ open, onOpenChange, onCreated }: AddUserModalProp
         />
         <ChipModalField
           type='email'
-          title='Email'
+          title={t('email')}
           value={email}
           onChange={(value) => {
             setEmail(value)
@@ -148,17 +142,15 @@ export function AddUserModal({ open, onOpenChange, onCreated }: AddUserModalProp
         />
         <ChipModalField
           type='dropdown'
-          title='Credentials'
+          title={t('credentials')}
           value={passwordMode}
           onChange={(value) => {
             setPasswordMode(value as PasswordMode)
             addUser.reset()
           }}
-          options={PASSWORD_MODE_OPTIONS}
+          options={PASSWORD_MODES.map((value) => ({ value, label: t(`passwordModes.${value}`) }))}
           align='start'
-          hint={
-            setsPassword ? undefined : 'They pick their own password from the emailed reset link.'
-          }
+          hint={setsPassword ? undefined : t('resetLinkHint')}
           disabled={isSubmissionPending}
           required
         />
@@ -166,14 +158,14 @@ export function AddUserModal({ open, onOpenChange, onCreated }: AddUserModalProp
           <ChipModalField
             type='input'
             inputType='password'
-            title='Password'
+            title={t('password')}
             value={password}
             onChange={(value) => {
               setPassword(value)
               addUser.reset()
             }}
             error={passwordError}
-            placeholder='At least 8 characters'
+            placeholder={t('passwordPlaceholder')}
             autoComplete='new-password'
             disabled={isSubmissionPending}
             required
@@ -181,27 +173,27 @@ export function AddUserModal({ open, onOpenChange, onCreated }: AddUserModalProp
         )}
         <ChipModalField
           type='dropdown'
-          title='Email status'
+          title={t('emailStatus')}
           value={emailVerified ? 'verified' : 'unverified'}
           onChange={(value) => {
             setEmailVerified(value === 'verified')
             addUser.reset()
           }}
-          options={EMAIL_STATUS_OPTIONS}
+          options={EMAIL_STATUSES.map((value) => ({ value, label: t(`emailStatuses.${value}`) }))}
           align='start'
-          hint='Verified users can sign in when email verification is required.'
+          hint={t('verifiedHint')}
           disabled={isSubmissionPending}
           required
         />
         <ChipModalError>
-          {addUser.error ? getErrorMessage(addUser.error, 'Failed to add user') : null}
+          {addUser.error ? getErrorMessage(addUser.error, t('addFailed')) : null}
         </ChipModalError>
       </ChipModalBody>
       <ChipModalFooter
         onCancel={handleClose}
         cancelDisabled={isSubmissionPending}
         primaryAction={{
-          label: isSubmissionPending ? 'Adding...' : 'Add user',
+          label: isSubmissionPending ? t('adding') : t('submit'),
           onClick: handleAddUser,
           disabled: !canSubmit,
         }}

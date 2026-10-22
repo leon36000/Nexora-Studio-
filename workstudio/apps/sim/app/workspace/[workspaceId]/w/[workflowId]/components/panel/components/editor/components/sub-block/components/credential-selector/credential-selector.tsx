@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Chip, Combobox, type ComboboxOptionGroup } from '@sim/emcn'
 import { Key, SquareArrowUpRight } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { consumeOAuthReturnContext, writeOAuthReturnContext } from '@/lib/credentials/client-state'
 import {
   getCanonicalScopesForProvider,
@@ -49,6 +50,7 @@ export function CredentialSelector({
   previewValue,
   previewContextValues,
 }: CredentialSelectorProps) {
+  const t = useTranslations('editor.subBlock.credentialSelector')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
   const [showConnectModal, setShowConnectModal] = useState(false)
@@ -59,7 +61,7 @@ export function CredentialSelector({
   const activeWorkflowId = useWorkflowRegistry((state) => state.activeWorkflowId)
   const [storeValue, setStoreValue] = useSubBlockValue<string | null>(blockId, subBlock.id)
 
-  const label = subBlock.placeholder || 'Select credential'
+  const label = subBlock.placeholder || t('selectCredential')
   const serviceId = subBlock.serviceId || ''
   const isAllCredentials = !serviceId
   const effectiveProviderId = getProviderIdFromServiceId(serviceId) as OAuthProvider
@@ -284,10 +286,10 @@ export function CredentialSelector({
           credentialKind === 'service-account'
             ? (subBlock.credentialLabels?.serviceAccountConnect ??
               serviceAccountTarget?.label ??
-              `Add ${getProviderName(provider)} key`)
+              t('addProviderKey', { provider: getProviderName(provider) }))
             : credentials.length > 0
-              ? `Connect another ${getProviderName(provider)} account`
-              : `Connect ${getProviderName(provider)} account`,
+              ? t('connectAnotherAccount', { provider: getProviderName(provider) })
+              : t('connectAccount', { provider: getProviderName(provider) }),
         value: '__connect_account__',
         iconElement: <SquareArrowUpRight className='size-3' />,
       })
@@ -295,6 +297,7 @@ export function CredentialSelector({
 
     return options
   }, [
+    t,
     isAllCredentials,
     isMergedKinds,
     allWorkspaceCredentials,
@@ -320,18 +323,20 @@ export function CredentialSelector({
 
     return [
       {
-        section: labels?.oauthGroup ?? `${getProviderName(provider)} accounts`,
+        section:
+          labels?.oauthGroup ?? t('providerAccounts', { provider: getProviderName(provider) }),
         items: [
           ...credentials.filter((c) => c.type !== 'service_account').map(toOption),
           {
-            label: labels?.oauthConnect ?? `Connect ${getProviderName(provider)} account`,
+            label:
+              labels?.oauthConnect ?? t('connectAccount', { provider: getProviderName(provider) }),
             value: '__connect_account__',
             iconElement: <SquareArrowUpRight className='size-3' />,
           },
         ],
       },
       {
-        section: labels?.serviceAccountGroup ?? 'Service accounts',
+        section: labels?.serviceAccountGroup ?? t('serviceAccounts'),
         items: [
           ...credentials.filter((c) => c.type === 'service_account').map(toOption),
           // Drop the setup action when the flow is preview-gated for this viewer.
@@ -342,7 +347,7 @@ export function CredentialSelector({
                   label:
                     labels?.serviceAccountConnect ??
                     serviceAccountTarget?.label ??
-                    `Add ${getProviderName(provider)} key`,
+                    t('addProviderKey', { provider: getProviderName(provider) }),
                   value: '__connect_service_account__',
                   iconElement: <SquareArrowUpRight className='size-3' />,
                 },
@@ -351,6 +356,7 @@ export function CredentialSelector({
       },
     ]
   }, [
+    t,
     isMergedKinds,
     subBlock.credentialLabels,
     credentials,
@@ -451,14 +457,12 @@ export function CredentialSelector({
         selectedValue={selectedId}
         onChange={handleComboboxChange}
         onOpenChange={handleOpenChange}
-        placeholder={
-          hasDependencies && !depsSatisfied ? 'Fill in required fields above first' : label
-        }
+        placeholder={hasDependencies && !depsSatisfied ? t('fillRequiredFieldsFirst') : label}
         disabled={effectiveDisabled}
         editable={!isMergedKinds}
         filterOptions={!isMergedKinds}
         searchable={isMergedKinds}
-        searchPlaceholder='Search credentials...'
+        searchPlaceholder={t('searchCredentials')}
         isLoading={credentialsLoading}
         overlayContent={overlayContent}
         className={overlayContent ? 'pl-7' : ''}
@@ -468,7 +472,7 @@ export function CredentialSelector({
         <div className='mt-2 flex flex-col gap-1 rounded-sm border bg-[var(--surface-2)] px-2 py-1.5'>
           <div className='flex items-center text-caption'>
             <span className='mr-1.5 inline-block size-[6px] rounded-xs bg-[var(--caution)]' />
-            {dataversePolicy.message}
+            {t(`dataverse.${dataversePolicy.messageKey}`)}
           </div>
           {!dataversePolicy.hasInvalidEnvironment && (
             <Chip
@@ -492,7 +496,7 @@ export function CredentialSelector({
                 setShowOAuthModal(true)
               }}
             >
-              {dataversePolicy.actionLabel}
+              {t(`dataverse.${dataversePolicy.actionLabelKey}`)}
             </Chip>
           )}
         </div>

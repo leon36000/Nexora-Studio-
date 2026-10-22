@@ -3,6 +3,7 @@ import { toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { filterUndefined } from '@sim/utils/object'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { requestRaw } from '@/lib/api/client'
 import { isApiClientError } from '@/lib/api/client/errors'
 import { wandGenerateStreamContract } from '@/lib/api/contracts'
@@ -127,6 +128,7 @@ export function useWand({
   onStreamChunk,
   onStreamStart,
 }: UseWandProps) {
+  const t = useTranslations('editor.wand')
   const queryClient = useQueryClient()
   const { navigateToSettings } = useSettingsNavigation()
   const workflowId = useWorkflowRegistry((state) => state.hydration.workflowId)
@@ -197,12 +199,12 @@ export function useWand({
   const generateStream = useCallback(
     async ({ prompt }: { prompt: string }) => {
       if (!prompt) {
-        setError('Prompt cannot be empty.')
+        setError(t('emptyPrompt'))
         return
       }
 
       if (!wandConfig?.enabled) {
-        setError('Wand is not enabled.')
+        setError(t('notEnabled'))
         return
       }
 
@@ -309,19 +311,19 @@ export function useWand({
           // affordance the member can't act on.
           const isMemberLimit = (error.body as { scope?: string } | null)?.scope === 'member'
           toast.error(
-            error.message || 'Usage limit reached',
+            error.message || t('usageLimitReached'),
             isMemberLimit
               ? undefined
               : {
                   action: {
-                    label: 'Upgrade',
+                    label: t('upgrade'),
                     onClick: () => navigateToSettings({ section: 'billing' }),
                   },
                 }
           )
         } else {
           logger.error('Wand generation failed', { error })
-          setError(error.message || 'Generation failed')
+          setError(error.message || t('generationFailed'))
         }
       } finally {
         setIsLoading(false)
@@ -341,6 +343,7 @@ export function useWand({
       workflowId,
       workspaceId,
       navigateToSettings,
+      t,
     ]
   )
 

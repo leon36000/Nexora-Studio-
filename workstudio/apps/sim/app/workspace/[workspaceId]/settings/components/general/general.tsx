@@ -94,6 +94,7 @@ function getInitials(name: string | undefined | null): string {
 
 export function General() {
   const t = useTranslations('settings.general')
+  const tSettings = useTranslations('settings')
   const router = useRouter()
   const brandConfig = useBrandConfig()
   const { data: session } = useSession()
@@ -149,9 +150,7 @@ export function General() {
           setUploadError(null)
         })
         .catch(() => {
-          setUploadError(
-            url ? 'Failed to update profile picture' : 'Failed to remove profile picture'
-          )
+          setUploadError(url ? t('profile.updatePictureFailed') : t('profile.removePictureFailed'))
         })
     },
     onError: (error: string) => {
@@ -232,7 +231,7 @@ export function General() {
 
   const confirmSignOutOtherDevices = () => {
     signOutOtherDevices.mutate(undefined, {
-      onSuccess: () => toast.success('Signed out of other devices'),
+      onSuccess: () => toast.success(t('signOutOthersModal.success')),
       onError: (error) => toast.error(getErrorMessage(error)),
       onSettled: () => setShowSignOutOtherDevicesModal(false),
     })
@@ -297,22 +296,26 @@ export function General() {
       ? [
           {
             id: 'home-page',
-            text: 'Home page',
+            text: t('actions.homePage'),
             onSelect: () => window.open('/?home', '_blank', 'noopener,noreferrer'),
           },
         ]
       : []),
     ...(session?.user?.id && !isAuthDisabled
       ? [
-          { id: 'sign-out', text: 'Sign out', onSelect: () => signOutAndRedirect(router.push) },
+          {
+            id: 'sign-out',
+            text: t('actions.signOut'),
+            onSelect: () => signOutAndRedirect(router.push),
+          },
           {
             id: 'sign-out-other-devices',
-            text: 'Sign out other devices',
+            text: t('actions.signOutOtherDevices'),
             onSelect: () => setShowSignOutOtherDevicesModal(true),
           },
           {
             id: 'reset-password',
-            text: 'Reset password',
+            text: t('actions.resetPassword'),
             onSelect: () => setShowResetPasswordModal(true),
             disabled: !profile?.email,
           },
@@ -329,19 +332,24 @@ export function General() {
   const timezonePicker = getTimezonePickerPresentation(
     savedTimezone,
     browserTimezone,
-    TIMEZONE_OPTIONS
+    TIMEZONE_OPTIONS,
+    {
+      auto: (timezone) => t('preferences.timezoneAuto', { timezone }),
+      invalid: (timezone) => t('preferences.timezoneInvalid', { timezone }),
+      empty: t('preferences.timezoneEmpty'),
+    }
   )
 
   return (
     <>
       <SettingsPanel actions={actions}>
-        <SettingsSection label='Profile'>
+        <SettingsSection label={t('sections.profile')}>
           <div className='flex flex-col gap-3'>
             <div className='flex items-center gap-3'>
               <div className='relative'>
                 <button
                   type='button'
-                  aria-label='Change profile picture'
+                  aria-label={t('profile.changePicture')}
                   className={cn(
                     'group relative flex size-9 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full transition-colors hover-hover:bg-[var(--bg)]',
                     !imageUrl && 'border border-[var(--border)]'
@@ -353,7 +361,7 @@ export function General() {
                       return (
                         <Image
                           src={imageUrl}
-                          alt={profile?.name || 'User'}
+                          alt={profile?.name || t('profile.pictureAlt')}
                           width={36}
                           height={36}
                           unoptimized
@@ -402,7 +410,7 @@ export function General() {
                         </span>
                         <input
                           ref={inputRef}
-                          aria-label='Your name'
+                          aria-label={t('profile.yourName')}
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           onKeyDown={handleKeyDown}
@@ -421,7 +429,7 @@ export function General() {
                         className='size-[12px] shrink-0 p-0'
                         onClick={handleUpdateName}
                         disabled={updateProfile.isPending}
-                        aria-label='Save name'
+                        aria-label={t('profile.saveName')}
                       >
                         <Check className='size-[12px]' />
                       </Button>
@@ -433,7 +441,7 @@ export function General() {
                         variant='ghost'
                         className='size-[10.5px] shrink-0 p-0'
                         onClick={() => setIsEditingName(true)}
-                        aria-label='Edit name'
+                        aria-label={t('profile.editName')}
                       >
                         <Pencil className='size-[10.5px]' />
                       </Button>
@@ -447,7 +455,7 @@ export function General() {
           </div>
         </SettingsSection>
 
-        <SettingsSection label='Preferences'>
+        <SettingsSection label={t('sections.preferences')}>
           <div className='flex flex-col gap-4'>
             <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
               <Label>{t('language')}</Label>
@@ -457,36 +465,36 @@ export function General() {
             </div>
 
             <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
-              <Label>Theme</Label>
+              <Label>{t('preferences.theme')}</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>
                 <ChipSelect
-                  aria-label='Theme'
+                  aria-label={t('preferences.theme')}
                   align='start'
                   fullWidth
                   dropdownWidth='trigger'
                   value={settings?.theme}
                   onChange={handleThemeChange}
-                  placeholder='Select theme'
+                  placeholder={t('preferences.selectTheme')}
                   options={[
-                    { label: 'System', value: 'system' },
-                    { label: 'Light', value: 'light' },
-                    { label: 'Dark', value: 'dark' },
+                    { label: t('preferences.themes.system'), value: 'system' },
+                    { label: t('preferences.themes.light'), value: 'light' },
+                    { label: t('preferences.themes.dark'), value: 'dark' },
                   ]}
                 />
               </div>
             </div>
 
             <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4'>
-              <Label>Timezone</Label>
+              <Label>{t('preferences.timezone')}</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>
                 <ChipCombobox
                   align='start'
                   dropdownWidth={240}
                   searchable
-                  searchPlaceholder='Search timezones'
+                  searchPlaceholder={t('preferences.searchTimezones')}
                   value={timezonePicker.value}
                   onChange={handleTimezoneChange}
-                  placeholder='Select timezone'
+                  placeholder={t('preferences.selectTimezone')}
                   options={timezonePicker.options}
                 />
               </div>
@@ -494,22 +502,22 @@ export function General() {
 
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-1.5'>
-                <Label htmlFor='auto-connect'>Auto-connect on drop</Label>
+                <Label htmlFor='auto-connect'>{t('preferences.autoConnect')}</Label>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
                       type='button'
-                      aria-label='About auto-connect on drop'
+                      aria-label={t('preferences.autoConnectAbout')}
                       className='inline-flex cursor-default text-[var(--text-muted)]'
                     >
                       <CircleInfo className='size-[14px]' />
                     </button>
                   </Tooltip.Trigger>
                   <Tooltip.Content side='bottom' align='start'>
-                    <p>Automatically connect blocks when dropped near each other</p>
+                    <p>{t('preferences.autoConnectTooltip')}</p>
                     <Tooltip.Preview
                       src='/tooltips/auto-connect-on-drop.mp4'
-                      alt='Auto-connect on drop example'
+                      alt={t('preferences.autoConnectExample')}
                       loop={true}
                     />
                   </Tooltip.Content>
@@ -524,22 +532,22 @@ export function General() {
 
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-1.5'>
-                <Label htmlFor='auto-focus-on-click'>Auto-focus on click</Label>
+                <Label htmlFor='auto-focus-on-click'>{t('preferences.autoFocus')}</Label>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
                       type='button'
-                      aria-label='About auto-focus on click'
+                      aria-label={t('preferences.autoFocusAbout')}
                       className='inline-flex cursor-default text-[var(--text-muted)]'
                     >
                       <CircleInfo className='size-[14px]' />
                     </button>
                   </Tooltip.Trigger>
                   <Tooltip.Content side='bottom' align='start'>
-                    <p>Center the canvas on a block when you click it</p>
+                    <p>{t('preferences.autoFocusTooltip')}</p>
                     <Tooltip.Preview
                       src='/tooltips/auto-focus-on-click.mp4'
-                      alt='Auto-focus on click example'
+                      alt={t('preferences.autoFocusExample')}
                       loop={true}
                     />
                   </Tooltip.Content>
@@ -554,22 +562,22 @@ export function General() {
 
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-1.5'>
-                <Label htmlFor='error-notifications'>Canvas error notifications</Label>
+                <Label htmlFor='error-notifications'>{t('preferences.errorNotifications')}</Label>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
                       type='button'
-                      aria-label='About canvas error notifications'
+                      aria-label={t('preferences.errorNotificationsAbout')}
                       className='inline-flex cursor-default text-[var(--text-muted)]'
                     >
                       <CircleInfo className='size-[14px]' />
                     </button>
                   </Tooltip.Trigger>
                   <Tooltip.Content side='bottom' align='start'>
-                    <p>Show error popups on blocks when a workflow run fails</p>
+                    <p>{t('preferences.errorNotificationsTooltip')}</p>
                     <Tooltip.Preview
                       src='/tooltips/canvas-error-notification.mp4'
-                      alt='Canvas error notification example'
+                      alt={t('preferences.errorNotificationsExample')}
                     />
                   </Tooltip.Content>
                 </Tooltip.Root>
@@ -582,18 +590,18 @@ export function General() {
             </div>
 
             <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
-              <Label>Snap to grid</Label>
+              <Label>{t('preferences.snapToGrid')}</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>
                 <ChipSelect
-                  aria-label='Snap to grid'
+                  aria-label={t('preferences.snapToGrid')}
                   align='start'
                   fullWidth
                   dropdownWidth='trigger'
                   value={String(snapToGridValue)}
                   onChange={handleSnapToGridChange}
-                  placeholder='Select size'
+                  placeholder={t('preferences.selectSize')}
                   options={[
-                    { label: 'Off', value: '0' },
+                    { label: t('preferences.snapOff'), value: '0' },
                     { label: '10px', value: '10' },
                     { label: '20px', value: '20' },
                     { label: '30px', value: '30' },
@@ -605,7 +613,7 @@ export function General() {
             </div>
 
             <div className='flex items-center justify-between'>
-              <Label htmlFor='show-action-bar'>Show canvas controls</Label>
+              <Label htmlFor='show-action-bar'>{t('preferences.showCanvasControls')}</Label>
               <Switch
                 id='show-action-bar'
                 checked={settings?.showActionBar ?? true}
@@ -615,23 +623,25 @@ export function General() {
           </div>
         </SettingsSection>
 
-        <SettingsSection label='Privacy'>
+        <SettingsSection label={t('sections.privacy')}>
           <div className='flex items-center justify-between'>
-            <Label>Privacy settings</Label>
-            <Chip onClick={() => setView('privacy')}>Manage</Chip>
+            <Label>{t('privacySettings')}</Label>
+            <Chip onClick={() => setView('privacy')}>{t('manage')}</Chip>
           </div>
         </SettingsSection>
 
         {!isAuthDisabled && (
-          <SettingsSection label='Account'>
+          <SettingsSection label={t('sections.account')}>
             <div className='flex flex-col gap-4'>
               <div className='flex items-center justify-between'>
-                <Label>Authorized apps</Label>
-                <Chip onClick={() => setView('authorized-apps')}>Manage</Chip>
+                <Label>{t('authorizedApps')}</Label>
+                <Chip onClick={() => setView('authorized-apps')}>{t('manage')}</Chip>
               </div>
               <div className='flex items-center justify-between'>
-                <Label>Delete account</Label>
-                <Chip onClick={() => setShowDeleteAccountModal(true)}>Delete</Chip>
+                <Label>{t('deleteAccountLabel')}</Label>
+                <Chip onClick={() => setShowDeleteAccountModal(true)}>
+                  {tSettings('shared.delete')}
+                </Chip>
               </div>
             </div>
           </SettingsSection>
@@ -641,16 +651,17 @@ export function General() {
       <ChipModal
         open={showResetPasswordModal}
         onOpenChange={setShowResetPasswordModal}
-        srTitle='Reset Password'
+        srTitle={t('resetPasswordModal.title')}
       >
         <ChipModalHeader onClose={() => setShowResetPasswordModal(false)}>
-          Reset Password
+          {t('resetPasswordModal.title')}
         </ChipModalHeader>
         <ChipModalBody>
           <p className='px-2 text-[var(--text-secondary)] text-sm'>
-            A password reset link will be sent to{' '}
-            <span className='text-[var(--text-primary)]'>{profile?.email}</span>. Click the link in
-            the email to create a new password.
+            {t.rich('resetPasswordModal.body', {
+              email: profile?.email ?? '',
+              b: (chunks) => <span className='text-[var(--text-primary)]'>{chunks}</span>,
+            })}
           </p>
           <ChipModalError>{resetPassword.error?.message}</ChipModalError>
         </ChipModalBody>
@@ -659,10 +670,10 @@ export function General() {
           cancelDisabled={resetPassword.isPending || resetPassword.isSuccess}
           primaryAction={{
             label: resetPassword.isPending
-              ? 'Sending...'
+              ? t('resetPasswordModal.sending')
               : resetPassword.isSuccess
-                ? 'Sent'
-                : 'Send Reset Email',
+                ? t('resetPasswordModal.sent')
+                : t('resetPasswordModal.send'),
             onClick: handleResetPasswordConfirm,
             disabled: resetPassword.isPending || resetPassword.isSuccess,
           }}
@@ -672,13 +683,13 @@ export function General() {
       <ChipConfirmModal
         open={showSignOutOtherDevicesModal}
         onOpenChange={setShowSignOutOtherDevicesModal}
-        title='Sign out other devices'
-        text='This device and your authorized apps stay signed in.'
+        title={t('signOutOthersModal.title')}
+        text={t('signOutOthersModal.text')}
         confirm={{
-          label: 'Sign out',
+          label: t('signOutOthersModal.confirm'),
           onClick: confirmSignOutOtherDevices,
           pending: signOutOtherDevices.isPending,
-          pendingLabel: 'Signing out...',
+          pendingLabel: t('signOutOthersModal.pending'),
         }}
       />
 

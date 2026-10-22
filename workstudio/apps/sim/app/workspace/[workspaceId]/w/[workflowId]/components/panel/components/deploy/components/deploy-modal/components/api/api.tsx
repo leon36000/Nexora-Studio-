@@ -12,6 +12,7 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { Check, Clipboard } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import {
   AGENT_STREAM_PROTOCOL_HEADER_LABEL,
   AGENT_STREAM_PROTOCOL_V1,
@@ -71,6 +72,7 @@ export function ApiDeploy({
   selectedStreamingOutputs,
   onSelectedStreamingOutputsChange,
 }: ApiDeployProps) {
+  const t = useTranslations('editor.deploy.api')
   const [asyncExampleType, setAsyncExampleType] = useState<AsyncExampleType>('execute')
   const [language, setLanguage] = useState<CodeLanguage>('curl')
   const [copied, setCopied] = useState<CopiedState>({
@@ -445,7 +447,7 @@ console.log(limits);`
     <div className='space-y-4'>
       <div>
         <div className='mb-[6.5px] flex items-center justify-between'>
-          <Label className='block pl-0.5 text-small'>Language</Label>
+          <Label className='block pl-0.5 text-small'>{t('language')}</Label>
         </div>
         <ChipButtonGroup value={language} onValueChange={(val) => setLanguage(val as CodeLanguage)}>
           {(Object.keys(LANGUAGE_LABELS) as CodeLanguage[]).map((lang) => (
@@ -458,13 +460,13 @@ console.log(limits);`
 
       <div>
         <div className='mb-[6.5px] flex items-center justify-between'>
-          <Label className='block pl-0.5 text-small'>Run workflow</Label>
+          <Label className='block pl-0.5 text-small'>{t('runWorkflow')}</Label>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <Button
                 variant='ghost'
                 onClick={() => handleCopy('sync', getSyncCommand())}
-                aria-label='Copy command'
+                aria-label={t('copyCommand')}
                 iconPadding='md'
                 className='-my-1.5'
               >
@@ -472,7 +474,7 @@ console.log(limits);`
               </Button>
             </Tooltip.Trigger>
             <Tooltip.Content>
-              <span>{copied.sync ? 'Copied' : 'Copy'}</span>
+              <span>{copied.sync ? t('copied') : t('copy')}</span>
             </Tooltip.Content>
           </Tooltip.Root>
         </div>
@@ -486,14 +488,14 @@ console.log(limits);`
 
       <div>
         <div className='mb-[6.5px] flex items-center justify-between'>
-          <Label className='block pl-0.5 text-small'>Run workflow (stream response)</Label>
+          <Label className='block pl-0.5 text-small'>{t('runWorkflowStream')}</Label>
           <div className='flex items-center gap-1.5'>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
                 <Button
                   variant='ghost'
                   onClick={() => handleCopy('stream', getStreamCommand())}
-                  aria-label='Copy command'
+                  aria-label={t('copyCommand')}
                   iconPadding='md'
                   className='-my-1.5'
                 >
@@ -501,14 +503,14 @@ console.log(limits);`
                 </Button>
               </Tooltip.Trigger>
               <Tooltip.Content>
-                <span>{copied.stream ? 'Copied' : 'Copy'}</span>
+                <span>{copied.stream ? t('copied') : t('copy')}</span>
               </Tooltip.Content>
             </Tooltip.Root>
             <OutputSelect
               workflowId={workflowId}
               selectedOutputs={selectedStreamingOutputs}
               onOutputSelect={onSelectedStreamingOutputsChange}
-              placeholder='Select outputs'
+              placeholder={t('selectOutputs')}
               valueMode='label'
               align='end'
             />
@@ -525,14 +527,14 @@ console.log(limits);`
       {!info.isPublicApi && (
         <div>
           <div className='mb-[6.5px] flex items-center justify-between'>
-            <Label className='block pl-0.5 text-small'>Run workflow (async)</Label>
+            <Label className='block pl-0.5 text-small'>{t('runWorkflowAsync')}</Label>
             <div className='flex items-center gap-1.5'>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button
                     variant='ghost'
                     onClick={() => handleCopy('async', getAsyncCommand())}
-                    aria-label='Copy command'
+                    aria-label={t('copyCommand')}
                     iconPadding='md'
                     className='-my-1.5'
                   >
@@ -540,16 +542,16 @@ console.log(limits);`
                   </Button>
                 </Tooltip.Trigger>
                 <Tooltip.Content>
-                  <span>{copied.async ? 'Copied' : 'Copy'}</span>
+                  <span>{copied.async ? t('copied') : t('copy')}</span>
                 </Tooltip.Content>
               </Tooltip.Root>
               <Combobox
                 size='sm'
                 className='w-fit! min-w-[100px] rounded-md px-[9px] py-0.5!'
                 options={[
-                  { label: 'Start Execution', value: 'execute' },
-                  { label: 'Check Status', value: 'status' },
-                  { label: 'Usage Limits', value: 'rate-limits' },
+                  { label: t('asyncExamples.execute'), value: 'execute' },
+                  { label: t('asyncExamples.status'), value: 'status' },
+                  { label: t('asyncExamples.rateLimits'), value: 'rate-limits' },
                 ]}
                 value={asyncExampleType}
                 onChange={(value) => setAsyncExampleType(value as AsyncExampleType)}

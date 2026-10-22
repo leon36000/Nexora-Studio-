@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo } from 'react'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { useRegisterGlobalCommands } from '@/app/workspace/[workspaceId]/providers/global-commands-provider'
 import { createCommand } from '@/app/workspace/[workspaceId]/utils/commands'
 import { usePreventZoom } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks'
@@ -8,6 +9,7 @@ import { useWorkflowDiffStore } from '@/stores/workflow-diff'
 const logger = createLogger('DiffControls')
 
 export const DiffControls = memo(function DiffControls() {
+  const t = useTranslations('editor.diffControls')
   const isDiffReady = useWorkflowDiffStore((state) => state.isDiffReady)
   const hasActiveDiff = useWorkflowDiffStore((state) => state.hasActiveDiff)
   const acceptChanges = useWorkflowDiffStore((state) => state.acceptChanges)
@@ -61,40 +63,42 @@ export const DiffControls = memo(function DiffControls() {
         className='group relative flex h-[30px] overflow-hidden rounded-sm'
         style={{ isolation: 'isolate' }}
       >
-        {/* Reject side */}
-        <button
-          onClick={handleReject}
-          title='Reject changes'
-          className='relative flex h-full items-center border border-[var(--border)] bg-[var(--surface-4)] pr-5 pl-3 text-[var(--text-secondary)] text-small transition-colors hover-hover:border-[var(--border-1)] hover-hover:bg-[var(--surface-6)] hover-hover:text-[var(--text-primary)] dark:hover-hover:bg-[var(--surface-5)]'
-          style={{
-            clipPath: 'polygon(0 0, calc(100% + 10px) 0, 100% 100%, 0 100%)',
-            borderRadius: '4px 0 0 4px',
-          }}
-        >
-          Reject
-        </button>
-        {/* Slanted divider - split gray/green */}
-        <div
-          className='pointer-events-none absolute top-0 bottom-0 z-10'
-          style={{
-            left: '66px',
-            width: '2px',
-            transform: 'skewX(-18.4deg)',
-            background:
-              'linear-gradient(to right, var(--border) 50%, color-mix(in srgb, var(--brand-accent) 70%, var(--color-black)) 50%)',
-          }}
-        />
+        {/* Reject side, carrying the slanted divider so it follows the label's width */}
+        <div className='relative flex h-full'>
+          <button
+            onClick={handleReject}
+            title={t('rejectChanges')}
+            className='relative flex h-full items-center border border-[var(--border)] bg-[var(--surface-4)] pr-5 pl-3 text-[var(--text-secondary)] text-small transition-colors hover-hover:border-[var(--border-1)] hover-hover:bg-[var(--surface-6)] hover-hover:text-[var(--text-primary)] dark:hover-hover:bg-[var(--surface-5)]'
+            style={{
+              clipPath: 'polygon(0 0, calc(100% + 10px) 0, 100% 100%, 0 100%)',
+              borderRadius: '4px 0 0 4px',
+            }}
+          >
+            {t('reject')}
+          </button>
+          {/* Slanted divider - split gray/green */}
+          <div
+            className='pointer-events-none absolute top-0 bottom-0 z-10'
+            style={{
+              right: '6px',
+              width: '2px',
+              transform: 'skewX(-18.4deg)',
+              background:
+                'linear-gradient(to right, var(--border) 50%, color-mix(in srgb, var(--brand-accent) 70%, var(--color-black)) 50%)',
+            }}
+          />
+        </div>
         {/* Accept side */}
         <button
           onClick={handleAccept}
-          title='Accept changes (⇧⌘⏎)'
+          title={t('acceptChanges')}
           className='-ml-2.5 relative flex h-full items-center border border-black/15 bg-[var(--brand-accent)] pr-3 pl-5 text-[var(--text-inverse)] text-small transition-[background-color,border-color,fill,stroke] hover-hover:brightness-110 dark:border-white/10'
           style={{
             clipPath: 'polygon(10px 0, 100% 0, 100% 100%, 0 100%)',
             borderRadius: '0 4px 4px 0',
           }}
         >
-          Accept
+          {t('accept')}
           <kbd className='ml-2 rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-medium font-sans text-micro'>
             ⇧⌘<span className='translate-y-[-1px]'>⏎</span>
           </kbd>

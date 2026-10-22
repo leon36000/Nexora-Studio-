@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Chip, ChipDropdown, ChipInput, ChipTextarea, cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { SandboxDependencyIssue } from '@/lib/api/contracts/sandboxes'
 import { RowActionsMenu } from '@/app/workspace/[workspaceId]/settings/components/row-actions-menu'
 import { ManagedCliSelect } from '@/app/workspace/[workspaceId]/settings/components/sandboxes/components/managed-cli-select'
@@ -36,6 +37,7 @@ export function SandboxEditor({
   disabled = false,
   status,
 }: SandboxEditorProps) {
+  const t = useTranslations('settings.sandboxes')
   const dependencyIssuesByLine = useMemo(() => {
     const byLine = new Map<number, SandboxDependencyIssue>()
     for (const issue of dependencyIssues) {
@@ -54,9 +56,9 @@ export function SandboxEditor({
 
   return (
     <div className='flex flex-col gap-7'>
-      <SettingsSection label='Details'>
+      <SettingsSection label={t('editor.details')}>
         <div className='flex flex-col gap-4'>
-          <SettingsField label='Name'>
+          <SettingsField label={t('fields.name')}>
             <ChipInput
               value={draft.name}
               onChange={(event) => onChange({ ...draft, name: event.target.value })}
@@ -66,7 +68,7 @@ export function SandboxEditor({
               autoComplete='off'
             />
           </SettingsField>
-          <SettingsField label='Language'>
+          <SettingsField label={t('fields.language')}>
             <ChipDropdown
               value={draft.language}
               onChange={(language) => onChange({ ...draft, language: language as SandboxLanguage })}
@@ -80,7 +82,7 @@ export function SandboxEditor({
         </div>
       </SettingsSection>
 
-      <SettingsSection label='Dependencies'>
+      <SettingsSection label={t('fields.dependencies')}>
         <div className='flex flex-col gap-2'>
           <ChipTextarea
             value={draft.dependencies}
@@ -92,14 +94,12 @@ export function SandboxEditor({
             spellCheck={false}
             autoComplete='off'
           />
-          <p className='text-[var(--text-muted)] text-caption'>
-            One per line. Version pins are optional.
-          </p>
+          <p className='text-[var(--text-muted)] text-caption'>{t('fields.dependenciesHint')}</p>
           {dependencyIssues.length > 0 && (
             <ul className='flex flex-col gap-1'>
               {[...dependencyIssuesByLine.values()].map((issue) => (
                 <li key={issue.line} className='text-[var(--text-error)] text-caption'>
-                  Line {issue.line}: {issue.reason}
+                  {t('lineIssue', { line: issue.line, reason: issue.reason })}
                 </li>
               ))}
             </ul>
@@ -107,7 +107,7 @@ export function SandboxEditor({
         </div>
       </SettingsSection>
 
-      <SettingsSection label='Managed CLI tools'>
+      <SettingsSection label={t('fields.cliTools')}>
         <ManagedCliSelect
           value={draft.cliTools}
           onChange={(cliTools) => onChange({ ...draft, cliTools })}
@@ -116,7 +116,7 @@ export function SandboxEditor({
         />
       </SettingsSection>
 
-      <SettingsSection label='System packages'>
+      <SettingsSection label={t('fields.systemPackages')}>
         <div className='flex flex-col gap-2'>
           <ChipTextarea
             value={draft.systemPackages}
@@ -128,14 +128,12 @@ export function SandboxEditor({
             spellCheck={false}
             autoComplete='off'
           />
-          <p className='text-[var(--text-muted)] text-caption'>
-            One Debian/APT package per line. Version pins are optional.
-          </p>
+          <p className='text-[var(--text-muted)] text-caption'>{t('fields.systemPackagesHint')}</p>
           {systemPackageIssues.length > 0 && (
             <ul className='flex flex-col gap-1'>
               {[...systemPackageIssuesByLine.values()].map((issue) => (
                 <li key={issue.line} className='text-[var(--text-error)] text-caption'>
-                  Line {issue.line}: {issue.reason}
+                  {t('lineIssue', { line: issue.line, reason: issue.reason })}
                 </li>
               ))}
             </ul>
@@ -143,16 +141,9 @@ export function SandboxEditor({
         </div>
       </SettingsSection>
 
-      {status && <SettingsSection label='Status'>{status}</SettingsSection>}
+      {status && <SettingsSection label={t('editor.status')}>{status}</SettingsSection>}
     </div>
   )
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  ready: 'Ready',
-  failed: 'Failed',
-  building: 'Building',
-  pending: 'Queued',
 }
 
 interface SandboxStatusProps {
@@ -171,15 +162,11 @@ export function SandboxStatus({
   retrying = false,
   retryDisabled = false,
 }: SandboxStatusProps) {
+  const t = useTranslations('settings.sandboxes')
   const [showLog, setShowLog] = useState(false)
 
   if (strategy === 'runtime') {
-    return (
-      <p className='text-[var(--text-muted)] text-caption'>
-        Dependencies, system packages, and managed CLI tools install at run time on this deployment,
-        adding startup time per execution. Prebuilt sandboxes require E2B.
-      </p>
-    )
+    return <p className='text-[var(--text-muted)] text-caption'>{t('status.runtimeStrategy')}</p>
   }
 
   const dependencyCount = sandbox.dependencies.length
@@ -187,12 +174,7 @@ export function SandboxStatus({
   const cliToolCount = sandbox.cliTools.length
 
   if (dependencyCount === 0 && systemPackageCount === 0 && cliToolCount === 0) {
-    return (
-      <p className='text-[var(--text-muted)] text-caption'>
-        No dependencies, system packages, or managed CLI tools yet. Add one above to build this
-        sandbox; until then it runs on the Function base.
-      </p>
-    )
+    return <p className='text-[var(--text-muted)] text-caption'>{t('status.nothingToBuild')}</p>
   }
 
   const status = sandbox.buildStatus ?? 'pending'
@@ -206,23 +188,26 @@ export function SandboxStatus({
             status === 'failed' ? 'text-[var(--text-error)]' : 'text-[var(--text-body)]'
           )}
         >
-          {STATUS_LABEL[status]}
+          {t(`status.${status}`)}
         </span>
         <span className='text-[var(--text-muted)] text-caption'>
-          · {dependencyCount} {dependencyCount === 1 ? 'dependency' : 'dependencies'} ·{' '}
-          {systemPackageCount} {systemPackageCount === 1 ? 'system package' : 'system packages'} ·{' '}
-          {cliToolCount} {cliToolCount === 1 ? 'managed CLI' : 'managed CLIs'}
+          ·{' '}
+          {t('counts', {
+            dependencies: dependencyCount,
+            systemPackages: systemPackageCount,
+            cliTools: cliToolCount,
+          })}
         </span>
         {status === 'failed' && onRetry && (
           <RowActionsMenu
-            label={`${sandbox.name} build actions`}
+            label={t('status.buildActionsLabel', { name: sandbox.name })}
             triggerClassName='ml-auto'
             actions={[
               {
-                label: retrying ? 'Retrying...' : 'Retry build',
+                label: retrying ? t('status.retrying') : t('status.retryBuild'),
                 onSelect: onRetry,
                 disabled: retrying || retryDisabled,
-                tooltip: retryDisabled ? 'Save or discard changes before retrying' : undefined,
+                tooltip: retryDisabled ? t('status.retryBlocked') : undefined,
               },
             ]}
           />
@@ -235,7 +220,7 @@ export function SandboxStatus({
           {sandbox.errorDetail && (
             <>
               <Chip onClick={() => setShowLog((open) => !open)}>
-                {showLog ? 'Hide log' : 'Show log'}
+                {showLog ? t('status.hideLog') : t('status.showLog')}
               </Chip>
               {showLog && (
                 <pre className='max-h-64 overflow-auto whitespace-pre-wrap rounded-[8px] bg-[var(--surface-3)] p-3 text-[var(--text-muted)] text-caption'>

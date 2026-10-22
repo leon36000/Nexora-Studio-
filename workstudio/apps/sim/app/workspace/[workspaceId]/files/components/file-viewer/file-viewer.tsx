@@ -3,11 +3,9 @@
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Music } from '@sim/emcn/icons'
 import dynamic from 'next/dynamic'
+import { useTranslations } from 'next-intl'
 import type { FileDownloadSource } from '@/lib/uploads/client/download'
-import {
-  MAX_TEXT_PREVIEW_BYTES,
-  TEXT_PREVIEW_SIZE_MESSAGE,
-} from '@/lib/uploads/client/text-content'
+import { MAX_TEXT_PREVIEW_BYTES } from '@/lib/uploads/client/text-content'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
 import { resolveMediaMimeType } from '@/lib/uploads/utils/file'
 import {
@@ -97,6 +95,8 @@ export function isCsvStreamOnly(file: {
 
 export type PreviewMode = 'editor' | 'split' | 'preview'
 
+type SaveRetry = () => Promise<void> // i18n-ignore: type signature
+
 interface FileViewerProps {
   file: WorkspaceFileRecord
   workspaceId: string
@@ -116,17 +116,14 @@ interface FileViewerProps {
   previewMode?: PreviewMode
   autoFocus?: boolean
   onDirtyChange?: (isDirty: boolean) => void
-  onSaveStatusChange?: (
-    status: 'idle' | 'saving' | 'saved' | 'error',
-    retry?: () => Promise<void>
-  ) => void
+  onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error', retry?: SaveRetry) => void
   /** Receives why a save was refused; text files only. */
   onSaveError?: (error: unknown) => void
   /** Replaces the file's own preview pane, for an owner with a richer view of the file. */
   preview?: ReactNode
   /** Which side of a split the source takes; `end` puts it after the preview. */
   sourceSide?: 'start' | 'end'
-  saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
+  saveRef?: React.MutableRefObject<SaveRetry | null>
   downloadSourceRef?: React.MutableRefObject<FileDownloadSource | null>
   discardRef?: React.MutableRefObject<(() => void) | null>
   streamingContent?: string
@@ -198,6 +195,7 @@ function FileViewerContent({
   onDeriveTitleFromHeading,
   enableFind = false,
 }: FileViewerProps) {
+  const t = useTranslations('files.preview')
   const category = resolveFileCategory(file.type, file.name)
 
   if (category === 'text-editable') {
@@ -209,7 +207,7 @@ function FileViewerContent({
       )
     }
     if (!isTextEditable(file)) {
-      return <UnsupportedPreview name={file.name} reason={TEXT_PREVIEW_SIZE_MESSAGE} />
+      return <UnsupportedPreview name={file.name} reason={t('tooLarge')} />
     }
     if (readOnly) {
       // Markdown renders through the inline rich editor (non-editable) so the public share
@@ -327,7 +325,7 @@ const ReadOnlyTextPreview = memo(function ReadOnlyTextPreview({
   } = useWorkspaceFileContent(workspaceId, file.id, file.key)
 
   const resolvedError = resolvePreviewError((error as Error | null) ?? null, null)
-  if (resolvedError) return <PreviewError label='file' error={resolvedError} />
+  if (resolvedError) return <PreviewError kind='file' error={resolvedError} />
   if (isLoading || content == null)
     return <PreviewLoadingFrame className='min-h-0 flex-1' tone='surface' />
 
@@ -371,14 +369,14 @@ const IframePreview = memo(function IframePreview({
   )
 
   const error = resolvePreviewError(preview.error, null)
-  if (error) return <PreviewError label='PDF' error={error} />
+  if (error) return <PreviewError kind='pdf' error={error} />
 
   if (!bufferSource) {
     return <div className='relative flex flex-1 overflow-hidden'>{PREVIEW_LOADING_OVERLAY}</div>
   }
 
   return (
-    <PreviewErrorBoundary key={`${file.id}:${preview.dataUpdatedAt}`} label='PDF'>
+    <PreviewErrorBoundary key={`${file.id}:${preview.dataUpdatedAt}`} kind='pdf'>
       <PdfViewerCore source={bufferSource} filename={file.name} />
     </PreviewErrorBoundary>
   )
@@ -438,7 +436,7 @@ const MediaPreview = memo(function MediaPreview({
   }, [fileData, mediaType, replaceBlobUrl])
 
   const error = blobUrl !== null ? null : resolvePreviewError(fetchError, null)
-  if (error) return <PreviewError label={kind} error={error} />
+  if (error) return <PreviewError kind={kind} error={error} />
 
   if (isLoading && !blobUrl) {
     return <PreviewLoadingFrame className='h-full' tone='surface' />

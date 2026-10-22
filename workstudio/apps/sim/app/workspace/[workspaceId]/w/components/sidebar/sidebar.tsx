@@ -42,6 +42,7 @@ import {
 } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { useParams, usePathname, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import type { DesktopChatActivity } from '@/lib/api/contracts/desktop-executor'
 import { useSession } from '@/lib/auth/client'
@@ -192,10 +193,13 @@ const DESKTOP_ACTIVITY_COLOR_CLASS: Record<DesktopChatActivity['state'], string>
   blocked: 'bg-[var(--text-error)]',
 }
 
-function desktopActivityLabel({ state, deviceName }: DesktopChatActivity): string {
-  if (state === 'needs_input') return 'Needs input'
-  if (state === 'blocked') return `Waiting for ${deviceName} to come back online`
-  return `Running on ${deviceName}`
+function desktopActivityLabel(
+  { state, deviceName }: DesktopChatActivity,
+  t: ReturnType<typeof useTranslations>
+): string {
+  if (state === 'needs_input') return t('desktopActivity.needsInput')
+  if (state === 'blocked') return t('desktopActivity.waiting', { deviceName })
+  return t('desktopActivity.running', { deviceName })
 }
 
 interface DesktopActivityDotProps {
@@ -208,10 +212,11 @@ interface DesktopActivityDotProps {
  * read out here and shown in the row's own tooltip.
  */
 function DesktopActivityDot({ activity }: DesktopActivityDotProps) {
+  const t = useTranslations('shell.sidebar')
   return (
     <span
       role='img'
-      aria-label={desktopActivityLabel(activity)}
+      aria-label={desktopActivityLabel(activity, t)}
       className={cn('size-[6px] rounded-full', DESKTOP_ACTIVITY_COLOR_CLASS[activity.state])}
     />
   )
@@ -247,6 +252,7 @@ const SidebarChatItem = memo(function SidebarChatItem({
   onMorePointerDown: () => void
   onMoreClick: (e: React.MouseEvent<HTMLButtonElement>, chatId: string) => void
 }) {
+  const t = useTranslations('shell.sidebar')
   const dragGhostRef = useRef<HTMLElement | null>(null)
 
   /**
@@ -278,7 +284,7 @@ const SidebarChatItem = memo(function SidebarChatItem({
   return (
     <SidebarTooltip
       label={
-        desktopActivity ? `${chat.name} · ${desktopActivityLabel(desktopActivity)}` : chat.name
+        desktopActivity ? `${chat.name} · ${desktopActivityLabel(desktopActivity, t)}` : chat.name
       }
       enabled={showCollapsedTooltips || Boolean(desktopActivity)}
     >
@@ -318,7 +324,7 @@ const SidebarChatItem = memo(function SidebarChatItem({
             }
           >
             <SidebarRowAction
-              aria-label='Chat options'
+              aria-label={t('chatOptions')}
               onPointerDown={onMorePointerDown}
               onClick={(e) => {
                 e.preventDefault()
@@ -399,6 +405,7 @@ interface SidebarProps {
 export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor }: SidebarProps) {
   const { isCollapsed: isCollapsedProp, isPeeking, onToggle: toggleCollapsed } = useSidebarChrome()
   const isCollapsed = isCollapsedProp && !isPeeking
+  const t = useTranslations('shell.sidebar')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workflowId = params.workflowId as string | undefined
@@ -759,7 +766,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
       [
         {
           id: 'home',
-          label: chatEnabled ? 'New chat' : 'New workflow',
+          label: chatEnabled ? t('nav.newChat') : t('nav.newWorkflow'),
           icon: chatEnabled ? Home : Plus,
           href: chatEnabled ? `/workspace/${workspaceId}/home` : undefined,
           onClick: chatEnabled ? undefined : createWorkflow,
@@ -772,7 +779,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
         {
           id: 'dashboards',
-          label: 'Dashboard',
+          label: t('nav.dashboard'),
           icon: Dashboard,
           href: `/workspace/${workspaceId}/dashboards`,
           hidden: !dashboardsEnabled || (permissionConfig.hideFilesTab && !accessRequestsEnabled),
@@ -780,7 +787,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
         {
           id: 'changelog',
-          label: 'Changelog',
+          label: t('nav.changelog'),
           icon: Rss,
           href: `/workspace/${workspaceId}/changelog`,
           hidden: !changelogEnabled || (permissionConfig.hideFilesTab && !accessRequestsEnabled),
@@ -788,7 +795,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
         {
           id: 'integrations',
-          label: 'Integrations',
+          label: t('nav.integrations'),
           icon: Integration,
           href: `/workspace/${workspaceId}/integrations`,
           additionalActivePaths: [`/workspace/${workspaceId}/skills`],
@@ -797,6 +804,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
       ].filter((item) => !item.hidden),
     [
+      t,
       workspaceId,
       createWorkflow,
       canEdit,
@@ -816,7 +824,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
       [
         {
           id: 'tables',
-          label: 'Tables',
+          label: t('nav.tables'),
           icon: Table,
           href: `/workspace/${workspaceId}/tables`,
           hidden: permissionConfig.hideTablesTab && !accessRequestsEnabled,
@@ -824,7 +832,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
         {
           id: 'files',
-          label: 'Files',
+          label: t('nav.files'),
           icon: Files,
           href: `/workspace/${workspaceId}/files`,
           hidden: permissionConfig.hideFilesTab && !accessRequestsEnabled,
@@ -832,7 +840,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
         {
           id: 'knowledge-base',
-          label: 'Knowledge bases',
+          label: t('nav.knowledgeBases'),
           icon: Database,
           href: `/workspace/${workspaceId}/knowledge`,
           hidden: permissionConfig.hideKnowledgeBaseTab && !accessRequestsEnabled,
@@ -840,7 +848,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
         {
           id: 'tests',
-          label: 'Tests',
+          label: t('nav.tests'),
           icon: ShieldCheck,
           href: `/workspace/${workspaceId}/tests`,
           hidden: !testsEnabled || (permissionConfig.hideFilesTab && !accessRequestsEnabled),
@@ -848,13 +856,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         },
         {
           id: 'logs',
-          label: 'Logs',
+          label: t('nav.logs'),
           icon: Library,
           href: `/workspace/${workspaceId}/logs`,
           restricted: false,
         },
       ].filter((item) => !item.hidden),
     [
+      t,
       workspaceId,
       permissionConfig.hideFilesTab,
       permissionConfig.hideKnowledgeBaseTab,
@@ -897,7 +906,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
 
   if (organizationHref) {
     profileNavigationLinks.push({
-      label: 'Organization',
+      label: t('nav.organization'),
       icon: Building,
       href: organizationHref,
       onNavigate: () => router.push(organizationHref),
@@ -1124,13 +1133,13 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
     const rows = logsPages.data?.pages[0]?.logs ?? []
     return rows.map((log) => ({
       id: log.id,
-      name: log.workflow?.name || log.jobTitle || 'Unknown workflow',
+      name: log.workflow?.name || log.jobTitle || t('unknownWorkflow'),
       href: log.executionId
         ? `/workspace/${workspaceId}/logs?executionId=${log.executionId}`
         : `/workspace/${workspaceId}/logs`,
       date: SEARCH_MODAL_DATE_FORMAT.format(new Date(log.createdAt)),
     }))
-  }, [logsPages.data, workspaceId])
+  }, [logsPages.data, workspaceId, t])
 
   const searchModalIntegrations = useMemo(
     () =>
@@ -1253,7 +1262,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   )
 
   const workflowsPrimaryAction = {
-    label: 'New workflow',
+    label: t('nav.newWorkflow'),
     onSelect: handleCreateWorkflow,
   }
 
@@ -1382,7 +1391,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         <aside
           className='group/rail sidebar-container relative h-full overflow-hidden bg-[var(--surface-1)] [&_.group.cursor-pointer]:duration-0'
           data-collapsed={isCollapsed || undefined}
-          aria-label='Workspace sidebar'
+          aria-label={t('ariaLabel')}
           onClick={handleSidebarClick}
         >
           <div className='flex h-full flex-col'>
@@ -1450,14 +1459,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                 )}
               >
                 <SidebarTooltip
-                  label='Search'
+                  label={t('search')}
                   enabled={!isCollapsed}
                   side='bottom'
                   shortcut={isMac ? '⌘K' : 'Ctrl+K'}
                 >
                   <Chip
                     leftIcon={Search}
-                    aria-label='Search'
+                    aria-label={t('search')}
                     /* Called with no args — the store setter's first parameter is an
                        options object, which a raw handler would fill with the event. */
                     onClick={() => openSearchModal()}
@@ -1466,14 +1475,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                   />
                 </SidebarTooltip>
                 <SidebarTooltip
-                  label='Collapse sidebar'
+                  label={t('collapseSidebar')}
                   enabled={!isCollapsed}
                   side='bottom'
                   shortcut={isMac ? '⌘B' : 'Ctrl+B'}
                 >
                   <Chip
                     leftIcon={PanelLeft}
-                    aria-label='Collapse sidebar'
+                    aria-label={t('collapseSidebar')}
                     onClick={toggleCollapsed}
                     tabIndex={isCollapsed ? -1 : undefined}
                     className={cn(
@@ -1528,7 +1537,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                   <div ref={scrollContentRef} className='flex flex-col'>
                     {chatEnabled && !permissionConfig.hideCopilot && (
                       <SidebarSection
-                        title='Chats'
+                        title={t('sections.chats')}
                         railCollapsed={isCollapsed}
                         className='chats-section shrink-0'
                       >
@@ -1537,11 +1546,11 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                             <CollapsedSidebarMenu
                               icon={chatsCollapsedIcon}
                               hover={chatsHover}
-                              ariaLabel='Chats'
+                              ariaLabel={t('sections.chats')}
                               isEditing={!!chatFlyoutRename.editingId}
                             >
                               {chatsLoading ? null : chats.length === 0 ? (
-                                <DropdownMenuItem disabled>No chats yet</DropdownMenuItem>
+                                <DropdownMenuItem disabled>{t('noChats')}</DropdownMenuItem>
                               ) : (
                                 chats.map((chat) => (
                                   <CollapsedChatFlyoutItem
@@ -1572,7 +1581,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                               <>
                                 {chats.length === 0 ? (
                                   <div className='flex h-[30px] items-center px-2 text-[var(--text-muted)] text-small'>
-                                    No chats yet
+                                    {t('noChats')}
                                   </div>
                                 ) : null}
                                 {/* `selectChatOnly` populates `selectedChats` on every click, so
@@ -1640,7 +1649,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                       'text-[var(--text-muted)] text-small'
                                     )}
                                   >
-                                    {chats.length > visibleChatCount ? 'See more' : 'See less'}
+                                    {chats.length > visibleChatCount ? t('seeMore') : t('seeLess')}
                                   </button>
                                 )}
                               </>
@@ -1651,7 +1660,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                     )}
 
                     <SidebarSection
-                      title='Workspace'
+                      title={t('sections.workspace')}
                       railCollapsed={isCollapsed}
                       className={cn(SIDEBAR_SECTION_GAP_CLASS, 'shrink-0')}
                     >
@@ -1688,7 +1697,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                     </SidebarSection>
 
                     <SidebarSection
-                      title='Workflows'
+                      title={t('sections.workflows')}
                       railCollapsed={isCollapsed}
                       className={cn(SIDEBAR_SECTION_GAP_CLASS, 'workflows-section relative')}
                       action={
@@ -1699,7 +1708,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                 <Tooltip.Trigger asChild>
                                   <DropdownMenuTrigger asChild>
                                     <Button
-                                      aria-label='More actions'
+                                      aria-label={t('moreActions')}
                                       variant='quiet'
                                       size='icon'
                                       disabled={!permissionsLoading && !canEdit}
@@ -1713,7 +1722,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                   </DropdownMenuTrigger>
                                 </Tooltip.Trigger>
                                 <Tooltip.Content>
-                                  <p>More actions</p>
+                                  <p>{t('moreActions')}</p>
                                 </Tooltip.Content>
                               </Tooltip.Root>
                               <DropdownMenuContent
@@ -1726,14 +1735,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                   disabled={!canEdit || isImporting}
                                 >
                                   <Upload />
-                                  {isImporting ? 'Importing...' : 'Import workflow'}
+                                  {isImporting ? t('importing') : t('importWorkflow')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onSelect={handleCreateFolder}
                                   disabled={!canEdit || isCreatingFolder}
                                 >
                                   <FolderPlus />
-                                  {isCreatingFolder ? 'Creating folder...' : 'Create folder'}
+                                  {isCreatingFolder ? t('creatingFolder') : t('createFolder')}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1741,7 +1750,9 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                               <Tooltip.Trigger asChild>
                                 <Button
                                   aria-label={
-                                    isCreatingWorkflow ? 'Creating workflow...' : 'New workflow'
+                                    isCreatingWorkflow
+                                      ? t('creatingWorkflow')
+                                      : t('nav.newWorkflow')
                                   }
                                   variant='quiet'
                                   size='icon'
@@ -1753,10 +1764,10 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                               </Tooltip.Trigger>
                               <Tooltip.Content>
                                 {isCreatingWorkflow ? (
-                                  <p>Creating workflow...</p>
+                                  <p>{t('creatingWorkflow')}</p>
                                 ) : (
                                   <Tooltip.Shortcut keys={isMac ? '⌘⇧P' : 'Ctrl+Shift+P'}>
-                                    New workflow
+                                    {t('nav.newWorkflow')}
                                   </Tooltip.Shortcut>
                                 )}
                               </Tooltip.Content>
@@ -1770,13 +1781,13 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                           <CollapsedSidebarMenu
                             icon={workflowsCollapsedIcon}
                             hover={workflowsHover}
-                            ariaLabel='Workflows'
+                            ariaLabel={t('sections.workflows')}
                             isEditing={!!workflowFlyoutRename.editingId}
                             primaryAction={workflowsPrimaryAction}
                           >
                             {workflowsLoading &&
                             regularWorkflows.length === 0 ? null : regularWorkflows.length === 0 ? (
-                              <DropdownMenuItem disabled>No workflows yet</DropdownMenuItem>
+                              <DropdownMenuItem disabled>{t('noWorkflows')}</DropdownMenuItem>
                             ) : (
                               <>
                                 {collapsedRootItems.map((item) =>
@@ -1925,7 +1936,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
             role={isCollapsed ? 'button' : 'separator'}
             tabIndex={0}
             aria-orientation={isCollapsed ? undefined : 'vertical'}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Resize sidebar'}
+            aria-label={isCollapsed ? t('expandSidebar') : t('resizeSidebar')}
           />
         )}
       </div>

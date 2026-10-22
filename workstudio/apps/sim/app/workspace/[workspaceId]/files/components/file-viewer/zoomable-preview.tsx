@@ -3,6 +3,7 @@
 import type { PointerEvent, ReactNode } from 'react'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { bindPreviewWheelZoom, cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { PreviewToolbar } from '@/app/workspace/[workspaceId]/files/components/file-viewer/preview-toolbar'
 
 const ZOOM_MIN = 0.25
@@ -72,6 +73,7 @@ export function ZoomablePreview({
   initialScale = 'actual',
   resetKey,
 }: ZoomablePreviewProps) {
+  const t = useTranslations('files.preview')
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [containerSize, setContainerSize] = useState<Size>({ width: 0, height: 0 })
@@ -264,7 +266,7 @@ export function ZoomablePreview({
       <div
         ref={viewportRef}
         role='application'
-        aria-label='Zoomable preview'
+        aria-label={t('zoomable')}
         className='relative min-h-0 flex-1 cursor-grab touch-pinch-zoom overflow-hidden'
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

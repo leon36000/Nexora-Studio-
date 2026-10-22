@@ -11,6 +11,7 @@ import {
   useScrollEdges,
 } from '@sim/emcn'
 import { ChevronDown, ChevronRight, ChevronUp, X } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import { getPanelWidth, getTerminalHeight } from '@/lib/workflows/layout'
 import { indexWorkflowSearchMatches } from '@/lib/workflows/search-replace/indexer'
@@ -143,6 +144,7 @@ interface WorkflowSearchReplacePanelProps {
 }
 
 function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProps) {
+  const t = useTranslations('editor.searchReplace')
   const { workspaceId } = useWorkflowScope()
   const scopedWorkflowId = useScopedWorkflowId()
   const activeWorkflowId = useWorkflowRegistry((state) => state.activeWorkflowId)
@@ -157,9 +159,9 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
   const workflowLocked = isWorkflowEffectivelyLocked(workflowMetadata, folders)
   const searchReadOnly = currentWorkflow.isSnapshotView || workflowLocked
   const readonlyReason = currentWorkflow.isSnapshotView
-    ? 'Snapshot view is readonly'
+    ? t('snapshotReadonly')
     : workflowLocked
-      ? 'Workflow is locked'
+      ? t('workflowLocked')
       : undefined
   const userPermissions = useUserPermissionsContext()
   const {
@@ -479,8 +481,8 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
         const [firstConflict] = plan.conflicts
         toast.error(
           firstConflict?.reason
-            ? `Replacement stopped: ${firstConflict.reason}`
-            : `Replacement stopped: ${plan.conflicts.length} match changed. Re-run search and try again.`
+            ? t('replacementStoppedReason', { reason: firstConflict.reason })
+            : t('replacementStoppedCount', { count: plan.conflicts.length })
         )
         return
       }
@@ -521,7 +523,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
       }
 
       if (batchUpdates.length === 0 && plan.subflowUpdates.length === 0) {
-        toast({ message: 'No eligible matches to replace.' })
+        toast({ message: t('noEligibleMatches') })
         return
       }
 
@@ -535,7 +537,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
         })),
       })
       if (!applied) {
-        toast.error('Replacement could not be applied in the current workflow state.')
+        toast.error(t('replacementNotApplied'))
         return
       }
 
@@ -545,7 +547,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
 
       const replacedCount = plan.updates.length + plan.subflowUpdates.length
       toast({
-        message: `Replaced ${replacedCount} field${replacedCount === 1 ? '' : 's'}.`,
+        message: t('replacedFields', { count: replacedCount }),
       })
       committed = true
     } finally {
@@ -565,14 +567,15 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
 
   const matchCountLabel =
     hydratedMatches.length === 0
-      ? 'No results'
-      : activeMatchIndex >= 0
-        ? `${activeMatchIndex + 1} of ${hydratedMatches.length}`
-        : `0 of ${hydratedMatches.length}`
+      ? t('noResults')
+      : t('matchPosition', {
+          current: activeMatchIndex >= 0 ? activeMatchIndex + 1 : 0,
+          total: hydratedMatches.length,
+        })
   return (
     <div
       role='dialog'
-      aria-label='Search and replace'
+      aria-label={t('title')}
       ref={panelRef}
       className='fixed z-[var(--z-dropdown)] flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 pt-0.5 pb-2 max-md:relative max-md:top-auto! max-md:left-auto! max-md:max-h-[50%] max-md:min-h-0! max-md:w-full! max-md:shrink-0 max-md:rounded-none'
       style={{
@@ -590,7 +593,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
         }}
       >
         <div className='flex min-w-0 items-center'>
-          <span className='truncate text-[var(--text-primary)] text-small'>Search and replace</span>
+          <span className='truncate text-[var(--text-primary)] text-small'>{t('title')}</span>
         </div>
         <div
           role='presentation'
@@ -599,7 +602,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
         >
           <span className='text-[var(--text-muted)] text-xs'>{matchCountLabel}</span>
           <Button
-            aria-label='Close search'
+            aria-label={t('closeSearch')}
             variant='ghost'
             className='size-[26px] p-0 max-md:pointer-coarse:size-11'
             onClick={close}
@@ -618,7 +621,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
           <Button
             variant='ghost'
             className='size-8 p-0 max-md:pointer-coarse:size-11'
-            aria-label={isReplaceExpanded ? 'Hide replace controls' : 'Show replace controls'}
+            aria-label={isReplaceExpanded ? t('hideReplaceControls') : t('showReplaceControls')}
             onClick={() => setIsReplaceExpanded((expanded) => !expanded)}
           >
             <ChevronRight
@@ -631,7 +634,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
           <Input
             ref={searchInputRef}
             value={query}
-            placeholder='Search'
+            placeholder={t('searchPlaceholder')}
             onKeyDown={(event) => {
               if (event.key !== 'Enter') return
               event.preventDefault()
@@ -640,7 +643,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
             onChange={(event) => setQuery(event.target.value)}
           />
           <Button
-            aria-label='Previous match'
+            aria-label={t('previousMatch')}
             variant='ghost'
             className='size-8 p-0 max-md:pointer-coarse:size-11'
             disabled={hydratedMatches.length === 0}
@@ -649,7 +652,7 @@ function WorkflowSearchReplacePanel({ focusRef }: WorkflowSearchReplacePanelProp
             <ChevronUp className='size-[14px] text-[var(--text-icon)]' />
           </Button>
           <Button
-            aria-label='Next match'
+            aria-label={t('nextMatch')}
             variant='ghost'
             className='size-8 p-0 max-md:pointer-coarse:size-11'
             disabled={hydratedMatches.length === 0}

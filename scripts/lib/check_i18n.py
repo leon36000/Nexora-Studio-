@@ -42,12 +42,13 @@ def is_prose(text: str, allowed: set[str]) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[2]))
+    parser.add_argument("--covered", action="append", help="check this folder or file instead of the covered list (repeatable)")
     args = parser.parse_args()
     root = Path(args.root)
     covered_file = root / "scripts/data/i18n-covered-dirs.txt"
     allowed_file = root / "scripts/data/i18n-allowed-terms.txt"
     covered = [l.split("#", 1)[0].strip() for l in covered_file.read_text().splitlines()] if covered_file.exists() else []
-    covered = [c for c in covered if c]
+    covered = args.covered if args.covered else [c for c in covered if c]
     allowed = {l.split("#", 1)[0].strip() for l in allowed_file.read_text().splitlines()} if allowed_file.exists() else set()
     allowed.discard("")
 

@@ -1,11 +1,13 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import TableLoading from '@/app/workspace/[workspaceId]/tables/[tableId]/loading'
 import { PermissionAccessBoundary } from '@/ee/access-requests/components/permission-access-boundary'
 import { Table } from './table'
 
-export const metadata: Metadata = {
-  title: 'Table',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('tables.detail')
+  return { title: t('metaTitle') }
 }
 
 /**

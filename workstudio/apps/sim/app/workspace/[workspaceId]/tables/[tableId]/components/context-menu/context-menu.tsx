@@ -18,6 +18,7 @@ import {
   Square,
   Trash,
 } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ContextMenuState } from '../../types'
 
 /**
@@ -113,32 +114,33 @@ export function ContextMenu({
   addToChatCellScoped = false,
   addToChatRowCount,
 }: ContextMenuProps) {
+  const t = useTranslations('tables.rowContextMenu')
   const count = selectedRowCount.toLocaleString()
-  const deleteLabel = selectedRowCount > 1 ? `Delete ${count} rows` : 'Delete row'
+  const deleteLabel = selectedRowCount > 1 ? t('deleteRows', { count }) : t('deleteRow')
   const runLabel = workflowCellScoped
     ? selectedRowCount > 1
-      ? `Run cell on ${count} rows`
-      : 'Run cell'
+      ? t('runCellOnRows', { count })
+      : t('runCell')
     : selectedRowCount > 1
-      ? `Run empty or failed cells on ${count} rows`
-      : 'Run empty or failed cells'
+      ? t('runEmptyOnRows', { count })
+      : t('runEmpty')
   const refreshLabel = workflowCellScoped
     ? selectedRowCount > 1
-      ? `Re-run cell on ${count} rows`
-      : 'Re-run cell'
+      ? t('rerunCellOnRows', { count })
+      : t('rerunCell')
     : selectedRowCount > 1
-      ? `Re-run all cells on ${count} rows`
-      : 'Re-run all cells'
+      ? t('rerunAllOnRows', { count })
+      : t('rerunAll')
   const stopLabel =
     runningInSelectionCount === 1
-      ? 'Stop running workflow'
-      : `Stop ${runningInSelectionCount} running workflows`
+      ? t('stopRunningOne')
+      : t('stopRunningMany', { count: runningInSelectionCount })
   const addToChatRows = addToChatRowCount ?? selectedRowCount
   const addToChatLabel = addToChatCellScoped
-    ? 'Add cell range to Chat'
+    ? t('addCellRangeToChat')
     : addToChatRows > 1
-      ? `Add ${addToChatRows.toLocaleString()} rows to Chat`
-      : 'Add row to Chat'
+      ? t('addRowsToChat', { count: addToChatRows.toLocaleString() })
+      : t('addRowToChat')
 
   /**
    * Whether anything renders above the sibling-creating inserts. Each term is the
@@ -192,7 +194,7 @@ export function ContextMenu({
         {contextMenu.columnName && canEditCell && (
           <DropdownMenuItem disabled={disableEdit} onSelect={onEditCell}>
             <Pencil />
-            Edit cell
+            {t('editCell')}
           </DropdownMenuItem>
         )}
         {/* Cell-scoped like Edit cell above it, and a read action every viewer
@@ -201,7 +203,7 @@ export function ContextMenu({
         {onFilterByCellValue && (
           <DropdownMenuItem onSelect={onFilterByCellValue}>
             <ListFilter />
-            Filter by cell value
+            {t('filterByCellValue')}
           </DropdownMenuItem>
         )}
         {/* Run, Re-run, Stop, then View execution — the order the action bar
@@ -231,7 +233,7 @@ export function ContextMenu({
         {canViewExecution && onViewExecution && (
           <DropdownMenuItem onSelect={onViewExecution}>
             <Eye />
-            View execution
+            {t('viewExecution')}
           </DropdownMenuItem>
         )}
         {/* Stops acting on the clicked cell/row and starts creating siblings. Every
@@ -239,18 +241,18 @@ export function ContextMenu({
         {hasCellScopedActions && <DropdownMenuSeparator />}
         <DropdownMenuItem disabled={disableInsert} onSelect={onInsertAbove}>
           <ArrowUp />
-          Insert row above
+          {t('insertAbove')}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={disableInsert} onSelect={onInsertBelow}>
           <ArrowDown />
-          Insert row below
+          {t('insertBelow')}
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={disableDuplicate || selectedRowCount > 1}
           onSelect={onDuplicate}
         >
           <Duplicate />
-          Duplicate row
+          {t('duplicateRow')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={disableDelete} onSelect={onDelete}>

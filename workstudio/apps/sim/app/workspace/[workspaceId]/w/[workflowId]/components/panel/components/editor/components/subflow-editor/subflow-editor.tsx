@@ -9,6 +9,7 @@ import {
   Label,
 } from '@sim/emcn'
 import { ChevronUp } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import SimpleCodeEditor from 'react-simple-code-editor'
 import { WORKFLOW_SEARCH_SUBFLOW_FIELD_IDS } from '@/lib/workflows/search-replace/subflow-fields'
 import {
@@ -67,6 +68,7 @@ export function SubflowEditor({
   userCanEdit,
   isConnectionsAtMinHeight,
 }: SubflowEditorProps) {
+  const t = useTranslations('editor.panelEditor')
   const activeSearchTarget = useActiveSearchTarget()
   const {
     subflowConfig,
@@ -132,14 +134,14 @@ export function SubflowEditor({
             className='rounded-md'
           >
             <Label className='mb-[6.5px] block pl-0.5 text-small'>
-              {currentBlock.type === 'loop' ? 'Loop Type' : 'Parallel Type'}
+              {currentBlock.type === 'loop' ? t('subflow.loopType') : t('subflow.parallelType')}
             </Label>
             <Combobox
               options={typeOptions}
               value={currentType || ''}
               onChange={handleSubflowTypeChange}
               disabled={!userCanEdit}
-              placeholder='Select type...'
+              placeholder={t('subflow.selectType')}
             />
           </div>
 
@@ -152,10 +154,14 @@ export function SubflowEditor({
           >
             <Label className='mb-[6.5px] block pl-0.5 text-small'>
               {isCountMode
-                ? `${currentBlock.type === 'loop' ? 'Loop' : 'Parallel'} Iterations`
+                ? currentBlock.type === 'loop'
+                  ? t('subflow.loopIterations')
+                  : t('subflow.parallelIterations')
                 : isConditionMode
-                  ? 'While Condition'
-                  : `${currentBlock.type === 'loop' ? 'Collection' : 'Parallel'} Items`}
+                  ? t('subflow.whileCondition')
+                  : currentBlock.type === 'loop'
+                    ? t('subflow.collectionItems')
+                    : t('subflow.parallelItems')}
             </Label>
 
             {isCountMode ? (
@@ -174,7 +180,7 @@ export function SubflowEditor({
                   })}
                 </div>
                 <div className='text-[var(--text-muted)] text-micro'>
-                  Enter a whole number greater than 0.
+                  {t('subflow.wholeNumberHint')}
                 </div>
               </div>
             ) : (
@@ -223,7 +229,9 @@ export function SubflowEditor({
               data-workflow-search-canonical-id={WORKFLOW_SEARCH_SUBFLOW_FIELD_IDS.batchSize}
               className='relative mt-4 rounded-md'
             >
-              <Label className='mb-[6.5px] block pl-0.5 text-small'>Parallel Batch Size</Label>
+              <Label className='mb-[6.5px] block pl-0.5 text-small'>
+                {t('subflow.parallelBatchSize')}
+              </Label>
               <Input
                 type='text'
                 value={batchSizeValue}
@@ -238,7 +246,7 @@ export function SubflowEditor({
                 })}
               </div>
               <div className='text-[var(--text-muted)] text-micro'>
-                Run 1 to 20 parallel branches at a time.
+                {t('subflow.batchSizeHint')}
               </div>
             </div>
           )}
@@ -273,7 +281,9 @@ export function SubflowEditor({
             }}
             role='button'
             tabIndex={0}
-            aria-label={isConnectionsAtMinHeight ? 'Expand connections' : 'Collapse connections'}
+            aria-label={
+              isConnectionsAtMinHeight ? t('expandConnections') : t('collapseConnections')
+            }
           >
             <ChevronUp
               className={
@@ -281,7 +291,7 @@ export function SubflowEditor({
                 (!isConnectionsAtMinHeight ? ' rotate-180' : '')
               }
             />
-            <div className='text-[var(--text-primary)] text-small'>Connections</div>
+            <div className='text-[var(--text-primary)] text-small'>{t('connections')}</div>
           </div>
 
           <div className='flex-1 overflow-y-auto overflow-x-hidden px-1.5 pb-2'>

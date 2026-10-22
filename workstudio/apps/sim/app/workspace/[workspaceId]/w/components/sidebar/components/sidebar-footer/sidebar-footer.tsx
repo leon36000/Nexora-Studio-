@@ -20,6 +20,7 @@ import {
 } from '@sim/emcn'
 import { BookOpen, Download, HelpCircle, LogOut, Settings } from '@sim/emcn/icons'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { GithubIcon } from '@/components/icons'
 import { SettingsIntentLink } from '@/components/settings/settings-intent-link'
 import { signOutAndRedirect } from '@/lib/auth/sign-out'
@@ -39,13 +40,16 @@ function hasAvailableDesktopUpdate(state: DesktopUpdateState): boolean {
   return state.status === 'available' || state.status === 'downloading' || state.status === 'ready'
 }
 
-function desktopUpdateActionLabel(state: DesktopUpdateState): string {
+function desktopUpdateActionLabel(
+  state: DesktopUpdateState,
+  t: ReturnType<typeof useTranslations>
+): string {
   if (state.status === 'downloading') {
     return state.percent === undefined
-      ? 'Downloading update…'
-      : `Downloading update ${state.percent}%`
+      ? t('downloadingUpdate')
+      : t('downloadingUpdatePercent', { percent: state.percent })
   }
-  return state.status === 'ready' ? 'Restart to update' : 'Update'
+  return state.status === 'ready' ? t('restartToUpdate') : t('update')
 }
 
 /** Compact primary update circle using the same footprint as the surrounding sidebar icons. */
@@ -122,6 +126,7 @@ export function SidebarFooter({
   onJoinSlack,
   onContactSupport,
 }: SidebarFooterProps) {
+  const t = useTranslations('shell.sidebarFooter')
   const { data: profile } = useUserProfile()
   const router = useRouter()
   const updateState = useDesktopUpdateState()
@@ -216,7 +221,7 @@ export function SidebarFooter({
       <DropdownMenuContent align='start' side='top' sideOffset={4}>
         {[
           {
-            label: 'Settings',
+            label: t('settings'),
             icon: Settings,
             href: accountSettingsHref,
             onNavigate: onOpenAccountSettings,
@@ -248,7 +253,7 @@ export function SidebarFooter({
             }}
           >
             <LogOut className='size-[14px]' />
-            Sign out
+            {t('signOut')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
@@ -271,13 +276,13 @@ export function SidebarFooter({
   const helpMenu = (
     <DropdownMenu>
       <SidebarTooltip
-        label={updateAvailable ? 'Help — update available' : 'Help'}
+        label={updateAvailable ? t('helpUpdateAvailableTooltip') : t('help')}
         enabled={showCollapsedTooltips}
       >
         <DropdownMenuTrigger asChild>
           <Chip
             data-item-id='help'
-            aria-label={updateAvailable ? 'Help, update available' : 'Help'}
+            aria-label={updateAvailable ? t('helpUpdateAvailable') : t('help')}
             leftIcon={updateAvailable ? DesktopUpdateIcon : HelpCircle}
             fullWidth={isCollapsed}
             /* Never shrinks: while the rail animates open the row is briefly wider
@@ -297,22 +302,22 @@ export function SidebarFooter({
               disabled={updateState.status === 'downloading'}
             >
               <img src='/favicon/favicon-32x32.png' alt='' className='size-[14px] rounded-[3px]' />
-              {desktopUpdateActionLabel(updateState)}
+              {desktopUpdateActionLabel(updateState, t)}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         )}
         <DropdownMenuItem onSelect={onOpenDocs}>
           <BookOpen className='size-[14px]' />
-          Docs
+          {t('docs')}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onJoinSlack}>
           <GithubIcon className='size-[14px]' />
-          Report an issue
+          {t('reportIssue')}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onContactSupport}>
           <HelpCircle className='size-[14px]' />
-          Contact support
+          {t('contactSupport')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,4 +1,5 @@
 import { ChipConfirmModal } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 interface UnsavedChangesModalProps {
   open: boolean
@@ -13,15 +14,16 @@ interface UnsavedChangesModalProps {
  * stay identical.
  */
 export function UnsavedChangesModal({ open, onOpenChange, onDiscard }: UnsavedChangesModalProps) {
+  const t = useTranslations('shell.credentialDetail.unsavedChanges')
   return (
     <ChipConfirmModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle='Unsaved Changes'
-      title='Unsaved Changes'
-      text='You have unsaved changes. Are you sure you want to discard them?'
-      dismissLabel='Keep editing'
-      confirm={{ label: 'Discard Changes', onClick: onDiscard }}
+      srTitle={t('title')}
+      title={t('title')}
+      text={t('text')}
+      dismissLabel={t('keepEditing')}
+      confirm={{ label: t('discard'), onClick: onDiscard }}
     />
   )
 }

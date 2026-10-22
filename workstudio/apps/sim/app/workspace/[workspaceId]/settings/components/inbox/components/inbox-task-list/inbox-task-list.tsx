@@ -5,8 +5,10 @@ import { Badge, ChipInput, ChipSelect, Search } from '@sim/emcn'
 import { ArrowRight, Paperclip } from '@sim/emcn/icons'
 import { formatRelativeTime } from '@sim/utils/formatting'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import {
+  INBOX_STATUS_FILTERS,
   type InboxStatusFilter,
   inboxTaskParsers,
   inboxTaskUrlKeys,
@@ -17,29 +19,33 @@ import type { InboxTaskItem } from '@/hooks/queries/inbox'
 import { useInboxConfig, useInboxTasks } from '@/hooks/queries/inbox'
 import { useDebouncedSearchSetter } from '@/hooks/use-debounced-search-setter'
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'All statuses' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'processing', label: 'Processing' },
-  { value: 'received', label: 'Received' },
-  { value: 'failed', label: 'Failed' },
-  { value: 'rejected', label: 'Rejected' },
-] as const
-
 type StatusFilter = InboxStatusFilter
 
-const STATUS_BADGES: Record<
-  string,
-  { label: string; variant: 'gray' | 'amber' | 'green' | 'red' | 'gray-secondary' }
-> = {
-  received: { label: 'Received', variant: 'gray' },
-  processing: { label: 'Processing', variant: 'amber' },
-  completed: { label: 'Complete', variant: 'green' },
-  failed: { label: 'Failed', variant: 'red' },
-  rejected: { label: 'Rejected', variant: 'gray-secondary' },
-}
+const STATUS_BADGE_VARIANTS = {
+  received: 'gray',
+  processing: 'amber',
+  completed: 'green',
+  failed: 'red',
+  rejected: 'gray-secondary',
+} as const
+
+type BadgeStatus = keyof typeof STATUS_BADGE_VARIANTS
+
+const KNOWN_REJECTION_REASONS = new Set([
+  'sender_not_allowed',
+  'automated_sender',
+  'rate_limit_exceeded',
+  'not_entitled',
+])
 
 export function InboxTaskList() {
+  const t = useTranslations('settings.inbox.taskList')
+  const statusOptions = INBOX_STATUS_FILTERS.map((value) => ({
+    value,
+    label: t(`statusFilters.${value}`),
+  }))
+  const formatRejectionReason = (reason: string) =>
+    KNOWN_REJECTION_REASONS.has(reason) ? t(`rejectionReasons.${reason}`) : reason
   const params = useParams()
   const router = useRouter()
   const workspaceId = params.workspaceId as string
@@ -68,10 +74,10 @@ export function InboxTaskList() {
     if (!searchTerm.trim()) return tasksData.tasks
     const term = searchTerm.trim().toLowerCase()
     return tasksData.tasks.filter(
-      (t) =>
-        t.subject?.toLowerCase().includes(term) ||
-        t.fromEmail?.toLowerCase().includes(term) ||
-        t.bodyPreview?.toLowerCase().includes(term)
+      (task) =>
+        task.subject?.toLowerCase().includes(term) ||
+        task.fromEmail?.toLowerCase().includes(term) ||
+        task.bodyPreview?.toLowerCase().includes(term)
     )
   }, [tasksData?.tasks, searchTerm])
 
@@ -89,7 +95,7 @@ export function InboxTaskList() {
       <div className='flex items-center gap-2'>
         <ChipInput
           icon={Search}
-          placeholder='Search tasks...'
+          placeholder={t('searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className='min-w-0 flex-1'
@@ -98,11 +104,11 @@ export function InboxTaskList() {
           align='start'
           value={statusFilter}
           onChange={(value) => {
-            if (STATUS_OPTIONS.some((option) => option.value === value)) {
+            if (statusOptions.some((option) => option.value === value)) {
               setInboxFilters({ status: value as StatusFilter })
             }
           }}
-          options={STATUS_OPTIONS.map((opt) => ({ label: opt.label, value: opt.value }))}
+          options={statusOptions.map((opt) => ({ label: opt.label, value: opt.value }))}
         />
       </div>
 
@@ -110,19 +116,23 @@ export function InboxTaskList() {
         {isLoading ? null : filteredTasks.length === 0 ? (
           searchTerm.trim() ? (
             <SettingsEmptyState variant='inline'>
-              {`No tasks matching "${searchTerm}"`}
+              {t('noMatches', { query: searchTerm })}
             </SettingsEmptyState>
           ) : (
             <SettingsEmptyState>
-              {config?.address
-                ? `No email tasks yet. Send an email to ${config.address} to get started.`
-                : 'No email tasks yet.'}
+              {config?.address ? t('emptyWithAddress', { address: config.address }) : t('empty')}
             </SettingsEmptyState>
           )
         ) : (
           <div className='-mx-2 flex flex-col gap-y-0.5'>
             {filteredTasks.map((task) => {
-              const statusBadge = STATUS_BADGES[task.status] || STATUS_BADGES.received
+              const badgeStatus: BadgeStatus = Object.hasOwn(STATUS_BADGE_VARIANTS, task.status)
+                ? (task.status as BadgeStatus)
+                : 'received'
+              const statusBadge = {
+                variant: STATUS_BADGE_VARIANTS[badgeStatus],
+                label: t(`statusBadges.${badgeStatus}`),
+              }
               const isClickable =
                 task.chatId && (task.status === 'completed' || task.status === 'failed')
               const rowClassName = `flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors ${
@@ -203,19 +213,4 @@ export function InboxTaskList() {
       </div>
     </div>
   )
-}
-
-function formatRejectionReason(reason: string): string {
-  switch (reason) {
-    case 'sender_not_allowed':
-      return 'Sender not allowed'
-    case 'automated_sender':
-      return 'Automated sender'
-    case 'rate_limit_exceeded':
-      return 'Rate limit exceeded'
-    case 'not_entitled':
-      return 'Plan no longer includes Nexora Mailer'
-    default:
-      return reason
-  }
 }

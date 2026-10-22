@@ -10,6 +10,7 @@ import {
 } from '@sim/emcn'
 import { ArrowLeft, ChevronRight } from '@sim/emcn/icons'
 import type { BlockState, WorkflowState } from '@sim/workflow-types/workflow'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import {
   buildWorkflowOutputMenu,
@@ -126,7 +127,7 @@ function OutputSelectContent({
   selectedOutputs = EMPTY_OUTPUTS,
   onOutputSelect,
   disabled = false,
-  placeholder = 'Select outputs',
+  placeholder,
   valueMode = 'id',
   align = 'start',
   maxHeight = 200,
@@ -135,6 +136,7 @@ function OutputSelectContent({
   variant = 'default',
   className,
 }: OutputSelectProps) {
+  const t = useTranslations('editor.runPanels.chat.outputSelect')
   const blocks = useWorkflowStore((state) => state.blocks)
   const edges = useWorkflowStore((state) => state.edges)
   const { isShowingDiff, isDiffReady, hasActiveDiff, baselineWorkflow } = useWorkflowDiffStore(
@@ -231,7 +233,7 @@ function OutputSelectContent({
       selectedOutputs={selectedOutputs}
       onOutputSelect={onOutputSelect}
       disabled={disabled}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t('selectOutputs')}
       valueMode={valueMode}
       align={align}
       maxHeight={maxHeight}
@@ -258,18 +260,15 @@ function OutputSelectMenu({
   variant,
   className,
 }: OutputSelectMenuProps) {
+  const t = useTranslations('editor.runPanels.chat.outputSelect')
   const [menuPath, setMenuPath] = useState<string[]>([])
   const activeMenuNode = resolveOutputMenuNode(outputMenu, menuPath)
 
   const validOutputCount = selectedOutputs.filter((val) =>
     workflowOutputs.some((output) => output.id === val || output.label === val)
   ).length
-  let selectedDisplayText = placeholder
-  if (validOutputCount === 1) {
-    selectedDisplayText = '1 output'
-  } else if (validOutputCount > 1) {
-    selectedDisplayText = `${validOutputCount} outputs`
-  }
+  const selectedDisplayText =
+    validOutputCount > 0 ? t('selectedCount', { count: validOutputCount }) : placeholder
 
   const normalizedSelectedValues = selectedOutputs
     .map((val) => {
@@ -280,7 +279,7 @@ function OutputSelectMenu({
     .filter((value): value is string => value !== null)
 
   const folderOption = (node: WorkflowOutputMenuNode): ComboboxOption => ({
-    label: 'Outputs',
+    label: t('outputs'),
     value: `folder:${node.blockId}`,
     suffixElement: <ChevronRight className='size-[12px] text-[var(--text-tertiary)]' />,
     onSelect: () => setMenuPath((currentPath) => [...currentPath, node.blockId]),
@@ -313,7 +312,7 @@ function OutputSelectMenu({
           section: activeMenuNode.blockName,
           items: [
             {
-              label: 'Back',
+              label: t('back'),
               value: `back:${activeMenuNode.blockId}`,
               iconElement: <ArrowLeft className='size-[14px] text-[var(--text-tertiary)]' />,
               onSelect: () => setMenuPath((currentPath) => currentPath.slice(0, -1)),

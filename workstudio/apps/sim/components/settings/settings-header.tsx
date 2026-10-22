@@ -15,7 +15,9 @@ import {
 } from 'react'
 import { Chip, ChipInput, ChipLink, cn, Tooltip } from '@sim/emcn'
 import { Search } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { HEADER_ACTION_CLUSTER, PAGE_HEADER_BAR } from '@/components/page-header-bar'
+import type { SettingsNavMessageKey } from '@/components/settings/navigation'
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
@@ -34,6 +36,11 @@ export interface SettingsAction {
   /** Stable render identity. Falls back to `text`, which remounts the chip whenever the label flips (Save → Saving...). */
   id?: string
   text: string
+  /**
+   * Message key in the `settings` namespace rendered instead of `text` (which stays the
+   * English identity). Set by shared helpers such as `saveDiscardActions`.
+   */
+  textKey?: string
   textTone?: 'error'
   icon?: ComponentType<{ className?: string }>
   variant?: 'primary' | 'destructive'
@@ -78,6 +85,8 @@ export interface SettingsHeaderMeta {
   title: string
   description?: string
   docsLink?: string
+  /** Navigation messages that localize `title` / `description`; see `SettingsNavMessageKey`. */
+  messageKey?: SettingsNavMessageKey
 }
 
 const EMPTY_CONFIG: SettingsHeaderConfig = {}
@@ -100,6 +109,7 @@ function computeSignature(config: SettingsHeaderConfig | null): string {
     back: config.back ? [config.back.text, config.back.icon ? 1 : 0] : null,
     actions: config.actions?.map((action) => [
       action.text,
+      action.textKey ?? '',
       // `id` participates in ordering, so a config that changes only the id
       // must still re-render — the sort key cannot be wider than the signature.
       action.id ?? '',
@@ -182,6 +192,8 @@ export function SettingsActionChip({
   onPrefetch = action.onPrefetch,
   mobileIconOnly,
 }: SettingsActionChipProps) {
+  const t = useTranslations('settings')
+  const text = action.textKey ? t(action.textKey) : action.text
   const chip = (
     <Chip
       variant={action.variant}
@@ -197,9 +209,9 @@ export function SettingsActionChip({
       className={cn(action.tooltip && action.disabled && 'pointer-events-none')}
     >
       {action.textTone === 'error' ? (
-        <span className='text-[var(--text-error)]'>{action.text}</span>
+        <span className='text-[var(--text-error)]'>{text}</span>
       ) : (
-        action.text
+        text
       )}
     </Chip>
   )
@@ -276,6 +288,7 @@ interface SettingsHeaderShellProps {
 }
 
 export function SettingsHeaderShell({ meta, children }: SettingsHeaderShellProps) {
+  const t = useTranslations('settings')
   const read = useContext(ReadContext)
   const configRef = read?.configRef
   const registered = configRef?.current ?? null
@@ -286,7 +299,14 @@ export function SettingsHeaderShell({ meta, children }: SettingsHeaderShellProps
    * body that registers an empty config is deliberately asking for no heading at all, which
    * is how a surface that renders its own heading opts out.
    */
-  const config: SettingsHeaderConfig = registered ?? meta ?? EMPTY_CONFIG
+  const localizedMeta: SettingsHeaderMeta | null | undefined = meta?.messageKey
+    ? {
+        ...meta,
+        title: t(`${meta.messageKey}.label`),
+        description: meta.description ? t(`${meta.messageKey}.description`) : meta.description,
+      }
+    : meta
+  const config: SettingsHeaderConfig = registered ?? localizedMeta ?? EMPTY_CONFIG
   const { title, description, docsLink, back, actions, search, scrollContainerRef } = config
 
   return (
@@ -308,7 +328,7 @@ export function SettingsHeaderShell({ meta, children }: SettingsHeaderShellProps
         <div className={HEADER_ACTION_CLUSTER}>
           {docsLink && (
             <ChipLink href={docsLink} target='_blank' rel='noopener noreferrer'>
-              Docs
+              {t('shell.docs')}
             </ChipLink>
           )}
           {orderHeaderActions(actions).map(({ action, index }) => (
@@ -339,7 +359,7 @@ export function SettingsHeaderShell({ meta, children }: SettingsHeaderShellProps
           {search && (
             <ChipInput
               icon={Search}
-              placeholder={search.placeholder ?? 'Search...'}
+              placeholder={search.placeholder ?? t('shell.searchPlaceholder')}
               value={search.value}
               onChange={(event) => configRef?.current?.search?.onChange(event.target.value)}
               disabled={search.disabled}

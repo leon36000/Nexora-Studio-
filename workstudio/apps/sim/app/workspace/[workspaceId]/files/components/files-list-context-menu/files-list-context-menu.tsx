@@ -3,6 +3,7 @@
 import { memo } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@sim/emcn'
 import { FolderPlus, Plus, Upload } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface FilesListContextMenuProps {
   isOpen: boolean
@@ -27,6 +28,7 @@ export const FilesListContextMenu = memo(function FilesListContextMenu({
   disableCreateFolder = false,
   disableUpload = false,
 }: FilesListContextMenuProps) {
+  const t = useTranslations('files.listMenu')
   return (
     <DropdownMenu open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DropdownMenuTrigger asChild>
@@ -48,19 +50,19 @@ export const FilesListContextMenu = memo(function FilesListContextMenu({
         {onUploadFile && (
           <DropdownMenuItem disabled={disableUpload} onSelect={onUploadFile}>
             <Upload />
-            Upload
+            {t('upload')}
           </DropdownMenuItem>
         )}
         {onCreateFolder && (
           <DropdownMenuItem disabled={disableCreateFolder} onSelect={onCreateFolder}>
             <FolderPlus />
-            New folder
+            {t('newFolder')}
           </DropdownMenuItem>
         )}
         {onCreateFile && (
           <DropdownMenuItem disabled={disableCreate} onSelect={onCreateFile}>
             <Plus />
-            New file
+            {t('newFile')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

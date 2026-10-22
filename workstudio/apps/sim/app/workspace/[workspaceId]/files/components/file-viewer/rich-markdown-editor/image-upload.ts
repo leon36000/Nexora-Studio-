@@ -4,6 +4,29 @@ import type { Slice } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { imageTypeAt } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/image-node'
+import enFiles from '@/messages/en/files.json'
+
+/** The placeholder chrome's text, translated by the editor host (`files.editor.imageUpload`). */
+export interface ImageUploadCopy {
+  uploading: (label: string) => string
+  cancel: string
+  cancelAriaLabel: (label: string) => string
+  cancelTitle: string
+}
+
+const ENGLISH_COPY = enFiles.editor.imageUpload
+
+/** Used when no host configured the extension (headless editors and tests). */
+const FALLBACK_COPY: ImageUploadCopy = {
+  uploading: (label) => ENGLISH_COPY.uploading.replace('{label}', label),
+  cancel: ENGLISH_COPY.cancel,
+  cancelAriaLabel: (label) => ENGLISH_COPY.cancelAriaLabel.replace('{label}', label),
+  cancelTitle: ENGLISH_COPY.cancelTitle,
+}
+
+interface ImageUploadPlaceholdersOptions {
+  copy: ImageUploadCopy
+}
 
 interface PendingImageUpload extends Range {
   id: string
@@ -26,7 +49,10 @@ interface UploadPlaceholderAction {
 
 const uploadPlaceholderKey = new PluginKey<ImageUploadState>('imageUploadPlaceholders')
 
-function uploadDecoration({ id, from, label, side }: PendingImageUpload): Decoration {
+function uploadDecoration(
+  { id, from, label, side }: PendingImageUpload,
+  copy: ImageUploadCopy
+): Decoration {
   return Decoration.widget(
     from,
     (view) => {
@@ -36,14 +62,14 @@ function uploadDecoration({ id, from, label, side }: PendingImageUpload): Decora
         placeholder.className =
           'mx-1 rounded border border-[var(--border)] px-2 py-1 text-[var(--text-muted)] text-small'
         placeholder.setAttribute('role', 'status')
-        placeholder.textContent = `Uploading ${label}…`
+        placeholder.textContent = copy.uploading(label)
         const cancel = document.createElement('button')
         cancel.type = 'button'
         cancel.className =
           'ml-2 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--selection)]'
-        cancel.textContent = 'Cancel insertion'
-        cancel.setAttribute('aria-label', `Cancel insertion of ${label}`)
-        cancel.title = 'The file may still finish uploading to the workspace.'
+        cancel.textContent = copy.cancel
+        cancel.setAttribute('aria-label', copy.cancelAriaLabel(label))
+        cancel.title = copy.cancelTitle
         cancel.addEventListener('mousedown', (event) => event.preventDefault())
         cancel.addEventListener('click', () => {
           const restoreFocus = document.activeElement === cancel
@@ -59,9 +85,13 @@ function uploadDecoration({ id, from, label, side }: PendingImageUpload): Decora
 }
 
 /** Local-only upload anchors follow document transactions without persisting temporary URLs. */
-export const ImageUploadPlaceholders = Extension.create({
+export const ImageUploadPlaceholders = Extension.create<ImageUploadPlaceholdersOptions>({
   name: 'imageUploadPlaceholders',
+  addOptions() {
+    return { copy: FALLBACK_COPY }
+  },
   addProseMirrorPlugins() {
+    const { copy } = this.options
     return [
       new Plugin<ImageUploadState>({
         key: uploadPlaceholderKey,
@@ -103,7 +133,7 @@ export const ImageUploadPlaceholders = Extension.create({
               uploads,
               decorations: DecorationSet.create(
                 transaction.doc,
-                Array.from(uploads.values(), uploadDecoration)
+                Array.from(uploads.values(), (upload) => uploadDecoration(upload, copy))
               ),
             }
           },

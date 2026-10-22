@@ -3,6 +3,7 @@
 import { memo, useCallback, useMemo, useRef, useState } from 'react'
 import { LineChart, Loader } from '@sim/emcn'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   DashboardSegmentsContext,
   type SegmentSelectionMode,
@@ -74,6 +75,7 @@ function DashboardInner({ stats, isLoading, error, searchQuery }: DashboardProps
   const { workflowIds, toggleWorkflowId, timeRange } = useLogFilters()
 
   const { workspaceId } = useParams<{ workspaceId: string }>()
+  const t = useTranslations('logs.dashboard')
   const { data: allWorkflowList = [], isPending: isWorkflowsPending } = useWorkflows(workspaceId)
 
   const expandedWorkflowId = workflowIds.length === 1 ? workflowIds[0] : null
@@ -377,7 +379,7 @@ function DashboardInner({ stats, isLoading, error, searchQuery }: DashboardProps
     return (
       <div className='mt-6 flex flex-1 items-center justify-center'>
         <div className='text-[var(--text-error)]'>
-          <p className='text-small'>Error loading data</p>
+          <p className='text-small'>{t('errorLoading')}</p>
           <p className='text-caption'>{error.message}</p>
         </div>
       </div>
@@ -388,8 +390,8 @@ function DashboardInner({ stats, isLoading, error, searchQuery }: DashboardProps
     return (
       <div className='mt-6 flex flex-1 items-center justify-center'>
         <div className='text-center text-[var(--text-secondary)]'>
-          <p className='text-small'>No workflows</p>
-          <p className='mt-1 text-caption'>Create a workflow to see its execution history here</p>
+          <p className='text-small'>{t('noWorkflows')}</p>
+          <p className='mt-1 text-caption'>{t('noWorkflowsDescription')}</p>
         </div>
       </div>
     )
@@ -401,7 +403,7 @@ function DashboardInner({ stats, isLoading, error, searchQuery }: DashboardProps
         <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
           <div className='flex flex-col overflow-hidden rounded-md bg-[var(--surface-2)] dark:bg-[var(--surface-2)]'>
             <div className='flex min-w-0 items-center justify-between gap-2 bg-[var(--surface-3)] px-4 py-[9px] dark:bg-[var(--surface-3)]'>
-              <span className='min-w-0 text-[var(--text-primary)] text-sm'>Runs</span>
+              <span className='min-w-0 text-[var(--text-primary)] text-sm'>{t('runs')}</span>
               {globalDetails && (
                 <span className='shrink-0 text-[var(--text-secondary)] text-sm'>
                   {globalDetails.totalRuns}
@@ -426,7 +428,7 @@ function DashboardInner({ stats, isLoading, error, searchQuery }: DashboardProps
 
           <div className='flex flex-col overflow-hidden rounded-md bg-[var(--surface-2)] dark:bg-[var(--surface-2)]'>
             <div className='flex min-w-0 items-center justify-between gap-2 bg-[var(--surface-3)] px-4 py-[9px] dark:bg-[var(--surface-3)]'>
-              <span className='min-w-0 text-[var(--text-primary)] text-sm'>Errors</span>
+              <span className='min-w-0 text-[var(--text-primary)] text-sm'>{t('errors')}</span>
               {globalDetails && (
                 <span className='shrink-0 text-[var(--text-secondary)] text-sm'>
                   {globalDetails.totalErrors}
@@ -451,7 +453,7 @@ function DashboardInner({ stats, isLoading, error, searchQuery }: DashboardProps
 
           <div className='flex flex-col overflow-hidden rounded-md bg-[var(--surface-2)] dark:bg-[var(--surface-2)]'>
             <div className='flex min-w-0 items-center justify-between gap-2 bg-[var(--surface-3)] px-4 py-[9px] dark:bg-[var(--surface-3)]'>
-              <span className='min-w-0 text-[var(--text-primary)] text-sm'>Latency</span>
+              <span className='min-w-0 text-[var(--text-primary)] text-sm'>{t('latency')}</span>
               {globalDetails && (
                 <span className='shrink-0 text-[var(--text-secondary)] text-sm'>
                   {formatLatency(globalDetails.avgLatency)}

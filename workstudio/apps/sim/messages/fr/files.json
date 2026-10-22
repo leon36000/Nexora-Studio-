@@ -1,1 +1,412 @@
-{}
+{
+  "page": {
+    "title": "Fichiers",
+    "fileTitle": "Fichier"
+  },
+  "error": {
+    "title": "Impossible de charger les fichiers",
+    "description": "Une erreur est survenue lors du chargement de vos fichiers. Veuillez réessayer."
+  },
+  "list": {
+    "title": "Fichiers",
+    "columns": {
+      "name": "Nom",
+      "size": "Taille",
+      "type": "Type",
+      "created": "Créé",
+      "owner": "Propriétaire",
+      "updated": "Dernière modification"
+    },
+    "types": {
+      "folder": "Dossier",
+      "file": "Fichier",
+      "text": "Texte",
+      "page": "Page",
+      "audio": "Audio",
+      "video": "Vidéo",
+      "image": "Image"
+    },
+    "actions": {
+      "upload": "Téléverser",
+      "newFolder": "Nouveau dossier",
+      "newFile": "Nouveau fichier",
+      "download": "Télécharger",
+      "rename": "Renommer",
+      "share": "Partager",
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "split": "Scinder",
+      "preview": "Aperçu",
+      "copyLink": "Copier le lien",
+      "copied": "Copié !"
+    },
+    "searchPlaceholder": "Rechercher des fichiers…",
+    "newFolderName": "Nouveau dossier",
+    "newFolderNameNumbered": "Nouveau dossier ({counter})",
+    "toasts": {
+      "folderUploadBlocked": "Impossible de téléverser le dossier « {name} »",
+      "folderUploadBlockedDescription": "Créez un dossier dans Fichiers, puis téléversez-y les fichiers.",
+      "fileTooLarge": "{name} dépasse la limite de téléversement de 5 Gio",
+      "filesTooLarge": "{count} fichiers dépassent la limite de téléversement de 5 Gio",
+      "uploadFileFailed": "Échec du téléversement de « {name} »",
+      "uploadFailed": "Échec du téléversement des fichiers",
+      "downloadFileFailed": "Échec du téléchargement de « {name} »",
+      "downloadSelectionFailed": "Échec du téléchargement des fichiers sélectionnés",
+      "saveFailed": "Échec de l’enregistrement de « {name} »",
+      "saveFailedFallbackName": "fichier",
+      "retry": "Réessayer",
+      "linkCopied": "Lien copié dans le presse-papiers",
+      "linkCopyFailed": "Impossible de copier le lien"
+    },
+    "filters": {
+      "all": "Tous",
+      "selected": "{count} sélectionnés",
+      "fileType": "Type de fichier",
+      "size": "Taille",
+      "uploadedBy": "Téléversé par",
+      "searchMembers": "Rechercher des membres…",
+      "clearAll": "Effacer tous les filtres",
+      "oneMember": "1 membre",
+      "members": "{count} membres",
+      "documents": "Documents",
+      "images": "Images",
+      "audio": "Audio",
+      "video": "Vidéo",
+      "small": "Petite",
+      "medium": "Moyenne",
+      "large": "Grande",
+      "smallRange": "Petite (< 1 Mo)",
+      "mediumRange": "Moyenne (1–10 Mo)",
+      "largeRange": "Grande (> 10 Mo)",
+      "tagType": "Type : {value}",
+      "tagSize": "Taille : {value}",
+      "tagUploadedBy": "Téléversé par : {value}"
+    },
+    "unsaved": {
+      "title": "Modifications non enregistrées",
+      "text": "Vous avez des modifications non enregistrées. Voulez-vous vraiment les abandonner ?",
+      "keepEditing": "Continuer la modification",
+      "discard": "Abandonner les modifications"
+    },
+    "findAriaLabel": "Rechercher dans les fichiers",
+    "dropToUpload": "Déposez pour téléverser",
+    "dropToUploadHint": "Relâchez les fichiers ici pour les ajouter à cet espace de travail",
+    "unzip": {
+      "title": "Décompresser l’archive ?",
+      "textBefore": "Cette action décompressera ",
+      "fallbackName": "cette archive",
+      "textAfter": " dans un nouveau dossier à côté.",
+      "confirm": "Décompresser",
+      "pending": "Décompression…"
+    },
+    "selectedItem": "élément sélectionné",
+    "selectedItems": "{count} éléments sélectionnés"
+  },
+  "deleteModal": {
+    "titleItems": "Supprimer les éléments",
+    "titleFolder": "Supprimer le dossier",
+    "titleFile": "Supprimer le fichier",
+    "consequenceFolders": "Les fichiers et dossiers contenus dans les dossiers sélectionnés seront également supprimés.",
+    "consequenceFolder": "Les fichiers et dossiers qu’il contient seront également supprimés.",
+    "consequenceRestoreMany": "Vous pourrez les restaurer depuis Éléments supprimés récemment dans les Paramètres.",
+    "consequenceRestoreOne": "Vous pourrez le restaurer depuis Éléments supprimés récemment dans les Paramètres.",
+    "textBefore": "Voulez-vous vraiment supprimer ",
+    "itemCount": "{count, plural, one {# élément} other {# éléments}}",
+    "textAfter": " ? {consequence}",
+    "confirm": "Supprimer",
+    "pending": "Suppression…"
+  },
+  "rowMenu": {
+    "open": "Ouvrir",
+    "copyLink": "Copier le lien",
+    "download": "Télécharger",
+    "downloadMany": "{count, plural, one {Télécharger # élément} other {Télécharger # éléments}}",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "rename": "Renommer",
+    "share": "Partager",
+    "moveTo": "Déplacer vers",
+    "moveMany": "{count, plural, one {Déplacer # élément} other {Déplacer # éléments}}",
+    "delete": "Supprimer",
+    "deleteMany": "{count, plural, one {Supprimer # élément} other {Supprimer # éléments}}"
+  },
+  "listMenu": {
+    "upload": "Téléverser",
+    "newFolder": "Nouveau dossier",
+    "newFile": "Nouveau fichier"
+  },
+  "share": {
+    "access": {
+      "public": "Public",
+      "password": "Mot de passe",
+      "email": "E-mail",
+      "sso": "SSO"
+    },
+    "actions": {
+      "share": "Partager",
+      "sharing": "Partage…",
+      "update": "Mettre à jour",
+      "updating": "Mise à jour…",
+      "unshare": "Arrêter le partage",
+      "unsharing": "Arrêt du partage…"
+    },
+    "success": {
+      "share": "Fichier partagé",
+      "update": "Partage mis à jour",
+      "unshare": "Partage du fichier arrêté"
+    },
+    "hints": {
+      "loadError": "Impossible de charger les paramètres de partage actuels. Fermez et réessayez.",
+      "modeDisallowed": "Cette méthode de partage est désactivée par un administrateur.",
+      "publicDisabled": "Le partage public est désactivé pour cet espace de travail par un administrateur.",
+      "password": "Toute personne disposant du lien et du mot de passe peut consulter et télécharger ce fichier.",
+      "email": "Seules les adresses e-mail autorisées peuvent accéder à ce fichier, après saisie d’un code à usage unique.",
+      "sso": "Seules les adresses e-mail autorisées connectées via SSO peuvent accéder à ce fichier.",
+      "publicActive": "Toute personne disposant du lien peut consulter et télécharger ce fichier.",
+      "publicShare": "Partagez pour rendre ce fichier accessible à toute personne disposant du lien.",
+      "publicUpdate": "Mettez à jour pour rendre ce fichier accessible à toute personne disposant du lien."
+    },
+    "srTitle": "Partager {name}",
+    "title": "Partager le fichier",
+    "accessTitle": "Accès",
+    "accessAriaLabel": "Accès au fichier",
+    "passwordTitle": "Mot de passe",
+    "passwordKeepHint": "Laissez vide pour conserver le mot de passe actuel.",
+    "passwordRequiredHint": "Toute personne disposant du lien devra saisir ce mot de passe.",
+    "passwordPlaceholder": "Saisissez un mot de passe",
+    "emailsTitle": "Adresses e-mail autorisées",
+    "emailsPlaceholder": "Saisissez des adresses e-mail ou des domaines",
+    "emailsPlaceholderWithTags": "Ajouter une adresse e-mail ou un domaine",
+    "copied": "Copié !",
+    "copyLink": "Copier le lien",
+    "unshareConfirm": {
+      "title": "Arrêter le partage du fichier ?",
+      "text": "Voulez-vous vraiment arrêter le partage de ce fichier ? Toute personne disposant du lien perdra l’accès."
+    }
+  },
+  "preview": {
+    "notAvailable": "Aperçu indisponible",
+    "notAvailableForExt": "Aperçu indisponible pour les fichiers .{ext}",
+    "notAvailableForFile": "Aperçu indisponible pour ce fichier",
+    "downloadHint": "Utilisez le bouton de téléchargement pour consulter ce fichier",
+    "failed": "Impossible de prévisualiser {label}",
+    "kinds": {
+      "csv": "le CSV",
+      "document": "le document",
+      "file": "le fichier",
+      "pdf": "le PDF",
+      "presentation": "la présentation",
+      "spreadsheet": "la feuille de calcul",
+      "audio": "l’audio",
+      "video": "la vidéo"
+    },
+    "unexpectedError": "Une erreur inattendue est survenue",
+    "docNotReady": "Impossible de générer l’aperçu de ce document. Relancez la génération du fichier pour le reconstruire.",
+    "toolbar": {
+      "previousPage": "Page précédente",
+      "nextPage": "Page suivante",
+      "previousSlide": "Diapositive précédente",
+      "nextSlide": "Diapositive suivante",
+      "resetZoom": "Réinitialiser le zoom",
+      "reset": "Réinitialiser",
+      "zoomOut": "Zoom arrière",
+      "zoomIn": "Zoom avant"
+    },
+    "noData": "Aucune donnée à afficher",
+    "renderDocumentFailed": "Impossible d’afficher le document",
+    "renderPresentationFailed": "Impossible d’afficher la présentation",
+    "parseSpreadsheetFailed": "Impossible de lire la feuille de calcul",
+    "parseSheetFailed": "Impossible de lire la feuille",
+    "xlsxTruncatedBoth": "Affichage des {rows, number} premières lignes et des {columns, number} premières colonnes.",
+    "xlsxTruncatedRows": "Affichage des {rows, number} premières lignes.",
+    "xlsxTruncatedColumns": "Affichage des {columns, number} premières colonnes.",
+    "xlsxDownloadHint": "Téléchargez le fichier pour afficher toutes les données.",
+    "tooLarge": "Ce fichier est trop volumineux pour être prévisualisé. Téléchargez-le pour consulter son contenu.",
+    "htmlTitle": "Aperçu HTML",
+    "svgAlt": "Aperçu SVG",
+    "zoomable": "Aperçu zoomable"
+  },
+  "csvImport": {
+    "importing": "Importation de « {name} » en tant que table",
+    "importingDescription": "L’opération s’exécute en arrière-plan.",
+    "viewTables": "Voir les tables",
+    "truncated": "Affichage des {count, number} premières lignes",
+    "truncatedDescription": "Importez ce fichier en tant que table pour afficher toutes ses lignes.",
+    "importAsTable": "Importer en tant que table"
+  },
+  "pdf": {
+    "failed": "Impossible de prévisualiser le PDF",
+    "loadFailed": "Impossible de charger le PDF",
+    "pageAriaLabel": "{filename}, page {page}"
+  },
+  "mermaid": {
+    "rendering": "Rendu en cours…",
+    "invalid": "Diagramme invalide"
+  },
+  "chart": {
+    "readTableFailed": "Impossible de lire la table",
+    "defaultLabel": "Graphique"
+  },
+  "editorMenu": {
+    "addToChat": "Ajouter au chat",
+    "cut": "Couper",
+    "copy": "Copier",
+    "copyAll": "Tout copier",
+    "paste": "Coller",
+    "selectAll": "Tout sélectionner",
+    "find": "Rechercher"
+  },
+  "saveConflict": {
+    "message": "Enregistrement suspendu : le fichier a été modifié ailleurs. Votre brouillon local est conservé. Recharger le remplace par la dernière version.",
+    "downloadDraft": "Télécharger le brouillon local",
+    "reloadFailed": "Impossible de recharger le fichier. Votre brouillon local n’a pas été modifié.",
+    "reloading": "Rechargement…",
+    "discardAndReload": "Abandonner le brouillon et recharger"
+  },
+  "editableContent": {
+    "reloadBeforeSaving": "Rechargez la dernière version du fichier avant d’enregistrer ce brouillon",
+    "versionUnavailable": "La version du fichier est indisponible ; rechargez avant d’enregistrer",
+    "savedVersionUnavailable": "La version enregistrée du fichier est indisponible ; rechargez avant de continuer",
+    "discardFailed": "Impossible d’abandonner « {name} » : le serveur conserve peut-être encore la modification abandonnée",
+    "waitForAgent": "Attendez la fin de la modification de l’agent avant de recharger",
+    "agentStartedWhileReloading": "Une modification de l’agent a commencé pendant le rechargement. Réessayez une fois celle-ci terminée.",
+    "draftChangedWhileReloading": "Votre brouillon a changé pendant le rechargement. Téléchargez-le ou relancez le rechargement.",
+    "latestVersionUnavailable": "La dernière version du fichier est indisponible",
+    "loadFailed": "Impossible de charger le contenu du fichier"
+  },
+  "textEditor": {
+    "pasteTooLarge": "Ce collage rendrait le fichier trop volumineux pour être modifié",
+    "pasteTooLargeDescription": "La modification en ligne prend en charge les fichiers jusqu’à {limit}. Importez ou remplacez le fichier pour conserver un contenu plus volumineux sans le charger dans l’éditeur.",
+    "resizeSplit": "Redimensionner la séparation",
+    "splitValueText": "{source} % source, {preview} % aperçu"
+  },
+  "editor": {
+    "placeholder": "Écrivez quelque chose, ou appuyez sur « / » pour les commandes…",
+    "documentPreview": "Aperçu du document",
+    "findInDocument": "Rechercher dans le document",
+    "paste": {
+      "formattingSkipped": "Texte collé conservé sans mise en forme automatique",
+      "formattingSkippedDescription": "L’ajout de cette mise en forme dépasserait la limite d’édition en texte enrichi.",
+      "tooLarge": "Le collage est trop volumineux pour l’édition en texte enrichi",
+      "tooLargeDescription": "L’édition en texte enrichi prend en charge jusqu’à {count, number} caractères. Utilisez l’éditeur de source pour les documents plus volumineux.",
+      "fieldTooLargeDescription": "Gardez ce document sous {limit}, ou importez le contenu sous forme de fichier."
+    },
+    "images": {
+      "uploading": "Téléversement de « {name} »…",
+      "notInserted": "L’image a été téléversée dans l’espace de travail mais n’a pas été insérée.",
+      "locationChanged": "L’emplacement d’insertion a changé. Choisissez un nouvel emplacement et sélectionnez de nouveau l’image.",
+      "resize": "Redimensionner l’image"
+    },
+    "imageUpload": {
+      "uploading": "Téléversement de {label}…",
+      "cancel": "Annuler l’insertion",
+      "cancelAriaLabel": "Annuler l’insertion de {label}",
+      "cancelTitle": "Le fichier peut tout de même finir d’être téléversé dans l’espace de travail."
+    },
+    "sourceRequired": "Ce document nécessite l’édition de la source pour préserver son contenu ou gérer sa taille.",
+    "editSource": "Modifier la source",
+    "reconnecting": "Reconnexion…",
+    "writeAccessLost": "Vous n’avez plus accès en modification à ce document.",
+    "liveEditingUnavailable": "L’édition en direct est indisponible.",
+    "find": {
+      "replacementTooLarge": "Le remplacement est trop volumineux",
+      "replacementTooLargeDescription": "Utilisez l’éditeur de source pour les modifications qui dépassent la limite d’édition en texte enrichi."
+    },
+    "bubbleMenu": {
+      "linkEditing": "Modification du lien",
+      "textFormatting": "Mise en forme du texte",
+      "removeLink": "Supprimer le lien",
+      "applyLink": "Appliquer le lien",
+      "addToChat": "Ajouter au chat",
+      "textStyle": "Style du texte",
+      "style": "Style",
+      "text": "Texte",
+      "heading1": "Titre 1",
+      "heading2": "Titre 2",
+      "heading3": "Titre 3",
+      "bulletedList": "Liste à puces",
+      "numberedList": "Liste numérotée",
+      "checklist": "Liste de tâches",
+      "quote": "Citation",
+      "bold": "Gras",
+      "italic": "Italique",
+      "link": "Lien",
+      "moreFormatting": "Plus de mise en forme",
+      "strikethrough": "Barré",
+      "highlight": "Surligner",
+      "code": "Code"
+    },
+    "link": {
+      "urlLabel": "URL du lien",
+      "urlPlaceholder": "Collez ou saisissez un lien…",
+      "dialog": "Lien",
+      "apply": "Appliquer le lien",
+      "copied": "Copié",
+      "copy": "Copier le lien",
+      "edit": "Modifier le lien",
+      "remove": "Supprimer le lien"
+    },
+    "tableMenu": {
+      "label": "Modification du tableau",
+      "insertRowAbove": "Insérer une ligne au-dessus",
+      "insertRowBelow": "Insérer une ligne en dessous",
+      "deleteRow": "Supprimer la ligne",
+      "insertColumnLeft": "Insérer une colonne à gauche",
+      "insertColumnRight": "Insérer une colonne à droite",
+      "deleteColumn": "Supprimer la colonne",
+      "deleteTable": "Supprimer le tableau"
+    },
+    "codeBlock": {
+      "plainText": "Texte brut",
+      "showDashboard": "Afficher le tableau de bord",
+      "showDiff": "Afficher les différences",
+      "showDiagram": "Afficher le diagramme",
+      "showSource": "Afficher la source",
+      "language": "Langage du code",
+      "toggleWrap": "Activer/désactiver le retour à la ligne",
+      "copied": "Copié",
+      "copyDiff": "Copier les différences",
+      "copyCode": "Copier le code"
+    },
+    "slashCommands": {
+      "ariaLabel": "Commandes",
+      "noResults": "Aucun résultat",
+      "groups": {
+        "basic": "Base",
+        "lists": "Listes",
+        "blocks": "Blocs",
+        "media": "Médias"
+      },
+      "items": {
+        "text": "Texte",
+        "heading1": "Titre 1",
+        "heading2": "Titre 2",
+        "heading3": "Titre 3",
+        "bulletedList": "Liste à puces",
+        "numberedList": "Liste numérotée",
+        "checklist": "Liste de tâches",
+        "quote": "Citation",
+        "codeBlock": "Bloc de code",
+        "chart": "Graphique",
+        "table": "Tableau",
+        "divider": "Séparateur",
+        "image": "Image"
+      }
+    },
+    "mentions": {
+      "ariaLabel": "Mentions",
+      "loading": "Chargement…",
+      "noResults": "Aucun résultat",
+      "groups": {
+        "files": "Fichiers",
+        "folders": "Dossiers",
+        "tables": "Tables",
+        "knowledgeBases": "Bases de connaissances",
+        "workflows": "Workflows",
+        "skills": "Compétences",
+        "integrations": "Intégrations"
+      }
+    },
+    "collaborator": "Collaborateur"
+  }
+}

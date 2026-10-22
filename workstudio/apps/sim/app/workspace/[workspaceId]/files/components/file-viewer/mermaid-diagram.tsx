@@ -3,6 +3,7 @@
 import { memo, useEffect, useState } from 'react'
 import { toError } from '@sim/utils/errors'
 import { generateShortId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import {
   mermaidWorkflowCss,
@@ -50,13 +51,14 @@ function MermaidSourcePreview({
   isRendering: boolean
   status?: string
 }) {
+  const t = useTranslations('files.mermaid')
   return (
     <div className='my-4 overflow-hidden rounded-lg border border-[var(--border)]'>
       <div className='flex items-center justify-between border-[var(--border)] border-b bg-[var(--surface-3)] px-3 py-1.5'>
         <span className='text-[11px] text-[var(--text-tertiary)]'>mermaid</span>
         {(isRendering || status) && (
           <span className='text-[11px] text-[var(--text-muted)]'>
-            {isRendering ? 'Rendering…' : status}
+            {isRendering ? t('rendering') : status}
           </span>
         )}
       </div>
@@ -89,6 +91,7 @@ export const MermaidDiagram = memo(function MermaidDiagram({
   /** Wrapper class for the rendered (non-zoomable) SVG. Defaults to the file-preview look. */
   className?: string
 }) {
+  const t = useTranslations('files.mermaid')
   const { resolvedTheme } = useTheme()
   const mermaidTheme = resolvedTheme === 'dark' ? 'dark' : 'default'
   const trimmedDefinition = definition.trim()
@@ -199,7 +202,7 @@ export const MermaidDiagram = memo(function MermaidDiagram({
 
   if (error) {
     return (
-      <MermaidSourcePreview definition={definition} isRendering={false} status='Invalid diagram' />
+      <MermaidSourcePreview definition={definition} isRendering={false} status={t('invalid')} />
     )
   }
 

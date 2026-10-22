@@ -1,5 +1,6 @@
 import { Chip, cn } from '@sim/emcn'
 import { Upload } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { EmptyState, type EmptyStateProps } from '@/components/empty-state/empty-state'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { EmptyStateDocsLink } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/docs-link'
@@ -76,14 +77,13 @@ type FilesEmptyStateProps = UploadFilesEmptyStateProps | Omit<EmptyStateProps, '
 
 /** Shared file illustration and actions for empty or unavailable files. */
 export function FilesEmptyState(props: FilesEmptyStateProps) {
+  const t = useTranslations('shell.emptyStates.files')
   const content = 'title' in props ? props : undefined
   return (
     <EmptyState
       graphic={<FilesGraphic />}
-      title={content?.title ?? 'Files'}
-      description={
-        content?.description ?? 'Upload files to share them across your team and every agent.'
-      }
+      title={content?.title ?? t('title')}
+      description={content?.description ?? t('description')}
       action={
         <>
           {'onUpload' in props ? (
@@ -93,7 +93,7 @@ export function FilesEmptyState(props: FilesEmptyStateProps) {
               disabled={props.uploadDisabled}
               leftIcon={Upload}
             >
-              Upload
+              {t('action')}
             </Chip>
           ) : (
             content?.action

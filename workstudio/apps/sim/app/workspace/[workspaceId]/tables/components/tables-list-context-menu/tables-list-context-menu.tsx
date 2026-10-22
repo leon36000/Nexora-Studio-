@@ -8,6 +8,7 @@ import {
   Upload,
 } from '@sim/emcn'
 import { FolderPlus, Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface TablesListContextMenuProps {
   isOpen: boolean
@@ -32,6 +33,7 @@ export function TablesListContextMenu({
   disableCreateFolder = false,
   disableUpload = false,
 }: TablesListContextMenuProps) {
+  const t = useTranslations('tables.list.actions')
   return (
     <DropdownMenu open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DropdownMenuTrigger asChild>
@@ -59,19 +61,19 @@ export function TablesListContextMenu({
         {onUploadCsv && (
           <DropdownMenuItem disabled={disableUpload} onSelect={onUploadCsv}>
             <Upload />
-            Import CSV
+            {t('importCsv')}
           </DropdownMenuItem>
         )}
         {onCreateFolder && (
           <DropdownMenuItem disabled={disableCreateFolder} onSelect={onCreateFolder}>
             <FolderPlus />
-            New folder
+            {t('newFolder')}
           </DropdownMenuItem>
         )}
         {onCreateTable && (
           <DropdownMenuItem disabled={disableCreate} onSelect={onCreateTable}>
             <Plus />
-            New table
+            {t('newTable')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

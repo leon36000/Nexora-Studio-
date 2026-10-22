@@ -1,6 +1,8 @@
 import { member, subscription } from '@sim/db/schema'
 import {
   auditMock,
+  resetEnvFlagsMock,
+  setEnvFlags,
   authMockFns,
   createSession,
   queueTableRows,
@@ -66,6 +68,8 @@ afterAll(resetDbChainMock)
 describe('POST /api/organizations', () => {
   beforeEach(() => {
     resetDbChainMock()
+    resetEnvFlagsMock()
+    setEnvFlags({ isBillingEnabled: true })
   })
 
   it('recovers an owner org when the subscription was already moved onto the organization', async () => {
@@ -168,3 +172,59 @@ describe('POST /api/organizations', () => {
     expect(mockSetActiveOrganizationForCurrentSession).not.toHaveBeenCalled()
   })
 })
+
+describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    resetEnvFlagsMock()
+    setEnvFlags({ isBillingEnabled: false })
+    mockCreateOrganizationForTeamPlan.mockReset()
+  })
+
+  it('lets a user without an organization found one, with no subscription', async () => {
+    mockGetSession.mockResolvedValue(
+      createSession({ userId: 'user-9', email: 'gerant@pme.fr', name: 'Gérant' })
+    )
+    queueTableRows(member, [])
+    mockCreateOrganizationForTeamPlan.mockResolvedValue('org-new')
+
+    const response = await POST(
+      new Request('http://localhost/api/organizations', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'PME Exemple', slug: 'pme-exemple' }),
+      })
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      organizationId: 'org-new',
+      created: true,
+    })
+    expect(mockCreateOrganizationForTeamPlan).toHaveBeenCalledWith(
+      'user-9',
+      'PME Exemple',
+      'gerant@pme.fr',
+      'pme-exemple'
+    )
+    expect(mockEnsureOrganizationForTeamSubscription).not.toHaveBeenCalled()
+  })
+
+  it('refuses a second organization to a user who already administers one', async () => {
+    mockGetSession.mockResolvedValue(
+      createSession({ userId: 'user-9', email: 'gerant@pme.fr', name: 'Gérant' })
+    )
+    queueTableRows(member, [{ organizationId: 'org-existing', role: 'owner' }])
+
+    const response = await POST(
+      new Request('http://localhost/api/organizations', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Autre' }),
+      })
+    )
+
+    expect(response.status).toBe(409)
+    expect(mockCreateOrganizationForTeamPlan).not.toHaveBeenCalled()
+  })
+})
+

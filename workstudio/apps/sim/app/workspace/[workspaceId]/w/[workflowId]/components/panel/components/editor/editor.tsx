@@ -18,6 +18,7 @@ import {
   isWorkflowBlockProtected,
 } from '@sim/workflow-types/workflow'
 import { isEqual } from 'es-toolkit'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { useShallow } from 'zustand/react/shallow'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
@@ -77,6 +78,7 @@ const EMPTY_SUBBLOCK_VALUES = {} as Record<string, any>
  * @returns Editor panel content
  */
 export function Editor() {
+  const t = useTranslations('editor.panelEditor')
   const {
     currentBlockId,
     connectionsHeight,
@@ -96,7 +98,7 @@ export function Editor() {
   const currentWorkflow = useCurrentWorkflow()
   const currentBlock = currentBlockId ? currentWorkflow.getBlockById(currentBlockId) : null
   const blockConfig = currentBlock ? getBlock(currentBlock.type) : null
-  const title = currentBlock?.name || 'Editor'
+  const title = currentBlock?.name || t('title')
   const isBlockNameSearchHighlighted =
     activeSearchTarget?.targetKind === 'block-name' && activeSearchTarget.blockId === currentBlockId
   const blockNameSearchHighlight =
@@ -475,7 +477,7 @@ export function Editor() {
                       variant='ghost'
                       className='p-0'
                       onClick={() => collaborativeBatchToggleLocked([currentBlockId!])}
-                      aria-label='Unlock block'
+                      aria-label={t('unlockBlock')}
                     >
                       <Unlock className='size-[14px] text-[var(--text-secondary)]' />
                     </Button>
@@ -488,10 +490,10 @@ export function Editor() {
                 <Tooltip.Content side='top'>
                   <p>
                     {isAncestorLocked
-                      ? 'Ancestor container is locked'
+                      ? t('ancestorLocked')
                       : userPermissions.canAdmin && currentBlock.locked
-                        ? 'Unlock block'
-                        : 'Block is locked'}
+                        ? t('unlockBlock')
+                        : t('blockLocked')}
                   </p>
                 </Tooltip.Content>
               </Tooltip.Root>
@@ -505,7 +507,7 @@ export function Editor() {
                     className='p-0'
                     onClick={isRenaming ? handleSaveRename : handleStartRename}
                     disabled={!canEditBlock}
-                    aria-label={isRenaming ? 'Save name' : 'Rename block'}
+                    aria-label={isRenaming ? t('saveName') : t('renameBlock')}
                   >
                     {isRenaming ? (
                       <Check className='size-[14px]' />
@@ -515,7 +517,7 @@ export function Editor() {
                   </Button>
                 </Tooltip.Trigger>
                 <Tooltip.Content side='top'>
-                  <p>{isRenaming ? 'Save name' : 'Rename block'}</p>
+                  <p>{isRenaming ? t('saveName') : t('renameBlock')}</p>
                 </Tooltip.Content>
               </Tooltip.Root>
             )}
@@ -527,13 +529,13 @@ export function Editor() {
                   variant='ghost'
                   className='p-0'
                   onClick={handleFocusOnBlock}
-                  aria-label='Focus on block'
+                  aria-label={t('focusOnBlock')}
                 >
                   <Crosshair className='size-[14px]' />
                 </Button>
               </Tooltip.Trigger>
               <Tooltip.Content side='top'>
-                <p>Focus on block</p>
+                <p>{t('focusOnBlock')}</p>
               </Tooltip.Content>
             </Tooltip.Root>
           )} */}
@@ -543,13 +545,13 @@ export function Editor() {
                   variant='ghost'
                   className='p-0'
                   onClick={handleOpenDocs}
-                  aria-label='Open documentation'
+                  aria-label={t('openDocumentation')}
                 >
                   <BookOpen className='size-[14px]' />
                 </Button>
               </Tooltip.Trigger>
               <Tooltip.Content side='top'>
-                <p>Open docs</p>
+                <p>{t('openDocs')}</p>
               </Tooltip.Content>
             </Tooltip.Root>
           </div>
@@ -557,7 +559,7 @@ export function Editor() {
 
         {!currentBlockId || !currentBlock ? (
           <div className='flex flex-1 items-center justify-center text-[var(--text-placeholder)] text-small'>
-            Select a block to edit
+            {t('selectBlockToEdit')}
           </div>
         ) : isSubflow ? (
           <SubflowEditor
@@ -586,7 +588,7 @@ export function Editor() {
                   <>
                     <div className='subblock-content flex flex-col gap-[9.5px]'>
                       <div className='pl-0.5 text-[var(--text-primary)] text-small leading-none'>
-                        Workflow Preview
+                        {t('workflowPreview')}
                       </div>
                       <div className='relative h-[160px] overflow-hidden rounded-sm border border-[var(--border)]'>
                         {isLoadingChildWorkflow ? (
@@ -610,7 +612,7 @@ export function Editor() {
                             <Tooltip.Root>
                               <Tooltip.Trigger asChild>
                                 <Button
-                                  aria-label='Open workflow'
+                                  aria-label={t('openWorkflow')}
                                   type='button'
                                   variant='ghost'
                                   onClick={handleOpenChildWorkflow}
@@ -619,13 +621,13 @@ export function Editor() {
                                   <SquareArrowUpRight className='size-[12px]' />
                                 </Button>
                               </Tooltip.Trigger>
-                              <Tooltip.Content side='top'>Open workflow</Tooltip.Content>
+                              <Tooltip.Content side='top'>{t('openWorkflow')}</Tooltip.Content>
                             </Tooltip.Root>
                           </>
                         ) : (
                           <div className='flex h-full items-center justify-center bg-[var(--surface-3)]'>
                             <span className='text-[var(--text-tertiary)] text-small'>
-                              Unable to load preview
+                              {t('unableToLoadPreview')}
                             </span>
                           </div>
                         )}
@@ -636,7 +638,7 @@ export function Editor() {
                 )}
                 {subBlocks.length === 0 && !isWorkflowBlock ? (
                   <div className='flex h-full items-center justify-center text-center text-[var(--text-placeholder)] text-small'>
-                    This block has no subblocks
+                    {t('noSubblocks')}
                   </div>
                 ) : (
                   <div className='flex flex-col'>
@@ -753,8 +755,8 @@ export function Editor() {
                           className='flex items-center gap-1.5 whitespace-nowrap text-[var(--text-secondary)] text-small hover-hover:text-[var(--text-primary)]'
                         >
                           {displayAdvancedOptions
-                            ? 'Hide additional fields'
-                            : 'Show additional fields'}
+                            ? t('hideAdditionalFields')
+                            : t('showAdditionalFields')}
                           <ChevronDown
                             className={`size-[14px] transition-transform duration-200 ${displayAdvancedOptions ? 'rotate-180' : ''}`}
                           />
@@ -766,7 +768,7 @@ export function Editor() {
                       <div className='flex items-center gap-2.5 px-0.5 pt-3.5 pb-3'>
                         <DashedDividerLine className='flex-1' />
                         <span className='whitespace-nowrap text-[var(--text-secondary)] text-small'>
-                          Additional fields
+                          {t('additionalFields')}
                         </span>
                         <DashedDividerLine className='flex-1' />
                       </div>
@@ -848,7 +850,7 @@ export function Editor() {
                   role='button'
                   tabIndex={0}
                   aria-label={
-                    isConnectionsAtMinHeight ? 'Expand connections' : 'Collapse connections'
+                    isConnectionsAtMinHeight ? t('expandConnections') : t('collapseConnections')
                   }
                 >
                   <ChevronUp
@@ -857,7 +859,7 @@ export function Editor() {
                       (!isConnectionsAtMinHeight ? ' rotate-180' : '')
                     }
                   />
-                  <div className='text-[var(--text-primary)] text-small'>Connections</div>
+                  <div className='text-[var(--text-primary)] text-small'>{t('connections')}</div>
                 </div>
 
                 {/* Connections Content - Always visible */}

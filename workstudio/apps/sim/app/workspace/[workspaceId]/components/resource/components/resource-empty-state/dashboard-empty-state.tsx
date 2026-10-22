@@ -1,4 +1,5 @@
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { EmptyState } from '@/components/empty-state/empty-state'
 import { HAIRLINE } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/hairline'
 import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/mask'
@@ -120,11 +121,8 @@ function DashboardGraphic() {
 
 /** Empty state for a workspace whose dashboard Sim has not built yet. */
 export function DashboardEmptyState() {
+  const t = useTranslations('shell.emptyStates.dashboard')
   return (
-    <EmptyState
-      graphic={<DashboardGraphic />}
-      title='Dashboard'
-      description='Nexora will build your dashboard here once your workspace is set up.'
-    />
+    <EmptyState graphic={<DashboardGraphic />} title={t('title')} description={t('description')} />
   )
 }

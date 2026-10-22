@@ -17,6 +17,7 @@ import { ArrowDown, ArrowUp, Download, MoreHorizontal, Palette, Trash } from '@s
 import { formatDuration } from '@sim/utils/formatting'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { getEnv, isTruthy } from '@/lib/core/config/env'
 import { sendMothershipMessage } from '@/lib/mothership/events'
 import { useRegisterGlobalCommands } from '@/app/workspace/[workspaceId]/providers/global-commands-provider'
@@ -80,6 +81,20 @@ const MAX_TREE_DEPTH = 50
  */
 const LOG_ROW_GUTTER_CLASS = 'px-[10px]'
 
+/**
+ * Run-level rows the executor adds under fixed block ids, keyed to their label under
+ * `editor.terminalRows` so they read in the viewer's language rather than the stored one.
+ */
+const RUN_LEVEL_ROW_LABEL_KEYS: Record<
+  string,
+  'validation' | 'timeoutError' | 'runError' | 'runCancelled'
+> = {
+  validation: 'validation',
+  'timeout-error': 'timeoutError',
+  'execution-error': 'runError',
+  cancelled: 'runCancelled',
+}
+
 function hasMatchInTree(
   nodes: EntryNode[],
   predicate: (e: ConsoleEntry) => boolean,
@@ -106,6 +121,8 @@ const BlockRow = memo(function BlockRow({
   isSelected: boolean
   onSelect: (entry: ConsoleEntry) => void
 }) {
+  const tRows = useTranslations('editor.terminalRows')
+  const runLevelLabelKey = RUN_LEVEL_ROW_LABEL_KEYS[entry.blockId]
   const hasError = Boolean(entry.error)
   const isRunning = Boolean(entry.isRunning)
   const isCanceled = Boolean(entry.isCanceled)
@@ -119,7 +136,7 @@ const BlockRow = memo(function BlockRow({
       <span className={ROW_STYLES.content}>
         <EntryBlockTile blockType={entry.blockType} />
         <span className={hasError ? ROW_STYLES.labelError : ROW_STYLES.label}>
-          {entry.blockName}
+          {runLevelLabelKey ? tRows(runLevelLabelKey) : entry.blockName}
         </span>
       </span>
       <span className={cn(ROW_STYLES.status, !isRunning && ROW_STYLES.statusIdle)}>
@@ -155,6 +172,7 @@ const IterationNodeRow = memo(function IterationNodeRow({
   onToggleNode: (nodeId: string) => void
   renderChildren?: boolean
 }) {
+  const t = useTranslations('editor.runPanels.terminal.panel')
   const { entry, children, iterationInfo } = node
   const hasError = Boolean(entry.error) || children.some((c) => c.entry.error)
   const hasChildren = children.length > 0
@@ -162,7 +180,9 @@ const IterationNodeRow = memo(function IterationNodeRow({
   const hasCanceledChild = children.some((c) => c.entry.isCanceled) && !hasRunningChild
 
   const iterationLabel = iterationInfo
-    ? `Iteration ${iterationInfo.current + 1}${iterationInfo.total !== undefined ? ` / ${iterationInfo.total}` : ''}`
+    ? iterationInfo.total !== undefined
+      ? t('iterationOfTotal', { current: iterationInfo.current + 1, total: iterationInfo.total })
+      : t('iteration', { current: iterationInfo.current + 1 })
     : entry.blockName
 
   return (
@@ -554,6 +574,7 @@ const TerminalLogsPane = memo(function TerminalLogsPane({
  * Terminal component with resizable height that persists across page refreshes.
  */
 export const Terminal = memo(function Terminal() {
+  const t = useTranslations('editor.runPanels.terminal.panel')
   const isMobile = useIsMobile()
   const terminalRef = useRef<HTMLElement>(null)
   const prevWorkflowEntriesLengthRef = useRef(0)
@@ -919,13 +940,13 @@ export const Terminal = memo(function Terminal() {
 
   const handleFixInCopilot = useCallback(
     (entry: ConsoleEntry) => {
-      const errorMessage = entry.error ? String(entry.error) : 'Unknown error'
-      const blockName = entry.blockName || 'Unknown Block'
-      const message = `${errorMessage}\n\nError in ${blockName}.\n\nPlease fix this.`
+      const errorMessage = entry.error ? String(entry.error) : t('unknownError')
+      const blockName = entry.blockName || t('unknownBlock')
+      const message = t('fixMessage', { errorMessage, blockName })
       sendMothershipMessage({ content: message })
       closeLogRowMenu()
     },
-    [closeLogRowMenu]
+    [closeLogRowMenu, t]
   )
 
   useRegisterGlobalCommands(() =>
@@ -1190,7 +1211,7 @@ export const Terminal = memo(function Terminal() {
         onFocus={handleTerminalFocus}
         onBlur={handleTerminalBlur}
         tabIndex={-1}
-        aria-label='Terminal'
+        aria-label={t('terminal')}
       >
         {/* Resize Handle */}
         <div
@@ -1198,7 +1219,7 @@ export const Terminal = memo(function Terminal() {
           onPointerDown={handlePointerDown}
           role='separator'
           aria-orientation='horizontal'
-          aria-label='Resize terminal'
+          aria-label={t('resizeTerminal')}
         />
 
         <div className='relative flex h-full'>
@@ -1221,7 +1242,7 @@ export const Terminal = memo(function Terminal() {
               onClick={handleHeaderClick}
             >
               {/* Left side - Logs label */}
-              <span className={TERMINAL_CONFIG.HEADER_TEXT_CLASS}>Logs</span>
+              <span className={TERMINAL_CONFIG.HEADER_TEXT_CLASS}>{t('logs')}</span>
 
               {/* Right side - Icons and options */}
               {!selectedEntry && (
@@ -1236,7 +1257,7 @@ export const Terminal = memo(function Terminal() {
                             e.stopPropagation()
                             toggleSort()
                           }}
-                          aria-label='Sort by timestamp'
+                          aria-label={t('sortByTimestamp')}
                           iconPadding='md'
                           className='-m-1.5'
                         >
@@ -1248,7 +1269,7 @@ export const Terminal = memo(function Terminal() {
                         </Button>
                       </Tooltip.Trigger>
                       <Tooltip.Content>
-                        <span>Sort by time</span>
+                        <span>{t('sortByTime')}</span>
                       </Tooltip.Content>
                     </Tooltip.Root>
                   )}
@@ -1259,7 +1280,7 @@ export const Terminal = memo(function Terminal() {
                         <Link href='/playground'>
                           <Button
                             variant='ghost'
-                            aria-label='Component Playground'
+                            aria-label={t('componentPlayground')}
                             iconPadding='md'
                             className='-m-1.5'
                           >
@@ -1268,7 +1289,7 @@ export const Terminal = memo(function Terminal() {
                         </Link>
                       </Tooltip.Trigger>
                       <Tooltip.Content>
-                        <span>Component Playground</span>
+                        <span>{t('componentPlayground')}</span>
                       </Tooltip.Content>
                     </Tooltip.Root>
                   )}
@@ -1280,7 +1301,7 @@ export const Terminal = memo(function Terminal() {
                           <Button
                             variant='ghost'
                             onClick={handleExportConsole}
-                            aria-label='Export console CSV'
+                            aria-label={t('exportConsoleCsv')}
                             iconPadding='md'
                             className='-m-1.5'
                           >
@@ -1288,7 +1309,7 @@ export const Terminal = memo(function Terminal() {
                           </Button>
                         </Tooltip.Trigger>
                         <Tooltip.Content>
-                          <span>Export CSV</span>
+                          <span>{t('exportCsv')}</span>
                         </Tooltip.Content>
                       </Tooltip.Root>
                       <Tooltip.Root>
@@ -1296,7 +1317,7 @@ export const Terminal = memo(function Terminal() {
                           <Button
                             variant='ghost'
                             onClick={handleClearConsole}
-                            aria-label='Clear console'
+                            aria-label={t('clearConsole')}
                             iconPadding='md'
                             className='-m-1.5'
                           >
@@ -1304,7 +1325,7 @@ export const Terminal = memo(function Terminal() {
                           </Button>
                         </Tooltip.Trigger>
                         <Tooltip.Content>
-                          <Tooltip.Shortcut keys='⌘D'>Clear console</Tooltip.Shortcut>
+                          <Tooltip.Shortcut keys='⌘D'>{t('clearConsole')}</Tooltip.Shortcut>
                         </Tooltip.Content>
                       </Tooltip.Root>
                     </>
@@ -1317,7 +1338,7 @@ export const Terminal = memo(function Terminal() {
                         onClick={(e) => {
                           e.stopPropagation()
                         }}
-                        aria-label='Terminal options'
+                        aria-label={t('terminalOptions')}
                         iconPadding='md'
                         className='-m-1.5'
                       >
@@ -1341,7 +1362,7 @@ export const Terminal = memo(function Terminal() {
                           setOpenOnRun(!openOnRun)
                         }}
                       >
-                        <span>Open on run</span>
+                        <span>{t('openOnRun')}</span>
                       </PopoverItem>
                     </PopoverContent>
                   </Popover>
@@ -1361,7 +1382,7 @@ export const Terminal = memo(function Terminal() {
             <div className='flex-1 overflow-hidden'>
               {executionGroups.length === 0 ? (
                 <div className='flex h-full items-center justify-center text-[var(--text-placeholder)] text-small'>
-                  No logs yet
+                  {t('noLogsYet')}
                 </div>
               ) : (
                 <TerminalLogsPane

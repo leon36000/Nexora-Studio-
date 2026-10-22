@@ -5,6 +5,7 @@ import { memo } from 'react'
 import { OverflowText } from '@sim/emcn'
 import { File, Workflow } from '@sim/emcn/icons'
 import { Command } from 'cmdk'
+import { useTranslations } from 'next-intl'
 import { IdentityTile } from '@/components/identity-tile/identity-tile'
 import { getWorkspaceInitial } from '@/lib/workspaces/initials'
 import type { CommandItemProps } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/search-modal/utils'
@@ -58,6 +59,7 @@ interface ShortcutHintProps {
 }
 
 function ShortcutHint({ shortcut }: ShortcutHintProps) {
+  const t = useTranslations('shell.searchModal')
   const commandIndex = shortcut.indexOf('⌘')
   const slots =
     commandIndex === -1
@@ -66,7 +68,7 @@ function ShortcutHint({ shortcut }: ShortcutHintProps) {
 
   return (
     <span
-      aria-label={`Keyboard shortcut ${shortcut}`}
+      aria-label={t('keyboardShortcut', { shortcut })}
       className='ml-auto grid w-10 shrink-0 grid-cols-3 text-center text-[var(--text-subtle)] text-small'
     >
       {slots.map((slot, index) => (
@@ -132,7 +134,8 @@ export const MemoizedActionItem = memo(
       <Command.Item value={value} onSelect={onSelect} className={COMMAND_ITEM_CLASSNAME}>
         <Icon className='size-[16px] shrink-0 text-[var(--text-icon)]' />
         <OverflowText label={name} className='text-[var(--text-body)]' />
-        {meta ? <ItemMeta meta={meta} /> : shortcut ? <ShortcutHint shortcut={shortcut} /> : null}
+        {meta ? <ItemMeta meta={meta} /> : null}
+        {!meta && shortcut ? <ShortcutHint shortcut={shortcut} /> : null}
       </Command.Item>
     )
   },
@@ -294,7 +297,8 @@ export const MemoizedPageItem = memo(
       <Command.Item value={value} onSelect={onSelect} className={COMMAND_ITEM_CLASSNAME}>
         <Icon className='size-[16px] shrink-0 text-[var(--text-icon)]' />
         <OverflowText label={name} className='text-[var(--text-body)]' />
-        {meta ? <ItemMeta meta={meta} /> : shortcut ? <ShortcutHint shortcut={shortcut} /> : null}
+        {meta ? <ItemMeta meta={meta} /> : null}
+        {!meta && shortcut ? <ShortcutHint shortcut={shortcut} /> : null}
       </Command.Item>
     )
   },

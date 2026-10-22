@@ -20,6 +20,7 @@ import {
   NOTE_COLOR_OPTIONS,
   type NoteColor,
 } from '@sim/workflow-renderer'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import { isInputDefinitionTrigger } from '@/lib/workflows/triggers/input-definition-triggers'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -126,12 +127,13 @@ type ActionId = 'run' | 'enabled' | 'lock' | 'duplicate' | 'remove' | 'delete' |
  * when the state changes.
  */
 function RunningActionIcon() {
+  const t = useTranslations('editor.actionBar')
   return (
     <span
       className='relative grid size-[14px] translate-x-[8px] translate-y-px place-items-center'
       role='status'
     >
-      <span className='sr-only'>Block running</span>
+      <span className='sr-only'>{t('blockRunning')}</span>
       <span
         aria-hidden='true'
         className='col-start-1 row-start-1 opacity-100 transition-opacity duration-100 group-hover/run:opacity-0 group-focus-visible/run:opacity-0 motion-safe:animate-spin motion-reduce:transition-none'
@@ -199,6 +201,8 @@ export const ActionBar = memo(
     onNoteColorChange,
     onNoteColorMenuOpen,
   }: ActionBarProps) {
+    const t = useTranslations('editor.actionBar')
+    const tPaste = useTranslations('editor.triggerPaste')
     const {
       collaborativeBatchAddBlocks,
       collaborativeBatchRemoveBlocks,
@@ -218,7 +222,7 @@ export const ActionBar = memo(
       const blocks = Object.values(pasteData.blocks)
       const validation = validateTriggerPaste(blocks, existingBlocks, 'duplicate')
       if (!validation.isValid) {
-        toast.error(validation.message!)
+        if (validation.issue) toast.error(tPaste(validation.issue.key, validation.issue.values))
         return
       }
 
@@ -230,7 +234,7 @@ export const ActionBar = memo(
         pasteData.parallels,
         pasteData.subBlockValues
       )
-    }, [blockId, collaborativeBatchAddBlocks, setPendingSelection])
+    }, [blockId, collaborativeBatchAddBlocks, setPendingSelection, tPaste])
 
     const { isEnabled, parentId, parentType, isLocked, isParentLocked, isParentDisabled } =
       useWorkflowStore(
@@ -395,7 +399,7 @@ export const ActionBar = memo(
      */
     const getTooltipMessage = (defaultMessage: string) => {
       if (disabled) {
-        return userPermissions.isOfflineMode ? 'Connection lost - please refresh' : 'Read-only mode'
+        return userPermissions.isOfflineMode ? t('connectionLost') : t('readOnly')
       }
       return defaultMessage
     }
@@ -463,7 +467,7 @@ export const ActionBar = memo(
                 <span className='inline-flex'>
                   <Button
                     variant='ghost'
-                    aria-label={isWorkflowRunning ? 'Stop workflow' : 'Run block'}
+                    aria-label={isWorkflowRunning ? t('stopWorkflow') : t('runBlock')}
                     onClick={(e) => {
                       e.stopPropagation()
                       if (canStopWorkflow) {
@@ -493,11 +497,11 @@ export const ActionBar = memo(
               </Tooltip.Trigger>
               <Tooltip.Content side='top'>
                 {(() => {
-                  if (isWorkflowRunning) return getTooltipMessage('Stop')
-                  if (isLocked || isParentLocked) return 'Block is locked'
-                  if (disabled) return getTooltipMessage('Run')
-                  if (!dependenciesSatisfied) return 'Run previous blocks first'
-                  return 'Run'
+                  if (isWorkflowRunning) return getTooltipMessage(t('stop'))
+                  if (isLocked || isParentLocked) return t('blockLocked')
+                  if (disabled) return getTooltipMessage(t('run'))
+                  if (!dependenciesSatisfied) return t('runPreviousFirst')
+                  return t('run')
                 })()}
               </Tooltip.Content>
             </Tooltip.Root>
@@ -508,7 +512,7 @@ export const ActionBar = memo(
               <Tooltip.Trigger asChild>
                 <span className='inline-flex'>
                   <Button
-                    aria-label={isEnabled ? 'Disable' : 'Enable'}
+                    aria-label={isEnabled ? t('disable') : t('enable')}
                     variant='ghost'
                     onClick={(e) => {
                       e.stopPropagation()
@@ -533,10 +537,10 @@ export const ActionBar = memo(
               {!isWorkflowRunning && (
                 <Tooltip.Content side='top'>
                   {isLocked || isParentLocked
-                    ? 'Block is locked'
+                    ? t('blockLocked')
                     : !isEnabled && isParentDisabled
-                      ? 'Parent container is disabled'
-                      : getTooltipMessage(isEnabled ? 'Disable' : 'Enable')}
+                      ? t('parentDisabled')
+                      : getTooltipMessage(isEnabled ? t('disable') : t('enable'))}
                 </Tooltip.Content>
               )}
             </Tooltip.Root>
@@ -561,14 +565,14 @@ export const ActionBar = memo(
                         isParentLocked ||
                         !onNoteColorChange
                       }
-                      aria-label='Note color'
+                      aria-label={t('noteColor')}
                       onClick={(event) => event.stopPropagation()}
                     >
                       <Palette className={ICON_SIZE} />
                     </Button>
                   </DropdownMenuTrigger>
                 </Tooltip.Trigger>
-                {!isWorkflowRunning && <Tooltip.Content side='top'>Color</Tooltip.Content>}
+                {!isWorkflowRunning && <Tooltip.Content side='top'>{t('color')}</Tooltip.Content>}
               </Tooltip.Root>
               <DropdownMenuContent
                 align='center'
@@ -587,7 +591,7 @@ export const ActionBar = memo(
                     <DropdownMenuRadioItem
                       key={option.id}
                       value={option.id}
-                      aria-label={option.label}
+                      aria-label={t(`noteColors.${option.id}`)}
                       className='size-[28px] cursor-pointer justify-center rounded-full p-0 [&>span:first-child]:hidden'
                     >
                       <span
@@ -610,7 +614,7 @@ export const ActionBar = memo(
               <Tooltip.Trigger asChild>
                 <span className='inline-flex'>
                   <Button
-                    aria-label={isLocked ? 'Unlock' : 'Lock'}
+                    aria-label={isLocked ? t('unlock') : t('lock')}
                     variant='ghost'
                     onClick={(e) => {
                       e.stopPropagation()
@@ -628,10 +632,10 @@ export const ActionBar = memo(
               {!isWorkflowRunning && (
                 <Tooltip.Content side='top'>
                   {isLocked && isParentLocked
-                    ? 'Parent container is locked'
+                    ? t('parentLocked')
                     : isLocked
-                      ? 'Unlock'
-                      : 'Lock'}
+                      ? t('unlock')
+                      : t('lock')}
                 </Tooltip.Content>
               )}
             </Tooltip.Root>
@@ -642,7 +646,7 @@ export const ActionBar = memo(
               <Tooltip.Trigger asChild>
                 <span className='inline-flex'>
                   <Button
-                    aria-label='Duplicate'
+                    aria-label={t('duplicate')}
                     variant='ghost'
                     onClick={(e) => {
                       e.stopPropagation()
@@ -659,7 +663,9 @@ export const ActionBar = memo(
               </Tooltip.Trigger>
               {!isWorkflowRunning && (
                 <Tooltip.Content side='top'>
-                  {isLocked || isParentLocked ? 'Block is locked' : getTooltipMessage('Duplicate')}
+                  {isLocked || isParentLocked
+                    ? t('blockLocked')
+                    : getTooltipMessage(t('duplicate'))}
                 </Tooltip.Content>
               )}
             </Tooltip.Root>
@@ -670,7 +676,7 @@ export const ActionBar = memo(
               <Tooltip.Trigger asChild>
                 <span className='inline-flex'>
                   <Button
-                    aria-label='Remove from Subflow'
+                    aria-label={t('removeFromSubflow')}
                     variant='ghost'
                     onClick={(e) => {
                       e.stopPropagation()
@@ -698,8 +704,8 @@ export const ActionBar = memo(
               {!isWorkflowRunning && (
                 <Tooltip.Content side='top'>
                   {isLocked || isParentLocked
-                    ? 'Block is locked'
-                    : getTooltipMessage('Remove from Subflow')}
+                    ? t('blockLocked')
+                    : getTooltipMessage(t('removeFromSubflow'))}
                 </Tooltip.Content>
               )}
             </Tooltip.Root>
@@ -709,7 +715,7 @@ export const ActionBar = memo(
             <Tooltip.Trigger asChild>
               <span className='inline-flex'>
                 <Button
-                  aria-label='Delete'
+                  aria-label={t('delete')}
                   variant='ghost'
                   onClick={(e) => {
                     e.stopPropagation()
@@ -726,7 +732,7 @@ export const ActionBar = memo(
             </Tooltip.Trigger>
             {!isWorkflowRunning && (
               <Tooltip.Content side='top'>
-                {isLocked || isParentLocked ? 'Block is locked' : getTooltipMessage('Delete')}
+                {isLocked || isParentLocked ? t('blockLocked') : getTooltipMessage(t('delete'))}
               </Tooltip.Content>
             )}
           </Tooltip.Root>

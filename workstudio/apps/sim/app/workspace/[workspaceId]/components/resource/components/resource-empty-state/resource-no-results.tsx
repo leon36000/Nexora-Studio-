@@ -1,4 +1,5 @@
 import { Chip } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { EmptyState } from '@/components/empty-state/empty-state'
 
 interface ResourceNoResultsProps {
@@ -28,20 +29,19 @@ interface ResourceNoResultsProps {
  * because the wider scope is the more surprising of the two.
  */
 export function ResourceNoResults({ search, filterCount, onClear }: ResourceNoResultsProps) {
+  const t = useTranslations('shell.emptyStates.noResults')
   const trimmed = search.trim()
   return (
     <EmptyState
-      title={trimmed ? `No results for “${trimmed}”` : 'No results'}
-      description={
-        trimmed ? 'Searched every folder in this workspace.' : 'Filters apply to this folder only.'
-      }
+      title={trimmed ? t('titleWithQuery', { query: trimmed }) : t('title')}
+      description={trimmed ? t('searchedEveryFolder') : t('filtersThisFolder')}
       action={
         <Chip variant='border' onClick={onClear}>
           {trimmed && filterCount > 0
-            ? 'Clear search and filters'
+            ? t('clearSearchAndFilters')
             : trimmed
-              ? 'Clear search'
-              : 'Clear filters'}
+              ? t('clearSearch')
+              : t('clearFilters')}
         </Chip>
       }
     />

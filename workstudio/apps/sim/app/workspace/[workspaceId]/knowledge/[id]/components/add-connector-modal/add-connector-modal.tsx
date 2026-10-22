@@ -17,6 +17,7 @@ import {
   OverflowText,
 } from '@sim/emcn'
 import { ArrowLeft, ChevronDown, ChevronRight, Plus, Search } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ConnectorData } from '@/lib/api/contracts/knowledge/connectors'
 import { type ResourceScope, resourceScopeFields } from '@/lib/core/resource-scope'
 import { asServiceAccountProviderId } from '@/lib/credentials/service-account-provider-ids'
@@ -128,6 +129,8 @@ export function AddConnectorModal({
   setupDraftKey,
   scope: explicitScope,
 }: AddConnectorModalProps) {
+  const t = useTranslations('knowledge.addConnector')
+  const tSync = useTranslations('knowledge.syncFrequency')
   const metadataId = useId()
   const initialType =
     initialConnectorType &&
@@ -200,7 +203,7 @@ export function AddConnectorModal({
   const setupGuideActions = docsUrl
     ? [
         {
-          label: 'Setup guide',
+          label: t('setupGuide'),
           onClick: () => window.open(docsUrl, '_blank', 'noopener,noreferrer'),
         },
       ]
@@ -209,7 +212,7 @@ export function AddConnectorModal({
     isSearchIndex && selectedType
       ? getSearchConnectionLabels(selectedType, access.accessMode)
       : undefined
-  const modalTitle = searchLabels?.title ?? `Configure ${connectorConfig?.name}`
+  const modalTitle = searchLabels?.title ?? t('configure', { name: connectorConfig?.name ?? '' })
   const showGitLabPermissions = selectedType === 'gitlab' && access.accessMode === 'admin'
   const isMembersMode = access.accessMode === 'members'
   const apiKeyConfig = connectorConfig ? getConnectorApiKeyConfig(connectorConfig.auth) : undefined
@@ -442,7 +445,7 @@ export function AddConnectorModal({
               ? [
                   {
                     value: '__connect_new__',
-                    label: `Connect ${connectorConfig.name} account`,
+                    label: t('connectAccount', { name: connectorConfig.name }),
                     icon: Plus,
                     onSelect: connectOAuth,
                   },
@@ -465,7 +468,7 @@ export function AddConnectorModal({
         {!showCredentialPicker && credentialsError && rawCredentials.length === 0 && (
           <SettingsQueryErrorState
             error={credentialsError}
-            fallback='Could not load accounts'
+            fallback={t('loadAccountsFailed')}
             isRetrying={credentialsFetching}
             onRetry={() => void refetchCredentials()}
             variant='inline'
@@ -613,7 +616,7 @@ export function AddConnectorModal({
       <ChipModal
         open={open}
         onOpenChange={closeSetup}
-        srTitle={step === 'select-type' ? 'Add source' : modalTitle}
+        srTitle={step === 'select-type' ? t('addSource') : modalTitle}
         size='md'
         dismissDisabled={isCreating}
       >
@@ -623,7 +626,7 @@ export function AddConnectorModal({
               {!lockConnectorType && !lockedAccessMode && (
                 <Chip
                   leftIcon={ArrowLeft}
-                  aria-label='Choose another source'
+                  aria-label={t('chooseAnotherSource')}
                   onClick={() => {
                     if (setupDraftKey) useConnectorSetupStore.getState().clearDraft(setupDraftKey)
                     setStep('select-type')
@@ -634,7 +637,7 @@ export function AddConnectorModal({
               {modalTitle}
             </span>
           ) : (
-            'Add source'
+            t('addSource')
           )}
         </ChipModalHeader>
 
@@ -651,7 +654,7 @@ export function AddConnectorModal({
             <div className='flex min-h-0 flex-col px-2'>
               <ChipInput
                 icon={Search}
-                placeholder='Search sources...'
+                placeholder={t('searchSources')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -668,8 +671,8 @@ export function AddConnectorModal({
                   {filteredEntries.length === 0 && (
                     <SettingsEmptyState variant='inline'>
                       {CONNECTOR_ENTRIES.length === 0
-                        ? 'No connectors available.'
-                        : `No sources found matching "${searchTerm}"`}
+                        ? t('noConnectors')
+                        : t('noSourcesMatching', { term: searchTerm })}
                     </SettingsEmptyState>
                   )}
                 </div>
@@ -681,11 +684,11 @@ export function AddConnectorModal({
                 <GitLabPermissionTabs form={gitlabPermissions} disabled={isCreating} />
               )}
               {integrationAvailabilityError && (
-                <ChipModalField type='custom' title='Connection availability'>
+                <ChipModalField type='custom' title={t('connectionAvailability')}>
                   <SettingsQueryErrorState
                     error={integrationAvailabilityError}
                     isRetrying={isIntegrationAvailabilityFetching}
-                    fallback='Could not load connection availability'
+                    fallback={t('loadAvailabilityFailed')}
                     onRetry={() => void refetchIntegrationAvailability()}
                     variant='inline'
                   />
@@ -715,13 +718,13 @@ export function AddConnectorModal({
               {!slackSetupRequired && (
                 <>
                   {connectorConfig.auth.mode === 'oauth' && apiKeyConfig && !isMembersMode && (
-                    <ChipModalField type='custom' title='Authentication'>
+                    <ChipModalField type='custom' title={t('authentication')}>
                       <ChipCombobox
                         disabled={isCreating}
                         value={isApiKeyMode ? 'apiKey' : 'oauth'}
                         options={[
-                          { label: apiKeyConfig.label || 'API key', value: 'apiKey' },
-                          { label: 'Connected account', value: 'oauth' },
+                          { label: apiKeyConfig.label || t('apiKey'), value: 'apiKey' },
+                          { label: t('connectedAccount'), value: 'oauth' },
                         ]}
                         onChange={(value) => {
                           setUseApiKey(value === 'apiKey')
@@ -732,12 +735,12 @@ export function AddConnectorModal({
                     </ChipModalField>
                   )}
                   {isApiKeyMode ? (
-                    <ChipModalField type='custom' title={apiKeyConfig?.label || 'API Key'}>
+                    <ChipModalField type='custom' title={apiKeyConfig?.label || t('apiKeyTitle')}>
                       <ConnectorApiKeyInput
                         value={apiKeyValue}
                         onChange={setApiKeyValue}
                         workspaceId={owner.workspaceId}
-                        placeholder={apiKeyConfig?.placeholder || 'Enter API key'}
+                        placeholder={apiKeyConfig?.placeholder || t('apiKeyPlaceholder')}
                       />
                     </ChipModalField>
                   ) : showCredentialPicker ? (
@@ -745,16 +748,16 @@ export function AddConnectorModal({
                       type='custom'
                       title={
                         isMembersMode
-                          ? 'Account for browsing'
+                          ? t('browsingAccount')
                           : canConnectOAuth
-                            ? 'Account'
-                            : 'Service account'
+                            ? t('account')
+                            : t('serviceAccount')
                       }
                     >
                       {credentialsError && rawCredentials.length === 0 ? (
                         <SettingsQueryErrorState
                           error={credentialsError}
-                          fallback='Could not load accounts'
+                          fallback={t('loadAccountsFailed')}
                           isRetrying={credentialsFetching}
                           onRetry={() => void refetchCredentials()}
                           variant='inline'
@@ -774,8 +777,8 @@ export function AddConnectorModal({
                                   {
                                     label:
                                       credentials.length > 0
-                                        ? `Connect another ${connectorConfig.name} account`
-                                        : `Connect ${connectorConfig.name} account`,
+                                        ? t('connectAnotherAccount', { name: connectorConfig.name })
+                                        : t('connectAccount', { name: connectorConfig.name }),
                                     value: '__connect_new__',
                                     icon: Plus,
                                     onSelect: connectOAuth,
@@ -800,8 +803,8 @@ export function AddConnectorModal({
                           }}
                           placeholder={
                             canConnectOAuth
-                              ? `Select ${connectorConfig.name} account`
-                              : 'Select a service account'
+                              ? t('selectAccount', { name: connectorConfig.name })
+                              : t('selectServiceAccount')
                           }
                           isLoading={credentialsLoading || isIntegrationAvailabilityLoading}
                           disabled={isCreating || !isIntegrationAvailabilityReady}
@@ -862,8 +865,8 @@ export function AddConnectorModal({
                           onClick={() => setShowMetadata((visible) => !visible)}
                         >
                           {isSearchIndex || hasOptionalSetupFields
-                            ? 'More options'
-                            : 'Document details (optional)'}
+                            ? t('moreOptions')
+                            : t('documentDetails')}
                         </Chip>
                       </div>
                       {showMetadata && (
@@ -880,7 +883,7 @@ export function AddConnectorModal({
                             />
                           )}
                           {Boolean(connectorConfig.tagDefinitions?.length) && (
-                            <ChipModalField type='custom' title='Metadata tags'>
+                            <ChipModalField type='custom' title={t('metadataTags')}>
                               <div className='flex flex-col gap-2'>
                                 {connectorConfig.tagDefinitions?.map((tagDef) => (
                                   <label
@@ -921,29 +924,33 @@ export function AddConnectorModal({
                   {!isSearchIndex && (!hasOptionalSetupFields || showMetadata) && (
                     <ChipModalField
                       type='custom'
-                      title='Sync Frequency'
-                      hint={
-                        showGitLabPermissions && gitlabPermissions.mode === 'csv'
-                          ? undefined
-                          : connectorSyncFrequencyHint(
-                              access.accessMode,
-                              syncInterval,
-                              Boolean(contentCredentialId)
-                            )
-                      }
+                      title={tSync('title')}
+                      hint={(() => {
+                        const hintKey =
+                          showGitLabPermissions && gitlabPermissions.mode === 'csv'
+                            ? undefined
+                            : connectorSyncFrequencyHint(
+                                access.accessMode,
+                                syncInterval,
+                                Boolean(contentCredentialId)
+                              )
+                        return hintKey ? tSync(`hints.${hintKey}`) : undefined
+                      })()}
                     >
                       <ChipSelect
                         fullWidth
                         dropdownWidth='trigger'
-                        aria-label='Sync frequency'
+                        aria-label={tSync('ariaLabel')}
                         value={String(syncInterval)}
                         onChange={(value) => setSyncInterval(Number(value))}
                         options={SYNC_INTERVALS.map((interval) => ({
                           value: String(interval.value),
                           label:
                             interval.requiresMax && !hasMaxAccess
-                              ? `${interval.label} (Max)`
-                              : interval.label,
+                              ? tSync('maxOnly', {
+                                  label: tSync(`intervals.${interval.labelKey}`),
+                                })
+                              : tSync(`intervals.${interval.labelKey}`),
                           disabled: interval.requiresMax && !hasMaxAccess,
                         }))}
                       />
@@ -956,7 +963,7 @@ export function AddConnectorModal({
                       isIntegrationAvailabilityReady &&
                       !integrationAvailabilityError &&
                       !(lockedAccessMode === 'admin' ? allowAdmin : allowMembers)
-                        ? `This connection method is not available in this ${scope.kind}.`
+                        ? t('methodUnavailable', { kind: scope.kind })
                         : null)}
                   </ChipModalError>
                 </>
@@ -979,15 +986,15 @@ export function AddConnectorModal({
               primaryAction={{
                 label: isCreating
                   ? isMembersMode
-                    ? 'Creating…'
-                    : 'Connecting…'
+                    ? t('creating')
+                    : t('connecting')
                   : isMembersMode
                     ? scope.kind === 'organization'
-                      ? (searchLabels?.add ?? 'Add connection')
-                      : 'Create & Invite'
+                      ? (searchLabels?.add ?? t('addConnection'))
+                      : t('createAndInvite')
                     : liveSearch
-                      ? 'Save connection'
-                      : 'Connect & Sync',
+                      ? t('saveConnection')
+                      : t('connectAndSync'),
                 onClick: handleSubmit,
                 disabled: !canSubmit || isCreating || githubSetup.pending,
               }}

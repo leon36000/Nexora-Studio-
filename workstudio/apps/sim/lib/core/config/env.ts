@@ -287,6 +287,11 @@ export const env = createEnv({
     NEXORA_ONLY_MODELS:                    z.boolean().optional(),                 // Nexora edition: offer only the models served by Nexora API (the OpenAI-compatible vllm provider)
     NEXORA_CONNECT_MCP_URL:                z.string().url().optional(),            // Nexora edition: MCP endpoint of Nexora Connect, registered in every new workspace
     NEXORA_CONNECT_TOKEN:                  z.string().min(1).optional(),           // Nexora edition: runtime token sent to Nexora Connect as a bearer header
+    NEXORA_OIDC_ISSUER:                    z.string().url().optional(),            // Nexora edition: OpenID Connect issuer for single sign-on (e.g. https://sso.example.fr/realms/pme)
+    NEXORA_OIDC_CLIENT_ID:                 z.string().min(1).optional(),           // Nexora edition: OIDC client id registered for WorkStudio
+    NEXORA_OIDC_CLIENT_SECRET:             z.string().min(1).optional(),           // Nexora edition: OIDC client secret
+    NEXORA_DEFAULT_MODEL:                  z.string().optional(),                  // Nexora edition: Nexora API model the SME templates start with (default nexora-default)
+    NEXORA_TEMPLATES_DISABLED:             z.boolean().optional(),                 // Nexora edition: skip the « Modèles PME » folder in new workspaces
     BLACKLISTED_MODELS:                    z.string().optional(),                  // Comma-separated model names/prefixes to hide (e.g., "gpt-4,claude-*")
     ALLOWED_MCP_DOMAINS:                   z.string().optional(),                  // Comma-separated domains for MCP servers (e.g., "internal.company.com,mcp.example.org"). Empty = all allowed.
     ALLOWED_INTEGRATIONS:                  z.string().optional(),                  // Comma-separated block types to allow (e.g., "slack,github,agent"). Empty = all allowed.
@@ -771,6 +776,7 @@ export const env = createEnv({
     NEXT_PUBLIC_DISABLE_INVITATIONS:       z.boolean().optional(),                   // Disable workspace invitations globally (for self-hosted deployments)
     NEXT_PUBLIC_DISABLE_PUBLIC_API:        z.boolean().optional(),                   // Disable public API access UI toggle globally
     NEXT_PUBLIC_INBOX_ENABLED:             z.boolean().optional(),                   // Enable inbox (Nexora Mailer) on self-hosted
+    NEXT_PUBLIC_NEXORA_OIDC_NAME:          z.string().optional(),                    // Nexora edition: label of the single sign-on button ("Se connecter avec <name>"); shown only when set
     NEXT_PUBLIC_CHAT_ENABLED:              z.boolean().optional(),                   // Show the Chat module (Nexora edition: hidden unless set, it needs a copilot backend)
     NEXT_PUBLIC_CHAT_DISABLED:             z.boolean().optional(),                   // Hide the Chat module (wins over NEXT_PUBLIC_CHAT_ENABLED)
     NEXT_PUBLIC_STATUS_NOTICE_PREVIEW:     z.boolean().optional(),                   // Force the sidebar service-status notice into its critical preview state
@@ -819,6 +825,7 @@ export const env = createEnv({
     NEXT_PUBLIC_DISABLE_PUBLIC_API: process.env.NEXT_PUBLIC_DISABLE_PUBLIC_API,
     NEXT_PUBLIC_INBOX_ENABLED: process.env.NEXT_PUBLIC_INBOX_ENABLED,
     NEXT_PUBLIC_CHAT_ENABLED: process.env.NEXT_PUBLIC_CHAT_ENABLED,
+    NEXT_PUBLIC_NEXORA_OIDC_NAME: process.env.NEXT_PUBLIC_NEXORA_OIDC_NAME,
     NEXT_PUBLIC_CHAT_DISABLED: process.env.NEXT_PUBLIC_CHAT_DISABLED,
     NEXT_PUBLIC_STATUS_NOTICE_PREVIEW: process.env.NEXT_PUBLIC_STATUS_NOTICE_PREVIEW,
     NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED: process.env.NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED,

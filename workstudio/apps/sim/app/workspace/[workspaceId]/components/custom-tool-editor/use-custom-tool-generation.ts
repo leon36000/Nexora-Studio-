@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import type { SchemaParameter } from '@/app/workspace/[workspaceId]/components/custom-tool-editor/custom-tool-schema'
 import { useWand } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-wand'
 
@@ -134,13 +135,14 @@ export function useSchemaGeneration({
   setJsonSchema,
   replaceJsonSchema,
 }: UseSchemaGenerationParams) {
+  const t = useTranslations('shell.customTool')
   return useWand({
     workspaceId,
     wandConfig: {
       enabled: true,
       maintainHistory: true,
       prompt: SCHEMA_PROMPT,
-      placeholder: 'Describe the function parameters and structure...',
+      placeholder: t('schemaPromptPlaceholder'),
       generationType: 'custom-tool-schema',
     },
     currentValue: jsonSchema,
@@ -166,6 +168,7 @@ export function useCodeGeneration({
   setFunctionCode,
   replaceFunctionCode,
 }: UseCodeGenerationParams) {
+  const t = useTranslations('shell.customTool')
   const prompt = useMemo(() => {
     if (schemaParameters.length === 0) {
       return buildCodePrompt(
@@ -188,7 +191,7 @@ export function useCodeGeneration({
       enabled: true,
       maintainHistory: true,
       prompt,
-      placeholder: 'Describe the JavaScript function to generate...',
+      placeholder: t('codePromptPlaceholder'),
       generationType: 'javascript-function-body',
     },
     currentValue: functionCode,

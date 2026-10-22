@@ -10,6 +10,7 @@ import {
   type ComboboxOption,
 } from '@sim/emcn'
 import { ChevronDown, ChevronRight, Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ConnectorAccessMode } from '@/lib/api/contracts/knowledge/connectors'
 import { type ResourceScope, resourceScopeFields } from '@/lib/core/resource-scope'
 import { asServiceAccountProviderId } from '@/lib/credentials/service-account-provider-ids'
@@ -56,12 +57,11 @@ import { useOAuthCredentials } from '@/hooks/queries/oauth/credentials'
 import { useCredentialRefreshTriggers } from '@/hooks/use-credential-refresh-triggers'
 import { useGitHubInstallationSetup } from '@/hooks/use-github-installation-setup'
 
-const SWITCH_NOTICE: Record<ConnectorAccessMode, string> = {
-  workspace: 'Every workspace member can read every synced document once the next sync completes.',
-  members:
-    'Teammates are invited to connect their accounts. Documents become available after their next sync. Item limits are removed.',
-  admin:
-    'Documents become available after the next sync updates their source permissions. Item limits are removed.',
+/** Message keys (`knowledge.connectorSettings.switchNotice`) explaining a connection-method switch. */
+const SWITCH_NOTICE_KEYS: Record<ConnectorAccessMode, ConnectorAccessMode> = {
+  workspace: 'workspace',
+  members: 'members',
+  admin: 'admin',
 }
 
 export interface ConnectorSettingsFieldsProps {
@@ -158,6 +158,9 @@ export function ConnectorSettingsFields({
   onContentCredentialChange,
   onWorkspaceCredentialChange,
 }: ConnectorSettingsFieldsProps) {
+  const t = useTranslations('knowledge.connectorSettings')
+  const tAdd = useTranslations('knowledge.addConnector')
+  const tSync = useTranslations('knowledge.syncFrequency')
   const liveSearch = isSearchIndex
   const connectorConfig = liveSearchSourceMeta(originalConfig, Boolean(liveSearch), {
     githubInstallation: usesGitHubInstallation && scope.kind === 'organization',
@@ -269,21 +272,21 @@ export function ConnectorSettingsFields({
           <GitLabPermissionTabs form={gitlabPermissions} disabled={isSaving || !canAdmin} />
           <ChipModalField
             type='input'
-            title='Personal Access Token'
+            title={t('personalAccessToken')}
             value={gitlabPermissions.apiKey}
             onChange={gitlabPermissions.setApiKey}
             inputType='password'
-            placeholder='Leave blank to keep the saved token'
+            placeholder={t('keepSavedToken')}
             disabled={isSaving || !canAdmin}
           />
         </>
       )}
       {availability.error && (
-        <ChipModalField type='custom' title='Connection availability'>
+        <ChipModalField type='custom' title={tAdd('connectionAvailability')}>
           <SettingsQueryErrorState
             error={availability.error}
             isRetrying={availability.isFetching}
-            fallback='Could not load connection availability'
+            fallback={tAdd('loadAvailabilityFailed')}
             onRetry={() => void availability.refetch()}
             variant='inline'
           />
@@ -301,11 +304,7 @@ export function ConnectorSettingsFields({
           onConnect={() => void githubSetup.connect(installations.length ? 'install' : undefined)}
           connecting={githubSetup.pending}
           connectionError={githubSetup.error}
-          hint={
-            accessDirty
-              ? 'Keeps the current repository. To add another repository, add a new source.'
-              : undefined
-          }
+          hint={accessDirty ? t('keepsRepository') : undefined}
           onCancel={githubSetup.cancel}
           onCheckConnection={() => void githubSetup.checkConnection()}
           isChecking={githubSetup.isChecking}
@@ -319,14 +318,14 @@ export function ConnectorSettingsFields({
                 disabled={!accessComplete || !contentCredentialId || isSaving || !canAdmin}
               >
                 {isSwitchingAccess
-                  ? 'Updating…'
+                  ? t('updating')
                   : canReenableMemberSync
-                    ? 'Re-enable sync'
-                    : 'Change connection'}
+                    ? t('reenableSync')
+                    : t('changeConnection')}
               </Chip>
               {accessDirty && (
                 <Chip onClick={onResetAccess} disabled={isSaving}>
-                  Cancel
+                  {t('cancel')}
                 </Chip>
               )}
             </div>
@@ -369,11 +368,11 @@ export function ConnectorSettingsFields({
                       onClick={onApplyAccess}
                       disabled={!accessComplete || isSaving}
                     >
-                      {isSwitchingAccess ? 'Re-enabling…' : 'Re-enable per-member sync'}
+                      {isSwitchingAccess ? t('reenabling') : t('reenableMemberSync')}
                     </Chip>
                   </div>
                   <p className='text-[var(--text-muted)] text-caption leading-snug'>
-                    Members and their documents are kept; the next sync restores their access.
+                    {t('membersKept')}
                   </p>
                 </div>
               ) : accessDirty && (!isContentCredentialChange || syncsPerMember) ? (
@@ -385,20 +384,20 @@ export function ConnectorSettingsFields({
                       disabled={!accessComplete || isSaving}
                     >
                       {isSwitchingAccess
-                        ? 'Switching…'
+                        ? t('switching')
                         : isContentCredentialChange
-                          ? 'Change indexing account'
-                          : 'Apply connection method'}
+                          ? t('changeIndexingAccount')
+                          : t('applyConnectionMethod')}
                     </Chip>
                     <Chip onClick={onResetAccess} disabled={isSaving}>
-                      {accessSetupHint ? 'Edit settings' : 'Cancel'}
+                      {accessSetupHint ? t('editSettings') : t('cancel')}
                     </Chip>
                   </div>
                   <p className='text-[var(--text-muted)] text-caption leading-snug'>
                     {accessSetupHint ??
                       (isContentCredentialChange
-                        ? 'The next sync uses this account. Members keep their connected accounts and source permissions.'
-                        : SWITCH_NOTICE[access.accessMode])}
+                        ? t('nextSyncUsesAccount')
+                        : t(`switchNotice.${SWITCH_NOTICE_KEYS[access.accessMode]}`))}
                   </p>
                 </div>
               ) : undefined
@@ -412,13 +411,13 @@ export function ConnectorSettingsFields({
           title={
             isSearchIndex
               ? requiresServiceAccount
-                ? 'Service account'
-                : 'Account'
-              : 'Indexing account'
+                ? tAdd('serviceAccount')
+                : tAdd('account')
+              : t('indexingAccount')
           }
           hint={
             !requiresServiceAccount && !credentialsLoading && credentialOptions.length === 0
-              ? `Connect a ${connectorConfig.name} account in Integrations, then return here to select it.`
+              ? t('connectInIntegrations', { name: connectorConfig.name })
               : undefined
           }
         >
@@ -438,7 +437,7 @@ export function ConnectorSettingsFields({
             ]}
             value={workspaceCredentialId ?? credentialId ?? undefined}
             onChange={onWorkspaceCredentialChange}
-            placeholder='Select the account to sync as'
+            placeholder={t('selectSyncAccount')}
             isLoading={credentialsLoading}
             disabled={isSaving}
           />
@@ -471,12 +470,8 @@ export function ConnectorSettingsFields({
         ) && (
           <ChipModalField
             type='custom'
-            title='Account for browsing'
-            hint={
-              isSearchIndex
-                ? 'Members sync with their own accounts connected in Integrations.'
-                : undefined
-            }
+            title={tAdd('browsingAccount')}
+            hint={isSearchIndex ? t('membersOwnAccounts') : undefined}
           >
             <ChipCombobox
               options={rawCredentials.map((credential) => ({
@@ -485,7 +480,7 @@ export function ConnectorSettingsFields({
               }))}
               value={browseCredentialId ?? undefined}
               onChange={setBrowseCredentialId}
-              placeholder={`Select your ${connectorConfig.name} account`}
+              placeholder={t('selectYourAccount', { name: connectorConfig.name })}
               isLoading={credentialsLoading}
               disabled={isSaving}
             />
@@ -516,7 +511,7 @@ export function ConnectorSettingsFields({
               aria-expanded={showMoreOptions}
               onClick={() => setShowMoreOptions((visible) => !visible)}
             >
-              More options
+              {tAdd('moreOptions')}
             </Chip>
           </div>
           {showMoreOptions && configFieldsProps && (
@@ -535,27 +530,31 @@ export function ConnectorSettingsFields({
       {!isSearchIndex && (!gitlabPermissions || showMoreOptions) && (
         <ChipModalField
           type='custom'
-          title='Sync Frequency'
-          hint={
-            gitlabPermissions?.mode === 'csv'
-              ? undefined
-              : connectorSyncFrequencyHint(
-                  access.accessMode,
-                  syncInterval,
-                  Boolean(contentCredentialId)
-                )
-          }
+          title={tSync('title')}
+          hint={(() => {
+            const hintKey =
+              gitlabPermissions?.mode === 'csv'
+                ? undefined
+                : connectorSyncFrequencyHint(
+                    access.accessMode,
+                    syncInterval,
+                    Boolean(contentCredentialId)
+                  )
+            return hintKey ? tSync(`hints.${hintKey}`) : undefined
+          })()}
         >
           <ChipSelect
             fullWidth
             dropdownWidth='trigger'
-            aria-label='Sync frequency'
+            aria-label={tSync('ariaLabel')}
             value={String(syncInterval)}
             onChange={(value) => setSyncInterval(Number(value))}
             options={SYNC_INTERVALS.map((interval) => ({
               value: String(interval.value),
               label:
-                interval.requiresMax && !hasMaxAccess ? `${interval.label} (Max)` : interval.label,
+                interval.requiresMax && !hasMaxAccess
+                  ? tSync('maxOnly', { label: tSync(`intervals.${interval.labelKey}`) })
+                  : tSync(`intervals.${interval.labelKey}`),
               disabled: interval.requiresMax && !hasMaxAccess,
             }))}
           />

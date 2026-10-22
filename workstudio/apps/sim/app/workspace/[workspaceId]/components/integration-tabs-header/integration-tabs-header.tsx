@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { ChipLink, cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { HEADER_ACTION_CLUSTER, PAGE_HEADER_BAR } from '@/components/page-header-bar'
 
 interface IntegrationTabsHeaderProps {
@@ -17,13 +18,14 @@ export function IntegrationTabsHeader({
   workspaceId,
   rightSlot,
 }: IntegrationTabsHeaderProps) {
+  const t = useTranslations('shell.integrationTabs')
   return (
     <div className={cn(PAGE_HEADER_BAR, 'gap-1')}>
       <ChipLink href={`/workspace/${workspaceId}/integrations`} active={active === 'integrations'}>
-        Integrations
+        {t('integrations')}
       </ChipLink>
       <ChipLink href={`/workspace/${workspaceId}/skills`} active={active === 'skills'}>
-        Skills
+        {t('skills')}
       </ChipLink>
       {rightSlot && <div className={cn('ml-auto', HEADER_ACTION_CLUSTER)}>{rightSlot}</div>}
     </div>

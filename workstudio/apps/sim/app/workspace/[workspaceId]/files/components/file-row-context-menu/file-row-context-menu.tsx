@@ -16,9 +16,9 @@ import {
   Pencil,
 } from '@sim/emcn'
 import { Download, Link, Pin, Send, Trash } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { MoveOptionNode } from '@/app/workspace/[workspaceId]/components/folders'
 import { renderMoveOption } from '@/app/workspace/[workspaceId]/components/folders'
-import { selectionActionLabel } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 
 interface FileRowContextMenuProps {
   isOpen: boolean
@@ -56,6 +56,7 @@ export const FileRowContextMenu = memo(function FileRowContextMenu({
   canEdit,
   selectedCount,
 }: FileRowContextMenuProps) {
+  const t = useTranslations('files.rowMenu')
   const isMultiSelect = selectedCount > 1
 
   /**
@@ -87,25 +88,25 @@ export const FileRowContextMenu = memo(function FileRowContextMenu({
         {!isMultiSelect && (
           <DropdownMenuItem onSelect={onOpen}>
             <Eye />
-            Open
+            {t('open')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onCopyLink && (
           <DropdownMenuItem onSelect={onCopyLink}>
             <Link />
-            Copy Link
+            {t('copyLink')}
           </DropdownMenuItem>
         )}
         {onDownload && (
           <DropdownMenuItem onSelect={onDownload}>
             <Download />
-            {selectionActionLabel('Download', selectedCount)}
+            {isMultiSelect ? t('downloadMany', { count: selectedCount }) : t('download')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && (
           <DropdownMenuItem onSelect={onTogglePin}>
             <Pin />
-            {pinned ? 'Unpin' : 'Pin'}
+            {pinned ? t('unpin') : t('pin')}
           </DropdownMenuItem>
         )}
         {canEdit && (
@@ -113,20 +114,20 @@ export const FileRowContextMenu = memo(function FileRowContextMenu({
             {!isMultiSelect && (
               <DropdownMenuItem onSelect={onRename}>
                 <Pencil />
-                Rename
+                {t('rename')}
               </DropdownMenuItem>
             )}
             {!isMultiSelect && onShare && (
               <DropdownMenuItem onSelect={onShare}>
                 <Send />
-                Share
+                {t('share')}
               </DropdownMenuItem>
             )}
             {onMove && moveOptions && moveOptions.length > 0 && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <FolderInput />
-                  {selectionActionLabel('Move', selectedCount, 'Move to')}
+                  {isMultiSelect ? t('moveMany', { count: selectedCount }) : t('moveTo')}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuItem onSelect={() => onMove(moveOptions[0].value)}>
@@ -141,7 +142,7 @@ export const FileRowContextMenu = memo(function FileRowContextMenu({
             {hasActionsAboveDestructive && <DropdownMenuSeparator />}
             <DropdownMenuItem onSelect={onDelete}>
               <Trash />
-              {selectionActionLabel('Delete', selectedCount)}
+              {isMultiSelect ? t('deleteMany', { count: selectedCount }) : t('delete')}
             </DropdownMenuItem>
           </>
         )}

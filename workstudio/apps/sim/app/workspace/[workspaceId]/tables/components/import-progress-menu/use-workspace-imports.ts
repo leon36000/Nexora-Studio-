@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { toast } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import { useTablesList, useWorkspaceExportJobs } from '@/hooks/queries/tables'
 import { useImportTrayStore } from '@/stores/table/import-tray/store'
@@ -43,9 +44,10 @@ export function useWorkspaceImports(
   workspaceId: string | undefined,
   scopeTableId?: string
 ): ImportRow[] {
+  const t = useTranslations('tables.importProgress')
   const { data: tables } = useTablesList(workspaceId, 'active', {
     refetchInterval: (list) =>
-      list?.some((t) => t.jobStatus === 'running') ? POLL_INTERVAL_MS : false,
+      list?.some((table) => table.jobStatus === 'running') ? POLL_INTERVAL_MS : false,
   })
   // Exports are excluded from the table-level job derivation (they run concurrently with other
   // jobs), so the tray reads them from their dedicated workspace listing.
@@ -64,7 +66,7 @@ export function useWorkspaceImports(
         // live-fill cells; announcing them would be noise.
         if (table.jobType === 'import') {
           const rows = (table.jobRowsProcessed ?? 0).toLocaleString()
-          toast.success(`Imported ${rows} rows into "${table.name}"`)
+          toast.success(t('importedInto', { rows, name: table.name }))
           store.notify(table.id)
           setTimeout(() => useImportTrayStore.getState().dismiss(table.id), READY_AUTO_CLEAR_MS)
         }
@@ -73,17 +75,17 @@ export function useWorkspaceImports(
         // and a failed backfill leaves cells unfilled; the user should know why.
         const fallback =
           table.jobType === 'delete'
-            ? `Delete failed for "${table.name}"`
+            ? t('deleteFailedFor', { name: table.name })
             : table.jobType === 'backfill'
-              ? `Column backfill failed for "${table.name}"`
-              : `Import failed for "${table.name}"`
+              ? t('backfillFailedFor', { name: table.name })
+              : t('importFailedFor', { name: table.name })
         toast.error(table.jobError || fallback)
         if (table.jobType === 'import') store.notify(table.id)
       }
       if (now !== 'running' && store.isCanceled(table.id)) store.consumeCanceled(table.id)
       prevStatus.set(table.id, now)
     }
-  }, [tables])
+  }, [tables, t])
 
   const uploads = useImportTrayStore(useShallow((s) => Object.values(s.uploads)))
   const notified = useImportTrayStore((s) => s.notified)

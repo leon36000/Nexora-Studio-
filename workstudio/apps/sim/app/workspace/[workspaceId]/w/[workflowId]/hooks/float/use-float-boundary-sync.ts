@@ -89,7 +89,8 @@ export function useFloatBoundarySync({
 
     const currentPos = positionRef.current
 
-    if (currentPos.x < minX || currentPos.x > maxX || currentPos.y < minY || currentPos.y > maxY) {
+    const isOutside = (value: number, min: number, max: number) => value < min || value > max
+    if (isOutside(currentPos.x, minX, maxX) || isOutside(currentPos.y, minY, maxY)) {
       const newPosition = {
         x: Math.max(minX, Math.min(maxX, currentPos.x)),
         y: Math.max(minY, Math.min(maxY, currentPos.y)),

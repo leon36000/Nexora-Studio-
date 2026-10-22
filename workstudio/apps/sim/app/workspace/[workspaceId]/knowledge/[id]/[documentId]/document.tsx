@@ -18,6 +18,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { truncate } from '@sim/utils/string'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { EmptyState } from '@/components/empty-state/empty-state'
 import { getDocumentIcon } from '@/components/icons/document-icons'
@@ -101,15 +102,16 @@ interface UnsavedChangesModalProps {
 }
 
 function UnsavedChangesModal({ open, onOpenChange, onDiscard }: UnsavedChangesModalProps) {
+  const t = useTranslations('knowledge.document.unsavedChanges')
   return (
     <ChipConfirmModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle='Unsaved Changes'
-      title='Unsaved Changes'
-      text='You have unsaved changes. Are you sure you want to discard them?'
-      dismissLabel='Keep editing'
-      confirm={{ label: 'Discard Changes', onClick: onDiscard }}
+      srTitle={t('title')}
+      title={t('title')}
+      text={t('text')}
+      dismissLabel={t('keepEditing')}
+      confirm={{ label: t('discard'), onClick: onDiscard }}
     />
   )
 }
@@ -149,11 +151,12 @@ function truncateContent(content: string, maxLength = 150, searchQuery = ''): st
   return truncate(content, maxLength)
 }
 
-const CHUNK_COLUMNS: ResourceColumn[] = [
-  { id: 'content', header: 'Content' },
-  { id: 'index', header: 'Index', widthMultiplier: 0.6 },
-  { id: 'tokens', header: 'Tokens', widthMultiplier: 0.6 },
-  { id: 'status', header: 'Status', widthMultiplier: 0.75 },
+/** Chunk table columns; headers are translated at render from `knowledge.document.columns`. */
+const CHUNK_COLUMN_DEFS: Array<Omit<ResourceColumn, 'header'>> = [
+  { id: 'content' },
+  { id: 'index', widthMultiplier: 0.6 },
+  { id: 'tokens', widthMultiplier: 0.6 },
+  { id: 'status', widthMultiplier: 0.75 },
 ]
 
 /** Stable identity for the error branch's empty row set. */
@@ -182,10 +185,11 @@ interface ChunkLoadErrorProps {
  * is indistinguishable from "nothing here yet", which is the confusion this exists to end.
  */
 function ChunkLoadError({ message, kind }: ChunkLoadErrorProps) {
+  const t = useTranslations('knowledge.document')
   return (
     <EmptyState
       graphic={<TriangleAlert className='size-[24px] text-[var(--text-error)]' />}
-      title={kind === 'search' ? 'Search failed' : "Couldn't load chunks"}
+      title={kind === 'search' ? t('searchFailed') : t('loadChunksFailed')}
       description={truncate(message, ERROR_MESSAGE_MAX_LENGTH)}
     />
   )
@@ -197,6 +201,11 @@ export function Document({
   knowledgeBaseName,
   documentName,
 }: DocumentProps) {
+  const t = useTranslations('knowledge.document')
+  const chunkColumns: ResourceColumn[] = useMemo(
+    () => CHUNK_COLUMN_DEFS.map((column) => ({ ...column, header: t(`columns.${column.id}`) })),
+    [t]
+  )
   const workspaceId = useParams().workspaceId as string
   const router = useRouter()
   const [
@@ -317,7 +326,7 @@ export function Document({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [showUnsavedChangesAlert, setShowUnsavedChangesAlert] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
-  const saveRef = useRef<(() => Promise<void>) | null>(null)
+  const saveRef = useRef<(() => Promise<void>) | null>(null) // i18n-ignore: TypeScript type, not interface text
   const saveStatusRef = useRef<SaveStatus>('idle')
   saveStatusRef.current = saveStatus
 
@@ -388,7 +397,7 @@ export function Document({
   } = useContextMenu()
 
   const isConnectorDocument = Boolean(documentData?.connectorId)
-  const effectiveDocumentName = documentData?.filename || documentName || 'Document'
+  const effectiveDocumentName = documentData?.filename || documentName || t('documentFallback')
   /**
    * Breadcrumb labels. Fall back to the canonical '…' placeholder while names
    * load (mirroring loading.tsx) instead of the generic "Knowledge Base" /
@@ -604,7 +613,7 @@ export function Document({
   const documentTrail = useCallback(
     (last: BreadcrumbItem, onDocumentClick?: () => void): BreadcrumbItem[] =>
       folderBreadcrumbItems({
-        rootLabel: FOLDERED_RESOURCE_HEADERS.knowledge_base.rootLabel,
+        rootLabel: t('rootLabel'),
         rootIcon: FOLDERED_RESOURCE_HEADERS.knowledge_base.rootIcon,
         breadcrumbs: folderChain,
         onNavigate: handleNavToFolder,
@@ -624,6 +633,7 @@ export function Document({
       knowledgeBaseCrumbLabel,
       documentCrumbLabel,
       DocumentIcon,
+      t,
     ]
   )
 
@@ -653,9 +663,9 @@ export function Document({
         dropdownItems: [
           ...(userPermissions.canEdit
             ? [
-                { label: 'Rename', icon: Pencil, onClick: handleStartDocRename },
-                { label: 'Tags', icon: TagIcon, onClick: handleShowTags },
-                { label: 'Delete', icon: Trash, onClick: handleShowDeleteDoc },
+                { label: t('rename'), icon: Pencil, onClick: handleStartDocRename },
+                { label: t('tags'), icon: TagIcon, onClick: handleShowTags },
+                { label: t('delete'), icon: Trash, onClick: handleShowDeleteDoc },
               ]
             : []),
         ],
@@ -674,6 +684,7 @@ export function Document({
       handleStartDocRename,
       handleShowTags,
       handleShowDeleteDoc,
+      t,
     ]
   )
 
@@ -721,38 +732,48 @@ export function Document({
 
   const createAction = useMemo(
     () => ({
-      label: 'New chunk',
+      label: t('newChunk'),
       onClick: handleNewChunk,
       disabled:
         documentData?.processingStatus === 'failed' ||
         !userPermissions.canEdit ||
         isConnectorDocument,
     }),
-    [handleNewChunk, documentData?.processingStatus, userPermissions.canEdit, isConnectorDocument]
+    [
+      handleNewChunk,
+      documentData?.processingStatus,
+      userPermissions.canEdit,
+      isConnectorDocument,
+      t,
+    ]
   )
 
   const searchConfig: SearchConfig | undefined = isCompleted
     ? {
         value: searchQuery,
         onChange: handleSearchChange,
-        placeholder: 'Search chunks...',
+        placeholder: t('searchPlaceholder'),
       }
     : undefined
 
   const enabledDisplayLabel =
-    enabledFilter.length === 0 ? 'All' : enabledFilter[0] === 'enabled' ? 'Enabled' : 'Disabled'
+    enabledFilter.length === 0
+      ? t('filters.all')
+      : enabledFilter[0] === 'enabled'
+        ? t('filters.enabled')
+        : t('filters.disabled')
 
   const filterContent = useMemo(
     () => (
       <ResourceFilterPanel>
         <ResourceFilterSection
-          label='Status'
+          label={t('filters.status')}
           labelClassName='text-[var(--text-secondary)] text-caption'
         >
           <ChipCombobox
             options={[
-              { value: 'enabled', label: 'Enabled' },
-              { value: 'disabled', label: 'Disabled' },
+              { value: 'enabled', label: t('filters.enabled') },
+              { value: 'disabled', label: t('filters.disabled') },
             ]}
             multiSelect
             multiSelectValues={enabledFilter}
@@ -763,7 +784,7 @@ export function Document({
             overlayLabel={enabledDisplayLabel}
             overlayContent={enabledDisplayLabel}
             showAllOption
-            allOptionLabel='All'
+            allOptionLabel={t('filters.all')}
             className='w-full'
           />
         </ResourceFilterSection>
@@ -776,24 +797,26 @@ export function Document({
             }}
             className='flex h-[32px] w-full items-center justify-center rounded-md text-[var(--text-secondary)] text-caption transition-colors hover-hover:bg-[var(--surface-active)]'
           >
-            Clear all filters
+            {t('filters.clearAll')}
           </button>
         )}
       </ResourceFilterPanel>
     ),
-    [enabledFilter, setEnabledFilter]
+    [enabledFilter, setEnabledFilter, enabledDisplayLabel, t]
   )
 
   const filterTags: FilterTag[] = useMemo(
     () =>
       enabledFilter.map((value) => ({
-        label: `Status: ${value === 'enabled' ? 'Enabled' : 'Disabled'}`,
+        label: t('filters.statusTag', {
+          value: value === 'enabled' ? t('filters.enabled') : t('filters.disabled'),
+        }),
         onRemove: () => {
           setEnabledFilter(enabledFilter.filter((v) => v !== value))
           setSelectedChunks(new Set())
         },
       })),
-    [enabledFilter, setEnabledFilter]
+    [enabledFilter, setEnabledFilter, t]
   )
 
   const handleChunkClick = useCallback(
@@ -984,9 +1007,9 @@ export function Document({
   const sortConfig: SortConfig = useMemo(
     () => ({
       options: [
-        { id: 'index', label: 'Index' },
-        { id: 'tokens', label: 'Tokens' },
-        { id: 'status', label: 'Status' },
+        { id: 'index', label: t('columns.index') },
+        { id: 'tokens', label: t('columns.tokens') },
+        { id: 'status', label: t('columns.status') },
       ],
       active: activeSort,
       /** Sorting (or clearing the sort) resets pagination to the first page. */
@@ -999,7 +1022,7 @@ export function Document({
         void goToPage(1)
       },
     }),
-    [activeSort, onSortColumn, onClearSort, goToPage]
+    [activeSort, onSortColumn, onClearSort, goToPage, t]
   )
 
   const hasDocumentData = documentData !== null
@@ -1024,12 +1047,14 @@ export function Document({
                 <div className='flex items-center gap-2'>
                   <FileText className='size-5 shrink-0 text-[var(--text-muted)]' />
                   <span className='text-[var(--text-muted)] text-sm italic'>
-                    {processingStatus === 'pending' && 'Document processing pending...'}
-                    {processingStatus === 'processing' && 'Document processing in progress...'}
-                    {processingStatus === 'failed' && 'Document processing failed'}
+                    {processingStatus === 'pending' && t('processing.pending')}
+                    {processingStatus === 'processing' && t('processing.inProgress')}
+                    {processingStatus === 'failed' && t('processing.failed')}
                     {processingStatus === 'skipped' &&
-                      (processingError ? `Skipped · ${processingError}` : 'Document skipped')}
-                    {!processingStatus && 'Document not ready'}
+                      (processingError
+                        ? t('processing.skippedWithReason', { reason: processingError })
+                        : t('processing.skipped'))}
+                    {!processingStatus && t('processing.notReady')}
                   </span>
                 </div>
               ),
@@ -1066,44 +1091,55 @@ export function Document({
           status: {
             content: (
               <Badge variant={chunk.enabled ? 'green' : 'gray'} size='sm'>
-                {chunk.enabled ? 'Enabled' : 'Disabled'}
+                {chunk.enabled ? t('filters.enabled') : t('filters.disabled')}
               </Badge>
             ),
           },
         },
       }
     })
-  }, [isCompleted, hasDocumentData, processingStatus, processingError, displayChunks, searchQuery])
+  }, [
+    isCompleted,
+    hasDocumentData,
+    processingStatus,
+    processingError,
+    displayChunks,
+    searchQuery,
+    t,
+  ])
 
   const saveLabel =
     saveStatus === 'saving'
       ? isCreatingNewChunk
-        ? 'Creating...'
-        : 'Saving...'
+        ? t('save.creating')
+        : t('save.saving')
       : saveStatus === 'saved'
         ? isCreatingNewChunk
-          ? 'Created'
-          : 'Saved'
+          ? t('save.created')
+          : t('save.saved')
         : saveStatus === 'error'
           ? isCreatingNewChunk
-            ? 'Create failed'
-            : 'Save failed'
+            ? t('save.createFailed')
+            : t('save.saveFailed')
           : isCreatingNewChunk
-            ? 'Create Chunk'
-            : 'Save'
+            ? t('save.createChunk')
+            : t('save.save')
 
   const newChunkBreadcrumbs = useMemo<BreadcrumbItem[]>(
-    () => documentTrail({ label: 'New Chunk', terminal: true }, handleBackAttempt),
-    [documentTrail, handleBackAttempt]
+    () => documentTrail({ label: t('newChunkCrumb'), terminal: true }, handleBackAttempt),
+    [documentTrail, handleBackAttempt, t]
   )
 
   const editChunkBreadcrumbs = useMemo<BreadcrumbItem[]>(
     () =>
       documentTrail(
-        { label: selectedChunk ? `Chunk #${selectedChunk.chunkIndex}` : '', terminal: true },
+        {
+          label: selectedChunk ? t('chunkCrumb', { index: selectedChunk.chunkIndex }) : '',
+          terminal: true,
+        },
         handleBackAttempt
       ),
-    [documentTrail, handleBackAttempt, selectedChunk]
+    [documentTrail, handleBackAttempt, selectedChunk, t]
   )
 
   const loadingBreadcrumbs = useMemo<BreadcrumbItem[]>(
@@ -1136,13 +1172,13 @@ export function Document({
   const editorActions = useMemo<ResourceAction[]>(() => {
     const actions: ResourceAction[] = [
       {
-        text: 'Previous chunk',
+        text: t('previousChunk'),
         icon: ChevronUp,
         onSelect: handleNavigatePrev,
         disabled: !canNavigatePrev,
       },
       {
-        text: 'Next chunk',
+        text: t('nextChunk'),
         icon: ChevronDown,
         onSelect: handleNavigateNextChunk,
         disabled: !canNavigateNext,
@@ -1167,6 +1203,7 @@ export function Document({
     handleSaveClick,
     isDirty,
     saveStatus,
+    t,
   ])
 
   /**
@@ -1178,8 +1215,8 @@ export function Document({
     return (
       <ResourceNotFound
         icon={FileX}
-        title='Document not found'
-        description='This document may have been deleted or moved'
+        title={t('notFound.title')}
+        description={t('notFound.description')}
       />
     )
   }
@@ -1222,7 +1259,7 @@ export function Document({
         <Resource>
           <Resource.Header icon={FileText} breadcrumbs={loadingBreadcrumbs} />
           <div className='flex flex-1 items-center justify-center'>
-            <span className='text-[var(--text-muted)] text-sm'>Loading chunk…</span>
+            <span className='text-[var(--text-muted)] text-sm'>{t('loadingChunk')}</span>
           </div>
         </Resource>
       )
@@ -1282,7 +1319,7 @@ export function Document({
           filter={{ content: filterContent }}
         />
         <Resource.Table
-          columns={CHUNK_COLUMNS}
+          columns={chunkColumns}
           rows={chunkError ? EMPTY_CHUNK_ROWS : chunkRows}
           emptyState={
             chunkError ? (
@@ -1290,8 +1327,8 @@ export function Document({
             ) : isImageWithNothingToIndex ? (
               <EmptyState
                 graphic={<FileX className='size-[24px] text-[var(--text-icon)]' />}
-                title='Nothing to index'
-                description='This image holds no searchable information, such as a logo or an icon.'
+                title={t('nothingToIndex.title')}
+                description={t('nothingToIndex.description')}
               />
             ) : undefined
           }
@@ -1332,29 +1369,29 @@ export function Document({
       <ChipConfirmModal
         open={showDeleteDocumentDialog}
         onOpenChange={setShowDeleteDocumentDialog}
-        srTitle='Delete Document'
-        title='Delete Document'
+        srTitle={t('deleteDocument.title')}
+        title={t('deleteDocument.title')}
         text={[
-          'Are you sure you want to delete ',
+          t('deleteDocument.confirmPrefix'),
           { text: effectiveDocumentName, bold: true },
-          '? ',
+          t('deleteDocument.confirmSuffix'),
           {
-            text: `This will permanently delete the document and all ${documentData?.chunkCount ?? 0} chunk${documentData?.chunkCount === 1 ? '' : 's'} within it.`,
+            text: t('deleteDocument.warning', { count: documentData?.chunkCount ?? 0 }),
             error: true,
           },
           ' ',
           documentData?.connectorId
             ? {
-                text: 'This document is synced from a connector. Deleting it will permanently exclude it from future syncs. To temporarily hide it from search, disable it instead.',
+                text: t('deleteDocument.connectorWarning'),
                 error: true,
               }
-            : 'This action cannot be undone.',
+            : t('deleteDocument.cannotBeUndone'),
         ]}
         confirm={{
-          label: 'Delete Document',
+          label: t('deleteDocument.title'),
           onClick: handleDeleteDocument,
           pending: isDeletingDocument,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleteDocument.deleting'),
         }}
       />
 

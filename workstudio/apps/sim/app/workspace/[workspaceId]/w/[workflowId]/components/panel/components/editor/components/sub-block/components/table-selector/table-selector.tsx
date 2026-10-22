@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from 'react'
 import { Combobox, type ComboboxOption } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import { getWorkflowSearchLabelHighlight } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/workflow-search-highlight'
@@ -35,6 +36,7 @@ export function TableSelector({
   isPreview = false,
   previewValue,
 }: TableSelectorProps) {
+  const t = useTranslations('editor.subBlock.tableSelector')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
 
@@ -96,13 +98,13 @@ export function TableSelector({
       options={options}
       value={tableId ?? undefined}
       onChange={handleChange}
-      placeholder={subBlock.placeholder || 'Select a table'}
+      placeholder={subBlock.placeholder || t('selectTable')}
       disabled={disabled || isPreview}
       editable={false}
       isLoading={isLoading}
       error={errorMessage}
       searchable={options.length > 5}
-      searchPlaceholder='Search...'
+      searchPlaceholder={t('search')}
       overlayContent={
         workflowSearchHighlight ? (
           <span className='block truncate'>

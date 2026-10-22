@@ -37,12 +37,14 @@ export function shouldConfirmPasswordChange(
   return existingPassword && authType === 'password' && password.trim().length > 0
 }
 
-export function getPasswordPlaceholder(existingPassword: boolean): string {
-  return existingPassword ? 'Enter new password to change' : 'Enter password'
+export function getPasswordPlaceholderKey(
+  existingPassword: boolean
+): 'passwordPlaceholderChange' | 'passwordPlaceholder' {
+  return existingPassword ? 'passwordPlaceholderChange' : 'passwordPlaceholder'
 }
 
-export function getPasswordHelperText(existingPassword: boolean): string {
-  return existingPassword
-    ? 'Leave empty to keep the current password'
-    : 'This password will be required to access your chat'
+export function getPasswordHelperTextKey(
+  existingPassword: boolean
+): 'passwordHelperKeep' | 'passwordHelperRequired' {
+  return existingPassword ? 'passwordHelperKeep' : 'passwordHelperRequired'
 }

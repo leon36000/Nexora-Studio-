@@ -9,7 +9,12 @@ export interface PreDeployCheckResult {
   error?: string
 }
 
+type PreDeployMessageKey = 'invalidSchedule' | 'validationFailed'
+
+type PreDeployTranslator = (key: PreDeployMessageKey, values?: { error: string }) => string
+
 export interface PreDeployContext {
+  t: PreDeployTranslator
   blocks: Record<string, BlockState>
   edges: Edge[]
   loops: Record<string, Loop>
@@ -22,18 +27,18 @@ type PreDeployCheck = (context: PreDeployContext) => PreDeployCheckResult
 /**
  * Validates schedule block configuration
  */
-const scheduleValidationCheck: PreDeployCheck = ({ blocks }) => {
+const scheduleValidationCheck: PreDeployCheck = ({ blocks, t }) => {
   const result = validateWorkflowSchedules(blocks)
   return {
     passed: result.isValid,
-    error: result.error ? `Invalid schedule configuration: ${result.error}` : undefined,
+    error: result.error ? t('invalidSchedule', { error: result.error }) : undefined,
   }
 }
 
 /**
  * Validates required fields using the serializer's validation
  */
-const requiredFieldsCheck: PreDeployCheck = ({ blocks, edges, loops, parallels }) => {
+const requiredFieldsCheck: PreDeployCheck = ({ blocks, edges, loops, parallels, t }) => {
   try {
     const serializer = new Serializer()
     serializer.serializeWorkflow(blocks, edges, loops, parallels, true)
@@ -41,7 +46,7 @@ const requiredFieldsCheck: PreDeployCheck = ({ blocks, edges, loops, parallels }
   } catch (error) {
     return {
       passed: false,
-      error: getErrorMessage(error, 'Workflow validation failed'),
+      error: getErrorMessage(error, t('validationFailed')),
     }
   }
 }

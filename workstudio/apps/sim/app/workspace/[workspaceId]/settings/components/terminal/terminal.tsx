@@ -9,6 +9,7 @@ import type {
 } from '@sim/desktop-bridge'
 import { Label, Switch, toast } from '@sim/emcn'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { getDesktopBridge } from '@/lib/desktop'
 import { loadDesktopTerminalThemeProfiles } from '@/lib/desktop/appearance'
 import { DefaultZoomSelect } from '@/app/workspace/[workspaceId]/settings/components/default-zoom-select'
@@ -18,6 +19,7 @@ import { TerminalThemePicker } from '@/app/workspace/[workspaceId]/settings/comp
 import { useDesktopPreferenceMutation } from '@/hooks/use-desktop-preference-mutation'
 
 export function Terminal() {
+  const t = useTranslations('settings.terminal')
   const params = useParams()
   const router = useRouter()
   const workspaceId = params.workspaceId as string
@@ -35,12 +37,12 @@ export function Terminal() {
         setPreferences(nextPreferences)
         setProfiles(nextProfiles)
       })
-      .catch(() => toast.error('Could not load terminal settings'))
+      .catch(() => toast.error(t('errors.load')))
   }, [router, workspaceId])
 
   const { pending: togglePending, mutate: setEnabled } = useDesktopPreferenceMutation(
     (bridge, enabled: boolean) => bridge.settings.setPreference('terminalEnabled', enabled),
-    'Could not update terminal settings',
+    t('errors.update'),
     setPreferences
   )
 
@@ -53,19 +55,19 @@ export function Terminal() {
       if (!next) throw new Error('unknown terminal theme profile')
       return next
     },
-    'Could not select that terminal theme',
+    t('errors.selectTheme'),
     setPreferences
   )
 
   const { pending: builtInThemePending, mutate: setTheme } = useDesktopPreferenceMutation(
     (bridge, theme: DesktopAppearanceTheme) => bridge.settings.setTerminalTheme(theme),
-    'Could not update terminal appearance',
+    t('errors.updateAppearance'),
     setPreferences
   )
 
   const { pending: zoomPending, mutate: setDefaultZoom } = useDesktopPreferenceMutation(
     (bridge, zoom: DesktopZoomPercent) => bridge.settings.setTerminalDefaultZoom(zoom),
-    'Could not update the default terminal zoom',
+    t('errors.updateZoom'),
     setPreferences
   )
 
@@ -77,10 +79,10 @@ export function Terminal() {
 
   return (
     <SettingsPanel>
-      <SettingsSection label='General'>
+      <SettingsSection label={t('general')}>
         <div className='flex flex-col gap-3'>
           <div className='flex items-center justify-between'>
-            <Label htmlFor='terminal-enabled'>Let Chat run commands</Label>
+            <Label htmlFor='terminal-enabled'>{t('letChatRunCommands')}</Label>
             <Switch
               id='terminal-enabled'
               checked={preferences.terminalEnabled}
@@ -90,7 +92,7 @@ export function Terminal() {
           </div>
 
           <div className='flex items-center justify-between gap-4'>
-            <Label>Theme</Label>
+            <Label>{t('theme')}</Label>
             <TerminalThemePicker
               value={preferences.terminalTheme}
               profiles={profiles}
@@ -101,9 +103,9 @@ export function Terminal() {
           </div>
 
           <div className='flex items-center justify-between gap-4'>
-            <Label>Default zoom</Label>
+            <Label>{t('defaultZoom')}</Label>
             <DefaultZoomSelect
-              ariaLabel='Terminal default zoom'
+              ariaLabel={t('defaultZoomLabel')}
               value={preferences.terminalDefaultZoom}
               onChange={(zoom) => void setDefaultZoom(zoom)}
               disabled={zoomPending}

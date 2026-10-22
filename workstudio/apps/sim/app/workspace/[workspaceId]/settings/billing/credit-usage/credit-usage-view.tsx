@@ -15,10 +15,10 @@ import {
 import { ArrowLeft, Download } from '@sim/emcn/icons'
 import { formatDateTime } from '@sim/utils/formatting'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import type { UsageLogEntry, UsageLogPeriod } from '@/lib/api/contracts/user'
-import { formatApportionedCreditCost, formatCreditsLabel } from '@/lib/billing/credits/conversion'
-import { BILLING_USAGE_LOG_SOURCE_LABELS } from '@/lib/billing/usage-sources'
+import { formatApportionedCreditCost } from '@/lib/billing/credits/conversion'
 import { formatDateShort } from '@/lib/core/utils/date-display'
 import {
   creditUsageParsers,
@@ -28,33 +28,26 @@ import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/compo
 import { SettingsPanel } from '@/app/workspace/[workspaceId]/settings/components/settings-panel'
 import { useUsageLogs } from '@/hooks/queries/usage-logs'
 
-const PERIOD_OPTIONS: ComboboxOption[] = [
-  { value: '1d', label: 'Today' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: 'all', label: 'All time' },
-  { value: 'custom', label: 'Custom range' },
-]
-
-/** Workflow-sourced rows name the specific workflow; everything else uses the plain source label. */
-function rowLabel(log: UsageLogEntry): string {
-  if (log.source === 'workflow' && log.workflowName) return `Workflow: ${log.workflowName}`
-  return BILLING_USAGE_LOG_SOURCE_LABELS[log.source]
-}
+const PERIOD_VALUES = ['1d', '7d', '30d', 'all', 'custom'] as const
 
 interface UsageLogRowProps {
   log: UsageLogEntry
 }
 
 function UsageLogRow({ log }: UsageLogRowProps) {
+  const t = useTranslations('settings.creditUsage')
+  /** Workflow-sourced rows name the specific workflow; everything else uses the plain source label. */
+  const rowLabel =
+    log.source === 'workflow' && log.workflowName
+      ? t('workflowRow', { name: log.workflowName })
+      : t(`sources.${log.source}`)
+
   return (
     <div className='flex items-center gap-2.5 rounded-lg p-2 text-left'>
       <span className='w-[150px] shrink-0 text-[var(--text-muted)] text-caption'>
         {formatDateTime(new Date(log.createdAt))}
       </span>
-      <span className='min-w-0 flex-1 truncate text-[var(--text-body)] text-sm'>
-        {rowLabel(log)}
-      </span>
+      <span className='min-w-0 flex-1 truncate text-[var(--text-body)] text-sm'>{rowLabel}</span>
       <span className='shrink-0 text-[var(--text-muted)] text-caption tabular-nums'>
         {formatApportionedCreditCost(log.creditCost, log.hasCost)}
       </span>
@@ -68,6 +61,11 @@ interface CreditUsageViewProps {
 
 export function CreditUsageView({ backHref = '/account/settings/billing' }: CreditUsageViewProps) {
   const router = useRouter()
+  const t = useTranslations('settings.creditUsage')
+  const periodOptions: ComboboxOption[] = PERIOD_VALUES.map((value) => ({
+    value,
+    label: t(`periods.${value}`),
+  }))
   const [{ period, startDate, endDate }, setFilters] = useQueryStates(
     creditUsageParsers,
     creditUsageUrlKeys
@@ -108,11 +106,11 @@ export function CreditUsageView({ backHref = '/account/settings/billing' }: Cred
     // boundary-raw-fetch: downloads a CSV blob and reads a response header before saving — a plain anchor navigation can't do either
     const response = await fetch(`/api/users/me/usage-logs/export?${params.toString()}`)
     if (!response.ok) {
-      toast.error('Failed to export usage logs')
+      toast.error(t('exportFailed'))
       return
     }
     if (response.headers.get('X-Export-Truncated') === '1') {
-      toast.info('Export truncated — narrow the date range to see everything')
+      toast.info(t('exportTruncated'))
     }
 
     const blob = await response.blob()
@@ -129,7 +127,7 @@ export function CreditUsageView({ backHref = '/account/settings/billing' }: Cred
   const periodDisplayLabel =
     period === 'custom' && startDate && endDate
       ? `${formatDateShort(startDate)} - ${formatDateShort(endDate)}`
-      : (PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? 'Last 30 days')
+      : (periodOptions.find((option) => option.value === period)?.label ?? t('periods.30d'))
 
   const {
     data,
@@ -149,36 +147,38 @@ export function CreditUsageView({ backHref = '/account/settings/billing' }: Cred
   const totalCredits = data?.pages[0]?.summary.totalCredits
   const hasBlockingError = isError && data === undefined
   const totalCreditsLabel = isLoading
-    ? 'Loading…'
+    ? t('loadingEllipsis')
     : hasBlockingError
-      ? 'Unavailable'
+      ? t('unavailable')
       : isPlaceholderData
-        ? 'Updating…'
-        : formatCreditsLabel(totalCredits ?? 0)
+        ? t('updating')
+        : t('credits', { count: totalCredits ?? 0 })
 
   return (
     <SettingsPanel
       back={{
-        text: 'Subscription',
+        text: t('back'),
         icon: ArrowLeft,
         onSelect: () => router.push(backHref),
       }}
       actions={[
         {
-          text: 'Export',
+          text: t('export'),
           icon: Download,
           onSelect: () => void handleExport(),
           disabled: logs.length === 0 || isPlaceholderData,
         },
       ]}
-      title='Credit usage'
-      description='Every credit-consuming event behind your usage.'
+      title={t('title')}
+      description={t('description')}
     >
       <div className='flex items-center justify-between'>
-        <span className='text-[var(--text-muted)] text-small'>Total: {totalCreditsLabel}</span>
+        <span className='text-[var(--text-muted)] text-small'>
+          {t('total', { value: totalCreditsLabel })}
+        </span>
         <div className='relative'>
           <ChipCombobox
-            options={PERIOD_OPTIONS}
+            options={periodOptions}
             value={period}
             onChange={handlePeriodChange}
             overlayContent={
@@ -213,11 +213,11 @@ export function CreditUsageView({ backHref = '/account/settings/billing' }: Cred
         )}
       >
         {isLoading ? (
-          <SettingsEmptyState variant='inline'>Loading usage…</SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('loadingUsage')}</SettingsEmptyState>
         ) : hasBlockingError ? (
-          <SettingsEmptyState variant='inline'>Couldn't load credit usage.</SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('loadFailed')}</SettingsEmptyState>
         ) : logs.length === 0 ? (
-          <SettingsEmptyState variant='inline'>No credit usage in this period.</SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('empty')}</SettingsEmptyState>
         ) : (
           <>
             {logs.map((log) => (
@@ -228,13 +228,13 @@ export function CreditUsageView({ backHref = '/account/settings/billing' }: Cred
                 type='button'
                 onClick={() => fetchNextPage()}
                 disabled={isFetchingNextPage}
-                aria-label='Load more usage'
+                aria-label={t('loadMoreAriaLabel')}
                 className={cn(
                   chipVariants({ fullWidth: true }),
                   'text-[var(--text-muted)] text-small'
                 )}
               >
-                {isFetchingNextPage ? 'Loading…' : 'Load more'}
+                {isFetchingNextPage ? t('loadingEllipsis') : t('loadMore')}
               </button>
             )}
           </>

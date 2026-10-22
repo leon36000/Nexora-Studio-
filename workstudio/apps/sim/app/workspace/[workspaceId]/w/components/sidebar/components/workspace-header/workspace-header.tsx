@@ -28,6 +28,7 @@ import { ArrowLeft, MoreHorizontal, PanelLeft, Pin, Plus, Search, Send } from '@
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { IdentityTile } from '@/components/identity-tile/identity-tile'
 import { SettingsGuardedLink } from '@/components/settings/settings-guarded-link'
 import { WorkspaceContextMenu } from '@/components/workspaces/workspace-context-menu'
@@ -101,17 +102,17 @@ interface WorkspaceHeaderProps {
   /** Callback when workspace is switched */
   onWorkspaceSwitch: (workspace: Workspace) => void
   /** Callback when create workspace is confirmed with a name */
-  onCreateWorkspace: (name: string) => Promise<void>
+  onCreateWorkspace: (name: string) => Promise<void> // i18n-ignore: type annotation
   /** Callback to rename the workspace */
-  onRenameWorkspace: (workspaceId: string, newName: string) => Promise<void>
+  onRenameWorkspace: (workspaceId: string, newName: string) => Promise<void> // i18n-ignore: type annotation
   /** Callback to delete the workspace */
-  onDeleteWorkspace: (workspaceId: string) => Promise<void>
+  onDeleteWorkspace: (workspaceId: string) => Promise<void> // i18n-ignore: type annotation
   /** Whether workspace deletion is in progress */
   isDeletingWorkspace: boolean
   /** Callback to upload a workspace logo */
   onUploadLogo: (workspaceId: string) => void
   /** Callback to leave the workspace */
-  onLeaveWorkspace: (workspaceId: string) => Promise<void>
+  onLeaveWorkspace: (workspaceId: string) => Promise<void> // i18n-ignore: type annotation
   /** Whether workspace leave is in progress */
   isLeavingWorkspace: boolean
   /** Current user's session ID for owner check */
@@ -149,6 +150,7 @@ function WorkspaceHeaderImpl({
   isCollapsed = false,
   onExpandSidebar,
 }: WorkspaceHeaderProps) {
+  const t = useTranslations('shell.workspaceHeader')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const { billingEnabled } = useDeploymentShape()
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
@@ -424,8 +426,8 @@ function WorkspaceHeaderImpl({
        * left the confirm modal sitting open with no indication of why, so the
        * server's reason is surfaced the way the teammates list surfaces it.
        */
-      toast.error("Couldn't leave workspace", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('leaveFailed'), {
+        description: getErrorMessage(error, t('tryAgainLater')),
       })
     }
   }
@@ -448,7 +450,7 @@ function WorkspaceHeaderImpl({
     <div className='min-w-0 flex-1'>
       {isCollapsed ? (
         <Chip
-          aria-label='Expand sidebar'
+          aria-label={t('expandSidebar')}
           onClick={onExpandSidebar}
           fullWidth
           className={SIDEBAR_RAIL_CHIP_CLASS}
@@ -459,7 +461,7 @@ function WorkspaceHeaderImpl({
                   <IdentityTile
                     initial={workspaceInitial}
                     logoUrl={activeWorkspaceFull?.logoUrl}
-                    alt={activeWorkspaceFull?.name || 'Workspace logo'}
+                    alt={activeWorkspaceFull?.name || t('logoAlt')}
                     className='group-hover:invisible'
                   />
                   <PanelLeft
@@ -499,7 +501,7 @@ function WorkspaceHeaderImpl({
         >
           <DropdownMenuTrigger asChild>
             <Chip
-              aria-label='Switch workspace'
+              aria-label={t('switchWorkspace')}
               className='min-w-0 max-w-full'
               onContextMenu={(e) => {
                 if (activeWorkspaceFull) {
@@ -510,7 +512,7 @@ function WorkspaceHeaderImpl({
                 <IdentityTile
                   initial={workspaceInitial}
                   logoUrl={activeWorkspaceFull.logoUrl}
-                  alt={activeWorkspaceFull.name || 'Workspace logo'}
+                  alt={activeWorkspaceFull.name || t('logoAlt')}
                 />
               }
               rightAdornment={activeWorkspace?.name ? <ChipChevronDown /> : undefined}
@@ -533,7 +535,7 @@ function WorkspaceHeaderImpl({
                 <DropdownMenuItem size='lg' className='shrink-0' asChild>
                   <SettingsGuardedLink href={organizationHref}>
                     <ArrowLeft className='size-[14px]' />
-                    Back to organization
+                    {t('backToOrganization')}
                   </SettingsGuardedLink>
                 </DropdownMenuItem>
                 {(!showSearch || isWorkspacesLoading) && (
@@ -548,7 +550,7 @@ function WorkspaceHeaderImpl({
                     ref={searchInputRef}
                     className={cn('shrink-0', organizationHref && 'mt-2')}
                     icon={Search}
-                    placeholder='Search workspaces...'
+                    placeholder={t('searchPlaceholder')}
                     value={workspaceSearch}
                     onChange={(e) => {
                       // Typing is keyboard intent, so the cursor appears on the top
@@ -599,7 +601,7 @@ function WorkspaceHeaderImpl({
                 >
                   {filteredWorkspaces.length === 0 && workspaceSearch && (
                     <div className='px-2 py-[5px] text-[var(--text-muted)] text-caption'>
-                      No results for "{workspaceSearch}"
+                      {t('noResults', { query: workspaceSearch })}
                     </div>
                   )}
                   {filteredWorkspaces.map((workspace, idx) => {
@@ -630,12 +632,12 @@ function WorkspaceHeaderImpl({
                       >
                         {editingWorkspaceId === workspace.id ? (
                           <SidebarRenameRow
-                            aria-label={`Rename workspace ${workspace.name}`}
+                            aria-label={t('renameWorkspace', { name: workspace.name })}
                             leadingAdornment={
                               <IdentityTile
                                 initial={initial}
                                 logoUrl={workspace.logoUrl}
-                                alt={workspace.name || 'Workspace logo'}
+                                alt={workspace.name || t('logoAlt')}
                               />
                             }
                             ref={(el) => {
@@ -691,14 +693,14 @@ function WorkspaceHeaderImpl({
                                 <Pin
                                   aria-hidden={false}
                                   role='img'
-                                  aria-label='Pinned'
+                                  aria-label={t('pinned')}
                                   className='size-[12px] text-[var(--text-icon)]'
                                 />
                               ) : undefined
                             }
                             action={
                               <DropdownMenuItemAction
-                                aria-label='Workspace options'
+                                aria-label={t('workspaceOptions')}
                                 onPointerDown={() => {
                                   isContextMenuOpeningRef.current = true
                                 }}
@@ -728,7 +730,7 @@ function WorkspaceHeaderImpl({
                             <IdentityTile
                               initial={initial}
                               logoUrl={workspace.logoUrl}
-                              alt={workspace.name || 'Workspace logo'}
+                              alt={workspace.name || t('logoAlt')}
                             />
                             <DropdownMenuItemLabel label={workspace.name} />
                           </DropdownMenuItem>
@@ -755,7 +757,7 @@ function WorkspaceHeaderImpl({
                       disabled={isCreatingWorkspace || !canCreateWorkspace}
                     >
                       <Plus className='size-[14px]' />
-                      New workspace
+                      {t('newWorkspace')}
                     </DropdownMenuItem>
                   </DisabledReasonTooltip>
                   {userPermissions.canAdmin && (
@@ -772,7 +774,7 @@ function WorkspaceHeaderImpl({
                         }}
                       >
                         <Send className='size-[14px]' />
-                        Invite teammates
+                        {t('inviteTeammates')}
                       </DropdownMenuItem>
                     </DisabledReasonTooltip>
                   )}
@@ -790,7 +792,7 @@ function WorkspaceHeaderImpl({
       ) : (
         <button
           type='button'
-          aria-label='Switch workspace'
+          aria-label={t('switchWorkspace')}
           /* Geometry must match the live trigger it stands in for, or the switcher
              shifts when the workspace resolves. Chips carry no margin, so neither
              does this. */
@@ -801,7 +803,7 @@ function WorkspaceHeaderImpl({
             <IdentityTile
               initial={workspaceInitial}
               logoUrl={activeWorkspaceFull?.logoUrl}
-              alt={activeWorkspaceFull?.name || 'Workspace logo'}
+              alt={activeWorkspaceFull?.name || t('logoAlt')}
             />
           ) : (
             <Skeleton className='size-[16px] shrink-0 rounded-sm' />
@@ -850,7 +852,7 @@ function WorkspaceHeaderImpl({
         open={isInviteModalOpen}
         onOpenChange={setIsInviteModalOpen}
         workspaceId={workspaceId}
-        workspaceName={activeWorkspace?.name || 'Workspace'}
+        workspaceName={activeWorkspace?.name || t('workspaceFallback')}
         inviteDisabledReason={inviteDisabledReason}
         organizationId={activeWorkspaceFull?.organizationId ?? null}
         canInvite={userPermissions.canAdmin}
@@ -867,18 +869,18 @@ function WorkspaceHeaderImpl({
       <ChipConfirmModal
         open={isLeaveModalOpen}
         onOpenChange={() => setIsLeaveModalOpen(false)}
-        srTitle='Leave workspace'
-        title='Leave workspace'
+        srTitle={t('leaveWorkspace')}
+        title={t('leaveWorkspace')}
         text={[
-          'Are you sure you want to leave ',
-          { text: leaveTarget?.name ?? 'this workspace', bold: true },
-          '? You will lose access to all workflows and data in this workspace. This action cannot be undone.',
+          t('leaveConfirmPrefix'),
+          { text: leaveTarget?.name ?? t('thisWorkspace'), bold: true },
+          t('leaveConfirmSuffix'),
         ]}
         confirm={{
-          label: 'Leave workspace',
+          label: t('leaveWorkspace'),
           onClick: handleLeaveWorkspace,
           pending: isLeavingWorkspace,
-          pendingLabel: 'Leaving...',
+          pendingLabel: t('leaving'),
         }}
       />
     </div>

@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { ChipLink } from '@sim/emcn'
 import { formatDateTime } from '@sim/utils/formatting'
+import { useTranslations } from 'next-intl'
 import { SettingsActionChip } from '@/components/settings/settings-header'
 import type { SecretUsageEntryPayload, SecretUsageScope } from '@/lib/api/contracts'
 import { DELETED_WORKFLOW_LABEL } from '@/lib/workflows/labels'
@@ -15,29 +16,19 @@ import {
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import { useSecretUsage } from '@/hooks/queries/credentials'
 
-/**
- * The disabled twin of the View log chip, for a run whose log has been pruned. Routed through
- * the shared settings chip so it carries the platform's disabled tooltip treatment — including
- * the pointer-events handling a disabled button needs for the tooltip to fire at all.
- */
-const EXPIRED_LOG_ACTION = {
-  id: 'view-log',
-  text: 'View log',
-  disabled: true,
-  tooltip: 'This run\u2019s log is past your workspace\u2019s retention window',
-  onSelect: () => {},
-} as const
-
 interface SecretUsagePanelProps {
   workspaceId: string
   secretName: string
   scope: SecretUsageScope
 }
 
-/** What used the secret, in the reader's terms rather than the storage enum's. */
-function usedBy(entry: SecretUsageEntryPayload): string {
-  if (entry.source === 'copilot') return 'Nexora agent'
-  if (entry.source === 'mcp') return 'MCP server'
+/**
+ * What used the secret, in the reader's terms rather than the storage enum's.
+ * `t` is scoped to `settings.secretDetail.usage`.
+ */
+function usedBy(entry: SecretUsageEntryPayload, t: ReturnType<typeof useTranslations>): string {
+  if (entry.source === 'copilot') return t('nexoraAgent')
+  if (entry.source === 'mcp') return t('mcpServer')
   return entry.workflowName ?? DELETED_WORKFLOW_LABEL
 }
 
@@ -49,7 +40,25 @@ function usedBy(entry: SecretUsageEntryPayload): string {
  * trigger badge is the Logs page's own, so a row reads the same here as at the run it links to.
  */
 export function SecretUsagePanel({ workspaceId, secretName, scope }: SecretUsagePanelProps) {
+  const t = useTranslations('settings.secretDetail.usage')
+  const tDetail = useTranslations('settings.secretDetail')
   const { data, isPending, isError } = useSecretUsage({ workspaceId, name: secretName, scope })
+
+  /**
+   * The disabled twin of the View log chip, for a run whose log has been pruned. Routed through
+   * the shared settings chip so it carries the platform's disabled tooltip treatment — including
+   * the pointer-events handling a disabled button needs for the tooltip to fire at all.
+   */
+  const expiredLogAction = useMemo(
+    () => ({
+      id: 'view-log',
+      text: t('viewLog'),
+      disabled: true,
+      tooltip: t('expiredTooltip'),
+      onSelect: () => {},
+    }),
+    [t]
+  )
 
   const entries = useMemo<ActivityLogEntry[]>(
     () =>
@@ -63,13 +72,15 @@ export function SecretUsagePanel({ workspaceId, secretName, scope }: SecretUsage
          */
         description: (
           <span className='flex min-w-0 items-center gap-2'>
-            <FloatingOverflowText label={usedBy(entry)} className='block' />
+            <FloatingOverflowText label={usedBy(entry, t)} className='block' />
             {entry.useCount > 1 && (
-              <span className='shrink-0 text-[var(--text-muted)]'>{entry.useCount} runs</span>
+              <span className='shrink-0 text-[var(--text-muted)]'>
+                {t('runs', { count: entry.useCount })}
+              </span>
             )}
           </span>
         ),
-        actor: entry.actorName ?? 'Unknown',
+        actor: entry.actorName ?? t('unknown'),
         /**
          * Three states, not two. A row with no execution id never had a run to link (Sim agent
          * and MCP resolutions have none). A row whose run has since been pruned — usage
@@ -90,31 +101,31 @@ export function SecretUsagePanel({ workspaceId, secretName, scope }: SecretUsage
               variant='border'
               className='-my-1'
             >
-              View log
+              {t('viewLog')}
             </ChipLink>
           ) : (
             <span className='-my-1 inline-flex'>
-              <SettingsActionChip action={EXPIRED_LOG_ACTION} />
+              <SettingsActionChip action={expiredLogAction} />
             </span>
           )
         ) : undefined,
       })),
-    [data?.entries, workspaceId]
+    [data?.entries, workspaceId, t, expiredLogAction]
   )
 
   if (isError) {
-    return <SettingsEmptyState variant='inline'>Could not load usage.</SettingsEmptyState>
+    return <SettingsEmptyState variant='inline'>{t('loadFailed')}</SettingsEmptyState>
   }
 
   return (
     <ActivityLog
       entries={entries}
-      eventLabel='Trigger'
-      descriptionLabel='Used by'
+      eventLabel={t('trigger')}
+      descriptionLabel={t('usedBy')}
       eventColumn='compact'
       emptyState={
         <SettingsEmptyState variant='inline'>
-          {isPending ? 'Loading…' : 'This secret has not been used yet.'}
+          {isPending ? tDetail('loading') : t('empty')}
         </SettingsEmptyState>
       }
     />

@@ -13,6 +13,7 @@ import { applyDesktopTitleBarMode, type DesktopTitleBarMode } from '@sim/desktop
 import { Chip, cn } from '@sim/emcn'
 import { ArrowLeft, ArrowRight, PanelLeft, X } from '@sim/emcn/icons'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { getDesktopBridge } from '@/lib/desktop'
 import { SidebarChromeProvider } from '@/app/workspace/[workspaceId]/components/workspace-chrome/sidebar-chrome-context'
 import { useSidebarPeek } from '@/app/workspace/[workspaceId]/components/workspace-chrome/use-sidebar-peek'
@@ -89,6 +90,7 @@ const LANE_NAV_ICON = 'size-[var(--desktop-title-bar-control-icon-size)] text-[v
  * API is always there for the arrow state.
  */
 function TitleBarHistoryNav() {
+  const t = useTranslations('shell.workspaceChrome')
   const [can, setCan] = useState({ back: false, forward: false })
 
   useEffect(() => {
@@ -118,7 +120,7 @@ function TitleBarHistoryNav() {
     <div className='absolute top-[var(--desktop-title-bar-control-offset)] left-[calc(var(--desktop-title-bar-inset-x)+var(--desktop-title-bar-control-size)+4px)] z-30 hidden h-[var(--desktop-title-bar-control-size)] items-center gap-[2px] [-webkit-app-region:no-drag] [[data-sim-desktop-title-bar=inset]_&]:flex'>
       <button
         type='button'
-        aria-label='Back'
+        aria-label={t('back')}
         disabled={!can.back}
         onClick={() => window.history.back()}
         className={LANE_NAV_BUTTON}
@@ -127,7 +129,7 @@ function TitleBarHistoryNav() {
       </button>
       <button
         type='button'
-        aria-label='Forward'
+        aria-label={t('forward')}
         disabled={!can.forward}
         onClick={() => window.history.forward()}
         className={LANE_NAV_BUTTON}
@@ -168,6 +170,7 @@ export function WorkspaceChrome({
   sidebar,
   initialSidebarCollapsed = false,
 }: WorkspaceChromeProps) {
+  const t = useTranslations('shell.workspaceChrome')
   const pathname = usePathname()
   const isFullscreen = isFullscreenPath(pathname)
   const isMobile = useIsMobile()
@@ -324,12 +327,12 @@ export function WorkspaceChrome({
             ref={navigationToggleRef}
             mobileIconOnly
             leftIcon={mobileNavigationOpen ? X : PanelLeft}
-            aria-label={mobileNavigationOpen ? 'Close navigation' : 'Open navigation'}
+            aria-label={mobileNavigationOpen ? t('closeNavigation') : t('openNavigation')}
             aria-expanded={mobileNavigationOpen}
             aria-controls={navigationId}
             onClick={handleSidebarToggle}
           >
-            {mobileNavigationOpen ? 'Close navigation' : 'Navigation'}
+            {mobileNavigationOpen ? t('closeNavigation') : t('navigation')}
           </Chip>
         </div>
       )}
@@ -424,7 +427,7 @@ export function WorkspaceChrome({
           className='absolute top-[var(--desktop-title-bar-control-offset)] left-[var(--desktop-title-bar-inset-x)] z-30 hidden size-[var(--desktop-title-bar-control-size)] [-webkit-app-region:no-drag] [[data-sim-desktop-title-bar=inset]_&]:block'
         >
           <SidebarTooltip
-            label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
             /* Gated on `peekEnabled`, not on the card being open: hovering always
                opens the card, so a tooltip tied to visibility would flash for the
                dwell and then vanish under it. When peek is armed the card IS the
@@ -438,7 +441,7 @@ export function WorkspaceChrome({
               type='button'
               onClick={toggleSidebar}
               className='flex size-full items-center justify-center rounded-lg transition-colors hover-hover:bg-[var(--surface-active)]'
-              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
             >
               <PanelLeft className='size-[var(--desktop-title-bar-control-icon-size)] text-[var(--text-icon)]' />
             </button>

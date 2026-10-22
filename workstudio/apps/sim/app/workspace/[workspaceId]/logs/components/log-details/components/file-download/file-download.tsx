@@ -4,6 +4,7 @@ import { Button } from '@sim/emcn'
 import { Download } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { extractWorkspaceIdFromExecutionKey, getViewerUrl } from '@/lib/uploads/utils/file'
 
 const logger = createLogger('FileCards')
@@ -43,6 +44,7 @@ function formatFileSize(bytes: number): string {
 
 function FileCard({ file, isExecutionFile = false, workspaceId }: FileCardProps) {
   const router = useRouter()
+  const t = useTranslations('logs.files')
 
   const handleDownload = () => {
     try {
@@ -112,7 +114,7 @@ function FileCard({ file, isExecutionFile = false, workspaceId }: FileCardProps)
           onClick={handleDownload}
         >
           <Download className='mr-1 size-[10px]' />
-          Download
+          {t('download')}
         </Button>
       </div>
     </div>
@@ -120,13 +122,16 @@ function FileCard({ file, isExecutionFile = false, workspaceId }: FileCardProps)
 }
 
 export function FileCards({ files, isExecutionFile = false, workspaceId }: FileCardsProps) {
+  const t = useTranslations('logs.files')
   if (!files || files.length === 0) {
     return null
   }
 
   return (
     <div className='mt-1 flex flex-col gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 dark:bg-transparent'>
-      <span className='text-[var(--text-tertiary)] text-caption'>Files ({files.length})</span>
+      <span className='text-[var(--text-tertiary)] text-caption'>
+        {t('title', { count: files.length })}
+      </span>
       {files.map((file, index) => (
         <FileCard
           key={file.id || `file-${index}`}

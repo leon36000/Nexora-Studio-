@@ -7,6 +7,7 @@ import {
   DropdownMenuSubTrigger,
 } from '@sim/emcn'
 import { Folder } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 export interface MoveOptionNode {
   value: string
@@ -81,6 +82,8 @@ export function buildMoveOptions({
   return [{ value: ROOT_MOVE_OPTION_VALUE, label: rootLabel, children: [] }, ...buildSubtree(null)]
 }
 
+type FolderIdSet = Set<string>
+
 /**
  * Indexes every folder's transitive descendants once, so excluding a moved folder's subtree
  * from {@link buildMoveOptions} (and rejecting a cyclic drop target) stays O(1) per
@@ -99,7 +102,7 @@ export function buildDescendantIndex(
   }
 
   const result = new Map<string, Set<string>>()
-  const collect = (folderId: string, seen: Set<string>): Set<string> => {
+  const collect = (folderId: string, seen: FolderIdSet): FolderIdSet => {
     const cached = result.get(folderId)
     if (cached) return cached
     if (seen.has(folderId)) return new Set<string>()
@@ -118,6 +121,12 @@ export function buildDescendantIndex(
 
   for (const folder of folders) collect(folder.id, new Set<string>())
   return result
+}
+
+/** The submenu's own "Move here" entry label; a component so the plain render helpers stay hook-free. */
+function MoveHereLabel() {
+  const t = useTranslations('shell.moveOptions')
+  return t('moveHere')
 }
 
 /**
@@ -147,7 +156,7 @@ export function renderMoveOption(
       <DropdownMenuSubContent>
         <DropdownMenuItem onSelect={() => onMove(option.value)}>
           <Folder />
-          Move here
+          <MoveHereLabel />
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {option.children.map((child) => renderMoveOption(child, onMove))}

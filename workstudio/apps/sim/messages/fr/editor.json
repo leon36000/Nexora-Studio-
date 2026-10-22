@@ -1,1 +1,1315 @@
-{}
+{
+  "actionBar": {
+    "blockRunning": "Bloc en cours d'exécution",
+    "stopWorkflow": "Arrêter le workflow",
+    "runBlock": "Exécuter le bloc",
+    "connectionLost": "Connexion perdue - veuillez actualiser la page",
+    "readOnly": "Mode lecture seule",
+    "stop": "Arrêter",
+    "run": "Exécuter",
+    "blockLocked": "Le bloc est verrouillé",
+    "runPreviousFirst": "Exécutez d'abord les blocs précédents",
+    "disable": "Désactiver",
+    "enable": "Activer",
+    "parentDisabled": "Le conteneur parent est désactivé",
+    "noteColor": "Couleur de la note",
+    "color": "Couleur",
+    "noteColors": {
+      "white": "Blanc",
+      "light-gray": "Gris clair",
+      "carbon": "Graphite"
+    },
+    "unlock": "Déverrouiller",
+    "lock": "Verrouiller",
+    "parentLocked": "Le conteneur parent est verrouillé",
+    "duplicate": "Dupliquer",
+    "removeFromSubflow": "Retirer du sous-flux",
+    "delete": "Supprimer"
+  },
+  "triggerPaste": {
+    "legacyStartPaste": "Impossible de coller des blocs déclencheurs lorsqu'un ancien bloc Start existe.",
+    "legacyStartDuplicate": "Impossible de dupliquer des blocs déclencheurs lorsqu'un ancien bloc Start existe.",
+    "singleTriggerPaste": "Un workflow ne peut contenir qu'un seul bloc déclencheur {name}. Supprimez celui qui existe avant de coller.",
+    "singleTriggerDuplicate": "Un workflow ne peut contenir qu'un seul bloc déclencheur {name}. Duplication impossible.",
+    "singleBlockPaste": "Un workflow ne peut contenir qu'un seul bloc {name}. Supprimez celui qui existe avant de coller.",
+    "singleBlockDuplicate": "Un workflow ne peut contenir qu'un seul bloc {name}. Duplication impossible."
+  },
+  "workflow": {
+    "modelSettingsNotReady": "Les paramètres du modèle ne sont pas prêts. Réessayez.",
+    "cannotDeleteLocked": "Impossible de supprimer des blocs verrouillés ou des blocs situés dans des conteneurs verrouillés",
+    "skippedProtected": "{count, plural, one {# bloc protégé ignoré} other {# blocs protégés ignorés}}",
+    "triggerInSubflow": "Les déclencheurs ne peuvent pas être placés dans des sous-flux de boucle ou parallèles.",
+    "pasteSubflowIntoItself": "Impossible de coller un sous-flux dans lui-même ou dans l'un de ses descendants.",
+    "lockedByFolder": "Ce workflow est verrouillé par le dossier « {name} »",
+    "lockedByParentFolder": "Ce workflow est verrouillé par un dossier parent",
+    "locked": "Ce workflow est verrouillé",
+    "lockedAskAdmin": "Ce workflow est verrouillé. Demandez à un administrateur de le déverrouiller.",
+    "unlockWorkflow": "Déverrouiller le workflow",
+    "legacyStartAdd": "Impossible d'ajouter de nouveaux blocs déclencheurs lorsqu'un ancien bloc Start existe. Disponible dans les workflows plus récents.",
+    "singleTriggerAdd": "Un workflow ne peut contenir qu'un seul bloc déclencheur {name}. Supprimez celui qui existe avant d'en ajouter un nouveau.",
+    "singleGenericTriggerAdd": "Un workflow ne peut contenir qu'un seul bloc déclencheur de ce type. Supprimez celui qui existe avant d'en ajouter un nouveau.",
+    "singleBlockAdd": "Un workflow ne peut contenir qu'un seul bloc {name}. Supprimez celui qui existe avant d'en ajouter un nouveau.",
+    "unlockToAddBlocks": "Déverrouillez le workflow pour ajouter des blocs.",
+    "cannotConnectLocked": "Impossible de se connecter à des blocs verrouillés ou à des blocs situés dans des conteneurs verrouillés",
+    "cannotMoveLockedOut": "Impossible de sortir des blocs verrouillés de conteneurs verrouillés",
+    "containerIntoDescendant": "Impossible de placer un conteneur dans l'un de ses propres conteneurs imbriqués",
+    "cannotRemoveLockedConnections": "Impossible de supprimer les connexions vers des blocs verrouillés",
+    "unableToLoad": "Impossible de charger le workflow",
+    "cannotRunInsideSubflow": "Impossible d'exécuter depuis l'intérieur d'un sous-flux",
+    "runPreviousFirst": "Exécutez d'abord les blocs précédents"
+  },
+  "blockMenu": {
+    "disable": "Désactiver",
+    "enable": "Activer",
+    "toggleEnabled": "Activer/désactiver",
+    "unlock": "Déverrouiller",
+    "lock": "Verrouiller",
+    "toggleLock": "Verrouiller/déverrouiller",
+    "copy": "Copier",
+    "cut": "Couper",
+    "paste": "Coller",
+    "duplicate": "Dupliquer",
+    "parentDisabled": "Le parent est désactivé",
+    "removeFromSubflow": "Retirer du sous-flux",
+    "parentLocked": "Le parent est verrouillé",
+    "rename": "Renommer",
+    "addImage": "Ajouter une image",
+    "openEditor": "Ouvrir l'éditeur",
+    "runFromBlock": "Exécuter à partir du bloc",
+    "runUntilBlock": "Exécuter jusqu'au bloc",
+    "delete": "Supprimer"
+  },
+  "canvasMenu": {
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "paste": "Coller",
+    "addBlock": "Ajouter un bloc",
+    "unlockForAutoLayout": "Déverrouillez les blocs pour utiliser la disposition automatique",
+    "autoLayout": "Disposition automatique",
+    "unlockWorkflow": "Déverrouiller le workflow",
+    "lockWorkflow": "Verrouiller le workflow",
+    "fitToView": "Ajuster à la vue",
+    "searchReplace": "Rechercher et remplacer",
+    "openLogs": "Ouvrir les journaux",
+    "closeVariables": "Fermer les variables",
+    "openVariables": "Ouvrir les variables",
+    "closeChat": "Fermer le chat",
+    "openChat": "Ouvrir le chat"
+  },
+  "commandList": {
+    "newAgent": "Nouvel agent",
+    "logs": "Journaux",
+    "searchBlocks": "Rechercher des blocs"
+  },
+  "connectionBlockSelector": {
+    "addConnectedBlock": "Ajouter un bloc connecté",
+    "addBlock": "Ajouter un bloc",
+    "closeSelector": "Fermer le sélecteur de blocs",
+    "close": "Fermer",
+    "noBlocksFound": "Aucun bloc trouvé.",
+    "recentlyUsed": "Utilisés récemment",
+    "popular": "Populaires",
+    "allBlocks": "Tous les blocs",
+    "searchBlocks": "Rechercher des blocs",
+    "searchBlocksPlaceholder": "Rechercher des blocs..."
+  },
+  "diffControls": {
+    "rejectChanges": "Rejeter les modifications",
+    "reject": "Rejeter",
+    "acceptChanges": "Accepter les modifications (⇧⌘⏎)",
+    "accept": "Accepter"
+  },
+  "errorBoundary": {
+    "title": "Une erreur s'est produite",
+    "message": "Une erreur inattendue s'est produite. Réessayez ou actualisez la page.",
+    "tryAgain": "Réessayer"
+  },
+  "noteBlock": {
+    "placeholder": "Ajoutez une note, ou tapez « / » pour les commandes…"
+  },
+  "toolbar": {
+    "requestAccessTo": "Demander l'accès à {name}",
+    "add": "Ajouter {name}",
+    "title": "Barre d'outils",
+    "search": "Rechercher dans la barre d'outils",
+    "triggers": "Déclencheurs",
+    "triggersTooltip": "Événements qui lancent un workflow",
+    "coreBlocks": "Blocs de base",
+    "coreBlocksTooltip": "Blocs fondamentaux pour la logique des agents",
+    "customBlocks": "Blocs personnalisés",
+    "customBlocksTooltip": "Workflows publiés comme blocs réutilisables dans toute votre organisation",
+    "integrations": "Intégrations",
+    "integrationsTooltip": "Connectez les agents à des services externes",
+    "accessRequired": "Accès requis",
+    "accessRequiredTooltip": "Demandez à l'administrateur de votre organisation d'activer ces blocs pour votre groupe d'autorisations.",
+    "contextMenu": {
+      "addToCanvas": "Ajouter au canevas",
+      "viewDocumentation": "Voir la documentation"
+    }
+  },
+  "panel": {
+    "workflow": "Workflow",
+    "workflowPanel": "Panneau du workflow",
+    "backToCanvas": "Retour au canevas",
+    "workflowActions": "Actions du workflow",
+    "unlockForAutoLayout": "Déverrouillez les blocs pour utiliser la disposition automatique",
+    "autoLayout": "Disposition automatique",
+    "variables": "Variables",
+    "lockedAtRowOrFolder": "Le workflow est verrouillé au niveau de la ligne ou du dossier — déverrouillez-le depuis la notification du workflow ou le menu du dossier",
+    "unlockWorkflow": "Déverrouiller le workflow",
+    "lockWorkflow": "Verrouiller le workflow",
+    "exportWorkflow": "Exporter le workflow",
+    "duplicateWorkflow": "Dupliquer le workflow",
+    "deleteWorkflow": "Supprimer le workflow",
+    "closeChat": "Fermer le chat",
+    "openChat": "Ouvrir le chat",
+    "stop": "Arrêter",
+    "run": "Exécuter",
+    "chatTab": "Chat",
+    "toolbarTab": "Barre d'outils",
+    "editorTab": "Éditeur",
+    "newChat": "Nouveau chat",
+    "chatHistory": "Historique des chats",
+    "noChatsYet": "Aucun chat pour le moment",
+    "recent": "Récents",
+    "deleteChat": "Supprimer le chat",
+    "resizePanel": "Redimensionner le panneau",
+    "deleteModal": {
+      "title": "Supprimer le workflow",
+      "prefix": "Voulez-vous vraiment supprimer ",
+      "thisWorkflow": "ce workflow",
+      "questionEnd": " ? ",
+      "consequence": "Tous les blocs, exécutions et configurations associés seront supprimés.",
+      "restoreHint": " Vous pourrez le restaurer depuis « Récemment supprimés » dans les paramètres.",
+      "confirm": "Supprimer",
+      "deleting": "Suppression..."
+    }
+  },
+  "searchReplace": {
+    "snapshotReadonly": "La vue d'instantané est en lecture seule",
+    "workflowLocked": "Le workflow est verrouillé",
+    "replacementStoppedReason": "Remplacement interrompu : {reason}",
+    "replacementStoppedCount": "Remplacement interrompu : {count, plural, one {# correspondance a changé} other {# correspondances ont changé}}. Relancez la recherche et réessayez.",
+    "noEligibleMatches": "Aucune correspondance à remplacer.",
+    "replacementNotApplied": "Le remplacement n'a pas pu être appliqué dans l'état actuel du workflow.",
+    "replacedFields": "{count, plural, one {# champ remplacé} other {# champs remplacés}}.",
+    "noResults": "Aucun résultat",
+    "matchPosition": "{current} sur {total}",
+    "title": "Rechercher et remplacer",
+    "closeSearch": "Fermer la recherche",
+    "hideReplaceControls": "Masquer les options de remplacement",
+    "showReplaceControls": "Afficher les options de remplacement",
+    "searchPlaceholder": "Rechercher",
+    "previousMatch": "Correspondance précédente",
+    "nextMatch": "Correspondance suivante",
+    "controls": {
+      "chooseReplacement": "Choisir un remplacement...",
+      "searchResources": "Rechercher des ressources...",
+      "noValidReplacements": "Aucun remplacement valide disponible",
+      "replacePlaceholder": "Remplacer",
+      "replaceableMatches": "{count, plural, one {# correspondance remplaçable} other {# correspondances remplaçables}}",
+      "replace": "Remplacer",
+      "replacing": "Remplacement...",
+      "replaceAll": "Tout remplacer"
+    }
+  },
+  "wandPromptBar": {
+    "placeholder": "Décrivez ce que vous voulez générer...",
+    "generating": "Génération...",
+    "close": "Fermer l'invite IA",
+    "generate": "Générer le contenu"
+  },
+  "workflowControls": {
+    "mover": "Déplacement",
+    "pointer": "Pointeur",
+    "changeMode": "Changer le mode du canevas",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "fitToView": "Ajuster à la vue",
+    "hideControls": "Masquer les commandes du canevas"
+  },
+  "workflowBlock": {
+    "sunset": {
+      "legacyBlock": "Ceci est un ancien bloc. Cliquez pour le mettre à niveau",
+      "deprecatedBlock": "Ce bloc n'est plus pris en charge. Cliquez pour le remplacer",
+      "deprecatedModel": "{model} n'est plus disponible. Cliquez pour changer de modèle",
+      "legacyModel": "{model} est un ancien modèle. Cliquez pour le mettre à niveau"
+    }
+  },
+  "wand": {
+    "emptyPrompt": "L'invite ne peut pas être vide.",
+    "notEnabled": "La génération assistée n'est pas activée.",
+    "usageLimitReached": "Limite d'utilisation atteinte",
+    "upgrade": "Passer à l'offre supérieure",
+    "generationFailed": "Échec de la génération"
+  },
+  "blockOutputFields": {
+    "subflowResults": "Tableau des résultats de l'exécution en boucle ou en parallèle"
+  },
+  "execution": {
+    "debugMissing": "Impossible d'effectuer l'opération de débogage - éléments manquants : {missing}. Essayez de redémarrer le mode débogage.",
+    "uploadFilesFailed": "Erreur inattendue lors de l'envoi des fichiers",
+    "executionFailed": "Échec de l'exécution du workflow",
+    "validationBlockName": "Validation du workflow",
+    "noTrigger": "Le workflow nécessite au moins un bloc déclencheur pour s'exécuter",
+    "multipleApiTriggers": "Plusieurs blocs déclencheurs API trouvés. N'en conservez qu'un seul.",
+    "triggerNotConnected": "{name} doit être connecté à d'autres blocs pour s'exécuter",
+    "noValidTrigger": "Aucun bloc déclencheur valide trouvé pour lancer l'exécution",
+    "workflowModified": "Le workflow a été modifié. Exécutez-le de nouveau pour pouvoir lancer l'exécution à partir d'un bloc.",
+    "runFromBlockFailed": "Échec de la demande d'exécution à partir du bloc"
+  },
+  "terminalRows": {
+    "validation": "Validation du workflow",
+    "timeoutError": "Délai dépassé",
+    "runError": "Erreur d'exécution",
+    "runCancelled": "Exécution annulée"
+  },
+  "copilot": {
+    "attachments": {
+      "imagesOnly": "Joignez des images PNG, JPEG, GIF ou WebP.",
+      "addFailed": "Impossible d'ajouter les fichiers",
+      "uploadFailed": "Impossible d'envoyer « {name} »"
+    }
+  },
+  "page": {
+    "title": "Workflow"
+  },
+  "deploy": {
+    "button": {
+      "stillLoading": "Le workflow est en cours de chargement",
+      "emptyWorkflow": "Impossible de déployer un workflow vide",
+      "adminRequired": "Droits administrateur requis",
+      "locked": "Le workflow est verrouillé",
+      "deploying": "Déploiement...",
+      "settling": "Synchronisation de l'état du déploiement...",
+      "updateDeployment": "Mettre à jour le déploiement",
+      "activeDeployment": "Déploiement actif",
+      "deployWorkflow": "Déployer le workflow",
+      "update": "Mettre à jour",
+      "live": "En production",
+      "deploy": "Déployer"
+    },
+    "readiness": {
+      "deploy": "Déployer",
+      "noWorkflow": "Aucun workflow sélectionné",
+      "syncFailed": "Échec de la synchronisation",
+      "saveFailed": "Certaines modifications n'ont pas pu être enregistrées. Reconnectez-vous ou actualisez la page avant de déployer.",
+      "saving": "Enregistrement...",
+      "savingTooltip": "Enregistrement des modifications du workflow avant le déploiement",
+      "reviewing": "Révision...",
+      "reviewingTooltip": "Acceptez ou rejetez les modifications du copilote avant de déployer",
+      "syncing": "Synchronisation...",
+      "syncingTooltip": "Synchronisation des dernières modifications du workflow avant le déploiement",
+      "ready": "Prêt",
+      "readyTooltip": "Prêt à déployer"
+    },
+    "preDeploy": {
+      "invalidSchedule": "Configuration de planification invalide : {error}",
+      "validationFailed": "Échec de la validation du workflow"
+    },
+    "deployment": {
+      "alreadyInProgress": "Un déploiement est déjà en cours.",
+      "preDeployFailed": "Échec de la validation avant déploiement",
+      "deployFailed": "Échec du déploiement du workflow",
+      "syncDeferred": "Déploiement réussi, mais la synchronisation locale est encore en cours. Actualisez la page si le statut semble obsolète.",
+      "syncFailed": "Déploiement réussi, mais la synchronisation locale a échoué. Actualisez la page si le statut semble obsolète."
+    },
+    "modal": {
+      "tabs": {
+        "general": "Général",
+        "api": "API",
+        "mcp": "MCP",
+        "chat": "Chat"
+      },
+      "preparationFailed": "Échec de la préparation du déploiement",
+      "workspaceApiKeys": "Clés API de l'espace de travail",
+      "personalApiKeys": "Clés API personnelles",
+      "toasts": {
+        "deployed": "Workflow déployé",
+        "promoted": "v{version} mise en production",
+        "undeployed": "Déploiement du workflow retiré",
+        "redeployed": "Workflow redéployé"
+      },
+      "errors": {
+        "deployFailed": "Échec du déploiement du workflow",
+        "promoteFailed": "Échec de la mise en production de v{version}",
+        "undeployFailed": "Échec du retrait du déploiement",
+        "preDeployFailed": "Échec de la validation avant déploiement",
+        "redeployFailed": "Échec du redéploiement du workflow"
+      },
+      "chatAction": {
+        "updated": "Mis à jour",
+        "launched": "Lancé",
+        "updating": "Mise à jour...",
+        "launching": "Lancement...",
+        "update": "Mettre à jour",
+        "launch": "Lancer le chat"
+      },
+      "title": "Déploiement du workflow",
+      "description": "Configurez et gérez les paramètres de déploiement du workflow, notamment les options API, MCP et chat.",
+      "tabsAriaLabel": "Paramètres de déploiement",
+      "editApiInfo": "Modifier les infos de l'API",
+      "generateApiKey": "Générer une clé API",
+      "delete": "Supprimer",
+      "manage": "Gérer",
+      "saving": "Enregistrement...",
+      "saveTool": "Enregistrer l'outil",
+      "undeployConfirm": {
+        "title": "Retirer le déploiement de l'API",
+        "text": "Voulez-vous vraiment retirer le déploiement de ce workflow ? ",
+        "warning": "Le point de terminaison de l'API sera supprimé et ne sera plus accessible aux utilisateurs externes."
+      },
+      "undeploy": "Retirer le déploiement",
+      "undeploying": "Retrait...",
+      "deploy": "Déployer",
+      "update": "Mettre à jour",
+      "status": {
+        "retrying": "Nouvelle tentative",
+        "pending": "En attente",
+        "retryingLive": "Nouvelle tentative automatique. La version actuelle reste en production jusqu'à la bascule.",
+        "retryingNew": "Nouvelle tentative automatique. Le workflow sera en production une fois l'activation terminée.",
+        "preparingLive": "Une nouvelle version est en préparation. La version actuelle reste en production jusqu'à la bascule.",
+        "preparingNew": "Les déclencheurs et planifications sont en cours d'enregistrement. Le workflow sera en production une fois l'activation terminée.",
+        "failed": "Échec",
+        "preparationFailed": "Échec de la préparation du déploiement.",
+        "previousStillLive": "La version déployée précédemment est toujours en production.",
+        "remainsUndeployed": "Le workflow n'est toujours pas déployé.",
+        "updateDeployment": "Mettre à jour le déploiement",
+        "live": "En production"
+      }
+    },
+    "chat": {
+      "defaultWelcomeMessage": "Bonjour ! Comment puis-je vous aider aujourd'hui ?",
+      "errors": {
+        "identifierRequired": "L'identifiant est obligatoire",
+        "titleRequired": "Le titre est obligatoire",
+        "passwordRequired": "Un mot de passe est obligatoire avec la protection par mot de passe",
+        "passwordWhitespace": "Le mot de passe ne peut pas contenir uniquement des espaces",
+        "emailsRequired": "Au moins une adresse e-mail ou un domaine est requis pour le contrôle d'accès par e-mail",
+        "emailsRequiredSso": "Au moins une adresse e-mail ou un domaine est requis pour le contrôle d'accès SSO",
+        "outputRequired": "Sélectionnez au moins un bloc de sortie",
+        "identifierPending": "Veuillez patienter pendant la validation de l'identifiant",
+        "deleteFailed": "Une erreur inattendue est survenue lors de la suppression"
+      },
+      "title": "Titre",
+      "titlePlaceholder": "Assistant du support client",
+      "output": "Sortie",
+      "outputPlaceholder": "Sélectionnez les sorties de blocs à utiliser",
+      "includeThinking": "Inclure le raisonnement",
+      "includeToolCalls": "Inclure les appels d'outils",
+      "welcomeMessage": "Message d'accueil",
+      "welcomeMessagePlaceholder": "Saisissez un message d'accueil pour votre chat",
+      "welcomeMessageHint": "Ce message s'affiche lorsque les utilisateurs ouvrent le chat pour la première fois",
+      "passwordChange": {
+        "srTitle": "Modifier le mot de passe du déploiement",
+        "title": "Modifier le mot de passe du déploiement ?",
+        "text": "Voulez-vous vraiment modifier le mot de passe de ce déploiement ?",
+        "confirm": "Modifier le mot de passe et redéployer",
+        "pending": "Mise à jour..."
+      },
+      "deleteConfirm": {
+        "title": "Supprimer le chat",
+        "prefix": "Voulez-vous vraiment supprimer ",
+        "fallbackName": "ce chat",
+        "suffix": " ? ",
+        "warning": "Le chat disponible à l'adresse « {url} » sera supprimé et ne sera plus accessible à aucun utilisateur.",
+        "irreversible": " Cette action est irréversible.",
+        "confirm": "Supprimer",
+        "pending": "Suppression..."
+      },
+      "identifier": {
+        "invalidPattern": "L'identifiant ne peut contenir que des lettres minuscules, des chiffres et des tirets",
+        "inUse": "Cet identifiant est déjà utilisé",
+        "checkFailed": "Erreur lors de la vérification de la disponibilité de l'identifiant",
+        "available": "Nom disponible",
+        "liveAt": "En ligne sur :",
+        "hint": "Le chemin d'URL unique où votre chat sera accessible"
+      },
+      "auth": {
+        "accessControl": "Contrôle d'accès",
+        "types": {
+          "public": "Public",
+          "password": "Mot de passe",
+          "email": "E-mail",
+          "sso": "SSO"
+        },
+        "password": "Mot de passe",
+        "passwordPlaceholder": "Saisissez un mot de passe",
+        "passwordPlaceholderChange": "Saisissez un nouveau mot de passe pour le modifier",
+        "passwordHelperKeep": "Laissez vide pour conserver le mot de passe actuel",
+        "passwordHelperRequired": "Ce mot de passe sera requis pour accéder à votre chat",
+        "revealFailed": "Impossible de charger le mot de passe actuel",
+        "allowedEmails": "E-mails autorisés",
+        "allowedSsoEmails": "E-mails SSO autorisés",
+        "emailsPlaceholder": "Saisissez des e-mails ou des domaines",
+        "emailsPlaceholderWithTags": "Ajouter un e-mail ou un domaine"
+      }
+    },
+    "mcp": {
+      "toolNameTooLong": "Le nom de l'outil doit comporter {max} caractères au maximum",
+      "toolNameInvalid": "Utilisez des lettres minuscules et des chiffres, séparés par un seul tiret bas",
+      "selectServerToSave": "Sélectionnez un serveur pour enregistrer cet outil",
+      "errors": {
+        "addFailed": "Échec de l'ajout à {serverName}",
+        "removeFailed": "Échec du retrait de {serverName}",
+        "updateFailed": "Échec de la mise à jour sur {serverName}"
+      },
+      "selectServers": "Sélectionner des serveurs...",
+      "serverCount": "{count, plural, one {# serveur} other {# serveurs}}",
+      "serversSelected": "{count} serveurs sélectionnés",
+      "deployFirst": "Déployez d'abord votre workflow pour l'ajouter en tant qu'outil MCP.",
+      "emptyState": "Créez un serveur MCP pour exposer vos workflows en tant qu'outils.",
+      "createServer": "Créer un serveur MCP",
+      "toolName": "Nom de l'outil",
+      "toolNamePlaceholder": "ex. : book_flight",
+      "toolNameHint": "Utilisez uniquement des lettres minuscules, des chiffres et des tirets bas",
+      "description": "Description",
+      "descriptionDefault": "Par défaut, la description du workflow : {description}",
+      "descriptionPlaceholder": "Décrivez le rôle de cet outil...",
+      "parameters": "Paramètres ({count})",
+      "parametersHint": "Les descriptions reprennent par défaut les entrées de votre bloc Start ; modifiez-les pour les remplacer dans cet outil.",
+      "describeParameter": "Décrire {name}",
+      "servers": "Serveurs",
+      "searchServers": "Rechercher des serveurs...",
+      "enterToolName": "Saisissez un nom d'outil pour sélectionner des serveurs",
+      "fixToolName": "Corrigez le nom de l'outil pour sélectionner des serveurs"
+    },
+    "api": {
+      "language": "Langage",
+      "runWorkflow": "Exécuter le workflow",
+      "copyCommand": "Copier la commande",
+      "copied": "Copié",
+      "copy": "Copier",
+      "runWorkflowStream": "Exécuter le workflow (réponse en streaming)",
+      "selectOutputs": "Sélectionner les sorties",
+      "runWorkflowAsync": "Exécuter le workflow (asynchrone)",
+      "asyncExamples": {
+        "execute": "Lancer l'exécution",
+        "status": "Vérifier le statut",
+        "rateLimits": "Limites d'utilisation"
+      }
+    },
+    "general": {
+      "liveWorkflow": "Workflow en production",
+      "live": "En production",
+      "seePreview": "Voir l'aperçu",
+      "emptyPreview": "Déployez votre workflow pour en voir un aperçu",
+      "versions": "Versions",
+      "loadConfirm": {
+        "title": "Charger le déploiement",
+        "prefix": "Voulez-vous vraiment charger ",
+        "suffix": " ? ",
+        "warning": "Votre workflow actuel sera remplacé par la version déployée.",
+        "confirm": "Charger le déploiement"
+      },
+      "promoteConfirm": {
+        "title": "Mettre en production",
+        "prefix": "Voulez-vous vraiment mettre en production ",
+        "suffix": " ? Cette version deviendra le déploiement actif et traitera toutes les requêtes API."
+      },
+      "previewSrTitle": "Aperçu du workflow",
+      "previewDescription": "Aperçu visuel de la version sélectionnée du workflow."
+    },
+    "apiInfo": {
+      "saveFailed": "Échec de la mise à jour des paramètres d'accès",
+      "title": "Modifier les infos de l'API",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez le rôle de l'API de ce workflow...",
+      "access": "Accès",
+      "apiKey": "Clé API",
+      "public": "Public",
+      "publicHint": "Tout le monde peut appeler cette API sans authentification. Toute l'utilisation vous sera facturée.",
+      "apiKeyHint": "Une clé API valide est requise pour appeler ce point de terminaison.",
+      "parameters": "Paramètres ({count})",
+      "parameterPlaceholder": "Saisissez une description pour {name}",
+      "save": "Enregistrer",
+      "unsaved": {
+        "title": "Modifications non enregistrées",
+        "text": "Vous avez des modifications non enregistrées. Voulez-vous vraiment les abandonner ?",
+        "keepEditing": "Continuer la modification",
+        "discard": "Abandonner les modifications"
+      }
+    },
+    "compare": {
+      "draft": "Brouillon",
+      "liveLabel": "{label} (en production)",
+      "title": "Comparer",
+      "fromAriaLabel": "Comparer depuis {label}",
+      "toAriaLabel": "Comparer avec {label}"
+    },
+    "versionDescription": {
+      "title": "Description de la version",
+      "editFor": "Modifier la description de <version>{name}</version>",
+      "addFor": "Ajouter une description pour <version>{name}</version>",
+      "tooLong": "La description dépasse la limite de {max, number} caractères (actuellement {count, number})",
+      "placeholder": "Décrivez les modifications de cette version du déploiement...",
+      "generating": "Génération...",
+      "generate": "Générer",
+      "saving": "Enregistrement...",
+      "save": "Enregistrer",
+      "unsaved": {
+        "title": "Modifications non enregistrées",
+        "text": "Vous avez des modifications non enregistrées. Voulez-vous vraiment les abandonner ?",
+        "keepEditing": "Continuer la modification",
+        "discard": "Abandonner les modifications"
+      }
+    },
+    "versions": {
+      "empty": "Aucun déploiement pour le moment",
+      "columns": {
+        "version": "Version",
+        "deployedBy": "Déployé par",
+        "timestamp": "Date"
+      },
+      "status": {
+        "live": "En production",
+        "pending": "En attente",
+        "failed": "Échec",
+        "inactive": "Inactive"
+      },
+      "rowLabels": {
+        "live": "en production",
+        "pending": "en attente",
+        "failed": "échec",
+        "selected": "sélectionnée"
+      },
+      "unknown": "Inconnu",
+      "editDescription": "Modifier la description",
+      "addDescription": "Ajouter une description",
+      "actions": "Actions de la version",
+      "rename": "Renommer",
+      "compare": "Comparer",
+      "promoteToLive": "Mettre en production",
+      "loadDeployment": "Charger le déploiement"
+    }
+  },
+  "runPanels": {
+    "terminal": {
+      "panel": {
+        "terminal": "Terminal",
+        "resizeTerminal": "Redimensionner le terminal",
+        "logs": "Journaux",
+        "sortByTimestamp": "Trier par horodatage",
+        "sortByTime": "Trier par heure",
+        "componentPlayground": "Bac à sable des composants",
+        "exportConsoleCsv": "Exporter la console en CSV",
+        "exportCsv": "Exporter en CSV",
+        "clearConsole": "Vider la console",
+        "terminalOptions": "Options du terminal",
+        "openOnRun": "Ouvrir à l'exécution",
+        "noLogsYet": "Aucun journal pour le moment",
+        "iteration": "Itération {current}",
+        "iterationOfTotal": "Itération {current} / {total}",
+        "unknownError": "Erreur inconnue",
+        "unknownBlock": "Bloc inconnu",
+        "fixMessage": "{errorMessage}\n\nErreur dans {blockName}.\n\nVeuillez corriger ce problème."
+      },
+      "status": {
+        "running": "En cours",
+        "canceled": "annulé"
+      },
+      "toggleTerminal": "Afficher ou masquer le terminal",
+      "logRowMenu": {
+        "copyRunId": "Copier l'ID d'exécution",
+        "fixInChat": "Corriger dans le chat",
+        "filterByBlock": "Filtrer par bloc",
+        "filterByStatus": "Filtrer par statut",
+        "clearConsole": "Vider la console"
+      },
+      "outputMenu": {
+        "copySelection": "Copier la sélection",
+        "copyAll": "Tout copier",
+        "search": "Rechercher",
+        "structuredView": "Vue structurée",
+        "wrapText": "Retour à la ligne",
+        "openOnRun": "Ouvrir à l'exécution",
+        "clearConsole": "Vider la console"
+      },
+      "outputPanel": {
+        "resizeOutputPanel": "Redimensionner le panneau de sortie",
+        "backToLogs": "Retour aux journaux",
+        "showOutput": "Afficher la sortie",
+        "output": "Sortie",
+        "showInput": "Afficher l'entrée",
+        "input": "Entrée",
+        "closeSearch": "Fermer la recherche",
+        "searchInOutput": "Rechercher dans la sortie",
+        "search": "Rechercher",
+        "componentPlayground": "Bac à sable des composants",
+        "copyOutput": "Copier la sortie",
+        "copied": "Copié",
+        "exportConsoleCsv": "Exporter la console en CSV",
+        "exportCsv": "Exporter en CSV",
+        "clearConsole": "Vider la console",
+        "terminalOptions": "Options du terminal",
+        "structuredView": "Vue structurée",
+        "wrapText": "Retour à la ligne",
+        "openOnRun": "Ouvrir à l'exécution",
+        "searchPlaceholder": "Rechercher...",
+        "noResults": "Aucun résultat",
+        "previousMatch": "Résultat précédent",
+        "nextMatch": "Résultat suivant"
+      },
+      "structuredOutput": {
+        "running": "En cours",
+        "itemCount": "{count, plural, one {# élément} other {# éléments}}",
+        "keyCount": "{count, plural, one {# clé} other {# clés}}"
+      }
+    },
+    "chat": {
+      "dialogLabel": "Chat",
+      "title": "Chat",
+      "addInputsTitle": "Ajouter les entrées du chat au bloc Start",
+      "addInputs": "Ajouter des entrées",
+      "outputs": "Sorties",
+      "chatActions": "Actions du chat",
+      "export": "Exporter",
+      "clear": "Effacer",
+      "closeChat": "Fermer le chat",
+      "noMessagesYet": "Aucun message pour le moment",
+      "fileUploadError": "Erreur lors de l'envoi du fichier",
+      "dropFilesHere": "Déposez vos fichiers ici...",
+      "typeMessage": "Saisissez un message...",
+      "attachFile": "Joindre un fichier",
+      "stopGeneration": "Arrêter la génération",
+      "sendMessage": "Envoyer le message",
+      "removeFile": "Retirer le fichier",
+      "executionFailed": "L'exécution du workflow a échoué",
+      "executionFailedSentence": "L'exécution du workflow a échoué.",
+      "errorMessage": "Erreur : {message}",
+      "fileTooLarge": "{name} est trop volumineux (10 Mo max.)",
+      "fileAlreadyAdded": "{name} a déjà été ajouté",
+      "outputSelect": {
+        "selectOutputs": "Sélectionner des sorties",
+        "selectedCount": "{count, plural, one {# sortie} other {# sorties}}",
+        "outputs": "Sorties",
+        "back": "Retour"
+      }
+    },
+    "variables": {
+      "dialogLabel": "Variables",
+      "title": "Variables",
+      "addVariable": "Ajouter une variable",
+      "closePanel": "Fermer le panneau des variables",
+      "emptyState": "Aucune variable pour le moment",
+      "fallbackName": "Variable {index}",
+      "deleteNamed": "Supprimer {name}",
+      "deleteIndexed": "Supprimer la variable {index}",
+      "deleteVariable": "Supprimer la variable",
+      "labels": {
+        "name": "Nom",
+        "type": "Type",
+        "value": "Valeur"
+      },
+      "placeholders": {
+        "plain": "Valeur en texte brut"
+      },
+      "types": {
+        "plain": "Texte",
+        "number": "Nombre",
+        "boolean": "Booléen",
+        "object": "Objet",
+        "array": "Tableau"
+      },
+      "errors": {
+        "emptyName": "Le nom de la variable ne peut pas être vide",
+        "duplicateName": "Deux variables ne peuvent pas avoir le même nom"
+      }
+    }
+  },
+  "subBlock": {
+    "slackSetupWizard": {
+      "launcher": "Configurer l'application Slack",
+      "steps": {
+        "configure": "Configurez votre bot",
+        "create": "Créez l'application dans Slack",
+        "token": "Installez l'application et collez le Bot Token",
+        "secret": "Collez votre Signing Secret",
+        "done": "Enregistrez et vérifiez la Request URL"
+      },
+      "botName": "Nom du bot",
+      "groups": {
+        "trigger": "Déclencheurs",
+        "action": "Actions"
+      },
+      "create": {
+        "openSlack": "Ouvrez Slack avec votre manifeste déjà prérempli :",
+        "loadingWebhook": "Chargement de l'URL du webhook…",
+        "webhookUnavailable": "URL du webhook indisponible. Rechargez le workflow et réessayez.",
+        "selectWorkspace": "Sélectionnez votre espace de travail, vérifiez la configuration, puis cliquez sur <strong>Create</strong>."
+      },
+      "secret": {
+        "openBasicInfo": "Dans votre nouvelle application Slack, ouvrez <strong>Basic Information</strong>.",
+        "findSecret": "Repérez <strong>Signing Secret</strong>, cliquez sur <strong>Show</strong>, puis copiez-le.",
+        "placeholder": "Collez votre Signing Secret"
+      },
+      "token": {
+        "install": "Dans Slack, ouvrez <strong>OAuth & Permissions</strong> → <strong>Install to Workspace</strong> et autorisez l'application.",
+        "copy": "Copiez le <strong>Bot User OAuth Token</strong> (commence par <code>xoxb-</code>)."
+      },
+      "pasteBelow": "Collez-le dans le champ ci-dessous.",
+      "signingSecret": "Signing Secret",
+      "botToken": "Bot Token",
+      "done": {
+        "instructions": "Cliquez sur Terminer, puis enregistrez et déployez le workflow avec ces identifiants. Dans Slack, ouvrez App Manifest et vérifiez la Request URL des événements avant d'utiliser le déclencheur.",
+        "notSaved": "(pas encore enregistré)"
+      },
+      "wizard": {
+        "back": "Retour",
+        "next": "Suivant",
+        "done": "Terminer",
+        "description": "Assistant en plusieurs étapes"
+      }
+    },
+    "toolInput": {
+      "deploying": "Déploiement...",
+      "undeployed": "non déployé",
+      "redeploy": "redéployer",
+      "adminRequired": "Autorisation administrateur requise pour déployer",
+      "clickToDeploy": "Cliquez pour déployer",
+      "clickToRedeploy": "Cliquez pour redéployer",
+      "unavailable": "Indisponible",
+      "customToolsUnsupported": "Les outils personnalisés ne sont pas encore pris en charge par ce bloc",
+      "mcpToolsUnsupported": "Les outils MCP ne sont pas encore pris en charge par ce bloc",
+      "advancedMcpServerIdDescription": "ID du serveur MCP ou de la connexion gérée, ou référence amont",
+      "unknownServer": "Serveur inconnu",
+      "back": "Retour",
+      "configureOperationsAccess": "Configurer l'accès aux opérations",
+      "createTool": "Créer un outil",
+      "addMcpServer": "Ajouter un serveur MCP",
+      "sections": {
+        "customTools": "Outils personnalisés",
+        "mcpServers": "Serveurs MCP",
+        "builtInTools": "Outils intégrés",
+        "integrations": "Intégrations",
+        "workflows": "Workflows",
+        "advanced": "Avancé"
+      },
+      "serverWithToolCount": "{server} ({count, plural, one {# outil} other {# outils}})",
+      "mcpServerAdvanced": "Serveur MCP (avancé)",
+      "mcpServer": "Serveur MCP",
+      "addTool": "Ajouter un outil...",
+      "searchTools": "Rechercher des outils...",
+      "noToolsFound": "Aucun outil trouvé",
+      "unknownTool": "Outil inconnu",
+      "mcpIssueStale": "obsolète",
+      "mcpIssueUnavailable": "indisponible",
+      "mcpIssueTooltip": "{message} : cliquez pour ouvrir les paramètres",
+      "editCustomTool": "Modifier l'outil personnalisé",
+      "removeTool": "Retirer l'outil",
+      "remove": "Retirer",
+      "removeAllFromServer": "Tout retirer de {server}",
+      "serverFallback": "ce serveur",
+      "operation": "Opération",
+      "selectOperation": "Sélectionner une opération",
+      "usageControl": {
+        "switchToSelector": "Passer au sélecteur",
+        "switchToVariable": "Passer à une variable",
+        "permissionMode": "Mode d'autorisation",
+        "expressionPlaceholder": "\"auto\", \"force\" ou \"none\"",
+        "notSupported": "(non pris en charge par le modèle)",
+        "modes": {
+          "auto": {
+            "label": "Auto",
+            "hint": "(le modèle décide)"
+          },
+          "force": {
+            "label": "Forcé",
+            "hint": "(toujours utiliser)"
+          },
+          "none": {
+            "label": "Aucun",
+            "hint": "(désactiver l'outil)"
+          }
+        }
+      },
+      "customToolModal": {
+        "tabs": {
+          "schema": "Schéma",
+          "code": "Code"
+        },
+        "loadError": "Impossible de charger les données de l'outil. Veuillez réessayer.",
+        "schemaEmpty": "Le schéma ne peut pas être vide",
+        "saveError": "Impossible d'enregistrer l'outil personnalisé",
+        "deleteErrorTitle": "Impossible de supprimer l'outil",
+        "deleteErrorDescription": "Veuillez réessayer dans un instant.",
+        "editTitle": "Modifier l'outil d'agent",
+        "createTitle": "Créer un outil d'agent",
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "next": "Suivant",
+        "back": "Retour",
+        "updateTool": "Mettre à jour l'outil",
+        "saveTool": "Enregistrer l'outil",
+        "deleteTitle": "Supprimer l'outil personnalisé",
+        "deleting": "Suppression...",
+        "unsavedTitle": "Modifications non enregistrées",
+        "unsavedText": "Vous avez des modifications non enregistrées. Voulez-vous vraiment les abandonner ?",
+        "keepEditing": "Continuer l'édition",
+        "discardChanges": "Abandonner les modifications"
+      }
+    },
+    "modelFallbackList": {
+      "choice": "{n}e choix",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "removeAria": "Retirer le modèle de secours",
+      "remove": "Retirer",
+      "selectModel": "Sélectionner un modèle",
+      "modelAria": "Modèle du {choice}",
+      "searchModels": "Rechercher des modèles...",
+      "noModels": "Aucun modèle disponible",
+      "apiKey": "Clé API",
+      "selectSecret": "Sélectionner un secret",
+      "apiKeyAria": "Clé API du {choice}",
+      "searchSecrets": "Rechercher des secrets...",
+      "noSecrets": "Aucun secret",
+      "tuning": {
+        "reasoningEffort": {
+          "label": "Effort de raisonnement",
+          "placeholder": "Sélectionner l'effort de raisonnement",
+          "aria": "Effort de raisonnement du {choice}"
+        },
+        "thinkingLevel": {
+          "label": "Niveau de réflexion",
+          "placeholder": "Sélectionner le niveau de réflexion",
+          "aria": "Niveau de réflexion du {choice}"
+        },
+        "verbosity": {
+          "label": "Verbosité",
+          "placeholder": "Sélectionner la verbosité",
+          "aria": "Verbosité du {choice}"
+        }
+      },
+      "createSecret": "Créer un secret",
+      "add": "Ajouter un modèle de secours"
+    },
+    "inputFormat": {
+      "fieldTitle": "Champ",
+      "inputTitle": "Entrée",
+      "defaultValuePlaceholder": "Saisir une valeur par défaut",
+      "returnValuePlaceholder": "Saisir la valeur de retour",
+      "descriptionPlaceholder": "Décrivez ce champ",
+      "types": {
+        "string": "Chaîne",
+        "number": "Nombre",
+        "boolean": "Booléen",
+        "object": "Objet",
+        "array": "Tableau",
+        "files": "Fichiers"
+      },
+      "switchToJson": "Passer en JSON",
+      "switchToUploader": "Passer à l'import de fichiers",
+      "itemTitle": "{title} {number}",
+      "addItemSr": "Ajouter : {title}",
+      "deleteFieldSr": "Supprimer le champ",
+      "selectValue": "Sélectionner une valeur",
+      "name": "Nom",
+      "type": "Type",
+      "description": "Description",
+      "value": "Valeur"
+    },
+    "variablesInput": {
+      "emptyTitle": "Aucune affectation de variable définie",
+      "emptyDescription": "Ajoutez des variables dans le panneau Variables pour commencer",
+      "noVariables": "Aucune variable disponible",
+      "variableTitle": "Variable {number}",
+      "addVariableSr": "Ajouter une variable",
+      "deleteVariableSr": "Supprimer la variable",
+      "variable": "Variable",
+      "selectVariable": "Sélectionner une variable...",
+      "value": "Valeur",
+      "switchToSelector": "Passer au sélecteur",
+      "switchToManual": "Passer à la saisie manuelle",
+      "selectValue": "Sélectionner une valeur",
+      "typedValue": "Valeur {type}"
+    },
+    "filterBuilder": {
+      "addCondition": "Ajouter une condition de filtre",
+      "conditionTitle": "Condition {number}",
+      "addConditionSr": "Ajouter une condition",
+      "deleteConditionSr": "Supprimer la condition",
+      "enterValue": "Saisir une valeur",
+      "logic": "Logique",
+      "column": "Colonne",
+      "selectColumn": "Sélectionner une colonne",
+      "operator": "Opérateur",
+      "selectOperator": "Sélectionner un opérateur",
+      "value": "Valeur",
+      "operators": {
+        "eq": "est égal à",
+        "ne": "est différent de",
+        "contains": "contient",
+        "ncontains": "ne contient pas",
+        "startsWith": "commence par",
+        "endsWith": "se termine par",
+        "gt": "supérieur à",
+        "gte": "supérieur ou égal à",
+        "lt": "inférieur à",
+        "lte": "inférieur ou égal à",
+        "in": "dans la liste",
+        "nin": "hors de la liste",
+        "isEmpty": "est vide",
+        "isNotEmpty": "n'est pas vide"
+      },
+      "logicalOperators": {
+        "and": "et",
+        "or": "ou"
+      }
+    },
+    "conditionInput": {
+      "loading": "Chargement des conditions…",
+      "routeTitle": "Route {number}",
+      "addBlock": "Ajouter un bloc",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "deleteBlock": "Supprimer le bloc",
+      "deleteRoute": "Supprimer la route",
+      "deleteCondition": "Supprimer la condition",
+      "routeDescriptionPlaceholder": "Décrivez quand cette route doit être empruntée..."
+    },
+    "knowledgeTagFilters": {
+      "title": "Filtres par tag",
+      "appliedCount": "{count, plural, one {# filtre appliqué} other {# filtres appliqués}}",
+      "noFilters": "Aucun filtre",
+      "filterTitle": "Filtre {number}",
+      "fieldTypes": {
+        "text": "Texte",
+        "number": "Nombre",
+        "date": "Date",
+        "boolean": "Booléen"
+      },
+      "addFilterSr": "Ajouter un filtre",
+      "deleteFilterSr": "Supprimer le filtre",
+      "placeholders": {
+        "text": "Saisir une valeur",
+        "number": "Saisir un nombre",
+        "date": "AAAA-MM-JJ",
+        "boolean": "true ou false"
+      },
+      "operators": {
+        "text": {
+          "eq": "est égal à",
+          "neq": "est différent de",
+          "contains": "contient",
+          "not_contains": "ne contient pas",
+          "starts_with": "commence par",
+          "ends_with": "se termine par"
+        },
+        "number": {
+          "eq": "est égal à",
+          "neq": "est différent de",
+          "gt": "supérieur à",
+          "gte": "supérieur ou égal à",
+          "lt": "inférieur à",
+          "lte": "inférieur ou égal à",
+          "between": "entre"
+        },
+        "date": {
+          "eq": "est le",
+          "neq": "n'est pas le",
+          "gt": "après le",
+          "gte": "le ou après le",
+          "lt": "avant le",
+          "lte": "le ou avant le",
+          "between": "entre"
+        },
+        "boolean": {
+          "eq": "est",
+          "neq": "n'est pas"
+        }
+      },
+      "tag": "Tag",
+      "selectTag": "Sélectionner un tag",
+      "operator": "Opérateur",
+      "selectOperator": "Sélectionner un opérateur",
+      "value": "Valeur",
+      "rangeTo": "à"
+    },
+    "documentTagEntry": {
+      "title": "Tags du document",
+      "configuredCount": "{count, plural, one {# tag configuré} other {# tags configurés}}",
+      "noTags": "Aucun tag",
+      "emptyTitle": "Aucun tag défini pour cette base de connaissances",
+      "emptyDescription": "Définissez d'abord des tags au niveau de la base de connaissances",
+      "tagTitle": "Tag {number}",
+      "fieldTypes": {
+        "text": "Texte",
+        "number": "Nombre",
+        "date": "Date",
+        "boolean": "Booléen"
+      },
+      "addTagSr": "Ajouter un tag",
+      "deleteTagSr": "Supprimer le tag",
+      "placeholders": {
+        "text": "Saisir une valeur",
+        "number": "Saisir un nombre",
+        "date": "AAAA-MM-JJ",
+        "boolean": "true ou false"
+      },
+      "tag": "Tag",
+      "selectTag": "Sélectionner un tag",
+      "value": "Valeur"
+    },
+    "sortBuilder": {
+      "addSort": "Ajouter un tri",
+      "sortTitle": "Tri {number}",
+      "addSortSr": "Ajouter un tri",
+      "deleteSortSr": "Supprimer le tri",
+      "column": "Colonne",
+      "selectColumn": "Sélectionner une colonne",
+      "direction": "Ordre",
+      "selectDirection": "Sélectionner un ordre",
+      "directions": {
+        "asc": "croissant",
+        "desc": "décroissant"
+      }
+    },
+    "common": {
+      "invalidJson": "JSON invalide",
+      "copyValue": "Copier la valeur",
+      "copied": "Copié !",
+      "copy": "Copier",
+      "generate": "Générer",
+      "generating": "Génération...",
+      "generateWithAiPlaceholder": "Générer avec l'IA...",
+      "switchToSelector": "Passer au sélecteur",
+      "switchToManualId": "Passer à la saisie manuelle de l'ID",
+      "viewTable": "Voir la table",
+      "viewKnowledgeBase": "Voir la base de connaissances",
+      "describeToGenerate": "Décrivez ce que vous souhaitez générer...",
+      "generateContentWithAi": "Générer du contenu avec l'IA",
+      "failedToLoadFolders": "Impossible de charger les dossiers",
+      "failedToFetchOptions": "Impossible de récupérer les options"
+    },
+    "code": {
+      "writeJavascript": "Écrivez du JavaScript...",
+      "writePython": "Écrivez du Python...",
+      "writeShell": "Écrivez des commandes shell...",
+      "describeJsonSchema": "Décrivez le schéma JSON à générer...",
+      "describeJsonObject": "Décrivez l'objet JSON à générer...",
+      "describeJavascript": "Décrivez le code JavaScript à générer...",
+      "describePython": "Décrivez le script Python à créer...",
+      "describeShell": "Décrivez les commandes shell à exécuter...",
+      "copyCode": "Copier le code",
+      "generateWithAi": "Générer du code avec l'IA"
+    },
+    "envVarDropdown": {
+      "workspace": "Espace de travail",
+      "personal": "Personnel",
+      "createSecret": "Créer un secret"
+    },
+    "evalInput": {
+      "metricTitle": "Métrique {number}",
+      "addMetric": "Ajouter une métrique",
+      "deleteMetric": "Supprimer la métrique",
+      "name": "Nom",
+      "namePlaceholder": "Précision",
+      "description": "Description",
+      "descriptionPlaceholder": "Quelle est la précision de la réponse ?",
+      "minValue": "Valeur min.",
+      "maxValue": "Valeur max."
+    },
+    "fileUpload": {
+      "loadingFiles": "Chargement des fichiers...",
+      "selectOrUpload": "Sélectionnez ou importez un fichier",
+      "removeFile": "Retirer le fichier",
+      "fileTooLarge": "{name} dépasse la taille maximale autorisée ({size} Mo)",
+      "unknownError": "Erreur inconnue",
+      "uploadNewFile": "Importer un nouveau fichier",
+      "cloudStorageRequired": "Un stockage cloud (S3 ou Blob) est requis pour importer des fichiers. Configurez S3_BUCKET_NAME et AWS_REGION, ou les variables d'environnement Azure Blob.",
+      "folderScopeUploadBlocked": "Choisissez un dossier disponible pour importer un nouveau fichier. Les fichiers existants restent sélectionnables.",
+      "uploading": "Importation...",
+      "uploadComplete": "Importation terminée !",
+      "addMore": "+ Ajouter"
+    },
+    "groupedCheckboxList": {
+      "noneSelected": "Aucune sélection",
+      "allSelected": "Tout sélectionné",
+      "countSelected": "{count, plural, one {# sélectionné} other {# sélectionnés}}",
+      "otherGroup": "Autres",
+      "configurePiiTypes": "Configurer les types de données personnelles",
+      "selectPiiTypes": "Sélectionnez les types de données personnelles à détecter",
+      "piiTypes": "Types de données personnelles",
+      "piiTypesHint": "Choisissez les types de données personnelles identifiables à détecter et à bloquer.",
+      "selectAllEntities": "Sélectionner toutes les entités",
+      "clear": "Effacer"
+    },
+    "inputMapping": {
+      "noWorkflowSelected": "Aucun workflow sélectionné",
+      "selectWorkflowAbove": "Sélectionnez un workflow ci-dessus pour configurer ses entrées",
+      "loadingField": "chargement...",
+      "noInputsAvailable": "Aucune entrée disponible",
+      "value": "Valeur",
+      "valuePlaceholder": "Saisissez une valeur ou une référence"
+    },
+    "knowledgeBaseSelector": {
+      "selectMultiple": "Sélectionnez des bases de connaissances",
+      "selectSingle": "Sélectionnez une base de connaissances",
+      "remove": "Retirer {name}",
+      "searchPlaceholder": "Rechercher des bases de connaissances...",
+      "memberScopedNotice": "Les documents synchronisés par membre ne sont renvoyés que si la personne qui lance l'exécution a connecté son compte. Les exécutions planifiées, par API, webhook et chat ne voient que les documents visibles par tout l'espace de travail."
+    },
+    "mcpDynamicArgs": {
+      "enterJsonArray": "Saisissez un tableau JSON, par ex. [\"item1\", \"item2\"], ou des valeurs séparées par des virgules",
+      "enterParam": "Saisissez {name}",
+      "selectParam": "Sélectionnez {name}",
+      "jsonArguments": "Arguments JSON",
+      "jsonArgumentsPlaceholder": "Arguments JSON ou référence à un bloc précédent",
+      "selectTool": "Sélectionnez un outil pour configurer ses paramètres",
+      "loadingSchema": "Chargement du schéma de l'outil…",
+      "schemaUnavailable": "Schéma de l'opération indisponible. Actualisez ou sélectionnez une opération disponible.",
+      "noParameters": "Cet outil ne requiert aucun paramètre"
+    },
+    "mcpServerModal": {
+      "selectServer": "Sélectionnez un serveur MCP",
+      "selectTool": "Sélectionnez un outil",
+      "selectServerFirst": "Sélectionnez d'abord un serveur"
+    },
+    "messagesInput": {
+      "roles": {
+        "system": "Système",
+        "user": "Utilisateur",
+        "assistant": "Assistant"
+      },
+      "messageNumber": "Message {number}",
+      "selectRole": "Sélectionner le rôle du message",
+      "deleteMessage": "Supprimer le message",
+      "moveUp": "Monter le message",
+      "moveDown": "Descendre le message",
+      "addBelow": "Ajouter un message en dessous",
+      "contentPlaceholder": "Saisissez le contenu du message..."
+    },
+    "scheduleInfo": {
+      "redeploying": "redéploiement...",
+      "disabled": "désactivé",
+      "failedCount": "{count, plural, one {# échec} other {# échecs}}",
+      "disabledAfterFailures": "Désactivé après {count} échecs consécutifs",
+      "redeployFailed": "Échec du redéploiement. Veuillez réessayer.",
+      "next": "Prochaine exécution :"
+    },
+    "selectorCombobox": {
+      "selectChannels": "Sélectionnez des canaux",
+      "remove": "Retirer {name}",
+      "selectOption": "Sélectionnez une option",
+      "clearSelection": "Effacer la sélection"
+    },
+    "skillInput": {
+      "createSkill": "Créer une compétence",
+      "skillsSection": "Compétences",
+      "addSkill": "Ajouter une compétence...",
+      "searchSkills": "Rechercher des compétences...",
+      "noSkillsFound": "Aucune compétence trouvée",
+      "removeSkill": "Retirer la compétence"
+    },
+    "table": {
+      "deleteRow": "Supprimer la ligne"
+    },
+    "workflowInputMapper": {
+      "selectWorkflow": "Sélectionnez un workflow pour configurer ses entrées",
+      "noInputFields": "Ce workflow n'a aucun champ d'entrée personnalisé",
+      "enterField": "Saisissez {name}",
+      "enterFieldWithType": "Saisissez {name} ({type})"
+    },
+    "tagDropdown": {
+      "back": "Retour",
+      "noMatchingTags": "Aucune balise correspondante",
+      "variables": "Variables"
+    },
+    "credentialSelector": {
+      "selectCredential": "Sélectionnez un identifiant",
+      "addProviderKey": "Ajouter une clé {provider}",
+      "connectAnotherAccount": "Connecter un autre compte {provider}",
+      "connectAccount": "Connecter un compte {provider}",
+      "providerAccounts": "Comptes {provider}",
+      "serviceAccounts": "Comptes de service",
+      "fillRequiredFieldsFirst": "Renseignez d'abord les champs obligatoires ci-dessus",
+      "searchCredentials": "Rechercher des identifiants...",
+      "dataverse": {
+        "updateAccess": "Mettre à jour l'accès",
+        "connectMatchingAccount": "Connecter le compte correspondant",
+        "additionalPermissionsRequired": "Autorisations supplémentaires requises",
+        "invalidEnvironment": "Saisissez un environnement Dynamics valide avant de sélectionner un identifiant",
+        "credentialNotConnectedToEnvironment": "Cet identifiant n'est pas connecté à cet environnement Dynamics"
+      }
+    },
+    "combobox": {
+      "createSandbox": "Créer une sandbox",
+      "typeOrSelect": "Saisissez ou sélectionnez une option..."
+    },
+    "dropdown": {
+      "selectOption": "Sélectionnez une option...",
+      "search": "Rechercher..."
+    },
+    "timeInput": {
+      "selectTime": "Sélectionnez une heure"
+    },
+    "tableSelector": {
+      "selectTable": "Sélectionnez une table",
+      "search": "Rechercher..."
+    },
+    "selectorInput": {
+      "notSupported": "Sélecteur non pris en charge pour le service : {serviceId}",
+      "notImplemented": "Ce sélecteur n'est pas disponible pour {serviceId}",
+      "selectResource": "Sélectionnez une ressource"
+    },
+    "workflowSelector": {
+      "selectWorkflow": "Sélectionnez un workflow...",
+      "deletedWorkflow": "Workflow supprimé"
+    },
+    "workspaceFolderSelector": {
+      "workspaceRoot": "Racine de l'espace de travail",
+      "anywhere": "N'importe où dans l'espace de travail",
+      "searchFolders": "Rechercher des dossiers...",
+      "noFoldersFound": "Aucun dossier trouvé"
+    }
+  },
+  "panelEditor": {
+    "title": "Éditeur",
+    "unlockBlock": "Déverrouiller le bloc",
+    "ancestorLocked": "Un conteneur parent est verrouillé",
+    "blockLocked": "Le bloc est verrouillé",
+    "saveName": "Enregistrer le nom",
+    "renameBlock": "Renommer le bloc",
+    "focusOnBlock": "Centrer sur le bloc",
+    "openDocumentation": "Ouvrir la documentation",
+    "openDocs": "Ouvrir la documentation",
+    "selectBlockToEdit": "Sélectionnez un bloc à modifier",
+    "workflowPreview": "Aperçu du workflow",
+    "openWorkflow": "Ouvrir le workflow",
+    "unableToLoadPreview": "Impossible de charger l'aperçu",
+    "noSubblocks": "Ce bloc n'a aucun champ",
+    "hideAdditionalFields": "Masquer les champs supplémentaires",
+    "showAdditionalFields": "Afficher les champs supplémentaires",
+    "additionalFields": "Champs supplémentaires",
+    "expandConnections": "Déplier les connexions",
+    "collapseConnections": "Replier les connexions",
+    "connections": "Connexions",
+    "subflow": {
+      "types": {
+        "forLoop": "Boucle For",
+        "forEach": "Boucle For Each",
+        "whileLoop": "Boucle While",
+        "doWhileLoop": "Boucle Do While",
+        "parallelCount": "Parallèle par nombre",
+        "parallelEach": "Parallèle par élément"
+      },
+      "loopType": "Type de boucle",
+      "parallelType": "Type de parallèle",
+      "selectType": "Sélectionnez un type...",
+      "loopIterations": "Itérations de la boucle",
+      "parallelIterations": "Itérations parallèles",
+      "whileCondition": "Condition While",
+      "collectionItems": "Éléments de la collection",
+      "parallelItems": "Éléments parallèles",
+      "wholeNumberHint": "Saisissez un nombre entier supérieur à 0.",
+      "parallelBatchSize": "Taille de lot parallèle",
+      "batchSizeHint": "Exécute de 1 à 20 branches parallèles à la fois."
+    },
+    "retry": {
+      "retryOnFail": "Réessayer en cas d'échec",
+      "maxTries": "Nombre maximal de tentatives",
+      "waitBetweenTries": "Délai entre les tentatives (ms)"
+    }
+  }
+}

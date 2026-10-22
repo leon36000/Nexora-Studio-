@@ -30,6 +30,7 @@ import {
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
+import { useTranslations } from 'next-intl'
 import { BUBBLE_MENU_CLASS } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/menus/bubble-menu-chrome'
 import {
   applyLink,
@@ -134,6 +135,7 @@ export function EditorBubbleMenu({
   scrollContainerRef,
   onAddToChat,
 }: EditorBubbleMenuProps) {
+  const t = useTranslations('files.editor.bubbleMenu')
   const [linkValue, setLinkValue] = useState<string | null>(null)
   const linkInputRef = useRef<HTMLInputElement>(null)
   const linkSelectionRef = useRef<LinkSelection | null>(null)
@@ -346,7 +348,7 @@ export function EditorBubbleMenu({
       <div
         {...toolbar}
         role={isEditingLink ? 'group' : 'toolbar'}
-        aria-label={isEditingLink ? 'Link editing' : 'Text formatting'}
+        aria-label={isEditingLink ? t('linkEditing') : t('textFormatting')}
         className='flex items-center gap-0.5'
       >
         {isEditingLink ? (
@@ -359,9 +361,9 @@ export function EditorBubbleMenu({
               onCancel={cancelLink}
             />
             {active.link && (
-              <ToolbarButton icon={Unlink} label='Remove link' onClick={removeLink} />
+              <ToolbarButton icon={Unlink} label={t('removeLink')} onClick={removeLink} />
             )}
-            <ToolbarButton icon={Check} label='Apply link' onClick={commitLink} />
+            <ToolbarButton icon={Check} label={t('applyLink')} onClick={commitLink} />
           </>
         ) : (
           <>
@@ -370,7 +372,7 @@ export function EditorBubbleMenu({
                 <ToolbarButton
                   icon={Blimp}
                   iconSize='compact'
-                  label='Add to Chat'
+                  label={t('addToChat')}
                   onClick={onAddToChat}
                 />
                 <ToolbarDivider />
@@ -378,12 +380,12 @@ export function EditorBubbleMenu({
             )}
             <ToolbarMenu
               editor={editor}
-              label='Text style'
-              value='Style'
+              label={t('textStyle')}
+              value={t('style')}
               items={[
                 {
                   icon: Pilcrow,
-                  label: 'Text',
+                  label: t('text'),
                   active: active.text,
                   disabled: !active.canText,
                   onSelect: () => {
@@ -394,7 +396,7 @@ export function EditorBubbleMenu({
                 },
                 {
                   icon: Heading1,
-                  label: 'Heading 1',
+                  label: t('heading1'),
                   shortcut: '⌘⌥1',
                   active: active.heading1,
                   disabled: !active.canHeading1,
@@ -402,7 +404,7 @@ export function EditorBubbleMenu({
                 },
                 {
                   icon: Heading2,
-                  label: 'Heading 2',
+                  label: t('heading2'),
                   shortcut: '⌘⌥2',
                   active: active.heading2,
                   disabled: !active.canHeading2,
@@ -410,7 +412,7 @@ export function EditorBubbleMenu({
                 },
                 {
                   icon: Heading3,
-                  label: 'Heading 3',
+                  label: t('heading3'),
                   shortcut: '⌘⌥3',
                   active: active.heading3,
                   disabled: !active.canHeading3,
@@ -418,7 +420,7 @@ export function EditorBubbleMenu({
                 },
                 {
                   icon: List,
-                  label: 'Bulleted list',
+                  label: t('bulletedList'),
                   shortcut: '⌘⇧8',
                   active: active.bulletList,
                   disabled: !active.canBulletList,
@@ -426,7 +428,7 @@ export function EditorBubbleMenu({
                 },
                 {
                   icon: ListOrdered,
-                  label: 'Numbered list',
+                  label: t('numberedList'),
                   shortcut: '⌘⇧7',
                   active: active.orderedList,
                   disabled: !active.canOrderedList,
@@ -434,7 +436,7 @@ export function EditorBubbleMenu({
                 },
                 {
                   icon: ListChecks,
-                  label: 'Checklist',
+                  label: t('checklist'),
                   shortcut: '⌘⇧9',
                   active: active.taskList,
                   disabled: !active.canTaskList,
@@ -442,7 +444,7 @@ export function EditorBubbleMenu({
                 },
                 {
                   icon: TextQuote,
-                  label: 'Quote',
+                  label: t('quote'),
                   shortcut: '⌘⇧B',
                   active: active.blockquote,
                   disabled: !active.canBlockquote,
@@ -452,47 +454,47 @@ export function EditorBubbleMenu({
             />
             <ToolbarButton
               icon={Bold}
-              label='Bold'
+              label={t('bold')}
               shortcut='⌘B'
               isActive={active.bold}
               onClick={() => editor.chain().focus().toggleBold().run()}
             />
             <ToolbarButton
               icon={Italic}
-              label='Italic'
+              label={t('italic')}
               shortcut='⌘I'
               isActive={active.italic}
               onClick={() => editor.chain().focus().toggleItalic().run()}
             />
             <ToolbarButton
               icon={LinkIcon}
-              label='Link'
+              label={t('link')}
               shortcut='⌘K'
               isActive={active.link}
               onClick={openLinkEditor}
             />
             <ToolbarMenu
               editor={editor}
-              label='More formatting'
+              label={t('moreFormatting')}
               active={active.strike || active.highlight || active.code}
               items={[
                 {
                   icon: Strikethrough,
-                  label: 'Strikethrough',
+                  label: t('strikethrough'),
                   shortcut: '⌘⇧S',
                   active: active.strike,
                   onSelect: () => editor.chain().focus().toggleStrike().run(),
                 },
                 {
                   icon: Highlighter,
-                  label: 'Highlight',
+                  label: t('highlight'),
                   shortcut: '⌘⇧H',
                   active: active.highlight,
                   onSelect: () => editor.chain().focus().toggleMark('highlight').run(),
                 },
                 {
                   icon: Code,
-                  label: 'Code',
+                  label: t('code'),
                   shortcut: '⌘E',
                   active: active.code,
                   onSelect: () => editor.chain().focus().toggleCode().run(),

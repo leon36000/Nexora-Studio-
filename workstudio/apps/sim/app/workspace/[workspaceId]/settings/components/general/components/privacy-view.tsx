@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Label, Switch, toast } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import {
   getBrowserTelemetryPreference,
@@ -26,6 +27,7 @@ interface PrivacyViewProps {
  * only deployment that sets them.
  */
 export function PrivacyView({ onBack }: PrivacyViewProps) {
+  const t = useTranslations('settings.general.privacy')
   const { data: settings } = useGeneralSettings()
   const updateSetting = useUpdateGeneralSetting()
   const { hosted } = useDeploymentShape()
@@ -40,20 +42,20 @@ export function PrivacyView({ onBack }: PrivacyViewProps) {
       setBrowserTelemetryPreference(checked)
     } catch (error) {
       setBrowserTelemetryPreference(previous)
-      toast.error(getErrorMessage(error, 'Could not save your telemetry preference'))
+      toast.error(getErrorMessage(error, t('telemetrySaveFailed')))
     }
   }
 
   return (
     <SettingsPanel
-      back={{ text: 'General', icon: ArrowLeft, onSelect: onBack }}
-      title='Privacy'
-      description='Control what Nexora collects about how you use it.'
+      back={{ text: t('back'), icon: ArrowLeft, onSelect: onBack }}
+      title={t('title')}
+      description={t('description')}
     >
-      <SettingsSection label='Telemetry'>
+      <SettingsSection label={t('telemetry')}>
         <div className='flex flex-col gap-3'>
           <div className='flex items-center justify-between'>
-            <Label htmlFor='telemetry'>Allow browser telemetry</Label>
+            <Label htmlFor='telemetry'>{t('allowTelemetry')}</Label>
             <Switch
               id='telemetry'
               checked={settings?.telemetryEnabled ?? true}
@@ -61,10 +63,7 @@ export function PrivacyView({ onBack }: PrivacyViewProps) {
               onCheckedChange={handleTelemetryToggle}
             />
           </div>
-          <p className='text-[var(--text-muted)] text-small'>
-            Share browser performance and error diagnostics to improve Nexora. You can opt out at any
-            time. This does not control server operational logs.
-          </p>
+          <p className='text-[var(--text-muted)] text-small'>{t('telemetryHint')}</p>
         </div>
       </SettingsSection>
 

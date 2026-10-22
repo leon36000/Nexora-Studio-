@@ -100,7 +100,7 @@ export const PptxSandboxHost = memo(function PptxSandboxHost({
         // Aborted means a newer render superseded this one — don't report.
         if (controller.signal.aborted) return
 
-        const message = toError(error).message || 'Failed to render presentation'
+        const message = toError(error).message
         logger.warn('PPTX render failed', { error: message })
         onRenderErrorRef.current?.(message)
       }
@@ -187,9 +187,9 @@ export const PptxSandboxHost = memo(function PptxSandboxHost({
         navigation={{
           current: currentSlide,
           total: slideCount,
-          label: 'slide',
+          unit: 'slide',
           canPrevious: slideCount > 0 && currentSlide > 1,
-          canNext: slideCount > 0 && currentSlide < slideCount,
+          canNext: currentSlide < slideCount && slideCount > 0,
           onPrevious: () => goToSlide(currentSlide - 1),
           onNext: () => goToSlide(currentSlide + 1),
         }}

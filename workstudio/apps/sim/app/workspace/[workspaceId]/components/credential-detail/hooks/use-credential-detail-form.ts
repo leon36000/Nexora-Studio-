@@ -6,6 +6,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { filterUndefined } from '@sim/utils/object'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useSettingsUnsavedGuard } from '@/components/settings/use-settings-unsaved-guard'
 import { useUpdateWorkspaceCredential, type WorkspaceCredential } from '@/hooks/queries/credentials'
 import { useSettingsDirtyStore } from '@/stores/settings/dirty/store'
@@ -24,7 +25,7 @@ export interface CredentialDetailFormSection {
    * to write. False only when a write was attempted and failed, which stops the
    * metadata save from committing alone.
    */
-  save: () => Promise<boolean>
+  save: () => Promise<boolean> // i18n-ignore: type annotation
   discard: () => void
 }
 
@@ -61,6 +62,7 @@ export function useCredentialDetailForm({
   backHref,
   section,
 }: UseCredentialDetailFormParams) {
+  const t = useTranslations('shell.credentialDetail')
   const updateCredential = useUpdateWorkspaceCredential(workspaceId)
   const isSaving = updateCredential.isPending || (section?.isSaving ?? false)
 
@@ -183,8 +185,8 @@ export function useCredentialDetailForm({
         return Object.keys(overrides).length ? { ...current, values: overrides } : null
       })
     } catch (error) {
-      toast.error("Couldn't save changes", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('saveFailed'), {
+        description: getErrorMessage(error, t('tryAgainLater')),
       })
       logger.error('Failed to save credential details', error)
     }
@@ -203,6 +205,7 @@ export function useCredentialDetailForm({
     descriptionDraft,
     unredactedDraft,
     updateCredential.mutateAsync,
+    t,
   ])
 
   return {

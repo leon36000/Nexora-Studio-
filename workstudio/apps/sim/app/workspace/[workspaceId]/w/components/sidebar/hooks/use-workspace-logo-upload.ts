@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { validateLogoFile } from '@/lib/uploads/client/logo-file'
 import { uploadInternalFileSession } from '@/lib/uploads/client/session-upload'
 
@@ -23,6 +24,7 @@ export function useWorkspaceLogoUpload({
   onUpload,
   onError,
 }: UseWorkspaceLogoUploadProps = {}) {
+  const t = useTranslations('shell.logoUpload')
   const previewRef = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const onUploadRef = useRef(onUpload)
@@ -86,7 +88,7 @@ export function useWorkspaceLogoUpload({
         setPreviewUrl(serverUrl)
         onUploadRef.current?.(serverUrl)
       } catch (error) {
-        const errorMessage = getErrorMessage(error, 'Failed to upload workspace logo')
+        const errorMessage = getErrorMessage(error, t('uploadFailed'))
         onErrorRef.current?.(errorMessage)
         URL.revokeObjectURL(newPreviewUrl)
         previewRef.current = null
@@ -95,7 +97,7 @@ export function useWorkspaceLogoUpload({
         setIsUploading(false)
       }
     },
-    [uploadFileToServer]
+    [uploadFileToServer, t]
   )
 
   const handleFileChange = useCallback(

@@ -48,6 +48,7 @@ import {
 import { formatDuration } from '@sim/utils/formatting'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { createPortal } from 'react-dom'
 import type { WorkflowLogRow } from '@/lib/api/contracts/logs'
@@ -106,13 +107,18 @@ const ExecutionSnapshot = lazy(() =>
  * to distinguish a genuine zero ("0 credits") from a sub-credit charge that
  * rounded down to zero ("<1 credit"); the credit figure itself is authoritative.
  */
-function creditLabel(credits: number, dollars: number): string {
-  if (credits <= 0) return dollars > 0 ? '<1 credit' : '0 credits'
-  return `${credits.toLocaleString()} ${credits === 1 ? 'credit' : 'credits'}`
+function creditLabel(
+  credits: number,
+  dollars: number,
+  t: ReturnType<typeof useTranslations>
+): string {
+  if (credits <= 0) return dollars > 0 ? t('lessThanOneCredit') : t('zeroCredits')
+  return t('credits', { count: credits, formatted: credits.toLocaleString() })
 }
 
 export const WorkflowOutputSection = memo(
   function WorkflowOutputSection({ output }: { output: Record<string, unknown> }) {
+    const t = useTranslations('logs.details')
     const contentRef = useRef<HTMLDivElement>(null)
     const { copied, copy } = useCopyToClipboard({ resetMs: 1500 })
 
@@ -170,7 +176,7 @@ export const WorkflowOutputSection = memo(
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button
-                    aria-label={copied ? 'Copied' : 'Copy'}
+                    aria-label={copied ? t('copied') : t('copy')}
                     type='button'
                     variant='default'
                     onClick={(e) => {
@@ -186,12 +192,12 @@ export const WorkflowOutputSection = memo(
                     )}
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content side='top'>{copied ? 'Copied' : 'Copy'}</Tooltip.Content>
+                <Tooltip.Content side='top'>{copied ? t('copied') : t('copy')}</Tooltip.Content>
               </Tooltip.Root>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button
-                    aria-label='Search'
+                    aria-label={t('search')}
                     type='button'
                     variant='default'
                     onClick={(e) => {
@@ -203,7 +209,7 @@ export const WorkflowOutputSection = memo(
                     <Search className='size-[10px]' />
                   </Button>
                 </Tooltip.Trigger>
-                <Tooltip.Content side='top'>Search</Tooltip.Content>
+                <Tooltip.Content side='top'>{t('search')}</Tooltip.Content>
               </Tooltip.Root>
             </div>
           )}
@@ -221,7 +227,7 @@ export const WorkflowOutputSection = memo(
               type='text'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder='Search...'
+              placeholder={t('searchPlaceholder')}
               className='mr-0.5 w-[94px]'
             />
             <span
@@ -237,7 +243,7 @@ export const WorkflowOutputSection = memo(
               iconPadding='sm'
               onClick={goToPreviousMatch}
               disabled={matchCount === 0}
-              aria-label='Previous match'
+              aria-label={t('previousMatch')}
             >
               <ArrowUp className='size-[12px]' />
             </Button>
@@ -246,7 +252,7 @@ export const WorkflowOutputSection = memo(
               iconPadding='sm'
               onClick={goToNextMatch}
               disabled={matchCount === 0}
-              aria-label='Next match'
+              aria-label={t('nextMatch')}
             >
               <ArrowDown className='size-[12px]' />
             </Button>
@@ -254,7 +260,7 @@ export const WorkflowOutputSection = memo(
               variant='ghost'
               iconPadding='sm'
               onClick={closeSearch}
-              aria-label='Close search'
+              aria-label={t('closeSearch')}
             >
               <X className='size-[12px]' />
             </Button>
@@ -291,12 +297,12 @@ export const WorkflowOutputSection = memo(
               >
                 <DropdownMenuItem onSelect={handleCopy}>
                   <Duplicate />
-                  Copy
+                  {t('copy')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={handleSearch}>
                   <SearchIcon />
-                  Search
+                  {t('search')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>,
@@ -316,6 +322,8 @@ interface LogDetailsContentProps {
 }
 
 export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentProps) {
+  const t = useTranslations('logs.details')
+  const tLogs = useTranslations('logs')
   const [isExecutionSnapshotOpen, setIsExecutionSnapshotOpen] = useState(false)
   const [activeTab, setActiveTab] = useQueryState(logDetailsTabParam.key, {
     ...logDetailsTabParam.parser,
@@ -355,7 +363,11 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
   /** Null when the label renders as static text rather than a link. */
   const openableWorkflowId = resolveLogWorkflowId(log)
 
-  const workflowLabel = getLogWorkflowLabel(log)
+  const workflowLabel = getLogWorkflowLabel(log, {
+    untitledJob: tLogs('workflow.untitledJob'),
+    unknown: tLogs('workflow.unknown'),
+    deleted: tLogs('workflow.deleted'),
+  })
 
   const hasCostInfo = !!(isWorkflowExecutionLog && log.cost)
   const showWorkflowState =
@@ -411,7 +423,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
         key: String(i),
         label:
           item.category === 'fixed' && item.description === 'execution_fee'
-            ? 'Base Run'
+            ? t('baseRun')
             : item.description,
         credits: credits[String(i)] ?? 0,
         dollars: item.cost,
@@ -436,7 +448,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
       totalDollars: total,
       tokens: { input: 0, output: 0 },
     }
-  }, [log.costLedger, log.cost])
+  }, [log.costLedger, log.cost, t])
 
   const formattedTimestamp = formatDate(log.createdAt)
   const logStatus = getDisplayStatus(log.status)
@@ -462,24 +474,24 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
     const context: ChatContext = {
       kind: 'logs',
       executionId: log.executionId,
-      label: workflowName ?? 'this run',
+      label: workflowName ?? t('troubleshootContextLabel'),
     }
     const message = workflowName
-      ? `The "${workflowName}" workflow run failed. Investigate the error in this run and help me fix it.`
-      : 'This workflow run failed. Investigate the error in this run and help me fix it.'
+      ? t('troubleshootMessageNamed', { workflowName })
+      : t('troubleshootMessage')
     if (sendMothershipMessage({ content: message, contexts: [context] })) return
     if (MothershipHandoffStorage.store({ message, contexts: [context] }, workspaceId)) {
       router.push(`/workspace/${workspaceId}/home`)
     }
-  }, [log.executionId, log.workflow?.name, workspaceId, router])
+  }, [log.executionId, log.workflow?.name, workspaceId, router, t])
 
   return (
     <>
       <div className='mt-4 flex min-h-0 flex-1 flex-col'>
         <ChipModalTabs
           tabs={[
-            { value: 'overview', label: 'Overview' },
-            ...(showTraceTab ? [{ value: 'trace', label: 'Trace' }] : []),
+            { value: 'overview', label: t('overviewTab') },
+            ...(showTraceTab ? [{ value: 'trace', label: t('traceTab') }] : []),
           ]}
           value={resolvedTab}
           onChange={(v) => setActiveTab(v as LogDetailsTab)}
@@ -492,7 +504,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
               {/* Timestamp + Workflow header */}
               <div className='grid grid-cols-2 gap-x-3 pb-0.5'>
                 <div className='flex min-w-0 flex-col gap-0.5'>
-                  <span className='text-[var(--text-tertiary)] text-caption'>Timestamp</span>
+                  <span className='text-[var(--text-tertiary)] text-caption'>{t('timestamp')}</span>
                   <span className='text-[var(--text-secondary)] text-sm tabular-nums'>
                     {formattedTimestamp
                       ? `${formattedTimestamp.compactDate} ${formattedTimestamp.compactTime}`
@@ -501,7 +513,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                 </div>
                 <div className='flex min-w-0 flex-col gap-0.5'>
                   <span className='text-[var(--text-tertiary)] text-caption'>
-                    {log.trigger === 'mothership' ? 'Job' : 'Workflow'}
+                    {log.trigger === 'mothership' ? t('job') : t('workflow')}
                   </span>
                   {openableWorkflowId ? (
                     <Link
@@ -518,7 +530,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                       <span className='min-w-0 truncate text-[var(--text-secondary)] text-sm transition-colors group-hover:text-[var(--text-primary)] group-focus-visible:text-[var(--text-primary)]'>
                         {workflowLabel}
                       </span>
-                      <span className='sr-only'>(opens in a new tab)</span>
+                      <span className='sr-only'>{t('opensInNewTab')}</span>
                     </Link>
                   ) : (
                     <div className='flex min-w-0 items-center gap-1.5'>
@@ -538,7 +550,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                   <div
                     role='button'
                     tabIndex={0}
-                    aria-label='Copy run ID'
+                    aria-label={t('copyRunId')}
                     className='flex h-10 min-w-0 cursor-pointer items-center justify-between gap-4 px-3 transition-colors hover-hover:bg-[var(--surface-active)]'
                     onClick={() => copyRunId(log.executionId!)}
                     onKeyDown={(event) =>
@@ -546,33 +558,33 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                     }
                   >
                     <span className='shrink-0 text-[var(--text-tertiary)] text-caption'>
-                      Run ID
+                      {t('runId')}
                     </span>
                     <span className='min-w-0 truncate text-[var(--text-secondary)] text-caption tabular-nums'>
-                      {copiedRunId ? 'Copied!' : log.executionId}
+                      {copiedRunId ? t('copiedRunId') : log.executionId}
                     </span>
                   </div>
                 )}
 
                 {/* Level */}
                 <div className='flex h-10 items-center justify-between px-3'>
-                  <span className='text-[var(--text-tertiary)] text-caption'>Level</span>
+                  <span className='text-[var(--text-tertiary)] text-caption'>{t('level')}</span>
                   <StatusBadge status={logStatus} />
                 </div>
 
                 {/* Trigger */}
                 <div className='flex h-10 items-center justify-between px-3'>
-                  <span className='text-[var(--text-tertiary)] text-caption'>Trigger</span>
+                  <span className='text-[var(--text-tertiary)] text-caption'>{t('trigger')}</span>
                   {log.trigger ? (
                     <TriggerBadge trigger={log.trigger} />
                   ) : (
-                    <span className='text-[var(--text-secondary)] text-caption'>None</span>
+                    <span className='text-[var(--text-secondary)] text-caption'>{t('none')}</span>
                   )}
                 </div>
 
                 {/* Duration */}
                 <div className='flex h-10 items-center justify-between px-3'>
-                  <span className='text-[var(--text-tertiary)] text-caption'>Duration</span>
+                  <span className='text-[var(--text-tertiary)] text-caption'>{t('duration')}</span>
                   <span className='text-[var(--text-secondary)] text-caption tabular-nums'>
                     {formatDuration(log.duration, { precision: 2 }) || '—'}
                   </span>
@@ -582,7 +594,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                 {log.deploymentVersion && (
                   <div className='flex h-10 items-center gap-2 px-3'>
                     <span className='shrink-0 text-[var(--text-tertiary)] text-caption'>
-                      Version
+                      {t('version')}
                     </span>
                     <div className='flex w-0 flex-1 justify-end'>
                       <Badge variant='green' size='sm' className='max-w-full truncate'>
@@ -595,9 +607,11 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                 {/* Snapshot */}
                 {showWorkflowState && (
                   <div className='flex h-10 items-center justify-between px-3'>
-                    <span className='text-[var(--text-tertiary)] text-caption'>Snapshot</span>
+                    <span className='text-[var(--text-tertiary)] text-caption'>
+                      {t('snapshot')}
+                    </span>
                     <Chip leftIcon={Eye} onClick={() => setIsExecutionSnapshotOpen(true)}>
-                      View Snapshot
+                      {t('viewSnapshot')}
                     </Chip>
                   </div>
                 )}
@@ -605,9 +619,11 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                 {/* Troubleshoot */}
                 {canTroubleshoot && (
                   <div className='flex h-10 items-center justify-between px-3'>
-                    <span className='text-[var(--text-tertiary)] text-caption'>Troubleshoot</span>
+                    <span className='text-[var(--text-tertiary)] text-caption'>
+                      {t('troubleshoot')}
+                    </span>
                     <Chip leftIcon={Wrench} onClick={handleTroubleshoot}>
-                      Troubleshoot in Chat
+                      {t('troubleshootInChat')}
                     </Chip>
                   </div>
                 )}
@@ -616,7 +632,9 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
               {/* Workflow Input */}
               {isWorkflowExecutionLog && workflowInput && !permissionConfig.hideTraceSpans && (
                 <div className='flex flex-col gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 dark:bg-transparent'>
-                  <span className='text-[var(--text-tertiary)] text-caption'>Workflow Input</span>
+                  <span className='text-[var(--text-tertiary)] text-caption'>
+                    {t('workflowInput')}
+                  </span>
                   <WorkflowOutputSection output={workflowInput} />
                 </div>
               )}
@@ -632,7 +650,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                         : 'text-[var(--text-tertiary)]'
                     )}
                   >
-                    Workflow Output
+                    {t('workflowOutput')}
                   </span>
                   <WorkflowOutputSection output={workflowOutput} />
                 </div>
@@ -650,28 +668,32 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                         {row.label}
                       </span>
                       <span className='shrink-0 text-[var(--text-secondary)] text-caption tabular-nums'>
-                        {creditLabel(row.credits, row.dollars)}
+                        {creditLabel(row.credits, row.dollars, t)}
                       </span>
                     </div>
                   ))}
                   <div className='flex h-10 items-center justify-between px-3'>
-                    <span className='text-[var(--text-secondary)] text-caption'>Total</span>
+                    <span className='text-[var(--text-secondary)] text-caption'>{t('total')}</span>
                     <span className='text-[var(--text-primary)] text-caption tabular-nums'>
-                      {creditLabel(costBreakdown.totalCredits, costBreakdown.totalDollars)}
+                      {creditLabel(costBreakdown.totalCredits, costBreakdown.totalDollars, t)}
                     </span>
                   </div>
                   {(costBreakdown.tokens.input > 0 || costBreakdown.tokens.output > 0) && (
                     <div className='flex h-10 items-center justify-between px-3'>
-                      <span className='text-[var(--text-tertiary)] text-caption'>Tokens</span>
+                      <span className='text-[var(--text-tertiary)] text-caption'>
+                        {t('tokens')}
+                      </span>
                       <span className='text-[var(--text-secondary)] text-caption tabular-nums'>
-                        {costBreakdown.tokens.input} in · {costBreakdown.tokens.output} out
+                        {t('tokensInOut', {
+                          input: costBreakdown.tokens.input,
+                          output: costBreakdown.tokens.output,
+                        })}
                       </span>
                     </div>
                   )}
                   <div className='px-3 py-2'>
                     <p className='text-[var(--text-tertiary)] text-xs'>
-                      Total includes a {formatCost(BASE_EXECUTION_CHARGE)} base charge plus model
-                      and tool usage.
+                      {t('totalIncludes', { baseCharge: formatCost(BASE_EXECUTION_CHARGE) })}
                     </p>
                   </div>
                 </div>
@@ -687,13 +709,11 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
               <TraceView traceSpans={traceSpans} runCostDollars={log.cost?.total} />
             ) : log.executionData ? (
               <div className='flex h-full items-center justify-center px-4 text-center'>
-                <span className='text-[var(--text-tertiary)] text-sm'>
-                  No trace data available for this run
-                </span>
+                <span className='text-[var(--text-tertiary)] text-sm'>{t('noTraceData')}</span>
               </div>
             ) : (
               <div className='flex h-full items-center justify-center px-4 text-center'>
-                <span className='text-[var(--text-tertiary)] text-sm'>Loading trace…</span>
+                <span className='text-[var(--text-tertiary)] text-sm'>{t('loadingTrace')}</span>
               </div>
             )}
           </div>
@@ -754,6 +774,7 @@ export const LogDetails = memo(function LogDetails({
   isRetryPending = false,
   onActiveTabChange,
 }: LogDetailsProps) {
+  const t = useTranslations('logs.details')
   const activeTabRef = useRef<LogDetailsTab>('overview')
 
   const handleActiveTabChange = useCallback(
@@ -801,14 +822,14 @@ export const LogDetails = memo(function LogDetails({
       open={isOpen}
       width={effectiveWidth}
       onResizeStart={handleMouseDown}
-      resizeLabel='Resize log details panel'
-      aria-label='Log details sidebar'
+      resizeLabel={t('resizePanel')}
+      aria-label={t('sidebarLabel')}
     >
       {log && (
         <div className='flex h-full flex-col px-3.5 pt-3'>
           {/* Header */}
           <div className='flex items-center justify-between'>
-            <h2 className='text-[var(--text-primary)] text-sm'>Log Details</h2>
+            <h2 className='text-[var(--text-primary)] text-sm'>{t('title')}</h2>
             <div className='flex items-center gap-[1px]'>
               {log.status === 'failed' &&
                 (log.workflow?.id || log.workflowId) &&
@@ -820,12 +841,12 @@ export const LogDetails = memo(function LogDetails({
                         iconPadding='sm'
                         onClick={() => onRetryExecution?.()}
                         disabled={isRetryPending}
-                        aria-label='Retry execution'
+                        aria-label={t('retryExecution')}
                       >
                         <Redo className='size-[14px]' />
                       </Button>
                     </Tooltip.Trigger>
-                    <Tooltip.Content side='bottom'>Retry</Tooltip.Content>
+                    <Tooltip.Content side='bottom'>{t('retry')}</Tooltip.Content>
                   </Tooltip.Root>
                 )}
               <Button
@@ -833,7 +854,7 @@ export const LogDetails = memo(function LogDetails({
                 iconPadding='sm'
                 onClick={() => hasPrev && onNavigatePrev?.()}
                 disabled={!hasPrev}
-                aria-label='Previous log'
+                aria-label={t('previousLog')}
               >
                 <ChevronUp className='size-[14px]' />
               </Button>
@@ -842,11 +863,11 @@ export const LogDetails = memo(function LogDetails({
                 iconPadding='sm'
                 onClick={() => hasNext && onNavigateNext?.()}
                 disabled={!hasNext}
-                aria-label='Next log'
+                aria-label={t('nextLog')}
               >
                 <ChevronUp className='size-[14px] rotate-180' />
               </Button>
-              <Button variant='ghost' iconPadding='sm' onClick={onClose} aria-label='Close'>
+              <Button variant='ghost' iconPadding='sm' onClick={onClose} aria-label={t('close')}>
                 <X className='size-[14px]' />
               </Button>
             </div>

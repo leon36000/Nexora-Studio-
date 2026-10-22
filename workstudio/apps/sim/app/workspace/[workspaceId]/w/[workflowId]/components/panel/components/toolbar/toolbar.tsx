@@ -22,6 +22,7 @@ import {
   OverflowText,
 } from '@sim/emcn'
 import { ChevronDown, Lock, Search } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { captureEvent } from '@/lib/posthog/client'
 import { getTriggersForSidebar, hasTriggerCapability } from '@/lib/workflows/triggers/utils'
@@ -84,6 +85,7 @@ const ToolbarItem = memo(function ToolbarItem({
   onContextMenu,
   itemRef,
 }: ToolbarItemProps) {
+  const t = useTranslations('editor.toolbar')
   const Icon = item.icon
   const isTriggerCapable = isTrigger && item.config ? hasTriggerCapability(item.config) : false
 
@@ -123,7 +125,9 @@ const ToolbarItem = memo(function ToolbarItem({
     <div
       ref={itemRef}
       role='button'
-      aria-label={item.restricted ? `Request access to ${item.name}` : `Add ${item.name}`}
+      aria-label={
+        item.restricted ? t('requestAccessTo', { name: item.name }) : t('add', { name: item.name })
+      }
       tabIndex={-1}
       draggable={!item.restricted}
       onDragStart={item.restricted ? undefined : handleDragStart}
@@ -382,6 +386,7 @@ interface ToolbarRef {
  */
 export const Toolbar = memo(
   forwardRef<ToolbarRef, ToolbarProps>(function Toolbar({ isActive = true }: ToolbarProps, ref) {
+    const t = useTranslations('editor.toolbar')
     const rootRef = useRef<HTMLDivElement>(null)
     const searchInputRef = useRef<HTMLInputElement>(null)
     const triggerItemRefs = useRef<Array<HTMLDivElement | null>>([])
@@ -870,13 +875,13 @@ export const Toolbar = memo(
           onClick={focusSearch}
           onKeyDown={(event) => handleKeyboardActivation(event, focusSearch)}
         >
-          <h2 className='text-[var(--text-primary)] text-sm'>Toolbar</h2>
+          <h2 className='text-[var(--text-primary)] text-sm'>{t('title')}</h2>
           <div className='flex shrink-0 items-center gap-2'>
             {!isSearchActive ? (
               <Button
                 variant='ghost'
                 className='p-0'
-                aria-label='Search toolbar'
+                aria-label={t('search')}
                 onClick={focusSearch}
               >
                 <Search className='size-[14px]' />
@@ -907,8 +912,8 @@ export const Toolbar = memo(
         {/* Single scroll container with three collapsible sections */}
         <div className='flex flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-none pb-3'>
           <ToolbarSection
-            label='Triggers'
-            tooltip='Events that start a workflow'
+            label={t('triggers')}
+            tooltip={t('triggersTooltip')}
             sectionKey='triggers'
             items={filteredTriggers}
             isTrigger={true}
@@ -922,8 +927,8 @@ export const Toolbar = memo(
             onContextMenu={handleItemContextMenu}
           />
           <ToolbarSection
-            label='Core Blocks'
-            tooltip='Core building blocks for agent logic'
+            label={t('coreBlocks')}
+            tooltip={t('coreBlocksTooltip')}
             sectionKey='blocks'
             items={filteredBlocks}
             isTrigger={false}
@@ -938,8 +943,8 @@ export const Toolbar = memo(
           />
           {allCustomBlocks.length > 0 && (
             <ToolbarSection
-              label='Custom Blocks'
-              tooltip='Workflows published as reusable blocks across your organization'
+              label={t('customBlocks')}
+              tooltip={t('customBlocksTooltip')}
               sectionKey='customBlocks'
               items={filteredCustomBlocks}
               isTrigger={false}
@@ -954,8 +959,8 @@ export const Toolbar = memo(
             />
           )}
           <ToolbarSection
-            label='Integrations'
-            tooltip='Connect agents to external services'
+            label={t('integrations')}
+            tooltip={t('integrationsTooltip')}
             sectionKey='tools'
             items={filteredTools}
             isTrigger={false}
@@ -969,12 +974,12 @@ export const Toolbar = memo(
             onContextMenu={handleItemContextMenu}
           />
           {filteredRestrictedItems.length > 0 && (
-            <section aria-label='Access required'>
+            <section aria-label={t('accessRequired')}>
               <div className='sticky top-0 z-10 flex w-full items-center gap-2 bg-[var(--bg)] px-4 pt-3 pb-2'>
-                <span className='flex-1 text-[var(--text-muted)] text-small'>Access required</span>
-                <Info>
-                  Ask your organization admin to enable these blocks for your permission group.
-                </Info>
+                <span className='flex-1 text-[var(--text-muted)] text-small'>
+                  {t('accessRequired')}
+                </span>
+                <Info>{t('accessRequiredTooltip')}</Info>
               </div>
               <div className='flex flex-col gap-0.5 px-2'>
                 {filteredRestrictedItems.map((item, index) => (

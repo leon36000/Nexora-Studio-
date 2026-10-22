@@ -1,5 +1,6 @@
 import {
   buildUnifiedSettingsCatalog,
+  type SettingsNavMessageKey,
   toSettingsHeaderMeta,
   type UnifiedNavigationSection,
   type UnifiedSettingsNavigationItem,
@@ -13,11 +14,12 @@ export type NavigationSection = UnifiedNavigationSection
 
 export type NavigationItem = UnifiedSettingsNavigationItem
 
-export const sectionConfig: { key: NavigationSection; title: string }[] = [
-  { key: 'account', title: 'Account' },
-  { key: 'workspace', title: 'Workspace' },
-  { key: 'organization', title: 'Organization' },
-  { key: 'platform', title: 'Platform' },
+/** Sidebar group order. Headings render from `settings.nav.groups.<key>` messages. */
+export const sectionConfig: { key: NavigationSection }[] = [
+  { key: 'account' },
+  { key: 'workspace' },
+  { key: 'organization' },
+  { key: 'platform' },
 ]
 
 /** Unfiltered; the sidebar applies deployment and entitlement visibility from the host context. */
@@ -67,9 +69,19 @@ export function resolveSettingsSection(section: string): ResolvedSettingsSection
  * `SettingsPanel` to render the page header. Falls back to `null` for sections
  * that are gated off (callers render no title in that case).
  */
-export function getSettingsSectionMeta(
-  section: SettingsSection
-): { label: string; description: string; docsLink?: string } | null {
+export function getSettingsSectionMeta(section: SettingsSection): {
+  label: string
+  description: string
+  docsLink?: string
+  messageKey: SettingsNavMessageKey
+} | null {
   const item = navigationItemsById.get(section)
-  return item ? { label: item.label, description: item.description, docsLink: item.docsLink } : null
+  return item
+    ? {
+        label: item.label,
+        description: item.description,
+        docsLink: item.docsLink,
+        messageKey: item.messageKey,
+      }
+    : null
 }

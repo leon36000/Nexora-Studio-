@@ -4,6 +4,7 @@ import { memo, useCallback, useMemo, useRef, useState } from 'react'
 import { chipVariants, cn, OverflowText, RowActions, rowActionsGroupClass } from '@sim/emcn'
 import { Lock, MoreHorizontal } from '@sim/emcn/icons'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { SIM_RESOURCES_DRAG_TYPE } from '@/lib/mothership/resource-types'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import { SidebarRowAction } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/sidebar-row-actions'
@@ -59,6 +60,7 @@ export const WorkflowItem = memo(function WorkflowItem({
   workflow,
   active,
 }: WorkflowItemProps) {
+  const t = useTranslations('shell.workflowItem')
   const {
     isAnyDragActive,
     dragDisabled,
@@ -458,14 +460,14 @@ export const WorkflowItem = memo(function WorkflowItem({
                 <Lock
                   className='size-[14px] text-[var(--text-icon)]'
                   role='img'
-                  aria-label='Workflow is locked'
+                  aria-label={t('locked')}
                   aria-hidden={false}
                 />
               ) : undefined
             }
           >
             <SidebarRowAction
-              aria-label='Workflow options'
+              aria-label={t('options')}
               onPointerDown={handleMorePointerDown}
               onClick={handleMoreClick}
             >

@@ -29,6 +29,7 @@ import {
   Workflow,
   X,
 } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { RunLimit, RunMode } from '@/lib/api/contracts/tables'
 import type { SortDirection, WorkflowGroupType } from '@/lib/table'
 import { HeaderLabel } from '@/app/workspace/[workspaceId]/tables/[tableId]/components/table-grid/headers/header-label'
@@ -51,12 +52,15 @@ const LIMITED_RUN_PRESETS = [10, 1000] as const
  * same four run actions the user already met on the action bar, so they must not invert
  * the pair — see `.claude/rules/sim-list-ordering.md`.
  */
-function runMenuLabels(hasActiveFilter: boolean) {
-  const rows = hasActiveFilter ? 'filtered rows' : 'rows'
+function runMenuLabels(
+  t: (key: string, values?: Record<string, string | number>) => string,
+  hasActiveFilter: boolean
+) {
   return {
-    all: `Run all ${rows}`,
-    incomplete: `Run empty ${rows}`,
-    limited: (max: number) => `Run ${max.toLocaleString()} empty ${rows}`,
+    all: t(hasActiveFilter ? 'run.allFiltered' : 'run.all'),
+    incomplete: t(hasActiveFilter ? 'run.emptyFiltered' : 'run.empty'),
+    limited: (max: number) =>
+      t(hasActiveFilter ? 'run.limitedFiltered' : 'run.limited', { max: max.toLocaleString() }),
   }
 }
 
@@ -65,11 +69,11 @@ interface ColumnOptionsMenuProps {
   onOpenChange: (open: boolean) => void
   position: { x: number; y: number }
   column: DisplayColumn
-  /** Override for the destructive item's label. Defaults to "Delete column"
-   *  for both plain columns and workflow groups. Use "Hide column" when the
+  /** Variant of the destructive item. Defaults to "Delete column" for both
+   *  plain columns and workflow groups. Use `'hide'` ("Hide column") when the
    *  destructive action is non-lossy (workflow-output column where removing
    *  it leaves the group with siblings). */
-  deleteLabel?: string
+  deleteVariant?: 'delete' | 'hide'
   onOpenConfig: (columnName: string) => void
   /** Why column changes are unavailable; disables the schema rows and explains them. */
   schemaLockedReason?: string
@@ -143,7 +147,7 @@ export function ColumnOptionsMenu({
   onOpenChange,
   position,
   column,
-  deleteLabel,
+  deleteVariant,
   onOpenConfig,
   schemaLockedReason,
   deleteLockedReason,
@@ -164,12 +168,13 @@ export function ColumnOptionsMenu({
   isPinned,
   onPinToggle,
 }: ColumnOptionsMenuProps) {
+  const t = useTranslations('tables.grid.header')
   // Hiding a workflow output leaves the data alone, so no lock covers it.
   const destructiveReason =
-    deleteLabel === 'Hide column' ? undefined : (schemaLockedReason ?? deleteLockedReason)
+    deleteVariant === 'hide' ? undefined : (schemaLockedReason ?? deleteLockedReason)
   const showRunActions = Boolean(onRunColumnAll && onRunColumnIncomplete)
   const showRunSelected = Boolean(onRunColumnSelected) && selectedRowCount > 0
-  const runLabels = runMenuLabels(hasActiveFilter)
+  const runLabels = runMenuLabels(t, hasActiveFilter)
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
@@ -197,12 +202,12 @@ export function ColumnOptionsMenu({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <PlayOutline />
-              Run
+              {t('run.label')}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {showRunSelected && (
                 <DropdownMenuItem onSelect={() => onRunColumnSelected?.()}>
-                  {`Run ${selectedRowCount} selected ${selectedRowCount === 1 ? 'row' : 'rows'}`}
+                  {t('run.selected', { count: selectedRowCount })}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onSelect={() => onRunColumnIncomplete?.()}>
@@ -231,7 +236,7 @@ export function ColumnOptionsMenu({
             {sortDirection && onClearSort && (
               <DropdownMenuItem onSelect={onClearSort}>
                 <X />
-                Clear sort
+                {t('clearSort')}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -239,21 +244,21 @@ export function ColumnOptionsMenu({
               onSelect={() => onSortColumn(column.key, 'asc')}
             >
               <ArrowUp />
-              Sort ascending
+              {t('sortAscending')}
             </DropdownMenuItem>
             <DropdownMenuItem
               active={sortDirection === 'desc'}
               onSelect={() => onSortColumn(column.key, 'desc')}
             >
               <ArrowDown />
-              Sort descending
+              {t('sortDescending')}
             </DropdownMenuItem>
           </>
         )}
         {onViewWorkflow && (
           <DropdownMenuItem onSelect={() => onViewWorkflow()}>
             <Eye />
-            View workflow
+            {t('viewWorkflow')}
           </DropdownMenuItem>
         )}
         <MenuRow reason={schemaLockedReason}>
@@ -262,13 +267,13 @@ export function ColumnOptionsMenu({
             onSelect={() => onOpenConfig(column.key)}
           >
             <Pencil />
-            Edit column
+            {t('editColumn')}
           </DropdownMenuItem>
         </MenuRow>
         {onPinToggle && (
           <DropdownMenuItem onSelect={() => onPinToggle(column.key)}>
             {isPinned ? <PinOff /> : <Pin />}
-            {isPinned ? 'Unpin column' : 'Pin column'}
+            {isPinned ? t('unpinColumn') : t('pinColumn')}
           </DropdownMenuItem>
         )}
         {/* Stops acting on this column and starts creating siblings — `Edit column`
@@ -280,7 +285,7 @@ export function ColumnOptionsMenu({
             onSelect={() => onInsertLeft(column.key)}
           >
             <ArrowLeft />
-            Insert column left
+            {t('insertLeft')}
           </DropdownMenuItem>
         </MenuRow>
         <MenuRow reason={schemaLockedReason}>
@@ -289,7 +294,7 @@ export function ColumnOptionsMenu({
             onSelect={() => onInsertRight(column.key)}
           >
             <ArrowRight />
-            Insert column right
+            {t('insertRight')}
           </DropdownMenuItem>
         </MenuRow>
         <DropdownMenuSeparator />
@@ -298,8 +303,8 @@ export function ColumnOptionsMenu({
             disabled={Boolean(destructiveReason)}
             onSelect={() => (onDeleteGroup ? onDeleteGroup() : onDeleteColumn(column.key))}
           >
-            {deleteLabel === 'Hide column' ? <EyeOff /> : <Trash />}
-            {deleteLabel ?? 'Delete column'}
+            {deleteVariant === 'hide' ? <EyeOff /> : <Trash />}
+            {deleteVariant === 'hide' ? t('hideColumn') : t('deleteColumn')}
           </DropdownMenuItem>
         </MenuRow>
       </DropdownMenuContent>
@@ -404,13 +409,14 @@ export function WorkflowGroupMetaCell({
   isPinned,
   onPinToggle,
 }: WorkflowGroupMetaCellProps) {
+  const t = useTranslations('tables.grid.header')
   const isEnrichment = groupType === 'enrichment'
   const enrichment = isEnrichment ? getEnrichment(enrichmentId) : undefined
   const EnrichmentIcon = enrichment?.icon
   const wf = workflows?.find((w) => w.id === workflowId)
   const name = isEnrichment
-    ? (groupName ?? enrichment?.name ?? 'Enrichment')
-    : (wf?.name ?? 'Workflow')
+    ? (groupName ?? enrichment?.name ?? t('enrichmentFallback'))
+    : (wf?.name ?? t('workflowFallback'))
 
   const [optionsMenuOpen, setOptionsMenuOpen] = useState(false)
   const [optionsMenuPosition, setOptionsMenuPosition] = useState({ x: 0, y: 0 })
@@ -418,7 +424,7 @@ export function WorkflowGroupMetaCell({
   const didDragRef = useRef(false)
 
   const selectedCount = selectedRowIds?.length ?? 0
-  const runLabels = runMenuLabels(hasActiveFilter)
+  const runLabels = runMenuLabels(t, hasActiveFilter)
 
   function handleRunAll() {
     if (groupId) onRunColumn?.(groupId, 'all')
@@ -554,8 +560,8 @@ export function WorkflowGroupMetaCell({
                 type='button'
                 className='flex size-[16px] shrink-0 cursor-pointer items-center justify-center rounded-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]'
                 onClick={(e) => e.stopPropagation()}
-                aria-label='Run group'
-                title='Run group'
+                aria-label={t('runGroup')}
+                title={t('runGroup')}
               >
                 <PlayOutline className='size-[10px]' />
               </button>
@@ -568,7 +574,7 @@ export function WorkflowGroupMetaCell({
             >
               {selectedCount > 0 && (
                 <DropdownMenuItem onSelect={handleRunSelected}>
-                  {`Run ${selectedCount} selected ${selectedCount === 1 ? 'row' : 'rows'}`}
+                  {t('run.selected', { count: selectedCount })}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onSelect={handleRunIncomplete}>

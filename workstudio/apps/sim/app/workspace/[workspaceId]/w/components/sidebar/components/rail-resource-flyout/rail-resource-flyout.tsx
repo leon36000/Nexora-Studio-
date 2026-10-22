@@ -12,6 +12,7 @@
 
 import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   buildFlyoutEntries,
   FOLDERED_RESOURCE_HEADERS,
@@ -42,6 +43,7 @@ function isResolving(query: { isPending: boolean; isPlaceholderData: boolean }):
 }
 
 export function TablesRailFlyout({ workspaceId }: { workspaceId: string }) {
+  const t = useTranslations('shell.railFlyout')
   const params = useParams()
   const tablesQuery = useTablesList(workspaceId)
   const foldersQuery = useFolders(workspaceId, { resourceType: 'table' })
@@ -67,12 +69,13 @@ export function TablesRailFlyout({ workspaceId }: { workspaceId: string }) {
       entries={entries}
       currentItemId={typeof params.tableId === 'string' ? params.tableId : undefined}
       isLoading={isResolving(tablesQuery) || isResolving(foldersQuery)}
-      emptyLabel='No tables yet'
+      emptyLabel={t('noTables')}
     />
   )
 }
 
 export function FilesRailFlyout({ workspaceId }: { workspaceId: string }) {
+  const t = useTranslations('shell.railFlyout')
   const params = useParams()
   const filesQuery = useWorkspaceFiles(workspaceId)
   const foldersQuery = useWorkspaceFileFolders(workspaceId)
@@ -98,7 +101,7 @@ export function FilesRailFlyout({ workspaceId }: { workspaceId: string }) {
       entries={entries}
       currentItemId={typeof params.fileId === 'string' ? params.fileId : undefined}
       isLoading={isResolving(filesQuery) || isResolving(foldersQuery)}
-      emptyLabel='No files yet'
+      emptyLabel={t('noFiles')}
     />
   )
 }

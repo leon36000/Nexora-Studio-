@@ -1,0 +1,37 @@
+{
+  "auditLogs": {
+    "searchPlaceholder": "Search the log",
+    "export": "Export (CSV)",
+    "loading": "Loading the audit log…",
+    "loadFailed": "The audit log could not be loaded.",
+    "empty": "No events yet.",
+    "system": "System",
+    "loadMore": "Show more",
+    "loadingMore": "Loading…",
+    "columns": {
+      "date": "Date",
+      "actor": "Actor",
+      "action": "Action",
+      "resource": "Resource",
+      "description": "Details"
+    }
+  },
+  "usage": {
+    "loading": "Loading usage…",
+    "unavailable": "Usage is unavailable: Nexora API is not responding.",
+    "period": "Model usage over the last {days} days, metered by Nexora API.",
+    "empty": "No usage in this period.",
+    "totals": {
+      "requests": "Requests",
+      "promptTokens": "Input tokens",
+      "completionTokens": "Output tokens",
+      "totalTokens": "Total tokens"
+    },
+    "columns": {
+      "date": "Day",
+      "requests": "Requests",
+      "promptTokens": "Input tokens",
+      "completionTokens": "Output tokens"
+    }
+  }
+}

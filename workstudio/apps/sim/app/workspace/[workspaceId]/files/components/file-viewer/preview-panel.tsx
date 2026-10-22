@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import '@sim/emcn/components/code/code.css'
 import { CSV_PREVIEW_MAX_ROWS } from '@/lib/api/contracts/workspace-file-table'
@@ -204,7 +205,7 @@ export function buildHtmlPreviewDocument(
     // themed shell (the marker pulls the stylesheet in below) until a
     // compilable snapshot arrives.
     content =
-      '<!DOCTYPE html><html><head><meta name="sim-artifact"><title>Page</title></head><body></body></html>'
+      '<!DOCTYPE html><html><head><meta name="sim-artifact"><title>Page</title></head><body></body></html>' // i18n-ignore: document shell markup
   }
   const headInjection = [
     '<meta charset="utf-8">',
@@ -390,6 +391,7 @@ const HtmlPreview = memo(function HtmlPreview({
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
   }, [router])
+  const t = useTranslations('files.preview')
   const containerRef = useRef<HTMLDivElement>(null)
   const [isRenderable, setIsRenderable] = useState(false)
   const [resumeNonce, setResumeNonce] = useState(0)
@@ -457,7 +459,7 @@ const HtmlPreview = memo(function HtmlPreview({
              which works in the sandbox but only on a real user click. */
           sandbox='allow-scripts'
           referrerPolicy='no-referrer'
-          title='HTML Preview'
+          title={t('htmlTitle')}
           className='size-full border-0 bg-[var(--surface-2)]'
         />
       )}
@@ -466,6 +468,7 @@ const HtmlPreview = memo(function HtmlPreview({
 })
 
 function SvgPreview({ content }: { content: string }) {
+  const t = useTranslations('files.preview')
   const [blobUrl, setBlobUrl] = useState('')
 
   useEffect(() => {
@@ -479,7 +482,7 @@ function SvgPreview({ content }: { content: string }) {
       {blobUrl && (
         <img
           src={blobUrl}
-          alt='SVG preview'
+          alt={t('svgAlt')}
           className='max-h-full max-w-full select-none object-contain'
           draggable={false}
         />
@@ -512,6 +515,7 @@ const CsvPreview = memo(function CsvPreview({
   file: CsvImportFileDescriptor
   readOnly?: boolean
 }) {
+  const t = useTranslations('files.preview')
   const scrollRef = useHorizontalWheelScroll()
   const { headers, rows, truncated } = useMemo(() => parseCsv(content), [content])
   useCsvTruncationImport(workspaceId, file, truncated, readOnly)
@@ -519,7 +523,7 @@ const CsvPreview = memo(function CsvPreview({
   if (headers.length === 0) {
     return (
       <div className='flex min-h-0 flex-1 items-center justify-center p-6'>
-        <p className='text-[var(--text-muted)] text-small'>No data to display</p>
+        <p className='text-[var(--text-muted)] text-small'>{t('noData')}</p>
       </div>
     )
   }

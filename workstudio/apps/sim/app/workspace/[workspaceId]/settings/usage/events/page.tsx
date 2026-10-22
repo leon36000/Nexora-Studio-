@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { getSession } from '@/lib/auth'
 import { isOrganizationFeatureEntitled } from '@/lib/billing/core/subscription'
 import { isUsageMonitoringEnabled } from '@/lib/core/config/env-flags'
@@ -8,8 +9,9 @@ import { getWorkspaceHostContextForViewer } from '@/lib/workspaces/host-context'
 import UsageEventsLoading from '@/app/workspace/[workspaceId]/settings/usage/events/loading'
 import { UsageEventsView } from '@/ee/organization-usage/components/usage-events-view'
 
-export const metadata: Metadata = {
-  title: 'Usage events',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('settings.usageEvents')
+  return { title: t('title') }
 }
 
 interface UsageEventsPageProps {

@@ -2,18 +2,19 @@ import React from 'react'
 import { Badge, formatChartLatency } from '@sim/emcn'
 import { formatRelativeTime } from '@sim/utils/formatting'
 import { format } from 'date-fns'
+import { useTranslations } from 'next-intl'
 import { getIntegrationMetadata } from '@/lib/logs/get-trigger-options'
 import { DELETED_WORKFLOW_LABEL } from '@/lib/workflows/labels'
 import { getBlock } from '@/blocks/registry'
-import { CORE_TRIGGER_TYPES } from '@/stores/logs/filters/types'
+import { CORE_TRIGGER_TYPES, type CoreTriggerType } from '@/stores/logs/filters/types'
 
 export const LOG_COLUMNS = {
-  workflow: { width: 'w-[22%]', minWidth: 'min-w-[140px]', label: 'Workflow' },
-  date: { width: 'w-[18%]', minWidth: 'min-w-[140px]', label: 'Date' },
-  status: { width: 'w-[12%]', minWidth: 'min-w-[100px]', label: 'Status' },
-  cost: { width: 'w-[14%]', minWidth: 'min-w-[90px]', label: 'Cost' },
-  trigger: { width: 'w-[14%]', minWidth: 'min-w-[110px]', label: 'Trigger' },
-  duration: { width: 'w-[20%]', minWidth: 'min-w-[100px]', label: 'Duration' },
+  workflow: { width: 'w-[22%]', minWidth: 'min-w-[140px]' },
+  date: { width: 'w-[18%]', minWidth: 'min-w-[140px]' },
+  status: { width: 'w-[12%]', minWidth: 'min-w-[100px]' },
+  cost: { width: 'w-[14%]', minWidth: 'min-w-[90px]' },
+  trigger: { width: 'w-[14%]', minWidth: 'min-w-[110px]' },
+  duration: { width: 'w-[20%]', minWidth: 'min-w-[100px]' },
 } as const
 
 /**
@@ -40,16 +41,33 @@ export function resolveLogWorkflowId(log: {
  * (it just cannot be opened, see {@link resolveLogWorkflowId}); only a hard-deleted workflow, which
  * leaves no workflow id, reads as deleted.
  */
-export function getLogWorkflowLabel(log: {
-  trigger?: string | null
-  workflowId?: string | null
-  jobTitle?: string | null
-  workflow?: { id?: string; name?: string | null; archivedAt?: string | null } | null
-}): string {
-  if (log.trigger === 'mothership') return log.jobTitle || 'Untitled Job'
+export function getLogWorkflowLabel(
+  log: {
+    trigger?: string | null
+    workflowId?: string | null
+    jobTitle?: string | null
+    workflow?: { id?: string; name?: string | null; archivedAt?: string | null } | null
+  },
+  fallbacks: LogWorkflowLabelFallbacks = DEFAULT_WORKFLOW_LABEL_FALLBACKS
+): string {
+  if (log.trigger === 'mothership') return log.jobTitle || fallbacks.untitledJob
   return log.workflow?.id || log.workflowId
-    ? log.workflow?.name || 'Unknown'
-    : DELETED_WORKFLOW_LABEL
+    ? log.workflow?.name || fallbacks.unknown
+    : fallbacks.deleted
+}
+
+/** Labels shown when a log has no workflow or job name of its own; the UI passes translated ones. */
+interface LogWorkflowLabelFallbacks {
+  untitledJob: string
+  unknown: string
+  deleted: string
+}
+
+/** English fallbacks for callers outside the translated UI (they match `messages/en/logs.json`). */
+const DEFAULT_WORKFLOW_LABEL_FALLBACKS: LogWorkflowLabelFallbacks = {
+  untitledJob: 'Untitled Job',
+  unknown: 'Unknown',
+  deleted: DELETED_WORKFLOW_LABEL,
 }
 
 /** Path to a workflow in the editor. */
@@ -94,24 +112,43 @@ export const STATUS_CONFIG: Record<
   LogStatus,
   {
     variant: React.ComponentProps<typeof Badge>['variant']
-    label: string
     color: string
     /** Whether this status appears as a filter option. Intermediary states (e.g. cancelling) are excluded. */
     filterable: boolean
   }
 > = {
-  error: { variant: 'red', label: 'Error', color: 'var(--text-error)', filterable: true },
-  pending: { variant: 'amber', label: 'Pending', color: '#f59e0b', filterable: true },
-  running: { variant: 'amber', label: 'Running', color: '#f59e0b', filterable: true },
-  redacting: { variant: 'amber', label: 'Redacting', color: '#f59e0b', filterable: false },
-  cancelling: { variant: 'amber', label: 'Cancelling...', color: '#f59e0b', filterable: false },
-  cancelled: { variant: 'orange', label: 'Cancelled', color: '#f97316', filterable: true },
-  info: {
-    variant: 'gray',
-    label: 'Info',
-    color: 'var(--terminal-status-info-color)',
-    filterable: true,
-  },
+  error: { variant: 'red', color: 'var(--text-error)', filterable: true },
+  pending: { variant: 'amber', color: '#f59e0b', filterable: true },
+  running: { variant: 'amber', color: '#f59e0b', filterable: true },
+  redacting: { variant: 'amber', color: '#f59e0b', filterable: false },
+  cancelling: { variant: 'amber', color: '#f59e0b', filterable: false },
+  cancelled: { variant: 'orange', color: '#f97316', filterable: true },
+  info: { variant: 'gray', color: 'var(--terminal-status-info-color)', filterable: true },
+}
+
+/** Message keys under `logs.triggers` for the core trigger types, whose labels the UI translates. */
+const CORE_TRIGGER_LABEL_KEYS: Record<CoreTriggerType, string> = {
+  manual: 'manual',
+  api: 'api',
+  schedule: 'schedule',
+  chat: 'chat',
+  webhook: 'webhook',
+  mcp: 'mcp',
+  copilot: 'copilot',
+  mothership: 'mothership',
+  workflow: 'workflow',
+  custom_block: 'customBlock',
+  test: 'test',
+}
+
+/**
+ * The `logs.triggers` message key for a core trigger type, or null for an integration trigger,
+ * whose label is the block name and stays as-is.
+ */
+export function coreTriggerLabelKey(trigger: string): string | null {
+  return (CORE_TRIGGER_TYPES as readonly string[]).includes(trigger)
+    ? CORE_TRIGGER_LABEL_KEYS[trigger as CoreTriggerType]
+    : null
 }
 
 const TRIGGER_VARIANT_MAP: Record<string, React.ComponentProps<typeof Badge>['variant']> = {
@@ -137,12 +174,9 @@ interface StatusBadgeProps {
  * @returns A Badge with dot indicator and status label
  */
 export function StatusBadge({ status }: StatusBadgeProps) {
+  const t = useTranslations('logs.status')
   const config = STATUS_CONFIG[status]
-  return React.createElement(
-    Badge,
-    { variant: config.variant, dot: true, size: 'sm' },
-    config.label
-  )
+  return React.createElement(Badge, { variant: config.variant, dot: true, size: 'sm' }, t(status))
 }
 
 interface TriggerBadgeProps {
@@ -156,7 +190,10 @@ interface TriggerBadgeProps {
  * @returns A Badge with appropriate styling for the trigger type
  */
 export function TriggerBadge({ trigger }: TriggerBadgeProps) {
+  const t = useTranslations('logs.triggers')
   const metadata = getIntegrationMetadata(trigger)
+  const labelKey = coreTriggerLabelKey(trigger)
+  const label = labelKey ? t(labelKey) : metadata.label
   const isIntegration = !(CORE_TRIGGER_TYPES as readonly string[]).includes(trigger)
   const block = isIntegration ? getBlock(trigger) : null
   const IconComponent = block?.icon
@@ -166,7 +203,7 @@ export function TriggerBadge({ trigger }: TriggerBadgeProps) {
     return React.createElement(
       Badge,
       { variant: coreVariant, size: 'sm', className: 'whitespace-nowrap' },
-      metadata.label
+      label
     )
   }
 
@@ -179,14 +216,14 @@ export function TriggerBadge({ trigger }: TriggerBadgeProps) {
         icon: IconComponent,
         className: 'whitespace-nowrap',
       },
-      metadata.label
+      label
     )
   }
 
   return React.createElement(
     Badge,
     { variant: 'gray-secondary', size: 'sm', className: 'whitespace-nowrap' },
-    metadata.label
+    label
   )
 }
 

@@ -13,6 +13,7 @@ import {
   Skeleton,
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import type { RosterMember } from '@/hooks/queries/organization'
 
 interface TransferOwnershipDialogProps {
@@ -26,7 +27,7 @@ interface TransferOwnershipDialogProps {
   portalError?: string | null
   hasPaidSubscription: boolean
   isOpeningBillingPortal: boolean
-  onConfirm: (newOwnerUserId: string) => Promise<void>
+  onConfirm: (newOwnerUserId: string) => Promise<void> // i18n-ignore: type annotation, not UI text
   onOpenBillingPortal: () => void
 }
 
@@ -44,6 +45,7 @@ export function TransferOwnershipDialog({
   onConfirm,
   onOpenBillingPortal,
 }: TransferOwnershipDialogProps) {
+  const t = useTranslations('settings.teamManagement.transferOwnership')
   const [search, setSearch] = useState('')
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
@@ -84,14 +86,14 @@ export function TransferOwnershipDialog({
     <ChipConfirmModal
       open={open}
       onOpenChange={handleClose}
-      srTitle='Leave organization'
-      title='Leave organization'
+      srTitle={t('title')}
+      title={t('title')}
       defaultAction='none'
       confirm={{
-        label: 'Transfer & leave',
+        label: t('confirm'),
         onClick: handleConfirm,
         pending: isSubmitting,
-        pendingLabel: 'Transferring...',
+        pendingLabel: t('transferring'),
         disabled: !selectedUserId || !hasCandidates || isLoadingMembers,
       }}
     >
@@ -107,32 +109,24 @@ export function TransferOwnershipDialog({
             </div>
           </div>
         ) : !hasCandidates ? (
-          <p className='px-2 text-[var(--text-secondary)] text-sm'>
-            You're the only member of this organization. Invite another admin before leaving.
-          </p>
+          <p className='px-2 text-[var(--text-secondary)] text-sm'>{t('onlyMember')}</p>
         ) : (
           <div className='space-y-3'>
-            <p className='px-2 text-[var(--text-secondary)] text-sm'>
-              As the owner, you need to hand off the organization before you can leave. Pick a
-              member to become the new owner. They'll inherit billing access, seat management, and
-              all owner-only permissions. You'll lose access to every shared workspace in this
-              organization.
-            </p>
+            <p className='px-2 text-[var(--text-secondary)] text-sm'>{t('explanation')}</p>
 
             {hasPaidSubscription && (
               <Banner
                 variant='default'
                 className='rounded-md px-3 py-2'
                 textClassName='text-[var(--text-primary)]'
-                actionLabel={isOpeningBillingPortal ? 'Opening...' : 'Open Stripe billing portal'}
+                actionLabel={isOpeningBillingPortal ? t('openingPortal') : t('openPortal')}
                 actionDisabled={isOpeningBillingPortal}
                 onAction={onOpenBillingPortal}
                 text={
                   <>
-                    <span className='block'>Your payment method stays on this organization</span>
+                    <span className='block'>{t('paymentMethodStays')}</span>
                     <span className='block text-[var(--text-secondary)]'>
-                      Future charges will keep hitting the card you added. Open the Stripe billing
-                      portal to remove it before you leave.
+                      {t('paymentMethodHint')}
                     </span>
                   </>
                 }
@@ -145,13 +139,13 @@ export function TransferOwnershipDialog({
               icon={Search}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder='Search members...'
+              placeholder={t('searchMembers')}
             />
 
             <div className='max-h-[280px] overflow-y-auto rounded-md border border-[var(--border-1)]'>
               {candidates.length === 0 ? (
                 <div className='px-3 py-4 text-center text-[var(--text-muted)] text-small'>
-                  No members match "{search}"
+                  {t('noMatches', { search })}
                 </div>
               ) : (
                 <ul className='divide-y divide-[var(--border-1)]'>
@@ -179,7 +173,7 @@ export function TransferOwnershipDialog({
                               />
                               {m.role === 'admin' && (
                                 <Badge variant='gray-secondary' size='sm'>
-                                  Admin
+                                  {t('admin')}
                                 </Badge>
                               )}
                             </div>
@@ -200,7 +194,7 @@ export function TransferOwnershipDialog({
 
         {error && (
           <p className='px-2 text-[var(--text-error)] text-sm'>
-            {getErrorMessage(error) || 'Failed to transfer ownership'}
+            {getErrorMessage(error) || t('failed')}
           </p>
         )}
       </div>

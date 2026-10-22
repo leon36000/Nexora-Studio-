@@ -1,3 +1,6 @@
+import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+
 /**
  * Shared parsing/validation for a custom tool's OpenAI function-calling JSON
  * schema. Used by both custom-tool editing surfaces (the canvas modal and the
@@ -11,9 +14,24 @@ export interface SchemaParameter {
   required: boolean
 }
 
+type SchemaErrorCode =
+  | 'missingType'
+  | 'missingFunctionName'
+  | 'missingParameters'
+  | 'missingParametersType'
+  | 'missingProperties'
+  | 'propertiesNotObject'
+  | 'invalidJson'
+
 interface SchemaValidation {
   isValid: boolean
   error: string | null
+  /** Message key under `shell.customTool.schemaErrors`; see {@link useCustomToolCopy}. */
+  errorCode: SchemaErrorCode | null
+}
+
+function invalid(errorCode: SchemaErrorCode, error: string): SchemaValidation {
+  return { isValid: false, error, errorCode }
 }
 
 export const SCHEMA_PLACEHOLDER = `{
@@ -51,36 +69,36 @@ export const CUSTOM_TOOL_DELETE_CONFIRM_TEXT = [
 
 /** Validates the shape the executor and providers expect. */
 export function validateCustomToolSchema(schema: string): SchemaValidation {
-  if (!schema) return { isValid: false, error: null }
+  if (!schema) return { isValid: false, error: null, errorCode: null }
 
   try {
     const parsed = JSON.parse(schema)
 
     if (!parsed.type || parsed.type !== 'function') {
-      return { isValid: false, error: 'Missing "type": "function"' }
+      return invalid('missingType', 'Missing "type": "function"')
     }
     if (!parsed.function || !parsed.function.name) {
-      return { isValid: false, error: 'Missing function.name field' }
+      return invalid('missingFunctionName', 'Missing function.name field')
     }
     if (!parsed.function.parameters) {
-      return { isValid: false, error: 'Missing function.parameters object' }
+      return invalid('missingParameters', 'Missing function.parameters object')
     }
     if (!parsed.function.parameters.type) {
-      return { isValid: false, error: 'Missing parameters.type field' }
+      return invalid('missingParametersType', 'Missing parameters.type field')
     }
     if (parsed.function.parameters.properties === undefined) {
-      return { isValid: false, error: 'Missing parameters.properties field' }
+      return invalid('missingProperties', 'Missing parameters.properties field')
     }
     if (
       typeof parsed.function.parameters.properties !== 'object' ||
       parsed.function.parameters.properties === null
     ) {
-      return { isValid: false, error: 'parameters.properties must be an object' }
+      return invalid('propertiesNotObject', 'parameters.properties must be an object')
     }
 
-    return { isValid: true, error: null }
+    return { isValid: true, error: null, errorCode: null }
   } catch {
-    return { isValid: false, error: 'Invalid JSON format' }
+    return invalid('invalidJson', 'Invalid JSON format')
   }
 }
 
@@ -123,4 +141,21 @@ export function extractSchemaParameters(jsonSchema: string): SchemaParameter[] {
   } catch {
     return []
   }
+}
+
+/**
+ * Translated custom-tool copy for client components: the immutable-name notice, the
+ * delete confirmation, and the message for a {@link validateCustomToolSchema} result.
+ */
+export function useCustomToolCopy() {
+  const t = useTranslations('shell.customTool')
+  return useMemo(
+    () => ({
+      functionNameLocked: t('functionNameLocked'),
+      deleteConfirmText: [{ text: t('deleteWarning'), error: true }, ` ${t('irreversible')}`],
+      schemaError: (validation: SchemaValidation): string | null =>
+        validation.errorCode ? t(`schemaErrors.${validation.errorCode}`) : null,
+    }),
+    [t]
+  )
 }

@@ -2,6 +2,7 @@
 
 import { DropdownMenuItem } from '@sim/emcn'
 import { Mail } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { useMyPendingInvitations } from '@/hooks/queries/invitations'
 
 interface ViewInvitationsMenuItemProps {
@@ -15,6 +16,7 @@ interface ViewInvitationsMenuItemProps {
  * content, so the check runs when the menu opens (cached between opens).
  */
 export function ViewInvitationsMenuItem({ onOpen }: ViewInvitationsMenuItemProps) {
+  const t = useTranslations('shell.invitations')
   const { data: invitations } = useMyPendingInvitations()
 
   if (!invitations || invitations.length === 0) {
@@ -24,7 +26,7 @@ export function ViewInvitationsMenuItem({ onOpen }: ViewInvitationsMenuItemProps
   return (
     <DropdownMenuItem size='lg' onSelect={onOpen}>
       <Mail className='size-[14px]' />
-      View invitations
+      {t('viewInvitations')}
     </DropdownMenuItem>
   )
 }

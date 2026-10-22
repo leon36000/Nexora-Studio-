@@ -1,1 +1,736 @@
-{}
+{
+  "errors": {
+    "listTitle": "Impossible de charger les bases de connaissances",
+    "listDescription": "Une erreur est survenue lors du chargement de vos bases de connaissances. Veuillez réessayer.",
+    "baseTitle": "Impossible de charger la base de connaissances",
+    "baseDescription": "Une erreur est survenue lors du chargement de cette base de connaissances. Veuillez réessayer."
+  },
+  "deleteBase": {
+    "title": "Supprimer la base de connaissances",
+    "confirmNamedPrefix": "Voulez-vous vraiment supprimer ",
+    "confirmNamedSuffix": " ? ",
+    "confirmUnnamed": "Voulez-vous vraiment supprimer cette base de connaissances ? ",
+    "warning": "Tous les documents, fragments et embeddings associés seront supprimés.",
+    "restoreHint": " Vous pourrez la restaurer depuis « Récemment supprimés » dans les Paramètres.",
+    "confirm": "Supprimer",
+    "pending": "Suppression…"
+  },
+  "listContextMenu": {
+    "newFolder": "Nouveau dossier",
+    "newBase": "Nouvelle base"
+  },
+  "baseContextMenu": {
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "viewTags": "Voir les tags",
+    "copyId": "Copier l’ID",
+    "export": "Exporter",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "edit": "Modifier",
+    "moveTo": "Déplacer vers",
+    "delete": "Supprimer",
+    "move": "Déplacer"
+  },
+  "deleteChunk": {
+    "title": "Supprimer le fragment",
+    "text": "Voulez-vous vraiment supprimer ce fragment ? Cette action est irréversible.",
+    "confirm": "Supprimer",
+    "pending": "Suppression…"
+  },
+  "chunkContextMenu": {
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "view": "Afficher",
+    "edit": "Modifier",
+    "copyContent": "Copier le contenu",
+    "delete": "Supprimer",
+    "newChunk": "Nouveau fragment"
+  },
+  "createBase": {
+    "title": "Créer une base de connaissances",
+    "name": "Nom",
+    "namePlaceholder": "Saisissez le nom de la base de connaissances",
+    "description": "Description",
+    "descriptionPlaceholder": "Décrivez cette base de connaissances (facultatif)",
+    "minChunkSize": "Taille min. des fragments (caractères)",
+    "maxChunkSize": "Taille max. des fragments (tokens)",
+    "overlap": "Chevauchement (tokens)",
+    "overlapHint": "1 token ≈ 4 caractères. La taille max. des fragments et le chevauchement sont exprimés en tokens.",
+    "strategy": "Stratégie de découpage",
+    "strategyHint": "Le mode Auto détecte la meilleure stratégie selon le type de contenu du fichier.",
+    "strategies": {
+      "auto": "Auto (détection selon le contenu)",
+      "text": "Texte (découpage aux limites de mots)",
+      "recursive": "Récursif (séparateurs configurables)",
+      "sentence": "Phrase",
+      "token": "Token (taille fixe)",
+      "regex": "Regex (motif personnalisé)"
+    },
+    "regexPattern": "Motif regex",
+    "regexPatternHint": "Le texte sera découpé à chaque correspondance de ce motif regex.",
+    "regexPatternPlaceholder": "ex. {first} ou {second}",
+    "chunkBoundaries": "Limites des fragments",
+    "chunkBoundariesHint": "Conserve exactement les limites. Recommandé lorsque chaque correspondance est un enregistrement distinct (ex. une paire question-réponse par fragment).",
+    "strictBoundaries": "Chaque correspondance forme son propre fragment (sans fusion)",
+    "customSeparators": "Séparateurs personnalisés (facultatif)",
+    "customSeparatorsHint": "Liste de délimiteurs séparés par des virgules, par ordre de priorité, jusqu’à {max}. Laissez vide pour utiliser les séparateurs par défaut.",
+    "customSeparatorsPlaceholder": "ex. {separators}",
+    "uploadDocuments": "Téléverser des documents",
+    "uploadDocumentsDescription": "PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSONL (20 fichiers max., 100 Mo chacun, 500 Mo au total)",
+    "selectedFiles": "Fichiers sélectionnés",
+    "removeFile": "Retirer le fichier",
+    "processFilesError": "Une erreur est survenue lors du traitement des fichiers. Veuillez réessayer.",
+    "fixFields": "Veuillez corriger les champs signalés",
+    "unknownError": "Une erreur inconnue est survenue",
+    "uploadingProgress": "Téléversement {completed}/{total}…",
+    "processing": "Traitement…",
+    "creating": "Création…",
+    "create": "Créer",
+    "validation": {
+      "nameRequired": "Le nom est obligatoire",
+      "nameTooLong": "Le nom doit comporter moins de 100 caractères",
+      "nameEmpty": "Le nom ne peut pas être vide",
+      "descriptionTooLong": "La description doit comporter au maximum {descriptionMax} caractères",
+      "minChunkTooSmall": "La taille min. des fragments doit être d’au moins 1 caractère",
+      "minChunkTooLarge": "La taille min. des fragments doit être inférieure à 2000 caractères",
+      "maxChunkTooSmall": "La taille max. des fragments doit être d’au moins 100 tokens",
+      "maxChunkTooLarge": "La taille max. des fragments doit être inférieure à 4000 tokens",
+      "overlapNegative": "Le chevauchement ne peut pas être négatif",
+      "overlapTooLarge": "Le chevauchement doit être inférieur à 500 tokens",
+      "minChunkVsMax": "La taille min. des fragments (caractères) doit être inférieure à la taille max. (tokens × 4)",
+      "overlapVsMax": "Le chevauchement doit être inférieur à la taille max. des fragments",
+      "regexRequired": "Un motif regex est obligatoire avec la stratégie regex",
+      "tooManySeparators": "{maxSeparators} séparateurs au maximum sont autorisés",
+      "separatorTooLong": "Chaque séparateur doit comporter au maximum {maxSeparatorLength} caractères"
+    }
+  },
+  "editBase": {
+    "title": "Modifier la base de connaissances",
+    "updateFailed": "Impossible de mettre à jour la base de connaissances",
+    "chunkingConfiguration": "Configuration du découpage",
+    "maxSize": "Taille max.",
+    "minSize": "Taille min.",
+    "overlap": "Chevauchement",
+    "tokens": "tokens",
+    "chars": "caract.",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer"
+  },
+  "list": {
+    "rootLabel": "Bases de connaissances",
+    "columns": {
+      "name": "Nom",
+      "documents": "Documents",
+      "tokens": "Tokens",
+      "connectors": "Connecteurs",
+      "created": "Créée le",
+      "owner": "Propriétaire",
+      "updated": "Dernière mise à jour",
+      "location": "Emplacement"
+    },
+    "connectorFilter": {
+      "all": "Toutes",
+      "connected": "Avec connecteurs",
+      "unconnected": "Sans connecteur"
+    },
+    "contentFilter": {
+      "all": "Toutes",
+      "has-docs": "Avec documents",
+      "empty": "Vides"
+    },
+    "filters": {
+      "connectors": "Connecteurs",
+      "content": "Contenu",
+      "owner": "Propriétaire",
+      "all": "Tous",
+      "searchMembers": "Rechercher des membres…",
+      "clear": "Effacer"
+    },
+    "filterTags": {
+      "connectors": "Connecteurs : {value}",
+      "connectorsCount": "Connecteurs : {count} types",
+      "content": "Contenu : {value}",
+      "contentCount": "Contenu : {count} types",
+      "owner": "Propriétaire : {value}",
+      "oneMember": "1 membre",
+      "ownerCount": "Propriétaire : {count} membres"
+    },
+    "searchPlaceholder": "Rechercher des bases de connaissances…",
+    "newFolder": "Nouveau dossier",
+    "newBase": "Nouvelle base",
+    "rename": "Renommer",
+    "delete": "Supprimer",
+    "deleting": "Suppression…",
+    "folderFallback": "Dossier",
+    "baseFallback": "Base de connaissances",
+    "renameFolderFailed": "Impossible de renommer le dossier",
+    "createFolderFailed": "Impossible de créer le dossier",
+    "deleteFolderFailed": "Impossible de supprimer le dossier",
+    "moveFolderFailed": "Impossible de déplacer le dossier",
+    "moveBaseFailed": "Impossible de déplacer la base de connaissances",
+    "moveBatchCap": "Sélectionnez au maximum {max} éléments à déplacer à la fois",
+    "deleteBatchCap": "Sélectionnez au maximum {max} éléments à supprimer à la fois",
+    "deleteSearchBaseFirst": "Supprimez d’abord la base de connaissances de recherche",
+    "confirmPrefix": "Voulez-vous vraiment supprimer ",
+    "deleteFolder": {
+      "title": "Supprimer le dossier",
+      "thisFolder": "ce dossier",
+      "suffix": " ? Les bases de connaissances et dossiers qu’il contient seront également supprimés. Vous pourrez les restaurer depuis « Récemment supprimés » dans les Paramètres."
+    },
+    "deleteSelected": {
+      "title": "Supprimer la sélection",
+      "suffixWithFolders": " ? Les bases de connaissances et dossiers contenus dans les dossiers sélectionnés seront également supprimés. Vous pourrez les restaurer depuis « Récemment supprimés » dans les Paramètres.",
+      "suffix": " ? Vous pourrez les restaurer depuis « Récemment supprimés » dans les Paramètres."
+    }
+  },
+  "documentColumns": {
+    "name": "Nom",
+    "size": "Taille",
+    "tokens": "Tokens",
+    "chunks": "Fragments",
+    "uploaded": "Importé le",
+    "status": "Statut",
+    "tags": "Tags"
+  },
+  "operators": {
+    "text": {
+      "eq": "est égal à",
+      "neq": "n’est pas égal à",
+      "contains": "contient",
+      "not_contains": "ne contient pas",
+      "starts_with": "commence par",
+      "ends_with": "se termine par"
+    },
+    "number": {
+      "eq": "est égal à",
+      "neq": "n’est pas égal à",
+      "gt": "supérieur à",
+      "gte": "supérieur ou égal à",
+      "lt": "inférieur à",
+      "lte": "inférieur ou égal à",
+      "between": "entre"
+    },
+    "date": {
+      "eq": "est le",
+      "neq": "n’est pas le",
+      "gt": "après le",
+      "gte": "le ou après le",
+      "lt": "avant le",
+      "lte": "le ou avant le",
+      "between": "entre"
+    },
+    "boolean": {
+      "eq": "est",
+      "neq": "n’est pas"
+    }
+  },
+  "base": {
+    "rootLabel": "Bases de connaissances",
+    "nameFallback": "Base de connaissances",
+    "documentFallback": "Document",
+    "retryFailed": "Impossible de relancer le traitement du document",
+    "rename": "Renommer",
+    "tags": "Tags",
+    "delete": "Supprimer",
+    "export": "Exporter",
+    "newConnector": "Nouveau connecteur",
+    "newDocuments": "Nouveaux documents",
+    "searchPlaceholder": "Rechercher des documents…",
+    "booleanYes": "Oui",
+    "booleanNo": "Non",
+    "connectedSources": "Sources connectées",
+    "deleting": "Suppression…",
+    "confirmPrefix": "Voulez-vous vraiment supprimer ",
+    "confirmSuffix": " ? ",
+    "cannotBeUndone": " Cette action est irréversible.",
+    "status": {
+      "pending": "En attente",
+      "processing": "En cours de traitement",
+      "skipped": "Ignoré",
+      "failed": "Échec",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "unknown": "Inconnu"
+    },
+    "sort": {
+      "filename": "Nom",
+      "fileSize": "Taille",
+      "tokenCount": "Tokens",
+      "chunkCount": "Fragments",
+      "uploadedAt": "Importé le",
+      "enabled": "Statut"
+    },
+    "filters": {
+      "status": "Statut",
+      "clear": "Effacer",
+      "statusTag": "Statut : {value}",
+      "statusOptions": {
+        "all": "Tous",
+        "enabled": "Activés",
+        "disabled": "Désactivés"
+      }
+    },
+    "notFound": {
+      "title": "Base de connaissances introuvable",
+      "description": "Cette base de connaissances a peut-être été supprimée ou déplacée"
+    },
+    "deleteBase": {
+      "title": "Supprimer la base de connaissances",
+      "warning": "La base de connaissances et {count, plural, one {le document qu’elle contient seront supprimés} other {les # documents qu’elle contient seront supprimés}}.",
+      "restoreHint": " Vous pourrez la restaurer depuis « Récemment supprimés » dans les Paramètres."
+    },
+    "deleteDocument": {
+      "title": "Supprimer le document",
+      "thisDocument": "ce document",
+      "connectorWarning": "Ce document est synchronisé depuis un connecteur. Le supprimer l’exclura définitivement des prochaines synchronisations. Pour le masquer temporairement de la recherche, désactivez-le plutôt.",
+      "warning": "Le document sera définitivement supprimé."
+    },
+    "deleteDocuments": {
+      "title": "Supprimer les documents",
+      "question": "Voulez-vous vraiment supprimer {count, plural, one {# document} other {# documents}} ? ",
+      "warning": "{count, plural, one {Le document sélectionné sera définitivement supprimé} other {Les documents sélectionnés seront définitivement supprimés}}.",
+      "confirm": "Supprimer {count, plural, one {# document} other {# documents}}"
+    },
+    "tagFilter": {
+      "title": "Filtrer par tags",
+      "clearAll": "Tout effacer",
+      "and": "et",
+      "selectTag": "Choisir un tag",
+      "operator": "Opérateur",
+      "remove": "Retirer le filtre de tag",
+      "addFilter": "Ajouter un filtre",
+      "from": "De",
+      "to": "À",
+      "between": "à",
+      "selectDate": "Choisir une date",
+      "booleanPlaceholder": "true ou false",
+      "numberPlaceholder": "Saisissez un nombre",
+      "valuePlaceholder": "Saisissez une valeur"
+    },
+    "documentPageTitle": "{title} — {parent}"
+  },
+  "document": {
+    "rootLabel": "Bases de connaissances",
+    "documentFallback": "Document",
+    "columns": {
+      "content": "Contenu",
+      "index": "Index",
+      "tokens": "Tokens",
+      "status": "Statut"
+    },
+    "newChunk": "Nouveau fragment",
+    "newChunkCrumb": "Nouveau fragment",
+    "chunkCrumb": "Fragment n° {index}",
+    "searchPlaceholder": "Rechercher des fragments…",
+    "searchFailed": "La recherche a échoué",
+    "loadChunksFailed": "Impossible de charger les fragments",
+    "rename": "Renommer",
+    "tags": "Tags",
+    "delete": "Supprimer",
+    "previousChunk": "Fragment précédent",
+    "nextChunk": "Fragment suivant",
+    "loadingChunk": "Chargement du fragment…",
+    "filters": {
+      "status": "Statut",
+      "all": "Tous",
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "clearAll": "Effacer tous les filtres",
+      "statusTag": "Statut : {value}"
+    },
+    "processing": {
+      "pending": "Traitement du document en attente…",
+      "inProgress": "Traitement du document en cours…",
+      "failed": "Échec du traitement du document",
+      "skipped": "Document ignoré",
+      "skippedWithReason": "Ignoré · {reason}",
+      "notReady": "Document pas encore prêt"
+    },
+    "save": {
+      "creating": "Création…",
+      "saving": "Enregistrement…",
+      "created": "Créé",
+      "saved": "Enregistré",
+      "createFailed": "Échec de la création",
+      "saveFailed": "Échec de l’enregistrement",
+      "createChunk": "Créer le fragment",
+      "save": "Enregistrer"
+    },
+    "notFound": {
+      "title": "Document introuvable",
+      "description": "Ce document a peut-être été supprimé ou déplacé"
+    },
+    "nothingToIndex": {
+      "title": "Rien à indexer",
+      "description": "Cette image ne contient aucune information exploitable par la recherche (logo, icône…)."
+    },
+    "unsavedChanges": {
+      "title": "Modifications non enregistrées",
+      "text": "Vous avez des modifications non enregistrées. Voulez-vous vraiment les abandonner ?",
+      "keepEditing": "Continuer l’édition",
+      "discard": "Abandonner les modifications"
+    },
+    "deleteDocument": {
+      "title": "Supprimer le document",
+      "confirmPrefix": "Voulez-vous vraiment supprimer ",
+      "confirmSuffix": " ? ",
+      "warning": "Le document et {count, plural, one {le fragment qu’il contient seront définitivement supprimés} other {les # fragments qu’il contient seront définitivement supprimés}}.",
+      "connectorWarning": "Ce document est synchronisé depuis un connecteur. Le supprimer l’exclura définitivement des prochaines synchronisations. Pour le masquer temporairement de la recherche, désactivez-le plutôt.",
+      "cannotBeUndone": "Cette action est irréversible.",
+      "deleting": "Suppression…"
+    }
+  },
+  "chunkEditor": {
+    "contentEmpty": "Le contenu ne peut pas être vide",
+    "contentTooLong": "Le contenu dépasse la longueur maximale (10 000 caractères)",
+    "editorLabel": "Éditeur du contenu du fragment",
+    "placeholderCreate": "Saisissez le contenu de ce fragment…",
+    "placeholderEdit": "Saisissez le contenu du fragment…",
+    "placeholderConnector": "Ce fragment est synchronisé depuis un connecteur et ne peut pas être modifié",
+    "placeholderReadOnly": "Lecture seule",
+    "tokenCount": "{count} tokens",
+    "tokenCountWithMax": "{count}/{max} tokens",
+    "tokenizer": "Tokeniseur",
+    "tokenIndex": "Token n° {index}"
+  },
+  "fieldTypes": {
+    "text": "Texte",
+    "number": "Nombre",
+    "date": "Date",
+    "boolean": "Booléen"
+  },
+  "documentTags": {
+    "title": "Tags du document",
+    "tags": "Tags",
+    "removeTag": "Retirer le tag",
+    "tagName": "Nom du tag",
+    "value": "Valeur",
+    "true": "Vrai",
+    "false": "Faux",
+    "tagNamePlaceholderSelect": "Saisissez ou choisissez un nom de tag",
+    "tagNamePlaceholder": "Saisissez un nom de tag",
+    "selectValue": "Choisir une valeur",
+    "enterNumber": "Saisissez un nombre",
+    "selectDate": "Choisir une date",
+    "enterValue": "Saisissez la valeur du tag",
+    "cancel": "Annuler",
+    "saveChanges": "Enregistrer les modifications",
+    "addTag": "Ajouter un tag",
+    "maxDefinitions": "Nombre maximal de définitions de tags atteint. Vous pouvez toujours utiliser les définitions existantes, mais pas en créer de nouvelles.",
+    "applying": "Application…",
+    "applyTag": "Appliquer le tag",
+    "close": "Fermer",
+    "nameConflict": "Un tag portant ce nom existe déjà"
+  },
+  "baseTags": {
+    "title": "Tags",
+    "heading": "Tags :",
+    "definedCount": "{count, plural, one {# définie} other {# définies}}",
+    "empty": "Aucune définition de tag pour le moment. Créez votre premier tag pour organiser vos documents.",
+    "documentCount": "{count, plural, one {# document} other {# documents}}",
+    "moreDocuments": "et {count} autres documents",
+    "deleteTag": "Supprimer le tag",
+    "addTag": "Ajouter un tag",
+    "tagName": "Nom du tag",
+    "tagNamePlaceholder": "Saisissez un nom de tag",
+    "nameConflict": "Un tag portant ce nom existe déjà",
+    "type": "Type",
+    "noSlots": "Plus aucun emplacement disponible pour ce type. Choisissez un autre type.",
+    "selectType": "Choisir un type",
+    "fieldTypeOption": "{type} ({used}/{max})",
+    "cancel": "Annuler",
+    "creating": "Création…",
+    "createTag": "Créer le tag",
+    "close": "Fermer",
+    "deletePrefix": "Voulez-vous vraiment supprimer le tag ",
+    "selectedFallback": "sélectionné",
+    "deleteSuffix": " ? ",
+    "deleteWarning": "Ce tag sera retiré de {count, plural, one {# document} other {# documents}}.",
+    "cannotBeUndone": " Cette action est irréversible.",
+    "deleting": "Suppression…",
+    "affectedDocuments": "Documents concernés",
+    "documentsUsing": "Documents utilisant « {name} »",
+    "usageSummary": "{count, plural, one {# document utilise} other {# documents utilisent}} actuellement cette définition de tag.",
+    "unused": "Cette définition de tag n’est utilisée par aucun document. Vous pouvez la supprimer sans risque pour libérer l’emplacement."
+  },
+  "actionBar": {
+    "selected": "{count, plural, one {# sélectionné} other {# sélectionnés}}",
+    "selectAll": "Tout sélectionner",
+    "clear": "Effacer",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "delete": "Supprimer"
+  },
+  "renameDocument": {
+    "title": "Renommer le document",
+    "name": "Nom",
+    "placeholder": "Saisissez le nom du document",
+    "nameRequired": "Le nom est obligatoire",
+    "failed": "Impossible de renommer le document",
+    "renaming": "Renommage…",
+    "rename": "Renommer"
+  },
+  "documentContextMenu": {
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "openSource": "Ouvrir la source",
+    "rename": "Renommer",
+    "tags": "Tags",
+    "retry": "Réessayer",
+    "delete": "Supprimer",
+    "newDocuments": "Nouveaux documents"
+  },
+  "syncFrequency": {
+    "title": "Fréquence de synchronisation",
+    "ariaLabel": "Fréquence de synchronisation",
+    "maxOnly": "{label} (Max)",
+    "intervals": {
+      "live": "En direct",
+      "hourly": "Toutes les heures",
+      "every6Hours": "Toutes les 6 heures",
+      "daily": "Tous les jours",
+      "weekly": "Toutes les semaines",
+      "manual": "Manuelle uniquement"
+    },
+    "hints": {
+      "manual": "Le contenu et les autorisations ne sont mis à jour que lorsque vous synchronisez. Les documents deviennent indisponibles après 24 heures sans vérification réussie des autorisations.",
+      "memberPermissionsHourly": "Le contenu suit ce rythme. Les autorisations des membres sont vérifiées toutes les heures.",
+      "permissionsHourly": "Les autorisations de la source exigent une synchronisation toutes les heures, même si un intervalle plus long est choisi. Les documents inchangés ne sont pas réindexés."
+    }
+  },
+  "addDocuments": {
+    "title": "Nouveaux documents",
+    "retryUpload": "Relancer le téléversement",
+    "uploading": "Téléversement…",
+    "upload": "Téléverser"
+  },
+  "upload": {
+    "partialFailure": "Échec du téléversement de {count, plural, one {# fichier} other {# fichiers}}",
+    "unknownError": "Une erreur inconnue est survenue pendant le téléversement"
+  },
+  "addConnector": {
+    "setupGuide": "Guide de configuration",
+    "configure": "Configurer {name}",
+    "connectAccount": "Connecter un compte {name}",
+    "connectAnotherAccount": "Connecter un autre compte {name}",
+    "selectAccount": "Choisir un compte {name}",
+    "selectServiceAccount": "Choisir un compte de service",
+    "loadAccountsFailed": "Impossible de charger les comptes",
+    "addSource": "Ajouter une source",
+    "chooseAnotherSource": "Choisir une autre source",
+    "searchSources": "Rechercher des sources…",
+    "noConnectors": "Aucun connecteur disponible.",
+    "noSourcesMatching": "Aucune source ne correspond à « {term} »",
+    "connectionAvailability": "Disponibilité de la connexion",
+    "loadAvailabilityFailed": "Impossible de charger la disponibilité de la connexion",
+    "authentication": "Authentification",
+    "apiKey": "Clé API",
+    "apiKeyTitle": "Clé API",
+    "apiKeyPlaceholder": "Saisissez la clé API",
+    "connectedAccount": "Compte connecté",
+    "browsingAccount": "Compte de navigation",
+    "account": "Compte",
+    "serviceAccount": "Compte de service",
+    "moreOptions": "Plus d’options",
+    "documentDetails": "Détails des documents (facultatif)",
+    "metadataTags": "Tags de métadonnées",
+    "methodUnavailable": "Cette méthode de connexion n’est pas disponible dans {kind, select, organization {cette organisation} other {cet espace de travail}}.",
+    "creating": "Création…",
+    "connecting": "Connexion…",
+    "addConnection": "Ajouter une connexion",
+    "createAndInvite": "Créer et inviter",
+    "saveConnection": "Enregistrer la connexion",
+    "connectAndSync": "Connecter et synchroniser"
+  },
+  "connectorSettings": {
+    "personalAccessToken": "Jeton d’accès personnel",
+    "keepSavedToken": "Laissez vide pour conserver le jeton enregistré",
+    "keepsRepository": "Conserve le dépôt actuel. Pour ajouter un autre dépôt, ajoutez une nouvelle source.",
+    "updating": "Mise à jour…",
+    "reenableSync": "Réactiver la synchronisation",
+    "changeConnection": "Modifier la connexion",
+    "cancel": "Annuler",
+    "reenabling": "Réactivation…",
+    "reenableMemberSync": "Réactiver la synchronisation par membre",
+    "membersKept": "Les membres et leurs documents sont conservés ; la prochaine synchronisation rétablit leur accès.",
+    "switching": "Changement…",
+    "changeIndexingAccount": "Changer de compte d’indexation",
+    "applyConnectionMethod": "Appliquer la méthode de connexion",
+    "editSettings": "Modifier les paramètres",
+    "nextSyncUsesAccount": "La prochaine synchronisation utilisera ce compte. Les membres conservent leurs comptes connectés et les autorisations de la source.",
+    "switchNotice": {
+      "workspace": "Chaque membre de l’espace de travail pourra lire tous les documents synchronisés une fois la prochaine synchronisation terminée.",
+      "members": "Vos collègues sont invités à connecter leurs comptes. Les documents deviennent disponibles après leur prochaine synchronisation. Les limites d’éléments sont levées.",
+      "admin": "Les documents deviennent disponibles une fois que la prochaine synchronisation a mis à jour leurs autorisations de source. Les limites d’éléments sont levées."
+    },
+    "indexingAccount": "Compte d’indexation",
+    "connectInIntegrations": "Connectez un compte {name} dans Intégrations, puis revenez ici pour le sélectionner.",
+    "selectSyncAccount": "Choisissez le compte utilisé pour la synchronisation",
+    "membersOwnAccounts": "Les membres synchronisent avec leurs propres comptes connectés dans Intégrations.",
+    "selectYourAccount": "Choisissez votre compte {name}",
+    "searchUnsupported": "Cette source n’est pas prise en charge dans la Recherche. Utilisez une base de connaissances distincte.",
+    "searchAccessRequired": "Choisissez « Comptes des membres » ou « Compte administrateur ou de service » pour la Recherche.",
+    "missingAdminField": "Renseignez {field} et enregistrez vos paramètres avant de changer de méthode de connexion.",
+    "waitForSync": "Attendez la fin de la synchronisation en cours avant d’enregistrer."
+  },
+  "editConnector": {
+    "title": "Modifier {name}",
+    "settingsTab": "Paramètres",
+    "documentsTab": "Documents",
+    "views": "Vues de la connexion",
+    "setupGuide": "Guide de configuration",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer"
+  },
+  "connectorAccess": {
+    "syncDocumentsWith": "Synchroniser les documents avec",
+    "connectedMembers": "Membres connectés",
+    "chooseAccount": "Choisissez un compte",
+    "modes": {
+      "workspace": "Espace de travail",
+      "members": "Comptes des membres",
+      "adminOrService": "Compte administrateur ou de service",
+      "service": "Compte de service"
+    },
+    "slackApp": "Application Slack",
+    "connectionMethod": "Méthode de connexion",
+    "syncUsing": "Synchroniser via",
+    "methodUnavailable": "Cette méthode de connexion n’est pas disponible dans {kind, select, organization {cette organisation} other {cet espace de travail}}.",
+    "workspaceHint": "Tous les membres de cet espace de travail peuvent rechercher ces documents.",
+    "syncUsingLabel": "Synchroniser via : {mode}",
+    "unavailable": "Indisponible",
+    "lockedTooltip": "Ajoutez une nouvelle connexion pour changer de méthode de synchronisation.",
+    "slackCheckFailed": "Impossible de vérifier la configuration Slack",
+    "checkingSlack": "Vérification de la configuration Slack…",
+    "setUpSlack": "Configurer Slack"
+  },
+  "connectorDocuments": {
+    "statusFilter": {
+      "ariaLabel": "Statut des documents",
+      "active": "Inclus",
+      "excluded": "Exclus",
+      "failed": "En échec",
+      "skipped": "Ignorés",
+      "withCount": "{label} ({count})"
+    },
+    "searchPlaceholder": "Rechercher des documents…",
+    "loadFailed": "Impossible de charger les documents",
+    "empty": {
+      "search": "Aucun document ne correspond à votre recherche",
+      "excluded": "Aucun document exclu",
+      "failed": "Aucun document en échec",
+      "skipped": "Aucun document ignoré",
+      "none": "Aucun document pour le moment"
+    },
+    "status": {
+      "failed": "Échec de l’indexation",
+      "skipped": "Ignoré",
+      "skippedWithReason": "Ignoré · {reason}",
+      "pending": "En attente d’indexation",
+      "processing": "Indexation en cours"
+    },
+    "open": "Ouvrir {name}",
+    "retryIndexing": "Relancer l’indexation",
+    "restore": "Restaurer",
+    "exclude": "Exclure",
+    "loadMoreFailed": "Impossible de charger plus de documents",
+    "loading": "Chargement…",
+    "loadMore": "Charger plus de documents"
+  },
+  "connectorSelector": {
+    "selectDependencyFirst": "Sélectionnez d’abord {field}",
+    "loadOptionsFailed": "Impossible de charger les options. Réessayez.",
+    "tooManyToList": "Aucune correspondance — trop de résultats à afficher. Essayez un terme plus précis",
+    "noneFound": "Aucun résultat pour « {noun} »",
+    "tooManyToSelectAll": "Il y a trop de résultats pour tout sélectionner. Sélectionnez les éléments un par un ou saisissez des clés.",
+    "loadAllFailed": "Impossible de charger toutes les options. Réessayez.",
+    "all": "Tout",
+    "searchField": "Rechercher {field}…",
+    "connectAccountFirst": "Connectez d’abord un compte",
+    "selectField": "Sélectionner {field}"
+  },
+  "connectorConfig": {
+    "about": "À propos de {field}",
+    "switchFieldToManual": "Passer {field} en saisie manuelle",
+    "switchFieldToSelector": "Passer {field} en sélecteur",
+    "switchToManual": "Passer en saisie manuelle",
+    "switchToSelector": "Passer au sélecteur"
+  },
+  "connectors": {
+    "loading": "Chargement des connexions…",
+    "empty": "Aucune source connectée pour le moment.",
+    "status": {
+      "active": "Active",
+      "pending": "En file d’attente",
+      "syncing": "Synchronisation",
+      "error": "Erreur",
+      "paused": "En pause",
+      "disabled": "Désactivée"
+    },
+    "lastSync": "Dernière synchronisation : {date}",
+    "docCount": "{count, plural, one {# doc} other {# docs}}",
+    "nextSync": "Prochaine synchronisation : {when}",
+    "nextSyncPending": "en attente",
+    "perMember": "Par membre",
+    "updatingAccess": "Mise à jour des accès",
+    "hideHistory": "Masquer l’historique",
+    "syncHistory": "Historique de synchronisation",
+    "actionsLabel": "Actions de la connexion",
+    "sync": {
+      "syncNow": "Synchroniser maintenant",
+      "syncQueued": "Synchronisation en file d’attente",
+      "syncing": "Synchronisation…",
+      "resumeToSync": "Reprenez pour synchroniser",
+      "memberSyncDisabled": "La synchronisation des membres est désactivée",
+      "settings": "Paramètres",
+      "resume": "Reprendre la synchronisation",
+      "pause": "Suspendre la synchronisation",
+      "waitForSync": "Attendez la fin de la synchronisation en cours",
+      "removeConnection": "Supprimer la connexion"
+    },
+    "remove": {
+      "title": "Supprimer la connexion",
+      "textWithDocuments": "Cette action supprime la connexion, arrête les prochaines synchronisations et supprime ses documents synchronisés de Nexora.",
+      "text": "Cette action supprime la connexion et arrête les prochaines synchronisations. Les documents synchronisés sont conservés, sauf si vous les supprimez ci-dessous.",
+      "confirm": "Supprimer",
+      "pending": "Suppression…",
+      "documents": "Documents",
+      "alsoDeleteDocuments": "Supprimer aussi les documents synchronisés"
+    },
+    "recovery": {
+      "reconnectToResume": "Reconnectez-vous pour reprendre la synchronisation",
+      "pausedAfterFailures": "Synchronisation suspendue après des échecs répétés",
+      "memberSyncDisabled": "La synchronisation des membres est désactivée",
+      "memberSyncDisabledDescription": "Les membres ne peuvent pas rechercher dans cette source tant que ses paramètres d’accès ne sont pas corrigés.",
+      "updateSourceAccount": "Mettez à jour le compte source, puis reprenez la synchronisation",
+      "settings": "Paramètres",
+      "reconnect": "Reconnecter",
+      "additionalPermissions": "Autorisations supplémentaires requises",
+      "updateAccess": "Mettre à jour l’accès"
+    },
+    "history": {
+      "loadFailed": "Impossible de charger l’historique de synchronisation",
+      "loading": "Chargement de l’historique de synchronisation…",
+      "empty": "Aucun historique de synchronisation pour le moment.",
+      "loadingMembers": "Chargement de l’historique de synchronisation des membres…",
+      "emptyMembers": "Aucun historique de synchronisation des membres pour le moment.",
+      "logState": {
+        "running": "En cours…",
+        "interrupted": "Interrompue",
+        "failed": "Échec",
+        "completed": "Terminée",
+        "partial": "Partielle",
+        "continuing": "En poursuite"
+      },
+      "added": "{count, plural, one {# ajouté} other {# ajoutés}}",
+      "updated": "{count, plural, one {# mis à jour} other {# mis à jour}}",
+      "deleted": "{count, plural, one {# supprimé} other {# supprimés}}",
+      "failed": "{count, plural, one {# en échec} other {# en échec}}",
+      "skipped": "{count, plural, one {# ignoré} other {# ignorés}}",
+      "failedToQueue": "{count, plural, one {# non mis en file} other {# non mis en file}}",
+      "noChanges": "Aucune modification",
+      "accountsNeedReconnecting": "{count, plural, one {# compte doit être reconnecté} other {# comptes doivent être reconnectés}}",
+      "accountsStale": "{count, plural, one {# compte non synchronisé} other {# comptes non synchronisés}} récemment",
+      "accountsFailed": "{count, plural, one {# compte en échec} other {# comptes en échec}}",
+      "accountsIncomplete": "{count, plural, one {# compte incomplet} other {# comptes incomplets}}"
+    }
+  }
+}

@@ -16,6 +16,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SIM_RESOURCES_DRAG_TYPE } from '@/lib/mothership/resource-types'
 import { generateSubfolderName } from '@/lib/workspaces/naming'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -64,6 +65,7 @@ interface FolderItemProps {
 }
 
 export const FolderItem = memo(function FolderItem({ workspaceId, folder }: FolderItemProps) {
+  const t = useTranslations('shell.folderItem')
   const {
     isAnyDragActive,
     dragDisabled,
@@ -199,9 +201,9 @@ export const FolderItem = memo(function FolderItem({ workspaceId, folder }: Fold
       }
     } catch (error) {
       logger.error('Failed to create folder:', error)
-      toast.error(getErrorMessage(error, 'Failed to create folder'))
+      toast.error(getErrorMessage(error, t('createFolderFailed')))
     }
-  }, [createFolderMutation, workspaceId, folder.id, effectiveLocked, expandFolder])
+  }, [createFolderMutation, workspaceId, folder.id, effectiveLocked, expandFolder, t])
 
   const handleToggleLock = useCallback(() => {
     if (inheritedFolderLocked) return
@@ -500,7 +502,11 @@ export const FolderItem = memo(function FolderItem({ workspaceId, folder }: Fold
         tabIndex={0}
         data-item-id={folder.id}
         aria-expanded={isExpanded}
-        aria-label={`${folder.name} folder, ${isExpanded ? 'expanded' : 'collapsed'}`}
+        aria-label={
+          isExpanded
+            ? t('ariaExpanded', { name: folder.name })
+            : t('ariaCollapsed', { name: folder.name })
+        }
         className={cn(
           chipVariants({ active: isSelected || isContextMenuOpen, fullWidth: true }),
           rowActionsGroupClass,
@@ -557,14 +563,14 @@ export const FolderItem = memo(function FolderItem({ workspaceId, folder }: Fold
                   <Lock
                     className='size-[14px] text-[var(--text-icon)]'
                     role='img'
-                    aria-label='Folder is locked'
+                    aria-label={t('locked')}
                     aria-hidden={false}
                   />
                 ) : undefined
               }
             >
               <SidebarRowAction
-                aria-label='Folder options'
+                aria-label={t('options')}
                 onPointerDown={handleMorePointerDown}
                 onClick={handleMoreClick}
               >

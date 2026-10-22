@@ -39,6 +39,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
 import { format } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState, useQueryStates } from 'nuqs'
 import { getDocumentIcon } from '@/components/icons/document-icons'
 import {
@@ -98,7 +99,7 @@ import {
   DocumentContextMenu,
   RenameDocumentModal,
 } from '@/app/workspace/[workspaceId]/knowledge/[id]/components'
-import { DOCUMENT_COLUMNS } from '@/app/workspace/[workspaceId]/knowledge/[id]/document-columns'
+import { useDocumentColumns } from '@/app/workspace/[workspaceId]/knowledge/[id]/document-columns'
 import {
   addConnectorParam,
   documentFiltersParsers,
@@ -163,11 +164,9 @@ const PROCESSING_POLL_INTERVAL_MS = 3000
 /** Slower cadence while only a connector sync is running: rows arrive in batches. */
 const CONNECTOR_SYNC_DOCUMENT_POLL_INTERVAL_MS = 5000
 
-const STATUS_FILTER_OPTIONS: ChipDropdownOption[] = [
-  { value: 'all', label: 'All' },
-  { value: 'enabled', label: 'Enabled' },
-  { value: 'disabled', label: 'Disabled' },
-]
+const STATUS_FILTER_VALUES = ['all', 'enabled', 'disabled'] as const
+
+type Translator = ReturnType<typeof useTranslations>
 
 interface KnowledgeBaseProps {
   id: string
@@ -179,50 +178,50 @@ const AnimatedLoader = ({ className }: { className?: string }) => (
   <Loader className={className} animate />
 )
 
-const getStatusBadge = (doc: DocumentData) => {
+const getStatusBadge = (doc: DocumentData, t: Translator) => {
   switch (getDocumentIndexingStatus(doc)) {
     case 'pending':
       return (
         <Badge variant='gray' size='sm'>
-          Pending
+          {t('status.pending')}
         </Badge>
       )
     case 'processing':
       return (
         <Badge variant='purple' size='sm' icon={AnimatedLoader}>
-          Processing
+          {t('status.processing')}
         </Badge>
       )
     case 'skipped':
       return (
         <Badge variant='gray' size='sm'>
-          Skipped
+          {t('status.skipped')}
         </Badge>
       )
     case 'failed':
       return doc.processingError ? (
         <Badge variant='red' size='sm' icon={CircleAlert}>
-          Failed
+          {t('status.failed')}
         </Badge>
       ) : (
         <Badge variant='red' size='sm'>
-          Failed
+          {t('status.failed')}
         </Badge>
       )
     case 'completed':
       return doc.enabled ? (
         <Badge variant='green' size='sm'>
-          Enabled
+          {t('status.enabled')}
         </Badge>
       ) : (
         <Badge variant='gray' size='sm'>
-          Disabled
+          {t('status.disabled')}
         </Badge>
       )
     default:
       return (
         <Badge variant='gray' size='sm'>
-          Unknown
+          {t('status.unknown')}
         </Badge>
       )
   }
@@ -270,7 +269,11 @@ function DocumentTagsCell({ tags }: { tags: TagValue[] }) {
 /**
  * Computes tag values for a document
  */
-function getDocumentTags(doc: DocumentData, definitions: TagDefinition[]): TagValue[] {
+function getDocumentTags(
+  doc: DocumentData,
+  definitions: TagDefinition[],
+  booleanLabels: { yes: string; no: string }
+): TagValue[] {
   const result: TagValue[] = []
   const defsBySlot = new Map(definitions.map((d) => [d.tagSlot, d]))
 
@@ -289,7 +292,7 @@ function getDocumentTags(doc: DocumentData, definitions: TagDefinition[]): TagVa
         value = String(raw)
       }
     } else if (fieldType === 'boolean') {
-      value = raw ? 'Yes' : 'No'
+      value = raw ? booleanLabels.yes : booleanLabels.no
     } else if (fieldType === 'number' && typeof raw === 'number') {
       value = raw.toLocaleString()
     } else {
@@ -309,6 +312,8 @@ export function KnowledgeBase({
   knowledgeBaseName: passedKnowledgeBaseName,
   workspaceId: propWorkspaceId,
 }: KnowledgeBaseProps) {
+  const t = useTranslations('knowledge.base')
+  const documentColumns = useDocumentColumns()
   const params = useParams()
   const workspaceId = propWorkspaceId || (params.workspaceId as string)
   const router = useRouter()
@@ -495,7 +500,7 @@ export function KnowledgeBase({
     prevHadSyncingRef.current = hasSyncingConnectors
   }, [hasSyncingConnectors, refreshKnowledgeBase, refreshDocuments])
 
-  const knowledgeBaseName = knowledgeBase?.name || passedKnowledgeBaseName || 'Knowledge Base'
+  const knowledgeBaseName = knowledgeBase?.name || passedKnowledgeBaseName || t('nameFallback')
   /**
    * Breadcrumb leaf label. Falls back to the canonical '…' placeholder while
    * the name loads (mirroring loading.tsx) instead of duplicating the root
@@ -622,7 +627,7 @@ export function KnowledgeBase({
           logger.error('Error retrying document:', err)
           updateDocument(docId, {
             processingStatus: 'failed',
-            processingError: getErrorMessage(err, 'Failed to retry document processing'),
+            processingError: getErrorMessage(err, t('retryFailed')),
           })
         },
       }
@@ -957,7 +962,7 @@ export function KnowledgeBase({
   const breadcrumbs: BreadcrumbItem[] = useMemo(
     () =>
       folderBreadcrumbItems({
-        rootLabel: FOLDERED_RESOURCE_HEADERS.knowledge_base.rootLabel,
+        rootLabel: t('rootLabel'),
         rootIcon: FOLDERED_RESOURCE_HEADERS.knowledge_base.rootIcon,
         breadcrumbs: folderChain,
         onNavigate: handleNavigateToFolder,
@@ -979,13 +984,13 @@ export function KnowledgeBase({
               ...(userPermissions.canEdit || userPermissions.isLoading
                 ? [
                     {
-                      label: 'Rename',
+                      label: t('rename'),
                       icon: Pencil,
                       disabled: !userPermissions.canEdit,
                       onClick: () => kbRename.startRename(id, knowledgeBaseName),
                     },
                     {
-                      label: 'Tags',
+                      label: t('tags'),
                       icon: TagIcon,
                       disabled: !userPermissions.canEdit,
                       onClick: () => setShowTagsModal(true),
@@ -993,7 +998,7 @@ export function KnowledgeBase({
                   ]
                 : []),
               ...(canDeleteBase
-                ? [{ label: 'Delete', icon: Trash, onClick: () => setShowDeleteDialog(true) }]
+                ? [{ label: t('delete'), icon: Trash, onClick: () => setShowDeleteDialog(true) }]
                 : []),
             ],
           },
@@ -1015,6 +1020,7 @@ export function KnowledgeBase({
       userPermissions.canEdit,
       userPermissions.isLoading,
       canDeleteBase,
+      t,
     ]
   )
 
@@ -1022,11 +1028,11 @@ export function KnowledgeBase({
     () => [
       ...(permissionConfig.disableKnowledgeBaseExport
         ? []
-        : [{ text: 'Export', icon: Download, onSelect: () => downloadKnowledgeBaseExport(id) }]),
+        : [{ text: t('export'), icon: Download, onSelect: () => downloadKnowledgeBaseExport(id) }]),
       ...(userPermissions.canEdit || userPermissions.isLoading
         ? [
             {
-              text: 'New connector',
+              text: t('newConnector'),
               icon: Plus,
               disabled: !userPermissions.canEdit,
               onSelect: () => setShowAddConnectorModal(true),
@@ -1034,7 +1040,7 @@ export function KnowledgeBase({
           ]
         : []),
       {
-        text: 'New documents',
+        text: t('newDocuments'),
         icon: Plus,
         onSelect: handleAddDocuments,
         disabled: userPermissions.canEdit !== true,
@@ -1048,18 +1054,19 @@ export function KnowledgeBase({
       userPermissions.isLoading,
       setShowAddConnectorModal,
       handleAddDocuments,
+      t,
     ]
   )
 
   const sortConfig: SortConfig = useMemo(
     () => ({
       options: [
-        { id: 'filename', label: 'Name' },
-        { id: 'fileSize', label: 'Size' },
-        { id: 'tokenCount', label: 'Tokens' },
-        { id: 'chunkCount', label: 'Chunks' },
-        { id: 'uploadedAt', label: 'Uploaded' },
-        { id: 'enabled', label: 'Status' },
+        { id: 'filename', label: t('sort.filename') },
+        { id: 'fileSize', label: t('sort.fileSize') },
+        { id: 'tokenCount', label: t('sort.tokenCount') },
+        { id: 'chunkCount', label: t('sort.chunkCount') },
+        { id: 'uploadedAt', label: t('sort.uploadedAt') },
+        { id: 'enabled', label: t('sort.enabled') },
       ],
       active: activeSort,
       /** Sorting (or clearing the sort) resets pagination to the first page. */
@@ -1072,7 +1079,7 @@ export function KnowledgeBase({
         setCurrentPage(1)
       },
     }),
-    [activeSort, onSortColumn, onClearSort, setCurrentPage]
+    [activeSort, onSortColumn, onClearSort, setCurrentPage, t]
   )
 
   const filterContent = useMemo(
@@ -1080,7 +1087,7 @@ export function KnowledgeBase({
       <AutoWidthPanel>
         <div className='flex flex-col gap-2'>
           <div className='flex items-center justify-between'>
-            <span className={FILTER_SECTION_LABEL_CLASS}>Status</span>
+            <span className={FILTER_SECTION_LABEL_CLASS}>{t('filters.status')}</span>
             {enabledFilter !== 'all' && (
               <Chip
                 onClick={() => {
@@ -1089,12 +1096,15 @@ export function KnowledgeBase({
                   setIsSelectAllMode(false)
                 }}
               >
-                Clear
+                {t('filters.clear')}
               </Chip>
             )}
           </div>
           <ChipDropdown
-            options={STATUS_FILTER_OPTIONS}
+            options={STATUS_FILTER_VALUES.map((value) => ({
+              value,
+              label: t(`filters.statusOptions.${value}`),
+            }))}
             value={enabledFilter}
             onChange={(value) => {
               if (value !== 'all' && value !== 'enabled' && value !== 'disabled') return
@@ -1118,7 +1128,7 @@ export function KnowledgeBase({
         />
       </AutoWidthPanel>
     ),
-    [enabledFilter, tagDefinitions, tagFilterEntries]
+    [enabledFilter, tagDefinitions, tagFilterEntries, t]
   )
 
   const connectorBadges =
@@ -1167,7 +1177,9 @@ export function KnowledgeBase({
       ...(enabledFilter !== 'all'
         ? [
             {
-              label: `Status: ${enabledFilter === 'enabled' ? 'Enabled' : 'Disabled'}`,
+              label: t('filters.statusTag', {
+                value: t(`filters.statusOptions.${enabledFilter}`),
+              }),
               onRemove: () => {
                 setEnabledFilter('all')
                 setSelectedDocuments(new Set())
@@ -1191,7 +1203,7 @@ export function KnowledgeBase({
         return acc
       }, []),
     ],
-    [enabledFilter, tagFilterEntries]
+    [enabledFilter, tagFilterEntries, t]
   )
 
   /**
@@ -1229,7 +1241,10 @@ export function KnowledgeBase({
           : null
         const DocIcon = ConnectorIcon || getDocumentIcon(doc.mimeType, doc.filename)
 
-        const tags = getDocumentTags(doc, tagDefinitions)
+        const tags = getDocumentTags(doc, tagDefinitions, {
+          yes: t('booleanYes'),
+          no: t('booleanNo'),
+        })
 
         const statusCell: ResourceCell =
           doc.processingStatus === 'failed' && doc.processingError
@@ -1237,7 +1252,7 @@ export function KnowledgeBase({
                 content: (
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
-                      <div className='cursor-help'>{getStatusBadge(doc)}</div>
+                      <div className='cursor-help'>{getStatusBadge(doc, t)}</div>
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top' className='max-w-xs'>
                       {doc.processingError}
@@ -1245,7 +1260,7 @@ export function KnowledgeBase({
                   </Tooltip.Root>
                 ),
               }
-            : { content: getStatusBadge(doc) }
+            : { content: getStatusBadge(doc, t) }
 
         const tagsCell: ResourceCell =
           tags.length === 0 ? { label: null } : { content: <DocumentTagsCell tags={tags} /> }
@@ -1299,15 +1314,15 @@ export function KnowledgeBase({
           },
         }
       }),
-    [documents, tagDefinitions, highlightQuery]
+    [documents, tagDefinitions, highlightQuery, t]
   )
 
   if (error && !knowledgeBase) {
     return (
       <ResourceNotFound
         icon={DatabaseX}
-        title='Knowledge base not found'
-        description='This knowledge base may have been deleted or moved'
+        title={t('notFound.title')}
+        description={t('notFound.description')}
       />
     )
   }
@@ -1317,7 +1332,7 @@ export function KnowledgeBase({
       <Resource onContextMenu={handleEmptyContextMenu}>
         <Resource.Header
           icon={FOLDERED_RESOURCE_HEADERS.knowledge_base.rootIcon}
-          title={FOLDERED_RESOURCE_HEADERS.knowledge_base.rootLabel}
+          title={t('rootLabel')}
           breadcrumbs={breadcrumbs}
           actions={headerActions}
         />
@@ -1325,7 +1340,7 @@ export function KnowledgeBase({
           search={{
             value: searchQuery,
             onChange: handleSearchChange,
-            placeholder: 'Search documents...',
+            placeholder: t('searchPlaceholder'),
           }}
           sort={sortConfig}
           filter={filterContent ? { content: filterContent } : undefined}
@@ -1333,7 +1348,7 @@ export function KnowledgeBase({
           aside={connectorBadges}
         />
         <Resource.Table
-          columns={DOCUMENT_COLUMNS}
+          columns={documentColumns}
           rows={documentRows}
           emptyState={
             showEmptyState ? (
@@ -1381,24 +1396,24 @@ export function KnowledgeBase({
       <ChipConfirmModal
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        srTitle='Delete Knowledge Base'
-        title='Delete Knowledge Base'
+        srTitle={t('deleteBase.title')}
+        title={t('deleteBase.title')}
         defaultAction='dismiss'
         text={[
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: knowledgeBaseName, bold: true },
-          '? ',
+          t('confirmSuffix'),
           {
-            text: `The knowledge base and all ${pagination.total} document${pagination.total === 1 ? '' : 's'} within it will be removed.`,
+            text: t('deleteBase.warning', { count: pagination.total }),
             error: true,
           },
-          ' You can restore it from Recently Deleted in Settings.',
+          t('deleteBase.restoreHint'),
         ]}
         confirm={{
-          label: 'Delete Knowledge Base',
+          label: t('deleteBase.title'),
           onClick: handleDeleteKnowledgeBase,
           pending: isDeleting,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleting'),
         }}
       />
 
@@ -1408,31 +1423,27 @@ export function KnowledgeBase({
           setShowDeleteDocumentModal(open)
           if (!open) setDocumentToDelete(null)
         }}
-        srTitle='Delete Document'
-        title='Delete Document'
+        srTitle={t('deleteDocument.title')}
+        title={t('deleteDocument.title')}
         text={(() => {
           const docToDelete = documents.find((doc) => doc.id === documentToDelete)
           const base: ChipConfirmTextSegment[] = [
-            'Are you sure you want to delete ',
-            { text: docToDelete?.filename ?? 'this document', bold: true },
-            '? ',
+            t('confirmPrefix'),
+            { text: docToDelete?.filename ?? t('deleteDocument.thisDocument'), bold: true },
+            t('confirmSuffix'),
           ]
           return docToDelete?.connectorId
             ? [
                 ...base,
                 {
-                  text: 'This document is synced from a connector. Deleting it will permanently exclude it from future syncs. To temporarily hide it from search, disable it instead.',
+                  text: t('deleteDocument.connectorWarning'),
                   error: true,
                 },
               ]
-            : [
-                ...base,
-                { text: 'This will permanently delete the document.', error: true },
-                ' This action cannot be undone.',
-              ]
+            : [...base, { text: t('deleteDocument.warning'), error: true }, t('cannotBeUndone')]
         })()}
         confirm={{
-          label: 'Delete Document',
+          label: t('deleteDocument.title'),
           onClick: confirmDeleteDocument,
         }}
       />
@@ -1440,21 +1451,21 @@ export function KnowledgeBase({
       <ChipConfirmModal
         open={showBulkDeleteModal}
         onOpenChange={setShowBulkDeleteModal}
-        srTitle='Delete Documents'
-        title='Delete Documents'
+        srTitle={t('deleteDocuments.title')}
+        title={t('deleteDocuments.title')}
         text={[
-          `Are you sure you want to delete ${selectedDocumentCount} document${selectedDocumentCount === 1 ? '' : 's'}? `,
+          t('deleteDocuments.question', { count: selectedDocumentCount }),
           {
-            text: `This will permanently delete the selected document${selectedDocumentCount === 1 ? '' : 's'}.`,
+            text: t('deleteDocuments.warning', { count: selectedDocumentCount }),
             error: true,
           },
-          ' This action cannot be undone.',
+          t('cannotBeUndone'),
         ]}
         confirm={{
-          label: `Delete ${selectedDocumentCount} Document${selectedDocumentCount === 1 ? '' : 's'}`,
+          label: t('deleteDocuments.confirm', { count: selectedDocumentCount }),
           onClick: confirmBulkDelete,
           pending: isBulkOperating,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleting'),
         }}
       />
 
@@ -1499,10 +1510,10 @@ export function KnowledgeBase({
       <ChipModal
         open={showConnectorsModal}
         onOpenChange={setShowConnectorsModal}
-        srTitle='Connected Sources'
+        srTitle={t('connectedSources')}
       >
         <ChipModalHeader onClose={() => setShowConnectorsModal(false)}>
-          Connected Sources
+          {t('connectedSources')}
         </ChipModalHeader>
         <ChipModalBody>
           <ConnectorsSection
@@ -1532,7 +1543,7 @@ export function KnowledgeBase({
             ? () => {
                 const urlParams = new URLSearchParams({
                   kbName: knowledgeBaseName,
-                  docName: contextMenuDocument.filename || 'Document',
+                  docName: contextMenuDocument.filename || t('documentFallback'),
                 })
                 window.open(
                   `/workspace/${workspaceId}/knowledge/${id}/${contextMenuDocument.id}?${urlParams.toString()}`,
@@ -1657,6 +1668,7 @@ interface TagFilterValueControlProps {
  * Renders the value input for a knowledge base tag filter row.
  */
 function TagFilterValueControl({ entry, onChange }: TagFilterValueControlProps) {
+  const t = useTranslations('knowledge.base.tagFilter')
   const isBetween = entry.operator === 'between'
 
   if (entry.fieldType === 'date') {
@@ -1666,14 +1678,14 @@ function TagFilterValueControl({ entry, onChange }: TagFilterValueControlProps) 
           <ChipDatePicker
             value={entry.value || undefined}
             onChange={(value) => onChange({ value })}
-            placeholder='From'
+            placeholder={t('from')}
             fullWidth
           />
-          <span className='shrink-0 text-[var(--text-muted)] text-caption'>to</span>
+          <span className='shrink-0 text-[var(--text-muted)] text-caption'>{t('between')}</span>
           <ChipDatePicker
             value={entry.valueTo || undefined}
             onChange={(value) => onChange({ valueTo: value })}
-            placeholder='To'
+            placeholder={t('to')}
             fullWidth
           />
         </div>
@@ -1684,7 +1696,7 @@ function TagFilterValueControl({ entry, onChange }: TagFilterValueControlProps) 
       <ChipDatePicker
         value={entry.value || undefined}
         onChange={(value) => onChange({ value })}
-        placeholder='Select date'
+        placeholder={t('selectDate')}
         fullWidth
       />
     )
@@ -1696,13 +1708,13 @@ function TagFilterValueControl({ entry, onChange }: TagFilterValueControlProps) 
         <ChipInput
           value={entry.value}
           onChange={(event) => onChange({ value: event.target.value })}
-          placeholder='From'
+          placeholder={t('from')}
         />
-        <span className='shrink-0 text-[var(--text-muted)] text-caption'>to</span>
+        <span className='shrink-0 text-[var(--text-muted)] text-caption'>{t('between')}</span>
         <ChipInput
           value={entry.valueTo}
           onChange={(event) => onChange({ valueTo: event.target.value })}
-          placeholder='To'
+          placeholder={t('to')}
         />
       </div>
     )
@@ -1714,10 +1726,10 @@ function TagFilterValueControl({ entry, onChange }: TagFilterValueControlProps) 
       onChange={(event) => onChange({ value: event.target.value })}
       placeholder={
         entry.fieldType === 'boolean'
-          ? 'true or false'
+          ? t('booleanPlaceholder')
           : entry.fieldType === 'number'
-            ? 'Enter number'
-            : 'Enter value'
+            ? t('numberPlaceholder')
+            : t('valuePlaceholder')
       }
     />
   )
@@ -1727,11 +1739,13 @@ function TagFilterValueControl({ entry, onChange }: TagFilterValueControlProps) 
  * Tag filter section rendered inside the combined filter popover.
  */
 function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectionProps) {
+  const t = useTranslations('knowledge.base.tagFilter')
+  const tOperators = useTranslations('knowledge.operators')
   const activeCount = entries.filter((f) => f.tagSlot && f.value.trim()).length
 
-  const tagOptions: ChipDropdownOption[] = tagDefinitions.map((t) => ({
-    value: t.displayName,
-    label: t.displayName,
+  const tagOptions: ChipDropdownOption[] = tagDefinitions.map((definition) => ({
+    value: definition.displayName,
+    label: definition.displayName,
   }))
 
   const filtersToShow = useMemo(
@@ -1762,7 +1776,7 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
   }
 
   const handleTagChange = (id: string, tagName: string) => {
-    const def = tagDefinitions.find((t) => t.displayName === tagName)
+    const def = tagDefinitions.find((definition) => definition.displayName === tagName)
     const fieldType = (def?.fieldType || 'text') as FilterFieldType
     const operators = getOperatorsForFieldType(fieldType)
     updateEntry(id, {
@@ -1789,8 +1803,8 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
   return (
     <div className='mt-3 border-[var(--border-1)] border-t pt-3'>
       <div className='flex items-center justify-between'>
-        <span className={FILTER_SECTION_LABEL_CLASS}>Filter by tags</span>
-        {activeCount > 0 && <Chip onClick={() => onChange([])}>Clear all</Chip>}
+        <span className={FILTER_SECTION_LABEL_CLASS}>{t('title')}</span>
+        {activeCount > 0 && <Chip onClick={() => onChange([])}>{t('clearAll')}</Chip>}
       </div>
 
       <div
@@ -1801,7 +1815,9 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
           const operators = getOperatorsForFieldType(entry.fieldType)
           const operatorOptions: ChipDropdownOption[] = operators.map((op) => ({
             value: op.value,
-            label: op.label,
+            label: tOperators.has(`${entry.fieldType}.${op.value}`)
+              ? tOperators(`${entry.fieldType}.${op.value}`)
+              : op.label,
           }))
 
           return (
@@ -1809,7 +1825,7 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
               {index > 0 && (
                 <div className='flex items-center gap-2'>
                   <span className='shrink-0 text-[var(--text-muted)] text-caption leading-none'>
-                    and
+                    {t('and')}
                   </span>
                   <div className='h-px flex-1 bg-[var(--border-1)]' />
                 </div>
@@ -1820,7 +1836,7 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
                     options={tagOptions}
                     value={entry.tagName}
                     onChange={(value) => handleTagChange(entry.id, value)}
-                    placeholder='Select tag'
+                    placeholder={t('selectTag')}
                     align='start'
                     matchTriggerWidth={false}
                     contentClassName='max-h-[240px] overflow-y-auto'
@@ -1831,7 +1847,7 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
                       options={operatorOptions}
                       value={entry.operator}
                       onChange={(value) => updateEntry(entry.id, { operator: value, valueTo: '' })}
-                      placeholder='Operator'
+                      placeholder={t('operator')}
                       align='start'
                       matchTriggerWidth={false}
                     />
@@ -1839,7 +1855,7 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
                 </div>
                 <Chip
                   onClick={() => removeFilter(entry.id)}
-                  aria-label='Remove tag filter'
+                  aria-label={t('remove')}
                   leftIcon={X}
                 />
               </div>
@@ -1856,7 +1872,7 @@ function TagFilterSection({ tagDefinitions, entries, onChange }: TagFilterSectio
 
       <div className='mt-2'>
         <Chip fullWidth leftIcon={Plus} onClick={addFilter}>
-          Add filter
+          {t('addFilter')}
         </Chip>
       </div>
     </div>

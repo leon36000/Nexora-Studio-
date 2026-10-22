@@ -14,6 +14,7 @@ import {
 } from '@sim/emcn'
 import { ArrowUpRight, Building, ChevronLeft, Lock } from '@sim/emcn/icons'
 import { useParams, usePathname, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   type DesktopSettingsSurface,
   getOrganizationSettingsHref,
@@ -24,6 +25,7 @@ import {
 import { SettingsIntentLink } from '@/components/settings/settings-intent-link'
 import { useSettingsNavigationState } from '@/components/settings/settings-navigation-provider'
 import { usePendingSettingsSelection } from '@/components/settings/use-pending-settings-selection'
+import { useSettingsNavCopy } from '@/components/settings/use-settings-nav-copy'
 import { useSession } from '@/lib/auth/client'
 import { getSubscriptionAccessState } from '@/lib/billing/client'
 import { canViewWorkspaceBillingSettings } from '@/lib/billing/workspace-permissions'
@@ -65,6 +67,9 @@ export function SettingsSidebar({
 }: SettingsSidebarProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollContentRef = useRef<HTMLDivElement>(null)
+
+  const t = useTranslations('shell.settingsSidebar')
+  const navCopy = useSettingsNavCopy()
 
   const params = useParams()
   const workspaceId = params.workspaceId as string
@@ -311,14 +316,14 @@ export function SettingsSidebar({
           !scrollEdges.top && 'border-transparent'
         )}
       >
-        <SidebarTooltip label='Back' enabled={showCollapsedTooltips}>
+        <SidebarTooltip label={t('back')} enabled={showCollapsedTooltips}>
           <Chip
             fullWidth
             leftIcon={ChevronLeft}
             onClick={handleBack}
             className={SIDEBAR_RAIL_CHIP_CLASS}
           >
-            <span className='sidebar-collapse-hide'>Back</span>
+            <span className='sidebar-collapse-hide'>{t('back')}</span>
           </Chip>
         </SidebarTooltip>
       </div>
@@ -335,9 +340,9 @@ export function SettingsSidebar({
       >
         <div ref={scrollContentRef} className='flex flex-col'>
           {sectionConfig
-            .map(({ key, title }) => ({
+            .map(({ key }) => ({
               key,
-              title,
+              title: navCopy.group(key),
               items: navigationItems
                 .filter((item) => item.section === key)
                 .sort((left, right) => left.order - right.order),
@@ -355,7 +360,7 @@ export function SettingsSidebar({
               >
                 <div className={cn(SIDEBAR_ITEM_GAP_CLASS, 'flex flex-col px-2')}>
                   {key === 'organization' && organizationSettingsId && (
-                    <SidebarTooltip label='Organization' enabled={showCollapsedTooltips}>
+                    <SidebarTooltip label={t('organization')} enabled={showCollapsedTooltips}>
                       <SettingsIntentLink
                         data-settings-navigation='managed'
                         href={getOrganizationSettingsHref(organizationSettingsId, 'members')}
@@ -373,7 +378,7 @@ export function SettingsSidebar({
                       >
                         <Building className={chipContentIconClass} />
                         <OverflowText
-                          label='Organization'
+                          label={t('organization')}
                           className='sidebar-collapse-hide text-[var(--text-body)]'
                         />
                         <ArrowUpRight
@@ -390,6 +395,7 @@ export function SettingsSidebar({
                       ? permissionConfig[accessFeature]
                       : false
                     const section = item.id as SettingsSection
+                    const label = navCopy.label(item)
                     const href = getSettingsHref({ section })
                     const selfHostedUnlocked = isSelfHostedOverrideEnabled(
                       item.selfHostedOverride,
@@ -409,7 +415,7 @@ export function SettingsSidebar({
                       <>
                         <Icon className={chipContentIconClass} />
                         <OverflowText
-                          label={item.label}
+                          label={label}
                           className='sidebar-collapse-hide text-[var(--text-body)]'
                           tooltipEnabled={!showCollapsedTooltips}
                         />
@@ -424,7 +430,7 @@ export function SettingsSidebar({
                             variant='mono'
                             className='sidebar-collapse-hide ml-auto shrink-0'
                           >
-                            Max
+                            {t('maxPlan')}
                           </ChipTag>
                         )}
                       </>
@@ -447,7 +453,7 @@ export function SettingsSidebar({
                         scroll={false}
                         aria-current={active ? 'page' : undefined}
                         aria-label={
-                          permissionRestricted ? `${item.label}: access required` : undefined
+                          permissionRestricted ? t('accessRequired', { label }) : undefined
                         }
                         className={itemClassName}
                         onIntent={() => !permissionRestricted && signalIntent(section)}
@@ -465,11 +471,7 @@ export function SettingsSidebar({
                     )
 
                     return (
-                      <SidebarTooltip
-                        key={item.id}
-                        label={item.label}
-                        enabled={showCollapsedTooltips}
-                      >
+                      <SidebarTooltip key={item.id} label={label} enabled={showCollapsedTooltips}>
                         {element}
                       </SidebarTooltip>
                     )

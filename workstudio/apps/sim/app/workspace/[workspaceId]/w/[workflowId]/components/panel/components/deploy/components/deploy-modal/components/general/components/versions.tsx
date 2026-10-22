@@ -15,6 +15,7 @@ import {
 } from '@sim/emcn'
 import { Columns2, FileText, MoreVertical, Pencil, RefreshCw, SendToBack } from '@sim/emcn/icons'
 import { formatDateTime } from '@sim/utils/formatting'
+import { useTranslations } from 'next-intl'
 import type { WorkflowDeploymentVersionResponse } from '@/lib/workflows/persistence/utils'
 import { formatVersionLabel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/components/deploy-modal/components/general/format-version-label'
 import { useUpdateDeploymentVersion } from '@/hooks/queries/deployments'
@@ -58,6 +59,7 @@ export function Versions({
   onLoadDeployment,
   onCompare,
 }: VersionsProps) {
+  const t = useTranslations('editor.deploy.versions')
   const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [editValue, setEditValue] = useState('')
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
@@ -192,7 +194,7 @@ export function Versions({
   if (versions.length === 0) {
     return (
       <div className='flex h-[120px] items-center justify-center rounded-sm border border-[var(--border)] text-[var(--text-placeholder)] text-small'>
-        No deployments yet
+        {t('empty')}
       </div>
     )
   }
@@ -201,13 +203,13 @@ export function Versions({
     <div className='overflow-hidden rounded-sm border border-[var(--border)]'>
       <div className='flex h-[30px] items-center bg-[var(--surface-1)] px-4'>
         <div className={cn(COLUMN_WIDTHS.VERSION, COLUMN_BASE_CLASS)}>
-          <span className={HEADER_TEXT_CLASS}>Version</span>
+          <span className={HEADER_TEXT_CLASS}>{t('columns.version')}</span>
         </div>
         <div className={cn(COLUMN_WIDTHS.DEPLOYED_BY, COLUMN_BASE_CLASS)}>
-          <span className={HEADER_TEXT_CLASS}>Deployed by</span>
+          <span className={HEADER_TEXT_CLASS}>{t('columns.deployedBy')}</span>
         </div>
         <div className={cn(COLUMN_WIDTHS.TIMESTAMP, 'min-w-0')}>
-          <span className={HEADER_TEXT_CLASS}>Timestamp</span>
+          <span className={HEADER_TEXT_CLASS}>{t('columns.timestamp')}</span>
         </div>
         <div className={cn(COLUMN_WIDTHS.ACTIONS, COLUMN_BASE_CLASS)} />
       </div>
@@ -265,12 +267,12 @@ export function Versions({
                     )}
                     title={
                       v.isActive
-                        ? 'Live'
+                        ? t('status.live')
                         : isOperationPending
-                          ? 'Pending'
+                          ? t('status.pending')
                           : operationStatus === 'failed'
-                            ? 'Failed'
-                            : 'Inactive'
+                            ? t('status.failed')
+                            : t('status.inactive')
                     }
                   />
                   {editingVersion === v.version ? (
@@ -306,7 +308,9 @@ export function Versions({
                       </span>
                       {v.name && <OverflowText label={v.name} />}
                       {rowLabel && (
-                        <span className='shrink-0 text-[var(--text-tertiary)]'>({rowLabel})</span>
+                        <span className='shrink-0 text-[var(--text-tertiary)]'>
+                          ({t(`rowLabels.${rowLabel}`)})
+                        </span>
                       )}
                     </span>
                   )}
@@ -315,7 +319,7 @@ export function Versions({
 
               <div className={cn(COLUMN_WIDTHS.DEPLOYED_BY, COLUMN_BASE_CLASS, 'min-w-0')}>
                 <span className={cn('block truncate text-[var(--text-tertiary)]', ROW_TEXT_CLASS)}>
-                  {v.deployedBy || 'Unknown'}
+                  {v.deployedBy || t('unknown')}
                 </span>
               </div>
 
@@ -335,7 +339,7 @@ export function Versions({
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <Button
-                      aria-label={v.description ? 'Edit description' : 'Add description'}
+                      aria-label={v.description ? t('editDescription') : t('addDescription')}
                       variant='ghost'
                       iconPadding='sm'
                       className={cn(
@@ -354,7 +358,7 @@ export function Versions({
                     {v.description ? (
                       <p className='line-clamp-3 text-caption'>{v.description}</p>
                     ) : (
-                      <p className='text-caption'>Add description</p>
+                      <p className='text-caption'>{t('addDescription')}</p>
                     )}
                   </Tooltip.Content>
                 </Tooltip.Root>
@@ -364,7 +368,7 @@ export function Versions({
                 >
                   <PopoverTrigger asChild>
                     <Button
-                      aria-label='Version actions'
+                      aria-label={t('actions')}
                       variant='ghost'
                       iconPadding='sm'
                       disabled={isPromotingVersion}
@@ -376,25 +380,25 @@ export function Versions({
                   <PopoverContent align='end' sideOffset={4} minWidth={160} maxWidth={200} border>
                     <PopoverItem onClick={() => handleStartRename(v.version, v.name)}>
                       <Pencil className='size-3' />
-                      <span>Rename</span>
+                      <span>{t('rename')}</span>
                     </PopoverItem>
                     <PopoverItem onClick={() => handleOpenDescriptionModal(v.version)}>
                       <FileText className='size-3' />
-                      <span>{v.description ? 'Edit description' : 'Add description'}</span>
+                      <span>{v.description ? t('editDescription') : t('addDescription')}</span>
                     </PopoverItem>
                     <PopoverItem onClick={() => handleCompare(v.version)}>
                       <Columns2 className='size-3' />
-                      <span>Compare</span>
+                      <span>{t('compare')}</span>
                     </PopoverItem>
                     {!v.isActive && (
                       <PopoverItem onClick={() => handlePromote(v.version)}>
                         <RefreshCw className='size-3' />
-                        <span>Promote to live</span>
+                        <span>{t('promoteToLive')}</span>
                       </PopoverItem>
                     )}
                     <PopoverItem onClick={() => handleLoadDeployment(v.version)}>
                       <SendToBack className='size-3' />
-                      <span>Load deployment</span>
+                      <span>{t('loadDeployment')}</span>
                     </PopoverItem>
                   </PopoverContent>
                 </Popover>

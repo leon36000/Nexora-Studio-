@@ -1,5 +1,6 @@
 import { ChipLink } from '@sim/emcn'
 import { BookOpen } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface EmptyStateDocsLinkProps {
   href: string
@@ -7,6 +8,7 @@ interface EmptyStateDocsLinkProps {
 
 /** The docs chip every resource empty state carries, so the four stay identical. */
 export function EmptyStateDocsLink({ href }: EmptyStateDocsLinkProps) {
+  const t = useTranslations('shell.emptyStates')
   return (
     <ChipLink
       href={href}
@@ -15,7 +17,7 @@ export function EmptyStateDocsLink({ href }: EmptyStateDocsLinkProps) {
       variant='border'
       leftIcon={BookOpen}
     >
-      Docs
+      {t('docs')}
     </ChipLink>
   )
 }

@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronDown, Plus } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { McpIcon } from '@/components/icons'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
@@ -91,11 +92,15 @@ function ServerListItem({
   onViewDetails,
   onAuthorize,
 }: ServerListItemProps) {
+  const t = useTranslations('settings.mcp')
+  const tShared = useTranslations('settings.shared')
+  const tToolsLabel = useTranslations('settings.mcp.toolsLabel')
   const transportLabel = formatTransportLabel(server.transport || 'http')
   const ServerIcon = server.managedConnectorId
     ? getManagedMcpConnectorIcon(server.managedConnectorId)
     : McpIcon
   const toolsLabel = getServerToolsLabel(
+    tToolsLabel,
     tools,
     server.connectionStatus,
     server.lastError,
@@ -114,17 +119,17 @@ function ServerListItem({
     server.connectionStatus === 'disconnected' ||
     showDiscoveryError
 
-  const serverName = server.name || 'Unnamed server'
+  const serverName = server.name || t('unnamedServer')
   // Transport rides on the description rather than beside the name — inside the
   // row's truncating title a long name would clip it away entirely.
   const statusText = server.managedConnectorId
-    ? 'Managed by Connected accounts'
+    ? t('row.managedByConnectedAccounts')
     : isConnecting
-      ? 'Waiting for authorization...'
+      ? t('row.waitingForAuthorization')
       : isRefreshing
-        ? 'Refreshing...'
+        ? t('refresh.refreshing')
         : isLoadingTools && tools.length === 0
-          ? 'Loading...'
+          ? tShared('loading')
           : showDiscoveryError
             ? discoveryError
             : toolsLabel
@@ -148,14 +153,16 @@ function ServerListItem({
         </>
       }
       onClick={onViewDetails}
-      clickLabel={`Open ${serverName}`}
+      clickLabel={t('row.openServer', { name: serverName })}
       navigable
       trailing={
         canManage &&
         !server.managedConnectorId &&
         server.authType === 'oauth' &&
         server.connectionStatus !== 'connected' ? (
-          <Chip onClick={onAuthorize}>{isConnecting ? 'Reopen authorization' : 'Authorize'}</Chip>
+          <Chip onClick={onAuthorize}>
+            {isConnecting ? t('row.reopenAuthorization') : t('row.authorize')}
+          </Chip>
         ) : undefined
       }
     />
@@ -182,6 +189,10 @@ function buildEditInitialData(server: McpServer) {
 }
 
 export function MCP() {
+  const t = useTranslations('settings.mcp')
+  const tShared = useTranslations('settings.shared')
+  const tRefresh = useTranslations('settings.mcp.refresh')
+  const tToolsLabel = useTranslations('settings.mcp.toolsLabel')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workspacePermissions = useUserPermissionsContext()
@@ -221,9 +232,7 @@ export function MCP() {
   } = useAllowedMcpDomains({ enabled: isServerFormOpen })
   const domainPolicyUnavailable =
     isServerFormOpen && (allowedMcpDomainsPending || allowedMcpDomainsFailed)
-  const domainPolicyError = allowedMcpDomainsFailed
-    ? 'Unable to load the MCP domain policy. Try again before saving this server.'
-    : undefined
+  const domainPolicyError = allowedMcpDomainsFailed ? t('domainPolicyError') : undefined
   const { connectingServers: connectingOauthServers, startOauthForServer } = useMcpOauthPopup({
     workspaceId,
   })
@@ -260,7 +269,7 @@ export function MCP() {
       logger.info(`Removed MCP server: ${serverId}`)
     } catch (error) {
       logger.error('Failed to remove MCP server:', error)
-      toast.error('Failed to remove MCP server', { description: getErrorMessage(error) })
+      toast.error(t('toasts.removeFailed'), { description: getErrorMessage(error) })
     } finally {
       setDeletingServers((prev) => {
         const newSet = new Set(prev)
@@ -338,7 +347,7 @@ export function MCP() {
       }
     } catch (error) {
       logger.error('Failed to refresh MCP server:', error)
-      toast.error('Failed to refresh MCP server', { description: getErrorMessage(error) })
+      toast.error(t('toasts.refreshFailed'), { description: getErrorMessage(error) })
     }
   }
 
@@ -420,17 +429,18 @@ export function MCP() {
       onOpenChange={(open) => {
         if (!open) setServerToDeleteId(null)
       }}
-      srTitle='Delete MCP server'
-      title='Delete MCP server'
+      srTitle={t('deleteDialog.title')}
+      title={t('deleteDialog.title')}
       text={[
-        'Are you sure you want to delete ',
+        t('deleteDialog.textBefore'),
         {
-          text: servers.find((s) => s.id === serverToDeleteId)?.name || 'this server',
+          text:
+            servers.find((s) => s.id === serverToDeleteId)?.name || t('deleteDialog.fallbackName'),
           bold: true,
         },
-        '? This action cannot be undone.',
+        t('deleteDialog.textAfter'),
       ]}
-      confirm={{ label: 'Delete', onClick: confirmDeleteServer }}
+      confirm={{ label: tShared('delete'), onClick: confirmDeleteServer }}
     />
   ) : null
 
@@ -438,16 +448,21 @@ export function MCP() {
     const { server, tools } = selectedServer
     const transportLabel = formatTransportLabel(server.transport || 'http')
     const isCurrentRefresh = refreshServerMutation.variables?.serverId === server.id
-    const refreshAction = getRefreshActionState({
-      mutationStatus: isCurrentRefresh ? refreshServerMutation.status : 'idle',
-      connectionStatus: isCurrentRefresh ? refreshServerMutation.data?.status : undefined,
-      workflowsUpdated: isCurrentRefresh ? refreshServerMutation.data?.workflowsUpdated : undefined,
-    })
+    const refreshAction = getRefreshActionState(
+      {
+        mutationStatus: isCurrentRefresh ? refreshServerMutation.status : 'idle',
+        connectionStatus: isCurrentRefresh ? refreshServerMutation.data?.status : undefined,
+        workflowsUpdated: isCurrentRefresh
+          ? refreshServerMutation.data?.workflowsUpdated
+          : undefined,
+      },
+      tRefresh
+    )
 
     return (
       <SettingsPanel
-        back={{ text: 'MCP tools', icon: ArrowLeft, onSelect: handleBackToList }}
-        title={server.name || 'Unnamed server'}
+        back={{ text: t('detail.back'), icon: ArrowLeft, onSelect: handleBackToList }}
+        title={server.name || t('unnamedServer')}
         actions={
           canEdit && !server.managedConnectorId
             ? [
@@ -458,12 +473,12 @@ export function MCP() {
                   disabled: refreshAction.disabled,
                 },
                 {
-                  text: 'Edit',
+                  text: tShared('edit'),
                   onSelect: () => setEditingServerId(server.id),
                 },
                 {
                   id: 'delete',
-                  text: deletingServers.has(server.id) ? 'Deleting...' : 'Delete',
+                  text: deletingServers.has(server.id) ? tShared('deleting') : tShared('delete'),
                   onSelect: () => handleRemoveServer(server.id),
                   disabled: deletingServers.has(server.id),
                 },
@@ -471,26 +486,31 @@ export function MCP() {
             : []
         }
       >
-        <SettingsSection label='Server'>
+        <SettingsSection label={t('detail.server')}>
           <div className='flex flex-col gap-4.5'>
-            <SettingsField label='Server name'>{server.name || 'Unnamed server'}</SettingsField>
+            <SettingsField label={t('detail.serverName')}>
+              {server.name || t('unnamedServer')}
+            </SettingsField>
 
-            <SettingsField label='Transport'>{transportLabel}</SettingsField>
+            <SettingsField label={t('detail.transport')}>{transportLabel}</SettingsField>
 
             {server.url && (
-              <SettingsField label='URL' breakAll>
+              <SettingsField label={t('detail.url')} breakAll>
                 {server.url}
               </SettingsField>
             )}
 
             {server.managedConnectorId && (
-              <SettingsField label='Managed by'>Connected accounts</SettingsField>
+              <SettingsField label={t('detail.managedBy')}>
+                {t('detail.connectedAccounts')}
+              </SettingsField>
             )}
 
             {server.connectionStatus !== 'connected' && (
-              <SettingsField label='Status'>
+              <SettingsField label={t('detail.status')}>
                 <p className='text-[var(--text-error)] text-sm'>
                   {getServerToolsLabel(
+                    tToolsLabel,
                     [],
                     server.connectionStatus,
                     server.lastError,
@@ -504,7 +524,7 @@ export function MCP() {
               !server.managedConnectorId &&
               server.authType === 'oauth' &&
               server.connectionStatus !== 'connected' && (
-                <SettingsField label='Authentication'>
+                <SettingsField label={t('detail.authentication')}>
                   <div>
                     <Chip
                       variant='primary'
@@ -512,7 +532,9 @@ export function MCP() {
                         await startOauthForServer(server.id)
                       }}
                     >
-                      {connectingOauthServers.has(server.id) ? 'Reopen authorization' : 'Authorize'}
+                      {connectingOauthServers.has(server.id)
+                        ? t('row.reopenAuthorization')
+                        : t('row.authorize')}
                     </Chip>
                   </div>
                 </SettingsField>
@@ -520,9 +542,9 @@ export function MCP() {
           </div>
         </SettingsSection>
 
-        <SettingsSection label={`Tools (${tools.length})`}>
+        <SettingsSection label={t('detail.tools', { count: tools.length })}>
           {tools.length === 0 ? (
-            <p className='text-[var(--text-muted)] text-sm'>No tools available</p>
+            <p className='text-[var(--text-muted)] text-sm'>{t('detail.noTools')}</p>
           ) : (
             <div className='flex flex-col gap-2'>
               {tools.map((tool) => {
@@ -559,12 +581,12 @@ export function MCP() {
                               <Tooltip.Trigger asChild>
                                 <div className='flex items-center'>
                                   <Badge variant={getIssueBadgeVariant(issues[0].issue)} size='sm'>
-                                    {getIssueBadgeLabel(issues[0].issue)}
+                                    {t(`detail.issueBadge.${getIssueBadgeLabel(issues[0].issue)}`)}
                                   </Badge>
                                 </div>
                               </Tooltip.Trigger>
                               <Tooltip.Content>
-                                Update in: {affectedWorkflows.join(', ')}
+                                {t('detail.updateIn', { workflows: affectedWorkflows.join(', ') })}
                               </Tooltip.Content>
                             </Tooltip.Root>
                           )}
@@ -588,7 +610,7 @@ export function MCP() {
                     {isExpanded && hasParams && (
                       <div className='border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 py-2'>
                         <p className='mb-1.5 text-[var(--text-muted)] text-caption uppercase tracking-wide'>
-                          Parameters
+                          {t('detail.parameters')}
                         </p>
                         <div className='flex flex-col gap-1.5'>
                           {Object.entries(tool.inputSchema!.properties!).map(
@@ -617,7 +639,7 @@ export function MCP() {
                                     </Badge>
                                     {isRequired && (
                                       <Badge variant='default' size='sm'>
-                                        required
+                                        {t('detail.required')}
                                       </Badge>
                                     )}
                                   </div>
@@ -677,13 +699,13 @@ export function MCP() {
         search={{
           value: searchTerm,
           onChange: setSearchTerm,
-          placeholder: 'Search servers...',
+          placeholder: t('list.searchPlaceholder'),
         }}
         actions={
           canEdit
             ? [
                 {
-                  text: 'Add server',
+                  text: t('list.addServer'),
                   icon: Plus,
                   variant: 'primary',
                   onSelect: () => setShowAddModal(true),
@@ -695,13 +717,13 @@ export function MCP() {
       >
         {listError ? (
           <SettingsEmptyState>
-            {getErrorMessage(listError, 'Failed to load MCP servers')}
+            {getErrorMessage(listError, t('list.loadFailed'))}
           </SettingsEmptyState>
         ) : serversLoading ? (
-          <SettingsEmptyState>Loading...</SettingsEmptyState>
+          <SettingsEmptyState>{tShared('loading')}</SettingsEmptyState>
         ) : !hasServers ? (
           <SettingsEmptyState>
-            {canEdit ? 'Click "Add server" above to get started' : 'No MCP servers configured'}
+            {canEdit ? t('list.emptyCanEdit') : t('list.emptyReadOnly')}
           </SettingsEmptyState>
         ) : (
           <div className={RESOURCE_LIST_STACK}>
@@ -735,7 +757,7 @@ export function MCP() {
             })}
             {showNoResults && (
               <SettingsEmptyState variant='inline'>
-                No servers found matching &quot;{searchTerm}&quot;
+                {t('list.noResults', { term: searchTerm })}
               </SettingsEmptyState>
             )}
           </div>

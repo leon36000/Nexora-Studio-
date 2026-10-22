@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Chip, cn } from '@sim/emcn'
 import { Send, X } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface WandPromptBarProps {
   isVisible: boolean
@@ -22,9 +23,10 @@ export function WandPromptBar({
   onSubmit,
   onCancel,
   onChange,
-  placeholder = 'Describe what you want to generate...',
+  placeholder,
   className,
 }: WandPromptBarProps) {
+  const t = useTranslations('editor.wandPromptBar')
   const promptBarRef = useRef<HTMLDivElement>(null)
   const [isExiting, setIsExiting] = useState(false)
   const [prevIsVisible, setPrevIsVisible] = useState(isVisible)
@@ -90,9 +92,9 @@ export function WandPromptBar({
         <div className='relative flex-1'>
           <input
             type='text'
-            value={isStreaming ? 'Generating...' : promptValue}
+            value={isStreaming ? t('generating') : promptValue}
             onChange={(e) => !isStreaming && onChange(e.target.value)}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t('placeholder')}
             autoComplete='off'
             autoCorrect='off'
             autoCapitalize='off'
@@ -113,7 +115,7 @@ export function WandPromptBar({
           />
         </div>
 
-        <Chip shape='round' leftIcon={X} onClick={handleCancel} aria-label='Close AI prompt' />
+        <Chip shape='round' leftIcon={X} onClick={handleCancel} aria-label={t('close')} />
 
         {!isStreaming && (
           <Chip
@@ -121,7 +123,7 @@ export function WandPromptBar({
             leftIcon={Send}
             onClick={() => onSubmit(promptValue)}
             disabled={isLoading || isStreaming || !promptValue.trim()}
-            aria-label='Generate content'
+            aria-label={t('generate')}
           />
         )}
       </div>

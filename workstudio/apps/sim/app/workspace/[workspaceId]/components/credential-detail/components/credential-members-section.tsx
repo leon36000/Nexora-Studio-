@@ -1,5 +1,6 @@
 'use client'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import {
   credentialRoleLockReason,
   MEMBER_ROLE_OPTIONS,
@@ -26,6 +27,7 @@ interface CredentialMembersSectionProps {
  * by every credential detail surface.
  */
 export function CredentialMembersSection({ credentialId, isAdmin }: CredentialMembersSectionProps) {
+  const t = useTranslations('shell.credentialDetail')
   const { data: members = [], isPending: membersLoading } =
     useWorkspaceCredentialMembers(credentialId)
   const upsertMember = useUpsertWorkspaceCredentialMember()
@@ -55,7 +57,7 @@ export function CredentialMembersSection({ credentialId, isAdmin }: CredentialMe
   }
 
   return (
-    <DetailSection title={`Members (${activeMembers.length})`}>
+    <DetailSection title={t('members', { count: activeMembers.length })}>
       {membersLoading ? null : (
         <div className='flex flex-col gap-2'>
           {activeMembers.map((member) => {

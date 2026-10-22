@@ -9,6 +9,7 @@ import {
   normalizeBlockRetryTries,
   normalizeBlockRetryWaitMs,
 } from '@sim/workflow-types/workflow'
+import { useTranslations } from 'next-intl'
 import { ShortInput } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/short-input'
 import type { SubBlockConfig } from '@/blocks/types'
 
@@ -21,6 +22,7 @@ interface RetrySettingsProps {
 
 interface RetryNumberFieldProps {
   blockId: string
+  label: string
   config: SubBlockConfig
   value: number
   disabled: boolean
@@ -30,14 +32,12 @@ interface RetryNumberFieldProps {
 
 const MAX_TRIES_CONFIG = {
   id: 'block-retry-max-tries',
-  title: 'Max tries',
   type: 'short-input',
   connectionDroppable: false,
 } as const satisfies SubBlockConfig
 
 const WAIT_CONFIG = {
   id: 'block-retry-wait',
-  title: 'Wait between tries (ms)',
   type: 'short-input',
   connectionDroppable: false,
 } as const satisfies SubBlockConfig
@@ -57,6 +57,7 @@ const WAIT_CONFIG = {
  */
 function RetryNumberField({
   blockId,
+  label,
   config,
   value,
   disabled,
@@ -76,7 +77,7 @@ function RetryNumberField({
   return (
     <div className='subblock-content flex flex-col gap-2.5'>
       <div className='flex items-center justify-between gap-1.5 pl-0.5'>
-        <Label className='flex items-baseline gap-1.5 whitespace-nowrap'>{config.title}</Label>
+        <Label className='flex items-baseline gap-1.5 whitespace-nowrap'>{label}</Label>
       </div>
       <ShortInput
         blockId={blockId}
@@ -101,6 +102,7 @@ function RetryNumberField({
  * what was configured rather than snapping to the defaults.
  */
 export function RetrySettings({ blockId, retry, disabled, onChange }: RetrySettingsProps) {
+  const t = useTranslations('editor.panelEditor.retry')
   const enabled = retry?.enabled === true
   const maxTries = retry?.maxTries ?? BLOCK_RETRY_DEFAULT_TRIES
   const waitBetweenTriesMs = retry?.waitBetweenTriesMs ?? BLOCK_RETRY_DEFAULT_WAIT_MS
@@ -118,7 +120,7 @@ export function RetrySettings({ blockId, retry, disabled, onChange }: RetrySetti
             onCheckedChange={(next) => setPolicy({ enabled: next })}
             disabled={disabled}
           />
-          <Label htmlFor='block-retry-enabled'>Retry on fail</Label>
+          <Label htmlFor='block-retry-enabled'>{t('retryOnFail')}</Label>
         </div>
         {enabled && <FieldDivider subblockMarker />}
       </div>
@@ -128,6 +130,7 @@ export function RetrySettings({ blockId, retry, disabled, onChange }: RetrySetti
           <div className='subblock-row'>
             <RetryNumberField
               blockId={blockId}
+              label={t('maxTries')}
               config={MAX_TRIES_CONFIG}
               value={maxTries}
               disabled={disabled}
@@ -139,6 +142,7 @@ export function RetrySettings({ blockId, retry, disabled, onChange }: RetrySetti
           <div className='subblock-row'>
             <RetryNumberField
               blockId={blockId}
+              label={t('waitBetweenTries')}
               config={WAIT_CONFIG}
               value={waitBetweenTriesMs}
               disabled={disabled}

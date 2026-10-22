@@ -15,6 +15,7 @@ import {
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { useSession } from '@/lib/auth/client'
 import { resourceScopeFields, resourceScopeFromOwner } from '@/lib/core/resource-scope'
 import type { OAuthReturnContext } from '@/lib/credentials/client-state'
@@ -159,7 +160,7 @@ interface ConnectOAuthModalReauthorizeProps extends ConnectOAuthModalBaseProps {
     Extract<OAuthReturnContext, { origin: 'kb-connectors' }>,
     'origin' | 'knowledgeBaseId' | 'connectorType' | 'connectorId'
   >
-  onConnect?: () => Promise<void> | void
+  onConnect?: () => Promise<void> | void // i18n-ignore: type annotation
 }
 
 export type ConnectOAuthModalProps =
@@ -175,6 +176,7 @@ export type ConnectOAuthModalProps =
  */
 export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
   const { open, onOpenChange, mode, docsUrl } = props
+  const t = useTranslations('shell.connectOAuthModal')
   const isConnect = mode === 'connect'
 
   const declaredProviderId = useMemo(
@@ -347,14 +349,14 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
           : undefined
 
       if (clientConfiguration?.fields.some((field) => !oauthClientFields[field.id]?.trim())) {
-        setSubmitError('Complete every OAuth app configuration field.')
+        setSubmitError(t('completeConfiguration'))
         return
       }
 
       if (isConnect) {
         const trimmed = displayName.trim()
         if (!trimmed) {
-          setValidationError('Display name is required.')
+          setValidationError(t('displayNameRequired'))
           return
         }
 
@@ -479,7 +481,7 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
       handleClose()
     } catch (err: unknown) {
       if (returnContextWritten) clearOAuthReturnContext()
-      const message = getErrorMessage(err, 'Failed to start OAuth connection')
+      const message = getErrorMessage(err, t('connectFailed'))
       setSubmitError(message)
       logger.error('Failed to connect OAuth service', err)
     }
@@ -502,20 +504,19 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
 
   const displayNameError =
     validationError ??
-    (existingCredential
-      ? `An integration named "${existingCredential.displayName}" already exists.`
-      : undefined)
+    (existingCredential ? t('duplicateName', { name: existingCredential.displayName }) : undefined)
 
   const isConnectorReconnect = !isConnect && props.returnContext?.origin === 'kb-connectors'
   const connectLabel = isConnectorReconnect
     ? newScopes.length > 0
-      ? 'Update access'
-      : 'Reconnect'
-    : 'Connect'
-  const title =
-    isConnectorReconnect && newScopes.length > 0
-      ? `Update ${providerName} access`
-      : `${connectLabel} ${providerName}`
+      ? t('updateAccess')
+      : t('reconnect')
+    : t('connect')
+  const title = isConnectorReconnect
+    ? newScopes.length > 0
+      ? t('titleUpdateAccess', { provider: providerName })
+      : t('titleReconnect', { provider: providerName })
+    : t('titleConnect', { provider: providerName })
 
   return (
     <ChipModal open={open} onOpenChange={onOpenChange} srTitle={title}>
@@ -530,16 +531,16 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
           <p className='text-[var(--text-tertiary)] text-caption'>
             {isConnectorReconnect
               ? newScopes.length > 0
-                ? 'Approve the requested permissions to continue syncing.'
-                : `Continue to ${providerName} to restore this connection.`
-              : `The "${props.toolName}" tool requires access to your account.`}
+                ? t('approvePermissions')
+                : t('continueToRestore', { provider: providerName })
+              : t('toolRequiresAccess', { tool: props.toolName })}
           </p>
         )}
 
         {authServerOptions.length > 0 && (
           <ChipModalField
             type='dropdown'
-            title='Environment'
+            title={t('environment')}
             value={providerId}
             onChange={setSelectedProviderId}
             options={authServerOptions}
@@ -551,13 +552,13 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
         {isConnect && (
           <ChipModalField
             type='input'
-            title='Display name'
+            title={t('displayName')}
             value={displayName}
             onChange={(value) => {
               setDisplayName(value)
               if (validationError) setValidationError(null)
             }}
-            placeholder='Integration name'
+            placeholder={t('displayNamePlaceholder')}
             autoComplete='off'
             required
             error={displayNameError}
@@ -569,9 +570,9 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
         {oauthClientRedirectUri && (
           <ChipModalField
             type='copy'
-            title='Redirect URI'
+            title={t('redirectUri')}
             value={oauthClientRedirectUri}
-            copyLabel='Copy redirect URI'
+            copyLabel={t('copyRedirectUri')}
             required
           />
         )}
@@ -618,17 +619,17 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
         {isConnect && (
           <ChipModalField
             type='textarea'
-            title='Description'
+            title={t('description')}
             value={description}
             onChange={setDescription}
-            placeholder='Optional description'
+            placeholder={t('descriptionPlaceholder')}
             maxLength={500}
             minHeight={80}
           />
         )}
 
         {displayScopes.length > 0 && (
-          <ChipModalField type='custom' title='Permissions requested'>
+          <ChipModalField type='custom' title={t('permissionsRequested')}>
             <InfoCard>
               <InfoCardList>
                 {displayScopes.map((scope) => (
@@ -637,7 +638,7 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
                       {getScopeDescription(scope, providerId)}
                       {!isConnect && newScopesSet.has(scope) && (
                         <Badge variant='amber' size='sm'>
-                          New
+                          {t('newScope')}
                         </Badge>
                       )}
                     </span>
@@ -657,14 +658,14 @@ export function ConnectOAuthModal(props: ConnectOAuthModalProps) {
           docsUrl
             ? [
                 {
-                  label: 'Setup guide',
+                  label: t('setupGuide'),
                   onClick: () => window.open(docsUrl, '_blank', 'noopener,noreferrer'),
                 },
               ]
             : undefined
         }
         primaryAction={{
-          label: isPending ? 'Connecting...' : connectLabel,
+          label: isPending ? t('connecting') : connectLabel,
           onClick: handleConnect,
           disabled: isDisabled,
         }}

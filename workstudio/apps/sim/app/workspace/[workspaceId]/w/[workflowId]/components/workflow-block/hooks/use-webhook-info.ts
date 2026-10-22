@@ -21,7 +21,7 @@ export interface UseWebhookInfoReturn {
   /** The webhook ID if it exists in the database */
   webhookId: string | undefined
   /** Function to reactivate a disabled webhook */
-  reactivateWebhook: (webhookId: string) => Promise<void>
+  reactivateWebhook(webhookId: string): Promise<void>
 }
 
 /**

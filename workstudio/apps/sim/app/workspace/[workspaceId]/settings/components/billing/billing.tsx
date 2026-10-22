@@ -18,6 +18,7 @@ import { isOrgAdminRole } from '@sim/platform-authz/predicates'
 import { getErrorMessage } from '@sim/utils/errors'
 import { formatDate } from '@sim/utils/formatting'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useSession, useSubscription } from '@/lib/auth/client'
 import { ON_DEMAND_UNLIMITED } from '@/lib/billing/constants'
 import { CREDIT_MULTIPLIER, formatCreditCost } from '@/lib/billing/credits/conversion'
@@ -67,26 +68,18 @@ import {
 
 const logger = createLogger('Billing')
 
-type InvoiceStatusBadge = {
-  variant: 'green' | 'amber' | 'red' | 'gray'
-  label: string
-}
+const INVOICE_STATUS_VARIANTS = {
+  paid: 'green',
+  open: 'amber',
+  uncollectible: 'red',
+  void: 'gray',
+} as const
 
-const INVOICE_STATUS_BADGES: Record<string, InvoiceStatusBadge> = {
-  paid: { variant: 'green', label: 'Paid' },
-  open: { variant: 'amber', label: 'Open' },
-  uncollectible: { variant: 'red', label: 'Uncollectible' },
-  void: { variant: 'gray', label: 'Void' },
-}
+type KnownInvoiceStatus = keyof typeof INVOICE_STATUS_VARIANTS
 
-/** Resolve a Stripe invoice status to its badge presentation. */
-function getInvoiceStatusBadge(status: string | null): InvoiceStatusBadge {
-  return (
-    INVOICE_STATUS_BADGES[status ?? ''] ?? {
-      variant: 'gray',
-      label: status ?? 'Unknown',
-    }
-  )
+/** Whether a Stripe invoice status has a dedicated badge presentation. */
+function isKnownInvoiceStatus(status: string | null): status is KnownInvoiceStatus {
+  return status !== null && Object.hasOwn(INVOICE_STATUS_VARIANTS, status)
 }
 
 /** Cached currency formatters, keyed by upper-cased ISO currency code. */
@@ -119,6 +112,8 @@ interface BillingProps {
 
 export function Billing({ scope, organizationId, creditUsageHref }: BillingProps) {
   const router = useRouter()
+  const t = useTranslations('settings.billing')
+  const tShared = useTranslations('settings.shared')
   const isOrganizationScope = scope === 'organization'
 
   const {
@@ -299,17 +294,15 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
 
   const handleToggleOnDemand = async () => {
     if (!permissions.canEditUsageLimit) {
-      toast.error("Can't change on-demand usage", {
-        description: 'Only organization admins can change on-demand usage.',
+      toast.error(t('toasts.cantChangeOnDemand'), {
+        description: t('toasts.onlyAdminsOnDemand'),
       })
       return
     }
 
     try {
       if (shouldUseOrganizationBillingContext && !billingOrganizationId) {
-        throw new Error(
-          'Organization billing context is unavailable. Please refresh and try again.'
-        )
+        throw new Error(t('toasts.billingContextUnavailable'))
       }
 
       const nextLimit = isOnDemandActive
@@ -326,16 +319,16 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       }
     } catch (error) {
       logger.error('Failed to toggle on-demand billing', { error })
-      toast.error("Couldn't update on-demand usage", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('toasts.couldNotUpdateOnDemand'), {
+        description: getErrorMessage(error, t('toasts.tryAgain')),
       })
     }
   }
 
   const handleOpenBillingPortal = () => {
     if (!permissions.canEditUsageLimit) {
-      toast.error("Can't manage payment method", {
-        description: 'Only organization admins can manage billing.',
+      toast.error(t('toasts.cantManagePaymentMethod'), {
+        description: t('toasts.onlyAdminsBilling'),
       })
       return
     }
@@ -343,8 +336,8 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
     const context = subscription.isOrgScoped ? 'organization' : 'user'
     if (context === 'organization' && !billingOrganizationId) {
       portalWindow?.close()
-      toast.error('Billing unavailable', {
-        description: 'Organization billing context is unavailable. Please refresh and try again.',
+      toast.error(t('toasts.billingUnavailable'), {
+        description: t('toasts.billingContextUnavailable'),
       })
       return
     }
@@ -362,8 +355,8 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
         onError: (error) => {
           portalWindow?.close()
           logger.error('Failed to open billing portal', { error })
-          toast.error("Couldn't open billing portal", {
-            description: getErrorMessage(error, 'Please try again in a moment.'),
+          toast.error(t('toasts.couldNotOpenPortal'), {
+            description: getErrorMessage(error, t('toasts.tryAgain')),
           })
         },
       }
@@ -372,17 +365,15 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
 
   const handleCancelSubscription = async () => {
     if (!permissions.canEditUsageLimit) {
-      toast.error("Can't cancel subscription", {
-        description: 'Only organization admins can cancel the subscription.',
+      toast.error(t('toasts.cantCancel'), {
+        description: t('toasts.onlyAdminsCancel'),
       })
       return
     }
     if (!betterAuthSubscription.cancel) return
     try {
       if (subscription.isOrgScoped && !billingOrganizationId) {
-        throw new Error(
-          'Organization billing context is unavailable. Please refresh and try again.'
-        )
+        throw new Error(t('toasts.billingContextUnavailable'))
       }
       const referenceId = subscription.isOrgScoped ? billingOrganizationId : session?.user?.id
       const returnUrl = getBaseUrl() + window.location.pathname
@@ -392,25 +383,23 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       })
     } catch (error) {
       logger.error('Failed to cancel subscription', { error })
-      toast.error("Couldn't cancel subscription", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('toasts.couldNotCancel'), {
+        description: getErrorMessage(error, t('toasts.tryAgain')),
       })
     }
   }
 
   const handleRestoreSubscription = async () => {
     if (!permissions.canEditUsageLimit) {
-      toast.error("Can't restore subscription", {
-        description: 'Only organization admins can restore the subscription.',
+      toast.error(t('toasts.cantRestore'), {
+        description: t('toasts.onlyAdminsRestore'),
       })
       return
     }
     if (!betterAuthSubscription.restore) return
     try {
       if (subscription.isOrgScoped && !billingOrganizationId) {
-        throw new Error(
-          'Organization billing context is unavailable. Please refresh and try again.'
-        )
+        throw new Error(t('toasts.billingContextUnavailable'))
       }
       const referenceId = subscription.isOrgScoped ? billingOrganizationId : session?.user?.id
       await betterAuthSubscription.restore({ referenceId: referenceId || '' })
@@ -418,8 +407,8 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       else await refetchSubscription()
     } catch (error) {
       logger.error('Failed to restore subscription', { error })
-      toast.error("Couldn't restore subscription", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('toasts.couldNotRestore'), {
+        description: getErrorMessage(error, t('toasts.tryAgain')),
       })
     }
   }
@@ -430,7 +419,7 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       <SettingsPanel>
         <SettingsQueryErrorState
           error={billingError}
-          fallback='Failed to load billing information'
+          fallback={t('loadFailed')}
           isRetrying={isFetching}
           onRetry={() => {
             if (isOrganizationScope) void refetchOrganizationBilling()
@@ -445,21 +434,26 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
   const billingInterval = isOrganizationScope
     ? organizationBilling?.billingInterval
     : subscriptionData?.data?.billingInterval
-  const billingPeriod = billingInterval === 'year' ? 'billed annually' : 'billed monthly'
   const organizationSubscriptionState = organizationBilling?.subscriptionState
   const planTitle = isOrganizationScope
     ? organizationSubscriptionState === 'lapsed'
-      ? `Organization ${planName} plan ended`
-      : `Organization ${planName} plan`
-    : `Personal ${planName} plan`
+      ? t('planTitle.organizationEnded', { plan: planName })
+      : t('planTitle.organization', { plan: planName })
+    : t('planTitle.personal', { plan: planName })
   const priceText =
     organizationSubscriptionState === 'free'
-      ? 'No active organization subscription'
+      ? t('price.noActiveOrganizationSubscription')
       : organizationSubscriptionState === 'lapsed'
-        ? 'Choose a new plan for this organization'
+        ? t('price.chooseNewPlan')
         : subscription.isEnterprise
-          ? 'Custom pricing'
-          : `$${getPlanTierDollars(subscription.plan)} per user/month, ${billingPeriod}`
+          ? t('price.custom')
+          : billingInterval === 'year'
+            ? t('price.perUserBilledAnnually', {
+                price: String(getPlanTierDollars(subscription.plan)),
+              })
+            : t('price.perUserBilledMonthly', {
+                price: String(getPlanTierDollars(subscription.plan)),
+              })
 
   const periodEnd = isOrganizationScope
     ? (organizationBilling?.billingPeriodEnd ?? null)
@@ -477,7 +471,12 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
     date: formatDate(new Date(invoice.created * 1000)),
     amount: formatInvoiceAmount(invoice.total, invoice.currency),
     description: invoice.description,
-    badge: getInvoiceStatusBadge(invoice.status),
+    badge: isKnownInvoiceStatus(invoice.status)
+      ? {
+          variant: INVOICE_STATUS_VARIANTS[invoice.status],
+          label: t(`invoiceStatus.${invoice.status}`),
+        }
+      : { variant: 'gray' as const, label: invoice.status ?? t('invoiceStatus.unknown') },
     url: invoice.hostedInvoiceUrl ?? invoice.invoicePdf,
   }))
 
@@ -496,8 +495,8 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       ? organizationBilling.minimumBillingAmount
       : getPlanTierDollars(subscription.plan)
   const explorePlansLabel = isOrganizationScope
-    ? 'Explore organization plans'
-    : 'Explore personal plans'
+    ? t('exploreOrganizationPlans')
+    : t('explorePersonalPlans')
 
   return (
     <SettingsPanel>
@@ -543,9 +542,9 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       )}
 
       {showOnDemand && (
-        <SettingsSection label='Enable on-demand usage'>
+        <SettingsSection label={t('onDemand.label')}>
           <div className='flex items-center justify-between'>
-            <Label htmlFor='on-demand-usage'>Allow usage to go past included usage</Label>
+            <Label htmlFor='on-demand-usage'>{t('onDemand.allowOverage')}</Label>
             {onDemandLockedOn ? (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
@@ -559,11 +558,7 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
                   </span>
                 </Tooltip.Trigger>
                 <Tooltip.Content className='max-w-[260px]'>
-                  <p>
-                    {
-                      "Your usage is above your plan's included amount, so on-demand can't be turned off yet. It turns off once usage drops below it — at the latest when your billing period resets."
-                    }
-                  </p>
+                  <p>{t('onDemand.lockedOnTooltip')}</p>
                 </Tooltip.Content>
               </Tooltip.Root>
             ) : (
@@ -579,9 +574,9 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       )}
 
       {!isOrganizationScope && !subscription.isFree && !subscription.isEnterprise && (
-        <SettingsSection label='Usage notifications'>
+        <SettingsSection label={t('usageNotifications.label')}>
           <div className='flex items-center justify-between'>
-            <Label htmlFor='usage-notifications'>Email me when I reach 80% usage</Label>
+            <Label htmlFor='usage-notifications'>{t('usageNotifications.emailAt80')}</Label>
             <Switch
               id='usage-notifications'
               checked={!!billingUsageNotificationsEnabled}
@@ -600,12 +595,14 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       )}
 
       {(subscription.isPaid || subscription.isEnterprise) && (
-        <SettingsSection label='Subscription'>
+        <SettingsSection label={t('subscription.label')}>
           <div className='flex flex-col gap-4'>
             {periodEnd && (
               <div className='flex items-center justify-between'>
                 <span className='text-[var(--text-body)] text-small'>
-                  {isCancelledAtPeriodEnd ? 'Access until' : 'Next billing date'}
+                  {isCancelledAtPeriodEnd
+                    ? t('subscription.accessUntil')
+                    : t('subscription.nextBillingDate')}
                 </span>
                 <span className='text-[var(--text-muted)] text-small'>
                   {new Date(periodEnd).toLocaleDateString()}
@@ -615,7 +612,9 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
 
             {subscription.isPaid && weeklyRefreshDollars > 0 && (
               <div className='flex items-center justify-between'>
-                <span className='text-[var(--text-body)] text-small'>Weekly refresh</span>
+                <span className='text-[var(--text-body)] text-small'>
+                  {t('subscription.weeklyRefresh')}
+                </span>
                 <span className='text-[var(--text-muted)] text-small'>
                   +{formatCreditCost(weeklyRefreshDollars)}
                 </span>
@@ -623,19 +622,23 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
             )}
 
             <div className='flex items-center justify-between'>
-              <span className='text-[var(--text-body)] text-small'>Payment method</span>
+              <span className='text-[var(--text-body)] text-small'>
+                {t('subscription.paymentMethod')}
+              </span>
               <Chip
                 disabled={!canManageBilling || openBillingPortal.isPending}
                 onClick={handleOpenBillingPortal}
               >
-                Manage in Stripe
+                {t('subscription.manageInStripe')}
               </Chip>
             </div>
 
             {!subscription.isEnterprise && (
               <div className='flex items-center justify-between'>
                 <span className='text-[var(--text-body)] text-small'>
-                  {isCancelledAtPeriodEnd ? 'Subscription canceled' : 'Cancel subscription'}
+                  {isCancelledAtPeriodEnd
+                    ? t('subscription.canceled')
+                    : t('subscription.cancelSubscription')}
                 </span>
                 {isCancelledAtPeriodEnd ? (
                   <Chip
@@ -643,7 +646,7 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
                     disabled={!canManageBilling}
                     onClick={handleRestoreSubscription}
                   >
-                    Restore
+                    {t('subscription.restore')}
                   </Chip>
                 ) : (
                   <Chip
@@ -651,7 +654,7 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
                     disabled={!canManageBilling}
                     onClick={handleCancelSubscription}
                   >
-                    Cancel
+                    {tShared('cancel')}
                   </Chip>
                 )}
               </div>
@@ -661,7 +664,7 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
       )}
 
       {!subscription.isFree && invoices.length > 0 && (
-        <SettingsSection label='Invoices'>
+        <SettingsSection label={t('invoices.label')}>
           <div className='-mx-2 flex flex-col gap-y-0.5'>
             {invoices.map((invoice) => {
               const rowClassName =
@@ -704,13 +707,13 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
                 type='button'
                 onClick={handleOpenBillingPortal}
                 disabled={openBillingPortal.isPending || !canManageBilling}
-                aria-label='View all invoices'
+                aria-label={t('invoices.viewAllAriaLabel')}
                 className={cn(
                   chipVariants({ fullWidth: true }),
                   'text-[var(--text-muted)] text-small'
                 )}
               >
-                View all
+                {t('invoices.viewAll')}
               </button>
             )}
           </div>

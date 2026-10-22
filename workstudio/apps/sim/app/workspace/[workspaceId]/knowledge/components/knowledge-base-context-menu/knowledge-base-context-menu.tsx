@@ -21,9 +21,10 @@ import {
   TagIcon,
   Trash,
 } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { MoveOptionNode } from '@/app/workspace/[workspaceId]/components/folders'
 import { renderMoveOptions } from '@/app/workspace/[workspaceId]/components/folders'
-import { selectionActionLabel } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
+import { useSelectionLabels } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 
 interface KnowledgeBaseContextMenuProps {
   isOpen: boolean
@@ -75,6 +76,8 @@ export const KnowledgeBaseContextMenu = memo(function KnowledgeBaseContextMenu({
   disableDelete = false,
   selectedCount,
 }: KnowledgeBaseContextMenuProps) {
+  const t = useTranslations('knowledge.baseContextMenu')
+  const { selectionActionLabel } = useSelectionLabels()
   const isMultiSelect = selectedCount > 1
   const hasNavigationSection = !isMultiSelect && showOpenInNewTab && !!onOpenInNewTab
   const hasInfoSection =
@@ -109,37 +112,37 @@ export const KnowledgeBaseContextMenu = memo(function KnowledgeBaseContextMenu({
         {hasNavigationSection && (
           <DropdownMenuItem onSelect={onOpenInNewTab!}>
             <SquareArrowUpRight />
-            Open in new tab
+            {t('openInNewTab')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && showViewTags && onViewTags && (
           <DropdownMenuItem onSelect={onViewTags}>
             <TagIcon />
-            View tags
+            {t('viewTags')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onCopyId && (
           <DropdownMenuItem onSelect={onCopyId}>
             <Duplicate />
-            Copy ID
+            {t('copyId')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onExport && (
           <DropdownMenuItem onSelect={onExport}>
             <Download />
-            Export
+            {t('export')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onTogglePin && (
           <DropdownMenuItem onSelect={onTogglePin}>
             <Pin />
-            {pinned ? 'Unpin' : 'Pin'}
+            {pinned ? t('unpin') : t('pin')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && showEdit && onEdit && (
           <DropdownMenuItem disabled={disableEdit} onSelect={onEdit}>
             <Pencil />
-            Edit
+            {t('edit')}
           </DropdownMenuItem>
         )}
 
@@ -147,7 +150,7 @@ export const KnowledgeBaseContextMenu = memo(function KnowledgeBaseContextMenu({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <FolderInput />
-              {selectionActionLabel('Move', selectedCount, 'Move to')}
+              {selectionActionLabel(t('move'), selectedCount, t('moveTo'))}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {renderMoveOptions(moveOptions!, onMove!)}
@@ -159,7 +162,7 @@ export const KnowledgeBaseContextMenu = memo(function KnowledgeBaseContextMenu({
         {showDelete && onDelete && (
           <DropdownMenuItem disabled={disableDelete} onSelect={onDelete}>
             <Trash />
-            {selectionActionLabel('Delete', selectedCount)}
+            {selectionActionLabel(t('delete'), selectedCount)}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

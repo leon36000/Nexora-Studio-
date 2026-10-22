@@ -8,6 +8,7 @@ import '@/lib/core/utils/browser-polyfills'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { bindPreviewWheelZoom } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { pdfjs, Document as ReactPdfDocument, Page as ReactPdfPage } from 'react-pdf'
 import { PREVIEW_LOADING_OVERLAY } from '@/app/workspace/[workspaceId]/files/components/file-viewer/preview-shared'
 import { PreviewToolbar } from '@/app/workspace/[workspaceId]/files/components/file-viewer/preview-toolbar'
@@ -40,16 +41,18 @@ interface PdfViewerCoreProps {
   filename: string
 }
 
-function PdfError({ error }: { error: string }) {
+function PdfError({ error }: { error: string | null }) {
+  const t = useTranslations('files.pdf')
   return (
     <div className='flex flex-1 flex-col items-center justify-center gap-[8px]'>
-      <p className='text-[14px] text-[var(--text-body)]'>Failed to preview PDF</p>
-      <p className='text-[var(--text-muted)] text-small'>{error}</p>
+      <p className='text-[14px] text-[var(--text-body)]'>{t('failed')}</p>
+      <p className='text-[var(--text-muted)] text-small'>{error ?? t('loadFailed')}</p>
     </div>
   )
 }
 
 export const PdfViewerCore = memo(function PdfViewerCore({ source, filename }: PdfViewerCoreProps) {
+  const t = useTranslations('files.pdf')
   const containerRef = useRef<HTMLDivElement>(null)
   const paddingWrapperRef = useRef<HTMLDivElement>(null)
   const pagesWrapperRef = useRef<HTMLDivElement>(null)
@@ -191,7 +194,7 @@ export const PdfViewerCore = memo(function PdfViewerCore({ source, filename }: P
           navigation={{
             current: currentPage,
             total: pageCount,
-            label: 'page',
+            unit: 'page',
             onPrevious: () => {
               const prev = Math.max(1, currentPage - 1)
               setCurrentPage(prev)
@@ -245,7 +248,7 @@ export const PdfViewerCore = memo(function PdfViewerCore({ source, filename }: P
             setLoadError(err.message)
             setIsDocumentReady(true)
           }}
-          error={<PdfError error={loadError ?? 'Failed to load PDF'} />}
+          error={<PdfError error={loadError} />}
           className='mx-auto'
         >
           <div
@@ -274,7 +277,7 @@ export const PdfViewerCore = memo(function PdfViewerCore({ source, filename }: P
                     className='overflow-clip! [&_.textLayer]:overflow-clip!'
                     renderTextLayer
                     renderAnnotationLayer={false}
-                    aria-label={`${filename} page ${i + 1}`}
+                    aria-label={t('pageAriaLabel', { filename, page: i + 1 })}
                   />
                 </div>
               ))}

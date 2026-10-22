@@ -163,14 +163,14 @@ Une sous-tâche par zone. Pour chacune :
 
 Les traductions peuvent être confiées à des sous-agents, en parallèle par zone, car les fichiers sont disjoints. Chaque sous-agent écrit dans un fichier de messages partiel `messages/<zone>.{fr,en}.json`, fusionné par `i18n/request.ts`.
 
-- [ ] 6.1 Connexion, inscription, mot de passe oublié, vérification (`app/(auth)`).
-- [ ] 6.2 Coquille et navigation : barre latérale, sélecteur d'espace de travail, recherche, menus (`app/workspace/[workspaceId]/components`, `w/components/sidebar`).
-- [ ] 6.3 Accueil et chat du workspace (`home`, `chat`).
-- [ ] 6.4 Éditeur de workflow : barre d'outils, panneau de blocs (catégories), panneau de propriétés, journaux d'exécution, déploiement (`w/[workflowId]`).
-- [ ] 6.5 Journaux (`logs`).
-- [ ] 6.6 Réglages : toutes les sections de `settings`.
-- [ ] 6.7 Intégrations, tables, fichiers, connaissances (`integrations`, `tables`, `files`, `knowledge`).
-- [ ] 6.8 Messages d'erreur communs, toasts, pages 404 et erreur (`app/not-found.tsx`, `error.tsx`, `components/emcn` pour les libellés génériques).
+- [x] 6.1 Connexion, inscription, mot de passe oublié, vérification (`app/(auth)`).
+- [x] 6.2 Coquille et navigation : barre latérale, sélecteur d'espace de travail, recherche, menus (`app/workspace/[workspaceId]/components`, `w/components/sidebar`).
+- [x] 6.3 Accueil et chat du workspace (`home`, `chat`).
+- [x] 6.4 Éditeur de workflow : barre d'outils, panneau de blocs (catégories), panneau de propriétés, journaux d'exécution, déploiement (`w/[workflowId]`).
+- [x] 6.5 Journaux (`logs`).
+- [x] 6.6 Réglages : toutes les sections de `settings`.
+- [x] 6.7 Intégrations, tables, fichiers, connaissances (`integrations`, `tables`, `files`, `knowledge`).
+- [x] 6.8 Messages d'erreur communs, toasts, pages 404 et erreur (`app/not-found.tsx`, `error.tsx`, `components/emcn` pour les libellés génériques).
 
 **Vérification** : `check-i18n.sh` sort avec 0 sur tous les dossiers couverts ; contrôle visuel dans le navigateur (capture dans `docs/recherche/test-reel/` ou `docs/guide/captures/`).
 
@@ -210,12 +210,12 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
   - bouton « Se connecter avec <nom> » sur la page de connexion ;
   - test unitaire de la configuration.
   - Test réel facultatif avec Keycloak en conteneur (`quay.io/keycloak/keycloak`, arm64 disponible) si le temps le permet : à consigner.
-- [ ] 9.2 Journal d'audit :
+- [x] 9.2 Journal d'audit :
   - remplacer le composant `AuditLogs` (`ee/audit-logs/components/audit-logs`), aujourd'hui un bouchon, par une vraie page ;
   - elle lit les événements enregistrés par le cœur (table d'audit de `@sim/audit` : vérifier le schéma Drizzle) via une route API protégée réservée aux administrateurs ;
   - filtres par type et par date, pagination ;
   - tests de la route : autorisation et pagination.
-- [ ] 9.3 Consommation :
+- [x] 9.3 Consommation :
   - remplacer `UsageMonitoring` par une page qui appelle `GET {VLLM_BASE_URL sans /v1}/v1/me/usage` côté serveur, avec la clé `VLLM_API_KEY` ;
   - elle affiche les jetons en entrée et en sortie et les requêtes par modèle et par jour ;
   - tests avec `fetch` simulé.
@@ -226,9 +226,9 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 **Fichiers** : `apps/sim/lib/nexora/templates/{devis,relance-facture,support-faq,tri-emails,compte-rendu}.json`, `lib/nexora/templates/index.ts`, et le point d'exposition (galerie de modèles du cœur s'il en existe une ; sinon dossier « Modèles PME » créé à la création d'un workspace, en réutilisant le chemin d'import de workflow du cœur).
 
-- [ ] Explorer comment Sim importe un workflow (format JSON d'export) et s'il a une galerie de modèles. Consigner la décision.
-- [ ] Test : chaque modèle est validé par le schéma d'import du cœur ; le seed est idempotent.
-- [ ] Contenu (français, vouvoiement, modèle Nexora par défaut) :
+- [x] Explorer comment Sim importe un workflow (format JSON d'export) et s'il a une galerie de modèles. Consigner la décision.
+- [x] Test : chaque modèle est validé par le schéma d'import du cœur ; le seed est idempotent.
+- [x] Contenu (français, vouvoiement, modèle Nexora par défaut) :
   1. **Devis** : entrée (client, prestations) → Agent → devis structuré HT/TVA/TTC.
   2. **Relance de facture** : entrée (client, n° de facture, montant, échéance, niveau de relance) → Agent → e-mail de relance au ton adapté au niveau.
   3. **Support FAQ** : entrée (question, FAQ en texte) → Agent → réponse ou escalade.

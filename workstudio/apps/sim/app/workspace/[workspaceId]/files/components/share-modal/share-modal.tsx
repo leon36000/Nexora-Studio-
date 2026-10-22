@@ -16,6 +16,7 @@ import {
 } from '@sim/emcn'
 import { Check, Link, Send } from '@sim/emcn/icons'
 import { generateShortId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { GeneratedPasswordInput } from '@/components/ui'
 import type { ShareAuthType, ShareRecord } from '@/lib/api/contracts/public-shares'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
@@ -33,23 +34,11 @@ interface ShareModalProps {
   initialShare?: ShareRecord | null
 }
 
-const ACCESS_LABELS: Record<ShareAuthType, string> = {
-  public: 'Public',
-  password: 'Password',
-  email: 'Email',
-  sso: 'SSO',
-}
-
-const PRIMARY_ACTION_LABELS = {
-  share: { idle: 'Share', pending: 'Sharing...' },
-  update: { idle: 'Update', pending: 'Updating...' },
-  unshare: { idle: 'Unshare', pending: 'Unsharing...' },
-} as const
-
-const PRIMARY_ACTION_SUCCESS_MESSAGES = {
-  share: 'File shared',
-  update: 'Sharing updated',
-  unshare: 'File unshared',
+/** Message keys under `files.share`. */
+const PRIMARY_ACTION_LABEL_KEYS = {
+  share: { idle: 'actions.share', pending: 'actions.sharing' },
+  update: { idle: 'actions.update', pending: 'actions.updating' },
+  unshare: { idle: 'actions.unshare', pending: 'actions.unsharing' },
 } as const
 
 /** Stable identity so the emails field's reconcile effect no-ops while unset. */
@@ -67,6 +56,7 @@ export function ShareModal({
   fileName,
   initialShare,
 }: ShareModalProps) {
+  const t = useTranslations('files.share')
   const {
     data: share,
     isError: isShareError,
@@ -122,8 +112,9 @@ export function ShareModal({
   const primaryAction = saved?.isActive ? (isDirty ? 'update' : 'unshare') : 'share'
   const isUnshareAction = primaryAction === 'unshare'
   const primaryActionPending = upsertShare.isPending || (isUnshareAction && unshareConfirmOpen)
-  const primaryLabel =
-    PRIMARY_ACTION_LABELS[primaryAction][primaryActionPending ? 'pending' : 'idle']
+  const primaryLabel = t(
+    PRIMARY_ACTION_LABEL_KEYS[primaryAction][primaryActionPending ? 'pending' : 'idle']
+  )
 
   const resetDraft = () => {
     setDraftMode(null)
@@ -161,7 +152,7 @@ export function ShareModal({
 
     upsertShare.mutate(vars, {
       onSuccess: () => {
-        toast.success(PRIMARY_ACTION_SUCCESS_MESSAGES[primaryAction])
+        toast.success(t(`success.${primaryAction}`))
         setUnshareConfirmOpen(false)
         resetDraft()
       },
@@ -177,19 +168,14 @@ export function ShareModal({
   }
 
   const accessHint = (() => {
-    if (isShareError) return 'Unable to load the current sharing settings. Close and try again.'
-    if (modeDisallowed) return 'This sharing method is disabled by an administrator.'
-    if (enableBlockedByPolicy)
-      return 'Public sharing is disabled for this workspace by an administrator.'
-    if (effectiveMode === 'password')
-      return 'Anyone with the link and the password can view and download this file.'
-    if (effectiveMode === 'email')
-      return 'Only allowed emails can access this file after a one-time code.'
-    if (effectiveMode === 'sso')
-      return 'Only allowed emails signed in via SSO can access this file.'
-    return saved?.isActive && !isDirty
-      ? 'Anyone with the link can view and download this file.'
-      : `${saved?.isActive ? 'Update' : 'Share'} to make this file accessible to anyone with the link.`
+    if (isShareError) return t('hints.loadError')
+    if (modeDisallowed) return t('hints.modeDisallowed')
+    if (enableBlockedByPolicy) return t('hints.publicDisabled')
+    if (effectiveMode === 'password') return t('hints.password')
+    if (effectiveMode === 'email') return t('hints.email')
+    if (effectiveMode === 'sso') return t('hints.sso')
+    if (saved?.isActive && !isDirty) return t('hints.publicActive')
+    return saved?.isActive ? t('hints.publicUpdate') : t('hints.publicShare')
   })()
 
   return (
@@ -198,23 +184,23 @@ export function ShareModal({
         open={open}
         onOpenChange={handleClose}
         size='sm'
-        srTitle={`Share ${fileName}`}
+        srTitle={t('srTitle', { name: fileName })}
         dismissDisabled={upsertShare.isPending}
       >
         <ChipModalHeader icon={Send} onClose={handleClose}>
-          Share file
+          {t('title')}
         </ChipModalHeader>
         <ChipModalBody>
-          <ChipModalField type='custom' title='Access' hint={accessHint}>
+          <ChipModalField type='custom' title={t('accessTitle')} hint={accessHint}>
             <ChipButtonGroup
               value={effectiveMode}
               onValueChange={(value) => setDraftMode(value as ShareAuthType)}
-              aria-label='File access'
+              aria-label={t('accessAriaLabel')}
               disabled={upsertShare.isPending}
             >
               {accessModes.map((mode) => (
                 <ChipButtonGroupItem key={mode} value={mode}>
-                  {ACCESS_LABELS[mode]}
+                  {t(`access.${mode}`)}
                 </ChipButtonGroupItem>
               ))}
             </ChipButtonGroup>
@@ -222,17 +208,13 @@ export function ShareModal({
           {effectiveMode === 'password' ? (
             <ChipModalField
               type='custom'
-              title='Password'
-              hint={
-                saved?.hasPassword
-                  ? 'Leave blank to keep the current password.'
-                  : 'Anyone with the link must enter this password.'
-              }
+              title={t('passwordTitle')}
+              hint={saved?.hasPassword ? t('passwordKeepHint') : t('passwordRequiredHint')}
             >
               <GeneratedPasswordInput
                 value={draftPassword}
                 onChange={setDraftPassword}
-                placeholder={saved?.hasPassword ? '••••••••' : 'Enter a password'}
+                placeholder={saved?.hasPassword ? '••••••••' : t('passwordPlaceholder')}
                 disabled={upsertShare.isPending}
               />
             </ChipModalField>
@@ -240,13 +222,13 @@ export function ShareModal({
           {effectiveMode === 'email' || effectiveMode === 'sso' ? (
             <ChipModalField
               type='emails'
-              title='Allowed emails'
+              title={t('emailsTitle')}
               value={effectiveEmails}
               onChange={setDraftEmails}
               validate={validateAllowlistEntry}
               allowDomains
-              placeholder='Enter emails or domains'
-              placeholderWithTags='Add email or domain'
+              placeholder={t('emailsPlaceholder')}
+              placeholderWithTags={t('emailsPlaceholderWithTags')}
               disabled={upsertShare.isPending}
             />
           ) : null}
@@ -260,7 +242,7 @@ export function ShareModal({
                   {
                     custom: (
                       <Chip leftIcon={copied ? Check : Link} onClick={() => copy(saved.url)}>
-                        {copied ? 'Copied!' : 'Copy link'}
+                        {copied ? t('copied') : t('copyLink')}
                       </Chip>
                     ),
                   },
@@ -281,13 +263,13 @@ export function ShareModal({
       <ChipConfirmModal
         open={open && unshareConfirmOpen}
         onOpenChange={setUnshareConfirmOpen}
-        title='Unshare file?'
-        text='Are you sure you want to unshare this file? Anyone with the link will lose access.'
+        title={t('unshareConfirm.title')}
+        text={t('unshareConfirm.text')}
         confirm={{
-          label: 'Unshare',
+          label: t('actions.unshare'),
           onClick: submitPrimaryAction,
           pending: upsertShare.isPending,
-          pendingLabel: 'Unsharing...',
+          pendingLabel: t('actions.unsharing'),
         }}
       />
     </>

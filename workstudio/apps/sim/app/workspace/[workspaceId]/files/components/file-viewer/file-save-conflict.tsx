@@ -2,10 +2,11 @@
 
 import { Chip, toast } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 
 interface FileSaveConflictProps {
   isReloading: boolean
-  reloadLatestContent: () => Promise<void>
+  reloadLatestContent: () => Promise<void> // i18n-ignore: type signature
   downloadDraft: () => void
 }
 
@@ -15,27 +16,23 @@ export function FileSaveConflict({
   reloadLatestContent,
   downloadDraft,
 }: FileSaveConflictProps) {
+  const t = useTranslations('files.saveConflict')
   return (
     <div
       role='alert'
       className='flex shrink-0 flex-wrap items-center gap-2 border-[var(--border)] border-b px-4 py-2 text-[var(--text-body)] text-small'
     >
-      <p className='min-w-0 flex-1'>
-        Saving paused: the file changed elsewhere. Your local draft is preserved. Reload replaces it
-        with the latest version.
-      </p>
-      <Chip onClick={downloadDraft}>Download local draft</Chip>
+      <p className='min-w-0 flex-1'>{t('message')}</p>
+      <Chip onClick={downloadDraft}>{t('downloadDraft')}</Chip>
       <Chip
         disabled={isReloading}
         onClick={() => {
           void reloadLatestContent().catch((error) =>
-            toast.error(
-              getErrorMessage(error, 'Could not reload the file. Your local draft is unchanged.')
-            )
+            toast.error(getErrorMessage(error, t('reloadFailed')))
           )
         }}
       >
-        {isReloading ? 'Reloading…' : 'Discard draft and reload'}
+        {isReloading ? t('reloading') : t('discardAndReload')}
       </Chip>
     </div>
   )

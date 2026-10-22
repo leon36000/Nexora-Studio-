@@ -29,6 +29,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { formatDuration } from '@sim/utils/formatting'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import type {
   WorkflowLogDetail,
@@ -103,9 +104,10 @@ import { useWorkflowMap, useWorkflows } from '@/hooks/queries/workflows'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useUrlSort } from '@/hooks/use-url-sort'
 import { useFilterStore } from '@/stores/logs/filters/store'
-import { CORE_TRIGGER_TYPES } from '@/stores/logs/filters/types'
+import { CORE_TRIGGER_TYPES, type TimeRange } from '@/stores/logs/filters/types'
 import { Dashboard, LogDetails, LogRowContextMenu } from './components'
 import {
+  coreTriggerLabelKey,
   formatDate,
   getDisplayStatus,
   getLogWorkflowLabel,
@@ -136,14 +138,7 @@ const LOGS_PER_PAGE = 50 as const
 const LIVE_REFRESH_INTERVAL_MS = 10_000 as const
 const ACTIVE_RUN_DETAIL_REFRESH_MS = 3_000 as const
 
-const LOG_COLUMNS: ResourceColumn[] = [
-  { id: 'workflow', header: 'Workflow' },
-  { id: 'date', header: 'Date' },
-  { id: 'status', header: 'Status' },
-  { id: 'cost', header: 'Cost' },
-  { id: 'trigger', header: 'Trigger' },
-  { id: 'duration', header: 'Duration' },
-]
+const LOG_COLUMN_IDS = ['workflow', 'date', 'status', 'cost', 'trigger', 'duration'] as const
 
 interface LogSelectionState {
   selectedLogId: string | null
@@ -177,19 +172,22 @@ function logSelectionReducer(
   }
 }
 
-const TIME_RANGE_OPTIONS: ComboboxOption[] = [
-  { value: 'All time', label: 'All time' },
-  { value: 'Past 30 minutes', label: 'Past 30 minutes' },
-  { value: 'Past hour', label: 'Past hour' },
-  { value: 'Past 6 hours', label: 'Past 6 hours' },
-  { value: 'Past 12 hours', label: 'Past 12 hours' },
-  { value: 'Past 24 hours', label: 'Past 24 hours' },
-  { value: 'Past 3 days', label: 'Past 3 days' },
-  { value: 'Past 7 days', label: 'Past 7 days' },
-  { value: 'Past 14 days', label: 'Past 14 days' },
-  { value: 'Past 30 days', label: 'Past 30 days' },
-  { value: 'Custom range', label: 'Custom range' },
+/** Time range values (URL/filter data) in menu order, with their message keys under `logs.timeRanges`. */
+const TIME_RANGE_KEYS: readonly (readonly [TimeRange, string])[] = [
+  ['All time', 'allTime'],
+  ['Past 30 minutes', 'past30Minutes'],
+  ['Past hour', 'pastHour'],
+  ['Past 6 hours', 'past6Hours'],
+  ['Past 12 hours', 'past12Hours'],
+  ['Past 24 hours', 'past24Hours'],
+  ['Past 3 days', 'past3Days'],
+  ['Past 7 days', 'past7Days'],
+  ['Past 14 days', 'past14Days'],
+  ['Past 30 days', 'past30Days'],
+  ['Custom range', 'customRange'],
 ] as const
+
+const TIME_RANGE_KEY_BY_VALUE = new Map<string, string>(TIME_RANGE_KEYS)
 
 const colorIconCache = new Map<string, React.ComponentType<{ className?: string }>>()
 
@@ -245,6 +243,7 @@ function activeRunRefetchInterval(query: { state: { data?: WorkflowLogDetail } }
 export default function Logs() {
   const params = useParams()
   const workspaceId = params.workspaceId as string
+  const t = useTranslations('logs')
 
   const {
     timeRange,
@@ -302,7 +301,7 @@ export default function Logs() {
   const isSidebarOpenRef = useRef(false)
   const shouldScrollIntoViewRef = useRef(false)
   const resourceTableRef = useRef<ResourceTableHandle>(null)
-  const activeViewRefetchRef = useRef<() => Promise<unknown>>(async () => {})
+  const activeViewRefetchRef = useRef<() => Promise<unknown>>(async () => {}) // i18n-ignore: generic type, not text
   const activeLogRefetchRef = useRef<() => void>(() => {})
   const activeLogTabRef = useRef<string>('overview')
   const logsQueryRef = useRef({ isFetching: false, hasNextPage: false, fetchNextPage: () => {} })
@@ -485,7 +484,8 @@ export default function Logs() {
   const handleNavigateNext = useCallback(() => {
     const idx = selectedLogIndexRef.current
     const currentLogs = logsRef.current
-    if (idx >= 0 && idx < currentLogs.length - 1) {
+    const canGoNext = idx >= 0 && idx < currentLogs.length - 1 // i18n-ignore: comparison, not text
+    if (canGoNext) {
       const nextLog = currentLogs[idx + 1]
       shouldScrollIntoViewRef.current = true
       dispatch({ type: 'SELECT_LOG', logId: nextLog.id })
@@ -600,24 +600,27 @@ export default function Logs() {
 
     try {
       await cancelExecution.mutateAsync({ workflowId, executionId })
-      toast.success('Run stopped')
+      toast.success(t('list.runStopped'))
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to stop run'))
+      toast.error(getErrorMessage(error, t('list.stopRunFailed')))
     }
-  }, [contextMenuLog, userPermissions.canEdit])
+  }, [contextMenuLog, userPermissions.canEdit, t])
 
-  const retryLog = useCallback(async (log: WorkflowLogRow | null) => {
-    const workflowId = log?.workflow?.id || log?.workflowId
-    const executionId = log?.executionId
-    if (!workflowId || !executionId) return
+  const retryLog = useCallback(
+    async (log: WorkflowLogRow | null) => {
+      const workflowId = log?.workflow?.id || log?.workflowId
+      const executionId = log?.executionId
+      if (!workflowId || !executionId) return
 
-    try {
-      await retryExecution.mutateAsync({ workflowId, executionId })
-      toast.success('Retry started')
-    } catch {
-      toast.error('Failed to retry execution')
-    }
-  }, [])
+      try {
+        await retryExecution.mutateAsync({ workflowId, executionId })
+        toast.success(t('list.retryStarted'))
+      } catch {
+        toast.error(t('list.retryFailed'))
+      }
+    },
+    [t]
+  )
 
   const handleRetryExecution = useCallback(() => {
     retryLog(contextMenuLog)
@@ -658,9 +661,9 @@ export default function Logs() {
     try {
       await activeViewRefetchRef.current()
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to refresh logs'))
+      toast.error(getErrorMessage(error, t('list.refreshFailed')))
     }
-  }, [])
+  }, [t])
 
   const isVisuallyRefreshing = isDashboardView
     ? dashboardStatsQuery.isFetching || (isSidebarOpen && logsQuery.isFetching)
@@ -790,7 +793,11 @@ export default function Logs() {
       logs.map((log) => {
         const formattedDate = formatDate(log.createdAt)
         const displayStatus = getDisplayStatus(log.status)
-        const workflowName = getLogWorkflowLabel(log)
+        const workflowName = getLogWorkflowLabel(log, {
+          untitledJob: t('workflow.untitledJob'),
+          unknown: t('workflow.unknown'),
+          deleted: t('workflow.deleted'),
+        })
 
         const durationMs = parseDuration({ duration: log.duration ?? undefined })
         const durationText =
@@ -800,7 +807,7 @@ export default function Logs() {
           typeof log.cost?.total === 'number' ? dollarsToCredits(log.cost.total) : null
         const costText =
           costCredits !== null
-            ? `${costCredits.toLocaleString()} ${costCredits === 1 ? 'credit' : 'credits'}`
+            ? t('list.credits', { count: costCredits, formatted: costCredits.toLocaleString() })
             : '—'
 
         return {
@@ -817,9 +824,10 @@ export default function Logs() {
           },
         }
       }),
-    [logs]
+    [logs, t]
   )
 
+  const hasNextLog = selectedLogIndex >= 0 && selectedLogIndex < logs.length - 1 // i18n-ignore: comparison, not text
   const sidebarOverlay = (
     <LogDetails
       log={selectedLog}
@@ -827,7 +835,7 @@ export default function Logs() {
       onClose={handleCloseSidebar}
       onNavigateNext={handleNavigateNext}
       onNavigatePrev={handleNavigatePrev}
-      hasNext={selectedLogIndex >= 0 && selectedLogIndex < logs.length - 1}
+      hasNext={hasNextLog}
       hasPrev={selectedLogIndex > 0}
       onRetryExecution={handleRetrySidebarExecution}
       isRetryPending={retryExecution.isPending}
@@ -843,9 +851,9 @@ export default function Logs() {
 
     if (level && level !== 'all') {
       const statuses = level.split(',').filter(Boolean)
-      const labels = statuses.map((s) => STATUS_CONFIG[s as LogStatus]?.label ?? s)
+      const labels = statuses.map((s) => (s in STATUS_CONFIG ? t(`status.${s}`) : s))
       tags.push({
-        label: `Status: ${labels.join(', ')}`,
+        label: t('filterTags.status', { values: labels.join(', ') }),
         onRemove: () => setLevel('all'),
       })
     }
@@ -853,7 +861,7 @@ export default function Logs() {
     if (workflowIds.length > 0) {
       const names = workflowIds.map((id) => allWorkflows[id]?.name ?? id.slice(0, 8))
       tags.push({
-        label: `Workflow: ${names.join(', ')}`,
+        label: t('filterTags.workflow', { values: names.join(', ') }),
         onRemove: () => setWorkflowIds([]),
       })
     }
@@ -861,14 +869,14 @@ export default function Logs() {
     if (folderIds.length > 0) {
       const names = folderIds.map((id) => folders[id]?.name ?? id.slice(0, 8))
       tags.push({
-        label: `Folder: ${names.join(', ')}`,
+        label: t('filterTags.folder', { values: names.join(', ') }),
         onRemove: () => setFolderIds([]),
       })
     }
 
     if (triggers.length > 0) {
       tags.push({
-        label: `Trigger: ${triggers.join(', ')}`,
+        label: t('filterTags.trigger', { values: triggers.join(', ') }),
         onRemove: () => setTriggers([]),
       })
     }
@@ -878,7 +886,7 @@ export default function Logs() {
         label:
           timeRange === 'Custom range' && startDate && endDate
             ? `${formatDateShort(startDate)} – ${formatDateShort(endDate)}`
-            : timeRange,
+            : t(`timeRanges.${TIME_RANGE_KEY_BY_VALUE.get(timeRange) ?? 'allTime'}`),
         onRemove: () => {
           clearDateRange()
           setTimeRange('All time')
@@ -903,6 +911,7 @@ export default function Logs() {
     endDate,
     clearDateRange,
     setTimeRange,
+    t,
   ])
 
   /** Logs has no folder navigation, so the graphic means "nothing has ever run here". */
@@ -929,8 +938,16 @@ export default function Logs() {
     [folders]
   )
   const triggersData = useMemo<TriggerData[]>(
-    () => getTriggerOptions().map((t) => ({ value: t.value, label: t.label, color: t.color })),
-    []
+    () =>
+      getTriggerOptions().map((option) => {
+        const labelKey = coreTriggerLabelKey(option.value)
+        return {
+          value: option.value,
+          label: labelKey ? t(`triggers.${labelKey}`) : option.label,
+          color: option.color,
+        }
+      }),
+    [t]
   )
   const suggestionEngine = useMemo(
     () => new SearchSuggestions(workflowsData, foldersData, triggersData),
@@ -1043,7 +1060,7 @@ export default function Logs() {
           <div className='py-1'>
             {suggestionType === 'filters' && (
               <div className='px-3 py-1.5 text-[var(--text-tertiary)] text-caption uppercase tracking-wide'>
-                SUGGESTED FILTERS
+                {t('list.suggestedFilters')}
               </div>
             )}
             {suggestions.map((suggestion, index) => (
@@ -1067,6 +1084,7 @@ export default function Logs() {
     highlightedIndex,
     setHighlightedIndex,
     handleSuggestionSelect,
+    t,
   ])
 
   const searchTags = useMemo(
@@ -1079,36 +1097,36 @@ export default function Logs() {
       ...(textSearch
         ? [
             {
-              label: 'search',
+              label: t('list.searchTag'),
               value: textSearch,
               onRemove: () => handleFiltersChange(appliedFilters, ''),
             },
           ]
         : []),
     ],
-    [appliedFilters, textSearch, removeBadge, handleFiltersChange]
+    [appliedFilters, textSearch, removeBadge, handleFiltersChange, t]
   )
 
   const sortConfig = useMemo<SortConfig>(
     () => ({
       options: [
-        { id: 'date', label: 'Date' },
-        { id: 'duration', label: 'Duration' },
-        { id: 'cost', label: 'Cost' },
-        { id: 'status', label: 'Status' },
+        { id: 'date', label: t('columns.date') },
+        { id: 'duration', label: t('columns.duration') },
+        { id: 'cost', label: t('columns.cost') },
+        { id: 'status', label: t('columns.status') },
       ],
       active: activeSort,
       onSort,
       onClear: onClearSort,
     }),
-    [activeSort, onSort, onClearSort]
+    [activeSort, onSort, onClearSort, t]
   )
 
   const searchConfig = useMemo<SearchConfig>(
     () => ({
       value: currentInput,
       onChange: handleSearchInputChange,
-      placeholder: 'Search logs...',
+      placeholder: t('list.searchPlaceholder'),
       inputRef: searchInputRef,
       onKeyDown: handleSearchKeyDown,
       onFocus: handleSearchFocus,
@@ -1131,6 +1149,7 @@ export default function Logs() {
       clearSearch,
       suggestionsDropdown,
       searchDropdownRef,
+      t,
     ]
   )
 
@@ -1141,7 +1160,7 @@ export default function Logs() {
   const headerActions = useMemo<ResourceAction[]>(
     () => [
       {
-        text: 'Export',
+        text: t('actions.export'),
         icon: Download,
         onSelect: handleExport,
         disabled: !userPermissions.canEdit || isExporting || !hasExportableLogs,
@@ -1151,14 +1170,15 @@ export default function Logs() {
         hasUpdates: !isDashboardView && hasSnapshotUpdates,
         isRefreshing: isVisuallyRefreshing,
         onRefresh: handleRefresh,
+        t,
       }),
       {
-        text: 'Logs',
+        text: t('actions.logs'),
         onSelect: () => setViewMode('logs'),
         active: !isDashboardView,
       },
       {
-        text: 'Dashboard',
+        text: t('actions.dashboard'),
         onSelect: () => setViewMode('dashboard'),
         active: isDashboardView,
       },
@@ -1174,13 +1194,19 @@ export default function Logs() {
       userPermissions.canEdit,
       isExporting,
       hasExportableLogs,
+      t,
     ]
+  )
+
+  const logColumns = useMemo<ResourceColumn[]>(
+    () => LOG_COLUMN_IDS.map((id) => ({ id, header: t(`columns.${id}`) })),
+    [t]
   )
 
   return (
     <>
       <Resource>
-        <Resource.Header icon={Library} title='Logs' actions={headerActions} />
+        <Resource.Header icon={Library} title={t('page.title')} actions={headerActions} />
         <Resource.Options
           search={searchConfig}
           sort={sortConfig}
@@ -1210,7 +1236,7 @@ export default function Logs() {
           <Resource.Table
             apiRef={resourceTableRef}
             virtualized
-            columns={LOG_COLUMNS}
+            columns={logColumns}
             rows={rows}
             emptyState={showEmptyState ? <LogsEmptyState /> : undefined}
             selectedRowId={selectedLogId}
@@ -1275,6 +1301,7 @@ interface LogsFilterPanelProps {
 function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelProps) {
   const params = useParams()
   const workspaceId = params.workspaceId as string
+  const t = useTranslations('logs')
 
   const {
     level,
@@ -1311,10 +1338,10 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
         .filter((status) => STATUS_CONFIG[status].filterable)
         .map((status) => ({
           value: status,
-          label: STATUS_CONFIG[status].label,
+          label: t(`status.${status}`),
           icon: getColorIcon(STATUS_CONFIG[status].color),
         })),
-    []
+    [t]
   )
 
   const handleStatusChange = (values: string[]) => {
@@ -1323,10 +1350,11 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
 
   const statusDisplayLabel =
     selectedStatuses.length === 0
-      ? 'Status'
+      ? t('filters.status')
       : selectedStatuses.length === 1
-        ? statusOptions.find((s) => s.value === selectedStatuses[0])?.label || '1 selected'
-        : `${selectedStatuses.length} selected`
+        ? statusOptions.find((s) => s.value === selectedStatuses[0])?.label ||
+          t('filters.selectedCount', { count: 1 })
+        : t('filters.selectedCount', { count: selectedStatuses.length })
 
   const selectedStatusColor =
     selectedStatuses.length === 1
@@ -1341,10 +1369,11 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
 
   const workflowDisplayLabel =
     workflowIds.length === 0
-      ? 'Workflow'
+      ? t('filters.workflow')
       : workflowIds.length === 1
-        ? workflows.find((w) => w.id === workflowIds[0])?.name || '1 selected'
-        : `${workflowIds.length} workflows`
+        ? workflows.find((w) => w.id === workflowIds[0])?.name ||
+          t('filters.selectedCount', { count: 1 })
+        : t('filters.workflowCount', { count: workflowIds.length })
 
   const selectedWorkflow =
     workflowIds.length === 1 ? workflows.find((w) => w.id === workflowIds[0]) : null
@@ -1353,36 +1382,44 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
 
   const folderDisplayLabel =
     folderIds.length === 0
-      ? 'Folder'
+      ? t('filters.folder')
       : folderIds.length === 1
-        ? folderList.find((f) => f.id === folderIds[0])?.name || '1 selected'
-        : `${folderIds.length} folders`
+        ? folderList.find((f) => f.id === folderIds[0])?.name ||
+          t('filters.selectedCount', { count: 1 })
+        : t('filters.folderCount', { count: folderIds.length })
 
   const triggerOptions: ComboboxOption[] = useMemo(
     () =>
-      getTriggerOptions().map((t) => ({
-        value: t.value,
-        label: t.label,
-        icon: getTriggerIcon(t.value),
-      })),
-    []
+      getTriggerOptions().map((option) => {
+        const labelKey = coreTriggerLabelKey(option.value)
+        return {
+          value: option.value,
+          label: labelKey ? t(`triggers.${labelKey}`) : option.label,
+          icon: getTriggerIcon(option.value),
+        }
+      }),
+    [t]
+  )
+
+  const timeRangeOptions: ComboboxOption[] = useMemo(
+    () => TIME_RANGE_KEYS.map(([value, key]) => ({ value, label: t(`timeRanges.${key}`) })),
+    [t]
   )
 
   const triggerDisplayLabel =
     triggers.length === 0
-      ? 'Trigger'
+      ? t('filters.trigger')
       : triggers.length === 1
-        ? triggerOptions.find((t) => t.value === triggers[0])?.label || '1 selected'
-        : `${triggers.length} triggers`
+        ? triggerOptions.find((option) => option.value === triggers[0])?.label ||
+          t('filters.selectedCount', { count: 1 })
+        : t('filters.triggerCount', { count: triggers.length })
 
   const timeDisplayLabel =
     timeRange === 'All time'
-      ? 'Time'
+      ? t('filters.time')
       : timeRange === 'Custom range' && startDate && endDate
         ? `${formatDateShort(startDate)} - ${formatDateShort(endDate)}`
-        : timeRange === 'Custom range'
-          ? 'Custom range'
-          : timeRange
+        : t(`timeRanges.${TIME_RANGE_KEY_BY_VALUE.get(timeRange) ?? 'allTime'}`)
 
   const handleTimeRangeChange = (val: string) => {
     if (val === 'Custom range') {
@@ -1424,13 +1461,13 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
   return (
     <div className='flex w-[240px] flex-col gap-4 p-3'>
       <div className='flex flex-col gap-[9px]'>
-        <span className='text-[var(--text-muted)] text-small'>Status</span>
+        <span className='text-[var(--text-muted)] text-small'>{t('filters.status')}</span>
         <ChipCombobox
           options={statusOptions}
           multiSelect
           multiSelectValues={selectedStatuses}
           onMultiSelectChange={handleStatusChange}
-          placeholder='All statuses'
+          placeholder={t('filters.allStatuses')}
           overlayLabel={statusDisplayLabel}
           overlayContent={
             <span className='flex w-full min-w-0 items-center gap-1.5 text-[var(--text-primary)]'>
@@ -1444,19 +1481,19 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
             </span>
           }
           showAllOption
-          allOptionLabel='All statuses'
+          allOptionLabel={t('filters.allStatuses')}
           className='w-full'
         />
       </div>
 
       <div className='flex flex-col gap-[9px]'>
-        <span className='text-[var(--text-muted)] text-small'>Workflow</span>
+        <span className='text-[var(--text-muted)] text-small'>{t('filters.workflow')}</span>
         <ChipCombobox
           options={workflowOptions}
           multiSelect
           multiSelectValues={workflowIds}
           onMultiSelectChange={setWorkflowIds}
-          placeholder='All workflows'
+          placeholder={t('filters.allWorkflows')}
           overlayLabel={workflowDisplayLabel}
           overlayContent={
             <span className='flex w-full min-w-0 items-center gap-1.5 text-[var(--text-primary)]'>
@@ -1467,57 +1504,57 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
             </span>
           }
           searchable
-          searchPlaceholder='Search workflows...'
+          searchPlaceholder={t('filters.searchWorkflows')}
           showAllOption
-          allOptionLabel='All workflows'
+          allOptionLabel={t('filters.allWorkflows')}
           className='w-full'
         />
       </div>
 
       <div className='flex flex-col gap-[9px]'>
-        <span className='text-[var(--text-muted)] text-small'>Folder</span>
+        <span className='text-[var(--text-muted)] text-small'>{t('filters.folder')}</span>
         <ChipCombobox
           options={folderOptions}
           multiSelect
           multiSelectValues={folderIds}
           onMultiSelectChange={setFolderIds}
-          placeholder='All folders'
+          placeholder={t('filters.allFolders')}
           overlayLabel={folderDisplayLabel}
           overlayContent={folderDisplayLabel}
           searchable
-          searchPlaceholder='Search folders...'
+          searchPlaceholder={t('filters.searchFolders')}
           showAllOption
-          allOptionLabel='All folders'
+          allOptionLabel={t('filters.allFolders')}
           className='w-full'
         />
       </div>
 
       <div className='flex flex-col gap-[9px]'>
-        <span className='text-[var(--text-muted)] text-small'>Trigger</span>
+        <span className='text-[var(--text-muted)] text-small'>{t('filters.trigger')}</span>
         <ChipCombobox
           options={triggerOptions}
           multiSelect
           multiSelectValues={triggers}
           onMultiSelectChange={setTriggers}
-          placeholder='All triggers'
+          placeholder={t('filters.allTriggers')}
           overlayLabel={triggerDisplayLabel}
           overlayContent={triggerDisplayLabel}
           searchable
-          searchPlaceholder='Search triggers...'
+          searchPlaceholder={t('filters.searchTriggers')}
           showAllOption
-          allOptionLabel='All triggers'
+          allOptionLabel={t('filters.allTriggers')}
           className='w-full'
         />
       </div>
 
       <div className='flex flex-col gap-[9px]'>
-        <span className='text-[var(--text-muted)] text-small'>Time Range</span>
+        <span className='text-[var(--text-muted)] text-small'>{t('filters.timeRange')}</span>
         <div className='relative'>
           <ChipCombobox
-            options={TIME_RANGE_OPTIONS}
+            options={timeRangeOptions}
             value={timeRange}
             onChange={handleTimeRangeChange}
-            placeholder='All time'
+            placeholder={t('timeRanges.allTime')}
             overlayLabel={timeDisplayLabel}
             overlayContent={timeDisplayLabel}
             className='w-full'
@@ -1556,7 +1593,7 @@ function LogsFilterPanel({ searchQuery, onSearchQueryChange }: LogsFilterPanelPr
           onClick={handleClearFilters}
           className='h-[32px] w-full rounded-md'
         >
-          Clear All Filters
+          {t('filters.clearAll')}
         </Button>
       )}
     </div>

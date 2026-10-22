@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { ChipDropdown, type ChipDropdownOption } from '@sim/emcn'
 import { ArrowRight } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { WorkflowDeploymentVersionResponse } from '@/lib/workflows/persistence/utils'
 import { formatVersionLabel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/components/deploy-modal/components/general/format-version-label'
 import { useDraftWorkflowState } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/hooks/use-draft-workflow-state'
@@ -52,6 +53,7 @@ export function CompareVersionsModal({
   initialBase,
   initialTarget,
 }: CompareVersionsModalProps) {
+  const t = useTranslations('editor.deploy.compare')
   const [base, setBase] = useState<CompareSide>(initialBase)
   const [target, setTarget] = useState<CompareSide>(initialTarget)
   /* Subscribed only while the modal is open, and only if a side is the draft. */
@@ -63,18 +65,18 @@ export function CompareVersionsModal({
   const options = useMemo((): ChipDropdownOption[] => {
     const sorted = [...versions].sort((a, b) => b.version - a.version)
     return [
-      { value: DRAFT_OPTION_VALUE, label: 'Draft' },
+      { value: DRAFT_OPTION_VALUE, label: t('draft') },
       ...sorted.map((version) => {
         /* A name that merely repeats the number would read as "v2 · v2". */
         const name = version.name === `v${version.version}` ? null : version.name
         const label = formatVersionLabel(version.version, name)
         return {
           value: String(version.version),
-          label: version.isActive ? `${label} (live)` : label,
+          label: version.isActive ? t('liveLabel', { label }) : label,
         }
       }),
     ]
-  }, [versions])
+  }, [versions, t])
 
   const baseQuery = useDeploymentVersionState(
     workflowId,
@@ -98,13 +100,13 @@ export function CompareVersionsModal({
       onOpenChange={onOpenChange}
       header={
         <div className='flex items-center gap-2'>
-          <span>Compare</span>
+          <span>{t('title')}</span>
           <ChipDropdown
             options={options}
             value={sideToValue(base)}
             onChange={(value) => setBase(valueToSide(value))}
             align='start'
-            aria-label={`Compare from ${optionLabel(options, sideToValue(base))}`}
+            aria-label={t('fromAriaLabel', { label: optionLabel(options, sideToValue(base)) })}
           />
           <ArrowRight className='size-[12px] shrink-0 text-[var(--text-icon)]' />
           <ChipDropdown
@@ -112,7 +114,7 @@ export function CompareVersionsModal({
             value={sideToValue(target)}
             onChange={(value) => setTarget(valueToSide(value))}
             align='start'
-            aria-label={`Compare to ${optionLabel(options, sideToValue(target))}`}
+            aria-label={t('toAriaLabel', { label: optionLabel(options, sideToValue(target)) })}
           />
         </div>
       }

@@ -2,6 +2,7 @@
 
 import { Button, ChipCombobox, ChipInput, ChipModalField, Tooltip } from '@sim/emcn'
 import { ArrowLeftRight, CircleInfo } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ConnectorAccessMode } from '@/lib/api/contracts/knowledge/connectors'
 import type { ResourceScope } from '@/lib/core/resource-scope'
 import type { Credential } from '@/lib/oauth/types'
@@ -65,6 +66,8 @@ export function ConnectorConfigFields({
   onToggleCanonicalMode,
   disabled,
 }: ConnectorConfigFieldsProps) {
+  const t = useTranslations('knowledge.connectorConfig')
+  const tSelector = useTranslations('knowledge.connectorSelector')
   return (
     <>
       {connectorConfig.configFields.map((field) => {
@@ -108,7 +111,7 @@ export function ConnectorConfigFields({
                           type='button'
                           variant='ghost'
                           size='icon'
-                          aria-label={`About ${title}`}
+                          aria-label={t('about', { field: title })}
                         >
                           <CircleInfo className='size-[14px]' />
                         </Button>
@@ -125,14 +128,18 @@ export function ConnectorConfigFields({
                         variant='quiet'
                         size='icon'
                         disabled={disabled}
-                        aria-label={`Switch ${title} to ${field.mode === 'basic' ? 'manual input' : 'selector'}`}
+                        aria-label={
+                          field.mode === 'basic'
+                            ? t('switchFieldToManual', { field: title })
+                            : t('switchFieldToSelector', { field: title })
+                        }
                         onClick={() => onToggleCanonicalMode(canonicalId)}
                       >
                         <ArrowLeftRight className='size-[14px]' />
                       </Button>
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top'>
-                      {field.mode === 'basic' ? 'Switch to manual input' : 'Switch to selector'}
+                      {field.mode === 'basic' ? t('switchToManual') : t('switchToSelector')}
                     </Tooltip.Content>
                   </Tooltip.Root>
                 )}
@@ -172,7 +179,9 @@ export function ConnectorConfigFields({
                     : undefined
                 }
                 onChange={(value) => onFieldChange(field.id, value)}
-                placeholder={field.placeholder || `Select ${title.toLowerCase()}`}
+                placeholder={
+                  field.placeholder || tSelector('selectField', { field: title.toLowerCase() })
+                }
               />
             ) : (
               <ChipInput

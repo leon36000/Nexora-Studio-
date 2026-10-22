@@ -61,7 +61,7 @@ function containsPoint(element: Element | null, x: number, y: number, pad: numbe
   if (!element) return false
   const rect = element.getBoundingClientRect()
   return (
-    x >= rect.left - pad && x <= rect.right + pad && y >= rect.top - pad && y <= rect.bottom + pad
+    x >= rect.left - pad && x <= rect.right + pad && y >= rect.top - pad && y <= rect.bottom + pad // i18n-ignore: comparison
   )
 }
 

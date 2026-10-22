@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import {
   AuthField,
   AuthFormMessage,
@@ -11,7 +12,7 @@ import {
 
 interface SetNewPasswordFormProps {
   token: string | null
-  onSubmit: (password: string) => Promise<void>
+  onSubmit: (password: string) => Promise<void> // i18n-ignore: type signature
   isSubmitting: boolean
   statusType: 'success' | 'error' | null
   statusMessage: string
@@ -26,6 +27,7 @@ export function SetNewPasswordForm({
   statusMessage,
   className,
 }: SetNewPasswordFormProps) {
+  const t = useTranslations('auth.resetPassword.form')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [validationMessages, setValidationMessages] = useState<string[]>([])
@@ -36,31 +38,31 @@ export function SetNewPasswordForm({
     const errors: string[] = []
 
     if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long')
+      errors.push(t('rules.minLength'))
     }
 
     if (password.length > 100) {
-      errors.push('Password must not exceed 100 characters')
+      errors.push(t('rules.maxLength'))
     }
 
     if (!/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter')
+      errors.push(t('rules.uppercase'))
     }
 
     if (!/[a-z]/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter')
+      errors.push(t('rules.lowercase'))
     }
 
     if (!/[0-9]/.test(password)) {
-      errors.push('Password must contain at least one number')
+      errors.push(t('rules.number'))
     }
 
     if (!/[^A-Za-z0-9]/.test(password)) {
-      errors.push('Password must contain at least one special character')
+      errors.push(t('rules.special'))
     }
 
     if (password !== confirmPassword) {
-      errors.push('Passwords do not match')
+      errors.push(t('rules.mismatch'))
     }
 
     if (errors.length > 0) {
@@ -77,7 +79,7 @@ export function SetNewPasswordForm({
   return (
     <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
       <div className='space-y-5'>
-        <AuthField htmlFor='password' label='New Password'>
+        <AuthField htmlFor='password' label={t('newPasswordLabel')}>
           <PasswordInput
             id='password'
             autoCapitalize='none'
@@ -87,11 +89,11 @@ export function SetNewPasswordForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            placeholder='Enter new password'
+            placeholder={t('newPasswordPlaceholder')}
             error={hasValidationErrors}
           />
         </AuthField>
-        <AuthField htmlFor='confirmPassword' label='Confirm Password'>
+        <AuthField htmlFor='confirmPassword' label={t('confirmLabel')}>
           <PasswordInput
             id='confirmPassword'
             autoCapitalize='none'
@@ -101,7 +103,7 @@ export function SetNewPasswordForm({
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            placeholder='Confirm new password'
+            placeholder={t('confirmPlaceholder')}
             error={hasValidationErrors}
           />
         </AuthField>
@@ -123,10 +125,10 @@ export function SetNewPasswordForm({
 
       <AuthSubmitButton
         loading={isSubmitting}
-        loadingLabel='Resetting…'
+        loadingLabel={t('submitting')}
         disabled={!token || password.length === 0 || confirmPassword.length === 0}
       >
-        Reset Password
+        {t('submit')}
       </AuthSubmitButton>
     </form>
   )

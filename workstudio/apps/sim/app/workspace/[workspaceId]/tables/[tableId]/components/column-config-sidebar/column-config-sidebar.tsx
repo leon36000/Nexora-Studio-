@@ -14,6 +14,7 @@ import {
 } from '@sim/emcn'
 import { X } from '@sim/emcn/icons'
 import { toError } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { findValidationIssue, isValidationError } from '@/lib/api/client/errors'
 import type { ColumnDefinition, SelectOption } from '@/lib/table'
 import {
@@ -93,11 +94,12 @@ interface ColumnConfigSidebarProps {
 export function ColumnConfigSidebar(props: ColumnConfigSidebarProps) {
   // Mount the form body with `key` keyed on the config identity so opening a
   // different column / mode remounts and re-seeds state from props.
+  const t = useTranslations('tables.columnSidebar')
   const open = props.config !== null
   return (
     <aside
       role='dialog'
-      aria-label='Configure column'
+      aria-label={t('title')}
       className={cn(
         'absolute top-0 right-0 bottom-0 z-[var(--z-modal)] flex w-full flex-col overflow-hidden border-[var(--border)] border-l bg-[var(--bg)] transition-transform duration-200 ease-out motion-reduce:transition-none md:w-[400px]',
         open ? 'translate-x-0 shadow-overlay' : 'translate-x-full'
@@ -129,6 +131,9 @@ function ColumnConfigBody({
   readOnly,
   readOnlyReason,
 }: ColumnConfigBodyProps) {
+  const t = useTranslations('tables.columnSidebar')
+  const tSidebar = useTranslations('tables.sidebar')
+  const tTypes = useTranslations('tables.columnTypes')
   const updateColumn = useUpdateColumn({ workspaceId, tableId })
   const addColumn = useAddTableColumn({ workspaceId, tableId })
 
@@ -165,10 +170,10 @@ function ColumnConfigBody({
   /** Client-side option validation mirroring the server rules; returns an error message or null. */
   function validateOptions(): string | null {
     if (!wantsOptions) return null
-    if (trimmedOptions.length === 0) return 'Add at least one option'
-    if (trimmedOptions.some((o) => !o.name)) return 'Option names cannot be empty'
+    if (trimmedOptions.length === 0) return t('options.atLeastOne')
+    if (trimmedOptions.some((o) => !o.name)) return t('options.emptyName')
     const names = trimmedOptions.map((o) => o.name.toLowerCase())
-    if (new Set(names).size !== names.length) return 'Option names must be unique'
+    if (new Set(names).size !== names.length) return t('options.uniqueNames')
     return null
   }
 
@@ -197,7 +202,7 @@ function ColumnConfigBody({
           ...(wantsOptions && multipleInput ? { multiple: true } : {}),
           ...(wantsCurrency ? { currencyCode: currencyInput } : {}),
         })
-        toast.success(`Added "${trimmedName}"`)
+        toast.success(t('added', { name: trimmedName }))
         onClose()
         return
       }
@@ -242,7 +247,7 @@ function ColumnConfigBody({
 
       await updateColumn.mutateAsync({ columnName: config.columnName, updates })
       if (renamed) onColumnRename?.(config.columnName, trimmedName)
-      toast.success(`Saved "${trimmedName}"`)
+      toast.success(t('saved', { name: trimmedName }))
       onClose()
     } catch (err) {
       if (isValidationError(err)) {
@@ -262,14 +267,14 @@ function ColumnConfigBody({
   return (
     <div className='flex h-full flex-col'>
       <div className='flex min-h-[48px] items-center justify-between border-[var(--border)] border-b px-3 py-[8.5px] max-md:pointer-coarse:py-0.5'>
-        <h2 className='text-[var(--text-primary)] text-small'>Configure column</h2>
+        <h2 className='text-[var(--text-primary)] text-small'>{t('title')}</h2>
         <Button
           variant='ghost'
           size='sm'
           onClick={onClose}
           iconPadding='sm'
           className='size-7 max-md:pointer-coarse:size-11'
-          aria-label='Close'
+          aria-label={tSidebar('close')}
         >
           <X className='size-[14px]' />
         </Button>
@@ -281,7 +286,7 @@ function ColumnConfigBody({
             existing layout. Values stay readable and selectable. */}
         <fieldset disabled={readOnly} className='contents'>
           <div className='flex flex-col gap-[9.5px]'>
-            <RequiredLabel htmlFor='column-sidebar-name'>Column name</RequiredLabel>
+            <RequiredLabel htmlFor='column-sidebar-name'>{tSidebar('columnName')}</RequiredLabel>
             <ChipInput
               id='column-sidebar-name'
               value={nameInput}
@@ -294,7 +299,7 @@ function ColumnConfigBody({
               error={Boolean((showValidation && !trimmedName) || nameError)}
               aria-invalid={(showValidation && !trimmedName) || nameError ? true : undefined}
             />
-            {showValidation && !trimmedName && <FieldError message='Column name is required' />}
+            {showValidation && !trimmedName && <FieldError message={t('nameRequired')} />}
             {nameError && !(showValidation && !trimmedName) && <FieldError message={nameError} />}
           </div>
 
@@ -302,9 +307,9 @@ function ColumnConfigBody({
             <>
               <FieldDivider />
               <div className='flex flex-col gap-[9.5px]'>
-                <RequiredLabel>Type</RequiredLabel>
+                <RequiredLabel>{t('type')}</RequiredLabel>
                 <ChipCombobox
-                  options={columnTypeOptionsForTable(allColumns, existingColumn)
+                  options={columnTypeOptionsForTable(allColumns, existingColumn, tTypes)
                     .filter((option) => option.type !== 'workflow')
                     .map((option) => ({
                       label: option.label,
@@ -314,7 +319,7 @@ function ColumnConfigBody({
                     }))}
                   value={typeInput}
                   onChange={(v) => setTypeInput(v as ColumnDefinition['type'])}
-                  placeholder='Select type'
+                  placeholder={t('selectType')}
                   maxHeight={300}
                 />
               </div>
@@ -325,14 +330,14 @@ function ColumnConfigBody({
             <>
               <FieldDivider />
               <div className='flex flex-col gap-[9.5px]'>
-                <RequiredLabel>Currency</RequiredLabel>
+                <RequiredLabel>{t('currency')}</RequiredLabel>
                 <ChipCombobox
                   options={CURRENCY_COMBOBOX_OPTIONS}
                   value={currencyInput}
                   onChange={setCurrencyInput}
-                  placeholder='Select currency'
+                  placeholder={t('selectCurrency')}
                   searchable
-                  searchPlaceholder='Search currencies'
+                  searchPlaceholder={t('searchCurrencies')}
                   maxHeight={260}
                 />
               </div>
@@ -343,7 +348,7 @@ function ColumnConfigBody({
             <>
               <FieldDivider />
               <div className='flex flex-col gap-[9.5px]'>
-                <RequiredLabel>Options</RequiredLabel>
+                <RequiredLabel>{t('options.label')}</RequiredLabel>
                 <SelectOptionsEditor
                   options={optionsInput}
                   onChange={(next) => {
@@ -355,7 +360,7 @@ function ColumnConfigBody({
               </div>
               <FieldDivider />
               <div className='flex items-center justify-between pl-0.5'>
-                <Label htmlFor='column-sidebar-multiple'>Multiselect</Label>
+                <Label htmlFor='column-sidebar-multiple'>{t('multiselect')}</Label>
                 <Switch
                   id='column-sidebar-multiple'
                   checked={multipleInput}
@@ -371,7 +376,7 @@ function ColumnConfigBody({
               <FieldDivider />
               <div className='flex flex-col gap-[9.5px]'>
                 <div className='flex items-center justify-between pl-0.5'>
-                  <Label htmlFor='column-sidebar-unique'>Unique</Label>
+                  <Label htmlFor='column-sidebar-unique'>{t('unique')}</Label>
                   <Switch
                     id='column-sidebar-unique'
                     checked={uniqueInput}
@@ -391,7 +396,7 @@ function ColumnConfigBody({
           onClick={onClose}
           className='max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11'
         >
-          {readOnly ? 'Close' : 'Cancel'}
+          {readOnly ? tSidebar('close') : tSidebar('cancel')}
         </Button>
         {readOnly ? (
           <Tooltip.Root>
@@ -403,7 +408,7 @@ function ColumnConfigBody({
                   disabled
                   className='max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11'
                 >
-                  Save
+                  {tSidebar('save')}
                 </Button>
               </span>
             </Tooltip.Trigger>
@@ -417,7 +422,7 @@ function ColumnConfigBody({
             disabled={saveDisabled}
             className='max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11'
           >
-            {saveDisabled ? 'Saving…' : 'Save'}
+            {saveDisabled ? t('saving') : tSidebar('save')}
           </Button>
         )}
       </div>

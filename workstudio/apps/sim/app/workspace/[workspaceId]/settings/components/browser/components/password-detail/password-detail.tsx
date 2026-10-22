@@ -15,6 +15,7 @@ import {
   Tooltip,
   toast,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { BrowserCredentialIcon } from '@/components/browser-credential-icon'
 import { getDesktopBridge } from '@/lib/desktop'
 import {
@@ -55,6 +56,7 @@ interface PasswordDetailProps {
  * brings the password into this page at all.
  */
 export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDetailProps) {
+  const t = useTranslations('settings.browser.passwordDetail')
   const [revealed, setRevealed] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirmingForget, setConfirmingForget] = useState(false)
@@ -88,7 +90,7 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
       setRevealed(password)
       hideTimer.current = setTimeout(hide, REVEAL_TIMEOUT_MS)
     } catch {
-      toast.error('Could not show that password')
+      toast.error(t('revealError'))
     } finally {
       setBusy(false)
     }
@@ -101,7 +103,7 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
     try {
       await bridge.copy(credential.id)
     } catch {
-      toast.error('Could not copy that password')
+      toast.error(t('copyError'))
     } finally {
       setBusy(false)
     }
@@ -116,7 +118,7 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
       onForgotten(await bridge.forget(credential.id))
       onBack()
     } catch {
-      toast.error('Could not forget that password')
+      toast.error(t('forgetError'))
     } finally {
       setBusy(false)
     }
@@ -126,37 +128,37 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
   return (
     <>
       <SettingsPanel
-        back={{ text: 'Passwords', icon: ArrowLeft, onSelect: onBack }}
+        back={{ text: t('back'), icon: ArrowLeft, onSelect: onBack }}
         title={site}
-        description='Saved on this device, encrypted. Chat can never read, choose, or type it.'
+        description={t('description')}
         actions={[
           {
             id: 'delete',
-            text: 'Forget',
+            text: t('forget'),
             onSelect: () => setConfirmingForget(true),
             disabled: busy,
           },
         ]}
       >
-        <SettingsSection label='Login'>
+        <SettingsSection label={t('login')}>
           <div className='flex flex-col gap-4'>
-            <SettingsField label='Site'>
+            <SettingsField label={t('site')}>
               <div className='flex items-center gap-2.5'>
                 <div className={cn(RESOURCE_TILE_BASE, RESOURCE_TILE_PLAIN)}>
                   <BrowserCredentialIcon icon={credential.icon} />
                 </div>
-                <ChipCopyInput value={credential.origin} copyLabel='Copy site' />
+                <ChipCopyInput value={credential.origin} copyLabel={t('copySite')} />
               </div>
             </SettingsField>
 
-            <SettingsField label='Username'>
-              <ChipCopyInput value={credential.username || '—'} copyLabel='Copy username' />
+            <SettingsField label={t('username')}>
+              <ChipCopyInput value={credential.username || '—'} copyLabel={t('copyUsername')} />
             </SettingsField>
 
-            <SettingsField label='Password'>
+            <SettingsField label={t('password')}>
               <ChipInput
                 readOnly
-                aria-label='Password'
+                aria-label={t('password')}
                 value={revealed ?? MASK_PLACEHOLDER}
                 style={revealed ? undefined : MASKED_STYLE}
                 autoComplete='off'
@@ -171,7 +173,7 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
                           size='icon'
                           disabled={busy}
                           onClick={() => void toggleReveal()}
-                          aria-label={revealed ? 'Hide password' : 'Show password'}
+                          aria-label={revealed ? t('hidePassword') : t('showPassword')}
                         >
                           {revealed ? (
                             <EyeOff className='size-[13px]' />
@@ -181,7 +183,7 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
                         </Button>
                       </Tooltip.Trigger>
                       <Tooltip.Content>
-                        {revealed ? 'Hide password' : 'Show password'}
+                        {revealed ? t('hidePassword') : t('showPassword')}
                       </Tooltip.Content>
                     </Tooltip.Root>
                     <Tooltip.Root>
@@ -192,12 +194,12 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
                           size='icon'
                           disabled={busy}
                           onClick={() => void copy()}
-                          aria-label='Copy password'
+                          aria-label={t('copyPassword')}
                         >
                           <Duplicate className='size-[13px]' />
                         </Button>
                       </Tooltip.Trigger>
-                      <Tooltip.Content>Copy password</Tooltip.Content>
+                      <Tooltip.Content>{t('copyPassword')}</Tooltip.Content>
                     </Tooltip.Root>
                   </>
                 }
@@ -210,16 +212,12 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
       <ChipConfirmModal
         open={confirmingForget}
         onOpenChange={(open) => !open && setConfirmingForget(false)}
-        title='Forget password'
-        text={[
-          'Nexora will delete the saved password for ',
-          { text: site, bold: true },
-          '. Your account on that site is not affected.',
-        ]}
+        title={t('forgetTitle')}
+        text={[t('forgetConfirm.before'), { text: site, bold: true }, t('forgetConfirm.after')]}
         confirm={{
-          label: 'Forget',
+          label: t('forget'),
           pending: busy,
-          pendingLabel: 'Forgetting...',
+          pendingLabel: t('forgetting'),
           onClick: () => void forget(),
         }}
       />

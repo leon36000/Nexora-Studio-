@@ -1,8 +1,9 @@
+import { useTranslations } from 'next-intl'
 import { AuthTextLink } from '@/app/(auth)/components/auth-text-link'
 
 interface AuthLegalFooterProps {
-  /** The gerund describing the consent action, e.g. "signing in". */
-  action: string
+  /** The consent action the fine print names. */
+  action: 'signingIn' | 'creatingAccount'
 }
 
 /**
@@ -11,16 +12,21 @@ interface AuthLegalFooterProps {
  * routed through {@link AuthTextLink}, so the consent copy has one source.
  */
 export function AuthLegalFooter({ action }: AuthLegalFooterProps) {
+  const t = useTranslations('auth.legalFooter')
   return (
     <p className='text-center text-[var(--text-muted)] text-caption leading-relaxed'>
-      By {action}, you agree to our{' '}
-      <AuthTextLink href='/terms' external>
-        Terms of Service
-      </AuthTextLink>{' '}
-      and{' '}
-      <AuthTextLink href='/privacy' external>
-        Privacy Policy
-      </AuthTextLink>
+      {t.rich(action, {
+        terms: (chunks) => (
+          <AuthTextLink href='/terms' external>
+            {chunks}
+          </AuthTextLink>
+        ),
+        privacy: (chunks) => (
+          <AuthTextLink href='/privacy' external>
+            {chunks}
+          </AuthTextLink>
+        ),
+      })}
     </p>
   )
 }

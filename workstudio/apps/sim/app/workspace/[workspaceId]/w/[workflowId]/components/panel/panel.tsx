@@ -25,6 +25,7 @@ import { BubbleChatDelay, Download, Lock, Plus, Unlock, X } from '@sim/emcn/icon
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { useShallow } from 'zustand/react/shallow'
 import { VariableIcon } from '@/components/icons'
@@ -134,6 +135,7 @@ function copilotDraftKey(
  * @returns Panel on the right side of the workflow
  */
 export const Panel = memo(function Panel() {
+  const t = useTranslations('editor.panel')
   const router = useResourceRouter()
   const { workspaceId, workflowId: scopedWorkflowId } = useWorkflowScope()
 
@@ -761,7 +763,7 @@ export const Panel = memo(function Panel() {
           aria-controls='workflow-panel'
           onClick={() => setIsMobilePanelOpen(true)}
         >
-          Workflow
+          {t('workflow')}
         </Chip>
       </div>
       {showLimitRequest && memberLimitTarget && (
@@ -779,7 +781,7 @@ export const Panel = memo(function Panel() {
           'panel-container relative shrink-0 overflow-hidden bg-[var(--bg)] max-md:absolute max-md:inset-0 max-md:z-[var(--z-dropdown)] max-md:w-full! md:max-w-[max(290px,40vw)]',
           (!isMobilePanelOpen || hasCanvasOverlay) && 'max-md:hidden'
         )}
-        aria-label='Workflow panel'
+        aria-label={t('workflowPanel')}
       >
         <div
           className={cn(
@@ -793,12 +795,12 @@ export const Panel = memo(function Panel() {
               isSearchingEditor && 'max-md:hidden'
             )}
           >
-            <span className='text-[var(--text-body)] text-sm'>Workflow</span>
+            <span className='text-[var(--text-body)] text-sm'>{t('workflow')}</span>
             <Button
               variant='ghost'
               size='icon'
               mobileCompact
-              aria-label='Back to canvas'
+              aria-label={t('backToCanvas')}
               className='size-[30px]'
               onClick={() => setIsMobilePanelOpen(false)}
             >
@@ -816,7 +818,7 @@ export const Panel = memo(function Panel() {
             <div className='flex gap-1.5'>
               <DropdownMenu open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                 <DropdownMenuTrigger asChild>
-                  <Button mobileCompact aria-label='Workflow actions' className='size-[30px]'>
+                  <Button mobileCompact aria-label={t('workflowActions')} className='size-[30px]'>
                     <MoreHorizontal className='size-[14px]' />
                   </Button>
                 </DropdownMenuTrigger>
@@ -826,10 +828,10 @@ export const Panel = memo(function Panel() {
                     disabled={
                       isExecuting || !canMutateWorkflow || isAutoLayouting || hasLockedBlocks
                     }
-                    title={hasLockedBlocks ? 'Unlock blocks to use auto-layout' : undefined}
+                    title={hasLockedBlocks ? t('unlockForAutoLayout') : undefined}
                   >
                     <Layout animate={isAutoLayouting} variant='clockwise' />
-                    Auto layout
+                    {t('autoLayout')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={() => {
@@ -838,20 +840,16 @@ export const Panel = memo(function Panel() {
                     }}
                   >
                     <VariableIcon />
-                    Variables
+                    {t('variables')}
                   </DropdownMenuItem>
                   {userPermissions.canAdmin && !isSnapshotView && (
                     <DropdownMenuItem
                       onSelect={handleToggleWorkflowLock}
                       disabled={!hasBlocks || workflowLocked}
-                      title={
-                        workflowLocked
-                          ? 'Workflow is locked at the row or folder level — release it from the workflow notification or folder menu'
-                          : undefined
-                      }
+                      title={workflowLocked ? t('lockedAtRowOrFolder') : undefined}
                     >
                       {allBlocksLocked ? <Unlock /> : <Lock />}
-                      {allBlocksLocked ? 'Unlock workflow' : 'Lock workflow'}
+                      {allBlocksLocked ? t('unlockWorkflow') : t('lockWorkflow')}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
@@ -859,14 +857,14 @@ export const Panel = memo(function Panel() {
                     disabled={!userPermissions.canEdit || isExporting || !currentWorkflow}
                   >
                     <Download />
-                    Export workflow
+                    {t('exportWorkflow')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onSelect={handleDuplicateWorkflow}
                     disabled={!userPermissions.canEdit || isDuplicating}
                   >
                     <Duplicate />
-                    Duplicate workflow
+                    {t('duplicateWorkflow')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -876,13 +874,13 @@ export const Panel = memo(function Panel() {
                     disabled={!canMutateWorkflow || Object.keys(workflows).length <= 1}
                   >
                     <Trash />
-                    Delete workflow
+                    {t('deleteWorkflow')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button
                 mobileCompact
-                aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
+                aria-label={isChatOpen ? t('closeChat') : t('openChat')}
                 className='size-[30px]'
                 variant={isChatOpen ? 'active' : 'default'}
                 onClick={() => {
@@ -907,7 +905,7 @@ export const Panel = memo(function Panel() {
                 active={isExecuting}
                 onClick={isExecuting ? cancelWorkflow : () => runWorkflow()}
                 disabled={!isExecuting && isButtonDisabled}
-                aria-label={isExecuting ? 'Stop' : 'Run'}
+                aria-label={isExecuting ? t('stop') : t('run')}
                 leftAdornment={
                   <span
                     aria-hidden='true'
@@ -926,9 +924,14 @@ export const Panel = memo(function Panel() {
               >
                 <span className='inline-grid'>
                   <span aria-hidden='true' className='invisible col-start-1 row-start-1'>
-                    Stop
+                    {t('stop')}
                   </span>
-                  <span className='col-start-1 row-start-1'>{isExecuting ? 'Stop' : 'Run'}</span>
+                  <span aria-hidden='true' className='invisible col-start-1 row-start-1'>
+                    {t('run')}
+                  </span>
+                  <span className='col-start-1 row-start-1'>
+                    {isExecuting ? t('stop') : t('run')}
+                  </span>
                 </span>
               </Chip>
             </div>
@@ -953,7 +956,7 @@ export const Panel = memo(function Panel() {
                   onClick={() => handleTabClick('copilot')}
                   data-tab-button='copilot'
                 >
-                  Chat
+                  {t('chatTab')}
                 </Button>
               )}
               <Button
@@ -966,7 +969,7 @@ export const Panel = memo(function Panel() {
                 onClick={() => handleTabClick('toolbar')}
                 data-tab-button='toolbar'
               >
-                Toolbar
+                {t('toolbarTab')}
               </Button>
               <Button
                 className={`h-[28px] rounded-md border py-[5px] text-[12.5px] ${
@@ -978,7 +981,7 @@ export const Panel = memo(function Panel() {
                 onClick={() => handleTabClick('editor')}
                 data-tab-button='editor'
               >
-                Editor
+                {t('editorTab')}
               </Button>
             </div>
           </div>
@@ -999,11 +1002,11 @@ export const Panel = memo(function Panel() {
                 {/* Copilot Header */}
                 <div className='mx-[-1px] flex shrink-0 items-center justify-between gap-2 border border-[var(--border)] bg-[var(--surface-4)] px-3 py-1.5'>
                   <h2 className='min-w-0 flex-1 truncate text-[var(--text-primary)] text-sm'>
-                    {copilotChatTitle || 'New Chat'}
+                    {copilotChatTitle || t('newChat')}
                   </h2>
                   <div className='flex items-center gap-2'>
                     <Button
-                      aria-label='New Chat'
+                      aria-label={t('newChat')}
                       variant='ghost'
                       className='p-0'
                       onClick={handleCopilotNewChat}
@@ -1018,7 +1021,7 @@ export const Panel = memo(function Panel() {
                       }}
                     >
                       <DropdownMenuTrigger asChild>
-                        <Button variant='ghost' className='p-0' aria-label='Chat history'>
+                        <Button variant='ghost' className='p-0' aria-label={t('chatHistory')}>
                           <BubbleChatDelay className='size-[14px]' />
                         </Button>
                       </DropdownMenuTrigger>
@@ -1029,10 +1032,10 @@ export const Panel = memo(function Panel() {
                         className='max-h-[280px] w-[220px]'
                       >
                         {copilotChatList.length === 0 ? (
-                          <DropdownMenuItem disabled>No chats yet</DropdownMenuItem>
+                          <DropdownMenuItem disabled>{t('noChatsYet')}</DropdownMenuItem>
                         ) : (
                           <>
-                            <DropdownMenuLabel>Recent</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t('recent')}</DropdownMenuLabel>
                             {copilotChatList.map((chat) => (
                               <DropdownMenuItem
                                 key={chat.id}
@@ -1041,7 +1044,7 @@ export const Panel = memo(function Panel() {
                                 onSelect={() => handleCopilotSelectChat(chat)}
                                 action={
                                   <DropdownMenuItemAction
-                                    aria-label='Delete chat'
+                                    aria-label={t('deleteChat')}
                                     onClick={() => handleCopilotDeleteChat(chat.id)}
                                   >
                                     <Trash />
@@ -1049,7 +1052,7 @@ export const Panel = memo(function Panel() {
                                 }
                               >
                                 <ConversationListItem
-                                  title={chat.title || 'New Chat'}
+                                  title={chat.title || t('newChat')}
                                   isActive={Boolean(chat.activeStreamId)}
                                   titleClassName='text-small'
                                 />
@@ -1117,7 +1120,7 @@ export const Panel = memo(function Panel() {
           onPointerDown={handlePointerDown}
           role='separator'
           aria-orientation='vertical'
-          aria-label='Resize panel'
+          aria-label={t('resizePanel')}
         />
       </aside>
 
@@ -1125,24 +1128,24 @@ export const Panel = memo(function Panel() {
       <ChipConfirmModal
         open={isDeleteModalOpen}
         onOpenChange={setIsDeleteModalOpen}
-        srTitle='Delete Workflow'
-        title='Delete Workflow'
+        srTitle={t('deleteModal.title')}
+        title={t('deleteModal.title')}
         defaultAction='dismiss'
         text={[
-          'Are you sure you want to delete ',
-          { text: currentWorkflow?.name ?? 'this workflow', bold: true },
-          '? ',
+          t('deleteModal.prefix'),
+          { text: currentWorkflow?.name ?? t('deleteModal.thisWorkflow'), bold: true },
+          t('deleteModal.questionEnd'),
           {
-            text: 'All associated blocks, executions, and configuration will be removed.',
+            text: t('deleteModal.consequence'),
             error: true,
           },
-          ' You can restore it from Recently Deleted in Settings.',
+          t('deleteModal.restoreHint'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('deleteModal.confirm'),
           onClick: handleDeleteWorkflow,
           pending: isDeleting,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleteModal.deleting'),
         }}
       />
 

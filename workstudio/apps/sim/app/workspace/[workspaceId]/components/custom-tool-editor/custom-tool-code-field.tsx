@@ -11,6 +11,7 @@ import {
   PopoverScrollArea,
   PopoverSection,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import {
   CODE_PLACEHOLDER,
   type SchemaParameter,
@@ -82,6 +83,7 @@ export function CustomToolCodeField({
   blockId,
   disabled = false,
 }: CustomToolCodeFieldProps) {
+  const t = useTranslations('shell.customTool')
   const codeEditorRef = useRef<HTMLDivElement>(null)
   const schemaParamItemRefs = useRef<Map<number, HTMLElement> | null>(null)
   schemaParamItemRefs.current ??= new Map()
@@ -238,15 +240,15 @@ export function CustomToolCodeField({
     <div className='flex flex-col'>
       {schemaParameters.length > 0 && (
         <div className='mb-2 flex flex-wrap items-center gap-1.5'>
-          <span className='text-[var(--text-muted)] text-caption'>Available parameters:</span>
+          <span className='text-[var(--text-muted)] text-caption'>
+            {t('availableParametersInline')}
+          </span>
           {schemaParameters.map((param) => (
             <ChipTag key={param.name} variant='gray'>
               {param.name}
             </ChipTag>
           ))}
-          <span className='text-[var(--text-muted)] text-caption'>
-            Start typing a parameter name for autocomplete.
-          </span>
+          <span className='text-[var(--text-muted)] text-caption'>{t('autocompleteHint')}</span>
         </div>
       )}
 
@@ -341,7 +343,7 @@ export function CustomToolCodeField({
               onCloseAutoFocus={(e) => e.preventDefault()}
             >
               <PopoverScrollArea>
-                <PopoverSection>Available Parameters</PopoverSection>
+                <PopoverSection>{t('availableParameters')}</PopoverSection>
                 {schemaParameters.map((param, index) => (
                   <PopoverItem
                     key={param.name}

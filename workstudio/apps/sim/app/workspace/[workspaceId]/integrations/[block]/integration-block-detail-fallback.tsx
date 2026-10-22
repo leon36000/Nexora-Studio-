@@ -2,6 +2,7 @@
 
 import { ChipLink } from '@sim/emcn'
 import { ArrowLeft } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { PAGE_HEADER_BAR } from '@/components/page-header-bar'
 
 interface IntegrationBlockDetailFallbackProps {
@@ -22,11 +23,12 @@ interface IntegrationBlockDetailFallbackProps {
 export function IntegrationBlockDetailFallback({
   workspaceId,
 }: IntegrationBlockDetailFallbackProps) {
+  const t = useTranslations('integrations.page')
   return (
     <div className='flex h-full flex-col bg-[var(--bg)]'>
       <div className={PAGE_HEADER_BAR}>
         <ChipLink href={`/workspace/${workspaceId}/integrations`} leftIcon={ArrowLeft}>
-          Integrations
+          {t('title')}
         </ChipLink>
       </div>
     </div>

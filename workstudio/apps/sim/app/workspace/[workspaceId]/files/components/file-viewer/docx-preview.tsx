@@ -4,6 +4,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { bindPreviewWheelZoom, cn } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { sanitizeRenderedHyperlinks, stripEmbeddedFrames } from '@/lib/core/security/url-safety'
 import { assertOoxmlPreviewWithinLimits } from '@/lib/file-parsers/ooxml-preview-guard'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
@@ -70,6 +71,7 @@ export const DocxPreview = memo(function DocxPreview({
   file: WorkspaceFileRecord
   workspaceId: string
 }) {
+  const t = useTranslations('files.preview')
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const zoomPercentRef = useRef(100)
@@ -221,9 +223,9 @@ export const DocxPreview = memo(function DocxPreview({
         }
       } catch (err) {
         if (!cancelled) {
-          const msg = toError(err).message || 'Failed to render document'
+          const msg = toError(err).message
           logger.error('DOCX render failed', { error: msg })
-          setRenderError(msg)
+          setRenderError(msg || t('renderDocumentFailed'))
         }
       } finally {
         if (!cancelled) {
@@ -236,10 +238,10 @@ export const DocxPreview = memo(function DocxPreview({
     return () => {
       cancelled = true
     }
-  }, [fileData, applyPostRenderStyling])
+  }, [fileData, applyPostRenderStyling, t])
 
   const error = resolvePreviewError(preview.error, renderError)
-  if (error) return <PreviewError label='document' error={error} />
+  if (error) return <PreviewError kind='document' error={error} />
 
   const showLoadingFrame = !hasRenderedPreview && (!fileData || rendering)
 
@@ -266,9 +268,9 @@ export const DocxPreview = memo(function DocxPreview({
         navigation={{
           current: currentPage,
           total: pageCount,
-          label: 'page',
+          unit: 'page',
           canPrevious: pageCount > 0 && currentPage > 1,
-          canNext: pageCount > 0 && currentPage < pageCount,
+          canNext: currentPage < pageCount && pageCount > 0,
           onPrevious: () => {
             const previous = Math.max(1, currentPage - 1)
             setCurrentPage(previous)

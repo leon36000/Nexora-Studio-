@@ -12,6 +12,7 @@ import {
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import {
   CUSTOM_TOOL_DELETE_CONFIRM_TEXT,
   CustomToolCodeField,
@@ -61,10 +62,7 @@ export interface CustomTool {
 
 type ToolSection = 'schema' | 'code'
 
-const TOOL_TABS = [
-  { value: 'schema', label: 'Schema' },
-  { value: 'code', label: 'Code' },
-] as const
+const TOOL_TAB_VALUES = ['schema', 'code'] as const
 
 export function CustomToolModal({
   open,
@@ -74,6 +72,7 @@ export function CustomToolModal({
   blockId,
   initialValues,
 }: CustomToolModalProps) {
+  const t = useTranslations('editor.subBlock.toolInput.customToolModal')
   const { workspaceId } = useWorkflowScope()
   const [activeSection, setActiveSection] = useState<ToolSection>('schema')
   const [jsonSchema, setJsonSchema] = useState('')
@@ -88,6 +87,10 @@ export function CustomToolModal({
   const [showDiscardAlert, setShowDiscardAlert] = useState(false)
 
   const schemaParameters = useMemo(() => extractSchemaParameters(jsonSchema), [jsonSchema])
+  const toolTabs = useMemo(
+    () => TOOL_TAB_VALUES.map((value) => ({ value, label: t(`tabs.${value}`) })),
+    [t]
+  )
 
   const schemaGeneration = useSchemaGeneration({
     workspaceId,
@@ -139,7 +142,7 @@ export function CustomToolModal({
         setToolId(initialValues.id)
       } catch (error) {
         logger.error('Error initializing form with initial values:', { error })
-        setSchemaError('Failed to load tool data. Please try again.')
+        setSchemaError(t('loadError'))
       }
     } else {
       resetForm()
@@ -195,7 +198,7 @@ export function CustomToolModal({
   const handleSave = async () => {
     try {
       if (!jsonSchema) {
-        setSchemaError('Schema cannot be empty')
+        setSchemaError(t('schemaEmpty'))
         setActiveSection('schema')
         return
       }
@@ -268,7 +271,7 @@ export function CustomToolModal({
       handleClose()
     } catch (error) {
       logger.error('Error saving custom tool:', { error })
-      const errorMessage = getErrorMessage(error, 'Failed to save custom tool')
+      const errorMessage = getErrorMessage(error, t('saveError'))
 
       if (errorMessage.includes('Cannot change function name')) {
         setSchemaError(FUNCTION_NAME_LOCKED)
@@ -313,8 +316,8 @@ export function CustomToolModal({
     } catch (error) {
       logger.error('Error deleting custom tool:', error)
       // A delete failure is not a schema problem — keep it out of the Schema slot.
-      toast.error("Couldn't delete tool", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('deleteErrorTitle'), {
+        description: getErrorMessage(error, t('deleteErrorDescription')),
       })
       setShowDeleteConfirm(false)
     }
@@ -325,11 +328,11 @@ export function CustomToolModal({
       <ChipModal
         open={open}
         onOpenChange={handleCloseAttempt}
-        srTitle={isEditing ? 'Edit Agent Tool' : 'Create Agent Tool'}
+        srTitle={isEditing ? t('editTitle') : t('createTitle')}
         size='xl'
       >
         <ChipModalHeader onClose={handleCloseAttempt}>
-          {isEditing ? 'Edit Agent Tool' : 'Create Agent Tool'}
+          {isEditing ? t('editTitle') : t('createTitle')}
         </ChipModalHeader>
 
         {/*
@@ -344,7 +347,7 @@ export function CustomToolModal({
           <div className='flex min-h-6 items-center justify-between gap-2'>
             <div className='flex min-w-0 items-center gap-2'>
               <ChipModalTabs
-                tabs={TOOL_TABS}
+                tabs={toolTabs}
                 value={activeSection}
                 onChange={(value) => setActiveSection(value as ToolSection)}
               />
@@ -388,11 +391,12 @@ export function CustomToolModal({
         {activeSection === 'schema' && (
           <ChipModalFooter
             onCancel={handleClose}
+            cancelLabel={t('cancel')}
             secondaryActions={
               isEditing
                 ? [
                     {
-                      label: 'Delete',
+                      label: t('delete'),
                       onClick: () => setShowDeleteConfirm(true),
                       variant: 'destructive',
                     },
@@ -400,7 +404,7 @@ export function CustomToolModal({
                 : undefined
             }
             primaryAction={{
-              label: 'Next',
+              label: t('next'),
               onClick: () => setActiveSection('code'),
               disabled: !isSchemaValid || !!schemaError,
             }}
@@ -410,17 +414,18 @@ export function CustomToolModal({
         {activeSection === 'code' && (
           <ChipModalFooter
             onCancel={handleClose}
+            cancelLabel={t('cancel')}
             secondaryActions={[
               isEditing
                 ? {
-                    label: 'Delete',
+                    label: t('delete'),
                     onClick: () => setShowDeleteConfirm(true),
                     variant: 'destructive',
                   }
-                : { label: 'Back', onClick: () => setActiveSection('schema') },
+                : { label: t('back'), onClick: () => setActiveSection('schema') },
             ]}
             primaryAction={{
-              label: isEditing ? 'Update Tool' : 'Save Tool',
+              label: isEditing ? t('updateTool') : t('saveTool'),
               onClick: handleSave,
               disabled: !isSchemaValid || !!schemaError || !canSave,
             }}
@@ -431,26 +436,27 @@ export function CustomToolModal({
       <ChipConfirmModal
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        srTitle='Delete Custom Tool'
-        title='Delete Custom Tool'
+        srTitle={t('deleteTitle')}
+        title={t('deleteTitle')}
         text={CUSTOM_TOOL_DELETE_CONFIRM_TEXT}
+        dismissLabel={t('cancel')}
         confirm={{
-          label: 'Delete',
+          label: t('delete'),
           onClick: handleDelete,
           pending: deleteToolMutation.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleting'),
         }}
       />
 
       <ChipConfirmModal
         open={showDiscardAlert}
         onOpenChange={setShowDiscardAlert}
-        srTitle='Unsaved Changes'
-        title='Unsaved Changes'
-        text='You have unsaved changes. Are you sure you want to discard them?'
-        dismissLabel='Keep editing'
+        srTitle={t('unsavedTitle')}
+        title={t('unsavedTitle')}
+        text={t('unsavedText')}
+        dismissLabel={t('keepEditing')}
         confirm={{
-          label: 'Discard Changes',
+          label: t('discardChanges'),
           onClick: handleConfirmDiscard,
         }}
       />

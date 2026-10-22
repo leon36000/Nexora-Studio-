@@ -33,6 +33,31 @@ import type { SettingsHeaderMeta } from '@/components/settings/settings-header'
 import type { DeploymentFeatures, DeploymentShape } from '@/lib/api/contracts/workspaces'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { organizationRoutes } from '@/lib/navigation/paths'
+import enSettingsMessages from '@/messages/en/settings.json'
+
+/**
+ * English navigation copy, read from the `settings` messages so the catalog and the
+ * translated interface share one source. Components render the active locale through
+ * each item's {@link SettingsNavigationItem.messageKey}; these English values serve
+ * server-side consumers (metadata, Mothership tools) and tests.
+ */
+const NAV = enSettingsMessages.nav
+
+/** A message plane under `settings.nav` holding `{ label, description }` entries. */
+type SettingsNavMessagePlane = 'unified' | 'account' | 'selfhost' | 'workspace' | 'organization'
+
+/**
+ * Path (within the `settings` namespace) of an item's `{ label, description }` messages,
+ * e.g. `nav.unified.general`. Render with `t(\`${item.messageKey}.label\`)`.
+ */
+export type SettingsNavMessageKey = `nav.${SettingsNavMessagePlane}.${string}`
+
+/** Sidebar group headings, keyed like the `groups` arrays below. */
+export type SettingsNavGroupKey = keyof typeof NAV.groups
+
+function navMessageKey(plane: SettingsNavMessagePlane, id: string): SettingsNavMessageKey {
+  return `nav.${plane}.${id}`
+}
 
 export type SettingsPlane = 'account' | 'selfhost' | 'workspace'
 
@@ -89,6 +114,8 @@ export interface SettingsNavigationItem<Section extends string = string> {
   id: Section
   label: string
   description: string
+  /** Where the localized `label` / `description` live; see {@link SettingsNavMessageKey}. */
+  messageKey: SettingsNavMessageKey
   icon: ComponentType<{ className?: string }>
   group: string
   docsLink?: string
@@ -140,6 +167,8 @@ export interface UnifiedSettingsNavigationItem {
   id: UnifiedSettingsSection
   label: string
   description: string
+  /** Where the localized `label` / `description` live; see {@link SettingsNavMessageKey}. */
+  messageKey: SettingsNavMessageKey
   icon: ComponentType<{ className?: string }>
   section: UnifiedNavigationSection
   order: number
@@ -176,7 +205,10 @@ export interface UnifiedSettingsNavigationItem {
 }
 
 interface UnifiedSettingsProjection
-  extends Omit<UnifiedSettingsNavigationItem, 'label' | 'icon' | 'section' | 'docsLink'> {
+  extends Omit<
+    UnifiedSettingsNavigationItem,
+    'label' | 'icon' | 'section' | 'docsLink' | 'messageKey'
+  > {
   group: UnifiedNavigationSection
 }
 
@@ -312,9 +344,9 @@ export function parseSettingsPathSection<
 }
 
 export const ACCOUNT_SETTINGS_GROUPS = [
-  { key: 'account', title: 'Account' },
-  { key: 'developer', title: 'Developer' },
-  { key: 'platform', title: 'Platform' },
+  { key: 'account', title: NAV.groups.account },
+  { key: 'developer', title: NAV.groups.developer },
+  { key: 'platform', title: NAV.groups.platform },
 ] as const
 
 /** Planes with their own standalone shell; the workspace plane renders inside the editor. */
@@ -329,23 +361,23 @@ export const SETTINGS_PLANE_CHROME: Record<
   StandaloneSettingsPlane,
   { label: string; showWordmark: boolean }
 > = {
-  account: { label: 'Account', showWordmark: false },
-  selfhost: { label: 'Self-host', showWordmark: true },
-  organization: { label: 'Organization', showWordmark: false },
+  account: { label: NAV.planes.account, showWordmark: false },
+  selfhost: { label: NAV.planes.selfhost, showWordmark: true },
+  organization: { label: NAV.planes.organization, showWordmark: false },
 }
 
 export const SELFHOST_SETTINGS_GROUPS = [
-  { key: 'account', title: 'Account' },
-  { key: 'developer', title: 'Developer' },
+  { key: 'account', title: NAV.groups.account },
+  { key: 'developer', title: NAV.groups.developer },
 ] as const
 
 export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] = [
   {
-    label: 'General',
+    label: NAV.unified.general.label,
     icon: Settings,
     unified: {
       id: 'general',
-      description: 'Manage your profile, appearance, and preferences.',
+      description: NAV.unified.general.description,
       group: 'account',
       order: 0,
     },
@@ -355,44 +387,44 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Desktop',
+    label: NAV.unified.desktop.label,
     icon: PanelLeft,
     unified: {
       id: 'desktop',
-      description: 'Manage notifications, startup, local folders, and updates.',
+      description: NAV.unified.desktop.description,
       group: 'account',
       order: 2,
       requiresDesktopSurface: 'settings',
     },
   },
   {
-    label: 'Browser',
+    label: NAV.unified.browser.label,
     icon: Globe,
     unified: {
       id: 'browser',
-      description: 'Control the browser Chat drives and the data it keeps.',
+      description: NAV.unified.browser.description,
       group: 'account',
       order: 3,
       requiresDesktopSurface: 'browser',
     },
   },
   {
-    label: 'Terminal',
+    label: NAV.unified.terminal.label,
     icon: TerminalWindow,
     unified: {
       id: 'terminal',
-      description: 'Control the shells Chat runs commands in.',
+      description: NAV.unified.terminal.description,
       group: 'account',
       order: 4,
       requiresDesktopSurface: 'terminal',
     },
   },
   {
-    label: 'Requests',
+    label: NAV.unified.requests.label,
     icon: ListChecks,
     unified: {
       id: 'requests',
-      description: 'Track your requests and browse available access.',
+      description: NAV.unified.requests.description,
       group: 'workspace',
       order: 12,
       organizationSection: 'requests',
@@ -402,12 +434,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Permission groups',
+    label: NAV.unified['access-control'].label,
     icon: ShieldCheck,
     docsLink: docsUrl('/platform/enterprise/access-control'),
     unified: {
       id: 'access-control',
-      description: 'Manage permission groups across your organization.',
+      description: NAV.unified['access-control'].description,
       group: 'organization',
       order: 4,
       requiresHosted: true,
@@ -417,12 +449,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Audit logs',
+    label: NAV.unified['audit-logs'].label,
     icon: ClipboardList,
     docsLink: docsUrl('/platform/enterprise/audit-logs'),
     unified: {
       id: 'audit-logs',
-      description: 'Review activity and changes across your organization.',
+      description: NAV.unified['audit-logs'].description,
       group: 'organization',
       order: 5,
       requiresHosted: true,
@@ -432,12 +464,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Workspace forks',
+    label: NAV.unified.forks.label,
     icon: Shuffle,
     docsLink: docsUrl('/platform/enterprise/forks'),
     unified: {
       id: 'forks',
-      description: 'Fork this workspace and sync changes with its parent.',
+      description: NAV.unified.forks.description,
       group: 'workspace',
       order: 3,
     },
@@ -446,11 +478,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Subscription',
+    label: NAV.unified.billing.label,
     icon: Credit,
     unified: {
       id: 'billing',
-      description: 'Manage your plan, pricing, and invoices.',
+      description: NAV.unified.billing.description,
       group: 'account',
       order: 1,
       hideWhenBillingDisabled: true,
@@ -459,24 +491,24 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     planes: {
       account: {
         id: 'billing',
-        description: 'Manage your personal plan, usage, and invoices.',
+        description: NAV.account.billing.description,
         group: 'account',
         order: 1,
       },
       selfhost: {
         id: 'billing',
-        description: 'Manage your personal plan, usage, and invoices.',
+        description: NAV.selfhost.billing.description,
         group: 'account',
         order: 1,
       },
     },
   },
   {
-    label: 'Teammates',
+    label: NAV.unified.teammates.label,
     icon: Users,
     unified: {
       id: 'teammates',
-      description: 'Manage your teammates in this workspace.',
+      description: NAV.unified.teammates.description,
       group: 'workspace',
       order: 0,
     },
@@ -485,22 +517,22 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Members',
+    label: NAV.unified.organization.label,
     icon: Users,
     unified: {
       id: 'organization',
-      description: 'Members and workspace access in your organization.',
+      description: NAV.unified.organization.description,
       group: 'organization',
       order: 0,
       organizationSection: 'members',
     },
   },
   {
-    label: 'Insights',
+    label: NAV.unified.usage.label,
     icon: ChartColumn,
     unified: {
       id: 'usage',
-      description: 'Explore usage and activity across your organization.',
+      description: NAV.unified.usage.description,
       group: 'organization',
       order: 1,
       /**
@@ -516,11 +548,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Secrets',
+    label: NAV.unified.secrets.label,
     icon: Key,
     unified: {
       id: 'secrets',
-      description: 'Store environment variables for your workflows.',
+      description: NAV.unified.secrets.description,
       group: 'workspace',
       order: 1,
     },
@@ -529,22 +561,22 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Credential Groups',
+    label: NAV.unified['connected-accounts'].label,
     icon: GridOffset,
     unified: {
       id: 'connected-accounts',
-      description: 'Manage integrations and workspace access for workflows and Chat.',
+      description: NAV.unified['connected-accounts'].description,
       group: 'organization',
       order: 1,
       organizationSection: 'connected-accounts',
     },
   },
   {
-    label: 'Custom tools',
+    label: NAV.unified['custom-tools'].label,
     icon: Wrench,
     unified: {
       id: 'custom-tools',
-      description: 'Create and manage custom tools for your agents.',
+      description: NAV.unified['custom-tools'].description,
       group: 'workspace',
       order: 3,
     },
@@ -553,11 +585,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'MCP tools',
+    label: NAV.unified.mcp.label,
     icon: McpIcon,
     unified: {
       id: 'mcp',
-      description: 'Connect external MCP servers and use their tools in this workspace.',
+      description: NAV.unified.mcp.description,
       group: 'workspace',
       order: 2,
     },
@@ -566,35 +598,35 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Nexora API keys',
+    label: NAV.unified.apikeys.label,
     icon: TerminalWindow,
     unified: {
       id: 'apikeys',
-      description: 'Create and manage API keys for the Nexora API.',
+      description: NAV.unified.apikeys.description,
       group: 'workspace',
       order: 7,
     },
     planes: {
       account: {
         id: 'api-keys',
-        description: 'Create and manage your personal Nexora API keys.',
+        description: NAV.account['api-keys'].description,
         group: 'developer',
         order: 2,
       },
       workspace: {
         id: 'api-keys',
-        description: 'Manage workspace API keys and personal-key policy.',
+        description: NAV.workspace['api-keys'].description,
         group: 'system',
         order: 7,
       },
     },
   },
   {
-    label: 'MCP servers',
+    label: NAV.unified['workflow-mcp-servers'].label,
     icon: Server,
     unified: {
       id: 'workflow-mcp-servers',
-      description: 'Expose workflows from this workspace as tools on an MCP server.',
+      description: NAV.unified['workflow-mcp-servers'].description,
       group: 'workspace',
       order: 6,
     },
@@ -603,11 +635,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'BYOK',
+    label: NAV.unified.byok.label,
     icon: KeySquare,
     unified: {
       id: 'byok',
-      description: 'Bring your own model-provider API keys.',
+      description: NAV.unified.byok.description,
       group: 'workspace',
       order: 4,
       requiresHosted: true,
@@ -617,12 +649,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Sandboxes',
+    label: NAV.unified.sandboxes.label,
     icon: CodeIcon,
     docsLink: docsUrl('/workflows/blocks/function'),
     unified: {
       id: 'sandboxes',
-      description: 'Install Python or npm packages for Function blocks to import.',
+      description: NAV.unified.sandboxes.description,
       group: 'workspace',
       order: 8,
       requiresMax: true,
@@ -634,23 +666,23 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Chat keys',
+    label: NAV.selfhost['chat-keys'].label,
     icon: HexSimple,
     planes: {
       selfhost: {
         id: 'chat-keys',
-        description: 'Manage the model-provider keys that power Chat.',
+        description: NAV.selfhost['chat-keys'].description,
         group: 'developer',
         order: 2,
       },
     },
   },
   {
-    label: 'Nexora Mailer',
+    label: NAV.unified.inbox.label,
     icon: Send,
     unified: {
       id: 'inbox',
-      description: 'Trigger and process workflows from incoming email.',
+      description: NAV.unified.inbox.description,
       group: 'workspace',
       order: 5,
       requiresMax: true,
@@ -663,11 +695,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Recently deleted',
+    label: NAV.unified['recently-deleted'].label,
     icon: Trash,
     unified: {
       id: 'recently-deleted',
-      description: 'Restore items deleted in the last 30 days.',
+      description: NAV.unified['recently-deleted'].description,
       group: 'workspace',
       order: 10,
     },
@@ -676,11 +708,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Self hosting',
+    label: NAV.unified['self-host'].label,
     icon: Sprout,
     unified: {
       id: 'self-host',
-      description: 'Manage this deployment from the Nexora managed service.',
+      description: NAV.unified['self-host'].description,
       group: 'platform',
       order: 2,
       requiresSelfHosted: true,
@@ -690,12 +722,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Single sign-on',
+    label: NAV.unified.sso.label,
     icon: LogIn,
     docsLink: docsUrl('/platform/enterprise/sso'),
     unified: {
       id: 'sso',
-      description: 'Manage sign-in, verified domains, and provisioning.',
+      description: NAV.unified.sso.description,
       group: 'organization',
       order: 7,
       requiresHosted: true,
@@ -705,12 +737,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Security',
+    label: NAV.unified.security.label,
     icon: Lock,
     docsLink: docsUrl('/platform/enterprise/security'),
     unified: {
       id: 'security',
-      description: 'Manage session policies and view outbound IP addresses.',
+      description: NAV.unified.security.description,
       group: 'organization',
       order: 8,
       requiresHosted: true,
@@ -720,13 +752,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Data retention',
+    label: NAV.unified['data-retention'].label,
     icon: Database,
     docsLink: docsUrl('/platform/enterprise/data-retention'),
     unified: {
       id: 'data-retention',
-      description:
-        'Control data retention windows and PII redaction. Workspaces without an override inherit the organization defaults.',
+      description: NAV.unified['data-retention'].description,
       group: 'organization',
       order: 9,
       requiresHosted: true,
@@ -736,12 +767,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Data drains',
+    label: NAV.unified['data-drains'].label,
     icon: Upload,
     docsLink: docsUrl('/platform/enterprise/data-drains'),
     unified: {
       id: 'data-drains',
-      description: 'Stream your logs and events to external destinations.',
+      description: NAV.unified['data-drains'].description,
       group: 'organization',
       order: 10,
       requiresHosted: true,
@@ -751,12 +782,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'White-labeling',
+    label: NAV.unified.whitelabeling.label,
     icon: Palette,
     docsLink: docsUrl('/platform/enterprise/whitelabeling'),
     unified: {
       id: 'whitelabeling',
-      description: 'Customize your workspace branding and appearance.',
+      description: NAV.unified.whitelabeling.description,
       group: 'organization',
       order: 6,
       requiresHosted: true,
@@ -766,12 +797,12 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Custom blocks',
+    label: NAV.unified['custom-blocks'].label,
     icon: HexSimple,
     docsLink: docsUrl('/platform/enterprise/custom-blocks'),
     unified: {
       id: 'custom-blocks',
-      description: 'Publish workflows as reusable blocks for your organization.',
+      description: NAV.unified['custom-blocks'].description,
       group: 'workspace',
       order: 2,
       requiresHosted: true,
@@ -784,11 +815,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Admin',
+    label: NAV.unified.admin.label,
     icon: Lock,
     unified: {
       id: 'admin',
-      description: 'Superuser administration and workspace tools.',
+      description: NAV.unified.admin.description,
       group: 'platform',
       order: 0,
       requiresAdminRole: true,
@@ -798,11 +829,11 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Mothership',
+    label: NAV.unified.mothership.label,
     icon: Server,
     unified: {
       id: 'mothership',
-      description: 'Internal Nexora operations and license management.',
+      description: NAV.unified.mothership.description,
       group: 'platform',
       order: 1,
       requiresAdminRole: true,
@@ -828,6 +859,7 @@ export function buildUnifiedSettingsCatalog(): UnifiedSettingsNavigationItem[] {
       {
         ...item,
         label,
+        messageKey: navMessageKey('unified', item.id),
         icon,
         section: group,
         ...(docsLink ? { docsLink } : {}),
@@ -851,10 +883,16 @@ function buildPlaneSettingsItems<Plane extends SettingsPlane>(
       if (!description) {
         throw new Error(`Settings section "${projection.id}" is missing a description`)
       }
+      // A plane-specific label or description has its own messages; otherwise the
+      // plane shows the unified copy.
+      const ownsCopy = !entry.unified || projection.label || projection.description
       return {
         id: projection.id,
         label: projection.label ?? entry.label,
         description,
+        messageKey: ownsCopy
+          ? navMessageKey(plane, projection.id)
+          : navMessageKey('unified', entry.unified?.id ?? projection.id),
         icon: entry.icon,
         group: projection.group,
         ...(entry.docsLink ? { docsLink: entry.docsLink } : {}),
@@ -884,11 +922,11 @@ export const ORGANIZATION_PLANE_UNIFIED_SECTIONS: ReadonlySet<UnifiedSettingsSec
 )
 
 export const ORGANIZATION_SETTINGS_GROUPS = [
-  { key: 'account', title: 'Account' },
-  { key: 'organization', title: 'Organization' },
-  { key: 'governance', title: 'Governance' },
-  { key: 'sim-search', title: 'Nexora Search' },
-  { key: 'platform', title: 'Platform' },
+  { key: 'account', title: NAV.groups.account },
+  { key: 'organization', title: NAV.groups.organization },
+  { key: 'governance', title: NAV.groups.governance },
+  { key: 'sim-search', title: NAV.groups['sim-search'] },
+  { key: 'platform', title: NAV.groups.platform },
 ] as const
 
 type OrganizationSettingsGroup = (typeof ORGANIZATION_SETTINGS_GROUPS)[number]['key']
@@ -927,9 +965,9 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
   if (id === 'knowledge-graphs') {
     return {
       id,
-      label: 'Knowledge graphs',
-      description:
-        'Your private knowledge across this organization’s workspaces. New chats use the active graph; existing chats keep their original graph.',
+      label: NAV.organization['knowledge-graphs'].label,
+      description: NAV.organization['knowledge-graphs'].description,
+      messageKey: navMessageKey('organization', id),
       icon: Database,
       group,
     }
@@ -937,8 +975,9 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
   if (id === 'recently-deleted') {
     return {
       id,
-      label: 'Recently deleted',
-      description: 'Restore your deleted chats.',
+      label: NAV.organization['recently-deleted'].label,
+      description: NAV.organization['recently-deleted'].description,
+      messageKey: navMessageKey('organization', id),
       icon: Trash,
       group,
     }
@@ -946,8 +985,9 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
   if (id === 'connected-accounts') {
     return {
       id,
-      label: 'Credential Groups',
-      description: 'Manage integrations and workspace access for workflows and Chat.',
+      label: NAV.unified['connected-accounts'].label,
+      description: NAV.unified['connected-accounts'].description,
+      messageKey: navMessageKey('unified', 'connected-accounts'),
       icon: GridOffset,
       group,
     }
@@ -955,8 +995,9 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
   if (id === 'integrations') {
     return {
       id,
-      label: 'Sources',
+      label: NAV.organization.integrations.label,
       description: '',
+      messageKey: navMessageKey('organization', id),
       icon: Integration,
       group,
     }
@@ -964,8 +1005,9 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
   if (id === 'search-mcp') {
     return {
       id,
-      label: 'Search MCP',
-      description: 'Search your sources from other apps.',
+      label: NAV.organization['search-mcp'].label,
+      description: NAV.organization['search-mcp'].description,
+      messageKey: navMessageKey('organization', id),
       docsLink: docsUrl('/search/mcp'),
       icon: Server,
       group,
@@ -974,8 +1016,9 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
   if (id === 'search-slack') {
     return {
       id,
-      label: 'Nexora Search in Slack',
-      description: 'Let members search their sources by messaging a Slack bot.',
+      label: NAV.organization['search-slack'].label,
+      description: NAV.organization['search-slack'].description,
+      messageKey: navMessageKey('organization', id),
       icon: SlackIcon,
       group,
     }
@@ -1275,15 +1318,21 @@ export function resolveWorkspaceNavigation({
  * instead of each one restating the mapping.
  */
 export function toSettingsHeaderMeta(
-  item: Pick<SettingsNavigationItem, 'label' | 'description' | 'docsLink'>
+  item: Pick<SettingsNavigationItem, 'label' | 'description' | 'docsLink'> &
+    Partial<Pick<SettingsNavigationItem, 'messageKey'>>
 ): SettingsHeaderMeta {
-  return { title: item.label, description: item.description, docsLink: item.docsLink }
+  return {
+    title: item.label,
+    description: item.description,
+    docsLink: item.docsLink,
+    ...(item.messageKey ? { messageKey: item.messageKey } : {}),
+  }
 }
 
 export function getSettingsSectionMeta(
   plane: SettingsPlane,
   section: string
-): Pick<SettingsNavigationItem, 'label' | 'description' | 'docsLink'> | null {
+): Pick<SettingsNavigationItem, 'label' | 'description' | 'docsLink' | 'messageKey'> | null {
   const catalog =
     plane === 'account'
       ? ACCOUNT_SETTINGS_ITEMS
@@ -1291,5 +1340,12 @@ export function getSettingsSectionMeta(
         ? SELFHOST_SETTINGS_ITEMS
         : WORKSPACE_SETTINGS_ITEMS
   const item = catalog.find((candidate) => candidate.id === section)
-  return item ? { label: item.label, description: item.description, docsLink: item.docsLink } : null
+  return item
+    ? {
+        label: item.label,
+        description: item.description,
+        docsLink: item.docsLink,
+        messageKey: item.messageKey,
+      }
+    : null
 }

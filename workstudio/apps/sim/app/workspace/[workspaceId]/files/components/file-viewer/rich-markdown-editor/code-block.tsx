@@ -11,6 +11,7 @@ import {
 import { Check, ChevronDown, Code, Duplicate, Eye, Wrap } from '@sim/emcn/icons'
 import type { ReactNodeViewProps } from '@tiptap/react'
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
+import { useTranslations } from 'next-intl'
 import { DASHBOARD_EMBED_LANGUAGE } from '@/lib/dashboards/embed-language'
 import { DIFF_EMBED_LANGUAGE } from '@/lib/diff/embed-language'
 import {
@@ -37,21 +38,22 @@ const MERMAID = 'mermaid'
 /** Languages the Prism highlighter has registered (see {@link CodeBlockHighlight}). Every non-plain
  * value MUST have a grammar registered in {@link CodeBlockHighlight} — enforced by a unit test. */
 const LANGUAGE_OPTIONS = [
-  { value: PLAIN, label: 'Plain text' },
-  { value: 'bash', label: 'Bash' },
+  /** Labeled at render (`files.editor.codeBlock.plainText`). */
+  { value: PLAIN, label: '' },
+  { value: 'bash', label: 'Bash' }, // i18n-ignore: language name
   { value: 'c', label: 'C' },
   { value: 'cpp', label: 'C++' },
   { value: 'csharp', label: 'C#' },
   { value: 'css', label: 'CSS' },
-  { value: 'go', label: 'Go' },
-  { value: 'java', label: 'Java' },
+  { value: 'go', label: 'Go' }, // i18n-ignore: language name
+  { value: 'java', label: 'Java' }, // i18n-ignore: language name
   { value: 'javascript', label: 'JavaScript' },
   { value: 'json', label: 'JSON' },
   { value: 'markup', label: 'HTML' },
   { value: 'php', label: 'PHP' },
-  { value: 'python', label: 'Python' },
-  { value: 'ruby', label: 'Ruby' },
-  { value: 'rust', label: 'Rust' },
+  { value: 'python', label: 'Python' }, // i18n-ignore: language name
+  { value: 'ruby', label: 'Ruby' }, // i18n-ignore: language name
+  { value: 'rust', label: 'Rust' }, // i18n-ignore: language name
   { value: 'sql', label: 'SQL' },
   { value: 'typescript', label: 'TypeScript' },
   { value: 'yaml', label: 'YAML' },
@@ -67,6 +69,7 @@ const LANGUAGE_OPTIONS = [
  * dashboard panels the same way.
  */
 function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeViewProps) {
+  const t = useTranslations('files.editor.codeBlock')
   const [wrap, setWrap] = useState(() => node.attrs.language === DIFF_EMBED_LANGUAGE)
   const [menuOpen, setMenuOpen] = useState(false)
   const [editingInline, setEditingInline] = useState(false)
@@ -98,7 +101,7 @@ function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeView
       }
       const size = editor.state.doc.nodeAt(pos)?.nodeSize ?? 0
       const { from } = editor.state.selection
-      setEditingInline(editor.isFocused && from > pos && from < pos + size)
+      setEditingInline(editor.isFocused && pos < from && from < pos + size)
     }
     sync()
     editor.on('selectionUpdate', sync)
@@ -117,9 +120,11 @@ function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeView
   // Skip language detection on rendered blocks — the picker/label never render there.
   const language = explicitLanguage ?? (isRendered ? null : detectLanguage(text)) ?? PLAIN
   const label =
-    LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ??
-    explicitLanguage ??
-    'Plain text'
+    language === PLAIN
+      ? t('plainText')
+      : (LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ??
+        explicitLanguage ??
+        t('plainText'))
 
   const toggleSource = () => {
     if (!editable) {
@@ -158,11 +163,11 @@ function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeView
             label={
               showSource
                 ? isDashboard
-                  ? 'Show dashboard'
+                  ? t('showDashboard')
                   : isDiff
-                    ? 'Show diff'
-                    : 'Show diagram'
-                : 'Show source'
+                    ? t('showDiff')
+                    : t('showDiagram')
+                : t('showSource')
             }
             onClick={toggleSource}
           />
@@ -175,7 +180,7 @@ function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeView
               <DropdownMenuTrigger asChild>
                 <button
                   type='button'
-                  aria-label='Code language'
+                  aria-label={t('language')}
                   className={cn(
                     chipVariants({ variant: 'default' }),
                     'h-[24px] gap-1 px-1.5 text-[var(--text-muted)] data-[state=open]:bg-[var(--surface-active)] data-[state=open]:text-[var(--text-body)]'
@@ -193,7 +198,7 @@ function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeView
                       updateAttributes({ language: option.value === PLAIN ? null : option.value })
                     }
                   >
-                    {option.label}
+                    {option.value === PLAIN ? t('plainText') : option.label}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -206,14 +211,14 @@ function CodeBlockView({ node, updateAttributes, editor, getPos }: ReactNodeView
         {(isDiff || (!isRendered && editable)) && (
           <ToolbarButton
             icon={Wrap}
-            label='Toggle line wrap'
+            label={t('toggleWrap')}
             isActive={wrap}
             onClick={() => setWrap((value) => !value)}
           />
         )}
         <ToolbarButton
           icon={copied ? Check : Duplicate}
-          label={copied ? 'Copied' : isDiff ? 'Copy diff' : 'Copy code'}
+          label={copied ? t('copied') : isDiff ? t('copyDiff') : t('copyCode')}
           onClick={() => copy(text)}
         />
       </div>

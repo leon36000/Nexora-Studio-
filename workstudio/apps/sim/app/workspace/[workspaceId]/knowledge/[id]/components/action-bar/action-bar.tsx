@@ -1,6 +1,7 @@
 import { BulkActionButton, cn, Tooltip } from '@sim/emcn'
 import { Ban, Circle, Trash } from '@sim/emcn/icons'
 import { domAnimation, LazyMotion, m } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 
 interface ActionBarProps {
@@ -34,6 +35,7 @@ export function ActionBar({
   onSelectAll,
   onClearSelectAll,
 }: ActionBarProps) {
+  const t = useTranslations('knowledge.actionBar')
   const userPermissions = useUserPermissionsContext()
 
   if (selectedCount === 0 && !isAllSelected) return null
@@ -58,7 +60,7 @@ export function ActionBar({
       >
         <div className='flex items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1.5'>
           <span className='px-1 text-[var(--text-secondary)] text-small'>
-            {isAllSelected ? totalCount : selectedCount} selected
+            {t('selected', { count: isAllSelected ? totalCount : selectedCount })}
             {showSelectAllOption && (
               <>
                 {' · '}
@@ -67,7 +69,7 @@ export function ActionBar({
                   onClick={onSelectAll}
                   className='text-[var(--brand-secondary)] hover-hover:underline'
                 >
-                  Select all
+                  {t('selectAll')}
                 </button>
               </>
             )}
@@ -79,7 +81,7 @@ export function ActionBar({
                   onClick={onClearSelectAll}
                   className='text-[var(--brand-secondary)] hover-hover:underline'
                 >
-                  Clear
+                  {t('clear')}
                 </button>
               </>
             )}
@@ -89,33 +91,45 @@ export function ActionBar({
             {showEnableButton && (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
-                  <BulkActionButton aria-label='Enable' onClick={onEnable} disabled={isLoading}>
+                  <BulkActionButton
+                    aria-label={t('enable')}
+                    onClick={onEnable}
+                    disabled={isLoading}
+                  >
                     <Circle className='size-[12px]' />
                   </BulkActionButton>
                 </Tooltip.Trigger>
-                <Tooltip.Content side='top'>Enable</Tooltip.Content>
+                <Tooltip.Content side='top'>{t('enable')}</Tooltip.Content>
               </Tooltip.Root>
             )}
 
             {showDisableButton && (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
-                  <BulkActionButton aria-label='Disable' onClick={onDisable} disabled={isLoading}>
+                  <BulkActionButton
+                    aria-label={t('disable')}
+                    onClick={onDisable}
+                    disabled={isLoading}
+                  >
                     <Ban className='size-[12px]' />
                   </BulkActionButton>
                 </Tooltip.Trigger>
-                <Tooltip.Content side='top'>Disable</Tooltip.Content>
+                <Tooltip.Content side='top'>{t('disable')}</Tooltip.Content>
               </Tooltip.Root>
             )}
 
             {onDelete && canEdit && (
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
-                  <BulkActionButton aria-label='Delete' onClick={onDelete} disabled={isLoading}>
+                  <BulkActionButton
+                    aria-label={t('delete')}
+                    onClick={onDelete}
+                    disabled={isLoading}
+                  >
                     <Trash className='size-[12px]' />
                   </BulkActionButton>
                 </Tooltip.Trigger>
-                <Tooltip.Content side='top'>Delete</Tooltip.Content>
+                <Tooltip.Content side='top'>{t('delete')}</Tooltip.Content>
               </Tooltip.Root>
             )}
           </div>

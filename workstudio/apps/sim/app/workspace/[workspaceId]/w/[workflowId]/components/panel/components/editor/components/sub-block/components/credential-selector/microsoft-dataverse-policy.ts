@@ -14,23 +14,33 @@ interface ResolveMicrosoftDataverseCredentialPolicyParams {
   selectedCredentialScopes?: readonly string[]
 }
 
+export type MicrosoftDataverseActionLabelKey = 'updateAccess' | 'connectMatchingAccount'
+
+export type MicrosoftDataverseMessageKey =
+  | 'additionalPermissionsRequired'
+  | 'invalidEnvironment'
+  | 'credentialNotConnectedToEnvironment'
+
 export interface MicrosoftDataverseCredentialPolicy {
+  /** English action label; the UI renders `actionLabelKey` through next-intl. */
   actionLabel: string
+  actionLabelKey: MicrosoftDataverseActionLabelKey
   applies: boolean
   bindingState: MicrosoftDataverseCredentialEnvironmentState | null
   environmentUrl?: string
   hasInvalidEnvironment: boolean
-  message: string
+  messageKey: MicrosoftDataverseMessageKey
   requiredScopes: string[]
   requiresSeparateCredential: boolean
 }
 
 const DEFAULT_POLICY: MicrosoftDataverseCredentialPolicy = {
   actionLabel: 'Update access',
+  actionLabelKey: 'updateAccess',
   applies: false,
   bindingState: null,
   hasInvalidEnvironment: false,
-  message: 'Additional permissions required',
+  messageKey: 'additionalPermissionsRequired',
   requiredScopes: [],
   requiresSeparateCredential: false,
 }
@@ -55,7 +65,7 @@ export function resolveMicrosoftDataverseCredentialPolicy({
       applies: true,
       bindingState: hasSelectedCredential ? 'invalid' : null,
       hasInvalidEnvironment: true,
-      message: 'Enter a valid Dynamics environment before selecting a credential',
+      messageKey: 'invalidEnvironment',
     }
   }
 
@@ -71,13 +81,14 @@ export function resolveMicrosoftDataverseCredentialPolicy({
 
   return {
     actionLabel: requiresSeparateCredential ? 'Connect matching account' : 'Update access',
+    actionLabelKey: requiresSeparateCredential ? 'connectMatchingAccount' : 'updateAccess',
     applies: true,
     bindingState,
     environmentUrl: normalizedEnvironmentUrl,
     hasInvalidEnvironment: false,
-    message: requiresSeparateCredential
-      ? 'This credential is not connected to this Dynamics environment'
-      : 'Additional permissions required',
+    messageKey: requiresSeparateCredential
+      ? 'credentialNotConnectedToEnvironment'
+      : 'additionalPermissionsRequired',
     requiredScopes,
     requiresSeparateCredential,
   }

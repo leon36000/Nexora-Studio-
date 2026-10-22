@@ -2,11 +2,12 @@
 
 import { ChipLink } from '@sim/emcn'
 import { CircleAlert } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { STATUS_PAGE_URL } from '@/lib/status-page'
 import { useStatusPage } from '@/hooks/queries/status-page'
 
 const PREVIEW_STATUS = {
-  description: 'Major Service Outage',
+  description: 'Major Service Outage', // i18n-ignore: preview fixture shaped like the status page API, never rendered
   indicator: 'critical',
 } as const
 
@@ -15,6 +16,7 @@ interface StatusNoticeProps {
 }
 
 function StatusAlert() {
+  const t = useTranslations('shell.statusNotice')
   return (
     <div
       role='alert'
@@ -22,7 +24,7 @@ function StatusAlert() {
     >
       <div className='flex min-w-0 items-center gap-1.5'>
         <CircleAlert className='size-[16px] shrink-0 text-[var(--text-icon)]' />
-        <p className='min-w-0 text-[var(--text-body)] text-sm leading-5'>Nexora is having issues</p>
+        <p className='min-w-0 text-[var(--text-body)] text-sm leading-5'>{t('issues')}</p>
       </div>
       <ChipLink
         fullWidth
@@ -32,7 +34,7 @@ function StatusAlert() {
         target='_blank'
         rel='noopener noreferrer'
       >
-        View status
+        {t('viewStatus')}
       </ChipLink>
     </div>
   )

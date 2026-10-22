@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Badge, ChipCombobox, CollapsibleCard, Label } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition } from '@/lib/table'
 import { getColumnId } from '@/lib/table/column-keys'
 import type { InputFormatField } from '@/lib/workflows/types'
@@ -28,6 +29,7 @@ export function InputMappingSection({
   value,
   onChange,
 }: InputMappingSectionProps) {
+  const t = useTranslations('tables.sidebar')
   const namedFields = inputFields.filter((f): f is InputFormatField & { name: string } =>
     Boolean(f.name?.trim())
   )
@@ -39,12 +41,10 @@ export function InputMappingSection({
   return (
     <div className='flex flex-col gap-[9.5px]'>
       <Label className='flex items-baseline gap-1.5 whitespace-nowrap pl-0.5'>
-        Workflow inputs
+        {t('workflowInputs')}
       </Label>
       {namedFields.length === 0 ? (
-        <p className='pl-0.5 text-[var(--text-tertiary)] text-caption'>
-          This workflow has no Start block inputs.
-        </p>
+        <p className='pl-0.5 text-[var(--text-tertiary)] text-caption'>{t('noStartInputs')}</p>
       ) : (
         <div className='flex flex-col gap-2'>
           {namedFields.map((field) => (
@@ -61,16 +61,16 @@ export function InputMappingSection({
               collapsed={collapsed[field.name] ?? false}
               onToggleCollapse={() => toggle(field.name)}
             >
-              <Label className='text-small'>Column</Label>
+              <Label className='text-small'>{t('column')}</Label>
               <ChipCombobox
                 searchable
-                searchPlaceholder='Search columns…'
+                searchPlaceholder={t('searchColumns')}
                 className='w-full'
                 dropdownWidth='trigger'
                 maxHeight={240}
                 disabled={columns.length === 0}
-                emptyMessage='No columns.'
-                placeholder='Select a column'
+                emptyMessage={t('noColumns')}
+                placeholder={t('selectColumn')}
                 options={columns}
                 value={value[field.name] ?? ''}
                 onChange={(columnName: string) => onChange({ ...value, [field.name]: columnName })}

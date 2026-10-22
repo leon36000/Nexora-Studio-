@@ -25,6 +25,7 @@ import { ArrowLeft, Check, Clipboard, Plus, Server } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { McpIcon } from '@/components/icons'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
@@ -78,6 +79,16 @@ interface ServerDetailViewProps {
 
 type McpClientType = 'sim' | 'cursor' | 'codex' | 'claude-code' | 'claude-desktop' | 'vscode'
 
+/** Client product names, shown untranslated. */
+const MCP_CLIENT_OPTIONS: { value: McpClientType; label: string }[] = [
+  { value: 'cursor', label: 'Cursor' }, // i18n-ignore: product name
+  { value: 'codex', label: 'Codex' }, // i18n-ignore: product name
+  { value: 'claude-code', label: 'Claude Code' }, // i18n-ignore: product name
+  { value: 'claude-desktop', label: 'Claude Desktop' }, // i18n-ignore: product name
+  { value: 'vscode', label: 'VS Code' }, // i18n-ignore: product name
+  { value: 'sim', label: 'Nexora' },
+]
+
 function ServerDetailView({
   canManage,
   workspaceId,
@@ -86,6 +97,8 @@ function ServerDetailView({
   onDelete,
   isDeleting,
 }: ServerDetailViewProps) {
+  const t = useTranslations('settings.workflowMcpServers')
+  const tShared = useTranslations('settings.shared')
   const { data, isLoading, error } = useWorkflowMcpServer(workspaceId, serverId)
   const { data: deployedWorkflows = [], isLoading: isLoadingWorkflows } =
     useDeployedWorkflows(workspaceId)
@@ -381,13 +394,13 @@ function ServerDetailView({
   )
 
   if (isLoading) {
-    return <SettingsPanel back={{ text: 'MCP servers', icon: ArrowLeft, onSelect: onBack }} />
+    return <SettingsPanel back={{ text: t('detail.back'), icon: ArrowLeft, onSelect: onBack }} />
   }
 
   if (error || !data) {
     return (
-      <SettingsPanel back={{ text: 'MCP servers', icon: ArrowLeft, onSelect: onBack }}>
-        <SettingsEmptyState>Failed to load server details</SettingsEmptyState>
+      <SettingsPanel back={{ text: t('detail.back'), icon: ArrowLeft, onSelect: onBack }}>
+        <SettingsEmptyState>{t('detail.loadFailed')}</SettingsEmptyState>
       </SettingsPanel>
     )
   }
@@ -397,27 +410,25 @@ function ServerDetailView({
   return (
     <>
       <SettingsPanel
-        back={{ text: 'MCP servers', icon: ArrowLeft, onSelect: onBack }}
+        back={{ text: t('detail.back'), icon: ArrowLeft, onSelect: onBack }}
         title={server.name}
         actions={
           canManage
             ? [
-                { text: 'Edit server', onSelect: handleOpenEditServer },
+                { text: t('detail.editServer'), onSelect: handleOpenEditServer },
                 {
-                  text: 'Add workflows',
+                  text: t('detail.addWorkflows'),
                   icon: Plus,
                   variant: 'primary',
                   onSelect: () => setShowAddWorkflow(true),
                   disabled: !canAddWorkflow,
-                  tooltip: showAddDisabledTooltip
-                    ? 'All deployed workflows have been added to this server.'
-                    : undefined,
+                  tooltip: showAddDisabledTooltip ? t('detail.allAddedTooltip') : undefined,
                 },
                 ...(onDelete
                   ? [
                       {
                         id: 'delete',
-                        text: isDeleting ? 'Deleting...' : 'Delete',
+                        text: isDeleting ? tShared('deleting') : tShared('delete'),
                         onSelect: onDelete,
                         disabled: isDeleting,
                       },
@@ -430,8 +441,8 @@ function ServerDetailView({
         <div className='flex min-h-0 flex-1 flex-col'>
           <ChipModalTabs
             tabs={[
-              { value: 'details', label: 'Details' },
-              { value: 'workflows', label: 'Workflows' },
+              { value: 'details', label: t('detail.tabs.details') },
+              { value: 'workflows', label: t('detail.tabs.workflows') },
             ]}
             value={activeServerTab}
             onChange={(value) => void setActiveServerTab(value as 'workflows' | 'details')}
@@ -441,25 +452,25 @@ function ServerDetailView({
             {activeServerTab === 'workflows' && (
               <div className='flex flex-col gap-4.5'>
                 {tools.length === 0 ? (
-                  <p className='text-[var(--text-muted)] text-sm'>
-                    No workflows added yet. Click &quot;Add Workflow&quot; to add a deployed
-                    workflow.
-                  </p>
+                  <p className='text-[var(--text-muted)] text-sm'>{t('detail.noWorkflows')}</p>
                 ) : (
                   <div className={RESOURCE_LIST_STACK}>
                     {tools.map((tool) => (
                       <SettingsResourceRow
                         key={tool.id}
                         title={tool.toolName}
-                        description={tool.toolDescription || 'No description'}
+                        description={tool.toolDescription || t('detail.noDescription')}
                         trailing={
                           canManage ? (
                             <RowActionsMenu
-                              label='Tool actions'
+                              label={t('detail.toolActions')}
                               actions={[
-                                { label: 'Edit', onSelect: () => handleOpenToolEdit(tool) },
                                 {
-                                  label: 'Remove',
+                                  label: tShared('edit'),
+                                  onSelect: () => handleOpenToolEdit(tool),
+                                },
+                                {
+                                  label: tShared('remove'),
                                   destructive: true,
                                   disabled: deleteToolMutation.isPending,
                                   onSelect: () => setToolToDelete(tool),
@@ -475,7 +486,7 @@ function ServerDetailView({
 
                 {deployedWorkflows.length === 0 && !isLoadingWorkflows && (
                   <p className='mt-1 text-[var(--text-muted)] text-caption'>
-                    Deploy a workflow first to add it to this server.
+                    {t('detail.deployFirst')}
                   </p>
                 )}
               </div>
@@ -484,37 +495,38 @@ function ServerDetailView({
             {activeServerTab === 'details' && (
               <div className='flex flex-col gap-4.5'>
                 <div className='grid grid-cols-[1fr_1fr_1fr] gap-x-6 gap-y-3.5'>
-                  <SettingsField label='Server Name'>{server.name}</SettingsField>
-                  <SettingsField label='Transport'>Streamable-HTTP</SettingsField>
-                  <SettingsField label='Access'>
-                    {server.isPublic ? 'Public' : 'Private'}
+                  <SettingsField label={t('common.serverName')}>{server.name}</SettingsField>
+                  <SettingsField label={t('detail.transport')}>Streamable-HTTP</SettingsField>
+                  <SettingsField label={t('common.access')}>
+                    {server.isPublic ? t('common.public') : t('common.private')}
                   </SettingsField>
                 </div>
 
                 {server.description?.trim() && (
-                  <SettingsField label='Description'>{server.description}</SettingsField>
+                  <SettingsField label={t('common.description')}>
+                    {server.description}
+                  </SettingsField>
                 )}
 
-                <SettingsField label='URL' breakAll>
+                <SettingsField label={t('detail.url')} breakAll>
                   {mcpServerUrl}
                 </SettingsField>
 
                 <div>
                   <div className='mb-[6.5px] flex items-center justify-between'>
                     <span className='block pl-0.5 text-[var(--text-muted)] text-small'>
-                      MCP Client
+                      {t('detail.mcpClient')}
                     </span>
                   </div>
                   <ChipButtonGroup
                     value={activeConfigTab}
                     onValueChange={(v) => setActiveConfigTab(v as McpClientType)}
                   >
-                    <ChipButtonGroupItem value='cursor'>Cursor</ChipButtonGroupItem>
-                    <ChipButtonGroupItem value='codex'>Codex</ChipButtonGroupItem>
-                    <ChipButtonGroupItem value='claude-code'>Claude Code</ChipButtonGroupItem>
-                    <ChipButtonGroupItem value='claude-desktop'>Claude Desktop</ChipButtonGroupItem>
-                    <ChipButtonGroupItem value='vscode'>VS Code</ChipButtonGroupItem>
-                    <ChipButtonGroupItem value='sim'>Nexora</ChipButtonGroupItem>
+                    {MCP_CLIENT_OPTIONS.map((client) => (
+                      <ChipButtonGroupItem key={client.value} value={client.value}>
+                        {client.label}
+                      </ChipButtonGroupItem>
+                    ))}
                   </ChipButtonGroup>
                 </div>
 
@@ -522,8 +534,7 @@ function ServerDetailView({
                   <div className='rounded-lg border border-[var(--border-1)] p-4'>
                     <div className='flex flex-col gap-3'>
                       <p className='text-[var(--text-secondary)] text-small'>
-                        Add this MCP server to your workspace so you can use its tools in other
-                        workflows via the MCP block.
+                        {t('detail.addToWorkspaceDescription')}
                       </p>
                       <Button
                         variant='primary'
@@ -556,22 +567,22 @@ function ServerDetailView({
                         }}
                       >
                         {addToWorkspaceMutation.isPending ? (
-                          'Adding...'
+                          t('common.adding')
                         ) : addedToWorkspace ? (
                           <>
                             <Check className='mr-1.5 size-[14px]' />
-                            Added to Workspace
+                            {t('detail.addedToWorkspace')}
                           </>
                         ) : (
                           <>
                             <Server className='mr-1.5 size-[14px]' />
-                            Add to Workspace
+                            {t('detail.addToWorkspace')}
                           </>
                         )}
                       </Button>
                       {addToWorkspaceMutation.isError && (
                         <p className='text-[var(--text-error)] text-caption'>
-                          {addToWorkspaceMutation.error?.message || 'Failed to add server'}
+                          {addToWorkspaceMutation.error?.message || t('detail.addServerFailed')}
                         </p>
                       )}
                     </div>
@@ -580,11 +591,13 @@ function ServerDetailView({
                   <div>
                     <div className='mb-[6.5px] flex items-center justify-between'>
                       <span className='block pl-0.5 text-[var(--text-primary)] text-sm'>
-                        Configuration
+                        {t('detail.configuration')}
                       </span>
                       <Button
                         variant='ghost'
-                        aria-label={copiedConfig ? 'Configuration copied' : 'Copy configuration'}
+                        aria-label={
+                          copiedConfig ? t('detail.configCopied') : t('detail.copyConfig')
+                        }
                         onClick={() => handleCopyConfig(server.isPublic, server.name)}
                         iconPadding='md'
                         className='-my-1.5'
@@ -616,7 +629,7 @@ function ServerDetailView({
                         >
                           <img
                             src='https://cursor.com/deeplink/mcp-install-dark.svg'
-                            alt='Add to Cursor'
+                            alt={t('detail.addToCursor')}
                             className='h-[26px] rounded-md align-middle'
                           />
                         </a>
@@ -624,31 +637,30 @@ function ServerDetailView({
                     </div>
                     {activeConfigTab === 'codex' && server.isPublic && (
                       <p className='mt-2 text-[var(--text-muted)] text-caption'>
-                        Add this to <span className='font-mono'>~/.codex/config.toml</span>.
+                        {t.rich('detail.codexPublicHint', {
+                          mono: (chunks) => <span className='font-mono'>{chunks}</span>,
+                        })}
                       </p>
                     )}
                     {!server.isPublic && (
                       <p className='mt-2 text-[var(--text-muted)] text-caption'>
-                        {activeConfigTab === 'codex' ? (
-                          <>
-                            Add this to <span className='font-mono'>~/.codex/config.toml</span> and
-                            set the SIM_API_KEY environment variable with an existing API key
-                          </>
-                        ) : (
-                          'Replace $SIM_API_KEY with your API key'
-                        )}
-                        {canManage && (
-                          <>
-                            , or{' '}
-                            <button
-                              type='button'
-                              onClick={() => setShowCreateApiKeyModal(true)}
-                              className='underline hover-hover:text-[var(--text-secondary)]'
-                            >
-                              create one now
-                            </button>
-                          </>
-                        )}
+                        {activeConfigTab === 'codex'
+                          ? t.rich('detail.codexPrivateHint', {
+                              mono: (chunks) => <span className='font-mono'>{chunks}</span>,
+                            })
+                          : t('detail.replaceKeyHint')}
+                        {canManage &&
+                          t.rich('detail.createOneNow', {
+                            button: (chunks) => (
+                              <button
+                                type='button'
+                                onClick={() => setShowCreateApiKeyModal(true)}
+                                className='underline hover-hover:text-[var(--text-secondary)]'
+                              >
+                                {chunks}
+                              </button>
+                            ),
+                          })}
                         {activeConfigTab === 'codex' && '.'}
                       </p>
                     )}
@@ -663,18 +675,18 @@ function ServerDetailView({
         <ChipConfirmModal
           open={!!toolToDelete}
           onOpenChange={(open) => !open && setToolToDelete(null)}
-          srTitle='Remove Workflow'
-          title='Remove Workflow'
+          srTitle={t('removeDialog.title')}
+          title={t('removeDialog.title')}
           text={[
-            'Are you sure you want to remove ',
-            { text: toolToDelete?.toolName ?? 'this workflow', bold: true },
-            ' from this server? The workflow will remain deployed and can be added back later.',
+            t('removeDialog.textBefore'),
+            { text: toolToDelete?.toolName ?? t('removeDialog.fallbackName'), bold: true },
+            t('removeDialog.textAfter'),
           ]}
           confirm={{
-            label: 'Remove',
+            label: tShared('remove'),
             onClick: handleDeleteTool,
             pending: deleteToolMutation.isPending,
-            pendingLabel: 'Removing...',
+            pendingLabel: t('removeDialog.removing'),
           }}
         />
       )}
@@ -688,7 +700,7 @@ function ServerDetailView({
               setEditingParameterDescriptions({})
             }
           }}
-          srTitle={toolToView?.toolName ?? 'Edit Tool'}
+          srTitle={toolToView?.toolName ?? t('toolEdit.fallbackTitle')}
         >
           <ChipModalHeader onClose={() => setToolToView(null)}>
             {toolToView?.toolName}
@@ -696,14 +708,14 @@ function ServerDetailView({
           <ChipModalBody>
             <ChipModalField
               type='textarea'
-              title='Description'
+              title={t('common.description')}
               value={editingDescription}
               onChange={setEditingDescription}
-              placeholder='Describe what this tool does...'
+              placeholder={t('toolEdit.descriptionPlaceholder')}
               minHeight={80}
             />
 
-            <ChipModalField type='custom' title='Parameters'>
+            <ChipModalField type='custom' title={t('toolEdit.parameters')}>
               {(() => {
                 const schema = toolToView?.parameterSchema as
                   | { properties?: Record<string, { type?: string; description?: string }> }
@@ -729,7 +741,7 @@ function ServerDetailView({
                         </div>
                         <div className='rounded-b-[4px] border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 pt-1.5 pb-2.5'>
                           <div className='flex flex-col gap-1.5'>
-                            <Label>Description</Label>
+                            <Label>{t('common.description')}</Label>
                             <ChipInput
                               value={editingParameterDescriptions[name] || ''}
                               onChange={(e) =>
@@ -738,7 +750,7 @@ function ServerDetailView({
                                   [name]: e.target.value,
                                 }))
                               }
-                              placeholder={`Enter description for ${name}`}
+                              placeholder={t('toolEdit.paramPlaceholder', { name })}
                             />
                           </div>
                         </div>
@@ -746,9 +758,7 @@ function ServerDetailView({
                     ))}
                   </div>
                 ) : (
-                  <p className='text-[var(--text-muted)] text-sm'>
-                    No inputs configured for this workflow.
-                  </p>
+                  <p className='text-[var(--text-muted)] text-sm'>{t('toolEdit.noInputs')}</p>
                 )
               })()}
             </ChipModalField>
@@ -756,7 +766,7 @@ function ServerDetailView({
           <ChipModalFooter
             onCancel={() => setToolToView(null)}
             primaryAction={{
-              label: updateToolMutation.isPending ? 'Saving...' : 'Save',
+              label: updateToolMutation.isPending ? tShared('saving') : tShared('save'),
               onClick: handleSaveToolEdit,
               disabled: isSaveToolDisabled,
             }}
@@ -772,7 +782,7 @@ function ServerDetailView({
               setSelectedWorkflowId(null)
             }
           }}
-          srTitle='Add Workflow'
+          srTitle={t('addWorkflow.title')}
         >
           <ChipModalHeader
             onClose={() => {
@@ -780,21 +790,18 @@ function ServerDetailView({
               setSelectedWorkflowId(null)
             }}
           >
-            Add Workflow
+            {t('addWorkflow.title')}
           </ChipModalHeader>
           <ChipModalBody>
-            <p className='px-2 text-[var(--text-secondary)] text-sm'>
-              Select a deployed workflow to add to this MCP server. The workflow will be available
-              as a tool.
-            </p>
-            <ChipModalField type='custom' title='Select Workflow'>
+            <p className='px-2 text-[var(--text-secondary)] text-sm'>{t('addWorkflow.intro')}</p>
+            <ChipModalField type='custom' title={t('addWorkflow.selectWorkflow')}>
               <ChipSelect
                 options={workflowOptions}
                 value={selectedWorkflowId || undefined}
                 onChange={(value: string) => setSelectedWorkflowId(value)}
-                placeholder='Select a workflow...'
+                placeholder={t('addWorkflow.selectPlaceholder')}
                 searchable
-                searchPlaceholder='Search workflows...'
+                searchPlaceholder={t('common.searchWorkflows')}
                 disabled={addToolMutation.isPending}
                 fullWidth
                 dropdownWidth='trigger'
@@ -804,7 +811,7 @@ function ServerDetailView({
             </ChipModalField>
             <ChipModalError>
               {addToolMutation.isError
-                ? addToolMutation.error?.message || 'Failed to add workflow'
+                ? addToolMutation.error?.message || t('addWorkflow.addFailed')
                 : null}
             </ChipModalError>
           </ChipModalBody>
@@ -814,7 +821,7 @@ function ServerDetailView({
               setSelectedWorkflowId(null)
             }}
             primaryAction={{
-              label: addToolMutation.isPending ? 'Adding...' : 'Add Workflow',
+              label: addToolMutation.isPending ? t('common.adding') : t('addWorkflow.title'),
               onClick: handleAddWorkflow,
               disabled: !selectedWorkflowId || addToolMutation.isPending,
             }}
@@ -829,39 +836,39 @@ function ServerDetailView({
               setShowEditServer(false)
             }
           }}
-          srTitle='Edit Server'
+          srTitle={t('editServer.title')}
         >
-          <ChipModalHeader onClose={() => setShowEditServer(false)}>Edit Server</ChipModalHeader>
+          <ChipModalHeader onClose={() => setShowEditServer(false)}>
+            {t('editServer.title')}
+          </ChipModalHeader>
           <ChipModalBody>
             <ChipModalField
               type='input'
-              title='Server name'
+              title={t('editServer.serverName')}
               required
               value={editServerName}
               onChange={setEditServerName}
-              placeholder='e.g., My MCP Server'
+              placeholder={t('common.serverNamePlaceholder')}
             />
             <ChipModalField
               type='textarea'
-              title='Description'
+              title={t('common.description')}
               value={editServerDescription}
               onChange={setEditServerDescription}
-              placeholder='Describe what this MCP server does (optional)'
+              placeholder={t('common.descriptionPlaceholder')}
               minHeight={60}
             />
-            <ChipModalField type='custom' title='Access'>
+            <ChipModalField type='custom' title={t('common.access')}>
               <div className='flex flex-col gap-1.5'>
                 <ChipButtonGroup
                   value={editServerIsPublic ? 'public' : 'private'}
                   onValueChange={(value) => setEditServerIsPublic(value === 'public')}
                 >
-                  <ChipButtonGroupItem value='private'>Private</ChipButtonGroupItem>
-                  <ChipButtonGroupItem value='public'>Public</ChipButtonGroupItem>
+                  <ChipButtonGroupItem value='private'>{t('common.private')}</ChipButtonGroupItem>
+                  <ChipButtonGroupItem value='public'>{t('common.public')}</ChipButtonGroupItem>
                 </ChipButtonGroup>
                 <p className='text-[var(--text-muted)] text-caption'>
-                  {editServerIsPublic
-                    ? 'Anyone with the URL can call this server without authentication'
-                    : 'Clients sign in with OAuth, or send a Nexora API key in the X-API-Key header'}
+                  {editServerIsPublic ? t('editServer.publicHint') : t('editServer.privateHint')}
                 </p>
               </div>
             </ChipModalField>
@@ -869,7 +876,7 @@ function ServerDetailView({
           <ChipModalFooter
             onCancel={() => setShowEditServer(false)}
             primaryAction={{
-              label: updateServerMutation.isPending ? 'Saving...' : 'Save',
+              label: updateServerMutation.isPending ? tShared('saving') : tShared('save'),
               onClick: handleSaveServerEdit,
               disabled:
                 !editServerName.trim() ||
@@ -901,6 +908,8 @@ function ServerDetailView({
  * Allows users to create and manage MCP servers that expose workflows as tools.
  */
 export function WorkflowMcpServers() {
+  const t = useTranslations('settings.workflowMcpServers')
+  const tShared = useTranslations('settings.shared')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workspacePermissions = useUserPermissionsContext()
@@ -985,14 +994,14 @@ export function WorkflowMcpServers() {
     <ChipConfirmModal
       open={!!serverToDelete}
       onOpenChange={(open) => !open && setServerToDelete(null)}
-      srTitle='Delete MCP Server'
-      title='Delete MCP Server'
+      srTitle={t('deleteDialog.title')}
+      title={t('deleteDialog.title')}
       text={[
-        'Are you sure you want to delete ',
-        { text: serverToDelete?.name ?? 'this server', bold: true },
-        '? This action cannot be undone.',
+        t('deleteDialog.textBefore'),
+        { text: serverToDelete?.name ?? t('deleteDialog.fallbackName'), bold: true },
+        t('deleteDialog.textAfter'),
       ]}
-      confirm={{ label: 'Delete', onClick: handleDeleteServer }}
+      confirm={{ label: tShared('delete'), onClick: handleDeleteServer }}
     />
   ) : null
 
@@ -1019,7 +1028,7 @@ export function WorkflowMcpServers() {
   const actions: SettingsAction[] = canAdmin
     ? [
         {
-          text: 'Add server',
+          text: t('list.addServer'),
           icon: Plus,
           variant: 'primary',
           onSelect: () => setShowAddModal(true),
@@ -1034,24 +1043,21 @@ export function WorkflowMcpServers() {
         search={{
           value: searchTerm,
           onChange: setSearchTerm,
-          placeholder: 'Search servers...',
+          placeholder: t('list.searchPlaceholder'),
         }}
         actions={actions}
       >
         <div className='min-h-0 flex-1'>
           {error ? (
-            <SettingsEmptyState>
-              {getErrorMessage(error, 'Failed to load MCP servers')}
-            </SettingsEmptyState>
+            <SettingsEmptyState>{getErrorMessage(error, t('list.loadFailed'))}</SettingsEmptyState>
           ) : isLoading ? null : !hasServers ? (
             <SettingsEmptyState>
-              {canAdmin ? 'Click "Add server" above to get started' : 'No MCP servers configured'}
+              {canAdmin ? t('list.emptyCanEdit') : t('list.emptyReadOnly')}
             </SettingsEmptyState>
           ) : (
             <div className={RESOURCE_LIST_STACK}>
               {filteredServers.map((server) => {
-                const count = server.toolCount || 0
-                const toolsLabel = `${count} tool${count !== 1 ? 's' : ''}`
+                const toolsLabel = t('list.toolsCount', { count: server.toolCount || 0 })
                 return (
                   <SettingsResourceRow
                     key={server.id}
@@ -1064,14 +1070,14 @@ export function WorkflowMcpServers() {
                       void setServerTab(null)
                       void setSelectedServerId(server.id)
                     }}
-                    clickLabel={`Open ${server.name}`}
+                    clickLabel={t('list.openServer', { name: server.name })}
                     navigable
                     // The badge sits at the row's end, not beside the name — the
                     // title truncates, so a long name would clip it out of view.
                     badge={
                       server.isPublic ? (
                         <Badge variant='outline' size='sm'>
-                          Public
+                          {t('common.public')}
                         </Badge>
                       ) : undefined
                     }
@@ -1080,7 +1086,7 @@ export function WorkflowMcpServers() {
               })}
               {showNoResults && (
                 <SettingsEmptyState variant='inline'>
-                  No servers found matching "{searchTerm}"
+                  {t('list.noResults', { term: searchTerm })}
                 </SettingsEmptyState>
               )}
             </div>

@@ -1,4 +1,5 @@
 import type { MutationStatus } from '@tanstack/react-query'
+import type { useTranslations } from 'next-intl'
 import type { RefreshMcpServerResult } from '@/lib/api/contracts/mcp'
 import type { SettingsAction } from '@/app/workspace/[workspaceId]/settings/components/settings-header/settings-header'
 
@@ -10,28 +11,26 @@ interface RefreshActionStateInput {
 
 type RefreshActionState = Pick<SettingsAction, 'text' | 'textTone' | 'disabled'>
 
-export function getRefreshActionState({
-  mutationStatus,
-  connectionStatus,
-  workflowsUpdated,
-}: RefreshActionStateInput): RefreshActionState {
+/** `t` is scoped to `settings.mcp.refresh`. */
+export function getRefreshActionState(
+  { mutationStatus, connectionStatus, workflowsUpdated }: RefreshActionStateInput,
+  t: ReturnType<typeof useTranslations>
+): RefreshActionState {
   if (mutationStatus === 'pending') {
-    return { text: 'Refreshing...', textTone: undefined, disabled: true }
+    return { text: t('refreshing'), textTone: undefined, disabled: true }
   }
 
   if (
     mutationStatus === 'error' ||
     (mutationStatus === 'success' && connectionStatus !== 'connected')
   ) {
-    return { text: 'Failed', textTone: 'error', disabled: false }
+    return { text: t('failed'), textTone: 'error', disabled: false }
   }
 
   if (mutationStatus === 'success') {
-    const text = workflowsUpdated
-      ? `Synced (${workflowsUpdated} workflow${workflowsUpdated === 1 ? '' : 's'})`
-      : 'Refreshed'
+    const text = workflowsUpdated ? t('synced', { count: workflowsUpdated }) : t('refreshed')
     return { text, textTone: undefined, disabled: true }
   }
 
-  return { text: 'Refresh tools', textTone: undefined, disabled: false }
+  return { text: t('refreshTools'), textTone: undefined, disabled: false }
 }

@@ -12,9 +12,9 @@ import {
   Upload,
 } from '@sim/emcn'
 import { Database, Download, Duplicate, FolderInput, Pencil, Pin, Trash } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { MoveOptionNode } from '@/app/workspace/[workspaceId]/components/folders'
 import { renderMoveOptions } from '@/app/workspace/[workspaceId]/components/folders'
-import { selectionActionLabel } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 
 interface TableContextMenuProps {
   isOpen: boolean
@@ -60,6 +60,7 @@ export function TableContextMenu({
   disableExport = false,
   selectedCount,
 }: TableContextMenuProps) {
+  const t = useTranslations('tables.contextMenu')
   const isMultiSelect = selectedCount > 1
   const hasMoveAction = !!(onMove && moveOptions && moveOptions.length > 0)
 
@@ -101,32 +102,32 @@ export function TableContextMenu({
         {!isMultiSelect && onViewSchema && (
           <DropdownMenuItem onSelect={onViewSchema}>
             <Database />
-            View Schema
+            {t('viewSchema')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onRename && (
           <DropdownMenuItem disabled={disableRename} onSelect={onRename}>
             <Pencil />
-            Rename
+            {t('rename')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onImportCsv && (
           <DropdownMenuItem disabled={disableImport} onSelect={onImportCsv}>
             <Upload />
-            Import CSV
+            {t('importCsv')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onExportCsv && (
           <DropdownMenuItem disabled={disableExport} onSelect={onExportCsv}>
             <Download />
-            Export CSV
+            {t('exportCsv')}
           </DropdownMenuItem>
         )}
         {onMove && moveOptions && moveOptions.length > 0 && (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <FolderInput />
-              {selectionActionLabel('Move', selectedCount, 'Move to')}
+              {isMultiSelect ? t('moveCount', { count: selectedCount }) : t('moveTo')}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {renderMoveOptions(moveOptions, onMove)}
@@ -136,20 +137,20 @@ export function TableContextMenu({
         {!isMultiSelect && onTogglePin && (
           <DropdownMenuItem onSelect={onTogglePin}>
             <Pin />
-            {pinned ? 'Unpin' : 'Pin'}
+            {pinned ? t('unpin') : t('pin')}
           </DropdownMenuItem>
         )}
         {!isMultiSelect && onCopyId && (
           <DropdownMenuItem onSelect={onCopyId}>
             <Duplicate />
-            Copy ID
+            {t('copyId')}
           </DropdownMenuItem>
         )}
         {hasActionsAboveDestructive && onDelete && <DropdownMenuSeparator />}
         {onDelete && (
           <DropdownMenuItem disabled={disableDelete} onSelect={onDelete}>
             <Trash />
-            {selectionActionLabel('Delete', selectedCount)}
+            {isMultiSelect ? t('deleteCount', { count: selectedCount }) : t('delete')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

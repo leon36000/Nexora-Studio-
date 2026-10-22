@@ -12,6 +12,7 @@ import {
   Search,
 } from '@sim/emcn'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import {
   blockTypeToIconMap,
@@ -34,6 +35,7 @@ import {
 } from '@/app/workspace/[workspaceId]/integrations/search-params'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import { SettingsResourceRow } from '@/app/workspace/[workspaceId]/settings/components/settings-resource-row'
+import { IntegrationType } from '@/blocks/types'
 import { PermissionAccessBoundary } from '@/ee/access-requests/components/permission-access-boundary'
 import { useWorkspaceCredentials, type WorkspaceCredential } from '@/hooks/queries/credentials'
 import { useDebouncedSearchSetter } from '@/hooks/use-debounced-search-setter'
@@ -63,6 +65,17 @@ const ALL_CATEGORY_SECTIONS: readonly { label: string; integrations: Integration
   })).sort((a, b) => a.label.localeCompare(b.label))
 })()
 
+/**
+ * Message keys under `integrations.categories` for the category values (URL data): the
+ * `All`/`Featured`/`Connected` pseudo-categories and every `IntegrationType` slug.
+ */
+const CATEGORY_LABEL_KEYS = new Map<string, string>([
+  [ALL_CATEGORY, 'all'],
+  [FEATURED_LABEL, 'featured'],
+  [CONNECTED_LABEL, 'connected'],
+  ...Object.values(IntegrationType).map((type): [string, string] => [type, type]),
+])
+
 interface IntegrationItemProps {
   blockType: string
   slug: string
@@ -82,18 +95,15 @@ function IntegrationItem({
   icon: Icon,
   unavailable = false,
 }: IntegrationItemProps) {
+  const t = useTranslations('integrations.list')
   return (
     <SettingsResourceRow
       iconVariant='custom'
       icon={<IntegrationTile blockType={blockType} icon={Icon} />}
       title={name}
-      description={
-        unavailable
-          ? 'Unavailable in this deployment. Contact your administrator.'
-          : description || undefined
-      }
+      description={unavailable ? t('unavailable') : description || undefined}
       href={`/workspace/${workspaceId}/integrations/${slug}`}
-      clickLabel={`Open ${name}`}
+      clickLabel={t('open', { name })}
       navigable={!unavailable}
       disabled={unavailable}
     />
@@ -125,6 +135,7 @@ interface ConnectedItemProps {
 }
 
 function ConnectedItem({ href, blockType, name, description, icon: Icon }: ConnectedItemProps) {
+  const t = useTranslations('integrations.list')
   return (
     <SettingsResourceRow
       iconVariant='custom'
@@ -132,7 +143,7 @@ function ConnectedItem({ href, blockType, name, description, icon: Icon }: Conne
       title={name}
       description={description}
       href={href}
-      clickLabel={`Open ${name}`}
+      clickLabel={t('open', { name })}
       navigable
     />
   )
@@ -147,6 +158,7 @@ export function Integrations() {
 }
 
 function IntegrationsContent() {
+  const t = useTranslations('integrations')
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const params = useParams()
   const workspaceId = (params?.workspaceId as string) || ''
@@ -218,6 +230,11 @@ function IntegrationsContent() {
     FEATURED_LABEL,
     ...ALL_CATEGORY_SECTIONS.map((section) => section.label),
   ]
+
+  const categoryLabel = (category: string) => {
+    const key = CATEGORY_LABEL_KEYS.get(category)
+    return key ? t(`categories.${key}`) : formatIntegrationType(category)
+  }
 
   const isAllCategorySelected = selectedCategory === ALL_CATEGORY
   const isFeaturedSelected = selectedCategory === FEATURED_LABEL
@@ -310,12 +327,12 @@ function IntegrationsContent() {
         className='min-h-0 flex-1 overflow-y-auto px-6 [scrollbar-gutter:stable_both-edges]'
       >
         <div className='mx-auto flex max-w-[48rem] flex-col gap-7 pb-3'>
-          <ShowcaseWithExplore prompt='Explain the integrations in Nexora and what I should connect.' />
+          <ShowcaseWithExplore prompt={t('list.explorePrompt')} />
           <div className='flex items-center gap-2'>
             <ChipInput
               icon={Search}
               className='min-w-0 flex-1'
-              placeholder='Search integrations...'
+              placeholder={t('list.searchPlaceholder')}
               value={urlSearchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={credentialsLoading}
@@ -323,18 +340,14 @@ function IntegrationsContent() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type='button' className={chipVariants({ variant: 'filled' })}>
-                  <span className='text-[var(--text-body)]'>
-                    {selectedCategory === ALL_CATEGORY
-                      ? selectedCategory
-                      : formatIntegrationType(selectedCategory)}
-                  </span>
+                  <span className='text-[var(--text-body)]'>{categoryLabel(selectedCategory)}</span>
                   <ChevronDown className='size-[14px] text-[var(--text-icon)]' />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end' className='min-w-[160px]'>
                 {categoryOptions.map((category) => (
                   <DropdownMenuItem key={category} onSelect={() => setSelectedCategory(category)}>
-                    {category === ALL_CATEGORY ? category : formatIntegrationType(category)}
+                    {categoryLabel(category)}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -343,7 +356,7 @@ function IntegrationsContent() {
 
           <div className='flex flex-col gap-7'>
             {visibleConnectedItems.length > 0 && (
-              <IntegrationSection label={CONNECTED_LABEL}>
+              <IntegrationSection label={categoryLabel(CONNECTED_LABEL)}>
                 {visibleConnectedItems.map((item) => (
                   <ConnectedItem
                     key={item.credential.id}
@@ -358,7 +371,7 @@ function IntegrationsContent() {
             )}
 
             {filteredCategorySections.map((section) => (
-              <IntegrationSection key={section.label} label={formatIntegrationType(section.label)}>
+              <IntegrationSection key={section.label} label={categoryLabel(section.label)}>
                 {section.integrations.map((integration) => {
                   const Icon = blockTypeToIconMap[integration.type]
                   if (!Icon) return null
@@ -384,8 +397,8 @@ function IntegrationsContent() {
             {showNoResults && (
               <SettingsEmptyState variant='inline'>
                 {urlSearchTerm.trim()
-                  ? `No integrations found matching “${urlSearchTerm}”`
-                  : 'No integrations in this category'}
+                  ? t('list.noResultsMatching', { query: urlSearchTerm })
+                  : t('list.noResultsInCategory')}
               </SettingsEmptyState>
             )}
           </div>

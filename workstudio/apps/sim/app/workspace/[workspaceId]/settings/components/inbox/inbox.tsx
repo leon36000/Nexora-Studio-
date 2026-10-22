@@ -2,6 +2,7 @@
 
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import {
@@ -16,6 +17,7 @@ import { SettingsUpgradeNotice } from '@/app/workspace/[workspaceId]/settings/co
 import { useInboxConfig } from '@/hooks/queries/inbox'
 
 export function Inbox() {
+  const t = useTranslations('settings.inbox')
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
@@ -30,9 +32,7 @@ export function Inbox() {
   if (error && config === undefined) {
     return (
       <SettingsPanel>
-        <SettingsEmptyState>
-          {getErrorMessage(error, 'Failed to load Inbox settings')}
-        </SettingsEmptyState>
+        <SettingsEmptyState>{getErrorMessage(error, t('loadFailed'))}</SettingsEmptyState>
       </SettingsPanel>
     )
   }
@@ -48,8 +48,8 @@ export function Inbox() {
     return (
       <SettingsPanel>
         <SettingsUpgradeNotice
-          title='Nexora Mailer requires an active Max plan'
-          description='Upgrade to Max and ensure billing is active to receive tasks via email and let Nexora work on your behalf.'
+          title={t('upgradeTitle')}
+          description={t('upgradeDescription')}
           canUpgrade={canAdmin}
         />
       </SettingsPanel>
@@ -64,10 +64,8 @@ export function Inbox() {
         <>
           {canAdmin && <InboxSettingsTab />}
 
-          <SettingsSection label='Inbox'>
-            <p className='mb-3 text-[var(--text-muted)] text-caption'>
-              Email tasks received by this workspace.
-            </p>
+          <SettingsSection label={t('sectionLabel')}>
+            <p className='mb-3 text-[var(--text-muted)] text-caption'>{t('sectionDescription')}</p>
             <InboxTaskList />
           </SettingsSection>
         </>

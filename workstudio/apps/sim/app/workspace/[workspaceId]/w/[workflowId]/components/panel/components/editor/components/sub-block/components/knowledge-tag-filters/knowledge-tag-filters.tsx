@@ -14,7 +14,7 @@ import {
 } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { generateId } from '@sim/utils/id'
-import { FIELD_TYPE_LABELS, getPlaceholderForFieldType } from '@/lib/knowledge/constants'
+import { useTranslations } from 'next-intl'
 import { type FilterFieldType, getOperatorsForFieldType } from '@/lib/knowledge/filters/types'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import { TagDropdown } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/tag-dropdown/tag-dropdown'
@@ -49,6 +49,11 @@ interface KnowledgeTagFiltersProps {
   previewContextValues?: Record<string, unknown>
 }
 
+const KNOWN_FIELD_TYPES: readonly FilterFieldType[] = ['text', 'number', 'date', 'boolean']
+
+const isKnownFieldType = (fieldType: string): fieldType is FilterFieldType =>
+  (KNOWN_FIELD_TYPES as readonly string[]).includes(fieldType)
+
 /**
  * Creates a new filter with default values
  */
@@ -69,6 +74,7 @@ export function KnowledgeTagFilters({
   previewValue,
   previewContextValues,
 }: KnowledgeTagFiltersProps) {
+  const t = useTranslations('editor.subBlock.knowledgeTagFilters')
   const activeSearchTarget = useActiveSearchTarget()
   const [storeValue, setStoreValue] = useSubBlockValue<string | null>(blockId, subBlock.id)
   const emitTagSelection = useTagSelection(blockId, subBlock.id)
@@ -156,7 +162,7 @@ export function KnowledgeTagFilters({
 
         // When tag changes, reset operator and value based on new field type
         if (field === 'tagName') {
-          const tagDef = tagDefinitions.find((t) => t.displayName === value)
+          const tagDef = tagDefinitions.find((def) => def.displayName === value)
           const fieldType = (tagDef?.fieldType || 'text') as FilterFieldType
           const operators = getOperatorsForFieldType(fieldType)
           updated.tagSlot = tagDef?.tagSlot
@@ -219,9 +225,9 @@ export function KnowledgeTagFilters({
 
     return (
       <div className='space-y-1'>
-        <Label className='text-muted-foreground text-xs'>Tag Filters</Label>
+        <Label className='text-muted-foreground text-xs'>{t('title')}</Label>
         <div className='text-muted-foreground text-sm'>
-          {appliedFilters > 0 ? `${appliedFilters} filter(s) applied` : 'No filters'}
+          {appliedFilters > 0 ? t('appliedCount', { count: appliedFilters }) : t('noFilters')}
         </div>
       </div>
     )
@@ -244,11 +250,15 @@ export function KnowledgeTagFilters({
     >
       <div className='flex min-w-0 flex-1 items-center gap-2'>
         <span className='block truncate text-[var(--text-tertiary)] text-sm'>
-          {filter.collapsed ? filter.tagName || `Filter ${index + 1}` : `Filter ${index + 1}`}
+          {filter.collapsed
+            ? filter.tagName || t('filterTitle', { number: index + 1 })
+            : t('filterTitle', { number: index + 1 })}
         </span>
         {filter.collapsed && filter.tagName && (
           <Badge variant='type' size='sm'>
-            {FIELD_TYPE_LABELS[filter.fieldType] || 'Text'}
+            {isKnownFieldType(filter.fieldType)
+              ? t(`fieldTypes.${filter.fieldType}`)
+              : t('fieldTypes.text')}
           </Badge>
         )}
       </div>
@@ -263,7 +273,7 @@ export function KnowledgeTagFilters({
           className='h-auto p-0'
         >
           <Plus className='size-[14px]' />
-          <span className='sr-only'>Add Filter</span>
+          <span className='sr-only'>{t('addFilterSr')}</span>
         </Button>
         <Button
           variant='ghost'
@@ -275,7 +285,7 @@ export function KnowledgeTagFilters({
           className='h-auto p-0 text-[var(--text-error)] hover-hover:text-[var(--text-error)]'
         >
           <Trash className='size-[14px]' />
-          <span className='sr-only'>Delete Filter</span>
+          <span className='sr-only'>{t('deleteFilterSr')}</span>
         </Button>
       </div>
     </div>
@@ -287,7 +297,9 @@ export function KnowledgeTagFilters({
   const renderValueInput = (filter: TagFilter, field: 'tagValue' | 'valueTo') => {
     const fieldValue = field === 'tagValue' ? filter.tagValue : filter.valueTo || ''
     const cellKey = `${filter.id}-${field}`
-    const placeholder = getPlaceholderForFieldType(filter.fieldType)
+    const placeholder = isKnownFieldType(filter.fieldType)
+      ? t(`placeholders.${filter.fieldType}`)
+      : t('placeholders.text')
     const filterIndex = filters.findIndex((candidate) => candidate.id === filter.id)
     const workflowSearchHighlight = getActiveWorkflowSearchHighlight({
       activeSearchTarget,
@@ -376,7 +388,7 @@ export function KnowledgeTagFilters({
     const operators = getOperatorsForFieldType(filter.fieldType)
     const operatorOptions: ComboboxOption[] = operators.map((op) => ({
       value: op.value,
-      label: op.label,
+      label: t(`operators.${filter.fieldType}.${op.value}`),
     }))
 
     const isBetween = filter.operator === 'between'
@@ -384,33 +396,33 @@ export function KnowledgeTagFilters({
     return (
       <div className='flex flex-col gap-2 rounded-b-[4px] border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 pt-1.5 pb-2.5'>
         <div className='flex flex-col gap-1.5'>
-          <Label className='text-small'>Tag</Label>
+          <Label className='text-small'>{t('tag')}</Label>
           <Combobox
             options={tagOptions}
             value={filter.tagName}
             onChange={(value) => updateFilter(filter.id, 'tagName', value)}
             disabled={isReadOnly || isLoading}
-            placeholder='Select tag'
+            placeholder={t('selectTag')}
           />
         </div>
 
         <div className='flex flex-col gap-1.5'>
-          <Label className='text-small'>Operator</Label>
+          <Label className='text-small'>{t('operator')}</Label>
           <Combobox
             options={operatorOptions}
             value={filter.operator}
             onChange={(value) => updateFilter(filter.id, 'operator', value)}
             disabled={isReadOnly}
-            placeholder='Select operator'
+            placeholder={t('selectOperator')}
           />
         </div>
 
         <div className='flex flex-col gap-1.5'>
-          <Label className='text-small'>Value</Label>
+          <Label className='text-small'>{t('value')}</Label>
           {isBetween ? (
             <div className='flex items-center gap-2'>
               <div className='flex-1'>{renderValueInput(filter, 'tagValue')}</div>
-              <span className='shrink-0 text-muted-foreground text-xs'>to</span>
+              <span className='shrink-0 text-muted-foreground text-xs'>{t('rangeTo')}</span>
               <div className='flex-1'>{renderValueInput(filter, 'valueTo')}</div>
             </div>
           ) : (

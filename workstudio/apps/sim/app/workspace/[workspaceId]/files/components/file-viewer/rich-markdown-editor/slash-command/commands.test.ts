@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { createMarkdownEditorExtensions } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/editor-extensions'
 import { SLASH_COMMANDS } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/slash-command/commands'
 
-const chart = SLASH_COMMANDS.find((command) => command.title === 'Chart')
+const chart = SLASH_COMMANDS.find((command) => command.id === 'chart')
 
 describe('Chart slash command', () => {
   it.each([

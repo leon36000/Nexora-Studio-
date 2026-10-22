@@ -1,6 +1,7 @@
 'use client'
 
 import { Wrench } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { McpIcon } from '@/components/icons'
 import type { SecretReferenceResourcePayload } from '@/lib/api/contracts'
 import { DetailSection } from '@/app/workspace/[workspaceId]/components/credential-detail'
@@ -30,13 +31,6 @@ interface SecretReferencesPanelProps {
    */
   shadowed: boolean
 }
-
-/**
- * Shown when a capped scan produced nothing to list. Distinct from "not referenced": the scan
- * stopped early, so silence here is absence of evidence, and saying otherwise would invite
- * deleting a key that four blocks past the cap still depend on.
- */
-const TRUNCATED_NOTE = 'This secret is referenced in more places than can be listed here.'
 
 /** A custom tool and an MCP server can each carry the key more than once, so `id` alone is not a key. */
 function resourceKey(resource: SecretReferenceResourcePayload): string {
@@ -87,32 +81,35 @@ export function SecretReferencesPanel({
   secretName,
   shadowed,
 }: SecretReferencesPanelProps) {
+  const t = useTranslations('settings.secretDetail.references')
+  const tDetail = useTranslations('settings.secretDetail')
+  /**
+   * Shown when a capped scan produced nothing to list. Distinct from "not referenced": the scan
+   * stopped early, so silence here is absence of evidence, and saying otherwise would invite
+   * deleting a key that four blocks past the cap still depend on.
+   */
+  const truncatedNote = t('truncated')
   const { data, isPending, isError } = useSecretReferences(
     { workspaceId, name: secretName },
     !shadowed
   )
 
   if (shadowed) {
-    return (
-      <SettingsEmptyState variant='inline'>
-        Overridden by a workspace variable, so every reference to this name resolves to that
-        variable instead.
-      </SettingsEmptyState>
-    )
+    return <SettingsEmptyState variant='inline'>{t('shadowed')}</SettingsEmptyState>
   }
 
   if (isError) {
-    return <SettingsEmptyState variant='inline'>Could not load references.</SettingsEmptyState>
+    return <SettingsEmptyState variant='inline'>{t('loadFailed')}</SettingsEmptyState>
   }
 
   if (isPending) {
-    return <SettingsEmptyState variant='inline'>Loading…</SettingsEmptyState>
+    return <SettingsEmptyState variant='inline'>{tDetail('loading')}</SettingsEmptyState>
   }
 
   if (data.workflows.length === 0 && data.resources.length === 0) {
     return (
       <SettingsEmptyState variant='inline'>
-        {data.truncated ? TRUNCATED_NOTE : 'This secret is not referenced in any workflow.'}
+        {data.truncated ? truncatedNote : t('notReferenced')}
       </SettingsEmptyState>
     )
   }
@@ -143,7 +140,10 @@ export function SecretReferencesPanel({
                   title={block.blockName}
                   description={fieldLabel(block.blockType, block.field)}
                   href={blockHref(workspaceId, workflow.workflowId, block.blockId)}
-                  clickLabel={`Open ${block.blockName} in ${workflow.workflowName}`}
+                  clickLabel={t('openBlock', {
+                    block: block.blockName,
+                    workflow: workflow.workflowName,
+                  })}
                   navigable
                 />
               )
@@ -153,7 +153,7 @@ export function SecretReferencesPanel({
       ))}
 
       {data.resources.length > 0 && (
-        <DetailSection title='Custom tools and MCP servers'>
+        <DetailSection title={t('customToolsAndMcp')}>
           <div className={RESOURCE_LIST_STACK}>
             {data.resources.map((resource) => (
               <SettingsResourceRow
@@ -169,7 +169,7 @@ export function SecretReferencesPanel({
                 title={resource.name}
                 description={resource.field}
                 href={resourceHref(workspaceId, resource)}
-                clickLabel={`Open ${resource.name}`}
+                clickLabel={t('openResource', { name: resource.name })}
                 navigable
               />
             ))}
@@ -177,7 +177,7 @@ export function SecretReferencesPanel({
         </DetailSection>
       )}
 
-      {data.truncated && <p className='text-[var(--text-muted)] text-caption'>{TRUNCATED_NOTE}</p>}
+      {data.truncated && <p className='text-[var(--text-muted)] text-caption'>{truncatedNote}</p>}
     </div>
   )
 }

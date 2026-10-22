@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import Workflow from '@/app/workspace/[workspaceId]/w/[workflowId]/workflow'
 
-export const metadata: Metadata = {
-  title: 'Workflow',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('editor.page')
+  return { title: t('title') }
 }
 
 interface WorkflowPageProps {

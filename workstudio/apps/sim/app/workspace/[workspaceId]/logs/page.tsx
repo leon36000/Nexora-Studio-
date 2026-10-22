@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import LogsLoading from '@/app/workspace/[workspaceId]/logs/loading'
 import Logs from '@/app/workspace/[workspaceId]/logs/logs'
 
-export const metadata: Metadata = {
-  title: 'Logs',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('logs.page')
+  return { title: t('title') }
 }
 
 /**

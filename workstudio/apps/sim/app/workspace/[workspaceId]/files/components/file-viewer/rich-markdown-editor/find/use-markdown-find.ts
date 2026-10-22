@@ -4,6 +4,7 @@ import type React from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from '@sim/emcn'
 import type { Editor } from '@tiptap/react'
+import { useTranslations } from 'next-intl'
 import { useFindShortcut } from '@/app/workspace/[workspaceId]/components'
 import {
   ACTIVE_MATCH_CLASS,
@@ -41,12 +42,6 @@ interface FindTally {
 
 const EMPTY_TALLY: FindTally = { count: 0, currentIndex: 0, truncated: false }
 
-function warnReplacementLimit(): void {
-  toast.warning('Replacement is too large', {
-    description: 'Use the source editor for changes that exceed the rich-text editing limit.',
-  })
-}
-
 interface UseMarkdownFindOptions {
   editor: Editor | null
   /**
@@ -71,6 +66,7 @@ export function useMarkdownFind({
   editor,
   enabled,
 }: UseMarkdownFindOptions): MarkdownFindController {
+  const t = useTranslations('files.editor.find')
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQueryState] = useState('')
   const [replacement, setReplacement] = useState('')
@@ -160,17 +156,21 @@ export function useMarkdownFind({
   const next = useCallback(() => step(1), [step])
   const prev = useCallback(() => step(-1), [step])
 
+  const warnReplacementLimit = useCallback(() => {
+    toast.warning(t('replacementTooLarge'), { description: t('replacementTooLargeDescription') })
+  }, [t])
+
   const replaceCurrent = useCallback(() => {
     const current = editorRef.current
     if (!current || !replaceActiveFindMatch(current, replacement, warnReplacementLimit)) return
     revealActiveMatch()
-  }, [replacement, revealActiveMatch])
+  }, [replacement, revealActiveMatch, warnReplacementLimit])
 
   const replaceAll = useCallback(() => {
     const current = editorRef.current
     if (!current) return
     replaceAllFindMatches(current, replacement, warnReplacementLimit)
-  }, [replacement])
+  }, [replacement, warnReplacementLimit])
 
   /** Closing ends the search: term, highlights and active match all go. */
   const close = useCallback(() => {

@@ -1,1 +1,1670 @@
-{ "general": { "language": "Language" } }
+{
+  "general": {
+    "language": "Language",
+    "actions": {
+      "homePage": "Home page",
+      "signOut": "Sign out",
+      "signOutOtherDevices": "Sign out other devices",
+      "resetPassword": "Reset password"
+    },
+    "sections": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "privacy": "Privacy",
+      "account": "Account"
+    },
+    "profile": {
+      "changePicture": "Change profile picture",
+      "pictureAlt": "User",
+      "yourName": "Your name",
+      "saveName": "Save name",
+      "editName": "Edit name",
+      "updatePictureFailed": "Failed to update profile picture",
+      "removePictureFailed": "Failed to remove profile picture"
+    },
+    "preferences": {
+      "theme": "Theme",
+      "selectTheme": "Select theme",
+      "themes": {
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark"
+      },
+      "timezone": "Timezone",
+      "searchTimezones": "Search timezones",
+      "selectTimezone": "Select timezone",
+      "timezoneAuto": "Auto: {timezone}",
+      "timezoneInvalid": "Invalid: {timezone}",
+      "timezoneEmpty": "(empty)",
+      "autoConnect": "Auto-connect on drop",
+      "autoConnectAbout": "About auto-connect on drop",
+      "autoConnectTooltip": "Automatically connect blocks when dropped near each other",
+      "autoConnectExample": "Auto-connect on drop example",
+      "autoFocus": "Auto-focus on click",
+      "autoFocusAbout": "About auto-focus on click",
+      "autoFocusTooltip": "Center the canvas on a block when you click it",
+      "autoFocusExample": "Auto-focus on click example",
+      "errorNotifications": "Canvas error notifications",
+      "errorNotificationsAbout": "About canvas error notifications",
+      "errorNotificationsTooltip": "Show error popups on blocks when a workflow run fails",
+      "errorNotificationsExample": "Canvas error notification example",
+      "snapToGrid": "Snap to grid",
+      "selectSize": "Select size",
+      "snapOff": "Off",
+      "showCanvasControls": "Show canvas controls"
+    },
+    "privacySettings": "Privacy settings",
+    "manage": "Manage",
+    "authorizedApps": "Authorized apps",
+    "deleteAccountLabel": "Delete account",
+    "resetPasswordModal": {
+      "title": "Reset Password",
+      "body": "A password reset link will be sent to <b>{email}</b>. Click the link in the email to create a new password.",
+      "sending": "Sending...",
+      "sent": "Sent",
+      "send": "Send Reset Email"
+    },
+    "signOutOthersModal": {
+      "title": "Sign out other devices",
+      "text": "This device and your authorized apps stay signed in.",
+      "confirm": "Sign out",
+      "pending": "Signing out...",
+      "success": "Signed out of other devices"
+    },
+    "privacy": {
+      "back": "General",
+      "title": "Privacy",
+      "description": "Control what Nexora collects about how you use it.",
+      "telemetry": "Telemetry",
+      "allowTelemetry": "Allow browser telemetry",
+      "telemetryHint": "Share browser performance and error diagnostics to improve Nexora. You can opt out at any time. This does not control server operational logs.",
+      "telemetrySaveFailed": "Could not save your telemetry preference"
+    },
+    "cookies": {
+      "title": "Cookies",
+      "saveFailed": "Could not save your cookie preferences",
+      "notice": "Your choice applies to this browser and is kept for 365 days. The <link>Cookie Policy</link> lists what each category covers."
+    },
+    "deleteAccount": {
+      "title": "Delete account",
+      "confirm": "Delete account",
+      "pending": "Deleting...",
+      "resolveFirst": "Resolve the items above first",
+      "enterEmail": "Enter your account email to confirm",
+      "blocked": "Your account can’t be deleted yet:",
+      "warning": "This permanently deletes <b>{email}</b> along with its workflows, chats, files, knowledge bases and credentials. <danger>This cannot be undone.</danger>",
+      "workspacesDeleted": "{count, plural, one {The workspace <b>{names}</b> and everything in it will be deleted.} other {The workspaces <b>{names}</b> and everything in them will be deleted.}}",
+      "workspacesTransferred": "{count, plural, one {Billing for <b>{names}</b> moves to another admin. Nothing in it changes.} other {Billing for <b>{names}</b> moves to another admin. Nothing in them changes.}}",
+      "planFailed": "Could not check whether this account can be deleted. Try again.",
+      "confirmEmail": "Confirm your email"
+    }
+  },
+  "shared": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "remove": "Remove",
+    "create": "Create",
+    "creating": "Creating...",
+    "edit": "Edit",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "retry": "Retry",
+    "copy": "Copy",
+    "copied": "Copied",
+    "add": "Add",
+    "done": "Done",
+    "search": "Search..."
+  },
+  "errors": {
+    "root": {
+      "title": "Failed to load settings",
+      "description": "Something went wrong while loading your settings. Please try again."
+    },
+    "section": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred. Please try again or refresh the page."
+    }
+  },
+  "access": {
+    "checkingTitle": "Checking access",
+    "checkingDescription": "Loading your organization access policy."
+  },
+  "unsavedGuard": {
+    "title": "Unsaved changes",
+    "text": "You have unsaved changes. Are you sure you want to discard them?",
+    "keepEditing": "Keep editing",
+    "discard": "Discard changes"
+  },
+  "organizationSecurity": {
+    "sessionPolicies": "Session policies",
+    "outboundIps": "Outbound IP addresses",
+    "loading": "Loading network settings…",
+    "loadError": "Could not load network settings",
+    "allowlistHint": "Allowlist every address below for supported HTTPS connections.",
+    "ipAriaLabel": "Outbound IP {ip}",
+    "copyIp": "Copy {address}",
+    "paused": "Supported HTTPS connections are paused.",
+    "notAvailableYet": "Your outbound IP addresses aren’t available yet.",
+    "notConfigured": "Outbound IP addresses are not configured for this organization."
+  },
+  "nav": {
+    "groups": {
+      "account": "Account",
+      "developer": "Developer",
+      "platform": "Platform",
+      "workspace": "Workspace",
+      "organization": "Organization",
+      "governance": "Governance",
+      "sim-search": "Nexora Search"
+    },
+    "planes": {
+      "account": "Account",
+      "selfhost": "Self-host",
+      "organization": "Organization"
+    },
+    "chrome": {
+      "back": "Back",
+      "home": "Nexora home",
+      "planLocked": "Plan",
+      "navigation": "Settings navigation",
+      "planeNavigation": "{plane} settings navigation"
+    },
+    "unified": {
+      "general": {
+        "label": "General",
+        "description": "Manage your profile, appearance, and preferences."
+      },
+      "desktop": {
+        "label": "Desktop",
+        "description": "Manage notifications, startup, local folders, and updates."
+      },
+      "browser": {
+        "label": "Browser",
+        "description": "Control the browser Chat drives and the data it keeps."
+      },
+      "terminal": {
+        "label": "Terminal",
+        "description": "Control the shells Chat runs commands in."
+      },
+      "requests": {
+        "label": "Requests",
+        "description": "Track your requests and browse available access."
+      },
+      "access-control": {
+        "label": "Permission groups",
+        "description": "Manage permission groups across your organization."
+      },
+      "audit-logs": {
+        "label": "Audit logs",
+        "description": "Review activity and changes across your organization."
+      },
+      "forks": {
+        "label": "Workspace forks",
+        "description": "Fork this workspace and sync changes with its parent."
+      },
+      "billing": {
+        "label": "Subscription",
+        "description": "Manage your plan, pricing, and invoices."
+      },
+      "teammates": {
+        "label": "Teammates",
+        "description": "Manage your teammates in this workspace."
+      },
+      "organization": {
+        "label": "Members",
+        "description": "Members and workspace access in your organization."
+      },
+      "usage": {
+        "label": "Insights",
+        "description": "Explore usage and activity across your organization."
+      },
+      "secrets": {
+        "label": "Secrets",
+        "description": "Store environment variables for your workflows."
+      },
+      "connected-accounts": {
+        "label": "Credential Groups",
+        "description": "Manage integrations and workspace access for workflows and Chat."
+      },
+      "custom-tools": {
+        "label": "Custom tools",
+        "description": "Create and manage custom tools for your agents."
+      },
+      "mcp": {
+        "label": "MCP tools",
+        "description": "Connect external MCP servers and use their tools in this workspace."
+      },
+      "apikeys": {
+        "label": "Nexora API keys",
+        "description": "Create and manage API keys for the Nexora API."
+      },
+      "workflow-mcp-servers": {
+        "label": "MCP servers",
+        "description": "Expose workflows from this workspace as tools on an MCP server."
+      },
+      "byok": {
+        "label": "BYOK",
+        "description": "Bring your own model-provider API keys."
+      },
+      "sandboxes": {
+        "label": "Sandboxes",
+        "description": "Install Python or npm packages for Function blocks to import."
+      },
+      "inbox": {
+        "label": "Nexora Mailer",
+        "description": "Trigger and process workflows from incoming email."
+      },
+      "recently-deleted": {
+        "label": "Recently deleted",
+        "description": "Restore items deleted in the last 30 days."
+      },
+      "self-host": {
+        "label": "Self hosting",
+        "description": "Manage this deployment from the Nexora managed service."
+      },
+      "sso": {
+        "label": "Single sign-on",
+        "description": "Manage sign-in, verified domains, and provisioning."
+      },
+      "security": {
+        "label": "Security",
+        "description": "Manage session policies and view outbound IP addresses."
+      },
+      "data-retention": {
+        "label": "Data retention",
+        "description": "Control data retention windows and PII redaction. Workspaces without an override inherit the organization defaults."
+      },
+      "data-drains": {
+        "label": "Data drains",
+        "description": "Stream your logs and events to external destinations."
+      },
+      "whitelabeling": {
+        "label": "White-labeling",
+        "description": "Customize your workspace branding and appearance."
+      },
+      "custom-blocks": {
+        "label": "Custom blocks",
+        "description": "Publish workflows as reusable blocks for your organization."
+      },
+      "admin": {
+        "label": "Admin",
+        "description": "Superuser administration and workspace tools."
+      },
+      "mothership": {
+        "label": "Mothership",
+        "description": "Internal Nexora operations and license management."
+      }
+    },
+    "account": {
+      "billing": {
+        "label": "Subscription",
+        "description": "Manage your personal plan, usage, and invoices."
+      },
+      "api-keys": {
+        "label": "Nexora API keys",
+        "description": "Create and manage your personal Nexora API keys."
+      }
+    },
+    "selfhost": {
+      "billing": {
+        "label": "Subscription",
+        "description": "Manage your personal plan, usage, and invoices."
+      },
+      "chat-keys": {
+        "label": "Chat keys",
+        "description": "Manage the model-provider keys that power Chat."
+      }
+    },
+    "workspace": {
+      "api-keys": {
+        "label": "Nexora API keys",
+        "description": "Manage workspace API keys and personal-key policy."
+      }
+    },
+    "organization": {
+      "knowledge-graphs": {
+        "label": "Knowledge graphs",
+        "description": "Your private knowledge across this organization’s workspaces. New chats use the active graph; existing chats keep their original graph."
+      },
+      "recently-deleted": {
+        "label": "Recently deleted",
+        "description": "Restore your deleted chats."
+      },
+      "integrations": {
+        "label": "Sources"
+      },
+      "search-mcp": {
+        "label": "Search MCP",
+        "description": "Search your sources from other apps."
+      },
+      "search-slack": {
+        "label": "Nexora Search in Slack",
+        "description": "Let members search their sources by messaging a Slack bot."
+      }
+    }
+  },
+  "shell": {
+    "settingsTitle": "Settings",
+    "docs": "Docs",
+    "searchPlaceholder": "Search...",
+    "discard": "Discard",
+    "save": "Save",
+    "saving": "Saving...",
+    "create": "Create",
+    "creating": "Creating..."
+  },
+  "byok": {
+    "scopeWorkspace": "Workspace",
+    "scopeOrganization": "Organization",
+    "scopeLabel": {
+      "workspace": "this workspace",
+      "organization": "this organization"
+    },
+    "inheritedFromOrganization": "Inherited from organization",
+    "loadFailed": "Failed to load provider keys",
+    "organizationDescription": "Organization keys apply to all current and future workspaces unless a workspace adds its own key.",
+    "organizationDescriptionNotEntitled": "Organization keys apply to all current and future workspaces unless a workspace adds its own key. An active organization plan is required to add or update them; existing keys can still be deleted.",
+    "inheritedStatusUnavailable": "Inherited key status unavailable. Refresh to try again.",
+    "organizationKeyUsage": "This key is available to executions in every current and future workspace attached to this organization unless the workspace has its own key for this provider. Create PR, Update PR, and Plan may pass it into the untrusted Pi sandbox; Pi search still requires an explicit block key. Your key is encrypted and stored securely.",
+    "lastKeyDelete": {
+      "organization": "Workspaces without their own key will use their next available configured key source.",
+      "workspaceWithOrganization": "This workspace will inherit an organization key when available, or use its next available configured key source.",
+      "workspace": "This workspace will use its next available configured key source.",
+      "platformHosted": "This workspace will revert to using platform hosted keys."
+    },
+    "sections": {
+      "models": "Models",
+      "searchWeb": "Search & web",
+      "enrichment": "Enrichment"
+    },
+    "placeholders": {
+      "apiKey": "Enter your API key",
+      "providerApiKey": "Enter your {provider} API key"
+    },
+    "descriptions": {
+      "llmEmbeddings": "LLM calls and Knowledge Base embeddings",
+      "llm": "LLM calls",
+      "llmOcr": "LLM calls and Knowledge Base OCR",
+      "embeddingsReranking": "Embeddings and Knowledge Base reranking",
+      "jevEvaluation": "Jev evaluation models",
+      "imageVideo": "Image and video generation",
+      "scrapingExtraction": "Web scraping, crawling, search, and extraction",
+      "aiSearchResearch": "AI-powered search and research",
+      "scrapingBrandIntelligence": "Web scraping, crawling, search, and brand intelligence",
+      "webAgentAutomation": "Web agent automation, search, and page fetching",
+      "googleSearchApi": "Google search API",
+      "webSearchRetrieval": "Web search and content retrieval",
+      "webSearchDeepResearch": "Web search, extraction, and deep research",
+      "aiChatWebSearch": "AI-powered chat and web search",
+      "webReadingSearch": "Web reading and search",
+      "googleCloudApis": "Translate, Maps, PageSpeed, and Books APIs",
+      "brandAssets": "Brand assets, logos, colors, and company info",
+      "emailFinderDomainSearch": "Email finder, verification, and domain search",
+      "personCompanyIdentity": "Person and company enrichment, search, and identity",
+      "emailFinderPhoneLookup": "Email finder, verification, and phone lookup",
+      "personCompanySearch": "Person and company enrichment and search",
+      "prospectSearch": "Prospect search, individual reveal, and company enrichment",
+      "emailPhoneEnrichment": "Email, phone, person, and company enrichment",
+      "gdprContactEnrichment": "GDPR-compliant contact enrichment and email finding",
+      "emailB2bEnrichment": "Email finding, validation, and B2B profile enrichment",
+      "emailFindingVerification": "Email finding and verification",
+      "realtimeValidationDeliverability": "Real-time email validation and deliverability checks",
+      "realtimeVerificationListCleaning": "Real-time email verification and list cleaning",
+      "realtimeVerificationDeliverability": "Real-time email verification and deliverability checks"
+    },
+    "addKey": "Add Key",
+    "update": "Update",
+    "manager": {
+      "searchLabel": "Search providers",
+      "searchPlaceholder": "Search providers...",
+      "noResults": "No providers found matching \"{searchTerm}\"",
+      "keyCount": "{count, plural, one {# key} other {# keys}}",
+      "manage": "Manage",
+      "view": "View",
+      "editSrTitle": "Add/Update API Key",
+      "addTitle": "Add {provider} API Key",
+      "updateTitle": "Update {provider} API Key",
+      "usageMultiKey": "Requests are distributed evenly across all {provider} keys in {scope}. Your key is encrypted and stored securely.",
+      "usageSingleKey": "This key will be used for all {provider} requests in {scope}. Your key is encrypted and stored securely.",
+      "apiKey": "API Key",
+      "hideApiKey": "Hide API key",
+      "showApiKey": "Show API key",
+      "name": "Name",
+      "namePlaceholder": "e.g. Production key",
+      "saveFailed": "Failed to save API key",
+      "deleteTitle": "Delete API Key",
+      "deleteConfirmStart": "Are you sure you want to delete the ",
+      "deleteSelectedFallback": "selected",
+      "deleteConfirmEnd": " API key? ",
+      "deleteRemainingKeys": "Requests will continue using the remaining {provider} keys.",
+      "deleteProviderFallback": "provider",
+      "deleteIrreversible": " This action cannot be undone."
+    },
+    "keysModal": {
+      "srTitle": "Manage API Keys",
+      "title": "{provider} API Keys",
+      "description": "Requests are distributed evenly across these keys. Your keys are encrypted and stored securely.",
+      "unnamedKey": "Unnamed key",
+      "limitReached": "Key limit reached ({maxKeys} keys per provider)."
+    }
+  },
+  "sandboxes": {
+    "upgradeTitle": "Sandboxes require an active Max plan",
+    "upgradeDescription": "Upgrade to Max and ensure billing is active to add dependencies, system packages, and managed CLI tools to Function blocks.",
+    "deleteTitle": "Delete Sandbox",
+    "deleteConfirm": {
+      "intro": "This will permanently delete ",
+      "consequence": " and remove it from any Function blocks that are using it.",
+      "irreversible": " This action cannot be undone."
+    },
+    "saveFailed": "Failed to save sandbox",
+    "deleteFailed": "Failed to delete sandbox",
+    "retryFailed": "Failed to retry sandbox build",
+    "buildQueued": "Sandbox build queued",
+    "loading": "Loading sandboxes...",
+    "loadFailed": "Failed to load sandboxes",
+    "newSandbox": "New sandbox",
+    "sandboxFallbackTitle": "Sandbox",
+    "editorDescription": "Dependencies, system packages, and managed CLI tools available to your Function blocks.",
+    "backLabel": "Sandboxes",
+    "searchPlaceholder": "Search sandboxes...",
+    "noSearchResults": "No sandboxes match your search.",
+    "empty": "No sandboxes yet. Create one to add dependencies, system packages, and managed CLI tools to Function blocks.",
+    "counts": "{dependencies, plural, one {# dependency} other {# dependencies}} · {systemPackages, plural, one {# system package} other {# system packages}} · {cliTools, plural, one {# managed CLI} other {# managed CLIs}}",
+    "rowDescription": "{language} · {counts}",
+    "openSandbox": "Open {name}",
+    "createTitle": "Create sandbox",
+    "createFailed": "Failed to create sandbox",
+    "adminOnly": "Only workspace admins can create sandboxes.",
+    "lineIssue": "Line {line}: {reason}",
+    "fields": {
+      "name": "Name",
+      "language": "Language",
+      "dependencies": "Dependencies",
+      "dependenciesHint": "One per line. Version pins are optional.",
+      "cliTools": "Managed CLI tools",
+      "systemPackages": "System packages",
+      "systemPackagesHint": "One Debian/APT package per line. Version pins are optional."
+    },
+    "editor": {
+      "details": "Details",
+      "status": "Status"
+    },
+    "status": {
+      "ready": "Ready",
+      "failed": "Failed",
+      "building": "Building",
+      "pending": "Queued",
+      "runtimeStrategy": "Dependencies, system packages, and managed CLI tools install at run time on this deployment, adding startup time per execution. Prebuilt sandboxes require E2B.",
+      "nothingToBuild": "No dependencies, system packages, or managed CLI tools yet. Add one above to build this sandbox; until then it runs on the Function base.",
+      "buildActionsLabel": "{name} build actions",
+      "retrying": "Retrying...",
+      "retryBuild": "Retry build",
+      "retryBlocked": "Save or discard changes before retrying",
+      "hideLog": "Hide log",
+      "showLog": "Show log"
+    },
+    "cliSelect": {
+      "label": "Managed CLI tools",
+      "placeholder": "Select managed CLI tools",
+      "searchPlaceholder": "Search managed CLI tools...",
+      "selectedCount": "{count} selected",
+      "categories": {
+        "cloud": "Cloud",
+        "kubernetes": "Kubernetes",
+        "infrastructure": "Infrastructure",
+        "deployment": "Deployment",
+        "dataStorage": "Data & storage",
+        "security": "Security"
+      }
+    }
+  },
+  "customTools": {
+    "addTool": "Add tool",
+    "searchPlaceholder": "Search tools...",
+    "loadFailed": "Failed to load tools",
+    "emptyEditable": "Click \"Add tool\" above to get started",
+    "emptyReadOnly": "No custom tools configured",
+    "unnamedTool": "Unnamed Tool",
+    "openTool": "Open {name}",
+    "noResults": "No tools found matching \"{searchTerm}\"",
+    "detail": {
+      "back": "Custom tools",
+      "newTool": "New tool",
+      "description": "Define the JSON schema your agents call, and the code that runs.",
+      "schema": "Schema",
+      "code": "Code",
+      "schemaEmpty": "Schema cannot be empty",
+      "saveFailed": "Failed to save custom tool",
+      "deleteFailed": "Couldn't delete tool",
+      "tryAgainShortly": "Please try again in a moment.",
+      "deleteTitle": "Delete Custom Tool"
+    }
+  },
+  "terminal": {
+    "general": "General",
+    "letChatRunCommands": "Let Chat run commands",
+    "theme": "Theme",
+    "defaultZoom": "Default zoom",
+    "defaultZoomLabel": "Terminal default zoom",
+    "errors": {
+      "load": "Could not load terminal settings",
+      "update": "Could not update terminal settings",
+      "selectTheme": "Could not select that terminal theme",
+      "updateAppearance": "Could not update terminal appearance",
+      "updateZoom": "Could not update the default terminal zoom"
+    },
+    "themePicker": {
+      "label": "Terminal theme",
+      "searchPlaceholder": "Search themes",
+      "placeholder": "Select theme",
+      "profileOption": "{source} · {name}",
+      "builtIn": {
+        "app": "Default",
+        "light": "Nexora Light",
+        "dark": "Nexora Dark"
+      }
+    }
+  },
+  "appearance": {
+    "themes": {
+      "light": "Light",
+      "dark": "Dark"
+    }
+  },
+  "zoom": {
+    "defaultZoom": "Default zoom",
+    "percent": "{zoom}%"
+  },
+  "emptyState": {
+    "retrying": "Retrying…",
+    "tryAgain": "Try again"
+  },
+  "upgradeNotice": {
+    "upgradeToMax": "Upgrade to Max"
+  },
+  "rowActions": {
+    "disabledLabel": "{label} — {tooltip}"
+  },
+  "memberList": {
+    "empty": "No members yet"
+  },
+  "manageCredits": {
+    "title": "Manage credits",
+    "titleForMember": "Manage credits — {name}",
+    "creditsUsed": "Credits used",
+    "creditsUsedThisMonth": "Credits used this month",
+    "creditsUsedThisYear": "Credits used this year",
+    "loading": "Loading…",
+    "copyCreditsUsed": "Copy credits used",
+    "creditLimit": "Credit limit",
+    "creditLimitInfo": "Set in credits — Nexora's usage unit (1,000 credits = $5). Caps this member's usage across this organization's workspaces each billing period.",
+    "noLimit": "No limit",
+    "noLimitHint": "Leave blank for no limit.",
+    "invalidLimit": "Enter a whole number of credits, or leave blank for no limit.",
+    "updateFailed": "Failed to update credit limit",
+    "saving": "Saving…"
+  },
+  "mcp": {
+    "unnamedServer": "Unnamed server",
+    "domainPolicyError": "Unable to load the MCP domain policy. Try again before saving this server.",
+    "refresh": {
+      "refreshing": "Refreshing...",
+      "failed": "Failed",
+      "synced": "Synced ({count, plural, one {# workflow} other {# workflows}})",
+      "refreshed": "Refreshed",
+      "refreshTools": "Refresh tools"
+    },
+    "toolsLabel": {
+      "unableToConnect": "Unable to connect",
+      "oauthRequired": "OAuth authorization required",
+      "notConnected": "Not connected",
+      "count": "{count, plural, one {# tool} other {# tools}}",
+      "countWithNames": "{count, plural, one {# tool} other {# tools}}: {names}"
+    },
+    "row": {
+      "managedByConnectedAccounts": "Managed by Connected accounts",
+      "waitingForAuthorization": "Waiting for authorization...",
+      "openServer": "Open {name}",
+      "reopenAuthorization": "Reopen authorization",
+      "authorize": "Authorize"
+    },
+    "toasts": {
+      "removeFailed": "Failed to remove MCP server",
+      "refreshFailed": "Failed to refresh MCP server"
+    },
+    "deleteDialog": {
+      "title": "Delete MCP server",
+      "textBefore": "Are you sure you want to delete ",
+      "fallbackName": "this server",
+      "textAfter": "? This action cannot be undone."
+    },
+    "detail": {
+      "back": "MCP tools",
+      "server": "Server",
+      "serverName": "Server name",
+      "transport": "Transport",
+      "url": "URL",
+      "managedBy": "Managed by",
+      "connectedAccounts": "Connected accounts",
+      "status": "Status",
+      "authentication": "Authentication",
+      "tools": "Tools ({count})",
+      "noTools": "No tools available",
+      "updateIn": "Update in: {workflows}",
+      "parameters": "Parameters",
+      "required": "required",
+      "issueBadge": {
+        "stale": "stale",
+        "unavailable": "unavailable"
+      }
+    },
+    "list": {
+      "searchPlaceholder": "Search servers...",
+      "addServer": "Add server",
+      "loadFailed": "Failed to load MCP servers",
+      "emptyCanEdit": "Click \"Add server\" above to get started",
+      "emptyReadOnly": "No MCP servers configured",
+      "noResults": "No servers found matching \"{term}\""
+    },
+    "form": {
+      "testing": "Testing...",
+      "connectionSuccess": "Connection success",
+      "requiresOauth": "Requires OAuth",
+      "noConnectionRetry": "No connection: retry",
+      "testConnection": "Test connection",
+      "headerName": "Name",
+      "headerValue": "Value",
+      "noServersInJson": "No servers found in mcpServers",
+      "onlyFirstServer": "Only the first server (\"{name}\") will be imported. Paste each config separately to add others.",
+      "urlFieldRequired": "Server config must include a \"url\" field",
+      "jsonMustContain": "JSON must contain \"mcpServers\" or a \"url\" field",
+      "invalidJson": "Invalid JSON",
+      "nameRequired": "Server name is required. Use: {example}",
+      "domainNotPermitted": "Domain not permitted by server policy",
+      "connectionTestFailed": "Connection test failed. Please check the URL and try again.",
+      "saveFailed": "Failed to save server",
+      "titleAdd": "Add MCP server",
+      "titleEdit": "Edit MCP server",
+      "submitAdd": "Add server",
+      "adding": "Adding...",
+      "editJson": "Edit JSON",
+      "editForm": "Edit form",
+      "configuration": "Configuration",
+      "serverName": "Server Name",
+      "serverNamePlaceholder": "e.g., My MCP Server",
+      "serverUrl": "Server URL",
+      "headers": "Headers",
+      "advancedSettings": "Advanced settings",
+      "clientId": "Client ID",
+      "clientIdPlaceholder": "OAuth Client ID (optional)",
+      "clientSecret": "Client Secret",
+      "clientSecretHint": "Only needed for servers that don't support automatic client registration.",
+      "clientSecretPlaceholder": "OAuth Client Secret (optional)"
+    }
+  },
+  "workflowMcpServers": {
+    "common": {
+      "serverName": "Server Name",
+      "serverNamePlaceholder": "e.g., My MCP Server",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what this MCP server does (optional)",
+      "access": "Access",
+      "public": "Public",
+      "private": "Private",
+      "adding": "Adding...",
+      "searchWorkflows": "Search workflows..."
+    },
+    "detail": {
+      "back": "MCP servers",
+      "loadFailed": "Failed to load server details",
+      "editServer": "Edit server",
+      "addWorkflows": "Add workflows",
+      "allAddedTooltip": "All deployed workflows have been added to this server.",
+      "tabs": {
+        "details": "Details",
+        "workflows": "Workflows"
+      },
+      "noWorkflows": "No workflows added yet. Click \"Add Workflow\" to add a deployed workflow.",
+      "noDescription": "No description",
+      "toolActions": "Tool actions",
+      "deployFirst": "Deploy a workflow first to add it to this server.",
+      "transport": "Transport",
+      "url": "URL",
+      "mcpClient": "MCP Client",
+      "addToWorkspaceDescription": "Add this MCP server to your workspace so you can use its tools in other workflows via the MCP block.",
+      "addedToWorkspace": "Added to Workspace",
+      "addToWorkspace": "Add to Workspace",
+      "addServerFailed": "Failed to add server",
+      "configuration": "Configuration",
+      "configCopied": "Configuration copied",
+      "copyConfig": "Copy configuration",
+      "addToCursor": "Add to Cursor",
+      "codexPublicHint": "Add this to <mono>~/.codex/config.toml</mono>.",
+      "codexPrivateHint": "Add this to <mono>~/.codex/config.toml</mono> and set the SIM_API_KEY environment variable with an existing API key",
+      "replaceKeyHint": "Replace $SIM_API_KEY with your API key",
+      "createOneNow": ", or <button>create one now</button>"
+    },
+    "removeDialog": {
+      "title": "Remove Workflow",
+      "textBefore": "Are you sure you want to remove ",
+      "fallbackName": "this workflow",
+      "textAfter": " from this server? The workflow will remain deployed and can be added back later.",
+      "removing": "Removing..."
+    },
+    "toolEdit": {
+      "fallbackTitle": "Edit Tool",
+      "descriptionPlaceholder": "Describe what this tool does...",
+      "parameters": "Parameters",
+      "paramPlaceholder": "Enter description for {name}",
+      "noInputs": "No inputs configured for this workflow."
+    },
+    "addWorkflow": {
+      "title": "Add Workflow",
+      "intro": "Select a deployed workflow to add to this MCP server. The workflow will be available as a tool.",
+      "selectWorkflow": "Select Workflow",
+      "selectPlaceholder": "Select a workflow...",
+      "addFailed": "Failed to add workflow"
+    },
+    "editServer": {
+      "title": "Edit Server",
+      "serverName": "Server name",
+      "publicHint": "Anyone with the URL can call this server without authentication",
+      "privateHint": "Clients sign in with OAuth, or send a Nexora API key in the X-API-Key header"
+    },
+    "deleteDialog": {
+      "title": "Delete MCP Server",
+      "textBefore": "Are you sure you want to delete ",
+      "fallbackName": "this server",
+      "textAfter": "? This action cannot be undone."
+    },
+    "list": {
+      "addServer": "Add server",
+      "searchPlaceholder": "Search servers...",
+      "loadFailed": "Failed to load MCP servers",
+      "emptyCanEdit": "Click \"Add server\" above to get started",
+      "emptyReadOnly": "No MCP servers configured",
+      "toolsCount": "{count, plural, one {# tool} other {# tools}}",
+      "openServer": "Open {name}",
+      "noResults": "No servers found matching \"{term}\""
+    },
+    "create": {
+      "title": "Add New MCP Server",
+      "workflows": "Workflows",
+      "selectPlaceholder": "Select workflows...",
+      "selectedCount": "{count, plural, one {# workflow selected} other {# workflows selected}}",
+      "noAuth": "No authentication required",
+      "submit": "Add Server"
+    }
+  },
+  "apiKeys": {
+    "copiedName": "Copied name to clipboard",
+    "never": "Never",
+    "rowActions": "API key actions",
+    "copyName": "Copy name",
+    "createApiKey": "Create API key",
+    "searchPlaceholder": "Search API keys...",
+    "loadFailed": "Failed to load API keys",
+    "empty": "Click \"Create API key\" above to get started",
+    "sections": {
+      "workspace": "Workspace",
+      "personal": "Personal",
+      "permissions": "Permissions"
+    },
+    "noWorkspaceKeys": "No workspace API keys yet",
+    "lastUsed": "last used {when}",
+    "conflict": "Workspace API key with the same name overrides this. Rename your personal key to use it.",
+    "noResults": "No API keys found matching \"{term}\"",
+    "allowPersonal": "Allow personal API keys",
+    "aboutPersonal": "About personal API keys",
+    "allowPersonalTooltip": "Allow collaborators to authenticate with their own keys. Hosted usage is billed to this workspace, attributed to the key owner, and counted toward their member cap.",
+    "deleteDialog": {
+      "title": "Delete API key",
+      "textBefore": "Deleting ",
+      "fallbackName": "this key",
+      "consequence": "will immediately revoke access for any integrations using it.",
+      "textAfter": " This action cannot be undone."
+    },
+    "createModal": {
+      "title": "Create new API key",
+      "keyType": "Key type",
+      "personal": "Personal",
+      "workspace": "Workspace",
+      "name": "Name",
+      "namePlaceholder": "e.g., Development, Production",
+      "duplicateWorkspace": "A workspace API key named \"{name}\" already exists. Please choose a different name.",
+      "duplicatePersonal": "A personal API key named \"{name}\" already exists. Please choose a different name.",
+      "createFailed": "Failed to create API key. Please try again.",
+      "createFailedConnection": "Failed to create API key. Please check your connection and try again.",
+      "createdTitle": "Your API key has been created",
+      "copyNow": "Copy it now — it won't be shown again"
+    }
+  },
+  "secrets": {
+    "workspace": "Workspace",
+    "saveFailed": "Couldn't save value",
+    "latestUnavailable": "Could not load your latest secrets. Please try again in a moment.",
+    "tryAgain": "Please try again in a moment."
+  },
+  "secretDetail": {
+    "pageTitle": "Secret",
+    "back": "Secrets",
+    "loading": "Loading…",
+    "seeUsage": "See usage",
+    "ownerOnlyUsage": "Only the owner of this secret can see its usage",
+    "adminOnlyUsage": "Only admins of this secret can see its usage",
+    "share": "Share",
+    "noAccess": "You do not have access to this secret.",
+    "loadFailed": "Could not load this secret.",
+    "notFound": "Secret not found.",
+    "usageTitle": "Usage",
+    "tabs": {
+      "logs": "Logs",
+      "references": "References",
+      "ariaLabel": "Secret usage views"
+    },
+    "subtitle": {
+      "overridden": "Overridden by a workspace variable",
+      "personal": "Personal secret",
+      "workspace": "Workspace secret"
+    },
+    "key": "Key",
+    "copyKey": "Copy key",
+    "value": "Value",
+    "valuePlaceholder": "Enter value",
+    "description": "Description",
+    "descriptionPlaceholder": "Add a description...",
+    "visibility": "Visibility",
+    "showInLogs": "Show value in logs and Chat",
+    "showInLogsHint": "The value is visible to anyone who can see this workspace’s runs — in logs, Chat, and the API, including shared log links.",
+    "usage": {
+      "viewLog": "View log",
+      "expiredTooltip": "This run’s log is past your workspace’s retention window",
+      "nexoraAgent": "Nexora agent",
+      "mcpServer": "MCP server",
+      "runs": "{count, plural, one {# run} other {# runs}}",
+      "unknown": "Unknown",
+      "loadFailed": "Could not load usage.",
+      "trigger": "Trigger",
+      "usedBy": "Used by",
+      "empty": "This secret has not been used yet."
+    },
+    "references": {
+      "shadowed": "Overridden by a workspace variable, so every reference to this name resolves to that variable instead.",
+      "loadFailed": "Could not load references.",
+      "truncated": "This secret is referenced in more places than can be listed here.",
+      "notReferenced": "This secret is not referenced in any workflow.",
+      "openBlock": "Open {block} in {workflow}",
+      "customToolsAndMcp": "Custom tools and MCP servers",
+      "openResource": "Open {name}"
+    }
+  },
+  "profilePicture": {
+    "tooLarge": "File \"{name}\" is too large. Maximum size is 5MB.",
+    "unsupportedFormat": "File \"{name}\" is not a supported image format. Please use PNG, JPEG, SVG, or WebP.",
+    "uploadFailed": "Failed to upload profile picture"
+  },
+  "admin": {
+    "superAdminMode": "Super admin mode",
+    "openBenchmarks": "Open benchmarks",
+    "mothershipEnvironment": "Mothership Environment",
+    "mothershipEnvironmentHint": "Default uses the configured Nexora agent URL.",
+    "selectEnvironment": "Select environment",
+    "environments": {
+      "default": "Default",
+      "dev": "Dev",
+      "staging": "Staging",
+      "prod": "Prod"
+    },
+    "import": {
+      "description": "Import a workflow and its copilot chats into a target workspace.",
+      "sourcePlaceholder": "Source workflow ID",
+      "targetPlaceholder": "Target workspace ID",
+      "importing": "Importing...",
+      "import": "Import",
+      "success": "Workflow imported successfully (new ID: {id}, {count} copilot chats imported)"
+    },
+    "users": {
+      "title": "User management",
+      "addUser": "Add user",
+      "searchPlaceholder": "Search by email or paste a user ID...",
+      "searching": "Searching...",
+      "search": "Search",
+      "fetchFailed": "Failed to fetch users",
+      "actionFailed": "Action failed. Please try again.",
+      "onlyAdmins": "Only admins can impersonate users.",
+      "sendingReset": "Sending a password reset email to {email}...",
+      "noUsers": "No users found.",
+      "pageInfo": "Page {page} of {totalPages} ({total} users)",
+      "previous": "Previous",
+      "next": "Next",
+      "provisionWarning": "Created {email}, but the password reset email failed to send ({error}). Use Reset password in that row's actions menu to try again."
+    },
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "banned": "Banned",
+      "active": "Active"
+    },
+    "row": {
+      "impersonate": "Impersonate",
+      "impersonateAria": "Impersonate {email}",
+      "switching": "Switching...",
+      "actionsAria": "{email} actions",
+      "resetPassword": "Reset password",
+      "resetSent": "Password reset email sent to {email}",
+      "resetFailed": "Could not send a password reset email to {email}",
+      "demote": "Demote",
+      "promote": "Promote",
+      "unban": "Unban",
+      "ban": "Ban"
+    },
+    "banModal": {
+      "title": "Ban user",
+      "prefix": "Banning ",
+      "thisUser": "this user",
+      "consequence": "signs them out everywhere and blocks them from signing back in.",
+      "suffix": " You can unban them later.",
+      "confirm": "Ban",
+      "pending": "Banning...",
+      "reason": "Reason",
+      "reasonPlaceholder": "Optional"
+    },
+    "roleModal": {
+      "demoteTitle": "Demote user",
+      "promoteTitle": "Promote user",
+      "demotePrefix": "Demoting ",
+      "promotePrefix": "Promoting ",
+      "demoteConsequence": "revokes their platform admin access.",
+      "promoteConsequence": "grants full platform admin access, including impersonating any user.",
+      "demote": "Demote",
+      "promote": "Promote",
+      "demoting": "Demoting...",
+      "promoting": "Promoting..."
+    },
+    "addUserModal": {
+      "title": "Add user",
+      "name": "Name",
+      "namePlaceholder": "Canary Writer",
+      "nameRequired": "Name is required",
+      "email": "Email",
+      "invalidEmail": "Enter a valid email",
+      "credentials": "Credentials",
+      "passwordModes": {
+        "set": "Set a password",
+        "email": "Email a reset link"
+      },
+      "resetLinkHint": "They pick their own password from the emailed reset link.",
+      "password": "Password",
+      "passwordPlaceholder": "At least 8 characters",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "emailStatus": "Email status",
+      "emailStatuses": {
+        "verified": "Verified",
+        "unverified": "Unverified"
+      },
+      "verifiedHint": "Verified users can sign in when email verification is required.",
+      "addFailed": "Failed to add user",
+      "adding": "Adding...",
+      "submit": "Add user"
+    }
+  },
+  "mothership": {
+    "environment": "Environment",
+    "selectEnvironment": "Select environment",
+    "environments": {
+      "dev": "Dev",
+      "staging": "Staging",
+      "prod": "Prod"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "licenses": "Licenses",
+      "byok": "BYOK"
+    },
+    "from": "From",
+    "to": "To",
+    "byok": {
+      "description": "Mothership uses the enterprise workspace's Anthropic key from Nexora BYOK settings, including keys inherited from its organization.",
+      "targetWorkspace": "Target workspace",
+      "workspaceIdPlaceholder": "Workspace ID",
+      "manageKeys": "Manage workspace BYOK keys"
+    },
+    "overview": {
+      "totalRequests": "Total Requests",
+      "uniqueUsers": "Unique Users",
+      "totalCost": "Total Cost",
+      "avgCost": "Avg Cost/Request",
+      "userBreakdown": "User Breakdown",
+      "recentRequests": "Recent Requests ({count})",
+      "columns": {
+        "userId": "User ID",
+        "requests": "Requests",
+        "cost": "Cost",
+        "lastRequest": "Last Request",
+        "requestId": "Request ID",
+        "model": "Model",
+        "duration": "Duration",
+        "tools": "Tools",
+        "status": "Status",
+        "time": "Time"
+      },
+      "statuses": {
+        "error": "Error",
+        "abort": "Abort",
+        "ok": "OK"
+      }
+    },
+    "licenses": {
+      "generateTitle": "Generate License",
+      "enterpriseName": "Enterprise Name",
+      "enterpriseNamePlaceholder": "e.g. Acme Corp",
+      "approvalReference": "Approval reference",
+      "approvalReferencePlaceholder": "Signed order form or written approval",
+      "expiration": "Expiration (optional)",
+      "generating": "Generating...",
+      "generate": "Generate",
+      "keyShownOnce": "License key (only shown once):",
+      "copyKey": "Copy license key",
+      "allLicenses": "All Licenses",
+      "noLicenses": "No licenses found.",
+      "never": "Never",
+      "columns": {
+        "name": "Name",
+        "validations": "Validations",
+        "expiration": "Expiration",
+        "created": "Created"
+      }
+    }
+  },
+  "selfHost": {
+    "chatKeys": "Chat keys",
+    "chatKeysDescription": "Model-provider keys that power Chat on this deployment.",
+    "managedKeys": "Managed keys"
+  },
+  "copilot": {
+    "createApiKey": "Create API key",
+    "searchPlaceholder": "Search API keys...",
+    "emptyState": "Click \"Create API key\" above to get started",
+    "unnamedKey": "Unnamed Key",
+    "lastUsed": "last used {date}",
+    "neverUsed": "last used never",
+    "actionsFor": "Actions for {name}",
+    "noResults": "No API keys found matching \"{term}\"",
+    "duplicateName": "A Chat API key named \"{name}\" already exists. Please choose a different name.",
+    "createFailed": "Failed to create API key. Please check your connection and try again.",
+    "createModal": {
+      "title": "Create new API key",
+      "description": "This key will allow access to Chat features. Make sure to copy it after creation as you won't be able to see it again.",
+      "keyName": "Key name",
+      "keyNamePlaceholder": "e.g., Development, Production"
+    },
+    "createdModal": {
+      "title": "Your API key has been created",
+      "copyNow": "Copy it now — it won't be shown again"
+    },
+    "deleteModal": {
+      "title": "Delete API key",
+      "prefix": "Deleting ",
+      "consequence": "will immediately revoke access for any integrations using it.",
+      "suffix": " This action cannot be undone."
+    }
+  },
+  "billing": {
+    "loadFailed": "Failed to load billing information",
+    "exploreOrganizationPlans": "Explore organization plans",
+    "explorePersonalPlans": "Explore personal plans",
+    "planTitle": {
+      "organizationEnded": "Organization {plan} plan ended",
+      "organization": "Organization {plan} plan",
+      "personal": "Personal {plan} plan"
+    },
+    "price": {
+      "noActiveOrganizationSubscription": "No active organization subscription",
+      "chooseNewPlan": "Choose a new plan for this organization",
+      "custom": "Custom pricing",
+      "perUserBilledMonthly": "${price} per user/month, billed monthly",
+      "perUserBilledAnnually": "${price} per user/month, billed annually"
+    },
+    "toasts": {
+      "cantChangeOnDemand": "Can't change on-demand usage",
+      "onlyAdminsOnDemand": "Only organization admins can change on-demand usage.",
+      "billingContextUnavailable": "Organization billing context is unavailable. Please refresh and try again.",
+      "tryAgain": "Please try again in a moment.",
+      "couldNotUpdateOnDemand": "Couldn't update on-demand usage",
+      "cantManagePaymentMethod": "Can't manage payment method",
+      "onlyAdminsBilling": "Only organization admins can manage billing.",
+      "billingUnavailable": "Billing unavailable",
+      "couldNotOpenPortal": "Couldn't open billing portal",
+      "cantCancel": "Can't cancel subscription",
+      "onlyAdminsCancel": "Only organization admins can cancel the subscription.",
+      "couldNotCancel": "Couldn't cancel subscription",
+      "cantRestore": "Can't restore subscription",
+      "onlyAdminsRestore": "Only organization admins can restore the subscription.",
+      "couldNotRestore": "Couldn't restore subscription"
+    },
+    "onDemand": {
+      "label": "Enable on-demand usage",
+      "allowOverage": "Allow usage to go past included usage",
+      "lockedOnTooltip": "Your usage is above your plan's included amount, so on-demand can't be turned off yet. It turns off once usage drops below it — at the latest when your billing period resets."
+    },
+    "usageNotifications": {
+      "label": "Usage notifications",
+      "emailAt80": "Email me when I reach 80% usage"
+    },
+    "subscription": {
+      "label": "Subscription",
+      "accessUntil": "Access until",
+      "nextBillingDate": "Next billing date",
+      "weeklyRefresh": "Weekly refresh",
+      "paymentMethod": "Payment method",
+      "manageInStripe": "Manage in Stripe",
+      "canceled": "Subscription canceled",
+      "cancelSubscription": "Cancel subscription",
+      "restore": "Restore"
+    },
+    "invoices": {
+      "label": "Invoices",
+      "viewAllAriaLabel": "View all invoices",
+      "viewAll": "View all"
+    },
+    "invoiceStatus": {
+      "paid": "Paid",
+      "open": "Open",
+      "uncollectible": "Uncollectible",
+      "void": "Void",
+      "unknown": "Unknown"
+    },
+    "usageLimit": {
+      "label": "Usage limit",
+      "info": "Max usage to consume per month, set in credits — Nexora's usage unit (1,000 credits = $5). By default, it's your plan's included usage, but you can set it beyond.",
+      "mustBeNumber": "Usage limit must be a number",
+      "mustBeAtLeast": "Usage limit must be at least {credits} credits",
+      "couldNotUpdate": "Couldn't update usage limit",
+      "tryAgain": "Please try again in a moment.",
+      "billingContextUnavailable": "Organization billing context is unavailable. Please refresh and try again.",
+      "placeholder": "Enter monthly usage limit",
+      "noLimit": "No Usage Limit"
+    },
+    "creditUsageSection": {
+      "label": "Credit usage",
+      "credits": "{count, plural, one {# credit} other {# credits}}",
+      "last30Days": "Last 30 days",
+      "viewUsageLogs": "View usage logs"
+    }
+  },
+  "creditUsage": {
+    "title": "Credit usage",
+    "description": "Every credit-consuming event behind your usage.",
+    "back": "Subscription",
+    "export": "Export",
+    "exportFailed": "Failed to export usage logs",
+    "exportTruncated": "Export truncated — narrow the date range to see everything",
+    "periods": {
+      "1d": "Today",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "all": "All time",
+      "custom": "Custom range"
+    },
+    "workflowRow": "Workflow: {name}",
+    "sources": {
+      "workflow": "Workflow",
+      "wand": "Wand",
+      "sim-chat": "Nexora Chat",
+      "mcp_copilot": "Nexora Chat (MCP)",
+      "mothership_block": "Agent block",
+      "knowledge-base": "Knowledge Base",
+      "voice-input": "Voice input",
+      "enrichment": "Enrichment",
+      "voice-output": "Voice output",
+      "api-tool": "API tool call"
+    },
+    "loadingEllipsis": "Loading…",
+    "unavailable": "Unavailable",
+    "updating": "Updating…",
+    "credits": "{count, plural, one {# credit} other {# credits}}",
+    "total": "Total: {value}",
+    "loadingUsage": "Loading usage…",
+    "loadFailed": "Couldn't load credit usage.",
+    "empty": "No credit usage in this period.",
+    "loadMoreAriaLabel": "Load more usage",
+    "loadMore": "Load more"
+  },
+  "usageEvents": {
+    "title": "Usage events",
+    "description": "Every credit-consuming event across your organization's workspaces.",
+    "back": "Usage"
+  },
+  "teamManagement": {
+    "defaultOrgName": "{name}'s Team",
+    "openPortalFailed": "Failed to open Stripe billing portal. Please try again.",
+    "loadOrganizationFailed": "Failed to load organization",
+    "createOrganizationFailed": "Failed to create organization",
+    "searchMembers": "Search members...",
+    "invite": "Invite",
+    "invitationsDisabled": "Invitations are disabled",
+    "loadSeatsFailed": "Failed to load seat information",
+    "loadingMembers": "Loading members…",
+    "loadMembersFailed": "Failed to load organization members",
+    "removeMemberDialog": {
+      "yourself": "yourself",
+      "thisMember": "this member",
+      "leaveTitle": "Leave Organization",
+      "removeExternalTitle": "Remove External Member",
+      "removeTeamMemberTitle": "Remove Team Member",
+      "removeFailed": "Failed to remove member",
+      "impactCheckFailedSelf": "Couldn't check which credentials you own will be affected — connected accounts backed by your identity may stop working after removal.",
+      "impactCheckFailedOther": "Couldn't check which credentials they own will be affected — connected accounts backed by their identity may stop working after removal.",
+      "breakingCredentialsSelf": "{count, plural, one {A credential you own ({names}) will stop working in organization workspaces until another member reconnects it.} other {# credentials you own ({names}) will stop working in organization workspaces until another member reconnects them.}}",
+      "breakingCredentialsOther": "{count, plural, one {A credential they own ({names}) will stop working in organization workspaces until another member reconnects it.} other {# credentials they own ({names}) will stop working in organization workspaces until another member reconnects them.}}",
+      "leaveConfirm": "Are you sure you want to leave this organization? You will lose access to all team resources. This action cannot be undone.",
+      "removePrefix": "Are you sure you want to remove ",
+      "removeExternalSuffix": " from all organization workspaces? Their workspace access and workspace credential access will be revoked. This action cannot be undone.",
+      "removeTeamSuffix": " from the team? This action cannot be undone.",
+      "checkingImpact": "Checking which connected credentials this affects…"
+    },
+    "seats": {
+      "label": "Seats",
+      "noSubscription": "No active Team subscription",
+      "purchaseHint": "Purchase a Team plan to invite teammates to this organization.",
+      "viewPlans": "View plans",
+      "pending": "{count} pending",
+      "seatCount": "{count, plural, one {# seat} other {# seats}}",
+      "usedOfTotal": "{used} used / {total} total",
+      "overLimit": "Over limit",
+      "overLimitHint": "You have more teammates than seats. Contact support to adjust your enterprise seat count.",
+      "contactSupport": "Contact support for enterprise seat changes."
+    },
+    "memberLists": {
+      "orgRoles": {
+        "owner": "Owner",
+        "admin": "Admin",
+        "member": "Member",
+        "external": "External"
+      },
+      "workspaceRoles": {
+        "read": "Read",
+        "write": "Write",
+        "admin": "Admin"
+      },
+      "memberActions": "Member actions",
+      "deactivatedByDirectory": "Deactivated by your directory",
+      "joined": "Joined {date}",
+      "copyEmail": "Copy email",
+      "manageCredits": "Manage credits",
+      "transferOwnership": "Transfer ownership",
+      "leaveOrganization": "Leave organization",
+      "invitePending": "Invite pending",
+      "resendInvite": "Resend invite",
+      "revokeInvite": "Revoke invite",
+      "removeFromWorkspace": "Remove from workspace",
+      "removeMemberFailed": "Couldn't remove member",
+      "tryAgain": "Please try again in a moment.",
+      "membersCount": "Members ({count})",
+      "noMatches": "No members matching “{query}”",
+      "noMembersYet": "No members yet",
+      "noWorkspaceMembers": "No members in this workspace"
+    },
+    "transferOwnership": {
+      "title": "Leave organization",
+      "confirm": "Transfer & leave",
+      "transferring": "Transferring...",
+      "onlyMember": "You're the only member of this organization. Invite another admin before leaving.",
+      "explanation": "As the owner, you need to hand off the organization before you can leave. Pick a member to become the new owner. They'll inherit billing access, seat management, and all owner-only permissions. You'll lose access to every shared workspace in this organization.",
+      "openingPortal": "Opening...",
+      "openPortal": "Open Stripe billing portal",
+      "paymentMethodStays": "Your payment method stays on this organization",
+      "paymentMethodHint": "Future charges will keep hitting the card you added. Open the Stripe billing portal to remove it before you leave.",
+      "searchMembers": "Search members...",
+      "noMatches": "No members match \"{search}\"",
+      "admin": "Admin",
+      "failed": "Failed to transfer ownership"
+    },
+    "noOrganization": {
+      "createTitle": "Create your organization",
+      "subscribedTeam": "You're subscribed to a team plan. Create your organization to start collaborating with your team.",
+      "subscribedEnterprise": "You're subscribed to a enterprise plan. Create your organization to start collaborating with your team.",
+      "ignoreField": "Ignore this field",
+      "teamName": "Team Name",
+      "teamNamePlaceholder": "My Team",
+      "teamUrl": "Team URL",
+      "createOrganization": "Create organization",
+      "createModalTitle": "Create Team Organization",
+      "organizationName": "Organization Name",
+      "organizationNamePlaceholder": "Enter organization name",
+      "organizationSlug": "Organization Slug",
+      "createOrganizationModal": "Create Organization",
+      "noTeamTitle": "No Team Workspace",
+      "noTeamDescription": "You don't have a team workspace yet. To collaborate with others, first upgrade to a team or enterprise plan.",
+      "upgrade": "Upgrade to Team Plan"
+    }
+  },
+  "teammates": {
+    "roles": {
+      "read": "Read",
+      "write": "Write",
+      "admin": "Admin"
+    },
+    "joined": "Joined {date}",
+    "external": "External",
+    "invitePending": "Invite pending",
+    "searchPlaceholder": "Search teammates...",
+    "invite": "Invite",
+    "sectionLabel": "Teammates ({count})",
+    "noMatches": "No teammates found matching “{query}”",
+    "empty": "No teammates yet",
+    "actionsLabel": "Teammate actions",
+    "copyEmail": "Copy email",
+    "resendInvite": "Resend invite",
+    "copyInviteLink": "Copy invite link",
+    "revokeInvite": "Revoke invite",
+    "removeFailed": "Couldn't remove teammate",
+    "tryAgain": "Please try again in a moment.",
+    "workspaceFallback": "Workspace"
+  },
+  "inbox": {
+    "loadFailed": "Failed to load Inbox settings",
+    "upgradeTitle": "Nexora Mailer requires an active Max plan",
+    "upgradeDescription": "Upgrade to Max and ensure billing is active to receive tasks via email and let Nexora work on your behalf.",
+    "sectionLabel": "Inbox",
+    "sectionDescription": "Email tasks received by this workspace.",
+    "taskList": {
+      "statusFilters": {
+        "all": "All statuses",
+        "completed": "Completed",
+        "processing": "Processing",
+        "received": "Received",
+        "failed": "Failed",
+        "rejected": "Rejected"
+      },
+      "statusBadges": {
+        "received": "Received",
+        "processing": "Processing",
+        "completed": "Complete",
+        "failed": "Failed",
+        "rejected": "Rejected"
+      },
+      "rejectionReasons": {
+        "sender_not_allowed": "Sender not allowed",
+        "automated_sender": "Automated sender",
+        "rate_limit_exceeded": "Rate limit exceeded",
+        "not_entitled": "Plan no longer includes Nexora Mailer"
+      },
+      "searchPlaceholder": "Search tasks...",
+      "noMatches": "No tasks matching \"{query}\"",
+      "emptyWithAddress": "No email tasks yet. Send an email to {address} to get started.",
+      "empty": "No email tasks yet."
+    },
+    "enableToggle": {
+      "on": "On",
+      "off": "Off",
+      "updateFailed": "Failed to update inbox",
+      "enableTitle": "Enable email inbox",
+      "enableDescription": "Allow this workspace to receive tasks via email",
+      "enableModalDescription": "An email address will be created for this workspace. Anyone in the allowed senders list can email it to create tasks.",
+      "emailPrefix": "Email prefix",
+      "emailPrefixPlaceholder": "Optional — leave blank to auto-generate",
+      "emailPrefixHint": "Leave blank for an auto-generated address.",
+      "enabling": "Enabling...",
+      "enable": "Enable",
+      "disableTitle": "Disable email inbox",
+      "disableConfirmPrefix": "Are you sure you want to disable the inbox ",
+      "disableConfirmSuffix": "? Any emails sent to this address after disabling will not be delivered. This action cannot be undone.",
+      "disableConfirmNoAddress": "Are you sure you want to disable the inbox? Any emails sent to this address after disabling will not be delivered. This action cannot be undone.",
+      "disableInbox": "Disable inbox",
+      "disabling": "Disabling...",
+      "historyPreserved": "Your existing conversations and task history will be preserved."
+    },
+    "settingsTab": {
+      "secretScopes": {
+        "all": "All secrets",
+        "selected": "Selected secrets"
+      },
+      "updateAddressFailed": "Failed to update address",
+      "addSenderFailed": "Failed to add sender",
+      "removeSenderFailed": "Failed to remove sender",
+      "addressLabel": "Nexora's email",
+      "addressHint": "Send emails here to create tasks.",
+      "copyAddress": "Copy address",
+      "copiedExclamation": "Copied!",
+      "editAddress": "Edit address",
+      "allowedSenders": "Allowed senders",
+      "allowedSendersHint": "Only emails from these addresses can create tasks.",
+      "memberBadge": "member",
+      "removeSender": "Remove sender",
+      "noSenders": "No allowed senders configured.",
+      "addSender": "Add sender",
+      "secrets": "Secrets",
+      "secretAccess": "Secret access",
+      "searchSecrets": "Search secrets",
+      "selectSecrets": "Select secrets",
+      "updateSecretAccessFailed": "Failed to update secret access",
+      "addSenderModalTitle": "Add allowed sender",
+      "emailAddress": "Email address",
+      "label": "Label",
+      "labelPlaceholder": "e.g., John from Marketing",
+      "changeAddressTitle": "Change email address",
+      "changeAddressWarning": "Changing your email address will create a new inbox.",
+      "changeAddressWarningEmphasis": "The old address will stop receiving emails immediately.",
+      "newEmailPrefix": "New email prefix",
+      "newEmailPrefixPlaceholder": "e.g., new-acme",
+      "updating": "Updating...",
+      "changeAddress": "Change address"
+    }
+  },
+  "desktop": {
+    "loadError": "Could not load desktop settings",
+    "updateError": "Could not update desktop settings",
+    "fileAccessError": "Could not save file access settings. Your previous setting may return after restarting Nexora.",
+    "sections": {
+      "general": "General",
+      "localFiles": "Local files",
+      "notifications": "Notifications"
+    },
+    "version": "Version",
+    "versionOnRestart": "{current} → {next} on restart",
+    "launchAtLogin": "Launch Nexora at login",
+    "preventSleep": "Prevent sleep while a chat is running",
+    "trayEnabled": "Show Nexora in Control Center",
+    "autoDownloadUpdates": "Automatically download updates",
+    "fullFileAccess": "Full file access",
+    "notificationsEnabled": "Enable desktop notifications",
+    "notificationSounds": "Play notification sounds",
+    "notificationsUnfocused": "Notify only when Nexora isn't focused"
+  },
+  "computerUse": {
+    "loadAppsError": "Could not load approved apps",
+    "updateError": "Could not update Computer Use settings",
+    "title": "Computer Use",
+    "allowMacApps": "Allow Mothership to use Mac apps",
+    "off": "Off",
+    "on": "On",
+    "intro": "Off by default. Each app requires your approval. You can stop an action from the conversation or revoke an app below.",
+    "helperError": "Could not connect to the computer helper.",
+    "permissions": {
+      "accessibility": "Accessibility",
+      "screenCapture": "Screen Recording"
+    },
+    "allowed": "Allowed",
+    "openSystemSettings": "Open System Settings",
+    "openSystemSettingsFor": "Open System Settings for {permission}",
+    "permissionsHint": "Accessibility allows interaction with approved apps. Screen Recording allows screenshots. Return here after granting access to refresh the status.",
+    "approvedApps": "Approved apps",
+    "revoke": "Revoke"
+  },
+  "browser": {
+    "errors": {
+      "theme": "Could not update browser appearance",
+      "zoom": "Could not update the default browser zoom",
+      "downloadDirectory": "Could not update the browser download location",
+      "load": "Could not load browser settings",
+      "update": "Could not update browser settings",
+      "searchSuggestions": "Could not update browser search suggestions",
+      "clear": "Could not delete browsing data"
+    },
+    "actions": {
+      "passwords": "Passwords",
+      "clearAll": "Clear all"
+    },
+    "sections": {
+      "general": "General",
+      "browsingData": "Browsing data"
+    },
+    "enabled": "Let Chat browse the web",
+    "searchSuggestions": "Search suggestions",
+    "searchSuggestionsDescription": "Send address-bar typing to Google for live completions",
+    "theme": "Theme",
+    "themeAriaLabel": "Browser theme",
+    "defaultZoom": "Default zoom",
+    "downloadLocation": "Download location",
+    "choosing": "Choosing...",
+    "change": "Change",
+    "dataRows": {
+      "cookies": {
+        "label": "Cookies",
+        "action": "Delete cookies",
+        "consequence": "sign the browser out of every site it is currently signed into"
+      },
+      "siteData": {
+        "label": "Site data",
+        "action": "Delete site data",
+        "consequence": "erase the data sites have stored locally, such as drafts and preferences"
+      },
+      "cache": {
+        "label": "Cached images and files",
+        "action": "Delete cached images and files",
+        "consequence": "free up space and make sites load more slowly the first time"
+      }
+    },
+    "clearConfirm": {
+      "allTitle": "Clear all browsing data",
+      "before": "This will ",
+      "allConsequence": "sign the browser out of every site and erase its cookies, site data, and cache",
+      "after": ". Your Nexora account and saved passwords are not affected."
+    },
+    "passwords": {
+      "deleteAllSuccess": "Deleted every saved password",
+      "deleteAllError": "Could not delete saved passwords",
+      "back": "Browser",
+      "title": "Passwords",
+      "description": "Saved logins for the built-in browser, encrypted on this device.",
+      "searchPlaceholder": "Search passwords...",
+      "deleteAll": "Delete all",
+      "import": "Import",
+      "empty": "No saved passwords yet. Import them from another browser to bring them over.",
+      "noUsername": "No username",
+      "open": "Open {site}",
+      "noResults": "No passwords found matching “{term}”",
+      "deleteAllTitle": "Delete all passwords",
+      "deleteAllConfirm": {
+        "before": "This permanently deletes ",
+        "count": "all {count, plural, one {# saved password} other {# saved passwords}}",
+        "after": " from this device. Your accounts on those sites are not affected, and you can import again from another browser."
+      }
+    },
+    "passwordDetail": {
+      "revealError": "Could not show that password",
+      "copyError": "Could not copy that password",
+      "forgetError": "Could not forget that password",
+      "back": "Passwords",
+      "description": "Saved on this device, encrypted. Chat can never read, choose, or type it.",
+      "forget": "Forget",
+      "login": "Login",
+      "site": "Site",
+      "copySite": "Copy site",
+      "username": "Username",
+      "copyUsername": "Copy username",
+      "password": "Password",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "copyPassword": "Copy password",
+      "forgetTitle": "Forget password",
+      "forgetConfirm": {
+        "before": "Nexora will delete the saved password for ",
+        "after": ". Your account on that site is not affected."
+      },
+      "forgetting": "Forgetting..."
+    }
+  },
+  "recentlyDeleted": {
+    "sort": {
+      "deleted": "Deleted",
+      "name": "Name",
+      "type": "Type"
+    },
+    "tabs": {
+      "all": "All",
+      "chat": "Chats",
+      "table": "Tables",
+      "file": "Files",
+      "knowledge": "Knowledge Bases",
+      "workflow": "Workflows",
+      "folder": "Folders"
+    },
+    "types": {
+      "workflow": "Workflow",
+      "folder": "Folder",
+      "workspaceFolder": "File Folder",
+      "knowledgeFolder": "Knowledge Folder",
+      "tableFolder": "Table Folder",
+      "table": "Table",
+      "knowledge": "Knowledge Base",
+      "file": "File",
+      "chat": "Chat"
+    },
+    "searchPlaceholder": "Search deleted items...",
+    "loadError": "Failed to load deleted items",
+    "loadMoreError": "Failed to load more deleted items",
+    "noResults": "No items found matching “{term}”",
+    "empty": "No deleted items",
+    "rowDescription": "{type} · Deleted {date}",
+    "restoredPaused": "Restored · schedules and webhooks stay paused",
+    "restored": "Restored",
+    "restoring": "Restoring...",
+    "view": "View",
+    "restore": "Restore"
+  },
+  "activityLog": {
+    "timestamp": "Timestamp",
+    "event": "Event",
+    "description": "Description",
+    "actor": "Actor"
+  },
+  "authorizedApps": {
+    "revokedToast": "Revoked {name}",
+    "appFallback": "app",
+    "revokeError": "Failed to revoke access",
+    "back": "General",
+    "title": "Authorized apps",
+    "description": "Review and revoke apps that can act on your account.",
+    "searchPlaceholder": "Search authorized apps...",
+    "loadError": "Failed to load authorized apps",
+    "loading": "Loading authorized apps…",
+    "noResults": "No apps found matching \"{term}\"",
+    "empty": "No apps have access to your account",
+    "authorizedOn": "authorized {date}",
+    "actionsLabel": "Authorized app actions",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke access",
+    "revokeConfirm": {
+      "before": "Revoking ",
+      "thisApp": "this app",
+      "consequence": "immediately signs it out everywhere.",
+      "after": " You will have to authorize it again to reconnect."
+    },
+    "revoking": "Revoking...",
+    "loadingMore": "Loading…",
+    "loadMore": "Load more"
+  }
+}

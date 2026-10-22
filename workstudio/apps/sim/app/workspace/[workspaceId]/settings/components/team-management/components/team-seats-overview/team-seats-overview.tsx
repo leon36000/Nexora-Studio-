@@ -1,4 +1,5 @@
 import { Badge, ChipLink } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { checkEnterprisePlan } from '@/lib/billing/subscriptions/utils'
 import { SegmentedMeter } from '@/app/workspace/[workspaceId]/settings/components/segmented-meter'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
@@ -32,23 +33,23 @@ export function TeamSeatsOverview({
   usedSeats,
   pendingSeats = 0,
 }: TeamSeatsOverviewProps) {
+  const t = useTranslations('settings.teamManagement.seats')
+
   if (isLoadingSubscription) {
     return null
   }
 
   if (!subscriptionData) {
     return (
-      <SettingsSection label='Seats'>
+      <SettingsSection label={t('label')}>
         <div className='flex items-center justify-between gap-3'>
           <div className='flex min-w-0 flex-col'>
-            <span className='text-[var(--text-body)] text-small'>No active Team subscription</span>
-            <span className='text-[var(--text-muted)] text-small'>
-              Purchase a Team plan to invite teammates to this organization.
-            </span>
+            <span className='text-[var(--text-body)] text-small'>{t('noSubscription')}</span>
+            <span className='text-[var(--text-muted)] text-small'>{t('purchaseHint')}</span>
           </div>
           {billingHref && (
             <ChipLink href={billingHref} variant='primary'>
-              View plans
+              {t('viewPlans')}
             </ChipLink>
           )}
         </div>
@@ -68,7 +69,7 @@ export function TeamSeatsOverview({
   const pendingBadge =
     pendingSeats > 0 ? (
       <Badge variant='gray-secondary' size='sm'>
-        {pendingSeats} pending
+        {t('pending', { count: pendingSeats })}
       </Badge>
     ) : null
 
@@ -80,10 +81,10 @@ export function TeamSeatsOverview({
    */
   if (!isEnterprise) {
     return (
-      <SettingsSection label='Seats'>
+      <SettingsSection label={t('label')}>
         <div className='flex items-center justify-between gap-2'>
           <span className='text-[var(--text-body)] text-small tabular-nums'>
-            {usedSeats} {usedSeats === 1 ? 'seat' : 'seats'}
+            {t('seatCount', { count: usedSeats })}
           </span>
           {pendingBadge}
         </div>
@@ -92,17 +93,17 @@ export function TeamSeatsOverview({
   }
 
   return (
-    <SettingsSection label='Seats'>
+    <SettingsSection label={t('label')}>
       <div className='flex flex-col gap-2.5'>
         <div className='flex items-center justify-between gap-2'>
           <span className='text-[var(--text-body)] text-small tabular-nums'>
-            {usedSeats} used / {totalSeats} total
+            {t('usedOfTotal', { used: usedSeats, total: totalSeats })}
           </span>
           <div className='flex items-center gap-1.5'>
             {pendingBadge}
             {isOverLimit && (
               <Badge variant='amber' size='sm'>
-                Over limit
+                {t('overLimit')}
               </Badge>
             )}
           </div>
@@ -111,9 +112,7 @@ export function TeamSeatsOverview({
         <SegmentedMeter used={usedSeats} total={totalSeats} segments={pillCount} />
 
         <p className='text-[var(--text-muted)] text-small'>
-          {isOverLimit
-            ? 'You have more teammates than seats. Contact support to adjust your enterprise seat count.'
-            : 'Contact support for enterprise seat changes.'}
+          {isOverLimit ? t('overLimitHint') : t('contactSupport')}
         </p>
       </div>
     </SettingsSection>

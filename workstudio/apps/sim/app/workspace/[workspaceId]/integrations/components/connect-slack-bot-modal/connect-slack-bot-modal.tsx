@@ -14,6 +14,7 @@ import { Loader, Plus, Trash } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { SlackIcon } from '@/components/icons'
 import { SlackAppManifest } from '@/components/integrations/slack-app-manifest'
 import { resourceScopeFields, resourceScopeFromOwner } from '@/lib/core/resource-scope'
@@ -62,9 +63,10 @@ interface SlackSlashCommandDraft extends SlackSlashCommand {
   id: string
 }
 
-function getSlashCommandsError(commands: readonly SlackSlashCommandDraft[]): string | null {
+/** Returns the `integrations.slackBot.errors` message key for invalid slash commands. */
+function getSlashCommandsErrorKey(commands: readonly SlackSlashCommandDraft[]): string | null {
   if (commands.some((entry) => !entry.command.trim() || !entry.description.trim())) {
-    return 'Every slash command needs a command and description.'
+    return 'slashCommandIncomplete'
   }
   if (
     commands.some((entry) => {
@@ -72,22 +74,21 @@ function getSlashCommandsError(commands: readonly SlackSlashCommandDraft[]): str
       return !command.startsWith('/') || command.length === 1 || /\s/.test(command)
     })
   ) {
-    return 'Slash commands must be one word beginning with /.'
+    return 'slashCommandFormat'
   }
   if (commands.some((entry) => entry.command.trim().length > 32)) {
-    return 'Slash commands must be 32 characters or fewer.'
+    return 'slashCommandLength'
   }
   const normalizedCommands = commands.map((entry) => entry.command.trim())
   if (new Set(normalizedCommands).size !== normalizedCommands.length) {
-    return 'Each slash command must be unique.'
+    return 'slashCommandUnique'
   }
   return null
 }
 
-function getAgentDescriptionError(description: string): string | null {
-  return description.trim().length > 300
-    ? 'Slack Agent View descriptions must be 300 characters or fewer.'
-    : null
+/** Returns the `integrations.slackBot.errors` message key for an over-long description. */
+function getAgentDescriptionErrorKey(description: string): string | null {
+  return description.trim().length > 300 ? 'descriptionLength' : null
 }
 
 interface ConnectSlackBotModalProps {
@@ -128,6 +129,7 @@ export function ConnectSlackBotModal({
   initialDescription,
   onCreated,
 }: ConnectSlackBotModalProps) {
+  const t = useTranslations('integrations.slackBot')
   const scope = resourceScopeFromOwner({ workspaceId, organizationId })
   const searchOnly = scope.kind === 'organization'
   const isReconnect = Boolean(reconnectCredentialId)
@@ -172,8 +174,11 @@ export function ConnectSlackBotModal({
   const requestUrl = buildSlackCustomBotRequestUrl(credentialId)
 
   const nameError = isReconnect ? null : getSlackAppNameError(appName)
-  const descriptionError = getAgentDescriptionError(appDescription)
-  const slashCommandsError = searchOnly || isReconnect ? null : getSlashCommandsError(slashCommands)
+  const descriptionErrorKey = getAgentDescriptionErrorKey(appDescription)
+  const descriptionError = descriptionErrorKey ? t(`errors.${descriptionErrorKey}`) : null
+  const slashCommandsErrorKey =
+    searchOnly || isReconnect ? null : getSlashCommandsErrorKey(slashCommands)
+  const slashCommandsError = slashCommandsErrorKey ? t(`errors.${slashCommandsErrorKey}`) : null
   const manifestConfigurationError = descriptionError ?? slashCommandsError
 
   const manifestJson = useMemo(() => {
@@ -212,7 +217,7 @@ export function ConnectSlackBotModal({
   const createAppUrl = buildSlackAppCreationUrl(manifestJson)
   const creationUrlError =
     createAppUrl.length > SLACK_APP_CREATION_URL_MAX_LENGTH
-      ? 'This app configuration is too large to open in Slack. Shorten or remove slash commands.'
+      ? t('errors.configurationTooLarge')
       : null
 
   const capabilityIds = [...selected]
@@ -249,7 +254,7 @@ export function ConnectSlackBotModal({
       setCreated(true)
       onCreated?.(credentialId)
     } catch (err: unknown) {
-      setCreateError(getErrorMessage(err, 'Could not connect the Slack bot.'))
+      setCreateError(getErrorMessage(err, t('errors.connectFailed')))
       logger.error('Failed to add custom Slack bot credential', err)
     }
   }
@@ -269,18 +274,18 @@ export function ConnectSlackBotModal({
       icon={SlackIcon}
       title={
         searchOnly
-          ? 'Set up Slack for search'
+          ? t('titles.searchSetup')
           : isReconnect
-            ? 'Reconnect a custom Slack bot'
-            : 'Create a custom Slack bot'
+            ? t('titles.reconnect')
+            : t('titles.create')
       }
-      doneLabel='Done'
+      doneLabel={t('done.label')}
     >
       {/* Bot name is required so the credential name, the manifest app name, and
           uniqueness all use the user's choice — never the shared Slack team name
           fallback, which collides for a second bot in the same workspace. */}
       <Wizard.Step
-        title={searchOnly ? 'Name your Slack app' : 'Configure your bot'}
+        title={searchOnly ? t('steps.nameApp') : t('steps.configure')}
         canAdvance={
           appName.trim().length > 0 &&
           !nameError &&
@@ -304,20 +309,20 @@ export function ConnectSlackBotModal({
           onCapabilityIdsChange={setCapabilityIds}
         />
       </Wizard.Step>
-      <Wizard.Step title={isReconnect ? 'Open your app in Slack' : 'Create the app in Slack'}>
+      <Wizard.Step title={isReconnect ? t('steps.openApp') : t('steps.createApp')}>
         <StepCreate
           manifestJson={manifestJson}
           createAppUrl={createAppUrl}
           reconnect={isReconnect}
         />
       </Wizard.Step>
-      <Wizard.Step title='Install and paste your Bot Token' canAdvance={botToken.trim().length > 0}>
+      <Wizard.Step title={t('steps.installToken')} canAdvance={botToken.trim().length > 0}>
         <StepToken value={botToken} onChange={setBotToken} reconnect={isReconnect} />
       </Wizard.Step>
-      <Wizard.Step title='Paste your Signing Secret' canAdvance={signingSecret.trim().length > 0}>
+      <Wizard.Step title={t('steps.pasteSecret')} canAdvance={signingSecret.trim().length > 0}>
         <StepSecret value={signingSecret} onChange={setSigningSecret} />
       </Wizard.Step>
-      <Wizard.Step title='All set'>
+      <Wizard.Step title={t('steps.allSet')}>
         <StepDone
           searchOnly={searchOnly}
           pending={isPending}
@@ -384,6 +389,7 @@ function StepConfigure({
   capabilityIds,
   onCapabilityIdsChange,
 }: StepConfigureProps) {
+  const t = useTranslations('integrations.slackBot')
   const canConfigureApp = !searchOnly && !reconnect
   const allSelected = capabilityIds.length === CUSTOM_BOT_CAPABILITIES.length
 
@@ -391,7 +397,7 @@ function StepConfigure({
     <>
       <ChipModalField
         type='input'
-        title={searchOnly ? 'App name' : 'Bot name'}
+        title={searchOnly ? t('configure.appName') : t('configure.botName')}
         value={appName}
         onChange={onAppNameChange}
         placeholder={DEFAULT_APP_NAME}
@@ -399,11 +405,13 @@ function StepConfigure({
       />
       <ChipModalField
         type='input'
-        title='Description'
+        title={t('configure.description')}
         value={appDescription}
         onChange={onAppDescriptionChange}
         placeholder={
-          reconnect ? 'Optional description' : "Optional — shown on the bot's Slack profile"
+          reconnect
+            ? t('configure.descriptionPlaceholder')
+            : t('configure.descriptionProfilePlaceholder')
         }
         maxLength={140}
         error={descriptionError}
@@ -411,12 +419,8 @@ function StepConfigure({
       {canConfigureApp && (
         <ChipModalField
           type='custom'
-          title='Additional permissions'
-          hint={
-            allSelected
-              ? 'All additional permissions enabled — the bot can read messages, react, access files and users, and people can authorize it through Connected accounts.'
-              : undefined
-          }
+          title={t('configure.permissions')}
+          hint={allSelected ? t('configure.allPermissionsHint') : undefined}
         >
           <ChipDropdown
             multiple
@@ -424,7 +428,7 @@ function StepConfigure({
             value={capabilityIds}
             onChange={onCapabilityIdsChange}
             options={CAPABILITY_OPTIONS}
-            allLabel='No additional permissions'
+            allLabel={t('configure.noPermissions')}
             showAllOption={false}
           />
         </ChipModalField>
@@ -447,6 +451,7 @@ interface SlashCommandsEditorProps {
 }
 
 function SlashCommandsEditor({ commands, onChange, error }: SlashCommandsEditorProps) {
+  const t = useTranslations('integrations.slackBot.slashCommands')
   const addCommand = () => {
     onChange([...commands, { id: generateId(), command: '', description: '', usageHint: '' }])
   }
@@ -462,9 +467,9 @@ function SlashCommandsEditor({ commands, onChange, error }: SlashCommandsEditorP
   }
 
   return (
-    <ChipModalField type='custom' title='Slash commands (optional)' error={error}>
+    <ChipModalField type='custom' title={t('title')} error={error}>
       <Chip className='w-fit' leftIcon={Plus} onClick={addCommand} disabled={commands.length >= 50}>
-        Add
+        {t('add')}
       </Chip>
       {commands.length > 0 && (
         <div className='space-y-2'>
@@ -480,27 +485,27 @@ function SlashCommandsEditor({ commands, onChange, error }: SlashCommandsEditorP
                   placeholder='/ask-sim'
                   maxLength={32}
                   inputClassName='font-mono'
-                  aria-label={`Slash command ${index + 1}`}
+                  aria-label={t('commandLabel', { index: index + 1 })}
                 />
                 <ChipInput
                   value={entry.description}
                   onChange={(event) => updateCommand(entry.id, 'description', event.target.value)}
-                  placeholder='Short description shown in Slack'
+                  placeholder={t('descriptionPlaceholder')}
                   maxLength={2000}
-                  aria-label={`Slash command ${index + 1} description`}
+                  aria-label={t('descriptionLabel', { index: index + 1 })}
                 />
                 <ChipInput
                   value={entry.usageHint ?? ''}
                   onChange={(event) => updateCommand(entry.id, 'usageHint', event.target.value)}
-                  placeholder='Usage hint (optional), e.g. question or task'
+                  placeholder={t('usageHintPlaceholder')}
                   maxLength={1000}
-                  aria-label={`Slash command ${index + 1} usage hint`}
+                  aria-label={t('usageHintLabel', { index: index + 1 })}
                 />
               </div>
               <Button
                 variant='quiet'
                 size='icon'
-                aria-label={`Remove slash command ${index + 1}`}
+                aria-label={t('removeLabel', { index: index + 1 })}
                 onClick={() => removeCommand(entry.id)}
               >
                 <Trash className='size-[14px]' />
@@ -519,25 +524,25 @@ interface StepCreateProps {
   reconnect: boolean
 }
 function StepCreate({ manifestJson, createAppUrl, reconnect }: StepCreateProps) {
+  const t = useTranslations('integrations.slackBot.create')
   if (reconnect) {
     return (
       <SubStepList>
         <SubStep n={1}>
-          Open your existing app on the{' '}
-          <a
-            href='https://api.slack.com/apps'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-[var(--brand-secondary)] underline underline-offset-2'
-          >
-            Slack Apps page
-          </a>
-          .
+          {t.rich('openExisting', {
+            link: (chunks) => (
+              <a
+                href='https://api.slack.com/apps'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-[var(--brand-secondary)] underline underline-offset-2'
+              >
+                {chunks}
+              </a>
+            ),
+          })}
         </SubStep>
-        <SubStep n={2}>
-          Keep its existing App Manifest and permissions. Reconnecting updates only the credentials
-          saved in Nexora.
-        </SubStep>
+        <SubStep n={2}>{t('keepManifest')}</SubStep>
       </SubStepList>
     )
   }
@@ -546,13 +551,13 @@ function StepCreate({ manifestJson, createAppUrl, reconnect }: StepCreateProps) 
     <div className='space-y-4'>
       <SubStepList>
         <SubStep n={1}>
-          <div>Open Slack with the manifest for your selected permissions already filled in:</div>
+          <div>{t('openWithManifest')}</div>
           <div className='mt-2'>
             <SlackAppManifest manifest={manifestJson} createAppUrl={createAppUrl} />
           </div>
         </SubStep>
         <SubStep n={2}>
-          Select your workspace, review the configuration, then click <strong>Create</strong>.
+          {t.rich('selectWorkspace', { strong: (chunks) => <strong>{chunks}</strong> })}
         </SubStep>
       </SubStepList>
     </div>
@@ -564,50 +569,42 @@ interface SecretStepProps {
   onChange: (next: string) => void
 }
 function StepSecret({ value, onChange }: SecretStepProps) {
+  const t = useTranslations('integrations.slackBot.secret')
+  const strong = (chunks: ReactNode) => <strong>{chunks}</strong>
   return (
     <div className='space-y-4'>
       <SubStepList>
-        <SubStep n={1}>
-          In your Slack app, open <strong>Basic Information</strong>.
-        </SubStep>
-        <SubStep n={2}>
-          Find <strong>Signing Secret</strong> and click <strong>Show</strong>, then copy it.
-        </SubStep>
-        <SubStep n={3}>Paste it into the field below.</SubStep>
+        <SubStep n={1}>{t.rich('openBasicInfo', { strong })}</SubStep>
+        <SubStep n={2}>{t.rich('findSecret', { strong })}</SubStep>
+        <SubStep n={3}>{t('pasteBelow')}</SubStep>
       </SubStepList>
       <SecretField
-        label='Signing Secret'
+        label={t('label')}
         value={value}
         onChange={onChange}
-        placeholder='Paste your signing secret'
+        placeholder={t('placeholder')}
       />
     </div>
   )
 }
 
 function StepToken({ value, onChange, reconnect }: SecretStepProps & { reconnect: boolean }) {
+  const t = useTranslations('integrations.slackBot.token')
+  const strong = (chunks: ReactNode) => <strong>{chunks}</strong>
   return (
     <div className='space-y-4'>
       <SubStepList>
         <SubStep n={1}>
-          {reconnect ? (
-            <>
-              Open <strong>OAuth &amp; Permissions</strong> in your existing Slack app. Reinstall
-              only if Slack requests it.
-            </>
-          ) : (
-            <>
-              In Slack, open <strong>OAuth &amp; Permissions</strong> →{' '}
-              <strong>Install to Workspace</strong> and approve access.
-            </>
-          )}
+          {reconnect
+            ? t.rich('openPermissionsReconnect', { strong })
+            : t.rich('install', { strong })}
         </SubStep>
         <SubStep n={2}>
-          Copy the <strong>Bot User OAuth Token</strong> (starts with <code>xoxb-</code>).
+          {t.rich('copyToken', { strong, code: (chunks) => <code>{chunks}</code> })}
         </SubStep>
-        <SubStep n={3}>Paste it into the field below, then click Next.</SubStep>
+        <SubStep n={3}>{t('pasteBelow')}</SubStep>
       </SubStepList>
-      <SecretField label='Bot Token' value={value} onChange={onChange} placeholder='xoxb-...' />
+      <SecretField label={t('label')} value={value} onChange={onChange} placeholder='xoxb-...' />
     </div>
   )
 }
@@ -640,11 +637,12 @@ interface StepDoneProps {
   onRetry: () => void
 }
 function StepDone({ searchOnly, pending, created, error, onRetry }: StepDoneProps) {
+  const t = useTranslations('integrations.slackBot.done')
   if (pending) {
     return (
       <div className='flex flex-col items-center gap-3 py-10 text-center'>
         <Loader className='size-6 animate-spin text-[var(--text-muted)]' />
-        <p className='text-[var(--text-secondary)] text-sm'>Verifying your bot and connecting…</p>
+        <p className='text-[var(--text-secondary)] text-sm'>{t('verifying')}</p>
       </div>
     )
   }
@@ -652,7 +650,7 @@ function StepDone({ searchOnly, pending, created, error, onRetry }: StepDoneProp
     return (
       <div className='flex flex-col items-center gap-3 py-10 text-center'>
         <p className='max-w-sm text-[var(--text-error)] text-sm leading-relaxed'>{error}</p>
-        <Chip onClick={onRetry}>Try again</Chip>
+        <Chip onClick={onRetry}>{t('tryAgain')}</Chip>
       </div>
     )
   }
@@ -661,12 +659,10 @@ function StepDone({ searchOnly, pending, created, error, onRetry }: StepDoneProp
       <div className='flex flex-col items-center gap-4 py-10 text-center'>
         <div className='space-y-1'>
           <p className='text-[var(--text-primary)] text-base'>
-            {searchOnly ? 'Slack app connected' : 'Bot connected'}
+            {searchOnly ? t('appConnected') : t('botConnected')}
           </p>
           <p className='max-w-sm text-[var(--text-secondary)] text-sm leading-relaxed'>
-            {searchOnly
-              ? 'Click Done to verify member access.'
-              : "It's now selectable in Slack triggers and actions across this workspace. Click Done to finish."}
+            {searchOnly ? t('verifyMembers') : t('selectable')}
           </p>
         </div>
       </div>

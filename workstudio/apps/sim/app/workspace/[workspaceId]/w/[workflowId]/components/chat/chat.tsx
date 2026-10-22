@@ -20,6 +20,7 @@ import {
 import { ArrowUp, CircleAlert, Download, MoreVertical, Paperclip, Square, X } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import { useSession } from '@/lib/auth/client'
 import {
@@ -110,6 +111,7 @@ interface ChatFilePreviewProps {
  * Successful uploads replace it with the storage-backed URL in message history.
  */
 function ChatFilePreview({ file, onRemove }: ChatFilePreviewProps) {
+  const t = useTranslations('editor.runPanels.chat')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -143,7 +145,7 @@ function ChatFilePreview({ file, onRemove }: ChatFilePreviewProps) {
       )}
 
       <Button
-        aria-label='Remove file'
+        aria-label={t('removeFile')}
         variant='ghost'
         size='icon'
         onClick={(event) => {
@@ -237,6 +239,7 @@ interface StartInputFormatField {
  * position across sessions using the floating chat store.
  */
 export function Chat() {
+  const t = useTranslations('editor.runPanels.chat')
   const isMobile = useIsMobile()
   const activeWorkflowId = useWorkflowRegistry((s) => s.activeWorkflowId)
   const blocks = useWorkflowStore((state) => state.blocks)
@@ -574,7 +577,7 @@ export function Chat() {
 
             if (event === 'final' && eventData) {
               if ('success' in eventData && !eventData.success) {
-                finalError = eventData.error || 'Workflow execution failed'
+                finalError = eventData.error || t('executionFailed')
               }
               return true
             }
@@ -613,7 +616,7 @@ export function Chat() {
         if (finalError) {
           appendMessageContent(
             responseMessageId,
-            `${accumulatedContent ? '\n\n' : ''}Error: ${finalError}`
+            `${accumulatedContent ? '\n\n' : ''}${t('errorMessage', { message: finalError })}`
           )
         }
         finalizeMessageStream(responseMessageId)
@@ -639,6 +642,7 @@ export function Chat() {
       focusInput,
       selectedOutputs,
       activeWorkflowId,
+      t,
     ]
   )
 
@@ -685,15 +689,15 @@ export function Chat() {
         const errorMessage =
           'error' in result && typeof result.error === 'string'
             ? result.error
-            : 'Workflow execution failed.'
+            : t('executionFailedSentence')
         addMessage({
-          content: `Error: ${errorMessage}`,
+          content: t('errorMessage', { message: errorMessage }),
           workflowId: activeWorkflowId,
           type: 'workflow',
         })
       }
     },
-    [activeWorkflowId, selectedOutputs, addMessage, processStreamingResponse]
+    [activeWorkflowId, selectedOutputs, addMessage, processStreamingResponse, t]
   )
 
   /**
@@ -903,7 +907,7 @@ export function Chat() {
     <div
       ref={preventZoomRef}
       role='dialog'
-      aria-label='Chat'
+      aria-label={t('dialogLabel')}
       className='fixed z-30 flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 pt-0.5 pb-2 motion-reduce:transition-none max-md:absolute max-md:inset-0! max-md:size-auto! max-md:cursor-default! max-md:rounded-none max-md:border-0 max-md:pb-[max(8px,env(safe-area-inset-bottom))]'
       style={{
         left: `${actualPosition.x}px`,
@@ -928,7 +932,7 @@ export function Chat() {
           if (isFloatingLayout()) handleMouseDown(event)
         }}
       >
-        <span className='shrink-0 pr-0.5 text-[var(--text-primary)] text-sm'>Chat</span>
+        <span className='shrink-0 pr-0.5 text-[var(--text-primary)] text-sm'>{t('title')}</span>
 
         {/* Start inputs button and output selector - with max-width to prevent overflow */}
         <div
@@ -939,14 +943,14 @@ export function Chat() {
             <button
               type='button'
               className='flex flex-none cursor-pointer items-center whitespace-nowrap rounded-md border border-[var(--border-1)] bg-[var(--surface-5)] px-2.5 py-0.5 font-sans text-[var(--text-primary)] text-caption hover-hover:bg-[var(--surface-active)] max-md:pointer-coarse:min-h-11'
-              title='Add chat inputs to Start block'
+              title={t('addInputsTitle')}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation()
                 handleConfigureStartInputs()
               }}
             >
-              <span className='whitespace-nowrap'>Add inputs</span>
+              <span className='whitespace-nowrap'>{t('addInputs')}</span>
             </button>
           )}
 
@@ -955,7 +959,7 @@ export function Chat() {
             selectedOutputs={selectedOutputs}
             onOutputSelect={handleOutputSelection}
             disabled={!activeWorkflowId}
-            placeholder='Outputs'
+            placeholder={t('outputs')}
             align='end'
             maxHeight={180}
             className='max-md:pointer-coarse:min-h-11'
@@ -967,7 +971,7 @@ export function Chat() {
           <Popover size='sm' open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
             <PopoverTrigger asChild>
               <Button
-                aria-label='Chat actions'
+                aria-label={t('chatActions')}
                 variant='ghost'
                 iconPadding='md'
                 className='-m-1.5 max-md:m-0 max-md:size-11'
@@ -992,7 +996,7 @@ export function Chat() {
                   disabled={workflowMessages.length === 0}
                 >
                   <Download className='size-[13px]' />
-                  <span>Export</span>
+                  <span>{t('export')}</span>
                 </PopoverItem>
                 <PopoverItem
                   onClick={() => {
@@ -1002,7 +1006,7 @@ export function Chat() {
                   disabled={workflowMessages.length === 0}
                 >
                   <Trash className='size-[13px]' />
-                  <span>Clear</span>
+                  <span>{t('clear')}</span>
                 </PopoverItem>
               </PopoverScrollArea>
             </PopoverContent>
@@ -1010,7 +1014,7 @@ export function Chat() {
 
           {/* Close button */}
           <Button
-            aria-label='Close chat'
+            aria-label={t('closeChat')}
             variant='ghost'
             iconPadding='md'
             className='-m-1.5 max-md:m-0 max-md:size-11'
@@ -1027,7 +1031,7 @@ export function Chat() {
         <div className='flex-1 overflow-hidden'>
           {workflowMessages.length === 0 ? (
             <div className='flex h-full items-center justify-center text-[var(--text-placeholder)] text-small'>
-              No messages yet
+              {t('noMessagesYet')}
             </div>
           ) : (
             <div ref={scrollAreaRef} className='h-full overflow-y-auto overflow-x-hidden'>
@@ -1056,7 +1060,7 @@ export function Chat() {
                   <CircleAlert className='mt-0.5 size-3 shrink-0 text-[var(--text-error)]' />
                   <div className='flex-1'>
                     <div className='mb-1 text-[var(--text-error)] text-caption'>
-                      File upload error
+                      {t('fileUploadError')}
                     </div>
                     <div className='space-y-1'>
                       {uploadErrors.map((err, idx) => (
@@ -1105,7 +1109,7 @@ export function Chat() {
                   setHistoryIndex(-1)
                 }}
                 onKeyDown={handleKeyPress}
-                placeholder={isDragOver ? 'Drop files here...' : 'Type a message...'}
+                placeholder={isDragOver ? t('dropFilesHere') : t('typeMessage')}
                 className='w-full border-0 bg-transparent pr-[56px] pl-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 max-md:min-w-0 max-md:flex-1 max-md:pr-1'
                 disabled={!activeWorkflowId}
               />
@@ -1115,7 +1119,7 @@ export function Chat() {
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <Button
-                      aria-label='Attach file'
+                      aria-label={t('attachFile')}
                       variant='ghost'
                       size={null}
                       disabled={
@@ -1131,12 +1135,12 @@ export function Chat() {
                       <Paperclip className='size-3.5!' />
                     </Button>
                   </Tooltip.Trigger>
-                  <Tooltip.Content>Attach file</Tooltip.Content>
+                  <Tooltip.Content>{t('attachFile')}</Tooltip.Content>
                 </Tooltip.Root>
 
                 {isStreaming ? (
                   <ComposerActionButton
-                    aria-label='Stop generation'
+                    aria-label={t('stopGeneration')}
                     onClick={handleStopStreaming}
                     size='sm'
                     className='max-md:size-11'
@@ -1145,7 +1149,7 @@ export function Chat() {
                   </ComposerActionButton>
                 ) : (
                   <ComposerActionButton
-                    aria-label='Send message'
+                    aria-label={t('sendMessage')}
                     onClick={handleSendMessage}
                     size='sm'
                     className='max-md:size-11'

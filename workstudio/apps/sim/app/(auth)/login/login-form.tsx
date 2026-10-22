@@ -13,6 +13,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { normalizeEmail } from '@sim/utils/string'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { requestJson } from '@/lib/api/client/request'
 import { forgetPasswordContract } from '@/lib/api/contracts'
 import { client } from '@/lib/auth/client'
@@ -32,55 +33,22 @@ import {
   AuthNavPrompt,
   AuthSubmitButton,
   AuthTextLink,
+  getNexoraOidcName,
+  NexoraOidcButton,
   PasswordInput,
   SocialLoginButtons,
   SSOLoginButton,
 } from '@/app/(auth)/components'
+import { useEmailFieldValidation } from '@/app/(auth)/components/use-email-field-validation'
 import { useCaptureWhenReady } from '@/hooks/use-capture-when-ready'
 
 const logger = createLogger('LoginForm')
 
-const validateEmailField = (emailValue: string): string[] => {
-  const errors: string[] = []
-
-  if (!emailValue || !emailValue.trim()) {
-    errors.push('Email is required.')
-    return errors
-  }
-
-  const validation = quickValidateEmail(normalizeEmail(emailValue))
-  if (!validation.isValid) {
-    errors.push(validation.reason || 'Please enter a valid email address.')
-  }
-
-  return errors
-}
-
-const PASSWORD_VALIDATIONS = {
-  required: {
-    test: (value: string) => Boolean(value && typeof value === 'string'),
-    message: 'Password is required.',
-  },
-  notEmpty: {
-    test: (value: string) => value.trim().length > 0,
-    message: 'Password cannot be empty.',
-  },
-}
-
-const validatePassword = (passwordValue: string): string[] => {
-  const errors: string[] = []
-
-  if (!PASSWORD_VALIDATIONS.required.test(passwordValue)) {
-    errors.push(PASSWORD_VALIDATIONS.required.message)
-    return errors
-  }
-
-  if (!PASSWORD_VALIDATIONS.notEmpty.test(passwordValue)) {
-    errors.push(PASSWORD_VALIDATIONS.notEmpty.message)
-    return errors
-  }
-
-  return errors
+/** Message key of the first rule the password breaks, or null when it passes. */
+function findPasswordProblem(passwordValue: string): 'passwordRequired' | 'passwordEmpty' | null {
+  if (!passwordValue) return 'passwordRequired'
+  if (passwordValue.trim().length === 0) return 'passwordEmpty'
+  return null
 }
 
 export default function LoginPage({
@@ -97,6 +65,12 @@ export default function LoginPage({
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations('auth')
+  const validateEmailField = useEmailFieldValidation()
+  const validatePassword = (passwordValue: string): string[] => {
+    const problem = findPasswordProblem(passwordValue)
+    return problem ? [t(`login.${problem}`)] : []
+  }
   useCaptureWhenReady('login_page_viewed', {})
   const [isLoading, setIsLoading] = useState(false)
   const [password, setPassword] = useState('')
@@ -130,9 +104,7 @@ export default function LoginPage({
   const [emailErrors, setEmailErrors] = useState<string[]>([])
   const [showEmailValidationError, setShowEmailValidationError] = useState(false)
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(() =>
-    searchParams?.get('resetSuccess') === 'true'
-      ? 'Password reset successful. Please sign in with your new password.'
-      : null
+    searchParams?.get('resetSuccess') === 'true' ? t('login.resetSuccess') : null
   )
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,41 +189,37 @@ export default function LoginPage({
             }
 
             errorHandled = true
-            const errorMessage: string[] = ['Invalid email or password']
+            const errorMessage: string[] = [t('login.errors.invalidCredentials')]
 
             if (
               ctx.error.code?.includes('BAD_REQUEST') ||
               ctx.error.message?.includes('Email and password sign in is not enabled')
             ) {
-              errorMessage.push('Email sign in is currently disabled.')
+              errorMessage.push(t('login.errors.emailSignInDisabled'))
             } else if (
               ctx.error.code?.includes('INVALID_CREDENTIALS') ||
               ctx.error.message?.includes('invalid password')
             ) {
-              errorMessage.push('Invalid email or password. Please try again.')
+              errorMessage.push(t('login.errors.invalidCredentialsRetry'))
             } else if (
               ctx.error.code?.includes('USER_NOT_FOUND') ||
               ctx.error.message?.includes('not found')
             ) {
-              errorMessage.push('No account found with this email. Please sign up first.')
+              errorMessage.push(t('login.errors.userNotFound'))
             } else if (ctx.error.code?.includes('MISSING_CREDENTIALS')) {
-              errorMessage.push('Please enter both email and password.')
+              errorMessage.push(t('login.errors.missingCredentials'))
             } else if (ctx.error.code?.includes('EMAIL_PASSWORD_DISABLED')) {
-              errorMessage.push('Email and password login is disabled.')
+              errorMessage.push(t('login.errors.emailPasswordDisabled'))
             } else if (ctx.error.code?.includes('FAILED_TO_CREATE_SESSION')) {
-              errorMessage.push('Failed to create session. Please try again later.')
+              errorMessage.push(t('login.errors.sessionFailed'))
             } else if (ctx.error.code?.includes('too many attempts')) {
-              errorMessage.push(
-                'Too many login attempts. Please try again later or reset your password.'
-              )
+              errorMessage.push(t('login.errors.tooManyAttempts'))
             } else if (ctx.error.code?.includes('account locked')) {
-              errorMessage.push(
-                'Your account has been locked for security. Please reset your password.'
-              )
+              errorMessage.push(t('login.errors.accountLocked'))
             } else if (ctx.error.code?.includes('network')) {
-              errorMessage.push('Network error. Please check your connection and try again.')
+              errorMessage.push(t('errors.network'))
             } else if (ctx.error.message?.includes('rate limit')) {
-              errorMessage.push('Too many requests. Please wait a moment before trying again.')
+              errorMessage.push(t('errors.rateLimited'))
             }
 
             setResetSuccessMessage(null)
@@ -265,7 +233,7 @@ export default function LoginPage({
         // Show error if not already handled by onError callback
         if (!errorHandled) {
           setResetSuccessMessage(null)
-          const errorMessage = result?.error?.message || 'Login failed. Please try again.'
+          const errorMessage = result?.error?.message || t('login.errors.loginFailed')
           setPasswordErrors([errorMessage])
           setShowValidationError(true)
         }
@@ -294,7 +262,7 @@ export default function LoginPage({
     if (!forgotPasswordEmail) {
       setResetStatus({
         type: 'error',
-        message: 'Please enter your email address',
+        message: t('login.forgotPasswordModal.emailRequired'),
       })
       return
     }
@@ -303,7 +271,7 @@ export default function LoginPage({
     if (!emailValidation.isValid) {
       setResetStatus({
         type: 'error',
-        message: 'Please enter a valid email address',
+        message: t('login.forgotPasswordModal.emailInvalid'),
       })
       return
     }
@@ -320,20 +288,23 @@ export default function LoginPage({
           },
         })
       } catch (requestError) {
-        let errorMessage = getErrorMessage(requestError, 'Failed to request password reset')
+        let errorMessage = getErrorMessage(
+          requestError,
+          t('login.forgotPasswordModal.requestFailed')
+        )
 
         if (
           errorMessage.includes('Invalid body parameters') ||
           errorMessage.includes('invalid email')
         ) {
-          errorMessage = 'Please enter a valid email address'
+          errorMessage = t('login.forgotPasswordModal.emailInvalid')
         } else if (errorMessage.includes('Email is required')) {
-          errorMessage = 'Please enter your email address'
+          errorMessage = t('login.forgotPasswordModal.emailRequired')
         } else if (
           errorMessage.includes('user not found') ||
           errorMessage.includes('User not found')
         ) {
-          errorMessage = 'No account found with this email address'
+          errorMessage = t('login.forgotPasswordModal.userNotFound')
         }
 
         throw new Error(errorMessage)
@@ -341,7 +312,7 @@ export default function LoginPage({
 
       setResetStatus({
         type: 'success',
-        message: 'Password reset link sent to your email',
+        message: t('login.forgotPasswordModal.linkSent'),
       })
 
       setTimeout(() => {
@@ -352,7 +323,7 @@ export default function LoginPage({
       logger.error('Error requesting password reset:', { error })
       setResetStatus({
         type: 'error',
-        message: getErrorMessage(error, 'Failed to request password reset'),
+        message: getErrorMessage(error, t('login.forgotPasswordModal.requestFailed')),
       })
     } finally {
       setIsSubmittingReset(false)
@@ -361,7 +332,8 @@ export default function LoginPage({
 
   const ssoEnabled = isSsoEnabled
   const emailEnabled = !isFalsy(getEnv('NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED'))
-  const hasSocial = githubAvailable || googleAvailable || microsoftAvailable
+  const hasNexoraOidc = getNexoraOidcName() !== null
+  const hasSocial = githubAvailable || googleAvailable || microsoftAvailable || hasNexoraOidc
   const hasOnlySSO = ssoEnabled && !emailEnabled && !hasSocial
   const showTopSSO = hasOnlySSO
   const showBottomSection = hasSocial || (ssoEnabled && !hasOnlySSO)
@@ -374,18 +346,18 @@ export default function LoginPage({
   return (
     <>
       <div className='space-y-6'>
-        <AuthHeader title='Sign in' description='Enter your details' />
+        <AuthHeader title={t('login.title')} description={t('login.description')} />
 
         {showTopSSO && <SSOLoginButton callbackURL={callbackUrl} variant='primary' />}
 
         {emailEnabled && (
           <form onSubmit={onSubmit} className='space-y-6'>
             <div className='space-y-5'>
-              <AuthField htmlFor='email' label='Email' errors={emailFieldErrors}>
+              <AuthField htmlFor='email' label={t('login.emailLabel')} errors={emailFieldErrors}>
                 <AuthInput
                   id='email'
                   name='email'
-                  placeholder='Enter your email'
+                  placeholder={t('login.emailPlaceholder')}
                   required
                   autoCapitalize='none'
                   autoComplete='email'
@@ -397,14 +369,14 @@ export default function LoginPage({
               </AuthField>
               <AuthField
                 htmlFor='password'
-                label='Password'
+                label={t('login.passwordLabel')}
                 errors={passwordFieldErrors}
                 action={
                   <AuthTextLink
                     onClick={() => setForgotPasswordOpen(true)}
                     className='text-caption'
                   >
-                    Forgot password?
+                    {t('login.forgotPassword')}
                   </AuthTextLink>
                 }
               >
@@ -415,7 +387,7 @@ export default function LoginPage({
                   autoCapitalize='none'
                   autoComplete='current-password'
                   autoCorrect='off'
-                  placeholder='Enter your password'
+                  placeholder={t('login.passwordPlaceholder')}
                   value={password}
                   onChange={handlePasswordChange}
                   error={passwordFieldErrors.length > 0}
@@ -435,13 +407,17 @@ export default function LoginPage({
               </AuthFormMessage>
             )}
 
-            <AuthSubmitButton loading={isLoading} loadingLabel='Signing in…' disabled={!canSubmit}>
-              Sign in
+            <AuthSubmitButton
+              loading={isLoading}
+              loadingLabel={t('login.submitting')}
+              disabled={!canSubmit}
+            >
+              {t('login.submit')}
             </AuthSubmitButton>
           </form>
         )}
 
-        {showDivider && <AuthDivider label='Or continue with' />}
+        {showDivider && <AuthDivider label={t('divider.orContinueWith')} />}
 
         {showBottomSection && (
           <SocialLoginButtons
@@ -451,6 +427,7 @@ export default function LoginPage({
             microsoftAvailable={microsoftAvailable}
             callbackURL={callbackUrl}
           >
+            <NexoraOidcButton callbackURL={callbackUrl} />
             {ssoEnabled && !hasOnlySSO && (
               <SSOLoginButton callbackURL={callbackUrl} variant='outline' />
             )}
@@ -458,32 +435,35 @@ export default function LoginPage({
         )}
 
         {emailEnabled && !registrationDisabled && (
-          <AuthNavPrompt prompt="Don't have an account?" href={signupHref} linkLabel='Sign up' />
+          <AuthNavPrompt
+            prompt={t('login.noAccount')}
+            href={signupHref}
+            linkLabel={t('login.signUp')}
+          />
         )}
 
-        <AuthLegalFooter action='signing in' />
+        <AuthLegalFooter action='signingIn' />
       </div>
 
       <ChipModal
         open={forgotPasswordOpen}
         onOpenChange={setForgotPasswordOpen}
-        srTitle='Reset Password'
+        srTitle={t('login.forgotPasswordModal.title')}
       >
         <ChipModalHeader onClose={() => setForgotPasswordOpen(false)}>
-          Reset Password
+          {t('login.forgotPasswordModal.title')}
         </ChipModalHeader>
         <ChipModalBody>
           <p className='px-2 text-[var(--text-secondary)] text-sm'>
-            Enter your email address and we'll send you a link to reset your password if your
-            account exists.
+            {t('login.forgotPasswordModal.description')}
           </p>
           <ChipModalField
             type='email'
-            title='Email'
+            title={t('login.forgotPasswordModal.emailLabel')}
             value={forgotPasswordEmail}
             onChange={(value) => setForgotPasswordEmail(value)}
             required
-            placeholder='you@example.com'
+            placeholder={t('login.forgotPasswordModal.emailPlaceholder')}
           />
           {resetStatus.type === 'success' && (
             <p className='px-2 text-[var(--text-secondary)] text-sm'>{resetStatus.message}</p>
@@ -496,7 +476,9 @@ export default function LoginPage({
           onCancel={() => setForgotPasswordOpen(false)}
           cancelDisabled={isSubmittingReset}
           primaryAction={{
-            label: isSubmittingReset ? 'Sending…' : 'Send Reset Link',
+            label: isSubmittingReset
+              ? t('login.forgotPasswordModal.sending')
+              : t('login.forgotPasswordModal.send'),
             onClick: handleForgotPassword,
             disabled: !forgotPasswordEmail || isSubmittingReset,
           }}

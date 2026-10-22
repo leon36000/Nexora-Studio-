@@ -3,6 +3,7 @@
 import { Chip } from '@sim/emcn'
 import { ArrowRight } from '@sim/emcn/icons'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { IntegrationsShowcase } from '@/app/workspace/[workspaceId]/integrations/components/integrations-showcase'
 import { storeCuratedPrompt } from '@/blocks/integration-matcher'
@@ -23,6 +24,7 @@ interface ShowcaseWithExploreProps {
  * and navigates to the workspace home.
  */
 export function ShowcaseWithExplore({ prompt }: ShowcaseWithExploreProps) {
+  const t = useTranslations('integrations.showcase')
   const params = useParams()
   const router = useRouter()
   const { chatEnabled } = useDeploymentShape()
@@ -41,7 +43,7 @@ export function ShowcaseWithExplore({ prompt }: ShowcaseWithExploreProps) {
           }}
           className='absolute right-0 bottom-0'
         >
-          Explore in chat
+          {t('exploreInChat')}
         </Chip>
       )}
     </div>

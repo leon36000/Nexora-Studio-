@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChipConfirmModal, type ChipConfirmTextSegment, ChipModalField } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 interface DeleteModalProps {
   /**
@@ -50,6 +51,7 @@ export function DeleteModal({
   itemType,
   itemName,
 }: DeleteModalProps) {
+  const t = useTranslations('shell.deleteModal')
   const [confirmationText, setConfirmationText] = useState('')
   const [prevIsOpen, setPrevIsOpen] = useState(false)
 
@@ -76,122 +78,122 @@ export function DeleteModal({
 
   let title = ''
   if (itemType === 'workflow') {
-    title = isMultiple ? 'Delete workflows' : 'Delete workflow'
+    title = isMultiple ? t('titles.workflows') : t('titles.workflow')
   } else if (itemType === 'folder') {
-    title = isMultiple ? 'Delete folders' : 'Delete folder'
+    title = isMultiple ? t('titles.folders') : t('titles.folder')
   } else if (itemType === 'task') {
-    title = isMultiple ? 'Delete chats' : 'Delete chat'
+    title = isMultiple ? t('titles.chats') : t('titles.chat')
   } else if (itemType === 'mixed') {
-    title = 'Delete items'
+    title = t('titles.items')
   } else {
-    title = 'Delete workspace'
+    title = t('titles.workspace')
   }
 
   const buildDescriptionSegments = (): ChipConfirmTextSegment[] => {
     if (itemType === 'workflow') {
       const warning = {
-        text: 'All associated blocks, executions, and configuration will be removed.',
+        text: t('warnings.workflow'),
         error: true,
       }
       if (isMultiple) {
         return [
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: displayNames.join(', '), bold: true },
-          '? ',
+          t('confirmSuffix'),
           warning,
         ]
       }
       if (isSingle && displayNames.length > 0) {
         return [
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: displayNames[0], bold: true },
-          '? ',
+          t('confirmSuffix'),
           warning,
         ]
       }
-      return ['Are you sure you want to delete this workflow? ', warning]
+      return [t('confirmThisWorkflow'), warning]
     }
 
     if (itemType === 'folder') {
       if (isMultiple) {
         return [
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: displayNames.join(', '), bold: true },
-          '? ',
+          t('confirmSuffix'),
           {
-            text: 'All workflows and contents within these folders will be archived.',
+            text: t('warnings.folders'),
             error: true,
           },
         ]
       }
       const warning = {
-        text: 'All associated workflows and contents will be archived.',
+        text: t('warnings.folder'),
         error: true,
       }
       if (isSingle && displayNames.length > 0) {
         return [
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: displayNames[0], bold: true },
-          '? ',
+          t('confirmSuffix'),
           warning,
         ]
       }
-      return ['Are you sure you want to delete this folder? ', warning]
+      return [t('confirmThisFolder'), warning]
     }
 
     if (itemType === 'task') {
       const warning = {
-        text: 'The chat and its conversation history will be archived.',
+        text: t('warnings.chat'),
         error: true,
       }
       if (isMultiple) {
         return [
-          'Are you sure you want to delete ',
-          { text: `${displayNames.length} chats`, bold: true },
-          '? ',
+          t('confirmPrefix'),
+          { text: t('chatCount', { count: displayNames.length }), bold: true },
+          t('confirmSuffix'),
           warning,
         ]
       }
       if (isSingle && displayNames.length > 0) {
         return [
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: displayNames[0], bold: true },
-          '? ',
+          t('confirmSuffix'),
           warning,
         ]
       }
-      return ['Are you sure you want to delete this chat? ', warning]
+      return [t('confirmThisChat'), warning]
     }
 
     if (itemType === 'mixed') {
       const warning = {
-        text: 'All selected workflows and folders, including their contents, will be archived.',
+        text: t('warnings.mixed'),
         error: true,
       }
       if (displayNames.length > 0) {
         return [
-          'Are you sure you want to delete ',
+          t('confirmPrefix'),
           { text: displayNames.join(', '), bold: true },
-          '? ',
+          t('confirmSuffix'),
           warning,
         ]
       }
-      return ['Are you sure you want to delete the selected items? ', warning]
+      return [t('confirmSelectedItems'), warning]
     }
 
     const workspaceWarning = {
-      text: 'This will permanently remove all associated workflows, tables, files, logs, and knowledge bases.',
+      text: t('warnings.workspace'),
       error: true,
     }
     if (isSingle && displayNames.length > 0) {
       return [
-        'Are you sure you want to delete ',
+        t('confirmPrefix'),
         { text: displayNames[0], bold: true },
-        '? ',
+        t('confirmSuffix'),
         workspaceWarning,
       ]
     }
-    return ['Are you sure you want to delete this workspace? ', workspaceWarning]
+    return [t('confirmThisWorkspace'), workspaceWarning]
   }
 
   const handleClose = () => {
@@ -209,15 +211,13 @@ export function DeleteModal({
       text={[
         ...buildDescriptionSegments(),
         ' ',
-        RESTORABLE_TYPES.has(itemType)
-          ? 'You can restore it from Recently deleted in Settings.'
-          : 'This action cannot be undone.',
+        RESTORABLE_TYPES.has(itemType) ? t('restorable') : t('irreversible'),
       ]}
       confirm={{
-        label: 'Delete',
+        label: t('delete'),
         onClick: onConfirm,
         pending: isDeleting,
-        pendingLabel: 'Deleting...',
+        pendingLabel: t('deleting'),
         disabled: !isConfirmed,
       }}
     >
@@ -226,9 +226,10 @@ export function DeleteModal({
           type='input'
           title={
             <span>
-              Type&nbsp;
-              <span className='text-[var(--text-primary)]'>{workspaceName}</span>
-              &nbsp;to confirm
+              {t.rich('typeToConfirm', {
+                name: workspaceName,
+                highlight: (chunks) => <span className='text-[var(--text-primary)]'>{chunks}</span>,
+              })}
             </span>
           }
           value={confirmationText}

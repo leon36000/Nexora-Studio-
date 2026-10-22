@@ -6,11 +6,7 @@ import {
   isDesktopZoomPercent,
 } from '@sim/desktop-bridge'
 import { ChipSelect } from '@sim/emcn'
-
-const OPTIONS = DESKTOP_ZOOM_PERCENTS.map((zoom) => ({
-  label: `${zoom}%`,
-  value: String(zoom),
-}))
+import { useTranslations } from 'next-intl'
 
 interface DefaultZoomSelectProps {
   value: DesktopZoomPercent
@@ -24,12 +20,13 @@ export function DefaultZoomSelect({
   value,
   onChange,
   disabled,
-  ariaLabel = 'Default zoom',
+  ariaLabel,
 }: DefaultZoomSelectProps) {
+  const t = useTranslations('settings.zoom')
   return (
     <div className='w-[240px] max-w-[55%] shrink-0 md:max-w-none'>
       <ChipSelect
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? t('defaultZoom')}
         align='start'
         fullWidth
         dropdownWidth='trigger'
@@ -39,7 +36,10 @@ export function DefaultZoomSelect({
           if (isDesktopZoomPercent(zoom)) onChange(zoom)
         }}
         disabled={disabled}
-        options={OPTIONS}
+        options={DESKTOP_ZOOM_PERCENTS.map((zoom) => ({
+          label: t('percent', { zoom }),
+          value: String(zoom),
+        }))}
       />
     </div>
   )

@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Combobox, type ComboboxOption, cn } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { useReactFlow } from '@xyflow/react'
+import { useTranslations } from 'next-intl'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import type { SelectorKey } from '@/lib/selectors/manifest'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
@@ -34,9 +35,9 @@ const ZOOM_DURATION = 0
 /** Shared empty list, so a selector-backed field with no static options keeps a stable identity. */
 const EMPTY_OPTIONS: ComboBoxOption[] = []
 
-const CREATE_ACTION_LABEL: Record<NonNullable<SubBlockConfig['createAction']>, string> = {
-  sandbox: 'Create Sandbox',
-}
+const CREATE_ACTION_LABEL_KEY = {
+  sandbox: 'createSandbox',
+} as const satisfies Record<NonNullable<SubBlockConfig['createAction']>, string>
 
 /**
  * Reserved value for the pinned create row. It can never collide with a stored
@@ -97,12 +98,13 @@ export const ComboBox = memo(function ComboBox({
   isPreview = false,
   previewValue,
   disabled,
-  placeholder = 'Type or select an option...',
+  placeholder,
   config,
   selectorKey,
   selectorExcludeSelf,
   dependsOn,
 }: ComboBoxProps) {
+  const t = useTranslations('editor.subBlock.combobox')
   const activeSearchTarget = useActiveSearchTarget()
   // Hooks and context
   const [storeValue, setStoreValue] = useSubBlockValue<string>(blockId, subBlockId)
@@ -216,7 +218,7 @@ export const ComboBox = memo(function ComboBox({
     const action = config.createAction
     if (!action || isPreview || disabled) return null
     return {
-      label: CREATE_ACTION_LABEL[action],
+      label: t(CREATE_ACTION_LABEL_KEY[action]),
       value: CREATE_ACTION_VALUE,
       icon: Plus,
       onSelect: () => {
@@ -225,7 +227,7 @@ export const ComboBox = memo(function ComboBox({
         setIsCreateOpen(true)
       },
     }
-  }, [config.createAction, isPreview, disabled, blockId])
+  }, [t, config.createAction, isPreview, disabled, blockId])
 
   // Normalize fetched options to match ComboBoxOption format
   const normalizedFetchedOptions = useMemo((): ComboBoxOption[] => {
@@ -554,7 +556,7 @@ export const ComboBox = memo(function ComboBox({
               value={inputValue}
               selectedValue={value ?? ''}
               onChange={comboboxOnChange}
-              placeholder={placeholder}
+              placeholder={placeholder ?? t('typeOrSelect')}
               disabled={disabled}
               editable
               overlayContent={overlayContent}

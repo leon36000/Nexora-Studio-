@@ -4,6 +4,7 @@ import type React from 'react'
 import { BulkActionButton, cn, Tooltip } from '@sim/emcn'
 import { Eye, PlayOutline, RefreshCw, Square } from '@sim/emcn/icons'
 import { AnimatePresence, domAnimation, LazyMotion, m } from 'framer-motion'
+import { useTranslations } from 'next-intl'
 
 interface TableActionBarProps {
   /** Number of (row × group) cells the run/stop buttons would target. Drives
@@ -64,15 +65,18 @@ export function TableActionBar({
   isLoading = false,
   className,
 }: TableActionBarProps) {
+  const t = useTranslations('tables.actionBar')
+  const tMenu = useTranslations('tables.rowContextMenu')
   const visible =
     hasWorkflowColumns &&
     selectedCellCount > 0 &&
     (showPlay || showRefresh || runningCount > 0 || Boolean(onViewExecution))
   const stopLabel =
-    runningCount === 1 ? 'Stop running workflow' : `Stop ${runningCount} running workflows`
+    runningCount === 1 ? tMenu('stopRunningOne') : tMenu('stopRunningMany', { count: runningCount })
   const playLabel =
-    selectedCellCount === 1 ? 'Run cell' : `Run ${selectedCellCount} empty or failed cells`
-  const refreshLabel = selectedCellCount === 1 ? 'Re-run cell' : `Re-run ${selectedCellCount} cells`
+    selectedCellCount === 1 ? tMenu('runCell') : t('runCells', { count: selectedCellCount })
+  const refreshLabel =
+    selectedCellCount === 1 ? tMenu('rerunCell') : t('rerunCells', { count: selectedCellCount })
 
   return (
     <LazyMotion features={domAnimation}>
@@ -91,9 +95,7 @@ export function TableActionBar({
           >
             <div className='pointer-events-auto flex items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1.5'>
               <span className='px-1 text-[var(--text-secondary)] text-small'>
-                {selectedCellCount === 1
-                  ? 'Selected 1 workflow cell'
-                  : `Selected ${selectedCellCount} workflow cells`}
+                {t('selected', { count: selectedCellCount })}
               </span>
 
               <div className='flex shrink-0 items-center gap-[5px]'>
@@ -121,7 +123,7 @@ export function TableActionBar({
 
                 {onViewExecution && (
                   <ActionIconButton
-                    label='View execution'
+                    label={tMenu('viewExecution')}
                     onClick={onViewExecution}
                     disabled={isLoading}
                   >

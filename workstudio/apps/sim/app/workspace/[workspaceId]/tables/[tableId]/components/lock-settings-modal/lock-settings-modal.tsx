@@ -12,16 +12,20 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { CircleInfo, Lock } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { TableLocks } from '@/lib/table/types'
 import { LOCK_FIELDS } from '@/app/workspace/[workspaceId]/tables/[tableId]/lock-copy'
 import { useUpdateTableLocks } from '@/hooks/queries/tables'
+
+/** A partial set of lock flags — only the rows being changed. */
+type LockPatch = Partial<TableLocks>
 
 /**
  * The rows the admin actually moved, relative to the locks the server holds
  * right now. Everything absent from this patch is left alone by the save.
  */
-function changedLocks(overrides: Partial<TableLocks>, locks: TableLocks): Partial<TableLocks> {
-  const changed: Partial<TableLocks> = {}
+function changedLocks(overrides: LockPatch, locks: TableLocks): LockPatch {
+  const changed: LockPatch = {}
   for (const field of LOCK_FIELDS) {
     const next = overrides[field.key]
     if (next !== undefined && next !== locks[field.key]) changed[field.key] = next
@@ -59,6 +63,7 @@ export function LockSettingsModal({
   tableId,
   locks,
 }: LockSettingsModalProps) {
+  const t = useTranslations('tables.locks')
   const updateLocks = useUpdateTableLocks(workspaceId)
 
   // Stage only the rows this admin moved; clear them each time the modal opens.
@@ -86,9 +91,9 @@ export function LockSettingsModal({
   }
 
   return (
-    <ChipModal open={isOpen} onOpenChange={(open) => !open && onClose()} srTitle='Table Security'>
+    <ChipModal open={isOpen} onOpenChange={(open) => !open && onClose()} srTitle={t('title')}>
       <ChipModalHeader icon={Lock} onClose={onClose}>
-        Table Security
+        {t('title')}
       </ChipModalHeader>
       <ChipModalBody>
         {LOCK_FIELDS.map((field) => (
@@ -98,26 +103,26 @@ export function LockSettingsModal({
             className='flex-row items-center justify-between'
             title={
               <span className='inline-flex items-center gap-1.5'>
-                {field.label}
+                {t(`fields.${field.kind}.label`)}
                 <Tooltip.Root>
                   {/* Not `asChild`: the hint is each row's only explanation, so
                       the trigger must be a focusable button for keyboard users. */}
                   <Tooltip.Trigger
                     type='button'
-                    aria-label={`About ${field.label.toLowerCase()}`}
+                    aria-label={t(`fields.${field.kind}.about`)}
                     className='inline-flex cursor-help'
                   >
                     <CircleInfo className='size-[14px] text-[var(--text-icon)]' />
                   </Tooltip.Trigger>
                   <Tooltip.Content>
-                    <p>{field.hint}</p>
+                    <p>{t(`fields.${field.kind}.hint`)}</p>
                   </Tooltip.Content>
                 </Tooltip.Root>
               </span>
             }
           >
             <ChipButtonGroup
-              aria-label={field.label}
+              aria-label={t(`fields.${field.kind}.label`)}
               className='shrink-0'
               value={(overrides[field.key] ?? locks[field.key]) ? 'deny' : 'allow'}
               disabled={updateLocks.isPending}
@@ -125,8 +130,8 @@ export function LockSettingsModal({
                 setOverrides((prev) => ({ ...prev, [field.key]: value === 'deny' }))
               }
             >
-              <ChipButtonGroupItem value='deny'>Deny</ChipButtonGroupItem>
-              <ChipButtonGroupItem value='allow'>Allow</ChipButtonGroupItem>
+              <ChipButtonGroupItem value='deny'>{t('deny')}</ChipButtonGroupItem>
+              <ChipButtonGroupItem value='allow'>{t('allow')}</ChipButtonGroupItem>
             </ChipButtonGroup>
           </ChipModalField>
         ))}
@@ -135,7 +140,7 @@ export function LockSettingsModal({
         onCancel={onClose}
         cancelDisabled={updateLocks.isPending}
         primaryAction={{
-          label: updateLocks.isPending ? 'Saving...' : 'Save',
+          label: updateLocks.isPending ? t('saving') : t('save'),
           onClick: handleSave,
           disabled: !dirty || updateLocks.isPending,
         }}

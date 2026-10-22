@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { ChipConfirmModal } from '@sim/emcn'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useSettingsBrowserNavigation } from '@/components/settings/use-settings-browser-navigation'
 import { useSettingsDirtyStore } from '@/stores/settings/dirty/store'
 
@@ -51,6 +52,7 @@ export function SettingsNavigationGuard() {
     document.addEventListener('click', handleClick, true)
     return () => document.removeEventListener('click', handleClick, true)
   }, [router])
+  const t = useTranslations('settings.unsavedGuard')
   const pendingLeave = useSettingsDirtyStore((state) => state.pendingLeave)
   const confirmLeave = useSettingsDirtyStore((state) => state.confirmLeave)
   const cancelLeave = useSettingsDirtyStore((state) => state.cancelLeave)
@@ -59,11 +61,11 @@ export function SettingsNavigationGuard() {
     <ChipConfirmModal
       open={pendingLeave !== null}
       onOpenChange={(open) => !open && cancelLeave()}
-      srTitle='Unsaved changes'
-      title='Unsaved changes'
-      text='You have unsaved changes. Are you sure you want to discard them?'
-      dismissLabel='Keep editing'
-      confirm={{ label: 'Discard changes', onClick: confirmLeave }}
+      srTitle={t('title')}
+      title={t('title')}
+      text={t('text')}
+      dismissLabel={t('keepEditing')}
+      confirm={{ label: t('discard'), onClick: confirmLeave }}
     />
   )
 }

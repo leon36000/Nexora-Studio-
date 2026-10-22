@@ -13,6 +13,7 @@ import {
 } from '@sim/emcn'
 import { ArrowLeftRight, FileText, Plus, Trash } from '@sim/emcn/icons'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import {
@@ -96,6 +97,7 @@ export function VariablesInput({
   previewValue,
   disabled = false,
 }: VariablesInputProps) {
+  const t = useTranslations('editor.subBlock.variablesInput')
   const activeSearchTarget = useActiveSearchTarget()
   const { workflowId } = useWorkflowScope()
   const [storeValue, setStoreValue] = useSubBlockValue<VariableAssignment[]>(blockId, subBlockId)
@@ -336,16 +338,14 @@ export function VariablesInput({
     return (
       <div className='flex flex-col items-center justify-center rounded-md border border-border/40 bg-muted/20 py-8 text-center'>
         <FileText className='mb-3 size-10 text-muted-foreground/40' />
-        <p className='mb-1 text-foreground text-sm'>No variable assignments defined</p>
-        <p className='text-muted-foreground text-xs'>
-          Add variables in the Variables panel to get started
-        </p>
+        <p className='mb-1 text-foreground text-sm'>{t('emptyTitle')}</p>
+        <p className='text-muted-foreground text-xs'>{t('emptyDescription')}</p>
       </div>
     )
   }
 
   if (!isPreview && hasNoWorkflowVariables && assignments.length === 0) {
-    return <p className='text-[var(--text-muted)] text-sm'>No variables available</p>
+    return <p className='text-[var(--text-muted)] text-sm'>{t('noVariables')}</p>
   }
 
   return (
@@ -405,7 +405,7 @@ export function VariablesInput({
                         ? formatDisplayText(assignment.variableName, {
                             workflowSearchHighlight: variableLabelHighlight,
                           })
-                        : `Variable ${index + 1}`}
+                        : t('variableTitle', { number: index + 1 })}
                     </span>
                     {assignment.variableName && (
                       <Badge variant='type' size='sm'>
@@ -424,7 +424,7 @@ export function VariablesInput({
                       className='h-auto p-0'
                     >
                       <Plus className='size-[14px]' />
-                      <span className='sr-only'>Add Variable</span>
+                      <span className='sr-only'>{t('addVariableSr')}</span>
                     </Button>
                     <Button
                       variant='ghost'
@@ -436,7 +436,7 @@ export function VariablesInput({
                       className='h-auto p-0 text-[var(--text-error)] hover-hover:text-[var(--text-error)]'
                     >
                       <Trash className='size-[14px]' />
-                      <span className='sr-only'>Delete Variable</span>
+                      <span className='sr-only'>{t('deleteVariableSr')}</span>
                     </Button>
                   </div>
                 </div>
@@ -444,12 +444,12 @@ export function VariablesInput({
                 {!collapsed && (
                   <div className='flex flex-col gap-2 rounded-b-[4px] border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 pt-1.5 pb-2.5'>
                     <div className='flex flex-col gap-1.5'>
-                      <Label className='text-small'>Variable</Label>
+                      <Label className='text-small'>{t('variable')}</Label>
                       <Combobox
                         options={availableVars.map((v) => ({ label: v.name, value: v.id }))}
                         value={assignment.variableId || ''}
                         onChange={(value) => handleVariableSelect(assignment.id, value)}
-                        placeholder='Select a variable...'
+                        placeholder={t('selectVariable')}
                         disabled={isReadOnly}
                         overlayContent={
                           variableLabelHighlight ? (
@@ -465,7 +465,7 @@ export function VariablesInput({
 
                     <div className='flex flex-col gap-1.5'>
                       <div className='flex items-center justify-between'>
-                        <Label className='text-small'>Value</Label>
+                        <Label className='text-small'>{t('value')}</Label>
                         {assignment.type === 'boolean' && (
                           <Tooltip.Root>
                             <Tooltip.Trigger asChild>
@@ -480,7 +480,7 @@ export function VariablesInput({
                                 }
                                 disabled={isReadOnly}
                                 aria-label={
-                                  isManualBoolean ? 'Switch to selector' : 'Switch to manual value'
+                                  isManualBoolean ? t('switchToSelector') : t('switchToManual')
                                 }
                               >
                                 <ArrowLeftRight
@@ -494,9 +494,7 @@ export function VariablesInput({
                               </button>
                             </Tooltip.Trigger>
                             <Tooltip.Content side='top'>
-                              <p>
-                                {isManualBoolean ? 'Switch to selector' : 'Switch to manual value'}
-                              </p>
+                              <p>{isManualBoolean ? t('switchToSelector') : t('switchToManual')}</p>
                             </Tooltip.Content>
                           </Tooltip.Root>
                         )}
@@ -508,7 +506,7 @@ export function VariablesInput({
                           onChange={(v) =>
                             !isReadOnly && updateAssignment(assignment.id, { value: v })
                           }
-                          placeholder='Select value'
+                          placeholder={t('selectValue')}
                           disabled={isReadOnly}
                           overlayContent={
                             booleanLabelHighlight ? (
@@ -622,7 +620,7 @@ export function VariablesInput({
                                   )
                               }, 0)
                             }
-                            placeholder={`${assignment.type} value`}
+                            placeholder={t('typedValue', { type: assignment.type })}
                             disabled={isReadOnly}
                             autoComplete='off'
                             className={cn(

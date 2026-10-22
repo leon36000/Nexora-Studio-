@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { ConnectedCredentialDetail } from '@/app/workspace/[workspaceId]/integrations/connected/[credentialId]/connected-credential-detail'
 import { PermissionAccessBoundary } from '@/ee/access-requests/components/permission-access-boundary'
 
-export const metadata: Metadata = {
-  title: 'Connected Integration',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('integrations.page')
+  return { title: t('connectedTitle') }
 }
 
 export default async function ConnectedCredentialPage({

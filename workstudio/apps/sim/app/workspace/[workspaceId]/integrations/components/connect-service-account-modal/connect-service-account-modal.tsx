@@ -1,6 +1,5 @@
 'use client'
 
-import { docsUrl } from '@/lib/branding/docs-url'
 import { type ComponentType, useState } from 'react'
 import {
   ChipModal,
@@ -15,8 +14,10 @@ import {
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
 import { type AtlassianProduct, serviceAccountJsonSchema } from '@/lib/api/contracts/credentials'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   resourceScopeFields,
   resourceScopeFromOwner,
@@ -61,8 +62,7 @@ export type ServiceAccountProviderId =
 
 /** Sim setup guides for each provider, docked bottom-left of each modal. */
 const GOOGLE_SERVICE_ACCOUNT_DOCS_URL = docsUrl('/integrations/google-service-account')
-const ATLASSIAN_SERVICE_ACCOUNT_DOCS_URL =
-  docsUrl('/integrations/atlassian-service-account')
+const ATLASSIAN_SERVICE_ACCOUNT_DOCS_URL = docsUrl('/integrations/atlassian-service-account')
 const OCI_API_KEY_DOCS_URL =
   'https://docs.oracle.com/en-us/iaas/Content/API/Concepts/apisigningkey.htm'
 
@@ -89,20 +89,15 @@ const ATLASSIAN_COVERAGE_HINT = getServiceAccountCoverageSentence(
 
 /**
  * Maps server `error.code` values returned by the Atlassian service-account
- * route to user-facing messages. Falls back to {@link FALLBACK_ERROR_MESSAGE}
- * when the error is unrecognized.
+ * route to message keys under `integrations.serviceAccount.atlassian.errors`.
+ * Falls back to `fallback` when the error is unrecognized.
  */
-const ATLASSIAN_ERROR_MESSAGES: Record<string, string> = {
-  invalid_credentials:
-    "We couldn't authenticate with that API token. Double-check the token and that the service account has access to this site.",
-  site_not_found:
-    "We couldn't find an Atlassian site at that domain. Check the spelling — it should look like your-team.atlassian.net.",
-  duplicate_display_name: 'A credential with that name already exists in this workspace.',
-  atlassian_unavailable:
-    "We couldn't reach Atlassian to verify these credentials. Try again in a moment.",
+const ATLASSIAN_ERROR_MESSAGE_KEYS: Record<string, string> = {
+  invalid_credentials: 'invalidCredentials',
+  site_not_found: 'siteNotFound',
+  duplicate_display_name: 'duplicateDisplayName',
+  atlassian_unavailable: 'atlassianUnavailable',
 }
-
-const FALLBACK_ERROR_MESSAGE = "We couldn't add this service account. Try again in a moment."
 
 function normalizeAtlassianDomain(raw: string): string {
   return raw
@@ -111,11 +106,11 @@ function normalizeAtlassianDomain(raw: string): string {
     .replace(/\/+$/, '')
 }
 
-function messageForAtlassianError(err: unknown): string {
-  if (isApiClientError(err) && err.code && ATLASSIAN_ERROR_MESSAGES[err.code]) {
-    return ATLASSIAN_ERROR_MESSAGES[err.code]
+function messageKeyForAtlassianError(err: unknown): string {
+  if (isApiClientError(err) && err.code && ATLASSIAN_ERROR_MESSAGE_KEYS[err.code]) {
+    return ATLASSIAN_ERROR_MESSAGE_KEYS[err.code]
   }
-  return FALLBACK_ERROR_MESSAGE
+  return 'fallback'
 }
 
 interface ConnectServiceAccountModalProps {
@@ -315,6 +310,7 @@ function OciApiKeyServiceAccountModal({
   initialDescription,
   onCreated,
 }: ProviderModalProps) {
+  const t = useTranslations('integrations.serviceAccount')
   const [tenancyOcid, setTenancyOcid] = useState('')
   const [userOcid, setUserOcid] = useState('')
   const [fingerprint, setFingerprint] = useState('')
@@ -373,7 +369,7 @@ function OciApiKeyServiceAccountModal({
       if (connectedCredentialId) onCreated?.(connectedCredentialId)
       onOpenChange(false)
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to add OCI API-key credential'))
+      setError(getErrorMessage(err, t('oci.addFailed')))
       logger.error('Failed to add OCI API-key credential', err)
     }
   }
@@ -382,16 +378,20 @@ function OciApiKeyServiceAccountModal({
     <ChipModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle={`${credentialId ? 'Reconnect' : 'Add'} ${serviceName} API key`}
+      srTitle={
+        credentialId ? t('oci.reconnectTitle', { serviceName }) : t('oci.addTitle', { serviceName })
+      }
       dismissDisabled={isPending}
     >
       <ChipModalHeader icon={withBrandIcon(ServiceIcon)} onClose={() => onOpenChange(false)}>
-        {credentialId ? 'Reconnect' : 'Add'} {serviceName} API key
+        {credentialId
+          ? t('oci.reconnectTitle', { serviceName })
+          : t('oci.addTitle', { serviceName })}
       </ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='input'
-          title='Tenancy OCID'
+          title={t('oci.tenancyOcid')}
           value={tenancyOcid}
           onChange={(value) => {
             setTenancyOcid(value)
@@ -404,7 +404,7 @@ function OciApiKeyServiceAccountModal({
         />
         <ChipModalField
           type='input'
-          title='User OCID'
+          title={t('oci.userOcid')}
           value={userOcid}
           onChange={(value) => {
             setUserOcid(value)
@@ -417,7 +417,7 @@ function OciApiKeyServiceAccountModal({
         />
         <ChipModalField
           type='input'
-          title='Fingerprint'
+          title={t('oci.fingerprint')}
           value={fingerprint}
           onChange={(value) => {
             setFingerprint(value)
@@ -428,7 +428,7 @@ function OciApiKeyServiceAccountModal({
           mono
           required
         />
-        <ChipModalField type='custom' title='Private key' required>
+        <ChipModalField type='custom' title={t('oci.privateKey')} required>
           {(aria) => (
             <ChipTextarea
               {...aria}
@@ -454,18 +454,18 @@ function OciApiKeyServiceAccountModal({
         <ChipModalField
           type='input'
           inputType='password'
-          title='Private-key passphrase'
+          title={t('oci.passphrase')}
           value={privateKeyPassphrase}
           onChange={(value) => {
             setPrivateKeyPassphrase(value)
             clearError()
           }}
-          placeholder='Optional'
+          placeholder={t('common.optional')}
           autoComplete='new-password'
         />
         <ChipModalField
           type='input'
-          title='Region'
+          title={t('oci.region')}
           value={region}
           onChange={(value) => {
             setRegion(value)
@@ -478,18 +478,18 @@ function OciApiKeyServiceAccountModal({
         />
         <ChipModalField
           type='input'
-          title='Display name'
+          title={t('common.displayName')}
           value={displayName}
           onChange={setDisplayName}
-          placeholder='Defaults to the OCI user OCID'
+          placeholder={t('oci.displayNamePlaceholder')}
           autoComplete='off'
         />
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={t('common.description')}
           value={description}
           onChange={setDescription}
-          placeholder='Optional description'
+          placeholder={t('common.optionalDescription')}
           maxLength={500}
           minHeight={80}
         />
@@ -497,15 +497,17 @@ function OciApiKeyServiceAccountModal({
       </ChipModalBody>
       <ChipModalFooter
         onCancel={() => onOpenChange(false)}
-        secondaryActions={[{ label: 'Setup guide', onClick: () => openDocs(OCI_API_KEY_DOCS_URL) }]}
+        secondaryActions={[
+          { label: t('common.setupGuide'), onClick: () => openDocs(OCI_API_KEY_DOCS_URL) },
+        ]}
         primaryAction={{
           label: isPending
             ? credentialId
-              ? 'Reconnecting...'
-              : 'Adding...'
+              ? t('common.reconnecting')
+              : t('common.adding')
             : credentialId
-              ? 'Reconnect'
-              : 'Add API key',
+              ? t('common.reconnect')
+              : t('oci.addApiKey'),
           onClick: handleSubmit,
           disabled: isDisabled,
         }}
@@ -541,6 +543,7 @@ function GoogleServiceAccountModalForm({
   initialDescription,
   onCreated,
 }: ProviderModalProps) {
+  const t = useTranslations('integrations.serviceAccount')
   const [jsonInput, setJsonInput] = useState('')
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
@@ -567,7 +570,7 @@ function GoogleServiceAccountModalForm({
 
   const readJsonFile = (file: File) => {
     if (!file.name.endsWith('.json')) {
-      setError('Only .json files are supported')
+      setError(t('google.onlyJson'))
       return
     }
     const reader = new FileReader()
@@ -591,12 +594,12 @@ function GoogleServiceAccountModalForm({
     setError(null)
     const trimmed = jsonInput.trim()
     if (!trimmed) {
-      setError('Paste the service account JSON key.')
+      setError(t('google.pasteKey'))
       return
     }
     const validation = serviceAccountJsonSchema.safeParse(trimmed)
     if (!validation.success) {
-      setError(validation.error.issues[0]?.message ?? 'Invalid JSON')
+      setError(validation.error.issues[0]?.message ?? t('google.invalidJson'))
       return
     }
     try {
@@ -623,7 +626,7 @@ function GoogleServiceAccountModalForm({
       if (connectedCredentialId) onCreated?.(connectedCredentialId)
       onOpenChange(false)
     } catch (err: unknown) {
-      const message = getErrorMessage(err, 'Failed to add service account')
+      const message = getErrorMessage(err, t('google.addFailed'))
       setError(message)
       logger.error('Failed to add Google service account credential', err)
     }
@@ -636,15 +639,15 @@ function GoogleServiceAccountModalForm({
     <ChipModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle={`Add ${serviceName} service account`}
+      srTitle={t('common.addServiceAccountTitle', { serviceName })}
     >
       <ChipModalHeader icon={withBrandIcon(ServiceIcon)} onClose={() => onOpenChange(false)}>
-        Add {serviceName} service account
+        {t('common.addServiceAccountTitle', { serviceName })}
       </ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='textarea'
-          title='JSON key'
+          title={t('google.jsonKey')}
           value={jsonInput}
           onChange={(value) => {
             setJsonInput(value)
@@ -652,38 +655,38 @@ function GoogleServiceAccountModalForm({
             if (error) setError(null)
             maybeFillDisplayNameFromJson(value)
           }}
-          placeholder='Paste your service account JSON key here'
+          placeholder={t('google.jsonKeyPlaceholder')}
           minHeight={120}
           required
         />
 
         <ChipModalField
           type='file'
-          title='Or upload a file'
+          title={t('google.uploadFile')}
           accept='.json'
           label={
             uploadedFileName
-              ? `Uploaded ${uploadedFileName} — click or drop to replace`
-              : 'Drag & drop a .json file, or click to browse'
+              ? t('google.uploaded', { fileName: uploadedFileName })
+              : t('google.dropFile')
           }
           onChange={handleFileUpload}
         />
 
         <ChipModalField
           type='input'
-          title='Display name'
+          title={t('common.displayName')}
           value={displayName}
           onChange={setDisplayName}
-          placeholder='Auto-populated from client_email'
+          placeholder={t('google.displayNamePlaceholder')}
           autoComplete='off'
         />
 
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={t('common.description')}
           value={description}
           onChange={setDescription}
-          placeholder='Optional description'
+          placeholder={t('common.optionalDescription')}
           maxLength={500}
           minHeight={80}
         />
@@ -694,12 +697,12 @@ function GoogleServiceAccountModalForm({
         onCancel={() => onOpenChange(false)}
         secondaryActions={[
           {
-            label: 'Setup guide',
+            label: t('common.setupGuide'),
             onClick: () => openDocs(GOOGLE_SERVICE_ACCOUNT_DOCS_URL),
           },
         ]}
         primaryAction={{
-          label: isPending ? 'Adding...' : 'Add service account',
+          label: isPending ? t('common.adding') : t('common.addServiceAccount'),
           onClick: handleSubmit,
           disabled: isDisabled,
         }}
@@ -743,6 +746,7 @@ function AtlassianServiceAccountModalForm({
   initialDescription,
   onCreated,
 }: AtlassianServiceAccountModalProps) {
+  const t = useTranslations('integrations.serviceAccount')
   const [apiToken, setApiToken] = useState('')
   const [domain, setDomain] = useState('')
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
@@ -791,7 +795,7 @@ function AtlassianServiceAccountModalForm({
       if (connectedCredentialId) onCreated?.(connectedCredentialId)
       onOpenChange(false)
     } catch (err: unknown) {
-      setError(messageForAtlassianError(err))
+      setError(t(`atlassian.errors.${messageKeyForAtlassianError(err)}`))
       logger.error('Failed to add Atlassian service account credential', err)
     }
   }
@@ -800,19 +804,19 @@ function AtlassianServiceAccountModalForm({
     <ChipModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle={`Add ${serviceName} service account`}
+      srTitle={t('common.addServiceAccountTitle', { serviceName })}
     >
       <ChipModalHeader icon={withBrandIcon(ServiceIcon)} onClose={() => onOpenChange(false)}>
-        Add {serviceName} service account
+        {t('common.addServiceAccountTitle', { serviceName })}
       </ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='custom'
-          title='API token'
+          title={t('atlassian.apiToken')}
           required
           hint={
             atlassianProduct === 'confluence'
-              ? 'Use a service-account token with Confluence access. Required scopes are listed in the setup guide.'
+              ? t('atlassian.confluenceHint')
               : ATLASSIAN_COVERAGE_HINT
           }
         >
@@ -824,7 +828,7 @@ function AtlassianServiceAccountModalForm({
                 setApiToken(value)
                 if (error) setError(null)
               }}
-              placeholder='Paste API token'
+              placeholder={t('atlassian.apiTokenPlaceholder')}
               name='atlassian_service_account_api_token'
               autoComplete='new-password'
               autoCorrect='off'
@@ -837,7 +841,7 @@ function AtlassianServiceAccountModalForm({
 
         <ChipModalField
           type='input'
-          title='Site domain'
+          title={t('atlassian.siteDomain')}
           value={domain}
           onChange={(value) => {
             setDomain(value)
@@ -846,28 +850,24 @@ function AtlassianServiceAccountModalForm({
           placeholder='your-team.atlassian.net'
           autoComplete='off'
           required
-          error={
-            showDomainHint
-              ? 'Atlassian sites usually look like your-team.atlassian.net.'
-              : undefined
-          }
+          error={showDomainHint ? t('atlassian.domainHint') : undefined}
         />
 
         <ChipModalField
           type='input'
-          title='Display name'
+          title={t('common.displayName')}
           value={displayName}
           onChange={setDisplayName}
-          placeholder="Defaults to the account's Atlassian display name"
+          placeholder={t('atlassian.displayNamePlaceholder')}
           autoComplete='off'
         />
 
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={t('common.description')}
           value={description}
           onChange={setDescription}
-          placeholder='Optional description'
+          placeholder={t('common.optionalDescription')}
           maxLength={500}
           minHeight={80}
         />
@@ -878,12 +878,12 @@ function AtlassianServiceAccountModalForm({
         onCancel={() => onOpenChange(false)}
         secondaryActions={[
           {
-            label: 'Setup guide',
+            label: t('common.setupGuide'),
             onClick: () => openDocs(setupGuideUrl),
           },
         ]}
         primaryAction={{
-          label: isPending ? 'Adding...' : 'Add service account',
+          label: isPending ? t('common.adding') : t('common.addServiceAccount'),
           onClick: handleSubmit,
           disabled: isDisabled,
         }}

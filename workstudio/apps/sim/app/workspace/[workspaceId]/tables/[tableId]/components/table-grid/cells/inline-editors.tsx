@@ -14,6 +14,7 @@ import {
   toast,
 } from '@sim/emcn'
 import { Check } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition } from '@/lib/table'
 import { columnTypeOf } from '@/lib/table/column-types'
 import { isCalendarDateString } from '@/lib/table/dates'
@@ -74,9 +75,10 @@ function handleEditorWheel(e: React.WheelEvent<HTMLInputElement>) {
  */
 function InlineDateEditor(props: InlineEditorProps) {
   const { onCancel } = props
+  const t = useTranslations('tables.timezone')
   const timezoneState = useTimezoneState()
   const timezoneUnavailable = timezoneState.status !== 'ready'
-  const timezoneBlockedMessage = getTimezoneEditBlockedMessage(timezoneState)
+  const timezoneBlockedMessage = getTimezoneEditBlockedMessage(timezoneState, t)
 
   useEffect(() => {
     if (timezoneState.status !== 'error' && timezoneState.status !== 'invalid') return
@@ -88,10 +90,10 @@ function InlineDateEditor(props: InlineEditorProps) {
     return (
       <span role='status' className='w-full min-w-0 truncate text-[var(--text-muted)] text-small'>
         {timezoneState.status === 'loading'
-          ? 'Loading timezone…'
+          ? t('loading')
           : timezoneState.status === 'invalid'
-            ? 'Invalid timezone'
-            : 'Timezone unavailable'}
+            ? t('invalid')
+            : t('unavailable')}
       </span>
     )
   }
@@ -112,6 +114,7 @@ function ReadyInlineDateEditor({
   onCancel,
   initialTimeZone,
 }: ReadyInlineDateEditorProps) {
+  const t = useTranslations('tables.timezone')
   const inputRef = useRef<HTMLInputElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const doneRef = useRef(false)
@@ -299,7 +302,9 @@ function ReadyInlineDateEditor({
               value={pickerValue}
               onChange={handlePickerChange}
               showTime
-              timeLabel={offsetParts ? `Time (${offsetParts.offset})` : undefined}
+              timeLabel={
+                offsetParts ? t('timeWithOffset', { offset: offsetParts.offset }) : undefined
+              }
               today={
                 offsetParts
                   ? todayAtTtlOffset(offsetParts.offset)
@@ -322,6 +327,7 @@ function InlineTextEditor({
   onSave,
   onCancel,
 }: InlineEditorProps) {
+  const t = useTranslations('tables.grid.expanded')
   const inputRef = useRef<HTMLInputElement>(null)
   const [draft, setDraft] = useState(() =>
     initialCharacter !== undefined ? initialCharacter : formatValueForInput(value, column.type)
@@ -360,7 +366,7 @@ function InlineTextEditor({
     try {
       cleaned = cleanCellValue(draft, column)
     } catch {
-      rejectDraft('Invalid JSON', reason)
+      rejectDraft(t('invalidJson'), reason)
       return
     }
     // `cleanCellValue` nulls an unparseable draft rather than throwing; types
@@ -420,6 +426,7 @@ function InlineTextEditor({
  * the text/date inline editors.
  */
 function InlineSelectEditor({ value, column, readOnly, onSave, onCancel }: InlineEditorProps) {
+  const t = useTranslations('tables.grid.cell')
   const isMulti = !!column.multiple
   const allOptions = column.options ?? []
   const [draft, setDraft] = useState<string[]>(() => selectedOptionIds(column, value))
@@ -479,14 +486,14 @@ function InlineSelectEditor({ value, column, readOnly, onSave, onCancel }: Inlin
       <DropdownMenuTrigger asChild>
         <button
           type='button'
-          aria-label={`Edit ${column.name}`}
+          aria-label={t('editColumn', { name: column.name })}
           className='absolute inset-0 cursor-pointer opacity-0'
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' sideOffset={2} className='min-w-[180px]'>
         {!isMulti && !column.required && (
           <DropdownMenuItem disabled={readOnly} onSelect={() => setDraftAnd([])}>
-            <span className='text-[var(--text-muted)]'>None</span>
+            <span className='text-[var(--text-muted)]'>{t('none')}</span>
             {draft.length === 0 && <Check className='ml-auto!' />}
           </DropdownMenuItem>
         )}

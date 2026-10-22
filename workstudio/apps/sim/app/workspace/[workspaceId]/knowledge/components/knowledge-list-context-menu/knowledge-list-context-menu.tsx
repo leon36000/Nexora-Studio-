@@ -3,6 +3,7 @@
 import { memo } from 'react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@sim/emcn'
 import { FolderPlus, Plus } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface KnowledgeListContextMenuProps {
   isOpen: boolean
@@ -27,6 +28,7 @@ export const KnowledgeListContextMenu = memo(function KnowledgeListContextMenu({
   disableAdd = false,
   disableAddFolder = false,
 }: KnowledgeListContextMenuProps) {
+  const t = useTranslations('knowledge.listContextMenu')
   return (
     <DropdownMenu open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DropdownMenuTrigger asChild>
@@ -54,13 +56,13 @@ export const KnowledgeListContextMenu = memo(function KnowledgeListContextMenu({
         {onAddFolder && (
           <DropdownMenuItem disabled={disableAddFolder} onSelect={onAddFolder}>
             <FolderPlus />
-            New folder
+            {t('newFolder')}
           </DropdownMenuItem>
         )}
         {onAddKnowledgeBase && (
           <DropdownMenuItem disabled={disableAdd} onSelect={onAddKnowledgeBase}>
             <Plus />
-            New base
+            {t('newBase')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

@@ -8,6 +8,7 @@ import {
   ChipModalHeader,
   OverflowText,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type {
   BYOKManagerCapabilities,
   BYOKManagerKey,
@@ -45,23 +46,24 @@ export function BYOKProviderKeysModal({
   onUpdateKey,
   onDeleteKey,
 }: BYOKProviderKeysModalProps) {
+  const t = useTranslations('settings.byok')
+  const tShared = useTranslations('settings.shared')
   const close = () => onOpenChange(false)
   const atCapacity = keys.length >= maxKeys
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Manage API Keys'>
-      <ChipModalHeader onClose={close}>{provider && `${provider.name} API Keys`}</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('keysModal.srTitle')}>
+      <ChipModalHeader onClose={close}>
+        {provider && t('keysModal.title', { provider: provider.name })}
+      </ChipModalHeader>
       <ChipModalBody>
-        <p className='px-2 text-[var(--text-secondary)] text-sm'>
-          Requests are distributed evenly across these keys. Your keys are encrypted and stored
-          securely.
-        </p>
+        <p className='px-2 text-[var(--text-secondary)] text-sm'>{t('keysModal.description')}</p>
         <div className='flex flex-col gap-2 px-2'>
           {keys.map((key) => (
             <div key={key.id} className='flex items-center justify-between gap-2.5'>
               <div className='flex min-w-0 flex-col justify-center gap-[1px]'>
                 <OverflowText
-                  label={key.name ?? 'Unnamed key'}
+                  label={key.name ?? t('keysModal.unnamedKey')}
                   className='text-[var(--text-body)] text-sm'
                 />
                 <OverflowText
@@ -71,8 +73,12 @@ export function BYOKProviderKeysModal({
               </div>
               {(capabilities.update || capabilities.delete) && (
                 <div className='flex shrink-0 items-center gap-2'>
-                  {capabilities.update && <Chip onClick={() => onUpdateKey(key)}>Update</Chip>}
-                  {capabilities.delete && <Chip onClick={() => onDeleteKey(key)}>Delete</Chip>}
+                  {capabilities.update && (
+                    <Chip onClick={() => onUpdateKey(key)}>{t('update')}</Chip>
+                  )}
+                  {capabilities.delete && (
+                    <Chip onClick={() => onDeleteKey(key)}>{tShared('delete')}</Chip>
+                  )}
                 </div>
               )}
             </div>
@@ -80,7 +86,7 @@ export function BYOKProviderKeysModal({
         </div>
         {capabilities.add && atCapacity && (
           <p className='px-2 text-[var(--text-muted)] text-caption'>
-            Key limit reached ({maxKeys} keys per provider).
+            {t('keysModal.limitReached', { maxKeys })}
           </p>
         )}
       </ChipModalBody>
@@ -90,12 +96,12 @@ export function BYOKProviderKeysModal({
         primaryAction={
           capabilities.add
             ? {
-                label: 'Add Key',
+                label: t('addKey'),
                 onClick: onAddKey,
                 disabled: atCapacity,
               }
             : {
-                label: 'Close',
+                label: tShared('close'),
                 onClick: close,
               }
         }

@@ -11,6 +11,7 @@ import {
   type ComboboxOption,
   Tooltip,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { ConnectorAccessMode } from '@/lib/api/contracts/knowledge/connectors'
 import { type ResourceScope, resourceScopeFromOwner } from '@/lib/core/resource-scope'
 import { supportsConnectorAccessMode } from '@/lib/knowledge/connectors/access-modes'
@@ -44,15 +45,16 @@ export function ConnectorContentCredentialField({
   isLoading,
   disabled,
 }: ConnectorContentCredentialFieldProps) {
+  const t = useTranslations('knowledge.connectorAccess')
   return (
-    <ChipModalField type='custom' title='Sync documents with'>
+    <ChipModalField type='custom' title={t('syncDocumentsWith')}>
       <ChipCombobox
         value={credentialId ?? '__connected_members__'}
-        options={[{ value: '__connected_members__', label: 'Connected members' }, ...options]}
+        options={[{ value: '__connected_members__', label: t('connectedMembers') }, ...options]}
         onChange={(value) => onChange(value === '__connected_members__' ? null : value)}
         isLoading={isLoading}
         disabled={disabled}
-        placeholder='Choose an account'
+        placeholder={t('chooseAccount')}
       />
     </ChipModalField>
   )
@@ -101,6 +103,7 @@ export function ConnectorAccessField({
   slackSetupOnly = false,
   onSetupNavigate,
 }: ConnectorAccessFieldProps) {
+  const t = useTranslations('knowledge.connectorAccess')
   const scope = explicitScope ?? resourceScopeFromOwner({ workspaceId })
   /**
    * Member access needs a supported sign-in provider. Source permissions may
@@ -126,14 +129,14 @@ export function ConnectorAccessField({
   if (!membersSupported && !adminSupported && value.accessMode === 'workspace') return null
 
   const modes: { mode: ConnectorAccessMode; label: string; allowed: boolean }[] = [
-    { mode: 'workspace', label: 'Workspace', allowed: allowWorkspace },
-    { mode: 'members', label: 'Member accounts', allowed: membersSupported && allowMembers },
+    { mode: 'workspace', label: t('modes.workspace'), allowed: allowWorkspace },
+    { mode: 'members', label: t('modes.members'), allowed: membersSupported && allowMembers },
     {
       mode: 'admin',
       label:
         !lockAccessMode && isConnectorCredentialTypeAllowed(connectorConfig.auth, 'admin', 'oauth')
-          ? 'Admin or service account'
-          : 'Service account',
+          ? t('modes.adminOrService')
+          : t('modes.service'),
       allowed: adminSupported && allowAdmin,
     },
   ]
@@ -156,13 +159,15 @@ export function ConnectorAccessField({
   return (
     <ChipModalField
       type='custom'
-      title={slackSetupOnly ? 'Slack app' : allowWorkspace ? 'Connection method' : 'Sync using'}
+      title={
+        slackSetupOnly ? t('slackApp') : allowWorkspace ? t('connectionMethod') : t('syncUsing')
+      }
       error={canAdmin && !showSlackSetup ? accountsQuery.error?.message : undefined}
       hint={
         canAdmin && isAvailabilityReady && !currentMode?.allowed
-          ? `This connection method is not available in this ${scope.kind}.`
+          ? t('methodUnavailable', { kind: scope.kind })
           : value.accessMode === 'workspace'
-            ? 'Everyone in this workspace can search these documents.'
+            ? t('workspaceHint')
             : undefined
       }
     >
@@ -172,7 +177,7 @@ export function ConnectorAccessField({
             <Tooltip.Trigger asChild tabIndex={0}>
               <span className='inline-flex w-fit cursor-not-allowed'>
                 <ChipDropdown
-                  aria-label={`Sync using: ${currentMode?.label ?? 'Unavailable'}`}
+                  aria-label={t('syncUsingLabel', { mode: currentMode?.label ?? t('unavailable') })}
                   value={value.accessMode}
                   options={visibleModes.map(({ mode, label }) => ({ value: mode, label }))}
                   disabled
@@ -180,7 +185,7 @@ export function ConnectorAccessField({
                 />
               </span>
             </Tooltip.Trigger>
-            <Tooltip.Content>Add a new connection to change the sync method.</Tooltip.Content>
+            <Tooltip.Content>{t('lockedTooltip')}</Tooltip.Content>
           </Tooltip.Root>
         ) : showModeSelector ? (
           <ChipButtonGroup
@@ -207,13 +212,13 @@ export function ConnectorAccessField({
           (accountsQuery.isError ? (
             <SettingsQueryErrorState
               error={accountsQuery.error}
-              fallback='Could not check Slack setup'
+              fallback={t('slackCheckFailed')}
               isRetrying={accountsQuery.isFetching}
               onRetry={() => void accountsQuery.refetch()}
               variant='inline'
             />
           ) : accountsQuery.isPending ? (
-            <SettingsEmptyState variant='inline'>Checking Slack setup…</SettingsEmptyState>
+            <SettingsEmptyState variant='inline'>{t('checkingSlack')}</SettingsEmptyState>
           ) : accountsQuery.isSuccess && !configured ? (
             <SlackMemberSetup
               scope={scope}
@@ -242,6 +247,7 @@ export function SlackMemberSetup({
   searchSetupSource,
   onNavigate,
 }: SlackMemberSetupProps) {
+  const t = useTranslations('knowledge.connectorAccess')
   const scope = explicitScope ?? resourceScopeFromOwner({ workspaceId })
   const href =
     scope.kind === 'organization'
@@ -249,7 +255,7 @@ export function SlackMemberSetup({
       : `/workspace/${scope.workspaceId}/settings/credential-groups`
   return (
     <ChipLink href={href} onClick={onNavigate}>
-      Set up Slack
+      {t('setUpSlack')}
     </ChipLink>
   )
 }

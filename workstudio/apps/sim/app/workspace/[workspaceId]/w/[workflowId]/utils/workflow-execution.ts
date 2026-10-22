@@ -128,7 +128,7 @@ export interface BlockEventHandlerConfig {
   accumulatedBlockStates: Map<string, BlockState>
   executedBlockIds: Set<string>
   includeStartConsoleEntry: boolean
-  onBlockCompleteCallback?: (blockId: string, output: unknown) => Promise<void>
+  onBlockCompleteCallback?: (blockId: string, output: unknown) => Promise<void> // i18n-ignore: type signature
 }
 
 interface BlockEventHandlerDeps {
@@ -875,7 +875,7 @@ export function addHttpErrorConsoleEntry(
   addConsole: AddConsoleFn,
   params: HttpErrorConsoleParams
 ): void {
-  const isValidationError = params.httpStatus >= 400 && params.httpStatus < 500
+  const isValidationError = Math.floor(params.httpStatus / 100) === 4
   const now = new Date().toISOString()
   addConsole({
     input: {},
@@ -950,9 +950,9 @@ export function handleExecutionCancelledConsole(
 export interface WorkflowExecutionOptions {
   workflowId?: string
   workflowInput?: any
-  onStream?: (se: StreamingExecution) => Promise<void>
+  onStream?: (se: StreamingExecution) => Promise<void> // i18n-ignore: type signature
   executionId?: string
-  onBlockComplete?: (blockId: string, output: any) => Promise<void>
+  onBlockComplete?: (blockId: string, output: any) => Promise<void> // i18n-ignore: type signature
   overrideTriggerType?: 'chat' | 'manual' | 'api' | 'copilot' | 'webhook' | 'schedule'
   triggerBlockId?: string
   useDraftState?: boolean

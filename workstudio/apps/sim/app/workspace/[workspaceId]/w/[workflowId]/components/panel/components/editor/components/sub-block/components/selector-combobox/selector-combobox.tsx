@@ -2,6 +2,7 @@ import type React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Combobox as EditableCombobox } from '@sim/emcn'
 import { X } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { getSelectorManifestEntry, type SelectorKey } from '@/lib/selectors/manifest'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
@@ -51,6 +52,7 @@ export function SelectorCombobox({
   missingOptionLabel,
   multiSelect = false,
 }: SelectorComboboxProps) {
+  const t = useTranslations('editor.subBlock.selectorCombobox')
   const activeSearchTarget = useActiveSearchTarget()
   const manifest = getSelectorManifestEntry(selectorKey)
   const [storeValueRaw, setStoreValue] = useSubBlockValue<string | string[] | null | undefined>(
@@ -79,7 +81,7 @@ export function SelectorCombobox({
   }, [multiSelect, isPreview, previewValue, storeValueRaw])
   const detailId = activeValue && !activeValue.startsWith('<') ? activeValue : undefined
   const multiDetailIds = useMemo(
-    () => selectedValues.filter((id) => !id.startsWith('<')),
+    () => selectedValues.filter((id) => !id.startsWith('<')), // i18n-ignore: reference prefix
     [selectedValues]
   )
   const [searchTerm, setSearchTerm] = useState('')
@@ -236,7 +238,7 @@ export function SelectorCombobox({
             setMultiInput(newValue)
             if (allowSearch) setSearchTerm(newValue)
           }}
-          placeholder={placeholder || subBlock.placeholder || 'Select channels'}
+          placeholder={placeholder || subBlock.placeholder || t('selectChannels')}
           disabled={disabled || readOnly}
           editable={allowSearch}
           filterOptions={allowSearch}
@@ -265,7 +267,7 @@ export function SelectorCombobox({
                   variant='ghost'
                   className='h-auto shrink-0 p-0'
                   disabled={disabled || readOnly}
-                  aria-label={`Remove ${optionMap.get(id)?.label ?? id}`}
+                  aria-label={t('remove', { name: optionMap.get(id)?.label ?? id })}
                   onClick={() => handleMultiChange(selectedValues.filter((v) => v !== id))}
                 >
                   <X className='size-[14px] text-[var(--text-icon)]' />
@@ -308,7 +310,7 @@ export function SelectorCombobox({
                   setSearchTerm(newValue)
                 }
               }}
-              placeholder={placeholder || subBlock.placeholder || 'Select an option'}
+              placeholder={placeholder || subBlock.placeholder || t('selectOption')}
               disabled={disabled || readOnly}
               editable={allowSearch}
               filterOptions={allowSearch}
@@ -337,7 +339,7 @@ export function SelectorCombobox({
             />
             {showClearButton && (
               <Button
-                aria-label='Clear selection'
+                aria-label={t('clearSelection')}
                 type='button'
                 variant='ghost'
                 className='-translate-y-1/2 absolute top-1/2 right-[28px] z-10 size-6 p-0'

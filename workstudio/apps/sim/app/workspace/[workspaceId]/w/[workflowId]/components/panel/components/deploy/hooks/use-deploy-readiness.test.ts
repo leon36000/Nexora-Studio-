@@ -1,3 +1,4 @@
+import { createTranslator } from 'next-intl'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/stores/operation-queue/store', () => ({
@@ -32,6 +33,13 @@ vi.mock('@/stores/workflow-diff/store', () => ({
 }))
 
 import { getDeployReadinessState } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/hooks/use-deploy-readiness'
+import { MESSAGES } from '@/i18n/messages'
+
+const t = createTranslator({
+  locale: 'en',
+  messages: MESSAGES.en,
+  namespace: 'editor.deploy.readiness',
+})
 
 const baseInput = {
   workflowId: 'workflow-a',
@@ -45,10 +53,13 @@ const baseInput = {
 
 describe('getDeployReadinessState', () => {
   it('blocks deploy while active workflow operations are pending', () => {
-    const readiness = getDeployReadinessState({
-      ...baseInput,
-      hasPendingOperations: true,
-    })
+    const readiness = getDeployReadinessState(
+      {
+        ...baseInput,
+        hasPendingOperations: true,
+      },
+      t
+    )
 
     expect(readiness.status).toBe('saving')
     expect(readiness.label).toBe('Saving...')
@@ -56,18 +67,24 @@ describe('getDeployReadinessState', () => {
 
   it('blocks deploy while copilot diff changes are under review', () => {
     expect(
-      getDeployReadinessState({
-        ...baseInput,
-        hasActiveDiff: true,
-      }).status
+      getDeployReadinessState(
+        {
+          ...baseInput,
+          hasActiveDiff: true,
+        },
+        t
+      ).status
     ).toBe('reviewing-diff')
   })
 
   it('surfaces reconciliation failures as deploy-blocking sync errors', () => {
-    const readiness = getDeployReadinessState({
-      ...baseInput,
-      reconciliationError: 'Latest workflow changes failed to sync',
-    })
+    const readiness = getDeployReadinessState(
+      {
+        ...baseInput,
+        reconciliationError: 'Latest workflow changes failed to sync',
+      },
+      t
+    )
 
     expect(readiness.status).toBe('error')
     expect(readiness.tooltip).toBe('Latest workflow changes failed to sync')

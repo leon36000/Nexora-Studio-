@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { getEffectiveBlockOutputs } from '@/lib/workflows/blocks/outputs'
 import { hasTriggerCapability } from '@/lib/workflows/triggers/utils'
 import type { SchemaField } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/connection-blocks/components/field-item/field-item'
@@ -103,6 +104,7 @@ export function useBlockOutputFields({
   mergedSubBlocks,
   triggerMode,
 }: UseBlockOutputFieldsParams): SchemaField[] {
+  const t = useTranslations('editor.blockOutputFields')
   return useMemo(() => {
     const blockConfig = getBlock(blockType)
 
@@ -112,7 +114,7 @@ export function useBlockOutputFields({
         {
           name: 'results',
           type: 'array',
-          description: 'Array of results from the loop/parallel execution',
+          description: t('subflowResults'),
         },
       ]
     }
@@ -151,5 +153,5 @@ export function useBlockOutputFields({
     }
 
     return Object.entries(baseOutputs).map(([name, output]) => createFieldFromOutput(name, output))
-  }, [blockId, blockType, mergedSubBlocks, triggerMode])
+  }, [blockId, blockType, mergedSubBlocks, triggerMode, t])
 }

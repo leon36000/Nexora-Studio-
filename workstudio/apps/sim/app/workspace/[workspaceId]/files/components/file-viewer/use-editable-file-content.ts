@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
 import { toast } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
 import { saveBlob } from '@/lib/uploads/client/download'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
@@ -45,6 +46,8 @@ export const RECONCILING_REFETCH_WINDOW_MS = 45_000
 /** Slow-poll cadence once the fast window has elapsed without the server content advancing. */
 export const RECONCILING_REFETCH_SLOW_INTERVAL_MS = 15_000
 
+type SaveRetry = () => Promise<void> // i18n-ignore: type signature
+
 interface UseEditableFileContentOptions {
   file: WorkspaceFileRecord
   workspaceId: string
@@ -53,10 +56,10 @@ interface UseEditableFileContentOptions {
   isAgentEditing?: boolean
   onDirtyChange?: (isDirty: boolean) => void
   /** `retry` is this instance's own `saveImmediately`, passed alongside an `'error'` status so a caller-side retry never depends on a shared, remount-able ref. */
-  onSaveStatusChange?: (status: SaveStatus, retry?: () => Promise<void>) => void
+  onSaveStatusChange?: (status: SaveStatus, retry?: SaveRetry) => void
   /** Receives why a save was refused, for callers whose server checks the content itself. */
   onSaveError?: (error: unknown) => void
-  saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
+  saveRef?: React.MutableRefObject<SaveRetry | null>
   /** Bridges an imperative "discard the current draft" command up to the caller, mirroring `saveRef`. */
   discardRef?: React.MutableRefObject<(() => void) | null>
   /**
@@ -90,11 +93,11 @@ interface EditableFileContent {
   hasContentError: boolean
   contentError: string | undefined
   saveStatus: SaveStatus
-  saveImmediately: () => Promise<void>
+  saveImmediately: SaveRetry
   isDirty: boolean
   hasConflict: boolean
   isReloading: boolean
-  reloadLatestContent: () => Promise<void>
+  reloadLatestContent: SaveRetry
   downloadDraft: () => void
   acceptedBaselineContent?: string
 }
@@ -173,6 +176,7 @@ export function useEditableFileContent({
   normalizeBaseline,
   canAutosave = true,
 }: UseEditableFileContentOptions): EditableFileContent {
+  const t = useTranslations('files.editableContent')
   const onDirtyChangeRef = useRef(onDirtyChange)
   const onSaveStatusChangeRef = useRef(onSaveStatusChange)
   const onSaveErrorRef = useRef(onSaveError)
@@ -309,11 +313,11 @@ export function useEditableFileContent({
     async (overrideContent?: string) => {
       const next = overrideContent ?? contentRef.current
       const expectedUpdatedAt = saveVersionRef.current
-      if (conflictRef.current) throw new Error('Reload the latest file before saving this draft')
+      if (conflictRef.current) throw new Error(t('reloadBeforeSaving'))
       if (!expectedUpdatedAt) {
         conflictRef.current = true
         markConflict()
-        throw new Error('The file version is unavailable; reload before saving')
+        throw new Error(t('versionUnavailable'))
       }
       try {
         const result = await updateContentRef.current.mutateAsync({
@@ -326,7 +330,7 @@ export function useEditableFileContent({
         if (!version) {
           conflictRef.current = true
           markConflict()
-          throw new Error('Saved file version is unavailable; reload before continuing')
+          throw new Error(t('savedVersionUnavailable'))
         }
         const acknowledgedVersion = new Date(version).toISOString()
         if (
@@ -349,7 +353,7 @@ export function useEditableFileContent({
         throw error
       }
     },
-    [workspaceId, file.id, markSavedContent, markConflict]
+    [workspaceId, file.id, markSavedContent, markConflict, t]
   )
 
   const autosaveEnabled =
@@ -374,27 +378,21 @@ export function useEditableFileContent({
     draftKey: autosaveEnabled ? `${workspaceId}:${file.id}` : undefined,
     onRestoreDraft: setDraftContent,
     onRestoreConflictingDraft: restoreConflictingDraft,
-    onDiscardCorrectionFailed: () =>
-      toast.error(
-        `Failed to discard "${file.name}" — the server may still have the discarded edit`
-      ),
+    onDiscardCorrectionFailed: () => toast.error(t('discardFailed', { name: file.name })),
   })
   const saveStatus = hasConflict ? 'error' : autosaveStatus
 
   const reloadLatestContent = useCallback(async () => {
-    if (streamActiveRef.current)
-      throw new Error('Wait for the agent edit to finish before reloading')
+    if (streamActiveRef.current) throw new Error(t('waitForAgent'))
     const draftAtStart = contentRef.current
     const result = await reloadContent.mutateAsync({
       workspaceId,
       fileId: file.id,
       raw: GENERATED_SOURCE_FILE_TYPES.has(file.type),
     })
-    if (streamActiveRef.current)
-      throw new Error('An agent edit started while reloading. Retry after it finishes.')
-    if (contentRef.current !== draftAtStart)
-      throw new Error('Your draft changed while reloading. Download it or retry reload.')
-    if (!result.file.contentUpdatedAt) throw new Error('The latest file version is unavailable')
+    if (streamActiveRef.current) throw new Error(t('agentStartedWhileReloading'))
+    if (contentRef.current !== draftAtStart) throw new Error(t('draftChangedWhileReloading'))
+    if (!result.file.contentUpdatedAt) throw new Error(t('latestVersionUnavailable'))
     const latestContent =
       normalizeBaseline && !everStreamedRef.current
         ? normalizeBaseline(result.content)
@@ -412,6 +410,7 @@ export function useEditableFileContent({
     normalizeBaseline,
     discard,
     acceptReload,
+    t,
   ])
 
   const downloadDraft = useCallback(() => {

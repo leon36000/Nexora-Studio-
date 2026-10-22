@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { Combobox } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { FolderResourceType } from '@/lib/api/contracts/folders'
 import { parseFolderPath } from '@/lib/folders/paths'
 import { readFolderPath, readFolderPaths } from '@/lib/folders/selection'
@@ -35,6 +36,7 @@ export function WorkspaceFolderSelector({
   isPreview = false,
   previewValue,
 }: WorkspaceFolderSelectorProps) {
+  const t = useTranslations('editor.subBlock.workspaceFolderSelector')
   const { workspaceId } = useWorkflowScope()
   const resourceType = (subBlock.resourceType as FolderResourceType | undefined) ?? 'file'
 
@@ -53,8 +55,8 @@ export function WorkspaceFolderSelector({
       label: parseFolderPath(folder.path).join(' / '),
     }))
     if (subBlock.multiSelect || required) return folderOptions
-    return [{ value: '', label: subBlock.placeholder ?? 'Workspace root' }, ...folderOptions]
-  }, [folders, isPlaceholderData, required, subBlock.multiSelect, subBlock.placeholder])
+    return [{ value: '', label: subBlock.placeholder ?? t('workspaceRoot') }, ...folderOptions]
+  }, [t, folders, isPlaceholderData, required, subBlock.multiSelect, subBlock.placeholder])
 
   return (
     <Combobox
@@ -69,8 +71,8 @@ export function WorkspaceFolderSelector({
         if (!isPreview) setStoreValue(values.length > 0 ? values : '')
       }}
       showAllOption={subBlock.multiSelect}
-      allOptionLabel='Anywhere in the workspace'
-      placeholder={subBlock.placeholder ?? 'Anywhere in the workspace'}
+      allOptionLabel={t('anywhere')}
+      placeholder={subBlock.placeholder ?? t('anywhere')}
       disabled={disabled || isPreview || isPlaceholderData}
       isLoading={isLoading || isPlaceholderData}
       error={error}
@@ -78,8 +80,8 @@ export function WorkspaceFolderSelector({
         if (open && error) refetch()
       }}
       searchable
-      searchPlaceholder='Search folders...'
-      emptyMessage='No folders found'
+      searchPlaceholder={t('searchFolders')}
+      emptyMessage={t('noFoldersFound')}
       className='w-full'
     />
   )

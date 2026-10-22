@@ -31,15 +31,35 @@ export function saveDiscardActions({
   onDiscard,
   saveDisabled = false,
   creating = false,
-  saveLabel = creating ? 'Create' : 'Save',
-  savingLabel = creating ? 'Creating...' : 'Saving...',
+  saveLabel,
+  savingLabel,
   saveTooltip,
 }: SaveDiscardActionsConfig): SettingsAction[] {
+  // Default labels carry a message key so the chip renders them in the active locale;
+  // bespoke `saveLabel` / `savingLabel` are already the caller's localized text.
+  const defaultLabel = saving
+    ? creating
+      ? { text: 'Creating...', textKey: 'shell.creating' }
+      : { text: 'Saving...', textKey: 'shell.saving' }
+    : creating
+      ? { text: 'Create', textKey: 'shell.create' }
+      : { text: 'Save', textKey: 'shell.save' }
+  const bespokeLabel = saving ? savingLabel : saveLabel
   return [
-    ...(dirty ? [{ id: 'discard', text: 'Discard', onSelect: onDiscard, disabled: saving }] : []),
+    ...(dirty
+      ? [
+          {
+            id: 'discard',
+            text: 'Discard',
+            textKey: 'shell.discard',
+            onSelect: onDiscard,
+            disabled: saving,
+          },
+        ]
+      : []),
     {
       id: 'save',
-      text: saving ? savingLabel : saveLabel,
+      ...(bespokeLabel === undefined ? defaultLabel : { text: bespokeLabel }),
       variant: 'primary',
       onSelect: onSave,
       disabled: saving || saveDisabled || !dirty,

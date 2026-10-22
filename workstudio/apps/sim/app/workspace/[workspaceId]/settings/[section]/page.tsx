@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { EmptyState } from '@/components/empty-state/empty-state'
 import {
   getOrganizationSettingsHref,
@@ -33,8 +34,9 @@ function redirectToGeneralSettings(workspaceId: string): never {
 export async function generateMetadata({
   params,
 }: WorkspaceSettingsSectionPageProps): Promise<Metadata> {
-  const { section } = await params
-  return { title: resolveSettingsSection(section)?.meta.title ?? 'Settings' }
+  const [{ section }, t] = await Promise.all([params, getTranslations('settings')])
+  const messageKey = resolveSettingsSection(section)?.meta.messageKey
+  return { title: messageKey ? t(`${messageKey}.label`) : t('shell.settingsTitle') }
 }
 
 export default async function WorkspaceSettingsSectionPage({
@@ -44,7 +46,10 @@ export default async function WorkspaceSettingsSectionPage({
   const session = await getSession()
   if (!session?.user) redirect('/login')
 
-  const { workspaceId, section } = await params
+  const [{ workspaceId, section }, t] = await Promise.all([
+    params,
+    getTranslations('settings.access'),
+  ])
   /** The layout already rejected an unknown segment; this narrows the type and fails safe. */
   const resolved = resolveSettingsSection(section)
   if (!resolved) notFound()
@@ -63,10 +68,7 @@ export default async function WorkspaceSettingsSectionPage({
       return (
         <Suspense
           fallback={
-            <EmptyState
-              title='Checking access'
-              description='Loading your organization access policy.'
-            />
+            <EmptyState title={t('checkingTitle')} description={t('checkingDescription')} />
           }
         >
           <PermissionAccessBoundary configKey={access.configKey} />

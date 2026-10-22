@@ -186,8 +186,15 @@ services:
       NEXORA_CONNECT_MCP_URL: http://nexora-connect:3000/mcp
       NEXORA_CONNECT_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN}
       EGRESS_ALLOWED_HOSTS: nexora-api,nexora-connect,host.docker.internal
+      # Governance shipped with Nexora: organizations, audit log, usage dashboard.
+      ORGANIZATIONS_ENABLED: 'true'
+      NEXT_PUBLIC_ORGANIZATIONS_ENABLED: 'true'
+      AUDIT_LOGS_ENABLED: 'true'
+      NEXT_PUBLIC_AUDIT_LOGS_ENABLED: 'true'
+      USAGE_MONITORING_ENABLED: 'true'
+      NEXT_PUBLIC_USAGE_MONITORING_ENABLED: 'true'
       # Optional single sign-on (OIDC) and outgoing email.
-      NEXORA_OIDC_NAME: ${NEXORA_OIDC_NAME:-}
+      NEXT_PUBLIC_NEXORA_OIDC_NAME: ${NEXORA_OIDC_NAME:-}
       NEXORA_OIDC_ISSUER: ${NEXORA_OIDC_ISSUER:-}
       NEXORA_OIDC_CLIENT_ID: ${NEXORA_OIDC_CLIENT_ID:-}
       NEXORA_OIDC_CLIENT_SECRET: ${NEXORA_OIDC_CLIENT_SECRET:-}

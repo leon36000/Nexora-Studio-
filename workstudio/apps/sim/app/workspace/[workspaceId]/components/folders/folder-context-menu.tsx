@@ -13,9 +13,10 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { Duplicate, Eye, FolderInput, Pencil, Pin, Trash } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { MoveOptionNode } from '@/app/workspace/[workspaceId]/components/folders/move-options'
 import { renderMoveOptions } from '@/app/workspace/[workspaceId]/components/folders/move-options'
-import { selectionActionLabel } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
+import { useSelectionLabels } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 
 interface FolderContextMenuProps {
   isOpen: boolean
@@ -65,6 +66,8 @@ export const FolderContextMenu = memo(function FolderContextMenu({
   deleteDisabledReason,
   selectedCount,
 }: FolderContextMenuProps) {
+  const t = useTranslations('shell.folderContextMenu')
+  const { selectionActionLabel } = useSelectionLabels()
   const isMultiSelect = selectedCount > 1
   const hasMove = Boolean(onMove && moveOptions && moveOptions.length > 0)
   const hasActionsAboveDestructive = !isMultiSelect || hasMove
@@ -87,23 +90,23 @@ export const FolderContextMenu = memo(function FolderContextMenu({
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         {!hasAvailableActions ? (
-          <DropdownMenuItem disabled>No actions available</DropdownMenuItem>
+          <DropdownMenuItem disabled>{t('noActions')}</DropdownMenuItem>
         ) : (
           <>
             {!isMultiSelect && (
               <>
                 <DropdownMenuItem onSelect={onOpen}>
                   <Eye />
-                  Open
+                  {t('open')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={onTogglePin}>
                   <Pin />
-                  {pinned ? 'Unpin' : 'Pin'}
+                  {pinned ? t('unpin') : t('pin')}
                 </DropdownMenuItem>
                 {onCopyId && (
                   <DropdownMenuItem onSelect={onCopyId}>
                     <Duplicate />
-                    Copy ID
+                    {t('copyId')}
                   </DropdownMenuItem>
                 )}
               </>
@@ -113,14 +116,14 @@ export const FolderContextMenu = memo(function FolderContextMenu({
                 {!isMultiSelect && (
                   <DropdownMenuItem onSelect={onRename}>
                     <Pencil />
-                    Rename
+                    {t('rename')}
                   </DropdownMenuItem>
                 )}
                 {hasMove && (
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <FolderInput />
-                      {selectionActionLabel('Move', selectedCount, 'Move to')}
+                      {selectionActionLabel(t('move'), selectedCount, t('moveTo'))}
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       {renderMoveOptions(moveOptions!, onMove!)}
@@ -136,7 +139,7 @@ export const FolderContextMenu = memo(function FolderContextMenu({
                           <div>
                             <DropdownMenuItem disabled>
                               <Trash />
-                              {selectionActionLabel('Delete', selectedCount)}
+                              {selectionActionLabel(t('delete'), selectedCount)}
                             </DropdownMenuItem>
                           </div>
                         </Tooltip.Trigger>
@@ -145,7 +148,7 @@ export const FolderContextMenu = memo(function FolderContextMenu({
                     ) : (
                       <DropdownMenuItem onSelect={onDelete}>
                         <Trash />
-                        {selectionActionLabel('Delete', selectedCount)}
+                        {selectionActionLabel(t('delete'), selectedCount)}
                       </DropdownMenuItem>
                     )}
                   </>

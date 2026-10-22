@@ -15,6 +15,16 @@ export type MentionKind =
   | 'skill'
   | 'integration'
 
+/** The `@` menu's category, labeled at render (`files.editor.mentions.groups.<group>`). */
+export type MentionGroup =
+  | 'files'
+  | 'folders'
+  | 'tables'
+  | 'knowledgeBases'
+  | 'workflows'
+  | 'skills'
+  | 'integrations'
+
 /** A single selectable entry in the `@` menu. */
 export interface MentionItem {
   kind: MentionKind
@@ -22,8 +32,8 @@ export interface MentionItem {
   id: string
   /** Display + link text. */
   label: string
-  /** Category heading the item is shown under. */
-  group: string
+  /** Category the item is shown under. */
+  group: MentionGroup
   /** Optional per-item icon (emcn category icon or a brand block icon). */
   icon?: ComponentType<{ className?: string }>
 }

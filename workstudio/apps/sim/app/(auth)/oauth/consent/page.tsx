@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import type { SearchParams } from 'nuqs/server'
 import { getSession } from '@/lib/auth'
 import { isAuthDisabled } from '@/lib/core/config/env-flags'
 import { OAuthConsentView } from '@/app/(auth)/oauth/consent/consent-view'
 import { oauthConsentSearchParamsCache } from '@/app/(auth)/oauth/consent/search-params'
 
-export const metadata: Metadata = {
-  title: 'Authorize app',
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('auth.oauthConsent')
+  return { title: t('metaTitle'), robots: { index: false, follow: false } }
 }
 
 export const dynamic = 'force-dynamic'

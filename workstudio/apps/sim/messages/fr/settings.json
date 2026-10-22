@@ -1,1 +1,1670 @@
-{ "general": { "language": "Langue" } }
+{
+  "general": {
+    "language": "Langue",
+    "actions": {
+      "homePage": "Page d’accueil",
+      "signOut": "Se déconnecter",
+      "signOutOtherDevices": "Déconnecter les autres appareils",
+      "resetPassword": "Réinitialiser le mot de passe"
+    },
+    "sections": {
+      "profile": "Profil",
+      "preferences": "Préférences",
+      "privacy": "Confidentialité",
+      "account": "Compte"
+    },
+    "profile": {
+      "changePicture": "Changer la photo de profil",
+      "pictureAlt": "Utilisateur",
+      "yourName": "Votre nom",
+      "saveName": "Enregistrer le nom",
+      "editName": "Modifier le nom",
+      "updatePictureFailed": "Échec de la mise à jour de la photo de profil",
+      "removePictureFailed": "Échec de la suppression de la photo de profil"
+    },
+    "preferences": {
+      "theme": "Thème",
+      "selectTheme": "Sélectionner un thème",
+      "themes": {
+        "system": "Système",
+        "light": "Clair",
+        "dark": "Sombre"
+      },
+      "timezone": "Fuseau horaire",
+      "searchTimezones": "Rechercher un fuseau horaire",
+      "selectTimezone": "Sélectionner un fuseau horaire",
+      "timezoneAuto": "Auto : {timezone}",
+      "timezoneInvalid": "Non valide : {timezone}",
+      "timezoneEmpty": "(vide)",
+      "autoConnect": "Connexion automatique au dépôt",
+      "autoConnectAbout": "À propos de la connexion automatique au dépôt",
+      "autoConnectTooltip": "Connecter automatiquement les blocs déposés les uns près des autres",
+      "autoConnectExample": "Exemple de connexion automatique au dépôt",
+      "autoFocus": "Centrage automatique au clic",
+      "autoFocusAbout": "À propos du centrage automatique au clic",
+      "autoFocusTooltip": "Centrer le canevas sur un bloc lorsque vous cliquez dessus",
+      "autoFocusExample": "Exemple de centrage automatique au clic",
+      "errorNotifications": "Notifications d’erreur sur le canevas",
+      "errorNotificationsAbout": "À propos des notifications d’erreur sur le canevas",
+      "errorNotificationsTooltip": "Afficher des fenêtres d’erreur sur les blocs lorsqu’une exécution de workflow échoue",
+      "errorNotificationsExample": "Exemple de notification d’erreur sur le canevas",
+      "snapToGrid": "Aimanter à la grille",
+      "selectSize": "Sélectionner une taille",
+      "snapOff": "Désactivé",
+      "showCanvasControls": "Afficher les commandes du canevas"
+    },
+    "privacySettings": "Paramètres de confidentialité",
+    "manage": "Gérer",
+    "authorizedApps": "Applications autorisées",
+    "deleteAccountLabel": "Supprimer le compte",
+    "resetPasswordModal": {
+      "title": "Réinitialiser le mot de passe",
+      "body": "Un lien de réinitialisation du mot de passe sera envoyé à <b>{email}</b>. Cliquez sur le lien dans l’e-mail pour créer un nouveau mot de passe.",
+      "sending": "Envoi...",
+      "sent": "Envoyé",
+      "send": "Envoyer l’e-mail de réinitialisation"
+    },
+    "signOutOthersModal": {
+      "title": "Déconnecter les autres appareils",
+      "text": "Cet appareil et vos applications autorisées restent connectés.",
+      "confirm": "Se déconnecter",
+      "pending": "Déconnexion...",
+      "success": "Autres appareils déconnectés"
+    },
+    "privacy": {
+      "back": "Général",
+      "title": "Confidentialité",
+      "description": "Contrôlez ce que Nexora collecte sur votre utilisation.",
+      "telemetry": "Télémétrie",
+      "allowTelemetry": "Autoriser la télémétrie du navigateur",
+      "telemetryHint": "Partagez les diagnostics de performance et d’erreurs du navigateur pour améliorer Nexora. Vous pouvez vous désinscrire à tout moment. Ce réglage ne concerne pas les journaux opérationnels du serveur.",
+      "telemetrySaveFailed": "Impossible d’enregistrer votre préférence de télémétrie"
+    },
+    "cookies": {
+      "title": "Cookies",
+      "saveFailed": "Impossible d’enregistrer vos préférences de cookies",
+      "notice": "Votre choix s’applique à ce navigateur et est conservé 365 jours. La <link>Politique relative aux cookies</link> détaille ce que couvre chaque catégorie."
+    },
+    "deleteAccount": {
+      "title": "Supprimer le compte",
+      "confirm": "Supprimer le compte",
+      "pending": "Suppression...",
+      "resolveFirst": "Résolvez d’abord les points ci-dessus",
+      "enterEmail": "Saisissez l’e-mail de votre compte pour confirmer",
+      "blocked": "Votre compte ne peut pas encore être supprimé :",
+      "warning": "Cette action supprime définitivement <b>{email}</b> ainsi que ses workflows, conversations, fichiers, bases de connaissances et identifiants. <danger>Cette action est irréversible.</danger>",
+      "workspacesDeleted": "{count, plural, one {L’espace de travail <b>{names}</b> et tout son contenu seront supprimés.} other {Les espaces de travail <b>{names}</b> et tout leur contenu seront supprimés.}}",
+      "workspacesTransferred": "{count, plural, one {La facturation de <b>{names}</b> passe à un autre administrateur. Son contenu reste inchangé.} other {La facturation de <b>{names}</b> passe à un autre administrateur. Leur contenu reste inchangé.}}",
+      "planFailed": "Impossible de vérifier si ce compte peut être supprimé. Réessayez.",
+      "confirmEmail": "Confirmez votre e-mail"
+    }
+  },
+  "shared": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "delete": "Supprimer",
+    "deleting": "Suppression...",
+    "remove": "Retirer",
+    "create": "Créer",
+    "creating": "Création...",
+    "edit": "Modifier",
+    "back": "Retour",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "retry": "Réessayer",
+    "copy": "Copier",
+    "copied": "Copié",
+    "add": "Ajouter",
+    "done": "Terminé",
+    "search": "Rechercher..."
+  },
+  "errors": {
+    "root": {
+      "title": "Impossible de charger les paramètres",
+      "description": "Une erreur est survenue lors du chargement de vos paramètres. Veuillez réessayer."
+    },
+    "section": {
+      "title": "Une erreur est survenue",
+      "description": "Une erreur inattendue s’est produite. Veuillez réessayer ou actualiser la page."
+    }
+  },
+  "access": {
+    "checkingTitle": "Vérification de l’accès",
+    "checkingDescription": "Chargement de la politique d’accès de votre organisation."
+  },
+  "unsavedGuard": {
+    "title": "Modifications non enregistrées",
+    "text": "Vous avez des modifications non enregistrées. Voulez-vous vraiment les abandonner ?",
+    "keepEditing": "Continuer la modification",
+    "discard": "Abandonner les modifications"
+  },
+  "organizationSecurity": {
+    "sessionPolicies": "Politiques de session",
+    "outboundIps": "Adresses IP sortantes",
+    "loading": "Chargement des paramètres réseau…",
+    "loadError": "Impossible de charger les paramètres réseau",
+    "allowlistHint": "Ajoutez chacune des adresses ci-dessous à votre liste d’autorisation pour les connexions HTTPS prises en charge.",
+    "ipAriaLabel": "IP sortante {ip}",
+    "copyIp": "Copier {address}",
+    "paused": "Les connexions HTTPS prises en charge sont suspendues.",
+    "notAvailableYet": "Vos adresses IP sortantes ne sont pas encore disponibles.",
+    "notConfigured": "Aucune adresse IP sortante n’est configurée pour cette organisation."
+  },
+  "nav": {
+    "groups": {
+      "account": "Compte",
+      "developer": "Développeur",
+      "platform": "Plateforme",
+      "workspace": "Espace de travail",
+      "organization": "Organisation",
+      "governance": "Gouvernance",
+      "sim-search": "Nexora Search"
+    },
+    "planes": {
+      "account": "Compte",
+      "selfhost": "Auto-hébergement",
+      "organization": "Organisation"
+    },
+    "chrome": {
+      "back": "Retour",
+      "home": "Accueil Nexora",
+      "planLocked": "Forfait",
+      "navigation": "Navigation des paramètres",
+      "planeNavigation": "Navigation des paramètres ({plane})"
+    },
+    "unified": {
+      "general": {
+        "label": "Général",
+        "description": "Gérez votre profil, votre apparence et vos préférences."
+      },
+      "desktop": {
+        "label": "Bureau",
+        "description": "Gérez les notifications, le démarrage, les dossiers locaux et les mises à jour."
+      },
+      "browser": {
+        "label": "Navigateur",
+        "description": "Contrôlez le navigateur piloté par Chat et les données qu’il conserve."
+      },
+      "terminal": {
+        "label": "Terminal",
+        "description": "Contrôlez les shells dans lesquels Chat exécute des commandes."
+      },
+      "requests": {
+        "label": "Demandes",
+        "description": "Suivez vos demandes et parcourez les accès disponibles."
+      },
+      "access-control": {
+        "label": "Groupes d’autorisations",
+        "description": "Gérez les groupes d’autorisations de votre organisation."
+      },
+      "audit-logs": {
+        "label": "Journaux d’audit",
+        "description": "Consultez l’activité et les modifications dans votre organisation."
+      },
+      "forks": {
+        "label": "Forks d’espace de travail",
+        "description": "Créez un fork de cet espace de travail et synchronisez les modifications avec son parent."
+      },
+      "billing": {
+        "label": "Abonnement",
+        "description": "Gérez votre forfait, la tarification et vos factures."
+      },
+      "teammates": {
+        "label": "Collaborateurs",
+        "description": "Gérez les collaborateurs de cet espace de travail."
+      },
+      "organization": {
+        "label": "Membres",
+        "description": "Membres et accès aux espaces de travail de votre organisation."
+      },
+      "usage": {
+        "label": "Analyses",
+        "description": "Explorez l’utilisation et l’activité de votre organisation."
+      },
+      "secrets": {
+        "label": "Secrets",
+        "description": "Stockez des variables d’environnement pour vos workflows."
+      },
+      "connected-accounts": {
+        "label": "Groupes d’identifiants",
+        "description": "Gérez les intégrations et l’accès des espaces de travail pour les workflows et Chat."
+      },
+      "custom-tools": {
+        "label": "Outils personnalisés",
+        "description": "Créez et gérez des outils personnalisés pour vos agents."
+      },
+      "mcp": {
+        "label": "Outils MCP",
+        "description": "Connectez des serveurs MCP externes et utilisez leurs outils dans cet espace de travail."
+      },
+      "apikeys": {
+        "label": "Clés d’API Nexora",
+        "description": "Créez et gérez des clés d’API pour l’API Nexora."
+      },
+      "workflow-mcp-servers": {
+        "label": "Serveurs MCP",
+        "description": "Exposez les workflows de cet espace de travail comme outils sur un serveur MCP."
+      },
+      "byok": {
+        "label": "BYOK",
+        "description": "Utilisez vos propres clés d’API de fournisseurs de modèles."
+      },
+      "sandboxes": {
+        "label": "Bacs à sable",
+        "description": "Installez des paquets Python ou npm à importer dans les blocs Function."
+      },
+      "inbox": {
+        "label": "Nexora Mailer",
+        "description": "Déclenchez et traitez des workflows à partir des e-mails entrants."
+      },
+      "recently-deleted": {
+        "label": "Récemment supprimés",
+        "description": "Restaurez les éléments supprimés au cours des 30 derniers jours."
+      },
+      "self-host": {
+        "label": "Auto-hébergement",
+        "description": "Gérez ce déploiement depuis le service géré Nexora."
+      },
+      "sso": {
+        "label": "Authentification unique",
+        "description": "Gérez la connexion, les domaines vérifiés et le provisionnement."
+      },
+      "security": {
+        "label": "Sécurité",
+        "description": "Gérez les politiques de session et consultez les adresses IP sortantes."
+      },
+      "data-retention": {
+        "label": "Conservation des données",
+        "description": "Contrôlez les durées de conservation des données et le masquage des données personnelles. Les espaces de travail sans réglage propre héritent des valeurs par défaut de l’organisation."
+      },
+      "data-drains": {
+        "label": "Flux de données",
+        "description": "Diffusez vos journaux et événements vers des destinations externes."
+      },
+      "whitelabeling": {
+        "label": "Marque blanche",
+        "description": "Personnalisez l’image de marque et l’apparence de votre espace de travail."
+      },
+      "custom-blocks": {
+        "label": "Blocs personnalisés",
+        "description": "Publiez des workflows comme blocs réutilisables pour votre organisation."
+      },
+      "admin": {
+        "label": "Administration",
+        "description": "Administration superutilisateur et outils d’espace de travail."
+      },
+      "mothership": {
+        "label": "Mothership",
+        "description": "Opérations internes Nexora et gestion des licences."
+      }
+    },
+    "account": {
+      "billing": {
+        "label": "Abonnement",
+        "description": "Gérez votre forfait personnel, votre consommation et vos factures."
+      },
+      "api-keys": {
+        "label": "Clés d’API Nexora",
+        "description": "Créez et gérez vos clés d’API Nexora personnelles."
+      }
+    },
+    "selfhost": {
+      "billing": {
+        "label": "Abonnement",
+        "description": "Gérez votre forfait personnel, votre consommation et vos factures."
+      },
+      "chat-keys": {
+        "label": "Clés Chat",
+        "description": "Gérez les clés de fournisseurs de modèles qui alimentent Chat."
+      }
+    },
+    "workspace": {
+      "api-keys": {
+        "label": "Clés d’API Nexora",
+        "description": "Gérez les clés d’API de l’espace de travail et la politique des clés personnelles."
+      }
+    },
+    "organization": {
+      "knowledge-graphs": {
+        "label": "Graphes de connaissances",
+        "description": "Vos connaissances privées dans les espaces de travail de cette organisation. Les nouveaux chats utilisent le graphe actif ; les chats existants conservent leur graphe d’origine."
+      },
+      "recently-deleted": {
+        "label": "Récemment supprimés",
+        "description": "Restaurez vos chats supprimés."
+      },
+      "integrations": {
+        "label": "Sources"
+      },
+      "search-mcp": {
+        "label": "MCP de recherche",
+        "description": "Recherchez dans vos sources depuis d’autres applications."
+      },
+      "search-slack": {
+        "label": "Nexora Search dans Slack",
+        "description": "Permettez aux membres de rechercher dans leurs sources en écrivant à un bot Slack."
+      }
+    }
+  },
+  "shell": {
+    "settingsTitle": "Paramètres",
+    "docs": "Documentation",
+    "searchPlaceholder": "Rechercher...",
+    "discard": "Ignorer",
+    "save": "Enregistrer",
+    "saving": "Enregistrement...",
+    "create": "Créer",
+    "creating": "Création..."
+  },
+  "byok": {
+    "scopeWorkspace": "Espace de travail",
+    "scopeOrganization": "Organisation",
+    "scopeLabel": {
+      "workspace": "cet espace de travail",
+      "organization": "cette organisation"
+    },
+    "inheritedFromOrganization": "Héritée de l’organisation",
+    "loadFailed": "Impossible de charger les clés des fournisseurs",
+    "organizationDescription": "Les clés d’organisation s’appliquent à tous les espaces de travail actuels et futurs, sauf si un espace de travail ajoute sa propre clé.",
+    "organizationDescriptionNotEntitled": "Les clés d’organisation s’appliquent à tous les espaces de travail actuels et futurs, sauf si un espace de travail ajoute sa propre clé. Un abonnement d’organisation actif est requis pour les ajouter ou les modifier ; les clés existantes peuvent toujours être supprimées.",
+    "inheritedStatusUnavailable": "État des clés héritées indisponible. Actualisez la page pour réessayer.",
+    "organizationKeyUsage": "Cette clé est disponible pour les exécutions de tous les espaces de travail actuels et futurs rattachés à cette organisation, sauf si l’espace de travail dispose de sa propre clé pour ce fournisseur. Create PR, Update PR et Plan peuvent la transmettre au bac à sable Pi non fiable ; la recherche Pi nécessite toujours une clé explicite dans le bloc. Votre clé est chiffrée et stockée de manière sécurisée.",
+    "lastKeyDelete": {
+      "organization": "Les espaces de travail sans clé propre utiliseront la prochaine source de clé configurée disponible.",
+      "workspaceWithOrganization": "Cet espace de travail héritera d’une clé d’organisation si elle est disponible, ou utilisera la prochaine source de clé configurée disponible.",
+      "workspace": "Cet espace de travail utilisera la prochaine source de clé configurée disponible.",
+      "platformHosted": "Cet espace de travail utilisera de nouveau les clés hébergées par la plateforme."
+    },
+    "sections": {
+      "models": "Modèles",
+      "searchWeb": "Recherche et web",
+      "enrichment": "Enrichissement"
+    },
+    "placeholders": {
+      "apiKey": "Saisissez votre clé d’API",
+      "providerApiKey": "Saisissez votre clé d’API {provider}"
+    },
+    "descriptions": {
+      "llmEmbeddings": "Appels LLM et embeddings de la base de connaissances",
+      "llm": "Appels LLM",
+      "llmOcr": "Appels LLM et OCR de la base de connaissances",
+      "embeddingsReranking": "Embeddings et reclassement de la base de connaissances",
+      "jevEvaluation": "Modèles d’évaluation Jev",
+      "imageVideo": "Génération d’images et de vidéos",
+      "scrapingExtraction": "Extraction de pages web, exploration, recherche et extraction de données",
+      "aiSearchResearch": "Recherche et veille assistées par l’IA",
+      "scrapingBrandIntelligence": "Extraction de pages web, exploration, recherche et intelligence de marque",
+      "webAgentAutomation": "Automatisation d’agents web, recherche et récupération de pages",
+      "googleSearchApi": "API de recherche Google",
+      "webSearchRetrieval": "Recherche web et récupération de contenu",
+      "webSearchDeepResearch": "Recherche web, extraction et recherche approfondie",
+      "aiChatWebSearch": "Chat et recherche web assistés par l’IA",
+      "webReadingSearch": "Lecture et recherche web",
+      "googleCloudApis": "API Translate, Maps, PageSpeed et Books",
+      "brandAssets": "Ressources de marque, logos, couleurs et informations sur l’entreprise",
+      "emailFinderDomainSearch": "Recherche d’e-mails, vérification et recherche par domaine",
+      "personCompanyIdentity": "Enrichissement, recherche et identification de personnes et d’entreprises",
+      "emailFinderPhoneLookup": "Recherche d’e-mails, vérification et recherche de numéros de téléphone",
+      "personCompanySearch": "Enrichissement et recherche de personnes et d’entreprises",
+      "prospectSearch": "Recherche de prospects, révélation de contacts individuels et enrichissement d’entreprises",
+      "emailPhoneEnrichment": "Enrichissement d’e-mails, de téléphones, de personnes et d’entreprises",
+      "gdprContactEnrichment": "Enrichissement de contacts et recherche d’e-mails conformes au RGPD",
+      "emailB2bEnrichment": "Recherche et validation d’e-mails, enrichissement de profils B2B",
+      "emailFindingVerification": "Recherche et vérification d’e-mails",
+      "realtimeValidationDeliverability": "Validation d’e-mails et contrôle de délivrabilité en temps réel",
+      "realtimeVerificationListCleaning": "Vérification d’e-mails et nettoyage de listes en temps réel",
+      "realtimeVerificationDeliverability": "Vérification d’e-mails et contrôle de délivrabilité en temps réel"
+    },
+    "addKey": "Ajouter une clé",
+    "update": "Modifier",
+    "manager": {
+      "searchLabel": "Rechercher des fournisseurs",
+      "searchPlaceholder": "Rechercher des fournisseurs...",
+      "noResults": "Aucun fournisseur ne correspond à « {searchTerm} »",
+      "keyCount": "{count, plural, one {# clé} other {# clés}}",
+      "manage": "Gérer",
+      "view": "Afficher",
+      "editSrTitle": "Ajouter ou modifier une clé d’API",
+      "addTitle": "Ajouter une clé d’API {provider}",
+      "updateTitle": "Modifier la clé d’API {provider}",
+      "usageMultiKey": "Les requêtes sont réparties équitablement entre toutes les clés {provider} de {scope}. Votre clé est chiffrée et stockée de manière sécurisée.",
+      "usageSingleKey": "Cette clé sera utilisée pour toutes les requêtes {provider} de {scope}. Votre clé est chiffrée et stockée de manière sécurisée.",
+      "apiKey": "Clé d’API",
+      "hideApiKey": "Masquer la clé d’API",
+      "showApiKey": "Afficher la clé d’API",
+      "name": "Nom",
+      "namePlaceholder": "ex. Clé de production",
+      "saveFailed": "Impossible d’enregistrer la clé d’API",
+      "deleteTitle": "Supprimer la clé d’API",
+      "deleteConfirmStart": "Voulez-vous vraiment supprimer la clé d’API ",
+      "deleteSelectedFallback": "sélectionnée",
+      "deleteConfirmEnd": " ? ",
+      "deleteRemainingKeys": "Les requêtes continueront d’utiliser les autres clés {provider}.",
+      "deleteProviderFallback": "du fournisseur",
+      "deleteIrreversible": " Cette action est irréversible."
+    },
+    "keysModal": {
+      "srTitle": "Gérer les clés d’API",
+      "title": "Clés d’API {provider}",
+      "description": "Les requêtes sont réparties équitablement entre ces clés. Vos clés sont chiffrées et stockées de manière sécurisée.",
+      "unnamedKey": "Clé sans nom",
+      "limitReached": "Limite de clés atteinte ({maxKeys} clés par fournisseur)."
+    }
+  },
+  "sandboxes": {
+    "upgradeTitle": "Les bacs à sable nécessitent un abonnement Max actif",
+    "upgradeDescription": "Passez à l’abonnement Max et assurez-vous que la facturation est active pour ajouter des dépendances, des paquets système et des outils CLI gérés aux blocs Function.",
+    "deleteTitle": "Supprimer le bac à sable",
+    "deleteConfirm": {
+      "intro": "Cette action supprimera définitivement ",
+      "consequence": " et le retirera de tous les blocs Function qui l’utilisent.",
+      "irreversible": " Cette action est irréversible."
+    },
+    "saveFailed": "Impossible d’enregistrer le bac à sable",
+    "deleteFailed": "Impossible de supprimer le bac à sable",
+    "retryFailed": "Impossible de relancer la construction du bac à sable",
+    "buildQueued": "Construction du bac à sable mise en file d’attente",
+    "loading": "Chargement des bacs à sable...",
+    "loadFailed": "Impossible de charger les bacs à sable",
+    "newSandbox": "Nouveau bac à sable",
+    "sandboxFallbackTitle": "Bac à sable",
+    "editorDescription": "Dépendances, paquets système et outils CLI gérés disponibles pour vos blocs Function.",
+    "backLabel": "Bacs à sable",
+    "searchPlaceholder": "Rechercher des bacs à sable...",
+    "noSearchResults": "Aucun bac à sable ne correspond à votre recherche.",
+    "empty": "Aucun bac à sable pour le moment. Créez-en un pour ajouter des dépendances, des paquets système et des outils CLI gérés aux blocs Function.",
+    "counts": "{dependencies, plural, one {# dépendance} other {# dépendances}} · {systemPackages, plural, one {# paquet système} other {# paquets système}} · {cliTools, plural, one {# CLI gérée} other {# CLI gérées}}",
+    "rowDescription": "{language} · {counts}",
+    "openSandbox": "Ouvrir {name}",
+    "createTitle": "Créer un bac à sable",
+    "createFailed": "Impossible de créer le bac à sable",
+    "adminOnly": "Seuls les administrateurs de l’espace de travail peuvent créer des bacs à sable.",
+    "lineIssue": "Ligne {line} : {reason}",
+    "fields": {
+      "name": "Nom",
+      "language": "Langage",
+      "dependencies": "Dépendances",
+      "dependenciesHint": "Une par ligne. L’épinglage de version est facultatif.",
+      "cliTools": "Outils CLI gérés",
+      "systemPackages": "Paquets système",
+      "systemPackagesHint": "Un paquet Debian/APT par ligne. L’épinglage de version est facultatif."
+    },
+    "editor": {
+      "details": "Détails",
+      "status": "État"
+    },
+    "status": {
+      "ready": "Prêt",
+      "failed": "Échec",
+      "building": "Construction en cours",
+      "pending": "En file d’attente",
+      "runtimeStrategy": "Sur ce déploiement, les dépendances, paquets système et outils CLI gérés sont installés au moment de l’exécution, ce qui allonge le démarrage de chaque exécution. Les bacs à sable préconstruits nécessitent E2B.",
+      "nothingToBuild": "Aucune dépendance, aucun paquet système ni outil CLI géré pour le moment. Ajoutez-en un ci-dessus pour construire ce bac à sable ; d’ici là, il s’exécute sur la base Function.",
+      "buildActionsLabel": "Actions de construction de {name}",
+      "retrying": "Nouvelle tentative...",
+      "retryBuild": "Relancer la construction",
+      "retryBlocked": "Enregistrez ou annulez vos modifications avant de relancer",
+      "hideLog": "Masquer le journal",
+      "showLog": "Afficher le journal"
+    },
+    "cliSelect": {
+      "label": "Outils CLI gérés",
+      "placeholder": "Sélectionner des outils CLI gérés",
+      "searchPlaceholder": "Rechercher des outils CLI gérés...",
+      "selectedCount": "{count} sélectionnés",
+      "categories": {
+        "cloud": "Cloud",
+        "kubernetes": "Kubernetes",
+        "infrastructure": "Infrastructure",
+        "deployment": "Déploiement",
+        "dataStorage": "Données et stockage",
+        "security": "Sécurité"
+      }
+    }
+  },
+  "customTools": {
+    "addTool": "Ajouter un outil",
+    "searchPlaceholder": "Rechercher des outils...",
+    "loadFailed": "Impossible de charger les outils",
+    "emptyEditable": "Cliquez sur « Ajouter un outil » ci-dessus pour commencer",
+    "emptyReadOnly": "Aucun outil personnalisé configuré",
+    "unnamedTool": "Outil sans nom",
+    "openTool": "Ouvrir {name}",
+    "noResults": "Aucun outil ne correspond à « {searchTerm} »",
+    "detail": {
+      "back": "Outils personnalisés",
+      "newTool": "Nouvel outil",
+      "description": "Définissez le schéma JSON appelé par vos agents et le code exécuté.",
+      "schema": "Schéma",
+      "code": "Code",
+      "schemaEmpty": "Le schéma ne peut pas être vide",
+      "saveFailed": "Impossible d’enregistrer l’outil personnalisé",
+      "deleteFailed": "Impossible de supprimer l’outil",
+      "tryAgainShortly": "Veuillez réessayer dans un instant.",
+      "deleteTitle": "Supprimer l’outil personnalisé"
+    }
+  },
+  "terminal": {
+    "general": "Général",
+    "letChatRunCommands": "Autoriser Chat à exécuter des commandes",
+    "theme": "Thème",
+    "defaultZoom": "Zoom par défaut",
+    "defaultZoomLabel": "Zoom par défaut du terminal",
+    "errors": {
+      "load": "Impossible de charger les paramètres du terminal",
+      "update": "Impossible de mettre à jour les paramètres du terminal",
+      "selectTheme": "Impossible de sélectionner ce thème de terminal",
+      "updateAppearance": "Impossible de mettre à jour l’apparence du terminal",
+      "updateZoom": "Impossible de mettre à jour le zoom par défaut du terminal"
+    },
+    "themePicker": {
+      "label": "Thème du terminal",
+      "searchPlaceholder": "Rechercher des thèmes",
+      "placeholder": "Sélectionner un thème",
+      "profileOption": "{source} · {name}",
+      "builtIn": {
+        "app": "Par défaut",
+        "light": "Nexora clair",
+        "dark": "Nexora sombre"
+      }
+    }
+  },
+  "appearance": {
+    "themes": {
+      "light": "Clair",
+      "dark": "Sombre"
+    }
+  },
+  "zoom": {
+    "defaultZoom": "Zoom par défaut",
+    "percent": "{zoom} %"
+  },
+  "emptyState": {
+    "retrying": "Nouvelle tentative…",
+    "tryAgain": "Réessayer"
+  },
+  "upgradeNotice": {
+    "upgradeToMax": "Passer à Max"
+  },
+  "rowActions": {
+    "disabledLabel": "{label} — {tooltip}"
+  },
+  "memberList": {
+    "empty": "Aucun membre pour le moment"
+  },
+  "manageCredits": {
+    "title": "Gérer les crédits",
+    "titleForMember": "Gérer les crédits — {name}",
+    "creditsUsed": "Crédits utilisés",
+    "creditsUsedThisMonth": "Crédits utilisés ce mois-ci",
+    "creditsUsedThisYear": "Crédits utilisés cette année",
+    "loading": "Chargement…",
+    "copyCreditsUsed": "Copier les crédits utilisés",
+    "creditLimit": "Limite de crédits",
+    "creditLimitInfo": "Exprimée en crédits, l’unité d’utilisation de Nexora (1 000 crédits = 5 $). Plafonne l’utilisation de ce membre dans les espaces de travail de cette organisation à chaque période de facturation.",
+    "noLimit": "Aucune limite",
+    "noLimitHint": "Laissez vide pour ne fixer aucune limite.",
+    "invalidLimit": "Saisissez un nombre entier de crédits, ou laissez vide pour ne fixer aucune limite.",
+    "updateFailed": "Impossible de mettre à jour la limite de crédits",
+    "saving": "Enregistrement…"
+  },
+  "mcp": {
+    "unnamedServer": "Serveur sans nom",
+    "domainPolicyError": "Impossible de charger la politique de domaines MCP. Réessayez avant d’enregistrer ce serveur.",
+    "refresh": {
+      "refreshing": "Actualisation...",
+      "failed": "Échec",
+      "synced": "Synchronisé ({count, plural, one {# workflow} other {# workflows}})",
+      "refreshed": "Actualisé",
+      "refreshTools": "Actualiser les outils"
+    },
+    "toolsLabel": {
+      "unableToConnect": "Connexion impossible",
+      "oauthRequired": "Autorisation OAuth requise",
+      "notConnected": "Non connecté",
+      "count": "{count, plural, one {# outil} other {# outils}}",
+      "countWithNames": "{count, plural, one {# outil} other {# outils}} : {names}"
+    },
+    "row": {
+      "managedByConnectedAccounts": "Géré par Comptes connectés",
+      "waitingForAuthorization": "En attente d’autorisation...",
+      "openServer": "Ouvrir {name}",
+      "reopenAuthorization": "Rouvrir l’autorisation",
+      "authorize": "Autoriser"
+    },
+    "toasts": {
+      "removeFailed": "Échec de la suppression du serveur MCP",
+      "refreshFailed": "Échec de l’actualisation du serveur MCP"
+    },
+    "deleteDialog": {
+      "title": "Supprimer le serveur MCP",
+      "textBefore": "Voulez-vous vraiment supprimer ",
+      "fallbackName": "ce serveur",
+      "textAfter": " ? Cette action est irréversible."
+    },
+    "detail": {
+      "back": "Outils MCP",
+      "server": "Serveur",
+      "serverName": "Nom du serveur",
+      "transport": "Transport",
+      "url": "URL",
+      "managedBy": "Géré par",
+      "connectedAccounts": "Comptes connectés",
+      "status": "Statut",
+      "authentication": "Authentification",
+      "tools": "Outils ({count})",
+      "noTools": "Aucun outil disponible",
+      "updateIn": "À mettre à jour dans : {workflows}",
+      "parameters": "Paramètres",
+      "required": "obligatoire",
+      "issueBadge": {
+        "stale": "obsolète",
+        "unavailable": "indisponible"
+      }
+    },
+    "list": {
+      "searchPlaceholder": "Rechercher des serveurs...",
+      "addServer": "Ajouter un serveur",
+      "loadFailed": "Échec du chargement des serveurs MCP",
+      "emptyCanEdit": "Cliquez sur « Ajouter un serveur » ci-dessus pour commencer",
+      "emptyReadOnly": "Aucun serveur MCP configuré",
+      "noResults": "Aucun serveur ne correspond à « {term} »"
+    },
+    "form": {
+      "testing": "Test en cours...",
+      "connectionSuccess": "Connexion réussie",
+      "requiresOauth": "OAuth requis",
+      "noConnectionRetry": "Pas de connexion : réessayer",
+      "testConnection": "Tester la connexion",
+      "headerName": "Nom",
+      "headerValue": "Valeur",
+      "noServersInJson": "Aucun serveur trouvé dans mcpServers",
+      "onlyFirstServer": "Seul le premier serveur (« {name} ») sera importé. Collez chaque configuration séparément pour ajouter les autres.",
+      "urlFieldRequired": "La configuration du serveur doit inclure un champ « url »",
+      "jsonMustContain": "Le JSON doit contenir « mcpServers » ou un champ « url »",
+      "invalidJson": "JSON invalide",
+      "nameRequired": "Le nom du serveur est obligatoire. Utilisez : {example}",
+      "domainNotPermitted": "Domaine non autorisé par la politique du serveur",
+      "connectionTestFailed": "Échec du test de connexion. Vérifiez l’URL et réessayez.",
+      "saveFailed": "Échec de l’enregistrement du serveur",
+      "titleAdd": "Ajouter un serveur MCP",
+      "titleEdit": "Modifier le serveur MCP",
+      "submitAdd": "Ajouter le serveur",
+      "adding": "Ajout...",
+      "editJson": "Modifier le JSON",
+      "editForm": "Modifier le formulaire",
+      "configuration": "Configuration",
+      "serverName": "Nom du serveur",
+      "serverNamePlaceholder": "p. ex. Mon serveur MCP",
+      "serverUrl": "URL du serveur",
+      "headers": "En-têtes",
+      "advancedSettings": "Paramètres avancés",
+      "clientId": "ID client",
+      "clientIdPlaceholder": "ID client OAuth (facultatif)",
+      "clientSecret": "Secret client",
+      "clientSecretHint": "Nécessaire uniquement pour les serveurs qui ne prennent pas en charge l’enregistrement automatique des clients.",
+      "clientSecretPlaceholder": "Secret client OAuth (facultatif)"
+    }
+  },
+  "workflowMcpServers": {
+    "common": {
+      "serverName": "Nom du serveur",
+      "serverNamePlaceholder": "p. ex. Mon serveur MCP",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez ce que fait ce serveur MCP (facultatif)",
+      "access": "Accès",
+      "public": "Public",
+      "private": "Privé",
+      "adding": "Ajout...",
+      "searchWorkflows": "Rechercher des workflows..."
+    },
+    "detail": {
+      "back": "Serveurs MCP",
+      "loadFailed": "Échec du chargement des détails du serveur",
+      "editServer": "Modifier le serveur",
+      "addWorkflows": "Ajouter des workflows",
+      "allAddedTooltip": "Tous les workflows déployés ont été ajoutés à ce serveur.",
+      "tabs": {
+        "details": "Détails",
+        "workflows": "Workflows"
+      },
+      "noWorkflows": "Aucun workflow ajouté pour l’instant. Cliquez sur « Ajouter un workflow » pour ajouter un workflow déployé.",
+      "noDescription": "Aucune description",
+      "toolActions": "Actions de l’outil",
+      "deployFirst": "Déployez d’abord un workflow pour l’ajouter à ce serveur.",
+      "transport": "Transport",
+      "url": "URL",
+      "mcpClient": "Client MCP",
+      "addToWorkspaceDescription": "Ajoutez ce serveur MCP à votre espace de travail pour utiliser ses outils dans d’autres workflows via le bloc MCP.",
+      "addedToWorkspace": "Ajouté à l’espace de travail",
+      "addToWorkspace": "Ajouter à l’espace de travail",
+      "addServerFailed": "Échec de l’ajout du serveur",
+      "configuration": "Configuration",
+      "configCopied": "Configuration copiée",
+      "copyConfig": "Copier la configuration",
+      "addToCursor": "Ajouter à Cursor",
+      "codexPublicHint": "Ajoutez ceci à <mono>~/.codex/config.toml</mono>.",
+      "codexPrivateHint": "Ajoutez ceci à <mono>~/.codex/config.toml</mono> et définissez la variable d’environnement SIM_API_KEY avec une clé d’API existante",
+      "replaceKeyHint": "Remplacez $SIM_API_KEY par votre clé d’API",
+      "createOneNow": ", ou <button>créez-en une maintenant</button>"
+    },
+    "removeDialog": {
+      "title": "Retirer le workflow",
+      "textBefore": "Voulez-vous vraiment retirer ",
+      "fallbackName": "ce workflow",
+      "textAfter": " de ce serveur ? Le workflow restera déployé et pourra être rajouté plus tard.",
+      "removing": "Retrait..."
+    },
+    "toolEdit": {
+      "fallbackTitle": "Modifier l’outil",
+      "descriptionPlaceholder": "Décrivez ce que fait cet outil...",
+      "parameters": "Paramètres",
+      "paramPlaceholder": "Saisissez une description pour {name}",
+      "noInputs": "Aucune entrée configurée pour ce workflow."
+    },
+    "addWorkflow": {
+      "title": "Ajouter un workflow",
+      "intro": "Sélectionnez un workflow déployé à ajouter à ce serveur MCP. Le workflow sera disponible en tant qu’outil.",
+      "selectWorkflow": "Sélectionner un workflow",
+      "selectPlaceholder": "Sélectionnez un workflow...",
+      "addFailed": "Échec de l’ajout du workflow"
+    },
+    "editServer": {
+      "title": "Modifier le serveur",
+      "serverName": "Nom du serveur",
+      "publicHint": "Toute personne disposant de l’URL peut appeler ce serveur sans authentification",
+      "privateHint": "Les clients se connectent avec OAuth ou envoient une clé d’API Nexora dans l’en-tête X-API-Key"
+    },
+    "deleteDialog": {
+      "title": "Supprimer le serveur MCP",
+      "textBefore": "Voulez-vous vraiment supprimer ",
+      "fallbackName": "ce serveur",
+      "textAfter": " ? Cette action est irréversible."
+    },
+    "list": {
+      "addServer": "Ajouter un serveur",
+      "searchPlaceholder": "Rechercher des serveurs...",
+      "loadFailed": "Échec du chargement des serveurs MCP",
+      "emptyCanEdit": "Cliquez sur « Ajouter un serveur » ci-dessus pour commencer",
+      "emptyReadOnly": "Aucun serveur MCP configuré",
+      "toolsCount": "{count, plural, one {# outil} other {# outils}}",
+      "openServer": "Ouvrir {name}",
+      "noResults": "Aucun serveur ne correspond à « {term} »"
+    },
+    "create": {
+      "title": "Ajouter un nouveau serveur MCP",
+      "workflows": "Workflows",
+      "selectPlaceholder": "Sélectionnez des workflows...",
+      "selectedCount": "{count, plural, one {# workflow sélectionné} other {# workflows sélectionnés}}",
+      "noAuth": "Aucune authentification requise",
+      "submit": "Ajouter le serveur"
+    }
+  },
+  "apiKeys": {
+    "copiedName": "Nom copié dans le presse-papiers",
+    "never": "Jamais",
+    "rowActions": "Actions de la clé d’API",
+    "copyName": "Copier le nom",
+    "createApiKey": "Créer une clé d’API",
+    "searchPlaceholder": "Rechercher des clés d’API...",
+    "loadFailed": "Échec du chargement des clés d’API",
+    "empty": "Cliquez sur « Créer une clé d’API » ci-dessus pour commencer",
+    "sections": {
+      "workspace": "Espace de travail",
+      "personal": "Personnelles",
+      "permissions": "Autorisations"
+    },
+    "noWorkspaceKeys": "Aucune clé d’API d’espace de travail pour l’instant",
+    "lastUsed": "dernière utilisation : {when}",
+    "conflict": "Une clé d’API d’espace de travail portant le même nom remplace celle-ci. Renommez votre clé personnelle pour l’utiliser.",
+    "noResults": "Aucune clé d’API ne correspond à « {term} »",
+    "allowPersonal": "Autoriser les clés d’API personnelles",
+    "aboutPersonal": "À propos des clés d’API personnelles",
+    "allowPersonalTooltip": "Permettez aux collaborateurs de s’authentifier avec leurs propres clés. L’utilisation hébergée est facturée à cet espace de travail, attribuée au propriétaire de la clé et comptabilisée dans son plafond de membres.",
+    "deleteDialog": {
+      "title": "Supprimer la clé d’API",
+      "textBefore": "La suppression de ",
+      "fallbackName": "cette clé",
+      "consequence": "révoquera immédiatement l’accès de toutes les intégrations qui l’utilisent.",
+      "textAfter": " Cette action est irréversible."
+    },
+    "createModal": {
+      "title": "Créer une nouvelle clé d’API",
+      "keyType": "Type de clé",
+      "personal": "Personnelle",
+      "workspace": "Espace de travail",
+      "name": "Nom",
+      "namePlaceholder": "p. ex. Développement, Production",
+      "duplicateWorkspace": "Une clé d’API d’espace de travail nommée « {name} » existe déjà. Veuillez choisir un autre nom.",
+      "duplicatePersonal": "Une clé d’API personnelle nommée « {name} » existe déjà. Veuillez choisir un autre nom.",
+      "createFailed": "Échec de la création de la clé d’API. Veuillez réessayer.",
+      "createFailedConnection": "Échec de la création de la clé d’API. Vérifiez votre connexion et réessayez.",
+      "createdTitle": "Votre clé d’API a été créée",
+      "copyNow": "Copiez-la maintenant — elle ne sera plus affichée"
+    }
+  },
+  "secrets": {
+    "workspace": "Espace de travail",
+    "saveFailed": "Impossible d’enregistrer la valeur",
+    "latestUnavailable": "Impossible de charger vos derniers secrets. Veuillez réessayer dans un instant.",
+    "tryAgain": "Veuillez réessayer dans un instant."
+  },
+  "secretDetail": {
+    "pageTitle": "Secret",
+    "back": "Secrets",
+    "loading": "Chargement…",
+    "seeUsage": "Voir l’utilisation",
+    "ownerOnlyUsage": "Seul le propriétaire de ce secret peut voir son utilisation",
+    "adminOnlyUsage": "Seuls les administrateurs de ce secret peuvent voir son utilisation",
+    "share": "Partager",
+    "noAccess": "Vous n’avez pas accès à ce secret.",
+    "loadFailed": "Impossible de charger ce secret.",
+    "notFound": "Secret introuvable.",
+    "usageTitle": "Utilisation",
+    "tabs": {
+      "logs": "Journaux",
+      "references": "Références",
+      "ariaLabel": "Vues d’utilisation du secret"
+    },
+    "subtitle": {
+      "overridden": "Remplacé par une variable d’espace de travail",
+      "personal": "Secret personnel",
+      "workspace": "Secret d’espace de travail"
+    },
+    "key": "Clé",
+    "copyKey": "Copier la clé",
+    "value": "Valeur",
+    "valuePlaceholder": "Saisissez une valeur",
+    "description": "Description",
+    "descriptionPlaceholder": "Ajoutez une description...",
+    "visibility": "Visibilité",
+    "showInLogs": "Afficher la valeur dans les journaux et Chat",
+    "showInLogsHint": "La valeur est visible par toute personne pouvant voir les exécutions de cet espace de travail — dans les journaux, Chat et l’API, y compris les liens de journaux partagés.",
+    "usage": {
+      "viewLog": "Voir le journal",
+      "expiredTooltip": "Le journal de cette exécution dépasse la durée de conservation de votre espace de travail",
+      "nexoraAgent": "Agent Nexora",
+      "mcpServer": "Serveur MCP",
+      "runs": "{count, plural, one {# exécution} other {# exécutions}}",
+      "unknown": "Inconnu",
+      "loadFailed": "Impossible de charger l’utilisation.",
+      "trigger": "Déclencheur",
+      "usedBy": "Utilisé par",
+      "empty": "Ce secret n’a pas encore été utilisé."
+    },
+    "references": {
+      "shadowed": "Remplacé par une variable d’espace de travail : toutes les références à ce nom renvoient donc à cette variable.",
+      "loadFailed": "Impossible de charger les références.",
+      "truncated": "Ce secret est référencé à plus d’endroits qu’il n’est possible d’en lister ici.",
+      "notReferenced": "Ce secret n’est référencé dans aucun workflow.",
+      "openBlock": "Ouvrir {block} dans {workflow}",
+      "customToolsAndMcp": "Outils personnalisés et serveurs MCP",
+      "openResource": "Ouvrir {name}"
+    }
+  },
+  "profilePicture": {
+    "tooLarge": "Le fichier « {name} » est trop volumineux. La taille maximale est de 5 Mo.",
+    "unsupportedFormat": "Le fichier « {name} » n’est pas un format d’image pris en charge. Utilisez PNG, JPEG, SVG ou WebP.",
+    "uploadFailed": "Échec du téléversement de la photo de profil"
+  },
+  "admin": {
+    "superAdminMode": "Mode super administrateur",
+    "openBenchmarks": "Ouvrir les benchmarks",
+    "mothershipEnvironment": "Environnement Mothership",
+    "mothershipEnvironmentHint": "Par défaut utilise l’URL de l’agent Nexora configurée.",
+    "selectEnvironment": "Sélectionner un environnement",
+    "environments": {
+      "default": "Par défaut",
+      "dev": "Dev",
+      "staging": "Préproduction",
+      "prod": "Prod"
+    },
+    "import": {
+      "description": "Importez un workflow et ses conversations Copilot dans un espace de travail cible.",
+      "sourcePlaceholder": "ID du workflow source",
+      "targetPlaceholder": "ID de l’espace de travail cible",
+      "importing": "Importation...",
+      "import": "Importer",
+      "success": "Workflow importé avec succès (nouvel ID : {id}, {count} conversations Copilot importées)"
+    },
+    "users": {
+      "title": "Gestion des utilisateurs",
+      "addUser": "Ajouter un utilisateur",
+      "searchPlaceholder": "Rechercher par e-mail ou coller un ID utilisateur...",
+      "searching": "Recherche...",
+      "search": "Rechercher",
+      "fetchFailed": "Échec de la récupération des utilisateurs",
+      "actionFailed": "L’action a échoué. Veuillez réessayer.",
+      "onlyAdmins": "Seuls les administrateurs peuvent emprunter l’identité d’un utilisateur.",
+      "sendingReset": "Envoi d’un e-mail de réinitialisation du mot de passe à {email}...",
+      "noUsers": "Aucun utilisateur trouvé.",
+      "pageInfo": "Page {page} sur {totalPages} ({total} utilisateurs)",
+      "previous": "Précédent",
+      "next": "Suivant",
+      "provisionWarning": "{email} a été créé, mais l’e-mail de réinitialisation du mot de passe n’a pas pu être envoyé ({error}). Utilisez Réinitialiser le mot de passe dans le menu d’actions de cette ligne pour réessayer."
+    },
+    "columns": {
+      "name": "Nom",
+      "email": "E-mail",
+      "role": "Rôle",
+      "status": "Statut",
+      "actions": "Actions"
+    },
+    "status": {
+      "banned": "Banni",
+      "active": "Actif"
+    },
+    "row": {
+      "impersonate": "Emprunter l’identité",
+      "impersonateAria": "Emprunter l’identité de {email}",
+      "switching": "Changement...",
+      "actionsAria": "Actions pour {email}",
+      "resetPassword": "Réinitialiser le mot de passe",
+      "resetSent": "E-mail de réinitialisation du mot de passe envoyé à {email}",
+      "resetFailed": "Impossible d’envoyer un e-mail de réinitialisation du mot de passe à {email}",
+      "demote": "Rétrograder",
+      "promote": "Promouvoir",
+      "unban": "Débannir",
+      "ban": "Bannir"
+    },
+    "banModal": {
+      "title": "Bannir l’utilisateur",
+      "prefix": "Bannir ",
+      "thisUser": "cet utilisateur",
+      "consequence": "le déconnecte partout et l’empêche de se reconnecter.",
+      "suffix": " Vous pourrez le débannir plus tard.",
+      "confirm": "Bannir",
+      "pending": "Bannissement...",
+      "reason": "Motif",
+      "reasonPlaceholder": "Facultatif"
+    },
+    "roleModal": {
+      "demoteTitle": "Rétrograder l’utilisateur",
+      "promoteTitle": "Promouvoir l’utilisateur",
+      "demotePrefix": "Rétrograder ",
+      "promotePrefix": "Promouvoir ",
+      "demoteConsequence": "révoque son accès administrateur de la plateforme.",
+      "promoteConsequence": "accorde un accès administrateur complet à la plateforme, y compris l’emprunt d’identité de n’importe quel utilisateur.",
+      "demote": "Rétrograder",
+      "promote": "Promouvoir",
+      "demoting": "Rétrogradation...",
+      "promoting": "Promotion..."
+    },
+    "addUserModal": {
+      "title": "Ajouter un utilisateur",
+      "name": "Nom",
+      "namePlaceholder": "Canary Writer",
+      "nameRequired": "Le nom est obligatoire",
+      "email": "E-mail",
+      "invalidEmail": "Saisissez un e-mail valide",
+      "credentials": "Identifiants",
+      "passwordModes": {
+        "set": "Définir un mot de passe",
+        "email": "Envoyer un lien de réinitialisation"
+      },
+      "resetLinkHint": "L’utilisateur choisit son propre mot de passe via le lien de réinitialisation envoyé par e-mail.",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "Au moins 8 caractères",
+      "passwordTooShort": "Le mot de passe doit comporter au moins 8 caractères",
+      "emailStatus": "Statut de l’e-mail",
+      "emailStatuses": {
+        "verified": "Vérifié",
+        "unverified": "Non vérifié"
+      },
+      "verifiedHint": "Les utilisateurs vérifiés peuvent se connecter lorsque la vérification de l’e-mail est requise.",
+      "addFailed": "Échec de l’ajout de l’utilisateur",
+      "adding": "Ajout...",
+      "submit": "Ajouter l’utilisateur"
+    }
+  },
+  "mothership": {
+    "environment": "Environnement",
+    "selectEnvironment": "Sélectionner un environnement",
+    "environments": {
+      "dev": "Dev",
+      "staging": "Préproduction",
+      "prod": "Prod"
+    },
+    "tabs": {
+      "overview": "Vue d’ensemble",
+      "licenses": "Licences",
+      "byok": "BYOK"
+    },
+    "from": "Du",
+    "to": "Au",
+    "byok": {
+      "description": "Mothership utilise la clé Anthropic de l’espace de travail entreprise définie dans les paramètres BYOK de Nexora, y compris les clés héritées de son organisation.",
+      "targetWorkspace": "Espace de travail cible",
+      "workspaceIdPlaceholder": "ID de l’espace de travail",
+      "manageKeys": "Gérer les clés BYOK de l’espace de travail"
+    },
+    "overview": {
+      "totalRequests": "Requêtes totales",
+      "uniqueUsers": "Utilisateurs uniques",
+      "totalCost": "Coût total",
+      "avgCost": "Coût moyen par requête",
+      "userBreakdown": "Répartition par utilisateur",
+      "recentRequests": "Requêtes récentes ({count})",
+      "columns": {
+        "userId": "ID utilisateur",
+        "requests": "Requêtes",
+        "cost": "Coût",
+        "lastRequest": "Dernière requête",
+        "requestId": "ID de requête",
+        "model": "Modèle",
+        "duration": "Durée",
+        "tools": "Outils",
+        "status": "Statut",
+        "time": "Heure"
+      },
+      "statuses": {
+        "error": "Erreur",
+        "abort": "Interrompue",
+        "ok": "OK"
+      }
+    },
+    "licenses": {
+      "generateTitle": "Générer une licence",
+      "enterpriseName": "Nom de l’entreprise",
+      "enterpriseNamePlaceholder": "ex. Acme Corp",
+      "approvalReference": "Référence d’approbation",
+      "approvalReferencePlaceholder": "Bon de commande signé ou approbation écrite",
+      "expiration": "Expiration (facultatif)",
+      "generating": "Génération...",
+      "generate": "Générer",
+      "keyShownOnce": "Clé de licence (affichée une seule fois) :",
+      "copyKey": "Copier la clé de licence",
+      "allLicenses": "Toutes les licences",
+      "noLicenses": "Aucune licence trouvée.",
+      "never": "Jamais",
+      "columns": {
+        "name": "Nom",
+        "validations": "Validations",
+        "expiration": "Expiration",
+        "created": "Créée le"
+      }
+    }
+  },
+  "selfHost": {
+    "chatKeys": "Clés Chat",
+    "chatKeysDescription": "Clés de fournisseurs de modèles qui alimentent Chat sur ce déploiement.",
+    "managedKeys": "Clés gérées"
+  },
+  "copilot": {
+    "createApiKey": "Créer une clé d’API",
+    "searchPlaceholder": "Rechercher des clés d’API...",
+    "emptyState": "Cliquez sur « Créer une clé d’API » ci-dessus pour commencer",
+    "unnamedKey": "Clé sans nom",
+    "lastUsed": "dernière utilisation : {date}",
+    "neverUsed": "jamais utilisée",
+    "actionsFor": "Actions pour {name}",
+    "noResults": "Aucune clé d’API ne correspond à « {term} »",
+    "duplicateName": "Une clé d’API Chat nommée « {name} » existe déjà. Veuillez choisir un autre nom.",
+    "createFailed": "Échec de la création de la clé d’API. Vérifiez votre connexion et réessayez.",
+    "createModal": {
+      "title": "Créer une clé d’API",
+      "description": "Cette clé donnera accès aux fonctionnalités de Chat. Copiez-la bien après sa création, car vous ne pourrez plus la consulter.",
+      "keyName": "Nom de la clé",
+      "keyNamePlaceholder": "ex. Développement, Production"
+    },
+    "createdModal": {
+      "title": "Votre clé d’API a été créée",
+      "copyNow": "Copiez-la maintenant — elle ne sera plus affichée"
+    },
+    "deleteModal": {
+      "title": "Supprimer la clé d’API",
+      "prefix": "Supprimer ",
+      "consequence": "révoquera immédiatement l’accès de toutes les intégrations qui l’utilisent.",
+      "suffix": " Cette action est irréversible."
+    }
+  },
+  "billing": {
+    "loadFailed": "Impossible de charger les informations de facturation",
+    "exploreOrganizationPlans": "Découvrir les offres pour organisation",
+    "explorePersonalPlans": "Découvrir les offres personnelles",
+    "planTitle": {
+      "organizationEnded": "Offre {plan} de l’organisation terminée",
+      "organization": "Offre {plan} de l’organisation",
+      "personal": "Offre {plan} personnelle"
+    },
+    "price": {
+      "noActiveOrganizationSubscription": "Aucun abonnement d’organisation actif",
+      "chooseNewPlan": "Choisissez une nouvelle offre pour cette organisation",
+      "custom": "Tarification personnalisée",
+      "perUserBilledMonthly": "{price} $ par utilisateur/mois, facturé mensuellement",
+      "perUserBilledAnnually": "{price} $ par utilisateur/mois, facturé annuellement"
+    },
+    "toasts": {
+      "cantChangeOnDemand": "Impossible de modifier l’usage à la demande",
+      "onlyAdminsOnDemand": "Seuls les administrateurs de l’organisation peuvent modifier l’usage à la demande.",
+      "billingContextUnavailable": "Le contexte de facturation de l’organisation est indisponible. Actualisez la page et réessayez.",
+      "tryAgain": "Veuillez réessayer dans un instant.",
+      "couldNotUpdateOnDemand": "Impossible de mettre à jour l’usage à la demande",
+      "cantManagePaymentMethod": "Impossible de gérer le moyen de paiement",
+      "onlyAdminsBilling": "Seuls les administrateurs de l’organisation peuvent gérer la facturation.",
+      "billingUnavailable": "Facturation indisponible",
+      "couldNotOpenPortal": "Impossible d’ouvrir le portail de facturation",
+      "cantCancel": "Impossible de résilier l’abonnement",
+      "onlyAdminsCancel": "Seuls les administrateurs de l’organisation peuvent résilier l’abonnement.",
+      "couldNotCancel": "Impossible de résilier l’abonnement",
+      "cantRestore": "Impossible de rétablir l’abonnement",
+      "onlyAdminsRestore": "Seuls les administrateurs de l’organisation peuvent rétablir l’abonnement.",
+      "couldNotRestore": "Impossible de rétablir l’abonnement"
+    },
+    "onDemand": {
+      "label": "Activer l’usage à la demande",
+      "allowOverage": "Autoriser l’usage au-delà de l’usage inclus",
+      "lockedOnTooltip": "Votre usage dépasse le montant inclus dans votre offre, l’usage à la demande ne peut donc pas encore être désactivé. Il se désactivera dès que l’usage repassera en dessous, au plus tard à la réinitialisation de votre période de facturation."
+    },
+    "usageNotifications": {
+      "label": "Notifications d’usage",
+      "emailAt80": "M’envoyer un e-mail lorsque j’atteins 80 % d’usage"
+    },
+    "subscription": {
+      "label": "Abonnement",
+      "accessUntil": "Accès jusqu’au",
+      "nextBillingDate": "Prochaine date de facturation",
+      "weeklyRefresh": "Recharge hebdomadaire",
+      "paymentMethod": "Moyen de paiement",
+      "manageInStripe": "Gérer dans Stripe",
+      "canceled": "Abonnement résilié",
+      "cancelSubscription": "Résilier l’abonnement",
+      "restore": "Rétablir"
+    },
+    "invoices": {
+      "label": "Factures",
+      "viewAllAriaLabel": "Voir toutes les factures",
+      "viewAll": "Tout voir"
+    },
+    "invoiceStatus": {
+      "paid": "Payée",
+      "open": "En attente",
+      "uncollectible": "Irrécouvrable",
+      "void": "Annulée",
+      "unknown": "Inconnu"
+    },
+    "usageLimit": {
+      "label": "Limite d’usage",
+      "info": "Usage maximal à consommer par mois, exprimé en crédits, l’unité d’usage de Nexora (1 000 crédits = 5 $). Par défaut, il correspond à l’usage inclus dans votre offre, mais vous pouvez le dépasser.",
+      "mustBeNumber": "La limite d’usage doit être un nombre",
+      "mustBeAtLeast": "La limite d’usage doit être d’au moins {credits} crédits",
+      "couldNotUpdate": "Impossible de mettre à jour la limite d’usage",
+      "tryAgain": "Veuillez réessayer dans un instant.",
+      "billingContextUnavailable": "Le contexte de facturation de l’organisation est indisponible. Actualisez la page et réessayez.",
+      "placeholder": "Saisissez la limite d’usage mensuelle",
+      "noLimit": "Aucune limite d’usage"
+    },
+    "creditUsageSection": {
+      "label": "Consommation de crédits",
+      "credits": "{count, plural, one {# crédit} other {# crédits}}",
+      "last30Days": "30 derniers jours",
+      "viewUsageLogs": "Voir le journal d’usage"
+    }
+  },
+  "creditUsage": {
+    "title": "Consommation de crédits",
+    "description": "Chaque événement consommateur de crédits à l’origine de votre usage.",
+    "back": "Abonnement",
+    "export": "Exporter",
+    "exportFailed": "Échec de l’export du journal d’usage",
+    "exportTruncated": "Export tronqué : réduisez la période pour tout afficher",
+    "periods": {
+      "1d": "Aujourd’hui",
+      "7d": "7 derniers jours",
+      "30d": "30 derniers jours",
+      "all": "Depuis le début",
+      "custom": "Période personnalisée"
+    },
+    "workflowRow": "Workflow : {name}",
+    "sources": {
+      "workflow": "Workflow",
+      "wand": "Wand",
+      "sim-chat": "Nexora Chat",
+      "mcp_copilot": "Nexora Chat (MCP)",
+      "mothership_block": "Bloc Agent",
+      "knowledge-base": "Base de connaissances",
+      "voice-input": "Saisie vocale",
+      "enrichment": "Enrichissement",
+      "voice-output": "Sortie vocale",
+      "api-tool": "Appel d’outil API"
+    },
+    "loadingEllipsis": "Chargement…",
+    "unavailable": "Indisponible",
+    "updating": "Mise à jour…",
+    "credits": "{count, plural, one {# crédit} other {# crédits}}",
+    "total": "Total : {value}",
+    "loadingUsage": "Chargement de l’usage…",
+    "loadFailed": "Impossible de charger la consommation de crédits.",
+    "empty": "Aucune consommation de crédits sur cette période.",
+    "loadMoreAriaLabel": "Charger plus d’usage",
+    "loadMore": "Charger plus"
+  },
+  "usageEvents": {
+    "title": "Événements d’usage",
+    "description": "Chaque événement consommateur de crédits dans les espaces de travail de votre organisation.",
+    "back": "Usage"
+  },
+  "teamManagement": {
+    "defaultOrgName": "Organisation de {name}",
+    "openPortalFailed": "Impossible d’ouvrir le portail de facturation Stripe. Veuillez réessayer.",
+    "loadOrganizationFailed": "Impossible de charger l’organisation",
+    "createOrganizationFailed": "Impossible de créer l’organisation",
+    "searchMembers": "Rechercher des membres...",
+    "invite": "Inviter",
+    "invitationsDisabled": "Les invitations sont désactivées",
+    "loadSeatsFailed": "Impossible de charger les informations sur les sièges",
+    "loadingMembers": "Chargement des membres…",
+    "loadMembersFailed": "Impossible de charger les membres de l’organisation",
+    "removeMemberDialog": {
+      "yourself": "vous-même",
+      "thisMember": "ce membre",
+      "leaveTitle": "Quitter l’organisation",
+      "removeExternalTitle": "Retirer le membre externe",
+      "removeTeamMemberTitle": "Retirer le membre de l’équipe",
+      "removeFailed": "Impossible de retirer le membre",
+      "impactCheckFailedSelf": "Impossible de vérifier quels identifiants vous appartenant seront affectés : les comptes connectés liés à votre identité pourraient cesser de fonctionner après le retrait.",
+      "impactCheckFailedOther": "Impossible de vérifier quels identifiants appartenant à ce membre seront affectés : les comptes connectés liés à son identité pourraient cesser de fonctionner après le retrait.",
+      "breakingCredentialsSelf": "{count, plural, one {Un identifiant vous appartenant ({names}) cessera de fonctionner dans les espaces de travail de l’organisation jusqu’à ce qu’un autre membre le reconnecte.} other {# identifiants vous appartenant ({names}) cesseront de fonctionner dans les espaces de travail de l’organisation jusqu’à ce qu’un autre membre les reconnecte.}}",
+      "breakingCredentialsOther": "{count, plural, one {Un identifiant appartenant à ce membre ({names}) cessera de fonctionner dans les espaces de travail de l’organisation jusqu’à ce qu’un autre membre le reconnecte.} other {# identifiants appartenant à ce membre ({names}) cesseront de fonctionner dans les espaces de travail de l’organisation jusqu’à ce qu’un autre membre les reconnecte.}}",
+      "leaveConfirm": "Voulez-vous vraiment quitter cette organisation ? Vous perdrez l’accès à toutes les ressources de l’équipe. Cette action est irréversible.",
+      "removePrefix": "Voulez-vous vraiment retirer ",
+      "removeExternalSuffix": " de tous les espaces de travail de l’organisation ? Ses accès aux espaces de travail et à leurs identifiants seront révoqués. Cette action est irréversible.",
+      "removeTeamSuffix": " de l’équipe ? Cette action est irréversible.",
+      "checkingImpact": "Vérification des identifiants connectés concernés…"
+    },
+    "seats": {
+      "label": "Sièges",
+      "noSubscription": "Aucun abonnement Team actif",
+      "purchaseHint": "Souscrivez une offre Team pour inviter des collaborateurs dans cette organisation.",
+      "viewPlans": "Voir les offres",
+      "pending": "{count} en attente",
+      "seatCount": "{count, plural, one {# siège} other {# sièges}}",
+      "usedOfTotal": "{used} utilisés / {total} au total",
+      "overLimit": "Limite dépassée",
+      "overLimitHint": "Vous avez plus de collaborateurs que de sièges. Contactez le support pour ajuster le nombre de sièges de votre offre Entreprise.",
+      "contactSupport": "Contactez le support pour modifier les sièges de votre offre Entreprise."
+    },
+    "memberLists": {
+      "orgRoles": {
+        "owner": "Propriétaire",
+        "admin": "Admin",
+        "member": "Membre",
+        "external": "Externe"
+      },
+      "workspaceRoles": {
+        "read": "Lecture",
+        "write": "Écriture",
+        "admin": "Admin"
+      },
+      "memberActions": "Actions sur le membre",
+      "deactivatedByDirectory": "Désactivé par votre annuaire",
+      "joined": "Membre depuis le {date}",
+      "copyEmail": "Copier l’e-mail",
+      "manageCredits": "Gérer les crédits",
+      "transferOwnership": "Transférer la propriété",
+      "leaveOrganization": "Quitter l’organisation",
+      "invitePending": "Invitation en attente",
+      "resendInvite": "Renvoyer l’invitation",
+      "revokeInvite": "Révoquer l’invitation",
+      "removeFromWorkspace": "Retirer de l’espace de travail",
+      "removeMemberFailed": "Impossible de retirer le membre",
+      "tryAgain": "Veuillez réessayer dans un instant.",
+      "membersCount": "Membres ({count})",
+      "noMatches": "Aucun membre ne correspond à « {query} »",
+      "noMembersYet": "Aucun membre pour le moment",
+      "noWorkspaceMembers": "Aucun membre dans cet espace de travail"
+    },
+    "transferOwnership": {
+      "title": "Quitter l’organisation",
+      "confirm": "Transférer et quitter",
+      "transferring": "Transfert en cours...",
+      "onlyMember": "Vous êtes le seul membre de cette organisation. Invitez un autre administrateur avant de partir.",
+      "explanation": "En tant que propriétaire, vous devez transmettre l’organisation avant de pouvoir la quitter. Choisissez le membre qui deviendra le nouveau propriétaire. Il héritera de l’accès à la facturation, de la gestion des sièges et de toutes les autorisations réservées au propriétaire. Vous perdrez l’accès à tous les espaces de travail partagés de cette organisation.",
+      "openingPortal": "Ouverture...",
+      "openPortal": "Ouvrir le portail de facturation Stripe",
+      "paymentMethodStays": "Votre moyen de paiement reste associé à cette organisation",
+      "paymentMethodHint": "Les prochains prélèvements continueront d’être débités sur la carte que vous avez ajoutée. Ouvrez le portail de facturation Stripe pour la retirer avant de partir.",
+      "searchMembers": "Rechercher des membres...",
+      "noMatches": "Aucun membre ne correspond à « {search} »",
+      "admin": "Admin",
+      "failed": "Impossible de transférer la propriété"
+    },
+    "noOrganization": {
+      "createTitle": "Créez votre organisation",
+      "subscribedTeam": "Vous êtes abonné à une offre Team. Créez votre organisation pour commencer à collaborer avec votre équipe.",
+      "subscribedEnterprise": "Vous êtes abonné à une offre Entreprise. Créez votre organisation pour commencer à collaborer avec votre équipe.",
+      "ignoreField": "Ignorer ce champ",
+      "teamName": "Nom de l’équipe",
+      "teamNamePlaceholder": "Mon équipe",
+      "teamUrl": "URL de l’équipe",
+      "createOrganization": "Créer l’organisation",
+      "createModalTitle": "Créer une organisation d’équipe",
+      "organizationName": "Nom de l’organisation",
+      "organizationNamePlaceholder": "Saisissez le nom de l’organisation",
+      "organizationSlug": "Identifiant de l’organisation",
+      "createOrganizationModal": "Créer l’organisation",
+      "noTeamTitle": "Aucun espace de travail d’équipe",
+      "noTeamDescription": "Vous n’avez pas encore d’espace de travail d’équipe. Pour collaborer avec d’autres personnes, passez d’abord à une offre Team ou Entreprise.",
+      "upgrade": "Passer à l’offre Team"
+    }
+  },
+  "teammates": {
+    "roles": {
+      "read": "Lecture",
+      "write": "Écriture",
+      "admin": "Admin"
+    },
+    "joined": "Membre depuis le {date}",
+    "external": "Externe",
+    "invitePending": "Invitation en attente",
+    "searchPlaceholder": "Rechercher des collaborateurs...",
+    "invite": "Inviter",
+    "sectionLabel": "Collaborateurs ({count})",
+    "noMatches": "Aucun collaborateur ne correspond à « {query} »",
+    "empty": "Aucun collaborateur pour le moment",
+    "actionsLabel": "Actions sur le collaborateur",
+    "copyEmail": "Copier l’e-mail",
+    "resendInvite": "Renvoyer l’invitation",
+    "copyInviteLink": "Copier le lien d’invitation",
+    "revokeInvite": "Révoquer l’invitation",
+    "removeFailed": "Impossible de retirer le collaborateur",
+    "tryAgain": "Veuillez réessayer dans un instant.",
+    "workspaceFallback": "Espace de travail"
+  },
+  "inbox": {
+    "loadFailed": "Impossible de charger les paramètres de la boîte de réception",
+    "upgradeTitle": "Nexora Mailer nécessite une offre Max active",
+    "upgradeDescription": "Passez à l’offre Max et assurez-vous que la facturation est active pour recevoir des tâches par e-mail et laisser Nexora travailler pour vous.",
+    "sectionLabel": "Boîte de réception",
+    "sectionDescription": "Tâches reçues par e-mail dans cet espace de travail.",
+    "taskList": {
+      "statusFilters": {
+        "all": "Tous les statuts",
+        "completed": "Terminées",
+        "processing": "En cours",
+        "received": "Reçues",
+        "failed": "En échec",
+        "rejected": "Rejetées"
+      },
+      "statusBadges": {
+        "received": "Reçue",
+        "processing": "En cours",
+        "completed": "Terminée",
+        "failed": "Échec",
+        "rejected": "Rejetée"
+      },
+      "rejectionReasons": {
+        "sender_not_allowed": "Expéditeur non autorisé",
+        "automated_sender": "Expéditeur automatisé",
+        "rate_limit_exceeded": "Limite de débit dépassée",
+        "not_entitled": "L’offre n’inclut plus Nexora Mailer"
+      },
+      "searchPlaceholder": "Rechercher des tâches...",
+      "noMatches": "Aucune tâche ne correspond à « {query} »",
+      "emptyWithAddress": "Aucune tâche par e-mail pour le moment. Envoyez un e-mail à {address} pour commencer.",
+      "empty": "Aucune tâche par e-mail pour le moment."
+    },
+    "enableToggle": {
+      "on": "Activé",
+      "off": "Désactivé",
+      "updateFailed": "Impossible de mettre à jour la boîte de réception",
+      "enableTitle": "Activer la boîte de réception e-mail",
+      "enableDescription": "Autoriser cet espace de travail à recevoir des tâches par e-mail",
+      "enableModalDescription": "Une adresse e-mail sera créée pour cet espace de travail. Toute personne figurant dans la liste des expéditeurs autorisés pourra y écrire pour créer des tâches.",
+      "emailPrefix": "Préfixe de l’adresse e-mail",
+      "emailPrefixPlaceholder": "Facultatif : laissez vide pour une génération automatique",
+      "emailPrefixHint": "Laissez vide pour obtenir une adresse générée automatiquement.",
+      "enabling": "Activation...",
+      "enable": "Activer",
+      "disableTitle": "Désactiver la boîte de réception e-mail",
+      "disableConfirmPrefix": "Voulez-vous vraiment désactiver la boîte de réception ",
+      "disableConfirmSuffix": " ? Les e-mails envoyés à cette adresse après la désactivation ne seront pas distribués. Cette action est irréversible.",
+      "disableConfirmNoAddress": "Voulez-vous vraiment désactiver la boîte de réception ? Les e-mails envoyés à cette adresse après la désactivation ne seront pas distribués. Cette action est irréversible.",
+      "disableInbox": "Désactiver la boîte de réception",
+      "disabling": "Désactivation...",
+      "historyPreserved": "Vos conversations existantes et l’historique des tâches seront conservés."
+    },
+    "settingsTab": {
+      "secretScopes": {
+        "all": "Tous les secrets",
+        "selected": "Secrets sélectionnés"
+      },
+      "updateAddressFailed": "Impossible de mettre à jour l’adresse",
+      "addSenderFailed": "Impossible d’ajouter l’expéditeur",
+      "removeSenderFailed": "Impossible de retirer l’expéditeur",
+      "addressLabel": "Adresse e-mail de Nexora",
+      "addressHint": "Envoyez des e-mails à cette adresse pour créer des tâches.",
+      "copyAddress": "Copier l’adresse",
+      "copiedExclamation": "Copié !",
+      "editAddress": "Modifier l’adresse",
+      "allowedSenders": "Expéditeurs autorisés",
+      "allowedSendersHint": "Seuls les e-mails provenant de ces adresses peuvent créer des tâches.",
+      "memberBadge": "membre",
+      "removeSender": "Retirer l’expéditeur",
+      "noSenders": "Aucun expéditeur autorisé configuré.",
+      "addSender": "Ajouter un expéditeur",
+      "secrets": "Secrets",
+      "secretAccess": "Accès aux secrets",
+      "searchSecrets": "Rechercher des secrets",
+      "selectSecrets": "Sélectionner des secrets",
+      "updateSecretAccessFailed": "Impossible de mettre à jour l’accès aux secrets",
+      "addSenderModalTitle": "Ajouter un expéditeur autorisé",
+      "emailAddress": "Adresse e-mail",
+      "label": "Libellé",
+      "labelPlaceholder": "ex. : Jean du marketing",
+      "changeAddressTitle": "Modifier l’adresse e-mail",
+      "changeAddressWarning": "Modifier votre adresse e-mail créera une nouvelle boîte de réception.",
+      "changeAddressWarningEmphasis": "L’ancienne adresse cessera immédiatement de recevoir des e-mails.",
+      "newEmailPrefix": "Nouveau préfixe d’adresse e-mail",
+      "newEmailPrefixPlaceholder": "ex. : nouveau-acme",
+      "updating": "Mise à jour...",
+      "changeAddress": "Modifier l’adresse"
+    }
+  },
+  "desktop": {
+    "loadError": "Impossible de charger les paramètres de l’application de bureau",
+    "updateError": "Impossible de mettre à jour les paramètres de l’application de bureau",
+    "fileAccessError": "Impossible d’enregistrer les paramètres d’accès aux fichiers. Votre réglage précédent pourrait être rétabli au redémarrage de Nexora.",
+    "sections": {
+      "general": "Général",
+      "localFiles": "Fichiers locaux",
+      "notifications": "Notifications"
+    },
+    "version": "Version",
+    "versionOnRestart": "{current} → {next} au redémarrage",
+    "launchAtLogin": "Lancer Nexora à l’ouverture de session",
+    "preventSleep": "Empêcher la mise en veille pendant l’exécution d’un chat",
+    "trayEnabled": "Afficher Nexora dans le Centre de contrôle",
+    "autoDownloadUpdates": "Télécharger automatiquement les mises à jour",
+    "fullFileAccess": "Accès complet aux fichiers",
+    "notificationsEnabled": "Activer les notifications de bureau",
+    "notificationSounds": "Émettre un son pour les notifications",
+    "notificationsUnfocused": "Notifier uniquement lorsque Nexora n’est pas au premier plan"
+  },
+  "computerUse": {
+    "loadAppsError": "Impossible de charger les applications approuvées",
+    "updateError": "Impossible de mettre à jour les paramètres d’utilisation de l’ordinateur",
+    "title": "Utilisation de l’ordinateur",
+    "allowMacApps": "Autoriser Mothership à utiliser les applications Mac",
+    "off": "Désactivé",
+    "on": "Activé",
+    "intro": "Désactivé par défaut. Chaque application nécessite votre approbation. Vous pouvez arrêter une action depuis la conversation ou révoquer une application ci-dessous.",
+    "helperError": "Impossible de se connecter à l’assistant de l’ordinateur.",
+    "permissions": {
+      "accessibility": "Accessibilité",
+      "screenCapture": "Enregistrement de l’écran"
+    },
+    "allowed": "Autorisé",
+    "openSystemSettings": "Ouvrir les Réglages Système",
+    "openSystemSettingsFor": "Ouvrir les Réglages Système pour {permission}",
+    "permissionsHint": "L’accessibilité permet d’interagir avec les applications approuvées. L’enregistrement de l’écran permet les captures d’écran. Revenez ici après avoir accordé l’accès pour actualiser le statut.",
+    "approvedApps": "Applications approuvées",
+    "revoke": "Révoquer"
+  },
+  "browser": {
+    "errors": {
+      "theme": "Impossible de mettre à jour l’apparence du navigateur",
+      "zoom": "Impossible de mettre à jour le zoom par défaut du navigateur",
+      "downloadDirectory": "Impossible de mettre à jour l’emplacement de téléchargement du navigateur",
+      "load": "Impossible de charger les paramètres du navigateur",
+      "update": "Impossible de mettre à jour les paramètres du navigateur",
+      "searchSuggestions": "Impossible de mettre à jour les suggestions de recherche du navigateur",
+      "clear": "Impossible de supprimer les données de navigation"
+    },
+    "actions": {
+      "passwords": "Mots de passe",
+      "clearAll": "Tout effacer"
+    },
+    "sections": {
+      "general": "Général",
+      "browsingData": "Données de navigation"
+    },
+    "enabled": "Autoriser le chat à naviguer sur le Web",
+    "searchSuggestions": "Suggestions de recherche",
+    "searchSuggestionsDescription": "Envoyer la saisie de la barre d’adresse à Google pour des suggestions en direct",
+    "theme": "Thème",
+    "themeAriaLabel": "Thème du navigateur",
+    "defaultZoom": "Zoom par défaut",
+    "downloadLocation": "Emplacement de téléchargement",
+    "choosing": "Sélection...",
+    "change": "Modifier",
+    "dataRows": {
+      "cookies": {
+        "label": "Cookies",
+        "action": "Supprimer les cookies",
+        "consequence": "déconnecter le navigateur de tous les sites auxquels il est actuellement connecté"
+      },
+      "siteData": {
+        "label": "Données des sites",
+        "action": "Supprimer les données des sites",
+        "consequence": "effacer les données stockées localement par les sites, comme les brouillons et les préférences"
+      },
+      "cache": {
+        "label": "Images et fichiers en cache",
+        "action": "Supprimer les images et fichiers en cache",
+        "consequence": "libérer de l’espace, au prix d’un premier chargement plus lent des sites"
+      }
+    },
+    "clearConfirm": {
+      "allTitle": "Effacer toutes les données de navigation",
+      "before": "Cette action va ",
+      "allConsequence": "déconnecter le navigateur de tous les sites et effacer ses cookies, données des sites et cache",
+      "after": ". Votre compte Nexora et vos mots de passe enregistrés ne sont pas concernés."
+    },
+    "passwords": {
+      "deleteAllSuccess": "Tous les mots de passe enregistrés ont été supprimés",
+      "deleteAllError": "Impossible de supprimer les mots de passe enregistrés",
+      "back": "Navigateur",
+      "title": "Mots de passe",
+      "description": "Identifiants enregistrés pour le navigateur intégré, chiffrés sur cet appareil.",
+      "searchPlaceholder": "Rechercher des mots de passe...",
+      "deleteAll": "Tout supprimer",
+      "import": "Importer",
+      "empty": "Aucun mot de passe enregistré pour le moment. Importez-les depuis un autre navigateur pour les récupérer.",
+      "noUsername": "Aucun nom d’utilisateur",
+      "open": "Ouvrir {site}",
+      "noResults": "Aucun mot de passe ne correspond à « {term} »",
+      "deleteAllTitle": "Supprimer tous les mots de passe",
+      "deleteAllConfirm": {
+        "before": "Cette action supprime définitivement ",
+        "count": "{count, plural, one {le mot de passe enregistré} other {les # mots de passe enregistrés}}",
+        "after": " de cet appareil. Vos comptes sur ces sites ne sont pas concernés, et vous pourrez de nouveau importer depuis un autre navigateur."
+      }
+    },
+    "passwordDetail": {
+      "revealError": "Impossible d’afficher ce mot de passe",
+      "copyError": "Impossible de copier ce mot de passe",
+      "forgetError": "Impossible d’oublier ce mot de passe",
+      "back": "Mots de passe",
+      "description": "Enregistré et chiffré sur cet appareil. Le chat ne peut jamais le lire, le choisir ni le saisir.",
+      "forget": "Oublier",
+      "login": "Identifiant",
+      "site": "Site",
+      "copySite": "Copier le site",
+      "username": "Nom d’utilisateur",
+      "copyUsername": "Copier le nom d’utilisateur",
+      "password": "Mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "showPassword": "Afficher le mot de passe",
+      "copyPassword": "Copier le mot de passe",
+      "forgetTitle": "Oublier le mot de passe",
+      "forgetConfirm": {
+        "before": "Nexora va supprimer le mot de passe enregistré pour ",
+        "after": ". Votre compte sur ce site n’est pas concerné."
+      },
+      "forgetting": "Suppression..."
+    }
+  },
+  "recentlyDeleted": {
+    "sort": {
+      "deleted": "Supprimé",
+      "name": "Nom",
+      "type": "Type"
+    },
+    "tabs": {
+      "all": "Tout",
+      "chat": "Chats",
+      "table": "Tables",
+      "file": "Fichiers",
+      "knowledge": "Bases de connaissances",
+      "workflow": "Workflows",
+      "folder": "Dossiers"
+    },
+    "types": {
+      "workflow": "Workflow",
+      "folder": "Dossier",
+      "workspaceFolder": "Dossier de fichiers",
+      "knowledgeFolder": "Dossier de connaissances",
+      "tableFolder": "Dossier de tables",
+      "table": "Table",
+      "knowledge": "Base de connaissances",
+      "file": "Fichier",
+      "chat": "Chat"
+    },
+    "searchPlaceholder": "Rechercher des éléments supprimés...",
+    "loadError": "Échec du chargement des éléments supprimés",
+    "loadMoreError": "Échec du chargement d’autres éléments supprimés",
+    "noResults": "Aucun élément ne correspond à « {term} »",
+    "empty": "Aucun élément supprimé",
+    "rowDescription": "{type} · Supprimé le {date}",
+    "restoredPaused": "Restauré · les planifications et webhooks restent en pause",
+    "restored": "Restauré",
+    "restoring": "Restauration...",
+    "view": "Voir",
+    "restore": "Restaurer"
+  },
+  "activityLog": {
+    "timestamp": "Horodatage",
+    "event": "Événement",
+    "description": "Description",
+    "actor": "Auteur"
+  },
+  "authorizedApps": {
+    "revokedToast": "{name} révoquée",
+    "appFallback": "Application",
+    "revokeError": "Échec de la révocation de l’accès",
+    "back": "Général",
+    "title": "Applications autorisées",
+    "description": "Consultez et révoquez les applications pouvant agir sur votre compte.",
+    "searchPlaceholder": "Rechercher des applications autorisées...",
+    "loadError": "Échec du chargement des applications autorisées",
+    "loading": "Chargement des applications autorisées…",
+    "noResults": "Aucune application ne correspond à « {term} »",
+    "empty": "Aucune application n’a accès à votre compte",
+    "authorizedOn": "autorisée le {date}",
+    "actionsLabel": "Actions de l’application autorisée",
+    "revoke": "Révoquer",
+    "revokeTitle": "Révoquer l’accès",
+    "revokeConfirm": {
+      "before": "La révocation de ",
+      "thisApp": "cette application",
+      "consequence": "la déconnecte immédiatement partout.",
+      "after": " Vous devrez l’autoriser à nouveau pour la reconnecter."
+    },
+    "revoking": "Révocation...",
+    "loadingMore": "Chargement…",
+    "loadMore": "Charger plus"
+  }
+}

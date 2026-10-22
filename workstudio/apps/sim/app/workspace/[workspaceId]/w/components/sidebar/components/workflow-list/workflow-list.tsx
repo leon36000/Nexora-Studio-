@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import { buildFolderTree, getFolderPath } from '@/lib/folders/tree'
 import { EmptyAreaContextMenu } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/workflow-list/components/empty-area-context-menu'
@@ -74,6 +75,7 @@ export const WorkflowList = memo(function WorkflowList({
   onCreateFolder,
   disableCreate = false,
 }: WorkflowListProps) {
+  const t = useTranslations('shell.sidebar')
   const { isLoading: foldersLoading } = useFolders(workspaceId)
   const { data: folderMap = {} } = useFolderMap(workspaceId)
   const { expandedFolders, setExpanded } = useFolderStore(
@@ -556,7 +558,7 @@ export const WorkflowList = memo(function WorkflowList({
     <SidebarListContext.Provider value={listContextValue}>
       <div
         role='tree'
-        aria-label='Workflows'
+        aria-label={t('sections.workflows')}
         className='flex min-h-full flex-col'
         onClick={handleContainerClick}
         onContextMenu={handleContainerContextMenu}

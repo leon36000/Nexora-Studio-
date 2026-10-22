@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react'
 import { ChipTag, Combobox, type ComboboxOption } from '@sim/emcn'
 import { X } from '@sim/emcn/icons'
 import { useQueries } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { PackageSearchIcon } from '@/components/icons'
 import type { KnowledgeBaseData } from '@/lib/knowledge/types'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
@@ -35,6 +36,7 @@ export function KnowledgeBaseSelector({
   isPreview = false,
   previewValue,
 }: KnowledgeBaseSelectorProps) {
+  const t = useTranslations('editor.subBlock.knowledgeBaseSelector')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
 
@@ -173,8 +175,7 @@ export function KnowledgeBaseSelector({
     onKnowledgeBaseSelect?.(newSelectedIds)
   }
 
-  const label =
-    subBlock.placeholder || (isMultiSelect ? 'Select knowledge bases' : 'Select knowledge base')
+  const label = subBlock.placeholder || (isMultiSelect ? t('selectMultiple') : t('selectSingle'))
 
   const hasMemberScopedSelection = selectedKnowledgeBases.some(
     (kb) => kb.hasPermissionScopedConnector
@@ -198,7 +199,7 @@ export function KnowledgeBaseSelector({
                 key={kb.id}
                 leftIcon={PackageSearchIcon}
                 rightIcon={!disabled && !isPreview ? X : undefined}
-                rightIconLabel={`Remove ${labelOf(kb)}`}
+                rightIconLabel={t('remove', { name: labelOf(kb) })}
                 onRightIconClick={
                   !disabled && !isPreview ? () => handleRemoveKnowledgeBase(kb.id) : undefined
                 }
@@ -222,7 +223,7 @@ export function KnowledgeBaseSelector({
         isLoading={isKnowledgeBasesLoading}
         error={error}
         searchable
-        searchPlaceholder='Search knowledge bases...'
+        searchPlaceholder={t('searchPlaceholder')}
         overlayContent={
           !isMultiSelect && selectedKnowledgeBases[0]
             ? (() => {
@@ -246,9 +247,7 @@ export function KnowledgeBaseSelector({
       />
       {hasMemberScopedSelection && (
         <p className='mt-1.5 text-[var(--text-muted)] text-caption leading-snug'>
-          Documents synced per member are returned only when the person who triggers the run has
-          connected their account. Scheduled, API, webhook, and chat runs see workspace-visible
-          documents only.
+          {t('memberScopedNotice')}
         </p>
       )}
     </div>

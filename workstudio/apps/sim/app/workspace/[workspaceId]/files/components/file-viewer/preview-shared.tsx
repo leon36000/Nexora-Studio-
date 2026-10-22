@@ -4,6 +4,7 @@ import { Component, type ErrorInfo, memo, type ReactNode } from 'react'
 import { cn } from '@sim/emcn'
 import { Loader } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { getFileExtension } from '@/lib/uploads/utils/file'
 
 const logger = createLogger('FilePreview')
@@ -22,32 +23,63 @@ export const UnsupportedPreview = memo(function UnsupportedPreview({
   name,
   reason,
 }: UnsupportedPreviewProps) {
+  const t = useTranslations('files.preview')
   const ext = getFileExtension(name)
 
   return (
     <div className='flex flex-1 flex-col items-center justify-center gap-[8px]'>
       <p className='text-[14px] text-[var(--text-primary)]'>
-        Preview not available{reason ? '' : ext ? ` for .${ext} files` : ' for this file'}
+        {reason
+          ? t('notAvailable')
+          : ext
+            ? t('notAvailableForExt', { ext })
+            : t('notAvailableForFile')}
       </p>
-      <p className='text-[var(--text-muted)] text-small'>
-        {reason ?? 'Use the download button to view this file'}
-      </p>
+      <p className='text-[var(--text-muted)] text-small'>{reason ?? t('downloadHint')}</p>
     </div>
   )
 })
 
-export function PreviewError({ label, error }: { label: string; error: string }) {
+/** What a preview failed to render, named in the fallback (`files.preview.kinds`). */
+type PreviewKind =
+  | 'csv'
+  | 'document'
+  | 'file'
+  | 'pdf'
+  | 'presentation'
+  | 'spreadsheet'
+  | 'audio'
+  | 'video'
+
+/** Why a preview failed: a raw message, or one of the known failures translated at render. */
+type PreviewFailure = { message: string } | { known: 'docNotReady' | 'unexpected' }
+
+interface PreviewErrorProps {
+  kind: PreviewKind
+  error: PreviewFailure
+}
+
+export function PreviewError({ kind, error }: PreviewErrorProps) {
+  const t = useTranslations('files.preview')
+  const message =
+    'message' in error
+      ? error.message
+      : error.known === 'docNotReady'
+        ? t('docNotReady')
+        : t('unexpectedError')
   return (
     <div className='flex flex-1 flex-col items-center justify-center gap-[8px]'>
-      <p className='text-[14px] text-[var(--text-primary)]'>Failed to preview {label}</p>
-      <p className='text-[var(--text-muted)] text-small'>{error}</p>
+      <p className='text-[14px] text-[var(--text-primary)]'>
+        {t('failed', { label: t(`kinds.${kind}`) })}
+      </p>
+      <p className='text-[var(--text-muted)] text-small'>{message}</p>
     </div>
   )
 }
 
 interface PreviewErrorBoundaryProps {
-  /** Format label shown in the fallback, e.g. "PDF". */
-  label: string
+  /** Format shown in the fallback. */
+  kind: PreviewKind
   children: ReactNode
 }
 
@@ -80,7 +112,7 @@ export class PreviewErrorBoundary extends Component<
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('Preview crashed', {
-      label: this.props.label,
+      label: this.props.kind,
       error: error.message,
       componentStack: errorInfo.componentStack,
     })
@@ -90,8 +122,12 @@ export class PreviewErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <PreviewError
-          label={this.props.label}
-          error={this.state.error?.message ?? 'An unexpected error occurred'}
+          kind={this.props.kind}
+          error={
+            this.state.error?.message
+              ? { message: this.state.error.message }
+              : { known: 'unexpected' }
+          }
         />
       )
     }
@@ -103,16 +139,14 @@ export class PreviewErrorBoundary extends Component<
 export function resolvePreviewError(
   fetchError: Error | null,
   renderError: string | null
-): string | null {
+): PreviewFailure | null {
   // A doc whose compiled artifact never appeared (the binary query exhausted its
   // "still generating" polls) — usually a source that failed to compile or a
   // legacy file with no artifact. Give a clear, actionable message instead of a
   // generic fetch error.
-  if (fetchError?.name === 'DocNotReadyError') {
-    return "Couldn't generate this document preview. Re-run the file generation to rebuild it."
-  }
-  if (fetchError) return fetchError.message
-  return renderError
+  if (fetchError?.name === 'DocNotReadyError') return { known: 'docNotReady' }
+  if (fetchError) return fetchError.message ? { message: fetchError.message } : null
+  return renderError ? { message: renderError } : null
 }
 
 /** Canonical content-area loading spinner, matching the rest of the app. */

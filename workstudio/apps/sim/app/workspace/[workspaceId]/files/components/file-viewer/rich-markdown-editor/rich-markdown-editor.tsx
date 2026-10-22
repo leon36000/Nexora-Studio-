@@ -18,6 +18,7 @@ import { isChangeOrigin } from '@tiptap/extension-collaboration'
 import type { Editor } from '@tiptap/react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useSession } from '@/lib/auth/client'
 import {
   buildFileSelectionLabel,
@@ -42,6 +43,7 @@ import {
 } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/collaboration/apply-streamed-markdown'
 import { isCollabReady } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/collaboration/readiness'
 import { useFileDocCollaboration } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/collaboration/use-file-doc-collaboration'
+import { useMarkdownEditorCopy } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/editor-copy'
 import { createMarkdownEditorExtensions } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/editor-extensions'
 import { useMarkdownFind } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/find'
 import { scrollToHeading } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/heading-anchors'
@@ -92,28 +94,9 @@ import '@sim/emcn/components/code/code.css'
 import '@/app/workspace/[workspaceId]/files/components/file-viewer/document-table.css'
 import '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/rich-markdown-editor.css'
 
-const PLACEHOLDER = "Write something, or press '/' for commands…"
-
-const EXTENSIONS = createMarkdownEditorExtensions({
-  placeholder: PLACEHOLDER,
-  embeds: true,
-})
-
 /** Throttle the per-frame full re-parse above this body size so a large streaming file can't saturate the main thread. */
 const STREAM_REPARSE_THROTTLE_THRESHOLD = 40_000
 const STREAM_REPARSE_THROTTLE_MS = 120
-
-function warnRichMarkdownPasteLimit(reason?: 'paste' | 'formatting') {
-  if (reason === 'formatting') {
-    toast.warning('Pasted text kept without automatic formatting', {
-      description: 'Adding that formatting would exceed the rich-text editing limit.',
-    })
-    return
-  }
-  toast.warning('Paste is too large for rich-text editing', {
-    description: `Rich-text editing supports up to ${PASTE_RENDER_THRESHOLDS.ENHANCED_TEXT_CHARACTERS.toLocaleString()} characters. Use the source editor for larger documents.`,
-  })
-}
 
 /**
  * The editor's reading column — the centered, padded surface both the live editor and the read-only
@@ -148,7 +131,7 @@ function buildEditorSelectionContext(
  * Read-only editor that renders the already-fetched markdown while a collaborative doc waits for its
  * server seed, so the pane shows content instantly instead of blocking blank on the socket round-trip
  * (the seed IS the same markdown, so the swap on `collabReady` is seamless). It shares the live
- * editor's extension set ({@link EXTENSIONS}) — and therefore its node views and decoration plugins
+ * editor's extension configuration — and therefore its node views and decoration plugins
  * (syntax highlighting, mention chips, images, mermaid diagrams, media embeds) — so the content is
  * pixel-identical to the live editor and the swap neither repaints nor reflows. It carries no
  * Collaboration extension, Y.Doc, or awareness, so it structurally cannot write to the shared document
@@ -162,9 +145,14 @@ interface ReadOnlyPlaceholderProps {
 }
 
 function ReadOnlyPlaceholder({ content, file, workspaceId }: ReadOnlyPlaceholderProps) {
+  const t = useTranslations('files.editor')
+  const copy = useMarkdownEditorCopy()
   const containerRef = useRef<HTMLDivElement>(null)
+  const [extensions] = useState(() =>
+    createMarkdownEditorExtensions({ placeholder: t('placeholder'), embeds: true, copy })
+  )
   const editor = useEditor({
-    extensions: EXTENSIONS,
+    extensions,
     editable: false,
     // Render synchronously on first paint (safe — this surface is client-only, never SSR'd) so the
     // placeholder appears instantly like the static HTML it replaced, instead of blanking for a frame
@@ -175,7 +163,7 @@ function ReadOnlyPlaceholder({ content, file, workspaceId }: ReadOnlyPlaceholder
     editorProps: {
       attributes: {
         class: 'rich-markdown-nodes rich-markdown-prose',
-        'aria-label': 'Document preview',
+        'aria-label': t('documentPreview'),
         role: 'textbox',
         'aria-multiline': 'true',
         'aria-readonly': 'true',
@@ -208,14 +196,16 @@ function ReadOnlyPlaceholder({ content, file, workspaceId }: ReadOnlyPlaceholder
   )
 }
 
+type AsyncAction = () => Promise<void> // i18n-ignore: type signature
+
 interface RichMarkdownEditorProps {
   file: WorkspaceFileRecord
   workspaceId: string
   canEdit: boolean
   autoFocus?: boolean
   onDirtyChange?: (isDirty: boolean) => void
-  onSaveStatusChange?: (status: SaveStatus, retry?: () => Promise<void>) => void
-  saveRef?: React.MutableRefObject<(() => Promise<void>) | null>
+  onSaveStatusChange?: (status: SaveStatus, retry?: AsyncAction) => void
+  saveRef?: React.MutableRefObject<AsyncAction | null>
   downloadSourceRef?: React.MutableRefObject<FileDownloadSource | null>
   discardRef?: React.MutableRefObject<(() => void) | null>
   streamingContent?: string
@@ -300,9 +290,11 @@ function RichMarkdownSurface({
   enableFind = false,
   onEditSource,
 }: RichMarkdownSurfaceProps) {
+  const tEditor = useTranslations('files.editor')
+  const tContent = useTranslations('files.editableContent')
   const { data: session, isPending: isSessionPending } = useSession()
   const userId = session?.user?.id ?? ''
-  const userName = session?.user?.name?.trim() || 'Collaborator'
+  const userName = session?.user?.name?.trim() || tEditor('collaborator')
 
   /**
    * Client-autosave gate. For a NON-collaborative file this is `true` (the client owns durability and
@@ -387,7 +379,7 @@ function RichMarkdownSurface({
     return (
       <div className='flex flex-1 items-center justify-center'>
         <p className='text-[var(--text-muted)] text-small'>
-          {contentError ?? 'Failed to load file content'}
+          {contentError ?? tContent('loadFailed')}
         </p>
       </div>
     )
@@ -459,7 +451,7 @@ interface LoadedRichMarkdownEditorProps {
   /** See {@link RichMarkdownEditorProps.collaborative}. */
   collaborative?: boolean
   onChange: (markdown: string) => void
-  onSaveShortcut: () => Promise<void>
+  onSaveShortcut: AsyncAction
   downloadSourceRef?: React.MutableRefObject<FileDownloadSource | null>
   /** Reports client autosave eligibility; collaborative documents are persisted by the relay. */
   onClientAutosaveChange: (canAutosave: boolean) => void
@@ -517,6 +509,8 @@ export function LoadedRichMarkdownEditor({
   enableFind,
   onEditSource,
 }: LoadedRichMarkdownEditorProps) {
+  const t = useTranslations('files.editor')
+  const editorCopy = useMarkdownEditorCopy()
   /** Whether this editor mounted mid-stream — if so it starts empty and syncs streamed chunks until settle. */
   const [streamingAtMount] = useState(isStreaming)
 
@@ -692,7 +686,7 @@ export function LoadedRichMarkdownEditor({
    * edits. Capture the editor instance, never a later file's editor, for completion and teardown.
    */
   const insertImagesRef = useRef<
-    (images: File[], range: Range, fallback?: ImageFileFallback | null) => Promise<void>
+    (images: File[], range: Range, fallback?: ImageFileFallback | null) => Promise<void> // i18n-ignore: type signature
   >(() => Promise.resolve())
   const insertImages = async (
     images: File[],
@@ -718,7 +712,7 @@ export function LoadedRichMarkdownEditor({
         if (editor.isDestroyed || !editor.isEditable || batch.controller.signal.aborted) break
         const anchor = anchors[index]
         if (!anchor || findImageUpload(editor, anchor) === null) continue
-        batch.toastId = toast.info(`Uploading "${image.name}"…`, { duration: 0 })
+        batch.toastId = toast.info(t('images.uploading', { name: image.name }), { duration: 0 })
         const result = await uploadFile
           .mutateAsync({
             workspaceId,
@@ -739,7 +733,7 @@ export function LoadedRichMarkdownEditor({
             fallback ? resolveImageFileFallback(fallback, result.file.url) : undefined
           )
           if (!inserted && !editor.isDestroyed) {
-            toast.info('The image was uploaded to the workspace but was not inserted.')
+            toast.info(t('images.notInserted'))
           }
         } else {
           removeImageUpload(editor, anchor)
@@ -757,11 +751,25 @@ export function LoadedRichMarkdownEditor({
    * carrying this document's Collaboration + CollaborationCaret. Built once (collab
    * is decided at mount), since `useEditor` fixes the extension set at creation.
    */
+  const warnPasteLimit = (reason?: 'paste' | 'formatting') => {
+    if (reason === 'formatting') {
+      toast.warning(t('paste.formattingSkipped'), {
+        description: t('paste.formattingSkippedDescription'),
+      })
+      return
+    }
+    toast.warning(t('paste.tooLarge'), {
+      description: t('paste.tooLargeDescription', {
+        count: PASTE_RENDER_THRESHOLDS.ENHANCED_TEXT_CHARACTERS,
+      }),
+    })
+  }
   const [extensions] = useState<Extensions>(() =>
     collaboration
       ? createMarkdownEditorExtensions({
-          placeholder: PLACEHOLDER,
+          placeholder: t('placeholder'),
           embeds: true,
+          copy: editorCopy,
           collaboration: {
             doc: collaboration.doc,
             awareness: collaboration.awareness,
@@ -774,17 +782,18 @@ export function LoadedRichMarkdownEditor({
               return editor ? postProcessSerializedMarkdown(editor.getMarkdown()) : ''
             },
             getFrontmatter: () => saveFrontmatterResolverRef.current(),
-            onRejected: warnRichMarkdownPasteLimit,
+            onRejected: warnPasteLimit,
           },
         })
       : createMarkdownEditorExtensions({
-          placeholder: PLACEHOLDER,
+          placeholder: t('placeholder'),
           embeds: true,
+          copy: editorCopy,
           pasteAdmission: {
             maxResultBytes: PASTE_LIMITS.RICH_MARKDOWN_BYTES,
             getCurrentText: () => lastSyncedBodyRef.current ?? '',
             getFrontmatter: () => saveFrontmatterResolverRef.current(),
-            onRejected: warnRichMarkdownPasteLimit,
+            onRejected: warnPasteLimit,
           },
         })
   )
@@ -1493,10 +1502,8 @@ export function LoadedRichMarkdownEditor({
           role='status'
           className='flex items-center gap-2 border-[var(--border)] border-b px-4 py-2 text-[var(--text-muted)] text-small'
         >
-          <p className='flex-1'>
-            This document needs source editing to preserve its content or handle its size.
-          </p>
-          <Chip onClick={onEditSource}>Edit source</Chip>
+          <p className='flex-1'>{t('sourceRequired')}</p>
+          <Chip onClick={onEditSource}>{t('editSource')}</Chip>
         </div>
       )}
       {showReconnecting && (
@@ -1505,7 +1512,7 @@ export function LoadedRichMarkdownEditor({
           aria-live='polite'
           className='border-[var(--border)] border-b px-4 py-2 text-[var(--text-muted)] text-small'
         >
-          Reconnecting…
+          {t('reconnecting')}
         </div>
       )}
       {showCollabFailure && (
@@ -1515,13 +1522,13 @@ export function LoadedRichMarkdownEditor({
           className='border-[var(--border)] border-b px-4 py-2 text-[var(--text-muted)] text-small'
         >
           {showCollabFailure.code === 'ACCESS_REVOKED' || showCollabFailure.code === 'ACCESS_DENIED'
-            ? 'You no longer have edit access to this document.'
-            : 'Live editing is unavailable.'}
+            ? t('writeAccessLost')
+            : t('liveEditingUnavailable')}
         </div>
       )}
       {find.isOpen && (
         <FindBar
-          ariaLabel='Find in document'
+          ariaLabel={t('findInDocument')}
           query={find.query}
           onQueryChange={find.setQuery}
           onNext={find.next}
@@ -1565,9 +1572,7 @@ export function LoadedRichMarkdownEditor({
             input.value = ''
             if (images.length === 0) return
             if (range === null) {
-              toast.info(
-                'The insertion location changed. Choose a new location and select the image again.'
-              )
+              toast.info(t('images.locationChanged'))
               return
             }
             void insertImagesRef.current(images, range)

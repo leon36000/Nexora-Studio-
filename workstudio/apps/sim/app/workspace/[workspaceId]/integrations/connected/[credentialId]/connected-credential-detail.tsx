@@ -16,6 +16,7 @@ import { ArrowLeft } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SaveDiscardChips } from '@/components/settings/save-discard-actions'
 import { writeOAuthReturnContext } from '@/lib/credentials/client-state'
 import { resolveCredentialDisplay } from '@/lib/integrations/credential-display'
@@ -65,6 +66,7 @@ export function ConnectedCredentialDetail({
   workspaceId,
   credentialId,
 }: ConnectedCredentialDetailProps) {
+  const t = useTranslations('integrations.connected')
   const router = useRouter()
   const integrationsHref = `/workspace/${workspaceId}/integrations`
 
@@ -174,8 +176,8 @@ export function ConnectedCredentialDetail({
         })
       }
     } catch (error: unknown) {
-      toast.error("Couldn't start reconnect", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('reconnectFailed'), {
+        description: getErrorMessage(error, t('tryAgainLater')),
       })
       logger.error('Failed to reconnect OAuth credential', error)
     }
@@ -193,8 +195,8 @@ export function ConnectedCredentialDetail({
       setShowDeleteConfirmDialog(false)
       router.push(integrationsHref)
     } catch (error) {
-      toast.error("Couldn't disconnect", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('disconnectFailed'), {
+        description: getErrorMessage(error, t('tryAgainLater')),
       })
       logger.error('Failed to disconnect integration', error)
     }
@@ -202,7 +204,7 @@ export function ConnectedCredentialDetail({
 
   const back = (
     <ChipLink href={integrationsHref} onClick={form.handleBackClick} leftIcon={ArrowLeft}>
-      Integrations
+      {t('back')}
     </ChipLink>
   )
 
@@ -227,19 +229,19 @@ export function ConnectedCredentialDetail({
             }
             leftIcon={display?.icon ?? undefined}
           >
-            Reconnect
+            {t('reconnect')}
           </Chip>
         )}
         {credential.type !== 'personal_token' && (
           <Chip leftIcon={Send} onClick={() => setIsShareModalOpen(true)}>
-            Share
+            {t('share')}
           </Chip>
         )}
         <Chip
           onClick={() => setShowDeleteConfirmDialog(true)}
           disabled={deleteCredential.isPending}
         >
-          Disconnect
+          {t('disconnect')}
         </Chip>
         <SaveDiscardChips
           dirty={form.isDirty}
@@ -253,7 +255,7 @@ export function ConnectedCredentialDetail({
   if (credentialsLoading && !credential) {
     return (
       <CredentialDetailLayout back={back} actions={actions}>
-        <SettingsEmptyState variant='inline'>Loading…</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
       </CredentialDetailLayout>
     )
   }
@@ -261,13 +263,13 @@ export function ConnectedCredentialDetail({
   if (!credential) {
     return (
       <CredentialDetailLayout back={back} actions={actions}>
-        <SettingsEmptyState variant='inline'>Credential not found.</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('notFound')}</SettingsEmptyState>
       </CredentialDetailLayout>
     )
   }
 
   const headingTitle =
-    display?.detailTitle || resolveProviderLabel(credential.providerId) || 'Unknown service'
+    display?.detailTitle || resolveProviderLabel(credential.providerId) || t('unknownService')
 
   return (
     <>
@@ -285,14 +287,18 @@ export function ConnectedCredentialDetail({
             )
           }
           title={headingTitle}
-          subtitle={display?.detailSubtitle ?? 'Connected service'}
+          subtitle={display?.detailSubtitle ?? t('connectedService')}
         />
 
-        <DetailSection title='Credential ID'>
-          <ChipCopyInput id='credential-id' value={credential.id} copyLabel='Copy credential ID' />
+        <DetailSection title={t('credentialId')}>
+          <ChipCopyInput
+            id='credential-id'
+            value={credential.id}
+            copyLabel={t('copyCredentialId')}
+          />
         </DetailSection>
 
-        <DetailSection title='Display Name'>
+        <DetailSection title={t('displayName')}>
           <ChipInput
             id='credential-display-name'
             value={form.displayNameDraft}
@@ -303,13 +309,13 @@ export function ConnectedCredentialDetail({
           />
         </DetailSection>
 
-        <DetailSection title='Description'>
+        <DetailSection title={t('description')}>
           <ChipTextarea
             id='credential-description'
             rows={4}
             value={form.descriptionDraft}
             onChange={(event) => form.setDescriptionDraft(event.target.value)}
-            placeholder='Add a description...'
+            placeholder={t('descriptionPlaceholder')}
             maxLength={500}
             autoComplete='off'
             data-lpignore='true'
@@ -321,8 +327,8 @@ export function ConnectedCredentialDetail({
           <CredentialMembersSection credentialId={credential.id} isAdmin={isAdmin} />
         )}
         {credential.type === 'personal_token' && credential.instanceUrl && (
-          <DetailSection title='GitLab instance'>
-            <ChipCopyInput value={credential.instanceUrl} copyLabel='Copy GitLab instance' />
+          <DetailSection title={t('gitlabInstance')}>
+            <ChipCopyInput value={credential.instanceUrl} copyLabel={t('copyGitlabInstance')} />
           </DetailSection>
         )}
       </CredentialDetailLayout>
@@ -330,18 +336,18 @@ export function ConnectedCredentialDetail({
       <ChipConfirmModal
         open={showDeleteConfirmDialog}
         onOpenChange={setShowDeleteConfirmDialog}
-        srTitle='Disconnect Integration'
-        title='Disconnect Integration'
+        srTitle={t('disconnectTitle')}
+        title={t('disconnectTitle')}
         text={[
-          'Are you sure you want to disconnect ',
+          t('disconnectConfirmBefore'),
           { text: credential.displayName, bold: true },
-          '? This action cannot be undone.',
+          t('disconnectConfirmAfter'),
         ]}
         confirm={{
-          label: 'Disconnect',
+          label: t('disconnect'),
           onClick: handleConfirmDelete,
           pending: deleteCredential.isPending,
-          pendingLabel: 'Disconnecting...',
+          pendingLabel: t('disconnecting'),
         }}
       />
 

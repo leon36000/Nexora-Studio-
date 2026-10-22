@@ -11,6 +11,7 @@ import {
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 
 const logger = createLogger('RenameDocumentModal')
 
@@ -19,7 +20,7 @@ interface RenameDocumentModalProps {
   onOpenChange: (open: boolean) => void
   documentId: string
   initialName: string
-  onSave: (documentId: string, newName: string) => Promise<void>
+  onSave: (documentId: string, newName: string) => Promise<void> // i18n-ignore: TypeScript type, not interface text
 }
 
 /**
@@ -33,6 +34,7 @@ export function RenameDocumentModal({
   initialName,
   onSave,
 }: RenameDocumentModalProps) {
+  const t = useTranslations('knowledge.renameDocument')
   const [name, setName] = useState(initialName)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -51,7 +53,7 @@ export function RenameDocumentModal({
     const trimmedName = name.trim()
 
     if (!trimmedName) {
-      setError('Name is required')
+      setError(t('nameRequired'))
       return
     }
 
@@ -68,25 +70,25 @@ export function RenameDocumentModal({
       onOpenChange(false)
     } catch (err) {
       logger.error('Error renaming document:', err)
-      setError(getErrorMessage(err, 'Failed to rename document'))
+      setError(getErrorMessage(err, t('failed')))
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Rename Document'>
-      <ChipModalHeader onClose={() => onOpenChange(false)}>Rename Document</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('title')}>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{t('title')}</ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='input'
-          title='Name'
+          title={t('name')}
           value={name}
           onChange={(value) => {
             setName(value)
             setError(null)
           }}
-          placeholder='Enter document name'
+          placeholder={t('placeholder')}
           maxLength={255}
           autoComplete='off'
           disabled={isSubmitting}
@@ -98,7 +100,7 @@ export function RenameDocumentModal({
         onCancel={() => onOpenChange(false)}
         cancelDisabled={isSubmitting}
         primaryAction={{
-          label: isSubmitting ? 'Renaming...' : 'Rename',
+          label: isSubmitting ? t('renaming') : t('rename'),
           onClick: () => void handleSubmit(),
           disabled: isSubmitting || !name?.trim() || name.trim() === initialName,
         }}

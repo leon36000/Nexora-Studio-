@@ -16,6 +16,7 @@ import {
   languages,
 } from '@sim/emcn'
 import { Plus, Trash, X } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import Editor from 'react-simple-code-editor'
 import { useShallow } from 'zustand/react/shallow'
 import { validateName } from '@/lib/core/utils/validation'
@@ -40,15 +41,9 @@ import type { Variable } from '@/stores/variables/types'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 /**
- * Type options for variable type selection
+ * Variable types offered in the type selector
  */
-const TYPE_OPTIONS: ComboboxOption[] = [
-  { label: 'Plain', value: 'plain' },
-  { label: 'Number', value: 'number' },
-  { label: 'Boolean', value: 'boolean' },
-  { label: 'Object', value: 'object' },
-  { label: 'Array', value: 'array' },
-]
+const TYPE_VALUES = ['plain', 'number', 'boolean', 'object', 'array'] as const
 
 /**
  * UI constants for consistent styling and sizing
@@ -59,28 +54,17 @@ const LINE_HEIGHT = 21
 const MIN_EDITOR_HEIGHT = 120
 
 /**
- * User-facing strings for errors, labels, and placeholders
+ * Code-like placeholders shown as examples in inputs
  */
-const STRINGS = {
-  errors: {
-    emptyName: 'Variable name cannot be empty',
-    duplicateName: 'Two variables cannot have the same name',
-  },
-  labels: {
-    name: 'Name',
-    type: 'Type',
-    value: 'Value',
-  },
-  placeholders: {
-    name: 'variableName',
-    number: '42',
-    boolean: 'true',
-    plain: 'Plain text value',
-    object: '{\n  "key": "value"\n}',
-    array: '[\n  1, 2, 3\n]',
-  },
-  emptyState: 'No variables yet',
+const PLACEHOLDERS = {
+  name: 'variableName',
+  number: '42',
+  boolean: 'true',
+  object: '{\n  "key": "value"\n}',
+  array: '[\n  1, 2, 3\n]',
 }
+
+type NameError = 'emptyName' | 'duplicateName'
 
 interface VariableHeaderProps {
   variable: Variable
@@ -99,6 +83,7 @@ function VariableHeader({
   onRemove,
   readOnly,
 }: VariableHeaderProps) {
+  const t = useTranslations('editor.runPanels.variables')
   function handleHeaderKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -118,7 +103,7 @@ function VariableHeader({
     >
       <div className='flex min-w-0 flex-1 items-center gap-2'>
         <span className='block truncate text-[var(--text-tertiary)] text-sm'>
-          {variable.name || `Variable ${index + 1}`}
+          {variable.name || t('fallbackName', { index: index + 1 })}
         </span>
         {variable.name && (
           <Badge variant='type' size='sm'>
@@ -134,10 +119,14 @@ function VariableHeader({
         }}
         className='h-auto shrink-0 p-0 text-[var(--text-error)] hover-hover:text-[var(--text-error)] max-md:pointer-coarse:size-11'
         disabled={readOnly}
-        aria-label={`Delete ${variable.name || `variable ${index + 1}`}`}
+        aria-label={
+          variable.name
+            ? t('deleteNamed', { name: variable.name })
+            : t('deleteIndexed', { index: index + 1 })
+        }
       >
         <Trash style={{ width: `${ICON_SIZE}px`, height: `${ICON_SIZE}px` }} />
-        <span className='sr-only'>Delete Variable</span>
+        <span className='sr-only'>{t('deleteVariable')}</span>
       </Button>
     </div>
   )
@@ -150,6 +139,7 @@ interface VariableValueInputProps {
 }
 
 function VariableValueInput({ variable, onUpdate, readOnly }: VariableValueInputProps) {
+  const t = useTranslations('editor.runPanels.variables')
   const variableValue =
     variable.value === ''
       ? ''
@@ -160,8 +150,7 @@ function VariableValueInput({ variable, onUpdate, readOnly }: VariableValueInput
   if (variable.type === 'object' || variable.type === 'array') {
     const lineCount = variableValue.split('\n').length
     const gutterWidth = calculateGutterWidth(lineCount)
-    const placeholder =
-      variable.type === 'object' ? STRINGS.placeholders.object : STRINGS.placeholders.array
+    const placeholder = variable.type === 'object' ? PLACEHOLDERS.object : PLACEHOLDERS.array
 
     return (
       <Code.Container style={{ minHeight: `${MIN_EDITOR_HEIGHT}px` }}>
@@ -201,10 +190,10 @@ function VariableValueInput({ variable, onUpdate, readOnly }: VariableValueInput
       disabled={readOnly}
       placeholder={
         variable.type === 'number'
-          ? STRINGS.placeholders.number
+          ? PLACEHOLDERS.number
           : variable.type === 'boolean'
-            ? STRINGS.placeholders.boolean
-            : STRINGS.placeholders.plain
+            ? PLACEHOLDERS.boolean
+            : t('placeholders.plain')
       }
     />
   )
@@ -223,6 +212,7 @@ interface VariablesProps {
 }
 
 export function Variables({ readOnly = false }: VariablesProps) {
+  const t = useTranslations('editor.runPanels.variables')
   const activeWorkflowId = useWorkflowRegistry((s) => s.activeWorkflowId)
 
   const { isOpen, position, width, height, setIsOpen, setPosition, setDimensions } =
@@ -294,7 +284,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
 
   const [collapsedById, setCollapsedById] = useState<Record<string, boolean>>({})
   const [localNames, setLocalNames] = useState<Record<string, string>>({})
-  const [nameErrors, setNameErrors] = useState<Record<string, string>>({})
+  const [nameErrors, setNameErrors] = useState<Record<string, NameError>>({})
   const cleanupState = useCallback(
     (
       setter: React.Dispatch<React.SetStateAction<Record<string, any>>>,
@@ -339,6 +329,11 @@ export function Variables({ readOnly = false }: VariablesProps) {
       return updated
     })
   }
+
+  const typeOptions = useMemo<ComboboxOption[]>(
+    () => TYPE_VALUES.map((value) => ({ label: t(`types.${value}`), value })),
+    [t]
+  )
 
   const handleAddVariable = useCallback(() => {
     if (!activeWorkflowId || readOnly) return
@@ -399,7 +394,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
       if (!trimmedName) {
         setNameErrors((prev) => ({
           ...prev,
-          [variableId]: STRINGS.errors.emptyName,
+          [variableId]: 'emptyName',
         }))
         return
       }
@@ -407,7 +402,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
       if (isDuplicateName(variableId, trimmedName)) {
         setNameErrors((prev) => ({
           ...prev,
-          [variableId]: STRINGS.errors.duplicateName,
+          [variableId]: 'duplicateName',
         }))
         return
       }
@@ -434,7 +429,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
     <div
       ref={preventZoomRef}
       role='dialog'
-      aria-label='Variables'
+      aria-label={t('dialogLabel')}
       className='fixed z-30 flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-1)] px-2.5 pt-0.5 pb-2 max-md:absolute max-md:inset-0! max-md:size-auto! max-md:cursor-default! max-md:rounded-none max-md:border-0 max-md:pb-[max(8px,env(safe-area-inset-bottom))]'
       style={{
         left: `${actualPosition.x}px`,
@@ -460,7 +455,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
         }}
       >
         <div className='flex items-center'>
-          <span className='shrink-0 text-[var(--text-primary)] text-sm'>Variables</span>
+          <span className='shrink-0 text-[var(--text-primary)] text-sm'>{t('title')}</span>
         </div>
         <div className='flex items-center gap-2'>
           <Button
@@ -472,7 +467,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
               handleAddVariable()
             }}
             disabled={readOnly}
-            aria-label='Add new variable'
+            aria-label={t('addVariable')}
           >
             <Plus style={{ width: `${HEADER_ICON_SIZE}px`, height: `${HEADER_ICON_SIZE}px` }} />
           </Button>
@@ -481,7 +476,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
             iconPadding='md'
             className='-m-1.5 max-md:pointer-coarse:m-0 max-md:pointer-coarse:size-11'
             onClick={handleClose}
-            aria-label='Close variables panel'
+            aria-label={t('closePanel')}
           >
             <X style={{ width: `${HEADER_ICON_SIZE}px`, height: `${HEADER_ICON_SIZE}px` }} />
           </Button>
@@ -492,7 +487,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
       <div className='flex flex-1 flex-col overflow-hidden pt-2'>
         {workflowVariables.length === 0 ? (
           <div className='flex h-full items-center justify-center text-[var(--text-placeholder)] text-small'>
-            {STRINGS.emptyState}
+            {t('emptyState')}
           </div>
         ) : (
           <div className='h-full overflow-y-auto overflow-x-hidden'>
@@ -520,7 +515,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
                       className='flex flex-col gap-1.5 rounded-b-[4px] border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 pt-1.5 pb-2.5'
                     >
                       <div className='flex flex-col gap-1'>
-                        <Label className='text-small'>{STRINGS.labels.name}</Label>
+                        <Label className='text-small'>{t('labels.name')}</Label>
                         <Input
                           name='name'
                           autoComplete='off'
@@ -528,20 +523,20 @@ export function Variables({ readOnly = false }: VariablesProps) {
                           onChange={(e) => handleVariableNameChange(variable.id, e.target.value)}
                           onBlur={() => handleVariableNameBlur(variable.id)}
                           onKeyDown={handleVariableNameKeyDown}
-                          placeholder={STRINGS.placeholders.name}
+                          placeholder={PLACEHOLDERS.name}
                           disabled={readOnly}
                         />
                         {nameErrors[variable.id] && (
                           <p className='text-[var(--text-error)] text-xs' role='alert'>
-                            {nameErrors[variable.id]}
+                            {t(`errors.${nameErrors[variable.id]}`)}
                           </p>
                         )}
                       </div>
 
                       <div className='space-y-1'>
-                        <Label className='text-small'>{STRINGS.labels.type}</Label>
+                        <Label className='text-small'>{t('labels.type')}</Label>
                         <Combobox
-                          options={TYPE_OPTIONS}
+                          options={typeOptions}
                           value={variable.type}
                           onChange={(value) => handleUpdateVariable(variable.id, 'type', value)}
                           disabled={readOnly}
@@ -549,7 +544,7 @@ export function Variables({ readOnly = false }: VariablesProps) {
                       </div>
 
                       <div className='space-y-1'>
-                        <Label className='text-small'>{STRINGS.labels.value}</Label>
+                        <Label className='text-small'>{t('labels.value')}</Label>
                         <div className='relative'>
                           <VariableValueInput
                             variable={variable}

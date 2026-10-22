@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { ChipTag } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import {
   AnthropicIcon,
@@ -76,286 +77,294 @@ import {
   useUpsertOrganizationBYOKKey,
 } from '@/hooks/queries/byok-keys'
 
-const PROVIDERS: (BYOKManagerProvider & { id: BYOKProviderId })[] = [
+interface ProviderDefinition extends Omit<BYOKManagerProvider, 'description' | 'placeholder'> {
+  id: BYOKProviderId
+  /** Message key under `settings.byok.descriptions`. */
+  descriptionKey: string
+  /** Literal key-format hint shown as the input placeholder. */
+  placeholder?: string
+  /** Name used in the "Enter your … API key" placeholder when no format hint is given. */
+  keyLabel?: string
+}
+
+const PROVIDERS: ProviderDefinition[] = [
   {
     id: 'openai',
     name: 'OpenAI',
     icon: OpenAIIcon,
-    description: 'LLM calls and Knowledge Base embeddings',
+    descriptionKey: 'llmEmbeddings',
     placeholder: 'sk-...',
   },
   {
     id: 'anthropic',
     name: 'Anthropic',
     icon: AnthropicIcon,
-    description: 'LLM calls',
+    descriptionKey: 'llm',
     placeholder: 'sk-ant-...',
   },
   {
     id: 'google',
     name: 'Google',
     icon: GeminiIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your API key',
+    descriptionKey: 'llm',
   },
   {
     id: 'mistral',
     name: 'Mistral',
     icon: MistralIcon,
-    description: 'LLM calls and Knowledge Base OCR',
-    placeholder: 'Enter your API key',
+    descriptionKey: 'llmOcr',
   },
   {
     id: 'zai',
     name: 'Z.ai',
     icon: ZaiIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your Z.ai API key',
+    descriptionKey: 'llm',
+    keyLabel: 'Z.ai',
   },
   {
     id: 'cohere',
     name: 'Cohere',
     icon: CohereIcon,
-    description: 'Embeddings and Knowledge Base reranking',
-    placeholder: 'Enter your Cohere API key',
+    descriptionKey: 'embeddingsReranking',
+    keyLabel: 'Cohere',
   },
   {
     id: 'xai',
     name: 'xAI',
     icon: xAIIcon,
-    description: 'LLM calls',
+    descriptionKey: 'llm',
     placeholder: 'xai-...',
   },
   {
     id: 'kimi',
     name: 'Kimi',
     icon: KimiIcon,
-    description: 'LLM calls',
+    descriptionKey: 'llm',
     placeholder: 'sk-...',
   },
   {
     id: 'typesafe',
     name: 'TypeSafe',
     icon: TypeSafeIcon,
-    description: 'Jev evaluation models',
-    placeholder: 'Enter your TypeSafe API key',
+    descriptionKey: 'jevEvaluation',
+    keyLabel: 'TypeSafe',
   },
   {
     id: 'fireworks',
     name: 'Fireworks',
     icon: FireworksIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your Fireworks API key',
+    descriptionKey: 'llm',
+    keyLabel: 'Fireworks',
   },
   {
     id: 'together',
     name: 'Together AI',
     icon: TogetherIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your Together AI API key',
+    descriptionKey: 'llm',
+    keyLabel: 'Together AI',
   },
   {
     id: 'baseten',
     name: 'Baseten',
     icon: BasetenIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your Baseten API key',
+    descriptionKey: 'llm',
+    keyLabel: 'Baseten',
   },
   {
     id: 'nebius',
     name: 'Nebius',
     icon: NebiusIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your Nebius Token Factory API key',
+    descriptionKey: 'llm',
+    keyLabel: 'Nebius Token Factory',
   },
   {
     id: 'ollama-cloud',
     name: 'Ollama Cloud',
     icon: OllamaIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your Ollama API key',
+    descriptionKey: 'llm',
+    keyLabel: 'Ollama',
   },
   {
     id: 'kie',
     name: 'Kie',
     icon: KieIcon,
-    description: 'LLM calls',
-    placeholder: 'Enter your Kie API key',
+    descriptionKey: 'llm',
+    keyLabel: 'Kie',
   },
   {
     id: 'falai',
     name: 'Fal.ai',
     icon: FalIcon,
-    description: 'Image and video generation',
-    placeholder: 'Enter your Fal.ai API key',
+    descriptionKey: 'imageVideo',
+    keyLabel: 'Fal.ai',
   },
   {
     id: 'firecrawl',
     name: 'Firecrawl',
     icon: FirecrawlIcon,
-    description: 'Web scraping, crawling, search, and extraction',
-    placeholder: 'Enter your Firecrawl API key',
+    descriptionKey: 'scrapingExtraction',
+    keyLabel: 'Firecrawl',
   },
   {
     id: 'exa',
     name: 'Exa',
     icon: ExaAIIcon,
-    description: 'AI-powered search and research',
-    placeholder: 'Enter your Exa API key',
+    descriptionKey: 'aiSearchResearch',
+    keyLabel: 'Exa',
   },
   {
     id: 'context_dev',
     name: 'Context.dev',
     icon: ContextDevIcon,
-    description: 'Web scraping, crawling, search, and brand intelligence',
-    placeholder: 'Enter your Context.dev API key',
+    descriptionKey: 'scrapingBrandIntelligence',
+    keyLabel: 'Context.dev',
   },
   {
     id: 'tinyfish',
     name: 'TinyFish',
     icon: TinyFishIcon,
-    description: 'Web agent automation, search, and page fetching',
-    placeholder: 'Enter your TinyFish API key',
+    descriptionKey: 'webAgentAutomation',
+    keyLabel: 'TinyFish',
   },
   {
     id: 'serper',
     name: 'Serper',
     icon: SerperIcon,
-    description: 'Google search API',
-    placeholder: 'Enter your Serper API key',
+    descriptionKey: 'googleSearchApi',
+    keyLabel: 'Serper',
   },
   {
     id: 'linkup',
     name: 'Linkup',
     icon: LinkupIcon,
-    description: 'Web search and content retrieval',
-    placeholder: 'Enter your Linkup API key',
+    descriptionKey: 'webSearchRetrieval',
+    keyLabel: 'Linkup',
   },
   {
     id: 'parallel_ai',
     name: 'Parallel AI',
     icon: ParallelIcon,
-    description: 'Web search, extraction, and deep research',
-    placeholder: 'Enter your Parallel AI API key',
+    descriptionKey: 'webSearchDeepResearch',
+    keyLabel: 'Parallel AI',
   },
   {
     id: 'perplexity',
     name: 'Perplexity',
     icon: PerplexityIcon,
-    description: 'AI-powered chat and web search',
+    descriptionKey: 'aiChatWebSearch',
     placeholder: 'pplx-...',
   },
   {
     id: 'jina',
     name: 'Jina AI',
     icon: JinaAIIcon,
-    description: 'Web reading and search',
+    descriptionKey: 'webReadingSearch',
     placeholder: 'jina_...',
   },
   {
     id: 'google_cloud',
     name: 'Google Cloud',
     icon: GoogleIcon,
-    description: 'Translate, Maps, PageSpeed, and Books APIs',
-    placeholder: 'Enter your Google Cloud API key',
+    descriptionKey: 'googleCloudApis',
+    keyLabel: 'Google Cloud',
   },
   {
     id: 'brandfetch',
     name: 'Brandfetch',
     icon: BrandfetchIcon,
-    description: 'Brand assets, logos, colors, and company info',
-    placeholder: 'Enter your Brandfetch API key',
+    descriptionKey: 'brandAssets',
+    keyLabel: 'Brandfetch',
   },
   {
     id: 'hunter',
     name: 'Hunter',
     icon: HunterIOIcon,
-    description: 'Email finder, verification, and domain search',
-    placeholder: 'Enter your Hunter.io API key',
+    descriptionKey: 'emailFinderDomainSearch',
+    keyLabel: 'Hunter.io',
   },
   {
     id: 'peopledatalabs',
     name: 'People Data Labs',
     icon: PeopleDataLabsIcon,
-    description: 'Person and company enrichment, search, and identity',
-    placeholder: 'Enter your People Data Labs API key',
+    descriptionKey: 'personCompanyIdentity',
+    keyLabel: 'People Data Labs',
   },
   {
     id: 'findymail',
     name: 'Findymail',
     icon: FindymailIcon,
-    description: 'Email finder, verification, and phone lookup',
-    placeholder: 'Enter your Findymail API key',
+    descriptionKey: 'emailFinderPhoneLookup',
+    keyLabel: 'Findymail',
   },
   {
     id: 'prospeo',
     name: 'Prospeo',
     icon: ProspeoIcon,
-    description: 'Person and company enrichment and search',
-    placeholder: 'Enter your Prospeo API key',
+    descriptionKey: 'personCompanySearch',
+    keyLabel: 'Prospeo',
   },
   {
     id: 'wiza',
     name: 'Wiza',
     icon: WizaIcon,
-    description: 'Prospect search, individual reveal, and company enrichment',
-    placeholder: 'Enter your Wiza API key',
+    descriptionKey: 'prospectSearch',
+    keyLabel: 'Wiza',
   },
   {
     id: 'datagma',
     name: 'Datagma',
     icon: DatagmaIcon,
-    description: 'Email, phone, person, and company enrichment',
-    placeholder: 'Enter your Datagma API key',
+    descriptionKey: 'emailPhoneEnrichment',
+    keyLabel: 'Datagma',
   },
   {
     id: 'dropcontact',
     name: 'Dropcontact',
     icon: DropcontactIcon,
-    description: 'GDPR-compliant contact enrichment and email finding',
-    placeholder: 'Enter your Dropcontact API key',
+    descriptionKey: 'gdprContactEnrichment',
+    keyLabel: 'Dropcontact',
   },
   {
     id: 'leadmagic',
     name: 'LeadMagic',
     icon: LeadMagicIcon,
-    description: 'Email finding, validation, and B2B profile enrichment',
-    placeholder: 'Enter your LeadMagic API key',
+    descriptionKey: 'emailB2bEnrichment',
+    keyLabel: 'LeadMagic',
   },
   {
     id: 'icypeas',
     name: 'Icypeas',
     icon: IcypeasIcon,
-    description: 'Email finding and verification',
-    placeholder: 'Enter your Icypeas API key',
+    descriptionKey: 'emailFindingVerification',
+    keyLabel: 'Icypeas',
   },
   {
     id: 'enrow',
     name: 'Enrow',
     icon: EnrowIcon,
-    description: 'Email finding and verification',
-    placeholder: 'Enter your Enrow API key',
+    descriptionKey: 'emailFindingVerification',
+    keyLabel: 'Enrow',
   },
   {
     id: 'zerobounce',
     name: 'ZeroBounce',
     icon: ZeroBounceIcon,
-    description: 'Real-time email validation and deliverability checks',
-    placeholder: 'Enter your ZeroBounce API key',
+    descriptionKey: 'realtimeValidationDeliverability',
+    keyLabel: 'ZeroBounce',
   },
   {
     id: 'neverbounce',
     name: 'NeverBounce',
     icon: NeverBounceIcon,
-    description: 'Real-time email verification and list cleaning',
-    placeholder: 'Enter your NeverBounce API key',
+    descriptionKey: 'realtimeVerificationListCleaning',
+    keyLabel: 'NeverBounce',
   },
   {
     id: 'millionverifier',
     name: 'MillionVerifier',
     icon: MillionVerifierIcon,
-    description: 'Real-time email verification and deliverability checks',
-    placeholder: 'Enter your MillionVerifier API key',
+    descriptionKey: 'realtimeVerificationDeliverability',
+    keyLabel: 'MillionVerifier',
   },
 ]
 
@@ -364,9 +373,9 @@ const PROVIDERS: (BYOKManagerProvider & { id: BYOKProviderId })[] = [
  * {@link PROVIDERS} belongs to exactly one section; rows keep their
  * {@link PROVIDERS} order within each group.
  */
-const PROVIDER_SECTIONS: BYOKProviderSection[] = [
+const PROVIDER_SECTIONS: { labelKey: string; ids: BYOKProviderId[] }[] = [
   {
-    label: 'Models',
+    labelKey: 'models',
     ids: [
       'openai',
       'anthropic',
@@ -387,7 +396,7 @@ const PROVIDER_SECTIONS: BYOKProviderSection[] = [
     ],
   },
   {
-    label: 'Search & web',
+    labelKey: 'searchWeb',
     ids: [
       'firecrawl',
       'exa',
@@ -402,7 +411,7 @@ const PROVIDER_SECTIONS: BYOKProviderSection[] = [
     ],
   },
   {
-    label: 'Enrichment',
+    labelKey: 'enrichment',
     ids: [
       'brandfetch',
       'hunter',
@@ -423,6 +432,7 @@ const PROVIDER_SECTIONS: BYOKProviderSection[] = [
 ]
 
 export function BYOK() {
+  const t = useTranslations('settings.byok')
   const params = useParams()
   const workspaceId = (params?.workspaceId as string) || ''
   const hostContext = useWorkspaceHostContext()
@@ -493,36 +503,71 @@ export function BYOK() {
     return grouped
   }, [activeKeys])
 
+  const translatedProviders = useMemo(
+    () =>
+      PROVIDERS.map(
+        ({
+          descriptionKey,
+          placeholder,
+          keyLabel,
+          ...provider
+        }): BYOKManagerProvider & {
+          id: BYOKProviderId
+        } => ({
+          ...provider,
+          description: t(`descriptions.${descriptionKey}`),
+          placeholder:
+            placeholder ??
+            (keyLabel
+              ? t('placeholders.providerApiKey', { provider: keyLabel })
+              : t('placeholders.apiKey')),
+        })
+      ),
+    [t]
+  )
+
+  const sections = useMemo<BYOKProviderSection[]>(
+    () => PROVIDER_SECTIONS.map(({ labelKey, ids }) => ({ label: t(`sections.${labelKey}`), ids })),
+    [t]
+  )
+
   const providers = useMemo(() => {
-    if (isOrganizationScope || inheritedStatus.isError) return PROVIDERS
+    if (isOrganizationScope || inheritedStatus.isError) return translatedProviders
 
     const inheritedProviderIds = new Set(inheritedStatus.data?.inheritedProviderIds ?? [])
-    if (inheritedProviderIds.size === 0) return PROVIDERS
+    if (inheritedProviderIds.size === 0) return translatedProviders
 
-    return PROVIDERS.map((provider) =>
+    return translatedProviders.map((provider) =>
       inheritedProviderIds.has(provider.id)
-        ? { ...provider, badge: <ChipTag variant='gray'>Inherited from organization</ChipTag> }
+        ? {
+            ...provider,
+            badge: <ChipTag variant='gray'>{t('inheritedFromOrganization')}</ChipTag>,
+          }
         : provider
     )
-  }, [inheritedStatus.data?.inheritedProviderIds, inheritedStatus.isError, isOrganizationScope])
+  }, [
+    inheritedStatus.data?.inheritedProviderIds,
+    inheritedStatus.isError,
+    isOrganizationScope,
+    translatedProviders,
+    t,
+  ])
 
   const description = isOrganizationScope
     ? organizationKeys.data?.entitled === false
-      ? 'Organization keys apply to all current and future workspaces unless a workspace adds its own key. An active organization plan is required to add or update them; existing keys can still be deleted.'
-      : 'Organization keys apply to all current and future workspaces unless a workspace adds its own key.'
+      ? t('organizationDescriptionNotEntitled')
+      : t('organizationDescription')
     : inheritedStatus.isError
-      ? 'Inherited key status unavailable. Refresh to try again.'
+      ? t('inheritedStatusUnavailable')
       : undefined
 
-  const keyUsageDescription = isOrganizationScope
-    ? 'This key is available to executions in every current and future workspace attached to this organization unless the workspace has its own key for this provider. Create PR, Update PR, and Plan may pass it into the untrusted Pi sandbox; Pi search still requires an explicit block key. Your key is encrypted and stored securely.'
-    : undefined
+  const keyUsageDescription = isOrganizationScope ? t('organizationKeyUsage') : undefined
 
   const lastKeyDeleteMessage = isOrganizationScope
-    ? 'Workspaces without their own key will use their next available configured key source.'
+    ? t('lastKeyDelete.organization')
     : hostOrganizationId
-      ? 'This workspace will inherit an organization key when available, or use its next available configured key source.'
-      : 'This workspace will use its next available configured key source.'
+      ? t('lastKeyDelete.workspaceWithOrganization')
+      : t('lastKeyDelete.workspace')
 
   return (
     <SettingsPanel
@@ -531,14 +576,14 @@ export function BYOK() {
           ? [
               {
                 id: 'byok-scope-workspace',
-                text: 'Workspace',
+                text: t('scopeWorkspace'),
                 active: effectiveScope === 'workspace',
                 onSelect: () => void setRequestedScope('workspace'),
                 disabled: isMutating,
               },
               {
                 id: 'byok-scope-organization',
-                text: 'Organization',
+                text: t('scopeOrganization'),
                 active: effectiveScope === 'organization',
                 onSelect: () => void setRequestedScope('organization'),
                 disabled: isMutating,
@@ -548,15 +593,13 @@ export function BYOK() {
       }
     >
       {keysError && activeQueryData === undefined ? (
-        <SettingsEmptyState>
-          {getErrorMessage(keysError, 'Failed to load provider keys')}
-        </SettingsEmptyState>
+        <SettingsEmptyState>{getErrorMessage(keysError, t('loadFailed'))}</SettingsEmptyState>
       ) : (
         <BYOKKeyManager
           key={`${workspaceId}:${effectiveScope}:${hostOrganizationId ?? 'none'}`}
           multiKey
           providers={providers}
-          sections={PROVIDER_SECTIONS}
+          sections={sections}
           keysByProvider={keysByProvider}
           maxKeysPerProvider={MAX_BYOK_KEYS_PER_PROVIDER}
           isLoading={isLoading}
@@ -564,7 +607,9 @@ export function BYOK() {
           isDeleting={isDeleting}
           capabilities={capabilities}
           description={description}
-          scopeLabel={isOrganizationScope ? 'this organization' : 'this workspace'}
+          scopeLabel={
+            isOrganizationScope ? t('scopeLabel.organization') : t('scopeLabel.workspace')
+          }
           keyUsageDescription={keyUsageDescription}
           lastKeyDeleteMessage={lastKeyDeleteMessage}
           searchTerm={searchTerm}

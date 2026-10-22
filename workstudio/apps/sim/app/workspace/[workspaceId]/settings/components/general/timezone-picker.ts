@@ -9,11 +9,18 @@ interface TimezonePickerPresentation {
   options: ComboboxOption[]
 }
 
+interface TimezonePickerLabels {
+  auto: (timezone: string) => string
+  invalid: (timezone: string) => string
+  empty: string
+}
+
 /** Builds the picker state without making an unset browser fallback look persisted. */
 export function getTimezonePickerPresentation(
   savedTimezone: string | null,
   browserTimezone: string,
-  timezoneOptions: readonly ComboboxOption[]
+  timezoneOptions: readonly ComboboxOption[],
+  labels: TimezonePickerLabels
 ): TimezonePickerPresentation {
   const hasInvalidTimezone = savedTimezone !== null && !isValidTimezone(savedTimezone)
   const unlistedTimezone =
@@ -33,11 +40,11 @@ export function getTimezonePickerPresentation(
       ? INVALID_TIMEZONE_OPTION_VALUE
       : (savedTimezone ?? AUTO_TIMEZONE_OPTION_VALUE),
     options: [
-      { label: `Auto: ${browserTimezoneLabel}`, value: AUTO_TIMEZONE_OPTION_VALUE },
+      { label: labels.auto(browserTimezoneLabel), value: AUTO_TIMEZONE_OPTION_VALUE },
       ...(hasInvalidTimezone
         ? [
             {
-              label: `Invalid: ${safeInvalidTimezone || '(empty)'}`,
+              label: labels.invalid(safeInvalidTimezone || labels.empty),
               value: INVALID_TIMEZONE_OPTION_VALUE,
               disabled: true,
             },

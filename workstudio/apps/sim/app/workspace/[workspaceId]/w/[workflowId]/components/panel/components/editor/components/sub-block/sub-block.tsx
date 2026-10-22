@@ -9,6 +9,7 @@ import {
   TriangleAlert,
 } from '@sim/emcn/icons'
 import { isEqual } from 'es-toolkit'
+import { useTranslations } from 'next-intl'
 import type { FilterRule, SortRule } from '@/lib/table/query-builder/constants'
 import type { FallbackModelEntry } from '@/lib/workflows/blocks/fallback-models'
 import { buildSubBlockValues } from '@/lib/workflows/subblocks/visibility'
@@ -199,6 +200,7 @@ const getPreviewValue = (
 /**
  * Renders the label with optional validation and description tooltips.
  *
+ * @param t - Translator scoped to `editor.subBlock.common`
  * @param config - The sub-block configuration defining the label content
  * @param isValidJson - Whether the JSON content is valid (for code blocks)
  * @param requiredValues - Flat sibling values for evaluating conditional requirements
@@ -210,6 +212,7 @@ const getPreviewValue = (
  * @returns The label JSX element, or `null` for switch types or when no title is defined
  */
 const renderLabel = (
+  t: ReturnType<typeof useTranslations>,
   config: SubBlockConfig,
   isValidJson: boolean,
   requiredValues?: Record<string, any>,
@@ -272,7 +275,7 @@ const renderLabel = (
                 </span>
               </Tooltip.Trigger>
               <Tooltip.Content side='top'>
-                <p>Invalid JSON</p>
+                <p>{t('invalidJson')}</p>
               </Tooltip.Content>
             </Tooltip.Root>
           )}
@@ -285,7 +288,7 @@ const renderLabel = (
                 type='button'
                 onClick={copyState.onCopy}
                 className='-my-1 flex size-5 items-center justify-center'
-                aria-label='Copy value'
+                aria-label={t('copyValue')}
               >
                 {copyState.copied ? (
                   <Check className='size-3 text-green-500' />
@@ -295,7 +298,7 @@ const renderLabel = (
               </button>
             </Tooltip.Trigger>
             <Tooltip.Content side='top'>
-              <p>{copyState.copied ? 'Copied!' : 'Copy'}</p>
+              <p>{copyState.copied ? t('copied') : t('copy')}</p>
             </Tooltip.Content>
           </Tooltip.Root>
         )}
@@ -307,13 +310,13 @@ const renderLabel = (
                 className='-my-1 h-5 py-0 text-xs'
                 onClick={wandState.onSearchClick}
               >
-                Generate
+                {t('generate')}
               </Button>
             ) : (
               <div className='-my-1 flex min-w-[120px] max-w-[280px] flex-1 items-center gap-1'>
                 <Input
                   ref={wandState.searchInputRef}
-                  value={wandState.isStreaming ? 'Generating...' : wandState.searchQuery}
+                  value={wandState.isStreaming ? t('generating') : wandState.searchQuery}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     wandState.onSearchChange(e.target.value)
                   }
@@ -339,10 +342,10 @@ const renderLabel = (
                     'h-5 min-w-[80px] flex-1 text-xs',
                     wandState.isStreaming && 'text-muted-foreground'
                   )}
-                  placeholder='Generate with AI...'
+                  placeholder={t('generateWithAiPlaceholder')}
                 />
                 <Button
-                  aria-label='Generate'
+                  aria-label={t('generate')}
                   variant='primary'
                   disabled={!wandState.searchQuery.trim() || wandState.isStreaming}
                   onMouseDown={(e: React.MouseEvent) => {
@@ -388,8 +391,8 @@ const renderLabel = (
                 disabled={canonicalToggleDisabledResolved}
                 aria-label={
                   canonicalToggle?.mode === 'advanced'
-                    ? 'Switch to selector'
-                    : 'Switch to manual ID'
+                    ? t('switchToSelector')
+                    : t('switchToManualId')
                 }
               >
                 <ArrowLeftRight
@@ -405,8 +408,8 @@ const renderLabel = (
             <Tooltip.Content side='top'>
               <p>
                 {canonicalToggle?.mode === 'advanced'
-                  ? 'Switch to selector'
-                  : 'Switch to manual ID'}
+                  ? t('switchToSelector')
+                  : t('switchToManualId')}
               </p>
             </Tooltip.Content>
           </Tooltip.Root>
@@ -475,6 +478,7 @@ function SubBlockComponent({
   labelSuffix,
   dependencyContext,
 }: SubBlockProps): JSX.Element {
+  const t = useTranslations('editor.subBlock.common')
   const { workspaceId } = useWorkflowScope()
 
   const [isValidJson, setIsValidJson] = useState(true)
@@ -543,18 +547,19 @@ function SubBlockComponent({
       return {
         show: true,
         onClick: handleNavigateToTable,
-        tooltip: 'View table',
+        tooltip: t('viewTable'),
       }
     }
     if (config.type === 'knowledge-base-selector' && hasSelectedKnowledgeBase) {
       return {
         show: true,
         onClick: handleNavigateToKnowledgeBase,
-        tooltip: 'View knowledge base',
+        tooltip: t('viewKnowledgeBase'),
       }
     }
     return undefined
   }, [
+    t,
     config.type,
     hasSelectedTable,
     handleNavigateToTable,
@@ -1254,6 +1259,7 @@ function SubBlockComponent({
       className='subblock-content flex flex-col gap-2.5'
     >
       {renderLabel(
+        t,
         config,
         isValidJson,
         requiredValues,

@@ -6,6 +6,7 @@ import {
   type SlashCommandContext,
   type SlashCommandItem,
   type SlashCommandStorage,
+  type SlashCommandTitles,
 } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/slash-command/commands'
 import { SlashCommandList } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/slash-command/slash-command-list'
 import { SLASH_COMMAND_PLUGIN_KEY } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/suggestion-plugin-keys'
@@ -22,8 +23,17 @@ declare module '@tiptap/core' {
  * command appears only where image upload is wired (the file viewer); modal field editors never set
  * `insertImage`, so it stays hidden there.
  */
-export const SlashCommand = Extension.create<Record<string, never>, SlashCommandStorage>({
+interface SlashCommandOptions {
+  /** Localized titles the `/` query also matches (the menu renders its own translations). */
+  titles: SlashCommandTitles
+}
+
+export const SlashCommand = Extension.create<SlashCommandOptions, SlashCommandStorage>({
   name: 'slashCommand',
+
+  addOptions() {
+    return { titles: {} }
+  },
 
   addStorage() {
     return { insertImage: null }
@@ -53,6 +63,7 @@ export const SlashCommand = Extension.create<Record<string, never>, SlashCommand
         items: ({ editor, query }) =>
           filterSlashCommands(query, {
             allowImages: editor.storage.slashCommand.insertImage != null,
+            titles: this.options.titles,
           }),
         command: ({ editor, range, props }) => {
           const ctx: SlashCommandContext = { editor, range }

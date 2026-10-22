@@ -60,7 +60,7 @@ export interface UseTableReturn {
    * read from this rather than the hook's `hasNextPage`, which only updates on
    * the next React render.
    */
-  fetchNextPage: () => Promise<FetchNextPageResult>
+  fetchNextPage: () => Promise<FetchNextPageResult> // i18n-ignore: type syntax, not text
   hasNextPage: boolean
   isFetchingNextPage: boolean
   workflows: WorkflowMetadata[] | undefined
@@ -74,14 +74,14 @@ export interface UseTableReturn {
    * Safe to read immediately — no React re-render required. Gate bulk ops that
    * need the complete row set behind this.
    */
-  ensureAllRowsLoaded: () => Promise<TableRow[]>
+  ensureAllRowsLoaded: () => Promise<TableRow[]> // i18n-ignore: type syntax, not text
   /**
    * Pages until the cache holds at least `maxRows` rows (or no more pages
    * exist), then returns the first `maxRows` from cache plus whether more
    * remain. Unlike {@link ensureAllRowsLoaded} it stops early, so size-bound
    * ops (clipboard copy) don't drain an entire large table. Filter/sort-aware.
    */
-  ensureRowsLoadedUpTo: (maxRows: number) => Promise<{ rows: TableRow[]; hasMore: boolean }>
+  ensureRowsLoadedUpTo: (maxRows: number) => Promise<{ rows: TableRow[]; hasMore: boolean }> // i18n-ignore: type syntax, not text
 }
 
 /**

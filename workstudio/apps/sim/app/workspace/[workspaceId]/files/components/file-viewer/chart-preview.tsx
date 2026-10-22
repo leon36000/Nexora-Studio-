@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { cn } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
+import { useTranslations } from 'next-intl'
 import { EChartsView } from '@/components/charts/echarts-view'
 import { buildChartRenderOption, horizontalBarChartHeight } from '@/lib/charts/option'
 import {
@@ -26,6 +27,7 @@ interface ChartPreviewProps {
 
 /** Existing chart documents retain their source semantics and share the dashboard canvas theme. */
 export function ChartPreview({ content, workspaceId, isStreaming = false }: ChartPreviewProps) {
+  const t = useTranslations('files.chart')
   const { spec, error: parseError } = useMemo(() => parseChartSpec(content), [content])
   const tableSource = spec?.source?.type === 'table' ? spec.source : null
   const rowsQuery = useTableRowsSample({
@@ -51,7 +53,7 @@ export function ChartPreview({ content, workspaceId, isStreaming = false }: Char
   const error =
     parseError ??
     (tableSource && (rowsQuery.isError || tableQuery.isError)
-      ? getErrorMessage(rowsQuery.error ?? tableQuery.error, 'Failed to read table')
+      ? getErrorMessage(rowsQuery.error ?? tableQuery.error, t('readTableFailed'))
       : null)
   if (error)
     return (
@@ -84,7 +86,7 @@ export function ChartPreview({ content, workspaceId, isStreaming = false }: Char
       >
         <EChartsView
           className='h-full'
-          label={spec.title ?? 'Chart'}
+          label={spec.title ?? t('defaultLabel')}
           option={buildChartRenderOption({ title: spec.title, option: spec.option, rows })}
         />
       </div>

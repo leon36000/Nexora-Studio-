@@ -17,6 +17,7 @@ import {
 } from '@sim/emcn'
 import { MoreHorizontal, Pencil, Pin, Plus, SquareArrowUpRight } from '@sim/emcn/icons'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { ConversationListItem } from '@/app/workspace/[workspaceId]/components/conversation-list-item'
 import type { FlyoutEntry } from '@/app/workspace/[workspaceId]/components/folders'
 import { ChatNavigationLink } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/chat-navigation-link/chat-navigation-link'
@@ -80,8 +81,13 @@ export function CollapsedResourceFlyout({
  * is an action on the row's own menu, not something a jump list offers.
  */
 function PinnedGlyph() {
+  const t = useTranslations('shell.collapsedMenu')
   return (
-    <Pin className='size-[12px] shrink-0 text-[var(--text-icon)]' role='img' aria-label='Pinned' />
+    <Pin
+      className='size-[12px] shrink-0 text-[var(--text-icon)]'
+      role='img'
+      aria-label={t('pinned')}
+    />
   )
 }
 
@@ -300,13 +306,14 @@ export function CollapsedChatFlyoutItem({
   onMorePointerDown,
   onMoreClick,
 }: CollapsedChatFlyoutItemProps) {
+  const t = useTranslations('shell.collapsedMenu')
   const showActions = chat.id !== 'new' && onMoreClick
 
   if (isEditing) {
     return (
       <div className={EDIT_ROW_CLASS}>
         <input
-          aria-label={`Rename chat ${chat.name}`}
+          aria-label={t('renameChat', { name: chat.name })}
           ref={inputRef}
           value={editValue ?? chat.name}
           onChange={(e) => onEditValueChange?.(e.target.value)}
@@ -339,7 +346,7 @@ export function CollapsedChatFlyoutItem({
       action={
         showActions ? (
           <DropdownMenuItemAction
-            aria-label='Chat options'
+            aria-label={t('chatOptions')}
             onPointerDown={onMorePointerDown}
             onClick={(e) => onMoreClick?.(e, chat.id)}
           >
@@ -382,6 +389,7 @@ export function CollapsedWorkflowFlyoutItem({
   onRename,
   canRename = true,
 }: CollapsedWorkflowFlyoutItemProps) {
+  const t = useTranslations('shell.collapsedMenu')
   const hasActions = !!onOpenInNewTab || !!onRename
   const [actionsOpen, setActionsOpen] = useState(false)
 
@@ -389,7 +397,7 @@ export function CollapsedWorkflowFlyoutItem({
     return (
       <div className={EDIT_ROW_CLASS}>
         <input
-          aria-label={`Rename workflow ${workflow.name}`}
+          aria-label={t('renameWorkflow', { name: workflow.name })}
           ref={inputRef}
           value={editValue ?? workflow.name}
           onChange={(e) => onEditValueChange?.(e.target.value)}
@@ -431,7 +439,7 @@ export function CollapsedWorkflowFlyoutItem({
           >
             <DropdownMenuSubTrigger asChild>
               <DropdownMenuItemAction
-                aria-label='Workflow options'
+                aria-label={t('workflowOptions')}
                 onClick={() => setActionsOpen((prev) => !prev)}
               >
                 <MoreHorizontal />
@@ -441,7 +449,7 @@ export function CollapsedWorkflowFlyoutItem({
               {onOpenInNewTab && (
                 <DropdownMenuItem onSelect={onOpenInNewTab}>
                   <SquareArrowUpRight className='size-[14px]' />
-                  Open in new tab
+                  {t('openInNewTab')}
                 </DropdownMenuItem>
               )}
               {onRename && (
@@ -454,7 +462,7 @@ export function CollapsedWorkflowFlyoutItem({
                   }}
                 >
                   <Pencil className='size-[14px]' />
-                  Rename
+                  {t('rename')}
                 </DropdownMenuItem>
               )}
             </DropdownMenuSubContent>

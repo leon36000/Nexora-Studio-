@@ -112,7 +112,9 @@ async function addPeerSibling(sameSource = true): Promise<number> {
   peer.commands.insertContentAt(position + 1, {
     type: 'image',
     attrs: {
-      src: sameSource ? 'https://workstudio.example.com/image.png' : 'https://workstudio.example.com/second.png',
+      src: sameSource
+        ? 'https://workstudio.example.com/image.png'
+        : 'https://workstudio.example.com/second.png',
       alt: 'Peer image',
       title: 'Sibling identity',
       width: '400',
@@ -313,7 +315,12 @@ describe('image resizing during real peer Yjs updates', () => {
       const originalImage = localDoc.getXmlFragment('default').get(1)
       const replacement = identicalAttributes
         ? { ...imageAttributes(peer) }
-        : { src: 'https://workstudio.example.com/replacement.png', alt: 'Replacement', width: '400', height: '300' }
+        : {
+            src: 'https://workstudio.example.com/replacement.png',
+            alt: 'Replacement',
+            width: '400',
+            height: '300',
+          }
       beginResize()
       const position = imagePosition(peer)
       peer.commands.deleteRange({ from: position, to: position + 1 })

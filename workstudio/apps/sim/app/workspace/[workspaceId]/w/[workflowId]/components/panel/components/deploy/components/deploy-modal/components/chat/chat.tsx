@@ -19,6 +19,7 @@ import {
 import { Check, TriangleAlert } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { GeneratedPasswordInput } from '@/components/ui'
 import { buildChatDeploymentUrl } from '@/lib/chat-deployments/urls'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
@@ -37,8 +38,8 @@ import type { ChatDetail } from '@/hooks/queries/deployments'
 import { usePermissionConfig } from '@/hooks/use-permission-config'
 import { useIdentifierValidation } from './hooks'
 import {
-  getPasswordHelperText,
-  getPasswordPlaceholder,
+  getPasswordHelperTextKey,
+  getPasswordPlaceholderKey,
   hasExistingPassword,
   isPasswordRequired,
   isWhitespaceOnlyPassword,
@@ -53,7 +54,7 @@ interface ChatDeployProps {
   workflowId: string
   existingChat: ExistingChat | null
   isLoadingChat: boolean
-  onRefetchChat: () => Promise<void>
+  onRefetchChat: () => Promise<void> // i18n-ignore: type signature
   chatSubmitting: boolean
   setChatSubmitting: (submitting: boolean) => void
   canRevealPassword: boolean
@@ -76,14 +77,13 @@ interface FormErrors {
   general?: string
 }
 
-const initialFormData: ChatFormData = {
+const INITIAL_FORM_DATA: Omit<ChatFormData, 'welcomeMessage'> = {
   identifier: '',
   title: '',
   description: '',
   authType: 'public',
   password: '',
   emails: [],
-  welcomeMessage: 'Hi there! How can I help you today?',
   selectedOutputBlocks: [],
   includeThinking: false,
   includeToolCalls: false,
@@ -104,6 +104,7 @@ export function ChatDeploy({
   onDeployed,
   onVersionActivated,
 }: ChatDeployProps) {
+  const t = useTranslations('editor.deploy.chat')
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [internalShowDeleteConfirmation, setInternalShowDeleteConfirmation] = useState(false)
   const [showPasswordChangeConfirmation, setShowPasswordChangeConfirmation] = useState(false)
@@ -116,7 +117,10 @@ export function ChatDeploy({
   const setShowDeleteConfirmation =
     externalSetShowDeleteConfirmation || setInternalShowDeleteConfirmation
 
-  const [formData, setFormData] = useState<ChatFormData>(initialFormData)
+  const [formData, setFormData] = useState<ChatFormData>(() => ({
+    ...INITIAL_FORM_DATA,
+    welcomeMessage: t('defaultWelcomeMessage'),
+  }))
   const [errors, setErrors] = useState<FormErrors>({})
   const formRef = useRef<HTMLFormElement>(null)
   const [formInitCounter, setFormInitCounter] = useState(0)
@@ -143,30 +147,31 @@ export function ChatDeploy({
     const newErrors: FormErrors = {}
 
     if (!formData.identifier.trim()) {
-      newErrors.identifier = 'Identifier is required'
+      newErrors.identifier = t('errors.identifierRequired')
     } else if (!IDENTIFIER_PATTERN.test(formData.identifier)) {
-      newErrors.identifier = 'Identifier can only contain lowercase letters, numbers, and hyphens'
+      newErrors.identifier = t('identifier.invalidPattern')
     }
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required'
+      newErrors.title = t('errors.titleRequired')
     }
 
     if (isPasswordRequired(formData.authType, formData.password, existingPassword)) {
-      newErrors.password = 'Password is required when using password protection'
+      newErrors.password = t('errors.passwordRequired')
     } else if (formData.authType === 'password' && isWhitespaceOnlyPassword(formData.password)) {
-      newErrors.password = 'Password cannot contain only whitespace'
+      newErrors.password = t('errors.passwordWhitespace')
     }
 
     if (
       (formData.authType === 'email' || formData.authType === 'sso') &&
       formData.emails.length === 0
     ) {
-      newErrors.emails = `At least one email or domain is required when using ${formData.authType === 'sso' ? 'SSO' : 'email'} access control`
+      newErrors.emails =
+        formData.authType === 'sso' ? t('errors.emailsRequiredSso') : t('errors.emailsRequired')
     }
 
     if (formData.selectedOutputBlocks.length === 0) {
-      newErrors.outputBlocks = 'Please select at least one output block'
+      newErrors.outputBlocks = t('errors.outputRequired')
     }
 
     setErrors(newErrors)
@@ -194,8 +199,7 @@ export function ChatDeploy({
         authType: existingChat.authType || 'public',
         password: '',
         emails: Array.isArray(existingChat.allowedEmails) ? [...existingChat.allowedEmails] : [],
-        welcomeMessage:
-          existingChat.customizations?.welcomeMessage || 'Hi there! How can I help you today?',
+        welcomeMessage: existingChat.customizations?.welcomeMessage || t('defaultWelcomeMessage'),
         selectedOutputBlocks: Array.isArray(existingChat.outputConfigs)
           ? existingChat.outputConfigs.map(
               (config: { workflowId?: string; blockId: string; path: string }) =>
@@ -212,11 +216,11 @@ export function ChatDeploy({
 
       hasInitializedFormRef.current = true
     } else if (!existingChat && !isLoadingChat) {
-      setFormData(initialFormData)
+      setFormData({ ...INITIAL_FORM_DATA, welcomeMessage: t('defaultWelcomeMessage') })
       setImageUrl(null)
       hasInitializedFormRef.current = false
     }
-  }, [existingChat, isLoadingChat])
+  }, [existingChat, isLoadingChat, t])
 
   const submitChat = async (passwordChangeConfirmed = false) => {
     if (chatSubmitting) return
@@ -235,7 +239,7 @@ export function ChatDeploy({
 
       if (!isIdentifierValid && formData.identifier !== existingChat?.identifier) {
         newTab?.close()
-        setError('identifier', 'Please wait for identifier validation to complete')
+        setError('identifier', t('errors.identifierPending'))
         return
       }
 
@@ -314,7 +318,7 @@ export function ChatDeploy({
       onDeploymentComplete?.()
     } catch (error: unknown) {
       logger.error('Failed to delete chat:', error)
-      setError('general', getErrorMessage(error) || 'An unexpected error occurred while deleting')
+      setError('general', getErrorMessage(error) || t('errors.deleteFailed'))
     } finally {
       setShowDeleteConfirmation(false)
     }
@@ -356,11 +360,11 @@ export function ChatDeploy({
 
           <div>
             <Label htmlFor='title' className='mb-[6.5px] block pl-0.5 text-small'>
-              Title
+              {t('title')}
             </Label>
             <ChipInput
               id='title'
-              placeholder='Customer Support Assistant'
+              placeholder={t('titlePlaceholder')}
               value={formData.title}
               onChange={(e) => updateField('title', e.target.value)}
               required
@@ -372,12 +376,12 @@ export function ChatDeploy({
           </div>
 
           <div>
-            <Label className='mb-[6.5px] block pl-0.5 text-small'>Output</Label>
+            <Label className='mb-[6.5px] block pl-0.5 text-small'>{t('output')}</Label>
             <OutputSelect
               workflowId={workflowId}
               selectedOutputs={formData.selectedOutputBlocks}
               onOutputSelect={(values) => updateField('selectedOutputBlocks', values)}
-              placeholder='Select which block outputs to use'
+              placeholder={t('outputPlaceholder')}
               disabled={chatSubmitting}
               size='md'
               variant='chip'
@@ -393,25 +397,25 @@ export function ChatDeploy({
 
           <div className='flex items-center justify-between gap-3'>
             <div className='min-w-0'>
-              <Label className='block pl-0.5 text-small'>Include thinking</Label>
+              <Label className='block pl-0.5 text-small'>{t('includeThinking')}</Label>
             </div>
             <Switch
               checked={formData.includeThinking}
               disabled={chatSubmitting}
               onCheckedChange={(checked) => updateField('includeThinking', checked)}
-              aria-label='Include thinking'
+              aria-label={t('includeThinking')}
             />
           </div>
 
           <div className='flex items-center justify-between gap-3'>
             <div className='min-w-0'>
-              <Label className='block pl-0.5 text-small'>Include tool calls</Label>
+              <Label className='block pl-0.5 text-small'>{t('includeToolCalls')}</Label>
             </div>
             <Switch
               checked={formData.includeToolCalls}
               disabled={chatSubmitting}
               onCheckedChange={(checked) => updateField('includeToolCalls', checked)}
-              aria-label='Include tool calls'
+              aria-label={t('includeToolCalls')}
             />
           </div>
 
@@ -432,11 +436,11 @@ export function ChatDeploy({
           />
           <div>
             <Label htmlFor='welcomeMessage' className='mb-[6.5px] block pl-0.5 text-small'>
-              Welcome message
+              {t('welcomeMessage')}
             </Label>
             <Textarea
               id='welcomeMessage'
-              placeholder='Enter a welcome message for your chat'
+              placeholder={t('welcomeMessagePlaceholder')}
               value={formData.welcomeMessage}
               onChange={(e) => updateField('welcomeMessage', e.target.value)}
               rows={3}
@@ -444,7 +448,7 @@ export function ChatDeploy({
               className='min-h-[80px] resize-none'
             />
             <p className='mt-[6.5px] text-[var(--text-secondary)] text-xs'>
-              This message will be displayed when users first open the chat
+              {t('welcomeMessageHint')}
             </p>
           </div>
 
@@ -460,38 +464,43 @@ export function ChatDeploy({
       <ChipConfirmModal
         open={showPasswordChangeConfirmation}
         onOpenChange={setShowPasswordChangeConfirmation}
-        srTitle='Change deployment password'
-        title='Change deployment password?'
-        text='Are you sure you want to change the password for this deployment?'
+        srTitle={t('passwordChange.srTitle')}
+        title={t('passwordChange.title')}
+        text={t('passwordChange.text')}
         confirm={{
-          label: 'Change Password and Redeploy',
+          label: t('passwordChange.confirm'),
           onClick: handleConfirmPasswordChange,
           variant: 'primary',
           pending: chatSubmitting,
-          pendingLabel: 'Updating...',
+          pendingLabel: t('passwordChange.pending'),
         }}
       />
 
       <ChipConfirmModal
         open={showDeleteConfirmation}
         onOpenChange={setShowDeleteConfirmation}
-        srTitle='Delete Chat'
-        title='Delete Chat'
+        srTitle={t('deleteConfirm.title')}
+        title={t('deleteConfirm.title')}
         text={[
-          'Are you sure you want to delete ',
-          { text: existingChat?.title || 'this chat', bold: true },
-          '? ',
+          t('deleteConfirm.prefix'),
+          { text: existingChat?.title || t('deleteConfirm.fallbackName'), bold: true },
+          t('deleteConfirm.suffix'),
           {
-            text: `This will remove the chat at "${buildChatDeploymentUrl(existingChat?.identifier ?? '').replace(/^https?:\/\//, '')}" and make it unavailable to all users.`,
+            text: t('deleteConfirm.warning', {
+              url: buildChatDeploymentUrl(existingChat?.identifier ?? '').replace(
+                /^https?:\/\//,
+                ''
+              ),
+            }),
             error: true,
           },
-          ' This action cannot be undone.',
+          t('deleteConfirm.irreversible'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('deleteConfirm.confirm'),
           onClick: handleDelete,
           pending: deleteChatMutation.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleteConfirm.pending'),
         }}
       />
     </>
@@ -551,6 +560,7 @@ function IdentifierInput({
   onValidationChange,
   isEditingExisting = false,
 }: IdentifierInputProps) {
+  const t = useTranslations('editor.deploy.chat.identifier')
   const { isChecking, error, isValid } = useIdentifierValidation(
     value,
     originalIdentifier,
@@ -611,7 +621,7 @@ function IdentifierInput({
                   </div>
                 </Tooltip.Trigger>
                 <Tooltip.Content>
-                  <span>Name is available</span>
+                  <span>{t('available')}</span>
                 </Tooltip.Content>
               </Tooltip.Root>
             )
@@ -622,7 +632,7 @@ function IdentifierInput({
       <p className='mt-[6.5px] truncate text-[var(--text-secondary)] text-xs'>
         {isEditingExisting && value ? (
           <>
-            Live at:{' '}
+            {t('liveAt')}{' '}
             <a
               href={fullUrl}
               target='_blank'
@@ -633,7 +643,7 @@ function IdentifierInput({
             </a>
           </>
         ) : (
-          'The unique URL path where your chat will be accessible'
+          t('hint')
         )}
       </p>
     </div>
@@ -656,13 +666,6 @@ interface AuthSelectorProps {
   error?: string
 }
 
-const AUTH_LABELS: Record<AuthType, string> = {
-  public: 'Public',
-  password: 'Password',
-  email: 'Email',
-  sso: 'SSO',
-}
-
 function AuthSelector({
   chatId,
   canRevealPassword,
@@ -677,6 +680,7 @@ function AuthSelector({
   hasExistingPassword = false,
   error,
 }: AuthSelectorProps) {
+  const t = useTranslations('editor.deploy.chat.auth')
   const revealPasswordMutation = useRevealChatPassword()
   const { features } = useDeploymentShape()
 
@@ -712,7 +716,7 @@ function AuthSelector({
   return (
     <div className='space-y-4'>
       <div>
-        <Label className='mb-[6.5px] block pl-0.5 text-small'>Access control</Label>
+        <Label className='mb-[6.5px] block pl-0.5 text-small'>{t('accessControl')}</Label>
         <ChipButtonGroup
           value={authType}
           onValueChange={(val) => onAuthTypeChange(val as AuthType)}
@@ -720,7 +724,7 @@ function AuthSelector({
         >
           {authOptions.map((type) => (
             <ChipButtonGroupItem key={type} value={type}>
-              {AUTH_LABELS[type]}
+              {t(`types.${type}`)}
             </ChipButtonGroupItem>
           ))}
         </ChipButtonGroup>
@@ -728,12 +732,12 @@ function AuthSelector({
 
       {authType === 'password' && (
         <div>
-          <Label className='mb-[6.5px] block pl-0.5 text-small'>Password</Label>
+          <Label className='mb-[6.5px] block pl-0.5 text-small'>{t('password')}</Label>
           <GeneratedPasswordInput
             value={password}
             onChange={handlePasswordChange}
             disabled={disabled}
-            placeholder={hasExistingPassword ? '' : getPasswordPlaceholder(false)}
+            placeholder={hasExistingPassword ? '' : t(getPasswordPlaceholderKey(false))}
             required={!hasExistingPassword}
             fetchCurrentPassword={
               canRevealPassword && chatId && hasExistingPassword
@@ -742,12 +746,10 @@ function AuthSelector({
             }
           />
           {canRevealPassword && revealPasswordMutation.isError && (
-            <p className='mt-[6.5px] text-[var(--text-error)] text-caption'>
-              Failed to load the current password
-            </p>
+            <p className='mt-[6.5px] text-[var(--text-error)] text-caption'>{t('revealFailed')}</p>
           )}
           <p className='mt-[6.5px] text-[var(--text-secondary)] text-xs'>
-            {getPasswordHelperText(hasExistingPassword)}
+            {t(getPasswordHelperTextKey(hasExistingPassword))}
           </p>
         </div>
       )}
@@ -755,15 +757,15 @@ function AuthSelector({
       {(authType === 'email' || authType === 'sso') && (
         <div>
           <Label className='mb-[6.5px] block pl-0.5 text-small'>
-            {authType === 'email' ? 'Allowed emails' : 'Allowed SSO emails'}
+            {authType === 'email' ? t('allowedEmails') : t('allowedSsoEmails')}
           </Label>
           <ChipEmailsInput
             value={emails}
             onChange={onEmailsChange}
             validate={validateAllowlistEntry}
             allowDomains
-            placeholder='Enter emails or domains'
-            placeholderWithTags='Add email or domain'
+            placeholder={t('emailsPlaceholder')}
+            placeholderWithTags={t('emailsPlaceholderWithTags')}
             disabled={disabled}
           />
         </div>

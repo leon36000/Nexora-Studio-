@@ -3,6 +3,7 @@
 import React from 'react'
 import { Button, Checkbox, cn, handleKeyboardActivation } from '@sim/emcn'
 import { PlayOutline, Square } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { ActiveDispatch } from '@/lib/api/contracts/tables'
 import type { TableRow as TableRowType, WorkflowGroup } from '@/lib/table'
 import { getUnmetGroupDeps } from '@/lib/table/deps'
@@ -89,8 +90,8 @@ function cellRangeRowChanged(
   prev: NormalizedSelection | null,
   next: NormalizedSelection | null
 ): boolean {
-  const pIn = prev !== null && rowIndex >= prev.startRow && rowIndex <= prev.endRow
-  const nIn = next !== null && rowIndex >= next.startRow && rowIndex <= next.endRow
+  const pIn = prev !== null && rowIndex >= prev.startRow && rowIndex <= prev.endRow // i18n-ignore: comparison, not text
+  const nIn = next !== null && rowIndex >= next.startRow && rowIndex <= next.endRow // i18n-ignore: comparison, not text
   const pAnchor = prev !== null && rowIndex === prev.anchorRow
   const nAnchor = next !== null && rowIndex === next.anchorRow
 
@@ -198,6 +199,7 @@ export const DataRow = React.memo(function DataRow({
   lastPinnedColKey,
   findMatchColumns,
 }: DataRowProps) {
+  const t = useTranslations('tables.grid.row')
   const touchedCellRef = React.useRef<{ columnKey: string; selected: boolean } | null>(null)
   const sel = normalizedSelection
   /**
@@ -235,7 +237,7 @@ export const DataRow = React.memo(function DataRow({
    * the column boundary. The strip overlaps the row gridlines (`-top-px` /
    * `-bottom-px`) so consecutive selected rows form one continuous line.
    */
-  const rowInRange = sel !== null && rowIndex >= sel.startRow && rowIndex <= sel.endRow
+  const rowInRange = sel !== null && rowIndex >= sel.startRow && rowIndex <= sel.endRow // i18n-ignore: comparison, not text
   const isLeftEdgeSelected = isRowChecked || (isMultiCell && rowInRange && sel!.startCol === 0)
 
   return (
@@ -257,7 +259,7 @@ export const DataRow = React.memo(function DataRow({
             role='checkbox'
             tabIndex={0}
             aria-checked={isRowSelected}
-            aria-label={`Select row ${rowIndex + 1}`}
+            aria-label={t('select', { number: rowIndex + 1 })}
             className='group/checkbox flex h-[20px] shrink-0 items-center justify-center'
             style={{ width: numRegionWidth }}
             onMouseDown={(e) => {
@@ -290,8 +292,8 @@ export const DataRow = React.memo(function DataRow({
               type='button'
               variant='ghost'
               size='sm'
-              aria-label={runningCount > 0 ? `Stop ${runningCount} running` : 'Run row'}
-              title={runningCount > 0 ? `Stop ${runningCount} running` : 'Run row'}
+              aria-label={runningCount > 0 ? t('stopRunning', { count: runningCount }) : t('run')}
+              title={runningCount > 0 ? t('stopRunning', { count: runningCount }) : t('run')}
               className='size-[20px] shrink-0 p-0 text-[var(--text-primary)] hover-hover:bg-[var(--surface-2)]'
               onClick={() => {
                 if (runningCount > 0) {

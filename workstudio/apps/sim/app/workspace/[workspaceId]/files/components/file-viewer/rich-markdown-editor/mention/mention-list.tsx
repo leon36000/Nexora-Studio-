@@ -1,12 +1,13 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useSyncExternalStore } from 'react'
 import type { Editor } from '@tiptap/core'
+import { useTranslations } from 'next-intl'
 import { SuggestionList } from '../menus/suggestion-list'
 import {
   type SuggestionKeyDownHandler,
   useSuggestionKeyboard,
 } from '../menus/use-suggestion-keyboard'
 import type { MentionStore } from './mention-store'
-import type { MentionItem } from './types'
+import type { MentionGroup, MentionItem } from './types'
 
 export type MentionListHandle = SuggestionKeyDownHandler
 
@@ -31,15 +32,15 @@ const MAX_PER_GROUP = 8
 const MAX_WHEN_FILTERED = 50
 
 /** Category heading order in the menu. */
-const GROUP_ORDER = [
-  'Files',
-  'Folders',
-  'Tables',
-  'Knowledge bases',
-  'Workflows',
-  'Skills',
-  'Integrations',
-] as const
+const GROUP_ORDER: readonly MentionGroup[] = [
+  'files',
+  'folders',
+  'tables',
+  'knowledgeBases',
+  'workflows',
+  'skills',
+  'integrations',
+]
 
 /**
  * The `@` mention popup. Sibling of {@link SlashCommandList} with identical chrome and arrow/enter
@@ -50,6 +51,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(funct
   { query, command, store, editor },
   ref
 ) {
+  const t = useTranslations('files.editor.mentions')
   const rawItems = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -62,7 +64,7 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(funct
    */
   const { flat, groups } = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const byGroup = new Map<string, MentionItem[]>()
+    const byGroup = new Map<MentionGroup, MentionItem[]>()
     let shown = 0
     for (const item of rawItems) {
       if (q && !item.label.toLowerCase().includes(q)) continue
@@ -79,10 +81,13 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(funct
     for (const group of GROUP_ORDER) {
       const inGroup = byGroup.get(group)
       if (!inGroup) continue
-      ordered.push({ group, items: inGroup.map((item) => ({ item, index: flat.push(item) - 1 })) })
+      ordered.push({
+        group: t(`groups.${group}`),
+        items: inGroup.map((item) => ({ item, index: flat.push(item) - 1 })),
+      })
     }
     return { flat, groups: ordered }
-  }, [rawItems, query])
+  }, [rawItems, query, t])
 
   const { activeIndex, setActiveIndex, onKeyDown } = useSuggestionKeyboard(
     flat,
@@ -99,9 +104,9 @@ export const MentionList = forwardRef<MentionListHandle, MentionListProps>(funct
       activeIndex={activeIndex}
       setActiveIndex={setActiveIndex}
       command={command}
-      ariaLabel='Mentions'
+      ariaLabel={t('ariaLabel')}
       idPrefix='mention'
-      emptyLabel={rawItems.length === 0 ? 'Loading…' : 'No results'}
+      emptyLabel={rawItems.length === 0 ? t('loading') : t('noResults')}
       itemKey={(item) => `${item.kind}:${item.id}`}
       renderItem={(item) => {
         const Icon = item.icon

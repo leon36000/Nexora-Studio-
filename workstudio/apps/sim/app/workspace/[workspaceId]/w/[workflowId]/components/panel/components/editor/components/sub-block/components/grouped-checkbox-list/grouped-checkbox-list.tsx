@@ -11,6 +11,7 @@ import {
   cn,
 } from '@sim/emcn'
 import { ManageWorkspace } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import { getWorkflowSearchLabelHighlight } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/workflow-search-highlight'
 import { useSubBlockValue } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/hooks/use-sub-block-value'
@@ -23,13 +24,18 @@ interface SelectedCountDisplayProps {
 }
 
 function SelectedCountDisplay({ noneSelected, allSelected, count }: SelectedCountDisplayProps) {
+  const t = useTranslations('editor.subBlock.groupedCheckboxList')
   if (noneSelected) {
-    return <span className='truncate text-[var(--text-muted)] text-sm'>None selected</span>
+    return <span className='truncate text-[var(--text-muted)] text-sm'>{t('noneSelected')}</span>
   }
   if (allSelected) {
-    return <span className='truncate text-[var(--text-primary)] text-sm'>All selected</span>
+    return <span className='truncate text-[var(--text-primary)] text-sm'>{t('allSelected')}</span>
   }
-  return <span className='truncate text-[var(--text-primary)] text-sm'>{count} selected</span>
+  return (
+    <span className='truncate text-[var(--text-primary)] text-sm'>
+      {t('countSelected', { count })}
+    </span>
+  )
 }
 
 interface GroupedCheckboxListProps {
@@ -49,6 +55,7 @@ export function GroupedCheckboxList({
   subBlockValues,
   disabled = false,
 }: GroupedCheckboxListProps) {
+  const t = useTranslations('editor.subBlock.groupedCheckboxList')
   const activeSearchTarget = useActiveSearchTarget()
   const [open, setOpen] = useState(false)
   const [storeValue, setStoreValue] = useSubBlockValue(blockId, subBlockId)
@@ -61,7 +68,7 @@ export function GroupedCheckboxList({
     const groups: Record<string, { label: string; id: string }[]> = {}
 
     options.forEach((option) => {
-      const groupName = option.group || 'Other'
+      const groupName = option.group || t('otherGroup')
       if (!groups[groupName]) {
         groups[groupName] = []
       }
@@ -69,7 +76,7 @@ export function GroupedCheckboxList({
     })
 
     return groups
-  }, [options])
+  }, [t, options])
 
   const handleToggle = (optionId: string) => {
     if (isPreview || disabled) return
@@ -124,7 +131,7 @@ export function GroupedCheckboxList({
       >
         <span className='flex flex-1 items-center gap-2 truncate text-[var(--text-muted)]'>
           <ManageWorkspace className='size-4 shrink-0 opacity-50' />
-          <span className='truncate'>Configure PII Types</span>
+          <span className='truncate'>{t('configurePiiTypes')}</span>
         </span>
         <SelectedCountDisplay
           noneSelected={noneSelected}
@@ -132,14 +139,10 @@ export function GroupedCheckboxList({
           count={selectedValues.length}
         />
       </Button>
-      <ChipModal open={open} onOpenChange={setOpen} srTitle='Select PII Types to Detect' size='lg'>
-        <ChipModalHeader onClose={() => setOpen(false)}>Select PII Types to Detect</ChipModalHeader>
+      <ChipModal open={open} onOpenChange={setOpen} srTitle={t('selectPiiTypes')} size='lg'>
+        <ChipModalHeader onClose={() => setOpen(false)}>{t('selectPiiTypes')}</ChipModalHeader>
         <ChipModalBody onWheel={(e) => e.stopPropagation()}>
-          <ChipModalField
-            type='custom'
-            title='PII types'
-            hint='Choose which types of personally identifiable information to detect and block.'
-          >
+          <ChipModalField type='custom' title={t('piiTypes')} hint={t('piiTypesHint')}>
             <div className='flex items-center justify-between border-[var(--border)] border-b pb-3'>
               <div className='flex items-center gap-2'>
                 <Checkbox
@@ -158,12 +161,13 @@ export function GroupedCheckboxList({
                   htmlFor='select-all'
                   className='cursor-pointer text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
                 >
-                  Select all entities
+                  {t('selectAllEntities')}
                 </label>
               </div>
               <Button variant='ghost' onClick={handleClear} disabled={disabled || noneSelected}>
                 <span className='flex items-center gap-1'>
-                  Clear{!noneSelected && <span>({selectedValues.length})</span>}
+                  {t('clear')}
+                  {!noneSelected && <span>({selectedValues.length})</span>}
                 </span>
               </Button>
             </div>

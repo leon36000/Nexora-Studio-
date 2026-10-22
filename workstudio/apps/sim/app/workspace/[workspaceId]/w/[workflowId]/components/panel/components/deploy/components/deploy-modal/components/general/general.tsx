@@ -16,6 +16,7 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import type { WorkflowDeploymentVersionResponse } from '@/lib/workflows/persistence/utils'
 import {
   type ComparePair,
@@ -48,7 +49,7 @@ interface GeneralDeployProps {
   versionsLoading: boolean
   isPromotingVersion: boolean
   deployReadiness: DeployReadiness
-  onPromoteToLive: (version: number) => Promise<void>
+  onPromoteToLive: (version: number) => Promise<void> // i18n-ignore: type signature
   onLoadDeploymentComplete: () => void
   onLoadDeploymentBlocked: (message: string) => void
 }
@@ -71,6 +72,7 @@ export function GeneralDeploy({
   onLoadDeploymentComplete,
   onLoadDeploymentBlocked,
 }: GeneralDeployProps) {
+  const t = useTranslations('editor.deploy.general')
   const expandedPreviewDescriptionId = useId()
   const [comparePair, setComparePair] = useState<ComparePair | null>(null)
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null)
@@ -216,7 +218,7 @@ export function GeneralDeploy({
             <Label className='block truncate pl-0.5 text-small'>
               {previewMode === 'selected' && selectedVersionInfo
                 ? formatVersionLabel(selectedVersionInfo.version, selectedVersionInfo.name)
-                : 'Live Workflow'}
+                : t('liveWorkflow')}
             </Label>
             <div className={cn('absolute top-[-5px] right-0', !showToggle && 'invisible')}>
               <ChipButtonGroup
@@ -225,7 +227,7 @@ export function GeneralDeploy({
                   setShowActiveDespiteSelection((val as PreviewMode) === 'active')
                 }
               >
-                <ChipButtonGroupItem value='active'>Live</ChipButtonGroupItem>
+                <ChipButtonGroupItem value='active'>{t('live')}</ChipButtonGroupItem>
                 <ChipButtonGroupItem value='selected' className='truncate'>
                   {selectedVersionInfo
                     ? formatVersionLabel(selectedVersionInfo.version, selectedVersionInfo.name)
@@ -257,7 +259,7 @@ export function GeneralDeploy({
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <Button
-                      aria-label='See preview'
+                      aria-label={t('seePreview')}
                       type='button'
                       variant='default'
                       onClick={() => setShowExpandedPreview(true)}
@@ -266,19 +268,19 @@ export function GeneralDeploy({
                       <Expand className='size-[14px]' />
                     </Button>
                   </Tooltip.Trigger>
-                  <Tooltip.Content side='top'>See preview</Tooltip.Content>
+                  <Tooltip.Content side='top'>{t('seePreview')}</Tooltip.Content>
                 </Tooltip.Root>
               </>
             ) : (
               <div className='flex h-full items-center justify-center text-[var(--text-placeholder)] text-small'>
-                Deploy your workflow to see a preview
+                {t('emptyPreview')}
               </div>
             )}
           </div>
         </div>
 
         <div>
-          <Label className='mb-[6.5px] block pl-0.5 text-small'>Versions</Label>
+          <Label className='mb-[6.5px] block pl-0.5 text-small'>{t('versions')}</Label>
           <Versions
             workflowId={workflowId}
             versions={versions}
@@ -296,24 +298,24 @@ export function GeneralDeploy({
       <ChipConfirmModal
         open={showLoadDialog}
         onOpenChange={setShowLoadDialog}
-        srTitle='Load Deployment'
-        title='Load Deployment'
+        srTitle={t('loadConfirm.title')}
+        title={t('loadConfirm.title')}
         text={[
-          'Are you sure you want to load ',
+          t('loadConfirm.prefix'),
           {
             text: versionToLoadInfo
               ? formatVersionLabel(versionToLoadInfo.version, versionToLoadInfo.name)
               : `v${versionToLoad?.version}`,
             bold: true,
           },
-          '? ',
+          t('loadConfirm.suffix'),
           {
-            text: 'This will replace your current workflow with the deployed version.',
+            text: t('loadConfirm.warning'),
             error: true,
           },
         ]}
         confirm={{
-          label: 'Load deployment',
+          label: t('loadConfirm.confirm'),
           onClick: confirmLoadDeployment,
           pending: revertMutation.isPending,
         }}
@@ -322,20 +324,20 @@ export function GeneralDeploy({
       <ChipConfirmModal
         open={showPromoteDialog}
         onOpenChange={setShowPromoteDialog}
-        srTitle='Promote to live'
-        title='Promote to live'
+        srTitle={t('promoteConfirm.title')}
+        title={t('promoteConfirm.title')}
         text={[
-          'Are you sure you want to promote ',
+          t('promoteConfirm.prefix'),
           {
             text: versionToPromoteInfo
               ? formatVersionLabel(versionToPromoteInfo.version, versionToPromoteInfo.name)
               : `v${versionToPromote?.version}`,
             bold: true,
           },
-          ' to live? This version will become the active deployment and serve all API requests.',
+          t('promoteConfirm.suffix'),
         ]}
         confirm={{
-          label: 'Promote to live',
+          label: t('promoteConfirm.title'),
           onClick: confirmPromoteToLive,
           variant: 'primary',
           pending: isPromotingVersion,
@@ -362,7 +364,7 @@ export function GeneralDeploy({
         <ChipModal
           open={showExpandedPreview}
           onOpenChange={setShowExpandedPreview}
-          srTitle='Workflow preview'
+          srTitle={t('previewSrTitle')}
           aria-describedby={expandedPreviewDescriptionId}
           size='full'
           className='h-[90vh] [&>div]:h-full'
@@ -370,11 +372,11 @@ export function GeneralDeploy({
           <ChipModalHeader onClose={() => setShowExpandedPreview(false)}>
             {previewMode === 'selected' && selectedVersionInfo
               ? formatVersionLabel(selectedVersionInfo.version, selectedVersionInfo.name)
-              : 'Live Workflow'}
+              : t('liveWorkflow')}
           </ChipModalHeader>
           <ChipModalBody fullBleed>
             <p id={expandedPreviewDescriptionId} className='sr-only'>
-              Visual preview of the selected workflow version.
+              {t('previewDescription')}
             </p>
             <Preview workflowState={workflowToShow} autoSelectLeftmost />
           </ChipModalBody>

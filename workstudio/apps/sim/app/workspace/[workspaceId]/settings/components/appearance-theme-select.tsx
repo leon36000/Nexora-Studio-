@@ -2,12 +2,7 @@
 
 import type { DesktopAppearanceTheme } from '@sim/desktop-bridge'
 import { ChipSelect } from '@sim/emcn'
-
-const OPTIONS = [
-  { label: 'Nexora', value: 'app' },
-  { label: 'Light', value: 'light' },
-  { label: 'Dark', value: 'dark' },
-] as const
+import { useTranslations } from 'next-intl'
 
 interface AppearanceThemeSelectProps {
   value: DesktopAppearanceTheme
@@ -23,6 +18,7 @@ export function AppearanceThemeSelect({
   disabled,
   ariaLabel,
 }: AppearanceThemeSelectProps) {
+  const t = useTranslations('settings.appearance.themes')
   return (
     <div className='w-[240px] max-w-[55%] shrink-0 md:max-w-none'>
       <ChipSelect
@@ -33,7 +29,11 @@ export function AppearanceThemeSelect({
         value={value}
         onChange={(next) => onChange(next as DesktopAppearanceTheme)}
         disabled={disabled}
-        options={[...OPTIONS]}
+        options={[
+          { label: 'Nexora', value: 'app' },
+          { label: t('light'), value: 'light' },
+          { label: t('dark'), value: 'dark' },
+        ]}
       />
     </div>
   )

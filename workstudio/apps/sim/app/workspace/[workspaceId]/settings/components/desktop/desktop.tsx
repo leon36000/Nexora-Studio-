@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { DesktopPreferenceKey, DesktopPreferences } from '@sim/desktop-bridge'
 import { Label, Switch, toast } from '@sim/emcn'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { getDesktopBridge, getDesktopShellVersion } from '@/lib/desktop'
 import { ComputerUseSettings } from '@/app/workspace/[workspaceId]/settings/components/desktop/computer-use'
 import { SettingsPanel } from '@/app/workspace/[workspaceId]/settings/components/settings-panel'
@@ -29,6 +30,7 @@ function PreferenceRow({ id, label, checked, disabled, onCheckedChange }: Prefer
 }
 
 export function Desktop() {
+  const t = useTranslations('settings.desktop')
   const params = useParams()
   const router = useRouter()
   const workspaceId = params.workspaceId as string
@@ -48,7 +50,7 @@ export function Desktop() {
     void bridge.settings
       .getPreferences()
       .then(setPreferences)
-      .catch(() => toast.error('Could not load desktop settings'))
+      .catch(() => toast.error(t('loadError')))
     void bridge.desktopExecutor
       ?.getDevice()
       .then((device) => setRunsInBackground(device !== null))
@@ -63,7 +65,7 @@ export function Desktop() {
     try {
       setPreferences(await settings.setPreference(key, value))
     } catch {
-      toast.error('Could not update desktop settings')
+      toast.error(t('updateError'))
     } finally {
       setPendingPreference(null)
     }
@@ -71,14 +73,14 @@ export function Desktop() {
 
   const { pending: preventSleepPending, mutate: setPreventSleep } = useDesktopPreferenceMutation(
     async (bridge, enabled: boolean) => bridge.settings.setPreventSleepWhileRunning?.(enabled),
-    'Could not update desktop settings',
+    t('updateError'),
     setPreferences
   )
 
   const { pending: fullFileAccessPending, mutate: setFullFileAccess } =
     useDesktopPreferenceMutation(
       async (bridge, enabled: boolean) => bridge.settings.setFullFileAccess?.(enabled),
-      'Could not save file access settings. Your previous setting may return after restarting Nexora.',
+      t('fileAccessError'),
       setPreferences
     )
 
@@ -94,23 +96,23 @@ export function Desktop() {
   return (
     <SettingsPanel>
       <ComputerUseSettings />
-      <SettingsSection label='General'>
+      <SettingsSection label={t('sections.general')}>
         <div className='flex flex-col gap-3'>
           {shellVersion && (
             <div className='flex items-center justify-between'>
               <Label asChild>
-                <span>Version</span>
+                <span>{t('version')}</span>
               </Label>
               <span className='text-[var(--text-muted)] text-sm'>
                 {updateState.status === 'ready' && updateState.version
-                  ? `${shellVersion} → ${updateState.version} on restart`
+                  ? t('versionOnRestart', { current: shellVersion, next: updateState.version })
                   : shellVersion}
               </span>
             </div>
           )}
           <PreferenceRow
             id='desktop-launch-at-login'
-            label='Launch Nexora at login'
+            label={t('launchAtLogin')}
             checked={preferences.launchAtLogin}
             disabled={pendingPreference !== null}
             onCheckedChange={(checked) => void updatePreference('launchAtLogin', checked)}
@@ -118,7 +120,7 @@ export function Desktop() {
           {supportsPreventSleep && (
             <PreferenceRow
               id='desktop-prevent-sleep'
-              label='Prevent sleep while a chat is running'
+              label={t('preventSleep')}
               checked={preferences.preventSleepWhileRunning ?? true}
               disabled={preventSleepPending}
               onCheckedChange={(checked) => void setPreventSleep(checked)}
@@ -126,14 +128,14 @@ export function Desktop() {
           )}
           <PreferenceRow
             id='desktop-tray-enabled'
-            label='Show Nexora in Control Center'
+            label={t('trayEnabled')}
             checked={preferences.trayEnabled}
             disabled={pendingPreference !== null}
             onCheckedChange={(checked) => void updatePreference('trayEnabled', checked)}
           />
           <PreferenceRow
             id='desktop-auto-download-updates'
-            label='Automatically download updates'
+            label={t('autoDownloadUpdates')}
             checked={preferences.autoDownloadUpdates}
             disabled={pendingPreference !== null}
             onCheckedChange={(checked) => void updatePreference('autoDownloadUpdates', checked)}
@@ -142,10 +144,10 @@ export function Desktop() {
       </SettingsSection>
 
       {getDesktopBridge()?.settings.setFullFileAccess && (
-        <SettingsSection label='Local files'>
+        <SettingsSection label={t('sections.localFiles')}>
           <PreferenceRow
             id='desktop-full-file-access'
-            label='Full file access'
+            label={t('fullFileAccess')}
             checked={preferences.fullFileAccess ?? false}
             disabled={fullFileAccessPending}
             onCheckedChange={(checked) => void setFullFileAccess(checked)}
@@ -153,25 +155,25 @@ export function Desktop() {
         </SettingsSection>
       )}
 
-      <SettingsSection label='Notifications'>
+      <SettingsSection label={t('sections.notifications')}>
         <div className='flex flex-col gap-3'>
           <PreferenceRow
             id='desktop-notifications'
-            label='Enable desktop notifications'
+            label={t('notificationsEnabled')}
             checked={preferences.notificationsEnabled}
             disabled={pendingPreference !== null}
             onCheckedChange={(checked) => void updatePreference('notificationsEnabled', checked)}
           />
           <PreferenceRow
             id='desktop-notification-sounds'
-            label='Play notification sounds'
+            label={t('notificationSounds')}
             checked={preferences.notificationSounds}
             disabled={notificationsDisabled || pendingPreference !== null}
             onCheckedChange={(checked) => void updatePreference('notificationSounds', checked)}
           />
           <PreferenceRow
             id='desktop-notifications-unfocused'
-            label="Notify only when Nexora isn't focused"
+            label={t('notificationsUnfocused')}
             checked={preferences.notificationsOnlyWhenUnfocused}
             disabled={notificationsDisabled || pendingPreference !== null}
             onCheckedChange={(checked) =>

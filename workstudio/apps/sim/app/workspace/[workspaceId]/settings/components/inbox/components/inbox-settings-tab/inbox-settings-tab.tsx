@@ -19,6 +19,7 @@ import {
 import { Check, Clipboard, Pencil, Plus, Trash } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import {
   useAddInboxSender,
@@ -30,14 +31,15 @@ import {
 } from '@/hooks/queries/inbox'
 import { useRawMountableSecretOptions } from '@/hooks/queries/secret-mount-options'
 
-const SECRET_SCOPE_OPTIONS = [
-  { value: 'all', label: 'All secrets' },
-  { value: 'selected', label: 'Selected secrets' },
-]
-
 const DROPDOWN_TRIGGER_CLASS = 'w-[240px] shrink-0'
 
 export function InboxSettingsTab() {
+  const t = useTranslations('settings.inbox.settingsTab')
+  const tShared = useTranslations('settings.shared')
+  const secretScopeOptions = [
+    { value: 'all', label: t('secretScopes.all') },
+    { value: 'selected', label: t('secretScopes.selected') },
+  ]
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
@@ -77,9 +79,9 @@ export function InboxSettingsTab() {
       setIsEditAddressOpen(false)
       setNewUsername('')
     } catch (error) {
-      setEditAddressError(getErrorMessage(error, 'Failed to update address'))
+      setEditAddressError(getErrorMessage(error, t('updateAddressFailed')))
     }
-  }, [workspaceId, newUsername, updateAddress.mutateAsync])
+  }, [workspaceId, newUsername, updateAddress.mutateAsync, t])
 
   const handleAddSender = useCallback(async () => {
     if (!newSenderEmail.trim()) return
@@ -94,9 +96,9 @@ export function InboxSettingsTab() {
       setNewSenderEmail('')
       setNewSenderLabel('')
     } catch (error) {
-      setAddSenderError(getErrorMessage(error, 'Failed to add sender'))
+      setAddSenderError(getErrorMessage(error, t('addSenderFailed')))
     }
-  }, [workspaceId, newSenderEmail, newSenderLabel, addSender.mutateAsync])
+  }, [workspaceId, newSenderEmail, newSenderLabel, addSender.mutateAsync, t])
 
   const handleRemoveSender = useCallback(
     async (senderId: string) => {
@@ -104,22 +106,20 @@ export function InboxSettingsTab() {
       try {
         await removeSender.mutateAsync({ workspaceId, senderId })
       } catch (error) {
-        setRemoveSenderError(getErrorMessage(error, 'Failed to remove sender'))
+        setRemoveSenderError(getErrorMessage(error, t('removeSenderFailed')))
       }
     },
-    [workspaceId, removeSender.mutateAsync]
+    [workspaceId, removeSender.mutateAsync, t]
   )
 
   return (
     <>
       <div className='flex flex-col gap-7'>
         {config?.address && (
-          <SettingsSection label="Nexora's email">
+          <SettingsSection label={t('addressLabel')}>
             <div className='flex flex-col gap-1.5'>
               <div className='flex items-center justify-between'>
-                <p className='text-[var(--text-muted)] text-caption'>
-                  Send emails here to create tasks.
-                </p>
+                <p className='text-[var(--text-muted)] text-caption'>{t('addressHint')}</p>
                 <div className='flex items-center gap-1.5'>
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
@@ -127,7 +127,7 @@ export function InboxSettingsTab() {
                         type='button'
                         onClick={handleCopyAddress}
                         className='-my-1 flex size-5 items-center justify-center'
-                        aria-label='Copy address'
+                        aria-label={t('copyAddress')}
                       >
                         {copiedAddress ? (
                           <Check className='size-[14px] text-[var(--text-success)]' />
@@ -137,7 +137,7 @@ export function InboxSettingsTab() {
                       </button>
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top'>
-                      <p>{copiedAddress ? 'Copied!' : 'Copy'}</p>
+                      <p>{copiedAddress ? t('copiedExclamation') : tShared('copy')}</p>
                     </Tooltip.Content>
                   </Tooltip.Root>
                   <Tooltip.Root>
@@ -150,13 +150,13 @@ export function InboxSettingsTab() {
                           setIsEditAddressOpen(true)
                         }}
                         className='-my-1 flex size-5 items-center justify-center'
-                        aria-label='Edit address'
+                        aria-label={t('editAddress')}
                       >
                         <Pencil className='size-[14px] text-[var(--text-icon)]' />
                       </button>
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top'>
-                      <p>Edit</p>
+                      <p>{tShared('edit')}</p>
                     </Tooltip.Content>
                   </Tooltip.Root>
                 </div>
@@ -170,11 +170,9 @@ export function InboxSettingsTab() {
           </SettingsSection>
         )}
 
-        <SettingsSection label='Allowed senders'>
+        <SettingsSection label={t('allowedSenders')}>
           <div className='flex flex-col gap-1.5'>
-            <p className='text-[var(--text-muted)] text-caption'>
-              Only emails from these addresses can create tasks.
-            </p>
+            <p className='text-[var(--text-muted)] text-caption'>{t('allowedSendersHint')}</p>
 
             <div className='mt-1 flex flex-col gap-[1px] overflow-hidden rounded-lg border border-[var(--border)]'>
               {sendersLoading ? null : (
@@ -187,7 +185,7 @@ export function InboxSettingsTab() {
                       <div className='flex items-center gap-2'>
                         <span className='text-[var(--text-body)] text-sm'>{member.email}</span>
                         <Badge variant='gray' size='sm'>
-                          member
+                          {t('memberBadge')}
                         </Badge>
                       </div>
                     </div>
@@ -208,7 +206,7 @@ export function InboxSettingsTab() {
                       </div>
                       <Chip
                         leftIcon={Trash}
-                        aria-label='Remove sender'
+                        aria-label={t('removeSender')}
                         onClick={() => handleRemoveSender(sender.id)}
                       />
                     </div>
@@ -217,7 +215,7 @@ export function InboxSettingsTab() {
                   {sendersData?.workspaceMembers.length === 0 &&
                     sendersData?.senders.length === 0 && (
                       <div className='px-3 py-2.5 text-[var(--text-muted)] text-caption'>
-                        No allowed senders configured.
+                        {t('noSenders')}
                       </div>
                     )}
                 </>
@@ -240,18 +238,18 @@ export function InboxSettingsTab() {
                 setIsAddSenderOpen(true)
               }}
             >
-              Add sender
+              {t('addSender')}
             </Chip>
           </div>
         </SettingsSection>
 
-        <SettingsSection label='Secrets'>
+        <SettingsSection label={t('secrets')}>
           <div className='flex flex-col gap-4'>
             <div className='flex items-center justify-between'>
-              <Label>Secret access</Label>
+              <Label>{t('secretAccess')}</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>
                 <ChipSelect
-                  aria-label='Secret access'
+                  aria-label={t('secretAccess')}
                   align='start'
                   fullWidth
                   dropdownWidth='trigger'
@@ -263,7 +261,7 @@ export function InboxSettingsTab() {
                       mountedSecrets,
                     })
                   }
-                  options={SECRET_SCOPE_OPTIONS}
+                  options={secretScopeOptions}
                   disabled={updateSecretPolicy.isPending}
                 />
               </div>
@@ -271,17 +269,17 @@ export function InboxSettingsTab() {
 
             {secretScope === 'selected' && (
               <div className='flex items-center justify-between gap-4'>
-                <Label>Secrets</Label>
+                <Label>{t('secrets')}</Label>
                 <div className={DROPDOWN_TRIGGER_CLASS}>
                   <ChipSelect
-                    aria-label='Secrets'
+                    aria-label={t('secrets')}
                     align='start'
                     fullWidth
                     dropdownWidth='trigger'
                     multiSelect
                     searchable
-                    searchPlaceholder='Search secrets'
-                    placeholder='Select secrets'
+                    searchPlaceholder={t('searchSecrets')}
+                    placeholder={t('selectSecrets')}
                     options={secretOptions}
                     multiSelectValues={mountedSecrets}
                     onMultiSelectChange={(values) =>
@@ -298,7 +296,7 @@ export function InboxSettingsTab() {
             )}
             {updateSecretPolicy.error && (
               <p role='alert' className='text-[var(--text-error)] text-caption'>
-                {getErrorMessage(updateSecretPolicy.error, 'Failed to update secret access')}
+                {getErrorMessage(updateSecretPolicy.error, t('updateSecretAccessFailed'))}
               </p>
             )}
           </div>
@@ -308,15 +306,15 @@ export function InboxSettingsTab() {
       <ChipModal
         open={isAddSenderOpen}
         onOpenChange={setIsAddSenderOpen}
-        srTitle='Add allowed sender'
+        srTitle={t('addSenderModalTitle')}
       >
         <ChipModalHeader onClose={() => setIsAddSenderOpen(false)}>
-          Add allowed sender
+          {t('addSenderModalTitle')}
         </ChipModalHeader>
         <ChipModalBody>
           <ChipModalField
             type='email'
-            title='Email address'
+            title={t('emailAddress')}
             value={newSenderEmail}
             onChange={(v) => {
               setNewSenderEmail(v)
@@ -327,17 +325,17 @@ export function InboxSettingsTab() {
           />
           <ChipModalField
             type='input'
-            title='Label'
+            title={t('label')}
             value={newSenderLabel}
             onChange={setNewSenderLabel}
-            placeholder='e.g., John from Marketing'
+            placeholder={t('labelPlaceholder')}
           />
           <ChipModalError>{addSenderError}</ChipModalError>
         </ChipModalBody>
         <ChipModalFooter
           onCancel={() => setIsAddSenderOpen(false)}
           primaryAction={{
-            label: 'Add',
+            label: tShared('add'),
             onClick: handleAddSender,
             disabled: !newSenderEmail.trim() || addSender.isPending,
           }}
@@ -347,27 +345,25 @@ export function InboxSettingsTab() {
       <ChipModal
         open={isEditAddressOpen}
         onOpenChange={setIsEditAddressOpen}
-        srTitle='Change email address'
+        srTitle={t('changeAddressTitle')}
       >
         <ChipModalHeader onClose={() => setIsEditAddressOpen(false)}>
-          Change email address
+          {t('changeAddressTitle')}
         </ChipModalHeader>
         <ChipModalBody>
           <p className='px-2 text-[var(--text-secondary)] text-sm'>
-            Changing your email address will create a new inbox.{' '}
-            <span className='text-[var(--text-primary)]'>
-              The old address will stop receiving emails immediately.
-            </span>
+            {t('changeAddressWarning')}{' '}
+            <span className='text-[var(--text-primary)]'>{t('changeAddressWarningEmphasis')}</span>
           </p>
           <ChipModalField
             type='input'
-            title='New email prefix'
+            title={t('newEmailPrefix')}
             value={newUsername}
             onChange={(value) => {
               setNewUsername(value)
               if (editAddressError) setEditAddressError(null)
             }}
-            placeholder='e.g., new-acme'
+            placeholder={t('newEmailPrefixPlaceholder')}
             error={editAddressError}
           />
         </ChipModalBody>
@@ -376,7 +372,7 @@ export function InboxSettingsTab() {
           cancelDisabled={updateAddress.isPending}
           defaultAction='none'
           primaryAction={{
-            label: updateAddress.isPending ? 'Updating...' : 'Change address',
+            label: updateAddress.isPending ? t('updating') : t('changeAddress'),
             onClick: handleEditAddress,
             disabled: !newUsername.trim() || updateAddress.isPending,
             variant: 'destructive',

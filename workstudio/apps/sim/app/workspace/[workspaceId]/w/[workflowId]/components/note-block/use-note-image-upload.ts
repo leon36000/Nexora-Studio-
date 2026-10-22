@@ -18,7 +18,7 @@ import { useUploadWorkspaceFile } from '@/hooks/queries/workspace-files'
  * Shared by the two surfaces that can add one: the editor's paste/drop/`/image`
  * flow and the canvas context menu's "Add image".
  */
-export function useNoteImageUpload(): (file: File) => Promise<{ url: string; alt: string } | null> {
+export function useNoteImageUpload() {
   const { workspaceId } = useWorkflowScope()
   const uploadFile = useUploadWorkspaceFile()
 

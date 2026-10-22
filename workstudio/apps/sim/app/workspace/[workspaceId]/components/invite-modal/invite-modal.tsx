@@ -13,6 +13,7 @@ import {
   toast,
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import type { BatchInvitationResult } from '@/lib/api/contracts/invitations'
 import { useSession } from '@/lib/auth/client'
 import { isEnterprise } from '@/lib/billing/plan-helpers'
@@ -26,24 +27,11 @@ import { useAdminWorkspaces } from '@/hooks/queries/workspace'
 
 const logger = createLogger('InviteModal')
 
-const ACCESS_OPTIONS = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'write', label: 'Write' },
-  { value: 'read', label: 'Read' },
-] as const
+const ACCESS_VALUES = ['admin', 'write', 'read'] as const
 
-const MEMBERSHIP_OPTIONS = [
-  { value: 'member', label: 'Member' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'external', label: 'External' },
-] as const
+const MEMBERSHIP_VALUES = ['member', 'admin', 'external'] as const
 
-type Membership = (typeof MEMBERSHIP_OPTIONS)[number]['value']
-
-const MEMBERSHIP_HINTS: Partial<Record<Membership, string>> = {
-  external:
-    'Access to the selected workspaces only — no seat. Only available for people already on a paid Nexora plan.',
-}
+type Membership = (typeof MEMBERSHIP_VALUES)[number]
 
 const EMPTY_WORKSPACE_IDS: string[] = []
 
@@ -63,20 +51,25 @@ const MAX_LISTED_FAILURE_REASONS = 3
  */
 export function buildInviteFailureMessage(
   failures: BatchInvitationResult['failed'],
-  attemptedCount: number
+  attemptedCount: number,
+  t: ReturnType<typeof useTranslations>
 ): string {
   if (failures.length === 1) return failures[0].error
 
   const headline =
     failures.length >= attemptedCount
-      ? `None of the ${failures.length} invitations could be sent.`
-      : `${failures.length} of ${attemptedCount} invitations could not be sent.`
+      ? t('failures.none', { count: String(failures.length) })
+      : t('failures.some', { failed: String(failures.length), attempted: String(attemptedCount) })
 
   const reasons = [...new Set(failures.map((failure) => failure.error))]
   const listed = reasons.slice(0, MAX_LISTED_FAILURE_REASONS)
   const remaining = reasons.length - listed.length
 
-  return [headline, ...listed, remaining > 0 ? `And ${remaining} more.` : null]
+  return [
+    headline,
+    ...listed,
+    remaining > 0 ? t('failures.more', { count: String(remaining) }) : null,
+  ]
     .filter(Boolean)
     .join(' ')
 }
@@ -117,6 +110,7 @@ export function InviteModal({
   canInvite = true,
   isOrganizationAdmin,
 }: InviteModalProps) {
+  const t = useTranslations('shell.inviteModal')
   const [emails, setEmails] = useState<string[]>([])
   const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<string[]>(
     workspaceId ? [workspaceId] : EMPTY_WORKSPACE_IDS
@@ -162,12 +156,12 @@ export function InviteModal({
 
   const workspaceOptions = useMemo<ChipDropdownOption[]>(() => {
     if (!isOrganizationInvite) {
-      return workspaceId ? [{ value: workspaceId, label: workspaceName ?? 'This workspace' }] : []
+      return workspaceId ? [{ value: workspaceId, label: workspaceName ?? t('thisWorkspace') }] : []
     }
     return (adminWorkspaces ?? [])
       .filter((workspace) => workspace.canInvite || workspace.id === workspaceId)
       .map((workspace) => ({ value: workspace.id, label: workspace.name }))
-  }, [isOrganizationInvite, adminWorkspaces, workspaceId, workspaceName])
+  }, [isOrganizationInvite, adminWorkspaces, workspaceId, workspaceName, t])
 
   /**
    * Seat data is organization-admin-only, and the prop can lag the route, so
@@ -186,11 +180,12 @@ export function InviteModal({
     (isOrganizationAdmin ??
       (hostContext?.hostOrganizationId === organizationId &&
         hostContext.viewer.isHostOrganizationAdmin))
-  const membershipOptions = MEMBERSHIP_OPTIONS.filter(
-    (option) =>
-      (option.value !== 'admin' || canGrantOrganizationAdmin) &&
-      (option.value !== 'external' || !organizationOnly)
-  )
+  const accessOptions = ACCESS_VALUES.map((value) => ({ value, label: t(`access.${value}`) }))
+  const membershipOptions = MEMBERSHIP_VALUES.filter(
+    (value) =>
+      (value !== 'admin' || canGrantOrganizationAdmin) &&
+      (value !== 'external' || !organizationOnly)
+  ).map((value) => ({ value, label: t(`membership.${value}`) }))
   const canViewOrganizationBilling = canGrantOrganizationAdmin
 
   const { data: organizationBillingData } = useOrganizationPlanSeats(organizationId ?? '', {
@@ -215,22 +210,20 @@ export function InviteModal({
    */
   const mayExceedSeatCapacity =
     hasSeatData && membership !== 'external' && emails.length > availableSeats
-  const seatLimitReason = mayExceedSeatCapacity
-    ? `Only ${availableSeats} seat${availableSeats === 1 ? '' : 's'} available — invites beyond that may fail. External collaborators and existing members do not use seats.`
-    : null
+  const seatLimitReason = mayExceedSeatCapacity ? t('seatLimit', { count: availableSeats }) : null
 
   const validateEmail = useCallback(
     (email: string): string | null => {
       const formatResult = quickValidateEmail(email)
       if (!formatResult.isValid) {
-        return formatResult.reason ?? 'Invalid email'
+        return formatResult.reason ?? t('invalidEmail')
       }
       if (session?.user?.email && session.user.email.toLowerCase() === email) {
-        return 'You cannot invite yourself'
+        return t('cannotInviteYourself')
       }
       return null
     },
-    [session?.user?.email]
+    [session?.user?.email, t]
   )
 
   const handleEmailsChange = useCallback((next: string[]) => {
@@ -254,12 +247,10 @@ export function InviteModal({
         onSuccess: (result) => {
           const parts: string[] = []
           if (result.added.length > 0) {
-            parts.push(`${result.added.length} member${result.added.length === 1 ? '' : 's'} added`)
+            parts.push(t('membersAdded', { count: result.added.length }))
           }
           if (result.successful.length > 0) {
-            parts.push(
-              `${result.successful.length} invite${result.successful.length === 1 ? '' : 's'} sent`
-            )
+            parts.push(t('invitesSent', { count: result.successful.length }))
           }
           if (parts.length > 0) {
             toast.success(parts.join(' · '))
@@ -268,7 +259,7 @@ export function InviteModal({
           if (result.failed.length > 0) {
             // Keep the failed addresses in the field, with the reasons, for retry.
             setEmails(result.failed.map((failure) => failure.email))
-            setErrorMessage(buildInviteFailureMessage(result.failed, emails.length))
+            setErrorMessage(buildInviteFailureMessage(result.failed, emails.length, t))
             return
           }
 
@@ -277,7 +268,7 @@ export function InviteModal({
         },
         onError: (error) => {
           logger.error('Failed to invite teammates', { error })
-          setErrorMessage(error.message || 'An unexpected error occurred. Please try again.')
+          setErrorMessage(error.message || t('unexpectedError'))
         },
       }
     )
@@ -295,46 +286,44 @@ export function InviteModal({
     <ChipModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle={`Invite teammates to ${organizationOnly ? 'organization' : workspaceName || 'workspace'}`}
+      srTitle={t('srTitle', {
+        target: organizationOnly ? t('organizationTarget') : workspaceName || t('workspaceTarget'),
+      })}
     >
-      <ChipModalHeader onClose={() => onOpenChange(false)}>Invite teammates</ChipModalHeader>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{t('title')}</ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='emails'
-          title='Emails'
+          title={t('emails')}
           value={emails}
           onChange={handleEmailsChange}
           validate={validateEmail}
           hint={inviteDisabledReason ?? seatLimitReason}
-          placeholder={
-            canInvite
-              ? 'Enter emails'
-              : inviteDisabledReason || 'Only administrators can invite new teammates'
-          }
+          placeholder={canInvite ? t('emailsPlaceholder') : inviteDisabledReason || t('adminsOnly')}
           disabled={isSubmitting || !canInvite}
         />
         {!organizationOnly && (
           <>
-            <ChipModalField type='custom' title='Workspaces'>
+            <ChipModalField type='custom' title={t('workspaces')}>
               <ChipDropdown
                 multiple
                 value={selectedWorkspaceIds}
                 onChange={setSelectedWorkspaceIds}
                 options={workspaceOptions}
-                allLabel='Select workspaces'
+                allLabel={t('selectWorkspaces')}
                 showAllOption={false}
                 searchable={isOrganizationInvite}
-                searchPlaceholder='Search workspaces...'
+                searchPlaceholder={t('searchWorkspaces')}
                 fullWidth
                 disabled={isSubmitting || !canInvite || workspaceOptions.length <= 1}
               />
             </ChipModalField>
             <ChipModalField
               type='dropdown'
-              title='Workspace access'
-              options={ACCESS_OPTIONS}
+              title={t('workspaceAccess')}
+              options={accessOptions}
               value={access}
-              placeholder='Select access'
+              placeholder={t('selectAccess')}
               align='start'
               disabled={isSubmitting || !canInvite}
               onChange={(next) => setAccess(next as PermissionType)}
@@ -344,12 +333,12 @@ export function InviteModal({
         {isOrganizationInvite && (
           <ChipModalField
             type='dropdown'
-            title={organizationOnly ? 'Role' : 'Organization membership'}
+            title={organizationOnly ? t('role') : t('organizationMembership')}
             options={membershipOptions}
             value={membership}
-            placeholder='Select membership'
+            placeholder={t('selectMembership')}
             align='start'
-            hint={MEMBERSHIP_HINTS[membership]}
+            hint={membership === 'external' ? t('externalHint') : undefined}
             disabled={isSubmitting || !canInvite}
             onChange={(next) => setMembership(next as Membership)}
           />
@@ -360,7 +349,7 @@ export function InviteModal({
         onCancel={() => onOpenChange(false)}
         cancelDisabled={isSubmitting}
         primaryAction={{
-          label: isSubmitting ? 'Sending...' : 'Send invites',
+          label: isSubmitting ? t('sending') : t('send'),
           onClick: handleSend,
           disabled: isSendDisabled,
         }}

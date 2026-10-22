@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { Combobox, cn, Label, Tooltip } from '@sim/emcn'
 import { ArrowLeftRight } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import type { CanonicalMode } from '@/lib/workflows/subblocks/visibility'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
 import { ShortInput } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/short-input'
@@ -21,16 +23,10 @@ interface ToolUsageControlProps {
 }
 
 const MODE_OPTIONS = [
-  { value: 'auto', label: 'Auto', hint: '(model decides)' },
-  { value: 'force', label: 'Force', hint: '(always use)' },
-  { value: 'none', label: 'None', hint: '(disable tool)' },
-] as const satisfies ReadonlyArray<{ value: UsageControlValue; label: string; hint: string }>
-
-const EXPRESSION_CONFIG = {
-  id: 'usageControlExpression',
-  title: 'Permission Mode',
-  type: 'short-input',
-} as const satisfies SubBlockConfig
+  { value: 'auto' },
+  { value: 'force' },
+  { value: 'none' },
+] as const satisfies ReadonlyArray<{ value: UsageControlValue }>
 
 function isUsageControlValue(value: string): value is UsageControlValue {
   return MODE_OPTIONS.some((option) => option.value === value)
@@ -56,12 +52,24 @@ export function ToolUsageControl({
   onExpressionChange,
   onModeToggle,
 }: ToolUsageControlProps) {
-  const toggleLabel = mode === 'advanced' ? 'Switch to selector' : 'Switch to variable'
+  const t = useTranslations('editor.subBlock.toolInput.usageControl')
+  const toggleLabel = mode === 'advanced' ? t('switchToSelector') : t('switchToVariable')
+  const expressionConfig = useMemo(
+    () =>
+      ({
+        id: 'usageControlExpression',
+        title: t('permissionMode'),
+        type: 'short-input',
+      }) satisfies SubBlockConfig,
+    [t]
+  )
 
   return (
     <div className='subblock-content flex w-full min-w-0 flex-col gap-2.5'>
       <div className='flex items-center justify-between gap-1.5 pl-0.5'>
-        <Label className='flex items-baseline gap-1.5 whitespace-nowrap'>Permission Mode</Label>
+        <Label className='flex items-baseline gap-1.5 whitespace-nowrap'>
+          {t('permissionMode')}
+        </Label>
         <div className='flex min-w-0 flex-1 items-center justify-end gap-1.5'>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -92,10 +100,10 @@ export function ToolUsageControl({
         <ShortInput
           blockId={blockId}
           subBlockId={aggregateSubBlockId}
-          config={EXPRESSION_CONFIG}
+          config={expressionConfig}
           value={tool.usageControlExpression ?? ''}
           onChange={onExpressionChange}
-          placeholder='"auto", "force", or "none"'
+          placeholder={t('expressionPlaceholder')}
           disabled={disabled}
           workflowSearchValuePath={[toolIndex, 'usageControlExpression']}
         />
@@ -105,11 +113,11 @@ export function ToolUsageControl({
             const unsupported = option.value === 'force' && !supportsForce
             return {
               value: option.value,
-              label: option.label,
+              label: t(`modes.${option.value}.label`),
               disabled: unsupported,
               suffixElement: (
                 <span className='text-[var(--text-tertiary)]'>
-                  {unsupported ? '(not supported by model)' : option.hint}
+                  {unsupported ? t('notSupported') : t(`modes.${option.value}.hint`)}
                 </span>
               ),
             }
@@ -120,7 +128,7 @@ export function ToolUsageControl({
           }}
           editable={false}
           disabled={disabled}
-          aria-label='Permission Mode'
+          aria-label={t('permissionMode')}
         />
       )}
     </div>

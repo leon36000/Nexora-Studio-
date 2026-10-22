@@ -1,6 +1,7 @@
 'use client'
 
 import { Button, Combobox, Input } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { WorkflowSearchReplacementOption } from '@/lib/workflows/search-replace/types'
 
 interface ReplacementControlsProps {
@@ -30,6 +31,7 @@ export function ReplacementControls({
   onReplaceActive,
   onReplaceAll,
 }: ReplacementControlsProps) {
+  const t = useTranslations('editor.searchReplace.controls')
   return (
     <div className='space-y-2'>
       {usesResourceReplacement ? (
@@ -40,16 +42,16 @@ export function ReplacementControls({
           }))}
           value={replacement}
           onChange={onReplacementChange}
-          placeholder='Choose replacement...'
+          placeholder={t('chooseReplacement')}
           searchable
-          searchPlaceholder='Search resources...'
-          emptyMessage='No valid replacements available'
+          searchPlaceholder={t('searchResources')}
+          emptyMessage={t('noValidReplacements')}
           disabled={disabled || compatibleResourceOptions.length === 0}
         />
       ) : (
         <Input
           value={replacement}
-          placeholder='Replace'
+          placeholder={t('replacePlaceholder')}
           disabled={disabled}
           onChange={(event) => onReplacementChange(event.target.value)}
         />
@@ -57,7 +59,7 @@ export function ReplacementControls({
 
       <div className='flex items-center justify-between gap-2 max-md:flex-wrap'>
         <span className='text-[var(--text-muted)] text-xs'>
-          {eligibleCount} replaceable match{eligibleCount === 1 ? '' : 'es'}
+          {t('replaceableMatches', { count: eligibleCount })}
         </span>
         <div className='flex shrink-0 gap-1.5 max-md:ml-auto'>
           <Button
@@ -66,7 +68,7 @@ export function ReplacementControls({
             disabled={disabled || isApplying || !canReplaceActive}
             onClick={onReplaceActive}
           >
-            Replace
+            {t('replace')}
           </Button>
           <Button
             className='h-8 text-xs max-md:pointer-coarse:min-h-11'
@@ -74,7 +76,7 @@ export function ReplacementControls({
             disabled={disabled || isApplying || !canReplaceAll}
             onClick={onReplaceAll}
           >
-            {isApplying ? 'Replacing...' : 'Replace All'}
+            {isApplying ? t('replacing') : t('replaceAll')}
           </Button>
         </div>
       </div>

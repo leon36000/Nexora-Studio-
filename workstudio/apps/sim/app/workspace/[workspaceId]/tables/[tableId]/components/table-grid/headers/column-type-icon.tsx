@@ -3,6 +3,7 @@
 import type React from 'react'
 import { Tooltip } from '@sim/emcn'
 import { PlayOutline, WorkflowX } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { columnTypeById } from '@/lib/table/column-types'
 import type { BlockIconInfo } from '../types'
 
@@ -46,6 +47,7 @@ export function ColumnTypeIcon({
   blockIconInfo,
   blockMissing,
 }: ColumnTypeIconProps) {
+  const t = useTranslations('tables.grid.header')
   if (isWorkflowColumn) {
     if (blockMissing) {
       return (
@@ -55,9 +57,7 @@ export function ColumnTypeIcon({
               <WorkflowX className='size-3 shrink-0 text-[var(--text-icon)]' />
             </span>
           </Tooltip.Trigger>
-          <Tooltip.Content side='top'>
-            This column's source block no longer exists in the workflow.
-          </Tooltip.Content>
+          <Tooltip.Content side='top'>{t('sourceBlockMissing')}</Tooltip.Content>
         </Tooltip.Root>
       )
     }

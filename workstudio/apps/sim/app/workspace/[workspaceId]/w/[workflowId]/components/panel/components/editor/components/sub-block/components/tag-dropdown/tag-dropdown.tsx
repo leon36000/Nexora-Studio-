@@ -13,6 +13,7 @@ import {
   usePopoverContext,
 } from '@sim/emcn'
 import { ChevronLeft } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import {
   getEffectiveBlockOutputType,
   getOutputPathsFromSchema,
@@ -385,7 +386,7 @@ interface NestedTagRendererProps {
   handleTagSelect: (tag: string, blockGroup?: BlockTagGroup) => void
   itemRefs: Map<string, HTMLElement>
   blocks: Record<string, BlockState>
-  getMergedSubBlocks: (blockId: string) => Record<string, any>
+  getMergedSubBlocks: (blockId: string) => Record<string, any> // i18n-ignore: type annotation
 }
 
 /**
@@ -835,6 +836,7 @@ const PopoverContextCapture: React.FC<{
 const TagDropdownBackButton: React.FC<{ setSelectedIndex: (index: number) => void }> = ({
   setSelectedIndex,
 }) => {
+  const t = useTranslations('editor.subBlock.tagDropdown')
   const { isInFolder, closeFolder, size, isKeyboardNav, setKeyboardNav } = usePopoverContext()
   const nestedNav = useNestedNavigation()
 
@@ -864,7 +866,7 @@ const TagDropdownBackButton: React.FC<{ setSelectedIndex: (index: number) => voi
       onMouseEnter={handleMouseEnter}
     >
       <ChevronLeft className={cn('shrink-0', size === 'sm' ? 'size-3' : 'size-3.5')} />
-      <span className='shrink-0'>Back</span>
+      <span className='shrink-0'>{t('back')}</span>
     </PopoverItem>
   )
 }
@@ -903,6 +905,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
   style,
   inputRef,
 }) => {
+  const t = useTranslations('editor.subBlock.tagDropdown')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const itemElementsRef = useRef<Map<string, HTMLElement> | null>(null)
   const itemRefs = (itemElementsRef.current ??= new Map())
@@ -1652,7 +1655,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
             <TagDropdownBackButton setSelectedIndex={setSelectedIndex} />
             {flatTagList.length === 0 ? (
               <div className='px-1.5 py-2 text-[color-mix(in_srgb,var(--white)_60%,transparent)] text-caption'>
-                No matching tags found
+                {t('noMatchingTags')}
               </div>
             ) : (
               <>
@@ -1661,7 +1664,7 @@ export const TagDropdown: React.FC<TagDropdownProps> = ({
                     <PopoverSection rootOnly>
                       <div className='flex items-center gap-1.5'>
                         <BlockTile bgColor={BLOCK_COLORS.VARIABLE} fallbackLabel='V' size='sm' />
-                        Variables
+                        {t('variables')}
                       </div>
                     </PopoverSection>
                     {variableTags.map((tag: string) => {

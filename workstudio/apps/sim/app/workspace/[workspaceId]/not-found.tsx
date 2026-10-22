@@ -3,24 +3,26 @@
 import { Chip, ChipLink } from '@sim/emcn'
 import { ArrowLeft, Compass, Home } from '@sim/emcn/icons'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ErrorShell } from '@/app/workspace/[workspaceId]/components/error'
 
 export default function WorkspaceNotFound() {
   const router = useRouter()
+  const t = useTranslations('errors.workspaceNotFound')
   const { workspaceId } = useParams<{ workspaceId?: string }>()
   const homeHref = workspaceId ? `/workspace/${workspaceId}` : '/'
 
   return (
     <ErrorShell
-      title='Page not found'
-      description="The page you're looking for doesn't exist or has been moved. Head back to your workspace to keep building."
+      title={t('title')}
+      description={t('description')}
       icon={<Compass className='size-[22px]' />}
     >
       <Chip leftIcon={ArrowLeft} onClick={() => router.back()}>
-        Go back
+        {t('goBack')}
       </Chip>
       <ChipLink href={homeHref} variant='primary' leftIcon={Home}>
-        Return home
+        {t('returnHome')}
       </ChipLink>
     </ErrorShell>
   )

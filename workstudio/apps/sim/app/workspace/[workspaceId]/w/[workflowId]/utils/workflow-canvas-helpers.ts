@@ -154,38 +154,63 @@ export function isInEditableElement(): boolean {
   )
 }
 
+/** Message key under `editor.triggerPaste`, with the values it interpolates. */
+interface TriggerPasteIssue {
+  key:
+    | 'legacyStartPaste'
+    | 'legacyStartDuplicate'
+    | 'singleTriggerPaste'
+    | 'singleTriggerDuplicate'
+    | 'singleBlockPaste'
+    | 'singleBlockDuplicate'
+  values?: { name: string }
+}
+
 interface TriggerValidationResult {
   isValid: boolean
-  message?: string
+  issue?: TriggerPasteIssue
 }
 
 /**
  * Validates that pasting/duplicating blocks won't violate constraints.
  * Checks both trigger constraints and single-instance block constraints.
- * Returns validation result with error message if invalid.
+ * Returns validation result with the issue to show if invalid.
  */
 export function validateTriggerPaste(
   blocksToAdd: Array<{ type: string }>,
   existingBlocks: Record<string, BlockState>,
   action: 'paste' | 'duplicate'
 ): TriggerValidationResult {
+  const isPaste = action === 'paste'
   for (const block of blocksToAdd) {
     if (TriggerUtils.isAnyTriggerType(block.type)) {
       const issue = TriggerUtils.getTriggerAdditionIssue(existingBlocks, block.type)
       if (issue) {
-        const actionText = action === 'paste' ? 'paste' : 'duplicate'
-        const message =
-          issue.issue === 'legacy'
-            ? `Cannot ${actionText} trigger blocks when a legacy Start block exists.`
-            : `A workflow can only have one ${issue.triggerName} trigger block. ${action === 'paste' ? 'Please remove the existing one before pasting.' : 'Cannot duplicate.'}`
-        return { isValid: false, message }
+        if (issue.issue === 'legacy') {
+          return {
+            isValid: false,
+            issue: { key: isPaste ? 'legacyStartPaste' : 'legacyStartDuplicate' },
+          }
+        }
+        return {
+          isValid: false,
+          issue: {
+            key: isPaste ? 'singleTriggerPaste' : 'singleTriggerDuplicate',
+            values: { name: issue.triggerName },
+          },
+        }
       }
     }
 
     const singleInstanceIssue = TriggerUtils.getSingleInstanceBlockIssue(existingBlocks, block.type)
     if (singleInstanceIssue) {
-      const message = `A workflow can only have one ${singleInstanceIssue.blockName} block. ${action === 'paste' ? 'Please remove the existing one before pasting.' : 'Cannot duplicate.'}`
-      return { isValid: false, message }
+      return {
+        isValid: false,
+        issue: {
+          key: isPaste ? 'singleBlockPaste' : 'singleBlockDuplicate',
+          values: { name: singleInstanceIssue.blockName },
+        },
+      }
     }
   }
   return { isValid: true }

@@ -38,7 +38,7 @@ export interface UseConnectorConfigFieldsResult {
     selectedOptions?: SourceSelectionLabel[]
   ) => void
   toggleCanonicalMode: (canonicalId: string) => void
-  resolveSourceConfig: () => Record<string, unknown>
+  resolveSourceConfig: () => Record<string, unknown> // i18n-ignore: TypeScript type, not interface text
 }
 
 function isMultiField(field: ConnectorConfigField | undefined): boolean {

@@ -1,6 +1,7 @@
 'use client'
 
 import { Popover, PopoverAnchor, PopoverContent, PopoverItem } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 interface EmptyAreaContextMenuProps {
   /**
@@ -51,6 +52,7 @@ export function EmptyAreaContextMenu({
   disableCreateWorkflow = false,
   disableCreateFolder = false,
 }: EmptyAreaContextMenuProps) {
+  const t = useTranslations('shell.contextMenu')
   return (
     <Popover open={isOpen} onOpenChange={(open) => !open && onClose()} size='sm'>
       <PopoverAnchor
@@ -70,7 +72,7 @@ export function EmptyAreaContextMenu({
             onClose()
           }}
         >
-          Create workflow
+          {t('createWorkflow')}
         </PopoverItem>
         <PopoverItem
           disabled={disableCreateFolder}
@@ -79,7 +81,7 @@ export function EmptyAreaContextMenu({
             onClose()
           }}
         >
-          Create folder
+          {t('createFolder')}
         </PopoverItem>
       </PopoverContent>
     </Popover>

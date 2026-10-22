@@ -4,6 +4,7 @@ import { cn, MENU_STYLES, useCopyToClipboard } from '@sim/emcn'
 import { Check, Duplicate, Pencil, Unlink } from '@sim/emcn/icons'
 import { getMarkRange } from '@tiptap/core'
 import { type Editor, useEditorState } from '@tiptap/react'
+import { useTranslations } from 'next-intl'
 import { createPortal } from 'react-dom'
 import { scrollToHeading } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/heading-anchors'
 import { normalizeLinkHref } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/markdown-fidelity'
@@ -44,6 +45,7 @@ function resolveLinkRange(editor: Editor, el: HTMLElement): LinkRange | null {
  * close delay plus the card's own hover bridge let the pointer travel from the link into the card.
  */
 export function LinkHoverCard({ editor }: LinkHoverCardProps) {
+  const t = useTranslations('files.editor.link')
   const canEdit = useEditorState({ editor, selector: ({ editor: e }) => e.isEditable })
   const [activeLink, setActiveLink] = useState<HTMLElement | null>(null)
   const [draftHref, setDraftHref] = useState<string | null>(null)
@@ -180,7 +182,7 @@ export function LinkHoverCard({ editor }: LinkHoverCardProps) {
         pointerEvents: position ? undefined : 'none',
       }}
       role='dialog'
-      aria-label='Link'
+      aria-label={t('dialog')}
       onMouseEnter={cancelHide}
       onMouseLeave={scheduleHide}
       onFocus={cancelHide}
@@ -206,7 +208,7 @@ export function LinkHoverCard({ editor }: LinkHoverCardProps) {
               editor.commands.focus()
             }}
           />
-          <ToolbarButton icon={Check} label='Apply link' disabled={!canEdit} onClick={commitEdit} />
+          <ToolbarButton icon={Check} label={t('apply')} disabled={!canEdit} onClick={commitEdit} />
         </>
       ) : (
         <>
@@ -233,13 +235,13 @@ export function LinkHoverCard({ editor }: LinkHoverCardProps) {
           )}
           <ToolbarButton
             icon={copied ? Check : Duplicate}
-            label={copied ? 'Copied' : 'Copy link'}
+            label={copied ? t('copied') : t('copy')}
             onClick={() => {
               void copy(rawHref)
             }}
           />
-          {canEdit && <ToolbarButton icon={Pencil} label='Edit link' onClick={startEdit} />}
-          {canEdit && <ToolbarButton icon={Unlink} label='Remove link' onClick={removeLink} />}
+          {canEdit && <ToolbarButton icon={Pencil} label={t('edit')} onClick={startEdit} />}
+          {canEdit && <ToolbarButton icon={Unlink} label={t('remove')} onClick={removeLink} />}
         </>
       )}
     </div>,

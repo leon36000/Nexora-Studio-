@@ -3,6 +3,7 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Badge, Checkbox, cn, Tooltip } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { parse } from 'tldts'
 import { faviconUrl } from '@/lib/core/utils/favicon'
 import type { RowExecutionMetadata, SelectOption } from '@/lib/table'
@@ -264,6 +265,7 @@ interface CellRenderProps {
 }
 
 export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactElement | null {
+  const t = useTranslations('tables.grid.cell')
   const valueText = kind.kind === 'value' ? kind.text : null
   const revealedValueText = useTypewriter(valueText)
 
@@ -306,7 +308,7 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
     case 'running':
       return (
         <Wrap isEditing={isEditing}>
-          <BadgeTooltip tip='The block is running.'>
+          <BadgeTooltip tip={t('running')}>
             <StatusBadge status='running' />
           </BadgeTooltip>
         </Wrap>
@@ -315,13 +317,7 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
     case 'pending-upstream':
       return (
         <Wrap isEditing={isEditing}>
-          <BadgeTooltip
-            tip={
-              kind.paused
-                ? 'Paused — waiting on input to resume.'
-                : 'Waiting on an earlier block in this run.'
-            }
-          >
+          <BadgeTooltip tip={kind.paused ? t('paused') : t('pendingUpstream')}>
             <StatusBadge status='pending' />
           </BadgeTooltip>
         </Wrap>
@@ -330,7 +326,7 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
     case 'cancelled':
       return (
         <Wrap isEditing={isEditing}>
-          <BadgeTooltip tip='Stopped before finishing — re-run to retry.'>
+          <BadgeTooltip tip={t('cancelled')}>
             <StatusBadge status='cancelled' />
           </BadgeTooltip>
         </Wrap>
@@ -339,9 +335,9 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
     case 'queued':
       return (
         <Wrap isEditing={isEditing}>
-          <BadgeTooltip tip='In line to run — starts when a batch slot opens.'>
+          <BadgeTooltip tip={t('queuedTip')}>
             <Badge variant='gray' dot size='sm'>
-              Queued
+              {t('queued')}
             </Badge>
           </BadgeTooltip>
         </Wrap>
@@ -350,9 +346,11 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
     case 'waiting':
       return (
         <Wrap isEditing={isEditing}>
-          <BadgeTooltip tip={`Waiting on ${kind.labels.map((l) => `"${l}"`).join(', ')}`}>
+          <BadgeTooltip
+            tip={t('waitingTip', { labels: kind.labels.map((l) => `"${l}"`).join(', ') })}
+          >
             <Badge variant='gray' dot size='sm'>
-              Waiting
+              {t('waiting')}
             </Badge>
           </BadgeTooltip>
         </Wrap>
@@ -380,7 +378,7 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
           {kind.options.length > 0 ? (
             kind.options.map((option) => <SelectPill key={option.id} option={option} />)
           ) : (
-            <span className='text-[var(--text-muted)] text-small'>None</span>
+            <span className='text-[var(--text-muted)] text-small'>{t('none')}</span>
           )}
         </span>
       )
@@ -459,9 +457,9 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
     case 'not-found':
       return (
         <Wrap isEditing={isEditing}>
-          <BadgeTooltip tip='No match found for this row.'>
+          <BadgeTooltip tip={t('notFoundTip')}>
             <Badge variant='gray' dot size='sm'>
-              Not found
+              {t('notFound')}
             </Badge>
           </BadgeTooltip>
         </Wrap>
@@ -470,9 +468,9 @@ export function CellRender({ kind, isEditing }: CellRenderProps): React.ReactEle
     case 'no-output':
       return (
         <Wrap isEditing={isEditing}>
-          <BadgeTooltip tip='Finished with no value for this cell.'>
+          <BadgeTooltip tip={t('noOutputTip')}>
             <Badge variant='gray' dot size='sm'>
-              No output
+              {t('noOutput')}
             </Badge>
           </BadgeTooltip>
         </Wrap>

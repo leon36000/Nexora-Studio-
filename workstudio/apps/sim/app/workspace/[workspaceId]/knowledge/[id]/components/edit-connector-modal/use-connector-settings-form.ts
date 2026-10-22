@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { isEqual } from 'es-toolkit'
+import { useTranslations } from 'next-intl'
 import type { UpdateConnectorBody } from '@/lib/api/contracts/knowledge/connectors'
 import type { ResourceScope } from '@/lib/core/resource-scope'
 import { isContentEngineAccessMode } from '@/lib/knowledge/connectors/access-modes'
@@ -136,6 +137,7 @@ export function useConnectorSettingsForm({
   onSaved,
   syncing = isConnectorSyncingOrPending(connector),
 }: UseConnectorSettingsFormOptions) {
+  const t = useTranslations('knowledge.connectorSettings')
   const liveSearch = isSearchIndex
   const connectorConfig = liveSearchSourceMeta(
     CONNECTOR_META_REGISTRY[connector.connectorType] ?? null,
@@ -260,9 +262,9 @@ export function useConnectorSettingsForm({
   const searchSettingsAllowed =
     searchSourceSupported && (!isSearchIndex || persistedAccess.accessMode !== 'workspace')
   const searchSetupError = !searchSourceSupported
-    ? 'This source is not supported in Search. Use a separate knowledge base.'
+    ? t('searchUnsupported')
     : !searchAccessAllowed
-      ? 'Choose Member accounts or Admin or service account for Search.'
+      ? t('searchAccessRequired')
       : null
   /** Keep existing permission-scoped settings visible after their feature is disabled. */
   const showAccessField =
@@ -297,7 +299,7 @@ export function useConnectorSettingsForm({
         })
       : undefined
   const accessSetupHint = missingAdminField
-    ? `Set ${missingAdminField.title} and save your settings before changing the connection method.`
+    ? t('missingAdminField', { field: missingAdminField.title })
     : undefined
   const accessComplete =
     searchSourceSupported &&
@@ -501,10 +503,7 @@ export function useConnectorSettingsForm({
     setContentCredentialId(connector.accessMode === 'members' ? connector.credentialId : null)
   }, [connector])
 
-  const saveBlockedReason =
-    syncing && (hasChanges || accountChanged)
-      ? 'Wait for the current sync to finish before saving.'
-      : undefined
+  const saveBlockedReason = syncing && (hasChanges || accountChanged) ? t('waitForSync') : undefined
 
   const fieldsProps: ConnectorSettingsFieldsProps = {
     gitlabPermissions: showGitLabPermissions ? gitlabPermissions : undefined,

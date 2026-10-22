@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChipInput, Info, toast } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { useSettingsUnsavedGuard } from '@/components/settings/use-settings-unsaved-guard'
 import { ON_DEMAND_UNLIMITED } from '@/lib/billing/constants'
 import { creditsToDollars, dollarsToCredits } from '@/lib/billing/credits/conversion'
@@ -13,15 +14,6 @@ import { useDebounce } from '@/hooks/use-debounce'
 
 /** Delay before a usage-limit edit is auto-saved once the user stops typing. */
 const AUTOSAVE_DELAY_MS = 1000
-
-/** Static help accessory for the usage-limit header; hoisted so it's a stable reference. */
-const USAGE_LIMIT_INFO = (
-  <Info side='top' className='text-[var(--text-muted)]'>
-    {
-      "Max usage to consume per month, set in credits — Nexora's usage unit (1,000 credits = $5). By default, it's your plan's included usage, but you can set it beyond."
-    }
-  </Info>
-)
 
 interface UsageLimitFieldProps {
   /** Current monthly usage limit, in dollars. */
@@ -50,6 +42,7 @@ export function UsageLimitField({
   context,
   organizationId,
 }: UsageLimitFieldProps) {
+  const t = useTranslations('settings.billing.usageLimit')
   const userUpdate = useUpdateUsageLimit()
   const orgUpdate = useUpdateOrganizationUsageLimit()
   const saveUserLimit = userUpdate.mutate
@@ -97,7 +90,7 @@ export function UsageLimitField({
     }
     const parsedCredits = Number.parseFloat(debouncedDraft)
     if (Number.isNaN(parsedCredits)) {
-      toast.error('Usage limit must be a number')
+      toast.error(t('mustBeNumber'))
       return
     }
     if (parsedCredits === dollarsToCredits(currentLimit)) {
@@ -106,15 +99,15 @@ export function UsageLimitField({
     }
     const minimumCredits = dollarsToCredits(minimumLimit)
     if (parsedCredits < minimumCredits) {
-      toast.error(`Usage limit must be at least ${minimumCredits.toLocaleString()} credits`)
+      toast.error(t('mustBeAtLeast', { credits: minimumCredits.toLocaleString() }))
       return
     }
 
     // Store dollars; the input is credits. Convert once at the boundary.
     const limitDollars = creditsToDollars(parsedCredits)
     const onError = (error: unknown) => {
-      toast.error("Couldn't update usage limit", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('couldNotUpdate'), {
+        description: getErrorMessage(error, t('tryAgain')),
       })
     }
 
@@ -122,8 +115,8 @@ export function UsageLimitField({
 
     if (context === 'organization') {
       if (!organizationId) {
-        toast.error("Couldn't update usage limit", {
-          description: 'Organization billing context is unavailable. Please refresh and try again.',
+        toast.error(t('couldNotUpdate'), {
+          description: t('billingContextUnavailable'),
         })
         return
       }
@@ -135,7 +128,14 @@ export function UsageLimitField({
   }, [debouncedDraft, minimumLimit, canEdit, context, organizationId, saveOrgLimit, saveUserLimit])
 
   return (
-    <SettingsSection label='Usage limit' headerAccessory={USAGE_LIMIT_INFO}>
+    <SettingsSection
+      label={t('label')}
+      headerAccessory={
+        <Info side='top' className='text-[var(--text-muted)]'>
+          {t('info')}
+        </Info>
+      }
+    >
       {/*
         Text with a numeric input mode rather than `type='number'`: the native stepper
         is all that type buys and it does not fit the chip chrome. The minimum is
@@ -148,9 +148,9 @@ export function UsageLimitField({
         onChange={(e) => setDraft(e.target.value)}
         placeholder={
           currentLimit == null
-            ? 'Enter monthly usage limit'
+            ? t('placeholder')
             : currentLimit >= ON_DEMAND_UNLIMITED
-              ? 'No Usage Limit'
+              ? t('noLimit')
               : String(dollarsToCredits(currentLimit))
         }
         disabled={!canEdit || pending}

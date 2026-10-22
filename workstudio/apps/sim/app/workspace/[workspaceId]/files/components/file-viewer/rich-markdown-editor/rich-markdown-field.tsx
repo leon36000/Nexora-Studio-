@@ -5,6 +5,8 @@ import { ChipTextarea, chipFieldSurfaceClass, cn, toast } from '@sim/emcn'
 import { formatPasteLimit, PASTE_LIMITS } from '@sim/utils/paste'
 import type { JSONContent, Range } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
+import { useTranslations } from 'next-intl'
+import { useMarkdownEditorCopy } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/editor-copy'
 import { createMarkdownEditorExtensions } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/editor-extensions'
 import { moveDraggedImageNode } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/image-drag-move'
 import {
@@ -49,10 +51,20 @@ import '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown
  */
 const BODY_PORTAL: React.RefObject<HTMLDivElement | null> = { current: null }
 
-function warnRichMarkdownPasteLimit() {
-  toast.warning('Paste is too large for rich-text editing', {
-    description: `Keep this document under ${formatPasteLimit(PASTE_LIMITS.RICH_MARKDOWN_BYTES)}, or import the content as a file.`,
-  })
+/** Field paste-limit warning; `copy` is `files.editor.paste` translated by the caller. */
+function warnRichMarkdownPasteLimit(copy: { title: string; description: string }) {
+  toast.warning(copy.title, { description: copy.description })
+}
+
+/** The field's paste-limit copy for {@link warnRichMarkdownPasteLimit}. */
+function usePasteLimitCopy(): { title: string; description: string } {
+  const t = useTranslations('files.editor.paste')
+  return {
+    title: t('tooLarge'),
+    description: t('fieldTooLargeDescription', {
+      limit: formatPasteLimit(PASTE_LIMITS.RICH_MARKDOWN_BYTES),
+    }),
+  }
 }
 
 interface RichMarkdownFieldProps {
@@ -97,7 +109,7 @@ interface RichMarkdownFieldProps {
    * file editor persists — so every embedded image stays behind workspace
    * auth and inside the existing storage lifecycle.
    */
-  uploadImage?: (file: File) => Promise<{ url: string; alt: string } | null>
+  uploadImage?: (file: File) => Promise<{ url: string; alt: string } | null> // i18n-ignore: type signature
   /**
    * Intercepts a plain-text paste before the editor handles it. Return `true` to consume the paste
    * (e.g. a full document the host destructures elsewhere); `false` to fall through to normal
@@ -137,7 +149,7 @@ interface RichMarkdownFieldProps {
 function LoadedRichMarkdownField({
   value,
   onChange,
-  placeholder = "Write something, or press '/' for commands…",
+  placeholder: placeholderProp,
   disabled = false,
   isStreaming = false,
   autoFocus = false,
@@ -153,6 +165,10 @@ function LoadedRichMarkdownField({
   proseClassName,
   editorClassName,
 }: RichMarkdownFieldProps) {
+  const t = useTranslations('files.editor')
+  const editorCopy = useMarkdownEditorCopy()
+  const pasteLimitCopy = usePasteLimitCopy()
+  const placeholder = placeholderProp ?? t('placeholder')
   const containerRef = useRef<HTMLDivElement>(null)
   const isBare = surface === 'bare'
   /* A field keeps its 140px floor; a bare surface is sized by its host. */
@@ -233,11 +249,12 @@ function LoadedRichMarkdownField({
   const [extensions] = useState(() =>
     createMarkdownEditorExtensions({
       placeholder,
+      copy: editorCopy,
       pasteAdmission: {
         maxResultBytes: PASTE_LIMITS.RICH_MARKDOWN_BYTES,
         getCurrentText: () => lastSyncedBodyRef.current,
         getFrontmatter: () => frontmatterRef.current,
-        onRejected: warnRichMarkdownPasteLimit,
+        onRejected: () => warnRichMarkdownPasteLimit(pasteLimitCopy),
       },
     })
   )
@@ -479,6 +496,7 @@ function RawMarkdownField({
   surface = 'field',
   proseClassName,
 }: RichMarkdownFieldProps) {
+  const pasteLimitCopy = usePasteLimitCopy()
   // Disabled-look without the `disabled` attribute — a disabled textarea is
   // inert to wheel/scrollbar, but locked content must stay scrollable.
   const lockedView = disabled && !isStreaming
@@ -529,7 +547,7 @@ function RawMarkdownField({
     if (admission.accepted) return
 
     event.preventDefault()
-    warnRichMarkdownPasteLimit()
+    warnRichMarkdownPasteLimit(pasteLimitCopy)
   }
 
   /* A bare host paints its own surface, so the raw fallback is a plain

@@ -1,3 +1,25 @@
 # Dossiers ou fichiers dont tout le texte d'interface passe par next-intl (scripts/check-i18n.sh).
-# La liste s'allonge à chaque sous-tâche 6.x.
-workstudio/apps/sim/app/workspace/[workspaceId]/settings/components/general/components/language-select.tsx
+# 6.1 Connexion, inscription, erreurs
+workstudio/apps/sim/app/(auth)
+workstudio/apps/sim/app/not-found.tsx
+workstudio/apps/sim/app/global-error.tsx
+workstudio/apps/sim/app/workspace/[workspaceId]/error.tsx
+workstudio/apps/sim/app/workspace/[workspaceId]/not-found.tsx
+# 6.2 Coquille et navigation
+workstudio/apps/sim/app/workspace/[workspaceId]/w/components/sidebar
+workstudio/apps/sim/app/workspace/[workspaceId]/components
+# 6.4 Éditeur de workflow
+workstudio/apps/sim/app/workspace/[workspaceId]/w/[workflowId]
+# 6.5 Journaux et intégrations
+workstudio/apps/sim/app/workspace/[workspaceId]/logs
+workstudio/apps/sim/app/workspace/[workspaceId]/integrations
+# 6.6 Réglages
+workstudio/apps/sim/app/workspace/[workspaceId]/settings
+workstudio/apps/sim/components/settings
+# 6.7 Tables, fichiers, connaissances
+workstudio/apps/sim/app/workspace/[workspaceId]/tables
+workstudio/apps/sim/app/workspace/[workspaceId]/files
+workstudio/apps/sim/app/workspace/[workspaceId]/knowledge
+# Gouvernance Nexora (tâche 9)
+workstudio/apps/sim/ee/audit-logs
+workstudio/apps/sim/ee/organization-usage/components/usage-monitoring.tsx

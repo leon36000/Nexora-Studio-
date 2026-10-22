@@ -1,6 +1,7 @@
 'use client'
 
 import { ChipDropdown } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type {
   ConnectorDocumentFilter,
   ConnectorDocumentsData,
@@ -19,21 +20,21 @@ export function ConnectorDocumentStatusFilter({
   counts = { active: 0, excluded: 0, failed: 0, skipped: 0 },
   isLoading,
 }: ConnectorDocumentStatusFilterProps) {
+  const t = useTranslations('knowledge.connectorDocuments.statusFilter')
+  const option = (status: ConnectorDocumentFilter) => ({
+    value: status,
+    label: isLoading ? t(status) : t('withCount', { label: t(status), count: counts[status] }),
+  })
   return (
     <ChipDropdown
-      aria-label='Document status'
+      aria-label={t('ariaLabel')}
       value={filter}
       onChange={(value) => {
         if (value === 'active' || value === 'excluded' || value === 'failed' || value === 'skipped')
           onFilterChange(value)
       }}
       matchTriggerWidth={false}
-      options={[
-        { value: 'active', label: isLoading ? 'Included' : `Included (${counts.active})` },
-        { value: 'excluded', label: isLoading ? 'Excluded' : `Excluded (${counts.excluded})` },
-        { value: 'failed', label: isLoading ? 'Failed' : `Failed (${counts.failed})` },
-        { value: 'skipped', label: isLoading ? 'Skipped' : `Skipped (${counts.skipped})` },
-      ]}
+      options={[option('active'), option('excluded'), option('failed'), option('skipped')]}
     />
   )
 }

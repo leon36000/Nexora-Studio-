@@ -1,6 +1,7 @@
 'use client'
 import { Chip, cn } from '@sim/emcn'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { isSsoEnabled } from '@/lib/core/config/env-flags'
 import { AUTH_BUTTON_CLASS } from '@/app/(auth)/components/constants'
 
@@ -16,6 +17,7 @@ export function SSOLoginButton({
   variant = 'outline',
 }: SSOLoginButtonProps) {
   const router = useRouter()
+  const t = useTranslations('auth.sso')
 
   if (!isSsoEnabled) {
     return null
@@ -37,7 +39,7 @@ export function SSOLoginButton({
         className
       )}
     >
-      Sign in with SSO
+      {t('signIn')}
     </Chip>
   )
 }

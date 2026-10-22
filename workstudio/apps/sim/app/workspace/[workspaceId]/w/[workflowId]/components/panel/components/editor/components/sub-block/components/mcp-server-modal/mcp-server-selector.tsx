@@ -1,6 +1,7 @@
 'use client'
 
 import { Combobox } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { McpIcon } from '@/components/icons'
 import { getMcpTargetOptions } from '@/components/mcp/target-options'
 import { getManagedMcpConnectorIcon } from '@/lib/credential-groups/managed-mcp-connector-icons'
@@ -27,6 +28,7 @@ export function McpServerSelector({
   isPreview = false,
   previewValue,
 }: McpServerSelectorProps) {
+  const t = useTranslations('editor.subBlock.mcpServerModal')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
 
@@ -35,7 +37,7 @@ export function McpServerSelector({
 
   const [storeValue, setStoreValue] = useSubBlockValue(blockId, subBlock.id)
 
-  const label = subBlock.placeholder || 'Select MCP server'
+  const label = subBlock.placeholder || t('selectServer')
 
   const effectiveValue = isPreview && previewValue !== undefined ? previewValue : storeValue
   const selectedServerId = effectiveValue || ''

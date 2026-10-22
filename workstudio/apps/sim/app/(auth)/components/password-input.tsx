@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChipInput, type ChipInputProps, cn } from '@sim/emcn'
 import { Eye, EyeOff } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { AUTH_CONTROL_HEIGHT } from '@/app/(auth)/components/constants'
 
 type PasswordInputProps = Omit<ChipInputProps, 'type' | 'icon' | 'endAdornment'>
@@ -14,6 +15,7 @@ type PasswordInputProps = Omit<ChipInputProps, 'type' | 'icon' | 'endAdornment'>
  * absolutely positioned button the auth forms previously duplicated four times.
  */
 export function PasswordInput({ error, className, ...props }: PasswordInputProps) {
+  const t = useTranslations('auth.passwordInput')
   const [visible, setVisible] = useState(false)
 
   return (
@@ -26,7 +28,7 @@ export function PasswordInput({ error, className, ...props }: PasswordInputProps
         <button
           type='button'
           onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? 'Hide password' : 'Show password'}
+          aria-label={visible ? t('hide') : t('show')}
           className='flex shrink-0 text-[var(--text-icon)] transition-colors hover:text-[var(--text-primary)]'
         >
           {visible ? <EyeOff className='size-[14px]' /> : <Eye className='size-[14px]' />}

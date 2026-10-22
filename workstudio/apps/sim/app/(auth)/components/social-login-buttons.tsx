@@ -4,6 +4,7 @@ import { type ReactNode, useState } from 'react'
 import { Chip, cn } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { GithubIcon, GoogleIcon, MicrosoftIcon } from '@/components/icons'
 import { type SocialSignInProvider, startSocialSignIn } from '@/lib/auth/social-sign-in'
 import { DEFAULT_POST_AUTH_ROUTE } from '@/app/(auth)/auth-redirect'
@@ -35,6 +36,7 @@ export function SocialLoginButtons({
   callbackURL = DEFAULT_POST_AUTH_ROUTE,
   children,
 }: SocialLoginButtonsProps) {
+  const t = useTranslations('auth.social')
   const [loadingProvider, setLoadingProvider] = useState<SocialSignInProvider | null>(null)
 
   const available: Record<SocialSignInProvider, boolean> = {
@@ -69,7 +71,7 @@ export function SocialLoginButtons({
           disabled={loadingProvider !== null}
           onClick={() => signIn(provider, label)}
         >
-          {loadingProvider === provider ? 'Connecting…' : label}
+          {loadingProvider === provider ? t('connecting') : label}
         </Chip>
       ))}
       {children}

@@ -14,7 +14,7 @@ import {
 } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { generateId } from '@sim/utils/id'
-import { FIELD_TYPE_LABELS, getPlaceholderForFieldType } from '@/lib/knowledge/constants'
+import { useTranslations } from 'next-intl'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import { TagDropdown } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/tag-dropdown/tag-dropdown'
 import { getActiveWorkflowSearchHighlight } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/workflow-search-highlight'
@@ -46,6 +46,13 @@ interface DocumentTagEntryProps {
   previewContextValues?: Record<string, unknown>
 }
 
+const KNOWN_FIELD_TYPES = ['text', 'number', 'date', 'boolean'] as const
+
+type KnownFieldType = (typeof KNOWN_FIELD_TYPES)[number]
+
+const isKnownFieldType = (fieldType: string): fieldType is KnownFieldType =>
+  (KNOWN_FIELD_TYPES as readonly string[]).includes(fieldType)
+
 /**
  * Creates a new document tag with default values
  */
@@ -65,6 +72,7 @@ export function DocumentTagEntry({
   previewValue,
   previewContextValues,
 }: DocumentTagEntryProps) {
+  const t = useTranslations('editor.subBlock.documentTagEntry')
   const activeSearchTarget = useActiveSearchTarget()
   const [storeValue, setStoreValue] = useSubBlockValue<string>(blockId, subBlock.id)
   const accessiblePrefixes = useAccessibleReferencePrefixes(blockId)
@@ -100,10 +108,10 @@ export function DocumentTagEntry({
   const currentValue = isPreview ? previewValue : storeValue
 
   const parseTags = (tagValue: unknown): DocumentTag[] =>
-    parseJsonArrayValue<DocumentTag>(tagValue).map((t) => ({
-      ...t,
-      fieldType: t.fieldType || 'text',
-      collapsed: t.collapsed ?? false,
+    parseJsonArrayValue<DocumentTag>(tagValue).map((entry) => ({
+      ...entry,
+      fieldType: entry.fieldType || 'text',
+      collapsed: entry.collapsed ?? false,
     }))
 
   const parsedTags = parseTags(currentValue)
@@ -112,7 +120,7 @@ export function DocumentTagEntry({
 
   // Get tag names already used (case-insensitive)
   const usedTagNames = useMemo(() => {
-    return new Set(tags.map((t) => t.tagName?.toLowerCase()).filter((name) => name?.trim()))
+    return new Set(tags.map((entry) => entry.tagName?.toLowerCase()).filter((name) => name?.trim()))
   }, [tags])
 
   // Filter available tags (exclude already used ones)
@@ -148,7 +156,7 @@ export function DocumentTagEntry({
       // Reset the last tag instead of removing it
       updateTags([createDefaultTag()])
     } else {
-      updateTags(tags.filter((t) => t.id !== id))
+      updateTags(tags.filter((entry) => entry.id !== id))
     }
   }
 
@@ -158,23 +166,23 @@ export function DocumentTagEntry({
   const updateTag = (id: string, field: keyof DocumentTag, value: any) => {
     if (isReadOnly) return
 
-    const updatedTags = tags.map((t) => {
-      if (t.id === id) {
-        const updated = { ...t, [field]: value }
+    const updatedTags = tags.map((entry) => {
+      if (entry.id === id) {
+        const updated = { ...entry, [field]: value }
 
         // When tag name changes, update tagSlot and fieldType, clear value
         if (field === 'tagName') {
           const tagDef = tagDefinitions.find((def) => def.displayName === value)
           updated.tagSlot = tagDef?.tagSlot
           updated.fieldType = tagDef?.fieldType || 'text'
-          if (t.tagName !== value) {
+          if (entry.tagName !== value) {
             updated.value = ''
           }
         }
 
         return updated
       }
-      return t
+      return entry
     })
 
     updateTags(updatedTags)
@@ -186,7 +194,7 @@ export function DocumentTagEntry({
   const handleTagDropdownSelection = (id: string, value: string) => {
     if (isReadOnly) return
 
-    const updatedTags = tags.map((t) => (t.id === id ? { ...t, value } : t))
+    const updatedTags = tags.map((entry) => (entry.id === id ? { ...entry, value } : entry))
     const jsonValue = updatedTags.length > 0 ? JSON.stringify(updatedTags) : ''
     emitTagSelection(jsonValue)
   }
@@ -196,7 +204,9 @@ export function DocumentTagEntry({
    */
   const toggleCollapse = (id: string) => {
     if (isReadOnly) return
-    updateTags(tags.map((t) => (t.id === id ? { ...t, collapsed: !t.collapsed } : t)))
+    updateTags(
+      tags.map((entry) => (entry.id === id ? { ...entry, collapsed: !entry.collapsed } : entry))
+    )
   }
 
   /**
@@ -208,12 +218,12 @@ export function DocumentTagEntry({
   }
 
   if (isPreview) {
-    const tagCount = tags.filter((t) => t.tagName?.trim()).length
+    const tagCount = tags.filter((entry) => entry.tagName?.trim()).length
     return (
       <div className='space-y-1'>
-        <Label className='text-muted-foreground text-xs'>Document Tags</Label>
+        <Label className='text-muted-foreground text-xs'>{t('title')}</Label>
         <div className='text-muted-foreground text-sm'>
-          {tagCount > 0 ? `${tagCount} tag(s) configured` : 'No tags'}
+          {tagCount > 0 ? t('configuredCount', { count: tagCount }) : t('noTags')}
         </div>
       </div>
     )
@@ -223,12 +233,8 @@ export function DocumentTagEntry({
     return (
       <div className='flex h-32 items-center justify-center rounded-sm border border-[var(--border-1)] border-dashed bg-[var(--surface-3)] dark:bg-[var(--code-bg)]'>
         <div className='text-center'>
-          <p className='text-[var(--text-secondary)] text-sm'>
-            No tags defined for this knowledge base
-          </p>
-          <p className='mt-1 text-[var(--text-muted)] text-xs'>
-            Define tags at the knowledge base level first
-          </p>
+          <p className='text-[var(--text-secondary)] text-sm'>{t('emptyTitle')}</p>
+          <p className='mt-1 text-[var(--text-muted)] text-xs'>{t('emptyDescription')}</p>
         </div>
       </div>
     )
@@ -241,7 +247,7 @@ export function DocumentTagEntry({
   const renderTagHeader = (tag: DocumentTag, index: number) => (
     <div
       role='group'
-      aria-label={`Tag ${index + 1}`}
+      aria-label={t('tagTitle', { number: index + 1 })}
       className='flex cursor-pointer items-center justify-between rounded-t-[4px] bg-[var(--surface-4)] px-2.5 py-[5px]'
       onClick={() => toggleCollapse(tag.id)}
       onKeyDown={(event) => {
@@ -251,11 +257,15 @@ export function DocumentTagEntry({
     >
       <div className='flex min-w-0 flex-1 items-center gap-2'>
         <span className='block truncate text-[var(--text-tertiary)] text-sm'>
-          {tag.collapsed ? tag.tagName || `Tag ${index + 1}` : `Tag ${index + 1}`}
+          {tag.collapsed
+            ? tag.tagName || t('tagTitle', { number: index + 1 })
+            : t('tagTitle', { number: index + 1 })}
         </span>
         {tag.collapsed && tag.tagName && (
           <Badge variant='type' size='sm'>
-            {FIELD_TYPE_LABELS[tag.fieldType] || 'Text'}
+            {isKnownFieldType(tag.fieldType)
+              ? t(`fieldTypes.${tag.fieldType}`)
+              : t('fieldTypes.text')}
           </Badge>
         )}
       </div>
@@ -271,7 +281,7 @@ export function DocumentTagEntry({
           className='h-auto p-0'
         >
           <Plus className='size-[14px]' />
-          <span className='sr-only'>Add Tag</span>
+          <span className='sr-only'>{t('addTagSr')}</span>
         </Button>
         <Button
           variant='ghost'
@@ -280,7 +290,7 @@ export function DocumentTagEntry({
           className='h-auto p-0 text-[var(--text-error)] hover-hover:text-[var(--text-error)]'
         >
           <Trash className='size-[14px]' />
-          <span className='sr-only'>Delete Tag</span>
+          <span className='sr-only'>{t('deleteTagSr')}</span>
         </Button>
       </div>
     </div>
@@ -292,7 +302,9 @@ export function DocumentTagEntry({
   const renderValueInput = (tag: DocumentTag) => {
     const fieldValue = tag.value || ''
     const cellKey = `${tag.id}-value`
-    const placeholder = getPlaceholderForFieldType(tag.fieldType)
+    const placeholder = isKnownFieldType(tag.fieldType)
+      ? t(`placeholders.${tag.fieldType}`)
+      : t('placeholders.text')
     const tagIndex = tags.findIndex((candidate) => candidate.id === tag.id)
     const workflowSearchHighlight = getActiveWorkflowSearchHighlight({
       activeSearchTarget,
@@ -378,26 +390,26 @@ export function DocumentTagEntry({
       (def) => def.displayName === tag.tagName || !usedTagNames.has(def.displayName.toLowerCase())
     )
 
-    const tagOptions: ComboboxOption[] = selectableTags.map((t) => ({
-      value: t.displayName,
-      label: t.displayName,
+    const tagOptions: ComboboxOption[] = selectableTags.map((entry) => ({
+      value: entry.displayName,
+      label: entry.displayName,
     }))
 
     return (
       <div className='flex flex-col gap-2 rounded-b-[4px] border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 pt-1.5 pb-2.5'>
         <div className='flex flex-col gap-1.5'>
-          <Label className='text-small'>Tag</Label>
+          <Label className='text-small'>{t('tag')}</Label>
           <Combobox
             options={tagOptions}
             value={tag.tagName}
             onChange={(value) => updateTag(tag.id, 'tagName', value)}
             disabled={isReadOnly || isLoading}
-            placeholder='Select tag'
+            placeholder={t('selectTag')}
           />
         </div>
 
         <div className='flex flex-col gap-1.5'>
-          <Label className='text-small'>Value</Label>
+          <Label className='text-small'>{t('value')}</Label>
           {renderValueInput(tag)}
         </div>
       </div>

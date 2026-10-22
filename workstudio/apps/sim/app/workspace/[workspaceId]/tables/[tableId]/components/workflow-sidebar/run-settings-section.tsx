@@ -1,6 +1,7 @@
 'use client'
 
 import { ChipCombobox, Label } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { ColumnDefinition } from '@/lib/table'
 import { getColumnId } from '@/lib/table/column-keys'
 
@@ -27,26 +28,31 @@ export function RunSettingsSection({
   onChangeDeps,
   error,
 }: RunSettingsSectionProps) {
+  const t = useTranslations('tables.sidebar')
   const options = depOptions.map((c) => ({ label: c.name, value: getColumnId(c) }))
 
   return (
     <div className='flex flex-col gap-[9.5px]'>
-      <Label className='flex items-baseline gap-1.5 whitespace-nowrap pl-0.5'>Run after</Label>
+      <Label className='flex items-baseline gap-1.5 whitespace-nowrap pl-0.5'>
+        {t('runAfter')}
+      </Label>
       <ChipCombobox
         multiSelect
         searchable
-        searchPlaceholder='Search…'
+        searchPlaceholder={t('search')}
         className='w-full'
         dropdownWidth='trigger'
         maxHeight={240}
         disabled={depOptions.length === 0}
-        emptyMessage='No upstream columns.'
+        emptyMessage={t('noUpstreamColumns')}
         options={options}
         multiSelectValues={deps}
         onMultiSelectChange={onChangeDeps}
         overlayContent={
           <span className='truncate text-[var(--text-tertiary)]'>
-            {deps.length === 0 ? 'Select at least one column' : `${deps.length} selected`}
+            {deps.length === 0
+              ? t('selectAtLeastOneColumn')
+              : t('selectedCount', { count: deps.length })}
           </span>
         }
       />

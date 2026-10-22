@@ -15,6 +15,7 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { MoreHorizontal } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { orderHeaderActions, type SettingsAction } from '@/components/settings/settings-header'
 import type { ConnectorActionState } from '@/app/workspace/[workspaceId]/knowledge/[id]/components/connectors-section/use-connector-actions'
 
@@ -29,6 +30,7 @@ interface ConnectorActionsProps {
 }
 
 export function ConnectorActions({ state, triggerRef, history }: ConnectorActionsProps) {
+  const t = useTranslations('knowledge.connectors')
   if (!state.canEdit && !history) return null
   const actions = orderHeaderActions([
     ...state.actions,
@@ -36,7 +38,7 @@ export function ConnectorActions({ state, triggerRef, history }: ConnectorAction
       ? [
           {
             id: 'history',
-            text: history.expanded ? 'Hide history' : 'Sync history',
+            text: history.expanded ? t('hideHistory') : t('syncHistory'),
             onSelect: history.onToggle,
           },
         ]
@@ -45,7 +47,7 @@ export function ConnectorActions({ state, triggerRef, history }: ConnectorAction
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Chip ref={triggerRef} aria-label='Connection actions' leftIcon={MoreHorizontal} />
+        <Chip ref={triggerRef} aria-label={t('actionsLabel')} leftIcon={MoreHorizontal} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
         {actions.map(({ action }, index) => (
@@ -99,6 +101,7 @@ interface ConnectorActionFeedbackProps {
 
 export function ConnectorActionFeedback({ state }: ConnectorActionFeedbackProps) {
   const deleteDocumentsId = useId()
+  const t = useTranslations('knowledge.connectors.remove')
   if (!state.canEdit) return null
   const { removal } = state
   return (
@@ -111,22 +114,18 @@ export function ConnectorActionFeedback({ state }: ConnectorActionFeedbackProps)
       <ChipConfirmModal
         open={removal.open}
         onOpenChange={removal.onOpenChange}
-        title='Remove connection'
-        text={
-          removal.requiresDocumentDeletion
-            ? 'This removes the connection, stops future syncs, and deletes its synced documents from Nexora.'
-            : 'This removes the connection and stops future syncs. Synced documents remain unless you delete them below.'
-        }
+        title={t('title')}
+        text={removal.requiresDocumentDeletion ? t('textWithDocuments') : t('text')}
         confirm={{
-          label: 'Remove',
+          label: t('confirm'),
           pending: removal.pending,
           disabled: removal.disabled,
-          pendingLabel: 'Removing…',
+          pendingLabel: t('pending'),
           onClick: removal.onConfirm,
         }}
       >
         {!removal.requiresDocumentDeletion && (
-          <ChipModalField type='custom' title='Documents'>
+          <ChipModalField type='custom' title={t('documents')}>
             <div className='flex items-center gap-2'>
               <Checkbox
                 id={deleteDocumentsId}
@@ -134,7 +133,7 @@ export function ConnectorActionFeedback({ state }: ConnectorActionFeedbackProps)
                 disabled={removal.pending}
                 onCheckedChange={(checked) => removal.setDeleteDocuments(checked === true)}
               />
-              <label htmlFor={deleteDocumentsId}>Also delete synced documents</label>
+              <label htmlFor={deleteDocumentsId}>{t('alsoDeleteDocuments')}</label>
             </div>
           </ChipModalField>
         )}

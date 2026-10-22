@@ -11,6 +11,7 @@ import {
   Info,
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import {
   useOrganizationMemberUsageLimit,
   useUpdateOrganizationMemberUsageLimit,
@@ -46,6 +47,8 @@ export function ManageCreditsModal({
   organizationId,
   member,
 }: ManageCreditsModalProps) {
+  const t = useTranslations('settings.manageCredits')
+  const tShared = useTranslations('settings.shared')
   const userId = member?.userId
   const { data, isLoading } = useOrganizationMemberUsageLimit(organizationId, userId, open)
   const updateLimit = useUpdateOrganizationMemberUsageLimit()
@@ -78,13 +81,15 @@ export function ManageCreditsModal({
 
   const creditsUsed = data ? data.creditsUsed.toLocaleString() : '—'
   const creditsUsedTitle = data
-    ? `Credits used this ${data.billingInterval === 'year' ? 'year' : 'month'}`
-    : 'Credits used'
+    ? data.billingInterval === 'year'
+      ? t('creditsUsedThisYear')
+      : t('creditsUsedThisMonth')
+    : t('creditsUsed')
 
   const handleSave = () => {
     if (!userId) return
     if (!isValid) {
-      setError('Enter a whole number of credits, or leave blank for no limit.')
+      setError(t('invalidLimit'))
       return
     }
     setError(null)
@@ -92,22 +97,22 @@ export function ManageCreditsModal({
       { orgId: organizationId, userId, creditLimit: parsedLimit },
       {
         onSuccess: () => onOpenChange(false),
-        onError: (err) => setError(getErrorMessage(err, 'Failed to update credit limit')),
+        onError: (err) => setError(getErrorMessage(err, t('updateFailed'))),
       }
     )
   }
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Manage credits'>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('title')}>
       <ChipModalHeader onClose={() => onOpenChange(false)}>
-        {member ? `Manage credits — ${member.name || member.email}` : 'Manage credits'}
+        {member ? t('titleForMember', { name: member.name || member.email || '' }) : t('title')}
       </ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='copy'
           title={creditsUsedTitle}
-          value={isLoading ? 'Loading…' : creditsUsed}
-          copyLabel='Copy credits used'
+          value={isLoading ? t('loading') : creditsUsed}
+          copyLabel={t('copyCreditsUsed')}
         />
         {/*
           Text with a numeric input mode, not `inputType='number'` — the same choice
@@ -122,12 +127,8 @@ export function ManageCreditsModal({
           inputMode='numeric'
           title={
             <span className='inline-flex items-center gap-1.5'>
-              Credit limit
-              <Info side='top'>
-                {
-                  "Set in credits — Nexora's usage unit (1,000 credits = $5). Caps this member's usage across this organization's workspaces each billing period."
-                }
-              </Info>
+              {t('creditLimit')}
+              <Info side='top'>{t('creditLimitInfo')}</Info>
             </span>
           }
           value={draft}
@@ -135,8 +136,8 @@ export function ManageCreditsModal({
             hasEditedRef.current = true
             setDraft(value)
           }}
-          placeholder='No limit'
-          hint='Leave blank for no limit.'
+          placeholder={t('noLimit')}
+          hint={t('noLimitHint')}
           disabled={isLoading || isSaving}
         />
         <ChipModalError>{error}</ChipModalError>
@@ -145,7 +146,7 @@ export function ManageCreditsModal({
         onCancel={() => onOpenChange(false)}
         cancelDisabled={isSaving}
         primaryAction={{
-          label: isSaving ? 'Saving…' : 'Save',
+          label: isSaving ? t('saving') : tShared('save'),
           onClick: handleSave,
           disabled: !isValid || !isDirty || isSaving || isLoading,
         }}

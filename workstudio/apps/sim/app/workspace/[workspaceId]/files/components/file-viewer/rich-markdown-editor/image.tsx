@@ -5,6 +5,7 @@ import { NodeSelection, Plugin } from '@tiptap/pm/state'
 import type { ReactNodeViewProps } from '@tiptap/react'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import { type ProsemirrorBinding, ySyncPluginKey } from '@tiptap/y-tiptap'
+import { useTranslations } from 'next-intl'
 import {
   MarkdownImage,
   MarkdownInlineImage,
@@ -25,6 +26,7 @@ const PIXEL_SIZE = /^\d+(?:\.\d+)?px$/
  * commits the new pixel width to the `width` attribute, which serializes to `<img width>`.
  */
 export function ResizableImageView({ node, selected, editor, getPos }: ReactNodeViewProps) {
+  const t = useTranslations('files.editor.images')
   const source = useFileContentSource()
   const imageRef = useRef<HTMLImageElement>(null)
   const dragAbortRef = useRef<AbortController | null>(null)
@@ -282,7 +284,7 @@ export function ResizableImageView({ node, selected, editor, getPos }: ReactNode
           type='button'
           variant='ghost'
           size='icon'
-          aria-label='Resize image'
+          aria-label={t('resize')}
           onPointerDown={startResize}
           className='absolute right-0 bottom-0 flex size-10 cursor-nwse-resize touch-none items-end justify-end p-1 sm:size-8'
         >

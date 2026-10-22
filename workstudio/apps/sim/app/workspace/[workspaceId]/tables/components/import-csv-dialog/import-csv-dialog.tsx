@@ -24,6 +24,7 @@ import {
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { truncate } from '@sim/utils/string'
+import { useTranslations } from 'next-intl'
 import {
   buildAutoMapping,
   CSV_DELIMITER_SNIFF_BYTES,
@@ -56,13 +57,16 @@ const SKIP_VALUE = '__ skip __'
  */
 const CREATE_VALUE = '__ create __'
 
+/** Translator scoped to the `tables.importCsv` namespace. */
+type Translate = (key: string, values?: Record<string, string | number>) => string
+
 /**
  * Converts the verbose backend error messages into a short, human-friendly
  * summary suitable for the modal footer. Specifically collapses repeated
  * `Row N: Column "X" must be unique. Value "Y" already exists in row M`
  * segments into a single concise summary.
  */
-function summarizeImportError(message: string): string {
+function summarizeImportError(message: string, t: Translate): string {
   const uniqueMatches = [
     ...message.matchAll(/Column\s+"([^"]+)"\s+must be unique\.\s+Value\s+"([^"]+)"/g),
   ]
@@ -74,13 +78,13 @@ function summarizeImportError(message: string): string {
       .map((v) => `"${v}"`)
       .join(', ')
     const extra = values.length - MAX_EXAMPLES_IN_ERROR
-    const suffix = extra > 0 ? `, +${extra} more` : ''
-    return `${values.length} row${values.length === 1 ? '' : 's'} conflict on unique column "${column}" (${preview}${suffix})`
+    const suffix = extra > 0 ? t('errors.moreSuffix', { extra }) : ''
+    return t('errors.uniqueConflict', { count: values.length, column, preview, suffix })
   }
 
   const requiredMatch = message.match(/missing required columns?:\s*(.+)/i)
   if (requiredMatch) {
-    return `Missing required column(s): ${requiredMatch[1].replace(/[.;]+$/, '')}`
+    return t('errors.missingRequired', { columns: requiredMatch[1].replace(/[.;]+$/, '') })
   }
 
   const rowLimitMatch = message.match(/row limit[^.;]*/i)
@@ -138,6 +142,7 @@ export function ImportCsvDialog({
   table,
   onImported,
 }: ImportCsvDialogProps) {
+  const t = useTranslations('tables.importCsv')
   const [parsed, setParsed] = useState<ParsedCsv | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -176,22 +181,22 @@ export function ImportCsvDialog({
 
   const columnOptions: ComboboxOption[] = useMemo(() => {
     const options: ComboboxOption[] = [
-      { label: 'Do not import', value: SKIP_VALUE },
-      ...(canCreateColumns ? [{ label: '+ Create new column', value: CREATE_VALUE }] : []),
+      { label: t('mapping.doNotImport'), value: SKIP_VALUE },
+      ...(canCreateColumns ? [{ label: t('mapping.createNewColumn'), value: CREATE_VALUE }] : []),
     ]
     for (const col of table.schema.columns) {
       options.push({
-        label: col.required ? `${col.name} (required)` : col.name,
+        label: col.required ? t('mapping.requiredColumn', { name: col.name }) : col.name,
         value: col.name,
       })
     }
     return options
-  }, [table.schema.columns, canCreateColumns])
+  }, [table.schema.columns, canCreateColumns, t])
 
   async function handleFileSelected(file: File) {
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (ext !== 'csv' && ext !== 'tsv') {
-      setParseError('Only CSV and TSV files are supported')
+      setParseError(t('errors.unsupportedFile'))
       return
     }
     setParsing(true)
@@ -206,7 +211,7 @@ export function ImportCsvDialog({
       })
       setMapping(autoMapping)
     } catch (err) {
-      const message = getErrorMessage(err, 'Failed to parse CSV')
+      const message = getErrorMessage(err, t('errors.parseFailed'))
       logger.error('CSV parse failed', err)
       setParseError(message)
     } finally {
@@ -314,7 +319,7 @@ export function ImportCsvDialog({
 
     let importId: string | null = null
     onOpenChange(false)
-    toast.success(`Importing "${parsed.file.name}" into "${table.name}" in the background`)
+    toast.success(t('importingInBackground', { file: parsed.file.name, table: table.name }))
     importMutation.mutate(
       {
         workspaceId,
@@ -346,7 +351,7 @@ export function ImportCsvDialog({
         },
         onError: (error) => {
           if (importId) useImportTrayStore.getState().endUpload(importId)
-          setSubmitError(summarizeImportError(error.message))
+          setSubmitError(summarizeImportError(error.message, t))
         },
       }
     )
@@ -358,52 +363,52 @@ export function ImportCsvDialog({
     <ChipModal
       open={open}
       onOpenChange={handleOpenChange}
-      srTitle={`Import CSV into ${table.name}`}
+      srTitle={t('titleInto', { name: table.name })}
       size='lg'
     >
       <ChipModalHeader onClose={() => handleOpenChange(false)}>
-        Import CSV into {table.name}
+        {t('titleInto', { name: table.name })}
       </ChipModalHeader>
       <ChipModalBody>
         {!parsed ? (
           <ChipModalField
             type='file'
-            title='Import CSV'
+            title={t('title')}
             accept='.csv,.tsv'
             disabled={parsing}
             onChange={handleFilesSelected}
-            label={parsing ? 'Parsing...' : 'Drop CSV or TSV here or click to browse'}
-            description='Map columns to append or replace rows in this table'
+            label={parsing ? t('parsing') : t('dropzone')}
+            description={t('dropzoneDescription')}
             error={parseError ?? undefined}
           />
         ) : (
           <>
-            <ChipModalField type='custom' title='File'>
+            <ChipModalField type='custom' title={t('file')}>
               <div className='flex items-center justify-between gap-3 rounded-sm border border-[var(--border)] p-2'>
                 <div className='flex min-w-0 flex-col'>
                   <span className='truncate text-[var(--text-primary)] text-caption'>
                     {parsed.file.name}
                   </span>
                   <span className='text-[var(--text-tertiary)] text-xs'>
-                    {parsed.headers.length} columns
+                    {t('columnCount', { count: parsed.headers.length })}
                   </span>
                 </div>
                 <Button variant='ghost' size='sm' onClick={resetState}>
-                  Change file
+                  {t('changeFile')}
                 </Button>
               </div>
             </ChipModalField>
 
-            <ChipModalField type='custom' title='Mode'>
+            <ChipModalField type='custom' title={t('mode')}>
               <ChipButtonGroup value={mode} onValueChange={handleModeChange}>
-                <ChipButtonGroupItem value='append'>Append</ChipButtonGroupItem>
+                <ChipButtonGroupItem value='append'>{t('append')}</ChipButtonGroupItem>
                 {canReplace && (
-                  <ChipButtonGroupItem value='replace'>Replace all rows</ChipButtonGroupItem>
+                  <ChipButtonGroupItem value='replace'>{t('replaceAll')}</ChipButtonGroupItem>
                 )}
               </ChipButtonGroup>
             </ChipModalField>
 
-            <ChipModalField type='custom' title='Column mapping'>
+            <ChipModalField type='custom' title={t('mapping.title')}>
               {skipCount > 0 && (
                 <div className='flex justify-end'>
                   <Button
@@ -412,7 +417,7 @@ export function ImportCsvDialog({
                     disabled={!canCreateColumns}
                     onClick={handleCreateAllUnmapped}
                   >
-                    Create columns for {skipCount} unmapped
+                    {t('mapping.createForUnmapped', { count: skipCount })}
                   </Button>
                 </div>
               )}
@@ -421,8 +426,8 @@ export function ImportCsvDialog({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>CSV column</TableHead>
-                        <TableHead>Target column</TableHead>
+                        <TableHead>{t('mapping.csvColumn')}</TableHead>
+                        <TableHead>{t('mapping.targetColumn')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -468,30 +473,27 @@ export function ImportCsvDialog({
                 </div>
               </div>
               <span className='text-[var(--text-tertiary)] text-xs'>
-                {mappedCount} mapped
-                {createCount > 0
-                  ? ` · ${createCount} new column${createCount === 1 ? '' : 's'}`
-                  : ''}
+                {t('mapping.mapped', { count: mappedCount })}
+                {createCount > 0 ? t('mapping.newColumns', { count: createCount }) : ''}
                 {' · '}
-                {skipCount} skipped
+                {t('mapping.skipped', { count: skipCount })}
               </span>
             </ChipModalField>
 
             {missingRequired.length > 0 && (
               <ChipModalError>
-                Missing required column(s): {missingRequired.join(', ')}
+                {t('errors.missingRequired', { columns: missingRequired.join(', ') })}
               </ChipModalError>
             )}
             {duplicateTargets.length > 0 && (
               <ChipModalError>
-                Multiple CSV columns target: {duplicateTargets.join(', ')} (pick one)
+                {t('errors.duplicateTargets', { columns: duplicateTargets.join(', ') })}
               </ChipModalError>
             )}
 
             {mode === 'replace' && !hasWarning && (
               <ChipModalError>
-                Replace will permanently delete the {table.rowCount.toLocaleString()} existing
-                row(s) before inserting the new rows.
+                {t('replaceWarning', { rows: table.rowCount.toLocaleString() })}
               </ChipModalError>
             )}
 
@@ -506,11 +508,11 @@ export function ImportCsvDialog({
         primaryAction={{
           label: importMutation.isPending
             ? mode === 'replace'
-              ? 'Replacing...'
-              : 'Importing...'
+              ? t('submit.replacing')
+              : t('submit.importing')
             : mode === 'replace'
-              ? 'Replace rows'
-              : 'Append rows',
+              ? t('submit.replace')
+              : t('submit.append'),
           onClick: handleSubmit,
           disabled: !canSubmit,
           variant: mode === 'replace' ? 'destructive' : 'primary',

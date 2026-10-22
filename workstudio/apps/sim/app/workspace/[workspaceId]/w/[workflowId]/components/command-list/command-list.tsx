@@ -5,6 +5,7 @@ import { Button, cn, handleKeyboardActivation, Library } from '@sim/emcn'
 import { Search } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 import { AgentIcon } from '@/components/icons'
 import { useResourceRouter } from '@/app/workspace/[workspaceId]/components/resource/resource-navigation'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
@@ -17,8 +18,8 @@ const logger = createLogger('WorkflowCommandList')
  * Command item data structure
  */
 interface CommandItem {
-  /** Display label for the command */
-  label: string
+  /** Command identifier, also its message key under `editor.commandList` */
+  id: 'newAgent' | 'logs' | 'searchBlocks'
   /** Icon component rendered beside the label */
   icon: React.ComponentType<{ className?: string }>
   /** Keyboard shortcut keys (can be single or array for multiple keys) */
@@ -30,17 +31,17 @@ interface CommandItem {
  */
 const commands: CommandItem[] = [
   {
-    label: 'New Agent',
+    id: 'newAgent',
     icon: AgentIcon,
     shortcut: ['⇧', 'A'],
   },
   {
-    label: 'Logs',
+    id: 'logs',
     icon: Library,
     shortcut: 'L',
   },
   {
-    label: 'Search Blocks',
+    id: 'searchBlocks',
     icon: Search,
     shortcut: 'K',
   },
@@ -51,6 +52,7 @@ const commands: CommandItem[] = [
  * Centered on the screen for empty workflows
  */
 export function CommandList() {
+  const t = useTranslations('editor.commandList')
   const { workspaceId } = useWorkflowScope()
   const router = useResourceRouter()
   const openSearchModal = useSearchModalStore((s) => s.open)
@@ -64,32 +66,32 @@ export function CommandList() {
    * - Logs: navigate to workspace logs
    * - Search Blocks: open the universal search modal
    *
-   * @param label - Command label that was clicked.
+   * @param id - Command that was clicked.
    */
   const handleCommandClick = useCallback(
-    (label: string) => {
+    (id: CommandItem['id']) => {
       try {
-        switch (label) {
-          case 'New Agent': {
+        switch (id) {
+          case 'newAgent': {
             const event = new CustomEvent('add-block-from-toolbar', {
               detail: { type: 'agent', enableTriggerMode: false },
             })
             window.dispatchEvent(event)
             return
           }
-          case 'Logs': {
+          case 'logs': {
             router.push(`/workspace/${workspaceId}/logs`)
             return
           }
-          case 'Search Blocks': {
+          case 'searchBlocks': {
             openSearchModal()
             return
           }
           default:
-            logger.warn('Unknown command label clicked in command list', { label })
+            logger.warn('Unknown command clicked in command list', { id })
         }
       } catch (error) {
-        logger.error('Failed to handle command click in command list', { error, label })
+        logger.error('Failed to handle command click in command list', { error, id })
       }
     },
     [router, workspaceId, openSearchModal]
@@ -183,20 +185,20 @@ export function CommandList() {
           const shortcuts = Array.isArray(command.shortcut) ? command.shortcut : [command.shortcut]
           return (
             <div
-              key={command.label}
+              key={command.id}
               role='button'
               tabIndex={0}
               className='group flex cursor-pointer items-center justify-between gap-[60px]'
-              onClick={() => handleCommandClick(command.label)}
+              onClick={() => handleCommandClick(command.id)}
               onKeyDown={(event) =>
-                handleKeyboardActivation(event, () => handleCommandClick(command.label))
+                handleKeyboardActivation(event, () => handleCommandClick(command.id))
               }
             >
               {/* Left side: Icon and Label */}
               <div className='flex items-center gap-2'>
                 <Icon className='size-[14px] text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)]' />
                 <span className='text-[var(--text-tertiary)] text-sm group-hover:text-[var(--text-primary)]'>
-                  {command.label}
+                  {t(command.id)}
                 </span>
               </div>
 

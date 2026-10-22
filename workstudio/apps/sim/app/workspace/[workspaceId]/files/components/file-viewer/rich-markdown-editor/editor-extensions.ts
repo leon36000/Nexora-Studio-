@@ -12,6 +12,7 @@ import {
   renderCaret,
 } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/collaboration/caret-presence'
 import { FileCollaboration } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/collaboration/file-collaboration'
+import type { MarkdownEditorCopy } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/editor-copy'
 import { LinkEmbed } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/embed/link-embed'
 import { createMarkdownContentExtensions } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/extensions'
 import { RichMarkdownFind } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/find'
@@ -63,6 +64,8 @@ interface MarkdownEditorExtensionOptions {
   /** When set, wires TipTap Collaboration + CollaborationCaret onto the shared document. */
   collaboration?: EditorCollaboration
   pasteAdmission?: RichMarkdownPasteAdmissionOptions
+  /** Translated text the plain (non-React) extensions render; English when omitted. */
+  copy?: MarkdownEditorCopy
 }
 
 /**
@@ -80,6 +83,7 @@ export function createMarkdownEditorExtensions({
   embeds = false,
   collaboration,
   pasteAdmission,
+  copy,
 }: MarkdownEditorExtensionOptions): Extensions {
   return [
     ...createMarkdownContentExtensions(
@@ -117,11 +121,11 @@ export function createMarkdownEditorExtensions({
       : []),
     CodeBlockHighlight,
     RichMarkdownFind,
-    SlashCommand,
+    copy ? SlashCommand.configure({ titles: copy.slashCommandTitles }) : SlashCommand,
     Mention,
     RichMarkdownKeymap,
     BlockMover,
-    ImageUploadPlaceholders,
+    copy ? ImageUploadPlaceholders.configure({ copy: copy.imageUpload }) : ImageUploadPlaceholders,
     ...(pasteAdmission ? [createRichMarkdownPasteAdmission(pasteAdmission)] : []),
     MarkdownPaste,
     Placeholder.configure({ placeholder }),

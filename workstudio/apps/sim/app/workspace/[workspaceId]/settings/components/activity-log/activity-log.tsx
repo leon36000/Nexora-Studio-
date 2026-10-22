@@ -3,6 +3,7 @@
 import { type ReactNode, useRef, useState } from 'react'
 import { cn, scrollFadeAttributes, scrollFadeXClass, useScrollEdges } from '@sim/emcn'
 import { ChevronDown } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { FloatingOverflowText } from '@/app/workspace/[workspaceId]/components/resource/components/floating-overflow-text'
 
 /**
@@ -159,15 +160,17 @@ export interface ActivityLogProps {
  */
 export function ActivityLog({
   entries,
-  eventLabel = 'Event',
-  descriptionLabel = 'Description',
+  eventLabel,
+  descriptionLabel,
   eventColumn = 'wide',
   emptyState,
   footer,
 }: ActivityLogProps) {
+  const t = useTranslations('settings.activityLog')
   const scrollRef = useRef<HTMLDivElement>(null)
   const edges = useScrollEdges(scrollRef, { axis: 'x' })
   const hasTrailingColumn = entries.some((entry) => entry.trailing != null)
+  const showFooter = entries.length > 0 && Boolean(footer)
 
   return (
     <div className='min-w-0'>
@@ -183,12 +186,12 @@ export function ActivityLog({
           )}
         >
           <div className='flex items-center gap-3 px-3 pb-1 text-[var(--text-tertiary)] text-caption'>
-            <span className='w-[160px] shrink-0'>Timestamp</span>
+            <span className='w-[160px] shrink-0'>{t('timestamp')}</span>
             <span className={cn(EVENT_COLUMN_WIDTH_CLASS[eventColumn], 'shrink-0')}>
-              {eventLabel}
+              {eventLabel ?? t('event')}
             </span>
-            <span className='min-w-0 flex-1'>{descriptionLabel}</span>
-            <span className='w-[160px] shrink-0 text-right'>Actor</span>
+            <span className='min-w-0 flex-1'>{descriptionLabel ?? t('description')}</span>
+            <span className='w-[160px] shrink-0 text-right'>{t('actor')}</span>
             {/* Row actions carry no header, but the column must still be reserved
             here or every label above would sit left of the data below it. */}
             {hasTrailingColumn && (
@@ -210,7 +213,7 @@ export function ActivityLog({
           )}
         </div>
       </div>
-      {entries.length > 0 && footer && <div className='mt-0.5'>{footer}</div>}
+      {showFooter && <div className='mt-0.5'>{footer}</div>}
       {entries.length === 0 && emptyState}
     </div>
   )

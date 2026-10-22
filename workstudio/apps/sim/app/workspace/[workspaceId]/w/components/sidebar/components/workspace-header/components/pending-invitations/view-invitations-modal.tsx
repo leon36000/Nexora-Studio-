@@ -15,6 +15,7 @@ import {
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { IdentityTile } from '@/components/identity-tile/identity-tile'
 import type { MyInvitation } from '@/lib/api/contracts/invitations'
 import { getInvitationErrorMessage } from '@/lib/invitations/error-messages'
@@ -39,16 +40,16 @@ const logger = createLogger('ViewInvitationsModal')
  * invites are labeled by the org (even when workspace grants ride along);
  * workspace invites by their workspace(s).
  */
-function invitationLabel(inv: MyInvitation): string {
+function invitationLabel(inv: MyInvitation, t: ReturnType<typeof useTranslations>): string {
   if (inv.kind === 'organization') {
-    return inv.organizationName ?? 'Organization'
+    return inv.organizationName ?? t('organizationFallback')
   }
   const first = inv.grants[0]?.workspaceName
   if (first) {
     const extra = inv.grants.length - 1
     return extra > 0 ? `${first} +${extra}` : first
   }
-  return 'Workspace'
+  return t('workspaceFallback')
 }
 
 interface ViewInvitationsModalProps {
@@ -64,6 +65,7 @@ interface ViewInvitationsModalProps {
  * the joined workspace; declining keeps it open for the remaining rows.
  */
 export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModalProps) {
+  const t = useTranslations('shell.invitations')
   const invitationsQuery = useMyPendingInvitations(open)
   const invitations = invitationsQuery.data ?? []
   const acceptInvitation = useAcceptMyInvitation()
@@ -80,17 +82,12 @@ export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModa
         disclosedWorkspaceIds: inv.joinPreview?.workspaceIdsToMove,
         disclosedOutcome: inv.joinPreview?.outcome,
       })
-      toast.success(`Joined ${invitationLabel(inv)}`)
+      toast.success(t('joined', { name: invitationLabel(inv, t) }))
       onOpenChange(false)
       router.push(result.redirectPath)
     } catch (error) {
       logger.error('Failed to accept invitation', { error })
-      toast.error(
-        getInvitationErrorMessage(
-          getErrorMessage(error, ''),
-          'Could not accept the invitation. It may have expired.'
-        )
-      )
+      toast.error(getInvitationErrorMessage(getErrorMessage(error, ''), t('acceptFailed')))
     }
   }
 
@@ -99,28 +96,26 @@ export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModa
       await declineInvitation.mutateAsync({ invitationId: inv.id })
     } catch (error) {
       logger.error('Failed to decline invitation', { error })
-      toast.error(
-        getInvitationErrorMessage(getErrorMessage(error, ''), 'Could not decline the invitation.')
-      )
+      toast.error(getInvitationErrorMessage(getErrorMessage(error, ''), t('declineFailed')))
     }
   }
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Pending invitations'>
-      <ChipModalHeader onClose={() => onOpenChange(false)}>Invitations</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('pendingTitle')}>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{t('title')}</ChipModalHeader>
       <ChipModalBody>
         {invitationsQuery.isError ? (
           <SettingsQueryErrorState
             error={invitationsQuery.error}
-            fallback='Could not load invitations'
+            fallback={t('loadFailed')}
             isRetrying={invitationsQuery.isFetching}
             onRetry={() => void invitationsQuery.refetch()}
             variant='inline'
           />
         ) : invitationsQuery.isPending ? (
-          <SettingsEmptyState variant='inline'>Loading invitations…</SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
         ) : invitations.length === 0 ? (
-          <SettingsEmptyState variant='inline'>No pending invitations.</SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('empty')}</SettingsEmptyState>
         ) : (
           invitations.map((inv, index) => {
             const isDisclosureMissing = inv.membershipIntent === 'internal' && !inv.joinPreview
@@ -136,23 +131,26 @@ export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModa
                 <Chip
                   disabled={isBusy}
                   onClick={() => void handleDecline(inv)}
-                  aria-label={`Decline invitation to ${invitationLabel(inv)}`}
+                  aria-label={t('declineAria', { name: invitationLabel(inv, t) })}
                 >
-                  Decline
+                  {t('decline')}
                 </Chip>
                 <Chip
                   variant='primary'
                   disabled={isBusy || isDisclosureMissing}
                   onClick={() => void handleAccept(inv)}
                 >
-                  Accept
+                  {t('accept')}
                 </Chip>
               </div>
             )
             return (
               <Fragment key={inv.id}>
                 {index > 0 && <ChipModalSeparator />}
-                <section aria-label={`Invitation to ${invitationLabel(inv)}`} className='space-y-4'>
+                <section
+                  aria-label={t('invitationAria', { name: invitationLabel(inv, t) })}
+                  className='space-y-4'
+                >
                   <div className='flex flex-wrap items-center gap-3 px-2'>
                     <div className='min-w-0 flex-1 basis-[240px]'>
                       <SettingsResourceRow
@@ -168,12 +166,16 @@ export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModa
                           )
                         }
                         iconVariant='custom'
-                        title={invitationLabel(inv)}
-                        description={inv.inviterName ? `Invited by ${inv.inviterName}` : 'Invited'}
+                        title={invitationLabel(inv, t)}
+                        description={
+                          inv.inviterName ? t('invitedBy', { name: inv.inviterName }) : t('invited')
+                        }
                         badge={
                           singleWorkspaceGrant && (
                             <ChipTag variant='gray'>
-                              {singleWorkspaceGrant.permission} access
+                              {t('permissionAccess', {
+                                permission: t(`permissions.${singleWorkspaceGrant.permission}`),
+                              })}
                             </ChipTag>
                           )
                         }
@@ -182,7 +184,7 @@ export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModa
                     {!hasDetails && actions}
                   </div>
                   {showJoinNotice && (
-                    <ChipModalField type='custom' title='Before you join'>
+                    <ChipModalField type='custom' title={t('beforeYouJoin')}>
                       <InvitationDisclosure
                         invitation={inv}
                         joinPreview={inv.joinPreview}
@@ -193,13 +195,13 @@ export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModa
                           disabled={isBusy || invitationsQuery.isFetching}
                           onClick={() => void invitationsQuery.refetch()}
                         >
-                          Refresh invitation
+                          {t('refresh')}
                         </Chip>
                       )}
                     </ChipModalField>
                   )}
                   {showWorkspaceAccess && (
-                    <ChipModalField type='custom' title='Workspace access'>
+                    <ChipModalField type='custom' title={t('workspaceAccess')}>
                       <InvitationWorkspaceAccess grants={inv.grants} />
                     </ChipModalField>
                   )}
@@ -213,7 +215,7 @@ export function ViewInvitationsModal({ open, onOpenChange }: ViewInvitationsModa
       {invitations.length === 0 && (
         <ChipModalFooter
           defaultAction='dismiss'
-          cancelLabel='Done'
+          cancelLabel={t('done')}
           onCancel={() => onOpenChange(false)}
         />
       )}

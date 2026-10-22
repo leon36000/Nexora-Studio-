@@ -18,6 +18,7 @@ import {
   toast,
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { useSettingsUnsavedGuard } from '@/components/settings/use-settings-unsaved-guard'
 import type { MothershipEnvironment } from '@/lib/api/contracts'
@@ -50,15 +51,18 @@ import { clearUserData } from '@/stores'
 
 const PAGE_SIZE = 20 as const
 
-const USER_TABLE_HEADER = (
-  <div className='flex items-center gap-3 px-3 pb-1 text-[var(--text-tertiary)] text-caption'>
-    <span className='w-[170px]'>Name</span>
-    <span className='flex-1'>Email</span>
-    <span className='w-[60px]'>Role</span>
-    <span className='w-[55px]'>Status</span>
-    <span className='w-[150px] text-right'>Actions</span>
-  </div>
-)
+function UserTableHeader() {
+  const t = useTranslations('settings.admin.columns')
+  return (
+    <div className='flex items-center gap-3 px-3 pb-1 text-[var(--text-tertiary)] text-caption'>
+      <span className='w-[170px]'>{t('name')}</span>
+      <span className='flex-1'>{t('email')}</span>
+      <span className='w-[60px]'>{t('role')}</span>
+      <span className='w-[55px]'>{t('status')}</span>
+      <span className='w-[150px] text-right'>{t('actions')}</span>
+    </div>
+  )
+}
 
 /**
  * The row action awaiting confirmation. Holds ids, never the user row, so a
@@ -69,14 +73,15 @@ type PendingUserAction =
   | { type: 'ban'; userId: string }
   | { type: 'role'; userId: string; nextRole: 'admin' | 'user' }
 
-const MOTHERSHIP_ENV_OPTIONS: { value: MothershipEnvironment; label: string }[] = [
-  { value: 'default', label: 'Default' },
-  { value: 'dev', label: 'Dev' },
-  { value: 'staging', label: 'Staging' },
-  { value: 'prod', label: 'Prod' },
+const MOTHERSHIP_ENVIRONMENTS: readonly MothershipEnvironment[] = [
+  'default',
+  'dev',
+  'staging',
+  'prod',
 ]
 
 export function Admin() {
+  const t = useTranslations('settings.admin')
   const { data: session } = useSession()
 
   const { data: settings } = useGeneralSettings()
@@ -159,7 +164,7 @@ export function Admin() {
     setImpersonationGuardError(null)
     if (session?.user?.role !== 'admin') {
       setImpersonatingUserId(null)
-      setImpersonationGuardError('Only admins can impersonate users.')
+      setImpersonationGuardError(t('users.onlyAdmins'))
       return
     }
 
@@ -241,35 +246,36 @@ export function Admin() {
         <Badge variant={u.role === 'admin' ? 'blue' : 'gray'}>{u.role || 'user'}</Badge>
       </span>
       <span className='w-[55px]'>
-        {u.banned ? <Badge variant='red'>Banned</Badge> : <Badge variant='green'>Active</Badge>}
+        {u.banned ? (
+          <Badge variant='red'>{t('status.banned')}</Badge>
+        ) : (
+          <Badge variant='green'>{t('status.active')}</Badge>
+        )}
       </span>
       <span className='flex w-[150px] items-center justify-end gap-1'>
         {u.id !== session?.user?.id && (
           <>
             <Chip
-              aria-label={`Impersonate ${u.email}`}
+              aria-label={t('row.impersonateAria', { email: u.email })}
               onClick={() => handleImpersonate(u.id, u.email)}
               disabled={importWorkflow.isPending || isImpersonating || pendingUserIds.has(u.id)}
             >
-              {impersonatingUserId === u.id ? 'Switching...' : 'Impersonate'}
+              {impersonatingUserId === u.id ? t('row.switching') : t('row.impersonate')}
             </Chip>
             <RowActionsMenu
-              label={`${u.email} actions`}
+              label={t('row.actionsAria', { email: u.email })}
               actions={[
                 {
-                  label: 'Reset password',
+                  label: t('row.resetPassword'),
                   onSelect: () => {
                     setProvisionWarning(null)
                     sendPasswordReset.mutate(
                       { userId: u.id, email: u.email },
                       {
-                        onSuccess: () => toast.success(`Password reset email sent to ${u.email}`),
+                        onSuccess: () => toast.success(t('row.resetSent', { email: u.email })),
                         onError: (error) =>
                           toast.error(
-                            getErrorMessage(
-                              error,
-                              `Could not send a password reset email to ${u.email}`
-                            )
+                            getErrorMessage(error, t('row.resetFailed', { email: u.email }))
                           ),
                       }
                     )
@@ -277,7 +283,7 @@ export function Admin() {
                   disabled: pendingUserIds.has(u.id),
                 },
                 {
-                  label: u.role === 'admin' ? 'Demote' : 'Promote',
+                  label: u.role === 'admin' ? t('row.demote') : t('row.promote'),
                   onSelect: () => {
                     setUserRole.reset()
                     setPendingAction({
@@ -290,12 +296,12 @@ export function Admin() {
                 },
                 u.banned
                   ? {
-                      label: 'Unban',
+                      label: t('row.unban'),
                       onSelect: () => unbanUser.mutate({ userId: u.id }),
                       disabled: pendingUserIds.has(u.id),
                     }
                   : {
-                      label: 'Ban',
+                      label: t('row.ban'),
                       onSelect: () => {
                         banUser.reset()
                         setBanReason('')
@@ -316,7 +322,7 @@ export function Admin() {
     <SettingsPanel>
       <div className='flex flex-col gap-4'>
         <div className='flex items-center justify-between'>
-          <Label htmlFor='super-user-mode'>Super admin mode</Label>
+          <Label htmlFor='super-user-mode'>{t('superAdminMode')}</Label>
           <Switch
             id='super-user-mode'
             checked={settings?.superUserModeEnabled ?? false}
@@ -327,7 +333,7 @@ export function Admin() {
 
         {settings?.superUserModeEnabled && benchmarkAvailability.data?.available && (
           <div>
-            <ChipLink href='/benchmark'>Open benchmarks</ChipLink>
+            <ChipLink href='/benchmark'>{t('openBenchmarks')}</ChipLink>
           </div>
         )}
 
@@ -335,9 +341,9 @@ export function Admin() {
           <>
             <div className='flex items-center justify-between gap-3'>
               <div className='flex flex-col gap-1'>
-                <Label>Mothership Environment</Label>
+                <Label>{t('mothershipEnvironment')}</Label>
                 <p className='text-[var(--text-secondary)] text-caption'>
-                  Default uses the configured Nexora agent URL.
+                  {t('mothershipEnvironmentHint')}
                 </p>
               </div>
               <ChipSelect
@@ -347,9 +353,12 @@ export function Admin() {
                 onChange={(value) =>
                   handleMothershipEnvironmentChange(value as MothershipEnvironment)
                 }
-                placeholder='Select environment'
+                placeholder={t('selectEnvironment')}
                 disabled={updateSetting.isPending}
-                options={MOTHERSHIP_ENV_OPTIONS}
+                options={MOTHERSHIP_ENVIRONMENTS.map((value) => ({
+                  value,
+                  label: t(`environments.${value}`),
+                }))}
               />
             </div>
           </>
@@ -359,9 +368,7 @@ export function Admin() {
       <div className='h-px bg-[var(--border)]' />
 
       <div className='flex flex-col gap-2'>
-        <p className='text-[var(--text-secondary)] text-sm'>
-          Import a workflow and its copilot chats into a target workspace.
-        </p>
+        <p className='text-[var(--text-secondary)] text-sm'>{t('import.description')}</p>
         <div className='flex gap-2'>
           <ChipInput
             value={workflowId}
@@ -369,7 +376,7 @@ export function Admin() {
               setWorkflowId(event.target.value)
               importWorkflow.reset()
             }}
-            placeholder='Source workflow ID'
+            placeholder={t('import.sourcePlaceholder')}
             disabled={importWorkflow.isPending || isImpersonating}
           />
           <ChipInput
@@ -378,7 +385,7 @@ export function Admin() {
               setTargetWorkspaceId(event.target.value)
               importWorkflow.reset()
             }}
-            placeholder='Target workspace ID'
+            placeholder={t('import.targetPlaceholder')}
             disabled={importWorkflow.isPending || isImpersonating}
           />
           <Button
@@ -391,7 +398,7 @@ export function Admin() {
               !targetWorkspaceId.trim()
             }
           >
-            {importWorkflow.isPending ? 'Importing...' : 'Import'}
+            {importWorkflow.isPending ? t('import.importing') : t('import.import')}
           </Button>
         </div>
         {importWorkflow.error && (
@@ -399,8 +406,10 @@ export function Admin() {
         )}
         {importWorkflow.isSuccess && (
           <p className='text-[var(--text-secondary)] text-small'>
-            Workflow imported successfully (new ID: {importWorkflow.data.newWorkflowId},{' '}
-            {importWorkflow.data.copilotChatsImported ?? 0} copilot chats imported)
+            {t('import.success', {
+              id: importWorkflow.data.newWorkflowId,
+              count: importWorkflow.data.copilotChatsImported ?? 0,
+            })}
           </p>
         )}
       </div>
@@ -408,8 +417,8 @@ export function Admin() {
       <div className='h-px bg-[var(--border)]' />
 
       <SettingsSection
-        label='User management'
-        action={<Chip onClick={() => setIsAddUserOpen(true)}>Add user</Chip>}
+        label={t('users.title')}
+        action={<Chip onClick={() => setIsAddUserOpen(true)}>{t('users.addUser')}</Chip>}
       >
         <div className='flex flex-col gap-3'>
           <div className='flex gap-2'>
@@ -418,17 +427,17 @@ export function Admin() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder='Search by email or paste a user ID...'
+              placeholder={t('users.searchPlaceholder')}
               className='min-w-0 flex-1'
             />
             <Button variant='primary' onClick={handleSearch} disabled={usersLoading}>
-              {usersLoading ? 'Searching...' : 'Search'}
+              {usersLoading ? t('users.searching') : t('users.search')}
             </Button>
           </div>
 
           {usersError && (
             <p className='text-[var(--text-muted)] text-small'>
-              {getErrorMessage(usersError, 'Failed to fetch users')}
+              {getErrorMessage(usersError, t('users.fetchFailed'))}
             </p>
           )}
 
@@ -436,7 +445,7 @@ export function Admin() {
             <p className='text-[var(--text-error)] text-small'>
               {impersonationGuardError ||
                 (unbanUser.error || impersonateUser.error)?.message ||
-                'Action failed. Please try again.'}
+                t('users.actionFailed')}
             </p>
           )}
 
@@ -446,17 +455,17 @@ export function Admin() {
 
           {sendPasswordReset.isPending && sendPasswordReset.variables && (
             <p className='text-[var(--text-secondary)] text-small'>
-              Sending a password reset email to {sendPasswordReset.variables.email}...
+              {t('users.sendingReset', { email: sendPasswordReset.variables.email })}
             </p>
           )}
 
           {searchQuery.length > 0 && usersData ? (
             <>
               <div className='flex flex-col gap-0.5'>
-                {USER_TABLE_HEADER}
+                <UserTableHeader />
 
                 {usersData.users.length === 0 && (
-                  <SettingsEmptyState variant='inline'>No users found.</SettingsEmptyState>
+                  <SettingsEmptyState variant='inline'>{t('users.noUsers')}</SettingsEmptyState>
                 )}
 
                 {usersData.users.map((u) => renderUserRow(u))}
@@ -465,7 +474,11 @@ export function Admin() {
               {totalPages > 1 && (
                 <div className='flex items-center justify-between text-[var(--text-secondary)] text-small'>
                   <span>
-                    Page {currentPage} of {totalPages} ({usersData.total} users)
+                    {t('users.pageInfo', {
+                      page: currentPage,
+                      totalPages,
+                      total: usersData.total,
+                    })}
                   </span>
                   <div className='flex gap-1'>
                     <Button
@@ -478,7 +491,7 @@ export function Admin() {
                       }
                       disabled={usersOffset === 0 || usersLoading}
                     >
-                      Previous
+                      {t('users.previous')}
                     </Button>
                     <Button
                       variant='active'
@@ -488,7 +501,7 @@ export function Admin() {
                       }
                       disabled={usersOffset + PAGE_SIZE >= (usersData?.total ?? 0) || usersLoading}
                     >
-                      Next
+                      {t('users.next')}
                     </Button>
                   </div>
                 </div>
@@ -499,7 +512,7 @@ export function Admin() {
             recentUsers &&
             recentUsers.length > 0 && (
               <div className='flex flex-col gap-0.5'>
-                {USER_TABLE_HEADER}
+                <UserTableHeader />
                 {recentUsers.map((u) => renderUserRow(u))}
               </div>
             )
@@ -511,32 +524,29 @@ export function Admin() {
         onOpenChange={(open) => {
           if (!open) closePendingAction()
         }}
-        srTitle='Ban user'
-        title='Ban user'
+        srTitle={t('banModal.title')}
+        title={t('banModal.title')}
         defaultAction='none'
         text={[
-          'Banning ',
-          { text: pendingUser?.email ?? 'this user', bold: true },
+          t('banModal.prefix'),
+          { text: pendingUser?.email ?? t('banModal.thisUser'), bold: true },
           ' ',
-          {
-            text: 'signs them out everywhere and blocks them from signing back in.',
-            error: true,
-          },
-          ' You can unban them later.',
+          { text: t('banModal.consequence'), error: true },
+          t('banModal.suffix'),
         ]}
         confirm={{
-          label: 'Ban',
+          label: t('banModal.confirm'),
           onClick: handleConfirmBan,
           pending: banUser.isPending,
-          pendingLabel: 'Banning...',
+          pendingLabel: t('banModal.pending'),
         }}
       >
         <ChipModalField
           type='input'
-          title='Reason'
+          title={t('banModal.reason')}
           value={banReason}
           onChange={setBanReason}
-          placeholder='Optional'
+          placeholder={t('banModal.reasonPlaceholder')}
           disabled={banUser.isPending}
         />
         <ChipModalError>{banUser.error?.message}</ChipModalError>
@@ -547,22 +557,22 @@ export function Admin() {
         onOpenChange={(open) => {
           if (!open) closePendingAction()
         }}
-        srTitle={isDemotion ? 'Demote user' : 'Promote user'}
-        title={isDemotion ? 'Demote user' : 'Promote user'}
+        srTitle={isDemotion ? t('roleModal.demoteTitle') : t('roleModal.promoteTitle')}
+        title={isDemotion ? t('roleModal.demoteTitle') : t('roleModal.promoteTitle')}
         text={[
-          isDemotion ? 'Demoting ' : 'Promoting ',
-          { text: pendingUser?.email ?? 'this user', bold: true },
+          isDemotion ? t('roleModal.demotePrefix') : t('roleModal.promotePrefix'),
+          { text: pendingUser?.email ?? t('banModal.thisUser'), bold: true },
           ' ',
           isDemotion
-            ? { text: 'revokes their platform admin access.', error: true }
-            : 'grants full platform admin access, including impersonating any user.',
+            ? { text: t('roleModal.demoteConsequence'), error: true }
+            : t('roleModal.promoteConsequence'),
         ]}
         confirm={{
-          label: isDemotion ? 'Demote' : 'Promote',
+          label: isDemotion ? t('roleModal.demote') : t('roleModal.promote'),
           onClick: handleConfirmRoleChange,
           variant: isDemotion ? 'destructive' : 'primary',
           pending: setUserRole.isPending,
-          pendingLabel: isDemotion ? 'Demoting...' : 'Promoting...',
+          pendingLabel: isDemotion ? t('roleModal.demoting') : t('roleModal.promoting'),
         }}
       >
         <ChipModalError>{setUserRole.error?.message}</ChipModalError>
@@ -578,7 +588,7 @@ export function Admin() {
           setAdminParams({ q: user.email, offset: null })
           setProvisionWarning(
             resetEmailError
-              ? `Created ${user.email}, but the password reset email failed to send (${resetEmailError}). Use Reset password in that row's actions menu to try again.`
+              ? t('users.provisionWarning', { email: user.email, error: resetEmailError })
               : null
           )
         }}

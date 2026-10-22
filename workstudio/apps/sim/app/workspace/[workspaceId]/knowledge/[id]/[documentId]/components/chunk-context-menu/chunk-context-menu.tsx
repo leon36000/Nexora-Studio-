@@ -8,10 +8,8 @@ import {
   DropdownMenuTrigger,
 } from '@sim/emcn'
 import { Duplicate, Eye, Pencil, Plus, SquareArrowUpRight, Trash } from '@sim/emcn/icons'
-import {
-  selectionActionLabel,
-  selectionToggleActionLabel,
-} from '@/app/workspace/[workspaceId]/components/resource/selection-label'
+import { useTranslations } from 'next-intl'
+import { useSelectionLabels } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 
 interface ChunkContextMenuProps {
   isOpen: boolean
@@ -61,6 +59,8 @@ export function ChunkContextMenu({
   enabledCount = 0,
   disabledCount = 0,
 }: ChunkContextMenuProps) {
+  const t = useTranslations('knowledge.chunkContextMenu')
+  const { selectionActionLabel, selectionToggleActionLabel } = useSelectionLabels()
   const isMultiSelect = selectedCount > 1
   const toggleLabel = selectionToggleActionLabel({
     selectedCount,
@@ -102,19 +102,19 @@ export function ChunkContextMenu({
             {hasNavigationSection && (
               <DropdownMenuItem onSelect={onOpenInNewTab!}>
                 <SquareArrowUpRight />
-                Open in new tab
+                {t('openInNewTab')}
               </DropdownMenuItem>
             )}
             {!isMultiSelect && onEdit && (
               <DropdownMenuItem disabled={disableEdit} onSelect={onEdit}>
                 <Pencil />
-                {isConnectorDocument ? 'View' : 'Edit'}
+                {isConnectorDocument ? t('view') : t('edit')}
               </DropdownMenuItem>
             )}
             {!isMultiSelect && onCopyContent && (
               <DropdownMenuItem onSelect={onCopyContent}>
                 <Duplicate />
-                Copy content
+                {t('copyContent')}
               </DropdownMenuItem>
             )}
             {onToggleEnabled && (
@@ -128,7 +128,7 @@ export function ChunkContextMenu({
             {onDelete && (
               <DropdownMenuItem disabled={disableDelete} onSelect={onDelete}>
                 <Trash />
-                {selectionActionLabel('Delete', selectedCount)}
+                {selectionActionLabel(t('delete'), selectedCount)}
               </DropdownMenuItem>
             )}
           </>
@@ -136,7 +136,7 @@ export function ChunkContextMenu({
           onAddChunk && (
             <DropdownMenuItem disabled={disableAddChunk} onSelect={onAddChunk}>
               <Plus />
-              New chunk
+              {t('newChunk')}
             </DropdownMenuItem>
           )
         )}

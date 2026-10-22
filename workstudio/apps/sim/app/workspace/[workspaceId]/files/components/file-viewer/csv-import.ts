@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { toast } from '@sim/emcn'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { CSV_PREVIEW_MAX_ROWS } from '@/lib/api/contracts/workspace-file-table'
 import type { WorkspaceFileRecord } from '@/lib/uploads/contexts/workspace'
 import { useImportFileAsTable } from '@/hooks/queries/tables'
@@ -21,6 +22,7 @@ export function useCsvTruncationImport(
   truncated: boolean,
   readOnly = false
 ) {
+  const t = useTranslations('files.csvImport')
   const router = useRouter()
   const importFile = useImportFileAsTable()
 
@@ -32,10 +34,10 @@ export function useCsvTruncationImport(
     if (importingRef.current) return
     importingRef.current = true
     let importId: string | null = null
-    toast.success(`Importing "${file.name}" as a table`, {
-      description: 'This runs in the background.',
+    toast.success(t('importing', { name: file.name }), {
+      description: t('importingDescription'),
       action: {
-        label: 'View tables',
+        label: t('viewTables'),
         onClick: () => router.push(`/workspace/${workspaceId}/tables`),
       },
     })
@@ -61,16 +63,16 @@ export function useCsvTruncationImport(
       }
     )
     // importFile.mutate and router are stable references
-  }, [workspaceId, file.id, file.key, file.name])
+  }, [workspaceId, file.id, file.key, file.name, t])
 
   // Surface the cap as a warning toast with an import action, once per file.
   const notifiedKeyRef = useRef<string | null>(null)
   useEffect(() => {
     if (readOnly || !truncated || notifiedKeyRef.current === file.key) return
     notifiedKeyRef.current = file.key
-    toast.warning(`Showing the first ${CSV_PREVIEW_MAX_ROWS.toLocaleString()} rows`, {
-      description: 'Import this file as a table to view all of its rows.',
-      action: { label: 'Import as a table', onClick: importAsTable },
+    toast.warning(t('truncated', { count: CSV_PREVIEW_MAX_ROWS }), {
+      description: t('truncatedDescription'),
+      action: { label: t('importAsTable'), onClick: importAsTable },
     })
-  }, [readOnly, truncated, file.key, importAsTable])
+  }, [readOnly, truncated, file.key, importAsTable, t])
 }

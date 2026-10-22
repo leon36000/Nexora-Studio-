@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { handleKeyboardActivation } from '@sim/emcn'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   type SegmentSelectionMode,
   useDashboardSegments,
@@ -35,6 +36,8 @@ function StatusBarInner({
   segmentDurationMs,
   preferBelow = false,
 }: StatusBarInnerProps) {
+  const t = useTranslations('logs.dashboard')
+  const locale = useLocale()
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
   const labels = useMemo(() => {
@@ -43,14 +46,17 @@ function StatusBarInner({
       const end = new Date(start.getTime() + (segmentDurationMs || 0))
       const rangeLabel = Number.isNaN(start.getTime())
         ? ''
-        : `${start.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – ${end.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+        : `${start.toLocaleString(locale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – ${end.toLocaleString(locale, { hour: 'numeric', minute: '2-digit' })}`
       return {
         rangeLabel,
         successLabel: `${segment.successRate.toFixed(1)}%`,
-        countsLabel: `${segment.successfulExecutions ?? 0}/${segment.totalExecutions ?? 0} succeeded`,
+        countsLabel: t('segmentSucceeded', {
+          succeeded: segment.successfulExecutions ?? 0,
+          total: segment.totalExecutions ?? 0,
+        }),
       }
     })
-  }, [segments, segmentDurationMs])
+  }, [segments, segmentDurationMs, locale, t])
 
   return (
     <div className='relative'>
@@ -90,7 +96,7 @@ function StatusBarInner({
                   ? 'relative z-10 scale-105 shadow-xs ring-1 ring-[var(--text-secondary)]'
                   : 'relative z-0'
               }`}
-              aria-label={`Segment ${i + 1}`}
+              aria-label={t('segment', { index: i + 1 })}
               onMouseEnter={() => setHoverIndex(i)}
               onMouseDown={(e) => {
                 e.preventDefault()

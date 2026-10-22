@@ -154,6 +154,7 @@ import { validateSignupEmailMx } from '@/lib/messaging/email/validation.server'
 import { isEmailVerificationEffectivelyEnabled } from '@/lib/messaging/email/verification'
 import { scheduleLifecycleEmail } from '@/lib/messaging/lifecycle'
 import { APP_ENTRY_PATH } from '@/lib/navigation/paths'
+import { buildNexoraOidcProvider, NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
 import { clearRecordedRevocation } from '@/lib/oauth/credential-service'
 import {
   getMicrosoftRefreshTokenExpiry,
@@ -221,6 +222,12 @@ const additionalTrustedOrigins = parseOriginList(env.TRUSTED_ORIGINS, (value) =>
  * false`, disabling the name-based branch, so SSO trust comes only from
  * `domainVerified`. Kept because non-SSO providers still link by name.
  */
+/**
+ * Nexora edition: the company's OpenID Connect provider, from `NEXORA_OIDC_*`. Trusted for
+ * account linking because the operator configured it and it asserts the user's email.
+ */
+const nexoraOidcProvider = buildNexoraOidcProvider(env)
+
 const additionalTrustedSsoProviders = isSsoEnabled
   ? [env.SSO_PROVIDER_ID, ...(env.SSO_TRUSTED_PROVIDER_IDS?.split(',') ?? [])]
       .map((id) => id?.trim())
@@ -815,6 +822,7 @@ export const auth = betterAuth({
         'email-password',
         ...SSO_TRUSTED_PROVIDERS,
         ...additionalTrustedSsoProviders,
+        ...(nexoraOidcProvider ? [NEXORA_OIDC_PROVIDER_ID] : []),
       ],
     },
   },
@@ -1470,7 +1478,7 @@ export const auth = betterAuth({
       overrideDefaultEmailVerification: true,
     }),
     genericOAuth({
-      config: buildConnectorProviders(),
+      config: [...buildConnectorProviders(), ...(nexoraOidcProvider ? [nexoraOidcProvider] : [])],
     }),
     /**
      * Sim as an OAuth 2.0 authorization server (auth-code + PKCE, refresh

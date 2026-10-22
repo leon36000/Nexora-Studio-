@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { handleKeyboardActivation, Label, Switch, toast } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
 import { requestJson } from '@/lib/api/client/request'
 import { getKnowledgeChunkContract } from '@/lib/api/contracts/knowledge'
@@ -44,7 +45,7 @@ interface ChunkEditorProps {
   maxChunkSize?: number
   onDirtyChange: (isDirty: boolean) => void
   onSaveStatusChange?: (status: 'idle' | 'saving' | 'saved' | 'error') => void
-  saveRef: React.MutableRefObject<(() => Promise<void>) | null>
+  saveRef: React.MutableRefObject<(() => Promise<void>) | null> // i18n-ignore: TypeScript type, not interface text
   onCreated?: (chunkId: string) => void
 }
 
@@ -60,6 +61,7 @@ export function ChunkEditor({
   saveRef,
   onCreated,
 }: ChunkEditorProps) {
+  const t = useTranslations('knowledge.chunkEditor')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const preservedScrollTopRef = useRef(0)
@@ -127,8 +129,8 @@ export function ChunkEditor({
       validationToastIdRef.current = toast.error(message)
       throw new Error(message)
     }
-    if (trimmed.length === 0) failValidation('Content cannot be empty')
-    if (trimmed.length > 10000) failValidation('Content exceeds maximum length (10,000 characters)')
+    if (trimmed.length === 0) failValidation(t('contentEmpty'))
+    if (trimmed.length > 10000) failValidation(t('contentTooLong'))
     if (validationToastIdRef.current) {
       toast.dismiss(validationToastIdRef.current)
       validationToastIdRef.current = null
@@ -245,7 +247,7 @@ export function ChunkEditor({
       <div
         ref={scrollRef}
         role='group'
-        aria-label='Chunk content editor'
+        aria-label={t('editorLabel')}
         className='min-h-0 flex-1 cursor-text overflow-y-auto [scrollbar-gutter:stable_both-edges]'
         onClick={(e) => {
           if (e.target === e.currentTarget) textareaRef.current?.focus()
@@ -275,12 +277,12 @@ export function ChunkEditor({
             onChange={(e) => setEditedContent(e.target.value)}
             placeholder={
               isCreateMode
-                ? 'Enter the content for this chunk...'
+                ? t('placeholderCreate')
                 : canEdit
-                  ? 'Enter chunk content...'
+                  ? t('placeholderEdit')
                   : isConnectorDocument
-                    ? 'This chunk is synced from a connector and cannot be edited'
-                    : 'Read-only view'
+                    ? t('placeholderConnector')
+                    : t('placeholderReadOnly')
             }
             className='mx-auto block min-h-full w-full max-w-[48rem] resize-none overflow-hidden border-0 bg-transparent px-8 py-6 font-sans text-[var(--text-body)] text-sm outline-hidden placeholder:text-[var(--text-subtle)]'
             disabled={!canEdit}
@@ -296,8 +298,12 @@ export function ChunkEditor({
           hoveredTokenIndex={tokenizerOn ? hoveredTokenIndex : null}
         />
         <span className='text-[var(--text-secondary)] text-caption'>
-          {tokenCount.toLocaleString()}
-          {maxChunkSize !== undefined && `/${maxChunkSize.toLocaleString()}`} tokens
+          {maxChunkSize !== undefined
+            ? t('tokenCountWithMax', {
+                count: tokenCount.toLocaleString(),
+                max: maxChunkSize.toLocaleString(),
+              })
+            : t('tokenCount', { count: tokenCount.toLocaleString() })}
         </span>
       </div>
     </div>
@@ -313,13 +319,14 @@ const TokenizerToggle = React.memo(function TokenizerToggle({
   onCheckedChange: (value: boolean) => void
   hoveredTokenIndex: number | null
 }) {
+  const t = useTranslations('knowledge.chunkEditor')
   return (
     <div className='flex items-center gap-2'>
-      <Label className='text-[var(--text-secondary)] text-caption'>Tokenizer</Label>
+      <Label className='text-[var(--text-secondary)] text-caption'>{t('tokenizer')}</Label>
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
       {checked && hoveredTokenIndex !== null && (
         <span className='text-[var(--text-tertiary)] text-caption'>
-          Token #{hoveredTokenIndex + 1}
+          {t('tokenIndex', { index: hoveredTokenIndex + 1 })}
         </span>
       )}
     </div>

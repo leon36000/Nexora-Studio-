@@ -10,13 +10,12 @@ import {
   ChipModalHeader,
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
-
-const TITLE = 'Create workspace'
+import { useTranslations } from 'next-intl'
 
 interface CreateWorkspaceModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: (name: string) => Promise<void>
+  onConfirm: (name: string) => Promise<void> // i18n-ignore: type annotation
   isCreating: boolean
 }
 
@@ -29,6 +28,8 @@ export function CreateWorkspaceModal({
   onConfirm,
   isCreating,
 }: CreateWorkspaceModalProps) {
+  const t = useTranslations('shell.createWorkspaceModal')
+  const title = t('title')
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +48,7 @@ export function CreateWorkspaceModal({
     try {
       await onConfirm(trimmed)
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to create workspace'))
+      setError(getErrorMessage(err, t('createFailed')))
     }
   }
 
@@ -57,15 +58,15 @@ export function CreateWorkspaceModal({
   }
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={TITLE}>
-      <ChipModalHeader onClose={() => onOpenChange(false)}>{TITLE}</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={title}>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{title}</ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='input'
-          title='Name'
+          title={t('name')}
           value={name}
           onChange={handleNameChange}
-          placeholder='Workspace name'
+          placeholder={t('namePlaceholder')}
           maxLength={100}
           autoComplete='off'
           disabled={isCreating}
@@ -77,7 +78,7 @@ export function CreateWorkspaceModal({
         onCancel={() => onOpenChange(false)}
         cancelDisabled={isCreating}
         primaryAction={{
-          label: isCreating ? 'Creating...' : 'Create',
+          label: isCreating ? t('creating') : t('create'),
           onClick: () => void handleSubmit(),
           disabled: !name.trim() || isCreating,
         }}

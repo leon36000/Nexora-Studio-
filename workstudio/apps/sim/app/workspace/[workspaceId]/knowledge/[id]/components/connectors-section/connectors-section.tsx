@@ -4,6 +4,7 @@ import { useId, useRef, useState } from 'react'
 import { Badge, Chip, cn } from '@sim/emcn'
 import { Loader, Users } from '@sim/emcn/icons'
 import { format, formatDistanceToNow, isPast } from 'date-fns'
+import { useTranslations } from 'next-intl'
 import type { ConnectorData } from '@/lib/api/contracts/knowledge/connectors'
 import { type ResourceScope, resourceScopeFromOwner } from '@/lib/core/resource-scope'
 import { describeSearchSource } from '@/lib/sim-search/source-identity'
@@ -32,13 +33,14 @@ interface ConnectorsSectionProps {
   className?: string
 }
 
+/** Badge per status; `labelKey` is under `knowledge.connectors.status`. */
 const STATUS_CONFIG = {
-  active: { label: 'Active', variant: 'green' as const },
-  pending: { label: 'Queued', variant: 'blue' as const },
-  syncing: { label: 'Syncing', variant: 'amber' as const },
-  error: { label: 'Error', variant: 'red' as const },
-  paused: { label: 'Paused', variant: 'gray' as const },
-  disabled: { label: 'Disabled', variant: 'orange' as const },
+  active: { labelKey: 'active', variant: 'green' as const },
+  pending: { labelKey: 'pending', variant: 'blue' as const },
+  syncing: { labelKey: 'syncing', variant: 'amber' as const },
+  error: { labelKey: 'error', variant: 'red' as const },
+  paused: { labelKey: 'paused', variant: 'gray' as const },
+  disabled: { labelKey: 'disabled', variant: 'orange' as const },
 } as const
 
 export function ConnectorsSection({
@@ -51,15 +53,16 @@ export function ConnectorsSection({
   canEdit,
   className,
 }: ConnectorsSectionProps) {
+  const t = useTranslations('knowledge.connectors')
   const scope = explicitScope ?? resourceScopeFromOwner({ workspaceId })
   const [editingConnector, setEditingConnector] = useState<ConnectorData | null>(null)
 
   return (
     <div className={cn('mt-4', className)}>
       {isLoading ? (
-        <SettingsEmptyState variant='inline'>Loading connections…</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
       ) : connectors.length === 0 ? (
-        <SettingsEmptyState variant='inline'>No connected sources yet.</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('empty')}</SettingsEmptyState>
       ) : (
         <div className='divide-y divide-[var(--border)] px-2'>
           {connectors.map((connector) => (
@@ -106,6 +109,7 @@ function ConnectorCard({
   isSearchIndex,
   onEdit,
 }: ConnectorCardProps) {
+  const t = useTranslations('knowledge.connectors')
   const actionsTriggerRef = useRef<HTMLButtonElement>(null)
   const actions = useConnectorActions({ connector, knowledgeBaseId, canEdit, onEdit })
   const historyId = useId()
@@ -120,16 +124,18 @@ function ConnectorCard({
   const statusConfig =
     STATUS_CONFIG[effectiveStatus as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.active
   const syncDetails = [
-    lastSyncAt && `Last sync: ${format(new Date(lastSyncAt), 'MMM d, h:mm a')}`,
-    !syncsPerMember && connector.lastSyncDocCount !== null && `${connector.lastSyncDocCount} docs`,
+    lastSyncAt && t('lastSync', { date: format(new Date(lastSyncAt), 'MMM d, h:mm a') }),
+    !syncsPerMember &&
+      connector.lastSyncDocCount !== null &&
+      t('docCount', { count: connector.lastSyncDocCount }),
     nextSyncAt &&
       connector.status === 'active' &&
       !syncInFlight &&
-      `Next sync: ${
-        isPast(new Date(nextSyncAt))
-          ? 'pending'
-          : formatDistanceToNow(new Date(nextSyncAt), { addSuffix: true })
-      }`,
+      t('nextSync', {
+        when: isPast(new Date(nextSyncAt))
+          ? t('nextSyncPending')
+          : formatDistanceToNow(new Date(nextSyncAt), { addSuffix: true }),
+      }),
   ]
     .filter(Boolean)
     .join(' · ')
@@ -144,11 +150,11 @@ function ConnectorCard({
         badge={
           <>
             <Badge variant={statusConfig.variant} size='sm' dot>
-              {statusConfig.label}
+              {t(`status.${statusConfig.labelKey}`)}
             </Badge>
             {syncsPerMember && (
               <Badge variant='gray' size='sm' icon={Users}>
-                Per member
+                {t('perMember')}
               </Badge>
             )}
           </>
@@ -168,7 +174,7 @@ function ConnectorCard({
       {connector.accessRewritePending && (
         <span className='flex items-center gap-1 text-[var(--text-muted)] text-caption'>
           <Loader className='size-3' animate />
-          Updating access
+          {t('updatingAccess')}
         </span>
       )}
       <ConnectorRecovery
@@ -194,7 +200,7 @@ function ConnectorCard({
                 actionsTriggerRef.current?.focus()
               }}
             >
-              Hide history
+              {t('hideHistory')}
             </Chip>
           </div>
           {lastSyncError && <SettingsResourceRow title={lastSyncError} />}

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   Badge,
   Button,
@@ -18,6 +18,7 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { ArrowLeftRight, Plus, Trash } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import Editor from 'react-simple-code-editor'
 import {
   createDefaultInputFormatField,
@@ -62,14 +63,14 @@ interface FieldFormatProps {
 /**
  * Type options for field type selection
  */
-const TYPE_OPTIONS: ComboboxOption[] = [
-  { label: 'String', value: 'string' },
-  { label: 'Number', value: 'number' },
-  { label: 'Boolean', value: 'boolean' },
-  { label: 'Object', value: 'object' },
-  { label: 'Array', value: 'array' },
-  { label: 'Files', value: 'file[]' },
-]
+const TYPE_OPTIONS = [
+  { labelKey: 'string', value: 'string' },
+  { labelKey: 'number', value: 'number' },
+  { labelKey: 'boolean', value: 'boolean' },
+  { labelKey: 'object', value: 'object' },
+  { labelKey: 'array', value: 'array' },
+  { labelKey: 'files', value: 'file[]' },
+] as const
 
 /**
  * Boolean value options for Combobox
@@ -92,14 +93,23 @@ export function FieldFormat({
   isPreview = false,
   previewValue,
   disabled = false,
-  title = 'Field',
+  title: titleProp,
   placeholder = 'fieldName',
   showType = true,
   showValue = false,
   showDescription = false,
-  valuePlaceholder = 'Enter default value',
-  descriptionPlaceholder = 'Describe this field',
+  valuePlaceholder: valuePlaceholderProp,
+  descriptionPlaceholder: descriptionPlaceholderProp,
 }: FieldFormatProps) {
+  const t = useTranslations('editor.subBlock.inputFormat')
+  const title = titleProp ?? t('fieldTitle')
+  const valuePlaceholder = valuePlaceholderProp ?? t('defaultValuePlaceholder')
+  const descriptionPlaceholder = descriptionPlaceholderProp ?? t('descriptionPlaceholder')
+  const typeOptions = useMemo(
+    (): ComboboxOption[] =>
+      TYPE_OPTIONS.map((option) => ({ label: t(`types.${option.labelKey}`), value: option.value })),
+    [t]
+  )
   const activeSearchTarget = useActiveSearchTarget()
   const [storeValue, setStoreValue] = useSubBlockValue<Field[]>(blockId, subBlockId)
   const valueInputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement>>({})
@@ -160,7 +170,7 @@ export function FieldFormat({
   const renderFileModeToggle = (field: Field) => {
     const { mode, canUseUploader } = getFileFieldMode(field)
     if (!canUseUploader) return null
-    const label = mode === 'upload' ? 'Switch to JSON' : 'Switch to file uploader'
+    const label = mode === 'upload' ? t('switchToJson') : t('switchToUploader')
     return (
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
@@ -388,7 +398,7 @@ export function FieldFormat({
   const renderFieldHeader = (field: Field, index: number) => (
     <div
       role='group'
-      aria-label={`${title} ${index + 1}`}
+      aria-label={t('itemTitle', { title, number: index + 1 })}
       className='flex cursor-pointer items-center justify-between rounded-t-[3px] bg-[var(--surface-4)] px-2.5 py-[5px]'
       onClick={() => toggleCollapse(field.id)}
       onKeyDown={(event) => {
@@ -398,7 +408,7 @@ export function FieldFormat({
     >
       <div className='flex min-w-0 flex-1 items-center gap-2'>
         <span className='block truncate text-[var(--text-tertiary)] text-sm'>
-          {field.name || `${title} ${index + 1}`}
+          {field.name || t('itemTitle', { title, number: index + 1 })}
         </span>
         {field.name && showType && (
           <Badge variant='type' size='sm'>
@@ -413,7 +423,7 @@ export function FieldFormat({
       >
         <Button variant='ghost' onClick={addField} disabled={isReadOnly} className='h-auto p-0'>
           <Plus className='size-[14px]' />
-          <span className='sr-only'>Add {title}</span>
+          <span className='sr-only'>{t('addItemSr', { title })}</span>
         </Button>
         <Button
           variant='ghost'
@@ -422,7 +432,7 @@ export function FieldFormat({
           className='h-auto p-0 text-[var(--text-error)] hover-hover:text-[var(--text-error)] hover-hover:opacity-90'
         >
           <Trash className='size-[14px]' />
-          <span className='sr-only'>Delete Field</span>
+          <span className='sr-only'>{t('deleteFieldSr')}</span>
         </Button>
       </div>
     </div>
@@ -438,7 +448,7 @@ export function FieldFormat({
           options={BOOLEAN_OPTIONS}
           value={field.value ?? ''}
           onChange={(v) => !isReadOnly && updateField(field.id, 'value', v)}
-          placeholder='Select value'
+          placeholder={t('selectValue')}
           disabled={isReadOnly}
         />
       )
@@ -674,15 +684,15 @@ export function FieldFormat({
             <ExpandableContent>
               <div className='flex flex-col gap-2 rounded-b-[4px] border-[var(--border-1)] border-t bg-[var(--surface-2)] px-2.5 pt-1.5 pb-2.5'>
                 <div className='flex flex-col gap-1.5'>
-                  {renderFieldLabel('Name')}
+                  {renderFieldLabel(t('name'))}
                   <div className='relative'>{renderNameInput(field)}</div>
                 </div>
 
                 {showType && (
                   <div className='flex flex-col gap-1.5'>
-                    {renderFieldLabel('Type')}
+                    {renderFieldLabel(t('type'))}
                     <Combobox
-                      options={TYPE_OPTIONS}
+                      options={typeOptions}
                       value={field.type}
                       onChange={(value) => updateField(field.id, 'type', value)}
                       disabled={isReadOnly}
@@ -692,7 +702,7 @@ export function FieldFormat({
 
                 {showDescription && (
                   <div className='flex flex-col gap-1.5'>
-                    {renderFieldLabel('Description')}
+                    {renderFieldLabel(t('description'))}
                     <div className='relative'>
                       <Input
                         ref={(el) => {
@@ -757,11 +767,11 @@ export function FieldFormat({
                   <div className='flex flex-col gap-1.5'>
                     {isFileFieldType(field.type) ? (
                       <div className='flex items-center justify-between'>
-                        {renderFieldLabel('Value')}
+                        {renderFieldLabel(t('value'))}
                         {renderFileModeToggle(field)}
                       </div>
                     ) : (
-                      renderFieldLabel('Value')
+                      renderFieldLabel(t('value'))
                     )}
                     <div className='relative'>{renderValueInput(field)}</div>
                   </div>
@@ -778,7 +788,15 @@ export function FieldFormat({
 export function InputFormat(
   props: Omit<FieldFormatProps, 'title' | 'placeholder' | 'showDescription'>
 ) {
-  return <FieldFormat {...props} title='Input' placeholder='firstName' showDescription={true} />
+  const t = useTranslations('editor.subBlock.inputFormat')
+  return (
+    <FieldFormat
+      {...props}
+      title={t('inputTitle')}
+      placeholder='firstName'
+      showDescription={true}
+    />
+  )
 }
 
 export function ResponseFormat(
@@ -787,14 +805,15 @@ export function ResponseFormat(
     'title' | 'placeholder' | 'showType' | 'showValue' | 'valuePlaceholder'
   >
 ) {
+  const t = useTranslations('editor.subBlock.inputFormat')
   return (
     <FieldFormat
       {...props}
-      title='Field'
+      title={t('fieldTitle')}
       placeholder='output'
       showType={false}
       showValue={true}
-      valuePlaceholder='Enter return value'
+      valuePlaceholder={t('returnValuePlaceholder')}
     />
   )
 }

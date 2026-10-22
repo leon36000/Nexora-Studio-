@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { Combobox } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import { getWorkflowSearchLabelHighlight } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/workflow-search-highlight'
@@ -28,6 +29,7 @@ export function McpToolSelector({
   previewValue,
   previewContextValues,
 }: McpToolSelectorProps) {
+  const t = useTranslations('editor.subBlock.mcpServerModal')
   const activeSearchTarget = useActiveSearchTarget()
   const { workspaceId } = useWorkflowScope()
 
@@ -38,7 +40,7 @@ export function McpToolSelector({
 
   const { server: serverValue } = useMcpBlockConfig({ blockId, previewContextValues })
 
-  const label = subBlock.placeholder || 'Select tool'
+  const label = subBlock.placeholder || t('selectTool')
 
   const effectiveValue = isPreview && previewValue !== undefined ? previewValue : storeValue
   const selectedToolId = effectiveValue || ''
@@ -91,7 +93,7 @@ export function McpToolSelector({
       selectedValue={selectedToolId}
       onChange={handleComboboxChange}
       onOpenChange={handleOpenChange}
-      placeholder={serverValue ? label : 'Select server first'}
+      placeholder={serverValue ? label : t('selectServerFirst')}
       disabled={isDisabled}
       editable={false}
       searchable

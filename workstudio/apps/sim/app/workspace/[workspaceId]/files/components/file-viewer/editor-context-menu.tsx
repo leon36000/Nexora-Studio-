@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@sim/emcn'
 import { Blimp, Clipboard, Duplicate, Scissors, Search, SelectAll } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 interface EditorContextMenuProps {
   isOpen: boolean
@@ -40,6 +41,7 @@ export function EditorContextMenu({
   onFind,
   onAddToChat,
 }: EditorContextMenuProps) {
+  const t = useTranslations('files.editorMenu')
   return (
     <DropdownMenu open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DropdownMenuTrigger asChild>
@@ -66,7 +68,7 @@ export function EditorContextMenu({
           <>
             <DropdownMenuItem disabled={!hasSelection} onSelect={onAddToChat}>
               <Blimp />
-              Add to Chat
+              {t('addToChat')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -74,25 +76,25 @@ export function EditorContextMenu({
         {canEdit && (
           <DropdownMenuItem disabled={!hasSelection} onSelect={onCut}>
             <Scissors />
-            Cut
+            {t('cut')}
             <DropdownMenuShortcut>⌘X</DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem disabled={!hasSelection} onSelect={onCopy}>
           <Duplicate />
-          Copy
+          {t('copy')}
           <DropdownMenuShortcut>⌘C</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onCopyAll}>
           <Duplicate />
-          Copy all
+          {t('copyAll')}
         </DropdownMenuItem>
         {canEdit && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onPaste}>
               <Clipboard />
-              Paste
+              {t('paste')}
               <DropdownMenuShortcut>⌘V</DropdownMenuShortcut>
             </DropdownMenuItem>
           </>
@@ -100,12 +102,12 @@ export function EditorContextMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onSelectAll}>
           <SelectAll />
-          Select all
+          {t('selectAll')}
           <DropdownMenuShortcut>⌘A</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onFind}>
           <Search />
-          Find
+          {t('find')}
           <DropdownMenuShortcut>⌘F</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>

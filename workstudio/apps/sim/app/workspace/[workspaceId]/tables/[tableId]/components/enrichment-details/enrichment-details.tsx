@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Badge, Button, ChipModalTabs, cn, DetailsPanel, X } from '@sim/emcn'
 import { formatDuration } from '@sim/utils/formatting'
+import { useTranslations } from 'next-intl'
 import type { EnrichmentProviderOutcome, EnrichmentRunDetail } from '@/lib/table'
 import {
   adjustBgForContrast,
@@ -20,27 +21,17 @@ type EnrichmentDetailsTab = 'result' | 'cascade'
 
 type ResultStatus = 'matched' | 'no_match' | 'error' | 'not_run' | 'cancelled'
 
-const RESULT_STATUS_CONFIG: Record<
-  ResultStatus,
-  { variant: React.ComponentProps<typeof Badge>['variant']; label: string }
-> = {
-  matched: { variant: 'green', label: 'Matched' },
-  no_match: { variant: 'gray', label: 'No match' },
-  error: { variant: 'red', label: 'Error' },
-  not_run: { variant: 'gray', label: 'Not run' },
-  cancelled: { variant: 'orange', label: 'Cancelled' },
+/** Badge variant per status; the label is the `tables.enrichmentDetails.status.<status>` message. */
+const RESULT_STATUS_VARIANT: Record<ResultStatus, React.ComponentProps<typeof Badge>['variant']> = {
+  matched: 'green',
+  no_match: 'gray',
+  error: 'red',
+  not_run: 'gray',
+  cancelled: 'orange',
 }
 
 /** Minimum bar width so a sub-millisecond provider still shows on the timeline. */
 const MIN_BAR_PCT = 0.5
-
-const PROVIDER_STATUS_LABEL: Record<EnrichmentProviderOutcome['status'], string> = {
-  matched: 'Matched',
-  no_match: 'No match',
-  skipped: 'Skipped',
-  error: 'Error',
-  not_run: 'Not run',
-}
 
 interface CascadeRow {
   outcome: EnrichmentProviderOutcome
@@ -121,6 +112,7 @@ function EnrichmentDetailsContent({
   groupName,
   isOpen,
 }: EnrichmentDetailsContentProps) {
+  const t = useTranslations('tables.enrichmentDetails')
   const [activeTab, setActiveTab] = useState<EnrichmentDetailsTab>('result')
   const [prevKey, setPrevKey] = useState(`${rowId}:${groupId}`)
 
@@ -148,8 +140,8 @@ function EnrichmentDetailsContent({
     <div className='mt-4 flex min-h-0 flex-1 flex-col'>
       <ChipModalTabs
         tabs={[
-          { value: 'result', label: 'Result' },
-          { value: 'cascade', label: 'Cascade' },
+          { value: 'result', label: t('tabs.result') },
+          { value: 'cascade', label: t('tabs.cascade') },
         ]}
         value={activeTab}
         onChange={(v) => setActiveTab(v as EnrichmentDetailsTab)}
@@ -157,53 +149,47 @@ function EnrichmentDetailsContent({
 
       {isLoading ? (
         <div className='flex h-full items-center justify-center px-4 text-center'>
-          <span className='text-[var(--text-tertiary)] text-sm'>Loading…</span>
+          <span className='text-[var(--text-tertiary)] text-sm'>{t('loading')}</span>
         </div>
       ) : !detail ? (
         <div className='flex h-full items-center justify-center px-4 text-center'>
-          <span className='text-[var(--text-tertiary)] text-sm'>
-            No enrichment details for this run
-          </span>
+          <span className='text-[var(--text-tertiary)] text-sm'>{t('empty')}</span>
         </div>
       ) : activeTab === 'result' ? (
         <div className='mt-4 min-h-0 flex-1 overflow-y-auto'>
           <div className='flex flex-col gap-2.5 pb-4'>
             <div className='grid grid-cols-2 gap-x-3 pb-0.5'>
               <div className='flex min-w-0 flex-col gap-0.5'>
-                <span className='text-[var(--text-tertiary)] text-caption'>Timestamp</span>
+                <span className='text-[var(--text-tertiary)] text-caption'>{t('timestamp')}</span>
                 <span className='text-[var(--text-secondary)] text-sm tabular-nums'>
                   {timestamp ? `${timestamp.compactDate} ${timestamp.compactTime}` : '—'}
                 </span>
               </div>
               <div className='flex min-w-0 flex-col gap-0.5'>
-                <span className='text-[var(--text-tertiary)] text-caption'>Enrichment</span>
+                <span className='text-[var(--text-tertiary)] text-caption'>{t('enrichment')}</span>
                 <span className='min-w-0 truncate text-[var(--text-secondary)] text-sm'>
-                  {groupName || 'Enrichment'}
+                  {groupName || t('enrichment')}
                 </span>
               </div>
             </div>
 
             <div className='divide-y divide-[var(--border)] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface-2)] dark:bg-transparent'>
-              <DetailRow label='Status'>
-                <Badge
-                  variant={RESULT_STATUS_CONFIG[deriveResultStatus(detail)].variant}
-                  dot
-                  size='sm'
-                >
-                  {RESULT_STATUS_CONFIG[deriveResultStatus(detail)].label}
+              <DetailRow label={t('statusLabel')}>
+                <Badge variant={RESULT_STATUS_VARIANT[deriveResultStatus(detail)]} dot size='sm'>
+                  {t(`status.${deriveResultStatus(detail)}`)}
                 </Badge>
               </DetailRow>
-              <DetailRow label='Duration'>
+              <DetailRow label={t('duration')}>
                 {formatDuration(detail.durationMs, { precision: 2 }) || '—'}
               </DetailRow>
-              <DetailRow label='Total cost'>{formatCost(detail.totalCost)}</DetailRow>
-              <DetailRow label='Matched provider'>{matchedLabel || '—'}</DetailRow>
-              <DetailRow label='Providers ran'>{ranCount}</DetailRow>
+              <DetailRow label={t('totalCost')}>{formatCost(detail.totalCost)}</DetailRow>
+              <DetailRow label={t('matchedProvider')}>{matchedLabel || '—'}</DetailRow>
+              <DetailRow label={t('providersRan')}>{ranCount}</DetailRow>
             </div>
 
             {lastError && (
               <div className='flex flex-col gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-2 dark:bg-transparent'>
-                <span className='text-[var(--text-error)] text-caption'>Error</span>
+                <span className='text-[var(--text-error)] text-caption'>{t('error')}</span>
                 <p className='break-words text-[var(--text-secondary)] text-caption'>{lastError}</p>
               </div>
             )}
@@ -213,14 +199,14 @@ function EnrichmentDetailsContent({
         <div className='mt-4 min-h-0 flex-1 overflow-y-auto'>
           {/* Summary strip — mirrors the trace header */}
           <div className='mb-2 flex items-center gap-2 px-[2px]'>
-            <Badge variant={RESULT_STATUS_CONFIG[deriveResultStatus(detail)].variant} dot size='sm'>
-              {RESULT_STATUS_CONFIG[deriveResultStatus(detail)].label}
+            <Badge variant={RESULT_STATUS_VARIANT[deriveResultStatus(detail)]} dot size='sm'>
+              {t(`status.${deriveResultStatus(detail)}`)}
             </Badge>
             <span className='text-[var(--text-secondary)] text-caption tabular-nums'>
               {formatDuration(detail.durationMs, { precision: 2 }) || '—'}
             </span>
             <span className='text-[var(--text-tertiary)] text-caption'>
-              {ranCount} {ranCount === 1 ? 'provider' : 'providers'}
+              {t('providerCount', { count: ranCount })}
             </span>
             {detail.totalCost > 0 && (
               <span className='text-[var(--text-tertiary)] text-caption tabular-nums'>
@@ -264,7 +250,7 @@ function EnrichmentDetailsContent({
                       {outcome.label}
                     </span>
                     <span className='shrink-0 text-[var(--text-tertiary)] text-caption'>
-                      {PROVIDER_STATUS_LABEL[outcome.status]}
+                      {t(`status.${outcome.status}`)}
                     </span>
                     {outcome.cost > 0 && (
                       <span className='shrink-0 text-[var(--text-tertiary)] text-xs tabular-nums'>
@@ -325,6 +311,7 @@ export function EnrichmentDetails({
   isOpen,
   onClose,
 }: EnrichmentDetailsProps) {
+  const t = useTranslations('tables.enrichmentDetails')
   const panelWidth = useLogDetailsUIStore((state) => state.panelWidth)
   const { handleMouseDown } = useLogDetailsResize()
 
@@ -344,14 +331,14 @@ export function EnrichmentDetails({
       open={isOpen}
       width={effectiveWidth}
       onResizeStart={handleMouseDown}
-      resizeLabel='Resize enrichment details panel'
-      aria-label='Enrichment details sidebar'
+      resizeLabel={t('resize')}
+      aria-label={t('ariaLabel')}
     >
       {rowId && groupId && (
         <div className='flex h-full flex-col px-3.5 pt-3'>
           <div className='flex items-center justify-between'>
-            <h2 className='text-[var(--text-primary)] text-sm'>Enrichment Details</h2>
-            <Button variant='ghost' iconPadding='sm' onClick={onClose} aria-label='Close'>
+            <h2 className='text-[var(--text-primary)] text-sm'>{t('title')}</h2>
+            <Button variant='ghost' iconPadding='sm' onClick={onClose} aria-label={t('close')}>
               <X className='size-[14px]' />
             </Button>
           </div>

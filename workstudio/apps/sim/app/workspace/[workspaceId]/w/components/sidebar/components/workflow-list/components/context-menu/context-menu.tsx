@@ -26,7 +26,8 @@ import {
   Unlock,
   X,
 } from '@sim/emcn/icons'
-import { selectionActionLabel } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
+import { useTranslations } from 'next-intl'
+import { useSelectionLabels } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 
 interface ContextMenuProps {
   isOpen: boolean
@@ -121,7 +122,7 @@ export function ContextMenu({
   onClose,
   onCopyLink,
   onOpenInNewTab,
-  openInNewTabLabel = 'Open in new tab',
+  openInNewTabLabel,
   openInNewTabPosition = 'first',
   onMarkAsRead,
   onMarkAsUnread,
@@ -170,6 +171,9 @@ export function ContextMenu({
   disableUploadLogo = false,
   selectedCount = 1,
 }: ContextMenuProps) {
+  const t = useTranslations('shell.contextMenu')
+  const { selectionActionLabel } = useSelectionLabels()
+  const resolvedOpenInNewTabLabel = openInNewTabLabel ?? t('openInNewTab')
   const hasActionsAboveDestructive =
     onCopyLink ||
     (showOpenInNewTab && onOpenInNewTab) ||
@@ -243,7 +247,7 @@ export function ContextMenu({
             }}
           >
             <SquareArrowUpRight />
-            {openInNewTabLabel}
+            {resolvedOpenInNewTabLabel}
           </DropdownMenuItem>
         )}
         {onCopyLink && (
@@ -254,7 +258,7 @@ export function ContextMenu({
             }}
           >
             <Duplicate />
-            Copy link
+            {t('copyLink')}
           </DropdownMenuItem>
         )}
         {showMarkAsRead && onMarkAsRead && (
@@ -266,7 +270,7 @@ export function ContextMenu({
             }}
           >
             <Eye />
-            Mark as read
+            {t('markAsRead')}
           </DropdownMenuItem>
         )}
         {showMarkAsUnread && onMarkAsUnread && (
@@ -278,7 +282,7 @@ export function ContextMenu({
             }}
           >
             <Mail />
-            Mark as unread
+            {t('markAsUnread')}
           </DropdownMenuItem>
         )}
         {showPin && onTogglePin && (
@@ -289,7 +293,7 @@ export function ContextMenu({
             }}
           >
             {isPinned ? <PinOff className='size-[14px]' /> : <Pin className='size-[14px]' />}
-            {isPinned ? 'Unpin' : 'Pin'}
+            {isPinned ? t('unpin') : t('pin')}
           </DropdownMenuItem>
         )}
         {showRename && onRename && (
@@ -302,7 +306,7 @@ export function ContextMenu({
             }}
           >
             <Pencil />
-            Rename
+            {t('rename')}
           </DropdownMenuItem>
         )}
         {showCreate && onCreate && (
@@ -314,7 +318,7 @@ export function ContextMenu({
             }}
           >
             <Plus />
-            Create workflow
+            {t('createWorkflow')}
           </DropdownMenuItem>
         )}
         {showCreateFolder && onCreateFolder && (
@@ -326,7 +330,7 @@ export function ContextMenu({
             }}
           >
             <FolderPlus />
-            Create folder
+            {t('createFolder')}
           </DropdownMenuItem>
         )}
         {showUploadLogo && onUploadLogo && (
@@ -338,7 +342,7 @@ export function ContextMenu({
             }}
           >
             <ImageUp />
-            Upload logo
+            {t('uploadLogo')}
           </DropdownMenuItem>
         )}
         {showLock && onToggleLock && (
@@ -350,7 +354,7 @@ export function ContextMenu({
             }}
           >
             {isLocked ? <Unlock /> : <Lock />}
-            {isLocked ? 'Unlock' : 'Lock'}
+            {isLocked ? t('unlock') : t('lock')}
           </DropdownMenuItem>
         )}
 
@@ -363,7 +367,7 @@ export function ContextMenu({
             }}
           >
             <Duplicate />
-            {selectionActionLabel('Duplicate', selectedCount)}
+            {selectionActionLabel(t('duplicate'), selectedCount)}
           </DropdownMenuItem>
         )}
         {showExport && onExport && (
@@ -375,7 +379,7 @@ export function ContextMenu({
             }}
           >
             <Download />
-            {selectionActionLabel('Export', selectedCount)}
+            {selectionActionLabel(t('export'), selectedCount)}
           </DropdownMenuItem>
         )}
         {openInNewTabPosition === 'last' && showOpenInNewTab && onOpenInNewTab && (
@@ -386,7 +390,7 @@ export function ContextMenu({
             }}
           >
             <SquareArrowUpRight />
-            {openInNewTabLabel}
+            {resolvedOpenInNewTabLabel}
           </DropdownMenuItem>
         )}
 
@@ -400,7 +404,7 @@ export function ContextMenu({
             }}
           >
             <LogOut />
-            Leave
+            {t('leave')}
           </DropdownMenuItem>
         )}
         {showDelete && onDelete && (
@@ -412,7 +416,7 @@ export function ContextMenu({
             }}
           >
             <Trash />
-            {selectionActionLabel('Delete', selectedCount)}
+            {selectionActionLabel(t('delete'), selectedCount)}
           </DropdownMenuItem>
         )}
         {showCloseTab && onCloseTab && (
@@ -423,7 +427,7 @@ export function ContextMenu({
             }}
           >
             <X />
-            Close
+            {t('close')}
           </DropdownMenuItem>
         )}
         {onCloseOtherTabs && (
@@ -435,7 +439,7 @@ export function ContextMenu({
             }}
           >
             <X />
-            Close Others
+            {t('closeOthers')}
           </DropdownMenuItem>
         )}
         {onCloseTabsToRight && (
@@ -447,7 +451,7 @@ export function ContextMenu({
             }}
           >
             <X />
-            Close Tabs to the Right
+            {t('closeTabsToRight')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

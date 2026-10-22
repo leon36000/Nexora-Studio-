@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react'
 import { ROOM_TYPES } from '@sim/realtime-protocol/rooms'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import type { FolderResourceType } from '@/lib/api/contracts/folders'
 import { useWorkspaceInvalidationRoom } from '@/app/workspace/[workspaceId]/hooks/use-workspace-invalidation-room'
 import { useFolders } from '@/hooks/queries/folders'
@@ -52,6 +53,7 @@ export function useResourceFolders(
   workspaceId: string | undefined,
   resourceType: FolderResourceType
 ): UseResourceFoldersResult {
+  const t = useTranslations('editor.subBlock.common')
   const isFileResource = resourceType === 'file'
 
   const generic = useFolders(workspaceId, {
@@ -142,11 +144,11 @@ export function useResourceFolders(
       byPath,
       isLoading,
       isPlaceholderData,
-      error: queryError ? getErrorMessage(queryError, 'Failed to load folders') : null,
+      error: queryError ? getErrorMessage(queryError, t('failedToLoadFolders')) : null,
       refetch: () => {
         void refetchQuery()
       },
     }),
-    [folders, byPath, isLoading, isPlaceholderData, queryError, refetchQuery]
+    [t, folders, byPath, isLoading, isPlaceholderData, queryError, refetchQuery]
   )
 }

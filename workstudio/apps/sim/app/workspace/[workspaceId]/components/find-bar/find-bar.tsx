@@ -4,6 +4,7 @@ import type React from 'react'
 import { memo, useRef, useState } from 'react'
 import { Button, ChipInput, cn } from '@sim/emcn'
 import { ChevronDown, ChevronRight, ChevronUp, Loader, Search, X } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 
 export interface FindReplaceControls {
   value: string
@@ -79,6 +80,7 @@ export const FindBar = memo(function FindBar({
   inputRef,
   replace,
 }: FindBarProps) {
+  const t = useTranslations('shell.findBar')
   const replaceInputRef = useRef<HTMLInputElement>(null)
   const [showReplace, setShowReplace] = useState(false)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -105,8 +107,14 @@ export const FindBar = memo(function FindBar({
    *  it on every keystroke reads as the feature breaking rather than working. */
   function counterContent() {
     if (!hasQuery) return null
-    if (hasMatches) return `${currentIndex + 1} of ${count}${truncated ? '+' : ''}`
-    return isLoading ? <Loader aria-hidden className='size-[13px] animate-spin' /> : 'No results'
+    if (hasMatches) {
+      return t('counter', {
+        current: String(currentIndex + 1),
+        total: String(count),
+        more: truncated ? '+' : '',
+      })
+    }
+    return isLoading ? <Loader aria-hidden className='size-[13px] animate-spin' /> : t('noResults')
   }
 
   return (
@@ -130,7 +138,7 @@ export const FindBar = memo(function FindBar({
             variant='ghost'
             size='icon'
             className='size-6 shrink-0'
-            aria-label={showReplace ? 'Hide replace' : 'Show replace'}
+            aria-label={showReplace ? t('hideReplace') : t('showReplace')}
             aria-expanded={showReplace}
             onClick={() => setShowReplace((visible) => !visible)}
           >
@@ -140,7 +148,7 @@ export const FindBar = memo(function FindBar({
         <ChipInput
           ref={inputRef}
           value={query}
-          placeholder='Search'
+          placeholder={t('search')}
           aria-label={ariaLabel}
           spellCheck={false}
           autoComplete='off'
@@ -155,7 +163,7 @@ export const FindBar = memo(function FindBar({
                 variant='ghost'
                 size='icon'
                 className='-mr-1 shrink-0'
-                aria-label='Clear search'
+                aria-label={t('clearSearch')}
                 onClick={() => {
                   onQueryChange('')
                   inputRef.current?.focus()
@@ -180,8 +188,8 @@ export const FindBar = memo(function FindBar({
           variant='ghost'
           size='icon'
           className='size-6 shrink-0'
-          aria-label='Previous match'
-          title='Previous match (Shift+Enter)'
+          aria-label={t('previousMatch')}
+          title={t('previousMatchTitle')}
           disabled={!navEnabled}
           onClick={onPrev}
         >
@@ -192,8 +200,8 @@ export const FindBar = memo(function FindBar({
           variant='ghost'
           size='icon'
           className='size-6 shrink-0'
-          aria-label='Next match'
-          title='Next match (Enter)'
+          aria-label={t('nextMatch')}
+          title={t('nextMatchTitle')}
           disabled={!navEnabled}
           onClick={onNext}
         >
@@ -204,8 +212,8 @@ export const FindBar = memo(function FindBar({
           variant='ghost'
           size='icon'
           className='size-6 shrink-0'
-          aria-label='Close find'
-          title='Close (Esc)'
+          aria-label={t('closeFind')}
+          title={t('closeTitle')}
           onClick={onClose}
         >
           <X className='size-[13px]' />
@@ -217,8 +225,8 @@ export const FindBar = memo(function FindBar({
           <ChipInput
             ref={replaceInputRef}
             value={replace.value}
-            placeholder='Replace'
-            aria-label='Replace in document'
+            placeholder={t('replace')}
+            aria-label={t('replaceInDocument')}
             spellCheck={false}
             autoComplete='off'
             className='min-w-0 flex-1'
@@ -241,23 +249,21 @@ export const FindBar = memo(function FindBar({
               replaceInputRef.current?.focus()
             }}
           >
-            Replace
+            {t('replace')}
           </Button>
           <Button
             type='button'
             variant='quiet'
             size='sm'
-            title={
-              !replace.canReplaceAll && truncated ? 'Narrow the search to replace all' : undefined
-            }
+            title={!replace.canReplaceAll && truncated ? t('narrowToReplaceAll') : undefined}
             disabled={!replace.canReplaceAll}
-            aria-label='Replace all matches'
+            aria-label={t('replaceAllMatches')}
             onClick={() => {
               replace.onReplaceAll()
               replaceInputRef.current?.focus()
             }}
           >
-            All
+            {t('all')}
           </Button>
         </div>
       )}

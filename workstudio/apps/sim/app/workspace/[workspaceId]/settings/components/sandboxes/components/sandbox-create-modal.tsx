@@ -12,6 +12,7 @@ import {
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
 import type { SandboxDependencyIssue } from '@/lib/api/contracts/sandboxes'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -21,8 +22,6 @@ import {
   emptyDraft,
   extractIssues,
   LANGUAGE_OPTIONS,
-  SANDBOX_UPGRADE_DESCRIPTION,
-  SANDBOX_UPGRADE_TITLE,
   type SandboxDraft,
   type SandboxLanguage,
   SYSTEM_PACKAGE_PLACEHOLDER,
@@ -58,6 +57,8 @@ export function SandboxCreateModal({
   defaultLanguage,
   onCreated,
 }: SandboxCreateModalProps) {
+  const t = useTranslations('settings.sandboxes')
+  const tShared = useTranslations('settings.shared')
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
@@ -117,31 +118,29 @@ export function SandboxCreateModal({
         setSystemPackageIssues(lineIssues.field === 'systemPackages' ? lineIssues.issues : [])
         return
       }
-      setError(getErrorMessage(caught, 'Failed to create sandbox'))
+      setError(getErrorMessage(caught, t('createFailed')))
     }
   }
 
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Create sandbox'>
-      <ChipModalHeader onClose={() => onOpenChange(false)}>Create sandbox</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('createTitle')}>
+      <ChipModalHeader onClose={() => onOpenChange(false)}>{t('createTitle')}</ChipModalHeader>
 
       <ChipModalBody>
         {gate === 'plan' ? (
           <SettingsUpgradeNotice
-            title={SANDBOX_UPGRADE_TITLE}
-            description={SANDBOX_UPGRADE_DESCRIPTION}
+            title={t('upgradeTitle')}
+            description={t('upgradeDescription')}
             canUpgrade={canAdmin}
             compact
           />
         ) : gate === 'permission' ? (
-          <SettingsEmptyState variant='inline'>
-            Only workspace admins can create sandboxes.
-          </SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('adminOnly')}</SettingsEmptyState>
         ) : (
           <>
             <ChipModalField
               type='input'
-              title='Name'
+              title={t('fields.name')}
               value={draft.name}
               onChange={(name) => setDraft((prev) => ({ ...prev, name }))}
               placeholder='bigquery-etl'
@@ -151,7 +150,7 @@ export function SandboxCreateModal({
               disabled={saving}
             />
 
-            <ChipModalField type='custom' title='Language'>
+            <ChipModalField type='custom' title={t('fields.language')}>
               <ChipDropdown
                 value={draft.language}
                 onChange={(language) =>
@@ -162,25 +161,25 @@ export function SandboxCreateModal({
                   value: option.value,
                 }))}
                 disabled={saving}
-                aria-label='Language'
+                aria-label={t('fields.language')}
               />
             </ChipModalField>
 
             <ChipModalField
               type='textarea'
-              title='Dependencies'
+              title={t('fields.dependencies')}
               value={draft.dependencies}
               onChange={(dependencies) => setDraft((prev) => ({ ...prev, dependencies }))}
               placeholder={DEPENDENCY_PLACEHOLDERS[draft.language]}
               rows={8}
               disabled={saving}
-              hint='One per line. Version pins are optional.'
+              hint={t('fields.dependenciesHint')}
               error={
                 dependencyIssues.length > 0 ? (
                   <>
                     {dependencyIssues.map((issue) => (
                       <span key={issue.line} className='block'>
-                        Line {issue.line}: {issue.reason}
+                        {t('lineIssue', { line: issue.line, reason: issue.reason })}
                       </span>
                     ))}
                   </>
@@ -188,7 +187,7 @@ export function SandboxCreateModal({
               }
             />
 
-            <ChipModalField type='custom' title='Managed CLI tools'>
+            <ChipModalField type='custom' title={t('fields.cliTools')}>
               <ManagedCliSelect
                 value={draft.cliTools}
                 onChange={(cliTools) => setDraft((prev) => ({ ...prev, cliTools }))}
@@ -198,19 +197,19 @@ export function SandboxCreateModal({
 
             <ChipModalField
               type='textarea'
-              title='System packages'
+              title={t('fields.systemPackages')}
               value={draft.systemPackages}
               onChange={(systemPackages) => setDraft((prev) => ({ ...prev, systemPackages }))}
               placeholder={SYSTEM_PACKAGE_PLACEHOLDER}
               rows={6}
               disabled={saving}
-              hint='One Debian/APT package per line. Version pins are optional.'
+              hint={t('fields.systemPackagesHint')}
               error={
                 systemPackageIssues.length > 0 ? (
                   <>
                     {systemPackageIssues.map((issue) => (
                       <span key={issue.line} className='block'>
-                        Line {issue.line}: {issue.reason}
+                        {t('lineIssue', { line: issue.line, reason: issue.reason })}
                       </span>
                     ))}
                   </>
@@ -228,7 +227,7 @@ export function SandboxCreateModal({
           onCancel={() => onOpenChange(false)}
           cancelDisabled={saving}
           primaryAction={{
-            label: saving ? 'Creating...' : 'Create',
+            label: saving ? tShared('creating') : tShared('create'),
             onClick: () => void handleCreate(),
             disabled: saving || draft.name.trim().length === 0,
           }}

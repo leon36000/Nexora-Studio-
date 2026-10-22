@@ -59,7 +59,7 @@ export const SECTION_MODULES = {
   browser: () => import('@/app/workspace/[workspaceId]/settings/components/browser/browser'),
   terminal: () => import('@/app/workspace/[workspaceId]/settings/components/terminal/terminal'),
   whitelabeling: () => import('@/ee/whitelabeling/components/whitelabeling-settings'),
-} satisfies Partial<Record<SettingsSection, () => Promise<unknown>>>
+} satisfies Partial<Record<SettingsSection, () => Promise<unknown>>> // i18n-ignore: type signature
 
 /** Each section's first-content queries. */
 const SETTINGS_QUERY_WARMERS: Partial<

@@ -1,6 +1,7 @@
 import { ChipConfirmModal } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import { formatQuotedNameList } from '@sim/utils/string'
+import { useTranslations } from 'next-intl'
 
 const MAX_LISTED_CREDENTIALS = 3
 
@@ -23,7 +24,7 @@ interface RemoveMemberDialogProps {
   isSubmitting?: boolean
   error?: Error | null
   onOpenChange: (open: boolean) => void
-  onConfirmRemove: () => Promise<void>
+  onConfirmRemove: () => Promise<void> // i18n-ignore: type annotation, not UI text
   onCancel: () => void
 }
 
@@ -41,22 +42,25 @@ export function RemoveMemberDialog({
   credentialImpactFailed = false,
   isSubmitting = false,
 }: RemoveMemberDialogProps) {
+  const t = useTranslations('settings.teamManagement.removeMemberDialog')
+  const tShared = useTranslations('settings.shared')
   const title = isSelfRemoval
-    ? 'Leave Organization'
+    ? t('leaveTitle')
     : isExternalRemoval
-      ? 'Remove External Member'
-      : 'Remove Team Member'
+      ? t('removeExternalTitle')
+      : t('removeTeamMemberTitle')
 
-  const errorMessage = error ? getErrorMessage(error) || 'Failed to remove member' : null
+  const errorMessage = error ? getErrorMessage(error) || t('removeFailed') : null
 
   const credentialWarning = credentialImpactFailed
-    ? `Couldn't check which credentials ${isSelfRemoval ? 'you own' : 'they own'} will be affected — connected accounts backed by ${isSelfRemoval ? 'your' : 'their'} identity may stop working after removal.`
+    ? isSelfRemoval
+      ? t('impactCheckFailedSelf')
+      : t('impactCheckFailedOther')
     : breakingCredentials.length > 0
-      ? `${breakingCredentials.length === 1 ? 'A credential' : `${breakingCredentials.length} credentials`} ${
-          isSelfRemoval ? 'you own' : 'they own'
-        } (${formatQuotedNameList(breakingCredentials, MAX_LISTED_CREDENTIALS)}) will stop working in organization workspaces until another member reconnects ${
-          breakingCredentials.length === 1 ? 'it' : 'them'
-        }.`
+      ? t(isSelfRemoval ? 'breakingCredentialsSelf' : 'breakingCredentialsOther', {
+          count: breakingCredentials.length,
+          names: formatQuotedNameList(breakingCredentials, MAX_LISTED_CREDENTIALS),
+        })
       : null
 
   return (
@@ -70,21 +74,13 @@ export function RemoveMemberDialog({
       title={title}
       text={
         isSelfRemoval
-          ? 'Are you sure you want to leave this organization? You will lose access to all team resources. This action cannot be undone.'
+          ? t('leaveConfirm')
           : isExternalRemoval
-            ? [
-                'Are you sure you want to remove ',
-                { text: memberName, bold: true },
-                ' from all organization workspaces? Their workspace access and workspace credential access will be revoked. This action cannot be undone.',
-              ]
-            : [
-                'Are you sure you want to remove ',
-                { text: memberName, bold: true },
-                ' from the team? This action cannot be undone.',
-              ]
+            ? [t('removePrefix'), { text: memberName, bold: true }, t('removeExternalSuffix')]
+            : [t('removePrefix'), { text: memberName, bold: true }, t('removeTeamSuffix')]
       }
       confirm={{
-        label: isSelfRemoval ? 'Leave Organization' : 'Remove',
+        label: isSelfRemoval ? t('leaveTitle') : tShared('remove'),
         onClick: () => onConfirmRemove(),
         pending: isSubmitting,
         /**
@@ -97,9 +93,7 @@ export function RemoveMemberDialog({
       }}
     >
       {credentialImpactPending ? (
-        <p className='mt-1 px-2 text-[var(--text-muted)] text-caption'>
-          Checking which connected credentials this affects…
-        </p>
+        <p className='mt-1 px-2 text-[var(--text-muted)] text-caption'>{t('checkingImpact')}</p>
       ) : credentialWarning ? (
         <p className='mt-1 px-2 text-[var(--text-muted)] text-caption'>{credentialWarning}</p>
       ) : null}

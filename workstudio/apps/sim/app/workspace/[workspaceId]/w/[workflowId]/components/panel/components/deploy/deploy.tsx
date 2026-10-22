@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Chip, Tooltip, toast } from '@sim/emcn'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { useRegisterGlobalCommands } from '@/app/workspace/[workspaceId]/providers/global-commands-provider'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { DeployModal } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/components/deploy-modal/deploy-modal'
@@ -25,6 +26,7 @@ interface DeployProps {
 }
 
 export function Deploy({ activeWorkflowId, userPermissions, disabled = false }: DeployProps) {
+  const t = useTranslations('editor.deploy.button')
   const queryClient = useQueryClient()
   const { workspaceId } = useWorkflowScope()
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -91,7 +93,7 @@ export function Deploy({ activeWorkflowId, userPermissions, disabled = false }: 
         /* The palette can't render a disabled state for this action yet, so a
            gated invocation reports the same reason the button's tooltip shows. */
         if (isRegistryLoading || isDisabled) {
-          toast({ message: isRegistryLoading ? 'Workflow is still loading' : getTooltipText() })
+          toast({ message: isRegistryLoading ? t('stillLoading') : getTooltipText() })
           return
         }
         void onDeployClick()
@@ -101,30 +103,30 @@ export function Deploy({ activeWorkflowId, userPermissions, disabled = false }: 
 
   const getTooltipText = () => {
     if (isEmpty) {
-      return 'Cannot deploy an empty workflow'
+      return t('emptyWorkflow')
     }
     if (!canDeploy) {
-      return 'Admin permissions required'
+      return t('adminRequired')
     }
     if (disabled) {
-      return 'Workflow is locked'
+      return t('locked')
     }
     if (isDeploying) {
-      return 'Deploying...'
+      return t('deploying')
     }
     if (isDeploymentSettling) {
-      return 'Syncing deployment state...'
+      return t('settling')
     }
     if (deployReadiness.isBlocked && !isDeployed) {
       return deployReadiness.tooltip
     }
     if (buttonStatus === 'changed') {
-      return 'Update deployment'
+      return t('updateDeployment')
     }
     if (buttonStatus === 'live') {
-      return 'Active deployment'
+      return t('activeDeployment')
     }
-    return 'Deploy workflow'
+    return t('deployWorkflow')
   }
 
   const getButtonLabel = () => {
@@ -141,20 +143,20 @@ export function Deploy({ activeWorkflowId, userPermissions, disabled = false }: 
      * tooltip, where they explain why the button is disabled.
      */
     if (isDeploying) {
-      return 'Deploying...'
+      return t('deploying')
     }
 
     switch (buttonStatus) {
       case 'changed':
-        return 'Update'
+        return t('update')
       case 'live':
-        return 'Live'
+        return t('live')
       /*
        * Only reachable before we know the workflow is deployed, so "Deploy" is
        * the answer rather than a guess we would have to take back.
        */
       default:
-        return 'Deploy'
+        return t('deploy')
     }
   }
 

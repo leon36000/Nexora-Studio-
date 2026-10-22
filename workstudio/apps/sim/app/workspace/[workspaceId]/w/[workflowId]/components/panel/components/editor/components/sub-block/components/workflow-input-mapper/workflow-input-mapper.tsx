@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo } from 'react'
 import { Loader } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { extractInputFieldsFromBlocks } from '@/lib/workflows/input-format'
 import { ShortInput } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/short-input'
 import { useSubBlockValue } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/hooks/use-sub-block-value'
@@ -40,6 +41,7 @@ export function WorkflowInputMapper({
   disabled = false,
   contextValues,
 }: WorkflowInputMapperProps) {
+  const t = useTranslations('editor.subBlock.workflowInputMapper')
   const activeSearchTarget = useActiveSearchTarget()
   const [storeValue, setStoreValue] = useSubBlockValue<string>(blockId, subBlock.id)
 
@@ -75,7 +77,7 @@ export function WorkflowInputMapper({
   if (!workflowId) {
     return (
       <div className='rounded-md border border-[var(--border-1)] border-dashed bg-[var(--surface-3)] p-4 text-center text-[var(--text-muted)] text-sm'>
-        Select a workflow to configure its inputs
+        {t('selectWorkflow')}
       </div>
     )
   }
@@ -91,7 +93,7 @@ export function WorkflowInputMapper({
   if (inputFields.length === 0) {
     return (
       <div className='rounded-md border border-[var(--border-1)] border-dashed bg-[var(--surface-3)] p-4 text-center text-[var(--text-muted)] text-sm'>
-        This workflow has no custom input fields
+        {t('noInputFields')}
       </div>
     )
   }
@@ -114,7 +116,11 @@ export function WorkflowInputMapper({
             <ShortInput
               blockId={blockId}
               subBlockId={syntheticId}
-              placeholder={`Enter ${field.name}${field.type !== 'string' ? ` (${field.type})` : ''}`}
+              placeholder={
+                field.type !== 'string'
+                  ? t('enterFieldWithType', { name: field.name, type: field.type })
+                  : t('enterField', { name: field.name })
+              }
               value={String(parsedValue[field.name] ?? '')}
               onChange={(newValue: string) => handleFieldChange(field.name, newValue)}
               disabled={disabled || isPreview}

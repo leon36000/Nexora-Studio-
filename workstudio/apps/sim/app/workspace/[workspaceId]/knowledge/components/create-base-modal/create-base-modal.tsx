@@ -22,6 +22,7 @@ import { Loader, X } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { type FieldErrors, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { MAX_CHUNKING_SEPARATOR_LENGTH, MAX_CHUNKING_SEPARATORS } from '@/lib/chunkers/constants'
@@ -48,14 +49,14 @@ interface CreateBaseModalProps {
   folderId?: string | null
 }
 
-const STRATEGY_OPTIONS = [
-  { value: 'auto', label: 'Auto (detect from content)' },
-  { value: 'text', label: 'Text (word boundary splitting)' },
-  { value: 'recursive', label: 'Recursive (configurable separators)' },
-  { value: 'sentence', label: 'Sentence' },
-  { value: 'token', label: 'Token (fixed-size)' },
-  { value: 'regex', label: 'Regex (custom pattern)' },
-] as const
+const STRATEGY_OPTIONS = ['auto', 'text', 'recursive', 'sentence', 'token', 'regex'] as const
+
+/** Arguments every validation message may interpolate (messages are stored as keys). */
+const VALIDATION_ARGS = {
+  descriptionMax: KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH,
+  maxSeparators: MAX_CHUNKING_SEPARATORS,
+  maxSeparatorLength: MAX_CHUNKING_SEPARATOR_LENGTH,
+}
 
 /** Splits the comma-separated separator field into the list the API receives. */
 function parseSeparators(value: string | undefined): string[] {
@@ -65,37 +66,20 @@ function parseSeparators(value: string | undefined): string[] {
     .map((separator) => separator.trim().replace(/\\n/g, '\n').replace(/\\t/g, '\t'))
 }
 
-const STRATEGY_COMBOBOX_OPTIONS: ComboboxOption[] = STRATEGY_OPTIONS.map((o) => ({
-  label: o.label,
-  value: o.value,
-}))
-
 const FormSchema = z
   .object({
     name: z
       .string()
-      .min(1, 'Name is required')
-      .max(100, 'Name must be less than 100 characters')
-      .refine((value) => value.trim().length > 0, 'Name cannot be empty'),
+      .min(1, 'nameRequired')
+      .max(100, 'nameTooLong')
+      .refine((value) => value.trim().length > 0, 'nameEmpty'),
     description: z
       .string()
-      .max(
-        KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH,
-        `Description must be ${KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH} characters or less`
-      )
+      .max(KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH, 'descriptionTooLong')
       .optional(),
-    minChunkSize: z
-      .number()
-      .min(1, 'Min chunk size must be at least 1 character')
-      .max(2000, 'Min chunk size must be less than 2000 characters'),
-    maxChunkSize: z
-      .number()
-      .min(100, 'Max chunk size must be at least 100 tokens')
-      .max(4000, 'Max chunk size must be less than 4000 tokens'),
-    overlapSize: z
-      .number()
-      .min(0, 'Overlap must be non-negative')
-      .max(500, 'Overlap must be less than 500 tokens'),
+    minChunkSize: z.number().min(1, 'minChunkTooSmall').max(2000, 'minChunkTooLarge'),
+    maxChunkSize: z.number().min(100, 'maxChunkTooSmall').max(4000, 'maxChunkTooLarge'),
+    overlapSize: z.number().min(0, 'overlapNegative').max(500, 'overlapTooLarge'),
     strategy: z.enum(['auto', 'text', 'regex', 'recursive', 'sentence', 'token']).default('auto'),
     regexPattern: z.string().optional(),
     regexStrictBoundaries: z.boolean().default(false),
@@ -107,7 +91,7 @@ const FormSchema = z
       return data.minChunkSize < maxChunkSizeInChars
     },
     {
-      message: 'Min chunk size (characters) must be less than max chunk size (tokens × 4)',
+      message: 'minChunkVsMax',
       path: ['minChunkSize'],
     }
   )
@@ -116,7 +100,7 @@ const FormSchema = z
       return data.overlapSize < data.maxChunkSize
     },
     {
-      message: 'Overlap must be less than max chunk size',
+      message: 'overlapVsMax',
       path: ['overlapSize'],
     }
   )
@@ -128,7 +112,7 @@ const FormSchema = z
       return true
     },
     {
-      message: 'Regex pattern is required when using the regex strategy',
+      message: 'regexRequired',
       path: ['regexPattern'],
     }
   )
@@ -142,7 +126,7 @@ const FormSchema = z
       data.strategy !== 'recursive' ||
       parseSeparators(data.customSeparators).length <= MAX_CHUNKING_SEPARATORS,
     {
-      message: `At most ${MAX_CHUNKING_SEPARATORS} separators are allowed`,
+      message: 'tooManySeparators',
       path: ['customSeparators'],
     }
   )
@@ -153,7 +137,7 @@ const FormSchema = z
         (separator) => separator.length <= MAX_CHUNKING_SEPARATOR_LENGTH
       ),
     {
-      message: `Each separator must be ${MAX_CHUNKING_SEPARATOR_LENGTH} characters or less`,
+      message: 'separatorTooLong',
       path: ['customSeparators'],
     }
   )
@@ -171,6 +155,14 @@ export const CreateBaseModal = memo(function CreateBaseModal({
   onOpenChange,
   folderId = null,
 }: CreateBaseModalProps) {
+  const t = useTranslations('knowledge.createBase')
+  const tValidation = useTranslations('knowledge.createBase.validation')
+  const validationText = (key: string | undefined) =>
+    key ? tValidation(key, VALIDATION_ARGS) : undefined
+  const strategyOptions: ComboboxOption[] = STRATEGY_OPTIONS.map((value) => ({
+    label: t(`strategies.${value}`),
+    value,
+  }))
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
@@ -267,7 +259,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
         return
       }
       logger.error('Error processing files:', error)
-      setFileError('An error occurred while processing files. Please try again.')
+      setFileError(t('processFilesError'))
     }
   }
 
@@ -283,7 +275,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
       (fieldError) => typeof fieldError?.message === 'string'
     )?.message
     toast.error(
-      typeof firstMessage === 'string' ? firstMessage : 'Please fix the highlighted fields'
+      typeof firstMessage === 'string' ? tValidation(firstMessage, VALIDATION_ARGS) : t('fixFields')
     )
   }
 
@@ -344,14 +336,14 @@ export const CreateBaseModal = memo(function CreateBaseModal({
       logger.error('Error creating knowledge base:', error)
       setSubmitStatus({
         type: 'error',
-        message: getErrorMessage(error, 'An unknown error occurred'),
+        message: getErrorMessage(error, t('unknownError')),
       })
     }
   }
 
   return (
-    <ChipModal open={open} onOpenChange={handleClose} srTitle='Create Knowledge Base' size='lg'>
-      <ChipModalHeader onClose={() => handleClose(false)}>Create Knowledge Base</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={handleClose} srTitle={t('title')} size='lg'>
+      <ChipModalHeader onClose={() => handleClose(false)}>{t('title')}</ChipModalHeader>
 
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} className='flex min-h-0 flex-1 flex-col'>
         <button type='submit' hidden disabled={isSubmitting || !nameValue?.trim()} />
@@ -365,9 +357,9 @@ export const CreateBaseModal = memo(function CreateBaseModal({
             readOnly
           />
 
-          <ChipModalField type='custom' title='Name'>
+          <ChipModalField type='custom' title={t('name')}>
             <ChipInput
-              placeholder='Enter knowledge base name'
+              placeholder={t('namePlaceholder')}
               {...register('name')}
               error={Boolean(errors.name)}
               autoComplete='off'
@@ -378,9 +370,13 @@ export const CreateBaseModal = memo(function CreateBaseModal({
             />
           </ChipModalField>
 
-          <ChipModalField type='custom' title='Description' error={errors.description?.message}>
+          <ChipModalField
+            type='custom'
+            title={t('description')}
+            error={validationText(errors.description?.message)}
+          >
             <ChipTextarea
-              placeholder='Describe this knowledge base (optional)'
+              placeholder={t('descriptionPlaceholder')}
               rows={4}
               {...register('description')}
               error={Boolean(errors.description)}
@@ -388,7 +384,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
           </ChipModalField>
 
           <div className='flex gap-3'>
-            <ChipModalField type='custom' title='Min Chunk Size (characters)' className='flex-1'>
+            <ChipModalField type='custom' title={t('minChunkSize')} className='flex-1'>
               <ChipInput
                 type='number'
                 min={1}
@@ -402,7 +398,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
               />
             </ChipModalField>
 
-            <ChipModalField type='custom' title='Max Chunk Size (tokens)' className='flex-1'>
+            <ChipModalField type='custom' title={t('maxChunkSize')} className='flex-1'>
               <ChipInput
                 type='number'
                 min={100}
@@ -417,11 +413,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
             </ChipModalField>
           </div>
 
-          <ChipModalField
-            type='custom'
-            title='Overlap (tokens)'
-            hint='1 token ≈ 4 characters. Max chunk size and overlap are in tokens.'
-          >
+          <ChipModalField type='custom' title={t('overlap')} hint={t('overlapHint')}>
             <ChipInput
               type='number'
               min={0}
@@ -435,13 +427,9 @@ export const CreateBaseModal = memo(function CreateBaseModal({
             />
           </ChipModalField>
 
-          <ChipModalField
-            type='custom'
-            title='Chunking Strategy'
-            hint='Auto detects the best strategy based on file content type.'
-          >
+          <ChipModalField type='custom' title={t('strategy')} hint={t('strategyHint')}>
             <ChipCombobox
-              options={STRATEGY_COMBOBOX_OPTIONS}
+              options={strategyOptions}
               value={strategyValue}
               onChange={(value) => setValue('strategy', value as FormValues['strategy'])}
               dropdownWidth='trigger'
@@ -453,12 +441,15 @@ export const CreateBaseModal = memo(function CreateBaseModal({
             <>
               <ChipModalField
                 type='custom'
-                title='Regex Pattern'
-                error={errors.regexPattern?.message}
-                hint='Text will be split at each match of this regex pattern.'
+                title={t('regexPattern')}
+                error={validationText(errors.regexPattern?.message)}
+                hint={t('regexPatternHint')}
               >
                 <ChipInput
-                  placeholder='e.g. \\n\\n or (?<=\\})\\s*(?=\\{)'
+                  placeholder={t('regexPatternPlaceholder', {
+                    first: '\\\\n\\\\n',
+                    second: '(?<=\\\\})\\\\s*(?=\\\\{)',
+                  })}
                   {...register('regexPattern')}
                   error={Boolean(errors.regexPattern)}
                   autoComplete='off'
@@ -468,8 +459,8 @@ export const CreateBaseModal = memo(function CreateBaseModal({
 
               <ChipModalField
                 type='custom'
-                title='Chunk Boundaries'
-                hint='Preserve boundaries exactly. Recommended when each match is a discrete record (e.g. one QA pair per chunk).'
+                title={t('chunkBoundaries')}
+                hint={t('chunkBoundariesHint')}
               >
                 <label
                   htmlFor='regexStrictBoundaries'
@@ -483,7 +474,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
                     }
                   />
                   <span className='text-[var(--text-primary)] text-sm'>
-                    Each match is its own chunk (don&apos;t merge)
+                    {t('strictBoundaries')}
                   </span>
                 </label>
               </ChipModalField>
@@ -493,12 +484,12 @@ export const CreateBaseModal = memo(function CreateBaseModal({
           {strategyValue === 'recursive' && (
             <ChipModalField
               type='custom'
-              title='Custom Separators (optional)'
-              hint={`Comma-separated list of delimiters in priority order, up to ${MAX_CHUNKING_SEPARATORS}. Leave empty for default separators.`}
-              error={errors.customSeparators?.message}
+              title={t('customSeparators')}
+              hint={t('customSeparatorsHint', { max: MAX_CHUNKING_SEPARATORS })}
+              error={validationText(errors.customSeparators?.message)}
             >
               <ChipInput
-                placeholder='e.g. \n\n, \n, . ,  '
+                placeholder={t('customSeparatorsPlaceholder', { separators: '\\n\\n, \\n, . ,  ' })}
                 {...register('customSeparators')}
                 error={Boolean(errors.customSeparators)}
                 autoComplete='off'
@@ -509,16 +500,16 @@ export const CreateBaseModal = memo(function CreateBaseModal({
 
           <ChipModalField
             type='file'
-            title='Upload Documents'
+            title={t('uploadDocuments')}
             accept={ACCEPT_ATTRIBUTE}
             multiple
             onChange={processFiles}
-            description='PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSONL (max 20 files, 100MB each, 500MB total)'
+            description={t('uploadDocumentsDescription')}
             error={fileError}
           />
 
           {files.length > 0 && (
-            <ChipModalField type='custom' title='Selected Files'>
+            <ChipModalField type='custom' title={t('selectedFiles')}>
               <div className='space-y-2'>
                 {files.map((file, index) => {
                   const fileStatus = uploadProgress.fileStatuses?.[index]
@@ -550,7 +541,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
                           <Loader className='size-4 text-[var(--text-muted)]' animate />
                         ) : (
                           <Button
-                            aria-label='Remove file'
+                            aria-label={t('removeFile')}
                             type='button'
                             variant='ghost'
                             className='size-4 p-0'
@@ -578,12 +569,15 @@ export const CreateBaseModal = memo(function CreateBaseModal({
             label: isSubmitting
               ? isUploading
                 ? uploadProgress.stage === 'uploading'
-                  ? `Uploading ${uploadProgress.filesCompleted}/${uploadProgress.totalFiles}...`
+                  ? t('uploadingProgress', {
+                      completed: uploadProgress.filesCompleted,
+                      total: uploadProgress.totalFiles,
+                    })
                   : uploadProgress.stage === 'processing'
-                    ? 'Processing...'
-                    : 'Creating...'
-                : 'Creating...'
-              : 'Create',
+                    ? t('processing')
+                    : t('creating')
+                : t('creating')
+              : t('create'),
             onClick: handleSubmit(onSubmit, onInvalid),
             disabled: isSubmitting || !nameValue?.trim(),
           }}

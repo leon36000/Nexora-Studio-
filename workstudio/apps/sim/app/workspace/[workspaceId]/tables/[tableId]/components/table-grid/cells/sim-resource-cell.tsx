@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { ContextMentionIcon } from '@/app/workspace/[workspaceId]/home/components/context-mention-icon'
 import type { ChatMessageContext } from '@/app/workspace/[workspaceId]/home/types'
 import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge'
@@ -11,13 +12,6 @@ import { useWorkspaceFiles } from '@/hooks/queries/workspace-files'
 
 /** Sim resource kinds a table cell URL can point to within the current workspace. */
 export type SimResourceType = 'workflow' | 'table' | 'knowledge' | 'file'
-
-const FALLBACK_LABEL: Record<SimResourceType, string> = {
-  workflow: 'Workflow',
-  table: 'Table',
-  knowledge: 'Knowledge base',
-  file: 'File',
-}
 
 interface SimResourceCellProps {
   /** Always the current workspace — the resolver only emits this kind for same-workspace URLs. */
@@ -43,6 +37,7 @@ export function SimResourceCell({
   href,
   isEditing,
 }: SimResourceCellProps) {
+  const t = useTranslations('tables.grid.simResource')
   const { data: workflows = [] } = useWorkflows(
     resourceType === 'workflow' ? workspaceId : undefined
   )
@@ -62,7 +57,7 @@ export function SimResourceCell({
       case 'workflow':
         return workflow?.name
       case 'table':
-        return tables.find((t) => t.id === resourceId)?.name
+        return tables.find((table) => table.id === resourceId)?.name
       case 'knowledge':
         return knowledgeBases.find((kb) => kb.id === resourceId)?.name
       case 'file':
@@ -70,7 +65,7 @@ export function SimResourceCell({
     }
   }, [resourceType, resourceId, workflow, tables, knowledgeBases, files])
 
-  const label = name ?? FALLBACK_LABEL[resourceType]
+  const label = name ?? t(resourceType)
 
   const context: ChatMessageContext =
     resourceType === 'workflow'

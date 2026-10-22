@@ -484,5 +484,5 @@ export function canWriteRowsWithChip(opts: {
   hasContext: boolean
 }): boolean {
   if (!opts.hasContext || !opts.complete) return false
-  return opts.rowCount > 0 && opts.rowCount <= TABLE_LIMITS.MAX_COPY_ROWS
+  return opts.rowCount > 0 && opts.rowCount <= TABLE_LIMITS.MAX_COPY_ROWS // i18n-ignore: comparison, not text
 }

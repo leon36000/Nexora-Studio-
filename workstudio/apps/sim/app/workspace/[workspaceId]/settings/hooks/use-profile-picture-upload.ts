@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { uploadInternalFileSession } from '@/lib/uploads/client/session-upload'
 
 const logger = createLogger('ProfilePictureUpload')
@@ -26,6 +27,7 @@ export function useProfilePictureUpload({
   context = 'profile-pictures',
   workspaceId,
 }: UseProfilePictureUploadProps = {}) {
+  const t = useTranslations('settings.profilePicture')
   const previewRef = useRef<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const onUploadRef = useRef(onUpload)
@@ -49,15 +51,18 @@ export function useProfilePictureUpload({
     setPreviewUrl(currentImage || null)
   }, [currentImage])
 
-  const validateFile = useCallback((file: File): string | null => {
-    if (file.size > MAX_FILE_SIZE) {
-      return `File "${file.name}" is too large. Maximum size is 5MB.`
-    }
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      return `File "${file.name}" is not a supported image format. Please use PNG, JPEG, SVG, or WebP.`
-    }
-    return null
-  }, [])
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      if (file.size > MAX_FILE_SIZE) {
+        return t('tooLarge', { name: file.name })
+      }
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        return t('unsupportedFormat', { name: file.name })
+      }
+      return null
+    },
+    [t]
+  )
 
   const handleThumbnailClick = useCallback(() => {
     fileInputRef.current?.click()
@@ -111,7 +116,7 @@ export function useProfilePictureUpload({
         setPreviewUrl(serverUrl)
         onUploadRef.current?.(serverUrl)
       } catch (error) {
-        const errorMessage = getErrorMessage(error, 'Failed to upload profile picture')
+        const errorMessage = getErrorMessage(error, t('uploadFailed'))
         onErrorRef.current?.(errorMessage)
         URL.revokeObjectURL(newPreviewUrl)
         previewRef.current = null
@@ -120,7 +125,7 @@ export function useProfilePictureUpload({
         setIsUploading(false)
       }
     },
-    [uploadFileToServer, validateFile]
+    [uploadFileToServer, validateFile, t]
   )
 
   const handleFileChange = useCallback(

@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChipTag, Combobox, type ComboboxOption } from '@sim/emcn'
 import { generateId } from '@sim/utils/id'
 import { isRecordLike } from '@sim/utils/object'
+import { useTranslations } from 'next-intl'
 import {
   NO_DENIED_OPERATIONS,
   OPERATION_SUBBLOCK_ID,
@@ -110,7 +111,7 @@ export const Dropdown = memo(function Dropdown({
   isPreview = false,
   previewValue,
   disabled,
-  placeholder = 'Select an option...',
+  placeholder,
   multiSelect = false,
   selectorKey,
   selectorExcludeSelf,
@@ -118,6 +119,7 @@ export const Dropdown = memo(function Dropdown({
   searchable = false,
   preserveLabelCase = false,
 }: DropdownProps) {
+  const t = useTranslations('editor.subBlock.dropdown')
   const activeSearchTarget = useActiveSearchTarget()
   const { getDeniedOperations, resolveDefaultOperation, isPermissionLoading } = useOperationAccess()
   const [storeValue, setStoreValue] = useSubBlockValue<string | string[]>(blockId, subBlockId) as [
@@ -544,7 +546,7 @@ export const Dropdown = memo(function Dropdown({
       multiSelectValues={multiSelect ? (multiValues ?? undefined) : undefined}
       onChange={handleChange}
       onMultiSelectChange={handleMultiSelectChange}
-      placeholder={placeholder}
+      placeholder={placeholder ?? t('selectOption')}
       /* The operation list only drops denied entries once the config resolves,
          and a pick here persists — matching the agent tool selector. */
       disabled={disabled || (subBlockId === OPERATION_SUBBLOCK_ID && isPermissionLoading)}
@@ -562,7 +564,7 @@ export const Dropdown = memo(function Dropdown({
       error={fetchError}
       searchable={isSearchable}
       onSearchChange={setSelectorSearch}
-      searchPlaceholder='Search...'
+      searchPlaceholder={t('search')}
     />
   )
 })

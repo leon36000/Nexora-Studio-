@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import { useOperationQueueStore } from '@/stores/operation-queue/store'
 import { useWorkflowDiffStore } from '@/stores/workflow-diff/store'
@@ -28,60 +29,75 @@ export interface DeployReadiness {
   isSyncing: boolean
   label: string
   tooltip: string
-  waitUntilReady: () => Promise<boolean>
+  waitUntilReady: () => Promise<boolean> // i18n-ignore: type signature
 }
 
-export function getDeployReadinessState(input: DeployReadinessInput) {
+type DeployReadinessMessageKey =
+  | 'deploy'
+  | 'noWorkflow'
+  | 'syncFailed'
+  | 'saveFailed'
+  | 'saving'
+  | 'savingTooltip'
+  | 'reviewing'
+  | 'reviewingTooltip'
+  | 'syncing'
+  | 'syncingTooltip'
+  | 'ready'
+  | 'readyTooltip'
+
+type DeployReadinessTranslator = (key: DeployReadinessMessageKey) => string
+
+export function getDeployReadinessState(input: DeployReadinessInput, t: DeployReadinessTranslator) {
   if (!input.workflowId) {
     return {
       status: 'missing-workflow' as const,
-      label: 'Deploy',
-      tooltip: 'No workflow selected',
+      label: t('deploy'),
+      tooltip: t('noWorkflow'),
     }
   }
 
   if (input.hasOperationError || input.reconciliationError) {
     return {
       status: 'error' as const,
-      label: 'Sync failed',
-      tooltip:
-        input.reconciliationError ||
-        'Some changes failed to save. Reconnect or refresh before deploying.',
+      label: t('syncFailed'),
+      tooltip: input.reconciliationError || t('saveFailed'),
     }
   }
 
   if (input.hasPendingOperations) {
     return {
       status: 'saving' as const,
-      label: 'Saving...',
-      tooltip: 'Saving workflow changes before deployment',
+      label: t('saving'),
+      tooltip: t('savingTooltip'),
     }
   }
 
   if (input.hasActiveDiff) {
     return {
       status: 'reviewing-diff' as const,
-      label: 'Reviewing...',
-      tooltip: 'Accept or reject the current copilot changes before deploying',
+      label: t('reviewing'),
+      tooltip: t('reviewingTooltip'),
     }
   }
 
   if (input.hasPendingExternalUpdate || input.isReconciling) {
     return {
       status: 'syncing' as const,
-      label: 'Syncing...',
-      tooltip: 'Syncing the latest workflow changes before deployment',
+      label: t('syncing'),
+      tooltip: t('syncingTooltip'),
     }
   }
 
   return {
     status: 'ready' as const,
-    label: 'Ready',
-    tooltip: 'Ready to deploy',
+    label: t('ready'),
+    tooltip: t('readyTooltip'),
   }
 }
 
 export function useDeployReadiness(workflowId: string | null): DeployReadiness {
+  const t = useTranslations('editor.deploy.readiness')
   const { hasPendingOperations, hasOperationError } = useOperationQueueStore(
     useShallow((state) => ({
       hasPendingOperations: workflowId
@@ -105,15 +121,18 @@ export function useDeployReadiness(workflowId: string | null): DeployReadiness {
 
   const readiness = useMemo(
     () =>
-      getDeployReadinessState({
-        workflowId,
-        hasPendingOperations,
-        hasOperationError,
-        hasActiveDiff,
-        hasPendingExternalUpdate,
-        isReconciling,
-        reconciliationError,
-      }),
+      getDeployReadinessState(
+        {
+          workflowId,
+          hasPendingOperations,
+          hasOperationError,
+          hasActiveDiff,
+          hasPendingExternalUpdate,
+          isReconciling,
+          reconciliationError,
+        },
+        t
+      ),
     [
       workflowId,
       hasPendingOperations,
@@ -122,6 +141,7 @@ export function useDeployReadiness(workflowId: string | null): DeployReadiness {
       hasPendingExternalUpdate,
       isReconciling,
       reconciliationError,
+      t,
     ]
   )
 

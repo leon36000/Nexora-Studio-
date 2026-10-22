@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react'
 import { Chip, ChipInput, ChipModalTabs, cn } from '@sim/emcn'
 import { Search } from '@sim/emcn/icons'
-import { formatDate } from '@sim/utils/formatting'
 import { useParams, useRouter } from 'next/navigation'
+import { useLocale, useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
 import type { ServedFolderResourceType } from '@/lib/api/contracts/folders'
@@ -14,10 +14,7 @@ import {
 } from '@/lib/api/contracts/recently-deleted'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import { folderedResourceListHref } from '@/app/workspace/[workspaceId]/components/folders'
-import {
-  type ColumnOption,
-  SortDropdown,
-} from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
+import { SortDropdown } from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
 import { RESOURCE_REGISTRY } from '@/app/workspace/[workspaceId]/home/components/mothership-view/components/resource-registry'
 import type { MothershipResourceType } from '@/app/workspace/[workspaceId]/home/types'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -90,11 +87,7 @@ function getResourceHref(
   }
 }
 
-const SORT_OPTIONS: ColumnOption[] = [
-  { id: 'deleted', label: 'Deleted' },
-  { id: 'name', label: 'Name' },
-  { id: 'type', label: 'Type' },
-]
+const SORT_OPTION_IDS = ['deleted', 'name', 'type'] as const
 
 const ICON_CLASS = 'size-5 shrink-0'
 
@@ -124,27 +117,26 @@ interface RestoredResourceEntry {
   displayIndex: number
 }
 
-/** Labels for {@link RECENTLY_DELETED_FILTERS}, which owns the order. */
-const TABS: { id: ResourceType; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'chat', label: 'Chats' },
-  { id: 'table', label: 'Tables' },
-  { id: 'file', label: 'Files' },
-  { id: 'knowledge', label: 'Knowledge Bases' },
-  { id: 'workflow', label: 'Workflows' },
-  { id: 'folder', label: 'Folders' },
-]
+/** Tabs for {@link RECENTLY_DELETED_FILTERS}, which owns the order; labels live under `tabs.<id>`. */
+const TABS = ['all', 'chat', 'table', 'file', 'knowledge', 'workflow', 'folder'] as const
 
-const TYPE_LABEL: Record<Exclude<ResourceType, 'all'>, string> = {
-  workflow: 'Workflow',
-  folder: 'Folder',
-  workspace_folder: 'File Folder',
-  knowledge_folder: 'Knowledge Folder',
-  table_folder: 'Table Folder',
-  table: 'Table',
-  knowledge: 'Knowledge Base',
-  file: 'File',
-  chat: 'Chat',
+/** Message keys (under `types.`) for each resource type's label. */
+const TYPE_LABEL_KEY: Record<Exclude<ResourceType, 'all'>, string> = {
+  workflow: 'workflow',
+  folder: 'folder',
+  workspace_folder: 'workspaceFolder',
+  knowledge_folder: 'knowledgeFolder',
+  table_folder: 'tableFolder',
+  table: 'table',
+  knowledge: 'knowledge',
+  file: 'file',
+  chat: 'chat',
+}
+
+const DELETED_DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
 }
 
 function ResourceIcon({ resource }: { resource: DeletedResource }) {
@@ -186,6 +178,8 @@ function matchesActiveTab(resource: DeletedResource, activeTab: RecentlyDeletedF
 }
 
 export function RecentlyDeleted() {
+  const t = useTranslations('settings.recentlyDeleted')
+  const locale = useLocale()
   const params = useParams()
   const router = useRouter()
   const workspaceId = params?.workspaceId as string
@@ -366,14 +360,14 @@ export function RecentlyDeleted() {
       <div className='flex items-center gap-2'>
         <ChipInput
           icon={Search}
-          placeholder='Search deleted items...'
+          placeholder={t('searchPlaceholder')}
           value={urlSearchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className='min-w-0 flex-1'
         />
         <SortDropdown
           config={{
-            options: SORT_OPTIONS,
+            options: SORT_OPTION_IDS.map((id) => ({ id, label: t(`sort.${id}`) })),
             active: activeSort,
             onSort,
             onClear,
@@ -382,7 +376,7 @@ export function RecentlyDeleted() {
       </div>
 
       <ChipModalTabs
-        tabs={TABS.map((tab) => ({ value: tab.id, label: tab.label }))}
+        tabs={TABS.map((tab) => ({ value: tab, label: t(`tabs.${tab}`) }))}
         value={activeTab}
         onChange={(v) => setRecentlyDeletedFilters({ tab: v as RecentlyDeletedFilter })}
       />
@@ -390,17 +384,17 @@ export function RecentlyDeleted() {
       {error && !deletedQuery.data ? (
         <SettingsQueryErrorState
           error={error}
-          fallback='Failed to load deleted items'
+          fallback={t('loadError')}
           isRetrying={deletedQuery.isFetching}
           onRetry={() => void deletedQuery.refetch()}
         />
       ) : isLoading && filtered.length === 0 ? null : filtered.length === 0 ? (
         showNoResults ? (
           <SettingsEmptyState variant='inline'>
-            {`No items found matching \u201c${debouncedSearch}\u201d`}
+            {t('noResults', { term: debouncedSearch })}
           </SettingsEmptyState>
         ) : (
-          <SettingsEmptyState>No deleted items</SettingsEmptyState>
+          <SettingsEmptyState>{t('empty')}</SettingsEmptyState>
         )
       ) : (
         <div
@@ -419,30 +413,27 @@ export function RecentlyDeleted() {
                 key={resource.id}
                 icon={<ResourceIcon resource={resource} />}
                 title={resource.name}
-                description={
-                  <>
-                    {TYPE_LABEL[resource.type]}
-                    {' \u00b7 '}
-                    Deleted {formatDate(resource.deletedAt)}
-                  </>
-                }
+                description={t('rowDescription', {
+                  type: t(`types.${TYPE_LABEL_KEY[resource.type]}`),
+                  date: resource.deletedAt.toLocaleDateString(locale, DELETED_DATE_FORMAT),
+                })}
                 badge={
                   canRestore && isRestored ? (
                     <span className='text-[var(--text-muted)] text-caption'>
                       {PAUSED_AUTOMATION_TYPES.has(resource.type)
-                        ? 'Restored \u00b7 schedules and webhooks stay paused'
-                        : 'Restored'}
+                        ? t('restoredPaused')
+                        : t('restored')}
                     </span>
                   ) : undefined
                 }
                 trailing={
                   !canRestore ? null : isRestoring ? (
                     <Chip variant='primary' disabled>
-                      Restoring...
+                      {t('restoring')}
                     </Chip>
                   ) : isRestored ? (
                     <Chip variant='primary' onClick={() => handleView(resource)}>
-                      View
+                      {t('view')}
                     </Chip>
                   ) : (
                     <Chip
@@ -450,7 +441,7 @@ export function RecentlyDeleted() {
                       disabled={isPlaceholderData}
                       onClick={() => void handleRestore(resource)}
                     >
-                      Restore
+                      {t('restore')}
                     </Chip>
                   )
                 }
@@ -460,7 +451,7 @@ export function RecentlyDeleted() {
           {isFetchNextPageError ? (
             <SettingsQueryErrorState
               error={error}
-              fallback='Failed to load more deleted items'
+              fallback={t('loadMoreError')}
               isRetrying={isFetchingNextPage}
               onRetry={() => void fetchNextPage()}
               variant='inline'

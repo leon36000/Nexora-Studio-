@@ -8,10 +8,8 @@ import {
   DropdownMenuTrigger,
 } from '@sim/emcn'
 import { Eye, Pencil, Plus, RefreshCw, SquareArrowUpRight, TagIcon, Trash } from '@sim/emcn/icons'
-import {
-  selectionActionLabel,
-  selectionToggleActionLabel,
-} from '@/app/workspace/[workspaceId]/components/resource/selection-label'
+import { useTranslations } from 'next-intl'
+import { useSelectionLabels } from '@/app/workspace/[workspaceId]/components/resource/selection-label'
 
 interface DocumentContextMenuProps {
   isOpen: boolean
@@ -65,6 +63,8 @@ export function DocumentContextMenu({
   disabledCount = 0,
   hasExactToggleCount = true,
 }: DocumentContextMenuProps) {
+  const t = useTranslations('knowledge.documentContextMenu')
+  const { selectionActionLabel, selectionToggleActionLabel } = useSelectionLabels()
   const isMultiSelect = selectedCount > 1
   const toggleLabel = selectionToggleActionLabel({
     selectedCount,
@@ -107,25 +107,25 @@ export function DocumentContextMenu({
             {!isMultiSelect && onOpenInNewTab && (
               <DropdownMenuItem onSelect={onOpenInNewTab}>
                 <SquareArrowUpRight />
-                Open in new tab
+                {t('openInNewTab')}
               </DropdownMenuItem>
             )}
             {!isMultiSelect && onOpenSource && (
               <DropdownMenuItem onSelect={onOpenSource}>
                 <SquareArrowUpRight />
-                Open source
+                {t('openSource')}
               </DropdownMenuItem>
             )}
             {!isMultiSelect && onRename && (
               <DropdownMenuItem disabled={disableRename} onSelect={onRename}>
                 <Pencil />
-                Rename
+                {t('rename')}
               </DropdownMenuItem>
             )}
             {!isMultiSelect && onViewTags && (
               <DropdownMenuItem onSelect={onViewTags}>
                 <TagIcon />
-                Tags
+                {t('tags')}
               </DropdownMenuItem>
             )}
             {onToggleEnabled && (
@@ -137,7 +137,7 @@ export function DocumentContextMenu({
             {!isMultiSelect && onRetry && (
               <DropdownMenuItem onSelect={onRetry}>
                 <RefreshCw />
-                Retry
+                {t('retry')}
               </DropdownMenuItem>
             )}
 
@@ -145,7 +145,7 @@ export function DocumentContextMenu({
             {onDelete && (
               <DropdownMenuItem disabled={disableDelete} onSelect={onDelete}>
                 <Trash />
-                {selectionActionLabel('Delete', selectedCount)}
+                {selectionActionLabel(t('delete'), selectedCount)}
               </DropdownMenuItem>
             )}
           </>
@@ -153,7 +153,7 @@ export function DocumentContextMenu({
           onAddDocument && (
             <DropdownMenuItem disabled={disableAddDocument} onSelect={onAddDocument}>
               <Plus />
-              New documents
+              {t('newDocuments')}
             </DropdownMenuItem>
           )
         )}

@@ -6,6 +6,7 @@ import { createLogger } from '@sim/logger'
 import { isOrgAdminRole } from '@sim/platform-authz/predicates'
 import { getErrorMessage } from '@sim/utils/errors'
 import { formatDate } from '@sim/utils/formatting'
+import { useTranslations } from 'next-intl'
 import {
   type OrgRole,
   type PermissionType,
@@ -44,16 +45,11 @@ import {
 
 const logger = createLogger('OrganizationMemberLists')
 
-const ORG_ROLE_OPTIONS = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'member', label: 'Member' },
-] as const
+const ORG_ROLE_VALUES = ['admin', 'member'] as const
 
-const WORKSPACE_ROLE_OPTIONS = [
-  { value: 'read', label: 'Read' },
-  { value: 'write', label: 'Write' },
-  { value: 'admin', label: 'Admin' },
-] as const
+const WORKSPACE_ROLE_VALUES = ['read', 'write', 'admin'] as const
+
+const TRANSLATED_ORG_ROLES = new Set(['owner', 'admin', 'member', 'external'])
 
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1)
@@ -61,10 +57,6 @@ function capitalize(value: string) {
 
 function copyToClipboard(text: string) {
   void navigator.clipboard.writeText(text)
-}
-
-function buildActionsMenu(actions: RowAction[]) {
-  return <RowActionsMenu label='Member actions' actions={actions} />
 }
 
 interface OrganizationMemberListsProps {
@@ -99,6 +91,25 @@ export function OrganizationMemberLists({
   onRemoveMember,
   onTransferOwnership,
 }: OrganizationMemberListsProps) {
+  const t = useTranslations('settings.teamManagement.memberLists')
+  const tShared = useTranslations('settings.shared')
+  const orgRoleOptions = ORG_ROLE_VALUES.map((value) => ({
+    value,
+    label: t(`orgRoles.${value}`),
+  }))
+  const workspaceRoleOptions = WORKSPACE_ROLE_VALUES.map((value) => ({
+    value,
+    label: t(`workspaceRoles.${value}`),
+  }))
+  const orgRoleLabel = (role: string) =>
+    TRANSLATED_ORG_ROLES.has(role) ? t(`orgRoles.${role}`) : capitalize(role)
+  const buildActionsMenu = (actions: RowAction[]) => (
+    <RowActionsMenu label={t('memberActions')} actions={actions} />
+  )
+  const memberStatus = (member: RosterMember) =>
+    member.suspendedAt
+      ? t('deactivatedByDirectory')
+      : t('joined', { date: formatDate(new Date(member.createdAt)) })
   const [creditsTarget, setCreditsTarget] = useState<ManageCreditsTarget | null>(null)
 
   const updateMemberRole = useUpdateOrganizationMemberRole()
@@ -131,11 +142,7 @@ export function OrganizationMemberLists({
         name={member.name}
         email={member.email}
         image={member.image}
-        status={
-          member.suspendedAt
-            ? 'Deactivated by your directory'
-            : `Joined ${formatDate(new Date(member.createdAt))}`
-        }
+        status={memberStatus(member)}
         roleControl={
           editable ? (
             <ChipDropdown
@@ -149,20 +156,20 @@ export function OrganizationMemberLists({
                   })
                   .catch((error) => logger.error('Failed to update member role', { error }))
               }
-              options={ORG_ROLE_OPTIONS}
+              options={orgRoleOptions}
               matchTriggerWidth={false}
               disabled={updateMemberRole.isPending}
             />
           ) : (
-            <ChipTag variant='mono'>{capitalize(member.role)}</ChipTag>
+            <ChipTag variant='mono'>{orgRoleLabel(member.role)}</ChipTag>
           )
         }
         menu={buildActionsMenu([
-          { label: 'Copy email', onSelect: () => copyToClipboard(member.email) },
+          { label: t('copyEmail'), onSelect: () => copyToClipboard(member.email) },
           ...(canManage && !isOwner
             ? [
                 {
-                  label: 'Manage credits',
+                  label: t('manageCredits'),
                   onSelect: () =>
                     setCreditsTarget({
                       userId: member.userId,
@@ -175,7 +182,7 @@ export function OrganizationMemberLists({
           ...(canRemove
             ? [
                 {
-                  label: 'Remove',
+                  label: tShared('remove'),
                   destructive: true,
                   onSelect: () =>
                     onRemoveMember({
@@ -192,12 +199,12 @@ export function OrganizationMemberLists({
               ]
             : []),
           ...(isSelf && isOwner && onTransferOwnership
-            ? [{ label: 'Transfer ownership', onSelect: () => onTransferOwnership() }]
+            ? [{ label: t('transferOwnership'), onSelect: () => onTransferOwnership() }]
             : []),
           ...(canManage && isSelf && !isOwner
             ? [
                 {
-                  label: 'Leave organization',
+                  label: t('leaveOrganization'),
                   destructive: true,
                   onSelect: () =>
                     onRemoveMember({
@@ -228,21 +235,21 @@ export function OrganizationMemberLists({
       name={invitation.inviteeName ?? invitation.email}
       email={invitation.email}
       image={invitation.inviteeImage}
-      status='Invite pending'
+      status={t('invitePending')}
       roleControl={roleControl}
       menu={buildActionsMenu([
-        { label: 'Copy email', onSelect: () => copyToClipboard(invitation.email) },
+        { label: t('copyEmail'), onSelect: () => copyToClipboard(invitation.email) },
         ...(canManage
           ? [
               {
-                label: 'Resend invite',
+                label: t('resendInvite'),
                 onSelect: () =>
                   resendInvitation
                     .mutateAsync({ invitationId: invitation.id, orgId: organizationId })
                     .catch((error) => logger.error('Failed to resend invitation', { error })),
               },
               {
-                label: 'Revoke invite',
+                label: t('revokeInvite'),
                 destructive: true,
                 onSelect: () =>
                   cancelInvitation
@@ -260,7 +267,11 @@ export function OrganizationMemberLists({
     const roleControl =
       isExternal || !canManage ? (
         <ChipTag variant='mono'>
-          {isExternal ? 'External' : invitation.role === 'admin' ? 'Admin' : 'Member'}
+          {isExternal
+            ? t('orgRoles.external')
+            : invitation.role === 'admin'
+              ? t('orgRoles.admin')
+              : t('orgRoles.member')}
         </ChipTag>
       ) : (
         <ChipDropdown
@@ -274,7 +285,7 @@ export function OrganizationMemberLists({
               })
               .catch((error) => logger.error('Failed to update invitation role', { error }))
           }
-          options={ORG_ROLE_OPTIONS}
+          options={orgRoleOptions}
           matchTriggerWidth={false}
           disabled={updateInvitation.isPending}
         />
@@ -308,11 +319,7 @@ export function OrganizationMemberLists({
         name={member.name}
         email={member.email}
         image={member.image}
-        status={
-          member.suspendedAt
-            ? 'Deactivated by your directory'
-            : `Joined ${formatDate(new Date(member.createdAt))}`
-        }
+        status={memberStatus(member)}
         roleControl={
           <RoleLockTooltip reason={lockReason}>
             <ChipDropdown
@@ -328,26 +335,26 @@ export function OrganizationMemberLists({
                     logger.error('Failed to update workspace permission', { error })
                   )
               }
-              options={WORKSPACE_ROLE_OPTIONS}
+              options={workspaceRoleOptions}
               matchTriggerWidth={false}
               disabled={disabled}
             />
           </RoleLockTooltip>
         }
         menu={buildActionsMenu([
-          { label: 'Copy email', onSelect: () => copyToClipboard(member.email) },
+          { label: t('copyEmail'), onSelect: () => copyToClipboard(member.email) },
           ...(canRemoveFromWorkspace
             ? [
                 {
-                  label: 'Remove from workspace',
+                  label: t('removeFromWorkspace'),
                   destructive: true,
                   onSelect: () =>
                     removeWorkspaceMember
                       .mutateAsync({ userId: member.userId, workspaceId, organizationId })
                       .catch((error) => {
                         logger.error('Failed to remove workspace member', { error })
-                        toast.error("Couldn't remove member", {
-                          description: getErrorMessage(error, 'Please try again in a moment.'),
+                        toast.error(t('removeMemberFailed'), {
+                          description: getErrorMessage(error, t('tryAgain')),
                         })
                       }),
                 },
@@ -375,7 +382,7 @@ export function OrganizationMemberLists({
             })
             .catch((error) => logger.error('Failed to update invitation grant', { error }))
         }
-        options={WORKSPACE_ROLE_OPTIONS}
+        options={workspaceRoleOptions}
         matchTriggerWidth={false}
         disabled={!canManage || updateInvitation.isPending}
       />
@@ -441,9 +448,9 @@ export function OrganizationMemberLists({
     <>
       {showMembersSection && (
         <MemberSection
-          label={`Members (${orgRowCount})`}
+          label={t('membersCount', { count: orgRowCount })}
           isEmpty={!isLoadingRoster && filteredOrgMembers.length + filteredOrgPending.length === 0}
-          emptyText={isActiveSearch ? `No members matching “${query}”` : 'No members yet'}
+          emptyText={isActiveSearch ? t('noMatches', { query }) : t('noMembersYet')}
         >
           {filteredOrgMembers.map(renderOrgMemberRow)}
           {filteredOrgPending.map(renderOrgInviteRow)}
@@ -467,9 +474,7 @@ export function OrganizationMemberLists({
             key={`workspace-${workspace.id}`}
             label={`${workspace.name} (${totalCount})`}
             isEmpty={visibleMembers.length + visibleInvites.length === 0}
-            emptyText={
-              isActiveSearch ? `No members matching “${query}”` : 'No members in this workspace'
-            }
+            emptyText={isActiveSearch ? t('noMatches', { query }) : t('noWorkspaceMembers')}
           >
             {visibleMembers.map(({ member, access }) =>
               renderWorkspaceMemberRow(member, workspace.id, access)

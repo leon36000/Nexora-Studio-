@@ -10,6 +10,7 @@ import {
   ChipModalHeader,
   SecretInput,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { GitlabIcon } from '@/components/icons'
 import {
   useCreateWorkspaceCredential,
@@ -41,6 +42,7 @@ function PersonalTokenForm({
   instanceUrl,
   onConnected,
 }: ConnectPersonalTokenModalProps) {
+  const t = useTranslations('integrations.personalToken')
   const [host, setHost] = useState(instanceUrl ? new URL(instanceUrl).host : 'gitlab.com')
   const [token, setToken] = useState('')
   const create = useCreateWorkspaceCredential()
@@ -67,34 +69,29 @@ function PersonalTokenForm({
       )
   }
   return (
-    <ChipModal open={open} onOpenChange={onOpenChange} srTitle='Connect your GitLab account'>
+    <ChipModal open={open} onOpenChange={onOpenChange} srTitle={t('title')}>
       <ChipModalHeader icon={GitlabIcon} onClose={() => onOpenChange(false)}>
-        Connect your GitLab account
+        {t('title')}
       </ChipModalHeader>
       <ChipModalBody>
         {credentialId ? (
-          <ChipModalField type='copy' title='GitLab host' value={host} />
+          <ChipModalField type='copy' title={t('host')} value={host} />
         ) : (
           <ChipModalField
             type='input'
-            title='GitLab host'
+            title={t('host')}
             value={host}
             onChange={setHost}
             placeholder='gitlab.example.com'
             required
           />
         )}
-        <ChipModalField
-          type='custom'
-          title='Personal access token'
-          required
-          hint='Only you can use this connection.'
-        >
+        <ChipModalField type='custom' title={t('token')} required hint={t('tokenHint')}>
           <SecretInput
             value={token}
             onChange={setToken}
             autoComplete='new-password'
-            placeholder='glpat-…'
+            placeholder='glpat-…' // i18n-ignore: GitLab token prefix
           />
         </ChipModalField>
         <ChipModalError>{error}</ChipModalError>
@@ -102,13 +99,13 @@ function PersonalTokenForm({
       <ChipModalFooter
         onCancel={() => onOpenChange(false)}
         primaryAction={{
-          label: pending ? 'Connecting…' : credentialId ? 'Reconnect' : 'Connect',
+          label: pending ? t('connecting') : credentialId ? t('reconnect') : t('connect'),
           onClick: submit,
           disabled: pending || !host.trim() || !token.trim(),
         }}
         secondaryActions={[
           {
-            label: 'Create a token',
+            label: t('createToken'),
             onClick: () =>
               window.open(
                 'https://docs.gitlab.com/user/profile/personal_access_tokens/',

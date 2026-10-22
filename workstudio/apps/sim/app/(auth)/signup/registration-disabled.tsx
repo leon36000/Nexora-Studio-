@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl'
 import { buildAuthCrossLink } from '@/app/(auth)/auth-redirect'
 import { AuthHeader, AuthNavPrompt } from '@/app/(auth)/components'
 
@@ -15,16 +16,17 @@ interface RegistrationDisabledProps {
  * rather than losing it.
  */
 export function RegistrationDisabled({ callbackUrl, isInviteFlow }: RegistrationDisabledProps) {
+  const t = useTranslations('auth')
   return (
     <div className='space-y-6'>
       <AuthHeader
-        title='Account creation is disabled'
-        description='Ask your admin to create an account for you.'
+        title={t('registrationDisabled.title')}
+        description={t('registrationDisabled.description')}
       />
       <AuthNavPrompt
-        prompt='Already have an account?'
+        prompt={t('signup.haveAccount')}
         href={buildAuthCrossLink('/login', { callbackUrl, isInviteFlow })}
-        linkLabel='Sign in'
+        linkLabel={t('signup.signIn')}
       />
     </div>
   )

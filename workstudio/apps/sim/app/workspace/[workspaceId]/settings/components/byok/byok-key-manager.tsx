@@ -16,6 +16,7 @@ import {
 import { Eye, EyeOff, Search } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { BYOKProviderKeysModal } from '@/app/workspace/[workspaceId]/settings/components/byok/byok-provider-keys-modal'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import {
@@ -94,9 +95,9 @@ interface BYOKSingleKeyModeProps {
   /** Provider ids that currently have a stored key. */
   configuredProviderIds: Set<string>
   /** Persist a key. Throw to surface an error in the modal. */
-  onSave: (providerId: string, apiKey: string) => Promise<void>
+  onSave: (providerId: string, apiKey: string) => Promise<void> // i18n-ignore: type signature
   /** Remove a key. */
-  onDelete: (providerId: string) => Promise<void>
+  onDelete: (providerId: string) => Promise<void> // i18n-ignore: type signature
 }
 
 /** Multiple keys per provider; requests round-robin across them. */
@@ -115,9 +116,9 @@ interface BYOKMultiKeyModeProps {
     apiKey: string
     keyId?: string
     name: string
-  }) => Promise<void>
+  }) => Promise<void> // i18n-ignore: type signature
   /** Remove a single key. */
-  onDeleteKey: (providerId: string, keyId: string) => Promise<void>
+  onDeleteKey: (providerId: string, keyId: string) => Promise<void> // i18n-ignore: type signature
 }
 
 type BYOKKeyManagerProps = BYOKKeyManagerBaseProps &
@@ -152,6 +153,8 @@ const DEFAULT_CAPABILITIES: BYOKManagerCapabilities = {
  * the page chrome (background, scroll container, and `max-w` centering).
  */
 export function BYOKKeyManager(props: BYOKKeyManagerProps) {
+  const t = useTranslations('settings.byok')
+  const tShared = useTranslations('settings.shared')
   const {
     providers,
     isLoading,
@@ -160,9 +163,9 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
     capabilities = DEFAULT_CAPABILITIES,
     sections,
     description,
-    scopeLabel = 'this workspace',
+    scopeLabel = t('scopeLabel.workspace'),
     keyUsageDescription,
-    lastKeyDeleteMessage = 'This workspace will revert to using platform hosted keys.',
+    lastKeyDeleteMessage = t('lastKeyDelete.platformHosted'),
     showSearch = true,
   } = props
 
@@ -261,7 +264,7 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
       }
       closeEditModal()
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to save API key'))
+      setError(getErrorMessage(err, t('manager.saveFailed')))
       logger.error('Failed to save BYOK key', { error: err })
     }
   }
@@ -292,7 +295,7 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
       if (!capabilities.add) return null
       return (
         <Chip variant='primary' onClick={() => openEditModal(provider.id)}>
-          Add Key
+          {t('addKey')}
         </Chip>
       )
     }
@@ -302,10 +305,10 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
       return (
         <div className='flex items-center gap-2'>
           <span className='text-[var(--text-muted)] text-caption'>
-            {keyCount} {keyCount === 1 ? 'key' : 'keys'}
+            {t('manager.keyCount', { count: keyCount })}
           </span>
           <Chip onClick={() => setManagingProviderId(provider.id)}>
-            {canManageKeys ? 'Manage' : 'View'}
+            {canManageKeys ? t('manager.manage') : t('manager.view')}
           </Chip>
         </div>
       )
@@ -314,8 +317,12 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
     if (!capabilities.update && !capabilities.delete) return null
     return (
       <div className='flex items-center gap-2'>
-        {capabilities.update && <Chip onClick={() => openEditModal(provider.id)}>Update</Chip>}
-        {capabilities.delete && <Chip onClick={() => openDeleteConfirm(provider.id)}>Delete</Chip>}
+        {capabilities.update && (
+          <Chip onClick={() => openEditModal(provider.id)}>{t('update')}</Chip>
+        )}
+        {capabilities.delete && (
+          <Chip onClick={() => openDeleteConfirm(provider.id)}>{tShared('delete')}</Chip>
+        )}
       </div>
     )
   }
@@ -341,8 +348,8 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
         {showSearch && (
           <ChipInput
             icon={Search}
-            aria-label='Search providers'
-            placeholder='Search providers...'
+            aria-label={t('manager.searchLabel')}
+            placeholder={t('manager.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             disabled={isLoading}
@@ -354,7 +361,7 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
 
         {isLoading ? null : showNoResults ? (
           <SettingsEmptyState variant='inline'>
-            No providers found matching "{searchTerm}"
+            {t('manager.noResults', { searchTerm })}
           </SettingsEmptyState>
         ) : sections ? (
           <div className='flex flex-col gap-7'>
@@ -397,23 +404,28 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
         onOpenChange={(open) => {
           if (!open) closeEditModal()
         }}
-        srTitle='Add/Update API Key'
+        srTitle={t('manager.editSrTitle')}
       >
         <ChipModalHeader onClose={closeEditModal}>
-          {editingMeta && (
-            <>
-              {isUpdatingExistingKey ? 'Update' : 'Add'} {editingMeta.name} API Key
-            </>
-          )}
+          {editingMeta &&
+            (isUpdatingExistingKey
+              ? t('manager.updateTitle', { provider: editingMeta.name })
+              : t('manager.addTitle', { provider: editingMeta.name }))}
         </ChipModalHeader>
         <ChipModalBody>
           <p className='px-2 text-[var(--text-secondary)] text-sm'>
             {keyUsageDescription ??
               (props.multiKey
-                ? `Requests are distributed evenly across all ${editingMeta?.name} keys in ${scopeLabel}. Your key is encrypted and stored securely.`
-                : `This key will be used for all ${editingMeta?.name} requests in ${scopeLabel}. Your key is encrypted and stored securely.`)}
+                ? t('manager.usageMultiKey', {
+                    provider: editingMeta?.name ?? '',
+                    scope: scopeLabel,
+                  })
+                : t('manager.usageSingleKey', {
+                    provider: editingMeta?.name ?? '',
+                    scope: scopeLabel,
+                  }))}
           </p>
-          <ChipModalField type='custom' title='API Key' required>
+          <ChipModalField type='custom' title={t('manager.apiKey')} required>
             <input
               type='text'
               name='fakeusernameremembered'
@@ -429,7 +441,7 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
               readOnly
             />
             <ChipInput
-              aria-label='API Key'
+              aria-label={t('manager.apiKey')}
               type={showApiKey ? 'text' : 'password'}
               value={apiKeyInput}
               onChange={(e) => {
@@ -449,7 +461,7 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
                   size='icon'
                   className='shrink-0'
                   onClick={() => setShowApiKey(!showApiKey)}
-                  aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                  aria-label={showApiKey ? t('manager.hideApiKey') : t('manager.showApiKey')}
                 >
                   {showApiKey ? (
                     <EyeOff className='size-[13px]' />
@@ -463,10 +475,10 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
           {props.multiKey && (
             <ChipModalField
               type='input'
-              title='Name'
+              title={t('manager.name')}
               value={nameInput}
               onChange={setNameInput}
-              placeholder='e.g. Production key'
+              placeholder={t('manager.namePlaceholder')}
               maxLength={120}
             />
           )}
@@ -476,7 +488,7 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
           onCancel={closeEditModal}
           cancelDisabled={isSaving}
           primaryAction={{
-            label: isSaving ? 'Saving...' : 'Save',
+            label: isSaving ? tShared('saving') : tShared('save'),
             onClick: handleSave,
             disabled: !apiKeyInput.trim() || isSaving || !canSaveEditingKey,
           }}
@@ -488,23 +500,25 @@ export function BYOKKeyManager(props: BYOKKeyManagerProps) {
         onOpenChange={(open) => {
           if (!open) setDeleteConfirm(null)
         }}
-        srTitle='Delete API Key'
-        title='Delete API Key'
+        srTitle={t('manager.deleteTitle')}
+        title={t('manager.deleteTitle')}
         text={[
-          'Are you sure you want to delete the ',
-          { text: deleteMeta?.name ?? 'selected', bold: true },
-          ' API key? ',
+          t('manager.deleteConfirmStart'),
+          { text: deleteMeta?.name ?? t('manager.deleteSelectedFallback'), bold: true },
+          t('manager.deleteConfirmEnd'),
           isDeletingLastKey
             ? { text: lastKeyDeleteMessage, error: true }
-            : `Requests will continue using the remaining ${deleteMeta?.name ?? 'provider'} keys.`,
-          ' This action cannot be undone.',
+            : t('manager.deleteRemainingKeys', {
+                provider: deleteMeta?.name ?? t('manager.deleteProviderFallback'),
+              }),
+          t('manager.deleteIrreversible'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: tShared('delete'),
           onClick: handleDelete,
           disabled: !capabilities.delete,
           pending: isDeleting,
-          pendingLabel: 'Deleting...',
+          pendingLabel: tShared('deleting'),
         }}
       />
     </>

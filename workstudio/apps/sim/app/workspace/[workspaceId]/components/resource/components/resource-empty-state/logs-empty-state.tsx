@@ -1,4 +1,5 @@
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { EmptyState } from '@/components/empty-state/empty-state'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { EmptyStateDocsLink } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/docs-link'
@@ -8,21 +9,22 @@ const LOGS_DOCS_URL = docsUrl('/logs-debugging')
 
 /** Skeleton ink — see the `INK` note in `tables-empty-state.tsx` for why not the surface ramp. */
 const INK = {
-  title: 'color-mix(in srgb, var(--text-secondary) 32%, transparent)',
+  title: 'color-mix(in srgb, var(--text-secondary) 32%, transparent)', // i18n-ignore: CSS color
   detail: 'color-mix(in srgb, var(--text-secondary) 15%, transparent)',
 } as const
 
 interface ActivityRow {
-  stamp: string
+  /** Message key under `shell.emptyStates.logs.stamps`. */
+  stamp: 'now' | 'minutesAgo' | 'hourAgo' | 'date'
   title: number
   detail: number
 }
 
 const ROWS: ActivityRow[] = [
-  { stamp: 'Now', title: 72, detail: 112 },
-  { stamp: '12 min ago', title: 62, detail: 124 },
-  { stamp: '1h ago', title: 76, detail: 100 },
-  { stamp: 'Jul 8', title: 56, detail: 108 },
+  { stamp: 'now', title: 72, detail: 112 },
+  { stamp: 'minutesAgo', title: 62, detail: 124 },
+  { stamp: 'hourAgo', title: 76, detail: 100 },
+  { stamp: 'date', title: 56, detail: 108 },
 ]
 
 /**
@@ -34,6 +36,7 @@ const FEED_FADE =
 
 /** Four rows, sized to the ~148px the other resource graphics occupy so the frame centres the set alike. */
 function LogsGraphic() {
+  const t = useTranslations('shell.emptyStates.logs.stamps')
   return (
     <div aria-hidden='true' className={cn('w-[286px]', FEED_FADE, MASK_NO_REPEAT)}>
       {ROWS.map((row, index) => (
@@ -57,7 +60,7 @@ function LogsGraphic() {
             />
           </span>
           <span className='shrink-0 text-[var(--text-muted)] text-micro leading-none'>
-            {row.stamp}
+            {t(row.stamp)}
           </span>
         </div>
       ))}
@@ -67,11 +70,12 @@ function LogsGraphic() {
 
 /** Empty state for the logs list when the workspace has no runs yet. */
 export function LogsEmptyState() {
+  const t = useTranslations('shell.emptyStates.logs')
   return (
     <EmptyState
       graphic={<LogsGraphic />}
-      title='Logs'
-      description='Every workflow execution lands here, traced block by block.'
+      title={t('title')}
+      description={t('description')}
       action={<EmptyStateDocsLink href={LOGS_DOCS_URL} />}
     />
   )

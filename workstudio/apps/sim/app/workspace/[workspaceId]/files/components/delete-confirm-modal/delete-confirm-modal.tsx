@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { ChipConfirmModal } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 interface DeleteConfirmModalProps {
   open: boolean
@@ -22,16 +23,17 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
   onDelete,
   isPending,
 }: DeleteConfirmModalProps) {
+  const t = useTranslations('files.deleteModal')
   const totalCount = fileCount + folderCount
   const hasFolders = folderCount > 0
-  const title = totalCount > 1 ? 'Delete Items' : hasFolders ? 'Delete Folder' : 'Delete File'
+  const title = totalCount > 1 ? t('titleItems') : hasFolders ? t('titleFolder') : t('titleFile')
   const consequence = hasFolders
     ? totalCount > 1
-      ? 'This will also delete files and folders inside any selected folders.'
-      : 'This will also delete files and folders inside it.'
+      ? t('consequenceFolders')
+      : t('consequenceFolder')
     : totalCount > 1
-      ? 'You can restore them from Recently Deleted in Settings.'
-      : 'You can restore it from Recently Deleted in Settings.'
+      ? t('consequenceRestoreMany')
+      : t('consequenceRestoreOne')
 
   return (
     <ChipConfirmModal
@@ -41,17 +43,15 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
       title={title}
       defaultAction={totalCount === 1 && !hasFolders ? 'confirm' : 'dismiss'}
       text={[
-        'Are you sure you want to delete ',
-        fileName
-          ? { text: fileName, bold: true }
-          : `${totalCount} item${totalCount === 1 ? '' : 's'}`,
-        `? ${consequence}`,
+        t('textBefore'),
+        fileName ? { text: fileName, bold: true } : t('itemCount', { count: totalCount }),
+        t('textAfter', { consequence }),
       ]}
       confirm={{
-        label: 'Delete',
+        label: t('confirm'),
         onClick: onDelete,
         pending: isPending,
-        pendingLabel: 'Deleting...',
+        pendingLabel: t('pending'),
       }}
     />
   )

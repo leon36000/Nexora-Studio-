@@ -30,6 +30,7 @@ import {
   X,
 } from '@sim/emcn/icons'
 import { formatDuration } from '@sim/utils/formatting'
+import { useTranslations } from 'next-intl'
 import { createPortal } from 'react-dom'
 import type { TraceSpan } from '@/lib/logs/types'
 import {
@@ -50,13 +51,14 @@ import { isCustomBlockType } from '@/blocks/custom/build-config'
 import { useCodeViewerFeatures } from '@/hooks/use-code-viewer'
 
 /**
- * Why a custom block's steps are not shown under it. `granted` is deliberately absent —
- * the joined children are their own evidence, so labelling them would be noise.
+ * Why a custom block's steps are not shown under it, as message keys under `logs.trace`.
+ * `granted` is deliberately absent — the joined children are their own evidence, so
+ * labelling them would be noise.
  */
-const CHILD_TRACE_ACCESS_LABEL: Record<string, string> = {
-  missing: 'Not available',
-  truncated: 'Not expanded (nesting limit)',
-  disabled: 'Not traced',
+const CHILD_TRACE_ACCESS_LABEL_KEYS: Record<string, string> = {
+  missing: 'childRunMissing',
+  truncated: 'childRunTruncated',
+  disabled: 'childRunDisabled',
 }
 
 const DEFAULT_TREE_PANE_WIDTH = 240
@@ -272,6 +274,7 @@ const TraceTreeRow = memo(function TraceTreeRow({
   runStartMs: number
   runTotalMs: number
 }) {
+  const t = useTranslations('logs.trace')
   const { span, depth, parentDuration } = entry
   const id = getSpanId(span)
   const startMs = parseTime(span.startTime)
@@ -328,7 +331,7 @@ const TraceTreeRow = memo(function TraceTreeRow({
               e.stopPropagation()
               onToggleExpand(id)
             }}
-            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+            aria-label={isExpanded ? t('collapse') : t('expand')}
           >
             <ChevronDown
               className={cn(
@@ -369,10 +372,10 @@ const TraceTreeRow = memo(function TraceTreeRow({
               </span>
               {pctOfTotal !== null && pctOfTotal >= 0.1 && (
                 <span className='text-[var(--text-tertiary)] text-caption'>
-                  {pctOfTotal.toFixed(pctOfTotal >= 10 ? 0 : 1)}% of total
+                  {t('percentOfTotal', { percent: pctOfTotal.toFixed(pctOfTotal >= 10 ? 0 : 1) })}
                   {pctOfParent !== null &&
                     pctOfParent >= 0.1 &&
-                    ` · ${pctOfParent.toFixed(pctOfParent >= 10 ? 0 : 1)}% of parent`}
+                    ` · ${t('percentOfParent', { percent: pctOfParent.toFixed(pctOfParent >= 10 ? 0 : 1) })}`}
                 </span>
               )}
             </div>
@@ -413,6 +416,7 @@ function DetailCodeSection({
   isError?: boolean
   defaultOpen?: boolean
 }) {
+  const t = useTranslations('logs.details')
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false)
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
@@ -505,7 +509,7 @@ function DetailCodeSection({
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <Button
-                      aria-label={copied ? 'Copied' : 'Copy'}
+                      aria-label={copied ? t('copied') : t('copy')}
                       type='button'
                       variant='default'
                       onClick={(e) => {
@@ -521,12 +525,12 @@ function DetailCodeSection({
                       )}
                     </Button>
                   </Tooltip.Trigger>
-                  <Tooltip.Content side='top'>{copied ? 'Copied' : 'Copy'}</Tooltip.Content>
+                  <Tooltip.Content side='top'>{copied ? t('copied') : t('copy')}</Tooltip.Content>
                 </Tooltip.Root>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <Button
-                      aria-label='Search'
+                      aria-label={t('search')}
                       type='button'
                       variant='default'
                       onClick={(e) => {
@@ -538,7 +542,7 @@ function DetailCodeSection({
                       <Search className='size-[10px]' />
                     </Button>
                   </Tooltip.Trigger>
-                  <Tooltip.Content side='top'>Search</Tooltip.Content>
+                  <Tooltip.Content side='top'>{t('search')}</Tooltip.Content>
                 </Tooltip.Root>
               </div>
             )}
@@ -554,7 +558,7 @@ function DetailCodeSection({
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder='Search...'
+                placeholder={t('searchPlaceholder')}
                 className='mr-0.5 w-[94px]'
               />
               <span
@@ -570,7 +574,7 @@ function DetailCodeSection({
                 iconPadding='sm'
                 onClick={goToPreviousMatch}
                 disabled={matchCount === 0}
-                aria-label='Previous match'
+                aria-label={t('previousMatch')}
               >
                 <ArrowUp className='size-[12px]' />
               </Button>
@@ -579,7 +583,7 @@ function DetailCodeSection({
                 iconPadding='sm'
                 onClick={goToNextMatch}
                 disabled={matchCount === 0}
-                aria-label='Next match'
+                aria-label={t('nextMatch')}
               >
                 <ArrowDown className='size-[12px]' />
               </Button>
@@ -587,7 +591,7 @@ function DetailCodeSection({
                 variant='ghost'
                 iconPadding='sm'
                 onClick={closeSearch}
-                aria-label='Close search'
+                aria-label={t('closeSearch')}
               >
                 <X className='size-[12px]' />
               </Button>
@@ -622,12 +626,12 @@ function DetailCodeSection({
                 >
                   <DropdownMenuItem onSelect={handleCopy}>
                     <Duplicate />
-                    Copy
+                    {t('copy')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={handleSearch}>
                     <SearchIcon />
-                    Search
+                    {t('search')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>,
@@ -656,10 +660,11 @@ function MetaRow({ label, value }: { label: string; value: string }) {
  * the selected span: metadata, input, output, thinking, tool calls, error.
  */
 const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpan | null }) {
+  const t = useTranslations('logs.trace')
   if (!span) {
     return (
       <div className='flex h-full items-center justify-center p-6 text-[var(--text-tertiary)] text-caption'>
-        Select a span to see details.
+        {t('selectSpan')}
       </div>
     )
   }
@@ -681,8 +686,8 @@ const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpa
 
   const metaEntries: { label: string; value: string }[] = []
   metaEntries.push({
-    label: 'Type',
-    value: isCustomBlockType(span.type) ? 'custom block' : span.type,
+    label: t('type'),
+    value: isCustomBlockType(span.type) ? t('customBlockType') : span.type,
   })
   // A custom block runs in another workspace, and its steps are joined in only when its
   // publisher opted that block into consumer traces. Say why they are absent — otherwise a
@@ -690,41 +695,44 @@ const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpa
   // nothing. The read-time verdict wins: a span that carries one was opted in, so
   // `disabled` can only describe a span hydration never considered.
   const childRunState = span.childTraceAccess ?? (span.childTraceDisabled ? 'disabled' : undefined)
-  const childRunLabel = childRunState ? CHILD_TRACE_ACCESS_LABEL[childRunState] : undefined
-  if (childRunLabel) metaEntries.push({ label: 'Child run', value: childRunLabel })
-  metaEntries.push({ label: 'Duration', value: formatDuration(duration, { precision: 2 }) || '—' })
-  if (span.tries !== undefined) metaEntries.push({ label: 'Tries', value: String(span.tries) })
-  if (span.provider) metaEntries.push({ label: 'Provider', value: span.provider })
-  if (span.model) metaEntries.push({ label: 'Model', value: span.model })
+  const childRunLabelKey = childRunState ? CHILD_TRACE_ACCESS_LABEL_KEYS[childRunState] : undefined
+  if (childRunLabelKey) metaEntries.push({ label: t('childRun'), value: t(childRunLabelKey) })
+  metaEntries.push({
+    label: t('duration'),
+    value: formatDuration(duration, { precision: 2 }) || '—',
+  })
+  if (span.tries !== undefined) metaEntries.push({ label: t('tries'), value: String(span.tries) })
+  if (span.provider) metaEntries.push({ label: t('provider'), value: span.provider })
+  if (span.model) metaEntries.push({ label: t('model'), value: span.model })
   for (const failedModel of span.modelFallbacks ?? []) {
-    metaEntries.push({ label: 'Failed model', value: failedModel })
+    metaEntries.push({ label: t('failedModel'), value: failedModel })
   }
-  if (span.finishReason) metaEntries.push({ label: 'Finish reason', value: span.finishReason })
+  if (span.finishReason) metaEntries.push({ label: t('finishReason'), value: span.finishReason })
   const ttftFormatted = formatTtft(span.ttft)
   if (ttftFormatted) metaEntries.push({ label: 'TTFT', value: ttftFormatted })
   const tpsFormatted = isModelSpan ? formatTps(span.tokens?.output, duration) : undefined
-  if (tpsFormatted) metaEntries.push({ label: 'Throughput', value: tpsFormatted })
+  if (tpsFormatted) metaEntries.push({ label: t('throughput'), value: tpsFormatted })
   const inputTokens = formatTokenCount(span.tokens?.input)
   const outputTokens = formatTokenCount(span.tokens?.output)
   const totalTokens = formatTokenCount(span.tokens?.total)
   const cacheRead = formatTokenCount(span.tokens?.cacheRead)
   const cacheWrite = formatTokenCount(span.tokens?.cacheWrite)
   const reasoning = formatTokenCount(span.tokens?.reasoning)
-  if (inputTokens) metaEntries.push({ label: 'Input tokens', value: inputTokens })
-  if (outputTokens) metaEntries.push({ label: 'Output tokens', value: outputTokens })
-  if (totalTokens) metaEntries.push({ label: 'Total tokens', value: totalTokens })
-  if (cacheRead) metaEntries.push({ label: 'Cache read', value: cacheRead })
-  if (cacheWrite) metaEntries.push({ label: 'Cache write', value: cacheWrite })
-  if (reasoning) metaEntries.push({ label: 'Reasoning tokens', value: reasoning })
+  if (inputTokens) metaEntries.push({ label: t('inputTokens'), value: inputTokens })
+  if (outputTokens) metaEntries.push({ label: t('outputTokens'), value: outputTokens })
+  if (totalTokens) metaEntries.push({ label: t('totalTokens'), value: totalTokens })
+  if (cacheRead) metaEntries.push({ label: t('cacheRead'), value: cacheRead })
+  if (cacheWrite) metaEntries.push({ label: t('cacheWrite'), value: cacheWrite })
+  if (reasoning) metaEntries.push({ label: t('reasoningTokens'), value: reasoning })
   // Per-span cost is intentionally not shown: cost lives only in the usage_log
   // ledger (the authoritative, multiplier-inclusive run total drives the header
   // chip). Persisted spans are cost-stripped, so a per-span row would render on
   // live runs but vanish on reload — show one consistent total instead.
-  if (span.errorType) metaEntries.push({ label: 'Error type', value: span.errorType })
+  if (span.errorType) metaEntries.push({ label: t('errorType'), value: span.errorType })
   if (span.iterationIndex !== undefined)
-    metaEntries.push({ label: 'Iteration', value: String(span.iterationIndex + 1) })
+    metaEntries.push({ label: t('iteration'), value: String(span.iterationIndex + 1) })
 
-  const statusLabel = hasError ? 'Error' : 'Success'
+  const statusLabel = hasError ? t('error') : t('success')
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3.5 pt-3 pb-4'>
@@ -778,24 +786,26 @@ const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpa
           labels — a collapsed Output on one span appeared as a collapsed Input
           on the next. */}
       {span.input !== undefined && span.input !== null && (
-        <DetailCodeSection key='input' label='Input' data={span.input} />
+        <DetailCodeSection key='input' label={t('input')} data={span.input} />
       )}
       {span.output !== undefined && span.output !== null && (
         <DetailCodeSection
           key={isDirectError ? 'error' : 'output'}
-          label={isDirectError ? 'Error' : 'Output'}
+          label={isDirectError ? t('error') : t('output')}
           data={span.output}
           isError={isDirectError}
         />
       )}
-      {span.thinking && <DetailCodeSection key='thinking' label='Thinking' data={span.thinking} />}
+      {span.thinking && (
+        <DetailCodeSection key='thinking' label={t('thinking')} data={span.thinking} />
+      )}
       {span.modelToolCalls && span.modelToolCalls.length > 0 && (
-        <DetailCodeSection key='tool-calls' label='Tool calls' data={span.modelToolCalls} />
+        <DetailCodeSection key='tool-calls' label={t('toolCalls')} data={span.modelToolCalls} />
       )}
       {span.errorMessage && (
         <DetailCodeSection
           key='error-message'
-          label='Error message'
+          label={t('errorMessage')}
           data={span.errorMessage}
           isError
         />
@@ -804,10 +814,10 @@ const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpa
       {Number.isFinite(startedAt) && Number.isFinite(endedAt) && startedAt > 0 && endedAt > 0 && (
         <div className='flex items-center justify-between text-[var(--text-tertiary)] text-caption'>
           <span title={new Date(startedAt).toISOString()} suppressHydrationWarning>
-            Started {new Date(startedAt).toLocaleTimeString()}
+            {t('started', { time: new Date(startedAt).toLocaleTimeString() })}
           </span>
           <span title={new Date(endedAt).toISOString()} suppressHydrationWarning>
-            Ended {new Date(endedAt).toLocaleTimeString()}
+            {t('ended', { time: new Date(endedAt).toLocaleTimeString() })}
           </span>
         </div>
       )}
@@ -822,6 +832,7 @@ const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpa
  * follow block-by-block and segment-by-segment what happened and why.
  */
 export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }: TraceViewProps) {
+  const t = useTranslations('logs.trace')
   const treeRef = useRef<HTMLDivElement>(null)
   const { copied: traceCopied, copy: copyTrace } = useCopyToClipboard()
   const [searchQuery, setSearchQuery] = useState('')
@@ -998,7 +1009,7 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
   if (!traceSpans || traceSpans.length === 0) {
     return (
       <div className='flex h-full items-center justify-center text-[var(--text-tertiary)] text-caption'>
-        No trace data available
+        {t('noTraceData')}
       </div>
     )
   }
@@ -1008,7 +1019,7 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
       {/* Header strip */}
       <div className='flex items-center gap-2 border-[var(--border)] border-b px-3.5 pb-2'>
         <Badge variant={runStatus === 'error' ? 'red' : 'green'} size='sm' className='shrink-0'>
-          {runStatus === 'error' ? 'Error' : 'Success'}
+          {runStatus === 'error' ? t('error') : t('success')}
         </Badge>
         {firstErrorId && (
           <Button
@@ -1017,14 +1028,14 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
             size='sm'
             onClick={() => setSelectedId(firstErrorId)}
           >
-            Jump to error
+            {t('jumpToError')}
           </Button>
         )}
         <span className='shrink-0 text-[var(--text-secondary)] text-caption tabular-nums'>
           {formatDuration(totalDuration, { precision: 2 }) || '—'}
         </span>
         <span className='shrink-0 text-[var(--text-tertiary)] text-caption'>
-          {blockCount} {blockCount === 1 ? 'span' : 'spans'}
+          {t('spanCount', { count: blockCount })}
         </span>
         {(() => {
           const rootCost = formatCostAmount(runCostDollars ?? normalizedSpans[0]?.cost?.total)
@@ -1040,7 +1051,7 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
             type='text'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder='Filter spans'
+            placeholder={t('filterSpans')}
             className='w-[140px]'
           />
           <Tooltip.Root>
@@ -1050,7 +1061,7 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
                 variant='ghost'
                 iconPadding='sm'
                 onClick={() => copyTrace(JSON.stringify(traceSpans, null, 2))}
-                aria-label='Copy raw trace'
+                aria-label={t('copyRawTrace')}
               >
                 {traceCopied ? (
                   <Check className='size-[12px] text-[var(--text-success)]' />
@@ -1060,7 +1071,7 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
               </Button>
             </Tooltip.Trigger>
             <Tooltip.Content side='top'>
-              {traceCopied ? 'Copied' : 'Copy raw trace'}
+              {traceCopied ? t('copied') : t('copyRawTrace')}
             </Tooltip.Content>
           </Tooltip.Root>
           <Tooltip.Root>
@@ -1070,12 +1081,12 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
                 variant='ghost'
                 iconPadding='sm'
                 onClick={() => setExpandedNodes(new Set(allIds))}
-                aria-label='Expand all'
+                aria-label={t('expandAll')}
               >
                 <ChevronsUpDown className='size-[12px]' />
               </Button>
             </Tooltip.Trigger>
-            <Tooltip.Content side='top'>Expand all</Tooltip.Content>
+            <Tooltip.Content side='top'>{t('expandAll')}</Tooltip.Content>
           </Tooltip.Root>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -1084,12 +1095,12 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
                 variant='ghost'
                 iconPadding='sm'
                 onClick={() => setExpandedNodes(new Set())}
-                aria-label='Collapse all'
+                aria-label={t('collapseAll')}
               >
                 <ChevronsDownUp className='size-[12px]' />
               </Button>
             </Tooltip.Trigger>
-            <Tooltip.Content side='top'>Collapse all</Tooltip.Content>
+            <Tooltip.Content side='top'>{t('collapseAll')}</Tooltip.Content>
           </Tooltip.Root>
         </div>
       </div>
@@ -1103,7 +1114,9 @@ export const TraceView = memo(function TraceView({ traceSpans, runCostDollars }:
           role='tree'
         >
           {flatList.length === 0 && (
-            <div className='p-3 text-[var(--text-tertiary)] text-caption'>No matching spans</div>
+            <div className='p-3 text-[var(--text-tertiary)] text-caption'>
+              {t('noMatchingSpans')}
+            </div>
           )}
           {flatList.map((entry) => {
             const id = getSpanId(entry.span)

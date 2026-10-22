@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChipModalField } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import {
   getMicrosoftDataverseIdentityScopes,
   getMicrosoftDataverseOAuthScopes,
@@ -36,6 +37,7 @@ export function useMicrosoftDataverseEnvironmentForm({
   providerId,
   required,
 }: UseMicrosoftDataverseEnvironmentFormProps): MicrosoftDataverseEnvironmentForm {
+  const t = useTranslations('shell.connectOAuthModal.dataverse')
   const enabled = required && providerId === MICROSOFT_DATAVERSE_PROVIDER_ID
   const initialValue = enabled ? (lockedEnvironmentUrl ?? '') : ''
   const [value, setEnvironmentValue] = useState(initialValue)
@@ -61,9 +63,7 @@ export function useMicrosoftDataverseEnvironmentForm({
       setError(null)
       return environmentUrl
     } catch (validationError) {
-      setError(
-        getErrorMessage(validationError, 'Enter a valid public-cloud Dataverse environment URL.')
-      )
+      setError(getErrorMessage(validationError, t('invalidUrl')))
       return undefined
     }
   }
@@ -97,18 +97,19 @@ interface MicrosoftDataverseEnvironmentFieldProps {
 export function MicrosoftDataverseEnvironmentField({
   form,
 }: MicrosoftDataverseEnvironmentFieldProps) {
+  const t = useTranslations('shell.connectOAuthModal.dataverse')
   if (!form.enabled) return null
 
   if (form.isLocked) {
     return (
       <ChipModalField
         type='copy'
-        title='Environment URL'
+        title={t('environmentUrl')}
         value={form.value}
-        copyLabel='Copy environment URL'
+        copyLabel={t('copyEnvironmentUrl')}
         required
         error={form.error ?? undefined}
-        hint='This connection is locked to the environment selected by the workflow or credential.'
+        hint={t('lockedHint')}
       />
     )
   }
@@ -117,14 +118,14 @@ export function MicrosoftDataverseEnvironmentField({
     <ChipModalField
       type='input'
       inputType='url'
-      title='Environment URL'
+      title={t('environmentUrl')}
       value={form.value}
       onChange={form.setValue}
       placeholder='https://myorg.crm.dynamics.com'
       autoComplete='off'
       required
       error={form.error ?? undefined}
-      hint='This credential is restricted to one public-cloud Dataverse environment.'
+      hint={t('restrictedHint')}
     />
   )
 }

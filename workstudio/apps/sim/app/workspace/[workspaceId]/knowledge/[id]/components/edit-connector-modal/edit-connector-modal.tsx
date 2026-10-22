@@ -8,6 +8,7 @@ import {
   ChipModalHeader,
   ChipModalTabs,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { ConnectorDocumentFilter } from '@/lib/api/contracts/knowledge/connectors'
 import type { ResourceScope } from '@/lib/core/resource-scope'
 import {
@@ -36,6 +37,7 @@ export function EditConnectorModal({
   connector,
   scope,
 }: EditConnectorModalProps) {
+  const t = useTranslations('knowledge.editConnector')
   const [activeTab, setActiveTab] = useState('settings')
   const [documentFilter, setDocumentFilter] = useState<ConnectorDocumentFilter>('active')
   const form = useConnectorSettingsForm({
@@ -50,7 +52,7 @@ export function EditConnectorModal({
     <ChipModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle={`Edit ${form.displayName}`}
+      srTitle={t('title', { name: form.displayName })}
       size='md'
       dismissDisabled={form.saving}
     >
@@ -58,18 +60,18 @@ export function EditConnectorModal({
         icon={form.icon ? withBrandIcon(form.icon) : null}
         onClose={() => onOpenChange(false)}
       >
-        Edit {form.displayName}
+        {t('title', { name: form.displayName })}
       </ChipModalHeader>
       <ChipModalBody>
         <div className='mx-2 flex shrink-0 items-center justify-between gap-2'>
           <ChipModalTabs
             tabs={[
-              { value: 'settings', label: 'Settings' },
-              { value: 'documents', label: 'Documents' },
+              { value: 'settings', label: t('settingsTab') },
+              { value: 'documents', label: t('documentsTab') },
             ]}
             value={activeTab}
             onChange={setActiveTab}
-            aria-label='Connection views'
+            aria-label={t('views')}
           />
           {activeTab === 'documents' && (
             <ConnectorDocumentsTabFilter
@@ -98,14 +100,14 @@ export function EditConnectorModal({
             form.docsUrl
               ? [
                   {
-                    label: 'Setup guide',
+                    label: t('setupGuide'),
                     onClick: () => window.open(form.docsUrl, '_blank', 'noopener,noreferrer'),
                   },
                 ]
               : undefined
           }
           primaryAction={{
-            label: form.saving ? 'Saving…' : 'Save',
+            label: form.saving ? t('saving') : t('save'),
             onClick: form.save,
             disabled: !form.canSave,
             disabledTooltip: form.saveBlockedReason,

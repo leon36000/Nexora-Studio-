@@ -13,6 +13,7 @@ import {
   cn,
 } from '@sim/emcn'
 import dynamic from 'next/dynamic'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import {
   useGenerateVersionDescription,
@@ -50,6 +51,7 @@ export function VersionDescriptionModal({
   versionName,
   currentDescription,
 }: VersionDescriptionModalProps) {
+  const t = useTranslations('editor.deploy.versionDescription')
   const { workspaceId } = useWorkflowScope()
 
   const initialDescriptionRef = useRef(currentDescription || '')
@@ -123,28 +125,30 @@ export function VersionDescriptionModal({
       <ChipModal
         open={open}
         onOpenChange={(openState) => !openState && handleCloseAttempt()}
-        srTitle='Version Description'
+        srTitle={t('title')}
       >
-        <ChipModalHeader onClose={() => handleCloseAttempt()}>Version Description</ChipModalHeader>
+        <ChipModalHeader onClose={() => handleCloseAttempt()}>{t('title')}</ChipModalHeader>
         <ChipModalBody>
           <ChipModalField
             type='custom'
             title={
               <span>
-                {currentDescription ? 'Edit the' : 'Add a'} description for{' '}
-                <span className='text-[var(--text-primary)]'>{versionName}</span>
+                {t.rich(currentDescription ? 'editFor' : 'addFor', {
+                  name: versionName,
+                  version: (chunks) => <span className='text-[var(--text-primary)]'>{chunks}</span>,
+                })}
               </span>
             }
             error={
               isTooLong
-                ? `Description exceeds the ${MAX_DESCRIPTION_LENGTH.toLocaleString()}-character limit (currently ${description.length.toLocaleString()})`
+                ? t('tooLong', { max: MAX_DESCRIPTION_LENGTH, count: description.length })
                 : undefined
             }
           >
             <RichMarkdownField
               value={description}
               onChange={setDescription}
-              placeholder='Describe the changes in this deployment version...'
+              placeholder={t('placeholder')}
               minHeight={240}
               maxHeight={420}
               disabled={isGenerating}
@@ -163,13 +167,13 @@ export function VersionDescriptionModal({
           cancelDisabled={updateMutation.isPending || isGenerating}
           secondaryActions={[
             {
-              label: isGenerating ? 'Generating...' : 'Generate',
+              label: isGenerating ? t('generating') : t('generate'),
               onClick: handleGenerateDescription,
               disabled: isGenerating || updateMutation.isPending,
             },
           ]}
           primaryAction={{
-            label: updateMutation.isPending ? 'Saving...' : 'Save',
+            label: updateMutation.isPending ? t('saving') : t('save'),
             onClick: handleSave,
             disabled: updateMutation.isPending || isGenerating || !hasChanges || isTooLong,
           }}
@@ -179,12 +183,12 @@ export function VersionDescriptionModal({
       <ChipConfirmModal
         open={showUnsavedChangesAlert}
         onOpenChange={setShowUnsavedChangesAlert}
-        srTitle='Unsaved Changes'
-        title='Unsaved Changes'
-        text='You have unsaved changes. Are you sure you want to discard them?'
-        dismissLabel='Keep editing'
+        srTitle={t('unsaved.title')}
+        title={t('unsaved.title')}
+        text={t('unsaved.text')}
+        dismissLabel={t('unsaved.keepEditing')}
         confirm={{
-          label: 'Discard Changes',
+          label: t('unsaved.discard'),
           onClick: handleDiscardChanges,
         }}
       />

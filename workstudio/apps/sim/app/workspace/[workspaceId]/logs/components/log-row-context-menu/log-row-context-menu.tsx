@@ -15,6 +15,7 @@ import {
   SquareArrowUpRight,
   X,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { WorkflowLogSummary } from '@/lib/api/contracts/logs'
 import { resolveLogWorkflowId } from '@/app/workspace/[workspaceId]/logs/utils'
 
@@ -63,6 +64,7 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
   isFilteredByThisWorkflow,
   hasActiveFilters,
 }: LogRowContextMenuProps) {
+  const t = useTranslations('logs.contextMenu')
   const hasExecutionId = Boolean(log?.executionId)
   const hasWorkflow = Boolean(log?.workflow?.id || log?.workflowId)
   /**
@@ -105,31 +107,31 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
         {isRetryable && (
           <DropdownMenuItem onSelect={onRetryExecution} disabled={isRetryPending}>
             <Redo />
-            {isRetryPending ? 'Retrying…' : 'Retry'}
+            {isRetryPending ? t('retrying') : t('retry')}
           </DropdownMenuItem>
         )}
         {showCancelAction && (
           <DropdownMenuItem onSelect={onCancelExecution} disabled={isStopping}>
             <X />
-            {isStopping ? 'Stopping…' : 'Cancel Run'}
+            {isStopping ? t('stopping') : t('cancelRun')}
           </DropdownMenuItem>
         )}
         {(isRetryable || showCancelAction) && <DropdownMenuSeparator />}
         <DropdownMenuItem disabled={!hasExecutionId} onSelect={onCopyExecutionId}>
           <Duplicate />
-          Copy Run ID
+          {t('copyRunId')}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!hasExecutionId} onSelect={onCopyLink}>
           <Link />
-          Copy Link
+          {t('copyLink')}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!hasOpenableWorkflow} onSelect={onOpenWorkflow}>
           <SquareArrowUpRight />
-          Open Workflow
+          {t('openWorkflow')}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!hasExecutionId} onSelect={onOpenPreview}>
           <Eye />
-          Open Snapshot
+          {t('openSnapshot')}
         </DropdownMenuItem>
         {/* Stops acting on this run and starts acting on the page's filters — the
             second of the two scope changes this menu has. */}
@@ -137,13 +139,13 @@ export const LogRowContextMenu = memo(function LogRowContextMenu({
         {!isFilteredByThisWorkflow && (
           <DropdownMenuItem disabled={!hasWorkflow} onSelect={onToggleWorkflowFilter}>
             <ListFilter />
-            Filter by Workflow
+            {t('filterByWorkflow')}
           </DropdownMenuItem>
         )}
         {hasActiveFilters && (
           <DropdownMenuItem onSelect={onClearAllFilters}>
             <X />
-            Clear Filters
+            {t('clearFilters')}
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

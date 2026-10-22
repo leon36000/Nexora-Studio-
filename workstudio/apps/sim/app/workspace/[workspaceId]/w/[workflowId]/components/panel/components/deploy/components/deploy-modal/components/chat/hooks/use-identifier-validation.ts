@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { requestJson } from '@/lib/api/client/request'
 import { validateChatIdentifierContract } from '@/lib/api/contracts/chats'
 
@@ -22,6 +23,7 @@ export function useIdentifierValidation(
   originalIdentifier?: string,
   isEditingExisting?: boolean
 ): IdentifierValidationState {
+  const t = useTranslations('editor.deploy.chat.identifier')
   const [isChecking, setIsChecking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isValid, setIsValid] = useState(false)
@@ -52,7 +54,7 @@ export function useIdentifierValidation(
     }
 
     if (!IDENTIFIER_PATTERN.test(identifier)) {
-      setError('Identifier can only contain lowercase letters, numbers, and hyphens')
+      setError(t('invalidPattern'))
       return
     }
 
@@ -64,14 +66,14 @@ export function useIdentifierValidation(
         })
 
         if (!data.available) {
-          setError(data.error || 'This identifier is already in use')
+          setError(data.error || t('inUse'))
           setIsValid(false)
         } else {
           setError(null)
           setIsValid(true)
         }
       } catch {
-        setError('Error checking identifier availability')
+        setError(t('checkFailed'))
         setIsValid(false)
       } finally {
         setIsChecking(false)
@@ -83,7 +85,7 @@ export function useIdentifierValidation(
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [identifier, originalIdentifier, isEditingExisting])
+  }, [identifier, originalIdentifier, isEditingExisting, t])
 
   return { isChecking, error, isValid }
 }

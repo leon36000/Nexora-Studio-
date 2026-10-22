@@ -19,6 +19,7 @@ import {
 import { ArrowLeft, ChevronDown, SquareArrowUpRight, X } from '@sim/emcn/icons'
 import { toError } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { findValidationIssue, isValidationError } from '@/lib/api/client/errors'
 import type {
   AddWorkflowGroupBodyInput,
@@ -110,10 +111,11 @@ interface WorkflowSidebarProps {
 
 const OUTPUT_VALUE_SEPARATOR = '::'
 
-const TITLE_BY_MODE = {
-  create: 'Add workflow',
-  'edit-group': 'Configure workflow',
-  'edit-output': 'Configure output column',
+/** Message keys under `tables.workflowSidebar` for each mode's panel title. */
+const TITLE_KEY_BY_MODE = {
+  create: 'titleCreate',
+  'edit-group': 'titleEditGroup',
+  'edit-output': 'titleEditOutput',
 } as const
 
 const encodeOutputValue = (blockId: string, path: string) =>
@@ -144,11 +146,12 @@ interface BlockOutputGroup {
  * remounts and re-seeds state from props (no `useEffect` mirror).
  */
 export function WorkflowSidebar(props: WorkflowSidebarProps) {
+  const t = useTranslations('tables.workflowSidebar')
   const open = props.config !== null
   return (
     <aside
       role='dialog'
-      aria-label='Configure workflow'
+      aria-label={t('titleEditGroup')}
       className={cn(
         'absolute top-0 right-0 bottom-0 z-[var(--z-modal)] flex w-full flex-col overflow-hidden border-[var(--border)] border-l bg-[var(--bg)] transition-transform duration-200 ease-out motion-reduce:transition-none md:w-[400px]',
         open ? 'translate-x-0 shadow-overlay' : 'translate-x-full'
@@ -193,6 +196,8 @@ export function WorkflowSidebarBody({
   onColumnRename,
   onBack,
 }: WorkflowSidebarBodyProps) {
+  const t = useTranslations('tables.workflowSidebar')
+  const tSidebar = useTranslations('tables.sidebar')
   const updateColumn = useUpdateColumn({ workspaceId, tableId })
   const addWorkflowGroup = useAddWorkflowGroup({ workspaceId, tableId })
   const updateWorkflowGroup = useUpdateWorkflowGroup({ workspaceId, tableId })
@@ -524,7 +529,7 @@ export function WorkflowSidebarBody({
               { columnName: targetColumnName, blockId: newPick.blockId, path: newPick.path },
             ],
           })
-          toast.success(`Saved "${targetColumnName}"`)
+          toast.success(t('saved', { name: targetColumnName }))
         } else {
           // edit-group: full output diff with new-column derivation.
           const taken = new Set(allColumns.map((c) => c.name))
@@ -559,7 +564,7 @@ export function WorkflowSidebarBody({
             inputMappings: inputMappingsList,
             autoRun,
           })
-          toast.success(`Saved "${existingGroup.name ?? 'Workflow'}"`)
+          toast.success(t('saved', { name: existingGroup.name ?? t('workflowFallback') }))
         }
       } else {
         // Create path: brand-new group with auto-derived output column names.
@@ -579,7 +584,8 @@ export function WorkflowSidebarBody({
           })
           groupOutputs.push({ blockId: o.blockId, path: o.path, columnName: colName })
         }
-        const workflowName = workflows?.find((w) => w.id === selectedWorkflowId)?.name ?? 'Workflow'
+        const workflowName =
+          workflows?.find((w) => w.id === selectedWorkflowId)?.name ?? t('workflowFallback')
         const group: WorkflowGroup = {
           id: groupId,
           workflowId: selectedWorkflowId,
@@ -591,7 +597,7 @@ export function WorkflowSidebarBody({
           autoRun,
         }
         await addWorkflowGroup.mutateAsync({ group, outputColumns: newOutputColumns })
-        toast.success(`Added "${workflowName}"`)
+        toast.success(t('added', { name: workflowName }))
       }
       onClose()
     } catch (err) {
@@ -621,7 +627,7 @@ export function WorkflowSidebarBody({
   const title =
     config.mode === 'create' && config.kind === 'enrichment' && config.enrichmentName
       ? config.enrichmentName
-      : TITLE_BY_MODE[config.mode]
+      : t(TITLE_KEY_BY_MODE[config.mode])
   const showBackButton = isEnrichment && Boolean(onBack)
 
   // edit-output mode is single-select on the output picker; everywhere else
@@ -639,7 +645,7 @@ export function WorkflowSidebarBody({
               onClick={onBack}
               iconPadding='sm'
               className='size-7 flex-none max-md:pointer-coarse:size-11'
-              aria-label='Back to enrichments'
+              aria-label={tSidebar('backToEnrichments')}
             >
               <ArrowLeft className='size-[14px]' />
             </Button>
@@ -654,7 +660,7 @@ export function WorkflowSidebarBody({
           onClick={onClose}
           iconPadding='sm'
           className='size-7 flex-none max-md:pointer-coarse:size-11'
-          aria-label='Close'
+          aria-label={tSidebar('close')}
         >
           <X className='size-[14px]' />
         </Button>
@@ -665,7 +671,9 @@ export function WorkflowSidebarBody({
         {isEditOutputMode && (
           <>
             <div className='flex flex-col gap-[9.5px]'>
-              <RequiredLabel htmlFor='workflow-sidebar-column-name'>Column name</RequiredLabel>
+              <RequiredLabel htmlFor='workflow-sidebar-column-name'>
+                {tSidebar('columnName')}
+              </RequiredLabel>
               <ChipInput
                 id='workflow-sidebar-column-name'
                 value={columnNameInput}
@@ -681,7 +689,7 @@ export function WorkflowSidebarBody({
                 }
               />
               {showValidation && !columnNameInput.trim() && (
-                <FieldError message='Column name is required' />
+                <FieldError message={t('columnNameRequired')} />
               )}
               {nameError && !(showValidation && !columnNameInput.trim()) && (
                 <FieldError message={nameError} />
@@ -695,7 +703,7 @@ export function WorkflowSidebarBody({
           <>
             <div className='flex flex-col gap-[9.5px]'>
               <div className='flex min-w-0 items-center justify-between gap-2 pl-0.5'>
-                <Label>Workflow preview</Label>
+                <Label>{t('preview')}</Label>
               </div>
               <div className='relative h-[160px] overflow-hidden rounded-sm border border-[var(--border)]'>
                 {workflowState.isLoading ? (
@@ -720,7 +728,7 @@ export function WorkflowSidebarBody({
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                           <Button
-                            aria-label='Open workflow'
+                            aria-label={t('openWorkflow')}
                             type='button'
                             variant='ghost'
                             onClick={() =>
@@ -735,14 +743,14 @@ export function WorkflowSidebarBody({
                             <SquareArrowUpRight className='size-[12px]' />
                           </Button>
                         </Tooltip.Trigger>
-                        <Tooltip.Content side='top'>Open workflow</Tooltip.Content>
+                        <Tooltip.Content side='top'>{t('openWorkflow')}</Tooltip.Content>
                       </Tooltip.Root>
                     )}
                   </>
                 ) : (
                   <div className='flex h-full items-center justify-center bg-[var(--surface-3)]'>
                     <span className='text-[var(--text-tertiary)] text-small'>
-                      Unable to load preview
+                      {t('previewUnavailable')}
                     </span>
                   </div>
                 )}
@@ -753,7 +761,7 @@ export function WorkflowSidebarBody({
         )}
 
         <div className='flex flex-col gap-[9.5px]'>
-          <RequiredLabel>Workflow</RequiredLabel>
+          <RequiredLabel>{t('workflow')}</RequiredLabel>
           <ChipCombobox
             options={
               workflows
@@ -762,29 +770,29 @@ export function WorkflowSidebarBody({
             }
             value={selectedWorkflowId}
             onChange={(v) => setSelectedWorkflowId(v)}
-            placeholder='Select a workflow'
+            placeholder={t('selectWorkflow')}
             disabled={!workflows || workflows.length === 0 || isEditOutputMode || isEnrichment}
-            emptyMessage='No deployed workflows available'
+            emptyMessage={t('noDeployedWorkflows')}
             maxHeight={260}
             searchable
-            searchPlaceholder='Search workflows...'
+            searchPlaceholder={t('searchWorkflows')}
           />
-          {showValidation && !selectedWorkflowId && <FieldError message='Select a workflow' />}
+          {showValidation && !selectedWorkflowId && <FieldError message={t('selectWorkflow')} />}
         </div>
 
         <FieldDivider />
 
         <div className='flex flex-col gap-[9.5px]'>
-          <RequiredLabel>{isEditOutputMode ? 'Output' : 'Output columns'}</RequiredLabel>
+          <RequiredLabel>{isEditOutputMode ? t('output') : t('outputColumns')}</RequiredLabel>
           <ChipCombobox
             multiSelect={!outputPickerSingleSelect}
             searchable
-            searchPlaceholder='Search outputs…'
+            searchPlaceholder={t('searchOutputs')}
             className='w-full'
             dropdownWidth='trigger'
             maxHeight={280}
             disabled={workflowState.isLoading || blockOutputGroups.length === 0}
-            emptyMessage={workflowState.isLoading ? 'Loading workflow…' : 'No outputs found.'}
+            emptyMessage={workflowState.isLoading ? t('loadingWorkflow') : t('noOutputs')}
             // Combobox ignores `options` when `groups` is set (see combobox.tsx),
             // but the prop is required by the type — pass an empty array.
             options={[]}
@@ -800,16 +808,14 @@ export function WorkflowSidebarBody({
                   overlayContent: (
                     <span className='truncate text-[var(--text-primary)]'>
                       {selectedOutputs.length === 0
-                        ? 'Select outputs'
-                        : `${selectedOutputs.length} selected`}
+                        ? t('selectOutputs')
+                        : tSidebar('selectedCount', { count: selectedOutputs.length })}
                     </span>
                   ),
                 })}
           />
           {showValidation && selectedWorkflowId && selectedOutputs.length === 0 && (
-            <FieldError
-              message={isEditOutputMode ? 'Pick an output' : 'Pick at least one output column'}
-            />
+            <FieldError message={isEditOutputMode ? t('pickOutput') : t('pickAtLeastOneOutput')} />
           )}
         </div>
 
@@ -817,7 +823,7 @@ export function WorkflowSidebarBody({
           <>
             <FieldDivider />
             <div className='flex items-center justify-between pl-0.5'>
-              <Label htmlFor='workflow-sidebar-auto-run'>Auto-run workflow</Label>
+              <Label htmlFor='workflow-sidebar-auto-run'>{t('autoRunWorkflow')}</Label>
               <Switch
                 id='workflow-sidebar-auto-run'
                 checked={autoRun}
@@ -831,7 +837,9 @@ export function WorkflowSidebarBody({
                   depOptions={depOptions}
                   deps={deps}
                   onChangeDeps={setDeps}
-                  error={showValidation && deps.length === 0 ? 'Select at least one column' : null}
+                  error={
+                    showValidation && deps.length === 0 ? tSidebar('selectAtLeastOneColumn') : null
+                  }
                 />
               </>
             )}
@@ -844,7 +852,7 @@ export function WorkflowSidebarBody({
                     onClick={() => setShowAdvanced((v) => !v)}
                     className='flex items-center gap-1.5 whitespace-nowrap text-[var(--text-secondary)] text-small hover-hover:text-[var(--text-primary)]'
                   >
-                    {showAdvanced ? 'Hide additional fields' : 'Show additional fields'}
+                    {showAdvanced ? t('hideAdditional') : t('showAdditional')}
                     <ChevronDown
                       className={cn(
                         'size-[14px] transition-transform duration-200',
@@ -877,7 +885,7 @@ export function WorkflowSidebarBody({
           onClick={onClose}
           className='max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11'
         >
-          Cancel
+          {tSidebar('cancel')}
         </Button>
         <Button
           variant='primary'
@@ -886,7 +894,7 @@ export function WorkflowSidebarBody({
           disabled={saveDisabled}
           className='max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11'
         >
-          {saveDisabled ? 'Saving…' : 'Save'}
+          {saveDisabled ? t('saving') : tSidebar('save')}
         </Button>
       </div>
     </div>

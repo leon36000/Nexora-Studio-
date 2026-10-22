@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { cn, InputOTP, InputOTPGroup, InputOTPSlot } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { POST_AUTH_REDIRECT_STORAGE_KEY } from '@/app/(auth)/auth-redirect'
 import {
   AuthFormMessage,
@@ -40,6 +41,7 @@ function VerificationForm({
     resendCode,
     handleOtpChange,
   } = useVerification({ hasEmailService, isProduction, isEmailVerificationEnabled })
+  const t = useTranslations('auth.verify')
 
   const isVerified = status === 'verified'
   const isLoading = status === 'verifying' || isResending
@@ -61,17 +63,19 @@ function VerificationForm({
   return (
     <div className='space-y-6'>
       <AuthHeader
-        title={isVerified ? 'Email Verified' : 'Verify your email'}
+        title={isVerified ? t('titleVerified') : t('title')}
         description={
           isVerified
-            ? 'Your email has been verified. Redirecting to dashboard...'
+            ? t('verifiedDescription')
             : !isEmailVerificationEnabled
-              ? 'Email verification is disabled. Redirecting to dashboard...'
+              ? t('disabledDescription')
               : hasEmailService
-                ? `A verification code has been sent to ${email || 'your email'}`
+                ? email
+                  ? t('codeSentTo', { email })
+                  : t('codeSentToYourEmail')
                 : !isProduction
-                  ? 'Development mode: Check your console logs for the verification code'
-                  : 'Error: Email verification is enabled but no email service is configured'
+                  ? t('devMode')
+                  : t('noEmailService')
         }
       />
 
@@ -79,8 +83,7 @@ function VerificationForm({
         <div className='space-y-6'>
           <div className='space-y-5'>
             <p className='text-center text-[var(--text-muted)] text-sm'>
-              Enter the 6-digit code to verify your account.
-              {hasEmailService ? " If you don't see it in your inbox, check your spam folder." : ''}
+              {hasEmailService ? t('enterCodeWithSpamHint') : t('enterCode')}
             </p>
 
             <div className='flex justify-center'>
@@ -108,22 +111,27 @@ function VerificationForm({
             type='button'
             onClick={verifyCode}
             loading={isLoading}
-            loadingLabel='Verifying…'
+            loadingLabel={t('submitting')}
             disabled={!isOtpComplete}
           >
-            Verify Email
+            {t('submit')}
           </AuthSubmitButton>
 
           {hasEmailService && (
             <p className='text-center text-[var(--text-muted)] text-sm'>
-              Didn't receive a code?{' '}
+              {t('noCode')}{' '}
               {countdown > 0 ? (
                 <span>
-                  Resend in <span className='text-[var(--text-primary)]'>{countdown}s</span>
+                  {t.rich('resendIn', {
+                    seconds: countdown,
+                    highlight: (chunks) => (
+                      <span className='text-[var(--text-primary)]'>{chunks}</span>
+                    ),
+                  })}
                 </span>
               ) : (
                 <AuthTextLink onClick={handleResend} disabled={isLoading}>
-                  Resend
+                  {t('resend')}
                 </AuthTextLink>
               )}
             </p>
@@ -131,7 +139,7 @@ function VerificationForm({
 
           <AuthNavPrompt
             href='/signup'
-            linkLabel='Back to signup'
+            linkLabel={t('backToSignup')}
             onNavigate={() => {
               if (typeof window !== 'undefined') {
                 sessionStorage.removeItem('verificationEmail')

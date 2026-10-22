@@ -27,6 +27,7 @@ import {
 } from '@sim/emcn'
 import { ChevronLeft, ChevronRight, MoreHorizontal, Pin } from '@sim/emcn/icons'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useTranslations } from 'next-intl'
 import { InlineRenameInput } from '@/app/workspace/[workspaceId]/components/inline-rename-input'
 import { FloatingOverflowText } from '@/app/workspace/[workspaceId]/components/resource/components/floating-overflow-text'
 import type { BreadcrumbDropConfig } from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
@@ -287,6 +288,7 @@ const ResourceTable = memo(function ResourceTable({
   overlay,
   emptyState,
 }: ResourceTableProps) {
+  const t = useTranslations('shell.resource')
   const scrollRef = useRef<HTMLDivElement>(null)
   const loadMoreRef = useLoadMoreSentinel({ onLoadMore, enabled: Boolean(hasMore) })
 
@@ -402,7 +404,7 @@ const ResourceTable = memo(function ResourceTable({
                     checked={selectable.isAllSelected}
                     onCheckedChange={handleSelectAll}
                     disabled={selectable.disabled}
-                    aria-label='Select all'
+                    aria-label={t('selectAll')}
                     className='max-md:before:inset-[-15px]'
                   />
                 </div>
@@ -508,11 +510,12 @@ const Pagination = memo(function Pagination({
   totalPages: number
   onPageChange: (page: number) => void
 }) {
+  const t = useTranslations('shell.resource')
   return (
     <div className='flex items-center justify-center border-[var(--border)] border-t bg-[var(--bg)] px-4 py-2.5'>
       <div className='flex items-center gap-1'>
         <Button
-          aria-label='Previous page'
+          aria-label={t('previousPage')}
           variant='ghost'
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
@@ -549,7 +552,7 @@ const Pagination = memo(function Pagination({
           })}
         </div>
         <Button
-          aria-label='Next page'
+          aria-label={t('nextPage')}
           variant='ghost'
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
@@ -579,6 +582,7 @@ const CellContent = memo(function CellContent({
   pinned,
   highlight,
 }: CellContentProps) {
+  const t = useTranslations('shell.resource')
   if (editing) {
     return (
       <span className={cn('flex min-w-0 items-center', chipContentGap)}>
@@ -604,7 +608,7 @@ const CellContent = memo(function CellContent({
         <Pin
           className='size-[12px] shrink-0 text-[var(--text-icon)]'
           role='img'
-          aria-label='Pinned'
+          aria-label={t('pinned')}
         />
       )}
     </span>
@@ -652,6 +656,7 @@ const DataRow = memo(function DataRow({
   dataIndex,
   ref,
 }: DataRowProps) {
+  const t = useTranslations('shell.resource')
   const isSelected = selectable?.selectedIds.has(row.id) ?? false
   const isDraggable = rowDragDrop?.isRowDraggable?.(row.id) ?? false
   const isDropTarget = rowDragDrop?.isRowDropTarget?.(row.id) ?? false
@@ -765,7 +770,7 @@ const DataRow = memo(function DataRow({
             checked={isSelected}
             onCheckedChange={handleSelectRow}
             disabled={selectable.disabled}
-            aria-label='Select row'
+            aria-label={t('selectRow')}
             className='max-md:before:inset-[-15px]'
             onClick={handleSelectRowClick}
           />
@@ -792,7 +797,9 @@ const DataRow = memo(function DataRow({
                 <Chip
                   leftIcon={MoreHorizontal}
                   mobileIconOnly
-                  aria-label={cell?.label ? `Actions for ${cell.label}` : 'Row actions'}
+                  aria-label={
+                    cell?.label ? t('actionsFor', { label: cell.label }) : t('rowActions')
+                  }
                   className='size-11 justify-center'
                   onClick={(event) => {
                     event.stopPropagation()

@@ -22,6 +22,7 @@ import {
 } from '@/lib/billing/organizations/create-organization'
 import { isOrgPlan } from '@/lib/billing/plan-helpers'
 import { ENTITLED_SUBSCRIPTION_STATUSES } from '@/lib/billing/subscriptions/utils'
+import { isBillingEnabled } from '@/lib/core/config/env-flags'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { captureServerEvent } from '@/lib/posthog/server'
 import {
@@ -127,6 +128,72 @@ export const POST = withRouteHandler(async (request: Request) => {
         },
         { status: 409 }
       )
+    }
+
+    const finishCreation = async (organizationId: string, createdOrganization: boolean) => {
+      try {
+        await setActiveOrganizationForCurrentSession(organizationId)
+      } catch (error) {
+        logger.error('Failed to activate organization after creation', {
+          organizationId,
+          userId: user.id,
+          error: getErrorMessage(error),
+        })
+      }
+
+      logger.info('Successfully ensured organization for team plan', {
+        userId: user.id,
+        organizationId,
+        createdOrganization,
+      })
+
+      if (createdOrganization) {
+        recordAudit({
+          workspaceId: null,
+          actorId: user.id,
+          action: AuditAction.ORGANIZATION_CREATED,
+          resourceType: AuditResourceType.ORGANIZATION,
+          resourceId: organizationId,
+          actorName: user.name ?? undefined,
+          actorEmail: user.email ?? undefined,
+          resourceName: organizationName ?? undefined,
+          description: `Created organization "${organizationName}"`,
+          metadata: { organizationSlug },
+          request,
+        })
+        captureServerEvent(
+          user.id,
+          'organization_created',
+          {
+            organization_id: organizationId,
+            ...(organizationName ? { name: organizationName } : {}),
+          },
+          { groups: { organization: organizationId } }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        organizationId,
+        created: createdOrganization,
+      })
+    }
+
+    /** Nexora edition: without billing, organizations are free, so any user may found one. */
+    if (!isBillingEnabled) {
+      if (existingAdminMembership) {
+        return NextResponse.json(
+          { error: 'You already belong to an organization.' },
+          { status: 409 }
+        )
+      }
+      const organizationId = await createOrganizationForTeamPlan(
+        user.id,
+        organizationName || undefined,
+        user.email,
+        organizationSlug
+      )
+      return finishCreation(organizationId, true)
     }
 
     const subscriptionReferenceIds = existingAdminMembership
@@ -236,52 +303,7 @@ export const POST = withRouteHandler(async (request: Request) => {
       }
     }
 
-    try {
-      await setActiveOrganizationForCurrentSession(organizationId)
-    } catch (error) {
-      logger.error('Failed to activate organization after creation', {
-        organizationId,
-        userId: user.id,
-        error: getErrorMessage(error),
-      })
-    }
-
-    logger.info('Successfully ensured organization for team plan', {
-      userId: user.id,
-      organizationId,
-      createdOrganization,
-    })
-
-    if (createdOrganization) {
-      recordAudit({
-        workspaceId: null,
-        actorId: user.id,
-        action: AuditAction.ORGANIZATION_CREATED,
-        resourceType: AuditResourceType.ORGANIZATION,
-        resourceId: organizationId,
-        actorName: user.name ?? undefined,
-        actorEmail: user.email ?? undefined,
-        resourceName: organizationName ?? undefined,
-        description: `Created organization "${organizationName}"`,
-        metadata: { organizationSlug },
-        request,
-      })
-      captureServerEvent(
-        user.id,
-        'organization_created',
-        {
-          organization_id: organizationId,
-          ...(organizationName ? { name: organizationName } : {}),
-        },
-        { groups: { organization: organizationId } }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      organizationId,
-      created: createdOrganization,
-    })
+    return finishCreation(organizationId, createdOrganization)
   } catch (error) {
     if (error instanceof OrganizationSlugInvalidError) {
       return NextResponse.json(

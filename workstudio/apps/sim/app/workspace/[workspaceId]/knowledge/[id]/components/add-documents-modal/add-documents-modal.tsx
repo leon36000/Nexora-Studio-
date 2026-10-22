@@ -14,6 +14,7 @@ import {
 import { Loader, RefreshCw, X } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   assertMultiFileUploadAdmission,
   MultiFileUploadAdmissionError,
@@ -31,6 +32,8 @@ interface AddDocumentsModalProps {
 }
 
 export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDocumentsModalProps) {
+  const t = useTranslations('knowledge.addDocuments')
+  const tForm = useTranslations('knowledge.createBase')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const [files, setFiles] = useState<File[]>([])
@@ -98,7 +101,7 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
         return
       }
       logger.error('Error processing files:', error)
-      setFileError('An error occurred while processing files. Please try again.')
+      setFileError(tForm('processFilesError'))
     }
   }
 
@@ -143,22 +146,22 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
   }
 
   return (
-    <ChipModal open={open} onOpenChange={handleOpenChange} srTitle='New Documents' size='md'>
-      <ChipModalHeader onClose={() => handleOpenChange(false)}>New Documents</ChipModalHeader>
+    <ChipModal open={open} onOpenChange={handleOpenChange} srTitle={t('title')} size='md'>
+      <ChipModalHeader onClose={() => handleOpenChange(false)}>{t('title')}</ChipModalHeader>
 
       <ChipModalBody>
         <ChipModalField
           type='file'
-          title='Upload Documents'
+          title={tForm('uploadDocuments')}
           accept={ACCEPT_ATTRIBUTE}
           multiple
           onChange={processFiles}
-          description='PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSONL (max 20 files, 100MB each, 500MB total)'
+          description={tForm('uploadDocumentsDescription')}
           error={fileError}
         />
 
         {files.length > 0 && (
-          <ChipModalField type='custom' title='Selected Files'>
+          <ChipModalField type='custom' title={tForm('selectedFiles')}>
             <div className='flex flex-col gap-2'>
               {files.map((file, index) => {
                 const fileStatus = uploadProgress.fileStatuses?.[index]
@@ -193,7 +196,7 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
                         <>
                           {isFailed && (
                             <Button
-                              aria-label='Retry upload'
+                              aria-label={t('retryUpload')}
                               type='button'
                               variant='ghost'
                               className='size-4 p-0'
@@ -204,7 +207,7 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
                             </Button>
                           )}
                           <Button
-                            aria-label='Remove file'
+                            aria-label={tForm('removeFile')}
                             type='button'
                             variant='ghost'
                             className='size-4 p-0'
@@ -232,11 +235,14 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
         primaryAction={{
           label: isUploading
             ? uploadProgress.stage === 'uploading'
-              ? `Uploading ${uploadProgress.filesCompleted}/${uploadProgress.totalFiles}...`
+              ? tForm('uploadingProgress', {
+                  completed: uploadProgress.filesCompleted,
+                  total: uploadProgress.totalFiles,
+                })
               : uploadProgress.stage === 'processing'
-                ? 'Processing...'
-                : 'Uploading...'
-            : 'Upload',
+                ? tForm('processing')
+                : t('uploading')
+            : t('upload'),
           onClick: handleUpload,
           disabled: files.length === 0 || isUploading,
         }}

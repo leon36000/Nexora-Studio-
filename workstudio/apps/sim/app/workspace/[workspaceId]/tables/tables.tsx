@@ -7,6 +7,7 @@ import { Columns3, FolderPlus, Pencil, Rows3, Table as TableIcon, Trash } from '
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import type { TableDefinition } from '@/lib/table'
 import { generateUniqueTableName, MAX_TABLE_BATCH_ITEMS } from '@/lib/table/constants'
@@ -114,17 +115,6 @@ import { useImportTrayStore } from '@/stores/table/import-tray/store'
 
 const logger = createLogger('Tables')
 
-const COLUMNS: ResourceColumn[] = [
-  { id: 'name', header: 'Name' },
-  { id: 'columns', header: 'Columns' },
-  { id: 'rows', header: 'Rows' },
-  { id: 'created', header: 'Created' },
-  { id: 'owner', header: 'Owner' },
-  { id: 'updated', header: 'Last Updated' },
-]
-
-const SEARCH_COLUMNS: ResourceColumn[] = [...COLUMNS, FOLDER_LOCATION_COLUMN]
-
 /** This list's private drag MIME, so a drag started on another list is never mistaken for one
  *  of these rows. */
 const TABLE_ROW_DRAG_MIME = 'application/x-sim-workspace-table-rows'
@@ -148,6 +138,7 @@ export function Tables() {
 }
 
 function TablesContent() {
+  const t = useTranslations('tables.list')
   const params = useParams()
   const router = useRouter()
   const workspaceId = params.workspaceId as string
@@ -214,6 +205,22 @@ function TablesContent() {
   const updateFolder = useUpdateFolder()
   const deleteFolder = useDeleteFolderMutation()
 
+  const columns: ResourceColumn[] = useMemo(
+    () => [
+      { id: 'name', header: t('columns.name') },
+      { id: 'columns', header: t('columns.columns') },
+      { id: 'rows', header: t('columns.rows') },
+      { id: 'created', header: t('columns.created') },
+      { id: 'owner', header: t('columns.owner') },
+      { id: 'updated', header: t('columns.updated') },
+    ],
+    [t]
+  )
+  const searchColumns: ResourceColumn[] = useMemo(
+    () => [...columns, FOLDER_LOCATION_COLUMN],
+    [columns]
+  )
+
   const membersById = useMemo(() => {
     const map = new Map<string, WorkspaceMember>()
     for (const member of members ?? []) map.set(member.userId, member)
@@ -238,7 +245,7 @@ function TablesContent() {
             updates: { name },
           })
           .catch((err: unknown) => {
-            toast.error(getErrorMessage(err, 'Failed to rename folder'), { duration: 5000 })
+            toast.error(getErrorMessage(err, t('toasts.renameFolderFailed')), { duration: 5000 })
             throw err
           })
       }
@@ -251,7 +258,7 @@ function TablesContent() {
       updateFolder
         .mutateAsync({ workspaceId, resourceType: 'table', id: folderId, updates: { name } })
         .catch((err: unknown) => {
-          toast.error(getErrorMessage(err, 'Failed to rename folder'), { duration: 5000 })
+          toast.error(getErrorMessage(err, t('toasts.renameFolderFailed')), { duration: 5000 })
           throw err
         }),
   })
@@ -406,7 +413,7 @@ function TablesContent() {
     if (rowCountFilter.length > 0) {
       result = result.filter((t) => {
         if (rowCountFilter.includes('empty') && t.rowCount === 0) return true
-        if (rowCountFilter.includes('small') && t.rowCount >= 1 && t.rowCount <= 100) return true
+        if (rowCountFilter.includes('small') && t.rowCount >= 1 && t.rowCount <= 100) return true // i18n-ignore: comparison, not text
         if (rowCountFilter.includes('large') && t.rowCount > 100) return true
         return false
       })
@@ -616,13 +623,13 @@ function TablesContent() {
     if (!folder) return undefined
     return [
       {
-        label: 'Rename',
+        label: t('folderActions.rename'),
         icon: Pencil,
         disabled: !canEdit,
         onClick: () => breadcrumbRename.startRename(folder.id, folder.name),
       },
       {
-        label: 'Delete',
+        label: t('folderActions.delete'),
         icon: Trash,
         disabled: !canEdit,
         /**
@@ -635,7 +642,7 @@ function TablesContent() {
         },
       },
     ]
-  }, [currentFolderId, folderById, canEdit, breadcrumbRename.startRename])
+  }, [currentFolderId, folderById, canEdit, breadcrumbRename.startRename, t])
 
   const currentFolderEditing = useMemo(() => {
     if (!currentFolderId || breadcrumbRename.editingId !== currentFolderId) return undefined
@@ -675,46 +682,47 @@ function TablesContent() {
       value: urlSearchTerm,
       onChange: setSearchTerm,
       onClearAll: () => setSearchTerm(''),
-      placeholder: 'Search tables...',
+      placeholder: t('searchPlaceholder'),
     }),
-    [urlSearchTerm, setSearchTerm]
+    [urlSearchTerm, setSearchTerm, t]
   )
 
   const sortConfig: SortConfig = useMemo(
     () => ({
       options: [
-        { id: 'name', label: 'Name' },
-        { id: 'columns', label: 'Columns' },
-        { id: 'rows', label: 'Rows' },
-        { id: 'created', label: 'Created' },
-        { id: 'owner', label: 'Owner' },
-        { id: 'updated', label: 'Last Updated' },
+        { id: 'name', label: t('columns.name') },
+        { id: 'columns', label: t('columns.columns') },
+        { id: 'rows', label: t('columns.rows') },
+        { id: 'created', label: t('columns.created') },
+        { id: 'owner', label: t('columns.owner') },
+        { id: 'updated', label: t('columns.updated') },
       ],
       active: activeSort,
       onSort: setListSort,
       onClear: clearListSort,
     }),
-    [activeSort, setListSort, clearListSort]
+    [activeSort, setListSort, clearListSort, t]
   )
 
   const rowCountDisplayLabel = useMemo(() => {
-    if (rowCountFilter.length === 0) return 'All'
+    if (rowCountFilter.length === 0) return t('filters.all')
     if (rowCountFilter.length === 1) {
       const labels: Record<string, string> = {
-        empty: 'Empty',
-        small: 'Small (1–100)',
-        large: 'Large (101+)',
+        empty: t('filters.rowCount.empty'),
+        small: t('filters.rowCount.smallShort'),
+        large: t('filters.rowCount.largeShort'),
       }
       return labels[rowCountFilter[0]] ?? rowCountFilter[0]
     }
-    return `${rowCountFilter.length} selected`
-  }, [rowCountFilter])
+    return t('filters.selectedCount', { count: rowCountFilter.length })
+  }, [rowCountFilter, t])
 
   const ownerDisplayLabel = useMemo(() => {
-    if (ownerFilter.length === 0) return 'All'
-    if (ownerFilter.length === 1) return membersById.get(ownerFilter[0])?.name ?? '1 member'
-    return `${ownerFilter.length} members`
-  }, [ownerFilter, membersById])
+    if (ownerFilter.length === 0) return t('filters.all')
+    if (ownerFilter.length === 1)
+      return membersById.get(ownerFilter[0])?.name ?? t('filters.memberCount', { count: 1 })
+    return t('filters.memberCount', { count: ownerFilter.length })
+  }, [ownerFilter, membersById, t])
 
   const memberOptions: ComboboxOption[] = useMemo(
     () =>
@@ -731,12 +739,12 @@ function TablesContent() {
   const filterContent = useMemo(
     () => (
       <ResourceFilterPanel>
-        <ResourceFilterSection label='Row Count'>
+        <ResourceFilterSection label={t('filters.rowCount.label')}>
           <ChipCombobox
             options={[
-              { value: 'empty', label: 'Empty' },
-              { value: 'small', label: 'Small (1–100 rows)' },
-              { value: 'large', label: 'Large (101+ rows)' },
+              { value: 'empty', label: t('filters.rowCount.empty') },
+              { value: 'small', label: t('filters.rowCount.small') },
+              { value: 'large', label: t('filters.rowCount.large') },
             ]}
             multiSelect
             multiSelectValues={rowCountFilter}
@@ -744,12 +752,12 @@ function TablesContent() {
             overlayLabel={rowCountDisplayLabel}
             overlayContent={rowCountDisplayLabel}
             showAllOption
-            allOptionLabel='All'
+            allOptionLabel={t('filters.all')}
             className='w-full'
           />
         </ResourceFilterSection>
         {memberOptions.length > 0 && (
-          <ResourceFilterSection label='Owner'>
+          <ResourceFilterSection label={t('filters.owner')}>
             <ChipCombobox
               options={memberOptions}
               multiSelect
@@ -758,9 +766,9 @@ function TablesContent() {
               overlayLabel={ownerDisplayLabel}
               overlayContent={ownerDisplayLabel}
               searchable
-              searchPlaceholder='Search members...'
+              searchPlaceholder={t('filters.searchMembers')}
               showAllOption
-              allOptionLabel='All'
+              allOptionLabel={t('filters.all')}
               className='w-full'
             />
           </ResourceFilterSection>
@@ -771,7 +779,7 @@ function TablesContent() {
             onClick={clearTableFilters}
             className='flex h-[32px] w-full items-center justify-center rounded-md text-[var(--text-secondary)] text-caption transition-colors hover-hover:bg-[var(--surface-active)]'
           >
-            Clear all filters
+            {t('filters.clearAll')}
           </button>
         )}
       </ResourceFilterPanel>
@@ -786,28 +794,36 @@ function TablesContent() {
       setRowCountFilter,
       setOwnerFilter,
       clearTableFilters,
+      t,
     ]
   )
 
   const filterTags: FilterTag[] = useMemo(() => {
     const tags: FilterTag[] = []
     if (rowCountFilter.length > 0) {
-      const rowLabels: Record<string, string> = { empty: 'Empty', small: 'Small', large: 'Large' }
+      const rowLabels: Record<string, string> = {
+        empty: t('filters.rowCount.empty'),
+        small: t('filters.rowCount.smallTag'),
+        large: t('filters.rowCount.largeTag'),
+      }
       const label =
         rowCountFilter.length === 1
-          ? `Rows: ${rowLabels[rowCountFilter[0]]}`
-          : `Rows: ${rowCountFilter.length} selected`
+          ? t('filters.rowsTag', { value: rowLabels[rowCountFilter[0]] })
+          : t('filters.rowsTagCount', { count: rowCountFilter.length })
       tags.push({ label, onRemove: () => setRowCountFilter([]) })
     }
     if (ownerFilter.length > 0) {
       const label =
         ownerFilter.length === 1
-          ? `Owner: ${membersById.get(ownerFilter[0])?.name ?? '1 member'}`
-          : `Owner: ${ownerFilter.length} members`
+          ? t('filters.ownerTag', {
+              value:
+                membersById.get(ownerFilter[0])?.name ?? t('filters.memberCount', { count: 1 }),
+            })
+          : t('filters.ownerTagCount', { count: ownerFilter.length })
       tags.push({ label, onRemove: () => setOwnerFilter([]) })
     }
     return tags
-  }, [rowCountFilter, ownerFilter, membersById, setRowCountFilter, setOwnerFilter])
+  }, [rowCountFilter, ownerFilter, membersById, setRowCountFilter, setOwnerFilter, t])
 
   const listState = resourceListState({
     rowCount: rows.length,
@@ -950,12 +966,12 @@ function TablesContent() {
         { workspaceId, resourceType: 'table', id: folderId, updates: { parentId } },
         {
           onError: (err) =>
-            toast.error(getErrorMessage(err, 'Failed to move folder'), { duration: 5000 }),
+            toast.error(getErrorMessage(err, t('toasts.moveFolderFailed')), { duration: 5000 }),
         }
       )
     },
     // mutation objects are unstable; mutate is stable in v5
-    [workspaceId]
+    [workspaceId, t]
   )
 
   const handleMoveFolder = useCallback(
@@ -979,7 +995,7 @@ function TablesContent() {
     (rows: { tableIds: string[]; folderIds: string[] }, targetFolderId: string | null) => {
       if (rows.tableIds.length === 0 && rows.folderIds.length === 0) return
       if (rows.tableIds.length + rows.folderIds.length > MAX_TABLE_BATCH_ITEMS) {
-        toast.error(`Select ${MAX_TABLE_BATCH_ITEMS} or fewer items to move at once`)
+        toast.error(t('toasts.moveLimit', { max: MAX_TABLE_BATCH_ITEMS }))
         return
       }
       bulkMoveTables.mutate(
@@ -993,7 +1009,7 @@ function TablesContent() {
       )
     },
     // mutation objects are unstable; mutate is stable in v5
-    [clearSelection]
+    [clearSelection, t]
   )
 
   const handleBulkMove = useCallback(
@@ -1016,11 +1032,11 @@ function TablesContent() {
   const handleBulkDelete = useCallback(() => {
     if (selectedTableIds.length === 0 && selectedFolderIds.length === 0) return
     if (exceedsBatchCap) {
-      toast.error(`Select ${MAX_TABLE_BATCH_ITEMS} or fewer items to delete at once`)
+      toast.error(t('toasts.deleteLimit', { max: MAX_TABLE_BATCH_ITEMS }))
       return
     }
     setIsBulkDeleteDialogOpen(true)
-  }, [selectedTableIds, selectedFolderIds, exceedsBatchCap])
+  }, [selectedTableIds, selectedFolderIds, exceedsBatchCap, t])
 
   const confirmBulkDelete = useCallback(async () => {
     try {
@@ -1091,8 +1107,8 @@ function TablesContent() {
     getRowLabel: (rowId) => {
       const parsed = parseFolderedRowId(rowId)
       return parsed.kind === 'folder'
-        ? (folderById.get(parsed.id)?.name ?? 'Folder')
-        : (tableByIdRef.current.get(parsed.id)?.name ?? 'Table')
+        ? (folderById.get(parsed.id)?.name ?? t('dragLabel.folder'))
+        : (tableByIdRef.current.get(parsed.id)?.name ?? t('dragLabel.table'))
     },
     onMoveRows: ({ folderIds, resourceIds }, targetFolderId) =>
       moveRowsTo({ folderIds, tableIds: resourceIds }, targetFolderId),
@@ -1156,7 +1172,7 @@ function TablesContent() {
       setActiveFolder(null)
     } catch (err) {
       logger.error('Failed to delete folder:', err)
-      toast.error(getErrorMessage(err, 'Failed to delete folder'), { duration: 5000 })
+      toast.error(getErrorMessage(err, t('toasts.deleteFolderFailed')), { duration: 5000 })
     }
   }
 
@@ -1170,7 +1186,7 @@ function TablesContent() {
     })
 
     if (csvFiles.length === 0) {
-      toast.error('No CSV or TSV files selected')
+      toast.error(t('toasts.noCsvSelected'))
       if (csvInputRef.current) csvInputRef.current.value = ''
       return
     }
@@ -1180,7 +1196,7 @@ function TablesContent() {
       for (let index = 0; index < csvFiles.length; index++) {
         const file = csvFiles[index]
         let importId: string | null = null
-        toast.success(`Importing "${file.name}" in the background`)
+        toast.success(t('toasts.importingInBackground', { name: file.name }))
         try {
           await importCsv.mutateAsync({
             workspaceId,
@@ -1210,7 +1226,7 @@ function TablesContent() {
       }
     } catch (err) {
       logger.error('Error uploading CSV:', err)
-      toast.error('Failed to import CSV')
+      toast.error(t('toasts.importFailed'))
     } finally {
       setUploadProgress({ completed: 0, total: 0 })
       if (csvInputRef.current) {
@@ -1226,7 +1242,7 @@ function TablesContent() {
 
   const uploadButtonLabel = uploading
     ? `${uploadProgress.completed}/${uploadProgress.total}`
-    : 'Import CSV'
+    : t('actions.importCsv')
 
   // `mutateAsync` is stable in TanStack Query v5 — extract it so the callback
   // can list it as a dep instead of the unstable mutation object.
@@ -1271,9 +1287,17 @@ function TablesContent() {
       startFolderRename(folder)
     } catch (err) {
       logger.error('Failed to create folder:', err)
-      toast.error(getErrorMessage(err, 'Failed to create folder'), { duration: 5000 })
+      toast.error(getErrorMessage(err, t('toasts.createFolderFailed')), { duration: 5000 })
     }
-  }, [workspaceId, folders, currentFolderId, createFolderAsync, setSearchTerm, startFolderRename])
+  }, [
+    workspaceId,
+    folders,
+    currentFolderId,
+    createFolderAsync,
+    setSearchTerm,
+    startFolderRename,
+    t,
+  ])
 
   useRegisterGlobalCommands(() => [
     { id: 'tables-new-table', handler: () => void handleCreateTable() },
@@ -1295,13 +1319,13 @@ function TablesContent() {
         disabled: uploading || !canEdit,
       },
       {
-        text: 'New folder',
+        text: t('actions.newFolder'),
         icon: FolderPlus,
         onSelect: handleCreateFolder,
         disabled: !canEdit || createFolder.isPending,
       },
       {
-        text: 'New table',
+        text: t('actions.newTable'),
         icon: Plus,
         onSelect: handleCreateTable,
         disabled: uploading || !canEdit || createTable.isPending,
@@ -1316,6 +1340,7 @@ function TablesContent() {
       handleCreateTable,
       createFolder.isPending,
       createTable.isPending,
+      t,
     ]
   )
 
@@ -1366,7 +1391,7 @@ function TablesContent() {
           filter={filterConfig}
         />
         <Resource.Table
-          columns={isSearching ? SEARCH_COLUMNS : COLUMNS}
+          columns={isSearching ? searchColumns : columns}
           rows={rows}
           emptyState={
             listState === 'empty' ? (
@@ -1428,10 +1453,10 @@ function TablesContent() {
           if (!activeTable) return
           try {
             const status = await exportTable(workspaceId, activeTable.id)
-            if (status === 'processing') toast.success('Export started')
+            if (status === 'processing') toast.success(t('toasts.exportStarted'))
           } catch (err) {
             logger.error('Failed to export table:', err)
-            toast.error('Failed to export table')
+            toast.error(t('toasts.exportFailed'))
           }
         }}
         onTogglePin={handleTogglePin}
@@ -1485,21 +1510,24 @@ function TablesContent() {
           setIsDeleteDialogOpen(open)
           if (!open) setActiveTable(null)
         }}
-        srTitle='Delete Table'
-        title='Delete Table'
+        srTitle={t('deleteTable.title')}
+        title={t('deleteTable.title')}
         defaultAction='dismiss'
         text={[
-          'Are you sure you want to delete ',
-          { text: activeTable?.name ?? 'this table', bold: true },
-          '? ',
-          { text: `All ${activeTable?.rowCount ?? 0} rows will be removed.`, error: true },
-          ' You can restore it from Recently Deleted in Settings.',
+          t('confirm.prefix'),
+          { text: activeTable?.name ?? t('deleteTable.fallbackName'), bold: true },
+          t('confirm.questionEnd'),
+          {
+            text: t('deleteTable.rowsRemoved', { count: activeTable?.rowCount ?? 0 }),
+            error: true,
+          },
+          t('deleteTable.restoreHint'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('confirm.delete'),
           onClick: handleDelete,
           pending: deleteTable.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('confirm.deleting'),
         }}
       />
 
@@ -1509,46 +1537,46 @@ function TablesContent() {
           setIsDeleteFolderDialogOpen(open)
           if (!open) setActiveFolder(null)
         }}
-        srTitle='Delete Folder'
-        title='Delete Folder'
+        srTitle={t('deleteFolder.title')}
+        title={t('deleteFolder.title')}
         text={[
-          'Are you sure you want to delete ',
-          { text: activeFolder?.name ?? 'this folder', bold: true },
-          '? ',
-          { text: 'Every table and subfolder inside it will be deleted too.', error: true },
-          ' You can restore those tables from Recently Deleted in Settings.',
+          t('confirm.prefix'),
+          { text: activeFolder?.name ?? t('deleteFolder.fallbackName'), bold: true },
+          t('confirm.questionEnd'),
+          { text: t('deleteFolder.cascade'), error: true },
+          t('confirm.restoreTablesHint'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('confirm.delete'),
           onClick: handleDeleteFolder,
           pending: deleteFolder.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('confirm.deleting'),
         }}
       />
 
       <ChipConfirmModal
         open={isBulkDeleteDialogOpen}
         onOpenChange={setIsBulkDeleteDialogOpen}
-        srTitle='Delete Selected'
-        title='Delete Selected'
+        srTitle={t('deleteSelected.title')}
+        title={t('deleteSelected.title')}
         text={[
-          'Are you sure you want to delete ',
+          t('confirm.prefix'),
           { text: bulkDeleteLabel, bold: true },
-          '? ',
+          t('confirm.questionEnd'),
           {
             text:
               selectedFolderIds.length > 0
-                ? 'Every table and subfolder inside the selected folders will be deleted too.'
-                : 'All of their rows will be removed.',
+                ? t('deleteSelected.foldersCascade')
+                : t('deleteSelected.rowsRemoved'),
             error: true,
           },
-          ' You can restore those tables from Recently Deleted in Settings.',
+          t('confirm.restoreTablesHint'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: t('confirm.delete'),
           onClick: confirmBulkDelete,
           pending: bulkDeleteTables.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('confirm.deleting'),
         }}
       />
     </>

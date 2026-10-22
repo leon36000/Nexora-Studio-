@@ -19,6 +19,7 @@ import {
   Search,
   X,
 } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { FloatingOverflowText } from '@/app/workspace/[workspaceId]/components/resource/components/floating-overflow-text'
 
 const SEARCH_ICON = (
@@ -125,6 +126,7 @@ export const ResourceOptions = memo(function ResourceOptions({
   asideEnd,
   trailing,
 }: ResourceOptionsProps) {
+  const t = useTranslations('shell.resourceOptions')
   /**
    * Coordinates the Filter popover and Sort menu as a single menu bar: clicking
    * one while the other is open switches to it in a single click. Functional
@@ -201,7 +203,7 @@ export const ResourceOptions = memo(function ResourceOptions({
                 mobileIconOnly
                 onClick={filter.onToggle}
               >
-                Filter
+                {t('filter')}
               </Chip>
             ) : popoverFilter ? (
               <PopoverPrimitive.Root
@@ -216,7 +218,7 @@ export const ResourceOptions = memo(function ResourceOptions({
                   <div className='flex shrink-0 items-center gap-1'>
                     <PopoverPrimitive.Trigger asChild>
                       <Chip active={popoverFilter.active} leftIcon={ListFilter} mobileIconOnly>
-                        Filter
+                        {t('filter')}
                       </Chip>
                     </PopoverPrimitive.Trigger>
                     {sort && (
@@ -259,6 +261,7 @@ export const ResourceOptions = memo(function ResourceOptions({
 })
 
 const SearchSection = memo(function SearchSection({ search }: { search: SearchConfig }) {
+  const t = useTranslations('shell.resourceOptions')
   return (
     <div className='relative flex min-w-0 flex-1 items-center gap-1.5'>
       {SEARCH_ICON}
@@ -284,14 +287,14 @@ const SearchSection = memo(function SearchSection({ search }: { search: SearchCo
           onKeyDown={search.onKeyDown}
           onFocus={search.onFocus}
           onBlur={search.onBlur}
-          placeholder={search.tags?.length ? '' : (search.placeholder ?? 'Search...')}
+          placeholder={search.tags?.length ? '' : (search.placeholder ?? t('searchPlaceholder'))}
           className={cn(chipFieldTextClass, 'min-w-[80px] flex-1 bg-transparent py-1')}
         />
       </div>
       {search.tags?.length || search.value ? (
         <button
           type='button'
-          aria-label='Clear search'
+          aria-label={t('clearSearch')}
           className='mr-0.5 flex size-[14px] shrink-0 items-center justify-center text-[var(--text-muted)] transition-colors hover-hover:text-[var(--text-body)] max-md:size-11'
           onClick={search.onClearAll ?? (() => search.onChange(''))}
         >
@@ -323,13 +326,14 @@ export const SortDropdown = memo(function SortDropdown({
   open,
   onOpenChange,
 }: SortDropdownProps) {
+  const t = useTranslations('shell.resourceOptions')
   const { options, active, onSort, onClear, keepOpenOnSelect = false } = config
 
   return (
     <DropdownMenu modal={false} open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <Chip active={Boolean(active)} leftIcon={ArrowUpDown} mobileIconOnly>
-          Sort
+          {t('sort')}
         </Chip>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -346,7 +350,7 @@ export const SortDropdown = memo(function SortDropdown({
               }}
             >
               <X />
-              Clear sort
+              {t('clearSort')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>

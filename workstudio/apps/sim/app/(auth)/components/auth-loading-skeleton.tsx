@@ -5,8 +5,8 @@ import { cva, type VariantProps } from 'class-variance-authority'
 const authLoadingSkeletonVariants = cva('', {
   variants: {
     shape: {
-      title: 'h-[38px] rounded-[4px]',
-      label: 'h-[14px] rounded-[4px]',
+      title: 'h-[38px] rounded-[4px]', // i18n-ignore: Tailwind classes
+      label: 'h-[14px] rounded-[4px]', // i18n-ignore: Tailwind classes
       control: 'h-[44px] rounded-[10px]',
       divider: 'h-[1px] rounded-[1px]',
     },

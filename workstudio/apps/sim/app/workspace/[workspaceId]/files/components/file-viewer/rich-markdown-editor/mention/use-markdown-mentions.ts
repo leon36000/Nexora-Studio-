@@ -40,7 +40,7 @@ export function useMarkdownMentions(
       kind: 'integration',
       id: integration.blockType,
       label: integration.name,
-      group: 'Integrations',
+      group: 'integrations',
       icon: mentionIcon('integration', integration.blockType),
     }))
   }, [active])
@@ -54,7 +54,7 @@ export function useMarkdownMentions(
         kind: 'file',
         id: file.id,
         label: file.name,
-        group: 'Files',
+        group: 'files',
         icon: mentionIcon('file', file.id, file.name),
       })
     for (const folder of folders.data ?? [])
@@ -62,7 +62,7 @@ export function useMarkdownMentions(
         kind: 'folder',
         id: folder.id,
         label: folder.name,
-        group: 'Folders',
+        group: 'folders',
         icon: mentionIcon('folder', folder.id),
       })
     for (const table of tables.data ?? [])
@@ -70,7 +70,7 @@ export function useMarkdownMentions(
         kind: 'table',
         id: table.id,
         label: table.name,
-        group: 'Tables',
+        group: 'tables',
         icon: mentionIcon('table', table.id),
       })
     for (const kb of knowledgeBases.data ?? [])
@@ -78,7 +78,7 @@ export function useMarkdownMentions(
         kind: 'knowledge',
         id: kb.id,
         label: kb.name,
-        group: 'Knowledge bases',
+        group: 'knowledgeBases',
         icon: mentionIcon('knowledge', kb.id),
       })
     for (const workflow of workflows.data ?? [])
@@ -86,7 +86,7 @@ export function useMarkdownMentions(
         kind: 'workflow',
         id: workflow.id,
         label: workflow.name,
-        group: 'Workflows',
+        group: 'workflows',
         icon: mentionIcon('workflow', workflow.id),
       })
     for (const skill of skills.data ?? [])
@@ -94,7 +94,7 @@ export function useMarkdownMentions(
         kind: 'skill',
         id: skill.id,
         label: skill.name,
-        group: 'Skills',
+        group: 'skills',
         icon: mentionIcon('skill', skill.id),
       })
     items.push(...integrationItems)

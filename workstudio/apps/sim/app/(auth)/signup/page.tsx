@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import type { SearchParams } from 'nuqs/server'
 import { isEmailSignupDisabled, isRegistrationDisabled } from '@/lib/core/config/env-flags'
 import { validateCallbackUrl } from '@/lib/core/security/input-validation'
@@ -9,8 +10,9 @@ import { RegistrationDisabled } from '@/app/(auth)/signup/registration-disabled'
 import { signupSearchParamsCache } from '@/app/(auth)/signup/search-params'
 import SignupForm from '@/app/(auth)/signup/signup-form'
 
-export const metadata: Metadata = {
-  title: 'Sign Up',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('auth.signup')
+  return { title: t('metaTitle') }
 }
 
 export const dynamic = 'force-dynamic'

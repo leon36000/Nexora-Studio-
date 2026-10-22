@@ -10,6 +10,7 @@ import {
 } from '@sim/emcn'
 import { CircleAlert, CircleCheck, Loader } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { cancelTableImport, downloadExportResult } from '@/hooks/queries/tables'
 import { useImportTrayStore } from '@/stores/table/import-tray/store'
 import { getImportStage } from './import-stage'
@@ -30,6 +31,7 @@ interface ImportProgressMenuProps {
  * both the tables list and the in-table view.
  */
 export function ImportProgressMenu({ workspaceId, tableId }: ImportProgressMenuProps) {
+  const t = useTranslations('tables.importProgress')
   const imports = useWorkspaceImports(workspaceId, tableId)
   const dismiss = useImportTrayStore((state) => state.dismiss)
   const dismissJob = useImportTrayStore((state) => state.dismissJob)
@@ -57,7 +59,7 @@ export function ImportProgressMenu({ workspaceId, tableId }: ImportProgressMenuP
     if (!row.jobId) return
     void downloadExportResult(row.workspaceId, row.jobId).catch((err) => {
       logger.error('Export download failed', { jobId: row.jobId, err })
-      toast.error('Download failed — the export may have expired')
+      toast.error(t('downloadFailed'))
     })
   }
 
@@ -82,7 +84,7 @@ export function ImportProgressMenu({ workspaceId, tableId }: ImportProgressMenuP
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end' className='min-w-[320px] max-w-[420px]'>
         {imports.map((row) => {
-          const stage = getImportStage(row)
+          const stage = getImportStage(row, t)
           const isReadyExport = row.jobType === 'export' && row.phase === 'ready' && row.hasResult
           return (
             <ProgressItem
@@ -97,7 +99,7 @@ export function ImportProgressMenu({ workspaceId, tableId }: ImportProgressMenuP
                     className='text-[var(--selection)] hover-hover:underline'
                     onClick={() => download(row)}
                   >
-                    Download
+                    {t('download')}
                   </button>
                 ) : (
                   stage.detail

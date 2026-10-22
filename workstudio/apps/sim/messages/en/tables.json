@@ -1,1 +1,604 @@
-{}
+{
+  "list": {
+    "title": "Tables",
+    "searchPlaceholder": "Search tables...",
+    "columns": {
+      "name": "Name",
+      "columns": "Columns",
+      "rows": "Rows",
+      "created": "Created",
+      "owner": "Owner",
+      "updated": "Last Updated"
+    },
+    "actions": {
+      "importCsv": "Import CSV",
+      "newFolder": "New folder",
+      "newTable": "New table"
+    },
+    "error": {
+      "title": "Failed to load tables",
+      "description": "Something went wrong while loading the tables. Please try again."
+    },
+    "folderActions": {
+      "rename": "Rename",
+      "delete": "Delete"
+    },
+    "filters": {
+      "all": "All",
+      "selectedCount": "{count} selected",
+      "memberCount": "{count, plural, one {# member} other {# members}}",
+      "rowCount": {
+        "label": "Row Count",
+        "empty": "Empty",
+        "small": "Small (1–100 rows)",
+        "large": "Large (101+ rows)",
+        "smallShort": "Small (1–100)",
+        "largeShort": "Large (101+)",
+        "smallTag": "Small",
+        "largeTag": "Large"
+      },
+      "owner": "Owner",
+      "searchMembers": "Search members...",
+      "clearAll": "Clear all filters",
+      "rowsTag": "Rows: {value}",
+      "rowsTagCount": "Rows: {count} selected",
+      "ownerTag": "Owner: {value}",
+      "ownerTagCount": "Owner: {count} members"
+    },
+    "toasts": {
+      "renameFolderFailed": "Failed to rename folder",
+      "moveFolderFailed": "Failed to move folder",
+      "deleteFolderFailed": "Failed to delete folder",
+      "createFolderFailed": "Failed to create folder",
+      "moveLimit": "Select {max} or fewer items to move at once",
+      "deleteLimit": "Select {max} or fewer items to delete at once",
+      "noCsvSelected": "No CSV or TSV files selected",
+      "importingInBackground": "Importing \"{name}\" in the background",
+      "importFailed": "Failed to import CSV",
+      "exportStarted": "Export started",
+      "exportFailed": "Failed to export table"
+    },
+    "dragLabel": {
+      "folder": "Folder",
+      "table": "Table"
+    },
+    "confirm": {
+      "prefix": "Are you sure you want to delete ",
+      "questionEnd": "? ",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "restoreTablesHint": " You can restore those tables from Recently Deleted in Settings."
+    },
+    "deleteTable": {
+      "title": "Delete Table",
+      "fallbackName": "this table",
+      "rowsRemoved": "All {count} rows will be removed.",
+      "restoreHint": " You can restore it from Recently Deleted in Settings."
+    },
+    "deleteFolder": {
+      "title": "Delete Folder",
+      "fallbackName": "this folder",
+      "cascade": "Every table and subfolder inside it will be deleted too."
+    },
+    "deleteSelected": {
+      "title": "Delete Selected",
+      "foldersCascade": "Every table and subfolder inside the selected folders will be deleted too.",
+      "rowsRemoved": "All of their rows will be removed."
+    }
+  },
+  "detail": {
+    "metaTitle": "Table",
+    "error": {
+      "title": "Failed to load table",
+      "description": "Something went wrong while loading this table. The table may have been deleted or you may not have permission to view it.",
+      "goBack": "Go back"
+    },
+    "upgrade": "Upgrade",
+    "toasts": {
+      "saveLayoutFailed": "Failed to save layout",
+      "saveViewFailed": "Failed to save view",
+      "setDefaultViewFailed": "Failed to set default view",
+      "renameViewFailed": "Failed to rename view",
+      "createViewFailed": "Failed to create view",
+      "deleteViewFailed": "Failed to delete view",
+      "deleteDefaultView": "Set another view as default before deleting this view",
+      "exportStarted": "Export started — the download will begin when it finishes"
+    },
+    "menu": {
+      "rename": "Rename",
+      "delete": "Delete",
+      "exportCsv": "Export CSV"
+    },
+    "noColumnPermission": "You don’t have permission to change columns.",
+    "deleteRows": {
+      "title": "Delete rows",
+      "text": "Delete {count, plural, one {# row} other {# rows}}? This can't be undone.",
+      "textFiltered": "Delete {count, plural, one {# row} other {# rows}} matching the current filter? This can't be undone."
+    },
+    "deleteColumns": {
+      "titleMany": "Delete {count} Columns",
+      "titleOne": "Delete Column",
+      "countLabel": "{count} columns",
+      "fallbackName": "this column",
+      "removeDataMany": "This will remove all data in these columns.",
+      "removeDataOne": "This will remove all data in this column.",
+      "undoHint": " You can undo this action."
+    },
+    "exportToasts": {
+      "ready": "Export ready — downloading",
+      "downloadFailed": "Export finished but the download failed — try again from the table menu",
+      "failed": "Export failed"
+    }
+  },
+  "contextMenu": {
+    "viewSchema": "View Schema",
+    "rename": "Rename",
+    "importCsv": "Import CSV",
+    "exportCsv": "Export CSV",
+    "moveTo": "Move to",
+    "moveCount": "Move {count, plural, one {# item} other {# items}}",
+    "unpin": "Unpin",
+    "pin": "Pin",
+    "copyId": "Copy ID",
+    "delete": "Delete",
+    "deleteCount": "Delete {count, plural, one {# item} other {# items}}"
+  },
+  "importProgress": {
+    "importedInto": "Imported {rows} rows into \"{name}\"",
+    "deleteFailedFor": "Delete failed for \"{name}\"",
+    "backfillFailedFor": "Column backfill failed for \"{name}\"",
+    "importFailedFor": "Import failed for \"{name}\"",
+    "downloadFailed": "Download failed — the export may have expired",
+    "download": "Download",
+    "stage": {
+      "exportFailed": "Export failed for {name}",
+      "somethingWentWrong": "Something went wrong",
+      "exported": "Exported {name}",
+      "exporting": "Exporting {name}",
+      "rows": "{rows} rows",
+      "failed": "Failed {name}",
+      "imported": "Imported {name}",
+      "processing": "Processing {name}",
+      "uploading": "Uploading {name}"
+    }
+  },
+  "importCsv": {
+    "errors": {
+      "moreSuffix": ", +{extra} more",
+      "uniqueConflict": "{count, plural, one {# row} other {# rows}} conflict on unique column \"{column}\" ({preview}{suffix})",
+      "missingRequired": "Missing required column(s): {columns}",
+      "unsupportedFile": "Only CSV and TSV files are supported",
+      "parseFailed": "Failed to parse CSV",
+      "duplicateTargets": "Multiple CSV columns target: {columns} (pick one)"
+    },
+    "mapping": {
+      "doNotImport": "Do not import",
+      "createNewColumn": "+ Create new column",
+      "requiredColumn": "{name} (required)",
+      "title": "Column mapping",
+      "createForUnmapped": "Create columns for {count} unmapped",
+      "csvColumn": "CSV column",
+      "targetColumn": "Target column",
+      "mapped": "{count} mapped",
+      "newColumns": " · {count, plural, one {# new column} other {# new columns}}",
+      "skipped": "{count} skipped"
+    },
+    "importingInBackground": "Importing \"{file}\" into \"{table}\" in the background",
+    "titleInto": "Import CSV into {name}",
+    "title": "Import CSV",
+    "parsing": "Parsing...",
+    "dropzone": "Drop CSV or TSV here or click to browse",
+    "dropzoneDescription": "Map columns to append or replace rows in this table",
+    "file": "File",
+    "columnCount": "{count} columns",
+    "changeFile": "Change file",
+    "mode": "Mode",
+    "append": "Append",
+    "replaceAll": "Replace all rows",
+    "replaceWarning": "Replace will permanently delete the {rows} existing row(s) before inserting the new rows.",
+    "submit": {
+      "replacing": "Replacing...",
+      "importing": "Importing...",
+      "replace": "Replace rows",
+      "append": "Append rows"
+    }
+  },
+  "locks": {
+    "title": "Table Security",
+    "fields": {
+      "insert": {
+        "noun": "inserting rows",
+        "label": "Inserting Rows",
+        "hint": "Allow new rows to be added, including through CSV imports, the API, workflows, and Nexora. Deny blocks new rows from every surface.",
+        "about": "About inserting rows"
+      },
+      "update": {
+        "noun": "updating rows",
+        "label": "Updating Rows",
+        "hint": "Allow existing cell values to be changed. Deny blocks edits from every surface. Workflow and enrichment columns still populate.",
+        "about": "About updating rows"
+      },
+      "delete": {
+        "noun": "deleting rows",
+        "label": "Deleting Rows",
+        "hint": "Allow rows to be deleted and the table to be archived. Deny blocks those actions and destructive column changes.",
+        "about": "About deleting rows"
+      },
+      "schema": {
+        "noun": "changing the table schema",
+        "label": "Changing Table Schema",
+        "hint": "Allow columns to be added, renamed, retyped, or removed. Deny blocks schema changes. Removing or retyping columns also requires Deleting Rows set to Allow.",
+        "about": "About changing table schema"
+      }
+    },
+    "tooltips": {
+      "insert": "Inserting rows is disabled in Table Security.",
+      "update": "Updating rows is disabled in Table Security.",
+      "delete": "Deleting rows is disabled in Table Security.",
+      "schema": "Changing the table schema is disabled in Table Security."
+    },
+    "blocked": {
+      "insertTitle": "Inserting rows is disabled",
+      "insertText": "An admin has set Inserting Rows to Deny in Table Security.",
+      "schemaTitle": "Changing the table schema is disabled",
+      "schemaText": "An admin has set Changing Table Schema to Deny in Table Security, so columns can’t be added, renamed, retyped, or removed.",
+      "deleteTitle": "Deleting rows is disabled",
+      "deleteColumnText": "Removing a column clears its value from every row, so it needs Deleting Rows set to Allow in Table Security.",
+      "updateTitle": "Updating rows is disabled",
+      "updateText": "An admin has set Updating Rows to Deny in Table Security.",
+      "statusDenied": "An admin has set {actions} to Deny on this table.",
+      "statusAllAllowed": "Every action is allowed on this table."
+    },
+    "deny": "Deny",
+    "allow": "Allow",
+    "saving": "Saving...",
+    "save": "Save"
+  },
+  "timezone": {
+    "loadingMessage": "Your timezone setting is still loading. Try again in a moment.",
+    "errorMessage": "We couldn’t load your timezone setting. Try again before editing Date cells.",
+    "invalidMessage": "Your saved timezone “{timezone}” is invalid. Update it in Settings → General before editing Date cells.",
+    "loading": "Loading timezone…",
+    "invalid": "Invalid timezone",
+    "unavailable": "Timezone unavailable",
+    "timeWithOffset": "Time ({offset})"
+  },
+  "grid": {
+    "clipboard": {
+      "copied": "Copied {count, plural, one {# row} other {# rows}}",
+      "cut": "Cut {count, plural, one {# row} other {# rows}}",
+      "copying": "Copying {count, plural, one {# row} other {# rows}}…",
+      "cutting": "Cutting {count, plural, one {# row} other {# rows}}…",
+      "unavailable": "Clipboard access is unavailable in this context",
+      "copyFailed": "Failed to copy — please try again",
+      "cutFailed": "Failed to cut — please try again",
+      "clearAfterCutFailed": "Copied to clipboard, but clearing the cells failed — please try again",
+      "copiedFirst": "Copied first {max} rows — export to CSV for the rest",
+      "cutFirst": "Cut first {max} rows — export to CSV for the rest"
+    },
+    "toasts": {
+      "loadAllRowsFailed": "Failed to load all rows. Try again.",
+      "clearCellsFailed": "Failed to clear cells — please try again",
+      "clearColumnFailed": "Failed to clear column values — please try again"
+    },
+    "paste": {
+      "tooLargeTitle": "Paste is too large for the table editor",
+      "tooLargeDescription": "Paste up to {limit} at once, or use CSV import for larger datasets.",
+      "tooManyRowsTitle": "Paste has too many rows",
+      "tooManyRowsDescription": "Paste up to {max} rows at once, or use CSV import for larger datasets."
+    },
+    "notFound": {
+      "title": "Table not found",
+      "description": "This table may have been deleted or moved"
+    },
+    "findInTable": "Find in table",
+    "cell": {
+      "running": "The block is running.",
+      "paused": "Paused — waiting on input to resume.",
+      "pendingUpstream": "Waiting on an earlier block in this run.",
+      "cancelled": "Stopped before finishing — re-run to retry.",
+      "queuedTip": "In line to run — starts when a batch slot opens.",
+      "queued": "Queued",
+      "waitingTip": "Waiting on {labels}",
+      "waiting": "Waiting",
+      "none": "None",
+      "notFoundTip": "No match found for this row.",
+      "notFound": "Not found",
+      "noOutputTip": "Finished with no value for this cell.",
+      "noOutput": "No output",
+      "editColumn": "Edit {name}"
+    },
+    "simResource": {
+      "workflow": "Workflow",
+      "table": "Table",
+      "knowledge": "Knowledge base",
+      "file": "File"
+    },
+    "expanded": {
+      "ariaLabel": "Expanded view of {name}",
+      "empty": "(empty)",
+      "close": "Close",
+      "invalidJson": "Invalid JSON",
+      "hintClose": "<kbd>esc</kbd> close",
+      "hintSaveCancel": "<kbd>↵</kbd> save · <kbd>esc</kbd> cancel",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "row": {
+      "select": "Select row {number}",
+      "stopRunning": "Stop {count} running",
+      "run": "Run row"
+    },
+    "newRow": "New row",
+    "header": {
+      "sourceBlockMissing": "This column's source block no longer exists in the workflow.",
+      "columnOptions": "Column options",
+      "run": {
+        "label": "Run",
+        "all": "Run all rows",
+        "allFiltered": "Run all filtered rows",
+        "empty": "Run empty rows",
+        "emptyFiltered": "Run empty filtered rows",
+        "limited": "Run {max} empty rows",
+        "limitedFiltered": "Run {max} empty filtered rows",
+        "selected": "{count, plural, one {Run {count} selected row} other {Run {count} selected rows}}"
+      },
+      "clearSort": "Clear sort",
+      "sortAscending": "Sort ascending",
+      "sortDescending": "Sort descending",
+      "viewWorkflow": "View workflow",
+      "editColumn": "Edit column",
+      "unpinColumn": "Unpin column",
+      "pinColumn": "Pin column",
+      "insertLeft": "Insert column left",
+      "insertRight": "Insert column right",
+      "hideColumn": "Hide column",
+      "deleteColumn": "Delete column",
+      "enrichmentFallback": "Enrichment",
+      "workflowFallback": "Workflow",
+      "runGroup": "Run group"
+    }
+  },
+  "columnTypes": {
+    "workflow": "Workflow",
+    "limitOne": "Only one {label} column allowed per table",
+    "limitMany": "Only {max} {label} columns allowed per table"
+  },
+  "columnDropdown": {
+    "newColumn": "New column",
+    "enrichments": "Enrichments"
+  },
+  "columnsMenu": {
+    "workflowFallback": "Workflow",
+    "label": "Columns"
+  },
+  "rowContextMenu": {
+    "deleteRows": "Delete {count} rows",
+    "deleteRow": "Delete row",
+    "runCellOnRows": "Run cell on {count} rows",
+    "runCell": "Run cell",
+    "runEmptyOnRows": "Run empty or failed cells on {count} rows",
+    "runEmpty": "Run empty or failed cells",
+    "rerunCellOnRows": "Re-run cell on {count} rows",
+    "rerunCell": "Re-run cell",
+    "rerunAllOnRows": "Re-run all cells on {count} rows",
+    "rerunAll": "Re-run all cells",
+    "stopRunningOne": "Stop running workflow",
+    "stopRunningMany": "Stop {count} running workflows",
+    "addCellRangeToChat": "Add cell range to Chat",
+    "addRowsToChat": "Add {count} rows to Chat",
+    "addRowToChat": "Add row to Chat",
+    "editCell": "Edit cell",
+    "filterByCellValue": "Filter by cell value",
+    "viewExecution": "View execution",
+    "insertAbove": "Insert row above",
+    "insertBelow": "Insert row below",
+    "duplicateRow": "Duplicate row"
+  },
+  "actionBar": {
+    "runCells": "Run {count} empty or failed cells",
+    "rerunCells": "Re-run {count} cells",
+    "selected": "{count, plural, one {Selected # workflow cell} other {Selected # workflow cells}}"
+  },
+  "enrichments": {
+    "title": "Enrichments",
+    "singular": "Enrichment",
+    "close": "Close",
+    "unavailable": "This enrichment (\"{id}\") is no longer available. Delete the column and add a current enrichment.",
+    "search": "Search",
+    "empty": "No enrichments found.",
+    "updated": "Updated \"{name}\"",
+    "added": "Added \"{name}\"",
+    "inputs": "Inputs",
+    "noInputs": "This enrichment needs no inputs.",
+    "outputColumns": "Output columns"
+  },
+  "sidebar": {
+    "required": "Required",
+    "columnExists": "Column already exists",
+    "duplicateName": "Duplicate name",
+    "backToEnrichments": "Back to enrichments",
+    "close": "Close",
+    "column": "Column",
+    "searchColumns": "Search columns…",
+    "noColumns": "No columns.",
+    "selectColumn": "Select a column",
+    "columnName": "Column name",
+    "autoRun": "Auto-run",
+    "selectAtLeastOneColumn": "Select at least one column",
+    "cancel": "Cancel",
+    "update": "Update",
+    "save": "Save",
+    "runAfter": "Run after",
+    "search": "Search…",
+    "noUpstreamColumns": "No upstream columns.",
+    "selectedCount": "{count} selected",
+    "workflowInputs": "Workflow inputs",
+    "noStartInputs": "This workflow has no Start block inputs."
+  },
+  "workflowSidebar": {
+    "titleCreate": "Add workflow",
+    "titleEditGroup": "Configure workflow",
+    "titleEditOutput": "Configure output column",
+    "saved": "Saved \"{name}\"",
+    "added": "Added \"{name}\"",
+    "workflowFallback": "Workflow",
+    "columnNameRequired": "Column name is required",
+    "preview": "Workflow preview",
+    "openWorkflow": "Open workflow",
+    "previewUnavailable": "Unable to load preview",
+    "workflow": "Workflow",
+    "selectWorkflow": "Select a workflow",
+    "noDeployedWorkflows": "No deployed workflows available",
+    "searchWorkflows": "Search workflows...",
+    "output": "Output",
+    "outputColumns": "Output columns",
+    "searchOutputs": "Search outputs…",
+    "loadingWorkflow": "Loading workflow…",
+    "noOutputs": "No outputs found.",
+    "selectOutputs": "Select outputs",
+    "pickOutput": "Pick an output",
+    "pickAtLeastOneOutput": "Pick at least one output column",
+    "autoRunWorkflow": "Auto-run workflow",
+    "hideAdditional": "Hide additional fields",
+    "showAdditional": "Show additional fields",
+    "saving": "Saving…"
+  },
+  "columnSidebar": {
+    "title": "Configure column",
+    "options": {
+      "atLeastOne": "Add at least one option",
+      "emptyName": "Option names cannot be empty",
+      "uniqueNames": "Option names must be unique",
+      "label": "Options"
+    },
+    "added": "Added \"{name}\"",
+    "saved": "Saved \"{name}\"",
+    "nameRequired": "Column name is required",
+    "type": "Type",
+    "selectType": "Select type",
+    "currency": "Currency",
+    "selectCurrency": "Select currency",
+    "searchCurrencies": "Search currencies",
+    "multiselect": "Multiselect",
+    "unique": "Unique",
+    "saving": "Saving…"
+  },
+  "enrichmentDetails": {
+    "status": {
+      "matched": "Matched",
+      "no_match": "No match",
+      "error": "Error",
+      "not_run": "Not run",
+      "cancelled": "Cancelled",
+      "skipped": "Skipped"
+    },
+    "tabs": {
+      "result": "Result",
+      "cascade": "Cascade"
+    },
+    "loading": "Loading…",
+    "empty": "No enrichment details for this run",
+    "timestamp": "Timestamp",
+    "enrichment": "Enrichment",
+    "statusLabel": "Status",
+    "duration": "Duration",
+    "totalCost": "Total cost",
+    "matchedProvider": "Matched provider",
+    "providersRan": "Providers ran",
+    "error": "Error",
+    "providerCount": "{count, plural, one {# provider} other {# providers}}",
+    "resize": "Resize enrichment details panel",
+    "ariaLabel": "Enrichment details sidebar",
+    "title": "Enrichment Details",
+    "close": "Close"
+  },
+  "runStatus": {
+    "queueing": "Queueing",
+    "running": "running",
+    "stopping": "Stopping…",
+    "stopAll": "Stop all"
+  },
+  "views": {
+    "newView": "New view",
+    "renameView": "Rename view",
+    "name": "Name",
+    "namePlaceholder": "e.g. Active customers",
+    "creating": "Creating...",
+    "create": "Create",
+    "saving": "Saving...",
+    "save": "Save",
+    "allRows": "All",
+    "title": "Views",
+    "rename": "Rename",
+    "delete": "Delete",
+    "defaultCannotDelete": "Default view cannot be deleted",
+    "deleteTitle": "Delete View",
+    "deletePrefix": "Are you sure you want to delete ",
+    "thisView": "this view",
+    "deleteQuestionEnd": "? ",
+    "cannotUndo": "This action cannot be undone.",
+    "currentDefault": "Current default view",
+    "setDefault": "Set as default"
+  },
+  "selectField": {
+    "optionName": "Option name",
+    "remove": "Remove {name}",
+    "optionFallback": "option",
+    "addOption": "Add option",
+    "selectOptions": "Select options",
+    "none": "None",
+    "selectOption": "Select an option"
+  },
+  "filter": {
+    "add": "Add filter",
+    "clear": "Clear filters",
+    "apply": "Apply filter",
+    "where": "Where",
+    "logical": {
+      "and": "and",
+      "or": "or"
+    },
+    "column": "Column",
+    "operator": "Operator",
+    "selectValue": "Select a value",
+    "enterValue": "Enter a value",
+    "remove": "Remove filter"
+  },
+  "rowModal": {
+    "invalidJson": "Invalid JSON for field: {name}",
+    "addFailed": "Failed to add row",
+    "editFailed": "Failed to edit row",
+    "deleteFailed": "Failed to delete row(s)",
+    "delete": {
+      "titleOne": "Delete Row",
+      "titleMany": "Delete {count} Rows",
+      "questionOne": "Are you sure you want to delete this row? ",
+      "questionMany": "Are you sure you want to delete these {count} rows? ",
+      "removeDataOne": "This will permanently remove all data in this row.",
+      "removeDataMany": "This will permanently remove all data in these rows.",
+      "cannotUndo": " This action cannot be undone.",
+      "confirm": "Delete",
+      "deleting": "Deleting..."
+    },
+    "addTitle": "Add Row",
+    "editTitle": "Edit Row",
+    "fillValuesFor": "Fill in values for {name}",
+    "updateValuesFor": "Update values for {name}",
+    "tableFallback": "table",
+    "adding": "Adding...",
+    "updating": "Updating...",
+    "updateRow": "Update Row",
+    "unique": "(unique)",
+    "currencyType": "currency ({code})",
+    "typeHint": "Type: {type}",
+    "typeHintOptional": "Type: {type} (optional)",
+    "noValue": "No value",
+    "editField": "Edit {name}",
+    "true": "True",
+    "false": "False",
+    "jsonPlaceholder": "'{'\"key\": \"value\"'}'",
+    "selectDate": "Select date",
+    "enterField": "Enter {name}"
+  }
+}

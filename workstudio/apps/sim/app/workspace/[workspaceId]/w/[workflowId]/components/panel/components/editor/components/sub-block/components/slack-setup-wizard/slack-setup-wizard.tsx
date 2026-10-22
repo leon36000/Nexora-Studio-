@@ -3,6 +3,7 @@
 import { type ReactNode, useCallback, useMemo, useState } from 'react'
 import { Checkbox, Chip, ChipModalField, cn, Label, Tooltip, Wizard } from '@sim/emcn'
 import { Check, ChevronRight, CircleInfo } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { useShallow } from 'zustand/react/shallow'
 import { SlackAppManifest } from '@/components/integrations/slack-app-manifest'
 import { buildSlackAppCreationUrl, getSlackAppNameError } from '@/lib/integrations/slack-manifest'
@@ -18,11 +19,6 @@ import {
 } from '@/triggers/slack/capabilities'
 
 const DEFAULT_APP_NAME = 'Nexora Workflow Bot'
-
-const GROUP_LABELS: Record<SlackCapabilityGroup, string> = {
-  trigger: 'Triggers',
-  action: 'Actions',
-}
 
 const GROUP_ORDER: readonly SlackCapabilityGroup[] = ['trigger', 'action'] as const
 
@@ -49,6 +45,7 @@ export function SlackSetupWizard({
   isPreview = false,
   disabled = false,
 }: SlackSetupWizardProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   const [open, setOpen] = useState<boolean>(false)
   const launcherDisabled = isPreview || disabled
 
@@ -60,7 +57,7 @@ export function SlackSetupWizard({
         disabled={launcherDisabled}
         rightIcon={ChevronRight}
       >
-        Set up Slack app
+        {t('launcher')}
       </Chip>
 
       <WizardModal
@@ -83,6 +80,7 @@ interface WizardModalProps {
 }
 
 function WizardModal({ blockId, open, onOpenChange, isPreview, disabled }: WizardModalProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   const [step, setStep] = useState<number>(0)
 
   const { webhookUrl, isLoading } = useWebhookManagement({
@@ -127,8 +125,12 @@ function WizardModal({ blockId, open, onOpenChange, isPreview, disabled }: Wizar
       onStepChange={setStep}
       size='lg'
       height={MODAL_HEIGHT_CLASS}
+      backLabel={t('wizard.back')}
+      nextLabel={t('wizard.next')}
+      doneLabel={t('wizard.done')}
+      description={t('wizard.description')}
     >
-      <Wizard.Step title='Configure your bot' canAdvance={!nameError}>
+      <Wizard.Step title={t('steps.configure')} canAdvance={!nameError}>
         <StepConfigure
           blockId={blockId}
           appName={displayAppName}
@@ -140,10 +142,10 @@ function WizardModal({ blockId, open, onOpenChange, isPreview, disabled }: Wizar
           disabled={controlsDisabled}
         />
       </Wizard.Step>
-      <Wizard.Step title='Create the app in Slack' canAdvance={canCopy}>
+      <Wizard.Step title={t('steps.create')} canAdvance={canCopy}>
         <StepCreate manifestJson={manifestJson} canCopy={canCopy} isLoading={isLoading} />
       </Wizard.Step>
-      <Wizard.Step title='Install and paste your Bot Token' canAdvance={Boolean(botToken?.trim())}>
+      <Wizard.Step title={t('steps.token')} canAdvance={Boolean(botToken?.trim())}>
         <StepToken
           value={botToken ?? ''}
           onChange={(v) => {
@@ -152,7 +154,7 @@ function WizardModal({ blockId, open, onOpenChange, isPreview, disabled }: Wizar
           disabled={controlsDisabled}
         />
       </Wizard.Step>
-      <Wizard.Step title='Paste your Signing Secret' canAdvance={Boolean(signingSecret?.trim())}>
+      <Wizard.Step title={t('steps.secret')} canAdvance={Boolean(signingSecret?.trim())}>
         <StepSecret
           value={signingSecret ?? ''}
           onChange={(v) => {
@@ -161,7 +163,7 @@ function WizardModal({ blockId, open, onOpenChange, isPreview, disabled }: Wizar
           disabled={controlsDisabled}
         />
       </Wizard.Step>
-      <Wizard.Step title='Save and verify the Request URL'>
+      <Wizard.Step title={t('steps.done')}>
         <StepDone hasSigningSecret={Boolean(signingSecret)} hasBotToken={Boolean(botToken)} />
       </Wizard.Step>
     </Wizard>
@@ -209,11 +211,12 @@ function StepConfigure({
   selected,
   disabled,
 }: StepConfigureProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   return (
     <div className='space-y-4'>
       <ChipModalField
         type='input'
-        title='Bot name'
+        title={t('botName')}
         value={appName}
         onChange={onAppNameChange}
         disabled={disabled}
@@ -228,7 +231,7 @@ function StepConfigure({
             <CapabilityGroup
               key={group}
               blockId={blockId}
-              label={GROUP_LABELS[group]}
+              label={t(`groups.${group}`)}
               capabilities={items}
               selected={selected}
               disabled={disabled}
@@ -247,11 +250,12 @@ interface StepCreateProps {
 }
 
 function StepCreate({ manifestJson, canCopy, isLoading }: StepCreateProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   return (
     <div className='space-y-4'>
       <SubStepList>
         <SubStep n={1}>
-          <div>Open Slack with your manifest already filled in:</div>
+          <div>{t('create.openSlack')}</div>
           <div className='mt-2'>
             <SlackAppManifest
               manifest={manifestJson}
@@ -261,14 +265,12 @@ function StepCreate({ manifestJson, canCopy, isLoading }: StepCreateProps) {
           </div>
           {!canCopy && (
             <p role='status' className='mt-2 text-[var(--text-secondary)] text-sm'>
-              {isLoading
-                ? 'Loading the webhook URL…'
-                : 'Webhook URL unavailable. Reload the workflow and try again.'}
+              {isLoading ? t('create.loadingWebhook') : t('create.webhookUnavailable')}
             </p>
           )}
         </SubStep>
         <SubStep n={2}>
-          Select your workspace, review the configuration, then click <strong>Create</strong>.
+          {t.rich('create.selectWorkspace', { strong: (chunks) => <strong>{chunks}</strong> })}
         </SubStep>
       </SubStepList>
     </div>
@@ -282,23 +284,24 @@ interface StepSecretProps {
 }
 
 function StepSecret({ value, onChange, disabled }: StepSecretProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   return (
     <div className='space-y-4'>
       <SubStepList>
         <SubStep n={1}>
-          In your new Slack app, open <strong>Basic Information</strong>.
+          {t.rich('secret.openBasicInfo', { strong: (chunks) => <strong>{chunks}</strong> })}
         </SubStep>
         <SubStep n={2}>
-          Find <strong>Signing Secret</strong> and click <strong>Show</strong>, then copy it.
+          {t.rich('secret.findSecret', { strong: (chunks) => <strong>{chunks}</strong> })}
         </SubStep>
-        <SubStep n={3}>Paste it into the field below.</SubStep>
+        <SubStep n={3}>{t('pasteBelow')}</SubStep>
       </SubStepList>
       <SecretField
-        label='Signing Secret'
+        label={t('signingSecret')}
         value={value}
         onChange={onChange}
         disabled={disabled}
-        placeholder='Paste your signing secret'
+        placeholder={t('secret.placeholder')}
       />
     </div>
   )
@@ -311,20 +314,23 @@ interface StepTokenProps {
 }
 
 function StepToken({ value, onChange, disabled }: StepTokenProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   return (
     <div className='space-y-4'>
       <SubStepList>
         <SubStep n={1}>
-          In Slack, open <strong>OAuth &amp; Permissions</strong> →{' '}
-          <strong>Install to Workspace</strong> and authorize.
+          {t.rich('token.install', { strong: (chunks) => <strong>{chunks}</strong> })}
         </SubStep>
         <SubStep n={2}>
-          Copy the <strong>Bot User OAuth Token</strong> (starts with <code>xoxb-</code>).
+          {t.rich('token.copy', {
+            strong: (chunks) => <strong>{chunks}</strong>,
+            code: (chunks) => <code>{chunks}</code>,
+          })}
         </SubStep>
-        <SubStep n={3}>Paste it into the field below.</SubStep>
+        <SubStep n={3}>{t('pasteBelow')}</SubStep>
       </SubStepList>
       <SecretField
-        label='Bot Token'
+        label={t('botToken')}
         value={value}
         onChange={onChange}
         disabled={disabled}
@@ -363,15 +369,15 @@ interface StepDoneProps {
 }
 
 function StepDone({ hasSigningSecret, hasBotToken }: StepDoneProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   return (
     <div className='space-y-4'>
       <p className='text-[var(--text-secondary)] text-sm leading-relaxed'>
-        Click Done, then save and deploy the workflow with these credentials. In Slack, open App
-        Manifest and verify the event Request URL before using the trigger.
+        {t('done.instructions')}
       </p>
       <div className='flex flex-col gap-2'>
-        <StatusRow label='Signing Secret' ok={hasSigningSecret} />
-        <StatusRow label='Bot Token' ok={hasBotToken} />
+        <StatusRow label={t('signingSecret')} ok={hasSigningSecret} />
+        <StatusRow label={t('botToken')} ok={hasBotToken} />
       </div>
     </div>
   )
@@ -383,6 +389,7 @@ interface StatusRowProps {
 }
 
 function StatusRow({ label, ok }: StatusRowProps) {
+  const t = useTranslations('editor.subBlock.slackSetupWizard')
   return (
     <span className='flex items-center gap-2'>
       <Check
@@ -393,7 +400,7 @@ function StatusRow({ label, ok }: StatusRowProps) {
       />
       <span>
         {label}
-        {!ok && <span className='ml-1 text-[var(--text-muted)]'>(not saved yet)</span>}
+        {!ok && <span className='ml-1 text-[var(--text-muted)]'>{t('done.notSaved')}</span>}
       </span>
     </span>
   )

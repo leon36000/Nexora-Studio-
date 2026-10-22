@@ -5,6 +5,7 @@ import { toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { backoffWithJitter } from '@sim/utils/retry'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { getClientFingerprint } from '@/lib/api/client-id'
 import type { ActiveDispatch } from '@/lib/api/contracts/tables'
 import type {
@@ -159,6 +160,11 @@ export function useTableEventStream({
   // Ref so a changing callback identity doesn't tear down + reconnect the SSE.
   const onUsageLimitReachedRef = useRef(onUsageLimitReached)
   onUsageLimitReachedRef.current = onUsageLimitReached
+
+  // Same reasoning: the export toasts read the current translator without reconnecting.
+  const t = useTranslations('tables.detail.exportToasts')
+  const tRef = useRef(t)
+  tRef.current = t
 
   useEffect(() => {
     if (!enabled || !tableId || !workspaceId) return
@@ -345,13 +351,13 @@ export function useTableEventStream({
         void queryClient.invalidateQueries({ queryKey: tableKeys.exportJobs(workspaceId) })
         if (status === 'ready' && jobId && consumeInitiatedExport(jobId)) {
           void downloadExportResult(workspaceId, jobId)
-            .then(() => toast.success('Export ready — downloading'))
+            .then(() => toast.success(tRef.current('ready')))
             .catch((err) => {
               logger.error('Export download failed', { tableId, jobId, err })
-              toast.error('Export finished but the download failed — try again from the table menu')
+              toast.error(tRef.current('downloadFailed'))
             })
         } else if (status === 'failed' && jobId && consumeInitiatedExport(jobId)) {
-          toast.error(error || 'Export failed')
+          toast.error(error || tRef.current('failed'))
         }
         return
       }

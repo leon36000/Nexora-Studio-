@@ -15,14 +15,17 @@ import {
 } from '@sim/emcn'
 import { ArrowUpRight, ChevronLeft } from '@sim/emcn/icons'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   SETTINGS_PLANE_CHROME,
+  type SettingsNavGroupKey,
   type SettingsNavigationItem,
   type SettingsSection,
   type StandaloneSettingsPlane,
 } from '@/components/settings/navigation'
 import { SettingsIntentLink } from '@/components/settings/settings-intent-link'
 import { usePendingSettingsSelection } from '@/components/settings/use-pending-settings-selection'
+import { useSettingsNavCopy } from '@/components/settings/use-settings-nav-copy'
 import { APP_ENTRY_PATH, LANDING_HREF } from '@/lib/navigation/paths'
 import { popSettingsReturnUrl } from '@/lib/navigation/settings-return'
 import { SidebarSection } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/sidebar-section'
@@ -37,7 +40,7 @@ import {
 import { useSettingsDirtyStore } from '@/stores/settings/dirty/store'
 
 interface SettingsNavigationGroup {
-  key: string
+  key: SettingsNavGroupKey
   title: string
 }
 
@@ -86,6 +89,8 @@ export function SettingsSidebar<Section extends SettingsSection>({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollContentRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const t = useTranslations('settings.nav.chrome')
+  const navCopy = useSettingsNavCopy()
   const { activeSection: selectedSection, navigateToSection } =
     usePendingSettingsSelection(activeSection)
 
@@ -113,21 +118,21 @@ export function SettingsSidebar<Section extends SettingsSection>({
         {SETTINGS_PLANE_CHROME[plane].showWordmark ? (
           <button
             type='button'
-            aria-label='Nexora home'
+            aria-label={t('home')}
             onClick={() => requestLeave(() => router.push(LANDING_HREF))}
             className='flex h-[30px] shrink-0 items-center px-2 transition-opacity hover:opacity-70'
           >
             <SimWordmark />
           </button>
         ) : (
-          <SidebarTooltip label='Back' enabled={showCollapsedTooltips}>
+          <SidebarTooltip label={t('back')} enabled={showCollapsedTooltips}>
             <Chip
               fullWidth
               leftIcon={ChevronLeft}
               className={SIDEBAR_RAIL_CHIP_CLASS}
               onClick={() => requestLeave(() => router.push(popSettingsReturnUrl(backHref)))}
             >
-              <span className='sidebar-collapse-hide'>Back</span>
+              <span className='sidebar-collapse-hide'>{t('back')}</span>
             </Chip>
           </SidebarTooltip>
         )}
@@ -154,7 +159,7 @@ export function SettingsSidebar<Section extends SettingsSection>({
             .map((group, index) => (
               <SidebarSection
                 key={group.key}
-                title={group.title}
+                title={navCopy.group(group.key)}
                 railCollapsed={isCollapsed}
                 className={cn(index > 0 && SIDEBAR_SECTION_GAP_CLASS, 'shrink-0')}
               >
@@ -163,12 +168,9 @@ export function SettingsSidebar<Section extends SettingsSection>({
                     const Icon = item.icon
                     const active = selectedSection === item.id
                     const href = hrefForSection(item.id)
+                    const label = navCopy.label(item)
                     return (
-                      <SidebarTooltip
-                        key={item.id}
-                        label={item.label}
-                        enabled={showCollapsedTooltips}
-                      >
+                      <SidebarTooltip key={item.id} label={label} enabled={showCollapsedTooltips}>
                         <SettingsIntentLink
                           data-settings-navigation='managed'
                           href={href}
@@ -198,7 +200,7 @@ export function SettingsSidebar<Section extends SettingsSection>({
                         >
                           <Icon className={chipContentIconClass} />
                           <OverflowText
-                            label={item.label}
+                            label={label}
                             className='sidebar-collapse-hide text-[var(--text-body)]'
                             tooltipEnabled={!showCollapsedTooltips}
                           />
@@ -207,7 +209,7 @@ export function SettingsSidebar<Section extends SettingsSection>({
                               variant='mono'
                               className='sidebar-collapse-hide ml-auto shrink-0'
                             >
-                              Plan
+                              {t('planLocked')}
                             </ChipTag>
                           )}
                         </SettingsIntentLink>

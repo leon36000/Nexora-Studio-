@@ -11,6 +11,7 @@ import {
   SecretInput,
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
 import {
   resourceScopeFields,
@@ -22,6 +23,7 @@ import {
   type TokenServiceAccountDescriptor,
   type TokenServiceAccountField,
 } from '@/lib/credentials/token-service-accounts/descriptors'
+import { useConnectNounTranslator } from '@/app/workspace/[workspaceId]/integrations/components/connect-service-account-modal/use-service-account-connect'
 import { withBrandIcon } from '@/blocks/brand-icon'
 import {
   useCreateScopedCredential,
@@ -87,6 +89,9 @@ function TokenServiceAccountModalForm({
   initialDescription,
   onCreated,
 }: TokenServiceAccountModalProps) {
+  const t = useTranslations('integrations.serviceAccount')
+  const tConnect = useTranslations('integrations.serviceAccountConnect')
+  const noun = useConnectNounTranslator()(descriptor.connectNoun)
   const [apiToken, setApiToken] = useState('')
   const [domain, setDomain] = useState('')
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '')
@@ -149,10 +154,10 @@ function TokenServiceAccountModalForm({
     <ChipModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle={`Add ${serviceName} ${descriptor.connectNoun}`}
+      srTitle={t('common.addTitle', { serviceName, noun })}
     >
       <ChipModalHeader icon={withBrandIcon(ServiceIcon)} onClose={() => onOpenChange(false)}>
-        Add {serviceName} {descriptor.connectNoun}
+        {t('common.addTitle', { serviceName, noun })}
       </ChipModalHeader>
       <ChipModalBody>
         {tokenField && (
@@ -197,19 +202,21 @@ function TokenServiceAccountModalForm({
 
         <ChipModalField
           type='input'
-          title='Display name'
+          title={t('common.displayName')}
           value={displayName}
           onChange={setDisplayName}
-          placeholder={`Defaults to the ${descriptor.serviceLabel} account name`}
+          placeholder={t('common.accountNamePlaceholder', {
+            serviceLabel: descriptor.serviceLabel,
+          })}
           autoComplete='off'
         />
 
         <ChipModalField
           type='textarea'
-          title='Description'
+          title={t('common.description')}
           value={description}
           onChange={setDescription}
-          placeholder='Optional description'
+          placeholder={t('common.optionalDescription')}
           maxLength={500}
           minHeight={80}
         />
@@ -220,12 +227,12 @@ function TokenServiceAccountModalForm({
         onCancel={() => onOpenChange(false)}
         secondaryActions={[
           {
-            label: 'Setup guide',
+            label: t('common.setupGuide'),
             onClick: () => openDocs(descriptor.docsUrl),
           },
         ]}
         primaryAction={{
-          label: isPending ? 'Adding...' : `Add ${descriptor.connectNoun}`,
+          label: isPending ? t('common.adding') : tConnect('addNoun', { noun }),
           onClick: handleSubmit,
           disabled: isDisabled,
         }}

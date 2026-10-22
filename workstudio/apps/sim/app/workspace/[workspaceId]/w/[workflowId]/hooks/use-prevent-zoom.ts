@@ -1,6 +1,6 @@
 'use client'
 
-import { type RefObject, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 /**
  * Prevents browser zoom (Ctrl/Cmd + wheel) on the referenced element.
@@ -9,7 +9,7 @@ import { type RefObject, useEffect, useRef } from 'react'
  *
  * @returns A ref to attach to the container element
  */
-export function usePreventZoom<T extends HTMLElement = HTMLDivElement>(): RefObject<T | null> {
+export function usePreventZoom<T extends HTMLElement = HTMLDivElement>() {
   const ref = useRef<T>(null)
 
   useEffect(() => {

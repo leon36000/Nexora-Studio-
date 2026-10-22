@@ -7,6 +7,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { formatDate } from '@sim/utils/formatting'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
 import type { ApiKey } from '@/lib/api/contracts/api-keys'
 import { useSession } from '@/lib/auth/client'
@@ -38,14 +39,14 @@ const EMPTY_KEYS: ApiKey[] = []
 const EMPTY_KEY_NAMES: string[] = []
 
 /** Copies an API key's name and confirms with a toast. */
-function copyKeyName(name: string) {
+function copyKeyName(name: string, confirmation: string) {
   void navigator.clipboard.writeText(name)
-  toast.success('Copied name to clipboard')
+  toast.success(confirmation)
 }
 
-/** Formats an API key's last-used timestamp, or "Never" when unused. */
-function formatLastUsed(dateString?: string | null): string {
-  if (!dateString) return 'Never'
+/** Formats an API key's last-used timestamp, or `neverLabel` when unused. */
+function formatLastUsed(dateString: string | null | undefined, neverLabel: string): string {
+  if (!dateString) return neverLabel
   return formatDate(new Date(dateString))
 }
 
@@ -61,13 +62,20 @@ interface ApiKeyRowMenuProps {
  * Teammates row menu so the settings experience is consistent.
  */
 function ApiKeyRowMenu({ keyName, onDelete, canDelete = true }: ApiKeyRowMenuProps) {
+  const t = useTranslations('settings.apiKeys')
+  const tShared = useTranslations('settings.shared')
   return (
     <div className='shrink-0'>
       <RowActionsMenu
-        label='API key actions'
+        label={t('rowActions')}
         actions={[
-          { label: 'Copy name', onSelect: () => copyKeyName(keyName) },
-          { label: 'Delete', destructive: true, disabled: !canDelete, onSelect: onDelete },
+          { label: t('copyName'), onSelect: () => copyKeyName(keyName, t('copiedName')) },
+          {
+            label: tShared('delete'),
+            destructive: true,
+            disabled: !canDelete,
+            onSelect: onDelete,
+          },
         ]}
       />
     </div>
@@ -79,6 +87,8 @@ interface ApiKeysProps {
 }
 
 export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
+  const t = useTranslations('settings.apiKeys')
+  const tShared = useTranslations('settings.shared')
   const { data: session } = useSession()
   const userId = session?.user?.id
   const params = useParams<{ workspaceId?: string }>()
@@ -223,7 +233,7 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
 
   const actions: SettingsAction[] = [
     {
-      text: 'Create API key',
+      text: t('createApiKey'),
       icon: Plus,
       variant: 'primary',
       onSelect: () => {
@@ -240,24 +250,20 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
         search={{
           value: searchTerm,
           onChange: setSearchTerm,
-          placeholder: 'Search API keys...',
+          placeholder: t('searchPlaceholder'),
         }}
         actions={actions}
       >
         {apiKeysError && apiKeysData === undefined ? (
-          <SettingsEmptyState>
-            {getErrorMessage(apiKeysError, 'Failed to load API keys')}
-          </SettingsEmptyState>
+          <SettingsEmptyState>{getErrorMessage(apiKeysError, t('loadFailed'))}</SettingsEmptyState>
         ) : isLoading ? null : personalKeys.length === 0 && workspaceKeys.length === 0 ? (
-          <SettingsEmptyState>Click "Create API key" above to get started</SettingsEmptyState>
+          <SettingsEmptyState>{t('empty')}</SettingsEmptyState>
         ) : (
           <div className='flex flex-col gap-6'>
             {showsWorkspaceKeys && !searchTerm.trim() ? (
-              <SettingsSection label='Workspace'>
+              <SettingsSection label={t('sections.workspace')}>
                 {workspaceKeys.length === 0 ? (
-                  <SettingsEmptyState variant='inline'>
-                    No workspace API keys yet
-                  </SettingsEmptyState>
+                  <SettingsEmptyState variant='inline'>{t('noWorkspaceKeys')}</SettingsEmptyState>
                 ) : (
                   <div className={RESOURCE_LIST_STACK}>
                     {workspaceKeys.map((key) => (
@@ -267,7 +273,9 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                         description={key.displayKey}
                         badge={
                           <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
-                            {`last used ${formatLastUsed(key.lastUsed).toLowerCase()}`}
+                            {t('lastUsed', {
+                              when: formatLastUsed(key.lastUsed, t('never')).toLowerCase(),
+                            })}
                           </span>
                         }
                         trailing={
@@ -286,7 +294,7 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                 )}
               </SettingsSection>
             ) : showsWorkspaceKeys && filteredWorkspaceKeys.length > 0 ? (
-              <SettingsSection label='Workspace'>
+              <SettingsSection label={t('sections.workspace')}>
                 <div className={RESOURCE_LIST_STACK}>
                   {filteredWorkspaceKeys.map(({ key }) => (
                     <SettingsResourceRow
@@ -295,7 +303,9 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                       description={key.displayKey}
                       badge={
                         <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
-                          {`last used ${formatLastUsed(key.lastUsed).toLowerCase()}`}
+                          {t('lastUsed', {
+                            when: formatLastUsed(key.lastUsed, t('never')).toLowerCase(),
+                          })}
                         </span>
                       }
                       trailing={
@@ -315,7 +325,7 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
             ) : null}
 
             {showsPersonalKeys && (!searchTerm.trim() || filteredPersonalKeys.length > 0) && (
-              <SettingsSection label='Personal'>
+              <SettingsSection label={t('sections.personal')}>
                 <div className={RESOURCE_LIST_STACK}>
                   {filteredPersonalKeys.map(({ key }) => {
                     const isConflict = conflictNames.has(key.name)
@@ -326,7 +336,9 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                           description={key.displayKey}
                           badge={
                             <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
-                              {`last used ${formatLastUsed(key.lastUsed).toLowerCase()}`}
+                              {t('lastUsed', {
+                                when: formatLastUsed(key.lastUsed, t('never')).toLowerCase(),
+                              })}
                             </span>
                           }
                           trailing={
@@ -341,8 +353,7 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                         />
                         {isConflict && (
                           <p className='text-[var(--text-error)] text-caption leading-tight'>
-                            Workspace API key with the same name overrides this. Rename your
-                            personal key to use it.
+                            {t('conflict')}
                           </p>
                         )}
                       </div>
@@ -357,7 +368,7 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
               filteredWorkspaceKeys.length === 0 &&
               (personalKeys.length > 0 || workspaceKeys.length > 0) && (
                 <SettingsEmptyState variant='inline'>
-                  No API keys found matching "{searchTerm}"
+                  {t('noResults', { term: searchTerm })}
                 </SettingsEmptyState>
               )}
           </div>
@@ -365,18 +376,16 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
 
         {showsWorkspaceKeys && !isLoading && canManageWorkspaceKeys && (
           <Tooltip.Provider delayDuration={150}>
-            <SettingsSection label='Permissions'>
+            <SettingsSection label={t('sections.permissions')}>
               <div className='flex items-center justify-between'>
                 <div className='flex items-center gap-2'>
-                  <Label htmlFor='allow-personal-api-keys'>Allow personal API keys</Label>
+                  <Label htmlFor='allow-personal-api-keys'>{t('allowPersonal')}</Label>
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
-                      <Chip leftIcon={CircleInfo} aria-label='About personal API keys' />
+                      <Chip leftIcon={CircleInfo} aria-label={t('aboutPersonal')} />
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top' className='max-w-xs text-small'>
-                      Allow collaborators to authenticate with their own keys. Hosted usage is
-                      billed to this workspace, attributed to the key owner, and counted toward
-                      their member cap.
+                      {t('allowPersonalTooltip')}
                     </Tooltip.Content>
                   </Tooltip.Root>
                 </div>
@@ -419,20 +428,20 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
             setDeleteKey(null)
           }
         }}
-        srTitle='Delete API key'
-        title='Delete API key'
+        srTitle={t('deleteDialog.title')}
+        title={t('deleteDialog.title')}
         text={[
-          'Deleting ',
-          { text: deleteKey?.name ?? 'this key', bold: true },
+          t('deleteDialog.textBefore'),
+          { text: deleteKey?.name ?? t('deleteDialog.fallbackName'), bold: true },
           ' ',
-          { text: 'will immediately revoke access for any integrations using it.', error: true },
-          ' This action cannot be undone.',
+          { text: t('deleteDialog.consequence'), error: true },
+          t('deleteDialog.textAfter'),
         ]}
         confirm={{
-          label: 'Delete',
+          label: tShared('delete'),
           onClick: handleDeleteKey,
           pending: deleteApiKeyMutation.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: tShared('deleting'),
         }}
       />
     </>

@@ -19,6 +19,7 @@ import {
   useCopyToClipboard,
 } from '@sim/emcn'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
 import { isLiveAssistantMessageId } from '@/lib/mothership/chat/live-message-id'
 import { organizationRoutes } from '@/lib/navigation/paths'
@@ -53,6 +54,7 @@ export const MessageActions = memo(function MessageActions({
   requestId,
   messageId,
 }: MessageActionsProps) {
+  const t = useTranslations('shell.messageActions')
   const router = useRouter()
   const params = useParams<{ workspaceId?: string; organizationId?: string }>()
   const owner = params.organizationId
@@ -137,9 +139,7 @@ export const MessageActions = memo(function MessageActions({
     try {
       const result = await forkChat.mutateAsync({ chatId, upToMessageId: messageId })
       if (result.failedFileCopies) {
-        toast.warning(
-          `${result.failedFileCopies} file${result.failedFileCopies === 1 ? '' : 's'} could not be copied to the fork`
-        )
+        toast.warning(t('filesNotCopied', { count: result.failedFileCopies }))
       }
       if (params.organizationId) {
         router.push(organizationRoutes(params.organizationId).chat(result.id))
@@ -151,7 +151,7 @@ export const MessageActions = memo(function MessageActions({
       toast.error(
         isApiClientError(error) && FORK_REFUSAL_STATUSES.has(error.status)
           ? error.message
-          : 'Failed to fork chat'
+          : t('forkFailed')
       )
     }
   }
@@ -172,7 +172,7 @@ export const MessageActions = memo(function MessageActions({
             <Tooltip.Trigger asChild>
               <button
                 type='button'
-                aria-label='Copy message'
+                aria-label={t('copyMessage')}
                 onClick={copyToClipboard}
                 className={BUTTON_CLASS}
               >
@@ -180,7 +180,7 @@ export const MessageActions = memo(function MessageActions({
               </button>
             </Tooltip.Trigger>
             <Tooltip.Content side='top'>
-              {copied ? 'Copied message' : 'Copy message'}
+              {copied ? t('copiedMessage') : t('copyMessage')}
             </Tooltip.Content>
           </Tooltip.Root>
         )}
@@ -190,27 +190,27 @@ export const MessageActions = memo(function MessageActions({
               <Tooltip.Trigger asChild>
                 <button
                   type='button'
-                  aria-label='Like'
+                  aria-label={t('like')}
                   onClick={() => handleFeedbackClick('up')}
                   className={BUTTON_CLASS}
                 >
                   <ThumbsUp className={ICON_CLASS} />
                 </button>
               </Tooltip.Trigger>
-              <Tooltip.Content side='top'>Good response</Tooltip.Content>
+              <Tooltip.Content side='top'>{t('goodResponse')}</Tooltip.Content>
             </Tooltip.Root>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
                 <button
                   type='button'
-                  aria-label='Dislike'
+                  aria-label={t('dislike')}
                   onClick={() => handleFeedbackClick('down')}
                   className={BUTTON_CLASS}
                 >
                   <ThumbsDown className={ICON_CLASS} />
                 </button>
               </Tooltip.Trigger>
-              <Tooltip.Content side='top'>Bad response</Tooltip.Content>
+              <Tooltip.Content side='top'>{t('badResponse')}</Tooltip.Content>
             </Tooltip.Root>
           </>
         )}
@@ -219,7 +219,7 @@ export const MessageActions = memo(function MessageActions({
             <Tooltip.Trigger asChild>
               <button
                 type='button'
-                aria-label='Fork in new chat'
+                aria-label={t('fork')}
                 onClick={handleFork}
                 disabled={forkChat.isPending}
                 className={cn(BUTTON_CLASS, forkChat.isPending && 'cursor-not-allowed opacity-50')}
@@ -227,7 +227,7 @@ export const MessageActions = memo(function MessageActions({
                 <Split className={cn(ICON_CLASS, 'rotate-90')} />
               </button>
             </Tooltip.Trigger>
-            <Tooltip.Content side='top'>Fork in new chat</Tooltip.Content>
+            <Tooltip.Content side='top'>{t('fork')}</Tooltip.Content>
           </Tooltip.Root>
         )}
       </div>
@@ -235,34 +235,32 @@ export const MessageActions = memo(function MessageActions({
       <ChipModal
         open={pendingFeedback !== null}
         onOpenChange={handleModalClose}
-        srTitle='Give feedback'
+        srTitle={t('giveFeedback')}
       >
-        <ChipModalHeader onClose={() => handleModalClose(false)}>Give feedback</ChipModalHeader>
+        <ChipModalHeader onClose={() => handleModalClose(false)}>
+          {t('giveFeedback')}
+        </ChipModalHeader>
         <ChipModalBody>
           <ChipModalField
             type='textarea'
-            title='Feedback'
+            title={t('feedback')}
             value={feedbackText}
             onChange={setFeedbackText}
             rows={6}
             minHeight={140}
             resizable
-            placeholder={
-              pendingFeedback === 'up'
-                ? 'Tell us what was helpful...'
-                : 'Tell us what went wrong...'
-            }
+            placeholder={pendingFeedback === 'up' ? t('helpfulPlaceholder') : t('wrongPlaceholder')}
           />
         </ChipModalBody>
         <ChipModalFooter
           onCancel={() => handleModalClose(false)}
           secondaryActions={
             pendingFeedback === 'down' && requestId
-              ? [{ label: copiedRequestId ? 'Copied' : 'Copy ID', onClick: copyRequestId }]
+              ? [{ label: copiedRequestId ? t('copied') : t('copyId'), onClick: copyRequestId }]
               : undefined
           }
           primaryAction={{
-            label: 'Submit',
+            label: t('submit'),
             onClick: handleSubmitFeedback,
           }}
         />

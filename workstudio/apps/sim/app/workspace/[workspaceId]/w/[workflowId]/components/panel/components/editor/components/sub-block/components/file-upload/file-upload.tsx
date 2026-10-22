@@ -8,6 +8,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { generateShortId } from '@sim/utils/id'
 import { randomFloat } from '@sim/utils/random'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { Progress } from '@/components/ui/progress'
 import { isApiClientError } from '@/lib/api/client/errors'
 import { requestJson } from '@/lib/api/client/request'
@@ -156,6 +157,7 @@ function SingleFileSelector({
   isDeleting,
   workflowSearchHighlight,
 }: SingleFileSelectorProps) {
+  const t = useTranslations('editor.subBlock.fileUpload')
   const displayLabel = `${truncateMiddle(file.name, 20, 12)} (${workspaceFileSizeLabel(file.size)})`
   const [searchQuery, setSearchQuery] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -188,7 +190,7 @@ function SingleFileSelector({
           }
           onOpenChange(open)
         }}
-        placeholder={isLoading ? 'Loading files...' : 'Select or upload file'}
+        placeholder={isLoading ? t('loadingFiles') : t('selectOrUpload')}
         disabled={disabled || isDeleting}
         editable={true}
         filterOptions={isEditing}
@@ -205,7 +207,7 @@ function SingleFileSelector({
         }
       />
       <Button
-        aria-label='Remove file'
+        aria-label={t('removeFile')}
         type='button'
         variant='ghost'
         className='-translate-y-1/2 absolute top-1/2 right-[28px] z-10 size-6 p-0'
@@ -242,6 +244,7 @@ export function FileUpload({
   value: controlledValue,
   onValueChange,
 }: FileUploadProps) {
+  const t = useTranslations('editor.subBlock.fileUpload')
   const activeSearchTarget = useActiveSearchTarget()
   const [storeValue, setStoreValue] = useSubBlockValue(blockId, subBlockId)
   const isControlled = onValueChange !== undefined
@@ -510,10 +513,15 @@ export function FileUpload({
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       if (file.size > maxSizeInBytes) {
-        const errorMessage = `${file.name} exceeds the maximum file size of ${maxSizeLabel}`
-        logger.error(errorMessage, activeWorkflowId)
+        logger.error(
+          `${file.name} exceeds the maximum file size of ${maxSizeLabel}`,
+          activeWorkflowId
+        )
         if (!sizeExceededFile) {
-          sizeExceededFile = errorMessage
+          sizeExceededFile = t('fileTooLarge', {
+            name: file.name,
+            size: Math.round(maxSizeInBytes / (1024 * 1024)),
+          })
         }
       } else {
         validFiles.push(file)
@@ -572,7 +580,7 @@ export function FileUpload({
           })
         } catch (error) {
           logger.error(`Error uploading ${file.name}:`, error)
-          const errorMessage = getErrorMessage(error, 'Unknown error')
+          const errorMessage = getErrorMessage(error, t('unknownError'))
           uploadErrors.push(`${file.name}: ${errorMessage}`)
           setUploadError(errorMessage)
         }
@@ -758,7 +766,7 @@ export function FileUpload({
           </span>
         </div>
         <Button
-          aria-label='Remove file'
+          aria-label={t('removeFile')}
           type='button'
           variant='ghost'
           className='-translate-y-1/2 absolute top-1/2 right-[4px] size-6 p-0'
@@ -801,7 +809,7 @@ export function FileUpload({
   const comboboxOptions = useMemo(
     () => [
       {
-        label: 'Upload New File',
+        label: t('uploadNewFile'),
         value: '__upload_new__',
         disabled: cloudUploadBlocked || folderScopeUploadBlocked,
       },
@@ -816,14 +824,14 @@ export function FileUpload({
         }
       }),
     ],
-    [availableWorkspaceFiles, acceptedTypes, cloudUploadBlocked, folderScopeUploadBlocked]
+    [t, availableWorkspaceFiles, acceptedTypes, cloudUploadBlocked, folderScopeUploadBlocked]
   )
 
   // Options for single file mode (includes all files, selected one will be highlighted)
   const singleFileOptions = useMemo(
     () => [
       {
-        label: 'Upload New File',
+        label: t('uploadNewFile'),
         value: '__upload_new__',
         disabled: cloudUploadBlocked || folderScopeUploadBlocked,
       },
@@ -837,7 +845,7 @@ export function FileUpload({
         }
       }),
     ],
-    [scopedWorkspaceFiles, acceptedTypes, cloudUploadBlocked, folderScopeUploadBlocked]
+    [t, scopedWorkspaceFiles, acceptedTypes, cloudUploadBlocked, folderScopeUploadBlocked]
   )
 
   // Find the selected file's workspace ID for highlighting in single file mode
@@ -892,16 +900,11 @@ export function FileUpload({
       />
 
       {showCloudStorageWarning && (
-        <div className='mb-2 text-muted-foreground text-xs'>
-          Cloud storage (S3 or Blob) is required for file uploads. Configure S3_BUCKET_NAME and
-          AWS_REGION, or Azure Blob env vars.
-        </div>
+        <div className='mb-2 text-muted-foreground text-xs'>{t('cloudStorageRequired')}</div>
       )}
 
       {folderScopeUploadBlocked && !loadingFolderScope && (
-        <div className='mb-2 text-muted-foreground text-xs'>
-          Choose one available folder to upload a new file. Existing files can still be selected.
-        </div>
+        <div className='mb-2 text-muted-foreground text-xs'>{t('folderScopeUploadBlocked')}</div>
       )}
 
       {/* Error message */}
@@ -928,7 +931,7 @@ export function FileUpload({
                   indicatorClassName='bg-foreground'
                 />
                 <div className='mt-1 text-center text-muted-foreground text-xs'>
-                  {uploadProgress < 100 ? 'Uploading...' : 'Upload complete!'}
+                  {uploadProgress < 100 ? t('uploading') : t('uploadComplete')}
                 </div>
               </div>
             </>
@@ -945,7 +948,7 @@ export function FileUpload({
           onOpenChange={(open) => {
             if (open) void refetchWorkspaceFiles()
           }}
-          placeholder={loadingWorkspaceFiles ? 'Loading files...' : '+ Add More'}
+          placeholder={loadingWorkspaceFiles ? t('loadingFiles') : t('addMore')}
           disabled={disabled || loadingWorkspaceFiles}
           editable={true}
           filterOptions={true}
@@ -987,7 +990,7 @@ export function FileUpload({
           onOpenChange={(open) => {
             if (open) void refetchWorkspaceFiles()
           }}
-          placeholder={loadingWorkspaceFiles ? 'Loading files...' : 'Select or upload file'}
+          placeholder={loadingWorkspaceFiles ? t('loadingFiles') : t('selectOrUpload')}
           disabled={disabled || loadingWorkspaceFiles}
           editable={true}
           filterOptions={true}

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 
 export interface ChatFile {
   id: string
@@ -17,6 +18,7 @@ export const MAX_CHAT_FILE_SIZE_BYTES = 10 * 1024 * 1024
  * Manages file state, validation, and drag-drop functionality
  */
 export function useChatFileUpload() {
+  const t = useTranslations('editor.runPanels.chat')
   const [chatFiles, setChatFiles] = useState<ChatFile[]>([])
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const [dragCounter, setDragCounter] = useState(0)
@@ -27,55 +29,58 @@ export function useChatFileUpload() {
    * Validate and add files
    * Uses functional state update to avoid stale closure issues with rapid file additions
    */
-  const addFiles = useCallback((files: File[]) => {
-    setChatFiles((currentFiles) => {
-      const remainingSlots = Math.max(0, MAX_CHAT_FILES - currentFiles.length)
-      const candidateFiles = files.slice(0, remainingSlots)
-      const errors: string[] = []
-      const validNewFiles: ChatFile[] = []
+  const addFiles = useCallback(
+    (files: File[]) => {
+      setChatFiles((currentFiles) => {
+        const remainingSlots = Math.max(0, MAX_CHAT_FILES - currentFiles.length)
+        const candidateFiles = files.slice(0, remainingSlots)
+        const errors: string[] = []
+        const validNewFiles: ChatFile[] = []
 
-      for (const file of candidateFiles) {
-        // Check file size
-        if (file.size > MAX_CHAT_FILE_SIZE_BYTES) {
-          errors.push(`${file.name} is too large (max 10MB)`)
-          continue
+        for (const file of candidateFiles) {
+          // Check file size
+          if (file.size > MAX_CHAT_FILE_SIZE_BYTES) {
+            errors.push(t('fileTooLarge', { name: file.name }))
+            continue
+          }
+
+          // Check for duplicates against current files and newly added valid files
+          const isDuplicateInCurrent = currentFiles.some(
+            (existingFile) => existingFile.name === file.name && existingFile.size === file.size
+          )
+          const isDuplicateInNew = validNewFiles.some(
+            (newFile) => newFile.name === file.name && newFile.size === file.size
+          )
+          if (isDuplicateInCurrent || isDuplicateInNew) {
+            errors.push(t('fileAlreadyAdded', { name: file.name }))
+            continue
+          }
+
+          validNewFiles.push({
+            id: generateId(),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file,
+          })
         }
 
-        // Check for duplicates against current files and newly added valid files
-        const isDuplicateInCurrent = currentFiles.some(
-          (existingFile) => existingFile.name === file.name && existingFile.size === file.size
-        )
-        const isDuplicateInNew = validNewFiles.some(
-          (newFile) => newFile.name === file.name && newFile.size === file.size
-        )
-        if (isDuplicateInCurrent || isDuplicateInNew) {
-          errors.push(`${file.name} already added`)
-          continue
+        // Update errors outside the state setter to avoid nested state updates
+        if (errors.length > 0) {
+          // Use setTimeout to avoid state update during render
+          setTimeout(() => setUploadErrors(errors), 0)
+        } else if (validNewFiles.length > 0) {
+          setTimeout(() => setUploadErrors([]), 0)
         }
 
-        validNewFiles.push({
-          id: generateId(),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          file,
-        })
-      }
-
-      // Update errors outside the state setter to avoid nested state updates
-      if (errors.length > 0) {
-        // Use setTimeout to avoid state update during render
-        setTimeout(() => setUploadErrors(errors), 0)
-      } else if (validNewFiles.length > 0) {
-        setTimeout(() => setUploadErrors([]), 0)
-      }
-
-      if (validNewFiles.length > 0) {
-        return [...currentFiles, ...validNewFiles]
-      }
-      return currentFiles
-    })
-  }, [])
+        if (validNewFiles.length > 0) {
+          return [...currentFiles, ...validNewFiles]
+        }
+        return currentFiles
+      })
+    },
+    [t]
+  )
 
   /**
    * Remove a file

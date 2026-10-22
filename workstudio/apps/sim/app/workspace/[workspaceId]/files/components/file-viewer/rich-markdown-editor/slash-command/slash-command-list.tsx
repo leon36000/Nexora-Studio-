@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react'
 import type { Editor } from '@tiptap/core'
+import { useTranslations } from 'next-intl'
 import { SuggestionList } from '../menus/suggestion-list'
 import {
   type SuggestionKeyDownHandler,
@@ -23,6 +24,7 @@ interface SlashCommandListProps {
  */
 export const SlashCommandList = forwardRef<SlashCommandListHandle, SlashCommandListProps>(
   function SlashCommandList({ items, command, editor }, ref) {
+    const t = useTranslations('files.editor.slashCommands')
     const containerRef = useRef<HTMLDivElement>(null)
     const { activeIndex, setActiveIndex, onKeyDown } = useSuggestionKeyboard(
       items,
@@ -34,12 +36,13 @@ export const SlashCommandList = forwardRef<SlashCommandListHandle, SlashCommandL
     const groups = useMemo(() => {
       const ordered: { group: string; items: { item: SlashCommandItem; index: number }[] }[] = []
       items.forEach((item, index) => {
-        const bucket = ordered.find((g) => g.group === item.group)
+        const group = t(`groups.${item.group}`)
+        const bucket = ordered.find((g) => g.group === group)
         if (bucket) bucket.items.push({ item, index })
-        else ordered.push({ group: item.group, items: [{ item, index }] })
+        else ordered.push({ group, items: [{ item, index }] })
       })
       return ordered
-    }, [items])
+    }, [items, t])
 
     return (
       <SuggestionList
@@ -49,16 +52,16 @@ export const SlashCommandList = forwardRef<SlashCommandListHandle, SlashCommandL
         activeIndex={activeIndex}
         setActiveIndex={setActiveIndex}
         command={command}
-        ariaLabel='Commands'
+        ariaLabel={t('ariaLabel')}
         idPrefix='slash-command'
-        emptyLabel='No results'
-        itemKey={(item) => item.title}
+        emptyLabel={t('noResults')}
+        itemKey={(item) => item.id}
         renderItem={(item) => {
           const Icon = item.icon
           return (
             <>
               <Icon />
-              <span>{item.title}</span>
+              <span>{t(`items.${item.id}`)}</span>
               {item.shortcut && (
                 <span className='ml-auto shrink-0 pl-4 text-[var(--text-subtle)] text-micro'>
                   {item.shortcut}

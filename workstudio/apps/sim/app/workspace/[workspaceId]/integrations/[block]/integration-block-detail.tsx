@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Chip, ChipDropdown, ChipLink, cn } from '@sim/emcn'
 import { ArrowLeft, Plus } from '@sim/emcn/icons'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { HEADER_ACTION_CLUSTER, PAGE_HEADER_BAR } from '@/components/page-header-bar'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
@@ -61,6 +62,7 @@ interface IntegrationBlockDetailProps {
 }
 
 export function IntegrationBlockDetail({ integration, workspaceId }: IntegrationBlockDetailProps) {
+  const t = useTranslations('integrations.detail')
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   useOAuthReturnRouter()
   const router = useRouter()
@@ -114,7 +116,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
     serviceAccountDeploymentAvailable &&
     Boolean(serviceAccountTarget) &&
     !serviceAccountTarget?.hidden
-  const serviceAccountConnectLabel = serviceAccountTarget?.label ?? 'Add service account'
+  const serviceAccountConnectLabel = serviceAccountTarget?.label ?? t('addServiceAccount')
   const hasHandledConnectQueryRef = useRef(false)
 
   useEffect(() => {
@@ -153,7 +155,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
           ? [
               {
                 value: CONNECT_MODE.oauth,
-                label: 'Connect with OAuth',
+                label: t('connectWithOAuth'),
                 icon: oauthService.serviceIcon,
               },
             ]
@@ -176,7 +178,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
   }
 
   const handleAddInChat = () => {
-    storeCuratedPrompt(`Explore ${integration.name}. What can I do?`)
+    storeCuratedPrompt(t('explorePrompt', { name: integration.name }))
     router.push(`/workspace/${workspaceId}/home`)
   }
 
@@ -184,19 +186,19 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
     <div className='flex h-full flex-col bg-[var(--bg)]'>
       <div className={PAGE_HEADER_BAR}>
         <ChipLink href={`/workspace/${workspaceId}/integrations`} leftIcon={ArrowLeft}>
-          Integrations
+          {t('back')}
         </ChipLink>
         <div className={cn('ml-auto', HEADER_ACTION_CLUSTER)}>
           {personalTokenAvailable ? (
             <Chip variant='primary' leftIcon={Plus} onClick={() => setPersonalTokenOpen(true)}>
-              Add personal token
+              {t('addPersonalToken')}
             </Chip>
           ) : oauthService ? (
             connectOptions.length > 1 ? (
               <ChipDropdown
                 variant='primary'
                 leftIcon={Plus}
-                placeholder='Add to Nexora'
+                placeholder={t('addToNexora')}
                 showSelectedCheck={false}
                 options={connectOptions}
                 onChange={handleSelectConnectOption}
@@ -204,18 +206,18 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
               />
             ) : oauthAvailable ? (
               <Chip variant='primary' leftIcon={Plus} onClick={() => setOAuthOpen(true)}>
-                Add to Nexora
+                {t('addToNexora')}
               </Chip>
             ) : hasServiceAccount ? (
               <Chip variant='primary' leftIcon={Plus} onClick={() => setServiceAccountOpen(true)}>
                 {serviceAccountConnectLabel}
               </Chip>
             ) : (
-              <Chip disabled>Unavailable</Chip>
+              <Chip disabled>{t('unavailable')}</Chip>
             )
           ) : chatEnabled ? (
             <Chip variant='primary' leftIcon={Plus} onClick={handleAddInChat}>
-              Add to Nexora
+              {t('addToNexora')}
             </Chip>
           ) : null}
         </div>
@@ -275,7 +277,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
           </div>
 
           {connectedCredentials.length > 0 && (
-            <IntegrationSection label='Connected'>
+            <IntegrationSection label={t('connected')}>
               {connectedCredentials.map((credential) => (
                 <SettingsResourceRow
                   key={credential.id}
@@ -286,7 +288,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
                     credential.description || resolveCredentialDisplay(credential).subtitle
                   }
                   href={`/workspace/${workspaceId}/integrations/connected/${credential.id}`}
-                  clickLabel={`Open ${credential.displayName}`}
+                  clickLabel={t('open', { name: credential.displayName })}
                   navigable
                 />
               ))}
@@ -323,6 +325,7 @@ interface TemplatesSectionProps {
 }
 
 function TemplatesSection({ integration, templates, workspaceId }: TemplatesSectionProps) {
+  const t = useTranslations('integrations.detail')
   const router = useRouter()
 
   const handleSelect = (prompt: string) => {
@@ -331,7 +334,7 @@ function TemplatesSection({ integration, templates, workspaceId }: TemplatesSect
   }
 
   return (
-    <SettingsSection label='Templates'>
+    <SettingsSection label={t('templates')}>
       <div className={RESOURCE_LIST_STACK}>
         {templates.map((template) => {
           const blockTypes = [integration.type, ...template.otherBlockTypes].slice(
@@ -366,6 +369,7 @@ interface TemplateRowProps {
  * than links, and its leading visual is an overlapping block cluster.
  */
 function TemplateRow({ blockTypes, title, prompt, onSelect }: TemplateRowProps) {
+  const t = useTranslations('integrations.detail')
   return (
     <SettingsResourceRow
       iconVariant='custom'
@@ -373,7 +377,7 @@ function TemplateRow({ blockTypes, title, prompt, onSelect }: TemplateRowProps) 
       title={title}
       description={prompt}
       onClick={() => onSelect(prompt)}
-      clickLabel={`Use template ${title}`}
+      clickLabel={t('useTemplate', { title })}
       navigable
     />
   )

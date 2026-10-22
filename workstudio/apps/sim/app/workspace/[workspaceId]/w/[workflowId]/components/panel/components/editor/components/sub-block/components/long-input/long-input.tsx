@@ -10,6 +10,7 @@ import {
 import { cn, Textarea } from '@sim/emcn'
 import { ChevronsUpDown } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
+import { useTranslations } from 'next-intl'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/editor/components/sub-block/components/formatted-text'
 import {
@@ -105,6 +106,7 @@ export function LongInput({
   hideInternalWand = false,
   workflowSearchValuePath = [],
 }: LongInputProps) {
+  const t = useTranslations('editor.subBlock.common')
   const activeSearchTarget = useActiveSearchTarget()
   // Local state for immediate UI updates during streaming
   const [localContent, setLocalContent] = useState<string>('')
@@ -322,7 +324,7 @@ export function LongInput({
           onSubmit={(prompt: string) => wandHook.generateStream({ prompt })}
           onCancel={wandHook.isStreaming ? wandHook.cancelGeneration : wandHook.hidePromptInline}
           onChange={wandHook.updatePromptValue}
-          placeholder={config.wandConfig?.placeholder || 'Describe what you want to generate...'}
+          placeholder={config.wandConfig?.placeholder || t('describeToGenerate')}
         />
       )}
 
@@ -410,7 +412,7 @@ export function LongInput({
                         : wandHook.showPromptInline
                     }
                     disabled={wandHook.isLoading || wandHook.isStreaming || disabled}
-                    aria-label='Generate content with AI'
+                    aria-label={t('generateContentWithAi')}
                   />
                 </div>
               )}

@@ -3,8 +3,12 @@
 import { Chip } from '@sim/emcn'
 import { Check } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import {
-  OAUTH_SCOPE_DESCRIPTIONS,
+  OAUTH_API_READ_SCOPE,
+  OAUTH_API_WRITE_SCOPE,
+  OAUTH_SEARCH_READ_SCOPE,
+  type OAuthScope,
   SIM_CLI_CLIENT_ID,
   visibleOAuthScopes,
 } from '@/lib/auth/oauth-provider'
@@ -24,12 +28,13 @@ import {
 
 export type OAuthConsentRefusal = 'expired' | 'missing' | 'tampered' | 'unsigned'
 
-const REFUSAL_MESSAGES: Record<OAuthConsentRefusal, string> = {
-  expired: 'This authorization request has expired. Start sign-in again from the app.',
-  missing: 'The authorization request is missing its client identifier.',
-  tampered: 'This authorization request was altered on its way here.',
-  unsigned: 'This authorization request did not come from Nexora.',
-}
+/** The `oauthConsent.scopes` message describing each scope on the consent page. */
+const SCOPE_MESSAGE_KEYS = {
+  offline_access: 'offlineAccess',
+  [OAUTH_API_READ_SCOPE]: 'apiRead',
+  [OAUTH_API_WRITE_SCOPE]: 'apiWrite',
+  [OAUTH_SEARCH_READ_SCOPE]: 'searchRead',
+} as const satisfies Record<OAuthScope, string>
 
 interface OAuthConsentViewProps {
   /** Set when the page already knows the request is not a real one. */
@@ -46,15 +51,18 @@ interface OAuthConsentViewProps {
 
 /**
  * Shows the redirect host beside the app name to help identify impersonation;
- * names loopback callbacks as this computer.
+ * loopback callbacks are named as this computer.
  */
-function describeDestination(redirectUri: string | null): string | null {
+function describeDestination(
+  redirectUri: string | null
+): { hostname: string; isLoopback: boolean } | null {
   if (!redirectUri) return null
   try {
     const { hostname } = new URL(redirectUri)
-    return hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
-      ? 'this computer'
-      : hostname
+    return {
+      hostname,
+      isLoopback: hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1',
+    }
   } catch {
     return null
   }
@@ -72,6 +80,7 @@ export function OAuthConsentView({
   redirectUri,
   email,
 }: OAuthConsentViewProps) {
+  const t = useTranslations('auth.oauthConsent')
   const client = useOAuthPublicClient(clientId ?? undefined, authorizationRequestKey ?? undefined)
   const consent = useOAuthConsent()
   const switchAccount = useOAuthSwitchAccount()
@@ -81,14 +90,9 @@ export function OAuthConsentView({
   if (reason || client.isError) {
     return (
       <AuthHeader
-        title='Unable to connect'
+        title={t('unableToConnect')}
         description={
-          reason
-            ? REFUSAL_MESSAGES[reason]
-            : getErrorMessage(
-                client.error,
-                'Nexora could not identify the app. Start again from the app.'
-              )
+          reason ? t(`refusals.${reason}`) : getErrorMessage(client.error, t('unidentifiedClient'))
         }
       />
     )
@@ -100,12 +104,7 @@ export function OAuthConsentView({
   /** Uses only the server-registered name; the client ID comes from the URL. */
   const appName = client.data?.name?.trim()
   if (!appName) {
-    return (
-      <AuthHeader
-        title='Unable to connect'
-        description='Nexora could not identify the app. Start again from the app asking for access.'
-      />
-    )
+    return <AuthHeader title={t('unableToConnect')} description={t('unnamedClient')} />
   }
   const scopes = visibleOAuthScopes((scope ?? '').split(' ').filter(Boolean))
   const destination = describeDestination(redirectUri)
@@ -135,8 +134,8 @@ export function OAuthConsentView({
   return (
     <div className='space-y-6'>
       <AuthHeader
-        title={`Authorize ${appName}`}
-        description={isCli ? undefined : 'Only continue if you started this yourself.'}
+        title={t('title', { appName })}
+        description={isCli ? undefined : t('description')}
       />
       <div className='space-y-4'>
         {scopes.length > 0 && (
@@ -147,7 +146,7 @@ export function OAuthConsentView({
                   aria-hidden='true'
                   className='mt-[3px] size-[14px] shrink-0 text-[var(--text-icon)]'
                 />
-                <span>{OAUTH_SCOPE_DESCRIPTIONS[item]}</span>
+                <span>{t(`scopes.${SCOPE_MESSAGE_KEYS[item]}`)}</span>
               </li>
             ))}
           </ul>
@@ -156,10 +155,10 @@ export function OAuthConsentView({
           type='button'
           loading={consent.isPending && consent.variables === true}
           disabled={isPending}
-          loadingLabel='Authorizing'
+          loadingLabel={t('authorizing')}
           onClick={() => decide(true)}
         >
-          Allow
+          {t('allow')}
         </AuthSubmitButton>
         <Chip
           type='button'
@@ -169,27 +168,26 @@ export function OAuthConsentView({
           className={AUTH_BUTTON_CLASS}
           onClick={() => decide(false)}
         >
-          {consent.isPending && consent.variables === false ? 'Declining…' : 'Deny'}
+          {consent.isPending && consent.variables === false ? t('declining') : t('deny')}
         </Chip>
         {!isCli && destination && (
           <p className='break-words text-center text-[var(--text-muted)] text-caption'>
-            Returns to {destination}.
+            {t('returnsTo', {
+              destination: destination.isLoopback ? t('thisComputer') : destination.hostname,
+            })}
           </p>
         )}
         {(consent.isError || switchAccount.isError) && (
           <div role='alert'>
             <AuthFormMessage type='error' align='center'>
-              {getErrorMessage(
-                consent.error ?? switchAccount.error,
-                'Something went wrong. Please try again.'
-              )}
+              {getErrorMessage(consent.error ?? switchAccount.error, t('genericError'))}
             </AuthFormMessage>
           </div>
         )}
         <p className='break-words text-center text-[var(--text-muted)] text-caption'>
-          Continuing as {email}.{' '}
+          {t('continuingAs', { email })}{' '}
           <AuthTextLink onClick={changeAccount} disabled={isPending}>
-            {switchAccount.isPending ? 'Signing out…' : 'Use another account'}
+            {switchAccount.isPending ? t('signingOut') : t('useAnotherAccount')}
           </AuthTextLink>
         </p>
       </div>
