@@ -54,17 +54,17 @@ Chemins utiles :
 
 **Fichiers** : `.gitignore`, `workstudio/**`, `workstudio/UPSTREAM.md`, `services/nexora-api/**` + `UPSTREAM.md`, `services/nexora-connect/**` + `UPSTREAM.md`, `THIRD_PARTY_NOTICES.md`, `NOTICE`.
 
-- [ ] Compléter `.gitignore` : `node_modules/`, `.next/`, `.turbo/`, `deploy/.env`, `**/.env`, `*.local.md`, `docs/recherche/mistral-studio/sources/`, `.claude/.ralph-loop.local.md`.
-- [ ] `git init -b main` à la racine du projet ; `git remote add origin https://github.com/leon36000/Nexora-Studio-.git` (aucun push).
-- [ ] Importer Sim :
+- [x] Compléter `.gitignore` : `node_modules/`, `.next/`, `.turbo/`, `deploy/.env`, `**/.env`, `*.local.md`, `docs/recherche/mistral-studio/sources/`, `.claude/.ralph-loop.local.md`.
+- [x] `git init -b main` à la racine du projet ; `git remote add origin https://github.com/leon36000/Nexora-Studio-.git` (aucun push).
+- [x] Importer Sim :
   - `git -C $S/sim-noee/sim archive v0.9.31 | tar -x -C workstudio --exclude='apps/sim/ee'` ;
   - copier les remplacements avec `cp -a $S/sim-noee/sim/apps/sim/ee workstudio/apps/sim/ee`.
-- [ ] Importer les services :
+- [x] Importer les services :
   - OpenGateLLM au commit `26583dc` et OpenConnector au commit `2d9a593`, par `git archive` depuis `$S/oss-deep/` ;
   - contrôle préalable que les deux SHA sont bien ceux des clones.
-- [ ] Rédiger `UPSTREAM.md` pour chaque composant (URL, version et SHA, licence, date, « fichiers modifiés : voir l'historique Git à partir du commit d'import »), et `THIRD_PARTY_NOTICES.md` (Sim Apache-2.0 + NOTICE, OpenGateLLM MIT, OpenConnector Apache-2.0).
-- [ ] Vérifier qu'aucun fichier d'environnement réel n'est importé (`.env`, clés) : `git status --porcelain | grep -i '\.env$'` doit être vide.
-- [ ] Commit `chore: import Sim v0.9.31 (sans ee/), OpenGateLLM, OpenConnector + remplacements salle blanche` sur `main`, puis `git switch -c workstudio-v1`.
+- [x] Rédiger `UPSTREAM.md` pour chaque composant (URL, version et SHA, licence, date, « fichiers modifiés : voir l'historique Git à partir du commit d'import »), et `THIRD_PARTY_NOTICES.md` (Sim Apache-2.0 + NOTICE, OpenGateLLM MIT, OpenConnector Apache-2.0).
+- [x] Vérifier qu'aucun fichier d'environnement réel n'est importé (`.env`, clés) : `git status --porcelain | grep -i '\.env$'` doit être vide.
+- [x] Commit `chore: import Sim v0.9.31 (sans ee/), OpenGateLLM, OpenConnector + remplacements salle blanche` sur `main`, puis `git switch -c workstudio-v1`.
 
 **Vérification** : `git log --oneline | head` ; `git ls-files workstudio/apps/sim/ee | wc -l` = 106 ; `du -sh .git`.
 
@@ -72,16 +72,16 @@ Chemins utiles :
 
 **Fichiers** : `scripts/check-no-ee.sh`, `scripts/check-licenses.sh`, `scripts/lib/ee-reference.sh`, `scripts/tests/*.bats` ou `scripts/tests/*.sh`.
 
-- [ ] Test d'abord : un faux fichier dans `ee/` sans en-tête doit faire échouer `check-no-ee.sh`. Un fichier dont le blob SHA-1 figure dans la liste de référence doit aussi le faire échouer.
-- [ ] Liste de référence :
+- [x] Test d'abord : un faux fichier dans `ee/` sans en-tête doit faire échouer `check-no-ee.sh`. Un fichier dont le blob SHA-1 figure dans la liste de référence doit aussi le faire échouer.
+- [x] Liste de référence :
   - le script génère les empreintes des blobs d'origine avec `git -C <clone> ls-tree -r v0.9.31 apps/sim/ee`, qui produit les SHA seuls, sans lire le contenu ;
   - il les stocke dans `scripts/data/sim-ee-blob-shas.txt` (empreintes seules, aucun contenu).
-- [ ] `check-no-ee.sh` vérifie trois choses :
+- [x] `check-no-ee.sh` vérifie trois choses :
   - (a) chaque fichier de `workstudio/apps/sim/ee/` porte l'en-tête ;
   - (b) aucun blob du dépôt (`git rev-list --objects --all`) ne figure dans la liste de référence ;
   - (c) aucun fichier du dépôt, hors `ee/`, n'a une empreinte présente dans la liste.
-- [ ] `check-licenses.sh` vérifie, pour chacun des trois composants, la présence de LICENSE, d'UPSTREAM.md et d'une entrée dans THIRD_PARTY_NOTICES ; et pour Sim, de NOTICE.
-- [ ] Commit.
+- [x] `check-licenses.sh` vérifie, pour chacun des trois composants, la présence de LICENSE, d'UPSTREAM.md et d'une entrée dans THIRD_PARTY_NOTICES ; et pour Sim, de NOTICE.
+- [x] Commit.
 
 **Vérification** : les deux scripts sortent avec 0 sur le dépôt et avec 1 sur les cas de test.
 
