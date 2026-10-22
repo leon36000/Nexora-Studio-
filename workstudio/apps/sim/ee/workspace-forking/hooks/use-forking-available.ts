@@ -1,5 +1,4 @@
 // Nexora clean-room replacement — written from core call sites only, Apache-2.0 core untouched.
-'use client'
 
 export const FORK_AVAILABILITY_STALE_TIME = 5 * 60 * 1000
 

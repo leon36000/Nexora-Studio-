@@ -194,6 +194,14 @@ services:
       NEXT_PUBLIC_AUDIT_LOGS_ENABLED: 'true'
       USAGE_MONITORING_ENABLED: 'true'
       NEXT_PUBLIC_USAGE_MONITORING_ENABLED: 'true'
+      # Upstream features enabled by default on self-hosted that Nexora v1 does not ship
+      # (the mailer needs a copilot backend; branding and session policies have no settings UI).
+      INBOX_ENABLED: 'false'
+      NEXT_PUBLIC_INBOX_ENABLED: 'false'
+      WHITELABELING_ENABLED: 'false'
+      NEXT_PUBLIC_WHITELABELING_ENABLED: 'false'
+      SESSION_POLICIES_ENABLED: 'false'
+      NEXT_PUBLIC_SESSION_POLICIES_ENABLED: 'false'
       # Optional single sign-on (OIDC) and outgoing email.
       NEXT_PUBLIC_NEXORA_OIDC_NAME: ${NEXORA_OIDC_NAME:-}
       NEXORA_OIDC_ISSUER: ${NEXORA_OIDC_ISSUER:-}

@@ -184,3 +184,21 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - `docker compose -f deploy/compose.yml --env-file deploy/.env up -d` (ports 3200/3202/8000/8400 sur 127.0.0.1, l'instance du test occupant 3000/3002) : 7 services sains, `nexora-bootstrap` et `workstudio-migrations` terminés avec le code 0 (« WorkStudio key ready »). Démarrage en 18 s une fois les images construites.
   - **Fumée sur le déploiement : 11/11** en 29 s (rapport `docs/verification/smoke-deploy-2026-10-22.json`) : inscription, interface `lang="fr"` sans marque tierce, 5 modèles PME, Nexora Connect et 5 outils, 5 exécutions réelles par Nexora API (Ollama qwen2.5:7b via le relais), consommation (6 requêtes, 2 124 jetons), journal d'audit.
   - Images arm64 locales : `nexora/workstudio` 4,87 Go, `workstudio-realtime` 1,34 Go, `workstudio-migrations` 1,12 Go, `connect` 603 Mo, `api` 544 Mo. amd64 : workflow de CI à écrire (R3).
+- 22/10/2026 — **Tâche 15, vérification visuelle (navigateur)** :
+  - **Défaut trouvé et corrigé** : après connexion, l'espace affichait « Une erreur est survenue ». Le smoke ne le voyait pas, car il passe uniquement par l'API.
+    - Cause : notre remplacement `ee/workspace-forking/hooks/use-forking-available.ts` portait `'use client'` alors que le pré-chargement serveur (`prefetch.ts`) en appelle `forkAvailabilityKeys.detail`. Côté serveur, cela donne une référence client et non une fonction (« is not a function »).
+    - Correctif : directive retirée (le module n'utilise aucun hook React). `bun run check:client-boundary` passe.
+    - Balayage complémentaire des modules `ee/` en `'use client'` importés par des fichiers serveur : un seul autre cas (`section-warmers.ts`), uniquement appelé côté client, donc sans risque.
+  - Contrôlé sur l'instance de développement :
+    - connexion en français avec le bouton SSO ;
+    - barre latérale (« Nouveau workflow », « Intégrations », « Tables », « Fichiers », « Bases de connaissances », « Journaux », dossier « Modèles PME ») ;
+    - éditeur (« Déployer », « Exécuter », « Barre d'outils », « Éditeur », messages « Système » et « Utilisateur ») ; le bloc Agent « Devis » est sur `vllm/nexora-qwen` ;
+    - réglages (Langue : Français ; « Membres », « Consommation », « Journaux d'audit ») ;
+    - Consommation : 11 requêtes et 3 366 jetons, au format français ;
+    - journal d'audit : connexion, espace, dossier, 5 workflows et organisation.
+  - Restes relevés (après la v1) :
+    - libellés de canevas des blocs (« Prompt », « with », « On error ») ;
+    - descriptions d'audit générées en anglais (« Created workflow… ») ;
+    - bloc « Nexora Chat » (ex-Sim Chat, dépend du copilot) encore visible dans la barre d'outils, à masquer ;
+    - sections « Nexora Mailer » et « Marque blanche » visibles sans être utiles en v1.
+  - `bun run check:audits` : 12 audits du dépôt échouaient (métadonnées générées périmées, `any` dans nos remplacements `ee/`, motifs de test, exports inutilisés…). Le chantier est confié à un sous-agent.
