@@ -152,3 +152,14 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - suite unitaire complète : **3 337 fichiers, 37 852 tests verts**, 50 en « skip » ;
   - contrôles verts : `check-no-ee` (32 201 fichiers), `check-licenses`, `check-brand` (23 025 fichiers, workstudio + services), `check-i18n` (1 043 fichiers), tests des scripts et de l'amorçage.
   - Les tâches 6 et 10 sont cochées, ainsi que 9.2 et 9.3. 9.1 attend le test réel du SSO.
+- 22/10/2026 — **Tâche 9 terminée (9.1 SSO testé en réel).**
+  - Keycloak 26.0.7 jetable (`nexora-dev-keycloak`, 127.0.0.1:18080) : royaume `pme`, client confidentiel `workstudio`, utilisatrice `marie`.
+  - Premier essai : 403. Le cœur réserve `/sign-in/oauth2` à Google, GitHub et Microsoft, pour éviter qu'un connecteur d'intégration multi-locataire ne serve à usurper un compte (« nOAuth »). Correctif : `isSignInProviderAllowed` accepte aussi `nexora-oidc`, émetteur unique configuré par l'opérateur (test écrit avant le code, 15/15 ; `lib/auth` 39 fichiers et 439 tests verts).
+  - Parcours réel en HTTP (script dans le scratchpad) : URL d'autorisation avec PKCE, formulaire Keycloak, callback, puis **session ouverte pour marie.durand@pme-exemple.fr**, redirigée vers `/workspace`. Le seul ajustement concernait le script : il traite `localhost` comme un contexte sûr, comme le fait un navigateur.
+  - La page de connexion affiche « Se connecter avec Keycloak PME » (et « Sign in with … » en anglais).
+- 22/10/2026 — **Tâche 12, construction des images** :
+  - `uv.lock` de Nexora API régénéré, avec les versions inchangées : le renommage du paquet cassait `uv sync --locked`.
+  - Le verrou npm de Connect (déjà ainsi chez OpenConnector) pointait vers `registry.npmmirror.com`, inaccessible ; l'entrée est remplacée par l'URL npmjs, d'empreinte d'intégrité identique.
+  - Images arm64 construites : `nexora/api`, `nexora/workstudio-realtime`, `nexora/workstudio-migrations`. `connect` et `workstudio` sont en cours.
+  - Disque : 34 Go libres, 97 %. Seules les images du test que j'avais téléchargées (etalab) ont été supprimées ; le cache et les images des autres usages ne sont pas touchés.
+- Connu, pour après la v1 : `NextIntlClientProvider` envoie tous les messages au client (≈ 260 Ko non compressés sur `/login`). Il faudra les limiter par zone.

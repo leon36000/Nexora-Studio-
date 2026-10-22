@@ -1,3 +1,5 @@
+import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
+
 /**
  * Provider IDs permitted to authenticate (create or link a session) through the
  * unauthenticated sign-in endpoints `/sign-in/social` and `/sign-in/oauth2`.
@@ -11,6 +13,9 @@
  * multi-tenant IdP asserting an attacker-controlled, unverified email mints a
  * session for the matching existing user. SSO uses a separate `/sign-in/sso`
  * endpoint and is unaffected by this list.
+ *
+ * Nexora edition: the company identity provider (`nexora-oidc`) may also sign in. It is a
+ * single, operator-configured OpenID Connect issuer, not a multi-tenant integration.
  */
 export const SIGN_IN_PROVIDER_IDS = ['google', 'github', 'microsoft'] as const
 
@@ -22,7 +27,10 @@ const signInProviderIdSet: ReadonlySet<string> = new Set(SIGN_IN_PROVIDER_IDS)
  * only ever be connected through the authenticated link flow.
  */
 export function isSignInProviderAllowed(providerId: unknown): boolean {
-  return typeof providerId === 'string' && signInProviderIdSet.has(providerId)
+  return (
+    typeof providerId === 'string' &&
+    (signInProviderIdSet.has(providerId) || providerId === NEXORA_OIDC_PROVIDER_ID)
+  )
 }
 
 /**

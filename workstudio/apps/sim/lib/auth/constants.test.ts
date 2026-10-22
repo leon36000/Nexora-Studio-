@@ -17,6 +17,10 @@ describe('sign-in provider allowlist', () => {
     }
   })
 
+  it('allows the company identity provider configured by the operator (Nexora edition)', () => {
+    expect(isSignInProviderAllowed('nexora-oidc')).toBe(true)
+  })
+
   it('rejects integration connectors from the sign-in endpoints', () => {
     const connectors = [
       'microsoft-ad',

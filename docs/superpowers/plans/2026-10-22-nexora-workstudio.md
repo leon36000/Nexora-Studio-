@@ -204,7 +204,7 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 ## Tâche 9 — Gouvernance : SSO OIDC, journal d'audit, consommation
 
-- [ ] 9.1 SSO OIDC :
+- [x] 9.1 SSO OIDC :
   - examiner ce que fait notre remplacement `ee/sso` et ce que le cœur attend ;
   - activer le plugin `genericOAuth` de Better Auth (ou l'équivalent du cœur) depuis `NEXORA_OIDC_ISSUER`, `NEXORA_OIDC_CLIENT_ID`, `NEXORA_OIDC_CLIENT_SECRET` et `NEXORA_OIDC_NAME` ;
   - bouton « Se connecter avec <nom> » sur la page de connexion ;
