@@ -12,6 +12,9 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
 | R4 | 22/10/2026 | 4 | Liens de documentation : `docsUrl()` ; à défaut de `NEXT_PUBLIC_DOCUMENTATION_URL`, renvoi vers le guide du dépôt | Nexora n'a pas encore de site de documentation |
 | R5 | 22/10/2026 | 15 | Modèle de test servi par un conteneur `nexora-dev-ollama` (`ollama/ollama:0.12.6`, modèles de `~/.ollama` montés en lecture seule, écoute sur 172.17.0.1:18141, CPU) | Après le redémarrage de pc6 (14 h 31), l'Ollama préinstallé et vLLM ne tournent plus et le binaire d'Ollama est absent ; aucun réglage système n'est touché |
 | R6 | 22/10/2026 | 15 | Dès que le SSO est configuré, l'inscription par e-mail et mot de passe est fermée ; l'OIDC n'est pas un fournisseur de confiance | Empêche la pré-inscription d'une adresse de salarié avant sa première connexion SSO (prise de compte) |
+| R7 | 22/10/2026 | 15 | Organisation d'instance activée par défaut (`NEXORA_ORGANIZATION_NAME`, `INSTANCE_ORG_*` d'origine) ; fondation d'organisation refusée dans ce mode ; consommation réservée aux administrateurs de cette organisation | Revue finale : sans cela, tout inscrit pouvait fonder sa propre organisation et lire la consommation de toute l'instance |
+| R8 | 22/10/2026 | 16 | Installation « comme OpenClaw » : `install.sh` + commande `nexora`, images GHCR (`latest`, `edge`), Ollama en profil compose | Demande du fondateur (« un container peu importe, tant que c'est facile ») |
+| R9 | 22/10/2026 | 16 | L'amorçage resynchronise le fournisseur du modèle avec `deploy/.env` à chaque démarrage | Nexora API ne lit sa liste de modèles qu'au premier démarrage : un modèle changé ensuite n'était jamais appliqué |
 
 ## Journal
 
@@ -240,4 +243,18 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - `compose up -d` : 7 services sains ; amorçage « WorkStudio key ready » ; la clé de WorkStudio appartient à `workstudio@nexora.local`, sans aucune permission (`permissions: []`), avec 4 limites explicites.
   - Aucun fichier `.env` dans l'image `nexora/workstudio:local`.
   - `scripts/smoke.sh http://localhost:3200` : **11/11** (rapport `docs/verification/smoke-deploy-2026-10-22.json`) ; 5 modèles PME exécutés par `qwen2.5:7b` via Nexora API (de 5,9 à 33,4 s, sur processeur) ; consommation refusée hors organisation, puis visible au propriétaire.
+- 22/10/2026 — **Revue finale** (sous-agent, `83c6f006..f1f5fe22`) : « With fixes ».
+  - (1) Contournement de la consommation en fondant sa propre organisation → R7. (2) Fondateur bloqué si le rattachement échoue → création idempotente (rattachement rejoué, `created: false`).
+  - Mineurs traités : émetteur OIDC laissé à la découverte ; SSO actif seulement avec un nom de bouton ; page d'erreur de connexion traduite (et `issuer_mismatch`) ; Entra ID et collaborateurs externes documentés ; texte « Nexora Cloud Free » retiré des sorties OpenAPI/MCP/CLI ; message 403 en style neutre ; identifiant d'organisation sans accents.
+  - Non retenus : remettre les exports supprimés par le sous-agent des audits (le contrôle knip est vert, réintroduire serait du bruit) ; test qui câble `auth.ts` entier (module trop lourd ; le constructeur et `env-flags` sont testés).
+  - Vérification : tsc 0 ; 3 341 fichiers / 37 867 tests ; 60 audits ; contrôles du dépôt OK. Image reconstruite (`88a820e2`), pile pc6 redéployée avec l'organisation « PME Démo » (propriétaire `admin@nexora.test`, secret dans `scripts/dev/.secrets`, ignoré) : **fumée 11/11** — le membre jetable reçoit 409 (fonder) et 403 (consommation), l'administrateur lit l'audit (`workspace.created` du membre) et la consommation.
+- 22/10/2026 — **Tâche 16, installation en une commande** (`dc661bea`, `b45e64eb`).
+  - Le fondateur : « Tu ne fabriques pas l'app sur https://github.com/leon36000/Nexora-Studio- et j'aimerais que Nexora WorkStudio s'installe comme un openclaw », puis « Ou un container, peu importe, tant que ça soit facile ». Le dépôt GitHub est public et vide : **aucun push sans son accord explicite**.
+  - `install.sh` + commande `nexora` ; 42 tests shell (faux docker/curl) ; amorçage : 10 tests.
+  - Essai réel sur pc6 (projet `nexora-itest`, ports 3300/3302/8100/8500, images locales réétiquetées) :
+    - 1er essai : repli mal conçu (un service en échec pris pour des images absentes → reconstruction de 30 Go) et Nexora API planté au démarrage (Ollama sans modèle renvoie `data: null`). Corrigés et testés.
+    - 2e essai : installation réussie sans construction (Ollama d'abord, modèle téléchargé, API saine, WorkStudio prêt) ; inscription, français, modèles PME, Connect, audit OK. Les exécutions échouent : `qwen2.5:0.5b` boucle jusqu'à la limite de contexte.
+    - `nexora update` : paquet rafraîchi, configuration gardée ; l'amorçage a réorienté le modèle vers `qwen2.5:7b` de l'hôte (découverte de R9).
+    - Exécutions toujours en échec : la machine est saturée par des processus qui ne sont pas les nôtres (`rustc`, `decompile`) ; le 7b tombe à 0,17 jeton/s. **Fumée 11/11 de l'instance installée à refaire quand la charge baisse.**
+  - Disque : 59 → 28 Go libres pendant les essais ; ménage de mon cache de construction (par identifiant, entrées créées depuis le 21/10) → 80 Go libres.
 
