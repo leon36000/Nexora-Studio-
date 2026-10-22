@@ -41,6 +41,31 @@ vi.mock('@/app/_styles/fonts/inter/inter', () => ({
   inter: { className: 'test-inter-font', variable: 'test-inter-variable' },
 }))
 
+/**
+ * Interface copy is read through next-intl. Unit tests get the real English
+ * messages without a provider, so assertions on rendered text keep their meaning.
+ * The factories run only in files that reach next-intl.
+ */
+vi.mock('next-intl', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next-intl')>()
+  const { MESSAGES } = await import('@/i18n/messages')
+  return {
+    ...actual,
+    useLocale: () => 'en',
+    useTranslations: (namespace?: string) =>
+      actual.createTranslator({ locale: 'en', messages: MESSAGES.en, namespace }),
+  }
+})
+vi.mock('next-intl/server', async () => {
+  const { createTranslator } = await import('next-intl')
+  const { MESSAGES } = await import('@/i18n/messages')
+  return {
+    getLocale: async () => 'en',
+    getTranslations: async (namespace?: string) =>
+      createTranslator({ locale: 'en', messages: MESSAGES.en, namespace }),
+  }
+})
+
 vi.mock('@sim/db', () => databaseMock)
 vi.mock('@sim/db/schema', () => schemaMock)
 vi.mock('drizzle-orm', () => drizzleOrmMock)

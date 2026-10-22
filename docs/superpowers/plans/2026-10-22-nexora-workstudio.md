@@ -142,10 +142,10 @@ Chemins utiles :
 - `app/layout.tsx` : `NextIntlClientProvider`, `<html lang>` ;
 - sélecteur de langue dans Réglages > Général.
 
-- [ ] Test : la résolution de la locale (cookie fr / en / absent / invalide, et `Accept-Language`) renvoie la bonne valeur ; les clés de `fr.json` et `en.json` sont identiques (test de parité).
-- [ ] Ajouter la dépendance `next-intl` (MIT) au `package.json` d'`apps/sim`, puis `bun install`.
-- [ ] Pas de routage par préfixe de locale : ne pas toucher aux routes.
-- [ ] `scripts/check-i18n.sh` :
+- [x] Test : la résolution de la locale (cookie fr / en / absent / invalide, et `Accept-Language`) renvoie la bonne valeur ; les clés de `fr.json` et `en.json` sont identiques (test de parité).
+- [x] Ajouter la dépendance `next-intl` (MIT) au `package.json` d'`apps/sim`, puis `bun install`.
+- [x] Pas de routage par préfixe de locale : ne pas toucher aux routes.
+- [x] `scripts/check-i18n.sh` :
   - cherche le texte JSX anglais en dur (regex `>\s*[A-Z][a-z]+( [a-z]+)*\s*<` et attributs `placeholder|title|aria-label|label="[A-Z][a-z]`) dans une liste de dossiers « couverts » (`scripts/data/i18n-covered-dirs.txt`), qui s'allonge à chaque tâche 6.x ;
   - sort avec 1 si une occurrence n'est pas exemptée.
 

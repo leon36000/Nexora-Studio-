@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { SIM_SITE_URL } from '@sim/utils/site'
 import type { NextConfig } from 'next'
+import createNextIntlPlugin from 'next-intl/plugin'
 import { env, isTruthy } from './lib/core/config/env'
 import { isDev } from './lib/core/config/env-flags'
 import {
@@ -715,4 +716,6 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
+
+export default withNextIntl(nextConfig)

@@ -1,0 +1,3 @@
+# Dossiers ou fichiers dont tout le texte d'interface passe par next-intl (scripts/check-i18n.sh).
+# La liste s'allonge à chaque sous-tâche 6.x.
+workstudio/apps/sim/app/workspace/[workspaceId]/settings/components/general/components/language-select.tsx

@@ -26,6 +26,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { useSession } from '@/lib/auth/client'
 import { signOutAndRedirect } from '@/lib/auth/sign-out'
@@ -33,6 +34,7 @@ import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { getBrowserTimezone, getTimezoneOptions } from '@/lib/core/utils/timezone'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { DeleteAccountModal } from '@/app/workspace/[workspaceId]/settings/components/general/components/delete-account-modal'
+import { LanguageSelect } from '@/app/workspace/[workspaceId]/settings/components/general/components/language-select'
 import { PrivacyView } from '@/app/workspace/[workspaceId]/settings/components/general/components/privacy-view'
 import {
   generalViewParam,
@@ -91,6 +93,7 @@ function getInitials(name: string | undefined | null): string {
 }
 
 export function General() {
+  const t = useTranslations('settings.general')
   const router = useRouter()
   const brandConfig = useBrandConfig()
   const { data: session } = useSession()
@@ -446,6 +449,13 @@ export function General() {
 
         <SettingsSection label='Preferences'>
           <div className='flex flex-col gap-4'>
+            <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
+              <Label>{t('language')}</Label>
+              <div className={DROPDOWN_TRIGGER_CLASS}>
+                <LanguageSelect ariaLabel={t('language')} />
+              </div>
+            </div>
+
             <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
               <Label>Theme</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>

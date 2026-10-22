@@ -1,0 +1,16 @@
+# Mots affichés tels quels dans toutes les langues : noms de produits, de marques, de langues, sigles courants.
+Nexora
+WorkStudio
+Français
+English
+API
+MCP
+SSO
+OAuth
+JSON
+CSV
+URL
+Slack
+Google
+Microsoft
+GitHub

@@ -15,6 +15,8 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
   ALLOWED_ORIGINS: z.string().optional(),
   PORT: z.coerce.number().int().positive().default(3002),
+  /** Listen address. `0.0.0.0` inside a container; `127.0.0.1` keeps a host process off the network. */
+  HOST: z.string().min(1).default('0.0.0.0'),
   SIM_DB_ROLE: z.enum(['web', 'trigger', 'realtime']).optional(),
   DISABLE_AUTH: z
     .string()

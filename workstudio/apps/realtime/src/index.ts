@@ -109,7 +109,7 @@ async function main() {
 
   await assertSchemaCompatibility()
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, env.HOST, () => {
     logger.info(`Socket.IO server running on port ${PORT}`)
     logger.info(`Health check available at: http://localhost:${PORT}/health`)
   })

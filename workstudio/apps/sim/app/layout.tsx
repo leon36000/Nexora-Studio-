@@ -1,6 +1,8 @@
 import { ToastProvider } from '@sim/emcn'
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { NextIntlClientProvider } from 'next-intl'
+import { getLocale } from 'next-intl/server'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import { BrandedLayout } from '@/components/branded-layout'
 import { SettingsNavigationGuard } from '@/components/settings/settings-navigation-guard'
@@ -43,7 +45,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = generateBrandedMetadata()
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale()
   const themeCSS = generateThemeCSS()
   const application = (
     <ToastProvider>
@@ -69,7 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   )
 
   return (
-    <html lang='en' suppressHydrationWarning {...publicEnvHtmlAttributes()}>
+    <html lang={locale} suppressHydrationWarning {...publicEnvHtmlAttributes()}>
       <head>
         {isReactScanEnabled && (
           <Script
@@ -263,9 +266,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${season.variable} font-season`} suppressHydrationWarning>
         <HydrationErrorHandler />
         <DesktopUpdateGate />
-        <NuqsAdapter>
-          {isHosted ? <ConsentProvider>{application}</ConsentProvider> : application}
-        </NuqsAdapter>
+        <NextIntlClientProvider>
+          <NuqsAdapter>
+            {isHosted ? <ConsentProvider>{application}</ConsentProvider> : application}
+          </NuqsAdapter>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

@@ -58,3 +58,16 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Correctif complémentaire : les tests liés à des sources exemptées (Google Analytics, attribution, routage MCP, SCIM, Twilio, `process-contents`) ont été restaurés à leur version d'origine. Le codemod les avait réécrits alors que leur source restait inchangée. `urls.test.ts` vérifie maintenant l'hôte canonique Nexora.
   - L'accent visible (`--brand-accent`, `--brand`) passe du vert de Sim à l'indigo `#4F46E5` dans `globals.css`. Le thème injecté renseigne aussi `--brand` et `--brand-hover`.
   - Contrôles : `check-no-ee` OK (32 185 fichiers), `check-licenses` OK, `check-brand --only workstudio` OK (15 822 fichiers), tests des scripts 4/4.
+- 22/10/2026 — **Tâche 5 terminée.**
+  - `next-intl` 4.14.9 (MIT) dans `apps/sim`.
+  - `lib/i18n/config.ts` : locale résolue par le cookie `NEXORA_LOCALE`, puis `Accept-Language`, défaut `fr` (6 tests). `i18n/request.ts` : fuseau `NEXORA_TIME_ZONE`, défaut Europe/Paris.
+  - `i18n/messages.ts` : un fichier JSON par zone et par langue (`messages/{fr,en}/<zone>.json`, 12 zones), repli sur l'anglais. Test de parité des clés, des arguments ICU et des messages vides (4 tests).
+  - Plugin `next-intl` dans `next.config.ts`. La mise en page racine devient asynchrone : `<html lang={locale}>` et `NextIntlClientProvider`.
+  - `vitest.setup.ts` simule `next-intl` avec les vrais messages anglais, donc les tests existants gardent leurs textes.
+  - Sélecteur de langue dans Réglages > Général > Préférences (« Français » / « English », cookie + `router.refresh()`).
+  - `scripts/check-i18n.sh` (15 tests) avec `scripts/data/i18n-covered-dirs.txt` et `i18n-allowed-terms.txt`.
+  - Vérification réelle sur l'environnement de développement :
+    - `scripts/dev/up.sh` crée Postgres et Redis jetables `nexora-dev-*` sur 127.0.0.1, des secrets ignorés par Git, puis applique les migrations ;
+    - `next dev` tourne sur 127.0.0.1:3100 et le serveur temps réel sur 127.0.0.1:3102 (nouvelle variable `HOST` dans `apps/realtime`, défaut `0.0.0.0` pour les conteneurs) ;
+    - `/login` rend `lang="fr"` par défaut, `lang="en"` avec le cookie `en`, et `lang="fr"` pour un navigateur en allemand. Le wordmark « nexora » s'affiche, le titre est « Log In | Nexora WorkStudio ». `tsc` à 0 erreur.
+  - R13 : la zone `home` (Chat/copilot) est masquée en v1 et sort du périmètre de la tâche 6.3. L'accueil effectif est le premier workflow.

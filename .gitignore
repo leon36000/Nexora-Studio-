@@ -21,3 +21,6 @@ deploy/.env
 *.local.md
 .claude/ralph-loop.local.md
 .claude/settings.local.json
+
+# Secrets de développement générés par scripts/dev/up.sh
+scripts/dev/.secrets
