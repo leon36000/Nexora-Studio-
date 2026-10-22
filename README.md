@@ -10,23 +10,33 @@ Ce dépôt contient la plateforme complète :
 | **Nexora API** | La passerelle de modèles compatible OpenAI : clés, organisations, quotas, mesure de la consommation | [`services/nexora-api/`](services/nexora-api/) |
 | **Nexora Connect** | Le connecteur d'outils (≈ 1 650 services), exposé en MCP et en HTTP | [`services/nexora-connect/`](services/nexora-connect/) |
 
-## Démarrage rapide
+## Installation en une commande
 
-Prérequis : Docker et Docker Compose, environ 16 Go de mémoire libre pour la construction, et un modèle compatible OpenAI (Ollama, vLLM, ou un fournisseur en ligne).
-
-```bash
-scripts/init-env.sh
-```
-
-Ouvrez ensuite `deploy/.env` : indiquez votre organisation et votre adresse de propriétaire (`NEXORA_ORGANIZATION_NAME`, `NEXORA_ORGANIZATION_OWNER_EMAIL`) et votre modèle (`NEXORA_UPSTREAM_URL`, `NEXORA_UPSTREAM_MODEL`, `NEXORA_UPSTREAM_KEY`).
+Il vous faut seulement **Docker** (Linux ou macOS, amd64 ou arm64) :
 
 ```bash
-docker compose -f deploy/compose.yml --env-file deploy/.env up -d --build
+curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash
 ```
 
-Nexora WorkStudio répond sur <http://localhost:3000>. Créez votre compte : votre premier espace contient déjà le dossier **« Modèles PME »** (devis, relance de facture, réponse support, tri des e-mails, compte rendu de réunion).
+L'installateur vérifie Docker, pose quatre questions (nom de votre organisation, votre adresse, domaines autorisés, modèle de langage : local et gratuit, Mistral AI ou un autre service compatible OpenAI), génère les secrets, démarre la plateforme dans `~/nexora` et installe la commande `nexora` :
 
-Le guide complet est dans [`docs/guide/`](docs/guide/README.md).
+```bash
+nexora status      # état des services
+nexora logs        # journaux
+nexora update      # mise à jour, configuration conservée
+nexora uninstall   # arrêt ; --purge efface aussi les données
+```
+
+Ouvrez ensuite l'adresse affichée (par défaut <http://localhost:3000>) et créez votre compte avec l'adresse donnée à l'installation : vous êtes propriétaire de l'organisation. Votre premier espace contient déjà le dossier **« Modèles PME »** (devis, relance de facture, réponse support, tri des e-mails, compte rendu de réunion).
+
+Installation sans questions (serveur, script) :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh \
+  | NEXORA_ORGANIZATION_OWNER_EMAIL=vous@entreprise.fr NEXORA_MODEL_CHOICE=local bash -s -- --yes
+```
+
+Installation manuelle depuis les sources, options et sauvegarde : voir le [guide](docs/guide/README.md).
 
 ## Ce que vous obtenez
 

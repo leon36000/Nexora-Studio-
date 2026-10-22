@@ -4,14 +4,14 @@
     {
       "check": "Inscription d'un compte",
       "status": "pass",
-      "seconds": 1.2,
-      "detail": "smoke-9c633fe6@nexora.test",
+      "seconds": 1.3,
+      "detail": "smoke-647233ca@nexora.test",
       "error": null
     },
     {
       "check": "Interface en français, sans marque tierce",
       "status": "pass",
-      "seconds": 0.9,
+      "seconds": 1.0,
       "detail": "lang=\"fr\", « Connexion »",
       "error": null
     },
@@ -25,57 +25,57 @@
     {
       "check": "Nexora Connect et ses outils MCP",
       "status": "pass",
-      "seconds": 0.2,
+      "seconds": 0.1,
       "detail": "5 outils",
       "error": null
     },
     {
       "check": "Exécution du modèle « Devis client »",
       "status": "pass",
-      "seconds": 33.4,
-      "detail": "901 caractères",
+      "seconds": 42.9,
+      "detail": "914 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Relance de facture impayée »",
       "status": "pass",
-      "seconds": 17.6,
-      "detail": "738 caractères",
+      "seconds": 27.2,
+      "detail": "563 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Réponse support (FAQ) »",
       "status": "pass",
-      "seconds": 5.9,
-      "detail": "44 caractères",
+      "seconds": 3.4,
+      "detail": "46 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Tri des e-mails entrants »",
       "status": "pass",
-      "seconds": 17.6,
-      "detail": "468 caractères",
+      "seconds": 12.6,
+      "detail": "424 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Compte rendu de réunion »",
       "status": "pass",
-      "seconds": 14.9,
-      "detail": "657 caractères",
+      "seconds": 13.8,
+      "detail": "685 caractères",
       "error": null
     },
     {
       "check": "Journal d'audit",
       "status": "pass",
       "seconds": 0.1,
-      "detail": "organization.created tracé",
+      "detail": "workspace.created du membre tracé",
       "error": null
     },
     {
       "check": "Consommation mesurée par Nexora API",
       "status": "pass",
       "seconds": 0.0,
-      "detail": "6 requêtes, 1859 jetons",
+      "detail": "12 requêtes, 3664 jetons",
       "error": null
     }
   ]

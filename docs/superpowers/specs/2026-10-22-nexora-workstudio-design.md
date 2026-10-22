@@ -96,6 +96,7 @@ La v1 est complète quand **tous** ces contrôles passent sur pc6 :
    - l'interface servie en français.
 6. Les 5 modèles de workflows PME sont importables et s'exécutent avec le modèle de Nexora API (contrôle par `scripts/smoke.sh`).
 7. Un README en français et un guide d'installation existent.
+8. **Installation en une commande, « comme OpenClaw »** (demande du fondateur, 22/10/2026) : `curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash` vérifie Docker, télécharge le paquet de déploiement, pose quelques questions (organisation, adresse du propriétaire, modèle), génère les secrets, démarre la plateforme avec des images prêtes (GHCR, amd64 et arm64) et installe une commande `nexora` (démarrer, arrêter, état, journaux, mettre à jour, désinstaller). Sans image publiée, il construit depuis les sources. Vérifié sur pc6 en mode non interactif, dans un dossier et un projet compose séparés.
 
 ## 6. Ce qui est laissé à l'exécutant
 

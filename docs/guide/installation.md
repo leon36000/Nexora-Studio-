@@ -1,6 +1,36 @@
 # Installer Nexora
 
-Ce guide installe la plateforme complète sur un serveur Linux : Nexora WorkStudio, Nexora API, Nexora Connect, PostgreSQL et Redis.
+Ce guide installe la plateforme complète : Nexora WorkStudio, Nexora API, Nexora Connect, PostgreSQL et Redis, plus un modèle local si vous le choisissez.
+
+## Le plus simple : une commande
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash
+```
+
+Il suffit d'avoir Docker. L'installateur :
+
+1. vérifie la machine (Docker, Docker Compose v2, disque) ;
+2. télécharge le paquet de déploiement dans `~/nexora` ;
+3. vous demande le nom de votre organisation, votre adresse (propriétaire), les domaines e-mail autorisés, le port et le modèle :
+   - **modèle local** : Ollama est installé avec Nexora et télécharge `qwen2.5:7b` (ou `qwen2.5:3b` sous 16 Go de mémoire) ; rien ne sort de votre machine ;
+   - **Mistral AI** : votre clé de La Plateforme ;
+   - **autre service compatible OpenAI** : son adresse (sans `/v1`), le modèle et la clé ;
+4. génère les secrets dans `~/nexora/deploy/.env` (lisible par vous seul) ;
+5. télécharge les images publiées (amd64 ou arm64) et démarre tout ; à défaut d'images publiées, il les construit depuis les sources (10 à 20 minutes) ;
+6. installe la commande `nexora` : `start`, `stop`, `restart`, `status`, `logs`, `url`, `open`, `smoke`, `update`, `uninstall [--purge]`.
+
+| Option ou variable | Effet |
+|---|---|
+| `--yes` | Aucune question : les réponses viennent des variables `NEXORA_ORGANIZATION_NAME`, `NEXORA_ORGANIZATION_OWNER_EMAIL` (obligatoire), `NEXORA_MODEL_CHOICE` (`local`, `mistral`, `openai`), `NEXORA_UPSTREAM_URL`, `NEXORA_UPSTREAM_MODEL`, `NEXORA_UPSTREAM_KEY`, et de toute clé de `deploy/.env` (ports, adresse publique…) |
+| `--from-source` | Construit les images sur votre machine |
+| `--no-start` | Prépare tout sans démarrer |
+| `NEXORA_HOME` | Dossier d'installation (`~/nexora` par défaut) |
+| `NEXORA_VERSION` | Version des images (`latest` par défaut, `edge` pour la branche principale) |
+
+Relancer l'installateur ne touche jamais une configuration existante ; `nexora update` met à jour le paquet et les images en la conservant.
+
+La suite de ce guide décrit l'installation manuelle depuis les sources et les réglages avancés.
 
 ## 1. Prérequis
 

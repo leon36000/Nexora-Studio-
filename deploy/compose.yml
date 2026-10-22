@@ -1,5 +1,8 @@
 # Nexora — plateforme complète en une commande :
-#   scripts/init-env.sh && docker compose -f deploy/compose.yml up -d --build
+#   curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash
+# ou, depuis les sources : scripts/init-env.sh && docker compose -f deploy/compose.yml up -d --build
+# Images : NEXORA_IMAGE_PREFIX (ex. ghcr.io/leon36000/nexora-) et NEXORA_VERSION (ex. latest) ;
+# par défaut nexora/<service>:local, construites ici. Profil « ollama » : modèle 100 % local.
 # Services : WorkStudio (app, temps réel, migrations), Nexora API, Nexora Connect, PostgreSQL, Redis.
 # Les ports sont publiés sur NEXORA_BIND_ADDRESS (127.0.0.1 par défaut : cette machine seulement).
 name: nexora
@@ -60,7 +63,7 @@ services:
     build:
       context: ../services/nexora-api
       dockerfile: api/Dockerfile
-    image: nexora/api:local
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}api:${NEXORA_VERSION:-local}
     restart: unless-stopped
     environment:
       CONFIG_FILE: /config.yml
@@ -91,7 +94,7 @@ services:
       start_period: 20s
 
   nexora-bootstrap:
-    image: nexora/api:local
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}api:${NEXORA_VERSION:-local}
     user: '0:0'
     restart: 'no'
     entrypoint: ['/.venv/bin/python', '/bootstrap-script/bootstrap.py']
@@ -113,7 +116,7 @@ services:
     build:
       context: ../services/nexora-connect
       dockerfile: docker/Dockerfile
-    image: nexora/connect:local
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}connect:${NEXORA_VERSION:-local}
     restart: unless-stopped
     environment:
       NEXORA_CONNECT_ENCRYPTION_KEY: ${NEXORA_CONNECT_ENCRYPTION_KEY:?run scripts/init-env.sh first}
@@ -129,7 +132,7 @@ services:
     build:
       context: ../workstudio
       dockerfile: docker/db.Dockerfile
-    image: nexora/workstudio-migrations:local
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}workstudio-migrations:${NEXORA_VERSION:-local}
     restart: 'no'
     working_dir: /app/packages/db
     command: ['bun', 'run', 'db:migrate']
@@ -143,7 +146,7 @@ services:
     build:
       context: ../workstudio
       dockerfile: docker/realtime.Dockerfile
-    image: nexora/workstudio-realtime:local
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}workstudio-realtime:${NEXORA_VERSION:-local}
     restart: unless-stopped
     environment:
       <<: *workstudio-env
@@ -167,7 +170,7 @@ services:
     build:
       context: ../workstudio
       dockerfile: docker/app.Dockerfile
-    image: nexora/workstudio:local
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}workstudio:${NEXORA_VERSION:-local}
     restart: unless-stopped
     command: ['/bin/sh', '-c', '. /bootstrap/nexora-api.env && exec bun apps/sim/bootstrap.js']
     environment:
@@ -242,7 +245,24 @@ services:
       retries: 5
       start_period: 30s
 
+  # Optional local model server (profile « ollama », set by install.sh when you choose a model
+  # running on this machine): NEXORA_UPSTREAM_URL=http://ollama:11434. CPU by default.
+  ollama:
+    image: ollama/ollama:0.12.6
+    profiles: [ollama]
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: 30m
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
 volumes:
+  ollama-data:
   postgres-data:
   redis-data:
   nexora-api-redis-data:
