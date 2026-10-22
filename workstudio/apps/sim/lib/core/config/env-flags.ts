@@ -647,11 +647,23 @@ export const isGithubAuthDisabled = isTruthy(env.DISABLE_GITHUB_AUTH)
 export const isMicrosoftAuthDisabled = isTruthy(env.DISABLE_MICROSOFT_AUTH)
 
 /**
+ * Nexora edition: the company identity provider is configured (all three `NEXORA_OIDC_*`
+ * set — the same condition under which `buildNexoraOidcProvider` returns a provider).
+ */
+export const isNexoraOidcEnabled = Boolean(
+  env.NEXORA_OIDC_ISSUER?.trim() &&
+    env.NEXORA_OIDC_CLIENT_ID?.trim() &&
+    env.NEXORA_OIDC_CLIENT_SECRET?.trim()
+)
+
+/**
  * Is email/password signup disabled
  * When true, new registrations via email/password are blocked at the server level.
  * Existing users can still sign in with email/password.
+ * Nexora edition: also closed while the company identity provider (`NEXORA_OIDC_*`) is
+ * configured, so nobody can pre-register an employee's email before their first SSO sign-in.
  */
-export const isEmailSignupDisabled = isTruthy(env.DISABLE_EMAIL_SIGNUP)
+export const isEmailSignupDisabled = isTruthy(env.DISABLE_EMAIL_SIGNUP) || isNexoraOidcEnabled
 
 /**
  * Is React Grab enabled for UI element debugging

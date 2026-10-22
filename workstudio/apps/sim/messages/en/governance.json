@@ -19,7 +19,8 @@
   "usage": {
     "loading": "Loading usage…",
     "unavailable": "Usage is unavailable: Nexora API is not responding.",
-    "period": "Model usage over the last {days} days, metered by Nexora API.",
+    "forbidden": "Consumption is visible to organization owners and admins only.",
+    "period": "Model consumption of the whole instance, across all users, over the last {days} days, metered by Nexora API.",
     "empty": "No usage in this period.",
     "totals": {
       "requests": "Requests",

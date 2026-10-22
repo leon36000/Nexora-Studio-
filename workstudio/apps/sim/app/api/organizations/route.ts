@@ -193,6 +193,16 @@ export const POST = withRouteHandler(async (request: Request) => {
         user.email,
         organizationSlug
       )
+      /**
+       * The founder's workspaces follow them into the organization. Collaborators who
+       * belong to another organization stay external rather than blocking the new one.
+       */
+      await attachOwnedWorkspacesToOrganization({
+        ownerUserId: user.id,
+        organizationId,
+        externalMemberPolicy: 'keep-external',
+        includeArchived: true,
+      })
       return finishCreation(organizationId, true)
     }
 

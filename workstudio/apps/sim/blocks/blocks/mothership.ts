@@ -20,6 +20,8 @@ export const MothershipBlock: BlockConfig = {
   category: 'blocks',
   bgColor: '#802FDE',
   icon: Blimp,
+  // Nexora edition: runs on the hosted copilot service, which a self-hosted instance lacks.
+  hideFromToolbar: true,
   canvasPresentation: {
     defaultTitle: 'Nexora Chat',
     sentences: {

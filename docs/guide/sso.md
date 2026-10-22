@@ -23,7 +23,7 @@ NEXORA_OIDC_CLIENT_ID=nexora
 NEXORA_OIDC_CLIENT_SECRET=<le secret client>
 ```
 
-`NEXORA_OIDC_ISSUER` est l'« émetteur » de votre fournisseur. Nexora lit sa configuration à l'adresse `<émetteur>/.well-known/openid-configuration`.
+`NEXORA_OIDC_ISSUER` est l'« émetteur » de votre fournisseur. Nexora lit sa configuration à l'adresse `<émetteur>/.well-known/openid-configuration`. Recopiez-le exactement comme le champ `issuer` de cette configuration, barre oblique finale comprise s'il en a une : Nexora le compare caractère par caractère à chaque connexion.
 
 | Fournisseur | Émetteur |
 |---|---|
@@ -41,4 +41,8 @@ La page de connexion affiche alors **« Se connecter avec Mon entreprise »**.
 
 ## Sécurité
 
-Seul ce fournisseur, configuré par vous, peut ouvrir une session ; les connecteurs d'intégration (Salesforce, Jira…) ne le peuvent pas. Un compte existant est rattaché par son adresse e-mail : n'utilisez qu'un fournisseur qui vérifie les adresses de vos utilisateurs.
+- Seul ce fournisseur, configuré par vous, peut ouvrir une session ; les connecteurs d'intégration (Salesforce, Jira…) ne le peuvent pas.
+- Dès que le SSO est configuré, **l'inscription par e-mail et mot de passe est fermée** : personne ne peut créer à l'avance un compte au nom d'un salarié. Les comptes déjà créés par e-mail continuent de se connecter.
+- Un compte existant n'est rattaché au SSO que si le fournisseur indique que l'adresse est vérifiée (`email_verified`).
+- Avec `NEXORA_REGISTRATION_DISABLED=true`, le SSO ne crée plus de compte : seuls les utilisateurs existants se connectent.
+- Combinez avec `NEXORA_ALLOWED_EMAIL_DOMAINS` pour n'accepter que les adresses de votre entreprise.

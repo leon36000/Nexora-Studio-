@@ -19,7 +19,8 @@
   "usage": {
     "loading": "Chargement de la consommation…",
     "unavailable": "La consommation n'est pas disponible : Nexora API ne répond pas.",
-    "period": "Consommation de modèles des {days} derniers jours, mesurée par Nexora API.",
+    "forbidden": "La consommation est réservée aux propriétaires et administrateurs de l'organisation.",
+    "period": "Consommation de modèles de toute l'instance, tous utilisateurs confondus, sur les {days} derniers jours, mesurée par Nexora API.",
     "empty": "Aucune utilisation sur la période.",
     "totals": {
       "requests": "Requêtes",

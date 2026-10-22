@@ -18,11 +18,29 @@ describe('buildNexoraOidcProvider', () => {
     expect(buildNexoraOidcProvider(complete)).toMatchObject({
       providerId: NEXORA_OIDC_PROVIDER_ID,
       discoveryUrl: 'https://sso.example.fr/realms/pme/.well-known/openid-configuration',
-      issuer: 'https://sso.example.fr/realms/pme',
       clientId: 'workstudio',
       clientSecret: 'secret',
       scopes: ['openid', 'profile', 'email'],
       pkce: true,
+    })
+  })
+
+  it('keeps the issuer exactly as configured, since callbacks compare `iss` verbatim', () => {
+    expect(buildNexoraOidcProvider(complete)?.issuer).toBe('https://sso.example.fr/realms/pme/')
+    expect(
+      buildNexoraOidcProvider({ ...complete, NEXORA_OIDC_ISSUER: ' https://id.example.fr ' })
+        ?.issuer
+    ).toBe('https://id.example.fr')
+  })
+
+  it('lets the identity provider create accounts unless registration is disabled', () => {
+    expect(buildNexoraOidcProvider(complete)).toMatchObject({
+      disableSignUp: false,
+      disableImplicitSignUp: false,
+    })
+    expect(buildNexoraOidcProvider(complete, { registrationDisabled: true })).toMatchObject({
+      disableSignUp: true,
+      disableImplicitSignUp: true,
     })
   })
 })

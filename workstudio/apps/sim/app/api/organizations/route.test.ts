@@ -1,12 +1,12 @@
 import { member, subscription } from '@sim/db/schema'
 import {
   auditMock,
-  resetEnvFlagsMock,
-  setEnvFlags,
   authMockFns,
   createSession,
   queueTableRows,
   resetDbChainMock,
+  resetEnvFlagsMock,
+  setEnvFlags,
 } from '@sim/testing'
 import {
   billingPlanHelpersMock,
@@ -212,6 +212,12 @@ describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
       'gerant@pme.fr',
       'pme-exemple'
     )
+    expect(mockAttachOwnedWorkspacesToOrganization).toHaveBeenCalledWith({
+      ownerUserId: 'user-9',
+      organizationId: 'org-new',
+      externalMemberPolicy: 'keep-external',
+      includeArchived: true,
+    })
     expect(mockEnsureOrganizationForTeamSubscription).not.toHaveBeenCalled()
   })
 
@@ -233,4 +239,3 @@ describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
     expect(mockCreateOrganizationForTeamPlan).not.toHaveBeenCalled()
   })
 })
-

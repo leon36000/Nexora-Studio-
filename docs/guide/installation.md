@@ -54,7 +54,20 @@ Ouvrez `NEXORA_PUBLIC_URL` et créez votre compte. Votre premier espace de trava
 - le dossier **« Modèles PME »** : cinq workflows prêts à l'emploi ;
 - le serveur d'outils **Nexora Connect**, déjà branché (Réglages › Outils MCP).
 
-Pour travailler en équipe, créez votre organisation dans **Réglages › Membres**. Vous accédez alors au **journal d'audit** et au tableau de **consommation**.
+Pour travailler en équipe, créez votre organisation dans **Réglages › Membres**. Vous accédez alors au **journal d'audit** et au tableau de **consommation**. Ce tableau couvre toute l'instance, tous utilisateurs confondus : seuls les propriétaires et administrateurs de l'organisation le voient.
+
+### Qui peut créer un compte
+
+Toute personne inscrite utilise les modèles de Nexora API et les outils de Nexora Connect. Encadrez l'inscription dans `deploy/.env` avant d'ouvrir WorkStudio à votre réseau :
+
+| Réglage | Effet |
+|---|---|
+| `NEXORA_ALLOWED_EMAIL_DOMAINS=mon-entreprise.fr` | Seules les adresses de ces domaines peuvent s'inscrire et se connecter. **Fortement recommandé.** |
+| `NEXORA_REGISTRATION_DISABLED=true` | Plus aucune inscription, y compris par SSO : seuls les comptes existants se connectent. À activer une fois votre équipe inscrite. |
+| `NEXORA_EMAIL_VERIFICATION=true` | Chaque adresse doit être confirmée par e-mail (nécessite un service d'e-mail). |
+| `NEXORA_OIDC_*` | Avec la [connexion unique](sso.md), l'inscription par e-mail et mot de passe est fermée : les comptes se créent par votre fournisseur d'identité. |
+
+Appliquez ensuite avec `docker compose -f deploy/compose.yml --env-file deploy/.env up -d`.
 
 ## 5. Vérifier l'installation
 

@@ -4,6 +4,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@sim/emcn'
 import { useFormatter, useTranslations } from 'next-intl'
 import { SettingsPanel } from '@/components/settings/settings-panel'
+import { ApiClientError } from '@/lib/api/client/errors'
 import { useNexoraUsage } from '@/hooks/queries/nexora-usage'
 
 interface UsageMonitoringProps {
@@ -31,9 +32,12 @@ export function UsageMonitoring(_props: UsageMonitoringProps) {
     )
   }
   if (error || !data) {
+    const forbidden = error instanceof ApiClientError && error.status === 403
     return (
       <SettingsPanel>
-        <p className='px-2 py-6 text-[var(--text-error)] text-small'>{t('unavailable')}</p>
+        <p className='px-2 py-6 text-[var(--text-error)] text-small'>
+          {t(forbidden ? 'forbidden' : 'unavailable')}
+        </p>
       </SettingsPanel>
     )
   }
