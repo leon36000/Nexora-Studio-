@@ -17,8 +17,10 @@ cat > "$fakebin/docker" <<'EOF'
 echo "docker $*" >> "$FAKE_LOG"
 case "$*" in
   "compose version"*) echo "Docker Compose version v2.30.0" ;;
-  *"--pull never"*) exit "${FAKE_LOCAL_EXIT:-1}" ;;
+  *"config --images"*) printf 'pgvector/pgvector:pg17\nnexora/workstudio:local\n' ;;
+  "image inspect"*) exit "${FAKE_LOCAL_EXIT:-1}" ;;
   *" pull"*) exit "${FAKE_PULL_EXIT:-0}" ;;
+  *" up "*) exit "${FAKE_UP_EXIT:-0}" ;;
 esac
 exit 0
 EOF
@@ -83,6 +85,10 @@ e3="$h3/deploy/.env"
 grep -q "compose .* pull" "$h3.log" && ok "pulls published images" || ko "pulls published images"
 grep -q "compose .* up -d" "$h3.log" && ! grep -q -- "--build" "$h3.log" && ok "starts without building" || ko "starts without building"
 grep -q "ollama pull" "$h3.log" && ok "downloads the local model" || ko "downloads the local model"
+first_up="$(grep -n "compose .* up -d" "$h3.log" | head -1)"; model_pull="$(grep -n "ollama pull" "$h3.log" | head -1 | cut -d: -f1)"
+case "$first_up" in *"up -d --wait ollama"*) ok "starts the model server first" ;; *) ko "starts the model server first ($first_up)" ;; esac
+last_up="$(grep -n "compose .* up -d$" "$h3.log" | tail -1 | cut -d: -f1)"
+[ -n "$model_pull" ] && [ -n "$last_up" ] && [ "$model_pull" -lt "$last_up" ] && ok "model ready before Nexora API starts" || ko "model ready before Nexora API starts"
 grep -q "localhost:3300" "$h3.out" && ok "prints the address" || ko "prints the address"
 
 # 5. No published images: falls back to building from the sources.
@@ -99,6 +105,13 @@ NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral N
   FAKE_PULL_EXIT=1 FAKE_LOCAL_EXIT=0 NEXORA_HEALTH_TIMEOUT=5 run "$h6" --yes && ok "offline install succeeds" || { ko "offline install succeeds"; cat "$h6.out"; }
 grep -q -- "--build" "$h6.log" && ko "offline install builds nothing" || ok "offline install builds nothing"
 [ ! -d "$h6/workstudio" ] && ok "offline install fetches no sources" || ko "offline install fetches no sources"
+
+# 5c. A service that fails to start is reported, not mistaken for missing images.
+h7="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  FAKE_UP_EXIT=1 NEXORA_HEALTH_TIMEOUT=5 run "$h7" --yes && ko "failed start is an error" || ok "failed start is an error"
+grep -q -- "--build" "$h7.log" && ko "failed start does not trigger a build" || ok "failed start does not trigger a build"
+grep -q "nexora logs" "$h7.out" && ok "failed start points to the logs" || ko "failed start points to the logs"
 
 # 6. Without Docker, the installer stops and says why.
 h5="$(new_home)/nexora"; nodocker="$(new_home)"

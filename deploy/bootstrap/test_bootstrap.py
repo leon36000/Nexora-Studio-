@@ -15,13 +15,13 @@ ADMIN = {"id": 1, "email": "admin", "permissions": ["admin"]}
 
 
 class FakeApi(BaseHTTPRequestHandler):
-    """Minimal Nexora API: admin session, routers, roles, organizations, users and keys."""
+    """Minimal Nexora API: admin session, routers, providers, roles, organizations, users and keys."""
 
     state: dict = {}
 
     @classmethod
     def reset(cls, routers=(10, 11)):
-        cls.state = {"routers": list(routers), "roles": {}, "orgs": {}, "users": {}, "keys": {"admin-key": ADMIN}, "role_updates": 0}
+        cls.state = {"routers": list(routers), "providers": {}, "roles": {}, "orgs": {}, "users": {}, "keys": {"admin-key": ADMIN}, "role_updates": 0}
 
     def log_message(self, *args):
         pass
@@ -48,6 +48,10 @@ class FakeApi(BaseHTTPRequestHandler):
             return self._json(200, caller) if caller else self._json(401, {})
         if not caller or "admin" not in caller["permissions"]:
             return self._json(403, {})
+        if path == "/v1/admin/providers":
+            router_id = int(self.path.split("router_id=")[1].split("&")[0])
+            listed = [{k: v for k, v in p.items() if k != "key"} for p in s["providers"].values() if p["router_id"] == router_id]
+            return self._json(200, {"data": listed})
         listing = {"/v1/admin/routers": [{"id": r, "name": f"m{r}"} for r in s["routers"]], "/v1/admin/roles": list(s["roles"].values()), "/v1/admin/organizations": list(s["orgs"].values()), "/v1/admin/users": list(s["users"].values())}
         return self._json(200, {"data": listing[path]}) if path in listing else self._json(404, {})
 
@@ -68,12 +72,25 @@ class FakeApi(BaseHTTPRequestHandler):
         if self.path == "/v1/admin/users":
             uid = 300 + len(s["users"]); s["users"][uid] = {"id": uid, **body}
             return self._json(201, {"id": uid})
+        if self.path == "/v1/admin/providers":
+            if any(p["router_id"] == body["router_id"] and p["url"].rstrip("/") == body["url"].lower().rstrip("/") and p["model_name"] == body["model_name"] for p in s["providers"].values()):
+                return self._json(409, {})
+            pid = 400 + len(s["providers"]) + s.setdefault("deleted", 0)
+            # Like Nexora API, stores the address with a trailing slash.
+            s["providers"][pid] = {"id": pid, "router_id": body["router_id"], "url": body["url"].lower().rstrip("/") + "/", "model_name": body["model_name"], "key": body["key"]}
+            return self._json(201, {"id": pid})
         if self.path == "/v1/admin/keys":
             user = s["users"][body["user"]]
             key = f"key-{len(s['keys'])}"
             s["keys"][key] = {"id": user["id"], "email": user["email"], "permissions": s["roles"][user["role_id"]]["permissions"]}
             return self._json(201, {"value": key})
         return self._json(404, {})
+
+    def do_DELETE(self):
+        s = self.state
+        pid = int(self.path.rsplit("/", 1)[1])
+        s["providers"].pop(pid); s["deleted"] = s.get("deleted", 0) + 1
+        self.send_response(204); self.end_headers()
 
     def do_PATCH(self):
         s, body = self.state, self._body()
@@ -97,8 +114,42 @@ class BootstrapTest(unittest.TestCase):
         FakeApi.reset()
         self.out = Path(tempfile.mkdtemp()) / "nexora-api.env"
 
-    def run_bootstrap(self, password="pw"):
-        return bootstrap.ensure_workstudio_key(self.url, "admin", password, self.out, wait_seconds=1)
+    def run_bootstrap(self, password="pw", upstream=None):
+        return bootstrap.ensure_workstudio_key(self.url, "admin", password, self.out, wait_seconds=1, upstream=upstream)
+
+    def seed_provider(self, url="http://ollama:11434", model="qwen2.5:0.5b", key="none"):
+        FakeApi.state["providers"][1] = {"id": 1, "router_id": 10, "url": url, "model_name": model, "key": key}
+
+    def test_points_the_model_at_the_upstream_set_in_deploy_env(self):
+        self.seed_provider()
+        self.run_bootstrap(upstream={"router": "m10", "url": "http://Host.docker.internal:18141/", "model": "qwen2.5:7b", "key": "none"})
+        (provider,) = [p for p in FakeApi.state["providers"].values() if p["router_id"] == 10]
+        self.assertEqual((provider["url"], provider["model_name"]), ("http://host.docker.internal:18141/", "qwen2.5:7b"))
+
+    def test_a_synced_provider_stays_put_on_the_next_start(self):
+        upstream = {"router": "m10", "url": "http://host.docker.internal:18141", "model": "qwen2.5:7b", "key": "none"}
+        self.seed_provider()
+        self.run_bootstrap(upstream=upstream)
+        synced = list(FakeApi.state["providers"])
+        self.run_bootstrap(upstream=upstream)
+        self.assertEqual(list(FakeApi.state["providers"]), synced)
+
+    def test_follows_a_new_api_key(self):
+        self.seed_provider(url="https://api.mistral.ai", model="mistral-small-latest", key="old")
+        mistral = {"router": "m10", "url": "https://api.mistral.ai", "model": "mistral-small-latest", "key": "old"}
+        self.run_bootstrap(upstream=mistral)
+        self.run_bootstrap(upstream={**mistral, "key": "new"})
+        (provider,) = FakeApi.state["providers"].values()
+        self.assertEqual(provider["key"], "new")
+
+    def test_leaves_an_up_to_date_provider_alone(self):
+        self.seed_provider()
+        self.run_bootstrap(upstream={"router": "m10", "url": "http://ollama:11434", "model": "qwen2.5:0.5b", "key": "none"})
+        self.assertEqual(list(FakeApi.state["providers"]), [1])
+
+    def test_leaves_an_unseeded_model_to_the_api(self):
+        self.run_bootstrap(upstream={"router": "absent", "url": "http://x:1", "model": "m", "key": "none"})
+        self.assertEqual(FakeApi.state["providers"], {})
 
     def test_creates_a_least_privilege_key_and_writes_a_private_env_file(self):
         key = self.run_bootstrap()

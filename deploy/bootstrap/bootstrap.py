@@ -1,13 +1,20 @@
-"""Gives Nexora WorkStudio its Nexora API key.
+"""Gives Nexora WorkStudio its Nexora API key, and keeps the model on the upstream of deploy/.env.
 
 Runs once per `docker compose up`, after Nexora API is healthy. Signs in as the bootstrap admin,
-keeps a dedicated `workstudio` user (role without admin permission, unlimited on every model)
-in sync, and writes that user's key as `export VLLM_API_KEY=...` to the shared bootstrap volume,
-where the WorkStudio container reads it at startup. A key that still belongs to that user is
-kept, so restarts do not pile up keys. Standard library only.
+then:
+- points the Nexora model at NEXORA_UPSTREAM_URL/MODEL/KEY. Nexora API reads its model list only
+  on its very first start, so without this a model changed in deploy/.env would never apply.
+  The provider list hides keys: a fingerprint of the applied upstream, kept next to the key file,
+  tells a new key apart;
+- keeps a dedicated `workstudio` user (role without admin permission, unlimited on every model)
+  in sync, and writes that user's key as `export VLLM_API_KEY=...` to the shared bootstrap volume,
+  where the WorkStudio container reads it at startup. A key that still belongs to that user is
+  kept, so restarts do not pile up keys.
+Standard library only.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import secrets
@@ -78,7 +85,7 @@ LIMIT_TYPES = ("rpm", "rpd", "tpm", "tpd")
 
 def _call(method: str, url: str, token: str, body: dict | None = None) -> dict:
     status, payload = _request(method, url, token=token, body=body)
-    if status not in (200, 201):
+    if status not in (200, 201, 204):
         raise BootstrapError(f"{method} {url.split('/v1/', 1)[-1]} failed (HTTP {status})")
     return payload
 
@@ -116,12 +123,47 @@ def _sync_workstudio_user(base_url: str, admin_token: str) -> int:
     })["id"]
 
 
+def _sync_upstream_provider(base_url: str, admin_token: str, upstream: dict, fingerprint_file: Path) -> None:
+    """Replaces the model's providers with the configured upstream when it changed."""
+    api = f"{base_url}/v1/admin"
+    router = _find(_call("GET", f"{api}/routers?limit=100", admin_token).get("data", []), name=upstream["router"])
+    if not router:
+        return  # Not seeded yet: Nexora API creates it from its configuration.
+    url = upstream["url"].strip().rstrip("/").lower()
+    fingerprint = hashlib.sha256(f"{url}|{upstream['model']}|{upstream['key']}".encode()).hexdigest()
+    previous = fingerprint_file.read_text().strip() if fingerprint_file.exists() else None
+    providers = _call("GET", f"{api}/providers?router_id={router['id']}&limit=100", admin_token).get("data", [])
+    current = next(
+        (p for p in providers if (p.get("url") or "").rstrip("/") == url and p.get("model_name") == upstream["model"]), None
+    )
+
+    if current and len(providers) == 1 and previous in (None, fingerprint):
+        _write_private(fingerprint_file, fingerprint + "\n")
+        return
+    if current:  # Same address and model, new key: the API refuses a duplicate, so drop it first.
+        _call("DELETE", f"{api}/providers/{current['id']}", admin_token)
+    created = _call("POST", f"{api}/providers", admin_token, {
+        "router_id": router["id"],
+        "type": "openai",
+        "url": url,
+        "key": upstream["key"],
+        "model_name": upstream["model"],
+        "timeout": 120,
+    })
+    for provider in providers:
+        if provider["id"] not in (created.get("id"), current and current["id"]):
+            _call("DELETE", f"{api}/providers/{provider['id']}", admin_token)
+    _write_private(fingerprint_file, fingerprint + "\n")
+
+
 def _is_workstudio_key(base_url: str, key: str) -> bool:
     status, me = _request("GET", f"{base_url}/v1/me", token=key)
     return status == 200 and me.get("email") == WORKSTUDIO_EMAIL and "admin" not in me.get("permissions", [])
 
 
-def ensure_workstudio_key(base_url: str, admin: str, password: str, out: Path, wait_seconds: int = 300) -> str:
+def ensure_workstudio_key(
+    base_url: str, admin: str, password: str, out: Path, wait_seconds: int = 300, upstream: dict | None = None
+) -> str:
     """WorkStudio's model key: owned by a dedicated user with model access only (least privilege)."""
     base_url = base_url.rstrip("/")
     _wait_until_healthy(base_url, wait_seconds)
@@ -129,6 +171,8 @@ def ensure_workstudio_key(base_url: str, admin: str, password: str, out: Path, w
     status, session = _request("POST", f"{base_url}/v1/auth/login", body={"email": admin, "password": password})
     if status != 200 or not session.get("value"):
         raise BootstrapError(f"Nexora API admin sign-in failed (HTTP {status}); check NEXORA_API_ADMIN_PASSWORD")
+    if upstream:
+        _sync_upstream_provider(base_url, session["value"], upstream, out.parent / "upstream.sha256")
     user_id = _sync_workstudio_user(base_url, session["value"])
 
     existing = _read_existing_key(out)
@@ -149,6 +193,12 @@ def main() -> int:
             os.environ.get("NEXORA_API_ADMIN", "admin"),
             os.environ["NEXORA_API_ADMIN_PASSWORD"],
             Path(os.environ.get("NEXORA_BOOTSTRAP_FILE", "/bootstrap/nexora-api.env")),
+            upstream={
+                "router": os.environ.get("NEXORA_MODEL_NAME", "nexora-default"),
+                "url": os.environ["NEXORA_UPSTREAM_URL"],
+                "model": os.environ["NEXORA_UPSTREAM_MODEL"],
+                "key": os.environ.get("NEXORA_UPSTREAM_KEY") or "none",
+            } if os.environ.get("NEXORA_UPSTREAM_URL") else None,
         )
     except (BootstrapError, KeyError, OSError, ValueError) as error:
         print(f"bootstrap: {error}", file=sys.stderr)

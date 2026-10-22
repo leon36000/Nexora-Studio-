@@ -62,7 +62,7 @@ warn() { printf '%s    ! %s%s\n' "$Y" "$*" "$N" >&2; }
 die() { printf '%s    ✗ %s%s\n' "$R" "$*" "$N" >&2; exit 1; }
 
 # Questions are read from the terminal even when the script itself arrives through a pipe.
-if [ "$YES" -eq 0 ] && ! { [ -r /dev/tty ] && (: < /dev/tty) 2>/dev/null; }; then
+if [ "$YES" -eq 0 ] && [ "$UPDATE" -eq 0 ] && ! { [ -r /dev/tty ] && (: < /dev/tty) 2>/dev/null; }; then
   YES=1
   warn "Pas de terminal : installation sans questions (valeurs lues dans l'environnement)."
 fi
@@ -269,27 +269,41 @@ CLI
   case ":$PATH:" in *":$NEXORA_BIN_DIR:"*) ;; *) warn "Ajoutez $NEXORA_BIN_DIR à votre PATH pour utiliser « nexora »." ;; esac
 }
 
+images_present() { # every image of the configuration is already on this machine (docker load, cache)
+  local images img
+  images="$(compose config --images 2> /dev/null)" || return 1
+  [ -n "$images" ] || return 1
+  for img in $images; do docker image inspect "$img" > /dev/null 2>&1 || return 1; done
+}
+
+start_failed() { die "Le démarrage a échoué. Consultez « nexora logs » (ou « nexora logs <service> »), corrigez, puis relancez « nexora start »."; }
+
 start() {
   step "Démarrage de Nexora"
+  local up=(up -d)
   if [ "$(get_env NEXORA_IMAGE_PREFIX)" = "nexora/" ]; then
     [ -d "$NEXORA_HOME/workstudio" ] || fetch_sources
-    compose up -d --build
+    up+=(--build)
   elif compose pull; then
-    compose up -d
-  elif compose up -d --no-build --pull never 2> /dev/null; then
+    :
+  elif images_present; then
     warn "Images publiées injoignables : utilisation des images déjà présentes sur cette machine."
+    up+=(--pull never)
   else
     warn "Images publiées indisponibles : construction depuis les sources."
     fetch_sources
     set_env NEXORA_IMAGE_PREFIX "nexora/"; set_env NEXORA_VERSION "local"
-    compose up -d --build
+    up+=(--build)
   fi
 
+  # Nexora API reads the model list when it starts: the local model must be there first.
   if [ "$(get_env COMPOSE_PROFILES)" = "ollama" ]; then
     local model; model="$(get_env NEXORA_UPSTREAM_MODEL)"
+    compose "${up[@]}" --wait ollama || start_failed
     step "Téléchargement du modèle local $model (une seule fois)"
-    compose exec -T ollama ollama pull "$model" || warn "Téléchargement du modèle interrompu : relancez « nexora update »."
+    compose exec -T ollama ollama pull "$model" || die "Téléchargement du modèle $model impossible. Vérifiez la connexion, puis relancez « nexora update »."
   fi
+  compose "${up[@]}" || start_failed
 
   step "Attente de Nexora WorkStudio"
   local port waited=0 code

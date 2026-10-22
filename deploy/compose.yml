@@ -104,6 +104,11 @@ services:
       NEXORA_API_ADMIN: admin
       NEXORA_API_ADMIN_PASSWORD: ${NEXORA_API_ADMIN_PASSWORD}
       NEXORA_BOOTSTRAP_FILE: /bootstrap/nexora-api.env
+      # Re-applied at every start, so a model changed in deploy/.env takes effect.
+      NEXORA_MODEL_NAME: ${NEXORA_MODEL_NAME:-nexora-default}
+      NEXORA_UPSTREAM_URL: ${NEXORA_UPSTREAM_URL}
+      NEXORA_UPSTREAM_MODEL: ${NEXORA_UPSTREAM_MODEL}
+      NEXORA_UPSTREAM_KEY: ${NEXORA_UPSTREAM_KEY:-none}
       NEXORA_BOOTSTRAP_OWNER: '1001:1001'
     volumes:
       - ./bootstrap/bootstrap.py:/bootstrap-script/bootstrap.py:ro
