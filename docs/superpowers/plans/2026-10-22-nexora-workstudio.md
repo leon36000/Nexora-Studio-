@@ -296,7 +296,7 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 ## Tâche 15 — Vérification finale et revue
 
-- [ ] Lancer l'un après l'autre : `check-no-ee.sh`, `check-brand.sh`, `check-licenses.sh`, `check-i18n.sh`, `tsc`, les tests unitaires des fichiers modifiés (`git diff --name-only main...workstudio-v1`), `compose up`, puis `smoke.sh`.
+- [x] Lancer l'un après l'autre : `check-no-ee.sh`, `check-brand.sh`, `check-licenses.sh`, `check-i18n.sh`, `tsc`, les tests unitaires des fichiers modifiés (`git diff --name-only main...workstudio-v1`), `compose up`, puis `smoke.sh`.
 - [ ] `superpowers:requesting-code-review` sur la branche ; traiter les retours.
 - [ ] Mettre à jour le ledger avec les preuves ; mettre à jour la mémoire du projet.
 - [ ] Fusionner `workstudio-v1` dans `main` en local (fast-forward ou merge). **Pas de push.**

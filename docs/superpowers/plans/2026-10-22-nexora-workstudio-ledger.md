@@ -236,3 +236,8 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Modèle par défaut : déjà prêt seulement après le chargement de la liste noire (`use-operation-access.ts`), rien à faire.
   - Tests écrits avant le code pour chaque correctif.
   - Vérification complète : tsc 0 ; vitest 3 339 fichiers, 37 861 tests verts ; 60 audits ; `check:test-types` ; check-no-ee, check-brand, check-licenses, check-i18n : OK.
+- 22/10/2026 — **Tâche 15, déploiement final sur pc6** (image reconstruite après `f1f5fe22`).
+  - `compose up -d` : 7 services sains ; amorçage « WorkStudio key ready » ; la clé de WorkStudio appartient à `workstudio@nexora.local`, sans aucune permission (`permissions: []`), avec 4 limites explicites.
+  - Aucun fichier `.env` dans l'image `nexora/workstudio:local`.
+  - `scripts/smoke.sh http://localhost:3200` : **11/11** (rapport `docs/verification/smoke-deploy-2026-10-22.json`) ; 5 modèles PME exécutés par `qwen2.5:7b` via Nexora API (de 5,9 à 33,4 s, sur processeur) ; consommation refusée hors organisation, puis visible au propriétaire.
+

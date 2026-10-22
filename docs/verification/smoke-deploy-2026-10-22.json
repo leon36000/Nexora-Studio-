@@ -5,7 +5,7 @@
       "check": "Inscription d'un compte",
       "status": "pass",
       "seconds": 1.2,
-      "detail": "smoke-92070b61@nexora.test",
+      "detail": "smoke-9c633fe6@nexora.test",
       "error": null
     },
     {
@@ -25,57 +25,57 @@
     {
       "check": "Nexora Connect et ses outils MCP",
       "status": "pass",
-      "seconds": 0.1,
+      "seconds": 0.2,
       "detail": "5 outils",
       "error": null
     },
     {
       "check": "Exécution du modèle « Devis client »",
       "status": "pass",
-      "seconds": 6.7,
-      "detail": "869 caractères",
+      "seconds": 33.4,
+      "detail": "901 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Relance de facture impayée »",
       "status": "pass",
-      "seconds": 9.0,
-      "detail": "1199 caractères",
+      "seconds": 17.6,
+      "detail": "738 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Réponse support (FAQ) »",
       "status": "pass",
-      "seconds": 1.5,
-      "detail": "267 caractères",
+      "seconds": 5.9,
+      "detail": "44 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Tri des e-mails entrants »",
       "status": "pass",
-      "seconds": 3.7,
-      "detail": "493 caractères",
+      "seconds": 17.6,
+      "detail": "468 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Compte rendu de réunion »",
       "status": "pass",
-      "seconds": 3.6,
-      "detail": "633 caractères",
+      "seconds": 14.9,
+      "detail": "657 caractères",
+      "error": null
+    },
+    {
+      "check": "Journal d'audit",
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": "organization.created tracé",
       "error": null
     },
     {
       "check": "Consommation mesurée par Nexora API",
       "status": "pass",
       "seconds": 0.0,
-      "detail": "6 requêtes, 2124 jetons",
-      "error": null
-    },
-    {
-      "check": "Journal d'audit",
-      "status": "pass",
-      "seconds": 0.0,
-      "detail": "organization.created tracé",
+      "detail": "6 requêtes, 1859 jetons",
       "error": null
     }
   ]
