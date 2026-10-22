@@ -6,7 +6,7 @@ OpenConnector 在 GitHub Packages 容器镜像仓库（GHCR）提供了预构建
 运行 OpenConnector。镜像地址为：
 
 ```text
-ghcr.io/oomol-lab/open-connector
+nexora/connect:local
 ```
 
 ## 选择标签（Tag）
@@ -25,7 +25,7 @@ ghcr.io/oomol-lab/open-connector
 镜像是 public 的，无需登录即可拉取：
 
 ```bash
-docker pull ghcr.io/oomol-lab/open-connector:latest
+docker pull nexora/connect:local
 ```
 
 如果遇到 `unauthorized` 或 `denied` 错误，用带 `read:packages` scope 的 GitHub token 登录：
@@ -55,13 +55,13 @@ export OOMOL_CONNECT_ADMIN_TOKEN=$(openssl rand -base64 32)
 
 ```bash
 docker run -d \
-  --name open-connector \
+  --name nexora-connect \
   -p 3000:3000 \
   -v open_connector_data:/app/data \
   -e OOMOL_CONNECT_ORIGIN="https://api.example.com" \
   -e OOMOL_CONNECT_ENCRYPTION_KEY="$OOMOL_CONNECT_ENCRYPTION_KEY" \
   -e OOMOL_CONNECT_ADMIN_TOKEN="$OOMOL_CONNECT_ADMIN_TOKEN" \
-  ghcr.io/oomol-lab/open-connector:latest
+  nexora/connect:local
 ```
 
 完整环境变量参考见 [configuration.md](configuration.md)，连接 provider 见 [credentials.md](credentials.md)。
@@ -76,7 +76,7 @@ OPEN_CONNECTOR_VERSION="<release-version>"
 
 docker run --rm \
   -e OOMOL_CONNECT_DATABASE_URL="postgresql://migration_user:password@db.example.com:5432/open_connector?sslmode=verify-full" \
-  "ghcr.io/oomol-lab/open-connector:${OPEN_CONNECTOR_VERSION}" \
+  "nexora/connect:local:${OPEN_CONNECTOR_VERSION}" \
   migrate
 ```
 

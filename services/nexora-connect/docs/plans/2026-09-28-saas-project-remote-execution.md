@@ -8,7 +8,7 @@
 
 ## 1. 交付目标与边界
 
-交付一个可在 Console 配置、可通过 Runtime API 使用、具备本地账号删除待办的 SaaS project 连接来源。SaaS 连接的授权、token 刷新和 provider 调用全部在 OOMOL Connector 执行；Connect 负责本地身份、访问策略、连接引用、请求同步和调用转发。
+交付一个可在 Console 配置、可通过 Runtime API 使用、具备本地账号删除待办的 SaaS project 连接来源。SaaS 连接的授权、token 刷新和 provider 调用全部在 Nexora Connector 执行；Connect 负责本地身份、访问策略、连接引用、请求同步和调用转发。
 
 首版覆盖 SQLite、PostgreSQL、D1。以 Gmail 验证 OAuth/action，以一个实际具备 proxy 能力的 OAuth provider 验证代理。既有本地连接、Marketplace 和普通 SaaS 账号继续走原路径。
 

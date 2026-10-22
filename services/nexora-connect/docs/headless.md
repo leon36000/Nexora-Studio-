@@ -1,10 +1,10 @@
-# @oomol-lab/open-connector
+# @nexora/connect
 
-[![npm](https://img.shields.io/npm/v/@oomol-lab/open-connector.svg)](https://www.npmjs.com/package/@oomol-lab/open-connector)
-[![Node.js](https://img.shields.io/node/v/@oomol-lab/open-connector.svg)](https://nodejs.org)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://github.com/oomol-lab/open-connector/blob/main/LICENSE.txt)
+[![npm](https://img.shields.io/npm/v/@nexora/connect.svg)](https://www.npmjs.com/package/@nexora/connect)
+[![Node.js](https://img.shields.io/node/v/@nexora/connect.svg)](https://nodejs.org)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/blob/main/LICENSE.txt)
 
-Embeddable Open Connector runtime for Node.js 22.18+ and Bun 1.4+.
+Embeddable Nexora Connect runtime for Node.js 22.18+ and Bun 1.4+.
 
 This package is the headless runtime library. It owns providers, authorization,
 credentials, and storage. Your application owns the HTTP server, configuration,
@@ -13,21 +13,21 @@ and process lifecycle.
 It ships compiled JavaScript, TypeScript types, the provider catalog, and SQL
 migrations. It does not include the Web Console or install scripts. For a
 standalone server with a dashboard, use the
-[Docker image](https://github.com/oomol-lab/open-connector/blob/main/docs/docker-ghcr.md)
+[Docker image](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/blob/main/docs/docker-ghcr.md)
 or a
-[single-file binary](https://github.com/oomol-lab/open-connector/releases).
+[single-file binary](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/releases).
 
 ## Install
 
 ```sh
-npm install @oomol-lab/open-connector @hono/node-server
+npm install @nexora/connect @hono/node-server
 ```
 
 ## Quick start
 
 ```ts
 import { serve } from "@hono/node-server";
-import { createConnectorRuntime } from "@oomol-lab/open-connector";
+import { createConnectorRuntime } from "@nexora/connect";
 
 const connector = await createConnectorRuntime({
   dataDir: "./data/connector",
@@ -90,7 +90,7 @@ work and closes owned storage. It is safe to call more than once.
 
 ## Provider Triggers
 
-Provider Triggers use the same headless runtime and selected provider registry as Actions. Grant explicit `allowedTriggers` on a persistent runtime token to manage remote subscriptions; public proxy grants are independent. Runtime shutdown cancels and waits for maintenance. Include the generated catalog and migrations supplied by `getConnectorBuildOptions`; selected-provider builds include only those providers' Trigger executors. See the [Trigger runtime reference](https://github.com/oomol-lab/open-connector/blob/main/docs/runtime-api.md#provider-triggers) for request shapes and cleanup.
+Provider Triggers use the same headless runtime and selected provider registry as Actions. Grant explicit `allowedTriggers` on a persistent runtime token to manage remote subscriptions; public proxy grants are independent. Runtime shutdown cancels and waits for maintenance. Include the generated catalog and migrations supplied by `getConnectorBuildOptions`; selected-provider builds include only those providers' Trigger executors. See the [Trigger runtime reference](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/blob/main/docs/runtime-api.md#provider-triggers) for request shapes and cleanup.
 
 ## Connector SDK
 
@@ -132,13 +132,13 @@ through the connection and OAuth configuration APIs.
 
 For Bun executables, include `getConnectorAssetDirectory()` in
 `compile.assets`, with `splitting: true` and `external: ["proxy-agent"]`. Keep
-the asset directory named `open-connector`; package assets resolve
+the asset directory named `nexora-connect`; package assets resolve
 independently of the working directory.
 
 To include only selected providers, use the build helper:
 
 ```ts
-import { getConnectorBuildOptions } from "@oomol-lab/open-connector/build";
+import { getConnectorBuildOptions } from "@nexora/connect/build";
 
 const prepared = await getConnectorBuildOptions({ providers: ["github", "slack"] });
 try {
@@ -164,11 +164,11 @@ and the installed npm package still contains all providers.
 
 ## Documentation
 
-- [Runtime API and MCP](https://github.com/oomol-lab/open-connector/blob/main/docs/runtime-api.md)
-- [Programmatic connections](https://github.com/oomol-lab/open-connector/blob/main/docs/programmatic-connections.md)
-- [SDK and CLI](https://github.com/oomol-lab/open-connector/blob/main/docs/sdk-cli.md)
-- [Source repository](https://github.com/oomol-lab/open-connector)
+- [Runtime API and MCP](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/blob/main/docs/runtime-api.md)
+- [Programmatic connections](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/blob/main/docs/programmatic-connections.md)
+- [SDK and CLI](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/blob/main/docs/sdk-cli.md)
+- [Source repository](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect)
 
 ## License
 
-[Apache-2.0](https://github.com/oomol-lab/open-connector/blob/main/LICENSE.txt)
+[Apache-2.0](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/blob/main/LICENSE.txt)

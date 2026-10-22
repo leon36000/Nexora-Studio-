@@ -182,6 +182,7 @@ services:
       # Models: everything goes through Nexora API (OpenAI-compatible), shown as « Nexora ».
       VLLM_BASE_URL: http://nexora-api:8000/v1
       NEXORA_ONLY_MODELS: 'true'
+      NEXORA_DEFAULT_MODEL: ${NEXORA_MODEL_NAME:-nexora-default}
       # Tools: Nexora Connect is preconfigured as an MCP server in every workspace.
       NEXORA_CONNECT_MCP_URL: http://nexora-connect:3000/mcp
       NEXORA_CONNECT_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN}

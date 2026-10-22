@@ -21,14 +21,14 @@ Fly volume mounted at `/app/data`.
 Create a Fly app without deploying yet:
 
 ```bash
-fly apps create my-open-connector
+fly apps create my-nexora-connect
 ```
 
 Fly app names are globally unique. If you choose a different name, update the `app` field in
 `fly.toml` before deploying:
 
 ```toml
-app = "my-open-connector"
+app = "my-nexora-connect"
 ```
 
 ## Create Persistent Storage
@@ -40,7 +40,7 @@ as `fly.toml`:
 fly volumes create open_connector_data \
   --region iad \
   --size 1 \
-  --app my-open-connector
+  --app my-nexora-connect
 ```
 
 Increase `--size` if you expect large run logs, many stored credentials, or heavy temporary file
@@ -56,11 +56,11 @@ OOMOL_CONNECT_ADMIN_TOKEN=$(openssl rand -base64 32)
 OOMOL_CONNECT_RUNTIME_TOKEN=$(openssl rand -base64 32)
 
 fly secrets set \
-  OOMOL_CONNECT_ORIGIN="https://my-open-connector.fly.dev" \
+  OOMOL_CONNECT_ORIGIN="https://my-nexora-connect.fly.dev" \
   OOMOL_CONNECT_ENCRYPTION_KEY="$OOMOL_CONNECT_ENCRYPTION_KEY" \
   OOMOL_CONNECT_ADMIN_TOKEN="$OOMOL_CONNECT_ADMIN_TOKEN" \
   OOMOL_CONNECT_RUNTIME_TOKEN="$OOMOL_CONNECT_RUNTIME_TOKEN" \
-  --app my-open-connector
+  --app my-nexora-connect
 ```
 
 Keep `OOMOL_CONNECT_ENCRYPTION_KEY` in a password manager or another external secrets vault. If the
@@ -73,7 +73,7 @@ Optional runtime policy can also be set as secrets:
 fly secrets set \
   OOMOL_CONNECT_ALLOWED_ACTIONS="github.*,hackernews.*" \
   OOMOL_CONNECT_ALLOWED_PROXIES="github" \
-  --app my-open-connector
+  --app my-nexora-connect
 ```
 
 See [configuration.md](configuration.md) for the full environment variable reference.
@@ -105,7 +105,7 @@ npm run runtime:migrate
 
 fly secrets set \
   OOMOL_CONNECT_DATABASE_URL="postgresql://app:password@db.example.com/open_connector?sslmode=verify-full" \
-  --app my-open-connector
+  --app my-nexora-connect
 ```
 
 The migration and application URLs may use separate PostgreSQL roles. Application instances only
@@ -126,7 +126,7 @@ database capacity for migrations and administration.
 Check the health endpoint:
 
 ```bash
-curl https://my-open-connector.fly.dev/health
+curl https://my-nexora-connect.fly.dev/health
 ```
 
 The expected response is:
@@ -138,7 +138,7 @@ The expected response is:
 View logs when diagnosing deployment or startup issues:
 
 ```bash
-fly logs --app my-open-connector
+fly logs --app my-nexora-connect
 ```
 
 ## Configure OAuth Redirects
@@ -165,7 +165,7 @@ Add that exact callback URL to each provider OAuth app.
 Register the domain with Fly:
 
 ```bash
-fly certs add api.example.com --app my-open-connector
+fly certs add api.example.com --app my-nexora-connect
 ```
 
 Fly prints the DNS records to create. After DNS is ready, update the public origin:
@@ -173,13 +173,13 @@ Fly prints the DNS records to create. After DNS is ready, update the public orig
 ```bash
 fly secrets set \
   OOMOL_CONNECT_ORIGIN="https://api.example.com" \
-  --app my-open-connector
+  --app my-nexora-connect
 ```
 
 Check certificate status:
 
 ```bash
-fly certs check api.example.com --app my-open-connector
+fly certs check api.example.com --app my-nexora-connect
 ```
 
 ## Updating

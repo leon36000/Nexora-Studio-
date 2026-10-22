@@ -6,8 +6,8 @@ A release is cut by running the **Release** workflow by hand on `main`
 | Artifact                                       | Where it goes            |
 | ---------------------------------------------- | ------------------------ |
 | Six single-file binaries + `SHA256SUMS`        | GitHub release assets    |
-| `@oomol-lab/open-connector` (headless runtime) | npm                      |
-| `ghcr.io/oomol-lab/open-connector` image       | `latest` + `vX.Y.Z` tags |
+| `@nexora/connect` (headless runtime) | npm                      |
+| `nexora/connect:local` image       | `latest` + `vX.Y.Z` tags |
 | GitHub release with generated notes            | tag `vX.Y.Z`             |
 
 The npm package README is `docs/headless.md`. To pack it locally without
@@ -51,8 +51,8 @@ different version instead.
 
 ## One-time setup
 
-- npm trusted publishing: the package settings of `@oomol-lab/open-connector` on npmjs.com
-  trust GitHub Actions for `oomol-lab/open-connector` with workflow filename `release.yml` and
+- npm trusted publishing: the package settings of `@nexora/connect` on npmjs.com
+  trust GitHub Actions for `oomol-lab/nexora-connect` with workflow filename `release.yml` and
   `npm publish` allowed. npm matches the workflow that was dispatched, not the reusable
   workflow that runs the publish command. No npm token is stored in the repository, and npm
   records provenance automatically.

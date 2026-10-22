@@ -53,20 +53,20 @@ npx wrangler login
 Create the D1 database:
 
 ```bash
-npx wrangler d1 create open-connector
+npx wrangler d1 create nexora-connect
 ```
 
 Then choose one transit-file backend. R2 is the default and supports files larger than 25 MiB:
 
 ```bash
-npx wrangler r2 bucket create open-connector-transit-files
+npx wrangler r2 bucket create nexora-connect-transit-files
 ```
 
 Alternatively, create a Workers KV namespace for lightweight deployments that do not need files
 larger than 25 MiB:
 
 ```bash
-npx wrangler kv namespace create open-connector-transit-files
+npx wrangler kv namespace create nexora-connect-transit-files
 ```
 
 Put the returned D1 `database_id` and R2 bucket name or KV namespace `id` into
@@ -93,7 +93,7 @@ OOMOL_CONNECT_ENCRYPTION_KEY=replace-with-a-local-encryption-key
 Apply the migrations to Wrangler's local D1 state, then start the Worker:
 
 ```bash
-npx wrangler d1 migrations apply open-connector --local --config wrangler.local.jsonc
+npx wrangler d1 migrations apply nexora-connect --local --config wrangler.local.jsonc
 npm run dev:cloudflare
 ```
 
@@ -115,7 +115,7 @@ Apply all pending migrations to the remote D1 database before the initial deploy
 upgrade. `npm run deploy:cloudflare` does not apply D1 migrations:
 
 ```bash
-npx wrangler d1 migrations apply open-connector --remote --config wrangler.local.jsonc
+npx wrangler d1 migrations apply nexora-connect --remote --config wrangler.local.jsonc
 ```
 
 Generate two independent random values by running this command twice:
@@ -154,7 +154,7 @@ Use the Worker URL printed by Wrangler to check the deployed runtime, then open 
 browser and enter the admin token to access the Web Console:
 
 ```bash
-curl https://open-connector.example.workers.dev/health
+curl https://nexora-connect.example.workers.dev/health
 ```
 
 The health endpoint should return `{"ok":true}`. Replace the example URL with the deployed Worker
@@ -165,7 +165,7 @@ URL or your custom domain.
 To enable OAuth for clients that cannot supply an Authorization header, create a dedicated Workers KV namespace and bind it as `OAUTH_KV`:
 
 ```bash
-npx wrangler kv namespace create open-connector-oauth --binding OAUTH_KV
+npx wrangler kv namespace create nexora-connect-oauth --binding OAUTH_KV
 ```
 
 Add the returned namespace ID to `kv_namespaces` in `wrangler.local.jsonc`. Keep your existing administrator token and encryption key, and set `OOMOL_CONNECT_ORIGIN` to the gateway's canonical public origin. The example configuration includes the required `global_fetch_strictly_public` flag and routes `/.well-known/*` to the Worker before static assets. OAuth stays disabled without the `OAUTH_KV` binding.

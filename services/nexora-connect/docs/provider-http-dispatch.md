@@ -23,7 +23,7 @@ const providerHttpDispatch = {
 };
 ```
 
-The arbiter and identity resolver belong to the host. Open Connector does not
+The arbiter and identity resolver belong to the host. Nexora Connect does not
 provide a scheduler, budget store, default rate policy, or durable settlement and
 recovery protocol. Workspace/account mapping, priorities and fairness also remain
 host responsibilities.
@@ -103,7 +103,7 @@ that its bookkeeping has settled.
 Queued cancellation returns promptly even if admission ignores the signal. A late
 permit receives `not_dispatched`; cancellation after dispatch starts does not
 retract the request. `not_dispatched` does not roll back an already-persisted host
-commitment. Open Connector does not refund budgets or establish completion,
+commitment. Nexora Connect does not refund budgets or establish completion,
 release a concurrency slot, or select a recovery policy.
 
 ## Coverage and standalone use

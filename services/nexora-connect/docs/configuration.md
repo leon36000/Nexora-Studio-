@@ -148,7 +148,7 @@ OSS:
 
 ```bash
 OOMOL_CONNECT_TRANSIT_FILE_BACKEND=s3 \
-OOMOL_CONNECT_S3_BUCKET=open-connector-transit-files \
+OOMOL_CONNECT_S3_BUCKET=nexora-connect-transit-files \
 OOMOL_CONNECT_S3_REGION=us-east-1 \
 OOMOL_CONNECT_S3_ENDPOINT=http://minio:9000 \
 OOMOL_CONNECT_S3_FORCE_PATH_STYLE=true \

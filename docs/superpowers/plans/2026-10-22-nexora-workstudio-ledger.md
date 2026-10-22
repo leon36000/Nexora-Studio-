@@ -163,3 +163,14 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Images arm64 construites : `nexora/api`, `nexora/workstudio-realtime`, `nexora/workstudio-migrations`. `connect` et `workstudio` sont en cours.
   - Disque : 34 Go libres, 97 %. Seules les images du test que j'avais téléchargées (etalab) ont été supprimées ; le cache et les images des autres usages ne sont pas touchés.
 - Connu, pour après la v1 : `NextIntlClientProvider` envoie tous les messages au client (≈ 260 Ko non compressés sur `/login`). Il faudra les limiter par zone.
+- 22/10/2026 — **Tâche 14 terminée.**
+  - `README.md` racine en français : composants, démarrage rapide, test de fumée, licences et provenance.
+  - Guide `docs/guide/` : index (cible de `docsUrl`), installation (prérequis, `init-env`, compose, premier compte, mise à jour, sauvegarde, dépannage), SSO OIDC (Keycloak, Entra ID, Google), prise en main (modèles PME, premier workflow, Connect, consommation, langue), Nexora API.
+  - Les menus cités dans le guide correspondent aux traductions réelles. La section « usage » s'appelle désormais « Consommation » (« Analyses » auparavant), en français seulement.
+  - Règles Nexora ajoutées en tête de `workstudio/CLAUDE.md` et `AGENTS.md`.
+  - Documentation de Nexora Connect :
+    - README et `SECURITY.md` réécrits ;
+    - documents propres aux services hébergés d'OOMOL supprimés (onboarding SDK/CLI, marketplace, options de déploiement, spécifications, SDK Gmail, SaaS, WeChat) ainsi que les README traduits ;
+    - marque remplacée dans les docs techniques ; `NOTICE.md` et `UPSTREAM.md` restent intacts.
+  - `deploy/compose.yml` transmet `NEXORA_DEFAULT_MODEL` (à partir de `NEXORA_MODEL_NAME`) aux modèles PME.
+  - Disque : la construction Next.js est descendue à 22 Go libres (98 %). Mes clones de recherche dans le scratchpad sont supprimés (≈ 17 Go), ce qui remonte à 36 Go ; rien d'autre n'est touché.

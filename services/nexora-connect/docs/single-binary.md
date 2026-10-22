@@ -13,27 +13,27 @@ to clients: the same routes, responses, and ETags.
 
 ## Download
 
-Every [release](https://github.com/oomol-lab/open-connector/releases) attaches the six executables
+Every [release](https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/releases) attaches the six executables
 uncompressed, built and smoke-tested on each platform by CI, plus a `SHA256SUMS` file:
 
 | Asset                              | Platform            |
 | ---------------------------------- | ------------------- |
-| `open-connector-linux-x64`         | Linux x86_64        |
-| `open-connector-linux-arm64`       | Linux ARM64         |
-| `open-connector-darwin-arm64`      | macOS Apple Silicon |
-| `open-connector-darwin-x64`        | macOS Intel         |
-| `open-connector-windows-x64.exe`   | Windows x86_64      |
-| `open-connector-windows-arm64.exe` | Windows ARM64       |
+| `nexora-connect-linux-x64`         | Linux x86_64        |
+| `nexora-connect-linux-arm64`       | Linux ARM64         |
+| `nexora-connect-darwin-arm64`      | macOS Apple Silicon |
+| `nexora-connect-darwin-x64`        | macOS Intel         |
+| `nexora-connect-windows-x64.exe`   | Windows x86_64      |
+| `nexora-connect-windows-arm64.exe` | Windows ARM64       |
 
 The names are stable across releases, so `releases/latest/download/` always resolves to the newest
 release. A plain download does not keep the executable bit, so `chmod +x` after it:
 
 ```bash
-curl -fsSLO https://github.com/oomol-lab/open-connector/releases/latest/download/open-connector-linux-x64
-curl -fsSLO https://github.com/oomol-lab/open-connector/releases/latest/download/SHA256SUMS
+curl -fsSLO https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/releases/latest/download/nexora-connect-linux-x64
+curl -fsSLO https://github.com/leon36000/Nexora-Studio-/tree/main/services/nexora-connect/releases/latest/download/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-chmod +x open-connector-linux-x64
-./open-connector-linux-x64
+chmod +x nexora-connect-linux-x64
+./nexora-connect-linux-x64
 ```
 
 Replace `latest` with a tag such as `v1.4.1` to pin a release. The macOS binaries were re-signed on
@@ -55,12 +55,12 @@ npm run build:binary
 under `dist/`:
 
 ```text
-dist/open-connector-linux-x64
-dist/open-connector-linux-arm64
-dist/open-connector-darwin-x64
-dist/open-connector-darwin-arm64
-dist/open-connector-windows-x64.exe
-dist/open-connector-windows-arm64.exe
+dist/nexora-connect-linux-x64
+dist/nexora-connect-linux-arm64
+dist/nexora-connect-darwin-x64
+dist/nexora-connect-darwin-arm64
+dist/nexora-connect-windows-x64.exe
+dist/nexora-connect-windows-arm64.exe
 ```
 
 Each file is roughly 150 to 175 MiB. To build a subset, pass one or more target names after `--`:
@@ -73,8 +73,7 @@ Bun downloads a runtime for every target that differs from the host (about 80 MB
 `registry.npmjs.org`) into `~/.bun/install/cache` on first use. These downloads are not integrity
 checked by Bun; TLS is the only protection.
 
-`npm run build:web` also fetches the provider icon map from https://oomol.com/en/apps/catalog.json
-and fails when it is unreachable.
+`npm run build:web` needs no network: provider icons come from the local catalog at runtime.
 
 `.bun-version` and the `@types/bun` devDependency pin in `package.json` are bumped together.
 
@@ -91,9 +90,9 @@ The binary takes the same environment variables as `npm start`; see
 | `OOMOL_CONNECT_DATABASE_URL` | unset       | PostgreSQL connection URL. When unset, SQLite under the data dir. |
 
 ```bash
-OOMOL_CONNECT_DATA_DIR="$HOME/open-connector-data" \
+OOMOL_CONNECT_DATA_DIR="$HOME/nexora-connect-data" \
 PORT=3000 \
-./dist/open-connector-linux-x64
+./dist/nexora-connect-linux-x64
 ```
 
 With SQLite, migrations are applied automatically when the database opens, exactly as with
@@ -107,10 +106,10 @@ a newer binary that contains pending migrations:
 
 ```bash
 OOMOL_CONNECT_DATABASE_URL="postgresql://open_connector:password@db.example.com:5432/open_connector?sslmode=verify-full" \
-./dist/open-connector-linux-x64 migrate
+./dist/nexora-connect-linux-x64 migrate
 
 OOMOL_CONNECT_DATABASE_URL="postgresql://open_connector:password@db.example.com:5432/open_connector?sslmode=verify-full" \
-./dist/open-connector-linux-x64
+./dist/nexora-connect-linux-x64
 ```
 
 The server only checks schema readiness at startup and refuses to start when migrations are
@@ -127,7 +126,7 @@ prints a notice that SQLite migrations are applied automatically and exits.
   ad-hoc signature, and macOS 27 and newer refuses to run them until you re-sign them:
 
   ```bash
-  codesign --force --sign - dist/open-connector-darwin-arm64
+  codesign --force --sign - dist/nexora-connect-darwin-arm64
   ```
 
   `codesign --verify --verbose=2 <file>` prints "valid on disk" for a usable binary and "invalid

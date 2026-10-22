@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to OOMOL Connect.
+Thanks for contributing to Nexora Connect.
 
 ## Development Setup
 

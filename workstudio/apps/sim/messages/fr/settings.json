@@ -220,8 +220,8 @@
         "description": "Membres et accès aux espaces de travail de votre organisation."
       },
       "usage": {
-        "label": "Analyses",
-        "description": "Explorez l’utilisation et l’activité de votre organisation."
+        "label": "Consommation",
+        "description": "Suivez la consommation de modèles mesurée par Nexora API."
       },
       "secrets": {
         "label": "Secrets",

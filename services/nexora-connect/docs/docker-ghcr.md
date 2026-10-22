@@ -6,7 +6,7 @@ OpenConnector ships a prebuilt Docker image on the GitHub Packages container reg
 can run it without cloning the repository or building anything. The image is:
 
 ```text
-ghcr.io/oomol-lab/open-connector
+nexora/connect:local
 ```
 
 ## Choose A Tag
@@ -25,7 +25,7 @@ For production, pin a specific released version instead of `latest`.
 The image is public, so no sign-in is required:
 
 ```bash
-docker pull ghcr.io/oomol-lab/open-connector:latest
+docker pull nexora/connect:local
 ```
 
 If you get an `unauthorized` or `denied` error, sign in with a GitHub token that has the
@@ -58,13 +58,13 @@ Then run the image, mounting a volume so data survives restarts:
 
 ```bash
 docker run -d \
-  --name open-connector \
+  --name nexora-connect \
   -p 3000:3000 \
   -v open_connector_data:/app/data \
   -e OOMOL_CONNECT_ORIGIN="https://api.example.com" \
   -e OOMOL_CONNECT_ENCRYPTION_KEY="$OOMOL_CONNECT_ENCRYPTION_KEY" \
   -e OOMOL_CONNECT_ADMIN_TOKEN="$OOMOL_CONNECT_ADMIN_TOKEN" \
-  ghcr.io/oomol-lab/open-connector:latest
+  nexora/connect:local
 ```
 
 See [configuration.md](configuration.md) for the full environment variable reference and
@@ -81,7 +81,7 @@ OPEN_CONNECTOR_VERSION="<release-version>"
 
 docker run --rm \
   -e OOMOL_CONNECT_DATABASE_URL="postgresql://migration_user:password@db.example.com:5432/open_connector?sslmode=verify-full" \
-  "ghcr.io/oomol-lab/open-connector:${OPEN_CONNECTOR_VERSION}" \
+  "nexora/connect:local:${OPEN_CONNECTOR_VERSION}" \
   migrate
 ```
 

@@ -133,9 +133,9 @@ Create the Cloudflare resources, apply the D1 schema, and start a local Worker p
 
 ```bash
 cp wrangler.example.jsonc wrangler.local.jsonc
-npx wrangler d1 create open-connector
-npx wrangler r2 bucket create open-connector-transit-files
-npx wrangler d1 migrations apply open-connector --local --config wrangler.local.jsonc
+npx wrangler d1 create nexora-connect
+npx wrangler r2 bucket create nexora-connect-transit-files
+npx wrangler d1 migrations apply nexora-connect --local --config wrangler.local.jsonc
 npm run dev:cloudflare
 ```
 

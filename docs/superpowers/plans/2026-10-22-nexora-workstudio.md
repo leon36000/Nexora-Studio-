@@ -289,10 +289,10 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 
 ## Tâche 14 — Documentation
 
-- [ ] `README.md` racine, en français : ce qu'est Nexora WorkStudio, l'architecture, le démarrage rapide (3 commandes), les licences et la provenance.
-- [ ] `docs/guide/installation.md` : prérequis, `init-env.sh`, choix du modèle amont, compose, premier compte, SSO OIDC, mise à jour, sauvegarde.
-- [ ] `docs/guide/README.md` : index du guide (cible de `docsUrl`).
-- [ ] `workstudio/CLAUDE.md` et `AGENTS.md` : ajouter en tête les règles Nexora (pas d'`ee/` d'origine, i18n obligatoire, marque).
+- [x] `README.md` racine, en français : ce qu'est Nexora WorkStudio, l'architecture, le démarrage rapide (3 commandes), les licences et la provenance.
+- [x] `docs/guide/installation.md` : prérequis, `init-env.sh`, choix du modèle amont, compose, premier compte, SSO OIDC, mise à jour, sauvegarde.
+- [x] `docs/guide/README.md` : index du guide (cible de `docsUrl`).
+- [x] `workstudio/CLAUDE.md` et `AGENTS.md` : ajouter en tête les règles Nexora (pas d'`ee/` d'origine, i18n obligatoire, marque).
 
 ## Tâche 15 — Vérification finale et revue
 

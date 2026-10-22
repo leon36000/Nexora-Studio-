@@ -1,3 +1,16 @@
+# Nexora WorkStudio — rules that come first
+
+This is **Nexora WorkStudio**, a fork of Sim (Apache-2.0 core). These rules override anything below.
+
+- **No upstream `ee/` code, ever.** Sim's `apps/sim/ee/` is proprietary and was never imported. `apps/sim/ee/` here holds Nexora clean-room modules written from the core's call sites only; each file starts with `// Nexora clean-room replacement`. Never read, copy, or restore the original (no upstream checkouts, no `git show`, no web copies). `scripts/check-no-ee.sh` (repo root) must pass.
+- **Every user-visible string goes through next-intl** (`useTranslations` / `getTranslations`, messages in `apps/sim/messages/{fr,en}/<zone>.json`, French is the default locale). English messages stay identical to the original copy so tests keep their meaning. `scripts/check-i18n.sh` must pass.
+- **Brand**: the product is "Nexora WorkStudio" (`Nexora` in short). No Sim, sim.ai, OOMOL or Etalab brand in user-facing text; documentation links use `docsUrl()` from `@/lib/branding/docs-url`. `scripts/check-brand.sh` must pass.
+- **Nexora edition code** lives in `apps/sim/lib/nexora/` (Nexora API usage, Nexora Connect registration, SME templates, OIDC, marketing redirect). Edition switches: `NEXORA_ONLY_MODELS`, `NEXORA_CONNECT_*`, `NEXORA_OIDC_*`, `NEXORA_DEFAULT_MODEL`, `NEXORA_TEMPLATES_DISABLED`, `NEXT_PUBLIC_CHAT_ENABLED`.
+- **No telemetry to third parties** by default, and no default call to any Sim-hosted service (copilot URL defaults to the reserved `.invalid` TLD).
+- Run the unit suite with `LANG=en_US.UTF-8` (some tests assume an English locale).
+
+---
+
 # Sim Development Guidelines
 
 This file (also `AGENTS.md`) holds the repo-wide rules. Area detail lives in `.claude/rules/*.md` (indexed in `apps/sim/AGENTS.md`): Claude loads each one by path, and any other agent reads the file a section points to before editing in that area. Skills live in `.agents/skills/`.
