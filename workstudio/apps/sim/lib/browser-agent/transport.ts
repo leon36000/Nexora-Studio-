@@ -198,7 +198,7 @@ export async function executeBrowserTool(
 ): Promise<unknown> {
   const agent = bridge()
   if (!agent) {
-    throw new Error('The Sim desktop browser agent is unavailable.')
+    throw new Error('The Nexora desktop browser agent is unavailable.')
   }
   const activeTool = { toolCallId, tool, scopeId, onCancel }
   activeBrowserTools.set(toolCallId, activeTool)
@@ -343,7 +343,7 @@ export async function openBrowserTab(
   scopeId = currentBrowserScopeId()
 ): Promise<BrowserTabsState | null> {
   const agent = bridge()
-  if (!agent) throw new Error('The Sim desktop browser agent is unavailable.')
+  if (!agent) throw new Error('The Nexora desktop browser agent is unavailable.')
   if (!agent.openTab) {
     agent.panelAction({ action: 'new-tab' }, scopeId)
     return null
@@ -366,7 +366,7 @@ export async function openUrlInNewBrowserTab(
   scopeId = currentBrowserScopeId()
 ): Promise<string | null> {
   const agent = bridge()
-  if (!agent) throw new Error('The Sim desktop browser agent is unavailable.')
+  if (!agent) throw new Error('The Nexora desktop browser agent is unavailable.')
   if (agent.openUrl) {
     const state = await agent.openUrl(url, scopeId)
     if (state.scopeId !== scopeId || !state.activeTabId) {

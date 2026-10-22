@@ -1,4 +1,5 @@
 import { GreenhouseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -11,7 +12,7 @@ export const GreenhouseBlock: BlockConfig = {
   description: 'Manage candidates, jobs, and applications in Greenhouse',
   longDescription:
     'List and retrieve candidates, jobs, applications, users, departments, offices, and job stages from your Greenhouse ATS account.',
-  docsLink: 'https://docs.sim.ai/integrations/greenhouse',
+  docsLink: docsUrl('/integrations/greenhouse'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#469776',
@@ -553,7 +554,7 @@ export const GreenhouseV2Block: BlockConfig = {
   description: 'Manage recruiting with Greenhouse Harvest v3',
   longDescription:
     'Read and manage candidates, applications, notes, attachments, and tags with Harvest v3 OAuth. Retrieve jobs, hiring teams, interviews, scorecards, offers, and configuration resources with cursor pagination. Existing Greenhouse webhooks remain available.',
-  docsLink: 'https://docs.sim.ai/integrations/greenhouse',
+  docsLink: docsUrl('/integrations/greenhouse'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#469776',

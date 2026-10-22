@@ -15,7 +15,7 @@ describe('resolveCredentialGroupsAvailability', () => {
     ).resolves.toEqual({ available: false, reason: 'feature_disabled' })
   })
 
-  it('requires Enterprise on Sim Cloud', async () => {
+  it('requires Enterprise on Nexora Cloud', async () => {
     setEnvFlags({ isHosted: true })
     await expect(
       resolveCredentialGroupsAvailability({

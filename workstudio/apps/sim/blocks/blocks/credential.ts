@@ -1,4 +1,5 @@
 import { CredentialIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { CREDENTIAL_GROUP_EVENT_TRIGGER_ID } from '@/lib/credential-groups/trigger-constants'
 import type { BlockConfig } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -32,7 +33,7 @@ export const CredentialBlock: BlockConfig = {
   - Outputs contain account identities and credential references, never secret values.
   - To switch credentials across environments, replace the single Credential block rather than updating every downstream block.
   `,
-  docsLink: 'https://docs.sim.ai/workflows/blocks/credential',
+  docsLink: docsUrl('/workflows/blocks/credential'),
   bgColor: '#6366F1',
   icon: CredentialIcon,
   canvasPresentation: {

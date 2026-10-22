@@ -1,4 +1,5 @@
 import { TailscaleIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const TailscaleBlock: BlockConfig = {
   description: 'Manage devices and network settings in your Tailscale tailnet',
   longDescription:
     'Interact with the Tailscale API to manage devices, DNS, ACLs, auth keys, users, and routes across your tailnet.',
-  docsLink: 'https://docs.sim.ai/integrations/tailscale',
+  docsLink: docsUrl('/integrations/tailscale'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#2E2D2D',

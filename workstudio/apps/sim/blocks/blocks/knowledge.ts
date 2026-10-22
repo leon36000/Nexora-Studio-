@@ -1,5 +1,6 @@
 import { isPlainRecord } from '@sim/utils/object'
 import { PackageSearchIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { DEFAULT_RERANKER_MODEL, SUPPORTED_RERANKER_MODELS } from '@/lib/knowledge/reranker-models'
 import type { BlockConfig } from '@/blocks/types'
 import { getCohereRerankerApiKeyCondition } from '@/blocks/utils'
@@ -91,7 +92,7 @@ export const KnowledgeBlock: BlockConfig = {
     },
   },
   category: 'blocks',
-  docsLink: 'https://docs.sim.ai/integrations/knowledge',
+  docsLink: docsUrl('/integrations/knowledge'),
   subBlocks: [
     {
       id: 'operation',

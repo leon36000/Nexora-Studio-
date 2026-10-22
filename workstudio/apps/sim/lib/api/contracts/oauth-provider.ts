@@ -57,7 +57,7 @@ export const registerOAuthClientBodySchema = z.object({
       if (granted !== null) return granted
       context.addIssue({
         code: 'custom',
-        message: 'Only Sim MCP access can be registered automatically',
+        message: 'Only Nexora MCP access can be registered automatically',
       })
       return z.NEVER
     }),

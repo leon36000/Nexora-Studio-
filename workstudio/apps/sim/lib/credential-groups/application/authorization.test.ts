@@ -174,7 +174,7 @@ describe('requireCredentialGroupCredentialAccess', () => {
     await expect(requireAccess(copilotPrincipal())).rejects.toMatchObject({ code: 'forbidden' })
   })
 
-  it('denies a Chat turn with no Sim user subject before reading anything', async () => {
+  it('denies a Chat turn with no Nexora user subject before reading anything', async () => {
     await expect(requireAccess(copilotPrincipal(null))).rejects.toMatchObject({
       code: 'forbidden',
     })
@@ -195,7 +195,7 @@ describe('requireCredentialGroupCredentialAccess', () => {
     )
   })
 
-  it('allows a Sim actor without a personal enrollment', async () => {
+  it('allows a Nexora actor without a personal enrollment', async () => {
     const principal = executorPrincipal()
     principal.subjectUserId = 'user-1'
     principal.delegationContext!.principal = {
@@ -296,7 +296,7 @@ describe('requireCredentialGroupCredentialAccess', () => {
     await expect(requireManagedAccess()).rejects.toMatchObject({ code: 'not_found' })
   })
 
-  it('rejects inconsistent Sim and external subject assertions before loading policy', async () => {
+  it('rejects inconsistent Nexora and external subject assertions before loading policy', async () => {
     const simPrincipal = executorPrincipal()
     simPrincipal.subjectUserId = 'user-2'
     simPrincipal.delegationContext!.principal = {
@@ -355,7 +355,7 @@ describe('requireCredentialGroupWorkflowActor', () => {
     expect(requireCredentialGroupWorkflowActor(principal)).toBeNull()
   })
 
-  it('returns the Sim subject a session-actor run acts as', () => {
+  it('returns the Nexora subject a session-actor run acts as', () => {
     const principal = executorPrincipal()
     principal.subjectUserId = 'user-1'
     principal.delegationContext!.principal = {

@@ -25,10 +25,10 @@ export default async function SlackCompletePage({ searchParams }: SlackCompleteP
       title={ok ? 'Slack connected' : 'Slack connection failed'}
       description={
         ok
-          ? 'Your connection is ready. You can return to Sim.'
+          ? 'Your connection is ready. You can return to Nexora.'
           : signInRequired
-            ? 'Sign in to Sim in your browser, then return to Sim and restart Slack setup.'
-            : 'Authorization did not complete. Return to Sim and try connecting again.'
+            ? 'Sign in to Nexora in your browser, then return to Nexora and restart Slack setup.'
+            : 'Authorization did not complete. Return to Nexora and try connecting again.'
       }
     >
       <SlackCompletion
@@ -49,7 +49,7 @@ export default async function SlackCompletePage({ searchParams }: SlackCompleteP
               : APP_ENTRY_PATH
         }
       >
-        {signInRequired ? 'Sign in to Sim' : 'Return to Sim'}
+        {signInRequired ? 'Sign in to Nexora' : 'Return to Nexora'}
       </ChipLink>
     </DesktopHandoffShell>
   )

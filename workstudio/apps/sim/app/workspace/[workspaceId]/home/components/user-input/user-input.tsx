@@ -611,7 +611,7 @@ const UserInputImpl = forwardRef<UserInputHandle, UserInputProps>(function UserI
       <PromptEditor
         editor={editor}
         aria-label='Message'
-        placeholder='Ask Sim to '
+        placeholder='Ask Nexora to '
         onSubmit={handleEnterSubmit}
         onArrowUpOnEmpty={handleArrowUpOnEmpty}
         onNavigateHistory={history.navigate}

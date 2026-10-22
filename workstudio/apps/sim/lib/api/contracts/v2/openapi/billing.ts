@@ -135,21 +135,21 @@ const routes = [
 export const billingOpenApiDocument = defineOpenApiDocument({
   output: 'apps/docs/openapi-v2-billing.json',
   info: {
-    title: 'Sim API v2 — billing',
+    title: 'Nexora API v2 — billing',
     description:
-      'Version 2 of the Sim REST API for billing standing, credit allowance, storage quota, and cursor-paginated usage history.',
+      'Version 2 of the Nexora REST API for billing standing, credit allowance, storage quota, and cursor-paginated usage history.',
     version: '2.0.0',
     contact: {
-      name: 'Sim Support',
-      email: 'help@sim.ai',
-      url: 'https://www.sim.ai',
+      name: 'Nexora Support',
+      email: 'support@example.com',
+      url: 'https://workstudio.example.com',
     },
     license: {
       name: 'Apache 2.0',
       url: 'https://www.apache.org/licenses/LICENSE-2.0.html',
     },
   },
-  servers: [{ url: 'https://www.sim.ai', description: 'Production' }],
+  servers: [{ url: 'https://workstudio.example.com', description: 'Production' }],
   tags: [
     {
       name: 'Billing',

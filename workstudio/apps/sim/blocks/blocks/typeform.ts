@@ -1,4 +1,5 @@
 import { TypeformIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -10,7 +11,7 @@ export const TypeformBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Retrieve responses, download files, and get form insights. Use trigger mode to start a workflow when a form is submitted. Requires API Key.',
-  docsLink: 'https://docs.sim.ai/integrations/typeform',
+  docsLink: docsUrl('/integrations/typeform'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#262627', // Typeform brand color

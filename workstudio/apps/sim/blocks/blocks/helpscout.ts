@@ -1,4 +1,5 @@
 import { HelpScoutIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -102,7 +103,7 @@ export const HelpScoutBlock: BlockConfig = {
   description: 'Manage Help Scout conversations, replies, notes, and customers',
   longDescription:
     'Connect Help Scout to search and read conversations and their threads, open new conversations, reply to customers, add internal notes and customer messages, change status, assignee, inbox, subject, customer, tags, and custom fields, and snooze conversations. Manage customers and their properties, look up organizations and saved replies, list inboxes, folders, users, teams, tags, and workflows, and run manual workflows. Trigger workflows from Help Scout webhooks for conversation and customer events.',
-  docsLink: 'https://docs.sim.ai/integrations/helpscout',
+  docsLink: docsUrl('/integrations/helpscout'),
   category: 'tools',
   integrationType: IntegrationType.Support,
   authMode: AuthMode.OAuth,

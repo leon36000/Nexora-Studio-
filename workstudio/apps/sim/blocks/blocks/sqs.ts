@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { SQSIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const SQSBlock: BlockConfig = {
   description: 'Connect to Amazon SQS',
   longDescription:
     'Send and receive messages one at a time or in batches of ten, delete messages, extend visibility timeouts, manage queues along with their attributes and tags, and redrive messages out of a dead-letter queue.',
-  docsLink: 'https://docs.sim.ai/integrations/sqs',
+  docsLink: docsUrl('/integrations/sqs'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: 'linear-gradient(45deg, #2E27AD 0%, #527FFF 100%)',

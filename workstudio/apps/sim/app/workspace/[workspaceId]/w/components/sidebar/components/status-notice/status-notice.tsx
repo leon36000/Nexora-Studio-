@@ -22,7 +22,7 @@ function StatusAlert() {
     >
       <div className='flex min-w-0 items-center gap-1.5'>
         <CircleAlert className='size-[16px] shrink-0 text-[var(--text-icon)]' />
-        <p className='min-w-0 text-[var(--text-body)] text-sm leading-5'>Sim is having issues</p>
+        <p className='min-w-0 text-[var(--text-body)] text-sm leading-5'>Nexora is having issues</p>
       </div>
       <ChipLink
         fullWidth

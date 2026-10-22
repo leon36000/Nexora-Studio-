@@ -31,7 +31,7 @@ export interface SecureGitHubRequestOptions {
  */
 function withUserAgent(headers: Record<string, string>): Record<string, string> {
   const hasUserAgent = Object.keys(headers).some((name) => name.toLowerCase() === 'user-agent')
-  return hasUserAgent ? headers : { ...headers, 'User-Agent': 'Sim' }
+  return hasUserAgent ? headers : { ...headers, 'User-Agent': 'Nexora' }
 }
 
 /**

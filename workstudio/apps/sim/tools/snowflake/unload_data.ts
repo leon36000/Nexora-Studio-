@@ -40,7 +40,7 @@ export const unloadDataTool: ToolConfig<SnowflakeUnloadDataParams, SnowflakeStat
       type: 'number',
       required: false,
       visibility: 'user-or-llm',
-      description: 'Maximum result rows; defaults to 1000 with a Sim safety limit of 10000',
+      description: 'Maximum result rows; defaults to 1000 with a Nexora safety limit of 10000',
     },
     database: {
       type: 'string',

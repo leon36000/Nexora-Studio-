@@ -1,4 +1,5 @@
 import { ElasticsearchIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const ElasticsearchBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search with Query DSL, manage documents and indexes, run bulk operations, and inspect cluster health on a self-hosted or Elastic Cloud deployment.',
-  docsLink: 'https://docs.sim.ai/integrations/elasticsearch',
+  docsLink: docsUrl('/integrations/elasticsearch'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',

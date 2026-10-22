@@ -56,8 +56,8 @@ export function revenueCatSetupInstructions(eventLabel: string): string {
     'Paste the Secret API key into the <strong>API Key</strong> field below.',
     'Enter your <strong>Project ID</strong> (the <code>proj...</code> identifier shown in your project settings or the dashboard URL) in the <strong>Project ID</strong> field below.',
     'Optionally restrict the trigger to a single <strong>Environment</strong> (Production or Sandbox). Leave it on <strong>All</strong> to receive both.',
-    `Sim creates the webhook integration in RevenueCat automatically when you deploy and removes it when you undeploy. This trigger fires on <strong>${eventLabel}</strong> events.`,
-    'Sim generates the Authorization header secret for you and verifies every incoming request against it — you do not need to set it manually.',
+    `Nexora creates the webhook integration in RevenueCat automatically when you deploy and removes it when you undeploy. This trigger fires on <strong>${eventLabel}</strong> events.`,
+    'Nexora generates the Authorization header secret for you and verifies every incoming request against it — you do not need to set it manually.',
     'Click "Save" above to deploy and activate your trigger.',
   ]
   return instructions
@@ -89,7 +89,7 @@ export function buildRevenueCatExtraFields(triggerId: string): SubBlockConfig[] 
       paramVisibility: 'user-only',
       placeholder: 'RevenueCat v2 Secret API key (sk_...)',
       description:
-        'Secret API key with the project_configuration:integrations:read_write permission. Sim uses it to create and remove the webhook in RevenueCat.',
+        'Secret API key with the project_configuration:integrations:read_write permission. Nexora uses it to create and remove the webhook in RevenueCat.',
       required: true,
       mode: 'trigger',
       condition,

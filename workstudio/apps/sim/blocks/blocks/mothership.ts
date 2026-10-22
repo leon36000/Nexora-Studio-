@@ -8,7 +8,7 @@ import type { BlockConfig } from '@/blocks/types'
 
 export const MothershipBlock: BlockConfig = {
   type: 'mothership',
-  name: 'Sim Chat',
+  name: 'Nexora Chat',
   description: 'Reason, use tools, and stream a conversational response',
   longDescription:
     'Run a prompt with workspace integration operations, selected MCP tools, and skill context. A stable conversation ID continues the conversation. The content output supports live response streaming, including Slack native agent sessions when selected by a supported custom-bot trigger. Tool access follows the selected operations.',
@@ -21,7 +21,7 @@ export const MothershipBlock: BlockConfig = {
   bgColor: '#802FDE',
   icon: Blimp,
   canvasPresentation: {
-    defaultTitle: 'Sim Chat',
+    defaultTitle: 'Nexora Chat',
     sentences: {
       default: [
         { text: 'Ask', field: 'prompt', core: true },
@@ -35,7 +35,7 @@ export const MothershipBlock: BlockConfig = {
       id: 'prompt',
       title: 'Prompt',
       type: 'long-input',
-      placeholder: 'Enter your prompt for Sim...',
+      placeholder: 'Enter your prompt for Nexora...',
     },
     {
       id: 'model',
@@ -129,7 +129,7 @@ export const MothershipBlock: BlockConfig = {
     fastMode: { type: 'boolean', description: 'Enable Fast mode for Astra' },
     prompt: {
       type: 'string',
-      description: 'The prompt to send to Sim',
+      description: 'The prompt to send to Nexora',
     },
     conversationId: {
       type: 'string',
@@ -138,19 +138,19 @@ export const MothershipBlock: BlockConfig = {
     },
     files: {
       type: 'file',
-      description: 'Files to send to Sim as attachments',
+      description: 'Files to send to Nexora as attachments',
     },
-    tools: { type: 'json', description: 'MCP tools available to Sim for this request' },
+    tools: { type: 'json', description: 'MCP tools available to Nexora for this request' },
     skills: { type: 'json', description: 'Skills activated for this request' },
     secretScope: { type: 'string', description: 'Secret access mode: all or selected' },
-    mountedSecrets: { type: 'json', description: 'Secret names available to Sim code execution' },
+    mountedSecrets: { type: 'json', description: 'Secret names available to Nexora code execution' },
   },
   outputs: {
     content: { type: 'string', description: 'Generated response content' },
     model: { type: 'string', description: 'Model used for generation' },
     conversationId: {
       type: 'string',
-      description: 'Conversation id for this thread; pass it to another Sim block to continue it',
+      description: 'Conversation id for this thread; pass it to another Nexora block to continue it',
     },
     tokens: { type: 'json', description: 'Token usage statistics' },
     toolCalls: { type: 'json', description: 'Tool calls made during execution' },

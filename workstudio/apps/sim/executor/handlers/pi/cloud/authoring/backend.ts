@@ -106,7 +106,7 @@ interface AuthoringPhaseResult extends PiRunResult {
 const CLOUD_GUIDANCE_PREFIX =
   'You are running inside an automated sandbox. Make only the file changes needed to complete the task. ' +
   'Do not run git commands (commit, push, branch, remote), do not configure git credentials or authenticate ' +
-  'with GitHub, and do not open a pull request — after you finish, Sim automatically commits your changes and '
+  'with GitHub, and do not open a pull request — after you finish, Nexora automatically commits your changes and '
 const CLOUD_GUIDANCE_SUFFIX =
   "The project's package manager and test tooling may not be " +
   'installed, so do not block on running the full build or test suite; focus on correct, minimal edits.'

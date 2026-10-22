@@ -1,11 +1,12 @@
 import { GmailIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { ConnectorMeta } from '@/connectors/types'
 
 export const DEFAULT_MAX_THREADS = 500
 
 export const gmailConnectorMeta: ConnectorMeta = {
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/gmail',
+  searchDocsUrl: docsUrl('/search/gmail'),
   id: 'gmail',
   name: 'Gmail',
   description: 'Sync email threads from Gmail',

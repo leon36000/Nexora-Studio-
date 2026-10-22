@@ -1,5 +1,6 @@
 import { toError } from '@sim/utils/errors'
 import { AgentPhoneIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -30,7 +31,7 @@ export const AgentPhoneBlock: BlockConfig = {
   description: 'Provision numbers, send SMS and iMessage, and place voice calls with AgentPhone',
   longDescription:
     'Provision SMS- and voice-enabled numbers, send messages and tapback reactions, place outbound calls, manage conversations and contacts, and inspect usage with an AgentPhone API key.',
-  docsLink: 'https://docs.sim.ai/integrations/agentphone',
+  docsLink: docsUrl('/integrations/agentphone'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: 'linear-gradient(135deg, #1a1a1a 0%, #0a2a14 100%)',

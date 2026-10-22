@@ -45,7 +45,7 @@ const MOCK_REGISTRY_BLOCKS: Record<string, any> = {
   },
   mothership: {
     type: 'mothership',
-    name: 'Sim Chat',
+    name: 'Nexora Chat',
     subBlocks: [{ id: 'tools', type: 'tool-input' }],
   },
   function: {
@@ -1150,7 +1150,7 @@ describe('tool canonical-mode reindexing', () => {
     })
   })
 
-  it('switches Sim Chat between variable and fixed tool modes through operations apply', () => {
+  it('switches Nexora Chat between variable and fixed tool modes through operations apply', () => {
     const tool = {
       type: 'mcp',
       params: { serverId: 'server', toolName: 'search' },
@@ -1469,7 +1469,7 @@ describe('Mothership tool attachment writes', () => {
     expect(renamed.state.blocks[id].subBlocks.tools.value[0].title).toBe('Approved sender')
   })
 
-  it('refuses an integration selection that Sim Chat would ignore', () => {
+  it('refuses an integration selection that Nexora Chat would ignore', () => {
     const result = applyOperationsToWorkflowState(
       graph,
       [
@@ -1477,7 +1477,7 @@ describe('Mothership tool attachment writes', () => {
           ...add,
           params: {
             type: 'mothership',
-            name: 'Sim Chat',
+            name: 'Nexora Chat',
             inputs: { tools: [{ type: 'slack', operation: 'send' }] },
           },
         },

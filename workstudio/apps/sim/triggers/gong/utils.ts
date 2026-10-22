@@ -23,7 +23,7 @@ export function buildGongExtraFields(triggerId: string): SubBlockConfig[] {
       placeholder:
         'Paste the full PEM from Gong (-----BEGIN PUBLIC KEY----- …) or raw base64. Leave empty if the rule uses URL-includes-key only.',
       description:
-        'Required only when your Gong rule uses **Signed JWT header**. Sim verifies RS256, `webhook_url`, and `body_sha256` per Gong. If empty, only the webhook URL path authenticates the request.',
+        'Required only when your Gong rule uses **Signed JWT header**. Nexora verifies RS256, `webhook_url`, and `body_sha256` per Gong. If empty, only the webhook URL path authenticates the request.',
       mode: 'trigger',
       condition: { field: 'selectedTriggerId', value: triggerId },
     },
@@ -42,7 +42,7 @@ export function gongSetupInstructions(eventType: string): string {
     `Configure rule filters in Gong for the calls you want (e.g. <strong>${eventType}</strong>). Gong does not send a separate event name in the JSON payload — filtering happens in the rule.`,
     'Under Actions, select <strong>"Fire webhook"</strong>.',
     'Paste this workflow’s Webhook URL into the destination field.',
-    '<strong>Authentication:</strong> Use either <strong>URL includes key</strong> (recommended default — Sim’s URL is already secret) or <strong>Signed JWT header</strong>. If you use Signed JWT, paste Gong’s public key into the field above so Sim can verify the <code>Authorization</code> token.',
+    '<strong>Authentication:</strong> Use either <strong>URL includes key</strong> (recommended default — Nexora’s URL is already secret) or <strong>Signed JWT header</strong>. If you use Signed JWT, paste Gong’s public key into the field above so Nexora can verify the <code>Authorization</code> token.',
     'Save the rule and click <strong>"Save"</strong> above to activate your trigger.',
   ]
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { docsUrl } from '@/lib/branding/docs-url'
 import { type ComponentType, useState } from 'react'
 import {
   ChipModal,
@@ -315,7 +316,7 @@ function OracleDatabaseAccountForm({
             label: 'Setup guide',
             onClick: () =>
               window.open(
-                'https://docs.sim.ai/integrations/oracledb',
+                docsUrl('/integrations/oracledb'),
                 '_blank',
                 'noopener,noreferrer'
               ),

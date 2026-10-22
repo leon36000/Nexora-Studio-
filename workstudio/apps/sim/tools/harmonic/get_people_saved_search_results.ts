@@ -45,7 +45,7 @@ export const harmonicGetPeopleSavedSearchResultsTool: ToolConfig<
       type: 'number',
       required: false,
       visibility: 'user-or-llm',
-      description: 'Results to return; Sim caps this at 100 per page (default 50)',
+      description: 'Results to return; Nexora caps this at 100 per page (default 50)',
     },
     cursor: {
       type: 'string',

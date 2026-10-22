@@ -179,7 +179,7 @@ describe('runCloudPlanPi', () => {
     expect(result.totals.finalText).toBe('# Final Plan\n\n1. Make the change.')
   })
 
-  it('loads only the Sim search extension and scopes its key to the Pi command', async () => {
+  it('loads only the Nexora search extension and scopes its key to the Pi command', async () => {
     await runCloudPlanPi(params({ search: { provider: 'exa', apiKey: 'exa-secret' } }), {
       onEvent: vi.fn(),
     })

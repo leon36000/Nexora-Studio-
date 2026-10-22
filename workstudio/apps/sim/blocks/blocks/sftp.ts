@@ -1,6 +1,7 @@
 import { ClipboardList, Download, File, Search, Server, Trash, Upload } from '@sim/emcn/icons'
 import { omit } from '@sim/utils/object'
 import { SftpIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector, normalizeFileInput } from '@/blocks/utils'
@@ -13,7 +14,7 @@ export const SftpBlock = {
   description: 'Transfer files via SFTP (SSH File Transfer Protocol)',
   longDescription:
     'Upload, download, list, and manage files on remote servers via SFTP. Supports both password and private key authentication for secure file transfers.',
-  docsLink: 'https://docs.sim.ai/integrations/sftp',
+  docsLink: docsUrl('/integrations/sftp'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#2D3748',

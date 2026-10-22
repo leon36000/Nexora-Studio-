@@ -52,7 +52,7 @@ function renderInstructions(steps: string[]): string {
 export function twilioSmsReceivedInstructions(): string {
   return renderInstructions([
     'Copy the <strong>Webhook URL</strong> above.',
-    'Enter your <strong>Account SID</strong> and <strong>Auth Token</strong> above so Sim can verify the <code>X-Twilio-Signature</code> on every request.',
+    'Enter your <strong>Account SID</strong> and <strong>Auth Token</strong> above so Nexora can verify the <code>X-Twilio-Signature</code> on every request.',
     'Go to your <a href="https://console.twilio.com/us1/develop/phone-numbers/manage/incoming" target="_blank" rel="noopener noreferrer">Twilio Console Phone Numbers page</a> and select the number that will receive messages (or open <a href="https://console.twilio.com/us1/develop/sms/services" target="_blank" rel="noopener noreferrer">Messaging Services</a> if you use one).',
     'In the <strong>Messaging Configuration</strong> section, set <strong>"A MESSAGE COMES IN"</strong> to <strong>Webhook</strong> and paste the Webhook URL.',
     'Ensure the HTTP method is set to <strong>POST</strong>.',
@@ -63,7 +63,7 @@ export function twilioSmsReceivedInstructions(): string {
 export function twilioSmsStatusInstructions(): string {
   return renderInstructions([
     'Copy the <strong>Webhook URL</strong> above — this is your <strong>Status Callback URL</strong>.',
-    'Enter your <strong>Account SID</strong> and <strong>Auth Token</strong> above so Sim can verify the <code>X-Twilio-Signature</code> on every request.',
+    'Enter your <strong>Account SID</strong> and <strong>Auth Token</strong> above so Nexora can verify the <code>X-Twilio-Signature</code> on every request.',
     'Set the Status Callback URL where your outbound messages are sent from: pass <code>StatusCallback</code> when sending via the API, set the <strong>Status Callback URL</strong> on your <a href="https://console.twilio.com/us1/develop/sms/services" target="_blank" rel="noopener noreferrer">Messaging Service</a>, or set it on your phone number.',
     'Twilio will POST a request to this URL each time a message status changes (sent, delivered, undelivered, failed).',
     'Ensure the HTTP method is set to <strong>POST</strong>.',

@@ -1,4 +1,5 @@
 import { BrandfetchIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const BrandfetchBlock: BlockConfig = {
   description: 'Look up brand assets, logos, colors, and company info',
   longDescription:
     'Retrieve brand logos, colors, fonts, and company data by domain, ticker, or name search.',
-  docsLink: 'https://docs.sim.ai/integrations/brandfetch',
+  docsLink: docsUrl('/integrations/brandfetch'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#000000',

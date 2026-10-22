@@ -1,4 +1,5 @@
 import { ZoomIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -18,7 +19,7 @@ export const ZoomBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Create, read, update, or delete meetings; retrieve invitations, cloud recordings, and past participants; or delete recordings. Meeting and recording webhooks can start workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/zoom',
+  docsLink: docsUrl('/integrations/zoom'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#2D8CFF',

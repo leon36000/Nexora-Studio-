@@ -1,4 +1,5 @@
 import { PosthogIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -12,7 +13,7 @@ export const PostHogBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Capture events, query analytics, and manage people, insights, feature flags, experiments, cohorts, surveys, and dashboards. List or retrieve recordings, projects, and organizations.',
-  docsLink: 'https://docs.sim.ai/integrations/posthog',
+  docsLink: docsUrl('/integrations/posthog'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#FFFFFF',

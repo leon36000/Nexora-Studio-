@@ -1,4 +1,5 @@
 import { AsanaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -16,7 +17,7 @@ export const AsanaBlock: BlockConfig = {
   description: 'Interact with Asana',
   authMode: AuthMode.OAuth,
   longDescription: 'Read, write, and update tasks.',
-  docsLink: 'https://docs.sim.ai/integrations/asana',
+  docsLink: docsUrl('/integrations/asana'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

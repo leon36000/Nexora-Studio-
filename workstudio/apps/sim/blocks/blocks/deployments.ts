@@ -1,4 +1,5 @@
 import { Rocket } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 const WORKFLOW_FIELD = ['workflowSelector', 'manualWorkflowId'] as const
@@ -19,7 +20,7 @@ export const DeploymentsBlock: BlockConfig = {
   bgColor: '#0C0C0C',
   icon: Rocket,
   category: 'blocks',
-  docsLink: 'https://docs.sim.ai/workflows/deployment',
+  docsLink: docsUrl('/workflows/deployment'),
   canvasPresentation: {
     defaultTitle: 'Deployments',
     sentences: {

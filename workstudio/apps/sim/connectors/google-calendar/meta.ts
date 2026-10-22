@@ -1,4 +1,5 @@
 import { GoogleCalendarIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { ConnectorMeta } from '@/connectors/types'
 
 export const DEFAULT_MAX_EVENTS = 500
@@ -10,7 +11,7 @@ export const googleCalendarConnectorMeta: ConnectorMeta = {
   version: '1.0.0',
   icon: GoogleCalendarIcon,
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/google-calendar',
+  searchDocsUrl: docsUrl('/search/google-calendar'),
 
   auth: {
     mode: 'oauth',

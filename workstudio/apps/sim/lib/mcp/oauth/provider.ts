@@ -115,7 +115,7 @@ export class SimMcpOauthProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     const meta: OAuthClientMetadata = {
-      client_name: 'Sim',
+      client_name: 'Nexora',
       redirect_uris: [this.redirectUrl],
       grant_types: ['authorization_code', 'refresh_token'],
       response_types: ['code'],
@@ -244,7 +244,7 @@ export async function loadPreregisteredClient(
     const shared = getSharedZoomMcpClient()
     if (!shared)
       throw new Error(
-        'Zoom sign-in is not configured. Ask your Sim administrator to configure the Zoom MCP OAuth client.'
+        'Zoom sign-in is not configured. Ask your Nexora administrator to configure the Zoom MCP OAuth client.'
       )
     return shared
   }
@@ -261,7 +261,7 @@ export async function loadPreregisteredClient(
       const shared = getSharedHubSpotMcpClient()
       if (!shared)
         throw new Error(
-          'HubSpot sign-in is not configured. Ask your Sim administrator to configure the HubSpot MCP OAuth client.'
+          'HubSpot sign-in is not configured. Ask your Nexora administrator to configure the HubSpot MCP OAuth client.'
         )
       return shared
     }

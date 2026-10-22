@@ -70,7 +70,7 @@ describe.skipIf(!token)('Coda connector live', { concurrent: false }, () => {
 
   it('creates a disposable page and table, then lists and hydrates both through the connector', async () => {
     const created = await request('/docs', resourceSchema, 'POST', {
-      title: `Sim Coda connector verification ${marker}`,
+      title: `Nexora Coda connector verification ${marker}`,
       initialPage: {
         name: 'Connector verification',
         pageContent: {

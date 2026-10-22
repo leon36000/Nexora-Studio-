@@ -1,3 +1,4 @@
+import { docsUrl } from '@/lib/branding/docs-url'
 /**
  * Client-safe descriptors for token-paste service-account providers.
  *
@@ -131,7 +132,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'HubSpot private app tokens usually start with pat-.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/hubspot-service-account',
+    docsUrl: docsUrl('/integrations/hubspot-service-account'),
     helpText:
       'Tokens are tied to the super admin who created the private app; if that user is removed from the portal, some calls may start failing.',
   },
@@ -150,7 +151,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'Airtable personal access tokens usually start with pat.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/airtable-service-account',
+    docsUrl: docsUrl('/integrations/airtable-service-account'),
     helpText:
       'Enterprise Scale service-account tokens work here too — they use the same format as personal access tokens.',
   },
@@ -169,7 +170,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'Notion integration secrets usually start with ntn_.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/notion-service-account',
+    docsUrl: docsUrl('/integrations/notion-service-account'),
     helpText:
       'Newer Notion UIs label the secret "installation access token". Remember to connect the integration to the pages and databases it should access — a valid secret with no page connections can read nothing.',
   },
@@ -186,7 +187,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/asana-service-account',
+    docsUrl: docsUrl('/integrations/asana-service-account'),
     helpText:
       'Enterprise service account tokens and personal access tokens both work — they use the same format.',
   },
@@ -203,7 +204,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/attio-service-account',
+    docsUrl: docsUrl('/integrations/attio-service-account'),
     helpText:
       'Check the scopes granted to the key in Attio — tools whose scopes are missing will fail at run time.',
   },
@@ -220,7 +221,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/harmonic',
+    docsUrl: docsUrl('/integrations/harmonic'),
   },
   [CLICKUP_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: CLICKUP_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -237,7 +238,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'ClickUp personal API tokens start with pk_.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/clickup-service-account',
+    docsUrl: docsUrl('/integrations/clickup-service-account'),
   },
   [LINEAR_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: LINEAR_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -254,7 +255,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'Linear personal API keys start with lin_api_.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/linear-service-account',
+    docsUrl: docsUrl('/integrations/linear-service-account'),
   },
   [MONDAY_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: MONDAY_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -269,7 +270,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/monday-service-account',
+    docsUrl: docsUrl('/integrations/monday-service-account'),
     helpText:
       'monday.com issues one API token per user — regenerating it in monday breaks every integration using the old token.',
   },
@@ -296,7 +297,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'Shopify store domains look like your-store.myshopify.com.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/shopify-service-account',
+    docsUrl: docsUrl('/integrations/shopify-service-account'),
     helpText:
       'The token is revealed once, is bound to a single store, and does not expire. Dev Dashboard apps issue tokens through OAuth rather than a UI reveal.',
     invalidCredentialsHelp:
@@ -315,7 +316,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/webflow-service-account',
+    docsUrl: docsUrl('/integrations/webflow-service-account'),
     helpText:
       'Site tokens expire after 365 days without API activity, and each token grants access to a single site.',
   },
@@ -332,9 +333,9 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/trello-service-account',
+    docsUrl: docsUrl('/integrations/trello-service-account'),
     helpText:
-      'A read-only or short-expiration token validates here and then fails at run time — Sim cannot tell either from the token itself.',
+      'A read-only or short-expiration token validates here and then fails at run time — Nexora cannot tell either from the token itself.',
   },
   [CALCOM_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: CALCOM_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -351,7 +352,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'Cal.com API keys usually start with cal_.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/calcom-service-account',
+    docsUrl: docsUrl('/integrations/calcom-service-account'),
     helpText:
       'Cal.com preselects a 30-day expiry when you create a key — switch on "Never expires" or runs stop on that date.',
   },
@@ -368,11 +369,11 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/wealthbox-service-account',
+    docsUrl: docsUrl('/integrations/wealthbox-service-account'),
     helpText:
       'An expired trial can block Wealthbox API access. Contact Wealthbox support if API Access is missing from your Settings.',
     invalidCredentialsHelp:
-      'Wealthbox rejected this token. Check that it is still active under API Access in your Wealthbox settings, and that the account is not on an expired trial. If the same token works elsewhere, note that Sim authenticates with a Bearer header — a token Wealthbox accepts only over its ACCESS_TOKEN header is refused here.',
+      'Wealthbox rejected this token. Check that it is still active under API Access in your Wealthbox settings, and that the account is not on an expired trial. If the same token works elsewhere, note that Nexora authenticates with a Bearer header — a token Wealthbox accepts only over its ACCESS_TOKEN header is refused here.',
   },
   [PIPEDRIVE_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: PIPEDRIVE_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -387,7 +388,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/pipedrive-service-account',
+    docsUrl: docsUrl('/integrations/pipedrive-service-account'),
     helpText:
       'Each Pipedrive user has one API token per company — regenerating it breaks every integration using the old value, and API-token traffic gets lower rate limits than OAuth.',
     authStyle: 'x-api-token',
@@ -407,7 +408,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'Claude Platform API keys usually start with sk-ant-.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/managed-agent',
+    docsUrl: docsUrl('/integrations/managed-agent'),
   },
   [CODA_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: CODA_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -422,7 +423,7 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/coda',
+    docsUrl: docsUrl('/integrations/coda'),
     helpText:
       'Create a token under Account settings → API connections. A token restricted to specific docs or tables can only read and write those.',
   },
@@ -447,9 +448,9 @@ export const TOKEN_SERVICE_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/snowflake-service-account',
+    docsUrl: docsUrl('/integrations/snowflake-service-account'),
     invalidCredentialsHelp:
-      'Snowflake rejected this token. Check that it belongs to a user on this exact account host, that it has not expired or been revoked, that a network policy allows Sim to reach the account, and that the SQL API is enabled for the account.',
+      'Snowflake rejected this token. Check that it belongs to a user on this exact account host, that it has not expired or been revoked, that a network policy allows Nexora to reach the account, and that the SQL API is enabled for the account.',
   },
 }
 

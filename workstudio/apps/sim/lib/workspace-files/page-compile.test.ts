@@ -50,7 +50,7 @@ describe('compileSimPage', () => {
 
   it('sends external links to a new tab on every surface', () => {
     const html = compileSimPage(
-      '---\ntitle: T\n---\nSee the [Sim docs](https://docs.sim.ai/start).'
+      '---\ntitle: T\n---\nSee the [Nexora docs](https://docs.sim.ai/start).'
     )
     expect(html).toContain(
       '<a href="https://docs.sim.ai/start" target="_blank" rel="noopener noreferrer">'

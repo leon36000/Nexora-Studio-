@@ -118,7 +118,7 @@ describe('credential group OAuth persistence', () => {
   it('pins Search return context with the same canonical option, identity and provider policy', async () => {
     const buildAuthorizationUrl = vi.fn().mockReturnValue('https://provider.test/authorize')
     adapter.prepareAuthorization.mockResolvedValue({
-      redirectUri: 'https://sim.ai/callback',
+      redirectUri: 'https://workstudio.example.com/callback',
       buildAuthorizationUrl,
     })
     createAttempt.mockResolvedValue({ state: 'state', nonce: 'nonce' })
@@ -170,7 +170,7 @@ describe('credential group OAuth persistence', () => {
           authorizationAppId: POLICY.authorizationAppId,
           scopeVersion: POLICY.scopeVersion,
           requiredScopes: POLICY.requiredScopes,
-          redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+          redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
           codeVerifier: 'verifier',
           invitationToken: 'invitation-token',
           createdAt: Date.now(),
@@ -184,7 +184,7 @@ describe('credential group OAuth persistence', () => {
     expect(dbChainMockFns.insert).not.toHaveBeenCalled()
   })
 
-  it('persists a different-email provider account under the enrolled Sim user', async () => {
+  it('persists a different-email provider account under the enrolled Nexora user', async () => {
     dbChainMockFns.limit.mockResolvedValueOnce([{ status: 'invited' }])
     queueTableRows(schemaMock.credentialGroup, [GROUP])
     queueTableRows(schemaMock.credential, [])
@@ -207,7 +207,7 @@ describe('credential group OAuth persistence', () => {
         authorizationAppId: POLICY.authorizationAppId,
         scopeVersion: POLICY.scopeVersion,
         requiredScopes: POLICY.requiredScopes,
-        redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+        redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
         codeVerifier: 'verifier',
         invitationToken: 'invitation-token',
         createdAt: Date.now(),
@@ -259,7 +259,7 @@ describe('credential group OAuth persistence', () => {
         authorizationAppId: POLICY.authorizationAppId,
         scopeVersion: POLICY.scopeVersion,
         requiredScopes: POLICY.requiredScopes,
-        redirectUri: 'https://sim.ai/callback',
+        redirectUri: 'https://workstudio.example.com/callback',
         codeVerifier: 'verifier',
         invitationToken: 'invitation',
         createdAt: Date.now(),
@@ -360,7 +360,7 @@ describe('credential group OAuth persistence', () => {
         authorizationAppId: POLICY.authorizationAppId,
         scopeVersion: POLICY.scopeVersion,
         requiredScopes: POLICY.requiredScopes,
-        redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+        redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
         codeVerifier: 'verifier',
         invitationToken: 'invitation-token',
         createdAt: Date.now(),
@@ -415,7 +415,7 @@ describe('credential group OAuth persistence', () => {
         authorizationAppId: POLICY.authorizationAppId,
         scopeVersion: POLICY.scopeVersion,
         requiredScopes: POLICY.requiredScopes,
-        redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+        redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
         codeVerifier: 'verifier',
         invitationToken: 'invitation-token',
         createdAt: Date.now(),
@@ -476,7 +476,7 @@ describe('credential group OAuth persistence', () => {
           authorizationAppId: POLICY.authorizationAppId,
           scopeVersion: POLICY.scopeVersion,
           requiredScopes: POLICY.requiredScopes,
-          redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+          redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
           codeVerifier: 'verifier',
           invitationToken: 'invitation-token',
           createdAt: Date.now(),
@@ -514,7 +514,7 @@ describe('credential group OAuth persistence', () => {
           authorizationAppId: POLICY.authorizationAppId,
           scopeVersion: POLICY.scopeVersion,
           requiredScopes: POLICY.requiredScopes,
-          redirectUri: 'https://sim.ai/callback',
+          redirectUri: 'https://workstudio.example.com/callback',
           invitationToken: 'invitation',
           createdAt: Date.now(),
         },
@@ -560,7 +560,7 @@ describe('credential group OAuth persistence', () => {
         authorizationAppId: POLICY.authorizationAppId,
         scopeVersion: POLICY.scopeVersion,
         requiredScopes: POLICY.requiredScopes,
-        redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+        redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
         codeVerifier: 'verifier',
         invitationToken: 'invitation-token',
         createdAt: Date.now(),

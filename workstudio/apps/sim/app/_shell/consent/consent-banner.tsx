@@ -71,7 +71,7 @@ export function ConsentBanner() {
           <div className='flex flex-col gap-1'>
             <p className='text-[var(--text-body)] text-sm leading-5'>Cookies</p>
             <p className='text-[var(--text-muted)] text-small leading-[18px]'>
-              Necessary cookies keep Sim working. Optional cookies help us understand usage, measure
+              Necessary cookies keep Nexora working. Optional cookies help us understand usage, measure
               campaigns, and personalize ads on other sites. You can change or withdraw consent at
               any time in Privacy settings or through our{' '}
               <Link href='/cookie-policy' className={CONSENT_LINK_CLASS}>

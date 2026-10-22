@@ -13,7 +13,7 @@ export const instagramPublishImageTool: InternalToolConfig<
   id: 'instagram_publish_image',
   name: 'Instagram Publish Image',
   description:
-    'Create and publish a single JPEG image post from a Sim file (polls until the container is ready)',
+    'Create and publish a single JPEG image post from a Nexora file (polls until the container is ready)',
   version: '1.0.0',
 
   oauth: {
@@ -38,7 +38,7 @@ export const instagramPublishImageTool: InternalToolConfig<
       type: 'file',
       required: true,
       visibility: 'user-or-llm',
-      description: 'JPEG image uploaded to Sim or referenced from a previous block',
+      description: 'JPEG image uploaded to Nexora or referenced from a previous block',
     },
     caption: {
       type: 'string',

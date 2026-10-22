@@ -1,10 +1,11 @@
 import { ConfluenceIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { ALL_SOURCE_ITEMS } from '@/connectors/selection'
 import type { ConnectorMeta } from '@/connectors/types'
 
 export const confluenceConnectorMeta: ConnectorMeta = {
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/confluence',
+  searchDocsUrl: docsUrl('/search/confluence'),
   id: 'confluence',
   name: 'Confluence',
   description: 'Sync pages from a Confluence space',

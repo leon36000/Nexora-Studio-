@@ -128,7 +128,7 @@ describe('Snowflake SQL API transport', () => {
       'X-Snowflake-Authorization-Token-Type': 'PROGRAMMATIC_ACCESS_TOKEN',
       Accept: 'application/json',
       'Content-Type': 'application/json',
-      'User-Agent': 'Sim/1.0 (+https://sim.ai)',
+      'User-Agent': 'Nexora/1.0 (+https://github.com/leon36000/Nexora-Studio-)',
     })
   })
 
@@ -147,7 +147,7 @@ describe('Snowflake SQL API transport', () => {
   it('builds explicit execution context and bounded result settings', () => {
     expect(normalizeMaxRows()).toBe(1000)
     expect(normalizeMaxRows(10_000)).toBe(10_000)
-    expect(() => normalizeMaxRows(10_001)).toThrow('Sim safety limit of 10000')
+    expect(() => normalizeMaxRows(10_001)).toThrow('Nexora safety limit of 10000')
 
     expect(
       buildSnowflakeStatementBody(

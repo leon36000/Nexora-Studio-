@@ -1025,7 +1025,7 @@ function SearchModalContent({
       page: pageContext
         ? available.filter((action) => getActionGroupLabel(action) === 'Actions')
         : [],
-      sim: available.filter((action) => getActionGroupLabel(action) === 'Sim'),
+      sim: available.filter((action) => getActionGroupLabel(action) === 'Nexora'),
     }
   }, [actions, pageContext])
   const availableBlocks = useMemo(
@@ -1076,7 +1076,7 @@ function SearchModalContent({
         : items.map((item) => ({ item, score: 0 }))
     const rankedActions = [
       ...(pageContext ? rankActionGroup(actionsByGroup.page, 'Actions') : []),
-      ...rankActionGroup(actionsByGroup.sim, 'Sim'),
+      ...rankActionGroup(actionsByGroup.sim, 'Nexora'),
     ]
     const blockNames = new Set(
       [...availableBlocks, ...availableTools].map((item) => item.name.toLowerCase())
@@ -1251,8 +1251,8 @@ function SearchModalContent({
         : []),
       {
         key: 'platform-actions',
-        heading: 'Sim',
-        entries: actionEntriesByLabel('Sim'),
+        heading: 'Nexora',
+        entries: actionEntriesByLabel('Nexora'),
       },
       ...(hoistedSection ? [entityGroup(hoistedSection)] : []),
       ...CANVAS_SECTIONS.map(entityGroup),
@@ -1396,15 +1396,15 @@ function SearchModalContent({
                 surface='palette'
                 cycleResultsOnTab={!chatEnabled}
                 autoFocus={!atomicBrowserOcclusion}
-                aria-label={askMode ? 'Ask Sim' : 'Search anything'}
+                aria-label={askMode ? 'Ask Nexora' : 'Search anything'}
                 value={search}
                 onValueChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
-                placeholder={askMode ? 'Ask Sim anything...' : 'Search anything...'}
+                placeholder={askMode ? 'Ask Nexora anything...' : 'Search anything...'}
                 endAdornment={
                   chatEnabled ? (
                     <span className='shrink-0 whitespace-nowrap text-[var(--text-subtle)] text-xs'>
-                      {askMode ? '⇥ Search' : '⇥ Ask Sim'}
+                      {askMode ? '⇥ Search' : '⇥ Ask Nexora'}
                     </span>
                   ) : undefined
                 }

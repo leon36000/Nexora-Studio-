@@ -1,4 +1,5 @@
 import { Webhook } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -9,7 +10,7 @@ export const GenericWebhookBlock: BlockConfig = {
   category: 'triggers',
   icon: Webhook,
   bgColor: '#10B981', // Green color for triggers
-  docsLink: 'https://docs.sim.ai/workflows/triggers/webhook',
+  docsLink: docsUrl('/workflows/triggers/webhook'),
   triggerAllowed: true,
   bestPractices: `
   - You can test the webhook by sending a request to the webhook URL. E.g. depending on authorization:  curl -X POST http://localhost:3000/api/webhooks/trigger/d8abcf0d-1ee5-4b77-bb07-b1e8142ea4e9 -H "Content-Type: application/json" -H "X-Sim-Secret: 1234" -d '{"message": "Test webhook trigger", "data": {"key": "v"}}'

@@ -154,7 +154,7 @@ describe('stripeCancelSubscriptionImmediately outbox handler', () => {
     stripeMock.subscriptions.cancel.mockResolvedValue({ id: 'stripe_sub', status: 'canceled' })
   })
 
-  it('uses the durable event id for Stripe idempotency and leaves Sim cleanup to the webhook', async () => {
+  it('uses the durable event id for Stripe idempotency and leaves Nexora cleanup to the webhook', async () => {
     await immediateCancellationHandler(
       {
         stripeSubscriptionId: 'stripe_sub',

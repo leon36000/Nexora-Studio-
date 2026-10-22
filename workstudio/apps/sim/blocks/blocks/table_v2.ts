@@ -1,5 +1,6 @@
 import { Table } from '@sim/emcn/icons'
 import { toError } from '@sim/utils/errors'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { TABLE_LIMITS } from '@/lib/table/constants'
 import { filterRulesToPredicate, sortRulesToSortSpec } from '@/lib/table/query-builder/converters'
 import { normalizeTablePredicate } from '@/lib/table/query-builder/predicate'
@@ -237,7 +238,7 @@ export const TableV2Block: BlockConfig = {
 - With a Limit, pages can end at the Limit or the 5MB byte budget, whichever comes first — pass nextCursor back as the cursor and loop until it is null; never infer completion from page size.
 - For substring matching on a text column use ilike with *x*. A select column accepts only a subset of the operators — eq, ne, in, nin when single; contains, ncontains when multi (a multi-select cell holds a list, matched by option name) — plus isEmpty, isNotEmpty, isNull, isNotNull on both. The query is rejected outright on anything else.
 - Use Columns to Return to keep only the fields a downstream step needs (e.g. ["col_email","name"]) — the 5MB budget counts only the returned columns, so narrowing columns is another way to fit a large table; leave it empty for every column.`,
-  docsLink: 'https://docs.sim.ai/integrations/table',
+  docsLink: docsUrl('/integrations/table'),
   category: 'blocks',
   bgColor: '#10B981',
   icon: Table,

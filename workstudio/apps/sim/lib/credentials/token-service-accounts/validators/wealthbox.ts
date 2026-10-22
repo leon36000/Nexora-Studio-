@@ -79,7 +79,7 @@ export async function validateWealthboxServiceAccount(
       throw new TokenServiceAccountValidationError('invalid_credentials', res.status, {
         step: 'me',
         body,
-        reason: 'token accepted only via ACCESS_TOKEN header — not compatible with Sim tools',
+        reason: 'token accepted only via ACCESS_TOKEN header — not compatible with Nexora tools',
       })
     }
     throw new TokenServiceAccountValidationError('invalid_credentials', res.status, {

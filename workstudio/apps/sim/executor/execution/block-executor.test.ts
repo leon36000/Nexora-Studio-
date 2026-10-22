@@ -412,7 +412,7 @@ describe('BlockExecutor', () => {
   it('uses a handler-narrowed registry for output provenance and parent commit', async () => {
     const block: SerializedBlock = {
       ...createBlock(),
-      metadata: { id: BlockType.MOTHERSHIP, name: 'Sim Chat' },
+      metadata: { id: BlockType.MOTHERSHIP, name: 'Nexora Chat' },
       config: { tool: BlockType.MOTHERSHIP, params: { selector: 'x' } },
     }
     const workflow: SerializedWorkflow = {
@@ -779,10 +779,10 @@ describe('BlockExecutor', () => {
     expect(classifyFailure(thrown)).toBe('user')
   })
 
-  it('keeps Sim Chat secret policy in runtime inputs and out of trace inputs', async () => {
+  it('keeps Nexora Chat secret policy in runtime inputs and out of trace inputs', async () => {
     const block = createBlock()
     block.id = 'mothership-block-1'
-    block.metadata = { id: BlockType.MOTHERSHIP, name: 'Sim Chat' }
+    block.metadata = { id: BlockType.MOTHERSHIP, name: 'Nexora Chat' }
     block.config = {
       tool: BlockType.MOTHERSHIP,
       params: {

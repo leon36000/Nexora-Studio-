@@ -1909,7 +1909,7 @@ export async function getWorkspaceMoveOperation(
       workspaceId,
       sourceOrganizationId: recordedSource.id,
       destinationOrganizationId,
-      adminEmail: operationPayload.audit.actor.email ?? 'admin-api@sim.ai',
+      adminEmail: operationPayload.audit.actor.email ?? 'admin-api@nexora.local',
       auditActor: operationPayload.audit.actor,
       auditOperationId: operationId,
       unpublishedCustomBlocks: operationPayload.audit.unpublishedCustomBlocks ?? [],

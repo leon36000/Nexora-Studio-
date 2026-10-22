@@ -262,7 +262,7 @@ async function persistGrant(
     if (adapter.requiresRefreshToken && !refreshToken) {
       const service = getCredentialGroupProviderService(policy.provider)
       throw new CredentialGroupOAuthError(
-        `${service.name} did not issue offline access. Remove Sim from the provider and try again.`,
+        `${service.name} did not issue offline access. Remove Nexora from the provider and try again.`,
         409
       )
     }

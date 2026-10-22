@@ -1,4 +1,5 @@
 import { EmbeddingsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 /**
  * Imported from the catalog module directly rather than the `@/lib/embeddings`
  * barrel: the barrel re-exports the client, which reaches BYOK key lookup and
@@ -167,7 +168,7 @@ export const EmbeddingsBlock: BlockConfig = {
     'Turn text into embedding vectors for semantic search, clustering, and similarity. Supports OpenAI, OpenRouter, Google Gemini, Cohere, and Mistral embedding models, plus embedding models on a self-hosted Ollama.',
   category: 'tools',
   integrationType: IntegrationType.AI,
-  docsLink: 'https://docs.sim.ai/integrations/embeddings',
+  docsLink: docsUrl('/integrations/embeddings'),
   bgColor: '#7B4DFF',
   icon: EmbeddingsIcon,
   canvasPresentation: {
@@ -380,7 +381,7 @@ export { TOOL_ID_BY_PROVIDER }
 
 export const EmbeddingsBlockMeta = {
   tags: ['llm', 'vector-search'],
-  url: 'https://docs.sim.ai/integrations/embeddings',
+  url: docsUrl('/integrations/embeddings'),
   templates: [
     {
       icon: EmbeddingsIcon,

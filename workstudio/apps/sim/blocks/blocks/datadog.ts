@@ -1,4 +1,5 @@
 import { DatadogIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -38,7 +39,7 @@ export const DatadogBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Submit metrics, manage monitors, query logs, create events, handle downtimes, and more.',
-  docsLink: 'https://docs.sim.ai/integrations/datadog',
+  docsLink: docsUrl('/integrations/datadog'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#632CA6',

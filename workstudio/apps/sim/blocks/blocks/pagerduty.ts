@@ -1,4 +1,5 @@
 import { PagerDutyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -9,7 +10,7 @@ export const PagerDutyBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Integrate PagerDuty into your workflow to list, get, create, update, snooze, and merge incidents, add notes and list alerts, look up services and escalation policies, check on-call schedules, list users, and send monitoring events through the Events API v2.',
-  docsLink: 'https://docs.sim.ai/integrations/pagerduty',
+  docsLink: docsUrl('/integrations/pagerduty'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#06AC38',

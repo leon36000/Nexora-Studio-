@@ -324,7 +324,7 @@ describe('organization document ACL scope', () => {
     expect(await provider.getForConnectors(['confluence-source'])).toMatchObject({ tokens: [] })
     expect(mockConfluenceReadGrants).not.toHaveBeenCalled()
   })
-  it('binds org indexing identities to the enrolled Sim user rather than a matching email', async () => {
+  it('binds org indexing identities to the enrolled Nexora user rather than a matching email', async () => {
     queueTableRows(schemaMock.member, [{ id: 'membership-1' }])
     queueSubjects([])
     await resolveKnowledgeAccessScope(SESSION, organization)

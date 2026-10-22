@@ -304,7 +304,7 @@ describe.skipIf(!tokenPath || !fixturePath || !secondEmail)(
       120_000
     )
 
-    it('denies an unverified Sim email even for the Coda document owner', async () => {
+    it('denies an unverified Nexora email even for the Coda document owner', async () => {
       await db.update(user).set({ emailVerified: false }).where(eq(user.id, ids.aliceId))
       try {
         expect(await search(principal(ids.aliceId))).not.toContain(documentId)

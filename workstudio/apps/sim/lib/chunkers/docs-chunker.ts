@@ -1,6 +1,7 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { createLogger } from '@sim/logger'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { ChunkBudget } from '@/lib/chunkers/chunk-budget'
 import { DOCS_EMBEDDING_DIMENSIONS } from '@/lib/chunkers/constants'
 import { TextChunker } from '@/lib/chunkers/text-chunker'
@@ -100,7 +101,7 @@ export class DocsChunker {
       minCharactersPerChunk: options.minCharactersPerChunk ?? 1,
       chunkOverlap: options.chunkOverlap ?? 50,
     })
-    this.baseUrl = options.baseUrl ?? 'https://docs.sim.ai'
+    this.baseUrl = options.baseUrl ?? docsUrl()
   }
 
   async chunkAllDocs(docsPath: string): Promise<DocChunk[]> {

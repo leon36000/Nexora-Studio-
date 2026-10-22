@@ -1,4 +1,5 @@
 import { InstagramIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -91,7 +92,7 @@ export const InstagramBlock: BlockConfig = {
   bestPractices: `
   - For Publish Carousel, pass an ordered array of 2-10 files through the advanced Media reference, for example <previousBlock.files>.
   `,
-  docsLink: 'https://docs.sim.ai/integrations/instagram',
+  docsLink: docsUrl('/integrations/instagram'),
   category: 'tools',
   integrationType: IntegrationType.Marketing,
   bgColor: 'radial-gradient(circle at 28% 96%, #fa8f21 9%, #d82d7e 55%, #8c3aaa 100%)',

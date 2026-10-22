@@ -1,4 +1,5 @@
 import { WordpressIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -14,7 +15,7 @@ export const WordPressBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Integrate with WordPress.com to create, update, and manage posts, pages, media, comments, categories, tags, and users. Connects to WordPress.com sites via OAuth.',
-  docsLink: 'https://docs.sim.ai/integrations/wordpress',
+  docsLink: docsUrl('/integrations/wordpress'),
   category: 'tools',
   integrationType: IntegrationType.Marketing,
   bgColor: '#21759B',

@@ -113,7 +113,7 @@ describe('resolveOAuthCallbackError', () => {
   it('prevents a provider rejection from being reported as reconnect success', () => {
     expect(
       resolveOAuthCallbackError(
-        'https://sim.ai/workspace/workspace-1/integrations?error=quickbooks_access_denied',
+        'https://workstudio.example.com/workspace/workspace-1/integrations?error=quickbooks_access_denied',
         context
       )
     ).toEqual({

@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { STTIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector, normalizeFileInput } from '@/blocks/utils'
 
@@ -16,7 +17,7 @@ export const SttBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Transcribe audio and video files to text using leading AI providers. Supports multiple languages, timestamps, and speaker diarization.',
-  docsLink: 'https://docs.sim.ai/integrations/stt',
+  docsLink: docsUrl('/integrations/stt'),
   category: 'blocks',
   integrationType: IntegrationType.AI,
   bgColor: '#181C1E',

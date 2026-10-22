@@ -26,7 +26,7 @@ import {
 
 const fetchMock = vi.fn()
 const CALLBACK_URL = 'https://app.example.com/api/webhooks/trigger/bitbucket-path'
-const CANDIDATE_DESCRIPTION = 'Sim workflow trigger (bitbucket_push) [sim:webhook-1]'
+const CANDIDATE_DESCRIPTION = 'Nexora workflow trigger (bitbucket_push) [sim:webhook-1]'
 
 function requestWithHeaders(headers: Record<string, string>): NextRequest {
   return new NextRequest('http://localhost/test', { headers })
@@ -252,7 +252,7 @@ describe('Bitbucket webhook provider', () => {
       'https://api.bitbucket.org/2.0/repositories/team%20%2F%20blue/repo%3Fadmin%3Dtrue/hooks'
     const activeHook = {
       uuid: '{active-hook}',
-      description: 'Sim workflow trigger (bitbucket_push) [sim:active-webhook]',
+      description: 'Nexora workflow trigger (bitbucket_push) [sim:active-webhook]',
       url: CALLBACK_URL,
     }
     const candidateHook = {

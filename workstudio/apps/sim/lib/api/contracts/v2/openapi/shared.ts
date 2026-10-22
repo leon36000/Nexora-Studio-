@@ -317,7 +317,7 @@ export function withRequestBodyErrors(route: OpenApiRouteDefinition): OpenApiRou
 }
 
 /** The production authorization server, as its RFC 8414 metadata names it (`issuer`). */
-const SIM_OAUTH_ISSUER = 'https://www.sim.ai/api/auth'
+const SIM_OAUTH_ISSUER = 'https://workstudio.example.com/api/auth'
 
 export const V2_AUTH_SECURITY = [{ apiKey: [] }, { oauthBearer: [] }] as const
 
@@ -327,12 +327,12 @@ export const V2_AUTH_SECURITY_SCHEMES = {
     in: 'header',
     name: 'X-API-Key',
     description:
-      'Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://docs.sim.ai/api-reference/authentication#key-types); operations that reject workspace keys say so in their description.',
+      'Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide); operations that reject workspace keys say so in their description.',
   },
   oauthBearer: {
     type: 'oauth2',
     description:
-      'Send a Sim OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://docs.sim.ai/api-reference/authentication#oauth-access-tokens).',
+      'Send a Nexora OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide).',
     flows: {
       authorizationCode: {
         authorizationUrl: `${SIM_OAUTH_ISSUER}/oauth2/authorize`,
@@ -423,7 +423,7 @@ export const WORKSPACE_API_KEY_DENIED_AS_NOT_FOUND =
  * workspace policies resolve through `resolveEffectiveRetentionHours`.
  */
 export const RUN_RETENTION =
-  'Expired runs are permanently deleted by retention cleanup. Sim Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.'
+  'Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.'
 
 /**
  * Response headers a binary download declares on top of the common set. Shared

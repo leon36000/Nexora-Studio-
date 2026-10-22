@@ -147,12 +147,12 @@ export async function validateManagedMcpConnectorInput(
 ): Promise<ValidatedManagedMcpConnectorInput> {
   if (input.connectorId === 'hubspot' && !getSharedHubSpotMcpClient())
     throw new ManagedMcpConnectorError(
-      'HubSpot sign-in is not configured. Ask your Sim administrator to configure the HubSpot MCP OAuth client.',
+      'HubSpot sign-in is not configured. Ask your Nexora administrator to configure the HubSpot MCP OAuth client.',
       'validation'
     )
   if (input.connectorId === 'zoom' && !getSharedZoomMcpClient())
     throw new ManagedMcpConnectorError(
-      'Zoom sign-in is not configured. Ask your Sim administrator to configure the Zoom MCP OAuth client.',
+      'Zoom sign-in is not configured. Ask your Nexora administrator to configure the Zoom MCP OAuth client.',
       'validation'
     )
   const url = resolveManagedMcpConnectorUrl(

@@ -1,4 +1,5 @@
 import { Clock } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const ScheduleBlock: BlockConfig = {
@@ -6,7 +7,7 @@ export const ScheduleBlock: BlockConfig = {
   triggerAllowed: true,
   name: 'Schedule',
   description: 'Trigger workflow execution on a schedule',
-  docsLink: 'https://docs.sim.ai/workflows/triggers/schedule',
+  docsLink: docsUrl('/workflows/triggers/schedule'),
   longDescription:
     'Integrate Schedule into the workflow. Can trigger a workflow on a schedule configuration.',
   bestPractices: `

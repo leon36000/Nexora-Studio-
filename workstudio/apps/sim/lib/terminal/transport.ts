@@ -256,7 +256,7 @@ export async function openTerminal(
   scopeId = currentTerminalScopeId()
 ): Promise<ScopedTerminalTabsState> {
   const terminal = bridge()
-  if (!terminal) throw new Error('The Sim desktop terminal is unavailable.')
+  if (!terminal) throw new Error('The Nexora desktop terminal is unavailable.')
   const live = useCopilotTerminalStore.getState().sessions[scopeId]?.tabs.tabs.length ?? 0
   // A shell without `restoreScope` only applies a chat's saved shells through
   // `start`; opening a fresh one first would overwrite that saved set.
@@ -300,7 +300,7 @@ export async function executeTerminalTool(
 ): Promise<unknown> {
   const terminal = bridge()
   if (!terminal) {
-    throw new Error('The Sim desktop terminal is unavailable.')
+    throw new Error('The Nexora desktop terminal is unavailable.')
   }
   const response = await terminal.executeTool(toolCallId, operation, args, scopeId)
   if (!response.ok) {

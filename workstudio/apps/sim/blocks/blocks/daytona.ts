@@ -1,4 +1,5 @@
 import { DaytonaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -25,7 +26,7 @@ export const DaytonaBlock: BlockConfig = {
   description: 'Run code and commands in secure cloud sandboxes',
   longDescription:
     'Run AI-generated code in isolated sandboxes. Create and manage sandboxes, execute shell commands, run Python, JavaScript, or TypeScript code, transfer files, and clone Git repositories.',
-  docsLink: 'https://docs.sim.ai/integrations/daytona',
+  docsLink: docsUrl('/integrations/daytona'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#FFFFFF',

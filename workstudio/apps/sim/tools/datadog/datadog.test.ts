@@ -542,7 +542,7 @@ describe('submit_metrics errors output', () => {
   })
 })
 
-describe('undisclosed vendor limits and Sim defaults', () => {
+describe('undisclosed vendor limits and Nexora defaults', () => {
   it('still applies that default so an entry without ddsource is not sent bare', () => {
     const body = callBody(sendLogsTool, {
       ...auth,

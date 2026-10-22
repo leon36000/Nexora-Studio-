@@ -1,5 +1,6 @@
 import { toError } from '@sim/utils/errors'
 import { ReductoIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   AuthMode,
   type BlockConfig,
@@ -21,7 +22,7 @@ export const ReductoBlock: BlockConfig = {
   sunset: { status: 'legacy', replacedBy: 'reducto_v2' },
   authMode: AuthMode.ApiKey,
   longDescription: `Extract text from uploaded PDF documents, or from a URL.`,
-  docsLink: 'https://docs.sim.ai/integrations/reducto',
+  docsLink: docsUrl('/integrations/reducto'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#5c0c5c',

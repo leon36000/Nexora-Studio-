@@ -1,6 +1,7 @@
 import { Bell, ClipboardList, Database, File, Search, Server, Trash, Wrench } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { ClickHouseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -66,7 +67,7 @@ export const ClickHouseBlock: BlockConfig = {
   description: 'Connect to a ClickHouse database',
   longDescription:
     'Query and insert data, manage databases and tables, inspect schemas, monitor mutations and running queries, manage partitions, and execute raw SQL over the ClickHouse HTTP interface.',
-  docsLink: 'https://docs.sim.ai/integrations/clickhouse',
+  docsLink: docsUrl('/integrations/clickhouse'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#f9ff69',

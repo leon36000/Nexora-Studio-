@@ -1,4 +1,5 @@
 import { JotformIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -57,7 +58,7 @@ export const JotformBlock: BlockConfig = {
   description: 'Read submissions, manage forms, and wire up webhooks in Jotform',
   longDescription:
     'Integrate Jotform into your workflow to list and read form submissions with their answers resolved to question labels, build and edit forms and their questions, create shareable reports, register submission webhooks, and check account usage.',
-  docsLink: 'https://docs.sim.ai/integrations/jotform',
+  docsLink: docsUrl('/integrations/jotform'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

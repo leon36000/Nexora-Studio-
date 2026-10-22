@@ -11,7 +11,7 @@ import { CONNECTOR_META_REGISTRY } from '@/connectors/registry'
 import type { ConnectorConfigField, ConnectorMeta } from '@/connectors/types'
 
 /** The knowledge-base shell that holds live Search source configuration. */
-export const SIM_SEARCH_KNOWLEDGE_BASE_NAME = 'Sim Search'
+export const SIM_SEARCH_KNOWLEDGE_BASE_NAME = 'Nexora Search'
 
 /**
  * A knowledge-base connector offered on the Sim Search surface: the connector's

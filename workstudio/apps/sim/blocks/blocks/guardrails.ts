@@ -1,4 +1,5 @@
 import { ShieldCheckIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { PII_ENTITY_GROUPS, PII_LANGUAGES } from '@/lib/guardrails/pii-entities'
 import type { BlockConfig } from '@/blocks/types'
 import {
@@ -36,7 +37,7 @@ export const GuardrailsBlock: BlockConfig = {
   - For PII detection, access <guardrails.detectedEntities> and <guardrails.maskedText>
   - Chain with Condition block to handle validation failures
   `,
-  docsLink: 'https://docs.sim.ai/workflows/blocks/guardrails',
+  docsLink: docsUrl('/workflows/blocks/guardrails'),
   category: 'blocks',
   bgColor: '#3D642D',
   icon: ShieldCheckIcon,

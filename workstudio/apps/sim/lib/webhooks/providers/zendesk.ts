@@ -192,7 +192,7 @@ export const zendeskHandler: WebhookProviderHandler = {
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         webhook: {
-          name: `Sim webhook (${ctx.webhook.id})`,
+          name: `Nexora webhook (${ctx.webhook.id})`,
           endpoint: getNotificationUrl(ctx.webhook),
           http_method: 'POST',
           request_format: 'json',

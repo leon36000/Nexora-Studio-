@@ -125,7 +125,7 @@ export function ManageCreditsModal({
               Credit limit
               <Info side='top'>
                 {
-                  "Set in credits — Sim's usage unit (1,000 credits = $5). Caps this member's usage across this organization's workspaces each billing period."
+                  "Set in credits — Nexora's usage unit (1,000 credits = $5). Caps this member's usage across this organization's workspaces each billing period."
                 }
               </Info>
             </span>

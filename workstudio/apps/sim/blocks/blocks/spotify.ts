@@ -1,4 +1,5 @@
 import { SpotifyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -24,7 +25,7 @@ export const SpotifyBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Integrate Spotify into your workflow. Search for tracks, albums, artists, and playlists. Manage playlists, access your library, control playback, browse podcasts and audiobooks.',
-  docsLink: 'https://docs.sim.ai/integrations/spotify',
+  docsLink: docsUrl('/integrations/spotify'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   hideFromToolbar: true,

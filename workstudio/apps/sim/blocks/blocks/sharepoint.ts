@@ -1,6 +1,7 @@
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
 import { MicrosoftSharepointIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -30,7 +31,7 @@ export const SharepointBlock: BlockConfig = {
   sunset: { status: 'legacy', replacedBy: 'sharepoint_v2' },
   longDescription:
     'Read/create pages, list sites, and work with lists (read, create, update items). Requires OAuth.',
-  docsLink: 'https://docs.sim.ai/integrations/sharepoint',
+  docsLink: docsUrl('/integrations/sharepoint'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

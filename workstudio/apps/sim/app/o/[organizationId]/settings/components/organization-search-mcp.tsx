@@ -9,7 +9,7 @@ export function OrganizationSearchMcp() {
   if (!viewer.canUseSearchMcp) {
     return (
       <p className='max-w-xl text-[var(--text-muted)] text-sm'>
-        Your organization’s policy disables Sim Search MCP access. Contact an organization admin to
+        Your organization’s policy disables Nexora Search MCP access. Contact an organization admin to
         enable it.
       </p>
     )

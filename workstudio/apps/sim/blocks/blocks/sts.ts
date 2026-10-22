@@ -1,4 +1,5 @@
 import { STSIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const STSBlock: BlockConfig = {
   description: 'Connect to AWS Security Token Service',
   longDescription:
     'Assume roles, get temporary credentials, verify caller identity, and look up access key information.',
-  docsLink: 'https://docs.sim.ai/integrations/sts',
+  docsLink: docsUrl('/integrations/sts'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   authMode: AuthMode.ApiKey,

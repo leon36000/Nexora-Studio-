@@ -16,7 +16,7 @@ export async function readSlackResponse(response: Response): Promise<Record<stri
     const details = [data.error ?? `HTTP ${response.status}`, data.detail]
     if (data.error === 'missing_scope') {
       details.push(
-        `Update the Slack app scopes${data.needed ? ` (${data.needed})` : ''}, reinstall the app, and reconnect the credential in Sim.`
+        `Update the Slack app scopes${data.needed ? ` (${data.needed})` : ''}, reinstall the app, and reconnect the credential in Nexora.`
       )
     }
     if (

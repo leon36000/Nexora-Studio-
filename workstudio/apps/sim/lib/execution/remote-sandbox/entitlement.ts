@@ -2,7 +2,7 @@ import { LRUCache } from 'lru-cache'
 import { coalesceLocally } from '@/lib/concurrency/singleflight'
 
 /** 403 copy for a workspace whose plan does not include Sim sandbox access. */
-export const MAX_PLAN_REQUIRED = 'Sim sandboxes require an active Max or Enterprise plan.'
+export const MAX_PLAN_REQUIRED = 'Nexora sandboxes require an active Max or Enterprise plan.'
 
 /**
  * How long a resolved sandbox entitlement stays usable on the execution path.

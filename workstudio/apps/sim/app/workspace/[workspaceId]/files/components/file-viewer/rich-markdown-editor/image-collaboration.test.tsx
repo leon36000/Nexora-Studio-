@@ -41,7 +41,7 @@ beforeEach(async () => {
     })
   local = createEditor(localDoc)
   local.commands.setContent(
-    '<h2>Earlier heading</h2><img src="https://sim.ai/image.png" alt="Original" width="200" height="100"><p>After image</p>'
+    '<h2>Earlier heading</h2><img src="https://workstudio.example.com/image.png" alt="Original" width="200" height="100"><p>After image</p>'
   )
   Y.applyUpdate(peerDoc, Y.encodeStateAsUpdate(localDoc))
   peer = createEditor(peerDoc)
@@ -112,7 +112,7 @@ async function addPeerSibling(sameSource = true): Promise<number> {
   peer.commands.insertContentAt(position + 1, {
     type: 'image',
     attrs: {
-      src: sameSource ? 'https://sim.ai/image.png' : 'https://sim.ai/second.png',
+      src: sameSource ? 'https://workstudio.example.com/image.png' : 'https://workstudio.example.com/second.png',
       alt: 'Peer image',
       title: 'Sibling identity',
       width: '400',
@@ -135,10 +135,10 @@ async function setNestedImages(depth: number): Promise<void> {
   peer.commands.setContent(
     '<h2>Earlier heading</h2>' +
       wrap(
-        '<p>Original group</p><img src="https://sim.ai/image.png" alt="Original" width="200" height="100">'
+        '<p>Original group</p><img src="https://workstudio.example.com/image.png" alt="Original" width="200" height="100">'
       ) +
       wrap(
-        '<p>Peer group</p><img src="https://sim.ai/image.png" alt="Peer image" width="400" height="300">'
+        '<p>Peer group</p><img src="https://workstudio.example.com/image.png" alt="Peer image" width="400" height="300">'
       ) +
       '<p>After image</p>'
   )
@@ -208,7 +208,7 @@ describe('image resizing during real peer Yjs updates', () => {
   it('cancels an inline image resize when a peer deletes it', async () => {
     await act(async () => {
       local.commands.setContent(
-        '<h2>Before <img src="https://sim.ai/image.png" alt="Original" width="200" height="100"> after</h2>'
+        '<h2>Before <img src="https://workstudio.example.com/image.png" alt="Original" width="200" height="100"> after</h2>'
       )
       Y.applyUpdate(peerDoc, Y.encodeStateAsUpdate(localDoc))
       local.commands.setNodeSelection(imagePosition(local))
@@ -298,7 +298,7 @@ describe('image resizing during real peer Yjs updates', () => {
         type: 'image',
         attrs: identical
           ? imageAttributes(peer)
-          : { src: 'https://sim.ai/inserted.png', alt: 'Inserted', width: '400' },
+          : { src: 'https://workstudio.example.com/inserted.png', alt: 'Inserted', width: '400' },
       })
       await receivePeerUpdate()
       expect(localDoc.getXmlFragment('default').get(1)).toBe(originalTarget)
@@ -313,7 +313,7 @@ describe('image resizing during real peer Yjs updates', () => {
       const originalImage = localDoc.getXmlFragment('default').get(1)
       const replacement = identicalAttributes
         ? { ...imageAttributes(peer) }
-        : { src: 'https://sim.ai/replacement.png', alt: 'Replacement', width: '400', height: '300' }
+        : { src: 'https://workstudio.example.com/replacement.png', alt: 'Replacement', width: '400', height: '300' }
       beginResize()
       const position = imagePosition(peer)
       peer.commands.deleteRange({ from: position, to: position + 1 })

@@ -122,14 +122,14 @@ describe('authorized apps', () => {
   it('removes the consent and both token kinds in one transaction, and records the audit', async () => {
     const deleted: unknown[] = []
     const tx = {
-      select: () => selectChain([{ id: 'consent-1', name: 'Sim CLI' }]),
+      select: () => selectChain([{ id: 'consent-1', name: 'Nexora CLI' }]),
       delete: (table: unknown) => ({ where: (clause: unknown) => deleted.push([table, clause]) }),
     }
     mocks.transaction.mockImplementation(async (run: (t: unknown) => unknown) => run(tx))
 
     await expect(
       revokeAuthorizedAppUseCase.execute({ principal: session, input: { clientId: 'sim-cli' } })
-    ).resolves.toEqual({ clientId: 'sim-cli', name: 'Sim CLI' })
+    ).resolves.toEqual({ clientId: 'sim-cli', name: 'Nexora CLI' })
 
     /**
      * The tables are asserted, not just the call counts: swapping the access
@@ -142,7 +142,7 @@ describe('authorized apps', () => {
         actorId: 'user-1',
         action: 'oauth_app.revoked',
         resourceId: 'sim-cli',
-        resourceName: 'Sim CLI',
+        resourceName: 'Nexora CLI',
       })
     )
   })

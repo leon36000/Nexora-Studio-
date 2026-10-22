@@ -1,4 +1,5 @@
 import { WebflowIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -17,7 +18,7 @@ export const WebflowBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Create, get, list, update, or delete items in Webflow CMS collections. Manage your Webflow content programmatically. Use trigger mode to start workflows when collection items change or forms are submitted.',
-  docsLink: 'https://docs.sim.ai/integrations/webflow',
+  docsLink: docsUrl('/integrations/webflow'),
   category: 'tools',
   integrationType: IntegrationType.Marketing,
   triggerAllowed: true,

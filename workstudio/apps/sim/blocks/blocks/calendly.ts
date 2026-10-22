@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { CalendlyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -32,7 +33,7 @@ export const CalendlyBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Manage event types, scheduled events, invitees, and webhooks. Trigger workflows based on Calendly webhook events (invitee scheduled, invitee canceled, routing form submitted). Requires Personal Access Token.',
-  docsLink: 'https://docs.sim.ai/integrations/calendly',
+  docsLink: docsUrl('/integrations/calendly'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

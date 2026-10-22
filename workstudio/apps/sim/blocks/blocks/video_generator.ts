@@ -1,4 +1,5 @@
 import { VideoIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, IntegrationType, type SubBlockConfig } from '@/blocks/types'
 import { normalizeFileInput, parseOptionalBooleanInput } from '@/blocks/utils'
 
@@ -78,7 +79,7 @@ export const VideoGeneratorBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Generate high-quality videos from text prompts using leading AI providers. Supports multiple models, aspect ratios, resolutions, and provider-specific features like world consistency, camera controls, and audio generation.',
-  docsLink: 'https://docs.sim.ai/integrations/video-generator',
+  docsLink: docsUrl('/integrations/video-generator'),
   category: 'blocks',
   integrationType: IntegrationType.AI,
   bgColor: '#181C1E',
@@ -1665,7 +1666,7 @@ export const VideoGeneratorV3Block: BlockConfig = {
   description: 'Generate videos from text using AI',
   longDescription:
     'Generate high-quality videos from text prompts using leading AI providers. Supports Runway, Google Veo, Luma, MiniMax, and Fal.ai multi-model generation with provider-specific durations, aspect ratios, resolutions, prompt optimization, and native audio controls.',
-  docsLink: 'https://docs.sim.ai/integrations/video_generator',
+  docsLink: docsUrl('/integrations/video_generator'),
   category: 'blocks',
   integrationType: IntegrationType.AI,
   bgColor: '#181C1E',

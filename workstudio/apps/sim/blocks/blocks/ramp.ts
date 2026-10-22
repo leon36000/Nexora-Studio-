@@ -1,4 +1,5 @@
 import { RampIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -9,7 +10,7 @@ export const RampBlock: BlockConfig = {
   description: 'Read spend, bills, cards, and reimbursements, and add transaction memos in Ramp',
   longDescription:
     'Connect Ramp to your agents to review company balances, employees, card transactions, physical and virtual cards, vendors, bills, and reimbursements. Add transaction memos and paginate through records with up to 100 results per request.',
-  docsLink: 'https://docs.sim.ai/integrations/ramp',
+  docsLink: docsUrl('/integrations/ramp'),
   category: 'tools',
   integrationType: IntegrationType.Commerce,
   authMode: AuthMode.OAuth,

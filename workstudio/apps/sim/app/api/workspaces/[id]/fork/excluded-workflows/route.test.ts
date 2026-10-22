@@ -48,7 +48,25 @@ function mockUpdateReturning(rows: Array<{ id: string; name: string }>) {
   dbChainMockFns.returning.mockResolvedValue(rows)
 }
 
-describe('fork excluded-workflows route', () => {
+describe('Nexora edition: fork excluded-workflows route', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    mockGetSession.mockResolvedValue({ user: { id: ADMIN_ID }, session: { id: 'session-1' } })
+  })
+
+  it('answers 404 without writing', async () => {
+    const response = await PUT(
+      createMockRequest('PUT', { workflowIds: ['wf-1'], forkSyncExcluded: true }),
+      routeContext
+    )
+
+    expect(response.status).toBe(404)
+    expect(dbChainMockFns.update).not.toHaveBeenCalled()
+  })
+})
+
+// Nexora edition: workspace forking is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+describe.skip('fork excluded-workflows route', () => {
   beforeEach(() => {
     resetDbChainMock()
     mockGetSession.mockResolvedValue({ user: { id: ADMIN_ID }, session: { id: 'session-1' } })

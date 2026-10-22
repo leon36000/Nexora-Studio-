@@ -20,12 +20,12 @@ vi.mock('@/lib/core/rate-limiter', () => rateLimiterMock)
 
 import { GET, HEAD } from '@/app/api/knowledge/slack/oauth/callback/route'
 
-urlsMockFns.mockGetBaseUrl.mockReturnValue('https://www.sim.ai')
+urlsMockFns.mockGetBaseUrl.mockReturnValue('https://workstudio.example.com')
 
 const { mockEnforceIpRateLimit, mockEnforceUserRateLimit } = rateLimiterMockFns
 
 const request = (query: string) =>
-  createMockRequest({ url: `https://www.sim.ai/api/knowledge/slack/oauth/callback?${query}` })
+  createMockRequest({ url: `https://workstudio.example.com/api/knowledge/slack/oauth/callback?${query}` })
 beforeEach(() => {
   authMockFns.mockGetSession.mockResolvedValue({
     user: { id: 'admin' },
@@ -38,12 +38,12 @@ beforeEach(() => {
 })
 describe('Slack OAuth callback', () => {
   it.each(['code=code', 'state=&code=code'])(
-    'accepts Slack-initiated install without Sim login: %s',
+    'accepts Slack-initiated install without Nexora login: %s',
     async (query) => {
       authMockFns.mockGetSession.mockResolvedValue(null)
       const response = await GET(request(query))
       expect(response.status).toBe(303)
-      expect(response.headers.get('location')).toBe('https://www.sim.ai/slack-search/install/T1')
+      expect(response.headers.get('location')).toBe('https://workstudio.example.com/slack-search/install/T1')
       expect(response.headers.get('cache-control')).toBe('no-store')
       expect(response.headers.get('referrer-policy')).toBe('no-referrer')
       expect(authMockFns.mockGetSession).not.toHaveBeenCalled()
@@ -63,7 +63,7 @@ describe('Slack OAuth callback', () => {
     const response = await GET(request('state=state&code=code'))
     expect(response.status).toBe(303)
     expect(response.headers.get('location')).toBe(
-      'https://www.sim.ai/credential-groups/slack-complete?state=state&ok=true&organizationId=org1'
+      'https://workstudio.example.com/credential-groups/slack-complete?state=state&ok=true&organizationId=org1'
     )
     expect(m.complete).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -78,16 +78,16 @@ describe('Slack OAuth callback', () => {
     const response = await GET(request('state=expired&code=code'))
     expect(response.status).toBe(303)
     expect(response.headers.get('location')).toBe(
-      'https://www.sim.ai/credential-groups/slack-complete?state=expired&ok=false'
+      'https://workstudio.example.com/credential-groups/slack-complete?state=expired&ok=false'
     )
     expect(m.authenticate).not.toHaveBeenCalled()
   })
-  it('still requires a Sim session for an org-bound state', async () => {
+  it('still requires a Nexora session for an org-bound state', async () => {
     authMockFns.mockGetSession.mockResolvedValue(null)
     const response = await GET(request('state=state&code=code'))
     expect(response.status).toBe(303)
     expect(response.headers.get('location')).toBe(
-      'https://www.sim.ai/credential-groups/slack-complete?state=state&ok=false&reason=signin_required'
+      'https://workstudio.example.com/credential-groups/slack-complete?state=state&ok=false&reason=signin_required'
     )
     expect(m.authenticate).not.toHaveBeenCalled()
     expect(m.complete).not.toHaveBeenCalled()

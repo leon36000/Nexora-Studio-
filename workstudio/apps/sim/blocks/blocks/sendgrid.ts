@@ -1,4 +1,5 @@
 import { SendgridIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -10,7 +11,7 @@ export const SendGridBlock: BlockConfig = {
   description: 'Send emails and manage contacts, lists, and templates with SendGrid',
   longDescription:
     'Send transactional emails with dynamic templates and attachments. Manage marketing contacts, lists, and email templates.',
-  docsLink: 'https://docs.sim.ai/integrations/sendgrid',
+  docsLink: docsUrl('/integrations/sendgrid'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   authMode: AuthMode.ApiKey,

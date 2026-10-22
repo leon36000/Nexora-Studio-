@@ -1,4 +1,5 @@
 import { VantaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -64,7 +65,7 @@ export const VantaBlock: BlockConfig = {
     'Monitor compliance frameworks, controls, and automated tests; find failing test entities; manage evidence documents including file upload, download, and submission; and track people, policies, vendors, monitored computers, vulnerabilities, and risk scenarios. Select a saved Vanta credential created with your Vanta application client ID and client secret.',
   category: 'tools',
   integrationType: IntegrationType.Security,
-  docsLink: 'https://docs.sim.ai/integrations/vanta',
+  docsLink: docsUrl('/integrations/vanta'),
   bgColor: '#F8F4F3',
   icon: VantaIcon,
   canvasPresentation: {

@@ -6,7 +6,7 @@ const NOT_FOUND_MARKDOWN = `# Page not found
 
 There is no page at this address. It may have moved or never existed.
 
-- [Sim home](${toSiteUrl('/')})
+- [Nexora home](${toSiteUrl('/')})
 - [Documentation](${DOCS_URL})
 - [llms.txt](${toSiteUrl('/llms.txt')}): an index of every public page
 - [Sitemap](${toSiteUrl('/sitemap.xml')})

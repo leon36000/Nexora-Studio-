@@ -782,7 +782,7 @@ export function buildClearNetNewResultsUrl(
   }
   if (urns.length > HARMONIC_CLEAR_NET_NEW_MAX) {
     throw new Error(
-      `Sim sends at most ${HARMONIC_CLEAR_NET_NEW_MAX} person URNs per Harmonic clear request to bound the query string; split the batch`
+      `Nexora sends at most ${HARMONIC_CLEAR_NET_NEW_MAX} person URNs per Harmonic clear request to bound the query string; split the batch`
     )
   }
   for (const urn of urns) url.searchParams.append('entity_urns', urn)
@@ -796,7 +796,7 @@ export function buildEnrichmentStatusUrl(enrichmentUrns: unknown): string {
   }
   if (urns.length > HARMONIC_ENRICHMENT_STATUS_MAX) {
     throw new Error(
-      `Sim sends at most ${HARMONIC_ENRICHMENT_STATUS_MAX} enrichment identifiers per Harmonic request to bound the query string; split the batch`
+      `Nexora sends at most ${HARMONIC_ENRICHMENT_STATUS_MAX} enrichment identifiers per Harmonic request to bound the query string; split the batch`
     )
   }
 

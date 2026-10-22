@@ -1,4 +1,5 @@
 import { UptimeRobotIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -16,7 +17,7 @@ export const UptimeRobotBlock: BlockConfig = {
   description: 'Monitor uptime, manage incidents, maintenance windows, and status pages',
   longDescription:
     'Create and manage monitors, inspect incidents, schedule maintenance windows, manage alert contacts, and publish public status pages using the UptimeRobot v3 API.',
-  docsLink: 'https://docs.sim.ai/integrations/uptimerobot',
+  docsLink: docsUrl('/integrations/uptimerobot'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#111921',

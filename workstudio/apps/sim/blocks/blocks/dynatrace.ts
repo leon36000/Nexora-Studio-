@@ -1,4 +1,5 @@
 import { DynatraceIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -115,7 +116,7 @@ export const DynatraceBlock: BlockConfig = {
   description: 'Manage Dynatrace problems, metrics, entities, logs, SLOs, settings, and security',
   longDescription:
     'Integrate Dynatrace into workflows. Investigate and close Davis problems, query metrics and monitored entities, search and ingest logs, push deployment events, manage SLOs and their burn rates, triage and mute Application Security vulnerabilities, review runtime attacks, tag entities, manage settings objects such as maintenance windows and alerting profiles, run synthetic monitors on demand, and read the audit log.',
-  docsLink: 'https://docs.sim.ai/integrations/dynatrace',
+  docsLink: docsUrl('/integrations/dynatrace'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#FFFFFF',
@@ -447,7 +448,7 @@ Return ONLY the selector string - no explanations, no surrounding quotes.`,
       id: 'commentContext',
       title: 'Comment Context',
       type: 'short-input',
-      placeholder: 'Sim workflow',
+      placeholder: 'Nexora workflow',
       mode: 'advanced',
       condition: {
         field: 'operation',
@@ -2209,7 +2210,7 @@ export const DynatraceBlockMeta = {
       icon: DynatraceIcon,
       title: 'Dynatrace vulnerability digest',
       prompt:
-        'Create a scheduled daily workflow that lists open critical and high Dynatrace security problems, groups them by affected service and CVE, writes them to a Sim table, and posts a remediation digest to the security channel in Slack.',
+        'Create a scheduled daily workflow that lists open critical and high Dynatrace security problems, groups them by affected service and CVE, writes them to a Nexora table, and posts a remediation digest to the security channel in Slack.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['devops', 'reporting'],
@@ -2219,7 +2220,7 @@ export const DynatraceBlockMeta = {
       icon: DynatraceIcon,
       title: 'Dynatrace capacity report',
       prompt:
-        'Build a scheduled weekly workflow that queries Dynatrace host CPU, memory, and disk metrics per management zone, ranks the most saturated hosts, and writes a capacity planning report to a Sim table.',
+        'Build a scheduled weekly workflow that queries Dynatrace host CPU, memory, and disk metrics per management zone, ranks the most saturated hosts, and writes a capacity planning report to a Nexora table.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['devops', 'analysis'],
@@ -2238,7 +2239,7 @@ export const DynatraceBlockMeta = {
       icon: DynatraceIcon,
       title: 'Dynatrace auto-close on recovery',
       prompt:
-        'Build a scheduled workflow that checks Dynatrace problems whose entities have returned to a healthy metric baseline, closes them with an explanatory comment, and records what was closed in a Sim table for review.',
+        'Build a scheduled workflow that checks Dynatrace problems whose entities have returned to a healthy metric baseline, closes them with an explanatory comment, and records what was closed in a Nexora table for review.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['automation', 'monitoring'],

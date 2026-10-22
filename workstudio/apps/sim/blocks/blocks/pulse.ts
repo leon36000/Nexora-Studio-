@@ -1,4 +1,5 @@
 import { PulseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   AuthMode,
   type BlockConfig,
@@ -20,7 +21,7 @@ export const PulseBlock: BlockConfig = {
   sunset: { status: 'legacy', replacedBy: 'pulse_v2' },
   authMode: AuthMode.ApiKey,
   longDescription: 'Extract text from PDF documents, images, and Office files via URL or upload.',
-  docsLink: 'https://docs.sim.ai/integrations/pulse',
+  docsLink: docsUrl('/integrations/pulse'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#FFFFFF',
@@ -142,7 +143,7 @@ export const PulseBlock: BlockConfig = {
     structured_output: {
       type: 'json',
       description:
-        'Structured output; Sim exposes no input for supplying a schema, so this is always null',
+        'Structured output; Nexora exposes no input for supplying a schema, so this is always null',
     },
     chunks: { type: 'json', description: 'Chunked content if chunking was enabled' },
     figures: { type: 'json', description: 'Extracted figures if figure extraction was enabled' },

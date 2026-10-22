@@ -1,4 +1,5 @@
 import { ImageIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, IntegrationType } from '@/blocks/types'
 import { parseOptionalBooleanInput } from '@/blocks/utils'
 
@@ -59,7 +60,7 @@ export const ImageGeneratorBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Integrate Image Generator into the workflow. Can generate images using DALL-E 3 and GPT Image models.',
-  docsLink: 'https://docs.sim.ai/integrations/image_generator',
+  docsLink: docsUrl('/integrations/image_generator'),
   category: 'blocks',
   integrationType: IntegrationType.AI,
   bgColor: '#4D5FFF',
@@ -324,7 +325,7 @@ export const ImageGeneratorV2Block: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Generate images using OpenAI GPT Image, Google Nano Banana, or Fal.ai image models.',
-  docsLink: 'https://docs.sim.ai/integrations/image_generator',
+  docsLink: docsUrl('/integrations/image_generator'),
   category: 'blocks',
   integrationType: IntegrationType.AI,
   bgColor: '#4D5FFF',

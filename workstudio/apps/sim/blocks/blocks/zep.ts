@@ -1,4 +1,5 @@
 import { ZepIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const ZepBlock: BlockConfig = {
@@ -42,7 +43,7 @@ export const ZepBlock: BlockConfig = {
   },
   category: 'tools',
   integrationType: IntegrationType.AI,
-  docsLink: 'https://docs.sim.ai/integrations/zep',
+  docsLink: docsUrl('/integrations/zep'),
   subBlocks: [
     {
       id: 'operation',

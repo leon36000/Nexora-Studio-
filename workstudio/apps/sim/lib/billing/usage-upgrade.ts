@@ -63,7 +63,7 @@ export async function resolveUsageUpgradePayload(
   const message = !orgScoped
     ? "You've reached your usage limit for this billing period. Please increase your usage limit from billing settings to continue."
     : isEnterprise(plan)
-      ? "You've reached your organization's usage limit for this billing period. Only an organization admin or Sim support can raise an enterprise limit — reach out to them to continue."
+      ? "You've reached your organization's usage limit for this billing period. Only an organization admin or Nexora support can raise an enterprise limit — reach out to them to continue."
       : "You've reached your organization's usage limit for this billing period. Only an organization owner or admin can raise the limit — please ask them to update it from the team billing settings."
   return { reason: 'usage_limit', action: 'increase_limit', message }
 }

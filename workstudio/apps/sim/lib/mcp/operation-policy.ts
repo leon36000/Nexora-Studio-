@@ -8,7 +8,7 @@ const toolNameSchema = z
   .refine((name): boolean => name === name.trim() && !isMcpRuntimeReference(name), {
     message: 'MCP tool IDs must be literal names without surrounding whitespace',
   })
-  .describe('Exact MCP tool name on the resolved connection, without a Sim server prefix.')
+  .describe('Exact MCP tool name on the resolved connection, without a Nexora server prefix.')
 
 /** Matches literal MCP tool names after the connection has been resolved and authorized. */
 export const mcpOperationPolicySchema = z

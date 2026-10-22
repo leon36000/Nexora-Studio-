@@ -257,7 +257,7 @@ export const v2BillingLogEntrySchema = z
       .describe('ISO 8601 timestamp when the usage event was recorded.')
       .meta({ format: 'date-time' }),
     source: usageLogSourceSchema.describe(
-      'Product surface that consumed credits. The legacy `mothership_block` value identifies the Agent block; `sim-chat` identifies Sim Chat.'
+      'Product surface that consumed credits. The legacy `mothership_block` value identifies the Agent block; `sim-chat` identifies Nexora Chat.'
     ),
     workspaceId: z
       .string()

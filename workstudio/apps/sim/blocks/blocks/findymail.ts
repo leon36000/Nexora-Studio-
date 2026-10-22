@@ -1,4 +1,5 @@
 import { FindymailIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 const COMPANY_LOOKUP_FIELD = ['gc_domain', 'gc_name', 'gc_linkedin_url'] as const
@@ -10,7 +11,7 @@ export const FindymailBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Integrate Findymail to find verified work emails by name, domain, or LinkedIn URL, verify deliverability, reverse-lookup profiles from emails, enrich company data, find employees by job title, look up phone numbers, search technology stacks, and check credit usage.',
-  docsLink: 'https://docs.sim.ai/integrations/findymail',
+  docsLink: docsUrl('/integrations/findymail'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

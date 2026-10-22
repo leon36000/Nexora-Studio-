@@ -432,7 +432,7 @@ function renderAccordion(payload: unknown): string | null {
 }
 
 export const HAND_WRITTEN_PAGE_MESSAGE =
-  'Rejected: this content imitates the compiled page output (hand-written page HTML). Never write the page HTML yourself. Write page SOURCE instead — YAML frontmatter with a title, markdown prose, and sim: fences — and Sim renders it as the styled page. Raw HTML is only for a bespoke one-off page that carries its own complete inline <style>.'
+  'Rejected: this content imitates the compiled page output (hand-written page HTML). Never write the page HTML yourself. Write page SOURCE instead — YAML frontmatter with a title, markdown prose, and sim: fences — and Nexora renders it as the styled page. Raw HTML is only for a bespoke one-off page that carries its own complete inline <style>.'
 
 /**
  * True when agent-authored content imitates the compiler's OUTPUT instead of

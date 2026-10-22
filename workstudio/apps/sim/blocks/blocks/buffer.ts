@@ -1,4 +1,5 @@
 import { BufferIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta, SubBlockConfig } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -43,7 +44,7 @@ export const BufferBlock: BlockConfig = {
   description: 'Schedule and publish social media posts across connected channels',
   longDescription:
     'Create, schedule, edit, and delete posts across connected social channels (Instagram, LinkedIn, X, Facebook, TikTok, and more), attach images or videos, browse channel settings, check daily limits and post metrics, and capture content ideas using the Buffer API.',
-  docsLink: 'https://docs.sim.ai/integrations/buffer',
+  docsLink: docsUrl('/integrations/buffer'),
   category: 'tools',
   integrationType: IntegrationType.Marketing,
   bgColor: '#FFFFFF',

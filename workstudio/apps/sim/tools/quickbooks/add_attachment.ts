@@ -54,7 +54,7 @@ export const quickbooksAddAttachmentTool: InternalToolConfig<
       type: 'file',
       required: false,
       visibility: 'user-only',
-      description: 'Single Sim file to upload',
+      description: 'Single Nexora file to upload',
     },
     fileName: {
       type: 'string',

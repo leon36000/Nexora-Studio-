@@ -214,6 +214,12 @@ export function SettingsSidebar({
         return true
       }
 
+      // Nexora edition: without billing there is no plan to upgrade to, so a plan-gated
+      // section the deployment has not unlocked is hidden instead of advertising a tier.
+      if ((item.requiresMax || item.requiresEnterprise) && !billingEnabled) {
+        return false
+      }
+
       const orgAdminSatisfied = isOrgAdminOrOwner || item.allowNonOrgAdmin
 
       if (

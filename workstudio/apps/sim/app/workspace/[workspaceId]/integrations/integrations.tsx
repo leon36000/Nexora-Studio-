@@ -310,7 +310,7 @@ function IntegrationsContent() {
         className='min-h-0 flex-1 overflow-y-auto px-6 [scrollbar-gutter:stable_both-edges]'
       >
         <div className='mx-auto flex max-w-[48rem] flex-col gap-7 pb-3'>
-          <ShowcaseWithExplore prompt='Explain the integrations in Sim and what I should connect.' />
+          <ShowcaseWithExplore prompt='Explain the integrations in Nexora and what I should connect.' />
           <div className='flex items-center gap-2'>
             <ChipInput
               icon={Search}

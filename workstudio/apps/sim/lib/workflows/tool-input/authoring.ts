@@ -45,7 +45,7 @@ const mothershipTools = z
           .pick({ serverId: true, toolName: true })
           .strict()
           .describe(
-            'MCP identity only. Sim Chat discovers arguments at call time; fixed arguments are not supported.'
+            'MCP identity only. Nexora Chat discovers arguments at call time; fixed arguments are not supported.'
           ),
       }),
       mcpServer,
@@ -119,7 +119,7 @@ export function validateToolBindingAuthoring(
     const parsed = schema.element.safeParse(candidate)
     if (!parsed.success) {
       return blockType === 'mothership'
-        ? `tools[${index}]: Sim Chat accepts MCP tool or MCP server bindings only, with fixed or variable auto/force/none mode and no fixed arguments. Read blocks get mothership for the exact tools valueSchema; selections supplement integration access, not an allowlist.`
+        ? `tools[${index}]: Nexora Chat accepts MCP tool or MCP server bindings only, with fixed or variable auto/force/none mode and no fixed arguments. Read blocks get mothership for the exact tools valueSchema; selections supplement integration access, not an allowlist.`
         : `tools[${index}]: invalid tool binding. Read blocks get agent for the tools valueSchema. ${parsed.error.issues.map((issue) => issue.message).join('; ')}`
     }
   }

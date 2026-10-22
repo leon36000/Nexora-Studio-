@@ -1,5 +1,6 @@
 import { ClipboardList } from '@sim/emcn/icons'
 import { GreptileIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -13,7 +14,7 @@ export const GreptileBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Query and search codebases using natural language with Greptile. Get AI-generated answers about your code, find relevant files, and understand complex codebases.',
-  docsLink: 'https://docs.sim.ai/integrations/greptile',
+  docsLink: docsUrl('/integrations/greptile'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#181C1E',

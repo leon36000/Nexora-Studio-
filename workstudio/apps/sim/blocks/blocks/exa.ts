@@ -1,4 +1,5 @@
 import { ExaAIIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -41,7 +42,7 @@ export const ExaBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search the web, retrieve page content, answer questions with citations, or run multi-step research with Exa Agent. Find Similar Links remains a legacy operation; prefer Search for new workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/exa',
+  docsLink: docsUrl('/integrations/exa'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#1F40ED',

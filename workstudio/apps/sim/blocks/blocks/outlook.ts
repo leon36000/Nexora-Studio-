@@ -1,4 +1,5 @@
 import { OutlookIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -22,7 +23,7 @@ export const OutlookBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Send, draft, read, search, reply, forward, move, copy, and delete email; manage mail folders and attachments; and set categories and flags on messages. Can also list, create, update, delete, and respond to calendar events. Can be used in trigger mode to trigger a workflow when a new email is received.',
-  docsLink: 'https://docs.sim.ai/integrations/outlook',
+  docsLink: docsUrl('/integrations/outlook'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   triggerAllowed: true,

@@ -1,5 +1,6 @@
 import { Bug } from '@sim/emcn/icons'
 import { SentryIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -11,7 +12,7 @@ export const SentryBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Monitor issues, manage projects, track events, and coordinate releases across your applications.',
-  docsLink: 'https://docs.sim.ai/integrations/sentry',
+  docsLink: docsUrl('/integrations/sentry'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#362D59',

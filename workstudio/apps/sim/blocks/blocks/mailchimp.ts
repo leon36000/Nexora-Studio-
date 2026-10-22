@@ -1,5 +1,6 @@
 import { Mail } from '@sim/emcn/icons'
 import { MailchimpIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -12,7 +13,7 @@ export const MailchimpBlock: BlockConfig = {
   description: 'Manage audiences, campaigns, and marketing automation in Mailchimp',
   longDescription:
     'Manage audiences (lists), list members, campaigns, automation workflows, templates, reports, segments, tags, merge fields, interest categories, landing pages, signup forms, and batch operations.',
-  docsLink: 'https://docs.sim.ai/integrations/mailchimp',
+  docsLink: docsUrl('/integrations/mailchimp'),
   authMode: AuthMode.ApiKey,
   category: 'tools',
   integrationType: IntegrationType.Email,

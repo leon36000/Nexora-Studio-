@@ -70,7 +70,7 @@ export const updateContactPointTool: ToolConfig<
       required: false,
       visibility: 'user-only',
       description:
-        'Send X-Disable-Provenance. Use only on a contact point whose provenance is already empty (UI-created, or created by Sim with this on) — sending it against an API-provisioned contact point is rejected with 403',
+        'Send X-Disable-Provenance. Use only on a contact point whose provenance is already empty (UI-created, or created by Nexora with this on) — sending it against an API-provisioned contact point is rejected with 403',
     },
   },
 

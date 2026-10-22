@@ -1,4 +1,5 @@
 import { A2AIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { type BlockConfig, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput, parseOptionalNumberInput } from '@/blocks/utils'
 
@@ -13,7 +14,7 @@ export const A2ABlock: BlockConfig = {
     'Use the A2A (Agent-to-Agent) protocol to call external AI agents. Send messages, ' +
     'track or cancel tasks, and discover an agent\u2019s capabilities via its Agent Card. ' +
     'Compatible with any A2A-compliant agent.',
-  docsLink: 'https://docs.sim.ai/integrations/a2a',
+  docsLink: docsUrl('/integrations/a2a'),
   category: 'blocks',
   integrationType: IntegrationType.DevOps,
   bgColor: '#4151B5',

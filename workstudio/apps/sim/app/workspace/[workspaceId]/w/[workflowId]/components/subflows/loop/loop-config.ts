@@ -1,4 +1,5 @@
 import { Repeat } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 
 /**
  * Loop tool configuration for the toolbar.
@@ -9,5 +10,5 @@ export const LoopTool = {
   name: 'Loop',
   icon: Repeat,
   bgColor: '#2FB3FF',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/loop',
+  docsLink: docsUrl('/workflows/blocks/loop'),
 } as const

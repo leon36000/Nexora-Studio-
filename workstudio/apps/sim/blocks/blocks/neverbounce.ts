@@ -1,4 +1,5 @@
 import { NeverBounceIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const NeverBounceBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const NeverBounceBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Integrate NeverBounce to verify email deliverability in real time — classify addresses as valid, invalid, catch-all, disposable, or unknown — and check your remaining verification credits.',
-  docsLink: 'https://docs.sim.ai/integrations/neverbounce',
+  docsLink: docsUrl('/integrations/neverbounce'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#064AF4',

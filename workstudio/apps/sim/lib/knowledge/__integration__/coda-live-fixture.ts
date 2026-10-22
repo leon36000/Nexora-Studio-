@@ -7,7 +7,7 @@ export function assertCodaLiveFixture(
   secondEmail: string
 ): void {
   if (
-    source.name !== `Sim Coda connector verification ${marker}` ||
+    source.name !== `Nexora Coda connector verification ${marker}` ||
     normalizeEmail(source.owner) === normalizeEmail(secondEmail)
   ) {
     throw new Error('Refusing to change sharing on a non-fixture document')

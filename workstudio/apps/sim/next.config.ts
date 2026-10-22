@@ -479,7 +479,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/github',
-        destination: 'https://github.com/simstudioai/sim',
+        destination: 'https://github.com/leon36000/Nexora-Studio-',
         permanent: false,
       },
       {
@@ -520,7 +520,8 @@ const nextConfig: NextConfig = {
 
     redirects.push({
       source: '/academy/:path*',
-      destination: 'https://docs.sim.ai/introduction',
+      // Nexora: the upstream academy pages have no equivalent; send readers to the Nexora guide.
+      destination: 'https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide',
       permanent: true,
     })
 

@@ -14,7 +14,7 @@ afterAll(() => {
 })
 
 describe('workflow MCP protected-resource metadata', () => {
-  it('names the workflow MCP server URL as a Sim API resource', async () => {
+  it('names the workflow MCP server URL as a Nexora API resource', async () => {
     setEnvFlags({ isAuthDisabled: false })
     const response = await GET(
       new NextRequest('https://sim.test/'),
@@ -22,7 +22,7 @@ describe('workflow MCP protected-resource metadata', () => {
     )
     expect(await response.json()).toEqual({
       resource: 'https://sim.test/api/mcp/serve/server-1',
-      resource_name: 'Sim workflow MCP server',
+      resource_name: 'Nexora workflow MCP server',
       authorization_servers: ['https://sim.test/api/auth'],
       scopes_supported: ['api:read', 'api:write'],
       bearer_methods_supported: ['header'],

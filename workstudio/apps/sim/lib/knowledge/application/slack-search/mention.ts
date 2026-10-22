@@ -75,7 +75,7 @@ export async function routeSlackSearchMentionToDm(
         channel: channelId,
         text: job.message.queryTooLong
           ? SLACK_SEARCH_QUERY_TOO_LONG
-          : 'Your question for Sim Search',
+          : 'Your question for Nexora Search',
         blocks: [
           {
             type: 'section',

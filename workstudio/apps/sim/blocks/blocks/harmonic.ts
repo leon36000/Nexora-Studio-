@@ -1,4 +1,5 @@
 import { HarmonicIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -74,7 +75,7 @@ export const HarmonicBlock: BlockConfig = {
   description: 'Search and enrich private-market contacts',
   longDescription:
     'Connect a reusable Harmonic team API key, use Scout to find people with natural-language criteria, select team-visible people saved searches, and hydrate person identifiers into normalized contacts for downstream tables, CRM, scoring, and outreach workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/harmonic',
+  docsLink: docsUrl('/integrations/harmonic'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',
@@ -452,7 +453,7 @@ export const HarmonicBlock: BlockConfig = {
       title: 'Page Size',
       type: 'short-input',
       placeholder: '1-100',
-      description: 'Number of records to return; defaults to 50 and Sim caps each page at 100',
+      description: 'Number of records to return; defaults to 50 and Nexora caps each page at 100',
       value: () => '50',
       condition: { field: 'operation', value: [...PAGED_OPERATIONS] },
       mode: 'advanced',

@@ -95,7 +95,7 @@ function setupTransaction(currentReader = reader, existing: { id: string }[] = [
 
 describe('GitHub Search installation application operations', () => {
   it.each(['member', undefined])(
-    'requires a current Sim organization admin before provider access: %s',
+    'requires a current Nexora organization admin before provider access: %s',
     async (role) => {
       queueTableRows(member, role ? [{ role }] : [])
       await expect(connect()).rejects.toMatchObject({ code: role ? 'forbidden' : 'not_found' })
@@ -179,7 +179,7 @@ describe('GitHub Search installation application operations', () => {
     expect(encryptionMockFns.mockEncryptSecret).not.toHaveBeenCalled()
     expect(db.transaction).not.toHaveBeenCalled()
   })
-  it('refuses if Sim administrator access was removed during GitHub verification', async () => {
+  it('refuses if Nexora administrator access was removed during GitHub verification', async () => {
     setupReader()
     queueTableRows(member, [])
     await expect(connect()).rejects.toMatchObject({ code: 'forbidden' })

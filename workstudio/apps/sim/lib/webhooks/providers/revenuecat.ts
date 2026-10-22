@@ -95,7 +95,7 @@ export const revenueCatHandler: WebhookProviderHandler = {
 
     const authHeaderSecret = generateId()
     const requestBody: Record<string, unknown> = {
-      name: `Sim webhook (${triggerId ?? 'revenuecat'})`,
+      name: `Nexora webhook (${triggerId ?? 'revenuecat'})`,
       url: getNotificationUrl(ctx.webhook),
       authorization_header: authHeaderSecret,
     }

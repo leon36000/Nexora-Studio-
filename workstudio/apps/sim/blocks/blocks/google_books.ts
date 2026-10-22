@@ -1,4 +1,5 @@
 import { GoogleBooksIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const GoogleBooksBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search for books using the Google Books API. Find volumes by title, author, ISBN, or keywords, and retrieve detailed information about specific books including descriptions, ratings, and publication details.',
-  docsLink: 'https://docs.sim.ai/integrations/google_books',
+  docsLink: docsUrl('/integrations/google_books'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#FFFFFF',

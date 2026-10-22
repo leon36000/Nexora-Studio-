@@ -1,4 +1,5 @@
 import { HunterIOIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 /**
@@ -15,7 +16,7 @@ export const HunterBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search domains, find email addresses, verify email addresses, discover companies, find companies, and count email addresses.',
-  docsLink: 'https://docs.sim.ai/integrations/hunter',
+  docsLink: docsUrl('/integrations/hunter'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

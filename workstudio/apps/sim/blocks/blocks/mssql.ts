@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { MicrosoftSqlIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -70,7 +71,7 @@ export const MSSQLBlock: BlockConfig = {
   name: 'Microsoft SQL Server',
   description: 'Connect to Microsoft SQL Server database',
   longDescription: 'Query, insert, update, delete, execute raw T-SQL, and introspect schemas.',
-  docsLink: 'https://docs.sim.ai/integrations/mssql',
+  docsLink: docsUrl('/integrations/mssql'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',
@@ -458,9 +459,9 @@ export const MSSQLBlockMeta = {
     },
     {
       icon: MicrosoftSqlIcon,
-      title: 'SQL Server results to Sim table',
+      title: 'SQL Server results to Nexora table',
       prompt:
-        'Create a scheduled workflow that runs a Microsoft SQL Server query for the latest records and writes each row into a Sim table, so the data is available for downstream blocks without a live database call.',
+        'Create a scheduled workflow that runs a Microsoft SQL Server query for the latest records and writes each row into a Nexora table, so the data is available for downstream blocks without a live database call.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['database', 'sync'],

@@ -281,14 +281,14 @@ describe('durable Slack Search turns in PostgreSQL', () => {
     expect(events).toHaveLength(1)
   })
 
-  it('atomically binds a browser retry to its authenticated Sim user', async () => {
+  it('atomically binds a browser retry to its authenticated Nexora user', async () => {
     const input = job()
     await persistSlackSearchTurn(input, userId)
     const chat = await resolveSlackSearchChat(principal(input), input)
     expect(chat.userId).toBe(userId)
-    await expect(persistSlackSearchTurn(job(), otherUserId)).rejects.toThrow('another Sim account')
+    await expect(persistSlackSearchTurn(job(), otherUserId)).rejects.toThrow('another Nexora account')
     await expect(resolveSlackSearchChat(principal(input, otherUserId), input)).rejects.toThrow(
-      'another Sim account'
+      'another Nexora account'
     )
   })
 
@@ -514,7 +514,7 @@ describe('durable Slack Search turns in PostgreSQL', () => {
     expect(turns.find(({ id }) => id === later)?.status).toBe('pending')
   })
 
-  it('preserves the original DM timestamp and binds one private Sim conversation', async () => {
+  it('preserves the original DM timestamp and binds one private Nexora conversation', async () => {
     const input = job()
     input.message.threadTs = undefined
     await persistSlackSearchTurn(input)
@@ -529,7 +529,7 @@ describe('durable Slack Search turns in PostgreSQL', () => {
       slackUserId: 'UOWNER',
     })
     await expect(resolveSlackSearchChat(principal(input, otherUserId), input)).rejects.toThrow(
-      'another Sim account'
+      'another Nexora account'
     )
   })
 

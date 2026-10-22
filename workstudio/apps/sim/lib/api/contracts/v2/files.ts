@@ -162,7 +162,7 @@ export const v2FileShareSchema = shareRecordSchema
       .string()
       .url()
       .describe('Public share URL.')
-      .meta({ examples: ['https://www.sim.ai/f/share-token-example'] }),
+      .meta({ examples: ['https://workstudio.example.com/f/share-token-example'] }),
   })
   .meta({
     id: 'V2FileShare',
@@ -701,7 +701,7 @@ export const v2UpsertFileShareBodySchema = z
     password: orExactEnvironmentReference(sharePasswordSchema)
       .optional()
       .describe(
-        'Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.'
+        'Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.'
       ),
     allowedEmails: z
       .array(z.string().min(1, 'allowedEmails entries cannot be empty').max(320))

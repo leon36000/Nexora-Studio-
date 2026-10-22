@@ -1,4 +1,5 @@
 import { FirecrawlIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta, SubBlockType } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -13,7 +14,7 @@ export const FirecrawlBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Scrape pages, search the web, crawl entire sites, map URL structures, and extract structured data with AI.',
-  docsLink: 'https://docs.sim.ai/integrations/firecrawl',
+  docsLink: docsUrl('/integrations/firecrawl'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#181C1E',

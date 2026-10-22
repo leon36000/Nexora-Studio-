@@ -21,6 +21,7 @@ import { isEqual } from 'es-toolkit'
 import { usePostHog } from 'posthog-js/react'
 import { useShallow } from 'zustand/react/shallow'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { isMcpRuntimeReference } from '@/lib/mcp/operation-policy'
 import { resolveMcpBlockConfig } from '@/lib/mcp/workflow-config'
 import { captureEvent } from '@/lib/posthog/client'
@@ -397,7 +398,7 @@ export function Editor() {
    */
   const handleOpenDocs = useCallback(() => {
     const docsLink = isSubflow ? subflowConfig?.docsLink : blockConfig?.docsLink
-    window.open(docsLink || 'https://docs.sim.ai/quick-reference', '_blank', 'noopener,noreferrer')
+    window.open(docsLink || docsUrl('/quick-reference'), '_blank', 'noopener,noreferrer')
     captureEvent(posthog, 'docs_opened', {
       source: 'editor_button',
       block_type: currentBlock?.type,

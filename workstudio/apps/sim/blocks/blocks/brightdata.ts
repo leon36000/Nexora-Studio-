@@ -1,4 +1,5 @@
 import { BrightDataIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const BrightDataBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Scrape any URL with Web Unlocker, search Google and other engines with SERP API, discover web content ranked by intent, or trigger pre-built scrapers for structured data extraction.',
-  docsLink: 'https://docs.sim.ai/integrations/brightdata',
+  docsLink: docsUrl('/integrations/brightdata'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#FFFFFF',

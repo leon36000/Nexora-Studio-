@@ -211,7 +211,7 @@ describe('credential service-account application operations', () => {
         signingSecret: 'raw-signing',
         botToken: 'raw-token',
       })
-    ).rejects.toThrow('must reference existing Sim secrets')
+    ).rejects.toThrow('must reference existing Nexora secrets')
     expect(mocks.environment).not.toHaveBeenCalled()
     expect(mocks.create).not.toHaveBeenCalled()
   })

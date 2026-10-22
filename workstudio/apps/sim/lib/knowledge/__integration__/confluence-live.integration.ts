@@ -388,7 +388,7 @@ describe.skipIf(!fixtureFile)('live Confluence ingestion and permission parity',
       'confluence-live'
     )
     if (!bundle?.accessToken)
-      throw new Error('Connect the fixture Atlassian service account in Sim first')
+      throw new Error('Connect the fixture Atlassian service account in Nexora first')
     adminToken = bundle.accessToken
     const identity = z
       .object({ accountId: z.string().min(1) })

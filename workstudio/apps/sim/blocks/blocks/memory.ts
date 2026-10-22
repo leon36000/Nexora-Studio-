@@ -1,4 +1,5 @@
 import { BrainIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const MemoryBlock: BlockConfig = {
@@ -27,7 +28,7 @@ export const MemoryBlock: BlockConfig = {
     },
   },
   category: 'blocks',
-  docsLink: 'https://docs.sim.ai/integrations/memory',
+  docsLink: docsUrl('/integrations/memory'),
   subBlocks: [
     {
       id: 'operation',

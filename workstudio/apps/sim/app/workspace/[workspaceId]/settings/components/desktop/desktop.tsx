@@ -78,7 +78,7 @@ export function Desktop() {
   const { pending: fullFileAccessPending, mutate: setFullFileAccess } =
     useDesktopPreferenceMutation(
       async (bridge, enabled: boolean) => bridge.settings.setFullFileAccess?.(enabled),
-      'Could not save file access settings. Your previous setting may return after restarting Sim.',
+      'Could not save file access settings. Your previous setting may return after restarting Nexora.',
       setPreferences
     )
 
@@ -110,7 +110,7 @@ export function Desktop() {
           )}
           <PreferenceRow
             id='desktop-launch-at-login'
-            label='Launch Sim at login'
+            label='Launch Nexora at login'
             checked={preferences.launchAtLogin}
             disabled={pendingPreference !== null}
             onCheckedChange={(checked) => void updatePreference('launchAtLogin', checked)}
@@ -126,7 +126,7 @@ export function Desktop() {
           )}
           <PreferenceRow
             id='desktop-tray-enabled'
-            label='Show Sim in Control Center'
+            label='Show Nexora in Control Center'
             checked={preferences.trayEnabled}
             disabled={pendingPreference !== null}
             onCheckedChange={(checked) => void updatePreference('trayEnabled', checked)}
@@ -171,7 +171,7 @@ export function Desktop() {
           />
           <PreferenceRow
             id='desktop-notifications-unfocused'
-            label="Notify only when Sim isn't focused"
+            label="Notify only when Nexora isn't focused"
             checked={preferences.notificationsOnlyWhenUnfocused}
             disabled={notificationsDisabled || pendingPreference !== null}
             onCheckedChange={(checked) =>

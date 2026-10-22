@@ -72,8 +72,8 @@ const BILLING_TO_INTERNAL_SOURCES = {
 export const BILLING_USAGE_LOG_SOURCE_LABELS = {
   workflow: 'Workflow',
   wand: 'Wand',
-  'sim-chat': 'Sim Chat',
-  mcp_copilot: 'Sim Chat (MCP)',
+  'sim-chat': 'Nexora Chat',
+  mcp_copilot: 'Nexora Chat (MCP)',
   mothership_block: 'Agent block',
   'knowledge-base': 'Knowledge Base',
   'voice-input': 'Voice input',

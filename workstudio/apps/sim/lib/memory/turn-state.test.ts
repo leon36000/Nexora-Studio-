@@ -55,7 +55,7 @@ describe('Agent invocation continuation', () => {
     expect(getNativeConversationMessage(messages[0], 'responses')).toEqual([])
   })
 
-  it('restores a completed sibling and retries only the unknown outcome with its original Sim identity', async () => {
+  it('restores a completed sibling and retries only the unknown outcome with its original Nexora identity', async () => {
     let checkpoint: AgentTurnState | undefined
     const original = new AgentTurnStateMachine({
       save: async (state) => {

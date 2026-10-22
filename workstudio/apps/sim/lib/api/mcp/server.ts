@@ -1,7 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { createLogger } from '@sim/logger'
-import { SIM_DOCS_URL } from '@sim/utils/site'
 import { z } from 'zod'
 import {
   describeOperation,
@@ -17,21 +16,22 @@ import {
   type McpDispatchContext,
   type McpOperationCall,
 } from '@/lib/api/mcp/dispatch'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { structuredToolResult, toolError } from '@/lib/mcp/tool-result'
 
 const logger = createLogger('SimMcpServer')
 
 const DESCRIPTION =
-  'Lets an agent work in Sim, the AI workspace for building, deploying, and managing AI agents: search the Sim API, then read or change workspaces, workflows and their runs, tables, knowledge bases, files, logs, credentials, and deployments.'
+  'Lets an agent work in Nexora, the AI workspace for building, deploying, and managing AI agents: search the Nexora API, then read or change workspaces, workflows and their runs, tables, knowledge bases, files, logs, credentials, and deployments.'
 
-const INSTRUCTIONS = `Sim is the AI workspace where teams build, deploy, and manage AI agents. This server exposes the full Sim API: workspaces, workflows and their runs, tables, knowledge bases, files, logs, credentials, deployments, and more.
+const INSTRUCTIONS = `Nexora is the AI workspace where teams build, deploy, and manage AI agents. This server exposes the full Nexora API: workspaces, workflows and their runs, tables, knowledge bases, files, logs, credentials, deployments, and more.
 
 1. Find an operation with search_operations (keywords, optionally a domain).
 2. Read its input schemas with describe_operation.
 3. Run it with the tool search_operations names: call_read_operation for operations that only read, call_write_operation for everything else.
 
-Most operations take a workspaceId; listWorkspaces returns the workspaces you can use. Put path parameters in params, query-string values in query, and the JSON request body in body. Responses use the Sim API envelope ({ "data": ... }); list operations page with limit and cursor. Streaming options are not supported over MCP.`
+Most operations take a workspaceId; listWorkspaces returns the workspaces you can use. Put path parameters in params, query-string values in query, and the JSON request body in body. Responses use the Nexora API envelope ({ "data": ... }); list operations page with limit and cursor. Streaming options are not supported over MCP.`
 
 const operationName = z
   .string()
@@ -90,7 +90,7 @@ const callInput = z
       .record(z.string(), z.string())
       .optional()
       .describe(
-        'Headers the operation’s describe_operation schema lists, such as upload-token. Sim sets authentication and content headers itself.'
+        'Headers the operation’s describe_operation schema lists, such as upload-token. Nexora sets authentication and content headers itself.'
       ),
     body: z
       .record(z.string(), z.unknown())
@@ -115,11 +115,11 @@ export function createSimMcpServer(context: Omit<McpDispatchContext, 'signal'>):
   const baseUrl = getBaseUrl()
   const server = new McpServer(
     {
-      name: 'Sim',
-      title: 'Sim',
+      name: 'Nexora',
+      title: 'Nexora',
       version: '1.0.0',
       description: DESCRIPTION,
-      websiteUrl: `${SIM_DOCS_URL}/mcp/overview`,
+      websiteUrl: docsUrl('/mcp/overview'),
       icons: [
         {
           src: `${baseUrl}/favicon/android-chrome-512x512.png`,
@@ -151,7 +151,7 @@ export function createSimMcpServer(context: Omit<McpDispatchContext, 'signal'>):
       )
     } catch (error) {
       if (signal.aborted) return toolError('The operation was cancelled.')
-      logger.error('Sim MCP operation failed', { operation, error })
+      logger.error('Nexora MCP operation failed', { operation, error })
       return toolError('Unable to complete this operation. Please try again.')
     }
   }
@@ -161,7 +161,7 @@ export function createSimMcpServer(context: Omit<McpDispatchContext, 'signal'>):
     {
       title: 'Search operations',
       description:
-        'Find Sim API operations by keyword or domain. Returns how many match and, best match first, each operation’s name, HTTP method, path, summary, and the tool that runs it. Call without a query to list a domain.',
+        'Find Nexora API operations by keyword or domain. Returns how many match and, best match first, each operation’s name, HTTP method, path, summary, and the tool that runs it. Call without a query to list a domain.',
       inputSchema: searchInput,
       outputSchema: searchOperationsOutput,
       annotations: {
@@ -202,12 +202,12 @@ export function createSimMcpServer(context: Omit<McpDispatchContext, 'signal'>):
   server.registerTool(
     TOOL_NAMES.read,
     {
-      title: 'Read from Sim',
+      title: 'Read from Nexora',
       description:
-        'Run a Sim API operation that only reads, such as listWorkspaces, listTables, queryRows, or getWorkflowRun. search_operations says which tool runs each operation.',
+        'Run a Nexora API operation that only reads, such as listWorkspaces, listTables, queryRows, or getWorkflowRun. search_operations says which tool runs each operation.',
       inputSchema: callInput,
       annotations: {
-        title: 'Read from Sim',
+        title: 'Read from Nexora',
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
@@ -220,12 +220,12 @@ export function createSimMcpServer(context: Omit<McpDispatchContext, 'signal'>):
   server.registerTool(
     TOOL_NAMES.write,
     {
-      title: 'Write to Sim',
+      title: 'Write to Nexora',
       description:
-        'Run a Sim API operation that needs write access: one that creates, changes, runs, or deletes something, or reaches out to another service, such as createTable, executeWorkflow, or deleteFile. Changes apply immediately, with no preview or undo. A workflow run executes its blocks, which can call external services and use credits, so confirm deletions and runs with the user first.',
+        'Run a Nexora API operation that needs write access: one that creates, changes, runs, or deletes something, or reaches out to another service, such as createTable, executeWorkflow, or deleteFile. Changes apply immediately, with no preview or undo. A workflow run executes its blocks, which can call external services and use credits, so confirm deletions and runs with the user first.',
       inputSchema: callInput,
       annotations: {
-        title: 'Write to Sim',
+        title: 'Write to Nexora',
         readOnlyHint: false,
         destructiveHint: true,
         idempotentHint: false,

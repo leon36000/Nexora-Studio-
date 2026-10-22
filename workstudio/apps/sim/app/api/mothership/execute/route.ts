@@ -421,7 +421,7 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
                 projection.finish('cancelled')
                 send(
                   withPrivateProvenance(
-                    { type: 'error', error: 'Sim execution aborted' },
+                    { type: 'error', error: 'Nexora execution aborted' },
                     resolvedSecretTraceRegistry,
                     includePrivateProvenance
                   )
@@ -447,7 +447,7 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
                   withPrivateProvenance(
                     {
                       type: 'error',
-                      error: result.error || 'Sim execution failed',
+                      error: result.error || 'Nexora execution failed',
                       content: result.content || '',
                     },
                     resolvedSecretTraceRegistry,
@@ -481,7 +481,7 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
                 )
                 send(
                   withPrivateProvenance(
-                    { type: 'error', error: 'Sim execution aborted' },
+                    { type: 'error', error: 'Nexora execution aborted' },
                     resolvedSecretTraceRegistry,
                     includePrivateProvenance
                   )
@@ -548,7 +548,7 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
         reqLogger.info('Mothership execute aborted after lifecycle completion')
         return NextResponse.json(
           withPrivateProvenance(
-            { error: 'Sim execution aborted' },
+            { error: 'Nexora execution aborted' },
             resolvedSecretTraceRegistry,
             includePrivateProvenance
           ),
@@ -575,7 +575,7 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
         return NextResponse.json(
           withPrivateProvenance(
             {
-              error: result.error || 'Sim execution failed',
+              error: result.error || 'Nexora execution failed',
               content: result.content || '',
             },
             resolvedSecretTraceRegistry,
@@ -616,7 +616,7 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
 
       return NextResponse.json(
         withPrivateProvenance(
-          { error: 'Sim execution aborted' },
+          { error: 'Nexora execution aborted' },
           resolvedSecretTraceRegistry,
           includePrivateProvenance
         ),

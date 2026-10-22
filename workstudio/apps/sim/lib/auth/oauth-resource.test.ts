@@ -19,13 +19,13 @@ const workflowMcpResource = 'https://sim.example/api/mcp/serve/server-one'
 const scopes = ['search:read', 'offline_access']
 
 describe('OAuth resource binding', () => {
-  it('accepts exact organization Search endpoints, the Sim MCP server, and an absent API audience', () => {
+  it('accepts exact organization Search endpoints, the Nexora MCP server, and an absent API audience', () => {
     expect(parseOAuthResource(resource)).toEqual({ kind: 'search', url: resource })
     expect(parseOAuthResource(simMcpResource)).toEqual({ kind: 'api', url: simMcpResource })
     expect(parseOAuthResource(null)).toBeNull()
   })
 
-  it('accepts exact workflow MCP server endpoints as Sim API audiences', () => {
+  it('accepts exact workflow MCP server endpoints as Nexora API audiences', () => {
     expect(parseOAuthResource(workflowMcpResource)).toEqual({
       kind: 'api',
       url: workflowMcpResource,
@@ -103,7 +103,7 @@ describe('OAuth resource binding', () => {
     ).rejects.toMatchObject({ body: { error: 'invalid_scope' } })
   })
 
-  it('binds Sim API grants to the Sim MCP server', async () => {
+  it('binds Nexora API grants to the Nexora MCP server', async () => {
     const apiScopes = ['api:write', 'offline_access']
     await withOAuthResourceIssuance(simMcpResource, async () => {
       expect(

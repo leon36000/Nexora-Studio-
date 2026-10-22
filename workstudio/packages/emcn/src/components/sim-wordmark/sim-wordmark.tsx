@@ -7,10 +7,11 @@ const WORDMARK_FILLS = {
   'muted-inverse': 'var(--text-muted-inverse)',
 } as const
 
+/** The mark is x-height only, so it sits shorter than a logotype with ascenders. */
 const WORDMARK_SIZES = {
-  nav: { width: 37, height: 18, className: '-translate-y-[1.5px] h-[18px] w-auto' },
-  tag: { width: 21, height: 10, className: 'h-[10px] w-auto' },
-  loading: { width: 67, height: 32, className: 'h-8 w-auto' },
+  nav: { width: 81, height: 14, className: 'h-[14px] w-auto' },
+  tag: { width: 46, height: 8, className: 'h-[8px] w-auto' },
+  loading: { width: 144, height: 25, className: 'h-[25px] w-auto' },
 } as const
 
 export interface SimWordmarkProps {
@@ -20,7 +21,7 @@ export interface SimWordmarkProps {
   tone?: keyof typeof WORDMARK_FILLS
 }
 
-/** Canonical Sim logotype, shared by browser and bundled desktop pages. */
+/** Canonical Nexora logotype, shared by browser and bundled desktop pages. */
 export function SimWordmark({ size = 'nav', tone = 'body' }: SimWordmarkProps) {
   const { width, height, className } = WORDMARK_SIZES[size]
   const fill = WORDMARK_FILLS[tone]

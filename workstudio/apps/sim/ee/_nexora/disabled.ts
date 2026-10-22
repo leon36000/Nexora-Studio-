@@ -32,12 +32,17 @@ export function disabledOperation(id: string): DisabledOperation {
   }) as DisabledOperation
 }
 
+function toSnakeCase(key: string): string {
+  return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
+}
+
 export function disabledOperations<const K extends string>(
   prefix: string,
   keys: readonly K[]
 ): Readonly<Record<K, DisabledOperation>> {
   const out = {} as Record<K, DisabledOperation>
-  for (const key of keys) out[key] = disabledOperation(`${prefix}.${key}`)
+  // Core operation ids are snake_case (`access_requests.list_mine`); keys stay camelCase.
+  for (const key of keys) out[key] = disabledOperation(`${prefix}.${toSnakeCase(key)}`)
   return Object.freeze(out)
 }
 
@@ -60,7 +65,10 @@ export function disabledUseCase<R = any>(
 }
 
 /** A use case that answers with a constant instead of refusing (feature-availability probes). */
-export function constantUseCase<R>(operation: ApplicationOperation, value: () => R): DisabledUseCase {
+export function constantUseCase<R>(
+  operation: ApplicationOperation,
+  value: () => R
+): DisabledUseCase {
   return Object.freeze({
     operation,
     async execute(): Promise<any> {

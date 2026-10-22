@@ -29,7 +29,7 @@ describe('desktop activity presence', () => {
     ])
   })
 
-  it('does not call a desktop blocked when Sim cannot track presence at all', async () => {
+  it('does not call a desktop blocked when Nexora cannot track presence at all', async () => {
     presence.available.mockReturnValue(false)
     presence.present.mockResolvedValue(false)
 

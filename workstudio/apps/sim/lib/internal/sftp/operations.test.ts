@@ -88,7 +88,7 @@ describe('SFTP operations', () => {
     expect(mocks.clientEnd).toHaveBeenCalledOnce()
   })
 
-  it('authorizes every referenced Sim file before reading or uploading it', async () => {
+  it('authorizes every referenced Nexora file before reading or uploading it', async () => {
     const denied = Response.json({ success: false, error: 'File not found' }, { status: 404 })
     const file = { key: 'workspace/file', name: 'private.txt', size: 4 }
     mocks.getSftp.mockResolvedValue({} as SFTPWrapper)

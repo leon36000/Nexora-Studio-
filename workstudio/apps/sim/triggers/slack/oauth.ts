@@ -75,15 +75,15 @@ export function getSlackTriggerCredentialSubBlock(extendedScopesEnabled: boolean
     serviceId: 'slack',
     credentialKind: 'any',
     credentialLabels: {
-      oauthGroup: 'Sim app',
-      oauthConnect: 'Connect the Sim app',
+      oauthGroup: 'Nexora app',
+      oauthConnect: 'Connect the Nexora app',
       serviceAccountGroup: 'Custom bots',
       serviceAccountConnect: 'Set up a custom bot',
     },
     requiredScopes: getScopesForService('slack'),
     placeholder: 'Select Slack account or bot',
     description:
-      'Connect the native Sim Slack app, or choose a custom Slack bot you set up once and reuse across triggers and actions.',
+      'Connect the native Nexora Slack app, or choose a custom Slack bot you set up once and reuse across triggers and actions.',
     required: true,
     mode: 'trigger',
   }
@@ -259,7 +259,7 @@ export const slackOAuthTrigger: TriggerConfig = {
       title: 'Include tool calls',
       type: 'switch',
       defaultValue: true,
-      description: 'Show Agent and Sim Chat tool execution progress as Slack task updates.',
+      description: 'Show Agent and Nexora Chat tool execution progress as Slack task updates.',
       required: false,
       mode: 'trigger',
       condition: {

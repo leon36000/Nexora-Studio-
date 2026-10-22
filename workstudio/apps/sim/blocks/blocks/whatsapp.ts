@@ -1,4 +1,5 @@
 import { WhatsAppIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -24,7 +25,7 @@ export const WhatsAppBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Send text, template, media, and interactive messages, react to messages, and mark messages as read through the WhatsApp Cloud API. Free-form messages only reach a recipient within 24 hours of their last message to you — outside that window WhatsApp requires a pre-approved template.',
-  docsLink: 'https://docs.sim.ai/integrations/whatsapp',
+  docsLink: docsUrl('/integrations/whatsapp'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#25D366',

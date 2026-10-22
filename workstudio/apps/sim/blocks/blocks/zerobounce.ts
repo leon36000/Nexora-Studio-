@@ -1,4 +1,5 @@
 import { ZeroBounceIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const ZeroBounceBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const ZeroBounceBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Integrate ZeroBounce to validate email deliverability in real time — detect invalid, catch-all, spamtrap, abuse, and do-not-mail addresses — and check your remaining validation credits.',
-  docsLink: 'https://docs.sim.ai/integrations/zerobounce',
+  docsLink: docsUrl('/integrations/zerobounce'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

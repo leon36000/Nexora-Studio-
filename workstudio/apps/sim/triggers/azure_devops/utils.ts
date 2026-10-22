@@ -36,7 +36,7 @@ export const webhookSetupInstructions = instructions([
   'Select whichever <strong>event types</strong> you want this URL to receive (build, work item, release, etc.).',
   'Click <strong>Next</strong>, paste the <strong>Webhook URL</strong> above into the <strong>URL</strong> field.',
   'Leave other fields as defaults. Click <strong>Test</strong> to verify, then <strong>Finish</strong>.',
-  'Sim does not filter deliveries for this trigger — configure event types in Azure DevOps.',
+  'Nexora does not filter deliveries for this trigger — configure event types in Azure DevOps.',
 ])
 
 /**

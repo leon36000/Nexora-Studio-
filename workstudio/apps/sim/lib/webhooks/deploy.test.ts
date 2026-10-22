@@ -330,7 +330,7 @@ describe('resolveWebhookConfigForBlock — slack_oauth routing', () => {
     if (result?.success) throw new Error('expected failure')
     expect(result?.error).toEqual({
       message:
-        'Legacy Assistant events require a native Sim Slack connection. Choose an Agent View event for a custom bot.',
+        'Legacy Assistant events require a native Nexora Slack connection. Choose an Agent View event for a custom bot.',
       status: 400,
     })
     expect(mockRefreshAccessTokenIfNeeded).not.toHaveBeenCalled()
@@ -364,7 +364,7 @@ describe('resolveWebhookConfigForBlock — slack_oauth routing', () => {
     expect(result?.success).toBe(false)
     if (result?.success) throw new Error('expected failure')
     expect(result?.error).toEqual({
-      message: 'The Sim Slack app trigger is disabled for this deployment. Select a custom bot.',
+      message: 'The Nexora Slack app trigger is disabled for this deployment. Select a custom bot.',
       status: 400,
     })
     expect(mockRefreshAccessTokenIfNeeded).not.toHaveBeenCalled()
@@ -402,7 +402,7 @@ describe('resolveWebhookConfigForBlock — slack_oauth routing', () => {
     expect(mockRefreshAccessTokenIfNeeded).not.toHaveBeenCalled()
   })
 
-  it('rejects a non-simSubscribed event on the native Sim app (OAuth account)', async () => {
+  it('rejects a non-simSubscribed event on the native Nexora app (OAuth account)', async () => {
     mockGetSlackBotCredential.mockResolvedValue(null)
     mockResolveOAuthAccountId.mockResolvedValue({ accountId: 'acct-1' })
     queueTableRows(credential, [{ id: 'cred_oauth_1' }])
@@ -415,7 +415,7 @@ describe('resolveWebhookConfigForBlock — slack_oauth routing', () => {
     expect(result?.success).toBe(false)
     if (result?.success) throw new Error('expected failure')
     expect(result?.error?.status).toBe(400)
-    expect(result?.error?.message).toContain('not available on the Sim Slack app')
+    expect(result?.error?.message).toContain('not available on the Nexora Slack app')
     expect(mockRefreshAccessTokenIfNeeded).not.toHaveBeenCalled()
   })
 })

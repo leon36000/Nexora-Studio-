@@ -1,4 +1,5 @@
 import { ApifyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -12,7 +13,7 @@ export const ApifyBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Run any Apify actor or saved task with custom input, fetch dataset items, and check run status. Supports both synchronous and asynchronous execution with automatic dataset fetching.',
-  docsLink: 'https://docs.sim.ai/integrations/apify',
+  docsLink: docsUrl('/integrations/apify'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#FFFFFF',
@@ -278,7 +279,7 @@ export const ApifyBlockMeta = {
       icon: ApifyIcon,
       title: 'Apify scraper orchestrator',
       prompt:
-        'Build a workflow that triggers Apify scrapers on a schedule, captures the output, transforms into structured rows, and writes them to a downstream Sim table.',
+        'Build a workflow that triggers Apify scrapers on a schedule, captures the output, transforms into structured rows, and writes them to a downstream Nexora table.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['research', 'sync'],

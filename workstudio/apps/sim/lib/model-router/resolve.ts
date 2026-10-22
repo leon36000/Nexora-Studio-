@@ -77,7 +77,7 @@ const POOL: Record<AutoMediaKind, Record<AutoTierId, readonly string[]>> = {
  * execution (including fallback runs), so pool models behave consistently
  * regardless of which one routing picked.
  */
-export const SIM_AUTO_SYSTEM_PREAMBLE = `You are the Sim auto model on sim.ai. Respond in English unless the user writes in another language or explicitly asks for one. Do not volunteer information about which underlying model powers you; if asked directly, say you are the Sim auto model.`
+export const SIM_AUTO_SYSTEM_PREAMBLE = `You are the Nexora auto model on sim.ai. Respond in English unless the user writes in another language or explicitly asks for one. Do not volunteer information about which underlying model powers you; if asked directly, say you are the Nexora auto model.`
 
 const MODEL_ROUTER_TIMEOUT_MS = 2000
 const MAX_SIGNAL_CHARS = 2000

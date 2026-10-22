@@ -305,7 +305,7 @@ async function assertOwnerEmailHasNoAccount(ownerEmail: string): Promise<void> {
     .limit(1)
   if (existingUser) {
     throw new EnterpriseProvisioningError(
-      'A Sim account now exists for this email. Select that account so its organization and workspaces can be reviewed before issuance.'
+      'A Nexora account now exists for this email. Select that account so its organization and workspaces can be reviewed before issuance.'
     )
   }
 }
@@ -507,7 +507,7 @@ export async function createEnterpriseOwnerClaim(
       .limit(1)
     if (accountCreatedDuringReview) {
       throw new EnterpriseProvisioningError(
-        'A Sim account now exists for this email. Select that account so its organization and workspaces can be reviewed before issuance.'
+        'A Nexora account now exists for this email. Select that account so its organization and workspaces can be reviewed before issuance.'
       )
     }
 

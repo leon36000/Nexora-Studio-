@@ -65,12 +65,12 @@ const FEATURE_FLAGS = {
   },
   'workflow-tests': {
     description:
-      'Enable workflow tests: the workspace Tests page, tests/<name>.test.js files, and the Sim tests tool. Supports global and organization rollout; disabled by default.',
+      'Enable workflow tests: the workspace Tests page, tests/<name>.test.js files, and the Nexora tests tool. Supports global and organization rollout; disabled by default.',
     fallback: 'WORKFLOW_TESTS',
   },
   changelog: {
     description:
-      'Enable the workspace Changelog: the Changelog page, changelog/<id>.md release bodies, and the Sim changelog tool. Supports global and organization rollout; disabled by default.',
+      'Enable the workspace Changelog: the Changelog page, changelog/<id>.md release bodies, and the Nexora changelog tool. Supports global and organization rollout; disabled by default.',
     fallback: 'CHANGELOG',
   },
   'mothership-model-selector': {
@@ -123,7 +123,7 @@ const FEATURE_FLAGS = {
   },
   'mothership-abandoned-run-takeover-disabled': {
     description:
-      'Kill switch for Sim taking over Chat runs whose controller died (a deploy or a crash) and ' +
+      'Kill switch for Nexora taking over Chat runs whose controller died (a deploy or a crash) and ' +
       're-running their interrupted tool. Global on/off only; on stops every takeover scan. ' +
       'Off by default, so takeovers run unless this is turned on.',
     fallback: null,

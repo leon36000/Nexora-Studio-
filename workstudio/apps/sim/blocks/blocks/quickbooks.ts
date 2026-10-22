@@ -1,4 +1,5 @@
 import { QuickBooksIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta, OutputCondition, SubBlockConfig } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -562,7 +563,7 @@ export const QuickBooksBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Connect one QuickBooks Online company to manage bounded master-data, sales, purchasing, receivables, payables, accounting, reports, transaction delivery, and document workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/quickbooks',
+  docsLink: docsUrl('/integrations/quickbooks'),
   category: 'tools',
   integrationType: IntegrationType.Commerce,
   bgColor: '#2CA01C',
@@ -3628,7 +3629,7 @@ export const QuickBooksBlockMeta = {
       icon: QuickBooksIcon,
       title: 'QuickBooks customer onboarding',
       prompt:
-        'Build a workflow that receives an approved customer profile, creates the QuickBooks customer, and stores its ID and record version in a Sim table.',
+        'Build a workflow that receives an approved customer profile, creates the QuickBooks customer, and stores its ID and record version in a Nexora table.',
       modules: ['tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['finance', 'customers', 'onboarding'],
@@ -3655,7 +3656,7 @@ export const QuickBooksBlockMeta = {
       icon: QuickBooksIcon,
       title: 'QuickBooks monthly and year-end reporting',
       prompt:
-        'Build a scheduled workflow that runs monthly and year-end Balance Sheet, Profit and Loss, Trial Balance, and Cash Flow reports, preserves their native rows and summaries, and stores review results in a Sim table.',
+        'Build a scheduled workflow that runs monthly and year-end Balance Sheet, Profit and Loss, Trial Balance, and Cash Flow reports, preserves their native rows and summaries, and stores review results in a Nexora table.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['finance', 'reporting', 'financial-close'],

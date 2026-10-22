@@ -1,5 +1,6 @@
 import { ClipboardList, Table } from '@sim/emcn/icons'
 import { MailServerIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -15,7 +16,7 @@ export const ImapBlock: BlockConfig = {
   bgColor: '#6366F1',
   icon: MailServerIcon,
   triggerAllowed: true,
-  docsLink: 'https://docs.sim.ai/integrations/imap',
+  docsLink: docsUrl('/integrations/imap'),
   hideFromToolbar: false,
   canvasPresentation: {
     defaultTitle: 'IMAP Email',

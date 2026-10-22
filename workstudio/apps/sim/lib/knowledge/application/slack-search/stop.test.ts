@@ -152,7 +152,7 @@ describe('Slack native Stop', () => {
     expect(mocks.member).not.toHaveBeenCalled()
     expect(db.transaction).not.toHaveBeenCalled()
   })
-  it('refuses another Slack sender or a changed Sim identity', async () => {
+  it('refuses another Slack sender or a changed Nexora identity', async () => {
     mocks.thread.mockResolvedValueOnce([
       { id: 'turn1', payload: { ...job, message: { ...job.message, userId: 'OTHER' } } },
     ])

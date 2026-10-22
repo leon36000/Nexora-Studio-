@@ -1,4 +1,5 @@
 import { GoogleFormsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
@@ -18,7 +19,7 @@ export const GoogleFormsBlock: BlockConfig = {
   description: 'Manage Google Forms and responses',
   longDescription:
     'Read form structure, get responses, create forms, update content, and manage notification watches.',
-  docsLink: 'https://docs.sim.ai/integrations/google_forms',
+  docsLink: docsUrl('/integrations/google_forms'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

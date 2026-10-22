@@ -1,4 +1,5 @@
 import { MicrosoftTeamsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -21,8 +22,8 @@ export const MicrosoftTeamsBlock: BlockConfig = {
   description: 'Manage messages, reactions, and members in Teams',
   authMode: AuthMode.OAuth,
   longDescription:
-    'Read, write, update, and delete chat and channel messages. Reply to messages, add reactions, and list teams, chats, channels, and their members. Use trigger mode for message notifications in a selected chat, or an @mention of the outgoing webhook in a channel. Chat subscriptions request creation and update notifications, but Sim deduplicates them by subscription and message ID within a seven-day window. Later edits may not start a separate run. To mention users in messages, wrap their name in `<at>` tags: `<at>userName</at>`',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_teams',
+    'Read, write, update, and delete chat and channel messages. Reply to messages, add reactions, and list teams, chats, channels, and their members. Use trigger mode for message notifications in a selected chat, or an @mention of the outgoing webhook in a channel. Chat subscriptions request creation and update notifications, but Nexora deduplicates them by subscription and message ID within a seven-day window. Later edits may not start a separate run. To mention users in messages, wrap their name in `<at>` tags: `<at>userName</at>`',
+  docsLink: docsUrl('/integrations/microsoft_teams'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   triggerAllowed: true,

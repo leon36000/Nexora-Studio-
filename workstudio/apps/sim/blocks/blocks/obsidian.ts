@@ -1,4 +1,5 @@
 import { ObsidianIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const ObsidianBlock: BlockConfig = {
   description: 'Interact with your Obsidian vault via the Local REST API',
   longDescription:
     'Read, create, update, search, and delete notes in your Obsidian vault. Manage periodic notes, execute commands, and patch content at specific locations. Requires the Obsidian Local REST API plugin.',
-  docsLink: 'https://docs.sim.ai/integrations/obsidian',
+  docsLink: docsUrl('/integrations/obsidian'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#0F0F0F',
@@ -365,7 +366,7 @@ export const ObsidianBlockMeta = {
       icon: ObsidianIcon,
       title: 'Obsidian knowledge-base sync',
       prompt:
-        'Create a workflow that mirrors an Obsidian vault into a Sim knowledge base so an agent can answer questions over personal notes with citations.',
+        'Create a workflow that mirrors an Obsidian vault into a Nexora knowledge base so an agent can answer questions over personal notes with citations.',
       modules: ['knowledge-base', 'agent', 'workflows'],
       category: 'productivity',
       tags: ['individual', 'research'],

@@ -1,4 +1,5 @@
 import { ParallelIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const ParallelBlock: BlockConfig = {
@@ -7,7 +8,7 @@ export const ParallelBlock: BlockConfig = {
   description: 'Web research with Parallel AI',
   authMode: AuthMode.ApiKey,
   longDescription: 'Search the web, extract information from URLs, and conduct deep research.',
-  docsLink: 'https://docs.sim.ai/integrations/parallel_ai',
+  docsLink: docsUrl('/integrations/parallel_ai'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#1D1C1A',

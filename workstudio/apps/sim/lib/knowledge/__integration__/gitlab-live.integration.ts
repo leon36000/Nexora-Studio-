@@ -280,7 +280,7 @@ describe.skipIf(!fixtureFile)('live self-hosted GitLab ingestion and permission 
     readerCookie = await sessionCookie(ids.bobId)
     const suffix = generateId().replaceAll('-', '')
     const group = await api<GitLabResource>('/groups', 'POST', {
-      name: `Sim Search E2E ${suffix}`,
+      name: `Nexora Search E2E ${suffix}`,
       path: `sim-search-e2e-${suffix}`,
       visibility: 'public',
     })

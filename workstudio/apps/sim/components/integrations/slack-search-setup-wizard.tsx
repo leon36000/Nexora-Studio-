@@ -120,10 +120,10 @@ export function SlackSearchSetupWizard({
         onOpenChange={(open) => {
           if (!open) close()
         }}
-        srTitle='Sim Search in Slack'
+        srTitle='Nexora Search in Slack'
       >
         <ChipModalHeader icon={SlackIcon} onClose={close}>
-          Sim Search in Slack
+          Nexora Search in Slack
         </ChipModalHeader>
         <ChipModalBody>
           {prepare.error ? (
@@ -160,21 +160,21 @@ export function SlackSearchSetupWizard({
         onOpenChange={(open) => {
           if (!open) close()
         }}
-        srTitle='Install the Sim Search app'
+        srTitle='Install the Nexora Search app'
         size='sm'
       >
         <ChipModalHeader icon={SlackIcon} onClose={close}>
-          Install the Sim Search app
+          Install the Nexora Search app
         </ChipModalHeader>
         <ChipModalBody>
           <p className='px-2 text-[var(--text-secondary)] text-sm'>
-            Add Sim Search to your Slack workspace to ask questions and get answers from your
+            Add Nexora Search to your Slack workspace to ask questions and get answers from your
             connected sources.
           </p>
           <ChipModalError>
             {error?.message ??
               (!prepare.data.sharedAppId
-                ? 'Sim Search installation is unavailable. Try again.'
+                ? 'Nexora Search installation is unavailable. Try again.'
                 : null)}
           </ChipModalError>
         </ChipModalBody>
@@ -251,7 +251,7 @@ export function SlackSearchSetupWizard({
           <>
             <p className='px-2 text-[var(--text-secondary)] text-sm'>
               Open Basic Information → App Credentials in the same Slack app. Copy these values,
-              then connect the app to Sim.
+              then connect the app to Nexora.
             </p>
             <ChipModalField
               type='input'

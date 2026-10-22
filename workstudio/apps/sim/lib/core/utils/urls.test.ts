@@ -194,28 +194,28 @@ describe('isSafeHttpUrl', () => {
 })
 
 describe('isNonCanonicalSimHost', () => {
-  it.each(['www.sim.ai', 'sim.ai', 'WWW.SIM.AI', 'www.sim.ai:443'])(
-    'treats %s as the canonical marketing site',
+  it.each(['www.github.com', 'github.com', 'WWW.GITHUB.COM', 'www.github.com:443'])(
+    'treats %s as the canonical project site',
     (host) => {
       expect(isNonCanonicalSimHost(host)).toBe(false)
     }
   )
 
-  it.each(['dev.sim.ai', 'www.dev.sim.ai', 'staging.sim.ai', 'prod.sockets.sim.ai'])(
+  it.each(['gist.github.com', 'www.gist.github.com', 'api.github.com', 'codeload.api.github.com'])(
     'treats %s as non-canonical',
     (host) => {
       expect(isNonCanonicalSimHost(host)).toBe(true)
     }
   )
 
-  it.each(['sim.example.com', 'localhost:3000', 'notsim.ai', 'sim.ai.evil.com'])(
+  it.each(['sim.example.com', 'localhost:3000', 'notgithub.com', 'github.com.evil.com'])(
     'leaves %s alone',
     (host) => {
       expect(isNonCanonicalSimHost(host)).toBe(false)
     }
   )
 
-  it.each(['www.sim.ai, dev.sim.ai', 'sim.ai,dev.sim.ai', '  www.sim.ai , staging.sim.ai'])(
+  it.each(['www.github.com, gist.github.com', 'github.com,gist.github.com', '  www.github.com , api.github.com'])(
     'classifies a comma-joined forwarded host by its first entry (%s)',
     (host) => {
       expect(isNonCanonicalSimHost(host)).toBe(false)
@@ -223,7 +223,7 @@ describe('isNonCanonicalSimHost', () => {
   )
 
   it('still flags a comma-joined host whose first entry is non-canonical', () => {
-    expect(isNonCanonicalSimHost('dev.sim.ai, www.sim.ai')).toBe(true)
+    expect(isNonCanonicalSimHost('gist.github.com, www.github.com')).toBe(true)
   })
 
   it('does not throw on an empty host', () => {

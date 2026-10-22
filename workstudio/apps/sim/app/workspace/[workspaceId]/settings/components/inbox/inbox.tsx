@@ -48,8 +48,8 @@ export function Inbox() {
     return (
       <SettingsPanel>
         <SettingsUpgradeNotice
-          title='Sim Mailer requires an active Max plan'
-          description='Upgrade to Max and ensure billing is active to receive tasks via email and let Sim work on your behalf.'
+          title='Nexora Mailer requires an active Max plan'
+          description='Upgrade to Max and ensure billing is active to receive tasks via email and let Nexora work on your behalf.'
           canUpgrade={canAdmin}
         />
       </SettingsPanel>

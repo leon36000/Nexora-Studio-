@@ -1,4 +1,5 @@
 import { RedisIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -31,7 +32,7 @@ export const RedisBlock: BlockConfig = {
   description: 'Key-value operations with Redis',
   longDescription:
     'Connect to any Redis instance to perform key-value, hash, list, and utility operations via a direct connection.',
-  docsLink: 'https://docs.sim.ai/integrations/redis',
+  docsLink: docsUrl('/integrations/redis'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FF4438',

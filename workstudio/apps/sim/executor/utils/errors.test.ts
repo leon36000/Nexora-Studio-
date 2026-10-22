@@ -37,7 +37,7 @@ describe('getExecutionErrorStatus', () => {
     expect(getExecutionErrorStatus(new TestRateLimitedError('slow down'))).toBe(429)
   })
 
-  it("forwards 503 because it describes Sim's own capacity", () => {
+  it("forwards 503 because it describes Nexora's own capacity", () => {
     expect(getExecutionErrorStatus(new TestUnavailableError('no keys'))).toBe(503)
   })
 

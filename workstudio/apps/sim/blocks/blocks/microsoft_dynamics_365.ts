@@ -1,4 +1,5 @@
 import { MicrosoftDataverseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -167,7 +168,7 @@ export const MicrosoftDynamics365Block: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Manage standard Microsoft Dynamics 365 CRM records through the Dataverse Web API. List, search, create, retrieve, and update accounts, contacts, leads, opportunities, and cases; assign records to users or teams; qualify leads; close opportunities; and resolve cases. Connect a separate Microsoft credential for each environment from this Dynamics integration page or from its workflow block; existing generic Dataverse credentials remain unchanged and are not automatically rebound. This version supports public-cloud Dynamics environments; national clouds require separate OAuth authorities. Dataverse Search must be enabled for search, and lifecycle actions require the corresponding Dynamics 365 app, security role, and record privileges.',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_dynamics_365',
+  docsLink: docsUrl('/integrations/microsoft_dynamics_365'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',
@@ -1142,7 +1143,7 @@ export const MicrosoftDynamics365BlockMeta = {
       icon: MicrosoftDataverseIcon,
       title: 'Dynamics customer sync',
       prompt:
-        'Build a scheduled workflow that lists Dynamics 365 accounts and contacts, normalizes the current page into a Sim table, and updates matching CRM records when approved source data changes.',
+        'Build a scheduled workflow that lists Dynamics 365 accounts and contacts, normalizes the current page into a Nexora table, and updates matching CRM records when approved source data changes.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['crm', 'sync', 'data-quality'],

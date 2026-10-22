@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { DubIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -17,7 +18,7 @@ export const DubBlock = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Create, update, delete, or list short links with custom domains, slugs, link-preview titles and descriptions, and UTM parameters. Retrieve click, lead, and sales analytics.',
-  docsLink: 'https://docs.sim.ai/integrations/dub',
+  docsLink: docsUrl('/integrations/dub'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#181C1E',

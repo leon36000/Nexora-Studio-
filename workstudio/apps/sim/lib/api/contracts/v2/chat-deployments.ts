@@ -183,7 +183,7 @@ export const v2ChatDeploymentSchema = z
       .describe(
         'Public URL of the deployed chat. There is no chat subdomain — the identifier is a path segment.'
       )
-      .meta({ examples: ['https://sim.ai/chat/support'] }),
+      .meta({ examples: ['https://workstudio.example.com/chat/support'] }),
     title: z.string().describe('Title shown to visitors.'),
     description: z.string().describe('Description shown to visitors. Empty when unset.'),
     isActive: z.boolean().describe('Whether the deployment answers requests.'),
@@ -358,7 +358,7 @@ export const v2ReplaceChatDeploymentBodySchema = z
     )
       .optional()
       .describe(
-        'Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.'
+        'Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.'
       ),
     allowedEmails: chatAllowedEmailsSchema
       .optional()

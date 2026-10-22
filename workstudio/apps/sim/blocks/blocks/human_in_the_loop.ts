@@ -1,4 +1,5 @@
 import { HumanInTheLoopIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const HumanInTheLoopBlock: BlockConfig = {
@@ -11,7 +12,7 @@ export const HumanInTheLoopBlock: BlockConfig = {
     'Combines response and start functionality. Sends structured responses and allows workflow to resume from this point.',
   category: 'blocks',
   bgColor: '#10B981',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/human-in-the-loop',
+  docsLink: docsUrl('/workflows/blocks/human-in-the-loop'),
   icon: HumanInTheLoopIcon,
   canvasPresentation: {
     typeLabel: 'Human',

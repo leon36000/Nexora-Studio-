@@ -147,7 +147,7 @@ describe('secureGitHubRequest redirects', () => {
 })
 
 describe('secureGitHubRequest User-Agent', () => {
-  it('sends an explicit Sim User-Agent on the commit lookup and the comment POST', async () => {
+  it('sends an explicit Nexora User-Agent on the commit lookup and the comment POST', async () => {
     const hops: RecordedHop[] = []
     const origin = await startRecordingServer(hops)
 
@@ -159,8 +159,8 @@ describe('secureGitHubRequest User-Agent', () => {
     })
 
     expect(hops).toHaveLength(2)
-    expect(hops[0].headers['user-agent']).toBe('Sim')
-    expect(hops[1].headers['user-agent']).toBe('Sim')
+    expect(hops[0].headers['user-agent']).toBe('Nexora')
+    expect(hops[1].headers['user-agent']).toBe('Nexora')
   })
 
   it('leaves a caller-supplied User-Agent untouched', async () => {

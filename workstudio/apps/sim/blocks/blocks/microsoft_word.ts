@@ -1,4 +1,5 @@
 import { MicrosoftWordIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -81,7 +82,7 @@ export const MicrosoftWordBlock: BlockConfig = {
   description: 'Create, fill, read, edit, and export Word documents',
   longDescription:
     'Create .docx documents from text, fill a formatted template by substituting its placeholders, read a document back as text, replace or append content, find and replace text across the body plus headers and footers, list and search documents in OneDrive or SharePoint, and export a document as PDF.',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_word',
+  docsLink: docsUrl('/integrations/microsoft_word'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

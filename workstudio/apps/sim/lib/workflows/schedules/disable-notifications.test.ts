@@ -44,7 +44,7 @@ function admin(email: string, name = 'Admin') {
 }
 
 beforeAll(() => {
-  urlsMockFns.mockGetBaseUrl.mockReturnValue('https://app.sim.ai')
+  urlsMockFns.mockGetBaseUrl.mockReturnValue('https://workstudio.example.com')
 })
 
 afterAll(() => {

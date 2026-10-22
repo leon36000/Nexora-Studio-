@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { WizaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -21,7 +22,7 @@ export const WizaBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search prospects, enrich companies, reveal verified emails and phone numbers for individuals, and check your account credit balance.',
-  docsLink: 'https://docs.sim.ai/integrations/wiza',
+  docsLink: docsUrl('/integrations/wiza'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#9284BC',

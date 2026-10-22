@@ -81,7 +81,7 @@ describe('buildSlackManifest - Agent View', () => {
       expect.arrayContaining(['action_assistant', 'action_send', 'trigger_app_home'])
     )
     expect(features.agent_view).toEqual({
-      agent_description: 'Test Bot — an AI agent powered by Sim.',
+      agent_description: 'Test Bot — an AI agent powered by Nexora.',
     })
     expect(features.app_home).toEqual({
       home_tab_enabled: false,
@@ -131,18 +131,18 @@ describe('buildSlackManifest - Agent View', () => {
 describe('buildSlackManifest - managed users', () => {
   it('adds user OAuth configuration and its bot prerequisite', () => {
     const managedUserAuthorization =
-      getSlackManagedUserAuthorizationManifestConfig('https://sim.ai')
+      getSlackManagedUserAuthorizationManifestConfig('https://workstudio.example.com')
     const manifest = buildSlackManifest(new Set(), {
       appName: 'Managed Slack',
-      webhookUrl: 'https://sim.ai/api/webhooks/slack/custom/credential-id',
+      webhookUrl: 'https://workstudio.example.com/api/webhooks/slack/custom/credential-id',
       managedUserAuthorization,
     })
 
     expect(manifest).toMatchObject({
       oauth_config: {
         redirect_urls: [
-          'https://sim.ai/api/credential-groups/slack-managed-users/callback',
-          'https://sim.ai/api/credential-groups/oauth/slack/callback',
+          'https://workstudio.example.com/api/credential-groups/slack-managed-users/callback',
+          'https://workstudio.example.com/api/credential-groups/oauth/slack/callback',
         ],
         scopes: {
           bot: [...REQUIRED_AGENT_SCOPES, 'users:read'].sort(),
@@ -156,7 +156,7 @@ describe('buildSlackManifest - managed users', () => {
     const manifest = buildSlackManifest(new Set(), {
       ...opts,
       managedUserAuthorization: getSlackManagedUserAuthorizationManifestConfig(
-        'https://sim.ai',
+        'https://workstudio.example.com',
         SLACK_SEARCH_USER_SCOPES
       ),
     })

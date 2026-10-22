@@ -1,4 +1,5 @@
 import { GoogleMeetIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -10,7 +11,7 @@ export const GoogleMeetBlock: BlockConfig = {
   description: 'Create and manage Google Meet meetings',
   longDescription:
     'Create meeting spaces, get space details, end conferences, list conference records, and view participants.',
-  docsLink: 'https://docs.sim.ai/integrations/google_meet',
+  docsLink: docsUrl('/integrations/google_meet'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#FFFFFF',

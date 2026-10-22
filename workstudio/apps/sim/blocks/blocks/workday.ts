@@ -1,4 +1,5 @@
 import { WorkdayIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const WorkdayBlock: BlockConfig = {
   description: 'Manage workers, hiring, onboarding, and HR operations in Workday',
   longDescription:
     'Create pre-hires, hire employees, manage worker profiles, assign onboarding plans, handle job changes, retrieve compensation data, and process terminations.',
-  docsLink: 'https://docs.sim.ai/integrations/workday',
+  docsLink: docsUrl('/integrations/workday'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#F5F0EB',
@@ -529,7 +530,7 @@ export const WorkdayBlockMeta = {
       icon: WorkdayIcon,
       title: 'Workday job change orchestrator',
       prompt:
-        'Build a workflow that watches a Sim table of approved promotions, transfers, and demotions, performs the Workday change-job action for each row, updates downstream tools and Slack channel membership, and writes the outcome back to the table for audit.',
+        'Build a workflow that watches a Nexora table of approved promotions, transfers, and demotions, performs the Workday change-job action for each row, updates downstream tools and Slack channel membership, and writes the outcome back to the table for audit.',
       modules: ['tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['hr', 'enterprise', 'automation'],

@@ -81,7 +81,7 @@ function signedOutPrompt({
 
   if (isNewUser) {
     return {
-      description: 'Create an account to join this workspace on Sim',
+      description: 'Create an account to join this workspace on Nexora',
       actions: [
         {
           label: 'Create an account',
@@ -207,7 +207,7 @@ function getInviteError(code: string): InviteError {
     'external-requires-paid-plan': {
       code: 'external-requires-paid-plan',
       message:
-        'External collaborators need their own paid Sim plan. Upgrade your plan, or ask the organization to re-invite you as a member — that uses one of their seats instead.',
+        'External collaborators need their own paid Nexora plan. Upgrade your plan, or ask the organization to re-invite you as a member — that uses one of their seats instead.',
       canRetry: true,
     },
     'invalid-invitation': {

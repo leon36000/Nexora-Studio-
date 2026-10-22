@@ -1,4 +1,5 @@
 import { CursorIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector } from '@/blocks/utils'
@@ -9,7 +10,7 @@ export const CursorBlock: BlockConfig = {
   description: 'Launch and manage Cursor cloud agents to work on GitHub repositories',
   longDescription:
     'Interact with Cursor Cloud Agents API to launch AI agents that can work on your GitHub repositories. Supports launching agents, adding follow-up instructions, checking status, viewing conversations, and managing agent lifecycle.',
-  docsLink: 'https://docs.sim.ai/integrations/cursor',
+  docsLink: docsUrl('/integrations/cursor'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#1E1E1E',

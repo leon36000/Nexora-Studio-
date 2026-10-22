@@ -53,7 +53,7 @@ describe('buildResourceAttachments', () => {
         {
           tabId: '2',
           title: 'Dashboard',
-          url: 'https://sim.ai/workspace',
+          url: 'https://workstudio.example.com/workspace',
           loading: false,
           active: true,
         },
@@ -75,7 +75,7 @@ describe('buildResourceAttachments', () => {
         id: '2',
         title: 'Dashboard',
         active: true,
-        url: 'https://sim.ai/workspace',
+        url: 'https://workstudio.example.com/workspace',
       },
     ])
   })

@@ -244,7 +244,7 @@ export async function executeSlackReadMessages(input: SlackReadMessagesBody, sig
     if (error === 'not_in_channel') {
       failure(
         400,
-        'Bot is not in the channel. Please invite the Sim bot to your Slack channel by typing: /invite @Sim Studio'
+        'Bot is not in the channel. Please invite the Nexora bot to your Slack channel by typing: /invite @Nexora WorkStudio'
       )
     }
     if (error === 'channel_not_found') {
@@ -253,7 +253,7 @@ export async function executeSlackReadMessages(input: SlackReadMessagesBody, sig
     if (error === 'missing_scope') {
       failure(
         400,
-        'Missing required permissions. Reconnect your Slack account to grant channel history access (channels:history, groups:history). Reading direct message history is not supported with the Sim bot.'
+        'Missing required permissions. Reconnect your Slack account to grant channel history access (channels:history, groups:history). Reading direct message history is not supported with the Nexora bot.'
       )
     }
     failure(400, error || 'Failed to fetch messages')

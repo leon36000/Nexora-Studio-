@@ -92,7 +92,7 @@ describe('PasteAdmissionGuard', () => {
     ).toBe(true)
   })
 
-  it('still bounds a Sim selection plain-text representation outside the prompt', () => {
+  it('still bounds a Nexora selection plain-text representation outside the prompt', () => {
     const input = document.createElement('textarea')
     input.dataset.pasteMaxBytes = '4'
     host.appendChild(input)

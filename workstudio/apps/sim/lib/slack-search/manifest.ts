@@ -7,7 +7,7 @@ import { SLACK_SHARED_SEARCH_BOT_SCOPES } from '@/lib/slack-search/constants'
 
 export const SLACK_SEARCH_CALLBACK_PATH = '/api/knowledge/slack/oauth/callback'
 export const SLACK_SEARCH_WEBHOOK_PATH = '/api/webhooks/slack'
-export const SLACK_SEARCH_DEFAULT_NAME = 'Sim Search'
+export const SLACK_SEARCH_DEFAULT_NAME = 'Nexora Search'
 export const SLACK_SEARCH_DEFAULT_DESCRIPTION =
   'Ask questions about your organization’s knowledge and get answers with sources.'
 

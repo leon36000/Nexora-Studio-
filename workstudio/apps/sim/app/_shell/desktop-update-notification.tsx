@@ -32,7 +32,7 @@ export function DesktopUpdateNotification(_props: DesktopUpdateNotificationProps
     let active = true
     const id = toast({
       message:
-        status === 'ready' ? 'A Sim update is ready to install' : 'A Sim update is available',
+        status === 'ready' ? 'A Nexora update is ready to install' : 'A Nexora update is available',
       action: {
         label: status === 'ready' ? 'Restart to update' : 'Download update',
         onClick: () => {

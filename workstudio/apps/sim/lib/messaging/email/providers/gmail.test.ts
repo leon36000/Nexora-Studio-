@@ -36,9 +36,9 @@ const VALID_CREDENTIALS = JSON.stringify({
 
 const BASE_DATA: ProcessedEmailData = {
   to: 'user@example.com',
-  subject: 'Welcome to Sim',
+  subject: 'Welcome to Nexora',
   html: '<p>Hello</p>',
-  senderEmail: 'Sim <noreply@sim.example>',
+  senderEmail: 'Nexora <noreply@sim.example>',
   headers: {},
 }
 
@@ -83,8 +83,8 @@ describe('Gmail mail provider', () => {
 
       const raw = (init.body as Buffer).toString()
       expect(raw).toContain('To: user@example.com')
-      expect(raw).toContain('Subject: Welcome to Sim')
-      expect(raw).toContain('From: Sim <noreply@sim.example>')
+      expect(raw).toContain('Subject: Welcome to Nexora')
+      expect(raw).toContain('From: Nexora <noreply@sim.example>')
       expect(raw).toContain('Reply-To: help@sim.example')
       expect(raw).toContain('List-Unsubscribe: <https://sim.example/unsub>')
       expect(raw).toContain('<p>Hello</p>')

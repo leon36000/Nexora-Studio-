@@ -1,5 +1,6 @@
 import { ShieldCheck } from '@sim/emcn/icons'
 import { GoogleVaultIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -12,7 +13,7 @@ export const GoogleVaultBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Connect Google Vault to manage the full matter lifecycle, create and manage holds and exports, and save reusable search queries for eDiscovery and compliance.',
-  docsLink: 'https://docs.sim.ai/integrations/google_vault',
+  docsLink: docsUrl('/integrations/google_vault'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#E8F0FE',

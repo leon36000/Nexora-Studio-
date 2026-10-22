@@ -33,17 +33,17 @@ function receiveControl(raw: unknown): ReceivedControl | null {
   if (request.success) return { id: request.data.id, answer: () => executeSimControl(request.data) }
   const header = SimControlRequestHeader.safeParse(raw)
   if (!header.success) {
-    logger.warn('Unreadable Sim control request dropped')
+    logger.warn('Unreadable Nexora control request dropped')
     return null
   }
   const { id, operation } = header.data
   const kind = operation && truncate(operation.kind, 64)
   if (operation && !SIM_CONTROL_KINDS.some((known) => known === operation.kind)) {
-    logger.warn('Unsupported Sim control kind', { kind })
+    logger.warn('Unsupported Nexora control kind', { kind })
     const body = JSON.stringify({ error: SIM_CONTROL_UNSUPPORTED, kind })
     return { id, answer: async () => ({ status: 501, body }) }
   }
-  logger.warn('Invalid Sim control request', {
+  logger.warn('Invalid Nexora control request', {
     kind,
     issues: request.error.issues.map((issue) => issue.path.join('.')),
   })
@@ -51,7 +51,7 @@ function receiveControl(raw: unknown): ReceivedControl | null {
     id,
     answer: async () => ({
       status: 400,
-      body: JSON.stringify({ error: 'Invalid Sim control request' }),
+      body: JSON.stringify({ error: 'Invalid Nexora control request' }),
     }),
   }
 }
@@ -103,7 +103,7 @@ export async function receiveSimControls(
       if (failed?.status === 'rejected') throw failed.reason
     } catch (error) {
       if (signal.aborted) return
-      logger.warn('Sim transport disconnected; reconnecting', {
+      logger.warn('Nexora transport disconnected; reconnecting', {
         phase,
         error: getErrorMessage(error),
       })

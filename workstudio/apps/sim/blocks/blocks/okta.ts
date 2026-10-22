@@ -1,4 +1,5 @@
 import { OktaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -49,7 +50,7 @@ export const OktaBlock: BlockConfig = {
   description: 'Manage users, groups, apps, and MFA in Okta',
   longDescription:
     'Manage users, groups, and group rules. Run service desk actions like resetting MFA factors and clearing sessions. Review and change application assignments and admin roles. Query the System Log to audit sign-ins and admin changes.',
-  docsLink: 'https://docs.sim.ai/integrations/okta',
+  docsLink: docsUrl('/integrations/okta'),
   category: 'tools',
   authMode: AuthMode.ApiKey,
   integrationType: IntegrationType.Security,

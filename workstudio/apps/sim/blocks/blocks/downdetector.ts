@@ -1,4 +1,5 @@
 import { DowndetectorIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -52,7 +53,7 @@ export const DowndetectorBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Track real-time service outages with the Downdetector Enterprise API. Search monitored companies, read their current status and report trends, inspect problem indicators, and pull incident timelines to power outage alerts and dashboards. Requires a Downdetector Enterprise API plan.',
-  docsLink: 'https://docs.sim.ai/integrations/downdetector',
+  docsLink: docsUrl('/integrations/downdetector'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#FFFFFF',

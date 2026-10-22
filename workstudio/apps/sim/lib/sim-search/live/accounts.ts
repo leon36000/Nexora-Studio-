@@ -197,7 +197,7 @@ export async function resolveListedLiveAccount(
     )
       throw new NativeSearchError(
         'reconnect',
-        'Use a personal Coda token belonging to your verified Sim email. Shared service tokens cannot authorize personal search.'
+        'Use a personal Coda token belonging to your verified Nexora email. Shared service tokens cannot authorize personal search.'
       )
   }
   return { account: current, accessToken: token.accessToken }

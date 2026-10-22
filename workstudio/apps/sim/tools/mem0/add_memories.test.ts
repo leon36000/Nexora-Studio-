@@ -10,11 +10,11 @@ describe('mem0AddMemoriesTool', () => {
     const body = buildBody({
       apiKey: 'test-key',
       userId: ' alice ',
-      messages: [{ role: 'user', content: 'I like Sim.' }],
+      messages: [{ role: 'user', content: 'I like Nexora.' }],
     })
 
     expect(body).toEqual({
-      messages: [{ role: 'user', content: 'I like Sim.' }],
+      messages: [{ role: 'user', content: 'I like Nexora.' }],
       user_id: 'alice',
     })
   })

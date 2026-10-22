@@ -1,4 +1,5 @@
 import { LumaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const LumaBlock: BlockConfig = {
@@ -7,7 +8,7 @@ export const LumaBlock: BlockConfig = {
   description: 'Manage events and guests on Luma',
   longDescription:
     'Create, update, look up, and cancel events, list calendar events, manage guest lists (get one or many, add guests, send invites, and update approval status).',
-  docsLink: 'https://docs.sim.ai/integrations/luma',
+  docsLink: docsUrl('/integrations/luma'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#000000',

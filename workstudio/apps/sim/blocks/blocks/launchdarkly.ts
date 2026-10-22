@@ -1,4 +1,5 @@
 import { LaunchDarklyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const LaunchDarklyBlock: BlockConfig = {
   description: 'Manage feature flags with LaunchDarkly',
   longDescription:
     'List, create, update, toggle, and delete feature flags. Read projects, environments, segments, members, and audit logs. Requires an API key.',
-  docsLink: 'https://docs.sim.ai/integrations/launchdarkly',
+  docsLink: docsUrl('/integrations/launchdarkly'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#191919',

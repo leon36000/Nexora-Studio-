@@ -18,7 +18,7 @@ const AUTOSAVE_DELAY_MS = 1000
 const USAGE_LIMIT_INFO = (
   <Info side='top' className='text-[var(--text-muted)]'>
     {
-      "Max usage to consume per month, set in credits — Sim's usage unit (1,000 credits = $5). By default, it's your plan's included usage, but you can set it beyond."
+      "Max usage to consume per month, set in credits — Nexora's usage unit (1,000 credits = $5). By default, it's your plan's included usage, but you can set it beyond."
     }
   </Info>
 )

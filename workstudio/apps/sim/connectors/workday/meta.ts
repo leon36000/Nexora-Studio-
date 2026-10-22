@@ -94,7 +94,7 @@ export const workdayConnectorMeta: ConnectorMeta = {
       placeholder: 'e.g. NDdiMGE0ZmQtZjk1YS00...',
       required: true,
       description:
-        'Client ID of the Workday API Client for Integrations whose client secret and refresh token you entered above. Register it with a non-expiring refresh token: Sim stores the token you enter and cannot replace one the tenant rotates.',
+        'Client ID of the Workday API Client for Integrations whose client secret and refresh token you entered above. Register it with a non-expiring refresh token: Nexora stores the token you enter and cannot replace one the tenant rotates.',
     },
     {
       id: 'status',

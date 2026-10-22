@@ -871,7 +871,7 @@ export const updateKnowledgeDocument = defineAuthorizedKnowledgeUseCase({
       ? { ...input.updates }
       : { filename: input.filename, enabled: input.enabled }
     if (updates.enabled && !requiresConnectorIndexing(context.knowledgeBase.isSearchIndex)) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Sim Search.')
+      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
     }
     if (input.tagValues !== undefined) {
       Object.assign(
@@ -931,7 +931,7 @@ export const bulkUpdateKnowledgeDocuments = defineAuthorizedKnowledgeUseCase({
       input.operation === 'enable' &&
       !requiresConnectorIndexing(context.knowledgeBase.isSearchIndex)
     ) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Sim Search.')
+      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
     }
     const result = input.selectAll
       ? await bulkDocumentOperationByFilter(

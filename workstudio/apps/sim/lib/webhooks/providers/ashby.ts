@@ -303,7 +303,7 @@ export const ashbyHandler: WebhookProviderHandler = {
             'Access denied. Please ensure your Ashby API Key has the apiKeysWrite permission.'
         } else if (/duplicate webhook/i.test(errorMessage)) {
           userFriendlyMessage =
-            'A webhook for this URL and event already exists in Ashby. This usually happens when a previous save succeeded in Ashby but Sim failed to record it. Delete the duplicate webhook under Ashby Settings > API/Webhooks, then re-save this trigger.'
+            'A webhook for this URL and event already exists in Ashby. This usually happens when a previous save succeeded in Ashby but Nexora failed to record it. Delete the duplicate webhook under Ashby Settings > API/Webhooks, then re-save this trigger.'
         } else if (errorMessage && errorMessage !== 'Unknown Ashby API error') {
           userFriendlyMessage = `Ashby error: ${errorMessage}`
         }

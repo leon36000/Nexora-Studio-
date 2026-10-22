@@ -31,6 +31,7 @@ import { type PermissionType, permissionSatisfies } from '@sim/platform-authz/wo
 import { CodeIcon, McpIcon, SlackIcon } from '@/components/icons'
 import type { SettingsHeaderMeta } from '@/components/settings/settings-header'
 import type { DeploymentFeatures, DeploymentShape } from '@/lib/api/contracts/workspaces'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { organizationRoutes } from '@/lib/navigation/paths'
 
 export type SettingsPlane = 'account' | 'selfhost' | 'workspace'
@@ -403,7 +404,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Permission groups',
     icon: ShieldCheck,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/access-control',
+    docsLink: docsUrl('/platform/enterprise/access-control'),
     unified: {
       id: 'access-control',
       description: 'Manage permission groups across your organization.',
@@ -418,7 +419,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Audit logs',
     icon: ClipboardList,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/audit-logs',
+    docsLink: docsUrl('/platform/enterprise/audit-logs'),
     unified: {
       id: 'audit-logs',
       description: 'Review activity and changes across your organization.',
@@ -433,7 +434,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Workspace forks',
     icon: Shuffle,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/forks',
+    docsLink: docsUrl('/platform/enterprise/forks'),
     unified: {
       id: 'forks',
       description: 'Fork this workspace and sync changes with its parent.',
@@ -565,18 +566,18 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Sim API keys',
+    label: 'Nexora API keys',
     icon: TerminalWindow,
     unified: {
       id: 'apikeys',
-      description: 'Create and manage API keys for the Sim API.',
+      description: 'Create and manage API keys for the Nexora API.',
       group: 'workspace',
       order: 7,
     },
     planes: {
       account: {
         id: 'api-keys',
-        description: 'Create and manage your personal Sim API keys.',
+        description: 'Create and manage your personal Nexora API keys.',
         group: 'developer',
         order: 2,
       },
@@ -618,7 +619,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Sandboxes',
     icon: CodeIcon,
-    docsLink: 'https://docs.sim.ai/workflows/blocks/function',
+    docsLink: docsUrl('/workflows/blocks/function'),
     unified: {
       id: 'sandboxes',
       description: 'Install Python or npm packages for Function blocks to import.',
@@ -645,7 +646,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: 'Sim Mailer',
+    label: 'Nexora Mailer',
     icon: Send,
     unified: {
       id: 'inbox',
@@ -679,7 +680,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     icon: Sprout,
     unified: {
       id: 'self-host',
-      description: 'Manage this deployment from the Sim managed service.',
+      description: 'Manage this deployment from the Nexora managed service.',
       group: 'platform',
       order: 2,
       requiresSelfHosted: true,
@@ -691,7 +692,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Single sign-on',
     icon: LogIn,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/sso',
+    docsLink: docsUrl('/platform/enterprise/sso'),
     unified: {
       id: 'sso',
       description: 'Manage sign-in, verified domains, and provisioning.',
@@ -706,7 +707,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Security',
     icon: Lock,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/security',
+    docsLink: docsUrl('/platform/enterprise/security'),
     unified: {
       id: 'security',
       description: 'Manage session policies and view outbound IP addresses.',
@@ -721,7 +722,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Data retention',
     icon: Database,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/data-retention',
+    docsLink: docsUrl('/platform/enterprise/data-retention'),
     unified: {
       id: 'data-retention',
       description:
@@ -737,7 +738,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Data drains',
     icon: Upload,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/data-drains',
+    docsLink: docsUrl('/platform/enterprise/data-drains'),
     unified: {
       id: 'data-drains',
       description: 'Stream your logs and events to external destinations.',
@@ -752,7 +753,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'White-labeling',
     icon: Palette,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/whitelabeling',
+    docsLink: docsUrl('/platform/enterprise/whitelabeling'),
     unified: {
       id: 'whitelabeling',
       description: 'Customize your workspace branding and appearance.',
@@ -767,7 +768,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
   {
     label: 'Custom blocks',
     icon: HexSimple,
-    docsLink: 'https://docs.sim.ai/platform/enterprise/custom-blocks',
+    docsLink: docsUrl('/platform/enterprise/custom-blocks'),
     unified: {
       id: 'custom-blocks',
       description: 'Publish workflows as reusable blocks for your organization.',
@@ -801,7 +802,7 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     icon: Server,
     unified: {
       id: 'mothership',
-      description: 'Internal Sim operations and license management.',
+      description: 'Internal Nexora operations and license management.',
       group: 'platform',
       order: 1,
       requiresAdminRole: true,
@@ -886,7 +887,7 @@ export const ORGANIZATION_SETTINGS_GROUPS = [
   { key: 'account', title: 'Account' },
   { key: 'organization', title: 'Organization' },
   { key: 'governance', title: 'Governance' },
-  { key: 'sim-search', title: 'Sim Search' },
+  { key: 'sim-search', title: 'Nexora Search' },
   { key: 'platform', title: 'Platform' },
 ] as const
 
@@ -965,7 +966,7 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
       id,
       label: 'Search MCP',
       description: 'Search your sources from other apps.',
-      docsLink: 'https://docs.sim.ai/search/mcp',
+      docsLink: docsUrl('/search/mcp'),
       icon: Server,
       group,
     }
@@ -973,7 +974,7 @@ export const ORGANIZATION_SETTINGS_ITEMS: SettingsNavigationItem<OrganizationSet
   if (id === 'search-slack') {
     return {
       id,
-      label: 'Sim Search in Slack',
+      label: 'Nexora Search in Slack',
       description: 'Let members search their sources by messaging a Slack bot.',
       icon: SlackIcon,
       group,

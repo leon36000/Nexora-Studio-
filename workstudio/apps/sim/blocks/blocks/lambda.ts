@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { LambdaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -410,7 +411,7 @@ export const LambdaBlock: BlockConfig = {
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   authMode: AuthMode.ApiKey,
-  docsLink: 'https://docs.sim.ai/integrations/lambda',
+  docsLink: docsUrl('/integrations/lambda'),
   bgColor: 'linear-gradient(45deg, #C8511B 0%, #FF9900 100%)',
   iconColor: '#FF9900',
   icon: LambdaIcon,

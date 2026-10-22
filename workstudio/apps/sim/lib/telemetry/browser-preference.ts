@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'simstudio-telemetry-status'
+const STORAGE_KEY = 'nexora-telemetry-status'
 const CHANGE_EVENT = 'sim:telemetry-preference'
 
 let unavailableStoragePreference: boolean | undefined

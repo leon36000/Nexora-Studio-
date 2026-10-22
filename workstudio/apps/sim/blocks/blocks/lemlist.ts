@@ -1,4 +1,5 @@
 import { LemlistIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -9,7 +10,7 @@ export const LemlistBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Retrieve campaign activities and replies, get lead information, and send emails through the Lemlist inbox.',
-  docsLink: 'https://docs.sim.ai/integrations/lemlist',
+  docsLink: docsUrl('/integrations/lemlist'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   bgColor: '#316BFF',

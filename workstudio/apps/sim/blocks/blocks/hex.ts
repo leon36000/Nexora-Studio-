@@ -1,4 +1,5 @@
 import { HexIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const HexBlock: BlockConfig = {
   description: 'Run and manage Hex projects',
   longDescription:
     'Run projects, check run status, manage collections and groups (including membership and deactivating users), list users, and view data connections. Requires a Hex API token.',
-  docsLink: 'https://docs.sim.ai/integrations/hex',
+  docsLink: docsUrl('/integrations/hex'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#14151A',

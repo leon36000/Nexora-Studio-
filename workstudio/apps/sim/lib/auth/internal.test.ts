@@ -149,7 +149,7 @@ describe('internal executor delegation claims', () => {
     expect(decodeJwt(token).sub).toBeUndefined()
   })
 
-  it('round-trips an external webhook subject without inventing a Sim user', async () => {
+  it('round-trips an external webhook subject without inventing a Nexora user', async () => {
     const token = await generateInternalDelegationToken({
       workflowId: 'workflow-1',
       principal: {
@@ -223,7 +223,7 @@ describe('internal executor delegation claims', () => {
     ).rejects.toBeInstanceOf(InvalidInternalDelegationTokenError)
   })
 
-  it('round-trips an authenticated chat subject without inventing a Sim user', async () => {
+  it('round-trips an authenticated chat subject without inventing a Nexora user', async () => {
     const token = await generateInternalDelegationToken({
       workflowId: 'workflow-1',
       principal: {
@@ -248,7 +248,7 @@ describe('internal executor delegation claims', () => {
     expect(decodeJwt(token).sub).toBeUndefined()
   })
 
-  it('rejects laundering actorless or non-Sim principals into a Sim user subject', async () => {
+  it('rejects laundering actorless or non-Sim principals into a Nexora user subject', async () => {
     await expect(
       generateInternalDelegationToken({
         subjectUserId: 'billing-owner',
@@ -259,7 +259,7 @@ describe('internal executor delegation claims', () => {
           keyId: 'key-1',
         },
       })
-    ).rejects.toThrow('Actorless workflow principals cannot be represented as Sim users')
+    ).rejects.toThrow('Actorless workflow principals cannot be represented as Nexora users')
 
     await expect(
       generateInternalDelegationToken({
@@ -280,7 +280,7 @@ describe('internal executor delegation claims', () => {
           },
         },
       })
-    ).rejects.toThrow('Non-Sim workflow subjects cannot be represented as Sim users')
+    ).rejects.toThrow('Non-Sim workflow subjects cannot be represented as Nexora users')
 
     await expect(
       generateInternalDelegationToken({
@@ -294,10 +294,10 @@ describe('internal executor delegation claims', () => {
           subject: { kind: 'authenticated_email', email: 'person@example.com' },
         },
       })
-    ).rejects.toThrow('Non-Sim workflow subjects cannot be represented as Sim users')
+    ).rejects.toThrow('Non-Sim workflow subjects cannot be represented as Nexora users')
   })
 
-  it('rejects a signed delegation that pairs a non-Sim principal with a Sim user subject', async () => {
+  it('rejects a signed delegation that pairs a non-Sim principal with a Nexora user subject', async () => {
     const issuedAt = Math.floor(Date.now() / 1000)
     const token = await new SignJWT({
       type: 'internal_delegation',

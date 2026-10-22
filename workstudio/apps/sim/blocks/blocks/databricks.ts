@@ -1,4 +1,5 @@
 import { DatabricksIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -53,7 +54,7 @@ export const DatabricksBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Execute parameterized SQL and retrieve result chunks, create and manage jobs, submit and repair runs, manage compute clusters and SQL warehouses, and create or update Genie spaces. Ask Genie questions or run agent research, inspect conversations, and retrieve query results and charts. Connect with a personal access token and workspace host URL.',
-  docsLink: 'https://docs.sim.ai/integrations/databricks',
+  docsLink: docsUrl('/integrations/databricks'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#F9F7F4',

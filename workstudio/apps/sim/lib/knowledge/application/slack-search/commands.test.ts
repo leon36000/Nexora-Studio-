@@ -20,7 +20,7 @@ vi.mock('@/lib/sim-search/connectors', () => ({
 import { receiveSlackSearchCommand } from '@/lib/knowledge/application/slack-search/commands'
 import { slackSearchCommandEventId, slackSearchCommandSchema } from '@/lib/slack-search/commands'
 
-urlsMockFns.mockGetBaseUrl.mockReturnValue('https://www.sim.ai')
+urlsMockFns.mockGetBaseUrl.mockReturnValue('https://workstudio.example.com')
 
 const input = {
   api_app_id: 'A1',
@@ -58,7 +58,7 @@ describe('Slack commands', () => {
       input: { ...input, command: '/connect', text: 'slack' },
     })
     expect(result.text).toBe(
-      '<https://www.sim.ai/o/org/integrations?connectorType=slack|Connect your sources in Sim>'
+      '<https://workstudio.example.com/o/org/integrations?connectorType=slack|Connect your sources in Nexora>'
     )
     expect(m.receive).not.toHaveBeenCalled()
   })

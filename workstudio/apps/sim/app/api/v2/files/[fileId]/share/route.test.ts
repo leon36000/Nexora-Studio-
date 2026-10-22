@@ -45,7 +45,7 @@ const AUTH = {
 const SHARE = {
   id: 'shr_1',
   token: 'existing-token-abcd',
-  url: 'https://www.sim.ai/f/existing-token-abcd',
+  url: 'https://workstudio.example.com/f/existing-token-abcd',
   isActive: true,
   resourceType: 'file' as const,
   resourceId: FILE_ID,

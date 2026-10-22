@@ -104,7 +104,7 @@ describe('listPublicWorkspaces', () => {
     expect(result.hasMore).toBe(false)
   })
 
-  it('filters the Sim CLI by each workspace cli capability', async () => {
+  it('filters the Nexora CLI by each workspace cli capability', async () => {
     mocks.listAccessible.mockResolvedValue([
       {
         workspace: workspace('workspace-a', 'Alpha', true, 1),

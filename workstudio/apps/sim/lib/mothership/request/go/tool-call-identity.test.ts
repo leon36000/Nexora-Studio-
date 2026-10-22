@@ -78,7 +78,7 @@ describe('provider tool-call identity boundary', () => {
     expect(first.providerIds.size).toBe(1)
   })
 
-  it('treats a provider ID that resembles a Sim ID as a new opaque input', () => {
+  it('treats a provider ID that resembles a Nexora ID as a new opaque input', () => {
     const identity = createProviderToolCallIdentity('prefix-run')
     const rawId = `sim_tool_${'a'.repeat(64)}`
     const canonicalId = scopeProviderToolCallId(rawId, identity)

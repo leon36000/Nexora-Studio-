@@ -137,7 +137,7 @@ export async function emitExecutionCompletedEvent(log: WorkflowExecutionLog): Pr
         )
         if (!claimed) continue
 
-        logger.info(`Sim trigger rule ${config.eventType} fired`, {
+        logger.info(`Nexora trigger rule ${config.eventType} fired`, {
           subscriberWorkflowId: subscription.webhook.workflowId,
           sourceWorkflowId: log.workflowId,
           executionId: log.executionId,

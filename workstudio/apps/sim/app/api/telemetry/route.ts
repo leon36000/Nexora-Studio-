@@ -4,10 +4,10 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { telemetryContract } from '@/lib/api/contracts/telemetry'
 import { parseRequest } from '@/lib/api/server'
 import { env } from '@/lib/core/config/env'
-import { resolveTelemetryEndpoint } from '@/lib/telemetry/endpoint'
 import { isProd } from '@/lib/core/config/env-flags'
 import { enforceIpRateLimit } from '@/lib/core/rate-limiter'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { resolveTelemetryEndpoint } from '@/lib/telemetry/endpoint'
 
 const logger = createLogger('TelemetryAPI')
 

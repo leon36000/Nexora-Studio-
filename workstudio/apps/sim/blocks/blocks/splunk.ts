@@ -1,4 +1,5 @@
 import { SplunkIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -46,7 +47,7 @@ export const SplunkBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Run SPL searches synchronously or as asynchronous jobs, fetch results, dispatch saved searches, and inspect fired alerts and indexes.',
-  docsLink: 'https://docs.sim.ai/integrations/splunk',
+  docsLink: docsUrl('/integrations/splunk'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#FFFFFF',
@@ -767,7 +768,7 @@ export const SplunkBlockMeta = {
       icon: SplunkIcon,
       title: 'Splunk log export to tables',
       prompt:
-        'Create a scheduled workflow that runs a Splunk search for the previous hour of transaction logs and writes the results into a Sim table for downstream reporting.',
+        'Create a scheduled workflow that runs a Splunk search for the previous hour of transaction logs and writes the results into a Nexora table for downstream reporting.',
       modules: ['scheduled', 'tables', 'workflows'],
       category: 'engineering',
       tags: ['analysis', 'sync'],
@@ -786,7 +787,7 @@ export const SplunkBlockMeta = {
       icon: SplunkIcon,
       title: 'Splunk saved search inventory',
       prompt:
-        'Create a scheduled monthly workflow that lists every Splunk saved search, flags scheduled searches that have not run recently or are disabled, and writes a cleanup queue to a Sim table.',
+        'Create a scheduled monthly workflow that lists every Splunk saved search, flags scheduled searches that have not run recently or are disabled, and writes a cleanup queue to a Nexora table.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['devops', 'automation'],

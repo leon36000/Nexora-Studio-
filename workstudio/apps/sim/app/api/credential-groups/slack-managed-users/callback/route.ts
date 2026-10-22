@@ -39,7 +39,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   if (!session?.user?.id || !session.session?.id) {
     return closePopup({
       ok: false,
-      message: 'Sign in to Sim to complete this Slack setup.',
+      message: 'Sign in to Nexora to complete this Slack setup.',
       state: rawState,
       reason: 'signin_required',
     })

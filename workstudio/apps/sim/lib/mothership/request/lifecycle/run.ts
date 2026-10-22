@@ -1285,7 +1285,7 @@ async function runCheckpointLoop(
 
     retry ??= new StreamRetryWindow(options.timeout)
     const streamSpan = context.trace.startSpan(
-      isResume ? 'Sim → Go (Resume)' : 'Sim → Go Stream',
+      isResume ? 'Nexora → Go (Resume)' : 'Nexora → Go Stream',
       isResume ? 'lifecycle.resume' : 'sim.stream',
       {
         route,

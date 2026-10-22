@@ -624,7 +624,7 @@ describe('authorizeWorkspaceOperation OAuth access token policy', () => {
    * authorization skip that endpoint — so withdrawing the capability has to
    * stop the token already in the user's hands.
    */
-  it('refuses a Sim CLI token once the group withholds cli.use', async () => {
+  it('refuses a Nexora CLI token once the group withholds cli.use', async () => {
     resolveGroupConfigMock.mockResolvedValue({
       ...DEFAULT_PERMISSION_GROUP_CONFIG,
       disableCliAccess: true,

@@ -33,7 +33,7 @@ vi.mock('@/lib/model-router/resolve', () => ({
   addAutoRoutingCost: (cost: Record<string, number>, routingCost: number) =>
     routingCost > 0 ? { ...cost, routing: routingCost, total: cost.total + routingCost } : cost,
   resolveAutoModel: mockResolveAutoModel,
-  SIM_AUTO_SYSTEM_PREAMBLE: 'Sim auto system preamble',
+  SIM_AUTO_SYSTEM_PREAMBLE: 'Nexora auto system preamble',
 }))
 
 import { generateRouterPrompt, generateRouterV2Prompt } from '@/blocks/blocks/router'

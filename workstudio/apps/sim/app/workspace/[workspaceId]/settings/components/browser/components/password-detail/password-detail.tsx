@@ -212,7 +212,7 @@ export function PasswordDetail({ credential, onBack, onForgotten }: PasswordDeta
         onOpenChange={(open) => !open && setConfirmingForget(false)}
         title='Forget password'
         text={[
-          'Sim will delete the saved password for ',
+          'Nexora will delete the saved password for ',
           { text: site, bold: true },
           '. Your account on that site is not affected.',
         ]}

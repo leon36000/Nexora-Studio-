@@ -36,7 +36,7 @@ export function AuthShell({ children, footer }: AuthShellProps) {
       <DesktopTitleBarLane />
       <header>
         <nav className='mx-auto flex w-full max-w-[1446px] items-center px-12 py-4 max-sm:px-5 max-lg:px-8'>
-          <a href='/' aria-label='Sim home' className='flex h-[30px] items-center'>
+          <a href='/' aria-label='Nexora home' className='flex h-[30px] items-center'>
             <LogoMark>
               <SimWordmark />
             </LogoMark>

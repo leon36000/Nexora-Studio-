@@ -9,9 +9,9 @@ describe('buildChatDeploymentUrl', () => {
   })
 
   it('serves the chat from the app host on the /chat/ path', () => {
-    setEnv({ NEXT_PUBLIC_APP_URL: 'https://sim.ai' })
+    setEnv({ NEXT_PUBLIC_APP_URL: 'https://workstudio.example.com' })
 
-    expect(buildChatDeploymentUrl('support')).toBe('https://sim.ai/chat/support')
+    expect(buildChatDeploymentUrl('support')).toBe('https://workstudio.example.com/chat/support')
   })
 
   /**

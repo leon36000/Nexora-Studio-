@@ -38,7 +38,7 @@ function manifest(version: string) {
 }
 
 async function getDownload(): Promise<Response> {
-  return GET(new NextRequest('https://www.sim.ai/api/desktop/update/download'), undefined)
+  return GET(new NextRequest('https://workstudio.example.com/api/desktop/update/download'), undefined)
 }
 
 describe('desktop update download route', () => {

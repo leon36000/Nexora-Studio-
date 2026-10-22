@@ -1,4 +1,5 @@
 import { TinyFishIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -34,7 +35,7 @@ export const TinyFishBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Give a web agent a natural-language goal and let it drive a real browser on supported, reachable sites, queue and track long-running automations, search the web, and fetch pages as clean markdown.',
-  docsLink: 'https://docs.sim.ai/integrations/tinyfish',
+  docsLink: docsUrl('/integrations/tinyfish'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#FFFFFF',
@@ -769,7 +770,7 @@ export const TinyFishBlockMeta = {
       description:
         'Queue a TinyFish agent run without waiting, then poll or cancel it by ID. Use for automations too long to hold a workflow step open.',
       content:
-        '# Queue And Track Long Runs\n\nUse Start Agent Run, then Get Run, Cancel Run, and List Runs to manage work asynchronously.\n\n## Steps\n1. Start Agent Run with the URL and Goal. It returns a `runId` immediately. Set a Webhook URL if something should be notified on completion.\n2. Store the `runId`, then call Get Run to read `status`, `result`, and the step history. `numOfSteps` stays null while the run is in progress.\n3. Call Cancel Run to stop a queued or running automation. It is idempotent — a run that already finished comes back with its terminal status and a message saying so.\n4. Use List Runs with a status or goal filter to find runs you did not record the ID for.\n\n## Output\nReport the run status and, once COMPLETED, the extracted `result`. Note that these operations always need your own TinyFish API key — they are not covered by Sim’s hosted key.',
+        '# Queue And Track Long Runs\n\nUse Start Agent Run, then Get Run, Cancel Run, and List Runs to manage work asynchronously.\n\n## Steps\n1. Start Agent Run with the URL and Goal. It returns a `runId` immediately. Set a Webhook URL if something should be notified on completion.\n2. Store the `runId`, then call Get Run to read `status`, `result`, and the step history. `numOfSteps` stays null while the run is in progress.\n3. Call Cancel Run to stop a queued or running automation. It is idempotent — a run that already finished comes back with its terminal status and a message saying so.\n4. Use List Runs with a status or goal filter to find runs you did not record the ID for.\n\n## Output\nReport the run status and, once COMPLETED, the extracted `result`. Note that these operations always need your own TinyFish API key — they are not covered by Nexora’s hosted key.',
     },
   ],
 } as const satisfies BlockMeta

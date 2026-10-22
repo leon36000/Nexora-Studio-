@@ -1,4 +1,5 @@
 import { CodeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { CodeLanguage, getLanguageDisplayName } from '@/lib/execution/languages'
 import { SANDBOX_OUTPUT_DIR } from '@/lib/execution/remote-sandbox/paths'
@@ -21,7 +22,7 @@ export const FunctionBlock: BlockConfig = {
   - Anything the code writes to ${SANDBOX_OUTPUT_DIR} is returned as \`files\`, ready to attach to an email or upload without any extra step.
   - Referencing a file path runs the block in the remote sandbox, so it is slower to start than a plain local JavaScript run.
   `,
-  docsLink: 'https://docs.sim.ai/workflows/blocks/function',
+  docsLink: docsUrl('/workflows/blocks/function'),
   category: 'blocks',
   bgColor: '#FF402F',
   icon: CodeIcon,
@@ -59,7 +60,7 @@ The code should be executable within an 'async function(params, environmentVaria
 Current code context: {context}
 
 IMPORTANT FORMATTING RULES:
-1. Reference Environment Variables: Use the exact syntax {{VARIABLE_NAME}}. In JavaScript and Python, prefer the unquoted form when the placeholder is the complete expression (for example, 'const apiKey = {{SERVICE_API_KEY}};'). Quoted and embedded string forms such as '"Bearer {{SERVICE_API_KEY}}"', template literals, and JavaScript regex literals are also supported. In Shell, prefer '"{{SERVICE_API_KEY}}"' when the secret should be one scalar argument; use a bare placeholder only when Bash word-splitting or pattern semantics are intentional. Sim binds the resolved value separately from the source at execution time, preserving its exact string contents.
+1. Reference Environment Variables: Use the exact syntax {{VARIABLE_NAME}}. In JavaScript and Python, prefer the unquoted form when the placeholder is the complete expression (for example, 'const apiKey = {{SERVICE_API_KEY}};'). Quoted and embedded string forms such as '"Bearer {{SERVICE_API_KEY}}"', template literals, and JavaScript regex literals are also supported. In Shell, prefer '"{{SERVICE_API_KEY}}"' when the secret should be one scalar argument; use a bare placeholder only when Bash word-splitting or pattern semantics are intentional. Nexora binds the resolved value separately from the source at execution time, preserving its exact string contents.
 2. Reference Input Parameters/Workflow Variables: Use the exact syntax <variable_name>. Do NOT wrap it in quotes (e.g., use 'userId = <userId>;' not 'userId = "<userId>";'). This includes parameters defined in the block's schema and outputs from previous blocks.
 3. Function Body ONLY: Do NOT include the function signature (e.g., 'async function myFunction() {' or the surrounding '}').
 4. Imports: Standard Node.js built-in modules (e.g., 'crypto', 'fs') are always available. Third-party packages are available ONLY when the block has a sandbox selected — the sandbox's package list is appended below when one is. Never import a package that is not on that list.
@@ -118,7 +119,7 @@ try {
       showWhenEnvSet: 'NEXT_PUBLIC_SANDBOXES_ENABLED',
       placeholder: 'Default image',
       description:
-        'Sim sandbox dependencies, system packages, and managed CLIs available to this block. Shell can use Sim sandboxes from either language. Manage them in Settings > Sandboxes. Leaving this empty runs on the default image.',
+        'Nexora sandbox dependencies, system packages, and managed CLIs available to this block. Shell can use Nexora sandboxes from either language. Manage them in Settings > Sandboxes. Leaving this empty runs on the default image.',
     },
     {
       id: 'secretScope',
@@ -163,7 +164,7 @@ try {
     sandboxId: {
       type: 'string',
       description:
-        'Sim sandbox providing dependencies, system packages, and managed CLIs. Selecting or clearing it requires an active Max or Enterprise plan.',
+        'Nexora sandbox providing dependencies, system packages, and managed CLIs. Selecting or clearing it requires an active Max or Enterprise plan.',
     },
     secretScope: { type: 'string', description: 'Secret access mode: all or selected' },
     mountedSecrets: {

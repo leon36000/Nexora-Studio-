@@ -134,7 +134,7 @@ async function prepareInstallationAttempt(
   if (shared && installation && member.app && member.app.teamId !== installation.teamId)
     throw new OrchestrationError(
       'conflict',
-      'Install Sim Search in the Slack workspace connected by your members'
+      'Install Nexora Search in the Slack workspace connected by your members'
     )
   const clientId = input.clientId ?? app?.clientId
   if (!clientId) throw new OrchestrationError('validation', 'Slack Client ID is required')
@@ -255,7 +255,7 @@ async function saveInstallation(
     (attempt.customInstallation.teamId !== identity.teamId ||
       attempt.customInstallation.appId === identity.appId)
   )
-    throw new OrchestrationError('conflict', 'Install Sim Search in the same Slack workspace')
+    throw new OrchestrationError('conflict', 'Install Nexora Search in the same Slack workspace')
   requireSearchBotMatchesMemberApp(attempt.memberApp, identity, Boolean(attempt.sharedApp))
   const { encrypted: encryptedToken } = await encryptSecret(
     JSON.stringify({

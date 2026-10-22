@@ -25,7 +25,7 @@ export const listDowntimesTool: ToolConfig<ListDowntimesParams, ListDowntimesRes
       required: false,
       visibility: 'user-or-llm',
       description:
-        'Number of downtimes to return per page. Datadog defaults to 30 and declares no maximum; keep this at 100 or below to stay within the bound Sim recommends.',
+        'Number of downtimes to return per page. Datadog defaults to 30 and declares no maximum; keep this at 100 or below to stay within the bound Nexora recommends.',
     },
     offset: {
       type: 'number',

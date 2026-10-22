@@ -173,7 +173,7 @@ export function Composer({
     isInitialView && !value,
     imagesOnly ? 'search' : 'build'
   )
-  const placeholder = isInitialView ? animatedPlaceholder : 'Send message to Sim'
+  const placeholder = isInitialView ? animatedPlaceholder : 'Send message to Nexora'
 
   const submit = () => {
     if (attachedFilesRef.current.some((file) => file.uploading)) return
@@ -220,7 +220,7 @@ export function Composer({
     <PromptEditor
       editor={editor}
       placeholder={placeholder}
-      aria-label='Ask Sim'
+      aria-label='Ask Nexora'
       onSubmit={submit}
       onNavigateHistory={history.navigate}
       onArrowUpOnEmpty={recallQueuedTail}
@@ -326,7 +326,7 @@ export function Composer({
             })
           }
           placeholder={placeholder}
-          aria-label='Ask Sim'
+          aria-label='Ask Nexora'
           leadingControls={leadingControls}
           voiceControl={voiceControl}
           submitControl={submitControl}

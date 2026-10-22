@@ -61,11 +61,11 @@ const RETAINED_COMPLETION_MAX_BYTES = 8 * 1024
 const TERMINAL_COMPLETION_MAX_ACTIVE = 4
 const TERMINAL_COMPLETION_MAX_QUEUED = 64
 const OUTCOME_UNKNOWN_MESSAGE =
-  'The Sim window closed while this browser action was in flight. It may already have taken effect. Do not retry it automatically; take a fresh browser snapshot before deciding what to do.'
+  'The Nexora window closed while this browser action was in flight. It may already have taken effect. Do not retry it automatically; take a fresh browser snapshot before deciding what to do.'
 const REPLAY_OUTCOME_UNKNOWN_MESSAGE =
-  'This browser action was recorded before the Sim page reloaded, but its terminal result could not be recovered. It may already have taken effect. Do not retry it automatically; take a fresh browser snapshot before deciding what to do.'
+  'This browser action was recorded before the Nexora page reloaded, but its terminal result could not be recovered. It may already have taken effect. Do not retry it automatically; take a fresh browser snapshot before deciding what to do.'
 const STALE_OBSERVATION_NOT_RUN_MESSAGE =
-  'Not run: this browser observation reached the Sim desktop app too late to run safely, so it has no result. An observation changes nothing in the browser. Do not retry it in this turn; tell the user to keep this chat open in the Sim desktop app, or to ask again later.'
+  'Not run: this browser observation reached the Nexora desktop app too late to run safely, so it has no result. An observation changes nothing in the browser. Do not retry it in this turn; tell the user to keep this chat open in the Nexora desktop app, or to ask again later.'
 const STALE_STATEFUL_OUTCOME_UNKNOWN_MESSAGE =
   'This browser action was delivered too late to recover its exact result. It may already have taken effect. Do not retry it automatically; take a fresh browser snapshot before deciding what to do.'
 const REPLAY_GUARD_CAPACITY_MESSAGE =
@@ -717,7 +717,7 @@ async function doExecuteBrowserTool(
         if (!nativeActionPending) return null
         const message = nativeDispatchStarted
           ? OUTCOME_UNKNOWN_MESSAGE
-          : 'The Sim window closed before this browser action started. Its result was lost.'
+          : 'The Nexora window closed before this browser action started. Its result was lost.'
         return {
           status: ASYNC_TOOL_CONFIRMATION_STATUS.error,
           message,

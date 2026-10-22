@@ -1,4 +1,5 @@
 import { StagehandIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import type { StagehandAgentResponse, StagehandExtractResponse } from '@/tools/stagehand/types'
 
@@ -11,7 +12,7 @@ export const StagehandBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Extract structured data from webpages or run an autonomous agent to perform tasks.',
-  docsLink: 'https://docs.sim.ai/integrations/stagehand',
+  docsLink: docsUrl('/integrations/stagehand'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#FFC83C',

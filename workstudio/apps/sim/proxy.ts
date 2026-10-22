@@ -9,6 +9,7 @@ import { resolveSimMcpHostPath } from '@/lib/api/mcp/host-routing'
 import { SIM_MCP_ROUTE_PATH } from '@/lib/api/mcp/urls'
 import { isMarketingPath } from '@/lib/landing/routes'
 import { APP_ENTRY_PATH, isAppSurfacePath, isNoindexPath } from '@/lib/navigation/paths'
+import { resolveMarketingRedirect } from '@/lib/nexora/marketing'
 import { isOAuthAuthorizationCallback, resolveAuthRedirect } from '@/app/(auth)/auth-redirect'
 import { getEnv } from './lib/core/config/env'
 import { isAuthDisabled, isDev, isHosted } from './lib/core/config/env-flags'
@@ -378,6 +379,20 @@ export function proxy(request: NextRequest) {
 
   const redirect = handleRootPathRedirects(request, hasActiveSession)
   if (redirect) return applyIndexingPolicy(request, redirect)
+
+  // Nexora edition: the upstream marketing site is never served on a self-hosted deployment.
+  if (!isHosted) {
+    const marketingTarget = resolveMarketingRedirect(url.pathname, {
+      termsUrl: getEnv('NEXT_PUBLIC_TERMS_URL'),
+      privacyUrl: getEnv('NEXT_PUBLIC_PRIVACY_URL'),
+    })
+    if (marketingTarget) {
+      return applyIndexingPolicy(
+        request,
+        NextResponse.redirect(new URL(marketingTarget, request.url))
+      )
+    }
+  }
 
   if (url.pathname === '/login' || url.pathname === '/signup') {
     const { rawCallbackUrl } = resolveAuthRedirect({

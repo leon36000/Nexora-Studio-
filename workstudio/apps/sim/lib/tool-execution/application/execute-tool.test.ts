@@ -514,7 +514,7 @@ describe('executeToolForCaller', () => {
    * registry's verdict, carried by the presence of the cost it alone writes,
    * gets this right.
    */
-  it('does not bill a BYOK call, where the key was omitted but Sim did not pay', async () => {
+  it('does not bill a BYOK call, where the key was omitted but Nexora did not pay', async () => {
     mocks.executeRegistryTool.mockResolvedValue({
       success: true,
       output: { markdown: '# Hi' },
@@ -562,7 +562,7 @@ describe('executeToolForCaller', () => {
       { FIRECRAWL_KEY: 'fc-own' },
     ],
     [
-      'a reference selects a provider Sim does not host',
+      'a reference selects a provider Nexora does not host',
       referencedImageCall,
       { IMAGE_PROVIDER: 'openai', IMAGE_KEY: '' },
     ],

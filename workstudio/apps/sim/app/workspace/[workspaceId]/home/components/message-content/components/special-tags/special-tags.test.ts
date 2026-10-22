@@ -514,7 +514,7 @@ describe('parseSpecialTags with <question>', () => {
 })
 
 describe('service_account credential tag', () => {
-  it('carries no value — the secret is typed into Sim’s own form, never the transcript', () => {
+  it('carries no value — the secret is typed into Nexora’s own form, never the transcript', () => {
     const body = JSON.stringify({ type: 'service_account', provider: 'google-sheets' })
     const { segments } = parseSpecialTags(`<credential>${body}</credential>`, false)
 
@@ -878,7 +878,7 @@ describe('source tag', () => {
 })
 
 describe('usage card written to a worker log', () => {
-  it('renders the card Sim hands the worker when the text is replayed after a reload', () => {
+  it('renders the card Nexora hands the worker when the text is replayed after a reload', () => {
     const usageUpgrade = {
       reason: 'usage_limit',
       action: 'increase_limit',

@@ -1,4 +1,5 @@
 import { RedditIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -12,7 +13,7 @@ export const RedditBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Read posts, comments, and search content. Submit posts, vote, reply, edit, manage messages, and access user and subreddit info.',
-  docsLink: 'https://docs.sim.ai/integrations/reddit',
+  docsLink: docsUrl('/integrations/reddit'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#FF5700',

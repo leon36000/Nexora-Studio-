@@ -68,7 +68,7 @@ export function ConnectLauncher({ providerId, completeUrl }: ConnectLauncherProp
   return (
     <DesktopHandoffShell
       title='Connecting your account'
-      description='Taking you to the provider to authorize Sim…'
+      description='Taking you to the provider to authorize Nexora…'
     />
   )
 }

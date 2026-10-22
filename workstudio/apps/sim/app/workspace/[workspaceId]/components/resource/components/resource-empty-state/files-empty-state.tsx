@@ -1,11 +1,12 @@
 import { Chip, cn } from '@sim/emcn'
 import { Upload } from '@sim/emcn/icons'
 import { EmptyState, type EmptyStateProps } from '@/components/empty-state/empty-state'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { EmptyStateDocsLink } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/docs-link'
 import { HAIRLINE } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/hairline'
 import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/mask'
 
-const FILES_DOCS_URL = 'https://docs.sim.ai/files'
+const FILES_DOCS_URL = docsUrl('/files')
 
 const FOLDER_BACK = [
   'M 22 34',

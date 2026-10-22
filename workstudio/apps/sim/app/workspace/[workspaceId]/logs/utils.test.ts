@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { getLogWorkflowLabel, resolveLogWorkflowId } from './utils'
 
 describe('resolveLogWorkflowId', () => {
-  it('returns null for Sim agent jobs even when a workflow id exists', () => {
+  it('returns null for Nexora agent jobs even when a workflow id exists', () => {
     expect(
       resolveLogWorkflowId({
         trigger: 'mothership',

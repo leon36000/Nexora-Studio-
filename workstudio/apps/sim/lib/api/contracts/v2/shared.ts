@@ -181,7 +181,7 @@ export const v2TimestampSchema = z.string().datetime().meta({ format: 'date-time
 export const v2ResourceWebUrlSchema = z
   .string()
   .url()
-  .describe('Canonical absolute URL for opening this resource in the Sim web application.')
+  .describe('Canonical absolute URL for opening this resource in the Nexora web application.')
 
 export const v2ForbiddenDetailCodeSchema = z.enum(FORBIDDEN_DETAIL_CODES).meta({
   id: 'V2ForbiddenDetailCode',

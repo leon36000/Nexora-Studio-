@@ -1,5 +1,6 @@
 import { createLogger } from '@sim/logger'
 import { ChartBarIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getModelFallbackSubBlock, MODEL_FALLBACK_INPUTS } from '@/blocks/model-fallbacks'
 import type { BlockConfig, ParamType } from '@/blocks/types'
 import {
@@ -134,7 +135,7 @@ export const EvaluatorBlock: BlockConfig = {
   description: 'Evaluate content',
   longDescription:
     'This is a core workflow block. Assess content quality using customizable evaluation metrics and scoring criteria. Create objective evaluation frameworks with numeric scoring to measure performance across multiple dimensions.',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/evaluator',
+  docsLink: docsUrl('/workflows/blocks/evaluator'),
   category: 'blocks',
   bgColor: '#4D5FFF',
   icon: ChartBarIcon,

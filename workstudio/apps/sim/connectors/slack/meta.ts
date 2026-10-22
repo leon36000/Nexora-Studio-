@@ -1,4 +1,5 @@
 import { SlackIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { slackIndexingScopes } from '@/connectors/slack/config'
 import type { ConnectorMeta } from '@/connectors/types'
 
@@ -6,7 +7,7 @@ export const DEFAULT_MAX_MESSAGES = 1000
 
 export const slackConnectorMeta: ConnectorMeta = {
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/slack',
+  searchDocsUrl: docsUrl('/search/slack'),
   id: 'slack',
   name: 'Slack',
   description:

@@ -31,7 +31,7 @@ export default async function CredentialConnectedPage({
         }
       >
         <ChipLink variant='primary' href={APP_ENTRY_PATH}>
-          Open Sim
+          Open Nexora
         </ChipLink>
       </StatusPageContent>
     </LogoShell>

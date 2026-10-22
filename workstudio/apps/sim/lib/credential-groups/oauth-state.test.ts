@@ -56,7 +56,7 @@ describe('credential group OAuth state', () => {
       authorizationAppId: 'google:app',
       scopeVersion: 1,
       requiredScopes: ['openid', 'email'],
-      redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+      redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
       codeVerifier: 'code-verifier',
       invitationToken: 'invitation-token',
       connectionIntent: { kind: 'reconnect', credentialId: 'existing-account' },
@@ -104,7 +104,7 @@ describe('credential group OAuth state', () => {
         authorizationAppId: 'google:app',
         scopeVersion: 1,
         requiredScopes: ['openid'],
-        redirectUri: 'https://sim.ai/callback',
+        redirectUri: 'https://workstudio.example.com/callback',
         codeVerifier: 'code-verifier',
         invitationToken: 'invitation-token',
       })
@@ -123,7 +123,7 @@ describe('credential group OAuth state', () => {
       authorizationAppId: 'google:app',
       scopeVersion: 1,
       requiredScopes: ['openid'],
-      redirectUri: 'https://sim.ai/callback',
+      redirectUri: 'https://workstudio.example.com/callback',
       invitationToken: 'invitation',
       returnTo: 'search',
     })
@@ -146,7 +146,7 @@ describe('credential group OAuth state', () => {
         authorizationAppId: 'google:app',
         scopeVersion: 1,
         requiredScopes: ['openid'],
-        redirectUri: 'https://sim.ai/callback',
+        redirectUri: 'https://workstudio.example.com/callback',
         invitationToken: 'invitation',
       })
       const [key, raw] = [...values.entries()][0]
@@ -171,7 +171,7 @@ describe('organization enrollment OAuth state', () => {
     authorizationAppId: 'google:app',
     scopeVersion: 1,
     requiredScopes: ['openid', 'email'],
-    redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+    redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
     invitationToken: 'invitation-token',
     returnTo: 'search' as const,
   }

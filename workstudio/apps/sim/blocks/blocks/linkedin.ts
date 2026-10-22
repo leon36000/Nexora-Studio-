@@ -1,4 +1,5 @@
 import { LinkedInIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -10,7 +11,7 @@ export const LinkedInBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Share posts to your personal feed and access your LinkedIn profile information.',
-  docsLink: 'https://docs.sim.ai/integrations/linkedin',
+  docsLink: docsUrl('/integrations/linkedin'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#0072B1',

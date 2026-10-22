@@ -54,7 +54,7 @@ export const executeManagedAgentRunSessionOperation: InternalToolOperationImplem
   // the Claude Platform console. Only the workflow id is available in the
   // client-safe execution context (names would require a DB lookup).
   const workflowId = context?.workflowId.trim()
-  const title = workflowId ? `Sim workflow ${workflowId}` : undefined
+  const title = workflowId ? `Nexora workflow ${workflowId}` : undefined
 
   const environmentType =
     params.environmentType === 'self_hosted' || params.environmentType === 'cloud'

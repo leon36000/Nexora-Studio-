@@ -1,4 +1,5 @@
 import { ZoomInfoIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const ZoomInfoBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search companies and contacts, enrich company or contact records, retrieve intent signals, and search news through the ZoomInfo GTM API.',
-  docsLink: 'https://docs.sim.ai/integrations/zoominfo',
+  docsLink: docsUrl('/integrations/zoominfo'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#EA1B15',

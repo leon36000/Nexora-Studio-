@@ -1,6 +1,7 @@
 import { Building } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { PitchBookIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -190,7 +191,7 @@ export const PitchBookBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search and pull profiles across companies, deals, investors, people, funds, limited partners, and service providers, including financing history, valuations, cap tables, debt and lenders, fund performance and commitments, patents, and credit analysis news. Retrieve lookup-table codes for search filters and use the usage actions to check API credit consumption.',
-  docsLink: 'https://docs.sim.ai/integrations/pitchbook',
+  docsLink: docsUrl('/integrations/pitchbook'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#1D5080',

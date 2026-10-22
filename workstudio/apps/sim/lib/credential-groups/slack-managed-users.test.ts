@@ -54,7 +54,7 @@ setEnv({
 })
 setEnvFlags({ isHosted: true })
 redisConfigMockFns.mockGetRedisClient.mockReturnValue(redis)
-urlsMockFns.mockGetBaseUrl.mockReturnValue('https://sim.ai')
+urlsMockFns.mockGetBaseUrl.mockReturnValue('https://workstudio.example.com')
 encryptionMockFns.mockEncryptSecret.mockImplementation(async (value: string) => ({
   encrypted: `encrypted:${Buffer.from(value).toString('base64')}`,
 }))
@@ -303,7 +303,7 @@ describe('Slack managed-user authorization', () => {
             slackResponse({
               ok: true,
               app_id: app.id,
-              team: { id: 'T123', name: 'Sim' },
+              team: { id: 'T123', name: 'Nexora' },
               authed_user: {
                 id: 'U123',
                 access_token: 'xoxp-token',
@@ -459,7 +459,7 @@ describe('Slack managed-user authorization', () => {
           slackResponse({
             ok: true,
             app_id: 'A123',
-            team: { id: 'T123', name: 'Sim' },
+            team: { id: 'T123', name: 'Nexora' },
             authed_user: {
               id: 'U123',
               access_token: 'xoxp-token',
@@ -491,7 +491,7 @@ describe('Slack managed-user authorization', () => {
             expectedTeamId: 'T123',
             clientId: 'client-id',
             clientSecret: 'client-secret',
-            redirectUri: 'https://sim.ai/callback',
+            redirectUri: 'https://workstudio.example.com/callback',
             requiredScopes: [...scopes],
             createdAt: Date.now(),
           },
@@ -539,7 +539,7 @@ describe('Slack managed-user authorization', () => {
         slackResponse({
           ok: true,
           app_id: 'A123',
-          team: { id: 'T123', name: 'Sim' },
+          team: { id: 'T123', name: 'Nexora' },
           authed_user: {
             id: 'U123',
             access_token: 'xoxp-token',
@@ -563,7 +563,7 @@ describe('Slack managed-user authorization', () => {
           expectedTeamId: 'T123',
           clientId: 'client-id',
           clientSecret: 'client-secret',
-          redirectUri: 'https://sim.ai/callback',
+          redirectUri: 'https://workstudio.example.com/callback',
           requiredScopes: [...SLACK_SEARCH_USER_SCOPES],
           createdAt: Date.now(),
         },
@@ -584,7 +584,7 @@ describe('Slack managed-user authorization', () => {
         slackResponse({
           ok: true,
           app_id: 'A123',
-          team: { id: 'T123', name: 'Sim' },
+          team: { id: 'T123', name: 'Nexora' },
           authed_user: {
             id: 'U123',
             access_token: 'xoxp-token',
@@ -599,7 +599,7 @@ describe('Slack managed-user authorization', () => {
         clientId: 'client-id',
         clientSecret: 'client-secret',
         code: 'single-use-code',
-        redirectUri: 'https://sim.ai/callback',
+        redirectUri: 'https://workstudio.example.com/callback',
       })
     ).rejects.toThrow('Slack returned an incomplete authorization')
   })
@@ -611,7 +611,7 @@ describe('Slack managed-user authorization', () => {
         slackResponse({
           ok: true,
           app_id: 'A999',
-          team: { id: 'T123', name: 'Sim' },
+          team: { id: 'T123', name: 'Nexora' },
           authed_user: {
             id: 'U123',
             access_token: 'xoxp-token',
@@ -636,7 +636,7 @@ describe('Slack managed-user authorization', () => {
           expectedTeamId: 'T123',
           clientId: 'client-id',
           clientSecret: 'client-secret',
-          redirectUri: 'https://sim.ai/callback',
+          redirectUri: 'https://workstudio.example.com/callback',
           requiredScopes: [...SLACK_MANAGED_USER_SCOPES],
           createdAt: Date.now(),
         },

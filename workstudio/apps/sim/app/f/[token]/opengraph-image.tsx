@@ -27,6 +27,6 @@ export default async function Image({ params }: { params: Promise<{ token: strin
 
   return createCoverOgImage({
     title: file.originalName,
-    subtitle: buildProvenance(workspaceName, ownerName) || 'Shared via Sim',
+    subtitle: buildProvenance(workspaceName, ownerName) || 'Shared via Nexora',
   })
 }

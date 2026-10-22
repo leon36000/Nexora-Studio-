@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { SupabaseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
 
@@ -13,7 +14,7 @@ export const SupabaseBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Supports database operations (query, insert, update, delete, upsert), full-text search, RPC functions, Edge Function invocation, row counting, vector search, and complete storage management (upload, download, list, move, copy, delete files and buckets).',
-  docsLink: 'https://docs.sim.ai/integrations/supabase',
+  docsLink: docsUrl('/integrations/supabase'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#1C1C1C',

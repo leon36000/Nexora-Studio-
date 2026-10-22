@@ -432,7 +432,34 @@ it('protects a usage-limit edit before its debounce and permits equivalent numer
   expectLeave(true)
 })
 
-it('preserves SSO domain drafts across tabs and protects them when leaving the page', async () => {
+it('Nexora edition: disabled enterprise editors render no draft and never block leaving', async () => {
+  seedScim()
+  const requests: string[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url) => {
+      requests.push(String(url))
+      return jsonResponse({})
+    })
+  )
+  await render(
+    <>
+      <SSO organizationId='org-a' />
+      <SsoProviderSettings organizationId='org-a' active onOpenDomains={() => {}} />
+      <VerifiedDomainsSection organizationId='org-a' />
+      <ScimSection organizationId='org-a' active onOpenDomains={() => {}} />
+      <SessionPolicySettings organizationId='org-a' />
+      <Forks />
+    </>,
+    '?sso-tab=domains&fork-id=parent-a'
+  )
+  expect(container.querySelector('input, form, #scim-enabled')).toBeNull()
+  expect(requests).toEqual([])
+  expectLeave(true)
+})
+
+// Nexora edition: SSO is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip('preserves SSO domain drafts across tabs and protects them when leaving the page', async () => {
   client.setQueryData(ssoKeys.providerList('org-a'), { providers: [] })
   client.setQueryData(domainKeys.list('org-a'), { domains: [] })
   client.setQueryData(organizationKeys.billing('org-a'), {
@@ -493,7 +520,8 @@ it('retains an authored usage limit after its optimistic update rolls back', asy
   expectLeave(false)
 })
 
-it('retains newer session-policy edits when an earlier save completes', async () => {
+// Nexora edition: session policy is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip('retains newer session-policy edits when an earlier save completes', async () => {
   const saved = { isEnterprise: true, configured: { maxSessionHours: 720, idleTimeoutHours: null } }
   client.setQueryData(sessionPolicyKeys.settings('org-a'), saved)
   const request = createDeferred<Response>()
@@ -528,7 +556,8 @@ it('retains newer session-policy edits when an earlier save completes', async ()
   expectLeave(false)
 })
 
-it('blocks duplicate SSO submissions and changes while provider configuration is pending', async () => {
+// Nexora edition: SSO is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip('blocks duplicate SSO submissions and changes while provider configuration is pending', async () => {
   const request = createDeferred<Response>()
   const submitted: unknown[] = []
   vi.stubGlobal(
@@ -669,7 +698,8 @@ async function renderScim() {
   await render(<ScimSection organizationId='org-a' active onOpenDomains={() => {}} />)
 }
 
-it('preserves hidden SSO and SCIM drafts when provisioning is disabled and re-enabled', async () => {
+// Nexora edition: SSO/SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip('preserves hidden SSO and SCIM drafts when provisioning is disabled and re-enabled', async () => {
   seedScim()
   client.setQueryData(ssoKeys.providerList('org-a'), { providers: [] })
   client.setQueryData(domainKeys.list('org-a'), { domains: [] })
@@ -718,7 +748,8 @@ it('preserves hidden SSO and SCIM drafts when provisioning is disabled and re-en
   expectLeave(false)
 })
 
-it('blocks provisioning toggles while token issuance is pending', async () => {
+// Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip('blocks provisioning toggles while token issuance is pending', async () => {
   await renderScim()
   const request = createDeferred<Response>()
   vi.stubGlobal(
@@ -747,7 +778,8 @@ it('blocks provisioning toggles while token issuance is pending', async () => {
   expectLeave(true)
 })
 
-it('protects the only retrievable SCIM token until its modal is dismissed', async () => {
+// Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip('protects the only retrievable SCIM token until its modal is dismissed', async () => {
   await renderScim()
   vi.stubGlobal(
     'fetch',
@@ -793,7 +825,8 @@ function select(label: string, optionText: string) {
   act(() => option.click())
 }
 
-it.each([
+// Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip.each([
   ['Mapping target type', 'Organization admin'],
   ['Token expiry', 'Expires in 90 days'],
 ])('protects an inline SCIM draft in %s', async (label, option) => {
@@ -996,7 +1029,8 @@ it.each(['request', 'cleanup', 'reopened-request', 'reopened-cleanup', 'failed',
   }
 )
 
-it('avoids a cold domains request while the preserved editor is inactive', async () => {
+// Nexora edition: SSO verified domains is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip('avoids a cold domains request while the preserved editor is inactive', async () => {
   const domainRequests: string[] = []
   vi.stubGlobal(
     'fetch',
@@ -1011,7 +1045,8 @@ it('avoids a cold domains request while the preserved editor is inactive', async
   expect(domainRequests).toHaveLength(1)
 })
 
-it.each(['dirty', 'busy'])(
+// Nexora edition: workspace forking is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+it.skip.each(['dirty', 'busy'])(
   'guards the real fork workspace action while an editor is %s',
   async (condition) => {
     client.setQueryData(forkAvailabilityKeys.detail('workspace-a'), { available: true })

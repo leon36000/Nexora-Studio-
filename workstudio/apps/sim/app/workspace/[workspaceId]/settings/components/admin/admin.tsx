@@ -337,7 +337,7 @@ export function Admin() {
               <div className='flex flex-col gap-1'>
                 <Label>Mothership Environment</Label>
                 <p className='text-[var(--text-secondary)] text-caption'>
-                  Default uses the configured Sim agent URL.
+                  Default uses the configured Nexora agent URL.
                 </p>
               </div>
               <ChipSelect

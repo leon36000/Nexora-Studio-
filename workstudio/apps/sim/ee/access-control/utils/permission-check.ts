@@ -29,59 +29,83 @@ export {
 }
 
 class NotAllowedError extends ForbiddenOperationError {
-  constructor(name: string, message: string, code: ForbiddenDetailCode = 'PERMISSION_GROUP_CAPABILITY_BLOCKED') {
+  constructor(
+    name: string,
+    message: string,
+    code: ForbiddenDetailCode = 'PERMISSION_GROUP_CAPABILITY_BLOCKED'
+  ) {
     super(code, message)
     this.name = name
   }
 }
 
+/**
+ * Messages follow the core contract (`@sim/testing` permission-check mock and core route
+ * projections such as `/api/selectors/execute`): "... is not allowed based on your permission
+ * group settings", so callers can surface the remedy (an admin changing the group) verbatim.
+ */
+const GROUP_SETTINGS = 'based on your permission group settings'
+
 export class IntegrationNotAllowedError extends NotAllowedError {
-  constructor(readonly blockType?: string) {
+  constructor(
+    readonly blockType?: string,
+    reason?: string
+  ) {
     super(
       'IntegrationNotAllowedError',
-      `Integration "${blockType ?? 'unknown'}" is not allowed`,
+      reason
+        ? `Integration "${blockType ?? 'unknown'}" is not allowed: ${reason}`
+        : `Integration "${blockType ?? 'unknown'}" is not allowed ${GROUP_SETTINGS}`,
       'INTEGRATION_NOT_ALLOWED'
     )
   }
 }
 export class ToolNotAllowedError extends NotAllowedError {
   constructor(readonly toolId?: string) {
-    super('ToolNotAllowedError', `Tool "${toolId ?? 'unknown'}" is not allowed`)
+    super('ToolNotAllowedError', `Tool "${toolId ?? 'unknown'}" is not allowed ${GROUP_SETTINGS}`)
   }
 }
 export class ModelNotAllowedError extends NotAllowedError {
   constructor(readonly model?: string) {
-    super('ModelNotAllowedError', `Model "${model ?? 'unknown'}" is not allowed`)
+    super('ModelNotAllowedError', `Model "${model ?? 'unknown'}" is not allowed ${GROUP_SETTINGS}`)
   }
 }
 export class ProviderNotAllowedError extends NotAllowedError {
-  constructor(readonly provider?: string) {
-    super('ProviderNotAllowedError', `Model provider "${provider ?? 'unknown'}" is not allowed`)
+  constructor(
+    readonly provider?: string,
+    readonly model?: string
+  ) {
+    super(
+      'ProviderNotAllowedError',
+      model
+        ? `Provider "${provider ?? 'unknown'}" is not allowed for model "${model}" ${GROUP_SETTINGS}`
+        : `Provider "${provider ?? 'unknown'}" is not allowed ${GROUP_SETTINGS}`
+    )
   }
 }
 export class McpToolsNotAllowedError extends NotAllowedError {
   constructor() {
-    super('McpToolsNotAllowedError', 'MCP tools are not allowed')
+    super('McpToolsNotAllowedError', `MCP tools are not allowed ${GROUP_SETTINGS}`)
   }
 }
 export class CustomToolsNotAllowedError extends NotAllowedError {
   constructor() {
-    super('CustomToolsNotAllowedError', 'Custom tools are not allowed')
+    super('CustomToolsNotAllowedError', `Custom tools are not allowed ${GROUP_SETTINGS}`)
   }
 }
 export class SkillsNotAllowedError extends NotAllowedError {
   constructor() {
-    super('SkillsNotAllowedError', 'Skills are not allowed')
+    super('SkillsNotAllowedError', `Skills are not allowed ${GROUP_SETTINGS}`)
   }
 }
 export class InvitationsNotAllowedError extends NotAllowedError {
   constructor() {
-    super('InvitationsNotAllowedError', 'Sending invitations is not allowed')
+    super('InvitationsNotAllowedError', `Invitations are not allowed ${GROUP_SETTINGS}`)
   }
 }
 export class PublicApiNotAllowedError extends NotAllowedError {
   constructor() {
-    super('PublicApiNotAllowedError', 'Public API access is not allowed')
+    super('PublicApiNotAllowedError', `Public API access is not allowed ${GROUP_SETTINGS}`)
   }
 }
 
@@ -131,7 +155,8 @@ export async function assertPermissionsAllowed(args: {
   const config = await loadConfig(args.userId, args.workspaceId)
   if (!config) return
   if (args.toolKind === 'mcp' && config.disableMcpTools) throw new McpToolsNotAllowedError()
-  if (args.toolKind === 'custom' && config.disableCustomTools) throw new CustomToolsNotAllowedError()
+  if (args.toolKind === 'custom' && config.disableCustomTools)
+    throw new CustomToolsNotAllowedError()
   if (args.toolKind === 'skill' && config.disableSkills) throw new SkillsNotAllowedError()
   if (args.toolId && config.deniedTools?.length) {
     if (!createToolAccessGate(config.deniedTools)(args.toolId)) {

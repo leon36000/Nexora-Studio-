@@ -151,7 +151,7 @@ export async function executeSimControl(request: SimControlRequest): Promise<Sim
     }
     const classified = asOrchestrationError(error)
     if (!classified || classified.code === 'internal') {
-      logger.error('Sim control failed', { kind: operation.kind, error: getErrorMessage(error) })
+      logger.error('Nexora control failed', { kind: operation.kind, error: getErrorMessage(error) })
     }
     return {
       status: statusForOrchestrationError(classified?.code),

@@ -149,7 +149,7 @@ describe('/api/v2/mcp-servers/[mcpServerId]/tools', () => {
     expect(JSON.stringify(body)).not.toContain('ECONNREFUSED')
   })
 
-  it('reports a stale OAuth grant as a 409 a client can branch on, never as a Sim credential failure', async () => {
+  it('reports a stale OAuth grant as a 409 a client can branch on, never as a Nexora credential failure', async () => {
     mockDiscoverMcpServerToolsUseCase.mockRejectedValueOnce(
       new McpOauthAuthorizationRequiredError(SERVER_ID, 'Docs server')
     )

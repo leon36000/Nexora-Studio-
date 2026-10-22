@@ -857,7 +857,7 @@ describe('sse-handlers tool lifecycle', () => {
       }
     })
 
-    it('leaves a call without one on Sim\u2019s own bounds', async () => {
+    it('leaves a call without one on Nexora\u2019s own bounds', async () => {
       executeTool.mockResolvedValueOnce({ success: true, output: {} })
       await sseHandlers.tool(deadlineFrame(-1), context, execContext, { interactive: false })
       expect(context.toolCalls.get('audio-1')?.deadlineAt).toBeUndefined()
@@ -1413,7 +1413,7 @@ describe('sse-handlers tool lifecycle', () => {
     expect(executeTool).not.toHaveBeenCalled()
   })
 
-  it('keeps an ordinary static VFS read on the Sim executor', async () => {
+  it('keeps an ordinary static VFS read on the Nexora executor', async () => {
     await sseHandlers.tool(
       {
         type: MothershipStreamV1EventType.tool,

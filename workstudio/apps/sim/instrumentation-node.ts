@@ -15,8 +15,8 @@ import type {
 import { createLogger } from '@sim/logger'
 import { TraceAttr } from '@/lib/mothership/generated/trace-attributes-v1'
 import { env } from './lib/core/config/env'
-import { resolveTelemetryEndpoint } from './lib/telemetry/endpoint'
 import { parseOtlpHeaders } from './lib/monitoring/otlp'
+import { resolveTelemetryEndpoint } from './lib/telemetry/endpoint'
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR)
 

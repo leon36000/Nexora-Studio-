@@ -2581,7 +2581,7 @@ async function resolveDocumentStorageAdmission(
   }
 
   if (!requiresConnectorIndexing(kb.isSearchIndex)) {
-    throw new OrchestrationError('validation', 'This search index is inactive; use Sim Search.')
+    throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
   }
   if (kb.organizationId)
     throw new OrchestrationError(
@@ -2662,7 +2662,7 @@ export async function createDocumentRecords(
       throw new OrchestrationError('not_found', 'Knowledge base not found')
     }
     if (!requiresConnectorIndexing(kb[0].isSearchIndex)) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Sim Search.')
+      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
     }
 
     if (kb[0].workspaceId !== admission.workspaceId) {
@@ -3350,7 +3350,7 @@ export async function createSingleDocument(
       throw new OrchestrationError('not_found', 'Knowledge base not found')
     }
     if (!requiresConnectorIndexing(kb[0].isSearchIndex)) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Sim Search.')
+      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
     }
 
     if (

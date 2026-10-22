@@ -1,6 +1,7 @@
 import { Users } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { ApolloIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -14,7 +15,7 @@ export const ApolloBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search for people and companies, enrich contact data, manage your CRM contacts and accounts, add contacts to sequences, and create tasks.',
-  docsLink: 'https://docs.sim.ai/integrations/apollo',
+  docsLink: docsUrl('/integrations/apollo'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#EBF212',

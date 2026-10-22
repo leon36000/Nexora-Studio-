@@ -177,7 +177,7 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
   })
 
   it.skipIf(!process.env.BILLING_WIRE_FIXTURE)(
-    'accepts the actual worker HTTP callbacks through the Sim handler',
+    'accepts the actual worker HTTP callbacks through the Nexora handler',
     async () => {
       const path = process.env.BILLING_WIRE_FIXTURE
       if (!path) throw new Error('Missing worker callback fixture')
@@ -316,7 +316,7 @@ describe('POST /api/billing/update-cost — workspaceId attribution', () => {
     expect(mockCheckAndBillOverageThreshold).not.toHaveBeenCalled()
   })
 
-  it('rejects markerless callbacks on hosted Sim', async () => {
+  it('rejects markerless callbacks on hosted Nexora', async () => {
     setEnvFlags({ isHosted: true })
     const res = await POST(
       createMockRequest('POST', SELF_HOSTED_UPDATE_COST_BODY, { 'x-api-key': 'internal' })

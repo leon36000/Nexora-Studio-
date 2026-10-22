@@ -138,7 +138,7 @@ describe('field upload completion boundary', () => {
       if (method === 'drop')
         vi.spyOn(owner.view, 'posAtCoords').mockReturnValue({ pos: 8, inside: 0 })
       const html =
-        '<p>Lead</p><h2>Caption</h2><p><a href="https://sim.ai/link"><img src="https://sim.ai/one.png" alt="One" width="123"></a>Tail<img src="https://sim.ai/two.png" alt="Two" width="234"></p>'
+        '<p>Lead</p><h2>Caption</h2><p><a href="https://workstudio.example.com/link"><img src="https://workstudio.example.com/one.png" alt="One" width="123"></a>Tail<img src="https://workstudio.example.com/two.png" alt="Two" width="234"></p>'
       const transfer = {
         files: [new File(['image'], 'image.png', { type: 'image/png' })],
         items: [],
@@ -167,8 +167,8 @@ describe('field upload completion boundary', () => {
         }
       })
       expect(images).toEqual([
-        { src: 'https://sim.ai/one.png', width: '123', href: 'https://sim.ai/link' },
-        { src: 'https://sim.ai/two.png', width: '234', href: null },
+        { src: 'https://workstudio.example.com/one.png', width: '123', href: 'https://workstudio.example.com/link' },
+        { src: 'https://workstudio.example.com/two.png', width: '234', href: null },
       ])
       expect(() => owner.state.doc.check()).not.toThrow()
     }
@@ -182,7 +182,7 @@ describe('field upload completion boundary', () => {
     await submit('paste', owner)
     await act(async () => owner.commands.deleteRange({ from: 1, to: 15 }))
     const before = owner.getJSON()
-    await act(async () => pending.resolve({ url: 'https://sim.ai/deleted.png', alt: 'Deleted' }))
+    await act(async () => pending.resolve({ url: 'https://workstudio.example.com/deleted.png', alt: 'Deleted' }))
     expect(owner.getJSON()).toEqual(before)
   })
 
@@ -212,7 +212,7 @@ describe('field upload completion boundary', () => {
       onChange.mockClear()
       await act(async () => {
         if (action === 'rejection') pending.reject(new Error('late upload failure'))
-        else pending.resolve({ url: 'https://sim.ai/completed.png', alt: 'Uploaded image' })
+        else pending.resolve({ url: 'https://workstudio.example.com/completed.png', alt: 'Uploaded image' })
       })
       expect(current.getJSON()).toEqual(before)
       expect(onChange).not.toHaveBeenCalled()

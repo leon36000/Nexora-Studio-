@@ -140,8 +140,8 @@ export const PiBlock: BlockConfig = {
   - Use Update PR to continue work on an existing remote branch and create or update its pull request.
   - Enable Babysit Mode on Create PR or Update PR when trusted review bots and required checks should be monitored and fixed in bounded rounds.
   - Use Review Code to analyze an existing PR and leave summary + inline review comments.
-  - Use Local Dev to edit a repo on your own machine; expose the machine on a public hostname/tunnel so Sim can reach it over SSH.
-  - Plan, Create PR, and Update PR require your own provider API key for every model, including ones Sim hosts, because the model runs in the sandbox. Review Code and Local Dev keep the model key in Sim and can use either BYOK or a hosted key.
+  - Use Local Dev to edit a repo on your own machine; expose the machine on a public hostname/tunnel so Nexora can reach it over SSH.
+  - Plan, Create PR, and Update PR require your own provider API key for every model, including ones Nexora hosts, because the model runs in the sandbox. Review Code and Local Dev keep the model key in Nexora and can use either BYOK or a hosted key.
   - Internet Search is off by default and always needs your own key for the selected provider, entered on the block. There is no workspace BYOK fallback and no hosted key. Leave it on None unless the task genuinely needs external information.
   `,
   category: 'blocks',
@@ -640,7 +640,7 @@ export const PiBlock: BlockConfig = {
     privateKey: { type: 'string', description: 'SSH private key (Local Dev)' },
     passphrase: { type: 'string', description: 'SSH key passphrase (Local Dev)' },
     repoPath: { type: 'string', description: 'Repository path on the target (Local Dev)' },
-    tools: { type: 'json', description: 'Sim tools exposed to the agent (Local Dev)' },
+    tools: { type: 'json', description: 'Nexora tools exposed to the agent (Local Dev)' },
     skills: { type: 'json', description: 'Selected skills configuration' },
     thinkingLevel: { type: 'string', description: 'Thinking level for the model' },
     memoryType: { type: 'string', description: 'Memory type for multi-turn conversations' },

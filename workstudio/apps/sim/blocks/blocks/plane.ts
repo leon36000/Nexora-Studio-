@@ -1,4 +1,5 @@
 import { PlaneIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -927,7 +928,7 @@ export const PlaneBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Connect Plane Cloud or a self-hosted Plane instance. API v2 is the default; choose API v1 for Community Edition or older instances. Actions with a current successor are consolidated. Unsupported version-specific inputs fail explicitly. Manage work items, projects, cycles, modules, states, labels, comments, links, attachments, pages, and webhooks. API v1 compatibility is available within supported current actions.',
-  docsLink: 'https://docs.sim.ai/integrations/plane',
+  docsLink: docsUrl('/integrations/plane'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   icon: PlaneIcon,
@@ -4524,7 +4525,7 @@ export const PlaneBlockMeta: BlockMeta = {
       icon: PlaneIcon,
       title: 'Plane self-hosted project sync',
       prompt:
-        'Build a workflow that connects to my self-hosted Plane instance, pages through project work items, and syncs changed work items into a Sim table without losing the pagination cursor.',
+        'Build a workflow that connects to my self-hosted Plane instance, pages through project work items, and syncs changed work items into a Nexora table without losing the pagination cursor.',
       modules: ['agent', 'workflows'],
       category: 'productivity',
       tags: ['project-management', 'automation'],

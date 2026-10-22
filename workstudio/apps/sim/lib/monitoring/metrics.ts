@@ -33,7 +33,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 
 const logger = createLogger('HostedKeyMetrics')
 
-const NAMESPACE = 'Sim/HostedKey'
+const NAMESPACE = 'Nexora/HostedKey'
 const MAX_BATCH = 1000 // CloudWatch PutMetricData hard limit per request
 const FLUSH_INTERVAL_MS = 5_000
 const FLUSH_THRESHOLD = 1000 // flush once the buffer reaches this many points

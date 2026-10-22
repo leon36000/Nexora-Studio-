@@ -1,4 +1,5 @@
 import { GongIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -10,7 +11,7 @@ export const GongBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Read calls, recording URLs, transcripts, user data, activity statistics, scorecards, trackers, library content, coaching metrics, and Engage flows. Upload call metadata and let Gong fetch the media URL, assign or unassign flow prospects, and request data erasure for an email address or phone number.',
-  docsLink: 'https://docs.sim.ai/integrations/gong',
+  docsLink: docsUrl('/integrations/gong'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#8039DF',

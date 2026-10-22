@@ -57,7 +57,7 @@ export const executeManagedAgentCreateSessionOperation: InternalToolOperationImp
   const initialMessage = (params.userMessage ?? '').toString().trim() || undefined
 
   const workflowId = context?.workflowId.trim()
-  const title = workflowId ? `Sim workflow ${workflowId}` : undefined
+  const title = workflowId ? `Nexora workflow ${workflowId}` : undefined
 
   // Self-hosted environments reject `resources`, so the payload must know the
   // execution model. The API is authoritative; the block's hint is a fallback.

@@ -1,4 +1,5 @@
 import { ExtendIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   AuthMode,
   type BlockConfig,
@@ -20,7 +21,7 @@ export const ExtendBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Parse and extract structured content from documents including PDFs, images, and Office files.',
-  docsLink: 'https://docs.sim.ai/integrations/extend',
+  docsLink: docsUrl('/integrations/extend'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#000000',

@@ -63,7 +63,7 @@ export class OllamaUnreachableError extends Error {
 export class OllamaEmbeddingWidthUnknownError extends Error {
   constructor(model: string) {
     super(
-      `Ollama did not report an embedding width for ${model}, so Sim cannot verify what it returns. Upgrade Ollama or choose another model.`
+      `Ollama did not report an embedding width for ${model}, so Nexora cannot verify what it returns. Upgrade Ollama or choose another model.`
     )
     this.name = 'OllamaEmbeddingWidthUnknownError'
   }

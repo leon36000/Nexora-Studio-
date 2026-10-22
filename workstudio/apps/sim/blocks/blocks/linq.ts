@@ -1,4 +1,5 @@
 import { LinqIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -69,7 +70,7 @@ export const LinqBlock: BlockConfig = {
   description: 'Send iMessage, SMS, and RCS messages and manage conversations with Linq',
   longDescription:
     'Reach people on iMessage, SMS, and RCS through Linq. Start chats, send messages with media, links, effects, and replies, send voice memos, react with tapbacks, manage group participants, check iMessage/RCS capability, configure contact cards, and subscribe to webhook events — all through a single Linq API key.',
-  docsLink: 'https://docs.sim.ai/integrations/linq',
+  docsLink: docsUrl('/integrations/linq'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#000000',

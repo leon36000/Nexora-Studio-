@@ -1,4 +1,5 @@
 import { MillionVerifierIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const MillionVerifierBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const MillionVerifierBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Integrate MillionVerifier to verify email deliverability in real time — classify addresses as valid, invalid, catch-all, disposable, or unknown — and check your remaining verification credits.',
-  docsLink: 'https://docs.sim.ai/integrations/millionverifier',
+  docsLink: docsUrl('/integrations/millionverifier'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

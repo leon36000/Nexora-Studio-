@@ -132,7 +132,7 @@ export const SCOPE_DESCRIPTIONS: Record<string, string> = {
   'https://www.googleapis.com/auth/gmail.readonly': 'View email messages and settings',
   'https://www.googleapis.com/auth/gmail.modify': 'Read, compose, send, and modify email messages',
   'https://www.googleapis.com/auth/drive.file':
-    'View and manage Google Drive files you open or create with Sim',
+    'View and manage Google Drive files you open or create with Nexora',
   'https://www.googleapis.com/auth/drive': 'View, edit, create, and delete all Google Drive files',
   'https://www.googleapis.com/auth/calendar.readonly': 'View calendars and events',
   'https://www.googleapis.com/auth/calendar': 'View and manage calendar',
@@ -159,7 +159,7 @@ export const SCOPE_DESCRIPTIONS: Record<string, string> = {
   'https://www.googleapis.com/auth/chat.messages.readonly':
     'View messages in Google Chat spaces you are a member of',
   'https://www.googleapis.com/auth/meetings.space.created':
-    'Create and manage Google Meet meeting spaces created by Sim',
+    'Create and manage Google Meet meeting spaces created by Nexora',
   'https://www.googleapis.com/auth/meetings.space.readonly':
     'View information about your Google Meet conferences',
   'https://www.googleapis.com/auth/cloud-platform': 'View and manage all Google Cloud data',

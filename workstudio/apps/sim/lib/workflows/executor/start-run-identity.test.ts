@@ -42,7 +42,7 @@ describe('resolveStartBlockRunIdentity', () => {
     expect(mockGetUserEmailById).not.toHaveBeenCalled()
   })
 
-  it('preserves an external webhook subject without treating it as a Sim user', async () => {
+  it('preserves an external webhook subject without treating it as a Nexora user', async () => {
     await expect(
       resolveStartBlockRunIdentity({
         kind: 'system',
@@ -80,7 +80,7 @@ describe('resolveStartBlockRunIdentity', () => {
     expect(mockGetUserEmailById).not.toHaveBeenCalled()
   })
 
-  it('fails fast when an authenticated Sim user has no resolvable email', async () => {
+  it('fails fast when an authenticated Nexora user has no resolvable email', async () => {
     mockGetUserEmailById.mockRejectedValue(
       new Error('Authenticated user user-1 has no email address')
     )

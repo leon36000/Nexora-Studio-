@@ -19,7 +19,7 @@ describe('HTTP Request Tool', () => {
 
   beforeEach(() => {
     tester = new ToolTester(requestTool as any)
-    process.env.NEXT_PUBLIC_APP_URL = 'https://sim.ai'
+    process.env.NEXT_PUBLIC_APP_URL = 'https://workstudio.example.com'
   })
 
   afterEach(() => {
@@ -105,27 +105,14 @@ describe('HTTP Request Tool', () => {
       )
     })
 
-    it.concurrent('canonicalizes first-party API calls before the apex redirect', () => {
+    it.concurrent('leaves API calls on any host untouched (no first-party host rewrite)', () => {
       expect(
-        processUrl('https://sim.ai/api/v2/workflows', undefined, [
+        processUrl('https://workstudio.example.com/api/v2/workflows', undefined, [
           { cells: { Key: 'limit', Value: '10' } },
         ])
-      ).toBe('https://www.sim.ai/api/v2/workflows?limit=10')
-      expect(processUrl('https://sim.ai/pricing')).toBe('https://sim.ai/pricing')
-      expect(processUrl('https://www.sim.ai/api/v2/workflows')).toBe(
-        'https://www.sim.ai/api/v2/workflows'
-      )
-      expect(processUrl('https://sim.ai:8443/api/v2/workflows')).toBe(
-        'https://sim.ai:8443/api/v2/workflows'
-      )
-      expect(processUrl('https://staging.sim.ai/api/v2/workflows')).toBe(
-        'https://www.staging.sim.ai/api/v2/workflows'
-      )
-      expect(processUrl('https://dev.sim.ai/api/v2/workflows')).toBe(
-        'https://www.dev.sim.ai/api/v2/workflows'
-      )
-      expect(processUrl('https://preview.dev.sim.ai/api/v2/workflows')).toBe(
-        'https://preview.dev.sim.ai/api/v2/workflows'
+      ).toBe('https://workstudio.example.com/api/v2/workflows?limit=10')
+      expect(processUrl('https://workstudio.example.com:8443/api/v2/workflows')).toBe(
+        'https://workstudio.example.com:8443/api/v2/workflows'
       )
     })
   })
@@ -318,7 +305,7 @@ describe('HTTP Request Tool', () => {
 
       expect(headers.Host).toBe('api.example.com')
       expect(headers.Referer).toBeUndefined()
-      expect(headers['User-Agent']).toBe('Sim/1.0 (+https://sim.ai)')
+      expect(headers['User-Agent']).toBe('Nexora/1.0 (+https://github.com/leon36000/Nexora-Studio-)')
       expect(headers.Accept).toBe('*/*')
       expect(headers['Accept-Encoding']).toContain('gzip')
       expect(headers['Cache-Control']).toBe('no-cache')

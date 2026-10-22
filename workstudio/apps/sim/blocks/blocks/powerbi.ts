@@ -1,4 +1,5 @@
 import { PowerBIIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -26,7 +27,7 @@ export const PowerBIBlock: BlockConfig = {
   name: 'Power BI',
   description: 'Query semantic models and manage reports and refreshes',
   longDescription: `Connect a home-tenant organizational account through the Power BI Microsoft connection to list named workspaces, inspect reports and semantic models, execute DAX queries, request standard refreshes, and read refresh history. Microsoft Graph connections cannot substitute for this delegated OAuth connection. Self-hosted installations use the shared Microsoft app registration and register /api/auth/oauth2/callback/microsoft-powerbi as a Web redirect URI. Workspace listing supports a result limit, offset, and OData filter; reports and semantic models return flat lists. Read-only models may contain only their ID and name, and paginated reports may omit their semantic-model ID. Missing optional fields are null and do not establish permission or feature availability. Keep results small with summaries or TOPN: provider JSON reads are limited to 20 MiB, and workflow tool responses have a stricter 10 MiB inline budget. My Workspace, cross-tenant guest configuration, Credential Groups, service principals, impersonation, enhanced refresh, report exports, dashboards, and triggers are outside this version.`,
-  docsLink: 'https://docs.sim.ai/integrations/powerbi',
+  docsLink: docsUrl('/integrations/powerbi'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   authMode: AuthMode.OAuth,
@@ -467,7 +468,7 @@ export const PowerBIBlockMeta = {
       icon: PowerBIIcon,
       title: 'Power BI report catalog',
       prompt:
-        'Build a scheduled workflow that lists accessible Power BI workspaces and their reports, collects report links and semantic model IDs when available, and updates a Sim table as a searchable report catalog.',
+        'Build a scheduled workflow that lists accessible Power BI workspaces and their reports, collects report links and semantic model IDs when available, and updates a Nexora table as a searchable report catalog.',
       modules: ['scheduled', 'tables', 'workflows'],
       category: 'operations',
       tags: ['inventory', 'reporting'],
@@ -476,7 +477,7 @@ export const PowerBIBlockMeta = {
       icon: PowerBIIcon,
       title: 'Power BI model inventory',
       prompt:
-        'Create a scheduled workflow that inventories semantic models in selected accessible workspaces, records names and available owner and refresh metadata in a Sim table, and summarizes missing metadata without assuming read-only responses are complete.',
+        'Create a scheduled workflow that inventories semantic models in selected accessible workspaces, records names and available owner and refresh metadata in a Nexora table, and summarizes missing metadata without assuming read-only responses are complete.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['inventory', 'governance'],
@@ -485,7 +486,7 @@ export const PowerBIBlockMeta = {
       icon: PowerBIIcon,
       title: 'Power BI pipeline refresh',
       prompt:
-        'Build a workflow started by an upstream pipeline completion request that asks Power BI to refresh a selected semantic model and records the acceptance and request ID in a Sim table. Notify Microsoft Teams that the refresh was requested, then use a separate scheduled history check to observe completion.',
+        'Build a workflow started by an upstream pipeline completion request that asks Power BI to refresh a selected semantic model and records the acceptance and request ID in a Nexora table. Notify Microsoft Teams that the refresh was requested, then use a separate scheduled history check to observe completion.',
       modules: ['tables', 'workflows', 'scheduled'],
       category: 'engineering',
       tags: ['automation', 'data-pipeline'],
@@ -495,7 +496,7 @@ export const PowerBIBlockMeta = {
       icon: PowerBIIcon,
       title: 'Power BI refresh failure monitor',
       prompt:
-        'Create a scheduled workflow that retrieves refresh history for critical Power BI semantic models, identifies failed requests and their error details, and notifies an operations Slack channel once per request ID using a Sim table to track previously reported failures.',
+        'Create a scheduled workflow that retrieves refresh history for critical Power BI semantic models, identifies failed requests and their error details, and notifies an operations Slack channel once per request ID using a Nexora table to track previously reported failures.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['monitoring', 'incident-management'],

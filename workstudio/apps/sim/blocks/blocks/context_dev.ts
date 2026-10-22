@@ -1,4 +1,5 @@
 import { ContextDevIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -79,7 +80,7 @@ export const ContextDevBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Scrape pages to markdown or HTML, capture screenshots, list images, crawl entire sites, map sitemaps, search the web, extract structured data and products, pull design systems, classify industries, and retrieve brand assets by domain, name, email, ticker, or transaction — all from one API.',
-  docsLink: 'https://docs.sim.ai/integrations/context_dev',
+  docsLink: docsUrl('/integrations/context_dev'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#ffffff',

@@ -163,7 +163,7 @@ function fivetranSetupInstructions(eventLabel: string): string {
   const instructions = [
     'Enter a Fivetran API key and secret above. In Fivetran, click your username, then <strong>API Key</strong> &gt; <strong>Generate API key</strong>. The key acts with your permissions, so it must be able to manage webhooks for the account or group.',
     'Leave <strong>Group ID</strong> empty to receive events from every destination in the account, or enter a group ID to limit the webhook to that destination.',
-    `When you deploy the workflow, Sim registers a webhook in Fivetran for <strong>${eventLabel}</strong> events with its own signing secret, and rejects deliveries that are not signed with it.`,
+    `When you deploy the workflow, Nexora registers a webhook in Fivetran for <strong>${eventLabel}</strong> events with its own signing secret, and rejects deliveries that are not signed with it.`,
     'The webhook is deleted from Fivetran when you remove this trigger and redeploy.',
   ]
   return instructions

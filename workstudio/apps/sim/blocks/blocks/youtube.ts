@@ -1,4 +1,5 @@
 import { ElevenLabsIcon, YouTubeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const YouTubeBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search for videos, get trending videos, get video details, get video categories, get channel information, get all videos from a channel, get channel playlists, get playlist items, and get video comments.',
-  docsLink: 'https://docs.sim.ai/integrations/youtube',
+  docsLink: docsUrl('/integrations/youtube'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#FF0000',

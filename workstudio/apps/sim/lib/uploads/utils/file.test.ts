@@ -37,7 +37,7 @@ describe('isInternalFileUrl', () => {
   })
 
   it('classifies absolute serve URLs as internal regardless of host', () => {
-    expect(isInternalFileUrl('https://www.sim.ai/api/files/serve/kb/x.pdf')).toBe(true)
+    expect(isInternalFileUrl('https://workstudio.example.com/api/files/serve/kb/x.pdf')).toBe(true)
     expect(isInternalFileUrl('http://localhost:3000/api/files/serve/blob/kb/x')).toBe(true)
     // Host is not used to gate (self-hosted/multi-domain); the storage sink authorizes.
     expect(isInternalFileUrl('https://other-host/api/files/serve/workspace/v/x')).toBe(true)

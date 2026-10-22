@@ -52,7 +52,7 @@ const CASES: ClassifierCase[] = [
       args: { path: 'user-localX/a.md' },
     },
     { label: `${toolName} of a LIKE-wildcard lookalike`, toolName, args: { path: 'user-local%' } },
-    { label: `${toolName} of Sim's own files`, toolName, args: { path: 'workspace/notes.md' } },
+    { label: `${toolName} of Nexora's own files`, toolName, args: { path: 'workspace/notes.md' } },
     { label: `${toolName} with a numeric path`, toolName, args: { path: 5 } },
     { label: `${toolName} with an array path`, toolName, args: { path: ['user-local/a.md'] } },
     {
@@ -75,7 +75,7 @@ const CASES: ClassifierCase[] = [
     toolName: 'glob',
     args: { pattern: 'user-localX/**' },
   },
-  { label: "glob of Sim's own files", toolName: 'glob', args: { pattern: '**/*.md' } },
+  { label: "glob of Nexora's own files", toolName: 'glob', args: { pattern: '**/*.md' } },
   { label: 'glob with a numeric pattern', toolName: 'glob', args: { pattern: 7 } },
   { label: 'glob with no pattern', toolName: 'glob', args: {} },
   {

@@ -197,6 +197,25 @@ describe('proxy indexing policy', () => {
   })
 })
 
+describe('proxy on a self-hosted Nexora deployment', () => {
+  afterEach(resetEnvFlagsMock)
+
+  const location = (pathname: string) =>
+    proxy(new NextRequest(`https://self-hosted.example${pathname}`)).headers.get('location')
+
+  it('never serves the upstream marketing site', () => {
+    setEnvFlags({ isHosted: false })
+    expect(location('/pricing')).toBe('https://self-hosted.example/login')
+    expect(location('/blog/some-post')).toBe('https://self-hosted.example/login')
+    expect(location('/llms.txt')).toBe('https://self-hosted.example/login')
+  })
+
+  it('serves the sign-in page itself', () => {
+    setEnvFlags({ isHosted: false })
+    expect(location('/login')).toBeNull()
+  })
+})
+
 describe('proxy matcher', () => {
   const matches = (path: string) =>
     unstable_doesMiddlewareMatch({ config, url: `https://sim.test${path}` })

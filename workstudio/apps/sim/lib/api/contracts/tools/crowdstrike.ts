@@ -232,7 +232,7 @@ const idsSchema = (max: number, label: string, documented = false) =>
       max,
       documented
         ? `CrowdStrike accepts at most ${max} ${label} values per request`
-        : `Sim caps this request at ${max} ${label} values; CrowdStrike publishes no limit for this endpoint`
+        : `Nexora caps this request at ${max} ${label} values; CrowdStrike publishes no limit for this endpoint`
     )
 
 const crowdstrikeCursorPaginationSchema = z
@@ -780,7 +780,7 @@ const performHostGroupActionSchema = baseRequestSchema.extend({
   hostGroupId: z.string().trim().min(1, 'hostGroupId is required'),
   deviceIds: agentIdsSchema(
     500,
-    'CrowdStrike documents no host cap for this endpoint, so Sim bounds the generated device_id FQL filter'
+    'CrowdStrike documents no host cap for this endpoint, so Nexora bounds the generated device_id FQL filter'
   ),
 })
 
@@ -794,7 +794,7 @@ const queryIndicatorsSchema = baseRequestSchema
       .min(1, 'Limit must be at least 1')
       .max(
         500,
-        'Sim caps this request at 500 indicators; CrowdStrike publishes no limit for this endpoint'
+        'Nexora caps this request at 500 indicators; CrowdStrike publishes no limit for this endpoint'
       )
       .optional(),
     offset: z.number().int().nonnegative('Offset must be 0 or greater').optional(),
@@ -888,7 +888,7 @@ const createIndicatorsSchema = baseRequestSchema.extend({
     .min(1, 'At least one indicator is required')
     .max(
       200,
-      'Sim caps this request at 200 indicators; CrowdStrike publishes no limit for this endpoint'
+      'Nexora caps this request at 200 indicators; CrowdStrike publishes no limit for this endpoint'
     ),
   comment: nonBlankQuerySchema('Comment'),
   retrodetects: z.boolean().optional(),
@@ -902,7 +902,7 @@ const updateIndicatorsSchema = baseRequestSchema.extend({
     .min(1, 'At least one indicator is required')
     .max(
       200,
-      'Sim caps this request at 200 indicators; CrowdStrike publishes no limit for this endpoint'
+      'Nexora caps this request at 200 indicators; CrowdStrike publishes no limit for this endpoint'
     ),
   comment: nonBlankQuerySchema('Comment'),
   retrodetects: z.boolean().optional(),

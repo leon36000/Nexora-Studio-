@@ -1,4 +1,5 @@
 import { ModalIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { MODAL_SHARED_INFERENCE_URL } from '@/tools/modal/utils'
@@ -12,7 +13,7 @@ export const ModalBlock: BlockConfig = {
   description: 'Call deployed Modal functions and endpoints',
   longDescription:
     'Invoke a deployed Web Function or Server over HTTPS with proxy-token auth, generate completions from a model served by a Modal Endpoint, and list the models a token can reach.',
-  docsLink: 'https://docs.sim.ai/integrations/modal',
+  docsLink: docsUrl('/integrations/modal'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#000000',

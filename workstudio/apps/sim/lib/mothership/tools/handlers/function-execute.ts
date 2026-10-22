@@ -545,10 +545,10 @@ export async function executeFunctionExecute(
   enrichedParams.timeout = Math.ceil(Math.min(timeoutSeconds, MAX_TIMEOUT_SECONDS) * 1000)
   if (params.sandboxId !== undefined) {
     if (typeof params.sandboxId !== 'string' || !params.sandboxId.trim()) {
-      throw new Error('sandboxId must be a non-empty Sim sandbox id')
+      throw new Error('sandboxId must be a non-empty Nexora sandbox id')
     }
     if (!context.workspaceId) {
-      throw new Error('A workspace is required to select a Sim sandbox')
+      throw new Error('A workspace is required to select a Nexora sandbox')
     }
     if (!(await hasWorkspaceSandboxAccess(context.workspaceId))) {
       throw new Error(MAX_PLAN_REQUIRED)

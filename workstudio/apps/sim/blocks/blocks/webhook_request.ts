@@ -1,4 +1,5 @@
 import { WebhookIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const WebhookRequestBlock: BlockConfig = {
@@ -7,7 +8,7 @@ export const WebhookRequestBlock: BlockConfig = {
   description: 'Send a webhook request',
   longDescription:
     'Send an HTTP POST request to a webhook URL with automatic webhook headers. Optionally sign the payload with HMAC-SHA256 for secure webhook delivery.',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/webhook',
+  docsLink: docsUrl('/workflows/blocks/webhook'),
   category: 'blocks',
   bgColor: '#10B981',
   icon: WebhookIcon,

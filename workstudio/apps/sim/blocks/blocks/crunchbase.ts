@@ -1,5 +1,6 @@
 import { Building, ListChecks, Search, Sprout, Trash, Users } from '@sim/emcn/icons'
 import { CrunchbaseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import {
@@ -83,7 +84,7 @@ export const CrunchbaseBlock: BlockConfig = {
   description: 'Search and look up companies, people, funding rounds, and acquisitions',
   longDescription:
     'Search and retrieve organizations, people, funding rounds, acquisitions, and other configured collections. Use field metadata to construct queries, page related-entity cards, autocomplete identifiers, and follow deleted records. Available collections and fields depend on your Crunchbase license.',
-  docsLink: 'https://docs.sim.ai/integrations/crunchbase',
+  docsLink: docsUrl('/integrations/crunchbase'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#0287D1',

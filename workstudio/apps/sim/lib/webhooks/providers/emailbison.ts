@@ -164,7 +164,7 @@ export const emailBisonHandler: WebhookProviderHandler = {
       method: 'POST',
       headers: emailBisonHeaders({ apiKey, apiBaseUrl }),
       body: JSON.stringify({
-        name: `Sim - ${eventType}`,
+        name: `Nexora - ${eventType}`,
         url: notificationUrl,
         events: [eventType],
       }),

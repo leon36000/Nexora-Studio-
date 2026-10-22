@@ -1,4 +1,5 @@
 import { VercelIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -15,7 +16,7 @@ export const VercelBlock: BlockConfig = {
   description: 'Manage Vercel deployments, projects, and infrastructure',
   longDescription:
     'Integrate with Vercel to manage deployments, projects, domains, DNS records, environment variables, aliases, edge configs, teams, and more.',
-  docsLink: 'https://docs.sim.ai/integrations/vercel',
+  docsLink: docsUrl('/integrations/vercel'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#171717',

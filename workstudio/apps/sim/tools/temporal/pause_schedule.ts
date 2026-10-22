@@ -59,7 +59,7 @@ export const pauseScheduleTool: ToolConfig<
     method: 'POST',
     headers: (params) => temporalRequestHeaders(params),
     body: (params) => ({
-      patch: { pause: params.reason || 'Paused via Sim' },
+      patch: { pause: params.reason || 'Paused via Nexora' },
       identity: TEMPORAL_CLIENT_IDENTITY,
       requestId: generateId(),
     }),

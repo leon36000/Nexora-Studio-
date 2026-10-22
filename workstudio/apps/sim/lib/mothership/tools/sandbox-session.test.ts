@@ -48,7 +48,7 @@ describe('deployment-owned workbench tooling', () => {
     )
   })
 
-  it('keeps private Sim credentials, endpoint and CLI bootstrap out of the sandbox', async () => {
+  it('keeps private Nexora credentials, endpoint and CLI bootstrap out of the sandbox', async () => {
     connection.mockReturnValue({ mode: 'checkpoint', channelId: 'a'.repeat(64) })
     expect(await buildMothershipSandboxSession(request)).toEqual({ key: 'chat' })
     expect(read).not.toHaveBeenCalled()

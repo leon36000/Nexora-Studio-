@@ -18,7 +18,7 @@ export class SlackSearchIdentityError extends Error {
       | 'identity_conflict' = 'account_required'
   ) {
     super(
-      'Your Slack email must match one verified Sim account that belongs to this organization. Ask your administrator to check your account.'
+      'Your Slack email must match one verified Nexora account that belongs to this organization. Ask your administrator to check your account.'
     )
     this.name = 'SlackSearchIdentityError'
   }

@@ -1,4 +1,5 @@
 import { CrowdStrikeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import {
@@ -98,7 +99,7 @@ export const CrowdStrikeBlock: BlockConfig = {
     'Investigate and respond to CrowdStrike Falcon alerts, hosts, IOCs, and vulnerabilities',
   longDescription:
     'Triage alerts, contain hosts, manage host groups and custom indicators of compromise, review Spotlight vulnerabilities, run read-only Real Time Response commands, read Case Management cases, and query Identity Protection sensors.',
-  docsLink: 'https://docs.sim.ai/integrations/crowdstrike',
+  docsLink: docsUrl('/integrations/crowdstrike'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#E01F3D',

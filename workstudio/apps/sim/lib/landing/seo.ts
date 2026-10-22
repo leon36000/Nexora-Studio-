@@ -53,15 +53,15 @@ export function buildLandingMetadata({
     title: { absolute: title },
     description,
     ...(keywords ? { keywords } : {}),
-    authors: [{ name: 'Sim' }],
-    creator: 'Sim',
-    publisher: 'Sim',
+    authors: [{ name: 'Nexora' }],
+    creator: 'Nexora',
+    publisher: 'Nexora',
     openGraph: {
       title,
       description,
       type: 'website',
       url,
-      siteName: 'Sim',
+      siteName: 'Nexora',
       locale: 'en_US',
       images: [
         {

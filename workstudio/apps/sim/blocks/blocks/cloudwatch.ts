@@ -1,4 +1,5 @@
 import { CloudWatchIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -20,7 +21,7 @@ export const CloudWatchBlock: BlockConfig = {
     'Run Log Insights queries, list log groups, retrieve log events, list and get metrics, and monitor alarms. Requires AWS access key and secret access key.',
   category: 'tools',
   integrationType: IntegrationType.Observability,
-  docsLink: 'https://docs.sim.ai/integrations/cloudwatch',
+  docsLink: docsUrl('/integrations/cloudwatch'),
   bgColor: 'linear-gradient(45deg, #B0084D 0%, #FF4F8B 100%)',
   iconColor: '#FF4F8B',
   icon: CloudWatchIcon,

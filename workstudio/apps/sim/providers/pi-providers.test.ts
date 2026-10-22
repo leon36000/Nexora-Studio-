@@ -19,13 +19,13 @@ describe('Pi provider catalog', () => {
     expect(resolvePiModelId('anthropic', 'claude-sonnet-4-6')).toBe('claude-sonnet-4-6')
   })
 
-  it('normalizes Sim provider prefixes only when Pi declares the resulting ID', () => {
+  it('normalizes Nexora provider prefixes only when Pi declares the resulting ID', () => {
     expect(resolvePiModelId('groq', 'groq/openai/gpt-oss-120b')).toBe('openai/gpt-oss-120b')
     expect(resolvePiModelId('cerebras', 'cerebras/gpt-oss-120b')).toBe('gpt-oss-120b')
     expect(resolvePiModelId('groq', 'groq/unknown-model')).toBeUndefined()
   })
 
-  it('maps Sim provider IDs onto Pi provider IDs', () => {
+  it('maps Nexora provider IDs onto Pi provider IDs', () => {
     expect(resolvePiModelId('kimi', 'kimi-k2.6')).toBe('kimi-k2.6')
     expect(resolvePiModelId('nvidia', 'nvidia/nemotron-3-super-120b-a12b')).toBe(
       'nvidia/nemotron-3-super-120b-a12b'

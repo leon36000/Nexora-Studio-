@@ -180,7 +180,7 @@ export async function dispatchMcpOperation(
   const response = await withOAuthAccessTokenAudience(context.audience, () =>
     route(request, { params: Promise.resolve(call.params ?? {}) })
   )
-  logger.info('Sim MCP operation dispatched', {
+  logger.info('Nexora MCP operation dispatched', {
     operation: call.operation,
     status: response.status,
     durationMs: Math.round(performance.now() - startedAt),

@@ -143,7 +143,7 @@ export function getBaseDomain(): string {
     try {
       return new URL(fallbackUrl).host
     } catch {
-      return isProd ? 'sim.ai' : 'localhost:3000'
+      return 'localhost:3000'
     }
   }
 }
@@ -179,7 +179,7 @@ export function getEmailDomain(): string {
   try {
     return stripWwwPrefix(getBaseDomain())
   } catch (_e) {
-    return isProd ? 'sim.ai' : 'localhost:3000'
+    return 'localhost:3000'
   }
 }
 

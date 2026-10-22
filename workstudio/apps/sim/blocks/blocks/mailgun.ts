@@ -1,4 +1,5 @@
 import { MailgunIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const MailgunBlock: BlockConfig = {
   description: 'Send emails and manage mailing lists with Mailgun',
   longDescription:
     'Send text or HTML emails, manage mailing lists and members, inspect domains, and track email events with tags.',
-  docsLink: 'https://docs.sim.ai/integrations/mailgun',
+  docsLink: docsUrl('/integrations/mailgun'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   bgColor: '#C12126',

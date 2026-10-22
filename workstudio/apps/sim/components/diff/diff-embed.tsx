@@ -232,7 +232,7 @@ export function DiffEmbed({ source, isStreaming, wrapLines = true }: DiffEmbedPr
   )
   const oldSide = useDiffSource(workspaceId, diff?.oldSource ?? null)
   const newSide = useDiffSource(workspaceId, comparison ? (diff?.newSource ?? null) : null)
-  if (isStreaming) return <Notice>The diff loads when Sim finishes writing.</Notice>
+  if (isStreaming) return <Notice>The diff loads when Nexora finishes writing.</Notice>
   if (!diff) return <Notice tone='error'>{parsed.error}</Notice>
 
   if (comparison)

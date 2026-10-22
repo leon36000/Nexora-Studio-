@@ -122,7 +122,7 @@ async function enqueueEnterpriseMetadataIntent(
   if (intent.hasUnappliedIntent) {
     throw new Error(
       intent.configurationUpdate?.providerAccepted
-        ? 'Stripe accepted the previous Enterprise update, but Sim has not reconciled it. Retry that update before making another change.'
+        ? 'Stripe accepted the previous Enterprise update, but Nexora has not reconciled it. Retry that update before making another change.'
         : 'An Enterprise configuration update is already in progress. Wait for it to apply before making another change.'
     )
   }

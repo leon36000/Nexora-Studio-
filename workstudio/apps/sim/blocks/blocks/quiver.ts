@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { QuiverIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector, normalizeFileInput } from '@/blocks/utils'
@@ -15,7 +16,7 @@ export const QuiverBlock = {
   description: 'Generate and vectorize SVGs',
   longDescription:
     'Generate SVG images from text prompts or vectorize raster images into SVGs using QuiverAI. Supports reference images, style instructions, and multiple output generation.',
-  docsLink: 'https://docs.sim.ai/integrations/quiver',
+  docsLink: docsUrl('/integrations/quiver'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#FFFFFF',

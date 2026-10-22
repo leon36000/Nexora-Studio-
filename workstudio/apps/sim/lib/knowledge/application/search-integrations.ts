@@ -183,7 +183,7 @@ export const approveSearchIntegration = defineAuthorizedKnowledgeUseCase({
     if (!organizationId) throw new OrchestrationError('validation', 'Organization is required')
     const source = LIVE_SEARCH_SOURCE_TYPES.find(([type]) => type === input.connectorType)
     if (!source) {
-      throw new OrchestrationError('validation', 'This integration is not supported by Sim Search')
+      throw new OrchestrationError('validation', 'This integration is not supported by Nexora Search')
     }
     if (
       input.approved &&
@@ -324,7 +324,7 @@ export const approveSearchIntegration = defineAuthorizedKnowledgeUseCase({
             action: AuditAction.ORGANIZATION_UPDATED,
             resourceType: AuditResourceType.ORGANIZATION,
             resourceId: context.organizationId,
-            description: `${result.policy ? 'Updated search scope for' : result.approved ? 'Approved' : 'Deactivated'} ${result.connectorType} for Sim Search`,
+            description: `${result.policy ? 'Updated search scope for' : result.approved ? 'Approved' : 'Deactivated'} ${result.connectorType} for Nexora Search`,
             metadata: { connectorType: result.connectorType, approved: result.approved },
           },
           ...(result.memberAccounts?.changed
@@ -335,8 +335,8 @@ export const approveSearchIntegration = defineAuthorizedKnowledgeUseCase({
                   resourceId: result.memberAccounts.groupId,
                   description:
                     result.connectorType === 'slack'
-                      ? 'Created connected accounts for Slack Sim Search'
-                      : `Configured ${result.connectorType} member sign-in for Sim Search`,
+                      ? 'Created connected accounts for Slack Nexora Search'
+                      : `Configured ${result.connectorType} member sign-in for Nexora Search`,
                   metadata: { connectorType: result.connectorType },
                 },
               ]

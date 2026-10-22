@@ -48,7 +48,7 @@ export const discordSendMessageTool: InternalToolConfig<
       return {
         botToken: params.botToken.trim(),
         channelId: params.channelId.trim(),
-        content: params.content || 'Message sent from Sim',
+        content: params.content || 'Message sent from Nexora',
         files: params.files || null,
       }
     },

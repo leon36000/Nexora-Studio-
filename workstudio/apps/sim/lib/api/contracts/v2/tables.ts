@@ -1928,7 +1928,7 @@ export const v2EnrichmentProviderOutcomeSchema = z
   .object({
     id: z.string().describe('Provider identifier, e.g. `hunter`.'),
     label: z.string().describe('Human-readable provider name.'),
-    toolId: z.string().describe('Sim tool identifier the provider ran.'),
+    toolId: z.string().describe('Nexora tool identifier the provider ran.'),
     status: z
       .string()
       .describe(
@@ -1936,7 +1936,7 @@ export const v2EnrichmentProviderOutcomeSchema = z
       ),
     cost: z
       .number()
-      .describe('Hosted-key cost in USD this provider incurred; zero when Sim did not bill it.'),
+      .describe('Hosted-key cost in USD this provider incurred; zero when Nexora did not bill it.'),
     durationMs: z.number().describe('Wall-clock milliseconds this provider took; zero if skipped.'),
     error: z.string().nullable().describe('Failure reason when `status` is `error`, else null.'),
   })

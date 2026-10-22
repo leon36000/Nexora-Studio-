@@ -21,7 +21,7 @@ export const v2ChatBodySchema = z.object({
     .string()
     .min(1, 'message cannot be empty')
     .max(200_000, 'message cannot exceed 200000 characters')
-    .describe('The message to send to Sim.'),
+    .describe('The message to send to Nexora.'),
   conversationId: z
     .string()
     .uuid('conversationId must be a valid conversation id')

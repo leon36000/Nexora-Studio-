@@ -1,4 +1,5 @@
 import { JiraIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -20,7 +21,7 @@ export const JiraBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Read, write, and update issues. Trigger workflows based on Jira webhook events.',
-  docsLink: 'https://docs.sim.ai/integrations/jira',
+  docsLink: docsUrl('/integrations/jira'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

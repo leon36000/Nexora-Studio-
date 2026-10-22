@@ -99,7 +99,7 @@ const oauthAttempt = {
   authorizationAppId: 'google:client',
   scopeVersion: 1,
   requiredScopes: ['openid'],
-  redirectUri: 'https://sim.ai/api/auth/oauth2/callback/google-email',
+  redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/google-email',
   invitationToken,
   createdAt: Date.now(),
 }

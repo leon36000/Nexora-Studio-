@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { DropboxIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -21,7 +22,7 @@ export const DropboxBlock = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Upload and download files, list folder contents, search files and folders, create folders, manage shared links, and move items between folders or to the trash.',
-  docsLink: 'https://docs.sim.ai/integrations/dropbox',
+  docsLink: docsUrl('/integrations/dropbox'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   icon: DropboxIcon,

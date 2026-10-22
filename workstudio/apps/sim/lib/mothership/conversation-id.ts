@@ -34,7 +34,7 @@ export function resolveMothershipConversation(
   conversationId: unknown
 ): ResolvedMothershipConversation {
   if (!workspaceId) {
-    throw new Error('Workspace context is required to resolve a Sim conversation')
+    throw new Error('Workspace context is required to resolve a Nexora conversation')
   }
   const provided = typeof conversationId === 'string' ? conversationId.trim() : ''
   const token = provided || generateId()

@@ -1,4 +1,5 @@
 import { BrowserUseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const BrowserUseBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const BrowserUseBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Run a browser task from natural-language instructions to navigate pages, interact with controls, and extract information.',
-  docsLink: 'https://docs.sim.ai/integrations/browser_use',
+  docsLink: docsUrl('/integrations/browser_use'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#181C1E',

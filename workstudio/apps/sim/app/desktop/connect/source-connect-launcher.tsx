@@ -20,7 +20,7 @@ export function SourceConnectLauncher({ requestId, state, port }: SourceConnectL
     if (started.current) return
     started.current = true
     void startDesktopSourceBrowser(requestId, state, port).catch((failure) => {
-      setError(getErrorMessage(failure, 'Could not start this connection. Try again from Sim.'))
+      setError(getErrorMessage(failure, 'Could not start this connection. Try again from Nexora.'))
     })
   }, [requestId, state, port])
   return (
@@ -28,7 +28,7 @@ export function SourceConnectLauncher({ requestId, state, port }: SourceConnectL
       title={error ? 'Could not connect' : 'Connecting your account'}
       description={
         error ??
-        'Continue authorization here. You’ll return to the Sim desktop app when you’re done.'
+        'Continue authorization here. You’ll return to the Nexora desktop app when you’re done.'
       }
     >
       {error && (
@@ -39,7 +39,7 @@ export function SourceConnectLauncher({ requestId, state, port }: SourceConnectL
             )
           }
         >
-          Return to Sim
+          Return to Nexora
         </Chip>
       )}
     </DesktopHandoffShell>

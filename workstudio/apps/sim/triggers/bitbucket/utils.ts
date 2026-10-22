@@ -85,8 +85,8 @@ export function bitbucketSetupInstructions(eventLabel: string): string {
   const instructions = [
     'Connect the <strong>Bitbucket account</strong> that administers the repository.',
     'Select the <strong>workspace</strong> and <strong>repository</strong> to monitor.',
-    `Deploy the workflow. Sim automatically creates a signed webhook for <strong>${eventLabel}</strong> events.`,
-    'Bitbucket allows up to <strong>50 webhooks per repository</strong>; each deployed Sim trigger uses one.',
+    `Deploy the workflow. Nexora automatically creates a signed webhook for <strong>${eventLabel}</strong> events.`,
+    'Bitbucket allows up to <strong>50 webhooks per repository</strong>; each deployed Nexora trigger uses one.',
     'Undeploying the workflow automatically removes the webhook from Bitbucket.',
   ]
 
@@ -153,7 +153,7 @@ export function buildBitbucketExtraFields(triggerId: BitbucketTriggerId): SubBlo
       selectorKey: 'bitbucket.repositories',
       dependsOn: ['triggerCredentials', 'workspacePicker'],
       placeholder: 'Select Bitbucket repository',
-      description: 'The repository where Sim creates the webhook.',
+      description: 'The repository where Nexora creates the webhook.',
       required: true,
       mode: 'trigger',
       condition,

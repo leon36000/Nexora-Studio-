@@ -1,4 +1,5 @@
 import { EnrowIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const EnrowBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const EnrowBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Find verified B2B email addresses from a full name and company, or verify the deliverability of an existing email. Inspect the returned qualification before using an email address.',
-  docsLink: 'https://docs.sim.ai/integrations/enrow',
+  docsLink: docsUrl('/integrations/enrow'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

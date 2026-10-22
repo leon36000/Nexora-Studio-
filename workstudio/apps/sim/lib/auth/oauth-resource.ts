@@ -30,7 +30,7 @@ const WORKFLOW_MCP_RESOURCE_PATH = /^\/api\/mcp\/serve\/[A-Za-z0-9_-]{1,128}$/
 
 export class InvalidOAuthResourceError extends Error {
   constructor() {
-    super('The resource must be a canonical Sim MCP server URL.')
+    super('The resource must be a canonical Nexora MCP server URL.')
     this.name = 'InvalidOAuthResourceError'
   }
 }

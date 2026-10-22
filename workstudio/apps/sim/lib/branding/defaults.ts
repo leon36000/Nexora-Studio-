@@ -1,23 +1,23 @@
 import type { BrandConfig } from './types'
 
 /**
- * Default brand configuration values
+ * Default brand configuration values (Nexora WorkStudio).
  */
 export const defaultBrandConfig: BrandConfig = {
-  name: 'Sim',
+  name: 'Nexora WorkStudio',
   logoUrl: undefined,
   wordmarkUrl: undefined,
   faviconUrl: undefined,
   customCssUrl: undefined,
-  supportEmail: 'help@sim.ai',
+  supportEmail: 'support@example.com',
   documentationUrl: undefined,
   termsUrl: undefined,
   privacyUrl: undefined,
   theme: {
-    primaryColor: '#33c482',
-    primaryHoverColor: '#2dac72',
-    accentColor: '#33b4ff',
-    accentHoverColor: '#29a0e8',
+    primaryColor: '#4F46E5',
+    primaryHoverColor: '#4338CA',
+    accentColor: '#4F46E5',
+    accentHoverColor: '#4338CA',
     backgroundColor: '#0c0c0c',
   },
   isWhitelabeled: false,

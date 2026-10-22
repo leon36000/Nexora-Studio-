@@ -589,7 +589,7 @@ export async function executeConfluenceUpdateComment(
       body: { representation: 'storage', value: input.comment },
       version: {
         number: Number(nested(current, 'version', 'number') || 1) + 1,
-        message: 'Updated via Sim',
+        message: 'Updated via Nexora',
       },
     }),
     context.signal

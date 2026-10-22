@@ -56,7 +56,7 @@ function zohoErrorHint(error: string): string | undefined {
     return 'invalid client_id or client_secret, the client is not a Self Client, or the wrong data center was selected for it'
   }
   if (normalized === 'invalid_scope' || normalized === 'invalid_scopes') {
-    return 'the Self Client was not granted the Zoho Desk scopes Sim requests'
+    return 'the Self Client was not granted the Zoho Desk scopes Nexora requests'
   }
   if (normalized === 'missing_org_info') {
     return 'Zoho could not resolve the organization from soid — check the Organization ID (Setup > Developer Space > API)'

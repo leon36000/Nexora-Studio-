@@ -39,7 +39,7 @@ export function granolaSetupInstructions(eventLabel: string): string {
     'Paste the key into the <strong>API Key</strong> field below. Webhooks require a Granola Business or Enterprise plan.',
     'Choose the <strong>Scopes</strong> that match the notes you want events for. Use <code>workspace</code> on its own if the key is a Workspace API key.',
     'Optionally restrict deliveries to specific folders with <strong>Folder IDs</strong>.',
-    `Click <strong>"Save"</strong> above — Sim registers a Granola webhook endpoint for <strong>${eventLabel}</strong> and verifies every delivery with the signing secret Granola returns.`,
+    `Click <strong>"Save"</strong> above — Nexora registers a Granola webhook endpoint for <strong>${eventLabel}</strong> and verifies every delivery with the signing secret Granola returns.`,
   ]
 
   return instructions

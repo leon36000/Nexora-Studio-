@@ -13,4 +13,4 @@
  * Bump the version segment when Reddit-facing request behavior changes so Reddit
  * can attribute and, if needed, block a specific release.
  */
-export const REDDIT_USER_AGENT = 'web:ai.sim:v1.0.0 (+https://github.com/simstudioai/sim)'
+export const REDDIT_USER_AGENT = 'web:nexora.workstudio:v1.0.0 (+https://github.com/leon36000/Nexora-Studio-)'

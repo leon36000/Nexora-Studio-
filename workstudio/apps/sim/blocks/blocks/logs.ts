@@ -1,4 +1,5 @@
 import { Library } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const LogsBlock: BlockConfig = {
@@ -18,7 +19,7 @@ export const LogsBlock: BlockConfig = {
   `,
   icon: Library,
   category: 'blocks',
-  docsLink: 'https://docs.sim.ai/api-reference/logs/getExecutionDetails',
+  docsLink: docsUrl('/api-reference/logs/getExecutionDetails'),
   canvasPresentation: {
     defaultTitle: 'Logs',
     sentences: {
@@ -336,7 +337,7 @@ export const LogsV2Block: BlockConfig = {
   `,
   icon: Library,
   category: 'blocks',
-  docsLink: 'https://docs.sim.ai/integrations/logs',
+  docsLink: docsUrl('/integrations/logs'),
   canvasPresentation: {
     defaultTitle: 'Logs',
     sentences: {

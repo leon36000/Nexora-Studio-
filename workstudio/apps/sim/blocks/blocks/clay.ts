@@ -1,4 +1,5 @@
 import { ClayIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const ClayBlock: BlockConfig = {
@@ -7,7 +8,7 @@ export const ClayBlock: BlockConfig = {
   description: 'Populate Clay workbook',
   authMode: AuthMode.ApiKey,
   longDescription: 'Send structured records to a Clay table through its webhook URL.',
-  docsLink: 'https://docs.sim.ai/integrations/clay',
+  docsLink: docsUrl('/integrations/clay'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',
@@ -83,7 +84,7 @@ export const ClayBlockMeta = {
       icon: ClayIcon,
       title: 'Clay lead-list builder',
       prompt:
-        'Build a workflow that reads a list of target prospects from a Sim table and pushes each one to a Clay table via the populate webhook, so Clay enriches them with role and intent signals through its own waterfall.',
+        'Build a workflow that reads a list of target prospects from a Nexora table and pushes each one to a Clay table via the populate webhook, so Clay enriches them with role and intent signals through its own waterfall.',
       modules: ['tables', 'agent', 'workflows'],
       category: 'sales',
       tags: ['sales', 'research'],
@@ -102,7 +103,7 @@ export const ClayBlockMeta = {
       icon: ClayIcon,
       title: 'Clay account pusher',
       prompt:
-        'Build a scheduled workflow that reads target accounts from a Sim table and pushes each one to a Clay table via the populate webhook, so Clay enriches them with hiring, funding, and tech-change signals through its waterfall.',
+        'Build a scheduled workflow that reads target accounts from a Nexora table and pushes each one to a Clay table via the populate webhook, so Clay enriches them with hiring, funding, and tech-change signals through its waterfall.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'sales',
       tags: ['sales', 'research'],
@@ -111,7 +112,7 @@ export const ClayBlockMeta = {
       icon: ClayIcon,
       title: 'Clay outbound personalizer',
       prompt:
-        'Create a workflow that reads a prospect record from a Sim table — including the role and company signals already gathered — drafts a personalized first-touch email, queues it for review, and pushes the prospect to a Clay table via the populate webhook for further enrichment.',
+        'Create a workflow that reads a prospect record from a Nexora table — including the role and company signals already gathered — drafts a personalized first-touch email, queues it for review, and pushes the prospect to a Clay table via the populate webhook for further enrichment.',
       modules: ['tables', 'agent', 'workflows'],
       category: 'sales',
       tags: ['sales', 'communication'],
@@ -160,7 +161,7 @@ export const ClayBlockMeta = {
       description:
         'Push many prospect or account rows from a table into a Clay workbook for enrichment. Use to seed a lead list or sync a CRM segment into Clay.',
       content:
-        '# Bulk Load List Into Clay\n\nLoad a list of records into a Clay table.\n\n## Steps\n1. Gather the source rows (e.g. from a Sim table or a CRM query).\n2. Get the Clay table populate webhook URL and any auth token.\n3. For each row, map your fields to the Clay column names and populate the table once per record. Keep the JSON keys consistent across all records so columns line up.\n4. Send the records, pacing them if the list is large.\n\n## Output\nReturn a count of records pushed and any that failed (with the error). Remind the user that Clay enriches the rows on its side, and suggest they verify the row count in the Clay table once ingestion completes.',
+        '# Bulk Load List Into Clay\n\nLoad a list of records into a Clay table.\n\n## Steps\n1. Gather the source rows (e.g. from a Nexora table or a CRM query).\n2. Get the Clay table populate webhook URL and any auth token.\n3. For each row, map your fields to the Clay column names and populate the table once per record. Keep the JSON keys consistent across all records so columns line up.\n4. Send the records, pacing them if the list is large.\n\n## Output\nReturn a count of records pushed and any that failed (with the error). Remind the user that Clay enriches the rows on its side, and suggest they verify the row count in the Clay table once ingestion completes.',
     },
   ],
 } as const satisfies BlockMeta

@@ -904,7 +904,7 @@ describe('executeProviderRequest — streaming cost policy', () => {
     expect(streaming.execution.output.cost).toMatchObject({ input: 2, output: 4, total: 6 })
   })
 
-  it('does not charge for models Sim does not host', async () => {
+  it('does not charge for models Nexora does not host', async () => {
     const streaming = {
       stream: new ReadableStream(),
       execution: {
@@ -2090,7 +2090,7 @@ describe('native evaluation provider boundary', () => {
     }
   )
 
-  it('resolves BYOK credentials and keeps evaluation answers without charging Sim credits', async () => {
+  it('resolves BYOK credentials and keeps evaluation answers without charging Nexora credits', async () => {
     const evaluation = {
       state: 'Task complete',
       questions: { passed: { type: 'noul', instructions: 'Passed?' } },

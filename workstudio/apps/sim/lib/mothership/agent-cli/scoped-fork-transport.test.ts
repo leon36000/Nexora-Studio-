@@ -52,7 +52,29 @@ beforeEach(() => {
   }))
 })
 
-describe('native fork commands through private Copilot transport', () => {
+describe('Nexora edition: native fork commands', () => {
+  it.each([
+    forkOperations.create,
+    forkOperations.sync,
+    forkOperations.preview,
+    forkOperations.syncPreview,
+    forkOperations.mappingsRead,
+  ])('refuses $id through Chat and before executing', async (operation) => {
+    const useCase = defineForkUseCase({ operation, execute: async () => mocks.execute() })
+    const request = new Request(`${endpoint}/api/v2/workspaces/${workspaceId}/fork`, {
+      method: 'POST',
+    })
+    expect(useCase.operation).toBe(operation)
+    expect(copilotRequestPrincipal(request, operation, useCase)).toBeUndefined()
+    await expect(
+      useCase.execute({ principal: {} as never, input: { workspaceId } })
+    ).rejects.toMatchObject({ name: 'FeatureDisabledError', code: 'not_found' })
+    expect(mocks.execute).not.toHaveBeenCalled()
+  })
+})
+
+// Nexora edition: workspace forking is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+describe.skip('native fork commands through private Copilot transport', () => {
   it.each([
     {
       argv: ['workspaces', 'fork', ...mutationFlags],

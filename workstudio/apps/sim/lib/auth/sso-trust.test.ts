@@ -29,7 +29,7 @@ it('keeps domain verification as the sole SSO linking trust source', () => {
   expect(ssoOptions.current?.domainVerification).toEqual({ enabled: true })
 })
 
-it('disables Better Auth membership writes so Sim owns JIT admission', () => {
+it('disables Better Auth membership writes so Nexora owns JIT admission', () => {
   expect(ssoOptions.current?.organizationProvisioning).toEqual({
     disabled: true,
     defaultRole: 'member',

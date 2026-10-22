@@ -95,7 +95,7 @@ export async function searchCodaMcp(
         ? 'Coda content search includes pages and table rows. Narrow the query or target a document for more results.'
         : 'Coda lists documents by recency. Continue with the returned cursor for more documents.') +
       (hasDateBounds(input.filters)
-        ? ' Date filters apply to returned timestamps in Sim; Coda does not accept date bounds for search.'
+        ? ' Date filters apply to returned timestamps in Nexora; Coda does not accept date bounds for search.'
         : ''),
   }
 }

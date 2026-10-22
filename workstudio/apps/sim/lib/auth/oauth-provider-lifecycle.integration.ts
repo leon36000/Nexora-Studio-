@@ -723,7 +723,7 @@ describe('OAuth lifecycle on the provisioned PostgreSQL schema', () => {
       .where(eq(schema.oauthClient.clientId, 'sim-cli'))
     expect(original).toBeDefined()
     const customization = {
-      name: 'Locally customized Sim CLI',
+      name: 'Locally customized Nexora CLI',
       metadata: { operatorLabel: generateId() },
       updatedAt: new Date('2025-01-02T03:04:05.000Z'),
     }

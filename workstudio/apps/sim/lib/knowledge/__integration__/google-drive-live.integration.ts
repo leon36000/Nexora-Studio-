@@ -175,7 +175,7 @@ describe.skipIf(!keyPath || !folderId || !ownerEmail)(
         throw new Error(`Share the fixture folder with the service account: HTTP ${folder.status}`)
       const folderMetadata = await folder.json()
       expect(folderMetadata.mimeType).toBe('application/vnd.google-apps.folder')
-      expect(folderMetadata.name).toMatch(/^Sim Search ACL E2E/)
+      expect(folderMetadata.name).toMatch(/^Nexora Search ACL E2E/)
       expect(await googleDriveConnector.validateConfig!(accessToken, config)).toEqual({
         valid: true,
       })

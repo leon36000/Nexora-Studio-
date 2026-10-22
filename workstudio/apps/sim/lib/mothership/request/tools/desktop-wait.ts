@@ -39,15 +39,15 @@ export type DesktopToolNotStartedReason = 'chat_not_open' | 'offline' | 'not_res
 
 const NOT_STARTED_MESSAGES: Record<DesktopToolNotStartedReason, string> = {
   chat_not_open:
-    'Not run: this action never started, because nothing in the Sim desktop app picked it up. Nothing happened on the user’s computer. Do not retry it in this turn; tell the user to keep this chat open in the Sim desktop app, or to ask again later.',
+    'Not run: this action never started, because nothing in the Nexora desktop app picked it up. Nothing happened on the user’s computer. Do not retry it in this turn; tell the user to keep this chat open in the Nexora desktop app, or to ask again later.',
   offline:
-    'Not run: this action never started, because the Sim desktop app running this chat is offline. Nothing happened on the user’s computer. Do not retry it in this turn; tell the user to open the Sim desktop app and stay signed in, or to ask again later.',
+    'Not run: this action never started, because the Nexora desktop app running this chat is offline. Nothing happened on the user’s computer. Do not retry it in this turn; tell the user to open the Nexora desktop app and stay signed in, or to ask again later.',
   not_responding:
-    'Not run: this action never started, because the Sim desktop app running this chat did not pick it up in time. Nothing happened on the user’s computer. Do not retry it in this turn; tell the user to check that the Sim desktop app is open and responding, or to ask again later.',
+    'Not run: this action never started, because the Nexora desktop app running this chat did not pick it up in time. Nothing happened on the user’s computer. Do not retry it in this turn; tell the user to check that the Nexora desktop app is open and responding, or to ask again later.',
 }
 
 const DESKTOP_TOOL_LEASE_LAPSED_MESSAGE =
-  'The Sim desktop app started this action on the user’s computer but stopped reporting on it, so its result was lost. It may already have taken effect: inspect the current state before repeating it, and do not retry it automatically.'
+  'The Nexora desktop app started this action on the user’s computer but stopped reporting on it, so its result was lost. It may already have taken effect: inspect the current state before repeating it, and do not retry it automatically.'
 
 interface DesktopToolFailure {
   message: string

@@ -186,7 +186,7 @@ async function resolveBranch(
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${accessToken}`,
         'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'Sim',
+        'User-Agent': 'Nexora',
       },
     },
     retryOptions
@@ -230,7 +230,7 @@ async function fetchTree(
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${accessToken}`,
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Sim',
+      'User-Agent': 'Nexora',
     },
   })
 
@@ -280,7 +280,7 @@ async function fetchBlobBytes(
       Accept: 'application/vnd.github.raw+json',
       Authorization: `Bearer ${accessToken}`,
       'X-GitHub-Api-Version': '2022-11-28',
-      'User-Agent': 'Sim',
+      'User-Agent': 'Nexora',
     },
   })
 
@@ -617,7 +617,7 @@ export const githubConnector: ConnectorConfig = {
             Accept: 'application/vnd.github+json',
             Authorization: `Bearer ${accessToken}`,
             'X-GitHub-Api-Version': '2022-11-28',
-            'User-Agent': 'Sim',
+            'User-Agent': 'Nexora',
           },
         },
         VALIDATE_RETRY_OPTIONS

@@ -225,7 +225,7 @@ export const listDesktopActivityContract = defineRouteContract({
 
 /** Names a workspace cannot hold, though a macOS or Linux file name can be any of them. */
 const UNSTORABLE_NAME =
-  'Sim cannot store a file or folder whose name is blank, "." or "..", or contains a backslash'
+  'Nexora cannot store a file or folder whose name is blank, "." or "..", or contains a backslash'
 
 /** One relative path inside an import source, as the device's manifest lists it. */
 const desktopImportRelativePathSchema = z

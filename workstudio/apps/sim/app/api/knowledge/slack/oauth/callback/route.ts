@@ -86,7 +86,7 @@ export const GET = withRouteHandler(async (request) => {
     }
     if (error instanceof InternalUnauthenticatedError)
       return NextResponse.json(
-        { error: 'Sign in to Sim and restart Slack setup.' },
+        { error: 'Sign in to Nexora and restart Slack setup.' },
         { status: 401 }
       )
     const projected = internalOrchestrationErrorPolicy.project(error)

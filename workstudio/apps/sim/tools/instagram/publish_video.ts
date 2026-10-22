@@ -13,7 +13,7 @@ export const instagramPublishVideoTool: InternalToolConfig<
   id: 'instagram_publish_video',
   name: 'Instagram Publish Video',
   description:
-    'Create and publish a feed video from a Sim file (published as a Reel shared to the feed; polls until ready)',
+    'Create and publish a feed video from a Nexora file (published as a Reel shared to the feed; polls until ready)',
   version: '1.0.0',
 
   oauth: {
@@ -38,7 +38,7 @@ export const instagramPublishVideoTool: InternalToolConfig<
       type: 'file',
       required: true,
       visibility: 'user-or-llm',
-      description: 'Video uploaded to Sim or referenced from a previous block',
+      description: 'Video uploaded to Nexora or referenced from a previous block',
     },
     caption: {
       type: 'string',
@@ -50,7 +50,7 @@ export const instagramPublishVideoTool: InternalToolConfig<
       type: 'file',
       required: false,
       visibility: 'user-or-llm',
-      description: 'Optional JPEG cover uploaded to Sim or referenced from a previous block',
+      description: 'Optional JPEG cover uploaded to Nexora or referenced from a previous block',
     },
   },
 

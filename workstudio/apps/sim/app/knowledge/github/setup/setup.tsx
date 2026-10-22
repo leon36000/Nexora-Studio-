@@ -41,7 +41,7 @@ export function GitHubSetup({ scope }: GitHubSetupProps) {
     (result?.status === 'failed'
       ? result.error
       : result?.status === 'expired'
-        ? 'This connection attempt expired. Close this window and connect GitHub again from Sim.'
+        ? 'This connection attempt expired. Close this window and connect GitHub again from Nexora.'
         : null)
 
   if (failure)

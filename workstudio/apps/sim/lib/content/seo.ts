@@ -37,7 +37,7 @@ export function buildPostMetadata(post: ContentMeta): Metadata {
       url: a.url,
     })),
     creator: post.author.name,
-    publisher: 'Sim',
+    publisher: 'Nexora',
     robots: post.draft
       ? { index: false, follow: false, googleBot: { index: false, follow: false } }
       : { index: true, follow: true, googleBot: { index: true, follow: true } },
@@ -46,7 +46,7 @@ export function buildPostMetadata(post: ContentMeta): Metadata {
       title: searchTitle,
       description: searchDescription,
       url: post.canonical,
-      siteName: 'Sim',
+      siteName: 'Nexora',
       locale: 'en_US',
       type: 'article',
       publishedTime: post.date,
@@ -121,7 +121,7 @@ export function buildArticleJsonLd(
     publisher: {
       '@type': 'Organization',
       '@id': `${SITE_URL}#organization`,
-      name: 'Sim',
+      name: 'Nexora',
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
@@ -204,7 +204,7 @@ export function buildIndexMetadata(
   const title = titleParts.join(' | ')
 
   const description = tag
-    ? `Sim ${section.name.toLowerCase()} posts tagged "${tag}": ${section.description}`
+    ? `Nexora ${section.name.toLowerCase()} posts tagged "${tag}": ${section.description}`
     : section.description
 
   const isFiltered = Boolean(tag)
@@ -221,28 +221,28 @@ export function buildIndexMetadata(
           : {}),
       },
       openGraph: {
-        title: `${title} | Sim`,
+        title: `${title} | Nexora`,
         description,
         url: canonical,
-        siteName: 'Sim',
+        siteName: 'Nexora',
         locale: 'en_US',
         type: 'website',
         images: [
           {
             ...LANDING_SOCIAL_IMAGE,
             url: `${SITE_URL}${LANDING_SOCIAL_IMAGE.url}`,
-            alt: `Sim ${section.name}`,
+            alt: `Nexora ${section.name}`,
           },
         ],
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${title} | Sim`,
+        title: `${title} | Nexora`,
         description,
         site: '@simdotai',
         images: {
           url: `${SITE_URL}${LANDING_SOCIAL_IMAGE.url}`,
-          alt: `Sim ${section.name}`,
+          alt: `Nexora ${section.name}`,
         },
       },
     },
@@ -252,22 +252,22 @@ export function buildIndexMetadata(
 
 export function buildTagsMetadata(section: ContentSection): Metadata {
   const canonical = `${SITE_URL}${section.basePath}/tags`
-  const description = `Browse Sim ${section.name.toLowerCase()} posts by topic: AI agents, workflows, integrations, and more.`
+  const description = `Browse Nexora ${section.name.toLowerCase()} posts by topic: AI agents, workflows, integrations, and more.`
   return {
     title: `${section.name} Tags`,
     description,
     alternates: { canonical },
     openGraph: {
-      title: `${section.name} Tags | Sim`,
+      title: `${section.name} Tags | Nexora`,
       description,
       url: canonical,
-      siteName: 'Sim',
+      siteName: 'Nexora',
       locale: 'en_US',
       type: 'website',
     },
     twitter: {
       card: 'summary',
-      title: `${section.name} Tags | Sim`,
+      title: `${section.name} Tags | Nexora`,
       description,
       site: '@simdotai',
     },
@@ -303,22 +303,22 @@ export function buildAuthorMetadata(
 ): Metadata {
   const name = author?.name ?? 'Author'
   const canonical = `${SITE_URL}${section.basePath}/authors/${encodeURIComponent(id)}`
-  const description = `Read articles by ${name} on the Sim ${section.name.toLowerCase()}.`
+  const description = `Read articles by ${name} on the Nexora ${section.name.toLowerCase()}.`
   return {
     title: `${name} | ${section.name}`,
     description,
     alternates: { canonical },
     openGraph: {
-      title: `${name} | Sim ${section.name}`,
+      title: `${name} | Nexora ${section.name}`,
       description,
       url: canonical,
-      siteName: 'Sim',
+      siteName: 'Nexora',
       type: 'profile',
       ...(author?.avatarUrl ? { images: [{ url: author.avatarUrl, alt: name }] } : {}),
     },
     twitter: {
       card: 'summary',
-      title: `${name} | Sim ${section.name}`,
+      title: `${name} | Nexora ${section.name}`,
       description,
       site: '@simdotai',
       ...(author?.xHandle ? { creator: `@${author.xHandle}` } : {}),
@@ -340,7 +340,7 @@ export function buildAuthorGraphJsonLd(section: ContentSection, author: Author) 
           : author.avatarUrl && `${SITE_URL}${author.avatarUrl}`,
         worksFor: {
           '@type': 'Organization',
-          name: 'Sim',
+          name: 'Nexora',
           url: SITE_URL,
         },
       },
@@ -394,13 +394,13 @@ export function buildCollectionPageJsonLd(
   return {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: `Sim ${section.name}`,
+    name: `Nexora ${section.name}`,
     url,
     description: section.description,
     publisher: {
       '@type': 'Organization',
       '@id': `${SITE_URL}#organization`,
-      name: 'Sim',
+      name: 'Nexora',
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
@@ -410,7 +410,7 @@ export function buildCollectionPageJsonLd(
     inLanguage: 'en-US',
     isPartOf: {
       '@type': 'WebSite',
-      name: 'Sim',
+      name: 'Nexora',
       url: SITE_URL,
     },
     mainEntity: {

@@ -193,7 +193,7 @@ export async function downloadConvertedContent(
 
 /** Message shown when someone else changed the document mid-edit. */
 const CONFLICT_MESSAGE =
-  'The document changed in OneDrive or SharePoint after Sim read it, so the edit was not applied and no other change was overwritten. Run the operation again to edit the current version.'
+  'The document changed in OneDrive or SharePoint after Nexora read it, so the edit was not applied and no other change was overwritten. Run the operation again to edit the current version.'
 
 /** Raised instead of overwriting a document that changed since it was read. */
 export function documentChangedError(): GraphRequestError {
@@ -202,7 +202,7 @@ export function documentChangedError(): GraphRequestError {
 
 /** Message shown when the document carries no version to compare against. */
 const UNVERIFIABLE_MESSAGE =
-  'Microsoft Graph did not report a version for this document, so Sim cannot confirm the edit would not overwrite someone else’s change and did not apply it. Use Replace Content if you intend to overwrite the document outright.'
+  'Microsoft Graph did not report a version for this document, so Nexora cannot confirm the edit would not overwrite someone else’s change and did not apply it. Use Replace Content if you intend to overwrite the document outright.'
 
 /**
  * Raised when there is no version to compare, rather than writing unguarded.

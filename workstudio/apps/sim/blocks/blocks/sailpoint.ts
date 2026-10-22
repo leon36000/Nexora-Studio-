@@ -1,4 +1,5 @@
 import { SailPointIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import {
@@ -138,7 +139,7 @@ export const SailPointBlock: BlockConfig = {
   description: 'Govern identities and access in SailPoint Identity Security Cloud',
   longDescription:
     'Connect SailPoint Identity Security Cloud with a Personal Access Token to search identity-governance data, manage access requests and approvals, review certifications, and import source data. The token owner and scopes determine the operations available to the integration.',
-  docsLink: 'https://docs.sim.ai/integrations/sailpoint',
+  docsLink: docsUrl('/integrations/sailpoint'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#FFFFFF',

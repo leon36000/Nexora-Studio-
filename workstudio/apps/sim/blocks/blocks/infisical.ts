@@ -1,4 +1,5 @@
 import { InfisicalIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -7,7 +8,7 @@ export const InfisicalBlock: BlockConfig = {
   name: 'Infisical',
   description: 'Manage secrets with Infisical',
   longDescription: 'List, get, create, update, and delete secrets across project environments.',
-  docsLink: 'https://docs.sim.ai/integrations/infisical',
+  docsLink: docsUrl('/integrations/infisical'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#F7FE62',

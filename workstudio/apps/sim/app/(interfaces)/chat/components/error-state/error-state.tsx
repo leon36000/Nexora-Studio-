@@ -20,7 +20,7 @@ export function ChatErrorState({ error }: ChatErrorStateProps) {
           className='h-[32px] w-full gap-2 px-2.5 text-sm'
           onClick={() => router.push(APP_ENTRY_PATH)}
         >
-          Open Sim
+          Open Nexora
         </Button>
       </StatusPageContent>
     </div>

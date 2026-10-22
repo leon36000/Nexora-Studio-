@@ -128,7 +128,7 @@ export async function sendSlackSearchOnboarding(
             type: 'button',
             text: {
               type: 'plain_text',
-              text: reason === 'account' ? 'Get started with Sim' : 'Connect sources',
+              text: reason === 'account' ? 'Get started with Nexora' : 'Connect sources',
             },
             url,
             action_id: 'slack_search_onboarding',
@@ -332,7 +332,7 @@ export const retrySlackSearchOnboarding: OperationUseCase<
     assertOperationPrincipal(principal, slackSearchOnboardingOperations.retry)
     const resolved = await resolveOnboarding(principal, input.token)
     if (!resolved.job || !('slackUrl' in resolved.view))
-      throw new OrchestrationError('forbidden', 'Complete your Sim account setup before retrying')
+      throw new OrchestrationError('forbidden', 'Complete your Nexora account setup before retrying')
     let turnId = resolved.retryTurnId
     if (!turnId) {
       const now = Date.now()

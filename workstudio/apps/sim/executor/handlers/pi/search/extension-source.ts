@@ -269,7 +269,7 @@ export default function (pi) {
   const provider = process.env.${PI_SEARCH_PROVIDER_ENV_VAR}
   const apiKey = process.env.${PI_SEARCH_API_KEY_ENV_VAR}
   if (!provider || !apiKey) {
-    throw new Error("Sim search extension requires ${PI_SEARCH_PROVIDER_ENV_VAR} and ${PI_SEARCH_API_KEY_ENV_VAR}")
+    throw new Error("Nexora search extension requires ${PI_SEARCH_PROVIDER_ENV_VAR} and ${PI_SEARCH_API_KEY_ENV_VAR}")
   }
   const label = PROVIDER_LABELS[provider]
   if (!label) {

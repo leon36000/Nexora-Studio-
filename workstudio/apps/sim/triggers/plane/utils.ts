@@ -114,7 +114,7 @@ export function planeSetupInstructions(): string {
   return [
     'Manual setup works with Plane Cloud and self-hosted Community or Commercial editions. In Plane, open <strong>Workspace settings → Webhooks</strong> and add a webhook with the URL above.',
     'Select the event shown in this trigger. For v1, select the corresponding resource category. For All Events, select every category you want to receive.',
-    'Copy Plane’s generated secret (from the downloaded CSV or webhook edit form) into <strong>Webhook Secret</strong> below, then save the Sim configuration. Keep this secret distinct from your API token.',
+    'Copy Plane’s generated secret (from the downloaded CSV or webhook edit form) into <strong>Webhook Secret</strong> below, then save the Nexora configuration. Keep this secret distinct from your API token.',
     'Automatic registration requires the Plane v2 webhook management API and an administrator token with webhook write permission. It creates and removes a dedicated v2 webhook when you save or remove the trigger.',
     'Project filters require project information. Self-hosted v1 deletion payloads that contain only a resource ID are skipped when a project filter is set.',
     'The Webhook URL must be publicly reachable from Plane. Plane v2 retries use the event ID for deduplication; v1 deliveries use a payload fingerprint.',

@@ -4,7 +4,7 @@ import type { DesktopAppearanceTheme } from '@sim/desktop-bridge'
 import { ChipSelect } from '@sim/emcn'
 
 const OPTIONS = [
-  { label: 'Sim', value: 'app' },
+  { label: 'Nexora', value: 'app' },
   { label: 'Light', value: 'light' },
   { label: 'Dark', value: 'dark' },
 ] as const

@@ -22,7 +22,7 @@ describe('validateTrelloServiceAccount', () => {
 
   it('sends the server API key and the user token as separate query params', async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse({ id: 'abc123', fullName: 'Sim Bot', username: 'simbot' })
+      jsonResponse({ id: 'abc123', fullName: 'Nexora Bot', username: 'simbot' })
     )
 
     await validateTrelloServiceAccount(FIELDS)

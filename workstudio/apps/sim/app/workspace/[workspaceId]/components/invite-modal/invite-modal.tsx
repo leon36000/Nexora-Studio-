@@ -42,7 +42,7 @@ type Membership = (typeof MEMBERSHIP_OPTIONS)[number]['value']
 
 const MEMBERSHIP_HINTS: Partial<Record<Membership, string>> = {
   external:
-    'Access to the selected workspaces only — no seat. Only available for people already on a paid Sim plan.',
+    'Access to the selected workspaces only — no seat. Only available for people already on a paid Nexora plan.',
 }
 
 const EMPTY_WORKSPACE_IDS: string[] = []

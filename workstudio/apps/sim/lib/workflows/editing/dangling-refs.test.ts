@@ -127,7 +127,7 @@ describe('collectDanglingBlockOutputReferences', () => {
           type: 'slack',
           name: 'Notify',
           subBlocks: {
-            text: { value: 'See <https://sim.ai|the docs> or <b>bold</b>, math a<b.c && d>e' },
+            text: { value: 'See <https://workstudio.example.com|the docs> or <b>bold</b>, math a<b.c && d>e' },
           },
         },
       })

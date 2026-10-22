@@ -44,7 +44,7 @@ describe('Monday OAuth 2.1', () => {
       clientSecret: 'monday-client-secret',
       code: 'authorization-code',
       codeVerifier: 'pkce-verifier',
-      redirectUri: 'https://www.sim.ai/api/auth/oauth2/callback/monday',
+      redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/monday',
     })
 
     expect(tokens).toMatchObject({
@@ -69,7 +69,7 @@ describe('Monday OAuth 2.1', () => {
       client_id: 'monday-client-id',
       client_secret: 'monday-client-secret',
       code: 'authorization-code',
-      redirect_uri: 'https://www.sim.ai/api/auth/oauth2/callback/monday',
+      redirect_uri: 'https://workstudio.example.com/api/auth/oauth2/callback/monday',
       code_verifier: 'pkce-verifier',
     })
   })
@@ -118,7 +118,7 @@ describe('Monday OAuth 2.1', () => {
         clientSecret: 'client-secret',
         code: 'authorization-code',
         codeVerifier: 'pkce-verifier',
-        redirectUri: 'https://www.sim.ai/api/auth/oauth2/callback/monday',
+        redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/monday',
       })
     ).rejects.toThrow('Monday OAuth token response was incomplete')
   })
@@ -140,7 +140,7 @@ describe('Monday OAuth 2.1', () => {
       clientSecret: 'client-secret-that-must-not-escape',
       code: 'authorization-code-that-must-not-escape',
       codeVerifier: 'pkce-verifier-that-must-not-escape',
-      redirectUri: 'https://www.sim.ai/api/auth/oauth2/callback/monday',
+      redirectUri: 'https://workstudio.example.com/api/auth/oauth2/callback/monday',
     }).catch((caught: unknown) => caught)
 
     expect(error).toBeInstanceOf(Error)

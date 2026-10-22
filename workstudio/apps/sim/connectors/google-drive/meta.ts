@@ -1,4 +1,5 @@
 import { GoogleDriveIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { ConnectorMeta } from '@/connectors/types'
 
 /** Directory administrator for company-wide indexing; delegated identity for member content. */
@@ -8,7 +9,7 @@ export const GOOGLE_DRIVE_OPEN_SHARING_FIELD_ID = 'openSharing'
 
 export const googleDriveConnectorMeta: ConnectorMeta = {
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/google-drive',
+  searchDocsUrl: docsUrl('/search/google-drive'),
   id: 'google_drive',
   name: 'Google Drive',
   description: 'Sync documents from Google Drive',

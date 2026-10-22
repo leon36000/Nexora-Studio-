@@ -407,7 +407,7 @@ describe('MothershipBlockHandler', () => {
     )
 
     await expect(handler.execute(context, block, { prompt: 'Hello' })).rejects.toThrow(
-      'Sim execution failed: secret-backed failure'
+      'Nexora execution failed: secret-backed failure'
     )
 
     expect(registry.importProvenanceForValue).toHaveBeenCalledWith(

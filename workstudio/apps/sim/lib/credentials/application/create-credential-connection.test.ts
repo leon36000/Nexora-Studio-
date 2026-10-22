@@ -53,7 +53,7 @@ describe('createCredentialConnection', () => {
       id: 'draft-1',
       expiresAt: new Date('2026-08-12T20:15:00.000Z'),
     })
-    mocks.getBaseUrl.mockReturnValue('https://sim.ai')
+    mocks.getBaseUrl.mockReturnValue('https://workstudio.example.com')
   })
 
   it('creates a user-bound draft and returns its canonical connection context', async () => {
@@ -74,7 +74,7 @@ describe('createCredentialConnection', () => {
       displayName: 'Work Gmail',
     })
     expect(result).toEqual({
-      authorizationUrl: 'https://sim.ai/api/auth/oauth2/authorize?draftId=draft-1',
+      authorizationUrl: 'https://workstudio.example.com/api/auth/oauth2/authorize?draftId=draft-1',
       draftId: 'draft-1',
       expiresAt: new Date('2026-08-12T20:15:00.000Z'),
       providerId: 'google-email',

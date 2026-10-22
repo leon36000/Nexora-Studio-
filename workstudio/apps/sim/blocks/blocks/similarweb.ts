@@ -1,4 +1,5 @@
 import { SimilarwebIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const SimilarwebBlock: BlockConfig = {
   description: 'Website traffic and analytics data',
   longDescription:
     'Retrieve website analytics including traffic estimates, engagement metrics, rankings, and traffic sources using the Similarweb API.',
-  docsLink: 'https://docs.sim.ai/integrations/similarweb',
+  docsLink: docsUrl('/integrations/similarweb'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#000922',

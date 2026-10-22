@@ -141,10 +141,10 @@ export async function generateInternalDelegationToken(
     : undefined
   const principalSubject = input.principal ? resolvePrincipalSubject(input.principal) : null
   if (principalSubject && principalSubject.kind !== 'sim_user' && suppliedSubjectUserId) {
-    throw new Error('Non-Sim workflow subjects cannot be represented as Sim users')
+    throw new Error('Non-Sim workflow subjects cannot be represented as Nexora users')
   }
   if (!principalSubject && input.principal && suppliedSubjectUserId) {
-    throw new Error('Actorless workflow principals cannot be represented as Sim users')
+    throw new Error('Actorless workflow principals cannot be represented as Nexora users')
   }
   if (
     principalSubject?.kind === 'sim_user' &&
@@ -156,7 +156,7 @@ export async function generateInternalDelegationToken(
   const subjectUserId =
     principalSubject?.kind === 'sim_user' ? principalSubject.userId : suppliedSubjectUserId
   if (!subjectUserId && !input.principal) {
-    throw new Error('Internal delegation requires a workflow principal or Sim user subject')
+    throw new Error('Internal delegation requires a workflow principal or Nexora user subject')
   }
   const workflowId = requireNonEmptyDelegationClaim(input.workflowId, 'workflowId')
   const currentWorkflow = input.currentWorkflow

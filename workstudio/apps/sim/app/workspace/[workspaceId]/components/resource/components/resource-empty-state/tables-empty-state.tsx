@@ -1,6 +1,7 @@
 import { Chip, cn } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { EmptyState, type EmptyStateProps } from '@/components/empty-state/empty-state'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { EmptyStateDocsLink } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/docs-link'
 import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/mask'
 
@@ -103,7 +104,7 @@ function TablesGraphic() {
   )
 }
 
-const TABLES_DOCS_URL = 'https://docs.sim.ai/tables'
+const TABLES_DOCS_URL = docsUrl('/tables')
 
 interface CreateTableEmptyStateProps {
   /** Creates a table — the same action the header's primary chip runs. */

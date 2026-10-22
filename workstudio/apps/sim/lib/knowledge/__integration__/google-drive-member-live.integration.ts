@@ -415,7 +415,7 @@ describe.skipIf(!fixtureFile || !serviceAccountFile)(
         const binding = await loadManagedCredentialGroupBinding(credentialId)
         expect(binding?.workspaceId).toBe(input.workspaceId)
         expect(binding?.providerId).toBe('google-drive')
-        if (!binding) throw new Error('Enroll the fixture Google human through Sim first')
+        if (!binding) throw new Error('Enroll the fixture Google human through Nexora first')
         if (groupId) {
           expect(binding.credentialGroupId).toBe(groupId)
           expect(binding.credentialGroupOptionId).toBe(optionId)
@@ -471,7 +471,7 @@ describe.skipIf(!fixtureFile || !serviceAccountFile)(
         members[0].token,
         `drive/v3/files/${input.folderId}?fields=id,name,mimeType&supportsAllDrives=true`
       )
-      expect(folder.name).toMatch(/^Sim Search ACL E2E/)
+      expect(folder.name).toMatch(/^Nexora Search ACL E2E/)
       expect(folder.mimeType).toBe('application/vnd.google-apps.folder')
       const key = await readFile(serviceAccountFile!, 'utf8')
       await db.insert(credential).values({

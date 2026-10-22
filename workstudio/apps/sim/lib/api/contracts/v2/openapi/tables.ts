@@ -1998,14 +1998,14 @@ const routes = declaredRoutes.map(withRequestBodyErrors)
 export const tablesOpenApiDocument = defineOpenApiDocument({
   output: 'apps/docs/openapi-v2-tables.json',
   info: {
-    title: 'Sim Tables API v2',
+    title: 'Nexora Tables API v2',
     description:
-      'Version 2 of the Sim REST API for tables, typed columns, rows, saved views, workflow groups, folders, imports, and exports. Row data is keyed by column name.',
+      'Version 2 of the Nexora REST API for tables, typed columns, rows, saved views, workflow groups, folders, imports, and exports. Row data is keyed by column name.',
     version: '2.0.0',
-    contact: { name: 'Sim Support', email: 'help@sim.ai', url: 'https://www.sim.ai' },
+    contact: { name: 'Nexora Support', email: 'support@example.com', url: 'https://workstudio.example.com' },
     license: { name: 'Apache 2.0', url: 'https://www.apache.org/licenses/LICENSE-2.0.html' },
   },
-  servers: [{ url: 'https://www.sim.ai', description: 'Production' }],
+  servers: [{ url: 'https://workstudio.example.com', description: 'Production' }],
   tags: [
     {
       name: 'Tables',

@@ -1,4 +1,5 @@
 import { QuartrIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -55,7 +56,7 @@ export const QuartrBlock: BlockConfig = {
     'Look up companies, corporate events, and event types, retrieve AI-generated event summaries, list and download reports, slide decks, and transcripts, and access archived audio or live event streams. Supply a Quartr API key.',
   category: 'tools',
   integrationType: IntegrationType.Analytics,
-  docsLink: 'https://docs.sim.ai/integrations/quartr',
+  docsLink: docsUrl('/integrations/quartr'),
   bgColor: '#000000',
   icon: QuartrIcon,
   canvasPresentation: {

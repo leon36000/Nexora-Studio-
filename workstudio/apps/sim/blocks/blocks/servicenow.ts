@@ -1,4 +1,5 @@
 import { ServiceNowIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -169,7 +170,7 @@ export const ServiceNowBlock = {
   description: 'Create, read, update, and delete ServiceNow records',
   longDescription:
     'Create or update incidents and change requests, order catalog items, and process approvals. Read configuration items, knowledge articles, users, and groups, and transfer attachments. Generic record, aggregate, and table-scoped attachment operations accept a table name. Connect with your ServiceNow instance URL, username, and password.',
-  docsLink: 'https://docs.sim.ai/integrations/servicenow',
+  docsLink: docsUrl('/integrations/servicenow'),
   category: 'tools',
   integrationType: IntegrationType.Support,
   authMode: AuthMode.ApiKey,

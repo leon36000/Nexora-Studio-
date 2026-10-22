@@ -19,7 +19,7 @@ const SUBTITLE_FONT_SIZE = 30
  * average-glyph-width estimate and a shared helper agrees with it, so a title
  * that really does run off the canvas still passes.
  */
-const fontFile = readFileSync(join(process.cwd(), 'public', 'brand', 'fonts', 'Soehne-Kraftig.ttf'))
+const fontFile = readFileSync(join(process.cwd(), 'public', 'brand', 'fonts', 'Inter-Medium-latin.woff'))
 const coverFont = parseFont(
   fontFile.buffer.slice(
     fontFile.byteOffset,

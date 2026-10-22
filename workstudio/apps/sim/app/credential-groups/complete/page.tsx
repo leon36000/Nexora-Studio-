@@ -52,7 +52,7 @@ export default async function CredentialGroupCompletePage({
       {(error || returnHref) && (
         <div className='mt-6 flex justify-center'>
           <ChipLink href={returnHref ?? APP_ENTRY_PATH}>
-            {returnHref ? 'Return to Integrations' : 'Open Sim'}
+            {returnHref ? 'Return to Integrations' : 'Open Nexora'}
           </ChipLink>
         </div>
       )}

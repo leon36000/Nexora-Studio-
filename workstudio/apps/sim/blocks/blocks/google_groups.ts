@@ -1,4 +1,5 @@
 import { GoogleGroupsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -11,7 +12,7 @@ export const GoogleGroupsBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Connect to Google Workspace to create, update, and manage groups and their members using the Admin SDK Directory API.',
-  docsLink: 'https://docs.sim.ai/integrations/google_groups',
+  docsLink: docsUrl('/integrations/google_groups'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#E8F0FE',

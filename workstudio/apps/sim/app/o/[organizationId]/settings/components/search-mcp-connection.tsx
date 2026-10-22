@@ -66,14 +66,14 @@ export function SearchMcpConnection({ endpoint }: SearchMcpConnectionProps) {
           flush
           hint={
             client === 'claude'
-              ? 'In Claude web or Desktop, add a custom connector with this URL, then sign in to Sim. On Team or Enterprise, an owner adds the connector first.'
+              ? 'In Claude web or Desktop, add a custom connector with this URL, then sign in to Nexora. On Team or Enterprise, an owner adds the connector first.'
               : client === 'devin'
-                ? 'In Devin, open Customize → MCPs and add a custom MCP with this URL. Choose HTTP, OAuth, and Personal access, then select Connect and sign in to Sim.'
+                ? 'In Devin, open Customize → MCPs and add a custom MCP with this URL. Choose HTTP, OAuth, and Personal access, then select Connect and sign in to Nexora.'
                 : client === 'other'
-                  ? 'Add this URL in an app that supports remote MCP with OAuth. Choose Streamable HTTP if asked, then sign in to Sim.'
+                  ? 'Add this URL in an app that supports remote MCP with OAuth. Choose Streamable HTTP if asked, then sign in to Nexora.'
                   : client === 'claude-code'
-                    ? 'Run this command, then open /mcp in Claude Code to connect and sign in to Sim.'
-                    : 'Run this command and sign in to Sim in the browser. To reconnect, run codex mcp login sim-search.'
+                    ? 'Run this command, then open /mcp in Claude Code to connect and sign in to Nexora.'
+                    : 'Run this command and sign in to Nexora in the browser. To reconnect, run codex mcp login sim-search.'
           }
         />
       ) : (
@@ -81,7 +81,7 @@ export function SearchMcpConnection({ endpoint }: SearchMcpConnectionProps) {
           type='custom'
           title='Configuration'
           flush
-          hint='Add sim-search to mcpServers in ~/.cursor/mcp.json, then connect Sim Search in Cursor and sign in to Sim.'
+          hint='Add sim-search to mcpServers in ~/.cursor/mcp.json, then connect Nexora Search in Cursor and sign in to Nexora.'
         >
           {(aria) => (
             <>

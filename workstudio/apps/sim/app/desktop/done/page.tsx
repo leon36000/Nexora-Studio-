@@ -2,18 +2,18 @@ import type { Metadata } from 'next'
 import { DesktopHandoffShell } from '@/app/desktop/components/desktop-handoff-shell'
 
 export const metadata: Metadata = {
-  title: 'Return to Sim',
+  title: 'Return to Nexora',
   robots: { index: false },
 }
 
 const COPY = {
   auth: {
     title: 'You’re signed in',
-    description: 'Return to the Sim desktop app — you can close this tab.',
+    description: 'Return to the Nexora desktop app — you can close this tab.',
   },
   connect: {
     title: 'Connection finished',
-    description: 'Return to the Sim desktop app — you can close this tab.',
+    description: 'Return to the Nexora desktop app — you can close this tab.',
   },
 } as const
 

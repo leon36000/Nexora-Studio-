@@ -34,7 +34,7 @@ const CONSENT_CATEGORY_COPY: Record<string, ConsentCategoryCopy | undefined> = {
   },
   measurement: {
     title: 'Analytics',
-    description: 'Shows us how Sim is used so we can make it better.',
+    description: 'Shows us how Nexora is used so we can make it better.',
   },
   marketing: {
     title: 'Marketing',

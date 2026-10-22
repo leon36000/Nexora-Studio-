@@ -1,4 +1,5 @@
 import { HuggingFaceIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const HuggingFaceBlock: BlockConfig = {
   description: 'Use Hugging Face Inference API',
   authMode: AuthMode.ApiKey,
   longDescription: 'Generate completions with the Hugging Face Inference API.',
-  docsLink: 'https://docs.sim.ai/integrations/huggingface',
+  docsLink: docsUrl('/integrations/huggingface'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#0B0F19',

@@ -1,4 +1,5 @@
 import { AlgoliaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const AlgoliaBlock: BlockConfig = {
   description: 'Search and manage Algolia indices',
   longDescription:
     'Search indices, manage records (add, update, delete, browse), configure index settings, and perform batch operations.',
-  docsLink: 'https://docs.sim.ai/integrations/algolia',
+  docsLink: docsUrl('/integrations/algolia'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#003DFF',
@@ -784,7 +785,7 @@ export const AlgoliaBlockMeta = {
       icon: AlgoliaIcon,
       title: 'Algolia + knowledge base sync',
       prompt:
-        'Build a workflow that mirrors a Sim knowledge base into an Algolia index, keeping vector retrieval and keyword search aligned for hybrid retrieval.',
+        'Build a workflow that mirrors a Nexora knowledge base into an Algolia index, keeping vector retrieval and keyword search aligned for hybrid retrieval.',
       modules: ['knowledge-base', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['engineering', 'sync'],

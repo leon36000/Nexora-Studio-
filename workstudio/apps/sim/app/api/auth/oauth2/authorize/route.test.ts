@@ -163,7 +163,7 @@ describe('OAuth2 authorize route', () => {
     expect(req.nextUrl.searchParams.get('scope')).toContain('api:write')
   })
 
-  it('binds a publicly registered client Sim API grant to the Sim MCP server', async () => {
+  it('binds a publicly registered client Nexora API grant to the Nexora MCP server', async () => {
     mocks.isPubliclyRegistered.mockResolvedValue(true)
     const unbound = await GET(
       request({
@@ -189,7 +189,7 @@ describe('OAuth2 authorize route', () => {
     expect(bound.status).toBe(302)
   })
 
-  it('narrows issuer-wide scope requests to the Sim API for the Sim MCP server', async () => {
+  it('narrows issuer-wide scope requests to the Nexora API for the Nexora MCP server', async () => {
     const req = request({
       client_id: 'mcp-client',
       response_type: 'code',
@@ -210,7 +210,7 @@ describe('OAuth2 authorize route', () => {
     { scope: 'offline_access', resource: `${BASE_URL}/api/mcp` },
     { scope: 'api:read unknown', resource: `${BASE_URL}/api/mcp` },
     { scope: 'api:read', resource: `${BASE_URL}/api/mcp/` },
-  ])('refuses Sim MCP grants without Sim API scope: %o', async (params) => {
+  ])('refuses Nexora MCP grants without Nexora API scope: %o', async (params) => {
     const response = await GET(
       request({
         client_id: 'mcp-client',

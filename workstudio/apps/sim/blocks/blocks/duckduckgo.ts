@@ -1,4 +1,5 @@
 import { DuckDuckGoIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const DuckDuckGoBlock: BlockConfig = {
   description: 'Search with DuckDuckGo',
   longDescription:
     'Search the web using DuckDuckGo Instant Answers API. Returns instant answers, abstracts, related topics, and more. Free to use without an API key.',
-  docsLink: 'https://docs.sim.ai/integrations/duckduckgo',
+  docsLink: docsUrl('/integrations/duckduckgo'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#FFFFFF',

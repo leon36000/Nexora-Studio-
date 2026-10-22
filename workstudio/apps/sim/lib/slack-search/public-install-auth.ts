@@ -13,7 +13,7 @@ import { getSharedSlackSearchAppConfiguration } from '@/lib/slack-search/shared-
  */
 export async function authenticateSlackPublicInstallation(code: string) {
   const app = isHosted ? getSharedSlackSearchAppConfiguration() : null
-  if (!app) throw new OrchestrationError('forbidden', 'The Sim Search app is unavailable')
+  if (!app) throw new OrchestrationError('forbidden', 'The Nexora Search app is unavailable')
   const grant = await exchangeSlackBotAuthorization({
     clientId: app.clientId,
     clientSecret: app.clientSecret,

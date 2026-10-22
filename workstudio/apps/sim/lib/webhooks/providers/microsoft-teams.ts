@@ -578,7 +578,7 @@ export const microsoftTeamsHandler: WebhookProviderHandler = {
       return new NextResponse(null, { status: 202 })
     }
 
-    return NextResponse.json({ type: 'message', text: 'Sim' })
+    return NextResponse.json({ type: 'message', text: 'Nexora' })
   },
 
   formatQueueErrorResponse() {

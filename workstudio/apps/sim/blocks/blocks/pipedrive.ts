@@ -1,4 +1,5 @@
 import { PipedriveIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -12,7 +13,7 @@ export const PipedriveBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Create, read, and update deals and activities, and create, read, update, or delete leads. List, retrieve, or create projects, inspect pipelines, and retrieve files and mail threads through the connected account.',
-  docsLink: 'https://docs.sim.ai/integrations/pipedrive',
+  docsLink: docsUrl('/integrations/pipedrive'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#2E6936',
@@ -927,7 +928,7 @@ export const PipedriveBlockMeta = {
       icon: PipedriveIcon,
       title: 'Pipedrive deal pipeline tracker',
       prompt:
-        'Create a scheduled workflow that mirrors Pipedrive deals into a Sim table, calculates pipeline velocity per stage, and posts a daily Slack summary of deals at risk.',
+        'Create a scheduled workflow that mirrors Pipedrive deals into a Nexora table, calculates pipeline velocity per stage, and posts a daily Slack summary of deals at risk.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'sales',
       tags: ['sales', 'crm', 'monitoring'],

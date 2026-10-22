@@ -9,7 +9,7 @@ import {
 } from '@/app/desktop/connect/validation'
 
 export const metadata: Metadata = {
-  title: 'Returning to Sim',
+  title: 'Returning to Nexora',
   robots: { index: false },
 }
 
@@ -23,7 +23,7 @@ function InvalidRequest() {
   return (
     <DesktopHandoffShell
       title='Nothing to return to'
-      description='This page finishes an account connection started from the Sim desktop app.'
+      description='This page finishes an account connection started from the Nexora desktop app.'
     />
   )
 }

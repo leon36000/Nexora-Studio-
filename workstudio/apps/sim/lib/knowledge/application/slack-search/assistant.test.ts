@@ -192,7 +192,7 @@ beforeEach(() => {
   })
 })
 describe('organization Assistant from Slack', () => {
-  it('offers account onboarding for a known Slack sender without a verified Sim membership', async () => {
+  it('offers account onboarding for a known Slack sender without a verified Nexora membership', async () => {
     m.member.mockRejectedValueOnce(new SlackSearchIdentityError())
     await run()
     expect(m.onboarding).toHaveBeenCalledWith(
@@ -251,7 +251,7 @@ describe('organization Assistant from Slack', () => {
     await expect(run()).rejects.toThrow('disabled')
     expect(m.run).not.toHaveBeenCalled()
   })
-  it('does not steal the chat lock from a Sim browser conversation', async () => {
+  it('does not steal the chat lock from a Nexora browser conversation', async () => {
     m.lock.mockResolvedValueOnce(false)
     await expect(run()).rejects.toThrow('already answering')
     expect(m.persist).not.toHaveBeenCalled()

@@ -15,7 +15,7 @@ const WORKFLOW_MCP_SCOPES = [OAUTH_API_READ_SCOPE, OAUTH_API_WRITE_SCOPE] as con
 function workflowMcpResource(serverId: string): OAuthProtectedResource {
   return {
     resource: buildWorkflowMcpServerUrl(serverId),
-    name: 'Sim workflow MCP server',
+    name: 'Nexora workflow MCP server',
     scopes: WORKFLOW_MCP_SCOPES,
   }
 }

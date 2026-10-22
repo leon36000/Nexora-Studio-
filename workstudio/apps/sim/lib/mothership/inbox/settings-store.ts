@@ -115,7 +115,7 @@ export async function updateInboxSettingsRecord(workspaceId: string, body: Inbox
   }
 
   if (!(await hasWorkspaceInboxAccess(workspaceId))) {
-    throw new OrchestrationError('forbidden', 'Sim Mailer requires a Max plan')
+    throw new OrchestrationError('forbidden', 'Nexora Mailer requires a Max plan')
   }
 
   if (body.enabled === true) {

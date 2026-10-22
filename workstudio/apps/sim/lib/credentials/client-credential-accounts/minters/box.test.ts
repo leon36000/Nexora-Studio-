@@ -39,7 +39,7 @@ describe('mintBoxServiceAccountToken', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           id: '33445566',
-          name: 'Sim Automation',
+          name: 'Nexora Automation',
           login: 'AutomationUser_123_abc@boxdevedition.com',
         })
       )
@@ -50,7 +50,7 @@ describe('mintBoxServiceAccountToken', () => {
       accessToken: 'box-access',
       expiresInSeconds: 3600,
       identity: {
-        displayName: 'Sim Automation',
+        displayName: 'Nexora Automation',
         principal: {
           kind: 'user',
           id: '33445566',
@@ -67,7 +67,7 @@ describe('mintBoxServiceAccountToken', () => {
   it('marks the principal as lookup_failed when users/me omits the user id', async () => {
     mockFetch
       .mockResolvedValueOnce(jsonResponse({ access_token: 'box-access', expires_in: 3600 }))
-      .mockResolvedValueOnce(jsonResponse({ name: 'Sim Automation' }))
+      .mockResolvedValueOnce(jsonResponse({ name: 'Nexora Automation' }))
 
     const result = await mintBoxServiceAccountToken(FIELDS)
 
@@ -77,7 +77,7 @@ describe('mintBoxServiceAccountToken', () => {
     })
     // Only the principal degrades — a name that did come back still beats the
     // Enterprise-ID fallback, so the credential does not lose its label.
-    expect(result.identity?.displayName).toBe('Sim Automation')
+    expect(result.identity?.displayName).toBe('Nexora Automation')
   })
 
   it('flags a wrong app type on the grant-type variant of unauthorized_client', async () => {

@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { Neo4jIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const Neo4jBlock: BlockConfig = {
   name: 'Neo4j',
   description: 'Connect to Neo4j graph database',
   longDescription: 'Query, create, merge, update, and delete nodes and relationships.',
-  docsLink: 'https://docs.sim.ai/integrations/neo4j',
+  docsLink: docsUrl('/integrations/neo4j'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',

@@ -13,7 +13,7 @@ export const instagramPublishStoryTool: InternalToolConfig<
   id: 'instagram_publish_story',
   name: 'Instagram Publish Story',
   description:
-    'Publish an image or video story for an Instagram professional account from a Sim file',
+    'Publish an image or video story for an Instagram professional account from a Nexora file',
   version: '1.0.0',
 
   oauth: {
@@ -39,7 +39,7 @@ export const instagramPublishStoryTool: InternalToolConfig<
       required: true,
       visibility: 'user-or-llm',
       description:
-        'JPEG image or MP4/MOV video uploaded to Sim or referenced from a previous block',
+        'JPEG image or MP4/MOV video uploaded to Nexora or referenced from a previous block',
     },
   },
 

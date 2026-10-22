@@ -342,7 +342,7 @@ describe('reflectBackgroundChatStatus', () => {
     expect(shown).toEqual([
       {
         title: 'Fix CI',
-        body: 'Sim finished responding.',
+        body: 'Nexora finished responding.',
         route: '/workspace/ws-1/chat/chat-b',
         background: true,
       },

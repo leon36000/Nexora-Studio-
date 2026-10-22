@@ -8,7 +8,7 @@ import { AuthShell } from '@/app/(auth)/components'
 import { SlackSearchOnboarding } from '@/app/slack-search/connect/[token]/slack-search-onboarding'
 
 export const metadata: Metadata = {
-  title: 'Get started with Sim in Slack',
+  title: 'Get started with Nexora in Slack',
   robots: { index: false, follow: false },
   referrer: 'no-referrer',
 }
@@ -31,7 +31,7 @@ export default async function SlackSearchOnboardingPage({
         <SlackSearchOnboarding token={token} userId={session.user.id} />
       ) : (
         <div className='flex flex-col gap-5'>
-          <h1 className='text-2xl'>Get started with Sim in Slack</h1>
+          <h1 className='text-2xl'>Get started with Nexora in Slack</h1>
           <p className='text-[var(--text-secondary)] text-sm'>
             Sign in or create an account using your Slack email. After setup, you can retry your
             question in the same Slack thread.

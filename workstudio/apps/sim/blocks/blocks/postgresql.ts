@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { PostgresIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const PostgreSQLBlock: BlockConfig = {
   description: 'Connect to PostgreSQL database',
   longDescription:
     'Query or modify PostgreSQL rows, execute SQL, and inspect tables, columns, keys, and indexes.',
-  docsLink: 'https://docs.sim.ai/integrations/postgresql',
+  docsLink: docsUrl('/integrations/postgresql'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#336791',
@@ -487,9 +488,9 @@ export const PostgreSQLBlockMeta = {
     },
     {
       icon: PostgresIcon,
-      title: 'Postgres results to Sim table',
+      title: 'Postgres results to Nexora table',
       prompt:
-        'Create a scheduled workflow that runs a PostgreSQL query for the latest records and writes each row into a Sim table, so the data is available for downstream blocks without a live database call.',
+        'Create a scheduled workflow that runs a PostgreSQL query for the latest records and writes each row into a Nexora table, so the data is available for downstream blocks without a live database call.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['database', 'sync'],

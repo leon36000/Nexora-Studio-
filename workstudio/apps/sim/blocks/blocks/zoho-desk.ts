@@ -1,5 +1,6 @@
 import { isRecordLike } from '@sim/utils/object'
 import { ZohoDeskIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -405,7 +406,7 @@ export const ZohoDeskBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Create, search, and update Zoho Desk tickets, contacts, and accounts; send email replies, manage comments, inspect departments and agents, and download attachments. Trigger workflows from Zoho Desk webhook events.',
-  docsLink: 'https://docs.sim.ai/integrations/zoho_desk',
+  docsLink: docsUrl('/integrations/zoho_desk'),
   category: 'tools',
   integrationType: IntegrationType.Support,
   bgColor: '#FFFFFF',

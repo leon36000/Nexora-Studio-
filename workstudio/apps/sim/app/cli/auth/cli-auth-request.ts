@@ -44,7 +44,7 @@ export function resolveCliAuthRequest({
   workspace,
 }: RawCliAuthParams): CliAuthRequestResolution {
   if (!request || !challenge || !pairing) {
-    return { valid: false, reason: 'This link is missing the parameters the Sim CLI sends.' }
+    return { valid: false, reason: 'This link is missing the parameters the Nexora CLI sends.' }
   }
 
   if (!BASE64URL_43.test(request) || !BASE64URL_43.test(challenge)) {

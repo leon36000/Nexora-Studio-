@@ -7,7 +7,7 @@ import { OAUTH_SEARCH_SCOPES } from '@/lib/auth/oauth-provider'
 export function searchMcpResourceMetadata(resource: string) {
   return protectedResourceMetadataResponse({
     resource,
-    name: 'Sim Search',
+    name: 'Nexora Search',
     scopes: OAUTH_SEARCH_SCOPES,
   })
 }

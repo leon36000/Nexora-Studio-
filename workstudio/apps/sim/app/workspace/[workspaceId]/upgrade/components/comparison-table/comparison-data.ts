@@ -177,7 +177,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
     title: 'Features',
     rows: [
       {
-        label: 'Sim Mailer (Inbox)',
+        label: 'Nexora Mailer (Inbox)',
         values: [false, false, true, true],
       },
       {

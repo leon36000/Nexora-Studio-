@@ -63,7 +63,7 @@ beforeEach(() => {
   v2RouteMocks.operationRate.mockResolvedValue(V2_OPERATION_RATE_LIMIT_ALLOWED)
 })
 
-describe('Sim MCP admission', () => {
+describe('Nexora MCP admission', () => {
   it.each(['GET', 'POST', 'DELETE'] as const)(
     'points an unauthenticated %s at the protected-resource metadata',
     async (method) => {
@@ -88,7 +88,7 @@ describe('Sim MCP admission', () => {
   })
 })
 
-describe('Sim MCP tools', () => {
+describe('Nexora MCP tools', () => {
   it('serves a read through the v2 route with the MCP credential and audience', async () => {
     const result = await callTool('call_read_operation', { operation: 'getMeta' })
     expect(result.isError).toBeFalsy()

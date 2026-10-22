@@ -378,13 +378,13 @@ export async function processContextsServer(
         const { searchDocsServerTool } = await import(
           '@/lib/mothership/tools/server/docs/search-docs'
         )
-        const rawQuery = docsMessage || ctx.label || 'Sim documentation'
+        const rawQuery = docsMessage || ctx.label || 'Nexora documentation'
         let sanitizedQuery = docsQueries.get(rawQuery)
         if (sanitizedQuery === undefined) {
           sanitizedQuery = sanitizeMessageForDocs(rawQuery, contexts)
           docsQueries.set(rawQuery, sanitizedQuery)
         }
-        const query = sanitizedQuery || ctx.label || 'Sim documentation'
+        const query = sanitizedQuery || ctx.label || 'Nexora documentation'
         const res = await searchDocsServerTool.execute(
           { query },
           {

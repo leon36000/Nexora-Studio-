@@ -113,7 +113,7 @@ export function SettingsSidebar<Section extends SettingsSection>({
         {SETTINGS_PLANE_CHROME[plane].showWordmark ? (
           <button
             type='button'
-            aria-label='Sim home'
+            aria-label='Nexora home'
             onClick={() => requestLeave(() => router.push(LANDING_HREF))}
             className='flex h-[30px] shrink-0 items-center px-2 transition-opacity hover:opacity-70'
           >

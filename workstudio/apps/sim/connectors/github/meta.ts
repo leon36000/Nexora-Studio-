@@ -1,4 +1,5 @@
 import { GithubIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { ConnectorMeta } from '@/connectors/types'
 
 export const githubConnectorMeta: ConnectorMeta = {
@@ -8,7 +9,7 @@ export const githubConnectorMeta: ConnectorMeta = {
   version: '1.0.0',
   icon: GithubIcon,
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/github',
+  searchDocsUrl: docsUrl('/search/github'),
   permissionScopedListing: { capFieldIds: ['maxFiles'] },
   supportsSeparateContentCredential: true,
 

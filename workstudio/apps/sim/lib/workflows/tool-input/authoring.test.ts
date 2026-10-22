@@ -58,7 +58,7 @@ describe('tool binding authoring contract', () => {
     )
   })
 
-  it('publishes and validates the narrower Sim Chat MCP contract', () => {
+  it('publishes and validates the narrower Nexora Chat MCP contract', () => {
     const accepted = [
       mcp,
       { ...mcp, usageControl: 'force' },

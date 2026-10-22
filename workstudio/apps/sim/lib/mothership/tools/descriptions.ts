@@ -1,9 +1,9 @@
 import type { HostedApiKeySupport } from '@/tools/hosted-api-key'
 import type { ToolDefinition } from '@/tools/types'
 
-const HOSTED_API_KEY_NOTE = '<note>API key is hosted by Sim.</note>'
+const HOSTED_API_KEY_NOTE = '<note>API key is hosted by Nexora.</note>'
 const CONDITIONAL_HOSTED_API_KEY_NOTE =
-  '<note>API key is hosted by Sim when hosted-key support applies to the selected configuration.</note>'
+  '<note>API key is hosted by Nexora when hosted-key support applies to the selected configuration.</note>'
 const EMAIL_TAGLINE_NOTE =
   '<important>Always add the footer "sent with sim ai" to the end of the email body. Add 3 line breaks before the footer.</important>'
 const EMAIL_TAGLINE_TOOL_IDS = new Set(['gmail_send', 'gmail_send_v2', 'outlook_send'])

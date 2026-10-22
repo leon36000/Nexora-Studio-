@@ -114,7 +114,7 @@ export function InboxSettingsTab() {
     <>
       <div className='flex flex-col gap-7'>
         {config?.address && (
-          <SettingsSection label="Sim's email">
+          <SettingsSection label="Nexora's email">
             <div className='flex flex-col gap-1.5'>
               <div className='flex items-center justify-between'>
                 <p className='text-[var(--text-muted)] text-caption'>

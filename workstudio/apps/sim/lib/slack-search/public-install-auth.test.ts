@@ -28,7 +28,7 @@ beforeEach(() => {
   m.exchange.mockResolvedValue(grant)
 })
 describe('Slack-initiated installation authentication', () => {
-  it('completes the Slack install without returning tokens or asserting a Sim identity', async () => {
+  it('completes the Slack install without returning tokens or asserting a Nexora identity', async () => {
     const result = await authenticateSlackPublicInstallation('one-use-code')
     expect(m.exchange).toHaveBeenCalledWith({
       clientId: 'client',

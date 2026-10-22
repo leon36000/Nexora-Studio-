@@ -50,5 +50,5 @@ export const CUSTOMER_STORIES: readonly CustomerStory[] = [
 export const CUSTOMER_SECTION = {
   name: 'Customer stories',
   basePath: '/customers',
-  description: 'How teams connect their systems, build AI agents, and govern their work with Sim.',
+  description: 'How teams connect their systems, build AI agents, and govern their work with Nexora.',
 } as const

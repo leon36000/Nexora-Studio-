@@ -1,4 +1,5 @@
 import { xIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -10,7 +11,7 @@ export const XBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Search tweets, manage bookmarks, follow/block/mute users, like and retweet, view trends, and more.',
-  docsLink: 'https://docs.sim.ai/integrations/x',
+  docsLink: docsUrl('/integrations/x'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#000000',

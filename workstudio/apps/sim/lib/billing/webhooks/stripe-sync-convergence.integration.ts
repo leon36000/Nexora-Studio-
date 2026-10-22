@@ -802,7 +802,7 @@ describe('cancel_at_period_end sync', () => {
     expect(stripe.subscription(pro.stripeSubscriptionId).cancel_at_period_end).toBe(true)
   })
 
-  it('keeps a value Sim committed after the reconcile read Stripe', async () => {
+  it('keeps a value Nexora committed after the reconcile read Stripe', async () => {
     const pro = await createProUserInPaidOrganization()
     await pauseProSubscriptionForOrgCoverage(pro.userId)
     const pauseSync = await latestOutboxEventId(
@@ -958,7 +958,7 @@ describe('cancel_at_period_end sync', () => {
     expect(stripe.subscription(pro.stripeSubscriptionId).cancel_at_period_end).toBe(false)
   })
 
-  it("treats a write from an older deploy's sync handler as Sim's own echo", async () => {
+  it("treats a write from an older deploy's sync handler as Nexora's own echo", async () => {
     const pro = await createProUserInPaidOrganization()
     await pauseProSubscriptionForOrgCoverage(pro.userId)
     const pauseSync = await latestOutboxEventId(

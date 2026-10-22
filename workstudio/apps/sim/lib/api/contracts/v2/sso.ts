@@ -175,7 +175,7 @@ const v2SaveSsoProviderBodySchema = z.discriminatedUnion('providerType', [
         .url()
         .max(2048)
         .optional()
-        .describe('SAML callback URL; defaults to this provider’s Sim callback.'),
+        .describe('SAML callback URL; defaults to this provider’s Nexora callback.'),
       audience: z
         .string()
         .max(2048)

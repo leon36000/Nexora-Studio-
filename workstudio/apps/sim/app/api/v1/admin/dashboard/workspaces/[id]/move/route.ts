@@ -34,7 +34,7 @@ export const POST = withRouteHandler(
         workspaceId: parsed.data.params.id,
         destinationOrganizationId: parsed.data.body.destinationOrganizationId,
         expectedOwnerId: parsed.data.body.expectedOwnerId,
-        adminEmail: request.headers.get('x-admin-email') ?? 'admin-api@sim.ai',
+        adminEmail: request.headers.get('x-admin-email') ?? 'admin-api@nexora.local',
         auditActor: actor,
         auditOperationId: parsed.data.body.operationId,
         operationCorrelationId: parsed.data.body.operationId,

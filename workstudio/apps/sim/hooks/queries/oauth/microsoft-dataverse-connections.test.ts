@@ -96,14 +96,14 @@ describe('Microsoft Dataverse OAuth connections', () => {
     webHook.unmount()
 
     mockBeginOAuthConnect.mockName('desktop')
-    expect(() => assertMicrosoftDataverseWebOAuthAvailable()).toThrow('Sim web app')
+    expect(() => assertMicrosoftDataverseWebOAuthAvailable()).toThrow('Nexora web app')
     const desktopHook = renderHookWithClient(useConnectMicrosoftDataverseOAuthService)
     await expect(
       desktopHook.result().mutateAsync({
         callbackURL: 'https://sim.test/workflow',
         environmentUrl: 'https://contoso.crm.dynamics.com',
       })
-    ).rejects.toThrow('Sim web app')
+    ).rejects.toThrow('Nexora web app')
     expect(mockLink).not.toHaveBeenCalled()
     desktopHook.unmount()
   })
@@ -128,7 +128,7 @@ describe('Microsoft Dataverse OAuth connections', () => {
         bindingState: 'bound',
         credentialQueryFailed: false,
       })
-    ).toThrow('Sim web app')
+    ).toThrow('Nexora web app')
     expect(() =>
       assertMicrosoftDataverseReconnectAvailable({
         bindingState: 'legacy',

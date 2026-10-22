@@ -1,4 +1,5 @@
 import { CloudTrailIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -31,7 +32,7 @@ export const CloudTrailBlock: BlockConfig = {
   description: 'Audit who did what in AWS with CloudTrail event history and Lake queries',
   longDescription:
     'Integrate AWS CloudTrail into workflows. Look up the last 90 days of management and Insights events by user, event name, resource, or access key; inspect trail configuration, logging status, and event selectors; and run SQL queries against CloudTrail Lake event data stores. This block never changes trail or event data store configuration, and never starts or stops logging. Starting and cancelling a Lake query are the only actions that are not reads, and AWS bills Lake queries on the data they scan. Requires AWS access key and secret access key.',
-  docsLink: 'https://docs.sim.ai/integrations/cloudtrail',
+  docsLink: docsUrl('/integrations/cloudtrail'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   authMode: AuthMode.ApiKey,

@@ -1,4 +1,5 @@
 import { SapConcurIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -199,7 +200,7 @@ export const SapConcurBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Connect SAP Concur with an OAuth client ID and secret (client-credentials or password grant) — no account linking required. Manage expense reports and line items, allocations, attendees, comments, exceptions, quick expenses, receipts, travel requests and expected expenses, cash advances, itineraries, user identities, custom lists, budgets, exchange rates, and purchase requests across every Concur datacenter.',
-  docsLink: 'https://docs.sim.ai/integrations/sap_concur',
+  docsLink: docsUrl('/integrations/sap_concur'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

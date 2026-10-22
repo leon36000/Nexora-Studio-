@@ -16,6 +16,6 @@ export function slackSearchOnboardingUrl(token: string) {
 }
 
 export const SLACK_SEARCH_CONNECT_ACCOUNT =
-  'Get started with Sim to search your organization from Slack. Sign in or create an account using your Slack email, then complete your organization’s invitation or SSO setup.'
+  'Get started with Nexora to search your organization from Slack. Sign in or create an account using your Slack email, then complete your organization’s invitation or SSO setup.'
 export const SLACK_SEARCH_CONNECT_SOURCES =
-  'Connect your accounts in Sim, then retry this question.'
+  'Connect your accounts in Nexora, then retry this question.'

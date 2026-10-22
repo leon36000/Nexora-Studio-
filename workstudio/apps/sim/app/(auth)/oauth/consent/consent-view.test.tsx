@@ -43,7 +43,7 @@ describe('OAuth consent view', () => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     queryClient.setQueryData(oauthProviderKeys.client('sim-cli', 'request'), {
       clientId: 'sim-cli',
-      name: 'Sim CLI',
+      name: 'Nexora CLI',
     })
     container = document.createElement('div')
     root = createRoot(container)

@@ -1,4 +1,5 @@
 import { SalesforceIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -11,7 +12,7 @@ export const SalesforceBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Manage accounts, contacts, leads, opportunities, cases, and tasks, run reports and SOQL queries, and manage org schema by creating custom fields and objects via the Tooling API.',
-  docsLink: 'https://docs.sim.ai/integrations/salesforce',
+  docsLink: docsUrl('/integrations/salesforce'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

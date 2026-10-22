@@ -9,7 +9,7 @@ import type { TriggerConfig } from '@/triggers/types'
 
 export const simWorkspaceEventTrigger: TriggerConfig = {
   id: SIM_WORKSPACE_EVENT_TRIGGER_ID,
-  name: 'Sim Workspace Events',
+  name: 'Nexora Workspace Events',
   provider: SIM_TRIGGER_PROVIDER,
   description:
     'Triggers when workspace events occur: run errors or successes, deployments, and alert conditions like latency or cost spikes',

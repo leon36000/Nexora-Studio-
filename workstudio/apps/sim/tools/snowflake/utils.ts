@@ -182,7 +182,7 @@ export function buildSnowflakeAuthHeaders(accessToken: string): Record<string, s
     Authorization: `Bearer ${token}`,
     Accept: 'application/json',
     'Content-Type': 'application/json',
-    'User-Agent': 'Sim/1.0 (+https://sim.ai)',
+    'User-Agent': 'Nexora/1.0 (+https://github.com/leon36000/Nexora-Studio-)',
     'X-Snowflake-Authorization-Token-Type': 'PROGRAMMATIC_ACCESS_TOKEN',
   }
 }
@@ -223,7 +223,7 @@ export function normalizeMaxRows(value?: number): number {
   const maxRows = value ?? DEFAULT_MAX_ROWS
   if (!Number.isInteger(maxRows) || maxRows < 1 || maxRows > SIM_MAX_RESULT_ROWS) {
     throw new Error(
-      `maxRows must be an integer between 1 and the Sim safety limit of ${SIM_MAX_RESULT_ROWS}`
+      `maxRows must be an integer between 1 and the Nexora safety limit of ${SIM_MAX_RESULT_ROWS}`
     )
   }
   return maxRows

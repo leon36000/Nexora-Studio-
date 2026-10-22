@@ -64,7 +64,7 @@ function EmbedMessage({ children, tone = 'muted' }: EmbedMessageProps) {
 export function DashboardEmbed({ source, isStreaming }: DashboardEmbedProps) {
   const params = useParams()
   const workspaceId = typeof params.workspaceId === 'string' ? params.workspaceId : null
-  if (isStreaming) return <EmbedMessage>The chart loads when Sim finishes writing.</EmbedMessage>
+  if (isStreaming) return <EmbedMessage>The chart loads when Nexora finishes writing.</EmbedMessage>
   if (!workspaceId)
     return <EmbedMessage>Open this document in its workspace to see live data.</EmbedMessage>
   return (

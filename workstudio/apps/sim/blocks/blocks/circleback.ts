@@ -1,5 +1,6 @@
 import { ClipboardList, Table } from '@sim/emcn/icons'
 import { CirclebackIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -12,7 +13,7 @@ export const CirclebackBlock: BlockConfig = {
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: 'linear-gradient(180deg, #E0F7FA 0%, #FFFFFF 100%)',
-  docsLink: 'https://docs.sim.ai/integrations/circleback',
+  docsLink: docsUrl('/integrations/circleback'),
   icon: CirclebackIcon,
   authMode: AuthMode.ApiKey,
   triggerAllowed: true,

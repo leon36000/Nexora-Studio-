@@ -1,4 +1,5 @@
 import { EnrichSoIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -15,7 +16,7 @@ export const EnrichBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Access real-time B2B data intelligence with Enrich.so. Enrich profiles from email addresses, find work emails from LinkedIn, verify email deliverability, search for people and companies, and analyze LinkedIn post engagement.',
-  docsLink: 'https://docs.sim.ai/integrations/enrich',
+  docsLink: docsUrl('/integrations/enrich'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#E5E5E6',

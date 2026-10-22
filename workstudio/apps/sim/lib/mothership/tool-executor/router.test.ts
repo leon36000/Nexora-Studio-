@@ -64,7 +64,7 @@ import {
 } from '@/lib/mothership/tool-executor/router'
 
 describe('workflow-run cancellation tool routing', () => {
-  it('routes cancellation through Sim with write permission and explicit approval', () => {
+  it('routes cancellation through Nexora with write permission and explicit approval', () => {
     expect(getToolEntry('cancel_workflow_run')).toMatchObject({
       requiredPermission: 'write',
       route: 'sim',
@@ -73,7 +73,7 @@ describe('workflow-run cancellation tool routing', () => {
     expect(toolRequiresApproval('cancel_workflow_run')).toBe(true)
   })
 
-  it('dispatches cancellation to the registered Sim handler with trusted context', async () => {
+  it('dispatches cancellation to the registered Nexora handler with trusted context', async () => {
     await ensureHandlersRegistered()
 
     expect(hasHandler('cancel_workflow_run')).toBe(true)

@@ -111,14 +111,34 @@ describe('SCIM route builder', () => {
     expect(authenticate).not.toHaveBeenCalled()
   })
 
-  it('answers in the SCIM media type with the RFC envelope', async () => {
+  it('Nexora edition: stays hidden even when the deployment flag is on', async () => {
+    for (const response of [
+      await listUsers(request('GET', '/api/scim/v2/Users'), undefined),
+      await createUser(
+        request('POST', '/api/scim/v2/Users', {
+          body: '{}',
+          headers: { 'content-type': 'application/scim+json' },
+        }),
+        undefined
+      ),
+      await deleteUser(request('DELETE', '/api/scim/v2/Users/su-1'), withParams),
+    ]) {
+      expect(response.status).toBe(404)
+    }
+    expect(authenticate).not.toHaveBeenCalled()
+    expect(mocks.checkRateLimitDirect).not.toHaveBeenCalled()
+  })
+
+  // Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+  it.skip('answers in the SCIM media type with the RFC envelope', async () => {
     const response = await listUsers(request('GET', '/api/scim/v2/Users'), undefined)
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toBe(`${SCIM_MEDIA_TYPE}; charset=utf-8`)
     expect(recordRequest).toHaveBeenCalledWith(expect.objectContaining({ status: 200, principal }))
   })
 
-  it('refuses a body without a SCIM or JSON content type before authenticating', async () => {
+  // Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+  it.skip('refuses a body without a SCIM or JSON content type before authenticating', async () => {
     const response = await createUser(
       request('POST', '/api/scim/v2/Users', {
         body: '{}',
@@ -130,13 +150,15 @@ describe('SCIM route builder', () => {
     expect(authenticate).not.toHaveBeenCalled()
   })
 
-  it('lets DELETE through with no body and no content type, answering 204', async () => {
+  // Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+  it.skip('lets DELETE through with no body and no content type, answering 204', async () => {
     const response = await deleteUser(request('DELETE', '/api/scim/v2/Users/su-1'), withParams)
     expect(response.status).toBe(204)
     expect(await response.text()).toBe('')
   })
 
-  it('renders a parse failure in the SCIM envelope', async () => {
+  // Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+  it.skip('renders a parse failure in the SCIM envelope', async () => {
     const response = await createUser(
       request('POST', '/api/scim/v2/Users', {
         body: '{not json',
@@ -153,7 +175,8 @@ describe('SCIM route builder', () => {
     })
   })
 
-  it('bounds failed authentication per address and renders 401 with the challenge', async () => {
+  // Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+  it.skip('bounds failed authentication per address and renders 401 with the challenge', async () => {
     authenticate.mockRejectedValue(
       new ScimError(401, undefined, 'Invalid SCIM token', {
         'WWW-Authenticate': 'Bearer realm="SCIM"',
@@ -171,7 +194,8 @@ describe('SCIM route builder', () => {
     expect(limited.headers.get('retry-after')).toBe('60')
   })
 
-  it('throttles an authenticated connection with Retry-After', async () => {
+  // Nexora edition: SCIM is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+  it.skip('throttles an authenticated connection with Retry-After', async () => {
     mocks.checkRateLimitDirect.mockResolvedValue({
       allowed: false,
       resetAt: new Date(Date.now() + 5000),

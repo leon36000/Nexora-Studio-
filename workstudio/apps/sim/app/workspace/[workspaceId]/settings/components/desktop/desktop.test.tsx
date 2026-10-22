@@ -83,7 +83,7 @@ afterEach(() => {
 })
 
 describe('Desktop settings: prevent sleep', () => {
-  it('hides the switch when Sim runs no chats on this device in the background', async () => {
+  it('hides the switch when Nexora runs no chats on this device in the background', async () => {
     const container = await render(null)
 
     expect(container.querySelector('#desktop-launch-at-login')).not.toBeNull()

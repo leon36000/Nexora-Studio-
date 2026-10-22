@@ -182,7 +182,7 @@ describe('principal subject users', () => {
     ).toThrow(PrincipalSubjectUserRequiredError)
   })
 
-  it('fails fast instead of fabricating a Sim user for an external enrollment', () => {
+  it('fails fast instead of fabricating a Nexora user for an external enrollment', () => {
     expect(() =>
       requirePrincipalSubjectUserId({
         kind: 'credential_group_enrollment',
@@ -380,7 +380,7 @@ describe('principal persistence', () => {
 })
 
 describe('principal subjects', () => {
-  it('keeps Sim, external, and authenticated-email subjects distinct', () => {
+  it('keeps Nexora, external, and authenticated-email subjects distinct', () => {
     expect(
       resolvePrincipalSubject({ kind: 'session', userId: 'user-1', sessionId: 'session-1' })
     ).toEqual({ kind: 'sim_user', userId: 'user-1' })

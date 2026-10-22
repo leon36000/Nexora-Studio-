@@ -243,7 +243,7 @@ describe('run tool execution cancellation', () => {
     }
   })
 
-  it('leaves a paused run for Sim to report, and a reload neither re-sends nor restarts it', async () => {
+  it('leaves a paused run for Nexora to report, and a reload neither re-sends nor restarts it', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
     executeWorkflowWithFullLogging.mockResolvedValueOnce({

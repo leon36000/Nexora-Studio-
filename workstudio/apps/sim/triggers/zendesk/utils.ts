@@ -40,7 +40,7 @@ export function zendeskSetupInstructions(eventLabel: string): string {
   const instructions = [
     'Enable token access under <strong>Zendesk Admin Center &gt; Apps and integrations &gt; APIs &gt; Zendesk API</strong> and create an <strong>API token</strong>.',
     'Enter your <strong>subdomain</strong> (from <code>subdomain.zendesk.com</code>), the <strong>admin email</strong>, and the <strong>API token</strong> above.',
-    `Deploy the workflow — Sim creates the event-subscription webhook in Zendesk automatically and listens for <strong>${eventLabel}</strong>.`,
+    `Deploy the workflow — Nexora creates the event-subscription webhook in Zendesk automatically and listens for <strong>${eventLabel}</strong>.`,
     'Undeploying the workflow removes the webhook from Zendesk.',
   ]
   return instructions

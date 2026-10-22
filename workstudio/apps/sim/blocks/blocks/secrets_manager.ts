@@ -1,4 +1,5 @@
 import { SecretsManagerIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const SecretsManagerBlock: BlockConfig = {
   description: 'Connect to AWS Secrets Manager',
   longDescription:
     'Retrieve, create, update, list, delete, describe, tag, untag, restore, and rotate secrets.',
-  docsLink: 'https://docs.sim.ai/integrations/secrets_manager',
+  docsLink: docsUrl('/integrations/secrets_manager'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: 'linear-gradient(45deg, #BD0816 0%, #FF5252 100%)',

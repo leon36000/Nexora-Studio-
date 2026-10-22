@@ -28,7 +28,7 @@ export const pageSummaryTool: ToolConfig<WikipediaPageSummaryParams, WikipediaPa
       },
       method: 'GET',
       headers: () => ({
-        'User-Agent': 'Sim/1.0 (https://sim.ai)',
+        'User-Agent': 'Nexora/1.0 (+https://github.com/leon36000/Nexora-Studio-)',
         Accept: 'application/json',
       }),
     },

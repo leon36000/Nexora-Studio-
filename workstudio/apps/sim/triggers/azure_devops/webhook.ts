@@ -16,7 +16,7 @@ export const azureDevOpsWebhookTrigger: TriggerConfig = {
   name: 'Azure DevOps Webhook (All Service Hook Events)',
   provider: 'azure_devops',
   description:
-    'Trigger on whichever service hook event types you configure in Azure DevOps. Sim does not filter deliveries for this trigger.',
+    'Trigger on whichever service hook event types you configure in Azure DevOps. Nexora does not filter deliveries for this trigger.',
   version: '1.0.0',
   icon: AzureIcon,
 

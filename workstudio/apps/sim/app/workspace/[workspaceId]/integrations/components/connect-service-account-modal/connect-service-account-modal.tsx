@@ -1,5 +1,6 @@
 'use client'
 
+import { docsUrl } from '@/lib/branding/docs-url'
 import { type ComponentType, useState } from 'react'
 import {
   ChipModal,
@@ -59,9 +60,9 @@ export type ServiceAccountProviderId =
   | ClientCredentialAccountProviderId
 
 /** Sim setup guides for each provider, docked bottom-left of each modal. */
-const GOOGLE_SERVICE_ACCOUNT_DOCS_URL = 'https://docs.sim.ai/integrations/google-service-account'
+const GOOGLE_SERVICE_ACCOUNT_DOCS_URL = docsUrl('/integrations/google-service-account')
 const ATLASSIAN_SERVICE_ACCOUNT_DOCS_URL =
-  'https://docs.sim.ai/integrations/atlassian-service-account'
+  docsUrl('/integrations/atlassian-service-account')
 const OCI_API_KEY_DOCS_URL =
   'https://docs.oracle.com/en-us/iaas/Content/API/Concepts/apisigningkey.htm'
 

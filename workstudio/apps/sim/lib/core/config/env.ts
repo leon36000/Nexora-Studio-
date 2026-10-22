@@ -153,11 +153,11 @@ export const env = createEnv({
     MOTHERSHIP_BENCHMARK_ENABLED:          z.boolean().optional(),
     MOTHERSHIP_BENCHMARK_URL:              z.string().url().optional(),
     SIM_AGENT_API_URL:                     z.string().url().optional(),            // URL for internal sim agent API
-    MSHIP_SYSPROMPT_OVERRIDE:              z.string().min(1).optional(),           // Enterprise-only highest-priority Mothership system prompt override forwarded by Sim
-    COPILOT_SOURCE_ENV:                    z.enum(['dev', 'staging', 'prod']).optional(), // Source Sim environment sent to mothership for callbacks
-    COPILOT_DEV_URL:                       z.string().url().optional(),            // Sim agent API URL for the dev mothership environment
-    COPILOT_STAGING_URL:                   z.string().url().optional(),            // Sim agent API URL for the staging mothership environment
-    COPILOT_PROD_URL:                      z.string().url().optional(),            // Sim agent API URL for the production mothership environment
+    MSHIP_SYSPROMPT_OVERRIDE:              z.string().min(1).optional(),           // Enterprise-only highest-priority Mothership system prompt override forwarded by Nexora
+    COPILOT_SOURCE_ENV:                    z.enum(['dev', 'staging', 'prod']).optional(), // Source Nexora environment sent to mothership for callbacks
+    COPILOT_DEV_URL:                       z.string().url().optional(),            // Nexora agent API URL for the dev mothership environment
+    COPILOT_STAGING_URL:                   z.string().url().optional(),            // Nexora agent API URL for the staging mothership environment
+    COPILOT_PROD_URL:                      z.string().url().optional(),            // Nexora agent API URL for the production mothership environment
     COPILOT_STREAM_TTL_SECONDS:            z.number().optional(),                  // Redis TTL for copilot SSE buffer
     COPILOT_STREAM_EVENT_LIMIT:            z.number().optional(),                  // Max events retained per stream
 
@@ -220,7 +220,7 @@ export const env = createEnv({
     // Email & Communication
     EMAIL_VERIFICATION_ENABLED:            z.boolean().optional(),                 // Enable email verification for user registration and login (defaults to false)
     RESEND_API_KEY:                        z.string().min(1).optional(),           // Resend API key for transactional emails
-    FROM_EMAIL_ADDRESS:                    z.string().min(1).optional(),           // Complete from address (e.g., "Sim <noreply@domain.com>" or "noreply@domain.com")
+    FROM_EMAIL_ADDRESS:                    z.string().min(1).optional(),           // Complete from address (e.g., "Nexora <noreply@domain.com>" or "noreply@domain.com")
     PERSONAL_EMAIL_FROM:                   z.string().min(1).optional(),           // From address for personalized emails
     EMAIL_DOMAIN:                          z.string().min(1).optional(),           // Domain for sending emails (fallback when FROM_EMAIL_ADDRESS not set)
     AZURE_ACS_CONNECTION_STRING:           z.string().optional(),                  // Azure Communication Services connection string
@@ -317,7 +317,7 @@ export const env = createEnv({
     LOG_LEVEL:                             z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).optional(), // Minimum log level to display (defaults to ERROR in production, DEBUG in development)
     GRAFANA_OTLP_ENDPOINT:                 z.string().url().optional(),            // Grafana Cloud OTLP HTTP gateway base URL (e.g., https://otlp-gateway-prod-us-east-0.grafana.net/otlp). Trigger.dev exporters append /v1/traces, /v1/logs, /v1/metrics.
     GRAFANA_OTLP_HEADERS:                  z.string().min(1).optional(),           // Comma-separated key=value headers for OTLP requests (e.g., "Authorization=Basic <base64(instanceId:token)>"). Same format as the OTEL_EXPORTER_OTLP_HEADERS spec.
-    GRAFANA_DEPLOYMENT_ENVIRONMENT:        z.string().min(1).optional(),           // Deployment tier label (e.g., "production", "staging", "development"). Emitted as the stable `deployment.environment.name` resource attribute on Trigger.dev telemetry to match the rest of the Sim OTEL stack.
+    GRAFANA_DEPLOYMENT_ENVIRONMENT:        z.string().min(1).optional(),           // Deployment tier label (e.g., "production", "staging", "development"). Emitted as the stable `deployment.environment.name` resource attribute on Trigger.dev telemetry to match the rest of the Nexora OTEL stack.
 
     // External Services
     BROWSERBASE_API_KEY:                   z.string().min(1).optional(),           // Browserbase API key for browser automation
@@ -489,7 +489,7 @@ export const env = createEnv({
     // Real-time Communication
     SOCKET_SERVER_URL:                     z.string().url().optional(),            // WebSocket server URL for real-time features
     PORT:                                  z.number().optional(),                  // Main application port
-    SIM_MCP_URL:                           z.string().url().optional(),            // Public URL of the Sim MCP server when served on its own host (e.g., https://mcp.sim.ai/mcp); defaults to <NEXT_PUBLIC_APP_URL>/api/mcp
+    SIM_MCP_URL:                           z.string().url().optional(),            // Public URL of the Nexora MCP server when served on its own host (e.g., https://mcp.sim.ai/mcp); defaults to <NEXT_PUBLIC_APP_URL>/api/mcp
     INTERNAL_API_BASE_URL:                 z.string().optional(),                  // Optional internal base URL for server-side self-calls; must include protocol if set (e.g., http://sim-app.namespace.svc.cluster.local:3000)
     ALLOWED_ORIGINS:                       z.string().optional(),                  // CORS allowed origins
     PII_URL:                               z.string().optional(),                  // Presidio PII service base URL serving /analyze + /anonymize (standalone ECS service; default http://localhost:5001 for local dev)
@@ -564,7 +564,7 @@ export const env = createEnv({
     SLACK_SEARCH_SIGNING_SECRET:           z.string().optional(),
     SLACK_SEARCH_SHARED_APP:               z.boolean().optional(),
     SLACK_CLIENT_SECRET:                   z.string().optional(),                  // Slack OAuth client secret
-    SLACK_SIGNING_SECRET:                  z.string().optional(),                  // Official Sim Slack app signing secret (verifies inbound events for the native OAuth trigger)
+    SLACK_SIGNING_SECRET:                  z.string().optional(),                  // Official Nexora Slack app signing secret (verifies inbound events for the native OAuth trigger)
     SLACK_EXTENDED_SCOPES:                 z.boolean().optional(),                 // Request app_mentions:read, assistant:write, im:history — only where the Slack app is approved for them
     REDDIT_CLIENT_ID:                      z.string().optional(),                  // Reddit OAuth client ID
     REDDIT_CLIENT_SECRET:                  z.string().optional(),                  // Reddit OAuth client secret
@@ -603,7 +603,7 @@ export const env = createEnv({
     WORKFLOW_TESTS:                        z.boolean().optional(),                 // Fallback for the `workflow-tests` feature flag off AppConfig
     CHANGELOG:                             z.boolean().optional(),                 // Fallback for the `changelog` feature flag off AppConfig
     MSHIP_MODEL_SELECTOR: z.boolean().optional(),
-    INBOX_ENABLED:                         z.boolean().optional(),                 // Enable inbox (Sim Mailer) on self-hosted (bypasses hosted requirements)
+    INBOX_ENABLED:                         z.boolean().optional(),                 // Enable inbox (Nexora Mailer) on self-hosted (bypasses hosted requirements)
     SANDBOXES_ENABLED:                     z.boolean().optional(),                 // Enable custom sandboxes on self-hosted (bypasses hosted requirements)
 
     // E2B Remote Code Execution
@@ -612,8 +612,8 @@ export const env = createEnv({
     E2B_FUNCTION_TEMPLATE_ID:               z.string().refine(isImmutableE2BTemplateRef, { message: `E2B_FUNCTION_TEMPLATE_ID ${IMMUTABLE_E2B_TEMPLATE_REF_ERROR}` }).optional(), // Immutable dedicated E2B build for Function JavaScript/Python/Shell and workspace sandbox layers; no Mothership fallback
     E2B_FUNCTION_TEMPLATE_GENERATION:       z.string().refine(isValidSandboxReleaseGeneration, { message: `E2B_FUNCTION_TEMPLATE_GENERATION ${SANDBOX_RELEASE_GENERATION_ERROR}` }).optional(), // Monotonic release epoch printed by the Function E2B builder
     MOTHERSHIP_E2B_TEMPLATE_ID:             z.string().optional(),                  // Mothership code-tool template; never a Function-base fallback
-    MOTHERSHIP_SIM_TRANSPORT:              z.enum(['direct', 'checkpoint']).optional(), // Server-side Sim delivery; hosted defaults to direct, self-hosted to outbound checkpoint delivery
-    MOTHERSHIP_SANDBOX_CLI_ENDPOINT:        z.string().optional(),                  // Sim API base the sandboxed sim CLI calls back to; defaults to NEXT_PUBLIC_APP_URL (set when the public URL is not reachable from the sandbox network)
+    MOTHERSHIP_SIM_TRANSPORT:              z.enum(['direct', 'checkpoint']).optional(), // Server-side Nexora delivery; hosted defaults to direct, self-hosted to outbound checkpoint delivery
+    MOTHERSHIP_SANDBOX_CLI_ENDPOINT:        z.string().optional(),                  // Nexora API base the sandboxed sim CLI calls back to; defaults to NEXT_PUBLIC_APP_URL (set when the public URL is not reachable from the sandbox network)
     MOTHERSHIP_E2B_DOC_TEMPLATE_ID:         z.string().optional(),                  // Dedicated E2B template with python-pptx/docx/openpyxl/reportlab for document generation; when set (and E2B enabled), docs compile via Python instead of the JS isolated-vm path
     E2B_PI_TEMPLATE_ID:                     z.string().optional(),                  // E2B template ID/alias with the Pi CLI + git baked in (Create PR, its Babysit continuation, and Review Code)
     PI_SANDBOX_LIFETIME_MS:                 z.string().optional(),                  // Lower the Pi sandbox lifetime (ms) below the default; E2B caps a sandbox at 1h on Hobby accounts and 24h on Pro
@@ -714,7 +714,7 @@ export const env = createEnv({
 
   client: {
     // Core Application URLs - Required for frontend functionality
-    NEXT_PUBLIC_APP_URL:                   z.string().url(),                       // Base URL of the application (e.g., https://www.sim.ai)
+    NEXT_PUBLIC_APP_URL:                   z.string().url(),                       // Base URL of the application (e.g., https://workstudio.example.com)
 
     // Client-side Services
     NEXT_PUBLIC_SOCKET_URL:                z.string().url().optional(),            // WebSocket server URL for real-time features
@@ -727,7 +727,7 @@ export const env = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY:               z.string().optional(),                  // PostHog project API key
 
     // UI Branding & Whitelabeling
-    NEXT_PUBLIC_BRAND_NAME:                z.string().optional(),                  // Custom brand name (defaults to "Sim")
+    NEXT_PUBLIC_BRAND_NAME:                z.string().optional(),                  // Custom brand name (defaults to "Nexora")
     NEXT_PUBLIC_BRAND_LOGO_URL:            z.string().url().optional(),            // Custom logo URL
     NEXT_PUBLIC_BRAND_FAVICON_URL:         z.string().url().optional(),            // Custom favicon URL
     NEXT_PUBLIC_CUSTOM_CSS_URL:            z.string().url().optional(),            // Custom CSS stylesheet URL
@@ -767,7 +767,7 @@ export const env = createEnv({
     NEXT_PUBLIC_ORGANIZATIONS_ENABLED:     z.boolean().optional(),                   // Enable organizations on self-hosted (bypasses plan requirements)
     NEXT_PUBLIC_DISABLE_INVITATIONS:       z.boolean().optional(),                   // Disable workspace invitations globally (for self-hosted deployments)
     NEXT_PUBLIC_DISABLE_PUBLIC_API:        z.boolean().optional(),                   // Disable public API access UI toggle globally
-    NEXT_PUBLIC_INBOX_ENABLED:             z.boolean().optional(),                   // Enable inbox (Sim Mailer) on self-hosted
+    NEXT_PUBLIC_INBOX_ENABLED:             z.boolean().optional(),                   // Enable inbox (Nexora Mailer) on self-hosted
     NEXT_PUBLIC_CHAT_ENABLED:              z.boolean().optional(),                   // Show the Chat module (Nexora edition: hidden unless set, it needs a copilot backend)
     NEXT_PUBLIC_CHAT_DISABLED:             z.boolean().optional(),                   // Hide the Chat module (wins over NEXT_PUBLIC_CHAT_ENABLED)
     NEXT_PUBLIC_STATUS_NOTICE_PREVIEW:     z.boolean().optional(),                   // Force the sidebar service-status notice into its critical preview state

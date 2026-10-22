@@ -1,4 +1,5 @@
 import { MicrosoftExcelIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -148,7 +149,7 @@ export const MicrosoftExcelBlock: BlockConfig = {
   hideFromToolbar: true,
   sunset: { status: 'legacy', replacedBy: 'microsoft_excel_v2' },
   longDescription: 'Read, write, update, add to table, and create new worksheets.',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_excel',
+  docsLink: docsUrl('/integrations/microsoft_excel'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',
@@ -919,7 +920,7 @@ export const MicrosoftExcelV2Block: BlockConfig = {
   hideFromToolbar: false,
   longDescription:
     'Read and write values and formulas, manage worksheets and table rows, format ranges, and calculate workbooks with persistent or temporary sessions.',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_excel',
+  docsLink: docsUrl('/integrations/microsoft_excel'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',
@@ -2328,7 +2329,7 @@ export const MicrosoftExcelBlockMeta = {
       icon: MicrosoftExcelIcon,
       title: 'Excel + Power BI feeder',
       prompt:
-        'Build a scheduled workflow that updates a Microsoft Excel data table from a Sim source, keeps its table ready for Power BI consumption, and notifies BI consumers in Teams.',
+        'Build a scheduled workflow that updates a Microsoft Excel data table from a Nexora source, keeps its table ready for Power BI consumption, and notifies BI consumers in Teams.',
       modules: ['scheduled', 'agent', 'workflows'],
       category: 'operations',
       tags: ['reporting', 'enterprise'],

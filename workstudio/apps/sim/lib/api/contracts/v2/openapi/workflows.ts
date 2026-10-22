@@ -83,7 +83,7 @@ const RUN_ID = 'run_8f14e45f-ceea-467f-a'
 
 const WORKFLOW_EXAMPLE = {
   id: WORKFLOW_ID,
-  webUrl: `https://www.sim.ai/workspace/${WORKSPACE_ID}/w/${WORKFLOW_ID}`,
+  webUrl: `https://workstudio.example.com/workspace/${WORKSPACE_ID}/w/${WORKFLOW_ID}`,
   name: 'Customer support triage',
   description: 'Routes incoming support requests to the right team.',
   folderPath: '/Operations',
@@ -144,7 +144,7 @@ const CHAT_DEPLOYMENT_EXAMPLE = {
   workflowId: WORKFLOW_ID,
   workspaceId: '9f4c2a10-3b7e-4d58-8f6a-2c1d0e5b7a94',
   identifier: 'support',
-  url: 'https://sim.ai/chat/support',
+  url: 'https://workstudio.example.com/chat/support',
   title: 'Support chat',
   description: 'Ask about billing, onboarding, or outages.',
   isActive: true,
@@ -191,7 +191,7 @@ const RUN_RESULT_EXAMPLE = {
 const QUEUED_RUN_EXAMPLE = {
   data: {
     runId: RUN_ID,
-    statusUrl: `https://www.sim.ai/api/v2/workflows/${WORKFLOW_ID}/runs/${RUN_ID}`,
+    statusUrl: `https://workstudio.example.com/api/v2/workflows/${WORKFLOW_ID}/runs/${RUN_ID}`,
   },
 } as const
 
@@ -856,7 +856,7 @@ const declaredRoutes = [
                 {
                   blockId: 'blk_01J8ZK3QW4M6X2R9T7B5C0V3',
                   provider: 'generic',
-                  url: 'https://www.sim.ai/api/webhooks/trigger/leads',
+                  url: 'https://workstudio.example.com/api/webhooks/trigger/leads',
                 },
               ],
             },
@@ -1535,21 +1535,21 @@ const routes = declaredRoutes.map(withRequestBodyErrors)
 export const workflowsOpenApiDocument = defineOpenApiDocument({
   output: 'apps/docs/openapi-v2-workflows.json',
   info: {
-    title: 'Sim API v2 — Workflows',
+    title: 'Nexora API v2 — Workflows',
     description:
-      'Version 2 of the Sim REST API for workflow management, deployment versions, execution, run lifecycle, folders, and portable import and export.',
+      'Version 2 of the Nexora REST API for workflow management, deployment versions, execution, run lifecycle, folders, and portable import and export.',
     version: '2.0.0',
     contact: {
-      name: 'Sim Support',
-      email: 'help@sim.ai',
-      url: 'https://www.sim.ai',
+      name: 'Nexora Support',
+      email: 'support@example.com',
+      url: 'https://workstudio.example.com',
     },
     license: {
       name: 'Apache 2.0',
       url: 'https://www.apache.org/licenses/LICENSE-2.0.html',
     },
   },
-  servers: [{ url: 'https://www.sim.ai', description: 'Production' }],
+  servers: [{ url: 'https://workstudio.example.com', description: 'Production' }],
   tags: [
     {
       name: 'Workspace Sync',

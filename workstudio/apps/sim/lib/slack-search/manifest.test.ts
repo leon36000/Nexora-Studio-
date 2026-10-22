@@ -3,7 +3,7 @@ import { createSlackSearchManifest } from '@/lib/slack-search/manifest'
 
 describe('Search app manifest', () => {
   it('preserves existing member grants when updating a bot manifest', () => {
-    const manifest = createSlackSearchManifest('Sim Search', 'Search', 'https://sim.test', [
+    const manifest = createSlackSearchManifest('Nexora Search', 'Search', 'https://sim.test', [
       'files:read',
       'files:write',
     ])

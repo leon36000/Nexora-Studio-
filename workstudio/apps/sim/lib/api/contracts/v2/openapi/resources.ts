@@ -97,6 +97,7 @@ import {
   defineOpenApiRoute,
   type OpenApiOperationMetadata,
 } from '@/lib/api/openapi/types'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { catalogOperations } from '@/lib/catalog/application/operations'
 import { credentialOperations } from '@/lib/credentials/application/operations'
 import { customToolOperations } from '@/lib/custom-tools/application/operations'
@@ -121,7 +122,7 @@ const BLOCK_SUMMARY_EXAMPLE = {
   toolIds: ['slack_message', 'slack_canvas_read'],
   operationIds: ['send', 'read'],
   preview: false,
-  docsLink: 'https://docs.sim.ai/tools/slack',
+  docsLink: docsUrl('/tools/slack'),
   tags: ['messaging'],
 } as const
 
@@ -367,7 +368,7 @@ const WORKFLOW_MCP_SERVER_EXAMPLE = {
   name: 'Support agents',
   description: 'Ticket triage and escalation workflows.',
   isPublic: false,
-  mcpServerUrl: 'https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2',
+  mcpServerUrl: 'https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2',
   createdAt: '2026-06-12T10:30:00.000Z',
   updatedAt: '2026-06-12T10:30:00.000Z',
 } as const
@@ -385,7 +386,7 @@ const WORKFLOW_MCP_TOOL_EXAMPLE = {
   toolName: 'triage_ticket',
   toolDescription: 'Execute Ticket triage workflow',
   mcpServerUrl: WORKFLOW_MCP_SERVER_EXAMPLE.mcpServerUrl,
-  apiEndpoint: 'https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute',
+  apiEndpoint: 'https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute',
   updated: false,
   createdAt: '2026-06-12T10:30:00.000Z',
   updatedAt: '2026-06-12T10:30:00.000Z',
@@ -565,7 +566,7 @@ const SERVICE_ACCOUNT_PROVIDER_EXAMPLE = {
   description: 'Connect Zoom with a server-to-server app.',
   providerFamily: 'zoom',
   available: true,
-  docsUrl: 'https://docs.sim.ai/integrations/zoom-service-account',
+  docsUrl: docsUrl('/integrations/zoom-service-account'),
   requiresClientGeneratedCredentialId: false,
   fields: [
     {
@@ -596,7 +597,7 @@ const SERVICE_ACCOUNT_PROVIDER_EXAMPLE = {
 } as const
 
 const CREDENTIAL_CONNECTION_EXAMPLE = {
-  authorizationUrl: 'https://www.sim.ai/api/auth/oauth2/authorize?draftId=draft-123',
+  authorizationUrl: 'https://workstudio.example.com/api/auth/oauth2/authorize?draftId=draft-123',
   expiresAt: '2026-06-20T14:17:11.000Z',
 } as const
 
@@ -1692,7 +1693,7 @@ const declaredRoutes = [
         v2CreateCredentialConnectionContract.response.schema,
         'CreateCredentialConnectionResponse',
         'Create credential connection response',
-        'Short-lived Sim browser entrypoint and its expiry.',
+        'Short-lived Nexora browser entrypoint and its expiry.',
         [{ data: CREDENTIAL_CONNECTION_EXAMPLE }]
       ),
     }
@@ -1876,7 +1877,7 @@ const declaredRoutes = [
       applicationOperation: mcpServerOperations.listWorkflowDeployments,
       operationId: 'listWorkflowMcpServers',
       summary: 'List workflow MCP servers',
-      description: `List MCP servers that expose deployed workflows to external clients. Use List MCP servers for external servers Sim calls. Requires workspace read access. Tool names share a 2,000-name page limit; when \`toolNamesTruncated\` is true, \`toolCount\` and \`toolNames\` may be incomplete. Use List workflow MCP tools for a server’s bounded inventory. ${WORKSPACE_API_KEY_DENIED}`,
+      description: `List MCP servers that expose deployed workflows to external clients. Use List MCP servers for external servers Nexora calls. Requires workspace read access. Tool names share a 2,000-name page limit; when \`toolNamesTruncated\` is true, \`toolCount\` and \`toolNames\` may be incomplete. Use List workflow MCP tools for a server’s bounded inventory. ${WORKSPACE_API_KEY_DENIED}`,
       errors: RESOURCE_ERRORS,
       success: { description: 'A page of workflow MCP servers.' },
     }),
@@ -1897,7 +1898,7 @@ const declaredRoutes = [
       applicationOperation: mcpServerOperations.createWorkflowDeploymentServer,
       operationId: 'createWorkflowMcpServer',
       summary: 'Create workflow MCP server',
-      description: `Create an MCP server exposing deployed workflows as tools. Every supplied workflow must already be deployed. With \`isPublic: true\`, anyone holding the server URL can execute its workflows without a Sim API key. Requires workspace Admin access. ${WORKSPACE_API_KEY_DENIED}`,
+      description: `Create an MCP server exposing deployed workflows as tools. Every supplied workflow must already be deployed. With \`isPublic: true\`, anyone holding the server URL can execute its workflows without a Nexora API key. Requires workspace Admin access. ${WORKSPACE_API_KEY_DENIED}`,
       errors: RESOURCE_CONFLICT_ERRORS,
       success: { description: 'The workflow MCP server.' },
     }),
@@ -1972,7 +1973,7 @@ const declaredRoutes = [
       applicationOperation: mcpServerOperations.updateWorkflowDeploymentServer,
       operationId: 'updateWorkflowMcpServer',
       summary: 'Update workflow MCP server',
-      description: `Update a workflow MCP server’s name, description, or public access. Omitted fields stay unchanged; \`description: null\` clears the description. With \`isPublic: true\`, anyone holding its URL can execute its tools without a Sim API key. Deploy or undeploy tools separately. Requires workspace Admin access. ${WORKSPACE_API_KEY_DENIED}`,
+      description: `Update a workflow MCP server’s name, description, or public access. Omitted fields stay unchanged; \`description: null\` clears the description. With \`isPublic: true\`, anyone holding its URL can execute its tools without a Nexora API key. Deploy or undeploy tools separately. Requires workspace Admin access. ${WORKSPACE_API_KEY_DENIED}`,
       errors: RESOURCE_CONFLICT_ERRORS,
       success: { description: 'The updated MCP server.' },
     }),
@@ -2237,7 +2238,7 @@ const declaredRoutes = [
       applicationOperation: toolExecutionOperations.execute,
       operationId: 'executeTool',
       summary: 'Run tool',
-      description: `Run a built-in tool using published parameter IDs. Requires workspace read access. Sim resolves \`credentialId\`, hosted keys, and whole-value \`{{VAR_NAME}}\` references in \`user-only\` parameters; other values pass through unchanged. Send connected credentials as top-level \`credentialId\`, not inside \`input\`. Third-party refusal returns \`200\` with \`status: "failed"\`; API failures use the error envelope. Hidden or missing tools return \`404\`; disallowed integrations return \`403\` with \`error.details.code: INTEGRATION_NOT_ALLOWED\`. Hosted-key usage is billed to the workspace. A call that would use a hosted key returns \`402\` when the workspace exceeds usage or billing limits. ${WORKSPACE_API_KEY_DENIED}`,
+      description: `Run a built-in tool using published parameter IDs. Requires workspace read access. Nexora resolves \`credentialId\`, hosted keys, and whole-value \`{{VAR_NAME}}\` references in \`user-only\` parameters; other values pass through unchanged. Send connected credentials as top-level \`credentialId\`, not inside \`input\`. Third-party refusal returns \`200\` with \`status: "failed"\`; API failures use the error envelope. Hidden or missing tools return \`404\`; disallowed integrations return \`403\` with \`error.details.code: INTEGRATION_NOT_ALLOWED\`. Hosted-key usage is billed to the workspace. A call that would use a hosted key returns \`402\` when the workspace exceeds usage or billing limits. ${WORKSPACE_API_KEY_DENIED}`,
       errors: [...RESOURCE_ERRORS, 'UsageLimitExceeded'],
       success: { description: 'The outcome of the tool call.' },
     }),
@@ -2316,21 +2317,21 @@ const routes = declaredRoutes.map(withRequestBodyErrors)
 export const resourcesOpenApiDocument = defineOpenApiDocument({
   output: 'apps/docs/openapi-v2-resources.json',
   info: {
-    title: 'Sim API v2 — resources',
+    title: 'Nexora API v2 — resources',
     description:
-      'Version 2 of the Sim REST API for workspace metadata, members, MCP servers, skills, custom tools, sandboxes, credentials, write-only secrets, organization permission groups, and the block, tool, and connector-type catalogs.',
+      'Version 2 of the Nexora REST API for workspace metadata, members, MCP servers, skills, custom tools, sandboxes, credentials, write-only secrets, organization permission groups, and the block, tool, and connector-type catalogs.',
     version: '2.0.0',
     contact: {
-      name: 'Sim Support',
-      email: 'help@sim.ai',
-      url: 'https://www.sim.ai',
+      name: 'Nexora Support',
+      email: 'support@example.com',
+      url: 'https://workstudio.example.com',
     },
     license: {
       name: 'Apache 2.0',
       url: 'https://www.apache.org/licenses/LICENSE-2.0.html',
     },
   },
-  servers: [{ url: 'https://www.sim.ai', description: 'Production' }],
+  servers: [{ url: 'https://workstudio.example.com', description: 'Production' }],
   tags: [
     {
       name: 'Access Requests',

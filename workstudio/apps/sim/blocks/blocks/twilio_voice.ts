@@ -1,4 +1,5 @@
 import { TwilioIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -12,7 +13,7 @@ export const TwilioVoiceBlock: BlockConfig = {
     'Make outbound calls, list calls, retrieve recordings, and receive call events through webhooks.',
   category: 'tools',
   integrationType: IntegrationType.Communication,
-  docsLink: 'https://docs.sim.ai/integrations/twilio_voice',
+  docsLink: docsUrl('/integrations/twilio_voice'),
   bgColor: '#F22F46', // Twilio brand color
   iconColor: '#F22F46',
   icon: TwilioIcon,

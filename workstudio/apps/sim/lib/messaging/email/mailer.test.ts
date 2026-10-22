@@ -13,7 +13,7 @@ await vi.hoisted(async () => {
     AZURE_ACS_CONNECTION_STRING: 'test-azure-connection-string',
     AZURE_COMMUNICATION_EMAIL_DOMAIN: 'test.azurecomm.net',
     NEXT_PUBLIC_APP_URL: 'https://test.sim.ai',
-    FROM_EMAIL_ADDRESS: 'Sim <noreply@sim.ai>',
+    FROM_EMAIL_ADDRESS: 'Nexora <noreply@sim.ai>',
   })
 })
 
@@ -61,7 +61,7 @@ vi.mock('@/lib/auth/access-control', () => ({
 }))
 
 vi.mock('@/lib/messaging/email/utils', () => ({
-  getFromEmailAddress: vi.fn().mockReturnValue('Sim <noreply@sim.ai>'),
+  getFromEmailAddress: vi.fn().mockReturnValue('Nexora <noreply@sim.ai>'),
   hasEmailHeaderControlChars: vi.fn().mockImplementation((value: string) => /[\r\n]/.test(value)),
   EMAIL_HEADER_CONTROL_CHARS_REGEX: /[\r\n]/,
   NO_EMAIL_HEADER_CONTROL_CHARS_REGEX: /^[^\r\n]*$/,

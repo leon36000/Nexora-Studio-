@@ -20,7 +20,7 @@ import {
 } from '@sim/emcn'
 import { BookOpen, Download, HelpCircle, LogOut, Settings } from '@sim/emcn/icons'
 import { useRouter } from 'next/navigation'
-import { SlackIcon } from '@/components/icons'
+import { GithubIcon } from '@/components/icons'
 import { SettingsIntentLink } from '@/components/settings/settings-intent-link'
 import { signOutAndRedirect } from '@/lib/auth/sign-out'
 import { getDesktopUpdates } from '@/lib/desktop'
@@ -307,8 +307,8 @@ export function SidebarFooter({
           Docs
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onJoinSlack}>
-          <SlackIcon className='size-[14px]' />
-          Join Slack
+          <GithubIcon className='size-[14px]' />
+          Report an issue
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onContactSupport}>
           <HelpCircle className='size-[14px]' />

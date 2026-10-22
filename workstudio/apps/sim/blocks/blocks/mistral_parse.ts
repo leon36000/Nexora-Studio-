@@ -1,5 +1,6 @@
 import { toError } from '@sim/utils/errors'
 import { MistralIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   AuthMode,
   type BlockConfig,
@@ -17,7 +18,7 @@ export const MistralParseBlock: BlockConfig = {
   sunset: { status: 'legacy', replacedBy: 'mistral_parse_v3' },
   authMode: AuthMode.ApiKey,
   longDescription: `Extract text from uploaded PDF documents, or from a URL.`,
-  docsLink: 'https://docs.sim.ai/integrations/mistral_parse',
+  docsLink: docsUrl('/integrations/mistral_parse'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#000000',

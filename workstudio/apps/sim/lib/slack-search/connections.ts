@@ -55,7 +55,7 @@ export async function deliverSlackSearchConnections(input: SlackSearchConnection
       type: 'section',
       text: {
         type: 'plain_text',
-        text: 'Connect your accounts in Sim, then reply in this thread to continue.',
+        text: 'Connect your accounts in Nexora, then reply in this thread to continue.',
       },
     },
   ]
@@ -68,7 +68,7 @@ export async function deliverSlackSearchConnections(input: SlackSearchConnection
     body: {
       channel: input.channel,
       user: input.slackUserId,
-      text: 'Connect your sources in Sim',
+      text: 'Connect your sources in Nexora',
       blocks,
     },
   })

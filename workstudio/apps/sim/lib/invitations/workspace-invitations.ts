@@ -742,7 +742,7 @@ export async function createWorkspaceInvitation({
     }
     if (!(await inviteeCanBeExternal(existingUser?.id))) {
       throw new WorkspaceInvitationError({
-        message: `${normalizedEmail} is not on a paid Sim plan, so they cannot be added as an external collaborator. Invite them as a Member or Admin instead — that adds a seat.`,
+        message: `${normalizedEmail} is not on a paid Nexora plan, so they cannot be added as an external collaborator. Invite them as a Member or Admin instead — that adds a seat.`,
         status: 400,
         email: normalizedEmail,
       })

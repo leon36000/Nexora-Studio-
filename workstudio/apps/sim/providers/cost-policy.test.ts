@@ -32,7 +32,7 @@ describe('resolveModelCostPolicy', () => {
     expect(resolveModelCostPolicy(HOSTED_MODEL, true)).toEqual({ billable: false, multiplier: 0 })
   })
 
-  it('does not bill models Sim does not host', () => {
+  it('does not bill models Nexora does not host', () => {
     expect(resolveModelCostPolicy(SELF_KEYED_MODEL)).toEqual({ billable: false, multiplier: 0 })
   })
 })
@@ -219,7 +219,7 @@ describe('calculateBillableModelCost', () => {
     expect(streaming.total).toBeCloseTo(nonStreaming.total, 8)
   })
 
-  it('returns a zero cost carrying pricing for models Sim does not host', () => {
+  it('returns a zero cost carrying pricing for models Nexora does not host', () => {
     const cost = calculateBillableModelCost(SELF_KEYED_MODEL, 1000, 500)
     expect(cost).toMatchObject({ input: 0, output: 0, total: 0 })
     expect(cost.pricing).toBeDefined()
@@ -265,7 +265,7 @@ describe('installStreamingCostPolicy', () => {
     expect(output.cost).toMatchObject({ total: 0.375, toolCost: 0.375 })
   })
 
-  it('zeroes model cost written by a provider for a model Sim does not host', () => {
+  it('zeroes model cost written by a provider for a model Nexora does not host', () => {
     const output = { cost: { input: 0, output: 0, total: 0 } } as NormalizedBlockOutput
     installStreamingCostPolicy(output, resolveModelCostPolicy(SELF_KEYED_MODEL))
 

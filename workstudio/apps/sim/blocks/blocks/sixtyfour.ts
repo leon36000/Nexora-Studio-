@@ -1,4 +1,5 @@
 import { SixtyfourIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 const PHONE_LOOKUP_FIELD = ['name', 'linkedinUrl', 'emailInput'] as const
@@ -11,7 +12,7 @@ export const SixtyfourBlock: BlockConfig = {
   description: 'Enrich leads and companies with AI-powered research',
   longDescription:
     'Find emails, phone numbers, and enrich lead or company data with contact information, social profiles, and detailed research using Sixtyfour AI.',
-  docsLink: 'https://docs.sim.ai/integrations/sixtyfour',
+  docsLink: docsUrl('/integrations/sixtyfour'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#000000',

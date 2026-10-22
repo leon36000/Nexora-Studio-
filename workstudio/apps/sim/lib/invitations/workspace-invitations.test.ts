@@ -483,7 +483,7 @@ describe('createWorkspaceInvitation', () => {
         membership: 'external',
         request,
       })
-    ).rejects.toThrow('not on a paid Sim plan')
+    ).rejects.toThrow('not on a paid Nexora plan')
 
     expect(mockCreatePendingInvitation).not.toHaveBeenCalled()
   })

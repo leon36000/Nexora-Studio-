@@ -1,6 +1,7 @@
 import { Send } from '@sim/emcn/icons'
 import { toError } from '@sim/utils/errors'
 import { NotionIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector } from '@/blocks/utils'
@@ -108,7 +109,7 @@ export const NotionBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Read or manage pages, databases, blocks, and comments. Query databases or search the connected content, and start workflows from supported Notion events.',
-  docsLink: 'https://docs.sim.ai/integrations/notion',
+  docsLink: docsUrl('/integrations/notion'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',
@@ -952,7 +953,7 @@ export const NotionV2Block: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Choose an operation and select a connected account. Use Search Workspace to find content, Query Database to retrieve rows from a database, or Append Content to add blocks to a page.',
-  docsLink: 'https://docs.sim.ai/integrations/notion',
+  docsLink: docsUrl('/integrations/notion'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

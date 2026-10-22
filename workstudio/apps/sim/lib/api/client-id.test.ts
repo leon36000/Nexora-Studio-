@@ -3,7 +3,7 @@ import { CLIENT_ID_HEADER, fingerprintClientId, readClientId } from '@/lib/api/c
 
 describe('readClientId', () => {
   it('reads the sending tab id off the request', () => {
-    const request = new Request('https://sim.ai/api/table/t1/rows', {
+    const request = new Request('https://workstudio.example.com/api/table/t1/rows', {
       headers: { [CLIENT_ID_HEADER]: 'tab-abc' },
     })
     expect(readClientId(request)).toBe('tab-abc')
@@ -14,7 +14,7 @@ describe('readClientId', () => {
    * over-long one is dropped rather than fanned out.
    */
   it('drops an over-long id instead of broadcasting it', () => {
-    const request = new Request('https://sim.ai/api/table/t1/rows', {
+    const request = new Request('https://workstudio.example.com/api/table/t1/rows', {
       headers: { [CLIENT_ID_HEADER]: 'x'.repeat(65) },
     })
     expect(readClientId(request)).toBeUndefined()

@@ -1,4 +1,5 @@
 import { ClaudeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -130,7 +131,7 @@ export const ManagedAgentBlock: BlockConfig = {
     'Run or create a session with a Claude Platform account, agent, and environment. Optionally attach vaults, a memory store, files, and metadata. The Run session operation waits for the agent’s reply and returns final text and a session ID, with token usage when available. Outputs from other operations depend on the selected action.',
   category: 'tools',
   integrationType: IntegrationType.AI,
-  docsLink: 'https://docs.sim.ai/integrations/managed_agent',
+  docsLink: docsUrl('/integrations/managed_agent'),
   bgColor: '#DA7756',
   iconColor: '#DA7756',
   icon: ClaudeIcon,

@@ -1,6 +1,7 @@
 import { ClipboardList, Download, File, Search, Server, Wrench } from '@sim/emcn/icons'
 import { omit } from '@sim/utils/object'
 import { SshIcon, SshTerminalIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector } from '@/blocks/utils'
@@ -14,7 +15,7 @@ export const SSHBlock = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Execute commands, transfer files, and manage remote servers via SSH. Supports password and private key authentication for secure server access.',
-  docsLink: 'https://docs.sim.ai/integrations/ssh',
+  docsLink: docsUrl('/integrations/ssh'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#000000',

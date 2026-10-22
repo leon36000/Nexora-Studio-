@@ -97,7 +97,7 @@ export const LIVE_SEARCH_SCOPE_FIELDS: Record<
   github: {
     label: 'Repositories',
     hint: 'Use owner/repository or paste a GitHub repository URL.',
-    example: 'simstudioai/sim',
+    example: 'leon36000/Nexora-Studio-',
   },
   gitlab: {
     label: 'Projects',

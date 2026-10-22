@@ -1,4 +1,5 @@
 import { MicrosoftOneDriveIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -34,7 +35,7 @@ export const OneDriveBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Create text and Excel files, upload files, download files, list and search files, move or rename files, copy files, create sharing links, and delete files or folders.',
-  docsLink: 'https://docs.sim.ai/integrations/onedrive',
+  docsLink: docsUrl('/integrations/onedrive'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

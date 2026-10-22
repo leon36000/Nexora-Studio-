@@ -58,7 +58,7 @@ export async function suspendMemberTx(
   if (membership.role === 'owner') {
     throw new OrchestrationError(
       'conflict',
-      'The organization owner cannot be suspended. Transfer ownership in Sim first.'
+      'The organization owner cannot be suspended. Transfer ownership in Nexora first.'
     )
   }
 

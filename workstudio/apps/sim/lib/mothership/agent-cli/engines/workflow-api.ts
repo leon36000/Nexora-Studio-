@@ -93,8 +93,8 @@ export const workflowApiCommand: AgentCliEngine = {
             type: deployment.isPublicApi ? 'public' : 'sim_api_key',
             header: 'X-API-Key',
             note: deployment.isPublicApi
-              ? 'Anonymous sync/stream execution is enabled. Async execution and reading saved runs require a Sim API key.'
-              : 'Use a Sim API key with access to this workflow. Vendor integration credentials are resolved by Sim, not sent in this header.',
+              ? 'Anonymous sync/stream execution is enabled. Async execution and reading saved runs require a Nexora API key.'
+              : 'Use a Nexora API key with access to this workflow. Vendor integration credentials are resolved by Nexora, not sent in this header.',
           },
           input: {
             blockId: entry.blockId,

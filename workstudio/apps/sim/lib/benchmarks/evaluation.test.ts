@@ -68,7 +68,7 @@ describe('benchmark reconstruction grading', () => {
   })
 
   it('rejects a missing mechanic even when an external source supplies the expected answer', () => {
-    const spec = 'Use the Sim repository for issue intake.'
+    const spec = 'Use the Nexora repository for issue intake.'
     const result = gradeReconstruction({
       blanks: [{ id: 'handoff', answer: 'Engineering accepts the case' }],
       reconstruction: [

@@ -1,3 +1,4 @@
+import { docsUrl } from '@/lib/branding/docs-url'
 /**
  * Client-safe descriptors for client-credentials service-account providers.
  *
@@ -405,7 +406,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/ramp',
+    docsUrl: docsUrl('/integrations/ramp'),
   },
   [GREENHOUSE_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: GREENHOUSE_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -425,7 +426,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/greenhouse',
+    docsUrl: docsUrl('/integrations/greenhouse'),
   },
   [HELPSCOUT_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: HELPSCOUT_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -446,7 +447,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/helpscout',
+    docsUrl: docsUrl('/integrations/helpscout'),
   },
   [VANTA_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: VANTA_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -485,7 +486,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         ],
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/vanta',
+    docsUrl: docsUrl('/integrations/vanta'),
   },
   [FIVETRAN_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: FIVETRAN_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -506,7 +507,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         secret: true,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/fivetran',
+    docsUrl: docsUrl('/integrations/fivetran'),
   },
   [ZOOM_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: ZOOM_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -532,7 +533,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         secret: false,
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/zoom-service-account',
+    docsUrl: docsUrl('/integrations/zoom-service-account'),
     helpText:
       'The Account ID on the App Credentials page is not the account number shown in the Zoom web portal. The app must be activated before tokens can be issued.',
   },
@@ -562,7 +563,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         hintMessage: 'Box Enterprise IDs are numeric.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/box-service-account',
+    docsUrl: docsUrl('/integrations/box-service-account'),
     helpText:
       'A Box admin must authorize the app in the Admin Console first, and the Service Account only sees folders it has been invited to as a collaborator.',
   },
@@ -627,9 +628,9 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
       },
     ],
     defaultAuthMethod: SALESFORCE_DEFAULT_AUTH_METHOD,
-    docsUrl: 'https://docs.sim.ai/integrations/salesforce-service-account',
+    docsUrl: docsUrl('/integrations/salesforce-service-account'),
     helpText:
-      'Every call runs as one integration user, so deactivating or freezing that user stops all runs. Without the "openid" scope the connection still works, but Sim cannot record which user it authenticates as.',
+      'Every call runs as one integration user, so deactivating or freezing that user stops all runs. Without the "openid" scope the connection still works, but Nexora cannot record which user it authenticates as.',
   },
   [ZOHO_DESK_SERVICE_ACCOUNT_PROVIDER_ID]: {
     providerId: ZOHO_DESK_SERVICE_ACCOUNT_PROVIDER_ID,
@@ -670,7 +671,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         hint: 'The region your Zoho account signs in to. New credentials default to the United States.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/zoho-desk-service-account',
+    docsUrl: docsUrl('/integrations/zoho-desk-service-account'),
     helpText: 'Zoho Desk triggers still require an OAuth connection, which is US-only.',
   },
   [NETSUITE_SERVICE_ACCOUNT_PROVIDER_ID]: {
@@ -712,7 +713,7 @@ export const CLIENT_CREDENTIAL_ACCOUNT_DESCRIPTORS: Record<
         hint: 'Must match the certificate mapping in this NetSuite account and environment.',
       },
     ],
-    docsUrl: 'https://docs.sim.ai/integrations/netsuite-service-account',
+    docsUrl: docsUrl('/integrations/netsuite-service-account'),
     helpText:
       'Use the account-specific SuiteTalk URL and the client ID, certificate ID, and private key from one OAuth 2.0 client-credentials mapping.',
   },

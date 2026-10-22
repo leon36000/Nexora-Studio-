@@ -93,7 +93,7 @@ function expectLeaseExpression(value: unknown): void {
 }
 
 function cronRequest(): NextRequest {
-  return new Request('https://sim.ai/api/knowledge/connectors/sync', {
+  return new Request('https://workstudio.example.com/api/knowledge/connectors/sync', {
     headers: { authorization: 'Bearer test-cron-secret' },
   }) as unknown as NextRequest
 }

@@ -30,10 +30,10 @@ const EXECUTOR_DELEGATION_TTL_MS = 5 * 60 * 1000
 function resolveExecutorSubject(origin: ExecutorWorkflowDefinitionOrigin): string | undefined {
   const principalSubject = origin.principal ? resolvePrincipalSubject(origin.principal) : null
   if (principalSubject?.kind === 'external_user' && origin.subjectUserId) {
-    throw new Error('External workflow subjects cannot be represented as Sim users')
+    throw new Error('External workflow subjects cannot be represented as Nexora users')
   }
   if (!principalSubject && origin.principal && origin.subjectUserId) {
-    throw new Error('Actorless workflow principals cannot be represented as Sim users')
+    throw new Error('Actorless workflow principals cannot be represented as Nexora users')
   }
   if (
     principalSubject?.kind === 'sim_user' &&

@@ -1,4 +1,5 @@
 import { ProspeoIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 const PERSON_IDENTITY_FIELD = [
@@ -31,7 +32,7 @@ export const ProspeoBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Find verified work emails and mobile numbers, enrich person and company profiles, and search a B2B database of leads and companies using 20+ filters.',
-  docsLink: 'https://docs.sim.ai/integrations/prospeo',
+  docsLink: docsUrl('/integrations/prospeo'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FF1A26',

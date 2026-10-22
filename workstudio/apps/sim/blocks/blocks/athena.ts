@@ -1,4 +1,5 @@
 import { AthenaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -18,7 +19,7 @@ export const AthenaBlock: BlockConfig = {
   description: 'Run SQL queries on data in Amazon S3 using AWS Athena',
   longDescription:
     'Execute SQL queries against data in S3, check query status and runtime statistics, retrieve results, manage named queries and prepared statements, and inspect data catalogs, databases, tables, and workgroups. Requires AWS access key and secret access key.',
-  docsLink: 'https://docs.sim.ai/integrations/athena',
+  docsLink: docsUrl('/integrations/athena'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: 'linear-gradient(45deg, #4D27A8 0%, #A166FF 100%)',
@@ -1290,7 +1291,7 @@ export const AthenaBlockMeta = {
       icon: AthenaIcon,
       title: 'Athena scheduled report runner',
       prompt:
-        'Create a scheduled workflow that runs a saved AWS Athena query daily, writes the result rows to a Sim table, and posts a Slack summary of the top movers.',
+        'Create a scheduled workflow that runs a saved AWS Athena query daily, writes the result rows to a Nexora table, and posts a Slack summary of the top movers.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['analysis', 'reporting'],

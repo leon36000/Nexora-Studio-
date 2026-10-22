@@ -376,9 +376,9 @@ const TABLES_AND_LINKS = `# Reference
 | GET | \`/items\` | yes |
 | POST | \`/items\` | yes |
 
-Inline autolink: <https://sim.ai>
+Inline autolink: <https://workstudio.example.com>
 
-A normal link to [the site](https://sim.ai "title") and an image:
+A normal link to [the site](https://workstudio.example.com "title") and an image:
 
 ![diagram](https://example.com/diagram.png)
 

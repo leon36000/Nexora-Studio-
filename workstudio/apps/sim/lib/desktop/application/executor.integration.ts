@@ -106,7 +106,7 @@ describe.runIf(Boolean(redisUrl))('desktop background executor protocol', () => 
       expiresAt: new Date(now.getTime() + 3_600_000),
       createdAt: now,
       updatedAt: now,
-      userAgent: 'Sim Desktop',
+      userAgent: 'Nexora Desktop',
     })
     const principal: SessionPrincipal = { kind: 'session', userId, sessionId }
     const deviceId = generateId()
@@ -252,13 +252,13 @@ describe.runIf(Boolean(redisUrl))('desktop background executor protocol', () => 
   })
 
   describe('registration', () => {
-    it('reports the executor on wherever Sim can track presence', async () => {
+    it('reports the executor on wherever Nexora can track presence', async () => {
       const desktop = await signedInDesktop()
       expect(desktop.enabled).toBe(true)
       await expect(inbox(desktop)).resolves.toEqual({ items: [] })
     })
 
-    it('writes nothing and reports the executor off where Sim cannot track presence', async () => {
+    it('writes nothing and reports the executor off where Nexora cannot track presence', async () => {
       presence.available = false
       const desktop = await signedInDesktop()
       expect(desktop.enabled).toBe(false)
@@ -451,7 +451,7 @@ describe.runIf(Boolean(redisUrl))('desktop background executor protocol', () => 
       await expect(executorClaim(desktop.deviceId)).resolves.toEqual({ outcome: 'claimed' })
     })
 
-    it('never hands over a call Sim did not offer, nor list it', async () => {
+    it('never hands over a call Nexora did not offer, nor list it', async () => {
       const desktop = await signedInDesktop()
       const run = await boundRun(desktop)
       const toolCallId = await pendingCall(
@@ -789,7 +789,7 @@ describe.runIf(Boolean(redisUrl))('desktop background executor protocol', () => 
       expect((await row(toolCallId)).status).toBe('running')
     })
 
-    it('answers a late result for a call Sim settled as lost as superseded, without changing it', async () => {
+    it('answers a late result for a call Nexora settled as lost as superseded, without changing it', async () => {
       const desktop = await signedInDesktop()
       const run = await boundRun(desktop)
       const toolCallId = await pendingCall(run.runId)
@@ -929,7 +929,7 @@ describe.runIf(Boolean(redisUrl))('desktop background executor protocol', () => 
     it('preserves legacy sub-millisecond order even when the doorbell was never heard', async () => {
       const desktop = await signedInDesktop()
       const run = await boundRun(desktop)
-      const first = await pendingCall(run.runId, 'browser_navigate', { url: 'https://sim.ai' })
+      const first = await pendingCall(run.runId, 'browser_navigate', { url: 'https://workstudio.example.com' })
       const second = await pendingCall(run.runId, 'read_local_file', { path: '/tmp/notes.md' })
       const vfs = await pendingCall(run.runId, 'grep', {
         path: 'user-local/Project--mount-1',

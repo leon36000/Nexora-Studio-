@@ -1,4 +1,5 @@
 import { IntuneIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -9,7 +10,7 @@ export const IntuneBlock: BlockConfig = {
   description: 'Manage devices, application inventory, and compliance with Microsoft Intune',
   longDescription:
     'Read managed device and detected application inventories, inspect compliance policy status and device configuration metadata, and request device sync, restart, remote lock, or retirement. Uses Microsoft Graph v1.0 with a work or school account and an active Intune tenant license. Remote actions depend on device platform and the connected administrator’s Intune permissions.',
-  docsLink: 'https://docs.sim.ai/integrations/intune',
+  docsLink: docsUrl('/integrations/intune'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#FFFFFF',

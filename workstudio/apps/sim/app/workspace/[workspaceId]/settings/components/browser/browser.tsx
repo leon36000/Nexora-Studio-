@@ -272,7 +272,7 @@ export function Browser() {
               : 'sign the browser out of every site and erase its cookies, site data, and cache',
             bold: true,
           },
-          '. Your Sim account and saved passwords are not affected.',
+          '. Your Nexora account and saved passwords are not affected.',
         ]}
         confirm={{
           label: target ? target.action : 'Clear all',

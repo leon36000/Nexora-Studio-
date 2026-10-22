@@ -1,5 +1,6 @@
 import { BookOpen, Table } from '@sim/emcn/icons'
 import { RssIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -15,7 +16,7 @@ export const RssBlock: BlockConfig = {
   bgColor: '#F97316',
   icon: RssIcon,
   triggerAllowed: true,
-  docsLink: 'https://docs.sim.ai/workflows/triggers/rss',
+  docsLink: docsUrl('/workflows/triggers/rss'),
 
   canvasPresentation: {
     defaultTitle: 'RSS Feed',

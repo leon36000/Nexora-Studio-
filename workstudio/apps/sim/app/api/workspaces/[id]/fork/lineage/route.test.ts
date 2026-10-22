@@ -56,7 +56,23 @@ const childNode = (id: string, name: string) => ({
   createdAt: childCreatedAt,
 })
 
-describe('fork lineage route', () => {
+describe('Nexora edition: fork lineage route', () => {
+  beforeEach(() => {
+    mockGetSession.mockResolvedValue({ user: { id: VIEWER_ID }, session: { id: 'session-1' } })
+  })
+
+  it('answers 404 without reading lineage', async () => {
+    const response = await GET(createMockRequest('GET'), routeContext)
+
+    expect(response.status).toBe(404)
+    expect(mockGetForkParent).not.toHaveBeenCalled()
+    expect(mockGetForkChildren).not.toHaveBeenCalled()
+    expect(mockGetUndoableRunForTarget).not.toHaveBeenCalled()
+  })
+})
+
+// Nexora edition: workspace forking is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+describe.skip('fork lineage route', () => {
   beforeEach(() => {
     mockGetSession.mockResolvedValue({ user: { id: VIEWER_ID }, session: { id: 'session-1' } })
     mockAuthorizeWorkspaceOperation.mockResolvedValue(undefined)

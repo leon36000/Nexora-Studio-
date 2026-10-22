@@ -1,4 +1,5 @@
 import { DatagmaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const DatagmaBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const DatagmaBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Integrate Datagma to find verified work emails from a name and company, enrich person profiles via email or LinkedIn URL, enrich company data from a domain or name, look up mobile phone numbers from LinkedIn, and check your credit balance.',
-  docsLink: 'https://docs.sim.ai/integrations/datagma',
+  docsLink: docsUrl('/integrations/datagma'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

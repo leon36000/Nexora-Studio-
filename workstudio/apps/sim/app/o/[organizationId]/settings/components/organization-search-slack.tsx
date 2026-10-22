@@ -87,14 +87,14 @@ export function OrganizationSearchSlack() {
                       variant='primary'
                       onClick={() => setWizard(canInstallSharedApp ? { mode: 'shared' } : {})}
                     >
-                      {installations.data.sharedAppAvailable ? 'Install Sim Search' : 'Set up'}
+                      {installations.data.sharedAppAvailable ? 'Install Nexora Search' : 'Set up'}
                     </Chip>
                   }
                 />
               ) : (
                 installations.data.installations.map((installation) => {
                   const custom = installation.appKind === 'custom'
-                  const name = custom ? 'Sim Search (custom bot)' : 'Sim Search'
+                  const name = custom ? 'Nexora Search (custom bot)' : 'Nexora Search'
                   const needsInstall =
                     canInstallSharedApp && custom && !sharedTeams.has(installation.teamId)
                   const connectionError = needsInstall
@@ -140,7 +140,7 @@ export function OrganizationSearchSlack() {
                             label={`${name} actions`}
                             actions={[
                               {
-                                label: needsInstall ? 'Install Sim Search' : 'Reconnect',
+                                label: needsInstall ? 'Install Nexora Search' : 'Reconnect',
                                 disabled: busy,
                                 onSelect: () =>
                                   setWizard({

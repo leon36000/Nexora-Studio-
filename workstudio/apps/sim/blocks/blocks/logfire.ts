@@ -1,5 +1,6 @@
 import { Bug, ClipboardList, Clock, Database, File, Search, Server } from '@sim/emcn/icons'
 import { LogfireIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -79,7 +80,7 @@ export const LogfireBlock: BlockConfig = {
   description: 'Query traces, logs, and metrics in Pydantic Logfire',
   longDescription:
     'Run SQL over your observability data, search spans and logs with structured filters, pull an entire trace by ID, and confirm which project a read token targets.',
-  docsLink: 'https://docs.sim.ai/integrations/logfire',
+  docsLink: docsUrl('/integrations/logfire'),
   category: 'tools',
   authMode: AuthMode.ApiKey,
   integrationType: IntegrationType.Observability,

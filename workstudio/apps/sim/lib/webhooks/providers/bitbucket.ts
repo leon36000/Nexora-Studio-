@@ -169,7 +169,7 @@ type BitbucketCandidateLookup =
   | { kind: 'unavailable'; error: Error }
 
 function bitbucketHookDescription(triggerId: string, webhookId: string): string {
-  return `Sim workflow trigger (${triggerId}) [sim:${webhookId}]`
+  return `Nexora workflow trigger (${triggerId}) [sim:${webhookId}]`
 }
 
 async function findBitbucketCandidateHook(

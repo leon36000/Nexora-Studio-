@@ -1,4 +1,5 @@
 import { ClickUpIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -111,7 +112,7 @@ export const ClickUpBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Create, read, update, and delete tasks, manage comments, tags, folders, and lists, upload attachments, and look up workspaces, members, and custom fields. Trigger workflows on ClickUp events like task, list, folder, space, and goal changes.',
-  docsLink: 'https://docs.sim.ai/integrations/clickup',
+  docsLink: docsUrl('/integrations/clickup'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

@@ -93,11 +93,11 @@ export function getDesktopExecutorClaimOwner(toolName: string): DesktopToolClaim
 
 /** What the model learns about a desktop call that Stop cancelled before the desktop picked it up. */
 export const STOPPED_BEFORE_START_MESSAGE =
-  'Not run: the user stopped the chat before the Sim desktop app started this action. Nothing happened on their computer.'
+  'Not run: the user stopped the chat before the Nexora desktop app started this action. Nothing happened on their computer.'
 
 /** What the model learns about a desktop call that Stop cancelled after the desktop picked it up. */
 export const STOPPED_WHILE_RUNNING_MESSAGE =
-  'Stopped by the user while the Sim desktop app was running this action. It may already have taken effect; inspect the current state before repeating it.'
+  'Stopped by the user while the Nexora desktop app was running this action. It may already have taken effect; inspect the current state before repeating it.'
 
 /**
  * The lease owner token of a desktop call the chat view claims under a session: only that session

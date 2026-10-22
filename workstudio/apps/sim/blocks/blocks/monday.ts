@@ -1,4 +1,5 @@
 import { MondayIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -38,7 +39,7 @@ export const MondayBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Read or manage boards, groups, columns, items, and subitems in Monday.com. Search items, change column values, move or archive items, post updates, and start workflows from supported board events.',
-  docsLink: 'https://docs.sim.ai/integrations/monday',
+  docsLink: docsUrl('/integrations/monday'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

@@ -1,4 +1,5 @@
 import { TavilyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -11,7 +12,7 @@ export const TavilyBlock: BlockConfig = {
     'Search the web, extract content from URLs, crawl sites, and map their URLs. Requires an API key.',
   category: 'tools',
   integrationType: IntegrationType.Search,
-  docsLink: 'https://docs.sim.ai/integrations/tavily',
+  docsLink: docsUrl('/integrations/tavily'),
   bgColor: '#FFFFFF',
   icon: TavilyIcon,
   canvasPresentation: {

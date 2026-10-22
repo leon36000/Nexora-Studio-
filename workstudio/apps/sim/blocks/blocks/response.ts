@@ -1,4 +1,5 @@
 import { ResponseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const ResponseBlock: BlockConfig = {
@@ -7,7 +8,7 @@ export const ResponseBlock: BlockConfig = {
   description: 'Send structured API response',
   longDescription:
     'Integrate Response into the workflow. Can send build or edit structured responses into a final workflow response.',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/response',
+  docsLink: docsUrl('/workflows/blocks/response'),
   bestPractices: `
   - Only use this if the trigger block is the API Trigger.
   - Prefer the builder mode over the editor mode.

@@ -56,7 +56,7 @@ export const typography = {
    * entirely, so for most recipients the fallback chain IS the rendered font.
    */
   fontFamily:
-    "'Season Sans', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
+    "'Inter', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif",
   /**
    * Deliberately brand-free, for emails that must read as typed by a person
    * (the plain founder notes, the agent's thread replies). Carries the same

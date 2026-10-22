@@ -1,4 +1,5 @@
 import { PineconeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const PineconeBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Generate embeddings, upsert and update text records, delete vectors, search with text or vectors, fetch and list vectors, inspect index statistics, and manage indexes.',
-  docsLink: 'https://docs.sim.ai/integrations/pinecone',
+  docsLink: docsUrl('/integrations/pinecone'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#0D1117',

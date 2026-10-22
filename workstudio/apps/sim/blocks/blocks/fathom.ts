@@ -1,4 +1,5 @@
 import { FathomIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 import { fathomTriggerOptions } from '@/triggers/fathom/utils'
@@ -11,7 +12,7 @@ export const FathomBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'List meetings, get transcripts and summaries, and list teams and team members. Trigger workflows when new meeting content is ready.',
-  docsLink: 'https://docs.sim.ai/integrations/fathom',
+  docsLink: docsUrl('/integrations/fathom'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#181C1E',

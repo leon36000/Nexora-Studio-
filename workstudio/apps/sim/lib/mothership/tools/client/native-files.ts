@@ -37,7 +37,7 @@ async function invoke(
 ): Promise<DesktopLocalFileResponse> {
   signal?.throwIfAborted()
   const bridge = getDesktopBridge()
-  if (!bridge?.localFiles) throw new Error('Update the Sim desktop app to use native file tools.')
+  if (!bridge?.localFiles) throw new Error('Update the Nexora desktop app to use native file tools.')
   const onAbort = () => {
     void bridge
       .localFiles?.({ operation: 'cancel', toolCallId: request.toolCallId })

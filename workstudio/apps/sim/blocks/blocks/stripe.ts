@@ -1,4 +1,5 @@
 import { StripeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -16,7 +17,7 @@ export const StripeBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Manage payment intents, customers, subscriptions, invoices, charges, products, prices, and events. Supported Stripe events can start workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/stripe',
+  docsLink: docsUrl('/integrations/stripe'),
   category: 'tools',
   integrationType: IntegrationType.Commerce,
   bgColor: '#635BFF',

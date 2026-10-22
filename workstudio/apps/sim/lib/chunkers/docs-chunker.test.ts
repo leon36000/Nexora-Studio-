@@ -155,10 +155,13 @@ describe('DocsChunker section links', () => {
         file,
         `## ${heading}\n\nSearch results should take readers to the matching section of a page. Stable section identifiers preserve those links when headings change, and the result title should contain only the visible heading.`
       )
-      const chunks = await new DocsChunker({ chunkOverlap: 0 }).chunkMdxFile(file, dir)
+      const chunks = await new DocsChunker({
+        chunkOverlap: 0,
+        baseUrl: 'https://docs.nexora.example',
+      }).chunkMdxFile(file, dir)
 
       expect(chunks).toHaveLength(1)
-      expect(chunks[0]?.headerLink).toBe(`https://docs.sim.ai/guide#${anchor}`)
+      expect(chunks[0]?.headerLink).toBe(`https://docs.nexora.example/guide#${anchor}`)
       expect(chunks[0]?.headerText).toBe(label)
     } finally {
       await rm(dir, { recursive: true, force: true })

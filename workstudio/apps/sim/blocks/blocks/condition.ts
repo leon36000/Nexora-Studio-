@@ -1,4 +1,5 @@
 import { ConditionalIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const ConditionBlock: BlockConfig = {
@@ -11,7 +12,7 @@ export const ConditionBlock: BlockConfig = {
   - Write the conditions using standard javascript syntax except referencing the outputs of previous blocks using <> syntax, and keep them as simple as possible. No hacky fallbacks.
   - Can reference workflow variables using <blockName.output> syntax as usual within conditions.
   `,
-  docsLink: 'https://docs.sim.ai/workflows/blocks/condition',
+  docsLink: docsUrl('/workflows/blocks/condition'),
   bgColor: '#FF752F',
   icon: ConditionalIcon,
   category: 'blocks',

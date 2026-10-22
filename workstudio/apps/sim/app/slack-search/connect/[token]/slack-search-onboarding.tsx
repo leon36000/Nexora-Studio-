@@ -17,13 +17,13 @@ interface SlackSearchOnboardingProps {
 
 const ACCOUNT_STATUS_COPY = {
   wrong_account:
-    'Sign out of Sim, then open this link again and sign in using the same email as your Slack account.',
+    'Sign out of Nexora, then open this link again and sign in using the same email as your Slack account.',
   verify_email:
-    'Verify your Sim email address, then return here. Search requires the same verified email as your Slack account.',
+    'Verify your Nexora email address, then return here. Search requires the same verified email as your Slack account.',
   membership_required:
     'Complete your organization’s existing invitation or SSO sign-in, then return here. If you haven’t been invited, ask your organization administrator for access.',
   identity_conflict:
-    'Your Slack and Sim identities don’t match the organization’s account records. Ask your administrator to check the connection.',
+    'Your Slack and Nexora identities don’t match the organization’s account records. Ask your administrator to check the connection.',
 } as const
 
 export function SlackSearchOnboarding({ token, userId }: SlackSearchOnboardingProps) {
@@ -49,7 +49,7 @@ export function SlackSearchOnboarding({ token, userId }: SlackSearchOnboardingPr
   if (!('organizationId' in data))
     return (
       <div className='flex flex-col gap-4'>
-        <h1 className='text-2xl'>Finish your Sim account setup</h1>
+        <h1 className='text-2xl'>Finish your Nexora account setup</h1>
         <p className='text-[var(--text-secondary)] text-sm'>{ACCOUNT_STATUS_COPY[data.status]}</p>
         <div className='flex flex-wrap gap-2'>
           <Chip

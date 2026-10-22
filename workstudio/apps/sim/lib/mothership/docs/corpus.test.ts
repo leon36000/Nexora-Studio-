@@ -94,7 +94,7 @@ describe('readDocsPage', () => {
     const page = await readDocsPage(`docs/${SAMPLE_PAGE}`)
 
     expect(fetchMock).toHaveBeenCalledOnce()
-    expect(fetchMock.mock.calls[0][0]).toBe(`https://docs.sim.ai/${SAMPLE_PAGE}`)
+    expect(fetchMock.mock.calls[0][0]).toBe(`http://docs.invalid/${SAMPLE_PAGE}`)
     expect(page).toEqual({ content: '# Agent\n\nbody', totalLines: 3 })
   })
 

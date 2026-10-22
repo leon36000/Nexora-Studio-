@@ -17,7 +17,7 @@ export async function connectDesktopSource(
 ): Promise<DesktopOAuthConnectResult> {
   const bridge = getDesktopBridge()
   if (!bridge?.prepareSourceConnect || !bridge.beginSourceConnect || !bridge.cancelSourceConnect) {
-    throw new Error('Update the Sim desktop app to connect this account.')
+    throw new Error('Update the Nexora desktop app to connect this account.')
   }
   signal?.throwIfAborted()
   const requestId = await bridge.prepareSourceConnect()
@@ -41,7 +41,7 @@ export async function connectDesktopSource(
             result?.error === 'cancelled' || result?.error === 'superseded'
               ? 'Connection canceled. You can try again.'
               : result?.error === 'signin_required'
-                ? 'Sign in to Sim in your browser, then try connecting again.'
+                ? 'Sign in to Nexora in your browser, then try connecting again.'
                 : 'Connection did not complete. Try connecting again.'
           )
         )

@@ -1,4 +1,5 @@
 import { CheckrIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -119,7 +120,7 @@ export const CheckrBlock: BlockConfig = {
   description: 'Run and manage background checks with Checkr',
   longDescription:
     'Create and update candidates, send background check invitations, order and upgrade reports, read screening results and assessments, manage report tags, run the adverse action process, schedule recurring checks and continuous monitoring, look up packages, geos, nodes, programs, documents, and users, and react to report, invitation, candidate, verification, adverse action, and continuous check webhooks.',
-  docsLink: 'https://docs.sim.ai/integrations/checkr',
+  docsLink: docsUrl('/integrations/checkr'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#009BB5',

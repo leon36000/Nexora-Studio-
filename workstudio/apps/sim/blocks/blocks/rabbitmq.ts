@@ -1,4 +1,5 @@
 import { RabbitmqIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -37,7 +38,7 @@ export const RabbitmqBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Connect agents to a RabbitMQ broker through its Management HTTP API. Publish messages to exchanges, read messages off queues, declare queues, exchanges, bindings, and policies, and inspect broker health, queue depth, consumers, connections, and cluster nodes. Works with self-hosted brokers and managed offerings such as CloudAMQP as long as the management plugin is reachable.',
-  docsLink: 'https://docs.sim.ai/integrations/rabbitmq',
+  docsLink: docsUrl('/integrations/rabbitmq'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#FFFFFF',

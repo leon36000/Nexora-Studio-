@@ -432,7 +432,7 @@ describe.runIf(Boolean(redisUrl))('taking over a run whose controller died', () 
     }
   })
 
-  it('waits for a still-leased Sim tool to lapse before taking the run over', async () => {
+  it('waits for a still-leased Nexora tool to lapse before taking the run over', async () => {
     const { streamId, runId, toolCallId } = await runAbandonedMidTool({ leaseLive: true })
 
     await takeOverAbandonedRuns()

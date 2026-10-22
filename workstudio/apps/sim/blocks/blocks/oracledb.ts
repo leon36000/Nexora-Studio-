@@ -1,6 +1,7 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { isRecordLike } from '@sim/utils/object'
 import { OracleIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -80,7 +81,7 @@ export const OracleDatabaseBlock: BlockConfig = {
   description: 'Connect directly to an Oracle Database',
   longDescription:
     'Query, modify, and inspect Oracle Database over Oracle Net using TCP or verified TCPS, with optional in-memory PEM wallet authentication.',
-  docsLink: 'https://docs.sim.ai/integrations/oracledb',
+  docsLink: docsUrl('/integrations/oracledb'),
   category: 'tools',
   authMode: AuthMode.ApiKey,
   integrationType: IntegrationType.Databases,
@@ -348,9 +349,9 @@ export const OracleDatabaseBlockMeta = {
     },
     {
       icon: OracleIcon,
-      title: 'Sync Oracle to Sim',
+      title: 'Sync Oracle to Nexora',
       prompt:
-        'Create a scheduled workflow that queries the latest Oracle records and writes each normalized row into a Sim table for downstream workflows and analysis.',
+        'Create a scheduled workflow that queries the latest Oracle records and writes each normalized row into a Nexora table for downstream workflows and analysis.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['database', 'sync'],

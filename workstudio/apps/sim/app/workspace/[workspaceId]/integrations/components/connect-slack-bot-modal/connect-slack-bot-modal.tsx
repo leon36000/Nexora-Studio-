@@ -39,7 +39,7 @@ import { buildSlackCustomBotRequestUrl } from '@/triggers/webhook-url'
 
 const logger = createLogger('ConnectSlackBotModal')
 
-const DEFAULT_APP_NAME = 'Sim Bot'
+const DEFAULT_APP_NAME = 'Nexora Bot'
 const DONE_STEP = 4
 
 const CUSTOM_BOT_CAPABILITIES = [
@@ -536,7 +536,7 @@ function StepCreate({ manifestJson, createAppUrl, reconnect }: StepCreateProps) 
         </SubStep>
         <SubStep n={2}>
           Keep its existing App Manifest and permissions. Reconnecting updates only the credentials
-          saved in Sim.
+          saved in Nexora.
         </SubStep>
       </SubStepList>
     )

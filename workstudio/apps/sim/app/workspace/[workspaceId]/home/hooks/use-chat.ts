@@ -3509,7 +3509,7 @@ export function useChat(
       if (!isError && !hasQueuedFollowUp && completedChatId) {
         void getDesktopBridge()?.settings?.notify({
           title: 'Task complete',
-          body: 'Sim finished responding.',
+          body: 'Nexora finished responding.',
           route: organizationId
             ? `/o/${organizationId}/chat/${completedChatId}`
             : `/workspace/${workspaceId}/chat/${completedChatId}`,
@@ -4229,7 +4229,7 @@ export function useChat(
           const retryLater = postFailedAtNetwork && navigator.onLine
           setError(
             postFailedAtNetwork
-              ? `Message not sent: Sim could not be reached. ${
+              ? `Message not sent: Nexora could not be reached. ${
                   retryLater ? 'Retrying.' : 'It will send when you are back online.'
                 }`
               : getErrorMessage(err, 'Failed to send message')

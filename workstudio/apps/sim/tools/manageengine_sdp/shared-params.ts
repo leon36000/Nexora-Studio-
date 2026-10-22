@@ -22,7 +22,7 @@ export const SDP_BASE_PARAMS: ToolParams = {
     required: false,
     visibility: 'user-only',
     description:
-      'Zoho data center hosting the portal (US, EU, IN, AU, JP, CA, SA, UK, CN, AE). Credentials connected through Sim are issued by the US accounts server and are only valid against US.',
+      'Zoho data center hosting the portal (US, EU, IN, AU, JP, CA, SA, UK, CN, AE). Credentials connected through Nexora are issued by the US accounts server and are only valid against US.',
   },
   portal: {
     type: 'string',

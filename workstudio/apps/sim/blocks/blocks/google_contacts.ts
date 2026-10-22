@@ -1,4 +1,5 @@
 import { GoogleContactsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -10,7 +11,7 @@ export const GoogleContactsBlock: BlockConfig = {
   description: 'Manage Google Contacts',
   authMode: AuthMode.OAuth,
   longDescription: 'Create, read, update, delete, list, and search contacts.',
-  docsLink: 'https://docs.sim.ai/integrations/google_contacts',
+  docsLink: docsUrl('/integrations/google_contacts'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

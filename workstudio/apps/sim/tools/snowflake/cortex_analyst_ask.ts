@@ -104,7 +104,7 @@ export const cortexAnalystAskTool: ToolConfig<
       type: 'number',
       required: false,
       visibility: 'user-or-llm',
-      description: 'Maximum result rows when running the SQL; defaults to 1000 (Sim limit 10000)',
+      description: 'Maximum result rows when running the SQL; defaults to 1000 (Nexora limit 10000)',
     },
     statementTimeoutSeconds: {
       type: 'number',

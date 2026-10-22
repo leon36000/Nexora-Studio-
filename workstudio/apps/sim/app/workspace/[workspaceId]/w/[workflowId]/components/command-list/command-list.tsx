@@ -167,7 +167,7 @@ export function CommandList() {
         <div className='mb-5 flex justify-center'>
           <Image
             src='/logo/b&w/text/b&w.svg'
-            alt='Sim'
+            alt='Nexora'
             width={99.56}
             height={48.56}
             className='opacity-70'

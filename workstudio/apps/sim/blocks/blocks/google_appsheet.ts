@@ -1,4 +1,5 @@
 import { GoogleAppsheetIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const GoogleAppsheetBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Find, add, edit, and delete rows in an AppSheet table using the AppSheet API. Requires an AppSheet Enterprise plan with the API enabled and an Application Access Key.',
-  docsLink: 'https://docs.sim.ai/integrations/google_appsheet',
+  docsLink: docsUrl('/integrations/google_appsheet'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',

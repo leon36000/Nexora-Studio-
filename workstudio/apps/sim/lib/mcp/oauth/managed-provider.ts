@@ -55,7 +55,7 @@ export class ManagedMcpOauthProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      client_name: 'Sim',
+      client_name: 'Nexora',
       ...(this.preregistered?.scope ? { scope: this.preregistered.scope } : {}),
       redirect_uris: [this.redirectUrl],
       grant_types: ['authorization_code', 'refresh_token'],

@@ -9,8 +9,12 @@ import { glob as globPaths, grepReadResult } from '@/lib/mothership/vfs/operatio
 
 const logger = createLogger('DocsCorpus')
 
-/** The public docs site the `docs/` tree is a lazy view of. */
-const DOCS_BASE_URL = 'https://docs.sim.ai'
+/**
+ * The public docs site the `docs/` tree is a lazy view of. Nexora edition: the configured
+ * documentation site; the reserved `.invalid` TLD otherwise, so nothing reaches a third party.
+ */
+const DOCS_BASE_URL =
+  process.env.NEXT_PUBLIC_DOCUMENTATION_URL?.trim().replace(/\/+$/, '') || 'http://docs.invalid'
 
 /** VFS prefix the docs corpus is mounted at. */
 const DOCS_PREFIX = 'docs/'

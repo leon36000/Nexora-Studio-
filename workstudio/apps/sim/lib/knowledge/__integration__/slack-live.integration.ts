@@ -268,7 +268,7 @@ describe.skipIf(!fixtureFile)('live Slack content and human access', () => {
     ownerId = base.ownerId
     const [bot] = await db.select().from(credential).where(eq(credential.id, input.botCredentialId))
     expect(bot?.workspaceId).toBe(input.workspaceId)
-    expect(bot?.displayName).toBe('Sim Search E2E')
+    expect(bot?.displayName).toBe('Nexora Search E2E')
     expect(bot?.providerId).toBe(SLACK_CUSTOM_BOT_PROVIDER_ID)
     const bundle = await resolveCredentialTokenBundle(
       input.botCredentialId,
@@ -277,7 +277,7 @@ describe.skipIf(!fixtureFile)('live Slack content and human access', () => {
       slackConnector.auth.mode === 'oauth' ? slackConnector.auth.requiredScopes : undefined
     )
     if (!bundle?.accessToken)
-      throw new Error('Connect the dedicated fixture bot in the Sim UI first')
+      throw new Error('Connect the dedicated fixture bot in the Nexora UI first')
     botToken = bundle.accessToken
     const identity = await api('auth.test', botToken)
     expect(typeof identity.team_id).toBe('string')
@@ -298,7 +298,7 @@ describe.skipIf(!fixtureFile)('live Slack content and human access', () => {
       const binding = await loadManagedCredentialGroupBinding(credentialId)
       expect(binding?.workspaceId).toBe(input.workspaceId)
       expect(binding?.providerId).toBe('slack')
-      if (!binding) throw new Error('Connect a fixture human account in the Sim UI first')
+      if (!binding) throw new Error('Connect a fixture human account in the Nexora UI first')
       if (groupId) {
         expect(binding.credentialGroupId).toBe(groupId)
         expect(binding.credentialGroupOptionId).toBe(optionId)
@@ -562,7 +562,7 @@ describe.skipIf(!fixtureFile)('live Slack content and human access', () => {
     await assertParity()
   }, 120000)
 
-  it('denies a connected human after removal from the Sim workspace', async ({ skip }) => {
+  it('denies a connected human after removal from the Nexora workspace', async ({ skip }) => {
     const member = members.find((person) => person.userId !== ownerId)
     if (!member) {
       skip()

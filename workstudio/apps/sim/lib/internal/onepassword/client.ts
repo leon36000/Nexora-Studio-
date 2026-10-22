@@ -251,7 +251,7 @@ export async function createOnePasswordClient(serviceAccountToken: string, signa
   signal?.throwIfAborted()
   const client = await createClient({
     auth: serviceAccountToken,
-    integrationName: 'Sim Studio',
+    integrationName: 'Nexora WorkStudio',
     integrationVersion: '1.0.0',
   })
   signal?.throwIfAborted()

@@ -214,7 +214,7 @@ function formatRejectionReason(reason: string): string {
     case 'rate_limit_exceeded':
       return 'Rate limit exceeded'
     case 'not_entitled':
-      return 'Plan no longer includes Sim Mailer'
+      return 'Plan no longer includes Nexora Mailer'
     default:
       return reason
   }

@@ -1,4 +1,5 @@
 import { ZendeskIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -10,7 +11,7 @@ export const ZendeskBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Read, create, update, or delete tickets, users, and organizations, including supported bulk operations. Merge tickets, autocomplete organizations, search records, or count search results. Ticket events can start workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/zendesk',
+  docsLink: docsUrl('/integrations/zendesk'),
   authMode: AuthMode.ApiKey,
   category: 'tools',
   integrationType: IntegrationType.Support,

@@ -1,4 +1,5 @@
 import { SapS4HanaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta, CanvasSentence } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -43,7 +44,7 @@ export const SapS4HanaBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Connect SAP S4HANA Cloud Public Edition, Cloud Private Edition, or an on-premise tenant using the deployment and authentication settings for that tenant. Read and manage business records through the listed OData operations.',
-  docsLink: 'https://docs.sim.ai/integrations/sap_s4hana',
+  docsLink: docsUrl('/integrations/sap_s4hana'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#FFFFFF',

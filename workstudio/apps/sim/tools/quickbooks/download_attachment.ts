@@ -11,7 +11,7 @@ export const quickbooksDownloadAttachmentTool: InternalToolConfig<
 > = {
   id: 'quickbooks_download_attachment',
   name: 'QuickBooks Download Attachment',
-  description: 'Download a QuickBooks file attachment as a stored Sim file',
+  description: 'Download a QuickBooks file attachment as a stored Nexora file',
   version: '1.0.0',
   params: {
     accessToken: {

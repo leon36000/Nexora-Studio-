@@ -1,4 +1,5 @@
 import { PerplexityIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const PerplexityBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const PerplexityBlock: BlockConfig = {
   longDescription:
     'Generate completions using Perplexity AI chat models or perform web searches with advanced filtering.',
   authMode: AuthMode.ApiKey,
-  docsLink: 'https://docs.sim.ai/integrations/perplexity',
+  docsLink: docsUrl('/integrations/perplexity'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#20808D', // Perplexity turquoise color

@@ -1,4 +1,5 @@
 import { RB2BIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -28,7 +29,7 @@ export const RB2BBlock: BlockConfig = {
     'Resolve IP addresses, hashed emails, and LinkedIn profiles into person-level identity and B2B enrichment data using the RB2B API. Convert IPs to hashed emails, MAIDs, and company domains; enrich emails into LinkedIn profiles, business profiles, and mobile IDs; and look up emails or phone numbers from LinkedIn. Requires an RB2B API key.',
   category: 'tools',
   integrationType: IntegrationType.Sales,
-  docsLink: 'https://docs.sim.ai/integrations/rb2b',
+  docsLink: docsUrl('/integrations/rb2b'),
   bgColor: '#51FF00',
   icon: RB2BIcon,
   canvasPresentation: {

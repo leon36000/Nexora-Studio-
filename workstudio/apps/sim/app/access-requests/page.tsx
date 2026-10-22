@@ -49,7 +49,7 @@ export default async function AccessRequestsPage({ searchParams }: AccessRequest
       <EmptyState
         title='Choose an organization'
         description='Open Settings → Requests in an organization or workspace.'
-        action={<ChipLink href={APP_ENTRY_PATH}>Back to Sim</ChipLink>}
+        action={<ChipLink href={APP_ENTRY_PATH}>Back to Nexora</ChipLink>}
       />
     )
   }

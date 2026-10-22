@@ -1,4 +1,5 @@
 import { DiscordIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -22,7 +23,7 @@ export const DiscordBlock: BlockConfig = {
   bgColor: '#5865F2',
   iconColor: '#5865F2',
   icon: DiscordIcon,
-  docsLink: 'https://docs.sim.ai/integrations/discord',
+  docsLink: docsUrl('/integrations/discord'),
   canvasPresentation: {
     defaultTitle: 'Discord',
     sentences: {

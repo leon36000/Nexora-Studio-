@@ -38,7 +38,7 @@ export const receiveSlackSearchCommand: OperationUseCase<
     if (!context)
       return {
         response_type: 'ephemeral',
-        text: 'An admin needs to enable Sim Search for this Slack workspace.',
+        text: 'An admin needs to enable Nexora Search for this Slack workspace.',
       }
     if (input.command === '/connect') {
       const url = new URL(
@@ -53,11 +53,11 @@ export const receiveSlackSearchCommand: OperationUseCase<
         if (!provider)
           return {
             response_type: 'ephemeral',
-            text: 'Choose an integration in Sim to connect your account.',
+            text: 'Choose an integration in Nexora to connect your account.',
           }
         url.searchParams.set('connectorType', provider.type)
       }
-      return { response_type: 'ephemeral', text: `<${url.href}|Connect your sources in Sim>` }
+      return { response_type: 'ephemeral', text: `<${url.href}|Connect your sources in Nexora>` }
     }
     const query = input.text.trim()
     if (!query) return { response_type: 'ephemeral', text: 'Use /query followed by your question.' }
@@ -77,7 +77,7 @@ export const receiveSlackSearchCommand: OperationUseCase<
     })
     return {
       response_type: 'ephemeral',
-      text: 'I’ll answer in a private Sim Search DM thread.',
+      text: 'I’ll answer in a private Nexora Search DM thread.',
       turnId,
     }
   },

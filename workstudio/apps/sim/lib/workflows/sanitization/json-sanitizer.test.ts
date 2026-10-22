@@ -56,7 +56,7 @@ const multiTriggerConfig = {
 
 const mothershipConfig = {
   type: 'mothership',
-  name: 'Sim Chat',
+  name: 'Nexora Chat',
   category: 'blocks',
   outputs: {},
   subBlocks: [
@@ -126,11 +126,11 @@ describe('sanitizeForCopilot knowledge tag subblocks', () => {
 })
 
 describe('sanitizeForCopilot server-only block inputs', () => {
-  it('omits Sim Chat secret-mount policy while retaining model-visible inputs', () => {
+  it('omits Nexora Chat secret-mount policy while retaining model-visible inputs', () => {
     const result = sanitizeForCopilot(
       makeSingleBlockWorkflow('chat-1', {
         type: 'mothership',
-        name: 'Sim Chat 1',
+        name: 'Nexora Chat 1',
         enabled: true,
         subBlocks: {
           prompt: { id: 'prompt', type: 'long-input', value: 'Help me' },

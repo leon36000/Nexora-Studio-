@@ -9,17 +9,14 @@ export default function manifest(): MetadataRoute.Manifest {
   const brand = getBrandConfig()
 
   return {
-    name:
-      brand.name === 'Sim'
-        ? 'Sim — The AI Workspace | Build, Deploy & Manage AI Agents'
-        : brand.name,
+    name: brand.name,
     short_name: brand.name,
-    description: `Sim is the open-source AI workspace where teams build, deploy, and manage AI agents. Connect ${INTEGRATION_COUNT_LABEL} integrations and every major LLM.`,
+    description: `${brand.name} : créez, déployez et pilotez vos agents et automatisations IA. ${INTEGRATION_COUNT_LABEL} intégrations.`,
     start_url: '/',
     scope: '/',
     display: 'standalone',
     background_color: '#ffffff',
-    theme_color: brand.theme?.primaryColor || '#33C482',
+    theme_color: brand.theme?.primaryColor || '#4F46E5',
     orientation: 'portrait-primary',
     icons: [
       {

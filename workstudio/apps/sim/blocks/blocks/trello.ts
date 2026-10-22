@@ -1,4 +1,5 @@
 import { TrelloIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -71,7 +72,7 @@ export const TrelloBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Integrate with Trello to list, search, create, update, and delete cards and lists, manage checklists and checklist items, assign labels and members, review activity, and add comments.',
-  docsLink: 'https://docs.sim.ai/integrations/trello',
+  docsLink: docsUrl('/integrations/trello'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#0052CC',

@@ -28,7 +28,7 @@ vi.mock('@/lib/slack-search/onboarding-state', () => ({
   storeSlackSearchOnboardingState: m.store,
 }))
 vi.mock('@/lib/slack-search/onboarding', () => ({
-  SLACK_SEARCH_CONNECT_ACCOUNT: 'Create or connect your Sim account',
+  SLACK_SEARCH_CONNECT_ACCOUNT: 'Create or connect your Nexora account',
   SLACK_SEARCH_CONNECT_SOURCES: 'Connect your sources',
   slackSearchOnboardingUrl: (token: string) => `https://sim.test/slack-search/connect/${token}`,
 }))
@@ -190,7 +190,7 @@ describe('Slack onboarding authorization and retry', () => {
     await expect(retry()).rejects.toThrow('knowledge access denied')
     expect(m.persist).not.toHaveBeenCalled()
   })
-  it('refuses another Sim user bound to the original thread', async () => {
+  it('refuses another Nexora user bound to the original thread', async () => {
     m.limit
       .mockResolvedValueOnce([viewer])
       .mockResolvedValueOnce([turn])

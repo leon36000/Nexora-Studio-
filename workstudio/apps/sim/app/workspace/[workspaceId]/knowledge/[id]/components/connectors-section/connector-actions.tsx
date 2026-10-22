@@ -114,7 +114,7 @@ export function ConnectorActionFeedback({ state }: ConnectorActionFeedbackProps)
         title='Remove connection'
         text={
           removal.requiresDocumentDeletion
-            ? 'This removes the connection, stops future syncs, and deletes its synced documents from Sim.'
+            ? 'This removes the connection, stops future syncs, and deletes its synced documents from Nexora.'
             : 'This removes the connection and stops future syncs. Synced documents remain unless you delete them below.'
         }
         confirm={{

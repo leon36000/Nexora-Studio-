@@ -8,7 +8,7 @@ describe('changelog media origins', () => {
     { kind: 'carriage-return padding', source: '/\r/example.test/demo.mp4' },
     { kind: 'backslash separators', source: '/\\example.test/demo.mp4' },
   ])('rejects $kind that browsers resolve to another origin', ({ source }) => {
-    expect(new URL(source, 'https://www.sim.ai').origin).toBe('https://example.test')
+    expect(new URL(source, 'https://workstudio.example.com').origin).toBe('https://example.test')
     expect(isChangelogMediaSource(source)).toBe(false)
   })
 })

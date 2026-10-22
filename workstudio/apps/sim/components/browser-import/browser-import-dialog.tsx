@@ -14,10 +14,10 @@ const IMPORT_ERROR_MESSAGES: Record<BrowserImportError, string> = {
   'unsupported-platform': 'Importing from another browser is only supported on macOS.',
   'chrome-not-found': 'Could not find that browser profile.',
   'keychain-unavailable':
-    'Sim needs your permission to read that browser’s saved data. Allow the Keychain prompt and try again.',
+    'Nexora needs your permission to read that browser’s saved data. Allow the Keychain prompt and try again.',
   'profile-unreadable':
     'Could not read that browser’s data. Try quitting the other browser, then import again.',
-  'unsupported-schema': 'That browser stores its data in a format Sim cannot read yet.',
+  'unsupported-schema': 'That browser stores its data in a format Nexora cannot read yet.',
   'nothing-imported': 'Nothing from that profile could be imported.',
   'vault-unavailable':
     'This device cannot store passwords securely, so saved passwords were not imported.',

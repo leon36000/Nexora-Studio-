@@ -27,7 +27,7 @@ beforeEach(() => {
   authMockFns.mockGetSession.mockResolvedValue(null)
 })
 describe('Slack-initiated install entry', () => {
-  it('does not infer an organization from an existing Sim session', async () => {
+  it('does not infer an organization from an existing Nexora session', async () => {
     authMockFns.mockGetSession.mockResolvedValue({ user: { id: 'user' } })
     const markup = renderToStaticMarkup(
       await SlackInstallPage(createRouteContext({ teamId: 'T1' }))

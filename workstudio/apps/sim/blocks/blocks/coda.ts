@@ -1,4 +1,5 @@
 import { CodaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 const DOC_FIELD = ['docSelector', 'manualDocId']
@@ -164,7 +165,7 @@ export const CodaBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Use a reusable API-token credential to create, copy, publish, and share docs; create, update, read, export, and clear pages; read table schemas; list, insert, upsert, update, and delete rows and push row buttons; read formulas and controls; trigger webhook automations; manage folders, custom domains, and workspace roles; and read doc and page analytics. Pick docs, pages, tables, rows, and more from dropdowns populated by your account.',
-  docsLink: 'https://docs.sim.ai/integrations/coda',
+  docsLink: docsUrl('/integrations/coda'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',
@@ -969,7 +970,7 @@ Return ONLY the JSON object.`,
       title: 'Payload',
       type: 'code',
       language: 'json',
-      placeholder: '{ "message": "Hello from Sim" }',
+      placeholder: '{ "message": "Hello from Nexora" }',
       condition: { field: 'operation', value: 'trigger_automation' },
       wandConfig: {
         enabled: true,
@@ -1901,16 +1902,16 @@ export const CodaBlockMeta = {
       icon: CodaIcon,
       title: 'Coda wiki to knowledge base',
       prompt:
-        'Build a scheduled workflow that lists the pages of a Coda team wiki doc, reads each page as text, and syncs the content into a Sim knowledge base so agents can answer questions from the wiki.',
+        'Build a scheduled workflow that lists the pages of a Coda team wiki doc, reads each page as text, and syncs the content into a Nexora knowledge base so agents can answer questions from the wiki.',
       modules: ['scheduled', 'knowledge-base', 'workflows'],
       category: 'productivity',
       tags: ['knowledge', 'sync'],
     },
     {
       icon: CodaIcon,
-      title: 'Coda table to Sim table mirror',
+      title: 'Coda table to Nexora table mirror',
       prompt:
-        'Create a scheduled workflow that reads rows changed since the last run from a Coda table using its sync token and mirrors them into a Sim table for reporting and downstream agent runs.',
+        'Create a scheduled workflow that reads rows changed since the last run from a Coda table using its sync token and mirrors them into a Nexora table for reporting and downstream agent runs.',
       modules: ['scheduled', 'tables', 'workflows'],
       category: 'operations',
       tags: ['sync', 'data'],

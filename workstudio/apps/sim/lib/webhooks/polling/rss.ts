@@ -89,7 +89,7 @@ interface RssWebhookPayload {
 const parser = new Parser({
   timeout: 30000,
   headers: {
-    'User-Agent': 'Sim/1.0 RSS Poller',
+    'User-Agent': 'Nexora/1.0 RSS Poller',
   },
 })
 
@@ -232,7 +232,7 @@ async function fetchNewRssItems(
   }
 
   const headers: Record<string, string> = {
-    'User-Agent': 'Sim/1.0 RSS Poller',
+    'User-Agent': 'Nexora/1.0 RSS Poller',
     Accept: 'application/rss+xml, application/xml, text/xml, */*',
   }
   if (config.etag) {

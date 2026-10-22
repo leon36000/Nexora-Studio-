@@ -1,4 +1,5 @@
 import { ManageEngineIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -106,7 +107,7 @@ export const ManageEngineSdpBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Full read and write access to ManageEngine ServiceDesk Plus Cloud: create, search, update and delete requests, problems, changes, assets and knowledge base solutions, and add notes to requests, problems and changes. Supports multi-portal accounts. Connecting requires a Zoho account in the US data center.',
-  docsLink: 'https://docs.sim.ai/integrations/manageengine_sdp',
+  docsLink: docsUrl('/integrations/manageengine_sdp'),
   category: 'tools',
   integrationType: IntegrationType.Support,
   bgColor: '#FFFFFF',
@@ -1570,7 +1571,7 @@ export const ManageEngineSdpBlockMeta = {
       icon: ManageEngineIcon,
       title: 'Sync ServiceDesk Plus asset inventory to a table',
       prompt:
-        'Every night, page through all ServiceDesk Plus assets and write their name, asset tag, serial number, state and assigned user into a Sim table so the inventory can be queried and charted.',
+        'Every night, page through all ServiceDesk Plus assets and write their name, asset tag, serial number, state and assigned user into a Nexora table so the inventory can be queried and charted.',
       modules: ['scheduled', 'tables'],
       category: 'operations',
       tags: ['asset-management', 'inventory'],

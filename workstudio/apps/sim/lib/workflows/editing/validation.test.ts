@@ -175,7 +175,7 @@ const genericWebhookBlockConfig = {
 
 const mothershipBlockConfig = {
   type: 'mothership',
-  name: 'Sim Chat',
+  name: 'Nexora Chat',
   outputs: {},
   subBlocks: [
     { id: 'prompt', type: 'long-input' },
@@ -513,7 +513,7 @@ describe('validateInputsForBlock', () => {
     expect(result.errors[0]?.error).toContain('read-only')
   })
 
-  it('rejects server-only Sim Chat secret-mount policy inputs', () => {
+  it('rejects server-only Nexora Chat secret-mount policy inputs', () => {
     const result = validateInputsForBlock(
       'mothership',
       { prompt: 'Keep this', secretScope: 'all', mountedSecrets: ['API_KEY'] },
@@ -575,7 +575,7 @@ describe('validateInputsForBlock', () => {
     expect(result.errors[0]?.error).toContain('Unknown model id')
   })
 
-  it("does not apply model validation to blocks whose model field is not Sim's catalog", () => {
+  it("does not apply model validation to blocks whose model field is not Nexora's catalog", () => {
     const result = validateInputsForBlock(
       'huggingface',
       { model: 'mistralai/Mistral-7B-Instruct-v0.3' },
@@ -657,7 +657,7 @@ describe('preValidateCredentialInputs (hosted-tool blocks)', () => {
 
   const ctx = { userId: 'user-1', workspaceId: 'workspace-1' }
 
-  it('strips apiKey when the block resolves to a hosted tool on hosted Sim', async () => {
+  it('strips apiKey when the block resolves to a hosted tool on hosted Nexora', async () => {
     const operations = [
       {
         operation_type: 'add' as const,
@@ -674,7 +674,7 @@ describe('preValidateCredentialInputs (hosted-tool blocks)', () => {
     expect(result.filteredOperations[0]?.params?.inputs?.apiKey).toBeUndefined()
     expect(result.errors).toHaveLength(1)
     expect(result.errors[0]).toMatchObject({ blockId: 'video-1', field: 'apiKey' })
-    expect(result.errors[0]?.error).toContain('managed by Sim')
+    expect(result.errors[0]?.error).toContain('managed by Nexora')
   })
 
   it('preserves apiKey when the resolved tool has no hosting (non-falai provider)', async () => {

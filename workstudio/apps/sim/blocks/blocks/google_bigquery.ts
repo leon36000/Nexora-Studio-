@@ -1,4 +1,5 @@
 import { GoogleBigQueryIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -24,7 +25,7 @@ export const GoogleBigQueryBlock: BlockConfig = {
   description: 'Query, list, and insert data in Google BigQuery',
   longDescription:
     'Connect to Google BigQuery to run SQL queries, list datasets and tables, get table metadata, and insert rows.',
-  docsLink: 'https://docs.sim.ai/integrations/google_bigquery',
+  docsLink: docsUrl('/integrations/google_bigquery'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',
@@ -546,7 +547,7 @@ export const GoogleBigQueryBlockMeta = {
       icon: GoogleBigQueryIcon,
       title: 'BigQuery scheduled report runner',
       prompt:
-        'Build a scheduled workflow that runs a saved BigQuery query daily, writes the result rows to a Sim table, and posts a Slack summary of the top movers.',
+        'Build a scheduled workflow that runs a saved BigQuery query daily, writes the result rows to a Nexora table, and posts a Slack summary of the top movers.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['analysis', 'reporting'],

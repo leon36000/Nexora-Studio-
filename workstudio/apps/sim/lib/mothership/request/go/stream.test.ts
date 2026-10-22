@@ -280,8 +280,8 @@ describe('copilot go stream helpers', () => {
       'protocol skew',
       426,
       'application/json',
-      '{"error":"protocol_version_mismatch","expected":3,"got":2,"message":"This Sim build speaks a different mothership protocol version. Update the older side."}',
-      'This Sim build speaks a different mothership protocol version. Update the older side.',
+      '{"error":"protocol_version_mismatch","expected":3,"got":2,"message":"This Nexora build speaks a different mothership protocol version. Update the older side."}',
+      'This Nexora build speaks a different mothership protocol version. Update the older side.',
     ],
     [
       'an internal validation detail',

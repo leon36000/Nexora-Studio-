@@ -3,7 +3,7 @@ import { verifyRecoveryEvidence } from '@/lib/benchmarks/evidence'
 import type { ToolCallSummary } from '@/lib/mothership/request/types'
 
 describe('benchmark source provenance', () => {
-  const support = 'Use the Sim repository for issue intake.'
+  const support = 'Use the Nexora repository for issue intake.'
   const answer = {
     id: 'repository',
     answer: 'simstudioai/sim',
@@ -14,7 +14,7 @@ describe('benchmark source provenance', () => {
     id: 'lookup',
     name: 'search_workspace',
     status: 'success',
-    params: { specPassage: support, query: 'Sim repository' },
+    params: { specPassage: support, query: 'Nexora repository' },
     result: {
       success: true,
       data: {
@@ -23,7 +23,7 @@ describe('benchmark source provenance', () => {
             citationId: 'repo',
             content: 'Repository simstudioai/sim',
             citationUrl: 'https://github.com/simstudioai/sim',
-            documentName: 'Sim',
+            documentName: 'Nexora',
           },
         ],
       },
@@ -33,7 +33,7 @@ describe('benchmark source provenance', () => {
   it('attaches the actual source URL only to quotations retrieved for the same spec passage', () => {
     const [verified] = verifyRecoveryEvidence(support, [answer], [call])
     expect(verified.sources).toEqual([
-      { ...answer.sources[0], url: 'https://github.com/simstudioai/sim', title: 'Sim' },
+      { ...answer.sources[0], url: 'https://github.com/simstudioai/sim', title: 'Nexora' },
     ])
   })
 

@@ -26,7 +26,7 @@ export const powerbiExecuteQueryTool: ToolConfig<
   id: 'powerbi_execute_query',
   name: 'Power BI Execute DAX Query',
   description:
-    'Execute one DAX query returning one table. Requires workspace access, Read/Build permissions, and the tenant Execute Queries setting. Reported errors fail the action even with HTTP 200. Direct tool responses retain partial rows and typed errors; failed workflows expose only the standard error output. Sim limits workflow tool responses to 10 MiB; use summaries or TOPN for larger results.',
+    'Execute one DAX query returning one table. Requires workspace access, Read/Build permissions, and the tenant Execute Queries setting. Reported errors fail the action even with HTTP 200. Direct tool responses retain partial rows and typed errors; failed workflows expose only the standard error output. Nexora limits workflow tool responses to 10 MiB; use summaries or TOPN for larger results.',
   version: '1.0.0',
   errorExtractor: 'nested-error-object',
   oauth: { required: true, provider: 'microsoft-powerbi' },
@@ -39,7 +39,7 @@ export const powerbiExecuteQueryTool: ToolConfig<
       required: true,
       visibility: 'user-or-llm',
       description:
-        'One DAX query returning one table, for example EVALUATE TOPN(10, Sales). Power BI caps each query at 100,000 rows or 1,000,000 values, 15 MB of data, and 120 requests per minute per user. Sim applies a stricter 10 MiB workflow tool-response budget. Dynamic column names are preserved; successful queries expose the declared outputs. Connect the error port to handle the standard error when a query fails; failed workflow outputs omit partial rows, errors, and incomplete.',
+        'One DAX query returning one table, for example EVALUATE TOPN(10, Sales). Power BI caps each query at 100,000 rows or 1,000,000 values, 15 MB of data, and 120 requests per minute per user. Nexora applies a stricter 10 MiB workflow tool-response budget. Dynamic column names are preserved; successful queries expose the declared outputs. Connect the error port to handle the standard error when a query fails; failed workflow outputs omit partial rows, errors, and incomplete.',
     },
     includeNulls: {
       type: 'boolean',

@@ -7,7 +7,7 @@ import { getSharedSlackSearchAppConfiguration } from '@/lib/slack-search/shared-
 import { AuthShell } from '@/app/(auth)/components'
 
 export const metadata: Metadata = {
-  title: 'Sim Search in Slack',
+  title: 'Nexora Search in Slack',
   robots: { index: false, follow: false },
   referrer: 'no-referrer',
 }
@@ -25,16 +25,16 @@ export default async function SlackInstallPage({ params }: SlackInstallPageProps
   return (
     <AuthShell>
       <div className='flex flex-col gap-5'>
-        <h1 className='text-2xl'>Sim Search in Slack</h1>
+        <h1 className='text-2xl'>Nexora Search in Slack</h1>
         <p className='text-[var(--text-muted)] text-sm'>
-          To start searching, an admin can connect this workspace later from Settings → Sim Search
-          in Slack in their Sim organization.
+          To start searching, an admin can connect this workspace later from Settings → Nexora Search
+          in Slack in their Nexora organization.
         </p>
         <div className='flex gap-2'>
           <ChipLink variant='primary' href={slackUrl.href}>
             Open Slack
           </ChipLink>
-          <ChipLink href={APP_ENTRY_PATH}>Open Sim</ChipLink>
+          <ChipLink href={APP_ENTRY_PATH}>Open Nexora</ChipLink>
         </div>
       </div>
     </AuthShell>

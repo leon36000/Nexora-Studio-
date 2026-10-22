@@ -57,7 +57,7 @@ describe('markdown-fidelity utils', () => {
 
   it('normalizes link hrefs', () => {
     expect(normalizeLinkHref('')).toBe('')
-    expect(normalizeLinkHref('sim.ai')).toBe('https://sim.ai')
+    expect(normalizeLinkHref('nexora.example')).toBe('https://nexora.example')
     expect(normalizeLinkHref('example.com/path')).toBe('https://example.com/path')
     expect(normalizeLinkHref('https://x.com')).toBe('https://x.com')
     expect(normalizeLinkHref('HTTP://x.com')).toBe('HTTP://x.com')
@@ -144,7 +144,7 @@ describe('editor markdown round-trip', () => {
   const cases: Record<string, string> = {
     headings: '# H1\n\n## H2\n\n### H3',
     bold: 'a **bold** word',
-    link: 'see [Sim](https://sim.ai)',
+    link: 'see [Nexora](https://github.com/leon36000/Nexora-Studio-)',
     'nested bullets': '- one\n- two\n  - nested',
     ordered: '1. one\n2. two',
     'task list': '- [ ] todo\n- [x] done',

@@ -167,7 +167,7 @@ describe.runIf(Boolean(redisUrl))("a turn bound to a desktop's background execut
       expiresAt: new Date(now.getTime() + 3_600_000),
       createdAt: now,
       updatedAt: now,
-      userAgent: 'Sim Desktop',
+      userAgent: 'Nexora Desktop',
     })
     const principal: SessionPrincipal = { kind: 'session', userId, sessionId }
     const deviceId = generateId()
@@ -374,7 +374,7 @@ describe.runIf(Boolean(redisUrl))("a turn bound to a desktop's background execut
     await db.delete(user).where(eq(user.id, userId))
   })
 
-  it('binds a turn only to an executor registered to this very session, where Sim tracks presence', async () => {
+  it('binds a turn only to an executor registered to this very session, where Nexora tracks presence', async () => {
     const desktop = await signedInDesktop()
     const viewer = await signedInDesktop({ executor: 0 })
     const otherSession: SessionPrincipal = { ...desktop.principal, sessionId: generateId() }
@@ -866,7 +866,7 @@ describe.runIf(Boolean(redisUrl))("a turn bound to a desktop's background execut
   )
 
   it(
-    'settles a call Sim never offered once its pickup window would have closed',
+    'settles a call Nexora never offered once its pickup window would have closed',
     async () => {
       const desktop = await signedInDesktop()
       const run = await boundRun(desktop)

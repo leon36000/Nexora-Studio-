@@ -343,7 +343,7 @@ export function enrichOpaqueToolError(
 class ToolExecutionTimeoutError extends Error {
   constructor(toolName: string, timeoutMs: number) {
     super(
-      `Tool '${toolName}' timed out after ${Math.round(timeoutMs / 1000)}s on the Sim executor. Cancellation was requested; completion is unconfirmed.`
+      `Tool '${toolName}' timed out after ${Math.round(timeoutMs / 1000)}s on the Nexora executor. Cancellation was requested; completion is unconfirmed.`
     )
     this.name = 'ToolExecutionTimeoutError'
   }
@@ -454,13 +454,13 @@ async function executeToolWithWatchdog(
 const TOOL_RESULT_LOST_MESSAGE =
   'This tool started, but its result never came back, so it was abandoned to let the conversation continue. Its outcome is unknown: it may already have taken effect, so inspect the current state before repeating it, and do not retry it automatically.'
 const DESKTOP_TOOL_RESULT_LOST_MESSAGE =
-  'The Sim desktop app started this action, but its result never came back (the chat view closed or the app stopped responding). Its outcome is unknown: it may already have taken effect, so inspect the current state before repeating it, and do not retry it automatically.'
+  'The Nexora desktop app started this action, but its result never came back (the chat view closed or the app stopped responding). Its outcome is unknown: it may already have taken effect, so inspect the current state before repeating it, and do not retry it automatically.'
 /**
  * A local read the server cannot see picked up (one an older desktop reads without claiming) may
  * never have started; either way, reading changed nothing.
  */
 const DESKTOP_LOCAL_READ_RESULT_MISSING_MESSAGE =
-  'No result came back from the Sim desktop app for this read: it may never have started (this chat may not be open there), or its result was lost. Reading changes nothing on the user’s computer. Do not retry it in this turn; tell the user to keep this chat open in the Sim desktop app, or to ask again later.'
+  'No result came back from the Nexora desktop app for this read: it may never have started (this chat may not be open there), or its result was lost. Reading changes nothing on the user’s computer. Do not retry it in this turn; tell the user to keep this chat open in the Nexora desktop app, or to ask again later.'
 const UNAVAILABLE_TOOL_SETTLEMENT_MESSAGE =
   'The tool result could not be restored before the conversation resumed. Its outcome is unknown; do not retry it automatically.'
 

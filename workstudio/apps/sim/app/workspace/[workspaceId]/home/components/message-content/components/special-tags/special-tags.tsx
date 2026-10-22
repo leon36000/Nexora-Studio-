@@ -2733,7 +2733,7 @@ function TerminalHandoffDisplay({ data }: { data: CredentialItemData }) {
 
   const reason = (data.name ?? '').trim()
   const label = handedBack
-    ? 'Handed control back to Sim'
+    ? 'Handed control back to Nexora'
     : reason || 'Finish in the terminal, then hand control back'
 
   return (

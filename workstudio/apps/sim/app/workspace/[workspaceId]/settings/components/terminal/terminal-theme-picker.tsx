@@ -14,8 +14,8 @@ interface TerminalThemePickerProps {
 
 const BUILT_INS = [
   { value: 'app', label: 'Default' },
-  { value: 'light', label: 'Sim Light' },
-  { value: 'dark', label: 'Sim Dark' },
+  { value: 'light', label: 'Nexora Light' },
+  { value: 'dark', label: 'Nexora Dark' },
 ] as const
 
 function sourceLabel(source: TerminalThemeProfile['source']): string {

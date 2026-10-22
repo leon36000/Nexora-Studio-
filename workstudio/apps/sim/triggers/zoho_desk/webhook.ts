@@ -32,7 +32,7 @@ const ZOHO_DESK_SETUP_INSTRUCTIONS = [
   'Select your Organization from the dropdown (populated automatically from your connected Zoho Desk account).',
   'Choose the event to subscribe to. For "Ticket Updated" you can optionally list up to 5 ticket field API names to watch; previous field values are included in the payload. For "Ticket Thread Added" you can filter by direction (incoming/outgoing).',
   'Optionally restrict events to specific departments by entering comma-separated department IDs.',
-  'Click Save above. Sim creates the webhook subscription in Zoho Desk for you and tears it down automatically when the workflow is undeployed.',
+  'Click Save above. Nexora creates the webhook subscription in Zoho Desk for you and tears it down automatically when the workflow is undeployed.',
 ]
   .map(
     (instruction, index) => `<div class="mb-3"><strong>${index + 1}.</strong> ${instruction}</div>`

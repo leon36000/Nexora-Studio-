@@ -1,4 +1,5 @@
 import { TinybirdIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const TinybirdBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Interact with Tinybird: stream JSON or NDJSON events with the Events API, run SQL with the Query API, call published Pipe API Endpoints by name with dynamic parameters, manage Data Sources by appending from a URL, truncating, or deleting rows by condition, and poll the status of asynchronous jobs.',
-  docsLink: 'https://docs.sim.ai/integrations/tinybird',
+  docsLink: docsUrl('/integrations/tinybird'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#2EF598',
@@ -553,7 +554,7 @@ export const TinybirdBlockMeta = {
       icon: TinybirdIcon,
       title: 'Tinybird pipe-as-API endpoint',
       prompt:
-        'Create a workflow that calls a Tinybird published pipe with parameters on a schedule, normalizes the results, and writes them into a Sim table for downstream consumers.',
+        'Create a workflow that calls a Tinybird published pipe with parameters on a schedule, normalizes the results, and writes them into a Nexora table for downstream consumers.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['analysis', 'sync'],
@@ -582,7 +583,7 @@ export const TinybirdBlockMeta = {
       icon: TinybirdIcon,
       title: 'Tinybird usage-meter dashboard',
       prompt:
-        'Build a workflow that exposes a Tinybird endpoint reporting per-customer usage for billing, refreshes a Sim table hourly, and surfaces top consumers to Slack.',
+        'Build a workflow that exposes a Tinybird endpoint reporting per-customer usage for billing, refreshes a Nexora table hourly, and surfaces top consumers to Slack.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['finance', 'reporting'],

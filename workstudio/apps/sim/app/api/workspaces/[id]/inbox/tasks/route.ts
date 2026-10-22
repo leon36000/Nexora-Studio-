@@ -30,7 +30,7 @@ export const GET = withRouteHandler(
       getUserEntityPermissions(session.user.id, 'workspace', workspaceId),
     ])
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Sim Mailer requires a Max plan' }, { status: 403 })
+      return NextResponse.json({ error: 'Nexora Mailer requires a Max plan' }, { status: 403 })
     }
     if (!permission) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })

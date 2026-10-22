@@ -1,6 +1,7 @@
 import { BookOpen, ClipboardList, File, Table, Users } from '@sim/emcn/icons'
 import { omit } from '@sim/utils/object'
 import { GoogleTranslateIcon, GreptileIcon, SlackIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import {
   getSlackWorkflowOperation,
@@ -80,7 +81,7 @@ export const SlackBlock: BlockConfig = {
     'Send, update, and delete messages, send ephemeral messages visible only to a specific user, open/update/push modal views, publish Home tab views, create canvases, read messages, and add or remove reactions. Advanced mode accepts a bot token. Use trigger mode to start workflows from supported Slack events.',
   bestPractices:
     'For Slack trigger response streaming, select current-workflow outputs as `<blockName>.<outputPath>` and child-workflow outputs as `<childWorkflowId>.<blockName>.<outputPath>`. Use the normalized block reference name shown by the workflow catalog. Selecting a child workflow applies to every invocation of that workflow in the run.',
-  docsLink: 'https://docs.sim.ai/integrations/slack',
+  docsLink: docsUrl('/integrations/slack'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#611f69',
@@ -392,7 +393,7 @@ export const SlackBlock: BlockConfig = {
       title: 'Authentication Method',
       type: 'dropdown',
       options: [
-        { label: 'Sim Bot', id: 'oauth' },
+        { label: 'Nexora Bot', id: 'oauth' },
         { label: 'Custom Bot', id: 'bot_token' },
       ],
       value: () => 'oauth',
@@ -2893,8 +2894,8 @@ function adaptSubBlockForV2(sb: SubBlockConfig): SubBlockConfig {
       credentialKind: 'any',
       placeholder: 'Select Slack account or bot',
       credentialLabels: {
-        oauthGroup: 'Sim app',
-        oauthConnect: 'Connect the Sim app',
+        oauthGroup: 'Nexora app',
+        oauthConnect: 'Connect the Nexora app',
         serviceAccountGroup: 'Custom bots',
         serviceAccountConnect: 'Set up a custom bot',
       },
@@ -3503,11 +3504,11 @@ export const SlackV2Block: BlockConfig = {
   type: 'slack_v2',
   description: 'Manage Slack messages, channels, users, files, Lists, canvases, and Agent Sessions',
   longDescription:
-    'Build Slack workflows with messages, conversations, files, reactions, pins, bookmarks, user groups, profiles, Lists, canvases, and Agent Sessions. Operations that need additional app scopes use custom Slack bots. Lists require lists:read/lists:write and a paid Slack plan. Native Sim connections retain their existing permissions. Page through list outputs explicitly.',
+    'Build Slack workflows with messages, conversations, files, reactions, pins, bookmarks, user groups, profiles, Lists, canvases, and Agent Sessions. Operations that need additional app scopes use custom Slack bots. Lists require lists:read/lists:write and a paid Slack plan. Native Nexora connections retain their existing permissions. Page through list outputs explicitly.',
   bestPractices: `${SlackBlock.bestPractices}
-Native agent-session streaming uses a custom Slack bot and a supported trigger event. Enable streamResponse and select the intended outputs in streamOutputs; Sim Chat (mothership) streams its content output. The trigger owns the streamed reply, so another send needs a separate purpose.
+Native agent-session streaming uses a custom Slack bot and a supported trigger event. Enable streamResponse and select the intended outputs in streamOutputs; Nexora Chat (mothership) streams its content output. The trigger owns the streamed reply, so another send needs a separate purpose.
 The custom-bot manifest's baseline agent scopes are ${SLACK_AGENT_SCOPES.join(', ')}. Selected capabilities add their required scopes and event subscriptions. Verify the installed app's grants, resource access and event configuration; a saved credential or edited manifest alone does not prove access.
-streamIncludeToolCalls displays tool activity; it does not authorize tool execution. Configure Sim Chat's selected operations and their credentials separately. Choose streamIncludeThinking deliberately for the destination audience.
+streamIncludeToolCalls displays tool activity; it does not authorize tool execution. Configure Nexora Chat's selected operations and their credentials separately. Choose streamIncludeThinking deliberately for the destination audience.
 Block Kit messages can contain buttons, selects and forms, but interactions require the app's interactivity request URL and the corresponding interaction trigger. Treat message events, button/select callbacks and modal submissions as separate paths. A control's action_id/value correlates work; runtime actor and state checks authorize it.`,
   hideFromToolbar: false,
   sunset: undefined,

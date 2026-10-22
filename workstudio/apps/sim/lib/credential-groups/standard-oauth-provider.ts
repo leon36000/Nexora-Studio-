@@ -68,7 +68,7 @@ function staticParams(
 ): Record<string, string> {
   if (typeof value === 'function') {
     throw new CredentialGroupProviderConfigurationError(
-      `${label} cannot depend on an authenticated Sim request`
+      `${label} cannot depend on an authenticated Nexora request`
     )
   }
   return value ?? {}

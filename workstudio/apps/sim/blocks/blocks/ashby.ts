@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { AshbyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
 import { getTrigger } from '@/triggers'
@@ -141,7 +142,7 @@ export const AshbyBlock: BlockConfig = {
   description: 'Manage candidates, jobs, and applications in Ashby',
   longDescription:
     'Manage and search candidates, applications, jobs, users, and openings; transfer applications; upload resumes and candidate files; read application history and interview feedback; manage offers, notes, tags, stages, sources, and custom fields; and react to hiring lifecycle webhooks.',
-  docsLink: 'https://docs.sim.ai/integrations/ashby',
+  docsLink: docsUrl('/integrations/ashby'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#5D4ED6',

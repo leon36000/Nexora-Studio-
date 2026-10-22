@@ -1,4 +1,5 @@
 import { ClerkIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -18,7 +19,7 @@ export const ClerkBlock: BlockConfig = {
   description: 'Manage users, organizations, and sessions in Clerk',
   longDescription:
     'Create, update, delete, ban, lock, and list users. Manage organizations, their memberships, and invitations. Monitor and control user sessions. Maintain allowlist/blocklist identifiers, JWT templates, and actor tokens.',
-  docsLink: 'https://docs.sim.ai/integrations/clerk',
+  docsLink: docsUrl('/integrations/clerk'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#131316',

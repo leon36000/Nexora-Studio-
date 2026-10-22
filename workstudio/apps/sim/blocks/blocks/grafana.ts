@@ -1,4 +1,5 @@
 import { GrafanaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const GrafanaBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Manage dashboards, alerts, annotations, data sources, folders, and monitor health status.',
-  docsLink: 'https://docs.sim.ai/integrations/grafana',
+  docsLink: docsUrl('/integrations/grafana'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#FFFFFF',
@@ -1523,7 +1524,7 @@ export const GrafanaBlockMeta = {
       icon: GrafanaIcon,
       title: 'Grafana metric export',
       prompt:
-        'Create a workflow that runs a set of Grafana data source queries on schedule and writes the returned series into a Sim table, so the metrics can be combined with business data for unified reporting.',
+        'Create a workflow that runs a set of Grafana data source queries on schedule and writes the returned series into a Nexora table, so the metrics can be combined with business data for unified reporting.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['analysis', 'sync'],

@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { GoogleSlidesIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import { resolveHttpsUrlFromFileInput } from '@/lib/uploads/utils/file'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
@@ -23,7 +24,7 @@ export const GoogleSlidesBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Build, edit, and export branded Google Slides presentations end-to-end. Copy a template, replace text and image tokens, embed Sheets charts, style text and shapes with brand fonts and colors, manage tables and layouts, group elements, run atomic batch updates, and export to PDF or PPTX.',
-  docsLink: 'https://docs.sim.ai/integrations/google_slides',
+  docsLink: docsUrl('/integrations/google_slides'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

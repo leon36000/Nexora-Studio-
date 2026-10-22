@@ -148,7 +148,7 @@ export const instantlyHandler: WebhookProviderHandler = {
         : generateShortId(32)
 
     const requestBody: Record<string, unknown> = {
-      name: `Sim - ${triggerId.replace(/^instantly_/, '').replace(/_/g, ' ')}`,
+      name: `Nexora - ${triggerId.replace(/^instantly_/, '').replace(/_/g, ' ')}`,
       target_hook_url: getNotificationUrl(webhook),
       event_type: eventType,
       headers: {

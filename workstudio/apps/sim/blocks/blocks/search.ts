@@ -1,4 +1,5 @@
 import { SearchIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -17,7 +18,7 @@ export const SearchBlock: BlockConfig = {
   },
   category: 'blocks',
   integrationType: IntegrationType.Search,
-  docsLink: 'https://docs.sim.ai/integrations/search',
+  docsLink: docsUrl('/integrations/search'),
   subBlocks: [
     {
       id: 'query',

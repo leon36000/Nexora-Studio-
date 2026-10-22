@@ -271,23 +271,23 @@ describe.skipIf(!LIVE)('coda live end-to-end', { concurrent: false }, () => {
       const created = await runOk({
         operation: 'create_folder',
         workspaceId: state.workspaceId,
-        folderName: ' Sim Coda E2E ',
-        folderDescription: 'Created by the Sim live test',
+        folderName: ' Nexora Coda E2E ',
+        folderDescription: 'Created by the Nexora live test',
       })
       state.folderId = created.folder.id
-      expect(created.folder.name).toBe('Sim Coda E2E')
+      expect(created.folder.name).toBe('Nexora Coda E2E')
       const updated = await runOk({
         operation: 'update_folder',
         folderId: state.folderId,
-        folderName: 'Sim Coda E2E (renamed)',
+        folderName: 'Nexora Coda E2E (renamed)',
         folderDescription: '',
       })
       expect(updated.folder.id).toBe(state.folderId)
       const renamed = await waitFor('folder rename', async () => {
         const read = await runOk({ operation: 'get_folder', folderId: state.folderId })
-        return read.folder.name === 'Sim Coda E2E (renamed)' ? read.folder : undefined
+        return read.folder.name === 'Nexora Coda E2E (renamed)' ? read.folder : undefined
       })
-      expect(renamed.description).toBe('Created by the Sim live test')
+      expect(renamed.description).toBe('Created by the Nexora live test')
       await runOk({
         operation: 'list_folder_children',
         folderId: state.myDocsFolderId,
@@ -302,7 +302,7 @@ describe.skipIf(!LIVE)('coda live end-to-end', { concurrent: false }, () => {
     async () => {
       const created = await runOk({
         operation: 'create_doc',
-        docTitle: 'Sim Coda E2E Doc',
+        docTitle: 'Nexora Coda E2E Doc',
         folderId: state.folderId,
         timezone: 'America/Los_Angeles',
         pageName: 'Home',
@@ -319,16 +319,16 @@ describe.skipIf(!LIVE)('coda live end-to-end', { concurrent: false }, () => {
       await waitForDocReady(state.docId!)
 
       const doc = await runOk({ operation: 'get_doc', docId: state.docId })
-      expect(doc.doc.name).toBe('Sim Coda E2E Doc')
-      await runOk({ operation: 'update_doc', docId: state.docId, docTitle: 'Sim Coda E2E Doc v2' })
+      expect(doc.doc.name).toBe('Nexora Coda E2E Doc')
+      await runOk({ operation: 'update_doc', docId: state.docId, docTitle: 'Nexora Coda E2E Doc v2' })
       await waitFor('doc rename', async () => {
         const again = await runOk({ operation: 'get_doc', docId: state.docId })
-        return again.doc.name === 'Sim Coda E2E Doc v2' ? true : undefined
+        return again.doc.name === 'Nexora Coda E2E Doc v2' ? true : undefined
       })
       await runOk({ operation: 'update_doc', docId: state.docId, iconName: 'rocket' })
       const listed = await runOk({
         operation: 'list_docs',
-        docSearch: 'Sim Coda E2E',
+        docSearch: 'Nexora Coda E2E',
         isOwner: true,
         folderId: state.folderId,
         workspaceFilter: state.workspaceId,
@@ -345,7 +345,7 @@ describe.skipIf(!LIVE)('coda live end-to-end', { concurrent: false }, () => {
     'lists docs, pages, tables, and folders through the dropdown selectors',
     async () => {
       const docs = await codaSelectorAttachments['coda.docs'].execute(
-        selectorArgs('coda.docs', { kind: 'list', search: 'Sim Coda E2E' })
+        selectorArgs('coda.docs', { kind: 'list', search: 'Nexora Coda E2E' })
       )
       log('selector coda.docs', docs)
       expect(docs.kind === 'list' && docs.items.some((item) => item.id === state.docId)).toBe(true)
@@ -934,7 +934,7 @@ describe.skipIf(!LIVE)('coda live end-to-end', { concurrent: false }, () => {
         analyticsDirection: 'descending',
         limit: '10',
       })
-      await run({ operation: 'list_doc_analytics', docSearch: 'Sim', isPublished: false })
+      await run({ operation: 'list_doc_analytics', docSearch: 'Nexora', isPublished: false })
       await run({ operation: 'list_page_analytics', docId: state.docId, sinceDate: '2026-01-01' })
       await run({
         operation: 'get_doc_analytics_summary',
@@ -950,7 +950,7 @@ describe.skipIf(!LIVE)('coda live end-to-end', { concurrent: false }, () => {
     async () => {
       const copy = await runOk({
         operation: 'create_doc',
-        docTitle: 'Sim Coda E2E Copy',
+        docTitle: 'Nexora Coda E2E Copy',
         sourceDoc: 'BynGmkjg07',
         folderId: state.folderId,
       })

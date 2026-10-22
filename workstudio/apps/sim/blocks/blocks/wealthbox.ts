@@ -1,4 +1,5 @@
 import { WealthboxIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -12,7 +13,7 @@ export const WealthboxBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Read or write Wealthbox notes, contacts, and tasks with OAuth or a supported API access token.',
-  docsLink: 'https://docs.sim.ai/integrations/wealthbox',
+  docsLink: docsUrl('/integrations/wealthbox'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',
@@ -306,7 +307,7 @@ export const WealthboxBlockMeta = {
       icon: WealthboxIcon,
       title: 'Wealthbox CRM mirror',
       prompt:
-        'Build a scheduled workflow that reads the Wealthbox contacts and tasks listed by ID in a Sim table, refreshes each row with the latest details, and keeps the table in sync for unified reporting.',
+        'Build a scheduled workflow that reads the Wealthbox contacts and tasks listed by ID in a Nexora table, refreshes each row with the latest details, and keeps the table in sync for unified reporting.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'sales',
       tags: ['sales', 'crm', 'sync'],

@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { FirefliesIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { resolveHttpsUrlFromFileInput } from '@/lib/uploads/utils/file'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -18,7 +19,7 @@ export const FirefliesBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'List, search, retrieve, or delete meeting transcripts, submit media for transcription, add a bot to a live meeting, and create soundbites. Transcription-completed webhooks can start workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/fireflies',
+  docsLink: docsUrl('/integrations/fireflies'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   icon: FirefliesIcon,

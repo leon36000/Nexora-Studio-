@@ -1,4 +1,5 @@
 import { PolymarketIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -11,7 +12,7 @@ export const PolymarketBlock: BlockConfig = {
   description: 'Access prediction markets data from Polymarket',
   longDescription:
     'Get markets, market, events, event, tags, series, orderbook, price, midpoint, price history, last trade price, spread, tick size, positions, trades, activity, leaderboard, holders, and search.',
-  docsLink: 'https://docs.sim.ai/integrations/polymarket',
+  docsLink: docsUrl('/integrations/polymarket'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#4C82FB',

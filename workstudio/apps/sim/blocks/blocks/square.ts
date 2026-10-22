@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { SquareIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -17,7 +18,7 @@ export const SquareBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Take and refund payments, manage customers, build catalog items and images, create and search orders, and issue invoices. Authenticate with a Square access token (personal access token).',
-  docsLink: 'https://docs.sim.ai/integrations/square',
+  docsLink: docsUrl('/integrations/square'),
   category: 'tools',
   integrationType: IntegrationType.Commerce,
   bgColor: '#000000',

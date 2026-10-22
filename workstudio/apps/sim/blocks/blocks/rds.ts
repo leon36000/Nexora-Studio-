@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { RDSIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const RDSBlock: BlockConfig = {
   description: 'Connect to Amazon RDS via Data API',
   longDescription:
     'Integrate Amazon RDS Aurora Serverless into the workflow using the Data API. Can query, insert, update, delete, and execute raw SQL without managing database connections.',
-  docsLink: 'https://docs.sim.ai/integrations/rds',
+  docsLink: docsUrl('/integrations/rds'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: 'linear-gradient(45deg, #2E27AD 0%, #527FFF 100%)',
@@ -554,7 +555,7 @@ export const RDSBlockMeta = {
       icon: RDSIcon,
       title: 'RDS to spreadsheet export',
       prompt:
-        'Create a scheduled workflow that queries Amazon RDS for the latest records, writes the rows into a Sim table, and keeps a running export the operations team can review.',
+        'Create a scheduled workflow that queries Amazon RDS for the latest records, writes the rows into a Nexora table, and keeps a running export the operations team can review.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['reporting', 'sync'],

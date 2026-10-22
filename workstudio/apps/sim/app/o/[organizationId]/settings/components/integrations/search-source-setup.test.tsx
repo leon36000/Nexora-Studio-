@@ -52,7 +52,7 @@ const mocks = vi.hoisted(() => ({
   preparePending: false,
   prepareError: null as Error | null,
   prepareData: undefined as { knowledgeBaseId: string } | undefined,
-  bases: [{ id: 'kb-search', name: 'Sim Search', isSearchIndex: true }] as {
+  bases: [{ id: 'kb-search', name: 'Nexora Search', isSearchIndex: true }] as {
     id: string
     name: string
     isSearchIndex?: boolean
@@ -370,7 +370,7 @@ beforeEach(() => {
   mocks.preparePending = false
   mocks.prepareError = null
   mocks.prepareData = undefined
-  mocks.bases = [{ id: 'kb-search', name: 'Sim Search', isSearchIndex: true }]
+  mocks.bases = [{ id: 'kb-search', name: 'Nexora Search', isSearchIndex: true }]
   mocks.connectors = []
   mocks.integrationAvailability.clear()
   mocks.credentials = [{ id: 'cred-source', name: 'Indexing account', provider: 'slack' }]

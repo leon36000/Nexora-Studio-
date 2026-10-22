@@ -83,11 +83,11 @@ export function ImportModal({
       </ChipModalHeader>
       <ChipModalBody>
         <p className='text-pretty px-2 text-[var(--text-body)] text-sm'>
-          Copy cookies, saved passwords, and address-bar suggestions into Sim. Your other browser
+          Copy cookies, saved passwords, and address-bar suggestions into Nexora. Your other browser
           stays unchanged and nothing is uploaded. Future changes are not synced.
         </p>
         <p className='text-pretty px-2 text-[var(--text-muted)] text-caption'>
-          Passwords stay encrypted on this device until you delete them or sign out of Sim. Website
+          Passwords stay encrypted on this device until you delete them or sign out of Nexora. Website
           sessions may still expire.
         </p>
         {(loading || (!error && profiles.length === 0)) && (

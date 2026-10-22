@@ -1,4 +1,5 @@
 import { GranolaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -8,7 +9,7 @@ export const GranolaBlock: BlockConfig = {
   description: 'Access meeting notes, transcripts, and audit events from Granola',
   longDescription:
     'Integrate Granola into your workflow to retrieve meeting notes, summaries, attendees, and transcripts, review workspace audit events, and manage webhook endpoints. Granola can also trigger workflows when notes are generated, edited, or shared with you.',
-  docsLink: 'https://docs.sim.ai/integrations/granola',
+  docsLink: docsUrl('/integrations/granola'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#B2C147',

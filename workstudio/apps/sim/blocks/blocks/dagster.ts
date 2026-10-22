@@ -1,4 +1,5 @@
 import { DagsterIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -15,7 +16,7 @@ export const DagsterBlock: BlockConfig = {
   description: 'Orchestrate data pipelines and manage job runs with Dagster',
   longDescription:
     'Connect to a Dagster instance to launch job runs, monitor run status, list available jobs across repositories, terminate or delete runs, reexecute failed runs, fetch run logs, and manage schedules and sensors. API token only required for Dagster+.',
-  docsLink: 'https://docs.sim.ai/integrations/dagster',
+  docsLink: docsUrl('/integrations/dagster'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#ffffff',

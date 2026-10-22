@@ -230,7 +230,7 @@ async function getBearerToken(
      */
     if (response.status === 400 || response.status === 401) {
       throw new Error(
-        `Workday rejected the stored refresh token (HTTP ${response.status}). Sim cannot replace a refresh token that the tenant rotated, expired, or revoked — reissue one with the "Manage Refresh Tokens for Integrations" task and re-enter the credential as clientSecret:refreshToken.${detail ? ` Workday said: ${detail}` : ''}`
+        `Workday rejected the stored refresh token (HTTP ${response.status}). Nexora cannot replace a refresh token that the tenant rotated, expired, or revoked — reissue one with the "Manage Refresh Tokens for Integrations" task and re-enter the credential as clientSecret:refreshToken.${detail ? ` Workday said: ${detail}` : ''}`
       )
     }
     throw new Error(
@@ -255,7 +255,7 @@ async function getBearerToken(
    */
   if (body.refresh_token && body.refresh_token !== refreshToken) {
     logger.warn(
-      'Workday returned a rotated refresh token that Sim cannot persist; register the API client with a non-expiring refresh token or this connector will stop syncing',
+      'Workday returned a rotated refresh token that Nexora cannot persist; register the API client with a non-expiring refresh token or this connector will stop syncing',
       { tenant: wd.tenant }
     )
   }

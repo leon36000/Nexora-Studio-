@@ -67,8 +67,8 @@ describe('optional browser telemetry lifecycle', () => {
   it('honors withdrawal in another tab without flushing its queued events', async () => {
     stop = startBrowserTelemetry(false)
     reportError()
-    localStorage.setItem('simstudio-telemetry-status', JSON.stringify({ enabled: false }))
-    window.dispatchEvent(new StorageEvent('storage', { key: 'simstudio-telemetry-status' }))
+    localStorage.setItem('nexora-telemetry-status', JSON.stringify({ enabled: false }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'nexora-telemetry-status' }))
     window.dispatchEvent(new Event('pagehide'))
     await vi.advanceTimersByTimeAsync(10_000)
     expect(fetchMock).not.toHaveBeenCalled()
@@ -120,8 +120,8 @@ describe('optional browser telemetry lifecycle', () => {
     stop = startBrowserTelemetry(false)
     reportError()
     write.mockRestore()
-    localStorage.setItem('simstudio-telemetry-status', JSON.stringify({ enabled: false }))
-    window.dispatchEvent(new StorageEvent('storage', { key: 'simstudio-telemetry-status' }))
+    localStorage.setItem('nexora-telemetry-status', JSON.stringify({ enabled: false }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'nexora-telemetry-status' }))
 
     window.dispatchEvent(new Event('pagehide'))
     await vi.advanceTimersByTimeAsync(10_000)

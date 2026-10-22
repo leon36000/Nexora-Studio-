@@ -1,11 +1,12 @@
 import { Chip, cn } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { EmptyState } from '@/components/empty-state/empty-state'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { EmptyStateDocsLink } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/docs-link'
 import { HAIRLINE } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/hairline'
 import { MASK_NO_REPEAT } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state/mask'
 
-const KNOWLEDGE_DOCS_URL = 'https://docs.sim.ai/knowledgebase'
+const KNOWLEDGE_DOCS_URL = docsUrl('/knowledgebase')
 
 /**
  * Ruled text — see the `INK` note in `tables-empty-state.tsx` for why not the surface

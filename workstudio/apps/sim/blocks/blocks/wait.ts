@@ -1,4 +1,5 @@
 import { CirclePause } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const WaitBlock: BlockConfig = {
@@ -27,7 +28,7 @@ export const WaitBlock: BlockConfig = {
       ],
     },
   },
-  docsLink: 'https://docs.sim.ai/workflows/blocks/wait',
+  docsLink: docsUrl('/workflows/blocks/wait'),
   subBlocks: [
     {
       id: 'timeValue',

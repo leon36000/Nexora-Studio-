@@ -1,4 +1,5 @@
 import { AhrefsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -94,7 +95,7 @@ export const AhrefsBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Analyze domain ratings, backlinks, organic keywords, top pages, and more. Requires an Ahrefs API key with access to the selected endpoints; API v3 is available on Lite and higher plans.',
-  docsLink: 'https://docs.sim.ai/integrations/ahrefs',
+  docsLink: docsUrl('/integrations/ahrefs'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#FFFFFF',

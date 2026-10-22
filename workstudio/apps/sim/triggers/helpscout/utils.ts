@@ -63,7 +63,7 @@ export function buildHelpScoutTriggerFields(
     title: 'Help Scout Account',
     type: 'oauth-input',
     description:
-      'Sim creates the Help Scout webhook with this account and deletes it when the workflow is undeployed.',
+      'Nexora creates the Help Scout webhook with this account and deletes it when the workflow is undeployed.',
     serviceId: 'helpscout',
     requiredScopes: getScopesForService('helpscout'),
     canonicalParamId: 'oauthCredential',
@@ -104,7 +104,7 @@ export function buildHelpScoutTriggerFields(
 export function helpScoutSetupInstructions(eventLabel: string): string {
   const instructions = [
     'Connect your Help Scout account above. The trigger needs a Help Scout account connected through sign-in (OAuth), and that user needs the Access API permission; saved app credentials cannot create webhooks for triggers.',
-    `Deploy the workflow. Sim creates a Help Scout webhook for ${eventLabel} with its own signing secret, and removes it when the workflow is undeployed.`,
+    `Deploy the workflow. Nexora creates a Help Scout webhook for ${eventLabel} with its own signing secret, and removes it when the workflow is undeployed.`,
   ]
 
   return instructions

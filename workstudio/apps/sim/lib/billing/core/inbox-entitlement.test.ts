@@ -49,7 +49,7 @@ afterEach(() => {
   resetEnvMock()
 })
 
-describe('Sim Mailer hosted entitlement', () => {
+describe('Nexora Mailer hosted entitlement', () => {
   it.each([
     { isInboxEnabled: true, isBillingEnabled: true },
     { isInboxEnabled: false, isBillingEnabled: false },
@@ -121,7 +121,7 @@ describe('Sim Mailer hosted entitlement', () => {
   })
 })
 
-describe('Sim Mailer cleanup uncertainty', () => {
+describe('Nexora Mailer cleanup uncertainty', () => {
   it('preserves the inbox if the workspace cannot be found', async () => {
     mockGetWorkspaceWithOwner.mockResolvedValue(null)
 
@@ -147,7 +147,7 @@ describe('Sim Mailer cleanup uncertainty', () => {
   })
 })
 
-describe('Sim Mailer self-hosted overrides', () => {
+describe('Nexora Mailer self-hosted overrides', () => {
   it.each([
     { isInboxEnabled: true, isBillingEnabled: true },
     { isInboxEnabled: false, isBillingEnabled: false },

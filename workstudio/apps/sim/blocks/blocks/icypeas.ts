@@ -1,4 +1,5 @@
 import { IcypeasIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const IcypeasBlock: BlockConfig = {
@@ -7,7 +8,7 @@ export const IcypeasBlock: BlockConfig = {
   description: 'Find and verify professional email addresses',
   longDescription:
     'Integrate Icypeas to find a professional email address from a name and company domain, or verify whether an existing email is valid and deliverable. Results are returned asynchronously via polling.',
-  docsLink: 'https://docs.sim.ai/integrations/icypeas',
+  docsLink: docsUrl('/integrations/icypeas'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#d4d4d4',

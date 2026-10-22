@@ -70,11 +70,11 @@ export const v2WorkflowMcpServerSchema = z
     id: z.string().describe('Unique workflow-MCP server identifier.'),
     name: z.string().describe('Server display name, shown to connecting MCP clients.'),
     description: z.string().nullable().describe('Optional server description, or null when unset.'),
-    isPublic: z.boolean().describe('Whether the server answers MCP clients without a Sim API key.'),
+    isPublic: z.boolean().describe('Whether the server answers MCP clients without a Nexora API key.'),
     mcpServerUrl: z
       .string()
       .describe('MCP client endpoint. Use this returned URL instead of constructing one.')
-      .meta({ examples: ['https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2'] }),
+      .meta({ examples: ['https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2'] }),
     createdAt: z
       .string()
       .describe('ISO 8601 timestamp when the server was created.')
@@ -163,7 +163,7 @@ export const v2CreateWorkflowMcpServerBodySchema = z
       .boolean()
       .optional()
       .describe(
-        'Whether the server accepts MCP clients without a Sim API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes.'
+        'Whether the server accepts MCP clients without a Nexora API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes.'
       )
       .meta({ default: false }),
     workflowIds: z
@@ -211,7 +211,7 @@ export const v2UpdateWorkflowMcpServerBodySchema = z
     isPublic: z
       .boolean()
       .optional()
-      .describe('Whether the server answers MCP clients without a Sim API key.'),
+      .describe('Whether the server answers MCP clients without a Nexora API key.'),
   })
   .strict()
   .superRefine((body, ctx) => {
@@ -256,7 +256,7 @@ export const v2WorkflowMcpToolSchema = z
       ),
     toolDescription: z.string().nullable().describe('Description shown to MCP clients.'),
     mcpServerUrl: z.string().describe('Endpoint an MCP client connects to.'),
-    apiEndpoint: z.string().describe('Sim execution endpoint this tool calls through.'),
+    apiEndpoint: z.string().describe('Nexora execution endpoint this tool calls through.'),
     updated: z
       .boolean()
       .describe(

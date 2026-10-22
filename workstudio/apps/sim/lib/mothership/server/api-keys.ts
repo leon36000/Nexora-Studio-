@@ -93,7 +93,7 @@ export async function listCopilotApiKeys(userId: string): Promise<CopilotApiKeyS
     | null
 
   if (!Array.isArray(data)) {
-    throw new CopilotApiKeyError('Invalid response from Sim Agent', 500)
+    throw new CopilotApiKeyError('Invalid response from Nexora Agent', 500)
   }
 
   return data.map((key) => ({
@@ -118,7 +118,7 @@ export async function generateCopilotApiKey(
   })) as { apiKey?: string; id?: string } | null
 
   if (!data?.apiKey) {
-    throw new CopilotApiKeyError('Invalid response from Sim Agent', 500)
+    throw new CopilotApiKeyError('Invalid response from Nexora Agent', 500)
   }
 
   return { id: data.id || 'new', apiKey: data.apiKey }
@@ -135,6 +135,6 @@ export async function deleteCopilotApiKey(userId: string, apiKeyId: string): Pro
   })) as { success?: boolean } | null
 
   if (!data?.success) {
-    throw new CopilotApiKeyError('Invalid response from Sim Agent', 500)
+    throw new CopilotApiKeyError('Invalid response from Nexora Agent', 500)
   }
 }

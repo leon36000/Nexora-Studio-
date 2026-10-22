@@ -54,7 +54,7 @@ export async function verifyGitHubRepositoriesIdentity(accessToken: string) {
     Accept: 'application/vnd.github+json',
     Authorization: `Bearer ${accessToken}`,
     'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'Sim',
+    'User-Agent': 'Nexora',
   }
   async function get(path: string, stage: OAuthIdentityVerificationStage): Promise<unknown> {
     const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)

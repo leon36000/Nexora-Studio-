@@ -64,7 +64,22 @@ function forkRequest() {
   )
 }
 
-describe('POST /api/workspaces/[id]/fork', () => {
+describe('Nexora edition: POST /api/workspaces/[id]/fork', () => {
+  beforeEach(() => {
+    authMockFns.mockGetSession.mockResolvedValue({ user: TEST_USER, session: { id: 'session-1' } })
+    resetDbChainMock()
+  })
+
+  it('answers 404 without creating a fork', async () => {
+    const response = await POST(forkRequest(), routeContext)
+
+    expect(response.status).toBe(404)
+    expect(mockCreateFork).not.toHaveBeenCalled()
+  })
+})
+
+// Nexora edition: workspace forking is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+describe.skip('POST /api/workspaces/[id]/fork', () => {
   beforeEach(() => {
     authMockFns.mockGetSession.mockResolvedValue({ user: TEST_USER, session: { id: 'session-1' } })
     resetDbChainMock()

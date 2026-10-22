@@ -42,7 +42,7 @@ describe('validateWealthboxServiceAccount', () => {
       code: 'invalid_credentials',
       status: 401,
       logDetail: expect.objectContaining({
-        reason: 'token accepted only via ACCESS_TOKEN header — not compatible with Sim tools',
+        reason: 'token accepted only via ACCESS_TOKEN header — not compatible with Nexora tools',
       }),
     })
 

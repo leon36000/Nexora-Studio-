@@ -52,11 +52,11 @@ export function AuthorizeHandoff({ state, port, email }: AuthorizeHandoffProps) 
 
   return (
     <DesktopHandoffShell
-      title='Sign in to Sim Desktop'
+      title='Sign in to Nexora Desktop'
       description={
         status === 'error'
           ? (errorMessage ?? 'Something went wrong signing in the desktop app. Try again.')
-          : `The Sim desktop app on this computer will be signed in as ${email}.`
+          : `The Nexora desktop app on this computer will be signed in as ${email}.`
       }
     >
       <Chip variant='primary' disabled={status === 'working'} onClick={() => void authorize()}>

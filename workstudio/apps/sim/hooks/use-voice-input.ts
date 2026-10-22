@@ -92,7 +92,7 @@ export function useVoiceInput({
       if (desktopBridge) {
         const { openMicrophoneSettings } = desktopBridge
         toast.error(
-          'Microphone access is blocked. Allow Sim to use the microphone in your system privacy settings.',
+          'Microphone access is blocked. Allow Nexora to use the microphone in your system privacy settings.',
           openMicrophoneSettings
             ? {
                 action: {

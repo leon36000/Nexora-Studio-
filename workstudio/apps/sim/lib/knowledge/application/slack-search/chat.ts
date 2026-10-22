@@ -98,7 +98,7 @@ export async function resolveSlackSearchChatRecord(
   const existing = await findSlackSearchChatRecord(tx, input.conversation)
   if (existing) {
     if (existing.userId !== input.userId)
-      throw new OrchestrationError('forbidden', 'Slack thread belongs to another Sim account')
+      throw new OrchestrationError('forbidden', 'Slack thread belongs to another Nexora account')
     if (
       existing.organizationId !== input.organizationId ||
       existing.type !== 'mothership' ||

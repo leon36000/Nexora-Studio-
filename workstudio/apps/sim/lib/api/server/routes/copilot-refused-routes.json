@@ -263,5 +263,100 @@
     "method": "GET",
     "path": "/api/v2/workspaces",
     "operation": "workspaces.list_public"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/workspaces/[workspaceId]/access-requests",
+    "operation": "access_requests.list_mine"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/access-requests",
+    "operation": "access_requests.create"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/access-requests/[requestId]/cancel",
+    "operation": "access_requests.cancel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/workspaces/[workspaceId]/access-requests/discovery",
+    "operation": "access_requests.discover"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork",
+    "operation": "workspaces.fork.create"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/availability",
+    "operation": "workspaces.fork.discover"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/children",
+    "operation": "workspaces.fork.discover"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/exclusions",
+    "operation": "workspaces.fork.exclusions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/lineage",
+    "operation": "workspaces.fork.discover"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/mappings",
+    "operation": "workspaces.fork.mappings.read"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/mappings",
+    "operation": "workspaces.fork.mappings.update"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/preview",
+    "operation": "workspaces.fork.preview"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/pull",
+    "operation": "workspaces.fork.sync"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/pull/preview",
+    "operation": "workspaces.fork.sync.preview"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/push",
+    "operation": "workspaces.fork.sync"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/push/preview",
+    "operation": "workspaces.fork.sync.preview"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/resources",
+    "operation": "workspaces.fork.discover"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/rollback",
+    "operation": "workspaces.fork.rollback"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/workspaces/[workspaceId]/fork/unlink",
+    "operation": "workspaces.fork.unlink"
   }
 ]

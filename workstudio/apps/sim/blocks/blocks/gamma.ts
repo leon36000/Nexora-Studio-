@@ -1,4 +1,5 @@
 import { GammaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const GammaBlock: BlockConfig = {
@@ -7,7 +8,7 @@ export const GammaBlock: BlockConfig = {
   description: 'Generate presentations, documents, and webpages with AI',
   longDescription:
     'Generate presentations, documents, webpages, and social posts from text, create from templates, check generation status, and browse themes and folders.',
-  docsLink: 'https://docs.sim.ai/integrations/gamma',
+  docsLink: docsUrl('/integrations/gamma'),
   category: 'tools',
   integrationType: IntegrationType.Marketing,
   bgColor: '#002253',

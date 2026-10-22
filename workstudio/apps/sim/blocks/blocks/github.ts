@@ -1,5 +1,6 @@
 import { Calendar } from '@sim/emcn/icons'
 import { GithubIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector } from '@/blocks/utils'
@@ -53,7 +54,7 @@ export const GitHubBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Read and update GitHub repositories, pull requests, issues, and related records. Use trigger mode to start workflows from GitHub events.',
-  docsLink: 'https://docs.sim.ai/integrations/github',
+  docsLink: docsUrl('/integrations/github'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#181C1E',

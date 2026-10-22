@@ -39,7 +39,7 @@ describe('reconcileChatStreamMarkers', () => {
     })
   })
 
-  it('preserves an unfinished recoverable run when its Sim controller lock has expired', async () => {
+  it('preserves an unfinished recoverable run when its Nexora controller lock has expired', async () => {
     dbChainMockFns.where.mockResolvedValueOnce([
       { chatId: 'chat-recoverable', streamId: 'stream-recoverable' },
     ])

@@ -1,4 +1,5 @@
 import { GoogleTasksIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -16,7 +17,7 @@ export const GoogleTasksBlock: BlockConfig = {
   name: 'Google Tasks',
   description: 'Manage Google Tasks',
   longDescription: 'Create, read, update, delete, and list tasks and task lists.',
-  docsLink: 'https://docs.sim.ai/integrations/google_tasks',
+  docsLink: docsUrl('/integrations/google_tasks'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

@@ -11,7 +11,7 @@ import {
 import { DesktopHandoffShell } from '@/app/desktop/components/desktop-handoff-shell'
 
 export const metadata: Metadata = {
-  title: 'Sign in to Sim Desktop',
+  title: 'Sign in to Nexora Desktop',
   robots: { index: false },
 }
 
@@ -25,7 +25,7 @@ function InvalidRequest() {
   return (
     <DesktopHandoffShell
       title='Sign-in link incomplete'
-      description='Open the Sim desktop app and choose Sign In to start again.'
+      description='Open the Nexora desktop app and choose Sign In to start again.'
     />
   )
 }

@@ -26,7 +26,7 @@ export const LOCK_FIELDS: LockField[] = [
     kind: 'insert',
     noun: 'inserting rows',
     label: 'Inserting Rows',
-    hint: 'Allow new rows to be added, including through CSV imports, the API, workflows, and Sim. Deny blocks new rows from every surface.',
+    hint: 'Allow new rows to be added, including through CSV imports, the API, workflows, and Nexora. Deny blocks new rows from every surface.',
   },
   {
     key: 'updateLocked',

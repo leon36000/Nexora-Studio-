@@ -471,7 +471,7 @@ function parseMothershipExecuteStreamLine(line: string): MothershipExecuteStream
   try {
     return JSON.parse(trimmed) as MothershipExecuteStreamEvent
   } catch {
-    throw new Error('Sim execution stream returned malformed data')
+    throw new Error('Nexora execution stream returned malformed data')
   }
 }
 
@@ -535,7 +535,7 @@ async function readMothershipExecuteResponse(
   }
 
   if (!response.body) {
-    throw new Error('Sim execution stream ended without a response body')
+    throw new Error('Nexora execution stream ended without a response body')
   }
 
   const reader = response.body.getReader()
@@ -554,7 +554,7 @@ async function readMothershipExecuteResponse(
 
     if (event.type === 'error') {
       receivedTerminalProvenance = await consumeMothershipProvenance(event, response, registry)
-      throw new Error(`Sim execution failed: ${event.error || 'Unknown error'}`)
+      throw new Error(`Nexora execution failed: ${event.error || 'Unknown error'}`)
     }
 
     if (event.type === 'final') {
@@ -563,7 +563,7 @@ async function readMothershipExecuteResponse(
       return
     }
 
-    throw new Error('Sim execution stream returned an unknown event')
+    throw new Error('Nexora execution stream returned an unknown event')
   }
 
   try {
@@ -583,7 +583,7 @@ async function readMothershipExecuteResponse(
     await processLine(buffer)
 
     if (!finalResult) {
-      throw new Error('Sim execution stream ended without a final result')
+      throw new Error('Nexora execution stream ended without a final result')
     }
 
     return finalResult
@@ -608,7 +608,7 @@ function createMothershipStreamingExecution(
 ): StreamingExecution {
   const expectsProvenance = inspectMothershipResponseCapability(response, options.registry)
   if (!response.body) {
-    throw new Error('Sim execution stream ended without a response body')
+    throw new Error('Nexora execution stream ended without a response body')
   }
 
   const output = formatMothershipBlockOutput({}, conversationId)
@@ -660,7 +660,7 @@ function createMothershipStreamingExecution(
 
         if (event.type === 'agent_event') {
           if ((event.v !== undefined && event.v !== 1) || !isAgentStreamEvent(event.event)) {
-            throw new Error('Sim execution stream returned an invalid agent event')
+            throw new Error('Nexora execution stream returned an invalid agent event')
           }
           if (options.agentEvents) controller.enqueue(event.event)
           else if (event.event.type === 'text_delta') {
@@ -681,7 +681,7 @@ function createMothershipStreamingExecution(
             response,
             options.registry
           )
-          throw new Error(`Sim execution failed: ${event.error || 'Unknown error'}`)
+          throw new Error(`Nexora execution failed: ${event.error || 'Unknown error'}`)
         }
 
         if (event.type === 'final') {
@@ -691,7 +691,7 @@ function createMothershipStreamingExecution(
           return
         }
 
-        throw new Error('Sim execution stream returned an unknown event')
+        throw new Error('Nexora execution stream returned an unknown event')
       }
 
       try {
@@ -712,7 +712,7 @@ function createMothershipStreamingExecution(
         await processLine(buffer)
 
         if (!sawFinal) {
-          throw new Error('Sim execution stream ended without a final result')
+          throw new Error('Nexora execution stream ended without a final result')
         }
 
         if (!cancelled) controller.close()
@@ -871,7 +871,7 @@ export class MothershipBlockHandler implements BlockHandler {
     // Without the key the mothership rejects every request, so fail with
     // something the workflow author can act on instead of a bare 401.
     if (!env.COPILOT_API_KEY) {
-      throw new Error('COPILOT_API_KEY is not configured, so the Sim Chat block cannot run')
+      throw new Error('COPILOT_API_KEY is not configured, so the Nexora Chat block cannot run')
     }
 
     const prompt = inputs.prompt
@@ -884,7 +884,7 @@ export class MothershipBlockHandler implements BlockHandler {
           const usageControl = resolveAgentToolUsageControl(tool, index, block.canonicalModes)
           if (!usageControl)
             throw new Error(
-              `Tool ${index + 1} mode must resolve to Auto, Force, or None before Sim Chat can run.`
+              `Tool ${index + 1} mode must resolve to Auto, Force, or None before Nexora Chat can run.`
             )
           return { ...tool, usageControl }
         })
@@ -1043,7 +1043,7 @@ export class MothershipBlockHandler implements BlockHandler {
           await consumeMothershipProvenance(payload, response, resultRegistry)
         }
         const errorMsg = await extractAPIErrorMessage(response)
-        throw new Error(`Sim execution failed: ${errorMsg}`)
+        throw new Error(`Nexora execution failed: ${errorMsg}`)
       }
 
       if (isContentSelectedForStreaming(ctx, block)) {

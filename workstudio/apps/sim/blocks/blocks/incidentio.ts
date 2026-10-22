@@ -1,4 +1,5 @@
 import { IncidentioIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -32,7 +33,7 @@ export const IncidentioBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Manage incidents, actions, follow-ups, workflows, schedules, escalations, and custom fields in incident.io.',
-  docsLink: 'https://docs.sim.ai/integrations/incidentio',
+  docsLink: docsUrl('/integrations/incidentio'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#FFFFFF',

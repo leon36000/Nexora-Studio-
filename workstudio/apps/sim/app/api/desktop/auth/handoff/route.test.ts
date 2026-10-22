@@ -39,7 +39,7 @@ describe('POST /api/desktop/auth/handoff', () => {
 
     expect(response.status).toBe(200)
     expect(mockCreateSession).toHaveBeenCalledWith('user-1', false, {
-      userAgent: 'Sim Desktop',
+      userAgent: 'Nexora Desktop',
     })
     expect(mockCreateVerificationValue).toHaveBeenCalledTimes(1)
     const verification = mockCreateVerificationValue.mock.calls[0][0]

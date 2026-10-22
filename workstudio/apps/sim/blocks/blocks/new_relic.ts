@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { NewRelicIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import type { NewRelicCustomAttributes } from '@/tools/new_relic/types'
@@ -24,7 +25,7 @@ export const NewRelicBlock: BlockConfig = {
   description: 'Query observability data and record deployments in New Relic',
   longDescription:
     'Run NRQL queries, search monitored entities, fetch entity details, and record deployment change events.',
-  docsLink: 'https://docs.sim.ai/integrations/new_relic',
+  docsLink: docsUrl('/integrations/new_relic'),
   category: 'tools',
   authMode: AuthMode.ApiKey,
   integrationType: IntegrationType.Observability,

@@ -12,13 +12,13 @@ afterAll(() => {
   resetUrlsMock()
 })
 
-describe('Sim MCP protected-resource metadata', () => {
-  it('names the Sim MCP server as a Sim API resource', async () => {
+describe('Nexora MCP protected-resource metadata', () => {
+  it('names the Nexora MCP server as a Nexora API resource', async () => {
     setEnvFlags({ isAuthDisabled: false })
     const response = await GET(new NextRequest('https://sim.test/'), undefined)
     expect(await response.json()).toEqual({
       resource: 'https://sim.test/api/mcp',
-      resource_name: 'Sim',
+      resource_name: 'Nexora',
       authorization_servers: ['https://sim.test/api/auth'],
       scopes_supported: ['api:read', 'api:write'],
       bearer_methods_supported: ['header'],

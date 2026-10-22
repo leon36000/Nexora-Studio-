@@ -1,4 +1,5 @@
 import { AirtableIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -18,7 +19,7 @@ export const AirtableBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'List bases, list tables (with schema), and create, get, list, update, upsert, or delete records. Use trigger mode to start a workflow when a record is created, updated, or deleted in an Airtable table.',
-  docsLink: 'https://docs.sim.ai/integrations/airtable',
+  docsLink: docsUrl('/integrations/airtable'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',
@@ -492,7 +493,7 @@ export const AirtableBlockMeta = {
       icon: AirtableIcon,
       title: 'Airtable data sync',
       prompt:
-        'Create a scheduled workflow that syncs records from my Airtable base into a Sim table every hour, keeping both in sync. Use an agent to detect changes, resolve conflicts, and flag any discrepancies for review in Slack.',
+        'Create a scheduled workflow that syncs records from my Airtable base into a Nexora table every hour, keeping both in sync. Use an agent to detect changes, resolve conflicts, and flag any discrepancies for review in Slack.',
       modules: ['tables', 'scheduled', 'agent', 'workflows'],
       category: 'operations',
       tags: ['sync', 'automation'],
@@ -502,7 +503,7 @@ export const AirtableBlockMeta = {
       icon: AirtableIcon,
       title: 'Airtable two-way sync',
       prompt:
-        'Build a scheduled workflow that mirrors records between an Airtable base and a Sim table, detects conflicts, and pings Slack on records that need manual resolution.',
+        'Build a scheduled workflow that mirrors records between an Airtable base and a Nexora table, detects conflicts, and pings Slack on records that need manual resolution.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['sync', 'automation'],

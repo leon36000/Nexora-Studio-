@@ -22,7 +22,7 @@ function outerBoundary(error: unknown, executionId?: string) {
 }
 
 describe('classifyFailure', () => {
-  it('attributes a run whose workspace or workflow was deleted to its owner, not to Sim', () => {
+  it('attributes a run whose workspace or workflow was deleted to its owner, not to Nexora', () => {
     const deleted = new ExecutionScopeDeletedError('execution-1', 'workspace')
     expect(classifyFailure(deleted)).toBe('user')
     expect(classifyFailure(new Error('Execution failed', { cause: deleted }))).toBe('user')
@@ -48,12 +48,12 @@ describe('classifyFailure', () => {
 
   it.each([
     [
-      'Sim refusing for the workspace’s own rate bucket',
+      'Nexora refusing for the workspace’s own rate bucket',
       new HostedKeyRateLimitedError('slow'),
       'user',
     ],
-    ['Sim having no hosted key to serve', new HostedKeyUnavailableError('none'), 'internal'],
-  ] as const)('reads a Sim HttpError status: %s', (_name, error, kind) => {
+    ['Nexora having no hosted key to serve', new HostedKeyUnavailableError('none'), 'internal'],
+  ] as const)('reads a Nexora HttpError status: %s', (_name, error, kind) => {
     expect(classifyFailure(error)).toBe(kind)
   })
 
@@ -64,7 +64,7 @@ describe('classifyFailure', () => {
     expect(classifyFailure(upstream)).toBe('third_party_client')
   })
 
-  it('attributes a revoked OAuth credential to its owner, not to Sim', () => {
+  it('attributes a revoked OAuth credential to its owner, not to Nexora', () => {
     const revoked = new CredentialRevokedError('Reconnect your account')
     expect(classifyFailure(new Error('Tool failed', { cause: revoked }))).toBe('user')
   })

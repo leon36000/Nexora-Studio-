@@ -139,7 +139,7 @@ export const helpScoutHandler: WebhookProviderHandler = {
         events,
         secret: webhookSecret,
         payloadVersion: 'V2',
-        label: `Sim trigger ${String(webhook.id ?? '')}`.trim(),
+        label: `Nexora trigger ${String(webhook.id ?? '')}`.trim(),
         ...(mailboxId !== undefined ? { mailboxIds: [mailboxId] } : {}),
       }),
       redirect: 'error',

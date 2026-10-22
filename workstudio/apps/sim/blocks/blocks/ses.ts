@@ -1,4 +1,5 @@
 import { SESIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const SESBlock: BlockConfig = {
   description: 'Send emails and manage templates with AWS Simple Email Service',
   longDescription:
     'Send simple, templated, and bulk emails. Manage email templates, identities, configuration sets, and the account suppression list, and retrieve account sending quota and verified identity information.',
-  docsLink: 'https://docs.sim.ai/integrations/ses',
+  docsLink: docsUrl('/integrations/ses'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   authMode: AuthMode.ApiKey,

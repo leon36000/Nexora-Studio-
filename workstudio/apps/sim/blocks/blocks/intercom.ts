@@ -1,4 +1,5 @@
 import { IntercomIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector } from '@/blocks/utils'
@@ -25,7 +26,7 @@ export const IntercomBlock: BlockConfig = {
   description: 'Manage contacts, companies, conversations, tickets, and messages in Intercom',
   longDescription:
     'Create, get, update, list, search, and delete contacts; create, get, and list companies; get, list, reply, and search conversations; create, get, and update tickets; and create messages.',
-  docsLink: 'https://docs.sim.ai/integrations/intercom',
+  docsLink: docsUrl('/integrations/intercom'),
   authMode: AuthMode.ApiKey,
   category: 'tools',
   integrationType: IntegrationType.Support,

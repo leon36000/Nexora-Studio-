@@ -33,7 +33,7 @@ export function rootlySetupInstructions(eventType: string): string {
   const instructions = [
     'In Rootly, go to <strong>Settings &gt; API Keys</strong> and generate (or copy) an API key.',
     'Paste the API key into the <strong>API Key</strong> field below.',
-    `When you save, Sim creates a Rootly webhook endpoint subscribed to the <strong>${eventType}</strong> event and verifies request signatures automatically — no manual webhook setup needed.`,
+    `When you save, Nexora creates a Rootly webhook endpoint subscribed to the <strong>${eventType}</strong> event and verifies request signatures automatically — no manual webhook setup needed.`,
     'Click "Save" above to activate your trigger.',
   ]
   return instructions

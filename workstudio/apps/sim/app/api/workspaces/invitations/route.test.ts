@@ -410,7 +410,7 @@ describe('POST /api/workspaces/invitations/batch', () => {
     expect(response.status).toBe(200)
     expect(data.success).toBe(false)
     expect(data.failed[0].email).toBe('free@example.com')
-    expect(data.failed[0].error).toContain('not on a paid Sim plan')
+    expect(data.failed[0].error).toContain('not on a paid Nexora plan')
     expect(mockCreatePendingInvitation).not.toHaveBeenCalled()
   })
 

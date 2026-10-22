@@ -114,7 +114,34 @@ beforeEach(() => {
 })
 
 describe('locked credential reauthorization', () => {
-  describe.each<AccessRequestScope>([
+  it.each<AccessRequestScope>([
+    { kind: 'workspace', workspaceId: 'workspace' },
+    { kind: 'organization', organizationId: 'org' },
+  ])(
+    'Nexora edition: $kind access-request mutations are refused before locking, mutating or auditing',
+    async (scope) => {
+      const execute = vi.fn()
+      const projectAudit = vi.fn().mockReturnValue([])
+      const useCase = defineAuthorizedAccessRequestUseCase({
+        operation: accessRequestOperations.create,
+        scope: () => scope,
+        mutation: true,
+        execute,
+        projectAudit,
+      })
+      await expect(useCase.execute({ principal: personal, input: {} })).rejects.toMatchObject({
+        name: 'FeatureDisabledError',
+        code: 'not_found',
+      })
+      expect(mocks.lock).not.toHaveBeenCalled()
+      expect(execute).not.toHaveBeenCalled()
+      expect(projectAudit).not.toHaveBeenCalled()
+      expect(mocks.audit).not.toHaveBeenCalled()
+    }
+  )
+
+  // Nexora edition: access requests are disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+  describe.skip.each<AccessRequestScope>([
     { kind: 'workspace', workspaceId: 'workspace' },
     { kind: 'organization', organizationId: 'org' },
   ])('$kind access-request mutations', (scope) => {

@@ -31,7 +31,7 @@ vi.mock('@/lib/execution/remote-sandbox/image-registry', () => ({
 }))
 
 vi.mock('@/lib/execution/remote-sandbox/entitlement', () => ({
-  MAX_PLAN_REQUIRED: 'Sim sandboxes require an active Max or Enterprise plan.',
+  MAX_PLAN_REQUIRED: 'Nexora sandboxes require an active Max or Enterprise plan.',
   hasWorkspaceSandboxRetentionAccessCached: mockPlanAccess,
 }))
 

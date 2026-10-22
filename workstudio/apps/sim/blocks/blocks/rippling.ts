@@ -1,4 +1,5 @@
 import { RipplingIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -195,7 +196,7 @@ export const RipplingBlock: BlockConfig = {
   description: 'Manage workers, departments, custom objects, and company data in Rippling',
   longDescription:
     'Manage workers, users, departments, teams, titles, work locations, business partners, supergroups, custom objects, custom apps, custom pages, custom settings, object categories, reports, and draft hires.',
-  docsLink: 'https://docs.sim.ai/integrations/rippling',
+  docsLink: docsUrl('/integrations/rippling'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#502D3C',
@@ -1653,7 +1654,7 @@ export const RipplingBlockMeta = {
       icon: RipplingIcon,
       title: 'Rippling custom object sync',
       prompt:
-        'Create a workflow that reads rows from a Sim table representing custom Rippling objects — perks, equipment, allowances — and upserts them into Rippling so HR can manage company-specific data with the same governance as core worker records.',
+        'Create a workflow that reads rows from a Nexora table representing custom Rippling objects — perks, equipment, allowances — and upserts them into Rippling so HR can manage company-specific data with the same governance as core worker records.',
       modules: ['tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['hr', 'sync', 'automation'],

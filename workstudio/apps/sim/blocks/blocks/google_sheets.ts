@@ -1,4 +1,5 @@
 import { GoogleSheetsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -23,7 +24,7 @@ export const GoogleSheetsBlock: BlockConfig = {
   hideFromToolbar: true,
   sunset: { status: 'legacy', replacedBy: 'google_sheets_v2' },
   longDescription: 'Read, write, append, and update data.',
-  docsLink: 'https://docs.sim.ai/integrations/google_sheets',
+  docsLink: docsUrl('/integrations/google_sheets'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',
@@ -326,7 +327,7 @@ export const GoogleSheetsV2Block: BlockConfig = {
   hideFromToolbar: false,
   longDescription:
     'Select a sheet to read, write, append, update, or clear cell values. Create spreadsheets, inspect their metadata, copy sheets, and run batch range operations.',
-  docsLink: 'https://docs.sim.ai/integrations/google_sheets',
+  docsLink: docsUrl('/integrations/google_sheets'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

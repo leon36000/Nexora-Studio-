@@ -1,4 +1,5 @@
 import { TemporalIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -68,7 +69,7 @@ export const TemporalBlock: BlockConfig = {
   description: 'Start, signal, query, and manage Temporal workflow executions',
   longDescription:
     'Use a Temporal server’s HTTP API to start or signal executions, query or update workflow state, inspect execution history and workers, manage schedules, and cancel, terminate, or reset executions. Supply an API key when the server requires bearer authentication.',
-  docsLink: 'https://docs.sim.ai/integrations/temporal',
+  docsLink: docsUrl('/integrations/temporal'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#141414',

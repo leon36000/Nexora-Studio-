@@ -79,7 +79,7 @@ export function Skills() {
       disabled={isLoading}
       leftIcon={Plus}
     >
-      Add to Sim
+      Add to Nexora
     </Chip>
   )
 
@@ -88,7 +88,7 @@ export function Skills() {
       <IntegrationTabsHeader active='skills' workspaceId={workspaceId} rightSlot={addButton} />
       <div className='min-h-0 flex-1 overflow-y-auto px-6 [scrollbar-gutter:stable_both-edges]'>
         <div className='mx-auto flex max-w-[48rem] flex-col gap-7 pb-3'>
-          <ShowcaseWithExplore prompt='Explain the skills in Sim and which ones I should add to my agents.' />
+          <ShowcaseWithExplore prompt='Explain the skills in Nexora and which ones I should add to my agents.' />
           <div className='flex items-center gap-2'>
             <ChipInput
               icon={Search}

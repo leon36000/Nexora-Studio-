@@ -71,7 +71,7 @@ import { MAX_ZIP_DOWNLOAD_FILES } from '@/lib/workspace-files/limits'
 const FILE_EXAMPLE = {
   id: 'wf_V1StGXR8z5jdHi6BmyT91',
   webUrl:
-    'https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91',
+    'https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91',
   name: 'data.csv',
   size: 1024,
   type: 'text/csv',
@@ -100,7 +100,7 @@ const FILE_VERSION_EXAMPLE = {
 const SHARE_EXAMPLE = {
   id: 'shr_8Hf3kL9wQ2mNpXr6Tz1Vb',
   token: 'share-token-example',
-  url: 'https://www.sim.ai/f/share-token-example',
+  url: 'https://workstudio.example.com/f/share-token-example',
   isActive: true,
   resourceType: 'file',
   resourceId: FILE_EXAMPLE.id,
@@ -1425,21 +1425,21 @@ const routes = declaredRoutes.map(withRequestBodyErrors)
 export const filesAuditOpenApiDocument = defineOpenApiDocument({
   output: 'apps/docs/openapi-v2-files-audit.json',
   info: {
-    title: 'Sim API v2 — Files & Audit Logs',
+    title: 'Nexora API v2 — Files & Audit Logs',
     description:
-      'Version 2 of the Sim REST API for workspace files, resumable uploads, public shares, and organization audit logs.',
+      'Version 2 of the Nexora REST API for workspace files, resumable uploads, public shares, and organization audit logs.',
     version: '2.0.0',
     contact: {
-      name: 'Sim Support',
-      email: 'help@sim.ai',
-      url: 'https://www.sim.ai',
+      name: 'Nexora Support',
+      email: 'support@example.com',
+      url: 'https://workstudio.example.com',
     },
     license: {
       name: 'Apache 2.0',
       url: 'https://www.apache.org/licenses/LICENSE-2.0.html',
     },
   },
-  servers: [{ url: 'https://www.sim.ai', description: 'Production' }],
+  servers: [{ url: 'https://workstudio.example.com', description: 'Production' }],
   tags: [
     {
       name: 'Files',

@@ -1,9 +1,10 @@
 import { GitLabIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { ConnectorMeta } from '@/connectors/types'
 
 export const gitlabConnectorMeta: ConnectorMeta = {
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/gitlab',
+  searchDocsUrl: docsUrl('/search/gitlab'),
   id: 'gitlab',
   name: 'GitLab',
   description:
@@ -37,7 +38,7 @@ export const gitlabConnectorMeta: ConnectorMeta = {
       placeholder: 'gitlab.example.com',
       required: false,
       requiredInAdminMode: true,
-      description: 'Your GitLab instance host. Sim Search requires a self-managed instance.',
+      description: 'Your GitLab instance host. Nexora Search requires a self-managed instance.',
     },
     {
       id: 'project',

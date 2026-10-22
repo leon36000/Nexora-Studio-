@@ -1,4 +1,5 @@
 import { SemrushIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -353,7 +354,7 @@ export const SemrushBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Query the Semrush SEO API for domain, subdomain, and URL traffic overviews, organic and paid keywords, ad and product listing creatives, competitor sets, keyword research, and backlink profiles. Requires a Semrush subscription with API units.',
-  docsLink: 'https://docs.sim.ai/integrations/semrush',
+  docsLink: docsUrl('/integrations/semrush'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#FFFFFF',

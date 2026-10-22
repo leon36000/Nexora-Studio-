@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { CloudFormationIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -11,7 +12,7 @@ export const CloudFormationBlock: BlockConfig = {
     'Create, update, and delete stacks, preview changes with change sets, describe stacks, list resources, detect drift, view stack events, and retrieve or validate templates. Requires AWS access key and secret access key.',
   category: 'tools',
   integrationType: IntegrationType.DevOps,
-  docsLink: 'https://docs.sim.ai/integrations/cloudformation',
+  docsLink: docsUrl('/integrations/cloudformation'),
   bgColor: 'linear-gradient(45deg, #B0084D 0%, #FF4F8B 100%)',
   iconColor: '#FF4F8B',
   icon: CloudFormationIcon,

@@ -251,7 +251,7 @@ describe('Search source identity and concurrent creation', () => {
   it('preserves ordinary KB name collisions and creates one explicit Search configuration', async () => {
     await db
       .update(knowledgeBase)
-      .set({ name: 'Sim Search' })
+      .set({ name: 'Nexora Search' })
       .where(eq(knowledgeBase.id, other.knowledgeBaseId))
     const input = { workspaceId: other.workspaceId, connectorType: 'gitlab' }
     const reader = {
@@ -276,7 +276,7 @@ describe('Search source identity and concurrent creation', () => {
         .select({ name: knowledgeBase.name, isSearchIndex: knowledgeBase.isSearchIndex })
         .from(knowledgeBase)
         .where(eq(knowledgeBase.id, other.knowledgeBaseId))
-    ).toEqual([{ name: 'Sim Search', isSearchIndex: false }])
+    ).toEqual([{ name: 'Nexora Search', isSearchIndex: false }])
     await db
       .update(knowledgeBase)
       .set({ name: 'Ordinary knowledge' })

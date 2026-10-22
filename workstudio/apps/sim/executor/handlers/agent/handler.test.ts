@@ -2738,7 +2738,7 @@ describe('AgentBlockHandler', () => {
      * message WITHOUT discarding the phase detail the provider attached — that detail is
      * the only thing distinguishing "never answered" from "body never completed".
      */
-    it('maps a provider TimeoutError to a Sim message while keeping the phase detail', async () => {
+    it('maps a provider TimeoutError to a Nexora message while keeping the phase detail', async () => {
       const inputs = { model: 'gpt-4o', userPrompt: 'hi', apiKey: 'test-api-key' }
       mockGetProviderFromModel.mockReturnValue('openai')
 

@@ -28,7 +28,7 @@ const REFUSAL_MESSAGES: Record<OAuthConsentRefusal, string> = {
   expired: 'This authorization request has expired. Start sign-in again from the app.',
   missing: 'The authorization request is missing its client identifier.',
   tampered: 'This authorization request was altered on its way here.',
-  unsigned: 'This authorization request did not come from Sim.',
+  unsigned: 'This authorization request did not come from Nexora.',
 }
 
 interface OAuthConsentViewProps {
@@ -87,7 +87,7 @@ export function OAuthConsentView({
             ? REFUSAL_MESSAGES[reason]
             : getErrorMessage(
                 client.error,
-                'Sim could not identify the app. Start again from the app.'
+                'Nexora could not identify the app. Start again from the app.'
               )
         }
       />
@@ -103,7 +103,7 @@ export function OAuthConsentView({
     return (
       <AuthHeader
         title='Unable to connect'
-        description='Sim could not identify the app. Start again from the app asking for access.'
+        description='Nexora could not identify the app. Start again from the app asking for access.'
       />
     )
   }

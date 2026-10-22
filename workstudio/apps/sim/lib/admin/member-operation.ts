@@ -30,7 +30,7 @@ import { MIGRATED_INVITATION_EMAIL_EVENT_TYPE } from '@/lib/workspaces/admin-mov
 import { ownedAttachableWorkspacesWhere } from '@/lib/workspaces/organization-workspaces'
 
 const MEMBER_OPERATION_WORKSPACE_BATCH_SIZE = 10
-const ADMIN_API_AUDIT_EMAIL = 'admin-api@internal.simstudio.ai'
+const ADMIN_API_AUDIT_EMAIL = 'admin-api@internal.nexora.local'
 const logger = createLogger('AdminMemberOperation')
 
 const memberOperationRequestSchema = z

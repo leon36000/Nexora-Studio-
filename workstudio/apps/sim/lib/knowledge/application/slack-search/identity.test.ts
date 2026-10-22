@@ -15,7 +15,7 @@ beforeEach(() => {
   vi.mocked(db.select).mockReturnValue(query as ReturnType<typeof db.select>)
 })
 
-describe('Slack email to Sim member resolution', () => {
+describe('Slack email to Nexora member resolution', () => {
   it('accepts a verified current member without personal Slack enrollment', async () => {
     limit
       .mockResolvedValueOnce([{ id: 'u1', emailVerified: true }])
@@ -37,14 +37,14 @@ describe('Slack email to Sim member resolution', () => {
   ])('refuses missing, unverified, or ambiguous accounts', async ({ users }) => {
     limit.mockResolvedValueOnce(users)
     await expect(resolveSlackSearchMember('org1', 'T1', 'U1', 'alice@example.com')).rejects.toThrow(
-      'verified Sim account'
+      'verified Nexora account'
     )
     expect(limit).toHaveBeenCalledOnce()
   })
   it('refuses a user removed from the organization', async () => {
     limit.mockResolvedValueOnce([{ id: 'u1', emailVerified: true }]).mockResolvedValueOnce([])
     await expect(resolveSlackSearchMember('org1', 'T1', 'U1', 'alice@example.com')).rejects.toThrow(
-      'verified Sim account'
+      'verified Nexora account'
     )
   })
   it('refuses a contradictory active Slack identity', async () => {
@@ -53,7 +53,7 @@ describe('Slack email to Sim member resolution', () => {
       .mockResolvedValueOnce([{ id: 'm1' }])
       .mockResolvedValueOnce([{ id: 'conflict' }])
     await expect(resolveSlackSearchMember('org1', 'T1', 'U1', 'alice@example.com')).rejects.toThrow(
-      'verified Sim account'
+      'verified Nexora account'
     )
   })
   it('propagates a database failure without guessing an identity', async () => {

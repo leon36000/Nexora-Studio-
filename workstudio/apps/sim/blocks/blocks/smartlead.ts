@@ -1,5 +1,6 @@
 import { isRecordLike } from '@sim/utils/object'
 import { SmartleadIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -78,7 +79,7 @@ export const SmartleadBlock: BlockConfig = {
   description: 'Manage Smartlead cold email campaigns, sequences, and leads',
   longDescription:
     'Create campaigns, write multi-step email sequences, import and categorize leads, pull campaign analytics, and register webhooks for engagement events.',
-  docsLink: 'https://docs.sim.ai/integrations/smartlead',
+  docsLink: docsUrl('/integrations/smartlead'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   bgColor: '#000000',

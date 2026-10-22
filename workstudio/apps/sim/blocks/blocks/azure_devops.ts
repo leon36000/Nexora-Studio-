@@ -1,4 +1,5 @@
 import { AzureIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import type { AzureDevOpsBasicWorkItemType } from '@/tools/azure_devops/types'
@@ -18,7 +19,7 @@ export const AzureDevOpsBlock: BlockConfig = {
   description: 'Interact with Azure DevOps pipelines, builds, and work items',
   longDescription:
     'List and inspect pipelines and builds, query and manage work items, and add or read comments.',
-  docsLink: 'https://docs.sim.ai/integrations/azure_devops',
+  docsLink: docsUrl('/integrations/azure_devops'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#0078D4',

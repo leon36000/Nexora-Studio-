@@ -104,7 +104,7 @@ function createRequestTool(
 }
 
 describe('external request transport', () => {
-  it('rejects relative Sim API routes', () => {
+  it('rejects relative Nexora API routes', () => {
     expect(() => prepareToolRequest(createRequestTool('/api/tools/probe'), {})).toThrow(
       'External tool requests require an absolute HTTP(S) URL'
     )

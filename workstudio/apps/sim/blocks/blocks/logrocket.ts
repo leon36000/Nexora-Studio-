@@ -1,4 +1,5 @@
 import { LogRocketIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 /**
@@ -15,7 +16,7 @@ export const LogRocketBlock: BlockConfig = {
   description: 'Summarize sessions, manage users, and tag releases in LogRocket',
   longDescription:
     'Request AI session highlights for a user, poll for the result, list exported session files, read the audit log, create or update user profiles, and register releases so source maps decode their stack traces.',
-  docsLink: 'https://docs.sim.ai/integrations/logrocket',
+  docsLink: docsUrl('/integrations/logrocket'),
   category: 'tools',
   integrationType: IntegrationType.Observability,
   bgColor: '#764ABC',

@@ -77,7 +77,7 @@ emailTemplatesMockFns.mockGetEmailSubject.mockReturnValue('Enterprise owner invi
 emailTemplatesMockFns.mockRenderEnterpriseOwnerInvitationEmail.mockResolvedValue('<p>Invite</p>')
 
 idMockFns.mockGenerateId.mockReturnValue('generated-id')
-urlsMockFns.mockGetBaseUrl.mockReturnValue('https://sim.ai')
+urlsMockFns.mockGetBaseUrl.mockReturnValue('https://workstudio.example.com')
 
 const now = new Date('2026-08-20T12:00:00.000Z')
 
@@ -166,7 +166,7 @@ describe('Enterprise future-owner claims', () => {
         requestedByEmail: 'admin@sim.ai',
         requestedByUserId: 'admin-1',
       })
-    ).rejects.toThrow('A Sim account now exists')
+    ).rejects.toThrow('A Nexora account now exists')
     expect(mocks.assertInvitationEligibility).not.toHaveBeenCalled()
   })
 

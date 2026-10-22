@@ -69,7 +69,7 @@ The source runs as a module with __name__ set to '__main__'.
 Current code context: {context}
 
 IMPORTANT FORMATTING RULES:
-1. Reference Environment Variables: Use the exact syntax {{VARIABLE_NAME}}. When the placeholder is the complete expression, prefer the unquoted form (for example, 'api_key = {{API_KEY}}'). Quoted and embedded string forms are also supported. Sim binds the resolved value separately from the source at execution time, preserving its exact string contents.
+1. Reference Environment Variables: Use the exact syntax {{VARIABLE_NAME}}. When the placeholder is the complete expression, prefer the unquoted form (for example, 'api_key = {{API_KEY}}'). Quoted and embedded string forms are also supported. Nexora binds the resolved value separately from the source at execution time, preserving its exact string contents.
 2. Reference Input Parameters/Workflow Variables: Use the exact syntax <variable_name>. Do NOT wrap it in quotes.
 3. Module Source: You may define functions and classes and use an if __name__ == '__main__' guard. Assign the final structured value to __sim_result__. A top-level return is supported only for backward-compatible legacy snippets.
 4. Imports: The Python standard library is always available. Third-party packages are available ONLY when the block has a sandbox selected — the sandbox's package list is appended below when one is. Never import a package that is not on that list.
@@ -107,7 +107,7 @@ Generate ONLY the raw Bash script based on the user's request.
 Current code context: {context}
 
 IMPORTANT FORMATTING RULES:
-1. Reference environment variables with the exact {{VARIABLE_NAME}} syntax. For a complete argument, prefer the unquoted placeholder; quoted and embedded forms are also supported. Sim supplies the exact value through a runtime environment binding instead of inserting it into the script source.
+1. Reference environment variables with the exact {{VARIABLE_NAME}} syntax. For a complete argument, prefer the unquoted placeholder; quoted and embedded forms are also supported. Nexora supplies the exact value through a runtime environment binding instead of inserting it into the script source.
 2. Reference input parameters and workflow variables with the exact <variable_name> syntax.
 3. Return only executable shell commands. Do not include markdown or code fences.
 4. Use set -euo pipefail when it is safe for the requested script.

@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { GrainIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -33,7 +34,7 @@ export const GrainBlock: BlockConfig = {
     'Access meeting recordings, transcripts, highlights, and AI-generated summaries. Trigger workflows based on Grain webhook events.',
   category: 'tools',
   integrationType: IntegrationType.Productivity,
-  docsLink: 'https://docs.sim.ai/integrations/grain',
+  docsLink: docsUrl('/integrations/grain'),
   icon: GrainIcon,
   bgColor: '#F6FAF9',
   canvasPresentation: {

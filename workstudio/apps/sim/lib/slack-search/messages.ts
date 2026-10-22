@@ -25,7 +25,7 @@ export function renderSlackSearchRedirect(
   const url = new URL('https://slack.com/app_redirect')
   url.searchParams.set('app', appId)
   url.searchParams.set('team', message.teamId)
-  const text = 'This bot has moved. Continue your conversation in the Sim Search app.'
+  const text = 'This bot has moved. Continue your conversation in the Nexora Search app.'
   return slackSearchReply(
     { ...message, threadTs: slackSearchThreadTimestamp(message) },
     `${text} ${url.href}`,
@@ -37,7 +37,7 @@ export function renderSlackSearchRedirect(
           {
             type: 'button',
             action_id: 'sim_search.open_replacement',
-            text: { type: 'plain_text', text: 'Open Sim Search' },
+            text: { type: 'plain_text', text: 'Open Nexora Search' },
             url: url.href,
           },
         ],

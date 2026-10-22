@@ -67,7 +67,7 @@ export function gitlabSetupInstructions(eventLabel: string): string {
   const instructions = [
     'Create a <strong>Personal Access Token</strong> with the <strong>api</strong> scope under <strong>GitLab &gt; Settings &gt; Access Tokens</strong>.',
     'Enter the token and your <strong>Project ID</strong> (numeric ID or <code>group/project</code> path) above.',
-    `Deploy the workflow — Sim creates the webhook in GitLab automatically and starts listening for <strong>${eventLabel}</strong> events.`,
+    `Deploy the workflow — Nexora creates the webhook in GitLab automatically and starts listening for <strong>${eventLabel}</strong> events.`,
     'Undeploying the workflow removes the webhook from GitLab.',
   ]
   return instructions

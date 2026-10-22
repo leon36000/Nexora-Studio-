@@ -3,7 +3,7 @@ import { DesktopHandoffShell } from '@/app/desktop/components/desktop-handoff-sh
 import { ChatCompleteHandoff } from '@/app/oauth/chat-complete/chat-complete-handoff'
 
 export const metadata: Metadata = {
-  title: 'Returning to Sim',
+  title: 'Returning to Nexora',
   robots: { index: false },
 }
 
@@ -22,7 +22,7 @@ export default function ChatCompletePage() {
   return (
     <>
       <ChatCompleteHandoff />
-      <DesktopHandoffShell title='Finishing the connection' description='Returning you to Sim.' />
+      <DesktopHandoffShell title='Finishing the connection' description='Returning you to Nexora.' />
     </>
   )
 }

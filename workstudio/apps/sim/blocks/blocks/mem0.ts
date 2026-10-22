@@ -1,5 +1,6 @@
 import { toError } from '@sim/utils/errors'
 import { Mem0Icon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { parseMem0Messages } from '@/tools/mem0/utils'
 
@@ -34,7 +35,7 @@ export const Mem0Block: BlockConfig = {
   },
   category: 'tools',
   integrationType: IntegrationType.AI,
-  docsLink: 'https://docs.sim.ai/integrations/mem0',
+  docsLink: docsUrl('/integrations/mem0'),
   subBlocks: [
     {
       id: 'operation',
@@ -59,7 +60,7 @@ export const Mem0Block: BlockConfig = {
       id: 'messages',
       title: 'Messages',
       type: 'code',
-      placeholder: 'JSON array, e.g. [{"role": "user", "content": "I love Sim!"}]',
+      placeholder: 'JSON array, e.g. [{"role": "user", "content": "I love Nexora!"}]',
       language: 'json',
       condition: {
         field: 'operation',

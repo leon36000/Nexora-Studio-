@@ -391,7 +391,7 @@ describe('NetSuite shared executor', () => {
     expect(calls[0].init?.body).toBe(JSON.stringify(body))
   })
 
-  it('enforces the Sim JSON value-count boundary before SuiteTalk traffic', async () => {
+  it('enforces the Nexora JSON value-count boundary before SuiteTalk traffic', async () => {
     const { calls } = installFetch([
       new Response(null, {
         status: 204,
@@ -412,7 +412,7 @@ describe('NetSuite shared executor', () => {
     expect(calls).toHaveLength(1)
   })
 
-  it('enforces the Sim JSON nesting boundary before SuiteTalk traffic', async () => {
+  it('enforces the Nexora JSON nesting boundary before SuiteTalk traffic', async () => {
     const { calls } = installFetch([
       new Response(null, {
         status: 204,
@@ -851,7 +851,7 @@ describe('NetSuite shared executor', () => {
 })
 
 describe('NetSuite request bounds', () => {
-  it("applies Sim's page-size default within Oracle's paging limits", () => {
+  it("applies Nexora's page-size default within Oracle's paging limits", () => {
     expect(normalizePagination()).toEqual({ limit: 100, offset: 0 })
     expect(normalizePagination('', '')).toEqual({ limit: 100, offset: 0 })
     expect(() => normalizePagination('   ', 0)).toThrow('Limit')

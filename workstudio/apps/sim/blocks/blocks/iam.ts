@@ -1,4 +1,5 @@
 import { IAMIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -17,7 +18,7 @@ export const IAMBlock: BlockConfig = {
   name: 'AWS IAM',
   description: 'Manage AWS IAM users, roles, policies, and groups',
   longDescription: 'Create and manage users, roles, policies, groups, and access keys.',
-  docsLink: 'https://docs.sim.ai/integrations/iam',
+  docsLink: docsUrl('/integrations/iam'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: 'linear-gradient(45deg, #BD0816 0%, #FF5252 100%)',

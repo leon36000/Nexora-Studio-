@@ -1,4 +1,5 @@
 import { SmtpIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -9,7 +10,7 @@ export const SmtpBlock: BlockConfig = {
   description: 'Send emails via any SMTP mail server',
   longDescription:
     'Send email through an SMTP server using its host, port, security protocol, and credentials. Configure recipients, message content, and optional attachments.',
-  docsLink: 'https://docs.sim.ai/integrations/smtp',
+  docsLink: docsUrl('/integrations/smtp'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   bgColor: '#2D3748',

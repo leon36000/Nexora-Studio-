@@ -1,4 +1,5 @@
 import { AzureIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -129,7 +130,7 @@ export const MicrosoftAdBlock: BlockConfig = {
   description: 'Manage identities, licenses, roles, and access in Azure AD (Microsoft Entra ID)',
   longDescription:
     'Create, update, and delete users and groups, manage group memberships, assign and remove licenses, reset passwords, revoke sign-in sessions, read sign-in and directory audit logs, grant and revoke app and directory roles, and read registered devices and conditional access policies. Device writes are not supported.',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_ad',
+  docsLink: docsUrl('/integrations/microsoft_ad'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#0078D4',

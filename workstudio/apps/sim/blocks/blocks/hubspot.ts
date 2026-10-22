@@ -1,4 +1,5 @@
 import { HubspotIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -11,7 +12,7 @@ export const HubSpotBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Manage contacts, companies, deals, tickets, and other CRM objects. Use trigger mode to start workflows when records are created, updated, a specific property changes, or a contact joins a list.',
-  docsLink: 'https://docs.sim.ai/integrations/hubspot',
+  docsLink: docsUrl('/integrations/hubspot'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FF7A59',

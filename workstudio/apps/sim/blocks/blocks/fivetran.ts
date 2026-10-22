@@ -1,4 +1,5 @@
 import { FivetranIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -187,7 +188,7 @@ export const FivetranBlock: BlockConfig = {
   description: 'Manage Fivetran connections, syncs, and transformations',
   longDescription:
     'List, create, update, pause, resume, and delete connections, trigger syncs and historical re-syncs, read sync history, warnings, and schema configs, enable or disable schemas and tables, run setup tests, generate Connect Card links, look up connector setup fields, create and inspect groups and destinations, run and cancel transformations, review users, and react to sync, connection, and transformation webhooks.',
-  docsLink: 'https://docs.sim.ai/integrations/fivetran',
+  docsLink: docsUrl('/integrations/fivetran'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',

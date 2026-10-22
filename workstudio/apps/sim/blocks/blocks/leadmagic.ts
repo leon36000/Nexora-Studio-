@@ -1,4 +1,5 @@
 import { LeadMagicIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 /*
@@ -17,7 +18,7 @@ export const LeadMagicBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Integrate LeadMagic to find verified work emails by name or company, validate email deliverability, find direct mobile numbers, enrich LinkedIn profiles, reverse-lookup profiles from emails, search companies by domain, identify role holders at accounts, and check account credit balance.',
-  docsLink: 'https://docs.sim.ai/integrations/leadmagic',
+  docsLink: docsUrl('/integrations/leadmagic'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

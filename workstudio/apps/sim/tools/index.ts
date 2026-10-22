@@ -1058,7 +1058,7 @@ const BODY_SIZE_LIMIT_ERROR_MESSAGE =
 const RESPONSE_SIZE_LIMIT_ERROR_MESSAGE =
   'Tool response size limit exceeded (10MB). The response is too large to keep in workflow data. Reduce the response size or return a file reference instead.'
 const SAME_ORIGIN_EXTERNAL_TOOL_ERROR_MESSAGE =
-  'External integration tools cannot target this Sim instance; use an internal operation'
+  'External integration tools cannot target this Nexora instance; use an internal operation'
 
 /** The author's data is too large to send, so it is a user failure. */
 function bodySizeLimitError(): Error {

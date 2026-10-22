@@ -1,4 +1,5 @@
 import { CloudflareIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 /** Advanced inputs serialize before conditions; separate aliases prevent hidden values crossing operations. */
@@ -256,7 +257,7 @@ export const CloudflareBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Manage Cloudflare DNS, zones, SSL, cache, and analytics. Configure WAF rulesets and rate limiting; administer Access applications, policies, groups, and service tokens; manage Worker routes and tunnels; and configure R2 buckets, CORS, and lifecycle rules.',
-  docsLink: 'https://docs.sim.ai/integrations/cloudflare',
+  docsLink: docsUrl('/integrations/cloudflare'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#F5F6FA',

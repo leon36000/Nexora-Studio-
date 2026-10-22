@@ -1,4 +1,5 @@
 import { TriggerDevIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -78,7 +79,7 @@ export const TriggerDevBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Trigger and batch trigger background tasks, retrieve and control runs (cancel, replay, reschedule, tags, metadata, events, traces), manage cron schedules, environment variables, queues, deployments, and waitpoint tokens, and query run data with TRQL.',
-  docsLink: 'https://docs.sim.ai/integrations/trigger_dev',
+  docsLink: docsUrl('/integrations/trigger_dev'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#000000',

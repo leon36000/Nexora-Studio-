@@ -162,10 +162,10 @@ const START_RUN_METADATA_OUTPUT = {
           type: 'string',
           description: 'Subject kind: sim_user, authenticated_email, or external_user',
         },
-        userId: { type: 'string', description: 'Sim user ID for a sim_user subject' },
+        userId: { type: 'string', description: 'Nexora user ID for a sim_user subject' },
         email: {
           type: 'string',
-          description: 'Email for a Sim user or email-authenticated chat subject',
+          description: 'Email for a Nexora user or email-authenticated chat subject',
         },
         provider: { type: 'string', description: 'Provider for an external_user subject' },
         tenantId: {

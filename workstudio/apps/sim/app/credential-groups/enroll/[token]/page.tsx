@@ -66,7 +66,7 @@ function UnavailableInvitation({
   rateLimited = false,
   message,
   recoveryHref = APP_ENTRY_PATH,
-  recoveryLabel = 'Open Sim',
+  recoveryLabel = 'Open Nexora',
 }: UnavailableInvitationProps) {
   return (
     <PageShell>
@@ -159,7 +159,7 @@ export default async function CredentialGroupEnrollmentPage({
     return (
       <UnavailableInvitation
         token={token}
-        message='Verify your Sim email address before connecting your accounts.'
+        message='Verify your Nexora email address before connecting your accounts.'
         recoveryHref={`/verify?redirectAfter=${encodeURIComponent(callbackUrl)}`}
         recoveryLabel='Verify email'
       />
@@ -196,7 +196,7 @@ export default async function CredentialGroupEnrollmentPage({
     ? principal.organizationId
       ? 'Return to Search'
       : 'Open knowledge bases'
-    : 'Open Sim'
+    : 'Open Nexora'
   if (!enrollment)
     return (
       <UnavailableSearchConnection

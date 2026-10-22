@@ -1,5 +1,6 @@
 import { Table } from '@sim/emcn/icons'
 import { toError } from '@sim/utils/errors'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { TABLE_LIMITS } from '@/lib/table/constants'
 import { filterRulesToFilter, sortRulesToSort } from '@/lib/table/query-builder/converters'
 import type { BlockConfig } from '@/blocks/types'
@@ -210,7 +211,7 @@ export const TableBlock: BlockConfig = {
   description: 'User-defined data tables',
   longDescription:
     'Create and manage custom data tables. Store, query, and manipulate structured data within workflows. Query Rows returns every matching row when Limit is omitted and fails if the result exceeds 5MB.',
-  docsLink: 'https://docs.sim.ai/integrations/table',
+  docsLink: docsUrl('/integrations/table'),
   category: 'blocks',
   /**
    * Superseded by {@link TableV2Block} (GA): hidden from discovery like other

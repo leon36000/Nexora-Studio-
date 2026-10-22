@@ -514,7 +514,7 @@ function ServerDetailView({
                     <ChipButtonGroupItem value='claude-code'>Claude Code</ChipButtonGroupItem>
                     <ChipButtonGroupItem value='claude-desktop'>Claude Desktop</ChipButtonGroupItem>
                     <ChipButtonGroupItem value='vscode'>VS Code</ChipButtonGroupItem>
-                    <ChipButtonGroupItem value='sim'>Sim</ChipButtonGroupItem>
+                    <ChipButtonGroupItem value='sim'>Nexora</ChipButtonGroupItem>
                   </ChipButtonGroup>
                 </div>
 
@@ -861,7 +861,7 @@ function ServerDetailView({
                 <p className='text-[var(--text-muted)] text-caption'>
                   {editServerIsPublic
                     ? 'Anyone with the URL can call this server without authentication'
-                    : 'Clients sign in with OAuth, or send a Sim API key in the X-API-Key header'}
+                    : 'Clients sign in with OAuth, or send a Nexora API key in the X-API-Key header'}
                 </p>
               </div>
             </ChipModalField>

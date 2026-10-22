@@ -364,7 +364,7 @@ async function inspectSelections(
         ...entry,
         status: 'unavailable',
         reason:
-          'Sim Chat only consumes MCP selections; integrations come from its ambient catalog.',
+          'Nexora Chat only consumes MCP selections; integrations come from its ambient catalog.',
       })
       continue
     }
@@ -417,7 +417,7 @@ export const inspectWorkflowTools = defineAuthorizedWorkflowUseCase({
     if (block.type !== 'agent' && block.type !== 'mothership')
       throw new OrchestrationError(
         'validation',
-        'Tool inspection supports Agent and Sim Chat blocks'
+        'Tool inspection supports Agent and Nexora Chat blocks'
       )
     const inputs = extractBlockParams(block)
     const inspectionContext: InspectionContext = {
@@ -475,7 +475,7 @@ export const inspectWorkflowTools = defineAuthorizedWorkflowUseCase({
         })),
       }
       report.notes.push(
-        'Sim Chat discovers integration and selected MCP operations and calls them through its integration gateway. An empty selections array does not disable integrations. Catalog visibility does not prove a credential is connected. This block does not inherit the interactive Mothership CLI, browser, terminal or delegation tools.'
+        'Nexora Chat discovers integration and selected MCP operations and calls them through its integration gateway. An empty selections array does not disable integrations. Catalog visibility does not prove a credential is connected. This block does not inherit the interactive Mothership CLI, browser, terminal or delegation tools.'
       )
       report.notes.push(
         'MCP selections support fixed or variable auto/force/none modes. Force requires an invocation of each selected operation; None disables that selection. These modes do not change ambient integration access. Fixed MCP arguments are not supported.'

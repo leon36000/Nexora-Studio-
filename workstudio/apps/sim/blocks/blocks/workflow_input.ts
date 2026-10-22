@@ -1,4 +1,5 @@
 import { WorkflowIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const WorkflowInputBlock: BlockConfig = {
@@ -12,7 +13,7 @@ export const WorkflowInputBlock: BlockConfig = {
   - Which version of the child runs depends on how this workflow runs: manual/draft executions run the child's draft, while deployed executions run the child's active deployment. Deploy the child (and redeploy it after editing it) before deploying this workflow, otherwise the deployed run fails because the child is not deployed.
   `,
   category: 'blocks',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/workflow',
+  docsLink: docsUrl('/workflows/blocks/workflow'),
   bgColor: '#6366F1',
   icon: WorkflowIcon,
   canvasPresentation: {

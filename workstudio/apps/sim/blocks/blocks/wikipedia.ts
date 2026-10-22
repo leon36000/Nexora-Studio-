@@ -1,4 +1,5 @@
 import { WikipediaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -7,7 +8,7 @@ export const WikipediaBlock: BlockConfig = {
   name: 'Wikipedia',
   description: 'Search and retrieve content from Wikipedia',
   longDescription: 'Get page summary, search pages, get page content, and get random page.',
-  docsLink: 'https://docs.sim.ai/integrations/wikipedia',
+  docsLink: docsUrl('/integrations/wikipedia'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#000000',

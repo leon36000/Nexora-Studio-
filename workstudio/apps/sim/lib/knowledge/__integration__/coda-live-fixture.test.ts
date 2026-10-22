@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { assertCodaLiveFixture } from '@/lib/knowledge/__integration__/coda-live-fixture'
 
 const marker = 'SimConnector-fixture'
-const source = { name: `Sim Coda connector verification ${marker}`, owner: 'Owner@example.com' }
+const source = { name: `Nexora Coda connector verification ${marker}`, owner: 'Owner@example.com' }
 
 describe('Coda live fixture validation', () => {
   it.each(['Owner@example.com', 'owner@example.com', ' OWNER@EXAMPLE.COM '])(

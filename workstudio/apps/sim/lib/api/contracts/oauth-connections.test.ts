@@ -9,7 +9,7 @@ describe('Instagram OAuth query contracts', () => {
   it('rejects oversized return URLs before they can be persisted in a cookie', () => {
     expect(
       instagramAuthorizeQuerySchema.safeParse({
-        returnUrl: `https://sim.ai/${'a'.repeat(2048)}`,
+        returnUrl: `https://workstudio.example.com/${'a'.repeat(2048)}`,
       }).success
     ).toBe(false)
   })
@@ -27,7 +27,7 @@ describe('Trello OAuth query contracts', () => {
   it('rejects an oversized return URL before it can be persisted in a cookie', () => {
     expect(
       trelloAuthorizeQuerySchema.safeParse({
-        returnUrl: `https://sim.ai/${'a'.repeat(2048)}`,
+        returnUrl: `https://workstudio.example.com/${'a'.repeat(2048)}`,
       }).success
     ).toBe(false)
   })

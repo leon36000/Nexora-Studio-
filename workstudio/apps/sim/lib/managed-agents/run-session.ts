@@ -370,7 +370,7 @@ async function handleEvent(args: {
       return {}
     }
     logger.warn(
-      `Managed Agent invoked a custom tool "${event.name ?? '<unknown>'}" that Sim does not provide — replying with error`
+      `Managed Agent invoked a custom tool "${event.name ?? '<unknown>'}" that Nexora does not provide — replying with error`
     )
     try {
       await sendSessionEvents({
@@ -384,7 +384,7 @@ async function handleEvent(args: {
             content: [
               {
                 type: 'text',
-                text: 'This Managed Agent is being invoked from a Sim workflow block. Sim does not provide custom tools here — configure the agent to use only tools available in its Claude Platform workspace.',
+                text: 'This Managed Agent is being invoked from a Nexora workflow block. Nexora does not provide custom tools here — configure the agent to use only tools available in its Claude Platform workspace.',
               },
             ],
             is_error: true,

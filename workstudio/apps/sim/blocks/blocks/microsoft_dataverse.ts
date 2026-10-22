@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { MicrosoftDataverseIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -17,7 +18,7 @@ export const MicrosoftDataverseBlock = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Create, read, update, delete, upsert, associate, query, search, and execute actions and functions against Dataverse tables using the Web API. Supports bulk operations, FetchXML, file uploads, relevance search, and table metadata lookup. Works with Dynamics 365, Power Platform, and custom Dataverse environments.',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_dataverse',
+  docsLink: docsUrl('/integrations/microsoft_dataverse'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',
@@ -837,7 +838,7 @@ export const MicrosoftDataverseBlockMeta = {
       icon: MicrosoftDataverseIcon,
       title: 'Dataverse record sync',
       prompt:
-        'Build a scheduled workflow that mirrors records between Microsoft Dataverse and a Sim table, normalizes schemas, and posts conflict reports to Slack.',
+        'Build a scheduled workflow that mirrors records between Microsoft Dataverse and a Nexora table, normalizes schemas, and posts conflict reports to Slack.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['enterprise', 'sync'],
@@ -866,7 +867,7 @@ export const MicrosoftDataverseBlockMeta = {
       icon: MicrosoftDataverseIcon,
       title: 'Dataverse + Power BI feeder',
       prompt:
-        'Create a workflow that pulls Dataverse entity data daily, transforms it into BI-ready rows in a Sim table, and stages a refresh signal for downstream Power BI consumption.',
+        'Create a workflow that pulls Dataverse entity data daily, transforms it into BI-ready rows in a Nexora table, and stages a refresh signal for downstream Power BI consumption.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['reporting', 'enterprise'],

@@ -67,7 +67,22 @@ function promoteRequest() {
   )
 }
 
-describe('POST /api/workspaces/[id]/fork/promote', () => {
+describe('Nexora edition: POST /api/workspaces/[id]/fork/promote', () => {
+  beforeEach(() => {
+    authMockFns.mockGetSession.mockResolvedValue({ user: TEST_USER, session: { id: 'session-1' } })
+    resetDbChainMock()
+  })
+
+  it('answers 404 without promoting', async () => {
+    const response = await POST(promoteRequest(), routeContext)
+
+    expect(response.status).toBe(404)
+    expect(mockPromoteFork).not.toHaveBeenCalled()
+  })
+})
+
+// Nexora edition: workspace forking is disabled (clean-room ee/ replacement), see docs/superpowers/plans/2026-10-22-nexora-workstudio-ledger.md
+describe.skip('POST /api/workspaces/[id]/fork/promote', () => {
   beforeEach(() => {
     authMockFns.mockGetSession.mockResolvedValue({ user: TEST_USER, session: { id: 'session-1' } })
     resetDbChainMock()

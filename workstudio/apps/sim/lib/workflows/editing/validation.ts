@@ -124,7 +124,7 @@ export function validateInputsForBlock(
       blockType,
       field: TRIGGER_WEBHOOK_URL_FIELD,
       value: inputs[TRIGGER_WEBHOOK_URL_FIELD],
-      error: `"${TRIGGER_WEBHOOK_URL_FIELD}" is read-only. The webhook URL is auto-assigned by Sim and cannot be changed by the agent or the user.`,
+      error: `"${TRIGGER_WEBHOOK_URL_FIELD}" is read-only. The webhook URL is auto-assigned by Nexora and cannot be changed by the agent or the user.`,
     })
     inputs = omit(inputs, [TRIGGER_WEBHOOK_URL_FIELD])
   }
@@ -1885,7 +1885,7 @@ export async function preValidateCredentialInputs(
 
     const stripMessage = (input: (typeof hostedApiKeyInputs)[number]): string =>
       input.reason === 'hosted_tool'
-        ? `Cannot set "${input.fieldName}" for "${input.blockType}" - it is managed by Sim on the hosted platform. Leave "${input.fieldName}" unset.`
+        ? `Cannot set "${input.fieldName}" for "${input.blockType}" - it is managed by Nexora on the hosted platform. Leave "${input.fieldName}" unset.`
         : `Cannot set API key for hosted model "${input.model}" - API keys are managed by the platform when using hosted models`
 
     for (const apiKeyInput of hostedApiKeyInputs) {

@@ -1,4 +1,5 @@
 import { ArxivIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const ArxivBlock: BlockConfig = {
   description: 'Search and retrieve academic papers from ArXiv',
   longDescription:
     'Search arXiv papers, retrieve paper metadata, or list an author’s papers. No API key or OAuth connection is required.',
-  docsLink: 'https://docs.sim.ai/integrations/arxiv',
+  docsLink: docsUrl('/integrations/arxiv'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#FFFFFF',

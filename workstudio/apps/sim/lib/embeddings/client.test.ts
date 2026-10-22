@@ -381,7 +381,7 @@ describe('embed', () => {
     expect(result.embeddings[0].slice(0, 2)).toEqual([7, 8])
   })
 
-  it('marks a caller-supplied key as BYOK so Sim does not bill for it', async () => {
+  it('marks a caller-supplied key as BYOK so Nexora does not bill for it', async () => {
     fetchMock.mockResolvedValue(jsonResponse(openAIBody([[1]])))
 
     const result = await embed(['hello'], {

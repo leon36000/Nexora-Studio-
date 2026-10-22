@@ -1,4 +1,5 @@
 import { OracleIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -14,7 +15,7 @@ export const OracleFusionFinancialsBlock: BlockConfig = {
   description: 'Manage receivables and expenses, and report on payables and ledgers',
   longDescription:
     'Connect your Oracle Fusion Applications integration user through a reusable saved credential. Read payables invoices and payments; create and update receivables invoices, read their lines and installments, create credit memos, and create and apply receipts. Create, update, and submit expense reports and their expense lines. Read ledgers, journal batches, and ledger balances. Lists return one bounded page at a time. Oracle roles, business-unit access, and business validation still apply.',
-  docsLink: 'https://docs.sim.ai/integrations/oracle_fusion_financials',
+  docsLink: docsUrl('/integrations/oracle_fusion_financials'),
   category: 'tools',
   integrationType: IntegrationType.Commerce,
   authMode: AuthMode.OAuth,

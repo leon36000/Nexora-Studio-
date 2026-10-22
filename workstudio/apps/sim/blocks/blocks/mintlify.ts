@@ -1,4 +1,5 @@
 import { MintlifyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -122,7 +123,7 @@ export const MintlifyBlock: BlockConfig = {
   description: 'Deploy, edit, search, and measure Mintlify documentation',
   longDescription:
     'Trigger production and preview deployments, run scheduled automations, launch documentation agent jobs, detect AI-sounding prose, search your docs and read page content, ask the docs assistant, and export feedback, conversation, search, view, and visitor analytics.',
-  docsLink: 'https://docs.sim.ai/integrations/mintlify',
+  docsLink: docsUrl('/integrations/mintlify'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#000000',
@@ -777,7 +778,7 @@ export const MintlifyBlockMeta = {
       icon: MintlifyIcon,
       title: 'Mintlify knowledge base mirror',
       prompt:
-        'Create a workflow that searches a Mintlify documentation site, fetches the full content of each matching page, and loads it into a Sim knowledge base so agents can retrieve it offline.',
+        'Create a workflow that searches a Mintlify documentation site, fetches the full content of each matching page, and loads it into a Nexora knowledge base so agents can retrieve it offline.',
       modules: ['knowledge-base', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['sync', 'knowledge-base'],

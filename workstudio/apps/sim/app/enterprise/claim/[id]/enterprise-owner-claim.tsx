@@ -130,7 +130,7 @@ export default function EnterpriseOwnerClaim({ registrationDisabled }: Enterpris
           description={
             registrationDisabled
               ? 'Sign in with the invited email to review the Enterprise setup.'
-              : 'Create your Sim account with the invited email, then review and activate the Enterprise setup.'
+              : 'Create your Nexora account with the invited email, then review and activate the Enterprise setup.'
           }
           icon='userPlus'
           actions={[

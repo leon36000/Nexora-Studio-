@@ -28,3 +28,33 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Tests : `lib/nexora/edition-defaults.test.ts` et `lib/telemetry/endpoint.test.ts` (10/10, écrits avant le code) ; tests voisins 23 fichiers / 210 tests verts.
   - Restent des références à `sim.ai` sans appel par défaut (`status.sim.ai` monté seulement si `isHosted`, réécritures d'hôtes dans `tools/http/utils.ts`, CSP) : traitées avec la marque en tâche 4.
   - R7 : le Chat d'accueil de Sim dépend d'un service fermé, donc il est masqué en v1 (l'espace s'ouvre sur le premier workflow). Un Chat Nexora branché sur Nexora API est renvoyé à la phase 2.
+- 22/10/2026 — **Tâche 2b terminée** (sous-agent, salle blanche respectée). Les 13 fichiers de tests en échec passent ; 14 fichiers, 131 tests verts, 42 tests marqués « skip » avec renvoi vers ce ledger.
+  - **Défauts réels corrigés dans nos remplacements `ee/`** :
+    - identifiants d'opérations en `snake_case` (`access_requests.list_mine`, `workspaces.fork.*`) ; les routes v2 levaient une exception à l'import ;
+    - cible de demande d'accès en union stricte (400 si invalide) ;
+    - messages d'interdiction alignés sur le cœur ;
+    - `createForkBootstrapTransform` délègue maintenant au remappeur du cœur ;
+    - `/access-requests` : boucle de redirection infinie corrigée ;
+    - `PermissionAccessBoundary` refuse désormais par défaut (« Checking access », puis un avis de restriction).
+  - **Tests de fonctions entreprise désactivées** (SSO/SCIM, forks, demandes d'accès) : chaque fichier a un test du comportement Nexora (404, fonction désactivée), l'ancien bloc est en « skip ». Le cliché `copilot-refused-routes.json` est régénéré.
+  - R12 : la suite unitaire se lance en `LANG=en_US.UTF-8`. 8 tests (graphiques, xlsx, `providers/utils`) supposent une locale anglaise ; la machine est en `fr_FR`.
+- 22/10/2026 — **Tâche 4 (marque), en cours** :
+  - `scripts/check-brand.sh` (Python, 10 tests) et sa liste d'exemptions motivée `scripts/data/brand-allowlist.txt`.
+  - Codemods `scripts/codemods/docs_url.py` (478 liens `docs.sim.ai` → `docsUrl()`) et `scripts/codemods/rebrand.py` (1 280 remplacements Sim → Nexora dans 580 fichiers, hors lignes de commentaires).
+  - Marque par défaut Nexora WorkStudio et indigo `#4F46E5` (`lib/branding/defaults.ts`, `ee/whitelabeling`) ; manifeste en français ; `security.txt` (contact = e-mail de support de la marque).
+  - Constantes de site (`@sim/utils/site`) et aide : dépôt et guide Nexora. L'entrée « Join Slack » (communauté de Sim) devient « Report an issue » (issues GitHub Nexora).
+  - Suppressions : e-mails marketing de Sim (`emails/broadcasts`, `public/email/broadcast`) et logos inutilisés.
+  - Wordmark « nexora » et favicons générés par `scripts/brand/generate_assets.py` (Inter Bold). Canevas du wordmark des e-mails redimensionné (600 × 102, affiché en 100 × 17).
+  - R8 : site marketing de Sim jamais servi en auto-hébergement. `lib/nexora/marketing.ts` + `proxy.ts` redirigent vers `/login`, ou vers les URL légales configurées pour `/terms` et `/privacy`. Tests unitaires et tests du proxy.
+  - R9 : application de bureau (Electron) non livrée en v1 ; son code de mise à jour est exempté du contrôle de marque.
+  - R10 : **polices commerciales retirées** (Season Sans de Displaay, Söhne de Klim, présentes dans le dépôt de Sim mais hors Apache-2.0) et remplacées par Inter (OFL-1.1), avec `OFL.txt` et une entrée dans `THIRD_PARTY_NOTICES.md`.
+  - R11 : sans facturation, les sections de réglages réservées aux offres Max ou Enterprise de Sim sont masquées, sauf si l'instance les débloque (`selfHostedOverride`). Plus de badge d'offre payante.
+  - `check-brand --only workstudio` : **OK (15 786 fichiers)**. Les services (OOMOL, Etalab) restent pour la tâche 11.
+- 22/10/2026 — **Tâches 2 et 4 terminées.**
+  - Après la marque : `tsc` à 0 erreur ; suite unitaire complète (en `LANG=en_US.UTF-8`) à 37 804 tests verts et 50 « skip » sur 3 329 fichiers.
+  - Deux échecs, traités :
+    - un test de normalisation de lien, réécrit à tort par le codemod, est corrigé ;
+    - un dépassement de délai sous charge (`agent-cli/services.test.ts`) passe seul (100/100 avec le fichier voisin).
+  - Correctif complémentaire : les tests liés à des sources exemptées (Google Analytics, attribution, routage MCP, SCIM, Twilio, `process-contents`) ont été restaurés à leur version d'origine. Le codemod les avait réécrits alors que leur source restait inchangée. `urls.test.ts` vérifie maintenant l'hôte canonique Nexora.
+  - L'accent visible (`--brand-accent`, `--brand`) passe du vert de Sim à l'indigo `#4F46E5` dans `globals.css`. Le thème injecté renseigne aussi `--brand` et `--brand-hover`.
+  - Contrôles : `check-no-ee` OK (32 185 fichiers), `check-licenses` OK, `check-brand --only workstudio` OK (15 822 fichiers), tests des scripts 4/4.

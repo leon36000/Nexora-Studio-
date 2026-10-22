@@ -60,13 +60,13 @@ export function EmailLayout({
           element and is what clients that strip `@font-face` actually use.
         */}
         <Font
-          fontFamily='Season Sans'
+          fontFamily='Inter'
           fallbackFontFamily={['Helvetica', 'Arial', 'sans-serif']}
           webFont={{
-            url: `${baseUrl}/brand/fonts/SeasonSansUprightsVF.woff2`,
+            url: `${baseUrl}/brand/fonts/InterVariable-latin.woff2`,
             format: 'woff2',
           }}
-          fontWeight='300 800'
+          fontWeight='100 900'
           fontStyle='normal'
         />
       </Head>

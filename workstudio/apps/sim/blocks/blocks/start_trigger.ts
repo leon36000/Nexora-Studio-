@@ -1,4 +1,5 @@
 import { StartIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const StartTriggerBlock: BlockConfig = {
@@ -15,7 +16,7 @@ export const StartTriggerBlock: BlockConfig = {
   `,
   category: 'triggers',
   bgColor: '#34B5FF',
-  docsLink: 'https://docs.sim.ai/workflows/triggers/start',
+  docsLink: docsUrl('/workflows/triggers/start'),
   icon: StartIcon,
   hideFromToolbar: false,
   subBlocks: [
@@ -32,7 +33,7 @@ export const StartTriggerBlock: BlockConfig = {
       mode: 'advanced',
       defaultValue: false,
       description:
-        'Expose trusted, server-injected run metadata under <start.metadata>: subject, workspaceId, workflowId, executionId, executionType, executionMode, startTime. The subject identifies the authenticated Sim user, chat email, or external provider user without exposing credentials.',
+        'Expose trusted, server-injected run metadata under <start.metadata>: subject, workspaceId, workflowId, executionId, executionType, executionMode, startTime. The subject identifies the authenticated Nexora user, chat email, or external provider user without exposing credentials.',
     },
   ],
   tools: {

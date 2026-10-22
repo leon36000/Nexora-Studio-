@@ -26,7 +26,7 @@ vi.mock('@/lib/model-router/resolve', () => ({
   addAutoRoutingCost: (cost: Record<string, number>, routingCost: number) =>
     routingCost > 0 ? { ...cost, routing: routingCost, total: cost.total + routingCost } : cost,
   resolveAutoModel: mockResolveAutoModel,
-  SIM_AUTO_SYSTEM_PREAMBLE: 'Sim auto system preamble',
+  SIM_AUTO_SYSTEM_PREAMBLE: 'Nexora auto system preamble',
 }))
 
 import { BlockType } from '@/executor/constants'
@@ -172,7 +172,7 @@ describe('EvaluatorBlockHandler', () => {
     const first = mockExecuteProviderRequest.mock.calls[0][1]
     const fallback = mockExecuteProviderRequest.mock.calls[1][1]
     expect(fallback.responseFormat).toEqual(first.responseFormat)
-    expect(fallback.systemPrompt).not.toContain('Sim auto system preamble')
+    expect(fallback.systemPrompt).not.toContain('Nexora auto system preamble')
     expect(fallback.apiKey).toBeUndefined()
   })
 

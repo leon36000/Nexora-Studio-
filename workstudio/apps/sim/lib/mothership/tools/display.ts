@@ -648,7 +648,7 @@ const TOOL_TITLES: Record<string, string> = {
   rename_workflow: 'Renaming workflow',
   restore_resource: 'Restoring resource',
   run_block: 'Running block',
-  search_docs: 'Searching Sim docs',
+  search_docs: 'Searching Nexora docs',
   set_block_enabled: 'Toggling block',
   set_environment_variables: 'Setting environment variables',
   set_global_workflow_variables: 'Setting workflow variables',
@@ -1157,8 +1157,8 @@ export function getToolDisplayTitle(name: string, args?: Record<string, unknown>
     case 'search_docs': {
       const target = firstStringArg(args, 'toolTitle', 'title', 'query')
       return target
-        ? `Searching Sim docs for "${truncate(target, MAX_QUOTED_TITLE_VALUE_LENGTH)}"`
-        : 'Searching Sim docs'
+        ? `Searching Nexora docs for "${truncate(target, MAX_QUOTED_TITLE_VALUE_LENGTH)}"`
+        : 'Searching Nexora docs'
     }
     case 'grep': {
       const target = firstStringArg(args, 'toolTitle', 'title')

@@ -1,4 +1,5 @@
 import { PlanetScaleIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 function optionalBoolean(value: unknown): boolean | undefined {
@@ -16,7 +17,7 @@ export const PlanetScaleBlock: BlockConfig = {
   description: 'Manage PlanetScale databases, branches, backups, and deploy requests',
   longDescription:
     'Manage PlanetScale databases and branches, create and inspect backups, and create, review, queue, and close Vitess deploy requests. Authenticate with an organization service token. Deploy-request actions require a Vitess database; SQL queries are available through the MySQL and PostgreSQL integrations.',
-  docsLink: 'https://docs.sim.ai/integrations/planetscale',
+  docsLink: docsUrl('/integrations/planetscale'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   authMode: AuthMode.ApiKey,

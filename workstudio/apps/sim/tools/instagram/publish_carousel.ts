@@ -12,7 +12,7 @@ export const instagramPublishCarouselTool: InternalToolConfig<
 > = {
   id: 'instagram_publish_carousel',
   name: 'Instagram Publish Carousel',
-  description: 'Publish a carousel of 2-10 images or videos from Sim files',
+  description: 'Publish a carousel of 2-10 images or videos from Nexora files',
   version: '1.0.0',
 
   oauth: {
@@ -37,7 +37,7 @@ export const instagramPublishCarouselTool: InternalToolConfig<
       type: 'file[]',
       required: true,
       visibility: 'user-or-llm',
-      description: '2-10 media files uploaded to Sim or referenced from previous blocks',
+      description: '2-10 media files uploaded to Nexora or referenced from previous blocks',
     },
     caption: {
       type: 'string',

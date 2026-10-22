@@ -87,7 +87,7 @@ export function toolCallNeedsApproval(
     // would draw a card for work that already happened, with no waiter behind
     // it. Go asks for those gates explicitly via the frame instead.
     if (getToolEntry(toolName)?.route === 'go') {
-      logger.error('Tool declares requiresApproval but runs in Go, where Sim cannot gate it', {
+      logger.error('Tool declares requiresApproval but runs in Go, where Nexora cannot gate it', {
         toolName,
       })
       return false

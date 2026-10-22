@@ -150,8 +150,8 @@ export function TerminalContextMenu({
                 }}
               >
                 <DropdownMenuRadioItem value='app'>Default</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value='light'>Sim Light</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value='dark'>Sim Dark</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='light'>Nexora Light</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value='dark'>Nexora Dark</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
               {profiles.map((profile) => {
                 return (

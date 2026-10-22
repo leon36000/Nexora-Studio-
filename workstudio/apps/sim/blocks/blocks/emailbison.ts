@@ -1,4 +1,5 @@
 import { EmailBisonIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -38,7 +39,7 @@ export const EmailBisonBlock: BlockConfig = {
   description: 'Manage Email Bison leads, campaigns, replies, and tags',
   longDescription:
     'Create and update leads, manage campaigns, attach leads to campaigns, list replies, and organize leads with tags.',
-  docsLink: 'https://docs.sim.ai/integrations/emailbison',
+  docsLink: docsUrl('/integrations/emailbison'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   bgColor: '#FB7A22',

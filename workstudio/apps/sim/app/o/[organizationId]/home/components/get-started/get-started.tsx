@@ -26,7 +26,7 @@ interface GetStartedStep {
 /** The onboarding steps, in the order a new organization works through them. */
 const STEPS: readonly GetStartedStep[] = [
   { id: 'connect-integration', label: 'Connect an integration' },
-  { id: 'connect-sim-search', label: 'Connect Sim Search MCP' },
+  { id: 'connect-sim-search', label: 'Connect Nexora Search MCP' },
 ]
 
 const ROW_CLASS =

@@ -59,7 +59,7 @@ export const unpauseScheduleTool: ToolConfig<
     method: 'POST',
     headers: (params) => temporalRequestHeaders(params),
     body: (params) => ({
-      patch: { unpause: params.reason || 'Unpaused via Sim' },
+      patch: { unpause: params.reason || 'Unpaused via Nexora' },
       identity: TEMPORAL_CLIENT_IDENTITY,
       requestId: generateId(),
     }),

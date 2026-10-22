@@ -23,7 +23,7 @@ The must-not-miss constraint.
 
 /** The standalone-document shape: compiled output with the embed in its head. */
 function compiledDocumentWithEmbed(source: string): string {
-  return compileSimPage(source, { baseUrl: 'https://sim.ai' }).replace(
+  return compileSimPage(source, { baseUrl: 'https://workstudio.example.com' }).replace(
     '</head>',
     `${simPageSourceEmbedBlock(source)}</head>`
   )

@@ -1,4 +1,5 @@
 import { GoogleIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const GoogleSearchBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Retrieve web or image results through Google Custom Search with a search engine ID and API key.',
-  docsLink: 'https://docs.sim.ai/integrations/google_search',
+  docsLink: docsUrl('/integrations/google_search'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#FFFFFF',

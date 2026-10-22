@@ -18,10 +18,10 @@ export const NEXORA_BRAND_DEFAULTS: BrandConfig = Object.freeze({
   termsUrl: undefined,
   privacyUrl: undefined,
   theme: Object.freeze({
-    primaryColor: '#4b5563',
-    primaryHoverColor: '#374151',
-    accentColor: '#6b7280',
-    accentHoverColor: '#4b5563',
+    primaryColor: '#4F46E5',
+    primaryHoverColor: '#4338CA',
+    accentColor: '#4F46E5',
+    accentHoverColor: '#4338CA',
     backgroundColor: '#0c0c0c',
   }),
   isWhitelabeled: true,
@@ -93,7 +93,7 @@ export function generateBrandedMetadata(overrides: Partial<Metadata> = {}): Meta
   const brand = getBrandConfig()
   return {
     title: { default: brand.name, template: `%s | ${brand.name}` },
-    description: `${brand.name} — build, deploy and manage AI agents.`,
+    description: `${brand.name} : créez, déployez et pilotez vos agents et automatisations IA.`,
     applicationName: brand.name,
     ...(brand.faviconUrl ? { icons: { icon: brand.faviconUrl } } : {}),
     ...overrides,
@@ -105,8 +105,9 @@ export function generateThemeCSS(): string {
   const theme = getBrandConfig().theme
   if (!theme) return ''
   const vars: string[] = []
-  if (theme.primaryColor) vars.push(`--brand-primary: ${theme.primaryColor};`)
-  if (theme.primaryHoverColor) vars.push(`--brand-primary-hover: ${theme.primaryHoverColor};`)
+  if (theme.primaryColor) vars.push(`--brand-primary: ${theme.primaryColor}; --brand: ${theme.primaryColor};`)
+  if (theme.primaryHoverColor)
+    vars.push(`--brand-primary-hover: ${theme.primaryHoverColor}; --brand-hover: ${theme.primaryHoverColor};`)
   if (theme.accentColor) vars.push(`--brand-accent: ${theme.accentColor};`)
   if (theme.accentHoverColor) vars.push(`--brand-accent-hover: ${theme.accentHoverColor};`)
   return vars.length ? `:root { ${vars.join(' ')} }` : ''

@@ -60,9 +60,9 @@ import { CUSTOM_BLOCK_TYPE_PREFIX } from '@/blocks/custom/build-config'
 const ENTERPRISE_GATED_SECTION_LABELS: Record<OrganizationSettingsSection, string | null> = {
   'recently-deleted': null,
   'knowledge-graphs': null,
-  integrations: 'Sim Search source setup',
+  integrations: 'Nexora Search source setup',
   'search-mcp': null,
-  'search-slack': 'Sim Search in Slack',
+  'search-slack': 'Nexora Search in Slack',
   'connected-accounts': 'organization connected accounts',
   members: null,
   billing: null,

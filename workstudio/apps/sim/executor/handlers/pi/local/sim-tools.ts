@@ -291,7 +291,7 @@ export async function buildSimToolSpecs(
       configuredTools.push({ provider, toolIndex })
     } catch (error) {
       if (error instanceof ToolSchemaEnrichmentError) throw error
-      logger.warn('Failed to adapt Sim tool for Pi', {
+      logger.warn('Failed to adapt Nexora tool for Pi', {
         type: tool.type,
         error: getErrorMessage(error),
       })

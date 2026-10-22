@@ -17,7 +17,7 @@ describe('Search protected-resource metadata', () => {
     )
     expect(await response.json()).toEqual({
       resource: 'https://sim.test/api/mcp/search/organizations/org-1',
-      resource_name: 'Sim Search',
+      resource_name: 'Nexora Search',
       authorization_servers: ['https://sim.test/api/auth'],
       scopes_supported: ['search:read', 'offline_access'],
       bearer_methods_supported: ['header'],

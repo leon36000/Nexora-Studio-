@@ -1,4 +1,5 @@
 import type { Principal } from '@sim/auth/principal'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getBlockVisibility } from '@/lib/core/config/block-visibility'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import {
@@ -91,9 +92,8 @@ interface ServiceAccountDescriptor {
   fields: CredentialProviderField[]
 }
 
-const GOOGLE_SERVICE_ACCOUNT_DOCS_URL = 'https://docs.sim.ai/integrations/google-service-account'
-const ATLASSIAN_SERVICE_ACCOUNT_DOCS_URL =
-  'https://docs.sim.ai/integrations/atlassian-service-account'
+const GOOGLE_SERVICE_ACCOUNT_DOCS_URL = docsUrl('/integrations/google-service-account')
+const ATLASSIAN_SERVICE_ACCOUNT_DOCS_URL = docsUrl('/integrations/atlassian-service-account')
 
 function providerField(
   field: TokenServiceAccountField | ClientCredentialAccountField
@@ -122,7 +122,7 @@ function getServiceAccountDescriptor(providerId: string): ServiceAccountDescript
     return {
       name: 'GitHub App installation',
       description: 'Index repository content with a GitHub App installation.',
-      docsUrl: 'https://docs.sim.ai/search/github',
+      docsUrl: docsUrl('/search/github'),
       helpText:
         'Connect an installation through your organization’s Search integrations. Each person connects their own GitHub account to establish access.',
       fields: [],
@@ -133,7 +133,7 @@ function getServiceAccountDescriptor(providerId: string): ServiceAccountDescript
       name: 'Oracle Database connection',
       description:
         'Connect to Oracle Database with a saved username, password, and optional TCPS wallet.',
-      docsUrl: 'https://docs.sim.ai/integrations/oracledb',
+      docsUrl: docsUrl('/integrations/oracledb'),
       fields: [
         {
           id: 'serviceAccountJson',
@@ -207,7 +207,7 @@ function getServiceAccountDescriptor(providerId: string): ServiceAccountDescript
     return {
       name: 'Slack custom bot',
       description: 'Connect a reusable Slack app with its signing secret and bot token.',
-      docsUrl: 'https://docs.sim.ai/integrations/slack',
+      docsUrl: docsUrl('/integrations/slack'),
       /**
        * The Request URL embeds the credential id, so the first-party modal
        * pre-generates one to show the URL before saving. That is a convenience,

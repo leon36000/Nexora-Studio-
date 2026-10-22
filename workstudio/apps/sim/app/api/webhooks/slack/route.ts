@@ -109,7 +109,7 @@ async function handleSlackAppWebhook(request: NextRequest): Promise<NextResponse
     if (!searchInstallation)
       return NextResponse.json({
         response_type: 'ephemeral',
-        text: 'An admin needs to install and enable Sim Search for this workspace.',
+        text: 'An admin needs to install and enable Nexora Search for this workspace.',
       })
     const { turnId, ...response } = await receiveSlackSearchCommand.execute({
       principal: {

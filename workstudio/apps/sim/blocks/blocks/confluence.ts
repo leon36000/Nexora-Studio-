@@ -1,5 +1,6 @@
 import { Search } from '@sim/emcn/icons'
 import { ConfluenceIcon, PagerDutyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -30,7 +31,7 @@ export const ConfluenceBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Read, create, update, delete pages, manage comments, attachments, labels, and search content.',
-  docsLink: 'https://docs.sim.ai/integrations/confluence',
+  docsLink: docsUrl('/integrations/confluence'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

@@ -1,4 +1,5 @@
 import { SnowflakeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { parseOptionalJsonInput, parseOptionalNumberInput } from '@/blocks/utils'
@@ -244,7 +245,7 @@ export const SnowflakeBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Connect with a Snowflake programmatic access token to execute SQL, synchronize structured rows, load and unload staged data, browse databases and schemas, size and control warehouses, run and schedule tasks, review query and load history, inspect schemas, and call stored procedures. Ask Cortex Analyst questions in natural language against a semantic view or model to get generated SQL and, optionally, its results, with multi-turn follow-ups.',
-  docsLink: 'https://docs.sim.ai/integrations/snowflake',
+  docsLink: docsUrl('/integrations/snowflake'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',
@@ -1386,7 +1387,7 @@ export const SnowflakeBlock: BlockConfig = {
     warehouse: { type: 'string', description: 'Statement execution warehouse' },
     role: { type: 'string', description: 'Statement execution role' },
     statementTimeoutSeconds: { type: 'number', description: 'Statement timeout in seconds' },
-    maxRows: { type: 'number', description: 'Maximum result rows (Sim safety limit: 10000)' },
+    maxRows: { type: 'number', description: 'Maximum result rows (Nexora safety limit: 10000)' },
     question: { type: 'string', description: 'Question to ask Cortex Analyst' },
     semanticSource: {
       type: 'string',
@@ -1622,7 +1623,7 @@ export const SnowflakeBlockMeta = {
       name: 'sync-snowflake-rows',
       description: 'Insert, update, or upsert structured records safely in Snowflake.',
       content:
-        '# Synchronize Snowflake Rows\n\n## Steps\n1. Confirm the target table and record keys.\n2. Keep the structured request within Sim’s request-size limit, and use Load Data for bulk ingestion.\n3. Choose insert, update, or upsert and provide match columns when needed.\n4. Report Snowflake DML statistics.\n\n## Output\nReturn inserted, updated, deleted, and total affected row counts.',
+        '# Synchronize Snowflake Rows\n\n## Steps\n1. Confirm the target table and record keys.\n2. Keep the structured request within Nexora’s request-size limit, and use Load Data for bulk ingestion.\n3. Choose insert, update, or upsert and provide match columns when needed.\n4. Report Snowflake DML statistics.\n\n## Output\nReturn inserted, updated, deleted, and total affected row counts.',
     },
     {
       name: 'load-snowflake-stage',

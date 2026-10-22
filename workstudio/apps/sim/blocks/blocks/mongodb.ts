@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { MongoDBIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const MongoDBBlock: BlockConfig = {
   name: 'MongoDB',
   description: 'Connect to MongoDB database',
   longDescription: 'Find, insert, update, delete, and aggregate data.',
-  docsLink: 'https://docs.sim.ai/integrations/mongodb',
+  docsLink: docsUrl('/integrations/mongodb'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',

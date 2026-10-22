@@ -1,4 +1,5 @@
 import { TelegramIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { resolveHttpsUrlFromFileInput } from '@/lib/uploads/utils/file'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -51,7 +52,7 @@ export const TelegramBlock: BlockConfig = {
   authMode: AuthMode.BotToken,
   longDescription:
     'Send, edit, forward, copy, pin, or delete messages; send media, locations, contacts, and polls; set reactions and chat actions; and inspect chats and members. Bot messages and events can start workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/telegram',
+  docsLink: docsUrl('/integrations/telegram'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#FFFFFF',
@@ -205,7 +206,7 @@ export const TelegramBlock: BlockConfig = {
       placeholder: 'Enter Telegram Chat ID',
       description: `Getting Chat ID:
 1. Add your bot as a member to desired Telegram channel
-2. Send any message to the channel (e.g. "I love Sim")
+2. Send any message to the channel (e.g. "I love Nexora")
 3. Visit https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
 4. Look for the chat field in the JSON response at the very bottom where you'll find the chat ID`,
       required: true,
@@ -978,7 +979,7 @@ export const TelegramBlockMeta = {
       icon: TelegramIcon,
       title: 'Telegram form-reply collector',
       prompt:
-        'Create a workflow that asks structured questions in Telegram one at a time, parses replies into fields, and saves the completed response as a row in a Sim table.',
+        'Create a workflow that asks structured questions in Telegram one at a time, parses replies into fields, and saves the completed response as a row in a Nexora table.',
       modules: ['tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['automation', 'communication'],

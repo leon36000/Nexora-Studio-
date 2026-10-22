@@ -1,5 +1,6 @@
 import { toError } from '@sim/utils/errors'
 import { DynamoDBIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -10,7 +11,7 @@ export const DynamoDBBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Supports Get, Put, Query, Scan, Update, Delete, and Introspect operations on DynamoDB tables.',
-  docsLink: 'https://docs.sim.ai/integrations/dynamodb',
+  docsLink: docsUrl('/integrations/dynamodb'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: 'linear-gradient(45deg, #2E27AD 0%, #527FFF 100%)',

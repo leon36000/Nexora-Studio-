@@ -89,7 +89,7 @@ describe('outbound receiver lifecycle', () => {
     expect(mocks.sleep).toHaveBeenCalledOnce()
   })
 
-  it('does not execute redirected responses or requests it cannot read as Sim operations', async () => {
+  it('does not execute redirected responses or requests it cannot read as Nexora operations', async () => {
     const controller = new AbortController()
     const replies: string[] = []
     mocks.fetch
@@ -108,7 +108,7 @@ describe('outbound receiver lifecycle', () => {
     expect(replies).toEqual([])
     expect(mocks.sleep).toHaveBeenCalledOnce()
     expect(getMockLogger('MothershipTransportReceiver').warn).toHaveBeenCalledWith(
-      'Unreadable Sim control request dropped'
+      'Unreadable Nexora control request dropped'
     )
   })
 
@@ -149,11 +149,11 @@ describe('outbound receiver lifecycle', () => {
         }),
         expect.objectContaining({
           id: malformed.id,
-          result: { status: 400, body: '{"error":"Invalid Sim control request"}' },
+          result: { status: 400, body: '{"error":"Invalid Nexora control request"}' },
         }),
         expect.objectContaining({
           id: kindless.id,
-          result: { status: 400, body: '{"error":"Invalid Sim control request"}' },
+          result: { status: 400, body: '{"error":"Invalid Nexora control request"}' },
         }),
       ])
     )

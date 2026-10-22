@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { WindchillIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -126,7 +127,7 @@ export const WindchillBlock: BlockConfig = {
   description: 'Manage documents, revisions, and content in PTC Windchill',
   longDescription:
     'Integrate PTC Windchill REST Services 2.7 document management into your workflow using Basic authentication. Read and update document metadata, perform version and lifecycle actions, and transfer primary content and attachments. Windchill OAuth deployments are not currently supported.',
-  docsLink: 'https://docs.sim.ai/integrations/windchill',
+  docsLink: docsUrl('/integrations/windchill'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   authMode: AuthMode.ApiKey,

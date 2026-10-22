@@ -525,7 +525,7 @@ export async function bindRunToolToExecution(
     return true
   }
   if (isServerReported(toolCallId)) {
-    logger.info('[RunTool] Recovery skipped: Sim reports this paused run', {
+    logger.info('[RunTool] Recovery skipped: Nexora reports this paused run', {
       workflowId,
       toolCallId,
     })

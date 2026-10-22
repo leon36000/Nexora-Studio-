@@ -1,4 +1,5 @@
 import { CodaIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { ConnectorMeta } from '@/connectors/types'
 
 export const codaConnectorMeta: ConnectorMeta = {
@@ -8,7 +9,7 @@ export const codaConnectorMeta: ConnectorMeta = {
   version: '1.0.0',
   icon: CodaIcon,
   search: true,
-  searchDocsUrl: 'https://docs.sim.ai/search/coda',
+  searchDocsUrl: docsUrl('/search/coda'),
   supportedAccessModes: ['admin', 'workspace'],
   auth: {
     mode: 'oauth',
@@ -18,7 +19,7 @@ export const codaConnectorMeta: ConnectorMeta = {
   },
   mirrorsSourceAcls: true,
   adminSetupHint:
-    'Use a Coda API token that can read the documents and their sharing permissions. Direct shares match verified Sim email addresses. An Enterprise org-admin token and organization ID are needed for organization-wide discovery and group, workspace, or domain grants. Link-only shares do not grant search access.',
+    'Use a Coda API token that can read the documents and their sharing permissions. Direct shares match verified Nexora email addresses. An Enterprise org-admin token and organization ID are needed for organization-wide discovery and group, workspace, or domain grants. Link-only shares do not grant search access.',
   rehydrateOnFullSync: true,
   configFields: [
     {

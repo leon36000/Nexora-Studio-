@@ -1,4 +1,5 @@
 import { KalshiIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector } from '@/blocks/utils'
@@ -17,7 +18,7 @@ export const KalshiBlock: BlockConfig = {
   description: 'Access prediction markets and trade on Kalshi',
   longDescription:
     'Retrieve markets, events, orderbooks, trades, candlesticks, fills, series, exchange status, balances, and positions. Read, place, cancel, or amend orders.',
-  docsLink: 'https://docs.sim.ai/integrations/kalshi',
+  docsLink: docsUrl('/integrations/kalshi'),
   authMode: AuthMode.ApiKey,
   category: 'tools',
   integrationType: IntegrationType.Analytics,

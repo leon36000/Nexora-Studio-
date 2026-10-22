@@ -1,4 +1,5 @@
 import { ConvexIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 /**
@@ -14,7 +15,7 @@ export const ConvexBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Run query, mutation, and action functions on your deployment, list tables with their schemas, and export documents with snapshot pagination and change deltas.',
-  docsLink: 'https://docs.sim.ai/integrations/convex',
+  docsLink: docsUrl('/integrations/convex'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',

@@ -1,4 +1,5 @@
 import { UpstashIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const UpstashBlock: BlockConfig = {
   description: 'Serverless Redis with Upstash',
   longDescription:
     'Connect to Upstash Redis to perform key-value, hash, list, and utility operations via the REST API.',
-  docsLink: 'https://docs.sim.ai/integrations/upstash',
+  docsLink: docsUrl('/integrations/upstash'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#181C1E',
@@ -394,7 +395,7 @@ export const UpstashBlockMeta = {
       icon: UpstashIcon,
       title: 'Upstash queue drain',
       prompt:
-        'Build a scheduled workflow that pops queued jobs from an Upstash Redis list with LRANGE, transforms each into structured rows, and writes them into a downstream Sim table for further automation.',
+        'Build a scheduled workflow that pops queued jobs from an Upstash Redis list with LRANGE, transforms each into structured rows, and writes them into a downstream Nexora table for further automation.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['devops', 'sync'],

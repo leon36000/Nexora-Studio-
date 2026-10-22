@@ -98,7 +98,7 @@ export async function fetchLinkPreview(
       finalUrl = redirectUrl
     },
     headers: {
-      'User-Agent': 'Simbot/1.0 (+https://sim.ai)',
+      'User-Agent': 'NexoraBot/1.0 (+https://github.com/leon36000/Nexora-Studio-)',
       Accept: 'text/html,application/xhtml+xml',
     },
   })

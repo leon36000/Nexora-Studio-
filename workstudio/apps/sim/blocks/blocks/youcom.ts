@@ -1,4 +1,5 @@
 import { YouComIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -135,7 +136,7 @@ export const YouComBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search the web and news with query-relevant highlights or full page content, fetch page contents, get cited answers, run deep or financial research, search images, and check API credit balance.',
-  docsLink: 'https://docs.sim.ai/integrations/youcom',
+  docsLink: docsUrl('/integrations/youcom'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#FFFFFF',

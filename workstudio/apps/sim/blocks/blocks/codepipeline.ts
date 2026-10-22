@@ -1,4 +1,5 @@
 import { CodePipelineIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import {
@@ -14,7 +15,7 @@ export const CodePipelineBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Start, stop, and monitor pipeline executions, retry failed stages, and approve or reject manual approval actions. Requires AWS access key and secret access key.',
-  docsLink: 'https://docs.sim.ai/integrations/codepipeline',
+  docsLink: docsUrl('/integrations/codepipeline'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: 'linear-gradient(45deg, #2E27AD 0%, #527FFF 100%)',

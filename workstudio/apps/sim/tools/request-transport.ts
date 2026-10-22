@@ -269,7 +269,7 @@ export function prepareToolRequest(
 
   const requestInput = projectToolModelInputParams(tool, params, registry)
   const request = formatToolRequest(tool, requestInput, registry)
-  if (!request.headers.has('User-Agent')) request.headers.set('User-Agent', 'Sim')
+  if (!request.headers.has('User-Agent')) request.headers.set('User-Agent', 'Nexora')
 
   return request
 }

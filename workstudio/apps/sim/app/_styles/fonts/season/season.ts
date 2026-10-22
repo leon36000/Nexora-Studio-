@@ -1,8 +1,9 @@
 import localFont from 'next/font/local'
 
 /**
- * Season Sans variable font configuration
- * Uses variable font file to support any weight from 300-800
+ * Document font. Nexora edition: Inter (SIL Open Font License 1.1, see `OFL.txt`) replaces the
+ * upstream commercial typeface. The export name and the `--font-season` variable are kept so the
+ * stylesheets need no change. Variable font: any weight from 100 to 900.
  *
  * `display: 'block'`, not `swap`: this is the document font, so a swap is not a cosmetic change of
  * typeface — the fallback's glyph advances differ, so paragraphs re-wrap and everything below them
@@ -13,14 +14,13 @@ import localFont from 'next/font/local'
  *
  * The block period costs nothing here because delivery is already optimal: `preload` emits a
  * `Link: rel=preload` RESPONSE header, so the fetch starts before the HTML is parsed, and the file is
- * one same-origin, immutably-cached 87KB woff2. The metric-adjusted Arial below stays as the safety
+ * one same-origin, immutably-cached 48KB woff2. The metric-adjusted Arial below stays as the safety
  * net for the >3s tail, where the browser gives up blocking and swaps — i.e. the worst case is
  * today's behavior, not a regression.
  */
 export const season = localFont({
   src: [
-    // Variable font - supports all weights from 300 to 800
-    { path: './SeasonSansUprightsVF.woff2', weight: '300 800', style: 'normal' },
+    { path: './InterVariable-latin.woff2', weight: '100 900', style: 'normal' },
   ],
   display: 'block',
   preload: true,

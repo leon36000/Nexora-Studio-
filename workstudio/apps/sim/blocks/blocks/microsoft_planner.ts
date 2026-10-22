@@ -1,4 +1,5 @@
 import { MicrosoftPlannerIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -43,7 +44,7 @@ export const MicrosoftPlannerBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Manage tasks, plans, buckets, and task details including checklists and references.',
-  docsLink: 'https://docs.sim.ai/integrations/microsoft_planner',
+  docsLink: docsUrl('/integrations/microsoft_planner'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

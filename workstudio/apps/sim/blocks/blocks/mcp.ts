@@ -1,4 +1,5 @@
 import { McpIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 import type { ToolResponse } from '@/tools/types'
@@ -13,7 +14,7 @@ export const McpBlock: BlockConfig = {
   description: 'Discover and run authorized MCP operations',
   longDescription:
     'List or run operations from configured MCP servers and managed connections. Use a server or managed connection ID and an exact operation name, including references from upstream blocks.',
-  docsLink: 'https://docs.sim.ai/agents/mcp',
+  docsLink: docsUrl('/agents/mcp'),
   category: 'blocks',
   integrationType: IntegrationType.DevOps,
   bgColor: '#181C1E',

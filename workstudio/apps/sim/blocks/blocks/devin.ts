@@ -1,4 +1,5 @@
 import { DevinIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -23,7 +24,7 @@ export const DevinBlock: BlockConfig = {
   - Use Get Session to poll for completion status before consuming structured output.
   - Send Message auto-resumes suspended sessions — no need to resume separately.
   `,
-  docsLink: 'https://docs.sim.ai/integrations/devin',
+  docsLink: docsUrl('/integrations/devin'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#12141A',

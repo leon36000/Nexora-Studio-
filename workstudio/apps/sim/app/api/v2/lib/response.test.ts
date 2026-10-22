@@ -19,7 +19,7 @@ describe('v2 403 insufficient_scope challenge', () => {
 
     expect(response?.status).toBe(403)
     expect(response?.headers.get('WWW-Authenticate')).toBe(
-      'Bearer realm="Sim API", error="insufficient_scope", scope="api:write"'
+      'Bearer realm="Nexora API", error="insufficient_scope", scope="api:write"'
     )
     await expect(response?.json()).resolves.toMatchObject({
       error: { code: 'FORBIDDEN', details: { code: 'INSUFFICIENT_SCOPE' } },
@@ -77,7 +77,7 @@ describe('v2Error retry guidance', () => {
  * render here.
  */
 describe('v2 401 authentication challenge', () => {
-  const EXPECTED_CHALLENGE = 'SimApiKey realm="Sim API", header="x-api-key", Bearer realm="Sim API"'
+  const EXPECTED_CHALLENGE = 'SimApiKey realm="Nexora API", header="x-api-key", Bearer realm="Nexora API"'
 
   it('sends a challenge on 401', () => {
     const response = v2Error('UNAUTHORIZED', 'Invalid API key')
@@ -95,7 +95,7 @@ describe('v2 401 authentication challenge', () => {
     const response = v2Error('UNAUTHORIZED', 'Invalid access token', { authChallenge: 'bearer' })
 
     expect(response.headers.get('WWW-Authenticate')).toBe(
-      'Bearer realm="Sim API", error="invalid_token", SimApiKey realm="Sim API", header="x-api-key"'
+      'Bearer realm="Nexora API", error="invalid_token", SimApiKey realm="Nexora API", header="x-api-key"'
     )
   })
 

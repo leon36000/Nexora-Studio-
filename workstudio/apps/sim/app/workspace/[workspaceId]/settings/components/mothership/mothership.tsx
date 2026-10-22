@@ -152,7 +152,7 @@ function ByokTab() {
   return (
     <div className='flex flex-col gap-4'>
       <p className='text-[var(--text-secondary)] text-sm'>
-        Mothership uses the enterprise workspace's Anthropic key from Sim BYOK settings, including
+        Mothership uses the enterprise workspace's Anthropic key from Nexora BYOK settings, including
         keys inherited from its organization.
       </p>
       <div className='flex items-center gap-2'>

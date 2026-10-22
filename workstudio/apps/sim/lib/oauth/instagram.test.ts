@@ -100,8 +100,8 @@ describe('instagram oauth helpers', () => {
       expires_in: 5_184_000,
     })
     expect(
-      parseInstagramProfile({ user_id: 123, id: 'graph-id', username: 'sim', name: 'Sim' })
-    ).toEqual({ user_id: 123, id: 'graph-id', username: 'sim', name: 'Sim' })
+      parseInstagramProfile({ user_id: 123, id: 'graph-id', username: 'sim', name: 'Nexora' })
+    ).toEqual({ user_id: 123, id: 'graph-id', username: 'sim', name: 'Nexora' })
     expect(parseInstagramProfile({ user_id: { nested: true } })).toBeNull()
   })
 })

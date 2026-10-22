@@ -1,6 +1,7 @@
 import { ClipboardList, Database, Search, Server, Table, Wrench } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { MySQLIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -9,7 +10,7 @@ export const MySQLBlock: BlockConfig = {
   name: 'MySQL',
   description: 'Connect to MySQL database',
   longDescription: 'Query, insert, update, delete, and execute raw SQL.',
-  docsLink: 'https://docs.sim.ai/integrations/mysql',
+  docsLink: docsUrl('/integrations/mysql'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',
@@ -446,9 +447,9 @@ export const MySQLBlockMeta = {
     },
     {
       icon: Database,
-      title: 'Sync records from a Sim table into MySQL',
+      title: 'Sync records from a Nexora table into MySQL',
       prompt:
-        'Create a workflow that reads rows from a Sim table and upserts each one into a MySQL table — updating the row when a matching key exists and inserting it otherwise — so the two stay in sync.',
+        'Create a workflow that reads rows from a Nexora table and upserts each one into a MySQL table — updating the row when a matching key exists and inserting it otherwise — so the two stay in sync.',
       modules: ['tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['automation', 'database'],

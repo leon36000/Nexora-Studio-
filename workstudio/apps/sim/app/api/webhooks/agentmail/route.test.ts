@@ -66,7 +66,7 @@ function envelope(messageOverrides: Record<string, unknown> = {}): string {
 function webhookRequest(body: string, headers: Record<string, string> = {}) {
   return createMockRequest({
     method: 'POST',
-    url: 'https://sim.ai/api/webhooks/agentmail',
+    url: 'https://workstudio.example.com/api/webhooks/agentmail',
     headers: {
       'content-type': 'application/json',
       'svix-id': 'msg_1',

@@ -9,13 +9,13 @@ describe('Mem0Block', () => {
       operation: 'add',
       apiKey: 'test-key',
       userId: 'alice',
-      messages: JSON.stringify([{ role: 'user', content: 'I like Sim.' }]),
+      messages: JSON.stringify([{ role: 'user', content: 'I like Nexora.' }]),
     })
 
     expect(params).toEqual({
       apiKey: 'test-key',
       userId: 'alice',
-      messages: [{ role: 'user', content: 'I like Sim.' }],
+      messages: [{ role: 'user', content: 'I like Nexora.' }],
     })
   })
 

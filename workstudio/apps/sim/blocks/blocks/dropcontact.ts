@@ -1,4 +1,5 @@
 import { DropcontactIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 /** Whichever identifier the user supplied for the person being enriched. */
@@ -12,8 +13,8 @@ export const DropcontactBlock: BlockConfig = {
   name: 'Dropcontact',
   description: 'Enrich B2B contacts with verified email, phone, and company data',
   longDescription:
-    'Use Dropcontact to verify and enrich B2B contacts. Submit a contact with their name, company, website, or LinkedIn URL and receive a verified professional email, phone number, company firmographics, and LinkedIn profile. Enrichment is async: Dropcontact processes the request, then Sim polls until the result is ready. Dropcontact charges enrichment when a verified email is returned; supplying an existing email for verification is charged per check.',
-  docsLink: 'https://docs.sim.ai/integrations/dropcontact',
+    'Use Dropcontact to verify and enrich B2B contacts. Submit a contact with their name, company, website, or LinkedIn URL and receive a verified professional email, phone number, company firmographics, and LinkedIn profile. Enrichment is async: Dropcontact processes the request, then Nexora polls until the result is ready. Dropcontact charges enrichment when a verified email is returned; supplying an existing email for verification is charged per check.',
+  docsLink: docsUrl('/integrations/dropcontact'),
   category: 'tools',
   bgColor: '#0ABA9F',
   iconColor: '#0ABA9F',

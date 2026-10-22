@@ -1,4 +1,5 @@
 import { TTSIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, IntegrationType } from '@/blocks/types'
 
 /** Voice picker id, which differs by provider — first available wins. */
@@ -11,7 +12,7 @@ export const TtsBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Generate natural-sounding speech from text using state-of-the-art AI voices from OpenAI, Deepgram, ElevenLabs, Cartesia, Google Cloud, Azure, and PlayHT. Supports multiple voices, languages, and audio formats.',
-  docsLink: 'https://docs.sim.ai/integrations/tts',
+  docsLink: docsUrl('/integrations/tts'),
   category: 'blocks',
   integrationType: IntegrationType.AI,
   bgColor: '#181C1E',

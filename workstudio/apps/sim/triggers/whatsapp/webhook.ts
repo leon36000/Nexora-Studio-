@@ -37,7 +37,7 @@ export const whatsappWebhookTrigger: TriggerConfig = {
       type: 'short-input',
       placeholder: 'Paste your Meta app secret',
       description:
-        'Required for WhatsApp POST signature verification. Sim uses it to validate the X-Hub-Signature-256 header on every webhook delivery.',
+        'Required for WhatsApp POST signature verification. Nexora uses it to validate the X-Hub-Signature-256 header on every webhook delivery.',
       password: true,
       required: true,
       mode: 'trigger',
@@ -50,11 +50,11 @@ export const whatsappWebhookTrigger: TriggerConfig = {
       defaultValue: [
         'Go to your <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener noreferrer" class="text-muted-foreground underline transition-colors hover:text-muted-foreground/80">Meta App Dashboard</a> and open the app connected to your WhatsApp Business Platform setup. If you used the WhatsApp use case flow, the configuration page may be under <strong>Use cases &gt; Customize &gt; Configuration</strong> instead of <strong>WhatsApp &gt; Configuration</strong>.',
         'If you do not already have an app, create one first and add the WhatsApp product before configuring webhooks.',
-        'Click <strong>"Save Configuration"</strong> above before verifying the callback URL so Sim has an active WhatsApp webhook config for this path. If this workflow is already deployed and you change the verification token or app secret, redeploy before re-verifying in Meta.',
+        'Click <strong>"Save Configuration"</strong> above before verifying the callback URL so Nexora has an active WhatsApp webhook config for this path. If this workflow is already deployed and you change the verification token or app secret, redeploy before re-verifying in Meta.',
         'In <strong>WhatsApp &gt; Configuration</strong>, find the <strong>Webhooks</strong> section and click <strong>Edit</strong>.',
         'Paste the <strong>Webhook URL</strong> above into the "Callback URL" field.',
         'Paste the <strong>Verification Token</strong> into the "Verify token" field.',
-        "Copy your app's <strong>App Secret</strong> from <strong>App Settings &gt; Basic</strong> and paste it into the <strong>App Secret</strong> field above so Sim can validate POST signatures.",
+        "Copy your app's <strong>App Secret</strong> from <strong>App Settings &gt; Basic</strong> and paste it into the <strong>App Secret</strong> field above so Nexora can validate POST signatures.",
         'Click "Verify and save".',
         'Click <strong>Manage</strong> next to webhook fields and subscribe to <code>messages</code>. That field covers incoming messages and outbound message status updates.',
       ]

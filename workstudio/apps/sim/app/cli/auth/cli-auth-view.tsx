@@ -48,7 +48,7 @@ export function CliAuthView() {
       <div className='space-y-6'>
         <AuthHeader
           title='Invalid request'
-          description='This page can only be opened by the Sim CLI.'
+          description='This page can only be opened by the Nexora CLI.'
         />
         <AuthFormMessage type='error' align='center'>
           {resolution.reason}

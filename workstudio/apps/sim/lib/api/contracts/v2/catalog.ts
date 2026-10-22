@@ -161,7 +161,7 @@ export const v2BlockFieldSchema = z
             .boolean()
             .optional()
             .describe(
-              'Model options only: whether Sim runs the model with its own key on a hosted deployment, so no provider API key is needed for it.'
+              'Model options only: whether Nexora runs the model with its own key on a hosted deployment, so no provider API key is needed for it.'
             ),
         })
       )
@@ -283,7 +283,7 @@ export const v2BlockSummarySchema = z
       })
       .optional()
       .describe('Post-release lifecycle state. Absent for a block in normal support.'),
-    docsLink: z.string().optional().describe('Sim documentation page for the integration.'),
+    docsLink: z.string().optional().describe('Nexora documentation page for the integration.'),
     tags: z.array(z.string()).describe('Catalog tags, e.g. `messaging`, `version-control`.'),
   })
   .meta({
@@ -319,7 +319,7 @@ const v2ToolParamSchema = z
       .string()
       .optional()
       .describe(
-        'Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Sim supplies hidden ones.'
+        'Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Nexora supplies hidden ones.'
       ),
     description: z.string().optional().describe('What the parameter means.'),
     default: z.unknown().optional().describe('Value used when the parameter is omitted.'),
@@ -394,7 +394,7 @@ export type V2ToolOutput = z.output<typeof v2ToolOutputSchema>
 const v2HostedApiKeySchema = z
   .enum(['always', 'conditional', 'none'])
   .describe(
-    'API-key hosting on this deployment: `always`, `conditional` for some parameter combinations, or `none` when Sim does not supply a key. Supply your own key only if the tool requires one. Self-hosted deployments report `none` for every tool.'
+    'API-key hosting on this deployment: `always`, `conditional` for some parameter combinations, or `none` when Nexora does not supply a key. Supply your own key only if the tool requires one. Self-hosted deployments report `none` for every tool.'
   )
 
 const v2ToolOAuthSchema = z.object({
@@ -526,7 +526,7 @@ const v2OperationInputSchema = z
       .string()
       .optional()
       .describe(
-        'Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Sim supplies hidden ones.'
+        'Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Nexora supplies hidden ones.'
       ),
     description: z.string().optional().describe('What the value means.'),
     default: z.unknown().optional().describe('Value used when this input is omitted.'),

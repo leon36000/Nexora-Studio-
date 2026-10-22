@@ -1,4 +1,5 @@
 import { QdrantIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const QdrantBlock: BlockConfig = {
   description: 'Use Qdrant vector database',
   authMode: AuthMode.ApiKey,
   longDescription: 'Upsert, search, and fetch points.',
-  docsLink: 'https://docs.sim.ai/integrations/qdrant',
+  docsLink: docsUrl('/integrations/qdrant'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#1A223F',
@@ -299,7 +300,7 @@ export const QdrantBlockMeta = {
       icon: QdrantIcon,
       title: 'Qdrant + knowledge base sync',
       prompt:
-        'Create a workflow that mirrors a Sim knowledge base into a Qdrant collection so downstream applications outside Sim can perform retrieval against the same vectors.',
+        'Create a workflow that mirrors a Nexora knowledge base into a Qdrant collection so downstream applications outside Nexora can perform retrieval against the same vectors.',
       modules: ['knowledge-base', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['engineering', 'sync'],

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const BUILD_PLACEHOLDER = {
-  prefix: 'Ask Sim to ',
+  prefix: 'Ask Nexora to ',
   suffixes: [
     'respond to my emails...',
     'find and track leads...',

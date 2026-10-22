@@ -114,8 +114,8 @@ describe('preparePostHogEvent', () => {
       uuid: 'test-uuid',
       event: 'signup_page_viewed',
       properties: {
-        $current_url: 'https://sim.ai/signup?email=private%40example.com#form',
-        $referrer: 'https://sim.ai/invite?token=secret',
+        $current_url: 'https://workstudio.example.com/signup?email=private%40example.com#form',
+        $referrer: 'https://workstudio.example.com/invite?token=secret',
         $pathname: '/signup',
       },
     } as CaptureResult
@@ -123,8 +123,8 @@ describe('preparePostHogEvent', () => {
     expect(preparePostHogEvent(event)).toEqual({
       ...event,
       properties: {
-        $current_url: 'https://sim.ai/signup',
-        $referrer: 'https://sim.ai/invite',
+        $current_url: 'https://workstudio.example.com/signup',
+        $referrer: 'https://workstudio.example.com/invite',
         $pathname: '/signup',
       },
     })
@@ -136,7 +136,7 @@ describe('preparePostHogEvent', () => {
       type: 'DOMException',
       value: 'AbortError: signal is aborted without reason',
     })
-    event.properties.$current_url = 'https://sim.ai/workspace/id?token=secret'
+    event.properties.$current_url = 'https://workstudio.example.com/workspace/id?token=secret'
 
     expect(preparePostHogEvent(event)).toBeNull()
   })

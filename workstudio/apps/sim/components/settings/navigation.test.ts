@@ -52,7 +52,7 @@ const ALL_ENTITLEMENTS = {
 }
 
 describe('settings navigation boundaries', () => {
-  it('resolves self-hosted overrides against the deployment shape, never on Sim Cloud', () => {
+  it('resolves self-hosted overrides against the deployment shape, never on Nexora Cloud', () => {
     expect(isSelfHostedOverrideEnabled(undefined, SELF_HOSTED)).toBe(false)
     expect(isSelfHostedOverrideEnabled('always', SELF_HOSTED)).toBe(true)
     expect(isSelfHostedOverrideEnabled('always', HOSTED)).toBe(false)

@@ -1,4 +1,5 @@
 import { LinkupIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const LinkupBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const LinkupBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search the web with a Linkup API key, query, supported search depth, and output type.',
-  docsLink: 'https://docs.sim.ai/integrations/linkup',
+  docsLink: docsUrl('/integrations/linkup'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#D6D3C7',

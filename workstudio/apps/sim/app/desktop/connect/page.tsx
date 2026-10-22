@@ -16,7 +16,7 @@ import {
 } from '@/app/desktop/connect/validation'
 
 export const metadata: Metadata = {
-  title: 'Connect an account to Sim',
+  title: 'Connect an account to Nexora',
   robots: { index: false },
 }
 
@@ -30,7 +30,7 @@ function InvalidRequest() {
   return (
     <DesktopHandoffShell
       title='Connection link incomplete'
-      description='Return to the Sim desktop app and start the connection again.'
+      description='Return to the Nexora desktop app and start the connection again.'
     />
   )
 }
@@ -119,7 +119,7 @@ export default async function DesktopConnectPage({ searchParams }: DesktopConnec
     return (
       <DesktopHandoffShell
         title='Wrong account in this browser'
-        description={`This browser is signed in as ${session.user.email}, but the connection was started from a Sim desktop app signed in as a different account. Switch accounts here to continue.`}
+        description={`This browser is signed in as ${session.user.email}, but the connection was started from a Nexora desktop app signed in as a different account. Switch accounts here to continue.`}
       >
         <SwitchAccount
           returnTo={buildDesktopConnectPath(providerId, state, port, {

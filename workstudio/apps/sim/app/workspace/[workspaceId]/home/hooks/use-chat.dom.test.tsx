@@ -3945,7 +3945,7 @@ describe('useChat remount send recovery', () => {
         stubUnreachableSend({ browserStaysOnline: true })
         const { getResult } = renderUseChatInChat(history.id, history)
         await act(async () => {
-          void getResult().sendMessage('Sent while Sim is unreachable')
+          void getResult().sendMessage('Sent while Nexora is unreachable')
           await vi.advanceTimersByTimeAsync(50)
         })
         for (let second = 0; second < 60; second++) {

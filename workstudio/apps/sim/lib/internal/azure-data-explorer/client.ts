@@ -262,8 +262,8 @@ export async function requestAzureDataExplorer(
     Authorization: `Bearer ${accessToken}`,
     Accept: 'application/json',
     'Content-Type': 'application/json; charset=utf-8',
-    'x-ms-client-request-id': `Sim.Workflow;${requestId}`,
-    'x-ms-app': 'Sim',
+    'x-ms-client-request-id': `Nexora.Workflow;${requestId}`,
+    'x-ms-app': 'Nexora',
   }
   if (input.readOnly) headers['x-ms-readonly'] = 'true'
 

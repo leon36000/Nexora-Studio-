@@ -1,4 +1,5 @@
 import { GoogleAdsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -9,7 +10,7 @@ export const GoogleAdsBlock: BlockConfig = {
   description: 'Query campaigns, ad groups, and performance metrics',
   longDescription:
     'Connect to Google Ads to list accessible accounts, list campaigns, view ad group details, get performance metrics, and run custom GAQL queries.',
-  docsLink: 'https://docs.sim.ai/integrations/google_ads',
+  docsLink: docsUrl('/integrations/google_ads'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#FFFFFF',

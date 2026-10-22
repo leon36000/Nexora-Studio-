@@ -99,7 +99,7 @@ export function ChangelogEmptyState() {
     <EmptyState
       graphic={<ChangelogGraphic />}
       title='Changelog'
-      description='Sim publishes a release here when it ships changes to this workspace.'
+      description='Nexora publishes a release here when it ships changes to this workspace.'
     />
   )
 }

@@ -18,7 +18,7 @@ export const LIBRARY_SECTION: ContentSection = {
   basePath: '/library',
   feedPath: '/library/rss.xml',
   description:
-    'Comparisons, how-tos, and roundups for teams evaluating and building AI agents with Sim.',
+    'Comparisons, how-tos, and roundups for teams evaluating and building AI agents with Nexora.',
 }
 
 export { buildArticleJsonLd, buildFaqJsonLd, buildPostMetadata }

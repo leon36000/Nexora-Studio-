@@ -4,7 +4,7 @@ export const CHANGELOG_SECTION = {
   name: 'Changelog',
   basePath: '/changelog',
   description:
-    'New ways to build, deploy, and manage AI agents in Sim, plus improvements and fixes.',
+    'New ways to build, deploy, and manage AI agents in Nexora, plus improvements and fixes.',
   speakableSelectors: ['[itemprop="headline"]'],
 } satisfies ContentSection
 

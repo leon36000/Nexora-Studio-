@@ -1,4 +1,5 @@
 import { OpenAIIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -10,7 +11,7 @@ export const OpenAIBlock: BlockConfig = {
   longDescription: 'Integrate Embeddings into the workflow. Can generate embeddings from text.',
   category: 'tools',
   integrationType: IntegrationType.AI,
-  docsLink: 'https://docs.sim.ai/integrations/openai',
+  docsLink: docsUrl('/integrations/openai'),
   bgColor: '#000000',
   icon: OpenAIIcon,
   canvasPresentation: {

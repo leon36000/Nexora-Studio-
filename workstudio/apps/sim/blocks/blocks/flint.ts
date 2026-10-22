@@ -1,4 +1,5 @@
 import { FlintIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -19,7 +20,7 @@ export const FlintBlock: BlockConfig = {
   description: 'Run background agent tasks on your Flint sites',
   longDescription:
     'Create background agent tasks that modify your Flint sites from natural-language prompts, generate batches of pages from a template, and check task status and results.',
-  docsLink: 'https://docs.sim.ai/integrations/flint',
+  docsLink: docsUrl('/integrations/flint'),
   category: 'tools',
   integrationType: IntegrationType.Marketing,
   bgColor: '#F6F54F',

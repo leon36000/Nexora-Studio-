@@ -1,4 +1,5 @@
 import { GitLabIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import {
@@ -137,7 +138,7 @@ export const GitLabBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Manage projects, issues, merge requests, pipelines, and add comments, plus project/group membership, invitations, access requests, SAML group links, and instance user administration. Additional operations depend on the connected account and instance permissions.',
-  docsLink: 'https://docs.sim.ai/integrations/gitlab',
+  docsLink: docsUrl('/integrations/gitlab'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   icon: GitLabIcon,

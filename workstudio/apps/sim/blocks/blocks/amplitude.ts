@@ -1,4 +1,5 @@
 import { AmplitudeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 /*
@@ -16,7 +17,7 @@ export const AmplitudeBlock: BlockConfig = {
   description: 'Track events and query analytics from Amplitude',
   longDescription:
     'Track events, identify users and groups, search for users, query analytics, analyze funnels and retention, and retrieve revenue data.',
-  docsLink: 'https://docs.sim.ai/integrations/amplitude',
+  docsLink: docsUrl('/integrations/amplitude'),
   category: 'tools',
   integrationType: IntegrationType.Analytics,
   bgColor: '#13294B',

@@ -48,7 +48,7 @@ describe('WhatsApp media upload', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')))
   })
 
-  it('authorizes a Sim file before reading or sending it', async () => {
+  it('authorizes a Nexora file before reading or sending it', async () => {
     const denied = Response.json({ success: false, error: 'File not found' }, { status: 404 })
     mockAssertToolFileAccess.mockResolvedValue(denied)
 

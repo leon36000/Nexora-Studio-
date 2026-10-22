@@ -207,7 +207,7 @@ function someNestedCondition(
   )
 }
 
-describe('durable Sim tool ownership', () => {
+describe('durable Nexora tool ownership', () => {
   beforeEach(() => {
     resetDbChainMock()
   })

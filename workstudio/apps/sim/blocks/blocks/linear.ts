@@ -1,4 +1,5 @@
 import { DevinIcon, LinearIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -23,7 +24,7 @@ export const LinearBlock: BlockConfig = {
   triggerAllowed: true,
   longDescription:
     'Manage issues, comments, projects, labels, workflow states, cycles, attachments, and more. Trigger workflows based on Linear webhook events.',
-  docsLink: 'https://docs.sim.ai/integrations/linear',
+  docsLink: docsUrl('/integrations/linear'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   icon: LinearIcon,

@@ -230,7 +230,7 @@ export const pulseParserTool: InternalToolConfig<PulseParserInput, PulseParserOu
     structured_output: {
       type: 'json',
       description:
-        'Structured output; Sim exposes no input for supplying a schema, so this is always null',
+        'Structured output; Nexora exposes no input for supplying a schema, so this is always null',
       optional: true,
     },
     chunks: {

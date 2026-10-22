@@ -1,4 +1,5 @@
 import { GoogleMapsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const GoogleMapsBlock: BlockConfig = {
   description: 'Geocoding, directions, places, and distance calculations',
   longDescription:
     'Look up coordinates and places, calculate routes and travel times, retrieve place, elevation, and timezone details, validate addresses, and query supported environmental data.',
-  docsLink: 'https://docs.sim.ai/integrations/google_maps',
+  docsLink: docsUrl('/integrations/google_maps'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   authMode: AuthMode.ApiKey,

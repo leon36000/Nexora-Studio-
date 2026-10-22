@@ -267,7 +267,7 @@ export function getCheckrResourceKey(triggerId: string): CheckrResource | null {
 function checkrSetupInstructions(eventLabel: string): string {
   const instructions = [
     'Enter your Checkr production secret API key above (staging keys are not supported). Find it in the Checkr Dashboard under <strong>Account Settings &gt; Developer Settings</strong>.',
-    `When you deploy the workflow, Sim registers a webhook in Checkr and runs this workflow on <strong>${eventLabel}</strong> events. Checkr signs every delivery with your API key, and Sim rejects unsigned requests.`,
+    `When you deploy the workflow, Nexora registers a webhook in Checkr and runs this workflow on <strong>${eventLabel}</strong> events. Checkr signs every delivery with your API key, and Nexora rejects unsigned requests.`,
     'Checkr allows at most two webhooks per account, and each deployed Checkr trigger uses one. To react to several events with one webhook, use <strong>All Events</strong> and branch on the event type.',
     'The webhook is deleted from Checkr when you remove this trigger and redeploy.',
   ]

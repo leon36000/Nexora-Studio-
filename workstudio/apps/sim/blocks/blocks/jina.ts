@@ -1,4 +1,5 @@
 import { JinaAIIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 export const JinaBlock: BlockConfig = {
@@ -8,7 +9,7 @@ export const JinaBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Search the web and get LLM-friendly results, or extract clean content from specific URLs with advanced parsing options.',
-  docsLink: 'https://docs.sim.ai/integrations/jina',
+  docsLink: docsUrl('/integrations/jina'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#333333',

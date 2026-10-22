@@ -49,7 +49,7 @@ export async function requireOrganizationSearchApproval(
   if ((await listOrganizationSearchApprovals(organizationId)).get(connectorType) !== true) {
     throw new OrchestrationError(
       'forbidden',
-      'Ask an organization admin to approve this integration for Sim Search'
+      'Ask an organization admin to approve this integration for Nexora Search'
     )
   }
 }

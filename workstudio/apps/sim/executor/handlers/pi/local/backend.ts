@@ -53,7 +53,7 @@ const MAX_DIFF_BYTES = 200_000
 const LOCAL_GUIDANCE =
   'Use the provided read/write/edit/bash tools to make the file changes needed to complete the task; they ' +
   'operate on the target repository. Do not commit, push, or open a pull request — leave your changes in the ' +
-  'working tree; Sim reports them after you finish.'
+  'working tree; Nexora reports them after you finish.'
 
 async function runLocalAgent(
   sdk: PiSdk,

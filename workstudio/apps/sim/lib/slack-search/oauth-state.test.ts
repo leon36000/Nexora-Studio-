@@ -16,7 +16,7 @@ const attempt = {
   userId: 'admin1',
   sessionId: 'session1',
   organizationId: 'org1',
-  name: 'Sim Search',
+  name: 'Nexora Search',
   description: 'Search',
   clientId: 'client',
   encryptedClientSecret: 'encrypted-client',

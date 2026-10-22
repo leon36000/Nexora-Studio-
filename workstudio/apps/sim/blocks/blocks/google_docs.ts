@@ -1,4 +1,5 @@
 import { GoogleDocsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -15,7 +16,7 @@ export const GoogleDocsBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Read, write, and create documents, insert text, tables, images, and page breaks, find and replace text, and apply text styling.',
-  docsLink: 'https://docs.sim.ai/integrations/google_docs',
+  docsLink: docsUrl('/integrations/google_docs'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

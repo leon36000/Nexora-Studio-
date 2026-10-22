@@ -1,0 +1,32 @@
+# Exemptions du contrôle de marque (scripts/check-brand.sh).
+# Format : un préfixe de chemin relatif à la racine du dépôt, ou « line: <regex> » pour un motif de ligne.
+# Chaque entrée porte sa raison après « # ». Ne rien ajouter sans raison.
+
+# --- Surfaces marketing et de contenu de Sim, bloquées par le proxy en édition Nexora (ruling R8) ---
+workstudio/apps/sim/app/(landing)  # site marketing de Sim : routes bloquées par proxy.ts (isNexoraBlockedMarketingPath)
+workstudio/apps/sim/lib/compare  # données de comparatifs marketing, servies seulement par les routes bloquées
+workstudio/apps/sim/lib/blog  # blog de Sim, routes bloquées
+workstudio/apps/sim/content  # contenus MDX du blog et du changelog de Sim, routes bloquées
+workstudio/apps/sim/app/llms.txt  # route marketing bloquée
+workstudio/apps/sim/app/llms-full.txt  # route marketing bloquée
+workstudio/apps/sim/app/index.md  # route marketing bloquée
+workstudio/apps/sim/app/sitemap.ts  # route marketing bloquée
+workstudio/apps/sim/app/changelog.xml  # flux du changelog de Sim, route bloquée
+workstudio/apps/sim/scripts  # scripts de développement et de tests e2e de Sim, non livrés
+
+# --- Identifiants techniques non affichés ---
+line: @sim/  # noms de paquets internes du monorepo
+line: \bSIM_[A-Z_]+  # noms de variables d'environnement
+
+# --- Code actif seulement sur l'hébergement de Sim (isHosted = hôte *.sim.ai), jamais sur une instance Nexora ---
+line: appHostname === 'sim\.ai' \|\| appHostname\.endsWith\('\.sim\.ai'\)  # détection isHosted (app et realtime) : c'est elle qui désactive ces fonctions chez nous
+workstudio/apps/sim/lib/status-page.ts  # page de statut de Sim, montée seulement si isHosted
+line: 'https://status\.sim\.ai',  # CSP : autorise la page de statut ci-dessus, inutilisée hors isHosted
+workstudio/apps/sim/lib/consent/google-context.ts  # Google Analytics du site marketing de Sim, actif seulement sur les origines sim.ai
+workstudio/apps/sim/lib/global-work/summary.ts  # statistiques internes de l'équipe Sim (exclusion de ses propres domaines), sans effet chez nous
+line: window\.location\.hostname === 'sim\.ai' \|\| window\.location\.hostname\.endsWith\('\.sim\.ai'\)  # cookie PostHog de domaine, seulement sur sim.ai
+line: \? '; Domain=\.sim\.ai'  # suite de la ligne précédente
+
+# --- Application de bureau de Sim (Electron) : non livrée en v1 (ruling R9) ---
+workstudio/apps/sim/lib/desktop/update-feed.ts  # flux de mises à jour du client de bureau de Sim
+workstudio/apps/sim/app/_shell/desktop-update-gate.tsx  # écran de mise à jour du client de bureau, monté seulement dans ce client

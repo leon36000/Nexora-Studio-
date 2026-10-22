@@ -65,7 +65,7 @@ export const confluenceUpdateTool: InternalToolConfig<
         cloudId: params.cloudId,
         title: params.title,
         body: params.content ? { value: params.content } : undefined,
-        version: { message: 'Updated via Sim' },
+        version: { message: 'Updated via Nexora' },
       }
       return body
     },

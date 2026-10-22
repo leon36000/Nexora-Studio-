@@ -10,7 +10,7 @@ import { v2RouteOperation } from '@/lib/api/server/routes/v2-json-route'
 
 const ALL_OPERATION_NAMES = Object.keys(V2_MCP_OPERATIONS) as V2McpOperationName[]
 
-describe('Sim MCP catalog', () => {
+describe('Nexora MCP catalog', () => {
   /**
    * Loads every route the catalog names, so a handler that is missing, or a
    * declared operation the tool split cannot read, fails here rather than on a

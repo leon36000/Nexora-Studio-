@@ -65,7 +65,7 @@ const webhookConfigSchema = z.object({
     .min(1)
     .max(128)
     .refine((value) => !RESERVED_SIGNATURE_HEADER_NAMES.has(value.toLowerCase()), {
-      message: 'signatureHeader cannot reuse a reserved Sim header name',
+      message: 'signatureHeader cannot reuse a reserved Nexora header name',
     })
     .refine((value) => !HEADER_INJECTION_PATTERN.test(value) && /^[A-Za-z0-9\-_]+$/.test(value), {
       message: 'signatureHeader must contain only letters, digits, hyphens, and underscores',

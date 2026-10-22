@@ -1,4 +1,5 @@
 import { TwilioIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -11,7 +12,7 @@ export const TwilioSMSBlock: BlockConfig = {
   longDescription: 'Send SMS messages.',
   category: 'tools',
   integrationType: IntegrationType.Communication,
-  docsLink: 'https://docs.sim.ai/integrations/twilio_sms',
+  docsLink: docsUrl('/integrations/twilio_sms'),
   bgColor: '#F22F46', // Twilio brand color
   iconColor: '#F22F46',
   icon: TwilioIcon,

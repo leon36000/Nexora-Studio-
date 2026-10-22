@@ -243,13 +243,13 @@ describe('v2 bearer token authentication', () => {
    * its own `Authorization` header. Counting that as a Sim credential would
    * send an execution that used to run anonymously into a 401.
    */
-  it("does not treat somebody else's bearer token as a Sim credential", () => {
+  it("does not treat somebody else's bearer token as a Nexora credential", () => {
     expect(hasV2Credential(new Headers({ authorization: 'Bearer ghp_something' }))).toBe(false)
     expect(hasV2Credential(new Headers({ authorization: 'Bearer sim_oat_t' }))).toBe(true)
     expect(hasV2Credential(new Headers({ authorization: 'Bearer sim_oat_t extra' }))).toBe(true)
   })
 
-  it('rejects a malformed Sim bearer instead of treating optional auth as anonymous', async () => {
+  it('rejects a malformed Nexora bearer instead of treating optional auth as anonymous', async () => {
     const refused = await authenticateV2ApiKey({
       apiKey: null,
       bearer: null,

@@ -17,7 +17,7 @@ export const greenhouseWebhookTrigger: TriggerConfig = {
   name: 'Greenhouse Webhook (Endpoint Events)',
   provider: 'greenhouse',
   description:
-    'Trigger on whichever event types you select for this URL in Greenhouse. Sim does not filter deliveries for this trigger.',
+    'Trigger on whichever event types you select for this URL in Greenhouse. Nexora does not filter deliveries for this trigger.',
   version: '1.0.0',
   icon: GreenhouseIcon,
 

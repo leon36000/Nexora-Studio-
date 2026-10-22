@@ -526,7 +526,7 @@ describe('private benchmark persistence and attempt fencing', () => {
         benchmark,
         signal: new AbortController().signal,
         messages: [{ role: 'user', content: 'Repository: [[BLANK:repo]].' }],
-        profile: { stage: 'resolve', spec: 'Use the Sim repository.' },
+        profile: { stage: 'resolve', spec: 'Use the Nexora repository.' },
         schema: z.object({ ok: z.literal(true) }),
       })
     ).toMatchObject({ data: { ok: true } })
@@ -535,7 +535,7 @@ describe('private benchmark persistence and attempt fencing', () => {
       userId: 'target',
       organizationId: 'org',
       mode: 'plan',
-      benchmark: { stage: 'resolve', spec: 'Use the Sim repository.' },
+      benchmark: { stage: 'resolve', spec: 'Use the Nexora repository.' },
       useConversationHistory: false,
     })
     expect(request).not.toHaveProperty('workspaceId')

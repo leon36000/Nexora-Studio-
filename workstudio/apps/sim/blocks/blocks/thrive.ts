@@ -1,4 +1,5 @@
 import { ThriveIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 
 const PAGINATED_OPS = [
@@ -75,7 +76,7 @@ export const ThriveBlock: BlockConfig = {
   description: 'Manage users, audiences, learning and CPD on Thrive',
   longDescription:
     'Manage user lifecycle, audiences and their members and managers, content assignments and enrolments, learning completions, content and activity records, CPD, tags, and skills.',
-  docsLink: 'https://docs.sim.ai/integrations/thrive',
+  docsLink: docsUrl('/integrations/thrive'),
   category: 'tools',
   integrationType: IntegrationType.HR,
   bgColor: '#FFFFFF',

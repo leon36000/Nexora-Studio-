@@ -1,4 +1,5 @@
 import { ElevenLabsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
 
@@ -33,7 +34,7 @@ export const ElevenLabsBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Convert text to speech, generate sound effects, transform voices, isolate audio, and manage voices, models, and account settings.',
-  docsLink: 'https://docs.sim.ai/integrations/elevenlabs',
+  docsLink: docsUrl('/integrations/elevenlabs'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: '#181C1E',

@@ -1,4 +1,5 @@
 import { ShopifyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -24,7 +25,7 @@ export const ShopifyBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Manage Shopify products and variants, orders, customers, inventory, collections, and merchant-managed fulfillment using Admin GraphQL API 2026-10. Discover fulfillment orders, ship selected items, update tracking, and check cancellation jobs. Continue list and nested results with the returned cursors. Product activation does not publish to sales channels. Orders normally cover the last 60 days; older orders and protected customer fields require Shopify approval and access. Expanded list details are optional and use smaller pages to stay within query-cost limits. Expanded order-update responses are opt-in and require product, protected-address, and fulfillment access.',
-  docsLink: 'https://docs.sim.ai/integrations/shopify',
+  docsLink: docsUrl('/integrations/shopify'),
   category: 'tools',
   integrationType: IntegrationType.Commerce,
   icon: ShopifyIcon,

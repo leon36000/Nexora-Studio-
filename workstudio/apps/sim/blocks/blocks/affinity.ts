@@ -1,4 +1,5 @@
 import { AffinityIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { parseOptionalBooleanInput, parseOptionalNumberInput } from '@/blocks/utils'
@@ -309,7 +310,7 @@ export const AffinityBlock: BlockConfig = {
   description: 'Read and write companies, people, lists, notes, and relationships in Affinity',
   longDescription:
     'Read companies, people, opportunities, lists, and saved views; search companies, people, and list entries. Page through the rows of a list or saved view. Read field values and update them individually or in batches of up to 100 on one company, person, or list entry. Read, create, update, delete, and reply to notes; list or create reminders; retrieve logged calls, emails, chat messages, meetings, and transcripts. Search notes and files by keyword, find companies from a plain-language description with Semantic Search, discover possible introduction paths through shared work and investment history, and follow the field-value change feed for incremental synchronization. Access depends on the API key holder’s permissions.',
-  docsLink: 'https://docs.sim.ai/integrations/affinity',
+  docsLink: docsUrl('/integrations/affinity'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#1B1C1E',

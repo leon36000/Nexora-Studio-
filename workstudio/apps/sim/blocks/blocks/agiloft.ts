@@ -1,4 +1,5 @@
 import { AgiloftIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -16,7 +17,7 @@ export const AgiloftBlock: BlockConfig = {
   description: 'Manage records in Agiloft CLM',
   longDescription:
     'Integrate with Agiloft contract lifecycle management to create, read, update, delete, and search records. Supports file attachments, SQL-based selection, saved searches, record locking, and running action buttons across any table in your knowledge base.',
-  docsLink: 'https://docs.sim.ai/integrations/agiloft',
+  docsLink: docsUrl('/integrations/agiloft'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#001028',

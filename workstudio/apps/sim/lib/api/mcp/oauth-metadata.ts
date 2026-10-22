@@ -13,7 +13,7 @@ import { OAUTH_API_READ_SCOPE, OAUTH_API_WRITE_SCOPE } from '@/lib/auth/oauth-pr
 const SIM_MCP_SCOPES = [OAUTH_API_READ_SCOPE, OAUTH_API_WRITE_SCOPE] as const
 
 function simMcpResource(): OAuthProtectedResource {
-  return { resource: getSimMcpUrl(), name: 'Sim', scopes: SIM_MCP_SCOPES }
+  return { resource: getSimMcpUrl(), name: 'Nexora', scopes: SIM_MCP_SCOPES }
 }
 
 export function simMcpResourceMetadata() {

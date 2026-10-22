@@ -36,7 +36,7 @@ interface SecretUsagePanelProps {
 
 /** What used the secret, in the reader's terms rather than the storage enum's. */
 function usedBy(entry: SecretUsageEntryPayload): string {
-  if (entry.source === 'copilot') return 'Sim agent'
+  if (entry.source === 'copilot') return 'Nexora agent'
   if (entry.source === 'mcp') return 'MCP server'
   return entry.workflowName ?? DELETED_WORKFLOW_LABEL
 }

@@ -165,7 +165,7 @@ export const rootlyHandler: WebhookProviderHandler = {
         data: {
           type: 'webhooks_endpoints',
           attributes: {
-            name: `Sim (${triggerId || 'rootly'})`,
+            name: `Nexora (${triggerId || 'rootly'})`,
             url: notificationUrl,
             secret: signingSecret,
             event_types: eventTypes,

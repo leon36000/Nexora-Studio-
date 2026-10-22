@@ -87,7 +87,7 @@ export function renderSlackSearchHome(input: {
       type: 'section',
       text: {
         type: 'plain_text',
-        text: 'Connect more accounts in Sim to expand what you can search.',
+        text: 'Connect more accounts in Nexora to expand what you can search.',
       },
     },
     {

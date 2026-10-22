@@ -160,7 +160,7 @@ export function salesforceSetupInstructions(eventType: string): string {
         'Add an <strong>Action</strong> that performs an <strong>HTTP Callout</strong> using the Named Credential from step 2 — method <strong>POST</strong>, <code>Content-Type: application/json</code>, path <code>/</code> (the base URL already points at your webhook). Record-triggered flows can only make callouts on the <strong>Run Asynchronously</strong> path, so place this action there.',
         'Build the request body as <strong>JSON</strong> (not SOAP/XML). Include <code>eventType</code> and record fields (e.g. <code>Id</code>, <code>Name</code>). Outbound Messages use SOAP and will not work with this trigger.',
         'Save and <strong>Activate</strong> the Flow(s).',
-        '<strong>Save this trigger in Sim first</strong> so the URL is registered before you build the Named Credential and Flow.',
+        '<strong>Save this trigger in Nexora first</strong> so the URL is registered before you build the Named Credential and Flow.',
         'Click <strong>"Save"</strong> above to activate your trigger.',
       ]
     : [

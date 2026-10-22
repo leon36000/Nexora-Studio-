@@ -18,7 +18,7 @@ export const hubspotPollingTrigger: TriggerConfig = {
       title: 'HubSpot Account',
       type: 'oauth-input',
       canonicalParamId: 'oauthCredential',
-      description: 'Connect a HubSpot account so Sim can poll your CRM on your behalf.',
+      description: 'Connect a HubSpot account so Nexora can poll your CRM on your behalf.',
       serviceId: 'hubspot',
       requiredScopes: getScopesForService('hubspot'),
       allowServiceAccounts: true,
@@ -108,7 +108,7 @@ export const hubspotPollingTrigger: TriggerConfig = {
       selectorKey: 'hubspot.properties',
       multiSelect: true,
       description:
-        'Properties to include on each record. Leave empty to use sensible defaults. Sim always includes the timestamps it needs internally.',
+        'Properties to include on each record. Leave empty to use sensible defaults. Nexora always includes the timestamps it needs internally.',
       placeholder: 'Select properties (optional)',
       dependsOn: ['triggerCredentials', 'objectType', 'customObjectTypeId'],
       required: false,
@@ -199,7 +199,7 @@ Return ONLY the JSON array — no explanations, no markdown, no code fences.`,
         'Connect your HubSpot account above.',
         'Pick the object type and event you want to watch.',
         '(Optional) Restrict by pipeline, stage, owner, or advanced filters.',
-        'Sim polls HubSpot every minute and fires this workflow for each new or updated record.',
+        'Nexora polls HubSpot every minute and fires this workflow for each new or updated record.',
         'The first poll establishes a baseline — only records changed <em>after</em> activation will fire the workflow.',
       ]
         .map(
@@ -264,7 +264,7 @@ Return ONLY the JSON array — no explanations, no markdown, no code fences.`,
     },
     timestamp: {
       type: 'string',
-      description: 'ISO timestamp when Sim emitted the event',
+      description: 'ISO timestamp when Nexora emitted the event',
     },
   },
 }

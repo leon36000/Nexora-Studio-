@@ -1153,7 +1153,7 @@ describe('executeTool Function', () => {
     [400, 'user'],
     [500, 'internal'],
   ] as const)(
-    'attributes an in-process operation %i to Sim, never to a third party',
+    'attributes an in-process operation %i to Nexora, never to a third party',
     async (status, kind) => {
       mockExecuteInternalToolOperation.mockResolvedValueOnce(
         jsonResponse({ error: 'operation failed' }, status)
@@ -3185,7 +3185,7 @@ describe('Internal Route Trust', () => {
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
-  it('allows the generic HTTP tool to target this Sim instance through a loopback alias', async () => {
+  it('allows the generic HTTP tool to target this Nexora instance through a loopback alias', async () => {
     const result = await executeTool('http_request', {
       url: 'http://127.0.0.2:3000/api/v1/workflows/test',
       method: 'GET',
@@ -3204,7 +3204,7 @@ describe('Internal Route Trust', () => {
     )
   })
 
-  it('rejects an integration request that resolves back to this Sim instance', async () => {
+  it('rejects an integration request that resolves back to this Nexora instance', async () => {
     const mockTool = {
       id: 'test_same_origin_integration',
       name: 'Same Origin Integration',
@@ -3224,7 +3224,7 @@ describe('Internal Route Trust', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toContain(
-        'External integration tools cannot target this Sim instance; use an internal operation'
+        'External integration tools cannot target this Nexora instance; use an internal operation'
       )
       expect(mockValidateUrlWithDNS).not.toHaveBeenCalled()
       expect(mockSecureFetchWithPinnedIP).not.toHaveBeenCalled()
@@ -3234,7 +3234,7 @@ describe('Internal Route Trust', () => {
   })
 
   it.each(['127.0.0.1', '127.0.0.2', '[::1]'])(
-    'rejects the loopback alias %s for a self-hosted Sim listener',
+    'rejects the loopback alias %s for a self-hosted Nexora listener',
     async (hostname) => {
       const mockTool = {
         id: 'test_loopback_alias_integration',
@@ -3255,7 +3255,7 @@ describe('Internal Route Trust', () => {
 
         expect(result.success).toBe(false)
         expect(result.error).toContain(
-          'External integration tools cannot target this Sim instance; use an internal operation'
+          'External integration tools cannot target this Nexora instance; use an internal operation'
         )
         expect(mockValidateUrlWithDNS).not.toHaveBeenCalled()
         expect(mockSecureFetchWithPinnedIP).not.toHaveBeenCalled()
@@ -3295,7 +3295,7 @@ describe('Internal Route Trust', () => {
     }
   })
 
-  it('rejects an integration redirect that resolves back to this Sim instance', async () => {
+  it('rejects an integration redirect that resolves back to this Nexora instance', async () => {
     const mockTool = {
       id: 'test_same_origin_redirect',
       name: 'Same Origin Redirect Integration',
@@ -3319,7 +3319,7 @@ describe('Internal Route Trust', () => {
       expect(() =>
         secureFetchOptions?.assertRedirectTarget?.('http://127.0.0.2:3000/api/tools/test')
       ).toThrow(
-        'External integration tools cannot target this Sim instance; use an internal operation'
+        'External integration tools cannot target this Nexora instance; use an internal operation'
       )
       expect(() =>
         secureFetchOptions?.assertRedirectTarget?.('https://provider.example.com/download')
@@ -4229,7 +4229,7 @@ describe('Internal Route Trust', () => {
     const mockTool = {
       id: 'test_projected_model_without_registry',
       name: 'Test Projected Model Without Registry',
-      description: 'Preserves legacy behavior without Sim provenance',
+      description: 'Preserves legacy behavior without Nexora provenance',
       version: '1.0.0',
       params: { prompt: { type: 'string', required: true } },
       operation: {

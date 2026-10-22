@@ -17,7 +17,7 @@ import {
   type SlackCapabilityGroup,
 } from '@/triggers/slack/capabilities'
 
-const DEFAULT_APP_NAME = 'Sim Workflow Bot'
+const DEFAULT_APP_NAME = 'Nexora Workflow Bot'
 
 const GROUP_LABELS: Record<SlackCapabilityGroup, string> = {
   trigger: 'Triggers',

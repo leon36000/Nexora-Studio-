@@ -1,5 +1,6 @@
 import { omit } from '@sim/utils/object'
 import { BoxCompanyIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -16,7 +17,7 @@ export const BoxBlock = {
   description: 'Manage files, folders, and e-signatures with Box',
   longDescription:
     'Manage files, folders, and e-signatures. Upload and download files, search content, create folders, send documents for e-signature, track signing status, and more.',
-  docsLink: 'https://docs.sim.ai/integrations/box',
+  docsLink: docsUrl('/integrations/box'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

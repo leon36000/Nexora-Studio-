@@ -1,4 +1,5 @@
 import { RocketlaneIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -811,7 +812,7 @@ export const RocketlaneBlock: BlockConfig = {
   description: 'Manage client onboarding projects, tasks, time tracking, and invoices',
   longDescription:
     'Rocketlane is a professional-services automation platform for client onboarding and project delivery. Create and manage projects, tasks, phases, custom fields, time entries, time-offs, spaces, documents, resource allocations, and invoices.',
-  docsLink: 'https://docs.sim.ai/integrations/rocketlane',
+  docsLink: docsUrl('/integrations/rocketlane'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#000000',

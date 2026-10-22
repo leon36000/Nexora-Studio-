@@ -31,7 +31,7 @@ const FILE_ID = 'wf_1'
 const SHARE = {
   id: 'shr_1',
   token: 'tok_1',
-  url: 'https://sim.ai/f/tok_1',
+  url: 'https://workstudio.example.com/f/tok_1',
   isActive: true,
   resourceType: 'file' as const,
   resourceId: FILE_ID,

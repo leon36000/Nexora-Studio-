@@ -241,7 +241,7 @@ export function reflectBackgroundChatStatus(
   void settings
     .notify({
       title: name ?? 'Task complete',
-      body: 'Sim finished responding.',
+      body: 'Nexora finished responding.',
       route,
       background: true,
     })

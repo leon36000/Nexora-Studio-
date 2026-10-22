@@ -1,4 +1,5 @@
 import { AzureDataExplorerIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -113,7 +114,7 @@ export const AzureDataExplorerBlock: BlockConfig = {
   description: 'Query and manage Azure Data Explorer (Kusto) clusters with KQL',
   longDescription:
     'Run Kusto Query Language queries against Azure Data Explorer and Fabric Eventhouse clusters, discover databases, tables, and schemas, push small batches of rows inline, and run management commands. Authenticates with a Microsoft Entra service principal using client credentials, so no interactive sign-in is needed.',
-  docsLink: 'https://docs.sim.ai/integrations/azure_data_explorer',
+  docsLink: docsUrl('/integrations/azure_data_explorer'),
   category: 'tools',
   integrationType: IntegrationType.Databases,
   bgColor: '#FFFFFF',
@@ -603,7 +604,7 @@ export const AzureDataExplorerBlockMeta = {
       icon: AzureDataExplorerIcon,
       title: 'Kusto cluster inventory',
       prompt:
-        'Create a scheduled workflow that lists every Azure Data Explorer database and table, reads their schemas, and keeps a Sim table up to date as a searchable data-model catalog with a note on what changed since the last run.',
+        'Create a scheduled workflow that lists every Azure Data Explorer database and table, reads their schemas, and keeps a Nexora table up to date as a searchable data-model catalog with a note on what changed since the last run.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'operations',
       tags: ['analytics', 'documentation', 'automation'],

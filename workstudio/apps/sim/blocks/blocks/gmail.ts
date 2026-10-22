@@ -1,5 +1,6 @@
 import { ClipboardList } from '@sim/emcn/icons'
 import { GmailIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -61,7 +62,7 @@ export const GmailBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Send or draft messages, read and search mail, and manage labels and read status. New-mail triggers can start workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/gmail',
+  docsLink: docsUrl('/integrations/gmail'),
   category: 'tools',
   integrationType: IntegrationType.Email,
   bgColor: '#FFFFFF',

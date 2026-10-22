@@ -276,7 +276,7 @@ export const PERMISSION_GROUP_FIELDS = {
     id: 'hide-copilot',
     label: 'Chat',
     category: 'Modules',
-    hint: 'Revoke Chat. Members cannot ask Sim to build or edit anything.',
+    hint: 'Revoke Chat. Members cannot ask Nexora to build or edit anything.',
   }),
   hideIntegrationsTab: booleanRestriction('capability', {
     scope: 'workspace-or-organization',
@@ -302,9 +302,9 @@ export const PERMISSION_GROUP_FIELDS = {
   hideInboxTab: booleanRestriction('capability', {
     scope: 'workspace',
     id: 'hide-inbox',
-    label: 'Sim Mailer',
+    label: 'Nexora Mailer',
     category: 'Modules',
-    hint: 'Revoke the Sim Mailer inbox. Members cannot read or send mail.',
+    hint: 'Revoke the Nexora Mailer inbox. Members cannot read or send mail.',
   }),
   hideFilesTab: booleanRestriction('capability', {
     scope: 'workspace',
@@ -477,7 +477,7 @@ export const PERMISSION_GROUP_FIELDS = {
     id: 'disable-cli-access',
     label: 'CLI Access',
     category: 'Credentials & Access',
-    hint: "Prevent approving a CLI login or using Sim CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group.",
+    hint: "Prevent approving a CLI login or using Nexora CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group.",
   }),
   disableWebhookTriggers: booleanRestriction('capability', {
     scope: 'workspace',

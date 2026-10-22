@@ -127,7 +127,7 @@ function parseMediaFile(input: unknown): {
     }
   }
 
-  return { error: { status: 400, message: 'Media must be a Sim file' } }
+  return { error: { status: 400, message: 'Media must be a Nexora file' } }
 }
 
 function applyInstagramConstraints(

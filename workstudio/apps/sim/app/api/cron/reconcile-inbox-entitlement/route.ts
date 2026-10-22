@@ -46,7 +46,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       }
       await disableInbox(ws.id)
       disabled++
-      logger.info('Reclaimed inbox for workspace with terminated Sim Mailer entitlement', {
+      logger.info('Reclaimed inbox for workspace with terminated Nexora Mailer entitlement', {
         workspaceId: ws.id,
       })
     } catch (error) {

@@ -1,4 +1,5 @@
 import { SSMIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -48,7 +49,7 @@ export const SSMBlock: BlockConfig = {
   description: 'Run commands, manage parameters, and audit managed nodes',
   longDescription:
     'Run commands on managed nodes, read and write Parameter Store values, inspect node inventory and patch compliance, and drive Automation runbooks.',
-  docsLink: 'https://docs.sim.ai/integrations/ssm',
+  docsLink: docsUrl('/integrations/ssm'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#E7157B',

@@ -1,4 +1,5 @@
 import { TextractIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   AuthMode,
   type BlockConfig,
@@ -20,7 +21,7 @@ export const TextractBlock: BlockConfig = {
   sunset: { status: 'legacy', replacedBy: 'textract_v2' },
   authMode: AuthMode.ApiKey,
   longDescription: `Integrate AWS Textract into your workflow to extract text, tables, forms, and key-value pairs from documents. Single-page mode supports JPEG, PNG, and single-page PDF. Multi-page mode supports multi-page PDF and TIFF.`,
-  docsLink: 'https://docs.sim.ai/integrations/textract',
+  docsLink: docsUrl('/integrations/textract'),
   category: 'tools',
   integrationType: IntegrationType.AI,
   bgColor: 'linear-gradient(135deg, #055F4E 0%, #56C0A7 100%)',
@@ -560,7 +561,7 @@ export const TextractBlockMeta = {
       icon: TextractIcon,
       title: 'Textract form-to-table',
       prompt:
-        'Build a workflow that pushes scanned forms from Google Drive through AWS Textract analyze-document, extracts key-value pairs and tables, and writes structured rows to a Sim table for downstream automations.',
+        'Build a workflow that pushes scanned forms from Google Drive through AWS Textract analyze-document, extracts key-value pairs and tables, and writes structured rows to a Nexora table for downstream automations.',
       modules: ['tables', 'files', 'agent', 'workflows'],
       category: 'operations',
       tags: ['automation', 'enterprise'],

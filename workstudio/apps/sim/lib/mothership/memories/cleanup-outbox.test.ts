@@ -33,7 +33,7 @@ describe('enqueueMemoryCleanup', () => {
     })
   })
 
-  it('queues nothing when this Sim has no worker credential', async () => {
+  it('queues nothing when this Nexora has no worker credential', async () => {
     await enqueueMemoryCleanup(executor, targets)
     expect(mockEnqueueOutboxEvents).not.toHaveBeenCalled()
   })

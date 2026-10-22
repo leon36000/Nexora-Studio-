@@ -1,5 +1,6 @@
 import { Building, ListChecks, Search, Sparkles, Sprout, Users } from '@sim/emcn/icons'
 import { CbInsightsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -67,7 +68,7 @@ export const CbInsightsBlock: BlockConfig = {
   description: 'Research private markets — firmographics, funding, and predictive scores',
   longDescription:
     'Look up companies, retrieve firmographic and transaction data, map business relationships, read leadership records and score history, and generate Scouting Reports or ChatCBI answers. Supply client credentials; dataset access and credit use depend on your CB Insights license.',
-  docsLink: 'https://docs.sim.ai/integrations/cbinsights',
+  docsLink: docsUrl('/integrations/cbinsights'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#FFFFFF',

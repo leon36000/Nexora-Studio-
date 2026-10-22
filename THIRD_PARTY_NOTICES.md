@@ -8,6 +8,14 @@ Nexora intègre et modifie les logiciels open source suivants. Leurs licences et
 | Nexora API | `services/nexora-api/` | OpenGateLLM (etalab-ia/OpenGateLLM) 0.9.1 | MIT | `services/nexora-api/LICENSE`, `services/nexora-api/UPSTREAM.md` |
 | Nexora Connect | `services/nexora-connect/` | OpenConnector (oomol-lab/open-connector) | Apache-2.0 | `services/nexora-connect/LICENSE.txt`, `services/nexora-connect/NOTICE.md`, `services/nexora-connect/UPSTREAM.md` |
 
+## Ressources ajoutées par Nexora
+
+| Ressource | Emplacement | Origine | Licence |
+|---|---|---|---|
+| Police Inter (variable, sous-ensemble latin ; statique 500 et 700) | `workstudio/apps/sim/app/_styles/fonts/season/`, `workstudio/apps/sim/public/brand/fonts/` ; tracés du logo dans `workstudio/packages/emcn/src/components/sim-wordmark/paths.ts` et les images de `workstudio/apps/sim/public/` | The Inter Project Authors (rsms/inter), paquets npm `@fontsource-variable/inter` et `@fontsource/inter` 5.2.8 | SIL Open Font License 1.1 (`OFL.txt` à côté des fichiers) |
+
+Les polices commerciales livrées par le projet d'origine (Season Sans, Söhne) ont été retirées : leur licence n'est pas l'Apache-2.0 du code.
+
 Les dépendances de ces composants (paquets npm et PyPI) gardent leurs propres licences, déclarées dans leurs fichiers de verrouillage (`bun.lock`, `package-lock.json`, `uv.lock`).
 
 Les noms et marques des services tiers cités par les intégrations (Slack, Google, etc.) restent la propriété de leurs titulaires. Ils ne sont utilisés que pour identifier ces intégrations.

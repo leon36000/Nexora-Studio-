@@ -1,4 +1,5 @@
 import { GridOffset } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { CREDENTIAL_GROUP_EVENT_TRIGGER_ID } from '@/lib/credential-groups/trigger-constants'
 import type { BlockConfig } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -24,7 +25,7 @@ export const CredentialGroupBlock: BlockConfig = {
   - "Send Invite" sends one email. Use a loop when invitations should come from a dynamic list.
   - "Get Invite Link" issues a fresh seven-day bearer link without sending email. It invalidates the previous link for that email, so treat the output as a secret.
   `,
-  docsLink: 'https://docs.sim.ai/workflows/blocks/credential-group',
+  docsLink: docsUrl('/workflows/blocks/credential-group'),
   bgColor: '#8B5CF6',
   icon: GridOffset,
   canvasPresentation: {

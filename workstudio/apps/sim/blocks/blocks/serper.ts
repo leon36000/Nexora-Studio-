@@ -1,4 +1,5 @@
 import { SerperIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const SerperBlock: BlockConfig = {
   description: 'Search the web using Serper',
   authMode: AuthMode.ApiKey,
   longDescription: 'Search the web.',
-  docsLink: 'https://docs.sim.ai/integrations/serper',
+  docsLink: docsUrl('/integrations/serper'),
   category: 'tools',
   integrationType: IntegrationType.Search,
   bgColor: '#2B3543',

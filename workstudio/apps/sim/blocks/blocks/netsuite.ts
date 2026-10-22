@@ -1,4 +1,5 @@
 import { NetSuiteIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { parseOptionalNumberInput } from '@/blocks/utils'
@@ -121,7 +122,7 @@ export const NetSuiteBlock: BlockConfig = {
   description: 'Manage NetSuite records, queries, datasets, batches, and async jobs',
   longDescription:
     'Connect a reusable Oracle NetSuite service-account credential to SuiteTalk REST Web Services. Read and write account-specific records, execute SuiteQL and SuiteAnalytics datasets, run asynchronous record batches, inspect metadata, and monitor async jobs.',
-  docsLink: 'https://docs.sim.ai/integrations/netsuite',
+  docsLink: docsUrl('/integrations/netsuite'),
   authMode: AuthMode.ApiKey,
   category: 'tools',
   integrationType: IntegrationType.Commerce,

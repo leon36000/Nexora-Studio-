@@ -42,7 +42,7 @@ export function pagerdutySetupInstructions(eventLabel: string): string {
   const instructions = [
     'Create a <strong>General Access REST API Key</strong> under <strong>PagerDuty &gt; Integrations &gt; API Access Keys</strong>.',
     'Enter the API key above.',
-    `Deploy the workflow — Sim creates the account-level webhook subscription in PagerDuty automatically and listens for <strong>${eventLabel}</strong>.`,
+    `Deploy the workflow — Nexora creates the account-level webhook subscription in PagerDuty automatically and listens for <strong>${eventLabel}</strong>.`,
     'Undeploying the workflow removes the webhook subscription from PagerDuty.',
   ]
   return instructions

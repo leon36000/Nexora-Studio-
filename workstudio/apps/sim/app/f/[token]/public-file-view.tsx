@@ -79,7 +79,7 @@ export function PublicFileView({
                 href={SITE_URL}
                 target='_blank'
                 rel='noopener noreferrer'
-                aria-label='Sim home'
+                aria-label='Nexora home'
                 className='flex shrink-0 items-center'
               >
                 <SimWordmark />

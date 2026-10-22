@@ -157,7 +157,7 @@ describe('buildSimToolSpecs', () => {
     expect(failedResult).toEqual({ text: 'execution failed', isError: true })
   })
 
-  it('projects named provenance in successful Sim tool output', async () => {
+  it('projects named provenance in successful Nexora tool output', async () => {
     mockToolAdapter({ apiKey: 'secret-value' })
     encryptionMockFns.mockDecryptSecret.mockResolvedValue({ decrypted: 'secret-value' })
     mockExecuteTool.mockImplementation(async (_toolId, _params, options) => {
@@ -230,7 +230,7 @@ describe('buildSimToolSpecs', () => {
     expect(output).toEqual({ selected: 'secret-value', unrelated: 'Test' })
   })
 
-  it('projects error text returned or thrown by a Sim tool', async () => {
+  it('projects error text returned or thrown by a Nexora tool', async () => {
     mockToolAdapter({ apiKey: 'secret-value' })
     encryptionMockFns.mockDecryptSecret.mockResolvedValue({ decrypted: 'secret-value' })
     const registry = new ResolvedSecretTraceRegistry([
@@ -275,7 +275,7 @@ describe('buildSimToolSpecs', () => {
     })
   })
 
-  it('fails closed when Sim tool result provenance is incomplete', async () => {
+  it('fails closed when Nexora tool result provenance is incomplete', async () => {
     mockToolAdapter()
     mockExecuteTool.mockResolvedValue({
       success: true,

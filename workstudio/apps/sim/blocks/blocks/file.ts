@@ -1,6 +1,7 @@
 import { createLogger } from '@sim/logger'
 import { DocumentIcon } from '@/components/icons'
 import { MAX_FILE_LIST_LIMIT } from '@/lib/api/contracts/tools/file'
+import { docsUrl } from '@/lib/branding/docs-url'
 import {
   encodeFolderPathSegment,
   MAX_FOLDER_PATH_SEGMENTS,
@@ -303,7 +304,7 @@ export const FileBlock: BlockConfig = {
   bestPractices: `
   - You should always use the File URL input method and enter the file URL if the user gives it to you or clarify if they have one.
   `,
-  docsLink: 'https://docs.sim.ai/integrations/file',
+  docsLink: docsUrl('/integrations/file'),
   category: 'blocks',
   integrationType: IntegrationType.Documents,
   bgColor: '#40916C',
@@ -523,7 +524,7 @@ export const FileV3Block: BlockConfig = {
   description: 'Read and write workspace files',
   longDescription:
     'Read and parse files from uploads or URLs, write new workspace files, or append content to existing files.',
-  docsLink: 'https://docs.sim.ai/integrations/file',
+  docsLink: docsUrl('/integrations/file'),
   category: 'blocks',
   integrationType: IntegrationType.Documents,
   bgColor: '#40916C',

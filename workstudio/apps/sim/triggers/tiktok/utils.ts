@@ -29,7 +29,7 @@ export function isTikTokEventMatch(triggerId: string, event: string | undefined)
 
 export function tiktokSetupInstructions(eventLabel: string): string {
   const instructions = [
-    '<strong>App setup:</strong> A Sim operator must register the full app-level Callback URL <code>https://&lt;your-sim-domain&gt;/api/webhooks/tiktok</code> once in the TikTok Developer Portal. TikTok allows one Callback URL per app, so workflow builders do not paste a unique webhook URL.',
+    '<strong>App setup:</strong> A Nexora operator must register the full app-level Callback URL <code>https://&lt;your-sim-domain&gt;/api/webhooks/tiktok</code> once in the TikTok Developer Portal. TikTok allows one Callback URL per app, so workflow builders do not paste a unique webhook URL.',
     'Connect the <strong>TikTok account</strong> that should receive this event using the credential selector above.',
     `This trigger listens for <strong>${eventLabel}</strong> events for that connected account.`,
     '<strong>Deploy</strong> the workflow to activate the trigger.',

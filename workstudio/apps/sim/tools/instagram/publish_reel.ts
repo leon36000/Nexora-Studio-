@@ -12,7 +12,7 @@ export const instagramPublishReelTool: InternalToolConfig<
 > = {
   id: 'instagram_publish_reel',
   name: 'Instagram Publish Reel',
-  description: 'Create and publish a Reel from a Sim video file (polls until ready)',
+  description: 'Create and publish a Reel from a Nexora video file (polls until ready)',
   version: '1.0.0',
 
   oauth: {
@@ -37,7 +37,7 @@ export const instagramPublishReelTool: InternalToolConfig<
       type: 'file',
       required: true,
       visibility: 'user-or-llm',
-      description: 'Reel video uploaded to Sim or referenced from a previous block',
+      description: 'Reel video uploaded to Nexora or referenced from a previous block',
     },
     caption: {
       type: 'string',
@@ -49,7 +49,7 @@ export const instagramPublishReelTool: InternalToolConfig<
       type: 'file',
       required: false,
       visibility: 'user-or-llm',
-      description: 'Optional JPEG cover uploaded to Sim or referenced from a previous block',
+      description: 'Optional JPEG cover uploaded to Nexora or referenced from a previous block',
     },
     shareToFeed: {
       type: 'boolean',

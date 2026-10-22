@@ -67,7 +67,7 @@ export const jotformWebhookTrigger: TriggerConfig = {
         'Create an API key at <a href="https://www.jotform.com/myaccount/api" target="_blank" rel="noopener noreferrer">https://www.jotform.com/myaccount/api</a> and give it Full Access, since read-only keys cannot add webhooks',
         'Pick the region your account is on. EU and HIPAA accounts are served by different hosts, and a key is rejected by every host but its own',
         'Copy the Form ID from the form URL, e.g. <code>https://www.jotform.com/build/231504059977966</code> gives <code>231504059977966</code>',
-        'Sim registers the webhook on that form when you deploy the workflow, and removes it again when you undeploy',
+        'Nexora registers the webhook on that form when you deploy the workflow, and removes it again when you undeploy',
         '<strong>Note:</strong> Only submissions made through the form fire this trigger. Submissions created through the API do not.',
       ]
         .map(

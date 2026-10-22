@@ -1,4 +1,5 @@
 import { AppConfigIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const AppConfigBlock: BlockConfig = {
   description: 'Manage and retrieve configuration with AWS AppConfig',
   longDescription:
     'Manage applications, environments, and configuration profiles, create and read hosted configuration versions, run and inspect deployments, and retrieve the latest deployed configuration at runtime. Requires AWS access key and secret access key.',
-  docsLink: 'https://docs.sim.ai/integrations/appconfig',
+  docsLink: docsUrl('/integrations/appconfig'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: 'linear-gradient(45deg, #B0084D 0%, #FF4F8B 100%)',

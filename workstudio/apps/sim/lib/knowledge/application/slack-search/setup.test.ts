@@ -81,7 +81,7 @@ const attempt = {
   userId: 'admin',
   sessionId: 'session',
   organizationId: 'org1',
-  name: 'Sim Search',
+  name: 'Nexora Search',
   description: 'Search with sources',
   clientId: 'client',
   encryptedClientSecret: 'encrypted-client',
@@ -222,7 +222,7 @@ describe('Search OAuth installation', () => {
       principal,
       input: {
         organizationId: 'org1',
-        name: 'Sim Search',
+        name: 'Nexora Search',
         description: 'Search',
         clientId: 'client',
         clientSecret: 'secret',
@@ -271,7 +271,7 @@ describe('shared app completion', () => {
 
   it('only offers and starts shared OAuth for the enabled organization', async () => {
     m.shared.mockImplementation(async (orgId) => (orgId === 'org1' ? sharedApp : null))
-    const details = { name: 'Sim Search', description: 'Search with sources' }
+    const details = { name: 'Nexora Search', description: 'Search with sources' }
     await expect(
       prepareSlackSearchSetup.execute({ principal, input: { ...details, organizationId: 'org1' } })
     ).resolves.toHaveProperty('sharedAppId', 'A1')
@@ -309,7 +309,7 @@ describe('shared app completion', () => {
       organizationId: 'org1',
       installationId: customInstallation.id,
       mode: 'shared' as const,
-      name: 'Sim Search',
+      name: 'Nexora Search',
       description: 'Search',
     }
 
@@ -391,7 +391,7 @@ describe('shared app completion', () => {
 describe('connect an app already installed through a Slack manifest', () => {
   const input = {
     organizationId: 'org1',
-    name: 'Sim Search',
+    name: 'Nexora Search',
     description: 'Search',
     clientId: 'client',
     clientSecret: 'client-secret',

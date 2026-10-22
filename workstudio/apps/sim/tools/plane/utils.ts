@@ -343,7 +343,7 @@ export function planeHeaders(apiKey: string): Record<string, string> {
     'X-API-Key': token,
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    'User-Agent': 'Sim/1.0 (+https://sim.ai)',
+    'User-Agent': 'Nexora/1.0 (+https://github.com/leon36000/Nexora-Studio-)',
   }
 }
 

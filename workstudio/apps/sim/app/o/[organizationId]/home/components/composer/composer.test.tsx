@@ -83,7 +83,7 @@ vi.mock(
 
 vi.mock('@/hooks/use-speech-to-text', () => ({ useSpeechToText: mocks.speech }))
 vi.mock('@/lib/uploads/client/session-upload', () => ({ uploadInternalFileSession: mocks.upload }))
-vi.mock('@/hooks/use-animated-placeholder', () => ({ useAnimatedPlaceholder: () => 'Ask Sim to' }))
+vi.mock('@/hooks/use-animated-placeholder', () => ({ useAnimatedPlaceholder: () => 'Ask Nexora to' }))
 vi.mock('@/hooks/use-chat-input-focus', () => ({ useChatInputFocus: vi.fn() }))
 vi.mock('@/app/o/[organizationId]/providers/organization-provider', () => organizationProviderMock)
 
@@ -327,7 +327,7 @@ it.each([
         </QueryClientProvider>
       )
     )
-    const input = container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Sim"]')!
+    const input = container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Nexora"]')!
     await act(async () => {
       input.focus()
       input.setSelectionRange(10, 14, 'backward')
@@ -340,10 +340,10 @@ it.each([
         cancelable: true,
       })
       await act(async () => {
-        container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Sim"]')!.dispatchEvent(event)
+        container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Nexora"]')!.dispatchEvent(event)
       })
       await act(async () => vi.advanceTimersToNextFrame())
-      const nextInput = container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Sim"]')!
+      const nextInput = container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Nexora"]')!
       expect(currentMode).toBe(expectedMode)
       expect(event.defaultPrevented).toBe(true)
       expect(document.activeElement).toBe(nextInput)
@@ -369,7 +369,7 @@ async function paste(files: File[]) {
   })
   await act(async () =>
     container
-      .querySelector<HTMLInputElement | HTMLTextAreaElement>('[aria-label="Ask Sim"]')!
+      .querySelector<HTMLInputElement | HTMLTextAreaElement>('[aria-label="Ask Nexora"]')!
       .dispatchEvent(event)
   )
   return event
@@ -438,7 +438,7 @@ it.each([false, true])(
     )
     await act(async () => restore())
     expect(
-      container.querySelector<HTMLInputElement | HTMLTextAreaElement>('[aria-label="Ask Sim"]')!
+      container.querySelector<HTMLInputElement | HTMLTextAreaElement>('[aria-label="Ask Nexora"]')!
         .value
     ).toBe('\u2003review fix this @Browser')
     if (invalidContext) expect(document.body.textContent).toContain('Reattach it before sending.')
@@ -485,7 +485,7 @@ it.each([
       onSendQueuedHead: sendHead,
     })
     if (withAttachment) await paste([new File(['image'], 'follow-up.png', { type: 'image/png' })])
-    const input = container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Sim"]')!
+    const input = container.querySelector<HTMLTextAreaElement>('[aria-label="Ask Nexora"]')!
     await act(async () => {
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
       expect(mocks.submit).toHaveBeenCalledTimes(1)

@@ -32,7 +32,7 @@ const HANDOFF_TOKEN_TTL_MS = 3 * 60 * 1000
  * *browser's* request, so the real user agent would misattribute the desktop's
  * session to the browser in session listings and audit trails.
  */
-const DESKTOP_SESSION_USER_AGENT = 'Sim Desktop'
+const DESKTOP_SESSION_USER_AGENT = 'Nexora Desktop'
 
 /**
  * Mints a one-time token that signs the desktop app in as `userId` on a session

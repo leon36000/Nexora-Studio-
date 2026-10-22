@@ -1,4 +1,5 @@
 import { TikTokIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -31,7 +32,7 @@ export const TikTokBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Get user profile information including follower counts and video statistics. List and query videos with cover images, embed links, and metadata. Send uploaded videos to the TikTok inbox as drafts for human review and publishing, then track post status.',
-  docsLink: 'https://docs.sim.ai/integrations/tiktok',
+  docsLink: docsUrl('/integrations/tiktok'),
   category: 'tools',
   integrationType: IntegrationType.Communication,
   bgColor: '#000000',

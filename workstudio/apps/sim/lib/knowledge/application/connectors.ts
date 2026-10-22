@@ -1336,7 +1336,7 @@ export const updateKnowledgeConnectorDocuments = defineAuthorizedKnowledgeUseCas
     const documentIds = [...new Set(input.documentIds)]
     const restoring = input.operation === 'restore'
     if (restoring && !requiresConnectorIndexing(context.knowledgeBase.isSearchIndex)) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Sim Search.')
+      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
     }
     const access = await context.access.get()
     const updated = await db.transaction(async (tx) => {

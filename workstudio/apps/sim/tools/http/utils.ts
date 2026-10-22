@@ -2,11 +2,8 @@ import { escapeRegExp } from '@sim/utils/string'
 import { transformTable } from '@/tools/shared/table'
 import type { TableRow } from '@/tools/types'
 
-const FIRST_PARTY_API_HOST_REWRITES: Readonly<Record<string, string>> = {
-  'https://sim.ai': 'www.sim.ai',
-  'https://staging.sim.ai': 'www.staging.sim.ai',
-  'https://dev.sim.ai': 'www.dev.sim.ai',
-}
+/** Nexora edition: no first-party host needs canonicalizing (the upstream map named Sim's hosts). */
+const FIRST_PARTY_API_HOST_REWRITES: Readonly<Record<string, string>> = {}
 const CREDENTIAL_HEADER_NAMES = new Set([
   'authorization',
   'proxy-authorization',
@@ -30,7 +27,7 @@ export function getCredentialHeaderNames(
   })
 }
 
-/** Avoids Sim's environment-specific apex-to-www redirects for first-party API requests. */
+/** Avoids environment-specific apex-to-www redirects for first-party API requests. */
 export function canonicalizeFirstPartyApiUrl(url: string): string {
   try {
     const parsed = new URL(url)
@@ -60,7 +57,7 @@ export const getDefaultHeaders = (
   url?: string
 ): Record<string, string> => {
   const headers: Record<string, string> = {
-    'User-Agent': 'Sim/1.0 (+https://sim.ai)',
+    'User-Agent': 'Nexora/1.0 (+https://github.com/leon36000/Nexora-Studio-)',
     Accept: '*/*',
     'Accept-Encoding': 'gzip, deflate, br',
     'Cache-Control': 'no-cache',

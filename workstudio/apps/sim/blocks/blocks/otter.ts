@@ -1,4 +1,5 @@
 import { OtterIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, type BlockMeta, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
 
@@ -11,7 +12,7 @@ export const OtterBlock: BlockConfig = {
   description: 'Read Otter.ai meeting conversations, transcripts, and summaries',
   longDescription:
     'List and read meeting conversations with their summaries, action items, insights, outlines, and transcripts, get audio download links, import recordings, and browse channels and workspace details. Otter can also trigger workflows when a conversation finishes processing or is shared. Requires an Otter Enterprise workspace.',
-  docsLink: 'https://docs.sim.ai/integrations/otter',
+  docsLink: docsUrl('/integrations/otter'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

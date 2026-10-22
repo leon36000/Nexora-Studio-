@@ -44,7 +44,7 @@ export const crowdstrikeQueryIndicatorsTool: InternalToolConfig<
       required: false,
       visibility: 'user-or-llm',
       description:
-        'Maximum number of IOC IDs to return (default 100). CrowdStrike publishes no maximum for this endpoint; Sim caps it at 500 to keep a single request bounded',
+        'Maximum number of IOC IDs to return (default 100). CrowdStrike publishes no maximum for this endpoint; Nexora caps it at 500 to keep a single request bounded',
     },
     offset: {
       type: 'number',

@@ -249,7 +249,7 @@ describe('configured workflow tool inspection', () => {
     expect((await inspect()).selected.every((tool) => tool.status === 'unavailable')).toBe(true)
   })
 
-  it('exposes ambient Sim Chat integrations with no selections, filters without schemas', async () => {
+  it('exposes ambient Nexora Chat integrations with no selections, filters without schemas', async () => {
     save('mothership')
     const result = await inspect({ query: 'slack', limit: 1 })
     expect(result).toMatchObject({
@@ -273,7 +273,7 @@ describe('configured workflow tool inspection', () => {
     expect((await inspect({ limit: 0 })).ambient?.operations).toHaveLength(2)
   })
 
-  it('does not confuse Sim Chat MCP additions with an integration allowlist', async () => {
+  it('does not confuse Nexora Chat MCP additions with an integration allowlist', async () => {
     save('mothership', [
       {
         type: 'mcp',
@@ -294,7 +294,7 @@ describe('configured workflow tool inspection', () => {
   })
 
   it.each(['<start.mode>', 'none'])(
-    'reports Sim Chat variable mode %s without discovering disabled or unresolved tools',
+    'reports Nexora Chat variable mode %s without discovering disabled or unresolved tools',
     async (usageControlExpression) => {
       save(
         'mothership',
@@ -405,7 +405,7 @@ describe('configured workflow tool inspection', () => {
     await expect(inspect({ signal: AbortSignal.abort() })).rejects.toThrow()
     expect(mocks.snapshot).not.toHaveBeenCalled()
     save('function')
-    await expect(inspect()).rejects.toThrow('Agent and Sim Chat')
+    await expect(inspect()).rejects.toThrow('Agent and Nexora Chat')
     expect(mocks.mcp).not.toHaveBeenCalled()
     expect(mocks.ambient).not.toHaveBeenCalled()
   })

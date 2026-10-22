@@ -1,4 +1,5 @@
 import { BitbucketIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -147,7 +148,7 @@ export const BitbucketBlock: BlockConfig = {
   description: 'Work with Bitbucket Cloud repositories, pull requests, and pipelines',
   longDescription:
     'Connect Bitbucket Cloud to inspect repositories and source, collaborate on pull requests, diagnose or control pipelines, and start workflows from repository and pull request events. OAuth is used for actions and automatic webhook management.',
-  docsLink: 'https://docs.sim.ai/integrations/bitbucket',
+  docsLink: docsUrl('/integrations/bitbucket'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   authMode: AuthMode.OAuth,

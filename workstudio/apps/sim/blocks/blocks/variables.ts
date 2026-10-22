@@ -1,4 +1,5 @@
 import { VariableIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 
 export const VariablesBlock: BlockConfig = {
@@ -23,7 +24,7 @@ export const VariablesBlock: BlockConfig = {
     },
   },
   category: 'blocks',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/variables',
+  docsLink: docsUrl('/workflows/blocks/variables'),
   subBlocks: [
     {
       id: 'variables',

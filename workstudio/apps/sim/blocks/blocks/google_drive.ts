@@ -1,5 +1,6 @@
 import { BookOpen } from '@sim/emcn/icons'
 import { GoogleDriveIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -23,7 +24,7 @@ export const GoogleDriveBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Create, upload, download, export, copy, move, delete, or share files and folders, and manage their metadata and permissions.',
-  docsLink: 'https://docs.sim.ai/integrations/google_drive',
+  docsLink: docsUrl('/integrations/google_drive'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: '#FFFFFF',

@@ -125,7 +125,7 @@ describe('field callbacks remain tied to the committed render', () => {
     const before = owner.getJSON()
     await act(async () => root.render(null))
     expect(owner.isDestroyed).toBe(false)
-    await act(async () => pendingUpload.resolve({ url: 'https://sim.ai/image.png', alt: 'late' }))
+    await act(async () => pendingUpload.resolve({ url: 'https://workstudio.example.com/image.png', alt: 'late' }))
     expect(owner.getJSON()).toEqual(before)
     expect(change).not.toHaveBeenCalled()
   })

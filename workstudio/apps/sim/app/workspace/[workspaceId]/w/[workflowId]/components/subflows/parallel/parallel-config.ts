@@ -1,4 +1,5 @@
 import { Split } from '@sim/emcn/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 
 /**
  * Parallel tool configuration for the toolbar.
@@ -9,5 +10,5 @@ export const ParallelTool = {
   name: 'Parallel',
   icon: Split,
   bgColor: '#FEE12B',
-  docsLink: 'https://docs.sim.ai/workflows/blocks/parallel',
+  docsLink: docsUrl('/workflows/blocks/parallel'),
 } as const

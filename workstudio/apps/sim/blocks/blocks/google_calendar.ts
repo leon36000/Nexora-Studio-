@@ -1,4 +1,5 @@
 import { GoogleCalendarIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import { getScopesForService } from '@/lib/oauth/utils'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -15,7 +16,7 @@ export const GoogleCalendarBlock: BlockConfig = {
   authMode: AuthMode.OAuth,
   longDescription:
     'Manage events, calendars, attendees, availability, and sharing. Event triggers can start workflows.',
-  docsLink: 'https://docs.sim.ai/integrations/google_calendar',
+  docsLink: docsUrl('/integrations/google_calendar'),
   category: 'tools',
   integrationType: IntegrationType.Productivity,
   bgColor: '#FFFFFF',

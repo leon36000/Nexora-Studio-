@@ -239,7 +239,7 @@ export const planeHandler: WebhookProviderHandler = {
       }
     }
     const created = await planeWebhookRequest(config, 'POST', '', {
-      name: 'Sim workflow',
+      name: 'Nexora workflow',
       url: getNotificationUrl(ctx.webhook),
       version: 'v2',
       content_type: 'application/json',

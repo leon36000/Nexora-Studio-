@@ -1,4 +1,5 @@
 import { PeopleDataLabsIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 
@@ -18,7 +19,7 @@ export const PeopleDataLabsBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Enrich a single person or company with People Data Labs, or search the global person and company datasets with SQL or Elasticsearch DSL. Useful for sales enrichment, contact lookup, and CRM hygiene.',
-  docsLink: 'https://docs.sim.ai/integrations/peopledatalabs',
+  docsLink: docsUrl('/integrations/peopledatalabs'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#4831C3',

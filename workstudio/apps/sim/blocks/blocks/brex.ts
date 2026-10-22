@@ -1,4 +1,5 @@
 import { BrexIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -64,7 +65,7 @@ export const BrexBlock: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'List and update expenses, upload and match receipts, view card and cash transactions, accounts, budgets, spend limits, vendors, transfers, and team data.',
-  docsLink: 'https://docs.sim.ai/integrations/brex',
+  docsLink: docsUrl('/integrations/brex'),
   category: 'tools',
   integrationType: IntegrationType.Commerce,
   bgColor: '#171717',

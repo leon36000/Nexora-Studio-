@@ -1,4 +1,5 @@
 import { S3Icon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { normalizeFileInput } from '@/blocks/utils'
@@ -39,7 +40,7 @@ export const S3Block: BlockConfig = {
   authMode: AuthMode.ApiKey,
   longDescription:
     'Upload, download, copy, and delete objects (individually or in batches), inspect object metadata, generate time-limited presigned URLs, list bucket contents, and create, list, or delete buckets. Requires AWS access key and secret access key.',
-  docsLink: 'https://docs.sim.ai/integrations/s3',
+  docsLink: docsUrl('/integrations/s3'),
   category: 'tools',
   integrationType: IntegrationType.Documents,
   bgColor: 'linear-gradient(45deg, #1B660F 0%, #6CAE3E 100%)',
@@ -772,7 +773,7 @@ export const S3BlockMeta = {
       icon: S3Icon,
       title: 'S3 document ingestion to knowledge base',
       prompt:
-        'Create a workflow that lists objects in an S3 bucket, downloads each new document, and indexes it into a Sim knowledge base so agents can answer questions over files stored in S3.',
+        'Create a workflow that lists objects in an S3 bucket, downloads each new document, and indexes it into a Nexora knowledge base so agents can answer questions over files stored in S3.',
       modules: ['files', 'knowledge-base', 'agent', 'workflows'],
       category: 'engineering',
       tags: ['automation', 'sync'],

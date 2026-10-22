@@ -196,7 +196,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
               <ChipDropdown
                 variant='primary'
                 leftIcon={Plus}
-                placeholder='Add to Sim'
+                placeholder='Add to Nexora'
                 showSelectedCheck={false}
                 options={connectOptions}
                 onChange={handleSelectConnectOption}
@@ -204,7 +204,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
               />
             ) : oauthAvailable ? (
               <Chip variant='primary' leftIcon={Plus} onClick={() => setOAuthOpen(true)}>
-                Add to Sim
+                Add to Nexora
               </Chip>
             ) : hasServiceAccount ? (
               <Chip variant='primary' leftIcon={Plus} onClick={() => setServiceAccountOpen(true)}>
@@ -215,7 +215,7 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
             )
           ) : chatEnabled ? (
             <Chip variant='primary' leftIcon={Plus} onClick={handleAddInChat}>
-              Add to Sim
+              Add to Nexora
             </Chip>
           ) : null}
         </div>

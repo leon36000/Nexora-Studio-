@@ -1,4 +1,5 @@
 import { EyeIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector, normalizeFileInput } from '@/blocks/utils'
@@ -31,7 +32,7 @@ export const VisionBlock: BlockConfig = {
   hideFromToolbar: true,
   authMode: AuthMode.ApiKey,
   longDescription: 'Integrate Vision into the workflow. Can analyze images with vision models.',
-  docsLink: 'https://docs.sim.ai/integrations/vision',
+  docsLink: docsUrl('/integrations/vision'),
   category: 'blocks',
   integrationType: IntegrationType.AI,
   bgColor: '#4D5FFF',

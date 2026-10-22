@@ -1,4 +1,5 @@
 import { KetchIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -8,7 +9,7 @@ export const KetchBlock: BlockConfig = {
   description: 'Manage privacy consent, subscriptions, and data subject rights',
   longDescription:
     'Retrieve and update consent preferences, manage subscription topics and controls, and submit data subject rights requests for access, deletion, correction, or processing restriction.',
-  docsLink: 'https://docs.sim.ai/integrations/ketch',
+  docsLink: docsUrl('/integrations/ketch'),
   category: 'tools',
   integrationType: IntegrationType.Security,
   bgColor: '#9B5CFF',

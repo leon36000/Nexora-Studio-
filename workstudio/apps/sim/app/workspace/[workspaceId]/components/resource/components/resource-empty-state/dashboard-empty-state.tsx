@@ -124,7 +124,7 @@ export function DashboardEmptyState() {
     <EmptyState
       graphic={<DashboardGraphic />}
       title='Dashboard'
-      description='Sim will build your dashboard here once your workspace is set up.'
+      description='Nexora will build your dashboard here once your workspace is set up.'
     />
   )
 }

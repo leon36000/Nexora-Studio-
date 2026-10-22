@@ -22,7 +22,7 @@ export default async function GitHubSetupPage({
       ) : (
         <AuthHeader
           title='Connection unavailable'
-          description='Close this window and connect GitHub again from Sim.'
+          description='Close this window and connect GitHub again from Nexora.'
         />
       )}
     </AuthShell>

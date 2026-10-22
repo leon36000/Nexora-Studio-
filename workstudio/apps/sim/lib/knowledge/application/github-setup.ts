@@ -513,7 +513,7 @@ export const completeGitHubSetupReaderOAuth = defineAuthorizedKnowledgeUseCase({
       .where(eq(user.id, principal.userId))
       .limit(1)
     if (!viewer?.emailVerified)
-      throw new OrchestrationError('forbidden', 'Verify your Sim email before connecting GitHub.')
+      throw new OrchestrationError('forbidden', 'Verify your Nexora email before connecting GitHub.')
     await saveGitHubSetupAttempt({ ...base(setup), phase: 'authorizing', url: setup.url }, 'oauth')
     return completePublicCredentialGroupOAuth.execute({
       principal: {

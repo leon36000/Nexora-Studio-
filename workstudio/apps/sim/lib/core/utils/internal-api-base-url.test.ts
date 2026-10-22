@@ -21,7 +21,7 @@ vi.unmock('@/lib/core/utils/urls')
 
 import { getInternalApiBaseUrl } from '@/lib/core/utils/urls'
 
-const PUBLIC_URL = 'https://sim.ai'
+const PUBLIC_URL = 'https://workstudio.example.com'
 const LOOPBACK = 'http://127.0.0.1:3000'
 
 afterEach(() => {

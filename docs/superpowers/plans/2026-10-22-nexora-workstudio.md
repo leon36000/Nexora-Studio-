@@ -87,10 +87,10 @@ Chemins utiles :
 
 ## Tâche 2 — Installation et état de référence
 
-- [ ] `cd workstudio && bun install --frozen-lockfile`. En cas d'échec réseau ou de lockfile, `bun install` puis consigner l'écart.
-- [ ] Contrôle de types de `apps/sim` : la commande exacte vient du `package.json`, par exemple `bunx tsc --noEmit -p apps/sim`. Attendu : 0 erreur, comme dans le rapport 06.
-- [ ] Tests unitaires de référence sur les fichiers qui importent `@/ee/` : `bunx vitest run --project sim <liste>`. Consigner les échecs préexistants : ce sont des tests qui « mockaient » l'ancien `ee/` et qu'il faut réécrire ou supprimer en tâche 2b.
-- [ ] Tâche 2b :
+- [x] `cd workstudio && bun install --frozen-lockfile`. En cas d'échec réseau ou de lockfile, `bun install` puis consigner l'écart.
+- [x] Contrôle de types de `apps/sim` : la commande exacte vient du `package.json`, par exemple `bunx tsc --noEmit -p apps/sim`. Attendu : 0 erreur, comme dans le rapport 06.
+- [x] Tests unitaires de référence sur les fichiers qui importent `@/ee/` : `bunx vitest run --project sim <liste>`. Consigner les échecs préexistants : ce sont des tests qui « mockaient » l'ancien `ee/` et qu'il faut réécrire ou supprimer en tâche 2b.
+- [x] Tâche 2b :
   - réparer ou réécrire les tests cassés par la sortie d'`ee/`, à partir du comportement de nos remplacements ;
   - supprimer les tests propres à `ee/` (absents de toute façon).
 
@@ -117,18 +117,18 @@ Chemins utiles :
 - `lib/branding/docs-url.ts` (nouveau) ;
 - codemod `scripts/codemods/docs-url.ts`.
 
-- [ ] `scripts/check-brand.sh` en premier (TDD : il doit échouer sur l'état actuel) :
+- [x] `scripts/check-brand.sh` en premier (TDD : il doit échouer sur l'état actuel) :
   - termes cherchés : `Sim Studio|sim\.ai|simstudio|OOMOL|oomol|etalab|Etalab|Albert API`, et le mot « Sim » isolé dans le texte JSX et les chaînes affichées (`>Sim<`, `'Sim'`, `"Sim "`) ;
   - fichiers parcourus : `*.tsx`, `*.ts` non-test des dossiers d'interface (`apps/sim/app`, `apps/sim/components`, `apps/sim/blocks`, `apps/sim/lib/**/emails`, `public/*.json|*.webmanifest`), plus les services ;
   - liste d'exemptions explicite et commentée dans `scripts/data/brand-allowlist.txt` : en-têtes de licence, `UPSTREAM.md`, `THIRD_PARTY_NOTICES.md`, identifiants internes non affichés (noms de paquets `@sim/*`, variables `SIM_*`, chemins d'import).
-- [ ] `docsUrl(path)` :
+- [x] `docsUrl(path)` :
   - renvoie `NEXT_PUBLIC_DOCUMENTATION_URL + path` si la variable est définie ;
   - sinon, renvoie le guide du dépôt Nexora (`https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide`) ;
   - test unitaire.
-- [ ] Codemod : remplacer les ≈ 490 littéraux `https://docs.sim.ai/...` par `docsUrl('/...')`, avec l'import ajouté. Lancer `bunx biome format`.
-- [ ] Remplacer les autres occurrences visibles (« Sim », « Sim Studio », liens `www.sim.ai`, `simstudioai` dans les liens GitHub ou Discord) par la marque (`brand.name`) ou les retirer : liens vers Discord, X ou statut de Sim → supprimés.
-- [ ] Assets : wordmark SVG texte « nexora » en indigo, favicon carré « n ». Ce sont des assets provisoires, à consigner.
-- [ ] Revoir le menu « Sandboxes » marqué « Max » et tout badge d'offre payante de Sim (« Pro », « Team », « Upgrade ») : à masquer en auto-hébergement.
+- [x] Codemod : remplacer les ≈ 490 littéraux `https://docs.sim.ai/...` par `docsUrl('/...')`, avec l'import ajouté. Lancer `bunx biome format`.
+- [x] Remplacer les autres occurrences visibles (« Sim », « Sim Studio », liens `www.sim.ai`, `simstudioai` dans les liens GitHub ou Discord) par la marque (`brand.name`) ou les retirer : liens vers Discord, X ou statut de Sim → supprimés.
+- [x] Assets : wordmark SVG texte « nexora » en indigo, favicon carré « n ». Ce sont des assets provisoires, à consigner.
+- [x] Revoir le menu « Sandboxes » marqué « Max » et tout badge d'offre payante de Sim (« Pro », « Team », « Upgrade ») : à masquer en auto-hébergement.
 
 **Vérification** : `scripts/check-brand.sh` sort avec 0 ; `tsc` à 0 ; tests de `docs-url` verts.
 

@@ -74,7 +74,7 @@ export const COVER_MAX_CAPTION_LINES = 2
  * IP, in parallel across build workers.
  */
 const titleFont = await readFile(
-  join(process.cwd(), 'public', 'brand', 'fonts', 'Soehne-Kraftig.ttf')
+  join(process.cwd(), 'public', 'brand', 'fonts', 'Inter-Medium-latin.woff')
 )
 
 /**
@@ -107,7 +107,7 @@ const CONTAINER_STYLE = {
   justifyContent: 'space-between',
   padding: '26px',
   background: BACKGROUND_COLOR,
-  fontFamily: 'Soehne',
+  fontFamily: 'Inter',
 } satisfies CSSProperties
 const HEADER_STYLE = {
   display: 'flex',
@@ -362,7 +362,7 @@ export function createCoverOgImage(props: CoverOgImageProps) {
     </div>,
     {
       ...COVER_OG_SIZE,
-      fonts: [{ name: 'Soehne', data: titleFont, style: 'normal' as const, weight: 500 as const }],
+      fonts: [{ name: 'Inter', data: titleFont, style: 'normal' as const, weight: 500 as const }],
     }
   )
 }

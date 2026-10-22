@@ -25,20 +25,20 @@ describe('Pi API Key visibility', () => {
   // The bug this guards: the field used to hide for hosted models in every mode,
   // and Create PR then failed at execution demanding a BYOK key the user was
   // never asked for.
-  it('shows the field in Create PR even for a model Sim hosts', () => {
+  it('shows the field in Create PR even for a model Nexora hosts', () => {
     expect(hostedModel).toBeDefined()
     expect(isApiKeyVisible({ mode: 'cloud', model: hostedModel })).toBe(true)
   })
 
   it.each([['local'], ['cloud_review']])(
-    'hides the field in %s mode for a model Sim hosts',
+    'hides the field in %s mode for a model Nexora hosts',
     (mode) => {
       expect(isApiKeyVisible({ mode, model: hostedModel })).toBe(false)
     }
   )
 
   it.each([['local'], ['cloud_review']])(
-    'shows the field in %s mode for a model Sim does not host',
+    'shows the field in %s mode for a model Nexora does not host',
     (mode) => {
       expect(isApiKeyVisible({ mode, model: 'some-unhosted-model' })).toBe(true)
     }

@@ -69,7 +69,7 @@ export const createServiceAccountCredentialUseCase = defineAuthorizedWorkspaceUs
   async execute({ principal, input, context, request }): Promise<CreateServiceAccountResult> {
     const stored = 'storedSlackSecrets' in input
     if (principal.kind === 'delegated' && !stored) {
-      throw new OrchestrationError('validation', 'Copilot must reference existing Sim secrets')
+      throw new OrchestrationError('validation', 'Copilot must reference existing Nexora secrets')
     }
     const catalog = await listCredentialProviderCatalog(principal, context)
     const providerId = stored ? SLACK_CUSTOM_BOT_PROVIDER_ID : input.providerId

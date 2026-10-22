@@ -1,4 +1,5 @@
 import { AttioIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { getTrigger } from '@/triggers'
@@ -23,7 +24,7 @@ export const AttioBlock: BlockConfig = {
   description: 'Manage records, notes, tasks, lists, comments, and more in Attio CRM',
   longDescription:
     'Connect to Attio to manage CRM records (people, companies, custom objects), notes, tasks, lists, list entries, comments, workspace members, and webhooks.',
-  docsLink: 'https://docs.sim.ai/integrations/attio',
+  docsLink: docsUrl('/integrations/attio'),
   category: 'tools',
   integrationType: IntegrationType.Sales,
   bgColor: '#1D1E20',
@@ -2089,7 +2090,7 @@ export const AttioBlockMeta = {
       icon: AttioIcon,
       title: 'Attio deal pipeline tracker',
       prompt:
-        'Create a scheduled workflow that mirrors Attio deals into a Sim table, calculates pipeline velocity per stage, and posts a daily Slack summary of deals at risk.',
+        'Create a scheduled workflow that mirrors Attio deals into a Nexora table, calculates pipeline velocity per stage, and posts a daily Slack summary of deals at risk.',
       modules: ['scheduled', 'tables', 'agent', 'workflows'],
       category: 'sales',
       tags: ['sales', 'crm', 'monitoring'],

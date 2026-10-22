@@ -56,7 +56,7 @@ describe('resolvePiModelKey', () => {
     expect(mockGetApiKeyWithBYOK).not.toHaveBeenCalled()
   })
 
-  it('Local Dev can use a hosted key because the model runs in Sim', async () => {
+  it('Local Dev can use a hosted key because the model runs in Nexora', async () => {
     mockGetApiKeyWithBYOK.mockResolvedValue({ apiKey: 'sk-hosted', isBYOK: false })
 
     await expect(
@@ -99,7 +99,7 @@ describe('resolvePiModelKey', () => {
     expect(mockGetApiKeyWithBYOK).not.toHaveBeenCalled()
   })
 
-  it('cloud_review mode can use a hosted key because the model runs in Sim', async () => {
+  it('cloud_review mode can use a hosted key because the model runs in Nexora', async () => {
     mockGetApiKeyWithBYOK.mockResolvedValue({ apiKey: 'sk-hosted', isBYOK: false })
 
     await expect(

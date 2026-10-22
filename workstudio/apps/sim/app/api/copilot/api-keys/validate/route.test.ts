@@ -297,7 +297,7 @@ describe('POST /api/copilot/api-keys/validate billing protocols', () => {
     expect(mockCheckAttributedUsageLimits).not.toHaveBeenCalled()
   })
 
-  it('rejects markerless admission on hosted Sim', async () => {
+  it('rejects markerless admission on hosted Nexora', async () => {
     setEnvFlags({ isHosted: true })
     const res = await POST(request(SELF_HOSTED_VALIDATE_BODY))
 

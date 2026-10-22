@@ -1,4 +1,5 @@
 import { JupyterIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
 import { createVersionedToolSelector, normalizeFileInput } from '@/blocks/utils'
@@ -39,7 +40,7 @@ export const JupyterBlock = {
   description: 'Manage files, notebooks, kernels, and sessions on a Jupyter server',
   longDescription:
     'Browse, read, create, upload, rename, copy, and delete files and notebooks; start, stop, restart, and interrupt kernels; and manage sessions that bind notebooks to kernels.',
-  docsLink: 'https://docs.sim.ai/integrations/jupyter',
+  docsLink: docsUrl('/integrations/jupyter'),
   category: 'tools',
   integrationType: IntegrationType.DevOps,
   bgColor: '#FFFFFF',

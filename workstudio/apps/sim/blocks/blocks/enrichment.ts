@@ -1,4 +1,5 @@
 import { EnrichmentIcon } from '@/components/icons'
+import { docsUrl } from '@/lib/branding/docs-url'
 import type { BlockConfig, BlockMeta, OutputFieldDefinition, ParamType } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 import { ALL_ENRICHMENTS, getEnrichment } from '@/enrichments'
@@ -72,10 +73,10 @@ blockOutputs.provider = {
 export const EnrichmentBlock: BlockConfig = {
   type: 'enrichment',
   name: 'Data Enrichment',
-  description: 'Enrich data with a Sim enrichment',
+  description: 'Enrich data with a Nexora enrichment',
   longDescription:
-    'Run a Sim enrichment to look up data — work email, phone number, company domain, company info, and more — from the fields you map in. Uses the same provider cascade as table enrichments.',
-  docsLink: 'https://docs.sim.ai/integrations/enrichment',
+    'Run a Nexora enrichment to look up data — work email, phone number, company domain, company info, and more — from the fields you map in. Uses the same provider cascade as table enrichments.',
+  docsLink: docsUrl('/integrations/enrichment'),
   category: 'blocks',
   integrationType: IntegrationType.Sales,
   bgColor: '#9333EA',

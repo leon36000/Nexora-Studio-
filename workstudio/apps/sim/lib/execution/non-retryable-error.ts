@@ -23,7 +23,7 @@ export class SandboxLaunchIndeterminateError extends NonRetryableExecutionError 
       ? ` Provider detail: ${getErrorMessage(options.cause)}`
       : ''
     super(
-      `${provider} may have started this Function, but Sim could not recover its process identity. The outcome is indeterminate and the code was not run again.${providerDetail}`,
+      `${provider} may have started this Function, but Nexora could not recover its process identity. The outcome is indeterminate and the code was not run again.${providerDetail}`,
       options
     )
     this.name = 'SandboxLaunchIndeterminateError'

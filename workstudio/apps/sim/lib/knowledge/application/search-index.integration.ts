@@ -15,11 +15,11 @@ describe('workspace search identity migration in PostgreSQL', () => {
     await client.unsafe(`
       INSERT INTO credential_group(id, workspace_id, name) VALUES ('curated', 'workspace-1', 'Workspace accounts');
       INSERT INTO knowledge_base(id, workspace_id, name)
-      SELECT 'index-' || n, 'workspace-' || n, 'Sim Search' FROM generate_series(1, 1001) n;
+      SELECT 'index-' || n, 'workspace-' || n, 'Nexora Search' FROM generate_series(1, 1001) n;
       INSERT INTO knowledge_base(id, workspace_id, name, deleted_at) VALUES
-        ('archived', 'archived-workspace', 'Sim Search', now()),
+        ('archived', 'archived-workspace', 'Nexora Search', now()),
         ('ordinary', 'ordinary-workspace', 'Team docs', null),
-        ('legacy-personal', null, 'Sim Search', null);
+        ('legacy-personal', null, 'Nexora Search', null);
     `)
   })
 
@@ -45,7 +45,7 @@ describe('workspace search identity migration in PostgreSQL', () => {
       VALUES ('duplicate', 'workspace-1', 'Another index', true)
     `).rejects.toMatchObject({ code: '23505' })
     await client`INSERT INTO knowledge_base(id, workspace_id, name)
-      VALUES ('old-writer', 'workspace-1', 'Sim Search')`
+      VALUES ('old-writer', 'workspace-1', 'Nexora Search')`
     await fixture.migrate()
     expect(
       await client`SELECT id, name FROM knowledge_base

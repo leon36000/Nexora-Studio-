@@ -262,7 +262,7 @@ describe.runIf(Boolean(redisUrl))('Chat runs no controller owns', () => {
     return { ...run, marker: chat?.conversationId ?? null }
   }
 
-  describe('a Sim claim past its start window', () => {
+  describe('a Nexora claim past its start window', () => {
     async function lateTool(
       runId: string,
       fields: Partial<{ status: 'running'; claimedBy: string }> = {}
@@ -326,7 +326,7 @@ describe.runIf(Boolean(redisUrl))('Chat runs no controller owns', () => {
     expect(run.marker).toBeNull()
   })
 
-  it('never settles a run while one of its Sim tools holds a live execution lease', async () => {
+  it('never settles a run while one of its Nexora tools holds a live execution lease', async () => {
     /** A long tool call writes nothing to the run; only its execution heartbeat shows it is alive. */
     const orphan = await admittedRun({ idleMinutes: 90, status: 'paused_waiting_for_tool' })
     const tool = await dispatchedTool(orphan.runId)
@@ -348,7 +348,7 @@ describe.runIf(Boolean(redisUrl))('Chat runs no controller owns', () => {
     expect((await stored(orphan.runId)).status).toBe('error')
   })
 
-  it('never settles a run whose Sim tool was admitted while the sweep waited to settle it', async () => {
+  it('never settles a run whose Nexora tool was admitted while the sweep waited to settle it', async () => {
     const orphan = await admittedRun({ idleMinutes: 90, status: 'paused_waiting_for_tool' })
     const tool = await dispatchedTool(orphan.runId)
     /** Holds the run row so the tool's admission and then the sweep queue behind it, in that order. */
@@ -375,7 +375,7 @@ describe.runIf(Boolean(redisUrl))('Chat runs no controller owns', () => {
     expect(run.toolAdmissionClosedAt).toBeNull()
   })
 
-  it('never settles a run whose Sim tool lease a heartbeat renewed as the sweep settled it', async () => {
+  it('never settles a run whose Nexora tool lease a heartbeat renewed as the sweep settled it', async () => {
     const orphan = await admittedRun({ idleMinutes: 90, status: 'paused_waiting_for_tool' })
     const tool = await dispatchedTool(orphan.runId)
     expect(await claimToolExecution(tool)).toEqual({ outcome: 'claimed' })
