@@ -29,9 +29,9 @@ export function buildNexoraOidcProvider(
   if (!issuer || !clientId || !clientSecret) return null
   return {
     providerId: NEXORA_OIDC_PROVIDER_ID,
+    // No `issuer`: callbacks then check `iss` against the one discovery announces, so a
+    // trailing slash typed in the configuration cannot break every sign-in.
     discoveryUrl: `${issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`,
-    // Callbacks compare `iss` to this verbatim, so it keeps any trailing slash.
-    issuer,
     clientId,
     clientSecret,
     scopes: ['openid', 'profile', 'email'],

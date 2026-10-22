@@ -25,12 +25,12 @@ describe('buildNexoraOidcProvider', () => {
     })
   })
 
-  it('keeps the issuer exactly as configured, since callbacks compare `iss` verbatim', () => {
-    expect(buildNexoraOidcProvider(complete)?.issuer).toBe('https://sso.example.fr/realms/pme/')
+  it('leaves the expected issuer to discovery, whatever trailing slash the operator typed', () => {
+    expect(buildNexoraOidcProvider(complete)?.issuer).toBeUndefined()
     expect(
       buildNexoraOidcProvider({ ...complete, NEXORA_OIDC_ISSUER: ' https://id.example.fr ' })
-        ?.issuer
-    ).toBe('https://id.example.fr')
+        ?.discoveryUrl
+    ).toBe('https://id.example.fr/.well-known/openid-configuration')
   })
 
   it('lets the identity provider create accounts unless registration is disabled', () => {

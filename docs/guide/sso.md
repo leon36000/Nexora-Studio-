@@ -23,7 +23,7 @@ NEXORA_OIDC_CLIENT_ID=nexora
 NEXORA_OIDC_CLIENT_SECRET=<le secret client>
 ```
 
-`NEXORA_OIDC_ISSUER` est l'« émetteur » de votre fournisseur. Nexora lit sa configuration à l'adresse `<émetteur>/.well-known/openid-configuration`. Recopiez-le exactement comme le champ `issuer` de cette configuration, barre oblique finale comprise s'il en a une : Nexora le compare caractère par caractère à chaque connexion.
+`NEXORA_OIDC_ISSUER` est l'« émetteur » de votre fournisseur. Nexora lit sa configuration à l'adresse `<émetteur>/.well-known/openid-configuration` et vérifie chaque connexion avec l'émetteur que cette configuration annonce. Les quatre variables sont nécessaires : sans `NEXORA_OIDC_NAME`, le bouton n'apparaît pas et le SSO reste désactivé.
 
 | Fournisseur | Émetteur |
 |---|---|
@@ -43,6 +43,7 @@ La page de connexion affiche alors **« Se connecter avec Mon entreprise »**.
 
 - Seul ce fournisseur, configuré par vous, peut ouvrir une session ; les connecteurs d'intégration (Salesforce, Jira…) ne le peuvent pas.
 - Dès que le SSO est configuré, **l'inscription par e-mail et mot de passe est fermée** : personne ne peut créer à l'avance un compte au nom d'un salarié. Les comptes déjà créés par e-mail continuent de se connecter.
-- Un compte existant n'est rattaché au SSO que si le fournisseur indique que l'adresse est vérifiée (`email_verified`).
+- Un compte existant n'est rattaché au SSO que si le fournisseur indique que l'adresse est vérifiée (`email_verified`). **Microsoft Entra ID ne le transmet pas** : avec Entra, un compte créé par e-mail avant l'activation du SSO (souvent celui du gérant) continue de se connecter par mot de passe et ne peut pas passer au SSO.
+- Les personnes extérieures à votre fournisseur d'identité (expert-comptable, prestataire) ne peuvent plus s'inscrire : ajoutez-les chez votre fournisseur.
 - Avec `NEXORA_REGISTRATION_DISABLED=true`, le SSO ne crée plus de compte : seuls les utilisateurs existants se connectent.
 - Combinez avec `NEXORA_ALLOWED_EMAIL_DOMAINS` pour n'accepter que les adresses de votre entreprise.

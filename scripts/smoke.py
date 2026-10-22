@@ -1,15 +1,19 @@
 """End-to-end smoke test of a running Nexora platform (scripts/smoke.sh wraps it).
 
-Usage: python3 -I scripts/smoke.py [--url http://localhost:3000] [--report smoke-report.json]
+Usage: NEXORA_SMOKE_ADMIN_EMAIL=... NEXORA_SMOKE_ADMIN_PASSWORD=... \
+       python3 -I scripts/smoke.py [--url http://localhost:3000] [--report smoke-report.json]
 Creates a throwaway account, then checks, over real HTTP: the French interface, the five SME
 templates in a new workspace, Nexora Connect and its tools, a run of every template through
-Nexora API, the usage dashboard, and the audit log. Standard library only. Exit 0 when all pass.
+Nexora API, the audit log and the usage dashboard. The last two are read by an owner or admin
+of the instance organization (credentials from the environment, never the command line): a
+throwaway account must not be able to read them. Standard library only. Exit 0 when all pass.
 """
 from __future__ import annotations
 
 import argparse
 import http.cookiejar
 import json
+import os
 import secrets
 import sys
 import time
@@ -129,21 +133,37 @@ def main() -> int:
         return run
 
     def usage():
-        # Instance-wide figures: reserved to organization owners and admins (the audit step founded one).
-        status, body = s.call("GET", "/api/nexora/usage?days=7")
+        # Instance-wide figures: reserved to owners and admins of the instance organization.
+        status, _ = s.call("GET", "/api/nexora/usage?days=7")
+        require(status == 403, f"usage visible to a plain member (HTTP {status})")
+        admin_organization()
+        status, body = admin.call("GET", "/api/nexora/usage?days=7")
         require(status == 200, f"usage returned HTTP {status}")
         require(body["totals"]["requests"] > 0, "no request metered by Nexora API")
         return f"{body['totals']['requests']} requêtes, {body['totals']['totalTokens']} jetons"
 
+    admin = Smoke(args.url)
+
+    def admin_organization() -> str:
+        if "org" not in state:
+            admin_email = os.environ.get("NEXORA_SMOKE_ADMIN_EMAIL", "")
+            admin_password = os.environ.get("NEXORA_SMOKE_ADMIN_PASSWORD", "")
+            require(admin_email and admin_password, "set NEXORA_SMOKE_ADMIN_EMAIL and NEXORA_SMOKE_ADMIN_PASSWORD (an owner or admin of the instance organization)")
+            status, _ = admin.call("POST", "/api/auth/sign-in/email", {"email": admin_email, "password": admin_password})
+            require(status == 200, f"admin sign-in returned HTTP {status}")
+            _, body = admin.call("GET", "/api/organizations")
+            organizations = body.get("organizations", [])
+            require(len(organizations) == 1, f"the admin should own or administer one organization, not {len(organizations)}")
+            state["org"] = organizations[0]["id"]
+        return state["org"]
+
     def audit():
-        status, _ = s.call("GET", "/api/nexora/usage?days=7")
-        require(status == 403, f"usage visible outside an organization (HTTP {status})")
-        status, body = s.call("POST", "/api/organizations", {"name": "PME Fumée", "slug": f"pme-fumee-{secrets.token_hex(3)}"}, timeout=180)
-        require(status == 200 and body.get("organizationId"), f"organization creation returned HTTP {status}")
-        _, logs = s.call("GET", f"/api/audit-logs?organizationId={body['organizationId']}&limit=10")
-        actions = [e["action"] for e in logs.get("data", [])]
-        require("organization.created" in actions, f"audit log does not show the creation: {actions}")
-        return "organization.created tracé"
+        status, _ = s.call("POST", "/api/organizations", {"name": "Dissidente", "slug": f"dissidente-{secrets.token_hex(3)}"}, timeout=180)
+        require(status == 409, f"a member could found a second organization (HTTP {status})")
+        _, logs = admin.call("GET", f"/api/audit-logs?organizationId={admin_organization()}&limit=50")
+        entries = [(e["action"], e.get("actorEmail")) for e in logs.get("data", [])]
+        require(("workspace.created", email) in entries, f"audit log does not show the member's new workspace: {entries[:10]}")
+        return "workspace.created du membre tracé"
 
     s.check("Inscription d'un compte", signup)
     s.check("Interface en français, sans marque tierce", french_ui)

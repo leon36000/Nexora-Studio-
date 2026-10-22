@@ -27,4 +27,4 @@ done < "$EXAMPLE" > "$tmp"
 chmod 600 "$tmp"
 mv "$tmp" "$TARGET"
 trap - EXIT
-echo "deploy/.env créé (secrets générés). Vérifiez NEXORA_PUBLIC_URL, NEXORA_ALLOWED_EMAIL_DOMAINS et le modèle amont (NEXORA_UPSTREAM_*)."
+echo "deploy/.env créé (secrets générés). Vérifiez NEXORA_PUBLIC_URL, NEXORA_ORGANIZATION_NAME et NEXORA_ORGANIZATION_OWNER_EMAIL, NEXORA_ALLOWED_EMAIL_DOMAINS et le modèle amont (NEXORA_UPSTREAM_*)."

@@ -202,6 +202,11 @@ services:
       NEXT_PUBLIC_WHITELABELING_ENABLED: 'false'
       SESSION_POLICIES_ENABLED: 'false'
       NEXT_PUBLIC_SESSION_POLICIES_ENABLED: 'false'
+      # One organization per instance: every account joins it as a member, so roles, audit and
+      # consumption are governed in one place. Its owner is NEXORA_ORGANIZATION_OWNER_EMAIL, or
+      # the first account created. Leave the name empty to let each user found their own.
+      INSTANCE_ORG_NAME: ${NEXORA_ORGANIZATION_NAME:-}
+      INSTANCE_ORG_OWNER_EMAIL: ${NEXORA_ORGANIZATION_OWNER_EMAIL:-}
       # Who may create an account: restrict to your email domains, and close sign-ups once the team is in.
       ALLOWED_LOGIN_DOMAINS: ${NEXORA_ALLOWED_EMAIL_DOMAINS:-}
       DISABLE_REGISTRATION: ${NEXORA_REGISTRATION_DISABLED:-false}

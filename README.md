@@ -18,7 +18,7 @@ Prérequis : Docker et Docker Compose, environ 16 Go de mémoire libre pour la c
 scripts/init-env.sh
 ```
 
-Ouvrez ensuite `deploy/.env` et indiquez votre modèle (`NEXORA_UPSTREAM_URL`, `NEXORA_UPSTREAM_MODEL`, `NEXORA_UPSTREAM_KEY`).
+Ouvrez ensuite `deploy/.env` : indiquez votre organisation et votre adresse de propriétaire (`NEXORA_ORGANIZATION_NAME`, `NEXORA_ORGANIZATION_OWNER_EMAIL`) et votre modèle (`NEXORA_UPSTREAM_URL`, `NEXORA_UPSTREAM_MODEL`, `NEXORA_UPSTREAM_KEY`).
 
 ```bash
 docker compose -f deploy/compose.yml --env-file deploy/.env up -d --build
@@ -39,10 +39,10 @@ Le guide complet est dans [`docs/guide/`](docs/guide/README.md).
 ## Vérifier une installation
 
 ```bash
-scripts/smoke.sh http://localhost:3000
+NEXORA_SMOKE_ADMIN_EMAIL=<votre adresse> NEXORA_SMOKE_ADMIN_PASSWORD='<votre mot de passe>' scripts/smoke.sh http://localhost:3000
 ```
 
-Ce test de fumée crée un compte jetable et vérifie l'interface, les modèles PME, Nexora Connect, l'exécution par Nexora API, la consommation et le journal d'audit.
+Ce test de fumée crée un compte jetable et vérifie l'interface, les modèles PME, Nexora Connect, l'exécution par Nexora API, puis, avec votre compte de propriétaire, le journal d'audit et la consommation.
 
 ## Développer
 

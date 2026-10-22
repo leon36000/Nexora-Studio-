@@ -423,7 +423,7 @@ export const WORKSPACE_API_KEY_DENIED_AS_NOT_FOUND =
  * workspace policies resolve through `resolveEffectiveRetentionHours`.
  */
 export const RUN_RETENTION =
-  'Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.'
+  'Expired runs are permanently deleted by retention cleanup. Runs have no default expiry; organization policies and workspace overrides can set an effective window, and cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.'
 
 /**
  * Response headers a binary download declares on top of the common set. Shared

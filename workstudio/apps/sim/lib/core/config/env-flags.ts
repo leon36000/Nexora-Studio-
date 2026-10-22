@@ -647,13 +647,15 @@ export const isGithubAuthDisabled = isTruthy(env.DISABLE_GITHUB_AUTH)
 export const isMicrosoftAuthDisabled = isTruthy(env.DISABLE_MICROSOFT_AUTH)
 
 /**
- * Nexora edition: the company identity provider is configured (all three `NEXORA_OIDC_*`
- * set — the same condition under which `buildNexoraOidcProvider` returns a provider).
+ * Nexora edition: the company identity provider is configured (the three `NEXORA_OIDC_*`
+ * that `buildNexoraOidcProvider` needs) and its sign-in button has a label, without which
+ * the button is hidden and nobody could use it.
  */
 export const isNexoraOidcEnabled = Boolean(
   env.NEXORA_OIDC_ISSUER?.trim() &&
     env.NEXORA_OIDC_CLIENT_ID?.trim() &&
-    env.NEXORA_OIDC_CLIENT_SECRET?.trim()
+    env.NEXORA_OIDC_CLIENT_SECRET?.trim() &&
+    env.NEXT_PUBLIC_NEXORA_OIDC_NAME?.trim()
 )
 
 /**

@@ -1332,14 +1332,14 @@ export const V2_MCP_OPERATIONS = {
     contract: v2GetLogContract,
     summary: 'Get log',
     description:
-      "Get a run's workflow graph, trace spans, final output, and cost. Trace spans expire separately, so an empty `traceSpans` array does not prove none were recorded. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.",
+      "Get a run's workflow graph, trace spans, final output, and cost. Trace spans expire separately, so an empty `traceSpans` array does not prove none were recorded. Expired runs are permanently deleted by retention cleanup. Runs have no default expiry; organization policies and workspace overrides can set an effective window, and cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.",
     handler: () => import('@/app/api/v2/logs/[runId]/route').then((route) => route.GET),
   },
   getLogStats: {
     contract: v2GetLogStatsContract,
     summary: 'Get log statistics',
     description:
-      'Get bucketed run counts, success rate, errors, and mean latency for the workspace and individual workflows. Query fields describe window selection and bucketing. Folder filters cover subtrees. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
+      'Get bucketed run counts, success rate, errors, and mean latency for the workspace and individual workflows. Query fields describe window selection and bucketing. Folder filters cover subtrees. Expired runs are permanently deleted by retention cleanup. Runs have no default expiry; organization policies and workspace overrides can set an effective window, and cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
     handler: () => import('@/app/api/v2/logs/stats/route').then((route) => route.GET),
   },
   getMcpServer: {
@@ -1852,7 +1852,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2ListLogsContract,
     summary: 'List logs',
     description:
-      'List logs with filters, selectable detail, sorting, and cursor pagination. `includeJobRuns=true` includes chat and Sim-agent jobs only with `sortBy=startedAt`, because other orderings are unsupported. `files` contains only run-produced files; use the files API for input attachments. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
+      'List logs with filters, selectable detail, sorting, and cursor pagination. `includeJobRuns=true` includes chat and Sim-agent jobs only with `sortBy=startedAt`, because other orderings are unsupported. `files` contains only run-produced files; use the files API for input attachments. Expired runs are permanently deleted by retention cleanup. Runs have no default expiry; organization policies and workspace overrides can set an effective window, and cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
     handler: () => import('@/app/api/v2/logs/route').then((route) => route.GET),
   },
   listMcpServers: {
@@ -2126,7 +2126,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2ListWorkflowRunsContract,
     summary: 'List workflow runs',
     description:
-      'List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.',
+      'List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Runs have no default expiry; organization policies and workspace overrides can set an effective window, and cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.',
     handler: () =>
       import('@/app/api/v2/workflows/[workflowId]/runs/route').then((route) => route.GET),
   },

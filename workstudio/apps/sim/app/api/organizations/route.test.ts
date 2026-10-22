@@ -21,8 +21,10 @@ const {
   mockCreateOrganizationForTeamPlan,
   mockEnsureOrganizationForTeamSubscription,
   mockAttachOwnedWorkspacesToOrganization,
+  mockGetInstanceOrganizationConfig,
   WorkspaceOrganizationMembershipConflictError,
 } = vi.hoisted(() => ({
+  mockGetInstanceOrganizationConfig: vi.fn().mockReturnValue(null),
   mockSetActiveOrganizationForCurrentSession: vi.fn().mockResolvedValue(undefined),
   mockCreateOrganizationForTeamPlan: vi.fn(),
   mockEnsureOrganizationForTeamSubscription: vi.fn(),
@@ -50,6 +52,10 @@ vi.mock('@/lib/billing/organizations/create-organization', () => ({
 vi.mock('@/lib/billing/plan-helpers', () => billingPlanHelpersMock)
 
 vi.mock('@/lib/billing/subscriptions/utils', () => billingSubscriptionUtilsMock)
+
+vi.mock('@/lib/organizations/instance-org', () => ({
+  getInstanceOrganizationConfig: mockGetInstanceOrganizationConfig,
+}))
 
 vi.mock('@/lib/workspaces/organization-workspaces', () => ({
   attachOwnedWorkspacesToOrganization: mockAttachOwnedWorkspacesToOrganization,
@@ -183,6 +189,8 @@ describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
     resetEnvFlagsMock()
     setEnvFlags({ isBillingEnabled: false })
     mockCreateOrganizationForTeamPlan.mockReset()
+    mockAttachOwnedWorkspacesToOrganization.mockClear()
+    mockGetInstanceOrganizationConfig.mockReturnValue(null)
   })
 
   it('lets a user without an organization found one, with no subscription', async () => {
@@ -221,7 +229,7 @@ describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
     expect(mockEnsureOrganizationForTeamSubscription).not.toHaveBeenCalled()
   })
 
-  it('refuses a second organization to a user who already administers one', async () => {
+  it('finishes an interrupted founding instead of refusing the organization the user already owns', async () => {
     mockGetSession.mockResolvedValue(
       createSession({ userId: 'user-9', email: 'gerant@pme.fr', name: 'Gérant' })
     )
@@ -231,6 +239,39 @@ describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
       new NextRequest('http://localhost/api/organizations', {
         method: 'POST',
         body: JSON.stringify({ name: 'Autre' }),
+      }),
+      {}
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      organizationId: 'org-existing',
+      created: false,
+    })
+    expect(mockCreateOrganizationForTeamPlan).not.toHaveBeenCalled()
+    expect(mockAttachOwnedWorkspacesToOrganization).toHaveBeenCalledWith({
+      ownerUserId: 'user-9',
+      organizationId: 'org-existing',
+      externalMemberPolicy: 'keep-external',
+      includeArchived: true,
+    })
+  })
+
+  it('lets nobody found an organization when the instance has its own', async () => {
+    mockGetInstanceOrganizationConfig.mockReturnValue({
+      name: 'PME Exemple',
+      slug: 'pme-exemple',
+      ownerEmail: null,
+    })
+    mockGetSession.mockResolvedValue(
+      createSession({ userId: 'user-9', email: 'gerant@pme.fr', name: 'Gérant' })
+    )
+    queueTableRows(member, [])
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/organizations', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Dissidente' }),
       }),
       {}
     )

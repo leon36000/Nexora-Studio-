@@ -49,12 +49,21 @@ Tous les services doivent être `running` ou `healthy`. `nexora-bootstrap` et `w
 
 ## 4. Premier compte
 
-Ouvrez `NEXORA_PUBLIC_URL` et créez votre compte. Votre premier espace de travail contient :
+Avant le premier démarrage, indiquez dans `deploy/.env` le nom de votre organisation et **votre adresse**, celle du propriétaire :
+
+```bash
+NEXORA_ORGANIZATION_NAME=Mon entreprise
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@mon-entreprise.fr
+```
+
+Ouvrez `NEXORA_PUBLIC_URL` et créez votre compte avec cette adresse. Sans `NEXORA_ORGANIZATION_OWNER_EMAIL`, le premier compte créé devient propriétaire. Votre premier espace de travail contient :
 
 - le dossier **« Modèles PME »** : cinq workflows prêts à l'emploi ;
 - le serveur d'outils **Nexora Connect**, déjà branché (Réglages › Outils MCP).
 
-Pour travailler en équipe, créez votre organisation dans **Réglages › Membres**. Vous accédez alors au **journal d'audit** et au tableau de **consommation**. Ce tableau couvre toute l'instance, tous utilisateurs confondus : seuls les propriétaires et administrateurs de l'organisation le voient.
+Chaque compte créé ensuite rejoint votre organisation comme **membre** ; personne ne peut en fonder une autre. Vous gérez les rôles dans **Réglages › Membres** et consultez le **journal d'audit** et le tableau de **consommation**. Ce tableau couvre toute l'instance, tous utilisateurs confondus : seuls les propriétaires et administrateurs de l'organisation le voient.
+
+Si vous videz `NEXORA_ORGANIZATION_NAME`, chacun peut fonder sa propre organisation, et le propriétaire de chacune voit alors la consommation de toute l'instance.
 
 ### Qui peut créer un compte
 
@@ -65,17 +74,19 @@ Toute personne inscrite utilise les modèles de Nexora API et les outils de Nexo
 | `NEXORA_ALLOWED_EMAIL_DOMAINS=mon-entreprise.fr` | Seules les adresses de ces domaines peuvent s'inscrire et se connecter. **Fortement recommandé.** |
 | `NEXORA_REGISTRATION_DISABLED=true` | Plus aucune inscription, y compris par SSO : seuls les comptes existants se connectent. À activer une fois votre équipe inscrite. |
 | `NEXORA_EMAIL_VERIFICATION=true` | Chaque adresse doit être confirmée par e-mail (nécessite un service d'e-mail). |
-| `NEXORA_OIDC_*` | Avec la [connexion unique](sso.md), l'inscription par e-mail et mot de passe est fermée : les comptes se créent par votre fournisseur d'identité. |
+| `NEXORA_OIDC_*` | Avec la [connexion unique](sso.md), l'inscription par e-mail et mot de passe est fermée : les comptes se créent par votre fournisseur d'identité. Les personnes extérieures à celui-ci (expert-comptable, prestataire) ne peuvent donc plus s'inscrire, même invitées : ajoutez-les chez votre fournisseur. |
 
 Appliquez ensuite avec `docker compose -f deploy/compose.yml --env-file deploy/.env up -d`.
 
 ## 5. Vérifier l'installation
 
 ```bash
-scripts/smoke.sh http://localhost:3000
+NEXORA_SMOKE_ADMIN_EMAIL=gerant@mon-entreprise.fr NEXORA_SMOKE_ADMIN_PASSWORD='…' scripts/smoke.sh http://localhost:3000
 ```
 
-Le test crée un compte jetable et vérifie onze points : l'interface, les modèles, les outils, cinq exécutions réelles par votre modèle, la consommation et le journal d'audit.
+Le test crée un compte jetable et vérifie onze points : l'interface, les modèles, les outils, cinq exécutions réelles par votre modèle, le journal d'audit et la consommation. Ces deux derniers sont lus avec votre compte de propriétaire (ou d'un administrateur), passé par les variables d'environnement ci-dessus ; le test vérifie aussi que le compte jetable, simple membre, n'y a pas accès.
+
+Le test s'inscrit par e-mail et mot de passe : il échoue sur une instance où le SSO est configuré ou les inscriptions fermées.
 
 ## 6. Mettre à jour
 

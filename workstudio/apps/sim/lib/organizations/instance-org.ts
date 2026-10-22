@@ -55,7 +55,9 @@ export function getInstanceOrganizationConfig(): InstanceOrganizationConfig | nu
   const name = env.INSTANCE_ORG_NAME?.trim()
   if (!name) return null
 
-  const slug = env.INSTANCE_ORG_SLUG?.trim() || slugify(name)
+  // Nexora edition: accents are folded first, so « Société » yields `societe`, not `soci-t`.
+  const slug =
+    env.INSTANCE_ORG_SLUG?.trim() || slugify(name.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
   if (!slug) {
     logger.error('INSTANCE_ORG_NAME does not yield a usable slug; set INSTANCE_ORG_SLUG', { name })
     return null
@@ -92,7 +94,7 @@ function isInstanceOrganizationMode(): boolean {
  * that holds a single row in this mode, and it only runs on the signup path, so
  * there is nothing worth caching against that failure mode.
  */
-async function getInstanceOrganizationId(): Promise<string | null> {
+export async function getInstanceOrganizationId(): Promise<string | null> {
   const config = getInstanceOrganizationConfig()
   if (!config) return null
 

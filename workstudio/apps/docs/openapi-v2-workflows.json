@@ -3959,7 +3959,7 @@
       "get": {
         "operationId": "listWorkflowRunsV2",
         "summary": "List workflow runs",
-        "description": "List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.",
+        "description": "List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Runs have no default expiry; organization policies and workspace overrides can set an effective window, and cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.",
         "x-sim-operation": "workflows.runs.list",
         "x-oauth-scope": "api:read",
         "tags": ["Workflow Runs"],
@@ -4311,7 +4311,7 @@
       "get": {
         "operationId": "downloadWorkflowRunFileV2",
         "summary": "Download workflow run file",
-        "description": "Download one run-produced file by its reported ID with workspace read access. Downloads record an audit event. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. `HEAD` checks access with the same authorization as `GET` but skips side effects, returning an empty `200` without payload headers on success. `HEAD` does not provide byte length; use the file's size in Get workflow run when available.\n\nOAuth scope: `api:read`.",
+        "description": "Download one run-produced file by its reported ID with workspace read access. Downloads record an audit event. Expired runs are permanently deleted by retention cleanup. Runs have no default expiry; organization policies and workspace overrides can set an effective window, and cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. `HEAD` checks access with the same authorization as `GET` but skips side effects, returning an empty `200` without payload headers on success. `HEAD` does not provide byte length; use the file's size in Get workflow run when available.\n\nOAuth scope: `api:read`.",
         "x-sim-operation": "workflows.download_run_file",
         "x-oauth-scope": "api:read",
         "tags": ["Workflow Runs"],

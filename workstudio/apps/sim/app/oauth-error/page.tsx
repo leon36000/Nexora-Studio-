@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { SSO_REQUIRED_ERROR_CODE, SSO_REQUIRED_MESSAGE } from '@/lib/auth/constants'
+import { getTranslations } from 'next-intl/server'
+import { SSO_REQUIRED_ERROR_CODE } from '@/lib/auth/constants'
 import { DesktopHandoffShell } from '@/app/desktop/components/desktop-handoff-shell'
 
-export const metadata: Metadata = {
-  title: 'Sign-in couldn’t be completed',
-  robots: { index: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('auth.oauthError')
+  return { title: t('title'), robots: { index: false } }
 }
 
 export const dynamic = 'force-dynamic'
@@ -22,48 +23,43 @@ interface OAuthErrorPageProps {
  * pinged. Without this page those errors 404'd (a dead-end); here the user
  * gets a clear message and a way back. Re-initiating the sign-in/connect from
  * the app supersedes the idle handoff, so no explicit hand-back is needed.
+ *
+ * Error codes with a message of their own, keyed to `auth.oauthError`:
+ * - `signup_disabled`: DISABLE_REGISTRATION rejecting a first-time sign-in; retrying
+ *   can never succeed.
+ * - `account_not_linked`: Better Auth refuses to link a provider that does not assert
+ *   a verified email onto an existing account; retrying reproduces it exactly.
+ * - SSO required: the person's organization refuses a social sign-in.
+ * - `email_not_found`: the provider returned no email claim.
+ * - `issuer_mismatch`: the callback's `iss` is not the discovered issuer.
  */
-const FRIENDLY: Record<string, string> = {
-  access_denied: 'You declined the request at the provider, so nothing was connected.',
-  oAuth_code_missing: 'The provider didn’t return a valid response. Please try again.',
-  /**
-   * DISABLE_REGISTRATION rejecting a first-time social sign-in. Better Auth
-   * reports this as `signup disabled`, which it slugs into the `error` param.
-   * Without a message here the visitor is told to "try again", which can never
-   * succeed.
-   */
-  signup_disabled:
-    'Account creation is disabled on this instance. Ask your admin to create an account for you.',
-  /**
-   * Better Auth refuses to link an untrusted provider onto an existing account
-   * (`accountLinking.trustedProviders`). Retrying reproduces it exactly, so the
-   * generic "try again" strands the user — name the recovery path instead.
-   */
-  account_not_linked:
-    'An account already exists for this email address. Sign in using the method you originally signed up with.',
-  /**
-   * The person's organization requires single sign-on, so a social sign-in is
-   * refused. Retrying the same provider can never succeed — name the way in.
-   */
-  [SSO_REQUIRED_ERROR_CODE]: SSO_REQUIRED_MESSAGE,
-  /** The provider returned no email claim, so there is nothing to sign in as. */
-  email_not_found:
-    'Your identity provider didn’t share an email address with us, so we couldn’t complete sign-in. Please contact your administrator.',
-}
+const FRIENDLY_KEYS = {
+  access_denied: 'access_denied',
+  oAuth_code_missing: 'oAuth_code_missing',
+  signup_disabled: 'signup_disabled',
+  account_not_linked: 'account_not_linked',
+  [SSO_REQUIRED_ERROR_CODE]: 'ssoRequired',
+  email_not_found: 'email_not_found',
+  issuer_mismatch: 'issuer_mismatch',
+} as const
 
-function messageForError(code: string | undefined): string {
-  if (code && FRIENDLY[code]) return FRIENDLY[code]
-  return 'The sign-in couldn’t be completed. Please try again.'
+type FriendlyKey = (typeof FRIENDLY_KEYS)[keyof typeof FRIENDLY_KEYS]
+
+function messageKeyForError(code: string | undefined): FriendlyKey | 'generic' {
+  if (code && Object.hasOwn(FRIENDLY_KEYS, code)) {
+    return FRIENDLY_KEYS[code as keyof typeof FRIENDLY_KEYS]
+  }
+  return 'generic'
 }
 
 export default async function OAuthErrorPage({ searchParams }: OAuthErrorPageProps) {
-  const params = await searchParams
+  const [params, t] = await Promise.all([searchParams, getTranslations('auth.oauthError')])
   const code = typeof params.error === 'string' ? params.error : undefined
 
   return (
     <DesktopHandoffShell
-      title='Sign-in couldn’t be completed'
-      description={`${messageForError(code)} You can close this tab and return to Nexora.`}
+      title={t('title')}
+      description={`${t(messageKeyForError(code))} ${t('closeHint')}`}
     />
   )
 }

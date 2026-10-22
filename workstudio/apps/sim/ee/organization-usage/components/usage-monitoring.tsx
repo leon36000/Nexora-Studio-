@@ -1,7 +1,7 @@
 // Nexora clean-room replacement — written from core call sites only, Apache-2.0 core untouched.
 'use client'
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@sim/emcn'
+import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@sim/emcn'
 import { useFormatter, useTranslations } from 'next-intl'
 import { SettingsPanel } from '@/components/settings/settings-panel'
 import { ApiClientError } from '@/lib/api/client/errors'
@@ -35,7 +35,12 @@ export function UsageMonitoring(_props: UsageMonitoringProps) {
     const forbidden = error instanceof ApiClientError && error.status === 403
     return (
       <SettingsPanel>
-        <p className='px-2 py-6 text-[var(--text-error)] text-small'>
+        <p
+          className={cn(
+            'px-2 py-6 text-small',
+            forbidden ? 'text-[var(--text-muted)]' : 'text-[var(--text-error)]'
+          )}
+        >
           {t(forbidden ? 'forbidden' : 'unavailable')}
         </p>
       </SettingsPanel>

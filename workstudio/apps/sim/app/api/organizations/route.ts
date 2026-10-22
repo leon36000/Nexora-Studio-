@@ -24,6 +24,7 @@ import { isOrgPlan } from '@/lib/billing/plan-helpers'
 import { ENTITLED_SUBSCRIPTION_STATUSES } from '@/lib/billing/subscriptions/utils'
 import { isBillingEnabled } from '@/lib/core/config/env-flags'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { getInstanceOrganizationConfig } from '@/lib/organizations/instance-org'
 import { captureServerEvent } from '@/lib/posthog/server'
 import {
   attachOwnedWorkspacesToOrganization,
@@ -179,11 +180,29 @@ export const POST = withRouteHandler(async (request: Request) => {
       })
     }
 
-    /** Nexora edition: without billing, organizations are free, so any user may found one. */
+    /**
+     * Nexora edition: without billing, organizations are free. The founder's workspaces
+     * follow them in; collaborators who belong to another organization stay external
+     * rather than blocking it. Attaching is idempotent, so a founder whose first attempt
+     * stopped after the organization was created finishes it by calling again.
+     */
     if (!isBillingEnabled) {
+      const attachFounderWorkspaces = (organizationId: string) =>
+        attachOwnedWorkspacesToOrganization({
+          ownerUserId: user.id,
+          organizationId,
+          externalMemberPolicy: 'keep-external',
+          includeArchived: true,
+        })
+
       if (existingAdminMembership) {
+        await attachFounderWorkspaces(existingAdminMembership.organizationId)
+        return finishCreation(existingAdminMembership.organizationId, false)
+      }
+      // Every user joins the instance organization; a second one would split the company.
+      if (getInstanceOrganizationConfig()) {
         return NextResponse.json(
-          { error: 'You already belong to an organization.' },
+          { error: 'This instance has a single organization. Ask its owner for an invitation.' },
           { status: 409 }
         )
       }
@@ -193,16 +212,7 @@ export const POST = withRouteHandler(async (request: Request) => {
         user.email,
         organizationSlug
       )
-      /**
-       * The founder's workspaces follow them into the organization. Collaborators who
-       * belong to another organization stay external rather than blocking the new one.
-       */
-      await attachOwnedWorkspacesToOrganization({
-        ownerUserId: user.id,
-        organizationId,
-        externalMemberPolicy: 'keep-external',
-        includeArchived: true,
-      })
+      await attachFounderWorkspaces(organizationId)
       return finishCreation(organizationId, true)
     }
 

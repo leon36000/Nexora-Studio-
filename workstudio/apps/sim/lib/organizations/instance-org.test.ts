@@ -81,6 +81,11 @@ describe('instance organization', () => {
       setEnvFlags({ isBillingEnabled: true })
       expect(getInstanceOrganizationConfig()).toBeNull()
     })
+
+    it('derives a readable slug from an accented company name', () => {
+      setInstanceEnv({ INSTANCE_ORG_NAME: 'Société Dupont & Fils' })
+      expect(getInstanceOrganizationConfig()?.slug).toBe('societe-dupont-fils')
+    })
   })
 
   describe('provisioning', () => {

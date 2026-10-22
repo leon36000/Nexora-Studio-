@@ -3,6 +3,7 @@
 workstudio/apps/sim/app/(auth)
 workstudio/apps/sim/app/not-found.tsx
 workstudio/apps/sim/app/global-error.tsx
+workstudio/apps/sim/app/oauth-error
 workstudio/apps/sim/app/workspace/[workspaceId]/error.tsx
 workstudio/apps/sim/app/workspace/[workspaceId]/not-found.tsx
 # 6.2 Coquille et navigation
