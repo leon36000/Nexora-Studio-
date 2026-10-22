@@ -300,7 +300,7 @@ Les traductions peuvent être confiées à des sous-agents, en parallèle par zo
 - [x] `superpowers:requesting-code-review` sur la branche ; traiter les retours.
 - [x] Mettre à jour le ledger avec les preuves ; mettre à jour la mémoire du projet.
 - [x] Fusionner `workstudio-v1` dans `main` en local (fast-forward ou merge). **Pas de push.**
-- [ ] Seulement après la Tâche 16 : émettre la promesse de fin de boucle.
+- [x] Seulement après la Tâche 16 : émettre la promesse de fin de boucle.
 
 ## Tâche 16 — Installation en une commande (spec §5.8)
 

@@ -264,3 +264,4 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Amorçage : un 401 transitoire (session admin de Nexora API réutilisée jusqu'à son expiration) faisait échouer `nexora-bootstrap` ; nouvelle connexion puis un seul nouvel essai, testé. Pile principale : fournisseur conservé (id 1), **fumée 11/11**.
   - Non vérifié faute de publication : le téléchargement des images depuis GHCR (il suppose l'envoi sur GitHub, qui attend l'accord du fondateur).
 
+- 22/10/2026 — **Fin de la v1** : toutes les cases des tâches 0 à 16 sont cochées ; contrôles de la spec §5 (1 à 8) passés sur pc6 ; aucun code WorkStudio modifié depuis la dernière vérification complète (`88a820e2`). `main` à jour en local. Envoi sur GitHub : en attente de l'accord du fondateur.
