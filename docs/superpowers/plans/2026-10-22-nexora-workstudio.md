@@ -100,10 +100,10 @@ Chemins utiles :
 
 **Fichiers** : `workstudio/apps/sim/lib/core/config/env.ts` (valeurs par défaut), le fournisseur PostHog côté client, l'initialisation de Sentry (`instrumentation*.ts`, `sentry.*.config.ts`), l'endpoint de télémétrie, le gate du copilot, et les tests correspondants.
 
-- [ ] Test : sans variable d'environnement, `isPosthogEnabled()` vaut false, Sentry n'est pas initialisé (pas de DSN), et `isCopilotAvailable()` vaut false quand `SIM_AGENT_API_URL` est vide.
-- [ ] Supprimer toute valeur par défaut pointant vers `*.sim.ai` (copilot, télémétrie, `TELEMETRY_ENDPOINT`, docs). `NEXT_TELEMETRY_DISABLED=1` dans les Dockerfiles.
-- [ ] Masquer les points d'entrée UI du copilot (panneau, raccourci, bouton) quand il est indisponible.
-- [ ] `grep -rn "sim\.ai" workstudio/apps/sim --include=*.ts --include=*.tsx` : aucun appel réseau sortant (fetch, URL d'API) restant. Les liens de documentation sont traités en tâche 4.
+- [x] Test : sans variable d'environnement, `isPosthogEnabled()` vaut false, Sentry n'est pas initialisé (pas de DSN), et `isCopilotAvailable()` vaut false quand `SIM_AGENT_API_URL` est vide.
+- [x] Supprimer toute valeur par défaut pointant vers `*.sim.ai` (copilot, télémétrie, `TELEMETRY_ENDPOINT`, docs). `NEXT_TELEMETRY_DISABLED=1` dans les Dockerfiles.
+- [x] Masquer les points d'entrée UI du copilot (panneau, raccourci, bouton) quand il est indisponible.
+- [x] `grep -rn "sim\.ai" workstudio/apps/sim --include=*.ts --include=*.tsx` : aucun appel réseau sortant (fetch, URL d'API) restant. Les liens de documentation sont traités en tâche 4.
 
 **Vérification** : tests verts ; recherche des appels réseau vide (consigner la commande).
 

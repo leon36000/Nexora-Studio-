@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { telemetryContract } from '@/lib/api/contracts/telemetry'
 import { parseRequest } from '@/lib/api/server'
 import { env } from '@/lib/core/config/env'
+import { resolveTelemetryEndpoint } from '@/lib/telemetry/endpoint'
 import { isProd } from '@/lib/core/config/env-flags'
 import { enforceIpRateLimit } from '@/lib/core/rate-limiter'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
@@ -60,7 +61,12 @@ async function forwardToCollector(data: Record<string, unknown>): Promise<boolea
     return false
   }
 
-  const endpoint = env.TELEMETRY_ENDPOINT || 'https://telemetry.simstudio.ai/v1/traces'
+  const endpoint = resolveTelemetryEndpoint({
+    OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    TELEMETRY_ENDPOINT: env.TELEMETRY_ENDPOINT,
+    NEXT_TELEMETRY_DISABLED: process.env.NEXT_TELEMETRY_DISABLED,
+  })
+  if (!endpoint) return true
   const timeout = DEFAULT_TIMEOUT
 
   try {

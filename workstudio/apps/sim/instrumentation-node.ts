@@ -15,6 +15,7 @@ import type {
 import { createLogger } from '@sim/logger'
 import { TraceAttr } from '@/lib/mothership/generated/trace-attributes-v1'
 import { env } from './lib/core/config/env'
+import { resolveTelemetryEndpoint } from './lib/telemetry/endpoint'
 import { parseOtlpHeaders } from './lib/monitoring/otlp'
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR)
@@ -27,7 +28,7 @@ const SPAN_NAME_PREFIX = `${MOTHERSHIP_ORIGIN}: `
 const SERVICE_INSTANCE_SLUG = 'sim' as const
 
 const DEFAULT_TELEMETRY_CONFIG = {
-  endpoint: env.TELEMETRY_ENDPOINT || 'https://telemetry.simstudio.ai/v1/traces',
+  endpoint: env.TELEMETRY_ENDPOINT || '',
   serviceName: 'mothership',
   serviceVersion: '0.1.0',
   serverSide: { enabled: true },
@@ -163,12 +164,16 @@ async function initializeOpenTelemetry() {
       telemetryConfig = DEFAULT_TELEMETRY_CONFIG
     }
 
-    // Prefer the OTel spec env var, fall back to legacy TELEMETRY_ENDPOINT.
-    const resolvedEndpoint =
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-      process.env.TELEMETRY_ENDPOINT ||
-      env.TELEMETRY_ENDPOINT ||
-      telemetryConfig.endpoint
+    // Prefer the OTel spec env var, fall back to legacy TELEMETRY_ENDPOINT. No default collector.
+    const resolvedEndpoint = resolveTelemetryEndpoint({
+      OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+      TELEMETRY_ENDPOINT:
+        process.env.TELEMETRY_ENDPOINT || env.TELEMETRY_ENDPOINT || telemetryConfig.endpoint,
+    })
+    if (!resolvedEndpoint) {
+      logger.info('OpenTelemetry disabled: no collector configured')
+      return
+    }
     telemetryConfig = {
       ...telemetryConfig,
       endpoint: resolvedEndpoint,

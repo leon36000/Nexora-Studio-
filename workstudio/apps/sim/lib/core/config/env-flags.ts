@@ -65,9 +65,9 @@ const forceHosted = !isProd && isTruthy(getEnv('NEXT_PUBLIC_FORCE_HOSTED'))
 export const isHosted = forceHosted || appHostname === 'sim.ai' || appHostname.endsWith('.sim.ai')
 
 /**
- * Are the Chat module's surfaces shown. On by default, so a deployment that
- * already has `COPILOT_API_KEY` keeps Chat without setting anything; the setup
- * wizard writes the opt-out when you skip the key.
+ * Are the Chat module's surfaces shown. Nexora edition: off unless
+ * `NEXT_PUBLIC_CHAT_ENABLED` is set, because Chat needs a copilot backend
+ * (`SIM_AGENT_API_URL`) and none is bundled. `NEXT_PUBLIC_CHAT_DISABLED` still wins.
  *
  * This governs presentation only. Whether Chat can actually reach the mothership
  * is a separate question answered by `COPILOT_API_KEY`, which gates the paths
@@ -79,7 +79,8 @@ export const isHosted = forceHosted || appHostname === 'sim.ai' || appHostname.e
  * Read at module scope or inline during render only. Resolving it through
  * `useState`/`useEffect` would render chat surfaces before removing them.
  */
-export const isChatEnabled = !isTruthy(getEnv('NEXT_PUBLIC_CHAT_DISABLED'))
+export const isChatEnabled =
+  isTruthy(getEnv('NEXT_PUBLIC_CHAT_ENABLED')) && !isTruthy(getEnv('NEXT_PUBLIC_CHAT_DISABLED'))
 
 /**
  * Forces the sidebar service-status notice into its critical preview state.

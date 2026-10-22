@@ -19,3 +19,12 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
   - Repéré pour la tâche 4 : `apps/sim/public/landing` (41 Mo : vidéos et témoignages clients de Sim) à retirer avec le site marketing.
 - 22/10/2026 — **Tâche 1 terminée.** `scripts/check-no-ee.sh` (en-tête + historique Git + arbre de travail, 2,7 s) et `scripts/check-licenses.sh`, avec leurs tests (`scripts/tests/test-check-*.sh` : 5/5 et 6/6). Sur le dépôt : `check-no-ee: OK (318 reference hashes, 32180 files checked)`, `check-licenses: OK (3 components)`. Bug trouvé par le test d'historique (`cat-file` recevait le chemin avec l'empreinte), corrigé.
   - R6 : la référence `scripts/data/sim-ee-blob-shas.txt` contient seulement les empreintes de blobs (`git ls-tree`, sans lecture du contenu), sans les chemins. L'empreinte du fichier vide est ignorée. Pas de `scripts/lib/ee-reference.sh` : la commande de génération est écrite en tête du fichier de données.
+- 22/10/2026 — **Tâche 2 (partie 1).** `bun install --frozen-lockfile` : 2 144 paquets en 3,5 s (cache). Bun 1.4.2 installé pour l'utilisateur (`~/.local/share/nexora-tools`, liens dans `~/.local/bin`). **tsc `apps/sim` : 0 erreur.** Tests des 57 fichiers qui touchent `@/ee/` : 13 fichiers en échec (56 tests sur 1 192). Leur réparation (tâche 2b) est confiée à un sous-agent, sous contrainte de salle blanche.
+- 22/10/2026 — **Tâche 3 terminée.**
+  - Constats : PostHog ne démarre qu'avec une clé et `NEXT_PUBLIC_POSTHOG_ENABLED` (rien à changer) ; Sentry n'est pas une dépendance.
+  - OpenTelemetry et `/api/telemetry` envoyaient **par défaut** à `telemetry.simstudio.ai` : remplacé par `lib/telemetry/endpoint.ts` (`resolveTelemetryEndpoint`), sans collecteur par défaut.
+  - Le copilot (« mothership ») avait pour URL par défaut `https://www.copilot.sim.ai`, remplacée par `http://copilot.invalid`.
+  - Les surfaces Chat et copilot sont masquées par défaut : nouveau `NEXT_PUBLIC_CHAT_ENABLED` ; `NEXT_PUBLIC_CHAT_DISABLED` garde la priorité.
+  - Tests : `lib/nexora/edition-defaults.test.ts` et `lib/telemetry/endpoint.test.ts` (10/10, écrits avant le code) ; tests voisins 23 fichiers / 210 tests verts.
+  - Restent des références à `sim.ai` sans appel par défaut (`status.sim.ai` monté seulement si `isHosted`, réécritures d'hôtes dans `tools/http/utils.ts`, CSP) : traitées avec la marque en tâche 4.
+  - R7 : le Chat d'accueil de Sim dépend d'un service fermé, donc il est masqué en v1 (l'espace s'ouvre sur le premier workflow). Un Chat Nexora branché sur Nexora API est renvoyé à la phase 2.

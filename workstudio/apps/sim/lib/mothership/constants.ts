@@ -1,6 +1,10 @@
 import { env } from '@/lib/core/config/env'
 
-export const SIM_AGENT_API_URL_DEFAULT = 'https://www.copilot.sim.ai'
+/**
+ * Nexora edition: no copilot backend is bundled. The reserved `.invalid` TLD (RFC 2606) never
+ * resolves, so an unconfigured deployment fails locally instead of calling a third-party service.
+ */
+export const SIM_AGENT_API_URL_DEFAULT = 'http://copilot.invalid'
 export const SIM_AGENT_VERSION = '3.0.0'
 
 /** Resolved copilot backend URL — reads from env with fallback to default. */
