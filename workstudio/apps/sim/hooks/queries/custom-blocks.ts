@@ -1,22 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
-import {
-  type CustomBlock,
-  type CustomBlockUsageCounts,
-  deleteCustomBlockContract,
-  getCustomBlockUsageCountsContract,
-  listCustomBlocksContract,
-  type PublishCustomBlockBody,
-  publishCustomBlockContract,
-  type UpdateCustomBlockBody,
-  updateCustomBlockContract,
-} from '@/lib/api/contracts/custom-blocks'
+import { type CustomBlock, listCustomBlocksContract } from '@/lib/api/contracts/custom-blocks'
 
 export const CUSTOM_BLOCK_LIST_STALE_TIME = 60 * 1000
 /** Short — the usage count is a pre-delete safety check and must stay fresh. */
 export const CUSTOM_BLOCK_USAGES_STALE_TIME = 30 * 1000
 
-export const customBlockKeys = {
+const customBlockKeys = {
   all: ['custom-blocks'] as const,
   lists: () => [...customBlockKeys.all, 'list'] as const,
   list: (workspaceId?: string) => [...customBlockKeys.lists(), workspaceId ?? ''] as const,
@@ -51,57 +41,4 @@ function useCustomBlocksQuery<T>(
 /** Org custom blocks (with live-derived input fields) available in this workspace. */
 export function useCustomBlocks(workspaceId?: string) {
   return useCustomBlocksQuery(workspaceId, (r) => r.customBlocks)
-}
-
-/** Whether this workspace may publish/use custom blocks (feature flag + enterprise plan). */
-export function useCanPublishCustomBlock(workspaceId?: string) {
-  return useCustomBlocksQuery(workspaceId, (r) => r.enabled)
-}
-
-function fetchCustomBlockUsageCounts(
-  id: string,
-  signal?: AbortSignal
-): Promise<CustomBlockUsageCounts> {
-  return requestJson(getCustomBlockUsageCountsContract, { params: { id }, signal })
-}
-
-/** How many workflows across the org place this block (live editor state and/or active deployment). */
-export function useCustomBlockUsageCounts(blockId?: string, options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: customBlockKeys.usages(blockId),
-    queryFn: ({ signal }) => fetchCustomBlockUsageCounts(blockId as string, signal),
-    enabled: Boolean(blockId) && (options?.enabled ?? true),
-    staleTime: CUSTOM_BLOCK_USAGES_STALE_TIME,
-  })
-}
-
-export function usePublishCustomBlock() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (body: PublishCustomBlockBody) => requestJson(publishCustomBlockContract, { body }),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: customBlockKeys.lists() })
-    },
-  })
-}
-
-export function useUpdateCustomBlock() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, ...body }: UpdateCustomBlockBody & { id: string }) =>
-      requestJson(updateCustomBlockContract, { params: { id }, body }),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: customBlockKeys.lists() })
-    },
-  })
-}
-
-export function useDeleteCustomBlock() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => requestJson(deleteCustomBlockContract, { params: { id } }),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: customBlockKeys.lists() })
-    },
-  })
 }

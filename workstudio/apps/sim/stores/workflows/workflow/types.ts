@@ -1,5 +1,4 @@
 import type {
-  BlockData,
   BlockLayoutState,
   BlockRetryConfig,
   BlockState,
@@ -20,7 +19,6 @@ import type {
 import type { Edge } from '@xyflow/react'
 
 export type {
-  BlockData,
   BlockLayoutState,
   BlockRetryConfig,
   BlockState,

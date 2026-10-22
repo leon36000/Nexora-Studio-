@@ -49,32 +49,3 @@ export function toScannerBlocks(state: WorkflowState): ScannerBlock[] {
     triggerMode: block.triggerMode,
   }))
 }
-
-/**
- * Unique knowledge-document ids referenced across a set of source workflow states. Fork and
- * promote use this to decide which KB documents a copy must pre-create placeholders for, so a
- * `document-selector` reference remaps to the copied doc instead of being cleared.
- */
-export function collectReferencedDocumentIds(states: Iterable<WorkflowState>): Set<string> {
-  const ids = new Set<string>()
-  for (const state of states) {
-    for (const docId of collectReferencedResourceIds(
-      toScannerBlocks(state),
-      'knowledge-document'
-    )) {
-      ids.add(docId)
-    }
-  }
-  return ids
-}
-
-/** Canonical workspace file-folder paths referenced by deployed workflow fields and nested tools. */
-export function collectReferencedFileFolderPaths(states: Iterable<WorkflowState>): Set<string> {
-  const paths = new Set<string>()
-  for (const state of states) {
-    for (const path of collectReferencedResourceIds(toScannerBlocks(state), 'file-folder')) {
-      paths.add(path)
-    }
-  }
-  return paths
-}

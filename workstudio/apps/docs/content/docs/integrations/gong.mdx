@@ -1259,7 +1259,7 @@ Trigger workflow when a call is completed and processed in Gong
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `gongJwtPublicKeyPem` | string | No | Required only when your Gong rule uses **Signed JWT header**. Sim verifies RS256, `webhook_url`, and `body_sha256` per Gong. If empty, only the webhook URL path authenticates the request. |
+| `gongJwtPublicKeyPem` | string | No | Required only when your Gong rule uses **Signed JWT header**. Nexora verifies RS256, `webhook_url`, and `body_sha256` per Gong. If empty, only the webhook URL path authenticates the request. |
 
 #### Output
 
@@ -1308,7 +1308,7 @@ Generic webhook trigger for all Gong events
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `gongJwtPublicKeyPem` | string | No | Required only when your Gong rule uses **Signed JWT header**. Sim verifies RS256, `webhook_url`, and `body_sha256` per Gong. If empty, only the webhook URL path authenticates the request. |
+| `gongJwtPublicKeyPem` | string | No | Required only when your Gong rule uses **Signed JWT header**. Nexora verifies RS256, `webhook_url`, and `body_sha256` per Gong. If empty, only the webhook URL path authenticates the request. |
 
 #### Output
 

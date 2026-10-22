@@ -506,7 +506,7 @@ sim organizations access-requests discover [options]
 | --- | --- | --- |
 | `--organization <value>` | Yes | Organization identifier. |
 | `--search <value>` | No | Case-insensitive substring match against the access item label. |
-| `--target-kind <value>` | No | Category of access to discover. Accepted values: `feature`, `integration`, `provider`, `model`, `tool`, `knowledge_connector`, `file_share_auth`, `chat_deploy_auth`, `usage_limit`. |
+| `--target-kind <value>` | No | Category of access to discover. Accepted values: `feature`, `integration`, `model`, `tool`, `capability`, `usage_limit`. |
 | `--state <value>` | No | Filter by the acting user’s current access. Requestable items can be submitted for review. Accepted values: `allowed`, `requestable`, `unavailable`. |
 | `--sort-by <value>` | No | Field used to sort the result. Defaults to "label". Accepted values: `label`. |
 | `--sort-order <value>` | No | Sort direction. Defaults to "asc". Accepted values: `asc`, `desc`. |
@@ -926,7 +926,7 @@ sim organizations sso providers save [options]
 | `--jwks-endpoint <value>` | No | Optional signing-key endpoint; otherwise resolved through issuer discovery. Available when providerType is oidc. |
 | `--entry-point <value>` | Conditional | Identity provider SAML sign-in endpoint. Available when providerType is saml. Required when providerType is saml. |
 | `--cert <value>` | Conditional | Identity provider signing certificate. Available when providerType is saml. Required when providerType is saml. |
-| `--callback-url <value>` | No | SAML callback URL; defaults to this provider’s Sim callback. Available when providerType is saml. |
+| `--callback-url <value>` | No | SAML callback URL; defaults to this provider’s Nexora callback. Available when providerType is saml. |
 | `--audience <value>` | No | SAML audience; omission preserves the saved value. Available when providerType is saml. |
 | `--want-assertions-signed` | No | Require signed assertions; omission preserves the saved value. Available when providerType is saml. |
 | `--no-want-assertions-signed` | No | Send --want-assertions-signed as false. |

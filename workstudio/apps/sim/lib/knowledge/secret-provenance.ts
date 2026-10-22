@@ -301,7 +301,7 @@ export function readBoundKnowledgeDocumentSecretProvenance(
   return entries ? { status: 'exact', entries } : { status: 'unknown' }
 }
 
-export function readBoundKnowledgeEmbeddingSecretProvenance(
+function readBoundKnowledgeEmbeddingSecretProvenance(
   row: KnowledgeEmbeddingSecretProvenanceRow
 ): DurableSecretProvenance {
   if (row.secretProvenanceVersion === null) {

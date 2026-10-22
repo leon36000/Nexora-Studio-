@@ -20,15 +20,6 @@ export interface PermissionGroupPlatformFeature {
 }
 
 /**
- * The note a group editor shows beside an organization-scoped row.
- *
- * One sentence, in one place, so the editor and any other surface that has to
- * explain the row say the same thing.
- */
-export const ORGANIZATION_SCOPED_FEATURE_NOTE =
-  "Read from the organization's default group, so it applies organization-wide no matter which group sets it."
-
-/**
  * Whether a group editor can decide this key at all.
  *
  * An `organization`-scoped key is read from the organization's default group, so
@@ -48,24 +39,6 @@ export interface ActivePermissionGroupRestriction {
   key: keyof PermissionGroupConfig
   description: string
 }
-
-/**
- * Render order for the platform-feature category sections; unlisted ones follow.
- *
- * Named after what a group withholds rather than after the surface the key once
- * hid, for the reason `PlatformFeatureMeta.hint` in `fields.ts` gives at length.
- */
-export const PLATFORM_CATEGORY_ORDER: readonly string[] = [
-  'Modules',
-  'Knowledge Base',
-  'Tables',
-  'Files',
-  'Deployment',
-  'Tools',
-  'Logs',
-  'Collaboration',
-  'Credentials & Access',
-] as const
 
 const FIELD_ENTRIES = Object.entries(PERMISSION_GROUP_FIELDS) as Array<
   [PermissionGroupConfigKey, (typeof PERMISSION_GROUP_FIELDS)[PermissionGroupConfigKey]]

@@ -75,6 +75,8 @@ beforeEach(() => {
       'https://www.sim.ai/models/anthropic',
       'https://www.sim.ai/models/anthropic/claude-opus-4-6',
     ]),
+    siteUrl: 'https://www.sim.ai',
+    docsUrl: 'https://docs.sim.ai',
   }
   mkdirSync(path.join(config.contentDir, 'authors'), { recursive: true })
   writeFileSync(path.join(config.contentDir, 'authors', 'sim.json'), '{"id":"sim","name":"Sim"}')

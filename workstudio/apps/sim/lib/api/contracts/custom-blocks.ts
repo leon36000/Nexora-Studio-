@@ -7,15 +7,9 @@ import {
   updateCustomBlockBodySchema,
 } from '@/lib/workflows/custom-blocks/settings-input'
 
-export type {
-  CustomBlockInputPlaceholder,
-  PublishCustomBlockBody,
-  UpdateCustomBlockBody,
-} from '@/lib/workflows/custom-blocks/settings-input'
 export {
   isAllowedCustomBlockIconUrl,
   publishCustomBlockBodySchema,
-  updateCustomBlockBodySchema,
 } from '@/lib/workflows/custom-blocks/settings-input'
 
 export const customBlockIdParamsSchema = z.object({ id: z.string().min(1) })
@@ -71,8 +65,6 @@ export const customBlockUsageCountsSchema = z.object({
   usageCount: z.number().int().min(0),
   deployedUsageCount: z.number().int().min(0),
 })
-
-export type CustomBlockUsageCounts = z.output<typeof customBlockUsageCountsSchema>
 
 export const listCustomBlocksContract = defineRouteContract({
   method: 'GET',

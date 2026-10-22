@@ -585,8 +585,6 @@ export const retentionOverrideSchema = z.object({
   fileVersionRetentionHours: retentionOverrideHoursSchema,
 })
 
-export type RetentionOverride = z.output<typeof retentionOverrideSchema>
-
 /**
  * Per-workspace retention overrides. Each workspace appears at most once —
  * resolution is workspace-override-then-org-default, so duplicate workspaces

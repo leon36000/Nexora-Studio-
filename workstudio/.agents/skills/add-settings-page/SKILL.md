@@ -55,7 +55,7 @@ Each grep lists candidates; review every match against the expected ones named b
 2. Find hand-rolled title blocks:
    `git grep -n "text-\[var(--text-body)\] text-lg" -- 'apps/sim/**/settings/**' 'apps/sim/ee/'`
    — the only title is the `<h1>` in `settings-header.tsx`; a non-heading value at that size
-   (e.g. the credit balance in `ee/organization-usage/components/usage-credits.tsx`) is fine.
+   (e.g. a credit balance) is fine.
 3. Find literal pixel text sizes (should be 0 — see "Text Scale" in
    `.claude/rules/sim-styling.md`):
    `git grep -nE "text-\[1[0-8]px\]" -- 'apps/sim/**/settings/**' 'apps/sim/ee/'`.

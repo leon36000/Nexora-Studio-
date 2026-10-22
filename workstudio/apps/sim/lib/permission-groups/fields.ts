@@ -4,7 +4,7 @@ import { z } from 'zod'
  * Auth modes a public file share or a chat deployment can use; admins may
  * restrict the allowed subset. The two surfaces share the same four modes.
  */
-export const FILE_SHARE_AUTH_TYPES = ['public', 'password', 'email', 'sso'] as const
+const FILE_SHARE_AUTH_TYPES = ['public', 'password', 'email', 'sso'] as const
 
 const shareAuthType = z.enum(FILE_SHARE_AUTH_TYPES)
 

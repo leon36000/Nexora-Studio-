@@ -868,7 +868,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2CreateWorkflowMcpServerContract,
     summary: 'Create workflow MCP server',
     description:
-      'Create an MCP server exposing deployed workflows as tools. Every supplied workflow must already be deployed. With `isPublic: true`, anyone holding the server URL can execute its workflows without a Sim API key. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.',
+      'Create an MCP server exposing deployed workflows as tools. Every supplied workflow must already be deployed. With `isPublic: true`, anyone holding the server URL can execute its workflows without a Nexora API key. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.',
     workspaceKeyUnsupported: true,
     handler: () => import('@/app/api/v2/workflow-mcp-servers/route').then((route) => route.POST),
   },
@@ -1200,7 +1200,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2ExecuteToolContract,
     summary: 'Run tool',
     description:
-      'Run a built-in tool using published parameter IDs. Requires workspace read access. Sim resolves `credentialId`, hosted keys, and whole-value `{{VAR_NAME}}` references in `user-only` parameters; other values pass through unchanged. Send connected credentials as top-level `credentialId`, not inside `input`. Third-party refusal returns `200` with `status: "failed"`; API failures use the error envelope. Hidden or missing tools return `404`; disallowed integrations return `403` with `error.details.code: INTEGRATION_NOT_ALLOWED`. Hosted-key usage is billed to the workspace. A call that would use a hosted key returns `402` when the workspace exceeds usage or billing limits. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.',
+      'Run a built-in tool using published parameter IDs. Requires workspace read access. Nexora resolves `credentialId`, hosted keys, and whole-value `{{VAR_NAME}}` references in `user-only` parameters; other values pass through unchanged. Send connected credentials as top-level `credentialId`, not inside `input`. Third-party refusal returns `200` with `status: "failed"`; API failures use the error envelope. Hidden or missing tools return `404`; disallowed integrations return `403` with `error.details.code: INTEGRATION_NOT_ALLOWED`. Hosted-key usage is billed to the workspace. A call that would use a hosted key returns `402` when the workspace exceeds usage or billing limits. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.',
     workspaceKeyUnsupported: true,
     handler: () => import('@/app/api/v2/tools/[toolId]/execute/route').then((route) => route.POST),
   },
@@ -1332,14 +1332,14 @@ export const V2_MCP_OPERATIONS = {
     contract: v2GetLogContract,
     summary: 'Get log',
     description:
-      "Get a run's workflow graph, trace spans, final output, and cost. Trace spans expire separately, so an empty `traceSpans` array does not prove none were recorded. Expired runs are permanently deleted by retention cleanup. Sim Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.",
+      "Get a run's workflow graph, trace spans, final output, and cost. Trace spans expire separately, so an empty `traceSpans` array does not prove none were recorded. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.",
     handler: () => import('@/app/api/v2/logs/[runId]/route').then((route) => route.GET),
   },
   getLogStats: {
     contract: v2GetLogStatsContract,
     summary: 'Get log statistics',
     description:
-      'Get bucketed run counts, success rate, errors, and mean latency for the workspace and individual workflows. Query fields describe window selection and bucketing. Folder filters cover subtrees. Expired runs are permanently deleted by retention cleanup. Sim Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
+      'Get bucketed run counts, success rate, errors, and mean latency for the workspace and individual workflows. Query fields describe window selection and bucketing. Folder filters cover subtrees. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
     handler: () => import('@/app/api/v2/logs/stats/route').then((route) => route.GET),
   },
   getMcpServer: {
@@ -1852,7 +1852,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2ListLogsContract,
     summary: 'List logs',
     description:
-      'List logs with filters, selectable detail, sorting, and cursor pagination. `includeJobRuns=true` includes chat and Sim-agent jobs only with `sortBy=startedAt`, because other orderings are unsupported. `files` contains only run-produced files; use the files API for input attachments. Expired runs are permanently deleted by retention cleanup. Sim Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
+      'List logs with filters, selectable detail, sorting, and cursor pagination. `includeJobRuns=true` includes chat and Sim-agent jobs only with `sortBy=startedAt`, because other orderings are unsupported. `files` contains only run-produced files; use the files API for input attachments. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. Workspace folder trees exceeding 10,000 folders return `413`.\n\nOAuth scope: `api:read`.',
     handler: () => import('@/app/api/v2/logs/route').then((route) => route.GET),
   },
   listMcpServers: {
@@ -2109,7 +2109,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2ListWorkflowMcpServersContract,
     summary: 'List workflow MCP servers',
     description:
-      'List MCP servers that expose deployed workflows to external clients. Use List MCP servers for external servers Sim calls. Requires workspace read access. Tool names share a 2,000-name page limit; when `toolNamesTruncated` is true, `toolCount` and `toolNames` may be incomplete. Use List workflow MCP tools for a server’s bounded inventory. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:read`.',
+      'List MCP servers that expose deployed workflows to external clients. Use List MCP servers for external servers Nexora calls. Requires workspace read access. Tool names share a 2,000-name page limit; when `toolNamesTruncated` is true, `toolCount` and `toolNames` may be incomplete. Use List workflow MCP tools for a server’s bounded inventory. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:read`.',
     workspaceKeyUnsupported: true,
     handler: () => import('@/app/api/v2/workflow-mcp-servers/route').then((route) => route.GET),
   },
@@ -2126,7 +2126,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2ListWorkflowRunsContract,
     summary: 'List workflow runs',
     description:
-      'List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Sim Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.',
+      'List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.',
     handler: () =>
       import('@/app/api/v2/workflows/[workflowId]/runs/route').then((route) => route.GET),
   },
@@ -2892,7 +2892,7 @@ export const V2_MCP_OPERATIONS = {
     contract: v2UpdateWorkflowMcpServerContract,
     summary: 'Update workflow MCP server',
     description:
-      'Update a workflow MCP server’s name, description, or public access. Omitted fields stay unchanged; `description: null` clears the description. With `isPublic: true`, anyone holding its URL can execute its tools without a Sim API key. Deploy or undeploy tools separately. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.',
+      'Update a workflow MCP server’s name, description, or public access. Omitted fields stay unchanged; `description: null` clears the description. With `isPublic: true`, anyone holding its URL can execute its tools without a Nexora API key. Deploy or undeploy tools separately. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.',
     workspaceKeyUnsupported: true,
     handler: () =>
       import('@/app/api/v2/workflow-mcp-servers/[serverId]/route').then((route) => route.PATCH),

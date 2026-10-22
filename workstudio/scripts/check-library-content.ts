@@ -94,6 +94,22 @@ export interface ContentCheckConfig {
   customerSlugs: readonly string[]
   /** Canonical integration, model, and documentation pages served by the current source tree. */
   linkedPages: ReadonlySet<string>
+  /**
+   * Public site and documentation homes (`SIM_SITE_URL` / `SIM_DOCS_URL`), no trailing slash.
+   * Either may sit under a path (the Nexora edition points both into one repository), so a link
+   * belongs to one when it falls under that URL, not merely on its host.
+   */
+  siteUrl: string
+  docsUrl: string
+}
+
+/** Whether `url` is `base` or a page under it. */
+function isUnderBase(url: URL, base: URL): boolean {
+  const basePath = base.pathname.replace(/\/$/, '')
+  return (
+    url.origin === base.origin &&
+    (url.pathname === basePath || url.pathname.startsWith(`${basePath}/`))
+  )
 }
 
 /** Post folders per section, keyed by slug, with each post's `draft` flag. */
@@ -221,17 +237,23 @@ function checkChangelogBody(
   visit(tree, 'definition', (node) => {
     definitions.set(node.identifier, node.url)
   })
+  const site = new URL(config.siteUrl)
+  const docs = new URL(config.docsUrl)
   const checkLink = (href: string, line: number) => {
     let url: URL
     try {
-      url = new URL(href, SIM_SITE_URL)
+      // A root-relative link targets the site's home, which may itself sit under a path.
+      url = /^\/(?!\/)/.test(href)
+        ? new URL(`${config.siteUrl}${href}`)
+        : new URL(href, config.siteUrl)
     } catch {
       return
     }
-    const isDocs = url.hostname === new URL(SIM_DOCS_URL).hostname
-    const isCatalog =
-      url.hostname === new URL(SIM_SITE_URL).hostname &&
-      /^\/(?:integrations|models)(?:\/|$)/.test(url.pathname)
+    const isDocs = isUnderBase(url, docs)
+    const sitePath = isUnderBase(url, site)
+      ? url.pathname.slice(site.pathname.replace(/\/$/, '').length)
+      : null
+    const isCatalog = sitePath !== null && /^\/(?:integrations|models)(?:\/|$)/.test(sitePath)
     if (!isDocs && !isCatalog) return
     const canonical = `${url.origin}${url.pathname.replace(/\/$/, '')}`
     if (!config.linkedPages.has(canonical)) {
@@ -771,6 +793,8 @@ async function main() {
     movedBlogSlugs: LIBRARY_MOVED_BLOG_SLUGS,
     customerSlugs: CUSTOMER_STORIES.map((story) => story.slug),
     linkedPages: readLinkedPages(path.join(root, 'apps/docs')),
+    siteUrl: SIM_SITE_URL,
+    docsUrl: SIM_DOCS_URL,
   }
 
   const args = process.argv.slice(2)

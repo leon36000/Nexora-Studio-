@@ -5,7 +5,7 @@ import {
 } from '@/lib/workflows/subblocks/visibility'
 import { getBlock } from '@/blocks/registry'
 import type { BlockState } from '@/stores/workflows/workflow/types'
-import { getTrigger, isTriggerValid } from '@/triggers'
+import { isTriggerValid } from '@/triggers'
 
 /**
  * The Request URL a Slack custom-bot app posts events to. One URL per
@@ -65,19 +65,6 @@ export function resolveBlockTriggerId(block: BlockState): string | undefined {
   }
 
   return undefined
-}
-
-/**
- * The webhook provider a block's events arrive under, or null when it is not a trigger.
- *
- * This is the identity an inbound request is verified against: a path served by a `slack` webhook
- * authenticates Slack's signature and parses Slack's event shape. Two triggers of DIFFERENT
- * providers can therefore never share a URL meaningfully, however similar they look.
- */
-export function resolveBlockTriggerProvider(block: BlockState): string | null {
-  const triggerId = resolveBlockTriggerId(block)
-  if (!triggerId || !isTriggerValid(triggerId)) return null
-  return getTrigger(triggerId).provider ?? null
 }
 
 /**

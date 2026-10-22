@@ -912,7 +912,7 @@ Replace a contact point by its UID. Grafana has no partial update for contact po
 | `type` | string | Yes | Receiver type, e.g. slack, email, pagerduty, webhook, opsgenie, teams, discord, telegram |
 | `settings` | string | Yes | JSON object of receiver settings for this type, e.g. \{ "url": "https://hooks.slack.com/..." \} for slack |
 | `disableResolveMessage` | boolean | No | Suppress the resolved notification. Omitting this resets it to false |
-| `disableProvenance` | boolean | No | Send X-Disable-Provenance. Use only on a contact point whose provenance is already empty \(UI-created, or created by Sim with this on\) — sending it against an API-provisioned contact point is rejected with 403 |
+| `disableProvenance` | boolean | No | Send X-Disable-Provenance. Use only on a contact point whose provenance is already empty \(UI-created, or created by Nexora with this on\) — sending it against an API-provisioned contact point is rejected with 403 |
 
 #### Output
 

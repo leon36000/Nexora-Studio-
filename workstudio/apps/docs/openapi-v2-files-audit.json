@@ -1,13 +1,13 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Sim API v2 — Files & Audit Logs",
-    "description": "Version 2 of the Sim REST API for workspace files, resumable uploads, public shares, and organization audit logs.",
+    "title": "Nexora API v2 — Files & Audit Logs",
+    "description": "Version 2 of the Nexora REST API for workspace files, resumable uploads, public shares, and organization audit logs.",
     "version": "2.0.0",
     "contact": {
-      "name": "Sim Support",
-      "email": "help@sim.ai",
-      "url": "https://www.sim.ai"
+      "name": "Nexora Support",
+      "email": "support@example.com",
+      "url": "https://workstudio.example.com"
     },
     "license": {
       "name": "Apache 2.0",
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://www.sim.ai",
+      "url": "https://workstudio.example.com",
       "description": "Production"
     }
   ],
@@ -199,7 +199,7 @@
                       "data": [
                         {
                           "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                          "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                          "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                           "name": "data.csv",
                           "size": 1024,
                           "type": "text/csv",
@@ -305,7 +305,7 @@
                     "value": {
                       "data": {
                         "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                         "name": "data.csv",
                         "size": 1024,
                         "type": "text/csv",
@@ -1754,7 +1754,7 @@
                         "reverted": true,
                         "file": {
                           "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                          "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                          "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                           "name": "data.csv",
                           "size": 1024,
                           "type": "text/csv",
@@ -2293,7 +2293,7 @@
                     "value": {
                       "data": {
                         "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                         "name": "data.csv",
                         "size": 1024,
                         "type": "text/csv",
@@ -2418,7 +2418,7 @@
                     "value": {
                       "data": {
                         "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                         "name": "data_restored.csv",
                         "size": 1024,
                         "type": "text/csv",
@@ -2548,7 +2548,7 @@
                     "value": {
                       "data": {
                         "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                         "name": "data.csv",
                         "size": 1024,
                         "type": "text/csv",
@@ -2569,7 +2569,7 @@
                     "value": {
                       "data": {
                         "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                         "name": "data.csv",
                         "size": 1024,
                         "type": "text/csv",
@@ -2582,7 +2582,7 @@
                         "share": {
                           "id": "shr_8Hf3kL9wQ2mNpXr6Tz1Vb",
                           "token": "share-token-example",
-                          "url": "https://www.sim.ai/f/share-token-example",
+                          "url": "https://workstudio.example.com/f/share-token-example",
                           "isActive": true,
                           "resourceType": "file",
                           "resourceId": "wf_V1StGXR8z5jdHi6BmyT91",
@@ -3115,7 +3115,7 @@
                       "data": {
                         "id": "shr_8Hf3kL9wQ2mNpXr6Tz1Vb",
                         "token": "share-token-example",
-                        "url": "https://www.sim.ai/f/share-token-example",
+                        "url": "https://workstudio.example.com/f/share-token-example",
                         "isActive": true,
                         "resourceType": "file",
                         "resourceId": "wf_V1StGXR8z5jdHi6BmyT91",
@@ -3242,7 +3242,7 @@
                       "data": {
                         "id": "shr_8Hf3kL9wQ2mNpXr6Tz1Vb",
                         "token": "share-token-example",
-                        "url": "https://www.sim.ai/f/share-token-example",
+                        "url": "https://workstudio.example.com/f/share-token-example",
                         "isActive": true,
                         "resourceType": "file",
                         "resourceId": "wf_V1StGXR8z5jdHi6BmyT91",
@@ -3378,7 +3378,7 @@
                       "data": {
                         "file": {
                           "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                          "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                          "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                           "name": "data.csv",
                           "size": 1024,
                           "type": "text/csv",
@@ -3507,7 +3507,7 @@
                     "value": {
                       "data": {
                         "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                         "name": "data.csv",
                         "size": 1024,
                         "type": "text/csv",
@@ -4384,16 +4384,16 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://docs.sim.ai/api-reference/authentication#key-types); operations that reject workspace keys say so in their description."
+        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide); operations that reject workspace keys say so in their description."
       },
       "oauthBearer": {
         "type": "oauth2",
-        "description": "Send a Sim OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://docs.sim.ai/api-reference/authentication#oauth-access-tokens).",
+        "description": "Send a Nexora OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide).",
         "flows": {
           "authorizationCode": {
-            "authorizationUrl": "https://www.sim.ai/api/auth/oauth2/authorize",
-            "tokenUrl": "https://www.sim.ai/api/auth/oauth2/token",
-            "refreshUrl": "https://www.sim.ai/api/auth/oauth2/token",
+            "authorizationUrl": "https://workstudio.example.com/api/auth/oauth2/authorize",
+            "tokenUrl": "https://workstudio.example.com/api/auth/oauth2/token",
+            "refreshUrl": "https://workstudio.example.com/api/auth/oauth2/token",
             "scopes": {
               "api:read": "Read your workspaces, workflows, files, tables, and logs",
               "api:write": "Read, create, change, run, and delete resources in your workspaces",
@@ -4783,7 +4783,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "name": {
             "type": "string",
@@ -4893,7 +4893,7 @@
             "data": [
               {
                 "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                 "name": "data.csv",
                 "size": 1024,
                 "type": "text/csv",
@@ -4920,7 +4920,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "name": {
             "type": "string",
@@ -5019,7 +5019,7 @@
           {
             "data": {
               "id": "wf_V1StGXR8z5jdHi6BmyT91",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
               "name": "data.csv",
               "size": 1024,
               "type": "text/csv",
@@ -5537,7 +5537,7 @@
           "source": {
             "type": "string",
             "enum": ["upload", "user", "api", "copilot", "workflow", "collab", "revert", "unknown"],
-            "description": "What wrote this version: `upload` (the original upload), `user` (a save in the Sim editor), `api` (an API, CLI, or MCP write), `copilot` (Sim, the agent), `workflow` (a workflow run), `collab` (collaborative editing), `revert` (a revert to an earlier version), or `unknown` (content written before version history existed, or by a writer with no source of its own)."
+            "description": "What wrote this version: `upload` (the original upload), `user` (a save in the Nexora editor), `api` (an API, CLI, or MCP write), `copilot` (Nexora, the agent), `workflow` (a workflow run), `collab` (collaborative editing), `revert` (a revert to an earlier version), or `unknown` (content written before version history existed, or by a writer with no source of its own)."
           },
           "authors": {
             "type": "array",
@@ -5922,7 +5922,7 @@
               "reverted": true,
               "file": {
                 "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                 "name": "data.csv",
                 "size": 1024,
                 "type": "text/csv",
@@ -6090,7 +6090,7 @@
           {
             "data": {
               "id": "wf_V1StGXR8z5jdHi6BmyT91",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
               "name": "data.csv",
               "size": 1024,
               "type": "text/csv",
@@ -6147,7 +6147,7 @@
           {
             "data": {
               "id": "wf_V1StGXR8z5jdHi6BmyT91",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
               "name": "data_restored.csv",
               "size": 1024,
               "type": "text/csv",
@@ -6196,7 +6196,7 @@
             "type": "string",
             "format": "uri",
             "description": "Public share URL.",
-            "examples": ["https://www.sim.ai/f/share-token-example"]
+            "examples": ["https://workstudio.example.com/f/share-token-example"]
           },
           "isActive": {
             "type": "boolean",
@@ -6256,7 +6256,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "name": {
             "type": "string",
@@ -6374,7 +6374,7 @@
           {
             "data": {
               "id": "wf_V1StGXR8z5jdHi6BmyT91",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
               "name": "data.csv",
               "size": 1024,
               "type": "text/csv",
@@ -6392,7 +6392,7 @@
           {
             "data": {
               "id": "wf_V1StGXR8z5jdHi6BmyT91",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
               "name": "data.csv",
               "size": 1024,
               "type": "text/csv",
@@ -6405,7 +6405,7 @@
               "share": {
                 "id": "shr_8Hf3kL9wQ2mNpXr6Tz1Vb",
                 "token": "share-token-example",
-                "url": "https://www.sim.ai/f/share-token-example",
+                "url": "https://workstudio.example.com/f/share-token-example",
                 "isActive": true,
                 "resourceType": "file",
                 "resourceId": "wf_V1StGXR8z5jdHi6BmyT91",
@@ -6713,7 +6713,7 @@
             "data": {
               "id": "shr_8Hf3kL9wQ2mNpXr6Tz1Vb",
               "token": "share-token-example",
-              "url": "https://www.sim.ai/f/share-token-example",
+              "url": "https://workstudio.example.com/f/share-token-example",
               "isActive": true,
               "resourceType": "file",
               "resourceId": "wf_V1StGXR8z5jdHi6BmyT91",
@@ -6744,7 +6744,7 @@
             "data": {
               "id": "shr_8Hf3kL9wQ2mNpXr6Tz1Vb",
               "token": "share-token-example",
-              "url": "https://www.sim.ai/f/share-token-example",
+              "url": "https://workstudio.example.com/f/share-token-example",
               "isActive": true,
               "resourceType": "file",
               "resourceId": "wf_V1StGXR8z5jdHi6BmyT91",
@@ -6774,7 +6774,7 @@
             "enum": ["public", "password", "email", "sso"]
           },
           "password": {
-            "description": "Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.",
+            "description": "Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.",
             "type": "string",
             "maxLength": 1024
           },
@@ -6845,7 +6845,7 @@
             "data": {
               "file": {
                 "id": "wf_V1StGXR8z5jdHi6BmyT91",
-                "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+                "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
                 "name": "data.csv",
                 "size": 1024,
                 "type": "text/csv",
@@ -7159,7 +7159,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "name": {
             "type": "string",
@@ -7258,7 +7258,7 @@
           {
             "data": {
               "id": "wf_V1StGXR8z5jdHi6BmyT91",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/files/wf_V1StGXR8z5jdHi6BmyT91",
               "name": "data.csv",
               "size": 1024,
               "type": "text/csv",

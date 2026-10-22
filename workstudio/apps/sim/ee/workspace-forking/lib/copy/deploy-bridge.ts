@@ -2,6 +2,9 @@
 
 import { FeatureDisabledError } from '@/ee/_nexora/disabled'
 
-export async function loadSourceDeployedStates(_sourceWorkspaceId: string): Promise<any> {
+/** Deployed source states, keyed by source workflow id to the deployment version they pin. */
+export async function loadSourceDeployedStates(
+  _sourceWorkspaceId: string
+): Promise<{ sourceVersionIds: Map<string, { id: string }> }> {
   throw new FeatureDisabledError('Workspace forking')
 }

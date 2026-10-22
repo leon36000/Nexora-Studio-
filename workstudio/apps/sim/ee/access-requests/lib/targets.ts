@@ -8,7 +8,6 @@ export const ACCESS_REQUEST_TARGET_KINDS = [
   'capability',
   'usage_limit',
 ] as const
-export type AccessRequestTargetKind = (typeof ACCESS_REQUEST_TARGET_KINDS)[number]
 
 export type AccessRequestScope =
   | { kind: 'workspace'; workspaceId: string }

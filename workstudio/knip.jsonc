@@ -51,6 +51,12 @@
         "lib/api/contracts/project-file-folders.ts": ["types"],
         "lib/api/contracts/project-file-lifecycle.ts": ["types"],
         "sandboxes/index.ts": ["files"],
+        // Nexora edition: clean-room stubs that exist only as the module ids the shared
+        // @sim/testing fork mocks target (check:test-patterns requires each target to resolve).
+        // Forking is disabled, so no production module imports them.
+        "ee/workspace-forking/lib/lineage/lineage.ts": ["files"],
+        "ee/workspace-forking/lib/lineage/lineage-root.ts": ["files"],
+        "ee/workspace-forking/lib/mapping/mapping-store.ts": ["files"],
         "lib/api/contracts/file-copy.ts": ["exports", "types"],
         "lib/api/contracts/file-copy-input.ts": ["exports", "types"],
         // API contract conventions require named boundary schemas and wire aliases before client adoption.

@@ -133,7 +133,6 @@
     "apps/sim/components/permissions/member-row.tsx": 2,
     "apps/sim/content/blog/agent-as-yjs-peer/components.tsx": 1,
     "apps/sim/content/blog/v0-5/components.tsx": 1,
-    "apps/sim/ee/access-control/utils/permission-gate-subject.test.ts": 1,
     "apps/sim/executor/dag/construction/edges.test.ts": 1,
     "apps/sim/executor/execution/engine.test.ts": 1,
     "apps/sim/executor/utils/block-reference.test.ts": 1,

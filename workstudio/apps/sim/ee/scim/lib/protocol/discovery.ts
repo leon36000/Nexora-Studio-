@@ -9,8 +9,20 @@ import {
 /** Unreachable while isScimDeploymentEnabled() is false; kept RFC-shaped for completeness. */
 export function resourceTypes(baseUrl: string): Array<{ id: string; [key: string]: unknown }> {
   return [
-    { id: 'User', name: 'User', endpoint: '/Users', schema: SCIM_USER_SCHEMA, meta: { location: `${baseUrl}/ResourceTypes/User` } },
-    { id: 'Group', name: 'Group', endpoint: '/Groups', schema: SCIM_GROUP_SCHEMA, meta: { location: `${baseUrl}/ResourceTypes/Group` } },
+    {
+      id: 'User',
+      name: 'User',
+      endpoint: '/Users',
+      schema: SCIM_USER_SCHEMA,
+      meta: { location: `${baseUrl}/ResourceTypes/User` },
+    },
+    {
+      id: 'Group',
+      name: 'Group',
+      endpoint: '/Groups',
+      schema: SCIM_GROUP_SCHEMA,
+      meta: { location: `${baseUrl}/ResourceTypes/Group` },
+    },
   ]
 }
 

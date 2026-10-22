@@ -17,7 +17,6 @@ export const scimConnectionSettingsSchema = z.object({
   disableJit: z.boolean().optional(),
   autoMapPermissionGroupsByName: z.boolean().optional(),
 })
-export type ScimConnectionSettingsInput = z.input<typeof scimConnectionSettingsSchema>
 
 const scimCredentialSchema = z.object({
   id: z.string(),
@@ -192,9 +191,3 @@ export const reconcileScimConnectionContract = defineRouteContract({
     }),
   },
 })
-
-export type ScimGroupMappingBody = z.input<typeof scimGroupMappingBodySchema>
-export type ScimActivityEntry = z.output<typeof scimActivityEntrySchema>
-export type ScimConnectionView = z.output<typeof scimConnectionSchema>
-export type ScimCredentialView = z.output<typeof scimCredentialSchema>
-export type ScimGroupMappingView = z.output<typeof groupMappingSchema>

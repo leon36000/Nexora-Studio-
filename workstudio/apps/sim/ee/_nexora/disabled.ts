@@ -1,9 +1,10 @@
 // Nexora clean-room replacement — written from core call sites only, Apache-2.0 core untouched.
 
+import type { OAuthApiScope } from '@/lib/auth/oauth-provider'
 import type { ApplicationOperation, OperationUseCase } from '@/lib/core/application/operation'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 
-export const NEXORA_FEATURE_DISABLED_MESSAGE = 'This feature is not available in this edition.'
+const NEXORA_FEATURE_DISABLED_MESSAGE = 'This feature is not available in this edition.'
 
 /**
  * Raised by every disabled use case. It is a `not_found` orchestration error, so the core's
@@ -16,43 +17,62 @@ export class FeatureDisabledError extends OrchestrationError {
   }
 }
 
-/** Minimal operation descriptor. Route builders only compare `id` with the use case's operation. */
+/**
+ * Minimal operation descriptor. Route builders only compare `id` with the use case's operation;
+ * the OpenAPI generator also reads `oauthScope`, which the core requires exactly when the
+ * operation admits OAuth access tokens (see `assertOperationOAuthPolicy`).
+ */
 export type DisabledOperation = ApplicationOperation & {
   readonly minimumRole: 'admin'
-  readonly principalKinds: readonly ['session']
+  readonly principalKinds: readonly ('session' | 'oauth_access_token')[]
 }
 
-export function disabledOperation(id: string): DisabledOperation {
+export function disabledOperation(id: string, oauthScope?: OAuthApiScope): DisabledOperation {
   return Object.freeze({
     id,
     capability: 'none',
     contentDelivery: 'none',
     minimumRole: 'admin',
-    principalKinds: ['session'] as const,
-  }) as DisabledOperation
+    ...(oauthScope
+      ? { oauthScope, principalKinds: ['session', 'oauth_access_token'] as const }
+      : { principalKinds: ['session'] as const }),
+  })
 }
 
 function toSnakeCase(key: string): string {
   return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
 }
 
+/**
+ * Operations keyed in camelCase with core snake_case ids (`access_requests.list_mine`). An
+ * operation published on the v2 API carries the OAuth scope its published OpenAPI entry declares.
+ */
 export function disabledOperations<const K extends string>(
   prefix: string,
-  keys: readonly K[]
+  keys: readonly K[],
+  oauthScopes: Partial<Record<K, OAuthApiScope>> = {}
 ): Readonly<Record<K, DisabledOperation>> {
   const out = {} as Record<K, DisabledOperation>
-  // Core operation ids are snake_case (`access_requests.list_mine`); keys stay camelCase.
-  for (const key of keys) out[key] = disabledOperation(`${prefix}.${toSnakeCase(key)}`)
+  for (const key of keys) {
+    out[key] = disabledOperation(`${prefix}.${toSnakeCase(key)}`, oauthScopes[key])
+  }
   return Object.freeze(out)
 }
 
-/** A use case whose `execute`/`authorize` always refuse with {@link FeatureDisabledError}. */
-export type DisabledUseCase<R = any> = OperationUseCase<any, any, R>
+/**
+ * A disabled use case. It accepts any input (`unknown`) and its result type `R` is what the core
+ * caller reads from the real use case; it defaults to `never` because `execute` never resolves.
+ */
+export type DisabledUseCase<
+  R = never,
+  O extends ApplicationOperation = DisabledOperation,
+> = OperationUseCase<O, unknown, R>
 
-export function disabledUseCase<R = any>(
-  operation: ApplicationOperation,
+/** A use case whose `execute`/`authorize` always refuse with {@link FeatureDisabledError}. */
+export function disabledUseCase<R = never, O extends ApplicationOperation = DisabledOperation>(
+  operation: O,
   feature: string
-): DisabledUseCase<R> {
+): DisabledUseCase<R, O> {
   return Object.freeze({
     operation,
     async execute(): Promise<R> {
@@ -66,12 +86,12 @@ export function disabledUseCase<R = any>(
 
 /** A use case that answers with a constant instead of refusing (feature-availability probes). */
 export function constantUseCase<R>(
-  operation: ApplicationOperation,
+  operation: DisabledOperation,
   value: () => R
-): DisabledUseCase {
+): DisabledUseCase<R> {
   return Object.freeze({
     operation,
-    async execute(): Promise<any> {
+    async execute(): Promise<R> {
       return value()
     },
     async authorize(): Promise<void> {},

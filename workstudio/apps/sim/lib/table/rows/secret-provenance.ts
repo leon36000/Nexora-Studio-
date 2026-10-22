@@ -28,7 +28,7 @@ import {
 
 const logger = createLogger('TableRowSecretProvenance')
 
-export const TABLE_ROW_SECRET_PROVENANCE_VERSION = 1
+const TABLE_ROW_SECRET_PROVENANCE_VERSION = 1
 
 const QUERY_CHUNK_SIZE = 1_000
 

@@ -233,7 +233,6 @@
     "TS2550": 2
   },
   "apps/sim/app/api/organizations/route.test.ts": {
-    "TS2554": 3,
     "TS2769": 1
   },
   "apps/sim/app/api/pinned-items/route.test.ts": {
@@ -718,58 +717,6 @@
   },
   "apps/sim/connectors/sharepoint/sharepoint.test.ts": {
     "TS2339": 4
-  },
-  "apps/sim/ee/access-control/components/group-detail.test.tsx": {
-    "TS2345": 1
-  },
-  "apps/sim/ee/access-control/hooks/permission-groups.test.tsx": {
-    "TS2741": 3
-  },
-  "apps/sim/ee/access-requests/lib/application/authorization.test.ts": {
-    "TS2345": 1
-  },
-  "apps/sim/ee/access-requests/lib/catalog.test.ts": {
-    "TS2345": 1,
-    "TS2740": 17
-  },
-  "apps/sim/ee/scim/lib/identity/resolve-user.test.ts": {
-    "TS18046": 2
-  },
-  "apps/sim/ee/scim/lib/projection/auto-map.test.ts": {
-    "TS2345": 2
-  },
-  "apps/sim/ee/scim/lib/projection/reconcile-user.test.ts": {
-    "TS2345": 15
-  },
-  "apps/sim/ee/scim/lib/reconcile/job.test.ts": {
-    "TS2345": 6
-  },
-  "apps/sim/ee/sso/components/sso-settings.test.tsx": {
-    "TS2339": 2
-  },
-  "apps/sim/ee/workspace-forking/components/fork-sync/copy-reconciliation.test.ts": {
-    "TS2322": 1
-  },
-  "apps/sim/ee/workspace-forking/components/fork-sync/use-fork-sync.test.tsx": {
-    "TS2322": 1
-  },
-  "apps/sim/ee/workspace-forking/lib/copy/copy-files.test.ts": {
-    "TS2345": 1,
-    "TS2554": 1
-  },
-  "apps/sim/ee/workspace-forking/lib/copy/copy-workflows.test.ts": {
-    "TS2322": 1,
-    "TS2345": 1,
-    "TS2739": 1
-  },
-  "apps/sim/ee/workspace-forking/lib/copy/workflow-mcp-attachments.test.ts": {
-    "TS2322": 4
-  },
-  "apps/sim/ee/workspace-forking/lib/promote/promote.test.ts": {
-    "TS2322": 2
-  },
-  "apps/sim/ee/workspace-forking/lib/promote/rollback.test.ts": {
-    "TS2345": 1
   },
   "apps/sim/executor/dag/construction/edges.test.ts": {
     "TS18048": 1

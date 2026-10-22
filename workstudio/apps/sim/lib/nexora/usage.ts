@@ -10,7 +10,7 @@ export class NexoraUsageUnavailableError extends Error {
   }
 }
 
-export interface NexoraUsageDay {
+interface NexoraUsageDay {
   /** UTC day, `YYYY-MM-DD`. */
   date: string
   requests: number

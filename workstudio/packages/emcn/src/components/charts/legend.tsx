@@ -10,7 +10,7 @@ const chartLegendVariants = cva('flex min-w-0 flex-1 gap-0.5', {
   defaultVariants: { layout: 'column' },
 })
 
-export interface ChartLegendItem {
+interface ChartLegendItem {
   id: string
   label: string
   color: string

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-21",
+  "updatedAt": "2026-10-22",
   "integrations": [
     {
       "type": "onepassword",
@@ -3178,7 +3178,7 @@
         {
           "id": "azure_devops_webhook",
           "name": "Azure DevOps Webhook (All Service Hook Events)",
-          "description": "Trigger on whichever service hook event types you configure in Azure DevOps. Sim does not filter deliveries for this trigger."
+          "description": "Trigger on whichever service hook event types you configure in Azure DevOps. Nexora does not filter deliveries for this trigger."
         }
       ],
       "triggerCount": 3,
@@ -3186,7 +3186,7 @@
       "category": "tools",
       "integrationType": "devops",
       "tags": ["version-control", "ci-cd", "project-management"],
-      "updatedAt": "2026-10-14"
+      "updatedAt": "2026-10-22"
     },
     {
       "type": "bitbucket",
@@ -8164,7 +8164,7 @@
       "slug": "dropcontact",
       "name": "Dropcontact",
       "description": "Enrich B2B contacts with verified email, phone, and company data",
-      "longDescription": "Use Dropcontact to verify and enrich B2B contacts. Submit a contact with their name, company, website, or LinkedIn URL and receive a verified professional email, phone number, company firmographics, and LinkedIn profile. Enrichment is async: Dropcontact processes the request, then Sim polls until the result is ready. Dropcontact charges enrichment when a verified email is returned; supplying an existing email for verification is charged per check.",
+      "longDescription": "Use Dropcontact to verify and enrich B2B contacts. Submit a contact with their name, company, website, or LinkedIn URL and receive a verified professional email, phone number, company firmographics, and LinkedIn profile. Enrichment is async: Dropcontact processes the request, then Nexora polls until the result is ready. Dropcontact charges enrichment when a verified email is returned; supplying an existing email for verification is charged per check.",
       "bgColor": "#0ABA9F",
       "iconName": "DropcontactIcon",
       "docsUrl": "https://docs.sim.ai/integrations/dropcontact",
@@ -8181,7 +8181,7 @@
       "category": "tools",
       "integrationType": "sales",
       "tags": ["enrichment", "sales-engagement"],
-      "updatedAt": "2026-10-14"
+      "updatedAt": "2026-10-22"
     },
     {
       "type": "dspy",
@@ -12562,7 +12562,7 @@
         {
           "id": "greenhouse_webhook",
           "name": "Greenhouse Webhook (Endpoint Events)",
-          "description": "Trigger on whichever event types you select for this URL in Greenhouse. Sim does not filter deliveries for this trigger."
+          "description": "Trigger on whichever event types you select for this URL in Greenhouse. Nexora does not filter deliveries for this trigger."
         }
       ],
       "triggerCount": 8,
@@ -12571,7 +12571,7 @@
       "category": "tools",
       "integrationType": "hr",
       "tags": ["hiring"],
-      "updatedAt": "2026-10-18"
+      "updatedAt": "2026-10-22"
     },
     {
       "type": "greptile",
@@ -17369,7 +17369,7 @@
       "slug": "microsoft-teams",
       "name": "Microsoft Teams",
       "description": "Manage messages, reactions, and members in Teams",
-      "longDescription": "Read, write, update, and delete chat and channel messages. Reply to messages, add reactions, and list teams, chats, channels, and their members. Use trigger mode for message notifications in a selected chat, or an @mention of the outgoing webhook in a channel. Chat subscriptions request creation and update notifications, but Sim deduplicates them by subscription and message ID within a seven-day window. Later edits may not start a separate run. To mention users in messages, wrap their name in `<at>` tags: `<at>userName</at>`",
+      "longDescription": "Read, write, update, and delete chat and channel messages. Reply to messages, add reactions, and list teams, chats, channels, and their members. Use trigger mode for message notifications in a selected chat, or an @mention of the outgoing webhook in a channel. Chat subscriptions request creation and update notifications, but Nexora deduplicates them by subscription and message ID within a seven-day window. Later edits may not start a separate run. To mention users in messages, wrap their name in `<at>` tags: `<at>userName</at>`",
       "bgColor": "#FFFFFF",
       "iconName": "MicrosoftTeamsIcon",
       "docsUrl": "https://docs.sim.ai/integrations/microsoft_teams",
@@ -17466,7 +17466,7 @@
       "category": "tools",
       "integrationType": "communication",
       "tags": ["messaging", "microsoft-365"],
-      "updatedAt": "2026-10-14"
+      "updatedAt": "2026-10-22"
     },
     {
       "type": "microsoft_word",
@@ -20921,7 +20921,7 @@
         },
         {
           "name": "Execute DAX Query",
-          "description": "Execute one DAX query returning one table. Requires workspace access, Read/Build permissions, and the tenant Execute Queries setting. Reported errors fail the action even with HTTP 200. Direct tool responses retain partial rows and typed errors; failed workflows expose only the standard error output. Sim limits workflow tool responses to 10 MiB; use summaries or TOPN for larger results."
+          "description": "Execute one DAX query returning one table. Requires workspace access, Read/Build permissions, and the tenant Execute Queries setting. Reported errors fail the action even with HTTP 200. Direct tool responses retain partial rows and typed errors; failed workflows expose only the standard error output. Nexora limits workflow tool responses to 10 MiB; use summaries or TOPN for larger results."
         },
         {
           "name": "Refresh Semantic Model",
@@ -20940,7 +20940,7 @@
       "category": "tools",
       "integrationType": "analytics",
       "tags": ["data-analytics", "microsoft-365", "automation"],
-      "updatedAt": "2026-10-02"
+      "updatedAt": "2026-10-22"
     },
     {
       "type": "profound",
@@ -21458,7 +21458,7 @@
         },
         {
           "name": "Download Attachment",
-          "description": "Download a QuickBooks file attachment as a stored Sim file"
+          "description": "Download a QuickBooks file attachment as a stored Nexora file"
         }
       ],
       "operationCount": 49,
@@ -21615,7 +21615,7 @@
       "category": "tools",
       "integrationType": "commerce",
       "tags": ["payments", "automation", "data-analytics"],
-      "updatedAt": "2026-09-06"
+      "updatedAt": "2026-10-22"
     },
     {
       "type": "quiver_v2",
@@ -25318,7 +25318,7 @@
       "slug": "slack",
       "name": "Slack",
       "description": "Manage Slack messages, channels, users, files, Lists, canvases, and Agent Sessions",
-      "longDescription": "Build Slack workflows with messages, conversations, files, reactions, pins, bookmarks, user groups, profiles, Lists, canvases, and Agent Sessions. Operations that need additional app scopes use custom Slack bots. Lists require lists:read/lists:write and a paid Slack plan. Native Sim connections retain their existing permissions. Page through list outputs explicitly.",
+      "longDescription": "Build Slack workflows with messages, conversations, files, reactions, pins, bookmarks, user groups, profiles, Lists, canvases, and Agent Sessions. Operations that need additional app scopes use custom Slack bots. Lists require lists:read/lists:write and a paid Slack plan. Native Nexora connections retain their existing permissions. Page through list outputs explicitly.",
       "bgColor": "#611f69",
       "iconName": "SlackIcon",
       "docsUrl": "https://docs.sim.ai/integrations/slack",
@@ -25747,7 +25747,7 @@
         },
         "aiDisclaimer": "A paid Slack plan is required to use Sim's AI agent in Slack's app container. Other Sim features continue to work on free Slack plans. Sim agents use AI models to generate messages and responses sent to Slack. AI-generated content can be inaccurate or incomplete, so review automated outputs before relying on them, especially for important communications."
       },
-      "updatedAt": "2026-09-24"
+      "updatedAt": "2026-10-22"
     },
     {
       "type": "smartlead",

@@ -6,7 +6,7 @@ import { type AuditLogPage, listAuditLogsContract } from '@/lib/api/contracts/au
 
 const PAGE_SIZE = 50
 
-export const AUDIT_LOGS_STALE_TIME = 30 * 1000
+const AUDIT_LOGS_STALE_TIME = 30 * 1000
 
 export interface AuditLogFilters {
   organizationId: string
@@ -14,7 +14,7 @@ export interface AuditLogFilters {
   startDate?: string
 }
 
-export const auditLogKeys = {
+const auditLogKeys = {
   all: ['audit-logs'] as const,
   lists: () => [...auditLogKeys.all, 'list'] as const,
   list: (filters: AuditLogFilters) => [...auditLogKeys.lists(), filters] as const,

@@ -107,8 +107,6 @@ const organizationDataRetentionDataSchema = z.object({
   effective: organizationRetentionValuesSchema,
 })
 
-export type OrganizationDataRetention = z.output<typeof organizationDataRetentionDataSchema>
-
 export const organizationDataRetentionResponseSchema = z.object({
   success: z.boolean(),
   data: organizationDataRetentionDataSchema,
@@ -123,9 +121,9 @@ export const organizationDataRetentionResponseSchema = z.object({
  * window would sign out active users exactly at the cache boundary; two
  * windows guarantees a DB-path refresh lands before the idle limit can.
  */
-export const MIN_SESSION_LIFETIME_HOURS = 1
+const MIN_SESSION_LIFETIME_HOURS = 1
 export const MIN_IDLE_TIMEOUT_HOURS = 48
-export const MAX_SESSION_POLICY_HOURS = 8760
+const MAX_SESSION_POLICY_HOURS = 8760
 
 export const updateOrganizationSessionPolicyBodySchema = z.object({
   maxSessionHours: z
@@ -159,8 +157,6 @@ const organizationSessionPolicyDataSchema = z.object({
   configured: organizationSessionPolicyValuesSchema,
 })
 
-export type OrganizationSessionPolicy = z.output<typeof organizationSessionPolicyDataSchema>
-
 export const organizationSessionPolicyResponseSchema = z.object({
   success: z.boolean(),
   data: organizationSessionPolicyDataSchema,
@@ -181,8 +177,6 @@ const organizationSsoPolicyDataSchema = z.object({
   isEnforced: z.boolean(),
 })
 
-export type OrganizationSsoPolicy = z.output<typeof organizationSsoPolicyDataSchema>
-
 export const organizationSsoPolicyResponseSchema = z.object({
   success: z.boolean(),
   data: organizationSsoPolicyDataSchema,
@@ -196,8 +190,6 @@ export const organizationDomainParamsSchema = z.object({
 })
 
 export { addOrganizationDomainBodySchema } from '@/lib/organizations/domain-validation'
-
-export type AddOrganizationDomainBody = z.input<typeof addOrganizationDomainBodySchema>
 
 export const organizationDomainStatusSchema = z.enum(['pending', 'verified'])
 
@@ -218,8 +210,6 @@ const organizationDomainsDataSchema = z.object({
   isEnterprise: z.boolean(),
   domains: z.array(organizationDomainSchema),
 })
-
-export type OrganizationDomains = z.output<typeof organizationDomainsDataSchema>
 
 export const listOrganizationDomainsResponseSchema = z.object({
   success: z.boolean(),

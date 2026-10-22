@@ -477,7 +477,7 @@ function withCopySuffix(fileName: string, n: number | string): string {
  * Tries the base name, then `name (1)` … `name (20)`, then a random short-id suffix. The
  * result is a hint: the unique index stays the authority, and callers retry on 23505.
  */
-export async function allocateUniqueWorkspaceFileName(
+async function allocateUniqueWorkspaceFileName(
   workspaceId: string,
   baseName: string,
   folderId?: string | null

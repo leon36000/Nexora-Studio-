@@ -71,7 +71,7 @@ sim workflow-mcp-servers create [options]
 | --- | --- | --- |
 | `--name <value>` | Yes | Server display name, shown to connecting MCP clients. |
 | `--description <value>` | No | Optional server description. |
-| `--is-public` | No | Whether the server accepts MCP clients without a Sim API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes. |
+| `--is-public` | No | Whether the server accepts MCP clients without a Nexora API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes. |
 | `--no-is-public` | No | Send --is-public as false. |
 | `--workflow <value...>` | No | Deployed workflows to expose as MCP tools on the new server. (space-separated, or @path / @- with one value per line; @@value for a literal leading @). |
 
@@ -105,7 +105,7 @@ sim workflow-mcp-servers update <serverId> [options]
 | --- | --- | --- |
 | `--name <value>` | No | Server display name, shown to connecting MCP clients. |
 | `--description <value>` | No | New server description, or null to clear it. (--description null sends the word, not JSON null). |
-| `--is-public` | No | Whether the server answers MCP clients without a Sim API key. |
+| `--is-public` | No | Whether the server answers MCP clients without a Nexora API key. |
 | `--no-is-public` | No | Send --is-public as false. |
 
 </CommandTable>

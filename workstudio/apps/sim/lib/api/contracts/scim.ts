@@ -99,7 +99,7 @@ function scimSchemasDeclaring(core: string) {
     )
 }
 
-export const scimUserWriteSchema = z.preprocess(
+const scimUserWriteSchema = z.preprocess(
   (body) => canonicalizeAttributeNames(body, USER_WRITE_ATTRIBUTES),
   z
     .looseObject({
@@ -114,8 +114,6 @@ export const scimUserWriteSchema = z.preprocess(
     })
     .transform(({ password: _password, ...rest }) => rest)
 )
-/** What the route receives after parsing, which is what the canonicalizer reads. */
-export type ScimUserWriteParsed = z.output<typeof scimUserWriteSchema>
 
 const scimGroupMemberSchema = z.looseObject({
   value: z.string().trim().min(1, 'A group member requires a value').max(256),
@@ -125,7 +123,7 @@ const scimGroupMemberSchema = z.looseObject({
 
 const GROUP_WRITE_ATTRIBUTES = ['schemas', 'displayName', 'externalId', 'members'] as const
 
-export const scimGroupWriteSchema = z.preprocess(
+const scimGroupWriteSchema = z.preprocess(
   (body) => canonicalizeAttributeNames(body, GROUP_WRITE_ATTRIBUTES),
   z.looseObject({
     schemas: scimSchemasDeclaring(SCIM_GROUP_SCHEMA),
@@ -134,7 +132,6 @@ export const scimGroupWriteSchema = z.preprocess(
     members: z.array(scimGroupMemberSchema).max(SCIM_MAX_GROUP_MEMBERS).optional(),
   })
 )
-export type ScimGroupWriteParsed = z.output<typeof scimGroupWriteSchema>
 
 /**
  * A PATCH request body.
@@ -143,7 +140,7 @@ export type ScimGroupWriteParsed = z.output<typeof scimGroupWriteSchema>
  * defaults to `replace` because Okta omits it on the deactivation call that is
  * the single most important request this server handles.
  */
-export const scimPatchBodySchema = z.object({
+const scimPatchBodySchema = z.object({
   schemas: z
     .array(z.string().max(256))
     .refine(
@@ -166,7 +163,6 @@ export const scimPatchBodySchema = z.object({
     .max(SCIM_MAX_PATCH_OPERATIONS),
 })
 export type ScimPatchBody = z.output<typeof scimPatchBodySchema>
-export type ScimPatchOperation = ScimPatchBody['Operations'][number]
 
 export const scimAttributesQuerySchema = z.object({
   attributes: z.string().max(1024).optional(),

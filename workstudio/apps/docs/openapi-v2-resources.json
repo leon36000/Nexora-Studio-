@@ -1,13 +1,13 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Sim API v2 — resources",
-    "description": "Version 2 of the Sim REST API for workspace metadata, members, MCP servers, skills, custom tools, sandboxes, credentials, write-only secrets, organization permission groups, and the block, tool, and connector-type catalogs.",
+    "title": "Nexora API v2 — resources",
+    "description": "Version 2 of the Nexora REST API for workspace metadata, members, MCP servers, skills, custom tools, sandboxes, credentials, write-only secrets, organization permission groups, and the block, tool, and connector-type catalogs.",
     "version": "2.0.0",
     "contact": {
-      "name": "Sim Support",
-      "email": "help@sim.ai",
-      "url": "https://www.sim.ai"
+      "name": "Nexora Support",
+      "email": "support@example.com",
+      "url": "https://workstudio.example.com"
     },
     "license": {
       "name": "Apache 2.0",
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://www.sim.ai",
+      "url": "https://workstudio.example.com",
       "description": "Production"
     }
   ],
@@ -3834,7 +3834,7 @@
                           "description": "Connect Zoom with a server-to-server app.",
                           "providerFamily": "zoom",
                           "available": true,
-                          "docsUrl": "https://docs.sim.ai/integrations/zoom-service-account",
+                          "docsUrl": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
                           "requiresClientGeneratedCredentialId": false,
                           "fields": [
                             {
@@ -3977,7 +3977,7 @@
                     "summary": "Response example 1",
                     "value": {
                       "data": {
-                        "authorizationUrl": "https://www.sim.ai/api/auth/oauth2/authorize?draftId=draft-123",
+                        "authorizationUrl": "https://workstudio.example.com/api/auth/oauth2/authorize?draftId=draft-123",
                         "expiresAt": "2026-06-20T14:17:11.000Z"
                       }
                     }
@@ -4782,7 +4782,7 @@
       "get": {
         "operationId": "listWorkflowMcpServers",
         "summary": "List workflow MCP servers",
-        "description": "List MCP servers that expose deployed workflows to external clients. Use List MCP servers for external servers Sim calls. Requires workspace read access. Tool names share a 2,000-name page limit; when `toolNamesTruncated` is true, `toolCount` and `toolNames` may be incomplete. Use List workflow MCP tools for a server’s bounded inventory. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:read`.",
+        "description": "List MCP servers that expose deployed workflows to external clients. Use List MCP servers for external servers Nexora calls. Requires workspace read access. Tool names share a 2,000-name page limit; when `toolNamesTruncated` is true, `toolCount` and `toolNames` may be incomplete. Use List workflow MCP tools for a server’s bounded inventory. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:read`.",
         "x-sim-operation": "mcp_servers.workflow_deployments.list",
         "x-oauth-scope": "api:read",
         "tags": ["MCP Servers"],
@@ -4885,7 +4885,7 @@
                           "name": "Support agents",
                           "description": "Ticket triage and escalation workflows.",
                           "isPublic": false,
-                          "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                          "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
                           "createdAt": "2026-06-12T10:30:00.000Z",
                           "updatedAt": "2026-06-12T10:30:00.000Z",
                           "toolCount": 1,
@@ -4926,7 +4926,7 @@
       "post": {
         "operationId": "createWorkflowMcpServer",
         "summary": "Create workflow MCP server",
-        "description": "Create an MCP server exposing deployed workflows as tools. Every supplied workflow must already be deployed. With `isPublic: true`, anyone holding the server URL can execute its workflows without a Sim API key. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.",
+        "description": "Create an MCP server exposing deployed workflows as tools. Every supplied workflow must already be deployed. With `isPublic: true`, anyone holding the server URL can execute its workflows without a Nexora API key. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.",
         "x-sim-operation": "mcp_servers.workflow_deployments.create_server",
         "x-oauth-scope": "api:write",
         "tags": ["MCP Servers"],
@@ -4987,7 +4987,7 @@
                         "name": "Support agents",
                         "description": "Ticket triage and escalation workflows.",
                         "isPublic": false,
-                        "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                        "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
                         "createdAt": "2026-06-12T10:30:00.000Z",
                         "updatedAt": "2026-06-12T10:30:00.000Z"
                       }
@@ -5087,7 +5087,7 @@
                         "name": "Support agents",
                         "description": "Ticket triage and escalation workflows.",
                         "isPublic": false,
-                        "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                        "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
                         "createdAt": "2026-06-12T10:30:00.000Z",
                         "updatedAt": "2026-06-12T10:30:00.000Z"
                       }
@@ -5123,7 +5123,7 @@
       "patch": {
         "operationId": "updateWorkflowMcpServer",
         "summary": "Update workflow MCP server",
-        "description": "Update a workflow MCP server’s name, description, or public access. Omitted fields stay unchanged; `description: null` clears the description. With `isPublic: true`, anyone holding its URL can execute its tools without a Sim API key. Deploy or undeploy tools separately. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.",
+        "description": "Update a workflow MCP server’s name, description, or public access. Omitted fields stay unchanged; `description: null` clears the description. With `isPublic: true`, anyone holding its URL can execute its tools without a Nexora API key. Deploy or undeploy tools separately. Requires workspace Admin access. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.",
         "x-sim-operation": "mcp_servers.workflow_deployments.update_server",
         "x-oauth-scope": "api:write",
         "tags": ["MCP Servers"],
@@ -5195,7 +5195,7 @@
                         "name": "Support agents",
                         "description": "Ticket triage and escalation workflows.",
                         "isPublic": true,
-                        "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                        "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
                         "createdAt": "2026-06-12T10:30:00.000Z",
                         "updatedAt": "2026-06-12T10:30:00.000Z"
                       }
@@ -5384,8 +5384,8 @@
                           "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                           "toolName": "triage_ticket",
                           "toolDescription": "Execute Ticket triage workflow",
-                          "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
-                          "apiEndpoint": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
+                          "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                          "apiEndpoint": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
                           "createdAt": "2026-06-12T10:30:00.000Z",
                           "updatedAt": "2026-06-12T10:30:00.000Z",
                           "status": "active"
@@ -5499,8 +5499,8 @@
                         "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "toolName": "triage_ticket",
                         "toolDescription": "Execute Ticket triage workflow",
-                        "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
-                        "apiEndpoint": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
+                        "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                        "apiEndpoint": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
                         "updated": false,
                         "createdAt": "2026-06-12T10:30:00.000Z",
                         "updatedAt": "2026-06-12T10:30:00.000Z"
@@ -5817,7 +5817,7 @@
                           "toolIds": ["slack_message", "slack_canvas_read"],
                           "operationIds": ["send", "read"],
                           "preview": false,
-                          "docsLink": "https://docs.sim.ai/tools/slack",
+                          "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
                           "tags": ["messaging"]
                         }
                       ],
@@ -5931,7 +5931,7 @@
                         "toolIds": ["slack_message", "slack_canvas_read"],
                         "operationIds": ["send", "read"],
                         "preview": false,
-                        "docsLink": "https://docs.sim.ai/tools/slack",
+                        "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
                         "tags": ["messaging"],
                         "inputSchema": [
                           {
@@ -6387,7 +6387,7 @@
       "post": {
         "operationId": "executeTool",
         "summary": "Run tool",
-        "description": "Run a built-in tool using published parameter IDs. Requires workspace read access. Sim resolves `credentialId`, hosted keys, and whole-value `{{VAR_NAME}}` references in `user-only` parameters; other values pass through unchanged. Send connected credentials as top-level `credentialId`, not inside `input`. Third-party refusal returns `200` with `status: \"failed\"`; API failures use the error envelope. Hidden or missing tools return `404`; disallowed integrations return `403` with `error.details.code: INTEGRATION_NOT_ALLOWED`. Hosted-key usage is billed to the workspace. A call that would use a hosted key returns `402` when the workspace exceeds usage or billing limits. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.",
+        "description": "Run a built-in tool using published parameter IDs. Requires workspace read access. Nexora resolves `credentialId`, hosted keys, and whole-value `{{VAR_NAME}}` references in `user-only` parameters; other values pass through unchanged. Send connected credentials as top-level `credentialId`, not inside `input`. Third-party refusal returns `200` with `status: \"failed\"`; API failures use the error envelope. Hidden or missing tools return `404`; disallowed integrations return `403` with `error.details.code: INTEGRATION_NOT_ALLOWED`. Hosted-key usage is billed to the workspace. A call that would use a hosted key returns `402` when the workspace exceeds usage or billing limits. Workspace API keys return `403`; use a personal API key or scoped OAuth token.\n\nOAuth scope: `api:write`.",
         "x-sim-operation": "tools.execute",
         "x-oauth-scope": "api:write",
         "tags": ["Catalog"],
@@ -12184,17 +12184,7 @@
             "schema": {
               "description": "Category of access to discover.",
               "type": "string",
-              "enum": [
-                "feature",
-                "integration",
-                "provider",
-                "model",
-                "tool",
-                "knowledge_connector",
-                "file_share_auth",
-                "chat_deploy_auth",
-                "usage_limit"
-              ]
+              "enum": ["feature", "integration", "model", "tool", "capability", "usage_limit"]
             }
           },
           {
@@ -12796,17 +12786,7 @@
             "schema": {
               "description": "Category of access to discover.",
               "type": "string",
-              "enum": [
-                "feature",
-                "integration",
-                "provider",
-                "model",
-                "tool",
-                "knowledge_connector",
-                "file_share_auth",
-                "chat_deploy_auth",
-                "usage_limit"
-              ]
+              "enum": ["feature", "integration", "model", "tool", "capability", "usage_limit"]
             }
           },
           {
@@ -14031,16 +14011,16 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://docs.sim.ai/api-reference/authentication#key-types); operations that reject workspace keys say so in their description."
+        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide); operations that reject workspace keys say so in their description."
       },
       "oauthBearer": {
         "type": "oauth2",
-        "description": "Send a Sim OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://docs.sim.ai/api-reference/authentication#oauth-access-tokens).",
+        "description": "Send a Nexora OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide).",
         "flows": {
           "authorizationCode": {
-            "authorizationUrl": "https://www.sim.ai/api/auth/oauth2/authorize",
-            "tokenUrl": "https://www.sim.ai/api/auth/oauth2/token",
-            "refreshUrl": "https://www.sim.ai/api/auth/oauth2/token",
+            "authorizationUrl": "https://workstudio.example.com/api/auth/oauth2/authorize",
+            "tokenUrl": "https://workstudio.example.com/api/auth/oauth2/token",
+            "refreshUrl": "https://workstudio.example.com/api/auth/oauth2/token",
             "scopes": {
               "api:read": "Read your workspaces, workflows, files, tables, and logs",
               "api:write": "Read, create, change, run, and delete resources in your workspaces",
@@ -17297,7 +17277,7 @@
                 "description": "Connect Zoom with a server-to-server app.",
                 "providerFamily": "zoom",
                 "available": true,
-                "docsUrl": "https://docs.sim.ai/integrations/zoom-service-account",
+                "docsUrl": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
                 "requiresClientGeneratedCredentialId": false,
                 "fields": [
                   {
@@ -17416,7 +17396,7 @@
           "authorizationUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Short-lived Sim browser URL that starts the OAuth authorization flow."
+            "description": "Short-lived Nexora browser URL that starts the OAuth authorization flow."
           },
           "expiresAt": {
             "type": "string",
@@ -17441,11 +17421,11 @@
         "required": ["data"],
         "additionalProperties": false,
         "title": "Create credential connection response",
-        "description": "Short-lived Sim browser entrypoint and its expiry.",
+        "description": "Short-lived Nexora browser entrypoint and its expiry.",
         "examples": [
           {
             "data": {
-              "authorizationUrl": "https://www.sim.ai/api/auth/oauth2/authorize?draftId=draft-123",
+              "authorizationUrl": "https://workstudio.example.com/api/auth/oauth2/authorize?draftId=draft-123",
               "expiresAt": "2026-06-20T14:17:11.000Z"
             }
           }
@@ -17468,7 +17448,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
-                    "description": "Name shown for the new credential in Sim."
+                    "description": "Name shown for the new credential in Nexora."
                   },
                   "providerId": {
                     "type": "string",
@@ -17525,7 +17505,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255,
-                    "description": "Name shown for the new credential in Sim."
+                    "description": "Name shown for the new credential in Nexora."
                   },
                   "providerId": {
                     "type": "string",
@@ -18105,12 +18085,14 @@
           },
           "isPublic": {
             "type": "boolean",
-            "description": "Whether the server answers MCP clients without a Sim API key."
+            "description": "Whether the server answers MCP clients without a Nexora API key."
           },
           "mcpServerUrl": {
             "type": "string",
             "description": "MCP client endpoint. Use this returned URL instead of constructing one.",
-            "examples": ["https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2"]
+            "examples": [
+              "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -18189,7 +18171,7 @@
                 "name": "Support agents",
                 "description": "Ticket triage and escalation workflows.",
                 "isPublic": false,
-                "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
                 "createdAt": "2026-06-12T10:30:00.000Z",
                 "updatedAt": "2026-06-12T10:30:00.000Z",
                 "toolCount": 1,
@@ -18225,12 +18207,14 @@
           },
           "isPublic": {
             "type": "boolean",
-            "description": "Whether the server answers MCP clients without a Sim API key."
+            "description": "Whether the server answers MCP clients without a Nexora API key."
           },
           "mcpServerUrl": {
             "type": "string",
             "description": "MCP client endpoint. Use this returned URL instead of constructing one.",
-            "examples": ["https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2"]
+            "examples": [
+              "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -18275,7 +18259,7 @@
               "name": "Support agents",
               "description": "Ticket triage and escalation workflows.",
               "isPublic": false,
-              "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+              "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
               "createdAt": "2026-06-12T10:30:00.000Z",
               "updatedAt": "2026-06-12T10:30:00.000Z"
             }
@@ -18303,7 +18287,7 @@
             "maxLength": 2000
           },
           "isPublic": {
-            "description": "Whether the server accepts MCP clients without a Sim API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes.",
+            "description": "Whether the server accepts MCP clients without a Nexora API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes.",
             "default": false,
             "type": "boolean"
           },
@@ -18348,7 +18332,7 @@
               "name": "Support agents",
               "description": "Ticket triage and escalation workflows.",
               "isPublic": false,
-              "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+              "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
               "createdAt": "2026-06-12T10:30:00.000Z",
               "updatedAt": "2026-06-12T10:30:00.000Z"
             }
@@ -18391,7 +18375,7 @@
           },
           "apiEndpoint": {
             "type": "string",
-            "description": "Sim execution endpoint this tool calls through."
+            "description": "Nexora execution endpoint this tool calls through."
           },
           "createdAt": {
             "type": "string",
@@ -18464,8 +18448,8 @@
                 "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                 "toolName": "triage_ticket",
                 "toolDescription": "Execute Ticket triage workflow",
-                "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
-                "apiEndpoint": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
+                "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+                "apiEndpoint": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
                 "createdAt": "2026-06-12T10:30:00.000Z",
                 "updatedAt": "2026-06-12T10:30:00.000Z",
                 "status": "active"
@@ -18495,7 +18479,7 @@
               "name": "Support agents",
               "description": "Ticket triage and escalation workflows.",
               "isPublic": true,
-              "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+              "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
               "createdAt": "2026-06-12T10:30:00.000Z",
               "updatedAt": "2026-06-12T10:30:00.000Z"
             }
@@ -18524,7 +18508,7 @@
             ]
           },
           "isPublic": {
-            "description": "Whether the server answers MCP clients without a Sim API key.",
+            "description": "Whether the server answers MCP clients without a Nexora API key.",
             "type": "boolean"
           }
         },
@@ -18612,7 +18596,7 @@
           },
           "apiEndpoint": {
             "type": "string",
-            "description": "Sim execution endpoint this tool calls through."
+            "description": "Nexora execution endpoint this tool calls through."
           },
           "updated": {
             "type": "boolean",
@@ -18665,8 +18649,8 @@
               "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "toolName": "triage_ticket",
               "toolDescription": "Execute Ticket triage workflow",
-              "mcpServerUrl": "https://www.sim.ai/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
-              "apiEndpoint": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
+              "mcpServerUrl": "https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2",
+              "apiEndpoint": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute",
               "updated": false,
               "createdAt": "2026-06-12T10:30:00.000Z",
               "updatedAt": "2026-06-12T10:30:00.000Z"
@@ -18810,7 +18794,7 @@
         "type": "object",
         "properties": {
           "displayName": {
-            "description": "New name shown for the credential in Sim.",
+            "description": "New name shown for the credential in Nexora.",
             "type": "string",
             "minLength": 1,
             "maxLength": 255
@@ -19054,7 +19038,7 @@
             "additionalProperties": false
           },
           "docsLink": {
-            "description": "Sim documentation page for the integration.",
+            "description": "Nexora documentation page for the integration.",
             "type": "string"
           },
           "tags": {
@@ -19126,7 +19110,7 @@
                 "toolIds": ["slack_message", "slack_canvas_read"],
                 "operationIds": ["send", "read"],
                 "preview": false,
-                "docsLink": "https://docs.sim.ai/tools/slack",
+                "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
                 "tags": ["messaging"]
               }
             ],
@@ -19236,7 +19220,7 @@
                   "type": "boolean"
                 },
                 "hosted": {
-                  "description": "Model options only: whether Sim runs the model with its own key on a hosted deployment, so no provider API key is needed for it.",
+                  "description": "Model options only: whether Nexora runs the model with its own key on a hosted deployment, so no provider API key is needed for it.",
                   "type": "boolean"
                 }
               },
@@ -19497,7 +19481,7 @@
             "type": "boolean"
           },
           "visibility": {
-            "description": "Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Sim supplies hidden ones.",
+            "description": "Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Nexora supplies hidden ones.",
             "type": "string"
           },
           "description": {
@@ -19617,7 +19601,7 @@
           "hostedApiKey": {
             "type": "string",
             "enum": ["always", "conditional", "none"],
-            "description": "API-key hosting on this deployment: `always`, `conditional` for some parameter combinations, or `none` when Sim does not supply a key. Supply your own key only if the tool requires one. Self-hosted deployments report `none` for every tool."
+            "description": "API-key hosting on this deployment: `always`, `conditional` for some parameter combinations, or `none` when Nexora does not supply a key. Supply your own key only if the tool requires one. Self-hosted deployments report `none` for every tool."
           },
           "oauth": {
             "description": "OAuth requirement, when the tool has one.",
@@ -19680,7 +19664,7 @@
             "type": "boolean"
           },
           "visibility": {
-            "description": "Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Sim supplies hidden ones.",
+            "description": "Source of the value in a workflow or Agent block: `user-or-llm`, `user-only`, `llm-only`, or `hidden`. A direct Run tool caller may supply non-hidden parameters; Nexora supplies hidden ones.",
             "type": "string"
           },
           "description": {
@@ -19786,7 +19770,7 @@
             "additionalProperties": false
           },
           "docsLink": {
-            "description": "Sim documentation page for the integration.",
+            "description": "Nexora documentation page for the integration.",
             "type": "string"
           },
           "tags": {
@@ -20118,7 +20102,7 @@
               "toolIds": ["slack_message", "slack_canvas_read"],
               "operationIds": ["send", "read"],
               "preview": false,
-              "docsLink": "https://docs.sim.ai/tools/slack",
+              "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
               "tags": ["messaging"],
               "inputSchema": [
                 {
@@ -20259,7 +20243,7 @@
           "hostedApiKey": {
             "type": "string",
             "enum": ["always", "conditional", "none"],
-            "description": "API-key hosting on this deployment: `always`, `conditional` for some parameter combinations, or `none` when Sim does not supply a key. Supply your own key only if the tool requires one. Self-hosted deployments report `none` for every tool."
+            "description": "API-key hosting on this deployment: `always`, `conditional` for some parameter combinations, or `none` when Nexora does not supply a key. Supply your own key only if the tool requires one. Self-hosted deployments report `none` for every tool."
           },
           "oauth": {
             "description": "OAuth requirement, when the tool has one.",
@@ -21031,7 +21015,7 @@
               },
               "hideCopilot": {
                 "type": "boolean",
-                "description": "Revoke Chat. Members cannot ask Sim to build or edit anything."
+                "description": "Revoke Chat. Members cannot ask Nexora to build or edit anything."
               },
               "hideIntegrationsTab": {
                 "type": "boolean",
@@ -21047,7 +21031,7 @@
               },
               "hideInboxTab": {
                 "type": "boolean",
-                "description": "Revoke the Sim Mailer inbox. Members cannot read or send mail."
+                "description": "Revoke the Nexora Mailer inbox. Members cannot read or send mail."
               },
               "hideFilesTab": {
                 "type": "boolean",
@@ -21179,7 +21163,7 @@
               },
               "disableCliAccess": {
                 "type": "boolean",
-                "description": "Prevent approving a CLI login or using Sim CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
+                "description": "Prevent approving a CLI login or using Nexora CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
               },
               "disableWebhookTriggers": {
                 "type": "boolean",
@@ -21563,7 +21547,7 @@
               },
               "hideCopilot": {
                 "type": "boolean",
-                "description": "Revoke Chat. Members cannot ask Sim to build or edit anything."
+                "description": "Revoke Chat. Members cannot ask Nexora to build or edit anything."
               },
               "hideIntegrationsTab": {
                 "type": "boolean",
@@ -21579,7 +21563,7 @@
               },
               "hideInboxTab": {
                 "type": "boolean",
-                "description": "Revoke the Sim Mailer inbox. Members cannot read or send mail."
+                "description": "Revoke the Nexora Mailer inbox. Members cannot read or send mail."
               },
               "hideFilesTab": {
                 "type": "boolean",
@@ -21711,7 +21695,7 @@
               },
               "disableCliAccess": {
                 "type": "boolean",
-                "description": "Prevent approving a CLI login or using Sim CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
+                "description": "Prevent approving a CLI login or using Nexora CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
               },
               "disableWebhookTriggers": {
                 "type": "boolean",
@@ -22013,7 +21997,7 @@
               },
               "hideCopilot": {
                 "type": "boolean",
-                "description": "Revoke Chat. Members cannot ask Sim to build or edit anything."
+                "description": "Revoke Chat. Members cannot ask Nexora to build or edit anything."
               },
               "hideIntegrationsTab": {
                 "type": "boolean",
@@ -22029,7 +22013,7 @@
               },
               "hideInboxTab": {
                 "type": "boolean",
-                "description": "Revoke the Sim Mailer inbox. Members cannot read or send mail."
+                "description": "Revoke the Nexora Mailer inbox. Members cannot read or send mail."
               },
               "hideFilesTab": {
                 "type": "boolean",
@@ -22161,7 +22145,7 @@
               },
               "disableCliAccess": {
                 "type": "boolean",
-                "description": "Prevent approving a CLI login or using Sim CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
+                "description": "Prevent approving a CLI login or using Nexora CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
               },
               "disableWebhookTriggers": {
                 "type": "boolean",
@@ -23675,7 +23659,7 @@
                 "description": "Identity provider signing certificate."
               },
               "callbackUrl": {
-                "description": "SAML callback URL; defaults to this provider’s Sim callback.",
+                "description": "SAML callback URL; defaults to this provider’s Nexora callback.",
                 "type": "string",
                 "maxLength": 2048,
                 "format": "uri"
@@ -24375,7 +24359,7 @@
                   },
                   "hideCopilot": {
                     "type": "boolean",
-                    "description": "Revoke Chat. Members cannot ask Sim to build or edit anything."
+                    "description": "Revoke Chat. Members cannot ask Nexora to build or edit anything."
                   },
                   "hideIntegrationsTab": {
                     "type": "boolean",
@@ -24391,7 +24375,7 @@
                   },
                   "hideInboxTab": {
                     "type": "boolean",
-                    "description": "Revoke the Sim Mailer inbox. Members cannot read or send mail."
+                    "description": "Revoke the Nexora Mailer inbox. Members cannot read or send mail."
                   },
                   "hideFilesTab": {
                     "type": "boolean",
@@ -24523,7 +24507,7 @@
                   },
                   "disableCliAccess": {
                     "type": "boolean",
-                    "description": "Prevent approving a CLI login or using Sim CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
+                    "description": "Prevent approving a CLI login or using Nexora CLI OAuth tokens for the public API. A login naming one of this group's workspaces is refused; an account-level login names none, so it is read from the organization's default group."
                   },
                   "disableWebhookTriggers": {
                     "type": "boolean",
@@ -25338,43 +25322,8 @@
                   },
                   "configKey": {
                     "type": "string",
-                    "enum": [
-                      "hideTraceSpans",
-                      "hideKnowledgeBaseTab",
-                      "hideTablesTab",
-                      "hideCopilot",
-                      "hideIntegrationsTab",
-                      "hideSecretsTab",
-                      "hideApiKeysTab",
-                      "hideInboxTab",
-                      "hideFilesTab",
-                      "disableMcpTools",
-                      "disableCustomTools",
-                      "disableSkills",
-                      "disableInvitations",
-                      "disablePublicApi",
-                      "disablePublicFileSharing",
-                      "hideDeployApi",
-                      "hideDeployMcp",
-                      "hideDeployChatbot",
-                      "disablePersonalApiKeys",
-                      "disableLogExport",
-                      "hideCostInfo",
-                      "disableKnowledgeBaseCreation",
-                      "disableKnowledgeBaseFileUpload",
-                      "disableTableCreation",
-                      "disableTableExport",
-                      "disableBulkFileDownload",
-                      "disablePersonalCredentials",
-                      "disableWorkspaceCreation",
-                      "hideOrgMemberDirectory",
-                      "disableCliAccess",
-                      "disableWebhookTriggers",
-                      "disableToolAutoApproval",
-                      "hideSandboxesTab",
-                      "disableOAuthAppAccess",
-                      "disableKnowledgeBaseExport"
-                    ],
+                    "minLength": 1,
+                    "maxLength": 2048,
                     "description": "Feature restriction key returned by access discovery."
                   }
                 },
@@ -25392,25 +25341,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
-                    "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "provider",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -25428,7 +25359,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -25446,7 +25377,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -25458,48 +25389,14 @@
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "const": "knowledge_connector",
+                    "const": "capability",
                     "description": "Kind of access being requested."
                   },
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "file_share_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "chat_deploy_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
                   }
                 },
                 "required": ["kind", "id"],
@@ -25512,14 +25409,9 @@
                     "type": "string",
                     "const": "usage_limit",
                     "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "const": "member",
-                    "description": "Request an increase to the acting user’s member credit cap."
                   }
                 },
-                "required": ["kind", "id"],
+                "required": ["kind"],
                 "additionalProperties": false
               }
             ],
@@ -25650,43 +25542,8 @@
                   },
                   "configKey": {
                     "type": "string",
-                    "enum": [
-                      "hideTraceSpans",
-                      "hideKnowledgeBaseTab",
-                      "hideTablesTab",
-                      "hideCopilot",
-                      "hideIntegrationsTab",
-                      "hideSecretsTab",
-                      "hideApiKeysTab",
-                      "hideInboxTab",
-                      "hideFilesTab",
-                      "disableMcpTools",
-                      "disableCustomTools",
-                      "disableSkills",
-                      "disableInvitations",
-                      "disablePublicApi",
-                      "disablePublicFileSharing",
-                      "hideDeployApi",
-                      "hideDeployMcp",
-                      "hideDeployChatbot",
-                      "disablePersonalApiKeys",
-                      "disableLogExport",
-                      "hideCostInfo",
-                      "disableKnowledgeBaseCreation",
-                      "disableKnowledgeBaseFileUpload",
-                      "disableTableCreation",
-                      "disableTableExport",
-                      "disableBulkFileDownload",
-                      "disablePersonalCredentials",
-                      "disableWorkspaceCreation",
-                      "hideOrgMemberDirectory",
-                      "disableCliAccess",
-                      "disableWebhookTriggers",
-                      "disableToolAutoApproval",
-                      "hideSandboxesTab",
-                      "disableOAuthAppAccess",
-                      "disableKnowledgeBaseExport"
-                    ],
+                    "minLength": 1,
+                    "maxLength": 2048,
                     "description": "Feature restriction key returned by access discovery."
                   }
                 },
@@ -25704,25 +25561,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
-                    "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "provider",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -25740,7 +25579,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -25758,7 +25597,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -25770,48 +25609,14 @@
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "const": "knowledge_connector",
+                    "const": "capability",
                     "description": "Kind of access being requested."
                   },
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "file_share_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "chat_deploy_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
                   }
                 },
                 "required": ["kind", "id"],
@@ -25824,14 +25629,9 @@
                     "type": "string",
                     "const": "usage_limit",
                     "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "const": "member",
-                    "description": "Request an increase to the acting user’s member credit cap."
                   }
                 },
-                "required": ["kind", "id"],
+                "required": ["kind"],
                 "additionalProperties": false
               }
             ],
@@ -26050,43 +25850,8 @@
                   },
                   "configKey": {
                     "type": "string",
-                    "enum": [
-                      "hideTraceSpans",
-                      "hideKnowledgeBaseTab",
-                      "hideTablesTab",
-                      "hideCopilot",
-                      "hideIntegrationsTab",
-                      "hideSecretsTab",
-                      "hideApiKeysTab",
-                      "hideInboxTab",
-                      "hideFilesTab",
-                      "disableMcpTools",
-                      "disableCustomTools",
-                      "disableSkills",
-                      "disableInvitations",
-                      "disablePublicApi",
-                      "disablePublicFileSharing",
-                      "hideDeployApi",
-                      "hideDeployMcp",
-                      "hideDeployChatbot",
-                      "disablePersonalApiKeys",
-                      "disableLogExport",
-                      "hideCostInfo",
-                      "disableKnowledgeBaseCreation",
-                      "disableKnowledgeBaseFileUpload",
-                      "disableTableCreation",
-                      "disableTableExport",
-                      "disableBulkFileDownload",
-                      "disablePersonalCredentials",
-                      "disableWorkspaceCreation",
-                      "hideOrgMemberDirectory",
-                      "disableCliAccess",
-                      "disableWebhookTriggers",
-                      "disableToolAutoApproval",
-                      "hideSandboxesTab",
-                      "disableOAuthAppAccess",
-                      "disableKnowledgeBaseExport"
-                    ],
+                    "minLength": 1,
+                    "maxLength": 2048,
                     "description": "Feature restriction key returned by access discovery."
                   }
                 },
@@ -26104,25 +25869,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
-                    "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "provider",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -26140,7 +25887,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -26158,7 +25905,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -26170,48 +25917,14 @@
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "const": "knowledge_connector",
+                    "const": "capability",
                     "description": "Kind of access being requested."
                   },
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "file_share_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "chat_deploy_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
                   }
                 },
                 "required": ["kind", "id"],
@@ -26224,14 +25937,9 @@
                     "type": "string",
                     "const": "usage_limit",
                     "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "const": "member",
-                    "description": "Request an increase to the acting user’s member credit cap."
                   }
                 },
-                "required": ["kind", "id"],
+                "required": ["kind"],
                 "additionalProperties": false
               }
             ],
@@ -26448,43 +26156,8 @@
                   },
                   "configKey": {
                     "type": "string",
-                    "enum": [
-                      "hideTraceSpans",
-                      "hideKnowledgeBaseTab",
-                      "hideTablesTab",
-                      "hideCopilot",
-                      "hideIntegrationsTab",
-                      "hideSecretsTab",
-                      "hideApiKeysTab",
-                      "hideInboxTab",
-                      "hideFilesTab",
-                      "disableMcpTools",
-                      "disableCustomTools",
-                      "disableSkills",
-                      "disableInvitations",
-                      "disablePublicApi",
-                      "disablePublicFileSharing",
-                      "hideDeployApi",
-                      "hideDeployMcp",
-                      "hideDeployChatbot",
-                      "disablePersonalApiKeys",
-                      "disableLogExport",
-                      "hideCostInfo",
-                      "disableKnowledgeBaseCreation",
-                      "disableKnowledgeBaseFileUpload",
-                      "disableTableCreation",
-                      "disableTableExport",
-                      "disableBulkFileDownload",
-                      "disablePersonalCredentials",
-                      "disableWorkspaceCreation",
-                      "hideOrgMemberDirectory",
-                      "disableCliAccess",
-                      "disableWebhookTriggers",
-                      "disableToolAutoApproval",
-                      "hideSandboxesTab",
-                      "disableOAuthAppAccess",
-                      "disableKnowledgeBaseExport"
-                    ],
+                    "minLength": 1,
+                    "maxLength": 2048,
                     "description": "Feature restriction key returned by access discovery."
                   }
                 },
@@ -26502,25 +26175,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
-                    "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "provider",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -26538,7 +26193,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -26556,7 +26211,7 @@
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
                   }
                 },
@@ -26568,48 +26223,14 @@
                 "properties": {
                   "kind": {
                     "type": "string",
-                    "const": "knowledge_connector",
+                    "const": "capability",
                     "description": "Kind of access being requested."
                   },
                   "id": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 512,
+                    "maxLength": 2048,
                     "description": "Identifier returned by access discovery."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "file_share_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
-                  }
-                },
-                "required": ["kind", "id"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "type": "string",
-                    "const": "chat_deploy_auth",
-                    "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "enum": ["public", "password", "email", "sso"],
-                    "description": "Authentication mode to request."
                   }
                 },
                 "required": ["kind", "id"],
@@ -26622,14 +26243,9 @@
                     "type": "string",
                     "const": "usage_limit",
                     "description": "Kind of access being requested."
-                  },
-                  "id": {
-                    "type": "string",
-                    "const": "member",
-                    "description": "Request an increase to the acting user’s member credit cap."
                   }
                 },
-                "required": ["kind", "id"],
+                "required": ["kind"],
                 "additionalProperties": false
               }
             ],
@@ -26804,43 +26420,8 @@
                       },
                       "configKey": {
                         "type": "string",
-                        "enum": [
-                          "hideTraceSpans",
-                          "hideKnowledgeBaseTab",
-                          "hideTablesTab",
-                          "hideCopilot",
-                          "hideIntegrationsTab",
-                          "hideSecretsTab",
-                          "hideApiKeysTab",
-                          "hideInboxTab",
-                          "hideFilesTab",
-                          "disableMcpTools",
-                          "disableCustomTools",
-                          "disableSkills",
-                          "disableInvitations",
-                          "disablePublicApi",
-                          "disablePublicFileSharing",
-                          "hideDeployApi",
-                          "hideDeployMcp",
-                          "hideDeployChatbot",
-                          "disablePersonalApiKeys",
-                          "disableLogExport",
-                          "hideCostInfo",
-                          "disableKnowledgeBaseCreation",
-                          "disableKnowledgeBaseFileUpload",
-                          "disableTableCreation",
-                          "disableTableExport",
-                          "disableBulkFileDownload",
-                          "disablePersonalCredentials",
-                          "disableWorkspaceCreation",
-                          "hideOrgMemberDirectory",
-                          "disableCliAccess",
-                          "disableWebhookTriggers",
-                          "disableToolAutoApproval",
-                          "hideSandboxesTab",
-                          "disableOAuthAppAccess",
-                          "disableKnowledgeBaseExport"
-                        ],
+                        "minLength": 1,
+                        "maxLength": 2048,
                         "description": "Feature restriction key returned by access discovery."
                       }
                     },
@@ -26858,25 +26439,7 @@
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
-                        "description": "Identifier returned by access discovery."
-                      }
-                    },
-                    "required": ["kind", "id"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "provider",
-                        "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
                       }
                     },
@@ -26894,7 +26457,7 @@
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
                       }
                     },
@@ -26912,7 +26475,7 @@
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
                       }
                     },
@@ -26924,48 +26487,14 @@
                     "properties": {
                       "kind": {
                         "type": "string",
-                        "const": "knowledge_connector",
+                        "const": "capability",
                         "description": "Kind of access being requested."
                       },
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
-                      }
-                    },
-                    "required": ["kind", "id"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "file_share_auth",
-                        "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "enum": ["public", "password", "email", "sso"],
-                        "description": "Authentication mode to request."
-                      }
-                    },
-                    "required": ["kind", "id"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "chat_deploy_auth",
-                        "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "enum": ["public", "password", "email", "sso"],
-                        "description": "Authentication mode to request."
                       }
                     },
                     "required": ["kind", "id"],
@@ -26978,14 +26507,9 @@
                         "type": "string",
                         "const": "usage_limit",
                         "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "const": "member",
-                        "description": "Request an increase to the acting user’s member credit cap."
                       }
                     },
-                    "required": ["kind", "id"],
+                    "required": ["kind"],
                     "additionalProperties": false
                   }
                 ],
@@ -27164,18 +26688,16 @@
                       "type": "boolean"
                     },
                     {
-                      "anyOf": [
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "Integrations and blocks are limited to this list. Null permits every value; an empty list permits none."
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
                   ],
                   "description": "Current value of the restriction."
@@ -27186,18 +26708,16 @@
                       "type": "boolean"
                     },
                     {
-                      "anyOf": [
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "Integrations and blocks are limited to this list. Null permits every value; an empty list permits none."
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
                   ],
                   "description": "Value after applying the request."
@@ -27209,35 +26729,41 @@
             "description": "Permission changes proposed for the whole governing group."
           },
           "impact": {
-            "type": "object",
-            "properties": {
-              "memberCount": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991,
-                "description": "Number of affected members."
-              },
-              "workspaceCount": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991,
-                "description": "Number of affected workspaces."
-              },
-              "workspaceNames": {
-                "maxItems": 100,
-                "type": "array",
-                "items": {
-                  "type": "string"
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "memberCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Number of affected members."
+                  },
+                  "workspaceCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Number of affected workspaces."
+                  },
+                  "workspaceNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Names of affected workspaces."
+                  },
+                  "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the workspace-name list is truncated; counts include the full impact."
+                  }
                 },
-                "description": "Names of affected workspaces, capped at 100."
+                "required": ["memberCount", "workspaceCount", "workspaceNames", "truncated"],
+                "additionalProperties": false
               },
-              "truncated": {
-                "type": "boolean",
-                "description": "Whether the workspace-name list is truncated; counts include the full impact."
+              {
+                "type": "null"
               }
-            },
-            "required": ["memberCount", "workspaceCount", "workspaceNames", "truncated"],
-            "additionalProperties": false,
+            ],
             "description": "Members and workspaces affected by approval."
           },
           "fingerprint": {
@@ -27366,43 +26892,8 @@
                       },
                       "configKey": {
                         "type": "string",
-                        "enum": [
-                          "hideTraceSpans",
-                          "hideKnowledgeBaseTab",
-                          "hideTablesTab",
-                          "hideCopilot",
-                          "hideIntegrationsTab",
-                          "hideSecretsTab",
-                          "hideApiKeysTab",
-                          "hideInboxTab",
-                          "hideFilesTab",
-                          "disableMcpTools",
-                          "disableCustomTools",
-                          "disableSkills",
-                          "disableInvitations",
-                          "disablePublicApi",
-                          "disablePublicFileSharing",
-                          "hideDeployApi",
-                          "hideDeployMcp",
-                          "hideDeployChatbot",
-                          "disablePersonalApiKeys",
-                          "disableLogExport",
-                          "hideCostInfo",
-                          "disableKnowledgeBaseCreation",
-                          "disableKnowledgeBaseFileUpload",
-                          "disableTableCreation",
-                          "disableTableExport",
-                          "disableBulkFileDownload",
-                          "disablePersonalCredentials",
-                          "disableWorkspaceCreation",
-                          "hideOrgMemberDirectory",
-                          "disableCliAccess",
-                          "disableWebhookTriggers",
-                          "disableToolAutoApproval",
-                          "hideSandboxesTab",
-                          "disableOAuthAppAccess",
-                          "disableKnowledgeBaseExport"
-                        ],
+                        "minLength": 1,
+                        "maxLength": 2048,
                         "description": "Feature restriction key returned by access discovery."
                       }
                     },
@@ -27420,25 +26911,7 @@
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
-                        "description": "Identifier returned by access discovery."
-                      }
-                    },
-                    "required": ["kind", "id"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "provider",
-                        "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
                       }
                     },
@@ -27456,7 +26929,7 @@
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
                       }
                     },
@@ -27474,7 +26947,7 @@
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
                       }
                     },
@@ -27486,48 +26959,14 @@
                     "properties": {
                       "kind": {
                         "type": "string",
-                        "const": "knowledge_connector",
+                        "const": "capability",
                         "description": "Kind of access being requested."
                       },
                       "id": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 512,
+                        "maxLength": 2048,
                         "description": "Identifier returned by access discovery."
-                      }
-                    },
-                    "required": ["kind", "id"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "file_share_auth",
-                        "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "enum": ["public", "password", "email", "sso"],
-                        "description": "Authentication mode to request."
-                      }
-                    },
-                    "required": ["kind", "id"],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "chat_deploy_auth",
-                        "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "enum": ["public", "password", "email", "sso"],
-                        "description": "Authentication mode to request."
                       }
                     },
                     "required": ["kind", "id"],
@@ -27540,14 +26979,9 @@
                         "type": "string",
                         "const": "usage_limit",
                         "description": "Kind of access being requested."
-                      },
-                      "id": {
-                        "type": "string",
-                        "const": "member",
-                        "description": "Request an increase to the acting user’s member credit cap."
                       }
                     },
-                    "required": ["kind", "id"],
+                    "required": ["kind"],
                     "additionalProperties": false
                   }
                 ],
@@ -27726,18 +27160,16 @@
                       "type": "boolean"
                     },
                     {
-                      "anyOf": [
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "Integrations and blocks are limited to this list. Null permits every value; an empty list permits none."
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
                   ],
                   "description": "Current value of the restriction."
@@ -27748,18 +27180,16 @@
                       "type": "boolean"
                     },
                     {
-                      "anyOf": [
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "description": "Integrations and blocks are limited to this list. Null permits every value; an empty list permits none."
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
                   ],
                   "description": "Value after applying the request."
@@ -27771,35 +27201,41 @@
             "description": "Permission changes proposed for the whole governing group."
           },
           "impact": {
-            "type": "object",
-            "properties": {
-              "memberCount": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991,
-                "description": "Number of affected members."
-              },
-              "workspaceCount": {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 9007199254740991,
-                "description": "Number of affected workspaces."
-              },
-              "workspaceNames": {
-                "maxItems": 100,
-                "type": "array",
-                "items": {
-                  "type": "string"
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "memberCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Number of affected members."
+                  },
+                  "workspaceCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Number of affected workspaces."
+                  },
+                  "workspaceNames": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Names of affected workspaces."
+                  },
+                  "truncated": {
+                    "type": "boolean",
+                    "description": "Whether the workspace-name list is truncated; counts include the full impact."
+                  }
                 },
-                "description": "Names of affected workspaces, capped at 100."
+                "required": ["memberCount", "workspaceCount", "workspaceNames", "truncated"],
+                "additionalProperties": false
               },
-              "truncated": {
-                "type": "boolean",
-                "description": "Whether the workspace-name list is truncated; counts include the full impact."
+              {
+                "type": "null"
               }
-            },
-            "required": ["memberCount", "workspaceCount", "workspaceNames", "truncated"],
-            "additionalProperties": false,
+            ],
             "description": "Members and workspaces affected by approval."
           },
           "fingerprint": {

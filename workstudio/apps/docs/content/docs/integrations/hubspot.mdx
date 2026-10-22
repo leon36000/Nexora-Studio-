@@ -2603,13 +2603,13 @@ Triggers when HubSpot CRM records (contacts, companies, deals, tickets, custom o
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `triggerCredentials` | string | Yes | Connect a HubSpot account so Sim can poll your CRM on your behalf. |
+| `triggerCredentials` | string | Yes | Connect a HubSpot account so Nexora can poll your CRM on your behalf. |
 | `objectType` | string | Yes | What you want to watch. |
 | `customObjectTypeId` | string | No | HubSpot custom object type ID \(e.g. "2-12345"\). Find it in HubSpot Settings → Objects → Custom Objects. |
 | `listId` | string | No | The HubSpot list to watch for new members. |
 | `eventType` | string | No | Created fires once per new record. Updated fires on any modification. Property Changed fires only when the chosen property changes value. |
 | `targetPropertyName` | string | No | Fires only when this specific property changes value on a record. |
-| `properties` | string | No | Properties to include on each record. Leave empty to use sensible defaults. Sim always includes the timestamps it needs internally. |
+| `properties` | string | No | Properties to include on each record. Leave empty to use sensible defaults. Nexora always includes the timestamps it needs internally. |
 | `pipelineId` | string | No | Restrict to a single pipeline. |
 | `stageId` | string | No | Restrict to a single stage within the selected pipeline. |
 | `ownerId` | string | No | Restrict to records owned by a specific HubSpot user. |
@@ -2632,7 +2632,7 @@ Triggers when HubSpot CRM records (contacts, companies, deals, tickets, custom o
 | `propertyValue` | string | New value of the changed property \(property_changed events only\) |
 | `previousValue` | string | Previous value before the change \(property_changed events only\) |
 | `listId` | string | HubSpot list ID \(list_membership events only\) |
-| `timestamp` | string | ISO timestamp when Sim emitted the event |
+| `timestamp` | string | ISO timestamp when Nexora emitted the event |
 
 </ReferenceDetails>
 

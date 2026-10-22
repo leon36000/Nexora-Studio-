@@ -43,7 +43,6 @@ export const organizationActivitySummarySchema = z.object({
     )
     .max(1000),
 })
-export type OrganizationActivitySummary = z.output<typeof organizationActivitySummarySchema>
 
 export const organizationActivityBreakdownSchema = z.object({
   rows: z
@@ -60,7 +59,6 @@ export const organizationActivityBreakdownSchema = z.object({
     .max(ACTIVITY_PAGE_SIZE),
   hasMore: z.boolean(),
 })
-export type OrganizationActivityBreakdown = z.output<typeof organizationActivityBreakdownSchema>
 
 export const getOrganizationActivitySummaryContract = defineRouteContract({
   method: 'GET',

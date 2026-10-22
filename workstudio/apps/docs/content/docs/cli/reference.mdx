@@ -713,7 +713,7 @@ sim credentials update <credentialId> [options]
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--display-name <value>` | No | New name shown for the credential in Sim. |
+| `--display-name <value>` | No | New name shown for the credential in Nexora. |
 | `--description <value>` | No | New credential description. Send null to clear the stored one. (--description null sends the word, not JSON null). |
 | `--service-account-json <value>` | No | Write-only provider service-account JSON configuration, including Oracle Database connection fields. |
 | `--api-token <value>` | No | Write-only provider API token. |
@@ -1478,7 +1478,7 @@ sim files share set <fileId> [options]
 | --- | --- | --- |
 | `--is-active <true\|false>` | Yes | Whether the share should resolve. Disabling preserves the token and the whole access configuration, so re-enabling restores the share as it was; enabling rewrites the credentials the resulting mode does not use. Accepted values: `true`, `false`. |
 | `--auth-type <value>` | No | How access to the share is gated. The stored mode is kept when omitted. Enabling `public` clears the stored password and empties `allowedEmails`; `password` empties `allowedEmails`; `email` and `sso` clear the stored password. Accepted values: `public`, `password`, `email`, `sso`. |
-| `--password <value>` | No | Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply. |
+| `--password <value>` | No | Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply. |
 | `--allowed-emails <value...>` | No | Allowed addresses or `@domain` patterns for email and SSO shares. Kept when omitted; enabling `email` or `sso` with an empty resulting list is a 400. (space-separated, or @path / @- with one value per line; @@value for a literal leading @). |
 
 </CommandTable>
@@ -3656,7 +3656,7 @@ sim organizations access-requests discover [options]
 | --- | --- | --- |
 | `--organization <value>` | Yes | Organization identifier. |
 | `--search <value>` | No | Case-insensitive substring match against the access item label. |
-| `--target-kind <value>` | No | Category of access to discover. Accepted values: `feature`, `integration`, `provider`, `model`, `tool`, `knowledge_connector`, `file_share_auth`, `chat_deploy_auth`, `usage_limit`. |
+| `--target-kind <value>` | No | Category of access to discover. Accepted values: `feature`, `integration`, `model`, `tool`, `capability`, `usage_limit`. |
 | `--state <value>` | No | Filter by the acting user’s current access. Requestable items can be submitted for review. Accepted values: `allowed`, `requestable`, `unavailable`. |
 | `--sort-by <value>` | No | Field used to sort the result. Defaults to "label". Accepted values: `label`. |
 | `--sort-order <value>` | No | Sort direction. Defaults to "asc". Accepted values: `asc`, `desc`. |
@@ -4122,7 +4122,7 @@ sim organizations sso providers save [options]
 | `--jwks-endpoint <value>` | No | Optional signing-key endpoint; otherwise resolved through issuer discovery. Available when providerType is oidc. |
 | `--entry-point <value>` | Conditional | Identity provider SAML sign-in endpoint. Available when providerType is saml. Required when providerType is saml. |
 | `--cert <value>` | Conditional | Identity provider signing certificate. Available when providerType is saml. Required when providerType is saml. |
-| `--callback-url <value>` | No | SAML callback URL; defaults to this provider’s Sim callback. Available when providerType is saml. |
+| `--callback-url <value>` | No | SAML callback URL; defaults to this provider’s Nexora callback. Available when providerType is saml. |
 | `--audience <value>` | No | SAML audience; omission preserves the saved value. Available when providerType is saml. |
 | `--want-assertions-signed` | No | Require signed assertions; omission preserves the saved value. Available when providerType is saml. |
 | `--no-want-assertions-signed` | No | Send --want-assertions-signed as false. |
@@ -6913,7 +6913,7 @@ sim workflow-mcp-servers create [options]
 | --- | --- | --- |
 | `--name <value>` | Yes | Server display name, shown to connecting MCP clients. |
 | `--description <value>` | No | Optional server description. |
-| `--is-public` | No | Whether the server accepts MCP clients without a Sim API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes. |
+| `--is-public` | No | Whether the server accepts MCP clients without a Nexora API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes. |
 | `--no-is-public` | No | Send --is-public as false. |
 | `--workflow <value...>` | No | Deployed workflows to expose as MCP tools on the new server. (space-separated, or @path / @- with one value per line; @@value for a literal leading @). |
 
@@ -7107,7 +7107,7 @@ sim workflow-mcp-servers update <serverId> [options]
 | --- | --- | --- |
 | `--name <value>` | No | Server display name, shown to connecting MCP clients. |
 | `--description <value>` | No | New server description, or null to clear it. (--description null sends the word, not JSON null). |
-| `--is-public` | No | Whether the server answers MCP clients without a Sim API key. |
+| `--is-public` | No | Whether the server answers MCP clients without a Nexora API key. |
 | `--no-is-public` | No | Send --is-public as false. |
 
 </CommandTable>
@@ -7739,7 +7739,7 @@ sim workflows chat publish <workflowId> [options]
 | `--description <value>` | No | Description shown to visitors. Omitted clears it. |
 | `--customizations <json\|@file>` | No | Presentation overrides. Omitted `primaryColor` and `welcomeMessage` use platform defaults; an omitted or empty `imageUrl` keeps the existing avatar. An empty `welcomeMessage` keeps the existing message. (JSON, or @path / @- to read a file or stdin). |
 | `--auth-type <value>` | No | How visitors are gated. `public` leaves the chat open to anyone holding the URL. Defaults to "public". Accepted values: `public`, `password`, `email`, `sso`. |
-| `--password <value>` | Conditional | Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply. |
+| `--password <value>` | Conditional | Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply. |
 | `--allowed-emails <json\|@file>` | No | Email addresses or domains admitted under `email` and `sso` gating. At least one is required for those modes. (JSON, or @path / @- to read a file or stdin). |
 | `--output-configs <json\|@file>` | No | Block outputs to surface to visitors. Omitted surfaces none. (JSON, or @path / @- to read a file or stdin). |
 | `--include-thinking` | No | Allow visitors to receive provider thinking events. Defaults to false. |
@@ -8411,7 +8411,7 @@ sim workspaces access-requests discover [options]
 | Option | Required | Description |
 | --- | --- | --- |
 | `--search <value>` | No | Case-insensitive substring match against the access item label. |
-| `--target-kind <value>` | No | Category of access to discover. Accepted values: `feature`, `integration`, `provider`, `model`, `tool`, `knowledge_connector`, `file_share_auth`, `chat_deploy_auth`, `usage_limit`. |
+| `--target-kind <value>` | No | Category of access to discover. Accepted values: `feature`, `integration`, `model`, `tool`, `capability`, `usage_limit`. |
 | `--state <value>` | No | Filter by the acting user’s current access. Requestable items can be submitted for review. Accepted values: `allowed`, `requestable`, `unavailable`. |
 | `--sort-by <value>` | No | Field used to sort the result. Defaults to "label". Accepted values: `label`. |
 | `--sort-order <value>` | No | Sort direction. Defaults to "asc". Accepted values: `asc`, `desc`. |

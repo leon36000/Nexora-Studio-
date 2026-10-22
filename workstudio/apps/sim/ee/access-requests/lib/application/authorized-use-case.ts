@@ -7,6 +7,6 @@ import { type DisabledUseCase, disabledUseCase } from '@/ee/_nexora/disabled'
 export function defineAuthorizedAccessRequestUseCase(definition: {
   operation: ApplicationOperation
   [key: string]: unknown
-}): DisabledUseCase {
-  return disabledUseCase(definition.operation, 'Access requests')
+}): DisabledUseCase<never, ApplicationOperation> {
+  return disabledUseCase<never, ApplicationOperation>(definition.operation, 'Access requests')
 }

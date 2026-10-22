@@ -67,12 +67,7 @@ const logger = createLogger('WorkspaceForkRemapReferences')
  * mapping), as opposed to optional kinds that silently clear. Exported so the cleared-ref preview
  * can exclude them - a required ref is a blocker, never a silent "will be cleared" item.
  */
-export const REQUIRED_KINDS = new Set<ForkRemapKind>([
-  'credential',
-  'env-var',
-  'file-folder',
-  'sandbox',
-])
+const REQUIRED_KINDS = new Set<ForkRemapKind>(['credential', 'env-var', 'file-folder', 'sandbox'])
 
 /**
  * Id-based override kind for a TOOL param's credential, resolved by subblock id so a
@@ -174,25 +169,6 @@ function isPreservedUnderCopy(cfg: Pick<SubBlockConfig, 'type' | 'selectorKey'>)
 export const ENV_REF_PATTERN = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g
 
 /**
- * Rewrite `{{ENV}}` references in free text (a copied custom tool's `code`, an MCP url/header)
- * through an env-name resolver, so a promote that renames an env var (e.g. SLACK_API_KEY ->
- * SLACK_API_KEY_TEST) keeps the copied text pointing at the right key. A key the resolver leaves
- * unmapped (null/undefined) or maps to the same name is kept verbatim - a graceful no-op so an env
- * that exists under the same name in the target still works. Pure; mirrors {@link remapEnvInValue}'s
- * preserve-by-name policy for the string case.
- */
-export function rewriteEnvRefsInText(
-  text: string,
-  resolveEnvName: (key: string) => string | null | undefined
-): string {
-  if (!text) return text
-  return text.replace(ENV_REF_PATTERN, (full, key: string) => {
-    const target = resolveEnvName(key)
-    return target && target !== key ? `{{${target}}}` : full
-  })
-}
-
-/**
  * Resolves a source-workspace resource id (or env key, for `env-var`) to its
  * mapped target id. Returns the target id (which may equal the source for env
  * keys that exist under the same name), or null/undefined when there is no
@@ -205,7 +181,7 @@ export type ForkReferenceResolver = (
 ) => string | null | undefined
 
 /** Identity metadata of a mapped TARGET MCP server row (url is null for url-less transports). */
-export interface ForkMcpServerMeta {
+interface ForkMcpServerMeta {
   name: string
   url: string | null
 }
@@ -220,7 +196,7 @@ export interface ForkMcpServerMeta {
  */
 export type ForkMcpServerMetaResolver = (targetServerId: string) => ForkMcpServerMeta | undefined
 
-export interface ForkReference {
+interface ForkReference {
   kind: ForkRemapKind
   sourceId: string
   blockId?: string

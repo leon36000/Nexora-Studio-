@@ -1,13 +1,13 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Sim API v2 — Workflows",
-    "description": "Version 2 of the Sim REST API for workflow management, deployment versions, execution, run lifecycle, folders, and portable import and export.",
+    "title": "Nexora API v2 — Workflows",
+    "description": "Version 2 of the Nexora REST API for workflow management, deployment versions, execution, run lifecycle, folders, and portable import and export.",
     "version": "2.0.0",
     "contact": {
-      "name": "Sim Support",
-      "email": "help@sim.ai",
-      "url": "https://www.sim.ai"
+      "name": "Nexora Support",
+      "email": "support@example.com",
+      "url": "https://workstudio.example.com"
     },
     "license": {
       "name": "Apache 2.0",
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://www.sim.ai",
+      "url": "https://workstudio.example.com",
       "description": "Production"
     }
   ],
@@ -193,7 +193,7 @@
                       "data": [
                         {
                           "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-                          "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+                          "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                           "name": "Customer support triage",
                           "description": "Routes incoming support requests to the right team.",
                           "folderPath": "/Operations",
@@ -302,7 +302,7 @@
                     "value": {
                       "data": {
                         "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "name": "Customer support triage",
                         "description": "Routes incoming support requests to the right team.",
                         "folderPath": "/Operations",
@@ -956,7 +956,7 @@
                     "value": {
                       "data": {
                         "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "name": "Customer support triage (copy)",
                         "description": "Routes incoming support requests to the right team.",
                         "folderPath": "/Operations",
@@ -1065,7 +1065,7 @@
                     "value": {
                       "data": {
                         "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "name": "Customer support triage",
                         "description": "Routes incoming support requests to the right team.",
                         "folderPath": "/Operations",
@@ -1272,7 +1272,7 @@
                     "value": {
                       "data": {
                         "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "name": "Customer support triage",
                         "description": "Routes incoming support requests to the right team.",
                         "folderPath": "/Operations",
@@ -1392,7 +1392,7 @@
                     "value": {
                       "data": {
                         "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-                        "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+                        "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "name": "Customer support triage",
                         "description": "Routes incoming support requests to the right team.",
                         "folderPath": "/Operations",
@@ -2402,7 +2402,7 @@
                           {
                             "blockId": "blk_01J8ZK3QW4M6X2R9T7B5C0V3",
                             "provider": "generic",
-                            "url": "https://www.sim.ai/api/webhooks/trigger/leads"
+                            "url": "https://workstudio.example.com/api/webhooks/trigger/leads"
                           }
                         ]
                       }
@@ -3314,7 +3314,7 @@
                           "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                           "workspaceId": "9f4c2a10-3b7e-4d58-8f6a-2c1d0e5b7a94",
                           "identifier": "support",
-                          "url": "https://sim.ai/chat/support",
+                          "url": "https://workstudio.example.com/chat/support",
                           "title": "Support chat",
                           "description": "Ask about billing, onboarding, or outages.",
                           "isActive": true,
@@ -3420,7 +3420,7 @@
                         "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "workspaceId": "9f4c2a10-3b7e-4d58-8f6a-2c1d0e5b7a94",
                         "identifier": "support",
-                        "url": "https://sim.ai/chat/support",
+                        "url": "https://workstudio.example.com/chat/support",
                         "title": "Support chat",
                         "description": "Ask about billing, onboarding, or outages.",
                         "isActive": true,
@@ -3548,7 +3548,7 @@
                         "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                         "workspaceId": "9f4c2a10-3b7e-4d58-8f6a-2c1d0e5b7a94",
                         "identifier": "support",
-                        "url": "https://sim.ai/chat/support",
+                        "url": "https://workstudio.example.com/chat/support",
                         "title": "Support chat",
                         "description": "Ask about billing, onboarding, or outages.",
                         "isActive": true,
@@ -3745,9 +3745,9 @@
             "name": "x-sim-via",
             "in": "header",
             "required": false,
-            "description": "Comma-separated workflow identifiers naming the workflow-to-workflow call chain that led to this request. Each hop appends its own workflow id, and Sim sets it automatically; supply it yourself only when relaying an existing chain. A chain at the maximum depth is rejected with `409` and `error.details.code: \"CALL_CHAIN_DEPTH_EXCEEDED\"`.",
+            "description": "Comma-separated workflow identifiers naming the workflow-to-workflow call chain that led to this request. Each hop appends its own workflow id, and Nexora sets it automatically; supply it yourself only when relaying an existing chain. A chain at the maximum depth is rejected with `409` and `error.details.code: \"CALL_CHAIN_DEPTH_EXCEEDED\"`.",
             "schema": {
-              "description": "Comma-separated workflow identifiers naming the workflow-to-workflow call chain that led to this request. Each hop appends its own workflow id, and Sim sets it automatically; supply it yourself only when relaying an existing chain. A chain at the maximum depth is rejected with `409` and `error.details.code: \"CALL_CHAIN_DEPTH_EXCEEDED\"`.",
+              "description": "Comma-separated workflow identifiers naming the workflow-to-workflow call chain that led to this request. Each hop appends its own workflow id, and Nexora sets it automatically; supply it yourself only when relaying an existing chain. A chain at the maximum depth is rejected with `409` and `error.details.code: \"CALL_CHAIN_DEPTH_EXCEEDED\"`.",
               "type": "string"
             }
           }
@@ -3908,7 +3908,7 @@
                     "value": {
                       "data": {
                         "runId": "run_8f14e45f-ceea-467f-a",
-                        "statusUrl": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
+                        "statusUrl": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
                       }
                     }
                   }
@@ -3959,7 +3959,7 @@
       "get": {
         "operationId": "listWorkflowRunsV2",
         "summary": "List workflow runs",
-        "description": "List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Sim Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.",
+        "description": "List recorded workflow runs with workspace read access, filters, and cursor pagination. Cost can be hidden by organization permission groups. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup.\n\nOAuth scope: `api:read`.",
         "x-sim-operation": "workflows.runs.list",
         "x-oauth-scope": "api:read",
         "tags": ["Workflow Runs"],
@@ -4311,7 +4311,7 @@
       "get": {
         "operationId": "downloadWorkflowRunFileV2",
         "summary": "Download workflow run file",
-        "description": "Download one run-produced file by its reported ID with workspace read access. Downloads record an audit event. Expired runs are permanently deleted by retention cleanup. Sim Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. `HEAD` checks access with the same authorization as `GET` but skips side effects, returning an empty `200` without payload headers on success. `HEAD` does not provide byte length; use the file's size in Get workflow run when available.\n\nOAuth scope: `api:read`.",
+        "description": "Download one run-produced file by its reported ID with workspace read access. Downloads record an audit event. Expired runs are permanently deleted by retention cleanup. Nexora Cloud Free defaults to 30 days from run start; paid plans and billing-disabled deployments have no default expiry. Organization policies and workspace overrides can set an effective window. Billing-disabled cleanup requires enabled data retention. Runs referenced by active pauses are protected from cleanup. `HEAD` checks access with the same authorization as `GET` but skips side effects, returning an empty `200` without payload headers on success. `HEAD` does not provide byte length; use the file's size in Get workflow run when available.\n\nOAuth scope: `api:read`.",
         "x-sim-operation": "workflows.download_run_file",
         "x-oauth-scope": "api:read",
         "tags": ["Workflow Runs"],
@@ -4558,7 +4558,7 @@
                     "value": {
                       "data": {
                         "runId": "run_8f14e45f-ceea-467f-a",
-                        "statusUrl": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
+                        "statusUrl": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
                       }
                     }
                   }
@@ -7057,16 +7057,16 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://docs.sim.ai/api-reference/authentication#key-types); operations that reject workspace keys say so in their description."
+        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide); operations that reject workspace keys say so in their description."
       },
       "oauthBearer": {
         "type": "oauth2",
-        "description": "Send a Sim OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://docs.sim.ai/api-reference/authentication#oauth-access-tokens).",
+        "description": "Send a Nexora OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide).",
         "flows": {
           "authorizationCode": {
-            "authorizationUrl": "https://www.sim.ai/api/auth/oauth2/authorize",
-            "tokenUrl": "https://www.sim.ai/api/auth/oauth2/token",
-            "refreshUrl": "https://www.sim.ai/api/auth/oauth2/token",
+            "authorizationUrl": "https://workstudio.example.com/api/auth/oauth2/authorize",
+            "tokenUrl": "https://workstudio.example.com/api/auth/oauth2/token",
+            "refreshUrl": "https://workstudio.example.com/api/auth/oauth2/token",
             "scopes": {
               "api:read": "Read your workspaces, workflows, files, tables, and logs",
               "api:write": "Read, create, change, run, and delete resources in your workspaces",
@@ -7516,7 +7516,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "name": {
             "type": "string",
@@ -7639,7 +7639,7 @@
             "data": [
               {
                 "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-                "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+                "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                 "name": "Customer support triage",
                 "description": "Routes incoming support requests to the right team.",
                 "folderPath": "/Operations",
@@ -7688,7 +7688,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "name": {
             "type": "string",
@@ -7804,7 +7804,7 @@
           {
             "data": {
               "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "name": "Customer support triage",
               "description": "Routes incoming support requests to the right team.",
               "folderPath": "/Operations",
@@ -10135,7 +10135,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "description": "Exact MCP tool name on the resolved connection, without a Sim server prefix."
+                      "description": "Exact MCP tool name on the resolved connection, without a Nexora server prefix."
                     },
                     "description": "Allowed exact MCP tool names; an empty list grants no access."
                   }
@@ -10158,7 +10158,7 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256,
-                      "description": "Exact MCP tool name on the resolved connection, without a Sim server prefix."
+                      "description": "Exact MCP tool name on the resolved connection, without a Nexora server prefix."
                     },
                     "description": "Denied exact MCP tool names; an empty list allows otherwise permitted tools."
                   }
@@ -10435,7 +10435,7 @@
           {
             "data": {
               "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "name": "Customer support triage (copy)",
               "description": "Routes incoming support requests to the right team.",
               "folderPath": "/Operations",
@@ -10484,7 +10484,7 @@
           {
             "data": {
               "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "name": "Customer support triage",
               "description": "Routes incoming support requests to the right team.",
               "folderPath": "/Operations",
@@ -10611,7 +10611,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "name": {
             "type": "string",
@@ -10738,7 +10738,7 @@
           {
             "data": {
               "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "name": "Customer support triage",
               "description": "Routes incoming support requests to the right team.",
               "folderPath": "/Operations",
@@ -10771,7 +10771,7 @@
           {
             "data": {
               "id": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
-              "webUrl": "https://www.sim.ai/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
+              "webUrl": "https://workstudio.example.com/workspace/a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64/w/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "name": "Customer support triage",
               "description": "Routes incoming support requests to the right team.",
               "folderPath": "/Operations",
@@ -12211,7 +12211,7 @@
             "type": "string",
             "format": "uri",
             "description": "Absolute URL for the external system to send events to.",
-            "examples": ["https://www.sim.ai/api/webhooks/trigger/leads"]
+            "examples": ["https://workstudio.example.com/api/webhooks/trigger/leads"]
           }
         },
         "required": ["blockId", "provider", "url"],
@@ -12350,7 +12350,7 @@
                 {
                   "blockId": "blk_01J8ZK3QW4M6X2R9T7B5C0V3",
                   "provider": "generic",
-                  "url": "https://www.sim.ai/api/webhooks/trigger/leads"
+                  "url": "https://workstudio.example.com/api/webhooks/trigger/leads"
                 }
               ]
             }
@@ -13569,7 +13569,7 @@
           "url": {
             "type": "string",
             "description": "Public URL of the deployed chat. There is no chat subdomain — the identifier is a path segment.",
-            "examples": ["https://sim.ai/chat/support"]
+            "examples": ["https://workstudio.example.com/chat/support"]
           },
           "title": {
             "type": "string",
@@ -13689,7 +13689,7 @@
                 "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
                 "workspaceId": "9f4c2a10-3b7e-4d58-8f6a-2c1d0e5b7a94",
                 "identifier": "support",
-                "url": "https://sim.ai/chat/support",
+                "url": "https://workstudio.example.com/chat/support",
                 "title": "Support chat",
                 "description": "Ask about billing, onboarding, or outages.",
                 "isActive": true,
@@ -13752,7 +13752,7 @@
           "url": {
             "type": "string",
             "description": "Public URL of the deployed chat. There is no chat subdomain — the identifier is a path segment.",
-            "examples": ["https://sim.ai/chat/support"]
+            "examples": ["https://workstudio.example.com/chat/support"]
           },
           "title": {
             "type": "string",
@@ -13854,7 +13854,7 @@
               "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "workspaceId": "9f4c2a10-3b7e-4d58-8f6a-2c1d0e5b7a94",
               "identifier": "support",
-              "url": "https://sim.ai/chat/support",
+              "url": "https://workstudio.example.com/chat/support",
               "title": "Support chat",
               "description": "Ask about billing, onboarding, or outages.",
               "isActive": true,
@@ -13898,7 +13898,7 @@
               "workflowId": "3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36",
               "workspaceId": "9f4c2a10-3b7e-4d58-8f6a-2c1d0e5b7a94",
               "identifier": "support",
-              "url": "https://sim.ai/chat/support",
+              "url": "https://workstudio.example.com/chat/support",
               "title": "Support chat",
               "description": "Ask about billing, onboarding, or outages.",
               "isActive": true,
@@ -14003,7 +14003,7 @@
             "enum": ["public", "password", "email", "sso"]
           },
           "password": {
-            "description": "Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.",
+            "description": "Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.",
             "type": "string",
             "maxLength": 1024
           },
@@ -14263,7 +14263,7 @@
           {
             "data": {
               "runId": "run_8f14e45f-ceea-467f-a",
-              "statusUrl": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
+              "statusUrl": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
             }
           }
         ]
@@ -15022,7 +15022,7 @@
           {
             "data": {
               "runId": "run_8f14e45f-ceea-467f-a",
-              "statusUrl": "https://www.sim.ai/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
+              "statusUrl": "https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/runs/run_8f14e45f-ceea-467f-a"
             }
           }
         ]

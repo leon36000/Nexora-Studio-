@@ -83,7 +83,7 @@ Create a request (ticket) in ManageEngine ServiceDesk Plus Cloud with a subject,
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `subject` | string | Yes | Request subject \(maximum 250 characters\) |
 | `description` | string | No | Request description. HTML is supported |
@@ -188,7 +188,7 @@ Retrieve a single ManageEngine ServiceDesk Plus Cloud request by ID.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `requestId` | string | Yes | ID of the request to retrieve |
 
@@ -281,7 +281,7 @@ List ManageEngine ServiceDesk Plus Cloud requests, with optional search criteria
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
 | `startIndex` | number | No | One-based index of the first row to return |
@@ -389,7 +389,7 @@ Update a ManageEngine ServiceDesk Plus Cloud request: change its status, priorit
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `requestId` | string | Yes | ID of the request to update |
 | `subject` | string | No | New subject \(maximum 250 characters\) |
@@ -493,7 +493,7 @@ Move a ManageEngine ServiceDesk Plus Cloud request to the trash. Deleting a requ
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `requestId` | string | Yes | ID of the request to delete |
 
@@ -515,7 +515,7 @@ Add a note to a ManageEngine ServiceDesk Plus Cloud request, optionally making i
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `requestId` | string | Yes | ID of the request to add the note to |
 | `description` | string | Yes | Note body. HTML is supported |
@@ -564,7 +564,7 @@ List the notes on a ManageEngine ServiceDesk Plus Cloud request.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `requestId` | string | Yes | ID of the request whose notes to list |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
@@ -624,7 +624,7 @@ Create a problem record in ManageEngine ServiceDesk Plus Cloud with a title, des
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `title` | string | Yes | Problem title |
 | `description` | string | No | Problem description. HTML is supported |
@@ -720,7 +720,7 @@ Retrieve a single ManageEngine ServiceDesk Plus Cloud problem by ID.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `problemId` | string | Yes | ID of the problem to retrieve |
 
@@ -804,7 +804,7 @@ List ManageEngine ServiceDesk Plus Cloud problems, with optional search criteria
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
 | `startIndex` | number | No | One-based index of the first row to return |
@@ -903,7 +903,7 @@ Update a ManageEngine ServiceDesk Plus Cloud problem: change its title, status, 
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `problemId` | string | Yes | ID of the problem to update |
 | `title` | string | No | New problem title |
@@ -1000,7 +1000,7 @@ Delete a ManageEngine ServiceDesk Plus Cloud problem and its associated notes.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `problemId` | string | Yes | ID of the problem to delete |
 
@@ -1022,7 +1022,7 @@ Add a note to a ManageEngine ServiceDesk Plus Cloud problem.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `problemId` | string | Yes | ID of the problem to add the note to |
 | `description` | string | Yes | Note body. HTML is supported |
@@ -1059,7 +1059,7 @@ List the notes on a ManageEngine ServiceDesk Plus Cloud problem.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `problemId` | string | Yes | ID of the problem whose notes to list |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
@@ -1111,7 +1111,7 @@ Create a change record in ManageEngine ServiceDesk Plus Cloud with a title, stag
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `title` | string | Yes | Change title |
 | `stage` | string | Yes | Change stage name, e.g. Submission |
@@ -1223,7 +1223,7 @@ Retrieve a single ManageEngine ServiceDesk Plus Cloud change by ID.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `changeId` | string | Yes | ID of the change to retrieve |
 
@@ -1318,7 +1318,7 @@ List ManageEngine ServiceDesk Plus Cloud changes, with optional search criteria,
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
 | `startIndex` | number | No | One-based index of the first row to return |
@@ -1428,7 +1428,7 @@ Update a ManageEngine ServiceDesk Plus Cloud change: move its stage or status, r
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `changeId` | string | Yes | ID of the change to update |
 | `title` | string | No | New change title |
@@ -1541,7 +1541,7 @@ Delete a ManageEngine ServiceDesk Plus Cloud change and its associated notes.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `changeId` | string | Yes | ID of the change to delete |
 
@@ -1563,7 +1563,7 @@ Add a note to a ManageEngine ServiceDesk Plus Cloud change.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `changeId` | string | Yes | ID of the change to add the note to |
 | `description` | string | Yes | Note body. HTML is supported |
@@ -1600,7 +1600,7 @@ List the notes on a ManageEngine ServiceDesk Plus Cloud change.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `changeId` | string | Yes | ID of the change whose notes to list |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
@@ -1652,7 +1652,7 @@ Create an asset in the ManageEngine ServiceDesk Plus Cloud inventory. Requires a
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `name` | string | Yes | Asset name |
 | `product` | string | Yes | Name of an existing product this asset is an instance of |
@@ -1740,7 +1740,7 @@ Retrieve a single ManageEngine ServiceDesk Plus Cloud asset by ID.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `assetId` | string | Yes | ID of the asset to retrieve |
 
@@ -1813,7 +1813,7 @@ List ManageEngine ServiceDesk Plus Cloud assets, with optional search criteria, 
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
 | `startIndex` | number | No | One-based index of the first row to return |
@@ -1901,7 +1901,7 @@ Update a ManageEngine ServiceDesk Plus Cloud asset: reassign it, change its stat
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `assetId` | string | Yes | ID of the asset to update |
 | `name` | string | No | New asset name |
@@ -1990,7 +1990,7 @@ Delete an asset from the ManageEngine ServiceDesk Plus Cloud inventory.
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `assetId` | string | Yes | ID of the asset to delete |
 
@@ -2012,7 +2012,7 @@ Add an article to the ManageEngine ServiceDesk Plus Cloud knowledge base under a
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `title` | string | Yes | Solution title |
 | `description` | string | Yes | Solution body. HTML is supported |
@@ -2088,7 +2088,7 @@ Retrieve a single ManageEngine ServiceDesk Plus Cloud knowledge base solution by
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `solutionId` | string | Yes | ID of the solution to retrieve |
 
@@ -2159,7 +2159,7 @@ Search the ManageEngine ServiceDesk Plus Cloud knowledge base, with optional sea
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `rowCount` | number | No | Rows to return \(maximum 100\) |
 | `startIndex` | number | No | One-based index of the first row to return |
@@ -2245,7 +2245,7 @@ Update a ManageEngine ServiceDesk Plus Cloud knowledge base solution: revise its
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `solutionId` | string | Yes | ID of the solution to update |
 | `title` | string | No | New solution title |
@@ -2322,7 +2322,7 @@ Delete an article from the ManageEngine ServiceDesk Plus Cloud knowledge base, a
 
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
-| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Sim are issued by the US accounts server and are only valid against US. |
+| `dataCenter` | string | No | Zoho data center hosting the portal \(US, EU, IN, AU, JP, CA, SA, UK, CN, AE\). Credentials connected through Nexora are issued by the US accounts server and are only valid against US. |
 | `portal` | string | No | Portal URL name. Leave empty to use the account default portal |
 | `solutionId` | string | Yes | ID of the solution to delete |
 

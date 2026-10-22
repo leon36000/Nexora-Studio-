@@ -2,6 +2,7 @@
 
 import { type ForbiddenDetailCode, ForbiddenOperationError } from '@/lib/core/application/forbidden'
 import { isBlockTypeAccessControlExempt } from '@/lib/permission-groups/block-access'
+import { CAPABILITY_RULES, refuseCapability } from '@/lib/permission-groups/capabilities'
 import type { PermissionGroupConfig } from '@/lib/permission-groups/fields'
 import {
   resolveAccessControlBlockType,
@@ -178,26 +179,33 @@ export async function validateInvitationsAllowed(
   if (config?.disableInvitations) throw new InvitationsNotAllowedError()
 }
 
+/**
+ * permission-group-enforced: public_api.use — the core execute routes and the deployment-settings
+ * use case call this before admitting or enabling unauthenticated API execution.
+ */
 export async function validatePublicApiAllowed(
   userId: string | null | undefined,
   workspaceId: string | null | undefined
 ): Promise<void> {
   const config = await loadConfig(userId, workspaceId)
-  if (config?.disablePublicApi) throw new PublicApiNotAllowedError()
+  if (config && CAPABILITY_RULES['public_api.use'].deniedBy(config)) {
+    throw new PublicApiNotAllowedError()
+  }
 }
 
+/**
+ * permission-group-enforced: deploy.chat.auth_mode — needs the requested auth mode, which the
+ * funnel never sees, so the core chat-deployment use cases assert it here.
+ */
 export async function validateChatDeployAuth(
   userId: string | null | undefined,
   workspaceId: string | null | undefined,
   authType: string | null | undefined
 ): Promise<void> {
+  if (!authType) return
   const config = await loadConfig(userId, workspaceId)
-  const allowed = config?.allowedChatDeployAuthTypes as readonly string[] | null | undefined
-  if (allowed && authType && !allowed.includes(authType)) {
-    throw new ForbiddenOperationError(
-      'CHAT_AUTH_MODE_NOT_PERMITTED',
-      `Chat deployments with "${authType}" access are not allowed`
-    )
+  if (config && CAPABILITY_RULES['deploy.chat.auth_mode'].deniedBy(config, authType)) {
+    refuseCapability('deploy.chat.auth_mode')
   }
 }
 

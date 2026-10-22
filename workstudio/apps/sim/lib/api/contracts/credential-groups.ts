@@ -149,7 +149,6 @@ export type CredentialGroupEnrollmentConnection = z.output<
 export type CredentialGroupEnrollmentMcpConnection = z.output<
   typeof credentialGroupEnrollmentMcpConnectionSchema
 >
-export type CredentialGroupEnrollmentDetail = z.output<typeof credentialGroupEnrollmentDetailSchema>
 
 export const credentialGroupAccessPolicySchema = z
   .object({
@@ -542,10 +541,6 @@ export const updateCredentialGroupAccessContract = defineRouteContract({
   body: updateCredentialGroupAccessBodySchema,
   response: { mode: 'json', schema: credentialGroupAccessPolicySchema },
 })
-
-export type StartSlackCredentialGroupConfigurationBody = z.input<
-  typeof startSlackCredentialGroupConfigurationBodySchema
->
 
 export const startSlackCredentialGroupConfigurationContract = defineRouteContract({
   method: 'POST',

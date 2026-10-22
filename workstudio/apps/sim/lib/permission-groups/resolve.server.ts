@@ -46,9 +46,7 @@ import { getWorkspaceWithOwner } from '@/lib/workspaces/permissions/utils'
  * resolved vocabulary, and callers must judge a block type through
  * `resolveAccessControlBlockType` before testing membership.
  */
-export function mergeEnvAllowlist(
-  config: PermissionGroupConfig | null
-): PermissionGroupConfig | null {
+function mergeEnvAllowlist(config: PermissionGroupConfig | null): PermissionGroupConfig | null {
   const envAllowlist = getAllowedIntegrationsFromEnv()
   if (config === null && envAllowlist === null) return null
 
@@ -99,7 +97,7 @@ function inactiveUserAccessControlContext(organizationId: string | null): UserAc
  * connection, and a default would let that caller silently check out a second
  * pooled connection while advisory locks are held.
  */
-export async function resolveDefaultGroup(
+async function resolveDefaultGroup(
   organizationId: string,
   executor: DbOrTx
 ): Promise<ResolvedPermissionGroup | null> {

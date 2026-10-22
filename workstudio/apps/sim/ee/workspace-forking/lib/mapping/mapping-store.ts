@@ -19,6 +19,8 @@ export function orientCopiedResourceMappings<T>(rows: T[]): T[] {
 export async function persistCopiedResourceMappings(..._args: unknown[]): Promise<void> {}
 export async function deleteEdgeMappingsByChildResources(..._args: unknown[]): Promise<void> {}
 export async function deleteCopiedResourceMappingsByTargets(..._args: unknown[]): Promise<void> {}
-export function buildForkResolver(..._args: unknown[]): (kind: string, id: string) => string | null {
+export function buildForkResolver(
+  ..._args: unknown[]
+): (kind: string, id: string) => string | null {
   return () => null
 }

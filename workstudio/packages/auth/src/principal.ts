@@ -68,7 +68,7 @@ export interface WorkspaceApiKeyPrincipal {
 }
 
 /** Operations a SCIM bearer credential may perform. Mirrors `ScimScope` in the schema. */
-export type ScimCredentialScope = 'users:read' | 'users:write' | 'groups:read' | 'groups:write'
+type ScimCredentialScope = 'users:read' | 'users:write' | 'groups:read' | 'groups:write'
 
 /**
  * An organization's identity provider, authenticated by a SCIM bearer credential.

@@ -6,11 +6,19 @@ import { stripVersionSuffix } from '@sim/utils/string'
  * Verifies the registry-free integration catalog matches the executable block
  * registry fields that deployment availability depends on.
  */
-import { BLOCK_REGISTRY } from '../apps/sim/blocks/registry-maps'
 import { AuthMode, type BlockConfig } from '../apps/sim/blocks/types'
 import { INTEGRATION_METADATA } from '../packages/deployment-config/src/integration-metadata'
 import integrationsJson from '../packages/deployment-config/src/integrations.json'
 import { DOCS_ORIGIN, DOCS_OUTPUT_PATH, defaultIntegrationDocsUrl } from './generate-docs'
+
+/**
+ * Nexora edition: blocks build `docsLink` with `docsUrl(path)`, whose origin is the deployment's
+ * `NEXT_PUBLIC_DOCUMENTATION_URL` (the Nexora guide when unset). Pinning it to the docs site
+ * origin before the registry loads makes every link checkable, so each path must still name an
+ * existing page; the check does not depend on the caller's environment.
+ */
+process.env.NEXT_PUBLIC_DOCUMENTATION_URL = DOCS_ORIGIN
+const { BLOCK_REGISTRY } = await import('../apps/sim/blocks/registry-maps')
 
 type CatalogAuthType = 'oauth' | 'api-key' | 'none'
 

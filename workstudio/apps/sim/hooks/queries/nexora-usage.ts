@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import { getNexoraUsageContract } from '@/lib/api/contracts/nexora-usage'
 
-export const NEXORA_USAGE_STALE_TIME = 60 * 1000
+const NEXORA_USAGE_STALE_TIME = 60 * 1000
 
-export const nexoraUsageKeys = {
+const nexoraUsageKeys = {
   all: ['nexora-usage'] as const,
   period: (days: number) => [...nexoraUsageKeys.all, days] as const,
 }

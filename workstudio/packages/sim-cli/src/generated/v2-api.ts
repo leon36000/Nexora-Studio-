@@ -982,49 +982,10 @@ type CancelOrganizationAccessRequestResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -1036,20 +997,11 @@ type CancelOrganizationAccessRequestResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -1355,49 +1307,10 @@ type CancelWorkspaceAccessRequestResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -1409,20 +1322,11 @@ type CancelWorkspaceAccessRequestResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -2561,49 +2465,10 @@ export type CreateOrganizationAccessRequestBody = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -2615,20 +2480,11 @@ export type CreateOrganizationAccessRequestBody = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   reason?: string
 }
@@ -2640,49 +2496,10 @@ type CreateOrganizationAccessRequestResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -2694,20 +2511,11 @@ type CreateOrganizationAccessRequestResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -3862,49 +3670,10 @@ export type CreateWorkspaceAccessRequestBody = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -3916,20 +3685,11 @@ export type CreateWorkspaceAccessRequestBody = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   reason?: string
 }
@@ -3941,49 +3701,10 @@ type CreateWorkspaceAccessRequestResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -3995,20 +3716,11 @@ type CreateWorkspaceAccessRequestResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -4968,16 +4680,7 @@ export type DiscoverOrganizationAccessRequestsParams = {
 
 export type DiscoverOrganizationAccessRequestsQuery = {
   search?: string
-  targetKind?:
-    | 'feature'
-    | 'integration'
-    | 'provider'
-    | 'model'
-    | 'tool'
-    | 'knowledge_connector'
-    | 'file_share_auth'
-    | 'chat_deploy_auth'
-    | 'usage_limit'
+  targetKind?: 'feature' | 'integration' | 'model' | 'tool' | 'capability' | 'usage_limit'
   state?: 'allowed' | 'requestable' | 'unavailable'
   sortBy?: 'label'
   sortOrder?: 'asc' | 'desc'
@@ -4989,49 +4692,10 @@ type DiscoverOrganizationAccessRequestsResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -5043,20 +4707,11 @@ type DiscoverOrganizationAccessRequestsResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   label: string
   state: 'allowed' | 'requestable' | 'unavailable'
@@ -5076,16 +4731,7 @@ export type DiscoverWorkspaceAccessRequestsParams = {
 
 export type DiscoverWorkspaceAccessRequestsQuery = {
   search?: string
-  targetKind?:
-    | 'feature'
-    | 'integration'
-    | 'provider'
-    | 'model'
-    | 'tool'
-    | 'knowledge_connector'
-    | 'file_share_auth'
-    | 'chat_deploy_auth'
-    | 'usage_limit'
+  targetKind?: 'feature' | 'integration' | 'model' | 'tool' | 'capability' | 'usage_limit'
   state?: 'allowed' | 'requestable' | 'unavailable'
   sortBy?: 'label'
   sortOrder?: 'asc' | 'desc'
@@ -5097,49 +4743,10 @@ type DiscoverWorkspaceAccessRequestsResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -5151,20 +4758,11 @@ type DiscoverWorkspaceAccessRequestsResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   label: string
   state: 'allowed' | 'requestable' | 'unavailable'
@@ -9140,49 +8738,10 @@ type ListMyOrganizationAccessRequestsResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -9194,20 +8753,11 @@ type ListMyOrganizationAccessRequestsResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -9248,49 +8798,10 @@ type ListMyWorkspaceAccessRequestsResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -9302,20 +8813,11 @@ type ListMyWorkspaceAccessRequestsResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -9357,49 +8859,10 @@ type ListOrganizationAccessRequestsResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -9411,20 +8874,11 @@ type ListOrganizationAccessRequestsResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -10890,49 +10344,10 @@ type PreviewOrganizationAccessRequestResponseRef0 = {
     target:
       | {
           kind: 'feature'
-          configKey:
-            | 'hideTraceSpans'
-            | 'hideKnowledgeBaseTab'
-            | 'hideTablesTab'
-            | 'hideCopilot'
-            | 'hideIntegrationsTab'
-            | 'hideSecretsTab'
-            | 'hideApiKeysTab'
-            | 'hideInboxTab'
-            | 'hideFilesTab'
-            | 'disableMcpTools'
-            | 'disableCustomTools'
-            | 'disableSkills'
-            | 'disableInvitations'
-            | 'disablePublicApi'
-            | 'disablePublicFileSharing'
-            | 'hideDeployApi'
-            | 'hideDeployMcp'
-            | 'hideDeployChatbot'
-            | 'disablePersonalApiKeys'
-            | 'disableLogExport'
-            | 'hideCostInfo'
-            | 'disableKnowledgeBaseCreation'
-            | 'disableKnowledgeBaseFileUpload'
-            | 'disableTableCreation'
-            | 'disableTableExport'
-            | 'disableBulkFileDownload'
-            | 'disablePersonalCredentials'
-            | 'disableWorkspaceCreation'
-            | 'hideOrgMemberDirectory'
-            | 'disableCliAccess'
-            | 'disableWebhookTriggers'
-            | 'disableToolAutoApproval'
-            | 'hideSandboxesTab'
-            | 'disableOAuthAppAccess'
-            | 'disableKnowledgeBaseExport'
+          configKey: string
         }
       | {
           kind: 'integration'
-          id: string
-        }
-      | {
-          kind: 'provider'
           id: string
         }
       | {
@@ -10944,20 +10359,11 @@ type PreviewOrganizationAccessRequestResponseRef0 = {
           id: string
         }
       | {
-          kind: 'knowledge_connector'
+          kind: 'capability'
           id: string
         }
       | {
-          kind: 'file_share_auth'
-          id: 'public' | 'password' | 'email' | 'sso'
-        }
-      | {
-          kind: 'chat_deploy_auth'
-          id: 'public' | 'password' | 'email' | 'sso'
-        }
-      | {
           kind: 'usage_limit'
-          id: 'member'
         }
     targetLabel: string
     reason: string
@@ -11018,15 +10424,15 @@ type PreviewOrganizationAccessRequestResponseRef0 = {
       | 'disableKnowledgeBaseExport'
       | 'deniedPartialAccessProjectIssues'
     label: string
-    before: boolean | Array<string> | null
-    after: boolean | Array<string> | null
+    before: boolean | Array<string> | string | null
+    after: boolean | Array<string> | string | null
   }>
   impact: {
     memberCount: number
     workspaceCount: number
     workspaceNames: Array<string>
     truncated: boolean
-  }
+  } | null
   fingerprint: string
   canApply: boolean
   unavailableReason: string | null
@@ -11047,49 +10453,10 @@ type PreviewOrganizationAccessRequestResponseRef1 = {
     target:
       | {
           kind: 'feature'
-          configKey:
-            | 'hideTraceSpans'
-            | 'hideKnowledgeBaseTab'
-            | 'hideTablesTab'
-            | 'hideCopilot'
-            | 'hideIntegrationsTab'
-            | 'hideSecretsTab'
-            | 'hideApiKeysTab'
-            | 'hideInboxTab'
-            | 'hideFilesTab'
-            | 'disableMcpTools'
-            | 'disableCustomTools'
-            | 'disableSkills'
-            | 'disableInvitations'
-            | 'disablePublicApi'
-            | 'disablePublicFileSharing'
-            | 'hideDeployApi'
-            | 'hideDeployMcp'
-            | 'hideDeployChatbot'
-            | 'disablePersonalApiKeys'
-            | 'disableLogExport'
-            | 'hideCostInfo'
-            | 'disableKnowledgeBaseCreation'
-            | 'disableKnowledgeBaseFileUpload'
-            | 'disableTableCreation'
-            | 'disableTableExport'
-            | 'disableBulkFileDownload'
-            | 'disablePersonalCredentials'
-            | 'disableWorkspaceCreation'
-            | 'hideOrgMemberDirectory'
-            | 'disableCliAccess'
-            | 'disableWebhookTriggers'
-            | 'disableToolAutoApproval'
-            | 'hideSandboxesTab'
-            | 'disableOAuthAppAccess'
-            | 'disableKnowledgeBaseExport'
+          configKey: string
         }
       | {
           kind: 'integration'
-          id: string
-        }
-      | {
-          kind: 'provider'
           id: string
         }
       | {
@@ -11101,20 +10468,11 @@ type PreviewOrganizationAccessRequestResponseRef1 = {
           id: string
         }
       | {
-          kind: 'knowledge_connector'
+          kind: 'capability'
           id: string
         }
       | {
-          kind: 'file_share_auth'
-          id: 'public' | 'password' | 'email' | 'sso'
-        }
-      | {
-          kind: 'chat_deploy_auth'
-          id: 'public' | 'password' | 'email' | 'sso'
-        }
-      | {
           kind: 'usage_limit'
-          id: 'member'
         }
     targetLabel: string
     reason: string
@@ -11175,15 +10533,15 @@ type PreviewOrganizationAccessRequestResponseRef1 = {
       | 'disableKnowledgeBaseExport'
       | 'deniedPartialAccessProjectIssues'
     label: string
-    before: boolean | Array<string> | null
-    after: boolean | Array<string> | null
+    before: boolean | Array<string> | string | null
+    after: boolean | Array<string> | string | null
   }>
   impact: {
     memberCount: number
     workspaceCount: number
     workspaceNames: Array<string>
     truncated: boolean
-  }
+  } | null
   fingerprint: string
   canApply: boolean
   unavailableReason: string | null
@@ -12768,49 +12126,10 @@ type ResolveOrganizationAccessRequestResponseRef0 = {
   target:
     | {
         kind: 'feature'
-        configKey:
-          | 'hideTraceSpans'
-          | 'hideKnowledgeBaseTab'
-          | 'hideTablesTab'
-          | 'hideCopilot'
-          | 'hideIntegrationsTab'
-          | 'hideSecretsTab'
-          | 'hideApiKeysTab'
-          | 'hideInboxTab'
-          | 'hideFilesTab'
-          | 'disableMcpTools'
-          | 'disableCustomTools'
-          | 'disableSkills'
-          | 'disableInvitations'
-          | 'disablePublicApi'
-          | 'disablePublicFileSharing'
-          | 'hideDeployApi'
-          | 'hideDeployMcp'
-          | 'hideDeployChatbot'
-          | 'disablePersonalApiKeys'
-          | 'disableLogExport'
-          | 'hideCostInfo'
-          | 'disableKnowledgeBaseCreation'
-          | 'disableKnowledgeBaseFileUpload'
-          | 'disableTableCreation'
-          | 'disableTableExport'
-          | 'disableBulkFileDownload'
-          | 'disablePersonalCredentials'
-          | 'disableWorkspaceCreation'
-          | 'hideOrgMemberDirectory'
-          | 'disableCliAccess'
-          | 'disableWebhookTriggers'
-          | 'disableToolAutoApproval'
-          | 'hideSandboxesTab'
-          | 'disableOAuthAppAccess'
-          | 'disableKnowledgeBaseExport'
+        configKey: string
       }
     | {
         kind: 'integration'
-        id: string
-      }
-    | {
-        kind: 'provider'
         id: string
       }
     | {
@@ -12822,20 +12141,11 @@ type ResolveOrganizationAccessRequestResponseRef0 = {
         id: string
       }
     | {
-        kind: 'knowledge_connector'
+        kind: 'capability'
         id: string
       }
     | {
-        kind: 'file_share_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
-        kind: 'chat_deploy_auth'
-        id: 'public' | 'password' | 'email' | 'sso'
-      }
-    | {
         kind: 'usage_limit'
-        id: 'member'
       }
   targetLabel: string
   reason: string
@@ -16249,7 +15559,7 @@ export const V2_OPERATIONS = {
         required: true,
         describe: 'Workspace the conversation runs in.',
       },
-      message: { kind: 'string', required: true, describe: 'The message to send to Sim.' },
+      message: { kind: 'string', required: true, describe: 'The message to send to Nexora.' },
       conversationId: {
         kind: 'string',
         describe: 'Conversation to continue; a new one starts when omitted.',
@@ -17284,7 +16594,7 @@ export const V2_OPERATIONS = {
         kind: 'boolean',
         default: false,
         describe:
-          'Whether the server accepts MCP clients without a Sim API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes.',
+          'Whether the server accepts MCP clients without a Nexora API key. Defaults to false; a public server lets anyone holding its URL execute the workflows it exposes.',
       },
       workflowIds: {
         kind: 'array',
@@ -17899,17 +17209,7 @@ export const V2_OPERATIONS = {
       },
       targetKind: {
         kind: 'enum',
-        values: [
-          'feature',
-          'integration',
-          'provider',
-          'model',
-          'tool',
-          'knowledge_connector',
-          'file_share_auth',
-          'chat_deploy_auth',
-          'usage_limit',
-        ] as const,
+        values: ['feature', 'integration', 'model', 'tool', 'capability', 'usage_limit'] as const,
         describe: 'Category of access to discover.',
       },
       state: {
@@ -17958,17 +17258,7 @@ export const V2_OPERATIONS = {
       },
       targetKind: {
         kind: 'enum',
-        values: [
-          'feature',
-          'integration',
-          'provider',
-          'model',
-          'tool',
-          'knowledge_connector',
-          'file_share_auth',
-          'chat_deploy_auth',
-          'usage_limit',
-        ] as const,
+        values: ['feature', 'integration', 'model', 'tool', 'capability', 'usage_limit'] as const,
         describe: 'Category of access to discover.',
       },
       state: {
@@ -18202,7 +17492,7 @@ export const V2_OPERATIONS = {
       'x-sim-via': {
         kind: 'string',
         describe:
-          'Comma-separated workflow identifiers naming the workflow-to-workflow call chain that led to this request. Each hop appends its own workflow id, and Sim sets it automatically; supply it yourself only when relaying an existing chain. A chain at the maximum depth is rejected with `409` and `error.details.code: "CALL_CHAIN_DEPTH_EXCEEDED"`.',
+          'Comma-separated workflow identifiers naming the workflow-to-workflow call chain that led to this request. Each hop appends its own workflow id, and Nexora sets it automatically; supply it yourself only when relaying an existing chain. A chain at the maximum depth is rejected with `409` and `error.details.code: "CALL_CHAIN_DEPTH_EXCEEDED"`.',
       },
     },
   },
@@ -22688,7 +21978,7 @@ export const V2_OPERATIONS = {
       password: {
         kind: 'string',
         describe:
-          'Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.',
+          'Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.',
       },
       allowedEmails: {
         kind: 'array',
@@ -23195,7 +22485,7 @@ export const V2_OPERATIONS = {
       callbackUrl: {
         kind: 'string',
         describe:
-          'SAML callback URL; defaults to this provider’s Sim callback. Available when providerType is saml.',
+          'SAML callback URL; defaults to this provider’s Nexora callback. Available when providerType is saml.',
       },
       audience: {
         kind: 'string',
@@ -23342,7 +22632,7 @@ export const V2_OPERATIONS = {
           },
           callbackUrl: {
             kind: 'string',
-            describe: 'SAML callback URL; defaults to this provider’s Sim callback.',
+            describe: 'SAML callback URL; defaults to this provider’s Nexora callback.',
           },
           audience: {
             kind: 'string',
@@ -23713,7 +23003,7 @@ export const V2_OPERATIONS = {
       },
     },
     body: {
-      displayName: { kind: 'string', describe: 'New name shown for the credential in Sim.' },
+      displayName: { kind: 'string', describe: 'New name shown for the credential in Nexora.' },
       description: {
         kind: 'string',
         describe: 'New credential description. Send null to clear the stored one.',
@@ -24458,7 +23748,7 @@ export const V2_OPERATIONS = {
       description: { kind: 'string', describe: 'New server description, or null to clear it.' },
       isPublic: {
         kind: 'boolean',
-        describe: 'Whether the server answers MCP clients without a Sim API key.',
+        describe: 'Whether the server answers MCP clients without a Nexora API key.',
       },
     },
   },
@@ -24616,7 +23906,7 @@ export const V2_OPERATIONS = {
       password: {
         kind: 'string',
         describe:
-          'Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Sim agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.',
+          'Password of 15 to 1024 characters for a password-gated share. Kept when omitted; enabling `password` with neither a supplied nor a stored password is a 400. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.',
       },
       allowedEmails: {
         kind: 'array',

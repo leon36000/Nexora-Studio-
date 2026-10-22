@@ -1,4 +1,3 @@
-export const PERMISSION_GROUP_MEMBERS_STALE_TIME = 30 * 1000
 export const PERMISSION_GROUPS_STALE_TIME = 60 * 1000
 
 export const permissionGroupKeys = {

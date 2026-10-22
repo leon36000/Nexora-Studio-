@@ -1,13 +1,13 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Sim API v2 — Knowledge Bases",
-    "description": "Version 2 of the Sim REST API for knowledge bases, document ingestion, resumable uploads, folders, and semantic or tag-based search.",
+    "title": "Nexora API v2 — Knowledge Bases",
+    "description": "Version 2 of the Nexora REST API for knowledge bases, document ingestion, resumable uploads, folders, and semantic or tag-based search.",
     "version": "2.0.0",
     "contact": {
-      "name": "Sim Support",
-      "email": "help@sim.ai",
-      "url": "https://www.sim.ai"
+      "name": "Nexora Support",
+      "email": "support@example.com",
+      "url": "https://workstudio.example.com"
     },
     "license": {
       "name": "Apache 2.0",
@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://www.sim.ai",
+      "url": "https://workstudio.example.com",
       "description": "Production"
     }
   ],
@@ -5161,16 +5161,16 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-API-Key",
-        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://docs.sim.ai/api-reference/authentication#key-types); operations that reject workspace keys say so in their description."
+        "description": "Send a personal or workspace API key in `X-API-Key`. See [key types and access](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide); operations that reject workspace keys say so in their description."
       },
       "oauthBearer": {
         "type": "oauth2",
-        "description": "Send a Sim OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://docs.sim.ai/api-reference/authentication#oauth-access-tokens).",
+        "description": "Send a Nexora OAuth access token in `Authorization: Bearer`. See [OAuth authentication and scopes](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide).",
         "flows": {
           "authorizationCode": {
-            "authorizationUrl": "https://www.sim.ai/api/auth/oauth2/authorize",
-            "tokenUrl": "https://www.sim.ai/api/auth/oauth2/token",
-            "refreshUrl": "https://www.sim.ai/api/auth/oauth2/token",
+            "authorizationUrl": "https://workstudio.example.com/api/auth/oauth2/authorize",
+            "tokenUrl": "https://workstudio.example.com/api/auth/oauth2/token",
+            "refreshUrl": "https://workstudio.example.com/api/auth/oauth2/token",
             "scopes": {
               "api:read": "Read your workspaces, workflows, files, tables, and logs",
               "api:write": "Read, create, change, run, and delete resources in your workspaces",
@@ -5620,7 +5620,7 @@
           "webUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Canonical absolute URL for opening this resource in the Sim web application."
+            "description": "Canonical absolute URL for opening this resource in the Nexora web application."
           },
           "ownerEmail": {
             "type": "string",

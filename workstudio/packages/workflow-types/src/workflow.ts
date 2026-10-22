@@ -38,7 +38,7 @@ export interface Position {
   y: number
 }
 
-export interface BlockData {
+interface BlockData {
   parentId?: string
   extent?: 'parent'
   width?: number

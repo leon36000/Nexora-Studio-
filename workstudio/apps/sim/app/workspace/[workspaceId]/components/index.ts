@@ -13,7 +13,7 @@ export { InlineRenameInput } from './inline-rename-input'
 export { IntegrationTabsHeader } from './integration-tabs-header'
 export { MessageActions } from './message-actions'
 export type { BulkOutcome } from './resource/bulk-outcome'
-export { reportBulkOutcome, useReportBulkOutcome } from './resource/bulk-outcome'
+export { reportBulkOutcome } from './resource/bulk-outcome'
 export { FloatingOverflowText } from './resource/components/floating-overflow-text'
 export { ownerCell } from './resource/components/owner-cell'
 export {
@@ -38,7 +38,7 @@ export {
   FILTER_SECTION_LABEL_CLASS,
   SortDropdown,
 } from './resource/components/resource-options'
-export { timeCell, useTimeCell } from './resource/components/time-cell'
+export { timeCell } from './resource/components/time-cell'
 export type {
   PaginationConfig,
   ResourceCell,
@@ -50,7 +50,7 @@ export type {
   SelectableConfig,
 } from './resource/resource'
 export { EMPTY_CELL_PLACEHOLDER, Resource } from './resource/resource'
-export { selectionLabel, useSelectionLabels } from './resource/selection-label'
+export { selectionLabel } from './resource/selection-label'
 export type { ResourceRowSelection } from './resource/use-resource-row-selection'
 export { useResourceRowSelection } from './resource/use-resource-row-selection'
 export { ResourceTile } from './resource-tile'

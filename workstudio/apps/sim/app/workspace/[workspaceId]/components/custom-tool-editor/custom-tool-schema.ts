@@ -1,6 +1,3 @@
-import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
-
 /**
  * Shared parsing/validation for a custom tool's OpenAI function-calling JSON
  * schema. Used by both custom-tool editing surfaces (the canvas modal and the
@@ -141,21 +138,4 @@ export function extractSchemaParameters(jsonSchema: string): SchemaParameter[] {
   } catch {
     return []
   }
-}
-
-/**
- * Translated custom-tool copy for client components: the immutable-name notice, the
- * delete confirmation, and the message for a {@link validateCustomToolSchema} result.
- */
-export function useCustomToolCopy() {
-  const t = useTranslations('shell.customTool')
-  return useMemo(
-    () => ({
-      functionNameLocked: t('functionNameLocked'),
-      deleteConfirmText: [{ text: t('deleteWarning'), error: true }, ` ${t('irreversible')}`],
-      schemaError: (validation: SchemaValidation): string | null =>
-        validation.errorCode ? t(`schemaErrors.${validation.errorCode}`) : null,
-    }),
-    [t]
-  )
 }

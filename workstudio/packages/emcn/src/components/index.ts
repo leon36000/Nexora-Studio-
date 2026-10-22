@@ -5,14 +5,7 @@ export { BulkActionButton } from './bulk-action-button/bulk-action-button'
 export { Button } from './button/button'
 export { Checkbox, checkboxIconVariants, checkboxVariants } from './checkbox/checkbox'
 export { ChipChevronDown } from './chip/chevron'
-export {
-  Chip,
-  ChipLink,
-  type ChipLinkProps,
-  type ChipProps,
-  chipVariants,
-  TRIGGER_BORDER_CLASS,
-} from './chip/chip'
+export { Chip, ChipLink, type ChipLinkProps, chipVariants, TRIGGER_BORDER_CLASS } from './chip/chip'
 export {
   cellIconNodeClass,
   chipActiveSurfaceClass,
@@ -38,11 +31,7 @@ export {
 export { ChipCombobox } from './chip-combobox/chip-combobox'
 export { ChipCopyInput } from './chip-copy-input/chip-copy-input'
 export { ChipDatePicker } from './chip-date-picker/chip-date-picker'
-export {
-  ChipDropdown,
-  type ChipDropdownOption,
-  type ChipDropdownProps,
-} from './chip-dropdown/chip-dropdown'
+export { ChipDropdown, type ChipDropdownOption } from './chip-dropdown/chip-dropdown'
 export { ChipEmailsInput } from './chip-emails-input/chip-emails-input'
 export { ChipInput, type ChipInputProps } from './chip-input/chip-input'
 export {
@@ -200,5 +189,4 @@ export {
   useFloatingTooltip,
   useIsOverflowing,
 } from './tooltip/tooltip'
-export { UploadPreviewButton } from './upload-preview-button/upload-preview-button'
 export { Wizard } from './wizard/wizard'

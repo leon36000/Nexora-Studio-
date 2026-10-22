@@ -40,19 +40,6 @@ export interface CustomBlockOutput {
 }
 
 /**
- * A curated input the admin chose to expose on the block, keyed by the source
- * Start field's stable `id`, with optional consumer-facing hints.
- */
-export interface CustomBlockInput {
-  id: string
-  name: string
-  type: string
-  placeholder?: string
-  description?: string
-  required?: boolean
-}
-
-/**
  * The DB-backed identity + presentation of a custom block. `workflowId` is the
  * bound source workflow whose LATEST deployment this block always executes.
  */

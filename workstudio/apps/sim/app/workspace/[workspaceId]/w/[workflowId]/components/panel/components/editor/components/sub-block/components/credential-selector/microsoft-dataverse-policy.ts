@@ -14,9 +14,9 @@ interface ResolveMicrosoftDataverseCredentialPolicyParams {
   selectedCredentialScopes?: readonly string[]
 }
 
-export type MicrosoftDataverseActionLabelKey = 'updateAccess' | 'connectMatchingAccount'
+type MicrosoftDataverseActionLabelKey = 'updateAccess' | 'connectMatchingAccount'
 
-export type MicrosoftDataverseMessageKey =
+type MicrosoftDataverseMessageKey =
   | 'additionalPermissionsRequired'
   | 'invalidEnvironment'
   | 'credentialNotConnectedToEnvironment'

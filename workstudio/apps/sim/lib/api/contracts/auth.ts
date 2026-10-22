@@ -23,7 +23,6 @@ export const ssoRegistrationBodySchema = z.discriminatedUnion('providerType', [
     orgId: organizationIdSchema,
   }),
 ])
-export type SsoRegistrationBody = z.input<typeof ssoRegistrationBodySchema>
 
 export const ssoRegistrationContract = defineRouteContract({
   method: 'POST',

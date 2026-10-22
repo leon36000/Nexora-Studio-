@@ -13,7 +13,7 @@ const workspaceIdParamsSchema = z.object({ id: nonEmptyIdSchema })
 
 export const forkRemapKindSchema = z.enum(WORKFLOW_RESOURCE_KINDS)
 
-export const forkResourceTypeSchema = z.enum([
+const forkResourceTypeSchema = z.enum([
   'workflow',
   'oauth_credential',
   'service_account_credential',
@@ -57,7 +57,6 @@ export const forkMappableResourceTypeSchema = forkResourceTypeSchema.exclude([
   'workflow_mcp_server',
   'knowledge_document',
 ])
-export type ForkMappableResourceType = z.infer<typeof forkMappableResourceTypeSchema>
 
 export const forkDirectionSchema = z.enum(['push', 'pull'])
 
@@ -68,7 +67,7 @@ export const forkDirectionSchema = z.enum(['push', 'pull'])
  * parent knowledge base, not selected individually. Workspace `file` references are keyed by
  * storage key (not `workspace_files.id`) and copied like fork does.
  */
-export const forkCopyableKindSchema = z.enum([
+const forkCopyableKindSchema = z.enum([
   'knowledge-base',
   'table',
   'custom-tool',
@@ -80,7 +79,6 @@ export const forkCopyableKindSchema = z.enum([
    */
   'mcp-server',
 ])
-export type ForkCopyableKind = z.infer<typeof forkCopyableKindSchema>
 
 export const forkLineageNodeSchema = z.object({
   id: z.string(),
@@ -128,8 +126,6 @@ export const getForkLineageContract = defineRouteContract({
     }),
   },
 })
-export type ForkLineageNodeApi = z.output<typeof forkLineageNodeSchema>
-export type ForkLineageChildApi = z.output<typeof forkLineageChildSchema>
 export type GetForkLineageResponse = z.output<typeof getForkLineageContract.response.schema>
 
 const forkResourceIdList = z.array(nonEmptyIdSchema).max(2000).optional()
@@ -170,7 +166,6 @@ export const forkWorkspaceContract = defineRouteContract({
     }),
   },
 })
-export type ForkWorkspaceBody = z.input<typeof forkWorkspaceBodySchema>
 export type ForkWorkspaceResponse = z.output<typeof forkWorkspaceContract.response.schema>
 
 export const forkCopyableResourceSchema = z.object({ id: z.string(), label: z.string() })
@@ -239,7 +234,6 @@ export const forkMappingEntrySchema = z.object({
    */
   candidatesTruncated: z.boolean(),
 })
-export type ForkMappingEntry = z.output<typeof forkMappingEntrySchema>
 
 export const getForkMappingQuerySchema = z.object({
   otherWorkspaceId: workspaceIdSchema,
@@ -310,7 +304,6 @@ export const updateForkMappingContract = defineRouteContract({
     schema: z.object({ success: z.literal(true), updated: z.number().int() }),
   },
 })
-export type UpdateForkMappingBody = z.input<typeof updateForkMappingBodySchema>
 
 export const forkUnmappedReferenceSchema = z.object({
   kind: forkRemapKindSchema,
@@ -342,7 +335,6 @@ export const forkWorkflowComparisonSchema = z.discriminatedUnion('status', [
     target: forkSourceVersionSchema.describe('Pinned source deployment that this sync would copy.'),
   }),
 ])
-export type ForkWorkflowComparison = z.output<typeof forkWorkflowComparisonSchema>
 
 const forkSourceVersionAssertionSchema = z
   .object({
@@ -529,7 +521,6 @@ export const forkClearedRefSchema = z.discriminatedUnion('cause', [
     parentSourceId: z.string(),
   }),
 ])
-export type ForkClearedRef = z.output<typeof forkClearedRefSchema>
 
 /**
  * Why a would-clear reference blocks the sync, so clients can phrase the resolution:
@@ -552,7 +543,6 @@ export const forkSyncBlockerReasonSchema = z.enum([
   'workflow-missing',
   'unmapped-custom-block',
 ])
-export type ForkSyncBlockerReason = z.output<typeof forkSyncBlockerReasonSchema>
 
 /**
  * One reference that blocked a promote at the server gate (the authoritative in-tx re-check of
@@ -569,7 +559,6 @@ export const forkSyncBlockerSchema = z.object({
   sourceLabel: z.string(),
   reason: forkSyncBlockerReasonSchema,
 })
-export type ForkSyncBlocker = z.output<typeof forkSyncBlockerSchema>
 
 export const getForkDiffQuerySchema = z.object({
   otherWorkspaceId: workspaceIdSchema,
@@ -588,7 +577,6 @@ export const forkTriggerUrlChangeSchema = z.object({
   /** The path that stops being served. A URL an arriving trigger adopts is not reported here. */
   path: z.string().max(4096).describe('Public trigger path that stops serving after this sync.'),
 })
-export type ForkTriggerUrlChange = z.output<typeof forkTriggerUrlChangeSchema>
 
 /**
  * One trigger block in this sync that has a public webhook URL, or whose URL is up for decision.
@@ -623,7 +611,6 @@ export const forkTriggerMappingSchema = z.object({
   /** The pre-selected pairing: unambiguous only when one URL retires and one trigger arrives. */
   defaultAdoptPath: z.string().nullable(),
 })
-export type ForkTriggerMapping = z.output<typeof forkTriggerMappingSchema>
 
 export const getForkDiffContract = defineRouteContract({
   method: 'GET',
@@ -704,8 +691,6 @@ export const getForkDiffContract = defineRouteContract({
   },
 })
 export type GetForkDiffResponse = z.output<typeof getForkDiffContract.response.schema>
-export type ForkWorkflowChange = z.output<typeof forkWorkflowChangeSchema>
-export type ForkCopyableUnmapped = GetForkDiffResponse['copyableUnmapped'][number]
 
 /**
  * A workflow whose required dependent fields a sync cleared because their parent
@@ -736,7 +721,6 @@ export const promoteCopyResourcesSchema = z.object({
   /** External MCP servers to copy as config rows (OAuth tokens never copied - re-auth). */
   mcpServers: forkResourceIdList,
 })
-export type PromoteCopyResources = z.input<typeof promoteCopyResourcesSchema>
 
 export const promoteForkBodySchema = z.object({
   otherWorkspaceId: workspaceIdSchema,
@@ -817,7 +801,6 @@ export const promoteForkContract = defineRouteContract({
     }),
   },
 })
-export type PromoteForkBody = z.input<typeof promoteForkBodySchema>
 export type PromoteForkResponse = z.output<typeof promoteForkContract.response.schema>
 
 /** Structured detail for a background job, surfaced in the Activity tab's expand row. */
@@ -897,7 +880,6 @@ export const backgroundWorkItemSchema = z.object({
   startedAt: z.string(),
   completedAt: z.string().nullable(),
 })
-export type BackgroundWorkMetadata = z.output<typeof backgroundWorkMetadataSchema>
 /** Keyset pagination inputs, mirroring the audit log's (`auditLogsQuerySchema`). */
 export const getWorkspaceBackgroundWorkQuerySchema = z.object({
   /** Opaque cursor from a prior page's `nextCursor`; omit for the first page. */
@@ -921,10 +903,6 @@ export const getWorkspaceBackgroundWorkContract = defineRouteContract({
     }),
   },
 })
-export type BackgroundWorkItem = z.output<typeof backgroundWorkItemSchema>
-export type GetWorkspaceBackgroundWorkResponse = z.output<
-  typeof getWorkspaceBackgroundWorkContract.response.schema
->
 
 export const rollbackForkBodySchema = z.object({
   otherWorkspaceId: workspaceIdSchema,
@@ -950,7 +928,6 @@ export const rollbackForkContract = defineRouteContract({
     }),
   },
 })
-export type RollbackForkBody = z.input<typeof rollbackForkBodySchema>
 export type RollbackForkResponse = z.output<typeof rollbackForkContract.response.schema>
 
 export const getForkAvailabilityContract = defineRouteContract({
@@ -985,7 +962,6 @@ export const unlinkForkContract = defineRouteContract({
     }),
   },
 })
-export type UnlinkForkBody = z.input<typeof unlinkForkBodySchema>
 export type UnlinkForkResponse = z.output<typeof unlinkForkContract.response.schema>
 
 export const updateForkExcludedWorkflowsBodySchema = z.object({
@@ -1032,12 +1008,9 @@ export const updateForkSyncDefaultContract = defineRouteContract({
     }),
   },
 })
-export type UpdateForkSyncDefaultBody = z.input<typeof updateForkSyncDefaultBodySchema>
 export type UpdateForkSyncDefaultResponse = z.output<
   typeof updateForkSyncDefaultContract.response.schema
 >
-
-export type UpdateForkExcludedWorkflowsBody = z.input<typeof updateForkExcludedWorkflowsBodySchema>
 export type UpdateForkExcludedWorkflowsResponse = z.output<
   typeof updateForkExcludedWorkflowsContract.response.schema
 >

@@ -79,7 +79,7 @@ interface CapabilityRuleBase {
  * Decidable from the config alone, so the authorization funnel can apply it
  * knowing only the principal, the workspace, and the operation.
  */
-export interface StaticCapabilityRule extends CapabilityRuleBase {
+interface StaticCapabilityRule extends CapabilityRuleBase {
   readonly kind: 'static'
   deniedBy(config: PermissionGroupConfig): boolean
 }

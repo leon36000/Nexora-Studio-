@@ -3,7 +3,7 @@ import { ImageUp } from '../../icons/image-up'
 import { Loader } from '../../icons/loader'
 import { cn } from '../../lib/cn'
 
-export interface UploadPreviewButtonProps extends Omit<ComponentPropsWithoutRef<'button'>, 'type'> {
+interface UploadPreviewButtonProps extends Omit<ComponentPropsWithoutRef<'button'>, 'type'> {
   /** Accessible name describing which image will be uploaded or replaced. */
   'aria-label': string
   /** Shows the shared loader and prevents another activation during upload. */
@@ -20,7 +20,7 @@ export interface UploadPreviewButtonProps extends Omit<ComponentPropsWithoutRef<
  *   {logoUrl ? <img src={logoUrl} alt='' className='size-full object-contain p-1' /> : null}
  * </UploadPreviewButton>
  */
-export const UploadPreviewButton = forwardRef<HTMLButtonElement, UploadPreviewButtonProps>(
+const UploadPreviewButton = forwardRef<HTMLButtonElement, UploadPreviewButtonProps>(
   ({ children, className, loading = false, disabled, ...props }, ref) => (
     <button
       {...props}

@@ -13,6 +13,7 @@ import {
   billingPlanHelpersMockFns,
 } from '@sim/testing/mocks/billing-plan-helpers.mock'
 import { billingSubscriptionUtilsMock } from '@sim/testing/mocks/billing-subscription-utils.mock'
+import { NextRequest } from 'next/server'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
@@ -86,11 +87,12 @@ describe('POST /api/organizations', () => {
     ])
 
     const response = await POST(
-      new Request('http://localhost/api/organizations', {
+      new NextRequest('http://localhost/api/organizations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Recovered Org' }),
-      })
+      }),
+      {}
     )
 
     expect(response.status).toBe(200)
@@ -121,11 +123,12 @@ describe('POST /api/organizations', () => {
     queueTableRows(member, [{ organizationId: 'org-1', role: 'member' }])
 
     const response = await POST(
-      new Request('http://localhost/api/organizations', {
+      new NextRequest('http://localhost/api/organizations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Blocked Org' }),
-      })
+      }),
+      {}
     )
 
     expect(response.status).toBe(409)
@@ -157,11 +160,12 @@ describe('POST /api/organizations', () => {
     )
 
     const response = await POST(
-      new Request('http://localhost/api/organizations', {
+      new NextRequest('http://localhost/api/organizations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Recovered Org' }),
-      })
+      }),
+      {}
     )
 
     expect(response.status).toBe(409)
@@ -189,10 +193,11 @@ describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
     mockCreateOrganizationForTeamPlan.mockResolvedValue('org-new')
 
     const response = await POST(
-      new Request('http://localhost/api/organizations', {
+      new NextRequest('http://localhost/api/organizations', {
         method: 'POST',
         body: JSON.stringify({ name: 'PME Exemple', slug: 'pme-exemple' }),
-      })
+      }),
+      {}
     )
 
     expect(response.status).toBe(200)
@@ -217,10 +222,11 @@ describe('POST /api/organizations (Nexora edition, billing disabled)', () => {
     queueTableRows(member, [{ organizationId: 'org-existing', role: 'owner' }])
 
     const response = await POST(
-      new Request('http://localhost/api/organizations', {
+      new NextRequest('http://localhost/api/organizations', {
         method: 'POST',
         body: JSON.stringify({ name: 'Autre' }),
-      })
+      }),
+      {}
     )
 
     expect(response.status).toBe(409)

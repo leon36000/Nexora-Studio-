@@ -19,7 +19,9 @@ interface SsoProviderSummary {
 /** SSO is disabled: the provider list is always empty and never loading. */
 export function useSSOProviders(_options?: { enabled?: boolean; organizationId?: string }) {
   return {
-    data: { providers: [] as SsoProviderSummary[] } as { providers: SsoProviderSummary[] } | undefined,
+    data: { providers: [] as SsoProviderSummary[] } as
+      | { providers: SsoProviderSummary[] }
+      | undefined,
     isLoading: false,
     isFetching: false,
     isSuccess: true,

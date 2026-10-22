@@ -14,8 +14,6 @@ const inputPlaceholderSchema = z.object({
   required: z.boolean().optional(),
 })
 
-export type CustomBlockInputPlaceholder = z.input<typeof inputPlaceholderSchema>
-
 /** A curated output: a child-workflow block output (blockId + dot-path) exposed under `name`. */
 export const exposedOutputSchema = z.object({
   blockId: z.string().min(1),

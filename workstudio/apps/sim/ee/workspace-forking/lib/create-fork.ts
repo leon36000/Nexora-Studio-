@@ -2,11 +2,11 @@
 
 import { FeatureDisabledError } from '@/ee/_nexora/disabled'
 
-/** Minimal result shape; only referenced in core receipt types. */
+/** Result shape read by the core receipts and project fixtures. */
 export interface CreateForkResult {
   operation?: unknown
   replayed?: boolean
-  [key: string]: any
+  workspace: { id: string }
 }
 
 export async function createFork(_args: unknown): Promise<CreateForkResult> {

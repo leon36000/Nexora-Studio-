@@ -4,7 +4,6 @@ export {
   extractSchemaIdentity,
   extractSchemaParameters,
   FUNCTION_NAME_LOCKED,
-  useCustomToolCopy,
   validateCustomToolSchema,
 } from '@/app/workspace/[workspaceId]/components/custom-tool-editor/custom-tool-schema'
 export { CustomToolSchemaField } from '@/app/workspace/[workspaceId]/components/custom-tool-editor/custom-tool-schema-field'

@@ -1,9 +1,5 @@
 import { apiKey, organization, session as sessionTable } from '@sim/db/schema'
 import { and, eq, isNull, ne, sql } from 'drizzle-orm'
-import {
-  invalidateMembershipCache,
-  invalidateSecurityPolicyVersionCache,
-} from '@/lib/auth/security-policy'
 import type { DbOrTx } from '@/lib/db/types'
 
 /**
@@ -57,20 +53,6 @@ export async function revokeUserSessionsTx(
     .where(eq(organization.id, params.organizationId))
 
   return { revoked: deleted.length }
-}
-
-/**
- * Drops the caches that make a revocation visible to the next request.
- *
- * Separate from the transaction on purpose: an in-process cache cleared before
- * the commit lands would be repopulated with the pre-commit answer.
- */
-export function invalidateAfterSessionRevocation(params: {
-  userId: string
-  organizationId: string
-}): void {
-  invalidateSecurityPolicyVersionCache(params.organizationId)
-  invalidateMembershipCache(params.userId)
 }
 
 /**

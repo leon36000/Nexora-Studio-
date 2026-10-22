@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 vi.unmock('@/lib/core/config/env')
 vi.unmock('@/lib/core/config/env-flags')
@@ -14,10 +14,6 @@ async function loadMothershipConstants(vars: Record<string, string | undefined>)
   for (const [key, value] of Object.entries(vars)) vi.stubEnv(key, value)
   return import('@/lib/mothership/constants')
 }
-
-afterEach(() => {
-  vi.unstubAllEnvs()
-})
 
 describe('Nexora edition: Chat (mothership) surfaces', () => {
   it('are hidden when nothing is configured', async () => {

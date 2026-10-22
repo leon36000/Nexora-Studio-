@@ -6530,12 +6530,17 @@ export function VideoIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-export function VllmIcon(props: SVGProps<SVGSVGElement>) {
+export function NexoraIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} fill='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>
-      <title>vLLM</title>
-      <path d='M0 4.97h9.32V23L0 4.97z' fill='#FDB515' />
-      <path d='M13.99 4.35L22.38 0l-6.22 23H9.32l4.66-18.65z' fill='#30A2FF' />
+    <svg {...props} fill='none' viewBox='0 0 192 192' xmlns='http://www.w3.org/2000/svg'>
+      <title>Nexora</title>
+      <rect width='192' height='192' rx='42.24' fill='#4F46E5' />
+      <g transform='translate(47.61 42.24) scale(1.0752)'>
+        <path
+          d='M26.5 42.84V100H0V1.24H25L25.35 21.64Q29.15 12.28 35.69 6.71Q43.55 0 56.1 0Q66.34 0 73.98 4.46Q81.63 8.92 85.82 17.27Q90.02 25.62 90.02 37.19V100H63.52V41.78Q63.52 32.6 58.79 27.39Q54.06 22.17 45.67 22.17Q40.11 22.17 35.73 24.6Q31.36 27.03 28.93 31.63Q26.5 36.22 26.5 42.84Z'
+          fill='#FFFFFF'
+        />
+      </g>
     </svg>
   )
 }

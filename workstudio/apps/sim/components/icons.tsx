@@ -6545,16 +6545,6 @@ export function NexoraIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
-export function VllmIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} fill='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>
-      <title>vLLM</title>
-      <path d='M0 4.97h9.32V23L0 4.97z' fill='#FDB515' />
-      <path d='M13.99 4.35L22.38 0l-6.22 23H9.32l4.66-18.65z' fill='#30A2FF' />
-    </svg>
-  )
-}
-
 export function LitellmIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill='none' viewBox='0 0 72 72' xmlns='http://www.w3.org/2000/svg'>

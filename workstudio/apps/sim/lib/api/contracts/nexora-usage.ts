@@ -9,7 +9,7 @@ const usageDaySchema = z.object({
   totalTokens: z.number(),
 })
 
-export const nexoraUsageResponseSchema = z.object({
+const nexoraUsageResponseSchema = z.object({
   days: z.array(usageDaySchema),
   totals: z.object({
     requests: z.number(),
@@ -19,8 +19,6 @@ export const nexoraUsageResponseSchema = z.object({
     kgCO2eq: z.number(),
   }),
 })
-
-export type NexoraUsageResponse = z.output<typeof nexoraUsageResponseSchema>
 
 export const nexoraUsageQuerySchema = z.object({
   days: z

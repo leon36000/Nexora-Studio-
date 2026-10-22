@@ -1,3 +1,4 @@
+import { jsonResponse } from '@sim/testing/helpers/http'
 import { describe, expect, it, vi } from 'vitest'
 import { fetchNexoraApiUsage, NexoraUsageUnavailableError } from '@/lib/nexora/usage'
 
@@ -17,13 +18,6 @@ function bucket(day: number, prompt: number, completion: number, requests: numbe
     requests,
     impacts: { kWh: 0.01, kgCO2eq: 0.002 },
   }
-}
-
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  })
 }
 
 describe('fetchNexoraApiUsage', () => {

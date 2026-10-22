@@ -9,7 +9,10 @@ export interface ScimAttributeProjection {
 
 function split(value: unknown): string[] | undefined {
   if (typeof value !== 'string' || !value.trim()) return undefined
-  return value.split(',').map((part) => part.trim()).filter(Boolean)
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
 }
 
 export function parseAttributeProjection(query: unknown): ScimAttributeProjection {
@@ -17,7 +20,20 @@ export function parseAttributeProjection(query: unknown): ScimAttributeProjectio
   return { attributes: split(q.attributes), excludedAttributes: split(q.excludedAttributes) }
 }
 
-export function toListResponse(resources: readonly unknown[], totalResults: number, startIndex: number): any {
+/** RFC 7644 section 3.4.2 ListResponse envelope, shaped as the core SCIM contracts declare it. */
+interface ScimListResponse<T> {
+  schemas: [typeof SCIM_LIST_RESPONSE_SCHEMA]
+  totalResults: number
+  startIndex: number
+  itemsPerPage: number
+  Resources: T[]
+}
+
+export function toListResponse<T>(
+  resources: readonly T[],
+  totalResults: number,
+  startIndex: number
+): ScimListResponse<T> {
   return {
     schemas: [SCIM_LIST_RESPONSE_SCHEMA],
     totalResults,

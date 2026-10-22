@@ -183,7 +183,7 @@ export async function performFullDeploy(
 }
 
 /** Admits the supplied immutable graph and pending deployment work in the caller's transaction. */
-export async function prepareWorkflowSnapshotDeployment(params: {
+async function prepareWorkflowSnapshotDeployment(params: {
   params: PerformFullDeployParams
   actorId: string
   requestId: string

@@ -3,7 +3,8 @@
 import { disabledUseCase } from '@/ee/_nexora/disabled'
 import { forkOperations as ops } from '@/ee/workspace-forking/application/operations'
 
-export const setForkSyncDefault = disabledUseCase<{ excludeNewWorkflows: boolean; changedWorkspaces: any[] }>(
-  ops.syncDefault,
-  'Workspace forking'
-)
+/** The core sync-default route counts `changedWorkspaces`; its tests read each member's `id`. */
+export const setForkSyncDefault = disabledUseCase<{
+  excludeNewWorkflows: boolean
+  changedWorkspaces: { id: string }[]
+}>(ops.syncDefault, 'Workspace forking')

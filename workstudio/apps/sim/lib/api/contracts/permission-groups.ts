@@ -38,7 +38,6 @@ export const permissionGroupWorkspaceRefSchema = z.object({
   id: z.string(),
   name: z.string(),
 })
-export type PermissionGroupWorkspaceRef = z.output<typeof permissionGroupWorkspaceRefSchema>
 
 export const permissionGroupSchema = z.object({
   id: z.string(),
@@ -58,7 +57,6 @@ export const permissionGroupSchema = z.object({
    */
   workspaces: z.array(permissionGroupWorkspaceRefSchema),
 })
-export type PermissionGroup = z.output<typeof permissionGroupSchema>
 
 export const permissionGroupWriteSchema = z.object({
   id: z.string(),
@@ -83,7 +81,6 @@ export const permissionGroupMemberSchema = z.object({
   userEmail: z.string().nullable(),
   userImage: z.string().nullable(),
 })
-export type PermissionGroupMember = z.output<typeof permissionGroupMemberSchema>
 
 export const userPermissionConfigQuerySchema = z.object({
   workspaceId: z.string().min(1),
@@ -170,7 +167,6 @@ export const createPermissionGroupBodySchema = z
       ),
   })
   .superRefine(refineWorkspaceScope)
-export type CreatePermissionGroupBody = z.input<typeof createPermissionGroupBodySchema>
 
 export const updatePermissionGroupBodySchema = z
   .object({
@@ -209,17 +205,11 @@ export type UpdatePermissionGroupBody = z.input<typeof updatePermissionGroupBody
 export const removePermissionGroupMemberQuerySchema = z.object({
   memberId: z.string().min(1),
 })
-export type RemovePermissionGroupMemberQuery = z.input<
-  typeof removePermissionGroupMemberQuerySchema
->
 
 export const bulkAddPermissionGroupMembersBodySchema = z.object({
   userIds: z.array(z.string()).optional(),
   addAllOrganizationMembers: z.boolean().optional(),
 })
-export type BulkAddPermissionGroupMembersBody = z.input<
-  typeof bulkAddPermissionGroupMembersBodySchema
->
 
 const successResponseSchema = z.object({
   success: z.literal(true),

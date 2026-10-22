@@ -1,5 +1,4 @@
-import { useCallback } from 'react'
-import { createTranslator, type Messages, useLocale, useTranslations } from 'next-intl'
+import { createTranslator, type Messages } from 'next-intl'
 import type { ResourceCell } from '@/app/workspace/[workspaceId]/components/resource/resource'
 import enShell from '@/messages/en/shell.json'
 
@@ -58,16 +57,6 @@ function formatTimeCell(
   }
 
   return { label: formatFullDate(date, t, locale) }
-}
-
-/** Translated {@link timeCell} for client components. */
-export function useTimeCell() {
-  const t = useTranslations('shell.timeCell')
-  const locale = useLocale()
-  return useCallback(
-    (dateValue: string | Date | null | undefined) => formatTimeCell(dateValue, t, locale),
-    [t, locale]
-  )
 }
 
 const englishMessages: Messages = { shell: enShell }

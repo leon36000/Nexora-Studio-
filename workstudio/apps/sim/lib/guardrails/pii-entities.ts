@@ -215,10 +215,7 @@ export const PII_ENTITIES_BY_LANGUAGE: Record<PIILanguage, ReadonlySet<PIIEntity
 }
 
 /** True when the entity has a recognizer for the given language. */
-export function isEntitySupportedForLanguage(
-  entity: PIIEntityType,
-  language: PIILanguage
-): boolean {
+function isEntitySupportedForLanguage(entity: PIIEntityType, language: PIILanguage): boolean {
   return PII_ENTITIES_BY_LANGUAGE[language].has(entity)
 }
 
@@ -263,7 +260,7 @@ export function getEntityGroupsForLanguage(language: PIILanguage, opts?: { regex
 }
 
 /** The PII redaction stages, in execution order. */
-export const PII_STAGES = ['input', 'blockOutputs', 'logs'] as const
+const PII_STAGES = ['input', 'blockOutputs', 'logs'] as const
 export type PiiStageKey = (typeof PII_STAGES)[number]
 
 /**
@@ -289,35 +286,6 @@ export interface PiiStagePolicy {
 
 export type PiiStages = Record<PiiStageKey, PiiStagePolicy>
 
-/**
- * Stage catalog driving the settings UI, in display order (Logs first — the
- * safe, observability-only default). The execution-altering caveat for the
- * input/blockOutputs stages is folded into their descriptions.
- */
-export const PII_STAGE_META: ReadonlyArray<{
-  key: PiiStageKey
-  label: string
-  description: string
-}> = [
-  {
-    key: 'logs',
-    label: 'Logs',
-    description: 'Redact workflow logs when they are persisted.',
-  },
-  {
-    key: 'input',
-    label: 'Workflow input',
-    description:
-      'Redact the workflow input before execution. Data is redacted during runtime and may affect workflow output.',
-  },
-  {
-    key: 'blockOutputs',
-    label: 'Block outputs',
-    description:
-      'Mask every block output before the next block reads it. Data is redacted during runtime and may affect workflow output and execution performance.',
-  },
-]
-
 /** A fully-disabled stage policy for new drafts. */
 export function emptyStagePolicy(): PiiStagePolicy {
   return { enabled: false, entityTypes: [], language: DEFAULT_PII_LANGUAGE, customPatterns: [] }
@@ -338,15 +306,6 @@ export function sanitizeCustomPatterns(value: unknown): CustomPiiPattern[] {
     })
   }
   return out
-}
-
-/** A fully-disabled stage set for new drafts. */
-export function emptyPiiStages(): PiiStages {
-  return {
-    input: emptyStagePolicy(),
-    blockOutputs: emptyStagePolicy(),
-    logs: emptyStagePolicy(),
-  }
 }
 
 /**

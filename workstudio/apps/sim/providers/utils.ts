@@ -285,7 +285,7 @@ export function getProvider(id: string): ProviderMetadata | undefined {
   return providers[providerId]
 }
 
-export function getAllProviderIds(): ProviderId[] {
+function getAllProviderIds(): ProviderId[] {
   return Object.keys(providers) as ProviderId[]
 }
 

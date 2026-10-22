@@ -1,4 +1,3 @@
-import { createTranslator } from 'next-intl'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/stores/operation-queue/store', () => ({
@@ -33,13 +32,9 @@ vi.mock('@/stores/workflow-diff/store', () => ({
 }))
 
 import { getDeployReadinessState } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/hooks/use-deploy-readiness'
-import { MESSAGES } from '@/i18n/messages'
+import enEditor from '@/messages/en/editor.json'
 
-const t = createTranslator({
-  locale: 'en',
-  messages: MESSAGES.en,
-  namespace: 'editor.deploy.readiness',
-})
+const t: Parameters<typeof getDeployReadinessState>[1] = (key) => enEditor.deploy.readiness[key]
 
 const baseInput = {
   workflowId: 'workflow-a',

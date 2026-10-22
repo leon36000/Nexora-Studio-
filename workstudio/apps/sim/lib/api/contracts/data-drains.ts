@@ -88,8 +88,6 @@ export const dataDrainSchema = z.intersection(
 )
 
 export type DataDrain = z.output<typeof dataDrainSchema>
-export type CreateDataDrainBody = z.input<typeof createDataDrainBodySchema>
-export type UpdateDataDrainBody = z.input<typeof updateDataDrainBodySchema>
 
 export const dataDrainListResponseSchema = z.object({
   drains: z.array(dataDrainSchema),

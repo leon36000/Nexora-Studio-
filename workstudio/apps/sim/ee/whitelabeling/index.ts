@@ -7,7 +7,7 @@ import { getEnv } from '@/lib/core/config/env'
 export type { BrandConfig, OrganizationWhitelabelSettings, ThemeColors }
 
 /** Neutral Nexora defaults. Every value can be overridden with the core's NEXT_PUBLIC_BRAND_* variables. */
-export const NEXORA_BRAND_DEFAULTS: BrandConfig = Object.freeze({
+const NEXORA_BRAND_DEFAULTS: BrandConfig = Object.freeze({
   name: 'Nexora WorkStudio',
   logoUrl: undefined,
   wordmarkUrl: undefined,
@@ -50,7 +50,8 @@ export function getBrandConfig(): BrandConfig {
       primaryHoverColor:
         read('NEXT_PUBLIC_BRAND_PRIMARY_HOVER_COLOR') ?? base.theme?.primaryHoverColor,
       accentColor: read('NEXT_PUBLIC_BRAND_ACCENT_COLOR') ?? base.theme?.accentColor,
-      accentHoverColor: read('NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR') ?? base.theme?.accentHoverColor,
+      accentHoverColor:
+        read('NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR') ?? base.theme?.accentHoverColor,
       backgroundColor: read('NEXT_PUBLIC_BRAND_BACKGROUND_COLOR') ?? base.theme?.backgroundColor,
     },
     isWhitelabeled: true,
@@ -80,7 +81,9 @@ export function mergeOrgBrandConfig(
     theme: {
       ...base.theme,
       ...(orgSettings.primaryColor ? { primaryColor: orgSettings.primaryColor } : {}),
-      ...(orgSettings.primaryHoverColor ? { primaryHoverColor: orgSettings.primaryHoverColor } : {}),
+      ...(orgSettings.primaryHoverColor
+        ? { primaryHoverColor: orgSettings.primaryHoverColor }
+        : {}),
       ...(orgSettings.accentColor ? { accentColor: orgSettings.accentColor } : {}),
       ...(orgSettings.accentHoverColor ? { accentHoverColor: orgSettings.accentHoverColor } : {}),
     },
@@ -105,9 +108,12 @@ export function generateThemeCSS(): string {
   const theme = getBrandConfig().theme
   if (!theme) return ''
   const vars: string[] = []
-  if (theme.primaryColor) vars.push(`--brand-primary: ${theme.primaryColor}; --brand: ${theme.primaryColor};`)
+  if (theme.primaryColor)
+    vars.push(`--brand-primary: ${theme.primaryColor}; --brand: ${theme.primaryColor};`)
   if (theme.primaryHoverColor)
-    vars.push(`--brand-primary-hover: ${theme.primaryHoverColor}; --brand-hover: ${theme.primaryHoverColor};`)
+    vars.push(
+      `--brand-primary-hover: ${theme.primaryHoverColor}; --brand-hover: ${theme.primaryHoverColor};`
+    )
   if (theme.accentColor) vars.push(`--brand-accent: ${theme.accentColor};`)
   if (theme.accentHoverColor) vars.push(`--brand-accent-hover: ${theme.accentHoverColor};`)
   return vars.length ? `:root { ${vars.join(' ')} }` : ''

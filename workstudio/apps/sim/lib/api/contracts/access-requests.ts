@@ -115,7 +115,6 @@ export const createAccessRequestBodySchema = z
     reason: reasonSchema.default(''),
   })
   .strict()
-export type CreateAccessRequestBody = z.input<typeof createAccessRequestBodySchema>
 
 export const accessRequestParamsSchema = z.object({ requestId: requestIdSchema })
 export type AccessRequestParams = z.input<typeof accessRequestParamsSchema>
@@ -168,7 +167,6 @@ export const resolveAccessRequestBodySchema = z.discriminatedUnion('action', [
     })
     .strict(),
 ])
-export type ResolveAccessRequestBody = z.input<typeof resolveAccessRequestBodySchema>
 
 export const accessRequestSettingsSchema = z.object({ allowRequests: z.boolean() }).strict()
 export type AccessRequestSettings = z.output<typeof accessRequestSettingsSchema>
@@ -251,7 +249,6 @@ export type AccessRequestResponse = z.output<typeof accessRequestResponseSchema>
 
 export const accessRequestPolicyValueSchema = storedAccessRequestPolicyValueSchema
 export const accessRequestPolicyChangeSchema = storedAccessRequestPolicyChangeSchema
-export type AccessRequestPolicyChange = z.output<typeof accessRequestPolicyChangeSchema>
 export const accessRequestDecisionSchema = storedAccessRequestDecisionSchema
 export type AccessRequestDecision = z.output<typeof accessRequestDecisionSchema>
 
@@ -305,7 +302,6 @@ export const accessRequestPreviewResponseSchema = z.discriminatedUnion('resoluti
       .describe('Current member credit cap. Approval requires a higher newLimitCredits.'),
   }),
 ])
-export type AccessRequestPreviewResponse = z.output<typeof accessRequestPreviewResponseSchema>
 
 export const discoverAccessRequestsContract = defineRouteContract({
   method: 'GET',

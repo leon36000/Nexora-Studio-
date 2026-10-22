@@ -29,7 +29,7 @@ export function creditsToDollars(credits: number): number {
  * which would otherwise double-convert by round-tripping back through
  * dollars.
  */
-export function formatCreditsLabel(credits: number): string {
+function formatCreditsLabel(credits: number): string {
   return `${credits.toLocaleString()} ${credits === 1 ? 'credit' : 'credits'}`
 }
 

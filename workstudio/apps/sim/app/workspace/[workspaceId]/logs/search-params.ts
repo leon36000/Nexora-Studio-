@@ -45,7 +45,7 @@ const TOKEN_TO_TIME_RANGE: Record<string, TimeRange> = Object.fromEntries(
  * tokens parse to `null` so each consuming surface's `.withDefault(...)` decides
  * the fallback (logs: "All time"; audit-logs: "Past 30 days").
  */
-export const parseAsTimeRange = createParser<TimeRange>({
+const parseAsTimeRange = createParser<TimeRange>({
   parse(value) {
     return TOKEN_TO_TIME_RANGE[value] ?? null
   },
@@ -83,7 +83,7 @@ export const parseAsLogLevel = createParser<LogLevel>({
  * `new Date(...).toISOString()` throws, so a malformed deep link must parse to
  * `null` (treated as a missing bound) instead of crashing the consumer.
  */
-export const parseAsDateString = createParser<string>({
+const parseAsDateString = createParser<string>({
   parse(value) {
     return Number.isNaN(Date.parse(value)) ? null : value
   },

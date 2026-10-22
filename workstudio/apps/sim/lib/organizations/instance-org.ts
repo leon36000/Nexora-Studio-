@@ -75,7 +75,7 @@ export function getInstanceOrganizationConfig(): InstanceOrganizationConfig | nu
 }
 
 /** Whether this deployment runs in instance-organization mode. */
-export function isInstanceOrganizationMode(): boolean {
+function isInstanceOrganizationMode(): boolean {
   return getInstanceOrganizationConfig() !== null
 }
 
@@ -92,7 +92,7 @@ export function isInstanceOrganizationMode(): boolean {
  * that holds a single row in this mode, and it only runs on the signup path, so
  * there is nothing worth caching against that failure mode.
  */
-export async function getInstanceOrganizationId(): Promise<string | null> {
+async function getInstanceOrganizationId(): Promise<string | null> {
   const config = getInstanceOrganizationConfig()
   if (!config) return null
 

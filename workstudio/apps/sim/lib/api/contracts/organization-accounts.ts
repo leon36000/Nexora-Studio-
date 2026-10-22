@@ -180,12 +180,6 @@ export const updateOrganizationAccountWorkspaceAccessContract = defineRouteContr
   body: updateOrganizationAccountWorkspaceAccessBodySchema,
   response: { mode: 'json', schema: organizationAccountWorkspaceAccessSchema },
 })
-export type OrganizationAccountWorkspaceAccess = z.output<
-  typeof getOrganizationAccountWorkspaceAccessContract.response.schema
->
-export type UpdateOrganizationAccountWorkspaceAccessBody = z.input<
-  NonNullable<typeof updateOrganizationAccountWorkspaceAccessContract.body>
->
 
 export const listOrganizationAccountPeopleQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -263,18 +257,6 @@ export type OrganizationAccountPeoplePage = z.output<
 export type OrganizationAccountPeopleQuery = z.input<
   NonNullable<typeof listOrganizationAccountPeopleContract.query>
 >
-export type InviteOrganizationAccountPeopleBody = z.input<
-  NonNullable<typeof inviteOrganizationAccountPeopleContract.body>
->
-export type ResendOrganizationAccountInvitationQuery = z.input<
-  NonNullable<typeof resendOrganizationAccountInvitationContract.query>
->
-export type AddOrganizationAccountMcpProviderBody = z.input<
-  NonNullable<typeof addOrganizationAccountMcpProviderContract.body>
->
-export type RemoveOrganizationAccountMcpProviderParams = z.input<
-  NonNullable<typeof removeOrganizationAccountMcpProviderContract.params>
->
 
 export const configureOrganizationMcpContract = defineRouteContract({
   method: 'PUT',
@@ -290,9 +272,6 @@ export const configureOrganizationMcpContract = defineRouteContract({
     .strict(),
   response: { mode: 'json', schema: z.object({ mcpServer: credentialGroupMcpServerSchema }) },
 })
-export type ConfigureOrganizationMcpBody = z.input<
-  NonNullable<typeof configureOrganizationMcpContract.body>
->
 
 export const getOrganizationDatabricksSetupContract = defineRouteContract({
   method: 'GET',
@@ -312,9 +291,6 @@ export const getOrganizationDatabricksSetupContract = defineRouteContract({
     }),
   },
 })
-export type OrganizationDatabricksSetup = z.output<
-  typeof getOrganizationDatabricksSetupContract.response.schema
->
 
 export const getWorkspaceOrganizationAccountsContract = defineRouteContract({
   method: 'GET',

@@ -1,6 +1,5 @@
-import { useCallback } from 'react'
 import { toast } from '@sim/emcn'
-import { createTranslator, type Messages, useTranslations } from 'next-intl'
+import { createTranslator, type Messages } from 'next-intl'
 import enShell from '@/messages/en/shell.json'
 
 /** An item the batch reached but could not act on, with a reason worth showing. */
@@ -56,15 +55,6 @@ function reportBulkOutcomeWith(outcome: BulkOutcome, verb: BulkVerb, t: Translat
       { duration: 5000 }
     )
   }
-}
-
-/** Translated {@link reportBulkOutcome} for client components. */
-export function useReportBulkOutcome() {
-  const t = useTranslations('shell.bulkOutcome')
-  return useCallback(
-    (outcome: BulkOutcome, verb: BulkVerb) => reportBulkOutcomeWith(outcome, verb, t),
-    [t]
-  )
 }
 
 const englishMessages: Messages = { shell: enShell }

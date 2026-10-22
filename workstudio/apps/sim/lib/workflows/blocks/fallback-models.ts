@@ -353,20 +353,3 @@ export function resolveFallbackTuning(
 
   return resolved
 }
-
-/** "2nd choice", "3rd choice", ... for the row at `index` (0-based) below the primary. */
-export function ordinalChoiceLabel(index: number): string {
-  const n = index + 2
-  const mod100 = n % 100
-  const suffix =
-    mod100 >= 11 && mod100 <= 13
-      ? 'th'
-      : n % 10 === 1
-        ? 'st'
-        : n % 10 === 2
-          ? 'nd'
-          : n % 10 === 3
-            ? 'rd'
-            : 'th'
-  return `${n}${suffix} choice`
-}

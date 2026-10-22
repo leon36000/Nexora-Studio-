@@ -226,7 +226,7 @@ List person URNs for a company, filtered by role group and employment status. Pa
 | `employeeGroupType` | string | No | Role group: CEO, FOUNDERS_AND_CEO, EXECUTIVES, FOUNDERS, LEADERSHIP, NON_LEADERSHIP, ALL, ADVISORS, NON_PARTNERS \(default ALL\) |
 | `employeeStatus` | string | No | Employment status: ACTIVE, NOT_ACTIVE, or ACTIVE_AND_NOT_ACTIVE \(default ACTIVE\) |
 | `userConnectionStatus` | string | No | Connection filter: TEAM_CONNECTION or NO_CONNECTION. Harmonic documents per-user connection filtering as unsupported via the API |
-| `size` | number | No | Results to return; Sim caps this at 100 per page \(default 50\) |
+| `size` | number | No | Results to return; Nexora caps this at 100 per page \(default 50\) |
 | `cursor` | string | No | Opaque next-page cursor from a previous response |
 
 #### Output
@@ -282,7 +282,7 @@ Get one page of a Harmonic people saved search. Full records become contacts; UR
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
 | `savedSearchId` | string | Yes | People saved-search ID or full Harmonic saved-search URN |
-| `size` | number | No | Results to return; Sim caps this at 100 per page \(default 50\) |
+| `size` | number | No | Results to return; Nexora caps this at 100 per page \(default 50\) |
 | `cursor` | string | No | Opaque next-page cursor from a previous response |
 
 #### Output
@@ -330,7 +330,7 @@ Get only the people newly matching a subscribed Harmonic people saved search, so
 | Parameter | Type | Required | Description |
 | --------- | ---- | -------- | ----------- |
 | `savedSearchId` | string | Yes | People saved-search ID or full Harmonic saved-search URN |
-| `size` | number | No | Results to return; Sim caps this at 100 per page \(default 50\) |
+| `size` | number | No | Results to return; Nexora caps this at 100 per page \(default 50\) |
 | `cursor` | string | No | Opaque next-page cursor from a previous response |
 | `newResultsSince` | string | No | Only return matches after this UTC point, as YYYY-MM-DD or YYYY-MM-DDTHH:00:00Z |
 

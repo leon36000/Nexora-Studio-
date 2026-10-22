@@ -2,6 +2,10 @@
 
 import { FeatureDisabledError } from '@/ee/_nexora/disabled'
 
-export async function insertScimUser(_db: unknown, _values: Record<string, unknown>): Promise<any> {
+/** Inserts a SCIM user row; core fixtures read back its `id`. */
+export async function insertScimUser(
+  _db: unknown,
+  _values: Record<string, unknown>
+): Promise<{ id: string }> {
   throw new FeatureDisabledError('SCIM provisioning')
 }
