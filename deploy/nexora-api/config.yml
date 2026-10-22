@@ -1,0 +1,24 @@
+# Nexora API — configuration lue au démarrage (les ${VARIABLES} viennent de deploy/.env).
+dependencies:
+  postgres:
+    url: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/nexora_api
+    pool_size: 5
+  redis:
+    url: redis://:${NEXORA_API_REDIS_PASSWORD}@nexora-api-redis:6379
+
+settings:
+  app_title: Nexora API
+  swagger_summary: API de modèles de Nexora, compatible OpenAI.
+  auth_secret_key: ${NEXORA_API_SECRET_KEY}
+  auth_bootsrap_admin_username: admin
+  auth_bootsrap_admin_password: ${NEXORA_API_ADMIN_PASSWORD}
+
+models:
+  - name: ${NEXORA_MODEL_NAME:-nexora-default}
+    type: text-generation
+    providers:
+      - type: openai
+        url: ${NEXORA_UPSTREAM_URL}
+        key: ${NEXORA_UPSTREAM_KEY:-none}
+        model_name: ${NEXORA_UPSTREAM_MODEL}
+        timeout: 120

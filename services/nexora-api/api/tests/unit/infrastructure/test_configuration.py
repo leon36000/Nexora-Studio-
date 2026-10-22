@@ -22,3 +22,17 @@ def test_should_import_the_app_modules_without_a_configuration_file(tmp_path):
 
     # Assert
     assert result.returncode == 0, result.stderr
+
+
+class TestModelProviderDefaultUrl:
+    def test_mistral_defaults_to_the_mistral_api(self):
+        from api.infrastructure.configuration import ModelProvider
+
+        provider = ModelProvider(type="mistral", model_name="mistral-small-latest")
+        assert provider.url == "https://api.mistral.ai/"
+
+    def test_openai_defaults_to_the_openai_api(self):
+        from api.infrastructure.configuration import ModelProvider
+
+        provider = ModelProvider(type="openai", model_name="gpt-4o-mini")
+        assert provider.url == "https://api.openai.com/"

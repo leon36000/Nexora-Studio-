@@ -1,0 +1,225 @@
+# Nexora — plateforme complète en une commande :
+#   scripts/init-env.sh && docker compose -f deploy/compose.yml up -d --build
+# Services : WorkStudio (app, temps réel, migrations), Nexora API, Nexora Connect, PostgreSQL, Redis.
+# Les ports sont publiés sur NEXORA_BIND_ADDRESS (127.0.0.1 par défaut : cette machine seulement).
+name: nexora
+
+x-workstudio-env: &workstudio-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?run scripts/init-env.sh first}@postgres:5432/nexora
+  REDIS_URL: redis://redis:6379
+  NEXT_PUBLIC_APP_URL: ${NEXORA_PUBLIC_URL:-http://localhost:3000}
+  BETTER_AUTH_URL: ${NEXORA_PUBLIC_URL:-http://localhost:3000}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?run scripts/init-env.sh first}
+  INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:?run scripts/init-env.sh first}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run scripts/init-env.sh first}
+      POSTGRES_DB: nexora
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d nexora']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--save', '60', '1', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  nexora-api-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--requirepass', '${NEXORA_API_REDIS_PASSWORD:?run scripts/init-env.sh first}', '--save', '60', '1']
+    volumes:
+      - nexora-api-redis-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    environment:
+      REDIS_PASSWORD: ${NEXORA_API_REDIS_PASSWORD}
+
+  nexora-api:
+    build:
+      context: ../services/nexora-api
+      dockerfile: api/Dockerfile
+    image: nexora/api:local
+    restart: unless-stopped
+    environment:
+      CONFIG_FILE: /config.yml
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      NEXORA_API_REDIS_PASSWORD: ${NEXORA_API_REDIS_PASSWORD}
+      NEXORA_API_SECRET_KEY: ${NEXORA_API_SECRET_KEY:?run scripts/init-env.sh first}
+      NEXORA_API_ADMIN_PASSWORD: ${NEXORA_API_ADMIN_PASSWORD:?run scripts/init-env.sh first}
+      NEXORA_MODEL_NAME: ${NEXORA_MODEL_NAME:-nexora-default}
+      NEXORA_UPSTREAM_URL: ${NEXORA_UPSTREAM_URL:?set the model provider in deploy/.env}
+      NEXORA_UPSTREAM_MODEL: ${NEXORA_UPSTREAM_MODEL:?set the model provider in deploy/.env}
+      NEXORA_UPSTREAM_KEY: ${NEXORA_UPSTREAM_KEY:-none}
+    volumes:
+      - ./nexora-api/config.yml:/config.yml:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_API_PORT:-8000}:8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nexora-api-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  nexora-bootstrap:
+    image: nexora/api:local
+    user: '0:0'
+    restart: 'no'
+    entrypoint: ['/.venv/bin/python', '/bootstrap-script/bootstrap.py']
+    command: []
+    environment:
+      NEXORA_API_URL: http://nexora-api:8000
+      NEXORA_API_ADMIN: admin
+      NEXORA_API_ADMIN_PASSWORD: ${NEXORA_API_ADMIN_PASSWORD}
+      NEXORA_BOOTSTRAP_FILE: /bootstrap/nexora-api.env
+      NEXORA_BOOTSTRAP_OWNER: '1001:1001'
+    volumes:
+      - ./bootstrap/bootstrap.py:/bootstrap-script/bootstrap.py:ro
+      - bootstrap:/bootstrap
+    depends_on:
+      nexora-api:
+        condition: service_healthy
+
+  nexora-connect:
+    build:
+      context: ../services/nexora-connect
+      dockerfile: docker/Dockerfile
+    image: nexora/connect:local
+    restart: unless-stopped
+    environment:
+      NEXORA_CONNECT_ENCRYPTION_KEY: ${NEXORA_CONNECT_ENCRYPTION_KEY:?run scripts/init-env.sh first}
+      NEXORA_CONNECT_RUNTIME_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN:?run scripts/init-env.sh first}
+      NEXORA_CONNECT_ADMIN_TOKEN: ${NEXORA_CONNECT_ADMIN_TOKEN:?run scripts/init-env.sh first}
+      NEXORA_CONNECT_ORIGIN: http://localhost:${NEXORA_CONNECT_PORT:-8400}
+    volumes:
+      - connect-data:/app/data
+    ports:
+      - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_CONNECT_PORT:-8400}:3000'
+
+  workstudio-migrations:
+    build:
+      context: ../workstudio
+      dockerfile: docker/db.Dockerfile
+    image: nexora/workstudio-migrations:local
+    restart: 'no'
+    working_dir: /app/packages/db
+    command: ['bun', 'run', 'db:migrate']
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/nexora
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  workstudio-realtime:
+    build:
+      context: ../workstudio
+      dockerfile: docker/realtime.Dockerfile
+    image: nexora/workstudio-realtime:local
+    restart: unless-stopped
+    environment:
+      <<: *workstudio-env
+    ports:
+      - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_REALTIME_PORT:-3002}:3002'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      workstudio-migrations:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3002/health']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  workstudio:
+    build:
+      context: ../workstudio
+      dockerfile: docker/app.Dockerfile
+    image: nexora/workstudio:local
+    restart: unless-stopped
+    command: ['/bin/sh', '-c', '. /bootstrap/nexora-api.env && exec bun apps/sim/bootstrap.js']
+    environment:
+      <<: *workstudio-env
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?run scripts/init-env.sh first}
+      API_ENCRYPTION_KEY: ${API_ENCRYPTION_KEY:?run scripts/init-env.sh first}
+      CRON_SECRET: ${CRON_SECRET:?run scripts/init-env.sh first}
+      SOCKET_SERVER_URL: http://workstudio-realtime:3002
+      NEXT_PUBLIC_SOCKET_URL: ${NEXORA_PUBLIC_REALTIME_URL:-http://localhost:${NEXORA_REALTIME_PORT:-3002}}
+      NEXT_TELEMETRY_DISABLED: '1'
+      NEXORA_TIME_ZONE: ${NEXORA_TIME_ZONE:-Europe/Paris}
+      # Models: everything goes through Nexora API (OpenAI-compatible), shown as « Nexora ».
+      VLLM_BASE_URL: http://nexora-api:8000/v1
+      NEXORA_ONLY_MODELS: 'true'
+      # Tools: Nexora Connect is preconfigured as an MCP server in every workspace.
+      NEXORA_CONNECT_MCP_URL: http://nexora-connect:3000/mcp
+      NEXORA_CONNECT_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN}
+      EGRESS_ALLOWED_HOSTS: nexora-api,nexora-connect,host.docker.internal
+      # Optional single sign-on (OIDC) and outgoing email.
+      NEXORA_OIDC_NAME: ${NEXORA_OIDC_NAME:-}
+      NEXORA_OIDC_ISSUER: ${NEXORA_OIDC_ISSUER:-}
+      NEXORA_OIDC_CLIENT_ID: ${NEXORA_OIDC_CLIENT_ID:-}
+      NEXORA_OIDC_CLIENT_SECRET: ${NEXORA_OIDC_CLIENT_SECRET:-}
+      FROM_EMAIL_ADDRESS: ${FROM_EMAIL_ADDRESS:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+    volumes:
+      - bootstrap:/bootstrap:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_WORKSTUDIO_PORT:-3000}:3000'
+    depends_on:
+      redis:
+        condition: service_healthy
+      workstudio-migrations:
+        condition: service_completed_successfully
+      workstudio-realtime:
+        condition: service_healthy
+      nexora-bootstrap:
+        condition: service_completed_successfully
+      nexora-connect:
+        condition: service_started
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/login']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres-data:
+  redis-data:
+  nexora-api-redis-data:
+  connect-data:
+  bootstrap:

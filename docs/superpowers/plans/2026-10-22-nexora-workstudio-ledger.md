@@ -71,3 +71,22 @@ Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée i
     - `next dev` tourne sur 127.0.0.1:3100 et le serveur temps réel sur 127.0.0.1:3102 (nouvelle variable `HOST` dans `apps/realtime`, défaut `0.0.0.0` pour les conteneurs) ;
     - `/login` rend `lang="fr"` par défaut, `lang="en"` avec le cookie `en`, et `lang="fr"` pour un navigateur en allemand. Le wordmark « nexora » s'affiche, le titre est « Log In | Nexora WorkStudio ». `tsc` à 0 erreur.
   - R13 : la zone `home` (Chat/copilot) est masquée en v1 et sort du périmètre de la tâche 6.3. L'accueil effectif est le premier workflow.
+- 22/10/2026 — **Tâche 11.1 (Nexora API) faite** :
+  - marque (nom par défaut « Nexora API », Swagger, liens vers le guide, utilisateur `nexora` dans l'image, paquet `nexora-api`) ;
+  - le fournisseur « Albert » est conservé (interopérabilité, exempté du contrôle de marque) ;
+  - **défaut d'origine corrigé** : le fournisseur `mistral` sans URL pointait vers l'API Albert ; il pointe maintenant vers `https://api.mistral.ai/`. Test écrit avant le correctif ;
+  - pytest unitaires : **591 verts** (environnement Python dédié dans le scratchpad, sans uv) ;
+  - `check-brand --only services/nexora-api` OK.
+- 22/10/2026 — **Tâche 11.2 (Nexora Connect), en cours** :
+  - fournisseurs OOMOL (`oomol_console`, `fusion-api`) supprimés, catalogue régénéré (1 648 services) ; Brevo épinglé en tête ;
+  - `src/server/nexora-env.ts` : alias `NEXORA_CONNECT_*` et refus de démarrer sans clé de chiffrement (6 tests) ;
+  - marketplace par défaut en `.invalid` ;
+  - le reste du rebranding (serveur, console web, langues) est confié à un sous-agent.
+  - Base de référence avant modifications : 4 115 tests verts.
+- 22/10/2026 — **Tâche 12, partie 1** :
+  - `deploy/.env.example`, `scripts/init-env.sh` (12 secrets, fichier en 600, jamais réécrit ; 17 tests) ;
+  - `deploy/nexora-api/config.yml` : modèle `nexora-default` derrière le connecteur `openai`, URL amont **sans `/v1`** ;
+  - `deploy/postgres/init` : base `nexora_api` sur le même PostgreSQL ;
+  - `deploy/bootstrap/bootstrap.py` : clé Nexora API pour WorkStudio, gardée tant qu'elle fonctionne, fichier 600 attribué à l'uid 1001 de WorkStudio ; 4 tests avec un faux serveur ;
+  - `deploy/compose.yml` (9 services, ports sur `NEXORA_BIND_ADDRESS`) : `docker compose config` valide.
+  - R14 : WorkStudio charge `VLLM_API_KEY` depuis le volume `bootstrap` à son démarrage (`sh -c '. /bootstrap/nexora-api.env && exec bun apps/sim/bootstrap.js'`).

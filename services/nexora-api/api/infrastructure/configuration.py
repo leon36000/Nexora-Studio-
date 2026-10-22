@@ -122,7 +122,7 @@ class ModelProvider(ConfigBaseModel):
             if self.type == ProviderType.ALBERT:
                 self.url = "https://albert.api.etalab.gouv.fr/"
             elif self.type == ProviderType.MISTRAL:
-                self.url = "https://albert.api.etalab.gouv.fr/"
+                self.url = "https://api.mistral.ai/"
             elif self.type == ProviderType.OPENAI:
                 self.url = "https://api.openai.com/"
             else:
