@@ -66,28 +66,28 @@ class AuthSsoLoginUseCase:
     async def has_access(self, claims: dict[str, Any]) -> bool:
         """
         Dummy function, override is file to implement your own access policy.
-        See https://docs.opengatellm.org/features/users_management/sso#custom-access-policy for more information.
+        See https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide/nexora-api.md#custom-access-policy for more information.
         """
         return True
 
     async def get_user_name(self, claims: dict[str, Any]) -> str | None:
         """
         Dummy function, override is file to implement your own user name resolution logic.
-        See https://docs.opengatellm.org/features/users_management/sso#custom-user-name-resolution for more information.
+        See https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide/nexora-api.md#custom-user-name-resolution for more information.
         """
         return None
 
     async def get_role_id(self, claims: dict[str, Any]) -> int:
         """
         Dummy function, override is file to implement your own role resolution logic.
-        See https://docs.opengatellm.org/features/users_management/sso#custom-role-resolution for more information.
+        See https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide/nexora-api.md#custom-role-resolution for more information.
         """
         return self.auth_sso_default_role_id
 
     async def get_organization_id(self, claims: dict[str, Any]) -> int:
         """
         Dummy function, override is file to implement your own organization resolution logic.
-        See https://docs.opengatellm.org/features/users_management/sso#custom-organization-resolution for more information.
+        See https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide/nexora-api.md#custom-organization-resolution for more information.
         """
         return self.auth_sso_default_organization_id
 

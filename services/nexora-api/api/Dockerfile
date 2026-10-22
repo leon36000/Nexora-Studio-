@@ -27,8 +27,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Runtime stage
 FROM python:3.12-slim AS runtime
 
-RUN groupadd --gid 1100 opengatellm && \
-    useradd --home /api --gid 1100 --uid 1100 opengatellm
+RUN groupadd --gid 1100 nexora && \
+    useradd --home /api --gid 1100 --uid 1100 nexora
 
 # Only runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -38,13 +38,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set a non-root user
-USER opengatellm
+USER nexora
 WORKDIR /
 
 # Copy application from builder
-COPY --from=builder --chown=opengatellm:opengatellm /api /api
-COPY --from=builder --chown=opengatellm:opengatellm /.venv /.venv
-COPY --chown=opengatellm:opengatellm ./scripts/ /scripts
+COPY --from=builder --chown=nexora:nexora /api /api
+COPY --from=builder --chown=nexora:nexora /.venv /.venv
+COPY --chown=nexora:nexora ./scripts/ /scripts
 
 ENV PATH="/.venv/bin:${PATH}"
 ENV PYTHONPATH="/api"

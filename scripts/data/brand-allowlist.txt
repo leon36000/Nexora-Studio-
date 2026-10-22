@@ -30,3 +30,6 @@ line: \? '; Domain=\.sim\.ai'  # suite de la ligne précédente
 # --- Application de bureau de Sim (Electron) : non livrée en v1 (ruling R9) ---
 workstudio/apps/sim/lib/desktop/update-feed.ts  # flux de mises à jour du client de bureau de Sim
 workstudio/apps/sim/app/_shell/desktop-update-gate.tsx  # écran de mise à jour du client de bureau, monté seulement dans ce client
+
+# --- Nexora API : fournisseurs tiers conservés pour l'interopérabilité ---
+line: https://albert\.api\.etalab\.gouv\.fr/  # adresse par défaut du fournisseur « Albert » (API publique de l'État), comme celle d'OpenAI pour le fournisseur OpenAI

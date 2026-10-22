@@ -35,6 +35,7 @@ TERMS = [
     ("Sim", re.compile(r"(?<![A-Za-z0-9_@./$#-])Sim(?![A-Za-z0-9_-])")),
     ("OOMOL", re.compile(r"\bOOMOL\b|oomol\.com|oomol-lab|\bOomol\b")),
     ("Etalab", re.compile(r"\b[Ee]talab\b|\bAlbert API\b|\bDINUM\b")),
+    ("OpenGateLLM", re.compile(r"opengatellm", re.I)),
 ]
 COMMENT_LINE = re.compile(r"^\s*(//|/\*|\*|#(?!!)|<!--)")
 

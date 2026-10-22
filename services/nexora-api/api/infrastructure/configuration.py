@@ -16,7 +16,7 @@ from api.domain.router.entities import RouterLoadBalancingStrategy, RouterType
 from api.infrastructure.fastapi.routes import RouterName
 from api.infrastructure.fastapi.schemas import reject_password_over_max_bytes
 
-DEFAULT_APP_NAME: str = "OpenGateLLM"
+DEFAULT_APP_NAME: str = "Nexora API"
 DEFAULT_TIMEOUT: int = 300
 
 # utils ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ def custom_validation_error(suffix: str = ""):
 
     class ValidationError(Exception):
         def __init__(
-            self, exc: PydanticValidationError, cls: BaseModel, base_url: str = "https://docs.opengatellm.org/configuration/configuration_file"
+            self, exc: PydanticValidationError, cls: BaseModel, base_url: str = "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide/nexora-api.md"
         ):
             super().__init__()
             error_content = exc.errors()
@@ -164,7 +164,7 @@ class Model(ConfigBaseModel):
 @custom_validation_error()
 class PostgresDependency(ConfigBaseModel):
     """
-    Postgres is a required dependency of OpenGateLLM. In this section, you can pass all postgres python SDK arguments, see https://docs.sqlalchemy.org/en/21/core/engines.html#engine-creation-apihttps://docs.sqlalchemy.org/en/21/core/engines.html#engine-creation-api for more information.
+    Postgres is a required dependency of Nexora API. In this section, you can pass all postgres python SDK arguments, see https://docs.sqlalchemy.org/en/21/core/engines.html#engine-creation-apihttps://docs.sqlalchemy.org/en/21/core/engines.html#engine-creation-api for more information.
     Only the `url` argument is required. The connection URL must use the asynchronous scheme, `postgresql+asyncpg://`. If you provide a standard `postgresql://` URL, it will be automatically converted to use asyncpg.
     """
 
@@ -182,7 +182,7 @@ class PostgresDependency(ConfigBaseModel):
 @custom_validation_error()
 class LangfuseDependency(ConfigBaseModel):
     """
-    Langfuse is an optional dependency of OpenGateLLM. Langfuse is used for LLM observability and tracing.
+    Langfuse is an optional dependency of Nexora API. Langfuse is used for LLM observability and tracing.
     In this section, you can pass all Langfuse client arguments, see https://python.reference.langfuse.com/langfuse for more information.
     """
 
@@ -194,7 +194,7 @@ class LangfuseDependency(ConfigBaseModel):
 @custom_validation_error()
 class SentryDependency(ConfigBaseModel):
     """
-    Sentry is an optional dependency of OpenGateLLM. Sentry helps you identify, diagnose, and fix errors in real-time.
+    Sentry is an optional dependency of Nexora API. Sentry helps you identify, diagnose, and fix errors in real-time.
     In this section, you can pass all sentry python SDK arguments, see https://docs.sentry.io/platforms/python/configuration/options/ for more information.
     """
 
@@ -205,7 +205,7 @@ class SentryDependency(ConfigBaseModel):
 @custom_validation_error()
 class RedisDependency(ConfigBaseModel):
     """
-    Redis is a required dependency of OpenGateLLM. Redis is used to store rate limiting counters and inflight gauges.
+    Redis is a required dependency of Nexora API. Redis is used to store rate limiting counters and inflight gauges.
     Pass all `from_url()` method arguments of `redis.asyncio.connection.ConnectionPool` class, see https://redis.readthedocs.io/en/stable/connections.html#redis.asyncio.connection.ConnectionPool.from_url for more information.
     """
 
@@ -215,9 +215,9 @@ class RedisDependency(ConfigBaseModel):
 @custom_validation_error()
 class Dependencies(ConfigBaseModel):
     langfuse: LangfuseDependency | None = Field(default=None, description="See the [LangfuseDependency section](#langfusedependency) for more information.")  # fmt: off
-    postgres: PostgresDependency = Field(..., description="Postgres is a required dependency of OpenGateLLM to store API data.")  # fmt: off
+    postgres: PostgresDependency = Field(..., description="Postgres is a required dependency of Nexora API to store API data.")  # fmt: off
     redis: RedisDependency  = Field(..., description="Redis is a required dependency for the API to store rate limiting counters and inflight gauges. It is an optional dependency for the Playground to use as stage manage (see [Reflex documentation](https://reflex.dev/docs/api-reference/config/)).")  # fmt: off
-    sentry: SentryDependency | None = Field(default=None, description="Sentry is an optional dependency of OpenGateLLM. Sentry helps you identify, diagnose, and fix errors in real-time.")  # fmt: off
+    sentry: SentryDependency | None = Field(default=None, description="Sentry is an optional dependency of Nexora API. Sentry helps you identify, diagnose, and fix errors in real-time.")  # fmt: off
 
 
 # settings -------------------------------------------------------------------------------------------------------------------------------------------
@@ -260,11 +260,11 @@ class Settings(ConfigBaseModel):
         return log_config
 
     # swagger
-    swagger_summary: str = Field(default="OpenGateLLM connect to your models. You can configure this swagger UI in the configuration file, like hide routes or change the title.", description="Display summary of your API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.", examples=["My API description."])  # fmt: off
+    swagger_summary: str = Field(default="Nexora API connects your models. You can configure this swagger UI in the configuration file, like hide routes or change the title.", description="Display summary of your API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.", examples=["My API description."])  # fmt: off
     swagger_version: str = Field(default="latest", description="Display version of your API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.", examples=["2.5.0"])  # fmt: off
-    swagger_description: str = Field(default="[See documentation](https://github.com/etalab-ia/opengatellm/blob/main/README.md)", description="Display description of your API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.", examples=["[See documentation](https://github.com/etalab-ia/opengatellm/blob/main/README.md)"])  # fmt: off
+    swagger_description: str = Field(default="[Documentation](https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide)", description="Display description of your API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.", examples=["[Documentation](https://docs.example.com)"])  # fmt: off
     swagger_contact: dict | None = Field(default=None, description="Contact informations of the API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.")  # fmt: off
-    swagger_license_info: dict = Field(default={"name": "MIT Licence", "identifier": "MIT", "url": "https://raw.githubusercontent.com/etalab-ia/opengatellm/refs/heads/main/LICENSE"}, description="Licence informations of the API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.")  # fmt: off
+    swagger_license_info: dict = Field(default={"name": "MIT Licence", "identifier": "MIT", "url": "https://github.com/leon36000/Nexora-Studio-/blob/main/services/nexora-api/LICENSE"}, description="Licence informations of the API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.")  # fmt: off
     swagger_terms_of_service: str | None = Field(default=None, description="A URL to the Terms of Service for the API in swagger UI. If provided, this has to be a URL.", examples=["https://example.com/terms-of-service"])  # fmt: off
     swagger_openapi_tags: list[dict[str, str | dict[str, str]]] = Field(default_factory=list, description="OpenAPI tags of the API in swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.", json_schema_extra={"default": []})  # fmt: off
     swagger_openapi_url: str = Field(default="/openapi.json", pattern=r"^/", description="OpenAPI URL of swagger UI, see https://fastapi.tiangolo.com/tutorial/metadata for more information.")  # fmt: off
