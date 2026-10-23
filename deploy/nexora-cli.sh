@@ -12,6 +12,10 @@ ENV_FILE="$NEXORA_HOME/deploy/.env"
 DATA_VOLUMES=(connect-data workstudio-uploads)
 SECRET_VOLUME=bootstrap
 CIPHER=(-aes-256-cbc -pbkdf2 -iter 200000)
+ROLLBACK_SUFFIX=nexora-avant-maj
+TMP_DIRS=()
+trap 'rm -rf "${TMP_DIRS[@]}"' EXIT
+new_tmp() { local d; d="$(mktemp -d)"; chmod 700 "$d"; TMP_DIRS+=("$d"); echo "$d"; }
 
 compose() { docker compose -p "$NEXORA_PROJECT" -f "$NEXORA_HOME/deploy/compose.yml" --env-file "$ENV_FILE" "$@"; }
 die() { echo "nexora : $*" >&2; exit 1; }
@@ -63,7 +67,7 @@ backup() {
     die "espace disque insuffisant pour la sauvegarde : il manque environ $(((need * 2 - free) / 1000000000 + 1)) Go dans $dir."
   fi
 
-  WORK="$(mktemp -d)"; chmod 700 "$WORK"; trap 'rm -rf "$WORK"' EXIT
+  WORK="$(new_tmp)"
   echo "Sauvegarde des bases de données…"
   compose exec -T postgres pg_dumpall -U postgres --clean --if-exists | gzip > "$WORK/postgres.sql.gz"
   echo "Sauvegarde des fichiers…"
@@ -84,6 +88,7 @@ backup() {
   local archive="$dir/nexora-$(date +%Y%m%d-%H%M%S).tar"
   (umask 077; tar cf "$archive" -C "$WORK" manifest.json "${files[@]}")
   chmod 600 "$archive"
+  LAST_BACKUP="$archive"
   echo "Sauvegarde terminée : $archive"
   echo "Gardez la phrase de passe : sans elle, la sauvegarde ne peut pas être restaurée."
 }
@@ -93,7 +98,7 @@ restore() {
   [ -n "$archive" ] || die "usage : nexora restore <archive>"
   [ -f "$archive" ] || die "archive introuvable : $archive"
   ask_passphrase
-  WORK="$(mktemp -d)"; chmod 700 "$WORK"; trap 'rm -rf "$WORK"' EXIT
+  WORK="$(new_tmp)"
   tar xf "$archive" -C "$WORK" 2> /dev/null || die "archive illisible : rien n'a été modifié."
   [ -f "$WORK/manifest.json" ] || die "archive incomplète (manifeste absent) : rien n'a été modifié."
   while read -r name sum; do
@@ -121,7 +126,34 @@ restore() {
   echo "Restauration terminée : $(url)"
 }
 
+rollback_tag() { case "${1##*/}" in *:*) echo "$1-$ROLLBACK_SUFFIX" ;; *) echo "$1:latest-$ROLLBACK_SUFFIX" ;; esac; }
+
+# Update safely: back up, keep the running images, update, run the quick smoke test; on any
+# failure, put the previous images and the backed-up data back.
 update() {
+  ask_passphrase confirm
+  echo "Sauvegarde avant la mise à jour…"
+  backup
+  local images=() img
+  mapfile -t images < <(compose config --images 2> /dev/null)
+  for img in "${images[@]}"; do
+    docker image inspect "$img" > /dev/null 2>&1 && docker tag "$img" "$(rollback_tag "$img")"
+  done
+  echo "Mise à jour…"
+  if install_update && "$NEXORA_HOME/scripts/smoke.sh" "$(url)" --quick; then
+    echo "Mise à jour terminée et vérifiée. Sauvegarde d'avant la mise à jour : $LAST_BACKUP"
+    return 0
+  fi
+  echo "La mise à jour a échoué : retour à la version précédente…" >&2
+  for img in "${images[@]}"; do
+    docker image inspect "$(rollback_tag "$img")" > /dev/null 2>&1 && docker tag "$(rollback_tag "$img")" "$img"
+  done
+  restore "$LAST_BACKUP"
+  echo "La version précédente est revenue, avec les données d'avant la mise à jour." >&2
+  return 1
+}
+
+install_update() {
   if [ -n "$NEXORA_BUNDLE" ]; then
     NEXORA_HOME="$NEXORA_HOME" NEXORA_PROJECT="$NEXORA_PROJECT" NEXORA_BUNDLE="$NEXORA_BUNDLE" bash "$NEXORA_BUNDLE/install.sh" --update
   else

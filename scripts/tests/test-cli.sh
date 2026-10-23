@@ -100,4 +100,35 @@ tail -1 "$h6.log" | grep -q " up -d" && ok "instance restarted last" || ko "inst
 h7="$(new_home)"; cli "$h7" status; grep -q "compose -p nexora-t .* ps" "$h7.log" && ok "status" || ko "status"
 cli "$h7" url; grep -q "http://localhost:3000" "$h7.out" && ok "url" || ko "url"
 
+# 8. Safe update: backup first, then update, quick smoke; on failure, previous images and data come back.
+fakebundle="$scratch/bundle"; mkdir -p "$fakebundle"
+printf '#!/usr/bin/env bash\necho "install.sh $*" >> "$FAKE_LOG"\nexit "${FAKE_UPDATE_EXIT:-0}"\n' > "$fakebundle/install.sh"
+updated_home() {
+  local home; home="$(new_home)"; mkdir -p "$home/scripts"
+  printf '#!/usr/bin/env bash\necho "smoke $*" >> "$FAKE_LOG"\nexit "${FAKE_SMOKE_EXIT:-0}"\n' > "$home/scripts/smoke.sh"
+  chmod +x "$home/scripts/smoke.sh"; : > "$home.log"; echo "$home"
+}
+update_cli() { local home="$1"; shift
+  PATH="$fakebin:$PATH" FAKE_LOG="$home.log" NEXORA_HOME="$home" NEXORA_PROJECT=nexora-t NEXORA_BUNDLE="$fakebundle" \
+    NEXORA_BACKUP_PASSPHRASE=p bash "$CLI" update "$@" < /dev/null > "$home.out" 2>&1; }
+
+h8="$(updated_home)"
+update_cli "$h8" && ok "update succeeds" || { ko "update succeeds"; cat "$h8.out"; }
+line() { grep -nE "$1" "$h8.log" | head -1 | cut -d: -f1; }
+d="$(line pg_dumpall)"; u="$(line "install.sh --update")"; q="$(line "smoke .*--quick")"
+[ -n "$d" ] && [ -n "$u" ] && [ -n "$q" ] && [ "$d" -lt "$u" ] && [ "$u" -lt "$q" ] \
+  && ok "backup, then update, then quick smoke" || ko "backup, then update, then quick smoke ($d $u $q)"
+grep -q "tag pgvector/pgvector:pg17 pgvector/pgvector:pg17-nexora-avant-maj" "$h8.log" && ok "running images kept for a rollback" || ko "running images kept for a rollback"
+
+h9="$(updated_home)"
+FAKE_SMOKE_EXIT=1 update_cli "$h9" && ko "failed update reported" || ok "failed update reported"
+grep -q "tag pgvector/pgvector:pg17-nexora-avant-maj pgvector/pgvector:pg17" "$h9.log" && ok "previous images restored" || ko "previous images restored"
+grep -q "volume rm -f nexora-t_postgres-data" "$h9.log" && ok "data restored from the backup" || ko "data restored from the backup"
+grep -qi "revenu" "$h9.out" && ok "says the previous version is back" || ko "says the previous version is back"
+
+h10="$(updated_home)"
+FAKE_UPDATE_EXIT=1 update_cli "$h10" && ko "update that cannot install reported" || ok "update that cannot install reported"
+grep -q "smoke" "$h10.log" && ko "no smoke after a failed install" || ok "no smoke after a failed install"
+grep -q "tag pgvector/pgvector:pg17-nexora-avant-maj pgvector/pgvector:pg17" "$h10.log" && ok "rollback after a failed install" || ko "rollback after a failed install"
+
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

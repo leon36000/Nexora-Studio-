@@ -79,6 +79,7 @@ def require(condition: bool, message: str):
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://localhost:3000")
+    parser.add_argument("--quick", action="store_true", help="essential checks only (after an update)")
     parser.add_argument("--report")
     args = parser.parse_args()
     s = Smoke(args.url)
@@ -377,6 +378,17 @@ def main() -> int:
             return f"publié ({identifier}), chat public répond, {len(versions)} versions"
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
+
+    if args.quick:
+        # After an update: the platform answers in French, a workspace gets its templates, a
+        # template runs through the model. Needs no admin credentials.
+        s.check("Inscription d'un compte", signup)
+        s.check("Interface en français, sans marque tierce", french_ui)
+        s.check("Nouvel espace avec les modèles PME", workspace_with_templates)
+        s.check("Exécution du modèle « Devis client »", run_template("Devis client"))
+        failed = [r for r in s.results if r["status"] != "pass"]
+        print(f"\n{len(s.results) - len(failed)}/{len(s.results)} contrôles réussis (rapide)")
+        return 1 if failed else 0
 
     s.check("Inscription d'un compte", signup)
     s.check("Interface en français, sans marque tierce", french_ui)
