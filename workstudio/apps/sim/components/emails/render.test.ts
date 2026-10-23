@@ -3,11 +3,20 @@
  */
 import { describe, expect, it } from 'vitest'
 import { renderWorkspaceInvitationEmail } from '@/components/emails/render'
-import { getEmailSubject } from '@/components/emails/subjects'
+import { getEmailSubject, getWorkspaceInvitationSubject } from '@/components/emails/subjects'
 
 describe('email language', () => {
   it('writes subjects in French, the instance default, without a request locale', () => {
     expect(getEmailSubject('invitation')).toMatch(/^Vous êtes invité à rejoindre une équipe sur /)
+  })
+
+  it('writes the workspace invitation subject in French, with the workspace name', () => {
+    expect(getWorkspaceInvitationSubject(['Équipe J9'])).toMatch(
+      /^Vous êtes invité à rejoindre l’espace de travail « Équipe J9 » sur /
+    )
+    expect(getWorkspaceInvitationSubject(['Ventes', 'Support'])).toMatch(
+      /^Vous êtes invité à rejoindre 2 espaces de travail sur /
+    )
   })
 
   it('renders the workspace invitation body in French', async () => {

@@ -65,6 +65,15 @@ export function getEmailSubject(type: EmailSubjectType): string {
   return key ? getEmailTranslator()(`subjects.${key}`, { brandName }) : brandName
 }
 
+/** Subject of a workspace invitation, naming the workspace when there is only one. */
+export function getWorkspaceInvitationSubject(workspaceNames: string[]): string {
+  const brandName = getBrandConfig().name
+  const t = getEmailTranslator()
+  return workspaceNames.length === 1
+    ? t('subjects.workspaceInvitationSingle', { workspaceName: workspaceNames[0], brandName })
+    : t('subjects.workspaceInvitationMultiple', { count: workspaceNames.length, brandName })
+}
+
 /**
  * Subject line for a per-category usage-limit email. Shares its wording with
  * the email body so the subject matches what the recipient reads.

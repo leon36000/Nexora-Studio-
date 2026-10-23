@@ -14,6 +14,7 @@ import { normalizeEmail } from '@sim/utils/string'
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import {
   getEmailSubject,
+  getWorkspaceInvitationSubject,
   renderBatchInvitationEmail,
   renderInvitationEmail,
   renderWorkspaceAddedEmail,
@@ -28,7 +29,6 @@ import { acquireInvitationMutationLocks } from '@/lib/invitations/locks'
 import { lockInvitationResendPolicy } from '@/lib/invitations/resend-policy'
 import { sendEmail } from '@/lib/messaging/email/mailer'
 import { getFromEmailAddress } from '@/lib/messaging/email/utils'
-import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface WorkspaceGrantInput {
   workspaceId: string
@@ -577,11 +577,7 @@ export async function sendInvitationEmail(
       inviteUrl
     )
 
-    const brandName = getBrandConfig().name
-    const subject =
-      workspaceNames.length === 1
-        ? `You've been invited to join "${workspaceNames[0]}" on ${brandName}`
-        : `You've been invited to join ${workspaceNames.length} workspaces on ${brandName}`
+    const subject = getWorkspaceInvitationSubject(workspaceNames)
 
     const result = await sendEmail({
       to: input.email,

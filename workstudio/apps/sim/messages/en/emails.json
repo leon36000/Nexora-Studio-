@@ -55,7 +55,9 @@
     "otp": "Verification code for {resourceLabel}",
     "sharedFile": "a shared file",
     "credentialGroupInvitationFrom": "{inviterName} invited you to connect accounts for {workspaceName} on {brandName}",
-    "credentialGroupInvitation": "You have been invited to connect accounts for {workspaceName} on {brandName}"
+    "credentialGroupInvitation": "You have been invited to connect accounts for {workspaceName} on {brandName}",
+    "workspaceInvitationSingle": "You've been invited to join \"{workspaceName}\" on {brandName}",
+    "workspaceInvitationMultiple": "You've been invited to join {count} workspaces on {brandName}"
   },
   "existingAccount": {
     "preview": "Someone tried to sign up with your {brandName} email",
