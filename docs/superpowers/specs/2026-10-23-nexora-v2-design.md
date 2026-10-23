@@ -238,6 +238,20 @@ Précise la section 7 ; ces décisions priment.
 
 **Terminé quand** : sur pc6 avec `qwen2.5:7b`, cinq descriptions types produisent chacune un workflow valide qui s'exécute (relance de factures chaque lundi ; tri d'e-mails reçus par webhook avec condition urgent/non urgent ; réponse à une question avec une base de connaissances ; compte rendu de réunion avec validation humaine ; appel d'API puis résumé) ; tests du compilateur (chaque type d'étape, références, branches) et de la validation (plan invalide ⇒ relance puis erreur en français) ; contrôle de fumée « Copilote ».
 
+## 8nonies. J8 — conception détaillée (23/10/2026, architecte)
+
+**But** : savoir qui consomme quoi, avec quel impact, et pouvoir plafonner.
+
+**Sources** :
+- *par modèle* (requêtes, jetons, kWh, kgCO2eq) : Nexora API, `/v1/me/usage?model=<routeur>` pour chaque modèle (clé de WorkStudio) — chiffres exacts, empreinte calculée par Nexora API (EcoLogits, zone d'hébergement et taille du modèle renseignées en J2) ;
+- *par espace et par personne* (exécutions, jetons) : les journaux d'exécution de WorkStudio (jetons par exécution, espace, déclencheur, auteur) ; l'empreinte y est **estimée** au prorata des jetons par modèle (indiqué « estimation » à l'écran).
+
+**Écran Réglages › Consommation** (admins d'instance ; existe depuis la v1) : période (7, 30, 90 jours), totaux (requêtes, jetons, kWh, kgCO2eq + équivalent parlant, ex. « km en voiture »), courbes par jour, tableaux par modèle, par espace, par personne (top 20), export CSV.
+
+**Budgets** : un plafond mensuel de jetons pour l'instance et, au choix, par espace ; seuil d'alerte (80 % par défaut) — bandeau pour les admins et e-mail si un service d'e-mail est configuré ; à 100 %, les **nouvelles** exécutions de l'espace sont refusées avec un message français (« Budget mensuel atteint : contactez votre administrateur »), sauf pour les admins qui peuvent relever le plafond. Stockage dans `organization.metadata.nexoraBudgets` / table légère si nécessaire ; contrôle au point d'entrée commun des exécutions.
+
+**Terminé quand** : sur pc6, l'écran montre les ventilations et le CO2 cohérents avec Nexora API ; un budget d'espace bas déclenche l'alerte puis le refus d'une exécution, levé en relevant le plafond ; tests (calcul des agrégats, seuils, refus, droits) et contrôle de fumée « Budgets ».
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
