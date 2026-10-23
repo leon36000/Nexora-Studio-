@@ -1,17 +1,17 @@
 {
-  "url": "http://localhost:3200",
+  "url": "http://127.0.0.1:3200",
   "results": [
     {
       "check": "Inscription d'un compte",
       "status": "pass",
-      "seconds": 0.4,
-      "detail": "smoke-78736a95@nexora.test",
+      "seconds": 0.3,
+      "detail": "smoke-9d808497@nexora.test",
       "error": null
     },
     {
       "check": "Interface en français, sans marque tierce",
       "status": "pass",
-      "seconds": 0.9,
+      "seconds": 1.0,
       "detail": "lang=\"fr\", « Connexion »",
       "error": null
     },
@@ -25,14 +25,14 @@
     {
       "check": "Accueil Nexora (cartes, état, premier lancement)",
       "status": "pass",
-      "seconds": 0.9,
+      "seconds": 1.0,
       "detail": "modèle par défaut qwen2.5:7b, premier lancement : 5/5 étapes",
       "error": null
     },
     {
       "check": "Nexora Connect et ses outils MCP",
       "status": "pass",
-      "seconds": 0.1,
+      "seconds": 0.2,
       "detail": "5 outils",
       "error": null
     },
@@ -46,21 +46,21 @@
     {
       "check": "Base de connaissances (embeddings locaux)",
       "status": "pass",
-      "seconds": 5.5,
+      "seconds": 5.4,
       "detail": "1 passage(s), embeddings locaux",
       "error": null
     },
     {
       "check": "Planification (cron)",
       "status": "pass",
-      "seconds": 50.5,
-      "detail": "exécuté à 2026-10-23T11:59:09.088Z",
+      "seconds": 40.6,
+      "detail": "exécuté à 2026-10-23T14:46:08.318Z",
       "error": null
     },
     {
       "check": "Générer avec l'IA (modèle Nexora)",
       "status": "pass",
-      "seconds": 10.5,
+      "seconds": 12.3,
       "detail": "« Objet : Relance de facture\n\nBonjour [Nom du destinataire],\n\n »",
       "error": null
     },
@@ -81,70 +81,84 @@
     {
       "check": "Agent : publication, chat public, versions",
       "status": "pass",
-      "seconds": 3.0,
-      "detail": "publié (agent-fumee-32e95899), chat public répond, 2 versions",
+      "seconds": 3.2,
+      "detail": "publié (agent-fumee-64c8c952), chat public répond, 2 versions",
       "error": null
     },
     {
       "check": "Assistant : conversation en flux, historique, cloisonnement",
       "status": "pass",
-      "seconds": 11.2,
-      "detail": "« Assistant général » répond en flux (145 caractères), historique relu, cloisonné",
+      "seconds": 15.8,
+      "detail": "« Assistant général » répond en flux (157 caractères), lit un PDF joint, historique relu, cloisonné",
       "error": null
     },
     {
       "check": "Recherche web (SearXNG)",
       "status": "pass",
-      "seconds": 1.4,
+      "seconds": 1.1,
       "detail": "résultats reçus de SearXNG",
       "error": null
     },
     {
       "check": "Exécution du modèle « Devis client »",
       "status": "pass",
-      "seconds": 15.8,
-      "detail": "742 caractères",
+      "seconds": 22.5,
+      "detail": "966 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Relance de facture impayée »",
       "status": "pass",
-      "seconds": 13.9,
-      "detail": "505 caractères",
+      "seconds": 16.4,
+      "detail": "718 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Réponse support (FAQ) »",
       "status": "pass",
-      "seconds": 5.5,
-      "detail": "112 caractères",
+      "seconds": 5.2,
+      "detail": "115 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Tri des e-mails entrants »",
       "status": "pass",
-      "seconds": 14.9,
-      "detail": "447 caractères",
+      "seconds": 18.1,
+      "detail": "695 caractères",
       "error": null
     },
     {
       "check": "Exécution du modèle « Compte rendu de réunion »",
       "status": "pass",
-      "seconds": 13.3,
-      "detail": "730 caractères",
+      "seconds": 12.6,
+      "detail": "702 caractères",
+      "error": null
+    },
+    {
+      "check": "Lecture de document (OCR, modèle de vision local)",
+      "status": "pass",
+      "seconds": 9.2,
+      "detail": "texte d'une image relu par le modèle de vision local, sans préambule",
+      "error": null
+    },
+    {
+      "check": "Transcription vocale (modèle local)",
+      "status": "pass",
+      "seconds": 3.8,
+      "detail": "« Bonjour, ici la Boulangerie-Martin. Nous confirmons la livra… »",
       "error": null
     },
     {
       "check": "Copilote : description ⇒ workflow exécuté",
-      "status": "fail",
-      "seconds": 58.6,
-      "detail": null,
-      "error": "generated workflow run returned HTTP 200: None"
+      "status": "pass",
+      "seconds": 65.4,
+      "detail": "« Résumé d'un texte » : 2 étape(s), créé et exécuté",
+      "error": null
     },
     {
       "check": "Budgets : refus au plafond, reprise après relèvement",
       "status": "pass",
-      "seconds": 29.9,
+      "seconds": 30.9,
       "detail": "plafond minuscule ⇒ alerte enregistrée et refus 402 en français, plafond retiré ⇒ exécution acceptée",
       "error": null
     },
@@ -158,23 +172,23 @@
     {
       "check": "Gouvernance : réglages d'instance, e-mail de test",
       "status": "pass",
-      "seconds": 0.1,
-      "detail": "réservés aux administrateurs, e-mail de test reçu par nexora-verif-mailpit, mot de passe chiffré jamais renvoyé",
+      "seconds": 0.0,
+      "detail": "réservés aux administrateurs, e-mail non testé (NEXORA_SMOKE_SMTP_HOST absent ou SMTP déjà configuré)",
       "error": null
     },
     {
       "check": "Consommation mesurée par Nexora API",
       "status": "pass",
       "seconds": 0.0,
-      "detail": "152 requêtes, 62202 jetons",
+      "detail": "343 requêtes, 269692 jetons",
       "error": null
     },
     {
       "check": "Modèles : liste, ajout, test, défaut, retrait",
-      "status": "fail",
-      "seconds": 0.1,
-      "detail": null,
-      "error": "adding qwen2.5:0.5b returned HTTP 409: {'error': 'duplicate'}"
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": "qwen2.5:0.5b déjà présent, testé (847 ms), défaut aller-retour",
+      "error": null
     }
   ]
 }
