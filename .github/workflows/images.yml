@@ -2,6 +2,10 @@
 # Registry of this repository (ghcr.io/<owner>/nexora-*), which install.sh pulls from.
 # Tags: v1.2.3 and `latest` on release tags, `edge` on main, plus the commit SHA. Packages of a
 # public repository must be public for anonymous installs (Package settings › Change visibility).
+#
+# Each architecture builds on its own native runner (no QEMU: the WorkStudio build needs ~8 GB
+# and two emulated builds on one runner ran out of memory), pushes by digest, then a merge job
+# publishes one multi-architecture tag.
 name: images
 
 on:
@@ -14,53 +18,106 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: workstudio
-            context: workstudio
-            dockerfile: workstudio/docker/app.Dockerfile
-          - name: workstudio-realtime
-            context: workstudio
-            dockerfile: workstudio/docker/realtime.Dockerfile
-          - name: workstudio-migrations
-            context: workstudio
-            dockerfile: workstudio/docker/db.Dockerfile
-          - name: api
-            context: services/nexora-api
-            dockerfile: services/nexora-api/api/Dockerfile
-          - name: connect
-            context: services/nexora-connect
-            dockerfile: services/nexora-connect/docker/Dockerfile
+        image:
+          - { name: workstudio, context: workstudio, dockerfile: workstudio/docker/app.Dockerfile }
+          - { name: workstudio-realtime, context: workstudio, dockerfile: workstudio/docker/realtime.Dockerfile }
+          - { name: workstudio-migrations, context: workstudio, dockerfile: workstudio/docker/db.Dockerfile }
+          - { name: api, context: services/nexora-api, dockerfile: services/nexora-api/api/Dockerfile }
+          - { name: connect, context: services/nexora-connect, dockerfile: services/nexora-connect/docker/Dockerfile }
+        platform: [linux/amd64, linux/arm64]
     steps:
+      - name: Free disk space and add swap
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo swapoff -a || true
+          sudo fallocate -l 8G /swapfile-build && sudo chmod 600 /swapfile-build
+          sudo mkswap /swapfile-build && sudo swapon /swapfile-build
+          free -h && df -h /
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: names
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/nexora-${{ matrix.image.name }}" >> "$GITHUB_OUTPUT"
+          echo "arch=${PLATFORM#linux/}" >> "$GITHUB_OUTPUT"
+        env:
+          PLATFORM: ${{ matrix.platform }}
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/nexora-${{ matrix.name }}
+          images: ${{ steps.names.outputs.image }}
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ steps.names.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.image.name }}-${{ steps.names.outputs.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}-${{ steps.names.outputs.arch }}
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.image.name }}-${{ steps.names.outputs.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [workstudio, workstudio-realtime, workstudio-migrations, api, connect]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-${{ matrix.name }}-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: names
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/nexora-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.names.outputs.image }}
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha
-      - uses: docker/build-push-action@v6
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      - name: Publish the multi-architecture tags
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ steps.names.outputs.image }}@sha256:%s ' *)
+          docker buildx imagetools inspect "$(jq -r '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON")"
