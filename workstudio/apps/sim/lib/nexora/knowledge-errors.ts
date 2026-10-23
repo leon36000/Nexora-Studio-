@@ -1,3 +1,5 @@
+import { isServerUnreachableMessage } from '@/lib/core/errors/unreachable-server'
+
 /** Processing failures of a knowledge-base document that get a dedicated French explanation. */
 export type KnowledgeProcessingErrorKind =
   | 'embeddingUnavailable'
@@ -9,6 +11,7 @@ export type KnowledgeProcessingErrorKind =
   | 'recordingTooLong'
   | 'ocrRejected'
   | 'pieceTooLong'
+  | 'serviceUnreachable'
 
 /**
  * Stored as the processing error of a scan, an image or a recording the instance has no model to
@@ -32,8 +35,9 @@ export const PIECE_TOO_LONG_MESSAGE =
 /**
  * Nexora edition: recognizes, in the stored processing error of a document, the failures an
  * administrator can fix (no embedding provider; the local model is still downloading; no model to
- * read a scan or transcribe a recording) and the Nexora reading and transcription limits, so the
- * interface explains them in the user's language instead of the stored English message.
+ * read a scan or transcribe a recording; a model server that could not be reached) and the Nexora
+ * reading and transcription limits, so the interface explains them in the user's language instead
+ * of the stored English message.
  */
 export function classifyKnowledgeProcessingError(
   message: string | null | undefined
@@ -52,6 +56,7 @@ export function classifyKnowledgeProcessingError(
   // The embedding client keeps only the status; on the bundled Ollama a 404 means the model
   // is not there yet (still downloading after an install or update, or not pulled).
   if (/Embedding API failed: 404\b/.test(message)) return 'embeddingModelLoading'
+  if (isServerUnreachableMessage(message)) return 'serviceUnreachable'
   return null
 }
 

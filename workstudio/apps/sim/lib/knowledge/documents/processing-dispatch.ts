@@ -1,7 +1,10 @@
+import { db } from '@sim/db'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import type { BillingAttributionSnapshot } from '@/lib/billing/core/attribution'
+import { isTriggerAvailable } from '@/lib/core/config/trigger-availability'
 import { recordUndispatchedDocumentFailure } from '@/lib/knowledge/documents/processing-claim'
+import { enqueueKnowledgeDocumentProcessing } from '@/lib/knowledge/documents/processing-outbox-event'
 import {
   type DocumentData,
   type ProcessingOptions,
@@ -48,6 +51,32 @@ async function recordDispatchFailures({
 }
 
 /**
+ * Nexora edition: with no job runner, documents are handed to the outbox worker instead of being
+ * processed inside the request that registered them. Processing begun in a request was tied to its
+ * lifetime: a scan or a recording read for minutes was cut after five, and the upload completion
+ * answered only once the document was indexed. The outbox runs the same in-process dispatch, with
+ * its own deadline and continuations, and the request answers once the events are written.
+ */
+async function enqueueDocumentProcessing(
+  documents: DocumentData[],
+  knowledgeBaseId: string,
+  processingOptions: ProcessingOptions,
+  billingAttribution: BillingAttributionSnapshot
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    for (const document of documents) {
+      await enqueueKnowledgeDocumentProcessing(tx, {
+        knowledgeBaseId,
+        documentId: document.documentId,
+        processingOptions,
+        billingAttribution,
+        processingLane: 'interactive',
+      })
+    }
+  })
+}
+
+/**
  * Dispatches document processing and records the failure against every document
  * it stranded, rather than only logging it.
  *
@@ -72,6 +101,15 @@ export async function dispatchDocumentProcessing({
   let failedDocumentIds: string[]
   let failureMessage: string
   try {
+    if (billingAttribution && !isTriggerAvailable()) {
+      await enqueueDocumentProcessing(
+        documents,
+        knowledgeBaseId,
+        processingOptions,
+        billingAttribution
+      )
+      return
+    }
     const dispatch = await processDocumentsWithQueue(
       documents,
       knowledgeBaseId,

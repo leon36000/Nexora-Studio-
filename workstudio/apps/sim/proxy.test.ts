@@ -230,6 +230,12 @@ describe('proxy matcher', () => {
     expect(matches('/api/internal/project-file-doc/project-1/file-1/persist')).toBe(false)
   })
 
+  it('leaves the multipart document and file uploads unbuffered, so a file up to their 100 MB limit reaches the route', () => {
+    expect(matches('/api/v1/knowledge/kb-1/documents')).toBe(false)
+    expect(matches('/api/v2/knowledge/kb-1/documents')).toBe(false)
+    expect(matches('/api/v1/files')).toBe(false)
+  })
+
   it('runs for the marketing documents, so the indexing policy reaches them', () => {
     expect(matches('/index.md')).toBe(true)
     expect(matches('/llms.txt')).toBe(true)
@@ -246,5 +252,9 @@ describe('proxy matcher', () => {
     expect(matches('/api/internal/project-file-doc/project-1/file-1/persist/other')).toBe(true)
     expect(matches('/api/internal/file-doc/persist/other')).toBe(true)
     expect(matches('/api/internal/file-doc/seed')).toBe(true)
+    expect(matches('/api/v1/knowledge/kb-1/documents/doc-1')).toBe(true)
+    expect(matches('/api/v2/knowledge/kb-1/documents/doc-1')).toBe(true)
+    expect(matches('/api/v1/files/file-1')).toBe(true)
+    expect(matches('/api/knowledge/kb-1/documents')).toBe(true)
   })
 })

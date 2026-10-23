@@ -1,4 +1,5 @@
 import { getErrorMessage } from '@sim/utils/errors'
+import { isServerUnreachableError } from '@/lib/core/errors/unreachable-server'
 import { ProviderCapacityDeferredError } from '@/lib/core/rate-limiter/provider-capacity-error'
 import { isPermanentDocumentProcessingError } from '@/lib/knowledge/documents/processing-error'
 
@@ -12,21 +13,6 @@ export const KNOWLEDGE_REINDEX_WAIT_WINDOW_MS = 45 * 60 * 1000
 const FIRST_WAIT_MS = 30_000
 const LATER_WAIT_MS = 60_000
 
-const NETWORK_ERROR_CODES: ReadonlySet<string> = new Set([
-  'ECONNREFUSED',
-  'ECONNRESET',
-  'EHOSTUNREACH',
-  'ENETUNREACH',
-  'ENOTFOUND',
-  'EAI_AGAIN',
-  'ETIMEDOUT',
-  'EPIPE',
-  'UND_ERR_CONNECT_TIMEOUT',
-  'UND_ERR_HEADERS_TIMEOUT',
-  'UND_ERR_BODY_TIMEOUT',
-  'UND_ERR_SOCKET',
-])
-
 function isServerUnavailable(error: Error): boolean {
   if (error.name === 'OllamaUnreachableError' || error.name === 'TimeoutError') return true
   if (error instanceof ProviderCapacityDeferredError) return true
@@ -34,12 +20,12 @@ function isServerUnavailable(error: Error): boolean {
     const status = Number(error.status)
     return status === 429 || status === 408 || status >= 500
   }
-  const code = 'code' in error ? error.code : undefined
-  return typeof code === 'string' && NETWORK_ERROR_CODES.has(code)
+  return false
 }
 
 /** Whether the embedding server was down or too slow, through cause and aggregate wrappers. */
 function isEmbeddingServerUnavailable(error: unknown): boolean {
+  if (isServerUnreachableError(error)) return true
   const pending = [error]
   const seen = new Set<unknown>()
   while (pending.length > 0 && seen.size < 32) {

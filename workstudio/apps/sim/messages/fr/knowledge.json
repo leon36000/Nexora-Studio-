@@ -139,7 +139,7 @@
     "stalled": "La réindexation vers {model} ne progresse plus. Vous pouvez la relancer.",
     "failed": "La dernière réindexation vers {model} a échoué : {reason} L'index actuel reste actif.",
     "errors": {
-      "modelUnavailable": "le modèle n'est pas disponible sur l'Ollama de l'instance.",
+      "modelUnavailable": "le modèle n'est pas disponible sur l'Ollama de l'instance (il n'est pas installé, ou le serveur n'a pas répondu pendant 45 minutes).",
       "chunkTooLong": "un passage dépasse la longueur que ce modèle accepte ; réduisez la taille des passages de la base.",
       "failed": "une erreur inattendue s'est produite."
     },
@@ -353,7 +353,8 @@
       "noSpeech": "Aucune parole n'a été reconnue dans cet enregistrement.",
       "recordingTooLong": "Cet enregistrement dure plus de 3 heures, la limite de la transcription : découpez-le, puis ajoutez les morceaux.",
       "ocrRejected": "Le modèle de lecture (OCR) a refusé ce fichier. Réexportez-le en PDF ou en image valide, puis relancez le traitement ; s'il s'ouvre correctement, un administrateur vérifie le modèle Vision / OCR dans Réglages › Modèles.",
-      "pieceTooLong": "Page (ou morceau) trop long pour ce serveur : essayez un modèle plus petit ou un serveur plus puissant."
+      "pieceTooLong": "Page (ou morceau) trop long pour ce serveur : essayez un modèle plus petit ou un serveur plus puissant.",
+      "serviceUnreachable": "Un serveur n'a pas pu être joint pendant le traitement (par exemple l'Ollama ou la Nexora API de l'instance, arrêté ou en redémarrage). Relancez le traitement du document ; si l'erreur persiste, un administrateur vérifie les services (« nexora status »)."
     }
   },
   "document": {

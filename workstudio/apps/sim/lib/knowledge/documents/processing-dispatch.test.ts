@@ -2,6 +2,11 @@ import {
   knowledgeDocumentsServiceMock,
   knowledgeDocumentsServiceMockFns,
 } from '@sim/testing/mocks/knowledge-documents-service.mock'
+import { outboxServiceMock, outboxServiceMockFns } from '@sim/testing/mocks/outbox-service.mock'
+import {
+  triggerAvailabilityMock,
+  triggerAvailabilityMockFns,
+} from '@sim/testing/mocks/trigger-availability.mock'
 import { describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -10,6 +15,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/knowledge/documents/service', () => knowledgeDocumentsServiceMock)
 
+vi.mock('@/lib/core/config/trigger-availability', () => triggerAvailabilityMock)
+
+vi.mock('@/lib/core/outbox/service', () => outboxServiceMock)
+
 vi.mock('@/lib/knowledge/documents/processing-claim', () => ({
   recordUndispatchedDocumentFailure: mocks.recordUndispatchedDocumentFailure,
 }))
@@ -17,6 +26,16 @@ vi.mock('@/lib/knowledge/documents/processing-claim', () => ({
 import { dispatchDocumentProcessing } from '@/lib/knowledge/documents/processing-dispatch'
 
 const mockProcessDocumentsWithQueue = knowledgeDocumentsServiceMockFns.mockProcessDocumentsWithQueue
+
+const BILLING = {
+  actorUserId: 'user-1',
+  workspaceId: 'workspace-1',
+  organizationId: null,
+  billedAccountUserId: 'user-1',
+  billingEntity: { id: 'user-1', type: 'user' as const },
+  billingPeriod: { start: '2026-10-01', end: '2026-11-01' },
+  payerSubscription: null,
+}
 
 const DOCUMENTS = [
   {
@@ -88,6 +107,47 @@ describe('dispatchDocumentProcessing', () => {
     expect(mocks.recordUndispatchedDocumentFailure).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ documentId: 'document-2' })
+    )
+  })
+
+  it('keeps dispatching through Trigger.dev when a job runner is configured', async () => {
+    triggerAvailabilityMockFns.mockIsTriggerAvailable.mockReturnValueOnce(true)
+    mockProcessDocumentsWithQueue.mockResolvedValueOnce({
+      requested: 2,
+      accepted: 2,
+      failed: 0,
+      failedDocumentIds: [],
+    })
+
+    await dispatchDocumentProcessing({
+      documents: DOCUMENTS,
+      knowledgeBaseId: 'knowledge-base-1',
+      processingOptions: {},
+      requestId: 'request-1',
+      billingAttribution: BILLING,
+    })
+
+    expect(mockProcessDocumentsWithQueue).toHaveBeenCalledTimes(1)
+    expect(outboxServiceMockFns.mockEnqueueOutboxEvent).not.toHaveBeenCalled()
+  })
+
+  it('records every document as undispatched when its processing cannot be queued', async () => {
+    outboxServiceMockFns.mockEnqueueOutboxEvent.mockRejectedValueOnce(new Error('database down'))
+
+    await expect(
+      dispatchDocumentProcessing({
+        documents: DOCUMENTS,
+        knowledgeBaseId: 'knowledge-base-1',
+        processingOptions: {},
+        requestId: 'request-1',
+        billingAttribution: BILLING,
+      })
+    ).resolves.toBeUndefined()
+
+    expect(mockProcessDocumentsWithQueue).not.toHaveBeenCalled()
+    expect(mocks.recordUndispatchedDocumentFailure).toHaveBeenCalledTimes(2)
+    expect(mocks.recordUndispatchedDocumentFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ documentId: 'document-2', failureMessage: 'database down' })
     )
   })
 })

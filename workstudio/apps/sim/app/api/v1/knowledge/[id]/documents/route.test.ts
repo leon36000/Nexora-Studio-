@@ -15,6 +15,7 @@ import {
   knowledgeDocumentsServiceMock,
   knowledgeDocumentsServiceMockFns,
 } from '@sim/testing/mocks/knowledge-documents-service.mock'
+import { outboxServiceMock, outboxServiceMockFns } from '@sim/testing/mocks/outbox-service.mock'
 import { v1MiddlewareMock, v1MiddlewareMockFns } from '@sim/testing/mocks/v1-middleware.mock'
 import {
   workspaceUploadsMock,
@@ -68,6 +69,9 @@ vi.mock('@/lib/uploads/utils/validation', () => ({
 
 vi.mock('@/lib/knowledge/documents/service', () => knowledgeDocumentsServiceMock)
 
+vi.mock('@/lib/core/outbox/service', () => outboxServiceMock)
+
+import { KNOWLEDGE_DOCUMENT_PROCESSING_OUTBOX_EVENT } from '@/lib/knowledge/documents/processing-events'
 import { POST } from '@/app/api/v1/knowledge/[id]/documents/route'
 
 const { mockCreateSingleDocument, mockProcessDocumentsWithQueue } = knowledgeDocumentsServiceMockFns
@@ -209,13 +213,15 @@ describe('v1 knowledge document upload route', () => {
       undefined,
       undefined
     )
-    expect(mockProcessDocumentsWithQueue).toHaveBeenCalledWith(
-      expect.any(Array),
-      'kb-1',
-      {},
-      'req-1',
-      SYSTEM_BILLING_ATTRIBUTION,
-      'interactive'
+    expect(outboxServiceMockFns.mockEnqueueOutboxEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      KNOWLEDGE_DOCUMENT_PROCESSING_OUTBOX_EVENT,
+      expect.objectContaining({
+        knowledgeBaseId: 'kb-1',
+        billingAttribution: SYSTEM_BILLING_ATTRIBUTION,
+        processingLane: 'interactive',
+      })
     )
+    expect(mockProcessDocumentsWithQueue).not.toHaveBeenCalled()
   })
 })

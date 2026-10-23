@@ -22,6 +22,11 @@ function refused(code: string): Error {
   return new TypeError('fetch failed', { cause: Object.assign(new Error(code), { code }) })
 }
 
+/** Bun's fetch puts the code on the TypeError itself, with its own names for some failures. */
+function bunFetchError(code: string, message: string): Error {
+  return Object.assign(new TypeError(message), { code, errno: 0 })
+}
+
 const serverDown = [
   new OllamaUnreachableError('connect ECONNREFUSED 172.18.0.4:11434'),
   new ProviderCapacityDeferredError('provider_timeout', { providerId: 'ollama' }),
@@ -30,6 +35,15 @@ const serverDown = [
   refused('ECONNREFUSED'),
   new AggregateError([refused('ECONNRESET')], 'Embedding batches could not complete'),
   new DOMException('The operation timed out', 'TimeoutError'),
+  bunFetchError('ETIMEOUT', 'getaddrinfo ETIMEOUT ollama'),
+  bunFetchError('ENOTFOUND', 'getaddrinfo ENOTFOUND ollama'),
+  bunFetchError('ConnectionRefused', 'Unable to connect. Is the computer able to access the url?'),
+  bunFetchError('FailedToOpenSocket', 'Was there a typo in the url or port?'),
+  bunFetchError('ConnectionClosed', 'The socket connection was closed unexpectedly.'),
+  refused('EAI_AGAIN'),
+  refused('ESERVFAIL'),
+  new Error('getaddrinfo ETIMEOUT ollama'),
+  new Error('connect ECONNREFUSED 172.18.0.4:11434'),
 ]
 
 describe('decideKnowledgeReindexFailure', () => {
@@ -37,7 +51,8 @@ describe('decideKnowledgeReindexFailure', () => {
     for (const error of serverDown) {
       for (const lastAttempt of [false, true]) {
         expect(
-          decideKnowledgeReindexFailure(error, { now, waitingSince: null, lastAttempt })
+          decideKnowledgeReindexFailure(error, { now, waitingSince: null, lastAttempt }),
+          `${error.name}: ${error.message}`
         ).toMatchObject({ action: 'wait', since: now })
       }
     }
@@ -81,12 +96,17 @@ describe('decideKnowledgeReindexFailure', () => {
   })
 
   it('retries any other failure until the last attempt, then fails', () => {
-    const error = new Error('unexpected')
-    expect(
-      decideKnowledgeReindexFailure(error, { now, waitingSince: null, lastAttempt: false })
-    ).toEqual({ action: 'retry' })
-    expect(
-      decideKnowledgeReindexFailure(error, { now, waitingSince: null, lastAttempt: true })
-    ).toMatchObject({ action: 'fail', failure: { code: 'failed' } })
+    for (const error of [
+      new Error('unexpected'),
+      bunFetchError('UNABLE_TO_GET_ISSUER_CERT', 'unable to get issuer certificate'),
+      new Error('The model answered: connect the dots ECONNREFUSED-free'),
+    ]) {
+      expect(
+        decideKnowledgeReindexFailure(error, { now, waitingSince: null, lastAttempt: false })
+      ).toEqual({ action: 'retry' })
+      expect(
+        decideKnowledgeReindexFailure(error, { now, waitingSince: null, lastAttempt: true })
+      ).toMatchObject({ action: 'fail', failure: { code: 'failed' } })
+    }
   })
 })

@@ -13,6 +13,11 @@ import {
   knowledgeDocumentsServiceMock,
   knowledgeDocumentsServiceMockFns,
 } from '@sim/testing/mocks/knowledge-documents-service.mock'
+import { outboxServiceMock, outboxServiceMockFns } from '@sim/testing/mocks/outbox-service.mock'
+import {
+  triggerAvailabilityMock,
+  triggerAvailabilityMockFns,
+} from '@sim/testing/mocks/trigger-availability.mock'
 import { uploadSessionMock, uploadSessionMockFns } from '@sim/testing/mocks/upload-session.mock'
 import {
   uploadsMetadataMock,
@@ -31,6 +36,10 @@ vi.mock('@sim/audit', () => auditMock)
 vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
 
 vi.mock('@/lib/billing/core/attribution', () => billingAttributionMock)
+
+vi.mock('@/lib/core/config/trigger-availability', () => triggerAvailabilityMock)
+
+vi.mock('@/lib/core/outbox/service', () => outboxServiceMock)
 
 vi.mock('@/lib/knowledge/application/contexts', () => knowledgeContextsMock)
 
@@ -59,6 +68,7 @@ import {
   createKnowledgeDocumentUpload,
   issueKnowledgeDocumentUploadParts,
 } from '@/lib/knowledge/application/upload-sessions'
+import { KNOWLEDGE_DOCUMENT_PROCESSING_OUTBOX_EVENT } from '@/lib/knowledge/documents/processing-events'
 import type { UploadSessionRecord } from '@/lib/uploads/upload-session/service'
 
 const mocks = {
@@ -183,6 +193,8 @@ describe('knowledge-document upload application lifecycle', () => {
     mocks.findBound.mockResolvedValue({ status: 'absent' })
     mocks.createDocument.mockResolvedValue(DOCUMENT)
     mocks.processQueue.mockResolvedValue(undefined)
+    triggerAvailabilityMockFns.mockIsTriggerAvailable.mockReturnValue(false)
+    outboxServiceMockFns.mockEnqueueOutboxEvent.mockResolvedValue('event-1')
   })
 
   it('rejects insufficient role before allocating provider state', async () => {
@@ -294,6 +306,47 @@ describe('knowledge-document upload application lifecycle', () => {
         action: 'document.uploaded',
         resourceId: 'upload-1',
         metadata: expect.objectContaining({ operation: 'knowledge.documents.upload.complete' }),
+      })
+    )
+  })
+
+  it('answers once the document is recorded and queued, without waiting for its processing', async () => {
+    mocks.processQueue.mockReturnValue(new Promise(() => {}))
+    mocks.completeUpload.mockImplementation(
+      async (params: {
+        session: UploadSessionRecord
+        finalize: (session: UploadSessionRecord) => Promise<{
+          value: { document: typeof DOCUMENT; created: boolean; knowledgeBaseName: string | null }
+        }>
+      }) => ({
+        session: { ...params.session, status: 'completed' as const },
+        value: (await params.finalize(params.session)).value,
+        alreadyCompleted: false,
+      })
+    )
+
+    const result = await completeKnowledgeDocumentUpload.execute({
+      principal: PRINCIPAL,
+      input: {
+        knowledgeBaseId: 'knowledge-1',
+        assertedWorkspaceId: 'workspace-1',
+        uploadId: 'upload-1',
+        uploadToken: 'token',
+        source: 'ui',
+      },
+      request: REQUEST,
+    })
+
+    expect(result.value.document.id).toBe('upload-1')
+    expect(outboxServiceMockFns.mockEnqueueOutboxEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      KNOWLEDGE_DOCUMENT_PROCESSING_OUTBOX_EVENT,
+      expect.objectContaining({
+        knowledgeBaseId: 'knowledge-1',
+        documentId: 'upload-1',
+        processingOptions: { recipe: 'default', lang: 'en' },
+        billingAttribution: BILLING,
+        processingLane: 'interactive',
       })
     )
   })

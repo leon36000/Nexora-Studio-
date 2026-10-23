@@ -494,10 +494,11 @@ export const config = {
     '/login',
     '/signup',
     '/invite/:path*', // Match invitation routes
-    // Runtime CORS. The desktop's raw upload routes and the realtime relay's document persists are
-    // left out: running the proxy makes Next buffer the body, cutting it off at its 10 MB proxy
-    // limit, and those bodies are whole files or document snapshots.
-    '/api/((?!desktop/tool/(?:import|file)$|internal/file-doc/persist$|internal/project-file-doc/[^/]+/[^/]+/persist$).*)',
+    // Runtime CORS. The desktop's raw upload routes, the realtime relay's document persists and
+    // the multipart document and file uploads of the v1/v2 APIs (100 MB) are left out: running the
+    // proxy makes Next buffer the body, cutting it off at its 10 MB proxy limit, and those bodies
+    // are whole files or document snapshots. They only answer the app's own origin anyway.
+    '/api/((?!desktop/tool/(?:import|file)$|internal/file-doc/persist$|internal/project-file-doc/[^/]+/[^/]+/persist$|v[12]/knowledge/[^/]+/documents$|v1/files$).*)',
     // Next's image optimizer fetches public editorial images without a User-Agent.
     '/((?!api/|api$|_next/static|_next/image|(?:blog|changelog)/.*\\.(?:avif|gif|jpe?g|png|svg|webp)$|ingest|favicon.ico|logo/|landing/|static/|footer/|social/|enterprise/|favicon/|twitter/|robots.txt|sitemap.xml).*)',
   ],

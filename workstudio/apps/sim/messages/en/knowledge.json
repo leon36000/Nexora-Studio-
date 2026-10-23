@@ -139,7 +139,7 @@
     "stalled": "The reindex to {model} is no longer progressing. You can start it again.",
     "failed": "The last reindex to {model} failed: {reason} The current index stays active.",
     "errors": {
-      "modelUnavailable": "the model is not available on the instance's Ollama.",
+      "modelUnavailable": "the model is not available on the instance's Ollama (it is not installed, or the server did not answer for 45 minutes).",
       "chunkTooLong": "a passage is longer than this model accepts; reduce the base's passage size.",
       "failed": "an unexpected error occurred."
     },
@@ -353,7 +353,8 @@
       "noSpeech": "No speech could be recognised in this recording.",
       "recordingTooLong": "This recording lasts more than 3 hours, the transcription limit: split it, then add the parts.",
       "ocrRejected": "The OCR provider rejected this file. Re-export it as a valid PDF or image and retry. If the file opens correctly, check the OCR provider and model configuration before retrying.",
-      "pieceTooLong": "This page (or piece of recording) takes too long for this server: try a smaller model or a more powerful server."
+      "pieceTooLong": "This page (or piece of recording) takes too long for this server: try a smaller model or a more powerful server.",
+      "serviceUnreachable": "A server could not be reached during processing (for example the instance's Ollama or Nexora API, stopped or restarting). Retry processing the document; if the error persists, an administrator checks the services (\"nexora status\")."
     }
   },
   "document": {

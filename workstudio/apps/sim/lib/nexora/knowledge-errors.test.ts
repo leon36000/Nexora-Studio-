@@ -70,8 +70,23 @@ describe('classifyKnowledgeProcessingError', () => {
     expect(classifyKnowledgeProcessingError(PIECE_TOO_LONG_MESSAGE)).toBe('pieceTooLong')
   })
 
+  it('recognizes a model server that could not be reached, as Bun and Node word it', () => {
+    for (const message of [
+      'getaddrinfo ETIMEOUT ollama',
+      'getaddrinfo ENOTFOUND ollama',
+      'connect ECONNREFUSED 172.18.0.4:11434',
+      'Unable to connect. Is the computer able to access the url?',
+      'Nexora API did not answer: getaddrinfo ETIMEOUT nexora-api',
+    ]) {
+      expect(classifyKnowledgeProcessingError(message), message).toBe('serviceUnreachable')
+    }
+  })
+
   it('leaves every other error to be shown as it is', () => {
     expect(classifyKnowledgeProcessingError('File is empty')).toBeNull()
+    expect(
+      classifyKnowledgeProcessingError('Please connect the scanner ECONNREFUSED-free')
+    ).toBeNull()
     expect(classifyKnowledgeProcessingError(null)).toBeNull()
   })
 })
