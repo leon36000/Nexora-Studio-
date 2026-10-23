@@ -51,9 +51,9 @@
 
 **Files:** `workstudio/apps/sim/lib/nexora/assistant/general-agent.ts` (+ test) : crée au premier usage, dans le dossier « Agents », l'agent « Assistant général » (`buildAgentWorkflow` : consignes françaises, `vllm/nexora-default`, recherche dans toutes les bases de l'espace, mémoire), et le déploie.
 
-- [ ] **Step 1: Failing test** : idempotent (un seul agent par espace), bases de l'espace incluses, déployé.
-- [ ] **Step 2:** Implémenter ; PASS.
-- [ ] **Step 3: Commit** `feat(j6): Assistant général fourni`.
+- [x] **Step 1: Failing test** : idempotent (un seul agent par espace), bases de l'espace incluses, déployé.
+- [x] **Step 2:** Implémenter ; PASS.
+- [x] **Step 3: Commit** `feat(j6): Assistant général fourni`.
 
 ### Task 4: Interface
 

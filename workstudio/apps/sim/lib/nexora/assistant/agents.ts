@@ -1,12 +1,16 @@
 import { db } from '@sim/db'
 import { chat, folder, workflow } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
 import { toStringOrNull } from '@sim/utils/coerce'
 import { toRecord } from '@sim/utils/object'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authorized-workspace-use-case'
 import { AGENTS_FOLDER } from '@/lib/nexora/agents'
+import { ensureGeneralAssistantAgent } from '@/lib/nexora/assistant/general-agent'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
 import { resolveActiveWorkspaceApplicationContext } from '@/lib/workspaces/application/context'
+
+const logger = createLogger('NexoraAssistantAgents')
 
 /** A published agent: a deployed workflow of the workspace's `Agents` folder with an active chat. */
 export interface AssistantAgent {
@@ -76,10 +80,33 @@ export async function findPublishedAgent(
   return agent ?? null
 }
 
+/**
+ * The workspace's published agents, the « Assistant général » first. Listing provides the
+ * general assistant on first use (see `ensureGeneralAssistantAgent`); when that fails, the
+ * failure is logged and the other agents are still offered.
+ */
 export const listAssistantAgents = defineAuthorizedWorkspaceUseCase({
   operation: assistantOperations.listAgents,
   resolveContext: ({ input }: { input: { workspaceId: string } }) =>
     resolveActiveWorkspaceApplicationContext(input.workspaceId),
   authorizationOptions: {},
-  execute: async ({ context }) => ({ agents: await loadPublishedAgents(context.workspaceId) }),
+  execute: async ({ principal, context, request }) => {
+    const general = await ensureGeneralAssistantAgent
+      .execute({ principal, input: { workspaceId: context.workspaceId }, request })
+      .catch((error: unknown) => {
+        logger.error('General assistant could not be provided', {
+          workspaceId: context.workspaceId,
+          error,
+        })
+        return null
+      })
+    const agents = await loadPublishedAgents(context.workspaceId)
+    if (!general) return { agents }
+    return {
+      agents: [
+        ...agents.filter((agent) => agent.workflowId === general.workflowId),
+        ...agents.filter((agent) => agent.workflowId !== general.workflowId),
+      ],
+    }
+  },
 })

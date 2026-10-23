@@ -5,7 +5,9 @@
  *   return whatever is queued, so the filter is pinned on the WHERE tree);
  * - a workflow with several chats is offered twice;
  * - the welcome message is not read from the chat's customizations;
- * - a workspace the caller has no access to is listed.
+ * - a workspace the caller has no access to is listed;
+ * - the general assistant is not offered first;
+ * - a failure to provide the general assistant hides the other agents.
  */
 
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
@@ -15,12 +17,18 @@ import {
   queueTableRows,
   resetDbChainMock,
 } from '@sim/testing/mocks/database.mock'
+import { getMockLogger } from '@sim/testing/mocks/logger.mock'
 import { schemaMock } from '@sim/testing/mocks/schema.mock'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
 import { workspaceContextMock } from '@sim/testing/mocks/workspace-context.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const { mockEnsureGeneral } = vi.hoisted(() => ({ mockEnsureGeneral: vi.fn() }))
+
 vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
+vi.mock('@/lib/nexora/assistant/general-agent', () => ({
+  ensureGeneralAssistantAgent: { execute: mockEnsureGeneral },
+}))
 vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
 
 import { AGENTS_FOLDER } from '@/lib/nexora/agents'
@@ -34,6 +42,8 @@ beforeEach(() => {
   resetDbChainMock()
   resolvePermission.mockReset()
   resolvePermission.mockResolvedValue('read')
+  mockEnsureGeneral.mockReset()
+  mockEnsureGeneral.mockResolvedValue(null)
 })
 
 describe('listAssistantAgents', () => {
@@ -117,5 +127,49 @@ describe('listAssistantAgents', () => {
         welcomeMessage: null,
       },
     ])
+  })
+
+  it('offers the general assistant first, after providing it for the caller', async () => {
+    mockEnsureGeneral.mockResolvedValueOnce({
+      workflowId: 'general',
+      chatId: 'general-chat',
+      chatIdentifier: 'assistant-1a2b3c4d',
+      createdWorkflow: false,
+      publishedChat: false,
+    })
+    queueTableRows(schemaMock.workflow, [
+      { workflowId: 'agent-1', name: 'Agent RH', description: null, chatIdentifier: 'agent-rh' },
+      {
+        workflowId: 'general',
+        name: 'Assistant général',
+        description: null,
+        chatIdentifier: 'assistant-1a2b3c4d',
+      },
+    ])
+
+    const { agents } = await listAssistantAgents.execute({
+      principal: member,
+      input: { workspaceId: WORKSPACE_ID },
+    })
+
+    expect(mockEnsureGeneral).toHaveBeenCalledWith(
+      expect.objectContaining({ principal: member, input: { workspaceId: WORKSPACE_ID } })
+    )
+    expect(agents.map((agent) => agent.workflowId)).toEqual(['general', 'agent-1'])
+  })
+
+  it('still offers the other agents when the general assistant cannot be provided', async () => {
+    mockEnsureGeneral.mockRejectedValueOnce(new Error('Workflow deployment failed'))
+    queueTableRows(schemaMock.workflow, [
+      { workflowId: 'agent-1', name: 'Agent RH', description: null, chatIdentifier: 'agent-rh' },
+    ])
+
+    const { agents } = await listAssistantAgents.execute({
+      principal: member,
+      input: { workspaceId: WORKSPACE_ID },
+    })
+
+    expect(agents.map((agent) => agent.workflowId)).toEqual(['agent-1'])
+    expect(getMockLogger('NexoraAssistantAgents').error).toHaveBeenCalled()
   })
 })

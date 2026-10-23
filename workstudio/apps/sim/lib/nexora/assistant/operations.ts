@@ -23,6 +23,17 @@ export const assistantOperations = {
     ...ASSISTANT_POLICY,
     capability: 'none',
   }),
+  /**
+   * Provides the workspace's « Assistant général » (created, deployed and published for members
+   * on first use). Any member may trigger it: the agent is a fixed, Nexora-provided one, its chat
+   * is reserved to the workspace's members, and the creation is attributed to that member.
+   */
+  // permission-group-exempt: provides one fixed members-only agent; no member-chosen content is created.
+  ensureGeneralAgent: defineWorkspaceOperation({
+    id: 'nexora.assistant.agents.ensureGeneral',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
   // permission-group-exempt: a member's own private conversations, under workspace membership only.
   listConversations: defineWorkspaceOperation({
     id: 'nexora.assistant.conversations.list',
