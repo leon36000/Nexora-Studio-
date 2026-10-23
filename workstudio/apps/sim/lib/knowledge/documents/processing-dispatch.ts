@@ -3,6 +3,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import type { BillingAttributionSnapshot } from '@/lib/billing/core/attribution'
 import { isTriggerAvailable } from '@/lib/core/config/trigger-availability'
+import { processOutboxEventById } from '@/lib/core/outbox/service'
 import { recordUndispatchedDocumentFailure } from '@/lib/knowledge/documents/processing-claim'
 import { enqueueKnowledgeDocumentProcessing } from '@/lib/knowledge/documents/processing-outbox-event'
 import {
@@ -62,17 +63,51 @@ async function enqueueDocumentProcessing(
   knowledgeBaseId: string,
   processingOptions: ProcessingOptions,
   billingAttribution: BillingAttributionSnapshot
-): Promise<void> {
-  await db.transaction(async (tx) => {
+): Promise<string[]> {
+  return db.transaction(async (tx) => {
+    const eventIds: string[] = []
     for (const document of documents) {
-      await enqueueKnowledgeDocumentProcessing(tx, {
-        knowledgeBaseId,
-        documentId: document.documentId,
-        processingOptions,
-        billingAttribution,
-        processingLane: 'interactive',
-      })
+      eventIds.push(
+        await enqueueKnowledgeDocumentProcessing(tx, {
+          knowledgeBaseId,
+          documentId: document.documentId,
+          processingOptions,
+          billingAttribution,
+          processingLane: 'interactive',
+        })
+      )
     }
+    return eventIds
+  })
+}
+
+/**
+ * Starts the committed events now, beside the caller, instead of at the processor's next pass (up
+ * to a minute later, or after a long scan it is reading). The outbox stays the owner: the claim is
+ * its own, an event the document lane has no room for stays pending for the processor, and one
+ * whose start fails is retried there like any other.
+ */
+function startQueuedDocumentProcessing(eventIds: string[]): void {
+  void (async () => {
+    const { knowledgeDocumentProcessingOutboxHandlers } = await import(
+      '@/lib/knowledge/documents/processing-outbox-handler'
+    )
+    await Promise.all(
+      eventIds.map(async (eventId) => {
+        try {
+          await processOutboxEventById(eventId, knowledgeDocumentProcessingOutboxHandlers)
+        } catch (error) {
+          logger.warn('Queued knowledge document could not start early; the outbox will run it', {
+            eventId,
+            error: getErrorMessage(error),
+          })
+        }
+      })
+    )
+  })().catch((error) => {
+    logger.warn('Queued knowledge documents could not start early; the outbox will run them', {
+      error: getErrorMessage(error),
+    })
   })
 }
 
@@ -102,11 +137,13 @@ export async function dispatchDocumentProcessing({
   let failureMessage: string
   try {
     if (billingAttribution && !isTriggerAvailable()) {
-      await enqueueDocumentProcessing(
-        documents,
-        knowledgeBaseId,
-        processingOptions,
-        billingAttribution
+      startQueuedDocumentProcessing(
+        await enqueueDocumentProcessing(
+          documents,
+          knowledgeBaseId,
+          processingOptions,
+          billingAttribution
+        )
       )
       return
     }

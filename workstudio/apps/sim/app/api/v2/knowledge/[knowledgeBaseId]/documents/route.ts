@@ -33,7 +33,7 @@ import { knowledgeOperations } from '@/lib/knowledge/application/operations'
 import { KnowledgeDocumentUnsupportedMediaTypeError } from '@/lib/knowledge/application/upload-sessions'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { MAX_KNOWLEDGE_DOCUMENT_FILE_SIZE } from '@/lib/uploads/shared/types'
-import { validateFileType } from '@/lib/uploads/utils/validation'
+import { validateKnowledgeFileType } from '@/lib/uploads/utils/validation'
 import { toV2DocumentSummary, toV2TaggedDocument } from '@/app/api/v2/knowledge/utils'
 import { cursorSortKey, decodeOffsetCursor, encodeOffsetCursor } from '@/app/api/v2/lib/response'
 
@@ -211,7 +211,7 @@ export const POST = defineV2BodyLifecycleRoute({
       )
     }
     const contentType = rawFile.type || 'application/octet-stream'
-    const fileTypeError = validateFileType(rawFile.name, rawFile.type || '')
+    const fileTypeError = validateKnowledgeFileType(rawFile.name, rawFile.type || '')
     if (fileTypeError) {
       throw new KnowledgeDocumentUnsupportedMediaTypeError(fileTypeError.message)
     }

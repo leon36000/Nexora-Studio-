@@ -4,7 +4,9 @@ import { env, envNumber } from '@/lib/core/config/env'
 import { isTriggerAvailable } from '@/lib/core/config/trigger-availability'
 import {
   type OutboxHandler,
+  type OutboxHandlerLane,
   type OutboxHandlerRegistry,
+  withOutboxHandlerLane,
   withOutboxHandlerTimeout,
 } from '@/lib/core/outbox/service'
 import { isBYOKEmbeddingCredentialRejection, isEmbeddingQuotaExhaustion } from '@/lib/embeddings'
@@ -235,6 +237,25 @@ const KNOWLEDGE_HANDLER_TIMEOUT_MS = Math.min(
   Math.max(1, envNumber(env.KB_CONFIG_MAX_DURATION, 600) * 1000 - 30_000)
 )
 
+/**
+ * Documents read beside each other rather than in turn: without a job runner the outbox processes
+ * every document of the instance, and a scan read page by page holds its handler for minutes per
+ * slice. Bounded because each reading also loads the instance's own OCR, transcription and
+ * embedding models.
+ */
+const DOCUMENT_PROCESSING_LANE: OutboxHandlerLane = {
+  name: 'knowledge-document-processing',
+  limit: envNumber(env.KB_CONFIG_OUTBOX_CONCURRENCY, 3, { min: 1, integer: true }),
+}
+
+/** A document-processing handler: its own long window, run in the document lane. */
+function documentProcessingHandler(handler: OutboxHandler<unknown>): OutboxHandler<unknown> {
+  return withOutboxHandlerLane(
+    withOutboxHandlerTimeout(handler, KNOWLEDGE_HANDLER_TIMEOUT_MS),
+    DOCUMENT_PROCESSING_LANE
+  )
+}
+
 export const knowledgeDocumentProcessingOutboxHandlers = {
   [KNOWLEDGE_CONNECTOR_CLEANUP_EVENT]: cleanupKnowledgeConnector,
   [KNOWLEDGE_CONNECTOR_DETACH_EVENT]: detachKnowledgeConnector,
@@ -243,16 +264,8 @@ export const knowledgeDocumentProcessingOutboxHandlers = {
   [KNOWLEDGE_DOCUMENT_DEFERRED_RETRY_CHECK_EVENT]: checkDeferredDocumentRetry,
   [EMBEDDING_CHECKPOINT_CLEANUP_EVENT]: cleanupEmbeddingCheckpoint,
   [VISION_CHECKPOINT_CLEANUP_EVENT]: cleanupVisionCheckpoint,
-  [KNOWLEDGE_DOCUMENT_PROCESSING_OUTBOX_EVENT]: withOutboxHandlerTimeout(
-    processKnowledgeDocument,
-    KNOWLEDGE_HANDLER_TIMEOUT_MS
-  ),
-  [KNOWLEDGE_DOCUMENT_CONTINUATION_OUTBOX_EVENT]: withOutboxHandlerTimeout(
-    resumeKnowledgeDocument,
-    KNOWLEDGE_HANDLER_TIMEOUT_MS
-  ),
-  [KNOWLEDGE_DOCUMENT_RECOVERY_OUTBOX_EVENT]: withOutboxHandlerTimeout(
-    recoverKnowledgeDocument,
-    KNOWLEDGE_HANDLER_TIMEOUT_MS
-  ),
+  [KNOWLEDGE_DOCUMENT_PROCESSING_OUTBOX_EVENT]: documentProcessingHandler(processKnowledgeDocument),
+  [KNOWLEDGE_DOCUMENT_CONTINUATION_OUTBOX_EVENT]:
+    documentProcessingHandler(resumeKnowledgeDocument),
+  [KNOWLEDGE_DOCUMENT_RECOVERY_OUTBOX_EVENT]: documentProcessingHandler(recoverKnowledgeDocument),
 } satisfies OutboxHandlerRegistry

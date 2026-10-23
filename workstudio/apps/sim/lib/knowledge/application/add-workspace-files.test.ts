@@ -54,8 +54,6 @@ vi.mock(
 
 vi.mock('@/lib/uploads/contexts/workspace/file-manager', () => workspaceFileManagerMock)
 
-vi.mock('@/lib/uploads/utils/validation', () => ({ validateFileType: () => null }))
-
 import { addWorkspaceFilesToKnowledgeBase } from '@/lib/knowledge/application/add-workspace-files'
 
 const mocks = {
@@ -208,6 +206,37 @@ describe('add workspace files to knowledge base application command', () => {
       expect.any(String),
       expect.objectContaining({ content: { status: 'exact', entries: [] } }),
       expect.objectContaining({ expectedWorkspaceId: 'workspace-1' })
+    )
+  })
+
+  it('adds a recording, which a knowledge base transcribes like an uploaded one', async () => {
+    const recording = { ...workspaceFile, name: 'meeting.wav', type: 'audio/wav' }
+    workspaceFileManagerMockFns.mockResolveWorkspaceFileReference.mockResolvedValueOnce(recording)
+    workspaceFileManagerMockFns.mockGetWorkspaceFile
+      .mockResolvedValueOnce(recording)
+      .mockResolvedValueOnce(recording)
+    workspaceFileManagerMockFns.mockFetchServableWorkspaceFileBuffer.mockResolvedValueOnce({
+      buffer: Buffer.alloc(100),
+      contentType: 'audio/wav',
+    })
+
+    await addWorkspaceFilesToKnowledgeBase.execute({
+      principal: delegatedPrincipal,
+      input: {
+        knowledgeBaseId: 'knowledge-1',
+        assertedWorkspaceId: 'workspace-1',
+        fileReferences: ['files/meeting.wav'],
+      },
+    })
+
+    expect(mocks.createDocument).toHaveBeenCalledWith(
+      expect.objectContaining({ filename: 'meeting.wav', mimeType: 'audio/wav' }),
+      'knowledge-1',
+      expect.any(String),
+      'dual-workspace-user',
+      expect.any(String),
+      expect.anything(),
+      expect.anything()
     )
   })
 

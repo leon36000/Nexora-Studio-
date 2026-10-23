@@ -498,6 +498,7 @@ export const env = createEnv({
     /** Overrides the shared rerank setting only for Sim-hosted Cohere credentials. */
     KB_CONFIG_HOSTED_RERANK_REQUESTS_PER_MINUTE: z.number().positive().optional(),
     KB_CONFIG_DOCUMENT_CONCURRENCY:        z.number().optional().default(4),       // Concurrent documents in the in-process (non-Trigger) path
+    KB_CONFIG_OUTBOX_CONCURRENCY:          z.number().optional().default(3),       // Documents the outbox processes at once in one process (installs without Trigger.dev)
     KB_CONFIG_BATCH_SIZE:                  z.number().optional().default(2000),    // Chunks to process per embedding batch
     KB_CONFIG_DOCUMENT_BATCH_SIZE:         z.number().optional().default(10),      // Documents per batch in the in-process (non-Trigger) path
     KB_CONFIG_DELAY_BETWEEN_BATCHES:       z.number().optional().default(0),       // Delay between batches in ms (0 for max speed)

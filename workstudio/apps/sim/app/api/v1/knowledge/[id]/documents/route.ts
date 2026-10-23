@@ -25,7 +25,7 @@ import type { DocumentSortField, SortOrder } from '@/lib/knowledge/documents/typ
 import { performUploadKnowledgeDocument } from '@/lib/knowledge/orchestration'
 import { uploadWorkspaceFile } from '@/lib/uploads/contexts/workspace'
 import { EXACT_EMPTY_WORKSPACE_FILE_SECRET_PROVENANCE } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
-import { validateFileType } from '@/lib/uploads/utils/validation'
+import { validateKnowledgeFileType } from '@/lib/uploads/utils/validation'
 import {
   handleError,
   resolveKnowledgeBase,
@@ -161,7 +161,7 @@ export const POST = withRouteHandler(
         )
       }
 
-      const fileTypeError = validateFileType(file.name, file.type || '')
+      const fileTypeError = validateKnowledgeFileType(file.name, file.type || '')
       if (fileTypeError) {
         return NextResponse.json({ error: fileTypeError.message }, { status: 415 })
       }

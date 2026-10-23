@@ -25,9 +25,8 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockResolveKnowledgeBase, mockValidateFileType } = vi.hoisted(() => ({
+const { mockResolveKnowledgeBase } = vi.hoisted(() => ({
   mockResolveKnowledgeBase: vi.fn(),
-  mockValidateFileType: vi.fn(),
 }))
 
 const SYSTEM_BILLING_ATTRIBUTION = {
@@ -59,13 +58,6 @@ vi.mock('@/lib/billing/calculations/usage-monitor', () => billingUsageMonitorMoc
 vi.mock('@/lib/billing/core/attribution', () => billingAttributionMock)
 
 vi.mock('@/lib/uploads/contexts/workspace', () => workspaceUploadsMock)
-
-vi.mock('@/lib/uploads/utils/validation', () => ({
-  validateFileType: mockValidateFileType,
-  /** Shared upload/connector limits are read by the knowledge orchestration imports. */
-  MAX_FILE_SIZE: 100 * 1024 * 1024,
-  SUPPORTED_ARCHIVE_EXTENSIONS: [],
-}))
 
 vi.mock('@/lib/knowledge/documents/service', () => knowledgeDocumentsServiceMock)
 
@@ -132,7 +124,6 @@ describe('v1 knowledge document upload route', () => {
     })
     mockResolveSystemBillingAttribution.mockResolvedValue(SYSTEM_BILLING_ATTRIBUTION)
     mockCheckAttributedUsageLimits.mockResolvedValue({ isExceeded: false })
-    mockValidateFileType.mockReturnValue(null)
     mockUploadWorkspaceFile.mockResolvedValue({
       url: 'https://example.com/file.txt',
     })
@@ -223,5 +214,43 @@ describe('v1 knowledge document upload route', () => {
       })
     )
     expect(mockProcessDocumentsWithQueue).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['meeting.wav', 'audio/wav'],
+    ['scan.png', 'image/png'],
+  ])('accepts %s, which a knowledge base reads like the upload dialog does', async (name, type) => {
+    const req = new NextRequest('http://localhost:3000/api/v1/knowledge/kb-1/documents', {
+      method: 'POST',
+      headers: { 'content-length': '1024' },
+      body: buildFormData(new File(['RIFF'], name, { type })),
+    })
+
+    const response = await POST(req, routeContext)
+
+    expect(response.status).toBe(200)
+    expect(mockUploadWorkspaceFile).toHaveBeenCalledOnce()
+    expect(outboxServiceMockFns.mockEnqueueOutboxEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      KNOWLEDGE_DOCUMENT_PROCESSING_OUTBOX_EVENT,
+      expect.objectContaining({ knowledgeBaseId: 'kb-1' })
+    )
+  })
+
+  it('refuses an unsupported file with 415 and names recordings and images among the accepted types', async () => {
+    const req = new NextRequest('http://localhost:3000/api/v1/knowledge/kb-1/documents', {
+      method: 'POST',
+      headers: { 'content-length': '1024' },
+      body: buildFormData(new File(['MZ'], 'setup.exe', { type: 'application/x-msdownload' })),
+    })
+
+    const response = await POST(req, routeContext)
+
+    expect(response.status).toBe(415)
+    const { error } = await response.json()
+    expect(error).toMatch(/^Unsupported file type: exe\. Supported types are: pdf, /)
+    expect(error).toContain('wav')
+    expect(error).toContain('png')
+    expect(mockUploadWorkspaceFile).not.toHaveBeenCalled()
   })
 })

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { sniffImageContentType, validateAttachmentFileType } from '@/lib/uploads/utils/validation'
+import {
+  sniffImageContentType,
+  validateAttachmentFileType,
+  validateKnowledgeFileType,
+} from '@/lib/uploads/utils/validation'
 
 describe('sniffImageContentType', () => {
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00])
@@ -42,5 +46,18 @@ describe('validateAttachmentFileType', () => {
   it('rejects files with non-alphanumeric extensions', () => {
     expect(validateAttachmentFileType('odd.<>')?.code).toBe('UNSUPPORTED_FILE_TYPE')
     expect(validateAttachmentFileType('foo. ')?.code).toBe('UNSUPPORTED_FILE_TYPE')
+  })
+})
+
+describe('validateKnowledgeFileType', () => {
+  it('names the recordings and images a knowledge base accepts when it refuses a file', () => {
+    const refusal = validateKnowledgeFileType('setup.exe', 'application/octet-stream')
+
+    expect(refusal?.code).toBe('UNSUPPORTED_FILE_TYPE')
+    expect(refusal?.message).toMatch(/^Unsupported file type: exe\. Supported types are: pdf, /)
+    for (const extension of ['pdf', 'docx', 'wav', 'mp3', 'png', 'jpg']) {
+      expect(refusal?.message).toContain(extension)
+      expect(refusal?.supportedTypes).toContain(extension)
+    }
   })
 })

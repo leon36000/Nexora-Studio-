@@ -1,7 +1,9 @@
+import { createDeferred } from '@sim/testing/helpers/deferred'
 import {
   knowledgeDocumentsServiceMock,
   knowledgeDocumentsServiceMockFns,
 } from '@sim/testing/mocks/knowledge-documents-service.mock'
+import { getMockLogger } from '@sim/testing/mocks/logger.mock'
 import { outboxServiceMock, outboxServiceMockFns } from '@sim/testing/mocks/outbox-service.mock'
 import {
   triggerAvailabilityMock,
@@ -11,6 +13,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   recordUndispatchedDocumentFailure: vi.fn(),
+  documentHandlers: { 'knowledge.document.processing.dispatch': async () => {} },
 }))
 
 vi.mock('@/lib/knowledge/documents/service', () => knowledgeDocumentsServiceMock)
@@ -23,9 +26,15 @@ vi.mock('@/lib/knowledge/documents/processing-claim', () => ({
   recordUndispatchedDocumentFailure: mocks.recordUndispatchedDocumentFailure,
 }))
 
+vi.mock('@/lib/knowledge/documents/processing-outbox-handler', () => ({
+  knowledgeDocumentProcessingOutboxHandlers: mocks.documentHandlers,
+}))
+
 import { dispatchDocumentProcessing } from '@/lib/knowledge/documents/processing-dispatch'
 
 const mockProcessDocumentsWithQueue = knowledgeDocumentsServiceMockFns.mockProcessDocumentsWithQueue
+const mockEnqueueOutboxEvent = outboxServiceMockFns.mockEnqueueOutboxEvent
+const mockProcessOutboxEventById = outboxServiceMockFns.mockProcessOutboxEventById
 
 const BILLING = {
   actorUserId: 'user-1',
@@ -145,9 +154,52 @@ describe('dispatchDocumentProcessing', () => {
     ).resolves.toBeUndefined()
 
     expect(mockProcessDocumentsWithQueue).not.toHaveBeenCalled()
+    expect(mockProcessOutboxEventById).not.toHaveBeenCalled()
     expect(mocks.recordUndispatchedDocumentFailure).toHaveBeenCalledTimes(2)
     expect(mocks.recordUndispatchedDocumentFailure).toHaveBeenCalledWith(
       expect.objectContaining({ documentId: 'document-2', failureMessage: 'database down' })
     )
+  })
+
+  it('starts the queued documents at once, without holding the caller until they are indexed', async () => {
+    mockEnqueueOutboxEvent.mockResolvedValueOnce('event-1').mockResolvedValueOnce('event-2')
+    const indexing = createDeferred<string>()
+    mockProcessOutboxEventById.mockReturnValue(indexing.promise)
+
+    await dispatchDocumentProcessing({
+      documents: DOCUMENTS,
+      knowledgeBaseId: 'knowledge-base-1',
+      processingOptions: {},
+      requestId: 'request-1',
+      billingAttribution: BILLING,
+    })
+
+    await vi.waitFor(() => expect(mockProcessOutboxEventById).toHaveBeenCalledTimes(2))
+    expect(mockProcessOutboxEventById.mock.calls).toEqual([
+      ['event-1', mocks.documentHandlers],
+      ['event-2', mocks.documentHandlers],
+    ])
+    indexing.resolve('completed')
+    mockProcessOutboxEventById.mockReset()
+  })
+
+  it('leaves a document whose early start fails to the outbox instead of failing it', async () => {
+    mockEnqueueOutboxEvent.mockResolvedValueOnce('event-1').mockResolvedValueOnce('event-2')
+    mockProcessOutboxEventById.mockRejectedValue(new Error('connection reset'))
+
+    await dispatchDocumentProcessing({
+      documents: DOCUMENTS,
+      knowledgeBaseId: 'knowledge-base-1',
+      processingOptions: {},
+      requestId: 'request-1',
+      billingAttribution: BILLING,
+    })
+
+    await vi.waitFor(() => expect(mockProcessOutboxEventById).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() =>
+      expect(getMockLogger('DocumentProcessingDispatch').warn).toHaveBeenCalledTimes(2)
+    )
+    expect(mocks.recordUndispatchedDocumentFailure).not.toHaveBeenCalled()
+    mockProcessOutboxEventById.mockReset()
   })
 })

@@ -67,7 +67,7 @@ vi.mock('@/lib/posthog/server', () => posthogServerMock)
 import { REFILTERED_CURSOR_MESSAGE } from '@/lib/api/cursor-binding'
 import { KnowledgeUsageLimitExceededError } from '@/lib/knowledge/application/billing'
 import { MAX_KNOWLEDGE_DOCUMENT_FILE_SIZE } from '@/lib/uploads/shared/types'
-import { validateFileType } from '@/lib/uploads/utils/validation'
+import { validateKnowledgeFileType } from '@/lib/uploads/utils/validation'
 import { GET, POST } from '@/app/api/v2/knowledge/[knowledgeBaseId]/documents/route'
 
 const mockCapture = posthogServerMockFns.mockCaptureServerEvent
@@ -253,7 +253,10 @@ describe('POST /api/v2/knowledge/[knowledgeBaseId]/documents', () => {
     const formData = new FormData()
     formData.set('file', new File(['x'], 'malware.exe', { type: 'application/octet-stream' }))
     mockReadFormData.mockResolvedValueOnce(formData)
-    const expectedMessage = validateFileType('malware.exe', 'application/octet-stream')?.message
+    const expectedMessage = validateKnowledgeFileType(
+      'malware.exe',
+      'application/octet-stream'
+    )?.message
     if (!expectedMessage) throw new Error('Expected unsupported file type validation to fail')
 
     const response = await POST(buildRequest(), createRouteContext({ knowledgeBaseId: 'kb-1' }))
@@ -264,6 +267,26 @@ describe('POST /api/v2/knowledge/[knowledgeBaseId]/documents', () => {
     })
     expect(mockReadFile).not.toHaveBeenCalled()
     expect(mockUploadDocument).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['meeting.wav', 'audio/wav'],
+    ['scan.png', 'image/png'],
+  ])('accepts %s, which a knowledge base reads like the upload dialog does', async (name, type) => {
+    const formData = new FormData()
+    formData.set('file', new File(['RIFF'], name, { type }))
+    mockReadFormData.mockResolvedValueOnce(formData)
+
+    const response = await POST(buildRequest(), createRouteContext({ knowledgeBaseId: 'kb-1' }))
+
+    expect(response.status).toBe(201)
+    expect(mockUploadDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          file: expect.objectContaining({ filename: name, mimeType: type }),
+        }),
+      })
+    )
   })
 
   it('does not emit effects when the upload operation fails', async () => {

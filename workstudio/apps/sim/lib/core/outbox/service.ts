@@ -129,6 +129,16 @@ export type OutboxHandler<T = unknown> = ((
   context: OutboxEventContext
 ) => Promise<undefined | DeferredOutboxHandlerResult> | Promise<void>) & {
   readonly timeoutMs?: number
+  readonly lane?: OutboxHandlerLane
+}
+
+/**
+ * Handlers sharing a lane run beside each other, at most `limit` at once in one process, instead
+ * of one after another. Every other handler keeps the processor's one-at-a-time order.
+ */
+export interface OutboxHandlerLane {
+  readonly name: string
+  readonly limit: number
 }
 
 /** Opts a handler into a bounded execution window that expires before the stale-lease reaper. */
@@ -140,6 +150,83 @@ export function withOutboxHandlerTimeout<T>(
     throw new Error('Outbox handler timeout must be between 1 and 550000 milliseconds')
   }
   return Object.assign(handler, { timeoutMs })
+}
+
+/**
+ * Lets the processor run this handler beside other handlers of its lane, so one long invocation
+ * (a scan read page by page) no longer holds up the events queued behind it. Each event keeps its
+ * own lease, window and retry accounting; only the waiting between events changes.
+ */
+export function withOutboxHandlerLane<T>(
+  handler: OutboxHandler<T>,
+  lane: OutboxHandlerLane
+): OutboxHandler<T> {
+  if (!Number.isInteger(lane.limit) || lane.limit < 1) {
+    throw new Error(`Outbox handler lane ${lane.name} needs a limit of at least 1`)
+  }
+  return Object.assign(handler, { lane })
+}
+
+const OUTBOX_HANDLER_LANES = Symbol.for('sim.outbox.handler-lanes')
+
+interface OutboxHandlerLaneState {
+  occupancy: Map<string, number>
+  releaseListeners: Set<() => void>
+}
+
+interface OutboxHandlerLaneCarrier {
+  [OUTBOX_HANDLER_LANES]?: OutboxHandlerLaneState
+}
+
+/**
+ * Shared by duplicate server bundles in one process, so the processor run and an event started
+ * by id beside a request count against the same limit.
+ */
+function laneState(): OutboxHandlerLaneState {
+  const carrier = globalThis as OutboxHandlerLaneCarrier
+  carrier[OUTBOX_HANDLER_LANES] ??= { occupancy: new Map(), releaseListeners: new Set() }
+  return carrier[OUTBOX_HANDLER_LANES]
+}
+
+function tryEnterLane(lane: OutboxHandlerLane): boolean {
+  const { occupancy } = laneState()
+  const occupied = occupancy.get(lane.name) ?? 0
+  if (occupied >= lane.limit) return false
+  occupancy.set(lane.name, occupied + 1)
+  return true
+}
+
+function leaveLane(lane: OutboxHandlerLane): void {
+  const { occupancy, releaseListeners } = laneState()
+  const occupied = (occupancy.get(lane.name) ?? 1) - 1
+  if (occupied > 0) occupancy.set(lane.name, occupied)
+  else occupancy.delete(lane.name)
+  for (const listener of [...releaseListeners]) listener()
+}
+
+/** How often a run waiting on its lane handlers looks for events that became due meanwhile. */
+const LANE_REDISCOVERY_INTERVAL_MS = 10_000
+
+/** Resolves when one of `tasks` settles, a lane slot frees anywhere in the process, or the poll elapses. */
+async function waitForLaneProgress(tasks: ReadonlySet<Promise<void>>): Promise<void> {
+  const { releaseListeners } = laneState()
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let onRelease: (() => void) | undefined
+  try {
+    await Promise.race([
+      ...tasks,
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, LANE_REDISCOVERY_INTERVAL_MS)
+      }),
+      new Promise<void>((resolve) => {
+        onRelease = resolve
+        releaseListeners.add(resolve)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+    if (onRelease) releaseListeners.delete(onRelease)
+  }
 }
 
 /** Map of `eventType` → handler, served lazily through a {@link LazyOutboxHandlerGroup}. */
@@ -559,6 +646,14 @@ export async function hasInflightOutboxEvent(
  * available events first. Safe to call concurrently from multiple workers —
  * `SELECT FOR UPDATE SKIP LOCKED` serializes claims.
  *
+ * Handlers run one at a time, except handlers sharing a lane
+ * ({@link withOutboxHandlerLane}), which run beside the loop up to their limit.
+ * Every handler, lane or not, is claimed only when its full window still fits
+ * the run, and the run returns only after every lane handler it started has
+ * settled. While only lane handlers remain, the run waits for one of them (or
+ * a freed slot, or a short poll) and looks again for due events, so work that
+ * becomes due meanwhile does not wait for the next run.
+ *
  * Handler groups are imported for the ready event types before any claim, so
  * import time never runs inside a handler's window or a claimed lease.
  */
@@ -576,53 +671,115 @@ export async function processOutboxEvents(
   let retried = 0
   let deadLettered = 0
   let leaseLost = 0
+  const unloadedEventTypes = new Set<string>()
+  const laneTasks = new Set<Promise<void>>()
+  let failure: { error: unknown } | undefined
 
-  try {
-    reaped = await reapStuckProcessingRows()
+  const tally = (result: Awaited<ReturnType<typeof runHandler>>) => {
+    if (result === 'completed') processed++
+    else if (result === 'dead_letter') deadLettered++
+    else if (result === 'lease_lost') leaseLost++
+    else retried++
+  }
+
+  const discover = async () => {
     phase = 'discover'
     const readyTypes = await db.execute<{ eventType: string }>(readyEventTypesQuery(new Date()))
-    const { handlers, eligibleTypes, unloadedEventTypes } = await resolveOutboxHandlers(
+    const resolved = await resolveOutboxHandlers(
       handlerGroups,
       readyTypes.map(({ eventType }) => eventType)
     )
+    for (const eventType of resolved.unloadedEventTypes) unloadedEventTypes.add(eventType)
+    return resolved
+  }
+
+  const startLaneHandler = (
+    event: typeof outboxEvent.$inferSelect,
+    handlers: OutboxHandlerRegistry,
+    lane: OutboxHandlerLane
+  ) => {
+    const task: Promise<void> = runHandler(event, handlers)
+      .then(tally, (error: unknown) => {
+        failure ??= { error }
+      })
+      .finally(() => {
+        leaveLane(lane)
+        laneTasks.delete(task)
+      })
+    laneTasks.add(task)
+  }
+
+  try {
+    reaped = await reapStuckProcessingRows()
+    let { handlers, eligibleTypes } = await discover()
     let cursor = 0
     let claimed = 0
 
-    while (claimed < batchSize && eligibleTypes.length > 0) {
+    while (claimed < batchSize && !failure) {
       if (deadline && Date.now() + minRemainingMs > deadline) break
+      if (eligibleTypes.length === 0) {
+        if (laneTasks.size === 0) break
+        phase = 'await-lane'
+        await waitForLaneProgress(laneTasks)
+        if (failure || (deadline && Date.now() + minRemainingMs > deadline)) break
+        const rediscovered = await discover()
+        handlers = rediscovered.handlers
+        eligibleTypes = rediscovered.eligibleTypes
+        cursor = 0
+        continue
+      }
       if (cursor >= eligibleTypes.length) cursor = 0
 
       const eventType = eligibleTypes[cursor]
-      const handlerTimeout = handlers[eventType]?.timeoutMs ?? DEFAULT_HANDLER_TIMEOUT_MS
+      const handler = handlers[eventType]
+      const handlerTimeout = handler?.timeoutMs ?? DEFAULT_HANDLER_TIMEOUT_MS
       if (deadline && Date.now() + handlerTimeout + 5000 > deadline) {
+        eligibleTypes.splice(cursor, 1)
+        continue
+      }
+      const lane = handler?.lane
+      /** A full lane is looked at again once a slot frees; claiming now would only strand the event. */
+      if (lane && !tryEnterLane(lane)) {
         eligibleTypes.splice(cursor, 1)
         continue
       }
 
       phase = 'claim'
-      const [event] = await claimBatch(1, eventType)
+      let event: typeof outboxEvent.$inferSelect | undefined
+      try {
+        event = (await claimBatch(1, eventType))[0]
+      } catch (error) {
+        if (lane) leaveLane(lane)
+        throw error
+      }
       if (!event) {
+        if (lane) leaveLane(lane)
         eligibleTypes.splice(cursor, 1)
         continue
       }
       claimed++
       if (deadline && Date.now() + handlerTimeout + 5000 > deadline) {
+        if (lane) leaveLane(lane)
         phase = 'release'
         await updateIfLeaseHeld(event, { status: 'pending', lockedAt: null })
         eligibleTypes.splice(cursor, 1)
         continue
       }
       cursor++
+      if (lane) {
+        startLaneHandler(event, handlers, lane)
+        continue
+      }
       phase = 'handle'
-      const result = await runHandler(event, handlers)
-      if (result === 'completed') processed++
-      else if (result === 'dead_letter') deadLettered++
-      else if (result === 'lease_lost') leaseLost++
-      else retried++
+      tally(await runHandler(event, handlers))
     }
-
-    return { processed, retried, deadLettered, leaseLost, reaped, unloadedEventTypes }
   } catch (error) {
+    failure ??= { error }
+  }
+
+  while (laneTasks.size > 0) await Promise.all(laneTasks)
+
+  if (failure) {
     logger.error('Outbox processing failed', {
       phase,
       durationMs: Date.now() - startedAt,
@@ -631,9 +788,17 @@ export async function processOutboxEvents(
       deadLettered,
       leaseLost,
       reaped,
-      error: describeError(error),
+      error: describeError(failure.error),
     })
-    throw error
+    throw failure.error
+  }
+  return {
+    processed,
+    retried,
+    deadLettered,
+    leaseLost,
+    reaped,
+    unloadedEventTypes: [...unloadedEventTypes],
   }
 }
 
@@ -689,7 +854,43 @@ export async function processOutboxEventById(
   handlers: OutboxHandlerRegistry
 ): Promise<ProcessSingleOutboxResult> {
   const now = new Date()
-  const event = await db.transaction(async (tx) => {
+  let enteredLane: OutboxHandlerLane | undefined
+  let event: Awaited<ReturnType<typeof claimEventById>>
+  try {
+    event = await claimEventById(eventId, now, (eventType) => {
+      const lane = handlers[eventType]?.lane
+      if (!lane) return true
+      if (!tryEnterLane(lane)) return false
+      enteredLane = lane
+      return true
+    })
+  } catch (error) {
+    if (enteredLane) leaveLane(enteredLane)
+    throw error
+  }
+
+  if (!event) {
+    const [current] = await db
+      .select({ status: outboxEvent.status })
+      .from(outboxEvent)
+      .where(eq(outboxEvent.id, eventId))
+      .limit(1)
+    return current ? (current.status as ProcessSingleOutboxResult) : 'not_found'
+  }
+  if (typeof event === 'string') return event
+  try {
+    return await runHandler(event, handlers)
+  } finally {
+    if (enteredLane) leaveLane(enteredLane)
+  }
+}
+
+/**
+ * Claims one due pending event. `admit` is asked last, inside the row lock, so an event whose
+ * lane is full in this process stays pending for the processor instead of being claimed.
+ */
+function claimEventById(eventId: string, now: Date, admit: (eventType: string) => boolean) {
+  return db.transaction(async (tx) => {
     const [row] = await tx
       .select()
       .from(outboxEvent)
@@ -700,6 +901,7 @@ export async function processOutboxEventById(
     if (!row) return null
     if (row.status !== 'pending') return row.status as ProcessSingleOutboxResult
     if (row.availableAt > now) return 'pending' as const
+    if (!admit(row.eventType)) return 'pending' as const
 
     await tx
       .update(outboxEvent)
@@ -712,17 +914,6 @@ export async function processOutboxEventById(
       lockedAt: now,
     }
   })
-
-  if (!event) {
-    const [current] = await db
-      .select({ status: outboxEvent.status })
-      .from(outboxEvent)
-      .where(eq(outboxEvent.id, eventId))
-      .limit(1)
-    return current ? (current.status as ProcessSingleOutboxResult) : 'not_found'
-  }
-  if (typeof event === 'string') return event
-  return runHandler(event, handlers)
 }
 
 /**

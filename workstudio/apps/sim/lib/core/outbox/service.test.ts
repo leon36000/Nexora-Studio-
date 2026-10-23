@@ -1,6 +1,7 @@
 import { outboxEvent } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { dbChainMock, dbChainMockFns, queueTableRows, resetDbChainMock } from '@sim/testing'
+import { createDeferred, type Deferred } from '@sim/testing/helpers/deferred'
 import { idMock, idMockFns } from '@sim/testing/mocks/id.mock'
 import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -30,7 +31,9 @@ import {
   type OutboxHandlerRegistry,
   outboxEventHasSourceOperationId,
   outboxPayloadHasSourceOperationId,
+  processOutboxEventById,
   processOutboxEvents,
+  withOutboxHandlerLane,
   withOutboxHandlerTimeout,
 } from '@/lib/core/outbox/service'
 
@@ -670,5 +673,199 @@ describe('processOutboxEvents — lazy handler groups', () => {
     expect(result).toMatchObject({ processed: 0, retried: 0 })
     expect(handler).not.toHaveBeenCalled()
     expect(updateSets().some((set) => set.status === 'processing')).toBe(false)
+  })
+})
+
+describe('processOutboxEvents — concurrent handler lanes', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  /** A lane handler whose every invocation waits until the test settles it by event id. */
+  function blockingLaneHandler(limit: number) {
+    const pending = new Map<string, Deferred<void>>()
+    const running = new Set<string>()
+    let peak = 0
+    const handler = withOutboxHandlerLane(
+      withOutboxHandlerTimeout(async (_payload, context) => {
+        const gate = createDeferred<void>()
+        pending.set(context.eventId, gate)
+        running.add(context.eventId)
+        peak = Math.max(peak, running.size)
+        try {
+          await gate.promise
+        } finally {
+          running.delete(context.eventId)
+        }
+      }, 550_000),
+      { name: 'test-documents', limit }
+    )
+    const settle = (eventId: string) => pending.get(eventId)?.resolve()
+    return { handler, running, settle, peak: () => peak }
+  }
+
+  const completedWrites = () => updateSets().filter((set) => set.status === 'completed').length
+
+  it('completes a second document while the first one is still being read', async () => {
+    const lane = blockingLaneHandler(3)
+    queuePendingEvents([
+      makePendingRow({ id: 'evt-slow', eventType: 'test.document' }),
+      makePendingRow({ id: 'evt-small', eventType: 'test.document' }),
+    ])
+    holdLease()
+
+    const run = processOutboxEvents(asGroups({ 'test.document': lane.handler }))
+    try {
+      await vi.waitFor(() => expect(lane.running).toEqual(new Set(['evt-slow', 'evt-small'])))
+      lane.settle('evt-small')
+      await vi.waitFor(() => expect(completedWrites()).toBe(1))
+      expect(lane.running).toEqual(new Set(['evt-slow']))
+    } finally {
+      lane.settle('evt-slow')
+      lane.settle('evt-small')
+    }
+
+    expect(await run).toMatchObject({ processed: 2, retried: 0, leaseLost: 0 })
+  })
+
+  it('never runs more handlers of one lane at once than its limit', async () => {
+    const lane = blockingLaneHandler(2)
+    queuePendingEvents([
+      makePendingRow({ id: 'evt-1', eventType: 'test.document' }),
+      makePendingRow({ id: 'evt-2', eventType: 'test.document' }),
+      makePendingRow({ id: 'evt-3', eventType: 'test.document' }),
+    ])
+    dbChainMockFns.execute.mockResolvedValueOnce([{ eventType: 'test.document' }])
+    holdLease()
+
+    const run = processOutboxEvents(asGroups({ 'test.document': lane.handler }))
+    try {
+      await vi.waitFor(() => expect(lane.running.size).toBe(2))
+      expect(lane.running.has('evt-3')).toBe(false)
+      expect(updateSets().filter((set) => set.status === 'processing')).toHaveLength(2)
+
+      lane.settle('evt-1')
+      await vi.waitFor(() => expect(lane.running.has('evt-3')).toBe(true))
+    } finally {
+      for (const id of ['evt-1', 'evt-2', 'evt-3']) lane.settle(id)
+    }
+
+    expect(await run).toMatchObject({ processed: 3 })
+    expect(lane.peak()).toBe(2)
+  })
+
+  it('starts a document that becomes due while another one is still being read', async () => {
+    const lane = blockingLaneHandler(3)
+    const slow = makePendingRow({ id: 'evt-slow', eventType: 'test.document' })
+    const late = makePendingRow({ id: 'evt-late', eventType: 'test.document' })
+    dbChainMockFns.execute
+      .mockResolvedValueOnce([{ eventType: 'test.document' }])
+      .mockResolvedValueOnce([{ eventType: 'test.document' }])
+    queueTableRows(outboxEvent, [slow])
+    queueTableRows(outboxEvent, [])
+    queueTableRows(outboxEvent, [late])
+    holdLease()
+
+    const run = processOutboxEvents(asGroups({ 'test.document': lane.handler }))
+    try {
+      await vi.waitFor(() => expect(lane.running).toEqual(new Set(['evt-slow'])))
+      await vi.advanceTimersByTimeAsync(30_000)
+      await vi.waitFor(() => expect(lane.running.has('evt-late')).toBe(true))
+      lane.settle('evt-late')
+      await vi.waitFor(() => expect(completedWrites()).toBe(1))
+      expect(lane.running).toEqual(new Set(['evt-slow']))
+    } finally {
+      lane.settle('evt-slow')
+      lane.settle('evt-late')
+    }
+
+    expect(await run).toMatchObject({ processed: 2 })
+  })
+
+  it('keeps the timed-out lease of a lane handler for the reaper while its neighbour completes', async () => {
+    const neverResolves = withOutboxHandlerLane(
+      withOutboxHandlerTimeout(async (_payload, context) => {
+        if (context.eventId === 'evt-stuck') await new Promise<void>(() => {})
+      }, 60_000),
+      { name: 'test-documents', limit: 3 }
+    )
+    queuePendingEvents([
+      makePendingRow({ id: 'evt-stuck', eventType: 'test.document' }),
+      makePendingRow({ id: 'evt-ok', eventType: 'test.document' }),
+    ])
+    holdLease()
+
+    const run = processOutboxEvents(asGroups({ 'test.document': neverResolves }))
+    await vi.waitFor(() => expect(completedWrites()).toBe(1))
+    await vi.advanceTimersByTimeAsync(60_001)
+
+    expect(await run).toMatchObject({ processed: 1, leaseLost: 1, retried: 0 })
+    const timeoutUpdate = updateSets().find(
+      (set) => !('status' in set) && 'attempts' in set && 'lockedAt' in set
+    )
+    expect(timeoutUpdate).toMatchObject({
+      attempts: 1,
+      lastError: expect.stringMatching(/timed out/),
+    })
+  })
+
+  it('does not claim a lane handler whose full window no longer fits the run', async () => {
+    const lane = blockingLaneHandler(3)
+    queuePendingEvents([makePendingRow({ id: 'evt-1', eventType: 'test.document' })])
+    holdLease()
+
+    expect(
+      await processOutboxEvents(asGroups({ 'test.document': lane.handler }), {
+        maxRuntimeMs: 110_000,
+      })
+    ).toMatchObject({ processed: 0, retried: 0 })
+    expect(lane.running.size).toBe(0)
+    expect(updateSets().some((set) => set.status === 'processing')).toBe(false)
+  })
+
+  it('leaves an event pending for the processor when its lane is full in this process', async () => {
+    const lane = blockingLaneHandler(1)
+    queuePendingEvents([makePendingRow({ id: 'evt-running', eventType: 'test.document' })])
+    holdLease()
+    const handlers = { 'test.document': lane.handler }
+    const run = processOutboxEvents(asGroups(handlers))
+    try {
+      await vi.waitFor(() => expect(lane.running).toEqual(new Set(['evt-running'])))
+
+      queueTableRows(outboxEvent, [
+        makePendingRow({ id: 'evt-uploaded', eventType: 'test.document' }),
+      ])
+      expect(await processOutboxEventById('evt-uploaded', handlers)).toBe('pending')
+      expect(lane.running).toEqual(new Set(['evt-running']))
+      expect(updateSets().filter((set) => set.status === 'processing')).toHaveLength(1)
+    } finally {
+      lane.settle('evt-running')
+    }
+    expect(await run).toMatchObject({ processed: 1 })
+  })
+
+  it('runs an event started by id when its lane has room', async () => {
+    const lane = blockingLaneHandler(1)
+    queueTableRows(outboxEvent, [
+      makePendingRow({ id: 'evt-uploaded', eventType: 'test.document' }),
+    ])
+    dbChainMockFns.returning.mockResolvedValue([{ id: 'evt-uploaded' }])
+
+    const started = processOutboxEventById('evt-uploaded', { 'test.document': lane.handler })
+    await vi.waitFor(() => expect(lane.running).toEqual(new Set(['evt-uploaded'])))
+    lane.settle('evt-uploaded')
+
+    expect(await started).toBe('completed')
+  })
+
+  it('rejects a lane without room for a single handler', () => {
+    expect(() =>
+      withOutboxHandlerLane(async () => {}, { name: 'test-documents', limit: 0 })
+    ).toThrow(/limit/)
   })
 })

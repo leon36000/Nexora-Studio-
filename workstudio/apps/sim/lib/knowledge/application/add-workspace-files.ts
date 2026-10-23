@@ -45,7 +45,7 @@ import {
   EMPTY_KNOWLEDGE_DOCUMENT_MESSAGE,
   MAX_KNOWLEDGE_DOCUMENT_FILE_SIZE,
 } from '@/lib/uploads/shared/types'
-import { validateFileType } from '@/lib/uploads/utils/validation'
+import { validateKnowledgeFileType } from '@/lib/uploads/utils/validation'
 
 const SOURCE_READ_TIMEOUT_MS = 120_000
 
@@ -110,7 +110,7 @@ async function prepareWorkspaceFile(
   if (file.size === 0) {
     throw new OrchestrationError('validation', EMPTY_KNOWLEDGE_DOCUMENT_MESSAGE)
   }
-  const fileTypeError = validateFileType(file.name, file.type)
+  const fileTypeError = validateKnowledgeFileType(file.name, file.type)
   if (fileTypeError) throw new OrchestrationError('validation', fileTypeError.message)
 
   const provenance = await readImportProvenance(context.workspaceId, {

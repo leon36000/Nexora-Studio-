@@ -29,6 +29,7 @@ function deferOutboxHandler(
  *   (`continue` = defer without consuming an attempt).
  * - `mockWithOutboxHandlerTimeout` validates the 1..550000 ms window and stamps `timeoutMs` on the
  *   handler, like the real wrapper.
+ * - `mockWithOutboxHandlerLane` validates the lane limit and stamps `lane` on the handler.
  * - `mockOutboxPayloadHasSourceOperationId` matches `sourceOperationId` or `sourceOperationIds`.
  *
  * `mockOutboxEventHasSourceOperationId` builds a SQL fragment in production; it stays bare
@@ -53,6 +54,14 @@ export const outboxServiceMockFns = {
     }
     return Object.assign(handler, { timeoutMs })
   }),
+  mockWithOutboxHandlerLane: vi.fn(
+    <T extends object>(handler: T, lane: { name: string; limit: number }) => {
+      if (!Number.isInteger(lane.limit) || lane.limit < 1) {
+        throw new Error(`Outbox handler lane ${lane.name} needs a limit of at least 1`)
+      }
+      return Object.assign(handler, { lane })
+    }
+  ),
   mockEnqueueOutboxEvent: vi.fn(),
   mockEnqueueOutboxEvents: vi.fn(),
   mockEnqueueOrReschedulePendingOutboxEvent: vi.fn(),
@@ -92,6 +101,7 @@ export const outboxServiceMock = {
   deferOutboxHandler: outboxServiceMockFns.mockDeferOutboxHandler,
   continueOutboxHandler: outboxServiceMockFns.mockContinueOutboxHandler,
   withOutboxHandlerTimeout: outboxServiceMockFns.mockWithOutboxHandlerTimeout,
+  withOutboxHandlerLane: outboxServiceMockFns.mockWithOutboxHandlerLane,
   enqueueOutboxEvent: outboxServiceMockFns.mockEnqueueOutboxEvent,
   enqueueOutboxEvents: outboxServiceMockFns.mockEnqueueOutboxEvents,
   enqueueOrReschedulePendingOutboxEvent:

@@ -262,7 +262,7 @@ export function validateAttachmentFileType(
 /**
  * Validate if a file type is supported for document processing
  */
-export function validateFileType(fileName: string, mimeType: string): FileValidationError | null {
+function validateFileType(fileName: string, mimeType: string): FileValidationError | null {
   const raw = extractExtension(fileName)
   const extension = (isAlphanumericExtension(raw) ? raw : '') as SupportedDocumentExtension
 
@@ -322,17 +322,33 @@ export function isKnowledgeMediaFile(fileName: string): boolean {
   return Object.hasOwn(KNOWLEDGE_MEDIA_MIME_TYPES, extractExtension(fileName))
 }
 
+/** Every extension a knowledge base accepts: documents, then images and recordings. */
+const KNOWLEDGE_EXTENSIONS: readonly string[] = [
+  ...SUPPORTED_DOCUMENT_EXTENSIONS,
+  ...Object.keys(KNOWLEDGE_MEDIA_MIME_TYPES),
+]
+
 /**
  * {@link validateFileType} for a knowledge-base document, which may also be an image or a
  * recording. A media file's declared type must match its extension (an empty or generic binary
- * type is accepted, as browsers often send one).
+ * type is accepted, as browsers often send one). Every upload surface of a knowledge base (the
+ * dialogs, the internal routes and the public v1/v2 APIs) checks files through this one function.
  */
 export function validateKnowledgeFileType(
   fileName: string,
   mimeType: string
 ): FileValidationError | null {
   const extension = extractExtension(fileName)
-  if (!isKnowledgeMediaFile(fileName)) return validateFileType(fileName, mimeType)
+  if (!isKnowledgeMediaFile(fileName)) {
+    const refusal = validateFileType(fileName, mimeType)
+    if (refusal?.code !== 'UNSUPPORTED_FILE_TYPE') return refusal
+    const named = isAlphanumericExtension(extension) ? extension : ''
+    return {
+      code: 'UNSUPPORTED_FILE_TYPE',
+      message: `Unsupported file type${named ? `: ${named}` : ` for "${fileName}"`}. Supported types are: ${KNOWLEDGE_EXTENSIONS.join(', ')}`,
+      supportedTypes: [...KNOWLEDGE_EXTENSIONS],
+    }
+  }
   const allowed = KNOWLEDGE_MEDIA_MIME_TYPES[extension]
   const baseMimeType = mimeType.split(';')[0].trim().toLowerCase()
   if (!baseMimeType || baseMimeType === 'application/octet-stream') return null
