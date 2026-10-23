@@ -39,9 +39,9 @@
 - `readAgentWorkflow(state: unknown): AgentConfig | null` — `null` dès que les blocs/arêtes ne sont pas exactement cette forme.
 - `diffAgentConfigs(a: AgentConfig, b: AgentConfig): { field: keyof AgentConfig; before: string; after: string }[]`.
 
-- [ ] **Step 1: Failing tests** : aller-retour `readAgentWorkflow(buildAgentWorkflow(c))` égal à `c` (avec et sans mémoire, outils, connaissances) ; bloc ajouté ou arête retirée ⇒ `null` ; état illisible ⇒ `null` ; diff ne liste que les champs changés ; l'état produit passe `parseWorkflowJson` (comme les modèles PME).
-- [ ] **Step 2: Run** `LANG=en_US.UTF-8 bun run --cwd apps/sim test lib/nexora/agents.test.ts` — Expected: FAIL puis PASS après implémentation.
-- [ ] **Step 3: Commit** `feat(j4): agent = workflow de forme fixe, aller-retour formulaire`.
+- [x] **Step 1: Failing tests** : aller-retour `readAgentWorkflow(buildAgentWorkflow(c))` égal à `c` (avec et sans mémoire, outils, connaissances) ; bloc ajouté ou arête retirée ⇒ `null` ; état illisible ⇒ `null` ; diff ne liste que les champs changés ; l'état produit passe `parseWorkflowJson` (comme les modèles PME).
+- [x] **Step 2: Run** `LANG=en_US.UTF-8 bun run --cwd apps/sim test lib/nexora/agents.test.ts` — Expected: FAIL puis PASS après implémentation.
+- [x] **Step 3: Commit** `feat(j4): agent = workflow de forme fixe, aller-retour formulaire`.
 
 ### Task 2: Route Playground
 

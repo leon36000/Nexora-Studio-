@@ -59,3 +59,12 @@ Spec : `docs/superpowers/specs/2026-10-23-nexora-v2-design.md`. Plans : `docs/su
   - Ruling : `authorizeInstanceAdmin` renvoie aussi `organizationId` (l'organisation dont la progression est lue/écrite) — coût si faux : aucun.
   - Ruling : la progression est fusionnée sous verrou de ligne (`SELECT … FOR UPDATE` en transaction) pour que deux admins simultanés ne s'écrasent pas — coût si faux : aucun.
 - J3 Task 1 (arrivée) : `/workspace/[id]` → `/home` ; `/home` rend `NexoraHome` quand le chat est désactivé (titre de page traduit), le layout ne redirige plus ; barre latérale : entrée « Accueil » (masquée si le chat d'origine est actif). Tests `layout.test.tsx` + sidebar + `lib/i18n` 27/27, `check-i18n` OK, aucune erreur de type hors écran Modèles en cours. Vérification réelle au navigateur avec Task 5.
+
+## J4 « Playground et Agents »
+
+- Conception §8quinquies et plan `2026-10-23-nexora-v2-j4-playground-agents.md`.
+- Task 1 (formulaire ↔ workflow) : `agents.test.ts` rouge (module absent) puis 4/4 (aller-retour avec/sans mémoire, outils, connaissances ; état accepté par `parseWorkflowJson` ; forme modifiée ⇒ `null` ; diff champ par champ) ; `lib/nexora` 102/102.
+  - Ruling : l'agent est Chat → Agent, **sans bloc Réponse** — le chat déployé publie la sortie `agent.content` ; un bloc Réponse n'apporterait rien et rendrait la forme plus fragile — coût si faux : ajouter un bloc à la forme.
+  - Ruling : l'entrée « recherche dans les connaissances » est stockée comme le sélecteur d'outils la crée (`type: knowledge`, `toolId: knowledge_search`, `params.knowledgeBaseSelector`) ; à confirmer par une exécution réelle sur pc6 (Task 4) — coût si faux : une clé de paramètre à changer.
+  - Ruling : nom, description et message d'accueil sont portés par `state.metadata` à l'import ; ensuite la page les lit sur le workflow et le chat déployé — coût si faux : aucun.
+- Correctif d'audit : `onboarding.ts` utilise `toRecord` (relevé `check:utils`).

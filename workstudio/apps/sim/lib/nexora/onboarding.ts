@@ -1,6 +1,6 @@
 import { db } from '@sim/db'
 import { organization } from '@sim/db/schema'
-import { isRecordLike } from '@sim/utils/object'
+import { isRecordLike, toRecord } from '@sim/utils/object'
 import { eq } from 'drizzle-orm'
 import { ONBOARDING_STEPS, type OnboardingStep } from '@/lib/nexora/onboarding-steps'
 
@@ -45,7 +45,7 @@ export function mergeOnboarding(
   const dismissed =
     change.complete === 'first-run' ? true : (change.dismissed ?? progress.dismissed)
   return {
-    ...(isRecordLike(metadata) ? metadata : {}),
+    ...toRecord(metadata),
     [METADATA_KEY]: { completed, dismissed },
   }
 }
