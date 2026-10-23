@@ -13,6 +13,7 @@ import {
   billingPlanHelpersMockFns,
 } from '@sim/testing/mocks/billing-plan-helpers.mock'
 import { billingSubscriptionUtilsMock } from '@sim/testing/mocks/billing-subscription-utils.mock'
+import { instanceOrgMock, instanceOrgMockFns } from '@sim/testing/mocks/instance-org.mock'
 import { NextRequest } from 'next/server'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -21,10 +22,8 @@ const {
   mockCreateOrganizationForTeamPlan,
   mockEnsureOrganizationForTeamSubscription,
   mockAttachOwnedWorkspacesToOrganization,
-  mockGetInstanceOrganizationConfig,
   WorkspaceOrganizationMembershipConflictError,
 } = vi.hoisted(() => ({
-  mockGetInstanceOrganizationConfig: vi.fn().mockReturnValue(null),
   mockSetActiveOrganizationForCurrentSession: vi.fn().mockResolvedValue(undefined),
   mockCreateOrganizationForTeamPlan: vi.fn(),
   mockEnsureOrganizationForTeamSubscription: vi.fn(),
@@ -53,9 +52,7 @@ vi.mock('@/lib/billing/plan-helpers', () => billingPlanHelpersMock)
 
 vi.mock('@/lib/billing/subscriptions/utils', () => billingSubscriptionUtilsMock)
 
-vi.mock('@/lib/organizations/instance-org', () => ({
-  getInstanceOrganizationConfig: mockGetInstanceOrganizationConfig,
-}))
+vi.mock('@/lib/organizations/instance-org', () => instanceOrgMock)
 
 vi.mock('@/lib/workspaces/organization-workspaces', () => ({
   attachOwnedWorkspacesToOrganization: mockAttachOwnedWorkspacesToOrganization,
@@ -63,6 +60,8 @@ vi.mock('@/lib/workspaces/organization-workspaces', () => ({
 }))
 
 import { POST } from '@/app/api/organizations/route'
+
+const mockGetInstanceOrganizationConfig = instanceOrgMockFns.mockGetInstanceOrganizationConfig
 
 billingPlanHelpersMockFns.mockIsOrgPlan.mockImplementation(
   (plan) => plan === 'team' || plan?.startsWith('team_') === true || plan === 'enterprise'

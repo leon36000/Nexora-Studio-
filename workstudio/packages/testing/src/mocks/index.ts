@@ -383,6 +383,7 @@ export {
   inputValidationMock,
   inputValidationMockFns,
 } from './input-validation.mock'
+export { instanceOrgMock, instanceOrgMockFns } from './instance-org.mock'
 export { integrationMatcherMock } from './integration-matcher.mock'
 export {
   integrationsAvailabilityMock,

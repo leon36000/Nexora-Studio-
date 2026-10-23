@@ -16,7 +16,7 @@ interface RouteContext {
 
 /** Removes a model; its file in the bundled Ollama goes too when no other model uses it. */
 export const DELETE = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
-  const access = await authorizeInstanceAdmin()
+  const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   const parsed = await parseRequest(removeNexoraModelContract, request, context)
   if (!parsed.success) return parsed.response

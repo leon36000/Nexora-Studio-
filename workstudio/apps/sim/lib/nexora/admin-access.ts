@@ -6,9 +6,15 @@ import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
 /**
  * Nexora edition: instance-wide settings (model consumption, the models themselves) belong to
  * organization owners and admins — of the instance organization when the instance has one, since
- * every user belongs to it and nobody can found another.
+ * every user belongs to it and nobody can found another. Changes that affect every user
+ * (`requireInstanceOrganization`, e.g. the models) need that instance organization: without
+ * one, any user could found an organization and become its owner.
  */
-export async function authorizeInstanceAdmin(): Promise<
+export async function authorizeInstanceAdmin({
+  requireInstanceOrganization = false,
+}: {
+  requireInstanceOrganization?: boolean
+} = {}): Promise<
   { ok: true; userId: string; organizationId: string } | { ok: false; status: 401 | 403 }
 > {
   const session = await getSession()
@@ -20,6 +26,7 @@ export async function authorizeInstanceAdmin(): Promise<
   if (
     !membership ||
     !isOrgAdminRole(membership.role) ||
+    (requireInstanceOrganization && !instanceOrganizationId) ||
     (instanceOrganizationId && membership.organizationId !== instanceOrganizationId)
   ) {
     return { ok: false, status: 403 }

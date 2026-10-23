@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
  * (`data: {...}` events). Closing the page stops the download.
  */
 export const POST = withRouteHandler(async (request: NextRequest) => {
-  const access = await authorizeInstanceAdmin()
+  const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   const parsed = await parseRequest(pullOllamaModelContract, request, {})
   if (!parsed.success) return parsed.response

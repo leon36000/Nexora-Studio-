@@ -92,6 +92,10 @@ describe('Nexora models routes', () => {
       await PULL(post('/api/nexora/models/ollama/pull', { model: 'qwen2.5:3b' }), {}),
     ]
     expect(responses.map((r) => r.status)).toEqual([403, 403, 403, 403, 403, 403])
+    // Models serve every user: they require the instance organization's admins, never a self-founded org.
+    for (const call of admin.authorize.mock.calls) {
+      expect(call[0]).toEqual({ requireInstanceOrganization: true })
+    }
     for (const fn of [
       admin.list,
       admin.add,

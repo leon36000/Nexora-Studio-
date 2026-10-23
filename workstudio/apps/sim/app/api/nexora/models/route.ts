@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
  * user of the instance, so only instance admins may change them.
  */
 export const GET = withRouteHandler(async (_request: NextRequest) => {
-  const access = await authorizeInstanceAdmin()
+  const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   try {
     const [models, localModels] = await Promise.all([
@@ -43,7 +43,7 @@ export const GET = withRouteHandler(async (_request: NextRequest) => {
 })
 
 export const POST = withRouteHandler(async (request: NextRequest) => {
-  const access = await authorizeInstanceAdmin()
+  const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   const parsed = await parseRequest(addNexoraModelContract, request, {})
   if (!parsed.success) return parsed.response

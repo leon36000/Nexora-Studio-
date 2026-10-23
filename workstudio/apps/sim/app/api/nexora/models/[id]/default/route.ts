@@ -15,7 +15,7 @@ interface RouteContext {
 
 /** Makes a model the default (`nexora-default`) for every block and template that follows it. */
 export const POST = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
-  const access = await authorizeInstanceAdmin()
+  const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   const parsed = await parseRequest(setDefaultNexoraModelContract, request, context)
   if (!parsed.success) return parsed.response

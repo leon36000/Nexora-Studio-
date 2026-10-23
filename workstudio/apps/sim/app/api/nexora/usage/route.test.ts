@@ -1,4 +1,5 @@
 import { authMockFns, createSession } from '@sim/testing'
+import { instanceOrgMock, instanceOrgMockFns } from '@sim/testing/mocks/instance-org.mock'
 import {
   organizationMembershipMock,
   organizationMembershipMockFns,
@@ -6,18 +7,16 @@ import {
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockFetchNexoraApiUsage, mockGetInstanceOrganizationId } = vi.hoisted(() => ({
-  mockGetInstanceOrganizationId: vi.fn(),
+const { mockFetchNexoraApiUsage } = vi.hoisted(() => ({
   mockFetchNexoraApiUsage: vi.fn(),
 }))
 
 const { mockGetUserOrganization } = organizationMembershipMockFns
+const { mockGetInstanceOrganizationId } = instanceOrgMockFns
 
 vi.mock('@/lib/billing/organizations/membership', () => organizationMembershipMock)
 
-vi.mock('@/lib/organizations/instance-org', () => ({
-  getInstanceOrganizationId: mockGetInstanceOrganizationId,
-}))
+vi.mock('@/lib/organizations/instance-org', () => instanceOrgMock)
 
 vi.mock('@/lib/nexora/usage', () => ({
   fetchNexoraApiUsage: mockFetchNexoraApiUsage,

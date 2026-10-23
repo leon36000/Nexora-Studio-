@@ -12,7 +12,7 @@ interface RouteContext {
 
 /** Asks a model one short question, by the name blocks use, and times the answer. */
 export const POST = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
-  const access = await authorizeInstanceAdmin()
+  const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   const parsed = await parseRequest(testNexoraModelContract, request, context)
   if (!parsed.success) return parsed.response
