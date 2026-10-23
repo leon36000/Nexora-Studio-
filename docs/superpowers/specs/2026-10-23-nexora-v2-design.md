@@ -252,6 +252,17 @@ Précise la section 7 ; ces décisions priment.
 
 **Terminé quand** : sur pc6, l'écran montre les ventilations et le CO2 cohérents avec Nexora API ; un budget d'espace bas déclenche l'alerte puis le refus d'une exécution, levé en relevant le plafond ; tests (calcul des agrégats, seuils, refus, droits) et contrôle de fumée « Budgets ».
 
+## 8decies. J9 — conception détaillée (23/10/2026, architecte)
+
+**But** : gouverner l'instance depuis l'interface, sans éditer `deploy/.env`.
+
+- **Groupes d'accès** (Réglages › Contrôle d'accès, admins d'instance) : interface propre à Nexora (clean-room) sur le moteur et l'API existants des groupes de permissions (`/api/organizations/[id]/permission-groups`, capacités déjà appliquées côté serveur) : créer un groupe, choisir ses membres, cocher ce qu'il peut faire (blocs et intégrations autorisés, outils MCP, déploiement public des chats, secrets, etc.) avec des libellés français ; modèles de groupes prêts à l'emploi (« Lecture seule », « Créateurs », « Administrateurs »).
+- **Connexion unique (SSO)** (Réglages › Sécurité) : émetteur OpenID Connect, identifiant et secret client (chiffré en base), nom du bouton, connexion obligatoire ou non, domaines autorisés à l'inscription ; « Tester la configuration » (découverte OIDC) ; « Appliquer » enregistre puis redémarre proprement WorkStudio (le conteneur repart seul, ~20 s, message d'attente) car la configuration d'authentification est lue au démarrage. Les variables `NEXORA_OIDC_*` du `.env` restent prioritaires si elles sont définies (indiqué à l'écran).
+- **E-mail** (Réglages › E-mail) : serveur SMTP (hôte, port, utilisateur, mot de passe chiffré, expéditeur), « Envoyer un e-mail de test » ; lu à chaud par le service d'envoi (pas de redémarrage), le `.env` restant prioritaire.
+- **Domaines autorisés** (8bis.5) : liste de domaines dont les adresses peuvent s'inscrire seules ; les autres doivent être invitées.
+
+**Terminé quand** : sur pc6, un groupe « Lecture seule » empêche un membre de modifier un workflow (refus côté serveur) ; un SMTP de test (conteneur local de capture d'e-mails lancé pour l'occasion) reçoit l'e-mail de test et une invitation ; une configuration OIDC vers un fournisseur de test (Keycloak local déjà prévu dans `scripts/dev`) permet de se connecter après « Appliquer » ; tests (chiffrement, priorité du `.env`, droits) et contrôles de fumée « Gouvernance ».
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
