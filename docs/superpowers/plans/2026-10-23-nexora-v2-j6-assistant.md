@@ -43,9 +43,9 @@
 
 **Files:** `workstudio/apps/sim/lib/nexora/assistant/{operations.ts,conversations.ts,run.ts}` (+ tests), contrat `lib/api/contracts/nexora-assistant.ts`, routes `app/api/nexora/assistant/conversations/route.ts` (GET, POST), `[id]/route.ts` (PATCH, DELETE), `[id]/messages/route.ts` (GET, POST flux).
 
-- [ ] **Step 1: Failing tests** : auteur seulement (autre membre ⇒ 404) ; espace sans accès ⇒ 403 ; liste des agents = workflows du dossier « Agents » avec chat déployé (identifiant, message d'accueil) ; ajout de messages (question, réponse avec usage, réponse interrompue) ; titre dérivé du premier message (≤ 60 caractères) ; conversation d'un agent supprimé ⇒ lisible, envoi refusé (`agent-unpublished`).
-- [ ] **Step 2:** Implémenter (compétence `migrate-application-operation` pour la forme des opérations) ; `check:api-validation:strict`.
-- [ ] **Step 3: Commit** `feat(j6): conversations et envoi de messages de l'Assistant`.
+- [x] **Step 1: Failing tests** : auteur seulement (autre membre ⇒ 404) ; espace sans accès ⇒ 403 ; liste des agents = workflows du dossier « Agents » avec chat déployé (identifiant, message d'accueil) ; ajout de messages (question, réponse avec usage, réponse interrompue) ; titre dérivé du premier message (≤ 60 caractères) ; conversation d'un agent supprimé ⇒ lisible, envoi refusé (`agent-unpublished`).
+- [x] **Step 2:** Implémenter (compétence `migrate-application-operation` pour la forme des opérations) ; `check:api-validation:strict`.
+- [x] **Step 3: Commit** `feat(j6): conversations et envoi de messages de l'Assistant`.
 
 ### Task 3: Assistant général
 

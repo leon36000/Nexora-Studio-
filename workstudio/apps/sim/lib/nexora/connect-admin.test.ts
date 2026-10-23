@@ -304,15 +304,19 @@ describe('Nexora Connect administration', () => {
   it('never puts a secret in an error message', async () => {
     const { state, options } = setup()
     state.rejectKeys.add('xkeysib-secret')
-    const error = await connectWithCredentials(
+    const message = await connectWithCredentials(
       WS,
       'brevo',
       'api_key',
       { apiKey: 'xkeysib-secret' },
       options
-    ).catch((e: Error) => e)
-    expect(String(error?.message)).not.toContain('xkeysib-secret')
-    expect(String(error?.message)).not.toContain(ADMIN)
+    ).then(
+      () => '',
+      (e: Error) => e.message
+    )
+    expect(message).toContain('credential_invalid')
+    expect(message).not.toContain('xkeysib-secret')
+    expect(message).not.toContain(ADMIN)
   })
 })
 

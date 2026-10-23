@@ -323,6 +323,60 @@ def main() -> int:
         require(status == 200 and body["onboarding"] == before, f"admin progress update returned HTTP {status}: {body}")
         return f"modèle par défaut {default_model}, premier lancement : {len(before['completed'])}/5 étapes"
 
+    def playground():
+        status, text = s.call("POST", "/api/nexora/playground", {
+            "workspaceId": state["ws"], "model": "vllm/nexora-default",
+            "messages": [{"role": "user", "content": "Dis bonjour en une phrase."}],
+            "temperature": 0.2, "maxTokens": 60}, raw=True, timeout=300)
+        require(status == 200, f"playground returned HTTP {status}: {text[:200]}")
+        events = [json.loads(line[5:]) for line in text.splitlines() if line.startswith("data:")]
+        answer = "".join(e.get("chunk", "") for e in events)
+        done = [e for e in events if e.get("done")]
+        require(answer.strip() and done and not done[-1].get("error"), f"no streamed answer: {text[:200]}")
+        usage = done[-1].get("usage") or {}
+        return f"« {answer.strip()[:50]} » ({usage.get('completionTokens', '?')} jetons)"
+
+    def agent():
+        status, body = s.call("POST", "/api/workflows", {"name": "Agent de fumée", "workspaceId": state["ws"]})
+        require(status in (200, 201), f"workflow creation returned HTTP {status}")
+        wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        start, agent_id = secrets.token_hex(8), secrets.token_hex(8)
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        def agent_state(instructions):
+            return {"blocks": {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                agent_id: {"id": agent_id, "type": "agent", "name": "Agent", "position": {"x": 420, "y": 0}, "enabled": True,
+                           "subBlocks": {"messages": sub("messages", "messages-input", [{"role": "system", "content": instructions}, {"role": "user", "content": "<start.input>"}]),
+                                         "model": sub("model", "combobox", "vllm/nexora-default"),
+                                         "memoryType": sub("memoryType", "dropdown", "conversation"),
+                                         "conversationId": sub("conversationId", "short-input", "<start.conversationId>")},
+                           "outputs": {}}},
+                "edges": [{"id": secrets.token_hex(8), "source": start, "target": agent_id, "sourceHandle": "source", "targetHandle": "target"}],
+                "loops": {}, "parallels": {}}
+        identifier = f"agent-fumee-{secrets.token_hex(4)}"
+        try:
+            status, body = s.call("PUT", f"/api/workflows/{wf}/state", agent_state("Tu es l'agent d'accueil d'une PME. Réponds en français, en une phrase."))
+            require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
+            require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", "/api/chat", {
+                "workflowId": wf, "identifier": identifier, "title": "Agent de fumée", "authType": "public",
+                "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
+                "outputConfigs": [{"blockId": agent_id, "path": "content"}]})
+            require(status in (200, 201), f"chat publication returned HTTP {status}: {str(body)[:200]}")
+            status, text = s.call("POST", f"/api/chat/{identifier}", {"input": "Bonjour, qui es-tu ?", "conversationId": secrets.token_hex(8)}, raw=True, timeout=300)
+            require(status == 200 and len(text.strip()) > 20, f"published chat returned HTTP {status}: {text[:200]}")
+            status, _ = s.call("PUT", f"/api/workflows/{wf}/state", agent_state("Tu es l'agent d'accueil. Réponds en anglais."))
+            status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
+            require(status == 200, f"second deploy returned HTTP {status}")
+            _, body = s.call("GET", f"/api/workflows/{wf}/deployments")
+            versions = body.get("versions") or body.get("data") or []
+            require(len(versions) >= 2, f"expected two versions, got {str(body)[:200]}")
+            return f"publié ({identifier}), chat public répond, {len(versions)} versions"
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+
     s.check("Inscription d'un compte", signup)
     s.check("Interface en français, sans marque tierce", french_ui)
     s.check("Nouvel espace avec les modèles PME", workspace_with_templates)
@@ -332,6 +386,8 @@ def main() -> int:
     s.check("Planification (cron)", schedule)
     s.check("Générer avec l'IA (modèle Nexora)", wand)
     s.check("Chat public en français", public_chat)
+    s.check("Playground (réponse en flux)", playground)
+    s.check("Agent : publication, chat public, versions", agent)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:
