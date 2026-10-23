@@ -298,7 +298,7 @@ async function getActionGuide(
     return errorPayload("internal_error", "Runtime policy is unavailable.");
   }
   try {
-    const connection = await getSelectedConnectionSummary(options, action.service, connectionName);
+    const connection = await getSelectedConnectionSummary(options, action.service, connectionName, policy);
     const connectionDecision = evaluateConnectionGrant(policy, connection);
     if (!connectionDecision.allowed) {
       return errorPayload(connectionDecision.code, connectionDecision.message);
@@ -439,8 +439,13 @@ async function getSelectedConnectionSummary(
   options: IMcpServerOptions,
   service: string,
   connectionName: string | undefined,
+  policy?: ActionPolicySnapshot,
 ): Promise<ConnectionSummary | undefined> {
-  const connection = await options.connections.getConnectionSummary(service, connectionName);
+  const implicitId =
+    connectionName || !policy
+      ? undefined
+      : policy.implicitConnectionId(await options.connections.listConnectionsByService(service));
+  const connection = await options.connections.getConnectionSummary(service, connectionName, implicitId);
   if (connectionName && connection?.virtual && !connection.default) {
     throw new ConnectionError("connection_not_found", `${service} connection not found: ${connection.connectionName}.`);
   }

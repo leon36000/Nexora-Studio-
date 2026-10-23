@@ -32,9 +32,9 @@
 
 **Files:** `services/nexora-connect/src/server/actions/action-runner.ts`, `src/mcp.ts` (+ tests à côté des existants)
 
-- [ ] **Step 1: Failing tests** : jeton limité à `ws-1` (brevo) : `execute_action` sans `connectionName` utilise `ws-1` ; avec deux connexions brevo autorisées et sans nom ⇒ `connection_not_allowed` (inchangé) ; jeton sans limite ⇒ comportement d'origine (connexion `default`) ; `get_action_guide` suit la même règle.
-- [ ] **Step 2:** Implémenter la règle (résolution avant la vérification de politique). Run `npx vitest run` — Expected: PASS.
-- [ ] **Step 3: Commit** `feat(j5): Nexora Connect — connexion implicite pour un jeton limité`.
+- [x] **Step 1: Failing tests** : jeton limité à `ws-1` (brevo) : `execute_action` sans `connectionName` utilise `ws-1` ; avec deux connexions brevo autorisées et sans nom ⇒ `connection_not_allowed` (inchangé) ; jeton sans limite ⇒ comportement d'origine (connexion `default`) ; `get_action_guide` suit la même règle.
+- [x] **Step 2:** Implémenter la règle (résolution avant la vérification de politique). Run `npx vitest run` — Expected: PASS.
+- [x] **Step 3: Commit** `feat(j5): Nexora Connect — connexion implicite pour un jeton limité`.
 
 ### Task 2: Client d'administration de Connect (WorkStudio)
 

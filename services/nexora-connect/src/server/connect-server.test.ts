@@ -2100,10 +2100,11 @@ describe("ConnectServer", () => {
       headers: { ...authorize, "content-type": "application/json" },
       body: JSON.stringify({ input: {}, connectionName: "ghost" }),
     });
-    expect(omitted.status).toBe(403);
+    // Nexora: naming no connection uses the only one the token may use ("work").
+    expect(omitted.status).toBe(200);
     expect(hidden.status).toBe(403);
     expect(ungrantedMissing.status).toBe(403);
-    await expect(omitted.json()).resolves.toMatchObject({ errorCode: "connection_not_allowed" });
+    await expect(omitted.json()).resolves.toMatchObject({ success: true });
     await expect(hidden.json()).resolves.toMatchObject({ errorCode: "connection_not_allowed" });
     await expect(ungrantedMissing.json()).resolves.toMatchObject({ errorCode: "connection_not_allowed" });
 

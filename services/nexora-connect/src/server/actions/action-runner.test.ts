@@ -387,6 +387,41 @@ describe("ActionRunner", () => {
   });
 });
 
+describe("ActionRunner implicit connection (Nexora)", () => {
+  function restricted(ids: string[]) {
+    return new ActionPolicyService().createSnapshot(undefined, {
+      allowedActions: [],
+      blockedActions: [],
+      allowedProxies: [],
+      allowedConnections: ids,
+    });
+  }
+
+  it("uses the only connection a restricted token may use when the call names none", async () => {
+    const store = new MemoryConnectionStore();
+    await store.set("example", "default", credential);
+    const workspace = await store.set("example", "ws-1", credential);
+    const runner = createRunner({ runs: new MemoryRunLogStore(), logger: createTestLogger().logger, provider: authenticatedProvider, store });
+
+    const run = await runner.run({ actionId: "example.echo", input: {}, caller: "mcp", policy: restricted([workspace.id]) });
+
+    expect(run?.result).toMatchObject({ ok: true });
+  });
+
+  it("keeps the default connection for an unrestricted token", async () => {
+    const store = new MemoryConnectionStore();
+    await store.set("example", "default", credential);
+    await store.set("example", "ws-1", credential);
+    const resolveConnection = vi.spyOn(ConnectionService.prototype, "resolveForExecution");
+    const runner = createRunner({ runs: new MemoryRunLogStore(), logger: createTestLogger().logger, provider: authenticatedProvider, store });
+
+    const run = await runner.run({ actionId: "example.echo", input: {}, caller: "mcp", policy: restricted([]) });
+
+    expect(run?.result).toMatchObject({ ok: true });
+    expect(resolveConnection).toHaveBeenCalledWith("example", undefined, undefined);
+  });
+});
+
 function createRunner(options: {
   runs: IRunLogStore;
   logger: Logger;

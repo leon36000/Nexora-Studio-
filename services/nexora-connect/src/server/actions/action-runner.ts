@@ -107,10 +107,15 @@ export class ActionRunner {
       result = cancelledExecutionResult();
     } else {
       try {
+        const connectionId =
+          input.connectionId ??
+          (input.connectionName
+            ? undefined
+            : input.policy.implicitConnectionId(await this.options.connections.listConnectionsByService(action.service)));
         const summary = await this.options.connections.getConnectionSummary(
           action.service,
           input.connectionName,
-          input.connectionId,
+          connectionId,
         );
         input.signal?.throwIfAborted();
         const connectionPolicy =
@@ -130,7 +135,7 @@ export class ActionRunner {
           connection = await this.options.connections.resolveForExecution(
             action.service,
             input.connectionName,
-            input.connectionId,
+            connectionId,
           );
           input.signal?.throwIfAborted();
           const targetPolicy =

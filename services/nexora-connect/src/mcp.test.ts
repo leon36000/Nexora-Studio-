@@ -620,17 +620,21 @@ describe("MCP server", () => {
           name: "get_action_guide",
           arguments: { actionId: "example_auth.get_account" },
         });
-        expect(omittedGuide.isError).toBe(true);
+        // Nexora: a call naming no connection uses the only one the token may use for that service.
         expect(omittedGuide.structuredContent).toMatchObject({
-          ok: false,
-          error: { code: "connection_not_allowed" },
+          ok: true,
+          data: { capability: { connection: { connectionName: "secondary" } } },
         });
 
         const hiddenGuide = await client.callTool({
           name: "get_action_guide",
           arguments: { actionId: "example_auth.get_account", connectionName: "default" },
         });
-        expect(hiddenGuide.structuredContent).toEqual(omittedGuide.structuredContent);
+        expect(hiddenGuide.isError).toBe(true);
+        expect(hiddenGuide.structuredContent).toMatchObject({
+          ok: false,
+          error: { code: "connection_not_allowed" },
+        });
 
         const allowedGuide = await client.callTool({
           name: "get_action_guide",
@@ -650,8 +654,9 @@ describe("MCP server", () => {
           arguments: { actionId: "example_auth.get_account", input: {}, connectionName: "default" },
         });
         expect(omitted.structuredContent).toMatchObject({
-          ok: false,
-          error: { code: "connection_not_allowed" },
+          ok: true,
+          data: { accountId: "account-secondary" },
+          connection: { connectionName: "secondary" },
         });
         expect(hidden.structuredContent).toMatchObject({
           ok: false,

@@ -223,6 +223,17 @@ export class ActionPolicySnapshot {
     return { allowed: true, checks };
   }
 
+  /**
+   * Nexora: the connection a call that names none should use — the only one of `candidates` this
+   * token is granted, when the token is restricted to connections. Lets a workspace token reach its
+   * workspace's connection without every caller knowing its name.
+   */
+  implicitConnectionId(candidates: readonly { id: string; virtual?: boolean }[]): string | undefined {
+    if (this.allowedConnections.length === 0) return undefined;
+    const granted = candidates.filter((candidate) => !candidate.virtual && this.allowedConnections.includes(candidate.id));
+    return granted.length === 1 ? granted[0].id : undefined;
+  }
+
   evaluateConnection(connectionId?: string): ActionPolicyDecision {
     if (this.allowedConnections.length === 0) {
       return { allowed: true, checks: [] };
