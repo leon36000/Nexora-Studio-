@@ -192,6 +192,11 @@ def main() -> int:
             time.sleep(10)
         raise AssertionError(f"the scheduled workflow never ran (cron missing?): {str(seen)[:200]}")
 
+    def wand():
+        status, body = s.call("POST", "/api/wand", {"prompt": "Écris un objet d'e-mail court pour relancer une facture impayée.", "workspaceId": state["ws"], "stream": False}, timeout=300)
+        require(status == 200 and body.get("success") and (body.get("content") or "").strip(), f"wand returned HTTP {status}: {str(body)[:200]}")
+        return f"« {body['content'].strip()[:60]} »"
+
     def run_template(name: str):
         def run():
             status, body = s.call("POST", f"/api/workflows/{state['workflows'][name]}/execute", {"useDraftState": True, "stream": False, "input": TEMPLATE_INPUTS[name]}, timeout=600)
@@ -240,6 +245,7 @@ def main() -> int:
     s.check("Nexora Connect et ses outils MCP", connect_tools)
     s.check("Base de connaissances (embeddings locaux)", knowledge_base)
     s.check("Planification (cron)", schedule)
+    s.check("Générer avec l'IA (modèle Nexora)", wand)
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Journal d'audit", audit)

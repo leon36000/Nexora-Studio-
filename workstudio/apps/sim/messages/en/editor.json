@@ -241,7 +241,8 @@
     "notEnabled": "Wand is not enabled.",
     "usageLimitReached": "Usage limit reached",
     "upgrade": "Upgrade",
-    "generationFailed": "Generation failed"
+    "generationFailed": "Generation failed",
+    "modelUnavailable": "The Nexora model is not responding right now. Try again in a moment."
   },
   "blockOutputFields": {
     "subflowResults": "Array of results from the loop/parallel execution"

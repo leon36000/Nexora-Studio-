@@ -3,6 +3,7 @@ import { workflow } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
+import { getTranslations } from 'next-intl/server'
 import { wandGenerateContract } from '@/lib/api/contracts'
 import { parseRequest } from '@/lib/api/server'
 import { getBYOKKey } from '@/lib/api-key/byok'
@@ -21,6 +22,13 @@ import { getCostMultiplier, isBillingEnabled } from '@/lib/core/config/env-flags
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { enrichSandboxCapabilities } from '@/lib/execution/remote-sandbox/wand-enricher'
+import {
+  isNexoraWandAvailable,
+  NexoraWandUnavailableError,
+  nexoraWandComplete,
+  nexoraWandStream,
+  type WandUsage,
+} from '@/lib/nexora/wand'
 import { enrichTableSchema } from '@/lib/table/llm/wand'
 import { verifyWorkspaceMembership } from '@/app/api/workflows/utils'
 import { extractResponseText, parseResponsesUsage } from '@/providers/openai/utils'
@@ -262,7 +270,7 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
       }
     }
 
-    if (!useWandAzure && !activeOpenAIKey) {
+    if (!isNexoraWandAvailable() && !useWandAzure && !activeOpenAIKey) {
       logger.error(`[${requestId}] AI client not initialized. Missing API key.`)
       return NextResponse.json(
         { success: false, error: 'Wand generation service is not configured.' },
@@ -343,6 +351,49 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
     messages.push(...history.filter((msg) => msg.role !== 'system'))
 
     messages.push({ role: 'user', content: prompt })
+
+    /** Nexora edition: generation runs on the deployment's own model through Nexora API. */
+    if (isNexoraWandAvailable()) {
+      const recordWandUsage = (usage: WandUsage) =>
+        updateUserStatsForWand(
+          billingAttribution,
+          {
+            prompt_tokens: usage.promptTokens,
+            completion_tokens: usage.completionTokens,
+            total_tokens: usage.promptTokens + usage.completionTokens,
+          },
+          requestId,
+          false
+        )
+      try {
+        if (stream) {
+          return new Response(await nexoraWandStream({ messages, onUsage: recordWandUsage }), {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache, no-transform',
+              Connection: 'keep-alive',
+              'X-Accel-Buffering': 'no',
+            },
+          })
+        }
+        const { text, usage } = await nexoraWandComplete({ messages })
+        if (!text) {
+          return NextResponse.json(
+            { success: false, error: 'Failed to generate content. AI response was empty.' },
+            { status: 500 }
+          )
+        }
+        await recordWandUsage(usage)
+        return NextResponse.json({ success: true, content: text })
+      } catch (error) {
+        if (!(error instanceof NexoraWandUnavailableError)) throw error
+        logger.warn(`[${requestId}] Nexora API unavailable for wand generation`, {
+          error: error.message,
+        })
+        const t = await getTranslations('editor.wand')
+        return NextResponse.json({ success: false, error: t('modelUnavailable') }, { status: 503 })
+      }
+    }
 
     if (stream) {
       try {

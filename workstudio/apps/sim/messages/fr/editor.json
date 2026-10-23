@@ -241,7 +241,8 @@
     "notEnabled": "La génération assistée n'est pas activée.",
     "usageLimitReached": "Limite d'utilisation atteinte",
     "upgrade": "Passer à l'offre supérieure",
-    "generationFailed": "Échec de la génération"
+    "generationFailed": "Échec de la génération",
+    "modelUnavailable": "Le modèle Nexora ne répond pas pour le moment. Réessayez dans un instant."
   },
   "blockOutputFields": {
     "subflowResults": "Tableau des résultats de l'exécution en boucle ou en parallèle"
