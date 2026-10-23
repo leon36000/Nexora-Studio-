@@ -56,7 +56,7 @@ Bouton **Ajouter un modèle**, puis trois étapes.
 
 ## Transcription locale (Whisper)
 
-À l'installation, la question « Activer la transcription vocale locale ? » ajoute un serveur Whisper sur votre machine (profil `voice`, environ 1,5 Go avec son modèle `small` multilingue). Au démarrage, Nexora télécharge son modèle puis l'ajoute ici sous le nom `whisper-small` (usage Transcription). Il n'utilise qu'une partie des cœurs du serveur (`NEXORA_WHISPER_THREADS`).
+À l'installation, la question « Activer la transcription vocale locale ? » ajoute un serveur Whisper sur votre machine (profil `voice`, environ 1,5 Go avec son modèle `small` multilingue). Au premier démarrage, le serveur télécharge son modèle (une seule fois, il fonctionne ensuite hors ligne), puis Nexora l'ajoute ici sous le nom `whisper-small` (usage Transcription). Il n'utilise qu'une partie des cœurs du serveur (`NEXORA_WHISPER_THREADS`). Si vous désactivez ensuite la transcription locale, supprimez `whisper-small` ici : il y reste sinon, sans serveur pour répondre.
 
 Un enregistrement de plus de dix minutes est transcrit par morceaux de dix minutes ; au-delà de trois heures, le bloc refuse et demande de découper le fichier.
 

@@ -195,10 +195,25 @@ const AnimatedLoader = ({ className }: { className?: string }) => (
   <Loader className={className} animate />
 )
 
+/** « Lecture : 12 / 300 pages » while a long scan or recording is read, slice after slice. */
+function progressLabel(doc: DocumentData, t: Translator): string | null {
+  const progress = doc.processingProgress
+  if (!progress) return null
+  const values = { done: progress.done, total: progress.total }
+  return progress.unit === 'pages'
+    ? t('status.readingPages', values)
+    : t('status.transcribingPieces', values)
+}
+
 const getStatusBadge = (doc: DocumentData, t: Translator) => {
+  const progress = progressLabel(doc, t)
   switch (getDocumentIndexingStatus(doc)) {
     case 'pending':
-      return (
+      return progress ? (
+        <Badge variant='purple' size='sm' icon={AnimatedLoader}>
+          {progress}
+        </Badge>
+      ) : (
         <Badge variant='gray' size='sm'>
           {t('status.pending')}
         </Badge>
@@ -206,7 +221,7 @@ const getStatusBadge = (doc: DocumentData, t: Translator) => {
     case 'processing':
       return (
         <Badge variant='purple' size='sm' icon={AnimatedLoader}>
-          {t('status.processing')}
+          {progress ?? t('status.processing')}
         </Badge>
       )
     case 'skipped':

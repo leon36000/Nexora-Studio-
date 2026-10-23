@@ -3908,6 +3908,11 @@ export const document = pgTable(
     processingError: text('processing_error'),
     /** Retry admission backoff, separate from an accepted worker continuation. */
     processingRecoveryAfter: timestamp('processing_recovery_after'),
+    /**
+     * Nexora: where a long reading or transcription of the current indexing pass stands (pages or
+     * pieces done and total) and what it learned about the file, kept across processing slices.
+     */
+    processingProgress: jsonb('processing_progress'),
 
     enabled: boolean('enabled').notNull().default(true),
     /** Parent KB/workspace archive marker */
@@ -8640,6 +8645,11 @@ export const knowledgeReindexVector = pgTable(
       .notNull()
       .references(() => knowledgeBase.id, { onDelete: 'cascade' }),
     generation: text('generation').notNull(),
+    /**
+     * Model the vector was computed with: a later attempt toward the same model reuses it when the
+     * chunk text is unchanged (a vector of an older row, without it, is discarded).
+     */
+    targetModel: text('target_model'),
     /** Hash of the chunk text the vector was computed from. */
     chunkHash: text('chunk_hash').notNull(),
     /** Single precision, as pgvector stores it; cast to the base's column width at the switch. */

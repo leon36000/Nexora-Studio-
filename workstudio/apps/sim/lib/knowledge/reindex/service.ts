@@ -1,3 +1,4 @@
+import { recordAuditOnce } from '@sim/audit'
 import { db } from '@sim/db'
 import {
   document,
@@ -10,15 +11,19 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage, getPostgresErrorCode } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
 import { truncate } from '@sim/utils/string'
-import { and, asc, count, eq, gt, isNull, notExists, type SQL, sql } from 'drizzle-orm'
+import { and, asc, count, eq, gt, isNull, ne, notExists, or, type SQL, sql } from 'drizzle-orm'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import { enqueueOutboxEvent } from '@/lib/core/outbox/service'
-import { isPermanentDocumentProcessingError } from '@/lib/knowledge/documents/processing-error'
 import {
   type KbEmbeddingDimensions,
   toKbEmbeddingDimensions,
 } from '@/lib/knowledge/embedding-models'
 import { generateEmbeddings } from '@/lib/knowledge/embeddings'
+import {
+  knowledgeReindexCompletedAudit,
+  knowledgeReindexFailedAudit,
+} from '@/lib/knowledge/reindex/audit'
+import type { KnowledgeReindexErrorCode } from '@/lib/knowledge/reindex/failure'
 import { isSameEmbeddingModel } from '@/lib/knowledge/reindex/model-name'
 import { KNOWLEDGE_REINDEX_EVENT } from '@/lib/knowledge/reindex/outbox-event'
 import { embeddingVectorAssignments } from '@/lib/knowledge/vector-columns'
@@ -38,7 +43,6 @@ const SWITCH_LOCK_TIMEOUT = '10000ms'
 const MAX_STORED_ERROR_LENGTH = 500
 
 type KnowledgeReindexStatus = 'running' | 'completed' | 'failed'
-export type KnowledgeReindexErrorCode = 'model-unavailable' | 'chunk-too-long' | 'failed'
 
 export interface KnowledgeReindexState {
   status: KnowledgeReindexStatus
@@ -150,8 +154,9 @@ export async function readKnowledgeReindexView(
 /**
  * Starts re-embedding a base with `target`, in one transaction with the event that drives it.
  * The base itself does not change until the switch. Refuses the model the base already uses and a
- * second reindex while one runs (a stalled one may be replaced); vectors of an earlier attempt are
- * discarded, so a new start never reuses them.
+ * second reindex while one runs (a stalled one may be replaced). Vectors an earlier attempt
+ * computed with the same model are kept and count toward this one (a chunk whose text changed
+ * since is embedded again); those of another model are discarded.
  */
 export async function startKnowledgeReindex(input: {
   knowledgeBaseId: string
@@ -195,12 +200,25 @@ export async function startKnowledgeReindex(input: {
 
     await tx
       .delete(knowledgeReindexVector)
-      .where(eq(knowledgeReindexVector.knowledgeBaseId, input.knowledgeBaseId))
+      .where(
+        and(
+          eq(knowledgeReindexVector.knowledgeBaseId, input.knowledgeBaseId),
+          or(
+            isNull(knowledgeReindexVector.targetModel),
+            ne(knowledgeReindexVector.targetModel, input.target.model),
+            sql`array_length(${knowledgeReindexVector.vector}, 1) <> ${targetDimension}`
+          )
+        )
+      )
     const [{ total }] = await tx
       .select({ total: count() })
       .from(embedding)
       .where(eq(embedding.knowledgeBaseId, input.knowledgeBaseId))
     const generation = generateId()
+    await tx
+      .update(knowledgeReindexVector)
+      .set({ generation })
+      .where(eq(knowledgeReindexVector.knowledgeBaseId, input.knowledgeBaseId))
     const now = new Date()
     const state = {
       generation,
@@ -299,12 +317,13 @@ async function embedMissing(context: EmbedContext, narrow?: SQL): Promise<'done'
     }))
     /** Joined to `embedding` so a chunk deleted or edited meanwhile is skipped, not written. */
     await db.execute(sql`
-      INSERT INTO knowledge_reindex_vector (embedding_id, knowledge_base_id, generation, chunk_hash, vector)
-      SELECT e.id, e.knowledge_base_id, ${context.generation}, v.hash, v.vector
+      INSERT INTO knowledge_reindex_vector (embedding_id, knowledge_base_id, generation, target_model, chunk_hash, vector)
+      SELECT e.id, e.knowledge_base_id, ${context.generation}, ${context.target.model}, v.hash, v.vector
       FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS v(id text, hash text, vector real[])
       JOIN embedding e ON e.id = v.id AND e.chunk_hash = v.hash
       ON CONFLICT (embedding_id) DO UPDATE SET
         generation = EXCLUDED.generation,
+        target_model = EXCLUDED.target_model,
         chunk_hash = EXCLUDED.chunk_hash,
         vector = EXCLUDED.vector,
         created_at = now()
@@ -362,7 +381,7 @@ async function switchToTarget(
   target: { model: string; dimensions: KbEmbeddingDimensions }
 ): Promise<SwitchOutcome> {
   try {
-    return await db.transaction(async (tx) => {
+    const outcome = await db.transaction(async (tx) => {
       await tx.execute(sql`SELECT set_config('lock_timeout', ${SWITCH_LOCK_TIMEOUT}, true)`)
       const [base] = await tx
         .select({ id: knowledgeBase.id })
@@ -430,10 +449,78 @@ async function switchToTarget(
         .where(eq(knowledgeReindex.knowledgeBaseId, knowledgeBaseId))
       return 'completed'
     })
+    if (outcome === 'completed') await auditReindexEnd(knowledgeBaseId, generation)
+    return outcome
   } catch (error) {
     if (getPostgresErrorCode(error) === '55P03') return 'busy'
     throw error
   }
+}
+
+/**
+ * Records how a reindex ended, for whoever asked for it: the switch as a change of the base's
+ * model, a failure with its reason. Never fails the reindex itself.
+ */
+async function auditReindexEnd(
+  knowledgeBaseId: string,
+  generation: string,
+  failure?: { code: KnowledgeReindexErrorCode; message: string }
+): Promise<void> {
+  try {
+    const [row] = await db
+      .select({
+        name: knowledgeBase.name,
+        workspaceId: knowledgeBase.workspaceId,
+        requestedBy: knowledgeReindex.requestedBy,
+        sourceModel: knowledgeReindex.sourceModel,
+        sourceDimension: knowledgeReindex.sourceDimension,
+        targetModel: knowledgeReindex.targetModel,
+        targetDimension: knowledgeReindex.targetDimension,
+      })
+      .from(knowledgeReindex)
+      .innerJoin(knowledgeBase, eq(knowledgeBase.id, knowledgeReindex.knowledgeBaseId))
+      .where(
+        and(
+          eq(knowledgeReindex.knowledgeBaseId, knowledgeBaseId),
+          eq(knowledgeReindex.generation, generation)
+        )
+      )
+      .limit(1)
+    if (!row) return
+    const base = { id: knowledgeBaseId, name: row.name, workspaceId: row.workspaceId }
+    const run = { generation, ...row }
+    await recordAuditOnce(
+      `knowledge-reindex-${generation}-${failure ? 'failed' : 'completed'}`,
+      failure
+        ? knowledgeReindexFailedAudit(base, run, row.requestedBy, failure)
+        : knowledgeReindexCompletedAudit(base, run, row.requestedBy)
+    )
+  } catch (error) {
+    logger.warn('Could not record the end of a knowledge reindex in the audit log', {
+      knowledgeBaseId,
+      error: getErrorMessage(error),
+    })
+  }
+}
+
+/**
+ * Shows a reindex waiting for its model server as alive: the banner calls a run stalled when its
+ * row has not moved for a while.
+ */
+export async function touchKnowledgeReindex(
+  knowledgeBaseId: string,
+  generation: string
+): Promise<void> {
+  await db
+    .update(knowledgeReindex)
+    .set({ updatedAt: new Date() })
+    .where(
+      and(
+        eq(knowledgeReindex.knowledgeBaseId, knowledgeBaseId),
+        eq(knowledgeReindex.generation, generation),
+        eq(knowledgeReindex.status, 'running')
+      )
+    )
 }
 
 export type KnowledgeReindexSliceOutcome = 'completed' | 'continue' | 'busy' | 'stale'
@@ -526,59 +613,34 @@ export async function runKnowledgeReindexSlice(
   return 'continue'
 }
 
-/** Ends a running reindex as failed: the base keeps its model and vectors, the new ones are dropped. */
+/**
+ * Ends a running reindex as failed: the base keeps its model and vectors. The vectors computed so
+ * far stay staged, so starting again toward the same model resumes from them.
+ */
 export async function failKnowledgeReindex(
   knowledgeBaseId: string,
   generation: string,
   failure: { code: KnowledgeReindexErrorCode; message: string }
 ): Promise<void> {
   const now = new Date()
-  await db.transaction(async (tx) => {
-    const failed = await tx
-      .update(knowledgeReindex)
-      .set({
-        status: 'failed',
-        errorCode: failure.code,
-        error: truncate(failure.message, MAX_STORED_ERROR_LENGTH),
-        updatedAt: now,
-        completedAt: now,
-      })
-      .where(
-        and(
-          eq(knowledgeReindex.knowledgeBaseId, knowledgeBaseId),
-          eq(knowledgeReindex.generation, generation),
-          eq(knowledgeReindex.status, 'running')
-        )
+  const failed = await db
+    .update(knowledgeReindex)
+    .set({
+      status: 'failed',
+      errorCode: failure.code,
+      error: truncate(failure.message, MAX_STORED_ERROR_LENGTH),
+      updatedAt: now,
+      completedAt: now,
+    })
+    .where(
+      and(
+        eq(knowledgeReindex.knowledgeBaseId, knowledgeBaseId),
+        eq(knowledgeReindex.generation, generation),
+        eq(knowledgeReindex.status, 'running')
       )
-      .returning({ id: knowledgeReindex.knowledgeBaseId })
-    if (failed.length > 0) {
-      await tx
-        .delete(knowledgeReindexVector)
-        .where(eq(knowledgeReindexVector.knowledgeBaseId, knowledgeBaseId))
-    }
-  })
+    )
+    .returning({ id: knowledgeReindex.knowledgeBaseId })
+  if (failed.length === 0) return
   logger.warn('Knowledge reindex failed', { knowledgeBaseId, code: failure.code })
-}
-
-/**
- * What a failed slice means for the reindex. A missing model or a passage the model cannot take
- * will not fix itself; an unreachable model server may, so the event is retried until its last
- * attempt.
- */
-export function classifyKnowledgeReindexFailure(error: unknown): {
-  code: KnowledgeReindexErrorCode
-  message: string
-  transient: boolean
-} {
-  const message = getErrorMessage(error, 'Reindex failed')
-  if (error instanceof Error && error.name === 'OllamaEmbeddingModelNotFoundError') {
-    return { code: 'model-unavailable', message, transient: false }
-  }
-  if (isPermanentDocumentProcessingError(error) && error.code === 'document_complexity_limit') {
-    return { code: 'chunk-too-long', message, transient: false }
-  }
-  if (error instanceof Error && error.name === 'OllamaUnreachableError') {
-    return { code: 'model-unavailable', message, transient: true }
-  }
-  return { code: 'failed', message, transient: true }
+  await auditReindexEnd(knowledgeBaseId, generation, failure)
 }

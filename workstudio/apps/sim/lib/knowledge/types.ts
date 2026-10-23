@@ -154,6 +154,8 @@ export interface DocumentData {
   processingStartedAt?: string | null
   processingCompletedAt?: string | null
   processingError?: string | null
+  /** Nexora: pages read or pieces transcribed so far, while a long document is indexed. */
+  processingProgress?: { unit: 'pages' | 'pieces'; done: number; total: number } | null
   enabled: boolean
   uploadedAt: string
   tag1?: string | null

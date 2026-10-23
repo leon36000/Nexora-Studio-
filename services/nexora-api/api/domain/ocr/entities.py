@@ -58,6 +58,8 @@ class OCRPageObject(BaseModel):
     images: list[OCRImageObject]
     index: int
     markdown: str | None = None
+    # Nexora: the model stopped at its answer length limit; the page text may be cut.
+    truncated: bool | None = None
 
 
 class OCR(ProviderJsonResponse):

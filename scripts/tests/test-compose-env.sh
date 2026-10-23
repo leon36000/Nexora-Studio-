@@ -78,6 +78,21 @@ assert services["workstudio"]["environment"]["NEXORA_WHISPER_URL"] == "http://wh
 ' <<< "$voice_rendered" 2>/dev/null \
   && ok "transcription service: pinned image, internal only, capped threads, registered by the bootstrap, checked by WorkStudio" \
   || ko "transcription service: pinned image, internal only, capped threads, registered by the bootstrap, checked by WorkStudio"
+# Offline after its one-time download: the server never asks Hugging Face when it loads its model
+# (every ten idle minutes); only the fetch before it starts may, and only while the model is missing.
+python3 -I -c '
+import json, sys
+w = json.load(sys.stdin)["services"]["whisper"]
+assert w["environment"]["HF_HUB_OFFLINE"] == "1", w["environment"]
+assert w["environment"]["NEXORA_WHISPER_MODEL"].endswith("whisper-small")
+command = " ".join(w["command"])
+fetch, _, serve = command.partition(";")
+assert "HF_HUB_OFFLINE=0" in fetch and "fetch-whisper-model.py" in fetch, command
+assert "HF_HUB_OFFLINE" not in serve and "exec uvicorn" in serve, command
+assert any(v.get("target", "").endswith("fetch-whisper-model.py") and v.get("read_only") for v in w["volumes"]), w["volumes"]
+' <<< "$voice_rendered" 2>/dev/null \
+  && ok "transcription server offline; its model fetched once before it starts" \
+  || ko "transcription server offline; its model fetched once before it starts"
 
 # install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
 printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"

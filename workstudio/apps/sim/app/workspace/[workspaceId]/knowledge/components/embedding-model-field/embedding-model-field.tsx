@@ -104,6 +104,7 @@ export function EmbeddingModelField({ knowledgeBaseId, canEdit }: EmbeddingModel
             <p className='text-[var(--text-secondary)] text-caption'>
               {t('confirmText', { chunks: view.chunkCount, model: chosen.name })}
             </p>
+            <p className='text-[var(--text-tertiary)] text-caption'>{t('confirmWarning')}</p>
             <div className='flex justify-end gap-2'>
               <Button
                 variant='ghost'

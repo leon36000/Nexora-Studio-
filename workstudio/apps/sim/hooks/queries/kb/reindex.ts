@@ -20,6 +20,8 @@ const KNOWLEDGE_REINDEX_STALE_TIME = 10 * 1000
 const KNOWLEDGE_EMBEDDING_MODELS_STALE_TIME = 60 * 1000
 /** Progress refresh while a reindex runs. */
 const REINDEX_POLL_INTERVAL_MS = 3000
+/** A stalled reindex is often waiting for its model server: it is checked on, slowly. */
+const STALLED_REINDEX_POLL_INTERVAL_MS = 60_000
 
 export type KnowledgeReindexView = ContractJsonResponse<typeof getKnowledgeReindexContract>['data']
 
@@ -31,6 +33,14 @@ async function fetchReindex(knowledgeBaseId: string, signal?: AbortSignal) {
   return response.data
 }
 
+/** How often to refresh a base's reindex: while it runs, slowly once it looks stalled. */
+export function reindexPollInterval(
+  reindex: { status: string; stalled: boolean } | null | undefined
+): number | false {
+  if (reindex?.status !== 'running') return false
+  return reindex.stalled ? STALLED_REINDEX_POLL_INTERVAL_MS : REINDEX_POLL_INTERVAL_MS
+}
+
 /** A base's embedding model and its latest reindex, refreshed every few seconds while it runs. */
 export function useKnowledgeReindex(knowledgeBaseId: string, options?: { enabled?: boolean }) {
   return useQuery({
@@ -38,10 +48,7 @@ export function useKnowledgeReindex(knowledgeBaseId: string, options?: { enabled
     queryFn: ({ signal }) => fetchReindex(knowledgeBaseId, signal),
     enabled: Boolean(knowledgeBaseId) && (options?.enabled ?? true),
     staleTime: KNOWLEDGE_REINDEX_STALE_TIME,
-    refetchInterval: (query) => {
-      const reindex = query.state.data?.reindex
-      return reindex?.status === 'running' && !reindex.stalled ? REINDEX_POLL_INTERVAL_MS : false
-    },
+    refetchInterval: (query) => reindexPollInterval(query.state.data?.reindex),
   })
 }
 

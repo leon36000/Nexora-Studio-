@@ -12,6 +12,8 @@ export interface NexoraOcrPage {
   markdown: string
   images: unknown[]
   dimensions?: unknown
+  /** Nexora API: the model stopped at its answer length limit, so the text may be cut. */
+  truncated?: boolean
 }
 
 /** Nexora API's OCR answer, shaped like Mistral OCR's (the Mistral Parser block's outputs). */
@@ -31,6 +33,7 @@ export function toOcrResult(data: Record<string, unknown>, model: string): Nexor
           index: typeof page.index === 'number' ? page.index : position,
           markdown: typeof page.markdown === 'string' ? page.markdown : '',
           images: Array.isArray(page.images) ? page.images : [],
+          truncated: page.truncated === true,
         }
       })
     : []

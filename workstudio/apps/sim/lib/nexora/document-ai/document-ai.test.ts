@@ -129,6 +129,41 @@ describe('resolveUsageModel', () => {
   })
 })
 
+describe('Nexora API failures', () => {
+  function answering(status: number) {
+    const fetchFn = vi.fn(async (input: string | URL | Request) =>
+      String(input).endsWith('/models')
+        ? jsonResponse(served)
+        : jsonResponse({ detail: `HTTP ${status} from the router` }, status)
+    )
+    return { config, fetchFn: fetchFn as unknown as typeof fetch }
+  }
+  const image = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64'
+  )
+
+  it('waits out a rejected key, a timeout or a rate limit instead of refusing the file', async () => {
+    for (const status of [401, 403, 408, 429]) {
+      await expect(
+        describeImage({ image, prompt: 'Décris' }, answering(status))
+      ).rejects.toMatchObject({ code: 'unavailable' })
+    }
+  })
+
+  it('reports a model without a provider behind it as no model, not as a refusal', async () => {
+    await expect(describeImage({ image, prompt: 'Décris' }, answering(404))).rejects.toMatchObject({
+      code: 'no-model',
+    })
+  })
+
+  it('keeps refusing a file the model cannot read', async () => {
+    await expect(describeImage({ image, prompt: 'Décris' }, answering(422))).rejects.toMatchObject({
+      code: 'refused',
+    })
+  })
+})
+
 describe('describeImage', () => {
   it('asks the vision model the block prompt and returns its answer', async () => {
     const { calls, options } = fakeNexoraApi()

@@ -129,6 +129,7 @@
     "loadingModels": "Recherche des modèles installés…",
     "noModels": "Aucun autre modèle d'embeddings n'est installé sur l'Ollama de l'instance (un administrateur peut en ajouter un, par exemple : ollama pull nomic-embed-text).",
     "confirmText": "Les {chunks} passages de la base seront recalculés avec {model}. La base reste interrogeable pendant l'opération.",
+    "confirmWarning": "Attention : un bloc ou un agent qui interroge plusieurs bases à la fois ne peut le faire que si elles utilisent le même modèle ; après la bascule, réindexez aussi les autres bases qu'il interroge.",
     "confirm": "Réindexer {count, plural, =0 {la base} one {# document} other {# documents}}",
     "cancel": "Annuler",
     "starting": "Démarrage…",
@@ -282,7 +283,9 @@
       "failed": "Échec",
       "enabled": "Activé",
       "disabled": "Désactivé",
-      "unknown": "Inconnu"
+      "unknown": "Inconnu",
+      "readingPages": "Lecture : {done} / {total} pages",
+      "transcribingPieces": "Transcription : {done} / {total} morceaux"
     },
     "sort": {
       "filename": "Nom",
@@ -345,7 +348,12 @@
       "embeddingModelLoading": "Le modèle d'embeddings local n'est pas encore disponible : il est en cours de téléchargement, ou il manque. Réessayez dans quelques minutes ; si l'erreur persiste, un administrateur lance « nexora update ».",
       "noOcrModel": "Aucun modèle de lecture (OCR) : ajoutez-en un dans Réglages › Modèles, puis relancez le traitement du document.",
       "noTranscriptionModel": "Aucun modèle de transcription : ajoutez-en un dans Réglages › Modèles, puis relancez le traitement du document.",
-      "legacyBase": "Cette base a été indexée avec un ancien modèle d'embeddings que cette instance ne fournit plus : elle ne peut plus être interrogée. Réindexez-la avec un modèle de l'instance (Modifier la base › Modèle d'embeddings)."
+      "legacyBase": "Cette base a été indexée avec un ancien modèle d'embeddings que cette instance ne fournit plus : elle ne peut plus être interrogée. Réindexez-la avec un modèle de l'instance (Modifier la base › Modèle d'embeddings).",
+      "transcriptionNotConfigured": "Les enregistrements sont transcrits par un modèle de transcription Nexora, que cette instance n'a pas : un administrateur active la transcription vocale locale ou ajoute un modèle Transcription dans Réglages › Modèles.",
+      "noSpeech": "Aucune parole n'a été reconnue dans cet enregistrement.",
+      "recordingTooLong": "Cet enregistrement dure plus de 3 heures, la limite de la transcription : découpez-le, puis ajoutez les morceaux.",
+      "ocrRejected": "Le modèle de lecture (OCR) a refusé ce fichier. Réexportez-le en PDF ou en image valide, puis relancez le traitement ; s'il s'ouvre correctement, un administrateur vérifie le modèle Vision / OCR dans Réglages › Modèles.",
+      "pieceTooLong": "Page (ou morceau) trop long pour ce serveur : essayez un modèle plus petit ou un serveur plus puissant."
     }
   },
   "document": {

@@ -122,6 +122,10 @@ import {
   type DocumentProcessingPayload,
   hasDocumentProcessingBillingScope,
 } from '@/lib/knowledge/documents/processing-payload'
+import {
+  createDocumentProgressStore,
+  toProcessingProgress,
+} from '@/lib/knowledge/documents/processing-progress'
 import { scheduleDocumentProcessingProviderContinuation } from '@/lib/knowledge/documents/processing-provider-continuation'
 import {
   getProviderCapacityDeferral,
@@ -1982,7 +1986,10 @@ export async function processDocumentAsync(
                     visionCharges.push(recordVisionUsage(usage))
                   },
                   ...(indexingPassId
-                    ? { ocrCheckpoint: { knowledgeBaseId, documentId, indexingPassId } }
+                    ? {
+                        ocrCheckpoint: { knowledgeBaseId, documentId, indexingPassId },
+                        progress: createDocumentProgressStore(documentId, indexingPassId),
+                      }
                     : {}),
                 },
                 ctx.workspaceId,
@@ -2272,6 +2279,7 @@ export async function processDocumentAsync(
                       processingStatus: 'completed',
                       processingCompletedAt: now,
                       processingError: null,
+                      processingProgress: null,
                       /** A completed pass restores the retry allowance for a future failure. */
                       processingAttempts: 0,
                       processingQueueToken: null,
@@ -2461,6 +2469,8 @@ export async function processDocumentAsync(
     const failureStatus = {
       processingStatus: deferredUntil ? 'pending' : 'failed',
       processingError: deferredUntil ? null : errorMessage,
+      /** A deferred pass resumes from its record; a failed one is read afresh when retried. */
+      ...(deferredUntil ? {} : { processingProgress: null }),
       processingStartedAt: deferredUntil ? null : processingStartedAt,
       ...(continuation
         ? {
@@ -3019,6 +3029,7 @@ export async function getDocuments(
         processingStartedAt: document.processingStartedAt,
         processingCompletedAt: document.processingCompletedAt,
         processingError: document.processingError,
+        processingProgress: document.processingProgress,
         enabled: document.enabled,
         uploadedAt: document.uploadedAt,
         tag1: document.tag1,
@@ -3136,6 +3147,10 @@ export async function getDocuments(
       processingStartedAt: doc.processingStartedAt,
       processingCompletedAt: doc.processingCompletedAt,
       processingError: doc.processingError,
+      processingProgress:
+        doc.processingStatus === 'pending' || doc.processingStatus === 'processing'
+          ? toProcessingProgress(doc.processingProgress)
+          : null,
       enabled: doc.enabled,
       uploadedAt: doc.uploadedAt,
       tag1: doc.tag1,

@@ -3067,6 +3067,13 @@
       "when": 1792754129248,
       "tag": "0438_nexora_usage_log_month_index",
       "breakpoints": true
+    },
+    {
+      "idx": 439,
+      "version": "7",
+      "when": 1792761578334,
+      "tag": "0439_nexora_processing_progress",
+      "breakpoints": true
     }
   ]
 }

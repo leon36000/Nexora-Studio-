@@ -1,4 +1,3 @@
-import { AuditAction, AuditResourceType } from '@sim/audit'
 import type { Principal } from '@sim/auth/principal'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
@@ -18,6 +17,7 @@ import {
   isKbEmbeddingDimensions,
   KB_EMBEDDING_STORAGE_DIMENSIONS,
 } from '@/lib/knowledge/embedding-models'
+import { knowledgeReindexStartedAudit } from '@/lib/knowledge/reindex/audit'
 import {
   type KnowledgeReindexView,
   readKnowledgeReindexView,
@@ -112,7 +112,10 @@ async function resolveTarget(model: string): Promise<{ model: string; dimensions
 interface StartedReindex {
   view: KnowledgeReindexView
   eventId: string
+  generation: string
   previousModel: string
+  previousDimension: number
+  target: { model: string; dimensions: number }
 }
 
 /**
@@ -131,26 +134,32 @@ export const startKnowledgeReindexOperation = defineAuthorizedKnowledgeUseCase({
   }) => resolveActiveKnowledgeBaseContext(input, principal),
   async execute({ principal, input, context }): Promise<StartedReindex> {
     const target = await resolveTarget(input.model)
-    const previousModel = context.knowledgeBase.embeddingModel
-    const { eventId } = await startKnowledgeReindex({
+    const { eventId, generation } = await startKnowledgeReindex({
       knowledgeBaseId: context.knowledgeBaseId,
       target,
       requestedBy: principal.userId,
     })
-    return { view: await readKnowledgeReindexView(context.knowledgeBaseId), eventId, previousModel }
+    const view = await readKnowledgeReindexView(context.knowledgeBaseId)
+    return {
+      view,
+      eventId,
+      generation,
+      previousModel: view.reindex?.sourceModel ?? context.knowledgeBase.embeddingModel,
+      previousDimension: view.reindex?.sourceDimension ?? view.embeddingDimension,
+      target,
+    }
   },
-  projectAudit: ({ context, result }) => ({
-    action: AuditAction.KNOWLEDGE_BASE_UPDATED,
-    resourceType: AuditResourceType.KNOWLEDGE_BASE,
-    resourceId: context.knowledgeBaseId,
-    resourceName: context.knowledgeBase.name,
-    description: `Started reindexing knowledge base "${context.knowledgeBase.name}" with ${result.view.reindex?.targetModel ?? 'another model'}`,
-    metadata: {
-      updatedFields: ['embeddingModel'],
-      previousEmbeddingModel: result.previousModel,
-      embeddingModel: result.view.reindex?.targetModel ?? null,
-    },
-  }),
+  projectAudit: ({ context, result }) =>
+    knowledgeReindexStartedAudit(
+      { id: context.knowledgeBaseId, name: context.knowledgeBase.name },
+      {
+        generation: result.generation,
+        sourceModel: result.previousModel,
+        sourceDimension: result.previousDimension,
+        targetModel: result.target.model,
+        targetDimension: result.target.dimensions,
+      }
+    ),
   afterSuccess: ({ result }) => {
     /** Starts the first slice now rather than at the next outbox tick; the outbox owns retries. */
     void import('@/lib/knowledge/reindex/outbox-handler')

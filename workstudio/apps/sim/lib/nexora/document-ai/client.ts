@@ -107,15 +107,22 @@ export function refusalDetail(data: Record<string, unknown>, status: number): st
   return `HTTP ${status}`
 }
 
+/**
+ * Statuses that say nothing about the file: WorkStudio's key rejected (until the bootstrap renews
+ * it), a request timeout, a rate limit. The request is worth retrying later.
+ */
+const UNAVAILABLE_STATUSES: ReadonlySet<number> = new Set([401, 403, 408, 429])
+
 /** Raises the refusal of a Nexora API answer, worded for the execution log. */
 export function assertAnswered(status: number, data: Record<string, unknown>, what: string): void {
   if (status < 400) return
   const detail = refusalDetail(data, status)
   if (status === 404) {
-    throw new NexoraDocumentAiError('unknown-model', `${what}: the model is not served (${detail})`)
+    /** Nexora API answers 404 for a model that is gone or has no provider behind it. */
+    throw new NexoraDocumentAiError('no-model', `${what}: the model is not served (${detail})`)
   }
   throw new NexoraDocumentAiError(
-    status >= 500 ? 'unavailable' : 'refused',
+    status >= 500 || UNAVAILABLE_STATUSES.has(status) ? 'unavailable' : 'refused',
     `${what} failed: ${detail}`
   )
 }

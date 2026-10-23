@@ -49,12 +49,15 @@ import {
 } from '@/lib/knowledge/documents/image-extraction-policy'
 import {
   createNexoraPdfReader,
+  isGenericMimeType,
   isKnowledgeAudio,
   isNexoraDocumentAiConfigured,
   NEXORA_OCR_BATCH_BUDGET_MS,
   NEXORA_OCR_REQUEST_POLICY,
   readImageWithNexora,
   resolveNexoraKnowledgeModel,
+  scanTypeFromContent,
+  scanTypeFromName,
   transcribeForKnowledge,
 } from '@/lib/knowledge/documents/nexora-extraction'
 import {
@@ -83,6 +86,7 @@ import {
   OcrRequestRejectedError,
   PermanentDocumentProcessingError,
 } from '@/lib/knowledge/documents/processing-error'
+import type { ProcessingProgressStore } from '@/lib/knowledge/documents/processing-progress'
 import { getProviderCapacityDeferral } from '@/lib/knowledge/documents/processing-provider-deferral'
 import { resolveRetryDelayMs, retryWithExponentialBackoff } from '@/lib/knowledge/documents/utils'
 import type { VisionExtractionUsage } from '@/lib/knowledge/documents/vision-checkpoints'
@@ -91,13 +95,17 @@ import {
   getKnowledgeOpaqueModelInputRegistry,
   projectKnowledgeModelInput,
 } from '@/lib/knowledge/model-input-provenance'
-import { NO_OCR_MODEL_MESSAGE } from '@/lib/nexora/knowledge-errors'
+import {
+  NO_OCR_MODEL_MESSAGE,
+  NO_SPEECH_MESSAGE,
+  TRANSCRIPTION_NOT_CONFIGURED_MESSAGE,
+} from '@/lib/nexora/knowledge-errors'
 import { getFileExtension, isInternalFileUrl } from '@/lib/uploads/utils/file'
 import {
   type DownloadFileFromUrlOptions,
   downloadFileFromUrl,
 } from '@/lib/uploads/utils/file.server'
-import { MAX_FILE_SIZE } from '@/lib/uploads/utils/validation'
+import { isSupportedExtension, MAX_FILE_SIZE } from '@/lib/uploads/utils/validation'
 import { mistralParserTool } from '@/tools/mistral/parser'
 import type { MistralParserInput } from '@/tools/mistral/types'
 
@@ -246,6 +254,8 @@ export type SourceFileAccess = Pick<
   ocrCheckpoint?: OcrCheckpointContext
   /** Canonical worker deadline; OCR yields before another request can overrun this pass. */
   processingDeadlineAt?: number
+  /** Nexora reading and transcription: the pass's record kept on the document across slices. */
+  progress?: ProcessingProgressStore
   /** The document's source policy for images; absent keeps the OCR path. */
   imageExtraction?: ImageExtractionPolicy
   /** Receives what the vision model billed, even when processing then fails. */
@@ -562,10 +572,11 @@ async function parseDocument(
   cloudUrl?: string
   metadata?: FileParseMetadata
 }> {
-  const isPDF = mimeType === 'application/pdf'
-  const isImage = OCR_IMAGE_MIME_TYPES.has(mimeType)
   if (isKnowledgeAudio(filename, mimeType))
     return transcribeRecording(fileUrl, filename, mimeType, access)
+  mimeType = await resolveScanType(fileUrl, filename, mimeType, access)
+  const isPDF = mimeType === 'application/pdf'
+  const isImage = OCR_IMAGE_MIME_TYPES.has(mimeType)
   const mistralApiKey = await getMistralApiKey(workspaceId)
   access.signal?.throwIfAborted()
 
@@ -583,10 +594,14 @@ async function parseDocument(
       const buffer = await downloadFileForBase64(fileUrl, access)
       access.signal?.throwIfAborted()
       assertOcrSourceSupported(buffer, mimeType)
-      const embedded = isPDF
-        ? await readEmbeddedPdfText(buffer, filename, mimeType, access)
-        : undefined
+      /** A scan's missing text layer is known from an earlier slice of this pass. */
+      const noTextLayer = isPDF && (await access.progress?.read())?.noTextLayer === true
+      const embedded =
+        isPDF && !noTextLayer
+          ? await readEmbeddedPdfText(buffer, filename, mimeType, access)
+          : undefined
       if (embedded) return embedded
+      if (isPDF) await access.progress?.update({ noTextLayer: true })
       return parseWithNexoraOcr(buffer, filename, mimeType, access)
     }
 
@@ -620,6 +635,25 @@ async function parseDocument(
 
   logger.info('Using file parser')
   return parseWithFileParser(fileUrl, filename, mimeType, access)
+}
+
+/**
+ * Nexora edition: a scan or an image uploaded with a type that names no format (browsers send
+ * `application/octet-stream` for many files) is recognized by its name, else by its first bytes,
+ * so it still reaches OCR instead of the text parsers. A document the parsers know by its extension
+ * is left to them.
+ */
+async function resolveScanType(
+  fileUrl: string,
+  filename: string,
+  mimeType: string,
+  access: SourceFileAccess
+): Promise<string> {
+  if (!isNexoraDocumentAiConfigured() || !isGenericMimeType(mimeType)) return mimeType
+  const byName = scanTypeFromName(filename)
+  if (byName) return byName
+  if (isSupportedExtension(getFileExtension(filename))) return mimeType
+  return scanTypeFromContent(await downloadFileForBase64(fileUrl, access)) ?? mimeType
 }
 
 /**
@@ -661,14 +695,32 @@ async function parseWithNexoraOcr(
   assertKnowledgeOpaqueModelInputSafe()
   logger.info('Using Nexora OCR', { model })
   let content: string
+  const guard = {
+    deadlineAt: access.processingDeadlineAt,
+    progress: access.progress,
+    signal: access.signal,
+  }
   if (isPDF) {
-    const readBatch = createNexoraPdfReader(model, access.signal)
+    const readBatch = createNexoraPdfReader(model, guard)
     content = await ocrPdfInChunks(
       buffer,
       'nexora',
       filename,
       NEXORA_OCR_REQUEST_POLICY,
-      (chunk) => readBatch(chunk.buffer, chunk.endPage - chunk.startPage + 1),
+      async (chunk, _chunkIndex, totalPages) => {
+        await access.progress?.update({ unit: 'pages', done: chunk.startPage, total: totalPages })
+        const text = await readBatch(
+          chunk.buffer,
+          chunk.startPage,
+          chunk.endPage - chunk.startPage + 1
+        )
+        await access.progress?.update({
+          unit: 'pages',
+          done: Math.max(chunk.endPage + 1, 0),
+          total: totalPages,
+        })
+        return text
+      },
       access.signal,
       access.ocrCheckpoint
         ? {
@@ -680,7 +732,7 @@ async function parseWithNexoraOcr(
         : undefined
     )
   } else {
-    content = await readImageWithNexora(buffer, model, access.signal)
+    content = await readImageWithNexora(buffer, model, guard)
   }
   if (!content.trim()) {
     throw new PermanentDocumentProcessingError(
@@ -702,7 +754,7 @@ async function transcribeRecording(
   if (!isNexoraDocumentAiConfigured()) {
     throw new PermanentDocumentProcessingError(
       'unsupported_file_type',
-      'Recordings are indexed through a Nexora transcription model, which this deployment does not configure.'
+      TRANSCRIPTION_NOT_CONFIGURED_MESSAGE
     )
   }
   const audio = await downloadFileForBase64(fileUrl, access)
@@ -713,14 +765,12 @@ async function transcribeRecording(
     {
       checkpoint: access.ocrCheckpoint,
       deadlineAt: access.processingDeadlineAt,
+      progress: access.progress,
       signal: access.signal,
     }
   )
   if (!content.trim()) {
-    throw new PermanentDocumentProcessingError(
-      'no_extractable_text',
-      'No speech could be recognised in this recording.'
-    )
+    throw new PermanentDocumentProcessingError('no_extractable_text', NO_SPEECH_MESSAGE)
   }
   assertOcrOutputTextWithinLimit(content)
   return { content, processingMethod: 'nexora-transcription' }
@@ -1191,7 +1241,7 @@ async function ocrPdfInChunks(
   provider: string,
   filename: string,
   policy: OcrRequestPolicy,
-  recognize: (chunk: PdfOcrChunk, chunkIndex: number) => Promise<string | null>,
+  recognize: (chunk: PdfOcrChunk, chunkIndex: number, totalPages: number) => Promise<string | null>,
   signal?: AbortSignal,
   checkpointOptions?: {
     context: OcrCheckpointContext
@@ -1333,7 +1383,7 @@ async function ocrPdfInChunks(
               retryAfterMs: 1000,
             })
           }
-          const content = wasCached ? cached : await recognize(chunk, index)
+          const content = wasCached ? cached : await recognize(chunk, index, totalPages)
           return content && content.trim().length > 0
             ? { index, kind: 'content', content, cached: wasCached }
             : { index, kind: 'empty', cached: wasCached }

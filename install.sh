@@ -263,6 +263,12 @@ configure() {
       voice_profiles="$(get_env COMPOSE_PROFILES)"
       case ",$voice_profiles," in *,voice,*) ;; *) set_env COMPOSE_PROFILES "${voice_profiles:+$voice_profiles,}voice" ;; esac ;;
     *)
+      # Its model stays in Réglages › Modèles (`whisper-small`) until an administrator removes it.
+      local kept_profiles
+      kept_profiles="$(get_env COMPOSE_PROFILES)"
+      kept_profiles=",$kept_profiles,"; kept_profiles="${kept_profiles//,voice,/,}"
+      kept_profiles="${kept_profiles#,}"; kept_profiles="${kept_profiles%,}"
+      set_env COMPOSE_PROFILES "$kept_profiles"
       set_env NEXORA_VOICE 0
       set_env NEXORA_WHISPER_URL "" ;;
   esac

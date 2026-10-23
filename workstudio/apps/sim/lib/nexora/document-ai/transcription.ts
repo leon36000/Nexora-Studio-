@@ -45,13 +45,25 @@ export interface TranscriptionSteps {
   measure: (input: AudioInput) => Promise<number | null>
   /** One piece of the recording, as 16 kHz mono MP3. */
   cut: (input: AudioInput, chunk: AudioChunk) => Promise<Buffer>
-  transcribe: (piece: { audio: Buffer; mimeType: string; fileName: string }) => Promise<string>
+  transcribe: (
+    piece: { audio: Buffer; mimeType: string; fileName: string },
+    signal?: AbortSignal
+  ) => Promise<string>
   /** The text of a piece an earlier, interrupted run already transcribed, `null` otherwise. */
   recall?: (position: number) => Promise<string | null>
   /** Keeps a piece's text before the next piece starts, so a later run resumes after it. */
   remember?: (position: number, text: string) => Promise<void>
   /** Runs before each piece still to transcribe; throws to stop the run there (time is up). */
   beforePiece?: () => void
+  /** Length of a piece, ten minutes by default. */
+  chunkSeconds?: number
+  /** Runs the transcription of one piece (a knowledge base bounds it by its processing slice). */
+  runPiece?: (
+    position: number,
+    transcribe: (signal?: AbortSignal) => Promise<string>
+  ) => Promise<string>
+  /** Pieces done out of the total, before a piece starts and once it is kept. */
+  onProgress?: (done: number, total: number) => Promise<void>
 }
 
 /**
@@ -79,7 +91,7 @@ export async function transcribeAudio(
       `This recording lasts ${Math.round(duration / 60)} min; a block transcribes at most ${MAX_AUDIO_SECONDS / 3600} h. Split it first`
     )
   }
-  const chunks = planAudioChunks(duration)
+  const chunks = planAudioChunks(duration, steps.chunkSeconds)
   const texts: string[] = []
   for (const [position, chunk] of chunks.entries()) {
     const kept = await steps.recall?.(position)
@@ -88,15 +100,21 @@ export async function transcribeAudio(
       continue
     }
     steps.beforePiece?.()
-    const text =
+    await steps.onProgress?.(position, chunks.length)
+    const transcribe = async (signal?: AbortSignal) =>
       chunks.length === 1
-        ? await steps.transcribe(input)
-        : await steps.transcribe({
-            audio: await steps.cut(input, chunk),
-            mimeType: 'audio/mpeg',
-            fileName: `part-${position + 1}.mp3`,
-          })
+        ? steps.transcribe(input, signal)
+        : steps.transcribe(
+            {
+              audio: await steps.cut(input, chunk),
+              mimeType: 'audio/mpeg',
+              fileName: `part-${position + 1}.mp3`,
+            },
+            signal
+          )
+    const text = steps.runPiece ? await steps.runPiece(position, transcribe) : await transcribe()
     await steps.remember?.(position, text)
+    await steps.onProgress?.(position + 1, chunks.length)
     texts.push(text)
   }
   return { transcript: texts.filter(Boolean).join(' '), duration }
@@ -164,22 +182,26 @@ export interface TranscribeWithNexoraInput extends AudioInput {
 
 /**
  * The Speech-to-Text block with the Nexora provider. A knowledge base passes `resume` to keep
- * each finished piece and stop between pieces, so a long recording survives a restart.
+ * each finished piece, stop between pieces and bound each one by its processing slice, so a long
+ * recording survives a restart.
  */
 export async function transcribeWithNexora(
   input: TranscribeWithNexoraInput,
   options: NexoraApiOptions = {},
-  resume: Pick<TranscriptionSteps, 'recall' | 'remember' | 'beforePiece'> = {}
+  resume: Pick<
+    TranscriptionSteps,
+    'recall' | 'remember' | 'beforePiece' | 'chunkSeconds' | 'runPiece' | 'onProgress'
+  > = {}
 ): Promise<{ transcript: string; duration?: number; model: string }> {
   const model = await resolveUsageModel('transcription', input.model, options)
   const result = await transcribeAudio(input, {
     ...resume,
     measure: (audio) => measureWithFfprobe(audio, options.signal),
     cut: (audio, chunk) => cutWithFfmpeg(audio, chunk, options.signal),
-    transcribe: (piece) =>
+    transcribe: (piece, signal) =>
       nexoraTranscribe(
         { ...piece, model, language: input.language, prompt: input.prompt },
-        options
+        { ...options, signal: signal ?? options.signal }
       ),
   })
   return { ...result, model }

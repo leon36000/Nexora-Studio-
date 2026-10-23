@@ -1,9 +1,14 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { describe, expect, it, vi } from 'vitest'
 import { embed } from '@/lib/embeddings/client'
+import { OcrRequestRejectedError } from '@/lib/knowledge/documents/processing-error'
+import { transcribeAudio } from '@/lib/nexora/document-ai/transcription'
 import {
   classifyKnowledgeProcessingError,
   isLegacyEmbeddingBase,
+  NO_SPEECH_MESSAGE,
+  PIECE_TOO_LONG_MESSAGE,
+  TRANSCRIPTION_NOT_CONFIGURED_MESSAGE,
 } from '@/lib/nexora/knowledge-errors'
 
 vi.mock('@/lib/core/rate-limiter/provider-admission', () => ({
@@ -40,6 +45,29 @@ describe('classifyKnowledgeProcessingError', () => {
       projectInputs: null,
     }).catch((error: unknown) => error)
     expect(classifyKnowledgeProcessingError(getErrorMessage(failure))).toBe('embeddingModelLoading')
+  })
+
+  it('explains in French why a recording or a scan could not be indexed', async () => {
+    const tooLong = await transcribeAudio(
+      { audio: Buffer.from('audio'), mimeType: 'audio/mpeg', fileName: 'seminaire.mp3' },
+      {
+        measure: async () => 4 * 60 * 60,
+        cut: async () => Buffer.alloc(0),
+        transcribe: async () => '',
+      }
+    ).then(
+      () => 'transcribed',
+      (error: unknown) => getErrorMessage(error)
+    )
+    expect(classifyKnowledgeProcessingError(tooLong)).toBe('recordingTooLong')
+    expect(classifyKnowledgeProcessingError(new OcrRequestRejectedError(422).message)).toBe(
+      'ocrRejected'
+    )
+    expect(classifyKnowledgeProcessingError(TRANSCRIPTION_NOT_CONFIGURED_MESSAGE)).toBe(
+      'transcriptionNotConfigured'
+    )
+    expect(classifyKnowledgeProcessingError(NO_SPEECH_MESSAGE)).toBe('noSpeech')
+    expect(classifyKnowledgeProcessingError(PIECE_TOO_LONG_MESSAGE)).toBe('pieceTooLong')
   })
 
   it('leaves every other error to be shown as it is', () => {

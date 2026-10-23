@@ -129,6 +129,7 @@
     "loadingModels": "Looking for installed models…",
     "noModels": "No other embedding model is installed on the instance's Ollama (an administrator can add one, for example: ollama pull nomic-embed-text).",
     "confirmText": "The base's {chunks} passages will be recomputed with {model}. The base stays searchable meanwhile.",
+    "confirmWarning": "Note: a block or agent searching several bases at once can only do so when they use the same model; after the switch, reindex the other bases it searches too.",
     "confirm": "Reindex {count, plural, =0 {the base} one {# document} other {# documents}}",
     "cancel": "Cancel",
     "starting": "Starting…",
@@ -282,7 +283,9 @@
       "failed": "Failed",
       "enabled": "Enabled",
       "disabled": "Disabled",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "readingPages": "Reading: {done} / {total} pages",
+      "transcribingPieces": "Transcribing: {done} / {total} pieces"
     },
     "sort": {
       "filename": "Name",
@@ -345,7 +348,12 @@
       "embeddingModelLoading": "The local embedding model is not available yet: it is still downloading, or it is missing. Try again in a few minutes; if the error persists, an administrator runs \"nexora update\".",
       "noOcrModel": "No OCR model: add one in Réglages › Modèles, then retry processing the document.",
       "noTranscriptionModel": "No transcription model: add one in Réglages › Modèles, then retry processing the document.",
-      "legacyBase": "This knowledge base was indexed with an old embedding model this instance no longer serves: it can no longer be searched. Reindex it with one of the instance's models (Edit base › Embedding model)."
+      "legacyBase": "This knowledge base was indexed with an old embedding model this instance no longer serves: it can no longer be searched. Reindex it with one of the instance's models (Edit base › Embedding model).",
+      "transcriptionNotConfigured": "Recordings are indexed through a Nexora transcription model, which this deployment does not configure.",
+      "noSpeech": "No speech could be recognised in this recording.",
+      "recordingTooLong": "This recording lasts more than 3 hours, the transcription limit: split it, then add the parts.",
+      "ocrRejected": "The OCR provider rejected this file. Re-export it as a valid PDF or image and retry. If the file opens correctly, check the OCR provider and model configuration before retrying.",
+      "pieceTooLong": "This page (or piece of recording) takes too long for this server: try a smaller model or a more powerful server."
     }
   },
   "document": {

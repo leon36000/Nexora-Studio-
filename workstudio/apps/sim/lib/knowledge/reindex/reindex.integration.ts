@@ -6,10 +6,12 @@
  */
 import { db } from '@sim/db'
 import {
+  auditLog,
   document,
   embedding,
   embeddingSearch,
   knowledgeBase,
+  knowledgeReindex,
   knowledgeReindexVector,
   organization,
   outboxEvent,
@@ -27,7 +29,10 @@ const fixtures = vi.hoisted(() => ({ embed: vi.fn() }))
 vi.mock('@/lib/knowledge/embeddings', () => ({ generateEmbeddings: fixtures.embed }))
 
 import type { OutboxEventContext } from '@/lib/core/outbox/service'
-import { OllamaEmbeddingModelNotFoundError } from '@/lib/embeddings/ollama-model-catalog.server'
+import {
+  OllamaEmbeddingModelNotFoundError,
+  OllamaUnreachableError,
+} from '@/lib/embeddings/ollama-model-catalog.server'
 import {
   KnowledgeEmbeddingModelChangedError,
   lockKnowledgeEmbeddingTarget,
@@ -35,6 +40,7 @@ import {
 import { KNOWLEDGE_REINDEX_EVENT } from '@/lib/knowledge/reindex/outbox-event'
 import { knowledgeReindexOutboxHandlers } from '@/lib/knowledge/reindex/outbox-handler'
 import {
+  failKnowledgeReindex,
   KnowledgeReindexConflictError,
   readKnowledgeReindexState,
   runKnowledgeReindexSlice,
@@ -188,6 +194,7 @@ describe('knowledge base reindex', () => {
   })
 
   afterAll(async () => {
+    await db.delete(auditLog).where(eq(auditLog.workspaceId, workspaceId))
     await db.delete(outboxEvent).where(eq(outboxEvent.eventType, KNOWLEDGE_REINDEX_EVENT))
     await db.delete(knowledgeBase).where(eq(knowledgeBase.workspaceId, workspaceId))
     await deleteWorkspaceFixture(db, eq(workspace.id, workspaceId))
@@ -378,5 +385,154 @@ describe('knowledge base reindex', () => {
       status: 'running',
       targetModel: NEW.model,
     })
+  })
+
+  it('reuses on a relaunch toward the same model the vectors already computed, and discards them for another model', async () => {
+    const knowledgeBaseId = await seedBase(2, 3)
+    const first = await startKnowledgeReindex({
+      knowledgeBaseId,
+      target: NEW,
+      requestedBy: ownerId,
+    })
+    const controller = new AbortController()
+    embeddingModel({ abortAtCall: 2, controller })
+    await expect(
+      runKnowledgeReindexSlice(knowledgeBaseId, first.generation, {
+        signal: controller.signal,
+        deadlineAt: Date.now() + 500_000,
+      })
+    ).rejects.toThrow()
+    await failKnowledgeReindex(knowledgeBaseId, first.generation, {
+      code: 'failed',
+      message: 'stopped for the test',
+    })
+
+    const relaunch = await startKnowledgeReindex({
+      knowledgeBaseId,
+      target: NEW,
+      requestedBy: ownerId,
+    })
+    const resumed = embeddingModel()
+    await expect(
+      runKnowledgeReindexSlice(knowledgeBaseId, relaunch.generation, {
+        signal: new AbortController().signal,
+        deadlineAt: Date.now() + 500_000,
+      })
+    ).resolves.toBe('completed')
+    expect(resumed.flat()).toHaveLength(3)
+
+    const other = { model: 'ollama/mxbai-embed-large', dimensions: 1024 as const }
+    const back = await startKnowledgeReindex({
+      knowledgeBaseId,
+      target: other,
+      requestedBy: ownerId,
+    })
+    const interruptedAgain = new AbortController()
+    embeddingModel({ abortAtCall: 2, controller: interruptedAgain })
+    await expect(
+      runKnowledgeReindexSlice(knowledgeBaseId, back.generation, {
+        signal: interruptedAgain.signal,
+        deadlineAt: Date.now() + 500_000,
+      })
+    ).rejects.toThrow()
+    await failKnowledgeReindex(knowledgeBaseId, back.generation, { code: 'failed', message: 'x' })
+    const toOld = await startKnowledgeReindex({
+      knowledgeBaseId,
+      target: { model: 'ollama/all-minilm', dimensions: 1024 },
+      requestedBy: ownerId,
+    })
+    const fresh = embeddingModel()
+    await expect(
+      runKnowledgeReindexSlice(knowledgeBaseId, toOld.generation, {
+        signal: new AbortController().signal,
+        deadlineAt: Date.now() + 500_000,
+      })
+    ).resolves.toBe('completed')
+    expect(fresh.flat()).toHaveLength(6)
+  })
+
+  it('waits for an unreachable model server without spending attempts, still marked as moving', async () => {
+    const knowledgeBaseId = await seedBase(1, 1)
+    const { generation } = await startKnowledgeReindex({
+      knowledgeBaseId,
+      target: NEW,
+      requestedBy: ownerId,
+    })
+    await db
+      .update(knowledgeReindex)
+      .set({ updatedAt: new Date(Date.now() - 30 * 60 * 1000) })
+      .where(eq(knowledgeReindex.knowledgeBaseId, knowledgeBaseId))
+    fixtures.embed.mockRejectedValue(new OllamaUnreachableError('connect ECONNREFUSED'))
+
+    const context = handlerContext(4)
+    const outcome = await knowledgeReindexOutboxHandlers[KNOWLEDGE_REINDEX_EVENT](
+      { knowledgeBaseId, generation },
+      context
+    )
+
+    expect(outcome).toMatchObject({ outcome: 'deferred', consumeAttempt: false })
+    expect(context.checkpointPayload).toHaveBeenCalledWith(
+      expect.objectContaining({ waitingSince: expect.any(String) })
+    )
+    expect(await readKnowledgeReindexState(knowledgeBaseId)).toMatchObject({
+      status: 'running',
+      stalled: false,
+    })
+
+    const longAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+    await knowledgeReindexOutboxHandlers[KNOWLEDGE_REINDEX_EVENT](
+      { knowledgeBaseId, generation, waitingSince: longAgo },
+      handlerContext(4)
+    )
+    expect(await readKnowledgeReindexState(knowledgeBaseId)).toMatchObject({
+      status: 'failed',
+      errorCode: 'model-unavailable',
+    })
+  })
+
+  it('audits the switch for whoever asked for it, and a failure with its reason', async () => {
+    const switched = await seedBase(1, 1)
+    const run = await startKnowledgeReindex({
+      knowledgeBaseId: switched,
+      target: NEW,
+      requestedBy: ownerId,
+    })
+    embeddingModel()
+    await runKnowledgeReindexSlice(switched, run.generation, {
+      signal: new AbortController().signal,
+      deadlineAt: Date.now() + 500_000,
+    })
+    const failed = await seedBase(1, 1)
+    const failing = await startKnowledgeReindex({
+      knowledgeBaseId: failed,
+      target: NEW,
+      requestedBy: ownerId,
+    })
+    await failKnowledgeReindex(failed, failing.generation, { code: 'chunk-too-long', message: 'x' })
+
+    const entries = await db
+      .select({
+        action: auditLog.action,
+        resourceId: auditLog.resourceId,
+        actorId: auditLog.actorId,
+        metadata: auditLog.metadata,
+      })
+      .from(auditLog)
+      .where(eq(auditLog.workspaceId, workspaceId))
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: 'knowledge_base.updated',
+          resourceId: switched,
+          actorId: ownerId,
+          metadata: expect.objectContaining({ embeddingModel: NEW.model }),
+        }),
+        expect.objectContaining({
+          action: 'knowledge_base.reindex_failed',
+          resourceId: failed,
+          metadata: expect.objectContaining({ errorCode: 'chunk-too-long' }),
+        }),
+      ])
+    )
   })
 })

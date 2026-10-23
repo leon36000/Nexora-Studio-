@@ -64,6 +64,7 @@ class OCRPageObject(BaseModel):
     index: Annotated[int, Field(default=..., description="The page index in a pdf document starting from 0")]
     markdown: Annotated[str | None, Field(default=None, description="The markdown string response of the page")]
     tables: Annotated[list[OCRTableObject], Field(default=[], description="The tables extracted from the page, in the requested table_format.")]
+    truncated: Annotated[bool | None, Field(default=None, description="Nexora: true when the model stopped at its answer length limit, so the page text may be cut.")]  # fmt: off
 
 
 class OCRResponse(BaseModel):

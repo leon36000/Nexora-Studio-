@@ -3,6 +3,7 @@ import pytest
 from api.domain.ocr.entities import CreateOCRBody, OCRDocumentURLChunk, OCRImageURL, OCRImageURLChunk
 from api.domain.provider.entities import ProviderEndpoint, ProviderRequest, ProviderType
 from api.domain.provider.errors import ProviderAdapterValidationRequestError
+from api.infrastructure.fastapi.schemas.ocr import OCRResponse
 from api.infrastructure.http import HttpProviderResponse
 from api.infrastructure.http.adapters.ocr.mistral import MistralOcrAdapter
 from api.infrastructure.http.adapters.ocr.openai import OpenaiOcrAdapter
@@ -85,6 +86,66 @@ class TestOpenaiOcrAdapter:
         response = HttpProviderResponse(data={"choices": [{"message": {"content": answer}}]})
         result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG)))
         assert result.data.pages[0].markdown == "NEXORA 2026"
+
+    @pytest.mark.parametrize(
+        "answer",
+        [
+            "Here is the extracted text:\n\nNEXORA 2026",
+            "Voici le texte extrait de l'image :\nNEXORA 2026",
+            "The extracted text from the image is:\n\n```\nNEXORA 2026\n```",
+            "Sure! Here's the text in Markdown:\nNEXORA 2026",
+        ],
+    )
+    def test_should_drop_the_model_preamble_with_or_without_a_code_block(self, adapter, answer):
+        response = HttpProviderResponse(data={"choices": [{"message": {"content": answer}}]})
+        result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG)))
+        assert result.data.pages[0].markdown == "NEXORA 2026"
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "Lancez la commande :\n```\nnexora status\n```",
+            "Facture n° 2026-104 :\n\nTotal à payer : 12 €",
+            "Objet : livraison du mardi\nMerci de confirmer.",
+            "Le contenu du colis :\n- 2 pains\n- 1 brioche",
+        ],
+    )
+    def test_should_keep_a_label_line_that_belongs_to_the_document(self, adapter, text):
+        response = HttpProviderResponse(data={"choices": [{"message": {"content": text}}]})
+        result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG)))
+        assert result.data.pages[0].markdown == text
+
+    def test_should_report_a_page_the_model_stopped_reading_at_its_length_limit(self, adapter):
+        # A dense page can need more than the answer budget: the text read so far is kept, flagged.
+        response = HttpProviderResponse(data={"choices": [{"message": {"content": "# Contrat\n\nArticle 1"}, "finish_reason": "length"}]})
+        result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG)))
+        assert result.data.pages[0].markdown == "# Contrat\n\nArticle 1"
+        assert result.data.pages[0].truncated is True
+        assert OCRResponse.model_validate(result.data.model_dump()).pages[0].truncated is True
+
+        complete = HttpProviderResponse(data={"choices": [{"message": {"content": "Fin"}, "finish_reason": "stop"}]})
+        result = adapter.to_provider_response(http_response=complete, request=_request(OCRImageURLChunk(image_url=PNG)))
+        assert not result.data.pages[0].truncated
+
+    def test_should_give_a_dense_page_room_to_be_read_whole(self, adapter):
+        result = adapter.to_http_request(request=_request(OCRImageURLChunk(image_url=PNG)))
+        assert result.body["max_tokens"] >= 8192
+
+    @pytest.mark.parametrize(
+        "document",
+        [
+            OCRImageURLChunk(image_url="http://169.254.169.254/latest/meta-data/x.png"),
+            OCRImageURLChunk(image_url=OCRImageURL(url="https://intranet.local/scan.png")),
+            OCRImageURLChunk(image_url="file:///etc/passwd"),
+            OCRDocumentURLChunk(document_url="http://intranet.local/scan.png"),
+        ],
+    )
+    def test_should_refuse_an_image_given_by_address_instead_of_inline(self, adapter, document):
+        # The model server would fetch the address itself, from inside the instance (SSRF).
+        result = adapter.to_http_request(request=_request(document))
+        assert isinstance(result, ProviderAdapterValidationRequestError)
+        assert "data:image/" in str(result.errors)
+        assert "images only" not in str(result.errors)
 
     def test_should_keep_code_blocks_that_belong_to_the_document(self, adapter):
         text = "# Procédure\n\nLancez :\n\n```\nnexora status\n```\n\nPuis vérifiez."

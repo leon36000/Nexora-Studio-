@@ -102,6 +102,12 @@ ev="$hv/deploy/.env"
 [ "$(envval COMPOSE_PROFILES "$ev")" = "search,voice" ] && ok "transcription profile added to web search" || ko "transcription profile added to web search (got: $(envval COMPOSE_PROFILES "$ev"))"
 [ "$(envval NEXORA_WHISPER_URL "$ev")" = "http://whisper:8000" ] && ok "the bootstrap registers the transcription service" || ko "the bootstrap registers the transcription service"
 [ "$(envval NEXORA_WHISPER_THREADS "$ev")" -ge 1 ] 2> /dev/null && ok "transcription threads capped" || ko "transcription threads capped"
+# Answered « non » when installing again (configuration removed first): no transcription service left.
+rm -f "$ev"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_WEB_SEARCH=1 NEXORA_VOICE=0 run "$hv" --yes --no-start
+case ",$(envval COMPOSE_PROFILES "$ev")," in *,voice,*) ko "transcription profile removed when answered no" ;; *) ok "transcription profile removed when answered no" ;; esac
+[ -z "$(envval NEXORA_WHISPER_URL "$ev")" ] && ok "the bootstrap no longer registers the transcription service" || ko "the bootstrap no longer registers the transcription service"
 
 # 1c. Outgoing email by SMTP, given as environment values in unattended mode.
 hm="$(new_home)/nexora"

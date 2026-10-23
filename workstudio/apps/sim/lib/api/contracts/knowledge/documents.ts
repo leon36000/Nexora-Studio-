@@ -296,6 +296,11 @@ export const documentDataSchema = z
     processingStartedAt: nullableWireDateSchema.optional(),
     processingCompletedAt: nullableWireDateSchema.optional(),
     processingError: z.string().nullable().optional(),
+    /** Nexora: pages read or pieces transcribed so far, while a long document is indexed. */
+    processingProgress: z
+      .object({ unit: z.enum(['pages', 'pieces']), done: z.number(), total: z.number() })
+      .nullable()
+      .optional(),
     enabled: z.boolean(),
     uploadedAt: wireDateSchema,
     tag1: documentTagFieldSchema,

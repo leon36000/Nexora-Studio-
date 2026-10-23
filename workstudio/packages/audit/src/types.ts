@@ -130,6 +130,8 @@ export const AuditAction = {
   KNOWLEDGE_BASE_DELETED: 'knowledge_base.deleted',
   KNOWLEDGE_BASE_RESTORED: 'knowledge_base.restored',
   KNOWLEDGE_BASE_EXPORTED: 'knowledge_base.exported',
+  KNOWLEDGE_BASE_REINDEX_STARTED: 'knowledge_base.reindex_started',
+  KNOWLEDGE_BASE_REINDEX_FAILED: 'knowledge_base.reindex_failed',
 
   MCP_SERVER_ADDED: 'mcp_server.added',
   MCP_SERVER_UPDATED: 'mcp_server.updated',

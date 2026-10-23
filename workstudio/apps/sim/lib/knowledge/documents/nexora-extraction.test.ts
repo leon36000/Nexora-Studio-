@@ -17,16 +17,45 @@ import { PDFDocument } from 'pdf-lib'
 import sharp from 'sharp'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const { mockGetAudioMetadata, mockRunExecutable } = vi.hoisted(() => ({
+  mockGetAudioMetadata: vi.fn(async (): Promise<{ duration: number }> => {
+    throw new Error('not measurable')
+  }),
+  mockRunExecutable: vi.fn(async (_binary: string, args: string[]) => {
+    const { writeFile } = await import('node:fs/promises')
+    await writeFile(args[args.length - 1], Buffer.from('ID3 piece'))
+    return { stdout: '', stderr: '' }
+  }),
+}))
+
+vi.mock('@/lib/audio/extractor', () => ({ getAudioMetadata: mockGetAudioMetadata }))
+vi.mock('@/lib/media/ffmpeg-process', () => ({
+  FFMPEG_BASE_ARGS: ['-y', '-nostdin'],
+  resolveExecutable: () => '/usr/bin/ffmpeg',
+  runExecutable: mockRunExecutable,
+}))
 vi.mock('@/lib/uploads/core/storage-service', () => storageServiceMock)
 vi.mock('@/lib/file-parsers', () => fileParsersMock)
 vi.mock('@/lib/uploads/utils/file.server', () => fileUtilsServerMock)
 
 import { ProviderCapacityDeferredError } from '@/lib/core/rate-limiter/provider-capacity-error'
-import { NEXORA_OCR_BATCH_BUDGET_MS } from '@/lib/knowledge/documents/nexora-extraction'
+import {
+  NEXORA_OCR_BATCH_BUDGET_MS,
+  runWithinSlice,
+} from '@/lib/knowledge/documents/nexora-extraction'
 import { PermanentDocumentProcessingError } from '@/lib/knowledge/documents/processing-error'
+import {
+  createProcessingProgressStore,
+  type ProcessingProgressRecord,
+  type ProcessingProgressStore,
+} from '@/lib/knowledge/documents/processing-progress'
 import { processDocument } from '@/lib/knowledge/documents/processor'
 import { runWithKnowledgeModelInputProvenance } from '@/lib/knowledge/model-input-provenance'
-import { NO_OCR_MODEL_MESSAGE, NO_TRANSCRIPTION_MODEL_MESSAGE } from '@/lib/nexora/knowledge-errors'
+import {
+  NO_OCR_MODEL_MESSAGE,
+  NO_TRANSCRIPTION_MODEL_MESSAGE,
+  PIECE_TOO_LONG_MESSAGE,
+} from '@/lib/nexora/knowledge-errors'
 
 const NEXORA_API = 'http://nexora-api:8000/v1'
 const pass = { knowledgeBaseId: 'kb-1', documentId: 'doc-1', indexingPassId: 'pass-1' }
@@ -38,11 +67,14 @@ interface ApiOptions {
   modelsStatus?: number
   /** Simulated time one page takes to read. */
   pageMs?: number
+  /** Status Nexora API answers every OCR or transcription request with. */
+  readStatus?: number
 }
 
 /** Nexora API as the knowledge base sees it, with a vision model that reads images only. */
 function fakeNexoraApi(options: ApiOptions = {}) {
   const requests: { path: string; type?: string }[] = []
+  const transcribedPieces: unknown[] = []
   let page = 0
   const fetchFn = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const path = String(input).replace(NEXORA_API, '')
@@ -62,6 +94,7 @@ function fakeNexoraApi(options: ApiOptions = {}) {
     if (path === '/ocr') {
       const body = JSON.parse(String(init?.body))
       requests.push({ path, type: body.document.type })
+      if (options.readStatus) return jsonResponse({ detail: 'refused' }, options.readStatus)
       if (body.document.type === 'document_url') {
         return jsonResponse({ detail: 'this vision model reads images only' }, 422)
       }
@@ -71,6 +104,8 @@ function fakeNexoraApi(options: ApiOptions = {}) {
     }
     if (path === '/audio/transcriptions') {
       requests.push({ path })
+      transcribedPieces.push(init?.body instanceof FormData ? init.body.get('file') : null)
+      if (options.readStatus) return jsonResponse({ detail: 'refused' }, options.readStatus)
       return jsonResponse({ text: 'Bonjour, ceci est le compte rendu de la réunion.' })
     }
     return jsonResponse({}, 404)
@@ -78,8 +113,15 @@ function fakeNexoraApi(options: ApiOptions = {}) {
   vi.stubGlobal('fetch', fetchFn)
   return {
     requests,
+    transcribedPieces,
     ocrRequests: () => requests.filter((request) => request.path === '/ocr'),
   }
+}
+
+function whiteImage(): Promise<Buffer> {
+  return sharp({ create: { width: 40, height: 30, channels: 3, background: 'white' } })
+    .png()
+    .toBuffer()
 }
 
 async function scannedPdf(pages: number): Promise<Buffer> {
@@ -88,10 +130,28 @@ async function scannedPdf(pages: number): Promise<Buffer> {
   return Buffer.from(await pdf.save())
 }
 
+/** A document's progress record, kept in memory the way the document row keeps it. */
+function memoryProgress(passId = pass.indexingPassId) {
+  const saved: { record: ProcessingProgressRecord | null } = { record: null }
+  const open = (): ProcessingProgressStore =>
+    createProcessingProgressStore(
+      passId,
+      async () => saved.record,
+      async (record) => {
+        saved.record = structuredClone(record)
+      }
+    )
+  return { saved, open }
+}
+
 function processUpload(
   filename: string,
   mimeType: string,
-  access: { ocrCheckpoint?: typeof pass; processingDeadlineAt?: number } = {}
+  access: {
+    ocrCheckpoint?: typeof pass
+    processingDeadlineAt?: number
+    progress?: ProcessingProgressStore
+  } = {}
 ) {
   return runWithKnowledgeModelInputProvenance(
     undefined,
@@ -280,7 +340,161 @@ describe('Nexora reading of knowledge documents', () => {
     )
   })
 
-  it('reads a long scan in batches, yields when the run is out of time and resumes after the saved batches', async () => {
+  it('fails fast with the no-model reason when the model has no provider behind it', async () => {
+    fakeNexoraApi({ readStatus: 404 })
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await whiteImage())
+    await expect(processUpload('receipt.png', 'image/png')).rejects.toMatchObject({
+      name: 'PermanentDocumentProcessingError',
+      message: NO_OCR_MODEL_MESSAGE,
+    })
+
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(Buffer.from('ID3 audio'))
+    await expect(processUpload('reunion.mp3', 'audio/mpeg')).rejects.toMatchObject({
+      name: 'PermanentDocumentProcessingError',
+      message: NO_TRANSCRIPTION_MODEL_MESSAGE,
+    })
+  })
+
+  it('waits out a rejected key or a rate limit instead of failing the file as unreadable', async () => {
+    for (const status of [401, 429]) {
+      fakeNexoraApi({ readStatus: status })
+      fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await whiteImage())
+      await expect(processUpload('receipt.png', 'image/png')).rejects.toBeInstanceOf(
+        ProviderCapacityDeferredError
+      )
+    }
+  })
+
+  it('transcribes an Ogg recording sent as application/ogg', async () => {
+    const api = fakeNexoraApi()
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(Buffer.from('OggS audio'))
+
+    const result = await processUpload('message.ogg', 'application/ogg')
+
+    expect(result.metadata.processingMethod).toBe('nexora-transcription')
+    expect(api.requests.some((request) => request.path === '/audio/transcriptions')).toBe(true)
+  })
+
+  it('reads an image or a scan uploaded without a precise type, by its name or its content', async () => {
+    const api = fakeNexoraApi()
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await whiteImage())
+    const image = await processUpload('receipt.png', 'application/octet-stream')
+    expect(image.metadata.processingMethod).toBe('nexora-ocr')
+
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await scannedPdf(1))
+    fileParsersMockFns.mockParseBuffer.mockResolvedValue({
+      content: '',
+      metadata: { pageCount: 1 },
+    })
+    const scan = await processUpload('scan.pdf', 'application/octet-stream')
+    expect(scan.metadata.processingMethod).toBe('nexora-ocr')
+
+    api.requests.length = 0
+    const unnamed = await processUpload('numérisation', 'application/octet-stream')
+    expect(unnamed.metadata.processingMethod).toBe('nexora-ocr')
+    expect(api.ocrRequests().length).toBeGreaterThan(0)
+  })
+
+  it('remembers across slices that the model reads images only and that the scan has no text layer', async () => {
+    const api = fakeNexoraApi({ pageMs: 60_000 })
+    const progress = memoryProgress()
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await scannedPdf(4))
+    fileParsersMockFns.mockParseBuffer.mockResolvedValue({
+      content: '',
+      metadata: { pageCount: 4 },
+    })
+
+    await expect(
+      processUpload('archive.pdf', 'application/pdf', {
+        ocrCheckpoint: pass,
+        progress: progress.open(),
+        processingDeadlineAt: Date.now() + NEXORA_OCR_BATCH_BUDGET_MS + 140_000,
+      })
+    ).rejects.toMatchObject({ reason: 'processing_budget' })
+    expect(progress.saved.record).toMatchObject({ imagesOnly: true, noTextLayer: true })
+    const parsedFirst = fileParsersMockFns.mockParseBuffer.mock.calls.length
+
+    api.requests.length = 0
+    await processUpload('archive.pdf', 'application/pdf', {
+      ocrCheckpoint: pass,
+      progress: progress.open(),
+      processingDeadlineAt: Date.now() + 24 * 60 * 60 * 1000,
+    })
+    expect(api.ocrRequests().filter((request) => request.type === 'document_url')).toHaveLength(0)
+    expect(fileParsersMockFns.mockParseBuffer.mock.calls.length).toBe(parsedFirst)
+  })
+
+  it('reads a scan one page per request and records the pages read out of the total', async () => {
+    const api = fakeNexoraApi({ pageMs: 60_000 })
+    const progress = memoryProgress()
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await scannedPdf(5))
+    fileParsersMockFns.mockParseBuffer.mockResolvedValue({
+      content: '',
+      metadata: { pageCount: 5 },
+    })
+
+    await expect(
+      processUpload('archive.pdf', 'application/pdf', {
+        ocrCheckpoint: pass,
+        progress: progress.open(),
+        processingDeadlineAt: Date.now() + NEXORA_OCR_BATCH_BUDGET_MS + 140_000,
+      })
+    ).rejects.toMatchObject({ reason: 'processing_budget' })
+
+    const pagesRead = api.ocrRequests().filter((request) => request.type === 'image_url').length
+    expect(pagesRead).toBeGreaterThan(0)
+    expect(objects.size).toBe(pagesRead)
+    expect(progress.saved.record).toMatchObject({ unit: 'pages', done: pagesRead, total: 5 })
+  })
+
+  it('fails a page that outran two slices with the reason, without reading it again', async () => {
+    const api = fakeNexoraApi()
+    const progress = memoryProgress()
+    await progress.open().update({ imagesOnly: true, overrun: { position: 0, count: 2 } })
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await scannedPdf(2))
+    fileParsersMockFns.mockParseBuffer.mockResolvedValue({
+      content: '',
+      metadata: { pageCount: 2 },
+    })
+
+    await expect(
+      processUpload('dense.pdf', 'application/pdf', {
+        ocrCheckpoint: pass,
+        progress: progress.open(),
+        processingDeadlineAt: Date.now() + 24 * 60 * 60 * 1000,
+      })
+    ).rejects.toMatchObject({
+      name: 'PermanentDocumentProcessingError',
+      message: PIECE_TOO_LONG_MESSAGE,
+    })
+    expect(api.ocrRequests()).toHaveLength(0)
+  })
+
+  it('transcribes a long recording in pieces of three minutes at most, counting them', async () => {
+    const api = fakeNexoraApi()
+    const progress = memoryProgress()
+    mockGetAudioMetadata.mockResolvedValueOnce({ duration: 20 * 60 })
+    fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(Buffer.from('ID3 audio'))
+
+    await processUpload('reunion.mp3', 'audio/mpeg', {
+      ocrCheckpoint: pass,
+      progress: progress.open(),
+      processingDeadlineAt: Date.now() + 24 * 60 * 60 * 1000,
+    })
+
+    const durations = mockRunExecutable.mock.calls.map(([, args]) =>
+      Number(args[args.indexOf('-t') + 1])
+    )
+    expect(Math.max(...durations)).toBeLessThanOrEqual(180)
+    expect(api.transcribedPieces).toHaveLength(durations.length)
+    expect(progress.saved.record).toMatchObject({
+      unit: 'pieces',
+      done: durations.length,
+      total: durations.length,
+    })
+  })
+
+  it('reads a long scan page by page, yields when the run is out of time and resumes after the saved pages', async () => {
     const api = fakeNexoraApi({ pageMs: 60_000 })
     fileUtilsServerMockFns.mockDownloadFileFromUrl.mockResolvedValue(await scannedPdf(6))
     fileParsersMockFns.mockParseBuffer.mockResolvedValue({
@@ -297,7 +511,7 @@ describe('Nexora reading of knowledge documents', () => {
       reason: 'processing_budget',
     })
     const pagesReadFirst = api.ocrRequests().filter((request) => request.type === 'image_url')
-    expect(pagesReadFirst).toHaveLength(2)
+    expect(pagesReadFirst).toHaveLength(1)
     expect(objects.size).toBe(1)
 
     api.requests.length = 0
@@ -306,11 +520,79 @@ describe('Nexora reading of knowledge documents', () => {
       processingDeadlineAt: Date.now() + 24 * 60 * 60 * 1000,
     })
     const pagesReadAfter = api.ocrRequests().filter((request) => request.type === 'image_url')
-    expect(pagesReadAfter).toHaveLength(4)
+    expect(pagesReadAfter).toHaveLength(5)
     const text = indexedText(resumed)
     for (let pageNumber = 1; pageNumber <= 6; pageNumber++) {
       expect(text).toContain(`Texte lu page ${pageNumber}`)
     }
     expect(text.indexOf('Texte lu page 1')).toBeLessThan(text.indexOf('Texte lu page 6'))
+  })
+})
+
+describe('a page or a piece longer than its processing slice', () => {
+  const hangs = (signal?: AbortSignal) =>
+    new Promise<string>((_, reject) => {
+      signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
+    })
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-23T08:00:00Z'))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('stops it before the slice ends, so the next slice reads it again from its start', async () => {
+    const progress = memoryProgress()
+    const run = runWithinSlice(
+      { deadlineAt: Date.now() + 300_000, progress: progress.open() },
+      7,
+      hangs
+    )
+    const outcome = expect(run).rejects.toMatchObject({ reason: 'processing_budget' })
+    await vi.advanceTimersByTimeAsync(300_000)
+    await outcome
+    expect(progress.saved.record?.overrun).toEqual({ position: 7, count: 1 })
+  })
+
+  it('fails with the reason when the same page outruns a second slice', async () => {
+    const progress = memoryProgress()
+    await progress.open().update({ overrun: { position: 7, count: 1 } })
+    const run = runWithinSlice(
+      { deadlineAt: Date.now() + 500_000, progress: progress.open() },
+      7,
+      hangs
+    )
+    const outcome = expect(run).rejects.toMatchObject({
+      name: 'PermanentDocumentProcessingError',
+      message: PIECE_TOO_LONG_MESSAGE,
+    })
+    await vi.advanceTimersByTimeAsync(500_000)
+    await outcome
+  })
+
+  it('forgets an overrun once the page is read, and counts another page afresh', async () => {
+    const progress = memoryProgress()
+    await progress.open().update({ overrun: { position: 7, count: 1 } })
+    await expect(
+      runWithinSlice(
+        { deadlineAt: Date.now() + 500_000, progress: progress.open() },
+        7,
+        async () => 'lu'
+      )
+    ).resolves.toBe('lu')
+    expect(progress.saved.record?.overrun).toBeUndefined()
+
+    const other = runWithinSlice(
+      { deadlineAt: Date.now() + 300_000, progress: progress.open() },
+      8,
+      hangs
+    )
+    const outcome = expect(other).rejects.toMatchObject({ reason: 'processing_budget' })
+    await vi.advanceTimersByTimeAsync(300_000)
+    await outcome
+    expect(progress.saved.record?.overrun).toEqual({ position: 8, count: 1 })
   })
 })

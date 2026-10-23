@@ -332,8 +332,8 @@ services:
 
   # Local transcription (profile « voice », off by default; install.sh asks): an OpenAI-compatible
   # Whisper server (speaches), on the internal network only. Nexora API reaches it at
-  # http://whisper:8000 (NEXORA_WHISPER_URL); the bootstrap downloads the multilingual `small`
-  # model once (about 500 MB, kept in a volume) and registers it. Threads are capped so a long
+  # http://whisper:8000 (NEXORA_WHISPER_URL); it downloads the multilingual `small` model once
+  # (about 500 MB, kept in a volume) and the bootstrap registers it. Threads are capped so a long
   # transcription does not slow down the rest of the server.
   whisper:
     image: ghcr.io/speaches-ai/speaches:0.8.3-cpu
@@ -344,8 +344,18 @@ services:
       WHISPER__TTL: '600'
       ENABLE_UI: 'false'
       LOG_LEVEL: info
+      # Loading the model (after each idle period) never contacts Hugging Face.
+      HF_HUB_OFFLINE: '1'
+      NEXORA_WHISPER_MODEL: ${NEXORA_WHISPER_MODEL:-Systran/faster-whisper-small}
+    # The model is fetched once, online, only while missing from the volume; then the server starts
+    # offline (the image's own command).
+    command:
+      - sh
+      - -c
+      - HF_HUB_OFFLINE=0 python -I /nexora/fetch-whisper-model.py; exec uvicorn --factory speaches.main:create_app
     volumes:
       - whisper-models:/home/ubuntu/.cache/huggingface/hub
+      - ./whisper/fetch-whisper-model.py:/nexora/fetch-whisper-model.py:ro
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8000/health']
       interval: 10s
