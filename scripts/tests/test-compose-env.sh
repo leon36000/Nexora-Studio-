@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Renders deploy/compose.yml with deploy/.env.example and checks the configuration WorkStudio
+# receives on a fresh install. Run: bash scripts/tests/test-compose-env.sh (needs docker compose).
+set -u
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+fails=0
+ok() { echo "ok   - $1"; }
+ko() { echo "FAIL - $1"; fails=$((fails+1)); }
+dc() { if docker info > /dev/null 2>&1; then docker "$@"; else sg docker -c "docker $(printf '%q ' "$@")"; fi; }
+
+env_file="$(mktemp)"; trap 'rm -f "$env_file"' EXIT
+sed 's/=change-me$/=0123456789abcdef0123456789abcdef/' "$ROOT/deploy/.env.example" > "$env_file"
+rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"
+[ -n "$rendered" ] && ok "compose renders with the example configuration" || { ko "compose renders with the example configuration"; exit 1; }
+value() { python3 -I -c 'import json,sys; e=json.load(sys.stdin)["services"]["workstudio"]["environment"]; print(e.get(sys.argv[1]) or "")' "$1" <<< "$rendered"; }
+
+# A partial SMTP configuration stops WorkStudio at start: no SMTP value without a server.
+smtp="$(for k in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS; do value "$k"; done | tr -d '\n')"
+[ -z "$smtp" ] && ok "no SMTP setting without an SMTP server" || ko "no SMTP setting without an SMTP server (got: $smtp)"
+[ -z "$(value SEARXNG_URL)" ] && [ -z "$(value PREVIEW_BLOCKS)" ] && ok "web search off on a fresh install" || ko "web search off on a fresh install"
+[ "$(value KB_EMBEDDING_MODEL)" = "ollama/bge-m3" ] && ok "knowledge bases embed with the local model" || ko "knowledge bases embed with the local model"
+
+[ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

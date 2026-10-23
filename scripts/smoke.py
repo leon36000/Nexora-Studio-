@@ -197,6 +197,34 @@ def main() -> int:
         require(status == 200 and body.get("success") and (body.get("content") or "").strip(), f"wand returned HTTP {status}: {str(body)[:200]}")
         return f"« {body['content'].strip()[:60]} »"
 
+    def public_chat():
+        status, html = s.call("GET", f"/chat/fumee-{secrets.token_hex(3)}", raw=True)
+        require(status in (200, 404), f"/chat returned HTTP {status}")
+        require('lang="fr"' in html, "the public chat page is not served in French")
+        require("Ask me anything" not in html and "Chat not found" not in html, "English text left on the public chat page")
+        return f'lang="fr" (HTTP {status})'
+
+    def web_search():
+        status, body = s.call("POST", "/api/workflows", {"name": "Fumée recherche web", "workspaceId": state["ws"]})
+        require(status in (200, 201), f"workflow creation returned HTTP {status}")
+        wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        start, search = secrets.token_hex(8), secrets.token_hex(8)
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        blocks = {
+            start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                    "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+            search: {"id": search, "type": "searxng", "name": "Recherche", "position": {"x": 400, "y": 0}, "enabled": True,
+                     "subBlocks": {"query": sub("query", "long-input", "Nexora PME"), "maxResults": sub("maxResults", "short-input", "3")}, "outputs": {}},
+        }
+        edges = [{"id": secrets.token_hex(8), "source": start, "target": search, "sourceHandle": "source", "targetHandle": "target"}]
+        status, body = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": blocks, "edges": edges, "loops": {}, "parallels": {}})
+        require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+        status, body = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False, "input": {}}, timeout=180)
+        require(status == 200, f"run returned HTTP {status}: {str(body)[:300]}")
+        text = json.dumps(body)
+        require('"results"' in text and "http" in text, f"no search result: {text[:300]}")
+        return "résultats reçus de SearXNG"
+
     def run_template(name: str):
         def run():
             status, body = s.call("POST", f"/api/workflows/{state['workflows'][name]}/execute", {"useDraftState": True, "stream": False, "input": TEMPLATE_INPUTS[name]}, timeout=600)
@@ -246,6 +274,9 @@ def main() -> int:
     s.check("Base de connaissances (embeddings locaux)", knowledge_base)
     s.check("Planification (cron)", schedule)
     s.check("Générer avec l'IA (modèle Nexora)", wand)
+    s.check("Chat public en français", public_chat)
+    if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
+        s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Journal d'audit", audit)
