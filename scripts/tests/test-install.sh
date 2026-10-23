@@ -19,6 +19,8 @@ case "$*" in
   "compose version"*) echo "Docker Compose version v2.30.0" ;;
   *"config --images"*) printf 'pgvector/pgvector:pg17\nnexora/workstudio:local\n' ;;
   "image inspect"*) exit "${FAKE_LOCAL_EXIT:-1}" ;;
+  *"exec -T ollama ollama pull"*) exit "${FAKE_OLLAMA_PULL_EXIT:-0}" ;;
+  *"exec -T ollama ollama show"*) exit "${FAKE_OLLAMA_SHOW_EXIT:-0}" ;;
   *"exec -T ollama"*) exit 0 ;;
   *" pull"*) exit "${FAKE_PULL_EXIT:-0}" ;;
   *" up "*) exit "${FAKE_UP_EXIT:-0}" ;;
@@ -144,6 +146,19 @@ sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=ollama/' "$e3"
 : > "$h3.log"
 NEXORA_HEALTH_TIMEOUT=5 run "$h3" --update && ok "v1 install updates" || { ko "v1 install updates"; cat "$h3.out"; }
 grep -q "ollama pull bge-m3" "$h3.log" && grep -q "ollama pull $(envval NEXORA_UPSTREAM_MODEL "$e3")" "$h3.log" && ok "update pulls the embedding and local chat models" || ko "update pulls the embedding and local chat models"
+
+# 5e. Offline update: the Ollama registry is unreachable but the models are already there.
+NEXORA_HEALTH_TIMEOUT=5 FAKE_OLLAMA_PULL_EXIT=1 run "$h3" --update && ok "offline update keeps the downloaded models" || { ko "offline update keeps the downloaded models"; cat "$h3.out"; }
+NEXORA_HEALTH_TIMEOUT=5 FAKE_OLLAMA_PULL_EXIT=1 FAKE_OLLAMA_SHOW_EXIT=1 run "$h3" --update && ko "a missing model without network is an error" || ok "a missing model without network is an error"
+
+# 5f. Values with $ or # (SMTP password, API key) reach Docker Compose unchanged.
+hq="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY='k$ey #1' \
+  NEXORA_SMTP_HOST=smtp.pme-test.fr NEXORA_SMTP_PASS='p@ss$word #2' run "$hq" --yes --no-start
+eq="$hq/deploy/.env"
+quoted() { (set -a; . "$eq" >/dev/null 2>&1; printf '%s' "${!1}"); }
+[ "$(quoted NEXORA_SMTP_PASS)" = 'p@ss$word #2' ] && ok "SMTP password kept intact" || ko "SMTP password kept intact (got: $(quoted NEXORA_SMTP_PASS))"
+[ "$(quoted NEXORA_UPSTREAM_KEY)" = 'k$ey #1' ] && ok "API key kept intact" || ko "API key kept intact (got: $(quoted NEXORA_UPSTREAM_KEY))"
 
 # 6. Without Docker, the installer stops and says why.
 h5="$(new_home)/nexora"; nodocker="$(new_home)"

@@ -309,7 +309,8 @@
     "documentPageTitle": "{title} — {parent}",
     "errors": {
       "embeddingUnavailable": "Aucun modèle d'embeddings n'est configuré pour les bases de connaissances. Un administrateur doit vérifier le service Ollama de Nexora (« nexora status »).",
-      "embeddingModelLoading": "Le modèle d'embeddings local est encore en cours de téléchargement. Réessayez dans quelques minutes."
+      "embeddingModelLoading": "Le modèle d'embeddings local n'est pas encore disponible : il est en cours de téléchargement, ou il manque. Réessayez dans quelques minutes ; si l'erreur persiste, un administrateur lance « nexora update ».",
+      "legacyBase": "Cette base a été indexée avec un ancien modèle d'embeddings que cette instance ne fournit plus : elle ne peut plus être interrogée. Recréez-la et déposez à nouveau vos documents."
     }
   },
   "document": {

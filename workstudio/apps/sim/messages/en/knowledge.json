@@ -309,7 +309,8 @@
     "documentPageTitle": "{title} — {parent}",
     "errors": {
       "embeddingUnavailable": "No embedding model is configured for knowledge bases. An administrator must check Nexora's Ollama service (\"nexora status\").",
-      "embeddingModelLoading": "The local embedding model is still downloading. Try again in a few minutes."
+      "embeddingModelLoading": "The local embedding model is not available yet: it is still downloading, or it is missing. Try again in a few minutes; if the error persists, an administrator runs \"nexora update\".",
+      "legacyBase": "This knowledge base was indexed with an old embedding model this instance no longer serves: it can no longer be searched. Recreate it and upload your documents again."
     }
   },
   "document": {

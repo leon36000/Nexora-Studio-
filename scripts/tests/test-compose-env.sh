@@ -20,4 +20,10 @@ smtp="$(for k in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS; do value "$k"; done | 
 [ -z "$(value SEARXNG_URL)" ] && [ -z "$(value PREVIEW_BLOCKS)" ] && ok "web search off on a fresh install" || ko "web search off on a fresh install"
 [ "$(value KB_EMBEDDING_MODEL)" = "ollama/bge-m3" ] && ok "knowledge bases embed with the local model" || ko "knowledge bases embed with the local model"
 
+# install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
+printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"
+rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"
+# (`compose config` prints a literal $ as $$, the form it would not interpolate again.)
+[ "$(value SMTP_PASS | sed 's/\$\$/$/g')" = 'p@ss$word #2' ] && ok "quoted secrets reach WorkStudio unchanged" || ko "quoted secrets reach WorkStudio unchanged (got: $(value SMTP_PASS))"
+
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

@@ -42,6 +42,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryState, useQueryStates } from 'nuqs'
 import { getDocumentIcon } from '@/components/icons/document-icons'
+import { getEnv } from '@/lib/core/config/env'
 import {
   ALL_TAG_SLOTS,
   type AllTagSlot,
@@ -55,7 +56,10 @@ import {
 } from '@/lib/knowledge/documents/types'
 import { type FilterFieldType, getOperatorsForFieldType } from '@/lib/knowledge/filters/types'
 import type { DocumentData } from '@/lib/knowledge/types'
-import { classifyKnowledgeProcessingError } from '@/lib/nexora/knowledge-errors'
+import {
+  classifyKnowledgeProcessingError,
+  isLegacyEmbeddingBase,
+} from '@/lib/nexora/knowledge-errors'
 import { formatFileSize } from '@/lib/uploads/utils/file'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import {
@@ -170,7 +174,8 @@ const STATUS_FILTER_VALUES = ['all', 'enabled', 'disabled'] as const
 type Translator = ReturnType<typeof useTranslations>
 
 /** The stored processing error, or its French explanation when an administrator can fix it. */
-function describeProcessingError(message: string, t: Translator): string {
+function describeProcessingError(message: string, t: Translator, isLegacyBase: boolean): string {
+  if (isLegacyBase) return t('errors.legacyBase')
   const kind = classifyKnowledgeProcessingError(message)
   return kind ? t(`errors.${kind}`) : message
 }
@@ -456,6 +461,10 @@ export function KnowledgeBase({
     refresh: refreshKnowledgeBase,
   } = useKnowledgeBase(id)
   const canDeleteBase = canDeleteKnowledgeBase(knowledgeBase, userPermissions)
+  /** Nexora edition: indexed with a model this instance no longer serves; it must be recreated. */
+  const isLegacyBase = knowledgeBase
+    ? isLegacyEmbeddingBase(knowledgeBase.embeddingModel, getEnv('NEXT_PUBLIC_KB_EMBEDDING_MODEL'))
+    : false
 
   const { data: connectors = EMPTY_CONNECTORS, isLoading: isLoadingConnectors } =
     useConnectorList(id)
@@ -1262,7 +1271,7 @@ export function KnowledgeBase({
                       <div className='cursor-help'>{getStatusBadge(doc, t)}</div>
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top' className='max-w-xs'>
-                      {describeProcessingError(doc.processingError, t)}
+                      {describeProcessingError(doc.processingError, t, isLegacyBase)}
                     </Tooltip.Content>
                   </Tooltip.Root>
                 ),
@@ -1354,6 +1363,14 @@ export function KnowledgeBase({
           filterTags={filterTags}
           aside={connectorBadges}
         />
+        {isLegacyBase && (
+          <p
+            role='status'
+            className='mx-4 my-2 rounded-lg border border-[var(--border)] px-3 py-2 text-[var(--text-error)] text-caption'
+          >
+            {t('errors.legacyBase')}
+          </p>
+        )}
         <Resource.Table
           columns={documentColumns}
           rows={documentRows}

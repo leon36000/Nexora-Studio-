@@ -82,14 +82,23 @@ ask() { # ask <variable> <question> <default> [secret]
 
 set_env() { # set_env KEY VALUE — replaces or appends one line of deploy/.env, keeping it private
   case "$2" in *$'\n'*) die "Valeur sur plusieurs lignes refusée pour $1." ;; esac
+  local value="$2"
+  # Docker Compose interpolates $VAR and drops " #comment" in unquoted values: quote those.
+  case "$value" in
+    *[\$\#\"\\\`]*|*"'"*)
+      case "$value" in
+        *"'"*) value="\"$(printf '%s' "$value" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\$/$$/g')\"" ;;
+        *) value="'$value'" ;;
+      esac ;;
+  esac
   local tmp; tmp="$(mktemp "$ENV_FILE.XXXXXX")"
-  KEY="$1" VAL="$2" awk 'BEGIN { k = ENVIRON["KEY"]; v = ENVIRON["VAL"]; done = 0 }
+  KEY="$1" VAL="$value" awk 'BEGIN { k = ENVIRON["KEY"]; v = ENVIRON["VAL"]; done = 0 }
     index($0, k "=") == 1 { if (!done) print k "=" v; done = 1; next }
     { print }
     END { if (!done) print k "=" v }' "$ENV_FILE" > "$tmp"
   cat "$tmp" > "$ENV_FILE"; rm -f "$tmp"
 }
-get_env() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | tail -1 | cut -d= -f2- || true; }
+get_env() { grep -E "^$1=" "$ENV_FILE" 2>/dev/null | tail -1 | cut -d= -f2- | sed -e "s/^'\\(.*\\)'$/\\1/" || true; }
 
 compose() { docker compose -p "$NEXORA_PROJECT" -f "$NEXORA_HOME/deploy/compose.yml" --env-file "$ENV_FILE" "$@"; }
 
@@ -301,7 +310,12 @@ CLI
 pull_ollama_model() { # pull_ollama_model <model> — downloads once, caps threads
   local model="${1:-bge-m3}"
   step "Préparation du modèle local $model (téléchargement la première fois)"
-  compose exec -T ollama ollama pull "$model" || die "Téléchargement du modèle $model impossible. Vérifiez la connexion, puis relancez « nexora update »."
+  if ! compose exec -T ollama ollama pull "$model"; then
+    # Offline: a model downloaded earlier is still served, so only a missing one is fatal.
+    compose exec -T ollama ollama show "$model" > /dev/null 2>&1 \
+      || die "Téléchargement du modèle $model impossible. Vérifiez la connexion, puis relancez « nexora update »."
+    warn "Registre Ollama injoignable : le modèle $model déjà présent est conservé."
+  fi
   # llama.cpp starts one thread per core and collapses (x100 slower) when other programs take
   # cores; half the cores keeps nearly all the speed of a dedicated machine.
   local cores threads

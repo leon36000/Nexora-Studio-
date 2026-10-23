@@ -11,6 +11,21 @@ export function classifyKnowledgeProcessingError(
 ): KnowledgeProcessingErrorKind | null {
   if (!message) return null
   if (/embedding provider is not configured/i.test(message)) return 'embeddingUnavailable'
-  if (/model\b.*\bnot found/i.test(message) && /pull/i.test(message)) return 'embeddingModelLoading'
+  // The embedding client keeps only the status; on the bundled Ollama a 404 means the model
+  // is not there yet (still downloading after an install or update, or not pulled).
+  if (/Embedding API failed: 404\b/.test(message)) return 'embeddingModelLoading'
   return null
+}
+
+/**
+ * A knowledge base indexed with a model this instance no longer serves (for example
+ * `text-embedding-3-small` from before the local embeddings): it cannot be searched again and
+ * must be recreated. Bases on any model of the bundled Ollama stay usable.
+ */
+export function isLegacyEmbeddingBase(
+  embeddingModel: string,
+  instanceModel: string | undefined
+): boolean {
+  if (!instanceModel) return false
+  return embeddingModel !== instanceModel && !embeddingModel.startsWith('ollama/')
 }

@@ -197,5 +197,5 @@
 - [x] **Step 1:** suite complète : `tsc` 0, vitest complet vert, `check:audits`, `check:test-types`, `scripts/check-{no-ee,brand,licenses,i18n}.sh`, tests shell (`scripts/tests/test-*.sh`), `python3 -I deploy/bootstrap/test_bootstrap.py`.
 - [x] **Step 2:** reconstruire les images (`workstudio`, `cron`) sur pc6, `compose up -d`, télécharger `bge-m3`, puis `NEXORA_SMOKE_ADMIN_* scripts/smoke.sh http://localhost:3200` : tous les contrôles, anciens et nouveaux (base de connaissances, planification, routeur, générer avec l'IA, chat public), verts.
 - [x] **Step 3:** installation fraîche isolée (procédure de la tâche 16 v1 : projet `nexora-itest`, ports 3300…) puis fumée, puis `nexora uninstall --purge`.
-- [ ] **Step 4:** ledger v2 (`docs/superpowers/plans/2026-10-23-nexora-v2-ledger.md`) : preuves et décisions ; mémoire projet.
-- [ ] **Step 5:** `git push origin main`.
+- [x] **Step 4:** ledger v2 (`docs/superpowers/plans/2026-10-23-nexora-v2-ledger.md`) : preuves et décisions ; mémoire projet.
+- [x] **Step 5:** `git push origin main`.

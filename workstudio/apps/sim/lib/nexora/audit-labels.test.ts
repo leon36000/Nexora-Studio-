@@ -23,10 +23,14 @@ describe('describeAuditEntry', () => {
     ).toEqual({ label: 'Espace créé', detail: 'Fumée' })
     expect(
       describeAuditEntry(
-        { action: 'organization.sso_policy.updated', description: 'x', resourceName: null },
+        {
+          action: 'organization.sso_policy.updated',
+          description: 'Transferred ownership to bob@pme.fr',
+          resourceName: null,
+        },
         t
       )
-    ).toEqual({ label: 'Politique SSO modifiée', detail: '' })
+    ).toEqual({ label: 'Politique SSO modifiée', detail: 'Transferred ownership to bob@pme.fr' })
   })
 
   it('falls back to the code and the stored description for an unknown action', () => {

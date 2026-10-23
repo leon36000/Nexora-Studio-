@@ -745,6 +745,7 @@ export const env = createEnv({
     NEXT_PUBLIC_E2B_ENABLED:               z.string().optional(),
     NEXT_PUBLIC_SANDBOXES_ENABLED:         z.string().optional(),              // Client twin of isRemoteSandboxEnabled — true under either sandbox provider
     NEXT_PUBLIC_EXA_SEARCH_ENABLED:        z.string().optional(),              // Nexora edition: shows the paid Exa « Search » block (EXA_API_KEY configured)
+    NEXT_PUBLIC_KB_EMBEDDING_MODEL:        z.string().optional(),              // Nexora edition: embedding model of new knowledge bases, to flag bases indexed with an old one
     NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS: z.string().optional(),              // Hide Bedrock credential fields when deployment uses AWS default credential chain (IAM roles, instance profiles, ECS task roles, IRSA)
     NEXT_PUBLIC_AZURE_CONFIGURED:          z.string().optional(),              // Hide Azure credential fields when endpoint/key/version are pre-configured server-side
     NEXT_PUBLIC_COHERE_CONFIGURED:         z.string().optional(),              // Hide Cohere API key field on Knowledge block when COHERE_API_KEY is pre-configured server-side
@@ -835,6 +836,7 @@ export const env = createEnv({
     NEXT_PUBLIC_E2B_ENABLED: process.env.NEXT_PUBLIC_E2B_ENABLED,
     NEXT_PUBLIC_SANDBOXES_ENABLED: process.env.NEXT_PUBLIC_SANDBOXES_ENABLED,
     NEXT_PUBLIC_EXA_SEARCH_ENABLED: process.env.NEXT_PUBLIC_EXA_SEARCH_ENABLED,
+    NEXT_PUBLIC_KB_EMBEDDING_MODEL: process.env.NEXT_PUBLIC_KB_EMBEDDING_MODEL,
     NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS: process.env.NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS,
     NEXT_PUBLIC_AZURE_CONFIGURED: process.env.NEXT_PUBLIC_AZURE_CONFIGURED,
     NEXT_PUBLIC_COHERE_CONFIGURED: process.env.NEXT_PUBLIC_COHERE_CONFIGURED,
