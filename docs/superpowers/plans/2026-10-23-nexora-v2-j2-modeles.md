@@ -137,11 +137,11 @@
 - Erreurs : `NexoraModelAdminUnavailableError`/`OllamaUnavailableError` → 503 `{ error: 'unavailable' }` ; `NexoraModelError` → 400 (`invalid`, `unreachable`), 404 (`not-found`), 409 (`duplicate`, `is-default`) avec `{ error: code }` (le texte français est choisi par l'interface).
 - Consumes: Task 3 et Task 4.
 
-- [ ] **Step 1: Failing tests** : 401 sans session ; 403 pour un membre non admin ou d'une autre organisation ; un corps hostile (`model: '../x'`) → 400 sans appel au client ; chaque erreur du client → son statut ; la clé ne figure dans aucune réponse.
-- [ ] **Step 2: Run** `LANG=en_US.UTF-8 bunx vitest run app/api/nexora` — Expected: FAIL.
-- [ ] **Step 3: Implement** contrats, garde, routes (`withRouteHandler` brut, commentaire « raw route » comme `usage`).
-- [ ] **Step 4: Run** `LANG=en_US.UTF-8 bunx vitest run app/api/nexora lib/nexora` puis `bun run check:api-validation:strict` — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(j2): routes d'administration des modèles (admins de l'organisation)`.
+- [x] **Step 1: Failing tests** : 401 sans session ; 403 pour un membre non admin ou d'une autre organisation ; un corps hostile (`model: '../x'`) → 400 sans appel au client ; chaque erreur du client → son statut ; la clé ne figure dans aucune réponse.
+- [x] **Step 2: Run** `LANG=en_US.UTF-8 bunx vitest run app/api/nexora` — Expected: FAIL.
+- [x] **Step 3: Implement** contrats, garde, routes (`withRouteHandler` brut, commentaire « raw route » comme `usage`).
+- [x] **Step 4: Run** `LANG=en_US.UTF-8 bunx vitest run app/api/nexora lib/nexora` puis `bun run check:api-validation:strict` — Expected: PASS.
+- [x] **Step 5: Commit** `feat(j2): routes d'administration des modèles (admins de l'organisation)`.
 
 ### Task 6: Réglages › Modèles
 

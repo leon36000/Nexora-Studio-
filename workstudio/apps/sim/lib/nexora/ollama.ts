@@ -1,6 +1,7 @@
 import { availableParallelism } from 'node:os'
 import { getErrorMessage } from '@sim/utils/errors'
 import { env } from '@/lib/core/config/env'
+import { OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
 
 /**
  * Local models recommended for French-speaking SMEs on the bundled Ollama: disk size of the
@@ -16,10 +17,6 @@ export const OLLAMA_CATALOG = [
   { name: 'llama3.1:8b', diskGb: 4.9, memoryGb: 8, paramsB: 8 },
   { name: 'gemma2:9b', diskGb: 5.4, memoryGb: 10, paramsB: 9 },
 ] as const
-
-/** An Ollama model reference: `name`, `namespace/name`, each with an optional `:tag`. */
-export const OLLAMA_MODEL_NAME =
-  /^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)?(:[a-z0-9][a-z0-9._-]*)?$/i
 
 /** Local files the knowledge bases need (`bge-m3`, or `bge-m3:latest`). */
 const PROTECTED_MODELS = new Set(['bge-m3'])
