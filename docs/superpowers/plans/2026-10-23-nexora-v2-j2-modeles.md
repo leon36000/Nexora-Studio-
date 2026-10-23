@@ -117,11 +117,11 @@
   - `class OllamaUnavailableError extends Error`
 - Consumes: `env.OLLAMA_URL`.
 
-- [ ] **Step 1: Failing tests** : nom hostile refusé avant tout appel ; flux relaie la progression puis `done` ; ligne d'erreur d'Ollama → événement `error` ; Ollama injoignable → `OllamaUnavailableError` ; `deleteLocalModel('bge-m3')` refusé ; threads = moitié des cœurs (≥ 1).
-- [ ] **Step 2: Run** `LANG=en_US.UTF-8 bunx vitest run lib/nexora/ollama.test.ts` — Expected: FAIL.
-- [ ] **Step 3: Implement** `ollama.ts`.
-- [ ] **Step 4: Run** — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(j2): Ollama fourni — catalogue PME, téléchargement suivi, threads limités`.
+- [x] **Step 1: Failing tests** : nom hostile refusé avant tout appel ; flux relaie la progression puis `done` ; ligne d'erreur d'Ollama → événement `error` ; Ollama injoignable → `OllamaUnavailableError` ; `deleteLocalModel('bge-m3')` refusé ; threads = moitié des cœurs (≥ 1).
+- [x] **Step 2: Run** `LANG=en_US.UTF-8 bunx vitest run lib/nexora/ollama.test.ts` — Expected: FAIL.
+- [x] **Step 3: Implement** `ollama.ts`.
+- [x] **Step 4: Run** — Expected: PASS.
+- [x] **Step 5: Commit** `feat(j2): Ollama fourni — catalogue PME, téléchargement suivi, threads limités`.
 
 ### Task 5: Contrats et routes `/api/nexora/models/*`
 
