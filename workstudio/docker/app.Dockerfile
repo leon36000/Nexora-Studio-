@@ -223,8 +223,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/sim/lib/execution/sandbox/bu
 # no Python/Presidio in this image.
 
 # Create .next/cache directory with correct ownership
-RUN mkdir -p apps/sim/.next/cache && \
-    chown -R nextjs:nodejs apps/sim/.next/cache
+RUN mkdir -p apps/sim/.next/cache apps/sim/uploads && \
+    chown -R nextjs:nodejs apps/sim/.next/cache apps/sim/uploads
 
 # Switch to non-root user
 USER nextjs

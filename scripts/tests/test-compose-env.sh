@@ -25,6 +25,10 @@ case "$command" in *". /bootstrap/nexora-admin.env"*) ok "WorkStudio reads its m
 
 [ -n "$(value NEXORA_CONNECT_ADMIN_TOKEN)" ] && ok "WorkStudio can administer Nexora Connect (connectors catalog)" || ko "WorkStudio can administer Nexora Connect (connectors catalog)"
 
+# Uploaded files (knowledge documents, workspace files) must outlive container updates.
+mounts="$(python3 -I -c 'import json,sys; v=json.load(sys.stdin)["services"]["workstudio"].get("volumes",[]); print(" ".join(m.get("target","") if isinstance(m,dict) else m for m in v))' <<< "$rendered")"
+case " $mounts " in *" /app/apps/sim/uploads "*) ok "uploaded files are kept in a volume" ;; *) ko "uploaded files are kept in a volume (mounts: $mounts)" ;; esac
+
 # The default model's name is fixed: WorkStudio, the bootstrap and Nexora API must agree on it.
 printf "NEXORA_MODEL_NAME=assistant\n" >> "$env_file"
 rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"

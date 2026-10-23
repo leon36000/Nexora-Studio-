@@ -244,6 +244,8 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
     volumes:
       - bootstrap:/bootstrap:ro
+      # Uploaded files (knowledge documents, workspace files): kept across updates.
+      - workstudio-uploads:/app/apps/sim/uploads
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:
@@ -311,6 +313,7 @@ services:
 
 volumes:
   ollama-data:
+  workstudio-uploads:
   postgres-data:
   redis-data:
   nexora-api-redis-data:

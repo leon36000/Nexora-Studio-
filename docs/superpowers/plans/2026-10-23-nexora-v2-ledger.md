@@ -135,3 +135,7 @@ Spec : `docs/superpowers/specs/2026-10-23-nexora-v2-design.md`. Plans : `docs/su
   - Final: fixed I4 « l'Accueil embarque ~1,4 Mo du chat d'origine » — le composant du chat et son préchargement sont importés à la demande, seulement quand le chat d'origine est actif (mesure du gain à la prochaine construction).
   - I2 (partie serveur) : `/api/nexora/home` renvoie `emailConfigured` et `organizationId` (pour l'étape organisation, mineur 7) — tests de route RED→GREEN 5/5.
   - Mineurs 12–13 : guide « Prise en main » mis à jour (carte Agent, 30 jours, pas de logo, étape équipe, Tester) ; fumée « Accueil » vérifie « Créer », « Démarrages rapides », « État de la plateforme ».
+
+## J11 « Exploitation » (commencé en parallèle)
+
+- **Bug de perte de données trouvé** en préparant la sauvegarde : les fichiers téléversés (documents des bases de connaissances, fichiers d'espace) étaient écrits dans le conteneur WorkStudio (`/app/apps/sim/uploads`) **sans volume** — perdus à chaque mise à jour ou recréation. Corrigé : volume `workstudio-uploads`, dossier créé dans l'image au nom de `nextjs` (un volume neuf hérite de ce propriétaire) ; contrôle `test-compose-env.sh` « uploaded files are kept in a volume » RED→GREEN. À la prochaine recréation sur pc6, recopier d'abord les fichiers existants du conteneur dans le volume.
