@@ -58,7 +58,13 @@ class Smoke:
             except json.JSONDecodeError:
                 return error.code, {}
 
+    only: str | None = None
+    # Checks every other one builds on: always run, even with --only.
+    FOUNDATIONS = ("Inscription d'un compte", "Nouvel espace avec les modèles PME")
+
     def check(self, name: str, fn):
+        if self.only and self.only.lower() not in name.lower() and name not in self.FOUNDATIONS:
+            return None
         started = time.monotonic()
         try:
             detail = fn()
@@ -81,8 +87,10 @@ def main() -> int:
     parser.add_argument("--url", default="http://localhost:3000")
     parser.add_argument("--quick", action="store_true", help="essential checks only (after an update)")
     parser.add_argument("--report")
+    parser.add_argument("--only", help="run only the checks whose name contains this text (plus sign-up and workspace)")
     args = parser.parse_args()
     s = Smoke(args.url)
+    s.only = args.only
     email = f"smoke-{secrets.token_hex(4)}@nexora.test"
     password = secrets.token_hex(16)
     state: dict = {}
@@ -155,7 +163,7 @@ def main() -> int:
             """Runs list_connections through the workspace's own Nexora Connect server, as a workflow does."""
             start, mcp = secrets.token_hex(8), secrets.token_hex(8)
             sub = lambda i, t, v: {"id": i, "type": t, "value": v}
-            status, body = s.call("POST", "/api/workflows", {"name": "Connecteurs de fumée", "workspaceId": ws})
+            status, body = s.call("POST", "/api/workflows", {"name": f"Connecteurs de fumée {secrets.token_hex(3)}", "workspaceId": ws})
             require(status in (200, 201), f"workflow creation returned HTTP {status}")
             wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
             workflows.append(wf)
