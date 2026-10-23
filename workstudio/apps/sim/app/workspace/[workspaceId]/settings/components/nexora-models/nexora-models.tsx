@@ -186,15 +186,18 @@ export function NexoraModels() {
   return (
     <>
       <SettingsPanel
-        actions={[
-          {
-            text: t('add'),
-            icon: Plus,
-            variant: 'primary',
-            disabled: !data,
-            onSelect: () => setIsAddOpen(true),
-          },
-        ]}
+        actions={
+          data
+            ? [
+                {
+                  text: t('add'),
+                  icon: Plus,
+                  variant: 'primary',
+                  onSelect: () => setIsAddOpen(true),
+                },
+              ]
+            : []
+        }
       >
         {body}
       </SettingsPanel>

@@ -460,18 +460,11 @@ export function AddModelModal({
         <ChipModalError>{error}</ChipModalError>
       </ChipModalBody>
       <ChipModalFooter
-        onCancel={handleClose}
-        cancelLabel={tShared('cancel')}
+        onCancel={isDownloading ? () => abortRef.current?.abort() : handleClose}
+        cancelLabel={isDownloading ? t('confirm.cancelDownload') : tShared('cancel')}
         cancelDisabled={isAdding}
-        secondaryActions={
-          isDownloading
-            ? [{ label: t('confirm.cancelDownload'), onClick: () => abortRef.current?.abort() }]
-            : undefined
-        }
         primaryAdjacentAction={
-          step === 'source'
-            ? undefined
-            : { label: tShared('back'), onClick: goBack, disabled: isBusy }
+          step === 'source' || isBusy ? undefined : { label: tShared('back'), onClick: goBack }
         }
         primaryAction={primaryAction}
       />
