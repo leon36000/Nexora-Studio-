@@ -57,6 +57,9 @@ const OrganizationSecuritySettings = dynamic(() =>
 )
 const UsageMonitoring = dynamic(() => SECTION_MODULES.usage().then((m) => m.UsageMonitoring))
 const NexoraModels = dynamic(() => SECTION_MODULES.models().then((m) => m.NexoraModels))
+const NexoraConnectorApps = dynamic(() =>
+  SECTION_MODULES.connectors().then((m) => m.NexoraConnectorApps)
+)
 const Desktop = dynamic(() => SECTION_MODULES.desktop().then((m) => m.Desktop))
 const Browser = dynamic(() => SECTION_MODULES.browser().then((m) => m.Browser))
 const Terminal = dynamic(() => SECTION_MODULES.terminal().then((m) => m.Terminal))
@@ -140,6 +143,9 @@ function SettingsPageContent({ section }: SettingsPageProps) {
         />
       )}
       {effectiveSection === 'models' && organizationId && <NexoraModels />}
+      {effectiveSection === 'connectors' && organizationId && (
+        <NexoraConnectorApps workspaceId={hostContext.workspace.id} />
+      )}
       {effectiveSection === 'apikeys' && <ApiKeys scope='combined' />}
       {billingEnabled && effectiveSection === 'billing' && (
         <Billing

@@ -3,6 +3,7 @@ import {
   BrainCircuit,
   ChartColumn,
   ClipboardList,
+  Connections,
   Credit,
   Database,
   Globe,
@@ -138,6 +139,7 @@ export type UnifiedSettingsSection =
   | 'organization'
   | 'usage'
   | 'models'
+  | 'connectors'
   | 'sso'
   | 'whitelabeling'
   | 'forks'
@@ -555,6 +557,20 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
       description: NAV.unified.models.description,
       group: 'organization',
       order: 2,
+      requiresHosted: true,
+      requiresEnterprise: true,
+      selfHostedOverride: 'always',
+    },
+  },
+  {
+    label: NAV.unified.connectors.label,
+    icon: Connections,
+    docsLink: docsUrl('/connectors'),
+    unified: {
+      id: 'connectors',
+      description: NAV.unified.connectors.description,
+      group: 'organization',
+      order: 3,
       requiresHosted: true,
       requiresEnterprise: true,
       selfHostedOverride: 'always',

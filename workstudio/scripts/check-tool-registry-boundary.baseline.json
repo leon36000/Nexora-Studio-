@@ -155,6 +155,18 @@
         "apps/sim/lib/auth/index.ts": 336
       }
     },
+    "app/workspace/[workspaceId]/connecteurs/[service]/page.tsx": {
+      "modules": 31,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/connecteurs/[service]/connector-detail.tsx": 30
+      }
+    },
+    "app/workspace/[workspaceId]/connecteurs/page.tsx": {
+      "modules": 37,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/connecteurs/connectors.tsx": 35
+      }
+    },
     "app/workspace/[workspaceId]/dashboards/layout.tsx": {
       "modules": 3,
       "gateways": {}

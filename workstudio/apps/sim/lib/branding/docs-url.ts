@@ -30,6 +30,7 @@ const GUIDE_PAGES: ReadonlyArray<readonly [prefix: string, page: string]> = [
   ['/permissions', 'reglages.md'],
   ['/agents', 'agents.md'],
   ['/playground', 'playground.md'],
+  ['/connectors', 'connecteurs.md'],
 ]
 
 function guidePage(path: string): string | null {

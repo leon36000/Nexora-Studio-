@@ -227,6 +227,10 @@
         "label": "Modèles",
         "description": "Choisissez les modèles d’IA de vos workflows"
       },
+      "connectors": {
+        "label": "Connecteurs",
+        "description": "Enregistrez les applications OAuth des connecteurs"
+      },
       "secrets": {
         "label": "Secrets",
         "description": "Stockez des variables d’environnement pour vos workflows."

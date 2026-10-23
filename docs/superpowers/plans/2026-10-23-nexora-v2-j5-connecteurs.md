@@ -66,8 +66,8 @@
 
 **Files:** page `app/workspace/[workspaceId]/connecteurs/` (catalogue, recherche, catégories, fiche, formulaire de clé, fenêtre OAuth + suivi), entrée de barre latérale, Réglages › Connecteurs (applications OAuth de l'opérateur, adresse de retour affichée), messages `messages/{fr,en}/connectors.json`, liens « Connecter un outil » de l'Accueil vers la page.
 
-- [ ] **Step 1:** Construire ; `type-check`, `check:audits`, `check-i18n`, `check-brand` — PASS.
-- [ ] **Step 2: Commit** `feat(j5): catalogue de connecteurs en un clic`.
+- [x] **Step 1:** Construire ; `type-check`, `check:audits`, `check-i18n`, `check-brand` — PASS.
+- [x] **Step 2: Commit** `feat(j5): catalogue de connecteurs en un clic`.
 
 ### Task 6: Guide, fumée, pc6, revue
 

@@ -55,6 +55,8 @@ export const SECTION_MODULES = {
   usage: () => import('@/ee/organization-usage/components/usage-monitoring'),
   models: () =>
     import('@/app/workspace/[workspaceId]/settings/components/nexora-models/nexora-models'),
+  connectors: () =>
+    import('@/app/workspace/[workspaceId]/settings/components/nexora-connectors/nexora-connectors'),
   desktop: () => import('@/app/workspace/[workspaceId]/settings/components/desktop/desktop'),
   browser: () => import('@/app/workspace/[workspaceId]/settings/components/browser/browser'),
   terminal: () => import('@/app/workspace/[workspaceId]/settings/components/terminal/terminal'),

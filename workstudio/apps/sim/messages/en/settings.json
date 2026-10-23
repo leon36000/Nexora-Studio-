@@ -227,6 +227,10 @@
         "label": "Models",
         "description": "Choose the AI models your workflows use"
       },
+      "connectors": {
+        "label": "Connectors",
+        "description": "Register the OAuth apps behind connectors"
+      },
       "secrets": {
         "label": "Secrets",
         "description": "Store environment variables for your workflows."

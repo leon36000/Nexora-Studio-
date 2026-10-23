@@ -12,7 +12,7 @@ interface QuickStartsProps {
 
 /**
  * « Démarrages rapides »: the SME templates of the workspace, then inviting the team and
- * connecting a tool (Nexora Connect is registered as the workspace's MCP server).
+ * connecting a tool from the connectors catalog.
  */
 export function QuickStarts({ workspaceId }: QuickStartsProps) {
   const t = useTranslations('home.nexoraHome.quickStarts')
@@ -37,7 +37,7 @@ export function QuickStarts({ workspaceId }: QuickStartsProps) {
         <HomeCard
           icon={Connections}
           label={t('connect')}
-          href={`/workspace/${workspaceId}/settings/mcp`}
+          href={`/workspace/${workspaceId}/connecteurs`}
         />
       </div>
     </SettingsSection>

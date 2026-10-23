@@ -25,6 +25,7 @@ import {
 } from '@sim/emcn'
 import {
   Building,
+  Connections,
   Dashboard,
   Database,
   Files,
@@ -788,6 +789,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           label: t('nav.agents'),
           icon: Sparkles,
           href: `/workspace/${workspaceId}/agents`,
+          hidden: chatEnabled,
+        },
+        {
+          // Nexora edition: the Nexora Connect catalog, connected per workspace.
+          id: 'connectors',
+          label: t('nav.connectors'),
+          icon: Connections,
+          href: `/workspace/${workspaceId}/connecteurs`,
           hidden: chatEnabled,
         },
         {

@@ -98,7 +98,7 @@ export function OnboardingPanel({
     team: <TeamStepAction workspaceId={workspaceId} />,
     tools: (
       <div>
-        <ChipLink variant='border' href={`/workspace/${workspaceId}/settings/mcp`}>
+        <ChipLink variant='border' href={`/workspace/${workspaceId}/connecteurs`}>
           {t('steps.tools.open')}
         </ChipLink>
       </div>

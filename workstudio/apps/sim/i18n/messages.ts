@@ -4,6 +4,7 @@ import enAgents from '@/messages/en/agents.json'
 import enAuth from '@/messages/en/auth.json'
 import enBlocks from '@/messages/en/blocks.json'
 import enCommon from '@/messages/en/common.json'
+import enConnectors from '@/messages/en/connectors.json'
 import enEditor from '@/messages/en/editor.json'
 import enEmails from '@/messages/en/emails.json'
 import enErrors from '@/messages/en/errors.json'
@@ -21,6 +22,7 @@ import frAgents from '@/messages/fr/agents.json'
 import frAuth from '@/messages/fr/auth.json'
 import frBlocks from '@/messages/fr/blocks.json'
 import frCommon from '@/messages/fr/common.json'
+import frConnectors from '@/messages/fr/connectors.json'
 import frEditor from '@/messages/fr/editor.json'
 import frEmails from '@/messages/fr/emails.json'
 import frErrors from '@/messages/fr/errors.json'
@@ -54,6 +56,7 @@ export const MESSAGE_NAMESPACES = [
   'emails',
   'blocks',
   'agents',
+  'connectors',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -76,6 +79,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     emails: frEmails,
     blocks: frBlocks,
     agents: frAgents,
+    connectors: frConnectors,
   },
   en: {
     common: enCommon,
@@ -95,6 +99,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     emails: enEmails,
     blocks: enBlocks,
     agents: enAgents,
+    connectors: enConnectors,
   },
 }
 
