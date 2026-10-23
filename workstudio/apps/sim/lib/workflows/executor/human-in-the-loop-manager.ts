@@ -1578,6 +1578,7 @@ export class PauseResumeManager {
       checkRateLimit: false, // Manual actions bypass rate limits
       checkDeployment: false, // Resuming existing execution
       logPreprocessingErrors: false,
+      resumesExecution: true,
       workspaceId: baseSnapshot.metadata.workspaceId,
       loggingSession,
       billingAttribution,

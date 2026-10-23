@@ -16,6 +16,7 @@ import {
 } from '@sim/testing/mocks/billing-usage-reservation.mock'
 import { executionLimitsMock } from '@sim/testing/mocks/execution-limits.mock'
 import { loggingSessionMockFns } from '@sim/testing/mocks/logging-session.mock'
+import { nexoraBudgetsMock, nexoraBudgetsMockFns } from '@sim/testing/mocks/nexora-budgets.mock'
 import { createMockRedis } from '@sim/testing/mocks/redis.mock'
 import { redisConfigMockFns, resetRedisConfigMock } from '@sim/testing/mocks/redis-config.mock'
 import { utilsHelpersMock } from '@sim/testing/mocks/utils-helpers.mock'
@@ -44,6 +45,7 @@ vi.mock('@/lib/core/rate-limiter/rate-limiter', () => ({
   }),
 }))
 vi.mock('@/lib/logs/execution/logging-session', () => loggingSessionMock)
+vi.mock('@/lib/nexora/consumption/budgets', () => nexoraBudgetsMock)
 
 import { getHighestPrioritySubscription } from '@/lib/billing/core/subscription'
 import { preprocessExecution, WORKFLOW_NOT_DEPLOYED_CODE } from './preprocessing'
@@ -1242,5 +1244,156 @@ describe('preprocessExecution usage gate retry classification for resumes', () =
       error: { statusCode: 402, code: ADMISSION_REJECTION_CODE.USAGE_LIMIT_EXCEEDED },
     })
     expect(result.success === false && result.error.retryable).not.toBe(true)
+  })
+})
+
+describe('preprocessExecution monthly budget gate', () => {
+  const BUDGET_MESSAGE = 'Budget mensuel atteint pour cet espace : contactez votre administrateur.'
+  const mockCheckBudget = nexoraBudgetsMockFns.mockCheckBudget
+
+  /** Refuses everyone but a person acting themselves, like an instance admin past the cap. */
+  function overBudgetExceptForThePersonActing() {
+    mockCheckBudget.mockImplementation(async (_workspaceId, actor) =>
+      actor
+        ? { allowed: true, reason: 'admin', usage: 1_500, cap: 1_000 }
+        : {
+            allowed: false,
+            reason: 'workspace',
+            code: 'MONTHLY_BUDGET_EXCEEDED',
+            message: BUDGET_MESSAGE,
+            usage: 1_500,
+            cap: 1_000,
+          }
+    )
+  }
+
+  beforeEach(() => {
+    mockCheckBudget.mockReset()
+    mockGetActivelyBannedUserIds.mockResolvedValue([])
+    mockCheckRateLimit.mockResolvedValue({ allowed: true, remaining: 10, resetAt: new Date() })
+  })
+
+  function makeLoggingSession() {
+    return {
+      safeStart: vi.fn().mockResolvedValue(true),
+      safeCompleteWithError: vi.fn().mockResolvedValue(undefined),
+    }
+  }
+
+  it('refuses a new scheduled run of an over-budget workspace in French, without spending a rate-limit token', async () => {
+    overBudgetExceptForThePersonActing()
+    const loggingSession = makeLoggingSession()
+
+    const result = await preprocessExecution({
+      workflowId: 'workflow-1',
+      userId: 'owner-1',
+      userIdIsStoredReference: true,
+      triggerType: 'schedule',
+      executionId: 'execution-1',
+      requestId: 'request-1',
+      loggingSession: loggingSession as unknown as LoggingSession,
+    })
+
+    expect(result).toEqual({
+      success: false,
+      error: {
+        message: BUDGET_MESSAGE,
+        statusCode: 402,
+        code: ADMISSION_REJECTION_CODE.MONTHLY_BUDGET_EXCEEDED,
+      },
+    })
+    expect(mockCheckBudget).toHaveBeenCalledWith('workspace-1', null)
+    expect(mockCheckRateLimit).not.toHaveBeenCalled()
+    expect(mockReserveExecutionSlot).not.toHaveBeenCalled()
+    expect(loggingSession.safeCompleteWithError).toHaveBeenCalledWith(
+      expect.objectContaining({ error: expect.objectContaining({ message: BUDGET_MESSAGE }) })
+    )
+  })
+
+  it('lets the person who launched the run through when the budget exempts them', async () => {
+    overBudgetExceptForThePersonActing()
+
+    const result = await preprocessExecution({
+      workflowId: 'workflow-1',
+      userId: 'admin-1',
+      triggerType: 'manual',
+      executionId: 'execution-1',
+      requestId: 'request-1',
+      useAuthenticatedUserAsActor: true,
+    })
+
+    expect(result.success).toBe(true)
+    expect(mockCheckBudget).toHaveBeenCalledWith('workspace-1', { userId: 'admin-1' })
+  })
+
+  it('never lends the exemption to a background run carrying a stored owner', async () => {
+    overBudgetExceptForThePersonActing()
+
+    const result = await preprocessExecution({
+      workflowId: 'workflow-1',
+      userId: 'admin-1',
+      useAuthenticatedUserAsActor: true,
+      userIdIsStoredReference: true,
+      triggerType: 'webhook',
+      executionId: 'execution-1',
+      requestId: 'request-1',
+      checkRateLimit: false,
+    })
+
+    expect(result).toMatchObject({ success: false, error: { statusCode: 402 } })
+  })
+
+  it('does not cut a paused execution that resumes', async () => {
+    overBudgetExceptForThePersonActing()
+
+    const result = await preprocessExecution({
+      workflowId: 'workflow-1',
+      userId: 'owner-1',
+      triggerType: 'manual',
+      executionId: 'execution-1',
+      requestId: 'request-1',
+      checkDeployment: false,
+      checkRateLimit: false,
+      resumesExecution: true,
+      workspaceId: 'workspace-1',
+    })
+
+    expect(result.success).toBe(true)
+    expect(mockCheckBudget).not.toHaveBeenCalled()
+  })
+
+  it('does not check again a run already admitted upstream', async () => {
+    overBudgetExceptForThePersonActing()
+
+    const result = await preprocessExecution({
+      workflowId: 'workflow-1',
+      userId: 'owner-1',
+      triggerType: 'api',
+      executionId: 'execution-1',
+      requestId: 'request-1',
+      skipUsageLimits: true,
+    })
+
+    expect(result.success).toBe(true)
+    expect(mockCheckBudget).not.toHaveBeenCalled()
+  })
+
+  it('reports a suspended account before the budget', async () => {
+    overBudgetExceptForThePersonActing()
+    mockGetActivelyBannedUserIds.mockResolvedValue(['billed-account-1'])
+
+    const result = await preprocessExecution({
+      workflowId: 'workflow-1',
+      userId: 'owner-1',
+      userIdIsStoredReference: true,
+      triggerType: 'schedule',
+      executionId: 'execution-1',
+      requestId: 'request-1',
+    })
+
+    expect(result).toMatchObject({
+      success: false,
+      error: { code: ADMISSION_REJECTION_CODE.ACCOUNT_SUSPENDED },
+    })
   })
 })

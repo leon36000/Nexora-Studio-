@@ -571,6 +571,7 @@ export {
   networkConfigMockFns,
 } from './network-config.mock'
 export { nexoraAdminAccessMock, nexoraAdminAccessMockFns } from './nexora-admin-access.mock'
+export { nexoraBudgetsMock, nexoraBudgetsMockFns } from './nexora-budgets.mock'
 export {
   nextNavigationMock,
   nextNavigationMockFns,

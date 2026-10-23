@@ -30,7 +30,7 @@ export interface NexoraUsage {
   }
 }
 
-interface NexoraApiConfig {
+export interface NexoraApiConfig {
   /** OpenAI-compatible base URL, ending in `/v1`. */
   baseUrl: string
   apiKey: string
@@ -45,7 +45,8 @@ interface UsageBucket {
   impacts?: { kgCO2eq?: number }
 }
 
-function configFromEnv(): NexoraApiConfig | null {
+/** WorkStudio's own Nexora API address and key, or `null` when the instance has none. */
+export function nexoraApiConfigFromEnv(): NexoraApiConfig | null {
   const baseUrl = env.VLLM_BASE_URL?.trim()
   const apiKey = env.VLLM_API_KEY?.trim()
   return baseUrl && apiKey ? { baseUrl: baseUrl.replace(/\/+$/, ''), apiKey } : null
@@ -59,7 +60,7 @@ function configFromEnv(): NexoraApiConfig | null {
 export async function fetchNexoraApiUsage({
   days,
   now = new Date(),
-  config = configFromEnv(),
+  config = nexoraApiConfigFromEnv(),
   fetchFn = fetch,
 }: {
   days: number

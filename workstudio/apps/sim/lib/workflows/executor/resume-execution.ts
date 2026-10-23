@@ -218,6 +218,7 @@ export async function executeResumeWorkflow({
     checkDeployment: false,
     skipConcurrencyReservation: true,
     logPreprocessingErrors: false,
+    resumesExecution: true,
     workspaceId,
     billingAttribution,
   })

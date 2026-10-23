@@ -4,6 +4,7 @@ import { vi } from 'vitest'
 const DETERMINISTIC_ADMISSION_REJECTION_CODES = new Set([
   'USAGE_LIMIT_EXCEEDED',
   'ACCOUNT_SUSPENDED',
+  'MONTHLY_BUDGET_EXCEEDED',
 ])
 
 /** Faithful copy of the production `PollAdmissionRefusedError`. */

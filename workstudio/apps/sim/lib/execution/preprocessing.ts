@@ -39,6 +39,7 @@ import type { SubscriptionPlan } from '@/lib/core/rate-limiter/types'
 import { withDatabaseReadRetry } from '@/lib/db/read-retry'
 import { claimBlockedRunLog } from '@/lib/execution/blocked-run-log'
 import { LoggingSession, type SessionStartParams } from '@/lib/logs/execution/logging-session'
+import { checkBudget } from '@/lib/nexora/consumption/budgets'
 import type { CoreTriggerType } from '@/stores/logs/filters/types'
 
 const logger = createLogger('ExecutionPreprocessing')
@@ -81,6 +82,11 @@ export interface PreprocessExecutionOptions {
   includeActorSubscription?: boolean
   checkDeployment?: boolean
   skipUsageLimits?: boolean
+  /**
+   * The run continues a paused execution rather than starting one. Nexora edition: a monthly
+   * budget only refuses new executions, so a resume is never checked against it.
+   */
+  resumesExecution?: boolean
   /**
    * Skip the atomic in-flight concurrency reservation while still enforcing the
    * usage-cost cap. Default: false. Set by surfaces that already bound and pace
@@ -377,6 +383,7 @@ export async function preprocessExecution(
     includeActorSubscription = false,
     checkDeployment = triggerType !== 'manual',
     skipUsageLimits = false,
+    resumesExecution = false,
     skipConcurrencyReservation = false,
     logPreprocessingErrors = true,
     suppressRetryableFailureLogs = false,
@@ -403,7 +410,7 @@ export async function preprocessExecution(
 
   /** Records an admission gate's error row, at most once per gate and outcome per window when throttled. */
   const recordGateFailure = async (
-    gate: 'ban' | 'usage' | 'rate-limit' | 'reservation',
+    gate: 'ban' | 'usage' | 'budget' | 'rate-limit' | 'reservation',
     failure: PreprocessExecutionError,
     record: Parameters<typeof logPreprocessingError>[0]
   ): Promise<void> => {
@@ -851,13 +858,55 @@ export async function preprocessExecution(
   })()
 
   /**
-   * Ban, subscription, and usage checks are read-only and start together. Their
-   * completion order must not affect the fixed ban → usage rejection precedence.
+   * Nexora edition: the monthly token budget of the workspace (and of the instance). Checked
+   * where the usage gate is, for new runs only: a resume continues an admitted execution, and
+   * `skipUsageLimits` marks a run whose admission already ran upstream. The exemption for
+   * instance admins goes only to a person who launched the run themselves (an interactive run
+   * or a personal key); a background run's `userId` is a stored owner, never an actor.
+   * `checkBudget` never throws: an unreadable budget lets the run through.
    */
-  const [banFailure, actorSubscription, usageResult] = await Promise.all([
+  const budgetCheckTask = (async (): Promise<GateFailure | null> => {
+    if (skipUsageLimits || resumesExecution) return null
+    const actor =
+      useAuthenticatedUserAsActor && !userIdIsStoredReference ? { userId: actorUserId } : null
+    const budget = await checkBudget(workspaceId, actor)
+    if (budget.allowed) return null
+    logger.warn(`[${requestId}] Execution blocked: monthly budget reached`, {
+      workflowId,
+      workspaceId,
+      scope: budget.reason,
+      usage: budget.usage,
+      cap: budget.cap,
+      triggerType,
+    })
+    return {
+      response: {
+        success: false,
+        error: { message: budget.message, statusCode: 402, code: budget.code },
+      },
+      recordError: {
+        workflowId,
+        executionId,
+        triggerType,
+        requestId,
+        userId: actorUserId,
+        workspaceId,
+        errorMessage: budget.message,
+        loggingSession: providedLoggingSession,
+        triggerData,
+      },
+    }
+  })()
+
+  /**
+   * Ban, subscription, usage, and budget checks are read-only and start together. Their
+   * completion order must not affect the fixed ban → usage → budget rejection precedence.
+   */
+  const [banFailure, actorSubscription, usageResult, budgetFailure] = await Promise.all([
     banCheck,
     gateReads.actorSubscription,
     usageCheckTask,
+    budgetCheckTask,
   ])
 
   /**
@@ -941,11 +990,11 @@ export async function preprocessExecution(
 
   const usageSnapshot = usageResult.snapshot
 
-  const readGateFailure = banFailure ?? usageResult.failure
+  const readGateFailure = banFailure ?? usageResult.failure ?? budgetFailure
   if (readGateFailure) {
     if (readGateFailure.recordError) {
       await recordGateFailure(
-        banFailure ? 'ban' : 'usage',
+        banFailure ? 'ban' : usageResult.failure ? 'usage' : 'budget',
         readGateFailure.response.error,
         readGateFailure.recordError
       )

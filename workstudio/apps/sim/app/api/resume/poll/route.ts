@@ -446,6 +446,7 @@ async function dispatchRow(row: PreparedDueRow, now: Date): Promise<RowResult> {
       checkDeployment: false,
       skipConcurrencyReservation: true,
       logPreprocessingErrors: false,
+      resumesExecution: true,
       workspaceId,
       billingAttribution,
     })

@@ -11,6 +11,8 @@
 export const ADMISSION_REJECTION_CODE = {
   USAGE_LIMIT_EXCEEDED: 'USAGE_LIMIT_EXCEEDED',
   ACCOUNT_SUSPENDED: 'ACCOUNT_SUSPENDED',
+  /** Nexora edition: the workspace or the instance used its monthly token budget. */
+  MONTHLY_BUDGET_EXCEEDED: 'MONTHLY_BUDGET_EXCEEDED',
 } as const
 
 const DETERMINISTIC_ADMISSION_REJECTION_CODES: ReadonlySet<string> = new Set(

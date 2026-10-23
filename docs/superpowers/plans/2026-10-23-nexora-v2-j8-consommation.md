@@ -30,16 +30,16 @@
 ### Task 1: Agrégats
 
 **Files:** `lib/nexora/consumption/{by-model.ts,by-workspace.ts,co2.ts}` (+ tests).
-- [ ] **Step 1: Failing tests** : somme par modèle depuis Nexora API (plusieurs pages) ; agrégat par espace et par personne depuis les journaux (période, fuseau) ; prorata CO2 ; équivalent parlant (km en voiture, 0,193 kgCO2eq/km, source ADEME, constante datée).
-- [ ] **Step 2:** Implémenter ; PASS.
-- [ ] **Step 3: Commit** `feat(j8): agrégats de consommation et empreinte`.
+- [x] **Step 1: Failing tests** : somme par modèle depuis Nexora API (plusieurs pages) ; agrégat par espace et par personne depuis les journaux (période, fuseau) ; prorata CO2 ; équivalent parlant (km en voiture, 0,193 kgCO2eq/km, source ADEME, constante datée).
+- [x] **Step 2:** Implémenter ; PASS.
+- [x] **Step 3: Commit** `feat(j8): agrégats de consommation et empreinte`.
 
 ### Task 2: Budgets
 
 **Files:** `lib/nexora/consumption/budgets.ts` (+ tests), stockage `organization.metadata.nexoraBudgets` (instance, par espace, seuil), garde appelée au point d'entrée commun des exécutions (`lib/execution/preprocessing.ts`), alerte (bandeau admin ; e-mail si service configuré, une fois par seuil et par mois).
-- [ ] **Step 1: Failing tests** : sous le seuil ⇒ rien ; 80 % ⇒ alerte une seule fois ; 100 % ⇒ nouvelle exécution refusée avec message français ; plafond relevé ⇒ autorisée ; admin d'instance non bloqué.
-- [ ] **Step 2:** Implémenter ; PASS.
-- [ ] **Step 3: Commit** `feat(j8): budgets mensuels`.
+- [x] **Step 1: Failing tests** : sous le seuil ⇒ rien ; 80 % ⇒ alerte une seule fois ; 100 % ⇒ nouvelle exécution refusée avec message français ; plafond relevé ⇒ autorisée ; admin d'instance non bloqué.
+- [x] **Step 2:** Implémenter ; PASS.
+- [x] **Step 3: Commit** `feat(j8): budgets mensuels`.
 
 ### Task 3: Routes et écran
 
