@@ -3834,7 +3834,7 @@
                           "description": "Connect Zoom with a server-to-server app.",
                           "providerFamily": "zoom",
                           "available": true,
-                          "docsUrl": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
+                          "docsUrl": "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/integrations.md",
                           "requiresClientGeneratedCredentialId": false,
                           "fields": [
                             {
@@ -5817,7 +5817,7 @@
                           "toolIds": ["slack_message", "slack_canvas_read"],
                           "operationIds": ["send", "read"],
                           "preview": false,
-                          "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
+                          "docsLink": "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/integrations.md",
                           "tags": ["messaging"]
                         }
                       ],
@@ -5931,7 +5931,7 @@
                         "toolIds": ["slack_message", "slack_canvas_read"],
                         "operationIds": ["send", "read"],
                         "preview": false,
-                        "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
+                        "docsLink": "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/integrations.md",
                         "tags": ["messaging"],
                         "inputSchema": [
                           {
@@ -17277,7 +17277,7 @@
                 "description": "Connect Zoom with a server-to-server app.",
                 "providerFamily": "zoom",
                 "available": true,
-                "docsUrl": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
+                "docsUrl": "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/integrations.md",
                 "requiresClientGeneratedCredentialId": false,
                 "fields": [
                   {
@@ -19110,7 +19110,7 @@
                 "toolIds": ["slack_message", "slack_canvas_read"],
                 "operationIds": ["send", "read"],
                 "preview": false,
-                "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
+                "docsLink": "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/integrations.md",
                 "tags": ["messaging"]
               }
             ],
@@ -20102,7 +20102,7 @@
               "toolIds": ["slack_message", "slack_canvas_read"],
               "operationIds": ["send", "read"],
               "preview": false,
-              "docsLink": "https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide",
+              "docsLink": "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/integrations.md",
               "tags": ["messaging"],
               "inputSchema": [
                 {

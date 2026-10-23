@@ -23,6 +23,7 @@ import { RefreshCw } from '@sim/emcn/icons'
 import { formatDateTime } from '@sim/utils/formatting'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { isApiClientError } from '@/lib/api/client/errors'
 import { ResumeExecutionUnavailable } from '@/app/(interfaces)/resume/[workflowId]/[executionId]/resume-execution-unavailable'
 import {
@@ -93,15 +94,18 @@ function formatDate(value: string | null): string {
   }
 }
 
-function getStatusLabel(status: string): string {
-  if (!status) return 'Unknown'
-  return status.charAt(0).toUpperCase() + status.slice(1)
-}
+const KNOWN_STATUSES = new Set(Object.keys(STATUS_BADGE_VARIANT))
 
 function StatusBadge({ status }: { status: string }) {
+  const t = useTranslations('interfaces.resume.status')
+  const label = !status
+    ? t('unknown')
+    : KNOWN_STATUSES.has(status)
+      ? t(status)
+      : status.charAt(0).toUpperCase() + status.slice(1)
   return (
     <Badge variant={STATUS_BADGE_VARIANT[status] ?? 'gray'} size='sm'>
-      {getStatusLabel(status)}
+      {label}
     </Badge>
   )
 }
@@ -129,7 +133,9 @@ function truncateForPreview(text: string): { text: string; truncated: boolean } 
   return { text: text.slice(0, DISPLAY_VALUE_PREVIEW_MAX_CHARS), truncated: true }
 }
 
-function renderStructuredValuePreview(value: unknown) {
+type Translate = (key: string, values?: Record<string, string | number>) => string
+
+function renderStructuredValuePreview(value: unknown, t: Translate) {
   if (value === null || value === undefined || value === '') {
     return <span className='text-[var(--text-muted)] text-caption'>—</span>
   }
@@ -147,8 +153,10 @@ function renderStructuredValuePreview(value: unknown) {
         />
         {truncated && (
           <p className='mt-1 text-[11px] text-[var(--text-muted)]'>
-            Value truncated for preview ({DISPLAY_VALUE_PREVIEW_MAX_CHARS.toLocaleString()} of{' '}
-            {prettyPrinted.length.toLocaleString()} characters shown).
+            {t('valueTruncated', {
+              shown: DISPLAY_VALUE_PREVIEW_MAX_CHARS.toLocaleString(),
+              total: prettyPrinted.length.toLocaleString(),
+            })}
           </p>
         )}
       </div>
@@ -163,8 +171,10 @@ function renderStructuredValuePreview(value: unknown) {
       </div>
       {truncated && (
         <p className='mt-1 text-[11px] text-[var(--text-muted)]'>
-          Value truncated for preview ({DISPLAY_VALUE_PREVIEW_MAX_CHARS.toLocaleString()} of{' '}
-          {String(value).length.toLocaleString()} characters shown).
+          {t('valueTruncated', {
+            shown: DISPLAY_VALUE_PREVIEW_MAX_CHARS.toLocaleString(),
+            total: String(value).length.toLocaleString(),
+          })}
         </p>
       )}
     </div>
@@ -176,6 +186,7 @@ export default function ResumeExecutionPage({
   initialContextId,
 }: ResumeExecutionPageProps) {
   const { workflowId, executionId } = params
+  const t = useTranslations('interfaces.resume')
   const router = useRouter()
   const queryClient = useQueryClient()
 
@@ -313,14 +324,14 @@ export default function ResumeExecutionPage({
         case 'number': {
           if (!value.trim()) return { value: null }
           const numericValue = Number(value)
-          if (Number.isNaN(numericValue)) return { value: null, error: 'Enter a valid number.' }
+          if (Number.isNaN(numericValue)) return { value: null, error: t('errors.invalidNumber') }
           return { value: numericValue }
         }
         case 'boolean': {
           if (value === 'true') return { value: true }
           if (value === 'false') return { value: false }
           if (!value) return { value: null }
-          return { value: null, error: 'Select true or false.' }
+          return { value: null, error: t('errors.invalidBoolean') }
         }
         case 'array':
         case 'object':
@@ -332,14 +343,14 @@ export default function ResumeExecutionPage({
           try {
             return { value: JSON.parse(value) }
           } catch {
-            return { value: null, error: 'Enter valid JSON.' }
+            return { value: null, error: t('errors.invalidJson') }
           }
         }
         default:
           return { value }
       }
     },
-    []
+    [t]
   )
 
   const handleFormFieldChange = useCallback(
@@ -370,11 +381,11 @@ export default function ResumeExecutionPage({
             <ChipSelect
               value={selectValue}
               onChange={(val) => handleFormFieldChange(field.name, val)}
-              placeholder={field.required ? 'Select true or false' : 'Select...'}
+              placeholder={field.required ? t('form.selectBoolean') : t('form.select')}
               options={[
-                ...(field.required ? [] : [{ label: 'Not set', value: '__unset__' }]),
-                { label: 'True', value: 'true' },
-                { label: 'False', value: 'false' },
+                ...(field.required ? [] : [{ label: t('form.notSet'), value: '__unset__' }]),
+                { label: t('form.true'), value: 'true' },
+                { label: t('form.false'), value: 'false' },
               ]}
             />
           )
@@ -385,7 +396,7 @@ export default function ResumeExecutionPage({
               type='number'
               value={value}
               onChange={(e) => handleFormFieldChange(field.name, e.target.value)}
-              placeholder={field.placeholder ?? 'Enter a number...'}
+              placeholder={field.placeholder ?? t('form.numberPlaceholder')}
               error={Boolean(formErrors[field.name])}
             />
           )
@@ -407,7 +418,7 @@ export default function ResumeExecutionPage({
               <ChipTextarea
                 value={value}
                 onChange={(e) => handleFormFieldChange(field.name, e.target.value)}
-                placeholder={field.placeholder ?? 'Enter value...'}
+                placeholder={field.placeholder ?? t('form.valuePlaceholder')}
                 rows={5}
                 error={Boolean(formErrors[field.name])}
               />
@@ -417,14 +428,14 @@ export default function ResumeExecutionPage({
             <ChipInput
               value={value}
               onChange={(e) => handleFormFieldChange(field.name, e.target.value)}
-              placeholder={field.placeholder ?? 'Enter value...'}
+              placeholder={field.placeholder ?? t('form.valuePlaceholder')}
               error={Boolean(formErrors[field.name])}
             />
           )
         }
       }
     },
-    [formValues, formErrors, handleFormFieldChange]
+    [formValues, formErrors, handleFormFieldChange, t]
   )
 
   const renderDisabledFieldInput = useCallback(
@@ -438,7 +449,12 @@ export default function ResumeExecutionPage({
           : ''
       switch (field.type) {
         case 'boolean': {
-          const displayValue = rawValue === true ? 'True' : rawValue === false ? 'False' : 'Not set'
+          const displayValue =
+            rawValue === true
+              ? t('form.true')
+              : rawValue === false
+                ? t('form.false')
+                : t('form.notSet')
           return <ChipInput value={displayValue} disabled />
         }
         case 'number':
@@ -455,7 +471,7 @@ export default function ResumeExecutionPage({
         }
       }
     },
-    []
+    [t]
   )
 
   const selectedOperation = selectedDetail?.pausePoint.response?.data?.operation || 'human'
@@ -550,7 +566,7 @@ export default function ResumeExecutionPage({
 
   const handleResume = useCallback(async () => {
     if (!selectedContextId || !selectedDetail) {
-      setError('No pause point is selected. Refresh and try again.')
+      setError(t('errors.noPausePoint'))
       return
     }
     setLoadingAction(true)
@@ -568,7 +584,7 @@ export default function ResumeExecutionPage({
               ? rawValue === 'true' || rawValue === 'false'
               : rawValue.trim().length > 0 && rawValue !== '__unset__'
           if (!hasValue || rawValue === '__unset__') {
-            if (field.required) errors[field.name] = 'This field is required.'
+            if (field.required) errors[field.name] = t('errors.fieldRequired')
             continue
           }
           const { value, error: parseError } = parseFormValue(field, rawValue)
@@ -580,7 +596,7 @@ export default function ResumeExecutionPage({
         }
         if (Object.keys(errors).length > 0) {
           setFormErrors(errors)
-          setError('Fix the highlighted fields before resuming.')
+          setError(t('errors.fixFields'))
           setLoadingAction(false)
           return
         }
@@ -592,7 +608,7 @@ export default function ResumeExecutionPage({
           try {
             parsedInput = JSON.parse(resumeInput)
           } catch {
-            setError('Resume input must be valid JSON.')
+            setError(t('errors.inputInvalidJson'))
             setLoadingAction(false)
             return
           }
@@ -600,7 +616,7 @@ export default function ResumeExecutionPage({
         resumePayload = parsedInput
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to prepare resume payload.')
+      setError(err?.message || t('errors.prepareFailed'))
       setLoadingAction(false)
       return
     }
@@ -612,7 +628,7 @@ export default function ResumeExecutionPage({
         input: resumePayload,
       })
       if (!ok) {
-        setError(payload.error || 'Failed to resume execution.')
+        setError(payload.error || t('errors.resumeFailed'))
         return
       }
       const nextStatus = payload.status === 'queued' ? 'queued' : 'resuming'
@@ -653,11 +669,9 @@ export default function ResumeExecutionPage({
         const currentContextId = override === undefined ? (defaultContextId ?? null) : override
         return currentContextId !== selectedContextId ? override : fallbackContextId
       })
-      setMessage(
-        payload.status === 'queued' ? 'Resume request queued.' : 'Resume started successfully.'
-      )
+      setMessage(payload.status === 'queued' ? t('queued') : t('started'))
     } catch (err: any) {
-      setError(err.message || 'Unexpected error while resuming execution.')
+      setError(err.message || t('errors.unexpected'))
     } finally {
       setLoadingAction(false)
     }
@@ -674,6 +688,7 @@ export default function ResumeExecutionPage({
     selectedDetail,
     executionDetail,
     queryClient,
+    t,
   ])
 
   const isFormComplete = useMemo(() => {
@@ -701,7 +716,7 @@ export default function ResumeExecutionPage({
     const pauseBlockId = pause.blockId || pause.triggerBlockId
     return (
       getBlockNameFromSnapshot(executionDetail?.executionSnapshot, pauseBlockId) ||
-      'Human in the Loop'
+      t('defaultBlockName')
     )
   }
 
@@ -709,7 +724,7 @@ export default function ResumeExecutionPage({
     return (
       <Tooltip.Provider>
         <div className='flex flex-1 items-center justify-center p-6'>
-          <span className='text-[var(--text-secondary)] text-small'>Loading…</span>
+          <span className='text-[var(--text-secondary)] text-small'>{t('loading')}</span>
         </div>
       </Tooltip.Provider>
     )
@@ -719,7 +734,7 @@ export default function ResumeExecutionPage({
     if (executionErrorStatus === 401) {
       return (
         <div className='flex flex-1 items-center justify-center p-6'>
-          <span className='text-[var(--text-secondary)] text-small'>Redirecting to sign in…</span>
+          <span className='text-[var(--text-secondary)] text-small'>{t('redirecting')}</span>
         </div>
       )
     }
@@ -729,16 +744,14 @@ export default function ResumeExecutionPage({
     return (
       <div className='flex flex-1 items-center justify-center p-6'>
         <div className='max-w-[400px] text-center'>
-          <h1 className='mb-2 text-[var(--text-primary)] text-xl'>Could Not Load Execution</h1>
-          <p className='mb-6 text-[var(--text-secondary)] text-sm'>
-            An unexpected error occurred while loading this execution. Please try again.
-          </p>
+          <h1 className='mb-2 text-[var(--text-primary)] text-xl'>{t('loadFailedTitle')}</h1>
+          <p className='mb-6 text-[var(--text-secondary)] text-sm'>{t('loadFailedDescription')}</p>
           <Chip
             variant='primary'
             disabled={refreshingExecution}
             onClick={() => void refetchExecutionDetail()}
           >
-            {refreshingExecution ? 'Trying again…' : 'Try again'}
+            {refreshingExecution ? t('retrying') : t('retry')}
           </Chip>
         </div>
       </div>
@@ -755,10 +768,8 @@ export default function ResumeExecutionPage({
         {/* Header */}
         <div className='mb-8 flex items-center justify-between'>
           <div>
-            <h1 className='text-[20px] text-[var(--text-primary)]'>Paused Execution</h1>
-            <p className='mt-1 text-[14px] text-[var(--text-secondary)]'>
-              Select a pause point to review and resume
-            </p>
+            <h1 className='text-[20px] text-[var(--text-primary)]'>{t('title')}</h1>
+            <p className='mt-1 text-[14px] text-[var(--text-secondary)]'>{t('subtitle')}</p>
           </div>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -768,13 +779,13 @@ export default function ResumeExecutionPage({
                 onClick={handleRefreshExecution}
                 disabled={refreshingExecution}
                 className='gap-1.5 px-2.5'
-                aria-label='Refresh execution details'
+                aria-label={t('refreshLabel')}
               >
                 <RefreshCw className={cn('size-[14px]', refreshingExecution && 'animate-spin')} />
-                Refresh
+                {t('refresh')}
               </Button>
             </Tooltip.Trigger>
-            <Tooltip.Content>Refresh</Tooltip.Content>
+            <Tooltip.Content>{t('refresh')}</Tooltip.Content>
           </Tooltip.Root>
         </div>
 
@@ -783,12 +794,12 @@ export default function ResumeExecutionPage({
           {/* Pause Points List */}
           <div className='overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
             <div className='border-[var(--border)] border-b px-4 py-3'>
-              <Label>Pause Points</Label>
+              <Label>{t('pausePoints')}</Label>
             </div>
             <div>
               {pausePoints.length === 0 ? (
                 <div className='px-4 py-8 text-center text-[var(--text-secondary)] text-small'>
-                  No pause points
+                  {t('noPausePoints')}
                 </div>
               ) : (
                 pausePoints.map((pause) => (
@@ -814,18 +825,18 @@ export default function ResumeExecutionPage({
           <div>
             {loadingDetail && !selectedDetail ? (
               <div className='flex h-[200px] items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
-                <span className='text-[var(--text-secondary)] text-small'>Loading…</span>
+                <span className='text-[var(--text-secondary)] text-small'>{t('loading')}</span>
               </div>
             ) : !selectedContextId ? (
               <div className='flex h-[200px] items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
                 <span className='text-[var(--text-secondary)] text-small'>
-                  Select a pause point
+                  {t('selectPausePoint')}
                 </span>
               </div>
             ) : !selectedDetail ? (
               <div className='flex h-[200px] items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
                 <span className='text-[var(--text-secondary)] text-small'>
-                  Could not load details
+                  {t('detailsFailed')}
                 </span>
               </div>
             ) : (
@@ -835,14 +846,14 @@ export default function ResumeExecutionPage({
                   <div>
                     <Label>{getBlockName(selectedDetail.pausePoint)}</Label>
                     <p className='mt-[2px] text-[var(--text-muted)] text-caption'>
-                      Paused at {formatDate(selectedDetail.pausePoint.registeredAt)}
+                      {t('pausedAt', { date: formatDate(selectedDetail.pausePoint.registeredAt) })}
                     </p>
                   </div>
                   <div className='flex items-center gap-2'>
                     <StatusBadge status={selectedStatus} />
                     {queuePosition && queuePosition > 0 && (
                       <Badge variant='gray' size='sm'>
-                        Queue #{queuePosition}
+                        {t('queuePosition', { position: queuePosition })}
                       </Badge>
                     )}
                   </div>
@@ -850,13 +861,11 @@ export default function ResumeExecutionPage({
 
                 {selectedDetail.pausePoint.automaticResumeWaitingReason && (
                   <div className='rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)] px-4 py-3'>
-                    <Label>Waiting to resume automatically</Label>
+                    <Label>{t('waitingTitle')}</Label>
                     <p className='mt-1 text-[var(--text-secondary)] text-small'>
                       {selectedDetail.pausePoint.automaticResumeWaitingReason}
                     </p>
-                    <p className='mt-1 text-[var(--text-muted)] text-caption'>
-                      Nexora will retry automatically.
-                    </p>
+                    <p className='mt-1 text-[var(--text-muted)] text-caption'>{t('willRetry')}</p>
                   </div>
                 )}
 
@@ -864,7 +873,7 @@ export default function ResumeExecutionPage({
                 {selectedStatus === 'resumed' || selectedStatus === 'failed' ? (
                   <div className='overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
                     <div className='border-[var(--border)] border-b px-4 py-3'>
-                      <Label>Resume Form</Label>
+                      <Label>{t('resumeForm')}</Label>
                     </div>
                     <div className='flex flex-col gap-4 p-4'>
                       {selectedStatus === 'failed' &&
@@ -903,9 +912,7 @@ export default function ResumeExecutionPage({
                           rows={6}
                         />
                       ) : (
-                        <p className='text-[var(--text-muted)] text-small'>
-                          No input data provided
-                        </p>
+                        <p className='text-[var(--text-muted)] text-small'>{t('noInput')}</p>
                       )}
                     </div>
                   </div>
@@ -915,15 +922,15 @@ export default function ResumeExecutionPage({
                     {responseStructureRows.length > 0 ? (
                       <div className='overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
                         <div className='border-[var(--border)] border-b px-4 py-3'>
-                          <Label>Display Data</Label>
+                          <Label>{t('displayData')}</Label>
                         </div>
                         <div className='p-4'>
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Field</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Value</TableHead>
+                                <TableHead>{t('columns.field')}</TableHead>
+                                <TableHead>{t('columns.type')}</TableHead>
+                                <TableHead>{t('columns.value')}</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -931,7 +938,9 @@ export default function ResumeExecutionPage({
                                 <TableRow key={row.id}>
                                   <TableCell>{row.name}</TableCell>
                                   <TableCell>{row.type}</TableCell>
-                                  <TableCell>{renderStructuredValuePreview(row.value)}</TableCell>
+                                  <TableCell>
+                                    {renderStructuredValuePreview(row.value, t)}
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -941,11 +950,11 @@ export default function ResumeExecutionPage({
                     ) : (
                       <div className='overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
                         <div className='border-[var(--border)] border-b px-4 py-3'>
-                          <Label>Display Data</Label>
+                          <Label>{t('displayData')}</Label>
                         </div>
                         <div className='p-4'>
                           <p className='text-[var(--text-muted)] text-small'>
-                            No display data configured
+                            {t('noDisplayData')}
                           </p>
                         </div>
                       </div>
@@ -955,7 +964,7 @@ export default function ResumeExecutionPage({
                     {isHumanMode && hasInputFormat ? (
                       <div className='overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
                         <div className='border-[var(--border)] border-b px-4 py-3'>
-                          <Label>Resume Form</Label>
+                          <Label>{t('resumeForm')}</Label>
                         </div>
                         <div className='flex flex-col gap-4 p-4'>
                           {inputFormatFields.map((field) => (
@@ -984,7 +993,7 @@ export default function ResumeExecutionPage({
                     ) : (
                       <div className='overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface-1)]'>
                         <div className='border-[var(--border)] border-b px-4 py-3'>
-                          <Label>Resume Input (JSON)</Label>
+                          <Label>{t('resumeInputJson')}</Label>
                         </div>
                         <div className='p-4'>
                           <ChipTextarea
@@ -998,7 +1007,7 @@ export default function ResumeExecutionPage({
                                 }
                               }
                             }}
-                            placeholder='{"example": "value"}'
+                            placeholder='{"example": "value"}' // i18n-ignore: JSON syntax example
                             rows={6}
                             spellCheck={false}
                             className='min-h-[180px] font-mono'
@@ -1013,7 +1022,7 @@ export default function ResumeExecutionPage({
 
                     {/* Action */}
                     <Button variant='primary' onClick={handleResume} disabled={resumeDisabled}>
-                      {loadingAction ? 'Resuming...' : 'Resume Execution'}
+                      {loadingAction ? t('resuming') : t('resume')}
                     </Button>
                   </>
                 )}

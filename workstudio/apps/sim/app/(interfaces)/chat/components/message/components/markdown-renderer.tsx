@@ -2,7 +2,20 @@ import React, { type HTMLAttributes, memo, type ReactNode } from 'react'
 import { Streamdown } from 'streamdown'
 import 'streamdown/styles.css'
 import { CopyCodeButton, Tooltip } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { extractTextContent } from '@/lib/core/utils/react-node-text'
+
+function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+  const t = useTranslations('interfaces.chat')
+  return (
+    <img
+      src={src}
+      alt={alt || t('imageAlt')}
+      className='my-3 h-auto max-w-full rounded-md'
+      {...props}
+    />
+  )
+}
 
 function LinkWithPreview({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -149,9 +162,7 @@ const COMPONENTS = {
     </td>
   ),
 
-  img: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    <img src={src} alt={alt || 'Image'} className='my-3 h-auto max-w-full rounded-md' {...props} />
-  ),
+  img: MarkdownImage,
 }
 
 const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { content: string }) {

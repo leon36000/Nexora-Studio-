@@ -1,7 +1,8 @@
 import { Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout } from '@/components/emails/components'
-import { UPGRADE_REASON_COPY, type UpgradeReason } from '@/lib/billing/upgrade-reasons'
+import { getEmailTranslator } from '@/components/emails/i18n'
+import type { UpgradeReason } from '@/lib/billing/upgrade-reasons'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface LimitThresholdEmailProps {
@@ -20,8 +21,8 @@ interface LimitThresholdEmailProps {
 
 /**
  * Single template for the per-category usage-limit emails (storage, tables,
- * seats). Copy comes from {@link UPGRADE_REASON_COPY} so the email language
- * matches the upgrade-page header the user lands on.
+ * seats). The lead sentence is shared with the subject line from
+ * `getLimitEmailSubject`, so both say the same thing.
  */
 export function LimitThresholdEmail({
   kind,
@@ -33,33 +34,40 @@ export function LimitThresholdEmail({
   upgradeLink,
 }: LimitThresholdEmailProps) {
   const brand = getBrandConfig()
-  const copy = UPGRADE_REASON_COPY[reason]
-  const lead = kind === 'reached' ? copy.reachedLead : copy.warningLead
-  const previewText = `${brand.name}: ${lead}`
+  const t = getEmailTranslator()
+  const copyKey = `limitThreshold.reasons.${reason}`
+  const lead = t(`${copyKey}.${kind === 'reached' ? 'reachedLead' : 'warningLead'}`)
 
   return (
-    <EmailLayout preview={previewText} showUnsubscribe={true}>
-      <Text style={baseStyles.greeting}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
+    <EmailLayout
+      preview={t('limitThreshold.preview', { brandName: brand.name, lead })}
+      showUnsubscribe={true}
+    >
+      <Text style={baseStyles.greeting}>
+        {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
+      </Text>
 
       <Text style={baseStyles.paragraph}>
-        {lead} Upgrade your plan for more {copy.noun}.
+        {t('limitThreshold.body', { lead, noun: t(`${copyKey}.noun`) })}
       </Text>
 
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxTitle}>Usage</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('common.usage')}</Text>
         <Text style={baseStyles.infoBoxList}>
-          {usageLabel} of {limitLabel} used ({percentUsed}%)
+          {t('limitThreshold.usageLine', {
+            usage: usageLabel,
+            limit: limitLabel,
+            percent: String(percentUsed),
+          })}
         </Text>
       </Section>
 
-      <EmailButton href={upgradeLink}>Upgrade</EmailButton>
+      <EmailButton href={upgradeLink}>{t('limitThreshold.upgrade')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
       <Text style={baseStyles.footnote}>
-        {kind === 'reached'
-          ? 'One-time notification at 100% usage.'
-          : 'One-time notification at 80% usage.'}
+        {kind === 'reached' ? t('common.oneTimeAt100') : t('common.oneTimeAt80')}
       </Text>
     </EmailLayout>
   )

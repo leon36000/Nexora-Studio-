@@ -14,8 +14,8 @@ export interface SkillEditorsController {
   editorsError: boolean
   /** Lowercased emails already on the roster (incl. workspace admins) — feeds the Add People modal. */
   existingEditorEmails: Set<string>
-  addEditor: (target: AddPeopleTarget) => Promise<unknown>
-  removeEditor: (userId: string) => Promise<void>
+  addEditor: (target: AddPeopleTarget) => Promise<unknown> // i18n-ignore: TypeScript type, not copy
+  removeEditor: (userId: string) => Promise<void> // i18n-ignore: TypeScript type, not copy
 }
 
 interface UseSkillEditorsControllerParams {

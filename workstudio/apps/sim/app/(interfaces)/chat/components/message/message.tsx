@@ -3,6 +3,7 @@
 import { memo, useState } from 'react'
 import { Button, Check, cn, Duplicate, handleKeyboardActivation, Tooltip } from '@sim/emcn'
 import { File as FileIcon, FileText, ImageUp as ImageIcon } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import {
   AgentStreamThinkingChrome,
   AgentStreamToolCallsChrome,
@@ -80,6 +81,7 @@ export function escapeHtml(value: string): string {
 function openAttachmentPreview(name: string, dataUrl: string): void {
   const safeName = escapeHtml(name)
   const safeUrl = escapeHtml(dataUrl)
+  const image = `<img src="${safeUrl}" alt="${safeName}" />` // i18n-ignore: the alt text is the file name
   const html = `
     <!DOCTYPE html>
     <html>
@@ -91,7 +93,7 @@ function openAttachmentPreview(name: string, dataUrl: string): void {
         </style>
       </head>
       <body>
-        <img src="${safeUrl}" alt="${safeName}" />
+        ${image}
       </body>
     </html>
   `
@@ -108,6 +110,7 @@ interface ClientChatMessageProps {
 export const ClientChatMessage = memo(function ClientChatMessage({
   message,
 }: ClientChatMessageProps) {
+  const t = useTranslations('interfaces.chat')
   const [isCopied, setIsCopied] = useState(false)
 
   const isJsonObject = typeof message.content === 'object' && message.content !== null
@@ -274,7 +277,7 @@ export const ClientChatMessage = memo(function ClientChatMessage({
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
                       <Button
-                        aria-label={isCopied ? 'Copied!' : 'Copy to clipboard'}
+                        aria-label={isCopied ? t('copied') : t('copy')}
                         variant='ghost-secondary'
                         className='p-0'
                         onClick={() => {
@@ -291,7 +294,7 @@ export const ClientChatMessage = memo(function ClientChatMessage({
                       </Button>
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top' align='center' sideOffset={5}>
-                      {isCopied ? 'Copied!' : 'Copy to clipboard'}
+                      {isCopied ? t('copied') : t('copy')}
                     </Tooltip.Content>
                   </Tooltip.Root>
                 )}

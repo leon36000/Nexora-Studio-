@@ -71,6 +71,7 @@ NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral N
 es="$hs/deploy/.env"
 [ "$(envval COMPOSE_PROFILES "$es")" = "search" ] && ok "web search service enabled" || ko "web search service enabled"
 [ "$(envval NEXORA_SEARXNG_URL "$es")" = "http://searxng:8080" ] && ok "WorkStudio points at SearXNG" || ko "WorkStudio points at SearXNG"
+[ "$(envval NEXORA_PREVIEW_BLOCKS "$es")" = "searxng" ] && ok "Web Search block revealed" || ko "Web Search block revealed"
 [ "$(envval NEXORA_SEARXNG_SECRET "$es" | wc -c)" -ge 33 ] && ok "SearXNG secret generated" || ko "SearXNG secret generated"
 
 # 1c. Outgoing email by SMTP, given as environment values in unattended mode.

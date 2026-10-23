@@ -1,7 +1,7 @@
 import { createLogger } from '@sim/logger'
 import { safeCompare } from '@sim/security/compare'
 import { normalizeEmail } from '@sim/utils/string'
-import { getOtpSubject, renderOTPEmail } from '@/components/emails'
+import { getSharedFileOtpSubject, renderOTPEmail } from '@/components/emails'
 import { RateLimiter, type TokenBucketConfig } from '@/lib/core/rate-limiter'
 import { createDeploymentAuthCookie, isEmailAllowed } from '@/lib/core/security/deployment'
 import {
@@ -82,11 +82,11 @@ export async function requestPublicFileShareOtp({
       if (!emailLimit.allowed) return
       const otp = generateOTP()
       await storeOTP('file', challenge.shareId, normalizedEmail, otp)
-      const html = await renderOTPEmail(otp, 'email-verification', 'a shared file')
+      const html = await renderOTPEmail(otp, 'email-verification')
       await challenge.withCurrentPolicy(() => undefined)
       const result = await sendEmail({
         to: normalizedEmail,
-        subject: getOtpSubject('a shared file'),
+        subject: getSharedFileOtpSubject(),
         html,
       })
       if (!result.success)

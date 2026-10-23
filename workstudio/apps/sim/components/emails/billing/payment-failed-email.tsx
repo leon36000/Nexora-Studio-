@@ -1,6 +1,7 @@
 import { Link, Section, Text } from '@react-email/components'
 import { baseStyles, colors, fontWeight } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout } from '@/components/emails/components'
+import { formatEmailAmount, getEmailTranslator } from '@/components/emails/i18n'
 import { getEmailSubject } from '@/components/emails/subjects'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -20,12 +21,15 @@ export function PaymentFailedEmail({
   failureReason,
 }: PaymentFailedEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
 
   const previewText = getEmailSubject('payment-failed')
 
   return (
     <EmailLayout preview={previewText} showUnsubscribe={false}>
-      <Text style={baseStyles.greeting}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
+      <Text style={baseStyles.greeting}>
+        {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
+      </Text>
 
       <Text
         style={{
@@ -34,51 +38,54 @@ export function PaymentFailedEmail({
           color: colors.textPrimary,
         }}
       >
-        We were unable to process your payment.
+        {t('paymentFailed.unable')}
       </Text>
 
-      <Text style={baseStyles.paragraph}>
-        Your {brand.name} account has been temporarily blocked to prevent service interruptions and
-        unexpected charges. To restore access immediately, please update your payment method.
-      </Text>
+      <Text style={baseStyles.paragraph}>{t('paymentFailed.body', { brandName: brand.name })}</Text>
 
       <Section style={baseStyles.errorBox}>
-        <Text style={baseStyles.infoBoxTitle}>Payment Details</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('paymentFailed.detailsTitle')}</Text>
         <Text style={baseStyles.infoBoxList}>
-          Amount due: ${amountDue.toFixed(2)}
+          {t('paymentFailed.amountDue', { amount: formatEmailAmount(amountDue) })}
           {lastFourDigits && (
             <>
               <br />
-              Payment method: •••• {lastFourDigits}
+              {t('paymentFailed.paymentMethod', { lastFour: lastFourDigits })}
             </>
           )}
           {failureReason && (
             <>
               <br />
-              Reason: {failureReason}
+              {t('paymentFailed.reason', { reason: failureReason })}
             </>
           )}
         </Text>
       </Section>
 
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxTitle}>What happens next</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('paymentFailed.nextTitle')}</Text>
         <Text style={baseStyles.infoBoxList}>
-          • Your workflows and automations are currently paused
-          <br />• Update your payment method to restore service immediately
-          <br />• Stripe will automatically retry the charge once payment is updated
+          {t('paymentFailed.paused')}
+          <br />
+          {t('paymentFailed.update')}
+          <br />
+          {t('paymentFailed.retry')}
         </Text>
       </Section>
 
-      <EmailButton href={billingPortalUrl}>Update Payment Method</EmailButton>
+      <EmailButton href={billingPortalUrl}>{t('paymentFailed.button')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
       <Text style={baseStyles.footnote}>
-        Common issues: expired card, insufficient funds, or incorrect billing info. Need help?{' '}
-        <Link href={`mailto:${brand.supportEmail}`} style={baseStyles.link}>
-          {brand.supportEmail}
-        </Link>
+        {t.rich('paymentFailed.footnote', {
+          email: brand.supportEmail ?? '',
+          link: (chunks) => (
+            <Link href={`mailto:${brand.supportEmail}`} style={baseStyles.link}>
+              {chunks}
+            </Link>
+          ),
+        })}
       </Text>
     </EmailLayout>
   )

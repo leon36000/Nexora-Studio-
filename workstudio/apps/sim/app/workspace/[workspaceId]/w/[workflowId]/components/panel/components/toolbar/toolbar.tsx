@@ -24,6 +24,7 @@ import {
 import { ChevronDown, Lock, Search } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
+import { translatedBlockName } from '@/lib/i18n/blocks'
 import { captureEvent } from '@/lib/posthog/client'
 import { getTriggersForSidebar, hasTriggerCapability } from '@/lib/workflows/triggers/utils'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
@@ -46,6 +47,7 @@ import { useOrgBrandConfig } from '@/ee/whitelabeling/components/branding-provid
 import { useCustomBlocks } from '@/hooks/queries/custom-blocks'
 import { usePermissionConfig } from '@/hooks/use-permission-config'
 import { useSandboxBlockConstraints } from '@/hooks/use-sandbox-block-constraints'
+import { useBlockTranslator } from '@/hooks/use-translated-block-config'
 import { useToolbarStore } from '@/stores/panel'
 import type { ToolbarSectionKey } from '@/stores/panel/toolbar/store'
 
@@ -86,6 +88,8 @@ const ToolbarItem = memo(function ToolbarItem({
   itemRef,
 }: ToolbarItemProps) {
   const t = useTranslations('editor.toolbar')
+  const tBlocks = useBlockTranslator()
+  const label = translatedBlockName(item.type, item.name, tBlocks)
   const Icon = item.icon
   const isTriggerCapable = isTrigger && item.config ? hasTriggerCapability(item.config) : false
 
@@ -126,7 +130,7 @@ const ToolbarItem = memo(function ToolbarItem({
       ref={itemRef}
       role='button'
       aria-label={
-        item.restricted ? t('requestAccessTo', { name: item.name }) : t('add', { name: item.name })
+        item.restricted ? t('requestAccessTo', { name: label }) : t('add', { name: label })
       }
       tabIndex={-1}
       draggable={!item.restricted}
@@ -146,7 +150,7 @@ const ToolbarItem = memo(function ToolbarItem({
         bgColor={item.bgColor}
         data-toolbar-item-icon=''
       />
-      <OverflowText label={item.name} className='flex-1 text-[var(--text-body)]' />
+      <OverflowText label={label} className='flex-1 text-[var(--text-body)]' />
       {item.restricted && <Lock className='size-[14px] text-[var(--text-icon)]' aria-hidden />}
     </div>
   )
@@ -598,18 +602,24 @@ export const Toolbar = memo(
 
     const normalizedQuery = searchQuery.trim().toLowerCase()
     const isSearching = normalizedQuery.length > 0
+    const tBlocks = useBlockTranslator()
+    /** Matches the source name and, in French, the translated one ("Fonction" finds Function). */
+    const matchesQuery = useCallback(
+      (type: string, name: string) =>
+        name.toLowerCase().includes(normalizedQuery) ||
+        translatedBlockName(type, name, tBlocks).toLowerCase().includes(normalizedQuery),
+      [normalizedQuery, tBlocks]
+    )
 
     const filteredTriggers = useMemo(() => {
       if (!isSearching) return visibleTriggers
-      return visibleTriggers.filter((trigger) =>
-        trigger.name.toLowerCase().includes(normalizedQuery)
-      )
-    }, [visibleTriggers, isSearching, normalizedQuery])
+      return visibleTriggers.filter((trigger) => matchesQuery(trigger.type, trigger.name))
+    }, [visibleTriggers, isSearching, matchesQuery])
 
     const filteredBlocks = useMemo(() => {
       if (!isSearching) return visibleBlocks
-      return visibleBlocks.filter((block) => block.name.toLowerCase().includes(normalizedQuery))
-    }, [visibleBlocks, isSearching, normalizedQuery])
+      return visibleBlocks.filter((block) => matchesQuery(block.type, block.name))
+    }, [visibleBlocks, isSearching, matchesQuery])
 
     const filteredCustomBlocks = useMemo(() => {
       if (!isSearching) return visibleCustomBlocks

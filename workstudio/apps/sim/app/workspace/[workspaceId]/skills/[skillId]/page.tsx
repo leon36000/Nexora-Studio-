@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { SkillDetail } from '@/app/workspace/[workspaceId]/skills/[skillId]/skill-detail'
 
-export const metadata: Metadata = {
-  title: 'Skill',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('integrations.skillsPage')
+  return { title: t('metaDetail') }
 }
 
 export default async function SkillDetailPage({

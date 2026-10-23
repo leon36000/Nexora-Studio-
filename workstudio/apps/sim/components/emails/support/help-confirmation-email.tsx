@@ -1,7 +1,9 @@
 import { Text } from '@react-email/components'
 import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailLayout, EmailStrong } from '@/components/emails/components'
+import { EMAIL_LOCALE, getEmailTranslator } from '@/components/emails/i18n'
 
 interface HelpConfirmationEmailProps {
   type?: 'bug' | 'feedback' | 'feature_request' | 'other'
@@ -9,19 +11,12 @@ interface HelpConfirmationEmailProps {
   submittedDate?: Date
 }
 
-const getTypeLabel = (type: string) => {
-  switch (type) {
-    case 'bug':
-      return 'Bug Report'
-    case 'feedback':
-      return 'Feedback'
-    case 'feature_request':
-      return 'Feature Request'
-    case 'other':
-      return 'General Inquiry'
-    default:
-      return 'Request'
-  }
+const REQUEST_TYPES = new Set(['bug', 'feedback', 'feature_request', 'other'])
+
+function formatSubmittedDate(date: Date): string {
+  return EMAIL_LOCALE === 'fr'
+    ? format(date, 'd MMMM yyyy', { locale: fr })
+    : format(date, 'MMMM do, yyyy')
 }
 
 export function HelpConfirmationEmail({
@@ -29,29 +24,33 @@ export function HelpConfirmationEmail({
   attachmentCount = 0,
   submittedDate = new Date(),
 }: HelpConfirmationEmailProps) {
-  const typeLabel = getTypeLabel(type)
+  const t = getEmailTranslator()
+  const typeLabel = t(`helpConfirmation.types.${REQUEST_TYPES.has(type) ? type : 'default'}`)
+  const lowerTypeLabel = typeLabel.toLowerCase()
 
   return (
     <EmailLayout
-      preview={`Your ${typeLabel.toLowerCase()} has been received`}
+      preview={t('helpConfirmation.preview', { type: lowerTypeLabel })}
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.greeting}>Hello,</Text>
+      <Text style={baseStyles.greeting}>{t('common.hello')}</Text>
       <Text style={baseStyles.paragraph}>
-        We've received your <EmailStrong>{typeLabel.toLowerCase()}</EmailStrong> and will get back
-        to you shortly.
+        {t.rich('helpConfirmation.body', {
+          type: lowerTypeLabel,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
       {attachmentCount > 0 && (
         <Text style={baseStyles.paragraph}>
-          {attachmentCount} image{attachmentCount > 1 ? 's' : ''} attached.
+          {t('helpConfirmation.attachments', { count: attachmentCount })}
         </Text>
       )}
 
       <div style={baseStyles.divider} />
 
       <Text style={baseStyles.footnote}>
-        Submitted on {format(submittedDate, 'MMMM do, yyyy')}.
+        {t('helpConfirmation.submitted', { date: formatSubmittedDate(submittedDate) })}
       </Text>
     </EmailLayout>
   )

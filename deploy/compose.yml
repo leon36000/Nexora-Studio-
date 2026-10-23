@@ -220,7 +220,7 @@ services:
       OLLAMA_URL: http://ollama:11434
       # Web search block, only when the administrator enabled SearXNG.
       SEARXNG_URL: ${NEXORA_SEARXNG_URL:-}
-      NEXT_PUBLIC_WEB_SEARCH_ENABLED: ${NEXORA_WEB_SEARCH:-0}
+      PREVIEW_BLOCKS: ${NEXORA_PREVIEW_BLOCKS:-}
       KB_EMBEDDING_MODEL: ollama/${NEXORA_EMBED_MODEL:-bge-m3}
       EMBEDDING_OUTPUT_DIMS: '1024'
       INSTANCE_ORG_NAME: ${NEXORA_ORGANIZATION_NAME:-}

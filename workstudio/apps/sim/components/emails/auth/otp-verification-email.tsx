@@ -1,6 +1,7 @@
 import { Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailLayout } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface OTPVerificationEmailProps {
@@ -9,21 +10,21 @@ interface OTPVerificationEmailProps {
   chatTitle?: string
 }
 
+const PREVIEW_KEYS: Record<string, string> = {
+  'sign-in': 'subjects.signIn',
+  'email-verification': 'subjects.emailVerification',
+  'change-email': 'subjects.changeEmail',
+  'forget-password': 'subjects.resetPassword',
+}
+
 const getSubjectByType = (type: string, brandName: string, chatTitle?: string) => {
-  switch (type) {
-    case 'sign-in':
-      return `Sign in to ${brandName}`
-    case 'email-verification':
-      return `Verify your email for ${brandName}`
-    case 'change-email':
-      return `Verify your new email for ${brandName}`
-    case 'forget-password':
-      return `Reset your ${brandName} password`
-    case 'chat-access':
-      return `Verification code for ${chatTitle || 'Chat'}`
-    default:
-      return `Verification code for ${brandName}`
+  const t = getEmailTranslator()
+  const key = PREVIEW_KEYS[type]
+  if (key) return t(key, { brandName })
+  if (type === 'chat-access') {
+    return t('subjects.otp', { resourceLabel: chatTitle || t('otp.chatFallback') })
   }
+  return t('subjects.otp', { resourceLabel: brandName })
 }
 
 export function OTPVerificationEmail({
@@ -32,23 +33,21 @@ export function OTPVerificationEmail({
   chatTitle,
 }: OTPVerificationEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
 
   return (
     <EmailLayout preview={getSubjectByType(type, brand.name, chatTitle)} showUnsubscribe={false}>
-      <Text style={baseStyles.greeting}>Your verification code:</Text>
+      <Text style={baseStyles.greeting}>{t('otp.heading')}</Text>
 
       <Section style={baseStyles.codeContainer}>
         <Text style={baseStyles.code}>{otp}</Text>
       </Section>
 
-      <Text style={baseStyles.paragraph}>This code will expire in 15 minutes.</Text>
+      <Text style={baseStyles.paragraph}>{t('otp.expiry')}</Text>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>
-        Do not share this code with anyone. If you didn't request this code, you can safely ignore
-        this email.
-      </Text>
+      <Text style={baseStyles.footnote}>{t('otp.footnote')}</Text>
     </EmailLayout>
   )
 }

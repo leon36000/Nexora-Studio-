@@ -14,6 +14,7 @@ import {
 import { ArrowUp, Paperclip, StopFilled, X } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import { CHAT_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
 import { PublicChatActionButton } from '@/app/(interfaces)/chat/components/input/public-chat-action-button'
 import { isTouchMobileViewport } from '@/hooks/use-is-mobile'
@@ -36,6 +37,7 @@ export const ChatInput: React.FC<{
   isStreaming?: boolean
   onStopStreaming?: () => void
 }> = ({ onSubmit, isStreaming = false, onStopStreaming }) => {
+  const t = useTranslations('interfaces.chat.input')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const attachmentsRef = useRef<HTMLDivElement>(null)
@@ -64,7 +66,7 @@ export const ChatInput: React.FC<{
       if (attachedFiles.length + newFiles.length >= maxFiles) break
 
       if (file.size > maxSize) {
-        setUploadErrors((prev) => [...prev, `${file.name} is too large (max 10MB)`])
+        setUploadErrors((prev) => [...prev, t('tooLarge', { name: file.name })])
         continue
       }
 
@@ -72,7 +74,7 @@ export const ChatInput: React.FC<{
         (existing) => existing.name === file.name && existing.size === file.size
       )
       if (isDuplicate) {
-        setUploadErrors((prev) => [...prev, `${file.name} already added`])
+        setUploadErrors((prev) => [...prev, t('alreadyAdded', { name: file.name })])
         continue
       }
 
@@ -153,7 +155,7 @@ export const ChatInput: React.FC<{
 
         <div
           role='group'
-          aria-label='Chat message input'
+          aria-label={t('group')}
           onClick={handleContainerClick}
           className={cn(
             'relative z-10 cursor-text rounded-2xl border border-[var(--border-1)] bg-[var(--surface-2)] px-2.5 py-2',
@@ -211,7 +213,7 @@ export const ChatInput: React.FC<{
                         )}
                         <Button
                           variant='ghost'
-                          aria-label={`Remove ${file.name}`}
+                          aria-label={t('remove', { name: file.name })}
                           onClick={(e) => {
                             e.stopPropagation()
                             handleRemoveFile(file.id)
@@ -238,9 +240,9 @@ export const ChatInput: React.FC<{
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isDragOver ? 'Drop files here...' : 'Enter a message...'}
+            placeholder={isDragOver ? t('dropPlaceholder') : t('placeholder')}
             rows={1}
-            aria-label='Message'
+            aria-label={t('label')}
             className='m-0 h-auto min-h-[24px] w-full resize-none overflow-y-auto overflow-x-hidden border-0 bg-transparent p-1 text-[var(--text-primary)] text-md leading-[24px] caret-[var(--text-primary)] outline-hidden [-ms-overflow-style:none] [scrollbar-width:none] placeholder:text-[var(--text-muted)] focus-visible:ring-0 focus-visible:ring-offset-0 max-md:max-h-[min(200px,calc(var(--mobile-viewport-height,100dvh)*0.25))] md:text-base [&::-webkit-scrollbar]:hidden'
           />
 
@@ -249,7 +251,7 @@ export const ChatInput: React.FC<{
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <PublicChatActionButton
-                    aria-label='Attach files'
+                    aria-label={t('attach')}
                     variant='quiet'
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isStreaming || attachedFiles.length >= 15}
@@ -258,7 +260,7 @@ export const ChatInput: React.FC<{
                   </PublicChatActionButton>
                 </Tooltip.Trigger>
                 <Tooltip.Content side='top'>
-                  <p>Attach files</p>
+                  <p>{t('attach')}</p>
                 </Tooltip.Content>
               </Tooltip.Root>
 
@@ -281,7 +283,7 @@ export const ChatInput: React.FC<{
                 <PublicChatActionButton
                   variant='primary'
                   onClick={onStopStreaming}
-                  aria-label='Stop generation'
+                  aria-label={t('stop')}
                 >
                   <StopFilled className='block size-[14px] fill-current' />
                 </PublicChatActionButton>
@@ -290,7 +292,7 @@ export const ChatInput: React.FC<{
                   variant='primary'
                   onClick={handleSubmit}
                   disabled={!canSubmit}
-                  aria-label='Send message'
+                  aria-label={t('send')}
                 >
                   <ArrowUp className='block size-[16px]' />
                 </PublicChatActionButton>

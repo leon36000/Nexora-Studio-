@@ -290,5 +290,81 @@
       "pasteBelow": "Paste it into the field below, then click Next.",
       "label": "Bot Token"
     }
+  },
+  "skillsPage": {
+    "metaTitle": "Skills",
+    "metaNew": "New Skill",
+    "metaDetail": "Skill",
+    "loadFailedTitle": "Failed to load skills",
+    "loadFailedDescription": "Something went wrong while loading your skills. Please try again.",
+    "addToNexora": "Add to Nexora",
+    "explorePrompt": "Explain the skills in Nexora and which ones I should add to my agents.",
+    "searchPlaceholder": "Search skills...",
+    "sectionLabel": "Skills",
+    "open": "Open {name}",
+    "noResults": "No skills found matching “{query}”",
+    "back": "Skills",
+    "share": "Share",
+    "delete": "Delete",
+    "loading": "Loading…",
+    "notFound": "Skill not found.",
+    "descriptionRequired": "Description is required",
+    "contentRequired": "Content is required",
+    "saved": "Saved \"{name}\"",
+    "created": "Created \"{name}\"",
+    "nameTaken": "This skill name is already taken.",
+    "saveFailed": "Couldn't save skill",
+    "deleteFailed": "Couldn't delete skill",
+    "createFailed": "Couldn't create skill",
+    "importFailed": "Couldn't import skill",
+    "tryAgainLater": "Please try again in a moment.",
+    "builtinReadOnly": "Built-in skills are read-only",
+    "editorRequired": "You need to be a skill editor to edit this skill",
+    "builtinSubtitle": "Built-in skill",
+    "deleteTitle": "Delete Skill",
+    "deleteConfirmBefore": "Are you sure you want to delete ",
+    "deleteConfirmAfter": "? This action cannot be undone.",
+    "deleting": "Deleting...",
+    "editorsTitle": "Skill Editors ({count})",
+    "editorsLoadFailed": "Couldn't load editors. You may no longer have access to this skill.",
+    "newTitle": "New skill",
+    "newSubtitle": "Write a skill, or import an existing SKILL.md",
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "content": "Content",
+      "namePlaceholder": "my-skill-name",
+      "nameHint": "Lowercase letters, numbers, and hyphens (e.g. my-skill)",
+      "descriptionPlaceholder": "What this skill does and when to use it...",
+      "contentPlaceholder": "Skill instructions in markdown..."
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name must be 64 characters or less",
+      "nameNotKebab": "Name must be kebab-case (e.g. my-skill)"
+    },
+    "import": {
+      "action": "Import",
+      "uploadFile": "Upload File",
+      "importing": "Importing…",
+      "uploadDescription": ".md file with YAML frontmatter, or .zip containing a SKILL.md",
+      "tryMdOrZip": "Please try a .md or .zip file.",
+      "processFailed": "Failed to process file",
+      "errors": {
+        "unsupportedType": "Unsupported file type. Use .md or .zip files.",
+        "zipTooLarge": "ZIP file is too large (max 5 MB)",
+        "noSkillInZip": "No SKILL.md file found in the ZIP archive"
+      }
+    },
+    "modal": {
+      "createTab": "Create",
+      "importTab": "Import",
+      "editTitle": "Edit Skill",
+      "addTitle": "Add Skill",
+      "saveFailed": "Failed to save skill. Please try again.",
+      "saving": "Saving...",
+      "update": "Update",
+      "create": "Create"
+    }
   }
 }

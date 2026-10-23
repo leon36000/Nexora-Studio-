@@ -1,6 +1,7 @@
 import { Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface WorkspaceAddedEmailProps {
@@ -13,26 +14,35 @@ interface WorkspaceAddedEmailProps {
 }
 
 export function WorkspaceAddedEmail({
-  workspaceName = 'Workspace',
-  inviterName = 'Someone',
+  workspaceName,
+  inviterName,
   workspaceLink = '',
 }: WorkspaceAddedEmailProps) {
   const brand = getBrandConfig()
-  const preview = `You've been added to the "${workspaceName}" workspace on ${brand.name}`
+  const t = getEmailTranslator()
+  const workspace = workspaceName ?? t('workspaceAdded.defaultWorkspace')
+  const inviter = inviterName ?? t('workspaceAdded.defaultInviter')
 
   return (
-    <EmailLayout preview={preview} showUnsubscribe={false}>
-      <Text style={baseStyles.greeting}>Hello,</Text>
+    <EmailLayout
+      preview={t('workspaceAdded.preview', { workspaceName: workspace, brandName: brand.name })}
+      showUnsubscribe={false}
+    >
+      <Text style={baseStyles.greeting}>{t('common.hello')}</Text>
       <Text style={baseStyles.paragraph}>
-        <EmailStrong>{inviterName}</EmailStrong> added you to the{' '}
-        <EmailStrong>{workspaceName}</EmailStrong> workspace on {brand.name}.
+        {t.rich('workspaceAdded.body', {
+          inviterName: inviter,
+          workspaceName: workspace,
+          brandName: brand.name,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
-      <EmailButton href={workspaceLink}>Open workspace</EmailButton>
+      <EmailButton href={workspaceLink}>{t('workspaceAdded.button')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>If this was unexpected, contact a workspace admin.</Text>
+      <Text style={baseStyles.footnote}>{t('workspaceAdded.footnote')}</Text>
     </EmailLayout>
   )
 }

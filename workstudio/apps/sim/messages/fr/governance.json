@@ -14,6 +14,385 @@
       "action": "Action",
       "resource": "Ressource",
       "description": "Détail"
+    },
+    "actions": {
+      "account": {
+        "deleted": "Compte supprimé"
+      },
+      "auth": {
+        "login_succeeded": "Connexion réussie",
+        "login_failed": "Échec de connexion",
+        "logout": "Déconnexion",
+        "impersonation_started": "Début d'usurpation d'identité (support)",
+        "impersonation_ended": "Fin d'usurpation d'identité (support)",
+        "sessions_revoked": "Sessions révoquées"
+      },
+      "audit_logs": {
+        "exported": "Journal d'audit exporté"
+      },
+      "api_key": {
+        "created": "Clé d'API créée",
+        "updated": "Clé d'API modifiée",
+        "revoked": "Clé d'API révoquée"
+      },
+      "personal_api_key": {
+        "created": "Clé d'API personnelle créée",
+        "revoked": "Clé d'API personnelle révoquée"
+      },
+      "oauth_app": {
+        "revoked": "Application OAuth révoquée"
+      },
+      "byok_key": {
+        "created": "Clé de fournisseur créée",
+        "updated": "Clé de fournisseur modifiée",
+        "deleted": "Clé de fournisseur supprimée"
+      },
+      "chat": {
+        "deployed": "Chat déployé",
+        "updated": "Chat modifié",
+        "deleted": "Chat supprimé",
+        "password_viewed": "Mot de passe du chat consulté"
+      },
+      "changelog_release": {
+        "published": "Note de version publiée",
+        "updated": "Note de version modifiée"
+      },
+      "custom_block": {
+        "published": "Bloc personnalisé publié",
+        "updated": "Bloc personnalisé modifié",
+        "deleted": "Bloc personnalisé supprimé"
+      },
+      "dashboard": {
+        "created": "Tableau de bord créé",
+        "updated": "Tableau de bord modifié"
+      },
+      "custom_tool": {
+        "created": "Outil personnalisé créé",
+        "updated": "Outil personnalisé modifié",
+        "deleted": "Outil personnalisé supprimé"
+      },
+      "data_drain": {
+        "created": "Export de données créé",
+        "updated": "Export de données modifié",
+        "deleted": "Export de données supprimé",
+        "ran": "Export de données exécuté",
+        "tested": "Export de données testé"
+      },
+      "credit": {
+        "purchased": "Crédit acheté",
+        "issued": "Crédit émis"
+      },
+      "invoice": {
+        "payment_succeeded": "Facture payée",
+        "payment_failed": "Facture impayée"
+      },
+      "billing": {
+        "overage_billed": "Facturation : dépassement facturé",
+        "sync_resolved": "Facturation : synchronisation résolue"
+      },
+      "charge": {
+        "dispute_opened": "Paiement : litige ouvert",
+        "dispute_closed": "Paiement : litige clos"
+      },
+      "subscription": {
+        "created": "Abonnement créé",
+        "cancelled": "Abonnement annulé",
+        "refunded": "Abonnement remboursé",
+        "transferred": "Abonnement transféré",
+        "enterprise_provisioned": "Abonnement : Entreprise provisionné"
+      },
+      "connector_document": {
+        "restored": "Document synchronisé restauré",
+        "excluded": "Document synchronisé exclu"
+      },
+      "desktop_tool_call": {
+        "claimed": "Appel d'outil (bureau) : pris en charge",
+        "completed": "Appel d'outil (bureau) terminé"
+      },
+      "document": {
+        "uploaded": "Document déposé",
+        "updated": "Document modifié",
+        "deleted": "Document supprimé"
+      },
+      "environment": {
+        "updated": "Variables d'environnement modifiées",
+        "deleted": "Variables d'environnement supprimées"
+      },
+      "secret_provenance": {
+        "unrecorded": "Origine de secret non enregistrée"
+      },
+      "file": {
+        "uploaded": "Fichier déposé",
+        "updated": "Fichier modifié",
+        "deleted": "Fichier supprimé",
+        "restored": "Fichier restauré",
+        "moved": "Fichier déplacé",
+        "shared": "Fichier partagé",
+        "share_disabled": "Fichier partage désactivé",
+        "downloaded": "Fichier téléchargé",
+        "reverted": "Fichier rétabli",
+        "version_deleted": "Fichier : version supprimée"
+      },
+      "folder": {
+        "created": "Dossier créé",
+        "updated": "Dossier modifié",
+        "deleted": "Dossier supprimé",
+        "moved": "Dossier déplacé",
+        "duplicated": "Dossier dupliqué",
+        "restored": "Dossier restauré"
+      },
+      "invitation": {
+        "accepted": "Invitation acceptée",
+        "rejected": "Invitation refusée",
+        "resent": "Invitation renvoyée",
+        "revoked": "Invitation révoquée",
+        "updated": "Invitation modifiée"
+      },
+      "connector": {
+        "created": "Connecteur créé",
+        "updated": "Connecteur modifié",
+        "deleted": "Connecteur supprimé",
+        "synced": "Connecteur synchronisé"
+      },
+      "knowledge_base": {
+        "created": "Base de connaissances créée",
+        "updated": "Base de connaissances modifiée",
+        "deleted": "Base de connaissances supprimée",
+        "restored": "Base de connaissances restaurée",
+        "exported": "Base de connaissances exportée"
+      },
+      "mcp_server": {
+        "added": "Serveur MCP ajouté",
+        "updated": "Serveur MCP modifié",
+        "removed": "Serveur MCP retiré"
+      },
+      "member": {
+        "invited": "Membre invité",
+        "added": "Membre ajouté",
+        "removed": "Membre retiré",
+        "role_changed": "Membre : rôle modifié"
+      },
+      "oauth": {
+        "disconnected": "Compte OAuth déconnecté"
+      },
+      "credential": {
+        "created": "Identifiant créé",
+        "updated": "Identifiant modifié",
+        "renamed": "Identifiant renommé",
+        "reconnected": "Identifiant reconnecté",
+        "deleted": "Identifiant supprimé",
+        "accessed": "Identifiant consulté"
+      },
+      "credential_member": {
+        "added": "Membre d'identifiant ajouté",
+        "removed": "Membre d'identifiant retiré",
+        "role_changed": "Membre d'identifiant : rôle modifié"
+      },
+      "credential_group": {
+        "updated": "Groupe d'identifiants modifié"
+      },
+      "password": {
+        "reset_requested": "Mot de passe réinitialisation demandée",
+        "reset": "Mot de passe réinitialisé"
+      },
+      "organization": {
+        "created": "Organisation créée",
+        "updated": "Organisation modifiée",
+        "deleted": "Organisation supprimée",
+        "session_policy": {
+          "updated": "Politique de session modifiée"
+        },
+        "sso_policy": {
+          "updated": "Politique SSO modifiée"
+        },
+        "sso_provider": {
+          "created": "Fournisseur SSO ajouté",
+          "updated": "Fournisseur SSO modifié",
+          "deleted": "Fournisseur SSO supprimé"
+        },
+        "sessions": {
+          "revoked": "Sessions de l'organisation révoquées"
+        },
+        "domain": {
+          "added": "Domaine ajouté",
+          "verified": "Domaine vérifié",
+          "removed": "Domaine retiré"
+        },
+        "sso": {
+          "primary_provider_changed": "Fournisseur SSO principal modifié"
+        }
+      },
+      "org_member": {
+        "added": "Membre de l'organisation ajouté",
+        "removed": "Membre de l'organisation retiré",
+        "role_changed": "Membre de l'organisation : rôle modifié",
+        "usage_limit_changed": "Membre de l'organisation : limite d'usage modifiée"
+      },
+      "org_invitation": {
+        "created": "Invitation à l'organisation créée",
+        "updated": "Invitation à l'organisation modifiée",
+        "accepted": "Invitation à l'organisation acceptée",
+        "rejected": "Invitation à l'organisation refusée",
+        "cancelled": "Invitation à l'organisation annulée",
+        "revoked": "Invitation à l'organisation révoquée",
+        "resent": "Invitation à l'organisation renvoyée"
+      },
+      "org_seat": {
+        "provisioned": "Siège attribué",
+        "deprovisioned": "Siège libéré"
+      },
+      "org_plan": {
+        "converted": "Offre convertie"
+      },
+      "permission_group": {
+        "created": "Groupe de permissions créé",
+        "updated": "Groupe de permissions modifié",
+        "deleted": "Groupe de permissions supprimé"
+      },
+      "permission_group_member": {
+        "added": "Membre de groupe de permissions ajouté",
+        "removed": "Membre de groupe de permissions retiré"
+      },
+      "permission_access_request": {
+        "created": "Demande d'accès créée",
+        "fulfilled": "Demande d'accès accordée",
+        "declined": "Demande d'accès refusée",
+        "cancelled": "Demande d'accès annulée",
+        "closed": "Demande d'accès close",
+        "settings_changed": "Demande d'accès : réglages modifiés"
+      },
+      "project": {
+        "created": "Projet créé",
+        "updated": "Projet modifié",
+        "archived": "Projet archivé"
+      },
+      "sandbox": {
+        "created": "Bac à sable créé",
+        "updated": "Bac à sable modifié",
+        "deleted": "Bac à sable supprimé"
+      },
+      "skill": {
+        "created": "Compétence créée",
+        "updated": "Compétence modifiée",
+        "deleted": "Compétence supprimée"
+      },
+      "skill_member": {
+        "added": "Membre de compétence ajouté",
+        "removed": "Membre de compétence retiré"
+      },
+      "schedule": {
+        "created": "Planification créée",
+        "updated": "Planification modifiée",
+        "deleted": "Planification supprimée"
+      },
+      "table": {
+        "created": "Table créée",
+        "updated": "Table modifiée",
+        "deleted": "Table supprimée",
+        "restored": "Table restaurée",
+        "exported": "Table exportée"
+      },
+      "webhook": {
+        "created": "Webhook créé",
+        "deleted": "Webhook supprimé"
+      },
+      "workflow": {
+        "created": "Workflow créé",
+        "updated": "Workflow modifié",
+        "deleted": "Workflow supprimé",
+        "restored": "Workflow restauré",
+        "deployed": "Workflow déployé",
+        "undeployed": "Workflow retiré du déploiement",
+        "duplicated": "Workflow dupliqué",
+        "deployment_activated": "Workflow : version activée",
+        "deployment_reverted": "Workflow : version rétablie",
+        "locked": "Workflow verrouillé",
+        "unlocked": "Workflow déverrouillé",
+        "fork_sync_excluded": "Workflow : exclu de la synchronisation",
+        "fork_sync_included": "Workflow : inclus dans la synchronisation",
+        "variables_updated": "Workflow : variables modifiées",
+        "public_api_toggled": "Workflow : API publique activée ou désactivée",
+        "exported": "Workflow exporté"
+      },
+      "workspace": {
+        "created": "Espace créé",
+        "updated": "Espace modifié",
+        "deleted": "Espace supprimé",
+        "duplicated": "Espace dupliqué",
+        "forked": "Espace dérivé",
+        "fork_promoted": "Espace : dérivation promue",
+        "fork_rolled_back": "Espace : dérivation annulée",
+        "fork_unlinked": "Espace : dérivation détachée",
+        "fork_sync_default_changed": "Espace : synchronisation par défaut modifiée",
+        "exported": "Espace exporté"
+      },
+      "scim_connection": {
+        "enabled": "Connexion SCIM activée",
+        "disabled": "Connexion SCIM désactivée",
+        "settings_updated": "Connexion SCIM : réglages modifiés"
+      },
+      "scim_credential": {
+        "issued": "Jeton SCIM émis",
+        "revoked": "Jeton SCIM révoqué"
+      },
+      "scim_user": {
+        "provisioned": "Utilisateur SCIM attribué",
+        "updated": "Utilisateur SCIM modifié",
+        "deactivated": "Utilisateur SCIM désactivé",
+        "reactivated": "Utilisateur SCIM réactivé",
+        "deprovisioned": "Utilisateur SCIM libéré"
+      },
+      "scim_group": {
+        "created": "Groupe SCIM créé",
+        "updated": "Groupe SCIM modifié",
+        "membership_changed": "Groupe SCIM : membres modifiés",
+        "deleted": "Groupe SCIM supprimé"
+      },
+      "scim_group_mapping": {
+        "upserted": "Correspondance de groupe SCIM enregistrée",
+        "deleted": "Correspondance de groupe SCIM supprimée"
+      }
+    },
+    "resourceTypes": {
+      "account": "Compte",
+      "api_key": "Clé d'API",
+      "billing": "Facturation",
+      "byok_key": "Clé de fournisseur",
+      "changelog_release": "Note de version",
+      "chat": "Chat",
+      "connector": "Connecteur",
+      "credential": "Identifiant",
+      "credential_group": "Groupe d'identifiants",
+      "custom_block": "Bloc personnalisé",
+      "custom_tool": "Outil personnalisé",
+      "dashboard": "Tableau de bord",
+      "data_drain": "Export de données",
+      "desktop_device": "Appareil de bureau",
+      "document": "Document",
+      "environment": "Environnement",
+      "file": "Fichier",
+      "folder": "Dossier",
+      "knowledge_base": "Base de connaissances",
+      "mcp_server": "Serveur MCP",
+      "oauth": "Compte OAuth",
+      "oauth_client": "Application OAuth",
+      "organization": "Organisation",
+      "password": "Mot de passe",
+      "permission_group": "Groupe de permissions",
+      "permission_access_request": "Demande d'accès",
+      "project": "Projet",
+      "sandbox": "Bac à sable",
+      "schedule": "Planification",
+      "scim_connection": "Connexion SCIM",
+      "scim_group": "Groupe SCIM",
+      "secret_provenance": "Origine de secret",
+      "skill": "Compétence",
+      "subscription": "Abonnement",
+      "table": "Table",
+      "user": "Utilisateur",
+      "webhook": "Webhook",
+      "workflow": "Workflow",
+      "workspace": "Espace"
     }
   },
   "usage": {

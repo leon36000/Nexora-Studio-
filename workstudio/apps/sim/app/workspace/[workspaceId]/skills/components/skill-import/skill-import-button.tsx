@@ -3,10 +3,12 @@
 import { useRef, useState } from 'react'
 import { Chip, Loader, toast } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import {
   type ParsedSkill,
   readSkillFile,
   SKILL_IMPORT_ACCEPT,
+  SkillFileError,
 } from '@/app/workspace/[workspaceId]/skills/components/utils'
 
 interface SkillImportButtonProps {
@@ -20,6 +22,7 @@ interface SkillImportButtonProps {
  * a toast, since the action bar has no room for an inline error.
  */
 export function SkillImportButton({ onImport, disabled = false }: SkillImportButtonProps) {
+  const t = useTranslations('integrations.skillsPage')
   const inputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
 
@@ -28,8 +31,11 @@ export function SkillImportButton({ onImport, disabled = false }: SkillImportBut
     try {
       onImport(await readSkillFile(file))
     } catch (error) {
-      toast.error("Couldn't import skill", {
-        description: getErrorMessage(error, 'Please try a .md or .zip file.'),
+      toast.error(t('importFailed'), {
+        description:
+          error instanceof SkillFileError
+            ? t(`import.errors.${error.reason}`)
+            : getErrorMessage(error, t('import.tryMdOrZip')),
       })
     } finally {
       setImporting(false)
@@ -39,7 +45,7 @@ export function SkillImportButton({ onImport, disabled = false }: SkillImportBut
   return (
     <>
       <Chip onClick={() => inputRef.current?.click()} disabled={disabled || importing}>
-        {importing ? <Loader className='size-[14px]' animate /> : 'Import'}
+        {importing ? <Loader className='size-[14px]' animate /> : t('import.action')}
       </Chip>
       <input
         ref={inputRef}

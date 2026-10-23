@@ -2,6 +2,7 @@ import { Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { ProFeaturesBox } from '@/components/emails/billing/pro-features-box'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { formatEmailNumber, getEmailTranslator } from '@/components/emails/i18n'
 import { dollarsToCredits } from '@/lib/billing/credits/conversion'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -21,26 +22,34 @@ export function FreeTierUpgradeEmail({
   upgradeLink,
 }: FreeTierUpgradeEmailProps) {
   const brand = getBrandConfig()
-
-  const previewText = `${brand.name}: You've used ${percentUsed}% of your free credits`
+  const t = getEmailTranslator()
+  const percent = String(percentUsed)
 
   return (
-    <EmailLayout preview={previewText} showUnsubscribe={true}>
-      <Text style={baseStyles.greeting}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
+    <EmailLayout
+      preview={t('freeTierUpgrade.preview', { brandName: brand.name, percent })}
+      showUnsubscribe={true}
+    >
+      <Text style={baseStyles.greeting}>
+        {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
+      </Text>
 
       <Text style={baseStyles.paragraph}>
-        You've used <EmailStrong>{dollarsToCredits(currentUsage).toLocaleString()}</EmailStrong> of
-        your <EmailStrong>{dollarsToCredits(limit).toLocaleString()}</EmailStrong> free credits (
-        {percentUsed}%). Upgrade to Pro to keep building without interruption.
+        {t.rich('freeTierUpgrade.body', {
+          used: formatEmailNumber(dollarsToCredits(currentUsage)),
+          limit: formatEmailNumber(dollarsToCredits(limit)),
+          percent,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
       <ProFeaturesBox />
 
-      <EmailButton href={upgradeLink}>Upgrade to Pro</EmailButton>
+      <EmailButton href={upgradeLink}>{t('common.upgradeToPro')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>One-time notification at 80% usage.</Text>
+      <Text style={baseStyles.footnote}>{t('common.oneTimeAt80')}</Text>
     </EmailLayout>
   )
 }

@@ -63,6 +63,7 @@ import { useFolderMap } from '@/hooks/queries/folders'
 import { isWorkflowEffectivelyLocked } from '@/hooks/queries/utils/folder-tree'
 import { useWorkflowMap, useWorkflowState } from '@/hooks/queries/workflows'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useTranslatedBlockConfig } from '@/hooks/use-translated-block-config'
 import { usePanelEditorSearchStore, usePanelEditorStore } from '@/stores/panel'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
@@ -97,7 +98,7 @@ export function Editor() {
   const activeSearchTarget = usePanelEditorSearchStore((state) => state.activeSearchTarget)
   const currentWorkflow = useCurrentWorkflow()
   const currentBlock = currentBlockId ? currentWorkflow.getBlockById(currentBlockId) : null
-  const blockConfig = currentBlock ? getBlock(currentBlock.type) : null
+  const blockConfig = useTranslatedBlockConfig(currentBlock ? getBlock(currentBlock.type) : null)
   const title = currentBlock?.name || t('title')
   const isBlockNameSearchHighlighted =
     activeSearchTarget?.targetKind === 'block-name' && activeSearchTarget.blockId === currentBlockId

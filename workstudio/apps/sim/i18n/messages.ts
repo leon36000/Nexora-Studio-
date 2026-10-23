@@ -1,26 +1,32 @@
 import type { AbstractIntlMessages } from 'next-intl'
 import type { Locale } from '@/lib/i18n/config'
 import enAuth from '@/messages/en/auth.json'
+import enBlocks from '@/messages/en/blocks.json'
 import enCommon from '@/messages/en/common.json'
 import enEditor from '@/messages/en/editor.json'
+import enEmails from '@/messages/en/emails.json'
 import enErrors from '@/messages/en/errors.json'
 import enFiles from '@/messages/en/files.json'
 import enGovernance from '@/messages/en/governance.json'
 import enHome from '@/messages/en/home.json'
 import enIntegrations from '@/messages/en/integrations.json'
+import enInterfaces from '@/messages/en/interfaces.json'
 import enKnowledge from '@/messages/en/knowledge.json'
 import enLogs from '@/messages/en/logs.json'
 import enSettings from '@/messages/en/settings.json'
 import enShell from '@/messages/en/shell.json'
 import enTables from '@/messages/en/tables.json'
 import frAuth from '@/messages/fr/auth.json'
+import frBlocks from '@/messages/fr/blocks.json'
 import frCommon from '@/messages/fr/common.json'
 import frEditor from '@/messages/fr/editor.json'
+import frEmails from '@/messages/fr/emails.json'
 import frErrors from '@/messages/fr/errors.json'
 import frFiles from '@/messages/fr/files.json'
 import frGovernance from '@/messages/fr/governance.json'
 import frHome from '@/messages/fr/home.json'
 import frIntegrations from '@/messages/fr/integrations.json'
+import frInterfaces from '@/messages/fr/interfaces.json'
 import frKnowledge from '@/messages/fr/knowledge.json'
 import frLogs from '@/messages/fr/logs.json'
 import frSettings from '@/messages/fr/settings.json'
@@ -42,6 +48,9 @@ export const MESSAGE_NAMESPACES = [
   'knowledge',
   'errors',
   'governance',
+  'interfaces',
+  'emails',
+  'blocks',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -60,6 +69,9 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     knowledge: frKnowledge,
     errors: frErrors,
     governance: frGovernance,
+    interfaces: frInterfaces,
+    emails: frEmails,
+    blocks: frBlocks,
   },
   en: {
     common: enCommon,
@@ -75,6 +87,9 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     knowledge: enKnowledge,
     errors: enErrors,
     governance: enGovernance,
+    interfaces: enInterfaces,
+    emails: enEmails,
+    blocks: enBlocks,
   },
 }
 

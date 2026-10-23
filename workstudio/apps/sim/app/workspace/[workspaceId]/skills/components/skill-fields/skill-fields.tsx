@@ -3,14 +3,9 @@
 import type { ReactNode } from 'react'
 import { ChipInput, ChipTextarea, chipFieldSurfaceClass, cn, Tooltip } from '@sim/emcn'
 import dynamic from 'next/dynamic'
+import { useTranslations } from 'next-intl'
 import { DetailSection } from '@/app/workspace/[workspaceId]/components/credential-detail'
-import {
-  SKILL_CONTENT_PLACEHOLDER,
-  SKILL_DESCRIPTION_MAX_LENGTH,
-  SKILL_DESCRIPTION_PLACEHOLDER,
-  SKILL_NAME_HINT,
-  SKILL_NAME_PLACEHOLDER,
-} from '@/app/workspace/[workspaceId]/skills/components/skill-copy'
+import { SKILL_DESCRIPTION_MAX_LENGTH } from '@/app/workspace/[workspaceId]/skills/components/skill-copy'
 
 const RichMarkdownField = dynamic(
   () =>
@@ -92,8 +87,8 @@ function FieldMessage({ error, hint }: { error?: string; hint?: string }) {
  * it — `DetailSection` rows with the error line beneath each field. Shared by
  * the create and detail pages so the copy, sizing, and error treatment cannot
  * drift between them. The canvas modal frames the same fields with
- * `ChipModalField` (required inside a `ChipModalBody`) and shares the copy
- * constants instead.
+ * `ChipModalField` (required inside a `ChipModalBody`) and shares the same
+ * `integrations.skillsPage.fields` messages instead.
  */
 export function SkillFields({
   name,
@@ -109,32 +104,33 @@ export function SkillFields({
   lockReason,
   onPasteText,
 }: SkillFieldsProps) {
+  const t = useTranslations('integrations.skillsPage.fields')
   return (
     <>
-      <DetailSection title='Name'>
+      <DetailSection title={t('name')}>
         <FieldLockTooltip reason={lockReason}>
           <ChipInput
             id='skill-name'
             value={name}
             onChange={(event) => onNameChange(event.target.value)}
-            placeholder={SKILL_NAME_PLACEHOLDER}
+            placeholder={t('namePlaceholder')}
             autoComplete='off'
             data-lpignore='true'
             disabled={disabled}
             error={!!errors.name}
           />
         </FieldLockTooltip>
-        <FieldMessage error={errors.name} hint={disabled ? undefined : SKILL_NAME_HINT} />
+        <FieldMessage error={errors.name} hint={disabled ? undefined : t('nameHint')} />
       </DetailSection>
 
-      <DetailSection title='Description'>
+      <DetailSection title={t('description')}>
         <FieldLockTooltip reason={lockReason}>
           <ChipTextarea
             id='skill-description'
             rows={3}
             value={description}
             onChange={(event) => onDescriptionChange(event.target.value)}
-            placeholder={SKILL_DESCRIPTION_PLACEHOLDER}
+            placeholder={t('descriptionPlaceholder')}
             maxLength={SKILL_DESCRIPTION_MAX_LENGTH}
             autoComplete='off'
             data-lpignore='true'
@@ -145,13 +141,13 @@ export function SkillFields({
         <FieldMessage error={errors.description} />
       </DetailSection>
 
-      <DetailSection title='Content'>
+      <DetailSection title={t('content')}>
         <FieldLockTooltip reason={lockReason}>
           <RichMarkdownField
             key={contentKey}
             value={content}
             onChange={onContentChange}
-            placeholder={SKILL_CONTENT_PLACEHOLDER}
+            placeholder={t('contentPlaceholder')}
             minHeight={260}
             disabled={disabled}
             error={!!errors.content}

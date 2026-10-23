@@ -1,6 +1,7 @@
 import { Section, Text } from '@react-email/components'
 import { baseStyles, colors, fontWeight } from '@/components/emails/_styles'
 import { proFeatures } from '@/components/emails/billing/constants'
+import { getEmailTranslator } from '@/components/emails/i18n'
 
 const CELL = { ...baseStyles.infoBoxList, padding: '4px 0' }
 const LABEL_CELL = {
@@ -17,15 +18,17 @@ const LABEL_CELL = {
  * across email clients, which a list cannot do reliably.
  */
 export function ProFeaturesBox() {
+  const t = getEmailTranslator()
+
   return (
     <Section style={baseStyles.infoBox}>
-      <Text style={baseStyles.infoBoxTitle}>Pro includes</Text>
+      <Text style={baseStyles.infoBoxTitle}>{t('proFeatures.title')}</Text>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           {proFeatures.map((feature) => (
-            <tr key={feature.label}>
-              <td style={LABEL_CELL}>{feature.label}</td>
-              <td style={CELL}>{feature.desc}</td>
+            <tr key={feature}>
+              <td style={LABEL_CELL}>{t(`proFeatures.${feature}.label`)}</td>
+              <td style={CELL}>{t(`proFeatures.${feature}.desc`)}</td>
             </tr>
           ))}
         </tbody>

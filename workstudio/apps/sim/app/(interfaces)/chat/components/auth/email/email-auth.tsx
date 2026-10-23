@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { cn, Input, InputOTP, InputOTPGroup, InputOTPSlot, Label } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
-import { quickValidateEmail } from '@/lib/messaging/email/validation'
+import { useTranslations } from 'next-intl'
 import { AuthSubmitButton, AuthTextLink } from '@/app/(auth)/components'
+import { useEmailFieldValidation } from '@/app/(auth)/components/use-email-field-validation'
 import { useChatEmailOtpRequest, useChatEmailOtpVerify } from '@/hooks/queries/chats'
 
 const logger = createLogger('EmailAuth')
@@ -14,23 +15,9 @@ interface EmailAuthProps {
   identifier: string
 }
 
-const validateEmailField = (emailValue: string): string[] => {
-  const errors: string[] = []
-
-  if (!emailValue || !emailValue.trim()) {
-    errors.push('Email is required.')
-    return errors
-  }
-
-  const validation = quickValidateEmail(emailValue.trim().toLowerCase())
-  if (!validation.isValid) {
-    errors.push(validation.reason || 'Please enter a valid email address.')
-  }
-
-  return errors
-}
-
 export default function EmailAuth({ identifier }: EmailAuthProps) {
+  const t = useTranslations('interfaces.chat.email')
+  const validateEmailField = useEmailFieldValidation()
   const [email, setEmail] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
   const [emailErrors, setEmailErrors] = useState<string[]>([])
@@ -70,7 +57,7 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
       setShowOtpVerification(true)
     } catch (error) {
       logger.error('Error sending OTP:', error)
-      setEmailErrors([toError(error).message || 'Failed to send verification code'])
+      setEmailErrors([toError(error).message || t('sendFailed')])
     }
   }
 
@@ -87,7 +74,7 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
       await verifyOtp.mutateAsync({ email, otp: codeToVerify })
     } catch (error) {
       logger.error('Error verifying OTP:', error)
-      setAuthError(toError(error).message || 'Invalid verification code')
+      setAuthError(toError(error).message || t('invalidCode'))
     }
   }
 
@@ -100,7 +87,7 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
       setOtpValue('')
     } catch (error) {
       logger.error('Error resending OTP:', error)
-      setAuthError(toError(error).message || 'Failed to resend verification code')
+      setAuthError(toError(error).message || t('resendFailed'))
       setCountdown(0)
     }
   }
@@ -111,12 +98,10 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
         <div className='flex flex-col items-center justify-center'>
           <div className='space-y-1 text-center'>
             <h1 className='text-balance text-[40px] text-[var(--text-primary)] leading-[110%] tracking-[-0.02em]'>
-              {showOtpVerification ? 'Verify Your Email' : 'Email Verification'}
+              {showOtpVerification ? t('titleVerify') : t('title')}
             </h1>
             <p className='text-[color-mix(in_srgb,var(--text-muted)_60%,transparent)] text-lg leading-[125%] tracking-[0.02em]'>
-              {showOtpVerification
-                ? `A verification code has been sent to ${email}`
-                : 'This chat requires email verification'}
+              {showOtpVerification ? t('codeSent', { email }) : t('description')}
             </p>
           </div>
 
@@ -131,12 +116,12 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
               >
                 <div className='space-y-2'>
                   <div className='flex items-center justify-between'>
-                    <Label htmlFor='email'>Email</Label>
+                    <Label htmlFor='email'>{t('label')}</Label>
                   </div>
                   <Input
                     id='email'
                     name='email'
-                    placeholder='Enter your email'
+                    placeholder={t('placeholder')}
                     required
                     autoCapitalize='none'
                     autoComplete='email'
@@ -159,17 +144,14 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
                 <AuthSubmitButton
                   type='submit'
                   loading={requestOtp.isPending}
-                  loadingLabel='Sending Code…'
+                  loadingLabel={t('sending')}
                 >
-                  Continue
+                  {t('submit')}
                 </AuthSubmitButton>
               </form>
             ) : (
               <div className='space-y-6'>
-                <p className='text-center text-[var(--text-muted)] text-sm'>
-                  Enter the 6-digit code to verify your account. If you don't see it in your inbox,
-                  check your spam folder.
-                </p>
+                <p className='text-center text-[var(--text-muted)] text-sm'>{t('enterCode')}</p>
 
                 <div className='flex justify-center'>
                   <InputOTP
@@ -206,24 +188,29 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
                   onClick={() => handleVerifyOtp()}
                   disabled={otpValue.length !== 6}
                   loading={verifyOtp.isPending}
-                  loadingLabel='Verifying…'
+                  loadingLabel={t('verifying')}
                 >
-                  Verify Email
+                  {t('verify')}
                 </AuthSubmitButton>
 
                 <div className='text-center'>
                   <p className='text-[var(--text-muted)] text-sm'>
-                    Didn't receive a code?{' '}
+                    {t('noCode')}{' '}
                     {countdown > 0 ? (
                       <span>
-                        Resend in <span className='text-[var(--text-primary)]'>{countdown}s</span>
+                        {t.rich('resendIn', {
+                          seconds: countdown,
+                          highlight: (chunks) => (
+                            <span className='text-[var(--text-primary)]'>{chunks}</span>
+                          ),
+                        })}
                       </span>
                     ) : (
                       <AuthTextLink
                         onClick={handleResendOtp}
                         disabled={verifyOtp.isPending || requestOtp.isPending}
                       >
-                        Resend
+                        {t('resend')}
                       </AuthTextLink>
                     )}
                   </p>
@@ -237,7 +224,7 @@ export default function EmailAuth({ identifier }: EmailAuthProps) {
                       setAuthError(null)
                     }}
                   >
-                    Change email
+                    {t('changeEmail')}
                   </AuthTextLink>
                 </div>
               </div>

@@ -290,5 +290,81 @@
       "pasteBelow": "Collez-le dans le champ ci-dessous, puis cliquez sur Suivant.",
       "label": "Bot Token"
     }
+  },
+  "skillsPage": {
+    "metaTitle": "Compétences",
+    "metaNew": "Nouvelle compétence",
+    "metaDetail": "Compétence",
+    "loadFailedTitle": "Impossible de charger les compétences",
+    "loadFailedDescription": "Une erreur s’est produite lors du chargement de vos compétences. Veuillez réessayer.",
+    "addToNexora": "Ajouter à Nexora",
+    "explorePrompt": "Expliquez-moi les compétences de Nexora et celles que je devrais ajouter à mes agents.",
+    "searchPlaceholder": "Rechercher des compétences...",
+    "sectionLabel": "Compétences",
+    "open": "Ouvrir {name}",
+    "noResults": "Aucune compétence ne correspond à « {query} »",
+    "back": "Compétences",
+    "share": "Partager",
+    "delete": "Supprimer",
+    "loading": "Chargement…",
+    "notFound": "Compétence introuvable.",
+    "descriptionRequired": "La description est obligatoire",
+    "contentRequired": "Le contenu est obligatoire",
+    "saved": "« {name} » enregistrée",
+    "created": "« {name} » créée",
+    "nameTaken": "Ce nom de compétence est déjà utilisé.",
+    "saveFailed": "Impossible d’enregistrer la compétence",
+    "deleteFailed": "Impossible de supprimer la compétence",
+    "createFailed": "Impossible de créer la compétence",
+    "importFailed": "Impossible d’importer la compétence",
+    "tryAgainLater": "Veuillez réessayer dans un instant.",
+    "builtinReadOnly": "Les compétences intégrées sont en lecture seule",
+    "editorRequired": "Vous devez être éditeur de cette compétence pour la modifier",
+    "builtinSubtitle": "Compétence intégrée",
+    "deleteTitle": "Supprimer la compétence",
+    "deleteConfirmBefore": "Voulez-vous vraiment supprimer ",
+    "deleteConfirmAfter": " ? Cette action est irréversible.",
+    "deleting": "Suppression…",
+    "editorsTitle": "Éditeurs de la compétence ({count})",
+    "editorsLoadFailed": "Impossible de charger les éditeurs. Vous n’avez peut-être plus accès à cette compétence.",
+    "newTitle": "Nouvelle compétence",
+    "newSubtitle": "Rédigez une compétence ou importez un SKILL.md existant",
+    "fields": {
+      "name": "Nom",
+      "description": "Description",
+      "content": "Contenu",
+      "namePlaceholder": "nom-de-ma-competence",
+      "nameHint": "Lettres minuscules, chiffres et tirets (ex. ma-competence)",
+      "descriptionPlaceholder": "Ce que fait cette compétence et quand l’utiliser...",
+      "contentPlaceholder": "Instructions de la compétence en Markdown..."
+    },
+    "validation": {
+      "nameRequired": "Le nom est obligatoire",
+      "nameTooLong": "Le nom doit comporter 64 caractères au maximum",
+      "nameNotKebab": "Le nom doit être en kebab-case (ex. ma-competence)"
+    },
+    "import": {
+      "action": "Importer",
+      "uploadFile": "Téléverser un fichier",
+      "importing": "Importation…",
+      "uploadDescription": "Fichier .md avec en-tête YAML, ou .zip contenant un SKILL.md",
+      "tryMdOrZip": "Essayez avec un fichier .md ou .zip.",
+      "processFailed": "Impossible de traiter le fichier",
+      "errors": {
+        "unsupportedType": "Type de fichier non pris en charge. Utilisez un fichier .md ou .zip.",
+        "zipTooLarge": "Le fichier ZIP est trop volumineux (5 Mo maximum)",
+        "noSkillInZip": "Aucun fichier SKILL.md trouvé dans l’archive ZIP"
+      }
+    },
+    "modal": {
+      "createTab": "Créer",
+      "importTab": "Importer",
+      "editTitle": "Modifier la compétence",
+      "addTitle": "Ajouter une compétence",
+      "saveFailed": "Impossible d’enregistrer la compétence. Veuillez réessayer.",
+      "saving": "Enregistrement...",
+      "update": "Mettre à jour",
+      "create": "Créer"
+    }
   }
 }

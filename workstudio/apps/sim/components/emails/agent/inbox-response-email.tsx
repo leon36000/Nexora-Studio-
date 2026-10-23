@@ -1,6 +1,7 @@
 import { type ComponentType, type CSSProperties, createElement, type ReactNode } from 'react'
 import { Body, Head, Html, Link, Markdown, Section, Text } from '@react-email/components'
 import { colors, fontWeight, typography } from '@/components/emails/_styles'
+import { EMAIL_LOCALE, getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 const CODE_FONT_FAMILY = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace"
@@ -127,7 +128,7 @@ function InboxShell({
 }) {
   return createElement(
     Html,
-    { lang: 'en', dir: 'ltr' },
+    { lang: EMAIL_LOCALE, dir: 'ltr' },
     createElement(Head),
     createElement(
       Body,
@@ -144,7 +145,7 @@ function InboxShell({
         createElement(
           Text,
           { style: emailStyles.signatureText },
-          'Best,',
+          getEmailTranslator()('inbox.signoff'),
           createElement('br'),
           getBrandConfig().name
         )
@@ -157,7 +158,7 @@ function InboxShell({
 export function InboxResponseEmail({ markdown, chatUrl }: { markdown: string; chatUrl: string }) {
   return createElement(
     InboxShell,
-    { chatUrl, linkLabel: 'View full conversation' },
+    { chatUrl, linkLabel: getEmailTranslator()('inbox.viewConversation') },
     createElement(
       EmailMarkdown,
       {
@@ -171,14 +172,15 @@ export function InboxResponseEmail({ markdown, chatUrl }: { markdown: string; ch
 
 /** The agent's reply when it could not complete the task. */
 export function InboxErrorEmail({ error, chatUrl }: { error: string; chatUrl: string }) {
+  const t = getEmailTranslator()
   return createElement(
     InboxShell,
-    { chatUrl, linkLabel: 'View details' },
-    createElement(Text, { style: markdownStyles.p }, "I wasn't able to complete this task."),
+    { chatUrl, linkLabel: t('inbox.viewDetails') },
+    createElement(Text, { style: markdownStyles.p }, t('inbox.failed')),
     createElement(
       Text,
       { style: { ...markdownStyles.p, color: colors.textSecondary } },
-      `Error: ${error}`
+      t('inbox.error', { error })
     )
   )
 }

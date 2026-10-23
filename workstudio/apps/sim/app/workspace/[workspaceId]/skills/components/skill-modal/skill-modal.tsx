@@ -14,13 +14,8 @@ import {
 } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
 import dynamic from 'next/dynamic'
-import {
-  SKILL_CONTENT_PLACEHOLDER,
-  SKILL_DESCRIPTION_MAX_LENGTH,
-  SKILL_DESCRIPTION_PLACEHOLDER,
-  SKILL_NAME_HINT,
-  SKILL_NAME_PLACEHOLDER,
-} from '@/app/workspace/[workspaceId]/skills/components/skill-copy'
+import { useTranslations } from 'next-intl'
+import { SKILL_DESCRIPTION_MAX_LENGTH } from '@/app/workspace/[workspaceId]/skills/components/skill-copy'
 import { SkillImport } from '@/app/workspace/[workspaceId]/skills/components/skill-import'
 import {
   isSkillNameConflictError,
@@ -58,11 +53,6 @@ interface FieldErrors {
 
 type TabValue = 'create' | 'import'
 
-const CREATE_TABS = [
-  { value: 'create', label: 'Create' },
-  { value: 'import', label: 'Import' },
-] as const
-
 export function SkillModal({
   workspaceId,
   open,
@@ -70,6 +60,11 @@ export function SkillModal({
   onSave,
   initialValues,
 }: SkillModalProps) {
+  const t = useTranslations('integrations.skillsPage')
+  const createTabs = [
+    { value: 'create', label: t('modal.createTab') },
+    { value: 'import', label: t('modal.importTab') },
+  ] as const
   const createSkill = useCreateSkill()
   const updateSkill = useUpdateSkill()
 
@@ -111,14 +106,14 @@ export function SkillModal({
     const newErrors: FieldErrors = {}
 
     const nameError = validateSkillName(name)
-    if (nameError) newErrors.name = nameError
+    if (nameError) newErrors.name = t(`validation.${nameError}`)
 
     if (!description.trim()) {
-      newErrors.description = 'Description is required'
+      newErrors.description = t('descriptionRequired')
     }
 
     if (!content.trim()) {
-      newErrors.content = 'Content is required'
+      newErrors.content = t('contentRequired')
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -142,9 +137,9 @@ export function SkillModal({
       onSave()
     } catch (error) {
       if (isSkillNameConflictError(error)) {
-        setErrors({ name: getErrorMessage(error, 'This skill name is already taken.') })
+        setErrors({ name: getErrorMessage(error, t('nameTaken')) })
       } else {
-        setErrors({ general: 'Failed to save skill. Please try again.' })
+        setErrors({ general: t('modal.saveFailed') })
       }
     }
   }
@@ -185,17 +180,17 @@ export function SkillModal({
     <ChipModal
       open={open}
       onOpenChange={onOpenChange}
-      srTitle={isEditing ? 'Edit Skill' : 'Add Skill'}
+      srTitle={isEditing ? t('modal.editTitle') : t('modal.addTitle')}
       size='lg'
     >
       <ChipModalHeader onClose={() => onOpenChange(false)}>
-        {isEditing ? 'Edit Skill' : 'Add Skill'}
+        {isEditing ? t('modal.editTitle') : t('modal.addTitle')}
       </ChipModalHeader>
 
       <ChipModalBody>
         {!isEditing && (
           <ChipModalTabs
-            tabs={CREATE_TABS}
+            tabs={createTabs}
             value={activeTab}
             onChange={(value) => setActiveTab(value as TabValue)}
           />
@@ -205,37 +200,42 @@ export function SkillModal({
           <>
             <ChipModalField
               type='input'
-              title='Name'
+              title={t('fields.name')}
               value={name}
               onChange={(value) => {
                 setName(value)
                 if (errors.name || errors.general)
                   setErrors((prev) => ({ ...prev, name: undefined, general: undefined }))
               }}
-              placeholder={SKILL_NAME_PLACEHOLDER}
+              placeholder={t('fields.namePlaceholder')}
               required
               error={errors.name}
-              hint={SKILL_NAME_HINT}
+              hint={t('fields.nameHint')}
               disabled={readOnly || saving}
             />
 
             <ChipModalField
               type='input'
-              title='Description'
+              title={t('fields.description')}
               value={description}
               onChange={(value) => {
                 setDescription(value)
                 if (errors.description || errors.general)
                   setErrors((prev) => ({ ...prev, description: undefined, general: undefined }))
               }}
-              placeholder={SKILL_DESCRIPTION_PLACEHOLDER}
+              placeholder={t('fields.descriptionPlaceholder')}
               maxLength={SKILL_DESCRIPTION_MAX_LENGTH}
               required
               error={errors.description}
               disabled={readOnly || saving}
             />
 
-            <ChipModalField type='custom' title='Content' required error={errors.content}>
+            <ChipModalField
+              type='custom'
+              title={t('fields.content')}
+              required
+              error={errors.content}
+            >
               <RichMarkdownField
                 key={`${initialValues?.id ?? 'new'}:${contentSeed}`}
                 value={content}
@@ -244,7 +244,7 @@ export function SkillModal({
                   if (errors.content || errors.general)
                     setErrors((prev) => ({ ...prev, content: undefined, general: undefined }))
                 }}
-                placeholder={SKILL_CONTENT_PLACEHOLDER}
+                placeholder={t('fields.contentPlaceholder')}
                 minHeight={200}
                 maxHeight={360}
                 disabled={readOnly || saving}
@@ -266,7 +266,7 @@ export function SkillModal({
           onCancel={() => onOpenChange(false)}
           cancelDisabled={isBuiltin}
           primaryAction={{
-            label: saving ? 'Saving...' : isEditing ? 'Update' : 'Create',
+            label: saving ? t('modal.saving') : isEditing ? t('modal.update') : t('modal.create'),
             onClick: handleSave,
             disabled: readOnly || saving || !hasChanges,
           }}

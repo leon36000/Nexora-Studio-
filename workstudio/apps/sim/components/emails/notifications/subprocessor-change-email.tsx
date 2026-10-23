@@ -1,16 +1,11 @@
 import { Link, Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { EMAIL_DATE_LOCALE, EMAIL_LOCALE, getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 /** How a sub-processor's role on the list is changing. */
 export type SubprocessorChangeType = 'added' | 'replaced' | 'removed'
-
-const CHANGE_TYPE_LABEL: Record<SubprocessorChangeType, string> = {
-  added: 'New sub-processor',
-  replaced: 'Replacement sub-processor',
-  removed: 'Sub-processor being removed',
-}
 
 /**
  * Dates in a notice period have to be unambiguous, so the month is spelled out
@@ -26,7 +21,7 @@ const NOTICE_DATE_FORMAT: Intl.DateTimeFormatOptions = {
 }
 
 function formatNoticeDate(date: Date): string {
-  return date.toLocaleDateString('en-US', NOTICE_DATE_FORMAT)
+  return date.toLocaleDateString(EMAIL_DATE_LOCALE[EMAIL_LOCALE], NOTICE_DATE_FORMAT)
 }
 
 export interface SubprocessorChange {
@@ -71,63 +66,78 @@ export function SubprocessorChangeEmail({
   subscriptionUrl,
 }: SubprocessorChangeEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
   const effectiveDateLabel = formatNoticeDate(effectiveDate)
-  const previewText = `${brand.name} is changing its sub-processors on ${effectiveDateLabel}`
+  const strong = (chunks: React.ReactNode) => <EmailStrong>{chunks}</EmailStrong>
 
   return (
-    <EmailLayout preview={previewText} showUnsubscribe={false}>
-      <Text style={baseStyles.greeting}>{recipientName ? `Hi ${recipientName},` : 'Hi,'}</Text>
+    <EmailLayout
+      preview={t('subprocessorChange.preview', {
+        brandName: brand.name,
+        date: effectiveDateLabel,
+      })}
+      showUnsubscribe={false}
+    >
+      <Text style={baseStyles.greeting}>
+        {recipientName ? t('common.hiName', { name: recipientName }) : t('common.hi')}
+      </Text>
 
       <Text style={baseStyles.paragraph}>
-        We are giving you advance notice of a change to the sub-processors {brand.name} uses to
-        process customer personal data. The change takes effect on{' '}
-        <EmailStrong>{effectiveDateLabel}</EmailStrong>.
+        {t.rich('subprocessorChange.intro', {
+          brandName: brand.name,
+          date: effectiveDateLabel,
+          strong,
+        })}
       </Text>
 
       {changes.map((change) => (
         <Section key={change.name} style={baseStyles.infoBox}>
           <Text style={baseStyles.infoBoxTitle}>
-            {change.name} — {CHANGE_TYPE_LABEL[change.changeType]}
+            {change.name} — {t(`subprocessorChange.changeTypes.${change.changeType}`)}
           </Text>
           <Text style={baseStyles.infoBoxList}>
-            Purpose: {change.purpose}
+            {t('subprocessorChange.purpose', { value: change.purpose })}
             <br />
-            Data processed: {change.dataCategories}
+            {t('subprocessorChange.dataProcessed', { value: change.dataCategories })}
             <br />
-            Processing location: {change.location}
+            {t('subprocessorChange.location', { value: change.location })}
             <br />
-            Effective: {effectiveDateLabel}
+            {t('subprocessorChange.effective', { date: effectiveDateLabel })}
           </Text>
         </Section>
       ))}
 
       <Text style={baseStyles.paragraph}>
-        If you object to this change, reply to this email or write to{' '}
-        <Link href={`mailto:${objectionEmail}`} style={baseStyles.link}>
-          {objectionEmail}
-        </Link>{' '}
-        by <EmailStrong>{formatNoticeDate(objectionDeadline)}</EmailStrong>. We will work with you
-        on a resolution, and you may terminate the affected service if we cannot reach one.
+        {t.rich('subprocessorChange.objection', {
+          email: objectionEmail,
+          deadline: formatNoticeDate(objectionDeadline),
+          strong,
+          link: (chunks) => (
+            <Link href={`mailto:${objectionEmail}`} style={baseStyles.link}>
+              {chunks}
+            </Link>
+          ),
+        })}
       </Text>
 
-      <Text style={baseStyles.paragraph}>
-        No action is needed if you have no objection. The full list of sub-processors stays current
-        at the link below.
-      </Text>
+      <Text style={baseStyles.paragraph}>{t('subprocessorChange.noAction')}</Text>
 
-      <EmailButton href={subprocessorListUrl}>View sub-processor list</EmailButton>
+      <EmailButton href={subprocessorListUrl}>{t('subprocessorChange.button')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
       <Text style={baseStyles.footnote}>
-        Sent to customers subscribed to sub-processor change notices.
+        {t('subprocessorChange.footnote')}
         {subscriptionUrl ? (
           <>
             {' '}
-            <Link href={subscriptionUrl} style={baseStyles.footerLink}>
-              Manage whether you receive them
-            </Link>
-            .
+            {t.rich('subprocessorChange.manage', {
+              link: (chunks) => (
+                <Link href={subscriptionUrl} style={baseStyles.footerLink}>
+                  {chunks}
+                </Link>
+              ),
+            })}
           </>
         ) : null}
       </Text>

@@ -1,0 +1,2366 @@
+{
+  "a2a": {
+    "name": "A2A",
+    "description": "Interact with external A2A-compatible agents"
+  },
+  "affinity": {
+    "name": "Affinity",
+    "description": "Read and write companies, people, lists, notes, and relationships in Affinity"
+  },
+  "agent": {
+    "name": "Agent",
+    "description": "Build an agent",
+    "longDescription": "The Agent block is a core workflow block that is a wrapper around an LLM. It takes in system/user prompts and calls an LLM provider. It can also make tool calls by directly containing tools inside of its tool input. It can additionally return structured output. Select a Jev model to evaluate state against typed Choice, Score, and Noul questions and return structured answers.",
+    "subBlocks": {
+      "messages": {
+        "title": "Messages",
+        "placeholder": "Enter messages..."
+      },
+      "model": {
+        "title": "Model",
+        "placeholder": "Type or select a model..."
+      },
+      "vertexCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Select Google Cloud account"
+      },
+      "vertexManualCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Enter credential ID"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "placeholder": "Enter your API key"
+      },
+      "azureEndpoint": {
+        "title": "Azure Endpoint",
+        "placeholder": "https://your-resource.services.ai.azure.com"
+      },
+      "azureApiVersion": {
+        "title": "Azure API Version",
+        "placeholder": "Enter API version"
+      },
+      "vertexProject": {
+        "title": "Vertex AI Project",
+        "placeholder": "your-gcp-project-id"
+      },
+      "vertexLocation": {
+        "title": "Vertex AI Location",
+        "placeholder": "us-central1"
+      },
+      "bedrockAccessKeyId": {
+        "title": "AWS Access Key ID",
+        "placeholder": "Enter your AWS Access Key ID"
+      },
+      "bedrockSecretKey": {
+        "title": "AWS Secret Access Key",
+        "placeholder": "Enter your AWS Secret Access Key"
+      },
+      "bedrockRegion": {
+        "title": "AWS Region",
+        "placeholder": "us-east-1"
+      },
+      "evaluationState": {
+        "title": "State",
+        "placeholder": "Content or workflow data to evaluate...",
+        "description": "Text, a JSON object, or an array shared by every question. Jev supports text only."
+      },
+      "evaluationQuestions": {
+        "title": "Questions",
+        "placeholder": "{\"passed\":{\"type\":\"noul\",\"instructions\":\"Did the task succeed?\"}}",
+        "description": "Questions keyed by ID: choice (1–255 named options), score (2–10 ordered levels), or noul (a yes/no probability). Answers use the same IDs."
+      },
+      "attachmentFiles": {
+        "title": "Files",
+        "placeholder": "Upload files for the agent"
+      },
+      "files": {
+        "title": "Files",
+        "placeholder": "Reference files from previous blocks"
+      },
+      "reasoningEffort": {
+        "title": "Reasoning Effort",
+        "placeholder": "Type or select reasoning effort..."
+      },
+      "verbosity": {
+        "title": "Verbosity",
+        "placeholder": "Type or select verbosity..."
+      },
+      "thinkingLevel": {
+        "title": "Thinking Level",
+        "placeholder": "Type or select thinking level..."
+      },
+      "promptCaching": {
+        "title": "Prompt Caching",
+        "description": "Cache the system prompt and tool definitions so repeat runs reuse them at a reduced rate. Writing the cache costs more than a normal request, so this pays off when the same prompt runs repeatedly."
+      },
+      "tools": {
+        "title": "Tools"
+      },
+      "skills": {
+        "title": "Skills"
+      },
+      "memoryType": {
+        "title": "Memory",
+        "placeholder": "Select memory..."
+      },
+      "conversationId": {
+        "title": "Conversation ID",
+        "placeholder": "e.g., user-123, session-abc, customer-456"
+      },
+      "slidingWindowSize": {
+        "title": "Sliding Window Size",
+        "placeholder": "Enter number of messages (e.g., 10)..."
+      },
+      "slidingWindowTokens": {
+        "title": "Max Tokens",
+        "placeholder": "Enter max tokens (e.g., 4000)..."
+      },
+      "temperature": {
+        "title": "Temperature"
+      },
+      "maxTokens": {
+        "title": "Max Output Tokens",
+        "placeholder": "Enter max tokens (e.g., 4096)..."
+      },
+      "responseFormat": {
+        "title": "Response Format",
+        "placeholder": "Enter JSON schema..."
+      },
+      "previousInteractionId": {
+        "title": "Previous Interaction ID",
+        "placeholder": "e.g., {{agent_1.interactionId}}"
+      },
+      "fallbackModels": {
+        "title": "Fallback models",
+        "description": "Ordered models tried once each when the selected model's request fails; with Retry on fail, after its tries run out. Each row is { model, apiKey?, reasoningEffort?, thinkingLevel?, verbosity? }. API keys must be whole {{ENV_VAR}} references and apply only when the row asks for a key. Tuning must be supported by the row model. sim-auto is not allowed. Max 5."
+      }
+    }
+  },
+  "agentmail": {
+    "name": "AgentMail",
+    "description": "Manage email inboxes, threads, and messages with AgentMail"
+  },
+  "agentphone": {
+    "name": "AgentPhone",
+    "description": "Provision numbers, send SMS and iMessage, and place voice calls with AgentPhone"
+  },
+  "agiloft": {
+    "name": "Agiloft",
+    "description": "Manage records in Agiloft CLM"
+  },
+  "ahrefs": {
+    "name": "Ahrefs",
+    "description": "SEO analysis with Ahrefs"
+  },
+  "airtable": {
+    "name": "Airtable",
+    "description": "Read, create, and update Airtable"
+  },
+  "algolia": {
+    "name": "Algolia",
+    "description": "Search and manage Algolia indices"
+  },
+  "amplitude": {
+    "name": "Amplitude",
+    "description": "Track events and query analytics from Amplitude"
+  },
+  "api": {
+    "name": "API",
+    "description": "Use any API",
+    "longDescription": "This is a core workflow block. Connect to any external API with support for all standard HTTP methods and customizable request parameters. Configure headers, query parameters, and request bodies. Standard headers (User-Agent, Accept, Cache-Control, etc.) are automatically included.",
+    "subBlocks": {
+      "url": {
+        "title": "URL",
+        "placeholder": "Enter URL"
+      },
+      "method": {
+        "title": "Method"
+      },
+      "params": {
+        "title": "Query Params"
+      },
+      "headers": {
+        "title": "Headers",
+        "description": "Custom headers (standard headers like User-Agent, Accept, etc. are added automatically)"
+      },
+      "body": {
+        "title": "Body",
+        "placeholder": "Enter JSON..."
+      },
+      "timeout": {
+        "title": "Timeout (ms)",
+        "placeholder": "300000",
+        "description": "Request timeout in milliseconds (default: 300000 = 5 minutes, max: 600000 = 10 minutes)"
+      },
+      "retries": {
+        "title": "Retries",
+        "placeholder": "0",
+        "description": "Number of retry attempts for timeouts, 429 responses, and 5xx errors (default: 0, no retries)"
+      },
+      "retryDelayMs": {
+        "title": "Retry delay (ms)",
+        "placeholder": "500",
+        "description": "Initial retry delay in milliseconds (exponential backoff)"
+      },
+      "retryMaxDelayMs": {
+        "title": "Max retry delay (ms)",
+        "placeholder": "30000",
+        "description": "Maximum delay between retries in milliseconds"
+      },
+      "retryNonIdempotent": {
+        "title": "Retry non-idempotent methods",
+        "description": "Allow retries for POST/PATCH requests (may create duplicate requests)"
+      },
+      "redirectPolicyVersion": {
+        "title": "Redirect policy version"
+      },
+      "sendCredentialsOnCrossOriginRedirect": {
+        "title": "Send credentials on cross-origin redirects",
+        "description": "Forward credential-bearing headers when a redirect changes scheme, host, or port. Enabled by default for compatibility; disable it when redirected destinations should not receive the same credentials."
+      },
+      "proxyUrl": {
+        "title": "Proxy URL",
+        "placeholder": "http://user:pass@proxy.host:port or {{PROXY_URL}}",
+        "description": "Optional. Route this request through an http:// proxy (e.g. a residential proxy). Must be http://; the proxy host must be publicly reachable. Keep credentials in an environment variable and reference it like {{PROXY_URL}}."
+      }
+    }
+  },
+  "api_trigger": {
+    "name": "API (Legacy)",
+    "description": "Legacy block for exposing HTTP API endpoint. Prefer Start block.",
+    "longDescription": "API trigger to start the workflow via authenticated HTTP calls with structured input.",
+    "subBlocks": {
+      "inputFormat": {
+        "title": "Input Format",
+        "description": "Define the JSON input schema accepted by the API endpoint."
+      }
+    }
+  },
+  "apify": {
+    "name": "Apify",
+    "description": "Run Apify actors and retrieve results"
+  },
+  "apollo": {
+    "name": "Apollo",
+    "description": "Search, enrich, and manage contacts with Apollo.io"
+  },
+  "appconfig": {
+    "name": "AWS AppConfig",
+    "description": "Manage and retrieve configuration with AWS AppConfig"
+  },
+  "arxiv": {
+    "name": "ArXiv",
+    "description": "Search and retrieve academic papers from ArXiv"
+  },
+  "asana": {
+    "name": "Asana",
+    "description": "Interact with Asana"
+  },
+  "ashby": {
+    "name": "Ashby",
+    "description": "Manage candidates, jobs, and applications in Ashby"
+  },
+  "athena": {
+    "name": "Athena",
+    "description": "Run SQL queries on data in Amazon S3 using AWS Athena"
+  },
+  "attio": {
+    "name": "Attio",
+    "description": "Manage records, notes, tasks, lists, comments, and more in Attio CRM"
+  },
+  "azure_data_explorer": {
+    "name": "Azure Data Explorer",
+    "description": "Query and manage Azure Data Explorer (Kusto) clusters with KQL"
+  },
+  "azure_devops": {
+    "name": "Azure DevOps",
+    "description": "Interact with Azure DevOps pipelines, builds, and work items"
+  },
+  "bitbucket": {
+    "name": "Bitbucket",
+    "description": "Work with Bitbucket Cloud repositories, pull requests, and pipelines"
+  },
+  "box_v2": {
+    "name": "Box",
+    "description": "Manage files, folders, and e-signatures with Box"
+  },
+  "brandfetch": {
+    "name": "Brandfetch",
+    "description": "Look up brand assets, logos, colors, and company info"
+  },
+  "brex": {
+    "name": "Brex",
+    "description": "Manage expenses, receipts, transactions, and team data in Brex"
+  },
+  "brightdata": {
+    "name": "Bright Data",
+    "description": "Scrape websites, search engines, and extract structured data"
+  },
+  "browser_use": {
+    "name": "Browser Use",
+    "description": "Run browser automation tasks"
+  },
+  "buffer": {
+    "name": "Buffer",
+    "description": "Schedule and publish social media posts across connected channels"
+  },
+  "calcom": {
+    "name": "Cal.com",
+    "description": "Manage Cal.com bookings, event types, schedules, and availability"
+  },
+  "calendly": {
+    "name": "Calendly",
+    "description": "Manage Calendly scheduling and events"
+  },
+  "cbinsights": {
+    "name": "CB Insights",
+    "description": "Research private markets — firmographics, funding, and predictive scores"
+  },
+  "chat_trigger": {
+    "name": "Chat",
+    "description": "Legacy chat start block. Prefer the unified Start block.",
+    "longDescription": "Chat trigger to run the workflow via deployed chat interfaces."
+  },
+  "checkr": {
+    "name": "Checkr",
+    "description": "Run and manage background checks with Checkr"
+  },
+  "circleback": {
+    "name": "Circleback",
+    "description": "Read Circleback meetings, notes, transcripts, and action items"
+  },
+  "clay": {
+    "name": "Clay",
+    "description": "Populate Clay workbook"
+  },
+  "clerk": {
+    "name": "Clerk",
+    "description": "Manage users, organizations, and sessions in Clerk"
+  },
+  "clickhouse": {
+    "name": "ClickHouse",
+    "description": "Connect to a ClickHouse database"
+  },
+  "clickup": {
+    "name": "ClickUp",
+    "description": "Manage ClickUp tasks, comments, hierarchy, and time entries"
+  },
+  "cloudflare": {
+    "name": "Cloudflare",
+    "description": "Manage DNS, WAF, Zero Trust access, and edge infrastructure"
+  },
+  "cloudformation": {
+    "name": "CloudFormation",
+    "description": "Manage and inspect AWS CloudFormation stacks, resources, and drift"
+  },
+  "cloudtrail": {
+    "name": "CloudTrail",
+    "description": "Audit who did what in AWS with CloudTrail event history and Lake queries"
+  },
+  "cloudwatch": {
+    "name": "CloudWatch",
+    "description": "Query and monitor AWS CloudWatch logs, metrics, and alarms"
+  },
+  "coda": {
+    "name": "Coda",
+    "description": "Read and write Coda docs, pages, tables, and rows"
+  },
+  "codepipeline": {
+    "name": "CodePipeline",
+    "description": "Run, monitor, and approve AWS CodePipeline pipelines"
+  },
+  "condition": {
+    "name": "Condition",
+    "description": "Add a condition",
+    "longDescription": "This is a core workflow block. Add a condition to the workflow to branch the execution path based on a boolean expression."
+  },
+  "confluence_v2": {
+    "name": "Confluence",
+    "description": "Manage Confluence pages, comments, and attachments"
+  },
+  "context_dev": {
+    "name": "Context.dev",
+    "description": "Scrape, crawl, search, extract, and enrich web and brand data"
+  },
+  "convex": {
+    "name": "Convex",
+    "description": "Use Convex database"
+  },
+  "credential": {
+    "name": "Credential",
+    "description": "Select credentials or find organization accounts and MCP connections"
+  },
+  "crowdstrike": {
+    "name": "CrowdStrike",
+    "description": "Investigate and respond to CrowdStrike Falcon alerts, hosts, IOCs, and vulnerabilities"
+  },
+  "crunchbase": {
+    "name": "Crunchbase",
+    "description": "Search and look up companies, people, funding rounds, and acquisitions"
+  },
+  "cursor_v2": {
+    "name": "Cursor",
+    "description": "Launch and manage Cursor cloud agents to work on GitHub repositories"
+  },
+  "dagster": {
+    "name": "Dagster",
+    "description": "Orchestrate data pipelines and manage job runs with Dagster"
+  },
+  "databricks": {
+    "name": "Databricks",
+    "description": "Run SQL, manage jobs, and ask Genie agents on Databricks"
+  },
+  "datadog": {
+    "name": "Datadog",
+    "description": "Monitor infrastructure, applications, and logs with Datadog"
+  },
+  "datagma": {
+    "name": "Datagma",
+    "description": "Find verified B2B emails, mobile phones, and enrich person or company profiles"
+  },
+  "daytona": {
+    "name": "Daytona",
+    "description": "Run code and commands in secure cloud sandboxes"
+  },
+  "deployments": {
+    "name": "Deployments",
+    "description": "Manage workflow deployments"
+  },
+  "devin": {
+    "name": "Devin",
+    "description": "Autonomous AI software engineer"
+  },
+  "discord": {
+    "name": "Discord",
+    "description": "Interact with Discord"
+  },
+  "docusign": {
+    "name": "DocuSign",
+    "description": "Send documents for e-signature via DocuSign"
+  },
+  "downdetector": {
+    "name": "Downdetector",
+    "description": "Monitor outages and service status with Downdetector"
+  },
+  "dropbox_v2": {
+    "name": "Dropbox",
+    "description": "Upload, download, share, and manage files in Dropbox"
+  },
+  "dropcontact": {
+    "name": "Dropcontact",
+    "description": "Enrich B2B contacts with verified email, phone, and company data"
+  },
+  "dspy": {
+    "name": "DSPy",
+    "description": "Run predictions using self-hosted DSPy programs"
+  },
+  "dub_v2": {
+    "name": "Dub",
+    "description": "Link management with Dub"
+  },
+  "duckduckgo": {
+    "name": "DuckDuckGo",
+    "description": "Search with DuckDuckGo"
+  },
+  "dynamodb": {
+    "name": "Amazon DynamoDB",
+    "description": "Get, put, query, scan, update, and delete items in Amazon DynamoDB tables"
+  },
+  "dynatrace": {
+    "name": "Dynatrace",
+    "description": "Manage Dynatrace problems, metrics, entities, logs, SLOs, settings, and security"
+  },
+  "elasticsearch": {
+    "name": "Elasticsearch",
+    "description": "Search, index, and manage data in Elasticsearch"
+  },
+  "elevenlabs": {
+    "name": "ElevenLabs",
+    "description": "Generate and transform audio with ElevenLabs"
+  },
+  "emailbison": {
+    "name": "Email Bison",
+    "description": "Manage Email Bison leads, campaigns, replies, and tags"
+  },
+  "embeddings": {
+    "name": "Embeddings",
+    "description": "Generate embeddings"
+  },
+  "enrich": {
+    "name": "Enrich",
+    "description": "B2B data enrichment and LinkedIn intelligence with Enrich.so"
+  },
+  "enrichment": {
+    "name": "Data Enrichment",
+    "description": "Enrich data with a Nexora enrichment"
+  },
+  "enrow": {
+    "name": "Enrow",
+    "description": "Find and verify B2B email addresses"
+  },
+  "evaluator": {
+    "name": "Evaluator",
+    "description": "Evaluate content",
+    "longDescription": "This is a core workflow block. Assess content quality using customizable evaluation metrics and scoring criteria. Create objective evaluation frameworks with numeric scoring to measure performance across multiple dimensions.",
+    "subBlocks": {
+      "metrics": {
+        "title": "Evaluation Metrics"
+      },
+      "content": {
+        "title": "Content",
+        "placeholder": "Enter the content to evaluate"
+      },
+      "model": {
+        "title": "Model",
+        "placeholder": "Type or select a model..."
+      },
+      "vertexCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Select Google Cloud account"
+      },
+      "vertexManualCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Enter credential ID"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "placeholder": "Enter your API key"
+      },
+      "azureEndpoint": {
+        "title": "Azure Endpoint",
+        "placeholder": "https://your-resource.services.ai.azure.com"
+      },
+      "azureApiVersion": {
+        "title": "Azure API Version",
+        "placeholder": "Enter API version"
+      },
+      "vertexProject": {
+        "title": "Vertex AI Project",
+        "placeholder": "your-gcp-project-id"
+      },
+      "vertexLocation": {
+        "title": "Vertex AI Location",
+        "placeholder": "us-central1"
+      },
+      "bedrockAccessKeyId": {
+        "title": "AWS Access Key ID",
+        "placeholder": "Enter your AWS Access Key ID"
+      },
+      "bedrockSecretKey": {
+        "title": "AWS Secret Access Key",
+        "placeholder": "Enter your AWS Secret Access Key"
+      },
+      "bedrockRegion": {
+        "title": "AWS Region",
+        "placeholder": "us-east-1"
+      },
+      "fallbackModels": {
+        "title": "Fallback models",
+        "description": "Ordered models tried once each when the selected model's request fails; with Retry on fail, after its tries run out. Each row is { model, apiKey?, reasoningEffort?, thinkingLevel?, verbosity? }. API keys must be whole {{ENV_VAR}} references and apply only when the row asks for a key. Tuning must be supported by the row model. sim-auto is not allowed. Max 5."
+      },
+      "temperature": {
+        "title": "Temperature"
+      },
+      "systemPrompt": {
+        "title": "System Prompt"
+      }
+    }
+  },
+  "exa": {
+    "name": "Exa",
+    "description": "Search with Exa AI"
+  },
+  "extend_v2": {
+    "name": "Extend",
+    "description": "Parse and extract content from documents"
+  },
+  "fathom": {
+    "name": "Fathom",
+    "description": "Access meeting recordings, transcripts, and summaries"
+  },
+  "file_v5": {
+    "name": "File",
+    "description": "Read, search, get content, fetch, write, append, compress, decompress, and manage sharing for files",
+    "longDescription": "Read workspace file objects, search indexed text across the workspace or selected folder scopes, extract the text content of files, fetch and parse files from URLs with optional headers, write new workspace files, append content to existing files, compress files into a .zip archive, extract a .zip archive into the workspace, or manage the public share link for a file.",
+    "subBlocks": {
+      "operation": {
+        "title": "Operation"
+      },
+      "folderSelection": {
+        "title": "Folder",
+        "placeholder": "Anywhere in the workspace",
+        "description": "Narrows the file options below. Read, get content, and compress also take the whole folder when no file is picked, and search is confined to it."
+      },
+      "manualFolderSelection": {
+        "title": "Folder Paths",
+        "placeholder": "/Reports/Q3%20Results, /Archive",
+        "description": "Canonical percent-encoded folder paths, comma-separated for several, or a reference from an earlier block. Scopes the operation exactly as the picker does."
+      },
+      "folderIncludeSubfolders": {
+        "title": "Include Subfolders",
+        "description": "Whether the folder above reaches into nested folders. On by default; turn it off to take only its direct contents, which is also how a name shared with a file deeper in the tree is disambiguated."
+      },
+      "readFile": {
+        "title": "Files",
+        "placeholder": "Select workspace files"
+      },
+      "readFileId": {
+        "title": "File ID",
+        "placeholder": "Workspace file ID or JSON array of IDs"
+      },
+      "getContentFile": {
+        "title": "Files",
+        "placeholder": "Select workspace files"
+      },
+      "getContentFileId": {
+        "title": "File ID",
+        "placeholder": "Workspace file ID or JSON array of IDs"
+      },
+      "mode": {
+        "title": "Match",
+        "description": "How the query is read. Regular expressions match one line at a time and need at least 3 consecutive literal characters."
+      },
+      "query": {
+        "title": "Query",
+        "placeholder": "Pattern to find across workspace files",
+        "description": "Search pattern, 3-512 characters. Leave blank for the agent to supply."
+      },
+      "maxResults": {
+        "title": "Maximum Results",
+        "placeholder": "50",
+        "description": "Hard cap for results returned to the agent (1-200)."
+      },
+      "fileUrl": {
+        "title": "File URL",
+        "placeholder": "https://example.com/document.pdf"
+      },
+      "headers": {
+        "title": "Headers",
+        "description": "Custom headers for fetching the file URL, such as Authorization: Bearer <token>."
+      },
+      "writeFolderPath": {
+        "title": "Folder",
+        "placeholder": "Workspace root"
+      },
+      "manualWriteFolderPath": {
+        "title": "Folder Path",
+        "placeholder": "/Reports/Q3%20Results"
+      },
+      "fileName": {
+        "title": "File Name",
+        "placeholder": "File name (e.g., data.csv)"
+      },
+      "content": {
+        "title": "Content",
+        "placeholder": "File content to write..."
+      },
+      "writeFile": {
+        "title": "File",
+        "placeholder": "Store an existing file"
+      },
+      "writeFileId": {
+        "title": "File",
+        "placeholder": "File from an earlier block"
+      },
+      "contentType": {
+        "title": "Content Type",
+        "placeholder": "text/plain (auto-detected from extension)"
+      },
+      "overwrite": {
+        "title": "Overwrite Existing File"
+      },
+      "appendFile": {
+        "title": "File",
+        "placeholder": "Select or upload a workspace file"
+      },
+      "appendFileName": {
+        "title": "File",
+        "placeholder": "File name (e.g., notes.md)"
+      },
+      "appendContent": {
+        "title": "Content",
+        "placeholder": "Content to append..."
+      },
+      "contentOffset": {
+        "title": "Start Line",
+        "placeholder": "1",
+        "description": "First line to return, 1-based. Applied to each selected file separately. Leave empty to start at the beginning."
+      },
+      "contentLimit": {
+        "title": "Line Count",
+        "placeholder": "All",
+        "description": "How many lines to return from the start line. Leave empty to read to the end."
+      },
+      "editFile": {
+        "title": "File",
+        "placeholder": "Select or upload a workspace file"
+      },
+      "editFileName": {
+        "title": "File",
+        "placeholder": "File name (e.g., self.md)"
+      },
+      "editMode": {
+        "title": "Edit Type"
+      },
+      "editSearch": {
+        "title": "Find",
+        "placeholder": "The exact text to replace...",
+        "description": "Matched verbatim, including whitespace and line breaks. It must be unique unless Replace All is enabled."
+      },
+      "beforeAnchor": {
+        "title": "Before Anchor",
+        "placeholder": "Complete line before the content to replace...",
+        "description": "The anchor line remains in the file. Surrounding whitespace is ignored."
+      },
+      "afterAnchor": {
+        "title": "After Anchor",
+        "placeholder": "Complete line after the content to replace...",
+        "description": "The anchor line remains in the file. Surrounding whitespace is ignored."
+      },
+      "anchor": {
+        "title": "Anchor",
+        "placeholder": "Complete line after which to insert...",
+        "description": "The anchor line remains in the file. Surrounding whitespace is ignored."
+      },
+      "startAnchor": {
+        "title": "Start Anchor",
+        "placeholder": "First complete line to delete...",
+        "description": "This line and the content after it are deleted."
+      },
+      "endAnchor": {
+        "title": "End Anchor",
+        "placeholder": "Complete ending boundary line...",
+        "description": "This ending boundary line remains in the file."
+      },
+      "editContent": {
+        "title": "Content",
+        "placeholder": "Replacement or inserted content...",
+        "description": "For Find and Replace, an empty value deletes the match. For Replace Between Anchors, it clears the interior."
+      },
+      "replaceAll": {
+        "title": "Replace All",
+        "description": "Replace every non-overlapping match. When off, an ambiguous match is refused."
+      },
+      "editOccurrence": {
+        "title": "Anchor Occurrence",
+        "placeholder": "1",
+        "description": "Which start or insert anchor match to use, starting at 1. The end anchor is the first match after it."
+      },
+      "compressFile": {
+        "title": "Files",
+        "placeholder": "Select workspace files"
+      },
+      "compressFileId": {
+        "title": "File ID",
+        "placeholder": "Workspace file ID or JSON array of IDs"
+      },
+      "archiveName": {
+        "title": "Archive Name",
+        "placeholder": "archive.zip (auto-named from source if omitted)"
+      },
+      "decompressFile": {
+        "title": "Archive",
+        "placeholder": "Select a .zip archive"
+      },
+      "decompressFileId": {
+        "title": "File ID",
+        "placeholder": "Workspace file ID of the .zip archive"
+      },
+      "shareFile": {
+        "title": "File",
+        "placeholder": "Select a workspace file"
+      },
+      "shareFileId": {
+        "title": "File ID",
+        "placeholder": "Workspace file ID"
+      },
+      "shareVisibility": {
+        "title": "Visibility"
+      },
+      "sharePassword": {
+        "title": "Password",
+        "placeholder": "Password for the public link"
+      },
+      "shareAllowedEmails": {
+        "title": "Allowed Emails",
+        "placeholder": "Comma- or newline-separated emails or @domain patterns"
+      },
+      "folderPath": {
+        "title": "Folder",
+        "placeholder": "Select a folder"
+      },
+      "manualFolderPath": {
+        "title": "Folder Path",
+        "placeholder": "/Reports/Q3%20Results"
+      },
+      "createParentPath": {
+        "title": "Parent Folder",
+        "placeholder": "Workspace root"
+      },
+      "manualCreateParentPath": {
+        "title": "Parent Folder Path",
+        "placeholder": "/Reports"
+      },
+      "folderName": {
+        "title": "Name",
+        "placeholder": "Q3 Results"
+      },
+      "destinationParentPath": {
+        "title": "Move Into",
+        "placeholder": "Workspace root"
+      },
+      "manualDestinationParentPath": {
+        "title": "Destination Parent Path",
+        "placeholder": "/Archive"
+      },
+      "folderRecursive": {
+        "title": "Recursive"
+      },
+      "folderDepth": {
+        "title": "Max Depth",
+        "placeholder": "Unlimited"
+      },
+      "folderSearch": {
+        "title": "Search",
+        "placeholder": "Match folder and file names"
+      },
+      "folderLimit": {
+        "title": "Limit",
+        "placeholder": "200"
+      },
+      "deleteFolderRecursive": {
+        "title": "Delete Contents"
+      },
+      "moveFileId": {
+        "title": "File ID",
+        "placeholder": "Canonical workspace file ID"
+      },
+      "moveTargetFolderPath": {
+        "title": "Move Into",
+        "placeholder": "Workspace root"
+      },
+      "manualMoveTargetFolderPath": {
+        "title": "Destination Folder Path",
+        "placeholder": "/Reports"
+      },
+      "restoreFolderId": {
+        "title": "Folder ID",
+        "placeholder": "ID of the archived folder"
+      }
+    }
+  },
+  "findymail": {
+    "name": "Findymail",
+    "description": "Find and verify B2B emails, phones, employees, and company data"
+  },
+  "firecrawl": {
+    "name": "Firecrawl",
+    "description": "Scrape, search, crawl, map, and extract web data"
+  },
+  "fireflies_v2": {
+    "name": "Fireflies",
+    "description": "Interact with Fireflies.ai meeting transcripts and recordings"
+  },
+  "fivetran": {
+    "name": "Fivetran",
+    "description": "Manage Fivetran connections, syncs, and transformations"
+  },
+  "flint": {
+    "name": "Flint",
+    "description": "Run background agent tasks on your Flint sites"
+  },
+  "function": {
+    "name": "Function",
+    "description": "Run custom logic",
+    "longDescription": "This is a core workflow block. Execute custom JavaScript, Python, or Shell code within your workflow. JavaScript without imports runs locally for fast execution, while code with imports, Python, and Shell run in a remote sandbox.",
+    "subBlocks": {
+      "language": {
+        "placeholder": "Select language"
+      },
+      "sandboxNotice": {
+        "content": "Python and Shell need a remote execution sandbox, which is not configured on this instance. JavaScript remains available."
+      },
+      "code": {
+        "title": "Code"
+      },
+      "sandboxId": {
+        "title": "Sandbox",
+        "placeholder": "Default image",
+        "description": "Nexora sandbox dependencies, system packages, and managed CLIs available to this block. Shell can use Nexora sandboxes from either language. Manage them in Settings > Sandboxes. Leaving this empty runs on the default image."
+      },
+      "secretScope": {
+        "title": "Secret access",
+        "description": "Code can read any workspace secret, including ones added later. Narrow this to advertise a specific set to the model."
+      },
+      "mountedSecrets": {
+        "title": "Secrets",
+        "placeholder": "Select secrets this tool can read"
+      }
+    }
+  },
+  "gamma": {
+    "name": "Gamma",
+    "description": "Generate presentations, documents, and webpages with AI"
+  },
+  "generic_webhook": {
+    "name": "Webhook Trigger",
+    "description": "Receive webhooks from any service by configuring a custom webhook.",
+    "subBlocks": {
+      "webhookUrlDisplay": {
+        "title": "Webhook URL",
+        "placeholder": "Webhook URL will be generated"
+      },
+      "requireAuth": {
+        "title": "Require Authentication",
+        "description": "Require authentication for all webhook requests"
+      },
+      "token": {
+        "title": "Authentication Token",
+        "placeholder": "Enter an auth token",
+        "description": "Token used to authenticate webhook requests via Bearer token or custom header"
+      },
+      "secretHeaderName": {
+        "title": "Secret Header Name (Optional)",
+        "placeholder": "X-Secret-Key",
+        "description": "Custom HTTP header name for the auth token. If blank, uses \"Authorization: Bearer TOKEN\""
+      },
+      "acceptOtherMethods": {
+        "title": "Accept Other HTTP Methods",
+        "description": "Also accept GET, PUT, PATCH and DELETE — no others — and expose the method under \"method\". Leave off unless you need it: a GET URL can be replayed by link prefetchers and scanners, and a request with no body cannot be deduplicated."
+      },
+      "exposeRequestHeaders": {
+        "title": "Expose Request Headers",
+        "description": "Make the request headers available under \"headers\". Headers that carry credentials are withheld. Leave off unless you need it: exposed headers are stored in execution logs and trace spans, where they outlive the request."
+      },
+      "idempotencyField": {
+        "title": "Deduplication Field (Optional)",
+        "placeholder": "e.g. event.id",
+        "description": "Dot-notation path to a unique field in the payload for deduplication. If the same value is seen within 7 days, the duplicate webhook will be skipped."
+      },
+      "responseMode": {
+        "title": "Acknowledgement"
+      },
+      "verifyTestEvents": {
+        "title": "Verify Test Events",
+        "description": "Return a temporary 200 response for test or verification probes on this webhook URL during setup."
+      },
+      "responseStatusCode": {
+        "title": "Response Status Code",
+        "placeholder": "200 (default)",
+        "description": "HTTP status code (100–599) to return to the webhook caller. Defaults to 200 if empty or invalid."
+      },
+      "responseBody": {
+        "title": "Response Body",
+        "placeholder": "{\"ok\": true}",
+        "description": "JSON body to return to the webhook caller. Leave empty for no body."
+      },
+      "inputFormat": {
+        "title": "Input Format",
+        "description": "Define the expected JSON input schema for this webhook (optional). Use type \"file[]\" for file uploads."
+      },
+      "triggerInstructions": {
+        "title": "Setup Instructions",
+        "content": "<div class=\"mb-3\"><strong>1.</strong> Copy the webhook URL and use it in your external service or API.</div><div class=\"mb-3\"><strong>2.</strong> Configure your service to send webhooks to this URL.</div><div class=\"mb-3\"><strong>3.</strong> The webhook accepts POST. Turn on \"Accept Other HTTP Methods\" to also accept GET, PUT, PATCH and DELETE — for example to trigger the workflow from a link in an email.</div><div class=\"mb-3\"><strong>4.</strong> Body fields are available in your workflow, and URL query parameters under \"query\" (for example \"query.id\"). Turn on \"Expose Request Headers\" to also get \"headers\" (for example \"headers.x-event-name\"), and \"Accept Other HTTP Methods\" to also get \"method\".</div><div class=\"mb-3\"><strong>5.</strong> Authentication is header-based, so it cannot be used with a plain link. If authentication is enabled, include the token in the Secret Header Name you configured, or in \"Authorization: Bearer TOKEN\" if you left it blank — only the configured one is accepted, not either.</div><div class=\"mb-3\"><strong>6.</strong> To deduplicate incoming events, set the Deduplication Field to the dot-notation path of a unique identifier in the payload (e.g. \"event.id\"). Duplicate values within 7 days will be skipped.</div><div class=\"mb-3\"><strong>7.</strong> Enable \"Verify Test Events\" only if the sending service needs a temporary 200 response while validating the webhook URL.</div>"
+      },
+      "samplePayload_generic_webhook": {
+        "title": "Event Payload Example"
+      }
+    }
+  },
+  "github_v2": {
+    "name": "GitHub",
+    "description": "Interact with GitHub or trigger workflows from GitHub events"
+  },
+  "gitlab": {
+    "name": "GitLab",
+    "description": "Interact with GitLab projects, issues, merge requests, and pipelines"
+  },
+  "gmail_v2": {
+    "name": "Gmail",
+    "description": "Send, read, search, and move Gmail messages or trigger workflows from Gmail events"
+  },
+  "gong": {
+    "name": "Gong",
+    "description": "Read Gong data, upload calls, assign or unassign flow prospects, and request data erasure"
+  },
+  "google_ads": {
+    "name": "Google Ads",
+    "description": "Query campaigns, ad groups, and performance metrics"
+  },
+  "google_appsheet": {
+    "name": "Google AppSheet",
+    "description": "Read, add, edit, and delete rows in a Google AppSheet table"
+  },
+  "google_bigquery": {
+    "name": "Google BigQuery",
+    "description": "Query, list, and insert data in Google BigQuery"
+  },
+  "google_books": {
+    "name": "Google Books",
+    "description": "Search and retrieve book information"
+  },
+  "google_calendar_v2": {
+    "name": "Google Calendar",
+    "description": "Manage Google Calendar events"
+  },
+  "google_contacts": {
+    "name": "Google Contacts",
+    "description": "Manage Google Contacts"
+  },
+  "google_docs": {
+    "name": "Google Docs",
+    "description": "Read, write, create, and edit documents"
+  },
+  "google_drive": {
+    "name": "Google Drive",
+    "description": "Manage files, folders, and permissions"
+  },
+  "google_forms": {
+    "name": "Google Forms",
+    "description": "Manage Google Forms and responses"
+  },
+  "google_groups": {
+    "name": "Google Groups",
+    "description": "Manage Google Workspace Groups and their members"
+  },
+  "google_maps": {
+    "name": "Google Maps",
+    "description": "Geocoding, directions, places, and distance calculations"
+  },
+  "google_meet": {
+    "name": "Google Meet",
+    "description": "Create and manage Google Meet meetings"
+  },
+  "google_pagespeed": {
+    "name": "Google PageSpeed",
+    "description": "Analyze webpage performance with Google PageSpeed Insights"
+  },
+  "google_search": {
+    "name": "Google Search",
+    "description": "Search the web"
+  },
+  "google_sheets_v2": {
+    "name": "Google Sheets",
+    "description": "Read, write, and update data with sheet selection"
+  },
+  "google_slides_v2": {
+    "name": "Google Slides",
+    "description": "Read, write, and create presentations"
+  },
+  "google_tasks": {
+    "name": "Google Tasks",
+    "description": "Manage Google Tasks"
+  },
+  "google_translate": {
+    "name": "Google Translate",
+    "description": "Translate text using Google Cloud Translation"
+  },
+  "google_vault": {
+    "name": "Google Vault",
+    "description": "Search, export, and manage matters, holds, exports, and saved queries in Vault"
+  },
+  "grafana": {
+    "name": "Grafana",
+    "description": "Interact with Grafana dashboards, alerts, and annotations"
+  },
+  "grain_v2": {
+    "name": "Grain",
+    "description": "Access meeting recordings, transcripts, and AI summaries"
+  },
+  "granola": {
+    "name": "Granola",
+    "description": "Access meeting notes, transcripts, and audit events from Granola"
+  },
+  "greenhouse_v2": {
+    "name": "Greenhouse",
+    "description": "Manage recruiting with Greenhouse Harvest v3"
+  },
+  "greptile": {
+    "name": "Greptile",
+    "description": "AI-powered codebase search and Q&A"
+  },
+  "guardrails": {
+    "name": "Guardrails",
+    "description": "Validate content with guardrails",
+    "longDescription": "Validate content using guardrails. Check if content is valid JSON, matches a regex pattern, detect hallucinations using RAG + LLM scoring, or detect PII.",
+    "subBlocks": {
+      "input": {
+        "title": "Content to Validate",
+        "placeholder": "Enter content to validate"
+      },
+      "validationType": {
+        "title": "Validation Type"
+      },
+      "regex": {
+        "title": "Regex Pattern",
+        "placeholder": "e.g., ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+      },
+      "knowledgeBaseId": {
+        "title": "Knowledge Base",
+        "placeholder": "Select knowledge base"
+      },
+      "model": {
+        "title": "Model",
+        "placeholder": "Type or select a model..."
+      },
+      "vertexCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Select Google Cloud account"
+      },
+      "vertexManualCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Enter credential ID"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "placeholder": "Enter your API key"
+      },
+      "azureEndpoint": {
+        "title": "Azure Endpoint",
+        "placeholder": "https://your-resource.services.ai.azure.com"
+      },
+      "azureApiVersion": {
+        "title": "Azure API Version",
+        "placeholder": "Enter API version"
+      },
+      "vertexProject": {
+        "title": "Vertex AI Project",
+        "placeholder": "your-gcp-project-id"
+      },
+      "vertexLocation": {
+        "title": "Vertex AI Location",
+        "placeholder": "us-central1"
+      },
+      "bedrockAccessKeyId": {
+        "title": "AWS Access Key ID",
+        "placeholder": "Enter your AWS Access Key ID"
+      },
+      "bedrockSecretKey": {
+        "title": "AWS Secret Access Key",
+        "placeholder": "Enter your AWS Secret Access Key"
+      },
+      "bedrockRegion": {
+        "title": "AWS Region",
+        "placeholder": "us-east-1"
+      },
+      "threshold": {
+        "title": "Confidence"
+      },
+      "topK": {
+        "title": "Number of Chunks to Retrieve"
+      },
+      "piiEntityTypes": {
+        "title": "PII Types to Detect"
+      },
+      "piiMode": {
+        "title": "Action"
+      },
+      "piiLanguage": {
+        "title": "Language"
+      },
+      "piiCustomPatterns": {
+        "title": "Custom Patterns"
+      }
+    }
+  },
+  "harmonic": {
+    "name": "Harmonic",
+    "description": "Search and enrich private-market contacts"
+  },
+  "helpscout": {
+    "name": "Help Scout",
+    "description": "Manage Help Scout conversations, replies, notes, and customers"
+  },
+  "hex": {
+    "name": "Hex",
+    "description": "Run and manage Hex projects"
+  },
+  "hubspot": {
+    "name": "HubSpot",
+    "description": "Interact with HubSpot CRM or trigger workflows from HubSpot events"
+  },
+  "huggingface": {
+    "name": "Hugging Face",
+    "description": "Use Hugging Face Inference API"
+  },
+  "human_in_the_loop_v2": {
+    "name": "Human",
+    "description": "Pause workflow execution and wait for human input",
+    "longDescription": "Combines response and start functionality. Sends structured responses and allows workflow to resume from this point.",
+    "subBlocks": {
+      "builderData": {
+        "title": "Display Data",
+        "description": "Define the structure of your response data. Use <variable.name> in field names to reference workflow variables."
+      },
+      "notification": {
+        "title": "Notification (Send URL)",
+        "description": "Configure notification tools to alert approvers (e.g., Slack, Email)"
+      },
+      "inputFormat": {
+        "title": "Resume Form",
+        "description": "Define the fields the approver can fill in when resuming"
+      }
+    }
+  },
+  "hunter": {
+    "name": "Hunter.io",
+    "description": "Find and verify professional email addresses"
+  },
+  "iam": {
+    "name": "AWS IAM",
+    "description": "Manage AWS IAM users, roles, policies, and groups"
+  },
+  "icypeas": {
+    "name": "Icypeas",
+    "description": "Find and verify professional email addresses"
+  },
+  "identity_center": {
+    "name": "AWS Identity Center",
+    "description": "Manage account access in AWS IAM Identity Center"
+  },
+  "image_generator_v2": {
+    "name": "Image Generator",
+    "description": "Generate images"
+  },
+  "imap": {
+    "name": "IMAP Email",
+    "description": "Trigger workflows when new emails arrive via IMAP (works with any email provider)"
+  },
+  "incidentio": {
+    "name": "incident.io",
+    "description": "Manage incidents with incident.io"
+  },
+  "infisical": {
+    "name": "Infisical",
+    "description": "Manage secrets with Infisical"
+  },
+  "input_trigger": {
+    "name": "Input Form (Legacy)",
+    "description": "Legacy manual start block with structured input. Prefer Start block.",
+    "longDescription": "Manually trigger the workflow from the editor with a structured input schema. This enables typed inputs for parent workflows to map into.",
+    "subBlocks": {
+      "inputFormat": {
+        "title": "Input Format",
+        "description": "Define the JSON input schema for this workflow when run manually."
+      }
+    }
+  },
+  "instantly": {
+    "name": "Instantly",
+    "description": "Manage Instantly leads, campaigns, emails, and lead lists"
+  },
+  "intercom_v2": {
+    "name": "Intercom",
+    "description": "Manage contacts, companies, conversations, tickets, and messages in Intercom"
+  },
+  "intune": {
+    "name": "Microsoft Intune",
+    "description": "Manage devices, application inventory, and compliance with Microsoft Intune"
+  },
+  "jina": {
+    "name": "Jina",
+    "description": "Search the web or extract content from URLs"
+  },
+  "jira": {
+    "name": "Jira",
+    "description": "Manage Jira issues, comments, attachments, and worklogs"
+  },
+  "jira_service_management": {
+    "name": "Jira Service Management",
+    "description": "Interact with Jira Service Management"
+  },
+  "jotform": {
+    "name": "Jotform",
+    "description": "Read submissions, manage forms, and wire up webhooks in Jotform"
+  },
+  "jupyter_v2": {
+    "name": "Jupyter",
+    "description": "Manage files, notebooks, kernels, and sessions on a Jupyter server"
+  },
+  "kalshi_v2": {
+    "name": "Kalshi",
+    "description": "Access prediction markets and trade on Kalshi"
+  },
+  "ketch": {
+    "name": "Ketch",
+    "description": "Manage privacy consent, subscriptions, and data subject rights"
+  },
+  "knowledge": {
+    "name": "Knowledge",
+    "description": "Search knowledge bases and manage documents and chunks",
+    "longDescription": "Search knowledge bases and list, retrieve, create, upsert, or delete documents. Upload, list, update, or delete chunks, list tag definitions, and set document tags during creation or upsert. Inspect connectors and trigger syncs.",
+    "subBlocks": {
+      "operation": {
+        "title": "Operation"
+      },
+      "knowledgeBaseSelector": {
+        "title": "Knowledge Base",
+        "placeholder": "Select knowledge base"
+      },
+      "manualKnowledgeBaseId": {
+        "title": "Knowledge Base ID",
+        "placeholder": "Enter knowledge base ID"
+      },
+      "query": {
+        "title": "Search Query",
+        "placeholder": "Enter your search query (optional when using tag filters)"
+      },
+      "topK": {
+        "title": "Number of Results",
+        "placeholder": "Enter number of results (default: 10)"
+      },
+      "tagFilters": {
+        "title": "Tag Filters",
+        "placeholder": "Add tag filters"
+      },
+      "searchMode": {
+        "title": "Retrieval Mode"
+      },
+      "rerankerEnabled": {
+        "title": "Rerank Results"
+      },
+      "rerankerModel": {
+        "title": "Rerank Model"
+      },
+      "rerankerInputCount": {
+        "title": "Documents Sent to Reranker",
+        "placeholder": "Auto (4× results, capped at 100)"
+      },
+      "apiKey": {
+        "title": "Cohere API Key",
+        "placeholder": "Enter your Cohere API key"
+      },
+      "search": {
+        "title": "Search",
+        "placeholder": "Filter documents by filename"
+      },
+      "enabledFilter": {
+        "title": "Status Filter"
+      },
+      "limit": {
+        "title": "Limit",
+        "placeholder": "Max items to return (default: 50)"
+      },
+      "offset": {
+        "title": "Offset",
+        "placeholder": "Number of items to skip (default: 0)"
+      },
+      "documentSelector": {
+        "title": "Document",
+        "placeholder": "Select document"
+      },
+      "documentId": {
+        "title": "Document ID",
+        "placeholder": "Enter document ID"
+      },
+      "content": {
+        "title": "Chunk Content",
+        "placeholder": "Enter the chunk content to upload"
+      },
+      "name": {
+        "title": "Document Name",
+        "placeholder": "Enter document name"
+      },
+      "upsertDocumentId": {
+        "title": "Document ID (Optional)",
+        "placeholder": "Enter existing document ID to update (or leave empty to match by name)"
+      },
+      "documentTags": {
+        "title": "Document Tags"
+      },
+      "chunkId": {
+        "title": "Chunk ID",
+        "placeholder": "Enter chunk ID"
+      },
+      "enabled": {
+        "title": "Enabled"
+      },
+      "connectorId": {
+        "title": "Connector ID",
+        "placeholder": "Enter connector ID"
+      },
+      "chunkSearch": {
+        "title": "Search",
+        "placeholder": "Filter chunks by content"
+      },
+      "chunkEnabledFilter": {
+        "title": "Status Filter"
+      }
+    }
+  },
+  "lambda": {
+    "name": "Lambda",
+    "description": "Invoke, deploy, and manage AWS Lambda functions"
+  },
+  "langsmith": {
+    "name": "LangSmith",
+    "description": "Forward workflow runs to LangSmith for observability"
+  },
+  "latex": {
+    "name": "LaTeX",
+    "description": "Compile LaTeX documents into PDFs"
+  },
+  "launchdarkly": {
+    "name": "LaunchDarkly",
+    "description": "Manage feature flags with LaunchDarkly"
+  },
+  "leadmagic": {
+    "name": "LeadMagic",
+    "description": "Find and enrich B2B contacts, emails, mobile numbers, and company data"
+  },
+  "lemlist": {
+    "name": "Lemlist",
+    "description": "Manage outreach activities, leads, and send emails via Lemlist"
+  },
+  "linear_v2": {
+    "name": "Linear",
+    "description": "Interact with Linear issues, projects, and more"
+  },
+  "linkedin": {
+    "name": "LinkedIn",
+    "description": "Share posts and manage your LinkedIn presence"
+  },
+  "linkup": {
+    "name": "Linkup",
+    "description": "Search the web with Linkup"
+  },
+  "linq": {
+    "name": "Linq",
+    "description": "Send iMessage, SMS, and RCS messages and manage conversations with Linq"
+  },
+  "logfire": {
+    "name": "Logfire",
+    "description": "Query traces, logs, and metrics in Pydantic Logfire"
+  },
+  "logrocket": {
+    "name": "LogRocket",
+    "description": "Summarize sessions, manage users, and tag releases in LogRocket"
+  },
+  "logs_v2": {
+    "name": "Logs",
+    "description": "Query workflow runs and fetch run details"
+  },
+  "loops": {
+    "name": "Loops",
+    "description": "Manage contacts and send emails with Loops"
+  },
+  "luma": {
+    "name": "Luma",
+    "description": "Manage events and guests on Luma"
+  },
+  "mailchimp": {
+    "name": "Mailchimp",
+    "description": "Manage audiences, campaigns, and marketing automation in Mailchimp"
+  },
+  "mailgun": {
+    "name": "Mailgun",
+    "description": "Send emails and manage mailing lists with Mailgun"
+  },
+  "managed_agent": {
+    "name": "Claude Managed Agents",
+    "description": "Run a Claude Platform Managed Agent"
+  },
+  "manageengine_sdp": {
+    "name": "ManageEngine ServiceDesk Plus",
+    "description": "Manage ServiceDesk Plus Cloud requests, problems, changes, assets, and knowledge base solutions"
+  },
+  "manual_trigger": {
+    "name": "Manual (Legacy)",
+    "description": "Legacy manual start block. Prefer the Start block.",
+    "longDescription": "Trigger the workflow manually without defining an input schema. Useful for simple runs where no structured input is needed."
+  },
+  "mcp": {
+    "name": "MCP",
+    "description": "Discover and run authorized MCP operations"
+  },
+  "mem0": {
+    "name": "Mem0",
+    "description": "Agent memory management"
+  },
+  "memory": {
+    "name": "Memory",
+    "description": "Add memory store",
+    "longDescription": "Add, get a memory, get all memories, and delete memories.",
+    "subBlocks": {
+      "operation": {
+        "title": "Operation",
+        "placeholder": "Select operation"
+      },
+      "id": {
+        "title": "Conversation ID",
+        "placeholder": "Enter conversation ID (e.g., user-123)"
+      },
+      "role": {
+        "title": "Role",
+        "placeholder": "Select agent role"
+      },
+      "content": {
+        "title": "Content",
+        "placeholder": "Enter message content"
+      }
+    }
+  },
+  "microsoft_ad": {
+    "name": "Azure AD",
+    "description": "Manage identities, licenses, roles, and access in Azure AD (Microsoft Entra ID)"
+  },
+  "microsoft_dataverse_v2": {
+    "name": "Microsoft Dataverse",
+    "description": "Manage records in Microsoft Dataverse tables"
+  },
+  "microsoft_dynamics_365": {
+    "name": "Microsoft Dynamics 365 CRM",
+    "description": "Manage customers, sales pipelines, and support cases in Dynamics 365 CRM"
+  },
+  "microsoft_excel_v2": {
+    "name": "Microsoft Excel",
+    "description": "Manage worksheets, tables, rows, and workbook sessions"
+  },
+  "microsoft_planner": {
+    "name": "Microsoft Planner",
+    "description": "Manage tasks, plans, and buckets in Microsoft Planner"
+  },
+  "microsoft_teams": {
+    "name": "Microsoft Teams",
+    "description": "Manage messages, reactions, and members in Teams"
+  },
+  "microsoft_word": {
+    "name": "Microsoft Word",
+    "description": "Create, fill, read, edit, and export Word documents"
+  },
+  "millionverifier": {
+    "name": "MillionVerifier",
+    "description": "Verify email deliverability and check account credits"
+  },
+  "mintlify": {
+    "name": "Mintlify",
+    "description": "Deploy, edit, search, and measure Mintlify documentation"
+  },
+  "mistral_parse_v3": {
+    "name": "Mistral Parser",
+    "description": "Extract text from PDF documents"
+  },
+  "modal": {
+    "name": "Modal",
+    "description": "Call deployed Modal functions and endpoints"
+  },
+  "monday": {
+    "name": "Monday",
+    "description": "Manage Monday.com boards, items, and groups"
+  },
+  "mongodb": {
+    "name": "MongoDB",
+    "description": "Connect to MongoDB database"
+  },
+  "mssql": {
+    "name": "Microsoft SQL Server",
+    "description": "Connect to Microsoft SQL Server database"
+  },
+  "mysql": {
+    "name": "MySQL",
+    "description": "Connect to MySQL database"
+  },
+  "neo4j": {
+    "name": "Neo4j",
+    "description": "Connect to Neo4j graph database"
+  },
+  "netsuite": {
+    "name": "Oracle NetSuite",
+    "description": "Manage NetSuite records, queries, datasets, batches, and async jobs"
+  },
+  "neverbounce": {
+    "name": "NeverBounce",
+    "description": "Verify email deliverability and check account credits"
+  },
+  "new_relic": {
+    "name": "New Relic",
+    "description": "Query observability data and record deployments in New Relic"
+  },
+  "note": {
+    "name": "Note",
+    "description": "Add contextual annotations directly onto the workflow canvas.",
+    "longDescription": "Use Note blocks to document decisions, share instructions, or leave context for collaborators directly on the workflow canvas. Notes support Markdown rendering and YouTube video embeds.",
+    "subBlocks": {
+      "content": {
+        "placeholder": "Add context or instructions for collaborators...",
+        "description": "Write your note using Markdown. YouTube links will display as embedded videos."
+      }
+    }
+  },
+  "notion_v2": {
+    "name": "Notion",
+    "description": "Manage Notion pages"
+  },
+  "obsidian": {
+    "name": "Obsidian",
+    "description": "Interact with your Obsidian vault via the Local REST API"
+  },
+  "okta": {
+    "name": "Okta",
+    "description": "Manage users, groups, apps, and MFA in Okta"
+  },
+  "onedrive": {
+    "name": "OneDrive",
+    "description": "Create, upload, download, search, move, copy, share, and delete files"
+  },
+  "onepassword": {
+    "name": "1Password",
+    "description": "Manage secrets and items in 1Password vaults"
+  },
+  "oracle_fusion_financials": {
+    "name": "Oracle Fusion Financials",
+    "description": "Manage receivables and expenses, and report on payables and ledgers"
+  },
+  "oracledb": {
+    "name": "Oracle Database",
+    "description": "Connect directly to an Oracle Database"
+  },
+  "otter": {
+    "name": "Otter.ai",
+    "description": "Read Otter.ai meeting conversations, transcripts, and summaries"
+  },
+  "outlook": {
+    "name": "Outlook",
+    "description": "Send, read, search, reply, organize, and manage Outlook email and calendar"
+  },
+  "pagerduty": {
+    "name": "PagerDuty",
+    "description": "Manage incidents and on-call schedules with PagerDuty"
+  },
+  "parallel_ai": {
+    "name": "Parallel AI",
+    "description": "Web research with Parallel AI"
+  },
+  "peopledatalabs": {
+    "name": "People Data Labs",
+    "description": "Enrich and search people and companies"
+  },
+  "perplexity": {
+    "name": "Perplexity",
+    "description": "Use Perplexity AI for chat and search"
+  },
+  "persona": {
+    "name": "Persona",
+    "description": "Verify identities with Persona"
+  },
+  "pi": {
+    "name": "Pi Coding Agent",
+    "description": "Run an autonomous coding agent on a repo"
+  },
+  "pinecone": {
+    "name": "Pinecone",
+    "description": "Use Pinecone vector database"
+  },
+  "pipedrive": {
+    "name": "Pipedrive",
+    "description": "Manage Pipedrive deals, leads, activities, and projects"
+  },
+  "pitchbook": {
+    "name": "PitchBook",
+    "description": "Look up private market data on companies, deals, investors, funds, and people"
+  },
+  "plane": {
+    "name": "Plane",
+    "description": "Manage projects and work items in Plane"
+  },
+  "planetscale": {
+    "name": "PlanetScale",
+    "description": "Manage PlanetScale databases, branches, backups, and deploy requests"
+  },
+  "polymarket": {
+    "name": "Polymarket",
+    "description": "Access prediction markets data from Polymarket"
+  },
+  "postgresql": {
+    "name": "PostgreSQL",
+    "description": "Connect to PostgreSQL database"
+  },
+  "posthog": {
+    "name": "PostHog",
+    "description": "Product analytics and feature management"
+  },
+  "powerbi": {
+    "name": "Power BI",
+    "description": "Query semantic models and manage reports and refreshes"
+  },
+  "profound": {
+    "name": "Profound",
+    "description": "AI visibility and analytics with Profound"
+  },
+  "prospeo": {
+    "name": "Prospeo",
+    "description": "Enrich and search B2B contacts and companies"
+  },
+  "pulse_v2": {
+    "name": "Pulse",
+    "description": "Extract text from documents using Pulse OCR"
+  },
+  "qdrant": {
+    "name": "Qdrant",
+    "description": "Use Qdrant vector database"
+  },
+  "quartr": {
+    "name": "Quartr",
+    "description": "Access earnings calls, transcripts, filings, and slides"
+  },
+  "quickbooks": {
+    "name": "QuickBooks",
+    "description": "Manage QuickBooks Online company, transactions, reports, emails, PDFs, and attachments"
+  },
+  "quiver_v2": {
+    "name": "Quiver",
+    "description": "Generate and vectorize SVGs"
+  },
+  "rabbitmq": {
+    "name": "RabbitMQ",
+    "description": "Publish and read messages and manage queues in RabbitMQ"
+  },
+  "railway": {
+    "name": "Railway",
+    "description": "Manage Railway projects, services, deployments, and variables"
+  },
+  "ramp": {
+    "name": "Ramp",
+    "description": "Read spend, bills, cards, and reimbursements, and add transaction memos in Ramp"
+  },
+  "rb2b": {
+    "name": "RB2B",
+    "description": "Identify and enrich website visitors"
+  },
+  "rds": {
+    "name": "Amazon RDS",
+    "description": "Connect to Amazon RDS via Data API"
+  },
+  "reddit": {
+    "name": "Reddit",
+    "description": "Access Reddit data and content"
+  },
+  "redis": {
+    "name": "Redis",
+    "description": "Key-value operations with Redis"
+  },
+  "reducto_v2": {
+    "name": "Reducto",
+    "description": "Extract text from PDF documents"
+  },
+  "resend": {
+    "name": "Resend",
+    "description": "Send emails and manage contacts with Resend."
+  },
+  "response": {
+    "name": "Response",
+    "description": "Send structured API response",
+    "longDescription": "Integrate Response into the workflow. Can send build or edit structured responses into a final workflow response.",
+    "subBlocks": {
+      "dataMode": {
+        "title": "Response Data Mode",
+        "description": "Choose how to define your response data structure"
+      },
+      "builderData": {
+        "title": "Response Structure",
+        "description": "Define the structure of your response data. Use <variable.name> in field names to reference workflow variables."
+      },
+      "data": {
+        "title": "Response Data",
+        "placeholder": "{\n  \"message\": \"Hello world\"\n}",
+        "description": "Data that will be sent as the response body on API calls. Use <variable.name> to reference workflow variables."
+      },
+      "status": {
+        "title": "Status Code",
+        "placeholder": "200",
+        "description": "HTTP status code (default: 200)"
+      },
+      "headers": {
+        "title": "Response Headers",
+        "description": "Additional HTTP headers to include in the response"
+      }
+    }
+  },
+  "revenuecat": {
+    "name": "RevenueCat",
+    "description": "Manage in-app subscriptions and entitlements"
+  },
+  "rippling": {
+    "name": "Rippling",
+    "description": "Manage workers, departments, custom objects, and company data in Rippling"
+  },
+  "rocketlane": {
+    "name": "Rocketlane",
+    "description": "Manage client onboarding projects, tasks, time tracking, and invoices"
+  },
+  "rootly": {
+    "name": "Rootly",
+    "description": "Manage incidents, alerts, and on-call with Rootly"
+  },
+  "router_v2": {
+    "name": "Router",
+    "description": "Route workflow based on context",
+    "longDescription": "Intelligently route workflow execution to different paths based on context analysis. Define multiple routes with descriptions, and an LLM will determine which route to take based on the provided context.",
+    "subBlocks": {
+      "context": {
+        "title": "Context",
+        "placeholder": "Enter the context to analyze for routing..."
+      },
+      "model": {
+        "title": "Model",
+        "placeholder": "Type or select a model..."
+      },
+      "vertexCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Select Google Cloud account"
+      },
+      "vertexManualCredential": {
+        "title": "Google Cloud Account",
+        "placeholder": "Enter credential ID"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "placeholder": "Enter your API key"
+      },
+      "azureEndpoint": {
+        "title": "Azure Endpoint",
+        "placeholder": "https://your-resource.services.ai.azure.com"
+      },
+      "azureApiVersion": {
+        "title": "Azure API Version",
+        "placeholder": "Enter API version"
+      },
+      "vertexProject": {
+        "title": "Vertex AI Project",
+        "placeholder": "your-gcp-project-id"
+      },
+      "vertexLocation": {
+        "title": "Vertex AI Location",
+        "placeholder": "us-central1"
+      },
+      "bedrockAccessKeyId": {
+        "title": "AWS Access Key ID",
+        "placeholder": "Enter your AWS Access Key ID"
+      },
+      "bedrockSecretKey": {
+        "title": "AWS Secret Access Key",
+        "placeholder": "Enter your AWS Secret Access Key"
+      },
+      "bedrockRegion": {
+        "title": "AWS Region",
+        "placeholder": "us-east-1"
+      },
+      "fallbackModels": {
+        "title": "Fallback models",
+        "description": "Ordered models tried once each when the selected model's request fails; with Retry on fail, after its tries run out. Each row is { model, apiKey?, reasoningEffort?, thinkingLevel?, verbosity? }. API keys must be whole {{ENV_VAR}} references and apply only when the row asks for a key. Tuning must be supported by the row model. sim-auto is not allowed. Max 5."
+      }
+    }
+  },
+  "rss": {
+    "name": "RSS Feed",
+    "description": "Monitor RSS feeds and trigger workflows when new items are published"
+  },
+  "s3": {
+    "name": "S3",
+    "description": "Upload, download, list, and manage S3 files and buckets"
+  },
+  "sailpoint": {
+    "name": "SailPoint",
+    "description": "Govern identities and access in SailPoint Identity Security Cloud"
+  },
+  "salesforce": {
+    "name": "Salesforce",
+    "description": "Interact with Salesforce CRM"
+  },
+  "sap_concur": {
+    "name": "SAP Concur",
+    "description": "Manage expense reports, travel requests, cash advances, and more in SAP Concur"
+  },
+  "sap_s4hana": {
+    "name": "SAP S4HANA",
+    "description": "Read and write SAP S4HANA Cloud business data via OData"
+  },
+  "schedule": {
+    "name": "Schedule",
+    "description": "Trigger workflow execution on a schedule",
+    "longDescription": "Integrate Schedule into the workflow. Can trigger a workflow on a schedule configuration.",
+    "subBlocks": {
+      "scheduleType": {
+        "title": "Run frequency"
+      },
+      "minutesInterval": {
+        "title": "Interval (minutes)",
+        "placeholder": "15"
+      },
+      "hourlyMinute": {
+        "title": "Minute",
+        "placeholder": "0-59"
+      },
+      "dailyTime": {
+        "title": "Time"
+      },
+      "weeklyDay": {
+        "title": "Day of week"
+      },
+      "weeklyDayTime": {
+        "title": "Time"
+      },
+      "monthlyDay": {
+        "title": "Day of month",
+        "placeholder": "1-31"
+      },
+      "monthlyTime": {
+        "title": "Time"
+      },
+      "cronExpression": {
+        "title": "Cron expression",
+        "placeholder": "0 0 * * *"
+      },
+      "timezone": {
+        "title": "Timezone"
+      }
+    }
+  },
+  "searxng": {
+    "name": "Web Search",
+    "description": "Search the web without an API key",
+    "longDescription": "Search the web through the meta-search engine installed with Nexora. No API key and no per-query cost; queries are sent to public search engines.",
+    "subBlocks": {
+      "query": {
+        "title": "Search Query",
+        "placeholder": "Enter your search query..."
+      },
+      "maxResults": {
+        "title": "Maximum Results",
+        "placeholder": "10"
+      }
+    }
+  },
+  "secrets_manager": {
+    "name": "AWS Secrets Manager",
+    "description": "Connect to AWS Secrets Manager"
+  },
+  "semrush": {
+    "name": "Semrush",
+    "description": "Research SEO and paid search data with Semrush"
+  },
+  "sendblue": {
+    "name": "Sendblue",
+    "description": "Send and receive iMessage and SMS"
+  },
+  "sendgrid": {
+    "name": "SendGrid",
+    "description": "Send emails and manage contacts, lists, and templates with SendGrid"
+  },
+  "sentry": {
+    "name": "Sentry",
+    "description": "Manage Sentry issues, projects, events, and releases"
+  },
+  "serper": {
+    "name": "Serper",
+    "description": "Search the web using Serper"
+  },
+  "servicenow_v2": {
+    "name": "ServiceNow",
+    "description": "Create, read, update, and delete ServiceNow records"
+  },
+  "ses": {
+    "name": "AWS SES",
+    "description": "Send emails and manage templates with AWS Simple Email Service"
+  },
+  "sftp_v2": {
+    "name": "SFTP",
+    "description": "Transfer files via SFTP (SSH File Transfer Protocol)"
+  },
+  "sharepoint_v2": {
+    "name": "SharePoint",
+    "description": "Work with pages and lists"
+  },
+  "shopify": {
+    "name": "Shopify",
+    "description": "Manage products, orders, customers, and inventory in your Shopify store"
+  },
+  "sim_workspace_event": {
+    "name": "Nexora Workspace Events",
+    "description": "Run this workflow when workspace events occur: run errors or successes, deployments, and alert conditions like latency or cost spikes."
+  },
+  "similarweb": {
+    "name": "Similarweb",
+    "description": "Website traffic and analytics data"
+  },
+  "sixtyfour": {
+    "name": "Sixtyfour AI",
+    "description": "Enrich leads and companies with AI-powered research"
+  },
+  "slack_v2": {
+    "name": "Slack",
+    "description": "Manage Slack messages, channels, users, files, Lists, canvases, and Agent Sessions"
+  },
+  "smartlead": {
+    "name": "Smartlead",
+    "description": "Manage Smartlead cold email campaigns, sequences, and leads"
+  },
+  "smtp": {
+    "name": "SMTP",
+    "description": "Send emails via any SMTP mail server"
+  },
+  "snowflake": {
+    "name": "Snowflake",
+    "description": "Query data, ask Cortex Analyst, and manage warehouses and tasks in Snowflake"
+  },
+  "splunk": {
+    "name": "Splunk",
+    "description": "Run SPL searches and manage saved searches and alerts in Splunk"
+  },
+  "sportmonks": {
+    "name": "Sportmonks",
+    "description": "Access Sportmonks football, motorsport, odds, and reference data"
+  },
+  "sqs": {
+    "name": "Amazon SQS",
+    "description": "Connect to Amazon SQS"
+  },
+  "square": {
+    "name": "Square",
+    "description": "Process payments and manage Square commerce data"
+  },
+  "ssh_v2": {
+    "name": "SSH",
+    "description": "Connect to remote servers via SSH"
+  },
+  "ssm": {
+    "name": "AWS Systems Manager",
+    "description": "Run commands, manage parameters, and audit managed nodes"
+  },
+  "stagehand": {
+    "name": "Stagehand",
+    "description": "Web automation and data extraction"
+  },
+  "start_trigger": {
+    "name": "Start",
+    "description": "Unified workflow entry point for chat, manual and API runs",
+    "longDescription": "Collect structured inputs and power manual runs, API executions, and deployed chat experiences from a single start block.",
+    "subBlocks": {
+      "inputFormat": {
+        "title": "Inputs",
+        "description": "Add custom fields beyond the built-in input, conversationId, and files fields."
+      },
+      "runMetadata": {
+        "title": "Add run metadata",
+        "description": "Expose trusted, server-injected run metadata under <start.metadata>: subject, workspaceId, workflowId, executionId, executionType, executionMode, startTime. The subject identifies the authenticated Nexora user, chat email, or external provider user without exposing credentials."
+      }
+    }
+  },
+  "stripe": {
+    "name": "Stripe",
+    "description": "Process payments and manage Stripe data"
+  },
+  "sts": {
+    "name": "AWS STS",
+    "description": "Connect to AWS Security Token Service"
+  },
+  "stt_v2": {
+    "name": "Speech-to-Text",
+    "description": "Convert speech to text using AI"
+  },
+  "supabase": {
+    "name": "Supabase",
+    "description": "Use Supabase database"
+  },
+  "table_v2": {
+    "name": "Table",
+    "description": "User-defined data tables",
+    "longDescription": "Create and manage custom data tables. Store, query, and update structured data within workflows. Query Rows accepts a plain predicate — `{\"field\":\"wins\",\"op\":\"gte\",\"value\":10}` — for one condition. Use `all` (AND) or `any` (OR) groups for multiple or nested conditions. Operators: eq, ne, gt, gte, lt, lte, in, nin, like, ilike, nlike, nilike, contains, ncontains, startsWith, endsWith, isNull, isNotNull, isEmpty, isNotEmpty. Order is a sort spec `[{\"field\":\"wins\",\"direction\":\"desc\"}]`. Query Rows returns every matching row when Limit is omitted (fails if the result exceeds the fixed 5 MiB row-data budget — add a filter or a Limit). With a Limit, responses page: a non-null nextCursor means more rows exist — pass it back as the cursor. Columns to Return narrows each row to the selected columns (by stable id or name; one that no longer exists is skipped); leave it empty for every column.",
+    "subBlocks": {
+      "operation": {
+        "title": "Operation"
+      },
+      "tableSelector": {
+        "title": "Table",
+        "placeholder": "Select a table"
+      },
+      "manualTableId": {
+        "title": "Table ID",
+        "placeholder": "Enter table ID"
+      },
+      "outputColumns": {
+        "title": "Columns to Return",
+        "placeholder": "All columns",
+        "description": "Only include these columns in each returned row. Leave empty for all columns."
+      },
+      "rowId": {
+        "title": "Row ID",
+        "placeholder": "row_xxxxx"
+      },
+      "data": {
+        "title": "Row Data (JSON)",
+        "placeholder": "{\"column_name\": \"value\"}"
+      },
+      "conflictColumnSelector": {
+        "title": "Conflict Column",
+        "placeholder": "Select a unique column"
+      },
+      "manualConflictColumn": {
+        "title": "Conflict Column",
+        "placeholder": "Enter the column id"
+      },
+      "rows": {
+        "title": "Rows Data (Array of JSON)",
+        "placeholder": "[{\"col1\": \"val1\"}, {\"col1\": \"val2\"}]"
+      },
+      "filterBuilder": {
+        "title": "Filter"
+      },
+      "filter": {
+        "title": "Filter",
+        "placeholder": "{\"field\":\"wins\",\"op\":\"gte\",\"value\":10}"
+      },
+      "sortBuilder": {
+        "title": "Order"
+      },
+      "order": {
+        "title": "Order",
+        "placeholder": "[{\"field\":\"wins\",\"direction\":\"desc\"}]"
+      },
+      "limit": {
+        "title": "Limit",
+        "placeholder": "Leave empty for all rows (fails over 5MB)"
+      },
+      "cursor": {
+        "title": "Cursor",
+        "placeholder": "Paste a nextCursor to fetch the next page"
+      },
+      "eventType": {
+        "title": "Event",
+        "description": "The type of event to trigger on."
+      },
+      "watchColumns": {
+        "title": "Watch Columns",
+        "placeholder": "All columns",
+        "description": "Only fire when these columns change. Leave empty to fire on any update."
+      },
+      "includeHeaders": {
+        "title": "Map Row Values to Headers",
+        "description": "When enabled, each row is returned as a key-value object mapped to column names."
+      },
+      "triggerInstructions": {
+        "title": "Setup Instructions",
+        "content": "<div class=\"mb-3\"><strong>1.</strong> Select the table to monitor</div><div class=\"mb-3\"><strong>2.</strong> Choose whether to trigger on row inserts, updates, or deletes</div><div class=\"mb-3\"><strong>3.</strong> For updates, optionally select specific columns to watch</div><div class=\"mb-3\"><strong>4.</strong> The workflow will trigger automatically when the event occurs</div>"
+      }
+    }
+  },
+  "tailscale": {
+    "name": "Tailscale",
+    "description": "Manage devices and network settings in your Tailscale tailnet"
+  },
+  "tavily": {
+    "name": "Tavily",
+    "description": "Search and extract information"
+  },
+  "telegram": {
+    "name": "Telegram",
+    "description": "Interact with Telegram"
+  },
+  "temporal": {
+    "name": "Temporal",
+    "description": "Start, signal, query, and manage Temporal workflow executions"
+  },
+  "textract_v2": {
+    "name": "AWS Textract",
+    "description": "Extract text, tables, and forms from documents"
+  },
+  "thinking": {
+    "name": "Thinking",
+    "description": "Forces model to outline its thought process.",
+    "longDescription": "Adds a step where the model explicitly outlines its thought process before proceeding. This can improve reasoning quality by encouraging step-by-step analysis.",
+    "subBlocks": {
+      "thought": {
+        "title": "Thought Process / Instruction",
+        "placeholder": "Describe the step-by-step thinking process here..."
+      }
+    }
+  },
+  "thrive": {
+    "name": "Thrive",
+    "description": "Manage users, audiences, learning and CPD on Thrive"
+  },
+  "tiktok": {
+    "name": "TikTok",
+    "description": "Access TikTok profiles and videos, and upload inbox drafts"
+  },
+  "tinybird": {
+    "name": "Tinybird",
+    "description": "Send events, query data, and manage Data Sources with Tinybird"
+  },
+  "tinyfish": {
+    "name": "TinyFish",
+    "description": "Automate and read the live web"
+  },
+  "translate": {
+    "name": "Translate",
+    "description": "Translate text to any language"
+  },
+  "trello": {
+    "name": "Trello",
+    "description": "Manage Trello lists, cards, checklists, and activity"
+  },
+  "trigger_dev": {
+    "name": "Trigger.dev",
+    "description": "Trigger tasks and manage runs and schedules"
+  },
+  "tts": {
+    "name": "Text-to-Speech",
+    "description": "Convert text to speech using AI voices"
+  },
+  "twilio_sms": {
+    "name": "Twilio SMS",
+    "description": "Send SMS messages"
+  },
+  "twilio_voice": {
+    "name": "Twilio Voice",
+    "description": "Make and manage phone calls"
+  },
+  "typeform": {
+    "name": "Typeform",
+    "description": "Interact with Typeform"
+  },
+  "upstash": {
+    "name": "Upstash",
+    "description": "Serverless Redis with Upstash"
+  },
+  "uptimerobot": {
+    "name": "UptimeRobot",
+    "description": "Monitor uptime, manage incidents, maintenance windows, and status pages"
+  },
+  "vanta": {
+    "name": "Vanta",
+    "description": "Query compliance status and manage evidence in Vanta"
+  },
+  "variables": {
+    "name": "Variables",
+    "description": "Set workflow-scoped variables",
+    "longDescription": "Set workflow-scoped variables that can be accessed throughout the workflow using <variable.variableName> syntax. All Variables blocks share the same namespace, so later blocks can update previously set variables.",
+    "subBlocks": {
+      "variables": {
+        "title": "Variable Assignments",
+        "description": "Select workflow variables and update their values during execution. Access them anywhere using <variable.variableName> syntax."
+      }
+    }
+  },
+  "vercel": {
+    "name": "Vercel",
+    "description": "Manage Vercel deployments, projects, and infrastructure"
+  },
+  "video_generator_v3": {
+    "name": "Video Generator",
+    "description": "Generate videos from text using AI"
+  },
+  "wait": {
+    "name": "Wait",
+    "description": "Pause workflow execution for a time interval",
+    "longDescription": "Pauses workflow execution for a specified time interval. By default the wait runs in-process for up to 5 minutes. Enable Async to pause the run on disk and resume automatically for waits up to 30 days.",
+    "subBlocks": {
+      "timeValue": {
+        "title": "Wait Amount",
+        "placeholder": "10",
+        "description": "Max 5 minutes (300 seconds). Enable Async for up to 30 days."
+      },
+      "timeUnit": {
+        "title": "Unit"
+      },
+      "timeUnitLong": {
+        "title": "Unit"
+      },
+      "async": {
+        "title": "Async"
+      }
+    }
+  },
+  "wealthbox": {
+    "name": "Wealthbox",
+    "description": "Interact with Wealthbox"
+  },
+  "webflow": {
+    "name": "Webflow",
+    "description": "Manage Webflow CMS collections"
+  },
+  "webhook_request": {
+    "name": "Webhook",
+    "description": "Send a webhook request"
+  },
+  "whatsapp": {
+    "name": "WhatsApp",
+    "description": "Send WhatsApp messages"
+  },
+  "wikipedia": {
+    "name": "Wikipedia",
+    "description": "Search and retrieve content from Wikipedia"
+  },
+  "windchill": {
+    "name": "Windchill",
+    "description": "Manage documents, revisions, and content in PTC Windchill"
+  },
+  "wiza": {
+    "name": "Wiza",
+    "description": "Find, enrich, and verify B2B contact data with Wiza"
+  },
+  "wordpress": {
+    "name": "WordPress",
+    "description": "Manage WordPress content"
+  },
+  "workday": {
+    "name": "Workday",
+    "description": "Manage workers, hiring, onboarding, and HR operations in Workday"
+  },
+  "workflow_input": {
+    "name": "Workflow",
+    "description": "Execute another workflow and map variables to its Start trigger schema.",
+    "longDescription": "Execute another child workflow and map variables to its Start trigger schema. Helps with modularizing workflows.",
+    "subBlocks": {
+      "workflowId": {
+        "title": "Select Workflow",
+        "placeholder": "Search workflows..."
+      },
+      "manualWorkflowId": {
+        "title": "Workflow ID",
+        "placeholder": "Enter workflow ID"
+      },
+      "inputMapping": {
+        "title": "Inputs",
+        "description": "Map fields defined in the child workflow's Start block to variables/values in this workflow."
+      }
+    }
+  },
+  "x": {
+    "name": "X",
+    "description": "Interact with X"
+  },
+  "youcom": {
+    "name": "You.com",
+    "description": "Search, read, and research the web with You.com"
+  },
+  "youtube": {
+    "name": "YouTube",
+    "description": "Interact with YouTube videos, channels, and playlists"
+  },
+  "zendesk": {
+    "name": "Zendesk",
+    "description": "Manage support tickets, users, and organizations in Zendesk"
+  },
+  "zep": {
+    "name": "Zep",
+    "description": "Long-term memory for AI agents"
+  },
+  "zerobounce": {
+    "name": "ZeroBounce",
+    "description": "Validate email deliverability and check account credits"
+  },
+  "zoho_desk": {
+    "name": "Zoho Desk",
+    "description": "Manage Zoho Desk tickets, replies, contacts, and accounts"
+  },
+  "zoom": {
+    "name": "Zoom",
+    "description": "Create and manage Zoom meetings and recordings"
+  },
+  "zoominfo": {
+    "name": "ZoomInfo",
+    "description": "Search and enrich B2B company and contact data with ZoomInfo."
+  }
+}

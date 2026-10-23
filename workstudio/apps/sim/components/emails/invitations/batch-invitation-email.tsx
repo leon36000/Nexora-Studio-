@@ -2,6 +2,7 @@ import { Fragment } from 'react'
 import { Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface WorkspaceInvitation {
@@ -18,87 +19,82 @@ interface BatchInvitationEmailProps {
   acceptUrl: string
 }
 
-const getPermissionLabel = (permission: string) => {
-  switch (permission) {
-    case 'admin':
-      return 'Admin (full access)'
-    case 'write':
-      return 'Editor (can edit workflows)'
-    case 'read':
-      return 'Viewer (read-only access)'
-    default:
-      return permission
-  }
-}
-
-const getRoleLabel = (role: string) => {
-  switch (role) {
-    case 'admin':
-      return 'Admin'
-    case 'member':
-      return 'Member'
-    default:
-      return role
-  }
-}
+const PERMISSIONS = new Set(['admin', 'write', 'read'])
+const ROLES = new Set(['admin', 'member'])
 
 const EMPTY_INVITATIONS: WorkspaceInvitation[] = []
 
 export function BatchInvitationEmail({
-  inviterName = 'Someone',
-  organizationName = 'the team',
+  inviterName,
+  organizationName,
   organizationRole = 'member',
   workspaceInvitations = EMPTY_INVITATIONS,
   acceptUrl,
 }: BatchInvitationEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
+  const inviter = inviterName ?? t('batchInvitation.defaultInviter')
+  const organization = organizationName ?? t('batchInvitation.defaultOrganization')
   const hasWorkspaces = workspaceInvitations.length > 0
+  const permissionLabel = (permission: string) =>
+    PERMISSIONS.has(permission) ? t(`batchInvitation.permissions.${permission}`) : permission
+  const roleLabel = ROLES.has(organizationRole)
+    ? t(`batchInvitation.roles.${organizationRole}`)
+    : organizationRole
 
   return (
     <EmailLayout
-      preview={`You've been invited to join ${organizationName}${hasWorkspaces ? ` and ${workspaceInvitations.length} workspace(s)` : ''}`}
+      preview={
+        hasWorkspaces
+          ? t('batchInvitation.previewWithWorkspaces', {
+              organizationName: organization,
+              count: String(workspaceInvitations.length),
+            })
+          : t('batchInvitation.preview', { organizationName: organization })
+      }
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.greeting}>Hello,</Text>
+      <Text style={baseStyles.greeting}>{t('common.hello')}</Text>
       <Text style={baseStyles.paragraph}>
-        <EmailStrong>{inviterName}</EmailStrong> has invited you to join{' '}
-        <EmailStrong>{organizationName}</EmailStrong> on {brand.name}.
+        {t.rich('batchInvitation.body', {
+          inviterName: inviter,
+          organizationName: organization,
+          brandName: brand.name,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxTitle}>Team role</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('batchInvitation.teamRole')}</Text>
         <Text style={baseStyles.infoBoxList}>
-          {getRoleLabel(organizationRole)} —{' '}
+          {roleLabel} —{' '}
           {organizationRole === 'admin'
-            ? 'you can manage team members, billing, and workspace access.'
-            : 'you have access to shared team billing and can be invited to workspaces.'}
+            ? t('batchInvitation.adminDetail')
+            : t('batchInvitation.memberDetail')}
         </Text>
       </Section>
 
       {hasWorkspaces && (
         <Section style={baseStyles.infoBox}>
           <Text style={baseStyles.infoBoxTitle}>
-            Workspace access ({workspaceInvitations.length} workspace
-            {workspaceInvitations.length !== 1 ? 's' : ''})
+            {t('batchInvitation.workspaceAccess', { count: workspaceInvitations.length })}
           </Text>
           <Text style={baseStyles.infoBoxList}>
             {workspaceInvitations.map((ws, index) => (
               <Fragment key={ws.workspaceId}>
                 {index > 0 && <br />}
-                {ws.workspaceName} — {getPermissionLabel(ws.permission)}
+                {ws.workspaceName} — {permissionLabel(ws.permission)}
               </Fragment>
             ))}
           </Text>
         </Section>
       )}
 
-      <EmailButton href={acceptUrl}>Accept Invitation</EmailButton>
+      <EmailButton href={acceptUrl}>{t('common.acceptInvitation')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>
-        Invitation expires in 7 days. If unexpected, you can ignore this email.
-      </Text>
+      <Text style={baseStyles.footnote}>{t('common.expiresIn7Days')}</Text>
     </EmailLayout>
   )
 }

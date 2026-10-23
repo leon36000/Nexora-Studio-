@@ -6,6 +6,7 @@ import { ArrowLeft } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { AddPeopleModal } from '@/components/permissions'
 import { SaveDiscardChips } from '@/components/settings/save-discard-actions'
 import {
@@ -43,6 +44,7 @@ interface SkillDetailProps {
  * and built-in template skills render read-only.
  */
 export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
+  const t = useTranslations('integrations.skillsPage')
   const router = useRouter()
   const skillsHref = `/workspace/${workspaceId}/skills`
 
@@ -103,9 +105,9 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
 
     const newErrors: SkillFieldErrors = {}
     const nameError = validateSkillName(nameDraft)
-    if (nameError) newErrors.name = nameError
-    if (!descriptionDraft.trim()) newErrors.description = 'Description is required'
-    if (!contentDraft.trim()) newErrors.content = 'Content is required'
+    if (nameError) newErrors.name = t(`validation.${nameError}`)
+    if (!descriptionDraft.trim()) newErrors.description = t('descriptionRequired')
+    if (!contentDraft.trim()) newErrors.content = t('contentRequired')
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
@@ -123,13 +125,13 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
         },
       })
       setErrors({})
-      toast.success(`Saved "${nameDraft}"`)
+      toast.success(t('saved', { name: nameDraft }))
     } catch (error) {
       if (isSkillNameConflictError(error)) {
-        setErrors({ name: getErrorMessage(error, 'This skill name is already taken.') })
+        setErrors({ name: getErrorMessage(error, t('nameTaken')) })
       } else {
-        toast.error("Couldn't save skill", {
-          description: getErrorMessage(error, 'Please try again in a moment.'),
+        toast.error(t('saveFailed'), {
+          description: getErrorMessage(error, t('tryAgainLater')),
         })
       }
       logger.error('Failed to save skill', error)
@@ -147,8 +149,8 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
       router.replace(skillsHref)
     } catch (error) {
       guard.rearm()
-      toast.error("Couldn't delete skill", {
-        description: getErrorMessage(error, 'Please try again in a moment.'),
+      toast.error(t('deleteFailed'), {
+        description: getErrorMessage(error, t('tryAgainLater')),
       })
       logger.error('Failed to delete skill', error)
     }
@@ -168,7 +170,7 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
 
   const back = (
     <ChipLink href={skillsHref} onClick={guard.handleBackClick} leftIcon={ArrowLeft}>
-      Skills
+      {t('back')}
     </ChipLink>
   )
 
@@ -180,10 +182,10 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
     skill && canEdit ? (
       <>
         <Chip leftIcon={Send} onClick={() => setShareOpen(true)}>
-          Share
+          {t('share')}
         </Chip>
         <Chip onClick={() => setShowDeleteConfirm(true)} disabled={deleteSkill.isPending}>
-          Delete
+          {t('delete')}
         </Chip>
         <SaveDiscardChips
           dirty={isDirty}
@@ -200,7 +202,7 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
   if ((skillsLoading || deleteSkill.isPending || deleteSkill.isSuccess) && !skill) {
     return (
       <CredentialDetailLayout back={back} actions={actions}>
-        <SettingsEmptyState variant='inline'>Loading…</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
       </CredentialDetailLayout>
     )
   }
@@ -208,17 +210,13 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
   if (!skill) {
     return (
       <CredentialDetailLayout back={back} actions={actions}>
-        <SettingsEmptyState variant='inline'>Skill not found.</SettingsEmptyState>
+        <SettingsEmptyState variant='inline'>{t('notFound')}</SettingsEmptyState>
       </CredentialDetailLayout>
     )
   }
 
   const readOnly = isBuiltin || !canEdit
-  const lockReason = !readOnly
-    ? null
-    : isBuiltin
-      ? 'Built-in skills are read-only'
-      : 'You need to be a skill editor to edit this skill'
+  const lockReason = !readOnly ? null : isBuiltin ? t('builtinReadOnly') : t('editorRequired')
 
   return (
     <>
@@ -226,7 +224,7 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
         <CredentialDetailHeading
           leading={<SkillTile />}
           title={skill.name}
-          subtitle={isBuiltin ? 'Built-in skill' : skill.description}
+          subtitle={isBuiltin ? t('builtinSubtitle') : skill.description}
         />
 
         <SkillFields
@@ -259,18 +257,14 @@ export function SkillDetail({ workspaceId, skillId }: SkillDetailProps) {
       <ChipConfirmModal
         open={showDeleteConfirm}
         onOpenChange={setShowDeleteConfirm}
-        srTitle='Delete Skill'
-        title='Delete Skill'
-        text={[
-          'Are you sure you want to delete ',
-          { text: skill.name, bold: true },
-          '? This action cannot be undone.',
-        ]}
+        srTitle={t('deleteTitle')}
+        title={t('deleteTitle')}
+        text={[t('deleteConfirmBefore'), { text: skill.name, bold: true }, t('deleteConfirmAfter')]}
         confirm={{
-          label: 'Delete',
+          label: t('delete'),
           onClick: handleConfirmDelete,
           pending: deleteSkill.isPending,
-          pendingLabel: 'Deleting...',
+          pendingLabel: t('deleting'),
         }}
       />
 

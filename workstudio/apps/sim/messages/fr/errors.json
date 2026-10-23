@@ -18,5 +18,6 @@
     "description": "La page que vous recherchez n’existe pas ou a été déplacée. Revenez à votre espace de travail pour poursuivre votre travail.",
     "goBack": "Retour",
     "returnHome": "Retour à l’accueil"
-  }
+  },
+  "featureDisabled": "{feature} : cette fonctionnalité n’est pas disponible dans cette édition."
 }

@@ -1,5 +1,6 @@
 'use client'
 import { Chip, cn, Loader } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { AuthSubmitButton } from '@/app/(auth)/components'
 import { AUTH_BUTTON_CLASS } from '@/app/(auth)/components/constants'
 
@@ -34,11 +35,15 @@ export function InviteStatusCard({
   actions = EMPTY_ACTIONS,
   isExpiredError = false,
 }: InviteStatusCardProps) {
+  const t = useTranslations('auth.invite')
+
   if (type === 'loading') {
     return (
       <>
         <div className='space-y-1 text-center'>
-          <h1 className='text-[32px] text-[var(--text-primary)] tracking-tight'>Loading</h1>
+          <h1 className='text-[32px] text-[var(--text-primary)] tracking-tight'>
+            {t('statusLoading')}
+          </h1>
           <p className='text-[var(--text-muted)]'>{description}</p>
         </div>
         <div className='mt-8 flex w-full items-center justify-center py-8'>
@@ -59,7 +64,7 @@ export function InviteStatusCard({
         {details}
         {isExpiredError && (
           <AuthSubmitButton type='button' onClick={returnHome} loadingLabel=''>
-            Request New Invitation
+            {t('requestNew')}
           </AuthSubmitButton>
         )}
 

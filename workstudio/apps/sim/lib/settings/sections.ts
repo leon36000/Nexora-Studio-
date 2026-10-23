@@ -200,11 +200,5 @@ export const settingsSections: Record<MothershipSettingsScope, readonly Settings
       cli: ['workspaces lineage', 'workspaces fork', 'workspaces pull', 'workspaces push'],
     },
     { id: 'custom-blocks', label: 'Custom blocks', uiSection: 'custom-blocks' },
-    {
-      id: 'self-host',
-      label: 'Self-hosting',
-      uiSection: 'self-host',
-      userSetup: 'Managed deployment changes use the existing setup UI.',
-    },
   ],
 }

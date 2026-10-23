@@ -1,6 +1,7 @@
 import { Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface EnterpriseOwnerInvitationEmailProps {
@@ -15,25 +16,28 @@ export function EnterpriseOwnerInvitationEmail({
   expiresInDays,
 }: EnterpriseOwnerInvitationEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
   return (
     <EmailLayout
-      preview={`Activate ${organizationName}'s Enterprise plan on ${brand.name}`}
+      preview={t('enterpriseOwnerInvitation.preview', {
+        organizationName,
+        brandName: brand.name,
+      })}
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.greeting}>Hello,</Text>
+      <Text style={baseStyles.greeting}>{t('common.hello')}</Text>
       <Text style={baseStyles.paragraph}>
-        You were selected as the owner of <EmailStrong>{organizationName}</EmailStrong> on{' '}
-        {brand.name}.
+        {t.rich('enterpriseOwnerInvitation.selected', {
+          organizationName,
+          brandName: brand.name,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
-      <Text style={baseStyles.paragraph}>
-        Review and accept the invitation to create the organization and start its Enterprise plan.
-        Billing does not begin until you accept.
-      </Text>
-      <EmailButton href={inviteLink}>Review Enterprise invitation</EmailButton>
+      <Text style={baseStyles.paragraph}>{t('enterpriseOwnerInvitation.review')}</Text>
+      <EmailButton href={inviteLink}>{t('enterpriseOwnerInvitation.button')}</EmailButton>
       <div style={baseStyles.divider} />
       <Text style={baseStyles.footnote}>
-        This invitation expires in {expiresInDays} days. If you did not expect it, you can ignore
-        this email.
+        {t('enterpriseOwnerInvitation.footnote', { days: String(expiresInDays) })}
       </Text>
     </EmailLayout>
   )

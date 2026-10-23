@@ -277,7 +277,7 @@ const EMAIL_SUBJECTS: Record<string, string> = {
  * - Every email/layout component is `vi.fn(() => null)`.
  * - The subject helpers port the real logic with the default brand name `Sim` (no whitelabeling):
  *   `mockGetEmailSubject`, `mockGetLimitEmailSubject`, `mockGetPlanWelcomeSubject`,
- *   `mockGetRequestConfirmationSubject`, `mockGetOtpSubject`,
+ *   `mockGetRequestConfirmationSubject`, `mockGetOtpSubject`, `mockGetSharedFileOtpSubject`,
  *   `mockGetCredentialGroupInvitationSubject`.
  *
  * @example
@@ -360,6 +360,7 @@ export const emailTemplatesMockFns = {
   mockGetOtpSubject: vi.fn(
     (resourceLabel: string): string => `Verification code for ${resourceLabel}`
   ),
+  mockGetSharedFileOtpSubject: vi.fn((): string => 'Verification code for a shared file'),
   mockGetCredentialGroupInvitationSubject: vi.fn(
     (inviterName: string | undefined, workspaceName: string): string =>
       inviterName
@@ -445,6 +446,7 @@ export const emailTemplatesMock = {
   getPlanWelcomeSubject: emailTemplatesMockFns.mockGetPlanWelcomeSubject,
   getRequestConfirmationSubject: emailTemplatesMockFns.mockGetRequestConfirmationSubject,
   getOtpSubject: emailTemplatesMockFns.mockGetOtpSubject,
+  getSharedFileOtpSubject: emailTemplatesMockFns.mockGetSharedFileOtpSubject,
   getCredentialGroupInvitationSubject:
     emailTemplatesMockFns.mockGetCredentialGroupInvitationSubject,
 }

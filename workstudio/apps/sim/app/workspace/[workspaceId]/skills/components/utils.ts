@@ -79,6 +79,20 @@ function inferNameFromHeading(markdown: string): string {
   return slugify(headingMatch[1]).slice(0, 64)
 }
 
+/** Message key under `integrations.skillsPage.import.errors` for a refused skill file. */
+type SkillFileErrorReason = 'unsupportedType' | 'zipTooLarge' | 'noSkillInZip'
+
+/** A skill file the import cannot read; `reason` selects the translated message. */
+export class SkillFileError extends Error {
+  constructor(
+    readonly reason: SkillFileErrorReason,
+    message: string
+  ) {
+    super(message)
+    this.name = 'SkillFileError'
+  }
+}
+
 /**
  * Extracts the SKILL.md content from a ZIP archive.
  * Searches for a file named SKILL.md at any depth within the archive.
@@ -102,7 +116,7 @@ export async function extractSkillFromZip(
   })
 
   if (candidates.length === 0) {
-    throw new Error('No SKILL.md file found in the ZIP archive')
+    throw new SkillFileError('noSkillInZip', 'No SKILL.md file found in the ZIP archive')
   }
 
   candidates.sort((a, b) => {
@@ -114,17 +128,21 @@ export async function extractSkillFromZip(
   const content = await zip.file(candidates[0])!.async('string')
   return content
 }
+
 const KEBAB_CASE_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/
+
+/** Message key under `integrations.skillsPage.validation` for a rejected skill name. */
+type SkillNameError = 'nameRequired' | 'nameTooLong' | 'nameNotKebab'
 
 /**
  * Validates a skill name against the same rules the API enforces
- * (`skillNameSchema`). Returns the field message, or null when valid. Shared so
- * the rule and its copy live in one place across every skill editing surface.
+ * (`skillNameSchema`). Returns the message key of the broken rule, or null when
+ * valid. Shared so the rule lives in one place across every skill editing surface.
  */
-export function validateSkillName(name: string): string | null {
-  if (!name.trim()) return 'Name is required'
-  if (name.length > 64) return 'Name must be 64 characters or less'
-  if (!KEBAB_CASE_REGEX.test(name)) return 'Name must be kebab-case (e.g. my-skill)'
+export function validateSkillName(name: string): SkillNameError | null {
+  if (!name.trim()) return 'nameRequired'
+  if (name.length > 64) return 'nameTooLong'
+  if (!KEBAB_CASE_REGEX.test(name)) return 'nameNotKebab'
   return null
 }
 
@@ -146,12 +164,12 @@ export async function readSkillFile(file: File): Promise<ParsedSkill> {
   const name = file.name.toLowerCase()
 
   if (!SKILL_IMPORT_EXTENSIONS.some((ext) => name.endsWith(ext))) {
-    throw new Error('Unsupported file type. Use .md or .zip files.')
+    throw new SkillFileError('unsupportedType', 'Unsupported file type. Use .md or .zip files.')
   }
 
   if (name.endsWith('.zip')) {
     if (file.size > MAX_SKILL_ZIP_BYTES) {
-      throw new Error('ZIP file is too large (max 5 MB)')
+      throw new SkillFileError('zipTooLarge', 'ZIP file is too large (max 5 MB)')
     }
     return parseSkillMarkdown(await extractSkillFromZip(file))
   }

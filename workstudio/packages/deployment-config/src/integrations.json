@@ -29545,30 +29545,6 @@
       "updatedAt": "2026-10-14"
     },
     {
-      "type": "searxng",
-      "slug": "web-search",
-      "name": "Web Search",
-      "description": "Search the web without an API key",
-      "longDescription": "Search the web through the meta-search engine installed with Nexora. No API key and no per-query cost; queries are sent to public search engines.",
-      "bgColor": "#3B82F6",
-      "iconName": "SearchIcon",
-      "docsUrl": "https://docs.sim.ai/integrations/searxng",
-      "operations": [
-        {
-          "name": "Web Search",
-          "description": "Search the web through the instance SearXNG meta-search engine. Returns the title, link and snippet of each result."
-        }
-      ],
-      "operationCount": 1,
-      "triggers": [],
-      "triggerCount": 0,
-      "authType": "none",
-      "category": "tools",
-      "integrationType": "search",
-      "tags": ["web-scraping"],
-      "updatedAt": "2026-10-23"
-    },
-    {
       "type": "webflow",
       "slug": "webflow",
       "name": "Webflow",

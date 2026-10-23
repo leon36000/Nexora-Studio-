@@ -1,14 +1,16 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { type ErrorBoundaryProps, ErrorState } from '@/app/workspace/[workspaceId]/components/error'
 
 export default function SkillsError({ error, reset }: ErrorBoundaryProps) {
+  const t = useTranslations('integrations.skillsPage')
   return (
     <ErrorState
       error={error}
       reset={reset}
-      title='Failed to load skills'
-      description='Something went wrong while loading your skills. Please try again.'
+      title={t('loadFailedTitle')}
+      description={t('loadFailedDescription')}
       loggerName='SkillsError'
     />
   )

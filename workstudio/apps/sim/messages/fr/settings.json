@@ -263,10 +263,6 @@
         "label": "Récemment supprimés",
         "description": "Restaurez les éléments supprimés au cours des 30 derniers jours."
       },
-      "self-host": {
-        "label": "Auto-hébergement",
-        "description": "Gérez ce déploiement depuis le service géré Nexora."
-      },
       "sso": {
         "label": "Authentification unique",
         "description": "Gérez la connexion, les domaines vérifiés et le provisionnement."
@@ -1086,11 +1082,6 @@
         "created": "Créée le"
       }
     }
-  },
-  "selfHost": {
-    "chatKeys": "Clés Chat",
-    "chatKeysDescription": "Clés de fournisseurs de modèles qui alimentent Chat sur ce déploiement.",
-    "managedKeys": "Clés gérées"
   },
   "copilot": {
     "createApiKey": "Créer une clé d’API",

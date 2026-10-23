@@ -199,7 +199,6 @@ describe('settings navigation boundaries', () => {
       'forks',
       'custom-blocks',
       'requests',
-      'self-host',
     ])
   })
 

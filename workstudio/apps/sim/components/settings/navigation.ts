@@ -20,7 +20,6 @@ import {
   Settings,
   ShieldCheck,
   Shuffle,
-  Sprout,
   TerminalWindow,
   Trash,
   Upload,
@@ -102,7 +101,6 @@ export type WorkspaceSettingsSection =
   | 'recently-deleted'
   | 'forks'
   | 'custom-blocks'
-  | 'self-host'
 
 export type SettingsSection =
   | AccountSettingsSection
@@ -152,7 +150,6 @@ export type UnifiedSettingsSection =
   | 'data-drains'
   | 'mothership'
   | 'recently-deleted'
-  | 'self-host'
 
 export type UnifiedNavigationSection = 'account' | 'workspace' | 'organization' | 'platform'
 
@@ -708,20 +705,6 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
     },
   },
   {
-    label: NAV.unified['self-host'].label,
-    icon: Sprout,
-    unified: {
-      id: 'self-host',
-      description: NAV.unified['self-host'].description,
-      group: 'platform',
-      order: 2,
-      requiresSelfHosted: true,
-    },
-    planes: {
-      workspace: { id: 'self-host', group: 'system', order: 12 },
-    },
-  },
-  {
     label: NAV.unified.sso.label,
     icon: LogIn,
     docsLink: docsUrl('/platform/enterprise/sso'),
@@ -1267,7 +1250,6 @@ const WORKSPACE_MUTATION_PERMISSION: Record<WorkspaceSettingsSection, Permission
   'recently-deleted': 'write',
   forks: 'admin',
   'custom-blocks': 'admin',
-  'self-host': 'admin',
 }
 
 export interface WorkspaceMutationCapabilities {

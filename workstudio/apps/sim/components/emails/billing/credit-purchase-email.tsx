@@ -1,6 +1,12 @@
 import { Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import {
+  EMAIL_DATE_LOCALE,
+  EMAIL_LOCALE,
+  formatEmailNumber,
+  getEmailTranslator,
+} from '@/components/emails/i18n'
 import { dollarsToCredits } from '@/lib/billing/credits/conversion'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { APP_ENTRY_PATH } from '@/lib/navigation/paths'
@@ -21,39 +27,49 @@ export function CreditPurchaseEmail({
 }: CreditPurchaseEmailProps) {
   const brand = getBrandConfig()
   const baseUrl = getBaseUrl()
-
-  const previewText = `${brand.name}: ${dollarsToCredits(amount).toLocaleString()} credits added to your account`
+  const t = getEmailTranslator()
+  const credits = formatEmailNumber(dollarsToCredits(amount))
 
   return (
-    <EmailLayout preview={previewText} showUnsubscribe={false}>
-      <Text style={baseStyles.greeting}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
+    <EmailLayout
+      preview={t('creditPurchase.preview', { brandName: brand.name, credits })}
+      showUnsubscribe={false}
+    >
+      <Text style={baseStyles.greeting}>
+        {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
+      </Text>
       <Text style={baseStyles.paragraph}>
-        Your credit purchase of{' '}
-        <EmailStrong>{dollarsToCredits(amount).toLocaleString()} credits</EmailStrong> has been
-        confirmed.
+        {t.rich('creditPurchase.body', {
+          credits,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxLabel}>Amount Added</Text>
+        <Text style={baseStyles.infoBoxLabel}>{t('creditPurchase.amountAdded')}</Text>
         <Text style={{ ...baseStyles.infoBoxValue, marginBottom: '16px' }}>
-          {dollarsToCredits(amount).toLocaleString()} credits
+          {t('common.creditsAmount', { credits })}
         </Text>
-        <Text style={baseStyles.infoBoxLabel}>New Balance</Text>
+        <Text style={baseStyles.infoBoxLabel}>{t('creditPurchase.newBalance')}</Text>
         <Text style={baseStyles.infoBoxValue}>
-          {dollarsToCredits(newBalance).toLocaleString()} credits
+          {t('common.creditsAmount', {
+            credits: formatEmailNumber(dollarsToCredits(newBalance)),
+          })}
         </Text>
       </Section>
 
-      <Text style={baseStyles.paragraph}>
-        Credits are applied automatically to your workflow executions.
-      </Text>
+      <Text style={baseStyles.paragraph}>{t('creditPurchase.applied')}</Text>
 
-      <EmailButton href={`${baseUrl}${APP_ENTRY_PATH}`}>View Dashboard</EmailButton>
+      <EmailButton href={`${baseUrl}${APP_ENTRY_PATH}`}>
+        {t('creditPurchase.viewDashboard')}
+      </EmailButton>
 
       <div style={baseStyles.divider} />
 
       <Text style={baseStyles.footnote}>
-        Purchased on {purchaseDate.toLocaleDateString()}. View balance in Settings → Subscription.
+        {t('creditPurchase.footnote', {
+          date: purchaseDate.toLocaleDateString(EMAIL_DATE_LOCALE[EMAIL_LOCALE]),
+        })}
       </Text>
     </EmailLayout>
   )

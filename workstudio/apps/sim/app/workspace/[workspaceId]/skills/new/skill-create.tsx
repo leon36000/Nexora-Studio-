@@ -6,6 +6,7 @@ import { ArrowLeft } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SaveDiscardChips } from '@/components/settings/save-discard-actions'
 import {
   CredentialDetailHeading,
@@ -39,6 +40,7 @@ interface SkillCreateProps {
  * Content sections. Importing a SKILL.md prefills all three fields in place.
  */
 export function SkillCreate({ workspaceId }: SkillCreateProps) {
+  const t = useTranslations('integrations.skillsPage')
   const router = useRouter()
   const skillsHref = `/workspace/${workspaceId}/skills`
 
@@ -60,9 +62,9 @@ export function SkillCreate({ workspaceId }: SkillCreateProps) {
 
     const newErrors: SkillFieldErrors = {}
     const nameError = validateSkillName(nameDraft)
-    if (nameError) newErrors.name = nameError
-    if (!descriptionDraft.trim()) newErrors.description = 'Description is required'
-    if (!contentDraft.trim()) newErrors.content = 'Content is required'
+    if (nameError) newErrors.name = t(`validation.${nameError}`)
+    if (!descriptionDraft.trim()) newErrors.description = t('descriptionRequired')
+    if (!contentDraft.trim()) newErrors.content = t('contentRequired')
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
@@ -74,17 +76,17 @@ export function SkillCreate({ workspaceId }: SkillCreateProps) {
         skill: { name: nameDraft, description: descriptionDraft, content: contentDraft },
       })
       setErrors({})
-      toast.success(`Created "${nameDraft}"`)
+      toast.success(t('created', { name: nameDraft }))
       // Detach the guard so its Back trap can't fire mid-navigation; `replace` then
       // consumes the seeded entry rather than stacking another.
       guard.release()
       router.replace(created ? `${skillsHref}/${created.id}` : skillsHref)
     } catch (error) {
       if (isSkillNameConflictError(error)) {
-        setErrors({ name: getErrorMessage(error, 'This skill name is already taken.') })
+        setErrors({ name: getErrorMessage(error, t('nameTaken')) })
       } else {
-        toast.error("Couldn't create skill", {
-          description: getErrorMessage(error, 'Please try again in a moment.'),
+        toast.error(t('createFailed'), {
+          description: getErrorMessage(error, t('tryAgainLater')),
         })
       }
       logger.error('Failed to create skill', error)
@@ -114,7 +116,7 @@ export function SkillCreate({ workspaceId }: SkillCreateProps) {
 
   const back = (
     <ChipLink href={skillsHref} onClick={guard.handleBackClick} leftIcon={ArrowLeft}>
-      Skills
+      {t('back')}
     </ChipLink>
   )
 
@@ -138,8 +140,8 @@ export function SkillCreate({ workspaceId }: SkillCreateProps) {
       <CredentialDetailLayout back={back} actions={actions}>
         <CredentialDetailHeading
           leading={<SkillTile />}
-          title='New skill'
-          subtitle='Write a skill, or import an existing SKILL.md'
+          title={t('newTitle')}
+          subtitle={t('newSubtitle')}
         />
 
         <SkillFields

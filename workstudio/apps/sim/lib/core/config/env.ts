@@ -744,7 +744,6 @@ export const env = createEnv({
 
     NEXT_PUBLIC_E2B_ENABLED:               z.string().optional(),
     NEXT_PUBLIC_SANDBOXES_ENABLED:         z.string().optional(),              // Client twin of isRemoteSandboxEnabled — true under either sandbox provider
-    NEXT_PUBLIC_WEB_SEARCH_ENABLED:        z.string().optional(),              // Nexora edition: shows the « Web Search » block (SearXNG configured)
     NEXT_PUBLIC_EXA_SEARCH_ENABLED:        z.string().optional(),              // Nexora edition: shows the paid Exa « Search » block (EXA_API_KEY configured)
     NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS: z.string().optional(),              // Hide Bedrock credential fields when deployment uses AWS default credential chain (IAM roles, instance profiles, ECS task roles, IRSA)
     NEXT_PUBLIC_AZURE_CONFIGURED:          z.string().optional(),              // Hide Azure credential fields when endpoint/key/version are pre-configured server-side
@@ -835,7 +834,6 @@ export const env = createEnv({
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
     NEXT_PUBLIC_E2B_ENABLED: process.env.NEXT_PUBLIC_E2B_ENABLED,
     NEXT_PUBLIC_SANDBOXES_ENABLED: process.env.NEXT_PUBLIC_SANDBOXES_ENABLED,
-    NEXT_PUBLIC_WEB_SEARCH_ENABLED: process.env.NEXT_PUBLIC_WEB_SEARCH_ENABLED,
     NEXT_PUBLIC_EXA_SEARCH_ENABLED: process.env.NEXT_PUBLIC_EXA_SEARCH_ENABLED,
     NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS: process.env.NEXT_PUBLIC_BEDROCK_DEFAULT_CREDENTIALS,
     NEXT_PUBLIC_AZURE_CONFIGURED: process.env.NEXT_PUBLIC_AZURE_CONFIGURED,

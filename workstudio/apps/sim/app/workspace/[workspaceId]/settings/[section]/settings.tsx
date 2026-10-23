@@ -31,7 +31,6 @@ const Mothership = dynamic(() => SECTION_MODULES.mothership().then((m) => m.Moth
 const RecentlyDeleted = dynamic(() =>
   SECTION_MODULES['recently-deleted']().then((m) => m.RecentlyDeleted)
 )
-const SelfHost = dynamic(() => SECTION_MODULES['self-host']().then((m) => m.SelfHost))
 const Billing = dynamic(() => SECTION_MODULES.billing().then((m) => m.Billing))
 const Teammates = dynamic(() => SECTION_MODULES.teammates().then((m) => m.Teammates))
 const TeamManagement = dynamic(() => SECTION_MODULES.organization().then((m) => m.TeamManagement))
@@ -175,7 +174,6 @@ function SettingsPageContent({ section }: SettingsPageProps) {
       {effectiveSection === 'workflow-mcp-servers' && <WorkflowMcpServers />}
       {effectiveSection === 'inbox' && <Inbox />}
       {effectiveSection === 'recently-deleted' && <RecentlyDeleted />}
-      {effectiveSection === 'self-host' && <SelfHost />}
       {effectiveSection === 'admin' && <Admin />}
       {effectiveSection === 'mothership' && <Mothership />}
     </SettingsSectionProvider>

@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
-import { formatQuotedNameList, normalizeEmail } from '@sim/utils/string'
+import { normalizeEmail } from '@sim/utils/string'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ApiClientError } from '@/lib/api/client/errors'
 import { requestJson } from '@/lib/api/client/request'
 import { acceptInvitationContract } from '@/lib/api/contracts/invitations'
@@ -47,7 +48,10 @@ interface InviteAction {
   onClick: () => void
 }
 
+type InviteTranslate = (key: string) => string
+
 interface SignedOutPromptParams {
+  t: InviteTranslate
   registrationDisabled: boolean
   isNewUser: boolean
   callbackUrl: string
@@ -62,49 +66,52 @@ interface SignedOutPromptParams {
  * the visitor server-side, so offering it would be a dead end.
  */
 function signedOutPrompt({
+  t,
   registrationDisabled,
   isNewUser,
   callbackUrl,
   navigate,
 }: SignedOutPromptParams): { description: string; actions: InviteAction[] } {
   const signIn: InviteAction = {
-    label: 'Sign in',
+    label: t('signIn'),
     onClick: () => navigate(inviteAuthLink('/login', callbackUrl)),
   }
 
   if (registrationDisabled) {
     return {
-      description: 'Account creation is disabled on this instance',
+      description: t('registrationDisabled'),
       actions: [signIn],
     }
   }
 
   if (isNewUser) {
     return {
-      description: 'Create an account to join this workspace on Nexora',
+      description: t('createToJoin'),
       actions: [
         {
-          label: 'Create an account',
+          label: t('createAccount'),
           onClick: () => navigate(inviteAuthLink('/signup', callbackUrl)),
         },
-        { ...signIn, label: 'I already have an account' },
+        { ...signIn, label: t('alreadyHaveAccount') },
       ],
     }
   }
 
   return {
-    description: 'Sign in to your account to accept this invitation',
+    description: t('signInToAccept'),
     actions: [
       signIn,
       {
-        label: 'Create an account',
+        label: t('createAccount'),
         onClick: () => navigate(inviteAuthLink('/signup', callbackUrl, true)),
       },
     ],
   }
 }
 
-function runBestEffortCacheRefresh(cache: string, refresh: () => Promise<unknown>): void {
+type CacheRefresh = () => Promise<unknown> // i18n-ignore: TypeScript type, not copy
+
+function runBestEffortCacheRefresh(cache: string, refresh: CacheRefresh): void {
   void Promise.resolve()
     .then(refresh)
     .catch((refreshError) => {
@@ -137,120 +144,78 @@ type InviteErrorCode =
   | 'network-error'
   | 'unknown'
 
+/** Message key under `auth.invite.errors` for each error code. */
+type InviteErrorMessageKey =
+  | 'missingToken'
+  | 'invalidToken'
+  | 'expired'
+  | 'alreadyProcessed'
+  | 'emailMismatch'
+  | 'workspaceNotFound'
+  | 'disclosureOutdated'
+  | 'userNotFound'
+  | 'alreadyMember'
+  | 'alreadyInOrganization'
+  | 'noSeatsAvailable'
+  | 'upgradeRequired'
+  | 'externalRequiresPaidPlan'
+  | 'invalidInvitation'
+  | 'serverError'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'networkError'
+  | 'unknown'
+
 interface InviteError {
   code: InviteErrorCode
-  message: string
+  messageKey: InviteErrorMessageKey
+  /** A server-provided explanation shown instead of the generic message. */
+  serverMessage?: string
   requiresAuth?: boolean
   canRetry?: boolean
 }
 
-function getInviteError(code: string): InviteError {
-  const errorMap: Record<string, InviteError> = {
-    'missing-token': {
-      code: 'missing-token',
-      message: 'The invitation link is invalid or missing a required parameter.',
-    },
-    'invalid-token': {
-      code: 'invalid-token',
-      message: 'The invitation link is invalid or has already been used.',
-    },
-    expired: {
-      code: 'expired',
-      message: 'This invitation has expired. Please ask for a new invitation.',
-    },
-    'already-processed': {
-      code: 'already-processed',
-      message: 'This invitation has already been accepted or declined.',
-    },
-    'email-mismatch': {
-      code: 'email-mismatch',
-      message:
-        'This invitation was sent to a different email address. Please sign in with the correct account.',
-      requiresAuth: true,
-    },
-    'workspace-not-found': {
-      code: 'workspace-not-found',
-      message: 'The workspace associated with this invitation could not be found.',
-    },
-    'disclosure-outdated': {
-      code: 'disclosure-outdated',
-      message:
-        'Your workspaces changed since this page loaded. Review the updated notice and accept again.',
-      canRetry: true,
-    },
-    'user-not-found': {
-      code: 'user-not-found',
-      message: 'Your user account could not be found. Please try signing out and signing back in.',
-      requiresAuth: true,
-    },
-    'already-member': {
-      code: 'already-member',
-      message: 'You are already a member of this organization or workspace.',
-    },
-    'already-in-organization': {
-      code: 'already-in-organization',
-      message:
-        'You are already a member of an organization. Leave your current organization before accepting a new invitation.',
-    },
-    'no-seats-available': {
-      code: 'no-seats-available',
-      message:
-        'This organization has reached its seat limit. Ask an admin to contact support to add seats, then try again.',
-      canRetry: true,
-    },
-    'upgrade-required': {
-      code: 'upgrade-required',
-      message:
-        'The workspace owner needs an active paid plan with billing set up before you can join. Ask them to update their plan, then try again.',
-      canRetry: true,
-    },
-    'external-requires-paid-plan': {
-      code: 'external-requires-paid-plan',
-      message:
-        'External collaborators need their own paid Nexora plan. Upgrade your plan, or ask the organization to re-invite you as a member — that uses one of their seats instead.',
-      canRetry: true,
-    },
-    'invalid-invitation': {
-      code: 'invalid-invitation',
-      message: 'This invitation is invalid or no longer exists.',
-    },
-    'not-found': {
-      code: 'invalid-invitation',
-      message: 'This invitation is invalid or no longer exists.',
-    },
-    'server-error': {
-      code: 'server-error',
-      message:
-        'An unexpected error occurred while processing your invitation. Please try again later.',
-      canRetry: true,
-    },
-    unauthorized: {
-      code: 'unauthorized',
-      message: 'You need to sign in to accept this invitation.',
-      requiresAuth: true,
-    },
-    forbidden: {
-      code: 'forbidden',
-      message:
-        'You do not have permission to accept this invitation. Please check you are signed in with the correct account.',
-      requiresAuth: true,
-    },
-    'network-error': {
-      code: 'network-error',
-      message:
-        'Unable to connect to the server. Please check your internet connection and try again.',
-      canRetry: true,
-    },
-  }
+const INVITE_ERRORS: Record<string, InviteError> = {
+  'missing-token': { code: 'missing-token', messageKey: 'missingToken' },
+  'invalid-token': { code: 'invalid-token', messageKey: 'invalidToken' },
+  expired: { code: 'expired', messageKey: 'expired' },
+  'already-processed': { code: 'already-processed', messageKey: 'alreadyProcessed' },
+  'email-mismatch': { code: 'email-mismatch', messageKey: 'emailMismatch', requiresAuth: true },
+  'workspace-not-found': { code: 'workspace-not-found', messageKey: 'workspaceNotFound' },
+  'disclosure-outdated': {
+    code: 'disclosure-outdated',
+    messageKey: 'disclosureOutdated',
+    canRetry: true,
+  },
+  'user-not-found': { code: 'user-not-found', messageKey: 'userNotFound', requiresAuth: true },
+  'already-member': { code: 'already-member', messageKey: 'alreadyMember' },
+  'already-in-organization': {
+    code: 'already-in-organization',
+    messageKey: 'alreadyInOrganization',
+  },
+  'no-seats-available': {
+    code: 'no-seats-available',
+    messageKey: 'noSeatsAvailable',
+    canRetry: true,
+  },
+  'upgrade-required': { code: 'upgrade-required', messageKey: 'upgradeRequired', canRetry: true },
+  'external-requires-paid-plan': {
+    code: 'external-requires-paid-plan',
+    messageKey: 'externalRequiresPaidPlan',
+    canRetry: true,
+  },
+  'invalid-invitation': { code: 'invalid-invitation', messageKey: 'invalidInvitation' },
+  'not-found': { code: 'invalid-invitation', messageKey: 'invalidInvitation' },
+  'server-error': { code: 'server-error', messageKey: 'serverError', canRetry: true },
+  unauthorized: { code: 'unauthorized', messageKey: 'unauthorized', requiresAuth: true },
+  forbidden: { code: 'forbidden', messageKey: 'forbidden', requiresAuth: true },
+  'network-error': { code: 'network-error', messageKey: 'networkError', canRetry: true },
+}
 
-  return (
-    errorMap[code] || {
-      code: 'unknown',
-      message:
-        'An unexpected error occurred while processing your invitation. Please try again or contact support.',
-      canRetry: true,
-    }
-  )
+const UNKNOWN_INVITE_ERROR: InviteError = { code: 'unknown', messageKey: 'unknown', canRetry: true }
+
+function getInviteError(code: string): InviteError {
+  return INVITE_ERRORS[code] || UNKNOWN_INVITE_ERROR
 }
 
 function codeFromStatus(status: number): InviteErrorCode {
@@ -279,6 +244,7 @@ interface InviteProps {
 }
 
 export default function Invite({ registrationDisabled }: InviteProps) {
+  const t = useTranslations('auth.invite')
   const router = useRouter()
   const params = useParams()
   const inviteId = params.id as string
@@ -398,9 +364,7 @@ export default function Invite({ registrationDisabled }: InviteProps) {
           : null
       const baseError = getInviteError(code)
       setActionError(
-        code === 'server-error' && serverMessage
-          ? { ...baseError, message: serverMessage }
-          : baseError
+        code === 'server-error' && serverMessage ? { ...baseError, serverMessage } : baseError
       )
       setIsAccepting(false)
     }
@@ -414,6 +378,7 @@ export default function Invite({ registrationDisabled }: InviteProps) {
 
   if (!session?.user && !isPending) {
     const prompt = signedOutPrompt({
+      t,
       registrationDisabled,
       isNewUser,
       callbackUrl: getCallbackUrl(),
@@ -424,10 +389,10 @@ export default function Invite({ registrationDisabled }: InviteProps) {
       <InviteLayout>
         <InviteStatusCard
           type='login'
-          title="You've been invited!"
+          title={t('invitedTitle')}
           description={prompt.description}
           icon='userPlus'
-          actions={[...prompt.actions, { label: 'Return to Home', onClick: returnHome }]}
+          actions={[...prompt.actions, { label: t('returnHome'), onClick: returnHome }]}
         />
       </InviteLayout>
     )
@@ -436,25 +401,26 @@ export default function Invite({ registrationDisabled }: InviteProps) {
   if (isLoading || isPending) {
     return (
       <InviteLayout>
-        <InviteStatusCard type='loading' title='' description='Loading invitation...' />
+        <InviteStatusCard type='loading' title='' description={t('loading')} />
       </InviteLayout>
     )
   }
 
   if (error) {
     const callbackUrl = getCallbackUrl()
+    const errorMessage = error.serverMessage ?? t(`errors.${error.messageKey}`)
 
     if (error.code === 'email-mismatch') {
       return (
         <InviteLayout>
           <InviteStatusCard
             type='warning'
-            title='Wrong Account'
-            description={error.message}
+            title={t('wrongAccount')}
+            description={errorMessage}
             icon='userPlus'
             actions={[
               {
-                label: 'Sign in with a different account',
+                label: t('signInDifferent'),
                 onClick: async () => {
                   const loginUrl = inviteAuthLink('/login', callbackUrl)
                   let canNavigateInApp = false
@@ -471,7 +437,7 @@ export default function Invite({ registrationDisabled }: InviteProps) {
                   else window.location.assign(loginUrl)
                 },
               },
-              { label: 'Return to Home', onClick: returnHome },
+              { label: t('returnHome'), onClick: returnHome },
             ]}
           />
         </InviteLayout>
@@ -483,12 +449,12 @@ export default function Invite({ registrationDisabled }: InviteProps) {
         <InviteLayout>
           <InviteStatusCard
             type='warning'
-            title='Already Part of a Team'
-            description={error.message}
+            title={t('alreadyInTeam')}
+            description={errorMessage}
             icon='users'
             actions={[
-              { label: 'Manage Team Settings', onClick: () => router.push(APP_ENTRY_PATH) },
-              { label: 'Return to Home', onClick: returnHome },
+              { label: t('manageTeamSettings'), onClick: () => router.push(APP_ENTRY_PATH) },
+              { label: t('returnHome'), onClick: returnHome },
             ]}
           />
         </InviteLayout>
@@ -500,23 +466,23 @@ export default function Invite({ registrationDisabled }: InviteProps) {
         <InviteLayout>
           <InviteStatusCard
             type='warning'
-            title='Authentication Required'
-            description={error.message}
+            title={t('authRequired')}
+            description={errorMessage}
             icon='userPlus'
             actions={[
               {
-                label: 'Sign in to continue',
+                label: t('signInToContinue'),
                 onClick: () => router.push(inviteAuthLink('/login', callbackUrl)),
               },
               ...(registrationDisabled
                 ? []
                 : [
                     {
-                      label: 'Create an account',
+                      label: t('createAccount'),
                       onClick: () => router.push(inviteAuthLink('/signup', callbackUrl)),
                     },
                   ]),
-              { label: 'Return to Home', onClick: returnHome },
+              { label: t('returnHome'), onClick: returnHome },
             ]}
           />
         </InviteLayout>
@@ -525,16 +491,16 @@ export default function Invite({ registrationDisabled }: InviteProps) {
 
     const actions: Array<{ label: string; onClick: () => void }> = []
     if (error.canRetry) {
-      actions.push({ label: 'Try Again', onClick: () => window.location.reload() })
+      actions.push({ label: t('tryAgain'), onClick: () => window.location.reload() })
     }
-    actions.push({ label: 'Return to Home', onClick: returnHome })
+    actions.push({ label: t('returnHome'), onClick: returnHome })
 
     return (
       <InviteLayout>
         <InviteStatusCard
           type='error'
-          title='Invitation Error'
-          description={error.message}
+          title={t('invitationError')}
+          description={errorMessage}
           icon='error'
           isExpiredError={error.code === 'expired'}
           actions={actions}
@@ -547,6 +513,14 @@ export default function Invite({ registrationDisabled }: InviteProps) {
    * Names every granted workspace, not just the primary one — an invitation can
    * span several, and the email already lists them all.
    */
+  const formatNameList = (names: string[]) => {
+    const listed = names
+      .slice(0, MAX_LISTED_WORKSPACE_NAMES)
+      .map((name) => `"${name}"`)
+      .join(', ')
+    const overflow = names.length - MAX_LISTED_WORKSPACE_NAMES
+    return overflow > 0 ? t('nameListMore', { names: listed, count: overflow }) : listed
+  }
   const grantedWorkspaceNames =
     invitation?.grants
       .map((grant) => grant.workspaceName)
@@ -554,19 +528,19 @@ export default function Invite({ registrationDisabled }: InviteProps) {
   const displayName =
     invitation?.kind === 'workspace'
       ? grantedWorkspaceNames.length > 0
-        ? formatQuotedNameList(grantedWorkspaceNames, MAX_LISTED_WORKSPACE_NAMES)
-        : 'a workspace'
-      : invitation?.organizationName || 'an organization'
+        ? formatNameList(grantedWorkspaceNames)
+        : t('aWorkspace')
+      : invitation?.organizationName || t('anOrganization')
 
   if (accepted) {
     return (
       <InviteLayout>
         <InviteStatusCard
           type='success'
-          title='Welcome!'
-          description={`You have successfully joined ${displayName}. Redirecting...`}
+          title={t('welcome')}
+          description={t('joined', { name: displayName })}
           icon='success'
-          actions={[{ label: 'Return to Home', onClick: returnHome }]}
+          actions={[{ label: t('returnHome'), onClick: returnHome }]}
         />
       </InviteLayout>
     )
@@ -578,15 +552,15 @@ export default function Invite({ registrationDisabled }: InviteProps) {
     <InviteLayout>
       <InviteStatusCard
         type='invitation'
-        title={isOrg ? 'Organization Invitation' : 'Workspace Invitation'}
-        description={`You've been invited to join ${displayName}.`}
+        title={isOrg ? t('organizationInvitation') : t('workspaceInvitation')}
+        description={t('invitedToJoin', { name: displayName })}
         details={
           invitation && <InvitationDisclosure invitation={invitation} joinPreview={joinPreview} />
         }
         icon={isOrg ? 'users' : 'mail'}
         actions={[
           {
-            label: 'Accept Invitation',
+            label: t('accept'),
             onClick: handleAcceptInvitation,
             disabled: isAccepting || isDisclosureMissing,
             loading: isAccepting,
@@ -594,13 +568,13 @@ export default function Invite({ registrationDisabled }: InviteProps) {
           ...(isDisclosureMissing
             ? [
                 {
-                  label: 'Refresh invitation',
+                  label: t('refresh'),
                   onClick: () => void invitationQuery.refetch(),
                   disabled: invitationQuery.isFetching,
                 },
               ]
             : []),
-          { label: 'Return to Home', onClick: returnHome },
+          { label: t('returnHome'), onClick: returnHome },
         ]}
       />
     </InviteLayout>

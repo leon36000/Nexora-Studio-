@@ -5,6 +5,7 @@ import { Chip, ChipInput, Search } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { IntegrationTabsHeader } from '@/app/workspace/[workspaceId]/components/integration-tabs-header'
 import { SkillTile } from '@/app/workspace/[workspaceId]/components/skill-tile'
@@ -24,9 +25,8 @@ import {
 import { useSkills } from '@/hooks/queries/skills'
 import { useDebouncedSearchSetter } from '@/hooks/use-debounced-search-setter'
 
-const SKILLS_LABEL = 'Skills'
-
 export function Skills() {
+  const t = useTranslations('integrations.skillsPage')
   const params = useParams()
   const router = useRouter()
   const workspaceId = (params?.workspaceId as string) || ''
@@ -79,7 +79,7 @@ export function Skills() {
       disabled={isLoading}
       leftIcon={Plus}
     >
-      Add to Nexora
+      {t('addToNexora')}
     </Chip>
   )
 
@@ -88,11 +88,11 @@ export function Skills() {
       <IntegrationTabsHeader active='skills' workspaceId={workspaceId} rightSlot={addButton} />
       <div className='min-h-0 flex-1 overflow-y-auto px-6 [scrollbar-gutter:stable_both-edges]'>
         <div className='mx-auto flex max-w-[48rem] flex-col gap-7 pb-3'>
-          <ShowcaseWithExplore prompt='Explain the skills in Nexora and which ones I should add to my agents.' />
+          <ShowcaseWithExplore prompt={t('explorePrompt')} />
           <div className='flex items-center gap-2'>
             <ChipInput
               icon={Search}
-              placeholder='Search skills...'
+              placeholder={t('searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={isLoading}
@@ -103,10 +103,10 @@ export function Skills() {
           <div className='flex flex-col gap-7'>
             {error ? (
               <SettingsEmptyState variant='inline'>
-                {getErrorMessage(error, 'Failed to load skills')}
+                {getErrorMessage(error, t('loadFailedTitle'))}
               </SettingsEmptyState>
             ) : filteredSkills.length > 0 ? (
-              <SettingsSection label={SKILLS_LABEL}>
+              <SettingsSection label={t('sectionLabel')}>
                 <div className={RESOURCE_LIST_GRID}>
                   {filteredSkills.map((s) => (
                     <SettingsResourceRow
@@ -116,7 +116,7 @@ export function Skills() {
                       title={s.name}
                       description={s.description || undefined}
                       onClick={() => router.push(`${skillsHref}/${s.id}`)}
-                      clickLabel={`Open ${s.name}`}
+                      clickLabel={t('open', { name: s.name })}
                       navigable
                     />
                   ))}
@@ -124,7 +124,7 @@ export function Skills() {
               </SettingsSection>
             ) : showNoResults ? (
               <SettingsEmptyState variant='inline'>
-                No skills found matching “{searchTerm}”
+                {t('noResults', { query: searchTerm })}
               </SettingsEmptyState>
             ) : null}
           </div>

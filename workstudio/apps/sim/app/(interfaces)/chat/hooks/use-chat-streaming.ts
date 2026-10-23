@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
 import { filterUndefined } from '@sim/utils/object'
+import { useTranslations } from 'next-intl'
 import {
   anyToolCallRunning,
   applyToolCallPhase,
@@ -29,7 +30,6 @@ import type {
   ChatMessage,
   ChatToolCall,
 } from '@/app/(interfaces)/chat/components/message/message'
-import { CHAT_ERROR_MESSAGES } from '@/app/(interfaces)/chat/constants'
 
 const logger = createLogger('UseChatStreaming')
 
@@ -93,6 +93,7 @@ interface ChatFinalData {
 }
 
 export function useChatStreaming() {
+  const t = useTranslations('interfaces.chat')
   const [isStreamingResponse, setIsStreamingResponse] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
   const accumulatedTextRef = useRef<string>('')
@@ -115,8 +116,8 @@ export function useChatStreaming() {
 
         if (lastMessage && lastMessage.type === 'assistant') {
           const content = latestContent || lastMessage.content
-          const updatedContent =
-            content + (content ? '\n\n_Response stopped by user._' : '_Response stopped by user._')
+          const stopped = t('responseStopped')
+          const updatedContent = content ? `${content}\n\n${stopped}` : stopped
 
           return [
             ...prev.slice(0, -1),
@@ -299,7 +300,7 @@ export function useChatStreaming() {
               return true
             }
 
-            const errorMessage = json.error || CHAT_ERROR_MESSAGES.GENERIC_ERROR
+            const errorMessage = json.error || t('errors.generic')
             settleRunningToolCalls(toolCallsMap, 'error')
             syncToolCallsRef()
             const toolsSnapshot = snapshotToolCalls(toolCallOrder, toolCallsMap)

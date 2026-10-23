@@ -1,5 +1,6 @@
 import { Container, Img, Link, Section } from '@react-email/components'
 import { baseStyles, colors, spacing } from '@/components/emails/_styles'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { isHosted } from '@/lib/core/config/env-flags'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { getBrandConfig } from '@/ee/whitelabeling'
@@ -22,6 +23,9 @@ const socialIconStyle = { display: 'block' as const, border: 0 }
 
 /** Trailing gap only, so the row starts flush with the gutter. */
 const SOCIAL_CELL_STYLE = { paddingRight: 16 } as const
+
+/** Postal address of the hosted edition's publisher. */
+const HOSTED_POSTAL_ADDRESS = '80 Langton St, San Francisco, CA 94103, USA'
 
 const SOCIAL_LINKS = [
   { path: 'x', label: 'X', icon: 'x-icon.png' },
@@ -55,6 +59,7 @@ export function EmailFooter({
 }: EmailFooterProps) {
   const brand = getBrandConfig()
   const isWhitelabeled = brand.isWhitelabeled
+  const t = getEmailTranslator()
 
   return (
     <Section
@@ -128,7 +133,7 @@ export function EmailFooter({
                   </td>
                   <td style={baseStyles.footerText}>
                     {brand.name}
-                    {isHosted && <>, 80 Langton St, San Francisco, CA 94103, USA</>}
+                    {isHosted && `, ${HOSTED_POSTAL_ADDRESS}`}
                   </td>
                   <td style={baseStyles.gutter} width={spacing.gutter}>
                     &nbsp;
@@ -148,7 +153,7 @@ export function EmailFooter({
                 &nbsp;
               </td>
               <td style={baseStyles.footerText}>
-                Questions?{' '}
+                {t('footer.questions')}{' '}
                 {/*
                   A raw anchor, not `<Link>`: react-email's Link hardcodes
                   target="_blank", which on a mailto: opens a blank tab beside
@@ -175,9 +180,7 @@ export function EmailFooter({
                   <td style={baseStyles.gutter} width={spacing.gutter}>
                     &nbsp;
                   </td>
-                  <td style={baseStyles.footerText}>
-                    Need to refer to this message? Use this ID: {messageId}
-                  </td>
+                  <td style={baseStyles.footerText}>{t('footer.messageId', { messageId })}</td>
                   <td style={baseStyles.gutter} width={spacing.gutter}>
                     &nbsp;
                   </td>
@@ -200,7 +203,7 @@ export function EmailFooter({
                   style={baseStyles.footerLink}
                   rel='noopener noreferrer'
                 >
-                  Privacy Policy
+                  {t('footer.privacy')}
                 </Link>{' '}
                 •{' '}
                 <Link
@@ -208,7 +211,7 @@ export function EmailFooter({
                   style={baseStyles.footerLink}
                   rel='noopener noreferrer'
                 >
-                  Terms of Service
+                  {t('footer.terms')}
                 </Link>
                 {showUnsubscribe && (
                   <>
@@ -219,7 +222,7 @@ export function EmailFooter({
                       style={baseStyles.footerLink}
                       rel='noopener noreferrer'
                     >
-                      Unsubscribe
+                      {t('footer.unsubscribe')}
                     </Link>
                   </>
                 )}
@@ -239,7 +242,10 @@ export function EmailFooter({
                 &nbsp;
               </td>
               <td style={baseStyles.footerText}>
-                © {new Date().getFullYear()} {brand.name}, All Rights Reserved
+                {t('footer.rights', {
+                  year: String(new Date().getFullYear()),
+                  brandName: brand.name,
+                })}
               </td>
               <td style={baseStyles.gutter} width={spacing.gutter}>
                 &nbsp;

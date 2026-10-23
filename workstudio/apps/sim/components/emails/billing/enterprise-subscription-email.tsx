@@ -1,6 +1,7 @@
 import { Link, Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -10,41 +11,52 @@ interface EnterpriseSubscriptionEmailProps {
 }
 
 export function EnterpriseSubscriptionEmail({
-  userName = 'Valued User',
+  userName,
   loginLink,
 }: EnterpriseSubscriptionEmailProps) {
   const brand = getBrandConfig()
   const baseUrl = getBaseUrl()
+  const t = getEmailTranslator()
   const effectiveLoginLink = loginLink || `${baseUrl}/login`
 
   return (
     <EmailLayout
-      preview={`Your Enterprise Plan is now active on ${brand.name}`}
+      preview={t('subjects.enterpriseSubscription', { brandName: brand.name })}
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.greeting}>Hello {userName},</Text>
+      <Text style={baseStyles.greeting}>
+        {t('common.helloName', { name: userName ?? t('enterpriseSubscription.defaultName') })}
+      </Text>
       <Text style={baseStyles.paragraph}>
-        Your <EmailStrong>Enterprise Plan</EmailStrong> is now active. You have full access to
-        advanced features and increased capacity for your workflows.
+        {t.rich('enterpriseSubscription.body', {
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxTitle}>Next steps</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('enterpriseSubscription.nextSteps')}</Text>
         <Text style={baseStyles.infoBoxList}>
-          • Invite teammates to your organization
-          <br />• Start building your workflows
+          {t('enterpriseSubscription.inviteTeammates')}
+          <br />
+          {t('enterpriseSubscription.startBuilding')}
         </Text>
       </Section>
 
-      <EmailButton href={effectiveLoginLink}>Open {brand.name}</EmailButton>
+      <EmailButton href={effectiveLoginLink}>
+        {t('common.openBrand', { brandName: brand.name })}
+      </EmailButton>
 
       <div style={baseStyles.divider} />
 
       <Text style={baseStyles.footnote}>
-        Questions? Reply to this email or contact us at{' '}
-        <Link href={`mailto:${brand.supportEmail}`} style={baseStyles.link}>
-          {brand.supportEmail}
-        </Link>
+        {t.rich('enterpriseSubscription.footnote', {
+          email: brand.supportEmail ?? '',
+          link: (chunks) => (
+            <Link href={`mailto:${brand.supportEmail}`} style={baseStyles.link}>
+              {chunks}
+            </Link>
+          ),
+        })}
       </Text>
     </EmailLayout>
   )

@@ -2,6 +2,7 @@ import { Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { ProFeaturesBox } from '@/components/emails/billing/pro-features-box'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { formatEmailNumber, getEmailTranslator } from '@/components/emails/i18n'
 import { dollarsToCredits } from '@/lib/billing/credits/conversion'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -17,28 +18,33 @@ export function CreditsExhaustedEmail({
   upgradeLink,
 }: CreditsExhaustedEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
+  const credits = formatEmailNumber(dollarsToCredits(limit))
 
   return (
     <EmailLayout
-      preview={`You've used all ${dollarsToCredits(limit).toLocaleString()} of your free ${brand.name} credits`}
+      preview={t('creditsExhausted.preview', { credits, brandName: brand.name })}
       showUnsubscribe={true}
     >
-      <Text style={baseStyles.greeting}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
+      <Text style={baseStyles.greeting}>
+        {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
+      </Text>
 
       <Text style={baseStyles.paragraph}>
-        You&apos;ve used all <EmailStrong>{dollarsToCredits(limit).toLocaleString()}</EmailStrong>{' '}
-        of your free credits on {brand.name}. Your workflows are paused until you upgrade.
+        {t.rich('creditsExhausted.body', {
+          credits,
+          brandName: brand.name,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
       <ProFeaturesBox />
 
-      <EmailButton href={upgradeLink}>Upgrade to Pro</EmailButton>
+      <EmailButton href={upgradeLink}>{t('common.upgradeToPro')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>
-        One-time notification when free credits are exhausted.
-      </Text>
+      <Text style={baseStyles.footnote}>{t('creditsExhausted.footnote')}</Text>
     </EmailLayout>
   )
 }

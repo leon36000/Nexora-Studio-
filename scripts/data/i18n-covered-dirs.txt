@@ -24,3 +24,11 @@ workstudio/apps/sim/app/workspace/[workspaceId]/knowledge
 # Gouvernance Nexora (tâche 9)
 workstudio/apps/sim/ee/audit-logs
 workstudio/apps/sim/ee/organization-usage/components/usage-monitoring.tsx
+# 6.9 Surfaces publiques et e-mails (v2 J1)
+workstudio/apps/sim/app/(interfaces)/chat
+workstudio/apps/sim/app/(interfaces)/resume
+workstudio/apps/sim/app/invite
+workstudio/apps/sim/components/emails
+workstudio/apps/sim/app/workspace/[workspaceId]/skills
+workstudio/apps/sim/ee/_nexora
+workstudio/apps/sim/app/(interfaces)/components

@@ -1,10 +1,12 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { IntegrationTabsHeader } from '@/app/workspace/[workspaceId]/components/integration-tabs-header'
 import { Skills } from '@/app/workspace/[workspaceId]/skills/skills'
 
-export const metadata: Metadata = {
-  title: 'Skills',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('integrations.skillsPage')
+  return { title: t('metaTitle') }
 }
 
 /**

@@ -221,10 +221,12 @@ configure() {
     1|o|O|oui|y|yes)
       set_env NEXORA_WEB_SEARCH 1
       set_env NEXORA_SEARXNG_URL "http://searxng:8080"
+      set_env NEXORA_PREVIEW_BLOCKS searxng
       set_env COMPOSE_PROFILES search ;;
     *)
       set_env NEXORA_WEB_SEARCH 0
-      set_env NEXORA_SEARXNG_URL "" ;;
+      set_env NEXORA_SEARXNG_URL ""
+      set_env NEXORA_PREVIEW_BLOCKS "" ;;
   esac
 
   set_env NEXORA_ORGANIZATION_NAME "$org"

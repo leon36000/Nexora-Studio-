@@ -153,11 +153,11 @@
 - Modify: `apps/sim/messages/{fr,en}/*.json` (nouvelles zones si besoin : `emails`, `publicChat`), `scripts/data/i18n-covered-dirs.txt` (ajouter ces dossiers)
 - Test: tests existants des composants touchés ; `scripts/check-i18n.sh`
 
-- [ ] **Step 1:** ajouter les dossiers à `i18n-covered-dirs.txt` ; lancer `scripts/check-i18n.sh` → liste des chaînes à traduire (échec attendu).
-- [ ] **Step 2: Implémenter** les traductions (e-mails : les modèles react-email reçoivent la locale du destinataire ou le français par défaut ; tests de rendu d'un e-mail en `fr`).
-- [ ] **Step 3: Vérifier** `check-i18n` 0, `check-brand` 0, tests des composants, `check:audits`.
+- [x] **Step 1:** ajouter les dossiers à `i18n-covered-dirs.txt` ; lancer `scripts/check-i18n.sh` → liste des chaînes à traduire (échec attendu).
+- [x] **Step 2: Implémenter** les traductions (e-mails : les modèles react-email reçoivent la locale du destinataire ou le français par défaut ; tests de rendu d'un e-mail en `fr`).
+- [x] **Step 3: Vérifier** `check-i18n` 0, `check-brand` 0, tests des composants, `check:audits`.
 - [ ] **Step 4: smoke.py** — le chat public d'un workflow déployé (`/chat/<identifiant>`) est servi avec `lang="fr"` et sans « Ask me anything ».
-- [ ] **Step 5: Commit** `feat(j1): chat public, invitations, e-mails et compétences en français ; lien mort retiré`.
+- [x] **Step 5: Commit** `feat(j1): chat public, invitations, e-mails et compétences en français ; lien mort retiré`.
 
 ### Task 9: Traduction des métadonnées de blocs — mécanisme et blocs cœur
 
@@ -171,12 +171,12 @@
 - Produces: `translateBlockConfig(config: BlockConfig, t: BlockTranslator): BlockConfig` (renvoie une copie avec `name`, `description`, `longDescription`, et pour chaque sous-bloc `title`, `placeholder`, `description` traduits quand une clé existe, sinon la chaîne d'origine) ; clés `blocks.<type>.name|description|longDescription`, `blocks.<type>.subBlocks.<subBlockId>.title|placeholder|description` ; `CORE_BLOCK_TYPES: readonly string[]` (liste de la spec 8bis.3).
 - Les chaînes source des fichiers `blocks/blocks/*.ts` restent en anglais (repli) : **aucune** modification de ces fichiers pour la traduction.
 
-- [ ] **Step 1: Tests** — `translateBlockConfig` traduit nom, description et sous-blocs quand la clé existe et garde l'anglais sinon ; **test de couverture** : pour chaque type de `CORE_BLOCK_TYPES`, `messages/fr/blocks.json` contient le nom, la description et le `title` de chaque sous-bloc visible ; pour **tous** les blocs du registre, le nom et la description existent en français.
-- [ ] **Step 2: Lancer** → échecs.
-- [ ] **Step 3: Implémenter** `translateBlockConfig` et son branchement dans les points de rendu (hook `useTranslatedBlockConfig(type)` côté client).
-- [ ] **Step 4: Remplir** `blocks.json` (fr et en) : blocs cœur complets ; nom et description des blocs d'intégration (les noms de marques ne se traduisent pas), par lots de ~50 avec relecture d'un échantillon.
+- [x] **Step 1: Tests** — `translateBlockConfig` traduit nom, description et sous-blocs quand la clé existe et garde l'anglais sinon ; **test de couverture** : pour chaque type de `CORE_BLOCK_TYPES`, `messages/fr/blocks.json` contient le nom, la description et le `title` de chaque sous-bloc visible ; pour **tous** les blocs du registre, le nom et la description existent en français.
+- [x] **Step 2: Lancer** → échecs.
+- [x] **Step 3: Implémenter** `translateBlockConfig` et son branchement dans les points de rendu (hook `useTranslatedBlockConfig(type)` côté client).
+- [x] **Step 4: Remplir** `blocks.json` (fr et en) : blocs cœur complets ; nom et description des blocs d'intégration (les noms de marques ne se traduisent pas), par lots de ~50 avec relecture d'un échantillon.
 - [ ] **Step 5: Vérifier** tests → PASS ; `check:audits` ; dans le navigateur (`scripts/dev/up.sh` + next dev), la barre d'outils et le panneau d'un bloc Agent et d'un bloc Slack sont en français.
-- [ ] **Step 6: Commit** (un par lot si nécessaire) `feat(j1): blocs en français (mécanisme, blocs cœur, noms et descriptions des intégrations)`.
+- [x] **Step 6: Commit** (un par lot si nécessaire) `feat(j1): blocs en français (mécanisme, blocs cœur, noms et descriptions des intégrations)`.
 
 ### Task 10: Aide contextuelle en français
 
@@ -188,9 +188,9 @@
 **Interfaces:**
 - Produces: `docsUrl(path?: string): string` garde sa signature ; une table `GUIDE_PAGES: Record<string, string>` associe les préfixes de chemins d'aide (`/blocks`, `/triggers`, `/knowledgebase`, `/execution`, `/mcp`, `/permissions`…) à une page du guide ; inconnu → index.
 
-- [ ] **Step 1: Test** — `docsUrl('/blocks/agent')` pointe vers `docs/guide/blocs.md` (ancre `#agent`), `docsUrl('/knowledgebase')` vers `connaissances.md`, chemin inconnu vers l'index.
-- [ ] **Step 2: Lancer** → échec. **Step 3: Implémenter** la table et écrire les pages du guide. **Step 4: Lancer** → PASS ; `check-brand`.
-- [ ] **Step 5: Commit** `docs(j1): aide contextuelle vers les pages du guide`.
+- [x] **Step 1: Test** — `docsUrl('/blocks/agent')` pointe vers `docs/guide/blocs.md` (ancre `#agent`), `docsUrl('/knowledgebase')` vers `connaissances.md`, chemin inconnu vers l'index.
+- [x] **Step 2: Lancer** → échec. **Step 3: Implémenter** la table et écrire les pages du guide. **Step 4: Lancer** → PASS ; `check-brand`.
+- [x] **Step 5: Commit** `docs(j1): aide contextuelle vers les pages du guide`.
 
 ### Task 11: Vérification de J1 et livraison
 

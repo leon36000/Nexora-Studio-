@@ -5,6 +5,7 @@ import { Button, Download, Loader } from '@sim/emcn'
 import { DefaultFileIcon, Music } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { sleep } from '@sim/utils/helpers'
+import { useTranslations } from 'next-intl'
 import { getDocumentIcon } from '@/components/icons/document-icons'
 import { isSafeHttpUrl } from '@/lib/core/utils/urls'
 import { saveBlob } from '@/lib/uploads/client/download'
@@ -123,6 +124,7 @@ async function triggerDownload(file: ChatFile): Promise<void> {
 }
 
 export function ChatFileDownload({ file }: ChatFileDownloadProps) {
+  const t = useTranslations('interfaces.chat.download')
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<{ directUrl?: string } | null>(null)
   const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null)
@@ -189,22 +191,21 @@ export function ChatFileDownload({ file }: ChatFileDownloadProps) {
       </Button>
       {downloadError && (
         <p role='alert' className='text-[var(--text-error)] text-xs'>
-          {downloadError.directUrl ? (
-            <>
-              Unable to download automatically.{' '}
-              <a
-                href={downloadError.directUrl}
-                download={file.name}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='underline'
-              >
-                Download directly
-              </a>
-            </>
-          ) : (
-            'Unable to download this file. Please try again or request a new copy.'
-          )}
+          {downloadError.directUrl
+            ? t.rich('automaticFailed', {
+                link: (chunks) => (
+                  <a
+                    href={downloadError.directUrl}
+                    download={file.name}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='underline'
+                  >
+                    {chunks}
+                  </a>
+                ),
+              })
+            : t('failed')}
         </p>
       )}
     </div>
@@ -212,6 +213,7 @@ export function ChatFileDownload({ file }: ChatFileDownloadProps) {
 }
 
 export function ChatFileDownloadAll({ files }: ChatFileDownloadAllProps) {
+  const t = useTranslations('interfaces.chat.download')
   const [isDownloading, setIsDownloading] = useState(false)
   const [failedCount, setFailedCount] = useState(0)
 
@@ -250,7 +252,7 @@ export function ChatFileDownloadAll({ files }: ChatFileDownloadAllProps) {
   return (
     <div className='flex flex-col items-start gap-2'>
       <Button
-        aria-label='Download all files'
+        aria-label={t('all')}
         variant='ghost-secondary'
         onClick={handleDownloadAll}
         disabled={isDownloading}
@@ -264,8 +266,7 @@ export function ChatFileDownloadAll({ files }: ChatFileDownloadAllProps) {
       </Button>
       {failedCount > 0 && (
         <p role='alert' className='text-[var(--text-error)] text-xs'>
-          Unable to download {failedCount} {failedCount === 1 ? 'file' : 'files'}. Please try
-          downloading them individually.
+          {t('allFailed', { count: failedCount })}
         </p>
       )}
     </div>

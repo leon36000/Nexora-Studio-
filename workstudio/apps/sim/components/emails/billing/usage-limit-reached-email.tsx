@@ -1,6 +1,7 @@
 import { Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout } from '@/components/emails/components'
+import { formatEmailNumber, getEmailTranslator } from '@/components/emails/i18n'
 import { dollarsToCredits } from '@/lib/billing/credits/conversion'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -28,44 +29,50 @@ export function UsageLimitReachedEmail({
   ctaLink,
 }: UsageLimitReachedEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
   const isOrganization = scope === 'organization'
-  const previewText = `${brand.name}: You've reached your ${planName} usage limit`
 
   return (
-    <EmailLayout preview={previewText} showUnsubscribe={true}>
-      <Text style={baseStyles.greeting}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
+    <EmailLayout
+      preview={t('usageLimitReached.preview', { brandName: brand.name, planName })}
+      showUnsubscribe={true}
+    >
+      <Text style={baseStyles.greeting}>
+        {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
+      </Text>
 
       <Text style={baseStyles.paragraph}>
         {isOrganization
-          ? `Your organization has reached its monthly usage limit on the ${planName} plan.`
-          : `You've reached your monthly usage limit on the ${planName} plan.`}{' '}
-        Workflow runs, knowledge base search, document uploads, and Chat are paused until the limit
-        goes up.
+          ? t('usageLimitReached.leadOrganization', { planName })
+          : t('usageLimitReached.leadUser', { planName })}{' '}
+        {t('usageLimitReached.paused')}
       </Text>
 
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxTitle}>Usage</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('common.usage')}</Text>
         <Text style={baseStyles.infoBoxList}>
-          {dollarsToCredits(currentUsage).toLocaleString()} of{' '}
-          {dollarsToCredits(limit).toLocaleString()} credits used
+          {t('usageLimitReached.usageLine', {
+            used: formatEmailNumber(dollarsToCredits(currentUsage)),
+            limit: formatEmailNumber(dollarsToCredits(limit)),
+          })}
         </Text>
       </Section>
 
       <Text style={baseStyles.paragraph}>
         {isOrganization
-          ? 'Raise the organization usage limit in billing settings to resume.'
-          : 'Raise your usage limit in billing settings, or upgrade your plan, to resume.'}
+          ? t('usageLimitReached.remedyOrganization')
+          : t('usageLimitReached.remedyUser')}
       </Text>
 
       <EmailButton href={ctaLink}>
-        {isOrganization ? 'Raise Organization Limit' : 'Raise Usage Limit'}
+        {isOrganization
+          ? t('usageLimitReached.buttonOrganization')
+          : t('usageLimitReached.buttonUser')}
       </EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>
-        Sent to the people who manage billing for this account.
-      </Text>
+      <Text style={baseStyles.footnote}>{t('usageLimitReached.footnote')}</Text>
     </EmailLayout>
   )
 }

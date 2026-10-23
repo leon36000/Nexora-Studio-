@@ -1,10 +1,8 @@
 import { Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout } from '@/components/emails/components'
-import {
-  SCHEDULE_DISABLE_REASON_COPY,
-  type ScheduleDisableReason,
-} from '@/lib/workflows/schedules/disable-reasons'
+import { formatEmailNumber, getEmailTranslator } from '@/components/emails/i18n'
+import type { ScheduleDisableReason } from '@/lib/workflows/schedules/disable-reasons'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface ScheduleDisabledEmailProps {
@@ -19,8 +17,10 @@ interface ScheduleDisabledEmailProps {
 }
 
 /**
- * Sent when Sim turns a schedule off on its own — either after repeated
- * failures or on a terminal error that cannot resolve itself.
+ * Sent when the platform turns a schedule off on its own — either after repeated
+ * failures or on a terminal error that cannot resolve itself. The reason is fixed
+ * copy per {@link ScheduleDisableReason}, never the underlying error string, which
+ * can carry credentials or customer data.
  */
 export function ScheduleDisabledEmail({
   recipientName,
@@ -30,34 +30,43 @@ export function ScheduleDisabledEmail({
   manageLink,
 }: ScheduleDisabledEmailProps) {
   const brand = getBrandConfig()
-  const resourceLabel = resourceName ?? 'a scheduled workflow'
+  const t = getEmailTranslator()
   const reasonCopy =
     reason === 'consecutive_failures' && failedCount
-      ? `It failed ${failedCount.toLocaleString()} times in a row.`
-      : SCHEDULE_DISABLE_REASON_COPY[reason]
-  const previewText = `${brand.name} turned off the schedule for ${resourceLabel}`
+      ? t('scheduleDisabled.failedTimes', { count: formatEmailNumber(failedCount) })
+      : t(`scheduleDisabled.reasons.${reason}`)
 
   return (
-    <EmailLayout preview={previewText} showUnsubscribe={true}>
-      <Text style={baseStyles.greeting}>{recipientName ? `Hi ${recipientName},` : 'Hi,'}</Text>
+    <EmailLayout
+      preview={
+        resourceName
+          ? t('scheduleDisabled.preview', { brandName: brand.name, resource: resourceName })
+          : t('scheduleDisabled.previewUnnamed', { brandName: brand.name })
+      }
+      showUnsubscribe={true}
+    >
+      <Text style={baseStyles.greeting}>
+        {recipientName ? t('common.hiName', { name: recipientName }) : t('common.hi')}
+      </Text>
 
       <Text style={baseStyles.paragraph}>
-        {brand.name} turned off the schedule for {resourceLabel}. It will not run again until you
-        fix the problem and turn it back on.
+        {resourceName
+          ? t('scheduleDisabled.body', { brandName: brand.name, resource: resourceName })
+          : t('scheduleDisabled.bodyUnnamed', { brandName: brand.name })}
       </Text>
 
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxTitle}>Reason</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('scheduleDisabled.reasonTitle')}</Text>
         <Text style={baseStyles.infoBoxList}>{reasonCopy}</Text>
       </Section>
 
-      {manageLink ? <EmailButton href={manageLink}>Open workflow</EmailButton> : null}
+      {manageLink ? (
+        <EmailButton href={manageLink}>{t('scheduleDisabled.openWorkflow')}</EmailButton>
+      ) : null}
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>
-        Sent to workspace admins and the person who created this schedule.
-      </Text>
+      <Text style={baseStyles.footnote}>{t('scheduleDisabled.footnote')}</Text>
     </EmailLayout>
   )
 }

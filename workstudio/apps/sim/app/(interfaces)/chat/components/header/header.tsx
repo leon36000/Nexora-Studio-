@@ -3,6 +3,7 @@
 import { OverflowText, SimWordmark } from '@sim/emcn'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { GithubIcon } from '@/components/icons'
 import { SITE_URL } from '@/lib/core/utils/urls'
 import { useBrandConfig } from '@/ee/whitelabeling'
@@ -22,11 +23,12 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ chatConfig, starCount }: ChatHeaderProps) {
   const brand = useBrandConfig()
+  const t = useTranslations('interfaces.chat')
   const customImage = chatConfig?.customizations?.imageUrl || chatConfig?.customizations?.logoUrl
 
   return (
     <nav
-      aria-label='Chat navigation'
+      aria-label={t('navigation')}
       className='flex w-full shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-[21px] sm:px-8 sm:pt-[8.5px] md:px-[44px] md:pt-4'
     >
       <div className='min-w-0 flex-1'>
@@ -34,7 +36,7 @@ export function ChatHeader({ chatConfig, starCount }: ChatHeaderProps) {
           {customImage && (
             <Image
               src={customImage}
-              alt={`${chatConfig?.title || 'Chat'} logo`}
+              alt={t('logoAlt', { title: chatConfig?.title || t('defaultTitle') })}
               width={24}
               height={24}
               unoptimized
@@ -43,7 +45,9 @@ export function ChatHeader({ chatConfig, starCount }: ChatHeaderProps) {
           )}
           <h2 className='min-w-0 text-[var(--text-primary)] text-lg'>
             <OverflowText
-              label={chatConfig?.customizations?.headerText || chatConfig?.title || 'Chat'}
+              label={
+                chatConfig?.customizations?.headerText || chatConfig?.title || t('defaultTitle')
+              }
             />
           </h2>
         </div>
@@ -56,7 +60,7 @@ export function ChatHeader({ chatConfig, starCount }: ChatHeaderProps) {
             target='_blank'
             rel='noopener noreferrer'
             className='hidden items-center gap-2 text-[var(--text-muted)] transition-colors hover-hover:text-[var(--text-primary)] md:flex'
-            aria-label={`GitHub repository - ${starCount} stars`}
+            aria-label={t('githubStars', { count: starCount })}
           >
             <GithubIcon className='size-[16px]' aria-hidden='true' />
             <span aria-live='polite'>{starCount}</span>
@@ -67,7 +71,7 @@ export function ChatHeader({ chatConfig, starCount }: ChatHeaderProps) {
             href={SITE_URL}
             target='_blank'
             rel='noopener noreferrer'
-            aria-label='Nexora home'
+            aria-label={t('home')}
             className='flex items-center'
           >
             <SimWordmark />

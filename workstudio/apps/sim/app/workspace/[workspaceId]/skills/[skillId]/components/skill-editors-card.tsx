@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import {
   MemberRow,
   SKILL_EDITOR_ROLE_OPTIONS,
@@ -27,12 +28,11 @@ interface SkillEditorsCardProps {
  * (workspace-admin) row also locks Remove and explains the inheritance on hover.
  */
 export function SkillEditorsCard({ editors, canEdit }: SkillEditorsCardProps) {
+  const t = useTranslations('integrations.skillsPage')
   return (
-    <DetailSection title={`Skill Editors (${editors.editors.length})`}>
+    <DetailSection title={t('editorsTitle', { count: editors.editors.length })}>
       {editors.editorsError ? (
-        <span className='text-[var(--text-muted)] text-caption'>
-          Couldn't load editors. You may no longer have access to this skill.
-        </span>
+        <span className='text-[var(--text-muted)] text-caption'>{t('editorsLoadFailed')}</span>
       ) : editors.editorsLoading ? null : (
         <div className='flex flex-col gap-2'>
           {editors.editors.map((editor) => (

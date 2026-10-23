@@ -5,6 +5,7 @@ import { cn, Input, Label } from '@sim/emcn'
 import { Eye, EyeOff } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { toError } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { AuthSubmitButton } from '@/app/(auth)/components'
 import { useChatPasswordAuth } from '@/hooks/queries/chats'
 
@@ -15,6 +16,7 @@ interface PasswordAuthProps {
 }
 
 export default function PasswordAuth({ identifier }: PasswordAuthProps) {
+  const t = useTranslations('interfaces.chat.password')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [passwordErrors, setPasswordErrors] = useState<string[]>([])
@@ -29,7 +31,7 @@ export default function PasswordAuth({ identifier }: PasswordAuthProps) {
 
   const handleAuthenticate = async () => {
     if (!password.trim()) {
-      setPasswordErrors(['Password is required'])
+      setPasswordErrors([t('required')])
       return
     }
 
@@ -38,7 +40,7 @@ export default function PasswordAuth({ identifier }: PasswordAuthProps) {
       setPassword('')
     } catch (error) {
       logger.error('Authentication error:', error)
-      setPasswordErrors([toError(error).message || 'Invalid password. Please try again.'])
+      setPasswordErrors([toError(error).message || t('invalid')])
     }
   }
 
@@ -48,10 +50,10 @@ export default function PasswordAuth({ identifier }: PasswordAuthProps) {
         <div className='flex flex-col items-center justify-center'>
           <div className='space-y-1 text-center'>
             <h1 className='text-balance text-[40px] text-[var(--text-primary)] leading-[110%] tracking-[-0.02em]'>
-              Password Required
+              {t('title')}
             </h1>
             <p className='text-[color-mix(in_srgb,var(--text-muted)_60%,transparent)] text-lg leading-[125%] tracking-[0.02em]'>
-              This chat is password-protected
+              {t('description')}
             </p>
           </div>
 
@@ -64,7 +66,7 @@ export default function PasswordAuth({ identifier }: PasswordAuthProps) {
           >
             <div className='space-y-6'>
               <div className='flex items-center justify-between'>
-                <Label htmlFor='password'>Password</Label>
+                <Label htmlFor='password'>{t('label')}</Label>
               </div>
               <div className='relative'>
                 <div className='relative'>
@@ -76,7 +78,7 @@ export default function PasswordAuth({ identifier }: PasswordAuthProps) {
                     autoCapitalize='none'
                     autoComplete='new-password'
                     autoCorrect='off'
-                    placeholder='Enter password'
+                    placeholder={t('placeholder')}
                     value={password}
                     onChange={handlePasswordChange}
                     className={cn(
@@ -89,7 +91,7 @@ export default function PasswordAuth({ identifier }: PasswordAuthProps) {
                     type='button'
                     onClick={() => setShowPassword(!showPassword)}
                     className='-translate-y-1/2 absolute top-1/2 right-3 text-[var(--text-muted)] hover-hover:text-[var(--text-primary)]'
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('hide') : t('show')}
                   >
                     {showPassword ? (
                       <EyeOff className='size-[18px]' />
@@ -120,9 +122,9 @@ export default function PasswordAuth({ identifier }: PasswordAuthProps) {
               type='submit'
               disabled={!password.trim()}
               loading={authenticate.isPending}
-              loadingLabel='Authenticating…'
+              loadingLabel={t('submitting')}
             >
-              Continue
+              {t('submit')}
             </AuthSubmitButton>
           </form>
         </div>

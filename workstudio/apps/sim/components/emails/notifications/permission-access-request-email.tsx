@@ -1,6 +1,7 @@
 import { Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface PermissionAccessRequestEmailProps {
@@ -14,25 +15,27 @@ export function PermissionAccessRequestEmail({
   requestLink,
 }: PermissionAccessRequestEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
   const needsReview = kind === 'created'
+  const brandName = brand.name
 
   return (
     <EmailLayout
       preview={
         needsReview
-          ? `An access request needs your review on ${brand.name}`
-          : `Your access request was updated on ${brand.name}`
+          ? t('permissionAccessRequest.previewCreated', { brandName })
+          : t('permissionAccessRequest.previewDecided', { brandName })
       }
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.greeting}>Hi,</Text>
+      <Text style={baseStyles.greeting}>{t('common.hi')}</Text>
       <Text style={baseStyles.paragraph}>
         {needsReview
-          ? `There is a pending access request for an organization you administer on ${brand.name}. Sign in to review the request.`
-          : `Your access request on ${brand.name} has been updated. Sign in to view its current status.`}
+          ? t('permissionAccessRequest.bodyCreated', { brandName })
+          : t('permissionAccessRequest.bodyDecided', { brandName })}
       </Text>
       <EmailButton href={requestLink}>
-        {needsReview ? 'Review request' : 'View request'}
+        {needsReview ? t('permissionAccessRequest.review') : t('permissionAccessRequest.view')}
       </EmailButton>
     </EmailLayout>
   )

@@ -1,6 +1,7 @@
 import { Link, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailLayout } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface CredentialGroupInvitationEmailProps {
@@ -22,57 +23,46 @@ export function CredentialGroupInvitationEmail({
   searchProviderName,
 }: CredentialGroupInvitationEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
+  const bodyKey = `credentialGroupInvitation.${searchProviderName ? 'search' : 'group'}${inviterName ? 'From' : ''}`
 
   return (
     <EmailLayout
       preview={
         inviterName
-          ? `${inviterName} invited you to connect accounts for ${workspaceName}`
-          : `You have been invited to connect accounts for ${workspaceName}`
+          ? t('credentialGroupInvitation.previewFrom', { inviterName, workspaceName })
+          : t('credentialGroupInvitation.preview', { workspaceName })
       }
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.paragraph}>Hello,</Text>
+      <Text style={baseStyles.paragraph}>{t('common.hello')}</Text>
       <Text style={baseStyles.paragraph}>
-        {inviterName ? (
-          <>
-            <strong>{inviterName}</strong> invited <strong>{recipientEmail}</strong>
-          </>
-        ) : (
-          <>
-            <strong>{recipientEmail}</strong> has been invited
-          </>
-        )}{' '}
-        {searchProviderName ? (
-          <>
-            to connect your {searchProviderName} account for Search in{' '}
-            <strong>{workspaceName}</strong>.
-          </>
-        ) : (
-          <>
-            to connect accounts for <strong>{credentialGroupName}</strong> in the{' '}
-            <strong>{workspaceName}</strong> workspace on {brand.name}.
-          </>
-        )}
+        {t.rich(bodyKey, {
+          inviterName: inviterName ?? '',
+          recipientEmail,
+          providerName: searchProviderName ?? '',
+          groupName: credentialGroupName,
+          workspaceName,
+          brandName: brand.name,
+          strong: (chunks) => <strong>{chunks}</strong>,
+        })}
       </Text>
       {searchProviderName && (
-        <Text style={baseStyles.paragraph}>
-          This requests an account connection. It does not add you as an organization member.
-        </Text>
+        <Text style={baseStyles.paragraph}>{t('credentialGroupInvitation.searchNote')}</Text>
       )}
 
       <Link href={invitationLink} style={{ textDecoration: 'none' }}>
         <Text style={baseStyles.button}>
-          {searchProviderName ? `Connect ${searchProviderName}` : 'Connect Accounts'}
+          {searchProviderName
+            ? t('credentialGroupInvitation.connectProvider', { providerName: searchProviderName })
+            : t('credentialGroupInvitation.connectAccounts')}
         </Text>
       </Link>
 
       <div style={baseStyles.divider} />
 
       <Text style={{ ...baseStyles.footerText, textAlign: 'left' }}>
-        This private link expires in 7 days. {brand.name} will send you to each provider to sign in
-        and will never ask for your provider password. If you did not expect this invitation, you
-        can ignore it.
+        {t('credentialGroupInvitation.footnote', { brandName: brand.name })}
       </Text>
     </EmailLayout>
   )

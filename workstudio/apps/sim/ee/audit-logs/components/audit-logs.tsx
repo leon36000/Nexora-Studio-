@@ -6,6 +6,7 @@ import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow }
 import { Download } from '@sim/emcn/icons'
 import { useFormatter, useTranslations } from 'next-intl'
 import { SettingsPanel } from '@/components/settings/settings-panel'
+import { describeAuditEntry } from '@/lib/nexora/audit-labels'
 import { useAuditLogs } from '@/hooks/queries/audit-logs'
 import { useDebounce } from '@/hooks/use-debounce'
 
@@ -66,13 +67,15 @@ export function AuditLogs({ organizationId }: AuditLogsProps) {
                     })}
                   </TableCell>
                   <TableCell>{entry.actorName || entry.actorEmail || t('system')}</TableCell>
-                  <TableCell className='font-mono text-caption'>{entry.action}</TableCell>
+                  <TableCell title={entry.action}>{describeAuditEntry(entry, t).label}</TableCell>
                   <TableCell>
-                    {entry.resourceName
-                      ? `${entry.resourceType} · ${entry.resourceName}`
+                    {t.has(`resourceTypes.${entry.resourceType}`)
+                      ? t(`resourceTypes.${entry.resourceType}`)
                       : entry.resourceType}
                   </TableCell>
-                  <TableCell className='text-[var(--text-muted)]'>{entry.description}</TableCell>
+                  <TableCell className='text-[var(--text-muted)]'>
+                    {describeAuditEntry(entry, t).detail}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

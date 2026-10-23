@@ -1,12 +1,12 @@
 import { SearchIcon } from '@/components/icons'
 import { docsUrl } from '@/lib/branding/docs-url'
-import { env, getEnv, isTruthy } from '@/lib/core/config/env'
+import { env } from '@/lib/core/config/env'
 import type { BlockConfig, BlockMeta } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
 /**
- * Nexora edition: sovereign web search through the instance's SearXNG. Shown only once the
- * administrator enables web search (queries then leave the instance towards public engines).
+ * Nexora edition: sovereign web search through the instance's SearXNG. Hidden (preview) until
+ * the administrator enables web search (queries then leave the instance towards public engines).
  */
 export const SearxngBlock: BlockConfig = {
   type: 'searxng',
@@ -19,9 +19,8 @@ export const SearxngBlock: BlockConfig = {
   integrationType: IntegrationType.Search,
   bgColor: '#3B82F6',
   icon: SearchIcon,
-  get hideFromToolbar() {
-    return !isTruthy(getEnv('NEXT_PUBLIC_WEB_SEARCH_ENABLED'))
-  },
+  /** Revealed by `PREVIEW_BLOCKS=searxng`, which install.sh sets when web search is enabled. */
+  preview: true,
   canvasPresentation: {
     defaultTitle: 'Web Search',
     sentences: {

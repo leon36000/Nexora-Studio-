@@ -14,6 +14,385 @@
       "action": "Action",
       "resource": "Resource",
       "description": "Details"
+    },
+    "actions": {
+      "account": {
+        "deleted": "Account deleted"
+      },
+      "auth": {
+        "login_succeeded": "Login succeeded",
+        "login_failed": "Login failed",
+        "logout": "Logout",
+        "impersonation_started": "Impersonation started",
+        "impersonation_ended": "Impersonation ended",
+        "sessions_revoked": "Sessions revoked"
+      },
+      "audit_logs": {
+        "exported": "Audit log exported"
+      },
+      "api_key": {
+        "created": "API key created",
+        "updated": "API key updated",
+        "revoked": "API key revoked"
+      },
+      "personal_api_key": {
+        "created": "Personal API key created",
+        "revoked": "Personal API key revoked"
+      },
+      "oauth_app": {
+        "revoked": "OAuth app revoked"
+      },
+      "byok_key": {
+        "created": "Provider key created",
+        "updated": "Provider key updated",
+        "deleted": "Provider key deleted"
+      },
+      "chat": {
+        "deployed": "Chat deployed",
+        "updated": "Chat updated",
+        "deleted": "Chat deleted",
+        "password_viewed": "Chat password viewed"
+      },
+      "changelog_release": {
+        "published": "Release note published",
+        "updated": "Release note updated"
+      },
+      "custom_block": {
+        "published": "Custom block published",
+        "updated": "Custom block updated",
+        "deleted": "Custom block deleted"
+      },
+      "dashboard": {
+        "created": "Dashboard created",
+        "updated": "Dashboard updated"
+      },
+      "custom_tool": {
+        "created": "Custom tool created",
+        "updated": "Custom tool updated",
+        "deleted": "Custom tool deleted"
+      },
+      "data_drain": {
+        "created": "Data drain created",
+        "updated": "Data drain updated",
+        "deleted": "Data drain deleted",
+        "ran": "Data drain ran",
+        "tested": "Data drain tested"
+      },
+      "credit": {
+        "purchased": "Credit purchased",
+        "issued": "Credit issued"
+      },
+      "invoice": {
+        "payment_succeeded": "Invoice payment succeeded",
+        "payment_failed": "Invoice payment failed"
+      },
+      "billing": {
+        "overage_billed": "Billing overage billed",
+        "sync_resolved": "Billing sync resolved"
+      },
+      "charge": {
+        "dispute_opened": "Charge dispute opened",
+        "dispute_closed": "Charge dispute closed"
+      },
+      "subscription": {
+        "created": "Subscription created",
+        "cancelled": "Subscription cancelled",
+        "refunded": "Subscription refunded",
+        "transferred": "Subscription transferred",
+        "enterprise_provisioned": "Subscription enterprise provisioned"
+      },
+      "connector_document": {
+        "restored": "Synced document restored",
+        "excluded": "Synced document excluded"
+      },
+      "desktop_tool_call": {
+        "claimed": "Desktop tool call claimed",
+        "completed": "Desktop tool call completed"
+      },
+      "document": {
+        "uploaded": "Document uploaded",
+        "updated": "Document updated",
+        "deleted": "Document deleted"
+      },
+      "environment": {
+        "updated": "Environment variables updated",
+        "deleted": "Environment variables deleted"
+      },
+      "secret_provenance": {
+        "unrecorded": "Secret provenance unrecorded"
+      },
+      "file": {
+        "uploaded": "File uploaded",
+        "updated": "File updated",
+        "deleted": "File deleted",
+        "restored": "File restored",
+        "moved": "File moved",
+        "shared": "File shared",
+        "share_disabled": "File sharing disabled",
+        "downloaded": "File downloaded",
+        "reverted": "File reverted",
+        "version_deleted": "File version deleted"
+      },
+      "folder": {
+        "created": "Folder created",
+        "updated": "Folder updated",
+        "deleted": "Folder deleted",
+        "moved": "Folder moved",
+        "duplicated": "Folder duplicated",
+        "restored": "Folder restored"
+      },
+      "invitation": {
+        "accepted": "Invitation accepted",
+        "rejected": "Invitation rejected",
+        "resent": "Invitation resent",
+        "revoked": "Invitation revoked",
+        "updated": "Invitation updated"
+      },
+      "connector": {
+        "created": "Connector created",
+        "updated": "Connector updated",
+        "deleted": "Connector deleted",
+        "synced": "Connector synced"
+      },
+      "knowledge_base": {
+        "created": "Knowledge base created",
+        "updated": "Knowledge base updated",
+        "deleted": "Knowledge base deleted",
+        "restored": "Knowledge base restored",
+        "exported": "Knowledge base exported"
+      },
+      "mcp_server": {
+        "added": "MCP server added",
+        "updated": "MCP server updated",
+        "removed": "MCP server removed"
+      },
+      "member": {
+        "invited": "Member invited",
+        "added": "Member added",
+        "removed": "Member removed",
+        "role_changed": "Member role changed"
+      },
+      "oauth": {
+        "disconnected": "OAuth account disconnected"
+      },
+      "credential": {
+        "created": "Credential created",
+        "updated": "Credential updated",
+        "renamed": "Credential renamed",
+        "reconnected": "Credential reconnected",
+        "deleted": "Credential deleted",
+        "accessed": "Credential accessed"
+      },
+      "credential_member": {
+        "added": "Credential member added",
+        "removed": "Credential member removed",
+        "role_changed": "Credential member role changed"
+      },
+      "credential_group": {
+        "updated": "Credential group updated"
+      },
+      "password": {
+        "reset_requested": "Password reset requested",
+        "reset": "Password reset"
+      },
+      "organization": {
+        "created": "Organization created",
+        "updated": "Organization updated",
+        "deleted": "Organization deleted",
+        "session_policy": {
+          "updated": "Session policy updated"
+        },
+        "sso_policy": {
+          "updated": "SSO policy updated"
+        },
+        "sso_provider": {
+          "created": "SSO provider added",
+          "updated": "SSO provider updated",
+          "deleted": "SSO provider deleted"
+        },
+        "sessions": {
+          "revoked": "Organization sessions revoked"
+        },
+        "domain": {
+          "added": "Domain added",
+          "verified": "Domain verified",
+          "removed": "Domain removed"
+        },
+        "sso": {
+          "primary_provider_changed": "Primary SSO provider changed"
+        }
+      },
+      "org_member": {
+        "added": "Organization member added",
+        "removed": "Organization member removed",
+        "role_changed": "Organization member role changed",
+        "usage_limit_changed": "Organization member usage limit changed"
+      },
+      "org_invitation": {
+        "created": "Organization invitation created",
+        "updated": "Organization invitation updated",
+        "accepted": "Organization invitation accepted",
+        "rejected": "Organization invitation rejected",
+        "cancelled": "Organization invitation cancelled",
+        "revoked": "Organization invitation revoked",
+        "resent": "Organization invitation resent"
+      },
+      "org_seat": {
+        "provisioned": "Seat provisioned",
+        "deprovisioned": "Seat deprovisioned"
+      },
+      "org_plan": {
+        "converted": "Plan converted"
+      },
+      "permission_group": {
+        "created": "Permission group created",
+        "updated": "Permission group updated",
+        "deleted": "Permission group deleted"
+      },
+      "permission_group_member": {
+        "added": "Permission group member added",
+        "removed": "Permission group member removed"
+      },
+      "permission_access_request": {
+        "created": "Access request created",
+        "fulfilled": "Access request fulfilled",
+        "declined": "Access request declined",
+        "cancelled": "Access request cancelled",
+        "closed": "Access request closed",
+        "settings_changed": "Access request settings changed"
+      },
+      "project": {
+        "created": "Project created",
+        "updated": "Project updated",
+        "archived": "Project archived"
+      },
+      "sandbox": {
+        "created": "Sandbox created",
+        "updated": "Sandbox updated",
+        "deleted": "Sandbox deleted"
+      },
+      "skill": {
+        "created": "Skill created",
+        "updated": "Skill updated",
+        "deleted": "Skill deleted"
+      },
+      "skill_member": {
+        "added": "Skill member added",
+        "removed": "Skill member removed"
+      },
+      "schedule": {
+        "created": "Schedule created",
+        "updated": "Schedule updated",
+        "deleted": "Schedule deleted"
+      },
+      "table": {
+        "created": "Table created",
+        "updated": "Table updated",
+        "deleted": "Table deleted",
+        "restored": "Table restored",
+        "exported": "Table exported"
+      },
+      "webhook": {
+        "created": "Webhook created",
+        "deleted": "Webhook deleted"
+      },
+      "workflow": {
+        "created": "Workflow created",
+        "updated": "Workflow updated",
+        "deleted": "Workflow deleted",
+        "restored": "Workflow restored",
+        "deployed": "Workflow deployed",
+        "undeployed": "Workflow undeployed",
+        "duplicated": "Workflow duplicated",
+        "deployment_activated": "Workflow deployment activated",
+        "deployment_reverted": "Workflow deployment reverted",
+        "locked": "Workflow locked",
+        "unlocked": "Workflow unlocked",
+        "fork_sync_excluded": "Workflow excluded from fork sync",
+        "fork_sync_included": "Workflow included in fork sync",
+        "variables_updated": "Workflow variables updated",
+        "public_api_toggled": "Workflow public API toggled",
+        "exported": "Workflow exported"
+      },
+      "workspace": {
+        "created": "Workspace created",
+        "updated": "Workspace updated",
+        "deleted": "Workspace deleted",
+        "duplicated": "Workspace duplicated",
+        "forked": "Workspace forked",
+        "fork_promoted": "Workspace fork promoted",
+        "fork_rolled_back": "Workspace fork rolled back",
+        "fork_unlinked": "Workspace fork unlinked",
+        "fork_sync_default_changed": "Workspace fork sync default changed",
+        "exported": "Workspace exported"
+      },
+      "scim_connection": {
+        "enabled": "SCIM connection enabled",
+        "disabled": "SCIM connection disabled",
+        "settings_updated": "SCIM connection settings updated"
+      },
+      "scim_credential": {
+        "issued": "SCIM credential issued",
+        "revoked": "SCIM credential revoked"
+      },
+      "scim_user": {
+        "provisioned": "SCIM user provisioned",
+        "updated": "SCIM user updated",
+        "deactivated": "SCIM user deactivated",
+        "reactivated": "SCIM user reactivated",
+        "deprovisioned": "SCIM user deprovisioned"
+      },
+      "scim_group": {
+        "created": "SCIM group created",
+        "updated": "SCIM group updated",
+        "membership_changed": "SCIM group membership changed",
+        "deleted": "SCIM group deleted"
+      },
+      "scim_group_mapping": {
+        "upserted": "SCIM group mapping saved",
+        "deleted": "SCIM group mapping deleted"
+      }
+    },
+    "resourceTypes": {
+      "account": "Account",
+      "api_key": "API key",
+      "billing": "Billing",
+      "byok_key": "Provider key",
+      "changelog_release": "Release note",
+      "chat": "Chat",
+      "connector": "Connector",
+      "credential": "Credential",
+      "credential_group": "Credential group",
+      "custom_block": "Custom block",
+      "custom_tool": "Custom tool",
+      "dashboard": "Dashboard",
+      "data_drain": "Data drain",
+      "desktop_device": "Desktop device",
+      "document": "Document",
+      "environment": "Environment",
+      "file": "File",
+      "folder": "Folder",
+      "knowledge_base": "Knowledge base",
+      "mcp_server": "MCP server",
+      "oauth": "OAuth account",
+      "oauth_client": "OAuth client",
+      "organization": "Organization",
+      "password": "Password",
+      "permission_group": "Permission group",
+      "permission_access_request": "Access request",
+      "project": "Project",
+      "sandbox": "Sandbox",
+      "schedule": "Schedule",
+      "scim_connection": "SCIM connection",
+      "scim_group": "SCIM group",
+      "secret_provenance": "Secret provenance",
+      "skill": "Skill",
+      "subscription": "Subscription",
+      "table": "Table",
+      "user": "User",
+      "webhook": "Webhook",
+      "workflow": "Workflow",
+      "workspace": "Workspace"
     }
   },
   "usage": {

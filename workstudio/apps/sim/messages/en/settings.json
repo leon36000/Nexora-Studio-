@@ -263,10 +263,6 @@
         "label": "Recently deleted",
         "description": "Restore items deleted in the last 30 days."
       },
-      "self-host": {
-        "label": "Self hosting",
-        "description": "Manage this deployment from the Nexora managed service."
-      },
       "sso": {
         "label": "Single sign-on",
         "description": "Manage sign-in, verified domains, and provisioning."
@@ -1086,11 +1082,6 @@
         "created": "Created"
       }
     }
-  },
-  "selfHost": {
-    "chatKeys": "Chat keys",
-    "chatKeysDescription": "Model-provider keys that power Chat on this deployment.",
-    "managedKeys": "Managed keys"
   },
   "copilot": {
     "createApiKey": "Create API key",

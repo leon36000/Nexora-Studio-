@@ -3,6 +3,7 @@
 import type { Ref, RefObject } from 'react'
 import { Button } from '@sim/emcn'
 import { ArrowDown } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import {
   type ChatMessage,
   ClientChatMessage,
@@ -29,6 +30,8 @@ export function ChatMessageContainer({
   scrollToBottom,
   chatConfig,
 }: ChatMessageContainerProps) {
+  const t = useTranslations('interfaces.chat')
+
   return (
     <div className='relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
       <div
@@ -39,9 +42,9 @@ export function ChatMessageContainer({
           {messages.length === 0 ? (
             <div className='flex flex-col items-center justify-center py-10'>
               <div className='space-y-2 text-center'>
-                <h3 className='text-[var(--text-primary)] text-lg'>How can I help you today?</h3>
+                <h3 className='text-[var(--text-primary)] text-lg'>{t('emptyTitle')}</h3>
                 <p className='text-[var(--text-muted)] text-sm'>
-                  {chatConfig?.description || 'Ask me anything.'}
+                  {chatConfig?.description || t('emptyDescription')}
                 </p>
               </div>
             </div>
@@ -75,7 +78,7 @@ export function ChatMessageContainer({
             className='gap-1 rounded-full px-3 shadow-medium'
           >
             <ArrowDown className='size-3.5' />
-            <span className='sr-only'>Scroll to bottom</span>
+            <span className='sr-only'>{t('scrollToBottom')}</span>
           </Button>
         </div>
       )}

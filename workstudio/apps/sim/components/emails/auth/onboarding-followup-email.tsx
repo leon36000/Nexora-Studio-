@@ -1,5 +1,6 @@
 import { Body, Head, Html, Preview, Text } from '@react-email/components'
 import { plainEmailStyles as styles } from '@/components/emails/_styles'
+import { EMAIL_LOCALE, getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface OnboardingFollowupEmailProps {
@@ -8,29 +9,28 @@ interface OnboardingFollowupEmailProps {
 
 export function OnboardingFollowupEmail({ userName }: OnboardingFollowupEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
 
   return (
-    <Html>
+    <Html lang={EMAIL_LOCALE}>
       <Head />
-      <Preview>Quick question</Preview>
+      <Preview>{t('onboardingFollowup.preview')}</Preview>
       <Body style={styles.body}>
         <div style={styles.container}>
-          <Text style={styles.p}>{userName ? `Hey ${userName},` : 'Hey,'}</Text>
           <Text style={styles.p}>
-            It&apos;s been a few days since you signed up. I hope you&apos;re enjoying {brand.name}!
+            {userName ? t('common.heyName', { name: userName }) : t('common.hey')}
           </Text>
           <Text style={styles.p}>
-            I&apos;d love to know — what did you expect when you signed up vs. what did you get?
+            {t('onboardingFollowup.enjoying', { brandName: brand.name })}
           </Text>
+          <Text style={styles.p}>{t('onboardingFollowup.expectation')}</Text>
+          <Text style={styles.p}>{t('onboardingFollowup.reply')}</Text>
           <Text style={styles.p}>
-            A reply with your thoughts would really help us improve the product for everyone.
-          </Text>
-          <Text style={styles.p}>
-            Thanks,
+            {t('onboardingFollowup.thanks')}
             <br />
-            Emir
+            {t('common.founderName')}
             <br />
-            Founder, {brand.name}
+            {t('common.founder', { brandName: brand.name })}
           </Text>
         </div>
       </Body>

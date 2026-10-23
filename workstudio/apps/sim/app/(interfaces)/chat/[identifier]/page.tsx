@@ -4,6 +4,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { and, eq, isNull } from 'drizzle-orm'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import ChatClient from '@/app/(interfaces)/chat/[identifier]/chat'
 import { OfficeEmbedInit } from '@/app/(interfaces)/chat/[identifier]/office-embed-init'
 
@@ -57,7 +58,8 @@ export async function generateMetadata({
     })
   }
 
-  return { title: 'Chat', robots: NOINDEX }
+  const t = await getTranslations('interfaces.chat')
+  return { title: t('metaTitle'), robots: NOINDEX }
 }
 
 export const dynamic = 'force-dynamic'

@@ -1,6 +1,7 @@
 import { Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -16,27 +17,24 @@ interface ExistingAccountEmailProps {
  */
 export function ExistingAccountEmail({ username = '' }: ExistingAccountEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
   const loginLink = `${getBaseUrl()}/login`
 
   return (
     <EmailLayout
-      preview={`Someone tried to sign up with your ${brand.name} email`}
+      preview={t('existingAccount.preview', { brandName: brand.name })}
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.greeting}>Hello {username},</Text>
+      <Text style={baseStyles.greeting}>{t('common.helloName', { name: username })}</Text>
       <Text style={baseStyles.paragraph}>
-        Someone just tried to create a {brand.name} account using this email address, but an account
-        already exists. If this was you, sign in instead — or reset your password if you've
-        forgotten it.
+        {t('existingAccount.body', { brandName: brand.name })}
       </Text>
 
-      <EmailButton href={loginLink}>Sign In</EmailButton>
+      <EmailButton href={loginLink}>{t('existingAccount.signIn')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>
-        If this wasn't you, no action is needed — no account was created or changed.
-      </Text>
+      <Text style={baseStyles.footnote}>{t('existingAccount.footnote')}</Text>
     </EmailLayout>
   )
 }

@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { ChipModalField } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import {
   type ParsedSkill,
   readSkillFile,
   SKILL_IMPORT_ACCEPT,
+  SkillFileError,
 } from '@/app/workspace/[workspaceId]/skills/components/utils'
 
 interface SkillImportProps {
@@ -19,6 +21,7 @@ interface SkillImportProps {
  * {@link SkillImportButton} in its action bar instead of a field.
  */
 export function SkillImport({ onImport }: SkillImportProps) {
+  const t = useTranslations('integrations.skillsPage.import')
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
 
@@ -31,7 +34,11 @@ export function SkillImport({ onImport }: SkillImportProps) {
     try {
       onImport(await readSkillFile(file))
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to process file'))
+      setError(
+        err instanceof SkillFileError
+          ? t(`errors.${err.reason}`)
+          : getErrorMessage(err, t('processFailed'))
+      )
     } finally {
       setImporting(false)
     }
@@ -40,12 +47,12 @@ export function SkillImport({ onImport }: SkillImportProps) {
   return (
     <ChipModalField
       type='file'
-      title='Upload File'
+      title={t('uploadFile')}
       accept={SKILL_IMPORT_ACCEPT}
       onChange={(files) => void handleFiles(files)}
       loading={importing}
-      label={importing ? 'Importing…' : undefined}
-      description='.md file with YAML frontmatter, or .zip containing a SKILL.md'
+      label={importing ? t('importing') : undefined}
+      description={t('uploadDescription')}
       error={error || undefined}
     />
   )

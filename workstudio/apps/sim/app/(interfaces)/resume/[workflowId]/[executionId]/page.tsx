@@ -1,14 +1,15 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { getSession } from '@/lib/auth'
 import { asOrchestrationError } from '@/lib/core/orchestration/types'
 import { readPausedWorkflowExecution } from '@/lib/workflows/application/read-paused-workflow-execution'
 import { ResumeExecutionUnavailable } from '@/app/(interfaces)/resume/[workflowId]/[executionId]/resume-execution-unavailable'
 import ResumeExecutionPage from '@/app/(interfaces)/resume/[workflowId]/[executionId]/resume-page-client'
 
-export const metadata: Metadata = {
-  title: 'Resume Execution',
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('interfaces.resume')
+  return { title: t('metaTitle'), robots: { index: false, follow: false } }
 }
 
 export const runtime = 'nodejs'

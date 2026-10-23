@@ -4,6 +4,7 @@ import { type ReactNode, type RefObject, useCallback, useMemo, useRef, useState 
 import { usePrefersReducedMotion } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
+import { useTranslations } from 'next-intl'
 import {
   AGENT_STREAM_PROTOCOL_HEADER,
   AGENT_STREAM_PROTOCOL_V1,
@@ -20,7 +21,7 @@ import {
   EmailAuth,
   PasswordAuth,
 } from '@/app/(interfaces)/chat/components'
-import { CHAT_ERROR_MESSAGES, CHAT_REQUEST_TIMEOUT_MS } from '@/app/(interfaces)/chat/constants'
+import { CHAT_REQUEST_TIMEOUT_MS } from '@/app/(interfaces)/chat/constants'
 import { useChatStreaming } from '@/app/(interfaces)/chat/hooks'
 import SSOAuth from '@/ee/sso/components/sso-auth'
 import { useDeployedChatConfig } from '@/hooks/queries/chats'
@@ -71,6 +72,7 @@ function ChatViewport({ children }: ChatViewportProps) {
 }
 
 export default function ChatClient({ identifier }: { identifier: string }) {
+  const t = useTranslations('interfaces.chat')
   const prefersReducedMotion = usePrefersReducedMotion()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -299,7 +301,7 @@ export default function ChatClient({ identifier }: { identifier: string }) {
       setIsLoading(false)
       const errorMessage: ChatMessage = {
         id: generateId(),
-        content: CHAT_ERROR_MESSAGES.GENERIC_ERROR,
+        content: t('errors.generic'),
         type: 'assistant',
         timestamp: new Date(),
       }
@@ -309,7 +311,7 @@ export default function ChatClient({ identifier }: { identifier: string }) {
 
   if (chatConfigError) {
     logger.error('Error fetching chat config:', chatConfigError)
-    return <ChatErrorState error={CHAT_ERROR_MESSAGES.CHAT_UNAVAILABLE} />
+    return <ChatErrorState error={t('errors.unavailable')} />
   }
 
   if (authRequired) {

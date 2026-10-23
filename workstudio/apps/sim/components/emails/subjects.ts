@@ -1,4 +1,5 @@
-import { UPGRADE_REASON_COPY, type UpgradeReason } from '@/lib/billing/upgrade-reasons'
+import { getEmailTranslator } from '@/components/emails/i18n'
+import type { UpgradeReason } from '@/lib/billing/upgrade-reasons'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 /** Email subject type for all supported email templates */
@@ -27,93 +28,80 @@ export type EmailSubjectType =
   | 'onboarding-followup'
   | 'welcome'
 
+const SUBJECT_KEYS: Record<EmailSubjectType, string> = {
+  'sign-in': 'signIn',
+  'email-verification': 'emailVerification',
+  'change-email': 'changeEmail',
+  'forget-password': 'resetPassword',
+  'reset-password': 'resetPassword',
+  'existing-account': 'existingAccount',
+  invitation: 'invitation',
+  'enterprise-owner-invitation': 'enterpriseOwnerInvitation',
+  'batch-invitation': 'batchInvitation',
+  'workspace-added': 'workspaceAdded',
+  'permission-access-request-created': 'permissionAccessRequestCreated',
+  'permission-access-request-decided': 'permissionAccessRequestDecided',
+  'enterprise-subscription': 'enterpriseSubscription',
+  'usage-threshold': 'usageThreshold',
+  'free-tier-upgrade': 'freeTierUpgrade',
+  'payment-failed': 'paymentFailed',
+  'credit-purchase': 'creditPurchase',
+  'abandoned-checkout': 'abandonedCheckout',
+  'free-tier-exhausted': 'freeTierExhausted',
+  'schedule-disabled': 'scheduleDisabled',
+  'subprocessor-change': 'subprocessorChange',
+  'onboarding-followup': 'onboardingFollowup',
+  welcome: 'welcome',
+}
+
 /**
- * Returns the email subject line for a given email type.
+ * Returns the email subject line for a given email type, in the email language.
  * @param type - The type of email being sent
  * @returns The subject line for the email
  */
 export function getEmailSubject(type: EmailSubjectType): string {
   const brandName = getBrandConfig().name
-
-  switch (type) {
-    case 'sign-in':
-      return `Sign in to ${brandName}`
-    case 'email-verification':
-      return `Verify your email for ${brandName}`
-    case 'change-email':
-      return `Verify your new email for ${brandName}`
-    case 'forget-password':
-      return `Reset your ${brandName} password`
-    case 'reset-password':
-      return `Reset your ${brandName} password`
-    case 'existing-account':
-      return `Sign-up attempt with your ${brandName} email`
-    case 'invitation':
-      return `You've been invited to join a team on ${brandName}`
-    case 'enterprise-owner-invitation':
-      return `Activate your Enterprise organization on ${brandName}`
-    case 'batch-invitation':
-      return `You've been invited to join a team and workspaces on ${brandName}`
-    case 'workspace-added':
-      return `You've been added to a workspace on ${brandName}`
-    case 'permission-access-request-created':
-      return `An access request needs review on ${brandName}`
-    case 'permission-access-request-decided':
-      return `Your access request was updated on ${brandName}`
-    case 'enterprise-subscription':
-      return `Your Enterprise Plan is now active on ${brandName}`
-    case 'usage-threshold':
-      return `You're nearing your monthly budget on ${brandName}`
-    case 'free-tier-upgrade':
-      return `You're at 80% of your free credits on ${brandName}`
-    case 'payment-failed':
-      return `Payment failed on ${brandName} — action required`
-    case 'credit-purchase':
-      return `Credits added to your ${brandName} account`
-    case 'abandoned-checkout':
-      return `Quick question`
-    case 'free-tier-exhausted':
-      return `You've run out of free credits on ${brandName}`
-    case 'schedule-disabled':
-      return `A schedule was turned off on ${brandName}`
-    case 'subprocessor-change':
-      return `Upcoming change to ${brandName} sub-processors`
-    case 'onboarding-followup':
-      return `Quick question about ${brandName}`
-    case 'welcome':
-      return `Welcome to ${brandName}`
-    default:
-      return brandName
-  }
+  const key = SUBJECT_KEYS[type]
+  return key ? getEmailTranslator()(`subjects.${key}`, { brandName }) : brandName
 }
 
 /**
- * Subject line for a per-category usage-limit email. Reuses the shared
- * {@link UPGRADE_REASON_COPY} so the subject matches the email body and the
- * upgrade-page header the user lands on.
+ * Subject line for a per-category usage-limit email. Shares its wording with
+ * the email body so the subject matches what the recipient reads.
  */
 export function getLimitEmailSubject(reason: UpgradeReason, kind: 'warning' | 'reached'): string {
-  const brandName = getBrandConfig().name
-  const copy = UPGRADE_REASON_COPY[reason]
-  const subject = kind === 'reached' ? copy.reachedSubject : copy.warningSubject
-  return `${subject} on ${brandName}`
+  const t = getEmailTranslator()
+  const subject = t(
+    `limitThreshold.reasons.${reason}.${kind === 'reached' ? 'reachedSubject' : 'warningSubject'}`
+  )
+  return t('subjects.limit', { subject, brandName: getBrandConfig().name })
 }
 
 /** The plan's display name is resolved at send time; it carries tier qualifiers. */
 export function getPlanWelcomeSubject(planDisplayName: string): string {
-  return `Your ${planDisplayName} plan is now active on ${getBrandConfig().name}`
+  return getEmailTranslator()('subjects.planWelcome', {
+    planName: planDisplayName,
+    brandName: getBrandConfig().name,
+  })
 }
 
 /** Echoes the sender's own subject line so the reply threads correctly. */
 export function getRequestConfirmationSubject(userSubject: string, requestType?: string): string {
+  const t = getEmailTranslator()
   return requestType
-    ? `Your ${requestType} request has been received: ${userSubject}`
-    : `We've received your message: ${userSubject}`
+    ? t('subjects.requestConfirmationTyped', { requestType, userSubject })
+    : t('subjects.requestConfirmation', { userSubject })
 }
 
 /** Names the resource being unlocked rather than the brand — that is what the recipient opened. */
 export function getOtpSubject(resourceLabel: string): string {
-  return `Verification code for ${resourceLabel}`
+  return getEmailTranslator()('subjects.otp', { resourceLabel })
+}
+
+/** Verification code subject for a password-free shared file. */
+export function getSharedFileOtpSubject(): string {
+  const t = getEmailTranslator()
+  return t('subjects.otp', { resourceLabel: t('subjects.sharedFile') })
 }
 
 /**
@@ -124,8 +112,9 @@ export function getCredentialGroupInvitationSubject(
   inviterName: string | undefined,
   workspaceName: string
 ): string {
+  const t = getEmailTranslator()
   const brandName = getBrandConfig().name
   return inviterName
-    ? `${inviterName} invited you to connect accounts for ${workspaceName} on ${brandName}`
-    : `You have been invited to connect accounts for ${workspaceName} on ${brandName}`
+    ? t('subjects.credentialGroupInvitationFrom', { inviterName, workspaceName, brandName })
+    : t('subjects.credentialGroupInvitation', { workspaceName, brandName })
 }

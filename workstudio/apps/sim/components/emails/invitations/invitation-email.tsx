@@ -2,6 +2,7 @@ import { Text } from '@react-email/components'
 import { createLogger } from '@sim/logger'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout, EmailStrong } from '@/components/emails/components'
+import { getEmailTranslator } from '@/components/emails/i18n'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -14,12 +15,15 @@ interface InvitationEmailProps {
 const logger = createLogger('InvitationEmail')
 
 export function InvitationEmail({
-  inviterName = 'A team member',
-  organizationName = 'an organization',
+  inviterName,
+  organizationName,
   inviteLink = '',
 }: InvitationEmailProps) {
   const brand = getBrandConfig()
   const baseUrl = getBaseUrl()
+  const t = getEmailTranslator()
+  const inviter = inviterName ?? t('invitation.defaultInviter')
+  const organization = organizationName ?? t('invitation.defaultOrganization')
 
   let enhancedLink = inviteLink
 
@@ -37,22 +41,24 @@ export function InvitationEmail({
 
   return (
     <EmailLayout
-      preview={`You've been invited to join ${organizationName} on ${brand.name}`}
+      preview={t('invitation.preview', { organizationName: organization, brandName: brand.name })}
       showUnsubscribe={false}
     >
-      <Text style={baseStyles.greeting}>Hello,</Text>
+      <Text style={baseStyles.greeting}>{t('common.hello')}</Text>
       <Text style={baseStyles.paragraph}>
-        <EmailStrong>{inviterName}</EmailStrong> invited you to join{' '}
-        <EmailStrong>{organizationName}</EmailStrong> on {brand.name}.
+        {t.rich('invitation.body', {
+          inviterName: inviter,
+          organizationName: organization,
+          brandName: brand.name,
+          strong: (chunks) => <EmailStrong>{chunks}</EmailStrong>,
+        })}
       </Text>
 
-      <EmailButton href={enhancedLink}>Accept Invitation</EmailButton>
+      <EmailButton href={enhancedLink}>{t('common.acceptInvitation')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>
-        Invitation expires in 48 hours. If unexpected, you can ignore this email.
-      </Text>
+      <Text style={baseStyles.footnote}>{t('invitation.footnote')}</Text>
     </EmailLayout>
   )
 }

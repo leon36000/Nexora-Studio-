@@ -1,6 +1,7 @@
 import { Body, Container, Font, Head, Html, Img, Preview, Section } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailFooter } from '@/components/emails/components/email-footer'
+import { EMAIL_LOCALE } from '@/components/emails/i18n'
 import { EMAIL_WORDMARK_SIZE } from '@/lib/branding/wordmark'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { getBrandConfig } from '@/ee/whitelabeling'
@@ -50,7 +51,7 @@ export function EmailLayout({
   const hasCustomLogo = Boolean(brand.logoUrl)
 
   return (
-    <Html>
+    <Html lang={EMAIL_LOCALE}>
       <Head>
         {/*
           `fallbackFontFamily` only accepts react-email's fixed union, so it

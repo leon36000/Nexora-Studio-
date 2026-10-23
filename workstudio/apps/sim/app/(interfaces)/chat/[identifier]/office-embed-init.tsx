@@ -5,7 +5,7 @@ import Script from 'next/script'
 declare global {
   interface Window {
     Office?: {
-      onReady: () => Promise<{ host: string | null; platform: string | null }>
+      onReady: () => Promise<{ host: string | null; platform: string | null }> // i18n-ignore: type signature
     }
   }
 }

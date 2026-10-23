@@ -1,5 +1,6 @@
 import { Body, Head, Html, Preview, Text } from '@react-email/components'
 import { plainEmailStyles as styles } from '@/components/emails/_styles'
+import { EMAIL_LOCALE, getEmailTranslator } from '@/components/emails/i18n'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
 interface AbandonedCheckoutEmailProps {
@@ -8,25 +9,23 @@ interface AbandonedCheckoutEmailProps {
 
 export function AbandonedCheckoutEmail({ userName }: AbandonedCheckoutEmailProps) {
   const brand = getBrandConfig()
+  const t = getEmailTranslator()
 
   return (
-    <Html>
+    <Html lang={EMAIL_LOCALE}>
       <Head />
-      <Preview>Did you run into an issue with your upgrade?</Preview>
+      <Preview>{t('abandonedCheckout.preview')}</Preview>
       <Body style={styles.body}>
         <div style={styles.container}>
-          <Text style={styles.p}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
           <Text style={styles.p}>
-            I saw that you tried to upgrade your {brand.name} plan but didn&apos;t end up completing
-            it.
+            {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
           </Text>
+          <Text style={styles.p}>{t('abandonedCheckout.attempt', { brandName: brand.name })}</Text>
+          <Text style={styles.p}>{t('abandonedCheckout.help')}</Text>
           <Text style={styles.p}>
-            Did you run into an issue, or did you have a question? Here to help.
-          </Text>
-          <Text style={styles.p}>
-            — Emir
+            {t('abandonedCheckout.signature')}
             <br />
-            Founder, {brand.name}
+            {t('common.founder', { brandName: brand.name })}
           </Text>
         </div>
       </Body>

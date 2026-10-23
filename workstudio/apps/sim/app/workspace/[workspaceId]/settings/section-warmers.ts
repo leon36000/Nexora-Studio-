@@ -36,8 +36,6 @@ export const SECTION_MODULES = {
     import('@/app/workspace/[workspaceId]/settings/components/mothership/mothership'),
   'recently-deleted': () =>
     import('@/app/workspace/[workspaceId]/settings/components/recently-deleted/recently-deleted'),
-  'self-host': () =>
-    import('@/app/workspace/[workspaceId]/settings/components/self-host/self-host'),
   billing: () => import('@/app/workspace/[workspaceId]/settings/components/billing/billing'),
   teammates: () => import('@/app/workspace/[workspaceId]/settings/components/teammates/teammates'),
   organization: () =>

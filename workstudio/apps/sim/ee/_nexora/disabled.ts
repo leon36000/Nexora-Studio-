@@ -1,10 +1,23 @@
 // Nexora clean-room replacement — written from core call sites only, Apache-2.0 core untouched.
 
+import { createTranslator } from 'next-intl'
 import type { OAuthApiScope } from '@/lib/auth/oauth-provider'
 import type { ApplicationOperation, OperationUseCase } from '@/lib/core/application/operation'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
+import { DEFAULT_LOCALE } from '@/lib/i18n/config'
+import enErrors from '@/messages/en/errors.json'
+import frErrors from '@/messages/fr/errors.json'
 
-const NEXORA_FEATURE_DISABLED_MESSAGE = 'This feature is not available in this edition.'
+/**
+ * The refusal is raised far from any request (use cases, repositories), so it is worded in the
+ * instance default language. Only the small `errors` zone is loaded: client hooks import this
+ * module for {@link nexoraKey}.
+ */
+function featureDisabledMessage(feature: string): string {
+  const errors = DEFAULT_LOCALE === 'en' ? enErrors : frErrors
+  const t = createTranslator({ locale: DEFAULT_LOCALE, messages: { errors }, namespace: 'errors' })
+  return t('featureDisabled', { feature })
+}
 
 /**
  * Raised by every disabled use case. It is a `not_found` orchestration error, so the core's
@@ -12,7 +25,7 @@ const NEXORA_FEATURE_DISABLED_MESSAGE = 'This feature is not available in this e
  */
 export class FeatureDisabledError extends OrchestrationError {
   constructor(readonly feature: string) {
-    super('not_found', `${feature}: ${NEXORA_FEATURE_DISABLED_MESSAGE}`)
+    super('not_found', featureDisabledMessage(feature))
     this.name = 'FeatureDisabledError'
   }
 }
@@ -66,7 +79,7 @@ export function disabledOperations<const K extends string>(
 export type DisabledUseCase<
   R = never,
   O extends ApplicationOperation = DisabledOperation,
-> = OperationUseCase<O, unknown, R>
+> = OperationUseCase<O, unknown, R> // i18n-ignore: TypeScript type, not copy
 
 /** A use case whose `execute`/`authorize` always refuse with {@link FeatureDisabledError}. */
 export function disabledUseCase<R = never, O extends ApplicationOperation = DisabledOperation>(

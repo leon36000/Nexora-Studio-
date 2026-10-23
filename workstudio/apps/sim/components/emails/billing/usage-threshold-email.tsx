@@ -1,6 +1,7 @@
 import { Section, Text } from '@react-email/components'
 import { baseStyles } from '@/components/emails/_styles'
 import { EmailButton, EmailLayout } from '@/components/emails/components'
+import { formatEmailNumber, getEmailTranslator } from '@/components/emails/i18n'
 import { dollarsToCredits } from '@/lib/billing/credits/conversion'
 import { getBrandConfig } from '@/ee/whitelabeling'
 
@@ -22,34 +23,38 @@ export function UsageThresholdEmail({
   ctaLink,
 }: UsageThresholdEmailProps) {
   const brand = getBrandConfig()
-
-  const previewText = `${brand.name}: You're at ${percentUsed}% of your ${planName} monthly budget`
+  const t = getEmailTranslator()
+  const percent = String(percentUsed)
 
   return (
-    <EmailLayout preview={previewText} showUnsubscribe={true}>
-      <Text style={baseStyles.greeting}>{userName ? `Hi ${userName},` : 'Hi,'}</Text>
-
-      <Text style={baseStyles.paragraph}>
-        You're approaching your monthly budget on the {planName} plan.
+    <EmailLayout
+      preview={t('usageThreshold.preview', { brandName: brand.name, percent, planName })}
+      showUnsubscribe={true}
+    >
+      <Text style={baseStyles.greeting}>
+        {userName ? t('common.hiName', { name: userName }) : t('common.hi')}
       </Text>
 
+      <Text style={baseStyles.paragraph}>{t('usageThreshold.body', { planName })}</Text>
+
       <Section style={baseStyles.infoBox}>
-        <Text style={baseStyles.infoBoxTitle}>Usage</Text>
+        <Text style={baseStyles.infoBoxTitle}>{t('common.usage')}</Text>
         <Text style={baseStyles.infoBoxList}>
-          {dollarsToCredits(currentUsage).toLocaleString()} of{' '}
-          {dollarsToCredits(limit).toLocaleString()} credits used ({percentUsed}%)
+          {t('usageThreshold.usageLine', {
+            used: formatEmailNumber(dollarsToCredits(currentUsage)),
+            limit: formatEmailNumber(dollarsToCredits(limit)),
+            percent,
+          })}
         </Text>
       </Section>
 
-      <Text style={baseStyles.paragraph}>
-        To avoid interruptions, consider increasing your monthly limit.
-      </Text>
+      <Text style={baseStyles.paragraph}>{t('usageThreshold.avoid')}</Text>
 
-      <EmailButton href={ctaLink}>Review Limits</EmailButton>
+      <EmailButton href={ctaLink}>{t('usageThreshold.button')}</EmailButton>
 
       <div style={baseStyles.divider} />
 
-      <Text style={baseStyles.footnote}>One-time notification at 80% usage.</Text>
+      <Text style={baseStyles.footnote}>{t('common.oneTimeAt80')}</Text>
     </EmailLayout>
   )
 }

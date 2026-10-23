@@ -1,0 +1,343 @@
+{
+  "common": {
+    "hello": "Bonjour,",
+    "helloName": "Bonjour {name},",
+    "hi": "Bonjour,",
+    "hiName": "Bonjour {name},",
+    "hey": "Bonjour,",
+    "heyName": "Bonjour {name},",
+    "openBrand": "Ouvrir {brandName}",
+    "acceptInvitation": "Accepter l’invitation",
+    "upgradeToPro": "Passer à Pro",
+    "usage": "Consommation",
+    "creditsAmount": "{credits} crédits",
+    "oneTimeAt80": "Notification unique, envoyée à 80 % de consommation.",
+    "oneTimeAt100": "Notification unique, envoyée à 100 % de consommation.",
+    "expiresIn7Days": "Cette invitation expire dans 7 jours. Si vous ne l’attendiez pas, vous pouvez ignorer cet e-mail.",
+    "founder": "{brandName}",
+    "founderName": "L'équipe"
+  },
+  "footer": {
+    "questions": "Des questions ?",
+    "messageId": "Besoin de faire référence à ce message ? Utilisez cet identifiant : {messageId}",
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d’utilisation",
+    "unsubscribe": "Se désabonner",
+    "rights": "© {year} {brandName}, tous droits réservés"
+  },
+  "subjects": {
+    "signIn": "Connexion à {brandName}",
+    "emailVerification": "Vérifiez votre adresse e-mail pour {brandName}",
+    "changeEmail": "Vérifiez votre nouvelle adresse e-mail pour {brandName}",
+    "resetPassword": "Réinitialisez votre mot de passe {brandName}",
+    "existingAccount": "Tentative d’inscription avec votre adresse e-mail {brandName}",
+    "invitation": "Vous êtes invité à rejoindre une équipe sur {brandName}",
+    "enterpriseOwnerInvitation": "Activez votre organisation Enterprise sur {brandName}",
+    "batchInvitation": "Vous êtes invité à rejoindre une équipe et des espaces de travail sur {brandName}",
+    "workspaceAdded": "Vous avez été ajouté à un espace de travail sur {brandName}",
+    "permissionAccessRequestCreated": "Une demande d’accès attend votre examen sur {brandName}",
+    "permissionAccessRequestDecided": "Votre demande d’accès a été mise à jour sur {brandName}",
+    "enterpriseSubscription": "Votre forfait Enterprise est désormais actif sur {brandName}",
+    "usageThreshold": "Vous approchez de votre budget mensuel sur {brandName}",
+    "freeTierUpgrade": "Vous avez utilisé 80 % de vos crédits gratuits sur {brandName}",
+    "paymentFailed": "Échec du paiement sur {brandName} — action requise",
+    "creditPurchase": "Crédits ajoutés à votre compte {brandName}",
+    "abandonedCheckout": "Une petite question",
+    "freeTierExhausted": "Vous avez épuisé vos crédits gratuits sur {brandName}",
+    "scheduleDisabled": "Une planification a été désactivée sur {brandName}",
+    "subprocessorChange": "Changement à venir des sous-traitants de {brandName}",
+    "onboardingFollowup": "Une petite question à propos de {brandName}",
+    "welcome": "Bienvenue sur {brandName}",
+    "limit": "{subject} sur {brandName}",
+    "planWelcome": "Votre forfait {planName} est désormais actif sur {brandName}",
+    "requestConfirmationTyped": "{requestType, select, bug {Votre signalement de bug a bien été reçu} feedback {Votre retour a bien été reçu} feature_request {Votre demande de fonctionnalité a bien été reçue} other {Votre demande a bien été reçue}} : {userSubject}",
+    "requestConfirmation": "Nous avons bien reçu votre message : {userSubject}",
+    "otp": "Code de vérification pour {resourceLabel}",
+    "sharedFile": "un fichier partagé",
+    "credentialGroupInvitationFrom": "{inviterName} vous invite à connecter des comptes pour {workspaceName} sur {brandName}",
+    "credentialGroupInvitation": "Vous êtes invité à connecter des comptes pour {workspaceName} sur {brandName}"
+  },
+  "existingAccount": {
+    "preview": "Quelqu’un a tenté de s’inscrire avec votre adresse e-mail {brandName}",
+    "body": "Quelqu’un vient d’essayer de créer un compte {brandName} avec cette adresse e-mail, mais un compte existe déjà. Si c’était vous, connectez-vous plutôt — ou réinitialisez votre mot de passe si vous l’avez oublié.",
+    "signIn": "Se connecter",
+    "footnote": "Si ce n’était pas vous, aucune action n’est nécessaire : aucun compte n’a été créé ni modifié."
+  },
+  "onboardingFollowup": {
+    "preview": "Une petite question",
+    "enjoying": "Cela fait quelques jours que vous vous êtes inscrit. J’espère que {brandName} vous plaît !",
+    "expectation": "J’aimerais savoir : qu’attendiez-vous en vous inscrivant, et qu’avez-vous trouvé ?",
+    "reply": "Une réponse avec votre avis nous aiderait vraiment à améliorer le produit pour tout le monde.",
+    "thanks": "Merci,"
+  },
+  "otp": {
+    "chatFallback": "Chat",
+    "heading": "Votre code de vérification :",
+    "expiry": "Ce code expire dans 15 minutes.",
+    "footnote": "Ne communiquez ce code à personne. Si vous n’avez pas demandé ce code, vous pouvez ignorer cet e-mail."
+  },
+  "resetPassword": {
+    "body": "Une réinitialisation du mot de passe a été demandée pour votre compte {brandName}. Cliquez ci-dessous pour définir un nouveau mot de passe.",
+    "button": "Réinitialiser le mot de passe",
+    "footnote": "Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer cet e-mail. Le lien expire dans 24 heures."
+  },
+  "welcome": {
+    "body": "Bienvenue sur {brandName} ! Votre compte est prêt. Créez, testez et déployez des workflows d’IA en quelques minutes.",
+    "getStarted": "Commencer",
+    "feedback": "Pour toute question ou remarque, répondez simplement à cet e-mail : nous lisons chaque message.",
+    "call": "Besoin d'aide pour démarrer ? Consultez le <link>guide de Nexora</link>.",
+    "signature": "— L'équipe {brandName}",
+    "footnote": "Vous êtes sur le forfait Community, avec 1 000 crédits pour commencer."
+  },
+  "abandonedCheckout": {
+    "preview": "Avez-vous rencontré un problème lors de votre changement de forfait ?",
+    "attempt": "J’ai vu que vous avez essayé de changer de forfait {brandName} sans aller jusqu’au bout.",
+    "help": "Avez-vous rencontré un problème, ou aviez-vous une question ? Nous sommes là pour vous aider.",
+    "signature": "— L'équipe"
+  },
+  "proFeatures": {
+    "title": "Pro comprend",
+    "credits": {
+      "label": "6 000 crédits/mois",
+      "desc": "inclus"
+    },
+    "refresh": {
+      "label": "+2 000 crédits par semaine",
+      "desc": "rechargés chaque semaine"
+    },
+    "runs": {
+      "label": "150 exécutions/min",
+      "desc": "exécutions synchrones"
+    },
+    "storage": {
+      "label": "50 Go de stockage",
+      "desc": "pour vos fichiers et ressources"
+    }
+  },
+  "creditPurchase": {
+    "preview": "{brandName} : {credits} crédits ajoutés à votre compte",
+    "body": "Votre achat de <strong>{credits} crédits</strong> est confirmé.",
+    "amountAdded": "Montant ajouté",
+    "newBalance": "Nouveau solde",
+    "applied": "Les crédits s’appliquent automatiquement aux exécutions de vos workflows.",
+    "viewDashboard": "Voir le tableau de bord",
+    "footnote": "Acheté le {date}. Consultez votre solde dans Réglages → Abonnement."
+  },
+  "creditsExhausted": {
+    "preview": "Vous avez utilisé les {credits} crédits gratuits de {brandName}",
+    "body": "Vous avez utilisé la totalité de vos <strong>{credits}</strong> crédits gratuits sur {brandName}. Vos workflows sont suspendus jusqu’à votre changement de forfait.",
+    "footnote": "Notification unique, envoyée lorsque les crédits gratuits sont épuisés."
+  },
+  "enterpriseSubscription": {
+    "defaultName": "cher utilisateur",
+    "body": "Votre <strong>forfait Enterprise</strong> est désormais actif. Vous avez accès à toutes les fonctionnalités avancées et à une capacité accrue pour vos workflows.",
+    "nextSteps": "Prochaines étapes",
+    "inviteTeammates": "• Invitez vos collègues dans votre organisation",
+    "startBuilding": "• Commencez à créer vos workflows",
+    "footnote": "Des questions ? Répondez à cet e-mail ou écrivez-nous à <link>{email}</link>"
+  },
+  "freeTierUpgrade": {
+    "preview": "{brandName} : vous avez utilisé {percent} % de vos crédits gratuits",
+    "body": "Vous avez utilisé <strong>{used}</strong> de vos <strong>{limit}</strong> crédits gratuits ({percent} %). Passez à Pro pour continuer sans interruption."
+  },
+  "limitThreshold": {
+    "preview": "{brandName} : {lead}",
+    "body": "{lead} Changez de forfait pour disposer de davantage de {noun}.",
+    "usageLine": "{usage} utilisés sur {limit} ({percent} %)",
+    "upgrade": "Changer de forfait",
+    "reasons": {
+      "credits": {
+        "noun": "crédits",
+        "warningSubject": "Vous approchez de votre limite de consommation",
+        "reachedSubject": "Vous avez atteint votre limite de consommation",
+        "warningLead": "Vous approchez de votre limite de consommation.",
+        "reachedLead": "Vous avez atteint votre limite de consommation."
+      },
+      "storage": {
+        "noun": "stockage",
+        "warningSubject": "Votre espace de stockage est presque plein",
+        "reachedSubject": "Vous avez atteint votre limite de stockage",
+        "warningLead": "Votre espace de stockage est presque plein.",
+        "reachedLead": "Vous avez atteint votre limite de stockage."
+      },
+      "tables": {
+        "noun": "lignes de table",
+        "warningSubject": "Vos tables sont presque pleines",
+        "reachedSubject": "Vous avez atteint votre limite de tables",
+        "warningLead": "Vos tables sont presque pleines.",
+        "reachedLead": "Vous avez atteint votre limite de tables."
+      },
+      "seats": {
+        "noun": "places",
+        "warningSubject": "Il vous reste peu de places",
+        "reachedSubject": "Vous avez utilisé toutes vos places",
+        "warningLead": "Il reste peu de places pour votre équipe.",
+        "reachedLead": "Vous avez utilisé toutes les places de votre forfait."
+      }
+    }
+  },
+  "paymentFailed": {
+    "unable": "Nous n’avons pas pu traiter votre paiement.",
+    "body": "Votre compte {brandName} a été temporairement bloqué afin d’éviter toute interruption de service et tout frais inattendu. Pour rétablir l’accès immédiatement, veuillez mettre à jour votre moyen de paiement.",
+    "detailsTitle": "Détails du paiement",
+    "amountDue": "Montant dû : {amount} $",
+    "paymentMethod": "Moyen de paiement : •••• {lastFour}",
+    "reason": "Motif : {reason}",
+    "nextTitle": "Et maintenant ?",
+    "paused": "• Vos workflows et automatisations sont actuellement suspendus",
+    "update": "• Mettez à jour votre moyen de paiement pour rétablir le service immédiatement",
+    "retry": "• Stripe relancera automatiquement le prélèvement une fois le paiement mis à jour",
+    "button": "Mettre à jour le moyen de paiement",
+    "footnote": "Causes fréquentes : carte expirée, provision insuffisante ou informations de facturation erronées. Besoin d’aide ? <link>{email}</link>"
+  },
+  "planWelcome": {
+    "preview": "{brandName} : votre forfait {planName} est actif",
+    "body": "Bienvenue dans <strong>{planName}</strong> ! Tout est prêt pour créer, tester et faire évoluer vos workflows.",
+    "call": "Besoin d’aide pour démarrer ? <link>Planifiez un appel</link> avec notre équipe.",
+    "footnote": "Gérez votre abonnement dans Réglages → Abonnement."
+  },
+  "usageLimitReached": {
+    "preview": "{brandName} : vous avez atteint votre limite de consommation {planName}",
+    "leadOrganization": "Votre organisation a atteint sa limite de consommation mensuelle du forfait {planName}.",
+    "leadUser": "Vous avez atteint votre limite de consommation mensuelle du forfait {planName}.",
+    "paused": "Les exécutions de workflows, la recherche dans les bases de connaissances, l’envoi de documents et le Chat sont suspendus jusqu’au relèvement de la limite.",
+    "usageLine": "{used} crédits utilisés sur {limit}",
+    "remedyOrganization": "Relevez la limite de consommation de l’organisation dans les réglages de facturation pour reprendre.",
+    "remedyUser": "Relevez votre limite de consommation dans les réglages de facturation, ou changez de forfait, pour reprendre.",
+    "buttonOrganization": "Relever la limite de l’organisation",
+    "buttonUser": "Relever la limite de consommation",
+    "footnote": "Envoyé aux personnes qui gèrent la facturation de ce compte."
+  },
+  "usageThreshold": {
+    "preview": "{brandName} : vous avez atteint {percent} % de votre budget mensuel {planName}",
+    "body": "Vous approchez de votre budget mensuel du forfait {planName}.",
+    "usageLine": "{used} crédits utilisés sur {limit} ({percent} %)",
+    "avoid": "Pour éviter toute interruption, envisagez d’augmenter votre limite mensuelle.",
+    "button": "Vérifier les limites"
+  },
+  "batchInvitation": {
+    "defaultInviter": "Quelqu’un",
+    "defaultOrganization": "l’équipe",
+    "preview": "Vous êtes invité à rejoindre {organizationName}",
+    "previewWithWorkspaces": "Vous êtes invité à rejoindre {organizationName} et {count} espace(s) de travail",
+    "body": "<strong>{inviterName}</strong> vous invite à rejoindre <strong>{organizationName}</strong> sur {brandName}.",
+    "teamRole": "Rôle dans l’équipe",
+    "adminDetail": "vous pouvez gérer les membres de l’équipe, la facturation et l’accès aux espaces de travail.",
+    "memberDetail": "vous bénéficiez de la facturation partagée de l’équipe et pouvez être invité dans des espaces de travail.",
+    "workspaceAccess": "Accès aux espaces de travail ({count, plural, one {{count} espace de travail} other {{count} espaces de travail}})",
+    "roles": {
+      "admin": "Administrateur",
+      "member": "Membre"
+    },
+    "permissions": {
+      "admin": "Administrateur (accès complet)",
+      "write": "Éditeur (peut modifier les workflows)",
+      "read": "Lecteur (accès en lecture seule)"
+    }
+  },
+  "enterpriseOwnerInvitation": {
+    "preview": "Activez le forfait Enterprise de l’organisation {organizationName} sur {brandName}",
+    "selected": "Vous avez été désigné comme propriétaire de l’organisation <strong>{organizationName}</strong> sur {brandName}.",
+    "review": "Examinez et acceptez l’invitation pour créer l’organisation et démarrer son forfait Enterprise. La facturation ne commence qu’après votre acceptation.",
+    "button": "Examiner l’invitation Enterprise",
+    "footnote": "Cette invitation expire dans {days} jours. Si vous ne l’attendiez pas, vous pouvez ignorer cet e-mail."
+  },
+  "invitation": {
+    "defaultInviter": "Un membre de l’équipe",
+    "defaultOrganization": "une organisation",
+    "preview": "Vous êtes invité à rejoindre {organizationName} sur {brandName}",
+    "body": "<strong>{inviterName}</strong> vous invite à rejoindre <strong>{organizationName}</strong> sur {brandName}.",
+    "footnote": "Cette invitation expire dans 48 heures. Si vous ne l’attendiez pas, vous pouvez ignorer cet e-mail."
+  },
+  "workspaceAdded": {
+    "defaultWorkspace": "Espace de travail",
+    "defaultInviter": "Quelqu’un",
+    "preview": "Vous avez été ajouté à l’espace de travail « {workspaceName} » sur {brandName}",
+    "body": "<strong>{inviterName}</strong> vous a ajouté à l’espace de travail <strong>{workspaceName}</strong> sur {brandName}.",
+    "button": "Ouvrir l’espace de travail",
+    "footnote": "Si vous ne vous y attendiez pas, contactez un administrateur de l’espace de travail."
+  },
+  "workspaceInvitation": {
+    "defaultWorkspace": "Espace de travail",
+    "defaultInviter": "Quelqu’un",
+    "previewMultiple": "Vous êtes invité à rejoindre {count} espaces de travail sur {brandName} !",
+    "previewSingle": "Vous êtes invité à rejoindre l’espace de travail « {workspaceName} » sur {brandName} !",
+    "bodyMultiple": "<strong>{inviterName}</strong> vous invite à rejoindre les espaces de travail <workspaces></workspaces> sur {brandName}.",
+    "bodySingle": "<strong>{inviterName}</strong> vous invite à rejoindre l’espace de travail <workspaces></workspaces> sur {brandName}."
+  },
+  "credentialGroupInvitation": {
+    "previewFrom": "{inviterName} vous invite à connecter des comptes pour {workspaceName}",
+    "preview": "Vous êtes invité à connecter des comptes pour {workspaceName}",
+    "searchFrom": "<strong>{inviterName}</strong> invite <strong>{recipientEmail}</strong> à connecter votre compte {providerName} pour la recherche dans <strong>{workspaceName}</strong>.",
+    "search": "<strong>{recipientEmail}</strong> est invité à connecter votre compte {providerName} pour la recherche dans <strong>{workspaceName}</strong>.",
+    "groupFrom": "<strong>{inviterName}</strong> invite <strong>{recipientEmail}</strong> à connecter des comptes pour <strong>{groupName}</strong> dans l’espace de travail <strong>{workspaceName}</strong> sur {brandName}.",
+    "group": "<strong>{recipientEmail}</strong> est invité à connecter des comptes pour <strong>{groupName}</strong> dans l’espace de travail <strong>{workspaceName}</strong> sur {brandName}.",
+    "searchNote": "Il s’agit d’une demande de connexion de compte. Elle ne fait pas de vous un membre de l’organisation.",
+    "connectProvider": "Connecter {providerName}",
+    "connectAccounts": "Connecter les comptes",
+    "footnote": "Ce lien privé expire dans 7 jours. {brandName} vous redirigera vers chaque fournisseur pour vous connecter et ne vous demandera jamais le mot de passe de votre fournisseur. Si vous n’attendiez pas cette invitation, vous pouvez l’ignorer."
+  },
+  "permissionAccessRequest": {
+    "previewCreated": "Une demande d’accès attend votre examen sur {brandName}",
+    "previewDecided": "Votre demande d’accès a été mise à jour sur {brandName}",
+    "bodyCreated": "Une demande d’accès est en attente pour une organisation que vous administrez sur {brandName}. Connectez-vous pour l’examiner.",
+    "bodyDecided": "Votre demande d’accès sur {brandName} a été mise à jour. Connectez-vous pour consulter son statut.",
+    "review": "Examiner la demande",
+    "view": "Voir la demande"
+  },
+  "scheduleDisabled": {
+    "failedTimes": "Il a échoué {count} fois de suite.",
+    "preview": "{brandName} a désactivé la planification du workflow {resource}",
+    "previewUnnamed": "{brandName} a désactivé la planification d’un workflow",
+    "body": "{brandName} a désactivé la planification du workflow {resource}. Il ne s’exécutera plus tant que vous n’aurez pas corrigé le problème et réactivé sa planification.",
+    "bodyUnnamed": "{brandName} a désactivé la planification d’un workflow. Il ne s’exécutera plus tant que vous n’aurez pas corrigé le problème et réactivé sa planification.",
+    "reasonTitle": "Motif",
+    "openWorkflow": "Ouvrir le workflow",
+    "footnote": "Envoyé aux administrateurs de l’espace de travail et à la personne qui a créé cette planification.",
+    "reasons": {
+      "consecutive_failures": "Il a échoué trop de fois de suite.",
+      "authentication_error": "L’exécution n’a pas pu être authentifiée.",
+      "authorization_error": "L’exécution n’a pas été autorisée.",
+      "workflow_not_found": "Le workflow est introuvable.",
+      "invalid_schedule": "La planification n’est plus valide."
+    }
+  },
+  "subprocessorChange": {
+    "preview": "{brandName} modifie ses sous-traitants le {date}",
+    "intro": "Nous vous informons à l’avance d’un changement des sous-traitants auxquels {brandName} confie le traitement des données personnelles de ses clients. Ce changement prend effet le <strong>{date}</strong>.",
+    "purpose": "Finalité : {value}",
+    "dataProcessed": "Données traitées : {value}",
+    "location": "Lieu de traitement : {value}",
+    "effective": "Date d’effet : {date}",
+    "objection": "Si vous vous opposez à ce changement, répondez à cet e-mail ou écrivez à <link>{email}</link> avant le <strong>{deadline}</strong>. Nous chercherons une solution avec vous ; à défaut, vous pourrez résilier le service concerné.",
+    "noAction": "Aucune action n’est nécessaire si vous ne vous y opposez pas. La liste complète des sous-traitants est tenue à jour via le lien ci-dessous.",
+    "button": "Voir la liste des sous-traitants",
+    "footnote": "Envoyé aux clients abonnés aux avis de changement de sous-traitants.",
+    "manage": "<link>Gérer la réception de ces avis</link>.",
+    "changeTypes": {
+      "added": "Nouveau sous-traitant",
+      "replaced": "Sous-traitant de remplacement",
+      "removed": "Sous-traitant retiré"
+    }
+  },
+  "helpConfirmation": {
+    "preview": "Nous avons bien reçu votre {type}",
+    "body": "Nous avons bien reçu votre <strong>{type}</strong> et reviendrons vers vous rapidement.",
+    "attachments": "{count, plural, one {{count} image jointe} other {{count} images jointes}}.",
+    "submitted": "Envoyé le {date}.",
+    "types": {
+      "bug": "Signalement de bug",
+      "feedback": "Retour",
+      "feature_request": "Demande de fonctionnalité",
+      "other": "Demande d’information",
+      "default": "Demande"
+    }
+  },
+  "inbox": {
+    "viewConversation": "Voir toute la conversation",
+    "viewDetails": "Voir les détails",
+    "signoff": "Cordialement,",
+    "failed": "Je n’ai pas pu mener cette tâche à bien.",
+    "error": "Erreur : {error}"
+  }
+}
