@@ -107,9 +107,16 @@ cli "$h7" url; grep -q "http://localhost:3000" "$h7.out" && ok "url" || ko "url"
 
 # 8. Safe update: backup first, then update, quick smoke; on failure, previous images and data come back.
 fakebundle="$scratch/bundle"; mkdir -p "$fakebundle"
-printf '#!/usr/bin/env bash\necho "install.sh $*" >> "$FAKE_LOG"\nexit "${FAKE_UPDATE_EXIT:-0}"\n' > "$fakebundle/install.sh"
+# The fake release overwrites the installed package, as install.sh --update does.
+cat > "$fakebundle/install.sh" <<'EOF2'
+#!/usr/bin/env bash
+echo "install.sh $*" >> "$FAKE_LOG"
+echo "services: nouvelle-version" > "$NEXORA_HOME/deploy/compose.yml"
+exit "${FAKE_UPDATE_EXIT:-0}"
+EOF2
 updated_home() {
   local home; home="$(new_home)"; mkdir -p "$home/scripts"
+  echo "services: version-installée" > "$home/deploy/compose.yml"
   printf '#!/usr/bin/env bash\necho "smoke $*" >> "$FAKE_LOG"\nexit "${FAKE_SMOKE_EXIT:-0}"\n' > "$home/scripts/smoke.sh"
   chmod +x "$home/scripts/smoke.sh"; : > "$home.log"; echo "$home"
 }
@@ -138,6 +145,7 @@ FAKE_SMOKE_EXIT=1 update_cli "$h9" && ko "failed update reported" || ok "failed 
 grep -q "tag pgvector/pgvector:pg17-nexora-avant-maj pgvector/pgvector:pg17" "$h9.log" && ok "previous images restored" || ko "previous images restored"
 grep -q "volume rm -f nexora-t_postgres-data" "$h9.log" && ok "data restored from the backup" || ko "data restored from the backup"
 grep -qi "revenu" "$h9.out" && ok "says the previous version is back" || ko "says the previous version is back"
+grep -q "version-installée" "$h9/deploy/compose.yml" && ok "previous package files restored" || ko "previous package files restored ($(cat "$h9/deploy/compose.yml"))"
 
 h10="$(updated_home)"
 FAKE_UPDATE_EXIT=1 update_cli "$h10" && ko "update that cannot install reported" || ok "update that cannot install reported"

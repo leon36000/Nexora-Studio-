@@ -186,6 +186,9 @@ update() {
   for img in "${images[@]}"; do
     docker image inspect "$img" > /dev/null 2>&1 && docker tag "$img" "$(rollback_tag "$img")"
   done
+  # The package itself (compose, scripts, this command) comes back too on a rollback.
+  local package; package="$(new_tmp)"
+  cp -a "$NEXORA_HOME/deploy" "$NEXORA_HOME/scripts" "$package/"
   echo "Mise à jour…"
   if install_update && smoke_run --quick; then
     echo "Mise à jour terminée et vérifiée. Sauvegarde d'avant la mise à jour : $LAST_BACKUP"
@@ -194,6 +197,12 @@ update() {
   echo "La mise à jour a échoué : retour à la version précédente…" >&2
   for img in "${images[@]}"; do
     docker image inspect "$(rollback_tag "$img")" > /dev/null 2>&1 && docker tag "$(rollback_tag "$img")" "$img"
+  done
+  local dir
+  for dir in deploy scripts; do
+    # New files rather than rewriting in place: this very script is one of them.
+    rm -rf "${NEXORA_HOME:?}/$dir.nexora-maj" && mv "$NEXORA_HOME/$dir" "$NEXORA_HOME/$dir.nexora-maj"
+    cp -a "$package/$dir" "$NEXORA_HOME/$dir" && rm -rf "$NEXORA_HOME/$dir.nexora-maj"
   done
   restore "$LAST_BACKUP"
   echo "La version précédente est revenue, avec les données d'avant la mise à jour." >&2
@@ -242,6 +251,8 @@ status() {
   echo "Dernière sauvegarde : ${last:-aucune (nexora backup)}"
 }
 
+# One block, read whole before it runs: an update may replace this file while it executes.
+{
 case "${1:-help}" in
   start) compose up -d ;;
   stop) compose stop ;;
@@ -264,3 +275,5 @@ case "${1:-help}" in
   *)
     echo "Usage : nexora start|stop|restart|status|logs [service]|url|open|smoke|backup [--schedule quotidien|off]|restore <archive>|update|uninstall [--purge]" ;;
 esac
+exit $?
+}
