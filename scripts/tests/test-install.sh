@@ -178,6 +178,22 @@ grep -q "ollama pull bge-m3" "$h3.log" && grep -q "ollama pull $(envval NEXORA_U
 NEXORA_HEALTH_TIMEOUT=5 FAKE_OLLAMA_PULL_EXIT=1 run "$h3" --update && ok "offline update keeps the downloaded models" || { ko "offline update keeps the downloaded models"; cat "$h3.out"; }
 NEXORA_HEALTH_TIMEOUT=5 FAKE_OLLAMA_PULL_EXIT=1 FAKE_OLLAMA_SHOW_EXIT=1 run "$h3" --update && ko "a missing model without network is an error" || ok "a missing model without network is an error"
 
+# 5e'. An update whose new images cannot be downloaded fails (nexora update then puts the previous
+# version back) instead of running the old images under the new package files.
+: > "$h3.log"
+NEXORA_HEALTH_TIMEOUT=5 FAKE_PULL_EXIT=1 FAKE_LOCAL_EXIT=0 run "$h3" --update && ko "update without new images fails" || ok "update without new images fails"
+grep -q " up " "$h3.log" && ko "nothing started with the old images" || ok "nothing started with the old images"
+grep -qi "images" "$h3.out" && ok "says the new images are missing" || ko "says the new images are missing ($(tail -1 "$h3.out"))"
+
+# 5e''. A from-source install rebuilds from refreshed sources at each update.
+hb="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_HEALTH_TIMEOUT=5 run "$hb" --yes --from-source && ok "from-source install" || { ko "from-source install"; cat "$hb.out"; }
+: > "$hb/workstudio/fichier-perime.txt"; : > "$hb.log"
+NEXORA_HEALTH_TIMEOUT=5 run "$hb" --update && ok "from-source update" || { ko "from-source update"; cat "$hb.out"; }
+[ ! -e "$hb/workstudio/fichier-perime.txt" ] && [ -d "$hb/workstudio" ] && ok "sources refreshed before building" || ko "sources refreshed before building"
+grep -q -- "up -d --build" "$hb.log" && ok "update rebuilds the images" || ko "update rebuilds the images"
+
 # 5f. Values with $ or # (SMTP password, API key) reach Docker Compose unchanged.
 hq="$(new_home)/nexora"
 NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY='k$ey #1' \

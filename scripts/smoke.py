@@ -93,7 +93,9 @@ def require(condition: bool, message: str):
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://localhost:3000")
-    parser.add_argument("--quick", action="store_true", help="essential checks only (after an update)")
+    parser.add_argument("--quick", action="store_true",
+                        help="essential checks only; still signs up a throwaway account and leaves it with its workspace "
+                             "(refused when sign-up is restricted). The account-free check after an update is « nexora check ».")
     parser.add_argument("--report")
     parser.add_argument("--origin", help="public address WorkStudio trusts, when --url is its local port")
     parser.add_argument("--only", help="run only the checks whose name contains this text (plus sign-up and workspace)")
@@ -571,8 +573,9 @@ def main() -> int:
             s.call("DELETE", f"/api/workflows/{wf}")
 
     if args.quick:
-        # After an update: the platform answers in French, a workspace gets its templates, a
-        # template runs through the model. Needs no admin credentials.
+        # On demand (operators): the platform answers in French, a workspace gets its templates, a
+        # template runs through the model. Needs no admin credentials, but signs up an account:
+        # `nexora update` and `nexora restore` use the account-free `nexora check` instead.
         s.check("Inscription d'un compte", signup)
         s.check("Interface en français, sans marque tierce", french_ui)
         s.check("Nouvel espace avec les modèles PME", workspace_with_templates)

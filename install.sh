@@ -5,7 +5,7 @@
 # Vérifie Docker, télécharge le paquet de déploiement dans ~/nexora, pose quelques questions
 # (organisation, votre adresse, modèle de langage), génère les secrets, démarre la plateforme
 # avec les images publiées (repli : construction depuis les sources) et installe la commande
-# `nexora` (start, stop, status, logs, update, smoke, uninstall).
+# `nexora` (start, stop, status, logs, check, backup, restore, update, https, uninstall).
 #
 # Options :
 #   --yes          aucune question : valeurs lues dans l'environnement (NEXORA_ORGANIZATION_NAME,
@@ -140,6 +140,10 @@ fetch_bundle() {
 
 fetch_sources() {
   step "Sources de Nexora (construction locale des images)"
+  # Fresh sources every time (an update must not build a mix of old and new files).
+  if [ -n "$NEXORA_BUNDLE" ] && [ "$(cd "$NEXORA_BUNDLE" && pwd -P)" != "$(cd "$NEXORA_HOME" && pwd -P)" ]; then
+    rm -rf "$NEXORA_HOME/workstudio" "$NEXORA_HOME/services"
+  fi
   if [ -n "$NEXORA_BUNDLE" ] && git -C "$NEXORA_BUNDLE" rev-parse --git-dir > /dev/null 2>&1; then
     git -C "$NEXORA_BUNDLE" archive HEAD workstudio services | tar -x -C "$NEXORA_HOME"
   elif [ -n "$NEXORA_BUNDLE" ]; then
@@ -339,10 +343,14 @@ start() {
   step "Démarrage de Nexora"
   local up=(up -d)
   if [ "$(get_env NEXORA_IMAGE_PREFIX)" = "nexora/" ]; then
-    [ -d "$NEXORA_HOME/workstudio" ] || fetch_sources
+    # Built here: an update rebuilds from refreshed sources.
+    if [ "$UPDATE" -eq 1 ] || [ ! -d "$NEXORA_HOME/workstudio" ]; then fetch_sources; fi
     up+=(--build)
   elif compose pull; then
     :
+  elif [ "$UPDATE" -eq 1 ]; then
+    # Running the old images under the new package files would be neither version.
+    die "Les nouvelles images n'ont pas pu être téléchargées (connexion ou registre) : mise à jour interrompue, rien n'a été démarré."
   elif images_present; then
     warn "Images publiées injoignables : utilisation des images déjà présentes sur cette machine."
     up+=(--pull never)
@@ -392,7 +400,7 @@ main() {
   start
   step "${G}Nexora est prêt${N}"
   info "Ouvrez $(get_env NEXORA_PUBLIC_URL) et créez votre compte avec $(get_env NEXORA_ORGANIZATION_OWNER_EMAIL)."
-  info "Commandes : nexora status | logs | update | smoke | uninstall"
+  info "Commandes : nexora status | check | logs | backup | update | uninstall"
 }
 
 main
