@@ -73,9 +73,9 @@
 - Create: `workstudio/apps/sim/hooks/queries/nexora-home.ts`
 - Create: `workstudio/apps/sim/messages/{fr,en}/home.json` (zone enregistrée dans `i18n/messages.ts`)
 
-- [ ] **Step 1:** Cartes **Créer** (Workflow ; Agent = workflow pré-rempli Chat → Agent `vllm/nexora-default` → Réponse), **Démarrages rapides** (modèles PME du dossier, Inviter l'équipe, Connecter un outil), **État** (modèle par défaut, consommation du mois pour admin, 5 dernières exécutions), panneau **Premier lancement** (5 étapes, « Plus tard », rouvrable ; étape 5 exécute « Devis client » avec ses exemples et affiche le résultat).
-- [ ] **Step 2: Run** `bun run type-check`, `bun run check:audits`, `check-i18n.sh`, `check-brand.sh` — Expected: PASS.
-- [ ] **Step 3: Commit** `feat(j3): Accueil Nexora et premier lancement`.
+- [x] **Step 1:** Cartes **Créer** (Workflow ; Agent = workflow pré-rempli Chat → Agent `vllm/nexora-default` → Réponse), **Démarrages rapides** (modèles PME du dossier, Inviter l'équipe, Connecter un outil), **État** (modèle par défaut, consommation du mois pour admin, 5 dernières exécutions), panneau **Premier lancement** (5 étapes, « Plus tard », rouvrable ; étape 5 exécute « Devis client » avec ses exemples et affiche le résultat).
+- [x] **Step 2: Run** `bun run type-check`, `bun run check:audits`, `check-i18n.sh`, `check-brand.sh` — Expected: PASS.
+- [x] **Step 3: Commit** `feat(j3): Accueil Nexora et premier lancement`.
 
 ### Task 5: Guide, fumée, pc6, revue
 

@@ -22,6 +22,7 @@ import {
   type RosterWorkspaceAccess,
   removeOrganizationMemberContract,
   transferOwnershipContract,
+  updateOrganizationContract,
   updateOrganizationMemberRoleContract,
   updateOrganizationMemberUsageLimitContract,
   updateOrganizationUsageLimitContract,
@@ -468,6 +469,25 @@ type CreateOrganizationParams = Pick<
   'slug'
 > & {
   name: string
+}
+
+interface UpdateOrganizationParams {
+  organizationId: string
+  name: string
+}
+
+/** Renames an organization (owners and admins). */
+export function useUpdateOrganization() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ organizationId, name }: UpdateOrganizationParams) =>
+      requestJson(updateOrganizationContract, { params: { id: organizationId }, body: { name } }),
+    onSuccess: (_data, { organizationId }) => {
+      queryClient.invalidateQueries({ queryKey: organizationKeys.detail(organizationId) })
+      queryClient.invalidateQueries({ queryKey: organizationKeys.lists() })
+    },
+  })
 }
 
 export function useCreateOrganization() {

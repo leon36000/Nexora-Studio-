@@ -5,13 +5,12 @@ import type { CreateFolderParams, FolderMutationResult } from '@/lib/folders/orc
 import {
   buildTemplateWorkflow,
   NEXORA_TEMPLATES,
+  NEXORA_TEMPLATES_FOLDER,
   resolveTemplateModel,
 } from '@/lib/nexora/templates'
 import type { ImportWorkflowParams } from '@/lib/workflows/operations/import-workflow'
 
 const logger = createLogger('NexoraTemplates')
-
-export const NEXORA_TEMPLATES_FOLDER = 'Modèles PME'
 
 interface Dependencies {
   createFolder: (params: CreateFolderParams) => Promise<FolderMutationResult>

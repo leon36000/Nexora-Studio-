@@ -929,6 +929,27 @@ export const cancelWorkflowExecutionContract = defineRouteContract({
   },
 })
 
+/**
+ * A synchronous run (`stream: false`, no async header) of a workflow without a Response block:
+ * the route answers with the run's final output. The route itself is a raw handler that validates
+ * with {@link executeWorkflowBodySchema}; this contract types the same-origin JSON caller.
+ */
+export const executeWorkflowSyncContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/workflows/[id]/execute',
+  params: workflowIdParamsSchema,
+  body: executeWorkflowBodySchema,
+  response: {
+    mode: 'json',
+    schema: z.object({
+      success: z.boolean(),
+      executionId: z.string().optional(),
+      output: z.unknown().optional(),
+      error: z.string().optional(),
+    }),
+  },
+})
+
 export const getWorkflowExecutionContract = defineRouteContract({
   method: 'GET',
   path: '/api/workflows/[id]/executions/[executionId]',

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { NEXORA_TEMPLATES_FOLDER, seedNexoraTemplates } from '@/lib/nexora/seed-templates'
-import { NEXORA_TEMPLATES } from '@/lib/nexora/templates'
+import { seedNexoraTemplates } from '@/lib/nexora/seed-templates'
+import { NEXORA_TEMPLATES, NEXORA_TEMPLATES_FOLDER } from '@/lib/nexora/templates'
 
 const workspace = { workspaceId: 'ws-1', userId: 'user-1' }
 

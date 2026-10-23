@@ -12,6 +12,7 @@ export const NEXORA_GUIDE_PAGE_BASE =
  * matching prefix wins; `{last}` is replaced by the path's last segment (a block anchor).
  */
 const GUIDE_PAGES: ReadonlyArray<readonly [prefix: string, page: string]> = [
+  ['/getting-started', 'prise-en-main.md'],
   ['/workflows/blocks/', 'blocs.md#{last}'],
   ['/workflows/triggers', 'blocs.md#declencheurs'],
   ['/workflows/deployment', 'workflows.md#deployer'],

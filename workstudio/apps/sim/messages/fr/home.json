@@ -1,6 +1,78 @@
 {
   "nexoraHome": {
-    "title": "Accueil",
-    "metaTitle": "Accueil"
+    "metaTitle": "Accueil",
+    "greeting": "Bonjour {name}",
+    "greetingWithoutName": "Bonjour",
+    "subtitle": "Créez, lancez et suivez le travail de votre équipe.",
+    "help": "Aide",
+    "create": {
+      "label": "Créer",
+      "workflow": "Workflow",
+      "agent": "Agent",
+      "agentName": "Nouvel agent",
+      "agentFailed": "L’agent n’a pas pu être créé."
+    },
+    "quickStarts": {
+      "label": "Démarrages rapides",
+      "invite": "Inviter l’équipe",
+      "connect": "Connecter un outil"
+    },
+    "status": {
+      "label": "État de la plateforme",
+      "defaultModel": "Modèle par défaut",
+      "unavailable": "indisponible",
+      "usage": "Consommation sur 30 jours",
+      "usageValue": "{requests, plural, one {# requête} other {# requêtes}} · {tokens, plural, one {# jeton} other {# jetons}}",
+      "recentRuns": "Dernières exécutions",
+      "noRuns": "Aucune exécution pour l’instant",
+      "deletedWorkflow": "Workflow supprimé",
+      "runStatus": {
+        "success": "Réussie",
+        "error": "Échec",
+        "running": "En cours",
+        "cancelled": "Annulée"
+      }
+    },
+    "onboarding": {
+      "title": "Premier lancement",
+      "progress": "{done} sur {total} étapes",
+      "later": "Plus tard",
+      "close": "Fermer",
+      "resume": "Reprendre le premier lancement",
+      "markDone": "Marquer comme fait",
+      "saveFailed": "La progression n’a pas pu être enregistrée.",
+      "steps": {
+        "organization": {
+          "title": "Votre organisation",
+          "name": "Nom de l’organisation",
+          "save": "Enregistrer",
+          "saved": "Organisation renommée",
+          "failed": "Le nom n’a pas pu être enregistré."
+        },
+        "model": {
+          "title": "Votre modèle",
+          "current": "Modèle par défaut : {name}",
+          "manage": "Gérer les modèles"
+        },
+        "team": {
+          "title": "Votre équipe",
+          "invite": "Inviter des collègues",
+          "linkHint": "Sans service d’e-mail, copiez le lien d’invitation depuis Réglages › Collaborateurs.",
+          "teammates": "Ouvrir Collaborateurs"
+        },
+        "tools": {
+          "title": "Vos outils",
+          "open": "Ouvrir Nexora Connect"
+        },
+        "first-run": {
+          "title": "Premier résultat",
+          "run": "Générer un devis d’exemple",
+          "running": "Génération en cours…",
+          "missing": "Le modèle « {template} » est introuvable dans le dossier « {folder} ».",
+          "failed": "Le devis n’a pas pu être généré : {error}",
+          "empty": "Le workflow n’a renvoyé aucun texte."
+        }
+      }
+    }
   }
 }

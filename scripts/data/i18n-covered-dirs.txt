@@ -32,3 +32,5 @@ workstudio/apps/sim/components/emails
 workstudio/apps/sim/app/workspace/[workspaceId]/skills
 workstudio/apps/sim/ee/_nexora
 workstudio/apps/sim/app/(interfaces)/components
+# J3 Accueil Nexora
+workstudio/apps/sim/app/workspace/[workspaceId]/home/nexora-home

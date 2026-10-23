@@ -1,6 +1,78 @@
 {
   "nexoraHome": {
-    "title": "Home",
-    "metaTitle": "Home"
+    "metaTitle": "Home",
+    "greeting": "Hello {name}",
+    "greetingWithoutName": "Hello",
+    "subtitle": "Create, run and follow your team's work.",
+    "help": "Help",
+    "create": {
+      "label": "Create",
+      "workflow": "Workflow",
+      "agent": "Agent",
+      "agentName": "New agent",
+      "agentFailed": "The agent could not be created."
+    },
+    "quickStarts": {
+      "label": "Quick starts",
+      "invite": "Invite your team",
+      "connect": "Connect a tool"
+    },
+    "status": {
+      "label": "Platform status",
+      "defaultModel": "Default model",
+      "unavailable": "unavailable",
+      "usage": "Usage over 30 days",
+      "usageValue": "{requests, plural, one {# request} other {# requests}} · {tokens, plural, one {# token} other {# tokens}}",
+      "recentRuns": "Recent runs",
+      "noRuns": "No runs yet",
+      "deletedWorkflow": "Deleted workflow",
+      "runStatus": {
+        "success": "Succeeded",
+        "error": "Failed",
+        "running": "Running",
+        "cancelled": "Cancelled"
+      }
+    },
+    "onboarding": {
+      "title": "First launch",
+      "progress": "{done} of {total} steps",
+      "later": "Later",
+      "close": "Close",
+      "resume": "Resume the first launch",
+      "markDone": "Mark as done",
+      "saveFailed": "Progress could not be saved.",
+      "steps": {
+        "organization": {
+          "title": "Your organization",
+          "name": "Organization name",
+          "save": "Save",
+          "saved": "Organization renamed",
+          "failed": "The name could not be saved."
+        },
+        "model": {
+          "title": "Your model",
+          "current": "Default model: {name}",
+          "manage": "Manage models"
+        },
+        "team": {
+          "title": "Your team",
+          "invite": "Invite teammates",
+          "linkHint": "Without an e-mail service, copy the invitation link from Settings › Teammates.",
+          "teammates": "Open Teammates"
+        },
+        "tools": {
+          "title": "Your tools",
+          "open": "Open Nexora Connect"
+        },
+        "first-run": {
+          "title": "First result",
+          "run": "Generate a sample quote",
+          "running": "Generating…",
+          "missing": "The “{template}” template is missing from the “{folder}” folder.",
+          "failed": "The quote could not be generated: {error}",
+          "empty": "The workflow returned no text."
+        }
+      }
+    }
   }
 }

@@ -26,6 +26,9 @@ export interface NexoraTemplate {
 const STYLE =
   'Vous écrivez pour une PME française : français professionnel, vouvoiement, phrases courtes, aucune information inventée. Si une donnée manque, signalez-la entre crochets.'
 
+/** The workspace folder that holds the SME templates (created with every new workspace). */
+export const NEXORA_TEMPLATES_FOLDER = 'Modèles PME'
+
 /** Nexora edition: ready-to-run workflows for the everyday work of a French SME. */
 export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   {
