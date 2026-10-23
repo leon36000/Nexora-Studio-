@@ -96,13 +96,19 @@ const EXAMPLE_TRIAGE = {
       name: 'est_urgent',
       if: { ref: 'tri.urgence', operator: 'egal', value: 'haute' },
       then: ['alerte'],
-      else: [],
+      else: ['accuse_reception'],
     },
     {
       kind: 'agent',
       name: 'alerte',
       instructions: "Vous prévenez l'équipe des demandes urgentes.",
       message: 'Rédigez une alerte courte pour cet e-mail urgent : {{declencheur.email}}',
+    },
+    {
+      kind: 'agent',
+      name: 'accuse_reception',
+      instructions: 'Vous accusez réception des e-mails reçus par une PME.',
+      message: 'Rédigez un accusé de réception pour cet e-mail : {{declencheur.email}}',
     },
   ],
 }
@@ -112,21 +118,23 @@ const STEP_LANGUAGE = `Forme du plan :
 
 Déclencheur ("trigger", selon "kind") :
 - {"kind":"manuel","fields":[{"name":"email","description":"E-mail reçu"}]} : lancé à la main avec des champs d'entrée (ni "input" ni "files").
-- {"kind":"planification","frequency":"minutes|heure|jour|semaine|mois","interval":15,"time":"09:00","weekday":"lundi","dayOfMonth":1} : ne mettez que les champs utiles à la fréquence ("interval" pour minutes et heure, "weekday" de lundi à dimanche, "dayOfMonth" de 1 à 28).
+- {"kind":"planification","frequency":"minutes|heure|jour|semaine|mois","interval":15,"time":"09:00","weekday":"lundi","dayOfMonth":1} : ne mettez que les champs utiles à la fréquence ("interval" pour minutes et heure, "weekday" de lundi à dimanche, "dayOfMonth" de 1 à 28). Une planification ne transmet aucune donnée : jamais de {{declencheur.…}} avec elle.
 - {"kind":"webhook"} : appel HTTP entrant ; ses données se lisent {{declencheur.<champ>}}.
-- {"kind":"chat"} : message reçu dans un chat, lu avec {{declencheur.input}}.
+- {"kind":"chat"} : message reçu dans un chat, lu avec {{declencheur.input}} (aucun autre champ).
 
 Étapes ("steps", 12 au plus, exécutées dans l'ordre ; chaque "name" est unique, en snake_case : minuscules, chiffres et _) :
 - agent : {"kind":"agent","name":"…","instructions":"rôle et consignes","message":"ce que l'agent reçoit","services":["service connecté"],"knowledgeBases":["base de l'espace"],"output":{"fields":[{"name":"…","type":"string|number|boolean"}]}} ; "services", "knowledgeBases" et "output" sont facultatifs ; sortie {{nom.content}}, ou chaque champ de "output".
-- condition : {"kind":"condition","name":"…","if":{"ref":"etape.champ","operator":"contient|egal|different|superieur|inferieur|vide|non_vide","value":"…"},"then":["étapes si vrai"],"else":["étapes sinon"]} ; les étapes des branches viennent après la condition dans "steps", la suite est commune.
+- condition : {"kind":"condition","name":"…","if":{"ref":"etape.champ","operator":"contient|egal|different|superieur|inferieur|vide|non_vide","value":"…"},"then":["étapes si vrai"],"else":["étapes sinon"]} ; "then" et "else" sont des listes de noms d'étapes, jamais des étapes : chaque étape d'une branche est écrite dans "steps", après la condition ; la suite est commune. Pas de condition dans une branche.
 - api : {"kind":"api","name":"…","method":"GET|POST|PUT|PATCH|DELETE","url":"https://…","body":{…}} ; sorties data et status.
 - attente : {"kind":"attente","name":"…","seconds":60} (de 1 à 86400).
-- validation_humaine : {"kind":"validation_humaine","name":"…","message":"ce que la personne valide"} ; sorties response et submission.
+- validation_humaine : {"kind":"validation_humaine","name":"…","message":"ce que la personne valide"} ; met le workflow en pause jusqu'à la réponse ; sorties approuve (true ou false) et commentaire.
 - reponse : {"kind":"reponse","name":"…","fields":[{"name":"…","value":"…"}]} : ce que le workflow renvoie.
 
 Noms (étapes, champs du déclencheur, champs de "output" et de "reponse") : snake_case ASCII, sans accents ni espaces, par exemple "resume_du_texte" et jamais "Résumé du texte". Types des champs de "output" : "string", "number" ou "boolean", rien d'autre.
 
-Références : dans un texte, {{nom_etape.champ}} lit la sortie d'une étape précédente et {{declencheur.champ}} une donnée du déclencheur ; aucune autre forme n'existe. Une étape ne lit que des étapes qui s'exécutent toujours avant elle. Noms d'étape interdits : declencheur, start, webhook, planification, loop, parallel, variable.`
+N'ajoutez ni condition ni validation que la description ne demande pas.
+
+Références : dans un texte, {{nom_etape.champ}} lit la sortie d'une étape précédente (nom_etape est son "name", jamais son "kind") et {{declencheur.champ}} une donnée du déclencheur ; aucune autre forme n'existe. Une étape ne lit que des étapes qui s'exécutent toujours avant elle. Noms d'étape interdits : declencheur, start, webhook, planification, loop, parallel, variable.`
 
 function listedNames(names: readonly string[]): string {
   return names
@@ -280,14 +288,16 @@ function checkAnswer(answer: string, context: CompileContext): Attempt {
         "La réponse ne contient pas d'objet JSON complet (réponse vide, tronquée ou sans accolades).",
     }
   }
-  const parsed = copilotPlanSchema.safeParse(normalizePlanCandidate(candidate))
+  const normalized = normalizePlanCandidate(candidate)
+  const parsed = copilotPlanSchema.safeParse(normalized.plan)
   if (!parsed.success) {
     return {
       error: parsed.error.issues.slice(0, MAX_REPORTED_ISSUES).map(describeIssue).join('\n'),
     }
   }
   try {
-    return { plan: parsed.data, warnings: compilePlan(parsed.data, context).warnings }
+    const { warnings } = compilePlan(parsed.data, context)
+    return { plan: parsed.data, warnings: [...normalized.warnings, ...warnings] }
   } catch (error) {
     if (error instanceof CopilotPlanError) return { error: error.detail }
     throw error

@@ -93,6 +93,11 @@ const TRIGGER_BLOCKS = {
 } as const
 
 const START_OUTPUTS = ['input', 'conversationId', 'files']
+/** The form a human validation asks for; once submitted, each field is an output of the step. */
+const APPROVAL_FORM = [
+  { name: 'approuve', type: 'boolean', description: 'Approuvez-vous ?' },
+  { name: 'commentaire', type: 'string', description: 'Commentaire' },
+] as const
 const AGENT_METADATA_OUTPUTS = ['model', 'tokens', 'toolCalls']
 
 /** What a later step may read from each kind of step (first path segment). */
@@ -110,7 +115,15 @@ function stepOutputs(step: CopilotStep): string[] {
     case 'attente':
       return ['waitDuration', 'status', 'resumeAt']
     case 'validation_humaine':
-      return ['url', 'resumeEndpoint', 'response', 'submission', 'resumeInput', 'submittedAt']
+      return [
+        'url',
+        'resumeEndpoint',
+        'response',
+        'submission',
+        'resumeInput',
+        'submittedAt',
+        ...APPROVAL_FORM.map((field) => field.name),
+      ]
     case 'reponse':
       return ['data', 'status', 'headers']
   }
@@ -674,10 +687,11 @@ function stepSubBlocks(
           builderField('message', refs.text(step.message, step.name)),
         ]),
         sub('notification', 'tool-input', []),
-        sub('inputFormat', 'input-format', [
-          inputFormatField('approuve', 'boolean', 'Approuvez-vous ?'),
-          inputFormatField('commentaire', 'string', 'Commentaire'),
-        ]),
+        sub(
+          'inputFormat',
+          'input-format',
+          APPROVAL_FORM.map((field) => inputFormatField(field.name, field.type, field.description))
+        ),
       ]
     case 'reponse':
       return [

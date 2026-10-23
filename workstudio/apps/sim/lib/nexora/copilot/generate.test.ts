@@ -6,6 +6,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { CompileContext } from '@/lib/nexora/copilot/compile'
 import { CopilotGenerationError, generatePlan } from '@/lib/nexora/copilot/generate'
+import {
+  AGENT_FIELD_WITHOUT_OUTPUT,
+  CHAT_FIELDS_AND_KIND_REFERENCE,
+  SCHEDULE_READING_TRIGGER,
+  STEPS_INSIDE_BRANCHES,
+  STEPS_READ_THROUGH_TRIGGER,
+  VALIDATION_WITH_DECLARED_OUTPUT,
+} from '@/lib/nexora/copilot/model-answers.fixtures'
 import { copilotPlanSchema } from '@/lib/nexora/copilot/plan'
 import {
   NexoraWandRejectedError,
@@ -150,6 +158,30 @@ describe('generatePlan', () => {
       name: 'reponse_finale',
       fields: [{ name: 'resume', value: '{{resumer_le_texte.resume}}' }],
     })
+  })
+
+  it.each([
+    ['a schedule read as trigger data', SCHEDULE_READING_TRIGGER],
+    ['steps written inside the branches', STEPS_INSIDE_BRANCHES],
+    ['chat fields and a step read by its kind', CHAT_FIELDS_AND_KIND_REFERENCE],
+    ['an output declared on a human validation', VALIDATION_WITH_DECLARED_OUTPUT],
+    ['steps read through the trigger', STEPS_READ_THROUGH_TRIGGER],
+    ['a field read from an agent without output', AGENT_FIELD_WITHOUT_OUTPUT],
+  ])('accepts the plan qwen2.5:7b wrote with %s, without spending the retry', async (_, answer) => {
+    const { complete } = scriptedModel(JSON.stringify(answer))
+
+    const result = await generatePlan({ description: 'Automatiser', context, complete })
+
+    expect(complete).toHaveBeenCalledTimes(1)
+    expect(result.summary).toHaveLength(result.plan.steps.length + 1)
+  })
+
+  it('shows what the repairs removed among the warnings', async () => {
+    const { complete } = scriptedModel(JSON.stringify(SCHEDULE_READING_TRIGGER))
+
+    const result = await generatePlan({ description: 'Relancer', context, complete })
+
+    expect(result.warnings).toContainEqual(expect.stringContaining('{{declencheur.email}}'))
   })
 
   it('teaches snake_case names and the allowed output types in the prompt', async () => {

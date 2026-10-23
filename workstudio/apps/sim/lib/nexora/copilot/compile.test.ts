@@ -367,6 +367,39 @@ describe('compilePlan conditions', () => {
     expect(ok(rule.value), rule.value).toBe(true)
   })
 
+  it('branches on the approval the person gave in a human validation', () => {
+    const { state } = compile(
+      manualPlan([
+        agent('compte_rendu', 'Rédigez le compte rendu de {{declencheur.email}}'),
+        {
+          kind: 'validation_humaine',
+          name: 'accord',
+          message: 'Valider {{compte_rendu.content}} ?',
+        },
+        {
+          kind: 'condition',
+          name: 'est_valide',
+          if: { ref: 'accord.approuve', operator: 'egal', value: true },
+          then: ['envoi'],
+          else: [],
+        },
+        {
+          kind: 'reponse',
+          name: 'envoi',
+          fields: [
+            { name: 'texte', value: '{{compte_rendu.content}}' },
+            { name: 'avis', value: '{{accord.commentaire}}' },
+          ],
+        },
+      ])
+    )
+    const [rule] = JSON.parse(String(value(state, 'est_valide', 'conditions')))
+    expect(rule.value).toContain('<accord.approuve>')
+    expect(value(state, 'envoi', 'builderData')).toContainEqual(
+      expect.objectContaining({ name: 'avis', value: '<accord.commentaire>' })
+    )
+  })
+
   it('keeps a quote in the compared value from breaking out of the expression', () => {
     const steps = conditionPlan.steps.map((step) =>
       step.kind === 'condition'
