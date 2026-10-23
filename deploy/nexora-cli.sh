@@ -23,6 +23,16 @@ new_tmp() { local d; d="$(mktemp -d)"; chmod 700 "$d"; TMP_DIRS+=("$d"); echo "$
 compose() { docker compose -p "$NEXORA_PROJECT" -f "$NEXORA_HOME/deploy/compose.yml" --env-file "$ENV_FILE" "$@"; }
 die() { echo "nexora : $*" >&2; exit 1; }
 url() { grep -E '^NEXORA_PUBLIC_URL=' "$ENV_FILE" | tail -1 | cut -d= -f2- | sed "s/^'//; s/'\$//"; }
+# The smoke test talks to WorkStudio's local port and declares the public address as its origin:
+# behind HTTPS with an internal certificate the public address is not trusted from this machine.
+smoke_run() {
+  local port; port="$(env_value NEXORA_WORKSTUDIO_PORT)"
+  if [ -n "$port" ]; then
+    "$NEXORA_HOME/scripts/smoke.sh" "http://127.0.0.1:$port" "$@" "--origin=$(url)"
+  else
+    "$NEXORA_HOME/scripts/smoke.sh" "$(url)" "$@"
+  fi
+}
 env_value() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed "s/^'//; s/'\$//"; }
 
 # The passphrase comes from NEXORA_BACKUP_PASSPHRASE or is typed (twice for a new backup).
@@ -177,7 +187,7 @@ update() {
     docker image inspect "$img" > /dev/null 2>&1 && docker tag "$img" "$(rollback_tag "$img")"
   done
   echo "Mise à jour…"
-  if install_update && "$NEXORA_HOME/scripts/smoke.sh" "$(url)" --quick; then
+  if install_update && smoke_run --quick; then
     echo "Mise à jour terminée et vérifiée. Sauvegarde d'avant la mise à jour : $LAST_BACKUP"
     return 0
   fi
@@ -240,7 +250,7 @@ case "${1:-help}" in
   logs) shift; compose logs -f --tail=200 "$@" ;;
   url) url ;;
   open) command -v xdg-open > /dev/null && xdg-open "$(url)" || open "$(url)" ;;
-  smoke) shift; "$NEXORA_HOME/scripts/smoke.sh" "$(url)" "$@" ;;
+  smoke) shift; smoke_run "$@" ;;
   backup)
     case "${2:-}" in
       --schedule) schedule_backup "${3:-}" ;;

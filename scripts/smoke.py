@@ -30,10 +30,18 @@ TEMPLATE_INPUTS = {
 }
 
 
+class _LocalSecureCookies(http.cookiejar.DefaultCookiePolicy):
+    def return_ok_secure(self, cookie, request):
+        return True
+
+
 class Smoke:
-    def __init__(self, url: str):
+    def __init__(self, url: str, origin: str | None = None):
         self.url = url.rstrip("/")
-        self.jar = http.cookiejar.CookieJar()
+        self.origin = (origin or url).rstrip("/")
+        # Talking to the local port of an HTTPS instance: its Secure session cookie must come back over http.
+        local_https = self.origin.startswith("https://") and self.url.startswith("http://")
+        self.jar = http.cookiejar.CookieJar(policy=_LocalSecureCookies() if local_https else None)
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
         self.results: list[dict] = []
 
@@ -45,7 +53,7 @@ class Smoke:
         request.add_header("Content-Type", content_type)
         for name, value in (headers or {}).items():
             request.add_header(name, value)
-        request.add_header("Origin", self.url)
+        request.add_header("Origin", self.origin)
         request.add_header("Accept-Language", "fr-FR,fr;q=0.9")
         try:
             with self.opener.open(request, timeout=timeout) as response:
@@ -87,9 +95,10 @@ def main() -> int:
     parser.add_argument("--url", default="http://localhost:3000")
     parser.add_argument("--quick", action="store_true", help="essential checks only (after an update)")
     parser.add_argument("--report")
+    parser.add_argument("--origin", help="public address WorkStudio trusts, when --url is its local port")
     parser.add_argument("--only", help="run only the checks whose name contains this text (plus sign-up and workspace)")
     args = parser.parse_args()
-    s = Smoke(args.url)
+    s = Smoke(args.url, args.origin)
     s.only = args.only
     email = f"smoke-{secrets.token_hex(4)}@nexora.test"
     password = secrets.token_hex(16)
@@ -230,7 +239,7 @@ def main() -> int:
             require(status == 201, f"answer storage returned HTTP {status}")
             _, detail = s.call("GET", path)
             require([m["role"] for m in detail.get("messages", [])] == ["user", "assistant"], f"history not kept: {str(detail)[:200]}")
-            status, _ = Smoke(args.url).call("POST", f"/api/chat/{agent['chatIdentifier']}", {"input": question}, raw=True)
+            status, _ = Smoke(args.url, args.origin).call("POST", f"/api/chat/{agent['chatIdentifier']}", {"input": question}, raw=True)
             require(status in (401, 403), f"members-only chat answered an anonymous visitor (HTTP {status})")
             admin_organization()
             status, _ = admin.call("GET", path)
@@ -360,7 +369,7 @@ def main() -> int:
         require(body["totals"]["requests"] > 0, "no request metered by Nexora API")
         return f"{body['totals']['requests']} requêtes, {body['totals']['totalTokens']} jetons"
 
-    admin = Smoke(args.url)
+    admin = Smoke(args.url, args.origin)
 
     def admin_organization() -> str:
         if "org" not in state:

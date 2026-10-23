@@ -125,6 +125,14 @@ d="$(line pg_dumpall)"; u="$(line "install.sh --update")"; q="$(line "smoke .*--
   && ok "backup, then update, then quick smoke" || ko "backup, then update, then quick smoke ($d $u $q)"
 grep -q "tag pgvector/pgvector:pg17 pgvector/pgvector:pg17-nexora-avant-maj" "$h8.log" && ok "running images kept for a rollback" || ko "running images kept for a rollback"
 
+# The quick smoke goes to WorkStudio's local port, declaring the public address as its origin:
+# behind HTTPS with an internal certificate, the public address is not trusted by the smoke test.
+h8b="$(updated_home)"
+printf 'NEXORA_PUBLIC_URL=https://ia.example.fr\nNEXORA_WORKSTUDIO_PORT=3300\n' >> "$h8b/deploy/.env"
+update_cli "$h8b"
+grep -q "smoke http://127.0.0.1:3300 --quick --origin=https://ia.example.fr" "$h8b.log" \
+  && ok "quick smoke on the local port with the public origin" || ko "quick smoke on the local port with the public origin ($(grep smoke "$h8b.log"))"
+
 h9="$(updated_home)"
 FAKE_SMOKE_EXIT=1 update_cli "$h9" && ko "failed update reported" || ok "failed update reported"
 grep -q "tag pgvector/pgvector:pg17-nexora-avant-maj pgvector/pgvector:pg17" "$h9.log" && ok "previous images restored" || ko "previous images restored"
