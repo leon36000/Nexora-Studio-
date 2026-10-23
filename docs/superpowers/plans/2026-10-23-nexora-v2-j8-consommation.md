@@ -48,6 +48,6 @@
 - [x] **Step 2: Commit** `feat(j8): écran de consommation et budgets`.
 
 ### Task 4: Guide, fumée, pc6, revue
-- [ ] **Step 1:** `docs/guide/consommation.md` ; fumée « Budgets » (budget d'espace minuscule ⇒ exécution refusée ⇒ plafond relevé ⇒ acceptée).
-- [ ] **Step 2:** pc6 : chiffres cohérents avec Nexora API ; parcours budget au navigateur.
-- [ ] **Step 3:** Revue finale, corrections TDD, push.
+- [x] **Step 1:** `docs/guide/consommation.md` ; fumée « Budgets » (budget d'espace minuscule ⇒ exécution refusée ⇒ plafond relevé ⇒ acceptée).
+- [x] **Step 2:** pc6 : chiffres cohérents avec Nexora API ; parcours budget au navigateur.
+- [x] **Step 3:** Revue finale, corrections TDD, push.
