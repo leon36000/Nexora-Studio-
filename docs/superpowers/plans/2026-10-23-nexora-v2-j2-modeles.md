@@ -168,8 +168,8 @@
 - Modify: `scripts/smoke.py` (contrôle `models`)
 - Modify: `docs/superpowers/plans/2026-10-23-nexora-v2-ledger.md`
 
-- [ ] **Step 1:** Contrôle de fumée `models` (admin) : GET liste (un défaut exactement) ; POST ajout `openai-compatible` vers `NEXORA_SMOKE_OPENAI_URL` / `NEXORA_SMOKE_OPENAI_MODEL` (ignoré proprement si absents) ; test (réponse non vide) ; défaut aller-retour (alias revenu à l'ancien) ; DELETE. Run `python3 -m py_compile scripts/smoke.py` — Expected: OK.
-- [ ] **Step 2:** Sur pc6 : vérifier le disque, reconstruire WorkStudio et l'amorçage, `nexora restart` ; constater la migration (routeur renommé + alias) ; lancer la fumée complète — Expected: tous les contrôles OK, rapport `docs/verification/smoke-j2-2026-10-23.json`.
-- [ ] **Step 3:** Navigateur (pc6) : ajouter `qwen2.5:3b` depuis le catalogue (progression visible), Tester, l'utiliser dans un bloc Agent (exécution réussie), le définir par défaut puis revenir ; `nexora restart` ; constater que le choix tient. Preuves dans le ledger.
-- [ ] **Step 4:** Suite complète WorkStudio, audits, scripts du dépôt (`check-no-ee`, `check-brand`, `check-licenses`, `check-i18n`, `scripts/tests/test-*.sh`, `test_bootstrap.py`) — Expected: tout passe.
-- [ ] **Step 5:** Revue finale (sous-agent, modèle le plus capable), corrections Critical/Important en TDD, ledger, commit, `git push origin main`.
+- [x] **Step 1:** Contrôle de fumée `models` (admin) : GET liste (un défaut exactement) ; POST ajout `openai-compatible` vers `NEXORA_SMOKE_OPENAI_URL` / `NEXORA_SMOKE_OPENAI_MODEL` (ignoré proprement si absents) ; test (réponse non vide) ; défaut aller-retour (alias revenu à l'ancien) ; DELETE. Run `python3 -m py_compile scripts/smoke.py` — Expected: OK.
+- [x] **Step 2:** Sur pc6 : vérifier le disque, reconstruire WorkStudio et l'amorçage, `nexora restart` ; constater la migration (routeur renommé + alias) ; lancer la fumée complète — Expected: tous les contrôles OK, rapport `docs/verification/smoke-j2-2026-10-23.json`.
+- [x] **Step 3:** Navigateur (pc6) : ajouter `qwen2.5:3b` depuis le catalogue (progression visible), Tester, l'utiliser dans un bloc Agent (exécution réussie), le définir par défaut puis revenir ; `nexora restart` ; constater que le choix tient. Preuves dans le ledger.
+- [x] **Step 4:** Suite complète WorkStudio, audits, scripts du dépôt (`check-no-ee`, `check-brand`, `check-licenses`, `check-i18n`, `scripts/tests/test-*.sh`, `test_bootstrap.py`) — Expected: tout passe.
+- [x] **Step 5:** Revue finale (sous-agent, modèle le plus capable), corrections Critical/Important en TDD, ledger, commit, `git push origin main`.
