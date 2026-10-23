@@ -13,8 +13,22 @@ import {
 
 function filterAllowedConnections(policy: ActionPolicySnapshot, connections: ConnectionSummary[]): ConnectionSummary[] {
   return connections.filter(
-    (connection) => connection.authType === "no_auth" || policy.evaluateConnection(connection.id).allowed,
+    (connection) => connection.authType === "no_auth" || policy.evaluateConnection(connection).allowed,
   );
+}
+
+/** The candidate services the caller holds an authenticated connection to that its policy lets it use. */
+export async function listGrantedAuthenticatedServices(
+  policy: ActionPolicySnapshot,
+  connections: ConnectionService,
+  services: readonly string[],
+): Promise<string[]> {
+  const authenticated = new Set(
+    filterAllowedConnections(policy, await connections.listConnections())
+      .filter((connection) => connection.configured && connection.authType !== "no_auth")
+      .map((connection) => connection.service),
+  );
+  return services.filter((service) => authenticated.has(service));
 }
 
 export interface RuntimeAppRoutesOptions {
@@ -55,15 +69,7 @@ export function createRuntimeAppRoutes({ connections, getPolicySnapshot }: Runti
         message: "Runtime policy is unavailable.",
       });
     }
-    const authenticated = new Set(
-      filterAllowedConnections(policy, await connections.listConnections())
-        .filter((connection) => connection.configured && connection.authType !== "no_auth")
-        .map((connection) => connection.service),
-    );
-    return writeRuntimeSuccess(
-      context,
-      services.filter((service) => authenticated.has(service)),
-    );
+    return writeRuntimeSuccess(context, await listGrantedAuthenticatedServices(policy, connections, services));
   });
 
   app.get("/apps/services/:service", async (context) => {

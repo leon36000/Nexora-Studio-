@@ -43,6 +43,25 @@ export interface TokenPolicy {
   allowedTriggers?: string[];
 }
 
+/** The connection a call would use, as the policy needs to see it. */
+export interface ConnectionRef {
+  id: string;
+  connectionName?: string;
+}
+
+export interface PolicyCallerOptions {
+  /** The deployment administrator, who manages every connection. */
+  admin?: boolean;
+}
+
+/**
+ * Nexora: WorkStudio names a workspace's connection `ws-<workspaceId>` and grants it only to that
+ * workspace's token. A caller whose access is not limited to listed connections (the deployment's
+ * shared runtime token, an unrestricted stored token, a JWT) never reaches one; only the
+ * administrator and a token that lists it do.
+ */
+const workspaceConnectionPrefix = "ws-";
+
 export interface RuntimePolicyState {
   deployment: PolicyRules;
   runtime: PolicyRules;
@@ -83,8 +102,16 @@ export class ActionPolicySnapshot {
   private readonly tokenProxyRules?: CompiledRule[];
   private readonly tokenTriggerRules?: CompiledRule[];
   private readonly allowedConnections: readonly string[];
+  private readonly admin: boolean;
 
-  constructor(deployment: PolicyRules, runtime: PolicyRules, token?: TokenPolicy, updatedAt?: string) {
+  constructor(
+    deployment: PolicyRules,
+    runtime: PolicyRules,
+    token?: TokenPolicy,
+    updatedAt?: string,
+    caller: PolicyCallerOptions = {},
+  ) {
+    this.admin = caller.admin === true;
     const deploymentRules = immutablePolicyRules(deployment);
     const runtimeRules = immutablePolicyRules(runtime);
     this.state = Object.freeze({ deployment: deploymentRules, runtime: runtimeRules, updatedAt });
@@ -230,12 +257,23 @@ export class ActionPolicySnapshot {
    */
   implicitConnectionId(candidates: readonly { id: string; virtual?: boolean }[]): string | undefined {
     if (this.allowedConnections.length === 0) return undefined;
-    const granted = candidates.filter((candidate) => !candidate.virtual && this.allowedConnections.includes(candidate.id));
+    const granted = candidates.filter(
+      (candidate) => !candidate.virtual && this.allowedConnections.includes(candidate.id),
+    );
     return granted.length === 1 ? granted[0].id : undefined;
   }
 
-  evaluateConnection(connectionId?: string): ActionPolicyDecision {
+  evaluateConnection(connection?: ConnectionRef): ActionPolicyDecision {
+    const connectionId = connection?.id;
     if (this.allowedConnections.length === 0) {
+      if (!this.admin && connection?.connectionName?.startsWith(workspaceConnectionPrefix)) {
+        return {
+          allowed: false,
+          code: "connection_not_allowed",
+          message: `${connection.connectionName} connection is reserved to its workspace token.`,
+          checks: [{ source: "token", outcome: "allow_miss" }],
+        };
+      }
       return { allowed: true, checks: [] };
     }
 
@@ -271,8 +309,9 @@ export class ActionPolicyService {
     runtime: PolicyRules = emptyPolicyRules(),
     token?: TokenPolicy,
     updatedAt?: string,
+    caller?: PolicyCallerOptions,
   ): ActionPolicySnapshot {
-    return new ActionPolicySnapshot(this.rules, runtime, token, updatedAt);
+    return new ActionPolicySnapshot(this.rules, runtime, token, updatedAt, caller);
   }
 }
 

@@ -6,17 +6,14 @@ import {
 } from '@/lib/api/contracts/nexora-connectors'
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
-import {
-  connectWithCredentials,
-  disconnect,
-  getServiceDetail,
-  listWorkspaceConnections,
-} from '@/lib/nexora/connect-admin'
+import { reconcileWorkspaceConnect } from '@/lib/nexora/connect'
+import { connectWithCredentials, disconnect, getServiceDetail } from '@/lib/nexora/connect-admin'
 import {
   connectorAccess,
   connectorErrorResponse,
-  refreshWorkspaceToken,
+  reconciledWorkspaceConnections,
 } from '@/lib/nexora/connectors-access'
+import { isPublicOAuthRedirect } from '@/lib/nexora/oauth-redirect'
 
 interface RouteContext {
   params: Promise<{ service: string }>
@@ -33,9 +30,12 @@ export const GET = withRouteHandler(async (request: NextRequest, context: RouteC
   try {
     const [detail, connections] = await Promise.all([
       getServiceDetail(service),
-      listWorkspaceConnections(workspaceId),
+      reconciledWorkspaceConnections({ workspaceId, userId: access.userId }),
     ])
     const oauthClient = detail.oauthClient
+    const redirectUri =
+      typeof oauthClient?.expectedRedirectUri === 'string' ? oauthClient.expectedRedirectUri : null
+    const oauthAvailable = isPublicOAuthRedirect(redirectUri)
     return NextResponse.json({
       service: detail.service,
       auth: detail.auth.map((entry) => ({
@@ -46,10 +46,8 @@ export const GET = withRouteHandler(async (request: NextRequest, context: RouteC
       oauth: oauthClient
         ? {
             configured: oauthClient.configured === true,
-            redirectUri:
-              typeof oauthClient.expectedRedirectUri === 'string'
-                ? oauthClient.expectedRedirectUri
-                : null,
+            available: oauthAvailable,
+            redirectUri: oauthAvailable ? redirectUri : null,
           }
         : null,
       actions: detail.actions.slice(0, 200),
@@ -73,7 +71,7 @@ export const POST = withRouteHandler(async (request: NextRequest, context: Route
   if (access instanceof NextResponse) return access
   try {
     const connection = await connectWithCredentials(workspaceId, service, authType, values)
-    await refreshWorkspaceToken({ workspaceId, userId: access.userId })
+    await reconcileWorkspaceConnect({ workspaceId, userId: access.userId })
     return NextResponse.json({ connection })
   } catch (error) {
     const response = connectorErrorResponse(error)
@@ -91,7 +89,7 @@ export const DELETE = withRouteHandler(async (request: NextRequest, context: Rou
   if (access instanceof NextResponse) return access
   try {
     await disconnect(workspaceId, service)
-    await refreshWorkspaceToken({ workspaceId, userId: access.userId })
+    await reconcileWorkspaceConnect({ workspaceId, userId: access.userId })
     return NextResponse.json({ success: true })
   } catch (error) {
     const response = connectorErrorResponse(error)

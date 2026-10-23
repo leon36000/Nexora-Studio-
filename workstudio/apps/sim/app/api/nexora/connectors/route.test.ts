@@ -1,5 +1,7 @@
 import { authMockFns, createSession } from '@sim/testing'
 import { createRouteContext } from '@sim/testing/helpers/http'
+import { setEnv } from '@sim/testing/mocks/env.mock'
+import { getMockLogger } from '@sim/testing/mocks/logger.mock'
 import {
   nexoraAdminAccessMock,
   nexoraAdminAccessMockFns,
@@ -17,14 +19,12 @@ const connect = vi.hoisted(() => ({
   startOAuth: vi.fn(),
   getOAuthStatus: vi.fn(),
   setOAuthApp: vi.fn(),
-  syncWorkspaceToken: vi.fn(),
-  hasWorkspaceToken: vi.fn(),
-  applyToken: vi.fn(),
+  reconcile: vi.fn(),
 }))
 
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 vi.mock('@/lib/nexora/admin-access', () => nexoraAdminAccessMock)
-vi.mock('@/lib/nexora/connect', () => ({ applyWorkspaceConnectToken: connect.applyToken }))
+vi.mock('@/lib/nexora/connect', () => ({ reconcileWorkspaceConnect: connect.reconcile }))
 vi.mock('@/lib/nexora/connect-admin', () => {
   class ConnectUnavailableError extends Error {}
   class ConnectRefusedError extends Error {
@@ -32,7 +32,8 @@ vi.mock('@/lib/nexora/connect-admin', () => {
       super(code)
     }
   }
-  return { ...connect, ConnectUnavailableError, ConnectRefusedError }
+  const { reconcile: _reconcile, ...client } = connect
+  return { ...client, ConnectUnavailableError, ConnectRefusedError }
 })
 
 import { ConnectRefusedError, ConnectUnavailableError } from '@/lib/nexora/connect-admin'
@@ -74,8 +75,8 @@ describe('Nexora connectors routes', () => {
     connect.listWorkspaceConnections.mockResolvedValue([
       { id: 'c-1', service: 'brevo', authType: 'api_key' },
     ])
-    connect.hasWorkspaceToken.mockResolvedValue(true)
-    connect.syncWorkspaceToken.mockResolvedValue({})
+    connect.reconcile.mockResolvedValue([{ id: 'c-1', service: 'brevo', authType: 'api_key' }])
+    setEnv({ NEXORA_CONNECT_ADMIN_TOKEN: 'connect-admin-token' })
     connect.connectWithCredentials.mockResolvedValue({
       id: 'c-1',
       service: 'brevo',
@@ -106,18 +107,46 @@ describe('Nexora connectors routes', () => {
     expect(connect.listCatalog).toHaveBeenCalledWith({ query: 'bre', category: undefined })
   })
 
-  it('gives a workspace created before connectors its own token on first visit by an editor', async () => {
-    connect.hasWorkspaceToken.mockResolvedValue(false)
-    connect.syncWorkspaceToken.mockResolvedValue({ token: 'oct_new' })
-    await GET(req('GET', `/api/nexora/connectors?workspaceId=${WS}`), {})
-    expect(connect.syncWorkspaceToken).toHaveBeenCalledWith(WS, { recreate: true })
-    expect(connect.applyToken).toHaveBeenCalledWith({ workspaceId: WS, userId: 'u-1' }, 'oct_new')
+  it('isolates the workspace on any member’s visit of the catalog, a reader’s included', async () => {
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('read')
+    const body = await (
+      await GET(req('GET', `/api/nexora/connectors?workspaceId=${WS}`), {})
+    ).json()
+    expect(connect.reconcile).toHaveBeenCalledWith({ workspaceId: WS, userId: 'u-1' })
+    expect(body.connections).toEqual([{ id: 'c-1', service: 'brevo', authType: 'api_key' }])
+  })
+
+  it('reconciles the workspace token on a service page visit', async () => {
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('read')
+    connect.getServiceDetail.mockResolvedValue({
+      service: brevo,
+      auth: [],
+      oauthClient: null,
+      actions: [],
+    })
+    const response = await GET_SERVICE(
+      req('GET', `/api/nexora/connectors/brevo?workspaceId=${WS}`),
+      service
+    )
+    expect(response.status).toBe(200)
+    expect(connect.reconcile).toHaveBeenCalledWith({ workspaceId: WS, userId: 'u-1' })
+    expect((await response.json()).connection).toEqual({
+      id: 'c-1',
+      service: 'brevo',
+      authType: 'api_key',
+    })
+  })
+
+  it('still shows the catalog when the workspace token cannot be reconciled', async () => {
+    connect.reconcile.mockRejectedValue(new Error('database unavailable'))
+    const response = await GET(req('GET', `/api/nexora/connectors?workspaceId=${WS}`), {})
+    expect(response.status).toBe(200)
+    expect((await response.json()).services).toEqual([{ ...brevo, connected: true }])
   })
 
   it('lets readers browse but not connect', async () => {
     permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('read')
     expect((await GET(req('GET', `/api/nexora/connectors?workspaceId=${WS}`), {})).status).toBe(200)
-    expect(connect.syncWorkspaceToken).not.toHaveBeenCalled()
     const post = await POST(
       req('POST', '/api/nexora/connectors/brevo', {
         workspaceId: WS,
@@ -153,7 +182,7 @@ describe('Nexora connectors routes', () => {
     expect(connect.connectWithCredentials).toHaveBeenCalledWith(WS, 'brevo', 'api_key', {
       apiKey: 'xkeysib-secret',
     })
-    expect(connect.syncWorkspaceToken).toHaveBeenCalledWith(WS)
+    expect(connect.reconcile).toHaveBeenCalledWith({ workspaceId: WS, userId: 'u-1' })
   })
 
   it('reports a refused key, a replaced OAuth request and an unavailable Connect as codes', async () => {
@@ -191,7 +220,8 @@ describe('Nexora connectors routes', () => {
       req('POST', '/api/nexora/connectors/brevo/oauth', { workspaceId: WS }),
       service
     )
-    expect(await started.json()).toEqual({ requestId: 'r-1', authorizationUrl: 'https://consent' })
+    const { requestId, authorizationUrl } = await started.json()
+    expect(authorizationUrl).toBe('https://consent')
     connect.getOAuthStatus.mockResolvedValue({
       status: 'connected',
       service: 'brevo',
@@ -199,15 +229,85 @@ describe('Nexora connectors routes', () => {
       errorCode: null,
     })
     const status = await OAUTH_STATUS(
-      req('GET', `/api/nexora/connectors/oauth/r-1?workspaceId=${WS}`),
-      createRouteContext({ requestId: 'r-1' })
+      req('GET', `/api/nexora/connectors/oauth/${requestId}?workspaceId=${WS}`),
+      createRouteContext({ requestId })
     )
     expect(await status.json()).toEqual({
       status: 'connected',
       errorMessage: null,
       errorCode: null,
     })
-    expect(connect.syncWorkspaceToken).toHaveBeenCalledWith(WS)
+    expect(connect.getOAuthStatus).toHaveBeenCalledWith('r-1')
+    expect(connect.reconcile).toHaveBeenCalledWith({ workspaceId: WS, userId: 'u-1' })
+  })
+
+  it('never reports an OAuth request to another workspace, nor a forged one', async () => {
+    connect.startOAuth.mockResolvedValue({ requestId: 'r-1', authorizationUrl: 'https://consent' })
+    const started = await START_OAUTH(
+      req('POST', '/api/nexora/connectors/brevo/oauth', { workspaceId: WS }),
+      service
+    )
+    const { requestId } = await started.json()
+    const otherWorkspace = await OAUTH_STATUS(
+      req('GET', `/api/nexora/connectors/oauth/${requestId}?workspaceId=ws-b`),
+      createRouteContext({ requestId })
+    )
+    expect(otherWorkspace.status).toBe(404)
+    const forged = `r-1.${'0'.repeat(64)}`
+    const forgedStatus = await OAUTH_STATUS(
+      req('GET', `/api/nexora/connectors/oauth/${forged}?workspaceId=${WS}`),
+      createRouteContext({ requestId: forged })
+    )
+    expect(forgedStatus.status).toBe(404)
+    expect(connect.getOAuthStatus).not.toHaveBeenCalled()
+    expect(connect.reconcile).not.toHaveBeenCalled()
+  })
+
+  it('shows OAuth as unavailable while Nexora Connect has no public address', async () => {
+    connect.getServiceDetail.mockResolvedValue({
+      service: brevo,
+      auth: [{ type: 'oauth2' }],
+      oauthClient: {
+        configured: true,
+        expectedRedirectUri: 'http://localhost:8400/oauth/callback',
+      },
+      actions: [],
+    })
+    const local = await (
+      await GET_SERVICE(req('GET', `/api/nexora/connectors/brevo?workspaceId=${WS}`), service)
+    ).json()
+    expect(local.oauth).toEqual({ configured: true, available: false, redirectUri: null })
+
+    connect.getServiceDetail.mockResolvedValue({
+      service: brevo,
+      auth: [{ type: 'oauth2' }],
+      oauthClient: {
+        configured: true,
+        expectedRedirectUri: 'https://connect.pme.fr/oauth/callback',
+      },
+      actions: [],
+    })
+    const public_ = await (
+      await GET_SERVICE(req('GET', `/api/nexora/connectors/brevo?workspaceId=${WS}`), service)
+    ).json()
+    expect(public_.oauth).toEqual({
+      configured: true,
+      available: true,
+      redirectUri: 'https://connect.pme.fr/oauth/callback',
+    })
+  })
+
+  it('keeps an unavailable Connect’s detail in the server logs, not in the answer', async () => {
+    connect.listCatalog.mockRejectedValueOnce(
+      new ConnectUnavailableError('GET /api/providers answered HTTP 502')
+    )
+    const response = await GET(req('GET', `/api/nexora/connectors?workspaceId=${WS}`), {})
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ error: 'unavailable' })
+    expect(getMockLogger('NexoraConnectors').warn).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ detail: expect.stringContaining('HTTP 502') })
+    )
   })
 
   it('lets only instance admins set an operator OAuth application', async () => {
@@ -228,7 +328,7 @@ describe('Nexora connectors routes', () => {
     })
     connect.setOAuthApp.mockResolvedValue({
       configured: true,
-      redirectUri: 'https://connect/oauth/callback',
+      redirectUri: 'https://connect.pme.fr/oauth/callback',
     })
     const saved = await SET_OAUTH_APP(
       req('PUT', '/api/nexora/connectors/oauth-apps/brevo', { clientId: 'i', clientSecret: 's' }),
@@ -236,10 +336,27 @@ describe('Nexora connectors routes', () => {
     )
     expect(await saved.json()).toEqual({
       configured: true,
-      redirectUri: 'https://connect/oauth/callback',
+      redirectUri: 'https://connect.pme.fr/oauth/callback',
     })
     expect(nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin).toHaveBeenLastCalledWith({
       requireInstanceOrganization: true,
     })
+  })
+
+  it('does not offer a loopback callback address to register with a provider', async () => {
+    nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin.mockResolvedValueOnce({
+      ok: true,
+      userId: 'u-1',
+      organizationId: 'o',
+    })
+    connect.setOAuthApp.mockResolvedValue({
+      configured: true,
+      redirectUri: 'http://localhost:8400/oauth/callback',
+    })
+    const saved = await SET_OAUTH_APP(
+      req('PUT', '/api/nexora/connectors/oauth-apps/brevo', { clientId: 'i', clientSecret: 's' }),
+      service
+    )
+    expect(await saved.json()).toEqual({ configured: true, redirectUri: null })
   })
 })

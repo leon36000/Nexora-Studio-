@@ -1,5 +1,6 @@
 import type { CatalogStore, RuntimeActionDefinition } from "../../catalog-store.ts";
 import type { ConnectionService } from "../../connection-service.ts";
+import type { ActionPolicySnapshot } from "../../core/action-policy.ts";
 import type { ActionSearchDocument, ActionSearchIndexProvider } from "../../core/action-search.ts";
 import type { OAuthClientConfigService } from "../../oauth/oauth-client-config-service.ts";
 import type { SaasProjectService } from "../../saas/saas-project-service.ts";
@@ -18,6 +19,7 @@ import {
   writeRuntimeFailure,
   writeRuntimeSuccess,
 } from "./runtime-api.ts";
+import { listGrantedAuthenticatedServices } from "./runtime-app-routes.ts";
 
 export interface RuntimeActionSearchResult {
   id: string;
@@ -94,6 +96,7 @@ export interface RuntimeCatalogRoutesOptions {
   actionSearch: ActionSearchIndexProvider;
   oauthClientConfigs: OAuthClientConfigService;
   saasProject?: SaasProjectService;
+  getPolicySnapshot: (context: Context) => Promise<ActionPolicySnapshot>;
 }
 
 /** Provider and action discovery, inspection and search routes under /v1. */
@@ -103,12 +106,20 @@ export function createRuntimeCatalogRoutes({
   actionSearch,
   oauthClientConfigs,
   saasProject,
+  getPolicySnapshot,
 }: RuntimeCatalogRoutesOptions): Hono {
   const app = new Hono();
 
-  const serializeSearchResults = async (results: ActionSearchDocument[]): Promise<RuntimeActionSearchResult[]> => {
+  // The `authenticated` flag tells the caller it can run the action: only connections its own
+  // policy lets it use count, so a workspace token never learns another workspace is connected.
+  const serializeSearchResults = async (
+    results: ActionSearchDocument[],
+    policy: ActionPolicySnapshot,
+  ): Promise<RuntimeActionSearchResult[]> => {
     const authenticated = new Set(
-      await connections.listAuthenticatedServices([...new Set(results.map((result) => result.service))]),
+      await listGrantedAuthenticatedServices(policy, connections, [
+        ...new Set(results.map((result) => result.service)),
+      ]),
     );
     return results.flatMap((result) => {
       const action = catalog.actionsById.get(result.id);
@@ -192,12 +203,22 @@ export function createRuntimeCatalogRoutes({
       });
     }
 
+    let policy: ActionPolicySnapshot;
+    try {
+      policy = await getPolicySnapshot(context);
+    } catch {
+      return writeRuntimeFailure(context, {
+        status: 500,
+        errorCode: "internal_error",
+        message: "Runtime policy is unavailable.",
+      });
+    }
     const index = await actionSearch.get();
     const results = searchActions(index, query.q, {
       service: query.service,
       limit: query.limit,
     });
-    return writeRuntimeSuccess(context, await serializeSearchResults(results));
+    return writeRuntimeSuccess(context, await serializeSearchResults(results, policy));
   });
 
   app.get("/actions/:actionId", (context) => {

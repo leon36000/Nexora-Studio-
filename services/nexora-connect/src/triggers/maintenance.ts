@@ -128,7 +128,7 @@ export class TriggerMaintenance {
             record.status === "active" &&
             token &&
             policy.evaluateTrigger(record.triggerId).allowed &&
-            policy.evaluateConnection(record.connectionId).allowed
+            policy.evaluateConnection({ id: record.connectionId }).allowed
           ) {
             await save();
             return;

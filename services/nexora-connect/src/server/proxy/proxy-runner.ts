@@ -119,7 +119,7 @@ export class ProxyRunner {
         input.connectionId,
       );
       const connectionDecision =
-        connection?.authType === "no_auth" ? undefined : input.policy.evaluateConnection(connection?.id);
+        connection?.authType === "no_auth" ? undefined : input.policy.evaluateConnection(connection);
       if (connectionDecision && !connectionDecision.allowed) {
         return {
           ok: false,
@@ -135,7 +135,7 @@ export class ProxyRunner {
         input.connectionId,
       );
       const targetDecision =
-        target.summary?.authType === "no_auth" ? undefined : input.policy.evaluateConnection(target.summary?.id);
+        target.summary?.authType === "no_auth" ? undefined : input.policy.evaluateConnection(target.summary);
       if (targetDecision && !targetDecision.allowed)
         return {
           ok: false,

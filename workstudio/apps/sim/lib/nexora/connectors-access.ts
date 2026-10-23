@@ -1,12 +1,15 @@
 import { createLogger } from '@sim/logger'
+import { safeCompare } from '@sim/security/compare'
+import { hmacSha256Hex } from '@sim/security/hmac'
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { applyWorkspaceConnectToken } from '@/lib/nexora/connect'
+import { env } from '@/lib/core/config/env'
+import { reconcileWorkspaceConnect } from '@/lib/nexora/connect'
 import {
   ConnectRefusedError,
   ConnectUnavailableError,
-  hasWorkspaceToken,
-  syncWorkspaceToken,
+  listWorkspaceConnections,
+  type WorkspaceConnection,
 } from '@/lib/nexora/connect-admin'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
@@ -30,42 +33,68 @@ export async function connectorAccess(
   return { userId: session.user.id, canManage }
 }
 
-/** Keeps the workspace's token on exactly its connections; a new token goes on its MCP server. */
-export async function refreshWorkspaceToken(workspace: {
-  workspaceId: string
-  userId: string
-}): Promise<void> {
-  const { token } = await syncWorkspaceToken(workspace.workspaceId)
-  if (token) await applyWorkspaceConnectToken(workspace, token)
-}
-
 /**
- * A workspace created before connectors still uses the shared token: give it its own, so its
- * agents see only its connections. Best-effort: the catalog still shows when this fails.
+ * The workspace's connections, after bringing its Nexora Connect isolation in line: any member's
+ * visit gives a workspace still on the shared token (created before connectors, or whose token
+ * could not be made or installed) its own token, and aligns the token's grant with the
+ * connections (an OAuth finished after the page stopped following it, a connection made in the
+ * Connect console). Best-effort: the page still shows when this fails.
  */
-export async function ensureWorkspaceIsolation(workspace: {
+export async function reconciledWorkspaceConnections(workspace: {
   workspaceId: string
   userId: string
-}): Promise<void> {
+}): Promise<WorkspaceConnection[]> {
   try {
-    if (await hasWorkspaceToken(workspace.workspaceId)) return
-    const { token } = await syncWorkspaceToken(workspace.workspaceId, { recreate: true })
-    if (token) await applyWorkspaceConnectToken(workspace, token)
+    const connections = await reconcileWorkspaceConnect(workspace)
+    if (connections) return connections
   } catch (error) {
-    logger.warn('Workspace token for Nexora Connect not set up', {
+    logger.warn('Nexora Connect isolation not reconciled', {
       workspaceId: workspace.workspaceId,
       error,
     })
   }
+  return listWorkspaceConnections(workspace.workspaceId)
+}
+
+function oauthHandleSecret(): string {
+  const secret = env.NEXORA_CONNECT_ADMIN_TOKEN?.trim()
+  if (!secret) throw new ConnectUnavailableError('not configured')
+  return secret
+}
+
+function oauthSignature(workspaceId: string, requestId: string): string {
+  return hmacSha256Hex(`nexora-oauth:${workspaceId}:${requestId}`, oauthHandleSecret())
+}
+
+/**
+ * The OAuth request id the page follows, bound to the workspace that started it: Nexora Connect's
+ * requests are instance-wide, so a bare id would let a member of another workspace follow it.
+ */
+export function signOAuthRequest(workspaceId: string, requestId: string): string {
+  return `${requestId}.${oauthSignature(workspaceId, requestId)}`
+}
+
+/** The Connect request id behind a handle from {@link signOAuthRequest}, or `null` when it was not issued to this workspace. */
+export function readOAuthRequest(workspaceId: string, handle: string): string | null {
+  const separator = handle.lastIndexOf('.')
+  if (separator <= 0) return null
+  const requestId = handle.slice(0, separator)
+  return safeCompare(handle.slice(separator + 1), oauthSignature(workspaceId, requestId))
+    ? requestId
+    : null
 }
 
 /** `{ error: <code> }` the connectors page words in French; Connect's own detail stays in the logs. */
 export function connectorErrorResponse(error: unknown): NextResponse | null {
   if (error instanceof ConnectUnavailableError) {
+    logger.warn('Nexora Connect is unavailable', { detail: error.message })
     return NextResponse.json({ error: 'unavailable' }, { status: 503 })
   }
   if (error instanceof ConnectRefusedError) {
     logger.warn('Nexora Connect refused a request', { code: error.code })
+    if (error.code === 'unknown_service') {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
     return error.code === 'request_superseded'
       ? NextResponse.json({ error: 'superseded' }, { status: 409 })
       : NextResponse.json({ error: 'refused', code: error.code }, { status: 400 })

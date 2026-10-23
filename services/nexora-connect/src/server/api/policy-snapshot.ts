@@ -4,7 +4,7 @@ import type { IRuntimePolicyStore } from "../storage/runtime-policy-store.ts";
 import type { Context } from "hono";
 
 import { emptyPolicyRules } from "../../core/action-policy.ts";
-import { readRuntimeGrant } from "./auth.ts";
+import { isAdminCaller, readRuntimeGrant } from "./auth.ts";
 
 export interface PolicySnapshotProviderOptions {
   actionPolicy: ActionPolicyService;
@@ -31,6 +31,7 @@ export function createPolicySnapshotProvider({
         record?.rules ?? emptyPolicyRules(),
         readRuntimeGrant(context),
         record?.updatedAt,
+        { admin: isAdminCaller(context) },
       );
     } catch {
       logger?.error(

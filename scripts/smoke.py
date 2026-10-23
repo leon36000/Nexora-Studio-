@@ -375,6 +375,39 @@ def main() -> int:
             state["org"] = organizations[0]["id"]
         return state["org"]
 
+    def governance():
+        # Instance settings: administrators only, secrets never returned, SMTP test e-mail.
+        status, _ = s.call("GET", "/api/nexora/settings")
+        require(status == 403, f"instance settings visible to a plain member (HTTP {status})")
+        admin_organization()
+        status, view = admin.call("GET", "/api/nexora/settings")
+        require(status == 200, f"settings returned HTTP {status}")
+        done = ["réservés aux administrateurs"]
+        smtp_host = os.environ.get("NEXORA_SMOKE_SMTP_HOST", "")
+        if smtp_host and not view.get("smtp") and not view["envOverrides"]["smtp"]:
+            draft = {"host": smtp_host, "port": int(os.environ.get("NEXORA_SMOKE_SMTP_PORT", "1025")),
+                     "user": "fumee", "password": f"fumee-{secrets.token_hex(8)}", "from": "nexora@nexora.test"}
+            status, result = admin.call("POST", "/api/nexora/settings/test-email", {"smtp": draft}, timeout=60)
+            require(status == 200 and result.get("ok"), f"test e-mail failed: {str(result)[:200]}")
+            mailbox = os.environ.get("NEXORA_SMOKE_MAILPIT_URL", "")
+            if mailbox:
+                with urllib.request.urlopen(f"{mailbox.rstrip('/')}/api/v1/messages", timeout=30) as response:
+                    received = json.loads(response.read())
+                require(any(result["sentTo"] in json.dumps(m.get("To")) for m in received.get("messages", [])),
+                        "the test e-mail did not reach the local mailbox")
+            try:
+                status, saved = admin.call("PUT", "/api/nexora/settings", {"smtp": draft})
+                require(status == 200, f"settings save returned HTTP {status}: {str(saved)[:200]}")
+                _, reread = admin.call("GET", "/api/nexora/settings")
+                require(reread["smtp"] and reread["smtp"].get("hasPassword"), f"stored SMTP not reported: {str(reread)[:200]}")
+                require(draft["password"] not in json.dumps(reread), "the SMTP password came back to the browser")
+            finally:
+                admin.call("PUT", "/api/nexora/settings", {"smtp": None})
+            done.append(f"e-mail de test reçu par {smtp_host}, mot de passe chiffré jamais renvoyé")
+        else:
+            done.append("e-mail non testé (NEXORA_SMOKE_SMTP_HOST absent ou SMTP déjà configuré)")
+        return ", ".join(done)
+
     def audit():
         status, _ = s.call("POST", "/api/organizations", {"name": "Dissidente", "slug": f"dissidente-{secrets.token_hex(3)}"}, timeout=180)
         require(status == 409, f"a member could found a second organization (HTTP {status})")
@@ -518,6 +551,7 @@ def main() -> int:
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Journal d'audit", audit)
+    s.check("Gouvernance : réglages d'instance, e-mail de test", governance)
     s.check("Consommation mesurée par Nexora API", usage)
     s.check("Modèles : liste, ajout, test, défaut, retrait", models)
 

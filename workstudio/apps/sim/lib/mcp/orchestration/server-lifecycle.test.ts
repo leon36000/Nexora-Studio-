@@ -6,6 +6,7 @@ import {
   posthogServerMock,
   resetDbChainMock,
 } from '@sim/testing'
+import { setEnv } from '@sim/testing/mocks/env.mock'
 import { idMock } from '@sim/testing/mocks/id.mock'
 import { mcpOauthMock, mcpOauthMockFns } from '@sim/testing/mocks/mcp-oauth.mock'
 import { mcpServiceMock, mcpServiceMockFns } from '@sim/testing/mocks/mcp-service.mock'
@@ -590,5 +591,127 @@ describe('MCP server lifecycle orchestration', () => {
         lastError: null,
       })
     )
+  })
+
+  describe('the workspace’s « Nexora Connect » server', () => {
+    const CONNECT_URL = 'http://nexora-connect:3000/mcp'
+    const stored = {
+      url: CONNECT_URL,
+      authType: 'headers',
+      headers: { Authorization: 'Bearer oct_workspace' },
+      oauthClientId: null,
+      oauthClientSecret: null,
+    }
+    const updated = {
+      id: 'server-1',
+      workspaceId: 'workspace-1',
+      name: 'Nexora Connect',
+      transport: 'streamable-http',
+      url: CONNECT_URL,
+      authType: 'headers',
+    }
+
+    beforeEach(() => {
+      setEnv({ NEXORA_CONNECT_MCP_URL: CONNECT_URL, NEXORA_CONNECT_TOKEN: 'shared-runtime' })
+    })
+
+    it('keeps the workspace token when the settings form saves it without header values', async () => {
+      dbChainMockFns.limit.mockResolvedValueOnce([stored])
+      dbChainMockFns.returning.mockResolvedValueOnce([updated])
+
+      const result = await performUpdateMcpServer({
+        workspaceId: 'workspace-1',
+        userId: 'user-1',
+        serverId: 'server-1',
+        allowDestinationChange: false,
+        name: 'Connecteurs',
+        headers: {},
+      })
+
+      expect(result.success).toBe(true)
+      expect(dbChainMockFns.set).toHaveBeenCalledWith(
+        expect.objectContaining({ headers: { Authorization: 'Bearer oct_workspace' } })
+      )
+    })
+
+    it('refuses an editor-chosen token, such as the shared runtime token', async () => {
+      dbChainMockFns.limit.mockResolvedValueOnce([stored])
+      dbChainMockFns.returning.mockResolvedValueOnce([updated])
+
+      await performUpdateMcpServer({
+        workspaceId: 'workspace-1',
+        userId: 'user-1',
+        serverId: 'server-1',
+        allowDestinationChange: false,
+        headers: { authorization: 'Bearer shared-runtime' },
+      })
+
+      expect(dbChainMockFns.set).toHaveBeenCalledWith(
+        expect.objectContaining({ headers: { Authorization: 'Bearer oct_workspace' } })
+      )
+    })
+
+    it('does not send the workspace token to another host when an admin repoints the server', async () => {
+      dbChainMockFns.limit.mockResolvedValueOnce([stored])
+      dbChainMockFns.returning.mockResolvedValueOnce([
+        { ...updated, url: 'https://collector.example.com/mcp' },
+      ])
+
+      await performUpdateMcpServer({
+        workspaceId: 'workspace-1',
+        userId: 'user-1',
+        serverId: 'server-1',
+        allowDestinationChange: true,
+        url: 'https://collector.example.com/mcp',
+      })
+
+      expect(dbChainMockFns.set).toHaveBeenCalledWith(expect.objectContaining({ headers: {} }))
+    })
+
+    it('keeps the workspace token through a re-registration of the same address', async () => {
+      dbChainMockFns.returning.mockResolvedValueOnce([{ id: 'server-1' }])
+      dbChainMockFns.limit.mockResolvedValueOnce([
+        { id: 'server-1', deletedAt: null, transport: 'streamable-http', ...stored },
+      ])
+      dbChainMockFns.limit.mockResolvedValueOnce([updated])
+
+      await performCreateMcpServer({
+        workspaceId: 'workspace-1',
+        userId: 'user-1',
+        name: 'Nexora Connect',
+        url: CONNECT_URL,
+        headers: { Authorization: 'Bearer shared-runtime' },
+      })
+
+      expect(dbChainMockFns.set).toHaveBeenCalledWith(
+        expect.objectContaining({ headers: { Authorization: 'Bearer oct_workspace' } })
+      )
+    })
+
+    it('lets Nexora install a new workspace token, clearing pooled connections', async () => {
+      dbChainMockFns.limit.mockResolvedValueOnce([stored])
+      dbChainMockFns.returning.mockResolvedValueOnce([updated])
+
+      const result = await performUpdateMcpServer({
+        workspaceId: 'workspace-1',
+        userId: 'user-1',
+        serverId: 'server-1',
+        allowDestinationChange: false,
+        headers: { Authorization: 'Bearer oct_new' },
+        writesNexoraConnectToken: true,
+      })
+
+      expect(dbChainMockFns.set).toHaveBeenCalledWith(
+        expect.objectContaining({ headers: { Authorization: 'Bearer oct_new' } })
+      )
+      expect(dbChainMockFns.set).not.toHaveBeenCalledWith(
+        expect.objectContaining({ enabled: expect.anything() })
+      )
+      expect(result.configurationChanged).toBe(true)
+      expect(mcpServiceMockFns.mockEvictServerConnections).toHaveBeenCalledWith(
+        'server-1',
+        'config changed'
+      )
+    })
   })
 })

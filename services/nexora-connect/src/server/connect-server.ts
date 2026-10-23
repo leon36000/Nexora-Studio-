@@ -167,6 +167,7 @@ export class ConnectServer {
         actionSearch: this.actionSearch,
         oauthClientConfigs: this.options.oauthClientConfigs,
         saasProject: this.options.saasProject,
+        getPolicySnapshot: this.getPolicySnapshot,
       }),
     );
     app.route(

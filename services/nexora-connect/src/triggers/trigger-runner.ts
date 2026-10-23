@@ -247,7 +247,7 @@ export class TriggerRunner {
   ) {
     try {
       const summary = await this.options.connections.getConnectionSummary(service, connectionName, connectionId);
-      const permission = policy?.evaluateConnection(summary?.id);
+      const permission = policy?.evaluateConnection(summary);
       if (permission && !permission.allowed) throw new HttpRequestError(permission.code, permission.message, 403);
       const target = await this.options.connections.resolveForExecution(service, connectionName, connectionId);
       if (target.kind !== "local")
@@ -256,7 +256,7 @@ export class TriggerRunner {
           "Triggers require a local connection; this connection source is not supported.",
           501,
         );
-      const selected = policy?.evaluateConnection(target.summary?.id);
+      const selected = policy?.evaluateConnection(target.summary);
       if (selected && !selected.allowed) throw new HttpRequestError(selected.code, selected.message, 403);
       const credential = await target.getCredential(service);
       if (!credential || credential.authType === "no_auth" || !target.summary)

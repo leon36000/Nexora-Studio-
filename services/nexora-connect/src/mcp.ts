@@ -201,7 +201,7 @@ async function listConnections(options: IMcpServerOptions, service: string | und
       : await options.connections.listConnections();
     return successPayload(
       connections
-        .filter((connection) => connection.authType === "no_auth" || policy.evaluateConnection(connection.id).allowed)
+        .filter((connection) => connection.authType === "no_auth" || policy.evaluateConnection(connection).allowed)
         .map(serializeConnection),
     );
   } catch (error) {
@@ -218,7 +218,7 @@ async function listApps(options: IMcpServerOptions, query: string | undefined): 
   }
   const normalized = query?.trim().toLowerCase();
   const connections = (await options.connections.listConnections()).filter(
-    (connection) => connection.authType === "no_auth" || policy.evaluateConnection(connection.id).allowed,
+    (connection) => connection.authType === "no_auth" || policy.evaluateConnection(connection).allowed,
   );
   const defaultConnections = new Map(
     connections.filter((connection) => connection.default).map((connection) => [connection.service, connection]),
@@ -456,7 +456,7 @@ function evaluateConnectionGrant(
   policy: ActionPolicySnapshot,
   connection: ConnectionSummary | undefined,
 ): ActionPolicyDecision {
-  return connection?.authType === "no_auth" ? { allowed: true, checks: [] } : policy.evaluateConnection(connection?.id);
+  return connection?.authType === "no_auth" ? { allowed: true, checks: [] } : policy.evaluateConnection(connection);
 }
 
 interface ToolExecutionMeta {

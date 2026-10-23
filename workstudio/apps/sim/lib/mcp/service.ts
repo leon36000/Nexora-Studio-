@@ -12,6 +12,7 @@ import { interruptibleSleep } from '@sim/utils/helpers'
 import { backoffWithJitter } from '@sim/utils/retry'
 import { truncate } from '@sim/utils/string'
 import { and, eq, isNull, lte, or, sql } from 'drizzle-orm'
+import { env } from '@/lib/core/config/env'
 import { type ResourceScope, resourceScopeFields } from '@/lib/core/resource-scope'
 import { resourceScopeCondition } from '@/lib/core/resource-scope.server'
 import { generateRequestId } from '@/lib/core/utils/request'
@@ -51,6 +52,7 @@ import {
   type McpTransport,
 } from '@/lib/mcp/types'
 import { MCP_CLIENT_CONSTANTS, MCP_CONSTANTS } from '@/lib/mcp/utils'
+import { connectTokenNeedsRepair, isNexoraConnectUrl } from '@/lib/nexora/connect-headers'
 import { createEnvVarPattern } from '@/executor/utils/reference-validation'
 import {
   isResolvedSecretTraceProvenanceV1,
@@ -988,6 +990,7 @@ class McpService {
       logger.info(`[${requestId}] Discovering MCP tools for workspace ${workspaceId}`)
 
       const servers = await this.getWorkspaceServers(workspaceId)
+      repairNexoraConnectIsolation(userId, workspaceId, servers)
 
       if (servers.length === 0) {
         logger.info(`[${requestId}] No servers found for workspace ${workspaceId}`)
@@ -1439,6 +1442,26 @@ class McpService {
   async evictServerConnections(serverId: string, reason: string): Promise<void> {
     await evictMcpServerConnections(serverId, reason)
   }
+}
+
+/**
+ * Nexora edition: a workspace whose « Nexora Connect » server still holds the shared runtime token
+ * (or the pending placeholder) gets its own token in the background. The check is local; Connect
+ * is only called when a repair is due.
+ */
+function repairNexoraConnectIsolation(
+  userId: string,
+  workspaceId: string,
+  servers: Pick<McpServerConfig, 'url' | 'headers'>[]
+): void {
+  if (!env.NEXORA_CONNECT_ADMIN_TOKEN) return
+  const due = servers.some(
+    (server) => isNexoraConnectUrl(server.url) && connectTokenNeedsRepair(server.headers)
+  )
+  if (!due) return
+  void import('@/lib/nexora/connect').then(({ repairWorkspaceConnect }) =>
+    repairWorkspaceConnect({ workspaceId, userId })
+  )
 }
 
 export const mcpService = new McpService()

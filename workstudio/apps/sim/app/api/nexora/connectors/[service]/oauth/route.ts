@@ -3,7 +3,11 @@ import { startConnectorOAuthContract } from '@/lib/api/contracts/nexora-connecto
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { startOAuth } from '@/lib/nexora/connect-admin'
-import { connectorAccess, connectorErrorResponse } from '@/lib/nexora/connectors-access'
+import {
+  connectorAccess,
+  connectorErrorResponse,
+  signOAuthRequest,
+} from '@/lib/nexora/connectors-access'
 
 interface RouteContext {
   params: Promise<{ service: string }>
@@ -17,7 +21,14 @@ export const POST = withRouteHandler(async (request: NextRequest, context: Route
   const access = await connectorAccess(workspaceId, 'write')
   if (access instanceof NextResponse) return access
   try {
-    return NextResponse.json(await startOAuth(workspaceId, parsed.data.params.service))
+    const { requestId, authorizationUrl } = await startOAuth(
+      workspaceId,
+      parsed.data.params.service
+    )
+    return NextResponse.json({
+      requestId: signOAuthRequest(workspaceId, requestId),
+      authorizationUrl,
+    })
   } catch (error) {
     const response = connectorErrorResponse(error)
     if (response) return response

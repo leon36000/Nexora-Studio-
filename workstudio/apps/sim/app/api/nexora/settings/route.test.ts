@@ -1,4 +1,5 @@
 import { authMockFns } from '@sim/testing/mocks/auth.mock'
+import { encryptionMock, encryptionMockFns } from '@sim/testing/mocks/encryption.mock'
 import { resetEnvMock, setEnv } from '@sim/testing/mocks/env.mock'
 import {
   nexoraAdminAccessMock,
@@ -39,8 +40,9 @@ vi.mock('@/lib/nexora/restart', () => ({
   scheduleGracefulRestart: store.restart,
 }))
 
-vi.mock('@/lib/core/security/encryption', () => ({
-  decryptSecret: async (value: string) => ({ decrypted: value.replace(/^enc\((.*)\)$/, '$1') }),
+vi.mock('@/lib/core/security/encryption', () => encryptionMock)
+encryptionMockFns.mockDecryptSecret.mockImplementation(async (value: string) => ({
+  decrypted: value.replace(/^enc\((.*)\)$/, '$1'),
 }))
 
 import { POST as APPLY } from '@/app/api/nexora/settings/apply/route'

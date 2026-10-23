@@ -2,11 +2,11 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { listConnectorsContract } from '@/lib/api/contracts/nexora-connectors'
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
-import { listCatalog, listWorkspaceConnections } from '@/lib/nexora/connect-admin'
+import { listCatalog } from '@/lib/nexora/connect-admin'
 import {
   connectorAccess,
   connectorErrorResponse,
-  ensureWorkspaceIsolation,
+  reconciledWorkspaceConnections,
 } from '@/lib/nexora/connectors-access'
 
 export const dynamic = 'force-dynamic'
@@ -22,10 +22,9 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   const access = await connectorAccess(workspaceId, 'read')
   if (access instanceof NextResponse) return access
   try {
-    if (access.canManage) await ensureWorkspaceIsolation({ workspaceId, userId: access.userId })
     const [catalog, connections] = await Promise.all([
       listCatalog({ query: q, category }),
-      listWorkspaceConnections(workspaceId),
+      reconciledWorkspaceConnections({ workspaceId, userId: access.userId }),
     ])
     const connected = new Set(connections.map((c) => c.service))
     const ordered = [

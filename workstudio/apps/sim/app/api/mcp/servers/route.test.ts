@@ -1,4 +1,6 @@
 import { queueTableRows, resetDbChainMock, schemaMock } from '@sim/testing'
+import { createRouteContext } from '@sim/testing/helpers/http'
+import { setEnv } from '@sim/testing/mocks/env.mock'
 import type { NextRequest } from 'next/server'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -112,5 +114,26 @@ describe('MCP servers GET route', () => {
 
     expect(server.headers).toEqual({ Authorization: SECRET_HEADER_VALUE, 'X-Api-Key': 'k-123' })
     expect(server.oauthClientSecret).toBeUndefined()
+  })
+
+  it('never sends the workspace’s Nexora Connect token to a browser, even an editor’s', async () => {
+    setEnv({ NEXORA_CONNECT_MCP_URL: 'http://nexora-connect:3000/mcp' })
+    authState.permission = 'admin'
+    queueTableRows(schemaMock.mcpServers, [
+      {
+        ...serverRow(),
+        name: 'Nexora Connect',
+        url: 'http://nexora-connect:3000/mcp',
+        headers: { Authorization: 'Bearer oct_workspace_secret' },
+      },
+    ])
+
+    const response = await GET(listRequest(), createRouteContext({}))
+    const body = await response.json()
+    const [server] = body.data.servers
+
+    expect(JSON.stringify(body)).not.toContain('oct_workspace_secret')
+    expect(server.headers).toBeUndefined()
+    expect(server.headerNames).toEqual(['Authorization'])
   })
 })

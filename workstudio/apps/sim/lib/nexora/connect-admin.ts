@@ -160,48 +160,109 @@ export async function disconnect(
   options: ConnectAdminOptions = {}
 ): Promise<void> {
   const call = createClient(options)
-  await call('DELETE', `/api/connections/${encodeURIComponent(service)}`, {
-    connectionName: workspaceConnectionName(workspaceId),
+  try {
+    await call('DELETE', `/api/connections/${encodeURIComponent(service)}`, {
+      connectionName: workspaceConnectionName(workspaceId),
+    })
+  } catch (error) {
+    // Already removed (another tab, the Connect console): the workspace is disconnected all the same.
+    if (error instanceof ConnectRefusedError && error.code === 'connection_not_found') return
+    throw error
+  }
+}
+
+interface TokenPolicy {
+  allowedActions: string[]
+  blockedActions: string[]
+  allowedProxies: string[]
+  allowedConnections: string[]
+  allowedTriggers: string[]
+}
+
+const POLICY_KEYS = [
+  'allowedActions',
+  'blockedActions',
+  'allowedProxies',
+  'allowedConnections',
+  'allowedTriggers',
+] as const
+
+function samePolicy(token: Record<string, unknown>, policy: TokenPolicy): boolean {
+  return POLICY_KEYS.every((key) => {
+    const current = toArray(token[key]).filter((v): v is string => typeof v === 'string')
+    const wanted = policy[key]
+    return current.length === wanted.length && wanted.every((value) => current.includes(value))
   })
+}
+
+async function listWorkspaceTokens(
+  call: ReturnType<typeof createClient>,
+  workspaceId: string
+): Promise<Record<string, unknown>[]> {
+  const name = workspaceTokenName(workspaceId)
+  return toArray(await call<unknown>('GET', '/api/runtime-tokens'))
+    .filter(isRecordLike)
+    .filter((t) => t.name === name && typeof t.id === 'string')
 }
 
 /**
  * Keeps the workspace's runtime token limited to exactly its connections, creating the token the
  * first time. Nexora Connect shows a token's secret only at creation: `token` is set then, and the
- * caller stores it in the workspace's « Nexora Connect » MCP server.
+ * caller stores it in the workspace's « Nexora Connect » MCP server. With `recreate`, or when
+ * several tokens carry the workspace's name (no telling which one the server holds), every one is
+ * revoked and a single fresh token is made. The grant is written only when it differs. Callers
+ * serialize per workspace (see `reconcileWorkspaceConnect`).
  */
 export async function syncWorkspaceToken(
   workspaceId: string,
   options: ConnectAdminOptions & { recreate?: boolean } = {}
-): Promise<{ token?: string }> {
+): Promise<{ token?: string; connections: WorkspaceConnection[] }> {
   const call = createClient(options)
-  const [connections, tokens] = await Promise.all([
+  const [connections, existing] = await Promise.all([
     listWorkspaceConnections(workspaceId, options),
-    call<unknown>('GET', '/api/runtime-tokens'),
+    listWorkspaceTokens(call, workspaceId),
   ])
-  const grant = connections.length > 0 ? connections.map((c) => c.id) : [NO_CONNECTION_GRANT]
-  const policy = {
+  const policy: TokenPolicy = {
     allowedActions: [],
     blockedActions: [],
     allowedProxies: [],
-    allowedConnections: grant,
+    allowedConnections:
+      connections.length > 0 ? connections.map((c) => c.id) : [NO_CONNECTION_GRANT],
     allowedTriggers: [],
   }
-  const name = workspaceTokenName(workspaceId)
-  const existing = toArray(tokens)
-    .filter(isRecordLike)
-    .find((t) => t.name === name && typeof t.id === 'string')
-  if (existing && options.recreate) {
-    await call('DELETE', `/api/runtime-tokens/${existing.id}`)
-  } else if (existing) {
-    await call('PUT', `/api/runtime-tokens/${existing.id}`, policy)
-    return {}
+  if (existing.length === 1 && !options.recreate) {
+    const [token] = existing
+    if (!samePolicy(token, policy)) await call('PUT', `/api/runtime-tokens/${token.id}`, policy)
+    return { connections }
   }
+  for (const token of existing) await call('DELETE', `/api/runtime-tokens/${token.id}`)
   const created = await call<Record<string, unknown>>('POST', '/api/runtime-tokens', {
-    name,
+    name: workspaceTokenName(workspaceId),
     ...policy,
   })
-  return { token: String(created.token) }
+  return { token: String(created.token), connections }
+}
+
+/** Revokes the workspace's runtime token (all of them, should several carry its name). */
+export async function revokeWorkspaceToken(
+  workspaceId: string,
+  options: ConnectAdminOptions = {}
+): Promise<void> {
+  const call = createClient(options)
+  for (const token of await listWorkspaceTokens(call, workspaceId)) {
+    await call('DELETE', `/api/runtime-tokens/${token.id}`)
+  }
+}
+
+/** A deleted workspace leaves nothing in Nexora Connect: its connections and its token go. */
+export async function removeWorkspaceFromConnect(
+  workspaceId: string,
+  options: ConnectAdminOptions = {}
+): Promise<void> {
+  for (const connection of await listWorkspaceConnections(workspaceId, options)) {
+    await disconnect(workspaceId, connection.service, options)
+  }
+  await revokeWorkspaceToken(workspaceId, options)
 }
 
 export interface CatalogService {
@@ -283,8 +344,15 @@ export async function getServiceDetail(
   const call = createClient(options)
   const [catalog, setup] = await Promise.all([
     catalogFor(options),
-    call<Record<string, unknown>>('GET', `/v1/providers/${encodeURIComponent(service)}/setup`),
+    call<Record<string, unknown>>(
+      'GET',
+      `/v1/providers/${encodeURIComponent(service)}/setup`
+    ).catch((error: unknown) => {
+      if (error instanceof ConnectRefusedError && error.code === 'unknown_service') return null
+      throw error
+    }),
   ])
+  if (!setup) return { service: null, auth: [], oauthClient: null, actions: [] }
   const entry = catalog.find((e) => e.service === service)
   return {
     service: entry ? (({ actions: _actions, ...rest }) => rest)(entry) : null,
@@ -333,16 +401,4 @@ export async function setOAuthApp(
     configured: saved.configured === true,
     redirectUri: textOrNull(saved.expectedRedirectUri),
   }
-}
-
-/** Whether Nexora Connect already holds the workspace's own token (workspaces created before J5 do not). */
-export async function hasWorkspaceToken(
-  workspaceId: string,
-  options: ConnectAdminOptions = {}
-): Promise<boolean> {
-  const call = createClient(options)
-  const name = workspaceTokenName(workspaceId)
-  return toArray(await call<unknown>('GET', '/api/runtime-tokens'))
-    .filter(isRecordLike)
-    .some((t) => t.name === name)
 }

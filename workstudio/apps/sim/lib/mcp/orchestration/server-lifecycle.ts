@@ -19,6 +19,7 @@ import { detectMcpAuthType, oauthCredsChanged, revokeMcpOauthTokens } from '@/li
 import { mcpService } from '@/lib/mcp/service'
 import type { McpAuthType } from '@/lib/mcp/types'
 import { generateMcpServerId, isSameMcpServerDestination } from '@/lib/mcp/utils'
+import { guardNexoraConnectHeaders } from '@/lib/nexora/connect-headers'
 import { captureServerEvent } from '@/lib/posthog/server'
 
 const logger = createLogger('McpServerOrchestration')
@@ -56,6 +57,11 @@ export interface PerformCreateMcpServerParams extends ActorMetadata {
   oauthClientSecret?: string | null
   oauthClientSecretProvided?: boolean
   existingServerBehavior?: 'update' | 'reject'
+  /**
+   * Nexora's own installation of a workspace token on its « Nexora Connect » server. Every other
+   * write keeps the stored token (see `guardNexoraConnectHeaders`).
+   */
+  writesNexoraConnectToken?: boolean
 }
 
 export interface PerformUpdateMcpServerParams extends ActorMetadata {
@@ -80,6 +86,8 @@ export interface PerformUpdateMcpServerParams extends ActorMetadata {
   oauthClientIdProvided?: boolean
   oauthClientSecret?: string | null
   oauthClientSecretProvided?: boolean
+  /** See {@link PerformCreateMcpServerParams.writesNexoraConnectToken}. */
+  writesNexoraConnectToken?: boolean
 }
 
 export interface PerformDeleteMcpServerParams extends ActorMetadata {
@@ -162,7 +170,6 @@ export async function createMcpServer(
     ? (await encryptSecret(params.oauthClientSecret)).encrypted
     : null
   const oauthClientId = params.oauthClientId || null
-  const hasHeaders = params.headers && Object.keys(params.headers).length > 0
 
   try {
     const [existingServer] = await db
@@ -182,6 +189,15 @@ export async function createMcpServer(
       .limit(1)
 
     const urlChanged = existingServer ? existingServer.url !== params.url : true
+    const headers = params.writesNexoraConnectToken
+      ? params.headers
+      : (guardNexoraConnectHeaders({
+          storedUrl: existingServer?.url,
+          storedHeaders: existingServer?.headers,
+          nextUrl: params.url,
+          incoming: params.headers ?? {},
+        }) ?? params.headers)
+    const hasHeaders = headers && Object.keys(headers).length > 0
 
     /**
      * Server ids are a 32-bit hash of the URL, so a different destination can
@@ -266,7 +282,7 @@ export async function createMcpServer(
         credsChanged ||
         existingServer.transport !== transport ||
         (existingServer.authType ?? 'headers') !== resolvedAuthType ||
-        !isEqual(existingServer.headers ?? {}, params.headers || {})
+        !isEqual(existingServer.headers ?? {}, headers || {})
 
       if (shouldClearOauth) await revokeMcpOauthTokens(serverId, params.workspaceId)
 
@@ -280,7 +296,7 @@ export async function createMcpServer(
           transport,
           url: params.url,
           authType: resolvedAuthType,
-          headers: params.headers || {},
+          headers: headers || {},
           timeout,
           retries,
           enabled,
@@ -369,7 +385,7 @@ export async function createMcpServer(
       authType: resolvedAuthType,
       oauthClientId,
       oauthClientSecret: oauthClientSecretEncrypted,
-      headers: params.headers || {},
+      headers: headers || {},
       timeout,
       retries,
       enabled,
@@ -454,6 +470,16 @@ export async function updateMcpServer(
 
     if (!currentServer) return { success: false, error: 'Server not found', errorCode: 'not_found' }
 
+    const headers = params.writesNexoraConnectToken
+      ? params.headers
+      : guardNexoraConnectHeaders({
+          storedUrl: currentServer.url,
+          storedHeaders: currentServer.headers,
+          nextUrl: params.url ?? currentServer.url,
+          incoming: params.headers,
+        })
+    if (headers !== undefined) updateData.headers = headers
+
     const guardedUrl = params.allowDestinationChange ? undefined : params.url
     if (
       guardedUrl !== undefined &&
@@ -501,8 +527,8 @@ export async function updateMcpServer(
      */
     const headersInvalidateAuth =
       resolvedAuthType === 'headers' &&
-      params.headers !== undefined &&
-      !isEqual(currentServer.headers ?? {}, params.headers)
+      headers !== undefined &&
+      !isEqual(currentServer.headers ?? {}, headers)
     // An auth-type flip (either direction) or OAuth creds/URL change invalidates the connection: reset and clear stale state.
     if (
       authTypeChanged ||
@@ -554,7 +580,7 @@ export async function updateMcpServer(
       params.transport !== undefined ||
       authTypeChanged ||
       params.enabled !== undefined ||
-      params.headers !== undefined ||
+      headers !== undefined ||
       params.timeout !== undefined ||
       params.retries !== undefined
 

@@ -327,7 +327,7 @@ describe("ActionPolicyService", () => {
 
     for (const snapshot of unrestricted) {
       expect(snapshot.evaluateConnection()).toEqual({ allowed: true, checks: [] });
-      expect(snapshot.evaluateConnection(workConnectionId)).toEqual({ allowed: true, checks: [] });
+      expect(snapshot.evaluateConnection({ id: workConnectionId })).toEqual({ allowed: true, checks: [] });
       expect(snapshot.evaluate(action)).toEqual({ allowed: true, checks: [] });
     }
   });
@@ -340,15 +340,15 @@ describe("ActionPolicyService", () => {
       allowedConnections: [workConnectionId, defaultConnectionId],
     });
 
-    expect(snapshot.evaluateConnection(workConnectionId)).toEqual({
+    expect(snapshot.evaluateConnection({ id: workConnectionId })).toEqual({
       allowed: true,
       checks: [{ source: "token", outcome: "allow_match", rule: workConnectionId }],
     });
-    expect(snapshot.evaluateConnection(defaultConnectionId)).toEqual({
+    expect(snapshot.evaluateConnection({ id: defaultConnectionId })).toEqual({
       allowed: true,
       checks: [{ source: "token", outcome: "allow_match", rule: defaultConnectionId }],
     });
-    expect(snapshot.evaluateConnection(otherConnectionId)).toMatchObject({
+    expect(snapshot.evaluateConnection({ id: otherConnectionId })).toMatchObject({
       allowed: false,
       code: "connection_not_allowed",
       checks: [{ source: "token", outcome: "allow_miss" }],
@@ -373,11 +373,11 @@ describe("ActionPolicyService", () => {
       allowed: false,
       code: "connection_not_allowed",
     });
-    expect(snapshot.evaluateConnection(defaultConnectionId)).toMatchObject({
+    expect(snapshot.evaluateConnection({ id: defaultConnectionId })).toMatchObject({
       allowed: false,
       code: "connection_not_allowed",
     });
-    expect(snapshot.evaluateConnection(workConnectionId)).toMatchObject({ allowed: true });
+    expect(snapshot.evaluateConnection({ id: workConnectionId })).toMatchObject({ allowed: true });
   });
 });
 

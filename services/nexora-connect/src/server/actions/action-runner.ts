@@ -111,15 +111,16 @@ export class ActionRunner {
           input.connectionId ??
           (input.connectionName
             ? undefined
-            : input.policy.implicitConnectionId(await this.options.connections.listConnectionsByService(action.service)));
+            : input.policy.implicitConnectionId(
+                await this.options.connections.listConnectionsByService(action.service),
+              ));
         const summary = await this.options.connections.getConnectionSummary(
           action.service,
           input.connectionName,
           connectionId,
         );
         input.signal?.throwIfAborted();
-        const connectionPolicy =
-          summary?.authType === "no_auth" ? undefined : input.policy.evaluateConnection(summary?.id);
+        const connectionPolicy = summary?.authType === "no_auth" ? undefined : input.policy.evaluateConnection(summary);
         if (connectionPolicy && !connectionPolicy.allowed) {
           policy = connectionPolicy;
           result = { ok: false, error: { code: policy.code, message: policy.message } };
@@ -141,7 +142,7 @@ export class ActionRunner {
           const targetPolicy =
             connection.summary?.authType === "no_auth"
               ? undefined
-              : input.policy.evaluateConnection(connection.summary?.id);
+              : input.policy.evaluateConnection(connection.summary);
           if (targetPolicy && !targetPolicy.allowed) {
             policy = targetPolicy;
             throw new ConnectionError(targetPolicy.code, targetPolicy.message);

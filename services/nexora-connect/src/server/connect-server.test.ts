@@ -4507,3 +4507,152 @@ function createRunLog(id: string, startedAt: string): RunLog {
     ok: true,
   };
 }
+
+describe("Nexora workspace connections", () => {
+  // WorkStudio names a workspace's connection `ws-<workspaceId>` and reaches it only with that
+  // workspace's own token. The deployment's shared runtime token (and any other caller whose access
+  // is not limited to connections) must never see or use one, even when a workspace still holds it.
+  async function workspaceFixture() {
+    const runtimeTokens = new RuntimeTokenService(new MemoryRuntimeTokenStore());
+    const app = createTestServer([{ ...apiKeyProvider, actions: [echoAction] }], {
+      auth: { adminToken: "admin-token", runtimeToken: "shared-token" },
+      runtimeTokens,
+      providerLoader: new ProxyProviderLoader(),
+    }).createApp();
+    const admin = { authorization: "Bearer admin-token", "content-type": "application/json" };
+    const saved = await app.request("/api/connections/example", {
+      method: "PUT",
+      headers: admin,
+      body: JSON.stringify({ authType: "api_key", connectionName: "ws-a", values: { apiKey: "workspace-a-key" } }),
+    });
+    const workspaceConnection = (await saved.json()) as { id: string };
+    const created = await app.request("/api/runtime-tokens", {
+      method: "POST",
+      headers: admin,
+      body: JSON.stringify({
+        name: "workstudio-ws-a",
+        allowedActions: [],
+        blockedActions: [],
+        allowedProxies: ["example"],
+        allowedConnections: [workspaceConnection.id],
+      }),
+    });
+    const workspaceToken = ((await created.json()) as { token: string }).token;
+    return { app, workspaceConnection, workspaceToken };
+  }
+
+  function runEcho(
+    app: Awaited<ReturnType<typeof workspaceFixture>>["app"],
+    token: string,
+    body: object,
+    headers: Record<string, string> = {},
+  ) {
+    return app.request("/v1/actions/example.echo", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json", ...headers },
+      body: JSON.stringify({ input: {}, ...body }),
+    });
+  }
+
+  it("refuses a workspace connection to the shared runtime token over HTTP actions and the proxy", async () => {
+    const { app, workspaceConnection, workspaceToken } = await workspaceFixture();
+
+    const byName = await runEcho(app, "shared-token", { connectionName: "ws-a" });
+    expect(byName.status).toBe(403);
+    await expect(byName.json()).resolves.toMatchObject({ errorCode: "connection_not_allowed" });
+    const byId = await runEcho(app, "shared-token", {}, { "x-oo-connector-app-id": workspaceConnection.id });
+    expect(byId.status).toBe(403);
+    const byAlias = await app.request("/v1/proxy/example", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer shared-token",
+        "content-type": "application/json",
+        "x-oo-connector-alias": "ws-a",
+      },
+      body: JSON.stringify({ endpoint: "/items", method: "GET" }),
+    });
+    expect(byAlias.status).toBe(403);
+    await expect(byAlias.json()).resolves.toMatchObject({ errorCode: "connection_not_allowed" });
+
+    expect((await runEcho(app, workspaceToken, { connectionName: "ws-a" })).status).toBe(200);
+    expect((await runEcho(app, "admin-token", { connectionName: "ws-a" })).status).toBe(200);
+  });
+
+  it("hides workspace connections from the shared runtime token's discovery and search", async () => {
+    const { app, workspaceToken } = await workspaceFixture();
+    const shared = { authorization: "Bearer shared-token" };
+
+    const apps = (await (await app.request("/v1/apps", { headers: shared })).json()) as {
+      data: Array<{ alias: string }>;
+    };
+    expect(apps.data.map((entry) => entry.alias)).not.toContain("ws-a");
+    const byService = (await (await app.request("/v1/apps/services/example", { headers: shared })).json()) as {
+      data: Array<{ alias: string }>;
+    };
+    expect(byService.data.map((entry) => entry.alias)).not.toContain("ws-a");
+    await expect(
+      (await app.request("/v1/apps/authenticated?service=example", { headers: shared })).json(),
+    ).resolves.toMatchObject({ data: [] });
+
+    const sharedSearch = (await (await app.request("/v1/actions/search?q=echo", { headers: shared })).json()) as {
+      data: Array<{ id: string; authenticated: boolean }>;
+    };
+    expect(sharedSearch.data.find((result) => result.id === "example.echo")?.authenticated).toBe(false);
+    const workspaceSearch = (await (
+      await app.request("/v1/actions/search?q=echo", { headers: { authorization: `Bearer ${workspaceToken}` } })
+    ).json()) as { data: Array<{ id: string; authenticated: boolean }> };
+    expect(workspaceSearch.data.find((result) => result.id === "example.echo")?.authenticated).toBe(true);
+  });
+
+  it("does not let another workspace's token see a workspace's connection in search", async () => {
+    const { app } = await workspaceFixture();
+    const other = await app.request("/api/runtime-tokens", {
+      method: "POST",
+      headers: { authorization: "Bearer admin-token", "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "workstudio-ws-b",
+        allowedActions: [],
+        blockedActions: [],
+        allowedProxies: [],
+        allowedConnections: ["nexora-no-connection"],
+      }),
+    });
+    const otherToken = ((await other.json()) as { token: string }).token;
+    const search = (await (
+      await app.request("/v1/actions/search?q=echo", { headers: { authorization: `Bearer ${otherToken}` } })
+    ).json()) as { data: Array<{ id: string; authenticated: boolean }> };
+    expect(search.data.find((result) => result.id === "example.echo")?.authenticated).toBe(false);
+  });
+
+  it("keeps workspace connections out of the shared runtime token's MCP tools", async () => {
+    const { app } = await workspaceFixture();
+    const fetcher: typeof fetch = async (input, init) => {
+      const headers = new Headers(init?.headers);
+      headers.set("authorization", "Bearer shared-token");
+      return app.fetch(new Request(input, { ...init, headers }));
+    };
+    const transport = new StreamableHTTPClientTransport(new URL("https://connect.test/mcp"), { fetch: fetcher });
+    const client = new Client({ name: "connect-server-test", version: "0.0.0" });
+    try {
+      await client.connect(transport);
+      const listed = await client.callTool({ name: "list_connections", arguments: {} });
+      expect(JSON.stringify(listed.structuredContent)).not.toContain("ws-a");
+      const byService = await client.callTool({ name: "list_connections", arguments: { service: "example" } });
+      expect(JSON.stringify(byService.structuredContent)).not.toContain("ws-a");
+      const apps = await client.callTool({ name: "list_apps", arguments: {} });
+      expect(JSON.stringify(apps.structuredContent)).not.toContain("ws-a");
+      const guide = await client.callTool({
+        name: "get_action_guide",
+        arguments: { actionId: "example.echo", connectionName: "ws-a" },
+      });
+      expect(guide.structuredContent).toMatchObject({ ok: false, error: { code: "connection_not_allowed" } });
+      const executed = await client.callTool({
+        name: "execute_action",
+        arguments: { actionId: "example.echo", input: {}, connectionName: "ws-a" },
+      });
+      expect(executed.structuredContent).toMatchObject({ ok: false, error: { code: "connection_not_allowed" } });
+    } finally {
+      await client.close();
+    }
+  });
+});

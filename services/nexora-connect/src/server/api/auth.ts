@@ -39,6 +39,14 @@ export function hasAdminBearer(context: Context): boolean {
   return adminBearerRequests.has(context.req.raw);
 }
 
+/**
+ * Whether the deployment administrator makes the request: its bearer token, or a console route,
+ * which only the administrator reaches. Runtime callers (`/v1`, `/mcp`) are not.
+ */
+export function isAdminCaller(context: Context): boolean {
+  return hasAdminBearer(context) || readAuthScope(context.req.path) === "admin";
+}
+
 const runtimeGrants = new WeakMap<Request, RuntimeGrant>();
 
 export function readRuntimeGrant(context: Context): RuntimeGrant | undefined {

@@ -1,4 +1,5 @@
 import type { McpServerRow } from '@/lib/mcp/queries'
+import { isNexoraConnectUrl } from '@/lib/nexora/connect-headers'
 
 /**
  * Presence and key names of a server's custom headers, with the values dropped.
@@ -35,8 +36,9 @@ export type InternalMcpServer = Omit<McpServerRow, 'oauthClientSecret' | 'header
  * Projects a stored MCP server row onto the internal API shape.
  *
  * `oauthClientSecret` is always reduced to a boolean, and header values are
- * withheld unless the caller may already rewrite them. Every caller gets
- * `hasHeaders`/`headerNames`.
+ * withheld unless the caller may already rewrite them. The workspace's « Nexora Connect » server
+ * never sends its values: its token is set by Nexora only, and an edit keeps it server-side. Every
+ * caller gets `hasHeaders`/`headerNames`.
  */
 export function projectInternalMcpServer(
   row: McpServerRow,
@@ -48,7 +50,7 @@ export function projectInternalMcpServer(
     ...projectMcpHeaders(headers),
     hasOauthClientSecret: Boolean(oauthClientSecret),
   }
-  if (options.includeHeaderValues && headers) {
+  if (options.includeHeaderValues && headers && !isNexoraConnectUrl(row.url)) {
     projected.headers = headers as Record<string, string>
   }
   return projected

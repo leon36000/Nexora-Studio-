@@ -1,5 +1,6 @@
 import { jsonResponse } from '@sim/testing/helpers/http'
 import { describe, expect, it } from 'vitest'
+import { type IsolationDependencies, reconcileWorkspaceConnect } from '@/lib/nexora/connect'
 import {
   ConnectRefusedError,
   ConnectUnavailableError,
@@ -7,9 +8,10 @@ import {
   disconnect,
   getOAuthStatus,
   getServiceDetail,
-  hasWorkspaceToken,
   listCatalog,
   listWorkspaceConnections,
+  removeWorkspaceFromConnect,
+  revokeWorkspaceToken,
   setOAuthApp,
   startOAuth,
   syncWorkspaceToken,
@@ -77,6 +79,7 @@ function fakeConnect() {
     rejectKeys: new Set<string>(),
     down: false,
     catalogFetches: 0,
+    tokenUpdates: 0,
     oauthConfigs: {} as Record<string, unknown>,
   }
   const fetchFn = async (input: string | URL | Request, init?: RequestInit) => {
@@ -95,6 +98,12 @@ function fakeConnect() {
       return jsonResponse(CATALOG)
     }
     const setupMatch = path.match(/^\/v1\/providers\/([\w-]+)\/setup$/)
+    if (setupMatch && !CATALOG.some((p) => p.service === setupMatch[1])) {
+      return jsonResponse(
+        { success: false, errorCode: 'unknown_service', message: 'Unknown service' },
+        404
+      )
+    }
     if (setupMatch) {
       return jsonResponse({
         success: true,
@@ -167,6 +176,12 @@ function fakeConnect() {
       return jsonResponse(created)
     }
     if (connectionMatch && method === 'DELETE') {
+      const found = state.connections.some(
+        (c) => c.service === connectionMatch[1] && c.connectionName === body.connectionName
+      )
+      if (!found) {
+        return jsonResponse({ error: { code: 'connection_not_found', message: 'gone' } }, 404)
+      }
       state.connections = state.connections.filter(
         (c) => !(c.service === connectionMatch[1] && c.connectionName === body.connectionName)
       )
@@ -194,8 +209,13 @@ function fakeConnect() {
       if (!token || required.some((k) => !Array.isArray(body[k]))) {
         return jsonResponse({ error: { code: 'invalid_input', message: 'bad' } }, 400)
       }
+      state.tokenUpdates++
       Object.assign(token, body)
       return jsonResponse(token)
+    }
+    if (tokenMatch && method === 'DELETE') {
+      state.tokens = state.tokens.filter((t) => t.id !== tokenMatch[1])
+      return jsonResponse({ revoked: true })
     }
     return jsonResponse({ error: { code: 'not_found', message: `${method} ${path}` } }, 404)
   }
@@ -384,11 +404,129 @@ describe('Nexora Connect catalog and setup', () => {
     })
     expect(state.oauthConfigs.google_calendar).toEqual({ clientId: 'id', clientSecret: 's' })
   })
+})
 
-  it('knows whether a workspace already has its own token', async () => {
-    const { options } = setup()
-    expect(await hasWorkspaceToken(WS, options)).toBe(false)
+describe('Nexora Connect workspace token upkeep', () => {
+  const tokensOf = (state: ReturnType<typeof setup>['state'], workspaceId: string) =>
+    state.tokens.filter((t) => t.name === `workstudio-ws-${workspaceId}`)
+
+  it('leaves a token already limited to exactly the workspace connections untouched', async () => {
+    const { state, options } = setup()
     await syncWorkspaceToken(WS, options)
-    expect(await hasWorkspaceToken(WS, options)).toBe(true)
+    await syncWorkspaceToken(WS, options)
+    expect(state.tokenUpdates).toBe(0)
+    await connectWithCredentials(WS, 'brevo', 'api_key', { apiKey: 'a' }, options)
+    await syncWorkspaceToken(WS, options)
+    await syncWorkspaceToken(WS, options)
+    expect(state.tokenUpdates).toBe(1)
+  })
+
+  it('returns the connections the token now grants', async () => {
+    const { options } = setup()
+    await connectWithCredentials(WS, 'brevo', 'api_key', { apiKey: 'a' }, options)
+    const { connections } = await syncWorkspaceToken(WS, options)
+    expect(connections.map((c) => c.service)).toEqual(['brevo'])
+  })
+
+  it('replaces duplicate tokens of a workspace by one fresh token', async () => {
+    const { state, options } = setup()
+    const policy = {
+      allowedActions: [],
+      blockedActions: [],
+      allowedProxies: [],
+      allowedConnections: ['nexora-no-connection'],
+      allowedTriggers: [],
+    }
+    state.tokens.push(
+      { id: 'dup-1', name: `workstudio-ws-${WS}`, ...policy },
+      { id: 'dup-2', name: `workstudio-ws-${WS}`, ...policy },
+      { id: 'other', name: `workstudio-ws-${OTHER}`, ...policy }
+    )
+    const { token } = await syncWorkspaceToken(WS, options)
+    expect(token).toMatch(/^oct_/)
+    expect(tokensOf(state, WS)).toHaveLength(1)
+    expect(tokensOf(state, WS)[0].id).not.toMatch(/^dup-/)
+    expect(tokensOf(state, OTHER)).toHaveLength(1)
+  })
+
+  it('revokes every token of a workspace', async () => {
+    const { state, options } = setup()
+    await syncWorkspaceToken(WS, options)
+    await syncWorkspaceToken(OTHER, options)
+    await revokeWorkspaceToken(WS, options)
+    expect(tokensOf(state, WS)).toEqual([])
+    expect(tokensOf(state, OTHER)).toHaveLength(1)
+  })
+
+  it('removes a deleted workspace’s connections and token, and nothing of other workspaces', async () => {
+    const { state, options } = setup()
+    await connectWithCredentials(WS, 'brevo', 'api_key', { apiKey: 'a' }, options)
+    await connectWithCredentials(WS, 'slack', 'api_key', { apiKey: 'b' }, options)
+    await connectWithCredentials(OTHER, 'brevo', 'api_key', { apiKey: 'c' }, options)
+    await syncWorkspaceToken(WS, options)
+    await syncWorkspaceToken(OTHER, options)
+    await removeWorkspaceFromConnect(WS, options)
+    expect(state.connections.map((c) => c.connectionName)).toEqual([`ws-${OTHER}`])
+    expect(tokensOf(state, WS)).toEqual([])
+    expect(tokensOf(state, OTHER)).toHaveLength(1)
+  })
+
+  it('treats disconnecting a connection that is already gone as done', async () => {
+    const { options } = setup()
+    await expect(disconnect(WS, 'brevo', options)).resolves.toBeUndefined()
+  })
+
+  it('reports a service Connect does not know as missing, not as a refusal', async () => {
+    const { options } = setup()
+    expect(await getServiceDetail('ghost', options)).toEqual({
+      service: null,
+      auth: [],
+      oauthClient: null,
+      actions: [],
+    })
+  })
+})
+
+/** Runs work for one key at a time, in arrival order, as the per-workspace database lock does. */
+function keyedLock(): IsolationDependencies['lock'] {
+  const tails = new Map<string, Promise<unknown>>()
+  return (key, work) => {
+    const run = (tails.get(key) ?? Promise.resolve()).then(work, work)
+    tails.set(
+      key,
+      run.catch(() => undefined)
+    )
+    return run
+  }
+}
+
+describe('concurrent token upkeep of one workspace', () => {
+  function isolation(connect: ReturnType<typeof setup>, lock: IsolationDependencies['lock']) {
+    let server: { id: string; headers: Record<string, string> } | null = null
+    const deps: IsolationDependencies = {
+      lock,
+      findServer: async () => server,
+      syncToken: (workspaceId, options) =>
+        syncWorkspaceToken(workspaceId, { ...connect.options, ...options }),
+      revokeToken: (workspaceId) => revokeWorkspaceToken(workspaceId, connect.options),
+      writeServer: async ({ token }) => {
+        server = { id: 'srv', headers: { Authorization: `Bearer ${token}` } }
+      },
+    }
+    return { deps, server: () => server }
+  }
+
+  it('leaves the workspace exactly one token, the one its server holds', async () => {
+    const connect = setup()
+    const { deps, server } = isolation(connect, keyedLock())
+    const workspace = { workspaceId: WS, userId: 'u-1' }
+    await Promise.all([
+      reconcileWorkspaceConnect(workspace, deps),
+      reconcileWorkspaceConnect(workspace, deps),
+      reconcileWorkspaceConnect(workspace, deps),
+    ])
+    const tokens = connect.state.tokens.filter((t) => t.name === `workstudio-ws-${WS}`)
+    expect(tokens).toHaveLength(1)
+    expect(server()?.headers.Authorization).toBe(`Bearer oct_secret_${tokens[0].id}`)
   })
 })
