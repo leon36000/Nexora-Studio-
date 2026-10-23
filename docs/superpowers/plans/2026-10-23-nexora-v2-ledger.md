@@ -58,3 +58,4 @@ Spec : `docs/superpowers/specs/2026-10-23-nexora-v2-design.md`. Plans : `docs/su
   - Ruling : `ONBOARDING_STEPS` vit dans `lib/nexora/onboarding-steps.ts` (sans `@sim/db`) car le contrat est importé par le navigateur — coût si faux : aucun.
   - Ruling : `authorizeInstanceAdmin` renvoie aussi `organizationId` (l'organisation dont la progression est lue/écrite) — coût si faux : aucun.
   - Ruling : la progression est fusionnée sous verrou de ligne (`SELECT … FOR UPDATE` en transaction) pour que deux admins simultanés ne s'écrasent pas — coût si faux : aucun.
+- J3 Task 1 (arrivée) : `/workspace/[id]` → `/home` ; `/home` rend `NexoraHome` quand le chat est désactivé (titre de page traduit), le layout ne redirige plus ; barre latérale : entrée « Accueil » (masquée si le chat d'origine est actif). Tests `layout.test.tsx` + sidebar + `lib/i18n` 27/27, `check-i18n` OK, aucune erreur de type hors écran Modèles en cours. Vérification réelle au navigateur avec Task 5.

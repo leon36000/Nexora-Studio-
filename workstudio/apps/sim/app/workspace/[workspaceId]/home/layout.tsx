@@ -1,23 +1,7 @@
-import { redirect } from 'next/navigation'
-import { isChatEnabled } from '@/lib/core/config/env-flags'
-
 /**
- * Redirects rather than 404s when Chat is disabled: this path is baked into
- * already-delivered invitation emails and into the invitation-accept API
- * contract, so it has to keep resolving. `/workspace/{id}` re-resolves the
- * landing route server-side, so the visitor lands on a workflow instead.
+ * The chat composer, or the Nexora home page when Chat is disabled (Nexora edition). This path
+ * is also baked into delivered invitation emails, so it always resolves.
  */
-export default async function HomeLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode
-  params: Promise<{ workspaceId: string }>
-}) {
-  if (!isChatEnabled) {
-    const { workspaceId } = await params
-    redirect(`/workspace/${workspaceId}`)
-  }
-
+export default function HomeLayout({ children }: { children: React.ReactNode }) {
   return <div className='flex h-full flex-1 flex-col overflow-hidden'>{children}</div>
 }

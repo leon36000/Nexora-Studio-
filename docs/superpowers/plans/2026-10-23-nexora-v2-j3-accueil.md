@@ -36,9 +36,9 @@
 - Modify: `workstudio/apps/sim/app/workspace/[workspaceId]/w/components/sidebar/sidebar.tsx` (entrée « Accueil » vers `/home` quand le chat est désactivé, en plus de « Nouveau workflow »)
 - Create: `workstudio/apps/sim/app/workspace/[workspaceId]/home/nexora-home/nexora-home.tsx` (coquille, remplie en Task 4)
 
-- [ ] **Step 1:** `/workspace/[id]` redirige toujours vers `/home` ; `/home` rend `NexoraHome` si `!isChatEnabled`, sinon la page d'origine ; le layout de `/home` ne redirige plus vers `/w` dans ce cas. Ajuster `layout.test.tsx`/tests existants touchés.
-- [ ] **Step 2: Run** `LANG=en_US.UTF-8 bun run --cwd apps/sim test app/workspace` puis `bun run type-check` — Expected: PASS.
-- [ ] **Step 3: Commit** `feat(j3): l'Accueil devient la page d'arrivée`.
+- [x] **Step 1:** `/workspace/[id]` redirige toujours vers `/home` ; `/home` rend `NexoraHome` si `!isChatEnabled`, sinon la page d'origine ; le layout de `/home` ne redirige plus vers `/w` dans ce cas. Ajuster `layout.test.tsx`/tests existants touchés.
+- [x] **Step 2: Run** `LANG=en_US.UTF-8 bun run --cwd apps/sim test app/workspace` puis `bun run type-check` — Expected: PASS.
+- [x] **Step 3: Commit** `feat(j3): l'Accueil devient la page d'arrivée`.
 
 ### Task 2: Route d'état et progression du premier lancement
 

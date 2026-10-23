@@ -765,6 +765,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
     () =>
       [
         {
+          // Nexora edition: the home page (cards, platform status, first launch) replaces the chat.
+          id: 'nexora-home',
+          label: t('nav.home'),
+          icon: Home,
+          href: `/workspace/${workspaceId}/home`,
+          hidden: chatEnabled,
+        },
+        {
           id: 'home',
           label: chatEnabled ? t('nav.newChat') : t('nav.newWorkflow'),
           icon: chatEnabled ? Home : Plus,

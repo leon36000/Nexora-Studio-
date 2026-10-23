@@ -525,6 +525,7 @@
     },
     "chatOptions": "Chat options",
     "nav": {
+      "home": "Home",
       "newChat": "New chat",
       "newWorkflow": "New workflow",
       "dashboard": "Dashboard",
