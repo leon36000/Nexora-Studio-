@@ -8535,3 +8535,48 @@ export const copilotServiceUsage = pgTable(
     index('copilot_service_usage_pending_idx').on(t.nextAttemptAt).where(sql`delivered_at IS NULL`),
   ]
 )
+
+/**
+ * Nexora edition: a conversation of the internal Assistant (« Assistant Nexora »), private to its
+ * author, with one agent (a workflow of the workspace's Agents folder).
+ */
+export const nexoraAssistantConversation = pgTable(
+  'nexora_assistant_conversation',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    workflowId: text('workflow_id').references(() => workflow.id, { onDelete: 'set null' }),
+    title: text('title').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('nexora_assistant_conversation_owner_idx').on(t.workspaceId, t.userId, t.updatedAt),
+  ]
+)
+
+/** One message of an Assistant conversation: the person's question or the agent's answer. */
+export const nexoraAssistantMessage = pgTable(
+  'nexora_assistant_message',
+  {
+    id: text('id').primaryKey(),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => nexoraAssistantConversation.id, { onDelete: 'cascade' }),
+    role: text('role').notNull(),
+    content: text('content').notNull(),
+    /** Attached files, as references to the workspace's stored files. */
+    files: jsonb('files').$type<{ name: string; key: string; type: string; size: number }[]>(),
+    /** Token usage of an answer. */
+    usage: jsonb('usage').$type<{ promptTokens: number; completionTokens: number }>(),
+    /** The answer stopped before its end (stream cut, error). */
+    interrupted: boolean('interrupted').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('nexora_assistant_message_conversation_idx').on(t.conversationId, t.createdAt)]
+)

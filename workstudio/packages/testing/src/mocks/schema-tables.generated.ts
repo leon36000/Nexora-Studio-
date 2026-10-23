@@ -2126,6 +2126,25 @@ export const GENERATED_SCHEMA_TABLES = {
     'deliveredAt',
     'lastError',
   ],
+  nexoraAssistantConversation: [
+    'id',
+    'workspaceId',
+    'userId',
+    'workflowId',
+    'title',
+    'createdAt',
+    'updatedAt',
+  ],
+  nexoraAssistantMessage: [
+    'id',
+    'conversationId',
+    'role',
+    'content',
+    'files',
+    'usage',
+    'interrupted',
+    'createdAt',
+  ],
 } as const
 
 /** Every `pgEnum` export mapped to its values. */
