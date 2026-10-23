@@ -14,7 +14,9 @@ Le fournisseur doit transmettre l'adresse e-mail de l'utilisateur et indiquer qu
 
 ## 2. Configurer Nexora
 
-Dans `deploy/.env` :
+**Le plus simple : dans l'interface.** Réglages › Sécurité (administrateurs de l'instance) : émetteur, identifiant, secret, nom du bouton, **Tester**, **Enregistrer** puis **Appliquer** (WorkStudio redémarre en 20 secondes environ). Voir [Réglages et gouvernance](reglages.md).
+
+**Ou dans `deploy/.env`**, qui reste prioritaire sur l'interface :
 
 ```bash
 NEXORA_OIDC_NAME=Mon entreprise
