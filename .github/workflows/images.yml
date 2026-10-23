@@ -8,10 +8,12 @@
 # publishes one multi-architecture tag.
 name: images
 
+# Not on every push to main: the WorkStudio `next build` needs more memory than the free
+# runners have (upstream Sim uses larger runners). Run it on release tags or by hand once a
+# larger runner is configured; until then install.sh builds the images on the server.
 on:
   push:
     tags: ['v*']
-    branches: [main]
   workflow_dispatch:
 
 permissions:
