@@ -1704,7 +1704,10 @@
       "unreachable": "The service does not answer: check the address, the model name and the key.",
       "forbidden": "Only organization admins can manage models.",
       "unknown": "Something went wrong. Try again in a moment.",
-      "download": "The download failed: {detail}"
+      "download": "The download failed. Try again in a moment.",
+      "downloadUnknownModel": "Ollama does not know this model: check its name (for example qwen2.5:7b).",
+      "downloadNoSpace": "The server is out of disk space for this model: free some space or pick a smaller model.",
+      "downloadNetwork": "The download was interrupted: check the server’s Internet connection, then try again."
     },
     "wizard": {
       "title": "Add a model — step {step} of 3",

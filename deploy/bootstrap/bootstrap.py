@@ -250,10 +250,8 @@ def ensure_admin_key(base_url: str, admin_token: str, out: Path) -> str:
         for line in out.read_text().splitlines():
             if line.startswith("export NEXORA_API_ADMIN_KEY="):
                 existing = line.split("=", 1)[1].strip() or None
-    if existing:
-        status, me = _request("GET", f"{base_url}/v1/me", token=existing)
-        if status == 200 and "admin" in me.get("permissions", []):
-            return existing
+    if existing and _key_still_good(base_url, existing, lambda me: "admin" in me.get("permissions", [])):
+        return existing
     admin = _call("GET", f"{base_url}/v1/me", admin_token)
     created = _call("POST", f"{base_url}/v1/admin/keys", admin_token, {"name": ADMIN_KEY_NAME, "user": admin["id"]})
     if not created.get("value"):
@@ -262,9 +260,19 @@ def ensure_admin_key(base_url: str, admin_token: str, out: Path) -> str:
     return created["value"]
 
 
-def _is_workstudio_key(base_url: str, key: str) -> bool:
+def _key_still_good(base_url: str, key: str, accepts) -> bool:
+    """A stored key is replaced only when Nexora API says it is no longer valid (401/403) or it is
+    not the right kind of key; a transient error keeps it, so restarts never pile up keys."""
     status, me = _request("GET", f"{base_url}/v1/me", token=key)
-    return status == 200 and me.get("email") == WORKSTUDIO_EMAIL and "admin" not in me.get("permissions", [])
+    if status in (401, 403):
+        return False
+    return accepts(me) if status == 200 else True
+
+
+def _is_workstudio_key(base_url: str, key: str) -> bool:
+    return _key_still_good(
+        base_url, key, lambda me: me.get("email") == WORKSTUDIO_EMAIL and "admin" not in me.get("permissions", [])
+    )
 
 
 def ensure_workstudio_key(

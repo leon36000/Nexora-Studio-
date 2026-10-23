@@ -16,7 +16,11 @@ import {
 } from '@sim/emcn'
 import { useFormatter, useTranslations } from 'next-intl'
 import type { NexoraModelSource } from '@/lib/nexora/model-admin'
-import { canonicalOllamaName, OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
+import {
+  canonicalOllamaName,
+  classifyOllamaPullError,
+  OLLAMA_MODEL_NAME,
+} from '@/lib/nexora/model-ids'
 import {
   getNexoraModelErrorCode,
   type NexoraModel,
@@ -207,7 +211,18 @@ export function AddModelModal({
         setProgress(null)
         setError(t('confirm.cancelled'))
       } else if (cause instanceof OllamaPullError) {
-        setError(tModels('errors.download', { detail: cause.message }))
+        const kind = classifyOllamaPullError(cause.message)
+        setError(
+          tModels(
+            kind === 'unknownModel'
+              ? 'errors.downloadUnknownModel'
+              : kind === 'noSpace'
+                ? 'errors.downloadNoSpace'
+                : kind === 'network'
+                  ? 'errors.downloadNetwork'
+                  : 'errors.download'
+          )
+        )
       } else {
         setError(tModels(`errors.${getNexoraModelErrorCode(cause)}`))
       }

@@ -1704,7 +1704,10 @@
       "unreachable": "Le service ne répond pas : vérifiez l’adresse, le nom du modèle et la clé.",
       "forbidden": "Seuls les administrateurs de l’organisation peuvent gérer les modèles.",
       "unknown": "L’opération a échoué. Réessayez dans un instant.",
-      "download": "Le téléchargement a échoué : {detail}"
+      "download": "Le téléchargement a échoué. Réessayez dans un instant.",
+      "downloadUnknownModel": "Ollama ne connaît pas ce modèle : vérifiez son nom (par exemple qwen2.5:7b).",
+      "downloadNoSpace": "Le serveur n’a plus assez de place pour ce modèle : libérez de l’espace disque ou choisissez un modèle plus petit.",
+      "downloadNetwork": "Le téléchargement a été interrompu : vérifiez la connexion du serveur à Internet, puis réessayez."
     },
     "wizard": {
       "title": "Ajouter un modèle — étape {step} sur 3",

@@ -55,6 +55,8 @@ class FakeApi(BaseHTTPRequestHandler):
         if path == "/health":
             return self._json(200, {})
         if path == "/v1/me":
+            if s.get("me_unavailable") and caller and caller is not ADMIN:
+                return self._json(503, {})
             return self._json(200, caller) if caller else self._json(401, {})
         if not caller or "admin" not in caller["permissions"]:
             return self._json(403, {})
@@ -235,6 +237,16 @@ class BootstrapTest(unittest.TestCase):
         self.assertIn("admin", FakeApi.state["keys"][key]["permissions"])
         self.run_bootstrap()
         self.assertEqual(admin_file.read_text(), first)
+
+    def test_a_transient_api_error_keeps_the_admin_key(self):
+        self.run_bootstrap()
+        admin_file = self.out.parent / "nexora-admin.env"
+        first = admin_file.read_text()
+        keys_before = len(FakeApi.state["keys"])
+        FakeApi.state["me_unavailable"] = True
+        self.run_bootstrap()
+        self.assertEqual(admin_file.read_text(), first)
+        self.assertEqual(len(FakeApi.state["keys"]), keys_before)
 
     def test_revoked_admin_key_is_replaced(self):
         admin_file = self.out.parent / "nexora-admin.env"

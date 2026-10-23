@@ -1,0 +1,128 @@
+{
+  "defaults": {
+    "name": "Nouvel agent",
+    "instructions": "Vous êtes l’assistant d’une PME française. Répondez en français professionnel, avec vouvoiement et des phrases courtes. N’inventez aucune information : si une donnée manque, dites-le.",
+    "welcomeMessage": "Bonjour, que puis-je pour vous ?",
+    "createFailed": "L’agent n’a pas pu être créé."
+  },
+  "model": {
+    "placeholder": "Choisir un modèle",
+    "default": "Modèle par défaut (nexora-default)",
+    "empty": "Aucun modèle disponible"
+  },
+  "playground": {
+    "metaTitle": "Playground",
+    "title": "Playground",
+    "help": "Aide",
+    "instructions": "Consignes système",
+    "instructionsPlaceholder": "Ce que le modèle doit savoir et comment il doit répondre",
+    "message": "Message",
+    "messagePlaceholder": "Votre message",
+    "temperature": "Température",
+    "maxTokens": "Longueur maximale (jetons)",
+    "send": "Envoyer",
+    "stop": "Arrêter",
+    "addModel": "Ajouter un modèle",
+    "removeModel": "Retirer ce modèle",
+    "saveAsAgent": "Enregistrer comme agent",
+    "empty": "La réponse s’affichera ici.",
+    "latency": "{seconds, number} s",
+    "tokens": "{prompt, number} jetons en entrée, {completion, number} en sortie",
+    "stopped": "Réponse arrêtée.",
+    "errors": {
+      "unavailable": "Nexora API est indisponible. Réessayez dans un instant.",
+      "forbidden": "Vous n’avez pas accès à cet espace.",
+      "invalid": "La demande a été refusée : vérifiez le message et les réglages.",
+      "interrupted": "La réponse a été interrompue.",
+      "unknown": "La réponse n’a pas pu être obtenue."
+    }
+  },
+  "list": {
+    "metaTitle": "Agents",
+    "title": "Agents",
+    "help": "Aide",
+    "newAgent": "Nouvel agent",
+    "empty": "Aucun agent pour l’instant."
+  },
+  "editor": {
+    "metaTitle": "Agent",
+    "back": "Agents",
+    "loading": "Chargement de l’agent…",
+    "loadFailed": "L’agent n’a pas pu être chargé.",
+    "readOnlyNotice": "Cet agent a été modifié dans l’éditeur au-delà de ce que le formulaire sait afficher. Ouvrez-le dans l’éditeur pour le modifier.",
+    "openInEditor": "Ouvrir dans l’éditeur",
+    "test": "Tester",
+    "save": "Enregistrer",
+    "saved": "Agent enregistré.",
+    "saveFailed": "L’agent n’a pas pu être enregistré.",
+    "nameRequired": "Donnez un nom à l’agent.",
+    "fields": {
+      "name": "Nom",
+      "description": "Description",
+      "instructions": "Consignes",
+      "model": "Modèle",
+      "tools": "Outils",
+      "knowledgeBaseIds": "Connaissances",
+      "memory": "Mémoire de conversation",
+      "welcomeMessage": "Message d’accueil"
+    },
+    "welcomeHint": "Enregistré avec le chat public, à la publication.",
+    "tools": {
+      "add": "Ajouter des outils",
+      "workflows": "Workflows",
+      "unknownServer": "Serveur MCP",
+      "missing": "Introuvable",
+      "remove": "Retirer {name}",
+      "workflowTitle": "Workflow {name}",
+      "none": "Aucun outil"
+    },
+    "knowledge": {
+      "add": "Ajouter des bases",
+      "none": "Aucune base de connaissances"
+    },
+    "memory": {
+      "on": "Oui",
+      "off": "Non"
+    }
+  },
+  "test": {
+    "title": "Tester l’agent",
+    "close": "Fermer",
+    "newConversation": "Nouvelle conversation",
+    "placeholder": "Écrivez un message à l’agent",
+    "send": "Envoyer",
+    "empty": "Le test utilise la version enregistrée de l’agent.",
+    "thinking": "L’agent répond…",
+    "failed": "L’agent n’a pas pu répondre.",
+    "noAnswer": "L’agent n’a rien répondu."
+  },
+  "publish": {
+    "title": "Publication",
+    "publish": "Publier",
+    "published": "Agent publié.",
+    "failed": "La publication a échoué.",
+    "link": "Lien du chat public",
+    "copy": "Copier le lien",
+    "notPublished": "Pas encore publié."
+  },
+  "versions": {
+    "title": "Versions",
+    "empty": "Aucune version publiée.",
+    "version": "Version {version, number}",
+    "active": "Active",
+    "activate": "Activer",
+    "activateTitle": "Activer la version {version, number}",
+    "activateText": "Le chat public utilisera cette version, et le brouillon de l’agent sera remplacé par elle. Les modifications non enregistrées seront perdues.",
+    "activated": "Version {version, number} activée.",
+    "activateFailed": "La version n’a pas pu être activée.",
+    "cancel": "Annuler",
+    "compare": "Comparer",
+    "compareFrom": "Version de départ",
+    "compareTo": "Version d’arrivée",
+    "notComparable": "Non comparable : l’une des versions a été modifiée dans l’éditeur.",
+    "noChanges": "Aucune différence.",
+    "loadingVersion": "Chargement des versions…",
+    "before": "Avant",
+    "after": "Après"
+  }
+}

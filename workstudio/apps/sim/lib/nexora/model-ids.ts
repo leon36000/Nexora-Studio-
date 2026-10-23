@@ -32,3 +32,16 @@ export function listedModelIds(models: ReadonlyArray<{ id: string; aliases?: unk
     : names
   return ordered.map((name) => `vllm/${name}`)
 }
+
+/** What went wrong while the bundled Ollama downloaded a model, from its (English) message. */
+export function classifyOllamaPullError(
+  message: string
+): 'unknownModel' | 'noSpace' | 'network' | 'other' {
+  const text = message.toLowerCase()
+  if (/file does not exist|not found|manifest unknown/.test(text)) return 'unknownModel'
+  if (/no space left|disk full/.test(text)) return 'noSpace'
+  if (/fetch failed|timeout|dial tcp|connection refused|network|interrupted/.test(text)) {
+    return 'network'
+  }
+  return 'other'
+}
