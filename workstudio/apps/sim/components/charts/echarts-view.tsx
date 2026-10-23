@@ -85,7 +85,11 @@ export function EChartsView({
     const font = getComputedStyle(element)
     Promise.all([
       import('echarts'),
-      document.fonts.load(`${font.fontWeight} ${font.fontSize} ${font.fontFamily}`),
+      // The font only refines text measuring: a face that fails to load (a local fallback missing
+      // on the machine) must not keep the chart from drawing.
+      document.fonts
+        .load(`${font.fontWeight} ${font.fontSize} ${font.fontFamily}`)
+        .catch(() => undefined),
     ])
       .then(([echarts]) => {
         if (!active) return

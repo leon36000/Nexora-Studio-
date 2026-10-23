@@ -63,6 +63,14 @@ describe('EChartsView updates', () => {
     expect(container.querySelector('[role="status"]')).toBeNull()
   })
 
+  it('still draws the chart when a web font cannot be loaded', async () => {
+    // A font face whose local fallback is missing (Arial on Linux) makes `document.fonts.load` reject.
+    mocks.fontLoad.mockRejectedValue(new DOMException('A network error occurred.', 'NetworkError'))
+    await render(38)
+    await vi.waitFor(() => expect(mocks.setOption).toHaveBeenCalled())
+    expect(container.querySelector('[role="alert"]')).toBeNull()
+  })
+
   it('reports update failures and recovers on a later valid option', async () => {
     await render(38)
     mocks.setOption.mockImplementationOnce(() => {
