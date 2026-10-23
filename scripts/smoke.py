@@ -4,7 +4,8 @@ Usage: NEXORA_SMOKE_ADMIN_EMAIL=... NEXORA_SMOKE_ADMIN_PASSWORD=... \
        python3 -I scripts/smoke.py [--url http://localhost:3000] [--report smoke-report.json]
 Creates a throwaway account, then checks, over real HTTP: the French interface, the five SME
 templates in a new workspace, Nexora Connect and its tools, a run of every template through
-Nexora API, the audit log and the usage dashboard. The last two are read by an owner or admin
+Nexora API, the audit log, the usage dashboard and the model settings (adding a model needs
+NEXORA_SMOKE_OPENAI_URL and NEXORA_SMOKE_OPENAI_MODEL, an OpenAI-compatible service Nexora API reaches). The last two are read by an owner or admin
 of the instance organization (credentials from the environment, never the command line): a
 throwaway account must not be able to read them. Standard library only. Exit 0 when all pass.
 """
@@ -267,6 +268,39 @@ def main() -> int:
         require(("workspace.created", email) in entries, f"audit log does not show the member's new workspace: {entries[:10]}")
         return "workspace.created du membre tracé"
 
+    def models():
+        status, _ = s.call("GET", "/api/nexora/models")
+        require(status == 403, f"models visible to a plain member (HTTP {status})")
+        admin_organization()
+        status, body = admin.call("GET", "/api/nexora/models")
+        require(status == 200, f"models returned HTTP {status}: {body}")
+        defaults = [m for m in body["models"] if m["isDefault"]]
+        require(len(defaults) == 1, f"expected one default model, got {[m['name'] for m in defaults]}")
+        original = defaults[0]
+        url, name = os.environ.get("NEXORA_SMOKE_OPENAI_URL", ""), os.environ.get("NEXORA_SMOKE_OPENAI_MODEL", "")
+        if not (url and name):
+            return f"{len(body['models'])} modèle(s), défaut {original['name']} (ajout non testé : NEXORA_SMOKE_OPENAI_URL/MODEL absents)"
+        alias = name
+        status, added = admin.call("POST", "/api/nexora/models", {"source": "openai-compatible", "model": alias, "url": url}, timeout=180)
+        require(status == 200, f"adding {alias} returned HTTP {status}: {added}")
+        model_id = added["model"]["id"]
+        try:
+            status, tested = admin.call("POST", f"/api/nexora/models/{model_id}/test", timeout=300)
+            require(status == 200 and tested.get("reply"), f"testing {alias} returned HTTP {status}: {tested}")
+            status, _ = admin.call("POST", f"/api/nexora/models/{model_id}/default")
+            require(status == 200, f"making {alias} the default returned HTTP {status}")
+            _, body = admin.call("GET", "/api/nexora/models")
+            require([m["id"] for m in body["models"] if m["isDefault"]] == [model_id], "the default did not move")
+            status, refused = admin.call("DELETE", f"/api/nexora/models/{model_id}")
+            require(status == 409 and refused.get("error") == "is-default", f"the default model could be removed (HTTP {status})")
+        finally:
+            admin.call("POST", f"/api/nexora/models/{original['id']}/default")
+            status, _ = admin.call("DELETE", f"/api/nexora/models/{model_id}")
+        require(status == 200, f"removing {alias} returned HTTP {status}")
+        _, body = admin.call("GET", "/api/nexora/models")
+        require([m["id"] for m in body["models"] if m["isDefault"]] == [original["id"]], "the default did not come back")
+        return f"{alias} ajouté, testé ({tested['latencyMs']} ms), défaut aller-retour, retiré"
+
     s.check("Inscription d'un compte", signup)
     s.check("Interface en français, sans marque tierce", french_ui)
     s.check("Nouvel espace avec les modèles PME", workspace_with_templates)
@@ -281,6 +315,7 @@ def main() -> int:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Journal d'audit", audit)
     s.check("Consommation mesurée par Nexora API", usage)
+    s.check("Modèles : liste, ajout, test, défaut, retrait", models)
 
     failed = [r for r in s.results if r["status"] != "pass"]
     print(f"\n{len(s.results) - len(failed)}/{len(s.results)} contrôles réussis")
