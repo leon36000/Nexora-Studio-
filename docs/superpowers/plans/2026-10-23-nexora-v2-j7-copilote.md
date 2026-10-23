@@ -31,9 +31,9 @@
 
 **Files:** `workstudio/apps/sim/lib/nexora/copilot/plan.ts` (schéma zod `copilotPlanSchema`, types), `compile.ts` (`compilePlan(plan, context) → { state, warnings }`), tests.
 
-- [ ] **Step 1: Failing tests** : chaque déclencheur et chaque type d'étape compile en blocs attendus ; références `{{x.y}}` traduites en `<x.y>` (noms normalisés comme ceux de l'éditeur) ; référence inconnue ⇒ erreur de validation ; condition à deux branches reliée correctement ; services/bases inconnus ⇒ avertissement ; l'état produit passe `parseWorkflowJson` ; plus de 12 étapes ⇒ refus.
-- [ ] **Step 2:** Implémenter ; PASS.
-- [ ] **Step 3: Commit** `feat(j7): langage d'étapes et compilateur du Copilote`.
+- [x] **Step 1: Failing tests** : chaque déclencheur et chaque type d'étape compile en blocs attendus ; références `{{x.y}}` traduites en `<x.y>` (noms normalisés comme ceux de l'éditeur) ; référence inconnue ⇒ erreur de validation ; condition à deux branches reliée correctement ; services/bases inconnus ⇒ avertissement ; l'état produit passe `parseWorkflowJson` ; plus de 12 étapes ⇒ refus.
+- [x] **Step 2:** Implémenter ; PASS.
+- [x] **Step 3: Commit** `feat(j7): langage d'étapes et compilateur du Copilote`.
 
 ### Task 2: Génération du plan et création
 
