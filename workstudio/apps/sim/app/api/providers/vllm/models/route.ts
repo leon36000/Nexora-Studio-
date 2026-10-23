@@ -7,6 +7,7 @@ import {
 } from '@/lib/api/contracts/providers'
 import { env } from '@/lib/core/config/env'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { listedModelIds } from '@/lib/nexora/model-ids'
 import { getOpenAICompatibleApiBaseUrl } from '@/providers/openai-compat/base-url'
 import { filterBlacklistedModels, isProviderBlacklisted } from '@/providers/utils'
 
@@ -44,7 +45,8 @@ export const GET = withRouteHandler(async (_request: NextRequest) => {
 
     const response = await fetch(`${apiBaseUrl}/models`, {
       headers,
-      next: { revalidate: 60 },
+      // Nexora edition: models are added and the default changes in Réglages › Modèles.
+      cache: 'no-store',
     })
 
     if (!response.ok) {
@@ -56,7 +58,7 @@ export const GET = withRouteHandler(async (_request: NextRequest) => {
     }
 
     const data = vllmUpstreamResponseSchema.parse(await response.json())
-    const allModels = data.data.map((model) => `vllm/${model.id}`)
+    const allModels = listedModelIds(data.data)
     const models = filterBlacklistedModels(allModels)
 
     logger.info('Successfully fetched vLLM models', {

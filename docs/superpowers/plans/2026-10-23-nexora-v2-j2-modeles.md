@@ -64,11 +64,11 @@
 **Interfaces:**
 - Produces: `listedModelIds(data: Array<{ id: string; aliases?: string[] }>): string[]` — `vllm/<id>` puis `vllm/<alias>` pour chaque alias, sans doublon, ordre : alias `nexora-default` en premier.
 
-- [ ] **Step 1: Test** `model-ids.test.ts` : `[{id:'qwen2.5:7b',aliases:['nexora-default']},{id:'mistral-small-latest'}]` → `['vllm/nexora-default','vllm/qwen2.5:7b','vllm/mistral-small-latest']` ; un alias égal à un nom n'apparaît qu'une fois ; `aliases` absent accepté.
-- [ ] **Step 2: Run** `cd workstudio/apps/sim && LANG=en_US.UTF-8 bunx vitest run lib/nexora/model-ids.test.ts` — Expected: FAIL (module absent).
-- [ ] **Step 3: Implement** `listedModelIds` et l'utiliser aux deux endroits (`data.data.map(...)` remplacé).
-- [ ] **Step 4: Run** le test — Expected: PASS ; puis `bunx vitest run app/api/providers providers/vllm` — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(j2): les alias Nexora API (nexora-default) restent proposés dans les blocs`.
+- [x] **Step 1: Test** `model-ids.test.ts` : `[{id:'qwen2.5:7b',aliases:['nexora-default']},{id:'mistral-small-latest'}]` → `['vllm/nexora-default','vllm/qwen2.5:7b','vllm/mistral-small-latest']` ; un alias égal à un nom n'apparaît qu'une fois ; `aliases` absent accepté.
+- [x] **Step 2: Run** `cd workstudio/apps/sim && LANG=en_US.UTF-8 bunx vitest run lib/nexora/model-ids.test.ts` — Expected: FAIL (module absent).
+- [x] **Step 3: Implement** `listedModelIds` et l'utiliser aux deux endroits (`data.data.map(...)` remplacé).
+- [x] **Step 4: Run** le test — Expected: PASS ; puis `bunx vitest run app/api/providers providers/vllm` — Expected: PASS.
+- [x] **Step 5: Commit** `feat(j2): les alias Nexora API (nexora-default) restent proposés dans les blocs`.
 
 ### Task 3: Client d'administration des modèles (serveur)
 

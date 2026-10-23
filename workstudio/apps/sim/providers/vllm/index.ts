@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 import type { ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions'
 import { env } from '@/lib/core/config/env'
 import { createPinnedFetch, validateUrlWithDNS } from '@/lib/core/security/input-validation.server'
+import { listedModelIds } from '@/lib/nexora/model-ids'
 import type { StreamingExecution } from '@/executor/types'
 import { MAX_TOOL_ITERATIONS } from '@/providers'
 import { formatMessagesForProvider } from '@/providers/attachments'
@@ -94,8 +95,8 @@ export const vllmProvider: ProviderConfig = {
         return
       }
 
-      const data = (await response.json()) as { data: Array<{ id: string }> }
-      const models = data.data.map((model) => `vllm/${model.id}`)
+      const data = (await response.json()) as { data: Array<{ id: string; aliases?: unknown }> }
+      const models = listedModelIds(data.data)
 
       this.models = models
       useProvidersStore.getState().setProviderModels('vllm', models)
