@@ -61,6 +61,21 @@ describe('agent workflows', () => {
     }
   })
 
+  it('keeps the ids of the agent it rewrites, so the published chat still reads the same block', () => {
+    const saved = buildAgentWorkflow(base)
+    const rewritten = buildAgentWorkflow({ ...base, instructions: 'Tutoyez.' }, saved)
+    expect(Object.keys(rewritten.blocks)).toEqual(Object.keys(saved.blocks))
+    expect(rewritten.edges.map((e) => [e.id, e.source, e.target])).toEqual(
+      saved.edges.map((e) => [e.id, e.source, e.target])
+    )
+    expect(readAgentWorkflow(rewritten)?.instructions).toBe('Tutoyez.')
+
+    const edited = { ...structuredClone(saved), edges: [] }
+    const fresh = buildAgentWorkflow(base, edited)
+    expect(Object.keys(fresh.blocks)).not.toEqual(Object.keys(saved.blocks))
+    expect(readAgentWorkflow(fresh)).toEqual(base)
+  })
+
   it('lists only the fields that changed between two versions', () => {
     expect(diffAgentConfigs(base, { ...base, instructions: 'Tutoyez.', memory: true })).toEqual([
       { field: 'instructions', before: base.instructions, after: 'Tutoyez.' },

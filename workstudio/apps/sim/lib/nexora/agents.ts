@@ -2,6 +2,9 @@ import { generateId } from '@sim/utils/id'
 import { isRecordLike, toRecord } from '@sim/utils/object'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
 
+/** The workspace folder agents live in (created on first use). */
+export const AGENTS_FOLDER = 'Agents'
+
 /** What the agent form edits. */
 export interface AgentConfig {
   name: string
@@ -68,13 +71,29 @@ function isKnowledgeTool(tool: StoredTool): boolean {
   return tool.type === 'knowledge' && tool.toolId === 'knowledge_search'
 }
 
+/** The start, agent and edge ids of a workflow in the agent shape, or `null`. */
+function agentShapeIds(
+  state: unknown
+): { startId: string; agentId: string; edgeId: string } | null {
+  if (readAgentWorkflow(state) === null || !isRecordLike(state) || !Array.isArray(state.edges))
+    return null
+  const edge = toRecord(state.edges[0])
+  const { id, source, target } = edge
+  if (typeof id !== 'string' || typeof source !== 'string' || typeof target !== 'string')
+    return null
+  return { startId: source, agentId: target, edgeId: id }
+}
+
 /**
  * The workflow an agent is: Start → Agent, in the shape the importer reads. Start is the unified
- * entry point: a deployed chat sends its message as `<start.input>`.
+ * entry point: a deployed chat sends its message as `<start.input>`. Rewriting a `previous` state
+ * that is still in the agent shape keeps its block and edge ids, so a published chat keeps reading
+ * the same agent block.
  */
-export function buildAgentWorkflow(config: AgentConfig): AgentWorkflowState {
-  const startId = generateId()
-  const agentId = generateId()
+export function buildAgentWorkflow(config: AgentConfig, previous?: unknown): AgentWorkflowState {
+  const kept = previous === undefined ? null : agentShapeIds(previous)
+  const startId = kept?.startId ?? generateId()
+  const agentId = kept?.agentId ?? generateId()
   const subBlocks: AgentBlock['subBlocks'] = {
     messages: {
       id: 'messages',
@@ -122,7 +141,7 @@ export function buildAgentWorkflow(config: AgentConfig): AgentWorkflowState {
     },
     edges: [
       {
-        id: generateId(),
+        id: kept?.edgeId ?? generateId(),
         source: startId,
         target: agentId,
         sourceHandle: 'source',

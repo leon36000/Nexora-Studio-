@@ -8,9 +8,7 @@
     "create": {
       "label": "Créer",
       "workflow": "Workflow",
-      "agent": "Agent",
-      "agentName": "Nouvel agent",
-      "agentFailed": "L’agent n’a pas pu être créé."
+      "agent": "Agent"
     },
     "quickStarts": {
       "label": "Démarrages rapides",

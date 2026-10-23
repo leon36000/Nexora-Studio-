@@ -526,6 +526,8 @@
     "chatOptions": "Chat options",
     "nav": {
       "home": "Home",
+      "playground": "Playground",
+      "agents": "Agents",
       "newChat": "New chat",
       "newWorkflow": "New workflow",
       "dashboard": "Dashboard",

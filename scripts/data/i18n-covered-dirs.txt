@@ -34,3 +34,6 @@ workstudio/apps/sim/ee/_nexora
 workstudio/apps/sim/app/(interfaces)/components
 # J3 Accueil Nexora
 workstudio/apps/sim/app/workspace/[workspaceId]/home/nexora-home
+# J4 Playground et Agents
+workstudio/apps/sim/app/workspace/[workspaceId]/playground
+workstudio/apps/sim/app/workspace/[workspaceId]/agents

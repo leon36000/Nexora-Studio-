@@ -881,7 +881,6 @@
   "apps/sim/executor/utils/resolved-secret-content-projection.ts#sanitizeResolvedSecretString",
   "apps/sim/executor/variables/resolvers/reference.ts#PathNavigationExecutionContext",
   "apps/sim/hooks/kb/use-tag-definitions.ts#TagDefinition",
-  "apps/sim/hooks/mcp/use-mcp-tools.ts#McpToolForUI",
   "apps/sim/hooks/queries/access-requests.ts#ACCESS_REQUESTS_POLL_INTERVAL",
   "apps/sim/hooks/queries/account-deletion.ts#ACCOUNT_DELETION_PLAN_STALE_TIME",
   "apps/sim/hooks/queries/account-deletion.ts#accountDeletionKeys",

@@ -36,6 +36,8 @@ import {
   Rss,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
   Table,
   Task,
   Workflow,
@@ -770,6 +772,22 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           label: t('nav.home'),
           icon: Home,
           href: `/workspace/${workspaceId}/home`,
+          hidden: chatEnabled,
+        },
+        {
+          // Nexora edition: compare models side by side.
+          id: 'playground',
+          label: t('nav.playground'),
+          icon: SlidersHorizontal,
+          href: `/workspace/${workspaceId}/playground`,
+          hidden: chatEnabled,
+        },
+        {
+          // Nexora edition: agents built from a form (workflows of the « Agents » folder).
+          id: 'agents',
+          label: t('nav.agents'),
+          icon: Sparkles,
+          href: `/workspace/${workspaceId}/agents`,
           hidden: chatEnabled,
         },
         {

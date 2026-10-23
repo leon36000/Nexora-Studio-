@@ -78,6 +78,32 @@
       "modules": 5,
       "gateways": {}
     },
+    "app/workspace/[workspaceId]/agents/[workflowId]/page.tsx": {
+      "modules": 1368,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/agents/[workflowId]/agent-editor.tsx": 1367,
+        "apps/sim/triggers/registry.ts": 597,
+        "apps/sim/blocks/registry.ts": 369,
+        "apps/sim/blocks/registry-maps.ts": 366,
+        "apps/sim/app/workspace/[workspaceId]/agents/[workflowId]/components/agent-form.tsx": 108,
+        "apps/sim/lib/api/contracts/index.ts": 54,
+        "apps/sim/hooks/queries/kb/knowledge.ts": 50,
+        "apps/sim/triggers/plane/index.ts": 46
+      }
+    },
+    "app/workspace/[workspaceId]/agents/page.tsx": {
+      "modules": 1288,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/agents/agent-list.tsx": 1287,
+        "apps/sim/triggers/registry.ts": 597,
+        "apps/sim/blocks/registry.ts": 372,
+        "apps/sim/blocks/registry-maps.ts": 369,
+        "apps/sim/lib/api/contracts/index.ts": 59,
+        "apps/sim/triggers/plane/index.ts": 46,
+        "apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx": 33,
+        "apps/sim/triggers/clickup/index.ts": 32
+      }
+    },
     "app/workspace/[workspaceId]/changelog/layout.tsx": {
       "modules": 1614,
       "gateways": {
@@ -362,6 +388,19 @@
     "app/workspace/[workspaceId]/page.tsx": {
       "modules": 5,
       "gateways": {}
+    },
+    "app/workspace/[workspaceId]/playground/page.tsx": {
+      "modules": 1295,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/playground/playground.tsx": 1294,
+        "apps/sim/triggers/registry.ts": 597,
+        "apps/sim/blocks/registry.ts": 372,
+        "apps/sim/blocks/registry-maps.ts": 369,
+        "apps/sim/lib/api/contracts/index.ts": 59,
+        "apps/sim/triggers/plane/index.ts": 46,
+        "apps/sim/app/workspace/[workspaceId]/agents/use-new-agent.ts": 38,
+        "apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx": 33
+      }
     },
     "app/workspace/[workspaceId]/settings/[section]/error.tsx": {
       "modules": 3,

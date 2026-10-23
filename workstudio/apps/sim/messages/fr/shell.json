@@ -526,6 +526,8 @@
     "chatOptions": "Options de la conversation",
     "nav": {
       "home": "Accueil",
+      "playground": "Playground",
+      "agents": "Agents",
       "newChat": "Nouvelle conversation",
       "newWorkflow": "Nouveau workflow",
       "dashboard": "Tableau de bord",

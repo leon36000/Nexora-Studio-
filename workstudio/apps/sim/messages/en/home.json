@@ -8,9 +8,7 @@
     "create": {
       "label": "Create",
       "workflow": "Workflow",
-      "agent": "Agent",
-      "agentName": "New agent",
-      "agentFailed": "The agent could not be created."
+      "agent": "Agent"
     },
     "quickStarts": {
       "label": "Quick starts",

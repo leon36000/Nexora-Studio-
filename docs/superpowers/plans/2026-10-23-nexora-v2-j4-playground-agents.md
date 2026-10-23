@@ -57,9 +57,9 @@
 
 **Files:** pages `workstudio/apps/sim/app/workspace/[workspaceId]/playground/` et `…/agents/` (liste, formulaire `[workflowId]`), hooks `hooks/queries/nexora-agents.ts`, messages `messages/{fr,en}/agents.json` (zone enregistrée), entrées de barre latérale, carte « Agent » de l'Accueil vers le formulaire.
 
-- [ ] **Step 1:** Playground (1–3 colonnes de modèles, consignes, paramètres, réponses en flux, temps et jetons, « Enregistrer comme agent ») ; liste des agents ; formulaire (champs de `AgentConfig`, sélecteurs d'outils Nexora Connect / workflows / bases), « Tester » (volet de discussion sur le brouillon), « Publier » (déploiement + chat public, lien), « Versions » (liste, activer, diff), « Ouvrir dans l'éditeur » ; lecture seule si `readAgentWorkflow` renvoie `null`.
-- [ ] **Step 2:** `type-check`, `check:audits`, `check-i18n`, `check-brand` — Expected: PASS.
-- [ ] **Step 3: Commit** `feat(j4): Playground et constructeur d'agents`.
+- [x] **Step 1:** Playground (1–3 colonnes de modèles, consignes, paramètres, réponses en flux, temps et jetons, « Enregistrer comme agent ») ; liste des agents ; formulaire (champs de `AgentConfig`, sélecteurs d'outils Nexora Connect / workflows / bases), « Tester » (volet de discussion sur le brouillon), « Publier » (déploiement + chat public, lien), « Versions » (liste, activer, diff), « Ouvrir dans l'éditeur » ; lecture seule si `readAgentWorkflow` renvoie `null`.
+- [x] **Step 2:** `type-check`, `check:audits`, `check-i18n`, `check-brand` — Expected: PASS.
+- [x] **Step 3: Commit** `feat(j4): Playground et constructeur d'agents`.
 
 ### Task 4: Guide, fumée, pc6, revue
 

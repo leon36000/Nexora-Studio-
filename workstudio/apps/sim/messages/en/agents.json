@@ -1,0 +1,128 @@
+{
+  "defaults": {
+    "name": "New agent",
+    "instructions": "You are the assistant of a small business. Answer professionally, in short sentences. Never make up information: if something is missing, say so.",
+    "welcomeMessage": "Hello, how can I help you?",
+    "createFailed": "The agent could not be created."
+  },
+  "model": {
+    "placeholder": "Choose a model",
+    "default": "Default model (nexora-default)",
+    "empty": "No model available"
+  },
+  "playground": {
+    "metaTitle": "Playground",
+    "title": "Playground",
+    "help": "Help",
+    "instructions": "System instructions",
+    "instructionsPlaceholder": "What the model should know and how it should answer",
+    "message": "Message",
+    "messagePlaceholder": "Your message",
+    "temperature": "Temperature",
+    "maxTokens": "Maximum length (tokens)",
+    "send": "Send",
+    "stop": "Stop",
+    "addModel": "Add a model",
+    "removeModel": "Remove this model",
+    "saveAsAgent": "Save as agent",
+    "empty": "The answer will appear here.",
+    "latency": "{seconds, number} s",
+    "tokens": "{prompt, number} input tokens, {completion, number} output",
+    "stopped": "Answer stopped.",
+    "errors": {
+      "unavailable": "Nexora API is unavailable. Try again in a moment.",
+      "forbidden": "You do not have access to this workspace.",
+      "invalid": "The request was refused: check the message and the settings.",
+      "interrupted": "The answer was interrupted.",
+      "unknown": "The answer could not be obtained."
+    }
+  },
+  "list": {
+    "metaTitle": "Agents",
+    "title": "Agents",
+    "help": "Help",
+    "newAgent": "New agent",
+    "empty": "No agent yet."
+  },
+  "editor": {
+    "metaTitle": "Agent",
+    "back": "Agents",
+    "loading": "Loading the agent…",
+    "loadFailed": "The agent could not be loaded.",
+    "readOnlyNotice": "This agent was changed in the editor beyond what the form can show. Open it in the editor to change it.",
+    "openInEditor": "Open in editor",
+    "test": "Test",
+    "save": "Save",
+    "saved": "Agent saved.",
+    "saveFailed": "The agent could not be saved.",
+    "nameRequired": "Give the agent a name.",
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "instructions": "Instructions",
+      "model": "Model",
+      "tools": "Tools",
+      "knowledgeBaseIds": "Knowledge",
+      "memory": "Conversation memory",
+      "welcomeMessage": "Welcome message"
+    },
+    "welcomeHint": "Saved with the public chat, when publishing.",
+    "tools": {
+      "add": "Add tools",
+      "workflows": "Workflows",
+      "unknownServer": "MCP server",
+      "missing": "Not found",
+      "remove": "Remove {name}",
+      "workflowTitle": "Workflow {name}",
+      "none": "No tools"
+    },
+    "knowledge": {
+      "add": "Add knowledge bases",
+      "none": "No knowledge base"
+    },
+    "memory": {
+      "on": "Yes",
+      "off": "No"
+    }
+  },
+  "test": {
+    "title": "Test the agent",
+    "close": "Close",
+    "newConversation": "New conversation",
+    "placeholder": "Write a message to the agent",
+    "send": "Send",
+    "empty": "The test uses the saved version of the agent.",
+    "thinking": "The agent is answering…",
+    "failed": "The agent could not answer.",
+    "noAnswer": "The agent gave no answer."
+  },
+  "publish": {
+    "title": "Publishing",
+    "publish": "Publish",
+    "published": "Agent published.",
+    "failed": "Publishing failed.",
+    "link": "Public chat link",
+    "copy": "Copy link",
+    "notPublished": "Not published yet."
+  },
+  "versions": {
+    "title": "Versions",
+    "empty": "No published version.",
+    "version": "Version {version, number}",
+    "active": "Active",
+    "activate": "Activate",
+    "activateTitle": "Activate version {version, number}",
+    "activateText": "The public chat will use this version, and the agent draft will be replaced by it. Unsaved changes will be lost.",
+    "activated": "Version {version, number} activated.",
+    "activateFailed": "The version could not be activated.",
+    "cancel": "Cancel",
+    "compare": "Compare",
+    "compareFrom": "From version",
+    "compareTo": "To version",
+    "notComparable": "Not comparable: one of the versions was changed in the editor.",
+    "noChanges": "No differences.",
+    "loadingVersion": "Loading versions…",
+    "before": "Before",
+    "after": "After"
+  }
+}
