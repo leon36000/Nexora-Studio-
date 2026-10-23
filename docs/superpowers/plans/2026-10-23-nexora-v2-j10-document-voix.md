@@ -39,4 +39,4 @@
 - [x] Changer le modèle d'embeddings d'une base ⇒ réindexation en arrière-plan avec bascule atomique ; progression ; tests ; commit.
 
 ### Task 5: Accueil, guide, fumée, pc6, revue
-- [ ] Cartes « Capturer » ; `docs/guide/documents-et-voix.md` ; fumées « OCR » et « Transcription » ; parcours « Terminé quand » sur pc6 ; revue finale ; push.
+- [x] Cartes « Capturer » ; `docs/guide/documents-et-voix.md` ; fumées « OCR » et « Transcription » ; parcours « Terminé quand » sur pc6 ; revue finale ; push.

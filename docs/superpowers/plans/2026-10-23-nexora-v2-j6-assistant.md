@@ -65,5 +65,5 @@
 ### Task 5: Guide, fumée, pc6, revue
 
 - [x] **Step 1:** `docs/guide/assistant.md` ; fumée « Assistant » (conversation créée, réponse reçue en flux, historique relu, autre membre ⇒ 404).
-- [ ] **Step 2:** pc6 : migration appliquée, fumée complète ; navigateur : parcours « Terminé quand » (dont un PDF joint).
-- [ ] **Step 3:** Suites complètes, audits, revue finale, corrections TDD, push.
+- [x] **Step 2:** pc6 : migration appliquée, fumée complète ; navigateur : parcours « Terminé quand » (dont un PDF joint).
+- [x] **Step 3:** Suites complètes, audits, revue finale, corrections TDD, push.
