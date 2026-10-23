@@ -5,7 +5,12 @@ import {
   ConnectUnavailableError,
   connectWithCredentials,
   disconnect,
+  getOAuthStatus,
+  getServiceDetail,
+  hasWorkspaceToken,
+  listCatalog,
   listWorkspaceConnections,
+  setOAuthApp,
   startOAuth,
   syncWorkspaceToken,
   workspaceConnectionName,
@@ -33,6 +38,36 @@ interface FakeToken {
   allowedTriggers: string[]
 }
 
+const CATALOG = [
+  {
+    service: 'brevo',
+    displayName: 'Brevo',
+    description: 'E-mails et SMS',
+    categories: ['marketing'],
+    authTypes: ['api_key'],
+    homepageUrl: 'https://www.brevo.com',
+    execution: { actionCount: 42 },
+    actions: [
+      {
+        id: 'brevo.send_email',
+        name: 'send_email',
+        description: 'Send an e-mail',
+        inputSchema: { big: true },
+      },
+    ],
+    setup: [{ heavy: true }],
+  },
+  {
+    service: 'google_calendar',
+    displayName: 'Google Calendar',
+    categories: ['productivity'],
+    authTypes: ['oauth2'],
+    iconUrl: 'https://cdn.example/gcal.svg',
+    execution: { actionCount: 12 },
+    actions: [],
+  },
+]
+
 /** In-memory Nexora Connect admin API with the rules WorkStudio relies on. */
 function fakeConnect() {
   let next = 1
@@ -41,6 +76,8 @@ function fakeConnect() {
     tokens: [] as FakeToken[],
     rejectKeys: new Set<string>(),
     down: false,
+    catalogFetches: 0,
+    oauthConfigs: {} as Record<string, unknown>,
   }
   const fetchFn = async (input: string | URL | Request, init?: RequestInit) => {
     if (state.down) throw new TypeError('fetch failed')
@@ -53,6 +90,58 @@ function fakeConnect() {
     const path = url.pathname
     const connectionMatch = path.match(/^\/api\/connections\/([\w-]+)$/)
     if (path === '/api/connections' && method === 'GET') return jsonResponse(state.connections)
+    if (path === '/api/providers' && method === 'GET') {
+      state.catalogFetches++
+      return jsonResponse(CATALOG)
+    }
+    const setupMatch = path.match(/^\/v1\/providers\/([\w-]+)\/setup$/)
+    if (setupMatch) {
+      return jsonResponse({
+        success: true,
+        message: 'OK',
+        data: {
+          service: setupMatch[1],
+          auth: [
+            {
+              type: 'api_key',
+              fields: [
+                {
+                  key: 'apiKey',
+                  label: 'API key',
+                  inputType: 'password',
+                  required: true,
+                  secret: true,
+                },
+              ],
+            },
+          ],
+        },
+      })
+    }
+    const requestMatch = path.match(/^\/v1\/connection-requests\/([\w-]+)$/)
+    if (requestMatch) {
+      return jsonResponse({
+        success: true,
+        message: 'OK',
+        data: {
+          connectionRequestId: requestMatch[1],
+          service: 'google_calendar',
+          status: 'connected',
+          appId: 'conn-9',
+          errorMessage: null,
+        },
+      })
+    }
+    const oauthMatch = path.match(/^\/api\/oauth\/configs\/([\w-]+)$/)
+    if (oauthMatch && method === 'PUT') {
+      state.oauthConfigs[oauthMatch[1]] = body
+      return jsonResponse({
+        service: oauthMatch[1],
+        configured: true,
+        clientId: body.clientId,
+        expectedRedirectUri: 'https://connect.pme.fr/oauth/callback',
+      })
+    }
     if (connectionMatch && method === 'PUT') {
       if (!body.values || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(body.connectionName)) {
         return jsonResponse({ error: { code: 'invalid_input', message: 'bad' } }, 400)
@@ -113,10 +202,13 @@ function fakeConnect() {
   return { state, fetchFn: fetchFn as typeof fetch }
 }
 
+let instance = 0
+
 function setup() {
   const connect = fakeConnect()
+  // One address per test: the catalog is cached per Nexora Connect address.
   const options = {
-    config: { baseUrl: 'http://nexora-connect:3000', adminToken: ADMIN },
+    config: { baseUrl: `http://nexora-connect-${++instance}:3000`, adminToken: ADMIN },
     fetchFn: connect.fetchFn,
   }
   return { ...connect, options }
@@ -221,5 +313,77 @@ describe('Nexora Connect administration', () => {
     ).catch((e: Error) => e)
     expect(String(error?.message)).not.toContain('xkeysib-secret')
     expect(String(error?.message)).not.toContain(ADMIN)
+  })
+})
+
+describe('Nexora Connect catalog and setup', () => {
+  it('serves a slim catalog, fetched once and searched locally', async () => {
+    const { state, options } = setup()
+    const all = await listCatalog({}, options)
+    expect(all).toEqual([
+      {
+        service: 'brevo',
+        displayName: 'Brevo',
+        description: 'E-mails et SMS',
+        categories: ['marketing'],
+        authTypes: ['api_key'],
+        iconUrl: null,
+        homepageUrl: 'https://www.brevo.com',
+        actionCount: 42,
+      },
+      {
+        service: 'google_calendar',
+        displayName: 'Google Calendar',
+        description: '',
+        categories: ['productivity'],
+        authTypes: ['oauth2'],
+        iconUrl: 'https://cdn.example/gcal.svg',
+        homepageUrl: null,
+        actionCount: 12,
+      },
+    ])
+    expect((await listCatalog({ query: 'cal' }, options)).map((s) => s.service)).toEqual([
+      'google_calendar',
+    ])
+    expect((await listCatalog({ category: 'marketing' }, options)).map((s) => s.service)).toEqual([
+      'brevo',
+    ])
+    expect(state.catalogFetches).toBe(1)
+  })
+
+  it('describes a service: its setup fields and its actions without schemas', async () => {
+    const { options } = setup()
+    const detail = await getServiceDetail('brevo', options)
+    expect(detail.auth[0]).toMatchObject({ type: 'api_key' })
+    expect(detail.actions).toEqual([
+      { id: 'brevo.send_email', name: 'send_email', description: 'Send an e-mail' },
+    ])
+  })
+
+  it('reads an OAuth request status from the /v1 envelope', async () => {
+    const { options } = setup()
+    expect(await getOAuthStatus('req-1', options)).toEqual({
+      status: 'connected',
+      service: 'google_calendar',
+      errorMessage: null,
+    })
+  })
+
+  it('saves an operator OAuth app and returns the callback to register', async () => {
+    const { state, options } = setup()
+    expect(
+      await setOAuthApp('google_calendar', { clientId: 'id', clientSecret: 's' }, options)
+    ).toEqual({
+      configured: true,
+      redirectUri: 'https://connect.pme.fr/oauth/callback',
+    })
+    expect(state.oauthConfigs.google_calendar).toEqual({ clientId: 'id', clientSecret: 's' })
+  })
+
+  it('knows whether a workspace already has its own token', async () => {
+    const { options } = setup()
+    expect(await hasWorkspaceToken(WS, options)).toBe(false)
+    await syncWorkspaceToken(WS, options)
+    expect(await hasWorkspaceToken(WS, options)).toBe(true)
   })
 })

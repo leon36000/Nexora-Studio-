@@ -1,5 +1,6 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { isRecordLike, toArray } from '@sim/utils/object'
+import { LRUCache } from 'lru-cache'
 import { env } from '@/lib/core/config/env'
 
 /** Nexora Connect cannot be reached, or refuses WorkStudio's administration token. */
@@ -201,4 +202,141 @@ export async function syncWorkspaceToken(
     ...policy,
   })
   return { token: String(created.token) }
+}
+
+export interface CatalogService {
+  service: string
+  displayName: string
+  description: string
+  categories: string[]
+  authTypes: string[]
+  iconUrl: string | null
+  homepageUrl: string | null
+  actionCount: number
+}
+
+interface CatalogEntry extends CatalogService {
+  actions: { id: string; name: string; description: string }[]
+}
+
+/** The catalog changes only when Nexora Connect is updated; ~1,650 services, read once per 10 min. */
+const catalogCache = new LRUCache<string, CatalogEntry[]>({ max: 4, ttl: 10 * 60_000 })
+
+const text = (value: unknown) => (typeof value === 'string' ? value : '')
+const textOrNull = (value: unknown) => (typeof value === 'string' && value ? value : null)
+const strings = (value: unknown) => toArray(value).filter((v): v is string => typeof v === 'string')
+
+async function catalogFor(options: ConnectAdminOptions): Promise<CatalogEntry[]> {
+  const baseUrl = (options.config ?? configFromEnv()).baseUrl
+  const cached = catalogCache.get(baseUrl)
+  if (cached) return cached
+  const call = createClient(options)
+  const providers = toArray(await call<unknown>('GET', '/api/providers')).filter(isRecordLike)
+  const catalog = providers.map((p): CatalogEntry => {
+    const execution = isRecordLike(p.execution) ? p.execution : {}
+    return {
+      service: text(p.service),
+      displayName: text(p.displayName) || text(p.service),
+      description: text(p.description),
+      categories: strings(p.categories),
+      authTypes: strings(p.authTypes),
+      iconUrl: textOrNull(p.iconUrl),
+      homepageUrl: textOrNull(p.homepageUrl),
+      actionCount: typeof execution.actionCount === 'number' ? execution.actionCount : 0,
+      actions: toArray(p.actions)
+        .filter(isRecordLike)
+        .map((a) => ({ id: text(a.id), name: text(a.name), description: text(a.description) })),
+    }
+  })
+  catalogCache.set(baseUrl, catalog)
+  return catalog
+}
+
+/** Services of the catalog matching a search (name, service id or description) and a category. */
+export async function listCatalog(
+  filter: { query?: string; category?: string },
+  options: ConnectAdminOptions = {}
+): Promise<CatalogService[]> {
+  const query = filter.query?.trim().toLowerCase() ?? ''
+  return (await catalogFor(options))
+    .filter((entry) => !filter.category || entry.categories.includes(filter.category))
+    .filter(
+      (entry) =>
+        !query ||
+        entry.displayName.toLowerCase().includes(query) ||
+        entry.service.includes(query) ||
+        entry.description.toLowerCase().includes(query)
+    )
+    .map(({ actions: _actions, ...service }) => service)
+}
+
+/** A service's setup (credential fields, OAuth client state) and its actions, for its page. */
+export async function getServiceDetail(
+  service: string,
+  options: ConnectAdminOptions = {}
+): Promise<{
+  service: CatalogService | null
+  auth: Record<string, unknown>[]
+  oauthClient: Record<string, unknown> | null
+  actions: { id: string; name: string; description: string }[]
+}> {
+  const call = createClient(options)
+  const [catalog, setup] = await Promise.all([
+    catalogFor(options),
+    call<Record<string, unknown>>('GET', `/v1/providers/${encodeURIComponent(service)}/setup`),
+  ])
+  const entry = catalog.find((e) => e.service === service)
+  return {
+    service: entry ? (({ actions: _actions, ...rest }) => rest)(entry) : null,
+    auth: toArray(setup.auth).filter(isRecordLike),
+    oauthClient: isRecordLike(setup.oauthClient) ? setup.oauthClient : null,
+    actions: entry?.actions ?? [],
+  }
+}
+
+/** Where an OAuth consent started with `startOAuth` stands. */
+export async function getOAuthStatus(
+  requestId: string,
+  options: ConnectAdminOptions = {}
+): Promise<{ status: string; service: string; errorMessage: string | null }> {
+  const call = createClient(options)
+  const request = await call<Record<string, unknown>>(
+    'GET',
+    `/v1/connection-requests/${encodeURIComponent(requestId)}`
+  )
+  return {
+    status: text(request.status),
+    service: text(request.service),
+    errorMessage: textOrNull(request.errorMessage),
+  }
+}
+
+/** Saves the operator's OAuth application for a service; returns the callback address to register. */
+export async function setOAuthApp(
+  service: string,
+  app: { clientId: string; clientSecret: string },
+  options: ConnectAdminOptions = {}
+): Promise<{ configured: boolean; redirectUri: string | null }> {
+  const call = createClient(options)
+  const saved = await call<Record<string, unknown>>(
+    'PUT',
+    `/api/oauth/configs/${encodeURIComponent(service)}`,
+    app
+  )
+  return {
+    configured: saved.configured === true,
+    redirectUri: textOrNull(saved.expectedRedirectUri),
+  }
+}
+
+/** Whether Nexora Connect already holds the workspace's own token (workspaces created before J5 do not). */
+export async function hasWorkspaceToken(
+  workspaceId: string,
+  options: ConnectAdminOptions = {}
+): Promise<boolean> {
+  const call = createClient(options)
+  const name = workspaceTokenName(workspaceId)
+  return toArray(await call<unknown>('GET', '/api/runtime-tokens'))
+    .filter(isRecordLike)
+    .some((t) => t.name === name)
 }
