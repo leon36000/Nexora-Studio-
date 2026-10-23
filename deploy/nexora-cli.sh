@@ -284,6 +284,11 @@ without_connected_superuser() {
   awk '!body && /^\\connect / { body = 1 }
     body || ($0 != "DROP ROLE IF EXISTS postgres;" && $0 != "CREATE ROLE postgres;")'
 }
+# pg_dump empties the search path, but it does not qualify the operators of a trigger's WHEN clause:
+# pgvector's « vector = vector » (installed in public) is then not found and the trigger fails.
+with_extension_operators() {
+  sed "s/set_config('search_path', '', false)/set_config('search_path', 'public', false)/"
+}
 
 restore() { # restore [--yes] [--rollback] <archive>
   local archive="" yes=0 rollback=0 a
@@ -349,7 +354,7 @@ restore() { # restore [--yes] [--rollback] <archive>
   install -m 600 "$WORK/env" "$ENV_FILE"
   echo "Restauration des bases de données…"
   compose up -d --wait postgres || die "$failed"
-  decrypt_stream "$WORK/postgres.sql.gz.enc" | gunzip -c | without_connected_superuser \
+  decrypt_stream "$WORK/postgres.sql.gz.enc" | gunzip -c | without_connected_superuser | with_extension_operators \
     | compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres -q -d postgres > /dev/null || die "$failed"
   echo "Redémarrage de Nexora…"
   compose up -d --wait || die "$restart_failed"

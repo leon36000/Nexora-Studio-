@@ -24,7 +24,8 @@ args="$*"
 case "$args" in
   *"exec -T postgres pg_dumpall"*)
     printf '%s\n' 'DROP DATABASE IF EXISTS nexora;' 'DROP ROLE IF EXISTS postgres;' 'CREATE ROLE postgres;' \
-      'ALTER ROLE postgres WITH SUPERUSER;' '\connect nexora' "INSERT INTO compte VALUES ('donnée témoin');" ;;
+      'ALTER ROLE postgres WITH SUPERUSER;' '\connect nexora' "SELECT pg_catalog.set_config('search_path', '', false);" \
+      "INSERT INTO compte VALUES ('donnée témoin');" ;;
   *"exec -T postgres psql"*) cat > "$FAKE_LOG.sql" ;;
   *"exec -T workstudio"*"chat/completions"*) printf '%s' "${FAKE_API_CODE:-200}" ;;
   *"exec -T workstudio"*"nexora-connect:3000/health"*) printf '%s' "${FAKE_CONNECT_CODE:-200}" ;;
@@ -206,6 +207,10 @@ done
 grep -q "FLUX INVALIDE" "$h6.log" && ko "volumes restored from decrypted streams" || ok "volumes restored from decrypted streams"
 grep -q "exec -T postgres psql -v ON_ERROR_STOP=1" "$h6.log" && ok "database restored, stopping at the first error" || ko "database restored, stopping at the first error"
 grep -q "donnée témoin" "$h6.log.sql" 2>/dev/null && ok "database dump decrypted for psql" || ko "database dump decrypted for psql"
+# pg_dump empties the search path, so a pgvector operator in a trigger's WHEN clause
+# (« old.embedding IS DISTINCT FROM new.embedding ») cannot be found: restore with public in it.
+grep -q "set_config('search_path', 'public', false)" "$h6.log.sql" 2>/dev/null && ! grep -q "set_config('search_path', '', false)" "$h6.log.sql" \
+  && ok "extension operators resolvable during the restore" || ko "extension operators resolvable during the restore"
 grep -qxE "(DROP|CREATE) ROLE (IF EXISTS )?postgres;" "$h6.log.sql" 2>/dev/null \
   && ko "the connected superuser is not dropped nor re-created (expected errors)" || ok "the connected superuser is not dropped nor re-created (expected errors)"
 grep -q "ALTER ROLE postgres" "$h6.log.sql" 2>/dev/null && ok "its password still restored" || ko "its password still restored"
