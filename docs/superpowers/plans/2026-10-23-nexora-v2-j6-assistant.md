@@ -33,9 +33,9 @@
 
 **Files:** `workstudio/packages/db/schema.ts` (`nexoraAssistantConversation`, `nexoraAssistantMessage`), migration générée, schéma simulé régénéré (`bun run scripts/generate-schema-mock.ts`).
 
-- [ ] **Step 1:** Suivre `db-migrate` (colonnes, index `(workspace_id, user_id, updated_at)`, cascades vers `workspace`, `user`, `workflow`).
-- [ ] **Step 2:** `check:migrations`, `drizzle-kit generate` (aucune nouvelle migration), `check:audits` — PASS.
-- [ ] **Step 3: Commit** `feat(j6): tables des conversations de l'Assistant`.
+- [x] **Step 1:** Suivre `db-migrate` (colonnes, index `(workspace_id, user_id, updated_at)`, cascades vers `workspace`, `user`, `workflow`).
+- [x] **Step 2:** `check:migrations`, `drizzle-kit generate` (aucune nouvelle migration), `check:audits` — PASS.
+- [x] **Step 3: Commit** `feat(j6): tables des conversations de l'Assistant`.
 
 ### Task 2: Opérations applicatives et routes
 
