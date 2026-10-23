@@ -73,6 +73,16 @@ es="$hs/deploy/.env"
 [ "$(envval NEXORA_SEARXNG_URL "$es")" = "http://searxng:8080" ] && ok "WorkStudio points at SearXNG" || ko "WorkStudio points at SearXNG"
 [ "$(envval NEXORA_SEARXNG_SECRET "$es" | wc -c)" -ge 33 ] && ok "SearXNG secret generated" || ko "SearXNG secret generated"
 
+# 1c. Outgoing email by SMTP, given as environment values in unattended mode.
+hm="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_SMTP_HOST=smtp.pme-test.fr NEXORA_SMTP_PORT=587 NEXORA_SMTP_USER=robot NEXORA_SMTP_PASS=secret NEXORA_EMAIL_FROM=nexora@pme-test.fr \
+  run "$hm" --yes --no-start
+em="$hm/deploy/.env"
+[ "$(envval NEXORA_SMTP_HOST "$em")" = "smtp.pme-test.fr" ] && [ "$(envval NEXORA_SMTP_PORT "$em")" = "587" ] && [ "$(envval NEXORA_EMAIL_FROM "$em")" = "nexora@pme-test.fr" ] && ok "SMTP settings recorded" || ko "SMTP settings recorded"
+grep -q "secret" "$hm.out" && ko "SMTP password not printed" || ok "SMTP password not printed"
+[ -z "$(envval NEXORA_SMTP_HOST "$e")" ] && ok "no SMTP by default" || ko "no SMTP by default"
+
 # 2. A second run keeps the existing configuration and secrets.
 before="$(sha256sum "$e")"
 NEXORA_ORGANIZATION_NAME=Autre NEXORA_ORGANIZATION_OWNER_EMAIL=x@y.fr run "$h" --yes --no-start

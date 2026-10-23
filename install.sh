@@ -201,6 +201,20 @@ configure() {
     *) rm -f "$ENV_FILE"; die "Choix de modèle inconnu : $choice" ;;
   esac
 
+  if [ "$YES" -eq 0 ]; then
+    local smtp_host smtp_port smtp_user smtp_pass mail_from
+    ask smtp_host "Serveur d'e-mail SMTP pour les invitations (vide = aucun)" "${NEXORA_SMTP_HOST:-}"
+    if [ -n "$smtp_host" ]; then
+      ask smtp_port "Port SMTP" "${NEXORA_SMTP_PORT:-587}"
+      ask smtp_user "Utilisateur SMTP" "${NEXORA_SMTP_USER:-}"
+      ask smtp_pass "Mot de passe SMTP" "${NEXORA_SMTP_PASS:-}" secret
+      ask mail_from "Adresse d'expédition" "${NEXORA_EMAIL_FROM:-nexora@${email##*@}}"
+      set_env NEXORA_SMTP_HOST "$smtp_host"; set_env NEXORA_SMTP_PORT "$smtp_port"
+      set_env NEXORA_SMTP_USER "$smtp_user"; set_env NEXORA_SMTP_PASS "$smtp_pass"
+      set_env NEXORA_EMAIL_FROM "$mail_from"
+    fi
+  fi
+
   local web
   ask web "Activer la recherche web ? Vos requêtes partiront vers des moteurs publics (o/N)" "${NEXORA_WEB_SEARCH:-0}"
   case "$web" in

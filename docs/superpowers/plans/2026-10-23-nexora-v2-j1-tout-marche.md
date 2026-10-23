@@ -141,10 +141,10 @@
 - Modify: `deploy/compose.yml` (`SMTP_HOST/PORT/USER/PASS/SECURE` ← `NEXORA_SMTP_*`, `FROM_EMAIL_ADDRESS` ← `NEXORA_EMAIL_FROM`), `deploy/.env.example`, `install.sh` (question facultative en mode interactif : serveur SMTP, laissé vide par défaut), `docs/guide/installation.md`
 - Test: `scripts/tests/test-install.sh`
 
-- [ ] **Step 1: Test shell** — `NEXORA_SMTP_HOST=smtp.test` en `--yes` se retrouve dans `.env` ; sans valeur, aucune clé SMTP vide n'est passée au conteneur (compose `${VAR:-}`), et WorkStudio démarre.
-- [ ] **Step 2: Lancer** → échec. **Step 3: Implémenter.** **Step 4: Lancer** → PASS.
-- [ ] **Step 5: Vérifier sur pc6** avec un conteneur Mailpit temporaire (lancé et supprimé par ce travail) : une invitation envoyée depuis Réglages › Membres arrive dans Mailpit.
-- [ ] **Step 6: Commit** `feat(j1): envoi d'e-mails par SMTP`.
+- [x] **Step 1: Test shell** — `NEXORA_SMTP_HOST=smtp.test` en `--yes` se retrouve dans `.env` ; sans valeur, aucune clé SMTP vide n'est passée au conteneur (compose `${VAR:-}`), et WorkStudio démarre.
+- [x] **Step 2: Lancer** → échec. **Step 3: Implémenter.** **Step 4: Lancer** → PASS.
+- [x] **Step 5: Vérifier sur pc6** avec un conteneur Mailpit temporaire (lancé et supprimé par ce travail) : une invitation envoyée depuis Réglages › Membres arrive dans Mailpit.
+- [x] **Step 6: Commit** `feat(j1): envoi d'e-mails par SMTP`.
 
 ### Task 8: Surfaces publiques et e-mails en français, liens morts
 
