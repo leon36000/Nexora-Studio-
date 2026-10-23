@@ -12,6 +12,7 @@ throwaway account must not be able to read them. Standard library only. Exit 0 w
 from __future__ import annotations
 
 import argparse
+import base64
 import http.cookiejar
 import json
 import os
@@ -28,6 +29,47 @@ TEMPLATE_INPUTS = {
     "Tri des e-mails entrants": {"email": "De : client@exemple.fr\nObjet : Facture en double\nBonjour, j'ai reçu deux fois la facture F-88."},
     "Compte rendu de réunion": {"transcription": "Paul : on lance la campagne le 3 novembre. Anne : je prépare le visuel pour vendredi."},
 }
+
+
+# 5×7 glyphs for the OCR check's test image (standard library only: no imaging package needed).
+_GLYPHS = {
+    "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+    "X": ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+    "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+    "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+    "6": ["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
+    " ": ["00000"] * 7,
+}
+
+
+def text_png(text: str, scale: int = 14) -> bytes:
+    """Black text on white, as an 8-bit greyscale PNG."""
+    import struct
+    import zlib
+
+    columns = []
+    for char in text:
+        glyph = _GLYPHS[char]
+        columns.extend([[row[c] == "1" for row in glyph] for c in range(5)])
+        columns.append([False] * 7)
+    margin = 3
+    width, height = (len(columns) + 2 * margin) * scale, (7 + 2 * margin) * scale
+    rows = []
+    for y in range(height):
+        gy = y // scale - margin
+        line = bytearray([0])  # filter: none
+        for x in range(width):
+            gx = x // scale - margin
+            ink = 0 <= gy < 7 and 0 <= gx < len(columns) and columns[gx][gy]
+            line.append(0 if ink else 255)
+        rows.append(bytes(line))
+    chunk = lambda kind, data: struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(b"".join(rows), 9)) + chunk(b"IEND", b""))
 
 
 class _LocalSecureCookies(http.cookiejar.DefaultCookiePolicy):
@@ -386,6 +428,64 @@ def main() -> int:
             state["org"] = organizations[0]["id"]
         return state["org"]
 
+    def reader_workflow(name: str, block_type: str, field: str, canonical: str, sub_blocks: dict) -> str:
+        """A Start with one file field feeding one Nexora reader block (as the « Capturer » cards build)."""
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        status, body = s.call("POST", "/api/workflows", {"name": f"{name} {secrets.token_hex(3)}", "workspaceId": state["ws"]})
+        require(status in (200, 201), f"workflow creation returned HTTP {status}")
+        wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        start, reader = secrets.token_hex(8), secrets.token_hex(8)
+        status, _ = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": {
+            start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                    "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [{"id": secrets.token_hex(4), "name": field, "type": "file[]", "value": ""}])}, "outputs": {}},
+            reader: {"id": reader, "type": block_type, "name": "Lecture", "position": {"x": 420, "y": 0}, "enabled": True,
+                     "subBlocks": {k: sub(k, t, v) for k, (t, v) in sub_blocks.items()}, "outputs": {}, "data": {"canonicalModes": {canonical: "advanced"}}}},
+            "edges": [{"id": secrets.token_hex(8), "source": start, "target": reader, "sourceHandle": "source", "targetHandle": "target"}], "loops": {}, "parallels": {}})
+        require(status == 200, f"state save returned HTTP {status}")
+        return wf
+
+    def ocr():
+        if not usages().get("vision"):
+            return "non testé : aucun modèle « Vision / OCR » (Réglages › Modèles)"
+        wf = reader_workflow("Lecture de fumée", "mistral_parse_v3", "document", "file",
+                             {"provider": ("dropdown", "nexora"), "fileReference": ("short-input", "<start.document>"), "resultType": ("dropdown", "markdown")})
+        try:
+            image = base64.b64encode(text_png("NEXORA 2026")).decode()
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
+                                 "input": {"document": [{"name": "fumee.png", "mimeType": "image/png", "data": image}]}}, timeout=900)
+            require(status == 200 and run.get("success"), f"OCR run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            read = json.dumps(run.get("output"), ensure_ascii=False).upper()
+            # A small local vision model may misread a letter of the pixel font; the figures are enough.
+            require("2026" in read, f"the image text was not read: {read[:200]}")
+            require("HERE IS" not in read and "```" not in read, f"the model's wrapping was kept: {read[:200]}")
+            return "texte d'une image relu par le modèle de vision local, sans préambule"
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+
+    def transcription():
+        audio, expected = os.environ.get("NEXORA_SMOKE_AUDIO", ""), os.environ.get("NEXORA_SMOKE_AUDIO_TEXT", "")
+        if not usages().get("transcription"):
+            return "non testé : aucun modèle « Transcription » (Réglages › Modèles)"
+        if not audio:
+            return "non testé : NEXORA_SMOKE_AUDIO (fichier audio en français) absent"
+        wf = reader_workflow("Transcription de fumée", "stt_v2", "enregistrement", "audioFile",
+                             {"provider": ("dropdown", "nexora"), "audioFileReference": ("short-input", "<start.enregistrement>"), "language": ("dropdown", "fr")})
+        try:
+            data = base64.b64encode(open(audio, "rb").read()).decode()
+            mime = "audio/wav" if audio.endswith(".wav") else "audio/mpeg"
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
+                                 "input": {"enregistrement": [{"name": os.path.basename(audio), "mimeType": mime, "data": data}]}}, timeout=900)
+            require(status == 200 and run.get("success"), f"transcription run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            text = str((run.get("output") or {}).get("transcript", ""))
+            require(len(text) > 10 and (not expected or expected.lower() in text.lower()), f"unexpected transcript: {text[:200]}")
+            return f"« {text[:60]}… »"
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+
+    def usages() -> dict:
+        _, home = s.call("GET", f"/api/nexora/home?workspaceId={state['ws']}")
+        return home.get("modelUsages") or {}
+
     def copilot():
         description = "Quand je lance le workflow avec un texte, un agent le résume en une phrase en français."
         status, body = s.call("POST", "/api/nexora/copilot/plan", {"workspaceId": state["ws"], "description": description}, timeout=600)
@@ -609,6 +709,8 @@ def main() -> int:
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
+    s.check("Lecture de document (OCR, modèle de vision local)", ocr)
+    s.check("Transcription vocale (modèle local)", transcription)
     s.check("Copilote : description ⇒ workflow exécuté", copilot)
     s.check("Budgets : refus au plafond, reprise après relèvement", budgets)
     s.check("Journal d'audit", audit)

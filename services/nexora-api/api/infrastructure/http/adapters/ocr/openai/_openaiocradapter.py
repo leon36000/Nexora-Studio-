@@ -1,4 +1,5 @@
 from http import HTTPMethod
+import re
 
 from pydantic import ValidationError
 
@@ -14,6 +15,14 @@ TRANSCRIPTION_PROMPT = (
     "and the structure (headings, lists, tables). Answer with the extracted text only."
 )
 MAX_TOKENS = 4096
+# A small vision model often answers « Here is the extracted text…: » and fences the text as a code
+# block. When the whole answer is that wrapping, only the text inside is the transcription.
+WRAPPED_TRANSCRIPTION = re.compile(r"\s*(?:[^\n`]{0,200}:\s*)?```[A-Za-z]*\n(?P<text>.*?)\n?```\s*", re.DOTALL)
+
+
+def unwrap_transcription(answer: str) -> str:
+    wrapped = WRAPPED_TRANSCRIPTION.fullmatch(answer)
+    return wrapped.group("text").strip() if wrapped else answer
 
 
 class OpenaiOcrAdapter(OcrAdapter):
@@ -68,7 +77,11 @@ class OpenaiOcrAdapter(OcrAdapter):
             data = OCR(
                 id=request.id,
                 model=request.payload.model,
-                pages=[OCRPageObject(index=0, images=[], markdown=content)],
+                pages=[
+                    OCRPageObject(
+                        index=0, images=[], markdown=content if request.payload.document_annotation_prompt else unwrap_transcription(content)
+                    )
+                ],
                 document_annotation=content if request.payload.document_annotation_prompt else None,
                 usage_info=OCRUsage(pages_processed=1),
             )

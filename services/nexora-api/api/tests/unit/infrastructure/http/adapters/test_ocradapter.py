@@ -71,6 +71,27 @@ class TestOpenaiOcrAdapter:
         assert result.data.document_annotation is None
         assert result.data.usage_info.pages_processed == 1
 
+    @pytest.mark.parametrize(
+        "answer",
+        [
+            "Here is the extracted text from the image, formatted as Markdown:\n\n```markdown\nNEXORA 2026\n```",
+            "```markdown\nNEXORA 2026\n```",
+            "Voici le texte extrait de l'image :\n\n```\nNEXORA 2026\n```",
+            "NEXORA 2026",
+        ],
+    )
+    def test_should_keep_only_the_extracted_text_when_the_model_wraps_it(self, adapter, answer):
+        # A small vision model often prefaces its transcription and fences it as a code block.
+        response = HttpProviderResponse(data={"choices": [{"message": {"content": answer}}]})
+        result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG)))
+        assert result.data.pages[0].markdown == "NEXORA 2026"
+
+    def test_should_keep_code_blocks_that_belong_to_the_document(self, adapter):
+        text = "# Procédure\n\nLancez :\n\n```\nnexora status\n```\n\nPuis vérifiez."
+        response = HttpProviderResponse(data={"choices": [{"message": {"content": text}}]})
+        result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG)))
+        assert result.data.pages[0].markdown == text
+
     def test_should_return_the_answer_to_an_annotation_prompt_as_the_document_annotation(self, adapter):
         response = HttpProviderResponse(data={"choices": [{"message": {"content": "Un chat roux."}}]})
         result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG), prompt="Décris"))
