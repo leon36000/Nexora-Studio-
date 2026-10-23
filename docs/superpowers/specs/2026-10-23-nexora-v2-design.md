@@ -178,6 +178,24 @@ Précise la section 7 ; ces décisions priment.
 
 **Terminé quand** : sur pc6, comparer deux modèles dans le Playground ; créer un agent par le formulaire (consignes, modèle, un outil Nexora Connect, une base de connaissances), le tester, le publier, ouvrir son chat public, modifier les consignes, publier une 2ᵉ version, voir le diff, revenir à la version 1 ; tests des fonctions pures (aller-retour config ↔ workflow, forme non reconnue) et de la route Playground ; contrôle de fumée « Playground » et « Agent ».
 
+## 8sexies. J5 — conception détaillée (23/10/2026, architecte)
+
+**Cloisonnement par espace.** Nexora Connect (fork d'OpenConnector) n'a qu'une identité d'administration, mais il sait (a) tenir plusieurs **connexions nommées** par service et (b) émettre des **jetons d'exécution persistants** limités à une liste de connexions (`allowedConnections`). Donc :
+- une connexion d'espace s'appelle `ws-<workspaceId>` pour son service ;
+- chaque espace reçoit son propre jeton d'exécution (créé à la première connexion, mis à jour à chaque connexion ajoutée ou retirée), limité à ses connexions ; le serveur MCP « Nexora Connect » de l'espace utilise ce jeton au lieu du jeton global ; les connexions sans authentification restent accessibles ;
+- les connexions **personnelles** (`u-<userId>`, jeton par utilisateur) arrivent avec l'Assistant (J6), seul endroit où une exécution agit au nom d'une personne ; J5 livre les connexions d'espace.
+
+**Catalogue dans WorkStudio** (`/workspace/[id]/connecteurs`, remplace le lien vers la console Connect) : recherche et catégories sur le catalogue de Nexora Connect, fiche par service (actions disponibles, type d'authentification, état de la connexion de l'espace). WorkStudio appelle l'API d'administration de Connect côté serveur avec `NEXORA_CONNECT_ADMIN_TOKEN` (variable serveur, jamais exposée).
+
+**Connexion en un clic** :
+- *clé API / identifiants* : formulaire construit depuis `GET /v1/providers/:service/setup`, envoyé à `POST /v1/connections/:service/connect/api-key|custom-credential` avec `connectionName: ws-<id>` ;
+- *OAuth* : `POST /v1/connections/:service/connect` (`returnUri` = la fiche du service), suivi de la demande jusqu'à « active » ; il faut l'application OAuth de l'opérateur (Google, Microsoft…), saisie une fois par un admin d'instance dans Réglages › Connecteurs (identifiant et secret transmis à `/api/oauth/configs/:service`, jamais stockés par WorkStudio) ; l'adresse de retour (`NEXORA_CONNECT_ORIGIN/oauth/callback`) est affichée pour l'enregistrer chez le fournisseur ; sans origine publique, OAuth est indiqué comme indisponible.
+- *déconnexion* : suppression de la connexion `ws-<id>` et mise à jour du jeton.
+
+**Droits** : voir le catalogue = tout membre ; connecter/déconnecter = membres avec droit d'écriture sur l'espace ; applications OAuth = admins d'instance.
+
+**Terminé quand** : sur pc6, dans deux espaces, connecter un service à clé API (ex. Brevo ou un service sans OAuth) dans l'espace A, l'utiliser depuis un bloc Agent de A ; vérifier que l'espace B ne voit pas cette connexion (discovery MCP filtrée) ; déconnecter ; tests (nommage, mise à jour du jeton, droits, refus inter-espaces) et contrôle de fumée « Connecteurs ».
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
