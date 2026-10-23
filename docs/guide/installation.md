@@ -18,7 +18,7 @@ Il suffit d'avoir Docker. L'installateur :
    - **autre service compatible OpenAI** : son adresse (sans `/v1`), le modèle et la clé ;
 4. génère les secrets dans `~/nexora/deploy/.env` (lisible par vous seul) ;
 5. télécharge les images publiées (amd64 ou arm64) et démarre tout ; à défaut d'images publiées, il les construit depuis les sources (10 à 20 minutes) ;
-6. installe la commande `nexora` : `start`, `stop`, `restart`, `status`, `logs`, `url`, `open`, `smoke`, `update`, `uninstall [--purge]`.
+6. installe la commande `nexora` : `start`, `stop`, `restart`, `status`, `logs`, `url`, `open`, `smoke`, `backup`, `restore`, `update`, `uninstall [--purge]`.
 
 | Option ou variable | Effet |
 |---|---|
@@ -114,41 +114,70 @@ Appliquez ensuite avec `docker compose -f deploy/compose.yml --env-file deploy/.
 NEXORA_SMOKE_ADMIN_EMAIL=gerant@mon-entreprise.fr NEXORA_SMOKE_ADMIN_PASSWORD='…' scripts/smoke.sh http://localhost:3000
 ```
 
-Le test crée un compte jetable et vérifie onze points : l'interface, les modèles, les outils, cinq exécutions réelles par votre modèle, le journal d'audit et la consommation. Ces deux derniers sont lus avec votre compte de propriétaire (ou d'un administrateur), passé par les variables d'environnement ci-dessus ; le test vérifie aussi que le compte jetable, simple membre, n'y a pas accès.
+Le test crée un compte jetable et vérifie chaque brique : l'interface, les modèles, les outils, cinq exécutions réelles par votre modèle, le journal d'audit et la consommation. Ces deux derniers sont lus avec votre compte de propriétaire (ou d'un administrateur), passé par les variables d'environnement ci-dessus ; le test vérifie aussi que le compte jetable, simple membre, n'y a pas accès.
 
 Le test s'inscrit par e-mail et mot de passe : il échoue sur une instance où le SSO est configuré ou les inscriptions fermées.
 
-## 6. Mettre à jour
+## 6. Accès en HTTPS
+
+L'installateur demande un **nom de domaine**. Avec un domaine, Nexora démarre un serveur **Caddy** devant WorkStudio (`https://votre-domaine`), Nexora Connect (`https://connect.votre-domaine`) et Nexora API (`https://api.votre-domaine`) :
+
+- **certificat Let's Encrypt** : donnez une adresse e-mail ; le domaine et ses sous-domaines `connect.` et `api.` doivent pointer vers le serveur, ports 80 et 443 ouverts. Le certificat se renouvelle seul ;
+- **certificat interne** : répondez `internal` (réseau privé, sans domaine public). Les navigateurs afficheront un avertissement tant que l'autorité locale de Caddy n'est pas approuvée sur les postes.
+
+Variables correspondantes dans `deploy/.env` : `NEXORA_DOMAIN`, `NEXORA_TLS` (adresse e-mail ou `internal`) et le profil `https` dans `COMPOSE_PROFILES`.
+
+## 7. Sauvegarder et restaurer
 
 ```bash
-git pull
-docker compose -f deploy/compose.yml --env-file deploy/.env up -d --build
+nexora backup
 ```
 
-Les migrations de base de données s'appliquent automatiquement au démarrage.
+crée dans `~/nexora/backups/` une archive horodatée (lisible par vous seul) qui contient :
 
-## 7. Sauvegarder
-
-Les données vivent dans des volumes Docker :
-
-| Volume | Contenu |
+| Élément | Contenu |
 |---|---|
-| `nexora_postgres-data` | Comptes, workflows, journaux, Nexora API |
-| `nexora_connect-data` | Connexions aux outils (chiffrées) |
-| `nexora_bootstrap` | Clé de WorkStudio auprès de Nexora API |
+| Bases PostgreSQL | Comptes, workflows, journaux, connaissances, Nexora API |
+| `connect-data` | Connexions de Nexora Connect (chiffrées) |
+| `workstudio-uploads` | Fichiers téléversés (documents des bases, fichiers d'espace) |
+| `bootstrap`, `deploy/.env` | Clés et secrets, **chiffrés par une phrase de passe** que la commande demande |
 
-Sauvegarde de la base :
+La commande vérifie d'abord l'espace disque (il faut deux fois la taille des données). **Gardez la phrase de passe** : sans elle, l'archive ne peut pas être restaurée. Copiez les archives hors du serveur (disque externe, stockage de sauvegarde).
+
+**Sauvegarde quotidienne** :
 
 ```bash
-docker compose -f deploy/compose.yml --env-file deploy/.env exec postgres pg_dumpall -U postgres > sauvegarde-nexora.sql
+nexora backup --schedule quotidien
 ```
 
-**Conservez aussi `deploy/.env`.** Sans `ENCRYPTION_KEY` et `NEXORA_CONNECT_ENCRYPTION_KEY`, les secrets enregistrés ne peuvent plus être déchiffrés.
+ajoute une tâche à votre crontab (chaque nuit à 2 h 30, sans droits d'administrateur) ; les sauvegardes planifiées des 7 derniers jours sont gardées, les sauvegardes manuelles ne sont jamais effacées. La phrase de passe est conservée dans `deploy/.backup-passphrase` (lisible par vous seul) pour que la tâche tourne sans vous : ne copiez pas ce fichier avec les archives. `nexora backup --schedule off` arrête la planification ; le journal des sauvegardes est `backups/sauvegardes.log`.
 
-## 8. Options
+**Restaurer** :
+
+```bash
+nexora restore ~/nexora/backups/nexora-20261023-023000.tar
+```
+
+La commande vérifie l'intégrité de l'archive et la phrase de passe **avant** de toucher à quoi que ce soit, puis arrête Nexora, remplace les données et `deploy/.env`, et redémarre. Une archive altérée ou une phrase de passe fausse ne modifie rien.
+
+## 8. Mettre à jour
+
+```bash
+nexora update
+```
+
+1. sauvegarde l'instance (phrase de passe demandée) ;
+2. garde les images en service pour un retour arrière ;
+3. télécharge la nouvelle version, applique les migrations ;
+4. lance la vérification rapide (`nexora smoke --quick`).
+
+Si une étape échoue, Nexora **revient seul** à la version précédente, avec les données d'avant la mise à jour. `nexora status` affiche la version, le disque libre et la dernière sauvegarde.
+
+## 9. Options
 
 - **Connexion unique (SSO)** : voir [sso.md](sso.md).
-- **E-mails** (invitations, mot de passe oublié) : renseignez `FROM_EMAIL_ADDRESS` et `RESEND_API_KEY`.
+- **E-mails** (invitations, mot de passe oublié) : l'installateur demande un serveur SMTP (`NEXORA_SMTP_HOST`, `NEXORA_SMTP_PORT`, `NEXORA_SMTP_USER`, `NEXORA_SMTP_PASS`, `NEXORA_EMAIL_FROM` dans `deploy/.env`).
+- **Recherche web** : profil `search` (l'installateur demande ; vos requêtes partent vers des moteurs publics).
 - **Désactiver les modèles PME** dans les nouveaux espaces : `NEXORA_TEMPLATES_DISABLED=true`.
 
 ## Dépannage
