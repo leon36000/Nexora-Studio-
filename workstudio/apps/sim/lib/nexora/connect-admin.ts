@@ -1,5 +1,5 @@
 import { getErrorMessage } from '@sim/utils/errors'
-import { isRecordLike, toArray } from '@sim/utils/object'
+import { isRecordLike, toArray, toRecord, toRecordOrNull } from '@sim/utils/object'
 import { LRUCache } from 'lru-cache'
 import { env } from '@/lib/core/config/env'
 
@@ -86,8 +86,8 @@ function createClient(options: ConnectAdminOptions) {
       )
     }
     if (!response.ok) {
-      const record = isRecordLike(payload) ? payload : {}
-      const error = isRecordLike(record.error) ? record.error : {}
+      const record = toRecord(payload)
+      const error = toRecord(record.error)
       const code =
         typeof error.code === 'string'
           ? error.code
@@ -233,7 +233,7 @@ async function catalogFor(options: ConnectAdminOptions): Promise<CatalogEntry[]>
   const call = createClient(options)
   const providers = toArray(await call<unknown>('GET', '/api/providers')).filter(isRecordLike)
   const catalog = providers.map((p): CatalogEntry => {
-    const execution = isRecordLike(p.execution) ? p.execution : {}
+    const execution = toRecord(p.execution)
     return {
       service: text(p.service),
       displayName: text(p.displayName) || text(p.service),
@@ -289,7 +289,7 @@ export async function getServiceDetail(
   return {
     service: entry ? (({ actions: _actions, ...rest }) => rest)(entry) : null,
     auth: toArray(setup.auth).filter(isRecordLike),
-    oauthClient: isRecordLike(setup.oauthClient) ? setup.oauthClient : null,
+    oauthClient: toRecordOrNull(setup.oauthClient),
     actions: entry?.actions ?? [],
   }
 }
