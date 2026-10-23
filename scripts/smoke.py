@@ -308,7 +308,8 @@ def main() -> int:
     def home():
         status, html = s.call("GET", f"/workspace/{state['ws']}/home", raw=True)
         require(status == 200, f"home page returned HTTP {status}")
-        require("Accueil" in html, "the home page is not the Nexora home")
+        for text in ("Démarrages rapides", "État de la plateforme", "Créer"):
+            require(text in html, f"the Nexora home lacks « {text} »")
         status, body = s.call("GET", "/api/nexora/home")
         require(status == 200 and body.get("defaultModel"), f"home status returned HTTP {status}: {body}")
         require(body["isInstanceAdmin"] is False and body["onboarding"] is None, "a plain member sees the first launch")

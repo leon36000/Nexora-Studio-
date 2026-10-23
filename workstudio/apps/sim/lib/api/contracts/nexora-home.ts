@@ -17,6 +17,10 @@ export const getNexoraHomeContract = defineRouteContract({
       defaultModel: z.string().nullable(),
       isInstanceAdmin: z.boolean(),
       onboarding: onboardingSchema.nullable(),
+      /** The organization whose first launch this is (admins only). */
+      organizationId: z.string().nullable(),
+      /** Invitations can be e-mailed; otherwise the invitation link is copied by hand. */
+      emailConfigured: z.boolean(),
     }),
   },
 })

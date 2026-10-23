@@ -4,17 +4,17 @@
 
 En vous connectant, vous arrivez sur l'**Accueil** de votre espace (entrée « Accueil » de la barre latérale) :
 
-- **Créer** : un *Workflow* vide, ou un *Agent* prêt à discuter (déclencheur Chat → bloc Agent sur le modèle par défaut → Réponse), ouvert dans l'éditeur.
+- **Créer** : un *Workflow* vide (ouvert dans l'éditeur), ou un *Agent* (ouvert dans son formulaire : voir [Les agents](agents.md)).
 - **Démarrages rapides** : les modèles PME de l'espace, *Inviter l'équipe*, *Connecter un outil*.
-- **État de la plateforme** : le modèle par défaut, la consommation du mois (administrateurs) et les cinq dernières exécutions.
+- **État de la plateforme** : le modèle par défaut, la consommation des 30 derniers jours (administrateurs) et les cinq dernières exécutions.
 
 ### Le premier lancement (administrateurs)
 
 Tant qu'il n'est pas terminé, l'Accueil des administrateurs affiche cinq étapes, chacune passable :
 
-1. **Votre organisation** : son nom (et son logo).
-2. **Votre modèle** : le modèle par défaut, à tester ou changer dans [Réglages › Modèles](modeles.md).
-3. **Votre équipe** : inviter par e-mail, ou copier le lien d'invitation si aucun service d'e-mail n'est configuré.
+1. **Votre organisation** : son nom.
+2. **Votre modèle** : le modèle par défaut, à **tester** sur place ou changer dans [Réglages › Modèles](modeles.md).
+3. **Votre équipe** : inviter par e-mail si un service d'e-mail est configuré, sinon copier le lien d'invitation (Réglages › Collaborateurs).
 4. **Vos outils** : brancher vos services dans Nexora Connect.
 5. **Premier résultat** : générer un devis d'exemple avec le modèle PME « Devis client ».
 

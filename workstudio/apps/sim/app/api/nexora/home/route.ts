@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getNexoraHomeContract } from '@/lib/api/contracts/nexora-home'
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { hasEmailService } from '@/lib/messaging/email/mailer'
 import { authorizeInstanceAdmin } from '@/lib/nexora/admin-access'
 import { fetchDefaultModelName } from '@/lib/nexora/default-model'
 import { readOnboarding } from '@/lib/nexora/onboarding'
@@ -24,5 +25,11 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     fetchDefaultModelName(),
     access.ok ? readOnboarding(access.organizationId) : Promise.resolve(null),
   ])
-  return NextResponse.json({ defaultModel, isInstanceAdmin: access.ok, onboarding })
+  return NextResponse.json({
+    defaultModel,
+    isInstanceAdmin: access.ok,
+    onboarding,
+    organizationId: access.ok ? access.organizationId : null,
+    emailConfigured: hasEmailService(),
+  })
 })

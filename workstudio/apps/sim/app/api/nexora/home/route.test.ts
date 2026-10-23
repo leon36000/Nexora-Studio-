@@ -1,3 +1,4 @@
+import { emailMailerMock, emailMailerMockFns } from '@sim/testing/mocks/email-mailer.mock'
 import {
   nexoraAdminAccessMock,
   nexoraAdminAccessMockFns,
@@ -12,6 +13,7 @@ const fns = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/nexora/admin-access', () => nexoraAdminAccessMock)
+vi.mock('@/lib/messaging/email/mailer', () => emailMailerMock)
 vi.mock('@/lib/nexora/default-model', () => ({ fetchDefaultModelName: fns.defaultModel }))
 vi.mock('@/lib/nexora/onboarding', () => ({
   readOnboarding: fns.read,
@@ -37,6 +39,7 @@ describe('Nexora home routes', () => {
   beforeEach(() => {
     authorize.mockResolvedValue({ ok: true, userId: 'u-1', organizationId: 'org-1' })
     fns.defaultModel.mockResolvedValue('qwen2.5:7b')
+    emailMailerMockFns.mockHasEmailService.mockReturnValue(false)
     fns.read.mockResolvedValue(progress)
     fns.update.mockResolvedValue(progress)
   })
@@ -53,6 +56,8 @@ describe('Nexora home routes', () => {
       defaultModel: 'qwen2.5:7b',
       isInstanceAdmin: false,
       onboarding: null,
+      organizationId: null,
+      emailConfigured: false,
     })
     expect(fns.read).not.toHaveBeenCalled()
   })
@@ -63,8 +68,16 @@ describe('Nexora home routes', () => {
       defaultModel: 'qwen2.5:7b',
       isInstanceAdmin: true,
       onboarding: progress,
+      organizationId: 'org-1',
+      emailConfigured: false,
     })
     expect(fns.read).toHaveBeenCalledWith('org-1')
+  })
+
+  it('tells the page whether invitations can be e-mailed', async () => {
+    emailMailerMockFns.mockHasEmailService.mockReturnValue(true)
+    const body = await (await GET(new NextRequest('http://localhost/api/nexora/home'), {})).json()
+    expect(body.emailConfigured).toBe(true)
   })
 
   it('lets only an admin record progress, and only known steps', async () => {
