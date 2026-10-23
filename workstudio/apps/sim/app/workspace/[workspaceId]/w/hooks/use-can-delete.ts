@@ -101,7 +101,7 @@ export function useCanDelete({ workspaceId }: UseCanDeleteProps): UseCanDeleteRe
       const workflowsToDelete = workflowIds.filter((id) => workflowIdSet.has(id)).length
 
       // Must have at least one workflow remaining after deletion
-      return totalWorkflows > 0 && workflowsToDelete < totalWorkflows
+      return totalWorkflows > 0 && workflowsToDelete < totalWorkflows // i18n-ignore: comparison, not copy
     },
     [totalWorkflows, workflowIdSet]
   )

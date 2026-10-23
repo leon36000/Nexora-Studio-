@@ -1,6 +1,7 @@
 import { createLogger } from '@sim/logger'
 import { AgentIcon } from '@/components/icons'
 import { docsUrl } from '@/lib/branding/docs-url'
+import { REASONING_EFFORT_PASS_THROUGH_PREFIXES } from '@/lib/nexora/reasoning'
 import { getModelFallbackSubBlock, MODEL_FALLBACK_INPUTS } from '@/blocks/model-fallbacks'
 import type { BlockConfig } from '@/blocks/types'
 import { AuthMode, IntegrationType } from '@/blocks/types'
@@ -208,7 +209,10 @@ Return ONLY the JSON array.`,
         return [autoOption, ...validOptions.map((opt) => ({ label: opt, id: opt }))]
       },
       mode: 'advanced',
-      condition: getModelCapabilityCondition(MODELS_WITH_REASONING_EFFORT),
+      condition: getModelCapabilityCondition(
+        MODELS_WITH_REASONING_EFFORT,
+        REASONING_EFFORT_PASS_THROUGH_PREFIXES
+      ),
     },
     {
       id: 'verbosity',

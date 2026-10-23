@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { notFound, redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { OrganizationSecretsEditor } from '@/components/secrets/organization-secrets-editor'
 import { SettingsHeaderProvider, SettingsHeaderShell } from '@/components/settings/settings-header'
 import { getSession } from '@/lib/auth'
@@ -36,11 +37,12 @@ export async function OrganizationSecretsPage({
   })
   if (source?.mode !== mode)
     redirect(mode === 'organization' ? routes.settingsSection('integrations') : routes.integrations)
+  const t = await getTranslations('settings.secrets')
   return (
     <SettingsHeaderProvider>
-      <SettingsHeaderShell meta={{ title: 'Generic Secrets' }}>
+      <SettingsHeaderShell meta={{ title: t('genericTitle') }}>
         <Suspense
-          fallback={<SettingsEmptyState variant='inline'>Loading secrets…</SettingsEmptyState>}
+          fallback={<SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>}
         >
           <OrganizationSecretsEditor mode={mode} />
         </Suspense>

@@ -33,6 +33,7 @@ vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
 import { getCanonicalScopesForProvider, getMissingRequiredScopes } from '@/lib/oauth/utils'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET } from '@/app/api/auth/oauth/credentials/route'
 
@@ -211,7 +212,7 @@ describe('OAuth Credentials API Route', () => {
 
       expect(response.status).toBe(403)
       await expect(response.json()).resolves.toEqual({
-        error: expect.stringContaining("your organization's permission group"),
+        error: capabilityRefusal('integrations.manage'),
       })
     })
 

@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from '@sim/emcn/icons'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { SecretsEditor } from '@/components/secrets/secrets-editor'
 import { SettingsPanel } from '@/components/settings/settings-panel'
 import { organizationRoutes } from '@/lib/navigation/paths'
@@ -23,29 +24,30 @@ interface OrganizationSecretsEditorProps {
 export function OrganizationSecretsEditor({ mode }: OrganizationSecretsEditorProps) {
   const { organization, viewer } = useOrganizationContext()
   const router = useRouter()
+  const t = useTranslations('settings.secrets')
   const secrets = useOrganizationSecrets(organization.id, mode, mode === 'member' || viewer.isAdmin)
   const save = useSaveOrganizationSecrets(organization.id)
   const routes = organizationRoutes(organization.id)
   const back =
     mode === 'organization'
-      ? { text: 'Sources', href: routes.settingsSection('integrations') }
-      : { text: 'Integrations', href: routes.integrations }
+      ? { text: t('backSources'), href: routes.settingsSection('integrations') }
+      : { text: t('backIntegrations'), href: routes.integrations }
   if (!secrets.data || secrets.error)
     return (
       <SettingsPanel
-        title='Generic Secrets'
+        title={t('genericTitle')}
         back={{ text: back.text, icon: ArrowLeft, onSelect: () => router.push(back.href) }}
       >
         {secrets.error ? (
           <SettingsQueryErrorState
             error={secrets.error}
-            fallback='Could not load secrets'
+            fallback={t('loadFailed')}
             isRetrying={secrets.isFetching}
             onRetry={() => void secrets.refetch()}
             variant='inline'
           />
         ) : (
-          <SettingsEmptyState variant='inline'>Loading secrets…</SettingsEmptyState>
+          <SettingsEmptyState variant='inline'>{t('loading')}</SettingsEmptyState>
         )}
       </SettingsPanel>
     )
@@ -54,7 +56,7 @@ export function OrganizationSecretsEditor({ mode }: OrganizationSecretsEditorPro
     <SecretsEditor
       key={data.source.id}
       back={back}
-      sectionLabel={mode === 'organization' ? 'Organization' : 'Personal'}
+      sectionLabel={mode === 'organization' ? t('organization') : t('personal')}
       variables={data.variables}
       canCreate
       save={(changes) => save.mutateAsync({ ...changes, sourceId: data.source.id, mode })}

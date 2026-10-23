@@ -21,6 +21,14 @@
     "messagePlaceholder": "Your message",
     "temperature": "Temperature",
     "maxTokens": "Maximum length (tokens)",
+    "reasoningEffort": "Reasoning effort",
+    "efforts": {
+      "default": "Default",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "effortIgnored": "This model does not accept an effort setting: its default was used.",
     "send": "Send",
     "stop": "Stop",
     "addModel": "Add a model",
@@ -38,6 +46,10 @@
       "interrupted": "The answer was interrupted.",
       "unknown": "The answer could not be obtained."
     }
+  },
+  "thinking": {
+    "title": "Reasoning",
+    "inProgress": "Reasoning…"
   },
   "list": {
     "metaTitle": "Agents",
@@ -67,6 +79,7 @@
       "tools": "Tools",
       "knowledgeBaseIds": "Knowledge",
       "memory": "Conversation memory",
+      "reasoningEffort": "Reasoning effort",
       "welcomeMessage": "Welcome message"
     },
     "welcomeHint": "Saved with the public chat, when publishing.",

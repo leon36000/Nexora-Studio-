@@ -58,6 +58,7 @@ vi.mock('@/lib/logs/snapshot-sanitizer', () => ({
 }))
 vi.mock('@/app/api/v1/logs/meta', () => v1LogsMetaMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET as getLogDetail } from '@/app/api/v1/logs/[id]/route'
 import { GET as getExecution } from '@/app/api/v1/logs/executions/[executionId]/route'
@@ -231,7 +232,7 @@ describe('GET /api/v1/logs cost-selective queries', () => {
 
       expect(response.status).toBe(403)
       expect(await response.json()).toEqual({
-        error: "Execution cost is not available under your organization's permission group",
+        error: capabilityRefusal('logs.cost'),
         details: { code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' },
       })
       expect(mockListPublicWorkflowLogs).not.toHaveBeenCalled()

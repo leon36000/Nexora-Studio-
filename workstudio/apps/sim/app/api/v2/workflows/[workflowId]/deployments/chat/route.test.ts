@@ -59,6 +59,7 @@ vi.mock('@/lib/api/server/routes/v2-api-key-auth', () => v2ApiKeyAuthModuleMock)
 vi.mock('@/lib/core/rate-limiter', () => v2RateLimiterModuleMock)
 
 import { markCopilotRequest } from '@/lib/api/server/routes/copilot-request'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { performChatDeploy as realPerformChatDeploy } from '@/lib/workflows/orchestration/chat-deploy'
 import { DELETE, GET, PUT } from '@/app/api/v2/workflows/[workflowId]/deployments/chat/route'
 
@@ -431,7 +432,7 @@ describe('/api/v2/workflows/[workflowId]/deployments/chat', () => {
         new PermissionGroupCapabilityError(
           'deploy.chat.auth_mode',
           'CHAT_AUTH_MODE_NOT_PERMITTED',
-          "This chat authentication mode is not available under your organization's permission group"
+          capabilityRefusal('deploy.chat.auth_mode')
         )
       )
 

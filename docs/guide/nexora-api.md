@@ -2,6 +2,8 @@
 
 Nexora API est la passerelle de modèles de la plateforme. Elle est **compatible OpenAI** : tout outil qui parle à l'API d'OpenAI peut utiliser vos modèles en changeant l'adresse et la clé.
 
+> **Développeurs : utilisez plutôt [l'API des développeurs](api-developpeurs.md)** (`https://<domaine>/v1`) : clés créées dans Réglages › Clés API, modèles autorisés, plafonds, agents publiés, consommation par clé. Cette page décrit l'accès direct à Nexora API, réservé à l'exploitation.
+
 - Adresse : `http://<serveur>:8000/v1` (port `NEXORA_API_PORT`)
 - Documentation interactive : `http://<serveur>:8000/docs`
 

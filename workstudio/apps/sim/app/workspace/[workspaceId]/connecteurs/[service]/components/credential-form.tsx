@@ -6,6 +6,8 @@ import { useTranslations } from 'next-intl'
 import {
   type ConnectorCredentialField,
   type CredentialFieldError,
+  credentialFieldLabel,
+  credentialFieldPlaceholder,
   readCredentialValues,
 } from '@/lib/nexora/connector-credentials'
 import { getConnectorErrorCode, useConnectConnector } from '@/hooks/queries/nexora-connectors'
@@ -62,13 +64,14 @@ export function CredentialForm({
         const id = `connector-${service}-${field.key}`
         const error = errors[field.key]
         const isMultiline = field.inputType === 'textarea' || field.inputType === 'json'
-        const hint = error
+        const errorHint = error
           ? t(error === 'json' ? 'detail.form.jsonError' : 'detail.form.requiredError')
-          : field.description
+          : null
+        const placeholder = credentialFieldPlaceholder(field.placeholder)
         return (
           <div key={field.key} className='flex flex-col gap-[9px]'>
             <Label htmlFor={id}>
-              {field.label}
+              {credentialFieldLabel(field.label, t)}
               {field.required && (
                 <span className='text-[var(--text-muted)]'> {t('detail.form.requiredMark')}</span>
               )}
@@ -77,7 +80,7 @@ export function CredentialForm({
               <ChipTextarea
                 id={id}
                 value={values[field.key] ?? ''}
-                placeholder={field.placeholder}
+                placeholder={placeholder}
                 error={Boolean(error)}
                 aria-invalid={Boolean(error)}
                 rows={field.inputType === 'json' ? 6 : 3}
@@ -91,23 +94,22 @@ export function CredentialForm({
                 autoComplete='off'
                 spellCheck={false}
                 value={values[field.key] ?? ''}
-                placeholder={field.placeholder}
+                placeholder={placeholder}
                 error={Boolean(error)}
                 aria-invalid={Boolean(error)}
                 onChange={(event) => setValue(field.key, event.target.value)}
               />
             )}
-            {hint && (
-              <p
-                className={
-                  error
-                    ? 'text-[var(--text-error)] text-caption'
-                    : 'text-[var(--text-muted)] text-caption'
-                }
-              >
-                {hint}
-              </p>
-            )}
+            {errorHint ? (
+              <p className='text-[var(--text-error)] text-caption'>{errorHint}</p>
+            ) : field.description ? (
+              <details className='text-[var(--text-muted)] text-caption'>
+                <summary className='cursor-pointer'>{t('detail.form.providerHelp')}</summary>
+                <p lang='en' className='mt-1'>
+                  {field.description}
+                </p>
+              </details>
+            ) : null}
           </div>
         )
       })}

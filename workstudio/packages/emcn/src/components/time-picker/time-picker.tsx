@@ -29,6 +29,7 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { ChevronDown } from '../../icons'
 import { cn } from '../../lib/cn'
+import { useEmcnLabels } from '../labels/labels'
 import { Popover, PopoverAnchor, PopoverContent } from '../popover/popover'
 
 /**
@@ -121,13 +122,14 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
       size,
       value,
       onChange,
-      placeholder = 'Select time',
+      placeholder,
       disabled = false,
       overlayContent,
       ...props
     },
     ref
   ) => {
+    const labels = useEmcnLabels()
     const [open, setOpen] = React.useState(false)
     const hourInputRef = React.useRef<HTMLInputElement>(null)
     const parsed = React.useMemo(() => parseTime(value || ''), [value])
@@ -236,7 +238,7 @@ const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
               onKeyDown={handleKeyDown}
             >
               <span className={cn('flex-1 truncate', !displayValue && 'text-[var(--text-muted)]')}>
-                {overlayContent ?? (displayValue || placeholder)}
+                {overlayContent ?? (displayValue || placeholder || labels.selectTime)}
               </span>
               <ChevronDown
                 className={cn(

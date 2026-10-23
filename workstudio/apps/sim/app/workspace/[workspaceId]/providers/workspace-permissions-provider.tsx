@@ -6,6 +6,7 @@ import { useToast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { useSocket } from '@/app/workspace/providers/socket-provider'
 import { useUserPermissionConfig } from '@/ee/access-control/hooks/permission-groups'
 import {
@@ -89,7 +90,7 @@ interface WorkspacePermissionsContextType {
   permissionsLoading: boolean
   permissionsError: string | null
   updatePermissions: (newPermissions: WorkspacePermissions) => void
-  refetchPermissions: () => Promise<void>
+  refetchPermissions: () => Promise<void> // i18n-ignore: type signature
   userPermissions: WorkspaceUserPermissions & { isOfflineMode?: boolean }
 }
 
@@ -133,6 +134,7 @@ export function WorkspacePermissionsProvider({
   const urlWorkflowId = scopedWorkspaceId ? workflowId : (params?.workflowId as string | undefined)
   const isFileViewer = scopedFileViewer ?? Boolean(params?.fileId)
   const queryClient = useQueryClient()
+  const t = useTranslations('shell.realtimeStatus')
 
   const hasOperationError = useOperationQueueStore((state) => state.hasOperationError)
   const { isReconnecting, isRetryingWorkflowJoin, blockedJoinWorkflowId } = useSocket()
@@ -147,21 +149,21 @@ export function WorkspacePermissionsProvider({
     isOfflineMode || isFileViewer
       ? null
       : showReconnecting
-        ? 'Reconnecting...'
+        ? t('reconnecting')
         : isRetryingWorkflowJoin
-          ? 'Joining workflow...'
+          ? t('joiningWorkflow')
           : null
 
   usePersistentErrorToast(realtimeStatusMessage)
   // Offline mode only recovers via workspace switch or refresh; the join block
   // lifts when the user targets a different workflow or refreshes.
-  usePersistentErrorToast(isOfflineMode ? 'Connection unavailable' : null, {
-    description: 'Recent changes may not have been saved. Refresh to resync.',
-    action: { label: 'Refresh', onClick: () => window.location.reload() },
+  usePersistentErrorToast(isOfflineMode ? t('connectionUnavailable') : null, {
+    description: t('connectionUnavailableDescription'),
+    action: { label: t('refresh'), onClick: () => window.location.reload() },
   })
-  usePersistentErrorToast(isJoinBlocked ? 'Unable to connect to workflow' : null, {
-    description: 'Changes cannot be saved. Refresh to retry.',
-    action: { label: 'Refresh', onClick: () => window.location.reload() },
+  usePersistentErrorToast(isJoinBlocked ? t('unableToConnect') : null, {
+    description: t('unableToConnectDescription'),
+    action: { label: t('refresh'), onClick: () => window.location.reload() },
   })
 
   const {

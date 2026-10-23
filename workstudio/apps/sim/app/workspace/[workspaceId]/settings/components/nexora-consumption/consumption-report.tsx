@@ -2,6 +2,7 @@
 
 import { Avatar, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@sim/emcn'
 import { useFormatter, useTranslations } from 'next-intl'
+import { ApiKeysConsumption } from '@/app/workspace/[workspaceId]/settings/components/nexora-consumption/api-keys-consumption'
 import { DailyChart } from '@/app/workspace/[workspaceId]/settings/components/nexora-consumption/daily-chart'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
@@ -231,6 +232,8 @@ export function ConsumptionReport({ report }: ConsumptionReportProps) {
           <p className='mt-3 text-[var(--text-muted)] text-caption'>{t('estimateNote')}</p>
         )}
       </SettingsSection>
+
+      <ApiKeysConsumption apiKeys={report.apiKeys} />
     </div>
   )
 }

@@ -25,6 +25,7 @@ import { createTrustedOrganizationCopilotPrincipal } from '@/lib/mothership/auth
 import { ResourceChanges } from '@/lib/mothership/generated/resources'
 import type { ServerToolContext } from '@/lib/mothership/tools/server/base-tool'
 import { routeExecution } from '@/lib/mothership/tools/server/router'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { createOrganizationWorkspace } from '@/lib/workspaces/application/create-organization-workspace'
 import * as policy from '@/lib/workspaces/policy'
@@ -235,7 +236,7 @@ describe('organization workspace creation through the real tool router', () => {
     })
     expect(
       await routeExecution('workspaces', { action: 'create', name: 'Research' }, context)
-    ).toMatchObject({ success: false, message: expect.stringContaining('permission group') })
+    ).toMatchObject({ success: false, message: capabilityRefusal('workspace.create') })
     expect(readPolicy).not.toHaveBeenCalled()
     expect(mocks.create).not.toHaveBeenCalled()
     expect(mocks.audit).not.toHaveBeenCalled()

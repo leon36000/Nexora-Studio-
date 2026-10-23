@@ -6,6 +6,7 @@ import type { ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/
 import { env } from '@/lib/core/config/env'
 import { createPinnedFetch, validateUrlWithDNS } from '@/lib/core/security/input-validation.server'
 import { listedModelIds } from '@/lib/nexora/model-ids'
+import { isReasoningEffortRejection, readMessageReasoning } from '@/lib/nexora/reasoning'
 import type { StreamingExecution } from '@/executor/types'
 import { MAX_TOOL_ITERATIONS } from '@/providers'
 import { formatMessagesForProvider } from '@/providers/attachments'
@@ -56,6 +57,42 @@ import { useProvidersStore } from '@/stores/providers'
 
 const logger = createLogger('VLLMProvider')
 const VLLM_VERSION = '1.0.0'
+
+/** A message's answer, without the reasoning a model wrote inline (`<think>…</think>`). */
+function answerOf(message: unknown): string {
+  return readMessageReasoning(message).content
+}
+
+/** The message as conversation memory keeps it: its answer without inline reasoning. */
+function withoutInlineThinking<T extends { content?: string | null } | undefined>(message: T): T {
+  if (!message || typeof message.content !== 'string') return message
+  return { ...message, content: answerOf(message) }
+}
+
+/**
+ * Sends one request, and again without `reasoning_effort` when the service refuses that setting
+ * (HTTP 400 naming it): the effort is a preference, the answer is not. Later requests of the same
+ * run reuse `params`, in which the refused setting is cleared.
+ */
+async function withEffortFallback<T>(
+  params: { reasoning_effort?: unknown },
+  send: () => Promise<T>
+): Promise<T> {
+  try {
+    return await send()
+  } catch (error) {
+    const status = isRecordLike(error) && typeof error.status === 'number' ? error.status : 0
+    if (
+      params.reasoning_effort === undefined ||
+      !isReasoningEffortRejection(status, toError(error).message)
+    ) {
+      throw error
+    }
+    logger.warn('The model refused reasoning_effort; asking again without it')
+    params.reasoning_effort = undefined
+    return send()
+  }
+}
 
 export const vllmProvider: ProviderConfig = {
   id: 'vllm',
@@ -204,6 +241,9 @@ export const vllmProvider: ProviderConfig = {
 
     if (request.temperature !== undefined) payload.temperature = request.temperature
     if (request.maxTokens != null) payload.max_tokens = request.maxTokens
+    if (request.reasoningEffort && request.reasoningEffort !== 'auto') {
+      payload.reasoning_effort = request.reasoningEffort
+    }
 
     if (request.responseFormat) {
       payload.response_format = buildJsonSchemaResponseFormat(request.responseFormat)
@@ -248,9 +288,13 @@ export const vllmProvider: ProviderConfig = {
           stream: true,
           stream_options: { include_usage: true },
         }
-        const streamResponse = await vllm.chat.completions.create(
-          await prepareConversationGeneration(request, 'chat-completions', streamingParams),
-          request.abortSignal ? { signal: request.abortSignal } : undefined
+        const streamResponse = await withEffortFallback(streamingParams, async () =>
+          vllm.chat.completions.create(
+            await prepareConversationGeneration(request, 'chat-completions', {
+              ...streamingParams,
+            }),
+            request.abortSignal ? { signal: request.abortSignal } : undefined
+          )
         )
 
         const streamingResult = createStreamingExecution({
@@ -265,6 +309,7 @@ export const vllmProvider: ProviderConfig = {
             createOpenAICompatibleAgentEventStream(streamResponse, {
               providerName: 'vLLM',
               request,
+              splitInlineThinking: true,
               onComplete: ({ content, usage }) => {
                 let cleanContent = content
                 if (cleanContent && request.responseFormat) {
@@ -305,21 +350,23 @@ export const vllmProvider: ProviderConfig = {
       let usedForcedTools: string[] = []
       let hasUsedForcedTool = false
 
-      let currentResponse = await vllm.chat.completions.create(
-        await prepareConversationGeneration(request, 'chat-completions', payload),
-        request.abortSignal ? { signal: request.abortSignal } : undefined
+      let currentResponse = await withEffortFallback(payload, async () =>
+        vllm.chat.completions.create(
+          await prepareConversationGeneration(request, 'chat-completions', { ...payload }),
+          request.abortSignal ? { signal: request.abortSignal } : undefined
+        )
       )
       if (!currentResponse.choices[0]?.message?.tool_calls?.length) {
         await captureProviderConversationStep(
           request,
           'chat-completions',
-          currentResponse.choices[0]?.message,
+          withoutInlineThinking(currentResponse.choices[0]?.message),
           getChatCompletionConversationUsage(currentResponse.usage)
         )
       }
       const firstResponseTime = Date.now() - initialCallTime
 
-      let content = currentResponse.choices[0]?.message?.content || ''
+      let content = answerOf(currentResponse.choices[0]?.message)
 
       if (content && request.responseFormat) {
         content = content.replace(/```json\n?|\n?```/g, '').trim()
@@ -361,8 +408,8 @@ export const vllmProvider: ProviderConfig = {
       }
 
       while (iterationCount < MAX_TOOL_ITERATIONS) {
-        if (currentResponse.choices[0]?.message?.content) {
-          content = currentResponse.choices[0].message.content
+        if (answerOf(currentResponse.choices[0]?.message)) {
+          content = answerOf(currentResponse.choices[0]?.message)
           if (request.responseFormat) {
             content = content.replace(/```json\n?|\n?```/g, '').trim()
           }
@@ -569,15 +616,17 @@ export const vllmProvider: ProviderConfig = {
 
         const nextModelStartTime = Date.now()
 
-        currentResponse = await vllm.chat.completions.create(
-          await prepareConversationGeneration(request, 'chat-completions', nextPayload),
-          request.abortSignal ? { signal: request.abortSignal } : undefined
+        currentResponse = await withEffortFallback(nextPayload, async () =>
+          vllm.chat.completions.create(
+            await prepareConversationGeneration(request, 'chat-completions', { ...nextPayload }),
+            request.abortSignal ? { signal: request.abortSignal } : undefined
+          )
         )
         if (!currentResponse.choices[0]?.message?.tool_calls?.length) {
           await captureProviderConversationStep(
             request,
             'chat-completions',
-            currentResponse.choices[0]?.message,
+            withoutInlineThinking(currentResponse.choices[0]?.message),
             getChatCompletionConversationUsage(currentResponse.usage)
           )
         }
@@ -607,8 +656,8 @@ export const vllmProvider: ProviderConfig = {
 
         modelTime += thisModelTime
 
-        if (currentResponse.choices[0]?.message?.content) {
-          content = currentResponse.choices[0].message.content
+        if (answerOf(currentResponse.choices[0]?.message)) {
+          content = answerOf(currentResponse.choices[0]?.message)
           if (request.responseFormat) {
             content = content.replace(/```json\n?|\n?```/g, '').trim()
           }
@@ -644,18 +693,20 @@ export const vllmProvider: ProviderConfig = {
            */
           const { tools: _tools, tool_choice: _toolChoice, ...synthesisPayload } = payload
           const synthesisStartTime = Date.now()
-          const synthesisResponse = await vllm.chat.completions.create(
-            await prepareConversationGeneration(request, 'chat-completions', {
-              ...synthesisPayload,
-              messages: currentMessages,
-            }),
-            request.abortSignal ? { signal: request.abortSignal } : undefined
+          const synthesisParams = { ...synthesisPayload, messages: currentMessages }
+          const synthesisResponse = await withEffortFallback(synthesisParams, async () =>
+            vllm.chat.completions.create(
+              await prepareConversationGeneration(request, 'chat-completions', {
+                ...synthesisParams,
+              }),
+              request.abortSignal ? { signal: request.abortSignal } : undefined
+            )
           )
           if (!synthesisResponse.choices[0]?.message?.tool_calls?.length) {
             await captureProviderConversationStep(
               request,
               'chat-completions',
-              synthesisResponse.choices[0]?.message,
+              withoutInlineThinking(synthesisResponse.choices[0]?.message),
               getChatCompletionConversationUsage(synthesisResponse.usage)
             )
           }
@@ -670,7 +721,7 @@ export const vllmProvider: ProviderConfig = {
           })
           modelTime += synthesisEndTime - synthesisStartTime
 
-          content = synthesisResponse.choices[0]?.message?.content || content
+          content = answerOf(synthesisResponse.choices[0]?.message) || content
           if (content && request.responseFormat) {
             content = content.replace(/```json\n?|\n?```/g, '').trim()
           }

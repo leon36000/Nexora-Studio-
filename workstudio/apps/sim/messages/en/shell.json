@@ -586,6 +586,29 @@
     "issues": "Nexora is having issues",
     "viewStatus": "View status"
   },
+  "statusPage": {
+    "returnHome": "Return home"
+  },
+  "generatedPassword": {
+    "generate": "Generate password",
+    "generateTooltip": "Generate",
+    "copy": "Copy password",
+    "copyTooltip": "Copy",
+    "copiedTooltip": "Copied",
+    "show": "Show password",
+    "hide": "Hide password",
+    "showTooltip": "Show",
+    "hideTooltip": "Hide"
+  },
+  "realtimeStatus": {
+    "reconnecting": "Reconnecting...",
+    "joiningWorkflow": "Joining workflow...",
+    "connectionUnavailable": "Connection unavailable",
+    "connectionUnavailableDescription": "Recent changes may not have been saved. Refresh to resync.",
+    "unableToConnect": "Unable to connect to workflow",
+    "unableToConnectDescription": "Changes cannot be saved. Refresh to retry.",
+    "refresh": "Refresh"
+  },
   "timeCell": {
     "now": "Now",
     "minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",

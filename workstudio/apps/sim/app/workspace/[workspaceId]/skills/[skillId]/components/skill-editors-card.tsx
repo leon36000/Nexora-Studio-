@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl'
 import {
   MemberRow,
-  SKILL_EDITOR_ROLE_OPTIONS,
   type SkillEditorRole,
   skillEditorLockReason,
+  useSkillEditorRoleOptions,
 } from '@/components/permissions'
 import { DetailSection } from '@/app/workspace/[workspaceId]/components/credential-detail'
 import type { SkillEditorsController } from '@/app/workspace/[workspaceId]/skills/components/skill-members'
@@ -29,6 +29,7 @@ interface SkillEditorsCardProps {
  */
 export function SkillEditorsCard({ editors, canEdit }: SkillEditorsCardProps) {
   const t = useTranslations('integrations.skillsPage')
+  const roleOptions = useSkillEditorRoleOptions()
   return (
     <DetailSection title={t('editorsTitle', { count: editors.editors.length })}>
       {editors.editorsError ? (
@@ -45,7 +46,7 @@ export function SkillEditorsCard({ editors, canEdit }: SkillEditorsCardProps) {
                 userImage: editor.userImage,
                 role: 'editor',
               }}
-              roleOptions={SKILL_EDITOR_ROLE_OPTIONS}
+              roleOptions={roleOptions}
               lockReason={skillEditorLockReason(editor.isWorkspaceAdmin)}
               canManage={canEdit}
               roleDisabled

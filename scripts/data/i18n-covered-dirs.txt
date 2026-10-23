@@ -43,3 +43,14 @@ workstudio/apps/sim/app/workspace/[workspaceId]/connecteurs
 workstudio/apps/sim/app/workspace/[workspaceId]/assistant
 # J9 Gouvernance : groupes d'accès
 workstudio/apps/sim/ee/access-control/components
+# K2 Composants partagés de l'application
+workstudio/apps/sim/components/secrets
+workstudio/apps/sim/components/permissions
+workstudio/apps/sim/components/status-page
+workstudio/apps/sim/components/ui/generated-password-input.tsx
+workstudio/apps/sim/app/workspace/[workspaceId]/w/components/preview
+workstudio/apps/sim/app/workspace/[workspaceId]/w/page.tsx
+workstudio/apps/sim/app/workspace/[workspaceId]/w/hooks
+workstudio/apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx
+# K3 API des développeurs
+workstudio/apps/sim/app/workspace/[workspaceId]/developpeurs

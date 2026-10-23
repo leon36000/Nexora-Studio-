@@ -15,6 +15,7 @@ import {
   useUpdateNodeInternals,
 } from '@xyflow/react'
 import { BLOCK_DIMENSIONS, CONTAINER_DIMENSIONS, HANDLE_POSITIONS } from '../dimensions'
+import { useWorkflowRendererLabels } from '../labels'
 import { OverflowSpan } from '../lib/overflow-span'
 import type { DiffStatus } from '../types'
 import {
@@ -126,6 +127,24 @@ interface SubflowStateIndicatorProps {
   Icon: typeof Ban
 }
 
+/** The names the editor generates for a new container, before any rename. */
+const GENERATED_SUBFLOW_NAME = { loop: /^Loop(\s+\d+)?$/, parallel: /^Parallel(\s+\d+)?$/ } as const
+
+/**
+ * The name a container shows: its stored name, which `<loop1.index>` references use, unless it is
+ * still the generated `Loop 2` / `Parallel` — then the type label in the interface language, with
+ * the same copy number.
+ */
+function displaySubflowName(
+  storedName: string | undefined,
+  kind: 'loop' | 'parallel',
+  typeLabel: string
+): string {
+  if (!storedName) return typeLabel
+  const match = storedName.match(GENERATED_SUBFLOW_NAME[kind])
+  return match ? `${typeLabel}${match[1] ?? ''}` : storedName
+}
+
 /** Compact disabled/locked marker aligned with the standard workflow-card header. */
 function SubflowStateIndicator({ label, Icon }: SubflowStateIndicatorProps) {
   return (
@@ -161,6 +180,7 @@ function SubflowStartView({
   isPreview = false,
   isHighlighted = false,
 }: SubflowStartViewProps) {
+  const labels = useWorkflowRendererLabels()
   const startHandleId = getWorkflowSubflowHandleIds(kind).start
   /*
    * The swell's temporary handle carries the branch-cursor form of the start
@@ -276,7 +296,7 @@ function SubflowStartView({
         width={START_WIDTH_PX}
         height={START_HEIGHT_PX}
       />
-      <span className='relative z-10 text-[var(--text-primary)] text-sm'>Start</span>
+      <span className='relative z-10 text-[var(--text-primary)] text-sm'>{labels.start}</span>
       <Handle
         type='source'
         position={Position.Right}
@@ -336,6 +356,7 @@ export function SubflowNodeView({
   onSelect,
   actionBar,
 }: SubflowNodeViewProps) {
+  const labels = useWorkflowRendererLabels()
   const updateNodeInternals = useUpdateNodeInternals()
   const reactFlowStore = useReactFlowStoreApi()
   const cursorSourceHandleRef = useRef<HTMLDivElement>(null)
@@ -364,8 +385,8 @@ export function SubflowNodeView({
     }, [data.parentId, endHandleId, id])
   )
   const BlockIcon = data.kind === 'loop' ? Repeat : Split
-  const blockName = data.name || (data.kind === 'loop' ? 'Loop' : 'Parallel')
-  const blockTypeLabel = data.kind === 'loop' ? 'Loop' : 'Parallel'
+  const blockTypeLabel = data.kind === 'loop' ? labels.loop : labels.parallel
+  const blockName = displaySubflowName(data.name, data.kind, blockTypeLabel)
   const blockTypeAccent = getWorkflowTypeAccent(data.kind)
   const width = data.width ?? 500
   const height = data.height ?? 300
@@ -628,8 +649,8 @@ export function SubflowNodeView({
             />
           </div>
           <div className='relative z-10 flex shrink-0 items-center gap-1'>
-            {!isEnabled && <SubflowStateIndicator label='Disabled' Icon={Ban} />}
-            {isLocked && <SubflowStateIndicator label='Locked' Icon={Lock} />}
+            {!isEnabled && <SubflowStateIndicator label={labels.disabled} Icon={Ban} />}
+            {isLocked && <SubflowStateIndicator label={labels.locked} Icon={Lock} />}
             <ChipTag
               variant={blockTypeAccent.variant}
               tone={blockTypeAccent.tone}
@@ -654,7 +675,7 @@ export function SubflowNodeView({
         <div
           role='button'
           tabIndex={isPreview ? -1 : 0}
-          aria-label={`Select ${blockName}`}
+          aria-label={`${labels.select} ${blockName}`}
           className='workflow-drag-handle absolute inset-0 top-[40px] z-10 cursor-grab rounded-b-2xl [&:active]:cursor-grabbing'
           style={{ pointerEvents: isPreview ? 'none' : 'auto' }}
           onClick={onSelect}

@@ -190,4 +190,104 @@ describe('Nexora wand', () => {
     })
     expect(describeWandFailure(new Error('bug'))).toBeNull()
   })
+
+  describe('reasoning models', () => {
+    const events = (text: string) =>
+      text
+        .split('\n\n')
+        .filter((line) => line.startsWith('data: '))
+        .map((line) => JSON.parse(line.slice(6)))
+
+    it('returns the answer without the reasoning, whatever its shape (Copilot JSON stays JSON)', async () => {
+      fetchMock.mockResolvedValueOnce(
+        Response.json({
+          choices: [{ message: { content: '{"ok":true}', reasoning_content: 'Je vérifie.' } }],
+        })
+      )
+      fetchMock.mockResolvedValueOnce(
+        Response.json({ choices: [{ message: { content: '<think>plan</think>\n{"ok":true}' } }] })
+      )
+      await expect(nexoraWandComplete({ messages })).resolves.toMatchObject({ text: '{"ok":true}' })
+      await expect(nexoraWandComplete({ messages })).resolves.toMatchObject({ text: '{"ok":true}' })
+    })
+
+    it('streams the reasoning in its own events when asked, never in chunks', async () => {
+      fetchMock.mockResolvedValue(
+        sse([
+          'data: {"choices":[{"delta":{"reasoning_content":"Je ","reasoning":"Je ","content":""}}]}',
+          'data: {"choices":[{"delta":{"reasoning_content":"pense."}}]}',
+          'data: {"choices":[{"delta":{"content":"Bonjour"}}]}',
+          'data: [DONE]',
+        ])
+      )
+      const text = await readAll(await nexoraWandStream({ messages, includeThinking: true }))
+      expect(events(text)).toEqual([
+        { thinking: 'Je ' },
+        { thinking: 'pense.' },
+        { chunk: 'Bonjour' },
+        { done: true },
+      ])
+    })
+
+    it('splits inline think tags cut across chunks out of the answer', async () => {
+      fetchMock.mockResolvedValue(
+        sse([
+          'data: {"choices":[{"delta":{"content":"<thi"}}]}',
+          'data: {"choices":[{"delta":{"content":"nk>réfl"}}]}',
+          'data: {"choices":[{"delta":{"content":"exion</think>Bon"}}]}',
+          'data: {"choices":[{"delta":{"content":"jour"}}]}',
+          'data: [DONE]',
+        ])
+      )
+      const parsed = events(
+        await readAll(await nexoraWandStream({ messages, includeThinking: true }))
+      )
+      expect(parsed.map((e) => e.chunk ?? '').join('')).toBe('Bonjour')
+      expect(parsed.map((e) => e.thinking ?? '').join('')).toBe('réflexion')
+    })
+
+    it('keeps the generation alive without showing the reasoning when it is not asked for', async () => {
+      fetchMock.mockResolvedValue(
+        sse([
+          'data: {"choices":[{"delta":{"reasoning_content":"secret"}}]}',
+          'data: {"choices":[{"delta":{"content":"Objet : relance"}}]}',
+          'data: [DONE]',
+        ])
+      )
+      const text = await readAll(await nexoraWandStream({ messages }))
+      expect(text).not.toContain('secret')
+      expect(text).toContain(': reflexion')
+      expect(events(text)).toEqual([{ chunk: 'Objet : relance' }, { done: true }])
+    })
+
+    it('sends reasoning_effort only when chosen, and drops it when the model refuses it', async () => {
+      fetchMock.mockResolvedValueOnce(
+        Response.json(
+          {
+            detail: {
+              error: {
+                message:
+                  "litellm.UnsupportedParamsError: openrouter does not support parameters: ['reasoning_effort']",
+              },
+            },
+          },
+          { status: 400 }
+        )
+      )
+      fetchMock.mockResolvedValueOnce(
+        sse(['data: {"choices":[{"delta":{"content":"Oui"}}]}', 'data: [DONE]'])
+      )
+      const text = await readAll(
+        await nexoraWandStream({ messages, reasoningEffort: 'high', reportUsage: true })
+      )
+      const [first, second] = fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body))
+      expect(first.reasoning_effort).toBe('high')
+      expect(second).not.toHaveProperty('reasoning_effort')
+      expect(events(text)).toEqual([{ chunk: 'Oui' }, { done: true, effortIgnored: true }])
+
+      fetchMock.mockResolvedValueOnce(sse(['data: [DONE]']))
+      await readAll(await nexoraWandStream({ messages }))
+      expect(JSON.parse(fetchMock.mock.calls[2][1].body)).not.toHaveProperty('reasoning_effort')
+    })
+  })
 })

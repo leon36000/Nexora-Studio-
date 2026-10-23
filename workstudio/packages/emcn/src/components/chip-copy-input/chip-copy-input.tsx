@@ -22,6 +22,7 @@ import { Check, Duplicate } from '../../icons'
 import { cn } from '../../lib/cn'
 import { Button } from '../button/button'
 import { ChipInput, type ChipInputProps } from '../chip-input/chip-input'
+import { useEmcnLabels } from '../labels/labels'
 import { Tooltip } from '../tooltip/tooltip'
 
 export interface ChipCopyInputProps
@@ -37,8 +38,10 @@ export interface ChipCopyInputProps
 
 /** Forwards its ref to the inner `<input>`, exactly like {@link ChipInput}. */
 export const ChipCopyInput = React.forwardRef<HTMLInputElement, ChipCopyInputProps>(
-  ({ value, copyLabel = 'Copy', inputClassName, ...props }, ref) => {
+  ({ value, copyLabel: copyLabelProp, inputClassName, ...props }, ref) => {
     const { copied, copy } = useCopyToClipboard()
+    const labels = useEmcnLabels()
+    const copyLabel = copyLabelProp ?? labels.copy
 
     return (
       <ChipInput

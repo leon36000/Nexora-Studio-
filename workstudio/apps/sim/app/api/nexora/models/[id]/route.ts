@@ -4,7 +4,8 @@ import { removeNexoraModelContract } from '@/lib/api/contracts/nexora-models'
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { authorizeInstanceAdmin } from '@/lib/nexora/admin-access'
-import { removeNexoraModel } from '@/lib/nexora/model-admin'
+import { listNexoraModels, removeNexoraModel } from '@/lib/nexora/model-admin'
+import { updateModelCard } from '@/lib/nexora/model-cards'
 import { deniedResponse, modelErrorResponse } from '@/lib/nexora/model-responses'
 import { deleteLocalModel } from '@/lib/nexora/ollama'
 
@@ -14,14 +15,19 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-/** Removes a model; its file in the bundled Ollama goes too when no other model uses it. */
+/**
+ * Removes a model and forgets its card; its file in the bundled Ollama goes too when no other
+ * model uses it.
+ */
 export const DELETE = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
   const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   const parsed = await parseRequest(removeNexoraModelContract, request, context)
   if (!parsed.success) return parsed.response
   try {
+    const name = (await listNexoraModels()).find((m) => m.id === parsed.data.params.id)?.name
     const { removedLocalModel } = await removeNexoraModel(parsed.data.params.id)
+    if (name) await updateModelCard(access.organizationId, name, null)
     let deleted: string | null = null
     if (removedLocalModel) {
       deleted = await deleteLocalModel(removedLocalModel)

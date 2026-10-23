@@ -205,6 +205,12 @@
         "apps/sim/lib/api/contracts/index.ts": 43
       }
     },
+    "app/workspace/[workspaceId]/developpeurs/page.tsx": {
+      "modules": 30,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/developpeurs/developers.tsx": 29
+      }
+    },
     "app/workspace/[workspaceId]/error.tsx": {
       "modules": 3,
       "gateways": {}

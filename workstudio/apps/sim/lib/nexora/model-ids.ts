@@ -22,6 +22,14 @@ export const DEFAULT_MODEL_ALIAS = 'nexora-default'
 export const NEXORA_MODEL_USAGES = ['chat', 'vision', 'transcription'] as const
 export type NexoraModelUsage = (typeof NEXORA_MODEL_USAGES)[number]
 
+/** Where a model keeps the data it is sent: on this server, hosted in the EU, or off the instance. */
+export const MODEL_LOCATIONS = ['local', 'eu', 'external'] as const
+export type ModelLocation = (typeof MODEL_LOCATIONS)[number]
+
+/** Bounds of a context length an administrator declares, in tokens. */
+export const MIN_CONTEXT_TOKENS = 1_000
+export const MAX_CONTEXT_TOKENS = 10_000_000
+
 export const ROUTER_TYPE_BY_USAGE: Record<NexoraModelUsage, string> = {
   chat: 'text-generation',
   vision: 'image-to-text',

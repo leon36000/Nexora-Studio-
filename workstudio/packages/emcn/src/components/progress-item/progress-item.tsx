@@ -1,7 +1,10 @@
+'use client'
+
 import { forwardRef, type HTMLAttributes } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { Check, Loader, Square, TriangleAlert, X } from '../../icons'
 import { cn } from '../../lib/cn'
+import { useEmcnLabels } from '../labels/labels'
 
 const progressItemVariants = cva('flex items-start gap-2.5 px-3 py-3 text-[12px]', {
   variants: {
@@ -61,8 +64,9 @@ const ProgressItem = forwardRef<HTMLDivElement, ProgressItemProps>(function Prog
   { className, status, title, meta, detail, onDismiss, dismissLabel, onCancel, ...props },
   ref
 ) {
+  const labels = useEmcnLabels()
   const trailingAction = onCancel ?? onDismiss
-  const trailingLabel = onCancel ? 'Cancel' : (dismissLabel ?? 'Dismiss')
+  const trailingLabel = onCancel ? labels.cancel : (dismissLabel ?? labels.dismiss)
   return (
     <div ref={ref} className={cn(progressItemVariants({ status }), className)} {...props}>
       <StatusIcon status={status} />

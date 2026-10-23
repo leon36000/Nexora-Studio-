@@ -159,7 +159,9 @@
         "updated": "Base de connaissances modifiée",
         "deleted": "Base de connaissances supprimée",
         "restored": "Base de connaissances restaurée",
-        "exported": "Base de connaissances exportée"
+        "exported": "Base de connaissances exportée",
+        "reindex_started": "Réindexation de la base de connaissances lancée",
+        "reindex_failed": "Réindexation de la base de connaissances en échec"
       },
       "mcp_server": {
         "added": "Serveur MCP ajouté",

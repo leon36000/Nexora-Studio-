@@ -103,6 +103,12 @@ export {
 export { Input } from './input/input'
 export { InputOTP, InputOTPGroup, InputOTPSlot } from './input-otp/input-otp'
 export { Label } from './label/label'
+export {
+  type EmcnLabels,
+  EmcnLabelsProvider,
+  formatEmcnLabel,
+  useEmcnLabels,
+} from './labels/labels'
 export { Lightbox } from './lightbox/lightbox'
 export {
   Modal,

@@ -43,6 +43,7 @@ import { Paperclip, Plus, X } from '../../icons'
 import { cn } from '../../lib/cn'
 import { handleKeyboardActivation } from '../../lib/keyboard'
 import { ChipTag, chipTagVariants } from '../chip-tag/chip-tag'
+import { formatEmcnLabel, useEmcnLabels } from '../labels/labels'
 import { Tooltip } from '../tooltip/tooltip'
 
 /**
@@ -167,6 +168,7 @@ const TagInputTag = React.memo(function TagInputTag({
   disabled,
   suffix,
 }: TagInputTagProps) {
+  const labels = useEmcnLabels()
   const handleRemove = React.useCallback(() => {
     onRemove(item.value, index, item.isValid)
   }, [item.value, item.isValid, index, onRemove])
@@ -180,7 +182,7 @@ const TagInputTag = React.memo(function TagInputTag({
       className='min-w-0 max-w-full bg-[var(--surface-6)] shadow-none dark:bg-[var(--surface-3)]'
       rightIcon={disabled ? undefined : X}
       onRightIconClick={disabled ? undefined : handleRemove}
-      rightIconLabel={`Remove ${item.value}`}
+      rightIconLabel={formatEmcnLabel(labels.removeItem, { value: item.value })}
     >
       <span className='min-w-0 flex-1 translate-y-[0.5px] truncate font-sans text-sm leading-5'>
         {item.value}
@@ -217,8 +219,8 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
       onAddMany,
       onRemove,
       onInputChange,
-      placeholder = 'Enter values',
-      placeholderWithTags = 'Add another',
+      placeholder: placeholderProp,
+      placeholderWithTags: placeholderWithTagsProp,
       disabled = false,
       className,
       inputClassName,
@@ -233,6 +235,9 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
     },
     ref
   ) => {
+    const labels = useEmcnLabels()
+    const placeholder = placeholderProp ?? labels.enterValues
+    const placeholderWithTags = placeholderWithTagsProp ?? labels.addAnother
     const effectiveMaxHeight = maxHeight ?? (variant === 'block' ? 'max-h-48' : 'max-h-32')
     const [inputValue, setInputValue] = React.useState('')
     const [isDragging, setIsDragging] = React.useState(false)
@@ -378,7 +383,7 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
     return (
       <div
         role='group'
-        aria-label='Tag input'
+        aria-label={labels.tagInput}
         className={cn(
           tagInputVariants({ variant }),
           effectiveMaxHeight,
@@ -407,7 +412,7 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
         )}
         {isDragging && (
           <div className='absolute inset-0 flex items-center justify-center rounded-sm bg-[color-mix(in_srgb,var(--surface-5)_90%,transparent)]'>
-            <span className='text-[var(--text-tertiary)] text-small'>Drop file here</span>
+            <span className='text-[var(--text-tertiary)] text-small'>{labels.dropFileHere}</span>
           </div>
         )}
         {items.map((item, index) => (
@@ -484,7 +489,7 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
               }}
               className='relative flex shrink-0 items-center opacity-80 transition-opacity before:absolute before:inset-[-10px] before:content-[""] hover-hover:opacity-100 focus:outline-hidden'
               disabled={disabled}
-              aria-label='Add tag'
+              aria-label={labels.addTag}
             >
               <Plus className='size-[14px]' />
             </button>
@@ -500,13 +505,13 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
                   fileInputRef.current?.click()
                 }}
                 className='-m-1.5 absolute right-2 bottom-[9px] p-1.5 text-[var(--text-tertiary)] transition-colors hover-hover:text-[var(--text-secondary)]'
-                aria-label={fileInputOptions?.tooltip ?? 'Upload file'}
+                aria-label={fileInputOptions?.tooltip ?? labels.uploadFile}
               >
                 <FileIcon className='size-3.5' />
               </button>
             </Tooltip.Trigger>
             <Tooltip.Content side='top'>
-              {fileInputOptions?.tooltip ?? 'Upload file'}
+              {fileInputOptions?.tooltip ?? labels.uploadFile}
             </Tooltip.Content>
           </Tooltip.Root>
         )}

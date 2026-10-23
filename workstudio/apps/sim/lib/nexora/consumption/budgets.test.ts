@@ -66,6 +66,16 @@ describe('checkBudget', () => {
     expect(emailMailerMockFns.mockSendEmail).not.toHaveBeenCalled()
   })
 
+  it('counts the direct model calls of developer API keys toward the budgets', async () => {
+    queueBudgets({ workspaceMonthlyTokens: { 'ws-1': 1_000 } })
+    queueUsage(500)
+    queueTableRows(schemaMock.nexoraApiKeyUsage, [{ instance: '700', workspace: '600' }])
+
+    const result = await checkBudget('ws-1', null, OPTIONS)
+
+    expect(result).toMatchObject({ allowed: false, reason: 'workspace', usage: 1_100, cap: 1_000 })
+  })
+
   it('records the 80 % alert for the month and e-mails the instance admins', async () => {
     queueBudgets({ workspaceMonthlyTokens: { 'ws-1': 1_000 } })
     queueUsage(850)

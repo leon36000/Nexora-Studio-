@@ -18,6 +18,7 @@ import {
   ModalContent,
   ModalTrigger,
   Slider,
+  useEmcnLabels,
 } from '@sim/emcn'
 import { Minus, Plus } from '@sim/emcn/icons'
 
@@ -87,6 +88,7 @@ export function Lightbox({
   crossOrigin,
   startTime = 0,
 }: LightboxProps) {
+  const labels = useEmcnLabels()
   const viewportRef = useRef<HTMLDivElement>(null)
   const mediaFrameRef = useRef<HTMLButtonElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
@@ -164,7 +166,7 @@ export function Lightbox({
       <ModalContent
         bare
         size='full'
-        srTitle={alt || 'Media viewer'}
+        srTitle={alt || labels.mediaViewer}
         overlayClassName='bg-black/80'
         className='h-dvh max-h-none w-screen min-w-full max-w-none gap-3 py-4 outline-none'
         onClick={(event) => {
@@ -177,7 +179,7 @@ export function Lightbox({
               <button
                 ref={mediaFrameRef}
                 type='button'
-                aria-label='Close media viewer'
+                aria-label={labels.closeMediaViewer}
                 className={cn(
                   'm-1 block shrink-0 cursor-pointer overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg)] bg-center bg-cover shadow-[var(--shadow-overlay)] outline-none',
                   backgroundSrc ? 'p-4 sm:p-8' : 'p-0'
@@ -235,7 +237,7 @@ export function Lightbox({
                         kind='captions'
                         src={captionsSrc}
                         srcLang='en'
-                        label='English'
+                        label={labels.captionsEnglish}
                         default
                       />
                     ) : null}
@@ -248,7 +250,7 @@ export function Lightbox({
         <div
           ref={controlsRef}
           role='group'
-          aria-label={type === 'video' ? 'Media controls' : 'Media zoom'}
+          aria-label={type === 'video' ? labels.mediaControls : labels.mediaZoom}
           className={cn(
             chipFieldSurfaceClass,
             'mx-auto flex max-w-[92vw] shrink-0 flex-wrap items-center justify-center p-1 shadow-[var(--shadow-overlay)]',
@@ -260,7 +262,7 @@ export function Lightbox({
               <div className='flex w-full items-center gap-3 px-3 text-[var(--text-body)] text-caption'>
                 <span className='shrink-0 tabular-nums'>{formatPlaybackTime(playbackTime)}</span>
                 <Slider
-                  aria-label='Seek video'
+                  aria-label={labels.seekVideo}
                   aria-valuetext={`${formatPlaybackTime(playbackTime)} of ${formatPlaybackTime(duration)}`}
                   min={0}
                   max={duration || 1}
@@ -287,16 +289,16 @@ export function Lightbox({
                   else video.pause()
                 }}
               >
-                {playing ? 'Pause' : 'Play'}
+                {playing ? labels.pause : labels.play}
               </Chip>
               {captionsSrc ? (
-                <Chip onClick={() => setMuted(!muted)}>{muted ? 'Unmute' : 'Mute'}</Chip>
+                <Chip onClick={() => setMuted(!muted)}>{muted ? labels.unmute : labels.mute}</Chip>
               ) : null}
             </>
           ) : null}
           <Chip
             leftIcon={Minus}
-            aria-label='Zoom out'
+            aria-label={labels.zoomOut}
             disabled={zoom <= ZOOM_MIN}
             onClick={() => handleControlZoom(zoom - ZOOM_STEP)}
           />
@@ -309,7 +311,7 @@ export function Lightbox({
           </Chip>
           <Chip
             leftIcon={Plus}
-            aria-label='Zoom in'
+            aria-label={labels.zoomIn}
             disabled={zoom >= ZOOM_MAX}
             onClick={() => handleControlZoom(zoom + ZOOM_STEP)}
           />

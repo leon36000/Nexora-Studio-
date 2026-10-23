@@ -1,10 +1,31 @@
-# Sim Python SDK
+# SDK Nexora pour Python
 
-The official Python SDK for [Sim](https://sim.ai), allowing you to execute workflows programmatically from your Python applications.
+Exécute les **workflows** d'une instance Nexora WorkStudio depuis vos programmes (fork du SDK
+Python de Sim, Apache-2.0). **Non publié** sur PyPI : installez-le depuis le dépôt.
+
+```bash
+pip install /chemin/vers/Nexora-Studio-/workstudio/packages/python-sdk
+```
+
+```python
+import os
+from nexora import NexoraClient
+
+client = NexoraClient(api_key=os.environ["NEXORA_WORKFLOW_KEY"], base_url="https://ia.pme.fr")
+result = client.execute_workflow("<identifiant du workflow>", input={"message": "Bonjour"})
+```
+
+- La clé est une clé de **workflows** (Réglages › Clés API › clés d'espace ou personnelles).
+- Pour appeler les **modèles et agents** au format OpenAI, utilisez plutôt le client `openai` officiel
+  avec une clé Nexora API : voir `docs/guide/api-developpeurs.md` et `docs/exemples/api-openai/`.
+- Le module `simstudio` et les noms `SimStudioClient`/`SimStudioError` restent disponibles comme alias.
+
+La documentation d'origine (en anglais) suit.
+
 
 ## Server compatibility
 
-`0.2.x` talks to the v2 API and has no fallback to the older endpoints, so it requires a Sim deployment that serves `POST /api/v2/workflows/{id}/execute`. That surface is newer than the endpoints `0.1.x` used. If it is unavailable, `execute_workflow` raises `SimStudioError('HTTP 404: Not Found')` — upgrade the server or pin `simstudio-sdk<0.2`, which keeps using `/api/workflows/{id}/execute` and `/api/jobs/{id}`.
+`0.2.x` talks to the v2 API and has no fallback to the older endpoints, so it requires a Sim deployment that serves `POST /api/v2/workflows/{id}/execute`. That surface is newer than the endpoints `0.1.x` used. If it is unavailable, `execute_workflow` raises `NexoraError('HTTP 404: Not Found')` — upgrade the server or pin `simstudio-sdk<0.2`, which keeps using `/api/workflows/{id}/execute` and `/api/jobs/{id}`.
 
 ## Upgrading from 0.1.x to 0.2.0
 
@@ -28,12 +49,12 @@ pip install simstudio-sdk
 
 ```python
 import os
-from simstudio import SimStudioClient
+from simstudio import NexoraClient
 
 # Initialize the client
-client = SimStudioClient(
+client = NexoraClient(
     api_key=os.getenv("SIM_API_KEY", "your-api-key-here"),
-    base_url="https://www.sim.ai"  # optional, defaults to https://www.sim.ai
+    base_url="http://localhost:3000"  # optional, defaults to http://localhost:3000
 )
 
 # Execute a workflow
@@ -46,16 +67,16 @@ except Exception as error:
 
 ## API Reference
 
-### SimStudioClient
+### NexoraClient
 
 #### Constructor
 
 ```python
-SimStudioClient(api_key: str, base_url: str = "https://www.sim.ai")
+NexoraClient(api_key: str, base_url: str = "http://localhost:3000")
 ```
 
 - `api_key` (str): Your Sim API key
-- `base_url` (str, optional): Base URL for the Sim API (defaults to `https://www.sim.ai`)
+- `base_url` (str, optional): Base URL for the Sim API (defaults to `http://localhost:3000`)
 
 #### Methods
 
@@ -276,10 +297,10 @@ class WorkflowStatus:
     needs_redeployment: bool = False
 ```
 
-### SimStudioError
+### NexoraError
 
 ```python
-class SimStudioError(Exception):
+class NexoraError(Exception):
     def __init__(self, message: str, code: Optional[str] = None, status: Optional[int] = None):
         super().__init__(message)
         self.code = code
@@ -325,9 +346,9 @@ class UsageLimits:
 
 ```python
 import os
-from simstudio import SimStudioClient
+from simstudio import NexoraClient
 
-client = SimStudioClient(api_key=os.getenv("SIM_API_KEY"))
+client = NexoraClient(api_key=os.getenv("SIM_API_KEY"))
 
 def run_workflow():
     try:
@@ -360,16 +381,16 @@ run_workflow()
 ### Error Handling
 
 ```python
-from simstudio import SimStudioClient, SimStudioError
+from simstudio import NexoraClient, NexoraError
 import os
 
-client = SimStudioClient(api_key=os.getenv("SIM_API_KEY"))
+client = NexoraClient(api_key=os.getenv("SIM_API_KEY"))
 
 def execute_with_error_handling():
     try:
         result = client.execute_workflow("workflow-id")
         return result
-    except SimStudioError as error:
+    except NexoraError as error:
         if error.code == "UNAUTHORIZED":
             print("Invalid API key")
         elif error.code == "TIMEOUT":
@@ -389,11 +410,11 @@ def execute_with_error_handling():
 ### Context Manager Usage
 
 ```python
-from simstudio import SimStudioClient
+from simstudio import NexoraClient
 import os
 
 # Using context manager to automatically close the session
-with SimStudioClient(api_key=os.getenv("SIM_API_KEY")) as client:
+with NexoraClient(api_key=os.getenv("SIM_API_KEY")) as client:
     result = client.execute_workflow("workflow-id")
     print("Result:", result)
 # Session is automatically closed here
@@ -403,12 +424,12 @@ with SimStudioClient(api_key=os.getenv("SIM_API_KEY")) as client:
 
 ```python
 import os
-from simstudio import SimStudioClient
+from simstudio import NexoraClient
 
 # Using environment variables
-client = SimStudioClient(
+client = NexoraClient(
     api_key=os.getenv("SIM_API_KEY"),
-    base_url=os.getenv("SIM_BASE_URL", "https://www.sim.ai")
+    base_url=os.getenv("SIM_BASE_URL", "http://localhost:3000")
 )
 ```
 
@@ -437,10 +458,10 @@ Alternatively, you can manually provide files using the URL format:
 ```
 
 ```python
-from simstudio import SimStudioClient
+from simstudio import NexoraClient
 import os
 
-client = SimStudioClient(api_key=os.getenv("SIM_API_KEY"))
+client = NexoraClient(api_key=os.getenv("SIM_API_KEY"))
 
 # Upload a single file - include it under the field name from your API trigger
 with open('document.pdf', 'rb') as f:
@@ -466,10 +487,10 @@ with open('doc1.pdf', 'rb') as f1, open('doc2.pdf', 'rb') as f2:
 ### Batch Workflow Execution
 
 ```python
-from simstudio import SimStudioClient
+from simstudio import NexoraClient
 import os
 
-client = SimStudioClient(api_key=os.getenv("SIM_API_KEY"))
+client = NexoraClient(api_key=os.getenv("SIM_API_KEY"))
 
 def execute_workflows_batch(workflow_data_pairs):
     """Execute multiple workflows with different input data."""
@@ -512,7 +533,7 @@ for result in results:
 
 ## Getting Your API Key
 
-1. Log in to your [Sim](https://sim.ai) account
+1. Log in to your [Sim](http://localhost:3000) account
 2. Navigate to your workflow
 3. Click on "Deploy" to deploy your workflow
 4. Select or create an API key during the deployment process

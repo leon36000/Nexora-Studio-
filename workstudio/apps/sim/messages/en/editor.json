@@ -1275,6 +1275,74 @@
       "transcription": "No transcription model on this instance: this block will fail. An administrator adds one in Settings › Models (or enables local transcription at install)."
     }
   },
+  "workflowsPage": {
+    "loadFailed": "Couldn't load workflows",
+    "checkConnection": "Check your connection and try again.",
+    "retry": "Retry",
+    "empty": "No workflows yet",
+    "createHint": "Create one to start building.",
+    "askAdmin": "Ask a workspace admin to create one.",
+    "creating": "Creating…",
+    "create": "Create workflow"
+  },
+  "importWorkflow": {
+    "invalidJson": "The file does not contain valid workflow JSON.",
+    "invalidZip": "Failed to import ZIP file. Check that it is a valid ZIP archive.",
+    "importFailedNamed": "Failed to import {name}",
+    "importFailed": "Workflow import failed",
+    "importWorkflowsFailed": "Failed to import workflows"
+  },
+  "preview": {
+    "expandSection": "Expand {section}",
+    "collapseSection": "Collapse {section}",
+    "variables": "Variables",
+    "secrets": "Secrets",
+    "loop": "Loop",
+    "parallel": "Parallel",
+    "closePreview": "Close preview",
+    "unknownBlock": "Unknown Block",
+    "configNotFound": "Block configuration not found.",
+    "notExecuted": "Not Executed",
+    "status": {
+      "success": "success",
+      "error": "error"
+    },
+    "input": "Input",
+    "noInputData": "No input data",
+    "output": "Output",
+    "error": "Error",
+    "noOutputData": "No output data",
+    "copy": "Copy",
+    "copied": "Copied",
+    "search": "Search",
+    "expandWorkflow": "Expand workflow",
+    "openInNewTab": "Open in new tab",
+    "deletedWorkflow": "Deleted Workflow",
+    "noConfigurableFields": "No configurable fields for this block.",
+    "searchPlaceholder": "Search...",
+    "previousMatch": "Previous match",
+    "nextMatch": "Next match",
+    "closeSearch": "Close search",
+    "nestedWorkflow": "Nested Workflow",
+    "back": "Back",
+    "backToParent": "Go back to parent workflow",
+    "loggedStateNotFound": "⚠️ Logged State Not Found",
+    "loggedStateMigrated": "This log was migrated from the old system and doesn't contain workflow state data.",
+    "contextMenu": {
+      "copy": "Copy",
+      "search": "Search",
+      "wrapText": "Wrap Text"
+    },
+    "ports": {
+      "context": "Context",
+      "removed": "Removed {title}"
+    },
+    "diff": {
+      "added": "Added",
+      "modified": "Modified",
+      "removed": "Removed"
+    }
+  },
   "panelEditor": {
     "title": "Editor",
     "unlockBlock": "Unlock block",

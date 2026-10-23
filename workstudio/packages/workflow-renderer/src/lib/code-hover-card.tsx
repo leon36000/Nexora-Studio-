@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react'
 import { Code, isTextClipped, Popover, PopoverAnchor, PopoverContent } from '@sim/emcn'
+import { useWorkflowRendererLabels } from '../labels'
 import type { CodePreview } from '../types'
 
 const OPEN_DELAY_MS = 300
@@ -27,6 +28,7 @@ interface CodeHoverCardProps {
 
 /** Interactive, vertically scrollable source preview anchored to a canvas code chip. */
 export function CodeHoverCard({ preview, className, children }: CodeHoverCardProps) {
+  const labels = useWorkflowRendererLabels()
   const [open, setOpen] = useState(false)
   const contentId = useId()
   const triggerRef = useRef<HTMLSpanElement>(null)
@@ -157,7 +159,7 @@ export function CodeHoverCard({ preview, className, children }: CodeHoverCardPro
         id={contentId}
         role='dialog'
         tabIndex={0}
-        aria-label='Code preview'
+        aria-label={labels.codePreview}
         data-code-hover-card=''
         align='start'
         side='bottom'

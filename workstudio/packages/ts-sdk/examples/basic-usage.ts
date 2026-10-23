@@ -1,9 +1,9 @@
-import { SimStudioClient, SimStudioError } from '../src/index'
+import { NexoraClient, NexoraError } from '../src/index'
 
 // Example 1: Basic workflow execution
 async function basicExample() {
-  const client = new SimStudioClient({
-    apiKey: process.env.SIM_API_KEY!,
+  const client = new NexoraClient({
+    apiKey: process.env.NEXORA_WORKFLOW_KEY!,
     baseUrl: 'https://www.sim.ai',
   })
 
@@ -19,7 +19,7 @@ async function basicExample() {
       console.log('❌ Workflow failed:', result.error)
     }
   } catch (error) {
-    if (error instanceof SimStudioError) {
+    if (error instanceof NexoraError) {
       console.error('SDK Error:', error.message, 'Code:', error.code)
     } else {
       console.error('Unexpected error:', error)
@@ -29,8 +29,8 @@ async function basicExample() {
 
 // Example 2: Workflow execution with input data
 async function withInputExample() {
-  const client = new SimStudioClient({
-    apiKey: process.env.SIM_API_KEY!,
+  const client = new NexoraClient({
+    apiKey: process.env.NEXORA_WORKFLOW_KEY!,
   })
 
   try {
@@ -59,7 +59,7 @@ async function withInputExample() {
       console.log('❌ Workflow failed:', result.error)
     }
   } catch (error) {
-    if (error instanceof SimStudioError) {
+    if (error instanceof NexoraError) {
       console.error('SDK Error:', error.message, 'Code:', error.code)
     } else {
       console.error('Unexpected error:', error)
@@ -69,8 +69,8 @@ async function withInputExample() {
 
 // Example 3: Workflow validation and status checking
 async function statusExample() {
-  const client = new SimStudioClient({
-    apiKey: process.env.SIM_API_KEY!,
+  const client = new NexoraClient({
+    apiKey: process.env.NEXORA_WORKFLOW_KEY!,
   })
 
   try {
@@ -98,7 +98,7 @@ async function statusExample() {
       }
     }
   } catch (error) {
-    if (error instanceof SimStudioError) {
+    if (error instanceof NexoraError) {
       console.error('SDK Error:', error.message, 'Code:', error.code)
     } else {
       console.error('Unexpected error:', error)
@@ -108,8 +108,8 @@ async function statusExample() {
 
 // Example 4: Workflow execution with streaming
 async function streamingExample() {
-  const client = new SimStudioClient({
-    apiKey: process.env.SIM_API_KEY!,
+  const client = new NexoraClient({
+    apiKey: process.env.NEXORA_WORKFLOW_KEY!,
   })
 
   try {
@@ -130,7 +130,7 @@ async function streamingExample() {
       console.log('❌ Workflow failed:', result.error)
     }
   } catch (error) {
-    if (error instanceof SimStudioError) {
+    if (error instanceof NexoraError) {
       console.error('SDK Error:', error.message, 'Code:', error.code)
     } else {
       console.error('Unexpected error:', error)

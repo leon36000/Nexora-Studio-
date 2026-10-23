@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
+import {
+  CAPABILITY_IDS,
+  CAPABILITY_RULES,
+  capabilityRefusal,
+} from '@/lib/permission-groups/capabilities'
 import {
   DEFAULT_PERMISSION_GROUP_CONFIG,
   type PermissionGroupConfig,
 } from '@/lib/permission-groups/fields'
+import enErrors from '@/messages/en/errors.json'
+import frErrors from '@/messages/fr/errors.json'
 
 function configWith(overrides: Partial<PermissionGroupConfig>): PermissionGroupConfig {
   return { ...DEFAULT_PERMISSION_GROUP_CONFIG, ...overrides }
@@ -41,5 +47,23 @@ describe('knowledge capability rules', () => {
 
   it('withholds export when the module is hidden', () => {
     expect(exportRule.deniedBy(configWith({ hideKnowledgeBaseTab: true }))).toBe(true)
+  })
+})
+
+describe('capability refusal', () => {
+  it('is worded in the instance language, French by default', () => {
+    expect(capabilityRefusal('workflows.edit')).toBe(
+      'Non autorisé par le groupe d’accès de votre organisation : modification des workflows.'
+    )
+  })
+
+  it('names every capability in French, and in English with its original subject', () => {
+    const missing = CAPABILITY_IDS.filter((id) => {
+      const key = id.replaceAll('.', '_')
+      const fr = frErrors.capabilities[key as keyof typeof frErrors.capabilities]
+      const en = enErrors.capabilities[key as keyof typeof enErrors.capabilities]
+      return !fr || en !== CAPABILITY_RULES[id].describe
+    })
+    expect(missing).toEqual([])
   })
 })

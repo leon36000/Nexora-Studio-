@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { cn } from '../../lib/cn'
+import { useEmcnLabels } from '../labels/labels'
 import { Tooltip } from '../tooltip/tooltip'
 
 /**
@@ -36,12 +37,13 @@ interface InfoProps {
  * ```
  */
 export function Info({ children, className, side = 'top', align = 'start' }: InfoProps) {
+  const labels = useEmcnLabels()
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <button
           type='button'
-          aria-label='More information'
+          aria-label={labels.moreInformation}
           className={cn(
             'inline-flex size-[14px] items-center justify-center text-[var(--text-icon)] focus-visible:outline-hidden',
             className

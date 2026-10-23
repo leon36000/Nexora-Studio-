@@ -82,6 +82,7 @@ function buildInviteLink(invitationId: string, token: string) {
 export function Teammates() {
   const t = useTranslations('settings.teammates')
   const tShared = useTranslations('settings.shared')
+  const tRoleLock = useTranslations('settings.permissions.roleLock')
   const roleOptions = ROLE_VALUES.map((value) => ({ value, label: t(`roles.${value}`) }))
   const params = useParams()
   const workspaceId = (params?.workspaceId as string) || ''
@@ -306,7 +307,7 @@ export function Teammates() {
                               label: tShared('remove'),
                               destructive: true,
                               disabled: removalLockReason !== null,
-                              tooltip: removalLockReason ?? undefined,
+                              tooltip: removalLockReason ? tRoleLock(removalLockReason) : undefined,
                               onSelect: () => {
                                 if (teammate.userId) {
                                   removeMember.mutate(

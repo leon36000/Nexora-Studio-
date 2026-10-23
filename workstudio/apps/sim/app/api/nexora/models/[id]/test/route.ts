@@ -4,6 +4,7 @@ import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { authorizeInstanceAdmin } from '@/lib/nexora/admin-access'
 import { listNexoraModels, testNexoraModel } from '@/lib/nexora/model-admin'
+import { updateModelCard } from '@/lib/nexora/model-cards'
 import { deniedResponse, modelErrorResponse } from '@/lib/nexora/model-responses'
 
 interface RouteContext {
@@ -12,7 +13,7 @@ interface RouteContext {
 
 /**
  * Tries a model by the name blocks use, on its own kind of input (a question, a sample image, a
- * second of sound), and times the answer.
+ * second of sound), times the answer, and records on the model's card what the test detected.
  */
 export const POST = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
   const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
@@ -22,7 +23,14 @@ export const POST = withRouteHandler(async (request: NextRequest, context: Route
   try {
     const model = (await listNexoraModels()).find((m) => m.id === parsed.data.params.id)
     if (!model) return NextResponse.json({ error: 'not-found' }, { status: 404 })
-    return NextResponse.json(await testNexoraModel(model.name, {}, model.usage))
+    const result = await testNexoraModel(model.name, {}, model.usage)
+    const { reasoning, tools } = result.capabilities
+    await updateModelCard(access.organizationId, model.name, {
+      ...(reasoning === null ? {} : { reasoning }),
+      ...(tools === null ? {} : { tools }),
+      testedAt: new Date().toISOString(),
+    })
+    return NextResponse.json(result)
   } catch (error) {
     const response = modelErrorResponse(error)
     if (response) return response

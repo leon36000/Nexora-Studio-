@@ -82,6 +82,16 @@ describe('POST /api/nexora/playground', () => {
     )
   })
 
+  it('shows the reasoning apart and passes a chosen reasoning effort, never an empty one', async () => {
+    await POST(post({ ...body, reasoningEffort: 'high' }), {})
+    expect(mockStream).toHaveBeenLastCalledWith(
+      expect.objectContaining({ includeThinking: true, reasoningEffort: 'high' })
+    )
+    await POST(post(body), {})
+    expect(mockStream.mock.lastCall?.[0].reasoningEffort).toBeUndefined()
+    expect((await POST(post({ ...body, reasoningEffort: 'extreme' }), {})).status).toBe(400)
+  })
+
   it('answers 503 when Nexora API is unavailable', async () => {
     mockStream.mockRejectedValueOnce(new NexoraWandUnavailableError('down'))
     const response = await POST(post(body), {})

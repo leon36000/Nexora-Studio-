@@ -3,9 +3,9 @@ import { createLogger } from '@sim/logger'
 import { useTranslations } from 'next-intl'
 import {
   credentialRoleLockReason,
-  MEMBER_ROLE_OPTIONS,
   type MemberRole,
   MemberRow,
+  useMemberRoleOptions,
 } from '@/components/permissions'
 import {
   useRemoveWorkspaceCredentialMember,
@@ -28,6 +28,7 @@ interface CredentialMembersSectionProps {
  */
 export function CredentialMembersSection({ credentialId, isAdmin }: CredentialMembersSectionProps) {
   const t = useTranslations('shell.credentialDetail')
+  const roleOptions = useMemberRoleOptions()
   const { data: members = [], isPending: membersLoading } =
     useWorkspaceCredentialMembers(credentialId)
   const upsertMember = useUpsertWorkspaceCredentialMember()
@@ -70,7 +71,7 @@ export function CredentialMembersSection({ credentialId, isAdmin }: CredentialMe
               <MemberRow
                 key={member.id}
                 member={{ ...member, userImage: member.userImage ?? null }}
-                roleOptions={MEMBER_ROLE_OPTIONS}
+                roleOptions={roleOptions}
                 lockReason={lockReason}
                 canManage={isAdmin}
                 roleDisabled={!isAdmin || roleLocked || lockReason !== null}

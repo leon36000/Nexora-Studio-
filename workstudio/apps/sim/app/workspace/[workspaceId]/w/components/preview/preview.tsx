@@ -4,6 +4,7 @@ import type React from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, cn, OverflowText, Tooltip } from '@sim/emcn'
 import { ArrowLeft } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { redactApiKeys } from '@/lib/core/security/redaction'
 import { PreviewEditor } from '@/app/workspace/[workspaceId]/w/components/preview/components/preview-editor'
 import {
@@ -169,6 +170,7 @@ export function Preview({
   autoSelectLeftmost = true,
   showBlockCloseButton = true,
 }: PreviewProps) {
+  const t = useTranslations('editor.preview')
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH)
   const panelWidthRef = useRef(DEFAULT_PANEL_WIDTH)
   panelWidthRef.current = panelWidth
@@ -246,7 +248,7 @@ export function Preview({
     const workflowName =
       childWorkflowState.metadata?.name ||
       (blockExecution?.output as { childWorkflowName?: string } | undefined)?.childWorkflowName ||
-      'Nested Workflow'
+      t('nestedWorkflow')
 
     setWorkflowStack((prev) => [
       ...prev,
@@ -303,10 +305,10 @@ export function Preview({
                   className='flex h-[28px] gap-[5px] rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 shadow-xs hover-hover:bg-[var(--surface-4)]'
                 >
                   <ArrowLeft className='size-[12px]' />
-                  <span className='text-caption'>Back</span>
+                  <span className='text-caption'>{t('back')}</span>
                 </Button>
               </Tooltip.Trigger>
-              <Tooltip.Content side='bottom'>Go back to parent workflow</Tooltip.Content>
+              <Tooltip.Content side='bottom'>{t('backToParent')}</Tooltip.Content>
             </Tooltip.Root>
             {currentWorkflowName && (
               <div className='flex h-[28px] max-w-[200px] items-center rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2.5 shadow-xs'>

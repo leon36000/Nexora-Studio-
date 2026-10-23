@@ -1275,6 +1275,74 @@
       "transcription": "Aucun modèle de transcription sur cette instance : ce bloc échouera. Un administrateur en ajoute un dans Réglages › Modèles (ou active la transcription locale à l’installation)."
     }
   },
+  "workflowsPage": {
+    "loadFailed": "Impossible de charger les workflows",
+    "checkConnection": "Vérifiez votre connexion et réessayez.",
+    "retry": "Réessayer",
+    "empty": "Aucun workflow pour le moment",
+    "createHint": "Créez-en un pour commencer.",
+    "askAdmin": "Demandez à un administrateur de l'espace de travail d'en créer un.",
+    "creating": "Création…",
+    "create": "Créer un workflow"
+  },
+  "importWorkflow": {
+    "invalidJson": "Le fichier ne contient pas de JSON de workflow valide.",
+    "invalidZip": "Impossible d'importer le fichier ZIP. Vérifiez qu'il s'agit d'une archive ZIP valide.",
+    "importFailedNamed": "Impossible d'importer {name}",
+    "importFailed": "L'import du workflow a échoué",
+    "importWorkflowsFailed": "Impossible d'importer les workflows"
+  },
+  "preview": {
+    "expandSection": "Déplier {section}",
+    "collapseSection": "Replier {section}",
+    "variables": "Variables",
+    "secrets": "Secrets",
+    "loop": "Boucle",
+    "parallel": "Parallèle",
+    "closePreview": "Fermer l'aperçu",
+    "unknownBlock": "Bloc inconnu",
+    "configNotFound": "Configuration du bloc introuvable.",
+    "notExecuted": "Non exécuté",
+    "status": {
+      "success": "succès",
+      "error": "erreur"
+    },
+    "input": "Entrée",
+    "noInputData": "Aucune donnée d'entrée",
+    "output": "Sortie",
+    "error": "Erreur",
+    "noOutputData": "Aucune donnée de sortie",
+    "copy": "Copier",
+    "copied": "Copié",
+    "search": "Rechercher",
+    "expandWorkflow": "Développer le workflow",
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "deletedWorkflow": "Workflow supprimé",
+    "noConfigurableFields": "Aucun champ configurable pour ce bloc.",
+    "searchPlaceholder": "Rechercher...",
+    "previousMatch": "Résultat précédent",
+    "nextMatch": "Résultat suivant",
+    "closeSearch": "Fermer la recherche",
+    "nestedWorkflow": "Workflow imbriqué",
+    "back": "Retour",
+    "backToParent": "Revenir au workflow parent",
+    "loggedStateNotFound": "⚠️ État journalisé introuvable",
+    "loggedStateMigrated": "Ce journal provient de l'ancien système et ne contient pas les données d'état du workflow.",
+    "contextMenu": {
+      "copy": "Copier",
+      "search": "Rechercher",
+      "wrapText": "Retour à la ligne"
+    },
+    "ports": {
+      "context": "Contexte",
+      "removed": "Supprimé : {title}"
+    },
+    "diff": {
+      "added": "Ajouté",
+      "modified": "Modifié",
+      "removed": "Supprimé"
+    }
+  },
   "panelEditor": {
     "title": "Éditeur",
     "unlockBlock": "Déverrouiller le bloc",

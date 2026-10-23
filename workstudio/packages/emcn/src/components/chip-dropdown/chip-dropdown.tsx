@@ -24,6 +24,7 @@ import {
   DropdownMenuSearchInput,
   DropdownMenuTrigger,
 } from '../dropdown-menu/dropdown-menu'
+import { formatEmcnLabel, useEmcnLabels } from '../labels/labels'
 import { InsideModalContext } from '../modal/modal'
 import { OverflowText, overflowTextClipClass } from '../overflow-text/overflow-text'
 
@@ -219,10 +220,11 @@ const ChipDropdown = forwardRef<HTMLButtonElement, ChipDropdownProps>(
       id,
     } = props
 
+    const labels = useEmcnLabels()
     const fieldStateId = useId()
     const fieldState = [
-      (ariaRequired === true || ariaRequired === 'true') && 'Required.',
-      ariaInvalid && ariaInvalid !== 'false' && 'Invalid selection.',
+      (ariaRequired === true || ariaRequired === 'true') && labels.requiredField,
+      ariaInvalid && ariaInvalid !== 'false' && labels.invalidSelection,
     ]
       .filter(Boolean)
       .join(' ')
@@ -246,8 +248,10 @@ const ChipDropdown = forwardRef<HTMLButtonElement, ChipDropdownProps>(
     const [open, setOpen] = useState(false)
     const [search, setSearch] = useState('')
     const searchable = isMultiple && props.searchable === true
-    const searchPlaceholder = isMultiple ? (props.searchPlaceholder ?? 'Search...') : 'Search...'
-    const allLabel = isMultiple ? (props.allLabel ?? 'All') : ''
+    const searchPlaceholder = isMultiple
+      ? (props.searchPlaceholder ?? labels.search)
+      : labels.search
+    const allLabel = isMultiple ? (props.allLabel ?? labels.all) : ''
     const showAllOption = isMultiple ? props.showAllOption !== false : false
     const showSelectedCheck = isMultiple || props.showSelectedCheck !== false
 
@@ -271,9 +275,9 @@ const ChipDropdown = forwardRef<HTMLButtonElement, ChipDropdownProps>(
           ? allLabel
           : selectedValues.length === 1
             ? (options.find((option) => option.value === selectedValues[0])?.label ?? allLabel)
-            : `${selectedValues.length} selected`
+            : formatEmcnLabel(labels.countSelected, { count: selectedValues.length })
     } else {
-      displayLabel = selectedOption?.label ?? placeholder ?? 'Select...'
+      displayLabel = selectedOption?.label ?? placeholder ?? labels.select
     }
     const isPlaceholder = !isMultiple && selectedValues.length === 0
 

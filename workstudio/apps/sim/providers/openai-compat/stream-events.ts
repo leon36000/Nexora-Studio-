@@ -12,6 +12,7 @@
 import { createLogger } from '@sim/logger'
 import type { ChatCompletionChunk } from 'openai/resources/chat/completions'
 import type { CompletionUsage } from 'openai/resources/completions'
+import { createThinkTagSplitter } from '@/lib/nexora/reasoning'
 import { captureProviderConversationStep } from '@/providers/conversation-history'
 import { getChatCompletionConversationUsage } from '@/providers/openai-compat/conversation-usage'
 import {
@@ -55,6 +56,11 @@ export interface CreateOpenAICompatibleAgentEventStreamOptions {
   turn?: TextDeltaTurn
   /** Emit tool_call_start from delta.tool_calls when id+name known. Default false for no-tools path. */
   emitToolCallStarts?: boolean
+  /**
+   * Treat `<think>…</think>` opening the answer text (qwen3, deepseek-r1 on Ollama) as reasoning:
+   * streamed as `thinking_delta`, kept out of the answer, its history and `onComplete.content`.
+   */
+  splitInlineThinking?: boolean
   onComplete?: (result: OpenAICompatStreamComplete) => void
 }
 
@@ -137,6 +143,18 @@ export function createOpenAICompatibleAgentEventStream(
       let nativeUsage: CompletionUsage | undefined
       let finishReason: string | undefined
       const seenToolIds = new Set<string>()
+      const thinkSplitter = options.splitInlineThinking ? createThinkTagSplitter() : null
+      const emitAnswer = (pieces: { kind: 'reasoning' | 'content'; text: string }[]) => {
+        for (const piece of pieces) {
+          if (piece.kind === 'reasoning') {
+            fullThinking += piece.text
+            controller.enqueue({ type: 'thinking_delta', text: piece.text })
+          } else {
+            fullContent += piece.text
+            controller.enqueue({ type: 'text_delta', text: piece.text, turn })
+          }
+        }
+      }
       const toolBuffers = new Map<
         number,
         { id?: string; name?: string; args: string; started: boolean }
@@ -211,8 +229,9 @@ export function createOpenAICompatibleAgentEventStream(
               ? delta.content
               : ''
           if (content) {
-            fullContent += content
-            controller.enqueue({ type: 'text_delta', text: content, turn })
+            emitAnswer(
+              thinkSplitter ? thinkSplitter.push(content) : [{ kind: 'content', text: content }]
+            )
           }
 
           if (emitToolCallStarts && Array.isArray(delta?.tool_calls)) {
@@ -256,6 +275,7 @@ export function createOpenAICompatibleAgentEventStream(
         }
 
         if (cancelled) return
+        if (thinkSplitter) emitAnswer(thinkSplitter.flush())
         if (onComplete || options.request) {
           if (promptTokens === 0 && completionTokens === 0) {
             streamLogger.warn(`${providerName} stream completed without usage data`)

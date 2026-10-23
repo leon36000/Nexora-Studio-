@@ -36,6 +36,8 @@ export interface PendingTurn {
   answer: {
     id: string | null
     text: string
+    /** A reasoning model's reasoning, shown folded; never recorded. */
+    thinking: string
     status: 'waiting' | 'streaming' | 'done' | 'stopped' | 'error'
     error: ReplyErrorCode | null
   }
@@ -52,6 +54,7 @@ interface SendInput {
 interface LiveAnswer {
   conversationId: string
   text: string
+  thinking: string
   recorded: boolean
 }
 
@@ -132,9 +135,16 @@ export function useAssistantTurn(
     files: ChatFilePayload[] | undefined,
     controller: AbortController
   ) => {
-    const live: LiveAnswer = { conversationId, text: '', recorded: false }
+    const live: LiveAnswer = { conversationId, text: '', thinking: '', recorded: false }
     liveRef.current = live
     updateAnswer(conversationId, { status: 'streaming' })
+    const showLive = () => {
+      if (frameRef.current !== null) return
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null
+        updateAnswer(conversationId, { text: live.text, thinking: live.thinking })
+      })
+    }
 
     const outcome = await streamAgentReply({
       chatIdentifier: agent.chatIdentifier,
@@ -142,11 +152,11 @@ export function useAssistantTurn(
       signal: controller.signal,
       onText: (text) => {
         live.text = text
-        if (frameRef.current !== null) return
-        frameRef.current = requestAnimationFrame(() => {
-          frameRef.current = null
-          updateAnswer(conversationId, { text: live.text })
-        })
+        showLive()
+      },
+      onThinking: (thinking) => {
+        live.thinking = thinking
+        showLive()
       },
     })
 
@@ -193,7 +203,7 @@ export function useAssistantTurn(
       setPending({
         conversationId: targetId,
         question: { id: null, content: text, files: pendingFiles },
-        answer: { id: null, text: '', status: 'waiting', error: null },
+        answer: { id: null, text: '', thinking: '', status: 'waiting', error: null },
       })
     if (conversationId) showPending(conversationId)
 
@@ -264,7 +274,7 @@ export function useAssistantTurn(
     setPending({
       conversationId,
       question: null,
-      answer: { id: null, text: '', status: 'waiting', error: null },
+      answer: { id: null, text: '', thinking: '', status: 'waiting', error: null },
     })
     void streamAnswer(conversationId, agent, question.content, replay.files, controller)
   }

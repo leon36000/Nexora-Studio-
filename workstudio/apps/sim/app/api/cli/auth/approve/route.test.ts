@@ -29,6 +29,7 @@ vi.mock('@/lib/core/rate-limiter', () => rateLimiterMock)
 
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { POST } from '@/app/api/cli/auth/approve/route'
 
 const mockEnforceUserRateLimit = rateLimiterMockFns.mockEnforceUserRateLimit
@@ -116,7 +117,7 @@ describe('POST /api/cli/auth/approve', () => {
    * workspaces API-keys route gates it; these prove the terminal does too.
    */
   describe('api_keys.manage', () => {
-    const REFUSAL = "Managing API keys is not available under your organization's permission group"
+    const REFUSAL = capabilityRefusal('api_keys.manage')
 
     it('refuses to record a workspace-bound approval when the workspace group withholds it', async () => {
       mockGetUserPermissionConfig.mockResolvedValue({ hideApiKeysTab: true })
@@ -197,7 +198,7 @@ describe('POST /api/cli/auth/approve', () => {
 
       expect(response.status).toBe(403)
       await expect(response.json()).resolves.toEqual({
-        error: "CLI access is not available under your organization's permission group",
+        error: capabilityRefusal('cli.use'),
       })
     })
   })

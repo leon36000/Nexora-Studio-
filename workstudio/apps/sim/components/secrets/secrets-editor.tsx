@@ -7,6 +7,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { countPasteRows } from '@sim/utils/paste'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { saveDiscardActions } from '@/components/settings/save-discard-actions'
 import { useSettingsUnsavedGuard } from '@/components/settings/use-settings-unsaved-guard'
 import { setRecordValue } from '@/lib/core/utils/records'
@@ -31,15 +32,9 @@ const GRID_COLS = 'grid grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_auto] items-c
 const COL_SPAN_ALL = 'col-span-4'
 const MAX_ENV_PASTE_ROWS = 10_000
 
-/** Copies a secret's name and confirms with a toast. */
-function copyName(key: string) {
-  void navigator.clipboard.writeText(key)
-  toast.success('Copied name to clipboard')
-}
-
 interface SecretRowMenuProps {
-  /** Copies the secret's name. */
-  onCopyName: () => void
+  /** The secret's name, copied by the Copy name action. */
+  name: string
   /** Opens credential details; omit when the row has no backing credential. */
   onViewDetails?: () => void
   /** Deletes the secret (or clears the draft row); omit when the caller can't delete. */
@@ -50,15 +45,20 @@ interface SecretRowMenuProps {
  * Trailing `...` actions menu for a secret row. Mirrors the Teammates /
  * Organization member menu so the settings experience is consistent.
  */
-function SecretRowMenu({ onCopyName, onViewDetails, onDelete }: SecretRowMenuProps) {
+function SecretRowMenu({ name, onViewDetails, onDelete }: SecretRowMenuProps) {
+  const t = useTranslations('settings.secrets')
+  const copyName = () => {
+    void navigator.clipboard.writeText(name)
+    toast.success(t('copiedName'))
+  }
   return (
     <RowActionsMenu
-      label='Secret actions'
+      label={t('rowActions')}
       triggerClassName='ml-2'
       actions={[
-        ...(onViewDetails ? [{ label: 'View details', onSelect: onViewDetails }] : []),
-        { label: 'Copy name', onSelect: onCopyName },
-        ...(onDelete ? [{ label: 'Delete', destructive: true, onSelect: onDelete }] : []),
+        ...(onViewDetails ? [{ label: t('viewDetails'), onSelect: onViewDetails }] : []),
+        { label: t('copyName'), onSelect: copyName },
+        ...(onDelete ? [{ label: t('delete'), destructive: true, onSelect: onDelete }] : []),
       ]}
     />
   )
@@ -123,14 +123,16 @@ function applyVariableEdits(
   return merged
 }
 
+type EnvVarKeyError = 'spaces' | 'invalidCharacters'
+
 /**
  * Validates an environment variable key.
- * Returns an error message if invalid, undefined if valid.
+ * Returns the message key of the error if invalid, undefined if valid.
  */
-function validateEnvVarKey(key: string): string | undefined {
+function validateEnvVarKey(key: string): EnvVarKeyError | undefined {
   if (!key) return undefined
-  if (key.includes(' ')) return 'Spaces are not allowed'
-  if (!isValidEnvVarName(key)) return 'Only letters, numbers, and underscores allowed'
+  if (key.includes(' ')) return 'spaces'
+  if (!isValidEnvVarName(key)) return 'invalidCharacters'
   return undefined
 }
 
@@ -263,7 +265,7 @@ function WorkspaceVariableRow({
         name={`workspace_env_value_${envKey}_${autofillSalt}`}
       />
       <SecretRowMenu
-        onCopyName={() => copyName(envKey)}
+        name={envKey}
         onViewDetails={hasCredential && onViewDetails ? () => onViewDetails(envKey) : undefined}
         onDelete={canEdit ? () => onDelete(envKey) : undefined}
       />
@@ -292,6 +294,7 @@ function NewWorkspaceVariableRow({
    * the server and browser bundles.
    */
   const autofillSalt = useId()
+  const t = useTranslations('settings.secrets')
 
   const keyError = validateEnvVarKey(envVar.key)
   const hasContent = Boolean(envVar.key || envVar.value)
@@ -318,13 +321,13 @@ function NewWorkspaceVariableRow({
         value={envVar.value}
         onChange={(next) => onUpdate(index, 'value', next)}
         onPaste={onPaste ? (e) => onPaste(e, index) : undefined}
-        placeholder='Enter value'
+        placeholder={t('enterValue')}
         name={`new_workspace_value_${envVar.id || index}_${autofillSalt}`}
         className='ml-0'
       />
       {hasContent ? (
         <SecretRowMenu
-          onCopyName={() => copyName(envVar.key)}
+          name={envVar.key}
           onDelete={() => {
             onUpdate(index, 'key', '')
             onUpdate(index, 'value', '')
@@ -340,7 +343,7 @@ function NewWorkspaceVariableRow({
             'mt-[-4px] text-[var(--text-error)] text-caption leading-tight'
           )}
         >
-          {keyError}
+          {t(`keyErrors.${keyError}`)}
         </div>
       )}
     </div>
@@ -362,9 +365,9 @@ interface SecretsEditorProps {
   rowAccess?: ReadonlyMap<string, SecretRowAccess>
   personal?: {
     variables?: Record<string, { key: string; value: string }>
-    save: (variables: Record<string, string>) => Promise<unknown>
+    save: (variables: Record<string, string>) => Promise<unknown> // i18n-ignore: type signature
   }
-  save: (changes: SecretChanges) => Promise<unknown>
+  save: (changes: SecretChanges) => Promise<unknown> // i18n-ignore: type signature
   isLoading: boolean
   isSaving: boolean
   /** Supports the existing workspace credential-picker deep link. */
@@ -385,6 +388,7 @@ export function SecretsEditor({
 }: SecretsEditorProps) {
   const autofillSalt = useId()
   const router = useRouter()
+  const t = useTranslations('settings.secrets')
   const personalEnvData = personal?.variables
   const hasPersonal = Boolean(personal)
   const [envVars, setEnvVars] = useState<UIEnvironmentVariable[]>([])
@@ -604,7 +608,7 @@ export function SecretsEditor({
     setRenamingKey(null)
     if (!newKey || newKey === currentKey) return
     if (validateEnvVarKey(newKey) || Object.hasOwn(workspaceVars, newKey)) {
-      toast.error('Use a valid, unique secret name')
+      toast.error(t('invalidRename'))
       return
     }
 
@@ -673,8 +677,8 @@ export function SecretsEditor({
 
     if (countPasteRows(text, MAX_ENV_PASTE_ROWS) > MAX_ENV_PASTE_ROWS) {
       e.preventDefault()
-      toast.warning('Paste has too many secrets', {
-        description: `Add up to ${MAX_ENV_PASTE_ROWS.toLocaleString()} rows at once.`,
+      toast.warning(t('pasteTooMany'), {
+        description: t('pasteLimit', { count: MAX_ENV_PASTE_ROWS }),
       })
       return
     }
@@ -717,8 +721,8 @@ export function SecretsEditor({
 
     if (countPasteRows(text, MAX_ENV_PASTE_ROWS) > MAX_ENV_PASTE_ROWS) {
       e.preventDefault()
-      toast.warning('Paste has too many secrets', {
-        description: `Add up to ${MAX_ENV_PASTE_ROWS.toLocaleString()} rows at once.`,
+      toast.warning(t('pasteTooMany'), {
+        description: t('pasteLimit', { count: MAX_ENV_PASTE_ROWS }),
       })
       return
     }
@@ -883,11 +887,11 @@ export function SecretsEditor({
         }
       })
       if (mutations.length > 0) {
-        toast.success('Secrets saved')
+        toast.success(t('saved'))
       }
     } catch (error) {
       logger.error('Failed to save environment variables:', error)
-      toast.error(getErrorMessage(error, 'Failed to save secrets'))
+      toast.error(getErrorMessage(error, t('saveSecretsFailed')))
     }
   }
 
@@ -921,15 +925,12 @@ export function SecretsEditor({
           onPaste={(e) => handlePaste(e, originalIndex)}
           unmasked={isConflicted}
           readOnly={isConflicted}
-          placeholder={isConflicted ? 'Workspace override active' : 'Enter value'}
+          placeholder={isConflicted ? t('workspaceOverrideActive') : t('enterValue')}
           name={`env_variable_value_${envVar.id || originalIndex}_${autofillSalt}`}
           className={cn(isConflicted && 'cursor-not-allowed opacity-50')}
         />
         {hasContent ? (
-          <SecretRowMenu
-            onCopyName={() => copyName(envVar.key)}
-            onDelete={() => removeEnvVar(originalIndex)}
-          />
+          <SecretRowMenu name={envVar.key} onDelete={() => removeEnvVar(originalIndex)} />
         ) : (
           <div />
         )}
@@ -940,7 +941,7 @@ export function SecretsEditor({
               'mt-[-4px] text-[var(--text-error)] text-caption leading-tight'
             )}
           >
-            {keyError}
+            {t(`keyErrors.${keyError}`)}
           </div>
         )}
         {isConflicted && !keyError && (
@@ -950,8 +951,7 @@ export function SecretsEditor({
               'mt-[-4px] text-[var(--text-error)] text-caption leading-tight'
             )}
           >
-            Workspace variable with the same name overrides this. Rename your personal key to use
-            it.
+            {t('conflictHint')}
           </div>
         )}
       </div>
@@ -990,7 +990,7 @@ export function SecretsEditor({
       <SettingsPanel
         {...(back
           ? {
-              title: 'Generic Secrets',
+              title: t('genericTitle'),
               back: {
                 text: back.text,
                 icon: ArrowLeft,
@@ -1002,7 +1002,7 @@ export function SecretsEditor({
         search={{
           value: searchTerm,
           onChange: setSearchTerm,
-          placeholder: 'Search secrets...',
+          placeholder: t('searchPlaceholder'),
         }}
         actions={saveDiscardActions({
           dirty: hasChanges,
@@ -1011,11 +1011,11 @@ export function SecretsEditor({
           onDiscard: resetToSaved,
           saveDisabled: hasConflicts || hasInvalidKeys || hasIncompleteRows || isLoading,
           saveTooltip: hasConflicts
-            ? 'Resolve all conflicts before saving'
+            ? t('resolveConflicts')
             : hasInvalidKeys
-              ? 'Fix invalid variable names before saving'
+              ? t('fixInvalidNames')
               : hasIncompleteRows
-                ? 'Enter both a name and value for each secret'
+                ? t('incompleteRows')
                 : undefined,
         })}
       >
@@ -1071,7 +1071,7 @@ export function SecretsEditor({
             )}
 
             {personal && (!searchTerm.trim() || filteredEnvVars.length > 0) && (
-              <SettingsSection label='Personal'>
+              <SettingsSection label={t('personal')}>
                 <div className={`${GRID_COLS} gap-y-2`}>
                   {filteredEnvVars.map(({ envVar, originalIndex }) => (
                     <div key={envVar.id || originalIndex} className='contents'>
@@ -1089,7 +1089,7 @@ export function SecretsEditor({
                 Object.keys(workspaceVars).length > 0 ||
                 newWorkspaceRows.length > 0) && (
                 <SettingsEmptyState variant='inline'>
-                  No secrets found matching &ldquo;{searchTerm}&rdquo;
+                  {t('noMatches', { query: searchTerm })}
                 </SettingsEmptyState>
               )}
           </div>

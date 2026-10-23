@@ -10,6 +10,11 @@ import {
   withEstimatedFootprint,
 } from '@/lib/nexora/consumption/co2'
 import { monthWindow, periodDays, periodWindow } from '@/lib/nexora/consumption/period'
+import {
+  directModelTokensByWorkspace,
+  monthDayRange,
+  readKeyConsumption,
+} from '@/lib/nexora/developer-api/repository'
 import { NexoraUsageUnavailableError } from '@/lib/nexora/usage'
 
 const logger = createLogger('NexoraConsumptionReport')
@@ -35,7 +40,8 @@ async function measuredByModel(start: Date, end: Date): Promise<ModelConsumption
 /**
  * The instance's consumption over the last `days` local days: Nexora API's exact figures per
  * model (`null` when it cannot be read, never partial), WorkStudio's runs and tokens per day,
- * workspace and person, each with a footprint estimated pro rata of its tokens per model.
+ * workspace and person, each with a footprint estimated pro rata of its tokens per model, and the
+ * use of each developer API key.
  */
 export async function buildConsumptionReport({
   days,
@@ -47,9 +53,11 @@ export async function buildConsumptionReport({
   now?: Date
 }) {
   const { start, end } = periodWindow(now, days, timeZone)
-  const [models, local] = await Promise.all([
+  const localDays = periodDays(now, days, timeZone)
+  const [models, local, apiKeys] = await Promise.all([
     measuredByModel(start, end),
     readWorkspaceConsumption({ start, end, timeZone }),
+    readKeyConsumption(localDays[0], localDays[localDays.length - 1]),
   ])
 
   const measured = models
@@ -71,7 +79,7 @@ export async function buildConsumptionReport({
     measured: measured ? { ...measured, carKm: carKilometres(measured.kgCO2eq) } : null,
     workstudio: local.totals,
     carEmissionFactor: { ...CAR_EMISSION_FACTOR },
-    days: periodDays(now, days, timeZone).map((date) => ({
+    days: localDays.map((date) => ({
       date,
       executions: dayTotals.get(date)?.executions ?? 0,
       totalTokens: dayTotals.get(date)?.totalTokens ?? 0,
@@ -85,10 +93,15 @@ export async function buildConsumptionReport({
       ...omit(row, ['tokensByModel', 'footprint']),
       footprint: reportedFootprint(row.footprint),
     })),
+    /** Developer API keys: direct model calls (also in `models`) and published agents' runs. */
+    apiKeys,
   }
 }
 
-/** Tokens used since the 1st of the current budget month, for the instance and per workspace. */
+/**
+ * Tokens used since the 1st of the current budget month, for the instance and per workspace: runs
+ * (the usage ledger) and the direct model calls of developer API keys, as the budget gate counts.
+ */
 export async function readMonthToDateUsage({
   timeZone,
   now = new Date(),
@@ -97,10 +110,16 @@ export async function readMonthToDateUsage({
   now?: Date
 }) {
   const month = monthWindow(now, timeZone)
-  const local = await readWorkspaceConsumption({ start: month.start, end: month.end, timeZone })
-  const workspaces: Record<string, number> = {}
+  const { first, next } = monthDayRange(month.month)
+  const [local, direct] = await Promise.all([
+    readWorkspaceConsumption({ start: month.start, end: month.end, timeZone }),
+    directModelTokensByWorkspace(first, next),
+  ])
+  const workspaces: Record<string, number> = { ...direct.workspaces }
   for (const row of local.workspaces) {
-    if (row.workspaceId) workspaces[row.workspaceId] = row.totalTokens
+    if (row.workspaceId) {
+      workspaces[row.workspaceId] = (workspaces[row.workspaceId] ?? 0) + row.totalTokens
+    }
   }
-  return { month: month.month, instance: local.totals.totalTokens, workspaces }
+  return { month: month.month, instance: local.totals.totalTokens + direct.instance, workspaces }
 }

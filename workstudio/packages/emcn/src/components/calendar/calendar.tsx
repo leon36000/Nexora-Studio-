@@ -7,24 +7,8 @@ import { cn } from '../../lib/cn'
 import { Chip, chipVariants } from '../chip/chip'
 import { chipContentLabelClass } from '../chip/chrome'
 import { ChipTimePicker } from '../chip-time-picker/chip-time-picker'
+import { useEmcnLabels } from '../labels/labels'
 import { CalendarDayCell } from './day-cell'
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const
-
-const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const
 
 const DEFAULT_RANGE_START_TIME = '00:00'
 const DEFAULT_RANGE_END_TIME = '23:59'
@@ -70,10 +54,10 @@ function parseDateValue(value: string | Date | undefined): Date | null {
  * Human-readable label for a date value (e.g. `May 8, 2026`). Returns an empty
  * string when there is no parseable date — callers fall back to a placeholder.
  */
-export function formatDateLabel(value: string | Date | undefined): string {
+export function formatDateLabel(value: string | Date | undefined, locale = 'en-US'): string {
   const date = parseDateValue(value)
   if (!date) return ''
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 /**
@@ -83,21 +67,22 @@ export function formatDateLabel(value: string | Date | undefined): string {
  */
 export function formatDateRangeLabel(
   start: string | Date | undefined,
-  end: string | Date | undefined
+  end: string | Date | undefined,
+  locale = 'en-US'
 ): string {
   const startDate = parseDateValue(start)
   const endDate = parseDateValue(end)
   if (!startDate && !endDate) return ''
-  if (startDate && !endDate) return formatDateLabel(startDate)
-  if (!startDate && endDate) return formatDateLabel(endDate)
+  if (startDate && !endDate) return formatDateLabel(startDate, locale)
+  if (!startDate && endDate) return formatDateLabel(endDate, locale)
   if (!startDate || !endDate) return ''
   const sameYear = startDate.getFullYear() === endDate.getFullYear()
-  const startLabel = startDate.toLocaleDateString('en-US', {
+  const startLabel = startDate.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     ...(sameYear ? {} : { year: 'numeric' }),
   })
-  const endLabel = endDate.toLocaleDateString('en-US', {
+  const endLabel = endDate.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -335,21 +320,23 @@ function CalendarHeader({
   onPrev: () => void
   onNext: () => void
 }) {
+  const labels = useEmcnLabels()
   return (
     <div className='flex items-center justify-between pb-1'>
-      <Chip leftIcon={ChevronLeft} aria-label='Previous month' onClick={onPrev} />
+      <Chip leftIcon={ChevronLeft} aria-label={labels.previousMonth} onClick={onPrev} />
       <span className={chipContentLabelClass}>
-        {MONTHS[month]} {year}
+        {labels.months.split(',')[month]} {year}
       </span>
-      <Chip rightIcon={ChevronRight} aria-label='Next month' onClick={onNext} />
+      <Chip rightIcon={ChevronRight} aria-label={labels.nextMonth} onClick={onNext} />
     </div>
   )
 }
 
 function WeekdayRow() {
+  const labels = useEmcnLabels()
   return (
     <div className='grid grid-cols-7'>
-      {WEEKDAYS.map((weekday) => (
+      {labels.weekdays.split(',').map((weekday) => (
         <div
           key={weekday}
           className='flex h-[28px] items-center justify-center text-[var(--text-muted)] text-caption'
@@ -365,10 +352,11 @@ function SingleCalendarView({
   value,
   onChange,
   showTime = false,
-  timeLabel = 'Time',
+  timeLabel,
   today: todayValue,
   className,
 }: CalendarSingleProps) {
+  const labels = useEmcnLabels()
   const parsed = useMemo(() => parseDateTimeValue(value), [value])
   const selected = parsed.date
   const {
@@ -440,7 +428,9 @@ function SingleCalendarView({
 
       {showTime && (
         <div className='mt-1 flex items-center gap-2'>
-          <span className='shrink-0 text-[var(--text-muted)] text-caption'>{timeLabel}</span>
+          <span className='shrink-0 text-[var(--text-muted)] text-caption'>
+            {timeLabel ?? labels.time}
+          </span>
           <ChipTimePicker value={timeOfDay?.slice(0, 5)} onChange={handleTimeChange} fullWidth />
         </div>
       )}
@@ -450,7 +440,7 @@ function SingleCalendarView({
         onClick={goToToday}
         className={cn(chipVariants({ variant: 'filled', fullWidth: true }), 'mt-1 justify-center')}
       >
-        <span className={chipContentLabelClass}>Today</span>
+        <span className={chipContentLabelClass}>{labels.today}</span>
       </button>
     </div>
   )
@@ -466,6 +456,7 @@ function RangeCalendarView({
   today: todayValue,
   className,
 }: CalendarRangeProps) {
+  const labels = useEmcnLabels()
   const seededStart = useMemo(() => parseDateValue(startDate), [startDate])
   const {
     today: runtimeToday,
@@ -567,21 +558,21 @@ function RangeCalendarView({
       {showTime && (
         <div className='mt-1 flex items-center gap-2'>
           <ChipTimePicker value={startTime} onChange={setStartTime} fullWidth />
-          <span className='shrink-0 text-[var(--text-muted)] text-caption'>to</span>
+          <span className='shrink-0 text-[var(--text-muted)] text-caption'>{labels.rangeTo}</span>
           <ChipTimePicker value={endTime} onChange={setEndTime} fullWidth />
         </div>
       )}
 
       <div className='mt-3 flex items-center justify-between gap-2'>
         <Chip onClick={clear} disabled={!rangeStart && !rangeEnd}>
-          Clear
+          {labels.clear}
         </Chip>
         <div className='flex items-center gap-2'>
           <Chip variant='outline' onClick={() => onCancel?.()}>
-            Cancel
+            {labels.cancel}
           </Chip>
           <Chip variant='primary' onClick={apply} disabled={!rangeStart}>
-            Apply
+            {labels.apply}
           </Chip>
         </div>
       </div>

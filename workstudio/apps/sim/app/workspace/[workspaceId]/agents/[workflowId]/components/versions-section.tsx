@@ -205,6 +205,10 @@ function VersionDiff({ workspaceId, workflowId, from, to }: VersionDiffProps) {
         return config.memory ? t('editor.memory.on') : t('editor.memory.off')
       case 'model':
         return config.model.replace(/^vllm\//, '')
+      case 'reasoningEffort':
+        return t(
+          `playground.efforts.${config.reasoningEffort === 'auto' ? 'default' : config.reasoningEffort}`
+        )
       default:
         return config[field]
     }

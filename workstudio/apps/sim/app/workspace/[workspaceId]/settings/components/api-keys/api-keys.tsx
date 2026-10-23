@@ -13,6 +13,7 @@ import type { ApiKey } from '@/lib/api/contracts/api-keys'
 import { useSession } from '@/lib/auth/client'
 import { useOptionalWorkspaceHostContext } from '@/app/workspace/[workspaceId]/providers/workspace-host-provider'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { NexoraApiKeysSection } from '@/app/workspace/[workspaceId]/settings/components/nexora-api-keys/nexora-api-keys'
 import { RowActionsMenu } from '@/app/workspace/[workspaceId]/settings/components/row-actions-menu'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import type { SettingsAction } from '@/app/workspace/[workspaceId]/settings/components/settings-header/settings-header'
@@ -254,6 +255,7 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
         }}
         actions={actions}
       >
+        {workspaceId && !isPersonalScope && <NexoraApiKeysSection workspaceId={workspaceId} />}
         {apiKeysError && apiKeysData === undefined ? (
           <SettingsEmptyState>{getErrorMessage(apiKeysError, t('loadFailed'))}</SettingsEmptyState>
         ) : isLoading ? null : personalKeys.length === 0 && workspaceKeys.length === 0 ? (

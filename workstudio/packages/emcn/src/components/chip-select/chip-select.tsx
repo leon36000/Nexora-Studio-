@@ -16,6 +16,7 @@ import {
   DropdownMenuSearchInput,
   DropdownMenuTrigger,
 } from '../dropdown-menu/dropdown-menu'
+import { useEmcnLabels } from '../labels/labels'
 import { OverflowText, overflowTextClipClass } from '../overflow-text/overflow-text'
 
 /** A selectable option in a {@link ChipSelect}. */
@@ -142,13 +143,13 @@ export function ChipSelect({
   multiSelect = false,
   multiSelectValues,
   onMultiSelectChange,
-  placeholder = 'Select...',
+  placeholder: placeholderProp,
   displayLabel,
   disabled = false,
   searchable = false,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder: searchPlaceholderProp,
   showAllOption = false,
-  allOptionLabel = 'All',
+  allOptionLabel: allOptionLabelProp,
   align = 'end',
   fullWidth = false,
   dropdownWidth,
@@ -162,6 +163,10 @@ export function ChipSelect({
   'aria-describedby': ariaDescribedBy,
   modal,
 }: ChipSelectProps) {
+  const labels = useEmcnLabels()
+  const placeholder = placeholderProp ?? labels.select
+  const searchPlaceholder = searchPlaceholderProp ?? labels.search
+  const allOptionLabel = allOptionLabelProp ?? labels.all
   const [query, setQuery] = React.useState('')
 
   const selectedValues = multiSelectValues ?? []
@@ -328,7 +333,7 @@ export function ChipSelect({
           ))
         ) : (
           <div className='px-2 py-4 text-center text-[var(--text-muted)] text-small'>
-            No results
+            {labels.noResults}
           </div>
         )}
       </DropdownMenuContent>

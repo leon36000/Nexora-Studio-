@@ -2,6 +2,7 @@
 
 import type { RefObject } from 'react'
 import { Popover, PopoverAnchor, PopoverContent, PopoverDivider, PopoverItem } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import { createPortal } from 'react-dom'
 
 interface PreviewContextMenuProps {
@@ -33,6 +34,7 @@ export function PreviewContextMenu({
   onToggleWrap,
   copyOnly = false,
 }: PreviewContextMenuProps) {
+  const t = useTranslations('editor.preview.contextMenu')
   if (typeof document === 'undefined') return null
 
   return createPortal(
@@ -53,7 +55,7 @@ export function PreviewContextMenu({
             onClose()
           }}
         >
-          Copy
+          {t('copy')}
         </PopoverItem>
 
         {!copyOnly && onSearch && (
@@ -65,7 +67,7 @@ export function PreviewContextMenu({
                 onClose()
               }}
             >
-              Search
+              {t('search')}
             </PopoverItem>
           </>
         )}
@@ -74,7 +76,7 @@ export function PreviewContextMenu({
           <>
             <PopoverDivider />
             <PopoverItem showCheck={wrapText} onClick={onToggleWrap}>
-              Wrap Text
+              {t('wrapText')}
             </PopoverItem>
           </>
         )}

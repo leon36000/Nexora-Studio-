@@ -6,6 +6,7 @@ import { HelpCircle, Search } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { docsUrl } from '@/lib/branding/docs-url'
+import { catalogCategoryKey } from '@/lib/nexora/connect-categories'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import { ConnectorsPageFrame } from '@/app/workspace/[workspaceId]/connecteurs/components/connectors-page-frame'
 import { ServiceLogo } from '@/app/workspace/[workspaceId]/connecteurs/components/service-logo'
@@ -27,11 +28,6 @@ import { useDebouncedSearchSetter } from '@/hooks/use-debounced-search-setter'
 
 const SKELETON_CARDS = [0, 1, 2, 3, 4, 5] as const
 const NO_FILTERS = { query: '', category: '' } as const
-
-/** Message key of a Nexora Connect category (`Design & Media` → `designmedia`). */
-function categoryKey(category: string): string {
-  return category.toLowerCase().replace(/[^a-z0-9]/g, '')
-}
 
 interface ConnectorsProps {
   workspaceId: string
@@ -56,7 +52,7 @@ export function Connectors({ workspaceId }: ConnectorsProps) {
     [catalog.data]
   )
   const categoryLabel = (value: string) => {
-    const key = `catalog.categories.${categoryKey(value)}`
+    const key = `catalog.categories.${catalogCategoryKey(value)}`
     return t.has(key) ? t(key) : value
   }
   const categories = unfiltered.data?.pages[0]?.categories ?? []

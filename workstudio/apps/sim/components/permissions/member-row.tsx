@@ -1,8 +1,9 @@
 'use client'
 
 import { Avatar, Chip, ChipDropdown, cn, OverflowText } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { MemberRole } from './member-role-options'
-import { RoleLockTooltip } from './role-lock'
+import { type RoleLockReason, RoleLockTooltip } from './role-lock'
 
 export interface MemberRowMember<TRole extends string = MemberRole> {
   userId: string
@@ -15,7 +16,7 @@ export interface MemberRowMember<TRole extends string = MemberRole> {
 interface MemberRowProps<TRole extends string = MemberRole> {
   member: MemberRowMember<TRole>
   /** Why the role is fixed (derived access); null when editable. */
-  lockReason: string | null
+  lockReason: RoleLockReason | null
   /** Whether the viewer can act on rows (shows the Remove column). */
   canManage: boolean
   roleDisabled: boolean
@@ -46,6 +47,7 @@ export function MemberRow<TRole extends string = MemberRole>({
   onRoleChange,
   onRemove,
 }: MemberRowProps<TRole>) {
+  const t = useTranslations('settings.permissions.memberRow')
   return (
     <div
       className={cn(
@@ -75,14 +77,14 @@ export function MemberRow<TRole extends string = MemberRole>({
         <ChipDropdown
           options={roleOptions}
           value={member.role}
-          placeholder='Role'
+          placeholder={t('role')}
           disabled={roleDisabled}
           onChange={(role) => onRoleChange?.(role as TRole)}
         />
       </RoleLockTooltip>
       {canManage && (
         <Chip onClick={onRemove} disabled={removeDisabled} className='justify-self-end'>
-          Remove
+          {t('remove')}
         </Chip>
       )}
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { AnimatedNumber, cn, Tooltip } from '@sim/emcn'
+import { AnimatedNumber, cn, Tooltip, useEmcnLabels } from '@sim/emcn'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 const dashboardMetricValueVariants = cva(
@@ -39,6 +39,7 @@ export function DashboardMetric({
   loading,
   size,
 }: DashboardMetricProps) {
+  const labels = useEmcnLabels()
   const formattedValue =
     typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits }) : value
   const valueStyle: CSSProperties & { '--metric-width-units': number } = {
@@ -73,7 +74,7 @@ export function DashboardMetric({
         {loading ? (
           <>
             <span className='h-4 w-14 rounded bg-[var(--surface-3)]' aria-hidden='true' />
-            <span className='sr-only'>Loading value</span>
+            <span className='sr-only'>{labels.loadingValue}</span>
           </>
         ) : (
           <>

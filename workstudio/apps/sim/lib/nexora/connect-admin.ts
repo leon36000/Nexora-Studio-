@@ -2,6 +2,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { isRecordLike, toArray, toRecord, toRecordOrNull } from '@sim/utils/object'
 import { LRUCache } from 'lru-cache'
 import { env } from '@/lib/core/config/env'
+import { catalogCategoryKey } from '@/lib/nexora/connect-categories'
 
 /** Nexora Connect cannot be reached, or refuses WorkStudio's administration token. */
 export class ConnectUnavailableError extends Error {
@@ -319,8 +320,11 @@ export async function listCatalog(
   options: ConnectAdminOptions = {}
 ): Promise<CatalogService[]> {
   const query = filter.query?.trim().toLowerCase() ?? ''
+  const categoryKey = filter.category ? catalogCategoryKey(filter.category) : ''
   return (await catalogFor(options))
-    .filter((entry) => !filter.category || entry.categories.includes(filter.category))
+    .filter(
+      (entry) => !categoryKey || entry.categories.some((c) => catalogCategoryKey(c) === categoryKey)
+    )
     .filter(
       (entry) =>
         !query ||

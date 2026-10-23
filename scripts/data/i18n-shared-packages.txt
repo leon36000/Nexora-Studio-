@@ -1,0 +1,4 @@
+# Paquets partagés rendus par l’application (K2) : aucun texte en dur hors de leur fichier de libellés
+# (`// i18n-defaults: <espace>.<chemin>`), dont chaque clé est traduite dans apps/sim/messages.
+workstudio/packages/emcn/src
+workstudio/packages/workflow-renderer/src

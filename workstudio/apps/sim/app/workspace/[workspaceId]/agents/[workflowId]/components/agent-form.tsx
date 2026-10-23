@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Chip, ChipInput, ChipLink, ChipTextarea, Switch, toast } from '@sim/emcn'
+import { Chip, ChipInput, ChipLink, ChipSelect, ChipTextarea, Switch, toast } from '@sim/emcn'
 import { MessageSquareText, Workflow } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { useTranslations } from 'next-intl'
 import { type AgentConfig, hasUnsavedAgentChanges } from '@/lib/nexora/agents'
+import { REASONING_EFFORTS } from '@/lib/nexora/reasoning'
 import { AgentPageHeader } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/agent-page-header'
 import { KnowledgeField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/knowledge-field'
 import { PublishSection } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/publish-section'
@@ -14,10 +15,13 @@ import { ToolsField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/co
 import { VersionsSection } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/versions-section'
 import { FormField } from '@/app/workspace/[workspaceId]/agents/components/form-field'
 import { ModelPicker } from '@/app/workspace/[workspaceId]/agents/components/model-picker'
+import { CodeButton } from '@/app/workspace/[workspaceId]/developpeurs/components/code-button'
 import type { ChatDetail } from '@/hooks/queries/deployments'
 import { AgentChangedElsewhereError, useSaveAgent } from '@/hooks/queries/nexora-agents'
 
 const logger = createLogger('NexoraAgentForm')
+
+const EFFORT_OPTIONS = ['auto', ...REASONING_EFFORTS] as const
 
 interface AgentFormProps {
   workspaceId: string
@@ -40,6 +44,8 @@ export function AgentForm({
   onVersionActivated,
 }: AgentFormProps) {
   const t = useTranslations('agents.editor')
+  const tEfforts = useTranslations('agents.playground.efforts')
+  const tCode = useTranslations('developers.code')
   const { mutateAsync: saveAgent, isPending: isSaving } = useSaveAgent()
   const [draft, setDraft] = useState(initial)
   const [saved, setSaved] = useState(initial)
@@ -101,6 +107,12 @@ export function AgentForm({
             >
               {t('test')}
             </Chip>
+            <CodeButton
+              workspaceId={workspaceId}
+              model={`agent:${initial.name}`}
+              alternateModel={`agent:${workflowId}`}
+              notice={existingChat ? undefined : tCode('unpublished')}
+            />
             {!readOnly && (
               <Chip
                 variant='primary'
@@ -149,6 +161,22 @@ export function AgentForm({
                 value={draft.model}
                 disabled={readOnly}
                 onChange={(model) => update('model', model)}
+              />
+            </FormField>
+            <FormField label={t('fields.reasoningEffort')}>
+              <ChipSelect
+                aria-label={t('fields.reasoningEffort')}
+                fullWidth
+                disabled={readOnly}
+                value={draft.reasoningEffort}
+                onChange={(value) => {
+                  const next = EFFORT_OPTIONS.find((option) => option === value)
+                  if (next) update('reasoningEffort', next)
+                }}
+                options={EFFORT_OPTIONS.map((option) => ({
+                  value: option,
+                  label: tEfforts(option === 'auto' ? 'default' : option),
+                }))}
               />
             </FormField>
             <FormField label={t('fields.tools')}>

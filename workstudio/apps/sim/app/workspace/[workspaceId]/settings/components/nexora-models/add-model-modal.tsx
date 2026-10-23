@@ -190,7 +190,7 @@ export function AddModelModal({
     setError(null)
     const controller = new AbortController()
     try {
-      let added: NexoraModel
+      let added: Pick<NexoraModel, 'name'>
       if (source === 'ollama') {
         if (needsDownload) {
           abortRef.current = controller

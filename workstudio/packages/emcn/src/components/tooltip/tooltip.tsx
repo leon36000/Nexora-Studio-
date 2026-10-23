@@ -545,7 +545,7 @@ const TooltipContext = React.createContext<TooltipContextValue | null>(null)
 function useTooltipContext(component: string): TooltipContextValue {
   const context = React.useContext(TooltipContext)
   if (!context) {
-    throw new Error(`Tooltip.${component} must be rendered within a Tooltip.Root`)
+    throw new Error(`Tooltip.${component} must be rendered within a Tooltip.Root`) // i18n-ignore: developer error
   }
   return context
 }

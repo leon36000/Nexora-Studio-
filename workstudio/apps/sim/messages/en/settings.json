@@ -861,7 +861,79 @@
     "workspace": "Workspace",
     "saveFailed": "Couldn't save value",
     "latestUnavailable": "Could not load your latest secrets. Please try again in a moment.",
-    "tryAgain": "Please try again in a moment."
+    "tryAgain": "Please try again in a moment.",
+    "copiedName": "Copied name to clipboard",
+    "rowActions": "Secret actions",
+    "viewDetails": "View details",
+    "copyName": "Copy name",
+    "delete": "Delete",
+    "keyErrors": {
+      "spaces": "Spaces are not allowed",
+      "invalidCharacters": "Only letters, numbers, and underscores allowed"
+    },
+    "enterValue": "Enter value",
+    "workspaceOverrideActive": "Workspace override active",
+    "invalidRename": "Use a valid, unique secret name",
+    "pasteTooMany": "Paste has too many secrets",
+    "pasteLimit": "Add up to {count, number} rows at once.",
+    "saved": "Secrets saved",
+    "saveSecretsFailed": "Failed to save secrets",
+    "conflictHint": "Workspace variable with the same name overrides this. Rename your personal key to use it.",
+    "genericTitle": "Generic Secrets",
+    "searchPlaceholder": "Search secrets...",
+    "resolveConflicts": "Resolve all conflicts before saving",
+    "fixInvalidNames": "Fix invalid variable names before saving",
+    "incompleteRows": "Enter both a name and value for each secret",
+    "personal": "Personal",
+    "organization": "Organization",
+    "noMatches": "No secrets found matching “{query}”",
+    "loading": "Loading secrets…",
+    "loadFailed": "Could not load secrets",
+    "backSources": "Sources",
+    "backIntegrations": "Integrations"
+  },
+  "permissions": {
+    "addPeople": {
+      "title": "Add people",
+      "emails": "Emails",
+      "emailsPlaceholder": "Enter emails",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "add": "Add",
+      "adding": "Adding...",
+      "tryAgain": "Please try again in a moment.",
+      "allFailed": "Couldn't add people. {reason}",
+      "someFailed": "Couldn't add {failed} of {total} people. {reason}"
+    },
+    "roles": {
+      "member": "Member",
+      "admin": "Admin",
+      "editor": "Editor"
+    },
+    "memberRow": {
+      "role": "Role",
+      "remove": "Remove"
+    },
+    "selector": {
+      "read": "Read",
+      "readTitle": "View only",
+      "write": "Write",
+      "writeTitle": "Edit content",
+      "admin": "Admin",
+      "adminTitle": "Full access",
+      "member": "Member",
+      "memberTitle": "Organization member",
+      "orgAdminTitle": "Organization admin"
+    },
+    "roleLock": {
+      "orgAdminRole": "Organization admins are automatically workspace admins",
+      "workspaceOwner": "Workspace owner",
+      "billingAccount": "Workspace billing account",
+      "orgAdminRemoval": "Organization admins are automatically workspace admins. Change their organization role to remove them.",
+      "reassignBilling": "Reassign billing before removing the workspace billing account",
+      "credentialAdmin": "Workspace admins are automatically credential admins",
+      "skillEditor": "Workspace admins are automatically skill editors"
+    }
   },
   "secretDetail": {
     "pageTitle": "Secret",
@@ -1695,11 +1767,33 @@
       "test": "Test",
       "makeDefault": "Make default",
       "remove": "Remove",
-      "removeDefaultTooltip": "Choose another default model first."
+      "removeDefaultTooltip": "Choose another default model first.",
+      "editCard": "Edit card"
     },
     "test": {
       "success": "{name} answered in {seconds} s: {reply}",
-      "failed": "{name} did not answer"
+      "failed": "{name} did not answer",
+      "truncated": "{name} is a reasoning model: answer cut short ({seconds} s)."
+    },
+    "card": {
+      "reasoning": "Reasoning",
+      "tools": "Tools",
+      "vision": "Vision",
+      "context": "Context: {tokens}",
+      "locations": {
+        "local": "On this server",
+        "eu": "Hosted in the EU",
+        "external": "Off the instance"
+      },
+      "modal": {
+        "title": "{name} card",
+        "location": "Data location",
+        "context": "Context (tokens)",
+        "contextHint": "Between 1,000 and 10,000,000. Leave empty if unknown.",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "{name} card saved."
+      }
     },
     "defaultChanged": "{name} is now the default model.",
     "added": "{name} was added.",

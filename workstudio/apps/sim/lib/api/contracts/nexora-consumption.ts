@@ -94,6 +94,22 @@ const nexoraConsumptionResponseSchema = z.object({
   workspaces: z.array(workspaceConsumptionSchema),
   /** The 20 people who used the most tokens. */
   users: z.array(userConsumptionSchema),
+  /** Developer API keys used over the period, heaviest first. */
+  apiKeys: z.array(
+    z.object({
+      keyId: z.string(),
+      name: z.string(),
+      scope: z.enum(['workspace', 'instance']),
+      workspaceId: z.string().nullable(),
+      workspaceName: z.string().nullable(),
+      revoked: z.boolean(),
+      requests: z.number(),
+      /** Direct model calls (also counted per model above). */
+      modelTokens: z.number(),
+      /** Published agents' runs (also counted in their workspace above). */
+      agentTokens: z.number(),
+    })
+  ),
 })
 
 /** Consumption of the whole instance over a period (Nexora edition, instance admins). */

@@ -123,6 +123,7 @@ import { useTablesList } from '@/hooks/queries/tables'
 import { useWorkflowMap } from '@/hooks/queries/workflows'
 import { useReactiveConditions } from '@/hooks/use-reactive-conditions'
 import { useSelectorDisplayName } from '@/hooks/use-selector-display-name'
+import { useBlockDisplay } from '@/hooks/use-translated-block-config'
 import { getModelSunsetStatus } from '@/providers/models'
 import { useIsCurrentWorkflowExecuting } from '@/stores/execution'
 import { usePanelEditorStore, usePanelStore } from '@/stores/panel'
@@ -654,7 +655,8 @@ export const WorkflowBlock = memo(function WorkflowBlock({
   selected,
 }: NodeProps<WorkflowBlockNode>) {
   const t = useTranslations('editor.workflowBlock')
-  const { type, config, name, isPending } = data
+  const { type, name, isPending } = data
+  const { config, name: displayName } = useBlockDisplay(data.config, name)
 
   const contentRef = useRef<HTMLDivElement>(null)
 
@@ -897,7 +899,7 @@ export const WorkflowBlock = memo(function WorkflowBlock({
       ? displayAdvancedMode
       : displayAdvancedMode || hasAdvancedValues(config.subBlocks, rawValues, canonicalIndex)
     const effectiveTrigger = displayTriggerMode
-    const canvasPresentation = resolveCanvasBlockPresentation(config, name, rawValues)
+    const canvasPresentation = resolveCanvasBlockPresentation(config, displayName, rawValues)
 
     /*
      * Visible on the card, whether or not it holds a value. A sentence's core
@@ -960,7 +962,7 @@ export const WorkflowBlock = memo(function WorkflowBlock({
     hiddenByReactiveCondition,
     blockSubBlockValues,
     activeWorkflowId,
-    name,
+    displayName,
   ])
 
   const subBlockRows = subBlockRowsData.rows

@@ -8658,3 +8658,68 @@ export const knowledgeReindexVector = pgTable(
   },
   (t) => [index('knowledge_reindex_vector_kb_generation_idx').on(t.knowledgeBaseId, t.generation)]
 )
+
+/**
+ * Nexora edition: a key of the OpenAI-compatible developer API (`<instance>/v1`). It belongs to a
+ * workspace (its models and published agents) or to the whole instance (models only), never to a
+ * person: whoever created it is recorded for the audit log only, and the key outlives them. Only
+ * the SHA-256 of the value is stored; the value is shown once, at creation. A revoked key keeps
+ * its row (and its usage) with `revoked_at` set.
+ */
+export const nexoraApiKey = pgTable(
+  'nexora_api_key',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    /** `workspace` or `instance`. */
+    scope: text('scope').notNull(),
+    workspaceId: text('workspace_id').references(() => workspace.id, { onDelete: 'cascade' }),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    keyHash: text('key_hash').notNull(),
+    /** The value's last characters, to tell keys apart in the list. */
+    keySuffix: text('key_suffix').notNull(),
+    /** Nexora API model names (aliases allowed) the key may call; `null` for every model. */
+    allowedModels: jsonb('allowed_models').$type<string[]>(),
+    /** Whether a workspace key may call the workspace's published agents (`agent:<name>`). */
+    allowAgents: boolean('allow_agents').notNull().default(true),
+    /** Tokens per calendar month (instance time zone); `null` for no cap. */
+    monthlyTokenCap: bigint('monthly_token_cap', { mode: 'number' }),
+    requestsPerMinute: integer('requests_per_minute').notNull().default(60),
+    expiresAt: timestamp('expires_at'),
+    revokedAt: timestamp('revoked_at'),
+    revokedBy: text('revoked_by').references(() => user.id, { onDelete: 'set null' }),
+    lastUsedAt: timestamp('last_used_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('nexora_api_key_hash_idx').on(t.keyHash),
+    index('nexora_api_key_workspace_idx').on(t.workspaceId, t.createdAt),
+    check(
+      'nexora_api_key_scope_check',
+      sql`(${t.scope} = 'workspace' AND ${t.workspaceId} IS NOT NULL) OR (${t.scope} = 'instance' AND ${t.workspaceId} IS NULL)`
+    ),
+  ]
+)
+
+/**
+ * Nexora edition: what one developer API key used, per local day (instance time zone) and per
+ * model (`agent:<name>` for a published agent): requests and tokens, written by the gateway when
+ * each call ends.
+ */
+export const nexoraApiKeyUsage = pgTable(
+  'nexora_api_key_usage',
+  {
+    keyId: text('key_id')
+      .notNull()
+      .references(() => nexoraApiKey.id, { onDelete: 'cascade' }),
+    day: date('day').notNull(),
+    model: text('model').notNull(),
+    requests: integer('requests').notNull().default(0),
+    promptTokens: bigint('prompt_tokens', { mode: 'number' }).notNull().default(0),
+    completionTokens: bigint('completion_tokens', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.keyId, t.day, t.model] }),
+    index('nexora_api_key_usage_day_idx').on(t.day),
+  ]
+)

@@ -586,6 +586,29 @@
     "issues": "Nexora rencontre des difficultés",
     "viewStatus": "Voir l’état du service"
   },
+  "statusPage": {
+    "returnHome": "Retour à l’accueil"
+  },
+  "generatedPassword": {
+    "generate": "Générer un mot de passe",
+    "generateTooltip": "Générer",
+    "copy": "Copier le mot de passe",
+    "copyTooltip": "Copier",
+    "copiedTooltip": "Copié",
+    "show": "Afficher le mot de passe",
+    "hide": "Masquer le mot de passe",
+    "showTooltip": "Afficher",
+    "hideTooltip": "Masquer"
+  },
+  "realtimeStatus": {
+    "reconnecting": "Reconnexion…",
+    "joiningWorkflow": "Connexion au workflow…",
+    "connectionUnavailable": "Connexion indisponible",
+    "connectionUnavailableDescription": "Vos dernières modifications n’ont peut-être pas été enregistrées. Actualisez la page pour resynchroniser.",
+    "unableToConnect": "Impossible de se connecter au workflow",
+    "unableToConnectDescription": "Les modifications ne peuvent pas être enregistrées. Actualisez la page pour réessayer.",
+    "refresh": "Actualiser"
+  },
   "timeCell": {
     "now": "Maintenant",
     "minutesAgo": "Il y a {count, plural, one {# minute} other {# minutes}}",

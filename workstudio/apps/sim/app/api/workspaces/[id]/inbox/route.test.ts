@@ -37,6 +37,7 @@ vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
 
 vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET, PATCH } from '@/app/api/workspaces/[id]/inbox/route'
 
@@ -107,7 +108,7 @@ describe('Inbox config secret policy', () => {
   })
 })
 
-const REFUSAL = "The inbox is not available under your organization's permission group"
+const REFUSAL = capabilityRefusal('inbox.use')
 
 function patchRequest() {
   return createMockRequest(

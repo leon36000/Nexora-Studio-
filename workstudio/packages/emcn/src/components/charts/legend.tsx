@@ -1,6 +1,6 @@
 'use client'
 
-import { Chip, cn } from '@sim/emcn'
+import { Chip, cn, formatEmcnLabel, useEmcnLabels } from '@sim/emcn'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 const chartLegendVariants = cva('flex min-w-0 flex-1 gap-0.5', {
@@ -34,6 +34,7 @@ export function ChartLegend({
   onSelect,
   layout,
 }: ChartLegendProps) {
+  const labels = useEmcnLabels()
   return (
     <ul className={chartLegendVariants({ layout })}>
       {items.map((item) => (
@@ -48,7 +49,9 @@ export function ChartLegend({
             fullWidth
             active={selectedId === item.id}
             aria-pressed={selectedId === item.id}
-            aria-label={`Highlight ${item.label}${item.value ? `: ${item.value}` : ''}`}
+            aria-label={formatEmcnLabel(labels.highlightSeries, {
+              label: item.value ? `${item.label}: ${item.value}` : item.label,
+            })}
             onMouseEnter={() => onHighlight(item.id)}
             onMouseLeave={() => onHighlight(null)}
             onFocus={() => onHighlight(item.id)}

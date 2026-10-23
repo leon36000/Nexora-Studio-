@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { cn } from '../../lib/cn'
 import { ChipInput } from '../chip-input/chip-input'
+import { useEmcnLabels } from '../labels/labels'
 
 /**
  * Formats an `HH:mm` (24h) value as the 12h display label (`9:30 AM`).
@@ -71,6 +72,7 @@ const ChipTimePicker = React.forwardRef<HTMLInputElement, ChipTimePickerProps>(
     { value, onChange, placeholder = '10:00 AM', disabled, fullWidth, className },
     ref
   ) {
+    const labels = useEmcnLabels()
     const [text, setText] = React.useState(() => formatTimeLabel(value))
     const [prevValue, setPrevValue] = React.useState(value)
 
@@ -119,7 +121,7 @@ const ChipTimePicker = React.forwardRef<HTMLInputElement, ChipTimePickerProps>(
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        aria-label='Time'
+        aria-label={labels.time}
         autoComplete='off'
         spellCheck={false}
         className={cn(fullWidth ? 'w-full' : 'w-[88px]', className)}

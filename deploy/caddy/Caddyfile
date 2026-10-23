@@ -5,10 +5,20 @@
 
 {$NEXORA_DOMAIN} {
 	tls {$NEXORA_TLS}
-	encode zstd gzip
-	@realtime path /socket.io/*
-	reverse_proxy @realtime workstudio-realtime:3002
-	reverse_proxy workstudio:3000
+	# API des développeurs, compatible OpenAI : https://<domaine>/v1 (WorkStudio la sert sous
+	# /api/nexora/v1). Ni compression ni tampon : les réponses en flux arrivent mot à mot.
+	@developer_api path /v1 /v1/*
+	handle @developer_api {
+		reverse_proxy workstudio:3000 {
+			flush_interval -1
+		}
+	}
+	handle {
+		encode zstd gzip
+		@realtime path /socket.io/*
+		reverse_proxy @realtime workstudio-realtime:3002
+		reverse_proxy workstudio:3000
+	}
 }
 
 connect.{$NEXORA_DOMAIN} {
@@ -16,6 +26,8 @@ connect.{$NEXORA_DOMAIN} {
 	reverse_proxy nexora-connect:3000
 }
 
+# Accès direct historique à Nexora API (ses propres clés, créées par curl). Les clés de
+# Réglages › Clés API passent par https://<domaine>/v1 ci-dessus.
 api.{$NEXORA_DOMAIN} {
 	tls {$NEXORA_TLS}
 	reverse_proxy nexora-api:8000

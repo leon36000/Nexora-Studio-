@@ -3,6 +3,7 @@
 import { cn, OverflowText } from '@sim/emcn'
 import { BLOCK_DIMENSIONS } from '@sim/workflow-renderer'
 import { Handle, Position } from '@xyflow/react'
+import { useTranslations } from 'next-intl'
 import { getDisplayValue } from '@/lib/workflows/subblocks/display'
 import type { PreviewPortRow } from '@/app/workspace/[workspaceId]/w/components/preview/components/preview-workflow/preview-ports'
 
@@ -20,33 +21,37 @@ export function PreviewPortRows({
   lightweight = false,
   borderWidth = 0,
 }: PreviewPortRowsProps) {
+  const t = useTranslations('editor.preview.ports')
   if (!rows.length) return null
   return (
     <div className='relative flex flex-col gap-2 p-2'>
-      {rows.map((row) => (
-        <div
-          key={row.handleId ? `${row.type}:${row.handleId}` : row.title}
-          className={cn(
-            'flex h-5 items-center gap-2',
-            row.removed
-              ? 'opacity-45'
-              : row.field &&
-                  changedFields?.has(row.field) &&
-                  '-mx-1 rounded-sm bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] px-1'
-          )}
-        >
-          <OverflowText
-            label={row.removed ? `Removed ${row.title}` : row.title}
-            className='text-[var(--text-tertiary)] text-sm'
-          />
-          {!lightweight && (
+      {rows.map((row) => {
+        const title = row.titleKey ? t(row.titleKey) : row.title
+        return (
+          <div
+            key={row.handleId ? `${row.type}:${row.handleId}` : (row.titleKey ?? row.title)}
+            className={cn(
+              'flex h-5 items-center gap-2',
+              row.removed
+                ? 'opacity-45'
+                : row.field &&
+                    changedFields?.has(row.field) &&
+                    '-mx-1 rounded-sm bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] px-1'
+            )}
+          >
             <OverflowText
-              label={getDisplayValue(row.value)}
-              className='flex-1 text-right text-[var(--text-primary)] text-sm'
+              label={row.removed ? t('removed', { title }) : title}
+              className='text-[var(--text-tertiary)] text-sm'
             />
-          )}
-        </div>
-      ))}
+            {!lightweight && (
+              <OverflowText
+                label={getDisplayValue(row.value)}
+                className='flex-1 text-right text-[var(--text-primary)] text-sm'
+              />
+            )}
+          </div>
+        )
+      })}
       {rows.map((row, index) =>
         row.handleId && row.type ? (
           <Handle

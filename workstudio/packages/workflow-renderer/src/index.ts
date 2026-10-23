@@ -21,6 +21,7 @@ export {
   type WorkflowEdge,
   WorkflowEdgeView,
 } from './edge/workflow-edge-view'
+export { type WorkflowRendererLabels, WorkflowRendererLabelsProvider } from './labels'
 export { humanizeBlockName } from './lib/humanize-block-name'
 export { sortNodesParentsFirst } from './node-order'
 export {

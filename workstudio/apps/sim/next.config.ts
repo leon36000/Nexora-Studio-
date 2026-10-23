@@ -690,7 +690,14 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return {
       /** `beforeFiles` so a Markdown client's `/` reaches `/index.md` ahead of the HTML page. */
-      beforeFiles: [{ source: '/', ...MARKDOWN_REQUEST, destination: '/index.md' }],
+      beforeFiles: [
+        { source: '/', ...MARKDOWN_REQUEST, destination: '/index.md' },
+        /**
+         * Nexora edition: the OpenAI-compatible developer API at `<instance>/v1`, the address every
+         * OpenAI client expects; WorkStudio's own API stays under `/api/v1`.
+         */
+        { source: '/v1/:path*', destination: '/api/nexora/v1/:path*' },
+      ],
       afterFiles: [
         {
           source: '/favicon.ico',

@@ -1,15 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Chip, ChipInput, ChipLink, ChipTextarea, cn } from '@sim/emcn'
+import { Chip, ChipInput, ChipLink, ChipSelect, ChipTextarea, cn } from '@sim/emcn'
 import { HelpCircle, Plus, Send, Sparkles, Square } from '@sim/emcn/icons'
 import { generateId } from '@sim/utils/id'
 import { omit } from '@sim/utils/object'
 import { useTranslations } from 'next-intl'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { DEFAULT_MODEL_ALIAS } from '@/lib/nexora/model-ids'
+import { REASONING_EFFORTS, type ReasoningEffort } from '@/lib/nexora/reasoning'
 import { FormField } from '@/app/workspace/[workspaceId]/agents/components/form-field'
 import { useNewAgent } from '@/app/workspace/[workspaceId]/agents/use-new-agent'
+import { CodeButton } from '@/app/workspace/[workspaceId]/developpeurs/components/code-button'
 import {
   type ColumnRun,
   PlaygroundColumn,
@@ -23,6 +25,8 @@ const DEFAULT_MODEL = `vllm/${DEFAULT_MODEL_ALIAS}`
 const DEFAULT_TEMPERATURE = '0.7'
 const DEFAULT_MAX_TOKENS = '1024'
 const MAX_TOKENS_LIMIT = 8192
+const DEFAULT_EFFORT = 'default'
+const EFFORT_OPTIONS = [DEFAULT_EFFORT, ...REASONING_EFFORTS] as const
 
 const COLUMN_GRID = {
   1: 'grid-cols-1',
@@ -72,6 +76,7 @@ export function Playground({ workspaceId }: PlaygroundProps) {
   const [message, setMessage] = useState('')
   const [temperature, setTemperature] = useState(DEFAULT_TEMPERATURE)
   const [maxTokens, setMaxTokens] = useState(DEFAULT_MAX_TOKENS)
+  const [effort, setEffort] = useState<ReasoningEffort | typeof DEFAULT_EFFORT>(DEFAULT_EFFORT)
 
   const temperatureValue = parseTemperature(temperature)
   const maxTokensValue = parseMaxTokens(maxTokens)
@@ -106,7 +111,11 @@ export function Playground({ workspaceId }: PlaygroundProps) {
     controllers.set(column.id, controller)
     const startedAt = performance.now()
     let text = ''
-    setRuns((previous) => ({ ...previous, [column.id]: { text: '', status: 'streaming' } }))
+    let thinking = ''
+    setRuns((previous) => ({
+      ...previous,
+      [column.id]: { text: '', thinking: '', status: 'streaming' },
+    }))
     void streamPlaygroundAnswer({
       body: {
         workspaceId,
@@ -117,16 +126,26 @@ export function Playground({ workspaceId }: PlaygroundProps) {
         ],
         temperature: temperatureSetting,
         maxTokens: maxTokensSetting,
+        ...(effort === DEFAULT_EFFORT ? {} : { reasoningEffort: effort }),
       },
       signal: controller.signal,
       onChunk: (chunk) => {
         text += chunk
         updateRun(column.id, controller, { text })
       },
+      onThinking: (chunk) => {
+        thinking += chunk
+        updateRun(column.id, controller, { thinking })
+      },
     }).then((outcome) => {
       const latencyMs = performance.now() - startedAt
       if (outcome.status === 'done') {
-        updateRun(column.id, controller, { status: 'done', latencyMs, usage: outcome.usage })
+        updateRun(column.id, controller, {
+          status: 'done',
+          latencyMs,
+          usage: outcome.usage,
+          effortIgnored: outcome.effortIgnored,
+        })
       } else if (outcome.status === 'stopped') {
         updateRun(column.id, controller, { status: 'stopped', latencyMs })
       } else {
@@ -182,6 +201,11 @@ export function Playground({ workspaceId }: PlaygroundProps) {
         <header className='flex items-center justify-between gap-4'>
           <h1 className='font-medium text-[var(--text-body)] text-lg'>{t('title')}</h1>
           <div className='flex shrink-0 items-center gap-1'>
+            <CodeButton
+              workspaceId={workspaceId}
+              model={(columns[0]?.model ?? DEFAULT_MODEL).replace(/^vllm\//, '')}
+              instructions={instructions}
+            />
             {canEdit && (
               <Chip leftIcon={Sparkles} disabled={isCreating} onClick={handleSaveAsAgent}>
                 {t('saveAsAgent')}
@@ -251,6 +275,23 @@ export function Playground({ workspaceId }: PlaygroundProps) {
                   value={maxTokens}
                   error={maxTokensValue === null}
                   onChange={(event) => setMaxTokens(event.target.value)}
+                />
+              </FormField>
+            </div>
+            <div className='w-[200px]'>
+              <FormField label={t('reasoningEffort')}>
+                <ChipSelect
+                  aria-label={t('reasoningEffort')}
+                  fullWidth
+                  value={effort}
+                  onChange={(value) => {
+                    const next = EFFORT_OPTIONS.find((option) => option === value)
+                    if (next) setEffort(next)
+                  }}
+                  options={EFFORT_OPTIONS.map((option) => ({
+                    value: option,
+                    label: t(`efforts.${option}`),
+                  }))}
                 />
               </FormField>
             </div>

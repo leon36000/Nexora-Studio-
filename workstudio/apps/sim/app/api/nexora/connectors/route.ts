@@ -3,6 +3,7 @@ import { listConnectorsContract } from '@/lib/api/contracts/nexora-connectors'
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { listCatalog } from '@/lib/nexora/connect-admin'
+import { distinctCatalogCategories } from '@/lib/nexora/connect-categories'
 import {
   connectorAccess,
   connectorErrorResponse,
@@ -36,7 +37,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
         .slice(offset, offset + limit)
         .map((s) => ({ ...s, connected: connected.has(s.service) })),
       total: ordered.length,
-      categories: [...new Set(catalog.flatMap((s) => s.categories))].sort(),
+      categories: distinctCatalogCategories(catalog.flatMap((s) => s.categories)),
       connections,
     })
   } catch (error) {

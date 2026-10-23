@@ -6,6 +6,7 @@ import { Plus } from '@sim/emcn/icons'
 import { truncate } from '@sim/utils/string'
 import { useFormatter, useTranslations } from 'next-intl'
 import { AddModelModal } from '@/app/workspace/[workspaceId]/settings/components/nexora-models/add-model-modal'
+import { ModelCardModal } from '@/app/workspace/[workspaceId]/settings/components/nexora-models/model-card-modal'
 import { RowActionsMenu } from '@/app/workspace/[workspaceId]/settings/components/row-actions-menu'
 import {
   SettingsEmptyState,
@@ -27,6 +28,7 @@ import {
 
 const SKELETON_ROWS = [0, 1, 2] as const
 const TEST_REPLY_MAX_LENGTH = 160
+const BADGE_ROW = 'flex flex-wrap items-center justify-end gap-1'
 
 /**
  * Réglages › Modèles: the models Nexora API serves to every block, each for one usage (chat,
@@ -44,6 +46,7 @@ export function NexoraModels() {
   const testModel = useTestNexoraModel()
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<NexoraModel | null>(null)
+  const [cardTarget, setCardTarget] = useState<NexoraModel | null>(null)
 
   const describeError = (cause: unknown) => t(`errors.${getNexoraModelErrorCode(cause)}`)
 
@@ -59,14 +62,19 @@ export function NexoraModels() {
 
   const handleTest = (model: NexoraModel) => {
     testModel.mutate(model.id, {
-      onSuccess: ({ latencyMs, reply }) => {
+      onSuccess: ({ latencyMs, reply, truncated }) => {
+        const seconds = format.number(latencyMs / 1000, {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
+        if (truncated) {
+          toast.success(t('test.truncated', { name: model.name, seconds }))
+          return
+        }
         toast.success(
           t('test.success', {
             name: model.name,
-            seconds: format.number(latencyMs / 1000, {
-              minimumFractionDigits: 1,
-              maximumFractionDigits: 1,
-            }),
+            seconds,
             reply: truncate(reply.trim(), TEST_REPLY_MAX_LENGTH, '…'),
           })
         )
@@ -101,6 +109,49 @@ export function NexoraModels() {
         toast.error(describeError(cause))
       },
     })
+  }
+
+  const describeCard = (model: NexoraModel) => {
+    const { card } = model
+    return (
+      <span className={BADGE_ROW}>
+        {model.isDefault && (
+          <Badge variant='gray-secondary' size='sm'>
+            {t('defaultBadge')}
+          </Badge>
+        )}
+        {card.reasoning && (
+          <Badge variant='purple' size='sm'>
+            {t('card.reasoning')}
+          </Badge>
+        )}
+        {card.tools && (
+          <Badge variant='blue-secondary' size='sm'>
+            {t('card.tools')}
+          </Badge>
+        )}
+        {card.vision && (
+          <Badge variant='teal' size='sm'>
+            {t('card.vision')}
+          </Badge>
+        )}
+        {card.contextTokens !== null && (
+          <Badge variant='gray-secondary' size='sm'>
+            {t('card.context', {
+              tokens: format.number(card.contextTokens, { notation: 'compact' }),
+            })}
+          </Badge>
+        )}
+        <Badge
+          variant={
+            card.location === 'external' ? 'amber' : card.location === 'eu' ? 'blue' : 'green'
+          }
+          size='sm'
+        >
+          {t(`card.locations.${card.location}`)}
+        </Badge>
+      </span>
+    )
   }
 
   const errorCode = error ? getNexoraModelErrorCode(error) : null
@@ -146,11 +197,9 @@ export function NexoraModels() {
                       <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
                         {t('testing')}
                       </span>
-                    ) : model.isDefault ? (
-                      <Badge variant='gray-secondary' size='sm'>
-                        {t('defaultBadge')}
-                      </Badge>
-                    ) : undefined
+                    ) : (
+                      describeCard(model)
+                    )
                   }
                   trailing={
                     <RowActionsMenu
@@ -160,6 +209,10 @@ export function NexoraModels() {
                           label: t('actions.test'),
                           disabled: isTesting,
                           onSelect: () => handleTest(model),
+                        },
+                        {
+                          label: t('actions.editCard'),
+                          onSelect: () => setCardTarget(model),
                         },
                         // Only a chat model can answer nexora-default.
                         ...(model.isDefault || model.usage !== 'chat'
@@ -216,6 +269,14 @@ export function NexoraModels() {
           catalog={data.catalog}
           localModels={data.localModels}
           ollamaAvailable={data.ollamaAvailable}
+        />
+      )}
+
+      {cardTarget && (
+        <ModelCardModal
+          key={cardTarget.id}
+          model={cardTarget}
+          onClose={() => setCardTarget(null)}
         />
       )}
 

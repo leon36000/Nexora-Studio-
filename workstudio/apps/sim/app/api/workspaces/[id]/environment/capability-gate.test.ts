@@ -28,6 +28,7 @@ vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 
 vi.mock('@/lib/credentials/environment', () => credentialsEnvironmentMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET, PUT } from '@/app/api/workspaces/[id]/environment/route'
 
@@ -55,7 +56,7 @@ function writeEnvironment() {
 
 /** The sentence and detail code every capability refusal in the app uses. */
 const SECRETS_REFUSAL = {
-  error: "Managing secrets is not available under your organization's permission group",
+  error: capabilityRefusal('secrets.manage'),
   details: { code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' },
 }
 

@@ -60,6 +60,7 @@ vi.mock('@/lib/oauth/utils', () => oauthUtilsMock)
 
 import {
   getApiKeyCondition,
+  getModelCapabilityCondition,
   getSerializedModelProviderId,
   parseOptionalBooleanInput,
   parseOptionalJsonInput,
@@ -182,6 +183,21 @@ describe('getApiKeyCondition / shouldRequireApiKeyForModel', () => {
       expect(evaluateCondition('llama3:latest')).toBe(true)
       expect(evaluateCondition('mistral:latest')).toBe(true)
       expect(evaluateCondition('gpt-4o')).toBe(true)
+    })
+  })
+})
+
+describe('getModelCapabilityCondition', () => {
+  it('shows the field for a model whose provider passes the setting through (Nexora models)', () => {
+    const condition = getModelCapabilityCondition(['o4-mini'], ['vllm/'])
+    expect(condition({ model: 'vllm/cloud-glm-5-3' })).toEqual({
+      field: 'model',
+      value: 'vllm/cloud-glm-5-3',
+    })
+    expect(condition({ model: 'gpt-4o' })).toEqual({ field: 'model', value: ['o4-mini'] })
+    expect(getModelCapabilityCondition(['o4-mini'])({ model: 'vllm/x' })).toEqual({
+      field: 'model',
+      value: ['o4-mini'],
     })
   })
 })

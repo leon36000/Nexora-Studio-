@@ -9,6 +9,7 @@ import { SettingsNavigationGuard } from '@/components/settings/settings-navigati
 import { PasteAdmissionGuard } from '@/app/_shell/paste-admission-guard'
 import { BrowserTelemetry } from '@/app/_shell/providers/browser-telemetry'
 import { PostHogProvider } from '@/app/_shell/providers/posthog-provider'
+import { SharedLabelsProvider } from '@/app/_shell/providers/shared-labels-provider'
 import { generateBrandedMetadata, generateThemeCSS } from '@/ee/whitelabeling'
 import '@/app/_styles/globals.css'
 import { env } from '@/lib/core/config/env'
@@ -267,9 +268,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <HydrationErrorHandler />
         <DesktopUpdateGate />
         <NextIntlClientProvider>
-          <NuqsAdapter>
-            {isHosted ? <ConsentProvider>{application}</ConsentProvider> : application}
-          </NuqsAdapter>
+          <SharedLabelsProvider>
+            <NuqsAdapter>
+              {isHosted ? <ConsentProvider>{application}</ConsentProvider> : application}
+            </NuqsAdapter>
+          </SharedLabelsProvider>
         </NextIntlClientProvider>
       </body>
     </html>

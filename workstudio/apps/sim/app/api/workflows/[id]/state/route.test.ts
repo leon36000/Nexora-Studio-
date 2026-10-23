@@ -20,6 +20,7 @@ vi.mock('@/lib/workflows/persistence/save-normalized-state', () => ({
 }))
 
 import { AuthType, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { PUT } from '@/app/api/workflows/[id]/state/route'
 
@@ -67,7 +68,7 @@ describe('PUT /api/workflows/[id]/state', () => {
     expect(response.status).toBe(403)
     const body = await response.json()
     expect(body.details).toEqual({ code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' })
-    expect(body.error).toMatch(/permission group/)
+    expect(body.error).toBe(capabilityRefusal('workflows.edit'))
     expect(mockSaveWorkflowNormalizedState).not.toHaveBeenCalled()
   })
 

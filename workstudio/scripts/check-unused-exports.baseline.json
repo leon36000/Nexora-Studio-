@@ -4753,7 +4753,6 @@
   "apps/sim/lib/organizations/application/reads.ts#requireOrganizationMemberDirectory",
   "apps/sim/lib/permission-groups/capabilities.ts#AssertsParameterizedCapabilityIsExcluded",
   "apps/sim/lib/permission-groups/capabilities.ts#AssertsStaticCapabilityResolves",
-  "apps/sim/lib/permission-groups/capabilities.ts#CAPABILITY_IDS",
   "apps/sim/lib/permission-groups/capabilities.ts#ParameterizedCapabilityRule",
   "apps/sim/lib/permission-groups/fields.ts#AssertsAllowlistStaysPrecise",
   "apps/sim/lib/permission-groups/fields.ts#AssertsAuthTypesStayPrecise",

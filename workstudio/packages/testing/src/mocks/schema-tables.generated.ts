@@ -2172,6 +2172,25 @@ export const GENERATED_SCHEMA_TABLES = {
     'vector',
     'createdAt',
   ],
+  nexoraApiKey: [
+    'id',
+    'name',
+    'scope',
+    'workspaceId',
+    'createdBy',
+    'keyHash',
+    'keySuffix',
+    'allowedModels',
+    'allowAgents',
+    'monthlyTokenCap',
+    'requestsPerMinute',
+    'expiresAt',
+    'revokedAt',
+    'revokedBy',
+    'lastUsedAt',
+    'createdAt',
+  ],
+  nexoraApiKeyUsage: ['keyId', 'day', 'model', 'requests', 'promptTokens', 'completionTokens'],
 } as const
 
 /** Every `pgEnum` export mapped to its values. */

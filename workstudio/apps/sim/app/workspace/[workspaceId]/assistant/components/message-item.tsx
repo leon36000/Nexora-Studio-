@@ -5,6 +5,7 @@ import { Check, Duplicate, Loader, Paperclip, RefreshCw } from '@sim/emcn/icons'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import type { AssistantMessageFile } from '@/lib/api/contracts/nexora-assistant'
+import { ThinkingPanel } from '@/app/workspace/[workspaceId]/components/thinking-panel/thinking-panel'
 
 /** Loaded on demand: keeps the Markdown renderer out of the page's first bundle. */
 const MarkdownRenderer = dynamic(
@@ -17,6 +18,8 @@ interface MessageItemProps {
   files: AssistantMessageFile[]
   /** An answer still arriving: the text so far, or a loader before the first word. */
   isStreaming?: boolean
+  /** A reasoning model's reasoning, folded above the answer. */
+  thinking?: string
   /** A muted line under an answer (interrupted, stopped). */
   note?: string
   /** An error line under an answer. */
@@ -31,6 +34,7 @@ export function MessageItem({
   content,
   files,
   isStreaming = false,
+  thinking = '',
   note,
   error,
   onRegenerate,
@@ -68,11 +72,12 @@ export function MessageItem({
 
   return (
     <article className='flex flex-col gap-1.5'>
+      <ThinkingPanel text={thinking} streaming={isStreaming} answerStarted={hasText} />
       {hasText ? (
         <div className='min-w-0 break-words text-[var(--text-body)] text-sm'>
           <MarkdownRenderer content={content} sameOriginImages />
         </div>
-      ) : isStreaming ? (
+      ) : isStreaming && !thinking ? (
         <Loader className='size-[14px] text-[var(--text-muted)]' animate />
       ) : null}
       {(note || error) && (

@@ -48,6 +48,7 @@ interface ThreadItem {
   content: string
   files: AssistantMessageFile[]
   isStreaming: boolean
+  thinking?: string
   note?: string
   error?: string
 }
@@ -125,6 +126,7 @@ export function Assistant({ workspaceId }: AssistantProps) {
         key: 'pending-answer',
         role: 'assistant',
         content: answer.text,
+        thinking: answer.thinking,
         files: NO_FILES,
         isStreaming,
         note: answer.status === 'stopped' ? t('thread.stopped') : undefined,
@@ -267,6 +269,7 @@ export function Assistant({ workspaceId }: AssistantProps) {
                   content={item.content}
                   files={item.files}
                   isStreaming={item.isStreaming}
+                  thinking={item.thinking}
                   note={item.note}
                   error={item.error}
                   onRegenerate={

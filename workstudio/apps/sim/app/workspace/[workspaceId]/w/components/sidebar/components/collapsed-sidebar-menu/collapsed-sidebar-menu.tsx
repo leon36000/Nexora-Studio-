@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
   Loader,
   OverflowText,
+  useEmcnLabels,
 } from '@sim/emcn'
 import { MoreHorizontal, Pencil, Pin, Plus, SquareArrowUpRight } from '@sim/emcn/icons'
 import Link from 'next/link'
@@ -61,11 +62,12 @@ export function CollapsedResourceFlyout({
   isLoading = false,
   emptyLabel,
 }: CollapsedResourceFlyoutProps) {
+  const labels = useEmcnLabels()
   if (isLoading) {
     return (
       <DropdownMenuItem disabled>
         <Loader className='size-[14px]' animate />
-        Loading...
+        {labels.loading}
       </DropdownMenuItem>
     )
   }

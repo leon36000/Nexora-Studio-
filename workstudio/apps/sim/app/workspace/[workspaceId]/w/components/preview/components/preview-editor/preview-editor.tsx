@@ -28,7 +28,7 @@ import {
 } from '@sim/emcn/icons'
 import { formatDuration } from '@sim/utils/formatting'
 import { ReactFlowProvider } from '@xyflow/react'
-import { DELETED_WORKFLOW_LABEL } from '@/lib/workflows/labels'
+import { useTranslations } from 'next-intl'
 import { extractReferencePrefixes } from '@/lib/workflows/sanitization/references'
 import {
   buildCanonicalIndexForSurface,
@@ -174,7 +174,7 @@ interface CollapsibleSectionProps {
   defaultExpanded?: boolean
   children: React.ReactNode
   isEmpty?: boolean
-  emptyMessage?: string
+  emptyMessage: string
   /** Whether this section represents an error state (styles title red) */
   isError?: boolean
 }
@@ -187,9 +187,10 @@ function CollapsibleSection({
   defaultExpanded = false,
   children,
   isEmpty = false,
-  emptyMessage = 'No data',
+  emptyMessage,
   isError = false,
 }: CollapsibleSectionProps) {
+  const t = useTranslations('editor.preview')
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   return (
@@ -206,7 +207,11 @@ function CollapsibleSection({
         role='button'
         tabIndex={0}
         aria-expanded={isExpanded}
-        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${title.toLowerCase()}`}
+        aria-label={
+          isExpanded
+            ? t('collapseSection', { section: title.toLowerCase() })
+            : t('expandSection', { section: title.toLowerCase() })
+        }
       >
         <span
           className={cn(
@@ -278,6 +283,8 @@ function ConnectionsSection({
   onResizeMouseDown,
   onToggleCollapsed,
 }: ConnectionsSectionProps) {
+  const t = useTranslations('editor.preview')
+  const tPanel = useTranslations('editor.panelEditor')
   /** Stable string of connection IDs to prevent guard from running on every render */
   const connectionIds = useMemo(() => connections.map((c) => c.blockId).join(','), [connections])
 
@@ -345,12 +352,12 @@ function ConnectionsSection({
         }}
         role='button'
         tabIndex={0}
-        aria-label={isAtMinHeight ? 'Expand connections' : 'Collapse connections'}
+        aria-label={isAtMinHeight ? tPanel('expandConnections') : tPanel('collapseConnections')}
       >
         <ChevronUp
           className={cn('size-[14px] transition-transform', !isAtMinHeight && 'rotate-180')}
         />
-        <div className='text-[var(--text-primary)] text-small'>Connections</div>
+        <div className='text-[var(--text-primary)] text-small'>{tPanel('connections')}</div>
       </div>
 
       {/* Content - styled like ConnectionBlocks */}
@@ -439,7 +446,7 @@ function ConnectionsSection({
                 <span className='text-[9px] text-white'>V</span>
               </div>
               <OverflowText
-                label='Variables'
+                label={t('variables')}
                 className='flex-1 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
                 focusTarget='nearest-interactive'
               />
@@ -488,7 +495,7 @@ function ConnectionsSection({
                 <span className='text-[9px] text-white'>E</span>
               </div>
               <OverflowText
-                label='Secrets'
+                label={t('secrets')}
                 className='flex-1 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
                 focusTarget='nearest-interactive'
               />
@@ -524,21 +531,22 @@ function ConnectionsSection({
 }
 
 /**
- * Configuration for subflow types (loop and parallel) - matches use-subflow-editor.ts
+ * Subflow types (loop and parallel) with the `editor.panelEditor.subflow.types` key
+ * of each label - matches use-subflow-editor.ts
  */
 const SUBFLOW_CONFIG = {
   loop: {
-    typeLabels: {
-      for: 'For Loop',
-      forEach: 'For Each',
-      while: 'While Loop',
-      doWhile: 'Do While Loop',
+    typeLabelKeys: {
+      for: 'forLoop',
+      forEach: 'forEach',
+      while: 'whileLoop',
+      doWhile: 'doWhileLoop',
     },
   },
   parallel: {
-    typeLabels: {
-      count: 'Parallel Count',
-      collection: 'Parallel Each',
+    typeLabelKeys: {
+      count: 'parallelCount',
+      collection: 'parallelEach',
     },
   },
 } as const
@@ -554,6 +562,7 @@ interface SubflowConfigDisplayProps {
  * Matches the exact UI structure of SubflowEditor.
  */
 function SubflowConfigDisplay({ block, loop, parallel }: SubflowConfigDisplayProps) {
+  const t = useTranslations('editor.panelEditor.subflow')
   const isLoop = block.type === 'loop'
   const config = isLoop ? SUBFLOW_CONFIG.loop : SUBFLOW_CONFIG.parallel
 
@@ -561,9 +570,9 @@ function SubflowConfigDisplay({ block, loop, parallel }: SubflowConfigDisplayPro
     ? loop?.loopType || (block.data?.loopType as string) || 'for'
     : parallel?.parallelType || (block.data?.parallelType as string) || 'count'
 
-  const typeOptions = Object.entries(config.typeLabels).map(([value, label]) => ({
+  const typeOptions = Object.entries(config.typeLabelKeys).map(([value, labelKey]) => ({
     value,
-    label,
+    label: t(`types.${labelKey}`),
   }))
 
   const isCountMode = currentType === 'for' || currentType === 'count'
@@ -594,12 +603,12 @@ function SubflowConfigDisplay({ block, loop, parallel }: SubflowConfigDisplayPro
 
   const getConfigLabel = (): string => {
     if (isCountMode) {
-      return `${isLoop ? 'Loop' : 'Parallel'} Iterations`
+      return isLoop ? t('loopIterations') : t('parallelIterations')
     }
     if (isConditionMode) {
-      return 'While Condition'
+      return t('whileCondition')
     }
-    return `${isLoop ? 'Collection' : 'Parallel'} Items`
+    return isLoop ? t('collectionItems') : t('parallelItems')
   }
 
   return (
@@ -607,14 +616,14 @@ function SubflowConfigDisplay({ block, loop, parallel }: SubflowConfigDisplayPro
       {/* Type Selection - matches SubflowEditor */}
       <div>
         <Label className='mb-[6.5px] block pl-0.5 text-small'>
-          {isLoop ? 'Loop Type' : 'Parallel Type'}
+          {isLoop ? t('loopType') : t('parallelType')}
         </Label>
         <Combobox
           options={typeOptions}
           value={currentType}
           onChange={() => {}}
           disabled
-          placeholder='Select type...'
+          placeholder={t('selectType')}
         />
       </div>
 
@@ -634,9 +643,7 @@ function SubflowConfigDisplay({ block, loop, parallel }: SubflowConfigDisplayPro
               disabled
               className='mb-1'
             />
-            <div className='text-[var(--text-tertiary)] text-micro'>
-              Enter a whole number greater than 0.
-            </div>
+            <div className='text-[var(--text-tertiary)] text-micro'>{t('wholeNumberHint')}</div>
           </div>
         ) : (
           <div className='relative'>
@@ -725,6 +732,8 @@ function PreviewEditorContent({
   onClose,
   onDrillDown,
 }: PreviewEditorProps) {
+  const t = useTranslations('editor.preview')
+  const tPanel = useTranslations('editor.panelEditor')
   const normalizedWorkflowVariables = useMemo(() => {
     if (!workflowVariables) return []
     return Object.values(workflowVariables)
@@ -1057,7 +1066,7 @@ function PreviewEditorContent({
 
   if (isSubflow) {
     const isLoop = block.type === 'loop'
-    const subflowName = block.name || (isLoop ? 'Loop' : 'Parallel')
+    const subflowName = block.name || (isLoop ? t('loop') : t('parallel'))
 
     return (
       <div className='relative flex size-full flex-col overflow-hidden border-[var(--border)] border-l bg-[var(--surface-1)]'>
@@ -1067,7 +1076,7 @@ function PreviewEditorContent({
           <OverflowText label={subflowName} className='flex-1 text-[var(--text-primary)] text-sm' />
           {onClose && (
             <Button
-              aria-label='Close preview'
+              aria-label={t('closePreview')}
               variant='ghost'
               iconPadding='sm'
               className='shrink-0'
@@ -1097,11 +1106,11 @@ function PreviewEditorContent({
         <div className='mx-[-1px] flex items-center gap-2 rounded-b-[4px] border-[var(--border)] border-x border-b bg-[var(--surface-4)] px-3 py-1.5'>
           <div className='flex size-[18px] items-center justify-center rounded-sm bg-[var(--surface-3)]' />
           <span className='text-[var(--text-primary)] text-sm'>
-            {block.name || 'Unknown Block'}
+            {block.name || t('unknownBlock')}
           </span>
         </div>
         <div className='p-3'>
-          <p className='text-[var(--text-secondary)] text-small'>Block configuration not found.</p>
+          <p className='text-[var(--text-secondary)] text-small'>{t('configNotFound')}</p>
         </div>
       </div>
     )
@@ -1160,7 +1169,7 @@ function PreviewEditorContent({
         />
         {onClose && (
           <Button
-            aria-label='Close preview'
+            aria-label={t('closePreview')}
             variant='ghost'
             iconPadding='sm'
             className='shrink-0'
@@ -1181,7 +1190,7 @@ function PreviewEditorContent({
               <div className='flex min-w-0 flex-col gap-2 overflow-hidden border-[var(--border)] border-b px-3 py-2.5'>
                 <div className='flex items-center justify-between'>
                   <Badge variant='gray-secondary' size='sm' dot>
-                    Not Executed
+                    {t('notExecuted')}
                   </Badge>
                 </div>
               </div>
@@ -1192,7 +1201,11 @@ function PreviewEditorContent({
               <div className='flex min-w-0 items-center justify-between overflow-hidden border-[var(--border)] border-b px-3 py-2.5'>
                 {executionData.status && (
                   <Badge variant={statusVariant} size='sm' dot>
-                    <span className='capitalize'>{executionData.status}</span>
+                    <span className='capitalize'>
+                      {executionData.status === 'success' || executionData.status === 'error'
+                        ? t(`status.${executionData.status}`)
+                        : executionData.status}
+                    </span>
                   </Badge>
                 )}
                 {executionData.durationMs !== undefined && (
@@ -1206,13 +1219,13 @@ function PreviewEditorContent({
             {/* Input Section - Collapsible */}
             {executionData?.input !== undefined && (
               <CollapsibleSection
-                title='Input'
+                title={t('input')}
                 defaultExpanded={false}
                 isEmpty={
                   formatValueAsJson(executionData.input) === '—' ||
                   formatValueAsJson(executionData.input) === ''
                 }
-                emptyMessage='No input data'
+                emptyMessage={t('noInputData')}
               >
                 <div
                   onContextMenu={handleExecutionContextMenu}
@@ -1234,7 +1247,7 @@ function PreviewEditorContent({
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                           <Button
-                            aria-label={copiedSection === 'input' ? 'Copied' : 'Copy'}
+                            aria-label={copiedSection === 'input' ? t('copied') : t('copy')}
                             type='button'
                             variant='ghost'
                             onClick={(e) => {
@@ -1251,13 +1264,13 @@ function PreviewEditorContent({
                           </Button>
                         </Tooltip.Trigger>
                         <Tooltip.Content side='top'>
-                          {copiedSection === 'input' ? 'Copied' : 'Copy'}
+                          {copiedSection === 'input' ? t('copied') : t('copy')}
                         </Tooltip.Content>
                       </Tooltip.Root>
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                           <Button
-                            aria-label='Search'
+                            aria-label={t('search')}
                             type='button'
                             variant='ghost'
                             onClick={(e) => {
@@ -1269,7 +1282,7 @@ function PreviewEditorContent({
                             <Search className='size-[10px]' />
                           </Button>
                         </Tooltip.Trigger>
-                        <Tooltip.Content side='top'>Search</Tooltip.Content>
+                        <Tooltip.Content side='top'>{t('search')}</Tooltip.Content>
                       </Tooltip.Root>
                     </div>
                   )}
@@ -1280,13 +1293,13 @@ function PreviewEditorContent({
             {/* Output Section - Collapsible, expanded by default */}
             {executionData?.output !== undefined && (
               <CollapsibleSection
-                title={executionData.status === 'error' ? 'Error' : 'Output'}
+                title={executionData.status === 'error' ? t('error') : t('output')}
                 defaultExpanded={true}
                 isEmpty={
                   formatValueAsJson(executionData.output) === '—' ||
                   formatValueAsJson(executionData.output) === ''
                 }
-                emptyMessage='No output data'
+                emptyMessage={t('noOutputData')}
                 isError={executionData.status === 'error'}
               >
                 <div onContextMenu={handleExecutionContextMenu} className='relative'>
@@ -1308,7 +1321,7 @@ function PreviewEditorContent({
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                           <Button
-                            aria-label={copiedSection === 'output' ? 'Copied' : 'Copy'}
+                            aria-label={copiedSection === 'output' ? t('copied') : t('copy')}
                             type='button'
                             variant='ghost'
                             onClick={(e) => {
@@ -1325,13 +1338,13 @@ function PreviewEditorContent({
                           </Button>
                         </Tooltip.Trigger>
                         <Tooltip.Content side='top'>
-                          {copiedSection === 'output' ? 'Copied' : 'Copy'}
+                          {copiedSection === 'output' ? t('copied') : t('copy')}
                         </Tooltip.Content>
                       </Tooltip.Root>
                       <Tooltip.Root>
                         <Tooltip.Trigger asChild>
                           <Button
-                            aria-label='Search'
+                            aria-label={t('search')}
                             type='button'
                             variant='ghost'
                             onClick={(e) => {
@@ -1343,7 +1356,7 @@ function PreviewEditorContent({
                             <Search className='size-[10px]' />
                           </Button>
                         </Tooltip.Trigger>
-                        <Tooltip.Content side='top'>Search</Tooltip.Content>
+                        <Tooltip.Content side='top'>{t('search')}</Tooltip.Content>
                       </Tooltip.Root>
                     </div>
                   )}
@@ -1356,7 +1369,7 @@ function PreviewEditorContent({
               <div className='px-2 pt-3'>
                 <div className='subblock-content flex flex-col gap-[9.5px]'>
                   <div className='pl-0.5 text-[var(--text-primary)] text-small leading-none'>
-                    Workflow Preview
+                    {tPanel('workflowPreview')}
                   </div>
                   <div className='relative h-[160px] overflow-hidden rounded-sm border border-[var(--border)]'>
                     {resolvedIsLoadingChildWorkflow ? (
@@ -1390,8 +1403,8 @@ function PreviewEditorContent({
                             <Button
                               aria-label={
                                 isExecutionMode && onDrillDown
-                                  ? 'Expand workflow'
-                                  : 'Open in new tab'
+                                  ? t('expandWorkflow')
+                                  : t('openInNewTab')
                               }
                               type='button'
                               variant='ghost'
@@ -1406,7 +1419,9 @@ function PreviewEditorContent({
                             </Button>
                           </Tooltip.Trigger>
                           <Tooltip.Content side='top'>
-                            {isExecutionMode && onDrillDown ? 'Expand workflow' : 'Open in new tab'}
+                            {isExecutionMode && onDrillDown
+                              ? t('expandWorkflow')
+                              : t('openInNewTab')}
                           </Tooltip.Content>
                         </Tooltip.Root>
                       </>
@@ -1414,10 +1429,10 @@ function PreviewEditorContent({
                       <div className='flex h-full items-center justify-center bg-[var(--surface-3)]'>
                         <span className='text-[var(--text-tertiary)] text-small'>
                           {isBlockNotExecuted
-                            ? 'Not Executed'
+                            ? t('notExecuted')
                             : isMissingChildWorkflow
-                              ? DELETED_WORKFLOW_LABEL
-                              : 'Unable to load preview'}
+                              ? t('deletedWorkflow')
+                              : tPanel('unableToLoadPreview')}
                         </span>
                       </div>
                     )}
@@ -1465,7 +1480,7 @@ function PreviewEditorContent({
               ) : (
                 <div className='py-4 text-center'>
                   <p className='text-[var(--text-secondary)] text-small'>
-                    No configurable fields for this block.
+                    {t('noConfigurableFields')}
                   </p>
                 </div>
               )}
@@ -1503,7 +1518,7 @@ function PreviewEditorContent({
             type='text'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder='Search...'
+            placeholder={t('searchPlaceholder')}
             className='mr-0.5 h-[23px] w-[94px] text-caption'
           />
           <span
@@ -1519,7 +1534,7 @@ function PreviewEditorContent({
             iconPadding='sm'
             onClick={goToPreviousMatch}
             disabled={matchCount === 0}
-            aria-label='Previous match'
+            aria-label={t('previousMatch')}
           >
             <ArrowUp className='size-[12px]' />
           </Button>
@@ -1528,11 +1543,16 @@ function PreviewEditorContent({
             iconPadding='sm'
             onClick={goToNextMatch}
             disabled={matchCount === 0}
-            aria-label='Next match'
+            aria-label={t('nextMatch')}
           >
             <ArrowDown className='size-[12px]' />
           </Button>
-          <Button variant='ghost' iconPadding='sm' onClick={closeSearch} aria-label='Close search'>
+          <Button
+            variant='ghost'
+            iconPadding='sm'
+            onClick={closeSearch}
+            aria-label={t('closeSearch')}
+          >
             <X className='size-[12px]' />
           </Button>
         </div>

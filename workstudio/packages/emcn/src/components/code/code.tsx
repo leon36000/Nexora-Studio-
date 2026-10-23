@@ -15,6 +15,7 @@ import { findWorkflowReferenceTokens } from '@sim/utils/workflow-references'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronRight } from '../../icons'
 import { cn } from '../../lib/cn'
+import { useEmcnLabels } from '../labels/labels'
 import './code.css'
 
 /**
@@ -462,12 +463,13 @@ interface CollapseButtonProps {
  * Rotates chevron based on collapse state.
  */
 const CollapseButton = memo(function CollapseButton({ isCollapsed, onClick }: CollapseButtonProps) {
+  const labels = useEmcnLabels()
   return (
     <button
       type='button'
       onClick={onClick}
       className='relative flex h-[21px] w-[12px] cursor-pointer items-center justify-center border-none bg-transparent p-0 text-[var(--text-muted)] before:absolute before:inset-[-10px] before:content-[""] hover-hover:text-[var(--text-secondary)]'
-      aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+      aria-label={isCollapsed ? labels.expand : labels.collapse}
     >
       <ChevronRight
         className={cn(

@@ -4,14 +4,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="simstudio-sdk",
+    name="nexora-sdk",
     version="0.1.1",
-    author="Sim",
-    author_email="help@sim.ai",
-    description="Sim SDK - Execute workflows programmatically",
+    author="Nexora",
+    description="SDK Nexora : exécuter les workflows d'une instance Nexora WorkStudio",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/simstudioai/sim",
+    url="https://github.com/leon36000/Nexora-Studio-",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -42,10 +41,9 @@ setup(
             "pytest>=6.0.0",
         ],
     },
-    keywords=["simstudio", "ai", "workflow", "sdk", "api", "automation"],
+    keywords=["nexora", "ai", "workflow", "sdk", "api", "automation"],
     project_urls={
-        "Bug Reports": "https://github.com/simstudioai/sim/issues",
-        "Source": "https://github.com/simstudioai/sim",
-        "Documentation": "https://docs.sim.ai",
+        "Source": "https://github.com/leon36000/Nexora-Studio-",
+        "Documentation": "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/api-developpeurs.md",
     },
 ) 

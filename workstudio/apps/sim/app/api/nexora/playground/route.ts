@@ -19,7 +19,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
   }
   const parsed = await parseRequest(playgroundContract, request, {})
   if (!parsed.success) return parsed.response
-  const { workspaceId, model, messages, temperature, maxTokens } = parsed.data.body
+  const { workspaceId, model, messages, temperature, maxTokens, reasoningEffort } = parsed.data.body
   if (!(await getUserEntityPermissions(session.user.id, 'workspace', workspaceId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -29,6 +29,8 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       model: model.replace(/^vllm\//, ''),
       temperature,
       maxTokens,
+      reasoningEffort,
+      includeThinking: true,
       reportUsage: true,
       signal: request.signal,
     })

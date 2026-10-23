@@ -53,6 +53,7 @@ import { usePreviewPortInternals } from '@/app/workspace/[workspaceId]/w/compone
 import { getBlock } from '@/blocks'
 import { hasBlockAccent } from '@/blocks/accent'
 import { SELECTOR_TYPES_HYDRATION_REQUIRED, type SubBlockConfig } from '@/blocks/types'
+import { useBlockDisplay } from '@/hooks/use-translated-block-config'
 import { useVariablesStore } from '@/stores/variables/store'
 import type { WorkflowMetadata } from '@/stores/workflows/registry/types'
 import { TRIGGER_REGISTRY } from '@/triggers/registry'
@@ -279,7 +280,7 @@ function WorkflowPreviewBlockInner({ id, data }: NodeProps<WorkflowPreviewBlockN
   } = data
   const changedFieldSet = new Set(changedFields)
 
-  const blockConfig = getBlock(type)
+  const { config: blockConfig, name: displayName } = useBlockDisplay(getBlock(type), name)
   const effectiveTrigger = isTrigger || type === 'starter'
 
   const canonicalIndex = useMemo(
@@ -296,8 +297,9 @@ function WorkflowPreviewBlockInner({ id, data }: NodeProps<WorkflowPreviewBlockN
   }, [subBlockValues, lightweight])
 
   const canvasPresentation = useMemo(
-    () => (blockConfig ? resolveCanvasBlockPresentation(blockConfig, name, rawValues) : undefined),
-    [blockConfig, name, rawValues]
+    () =>
+      blockConfig ? resolveCanvasBlockPresentation(blockConfig, displayName, rawValues) : undefined,
+    [blockConfig, displayName, rawValues]
   )
 
   /**

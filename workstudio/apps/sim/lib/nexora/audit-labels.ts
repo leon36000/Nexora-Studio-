@@ -10,17 +10,26 @@ interface AuditEntryText {
   resourceName: string | null
 }
 
+/** What a stored English description quotes: `"names"` and e-mail addresses, in order. */
+const QUOTED_VALUE = /"([^"]+)"|([^\s"'(),;<>]+@[^\s"'(),;<>]+\.[a-z]{2,})/gi
+
 /**
  * Nexora edition: audit entries store an English description written at the time of the
- * event. The log shows instead the French label of the action (`actions.<action>`) and the
- * name of the resource it concerns (the stored description when there is none); an action
- * without a label keeps its code and description.
+ * event. The log shows instead the French label of the action (`actions.<action>`) and, as the
+ * detail, the name of the resource it concerns — or, when the entry names none, the names and
+ * addresses its description quotes (`Transferred ownership to bob@pme.fr` ⇒ `bob@pme.fr`), never
+ * the English sentence itself; the CSV export keeps the stored description. An action without a
+ * label keeps its code.
  */
 export function describeAuditEntry(
   entry: AuditEntryText,
   t: AuditTranslator
 ): { label: string; detail: string } {
   const key = `actions.${entry.action}`
-  if (!t.has(key)) return { label: entry.action, detail: entry.description ?? '' }
-  return { label: t(key), detail: entry.resourceName || entry.description || '' }
+  const label = t.has(key) ? t(key) : entry.action
+  if (entry.resourceName) return { label, detail: entry.resourceName }
+  const quoted = [...(entry.description ?? '').matchAll(QUOTED_VALUE)].map(
+    (match) => match[1] ?? match[2]
+  )
+  return { label, detail: quoted.length > 0 ? quoted.join(', ') : '—' }
 }

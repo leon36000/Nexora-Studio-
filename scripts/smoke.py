@@ -664,7 +664,7 @@ def main() -> int:
         status, text = s.call("POST", "/api/nexora/playground", {
             "workspaceId": state["ws"], "model": "vllm/nexora-default",
             "messages": [{"role": "user", "content": "Dis bonjour en une phrase."}],
-            "temperature": 0.2, "maxTokens": 60}, raw=True, timeout=300)
+            "temperature": 0.2, "maxTokens": 1024}, raw=True, timeout=300)
         require(status == 200, f"playground returned HTTP {status}: {text[:200]}")
         events = [json.loads(line[5:]) for line in text.splitlines() if line.startswith("data:")]
         answer = "".join(e.get("chunk", "") for e in events)
@@ -672,6 +672,132 @@ def main() -> int:
         require(answer.strip() and done and not done[-1].get("error"), f"no streamed answer: {text[:200]}")
         usage = done[-1].get("usage") or {}
         return f"« {answer.strip()[:50]} » ({usage.get('completionTokens', '?')} jetons)"
+
+    def playground_reasoning():
+        # A reasoning model streams its reasoning in « thinking » events, never in the answer chunks.
+        status, text = s.call("POST", "/api/nexora/playground", {
+            "workspaceId": state["ws"], "model": "vllm/nexora-default",
+            "messages": [{"role": "user", "content": "Combien font 17 × 3 ? Réponds par le nombre seul."}],
+            "temperature": 0.2, "maxTokens": 2048, "reasoningEffort": "low"}, raw=True, timeout=300)
+        require(status == 200, f"playground returned HTTP {status}: {text[:200]}")
+        events = [json.loads(line[5:]) for line in text.splitlines() if line.startswith("data:")]
+        answer = "".join(e.get("chunk", "") for e in events)
+        thinking = "".join(e.get("thinking", "") for e in events)
+        done = [e for e in events if e.get("done")]
+        require(done and not done[-1].get("error"), f"stream did not end cleanly: {text[-200:]}")
+        require(answer.strip(), f"no answer after the reasoning ({len(thinking)} characters of reasoning)")
+        require("<think>" not in answer and "</think>" not in answer, f"reasoning tags in the answer: {answer[:120]}")
+        require(not thinking or thinking not in answer, "the reasoning leaked into the answer")
+        effort = "effort refusé, réponse quand même" if done[-1].get("effortIgnored") else "effort accepté"
+        return f"« {answer.strip()[:30]} », réflexion {len(thinking)} caractères à part, {effort}"
+
+    def model_card():
+        # « Tester » on the default model: a non-empty answer (or a reasoning model reported cut), capability recorded.
+        admin_organization()
+        status, body = admin.call("GET", "/api/nexora/models")
+        require(status == 200, f"models returned HTTP {status}: {body}")
+        default = next(m for m in body["models"] if m["isDefault"])
+        status, tested = admin.call("POST", f"/api/nexora/models/{default['id']}/test", timeout=300)
+        require(status == 200, f"testing {default['name']} returned HTTP {status}: {tested}")
+        require(tested["reply"].strip(), f"{default['name']} gave an empty test answer (truncated={tested.get('truncated')})")
+        require("<think>" not in tested["reply"], "reasoning tags in the test answer")
+        _, body = admin.call("GET", "/api/nexora/models")
+        card = next(m for m in body["models"] if m["id"] == default["id"])["card"]
+        require(card["testedAt"], "the test was not recorded on the model card")
+        require(card["reasoning"] == tested["capabilities"]["reasoning"], f"card {card} does not match the test {tested['capabilities']}")
+        require(card["location"] in ("local", "eu", "external"), f"unknown data location {card['location']}")
+        if default["source"] == "openai-compatible":
+            require(card["locationEditable"], "an OpenAI-compatible model's location must be declared by an administrator")
+        badges = [b for b, on in (("raisonnement", card["reasoning"]), ("outils", card["tools"]), ("vision", card["vision"])) if on]
+        return f"{default['name']} : « {tested['reply'][:40]} » ({tested['latencyMs']} ms), {', '.join(badges) or 'aucun badge'}, {card['location']}"
+
+    def developer_api():
+        """K3: a key created by the interface's route calls a model then a published agent over /v1,
+        in the official OpenAI wire format (SSE chunks), is refused 403/401 when it should be, and
+        its use appears in Réglages › Consommation."""
+        def stream_text(text: str) -> tuple[str, dict]:
+            answer, usage = "", {}
+            for line in text.splitlines():
+                if not line.startswith("data:") or line[5:].strip() == "[DONE]":
+                    continue
+                chunk = json.loads(line[5:])
+                require("error" not in chunk, f"error in the stream: {chunk}")
+                for choice in chunk.get("choices") or []:
+                    answer += (choice.get("delta") or {}).get("content") or ""
+                usage = chunk.get("usage") or usage
+            require(text.rstrip().endswith("data: [DONE]"), f"stream does not end with [DONE]: {text[-120:]}")
+            return answer, usage
+
+        def bearer(value: str) -> dict:
+            return {"Authorization": f"Bearer {value}"}
+
+        status, body = s.call("POST", "/api/nexora/api-keys", {"workspaceId": state["ws"], "name": f"fumee-{secrets.token_hex(3)}"})
+        require(status == 200 and str(body.get("value", "")).startswith("sk-nexora-"), f"key creation returned HTTP {status}: {str(body)[:200]}")
+        key, value = body["key"], body["value"]
+        status, listed = s.call("GET", f"/api/nexora/api-keys?workspaceId={state['ws']}")
+        require(status == 200 and value not in json.dumps(listed), "the key value came back in the list")
+        try:
+            # Listing the Assistant's agents publishes the « Assistant général » on first use.
+            _, agents = s.call("GET", f"/api/nexora/assistant/agents?workspaceId={state['ws']}", timeout=300)
+            agent = agents["agents"][0]
+            status, models = s.call("GET", "/v1/models", headers=bearer(value))
+            require(status == 200, f"/v1/models returned HTTP {status}: {str(models)[:200]}")
+            ids = [m["id"] for m in models.get("data", [])]
+            status, text = s.call("POST", "/v1/chat/completions", {
+                "model": "nexora-default", "stream": True, "max_tokens": 1024,
+                "messages": [{"role": "user", "content": "Dis bonjour en une phrase."}]}, headers=bearer(value), raw=True, timeout=300)
+            require(status == 200, f"model call returned HTTP {status}: {text[:200]}")
+            model_answer, model_usage = stream_text(text)
+            require(model_answer.strip(), f"empty model answer: {text[:200]}")
+            require(any(i == f"agent:{agent['name']}" or i == f"agent:{agent['workflowId']}" for i in ids), f"agent missing from /v1/models: {ids}")
+            status, text = s.call("POST", "/v1/chat/completions", {
+                "model": f"agent:{agent['workflowId']}", "stream": True,
+                "messages": [{"role": "user", "content": "Bonjour, en une phrase : à quoi sers-tu ?"}]}, headers=bearer(value), raw=True, timeout=300)
+            require(status == 200, f"agent call returned HTTP {status}: {text[:200]}")
+            agent_answer, _ = stream_text(text)
+            require(len(agent_answer.strip()) > 10, f"empty agent answer: {text[:300]}")
+
+            status, body = s.call("POST", "/api/nexora/api-keys", {
+                "workspaceId": state["ws"], "name": f"fumee-restreinte-{secrets.token_hex(3)}",
+                "allowedModels": ["nexora-default"], "allowAgents": False})
+            require(status == 200, f"restricted key creation returned HTTP {status}")
+            restricted = body["value"]
+            status, refused = s.call("POST", "/v1/chat/completions", {
+                "model": f"agent:{agent['workflowId']}", "messages": [{"role": "user", "content": "x"}]}, headers=bearer(restricted))
+            require(status == 403 and refused["error"]["code"] == "model_not_allowed", f"agent with a restricted key: HTTP {status} {refused}")
+            default_ids = {m["id"] for m in models["data"] if m["id"] == "nexora-default" or "nexora-default" in (m.get("aliases") or [])}
+            other = next((i for i in ids if not i.startswith("agent:") and i != "nexora-default" and i not in default_ids), None)
+            if other:
+                status, refused = s.call("POST", "/v1/chat/completions", {
+                    "model": other, "messages": [{"role": "user", "content": "x"}]}, headers=bearer(restricted))
+                require(status == 403 and refused["error"]["code"] == "model_not_allowed", f"{other} with a restricted key: HTTP {status} {refused}")
+            s.call("DELETE", f"/api/nexora/api-keys/{body['key']['id']}?workspaceId={state['ws']}")
+
+            status, _ = s.call("GET", "/api/nexora/api-keys/instance")
+            require(status == 403, f"a member who is not an instance admin reads the instance keys (HTTP {status})")
+            status, body = s.call("POST", "/api/workspaces", {"name": "Fumée Nexora clés"}, timeout=300)
+            require(status == 200, f"second workspace creation returned HTTP {status}")
+            other_ws = body["workspace"]["id"]
+            try:
+                status, _ = s.call("DELETE", f"/api/nexora/api-keys/{key['id']}?workspaceId={other_ws}")
+                require(status == 404, f"a key was revoked through another workspace (HTTP {status})")
+            finally:
+                s.call("DELETE", f"/api/workspaces/{other_ws}")
+            status, refused = s.call("GET", "/v1/models", headers=bearer("sk-nexora-inconnue"))
+            require(status == 401 and refused["error"]["code"] == "invalid_api_key", f"unknown key: HTTP {status} {refused}")
+        finally:
+            s.call("DELETE", f"/api/nexora/api-keys/{key['id']}?workspaceId={state['ws']}")
+        status, refused = s.call("GET", "/v1/models", headers=bearer(value))
+        require(status == 401 and refused["error"]["code"] == "revoked_api_key" and "révoquée" in refused["error"]["message"],
+                f"revoked key: HTTP {status} {refused}")
+
+        admin_organization()
+        status, report = admin.call("GET", "/api/nexora/consumption?days=7", timeout=300)
+        require(status == 200, f"consumption returned HTTP {status}")
+        row = next((r for r in report.get("apiKeys", []) if r["keyId"] == key["id"]), None)
+        require(row and row["requests"] >= 2 and row["modelTokens"] > 0, f"the key's use is missing from the consumption: {row}")
+        return (f"clé créée, « {model_answer.strip()[:30]} » ({model_usage.get('completion_tokens', '?')} jetons), "
+                f"agent « {agent['name']} » répond en flux, 403 hors liste, 401 révoquée, {row['requests']} requêtes en consommation")
 
     def agent():
         status, body = s.call("POST", "/api/workflows", {"name": "Agent de fumée", "workspaceId": state["ws"]})
@@ -737,8 +863,10 @@ def main() -> int:
     s.check("Générer avec l'IA (modèle Nexora)", wand)
     s.check("Chat public en français", public_chat)
     s.check("Playground (réponse en flux)", playground)
+    s.check("Playground : réflexion séparée de la réponse", playground_reasoning)
     s.check("Agent : publication, chat public, versions", agent)
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
+    s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:
@@ -751,6 +879,7 @@ def main() -> int:
     s.check("Gouvernance : réglages d'instance, e-mail de test", governance)
     s.check("Consommation mesurée par Nexora API", usage)
     s.check("Modèles : liste, ajout, test, défaut, retrait", models)
+    s.check("Modèles : fiche du modèle par défaut (test, raisonnement, localisation)", model_card)
 
     failed = [r for r in s.results if r["status"] != "pass"]
     print(f"\n{len(s.results) - len(failed)}/{len(s.results)} contrôles réussis")

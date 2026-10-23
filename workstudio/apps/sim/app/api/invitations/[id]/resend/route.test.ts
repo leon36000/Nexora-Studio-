@@ -45,6 +45,7 @@ vi.mock('@/lib/permission-groups/resolve.server', () => permissionGroupsResolveM
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import { lockInvitationResendPolicy } from '@/lib/invitations/resend-policy'
 import type { PreparedInvitationResend } from '@/lib/invitations/send'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { POST } from '@/app/api/invitations/[id]/resend/route'
 
 const { mockGetWorkspaceInvitePolicy } = workspacesPolicyMockFns
@@ -148,7 +149,7 @@ describe('POST /api/invitations/[id]/resend', () => {
 
     expect(response.status).toBe(403)
     expect(await response.json()).toMatchObject({
-      error: "Sending invitations is not available under your organization's permission group",
+      error: capabilityRefusal('invitations.send'),
       details: { code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' },
     })
     expect(mockSendInvitationEmail).not.toHaveBeenCalled()

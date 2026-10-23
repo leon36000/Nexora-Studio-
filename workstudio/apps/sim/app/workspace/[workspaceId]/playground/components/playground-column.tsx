@@ -4,6 +4,7 @@ import { Button, Tooltip } from '@sim/emcn'
 import { X } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { ModelPicker } from '@/app/workspace/[workspaceId]/agents/components/model-picker'
+import { ThinkingPanel } from '@/app/workspace/[workspaceId]/components/thinking-panel/thinking-panel'
 import type {
   PlaygroundErrorCode,
   PlaygroundUsage,
@@ -12,6 +13,10 @@ import type {
 /** One column's latest answer. */
 export interface ColumnRun {
   text: string
+  /** A reasoning model's reasoning, shown apart from the answer. */
+  thinking: string
+  /** The model refused the reasoning effort and answered with its default. */
+  effortIgnored?: boolean
   status: 'streaming' | 'done' | 'stopped' | 'error'
   latencyMs?: number
   usage?: PlaygroundUsage | null
@@ -29,7 +34,10 @@ interface PlaygroundColumnProps {
   disabled: boolean
 }
 
-/** A model picker above the model's streamed answer, its latency and its token usage. */
+/**
+ * A model picker above the model's streamed answer (after its folded reasoning, for a reasoning
+ * model), its latency and its token usage.
+ */
 export function PlaygroundColumn({
   model,
   run,
@@ -65,12 +73,21 @@ export function PlaygroundColumn({
           </Tooltip.Root>
         )}
       </div>
-      <div className='min-h-[160px] whitespace-pre-wrap break-words text-[var(--text-body)] text-sm'>
-        {run?.text ? (
-          run.text
-        ) : (
-          <span className='text-[var(--text-muted)]'>{run ? '…' : t('empty')}</span>
+      <div className='flex min-h-[160px] flex-col gap-2'>
+        {run && (
+          <ThinkingPanel
+            text={run.thinking}
+            streaming={run.status === 'streaming'}
+            answerStarted={run.text.length > 0}
+          />
         )}
+        <div className='whitespace-pre-wrap break-words text-[var(--text-body)] text-sm'>
+          {run?.text ? (
+            run.text
+          ) : run?.thinking ? null : (
+            <span className='text-[var(--text-muted)]'>{run ? '…' : t('empty')}</span>
+          )}
+        </div>
       </div>
       {run && run.status !== 'streaming' && (
         <footer className='flex flex-wrap gap-x-3 gap-y-1 text-caption'>
@@ -78,6 +95,9 @@ export function PlaygroundColumn({
             <span className='text-[var(--text-error)]'>
               {t(`errors.${run.error ?? 'unknown'}`, { reason: run.errorReason ?? '' })}
             </span>
+          )}
+          {run.effortIgnored && (
+            <span className='text-[var(--text-muted)]'>{t('effortIgnored')}</span>
           )}
           {run.status === 'stopped' && (
             <span className='text-[var(--text-muted)]'>{t('stopped')}</span>

@@ -21,6 +21,7 @@ import 'streamdown/styles.css'
 import { Button, cn, handleKeyboardActivation, Tooltip } from '@sim/emcn'
 import { getEmbedInfo } from '@sim/utils/media-embed'
 import { BLOCK_DIMENSIONS, clampNoteBlockHeight, estimateNoteBlockHeight } from '../dimensions'
+import { formatRendererLabel, useWorkflowRendererLabels } from '../labels'
 import { OverflowSpan } from '../lib/overflow-span'
 import { WorkflowBlockBorder, type WorkflowBorderPort } from '../workflow-block/border'
 import { useActionMenuSwell } from '../workflow-block/use-action-menu-swell'
@@ -260,7 +261,8 @@ const NOTE_COMPONENTS = {
       {children}
     </code>
   ),
-  a: ({ href, children }: { href?: string; children?: ReactNode }) => {
+  a: function NoteLink({ href, children }: { href?: string; children?: ReactNode }) {
+    const labels = useWorkflowRendererLabels()
     const embedInfo = href ? getEmbedInfo(href) : null
     if (embedInfo) {
       return (
@@ -284,7 +286,7 @@ const NOTE_COMPONENTS = {
               >
                 <iframe
                   src={embedInfo.url}
-                  title='Media'
+                  title={labels.media}
                   allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
                   allowFullScreen
                   loading='lazy'
@@ -527,6 +529,7 @@ export function NoteBlockView({
   searchHighlight = null,
   nameSearchRange = null,
 }: NoteBlockViewProps) {
+  const labels = useWorkflowRendererLabels()
   const colorOption = getNoteColorOption(noteColor)
   const showActionMenu = Boolean(actionBar)
   const noteLayoutRef = useRef<HTMLDivElement>(null)
@@ -998,7 +1001,7 @@ export function NoteBlockView({
               {editingField === 'title' ? (
                 <input
                   ref={titleInputRef}
-                  aria-label='Note title'
+                  aria-label={labels.noteTitle}
                   value={draftName}
                   onChange={(event) => setDraftName(event.target.value)}
                   onBlur={finishTitleEditing}
@@ -1022,7 +1025,7 @@ export function NoteBlockView({
               ) : isInlineEditable ? (
                 <button
                   type='button'
-                  aria-label='Edit note title'
+                  aria-label={labels.editNoteTitle}
                   onPointerDown={(event) => recordEditPointerStart(event, 'title')}
                   onClick={(event) => startEditing(event, 'title')}
                   className={cn(
@@ -1048,7 +1051,7 @@ export function NoteBlockView({
                 <Tooltip.Trigger asChild>
                   <Button
                     variant='ghost'
-                    aria-label={isExpanded ? 'Collapse note' : 'Expand note'}
+                    aria-label={isExpanded ? labels.collapseNote : labels.expandNote}
                     aria-pressed={isExpanded}
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
@@ -1078,7 +1081,7 @@ export function NoteBlockView({
                   </Button>
                 </Tooltip.Trigger>
                 <Tooltip.Content side='right'>
-                  {isExpanded ? 'Collapse note' : 'Expand note'}
+                  {isExpanded ? labels.collapseNote : labels.expandNote}
                 </Tooltip.Content>
               </Tooltip.Root>
             )}
@@ -1088,7 +1091,7 @@ export function NoteBlockView({
             ref={setScrollRegion}
             data-note-scroll-region=''
             role='region'
-            aria-label={`${name || 'Note'} content`}
+            aria-label={formatRendererLabel(labels.noteContent, { name: name || labels.note })}
             tabIndex={hasVisualFocus && !canEdit && !isEmpty ? 0 : -1}
             onScroll={updateScrollFades}
             className={cn(
@@ -1174,7 +1177,7 @@ export function NoteBlockView({
                 {isInlineEditable && (
                   <button
                     type='button'
-                    aria-label='Edit note content'
+                    aria-label={labels.editNoteContent}
                     onPointerDown={(event) => recordEditPointerStart(event, 'content')}
                     onClick={(event) => startEditing(event, 'content')}
                     className='absolute inset-0 z-20 w-full cursor-text rounded-sm bg-transparent'
@@ -1188,7 +1191,9 @@ export function NoteBlockView({
                   )}
                 >
                   {isEmpty ? (
-                    <p className={cn('text-sm', colorOption.placeholderClassName)}>Add note…</p>
+                    <p className={cn('text-sm', colorOption.placeholderClassName)}>
+                      {labels.addNote}
+                    </p>
                   ) : (
                     <NoteSearchActiveIndexContext.Provider value={searchOccurrenceIndex ?? null}>
                       <NoteMarkdown content={content} searchQuery={searchQuery} />

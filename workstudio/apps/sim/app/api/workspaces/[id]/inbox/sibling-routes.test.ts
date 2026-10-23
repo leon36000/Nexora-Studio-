@@ -21,6 +21,7 @@ vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 
 vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import {
   DELETE as DELETE_SENDER,
@@ -33,7 +34,7 @@ const { mockGetUserEntityPermissions } = permissionsMockFns
 const { mockHasWorkspaceInboxAccess } = billingSubscriptionMockFns
 
 const context = createRouteContext({ id: 'workspace-1' })
-const REFUSAL = "The inbox is not available under your organization's permission group"
+const REFUSAL = capabilityRefusal('inbox.use')
 const BLOCKED = { code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' }
 const BASE_URL = 'http://localhost:3000/api/workspaces/workspace-1/inbox'
 

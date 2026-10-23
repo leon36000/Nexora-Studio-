@@ -28,6 +28,7 @@ import { cn } from '../../lib/cn'
 import { Button } from '../button/button'
 import { Chip } from '../chip/chip'
 import { chipContentIconClass, chipFilledFillTokens } from '../chip/chrome'
+import { useEmcnLabels } from '../labels/labels'
 
 const AUTO_DISMISS_MS = 5000
 
@@ -370,6 +371,7 @@ function RevealText({
 }
 
 function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: ToastItemProps) {
+  const labels = useEmcnLabels()
   const contentRef = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
   const Icon = VARIANT_ICON[t.variant]
@@ -446,8 +448,8 @@ function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: T
             <Button
               variant='quiet'
               onClick={dismiss}
-              aria-label='Dismiss notification'
-              title='Dismiss'
+              aria-label={labels.dismissNotification}
+              title={labels.dismiss}
               size='icon'
               className='max-md:pointer-coarse:size-11'
             >
@@ -494,6 +496,7 @@ function ToastItem({ toast: t, geometry, reduceMotion, onDismiss, onMeasure }: T
  * ```
  */
 export function ToastProvider({ children }: { children?: ReactNode }) {
+  const labels = useEmcnLabels()
   const pathname = usePathname()
   const reduceMotion = useReducedMotion() ?? false
 
@@ -753,7 +756,7 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
                 <motion.ol
                   key='toast-stack'
                   aria-live='polite'
-                  aria-label='Notifications'
+                  aria-label={labels.notifications}
                   data-native-surface-overlay='passive'
                   className='fixed z-[var(--z-toast)] m-0 list-none p-0'
                   exit={{

@@ -27,7 +27,7 @@ import { getCanvasPorts } from '@/lib/workflows/blocks/canvas-ports'
 import type { WorkflowDiffSummary } from '@/lib/workflows/comparison'
 import type { EdgeChange } from '@/lib/workflows/comparison/compare'
 import { buildSubBlockValues } from '@/lib/workflows/subblocks/visibility'
-import { DIFF_LABEL } from '@/app/workspace/[workspaceId]/w/components/preview/components/preview-workflow/components/diff-label/diff-label'
+import { useDiffStatusLabel } from '@/app/workspace/[workspaceId]/w/components/preview/components/preview-workflow/components/diff-label/diff-label'
 import {
   DIFF_SIGN,
   DIFF_SIGN_CLASS,
@@ -227,6 +227,7 @@ const BlockCard = memo(function BlockCard({
   onToggleSelected,
   registerCard,
 }: BlockCardProps) {
+  const diffLabel = useDiffStatusLabel()
   const [collapsed, setCollapsed] = useState(false)
   const [seenSelection, setSeenSelection] = useState(selectedBlockId)
   const selected = selectedBlockId === entry.id
@@ -271,7 +272,7 @@ const BlockCard = memo(function BlockCard({
         }
         badge={
           <>
-            <ChipTag variant='gray'>{DIFF_LABEL[entry.status]}</ChipTag>
+            <ChipTag variant='gray'>{diffLabel(entry.status)}</ChipTag>
             {hasBody && (
               <ChevronDown className={cn(disclosureChevronClass, collapsed && '-rotate-90')} />
             )}

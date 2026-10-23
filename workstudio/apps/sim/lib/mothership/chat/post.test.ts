@@ -217,6 +217,7 @@ vi.mock('@/lib/mothership/chat-status', () => mothershipChatStatusMock)
 
 import { chatOperations } from '@/lib/mothership/application/operations'
 import { ChatSendSupersededError } from '@/lib/mothership/chat/application/send-superseded'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { handleUnifiedChatPost } from './post'
 
@@ -1806,7 +1807,7 @@ describe('handleUnifiedChatPost', () => {
 })
 
 describe('handleUnifiedChatPost copilot.use capability gate', () => {
-  const REFUSAL = "Chat is not available under your organization's permission group"
+  const REFUSAL = capabilityRefusal('copilot.use')
   /**
    * The body every raw capability refusal renders, detail code included. This
    * route builds it through the shared `capabilityRefusalResponse`, so a client

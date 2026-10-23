@@ -1,7 +1,8 @@
 """
-Sim SDK for Python
+SDK Nexora pour Python : exécuter les workflows d'une instance Nexora WorkStudio.
 
-Official Python SDK for Sim, allowing you to execute workflows programmatically.
+Le module ``nexora`` expose les mêmes objets sous leurs noms Nexora (``NexoraClient``,
+``NexoraError``) ; ``SimStudioClient`` et ``SimStudioError`` restent des alias.
 """
 
 from typing import Any, Dict, Optional, Union
@@ -26,17 +27,19 @@ __version__ = "0.2.1"
 
 def _client_headers() -> Dict[str, str]:
     """
-    Identify this SDK to the API on every request, the way every official Sim
+    Identify this SDK to the API on every request, the way every official
     client does, so a server log line or analytics event can say which client
     made the call. ``X-Sim-Client-Info`` is the header the server reads.
     """
     python_version = platform.python_version()
     return {
-        'User-Agent': f'simstudio-python-sdk/{__version__} python/{python_version}',
+        'User-Agent': f'nexora-python-sdk/{__version__} python/{python_version}',
         'X-Sim-Client-Info': f'sdk-python/{__version__}; python/{python_version}',
     }
 
 __all__ = [
+    "NexoraClient",
+    "NexoraError",
     "SimStudioClient",
     "SimStudioError",
     "WorkflowExecutionResult",
@@ -108,7 +111,7 @@ class UsageLimits:
     usage: Dict[str, Any]
 
 
-class SimStudioError(Exception):
+class NexoraError(Exception):
     """Exception raised for Sim API errors."""
     
     def __init__(self, message: str, code: Optional[str] = None, status: Optional[int] = None):
@@ -134,16 +137,16 @@ def _parse_reset_header(value: str) -> int:
         return 0
 
 
-class SimStudioClient:
+class NexoraClient:
     """
     Sim API client for executing workflows programmatically.
     
     Args:
         api_key: Your Sim API key
-        base_url: Base URL for the Sim API (defaults to https://www.sim.ai)
+        base_url: Address of the Nexora WorkStudio instance (defaults to http://localhost:3000)
     """
     
-    def __init__(self, api_key: str, base_url: str = "https://www.sim.ai"):
+    def __init__(self, api_key: str, base_url: str = "http://localhost:3000"):
         self.api_key = api_key
         self.base_url = base_url.rstrip('/')
         self._session = requests.Session()
@@ -234,13 +237,13 @@ class SimStudioClient:
             WorkflowExecutionResult or AsyncExecutionResult object
 
         Raises:
-            SimStudioError: If the workflow execution fails
+            NexoraError: If the workflow execution fails
         """
         url = f"{self.base_url}/api/v2/workflows/{workflow_id}/execute"
 
         if execution_timeout_seconds is not None:
             if not async_execution:
-                raise SimStudioError(
+                raise NexoraError(
                     'execution_timeout_seconds is supported only for async executions',
                     'INVALID_EXECUTION_TIMEOUT'
                 )
@@ -250,7 +253,7 @@ class SimStudioClient:
                 or execution_timeout_seconds < 1
                 or execution_timeout_seconds > MAX_EXECUTION_TIMEOUT_SECONDS
             ):
-                raise SimStudioError(
+                raise NexoraError(
                     f'execution_timeout_seconds must be an integer between 1 and {MAX_EXECUTION_TIMEOUT_SECONDS}',
                     'INVALID_EXECUTION_TIMEOUT'
                 )
@@ -290,7 +293,7 @@ class SimStudioClient:
             # Handle rate limiting
             if response.status_code == 429:
                 retry_after = self._rate_limit_info.retry_after if self._rate_limit_info else 1000
-                raise SimStudioError(
+                raise NexoraError(
                     f'Rate limit exceeded. Retry after {retry_after}ms',
                     'RATE_LIMIT_EXCEEDED',
                     429
@@ -306,16 +309,16 @@ class SimStudioClient:
                     error_message = f'HTTP {response.status_code}: {response.reason}'
                     error_code = None
 
-                raise SimStudioError(error_message, error_code, response.status_code)
+                raise NexoraError(error_message, error_code, response.status_code)
 
             result = response.json()
             if 'data' not in result:
-                raise SimStudioError('Invalid v2 workflow execution response', 'EXECUTION_ERROR')
+                raise NexoraError('Invalid v2 workflow execution response', 'EXECUTION_ERROR')
             result_data = result['data']
 
             if response.status_code == 202:
                 if 'runId' not in result_data or 'statusUrl' not in result_data:
-                    raise SimStudioError('Invalid v2 async execution response', 'EXECUTION_ERROR')
+                    raise NexoraError('Invalid v2 async execution response', 'EXECUTION_ERROR')
                 return AsyncExecutionResult(
                     success=True,
                     run_id=result_data['runId'],
@@ -341,9 +344,9 @@ class SimStudioClient:
             )
 
         except requests.Timeout:
-            raise SimStudioError(f'Workflow execution timed out after {timeout} seconds', 'TIMEOUT')
+            raise NexoraError(f'Workflow execution timed out after {timeout} seconds', 'TIMEOUT')
         except requests.RequestException as e:
-            raise SimStudioError(f'Failed to execute workflow: {str(e)}', 'EXECUTION_ERROR')
+            raise NexoraError(f'Failed to execute workflow: {str(e)}', 'EXECUTION_ERROR')
     
     def get_workflow_status(self, workflow_id: str) -> WorkflowStatus:
         """
@@ -356,7 +359,7 @@ class SimStudioClient:
             WorkflowStatus object containing the workflow status
             
         Raises:
-            SimStudioError: If getting the status fails
+            NexoraError: If getting the status fails
         """
         url = f"{self.base_url}/api/workflows/{workflow_id}/status"
         
@@ -372,7 +375,7 @@ class SimStudioClient:
                     error_message = f'HTTP {response.status_code}: {response.reason}'
                     error_code = None
                 
-                raise SimStudioError(error_message, error_code, response.status_code)
+                raise NexoraError(error_message, error_code, response.status_code)
             
             status_data = response.json()
             
@@ -383,7 +386,7 @@ class SimStudioClient:
             )
             
         except requests.RequestException as e:
-            raise SimStudioError(f'Failed to get workflow status: {str(e)}', 'STATUS_ERROR')
+            raise NexoraError(f'Failed to get workflow status: {str(e)}', 'STATUS_ERROR')
     
     def validate_workflow(self, workflow_id: str) -> bool:
         """
@@ -398,7 +401,7 @@ class SimStudioClient:
         try:
             status = self.get_workflow_status(workflow_id)
             return status.is_deployed
-        except SimStudioError:
+        except NexoraError:
             return False
     
     def execute_workflow_sync(
@@ -424,7 +427,7 @@ class SimStudioClient:
             WorkflowExecutionResult object containing the execution result
 
         Raises:
-            SimStudioError: If the workflow execution fails
+            NexoraError: If the workflow execution fails
         """
         return self.execute_workflow(
             workflow_id,
@@ -469,7 +472,7 @@ class SimStudioClient:
             Dictionary containing the job status
 
         Raises:
-            SimStudioError: If getting the status fails
+            NexoraError: If getting the status fails
         """
         url = f"{self.base_url}/api/jobs/{job_id}"
 
@@ -487,12 +490,12 @@ class SimStudioClient:
                     error_message = f'HTTP {response.status_code}: {response.reason}'
                     error_code = None
 
-                raise SimStudioError(error_message, error_code, response.status_code)
+                raise NexoraError(error_message, error_code, response.status_code)
 
             return response.json()
 
         except requests.RequestException as e:
-            raise SimStudioError(f'Failed to get job status: {str(e)}', 'STATUS_ERROR')
+            raise NexoraError(f'Failed to get job status: {str(e)}', 'STATUS_ERROR')
 
     def get_workflow_run(
         self,
@@ -515,7 +518,7 @@ class SimStudioClient:
             Dictionary containing the run status
 
         Raises:
-            SimStudioError: If getting the status fails
+            NexoraError: If getting the status fails
         """
         url = f"{self.base_url}/api/v2/workflows/{workflow_id}/runs/{run_id}"
         params = {}
@@ -539,15 +542,15 @@ class SimStudioClient:
                     error_message = f'HTTP {response.status_code}: {response.reason}'
                     error_code = None
 
-                raise SimStudioError(error_message, error_code, response.status_code)
+                raise NexoraError(error_message, error_code, response.status_code)
 
             result = response.json()
             if 'data' not in result:
-                raise SimStudioError('Invalid v2 workflow run response', 'STATUS_ERROR')
+                raise NexoraError('Invalid v2 workflow run response', 'STATUS_ERROR')
             return result['data']
 
         except requests.RequestException as e:
-            raise SimStudioError(f'Failed to get workflow run: {str(e)}', 'STATUS_ERROR')
+            raise NexoraError(f'Failed to get workflow run: {str(e)}', 'STATUS_ERROR')
 
     def execute_with_retry(
         self,
@@ -584,7 +587,7 @@ class SimStudioClient:
             WorkflowExecutionResult or AsyncExecutionResult object
 
         Raises:
-            SimStudioError: If max retries exceeded or other error occurs
+            NexoraError: If max retries exceeded or other error occurs
         """
         last_error = None
         delay = initial_delay
@@ -600,7 +603,7 @@ class SimStudioClient:
                     async_execution=async_execution,
                     execution_timeout_seconds=execution_timeout_seconds,
                 )
-            except SimStudioError as e:
+            except NexoraError as e:
                 if e.code != 'RATE_LIMIT_EXCEEDED':
                     raise
 
@@ -625,7 +628,7 @@ class SimStudioClient:
                 # Exponential backoff for next attempt
                 delay *= backoff_multiplier
 
-        raise last_error or SimStudioError('Max retries exceeded', 'MAX_RETRIES_EXCEEDED')
+        raise last_error or NexoraError('Max retries exceeded', 'MAX_RETRIES_EXCEEDED')
 
     def get_rate_limit_info(self) -> Optional[RateLimitInfo]:
         """
@@ -664,7 +667,7 @@ class SimStudioClient:
             UsageLimits object containing usage and quota data
 
         Raises:
-            SimStudioError: If getting usage limits fails
+            NexoraError: If getting usage limits fails
         """
         url = f"{self.base_url}/api/users/me/usage-limits"
 
@@ -682,7 +685,7 @@ class SimStudioClient:
                     error_message = f'HTTP {response.status_code}: {response.reason}'
                     error_code = None
 
-                raise SimStudioError(error_message, error_code, response.status_code)
+                raise NexoraError(error_message, error_code, response.status_code)
 
             data = response.json()
 
@@ -693,7 +696,7 @@ class SimStudioClient:
             )
 
         except requests.RequestException as e:
-            raise SimStudioError(f'Failed to get usage limits: {str(e)}', 'USAGE_ERROR')
+            raise NexoraError(f'Failed to get usage limits: {str(e)}', 'USAGE_ERROR')
 
     def __enter__(self):
         """Context manager entry."""
@@ -705,4 +708,8 @@ class SimStudioClient:
 
 
 # For backward compatibility
-Client = SimStudioClient
+Client = NexoraClient
+
+# Former names, kept so code written for the original SDK keeps working.
+SimStudioClient = NexoraClient
+SimStudioError = NexoraError

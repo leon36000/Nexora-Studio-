@@ -61,6 +61,7 @@ vi.mock('@/lib/workflows/orchestration', () => workflowsOrchestrationMock)
 vi.mock('@/lib/workflows/deployment-status', () => workflowDeploymentStatusMock)
 vi.mock('@/ee/access-control/utils/permission-check', () => permissionCheckMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { GET, PATCH } from '@/app/api/chat/manage/[id]/route'
 
 const { mockGetWorkflowDeploymentSummary, mockPerformFullDeploy, mockPerformChatUndeploy } =
@@ -324,7 +325,7 @@ describe('internal chat deployment routes', () => {
         new PermissionGroupCapabilityError(
           'deploy.chat.auth_mode',
           'CHAT_AUTH_MODE_NOT_PERMITTED',
-          "This chat authentication mode is not available under your organization's permission group"
+          capabilityRefusal('deploy.chat.auth_mode')
         )
       )
 

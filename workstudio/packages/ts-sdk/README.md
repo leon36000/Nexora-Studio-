@@ -1,6 +1,28 @@
-# Sim TypeScript SDK
+# SDK Nexora pour TypeScript
 
-The official TypeScript/JavaScript SDK for [Sim](https://sim.ai), allowing you to execute workflows programmatically from your applications.
+Exécute les **workflows** d'une instance Nexora WorkStudio depuis vos programmes (fork du SDK
+TypeScript de Sim, Apache-2.0). **Non publié** sur npm : installez-le depuis le dépôt.
+
+```bash
+cd workstudio/packages/ts-sdk && bun install && bun run build
+# dans votre projet :
+bun add /chemin/vers/Nexora-Studio-/workstudio/packages/ts-sdk
+```
+
+```ts
+import { NexoraClient } from 'simstudio-ts-sdk' // nom du paquet conservé jusqu'à la publication
+
+const client = new NexoraClient({ apiKey: process.env.NEXORA_WORKFLOW_KEY ?? '', baseUrl: 'https://ia.pme.fr' })
+const result = await client.executeWorkflow('<identifiant du workflow>', { message: 'Bonjour' })
+```
+
+- La clé est une clé de **workflows** (Réglages › Clés API › clés d'espace ou personnelles).
+- Pour appeler les **modèles et agents** au format OpenAI, utilisez plutôt le client `openai` officiel
+  avec une clé Nexora API : voir `docs/guide/api-developpeurs.md` et `docs/exemples/api-openai/`.
+- `SimStudioClient` et `SimStudioError` restent disponibles comme alias.
+
+La documentation d'origine (en anglais) suit.
+
 
 ## Server compatibility
 
@@ -13,7 +35,7 @@ The official TypeScript/JavaScript SDK for [Sim](https://sim.ai), allowing you t
 - **Requests move to `/api/v2`.** `executeWorkflow` posts to `/api/v2/workflows/{id}/execute`, sends the workflow input nested under `input`, and carries `async` / `executionTimeoutSeconds` in the body instead of the `X-Execution-Mode` and `X-Execution-Timeout-Seconds` headers.
 - **`AsyncExecutionResult.jobId` is now `runId`,** and `executionId` has been removed from that interface. Replace `result.jobId` with `result.runId`.
 - **`getJobStatus(taskId)` is legacy.** It still calls `/api/jobs/{taskId}` and only resolves IDs from a `0.1.x` async execution. For runs started by `0.2.x`, use `getWorkflowRun(workflowId, runId)`, which reads `/api/v2/workflows/{id}/runs/{runId}` and returns a typed `WorkflowRunStatus`.
-- **A failed synchronous run now throws.** Previously it resolved with `{ success: false }`; it now rejects with a `SimStudioError` carrying the server's `error.code` and `error.message`. Any `if (!result.success)` branch that handled failures must move into a `catch`.
+- **A failed synchronous run now throws.** Previously it resolved with `{ success: false }`; it now rejects with a `NexoraError` carrying the server's `error.code` and `error.message`. Any `if (!result.success)` branch that handled failures must move into a `catch`.
 - **`success` is derived from the run status.** It is `true` for `completed` and `paused` runs only, so a run cancelled while it was in flight resolves with `success: false` rather than throwing. Combined with the point above: a rejection means the run failed, and a resolved `success: false` means it was cancelled.
 
 ## Installation
@@ -29,12 +51,12 @@ bun add simstudio-ts-sdk
 ## Quick Start
 
 ```typescript
-import { SimStudioClient } from 'simstudio-ts-sdk';
+import { NexoraClient } from 'simstudio-ts-sdk';
 
 // Initialize the client
-const client = new SimStudioClient({
+const client = new NexoraClient({
   apiKey: 'your-api-key-here',
-  baseUrl: 'https://www.sim.ai' // optional, defaults to https://www.sim.ai
+  baseUrl: 'http://localhost:3000' // optional, defaults to http://localhost:3000
 });
 
 // Execute a workflow
@@ -48,16 +70,16 @@ try {
 
 ## API Reference
 
-### SimStudioClient
+### NexoraClient
 
 #### Constructor
 
 ```typescript
-new SimStudioClient(config: SimStudioConfig)
+new NexoraClient(config: SimStudioConfig)
 ```
 
 - `config.apiKey` (string): Your Sim API key
-- `config.baseUrl` (string, optional): Base URL for the Sim API (defaults to `https://www.sim.ai`)
+- `config.baseUrl` (string, optional): Base URL for the Sim API (defaults to `http://localhost:3000`)
 
 #### Methods
 
@@ -94,7 +116,7 @@ const result = await client.executeWorkflow('workflow-id', { message: 'Hello' },
 
 **Returns:** `Promise<WorkflowExecutionResult | AsyncExecutionResult>`
 
-Synchronous executions that finish with `status: 'failed'` reject with `SimStudioError`.
+Synchronous executions that finish with `status: 'failed'` reject with `NexoraError`.
 
 ##### getWorkflowStatus(workflowId)
 
@@ -293,10 +315,10 @@ interface WorkflowStatus {
 }
 ```
 
-### SimStudioError
+### NexoraError
 
 ```typescript
-class SimStudioError extends Error {
+class NexoraError extends Error {
   code?: string;
   status?: number;
 }
@@ -381,9 +403,9 @@ interface RetryOptions {
 ### Basic Workflow Execution
 
 ```typescript
-import { SimStudioClient } from 'simstudio-ts-sdk';
+import { NexoraClient } from 'simstudio-ts-sdk';
 
-const client = new SimStudioClient({
+const client = new NexoraClient({
   apiKey: process.env.SIM_API_KEY!
 });
 
@@ -418,9 +440,9 @@ runWorkflow();
 ### Error Handling
 
 ```typescript
-import { SimStudioClient, SimStudioError } from 'simstudio-ts-sdk';
+import { NexoraClient, NexoraError } from 'simstudio-ts-sdk';
 
-const client = new SimStudioClient({
+const client = new NexoraClient({
   apiKey: process.env.SIM_API_KEY!
 });
 
@@ -429,7 +451,7 @@ async function executeWithErrorHandling() {
     const result = await client.executeWorkflow('workflow-id');
     return result;
   } catch (error) {
-    if (error instanceof SimStudioError) {
+    if (error instanceof NexoraError) {
       switch (error.code) {
         case 'UNAUTHORIZED':
           console.error('Invalid API key');
@@ -458,7 +480,7 @@ async function executeWithErrorHandling() {
 
 ```typescript
 // Using environment variables
-const client = new SimStudioClient({
+const client = new NexoraClient({
   apiKey: process.env.SIM_API_KEY!,
   baseUrl: process.env.SIM_BASE_URL // optional
 });
@@ -489,10 +511,10 @@ Alternatively, you can manually provide files using the URL format:
 ```
 
 ```typescript
-import { SimStudioClient } from 'simstudio-ts-sdk';
+import { NexoraClient } from 'simstudio-ts-sdk';
 import fs from 'fs';
 
-const client = new SimStudioClient({
+const client = new NexoraClient({
   apiKey: process.env.SIM_API_KEY!
 });
 
@@ -520,7 +542,7 @@ const handleFileUpload = async (event: Event) => {
 
 ## Getting Your API Key
 
-1. Log in to your [Sim](https://sim.ai) account
+1. Log in to your [Sim](http://localhost:3000) account
 2. Navigate to your workflow
 3. Click on "Deploy" to deploy your workflow
 4. Select or create an API key during the deployment process

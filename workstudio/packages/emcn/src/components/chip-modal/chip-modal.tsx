@@ -51,6 +51,7 @@ import { ChipInput } from '../chip-input/chip-input'
 import { ChipSwitch } from '../chip-switch/chip-switch'
 import { ChipTextarea } from '../chip-textarea/chip-textarea'
 import { Label } from '../label/label'
+import { useEmcnLabels } from '../labels/labels'
 import { focusFirstTextInputIn, isElementVisible } from '../modal/auto-focus'
 import { Modal, ModalContent, useModalDismissDisabled } from '../modal/modal'
 import { OverflowText } from '../overflow-text/overflow-text'
@@ -272,19 +273,20 @@ export function ChipModalDescription({ id, children }: ChipModalDescriptionProps
 function ChipModal({
   open,
   onOpenChange,
-  srTitle = 'Dialog',
+  srTitle,
   size = 'md',
   className,
   dismissDisabled = false,
   children,
   'aria-describedby': ariaDescribedBy,
 }: ChipModalProps) {
+  const labels = useEmcnLabels()
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent
         bare
         showClose={false}
-        srTitle={srTitle}
+        srTitle={srTitle ?? labels.dialog}
         size={size}
         dismissDisabled={dismissDisabled}
         onOpenAutoFocus={focusChipModalDefaultAction}
@@ -319,18 +321,11 @@ interface ChipModalHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
  */
 const ChipModalHeader = React.forwardRef<HTMLDivElement, ChipModalHeaderProps>(
   (
-    {
-      className,
-      children,
-      icon: Icon = null,
-      onClose,
-      closeDisabled,
-      closeAriaLabel = 'Close',
-      ...props
-    },
+    { className, children, icon: Icon = null, onClose, closeDisabled, closeAriaLabel, ...props },
     ref
   ) => {
     const dismissDisabled = useModalDismissDisabled()
+    const labels = useEmcnLabels()
     return (
       <div ref={ref} className={cn('flex flex-col', className)} {...props}>
         <div className='flex min-w-0 items-center justify-between gap-2 px-4 pt-3'>
@@ -350,7 +345,7 @@ const ChipModalHeader = React.forwardRef<HTMLDivElement, ChipModalHeaderProps>(
             className='relative size-[14px] shrink-0 p-0 before:absolute before:inset-[-14px] before:content-[""]'
           >
             <X className='size-[14px] text-[var(--text-icon)]' />
-            <span className='sr-only'>{closeAriaLabel}</span>
+            <span className='sr-only'>{closeAriaLabel ?? labels.close}</span>
           </Button>
         </div>
         <ChipModalSeparator className='mt-3' />
@@ -952,6 +947,7 @@ function ChipModalPasswordControl({
   aria,
 }: ChipModalPasswordControlProps) {
   const [revealed, setRevealed] = React.useState(false)
+  const labels = useEmcnLabels()
 
   return (
     <ChipInput
@@ -987,7 +983,7 @@ function ChipModalPasswordControl({
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => setRevealed((current) => !current)}
             className='size-6 shrink-0 p-0 text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-            aria-label={revealed ? 'Hide password' : 'Show password'}
+            aria-label={revealed ? labels.hidePassword : labels.showPassword}
           >
             {revealed ? <EyeOff className='size-[14px]' /> : <Eye className='size-[14px]' />}
           </Button>
@@ -1054,8 +1050,8 @@ function ChipModalFileControl({
   onChange,
   accept,
   multiple = false,
-  label = 'Drop files here or click to browse',
-  draggingLabel = 'Drop files here',
+  label,
+  draggingLabel,
   description,
   loading = false,
   disabled,
@@ -1067,6 +1063,7 @@ function ChipModalFileControl({
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = React.useState(false)
   const isInteractive = !disabled && !loading
+  const labels = useEmcnLabels()
 
   const emitFiles = React.useCallback(
     (files: FileList | null) => {
@@ -1126,7 +1123,9 @@ function ChipModalFileControl({
       />
       {loading ? <Loader animate className='size-[14px] text-[var(--text-tertiary)]' /> : null}
       <OverflowText
-        label={isDragging ? draggingLabel : label}
+        label={
+          isDragging ? (draggingLabel ?? labels.dropFilesHere) : (label ?? labels.dropFilesOrBrowse)
+        }
         focusTarget='nearest-interactive'
         className='max-w-full text-[var(--text-primary)] text-caption'
       />
@@ -1328,7 +1327,7 @@ function renderFooterSlotAction(action: ChipModalFooterSlotAction): React.ReactN
  * accept a chip-chrome control via {@link ChipModalFooterCustomAction}.
  */
 function ChipModalFooter({
-  cancelLabel = 'Cancel',
+  cancelLabel,
   onCancel,
   cancelDisabled,
   hideCancel = false,
@@ -1339,6 +1338,7 @@ function ChipModalFooter({
   leadingContent,
 }: ChipModalFooterProps) {
   const dismissDisabled = useModalDismissDisabled()
+  const labels = useEmcnLabels()
   const showsDisabledTooltip = Boolean(primaryAction?.disabled && primaryAction.disabledTooltip)
 
   const primaryChip = primaryAction ? (
@@ -1378,7 +1378,7 @@ function ChipModalFooter({
           data-chip-modal-dismiss-action=''
           data-chip-modal-default-action={defaultAction === 'dismiss' ? '' : undefined}
         >
-          {cancelLabel}
+          {cancelLabel ?? labels.cancel}
         </Chip>
       )}
       {primaryAdjacentAction ? renderFooterSlotAction(primaryAdjacentAction) : null}
@@ -1668,10 +1668,11 @@ function ChipConfirmModal({
   children,
   confirm,
   defaultAction = 'dismiss',
-  dismissLabel = 'Cancel',
+  dismissLabel,
   size = 'sm',
   srTitle,
 }: ChipConfirmModalProps) {
+  const labels = useEmcnLabels()
   const dismiss = () => onOpenChange(false)
   const confirmLabel = confirm.pending ? (confirm.pendingLabel ?? confirm.label) : confirm.label
   const descriptionId = React.useId()
@@ -1682,7 +1683,7 @@ function ChipConfirmModal({
       open={open}
       onOpenChange={onOpenChange}
       size={size}
-      srTitle={srTitle ?? (typeof title === 'string' ? title : 'Confirm')}
+      srTitle={srTitle ?? (typeof title === 'string' ? title : labels.confirm)}
       dismissDisabled={confirm.pending}
       aria-describedby={hasText ? descriptionId : undefined}
     >
@@ -1702,7 +1703,7 @@ function ChipConfirmModal({
         confirmLabel={confirmLabel}
         defaultAction={defaultAction}
         dismiss={dismiss}
-        dismissLabel={dismissLabel}
+        dismissLabel={dismissLabel ?? labels.cancel}
       />
     </ChipModal>
   )

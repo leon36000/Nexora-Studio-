@@ -15,6 +15,8 @@ const admin = vi.hoisted(() => ({
   localModels: vi.fn(),
   pull: vi.fn(),
   deleteLocal: vi.fn(),
+  readCards: vi.fn(),
+  updateCard: vi.fn(),
 }))
 
 vi.mock('@/lib/nexora/admin-access', () => nexoraAdminAccessMock)
@@ -40,6 +42,12 @@ vi.mock('@/lib/nexora/model-admin', () => {
   }
 })
 
+vi.mock('@/lib/nexora/model-cards', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/nexora/model-cards')>()),
+  readModelCards: admin.readCards,
+  updateModelCard: admin.updateCard,
+}))
+
 vi.mock('@/lib/nexora/ollama', () => ({
   OLLAMA_CATALOG: [{ name: 'qwen2.5:3b', diskGb: 1.9, memoryGb: 4, paramsB: 3 }],
   OllamaUnavailableError: class OllamaUnavailableError extends Error {},
@@ -53,6 +61,7 @@ import { OllamaUnavailableError } from '@/lib/nexora/ollama'
 
 const authorize = nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin
 
+import { PATCH as UPDATE_CARD } from '@/app/api/nexora/models/[id]/card/route'
 import { POST as SET_DEFAULT } from '@/app/api/nexora/models/[id]/default/route'
 import { DELETE } from '@/app/api/nexora/models/[id]/route'
 import { POST as TEST } from '@/app/api/nexora/models/[id]/test/route'
@@ -79,8 +88,10 @@ function post(path: string, body?: unknown) {
 
 describe('Nexora models routes', () => {
   beforeEach(() => {
-    authorize.mockResolvedValue({ ok: true, userId: 'u-1' })
+    authorize.mockResolvedValue({ ok: true, userId: 'u-1', organizationId: 'org-1' })
     admin.list.mockResolvedValue([qwen])
+    admin.readCards.mockResolvedValue({})
+    admin.updateCard.mockResolvedValue(null)
     admin.localModels.mockResolvedValue(['qwen2.5:7b', 'qwen2.5:3b'])
     admin.deleteLocal.mockResolvedValue(undefined)
   })
@@ -118,7 +129,7 @@ describe('Nexora models routes', () => {
   it('lists the models with the catalog marked as installed or not', async () => {
     const response = await GET(new NextRequest('http://localhost/api/nexora/models'), {})
     expect(await response.json()).toEqual({
-      models: [qwen],
+      models: [{ ...qwen, card: expect.objectContaining({ location: 'local', reasoning: null }) }],
       catalog: [{ name: 'qwen2.5:3b', diskGb: 1.9, memoryGb: 4, paramsB: 3, installed: true }],
       localModels: ['qwen2.5:7b', 'qwen2.5:3b'],
       ollamaAvailable: true,
@@ -129,7 +140,7 @@ describe('Nexora models routes', () => {
     admin.localModels.mockRejectedValue(new OllamaUnavailableError('down'))
     const body = await (await GET(new NextRequest('http://localhost/api/nexora/models'), {})).json()
     expect(body.ollamaAvailable).toBe(false)
-    expect(body.models).toEqual([qwen])
+    expect(body.models.map((m: { name: string }) => m.name)).toEqual([qwen.name])
   })
 
   it('answers 503 when the model administration is unavailable', async () => {
@@ -198,9 +209,15 @@ describe('Nexora models routes', () => {
   })
 
   it('tests a model by the name blocks use', async () => {
-    admin.test.mockResolvedValue({ latencyMs: 812, reply: 'Bonjour' })
+    const result = {
+      latencyMs: 812,
+      reply: 'Bonjour',
+      truncated: false,
+      capabilities: { reasoning: false, tools: true },
+    }
+    admin.test.mockResolvedValue(result)
     const response = await TEST(post('/api/nexora/models/7/test'), createRouteContext({ id: '7' }))
-    expect(await response.json()).toEqual({ latencyMs: 812, reply: 'Bonjour' })
+    expect(await response.json()).toEqual(result)
     expect(admin.test).toHaveBeenCalledWith('qwen2.5:7b', {}, 'chat')
     const missing = await TEST(post('/api/nexora/models/99/test'), createRouteContext({ id: '99' }))
     expect(missing.status).toBe(404)
@@ -234,9 +251,105 @@ describe('Nexora models routes', () => {
 
   it('tests a vision model on its own kind of input', async () => {
     admin.list.mockResolvedValue([{ ...qwen, id: 8, name: 'qwen2.5vl:3b', usage: 'vision' }])
-    admin.test.mockResolvedValue({ latencyMs: 3000, reply: 'Nexora' })
+    admin.test.mockResolvedValue({
+      latencyMs: 3000,
+      reply: 'Nexora',
+      truncated: false,
+      capabilities: { reasoning: null, tools: null },
+    })
     await TEST(post('/api/nexora/models/8/test'), createRouteContext({ id: '8' }))
     expect(admin.test).toHaveBeenCalledWith('qwen2.5vl:3b', {}, 'vision')
+    expect(admin.updateCard).toHaveBeenCalledWith('org-1', 'qwen2.5vl:3b', {
+      testedAt: expect.any(String),
+    })
+  })
+
+  describe('model cards', () => {
+    const glm = {
+      ...qwen,
+      id: 10,
+      name: 'cloud-glm-5-3',
+      source: 'openai-compatible',
+      providerUrl: 'http://host.docker.internal:18090',
+    }
+    const patch = (id: string, body: unknown) =>
+      UPDATE_CARD(
+        new NextRequest(`http://localhost/api/nexora/models/${id}/card`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }),
+        createRouteContext({ id })
+      )
+
+    beforeEach(() => {
+      admin.list.mockResolvedValue([qwen, glm])
+    })
+
+    it('lists each model with its card: what the test found and where its data lives', async () => {
+      admin.readCards.mockResolvedValue({ 'cloud-glm-5-3': { reasoning: true, tools: true } })
+      const body = await (
+        await GET(new NextRequest('http://localhost/api/nexora/models'), {})
+      ).json()
+      expect(admin.readCards).toHaveBeenCalledWith('org-1')
+      expect(body.models[1].card).toEqual({
+        reasoning: true,
+        tools: true,
+        vision: false,
+        contextTokens: null,
+        location: 'external',
+        locationEditable: true,
+        testedAt: null,
+      })
+    })
+
+    it('records what « Tester » detected on the tested model’s card', async () => {
+      admin.test.mockResolvedValue({
+        latencyMs: 900,
+        reply: 'Je suis GLM.',
+        truncated: false,
+        capabilities: { reasoning: true, tools: false },
+      })
+      await TEST(post('/api/nexora/models/10/test'), createRouteContext({ id: '10' }))
+      expect(admin.updateCard).toHaveBeenCalledWith('org-1', 'cloud-glm-5-3', {
+        reasoning: true,
+        tools: false,
+        testedAt: expect.any(String),
+      })
+    })
+
+    it('lets an administrator declare where an OpenAI-compatible service keeps the data', async () => {
+      const response = await patch('10', { location: 'eu', contextTokens: 200_000 })
+      expect(response.status).toBe(200)
+      expect(admin.updateCard).toHaveBeenCalledWith('org-1', 'cloud-glm-5-3', {
+        location: 'eu',
+        contextTokens: 200_000,
+      })
+      await patch('10', { contextTokens: null })
+      expect(admin.updateCard).toHaveBeenLastCalledWith('org-1', 'cloud-glm-5-3', {
+        contextTokens: null,
+      })
+    })
+
+    it('refuses a location for a local or Mistral model, a bad length, a stranger', async () => {
+      const local = await patch('7', { location: 'external' })
+      expect([local.status, (await local.json()).error]).toEqual([400, 'invalid'])
+      expect((await patch('10', { contextTokens: 12 })).status).toBe(400)
+      expect((await patch('10', { location: 'mars' })).status).toBe(400)
+      expect((await patch('99', { contextTokens: 8000 })).status).toBe(404)
+      authorize.mockResolvedValue({ ok: false, status: 403 })
+      expect((await patch('10', { location: 'eu' })).status).toBe(403)
+      expect(admin.updateCard).not.toHaveBeenCalled()
+    })
+
+    it('forgets a removed model’s card', async () => {
+      admin.remove.mockResolvedValueOnce({ removedLocalModel: null })
+      await DELETE(
+        new NextRequest('http://localhost/api/nexora/models/10', { method: 'DELETE' }),
+        createRouteContext({ id: '10' })
+      )
+      expect(admin.updateCard).toHaveBeenCalledWith('org-1', 'cloud-glm-5-3', null)
+    })
   })
 
   it('names a local model the way Ollama lists it: lowercase, with a tag', async () => {

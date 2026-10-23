@@ -182,6 +182,7 @@ describe('ensureGeneralAssistantAgent', () => {
       authType: 'workspace',
       customizations: { welcomeMessage: GENERAL_ASSISTANT_WELCOME },
       outputConfigs: [{ blockId: 'imported-agent', path: 'content' }],
+      includeThinking: true,
       workspaceId: WORKSPACE_ID,
       actor: { kind: 'session', userId: 'member' },
       projectLegacyAudit: false,

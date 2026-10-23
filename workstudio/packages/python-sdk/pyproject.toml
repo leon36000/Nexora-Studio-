@@ -3,12 +3,12 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "simstudio-sdk"
+name = "nexora-sdk"
 version = "0.2.1"
 authors = [
-    {name = "Sim", email = "help@sim.ai"},
+    {name = "Nexora"},
 ]
-description = "Sim SDK - Execute workflows programmatically"
+description = "SDK Nexora : exécuter les workflows d'une instance Nexora WorkStudio (fork du SDK de Sim, Apache-2.0)"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.8"
@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-keywords = ["simstudio", "ai", "workflow", "sdk", "api", "automation"]
+keywords = ["nexora", "ai", "workflow", "sdk", "api", "automation"]
 dependencies = [
     "requests>=2.25.0",
     "typing-extensions>=4.0.0; python_version<'3.10'",
@@ -45,14 +45,12 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://sim.ai"
-Documentation = "https://docs.sim.ai"
-Repository = "https://github.com/simstudioai/sim"
-"Bug Reports" = "https://github.com/simstudioai/sim/issues"
+Repository = "https://github.com/leon36000/Nexora-Studio-"
+Documentation = "https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide/api-developpeurs.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["simstudio*"]
+include = ["simstudio*", "nexora*"]
 
 [tool.black]
 line-length = 100

@@ -45,6 +45,7 @@ vi.mock('@/lib/table/wire', () => tableWireMock)
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 vi.mock('@/lib/workspaces/utils', () => workspacesUtilsMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { POST } from '@/app/api/table/[tableId]/columns/route'
 import { GET } from '@/app/api/table/[tableId]/views/route'
@@ -115,7 +116,7 @@ describe('tables.use gate on the raw /api/table routes', () => {
 
       expect(response.status).toBe(403)
       expect(await response.json()).toEqual({
-        error: "The Tables module is not available under your organization's permission group",
+        error: capabilityRefusal('tables.use'),
         details: { code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' },
       })
       expect(mockAddTableColumn).not.toHaveBeenCalled()

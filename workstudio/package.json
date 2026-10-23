@@ -137,8 +137,8 @@
   "overrides": {
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "next": "16.4.0",
-    "@next/env": "16.4.0",
+    "next": "16.4.2",
+    "@next/env": "16.4.2",
     "drizzle-orm": "^0.45.4",
     "postgres": "3.4.9",
     "minimatch": "10.2.6",
@@ -173,10 +173,10 @@
     "ws": "8.21.3"
   },
   "optionalDependencies": {
-    "@next/swc-darwin-arm64": "16.4.0",
-    "@next/swc-darwin-x64": "16.4.0",
-    "@next/swc-linux-arm64-gnu": "16.4.0",
-    "@next/swc-linux-x64-gnu": "16.4.0"
+    "@next/swc-darwin-arm64": "16.4.2",
+    "@next/swc-darwin-x64": "16.4.2",
+    "@next/swc-linux-arm64-gnu": "16.4.2",
+    "@next/swc-linux-x64-gnu": "16.4.2"
   },
   "devDependencies": {
     "@babel/parser": "7.29.9",
@@ -225,6 +225,6 @@
     "postgres@3.4.9": "patches/postgres@3.4.9.patch",
     "oracledb@7.0.1": "patches/oracledb@7.0.1.patch",
     "echarts@6.1.0": "patches/echarts@6.1.0.patch",
-    "next@16.4.0": "patches/next@16.4.0.patch"
+    "next@16.4.2": "patches/next@16.4.2.patch"
   }
 }

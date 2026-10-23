@@ -1,5 +1,6 @@
 import { generateId } from '@sim/utils/id'
 import { isRecordLike, toArray, toRecord } from '@sim/utils/object'
+import { REASONING_EFFORTS, type ReasoningEffort } from '@/lib/nexora/reasoning'
 import { normalizedStringify, sanitizeTools } from '@/lib/workflows/comparison/normalize'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
 
@@ -18,7 +19,16 @@ export interface AgentConfig {
   knowledgeBaseIds: string[]
   /** Keep the conversation across messages of one chat. */
   memory: boolean
+  /** Sent as `reasoning_effort` to a reasoning model; `auto` sends nothing. */
+  reasoningEffort: AgentReasoningEffort
   welcomeMessage: string
+}
+
+type AgentReasoningEffort = 'auto' | ReasoningEffort
+const FORM_REASONING_EFFORTS: readonly string[] = ['auto', ...REASONING_EFFORTS]
+
+function isFormReasoningEffort(value: unknown): value is AgentReasoningEffort {
+  return typeof value === 'string' && FORM_REASONING_EFFORTS.includes(value)
 }
 
 interface AgentBlock {
@@ -155,6 +165,7 @@ function formSubBlocks(config: AgentConfig, previousTools: StoredTool[]): AgentB
       type: 'dropdown',
       value: config.memory ? 'conversation' : 'none',
     },
+    reasoningEffort: { id: 'reasoningEffort', type: 'combobox', value: config.reasoningEffort },
   }
   if (config.memory) {
     subBlocks.conversationId = { id: 'conversationId', type: 'short-input', value: CONVERSATION_ID }
@@ -289,6 +300,8 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
   if (typeof memoryType !== 'string' || !FORM_MEMORY_TYPES.has(memoryType)) return null
   const memory = memoryType === 'conversation'
   if (memory && subBlockValue(agent, 'conversationId') !== CONVERSATION_ID) return null
+  const reasoningEffort = subBlockValue(agent, 'reasoningEffort') || 'auto'
+  if (!isFormReasoningEffort(reasoningEffort)) return null
 
   const storedTools = toArray(tools).filter(isStoredTool)
   const metadata = toRecord(shape.state.metadata)
@@ -301,6 +314,7 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
     tools: storedTools.filter((tool) => knowledgeBaseOf(tool) === null),
     knowledgeBaseIds: storedTools.map(knowledgeBaseOf).filter((id): id is string => id !== null),
     memory,
+    reasoningEffort,
     welcomeMessage: text(metadata.welcomeMessage),
   }
 }
@@ -309,7 +323,14 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
  * The fields the workflow's state holds. Name and description live on the workflow row and the
  * welcome message on the chat, so comparing two states (or two versions) compares these only.
  */
-const STATE_FIELDS = ['instructions', 'model', 'tools', 'knowledgeBaseIds', 'memory'] as const
+const STATE_FIELDS = [
+  'instructions',
+  'model',
+  'tools',
+  'knowledgeBaseIds',
+  'memory',
+  'reasoningEffort',
+] as const
 
 /**
  * A field as compared and shown. Tools compare on content, not on key order (the database's

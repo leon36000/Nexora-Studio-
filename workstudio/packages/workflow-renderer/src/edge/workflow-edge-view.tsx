@@ -8,6 +8,7 @@ import {
   type EdgeProps,
   getSmoothStepPath,
 } from '@xyflow/react'
+import { useWorkflowRendererLabels } from '../labels'
 import type { EdgeDiffStatus, EdgeRunStatus } from '../types'
 
 const EXECUTION_PULSE_LENGTH = 0.32
@@ -104,6 +105,7 @@ export function WorkflowEdgeView({
   isTargetActive = false,
   isConnectedToSelection = false,
 }: WorkflowEdgeViewProps) {
+  const labels = useWorkflowRendererLabels()
   const prefersReducedMotion = usePrefersReducedMotion()
   const pulseId = useId().replaceAll(':', '')
   const pulseGlowId = `workflow-edge-pulse-glow-${pulseId}`
@@ -280,7 +282,7 @@ export function WorkflowEdgeView({
       {isSelected && (
         <EdgeLabelRenderer>
           <button
-            aria-label='Delete connection'
+            aria-label={labels.deleteConnection}
             type='button'
             className='nodrag nopan group flex size-[22px] cursor-pointer items-center justify-center transition-colors'
             style={{

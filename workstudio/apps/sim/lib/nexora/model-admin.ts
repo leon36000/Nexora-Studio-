@@ -6,6 +6,7 @@ import {
   ROUTER_TYPE_BY_USAGE,
   usageOfRouterType,
 } from '@/lib/nexora/model-ids'
+import { readMessageReasoning } from '@/lib/nexora/reasoning'
 
 /** Where a model runs: the bundled Ollama, Mistral AI, or any OpenAI-compatible service. */
 export type NexoraModelSource = 'ollama' | 'mistral' | 'openai-compatible'
@@ -446,11 +447,44 @@ function silentWav(seconds = 1, sampleRate = 16_000): Uint8Array<ArrayBuffer> {
   return wav
 }
 
+/** What « Tester » found out about a chat model; `null` when it could not tell. */
+interface NexoraModelCapabilities {
+  reasoning: boolean | null
+  tools: boolean | null
+}
+
+export interface NexoraModelTestResult {
+  latencyMs: number
+  reply: string
+  /** A reasoning model spent the whole answer budget thinking: there is no answer to show. */
+  truncated: boolean
+  capabilities: NexoraModelCapabilities
+}
+
+/** Room for a reasoning model to think before its one-sentence answer. */
+const TEST_MAX_TOKENS = 1024
+const TEST_PROMPT = 'Réponds en une phrase : qui es-tu ?'
+const PROBE_TOOL = {
+  type: 'function',
+  function: {
+    name: 'heure_actuelle',
+    description: "Donne l'heure actuelle.",
+    parameters: { type: 'object', properties: {} },
+  },
+}
+
+interface TestResponse {
+  status: number
+  reply: string
+  detail?: string
+  reasoning?: string
+}
+
 async function testRequest(
   client: ReturnType<typeof createClient>,
   name: string,
   usage: NexoraModelUsage
-): Promise<{ status: number; reply: string; detail?: string }> {
+): Promise<TestResponse> {
   if (usage === 'vision') {
     const { status, data } = await client.call<{
       pages?: { markdown?: string | null }[]
@@ -483,36 +517,81 @@ async function testRequest(
     return { status: response.status, reply: data.text ?? '', detail: data.detail }
   }
   const { status, data } = await client.call<{
-    choices?: { message?: { content?: string } }[]
+    choices?: { message?: unknown }[]
     detail?: string
   }>('POST', '/v1/chat/completions', {
     token: client.config.apiKey,
-    timeoutMs: 120_000,
+    timeoutMs: 300_000,
     body: {
       model: name,
-      messages: [{ role: 'user', content: 'Réponds en une phrase : qui es-tu ?' }],
-      max_tokens: 60,
+      messages: [{ role: 'user', content: TEST_PROMPT }],
+      max_tokens: TEST_MAX_TOKENS,
       temperature: 0,
     },
   })
-  return { status, reply: data.choices?.[0]?.message?.content ?? '', detail: data.detail }
+  const { content, reasoning } = readMessageReasoning(data.choices?.[0]?.message)
+  return { status, reply: content, reasoning, detail: data.detail }
+}
+
+/**
+ * Whether the model accepts a tool definition: a refusal of the request (4xx) says no, a service
+ * failure says nothing.
+ */
+async function probeTools(
+  client: ReturnType<typeof createClient>,
+  name: string
+): Promise<boolean | null> {
+  try {
+    const { status } = await client.call('POST', '/v1/chat/completions', {
+      token: client.config.apiKey,
+      timeoutMs: 300_000,
+      body: {
+        model: name,
+        messages: [{ role: 'user', content: TEST_PROMPT }],
+        tools: [PROBE_TOOL],
+        max_tokens: 16,
+        temperature: 0,
+      },
+    })
+    if (status < 300) return true
+    return status < 500 ? false : null
+  } catch {
+    return null
+  }
 }
 
 /**
  * Tries a model with WorkStudio's own key, like a block would: a short question for a chat
- * model, a sample image for a vision model, a second of silence for a transcription model.
+ * model, a sample image for a vision model, a second of silence for a transcription model. A chat
+ * model's answer comes without its reasoning; whether it reasons and accepts tools is reported.
  */
 export async function testNexoraModel(
   name: string,
   options: NexoraModelAdminOptions = {},
   usage: NexoraModelUsage = 'chat'
-): Promise<{ latencyMs: number; reply: string }> {
+): Promise<NexoraModelTestResult> {
   const client = createClient(options)
   const started = performance.now()
-  const { status, reply, detail } = await testRequest(client, name, usage)
+  const { status, reply, detail, reasoning } = await testRequest(client, name, usage)
   if (status === 404) throw new NexoraModelError('not-found', `${name} is not served`)
   if (status >= 400) {
     throw new NexoraModelError('unreachable', detail ?? `model answered HTTP ${status}`)
   }
-  return { latencyMs: Math.round(performance.now() - started), reply: reply.trim() }
+  const latencyMs = Math.round(performance.now() - started)
+  const answer = reply.trim()
+  if (usage !== 'chat') {
+    return {
+      latencyMs,
+      reply: answer,
+      truncated: false,
+      capabilities: { reasoning: null, tools: null },
+    }
+  }
+  const hasReasoning = Boolean(reasoning?.trim())
+  return {
+    latencyMs,
+    reply: answer,
+    truncated: !answer && hasReasoning,
+    capabilities: { reasoning: hasReasoning, tools: await probeTools(client, name) },
+  }
 }

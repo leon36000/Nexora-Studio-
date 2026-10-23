@@ -67,6 +67,7 @@ vi.mock('@sim/audit', () => auditMock)
 
 import { getPublicLog } from '@/lib/logs/application/get-public-log'
 import { listPublicLogs } from '@/lib/logs/application/list-public-logs'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 
 const mocks = {
@@ -277,7 +278,7 @@ describe('listPublicLogs cost-selective queries', () => {
     ).rejects.toMatchObject({
       code: 'forbidden',
       detailCode: 'PERMISSION_GROUP_CAPABILITY_BLOCKED',
-      message: "Execution cost is not available under your organization's permission group",
+      message: capabilityRefusal('logs.cost'),
     })
 
     expect(mocks.listLogs).not.toHaveBeenCalled()

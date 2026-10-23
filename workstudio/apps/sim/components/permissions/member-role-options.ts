@@ -1,3 +1,6 @@
+import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+
 /** Role assignable to a member of a shared resource (credential, skill). */
 export type MemberRole = 'member' | 'admin'
 
@@ -10,10 +13,13 @@ export interface MemberRoleOption {
  * Roles assignable to a resource member. Shared by every member-management
  * surface (credential detail, skill members) so role choices never drift.
  */
-export const MEMBER_ROLE_OPTIONS: readonly MemberRoleOption[] = [
-  { value: 'member', label: 'Member' },
-  { value: 'admin', label: 'Admin' },
-] as const
+const MEMBER_ROLES: readonly MemberRole[] = ['member', 'admin'] as const
+
+/** {@link MEMBER_ROLES} as dropdown options labelled in the current locale. */
+export function useMemberRoleOptions(): readonly MemberRoleOption[] {
+  const t = useTranslations('settings.permissions.roles')
+  return useMemo(() => MEMBER_ROLES.map((value) => ({ value, label: t(value) })), [t])
+}
 
 export type SkillEditorRole = 'editor'
 
@@ -23,6 +29,7 @@ export type SkillEditorRole = 'editor'
  * control identical in shape to the credential surface's while being honest
  * that there is nothing to switch between; every skill row renders it disabled.
  */
-export const SKILL_EDITOR_ROLE_OPTIONS: readonly { value: SkillEditorRole; label: string }[] = [
-  { value: 'editor', label: 'Editor' },
-] as const
+export function useSkillEditorRoleOptions(): readonly { value: SkillEditorRole; label: string }[] {
+  const t = useTranslations('settings.permissions.roles')
+  return useMemo(() => [{ value: 'editor' as const, label: t('editor') }], [t])
+}

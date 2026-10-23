@@ -111,7 +111,7 @@ function readTable() {
   )
 }
 
-const REFUSAL = /is not available under your organization's permission group/
+const REFUSAL = /groupe d’accès de votre organisation/
 
 beforeEach(() => {
   resetPermissionGroupScopeMock()

@@ -2,9 +2,23 @@
 
 import type { ReactNode } from 'react'
 import { Tooltip } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 
 export type WorkspaceRoleSource = 'owner' | 'explicit' | 'org-admin'
 export type CredentialRoleSource = 'explicit' | 'workspace-admin'
+
+/**
+ * Why a member's role or removal is fixed, as a message key of
+ * `settings.permissions.roleLock`; {@link RoleLockTooltip} renders the sentence.
+ */
+export type RoleLockReason =
+  | 'orgAdminRole'
+  | 'workspaceOwner'
+  | 'billingAccount'
+  | 'orgAdminRemoval'
+  | 'reassignBilling'
+  | 'credentialAdmin'
+  | 'skillEditor'
 
 /**
  * Explanation shown when a workspace member's role is fixed and cannot be
@@ -17,10 +31,10 @@ export type CredentialRoleSource = 'explicit' | 'workspace-admin'
 export function workspaceRoleLockReason(
   roleSource: WorkspaceRoleSource | undefined,
   options?: { isBilledAccount?: boolean }
-): string | null {
-  if (roleSource === 'org-admin') return 'Organization admins are automatically workspace admins'
-  if (roleSource === 'owner') return 'Workspace owner'
-  if (options?.isBilledAccount) return 'Workspace billing account'
+): RoleLockReason | null {
+  if (roleSource === 'org-admin') return 'orgAdminRole'
+  if (roleSource === 'owner') return 'workspaceOwner'
+  if (options?.isBilledAccount) return 'billingAccount'
   return null
 }
 
@@ -40,13 +54,9 @@ export function workspaceRoleLockReason(
 export function workspaceMemberRemovalLockReason(options?: {
   isOrgAdmin?: boolean
   isBilledAccount?: boolean
-}): string | null {
-  if (options?.isOrgAdmin) {
-    return 'Organization admins are automatically workspace admins. Change their organization role to remove them.'
-  }
-  if (options?.isBilledAccount) {
-    return 'Reassign billing before removing the workspace billing account'
-  }
+}): RoleLockReason | null {
+  if (options?.isOrgAdmin) return 'orgAdminRemoval'
+  if (options?.isBilledAccount) return 'reassignBilling'
   return null
 }
 
@@ -56,11 +66,8 @@ export function workspaceMemberRemovalLockReason(options?: {
  */
 export function credentialRoleLockReason(
   roleSource: CredentialRoleSource | undefined
-): string | null {
-  if (roleSource === 'workspace-admin') {
-    return 'Workspace admins are automatically credential admins'
-  }
-  return null
+): RoleLockReason | null {
+  return roleSource === 'workspace-admin' ? 'credentialAdmin' : null
 }
 
 /**
@@ -68,12 +75,12 @@ export function credentialRoleLockReason(
  * workspace admin role rather than an explicit grant, and so cannot be removed.
  * Returns null for explicitly added editors.
  */
-export function skillEditorLockReason(isWorkspaceAdmin: boolean): string | null {
-  return isWorkspaceAdmin ? 'Workspace admins are automatically skill editors' : null
+export function skillEditorLockReason(isWorkspaceAdmin: boolean): RoleLockReason | null {
+  return isWorkspaceAdmin ? 'skillEditor' : null
 }
 
 interface RoleLockTooltipProps {
-  reason: string | null
+  reason: RoleLockReason | null
   children: ReactNode
 }
 
@@ -85,6 +92,7 @@ interface RoleLockTooltipProps {
  * shrink-to-content wrapper would size locked and unlocked rows differently.
  */
 export function RoleLockTooltip({ reason, children }: RoleLockTooltipProps) {
+  const t = useTranslations('settings.permissions.roleLock')
   if (!reason) return <>{children}</>
 
   return (
@@ -92,7 +100,7 @@ export function RoleLockTooltip({ reason, children }: RoleLockTooltipProps) {
       <Tooltip.Trigger asChild>
         <div className='grid'>{children}</div>
       </Tooltip.Trigger>
-      <Tooltip.Content>{reason}</Tooltip.Content>
+      <Tooltip.Content>{t(reason)}</Tooltip.Content>
     </Tooltip.Root>
   )
 }

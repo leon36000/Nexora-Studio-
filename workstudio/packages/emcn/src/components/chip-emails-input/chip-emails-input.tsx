@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { isValidEmailSyntax, normalizeEmail } from '@sim/utils/string'
+import { type EmcnLabels, formatEmcnLabel, useEmcnLabels } from '../labels/labels'
 import { TagInput, type TagItem } from '../tag-input/tag-input'
 
 const ENTER_PREFIX = 'enter'
@@ -14,13 +15,13 @@ const ENTER_PREFIX = 'enter'
  * Deliberately string ops rather than a regex — `/^Enter\s+(.+?)s?$/` has
  * polynomial backtracking on whitespace-heavy input (CodeQL js/redos).
  */
-function derivePlaceholderWithTags(placeholder: string): string {
+function derivePlaceholderWithTags(placeholder: string, labels: EmcnLabels): string {
   const rest = placeholder.slice(ENTER_PREFIX.length)
   const noun = rest.trim()
   const startsWithEnter = placeholder.slice(0, ENTER_PREFIX.length).toLowerCase() === ENTER_PREFIX
-  if (!startsWithEnter || rest === noun || !noun) return 'Add another'
+  if (!startsWithEnter || rest === noun || !noun) return labels.addAnother
   const singular = noun.toLowerCase().endsWith('s') ? noun.slice(0, -1) : noun
-  return `Add ${singular}`
+  return formatEmcnLabel(labels.addNoun, { noun: singular })
 }
 
 export interface ChipEmailsInputProps {
@@ -76,13 +77,15 @@ export function ChipEmailsInput({
   onChange,
   validate,
   allowDomains = false,
-  placeholder = 'Enter emails',
+  placeholder: placeholderProp,
   placeholderWithTags,
   variant = 'block',
   disabled,
   autoFocus,
   id,
 }: ChipEmailsInputProps) {
+  const labels = useEmcnLabels()
+  const placeholder = placeholderProp ?? labels.enterEmails
   const [items, setItems] = React.useState<TagItem[]>(() =>
     value.map((v) => ({ value: v, isValid: true }))
   )
@@ -136,7 +139,7 @@ export function ChipEmailsInput({
         next.push({
           value: email,
           isValid: false,
-          error: allowDomains ? 'Invalid email or domain' : 'Invalid email format',
+          error: allowDomains ? labels.invalidEmailOrDomain : labels.invalidEmailFormat,
         })
         results.push(false)
         continue
@@ -188,7 +191,7 @@ export function ChipEmailsInput({
       onAddMany={handleAddMany}
       onRemove={handleRemove}
       placeholder={placeholder}
-      placeholderWithTags={placeholderWithTags ?? derivePlaceholderWithTags(placeholder)}
+      placeholderWithTags={placeholderWithTags ?? derivePlaceholderWithTags(placeholder, labels)}
       disabled={disabled}
       autoFocus={autoFocus}
       id={id}

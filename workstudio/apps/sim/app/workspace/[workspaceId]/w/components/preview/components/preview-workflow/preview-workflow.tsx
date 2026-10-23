@@ -26,6 +26,7 @@ import {
   useCanvasColorMode,
 } from '@sim/workflow-renderer'
 import { normalizeWorkflowEdgeHandles } from '@sim/workflow-types/workflow'
+import { useTranslations } from 'next-intl'
 import type { CanvasPort } from '@/lib/workflows/blocks/canvas-ports'
 import type { BlockDiffStatus, EdgeDiffStatus } from '@/lib/workflows/comparison'
 import { SUBFLOW_CHILD_NODE_CLASS } from '@/app/workspace/[workspaceId]/w/[workflowId]/utils'
@@ -203,6 +204,7 @@ function PreviewWorkflowContent({
   changedFieldsByBlock,
   removedPortsByBlock,
 }: Omit<PreviewWorkflowProps, 'workspaceId'>) {
+  const t = useTranslations('editor.preview')
   const { workspaceId } = useWorkflowScope()
   const {
     data: workflowMap = {},
@@ -605,10 +607,8 @@ function PreviewWorkflowContent({
         className='flex items-center justify-center rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900'
       >
         <div className='text-center text-gray-500 dark:text-gray-400'>
-          <div className='mb-2 text-lg'>⚠️ Logged State Not Found</div>
-          <div className='text-sm'>
-            This log was migrated from the old system and doesn't contain workflow state data.
-          </div>
+          <div className='mb-2 text-lg'>{t('loggedStateNotFound')}</div>
+          <div className='text-sm'>{t('loggedStateMigrated')}</div>
         </div>
       </div>
     )

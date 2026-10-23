@@ -1977,6 +1977,16 @@ describe('executeProviderRequest — model level normalization', () => {
     expect(sentRequest().reasoningEffort).toBe('xhigh')
   })
 
+  it('forwards the reasoning effort to a Nexora model, whose provider drops it if refused', async () => {
+    await executeProviderRequest('vllm', {
+      model: 'vllm/cloud-glm-5-3',
+      workspaceId: 'ws-1',
+      reasoningEffort: 'high',
+    })
+
+    expect(sentRequest().reasoningEffort).toBe('high')
+  })
+
   it('drops the reasoning effort for a Grok model that rejects the parameter', async () => {
     await executeProviderRequest('xai', {
       model: 'grok-4.20-0309-reasoning',

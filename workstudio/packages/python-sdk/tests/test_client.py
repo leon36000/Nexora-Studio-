@@ -46,7 +46,16 @@ def test_simstudio_client_default_base_url():
     """Test SimStudioClient with default base URL."""
     client = SimStudioClient(api_key="test-api-key")
     assert client.api_key == "test-api-key"
-    assert client.base_url == "https://www.sim.ai"
+    assert client.base_url == "http://localhost:3000"
+
+
+def test_nexora_names_and_former_aliases():
+    """The Nexora names are the SDK's own; the former Sim names stay as aliases."""
+    from nexora import NexoraClient, NexoraError
+    from simstudio import SimStudioClient as Former, SimStudioError as FormerError
+    assert NexoraClient is Former
+    assert NexoraError is FormerError
+    assert NexoraClient(api_key="k").base_url == "http://localhost:3000"
 
 
 def test_set_api_key():
@@ -79,7 +88,7 @@ def test_validate_workflow_returns_false_on_error(mock_get):
     result = client.validate_workflow("test-workflow-id")
     
     assert result is False
-    mock_get.assert_called_once_with("https://www.sim.ai/api/workflows/test-workflow-id/status")
+    mock_get.assert_called_once_with("http://localhost:3000/api/workflows/test-workflow-id/status")
 
 
 def test_simstudio_error():
@@ -150,7 +159,7 @@ def test_async_execution_returns_run_id(mock_post):
     assert result.async_execution is True
 
     call_args = mock_post.call_args
-    assert call_args.args[0] == "https://www.sim.ai/api/v2/workflows/workflow-id/execute"
+    assert call_args.args[0] == "http://localhost:3000/api/v2/workflows/workflow-id/execute"
     assert "X-Execution-Mode" not in call_args.kwargs["headers"]
     assert call_args.kwargs["json"] == {
         "input": {"message": "Hello"},
@@ -774,5 +783,5 @@ def test_identifies_the_sdk_on_every_request():
     python_version = platform.python_version()
 
     assert client._session.headers["X-Sim-Client-Info"] == f"sdk-python/{__version__}; python/{python_version}"
-    assert client._session.headers["User-Agent"] == f"simstudio-python-sdk/{__version__} python/{python_version}"
+    assert client._session.headers["User-Agent"] == f"nexora-python-sdk/{__version__} python/{python_version}"
     assert client._session.headers["X-API-Key"] == "test-key"

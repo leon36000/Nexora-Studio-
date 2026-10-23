@@ -11,6 +11,7 @@ import { ADMISSION_REJECTION_CODE } from '@/lib/core/admission/rejection'
 import { hasEmailService, sendEmail } from '@/lib/messaging/email/mailer'
 import { LEDGER_TOKENS_SQL, MODEL_USAGE_CATEGORIES } from '@/lib/nexora/consumption/by-workspace'
 import { instanceTimeZone, type MonthWindow, monthWindow } from '@/lib/nexora/consumption/period'
+import { directModelTokens, monthDayRange } from '@/lib/nexora/developer-api/repository'
 import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
 
 /**
@@ -230,8 +231,24 @@ export async function updateBudgets(
   return budgets
 }
 
+/**
+ * Model tokens of the month: the usage ledger (every run, agents called through the developer API
+ * included) plus the direct model calls of developer API keys, which never run a workflow.
+ */
 async function readMonthlyUsage(workspaceId: string, window: MonthWindow): Promise<MonthlyUsage> {
-  const [row] = await db
+  const { first, next } = monthDayRange(window.month)
+  const [[row], direct] = await Promise.all([
+    ledgerMonthlyUsage(workspaceId, window),
+    directModelTokens(workspaceId, first, next),
+  ])
+  return {
+    workspace: (Number.parseFloat(String(row?.workspaceTokens ?? '0')) || 0) + direct.workspace,
+    instance: (Number.parseFloat(String(row?.instanceTokens ?? '0')) || 0) + direct.instance,
+  }
+}
+
+function ledgerMonthlyUsage(workspaceId: string, window: MonthWindow) {
+  return db
     .select({
       workspaceTokens: sql<string>`COALESCE(SUM(${LEDGER_TOKENS_SQL}) FILTER (WHERE ${usageLog.workspaceId} = ${workspaceId}), 0)`,
       instanceTokens: sql<string>`COALESCE(SUM(${LEDGER_TOKENS_SQL}), 0)`,
@@ -244,10 +261,6 @@ async function readMonthlyUsage(workspaceId: string, window: MonthWindow): Promi
         inArray(usageLog.category, [...MODEL_USAGE_CATEGORIES])
       )
     )
-  return {
-    workspace: Number.parseFloat(String(row?.workspaceTokens ?? '0')) || 0,
-    instance: Number.parseFloat(String(row?.instanceTokens ?? '0')) || 0,
-  }
 }
 
 interface ScopeStanding {

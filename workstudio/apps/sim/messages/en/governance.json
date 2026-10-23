@@ -159,7 +159,9 @@
         "updated": "Knowledge base updated",
         "deleted": "Knowledge base deleted",
         "restored": "Knowledge base restored",
-        "exported": "Knowledge base exported"
+        "exported": "Knowledge base exported",
+        "reindex_started": "Knowledge base reindex started",
+        "reindex_failed": "Knowledge base reindex failed"
       },
       "mcp_server": {
         "added": "MCP server added",

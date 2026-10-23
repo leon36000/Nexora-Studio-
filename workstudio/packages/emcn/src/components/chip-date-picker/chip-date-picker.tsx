@@ -8,6 +8,7 @@ import { cn } from '../../lib/cn'
 import { Calendar, formatDateLabel, formatDateRangeLabel } from '../calendar/calendar'
 import { chipVariants, TRIGGER_BORDER_CLASS } from '../chip/chip'
 import { chipContentLabelClass, chipIconSlotClass } from '../chip/chrome'
+import { useEmcnLabels } from '../labels/labels'
 import { InsideModalContext } from '../modal/modal'
 import { OverflowText } from '../overflow-text/overflow-text'
 import { POPOVER_ANIMATION_CLASSES } from '../popover/animation'
@@ -91,7 +92,7 @@ const ChipDatePicker = forwardRef<HTMLButtonElement, ChipDatePickerProps>(
     const {
       variant = 'filled',
       label,
-      placeholder = props.mode === 'range' ? 'Select date range' : 'Select date',
+      placeholder,
       align = 'start',
       disabled,
       fullWidth,
@@ -104,13 +105,14 @@ const ChipDatePicker = forwardRef<HTMLButtonElement, ChipDatePickerProps>(
      * and cannot be clicked. Outside dialogs it stays non-modal.
      */
     const insideModal = useContext(InsideModalContext)
+    const labels = useEmcnLabels()
     const [open, setOpen] = useState(false)
 
     const triggerText =
       label ??
       (props.mode === 'range'
-        ? formatDateRangeLabel(props.startDate, props.endDate)
-        : formatDateLabel(props.value))
+        ? formatDateRangeLabel(props.startDate, props.endDate, labels.dateLocale)
+        : formatDateLabel(props.value, labels.dateLocale))
 
     return (
       <PopoverPrimitive.Root open={open} onOpenChange={setOpen} modal={insideModal}>
@@ -127,7 +129,11 @@ const ChipDatePicker = forwardRef<HTMLButtonElement, ChipDatePickerProps>(
             )}
           >
             <OverflowText
-              label={triggerText || placeholder}
+              label={
+                triggerText ||
+                placeholder ||
+                (props.mode === 'range' ? labels.selectDateRange : labels.selectDate)
+              }
               className={cn(
                 chipContentLabelClass,
                 'flex-1',

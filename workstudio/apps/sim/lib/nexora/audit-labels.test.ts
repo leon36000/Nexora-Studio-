@@ -1,5 +1,7 @@
+import { AuditAction } from '@sim/audit'
 import { describe, expect, it } from 'vitest'
 import { type AuditTranslator, describeAuditEntry } from '@/lib/nexora/audit-labels'
+import frGovernance from '@/messages/fr/governance.json'
 
 const french: Record<string, string> = {
   'actions.workspace.created': 'Espace créé',
@@ -30,12 +32,32 @@ describe('describeAuditEntry', () => {
         },
         t
       )
-    ).toEqual({ label: 'Politique SSO modifiée', detail: 'Transferred ownership to bob@pme.fr' })
+    ).toEqual({ label: 'Politique SSO modifiée', detail: 'bob@pme.fr' })
   })
 
-  it('falls back to the code and the stored description for an unknown action', () => {
+  it('never shows the English description: only the names and addresses it quotes', () => {
+    const detail = (description: string | null) =>
+      describeAuditEntry({ action: 'workspace.created', description, resourceName: null }, t).detail
+    expect(detail('Renamed workspace "Ventes" to "Ventes 2026"')).toBe('Ventes, Ventes 2026')
+    expect(detail('Invited ana@pme.fr and bob@pme.fr as admin')).toBe('ana@pme.fr, bob@pme.fr')
+    expect(detail('Rotated the signing key')).toBe('—')
+    expect(detail(null)).toBe('—')
+  })
+
+  it('falls back to the code for an unknown action, still without English', () => {
     expect(
       describeAuditEntry({ action: 'brand.new', description: 'Did a thing', resourceName: 'X' }, t)
-    ).toEqual({ label: 'brand.new', detail: 'Did a thing' })
+    ).toEqual({ label: 'brand.new', detail: 'X' })
+  })
+
+  it('gives every audit action a French label', () => {
+    const labelled = new Set<string>()
+    const walk = (node: unknown, path: string[]) => {
+      if (typeof node === 'string') labelled.add(path.join('.'))
+      else if (node && typeof node === 'object')
+        for (const [k, v] of Object.entries(node)) walk(v, [...path, k])
+    }
+    walk(frGovernance.auditLogs.actions, [])
+    expect(Object.values(AuditAction).filter((action) => !labelled.has(action))).toEqual([])
   })
 })

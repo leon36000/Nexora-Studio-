@@ -63,7 +63,7 @@ import { useFolderMap } from '@/hooks/queries/folders'
 import { isWorkflowEffectivelyLocked } from '@/hooks/queries/utils/folder-tree'
 import { useWorkflowMap, useWorkflowState } from '@/hooks/queries/workflows'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
-import { useTranslatedBlockConfig } from '@/hooks/use-translated-block-config'
+import { useBlockDisplay } from '@/hooks/use-translated-block-config'
 import { usePanelEditorSearchStore, usePanelEditorStore } from '@/stores/panel'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
@@ -98,8 +98,12 @@ export function Editor() {
   const activeSearchTarget = usePanelEditorSearchStore((state) => state.activeSearchTarget)
   const currentWorkflow = useCurrentWorkflow()
   const currentBlock = currentBlockId ? currentWorkflow.getBlockById(currentBlockId) : null
-  const blockConfig = useTranslatedBlockConfig(currentBlock ? getBlock(currentBlock.type) : null)
-  const title = currentBlock?.name || t('title')
+  const { config: blockConfig, name: blockDisplayName } = useBlockDisplay(
+    currentBlock ? getBlock(currentBlock.type) : null,
+    currentBlock?.name ?? ''
+  )
+  const storedName = currentBlock?.name || t('title')
+  const heading = blockDisplayName || t('title')
   const isBlockNameSearchHighlighted =
     activeSearchTarget?.targetKind === 'block-name' && activeSearchTarget.blockId === currentBlockId
   const blockNameSearchHighlight =
@@ -454,7 +458,7 @@ export function Editor() {
             ) : (
               <h2
                 className='min-w-0 flex-1 cursor-pointer select-none text-ellipsis whitespace-nowrap pr-2 text-[var(--text-primary)] text-sm [overflow-clip-margin:3px] [overflow:clip]'
-                title={title}
+                title={heading}
                 onDoubleClick={handleStartRename}
                 onMouseDown={(e) => {
                   if (e.detail === 2) {
@@ -463,8 +467,10 @@ export function Editor() {
                 }}
               >
                 {blockNameSearchHighlight
-                  ? formatDisplayText(title, { workflowSearchHighlight: blockNameSearchHighlight })
-                  : title}
+                  ? formatDisplayText(storedName, {
+                      workflowSearchHighlight: blockNameSearchHighlight,
+                    })
+                  : heading}
               </h2>
             )}
           </div>

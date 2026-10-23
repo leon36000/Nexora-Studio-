@@ -25,6 +25,7 @@ import {
   useUpdateNodeInternals,
 } from '@xyflow/react'
 import { BLOCK_DIMENSIONS, HANDLE_POSITIONS } from '../dimensions'
+import { formatRendererLabel, useWorkflowRendererLabels } from '../labels'
 import { humanizeBlockName } from '../lib/humanize-block-name'
 import { OverflowSpan } from '../lib/overflow-span'
 import type { BlockRunStatus } from '../types'
@@ -385,6 +386,7 @@ export function WorkflowBlockView({
   onToggleErrorOutput,
   highlightedHandles,
 }: WorkflowBlockViewProps) {
+  const labels = useWorkflowRendererLabels()
   const updateNodeInternals = useUpdateNodeInternals()
   const reactFlowStore = useReactFlowStoreApi()
   const getConnectionNodeId = useCallback(
@@ -728,7 +730,7 @@ export function WorkflowBlockView({
         )}
         {isPending && (
           <div className='-top-6 -translate-x-1/2 absolute left-1/2 z-10 rounded-t-md bg-amber-500 px-2 py-0.5 text-white text-xs'>
-            Next Step
+            {labels.nextStep}
           </div>
         )}
 
@@ -780,8 +782,8 @@ export function WorkflowBlockView({
             />
           </div>
           <div className='relative z-10 flex shrink-0 items-center gap-1'>
-            {!isEnabled && <BlockStateIndicator label='Disabled' Icon={Ban} />}
-            {isLocked && <BlockStateIndicator label='Locked' Icon={Lock} />}
+            {!isEnabled && <BlockStateIndicator label={labels.disabled} Icon={Ban} />}
+            {isLocked && <BlockStateIndicator label={labels.locked} Icon={Lock} />}
             <WorkflowTypeTag
               type={type}
               typeLabel={typeLabel}
@@ -817,7 +819,7 @@ export function WorkflowBlockView({
                 </Tooltip.Trigger>
                 <Tooltip.Content>
                   <span className='text-sm'>
-                    {canFixSunset ? sunsetTooltip : 'Edit access required to fix'}
+                    {canFixSunset ? sunsetTooltip : labels.editAccessRequired}
                   </span>
                 </Tooltip.Content>
               </Tooltip.Root>
@@ -837,16 +839,20 @@ export function WorkflowBlockView({
                         onDeployChild?.()
                       }}
                     >
-                      {isDeploying ? 'Deploying...' : !childIsDeployed ? 'undeployed' : 'redeploy'}
+                      {isDeploying
+                        ? labels.deploying
+                        : !childIsDeployed
+                          ? labels.undeployed
+                          : labels.redeploy}
                     </Badge>
                   </Tooltip.Trigger>
                   <Tooltip.Content>
                     <span className='text-sm'>
                       {!canAdmin
-                        ? 'Admin permission required to deploy'
+                        ? labels.adminRequiredToDeploy
                         : !childIsDeployed
-                          ? 'Click to deploy'
-                          : 'Click to redeploy'}
+                          ? labels.clickToDeploy
+                          : labels.clickToRedeploy}
                     </span>
                   </Tooltip.Content>
                 </Tooltip.Root>
@@ -863,11 +869,11 @@ export function WorkflowBlockView({
                       onReactivateSchedule?.()
                     }}
                   >
-                    disabled
+                    {labels.disabledBadge}
                   </Badge>
                 </Tooltip.Trigger>
                 <Tooltip.Content>
-                  <span className='text-sm'>Click to reactivate</span>
+                  <span className='text-sm'>{labels.clickToReactivate}</span>
                 </Tooltip.Content>
               </Tooltip.Root>
             )}
@@ -876,19 +882,23 @@ export function WorkflowBlockView({
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Badge variant='orange' dot>
-                    Webhook
+                    {labels.webhook}
                   </Badge>
                 </Tooltip.Trigger>
                 <Tooltip.Content side='top' className='max-w-[300px]'>
                   {webhookProvider && webhookPath ? (
                     <>
-                      <p className='text-sm'>{webhookProviderName} Webhook</p>
-                      <p className='mt-1 text-muted-foreground text-xs'>Path: {webhookPath}</p>
+                      <p className='text-sm'>
+                        {formatRendererLabel(labels.providerWebhook, {
+                          provider: webhookProviderName ?? '',
+                        })}
+                      </p>
+                      <p className='mt-1 text-muted-foreground text-xs'>
+                        {formatRendererLabel(labels.webhookPath, { path: webhookPath })}
+                      </p>
                     </>
                   ) : (
-                    <p className='text-muted-foreground text-sm'>
-                      This workflow is triggered by a webhook.
-                    </p>
+                    <p className='text-muted-foreground text-sm'>{labels.webhookTriggered}</p>
                   )}
                 </Tooltip.Content>
               </Tooltip.Root>
@@ -906,11 +916,11 @@ export function WorkflowBlockView({
                       onReactivateWebhook?.()
                     }}
                   >
-                    disabled
+                    {labels.disabledBadge}
                   </Badge>
                 </Tooltip.Trigger>
                 <Tooltip.Content>
-                  <span className='text-sm'>Click to reactivate</span>
+                  <span className='text-sm'>{labels.clickToReactivate}</span>
                 </Tooltip.Content>
               </Tooltip.Root>
             )}
@@ -938,11 +948,15 @@ export function WorkflowBlockView({
               ))
             ) : type === 'router_v2' ? (
               <>
-                <SubBlockRowView key='context' title='Context' displayValue={routerContextValue} />
+                <SubBlockRowView
+                  key='context'
+                  title={labels.context}
+                  displayValue={routerContextValue}
+                />
                 {routerRows.map((route, index) => (
                   <SubBlockRowView
                     key={route.id}
-                    title={`Route ${index + 1}`}
+                    title={formatRendererLabel(labels.routeNumber, { number: index + 1 })}
                     displayValue={route.value}
                   />
                 ))}
@@ -965,11 +979,11 @@ export function WorkflowBlockView({
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => event.stopPropagation()}
               >
-                <span className='text-[var(--text-secondary)] text-caption'>On error</span>
+                <span className='text-[var(--text-secondary)] text-caption'>{labels.onError}</span>
                 <Switch
                   checked={errorOutputEnabled}
                   onCheckedChange={(next) => onToggleErrorOutput?.(next)}
-                  aria-label='On error branch'
+                  aria-label={labels.onErrorBranch}
                   disabled={!onToggleErrorOutput}
                   className='scale-[0.72]'
                 />

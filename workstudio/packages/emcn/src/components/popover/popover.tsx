@@ -57,6 +57,7 @@ import { MENU_STYLES } from '#menu-styles'
 import { Check, ChevronLeft, ChevronRight, Search } from '../../icons'
 import { cn } from '../../lib/cn'
 import { chipActiveSurfaceClass, chipHoverSurfaceClass } from '../chip/chrome'
+import { useEmcnLabels } from '../labels/labels'
 import { InsideModalContext } from '../modal/modal'
 import { TOOLTIP_MAX_WIDTH_PX, TOOLTIP_SURFACE_CLASS } from '../tooltip/styles'
 
@@ -1057,6 +1058,7 @@ const PopoverBackButton = React.forwardRef<HTMLDivElement, PopoverBackButtonProp
   ({ className, folderTitleRef, folderTitleActive, onFolderTitleMouseEnter, ...props }, ref) => {
     const { isInFolder, closeFolder, folderTitle, onFolderSelect, size, colorScheme } =
       usePopoverContext()
+    const labels = useEmcnLabels()
 
     if (!isInFolder) return null
 
@@ -1086,7 +1088,7 @@ const PopoverBackButton = React.forwardRef<HTMLDivElement, PopoverBackButtonProp
           {...props}
         >
           <ChevronLeft className={STYLES.size[size].icon} />
-          <span>Back</span>
+          <span>{labels.back}</span>
         </div>
         {folderTitle && onFolderSelect && (
           <div
@@ -1140,8 +1142,9 @@ interface PopoverSearchProps extends React.HTMLAttributes<HTMLDivElement> {
  * Search input for filtering popover items.
  */
 const PopoverSearch = React.forwardRef<HTMLDivElement, PopoverSearchProps>(
-  ({ className, placeholder = 'Search...', onValueChange, ...props }, ref) => {
+  ({ className, placeholder, onValueChange, ...props }, ref) => {
     const { searchQuery, setSearchQuery, size, colorScheme } = usePopoverContext()
+    const labels = useEmcnLabels()
     const inputRef = React.useRef<HTMLInputElement>(null)
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1173,7 +1176,7 @@ const PopoverSearch = React.forwardRef<HTMLDivElement, PopoverSearchProps>(
         <input
           ref={inputRef}
           className={cn(MENU_STYLES.searchInput, STYLES.colorScheme[colorScheme].searchInput)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? labels.search}
           value={searchQuery}
           onChange={handleChange}
         />

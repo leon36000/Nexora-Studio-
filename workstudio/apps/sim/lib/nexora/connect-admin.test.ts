@@ -17,6 +17,7 @@ import {
   syncWorkspaceToken,
   workspaceConnectionName,
 } from '@/lib/nexora/connect-admin'
+import { catalogCategoryKey, distinctCatalogCategories } from '@/lib/nexora/connect-categories'
 
 const ADMIN = 'connect-admin-token'
 const WS = '7e6d4bb7-c706-4514-8019-2335a23dd25b'
@@ -373,6 +374,24 @@ describe('Nexora Connect catalog and setup', () => {
       'brevo',
     ])
     expect(state.catalogFetches).toBe(1)
+  })
+
+  it('counts one category for the spellings Connect gives it, and filters by any of them', async () => {
+    expect(catalogCategoryKey('Cross-border E-commerce')).toBe(
+      catalogCategoryKey('CrossBorderE-commerce')
+    )
+    expect(
+      distinctCatalogCategories([
+        'Cross-border E-commerce',
+        'Marketing',
+        'Cross Border E-commerce',
+        'Cross-Border E-Commerce',
+      ])
+    ).toEqual(['Cross-border E-commerce', 'Marketing'])
+    const { options } = setup()
+    expect((await listCatalog({ category: 'Marketing' }, options)).map((s) => s.service)).toEqual([
+      'brevo',
+    ])
   })
 
   it('describes a service: its setup fields and its actions without schemas', async () => {

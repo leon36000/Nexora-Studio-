@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { defineRouteContract } from '@/lib/api/contracts/types'
+import { REASONING_EFFORTS } from '@/lib/nexora/reasoning'
 
 const playgroundBodySchema = z.object({
   workspaceId: z.string().min(1, 'workspaceId is required').max(128, 'workspaceId is too long'),
@@ -16,9 +17,14 @@ const playgroundBodySchema = z.object({
     .max(50, 'too many messages'),
   temperature: z.number().min(0).max(2),
   maxTokens: z.number().int().min(1).max(8192),
+  /** Absent: the model's own default. Dropped when the model refuses it. */
+  reasoningEffort: z.enum(REASONING_EFFORTS).optional(),
 })
 
-/** One Playground answer, streamed as `data: {"chunk"}` events then `data: {"done", "usage"}`. */
+/**
+ * One Playground answer, streamed as `data: {"thinking"}` (a reasoning model's reasoning) and
+ * `data: {"chunk"}` (the answer) events, then `data: {"done", "usage", "effortIgnored"}`.
+ */
 export const playgroundContract = defineRouteContract({
   method: 'POST',
   path: '/api/nexora/playground',

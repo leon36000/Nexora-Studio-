@@ -8,6 +8,7 @@ import {
   ChipModalFooter,
   ChipModalHeader,
 } from '../chip-modal/chip-modal'
+import { useEmcnLabels } from '../labels/labels'
 import { ModalDescription, type ModalSize } from '../modal/modal'
 
 /**
@@ -128,13 +129,14 @@ const WizardRoot: React.FC<WizardProps> = ({
   height,
   onComplete,
   children,
-  backLabel = 'Back',
-  nextLabel = 'Next',
-  doneLabel = 'Done',
+  backLabel,
+  nextLabel,
+  doneLabel,
   description,
   title,
   icon: Icon,
 }) => {
+  const labels = useEmcnLabels()
   const steps = React.Children.toArray(children).filter(isStepElement)
   const total = steps.length
   const clamped = Math.min(Math.max(0, currentStep), Math.max(0, total - 1))
@@ -162,7 +164,7 @@ const WizardRoot: React.FC<WizardProps> = ({
       open={open}
       onOpenChange={onOpenChange}
       size={size}
-      srTitle={title ?? activeStep?.props.title ?? description ?? 'Multi-step wizard'}
+      srTitle={title ?? activeStep?.props.title ?? description ?? labels.multiStepWizard}
       // A fixed `height` sizes the whole dialog (matching the legacy Modal). The
       // scoped `[&>div]` variants stretch ChipModal's inner content column so the
       // body fills the fixed height instead of leaving a gap; only applied when a
@@ -175,7 +177,7 @@ const WizardRoot: React.FC<WizardProps> = ({
 
       <ChipModalBody>
         <ModalDescription className='sr-only'>
-          {description ?? 'Multi-step wizard'}
+          {description ?? labels.multiStepWizard}
         </ModalDescription>
         {activeStep}
       </ChipModalBody>
@@ -183,11 +185,15 @@ const WizardRoot: React.FC<WizardProps> = ({
       <ChipModalFooter
         onCancel={() => onOpenChange(false)}
         hideCancel
-        primaryAdjacentAction={{ label: backLabel, onClick: handleBack, disabled: clamped === 0 }}
+        primaryAdjacentAction={{
+          label: backLabel ?? labels.back,
+          onClick: handleBack,
+          disabled: clamped === 0,
+        }}
         primaryAction={
           isLast
-            ? { label: doneLabel, onClick: handleDone }
-            : { label: nextLabel, onClick: handleNext, disabled: !canAdvance }
+            ? { label: doneLabel ?? labels.done, onClick: handleDone }
+            : { label: nextLabel ?? labels.next, onClick: handleNext, disabled: !canAdvance }
         }
       />
     </ChipModal>

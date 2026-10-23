@@ -46,6 +46,7 @@ vi.mock('@/lib/mothership/request/session/explicit-abort', () => ({
 
 import { organizationSearchChat } from '@/lib/knowledge/application/chat'
 import { resolveSearchChatCitations } from '@/lib/knowledge/application/chat-citations'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 
 const persistTurn = mothershipChatMessagesMockFns.mockPersistCopilotChatTurn
 
@@ -184,7 +185,7 @@ describe('organization Search Assistant chat', () => {
       })
       return createResult()
     })
-    await expect(execute()).rejects.toThrow('OAuth app access')
+    await expect(execute()).rejects.toThrow(capabilityRefusal('oauth_apps.use'))
     expect(persistTurn).not.toHaveBeenCalled()
     expect(dbChainMockFns.update).toHaveBeenCalledOnce()
   })

@@ -1,10 +1,10 @@
 export { AddPeopleModal, type AddPeopleTarget } from './add-people-modal'
 export {
-  MEMBER_ROLE_OPTIONS,
   type MemberRole,
   type MemberRoleOption,
-  SKILL_EDITOR_ROLE_OPTIONS,
   type SkillEditorRole,
+  useMemberRoleOptions,
+  useSkillEditorRoleOptions,
 } from './member-role-options'
 export { MemberRow, type MemberRowMember } from './member-row'
 export {

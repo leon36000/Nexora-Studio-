@@ -216,7 +216,9 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
         }
       >
         {data.service.description && (
-          <p className='text-[var(--text-body)] text-small'>{data.service.description}</p>
+          <p lang='en' className='text-[var(--text-body)] text-small'>
+            {data.service.description}
+          </p>
         )}
 
         <SettingsSection label={t('detail.connectionSection')}>{connectionBody}</SettingsSection>
@@ -239,7 +241,7 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
           {showActions && (
             <ul className='flex flex-col divide-y divide-[var(--border)]'>
               {actions.map((action) => (
-                <li key={action.id} className='flex flex-col gap-0.5 py-2'>
+                <li key={action.id} lang='en' className='flex flex-col gap-0.5 py-2'>
                   <span className='text-[var(--text-body)] text-small'>{action.name}</span>
                   {action.description && (
                     <span className='text-[var(--text-muted)] text-caption'>

@@ -19,6 +19,7 @@ vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
 import { withMcpAuth } from '@/lib/mcp/middleware'
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 
 const mocks = {
@@ -59,7 +60,7 @@ describe('withMcpAuth permission-group gate', () => {
 
     expect(response.status).toBe(403)
     await expect(response.json()).resolves.toMatchObject({
-      error: "MCP server deployment is not available under your organization's permission group",
+      error: capabilityRefusal('deploy.mcp'),
     })
     expect(handler).not.toHaveBeenCalled()
   })

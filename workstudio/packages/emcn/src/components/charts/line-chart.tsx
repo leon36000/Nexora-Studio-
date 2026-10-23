@@ -24,6 +24,7 @@ import {
   resolveSpanMs,
   resolveTimeTickIndices,
   useChartWidth,
+  useEmcnLabels,
   useIsDarkTheme,
 } from '@sim/emcn'
 
@@ -83,6 +84,7 @@ function LineChartComponent({
   series,
   height = CHART_DEFAULT_HEIGHT,
 }: LineChartProps) {
+  const labels = useEmcnLabels()
   const uniqueId = useId().replace(/:/g, '')
   const [containerRef, containerWidth] = useChartWidth()
   const width = containerWidth ?? 0
@@ -258,7 +260,7 @@ function LineChartComponent({
         )}
         style={{ height }}
       >
-        <p className='text-[var(--text-muted)] text-sm'>No data</p>
+        <p className='text-[var(--text-muted)] text-sm'>{labels.noData}</p>
       </div>
     )
   }
@@ -289,10 +291,10 @@ function LineChartComponent({
       )}
       <div className='relative' style={{ width, height }}>
         <ChartDataTable
-          label={label || 'Values by date'}
+          label={label || labels.valuesByDate}
           series={allSeries.map((item) => ({
             id: item.id,
-            label: item.label || unit || 'Value',
+            label: item.label || unit || labels.value,
             data: item.data,
           }))}
         />

@@ -861,7 +861,79 @@
     "workspace": "Espace de travail",
     "saveFailed": "Impossible d’enregistrer la valeur",
     "latestUnavailable": "Impossible de charger vos derniers secrets. Veuillez réessayer dans un instant.",
-    "tryAgain": "Veuillez réessayer dans un instant."
+    "tryAgain": "Veuillez réessayer dans un instant.",
+    "copiedName": "Nom copié dans le presse-papiers",
+    "rowActions": "Actions sur le secret",
+    "viewDetails": "Voir les détails",
+    "copyName": "Copier le nom",
+    "delete": "Supprimer",
+    "keyErrors": {
+      "spaces": "Les espaces ne sont pas autorisés",
+      "invalidCharacters": "Seuls les lettres, les chiffres et les tirets bas sont autorisés"
+    },
+    "enterValue": "Saisissez une valeur",
+    "workspaceOverrideActive": "Remplacé par l’espace de travail",
+    "invalidRename": "Utilisez un nom de secret valide et unique",
+    "pasteTooMany": "Le contenu collé contient trop de secrets",
+    "pasteLimit": "Ajoutez jusqu’à {count, number} lignes à la fois.",
+    "saved": "Secrets enregistrés",
+    "saveSecretsFailed": "Impossible d’enregistrer les secrets",
+    "conflictHint": "Une variable d’espace de travail du même nom remplace celle-ci. Renommez votre clé personnelle pour l’utiliser.",
+    "genericTitle": "Secrets génériques",
+    "searchPlaceholder": "Rechercher des secrets...",
+    "resolveConflicts": "Résolvez tous les conflits avant d’enregistrer",
+    "fixInvalidNames": "Corrigez les noms de variables invalides avant d’enregistrer",
+    "incompleteRows": "Saisissez un nom et une valeur pour chaque secret",
+    "personal": "Personnel",
+    "organization": "Organisation",
+    "noMatches": "Aucun secret ne correspond à « {query} »",
+    "loading": "Chargement des secrets…",
+    "loadFailed": "Impossible de charger les secrets",
+    "backSources": "Sources",
+    "backIntegrations": "Intégrations"
+  },
+  "permissions": {
+    "addPeople": {
+      "title": "Ajouter des personnes",
+      "emails": "E-mails",
+      "emailsPlaceholder": "Saisissez des e-mails",
+      "role": "Rôle",
+      "rolePlaceholder": "Sélectionnez un rôle",
+      "add": "Ajouter",
+      "adding": "Ajout...",
+      "tryAgain": "Veuillez réessayer dans un instant.",
+      "allFailed": "Impossible d’ajouter ces personnes. {reason}",
+      "someFailed": "Impossible d’ajouter {failed} personnes sur {total}. {reason}"
+    },
+    "roles": {
+      "member": "Membre",
+      "admin": "Admin",
+      "editor": "Éditeur"
+    },
+    "memberRow": {
+      "role": "Rôle",
+      "remove": "Retirer"
+    },
+    "selector": {
+      "read": "Lecture",
+      "readTitle": "Consultation uniquement",
+      "write": "Écriture",
+      "writeTitle": "Modification du contenu",
+      "admin": "Admin",
+      "adminTitle": "Accès complet",
+      "member": "Membre",
+      "memberTitle": "Membre de l’organisation",
+      "orgAdminTitle": "Administrateur de l’organisation"
+    },
+    "roleLock": {
+      "orgAdminRole": "Les administrateurs de l’organisation sont automatiquement administrateurs de l’espace de travail",
+      "workspaceOwner": "Propriétaire de l’espace de travail",
+      "billingAccount": "Compte de facturation de l’espace de travail",
+      "orgAdminRemoval": "Les administrateurs de l’organisation sont automatiquement administrateurs de l’espace de travail. Modifiez leur rôle dans l’organisation pour les retirer.",
+      "reassignBilling": "Réattribuez la facturation avant de retirer le compte de facturation de l’espace de travail",
+      "credentialAdmin": "Les administrateurs de l’espace de travail sont automatiquement administrateurs de l’identifiant",
+      "skillEditor": "Les administrateurs de l’espace de travail sont automatiquement éditeurs de la compétence"
+    }
   },
   "secretDetail": {
     "pageTitle": "Secret",
@@ -1695,11 +1767,33 @@
       "test": "Tester",
       "makeDefault": "Définir par défaut",
       "remove": "Retirer",
-      "removeDefaultTooltip": "Choisissez d’abord un autre modèle par défaut."
+      "removeDefaultTooltip": "Choisissez d’abord un autre modèle par défaut.",
+      "editCard": "Modifier la fiche"
     },
     "test": {
       "success": "Réponse de {name} en {seconds} s : {reply}",
-      "failed": "{name} ne répond pas"
+      "failed": "{name} ne répond pas",
+      "truncated": "{name} est un modèle à raisonnement : réponse tronquée ({seconds} s)."
+    },
+    "card": {
+      "reasoning": "Raisonnement",
+      "tools": "Outils",
+      "vision": "Vision",
+      "context": "Contexte : {tokens}",
+      "locations": {
+        "local": "Sur ce serveur",
+        "eu": "Hébergé UE",
+        "external": "Hors instance"
+      },
+      "modal": {
+        "title": "Fiche de {name}",
+        "location": "Localisation des données",
+        "context": "Contexte (jetons)",
+        "contextHint": "Entre 1 000 et 10 000 000. Laissez vide si inconnu.",
+        "save": "Enregistrer",
+        "saving": "Enregistrement…",
+        "saved": "Fiche de {name} enregistrée."
+      }
     },
     "defaultChanged": "{name} est maintenant le modèle par défaut.",
     "added": "{name} a été ajouté.",

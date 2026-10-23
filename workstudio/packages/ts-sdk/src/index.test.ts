@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { SDK_VERSION, SimStudioClient } from './index'
+import { NexoraClient, NexoraError, SDK_VERSION, SimStudioClient, SimStudioError } from './index'
 
 const mockFetch = vi.fn()
 
@@ -50,7 +50,7 @@ describe('SimStudioClient', () => {
       })
 
       await expect(client.executeWorkflow('workflow-id', {})).rejects.toMatchObject({
-        name: 'SimStudioError',
+        name: 'NexoraError',
         code: 'BLOCK_EXECUTION_FAILED',
         message: 'Invalid credentials',
       })
@@ -240,13 +240,16 @@ describe('client identity', () => {
     expect(headers['X-Sim-Client-Info']).toBe(
       `sdk-js/${SDK_VERSION}; node/${process.versions.node}`
     )
-    expect(headers['User-Agent']).toBe(
-      `simstudio-ts-sdk/${SDK_VERSION} node/${process.versions.node}`
-    )
+    expect(headers['User-Agent']).toBe(`nexora-ts-sdk/${SDK_VERSION} node/${process.versions.node}`)
     expect(headers['X-API-Key']).toBe('test-api-key')
   })
 
-  it('sends requests to the canonical www host when no baseUrl is given', async () => {
+  it('keeps the former Sim names as aliases of the Nexora ones', () => {
+    expect(SimStudioClient).toBe(NexoraClient)
+    expect(SimStudioError).toBe(NexoraError)
+  })
+
+  it('sends requests to the local Nexora instance when no baseUrl is given', async () => {
     const client = new SimStudioClient({ apiKey: 'test-api-key' })
     vi.mocked(mockFetch).mockClear()
     vi.mocked(mockFetch).mockResolvedValue(
@@ -255,6 +258,6 @@ describe('client identity', () => {
 
     await client.getWorkflowStatus('workflow-id')
 
-    expect(String(vi.mocked(mockFetch).mock.calls[0][0])).toMatch(/^https:\/\/www\.sim\.ai\//)
+    expect(String(vi.mocked(mockFetch).mock.calls[0][0])).toMatch(/^http:\/\/localhost:3000\//)
   })
 })

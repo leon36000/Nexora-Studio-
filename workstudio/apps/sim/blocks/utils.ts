@@ -252,12 +252,20 @@ export function getSerializedModelProviderId(
  * reasoning effort or verbosity. Gates on the capability list, but keeps the field visible
  * when `model` itself holds a variable or block reference — the concrete model id is only
  * known at execution time then, so matching a reference against a static list would hide
- * the field for every workflow that binds its model dynamically.
+ * the field for every workflow that binds its model dynamically. Models under one of
+ * `passThroughPrefixes` (Nexora's `vllm/`, whose provider forwards the setting and drops it
+ * when the model refuses it) always show it.
  */
-export function getModelCapabilityCondition(capableModels: string[]) {
+export function getModelCapabilityCondition(
+  capableModels: string[],
+  passThroughPrefixes: readonly string[] = []
+) {
   return (values?: Record<string, unknown>) => {
     const model = typeof values?.model === 'string' ? values.model : ''
-    if (containsReference(model)) {
+    if (
+      containsReference(model) ||
+      passThroughPrefixes.some((prefix) => model.toLowerCase().startsWith(prefix))
+    ) {
       return buildModelVisibilityCondition(model, true)
     }
     return { field: 'model', value: capableModels }

@@ -101,6 +101,22 @@ assert any(v.get("target", "").endswith("fetch-whisper-model.py") and v.get("rea
   && ok "transcription server offline; its model fetched once before it starts" \
   || ko "transcription server offline; its model fetched once before it starts"
 
+# The developer API (<domain>/v1, OpenAI format) streams through Caddy without compression.
+caddyfile="$ROOT/deploy/caddy/Caddyfile"
+python3 -I - "$caddyfile" <<'PY' && ok "Caddy relays /v1 unbuffered and uncompressed" || ko "Caddy relays /v1 unbuffered and uncompressed"
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+site = text.split("{$NEXORA_DOMAIN} {", 1)[1].split("\n}\n", 1)[0]
+api = re.search(r"handle @developer_api \{(.*?)\n\t\}", site, re.S)
+assert "@developer_api path /v1 /v1/*" in site and api, site
+assert "flush_interval -1" in api.group(1) and "encode" not in api.group(1), api.group(1)
+PY
+if dc image inspect caddy:2.8.4-alpine > /dev/null 2>&1; then
+  dc run --rm -e NEXORA_DOMAIN=nexora.pme-test.fr -e NEXORA_TLS=internal -v "$caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.8.4-alpine \
+    caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1 \
+    && ok "Caddyfile is valid" || ko "Caddyfile is valid"
+fi
+
 # install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
 printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"
 rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"

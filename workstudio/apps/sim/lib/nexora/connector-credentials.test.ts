@@ -4,6 +4,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   type ConnectorCredentialField,
+  credentialFieldLabel,
+  credentialFieldPlaceholder,
   readCredentialValues,
 } from '@/lib/nexora/connector-credentials'
 
@@ -54,5 +56,29 @@ describe('readCredentialValues', () => {
       injected: 'y',
     })
     expect(result.values).toEqual({ apiKey: 'k' })
+  })
+})
+
+describe('credential field labels', () => {
+  const t = {
+    has: (key: string) => key === 'detail.form.fieldLabels.apikey',
+    raw: (key: string) => (key === 'detail.form.fieldLabels.apikey' ? 'Clé d’API' : key),
+  }
+
+  it('shows the French label of a field Connect names in English, whatever its spelling', () => {
+    expect(credentialFieldLabel('API Key', t)).toBe('Clé d’API')
+    expect(credentialFieldLabel('api_key', t)).toBe('Clé d’API')
+  })
+
+  it('keeps a label it has no translation for', () => {
+    expect(credentialFieldLabel('Skio', t)).toBe('Skio')
+  })
+
+  it('shows a placeholder only when it is a sample value, not English instructions', () => {
+    expect(credentialFieldPlaceholder('sk_live_...')).toBe('sk_live_...')
+    expect(credentialFieldPlaceholder('https://example.zendesk.com')).toBe(
+      'https://example.zendesk.com'
+    )
+    expect(credentialFieldPlaceholder('Enter your API key')).toBeUndefined()
   })
 })

@@ -46,3 +46,25 @@ function parsesAsJson(value: string): boolean {
     return false
   }
 }
+
+/** The part of a `connectors` translator the field labels need. */
+interface FieldLabelTranslator {
+  has(key: string): boolean
+  raw(key: string): unknown
+}
+
+/**
+ * The label to show for a field of a Connect setup. Connect writes labels in English, so the
+ * common ones (`API Key`, `Client ID`, `Subdomain`…) have a French message under
+ * `detail.form.fieldLabels.<letters and digits of the label>`; any other label is shown as is.
+ */
+export function credentialFieldLabel(label: string, t: FieldLabelTranslator): string {
+  const key = `detail.form.fieldLabels.${label.toLowerCase().replace(/[^a-z0-9]/g, '')}`
+  const translated = t.has(key) ? t.raw(key) : undefined
+  return typeof translated === 'string' ? translated : label
+}
+
+/** A placeholder worth showing: a sample value (`sk_live_…`, a URL), never English instructions. */
+export function credentialFieldPlaceholder(placeholder: string | undefined): string | undefined {
+  return placeholder && !/\s/.test(placeholder.trim()) ? placeholder : undefined
+}

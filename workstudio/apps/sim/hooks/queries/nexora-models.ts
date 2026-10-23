@@ -5,7 +5,7 @@ import { toRecord } from '@sim/utils/object'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiClientError, isApiClientError, isValidationError } from '@/lib/api/client/errors'
 import { requestJson } from '@/lib/api/client/request'
-import type { ContractJsonResponse } from '@/lib/api/contracts'
+import type { ContractBodyInput, ContractJsonResponse } from '@/lib/api/contracts'
 import {
   type AddNexoraModelBody,
   addNexoraModelContract,
@@ -14,6 +14,7 @@ import {
   removeNexoraModelContract,
   setDefaultNexoraModelContract,
   testNexoraModelContract,
+  updateNexoraModelCardContract,
 } from '@/lib/api/contracts/nexora-models'
 import { providerKeys } from '@/hooks/queries/providers'
 
@@ -102,10 +103,27 @@ export function useRemoveNexoraModel() {
   })
 }
 
-/** Sends a short prompt through Nexora API to the model; changes nothing, so it invalidates nothing. */
+/** Sends a short prompt through Nexora API to the model; what it detects lands on the model's card. */
 export function useTestNexoraModel() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => requestJson(testNexoraModelContract, { params: { id } }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: nexoraModelKeys.lists() }),
+  })
+}
+
+/** Declares a model's context length, or where an OpenAI-compatible service keeps the data. */
+export function useUpdateNexoraModelCard() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number
+      body: ContractBodyInput<typeof updateNexoraModelCardContract>
+    }) => requestJson(updateNexoraModelCardContract, { params: { id }, body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: nexoraModelKeys.lists() }),
   })
 }
 

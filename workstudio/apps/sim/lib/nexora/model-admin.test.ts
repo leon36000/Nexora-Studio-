@@ -65,6 +65,11 @@ function fakeNexoraApi() {
     transcriptionFiles: [] as File[],
     /** Simulates another admin making this router the default between two reads. */
     makeDefaultOnSecondList: null as number | null,
+    chatRequests: [] as Record<string, unknown>[],
+    /** The message a chat completion answers with, instead of the default greeting. */
+    chatMessage: null as Record<string, unknown> | null,
+    /** The HTTP status a chat completion offering tools answers with. */
+    toolsStatus: 200,
   }
 
   function addRouter(
@@ -104,7 +109,13 @@ function fakeNexoraApi() {
       if (auth !== `Bearer ${API_KEY}`) return jsonResponse({}, 401)
       const known = state.routers.some((r) => [r.name, ...r.aliases].includes(body.model))
       if (!known) return jsonResponse({ detail: 'Model not found' }, 404)
-      return jsonResponse({ choices: [{ message: { content: ` Bonjour (${body.model}) ` } }] })
+      state.chatRequests.push(body)
+      if (body.tools && state.toolsStatus !== 200) {
+        return jsonResponse({ detail: 'does not support tools' }, state.toolsStatus)
+      }
+      return jsonResponse({
+        choices: [{ message: state.chatMessage ?? { content: ` Bonjour (${body.model}) ` } }],
+      })
     }
     if (path === '/v1/ocr') {
       if (auth !== `Bearer ${API_KEY}`) return jsonResponse({}, 401)
@@ -348,7 +359,10 @@ describe('model usages', () => {
       'automatic-speech-recognition'
     )
 
-    expect((await testNexoraModel('qwen2.5vl:3b', options, 'vision')).reply).toBe('Nexora')
+    expect(await testNexoraModel('qwen2.5vl:3b', options, 'vision')).toMatchObject({
+      reply: 'Nexora',
+      capabilities: { reasoning: null, tools: null },
+    })
     expect(state.ocrRequests[0].document.image_url).toMatch(/^data:image\/png;base64,/)
 
     expect((await testNexoraModel('whisper-small', options, 'transcription')).reply).toBe(
@@ -540,5 +554,49 @@ describe('testNexoraModel', () => {
   it('reports a model Nexora API does not serve', async () => {
     const { options } = setup()
     await expect(testNexoraModel('absent', options)).rejects.toBeInstanceOf(NexoraModelError)
+  })
+
+  it('leaves a reasoning model room to answer after thinking', async () => {
+    const { options, state } = setup()
+    await testNexoraModel('nexora-default', options)
+    expect(state.chatRequests[0]?.max_tokens).toBe(1024)
+    expect(state.chatRequests[0]).not.toHaveProperty('tools')
+  })
+
+  it('answers without the reasoning and reports the reasoning capability', async () => {
+    const { options, state } = setup()
+    state.chatMessage = { content: 'Je suis GLM.', reasoning_content: 'Je me présente.' }
+    expect(await testNexoraModel('nexora-default', options)).toMatchObject({
+      reply: 'Je suis GLM.',
+      truncated: false,
+      capabilities: { reasoning: true },
+    })
+    state.chatMessage = { content: '<think>Qui suis-je ?</think>\nUn assistant local.' }
+    expect(await testNexoraModel('nexora-default', options)).toMatchObject({
+      reply: 'Un assistant local.',
+      capabilities: { reasoning: true },
+    })
+    state.chatMessage = { content: 'Bonjour.' }
+    expect((await testNexoraModel('nexora-default', options)).capabilities.reasoning).toBe(false)
+  })
+
+  it('says the answer was cut when the model only reasoned, instead of an empty reply', async () => {
+    const { options, state } = setup()
+    state.chatMessage = { content: null, reasoning_content: 'Longue réflexion' }
+    expect(await testNexoraModel('nexora-default', options)).toMatchObject({
+      reply: '',
+      truncated: true,
+      capabilities: { reasoning: true },
+    })
+  })
+
+  it('detects whether a chat model accepts tools', async () => {
+    const { options, state } = setup()
+    expect((await testNexoraModel('nexora-default', options)).capabilities.tools).toBe(true)
+    expect(state.chatRequests[1]?.tools).toHaveLength(1)
+    state.toolsStatus = 400
+    expect((await testNexoraModel('nexora-default', options)).capabilities.tools).toBe(false)
+    state.toolsStatus = 502
+    expect((await testNexoraModel('nexora-default', options)).capabilities.tools).toBeNull()
   })
 })

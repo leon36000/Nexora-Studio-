@@ -497,6 +497,115 @@ describe('vllmProvider', () => {
     ).rejects.toThrow('bad request')
   })
 
+  describe('reasoning models', () => {
+    beforeEach(() => mockCreate.mockReset())
+
+    const streamOf = (deltas: Record<string, unknown>[]) =>
+      (async function* () {
+        for (const delta of deltas) yield { choices: [{ delta }] }
+        yield {
+          choices: [],
+          usage: { prompt_tokens: 4, completion_tokens: 6, total_tokens: 10 },
+        }
+      })()
+
+    it('keeps inline think tags out of the answer of a whole response', async () => {
+      mockCreate.mockResolvedValueOnce(chatResponse('<think>Je planifie.</think>\nBonjour'))
+      const result = await vllmProvider.executeRequest({
+        model: 'vllm/qwen3:8b',
+        messages: [{ role: 'user', content: 'hi' }],
+      })
+      expect('content' in result && result.content).toBe('Bonjour')
+    })
+
+    it('keeps inline think tags out of the answer that ends a tool loop', async () => {
+      mockCreate
+        .mockResolvedValueOnce(chatResponse('<think>outil</think>', [toolCall('c1', 'myTool')]))
+        .mockResolvedValueOnce(chatResponse('<think>fini</think>Réponse'))
+      const result = await vllmProvider.executeRequest({
+        model: 'vllm/qwen3:8b',
+        messages: [{ role: 'user', content: 'hi' }],
+        tools: [makeTool('myTool')],
+      })
+      expect('content' in result && result.content).toBe('Réponse')
+    })
+
+    it('streams inline thinking as thinking events and keeps the answer and history clean', async () => {
+      mockCreate.mockResolvedValueOnce(
+        streamOf([{ content: '<thi' }, { content: 'nk>r</think>Bon' }, { content: 'jour' }])
+      )
+      const result = await vllmProvider.executeRequest({
+        model: 'vllm/qwen3:8b',
+        messages: [{ role: 'user', content: 'hi' }],
+        stream: true,
+      })
+      if (!('stream' in result)) throw new Error('Expected streaming execution')
+      const events = await readAgentEvents(result.stream as ReadableStream<AgentStreamEvent>)
+      expect(events.filter((e) => e.type === 'thinking_delta')).toEqual([
+        { type: 'thinking_delta', text: 'r' },
+      ])
+      expect(
+        events
+          .filter((e) => e.type === 'text_delta')
+          .map((e) => ('text' in e ? e.text : ''))
+          .join('')
+      ).toBe('Bonjour')
+      expect(result.execution.output.content).toBe('Bonjour')
+      expect(mockCapture.mock.lastCall?.[2]).toMatchObject({ content: 'Bonjour' })
+    })
+
+    it('sends a chosen reasoning effort, never auto', async () => {
+      mockCreate.mockResolvedValue(chatResponse('ok'))
+      await vllmProvider.executeRequest({
+        model: 'vllm/glm',
+        messages: [{ role: 'user', content: 'hi' }],
+        reasoningEffort: 'high',
+      })
+      await vllmProvider.executeRequest({
+        model: 'vllm/glm',
+        messages: [{ role: 'user', content: 'hi' }],
+        reasoningEffort: 'auto',
+      })
+      expect(createPayload(0).reasoning_effort).toBe('high')
+      expect(createPayload(1)).not.toHaveProperty('reasoning_effort')
+    })
+
+    it('asks again without the effort when the model refuses it', async () => {
+      mockCreate
+        .mockRejectedValueOnce(
+          Object.assign(
+            new Error(
+              "400 litellm.UnsupportedParamsError: openrouter does not support parameters: ['reasoning_effort']"
+            ),
+            { status: 400 }
+          )
+        )
+        .mockResolvedValueOnce(chatResponse('Bonjour'))
+      const result = await vllmProvider.executeRequest({
+        model: 'vllm/glm',
+        messages: [{ role: 'user', content: 'hi' }],
+        reasoningEffort: 'low',
+      })
+      expect('content' in result && result.content).toBe('Bonjour')
+      expect(createPayload(0).reasoning_effort).toBe('low')
+      expect(createPayload(1).reasoning_effort).toBeUndefined()
+    })
+
+    it('still fails on another refusal', async () => {
+      mockCreate.mockRejectedValueOnce(
+        Object.assign(new Error('400 max_tokens is too large'), { status: 400 })
+      )
+      await expect(
+        vllmProvider.executeRequest({
+          model: 'vllm/glm',
+          messages: [{ role: 'user', content: 'hi' }],
+          reasoningEffort: 'low',
+        })
+      ).rejects.toThrow('max_tokens is too large')
+      expect(mockCreate).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('throws when no base URL is configured', async () => {
     setEnv({ VLLM_BASE_URL: '' })
 

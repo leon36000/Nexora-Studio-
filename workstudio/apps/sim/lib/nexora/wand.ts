@@ -4,6 +4,14 @@ import { toRecord } from '@sim/utils/object'
 import { escapeRegExp, truncate } from '@sim/utils/string'
 import { env } from '@/lib/core/config/env'
 import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
+import {
+  createThinkTagSplitter,
+  isReasoningEffortRejection,
+  type ReasoningEffort,
+  type ReasoningPiece,
+  readDeltaReasoning,
+  readMessageReasoning,
+} from '@/lib/nexora/reasoning'
 
 /** Model alias Nexora API resolves to the deployment's default chat model. */
 const NEXORA_DEFAULT_MODEL_ALIAS = 'nexora-default'
@@ -57,8 +65,7 @@ const SERVICE_FAILURE_STATUSES = new Set([401, 403, 408, 429])
 const MAX_REASON_LENGTH = 200
 
 /** The upstream error's own message (OpenAI `error.message`, FastAPI `detail`), short and keyless. */
-async function rejectionReason(response: Response): Promise<string> {
-  const text = await response.text().catch(() => '')
+function rejectionReason(status: number, text: string): string {
   let body: unknown = null
   try {
     body = JSON.parse(text)
@@ -71,7 +78,7 @@ async function rejectionReason(response: Response): Promise<string> {
     toStringOrNull(record.error) ??
     toStringOrNull(record.detail) ??
     toStringOrNull(record.message) ??
-    `HTTP ${response.status}`
+    `HTTP ${status}`
   const key = env.VLLM_API_KEY
   const keyless = (key ? message.replace(new RegExp(escapeRegExp(key), 'g'), '***') : message)
     .replace(/Bearer\s+\S+/gi, 'Bearer ***')
@@ -95,6 +102,14 @@ interface CompletionSettings {
   maxTokens?: number
   /** `json_object` asks the model for one JSON object (OpenAI JSON mode); text otherwise. */
   responseFormat?: 'json_object'
+  /** Sent as `reasoning_effort`, and dropped when the model refuses it. */
+  reasoningEffort?: ReasoningEffort
+}
+
+interface CompletionResponse {
+  response: Response
+  /** The model refused `reasoning_effort`: the request went again without it. */
+  effortIgnored: boolean
 }
 
 async function requestCompletion(
@@ -102,7 +117,7 @@ async function requestCompletion(
   stream: boolean,
   signal?: AbortSignal,
   settings: CompletionSettings = {}
-): Promise<Response> {
+): Promise<CompletionResponse> {
   const baseUrl = (env.VLLM_BASE_URL ?? '').replace(/\/+$/, '')
   let response: Response
   try {
@@ -121,6 +136,7 @@ async function requestCompletion(
         stream,
         ...(stream ? { stream_options: { include_usage: true } } : {}),
         ...(settings.responseFormat ? { response_format: { type: settings.responseFormat } } : {}),
+        ...(settings.reasoningEffort ? { reasoning_effort: settings.reasoningEffort } : {}),
       }),
       signal,
     })
@@ -129,11 +145,19 @@ async function requestCompletion(
   }
   if (!response.ok) {
     if (response.status < 500 && !SERVICE_FAILURE_STATUSES.has(response.status)) {
-      throw new NexoraWandRejectedError(await rejectionReason(response))
+      const text = await response.text().catch(() => '')
+      if (settings.reasoningEffort && isReasoningEffortRejection(response.status, text)) {
+        const retried = await requestCompletion(messages, stream, signal, {
+          ...settings,
+          reasoningEffort: undefined,
+        })
+        return { ...retried, effortIgnored: true }
+      }
+      throw new NexoraWandRejectedError(rejectionReason(response.status, text))
     }
     throw new NexoraWandUnavailableError(`HTTP ${response.status}`)
   }
-  return response
+  return { response, effortIgnored: false }
 }
 
 function toUsage(raw: unknown): WandUsage | null {
@@ -142,21 +166,21 @@ function toUsage(raw: unknown): WandUsage | null {
   return { promptTokens: usage.prompt_tokens, completionTokens: usage.completion_tokens ?? 0 }
 }
 
-/** One generation, whole: the trimmed text and its token usage. */
+/** One generation, whole: the trimmed answer (never the model's reasoning) and its token usage. */
 export async function nexoraWandComplete(input: {
   messages: WandMessage[]
   signal?: AbortSignal
   responseFormat?: CompletionSettings['responseFormat']
 }): Promise<{ text: string; usage: WandUsage }> {
-  const response = await requestCompletion(input.messages, false, input.signal, {
+  const { response } = await requestCompletion(input.messages, false, input.signal, {
     responseFormat: input.responseFormat,
   })
   const body = (await response.json()) as {
-    choices?: { message?: { content?: string } }[]
+    choices?: { message?: unknown }[]
     usage?: unknown
   }
   return {
-    text: (body.choices?.[0]?.message?.content ?? '').trim(),
+    text: readMessageReasoning(body.choices?.[0]?.message).content.trim(),
     usage: toUsage(body.usage) ?? { promptTokens: 0, completionTokens: 0 },
   }
 }
@@ -164,7 +188,11 @@ export async function nexoraWandComplete(input: {
 /**
  * One generation as a stream in the wand's own event format — `data: {"chunk": …}` per
  * delta, then `data: {"done": true}` — so the editor reads it like the upstream stream. The
- * Playground also picks the model and settings and asks for the usage in the final event.
+ * Playground also picks the model and settings, asks for the usage in the final event, and for
+ * the model's reasoning in `data: {"thinking": …}` events; without `includeThinking` the
+ * reasoning only keeps the connection alive (an SSE comment), so a late first word is no failure.
+ * Answer chunks never carry reasoning; `effortIgnored` in the final event says the model refused
+ * the reasoning effort.
  */
 export async function nexoraWandStream(
   input: {
@@ -172,9 +200,15 @@ export async function nexoraWandStream(
     signal?: AbortSignal
     onUsage?: (usage: WandUsage) => void | Promise<void>
     reportUsage?: boolean
+    includeThinking?: boolean
   } & CompletionSettings
 ): Promise<ReadableStream<Uint8Array>> {
-  const response = await requestCompletion(input.messages, true, input.signal, input)
+  const { response, effortIgnored } = await requestCompletion(
+    input.messages,
+    true,
+    input.signal,
+    input
+  )
   const source = response.body
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
@@ -184,10 +218,33 @@ export async function nexoraWandStream(
     controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
   }
 
+  const finalEvent = () => ({
+    done: true,
+    ...(input.reportUsage && lastUsage ? { usage: lastUsage } : {}),
+    ...(effortIgnored ? { effortIgnored: true } : {}),
+  })
+  const splitter = createThinkTagSplitter()
+  let lastUsage: WandUsage | null = null
+  const emitPieces = (
+    controller: ReadableStreamDefaultController<Uint8Array>,
+    pieces: ReasoningPiece[],
+    keepAlive: { sent: boolean }
+  ) => {
+    for (const piece of pieces) {
+      if (piece.kind === 'content') emit(controller, { chunk: piece.text })
+      else if (input.includeThinking) emit(controller, { thinking: piece.text })
+      else if (!keepAlive.sent) {
+        keepAlive.sent = true
+        emitted += 1
+        controller.enqueue(encoder.encode(': reflexion\n\n'))
+      }
+    }
+  }
+
   if (!source) {
     return new ReadableStream<Uint8Array>({
       start(controller) {
-        emit(controller, { done: true })
+        emit(controller, finalEvent())
         controller.close()
       },
     })
@@ -195,18 +252,16 @@ export async function nexoraWandStream(
 
   const reader = source.getReader()
   let buffer = ''
-  let lastUsage: WandUsage | null = null
   let cancelled = false
 
   /** Relays one upstream read; `false` once the answer is over. */
   const relay = async (controller: ReadableStreamDefaultController<Uint8Array>) => {
     const { done, value } = await reader.read()
     if (cancelled) return false
+    const keepAlive = { sent: false }
     if (done) {
-      emit(controller, {
-        done: true,
-        ...(input.reportUsage && lastUsage ? { usage: lastUsage } : {}),
-      })
+      emitPieces(controller, splitter.flush(), keepAlive)
+      emit(controller, finalEvent())
       return false
     }
     buffer += decoder.decode(value, { stream: true })
@@ -215,14 +270,17 @@ export async function nexoraWandStream(
     for (const line of lines) {
       const data = line.trim().startsWith('data:') ? line.trim().slice(5).trim() : ''
       if (!data || data === '[DONE]') continue
-      let parsed: { choices?: { delta?: { content?: string } }[]; usage?: unknown }
+      let parsed: { choices?: { delta?: { content?: unknown } }[]; usage?: unknown }
       try {
         parsed = JSON.parse(data)
       } catch {
         continue
       }
-      const content = parsed.choices?.[0]?.delta?.content
-      if (content) emit(controller, { chunk: content })
+      const delta = parsed.choices?.[0]?.delta
+      const reasoning = readDeltaReasoning(delta)
+      if (reasoning) emitPieces(controller, [{ kind: 'reasoning', text: reasoning }], keepAlive)
+      const content = typeof delta?.content === 'string' ? delta.content : ''
+      if (content) emitPieces(controller, splitter.push(content), keepAlive)
       const usage = toUsage(parsed.usage)
       if (usage) {
         lastUsage = usage

@@ -5,6 +5,7 @@ import { Chip } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { ReactFlowProvider } from '@xyflow/react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ApplicationLoading } from '@/app/_shell/application-loading'
 import { WorkflowScopeProvider } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -16,6 +17,7 @@ import { useWorkflows } from '@/hooks/queries/workflows'
 const logger = createLogger('WorkflowsPage')
 
 export default function WorkflowsPage() {
+  const t = useTranslations('editor.workflowsPage')
   const brand = useOrgBrandConfig()
   const router = useRouter()
   const params = useParams()
@@ -62,22 +64,18 @@ export default function WorkflowsPage() {
             // otherwise spin forever with nothing but a log line.
             <div className='flex flex-col items-center gap-3 text-center text-[var(--text-secondary)]'>
               <div>
-                <p className='text-small'>Couldn't load workflows</p>
-                <p className='mt-1 text-caption'>Check your connection and try again.</p>
+                <p className='text-small'>{t('loadFailed')}</p>
+                <p className='mt-1 text-caption'>{t('checkConnection')}</p>
               </div>
               <Chip variant='primary' onClick={() => router.refresh()}>
-                Retry
+                {t('retry')}
               </Chip>
             </div>
           ) : isEmpty ? (
             <div className='flex flex-col items-center gap-3 text-center text-[var(--text-secondary)]'>
               <div>
-                <p className='text-small'>No workflows yet</p>
-                <p className='mt-1 text-caption'>
-                  {canCreate
-                    ? 'Create one to start building.'
-                    : 'Ask a workspace admin to create one.'}
-                </p>
+                <p className='text-small'>{t('empty')}</p>
+                <p className='mt-1 text-caption'>{canCreate ? t('createHint') : t('askAdmin')}</p>
               </div>
               {/* The create mutation navigates optimistically, so offering it
                   without write access would strand a read-only member on a
@@ -88,7 +86,7 @@ export default function WorkflowsPage() {
                   onClick={handleCreateWorkflow}
                   disabled={isCreatingWorkflow}
                 >
-                  {isCreatingWorkflow ? 'Creating…' : 'Create workflow'}
+                  {isCreatingWorkflow ? t('creating') : t('create')}
                 </Chip>
               )}
             </div>

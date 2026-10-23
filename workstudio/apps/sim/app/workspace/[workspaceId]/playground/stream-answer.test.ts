@@ -24,8 +24,14 @@ beforeEach(() => {
 
 async function run(signal = new AbortController().signal) {
   const chunks: string[] = []
-  const outcome = await streamPlaygroundAnswer({ body, signal, onChunk: (c) => chunks.push(c) })
-  return { outcome, text: chunks.join('') }
+  const thoughts: string[] = []
+  const outcome = await streamPlaygroundAnswer({
+    body,
+    signal,
+    onChunk: (c) => chunks.push(c),
+    onThinking: (t) => thoughts.push(t),
+  })
+  return { outcome, text: chunks.join(''), thinking: thoughts.join('') }
 }
 
 describe('streamPlaygroundAnswer', () => {
@@ -38,8 +44,29 @@ describe('streamPlaygroundAnswer', () => {
       ])
     )
     expect(await run()).toEqual({
-      outcome: { status: 'done', usage: { promptTokens: 12, completionTokens: 3 } },
+      outcome: {
+        status: 'done',
+        usage: { promptTokens: 12, completionTokens: 3 },
+        effortIgnored: false,
+      },
       text: 'Bonjour',
+      thinking: '',
+    })
+  })
+
+  it('relays the reasoning apart from the answer, and a refused reasoning effort', async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        { thinking: 'Je ' },
+        { thinking: 'réfléchis.' },
+        { chunk: 'Bonjour' },
+        { done: true, effortIgnored: true },
+      ])
+    )
+    expect(await run()).toEqual({
+      outcome: { status: 'done', usage: null, effortIgnored: true },
+      text: 'Bonjour',
+      thinking: 'Je réfléchis.',
     })
   })
 

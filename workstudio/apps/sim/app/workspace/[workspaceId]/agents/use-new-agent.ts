@@ -33,6 +33,7 @@ export function useNewAgent(workspaceId: string) {
         tools: [],
         knowledgeBaseIds: [],
         memory: true,
+        reasoningEffort: 'auto',
         welcomeMessage: t('welcomeMessage'),
         ...overrides,
       }

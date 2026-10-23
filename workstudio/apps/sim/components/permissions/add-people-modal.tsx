@@ -11,9 +11,10 @@ import {
 } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { useTranslations } from 'next-intl'
 import { partitionSettledFailures, resolveAddEmail } from '@/lib/workspaces/sharing'
 import { useWorkspacePermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { MEMBER_ROLE_OPTIONS, type MemberRole } from './member-role-options'
+import { type MemberRole, useMemberRoleOptions } from './member-role-options'
 
 const logger = createLogger('AddPeopleModal')
 
@@ -28,7 +29,7 @@ interface AddPeopleModalProps {
   /** Lowercased emails that already have access — rejected as duplicates. */
   existingMemberEmails: Set<string>
   /** Grants one person the role; a rejection surfaces as a partial failure. */
-  addMember: (target: AddPeopleTarget, role: MemberRole) => Promise<unknown>
+  addMember: (target: AddPeopleTarget, role: MemberRole) => Promise<unknown> // i18n-ignore: type signature
   /**
    * Hides the Role field for resources without per-member roles (skills):
    * every add is a plain grant and `addMember` receives the default role.
@@ -50,6 +51,8 @@ export function AddPeopleModal({
   addMember,
   hideRole = false,
 }: AddPeopleModalProps) {
+  const t = useTranslations('settings.permissions.addPeople')
+  const roleOptions = useMemberRoleOptions()
   const { workspacePermissions } = useWorkspacePermissionsContext()
 
   const [emailsToAdd, setEmailsToAdd] = useState<string[]>([])
@@ -106,11 +109,11 @@ export function AddPeopleModal({
         (result): result is PromiseRejectedResult => result.status === 'rejected'
       )
       logger.error('Failed to add some members', firstError?.reason)
-      const reason = getErrorMessage(firstError?.reason, 'Please try again in a moment.')
+      const reason = getErrorMessage(firstError?.reason, t('tryAgain'))
       setSubmitError(
         failures.length === targets.length
-          ? `Couldn't add people. ${reason}`
-          : `Couldn't add ${failures.length} of ${targets.length} people. ${reason}`
+          ? t('allFailed', { reason })
+          : t('someFailed', { failed: failures.length, total: targets.length, reason })
       )
     } finally {
       setIsAdding(false)
@@ -123,6 +126,7 @@ export function AddPeopleModal({
     roleToAdd,
     addMember,
     handleClose,
+    t,
   ])
 
   return (
@@ -131,26 +135,26 @@ export function AddPeopleModal({
       onOpenChange={(next) => {
         if (!next) handleClose()
       }}
-      srTitle='Add people'
+      srTitle={t('title')}
     >
-      <ChipModalHeader onClose={handleClose}>Add people</ChipModalHeader>
+      <ChipModalHeader onClose={handleClose}>{t('title')}</ChipModalHeader>
       <ChipModalBody>
         <ChipModalField
           type='emails'
-          title='Emails'
+          title={t('emails')}
           value={emailsToAdd}
           onChange={setEmailsToAdd}
           validate={validateAddEmail}
-          placeholder='Enter emails'
+          placeholder={t('emailsPlaceholder')}
           disabled={isAdding}
         />
         {!hideRole && (
           <ChipModalField
             type='dropdown'
-            title='Role'
-            options={MEMBER_ROLE_OPTIONS}
+            title={t('role')}
+            options={roleOptions}
             value={roleToAdd}
-            placeholder='Select role'
+            placeholder={t('rolePlaceholder')}
             align='start'
             onChange={(role) => setRoleToAdd(role as MemberRole)}
             disabled={isAdding}
@@ -161,7 +165,7 @@ export function AddPeopleModal({
       <ChipModalFooter
         onCancel={handleClose}
         primaryAction={{
-          label: isAdding ? 'Adding...' : 'Add',
+          label: isAdding ? t('adding') : t('add'),
           onClick: handleAddPeople,
           disabled: emailsToAdd.length === 0 || isAdding,
         }}

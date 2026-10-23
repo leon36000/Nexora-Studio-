@@ -22,6 +22,7 @@ import { useCopyToClipboard } from '../../hooks/use-copy-to-clipboard'
 import { Button, Check, Duplicate } from '../../index'
 import { cn } from '../../lib/cn'
 import { chipFieldSurfaceClass, chipFieldTextClass } from '../chip/chrome'
+import { useEmcnLabels } from '../labels/labels'
 
 const REDACTED_DOTS = '••••••••••••••••••••••••••••••••'
 
@@ -34,6 +35,7 @@ export interface SecretRevealProps {
 }
 
 export function SecretReveal({ value, className, redacted = false }: SecretRevealProps) {
+  const labels = useEmcnLabels()
   const { copied, copy } = useCopyToClipboard()
   const isHidden = redacted || !value
 
@@ -62,7 +64,7 @@ export function SecretReveal({ value, className, redacted = false }: SecretRevea
       {!isHidden && (
         <Button variant='ghost' size='icon' className='shrink-0' onClick={handleCopy}>
           {copied ? <Check className='size-[14px]' /> : <Duplicate className='size-[14px]' />}
-          <span className='sr-only'>Copy to clipboard</span>
+          <span className='sr-only'>{labels.copyToClipboard}</span>
         </Button>
       )}
     </div>

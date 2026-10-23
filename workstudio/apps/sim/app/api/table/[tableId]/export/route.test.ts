@@ -21,6 +21,7 @@ vi.mock('@/app/api/table/utils', () => tableRouteUtilsMock)
 
 vi.mock('@/lib/table/rows/service', () => tableRowsServiceMock)
 
+import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET } from '@/app/api/table/[tableId]/export/route'
 
@@ -87,7 +88,7 @@ describe('table export route — id→name translation', () => {
 
     expect(res.status).toBe(403)
     expect(await res.json()).toEqual({
-      error: "Exporting a table is not available under your organization's permission group",
+      error: capabilityRefusal('tables.export'),
       details: { code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED' },
     })
   })

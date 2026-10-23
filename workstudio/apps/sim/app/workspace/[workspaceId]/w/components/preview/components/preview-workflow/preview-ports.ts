@@ -12,6 +12,8 @@ export interface PreviewPortRow {
   handleId?: string
   type?: CanvasPort['type']
   title: string
+  /** Set on rows whose title is interface copy (`editor.preview.ports.<key>`), not user data. */
+  titleKey?: 'context'
   value: string
   field?: string
   removed?: boolean
@@ -31,7 +33,8 @@ export function getPreviewPortRows(
   }))
   if (block.type === 'router_v2') {
     rows.unshift({
-      title: 'Context',
+      title: '',
+      titleKey: 'context',
       field: 'context',
       value: getDisplayValue(block.subBlocks.context?.value),
     })

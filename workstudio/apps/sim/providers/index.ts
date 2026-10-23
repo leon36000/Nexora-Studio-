@@ -3,6 +3,7 @@ import { toError } from '@sim/utils/errors'
 import { getApiKeyWithBYOK } from '@/lib/api-key/byok'
 import { env, envNumber } from '@/lib/core/config/env'
 import type { ConversationUsageTotal } from '@/lib/memory/conversation-types'
+import { passesReasoningEffortThrough } from '@/lib/nexora/reasoning'
 import { filterModelSafeWorkspaceFileAttachments } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
 import { appendUnavailableAttachmentNotice } from '@/lib/uploads/utils/model-input'
 import type { StreamingExecution } from '@/executor/types'
@@ -179,7 +180,12 @@ function sanitizeRequest(request: ProviderRequest): ProviderRequest {
     sanitizedRequest.temperature = undefined
   }
 
-  if (model && isCatalogued && !supportsReasoningEffort(model)) {
+  if (
+    model &&
+    isCatalogued &&
+    !supportsReasoningEffort(model) &&
+    !passesReasoningEffortThrough(model)
+  ) {
     sanitizedRequest.reasoningEffort = undefined
   }
 

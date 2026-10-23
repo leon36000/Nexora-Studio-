@@ -40,6 +40,34 @@ describe('streamAgentReply', () => {
     })
   })
 
+  it('asks for the agent-events protocol, so a reasoning model’s reasoning can come apart', async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([{ event: 'final', data: { success: true } }]))
+    await run()
+    const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
+    expect(headers.get('x-sim-stream-protocol')).toBe('agent-events-v1')
+  })
+
+  it('reports the reasoning apart and never mixes it into the answer', async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        { blockId: 'agent', event: 'thinking', data: 'Je ' },
+        { blockId: 'agent', event: 'thinking', data: 'réfléchis.' },
+        { blockId: 'agent', chunk: 'Bonjour' },
+        { event: 'final', data: { success: true, output: {} } },
+      ])
+    )
+    const thoughts: string[] = []
+    const outcome = await streamAgentReply({
+      chatIdentifier: 'assistant-general',
+      body: { input: 'Bonjour', conversationId: 'conv-1' },
+      signal: new AbortController().signal,
+      onText: () => {},
+      onThinking: (text) => thoughts.push(text),
+    })
+    expect(outcome).toEqual({ status: 'done', text: 'Bonjour' })
+    expect(thoughts).toEqual(['Je ', 'Je réfléchis.'])
+  })
+
   it('accumulates the answer chunks and reports the whole text so far', async () => {
     fetchMock.mockResolvedValueOnce(
       sseResponse([

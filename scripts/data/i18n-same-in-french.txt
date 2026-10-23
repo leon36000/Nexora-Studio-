@@ -1,0 +1,7 @@
+# Libellés par défaut des paquets partagés qui s’écrivent de même en français (règle « laissé en anglais » de check-i18n).
+Date
+Note
+Notifications
+Pause
+Route
+Webhook

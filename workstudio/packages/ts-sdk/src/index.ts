@@ -1,4 +1,4 @@
-export interface SimStudioConfig {
+export interface NexoraConfig {
   apiKey: string
   baseUrl?: string
 }
@@ -10,8 +10,11 @@ export interface SimStudioConfig {
  */
 export const SDK_VERSION = '0.2.1'
 
+/** A Nexora WorkStudio installed on this machine; pass your instance's address otherwise. */
+const DEFAULT_BASE_URL = 'http://localhost:3000'
+
 /**
- * Identifies this SDK to the API on every request, the way every official Sim
+ * Identifies this SDK to the API on every request, the way every official
  * client does, so a server log line or analytics event can say which client
  * made the call. `X-Sim-Client-Info` is the header the server reads and works
  * everywhere; `User-Agent` is added only where the runtime lets a script set it.
@@ -22,7 +25,7 @@ const CLIENT_HEADERS: Readonly<Record<string, string>> = (() => {
   const headers: Record<string, string> = {
     'X-Sim-Client-Info': `sdk-js/${SDK_VERSION}${runtime}`,
   }
-  if (node) headers['User-Agent'] = `simstudio-ts-sdk/${SDK_VERSION} node/${node}`
+  if (node) headers['User-Agent'] = `nexora-ts-sdk/${SDK_VERSION} node/${node}`
   return headers
 })()
 
@@ -183,13 +186,13 @@ function describeError(error: any): string | undefined {
   return message
 }
 
-export class SimStudioError extends Error {
+export class NexoraError extends Error {
   public code?: string
   public status?: number
 
   constructor(message: string, code?: string, status?: number) {
     super(message)
-    this.name = 'SimStudioError'
+    this.name = 'NexoraError'
     this.code = code
     this.status = status
   }
@@ -209,14 +212,14 @@ function normalizeBaseUrl(url: string): string {
   return normalized
 }
 
-export class SimStudioClient {
+export class NexoraClient {
   private apiKey: string
   private baseUrl: string
   private rateLimitInfo: RateLimitInfo | null = null
 
-  constructor(config: SimStudioConfig) {
+  constructor(config: NexoraConfig) {
     this.apiKey = config.apiKey
-    this.baseUrl = normalizeBaseUrl(config.baseUrl || 'https://www.sim.ai')
+    this.baseUrl = normalizeBaseUrl(config.baseUrl || DEFAULT_BASE_URL)
   }
 
   /** The headers every request carries: the credential and the client's identity. */
@@ -289,7 +292,7 @@ export class SimStudioClient {
 
     if (executionTimeoutSeconds !== undefined) {
       if (!async) {
-        throw new SimStudioError(
+        throw new NexoraError(
           'executionTimeoutSeconds is supported only for async executions',
           'INVALID_EXECUTION_TIMEOUT'
         )
@@ -299,7 +302,7 @@ export class SimStudioClient {
         executionTimeoutSeconds < 1 ||
         executionTimeoutSeconds > MAX_EXECUTION_TIMEOUT_SECONDS
       ) {
-        throw new SimStudioError(
+        throw new NexoraError(
           `executionTimeoutSeconds must be an integer between 1 and ${MAX_EXECUTION_TIMEOUT_SECONDS}`,
           'INVALID_EXECUTION_TIMEOUT'
         )
@@ -353,7 +356,7 @@ export class SimStudioClient {
 
       if (response.status === 429) {
         const retryAfter = this.rateLimitInfo?.retryAfter || 1000
-        throw new SimStudioError(
+        throw new NexoraError(
           `Rate limit exceeded. Retry after ${retryAfter}ms`,
           'RATE_LIMIT_EXCEEDED',
           429
@@ -364,7 +367,7 @@ export class SimStudioClient {
         const errorData = (await response.json().catch(() => ({}))) as {
           error?: { code?: string; message?: string }
         }
-        throw new SimStudioError(
+        throw new NexoraError(
           errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`,
           errorData.error?.code,
           response.status
@@ -384,12 +387,12 @@ export class SimStudioClient {
         }
       }
       if (!result.data) {
-        throw new SimStudioError('Invalid v2 workflow execution response', 'EXECUTION_ERROR')
+        throw new NexoraError('Invalid v2 workflow execution response', 'EXECUTION_ERROR')
       }
 
       if (response.status === 202) {
         if (!result.data.statusUrl) {
-          throw new SimStudioError('Invalid v2 async execution response', 'EXECUTION_ERROR')
+          throw new NexoraError('Invalid v2 async execution response', 'EXECUTION_ERROR')
         }
         return {
           success: true,
@@ -401,7 +404,7 @@ export class SimStudioClient {
       }
 
       if (result.data.status === 'failed') {
-        throw new SimStudioError(
+        throw new NexoraError(
           result.data.error?.message || 'Workflow execution failed',
           result.data.error?.code || 'EXECUTION_FAILED'
         )
@@ -422,18 +425,15 @@ export class SimStudioClient {
         totalDuration: result.data.durationMs,
       }
     } catch (error: any) {
-      if (error instanceof SimStudioError) {
+      if (error instanceof NexoraError) {
         throw error
       }
 
       if (error.message === 'TIMEOUT') {
-        throw new SimStudioError(`Workflow execution timed out after ${timeout}ms`, 'TIMEOUT')
+        throw new NexoraError(`Workflow execution timed out after ${timeout}ms`, 'TIMEOUT')
       }
 
-      throw new SimStudioError(
-        describeError(error) || 'Failed to execute workflow',
-        'EXECUTION_ERROR'
-      )
+      throw new NexoraError(describeError(error) || 'Failed to execute workflow', 'EXECUTION_ERROR')
     }
   }
 
@@ -454,7 +454,7 @@ export class SimStudioClient {
           error?: string
           code?: string
         }
-        throw new SimStudioError(
+        throw new NexoraError(
           errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           errorData.code,
           response.status
@@ -464,14 +464,11 @@ export class SimStudioClient {
       const result = await response.json()
       return result as WorkflowStatus
     } catch (error: any) {
-      if (error instanceof SimStudioError) {
+      if (error instanceof NexoraError) {
         throw error
       }
 
-      throw new SimStudioError(
-        describeError(error) || 'Failed to get workflow status',
-        'STATUS_ERROR'
-      )
+      throw new NexoraError(describeError(error) || 'Failed to get workflow status', 'STATUS_ERROR')
     }
   }
 
@@ -533,7 +530,7 @@ export class SimStudioClient {
 
       if (!response.ok) {
         const errorData = (await response.json().catch(() => ({}))) as unknown as any
-        throw new SimStudioError(
+        throw new NexoraError(
           errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           errorData.code,
           response.status
@@ -543,11 +540,11 @@ export class SimStudioClient {
       const result = await response.json()
       return result as JobStatusResult
     } catch (error: any) {
-      if (error instanceof SimStudioError) {
+      if (error instanceof NexoraError) {
         throw error
       }
 
-      throw new SimStudioError(describeError(error) || 'Failed to get job status', 'STATUS_ERROR')
+      throw new NexoraError(describeError(error) || 'Failed to get job status', 'STATUS_ERROR')
     }
   }
 
@@ -581,7 +578,7 @@ export class SimStudioClient {
         const errorData = (await response.json().catch(() => ({}))) as {
           error?: { code?: string; message?: string }
         }
-        throw new SimStudioError(
+        throw new NexoraError(
           errorData.error?.message || `HTTP ${response.status}: ${response.statusText}`,
           errorData.error?.code,
           response.status
@@ -590,15 +587,15 @@ export class SimStudioClient {
 
       const result = (await response.json()) as { data?: WorkflowRunStatus }
       if (!result.data) {
-        throw new SimStudioError('Invalid v2 workflow run response', 'STATUS_ERROR')
+        throw new NexoraError('Invalid v2 workflow run response', 'STATUS_ERROR')
       }
       return result.data
     } catch (error: any) {
-      if (error instanceof SimStudioError) {
+      if (error instanceof NexoraError) {
         throw error
       }
 
-      throw new SimStudioError(describeError(error) || 'Failed to get workflow run', 'STATUS_ERROR')
+      throw new NexoraError(describeError(error) || 'Failed to get workflow run', 'STATUS_ERROR')
     }
   }
 
@@ -622,14 +619,14 @@ export class SimStudioClient {
       backoffMultiplier = 2,
     } = retryOptions
 
-    let lastError: SimStudioError | null = null
+    let lastError: NexoraError | null = null
     let delay = initialDelay
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await this.executeWorkflow(workflowId, input, options)
       } catch (error: any) {
-        if (!(error instanceof SimStudioError) || error.code !== 'RATE_LIMIT_EXCEEDED') {
+        if (!(error instanceof NexoraError) || error.code !== 'RATE_LIMIT_EXCEEDED') {
           throw error
         }
 
@@ -653,7 +650,7 @@ export class SimStudioClient {
       }
     }
 
-    throw lastError || new SimStudioError('Max retries exceeded', 'MAX_RETRIES_EXCEEDED')
+    throw lastError || new NexoraError('Max retries exceeded', 'MAX_RETRIES_EXCEEDED')
   }
 
   /**
@@ -705,7 +702,7 @@ export class SimStudioClient {
 
       if (!response.ok) {
         const errorData = (await response.json().catch(() => ({}))) as unknown as any
-        throw new SimStudioError(
+        throw new NexoraError(
           errorData.error || `HTTP ${response.status}: ${response.statusText}`,
           errorData.code,
           response.status
@@ -715,13 +712,17 @@ export class SimStudioClient {
       const result = await response.json()
       return result as UsageLimits
     } catch (error: any) {
-      if (error instanceof SimStudioError) {
+      if (error instanceof NexoraError) {
         throw error
       }
 
-      throw new SimStudioError(describeError(error) || 'Failed to get usage limits', 'USAGE_ERROR')
+      throw new NexoraError(describeError(error) || 'Failed to get usage limits', 'USAGE_ERROR')
     }
   }
 }
 
-export { SimStudioClient as default }
+export { NexoraClient as default }
+
+/** Former names, kept so code written for the original SDK keeps working. */
+export { NexoraClient as SimStudioClient, NexoraError as SimStudioError }
+export type { NexoraConfig as SimStudioConfig }

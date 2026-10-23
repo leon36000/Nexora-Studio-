@@ -5,10 +5,13 @@ import { requestRaw } from '@/lib/api/client/request'
 import { type DeployedChatPostBody, deployedChatPostContract } from '@/lib/api/contracts/chats'
 import { readSSEEvents } from '@/lib/core/utils/sse'
 import {
+  AGENT_STREAM_PROTOCOL_HEADER_LABEL,
+  AGENT_STREAM_PROTOCOL_V1,
   isChatChunkFrame,
   isChatChunkResetFrame,
   isChatErrorFrame,
   isChatFinalFrame,
+  isChatThinkingFrame,
 } from '@/lib/workflows/streaming/agent-stream-protocol'
 
 /** Why an answer failed, worded by the Assistant page. */
@@ -34,6 +37,8 @@ interface StreamAgentReplyInput {
   signal: AbortSignal
   /** Called with the whole answer text so far, each time it grows or shrinks. */
   onText: (text: string) => void
+  /** Called with the whole reasoning so far, for an agent whose chat shares it. */
+  onThinking?: (thinking: string) => void
 }
 
 function toErrorCode(error: unknown): ReplyErrorCode {
@@ -59,8 +64,8 @@ function finalOutputText(output: unknown): string {
 
 /**
  * Sends one question to an agent's deployed chat and follows its answer stream: text chunks per
- * block (a `chunk_reset` drops the block's text of an intermediate tool-calling turn), then one
- * terminal `final` or `error` frame. Never throws: aborting `signal` ends with `stopped`, a stream
+ * block (a `chunk_reset` drops the block's text of an intermediate tool-calling turn), a
+ * reasoning model's `thinking` frames apart from them, then one terminal `final` or `error` frame. Never throws: aborting `signal` ends with `stopped`, a stream
  * that closes without its terminal frame with `interrupted`; every outcome carries the text so far.
  */
 export async function streamAgentReply({
@@ -68,7 +73,9 @@ export async function streamAgentReply({
   body,
   signal,
   onText,
+  onThinking,
 }: StreamAgentReplyInput): Promise<ReplyOutcome> {
+  let thinking = ''
   const blockOrder: string[] = []
   const blockText = new Map<string, string>()
   let text = ''
@@ -80,11 +87,11 @@ export async function streamAgentReply({
   }
 
   try {
-    const response = await requestRaw(deployedChatPostContract, {
-      params: { identifier: chatIdentifier },
-      body,
-      signal,
-    })
+    const response = await requestRaw(
+      deployedChatPostContract,
+      { params: { identifier: chatIdentifier }, body, signal },
+      { headers: { [AGENT_STREAM_PROTOCOL_HEADER_LABEL]: AGENT_STREAM_PROTOCOL_V1 } }
+    )
     await readSSEEvents<unknown>(response, {
       signal,
       onEvent: (frame) => {
@@ -92,6 +99,11 @@ export async function streamAgentReply({
           if (!blockText.has(frame.blockId)) blockOrder.push(frame.blockId)
           blockText.set(frame.blockId, (blockText.get(frame.blockId) ?? '') + frame.chunk)
           publish()
+          return false
+        }
+        if (isChatThinkingFrame(frame)) {
+          thinking += frame.data
+          onThinking?.(thinking)
           return false
         }
         if (isChatChunkResetFrame(frame)) {

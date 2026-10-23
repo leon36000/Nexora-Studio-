@@ -9,7 +9,6 @@
 const NOTE_COLOR_OPTIONS_BY_ID = {
   white: {
     id: 'white',
-    label: 'White',
     fill: '#FFFFFF',
     hoverSilhouetteColor: undefined,
     selectedSilhouetteColor: undefined,
@@ -21,7 +20,6 @@ const NOTE_COLOR_OPTIONS_BY_ID = {
   },
   'light-gray': {
     id: 'light-gray',
-    label: 'Light gray',
     fill: '#E5E5E5',
     hoverSilhouetteColor: '#D4D4D4',
     selectedSilhouetteColor: undefined,
@@ -33,7 +31,6 @@ const NOTE_COLOR_OPTIONS_BY_ID = {
   },
   carbon: {
     id: 'carbon',
-    label: 'Graphite',
     fill: '#525252',
     hoverSilhouetteColor: undefined,
     selectedSilhouetteColor: '#3F3F3F',

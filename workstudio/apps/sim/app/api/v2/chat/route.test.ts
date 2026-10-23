@@ -112,7 +112,7 @@ environmentUtilsMockFns.mockGetPersonalAndWorkspaceEnv.mockResolvedValue({
 })
 
 import { chatOperations } from '@/lib/mothership/application/operations'
-import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
+import { CAPABILITY_RULES, capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { POST } from '@/app/api/v2/chat/route'
 
@@ -301,7 +301,7 @@ describe('POST /api/v2/chat', () => {
     await expect(response.json()).resolves.toEqual({
       error: {
         code: 'FORBIDDEN',
-        message: "Chat is not available under your organization's permission group",
+        message: capabilityRefusal('copilot.use'),
         details: { code: CAPABILITY_RULES[chatOperations.send.capability].detailCode },
       },
     })

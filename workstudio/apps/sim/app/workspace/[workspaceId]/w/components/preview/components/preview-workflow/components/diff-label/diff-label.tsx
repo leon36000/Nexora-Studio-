@@ -1,13 +1,13 @@
 'use client'
 
 import { cn } from '@sim/emcn'
+import { useTranslations } from 'next-intl'
 import type { BlockDiffStatus } from '@/lib/workflows/comparison'
 
 /** The word for each comparison status, shared by the canvas label and the change list badge. */
-export const DIFF_LABEL: Record<BlockDiffStatus, string> = {
-  added: 'Added',
-  modified: 'Modified',
-  removed: 'Removed',
+export function useDiffStatusLabel(): (status: BlockDiffStatus) => string {
+  const t = useTranslations('editor.preview.diff')
+  return (status) => t(status)
 }
 
 const DIFF_LABEL_CLASS: Record<BlockDiffStatus, string> = {
@@ -25,6 +25,7 @@ interface DiffStatusLabelProps {
  * chrome wherever it appears so a block and a loop read as one system.
  */
 export function DiffStatusLabel({ status }: DiffStatusLabelProps) {
+  const diffLabel = useDiffStatusLabel()
   return (
     <div
       className={cn(
@@ -32,7 +33,7 @@ export function DiffStatusLabel({ status }: DiffStatusLabelProps) {
         DIFF_LABEL_CLASS[status]
       )}
     >
-      {DIFF_LABEL[status]}
+      {diffLabel(status)}
     </div>
   )
 }

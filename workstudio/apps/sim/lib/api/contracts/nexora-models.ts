@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import { defineRouteContract } from '@/lib/api/contracts/types'
-import { canonicalOllamaName, NEXORA_MODEL_USAGES, OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
+import {
+  canonicalOllamaName,
+  MAX_CONTEXT_TOKENS,
+  MIN_CONTEXT_TOKENS,
+  MODEL_LOCATIONS,
+  NEXORA_MODEL_USAGES,
+  OLLAMA_MODEL_NAME,
+} from '@/lib/nexora/model-ids'
 
 const modelSourceSchema = z.enum(['ollama', 'mistral', 'openai-compatible'])
 const modelUsageSchema = z.enum(NEXORA_MODEL_USAGES)
@@ -13,6 +20,20 @@ const nexoraModelSchema = z.object({
   source: modelSourceSchema,
   providerModel: z.string(),
   providerUrl: z.string().nullable(),
+})
+
+const modelLocationSchema = z.enum(MODEL_LOCATIONS)
+const contextTokensSchema = z.number().int().min(MIN_CONTEXT_TOKENS).max(MAX_CONTEXT_TOKENS)
+
+/** What « Tester » found out and what an administrator declared about a model. */
+const modelCardSchema = z.object({
+  reasoning: z.boolean().nullable(),
+  tools: z.boolean().nullable(),
+  vision: z.boolean(),
+  contextTokens: z.number().nullable(),
+  location: modelLocationSchema,
+  locationEditable: z.boolean(),
+  testedAt: z.string().nullable(),
 })
 
 const ollamaModelNameSchema = z
@@ -41,7 +62,7 @@ export const listNexoraModelsContract = defineRouteContract({
   response: {
     mode: 'json',
     schema: z.object({
-      models: z.array(nexoraModelSchema),
+      models: z.array(nexoraModelSchema.extend({ card: modelCardSchema })),
       catalog: z.array(
         z.object({
           name: z.string(),
@@ -111,14 +132,33 @@ export const setDefaultNexoraModelContract = defineRouteContract({
   response: { mode: 'json', schema: z.object({ success: z.literal(true) }) },
 })
 
+/** Tries a model; a reasoning model's answer comes without its reasoning. */
 export const testNexoraModelContract = defineRouteContract({
   method: 'POST',
   path: '/api/nexora/models/[id]/test',
   params: modelIdParamsSchema,
   response: {
     mode: 'json',
-    schema: z.object({ latencyMs: z.number(), reply: z.string() }),
+    schema: z.object({
+      latencyMs: z.number(),
+      reply: z.string(),
+      /** The model spent its whole answer budget reasoning. */
+      truncated: z.boolean(),
+      capabilities: z.object({ reasoning: z.boolean().nullable(), tools: z.boolean().nullable() }),
+    }),
   },
+})
+
+/** Declares a model's context length, and where an OpenAI-compatible service keeps the data. */
+export const updateNexoraModelCardContract = defineRouteContract({
+  method: 'PATCH',
+  path: '/api/nexora/models/[id]/card',
+  params: modelIdParamsSchema,
+  body: z.object({
+    location: modelLocationSchema.optional(),
+    contextTokens: contextTokensSchema.nullable().optional(),
+  }),
+  response: { mode: 'json', schema: z.object({ card: modelCardSchema }) },
 })
 
 /** Downloads a model into the bundled Ollama, streaming `data: {...}` progress events. */

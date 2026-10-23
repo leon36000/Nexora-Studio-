@@ -21,6 +21,14 @@
     "messagePlaceholder": "Votre message",
     "temperature": "Température",
     "maxTokens": "Longueur maximale (jetons)",
+    "reasoningEffort": "Effort de raisonnement",
+    "efforts": {
+      "default": "Par défaut",
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé"
+    },
+    "effortIgnored": "Effort non pris en charge par ce modèle : réglage par défaut utilisé.",
     "send": "Envoyer",
     "stop": "Arrêter",
     "addModel": "Ajouter un modèle",
@@ -38,6 +46,10 @@
       "interrupted": "La réponse a été interrompue.",
       "unknown": "La réponse n’a pas pu être obtenue."
     }
+  },
+  "thinking": {
+    "title": "Réflexion",
+    "inProgress": "Réflexion en cours…"
   },
   "list": {
     "metaTitle": "Agents",
@@ -67,6 +79,7 @@
       "tools": "Outils",
       "knowledgeBaseIds": "Connaissances",
       "memory": "Mémoire de conversation",
+      "reasoningEffort": "Effort de raisonnement",
       "welcomeMessage": "Message d’accueil"
     },
     "welcomeHint": "Enregistré avec le chat public, à la publication.",

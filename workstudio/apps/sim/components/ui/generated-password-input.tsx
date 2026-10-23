@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button, ChipInput, Loader, Tooltip, useCopyToClipboard } from '@sim/emcn'
 import { Check, Clipboard, Eye, EyeOff, RefreshCw } from '@sim/emcn/icons'
+import { useTranslations } from 'next-intl'
 import { generatePassword } from '@/lib/core/security/encryption'
 
 const MASKED_PASSWORD = '••••••••'
@@ -21,7 +22,7 @@ interface GeneratedPasswordInputProps {
    * Resolves the currently saved password when the Show toggle is clicked.
    * While hidden, an empty field displays a masked placeholder.
    */
-  fetchCurrentPassword?: () => Promise<string>
+  fetchCurrentPassword?: () => Promise<string> // i18n-ignore: type signature
 }
 
 /**
@@ -40,6 +41,7 @@ export function GeneratedPasswordInput({
   error = false,
   fetchCurrentPassword,
 }: GeneratedPasswordInputProps) {
+  const t = useTranslations('shell.generatedPassword')
   const [showPassword, setShowPassword] = useState(false)
   const [currentPassword, setCurrentPassword] = useState<string | null>(null)
   const [isFetchingCurrent, setIsFetchingCurrent] = useState(false)
@@ -105,14 +107,14 @@ export function GeneratedPasswordInput({
                   variant='ghost'
                   onClick={handleGeneratePassword}
                   disabled={disabled}
-                  aria-label='Generate password'
+                  aria-label={t('generate')}
                   iconPadding='md'
                 >
                   <RefreshCw className='size-3' />
                 </Button>
               </Tooltip.Trigger>
               <Tooltip.Content>
-                <span>Generate</span>
+                <span>{t('generateTooltip')}</span>
               </Tooltip.Content>
             </Tooltip.Root>
           ) : null}
@@ -123,14 +125,14 @@ export function GeneratedPasswordInput({
                 variant='ghost'
                 onClick={() => copy(displayValue)}
                 disabled={!displayValue || disabled}
-                aria-label='Copy password'
+                aria-label={t('copy')}
                 iconPadding='md'
               >
                 {copied ? <Check className='size-3' /> : <Clipboard className='size-3' />}
               </Button>
             </Tooltip.Trigger>
             <Tooltip.Content>
-              <span>{copied ? 'Copied' : 'Copy'}</span>
+              <span>{copied ? t('copiedTooltip') : t('copyTooltip')}</span>
             </Tooltip.Content>
           </Tooltip.Root>
           <Tooltip.Root>
@@ -140,7 +142,7 @@ export function GeneratedPasswordInput({
                 variant='ghost'
                 onClick={toggleShowPassword}
                 disabled={disabled || isFetchingCurrent}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? t('hide') : t('show')}
                 iconPadding='md'
               >
                 {isFetchingCurrent ? (
@@ -153,7 +155,7 @@ export function GeneratedPasswordInput({
               </Button>
             </Tooltip.Trigger>
             <Tooltip.Content>
-              <span>{showPassword ? 'Hide' : 'Show'}</span>
+              <span>{showPassword ? t('hideTooltip') : t('showTooltip')}</span>
             </Tooltip.Content>
           </Tooltip.Root>
         </div>

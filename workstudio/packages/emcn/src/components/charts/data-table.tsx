@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { formatChartDate, formatChartTimestamp } from '@sim/emcn'
+import { formatChartDate, formatChartTimestamp, useEmcnLabels } from '@sim/emcn'
 
 interface ChartDataTableProps {
   label: string
@@ -19,6 +19,7 @@ export const ChartDataTable = memo(function ChartDataTable({
   timeZone,
   xAxisFormat,
 }: ChartDataTableProps) {
+  const labels = useEmcnLabels()
   const formatRow = xAxisFormat === 'date' ? formatChartDate : formatChartTimestamp
   const values = series.map(
     (item) => new Map(item.data.map((point) => [point.timestamp, point.value]))
@@ -31,7 +32,7 @@ export const ChartDataTable = memo(function ChartDataTable({
       <caption>{label}</caption>
       <thead>
         <tr>
-          <th scope='col'>Date</th>
+          <th scope='col'>{labels.date}</th>
           {series.map((item) => (
             <th key={item.id} scope='col'>
               {item.label}

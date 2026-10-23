@@ -32,8 +32,12 @@ import {
 import { Plus, X } from '../../icons'
 import { cn } from '../../lib/cn'
 import { Button } from '../button/button'
+import { formatEmcnLabel, useEmcnLabels } from '../labels/labels'
 import { Tooltip } from '../tooltip/tooltip'
 import { TabStripAction } from './action'
+
+/** The key that closes the focused tab, announced through `aria-keyshortcuts`. */
+const DELETE_KEY = 'Delete'
 
 const DRAG_EDGE_ZONE = 40
 const DRAG_SCROLL_SPEED = 8
@@ -357,6 +361,7 @@ const Tab = forwardRef<HTMLDivElement, TabProps>(function Tab(
   ref
 ) {
   const closeable = Boolean(onClose) && !tab.pinned
+  const labels = useEmcnLabels()
 
   const tabButton = (
     <Button
@@ -366,10 +371,10 @@ const Tab = forwardRef<HTMLDivElement, TabProps>(function Tab(
       size='sm'
       role='tab'
       aria-selected={Boolean(tab.active)}
-      aria-keyshortcuts={closeable ? 'Delete' : undefined}
+      aria-keyshortcuts={closeable ? DELETE_KEY : undefined}
       aria-label={
         tab.attention && !tab.active
-          ? `${tab.title}, Background activity`
+          ? formatEmcnLabel(labels.tabBackgroundActivity, { title: tab.title })
           : tab.pinned
             ? tab.title
             : undefined
@@ -478,7 +483,7 @@ const Tab = forwardRef<HTMLDivElement, TabProps>(function Tab(
             type='button'
             variant='ghost-secondary'
             size='sm'
-            aria-label={`Close ${tab.title}`}
+            aria-label={formatEmcnLabel(labels.closeTab, { title: tab.title })}
             tabIndex={-1}
             className='size-[24px] p-0'
             onClick={(event) => {
@@ -517,7 +522,7 @@ export function TabStrip({
   onTabContextMenu,
   onTabDragStart,
   maxTabs,
-  newTabLabel = 'New tab',
+  newTabLabel: newTabLabelProp,
   newTabControl,
   endActions,
   overlays,
@@ -525,6 +530,8 @@ export function TabStrip({
   dividers = true,
   className,
 }: TabStripProps) {
+  const labels = useEmcnLabels()
+  const newTabLabel = newTabLabelProp ?? labels.newTab
   const stripId = useId()
   const atLimit = maxTabs !== undefined && tabs.length >= maxTabs
   const stripRef = useRef<HTMLDivElement>(null)
@@ -937,7 +944,7 @@ export function TabStrip({
       {tabs.length > 0 && (
         <div
           role='tablist'
-          aria-label='Tabs'
+          aria-label={labels.tabs}
           aria-owns={[...pinnedTabs, ...regularTabs]
             .map((tab) => `${stripId}-${encodeURIComponent(tab.id)}`)
             .join(' ')}
@@ -1005,7 +1012,7 @@ export function TabStrip({
             </TabStripAction>
           </Tooltip.Trigger>
           <Tooltip.Content side='bottom'>
-            {atLimit ? `Maximum of ${maxTabs} tabs` : newTabLabel}
+            {atLimit ? formatEmcnLabel(labels.maxTabs, { count: maxTabs ?? 0 }) : newTabLabel}
           </Tooltip.Content>
         </Tooltip.Root>
       ) : null}

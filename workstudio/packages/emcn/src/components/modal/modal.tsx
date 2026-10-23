@@ -43,6 +43,7 @@ import { usePathname } from 'next/navigation'
 import { X } from '../../icons'
 import { cn } from '../../lib/cn'
 import { Button } from '../button/button'
+import { useEmcnLabels } from '../labels/labels'
 import { focusFirstTextInput, focusFirstTextInputIn } from './auto-focus'
 
 /** Portal geometry follows the visible mobile viewport while the keyboard is open. */
@@ -699,6 +700,7 @@ ModalContent.displayName = 'ModalContent'
 const ModalHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, children, ...props }, ref) => {
     const dismissDisabled = useModalDismissDisabled()
+    const labels = useEmcnLabels()
     return (
       <div
         ref={ref}
@@ -715,7 +717,7 @@ const ModalHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
             className='relative size-[16px] shrink-0 p-0 before:absolute before:inset-[-14px] before:content-[""]'
           >
             <X className='size-[16px]' />
-            <span className='sr-only'>Close</span>
+            <span className='sr-only'>{labels.close}</span>
           </Button>
         </DialogPrimitive.Close>
       </div>

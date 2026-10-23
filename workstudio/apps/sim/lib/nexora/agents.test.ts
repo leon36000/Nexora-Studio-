@@ -19,6 +19,7 @@ const base: AgentConfig = {
   tools: [],
   knowledgeBaseIds: [],
   memory: false,
+  reasoningEffort: 'auto',
   welcomeMessage: 'Bonjour, que puis-je pour vous ?',
 }
 
@@ -53,6 +54,26 @@ describe('agent workflows', () => {
     ]) {
       expect(readAgentWorkflow(buildAgentWorkflow(config))).toEqual(config)
     }
+  })
+
+  it('carries the reasoning effort to the agent block, « auto » for an agent saved before it', () => {
+    const state = buildAgentWorkflow({ ...base, reasoningEffort: 'high' })
+    expect(agentBlock(state).subBlocks.reasoningEffort.value).toBe('high')
+    expect(readAgentWorkflow(state)?.reasoningEffort).toBe('high')
+
+    const older = buildAgentWorkflow(base)
+    const { reasoningEffort: _effort, ...withoutEffort } = agentBlock(older).subBlocks
+    agentBlock(older).subBlocks = withoutEffort
+    expect(readAgentWorkflow(older)?.reasoningEffort).toBe('auto')
+  })
+
+  it('refuses an effort the form cannot show, and counts an effort change as a change', () => {
+    const state = buildAgentWorkflow(base)
+    agentBlock(state).subBlocks.reasoningEffort.value = '<start.effort>'
+    expect(readAgentWorkflow(state)).toBeNull()
+    const changed = { ...base, reasoningEffort: 'low' as const }
+    expect(hasUnsavedAgentChanges(base, changed)).toBe(true)
+    expect(diffAgentVersions(base, changed).map((c) => c.field)).toEqual(['reasoningEffort'])
   })
 
   it('builds a workflow the importer accepts, the chat message reaching the agent through Start', () => {

@@ -25,6 +25,7 @@ import {
 } from '@sim/emcn'
 import {
   Building,
+  Code,
   Connections,
   Dashboard,
   Database,
@@ -413,6 +414,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   const isCollapsed = isCollapsedProp && !isPeeking
   const t = useTranslations('shell.sidebar')
   const tCopilot = useTranslations('copilot.entry')
+  const tDevelopers = useTranslations('developers.page')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workflowId = params.workflowId as string | undefined
@@ -814,6 +816,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           hidden: chatEnabled,
         },
         {
+          // Nexora edition: the OpenAI-compatible developer API (address, keys, examples).
+          id: 'developers',
+          label: tDevelopers('navLabel'),
+          icon: Code,
+          href: `/workspace/${workspaceId}/developpeurs`,
+          hidden: chatEnabled,
+        },
+        {
           id: 'home',
           label: chatEnabled ? t('nav.newChat') : t('nav.newWorkflow'),
           icon: chatEnabled ? Home : Plus,
@@ -854,6 +864,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
       ].filter((item) => !item.hidden),
     [
       t,
+      tDevelopers,
       workspaceId,
       createWorkflow,
       canEdit,

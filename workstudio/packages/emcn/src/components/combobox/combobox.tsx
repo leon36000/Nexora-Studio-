@@ -22,6 +22,7 @@ import { cn } from '../../lib/cn'
 import { Button } from '../button/button'
 import { chipActiveSurfaceClass, chipHoverSurfaceClass } from '../chip/chrome'
 import { Input } from '../input/input'
+import { useEmcnLabels } from '../labels/labels'
 import { OverflowText } from '../overflow-text/overflow-text'
 import { Popover, PopoverAnchor, PopoverContent, PopoverScrollArea } from '../popover/popover'
 
@@ -193,7 +194,7 @@ const Combobox = memo(
         multiSelectValues,
         onChange,
         onMultiSelectChange,
-        placeholder = 'Select...',
+        placeholder: placeholderProp,
         disabled,
         editable = false,
         overlayContent,
@@ -209,12 +210,12 @@ const Combobox = memo(
         onArrowLeft,
         searchable = false,
         onSearchChange,
-        searchPlaceholder = 'Search...',
+        searchPlaceholder,
         align = 'start',
         dropdownWidth = 'trigger',
         disablePortal = false,
         showAllOption = false,
-        allOptionLabel = 'All',
+        allOptionLabel,
         groups,
         maxHeight = 192,
         emptyMessage,
@@ -234,6 +235,8 @@ const Combobox = memo(
       },
       ref
     ) => {
+      const labels = useEmcnLabels()
+      const placeholder = placeholderProp ?? labels.select
       const listboxId = useId()
       const [open, setOpen] = useState(false)
       const [highlightedIndex, setHighlightedIndex] = useState(-1)
@@ -442,10 +445,10 @@ const Combobox = memo(
       })
       const hasActiveSearch = searchActive || (searchable && searchQuery.trim().length > 0)
       const continuationAction = hasActiveSearch ? (onLoadAll ?? onLoadMore) : onLoadMore
-      const continuationLabel = hasActiveSearch ? 'Search all options' : 'Load more'
+      const continuationLabel = hasActiveSearch ? labels.searchAllOptions : labels.loadMore
       const continuationLoadingLabel = hasActiveSearch
-        ? 'Searching options...'
-        : 'Loading options...'
+        ? labels.searchingOptions
+        : labels.loadingOptions
 
       /**
        * Handles selection of an option. In editable mode the input is blurred on
@@ -699,15 +702,15 @@ const Combobox = memo(
       const isLoadingContinuation = isLoadingMore || isLoadingAll
       const resolvedEmptyMessage =
         truncated && hasActiveSearch
-          ? 'No matches in partial results'
+          ? labels.noMatchesInPartialResults
           : hasMore && hasActiveSearch
-            ? 'No matches in loaded options'
+            ? labels.noMatchesInLoadedOptions
             : hasMore
-              ? 'No options loaded'
+              ? labels.noOptionsLoaded
               : emptyMessage ||
                 (searchQuery || (editable && value)
-                  ? 'No matching options found'
-                  : 'No options available')
+                  ? labels.noMatchingOptions
+                  : labels.noOptionsAvailable)
       const continuationFooter =
         hasMore && continuationAction ? (
           <Button
@@ -731,12 +734,12 @@ const Combobox = memo(
             {isLoadingContinuation
               ? continuationLoadingLabel
               : error
-                ? 'Try again'
+                ? labels.tryAgain
                 : continuationLabel}
           </Button>
         ) : truncated && filteredOptions.length > 0 ? (
           <div className='py-2 text-center text-[var(--text-muted)] text-caption'>
-            Showing partial results
+            {labels.showingPartialResults}
           </div>
         ) : null
 
@@ -841,7 +844,7 @@ const Combobox = memo(
                     )}
                     <button
                       type='button'
-                      aria-label={open ? 'Close options' : 'Open options'}
+                      aria-label={open ? labels.closeOptions : labels.openOptions}
                       className='-translate-y-1/2 absolute top-1/2 right-[4px] z-10 flex size-6 cursor-pointer items-center justify-center border-0 bg-transparent p-0'
                       onMouseDown={handleChevronClick}
                     >
@@ -940,7 +943,7 @@ const Combobox = memo(
                   <input
                     ref={searchInputRef}
                     className={MENU_STYLES.searchInput}
-                    placeholder={searchPlaceholder}
+                    placeholder={searchPlaceholder ?? labels.search}
                     value={searchQuery}
                     onChange={(e) => updateSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
@@ -992,7 +995,7 @@ const Combobox = memo(
                     <div className='flex items-center justify-center py-3.5'>
                       <Loader className='size-[16px] text-[var(--text-muted)]' animate />
                       <span className='ml-2 text-[var(--text-muted)] text-caption'>
-                        Loading options...
+                        {labels.loadingOptions}
                       </span>
                     </div>
                   ) : error && filteredOptions.length === 0 ? (
@@ -1106,7 +1109,7 @@ const Combobox = memo(
                           )}
                         >
                           <OverflowText
-                            label={allOptionLabel}
+                            label={allOptionLabel ?? labels.all}
                             className='flex-1 text-[var(--text-body)]'
                           />
                           {!multiSelectValues?.length && (

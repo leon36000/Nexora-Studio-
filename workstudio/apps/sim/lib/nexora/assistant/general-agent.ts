@@ -274,6 +274,7 @@ async function createAssistantWorkflow(params: {
     tools: [],
     knowledgeBaseIds,
     memory: true,
+    reasoningEffort: 'auto',
     welcomeMessage: GENERAL_ASSISTANT_WELCOME,
   })
   const imported = await importWorkflowIntoWorkspaceTransition({
@@ -361,6 +362,8 @@ async function ensureGeneralAssistant(params: {
       customizations: { welcomeMessage: GENERAL_ASSISTANT_WELCOME },
       authType: 'workspace',
       outputConfigs: agentBlockId ? [{ blockId: agentBlockId, path: 'content' }] : undefined,
+      // A reasoning model's reasoning reaches the Assistant (folded), never the answer text.
+      includeThinking: true,
       workspaceId,
       requestId,
       projectLegacyAudit: false,

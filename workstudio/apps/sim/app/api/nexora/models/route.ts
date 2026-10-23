@@ -5,6 +5,7 @@ import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { authorizeInstanceAdmin } from '@/lib/nexora/admin-access'
 import { addNexoraModel, listNexoraModels } from '@/lib/nexora/model-admin'
+import { readModelCards, resolveModelCard } from '@/lib/nexora/model-cards'
 import { deniedResponse, modelErrorResponse } from '@/lib/nexora/model-responses'
 import { listLocalModels, OLLAMA_CATALOG } from '@/lib/nexora/ollama'
 
@@ -21,8 +22,9 @@ export const GET = withRouteHandler(async (_request: NextRequest) => {
   const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   try {
-    const [models, localModels] = await Promise.all([
+    const [models, cards, localModels] = await Promise.all([
       listNexoraModels(),
+      readModelCards(access.organizationId),
       listLocalModels().catch((error: unknown) => {
         logger.warn('The bundled Ollama is unavailable', { error })
         return null
@@ -30,7 +32,10 @@ export const GET = withRouteHandler(async (_request: NextRequest) => {
     ])
     const installed = new Set(localModels ?? [])
     return NextResponse.json({
-      models,
+      models: models.map((model) => ({
+        ...model,
+        card: resolveModelCard(model, cards[model.name]),
+      })),
       catalog: OLLAMA_CATALOG.map((model) => ({ ...model, installed: installed.has(model.name) })),
       localModels: localModels ?? [],
       ollamaAvailable: localModels !== null,

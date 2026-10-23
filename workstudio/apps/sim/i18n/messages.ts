@@ -7,6 +7,7 @@ import enBlocks from '@/messages/en/blocks.json'
 import enCommon from '@/messages/en/common.json'
 import enConnectors from '@/messages/en/connectors.json'
 import enCopilot from '@/messages/en/copilot.json'
+import enDevelopers from '@/messages/en/developers.json'
 import enEditor from '@/messages/en/editor.json'
 import enEmails from '@/messages/en/emails.json'
 import enErrors from '@/messages/en/errors.json'
@@ -27,6 +28,7 @@ import frBlocks from '@/messages/fr/blocks.json'
 import frCommon from '@/messages/fr/common.json'
 import frConnectors from '@/messages/fr/connectors.json'
 import frCopilot from '@/messages/fr/copilot.json'
+import frDevelopers from '@/messages/fr/developers.json'
 import frEditor from '@/messages/fr/editor.json'
 import frEmails from '@/messages/fr/emails.json'
 import frErrors from '@/messages/fr/errors.json'
@@ -63,6 +65,7 @@ export const MESSAGE_NAMESPACES = [
   'connectors',
   'assistant',
   'copilot',
+  'developers',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -88,6 +91,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     connectors: frConnectors,
     assistant: frAssistant,
     copilot: frCopilot,
+    developers: frDevelopers,
   },
   en: {
     common: enCommon,
@@ -110,6 +114,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     connectors: enConnectors,
     assistant: enAssistant,
     copilot: enCopilot,
+    developers: enDevelopers,
   },
 }
 
