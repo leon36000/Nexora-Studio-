@@ -31,10 +31,18 @@ export function isNexoraWandAvailable(): boolean {
   return isNexoraOnlyModels && Boolean(env.VLLM_BASE_URL)
 }
 
+/** The model and sampling settings of one request (the Playground chooses them; the wand does not). */
+interface CompletionSettings {
+  model?: string
+  temperature?: number
+  maxTokens?: number
+}
+
 async function requestCompletion(
   messages: WandMessage[],
   stream: boolean,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  settings: CompletionSettings = {}
 ): Promise<Response> {
   const baseUrl = (env.VLLM_BASE_URL ?? '').replace(/\/+$/, '')
   let response: Response
@@ -47,10 +55,10 @@ async function requestCompletion(
         ...(env.VLLM_API_KEY ? { Authorization: `Bearer ${env.VLLM_API_KEY}` } : {}),
       },
       body: JSON.stringify({
-        model: NEXORA_DEFAULT_MODEL_ALIAS,
+        model: settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS,
         messages,
-        temperature: 0.2,
-        max_tokens: 4000,
+        temperature: settings.temperature ?? 0.2,
+        max_tokens: settings.maxTokens ?? 4000,
         stream,
         ...(stream ? { stream_options: { include_usage: true } } : {}),
       }),
@@ -89,14 +97,18 @@ export async function nexoraWandComplete(input: {
 
 /**
  * One generation as a stream in the wand's own event format — `data: {"chunk": …}` per
- * delta, then `data: {"done": true}` — so the editor reads it like the upstream stream.
+ * delta, then `data: {"done": true}` — so the editor reads it like the upstream stream. The
+ * Playground also picks the model and settings and asks for the usage in the final event.
  */
-export async function nexoraWandStream(input: {
-  messages: WandMessage[]
-  signal?: AbortSignal
-  onUsage?: (usage: WandUsage) => void | Promise<void>
-}): Promise<ReadableStream<Uint8Array>> {
-  const response = await requestCompletion(input.messages, true, input.signal)
+export async function nexoraWandStream(
+  input: {
+    messages: WandMessage[]
+    signal?: AbortSignal
+    onUsage?: (usage: WandUsage) => void | Promise<void>
+    reportUsage?: boolean
+  } & CompletionSettings
+): Promise<ReadableStream<Uint8Array>> {
+  const response = await requestCompletion(input.messages, true, input.signal, input)
   const source = response.body
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
@@ -112,6 +124,7 @@ export async function nexoraWandStream(input: {
       }
       const reader = source.getReader()
       let buffer = ''
+      let lastUsage: WandUsage | null = null
       try {
         while (true) {
           const { done, value } = await reader.read()
@@ -131,10 +144,16 @@ export async function nexoraWandStream(input: {
             const content = parsed.choices?.[0]?.delta?.content
             if (content) emit(controller, { chunk: content })
             const usage = toUsage(parsed.usage)
-            if (usage) await input.onUsage?.(usage)
+            if (usage) {
+              lastUsage = usage
+              await input.onUsage?.(usage)
+            }
           }
         }
-        emit(controller, { done: true })
+        emit(controller, {
+          done: true,
+          ...(input.reportUsage && lastUsage ? { usage: lastUsage } : {}),
+        })
       } catch {
         emit(controller, { error: 'Streaming failed', done: true })
       } finally {

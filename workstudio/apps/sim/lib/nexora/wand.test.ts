@@ -68,6 +68,32 @@ describe('Nexora wand', () => {
     expect(onUsage).toHaveBeenCalledWith({ promptTokens: 3, completionTokens: 2 })
   })
 
+  it('lets the playground pick the model and its settings, with usage in the final event', async () => {
+    fetchMock.mockResolvedValue(
+      sse([
+        'data: {"choices":[{"delta":{"content":"Oui"}}]}',
+        'data: {"choices":[],"usage":{"prompt_tokens":4,"completion_tokens":1}}',
+        'data: [DONE]',
+      ])
+    )
+    const stream = await nexoraWandStream({
+      messages,
+      model: 'mistral-small-latest',
+      temperature: 0.9,
+      maxTokens: 300,
+      reportUsage: true,
+    })
+    expect(await readAll(stream)).toBe(
+      'data: {"chunk":"Oui"}\n\ndata: {"done":true,"usage":{"promptTokens":4,"completionTokens":1}}\n\n'
+    )
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect([body.model, body.temperature, body.max_tokens]).toEqual([
+      'mistral-small-latest',
+      0.9,
+      300,
+    ])
+  })
+
   it('reports Nexora API being unreachable or failing as unavailable', async () => {
     fetchMock.mockResolvedValue(new Response('busy', { status: 503 }))
     await expect(nexoraWandComplete({ messages })).rejects.toBeInstanceOf(

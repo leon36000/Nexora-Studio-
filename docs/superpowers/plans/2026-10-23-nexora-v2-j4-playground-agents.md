@@ -49,9 +49,9 @@
 
 **Interfaces:** POST body `{ workspaceId, model, messages: {role:'system'|'user'|'assistant', content}[] (1–50, contenu ≤ 32 000), temperature (0–2), maxTokens (1–8 192) }` ; réponse : flux `data: {"chunk"}` puis `data: {"done":true,"usage":{...},"latencyMs"}`. Session + appartenance à l'espace (garde d'espace existante). Annulation transmise en amont.
 
-- [ ] **Step 1: Failing tests** : 401 sans session ; 403 hors de l'espace ; corps invalide 400 sans appel amont ; relais du flux et de l'usage ; Nexora API indisponible ⇒ événement d'erreur en français côté interface (code `unavailable`).
-- [ ] **Step 2:** Implémenter ; `check:api-validation:strict`.
-- [ ] **Step 3: Commit** `feat(j4): route Playground (flux Nexora API)`.
+- [x] **Step 1: Failing tests** : 401 sans session ; 403 hors de l'espace ; corps invalide 400 sans appel amont ; relais du flux et de l'usage ; Nexora API indisponible ⇒ événement d'erreur en français côté interface (code `unavailable`).
+- [x] **Step 2:** Implémenter ; `check:api-validation:strict`.
+- [x] **Step 3: Commit** `feat(j4): route Playground (flux Nexora API)`.
 
 ### Task 3: Interfaces Playground et Agents
 
