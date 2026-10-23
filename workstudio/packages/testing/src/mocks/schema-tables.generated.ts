@@ -2145,6 +2145,31 @@ export const GENERATED_SCHEMA_TABLES = {
     'interrupted',
     'createdAt',
   ],
+  knowledgeReindex: [
+    'knowledgeBaseId',
+    'generation',
+    'status',
+    'sourceModel',
+    'sourceDimension',
+    'targetModel',
+    'targetDimension',
+    'totalChunks',
+    'embeddedChunks',
+    'errorCode',
+    'error',
+    'requestedBy',
+    'startedAt',
+    'updatedAt',
+    'completedAt',
+  ],
+  knowledgeReindexVector: [
+    'embeddingId',
+    'knowledgeBaseId',
+    'generation',
+    'chunkHash',
+    'vector',
+    'createdAt',
+  ],
 } as const
 
 /** Every `pgEnum` export mapped to its values. */

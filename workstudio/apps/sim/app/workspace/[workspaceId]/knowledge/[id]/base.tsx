@@ -30,6 +30,7 @@ import {
   Loader,
   Pencil,
   Plus,
+  RefreshCw,
   TagIcon,
   Trash,
   X,
@@ -111,6 +112,10 @@ import {
   documentFiltersUrlKeys,
   kbDocumentSortParams,
 } from '@/app/workspace/[workspaceId]/knowledge/[id]/search-params'
+import {
+  EmbeddingModelModal,
+  ReindexBanner,
+} from '@/app/workspace/[workspaceId]/knowledge/components'
 import { canDeleteKnowledgeBase } from '@/app/workspace/[workspaceId]/knowledge/permissions'
 import { useRegisterGlobalCommands } from '@/app/workspace/[workspaceId]/providers/global-commands-provider'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -325,6 +330,7 @@ export function KnowledgeBase({
   workspaceId: propWorkspaceId,
 }: KnowledgeBaseProps) {
   const t = useTranslations('knowledge.base')
+  const tReindex = useTranslations('knowledge.reindex')
   const documentColumns = useDocumentColumns()
   const params = useParams()
   const workspaceId = propWorkspaceId || (params.workspaceId as string)
@@ -355,6 +361,7 @@ export function KnowledgeBase({
   const { mutate: bulkDocumentMutation, isPending: isBulkOperating } = useBulkDocumentOperation()
 
   const [showTagsModal, setShowTagsModal] = useState(false)
+  const [showEmbeddingModelModal, setShowEmbeddingModelModal] = useState(false)
   const [tagFilterEntries, setTagFilterEntries] = useState<
     {
       id: string
@@ -461,7 +468,7 @@ export function KnowledgeBase({
     refresh: refreshKnowledgeBase,
   } = useKnowledgeBase(id)
   const canDeleteBase = canDeleteKnowledgeBase(knowledgeBase, userPermissions)
-  /** Nexora edition: indexed with a model this instance no longer serves; it must be recreated. */
+  /** Nexora edition: indexed with a model this instance no longer serves; it must be reindexed. */
   const isLegacyBase = knowledgeBase
     ? isLegacyEmbeddingBase(knowledgeBase.embeddingModel, getEnv('NEXT_PUBLIC_KB_EMBEDDING_MODEL'))
     : false
@@ -506,6 +513,12 @@ export function KnowledgeBase({
   const contextMenuDocument = contextMenuDocumentId
     ? (documents.find((doc) => doc.id === contextMenuDocumentId) ?? null)
     : null
+
+  /** The base switched embedding model: its model and every document's chunks changed. */
+  const handleReindexCompleted = useCallback(() => {
+    refreshKnowledgeBase()
+    refreshDocuments()
+  }, [refreshKnowledgeBase, refreshDocuments])
 
   const prevHadSyncingRef = useRef(false)
   useEffect(() => {
@@ -1011,6 +1024,12 @@ export function KnowledgeBase({
                       disabled: !userPermissions.canEdit,
                       onClick: () => setShowTagsModal(true),
                     },
+                    {
+                      label: tReindex('menu'),
+                      icon: RefreshCw,
+                      disabled: !userPermissions.canEdit,
+                      onClick: () => setShowEmbeddingModelModal(true),
+                    },
                   ]
                 : []),
               ...(canDeleteBase
@@ -1037,6 +1056,7 @@ export function KnowledgeBase({
       userPermissions.isLoading,
       canDeleteBase,
       t,
+      tReindex,
     ]
   )
 
@@ -1363,6 +1383,7 @@ export function KnowledgeBase({
           filterTags={filterTags}
           aside={connectorBadges}
         />
+        <ReindexBanner knowledgeBaseId={id} onCompleted={handleReindexCompleted} />
         {isLegacyBase && (
           <p
             role='status'
@@ -1416,6 +1437,13 @@ export function KnowledgeBase({
       </Resource>
 
       <BaseTagsModal open={showTagsModal} onOpenChange={setShowTagsModal} knowledgeBaseId={id} />
+
+      <EmbeddingModelModal
+        open={showEmbeddingModelModal}
+        onOpenChange={setShowEmbeddingModelModal}
+        knowledgeBaseId={id}
+        canEdit={userPermissions.canEdit === true}
+      />
 
       <ChipConfirmModal
         open={showDeleteDialog}

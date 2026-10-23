@@ -20,7 +20,7 @@ import {
   MultiFileUploadAdmissionError,
 } from '@/lib/uploads/client/admission'
 import { formatFileSize, validateKnowledgeBaseFile } from '@/lib/uploads/utils/file'
-import { ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
+import { KNOWLEDGE_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
 import { useKnowledgeUpload } from '@/app/workspace/[workspaceId]/knowledge/hooks/use-knowledge-upload'
 
 const logger = createLogger('AddDocumentsModal')
@@ -153,7 +153,7 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
         <ChipModalField
           type='file'
           title={tForm('uploadDocuments')}
-          accept={ACCEPT_ATTRIBUTE}
+          accept={KNOWLEDGE_ACCEPT_ATTRIBUTE}
           multiple
           onChange={processFiles}
           description={tForm('uploadDocumentsDescription')}

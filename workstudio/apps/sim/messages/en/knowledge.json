@@ -75,7 +75,7 @@
     "customSeparatorsHint": "Comma-separated list of delimiters in priority order, up to {max}. Leave empty for default separators.",
     "customSeparatorsPlaceholder": "e.g. {separators}",
     "uploadDocuments": "Upload Documents",
-    "uploadDocumentsDescription": "PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSONL (max 20 files, 100MB each, 500MB total)",
+    "uploadDocumentsDescription": "PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSONL, images (PNG, JPG, WEBP) and recordings (MP3, WAV, M4A, OGG, WEBM) — max 20 files, 100MB each, 500MB total",
     "selectedFiles": "Selected Files",
     "removeFile": "Remove file",
     "processFilesError": "An error occurred while processing files. Please try again.",
@@ -114,6 +114,35 @@
     "chars": "chars",
     "saving": "Saving...",
     "save": "Save"
+  },
+  "reindex": {
+    "title": "Embedding model",
+    "menu": "Embedding model",
+    "current": "Current model: {model} ({dimensions} dimensions)",
+    "hint": "Changing the model recomputes every passage of the base in the background. Search keeps using the current index until the switch, which happens all at once.",
+    "choose": "Choose another model",
+    "modelOption": "{name} ({dimensions} dimensions)",
+    "loadingModels": "Looking for installed models…",
+    "noModels": "No other embedding model is installed on the instance's Ollama (an administrator can add one, for example: ollama pull nomic-embed-text).",
+    "confirmText": "The base's {chunks} passages will be recomputed with {model}. The base stays searchable meanwhile.",
+    "confirm": "Reindex {count, plural, =0 {the base} one {# document} other {# documents}}",
+    "cancel": "Cancel",
+    "starting": "Starting…",
+    "close": "Close",
+    "running": "Reindexing to {model}: {percent}% ({done} / {total} passages)",
+    "runningNote": "Search uses the current index until the reindex ends.",
+    "stalled": "The reindex to {model} is no longer progressing. You can start it again.",
+    "failed": "The last reindex to {model} failed: {reason} The current index stays active.",
+    "errors": {
+      "modelUnavailable": "the model is not available on the instance's Ollama.",
+      "chunkTooLong": "a passage is longer than this model accepts; reduce the base's passage size.",
+      "failed": "an unexpected error occurred."
+    },
+    "startErrors": {
+      "conflict": "A reindex of this base is already running.",
+      "invalid": "This model cannot be used for this base.",
+      "failed": "The reindex could not start. Try again."
+    }
   },
   "list": {
     "rootLabel": "Knowledge bases",
@@ -310,7 +339,9 @@
     "errors": {
       "embeddingUnavailable": "No embedding model is configured for knowledge bases. An administrator must check Nexora's Ollama service (\"nexora status\").",
       "embeddingModelLoading": "The local embedding model is not available yet: it is still downloading, or it is missing. Try again in a few minutes; if the error persists, an administrator runs \"nexora update\".",
-      "legacyBase": "This knowledge base was indexed with an old embedding model this instance no longer serves: it can no longer be searched. Recreate it and upload your documents again."
+      "noOcrModel": "No OCR model: add one in Réglages › Modèles, then retry processing the document.",
+      "noTranscriptionModel": "No transcription model: add one in Réglages › Modèles, then retry processing the document.",
+      "legacyBase": "This knowledge base was indexed with an old embedding model this instance no longer serves: it can no longer be searched. Reindex it with one of the instance's models (Edit base › Embedding model)."
     }
   },
   "document": {

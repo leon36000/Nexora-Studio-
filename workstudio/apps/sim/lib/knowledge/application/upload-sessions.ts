@@ -35,7 +35,7 @@ import {
   getPrincipalKnowledgeDocumentUploadSession,
   type UploadSessionRecord,
 } from '@/lib/uploads/upload-session/service'
-import { validateFileType } from '@/lib/uploads/utils/validation'
+import { validateKnowledgeFileType } from '@/lib/uploads/utils/validation'
 
 export class KnowledgeDocumentUnsupportedMediaTypeError extends Error {
   constructor(message: string) {
@@ -109,7 +109,7 @@ export const createKnowledgeDocumentUpload = defineAuthorizedKnowledgeUseCase({
       )
     }
 
-    const fileTypeError = validateFileType(input.name, input.contentType)
+    const fileTypeError = validateKnowledgeFileType(input.name, input.contentType)
     if (fileTypeError) {
       throw new KnowledgeDocumentUnsupportedMediaTypeError(fileTypeError.message)
     }

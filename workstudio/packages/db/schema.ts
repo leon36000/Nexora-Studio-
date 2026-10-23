@@ -20,6 +20,7 @@ import {
   pgSequence,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   unique,
@@ -8555,9 +8556,7 @@ export const nexoraAssistantConversation = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
-  (t) => [
-    index('nexora_assistant_conversation_owner_idx').on(t.workspaceId, t.userId, t.updatedAt),
-  ]
+  (t) => [index('nexora_assistant_conversation_owner_idx').on(t.workspaceId, t.userId, t.updatedAt)]
 )
 
 /** One message of an Assistant conversation: the person's question or the agent's answer. */
@@ -8579,4 +8578,65 @@ export const nexoraAssistantMessage = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [index('nexora_assistant_message_conversation_idx').on(t.conversationId, t.createdAt)]
+)
+
+/**
+ * Nexora edition: the latest re-embedding of a knowledge base with another model, one row per
+ * base. While it runs, the base keeps its model and every search reads the current vectors; the
+ * vectors of the new model wait in {@link knowledgeReindexVector}. Once every chunk has one, a
+ * single transaction switches the base's model and every chunk's vector together, so a base never
+ * holds vectors of two models. A failure leaves the current index untouched.
+ */
+export const knowledgeReindex = pgTable(
+  'knowledge_reindex',
+  {
+    knowledgeBaseId: text('knowledge_base_id')
+      .primaryKey()
+      .references(() => knowledgeBase.id, { onDelete: 'cascade' }),
+    /** Fresh for each start: vectors of an earlier attempt never count toward a later one. */
+    generation: text('generation').notNull(),
+    /** `running`, `completed` or `failed`. */
+    status: text('status').notNull(),
+    sourceModel: text('source_model').notNull(),
+    sourceDimension: integer('source_dimension').notNull(),
+    targetModel: text('target_model').notNull(),
+    targetDimension: integer('target_dimension').notNull(),
+    totalChunks: integer('total_chunks').notNull().default(0),
+    embeddedChunks: integer('embedded_chunks').notNull().default(0),
+    /** Why the last attempt stopped (`model-unavailable`, `chunk-too-long`, `failed`). */
+    errorCode: text('error_code'),
+    error: text('error'),
+    requestedBy: text('requested_by').references(() => user.id, { onDelete: 'set null' }),
+    startedAt: timestamp('started_at').notNull().defaultNow(),
+    /** Moves at least once per processing slice; a running row left still has stalled. */
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    completedAt: timestamp('completed_at'),
+  },
+  (t) => [
+    check('knowledge_reindex_status_check', sql`${t.status} IN ('running', 'completed', 'failed')`),
+  ]
+)
+
+/**
+ * A chunk's vector in the model a running reindex moves its base to, waiting for the switch that
+ * copies it into `embedding` and deletes it. Deleting or re-chunking a document removes its rows
+ * through the foreign key; an edited chunk no longer matches `chunk_hash` and is embedded again.
+ */
+export const knowledgeReindexVector = pgTable(
+  'knowledge_reindex_vector',
+  {
+    embeddingId: text('embedding_id')
+      .primaryKey()
+      .references(() => embedding.id, { onDelete: 'cascade' }),
+    knowledgeBaseId: text('knowledge_base_id')
+      .notNull()
+      .references(() => knowledgeBase.id, { onDelete: 'cascade' }),
+    generation: text('generation').notNull(),
+    /** Hash of the chunk text the vector was computed from. */
+    chunkHash: text('chunk_hash').notNull(),
+    /** Single precision, as pgvector stores it; cast to the base's column width at the switch. */
+    vector: real('vector').array().notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('knowledge_reindex_vector_kb_generation_idx').on(t.knowledgeBaseId, t.generation)]
 )

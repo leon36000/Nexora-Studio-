@@ -324,6 +324,32 @@ export const knowledgeOperations = {
       ...ALL_PRINCIPAL_POLICY,
     })
   ),
+  /**
+   * Nexora edition: a base's embedding model, the models it could move to and the progress of a
+   * reindex. Read from the signed-in app only.
+   */
+  readReindex: defineKnowledgeOperation(
+    defineWorkspaceOperation({
+      id: 'knowledge.reindex.read',
+      minimumRole: 'read',
+      workspaceApiKey: 'deny',
+      capability: 'knowledge.use',
+      principalKinds: ['session'],
+    })
+  ),
+  /**
+   * Nexora edition: re-embeds every chunk of a base with another model in the background, then
+   * switches the base to it at once. A writer's action from the signed-in app.
+   */
+  reindex: defineKnowledgeOperation(
+    defineWorkspaceOperation({
+      id: 'knowledge.reindex',
+      minimumRole: 'write',
+      workspaceApiKey: 'deny',
+      capability: 'knowledge.use',
+      principalKinds: ['session'],
+    })
+  ),
   update: defineKnowledgeOperation(
     defineWorkspaceOperation({
       id: 'knowledge.update',

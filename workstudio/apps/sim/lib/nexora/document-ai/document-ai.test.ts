@@ -283,6 +283,60 @@ describe('long audio', () => {
     })
   })
 
+  it('resumes a long recording from the pieces an interrupted run kept, in order', async () => {
+    const kept = new Map([
+      [0, 'partie 1'],
+      [1, 'partie 2'],
+    ])
+    const cut = vi.fn(async (_audio: unknown, chunk: { start: number }) =>
+      Buffer.from(String(chunk.start / 600 + 1))
+    )
+    const transcribe = vi.fn(async ({ audio }: { audio: Buffer }) => `partie ${audio.toString()}`)
+    const remember = vi.fn(async (position: number, text: string) => {
+      kept.set(position, text)
+    })
+    const result = await transcribeAudio(
+      { audio: Buffer.from('whole'), mimeType: 'audio/mpeg', fileName: 'r.mp3' },
+      {
+        measure: async () => 1800,
+        cut,
+        transcribe,
+        recall: async (position) => kept.get(position) ?? null,
+        remember,
+      }
+    )
+    expect(transcribe).toHaveBeenCalledTimes(1)
+    expect(cut.mock.calls.map(([, chunk]) => chunk.start)).toEqual([1200])
+    expect(remember).toHaveBeenCalledWith(2, 'partie 3')
+    expect(result.transcript).toBe('partie 1 partie 2 partie 3')
+  })
+
+  it('stops before a new piece when the run is out of time, keeping the pieces already done', async () => {
+    const kept = new Map<number, string>()
+    let budget = 1
+    const outOfTime = new Error('out of time')
+    const run = () =>
+      transcribeAudio(
+        { audio: Buffer.from('whole'), mimeType: 'audio/mpeg', fileName: 'r.mp3' },
+        {
+          measure: async () => 1800,
+          cut: async (_audio, chunk) => Buffer.from(String(chunk.start / 600 + 1)),
+          transcribe: async ({ audio }) => `partie ${audio.toString()}`,
+          recall: async (position) => kept.get(position) ?? null,
+          remember: async (position, text) => {
+            kept.set(position, text)
+          },
+          beforePiece: () => {
+            if (budget-- <= 0) throw outOfTime
+          },
+        }
+      )
+    await expect(run()).rejects.toBe(outOfTime)
+    expect([...kept.keys()]).toEqual([0])
+    budget = Number.POSITIVE_INFINITY
+    await expect(run()).resolves.toMatchObject({ transcript: 'partie 1 partie 2 partie 3' })
+  })
+
   it('sends a short recording as is', async () => {
     const cut = vi.fn()
     const transcribe = vi.fn(async () => 'bonjour')

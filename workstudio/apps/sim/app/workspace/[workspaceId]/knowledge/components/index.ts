@@ -1,5 +1,6 @@
 export { CreateBaseModal } from './create-base-modal'
 export { DeleteKnowledgeBaseModal } from './delete-knowledge-base-modal'
 export { EditKnowledgeBaseModal } from './edit-knowledge-base-modal'
+export { EmbeddingModelModal, ReindexBanner } from './embedding-model-field'
 export { KnowledgeBaseContextMenu } from './knowledge-base-context-menu'
 export { KnowledgeListContextMenu } from './knowledge-list-context-menu'

@@ -48,6 +48,16 @@ import {
   isSemanticImage,
 } from '@/lib/knowledge/documents/image-extraction-policy'
 import {
+  createNexoraPdfReader,
+  isKnowledgeAudio,
+  isNexoraDocumentAiConfigured,
+  NEXORA_OCR_BATCH_BUDGET_MS,
+  NEXORA_OCR_REQUEST_POLICY,
+  readImageWithNexora,
+  resolveNexoraKnowledgeModel,
+  transcribeForKnowledge,
+} from '@/lib/knowledge/documents/nexora-extraction'
+import {
   createOcrCheckpoints,
   type OcrCheckpointContext,
 } from '@/lib/knowledge/documents/ocr-checkpoints'
@@ -81,6 +91,7 @@ import {
   getKnowledgeOpaqueModelInputRegistry,
   projectKnowledgeModelInput,
 } from '@/lib/knowledge/model-input-provenance'
+import { NO_OCR_MODEL_MESSAGE } from '@/lib/nexora/knowledge-errors'
 import { getFileExtension, isInternalFileUrl } from '@/lib/uploads/utils/file'
 import {
   type DownloadFileFromUrlOptions,
@@ -241,7 +252,12 @@ export type SourceFileAccess = Pick<
   onVisionUsage?: (usage: VisionExtractionUsage) => void
 }
 
-type ProcessingMethod = 'file-parser' | 'mistral-ocr' | 'vision-extract'
+type ProcessingMethod =
+  | 'file-parser'
+  | 'mistral-ocr'
+  | 'vision-extract'
+  | 'nexora-ocr'
+  | 'nexora-transcription'
 
 export async function processDocument(
   fileUrl: string,
@@ -542,12 +558,14 @@ async function parseDocument(
   workspaceId?: string | null
 ): Promise<{
   content: string
-  processingMethod: 'file-parser' | 'mistral-ocr'
+  processingMethod: ProcessingMethod
   cloudUrl?: string
   metadata?: FileParseMetadata
 }> {
   const isPDF = mimeType === 'application/pdf'
   const isImage = OCR_IMAGE_MIME_TYPES.has(mimeType)
+  if (isKnowledgeAudio(filename, mimeType))
+    return transcribeRecording(fileUrl, filename, mimeType, access)
   const mistralApiKey = await getMistralApiKey(workspaceId)
   access.signal?.throwIfAborted()
 
@@ -559,6 +577,18 @@ async function parseDocument(
       OCR_AZURE_MODEL_NAME: env.OCR_AZURE_MODEL_NAME,
       MISTRAL_API_KEY: mistralApiKey,
     }).providerId
+
+    /** Nexora edition: without Mistral or Azure OCR, the instance's own models read the scan. */
+    if (ocrProvider === 'local' && isNexoraDocumentAiConfigured()) {
+      const buffer = await downloadFileForBase64(fileUrl, access)
+      access.signal?.throwIfAborted()
+      assertOcrSourceSupported(buffer, mimeType)
+      const embedded = isPDF
+        ? await readEmbeddedPdfText(buffer, filename, mimeType, access)
+        : undefined
+      if (embedded) return embedded
+      return parseWithNexoraOcr(buffer, filename, mimeType, access)
+    }
 
     if (ocrProvider === 'azure-mistral' || ocrProvider === 'mistral') {
       /**
@@ -590,6 +620,110 @@ async function parseDocument(
 
   logger.info('Using file parser')
   return parseWithFileParser(fileUrl, filename, mimeType, access)
+}
+
+/**
+ * Reads a scan or an image with the first Vision / OCR model of Réglages › Modèles. A PDF is read
+ * in small batches saved as OCR checkpoints, so a long scan spans processing slices and restarts
+ * without reading a page twice. Without such a model the document keeps whatever text layer it
+ * has, as before, and fails with a reason naming the missing model when it has none.
+ */
+async function parseWithNexoraOcr(
+  buffer: Buffer,
+  filename: string,
+  mimeType: string,
+  access: SourceFileAccess
+): Promise<{
+  content: string
+  processingMethod: 'nexora-ocr' | 'file-parser'
+  metadata?: FileParseMetadata
+}> {
+  const isPDF = mimeType === 'application/pdf'
+  const model = await resolveNexoraKnowledgeModel('vision', access.signal)
+  if (!model) {
+    const layer = isPDF
+      ? await parseBuffer(buffer, 'pdf', { signal: access.signal, pdfTextMode: 'complete' }).catch(
+          (error: unknown) => {
+            access.signal?.throwIfAborted()
+            logger.info('No OCR model and no readable text layer', {
+              error: toError(error).message,
+            })
+            return undefined
+          }
+        )
+      : undefined
+    if (layer?.content.trim()) {
+      return { content: layer.content, processingMethod: 'file-parser', metadata: layer.metadata }
+    }
+    throw new PermanentDocumentProcessingError('no_extractable_text', NO_OCR_MODEL_MESSAGE)
+  }
+
+  assertKnowledgeOpaqueModelInputSafe()
+  logger.info('Using Nexora OCR', { model })
+  let content: string
+  if (isPDF) {
+    const readBatch = createNexoraPdfReader(model, access.signal)
+    content = await ocrPdfInChunks(
+      buffer,
+      'nexora',
+      filename,
+      NEXORA_OCR_REQUEST_POLICY,
+      (chunk) => readBatch(chunk.buffer, chunk.endPage - chunk.startPage + 1),
+      access.signal,
+      access.ocrCheckpoint
+        ? {
+            context: access.ocrCheckpoint,
+            providerIdentity: `nexora:${model}`,
+            deadlineAt: access.processingDeadlineAt,
+            requestBudgetMs: NEXORA_OCR_BATCH_BUDGET_MS,
+          }
+        : undefined
+    )
+  } else {
+    content = await readImageWithNexora(buffer, model, access.signal)
+  }
+  if (!content.trim()) {
+    throw new PermanentDocumentProcessingError(
+      'no_extractable_text',
+      unreadableDocumentMessage(filename)
+    )
+  }
+  assertOcrOutputTextWithinLimit(content)
+  return { content, processingMethod: 'nexora-ocr' }
+}
+
+/** Transcribes a recording with the first Transcription model of Réglages › Modèles. */
+async function transcribeRecording(
+  fileUrl: string,
+  filename: string,
+  mimeType: string,
+  access: SourceFileAccess
+): Promise<{ content: string; processingMethod: 'nexora-transcription' }> {
+  if (!isNexoraDocumentAiConfigured()) {
+    throw new PermanentDocumentProcessingError(
+      'unsupported_file_type',
+      'Recordings are indexed through a Nexora transcription model, which this deployment does not configure.'
+    )
+  }
+  const audio = await downloadFileForBase64(fileUrl, access)
+  access.signal?.throwIfAborted()
+  assertKnowledgeOpaqueModelInputSafe()
+  const content = await transcribeForKnowledge(
+    { audio, filename, mimeType },
+    {
+      checkpoint: access.ocrCheckpoint,
+      deadlineAt: access.processingDeadlineAt,
+      signal: access.signal,
+    }
+  )
+  if (!content.trim()) {
+    throw new PermanentDocumentProcessingError(
+      'no_extractable_text',
+      'No speech could be recognised in this recording.'
+    )
+  }
+  assertOcrOutputTextWithinLimit(content)
+  return { content, processingMethod: 'nexora-transcription' }
 }
 
 /**
@@ -1063,6 +1197,8 @@ async function ocrPdfInChunks(
     context: OcrCheckpointContext
     providerIdentity: string
     deadlineAt?: number
+    /** Longest a batch may take; a slice starts one only when this much time is left. */
+    requestBudgetMs?: number
   }
 ): Promise<string> {
   signal?.throwIfAborted()
@@ -1189,7 +1325,8 @@ async function ocrPdfInChunks(
           if (
             !wasCached &&
             checkpointOptions?.deadlineAt !== undefined &&
-            Date.now() + TIMEOUTS.MISTRAL_OCR_API + 75_000 >= checkpointOptions.deadlineAt
+            Date.now() + (checkpointOptions.requestBudgetMs ?? TIMEOUTS.MISTRAL_OCR_API) + 75_000 >=
+              checkpointOptions.deadlineAt
           ) {
             throw new ProviderCapacityDeferredError('processing_budget', {
               providerId: provider,

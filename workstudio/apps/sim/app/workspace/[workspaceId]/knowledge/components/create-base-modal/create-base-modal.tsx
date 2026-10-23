@@ -33,7 +33,7 @@ import {
   MultiFileUploadAdmissionError,
 } from '@/lib/uploads/client/admission'
 import { formatFileSize, validateKnowledgeBaseFile } from '@/lib/uploads/utils/file'
-import { ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
+import { KNOWLEDGE_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
 import { useKnowledgeUpload } from '@/app/workspace/[workspaceId]/knowledge/hooks/use-knowledge-upload'
 import { useCreateKnowledgeBase, useDeleteKnowledgeBase } from '@/hooks/queries/kb/knowledge'
 
@@ -501,7 +501,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
           <ChipModalField
             type='file'
             title={t('uploadDocuments')}
-            accept={ACCEPT_ATTRIBUTE}
+            accept={KNOWLEDGE_ACCEPT_ATTRIBUTE}
             multiple
             onChange={processFiles}
             description={t('uploadDocumentsDescription')}

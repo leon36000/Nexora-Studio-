@@ -33,10 +33,10 @@
 - [x] Vision, analyse de fichier (OCR), transcription : fournisseur par défaut dans l'édition Nexora ; tests des outils (corps de requête, réponses) ; commit.
 
 ### Task 3: Connaissances
-- [ ] Repli OCR quand l'extraction de texte est vide ; transcription des fichiers audio ; tests ; commit.
+- [x] Repli OCR quand l'extraction de texte est vide ; transcription des fichiers audio ; tests ; commit.
 
 ### Task 4: Réindexation
-- [ ] Changer le modèle d'embeddings d'une base ⇒ réindexation en arrière-plan avec bascule atomique ; progression ; tests ; commit.
+- [x] Changer le modèle d'embeddings d'une base ⇒ réindexation en arrière-plan avec bascule atomique ; progression ; tests ; commit.
 
 ### Task 5: Accueil, guide, fumée, pc6, revue
 - [ ] Cartes « Capturer » ; `docs/guide/documents-et-voix.md` ; fumées « OCR » et « Transcription » ; parcours « Terminé quand » sur pc6 ; revue finale ; push.

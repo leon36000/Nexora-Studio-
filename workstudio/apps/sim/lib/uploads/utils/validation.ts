@@ -169,7 +169,7 @@ export const SUPPORTED_MIME_TYPES: Record<SupportedDocumentExtension, string[]> 
 export const ACCEPTED_FILE_TYPES = Object.values(SUPPORTED_MIME_TYPES).flat()
 export const ACCEPTED_FILE_EXTENSIONS = SUPPORTED_DOCUMENT_EXTENSIONS.map((ext) => `.${ext}`)
 
-export const ACCEPT_ATTRIBUTE = [...ACCEPTED_FILE_TYPES, ...ACCEPTED_FILE_EXTENSIONS].join(',')
+const ACCEPT_ATTRIBUTE = [...ACCEPTED_FILE_TYPES, ...ACCEPTED_FILE_EXTENSIONS].join(',')
 
 const SUPPORTED_IMAGE_MIME_TYPES = [
   'image/jpeg',
@@ -291,6 +291,57 @@ export function validateFileType(fileName: string, mimeType: string): FileValida
   }
 
   return null
+}
+
+/**
+ * Images and recordings a knowledge base accepts besides documents: the Nexora edition reads an
+ * image with its Vision / OCR model and transcribes a recording with its Transcription model.
+ */
+const KNOWLEDGE_MEDIA_MIME_TYPES: Readonly<Record<string, readonly string[]>> = {
+  png: ['image/png'],
+  jpg: ['image/jpeg', 'image/jpg'],
+  jpeg: ['image/jpeg', 'image/jpg'],
+  webp: ['image/webp'],
+  gif: ['image/gif'],
+  mp3: ['audio/mpeg', 'audio/mp3'],
+  wav: ['audio/wav', 'audio/x-wav', 'audio/wave'],
+  m4a: ['audio/mp4', 'audio/x-m4a', 'audio/m4a'],
+  ogg: ['audio/ogg', 'application/ogg'],
+  webm: ['audio/webm', 'video/webm'],
+}
+
+/** File picker filter of the knowledge-base upload dialogs: documents, images and recordings. */
+export const KNOWLEDGE_ACCEPT_ATTRIBUTE = [
+  ACCEPT_ATTRIBUTE,
+  ...new Set(Object.values(KNOWLEDGE_MEDIA_MIME_TYPES).flat()),
+  ...Object.keys(KNOWLEDGE_MEDIA_MIME_TYPES).map((extension) => `.${extension}`),
+].join(',')
+
+/** Whether a file name is an image or a recording a knowledge base accepts. */
+export function isKnowledgeMediaFile(fileName: string): boolean {
+  return Object.hasOwn(KNOWLEDGE_MEDIA_MIME_TYPES, extractExtension(fileName))
+}
+
+/**
+ * {@link validateFileType} for a knowledge-base document, which may also be an image or a
+ * recording. A media file's declared type must match its extension (an empty or generic binary
+ * type is accepted, as browsers often send one).
+ */
+export function validateKnowledgeFileType(
+  fileName: string,
+  mimeType: string
+): FileValidationError | null {
+  const extension = extractExtension(fileName)
+  if (!isKnowledgeMediaFile(fileName)) return validateFileType(fileName, mimeType)
+  const allowed = KNOWLEDGE_MEDIA_MIME_TYPES[extension]
+  const baseMimeType = mimeType.split(';')[0].trim().toLowerCase()
+  if (!baseMimeType || baseMimeType === 'application/octet-stream') return null
+  if (allowed.includes(baseMimeType)) return null
+  return {
+    code: 'MIME_TYPE_MISMATCH',
+    message: `MIME type ${baseMimeType} does not match file extension ${extension}. Expected: ${allowed.join(', ')}`,
+    supportedTypes: [...allowed],
+  }
 }
 
 /**

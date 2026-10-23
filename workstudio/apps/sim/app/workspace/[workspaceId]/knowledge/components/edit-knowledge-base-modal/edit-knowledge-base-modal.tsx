@@ -15,6 +15,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { useTranslations } from 'next-intl'
 import { KNOWLEDGE_BASE_DESCRIPTION_MAX_LENGTH } from '@/lib/knowledge/constants'
 import type { ChunkingConfig } from '@/lib/knowledge/types'
+import { EmbeddingModelField } from '@/app/workspace/[workspaceId]/knowledge/components/embedding-model-field'
 
 const logger = createLogger('EditKnowledgeBaseModal')
 
@@ -167,6 +168,7 @@ export const EditKnowledgeBaseModal = memo(function EditKnowledgeBaseModal({
             </div>
           </ChipModalField>
         )}
+        <EmbeddingModelField knowledgeBaseId={knowledgeBaseId} canEdit />
         <ChipModalError>{error}</ChipModalError>
       </ChipModalBody>
       <ChipModalFooter

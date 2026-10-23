@@ -34,7 +34,7 @@ function isPdf(file: Buffer, mimeType: string): boolean {
 }
 
 /** A vision model reads images only: Nexora API refuses a PDF with a validation error (422). */
-function readsImagesOnly(status: number, data: Record<string, unknown>): boolean {
+export function readsImagesOnly(status: number, data: Record<string, unknown>): boolean {
   return status === 422 && /images only/i.test(refusalDetail(data, status))
 }
 

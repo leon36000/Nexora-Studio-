@@ -33,6 +33,7 @@ import {
 } from '@/lib/knowledge/documents/processing-events'
 import { KNOWLEDGE_DOCUMENT_RECOVERY_OUTBOX_EVENT } from '@/lib/knowledge/documents/processing-recovery-event'
 import { KNOWLEDGE_STORAGE_CLEANUP_EVENT } from '@/lib/knowledge/documents/storage-cleanup-event'
+import { KNOWLEDGE_REINDEX_EVENT } from '@/lib/knowledge/reindex/outbox-event'
 import { INBOX_CLEANUP_EVENT } from '@/lib/mothership/inbox/cleanup-event'
 import { MEMORY_CLEANUP_EVENT } from '@/lib/mothership/memories/cleanup-event'
 import { ORGANIZATION_RESOURCE_CLEANUP_EVENT } from '@/lib/organizations/resource-cleanup-event'
@@ -180,6 +181,15 @@ export const OUTBOX_HANDLER_GROUPS: readonly LazyOutboxHandlerGroup[] = [
         '@/lib/knowledge/documents/processing-outbox-handler'
       )
       return knowledgeDocumentProcessingOutboxHandlers
+    },
+  },
+  {
+    events: [KNOWLEDGE_REINDEX_EVENT],
+    load: async () => {
+      const { knowledgeReindexOutboxHandlers } = await import(
+        '@/lib/knowledge/reindex/outbox-handler'
+      )
+      return knowledgeReindexOutboxHandlers
     },
   },
   {

@@ -27,6 +27,10 @@ import type {
 } from '@/lib/knowledge/chunks/types'
 import { getEmbeddingModelInfo, toKbEmbeddingDimensions } from '@/lib/knowledge/embedding-models'
 import { generateEmbeddings, type KbEmbeddingTarget } from '@/lib/knowledge/embeddings'
+import {
+  KnowledgeEmbeddingModelChangedError,
+  lockKnowledgeEmbeddingTarget,
+} from '@/lib/knowledge/reindex/fence'
 import { workspaceSearchFilterConditions } from '@/lib/knowledge/search/filter-conditions'
 import { replaceKnowledgeEmbeddingSecretProvenanceInTx } from '@/lib/knowledge/secret-provenance'
 import { embeddingVectorValues } from '@/lib/knowledge/vector-columns'
@@ -259,6 +263,7 @@ export async function createChunk(
     if (activeDocument.length === 0) {
       throw new Error('Document not found')
     }
+    await lockKnowledgeEmbeddingTarget(tx, knowledgeBaseId, kbEmbedding)
 
     const docTags = activeDocument[0]
 
@@ -481,12 +486,15 @@ export async function updateChunk(
       // The embedding is a function of the new content alone, so generating it
       // outside the transaction is always valid.
       let regenerated: {
+        knowledgeBaseId: string
+        target: KbEmbeddingTarget
         vectorValues: ReturnType<typeof embeddingVectorValues>
         tokenCount: number
       } | null = null
       if (content !== preRead.content) {
         const kbRow = await db
           .select({
+            id: knowledgeBase.id,
             embeddingModel: knowledgeBase.embeddingModel,
             embeddingDimension: knowledgeBase.embeddingDimension,
           })
@@ -506,6 +514,8 @@ export async function updateChunk(
         logger.info(`[${requestId}] Content changed, regenerating embedding for chunk ${chunkId}`)
         const { embeddings } = await generateEmbeddings([content], chunkEmbedding, workspaceId)
         regenerated = {
+          knowledgeBaseId: kbEmbeddingRow.id,
+          target: chunkEmbedding,
           vectorValues: embeddingVectorValues(chunkEmbedding.dimensions, embeddings[0]),
           tokenCount: estimateTokenCount(
             content,
@@ -542,6 +552,16 @@ export async function updateChunk(
         // decision is re-made against the committed content.
         if (!regenerated && currentChunk[0].content !== content) {
           return null
+        }
+        // The base switched embedding model (reindex) after the vector was computed:
+        // retry, which embeds the content again with the base's current model.
+        if (regenerated) {
+          try {
+            await lockKnowledgeEmbeddingTarget(tx, regenerated.knowledgeBaseId, regenerated.target)
+          } catch (error) {
+            if (error instanceof KnowledgeEmbeddingModelChangedError) return null
+            throw error
+          }
         }
 
         const oldContentLength = currentChunk[0].contentLength

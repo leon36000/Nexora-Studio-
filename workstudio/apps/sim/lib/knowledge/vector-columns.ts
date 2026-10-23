@@ -58,6 +58,20 @@ export function embeddingVectorValues(
 }
 
 /**
+ * {@link embeddingVectorValues} with a SQL expression for the vector, for an update that moves
+ * every chunk of a base to another width in one statement (the reindex switch).
+ */
+export function embeddingVectorAssignments(
+  dimensions: KbEmbeddingDimensions,
+  vector: SQL
+): Record<VectorField, SQL | null> {
+  const target = VECTOR_FIELD_BY_WIDTH[dimensions]
+  return Object.fromEntries(
+    VECTOR_FIELDS.map((field) => [field, field === target ? vector : null])
+  ) as Record<VectorField, SQL | null>
+}
+
+/**
  * Cosine distance between a chunk's vector and the query vector, used for the
  * search layer's exact rerank over an already-bounded candidate set.
  *

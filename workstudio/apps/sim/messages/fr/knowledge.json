@@ -75,7 +75,7 @@
     "customSeparatorsHint": "Liste de délimiteurs séparés par des virgules, par ordre de priorité, jusqu’à {max}. Laissez vide pour utiliser les séparateurs par défaut.",
     "customSeparatorsPlaceholder": "ex. {separators}",
     "uploadDocuments": "Téléverser des documents",
-    "uploadDocumentsDescription": "PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSONL (20 fichiers max., 100 Mo chacun, 500 Mo au total)",
+    "uploadDocumentsDescription": "PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSONL, images (PNG, JPG, WEBP) et enregistrements audio (MP3, WAV, M4A, OGG, WEBM) — 20 fichiers max., 100 Mo chacun, 500 Mo au total",
     "selectedFiles": "Fichiers sélectionnés",
     "removeFile": "Retirer le fichier",
     "processFilesError": "Une erreur est survenue lors du traitement des fichiers. Veuillez réessayer.",
@@ -114,6 +114,35 @@
     "chars": "caract.",
     "saving": "Enregistrement…",
     "save": "Enregistrer"
+  },
+  "reindex": {
+    "title": "Modèle d'embeddings",
+    "menu": "Modèle d'embeddings",
+    "current": "Modèle actuel : {model} ({dimensions} dimensions)",
+    "hint": "Changer de modèle recalcule tous les passages de la base en arrière-plan. La recherche continue sur l'index actuel jusqu'à la bascule, qui se fait d'un seul coup.",
+    "choose": "Choisir un autre modèle",
+    "modelOption": "{name} ({dimensions} dimensions)",
+    "loadingModels": "Recherche des modèles installés…",
+    "noModels": "Aucun autre modèle d'embeddings n'est installé sur l'Ollama de l'instance (un administrateur peut en ajouter un, par exemple : ollama pull nomic-embed-text).",
+    "confirmText": "Les {chunks} passages de la base seront recalculés avec {model}. La base reste interrogeable pendant l'opération.",
+    "confirm": "Réindexer {count, plural, =0 {la base} one {# document} other {# documents}}",
+    "cancel": "Annuler",
+    "starting": "Démarrage…",
+    "close": "Fermer",
+    "running": "Réindexation vers {model} : {percent} % ({done} / {total} passages)",
+    "runningNote": "La recherche utilise l'index actuel jusqu'à la fin de la réindexation.",
+    "stalled": "La réindexation vers {model} ne progresse plus. Vous pouvez la relancer.",
+    "failed": "La dernière réindexation vers {model} a échoué : {reason} L'index actuel reste actif.",
+    "errors": {
+      "modelUnavailable": "le modèle n'est pas disponible sur l'Ollama de l'instance.",
+      "chunkTooLong": "un passage dépasse la longueur que ce modèle accepte ; réduisez la taille des passages de la base.",
+      "failed": "une erreur inattendue s'est produite."
+    },
+    "startErrors": {
+      "conflict": "Une réindexation de cette base est déjà en cours.",
+      "invalid": "Ce modèle ne peut pas être utilisé pour cette base.",
+      "failed": "La réindexation n'a pas pu démarrer. Réessayez."
+    }
   },
   "list": {
     "rootLabel": "Bases de connaissances",
@@ -310,7 +339,9 @@
     "errors": {
       "embeddingUnavailable": "Aucun modèle d'embeddings n'est configuré pour les bases de connaissances. Un administrateur doit vérifier le service Ollama de Nexora (« nexora status »).",
       "embeddingModelLoading": "Le modèle d'embeddings local n'est pas encore disponible : il est en cours de téléchargement, ou il manque. Réessayez dans quelques minutes ; si l'erreur persiste, un administrateur lance « nexora update ».",
-      "legacyBase": "Cette base a été indexée avec un ancien modèle d'embeddings que cette instance ne fournit plus : elle ne peut plus être interrogée. Recréez-la et déposez à nouveau vos documents."
+      "noOcrModel": "Aucun modèle de lecture (OCR) : ajoutez-en un dans Réglages › Modèles, puis relancez le traitement du document.",
+      "noTranscriptionModel": "Aucun modèle de transcription : ajoutez-en un dans Réglages › Modèles, puis relancez le traitement du document.",
+      "legacyBase": "Cette base a été indexée avec un ancien modèle d'embeddings que cette instance ne fournit plus : elle ne peut plus être interrogée. Réindexez-la avec un modèle de l'instance (Modifier la base › Modèle d'embeddings)."
     }
   },
   "document": {

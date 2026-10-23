@@ -5,6 +5,7 @@ import { normalizeMimeType } from '@/lib/uploads/utils/mime'
 import {
   ACCEPTED_FILE_TYPES,
   isAlphanumericExtension,
+  isKnowledgeMediaFile,
   SUPPORTED_ARCHIVE_EXTENSIONS,
   SUPPORTED_DOCUMENT_EXTENSIONS,
 } from '@/lib/uploads/utils/validation'
@@ -659,12 +660,13 @@ export function validateKnowledgeBaseFile(
   if (
     SUPPORTED_DOCUMENT_EXTENSIONS.includes(
       extension as (typeof SUPPORTED_DOCUMENT_EXTENSIONS)[number]
-    )
+    ) ||
+    isKnowledgeMediaFile(file.name)
   ) {
     return null
   }
 
-  return `File "${file.name}" has an unsupported format. Please use PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSON, JSONL, YAML, or YML files.`
+  return `File "${file.name}" has an unsupported format. Please use PDF, DOC, DOCX, TXT, CSV, XLS, XLSX, MD, PPT, PPTX, HTML, JSON, JSONL, YAML, or YML files, images (PNG, JPG, WEBP, GIF) or recordings (MP3, WAV, M4A, OGG, WEBM).`
 }
 
 /**

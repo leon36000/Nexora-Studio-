@@ -56,7 +56,7 @@ import { getCostMultiplier } from '@/lib/core/config/env-flags'
 import { isTriggerAvailable } from '@/lib/core/config/trigger-availability'
 import { withResourceOutboundScope } from '@/lib/core/network/resource-scope.server'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
-import type { ProviderCapacityDeferredError } from '@/lib/core/rate-limiter/provider-capacity-error'
+import { ProviderCapacityDeferredError } from '@/lib/core/rate-limiter/provider-capacity-error'
 import { mapWithConcurrency } from '@/lib/core/utils/concurrency'
 import {
   assertKnowledgeEmbeddingCapacity,
@@ -170,6 +170,10 @@ import {
 import { generateEmbeddings, type KbEmbeddingTarget } from '@/lib/knowledge/embeddings'
 import { runWithKnowledgeModelInputProvenance } from '@/lib/knowledge/model-input-provenance'
 import { type KnowledgeReadAccess, knowledgeReadAccessBatches } from '@/lib/knowledge/read-access'
+import {
+  KnowledgeEmbeddingModelChangedError,
+  lockKnowledgeEmbeddingTarget,
+} from '@/lib/knowledge/reindex/fence'
 import {
   bindKnowledgeDocumentFieldSecretProvenance,
   createKnowledgeDocumentSourceValue,
@@ -2153,6 +2157,20 @@ export async function processDocumentAsync(
                   if (activeDocument.length === 0) {
                     return false
                   }
+                  /**
+                   * The base switched embedding model (reindex) since this pass read it:
+                   * these vectors belong to the old model, so the pass runs again shortly.
+                   */
+                  await lockKnowledgeEmbeddingTarget(tx, knowledgeBaseId, kbEmbedding).catch(
+                    (error: unknown) => {
+                      if (!(error instanceof KnowledgeEmbeddingModelChangedError)) throw error
+                      throw new ProviderCapacityDeferredError('processing_budget', {
+                        providerId: 'knowledge-reindex',
+                        retryAfterMs: 1000,
+                        cause: error,
+                      })
+                    }
+                  )
 
                   const documentTags = activeDocument[0]
                   const embeddingRecords = processed.chunks.map((chunk, chunkIndex) => ({
@@ -2662,7 +2680,10 @@ export async function createDocumentRecords(
       throw new OrchestrationError('not_found', 'Knowledge base not found')
     }
     if (!requiresConnectorIndexing(kb[0].isSearchIndex)) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
+      throw new OrchestrationError(
+        'validation',
+        'This search index is inactive; use Nexora Search.'
+      )
     }
 
     if (kb[0].workspaceId !== admission.workspaceId) {
@@ -3350,7 +3371,10 @@ export async function createSingleDocument(
       throw new OrchestrationError('not_found', 'Knowledge base not found')
     }
     if (!requiresConnectorIndexing(kb[0].isSearchIndex)) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
+      throw new OrchestrationError(
+        'validation',
+        'This search index is inactive; use Nexora Search.'
+      )
     }
 
     if (

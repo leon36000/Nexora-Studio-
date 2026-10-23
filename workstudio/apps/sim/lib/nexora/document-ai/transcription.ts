@@ -46,6 +46,12 @@ export interface TranscriptionSteps {
   /** One piece of the recording, as 16 kHz mono MP3. */
   cut: (input: AudioInput, chunk: AudioChunk) => Promise<Buffer>
   transcribe: (piece: { audio: Buffer; mimeType: string; fileName: string }) => Promise<string>
+  /** The text of a piece an earlier, interrupted run already transcribed, `null` otherwise. */
+  recall?: (position: number) => Promise<string | null>
+  /** Keeps a piece's text before the next piece starts, so a later run resumes after it. */
+  remember?: (position: number, text: string) => Promise<void>
+  /** Runs before each piece still to transcribe; throws to stop the run there (time is up). */
+  beforePiece?: () => void
 }
 
 /**
@@ -74,19 +80,24 @@ export async function transcribeAudio(
     )
   }
   const chunks = planAudioChunks(duration)
-  if (chunks.length === 1) {
-    return { transcript: await steps.transcribe(input), duration }
-  }
   const texts: string[] = []
   for (const [position, chunk] of chunks.entries()) {
-    const audio = await steps.cut(input, chunk)
-    texts.push(
-      await steps.transcribe({
-        audio,
-        mimeType: 'audio/mpeg',
-        fileName: `part-${position + 1}.mp3`,
-      })
-    )
+    const kept = await steps.recall?.(position)
+    if (kept !== undefined && kept !== null) {
+      texts.push(kept)
+      continue
+    }
+    steps.beforePiece?.()
+    const text =
+      chunks.length === 1
+        ? await steps.transcribe(input)
+        : await steps.transcribe({
+            audio: await steps.cut(input, chunk),
+            mimeType: 'audio/mpeg',
+            fileName: `part-${position + 1}.mp3`,
+          })
+    await steps.remember?.(position, text)
+    texts.push(text)
   }
   return { transcript: texts.filter(Boolean).join(' '), duration }
 }
@@ -151,13 +162,18 @@ export interface TranscribeWithNexoraInput extends AudioInput {
   prompt?: string
 }
 
-/** The Speech-to-Text block with the Nexora provider. */
+/**
+ * The Speech-to-Text block with the Nexora provider. A knowledge base passes `resume` to keep
+ * each finished piece and stop between pieces, so a long recording survives a restart.
+ */
 export async function transcribeWithNexora(
   input: TranscribeWithNexoraInput,
-  options: NexoraApiOptions = {}
+  options: NexoraApiOptions = {},
+  resume: Pick<TranscriptionSteps, 'recall' | 'remember' | 'beforePiece'> = {}
 ): Promise<{ transcript: string; duration?: number; model: string }> {
   const model = await resolveUsageModel('transcription', input.model, options)
   const result = await transcribeAudio(input, {
+    ...resume,
     measure: (audio) => measureWithFfprobe(audio, options.signal),
     cut: (audio, chunk) => cutWithFfmpeg(audio, chunk, options.signal),
     transcribe: (piece) =>

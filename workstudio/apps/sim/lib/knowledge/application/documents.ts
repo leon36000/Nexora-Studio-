@@ -75,7 +75,7 @@ import {
   EMPTY_KNOWLEDGE_DOCUMENT_MESSAGE,
   MAX_KNOWLEDGE_DOCUMENT_FILE_SIZE,
 } from '@/lib/uploads/shared/types'
-import { validateFileType } from '@/lib/uploads/utils/validation'
+import { validateKnowledgeFileType } from '@/lib/uploads/utils/validation'
 
 const logger = createLogger('KnowledgeDocumentApplication')
 
@@ -407,7 +407,7 @@ export const uploadKnowledgeDocument = defineAuthorizedKnowledgeUseCase({
     if (input.file.fileSize === 0) {
       throw new OrchestrationError('validation', EMPTY_KNOWLEDGE_DOCUMENT_MESSAGE)
     }
-    const fileTypeError = validateFileType(input.file.filename, input.file.mimeType)
+    const fileTypeError = validateKnowledgeFileType(input.file.filename, input.file.mimeType)
     if (fileTypeError) throw new OrchestrationError('validation', fileTypeError.message)
     if (input.usageAdmission !== 'pre_admitted') {
       const billingAttribution = await resolveKnowledgeBillingAttribution(principal, context)
