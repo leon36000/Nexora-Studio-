@@ -1,6 +1,6 @@
 # J3 « Accueil et premier lancement » Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** chaque membre arrive sur un Accueil Nexora (créer, démarrer vite, état de la plateforme) ; l'administrateur y suit un premier lancement en 5 étapes jusqu'à un premier devis généré.
 
@@ -79,7 +79,7 @@
 
 ### Task 5: Guide, fumée, pc6, revue
 
-- [ ] **Step 1:** `docs/guide/prise-en-main.md` décrit l'Accueil et le premier lancement ; `scripts/smoke.py` gagne « Accueil » (`/workspace/<id>/home` répond 200 en français avec les cartes ; `/api/nexora/home` → `defaultModel` non nul ; PATCH progression : membre 403, admin 200).
-- [ ] **Step 2:** pc6 : reconstruire WorkStudio, fumée complète verte, rapport `docs/verification/smoke-j3-2026-10-23.json`.
-- [ ] **Step 3:** Navigateur : compte neuf → Accueil ; admin : 5 étapes jusqu'au devis ; membre : pas de panneau. Preuves au ledger.
-- [ ] **Step 4:** Suite complète, audits, scripts du dépôt ; revue finale (modèle le plus capable), corrections en TDD, commit, push.
+- [x] **Step 1:** `docs/guide/prise-en-main.md` décrit l'Accueil et le premier lancement ; `scripts/smoke.py` gagne « Accueil » (`/workspace/<id>/home` répond 200 en français avec les cartes ; `/api/nexora/home` → `defaultModel` non nul ; PATCH progression : membre 403, admin 200).
+- [x] **Step 2:** pc6 : reconstruire WorkStudio, fumée complète verte, rapport `docs/verification/smoke-j3-2026-10-23.json`.
+- [x] **Step 3:** Navigateur : compte neuf → Accueil ; admin : 5 étapes jusqu'au devis ; membre : pas de panneau. Preuves au ledger.
+- [x] **Step 4:** Suite complète, audits, scripts du dépôt ; revue finale (modèle le plus capable), corrections en TDD, commit, push.
