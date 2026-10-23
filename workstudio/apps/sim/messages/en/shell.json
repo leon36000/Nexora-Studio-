@@ -526,6 +526,7 @@
     "chatOptions": "Chat options",
     "nav": {
       "home": "Home",
+      "assistant": "Assistant",
       "playground": "Playground",
       "agents": "Agents",
       "connectors": "Connectors",

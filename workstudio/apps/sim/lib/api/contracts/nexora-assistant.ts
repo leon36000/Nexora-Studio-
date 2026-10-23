@@ -28,6 +28,7 @@ const assistantAgentSchema = z.object({
   chatIdentifier: z.string(),
   welcomeMessage: z.string().nullable(),
 })
+export type AssistantAgent = z.output<typeof assistantAgentSchema>
 
 const assistantConversationSchema = z.object({
   id: z.string(),
@@ -48,6 +49,7 @@ const assistantMessageFileSchema = z.object({
   type: z.string().max(255, 'File type is too long'),
   size: z.number().int().min(0, 'File size cannot be negative'),
 })
+export type AssistantMessageFile = z.output<typeof assistantMessageFileSchema>
 
 const assistantMessageUsageSchema = z.object({
   promptTokens: z.number().int().min(0, 'promptTokens cannot be negative'),
@@ -64,6 +66,7 @@ const assistantMessageSchema = z.object({
   interrupted: z.boolean(),
   createdAt: z.string(),
 })
+export type AssistantMessage = z.output<typeof assistantMessageSchema>
 
 /** The published agents of a workspace the Assistant can talk to. */
 export const listAssistantAgentsContract = defineRouteContract({

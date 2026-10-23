@@ -104,6 +104,23 @@
         "apps/sim/triggers/clickup/index.ts": 32
       }
     },
+    "app/workspace/[workspaceId]/assistant/loading.tsx": {
+      "modules": 1,
+      "gateways": {}
+    },
+    "app/workspace/[workspaceId]/assistant/page.tsx": {
+      "modules": 1282,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/assistant/assistant.tsx": 1280,
+        "apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx": 1202,
+        "apps/sim/triggers/registry.ts": 597,
+        "apps/sim/blocks/registry.ts": 389,
+        "apps/sim/blocks/registry-maps.ts": 386,
+        "apps/sim/lib/api/contracts/index.ts": 57,
+        "apps/sim/triggers/plane/index.ts": 46,
+        "apps/sim/stores/workflows/registry/store.ts": 38
+      }
+    },
     "app/workspace/[workspaceId]/changelog/layout.tsx": {
       "modules": 1614,
       "gateways": {

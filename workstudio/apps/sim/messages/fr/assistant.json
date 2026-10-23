@@ -1,0 +1,68 @@
+{
+  "metaTitle": "Assistant",
+  "conversations": {
+    "label": "Conversations",
+    "new": "Nouvelle conversation",
+    "empty": "Aucune conversation pour l'instant.",
+    "loadFailed": "Impossible de charger vos conversations.",
+    "actions": "Actions de « {title} »",
+    "rename": "Renommer",
+    "delete": "Supprimer",
+    "renameTitle": "Renommer la conversation",
+    "titleField": "Titre",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "renameFailed": "La conversation n'a pas pu être renommée.",
+    "deleteTitle": "Supprimer la conversation",
+    "deleteText": "« {title} » et tous ses messages seront supprimés définitivement.",
+    "deleteFailed": "La conversation n'a pas pu être supprimée."
+  },
+  "agents": {
+    "label": "Agent",
+    "empty": "Aucun agent publié dans cet espace.",
+    "loadFailed": "Impossible de charger les agents.",
+    "unpublished": "Agent non publié"
+  },
+  "thread": {
+    "emptyTitle": "Comment puis-je vous aider ?",
+    "loadFailed": "Impossible de charger la conversation.",
+    "notFound": "Cette conversation n'existe pas ou a été supprimée.",
+    "unpublished": "Cet agent n'est plus publié : la conversation reste lisible, mais vous ne pouvez plus lui écrire.",
+    "interrupted": "Réponse interrompue",
+    "stopped": "Réponse arrêtée",
+    "copy": "Copier la réponse",
+    "copied": "Réponse copiée",
+    "regenerate": "Régénérer la réponse",
+    "retry": "Réessayer",
+    "attachment": "Fichier joint : {name}"
+  },
+  "composer": {
+    "label": "Votre message",
+    "placeholder": "Écrivez votre message… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)",
+    "attach": "Joindre un fichier",
+    "removeFile": "Retirer {name}",
+    "send": "Envoyer",
+    "stop": "Arrêter"
+  },
+  "attachments": {
+    "too-large": "« {name} » dépasse {max} Mo.",
+    "empty": "« {name} » est vide.",
+    "unsupported": "« {name} » : ce type de fichier n'est pas pris en charge.",
+    "duplicate": "« {name} » est déjà joint.",
+    "too-many": "« {name} » n'a pas été joint : {max} fichiers au plus par message."
+  },
+  "notices": {
+    "save-failed": "Le message n'a pas pu être enregistré. Réessayez.",
+    "agent-unpublished": "Cet agent n'est plus publié : choisissez-en un autre dans une nouvelle conversation.",
+    "upload-failed": "« {name} » n'a pas pu être envoyé. Réessayez."
+  },
+  "errors": {
+    "agent-unavailable": "Cet agent n'est plus disponible.",
+    "forbidden": "Vous n'avez pas accès à cet agent.",
+    "rate-limited": "Trop de messages en peu de temps : réessayez dans une minute.",
+    "invalid": "Le message a été refusé (fichier trop lourd ou contenu invalide).",
+    "failed": "L'agent n'a pas pu répondre.",
+    "interrupted": "La réponse a été interrompue.",
+    "unknown": "L'agent n'a pas pu répondre. Réessayez."
+  }
+}

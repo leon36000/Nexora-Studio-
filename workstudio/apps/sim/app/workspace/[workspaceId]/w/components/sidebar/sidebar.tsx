@@ -30,6 +30,7 @@ import {
   Database,
   Files,
   Integration,
+  MessageSquareText,
   MoreHorizontal,
   PanelLeft,
   Pin,
@@ -773,6 +774,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           label: t('nav.home'),
           icon: Home,
           href: `/workspace/${workspaceId}/home`,
+          hidden: chatEnabled,
+        },
+        {
+          // Nexora edition: the employees' Assistant, open to every member.
+          id: 'assistant',
+          label: t('nav.assistant'),
+          icon: MessageSquareText,
+          href: `/workspace/${workspaceId}/assistant`,
           hidden: chatEnabled,
         },
         {

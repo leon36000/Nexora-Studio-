@@ -1,6 +1,7 @@
 import type { AbstractIntlMessages } from 'next-intl'
 import type { Locale } from '@/lib/i18n/config'
 import enAgents from '@/messages/en/agents.json'
+import enAssistant from '@/messages/en/assistant.json'
 import enAuth from '@/messages/en/auth.json'
 import enBlocks from '@/messages/en/blocks.json'
 import enCommon from '@/messages/en/common.json'
@@ -19,6 +20,7 @@ import enSettings from '@/messages/en/settings.json'
 import enShell from '@/messages/en/shell.json'
 import enTables from '@/messages/en/tables.json'
 import frAgents from '@/messages/fr/agents.json'
+import frAssistant from '@/messages/fr/assistant.json'
 import frAuth from '@/messages/fr/auth.json'
 import frBlocks from '@/messages/fr/blocks.json'
 import frCommon from '@/messages/fr/common.json'
@@ -57,6 +59,7 @@ export const MESSAGE_NAMESPACES = [
   'blocks',
   'agents',
   'connectors',
+  'assistant',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -80,6 +83,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     blocks: frBlocks,
     agents: frAgents,
     connectors: frConnectors,
+    assistant: frAssistant,
   },
   en: {
     common: enCommon,
@@ -100,6 +104,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     blocks: enBlocks,
     agents: enAgents,
     connectors: enConnectors,
+    assistant: enAssistant,
   },
 }
 

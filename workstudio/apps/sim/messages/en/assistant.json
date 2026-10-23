@@ -1,0 +1,68 @@
+{
+  "metaTitle": "Assistant",
+  "conversations": {
+    "label": "Conversations",
+    "new": "New conversation",
+    "empty": "No conversations yet.",
+    "loadFailed": "Could not load your conversations.",
+    "actions": "Actions for “{title}”",
+    "rename": "Rename",
+    "delete": "Delete",
+    "renameTitle": "Rename conversation",
+    "titleField": "Title",
+    "save": "Save",
+    "cancel": "Cancel",
+    "renameFailed": "The conversation could not be renamed.",
+    "deleteTitle": "Delete conversation",
+    "deleteText": "“{title}” and all its messages will be permanently deleted.",
+    "deleteFailed": "The conversation could not be deleted."
+  },
+  "agents": {
+    "label": "Agent",
+    "empty": "No published agents in this workspace.",
+    "loadFailed": "Could not load the agents.",
+    "unpublished": "Unpublished agent"
+  },
+  "thread": {
+    "emptyTitle": "How can I help you?",
+    "loadFailed": "Could not load the conversation.",
+    "notFound": "This conversation does not exist or was deleted.",
+    "unpublished": "This agent is no longer published: the conversation stays readable, but you can no longer write to it.",
+    "interrupted": "Answer interrupted",
+    "stopped": "Answer stopped",
+    "copy": "Copy answer",
+    "copied": "Answer copied",
+    "regenerate": "Regenerate answer",
+    "retry": "Try again",
+    "attachment": "Attached file: {name}"
+  },
+  "composer": {
+    "label": "Your message",
+    "placeholder": "Write your message… (Enter to send, Shift+Enter for a new line)",
+    "attach": "Attach a file",
+    "removeFile": "Remove {name}",
+    "send": "Send",
+    "stop": "Stop"
+  },
+  "attachments": {
+    "too-large": "“{name}” is larger than {max} MB.",
+    "empty": "“{name}” is empty.",
+    "unsupported": "“{name}”: this file type is not supported.",
+    "duplicate": "“{name}” is already attached.",
+    "too-many": "“{name}” was not attached: at most {max} files per message."
+  },
+  "notices": {
+    "save-failed": "The message could not be saved. Try again.",
+    "agent-unpublished": "This agent is no longer published: pick another one in a new conversation.",
+    "upload-failed": "“{name}” could not be uploaded. Try again."
+  },
+  "errors": {
+    "agent-unavailable": "This agent is no longer available.",
+    "forbidden": "You do not have access to this agent.",
+    "rate-limited": "Too many messages in a short time: try again in a minute.",
+    "invalid": "The message was refused (file too large or invalid content).",
+    "failed": "The agent could not answer.",
+    "interrupted": "The answer was interrupted.",
+    "unknown": "The agent could not answer. Try again."
+  }
+}

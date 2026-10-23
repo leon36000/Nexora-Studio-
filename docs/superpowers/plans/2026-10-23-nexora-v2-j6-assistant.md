@@ -59,8 +59,8 @@
 
 **Files:** `app/workspace/[workspaceId]/assistant/` (liste des conversations, choix de l'agent, fil en flux avec Markdown, pièces jointes, copier, régénérer), hooks `hooks/queries/nexora-assistant.ts`, messages `messages/{fr,en}/assistant.json` (zone enregistrée), entrée de barre latérale, carte « Assistant » de l'Accueil activée.
 
-- [ ] **Step 1:** Construire ; `type-check`, `check:audits`, `check-i18n`, `check-brand` — PASS.
-- [ ] **Step 2: Commit** `feat(j6): Assistant Nexora`.
+- [x] **Step 1:** Construire ; `type-check`, `check:audits`, `check-i18n`, `check-brand` — PASS.
+- [x] **Step 2: Commit** `feat(j6): Assistant Nexora`.
 
 ### Task 5: Guide, fumée, pc6, revue
 

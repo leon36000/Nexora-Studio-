@@ -39,3 +39,5 @@ workstudio/apps/sim/app/workspace/[workspaceId]/playground
 workstudio/apps/sim/app/workspace/[workspaceId]/agents
 # J5 Connecteurs
 workstudio/apps/sim/app/workspace/[workspaceId]/connecteurs
+# J6 Assistant
+workstudio/apps/sim/app/workspace/[workspaceId]/assistant

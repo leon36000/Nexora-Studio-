@@ -1184,7 +1184,6 @@
   "apps/sim/lib/api/contracts/byok-keys.ts#upsertByokKeyBodySchema",
   "apps/sim/lib/api/contracts/chats.ts#ChatPasswordResponse",
   "apps/sim/lib/api/contracts/chats.ts#ChatSSOResponse",
-  "apps/sim/lib/api/contracts/chats.ts#DeployedChatPostBody",
   "apps/sim/lib/api/contracts/chats.ts#chatCustomizationsSchema",
   "apps/sim/lib/api/contracts/chats.ts#chatEmailOtpRequestBodySchema",
   "apps/sim/lib/api/contracts/chats.ts#chatEmailOtpRequestResponseSchema",

@@ -8,7 +8,8 @@
     "create": {
       "label": "Create",
       "workflow": "Workflow",
-      "agent": "Agent"
+      "agent": "Agent",
+      "assistant": "Assistant"
     },
     "quickStarts": {
       "label": "Quick starts",
