@@ -406,17 +406,22 @@ def main() -> int:
         name = "Devis client"
         run = lambda: s.call("POST", f"/api/workflows/{state['workflows'][name]}/execute",
                              {"useDraftState": True, "stream": False, "input": TEMPLATE_INPUTS[name]}, timeout=600)
+        status, body = run()  # the workspace has used some tokens this month, so a 1-token cap is reached
+        require(status == 200 and body.get("success"), f"first run returned HTTP {status}: {str(body.get('error'))[:200]}")
         try:
             status, body = admin.call("PUT", "/api/nexora/budgets", {"workspaceMonthlyTokens": {state["ws"]: 1}})
             require(status == 200, f"budget save returned HTTP {status}: {str(body)[:200]}")
             status, body = run()
-            require(status == 402 and "MONTHLY_BUDGET_EXCEEDED" in json.dumps(body), f"run over budget returned HTTP {status}: {str(body)[:200]}")
-            require("Budget mensuel atteint" in json.dumps(body, ensure_ascii=False), "refusal message is not the French one")
+            require(status == 402, f"run over budget returned HTTP {status}: {str(body)[:200]}")
+            require("Budget mensuel" in json.dumps(body, ensure_ascii=False), f"refusal message is not the French one: {str(body)[:200]}")
+            _, view = admin.call("GET", "/api/nexora/budgets")
+            alerts = [a for a in view.get("alerts", []) if a.get("workspaceId") == state["ws"] and a.get("level") == "exhausted"]
+            require(alerts, f"no budget alert recorded for the workspace: {str(view.get('alerts'))[:200]}")
         finally:
             admin.call("PUT", "/api/nexora/budgets", {"workspaceMonthlyTokens": {state["ws"]: None}})
         status, body = run()
         require(status == 200 and body.get("success"), f"run after raising the cap returned HTTP {status}: {str(body.get('error'))[:200]}")
-        return "plafond minuscule ⇒ refus 402 en français, plafond retiré ⇒ exécution acceptée"
+        return "plafond minuscule ⇒ alerte enregistrée et refus 402 en français, plafond retiré ⇒ exécution acceptée"
 
     def governance():
         # Instance settings: administrators only, secrets never returned, SMTP test e-mail.
