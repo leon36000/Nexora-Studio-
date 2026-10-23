@@ -72,5 +72,5 @@
 ### Task 6: Guide, fumée, pc6, revue
 
 - [x] **Step 1:** `docs/guide/connecteurs.md` ; fumée « Connecteurs » (catalogue, connexion d'un service à clé API de test dans l'espace A, outil visible dans A et absent dans B via la découverte MCP, déconnexion).
-- [ ] **Step 2:** pc6 : reconstruction (WorkStudio + Connect), fumée complète ; navigateur : parcours « Terminé quand ».
-- [ ] **Step 3:** Suites complètes, audits, revue finale, corrections TDD, push.
+- [x] **Step 2:** pc6 : reconstruction (WorkStudio + Connect), fumée complète ; navigateur : parcours « Terminé quand ».
+- [x] **Step 3:** Suites complètes, audits, revue finale, corrections TDD, push.
