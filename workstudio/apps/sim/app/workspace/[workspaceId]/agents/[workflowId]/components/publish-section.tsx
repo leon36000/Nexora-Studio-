@@ -1,6 +1,7 @@
 'use client'
 
-import { Chip, ChipCopyInput, toast } from '@sim/emcn'
+import { useState } from 'react'
+import { Chip, ChipCopyInput, Switch, toast } from '@sim/emcn'
 import { Rocket } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { generateRandomHex } from '@sim/utils/random'
@@ -54,6 +55,9 @@ export function PublishSection({
   readOnly,
 }: PublishSectionProps) {
   const t = useTranslations('agents.publish')
+  // Members of the workspace only, unless the agent is meant for the outside (a public link).
+  const [isPublic, setIsPublic] = useState(existingChat?.authType === 'public')
+  const authType = isPublic ? 'public' : 'workspace'
   const { mutateAsync: createChat, isPending: isCreating } = useCreateChat()
   const { mutateAsync: updateChat, isPending: isUpdating } = useUpdateChat()
   const isPublishing = isCreating || isUpdating
@@ -67,7 +71,7 @@ export function PublishSection({
           identifier: existingChat.identifier,
           title: name,
           description,
-          authType: existingChat.authType,
+          authType,
           password: '',
           emails: existingChat.allowedEmails,
           welcomeMessage,
@@ -88,7 +92,7 @@ export function PublishSection({
             identifier: chatIdentifier(name),
             title: name,
             description,
-            authType: 'public',
+            authType,
             password: '',
             emails: [],
             welcomeMessage,
@@ -121,6 +125,20 @@ export function PublishSection({
         )
       }
     >
+      <div className='flex items-center justify-between gap-4 pl-0.5'>
+        <label htmlFor='agent-public' className='text-[var(--text-muted)] text-small'>
+          {t('public')}
+        </label>
+        <Switch
+          id='agent-public'
+          checked={isPublic}
+          disabled={readOnly}
+          onCheckedChange={setIsPublic}
+        />
+      </div>
+      <p className='pl-0.5 text-[var(--text-muted)] text-caption'>
+        {isPublic ? t('publicHint') : t('membersHint')}
+      </p>
       {existingChat ? (
         <FormField label={t('link')} htmlFor='agent-chat-link'>
           <ChipCopyInput id='agent-chat-link' value={existingChat.chatUrl} copyLabel={t('copy')} />

@@ -58,6 +58,8 @@ const AUTH_ERROR_MAP: Record<string, 'password' | 'email' | 'sso'> = {
   auth_required_password: 'password',
   auth_required_email: 'email',
   auth_required_sso: 'sso',
+  // Members-only chats (Nexora edition) ask to sign in the same way.
+  auth_required_workspace: 'sso',
 }
 
 async function fetchDeployedChatConfig(

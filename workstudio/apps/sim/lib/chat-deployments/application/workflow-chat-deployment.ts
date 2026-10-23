@@ -49,7 +49,7 @@ import { validateChatDeployAuth } from '@/ee/access-control/utils/permission-che
  * effect is stated once regardless of how the resource was named.
  */
 
-type ChatAuthType = 'public' | 'password' | 'email' | 'sso'
+type ChatAuthType = 'public' | 'password' | 'email' | 'sso' | 'workspace'
 
 /** Platform defaults for the presentation fields a replace may omit. */
 const DEFAULT_PRIMARY_COLOR = 'var(--brand-hover)'

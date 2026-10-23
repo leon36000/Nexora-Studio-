@@ -69,6 +69,8 @@ export interface DeploymentCredentialContext {
   clientIp?: string | null
   sessionPresent?: boolean
   sessionEmail?: string | null
+  /** Nexora edition: the signed-in user belongs to the deployment's workspace. */
+  workspaceMember?: boolean
 }
 
 /**
@@ -201,6 +203,17 @@ export async function validateDeploymentCredentials(
       logger.error(`[${requestId}] Error validating email:`, error)
       return { authorized: false, error: 'Authentication error' }
     }
+  }
+
+  // Nexora edition: reserved to the members of the workspace that owns the deployment.
+  if (authType === 'workspace') {
+    if (!request.sessionPresent || !request.sessionEmail) {
+      return { authorized: false, error: 'auth_required_workspace' }
+    }
+    if (!request.workspaceMember) {
+      return { authorized: false, error: 'Only members of this workspace can use this chat' }
+    }
+    return { authorized: true, authenticatedEmail: normalizeEmail(request.sessionEmail) }
   }
 
   if (authType === 'sso') {

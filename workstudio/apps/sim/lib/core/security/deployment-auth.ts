@@ -24,12 +24,20 @@ export async function validateDeploymentAuth(
 ): Promise<DeploymentAuthResult> {
   let sessionEmail: string | null | undefined
   let sessionPresent = false
-  if (resource.authType === 'sso' && (request.method === 'GET' || parsedBody)) {
+  let workspaceMember = false
+  const needsSession = resource.authType === 'sso' || resource.authType === 'workspace'
+  if (needsSession && (request.method === 'GET' || parsedBody)) {
     try {
       const { getSession } = await import('@/lib/auth')
       const session = await getSession()
       sessionPresent = Boolean(session?.user)
       sessionEmail = session?.user?.email
+      if (resource.authType === 'workspace' && session?.user?.id && resource.workspaceId) {
+        const { getUserEntityPermissions } = await import('@/lib/workspaces/permissions/utils')
+        workspaceMember = Boolean(
+          await getUserEntityPermissions(session.user.id, 'workspace', resource.workspaceId)
+        )
+      }
     } catch (error) {
       logger.error(`[${requestId}] Error validating SSO:`, error)
       return { authorized: false, error: 'SSO authentication error' }
@@ -44,6 +52,7 @@ export async function validateDeploymentAuth(
       clientIp: getClientIp(request),
       sessionPresent,
       sessionEmail,
+      workspaceMember,
     },
     parsedBody,
     cookiePrefix

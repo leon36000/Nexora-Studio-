@@ -3,7 +3,8 @@ import { z } from 'zod'
 import { defineRouteContract } from '@/lib/api/contracts/types'
 import { formatInternalOutputSelector } from '@/lib/workflows/streaming/output-selector'
 
-export const chatAuthTypeSchema = z.enum(['public', 'password', 'email', 'sso'])
+/** `workspace` (Nexora edition): only signed-in members of the workflow's workspace. */
+export const chatAuthTypeSchema = z.enum(['public', 'password', 'email', 'sso', 'workspace'])
 export type ChatAuthType = z.output<typeof chatAuthTypeSchema>
 
 /**

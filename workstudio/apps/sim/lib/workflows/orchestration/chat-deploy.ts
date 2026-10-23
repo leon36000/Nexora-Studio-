@@ -28,7 +28,7 @@ export interface ChatDeployPayload {
   /** Short name/label for this deployment version. */
   versionName?: string
   customizations?: { primaryColor?: string; welcomeMessage?: string; imageUrl?: string }
-  authType?: 'public' | 'password' | 'email' | 'sso'
+  authType?: 'public' | 'password' | 'email' | 'sso' | 'workspace'
   password?: string | null
   allowedEmails?: string[]
   outputConfigs?: Array<{ blockId: string; path: string }>

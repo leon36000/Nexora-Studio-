@@ -101,9 +101,12 @@
     "publish": "Publish",
     "published": "Agent published.",
     "failed": "Publishing failed.",
-    "link": "Public chat link",
+    "link": "Chat link",
     "copy": "Copy link",
-    "notPublished": "Not published yet."
+    "notPublished": "Not published yet.",
+    "public": "Available without an account (public link)",
+    "membersHint": "Only signed-in members of the workspace. Publish again to apply a change.",
+    "publicHint": "Anyone with the link can chat with the agent (for example your customers): do not give it confidential documents."
   },
   "versions": {
     "title": "Versions",

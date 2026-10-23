@@ -101,9 +101,12 @@
     "publish": "Publier",
     "published": "Agent publié.",
     "failed": "La publication a échoué.",
-    "link": "Lien du chat public",
+    "link": "Lien du chat",
     "copy": "Copier le lien",
-    "notPublished": "Pas encore publié."
+    "notPublished": "Pas encore publié.",
+    "public": "Accessible sans compte (lien public)",
+    "membersHint": "Réservé aux membres de l’espace connectés à Nexora. Publiez à nouveau pour appliquer un changement.",
+    "publicHint": "Toute personne qui a le lien peut discuter avec l’agent (par exemple vos clients) : ne lui donnez pas accès à des documents confidentiels."
   },
   "versions": {
     "title": "Versions",

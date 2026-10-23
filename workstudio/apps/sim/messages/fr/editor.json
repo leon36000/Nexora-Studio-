@@ -429,6 +429,7 @@
       "auth": {
         "accessControl": "Contrôle d'accès",
         "types": {
+          "workspace": "Membres de l’espace",
           "public": "Public",
           "password": "Mot de passe",
           "email": "E-mail",

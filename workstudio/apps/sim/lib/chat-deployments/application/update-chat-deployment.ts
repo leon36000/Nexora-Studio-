@@ -30,7 +30,7 @@ import { validateChatDeployAuth } from '@/ee/access-control/utils/permission-che
 
 const logger = createLogger('UpdateChatDeployment')
 
-type ChatAuthType = 'public' | 'password' | 'email' | 'sso'
+type ChatAuthType = 'public' | 'password' | 'email' | 'sso' | 'workspace'
 
 export interface UpdateChatDeploymentInput {
   chatDeploymentId: string
@@ -99,6 +99,7 @@ async function resolvePasswordUpdate(
 function clearedGateColumnsFor(authType: ChatAuthType): Partial<ChatDeploymentRow> {
   switch (authType) {
     case 'public':
+    case 'workspace':
       return { password: null, allowedEmails: [] }
     case 'password':
       return { allowedEmails: [] }

@@ -69,9 +69,19 @@ export async function checkChatAccess(
  */
 export async function validateChatAuth(
   requestId: string,
-  deployment: DeploymentAuthResource,
+  deployment: DeploymentAuthResource & { workflowId?: string },
   request: NextRequest,
   parsedBody?: DeploymentAuthBody
 ): Promise<DeploymentAuthResult> {
-  return validateDeploymentAuth(requestId, deployment, request, parsedBody, 'chat')
+  let resource = deployment
+  // Nexora edition: a members-only chat needs the workspace that owns its workflow.
+  if (deployment.authType === 'workspace' && !deployment.workspaceId && deployment.workflowId) {
+    const [owner] = await db
+      .select({ workspaceId: workflow.workspaceId })
+      .from(workflow)
+      .where(eq(workflow.id, deployment.workflowId))
+      .limit(1)
+    resource = { ...deployment, workspaceId: owner?.workspaceId ?? null }
+  }
+  return validateDeploymentAuth(requestId, resource, request, parsedBody, 'chat')
 }

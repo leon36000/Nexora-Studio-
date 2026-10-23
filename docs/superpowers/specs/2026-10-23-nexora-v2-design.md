@@ -218,6 +218,8 @@ Précise la section 7 ; ces décisions priment.
 - route `POST /api/nexora/assistant/conversations/[id]/messages` : vérifie l'auteur et l'accès à l'espace, exécute le workflow de l'agent (version **déployée**) en flux avec `input`, `conversationId` (mémoire de l'agent) et les fichiers, enregistre la question et la réponse ; routes de liste, création, renommage, suppression ;
 - « Assistant général » : workflow fourni (dossier « Agents »), créé au premier usage avec `buildAgentWorkflow`, publié automatiquement.
 
+**Chats réservés aux membres** (décision de l'architecte, 23/10) : un chat publié peut être « réservé aux membres de l'espace » (nouveau mode d'accès `workspace` : session WorkStudio et appartenance à l'espace du workflow, vérifiées à chaque message). C'est le mode **par défaut** des agents (J4) et celui de l'Assistant : sans lui, le lien d'un agent interne exposerait ses connaissances à quiconque l'obtient. Le mode « public » reste un choix explicite (support client sur un site).
+
 **Hors J6** (décision de l'architecte) : les connexions **personnelles** (`u-<userId>`) annoncées en §8sexies passent à un jalon ultérieur : elles exigent un jeton par personne transmis à chaque exécution, que le moteur MCP partagé de l'espace ne permet pas encore proprement ; J6 utilise les connexions de l'espace.
 
 **Terminé quand** : sur pc6, un membre ouvre l'Assistant, discute avec l'« Assistant général » (réponse en flux, en français), joint un PDF et obtient une réponse qui s'en sert, change d'agent (un agent publié en J4), retrouve ses conversations après rechargement ; un autre membre ne voit pas ces conversations ; tests des routes (auteur seulement, espace étranger refusé, version déployée exécutée) et contrôle de fumée « Assistant ».

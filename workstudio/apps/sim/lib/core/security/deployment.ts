@@ -21,6 +21,8 @@ export interface DeploymentAuthResource {
   authType: string | null
   password?: string | null
   allowedEmails?: unknown
+  /** Workspace owning the deployment, for the members-only mode (Nexora edition). */
+  workspaceId?: string | null
 }
 
 interface DeploymentAuthTokenBase {

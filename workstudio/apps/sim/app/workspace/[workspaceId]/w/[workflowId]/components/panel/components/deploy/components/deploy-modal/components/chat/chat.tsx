@@ -699,12 +699,18 @@ function AuthSelector({
 
   const ssoAvailable =
     features.sso || savedAuthType === 'sso' || (allowedAuthTypes?.includes('sso') ?? false)
+  // Nexora edition: « Membres de l'espace » first — the safe choice for an internal agent.
   const baseAuthOptions: AuthType[] = ssoAvailable
-    ? ['public', 'password', 'email', 'sso']
-    : ['public', 'password', 'email']
+    ? ['workspace', 'public', 'password', 'email', 'sso']
+    : ['workspace', 'public', 'password', 'email']
 
   const authOptions = baseAuthOptions.filter(
-    (type) => allowedAuthTypes === null || allowedAuthTypes.includes(type) || type === savedAuthType
+    (type) =>
+      allowedAuthTypes === null ||
+      // Members only is stricter than any mode a permission group can allow.
+      type === 'workspace' ||
+      allowedAuthTypes.some((allowed) => allowed === type) ||
+      type === savedAuthType
   )
 
   useEffect(() => {

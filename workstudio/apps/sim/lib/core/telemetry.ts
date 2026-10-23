@@ -951,7 +951,7 @@ export const PlatformEvents = {
   chatDeployed: (attrs: {
     chatId: string
     workflowId: string
-    authType: 'public' | 'password' | 'email' | 'sso'
+    authType: 'public' | 'password' | 'email' | 'sso' | 'workspace'
     hasOutputConfigs: boolean
   }) => {
     trackPlatformEvent('platform.chat.deployed', {

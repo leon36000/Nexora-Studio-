@@ -21,7 +21,7 @@ import { performChatDeploy } from '@/lib/workflows/orchestration'
 import { formatInternalOutputSelector } from '@/lib/workflows/streaming/output-selector'
 import { validateChatDeployAuth } from '@/ee/access-control/utils/permission-check'
 
-type ChatAuthType = 'public' | 'password' | 'email' | 'sso'
+type ChatAuthType = 'public' | 'password' | 'email' | 'sso' | 'workspace'
 type ChatOutputConfig = { workflowId?: string; blockId: string; path: string }
 type ChatCustomizations = {
   primaryColor?: string
