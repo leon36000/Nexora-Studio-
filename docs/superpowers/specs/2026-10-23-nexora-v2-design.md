@@ -144,6 +144,29 @@ Précise la section 6 et 8bis.4 ; ces décisions priment.
 
 **Terminé quand** (remplace celui de la section 6) : sur pc6, depuis l'interface, ajouter un modèle Ollama (téléchargement visible), le tester, l'utiliser dans un bloc Agent, le définir par défaut puis revenir au précédent ; ajouter un modèle « compatible OpenAI » ; `nexora restart` ne défait pas ces choix ; tests (amorçage, client d'administration, routes) et contrôle de fumée « Modèles » (liste, ajout compatible OpenAI, test, défaut aller-retour, suppression).
 
+## 8quater. J3 — conception détaillée (23/10/2026, architecte)
+
+Précise la section 7 ; ces décisions priment.
+
+**Page d'arrivée.** Dans l'édition Nexora (le chat d'origine est désactivé faute de backend copilote), `/workspace/[id]` mène à `/workspace/[id]/home`, qui affiche l'**Accueil** Nexora au lieu de rediriger ; l'entrée « Accueil » de la barre latérale y mène toujours. Le chat d'origine reste servi tel quel si `NEXT_PUBLIC_CHAT_ENABLED` est actif (comportement amont inchangé).
+
+**Contenu de l'Accueil** (tous les membres de l'espace) :
+- **Créer** : *Workflow* (nouveau workflow vide, ouvert dans l'éditeur) ; *Agent* (en attendant J4 : nouveau workflow pré-rempli « déclencheur Chat → bloc Agent sur `nexora-default` → Réponse », ouvert dans l'éditeur ; J4 remplace cette carte par l'éditeur d'agent). *Assistant* masquée jusqu'à J6, *Capturer* (Document, Transcription) masquée jusqu'à J10.
+- **Démarrages rapides** : les modèles PME de l'espace (dossier « Modèles PME » ; ouvrir), *Inviter l'équipe* (Réglages › Membres), *Connecter un outil* (Nexora Connect).
+- **État** : modèle par défaut (nom, via une route légère lisible par tout membre qui lit `/v1/models` avec la clé de WorkStudio, sans droits d'administration) ; consommation du mois (admins seulement, route existante) ; cinq dernières exécutions de l'espace (journaux existants), chacune ouvrable.
+
+**Premier lancement** (propriétaire ou admin de l'organisation d'instance ; une fois par organisation) : panneau sur l'Accueil, 5 étapes passables, progression dans `organization.metadata.nexoraOnboarding = { completed: string[], dismissed: boolean }` (pas de migration) :
+1. *Votre organisation* — nom (et logo facultatif) via la route d'organisation existante ;
+2. *Votre modèle* — modèle par défaut affiché, bouton « Tester », lien vers Réglages › Modèles ;
+3. *Votre équipe* — invitations par e-mail (si un service d'e-mail est configuré) sinon lien d'invitation à copier (8bis.5) ;
+4. *Vos outils* — lien vers Nexora Connect ;
+5. *Premier résultat* — exécuter le modèle PME « Devis client » avec ses valeurs d'exemple et afficher le résultat.
+« Plus tard » masque le panneau (rouvrable depuis l'Accueil) ; l'étape 5 réussie le termine.
+
+**Aide** : chaque écran principal a déjà son lien « Aide » (J1) ; l'Accueil pointe vers `docs/guide/prise-en-main.md`.
+
+**Terminé quand** (remplace celui de la section 7) : sur pc6, un compte neuf atterrit sur l'Accueil ; l'administrateur suit les 5 étapes et obtient le devis ; un membre simple voit l'Accueil sans le panneau ni la consommation ; tests des routes (état, progression) et contrôle de fumée « Accueil » (la page répond en français avec ses cartes, la route d'état répond).
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
