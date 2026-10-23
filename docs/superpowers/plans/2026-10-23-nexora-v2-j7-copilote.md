@@ -53,5 +53,5 @@
 ### Task 4: Guide, fumée, pc6, revue
 
 - [x] **Step 1:** `docs/guide/copilote.md` ; fumée « Copilote » (une description ⇒ plan valide ⇒ workflow créé ⇒ exécution réussie).
-- [ ] **Step 2:** pc6 : les cinq descriptions types de §8octies, chacune créée et exécutée ; rapport dans le ledger.
+- [x] **Step 2:** pc6 : les cinq descriptions types de §8octies, chacune créée et exécutée ; rapport dans le ledger.
 - [ ] **Step 3:** Suites, audits, revue finale, corrections TDD, push.
