@@ -301,9 +301,28 @@ def main() -> int:
         require([m["id"] for m in body["models"] if m["isDefault"]] == [original["id"]], "the default did not come back")
         return f"{alias} ajouté, testé ({tested['latencyMs']} ms), défaut aller-retour, retiré"
 
+    def home():
+        status, html = s.call("GET", f"/workspace/{state['ws']}/home", raw=True)
+        require(status == 200, f"home page returned HTTP {status}")
+        require("Accueil" in html, "the home page is not the Nexora home")
+        status, body = s.call("GET", "/api/nexora/home")
+        require(status == 200 and body.get("defaultModel"), f"home status returned HTTP {status}: {body}")
+        require(body["isInstanceAdmin"] is False and body["onboarding"] is None, "a plain member sees the first launch")
+        default_model = body["defaultModel"]
+        status, _ = s.call("PATCH", "/api/nexora/onboarding", {"dismissed": True})
+        require(status == 403, f"a plain member could change the first launch (HTTP {status})")
+        admin_organization()
+        status, body = admin.call("GET", "/api/nexora/home")
+        require(status == 200 and body["isInstanceAdmin"] and body["onboarding"] is not None, f"admin home status: {body}")
+        before = body["onboarding"]
+        status, body = admin.call("PATCH", "/api/nexora/onboarding", {"dismissed": before["dismissed"]})
+        require(status == 200 and body["onboarding"] == before, f"admin progress update returned HTTP {status}: {body}")
+        return f"modèle par défaut {default_model}, premier lancement : {len(before['completed'])}/5 étapes"
+
     s.check("Inscription d'un compte", signup)
     s.check("Interface en français, sans marque tierce", french_ui)
     s.check("Nouvel espace avec les modèles PME", workspace_with_templates)
+    s.check("Accueil Nexora (cartes, état, premier lancement)", home)
     s.check("Nexora Connect et ses outils MCP", connect_tools)
     s.check("Base de connaissances (embeddings locaux)", knowledge_base)
     s.check("Planification (cron)", schedule)
