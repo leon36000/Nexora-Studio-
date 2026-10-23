@@ -53,11 +53,11 @@
 - `fetchDefaultModelName(): Promise<string | null>` — `/v1/models` avec `VLLM_API_KEY`, nom du routeur portant l'alias `nexora-default` ; `null` si Nexora API ne répond pas.
 - GET `/api/nexora/home` (session) → `{ defaultModel: string | null, isInstanceAdmin: boolean, onboarding: {completed, dismissed} | null }` (`onboarding` seulement pour un admin) ; PATCH `/api/nexora/onboarding` (admin d'instance) body `{ complete?: step, dismissed?: boolean }`.
 
-- [ ] **Step 1: Failing tests** : fusion qui garde une clé `metadata.other` ; étape inconnue refusée (400) ; `first-run` ⇒ terminé ; membre → 403 sur PATCH et `onboarding: null` sur GET ; Nexora API injoignable ⇒ `defaultModel: null` (GET 200).
-- [ ] **Step 2: Run** — Expected: FAIL (modules absents).
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run** `LANG=en_US.UTF-8 bun run --cwd apps/sim test lib/nexora app/api/nexora` et `bun run check:api-validation:strict` — Expected: PASS.
-- [ ] **Step 5: Commit** `feat(j3): état de l'Accueil et progression du premier lancement`.
+- [x] **Step 1: Failing tests** : fusion qui garde une clé `metadata.other` ; étape inconnue refusée (400) ; `first-run` ⇒ terminé ; membre → 403 sur PATCH et `onboarding: null` sur GET ; Nexora API injoignable ⇒ `defaultModel: null` (GET 200).
+- [x] **Step 2: Run** — Expected: FAIL (modules absents).
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run** `LANG=en_US.UTF-8 bun run --cwd apps/sim test lib/nexora app/api/nexora` et `bun run check:api-validation:strict` — Expected: PASS.
+- [x] **Step 5: Commit** `feat(j3): état de l'Accueil et progression du premier lancement`.
 
 ### Task 3: Valeurs d'exemple des modèles PME
 

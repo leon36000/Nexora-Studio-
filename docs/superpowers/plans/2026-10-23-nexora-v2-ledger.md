@@ -54,3 +54,7 @@ Spec : `docs/superpowers/specs/2026-10-23-nexora-v2-design.md`. Plans : `docs/su
 
 - Conception §8quater, plan `2026-10-23-nexora-v2-j3-accueil.md` (écrits pendant que l'interface J2 était construite par un sous-agent, fichiers disjoints).
 - Task 3 (exemples des modèles PME), faite en parallèle de J2 Task 6 : test « every input has an example » rouge (1 échec) puis `lib/nexora` 91/91 ; aucune erreur de type dans les fichiers touchés (les seules erreurs du moment viennent de l'écran Modèles en cours).
+- J3 Task 2 (état et progression) : `onboarding.test.ts` et `default-model.test.ts` rouges (modules absents) puis 7/7 ; routes testées (`app/api/nexora/home/route.test.ts`, 4 tests) — écrites avant leur test, donc vérifiées par mutation : sans la restriction admin du GET → 1 échec ; PATCH ouvert aux membres → 1 échec ; `lib/nexora` + `app/api/nexora` 115/115 ; `check:api-validation:strict` OK (la GET passe par `parseRequest` de son contrat).
+  - Ruling : `ONBOARDING_STEPS` vit dans `lib/nexora/onboarding-steps.ts` (sans `@sim/db`) car le contrat est importé par le navigateur — coût si faux : aucun.
+  - Ruling : `authorizeInstanceAdmin` renvoie aussi `organizationId` (l'organisation dont la progression est lue/écrite) — coût si faux : aucun.
+  - Ruling : la progression est fusionnée sous verrou de ligne (`SELECT … FOR UPDATE` en transaction) pour que deux admins simultanés ne s'écrasent pas — coût si faux : aucun.

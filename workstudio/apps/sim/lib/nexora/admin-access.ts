@@ -9,7 +9,7 @@ import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
  * every user belongs to it and nobody can found another.
  */
 export async function authorizeInstanceAdmin(): Promise<
-  { ok: true; userId: string } | { ok: false; status: 401 | 403 }
+  { ok: true; userId: string; organizationId: string } | { ok: false; status: 401 | 403 }
 > {
   const session = await getSession()
   if (!session?.user?.id) return { ok: false, status: 401 }
@@ -24,5 +24,5 @@ export async function authorizeInstanceAdmin(): Promise<
   ) {
     return { ok: false, status: 403 }
   }
-  return { ok: true, userId: session.user.id }
+  return { ok: true, userId: session.user.id, organizationId: membership.organizationId }
 }
