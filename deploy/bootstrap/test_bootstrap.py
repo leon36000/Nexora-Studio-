@@ -55,6 +55,9 @@ class FakeApi(BaseHTTPRequestHandler):
             return self._json(401, {})
         if path == "/health":
             return self._json(200, {})
+        if path == "/v1/models":  # the transcription service lists the models in its volume
+            local = [*s.get("local_models", []), *s.get("downloads", [])]
+            return self._json(200, {"data": [{"id": model, "object": "model"} for model in local]})
         if path == "/v1/me":
             if s.get("me_unavailable") and caller and caller is not ADMIN:
                 return self._json(503, {})
@@ -104,6 +107,9 @@ class FakeApi(BaseHTTPRequestHandler):
             s["providers"][pid] = {"id": pid, "router_id": body["router_id"], "type": body.get("type"), "url": body["url"].lower().rstrip("/") + "/", "model_name": body["model_name"], "key": body["key"], "timeout": body.get("timeout")}
             return self._json(201, {"id": pid})
         if self.path == "/v1/admin/keys":
+            if s.get("keys_not_ready", 0) > 0:  # a fresh Nexora API does not find a just-created user yet
+                s["keys_not_ready"] -= 1
+                return self._json(404, {"detail": "User not found"})
             user = ADMIN if body["user"] == ADMIN["id"] else s["users"][body["user"]]
             key = f"key-{len(s['keys'])}"
             permissions = user["permissions"] if user is ADMIN else s["roles"][user["role_id"]]["permissions"]
@@ -329,6 +335,12 @@ class BootstrapTest(unittest.TestCase):
         provider = FakeApi.state["providers"][1]
         self.assertEqual((provider["model_total_params"], provider["model_hosting_zone"]), (8, "DEU"))
 
+    def test_a_fresh_api_that_does_not_find_a_new_user_yet_is_retried(self):
+        # Seen on a fresh install: the first key creation answered 404, the next run succeeded.
+        FakeApi.state["keys_not_ready"] = 2
+        self.run_bootstrap()
+        self.assertTrue(self.out.exists())
+
     def test_a_refused_timeout_update_does_not_hold_workstudio_back(self):
         self.seed_provider()
         FakeApi.state["providers"][1]["timeout"] = 120
@@ -391,9 +403,17 @@ class BootstrapTest(unittest.TestCase):
             (provider["type"], provider["url"], provider["model_name"], provider["key"], provider["timeout"]),
             ("openai", self.url.lower() + "/", "Systran/faster-whisper-small", "none", 600),
         )
-        self.assertEqual(FakeApi.state["downloads"], ["Systran/faster-whisper-small"] * 2)
+        self.assertEqual(FakeApi.state["downloads"], ["Systran/faster-whisper-small"])
         (role,) = FakeApi.state["roles"].values()
         self.assertIn((router["id"], "rpm"), {(l["router_id"], l["type"]) for l in role["limits"]})
+
+    def test_does_not_download_a_transcription_model_the_service_already_has(self):
+        # The Whisper server fetches its model before it starts (then runs offline).
+        FakeApi.state["local_models"] = ["Systran/faster-whisper-small"]
+        self.run_bootstrap(voice=self.voice())
+        self.assertEqual(FakeApi.state.get("downloads", []), [])
+        (router,) = self.transcription_routers()
+        self.assertEqual(router["name"], "whisper-small")
 
     def test_a_transcription_service_that_does_not_answer_does_not_hold_workstudio_back(self):
         key = self.run_bootstrap(voice=self.voice(url="http://127.0.0.1:9"))

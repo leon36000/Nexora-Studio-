@@ -13,8 +13,9 @@ then:
   kept, so restarts do not pile up keys;
 - writes an admin key as `export NEXORA_API_ADMIN_KEY=...` to `nexora-admin.env`, read by the
   WorkStudio container only, for its model settings (the admin password stays out of WorkStudio);
-- with the local transcription service (compose profile `voice`, NEXORA_WHISPER_URL set), downloads
-  its model and registers it as a transcription model (`automatic-speech-recognition` router). A
+- with the local transcription service (compose profile `voice`, NEXORA_WHISPER_URL set), checks
+  that it has its model (it fetches it itself before starting offline; asked to download only when
+  missing) and registers it as a transcription model (`automatic-speech-recognition` router). A
   service that does not answer is reported and skipped: it never holds WorkStudio back.
 Standard library only.
 """
@@ -107,6 +108,23 @@ def _call(method: str, url: str, token: str, body: dict | None = None) -> dict:
     if status not in (200, 201, 204):
         raise BootstrapError(f"{method} {url.split('/v1/', 1)[-1]} failed (HTTP {status})")
     return payload
+
+
+KEY_CREATION_ATTEMPTS = 5
+
+
+def _create_key(base_url: str, token: str, name: str, user: int) -> dict:
+    """A fresh Nexora API may not find a user created a moment ago (HTTP 404): wait and retry."""
+    for attempt in range(KEY_CREATION_ATTEMPTS):
+        status, payload = _request("POST", f"{base_url}/v1/admin/keys", token=token, body={"name": name, "user": user})
+        if status in (200, 201):
+            return payload
+        if status == 401:
+            raise SessionExpiredError("POST admin/keys failed (HTTP 401)")
+        if status != 404 or attempt == KEY_CREATION_ATTEMPTS - 1:
+            raise BootstrapError(f"POST admin/keys failed (HTTP {status})")
+        time.sleep(2 * (attempt + 1))
+    raise BootstrapError("POST admin/keys failed")
 
 
 def _find(items: list, **match) -> dict | None:
@@ -295,17 +313,34 @@ def transcription_router_name(model: str) -> str:
     return model.rsplit("/", 1)[-1].removeprefix("faster-")
 
 
+def _has_local_model(url: str, model: str) -> bool:
+    """Whether the transcription service already has the model in its volume (it lists them offline)."""
+    try:
+        status, listed = _request("GET", f"{url}/v1/models", timeout=30)
+    except OSError:
+        return False
+    return status == 200 and any(item.get("id") == model for item in listed.get("data", []) if isinstance(item, dict))
+
+
 def _sync_transcription_model(base_url: str, admin_token: str, voice: dict) -> None:
-    """Downloads the local transcription service's model, then registers it once in Nexora API."""
+    """Registers the local transcription service's model once in Nexora API.
+
+    The service fetches its model itself before it starts, then runs offline (HF_HUB_OFFLINE); the
+    bootstrap asks it to download only when the model is still missing, which an offline service
+    refuses: the error then names the missing model.
+    """
     url = voice["url"].strip().rstrip("/")
     model = voice["model"].strip()
     _wait_until_healthy(url, int(voice.get("wait_seconds", 600)), service="The transcription service")
-    try:
-        status, _ = _request("POST", f"{url}/v1/models/{model}", timeout=WHISPER_DOWNLOAD_TIMEOUT)
-    except OSError as error:
-        raise BootstrapError(f"transcription model download failed ({error})") from error
-    if status not in (200, 201):
-        raise BootstrapError(f"transcription model download failed (HTTP {status})")
+    if not _has_local_model(url, model):
+        try:
+            status, _ = _request("POST", f"{url}/v1/models/{model}", timeout=WHISPER_DOWNLOAD_TIMEOUT)
+        except OSError as error:
+            raise BootstrapError(f"transcription model download failed ({error})") from error
+        if status not in (200, 201):
+            raise BootstrapError(
+                f"transcription model {model} missing and its download failed (HTTP {status}); see `docker compose logs whisper`"
+            )
 
     api = f"{base_url}/v1/admin"
     name = transcription_router_name(model)
@@ -340,7 +375,7 @@ def ensure_admin_key(base_url: str, admin_token: str, out: Path) -> str:
     if existing and _key_still_good(base_url, existing, lambda me: "admin" in me.get("permissions", [])):
         return existing
     admin = _call("GET", f"{base_url}/v1/me", admin_token)
-    created = _call("POST", f"{base_url}/v1/admin/keys", admin_token, {"name": ADMIN_KEY_NAME, "user": admin["id"]})
+    created = _create_key(base_url, admin_token, ADMIN_KEY_NAME, admin["id"])
     if not created.get("value"):
         raise BootstrapError("Nexora API returned no admin key value")
     _write_private(out, f"export NEXORA_API_ADMIN_KEY={created['value']}\n")
@@ -406,7 +441,7 @@ def _ensure_signed_in(base_url: str, admin: str, password: str, out: Path, upstr
     if existing and _is_workstudio_key(base_url, existing):
         return existing
 
-    created = _call("POST", f"{base_url}/v1/admin/keys", session["value"], {"name": WORKSTUDIO_NAME, "user": user_id})
+    created = _create_key(base_url, session["value"], WORKSTUDIO_NAME, user_id)
     if not created.get("value"):
         raise BootstrapError("Nexora API returned no key value")
     _write_private(out, f"export VLLM_API_KEY={created['value']}\n")
