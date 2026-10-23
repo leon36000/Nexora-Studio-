@@ -298,7 +298,12 @@ export async function getServiceDetail(
 export async function getOAuthStatus(
   requestId: string,
   options: ConnectAdminOptions = {}
-): Promise<{ status: string; service: string; errorMessage: string | null }> {
+): Promise<{
+  status: string
+  service: string
+  errorMessage: string | null
+  errorCode: string | null
+}> {
   const call = createClient(options)
   const request = await call<Record<string, unknown>>(
     'GET',
@@ -308,6 +313,7 @@ export async function getOAuthStatus(
     status: text(request.status),
     service: text(request.service),
     errorMessage: textOrNull(request.errorMessage),
+    errorCode: textOrNull(request.errorCode),
   }
 }
 

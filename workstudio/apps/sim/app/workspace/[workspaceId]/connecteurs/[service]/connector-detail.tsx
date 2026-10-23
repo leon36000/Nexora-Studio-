@@ -187,7 +187,7 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
           <>
             {backLink}
             <div className={cn(RESOURCE_TILE_BASE, RESOURCE_TILE_PLAIN, '[&_img]:size-5')}>
-              <ServiceLogo name={name} iconUrl={data.service.iconUrl} />
+              <ServiceLogo name={name} />
             </div>
           </>
         }

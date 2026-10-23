@@ -110,7 +110,7 @@ export function NexoraConnectorApps({ workspaceId }: NexoraConnectorAppsProps) {
     serviceBody = (
       <div className={RESOURCE_LIST_STACK}>
         <SettingsResourceRow
-          icon={<ServiceLogo name={selected.displayName} iconUrl={selected.iconUrl} />}
+          icon={<ServiceLogo name={selected.displayName} />}
           title={selected.displayName}
           badge={
             detail.data ? (
@@ -154,7 +154,7 @@ export function NexoraConnectorApps({ workspaceId }: NexoraConnectorAppsProps) {
             {oauthServices.map((service) => (
               <SettingsResourceRow
                 key={service.service}
-                icon={<ServiceLogo name={service.displayName} iconUrl={service.iconUrl} />}
+                icon={<ServiceLogo name={service.displayName} />}
                 title={service.displayName}
                 onClick={() => selectService(service)}
                 clickLabel={t('settings.select', { name: service.displayName })}

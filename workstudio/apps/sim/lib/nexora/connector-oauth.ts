@@ -4,6 +4,7 @@ import { sleep } from '@sim/utils/helpers'
 export interface ConnectorOAuthStatus {
   status: 'initiated' | 'connected' | 'failed' | 'expired'
   errorMessage: string | null
+  errorCode: string | null
 }
 
 /** How a followed OAuth consent ended. */
@@ -36,8 +37,8 @@ const POLL_INTERVAL_MS = 2000
 const POLL_TIMEOUT_MS = 10 * 60 * 1000
 const CLOSED_GRACE_MS = 2 * 60 * 1000
 
-/** Nexora Connect's wording when another request for the same service replaced this one. */
-const SUPERSEDED_MESSAGE = /newer authorization request replaced/i
+/** Nexora Connect's code when another request for the same service replaced this one. */
+const SUPERSEDED_CODE = 'request_superseded'
 
 /**
  * Follows an OAuth consent opened in a popup: checks its status every two seconds until it is
@@ -62,11 +63,11 @@ export async function pollConnectorOAuth({
     if (signal?.aborted) return 'cancelled'
     if (now() - startedAt >= timeoutMs) return 'timeout'
 
-    const { status, errorMessage } = await fetchStatus()
+    const { status, errorCode } = await fetchStatus()
     if (signal?.aborted) return 'cancelled'
     if (status === 'connected' || status === 'expired') return status
     if (status === 'failed') {
-      return errorMessage && SUPERSEDED_MESSAGE.test(errorMessage) ? 'superseded' : 'failed'
+      return errorCode === SUPERSEDED_CODE ? 'superseded' : 'failed'
     }
 
     if (closedAt === null && isPopupClosed()) closedAt = now()

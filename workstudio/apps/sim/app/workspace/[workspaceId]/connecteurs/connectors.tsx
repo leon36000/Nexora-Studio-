@@ -92,7 +92,7 @@ export function Connectors({ workspaceId }: ConnectorsProps) {
           {services.map((service) => (
             <SettingsResourceRow
               key={service.service}
-              icon={<ServiceLogo name={service.displayName} iconUrl={service.iconUrl} />}
+              icon={<ServiceLogo name={service.displayName} />}
               title={service.displayName}
               description={t('catalog.actionCount', { count: service.actionCount })}
               badge={

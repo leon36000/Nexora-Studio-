@@ -370,6 +370,7 @@ describe('Nexora Connect catalog and setup', () => {
       status: 'connected',
       service: 'google_calendar',
       errorMessage: null,
+      errorCode: null,
     })
   })
 

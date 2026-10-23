@@ -196,12 +196,17 @@ describe('Nexora connectors routes', () => {
       status: 'connected',
       service: 'brevo',
       errorMessage: null,
+      errorCode: null,
     })
     const status = await OAUTH_STATUS(
       req('GET', `/api/nexora/connectors/oauth/r-1?workspaceId=${WS}`),
       createRouteContext({ requestId: 'r-1' })
     )
-    expect(await status.json()).toEqual({ status: 'connected', errorMessage: null })
+    expect(await status.json()).toEqual({
+      status: 'connected',
+      errorMessage: null,
+      errorCode: null,
+    })
     expect(connect.syncWorkspaceToken).toHaveBeenCalledWith(WS)
   })
 

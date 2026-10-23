@@ -23,9 +23,13 @@ export const GET = withRouteHandler(async (request: NextRequest, context: RouteC
   const access = await connectorAccess(workspaceId, 'write')
   if (access instanceof NextResponse) return access
   try {
-    const { status, errorMessage } = await getOAuthStatus(parsed.data.params.requestId)
+    const { status, errorMessage, errorCode } = await getOAuthStatus(parsed.data.params.requestId)
     if (status === 'connected') await refreshWorkspaceToken({ workspaceId, userId: access.userId })
-    return NextResponse.json({ status: STATUSES.has(status) ? status : 'failed', errorMessage })
+    return NextResponse.json({
+      status: STATUSES.has(status) ? status : 'failed',
+      errorMessage,
+      errorCode,
+    })
   } catch (error) {
     const response = connectorErrorResponse(error)
     if (response) return response

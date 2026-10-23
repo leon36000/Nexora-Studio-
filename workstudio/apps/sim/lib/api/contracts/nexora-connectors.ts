@@ -130,6 +130,8 @@ export const connectorOAuthStatusContract = defineRouteContract({
     schema: z.object({
       status: z.enum(['initiated', 'connected', 'failed', 'expired']),
       errorMessage: z.string().nullable(),
+      /** Nexora Connect's code, e.g. `request_superseded` when another request replaced this one. */
+      errorCode: z.string().nullable(),
     }),
   },
 })

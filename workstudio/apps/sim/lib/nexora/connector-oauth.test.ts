@@ -8,7 +8,7 @@ import {
   pollConnectorOAuth,
 } from '@/lib/nexora/connector-oauth'
 
-const INITIATED: ConnectorOAuthStatus = { status: 'initiated', errorMessage: null }
+const INITIATED: ConnectorOAuthStatus = { status: 'initiated', errorMessage: null, errorCode: null }
 
 /** A virtual clock: `wait` advances it instead of sleeping. */
 function harness(
@@ -39,16 +39,23 @@ function harness(
 
 describe('pollConnectorOAuth', () => {
   it('waits two seconds between checks and reports a completed consent', async () => {
-    const h = harness([INITIATED, INITIATED, { status: 'connected', errorMessage: null }])
+    const h = harness([
+      INITIATED,
+      INITIATED,
+      { status: 'connected', errorMessage: null, errorCode: null },
+    ])
     await expect(pollConnectorOAuth(h.options)).resolves.toBe('connected')
     expect(h.fetchStatus).toHaveBeenCalledTimes(3)
     expect(h.waits).toEqual([2000, 2000, 2000])
   })
 
   it('stops on a refused or an expired request', async () => {
-    const refused = harness([INITIATED, { status: 'failed', errorMessage: 'access_denied' }])
+    const refused = harness([
+      INITIATED,
+      { status: 'failed', errorMessage: 'access_denied', errorCode: 'access_denied' },
+    ])
     await expect(pollConnectorOAuth(refused.options)).resolves.toBe('failed')
-    const expired = harness([{ status: 'expired', errorMessage: null }])
+    const expired = harness([{ status: 'expired', errorMessage: null, errorCode: null }])
     await expect(pollConnectorOAuth(expired.options)).resolves.toBe('expired')
   })
 
@@ -56,7 +63,8 @@ describe('pollConnectorOAuth', () => {
     const h = harness([
       {
         status: 'failed',
-        errorMessage: 'A newer authorization request replaced this request.',
+        errorMessage: 'Une autre demande a remplacé celle-ci.',
+        errorCode: 'request_superseded',
       },
     ])
     await expect(pollConnectorOAuth(h.options)).resolves.toBe('superseded')
@@ -79,7 +87,10 @@ describe('pollConnectorOAuth', () => {
 
   it('still reports a consent that completes just after the window reports closed', async () => {
     const h = harness(
-      [(at) => (at >= 6000 ? { status: 'connected', errorMessage: null } : INITIATED)],
+      [
+        (at) =>
+          at >= 6000 ? { status: 'connected', errorMessage: null, errorCode: null } : INITIATED,
+      ],
       { isPopupClosed: () => true, closedGraceMs: 10_000 }
     )
     await expect(pollConnectorOAuth(h.options)).resolves.toBe('connected')
@@ -91,7 +102,9 @@ describe('pollConnectorOAuth', () => {
       [
         (at) => {
           if (at >= 4000) closed = true
-          return at >= 14_000 ? { status: 'connected', errorMessage: null } : INITIATED
+          return at >= 14_000
+            ? { status: 'connected', errorMessage: null, errorCode: null }
+            : INITIATED
         },
       ],
       { isPopupClosed: () => closed, closedGraceMs: 10_000 }
