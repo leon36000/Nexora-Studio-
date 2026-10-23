@@ -72,6 +72,27 @@ def text_png(text: str, scale: int = 14) -> bytes:
             + chunk(b"IDAT", zlib.compress(b"".join(rows), 9)) + chunk(b"IEND", b""))
 
 
+def text_pdf(lines: list[str]) -> bytes:
+    """One-page PDF with a real text layer (ASCII lines, Helvetica)."""
+    escape = lambda line: line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    stream = "BT /F1 12 Tf 72 760 Td 16 TL " + " ".join(f"({escape(line)}) Tj T*" for line in lines) + " ET"
+    objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        f"<< /Length {len(stream)} >>\nstream\n{stream}\nendstream",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    ]
+    out, offsets = "%PDF-1.4\n", []
+    for number, body in enumerate(objects, 1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n{body}\nendobj\n"
+    xref = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n" + "".join(f"{o:010d} 00000 n \n" for o in offsets)
+    out += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n"
+    return out.encode("latin-1")
+
+
 class _LocalSecureCookies(http.cookiejar.DefaultCookiePolicy):
     def return_ok_secure(self, cookie, request):
         return True
@@ -283,12 +304,25 @@ def main() -> int:
             require(status == 201, f"answer storage returned HTTP {status}")
             _, detail = s.call("GET", path)
             require([m["role"] for m in detail.get("messages", [])] == ["user", "assistant"], f"history not kept: {str(detail)[:200]}")
+            pdf = text_pdf(["Conditions de livraison", "La livraison est offerte a partir de 80 euros d'achat.",
+                            "En dessous, elle coute 6 euros."])
+            status, text = s.call("POST", f"/api/chat/{agent['chatIdentifier']}", {
+                "input": "D'après le document joint, à partir de quel montant la livraison est-elle offerte ?",
+                "conversationId": conversation,
+                "files": [{"name": "conditions-livraison.pdf", "type": "application/pdf", "size": len(pdf),
+                           "data": "data:application/pdf;base64," + base64.b64encode(pdf).decode()}],
+            }, raw=True, timeout=600)
+            require(status == 200 and '"event":"error"' not in text, f"chat with a PDF returned HTTP {status}: {text[:300]}")
+            pdf_answer = "".join(
+                str(json.loads(line[5:]).get("chunk", "")) for line in text.splitlines()
+                if line.startswith("data:") and line[5:].strip().startswith("{"))
+            require("80" in pdf_answer, f"the answer ignores the attached PDF: {pdf_answer[:300]}")
             status, _ = Smoke(args.url, args.origin).call("POST", f"/api/chat/{agent['chatIdentifier']}", {"input": question}, raw=True)
             require(status in (401, 403), f"members-only chat answered an anonymous visitor (HTTP {status})")
             admin_organization()
             status, _ = admin.call("GET", path)
             require(status == 404, f"another member reads the conversation (HTTP {status})")
-            return f"« {agent['name']} » répond en flux ({len(answer)} caractères), historique relu, cloisonné"
+            return f"« {agent['name']} » répond en flux ({len(answer)} caractères), lit un PDF joint, historique relu, cloisonné"
         finally:
             s.call("DELETE", path)
 

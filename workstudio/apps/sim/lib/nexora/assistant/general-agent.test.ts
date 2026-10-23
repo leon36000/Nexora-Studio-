@@ -8,7 +8,8 @@
  * - its chat shows something other than the Agent block's answer;
  * - a publishing failure passes silently, or leaves the creation lock held;
  * - the creation is audited without the acting member, or for a no-op;
- * - a workspace the caller has no access to gets an assistant.
+ * - a workspace the caller has no access to gets an assistant;
+ * - an assistant published before agents read attached files keeps ignoring them.
  */
 
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
@@ -201,6 +202,13 @@ describe('ensureGeneralAssistantAgent', () => {
       workflow: [{ id: 'general-workflow', isDeployed: true }],
       chat: [{ id: 'general-chat', identifier: 'assistant-1a2b3c4d', isActive: true }],
     })
+    queueTableRows(schemaMock.workflowBlocks, [
+      {
+        id: 'agent-block',
+        subBlocks: { files: { id: 'files', type: 'short-input', value: '<start.files>' } },
+        data: { canonicalModes: { files: 'advanced' } },
+      },
+    ])
 
     const result = await ensure()
 
@@ -216,6 +224,43 @@ describe('ensureGeneralAssistantAgent', () => {
     expect(deployChat).not.toHaveBeenCalled()
     expect(acquireLock).not.toHaveBeenCalled()
     expect(recordAudit).not.toHaveBeenCalled()
+  })
+
+  it('upgrades an assistant published before agents read attached files, then republishes it', async () => {
+    const published = {
+      folder: [{ id: 'folder-agents' }],
+      workflow: [{ id: 'general-workflow', isDeployed: true }],
+      chat: [{ id: 'general-chat', identifier: 'assistant-1a2b3c4d', isActive: true }],
+    }
+    const legacyBlock = {
+      id: 'agent-block',
+      subBlocks: { model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' } },
+      data: { canonicalModes: { tools: 'basic' } },
+    }
+    queueLookup(published)
+    queueTableRows(schemaMock.workflowBlocks, [legacyBlock])
+    queueLookup(published)
+    queueTableRows(schemaMock.workflowBlocks, [legacyBlock])
+
+    const result = await ensure()
+
+    expect(dbChainMockFns.update).toHaveBeenCalledWith(schemaMock.workflowBlocks)
+    const [stored] = dbChainMockFns.set.mock.calls.map(([values]) => values)
+    expect(stored.subBlocks).toEqual({
+      model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' },
+      files: { id: 'files', type: 'short-input', value: '<start.files>' },
+    })
+    expect(stored.data).toEqual({ canonicalModes: { tools: 'basic', files: 'advanced' } })
+    expect(deployChat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowId: 'general-workflow',
+        identifier: 'assistant-1a2b3c4d',
+        authType: 'workspace',
+        outputConfigs: [{ blockId: 'agent-block', path: 'content' }],
+      })
+    )
+    expect(result).toMatchObject({ createdWorkflow: false, publishedChat: true })
+    expect(releaseLock).toHaveBeenCalledTimes(1)
   })
 
   it('publishes an existing unpublished assistant instead of creating a second one', async () => {

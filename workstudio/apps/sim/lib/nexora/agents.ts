@@ -173,6 +173,23 @@ function withFileReference(block: AgentBlock): AgentBlock {
 }
 
 /**
+ * A stored Agent block made to read the files attached to the chat message, for agents saved
+ * before they did; `null` when it already reads them.
+ */
+export function withMessageFiles(block: {
+  subBlocks: unknown
+  data: unknown
+}): { subBlocks: Record<string, unknown>; data: Record<string, unknown> } | null {
+  const subBlocks = toRecord(block.subBlocks)
+  if (toRecord(subBlocks.files).value === MESSAGE_FILES) return null
+  const data = toRecord(block.data)
+  return {
+    subBlocks: { ...subBlocks, files: { id: 'files', type: 'short-input', value: MESSAGE_FILES } },
+    data: { ...data, canonicalModes: { ...toRecord(data.canonicalModes), files: 'advanced' } },
+  }
+}
+
+/**
  * The workflow an agent is: Start → Agent, in the shape the importer reads. Start is the unified
  * entry point: a deployed chat sends its message as `<start.input>`. Rewriting a `previous` state
  * that is still in the agent shape starts from it and replaces only what the form owns (messages,

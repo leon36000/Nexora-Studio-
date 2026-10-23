@@ -16,7 +16,7 @@ import type { WorkspaceUseCaseAuditEntry } from '@/lib/core/application/authoriz
 import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authorized-workspace-use-case'
 import { acquireLock, releaseLock } from '@/lib/core/config/redis'
 import { createFolder } from '@/lib/folders/orchestration'
-import { AGENTS_FOLDER, buildAgentWorkflow } from '@/lib/nexora/agents'
+import { AGENTS_FOLDER, buildAgentWorkflow, withMessageFiles } from '@/lib/nexora/agents'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
 import { importWorkflowIntoWorkspaceTransition } from '@/lib/workflows/operations/import-workflow'
 import { performChatDeploy } from '@/lib/workflows/orchestration'
@@ -123,13 +123,29 @@ async function listKnowledgeBaseIds(workspaceId: string): Promise<string[]> {
   return rows.map((row) => row.id)
 }
 
+interface StoredAgentBlock {
+  id: string
+  subBlocks: unknown
+  data: unknown
+}
+
 /** The Agent block of an existing assistant, when it has exactly one (else the chat keeps its outputs). */
-async function findAgentBlockId(workflowId: string): Promise<string | null> {
+async function findAgentBlock(workflowId: string): Promise<StoredAgentBlock | null> {
   const rows = await db
-    .select({ id: workflowBlocks.id })
+    .select({
+      id: workflowBlocks.id,
+      subBlocks: workflowBlocks.subBlocks,
+      data: workflowBlocks.data,
+    })
     .from(workflowBlocks)
     .where(and(eq(workflowBlocks.workflowId, workflowId), eq(workflowBlocks.type, 'agent')))
-  return rows.length === 1 ? (rows[0]?.id ?? null) : null
+  return rows.length === 1 ? (rows[0] ?? null) : null
+}
+
+/** An assistant created before agents read the files attached to a message must be upgraded. */
+async function readsMessageFiles(workflowId: string): Promise<boolean> {
+  const block = await findAgentBlock(workflowId)
+  return !block || withMessageFiles(block) === null
 }
 
 async function ensureAgentsFolder(
@@ -201,7 +217,7 @@ async function ensureGeneralAssistant(params: {
 }): Promise<GeneralAssistant | null> {
   const { workspaceId, userId } = params
   const ready = publishedAssistant(await readGeneralAssistantState(workspaceId))
-  if (ready) return ready
+  if (ready && (await readsMessageFiles(ready.workflowId))) return ready
 
   const lockKey = `nexora:general-assistant:${workspaceId}`
   const lockValue = generateId()
@@ -212,13 +228,23 @@ async function ensureGeneralAssistant(params: {
 
   try {
     const state = await readGeneralAssistantState(workspaceId)
+    const agentBlock = state.workflow ? await findAgentBlock(state.workflow.id) : null
+    const upgrade = agentBlock ? withMessageFiles(agentBlock) : null
     const published = publishedAssistant(state)
-    if (published) return published
+    if (published && !upgrade) return published
+
+    if (agentBlock && upgrade) {
+      // The redeploy below publishes the upgraded draft.
+      await db
+        .update(workflowBlocks)
+        .set({ subBlocks: upgrade.subBlocks, data: upgrade.data, updatedAt: new Date() })
+        .where(eq(workflowBlocks.id, agentBlock.id))
+    }
 
     const requestId = generateId()
     const folderId = await ensureAgentsFolder(workspaceId, userId, state.folderId)
     const { workflowId, agentBlockId } = state.workflow
-      ? { workflowId: state.workflow.id, agentBlockId: await findAgentBlockId(state.workflow.id) }
+      ? { workflowId: state.workflow.id, agentBlockId: agentBlock?.id ?? null }
       : await createAssistantWorkflow({ workspaceId, userId, folderId, requestId })
 
     const identifier = state.chat?.identifier ?? `assistant-${generateRandomHex(8)}`
