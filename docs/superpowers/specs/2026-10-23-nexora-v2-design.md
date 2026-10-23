@@ -120,6 +120,30 @@ Questions soulevées par un relecteur chargé de planifier ; tranchées par l'ar
 
 Points que l'exécutant tranche sans revenir à l'architecte (constatés par le relecteur) : reranking désactivé proprement (Nexora API ne reranke que via TEI/vLLM/Albert) ; renommer l'organisation d'instance ne change que le nom affiché (le slug la retrouve) ; l'Accueil remplace la page `/home` actuelle (chat d'origine masqué) ; la carte « Assistant » est masquée jusqu'à J6, comme « Capturer » jusqu'à J10.
 
+## 8ter. J2 — conception détaillée (23/10/2026, architecte)
+
+Précise la section 6 et 8bis.4 ; ces décisions priment.
+
+**Modèle par défaut = alias (8bis.4 confirmé).** Nexora API ne renvoie jamais la clé d'un fournisseur : on ne peut donc pas « recopier » un fournisseur dans `nexora-default`. Chaque modèle est un routeur nommé d'après son modèle (ex. `qwen2.5:7b`, `mistral-small-latest`) ; le modèle par défaut est celui qui porte l'**alias** `nexora-default`. « Définir par défaut » retire l'alias de l'ancien routeur puis l'ajoute au nouveau (en cas d'échec du second appel, l'alias est rendu à l'ancien). Les requêtes adressées à `nexora-default` (blocs, wand, modèles PME) suivent ; un bloc fixé sur un modèle précis ne bouge pas.
+
+**Migration à l'amorçage.** Nexora API crée au premier démarrage un routeur *nommé* `nexora-default` (config.yml). À chaque exécution, l'amorçage renomme un routeur nommé `nexora-default` d'après le `model_name` de son fournisseur (suffixe ` (2)`, ` (3)`… si le nom est pris) et lui donne l'alias `nexora-default`. Le reste du code ne connaît que l'alias.
+
+**`deploy/.env` contre l'interface.** L'amorçage applique `NEXORA_UPSTREAM_*` au routeur qui porte l'alias seulement lorsque ces valeurs **changent** (empreinte différente de `upstream.sha256`) ; empreinte identique : il ne touche à rien, pour respecter un choix fait dans l'interface. Pas d'empreinte enregistrée et fournisseur conforme : l'empreinte est enregistrée sans modification.
+
+**Liste des modèles dans les blocs.** `/v1/models` donne le nom de chaque routeur et ses alias ; la liste de WorkStudio inclut aussi les alias, pour que `nexora-default` reste proposé.
+
+**Modèles supplémentaires.** Ajouter un modèle = un routeur `text-generation` + un fournisseur `openai` : Ollama fourni (`http://ollama:11434`, clé `none`), Mistral AI (`https://api.mistral.ai` + clé) ou service compatible OpenAI (adresse sans `/v1`, modèle, clé facultative). Nexora API vérifie que le fournisseur répond avant de l'enregistrer : son refus est montré en français (« le service ne répond pas »). Le routeur créé reçoit ensuite des limites illimitées dans le rôle `workstudio` (une limite absente bloquerait la clé de WorkStudio). Les paramètres du catalogue (milliards) renseignent `model_total_params`, pour l'empreinte carbone (J8).
+
+**Accès administrateur à Nexora API.** L'amorçage crée une **clé d'administration dédiée** (`nexora-workstudio-admin`, détenue par l'administrateur de Nexora API) et l'écrit dans `/bootstrap/nexora-admin.env` (`NEXORA_API_ADMIN_KEY`), lu par le seul conteneur WorkStudio ; le mot de passe administrateur n'entre jamais dans WorkStudio. Clé invalide ou révoquée : l'amorçage en crée une nouvelle.
+
+**Modèles locaux (Ollama).** WorkStudio parle à l'Ollama fourni (`OLLAMA_URL`) : modèles présents (`/api/tags`), téléchargement avec progression (`/api/pull`, relayé en flux), suppression du fichier quand on retire un modèle local qu'aucun autre routeur n'utilise (jamais `bge-m3`). Les threads sont limités comme dans l'installateur (`num_thread` = moitié des cœurs) en créant le modèle au téléchargement. Catalogue recommandé (constante versionnée), avec taille disque, mémoire conseillée et paramètres : `qwen2.5:3b`, `qwen2.5:7b`, `qwen2.5:14b`, `mistral:7b`, `mistral-nemo:12b`, `llama3.1:8b`, `gemma2:9b`. Saisie libre d'un autre nom possible.
+
+**Écran Réglages › Modèles** (organisation, admins de l'organisation d'instance) : tableau (nom, source, défaut, consommation du mois) ; actions : **Ajouter** (assistant : source → modèle → confirmation), **Tester** (une question courte, temps de réponse affiché), **Définir par défaut**, **Retirer** (refusé pour le modèle par défaut). Tout en français, conventions `add-settings-page`.
+
+**Embeddings dans l'interface : reportés.** Le modèle d'embeddings reste réglé par `NEXORA_EMBED_MODEL` (Ollama direct) ; le choisir à chaud demande la réindexation des bases, prévue avec J10. La partie « définir un modèle d'embeddings » du « Terminé quand » de la section 6 passe à J10.
+
+**Terminé quand** (remplace celui de la section 6) : sur pc6, depuis l'interface, ajouter un modèle Ollama (téléchargement visible), le tester, l'utiliser dans un bloc Agent, le définir par défaut puis revenir au précédent ; ajouter un modèle « compatible OpenAI » ; `nexora restart` ne défait pas ces choix ; tests (amorçage, client d'administration, routes) et contrôle de fumée « Modèles » (liste, ajout compatible OpenAI, test, défaut aller-retour, suppression).
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
