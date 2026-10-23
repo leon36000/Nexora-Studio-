@@ -7,6 +7,8 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Installation](installation.md) | Responsable informatique | Prérequis, installation en une commande, choix du modèle, premier compte, mise à jour, sauvegarde |
 | [Connexion unique (SSO)](sso.md) | Responsable informatique | Brancher Keycloak, Microsoft Entra ID, Google Workspace ou tout fournisseur OpenID Connect |
 | [Prise en main](prise-en-main.md) | Tous les utilisateurs | Les modèles PME, votre premier workflow, Nexora Connect, la consommation |
+| [Les agents](agents.md) | Tous les utilisateurs | Créer un agent par formulaire, le tester, le publier, ses versions |
+| [Le Playground](playground.md) | Tous les utilisateurs | Essayer et comparer les modèles |
 | [Les modèles](modeles.md) | Administrateurs | Modèle par défaut, ajouter un modèle local, Mistral AI ou compatible OpenAI, tester, retirer |
 | [Nexora API](nexora-api.md) | Développeurs | L'API de modèles compatible OpenAI : clés, consommation, configuration |
 | [Les workflows](workflows.md) | Tous les utilisateurs | Créer, tester, déployer (API, chat, MCP, déclencheurs) |
