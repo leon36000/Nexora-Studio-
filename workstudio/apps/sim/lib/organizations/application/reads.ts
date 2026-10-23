@@ -10,6 +10,7 @@ import type { OperationUseCase } from '@/lib/core/application/operation'
 import { authorizeOrganizationOperation } from '@/lib/core/application/organization-authorization'
 import { PrincipalKindAuthorizationError } from '@/lib/core/application/workspace-authorization'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
+import { withoutNexoraMetadata } from '@/lib/nexora/organization-metadata'
 import { organizationOperations } from '@/lib/organizations/application/operations'
 import {
   type OrganizationMemberPageInput,
@@ -102,6 +103,7 @@ export const getOrganization = defineAuthorizedOrganizationUseCase({
         : null
     return {
       ...organization,
+      metadata: withoutNexoraMetadata(organization.metadata),
       role: context.role,
       hasAdminAccess,
       ...(seats ? { seats } : {}),

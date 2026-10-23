@@ -17,9 +17,19 @@ import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
 
 export const dynamic = 'force-dynamic'
 
-function present(stored: StoredInstanceSettings) {
+/**
+ * Single sign-on decides who can become whom: an identity provider that asserts a verified
+ * address can sign in as that account. Only the owner, who already holds the instance, sets it;
+ * admins see it read-only.
+ */
+function canEditSso(role: string): boolean {
+  return role === 'owner'
+}
+
+function present(stored: StoredInstanceSettings, role: string) {
   return NextResponse.json({
     ...publicSettings(stored, settingsEnvironment()),
+    canEditSso: canEditSso(role),
     redirectUri: `${getBaseUrl()}/api/auth/oauth2/callback/${NEXORA_OIDC_PROVIDER_ID}`,
   })
 }
@@ -37,7 +47,7 @@ export const GET = withRouteHandler(async (_request: NextRequest) => {
   const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
   const stored = await readInstanceSettings()
-  return stored ? present(stored) : unavailable()
+  return stored ? present(stored, access.role) : unavailable()
 })
 
 export const PUT = withRouteHandler(async (request: NextRequest) => {
@@ -56,11 +66,14 @@ export const PUT = withRouteHandler(async (request: NextRequest) => {
   ) {
     return NextResponse.json({ error: 'env-override' }, { status: 409 })
   }
+  if (change.sso !== undefined && !canEditSso(access.role)) {
+    return NextResponse.json({ error: 'owner-only' }, { status: 403 })
+  }
 
   const next = await saveInstanceSettings(change, {
     userId: access.userId,
     organizationId: access.organizationId,
     request,
   })
-  return next ? present(next) : unavailable()
+  return next ? present(next, access.role) : unavailable()
 })

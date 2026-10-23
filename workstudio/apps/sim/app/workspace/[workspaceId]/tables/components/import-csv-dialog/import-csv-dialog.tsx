@@ -378,6 +378,7 @@ export function ImportCsvDialog({
             disabled={parsing}
             onChange={handleFilesSelected}
             label={parsing ? t('parsing') : t('dropzone')}
+            draggingLabel={t('dropHere')}
             description={t('dropzoneDescription')}
             error={parseError ?? undefined}
           />

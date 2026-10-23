@@ -42,10 +42,13 @@ const assistantConversationSchema = z.object({
 
 const assistantMessageRoleSchema = z.enum(['user', 'assistant'])
 
+/**
+ * What the conversation shows of an attached file. The file itself goes to the agent with the
+ * question and is not kept by the Assistant, so no storage key is accepted or returned (unknown
+ * fields, such as a page-sent `key`, are dropped).
+ */
 const assistantMessageFileSchema = z.object({
   name: z.string().min(1, 'File name is required').max(255, 'File name is too long'),
-  /** Storage key of the uploaded file. */
-  key: z.string().min(1, 'File key is required').max(1024, 'File key is too long'),
   type: z.string().max(255, 'File type is too long'),
   size: z.number().int().min(0, 'File size cannot be negative'),
 })

@@ -316,7 +316,6 @@
   "apps/sim/app/workspace/[workspaceId]/components/index.ts#reportBulkOutcome",
   "apps/sim/app/workspace/[workspaceId]/components/index.ts#resourceListState",
   "apps/sim/app/workspace/[workspaceId]/components/index.ts#selectionLabel",
-  "apps/sim/app/workspace/[workspaceId]/components/index.ts#timeCell",
   "apps/sim/app/workspace/[workspaceId]/components/index.ts#useResourceRowSelection",
   "apps/sim/app/workspace/[workspaceId]/components/invite-modal/invite-modal.tsx#buildInviteFailureMessage",
   "apps/sim/app/workspace/[workspaceId]/components/resource/components/action-bar/index.ts#ResourceActionBarProps",

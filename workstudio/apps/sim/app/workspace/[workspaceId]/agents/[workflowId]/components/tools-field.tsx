@@ -166,6 +166,7 @@ export function ToolsField({
         overlayLabel={t('add')}
         placeholder={t('add')}
         emptyMessage={t('none')}
+        searchPlaceholder={t('search')}
         isLoading={mcpLoading || workflowsLoading}
         searchable
         disabled={disabled}

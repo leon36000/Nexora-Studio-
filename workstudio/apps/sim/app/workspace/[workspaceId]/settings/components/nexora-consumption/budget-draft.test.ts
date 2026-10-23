@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { ApiClientError } from '@/lib/api/client/errors'
 import {
   type BudgetDraft,
   budgetAlerts,
   budgetChange,
   budgetLevel,
+  budgetSaveErrorKey,
   draftFromBudgets,
   parseTokenCap,
 } from '@/app/workspace/[workspaceId]/settings/components/nexora-consumption/budget-draft'
@@ -121,5 +123,19 @@ describe('budgetChange', () => {
     for (const threshold of ['0', '4', '101', '80,5', '']) {
       expect(edit((draft) => ({ ...draft, threshold }))).toBe('invalid')
     }
+  })
+})
+
+describe('budgetSaveErrorKey', () => {
+  const failure = (status: number) =>
+    new ApiClientError({ status, message: 'Unknown workspace: ws-9', body: {} })
+
+  it('words every refusal of the save in French instead of echoing the server', () => {
+    expect(budgetSaveErrorKey(failure(400))).toBe('invalid')
+    expect(budgetSaveErrorKey(failure(401))).toBe('forbidden')
+    expect(budgetSaveErrorKey(failure(403))).toBe('forbidden')
+    expect(budgetSaveErrorKey(failure(404))).toBe('unavailable')
+    expect(budgetSaveErrorKey(failure(500))).toBe('unknown')
+    expect(budgetSaveErrorKey(new TypeError('Failed to fetch'))).toBe('unknown')
   })
 })

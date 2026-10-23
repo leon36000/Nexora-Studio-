@@ -133,7 +133,6 @@ import {
   isGoogleAuthDisabled,
   isHosted,
   isMicrosoftAuthDisabled,
-  isNexoraOidcRequired,
   isOrganizationsEnabled,
   isRegistrationDisabled,
   isSignupMxValidationEnabled,
@@ -155,13 +154,10 @@ import { validateSignupEmailMx } from '@/lib/messaging/email/validation.server'
 import { isEmailVerificationEffectivelyEnabled } from '@/lib/messaging/email/verification'
 import { scheduleLifecycleEmail } from '@/lib/messaging/lifecycle'
 import { APP_ENTRY_PATH } from '@/lib/navigation/paths'
-import {
-  isNexoraSignUpAllowed,
-  isPasswordSignInAllowed,
-  organizationRoleOfEmail,
-} from '@/lib/nexora/auth-policy'
-import { NEXORA_SIGN_UP_REFUSED, NEXORA_SSO_REQUIRED } from '@/lib/nexora/auth-refusals'
+import { isNexoraSignUpAllowed } from '@/lib/nexora/auth-policy'
+import { NEXORA_SIGN_UP_REFUSED } from '@/lib/nexora/auth-refusals'
 import { buildNexoraOidcProvider } from '@/lib/nexora/oidc'
+import { assertNexoraOidcLinkAllowed } from '@/lib/nexora/oidc-link'
 import { clearRecordedRevocation } from '@/lib/oauth/credential-service'
 import {
   getMicrosoftRefreshTokenExpiry,
@@ -231,8 +227,10 @@ const additionalTrustedOrigins = parseOriginList(env.TRUSTED_ORIGINS, (value) =>
  */
 /**
  * Nexora edition: the company's OpenID Connect provider, from `NEXORA_OIDC_*`. Not in
- * `trustedProviders`: it links to an existing account only when it asserts a verified email,
- * and email/password sign-up is closed while it is configured (see `isEmailSignupDisabled`).
+ * `trustedProviders`: it links to an existing account only when it asserts a verified email, and
+ * then only within the limits of `assertNexoraOidcLinkAllowed` (never an owner or admin, else an
+ * allowed domain); email/password sign-up is closed while it is configured
+ * (see `isEmailSignupDisabled`).
  */
 const nexoraOidcProvider = buildNexoraOidcProvider(env, {
   registrationDisabled: isRegistrationDisabled,
@@ -509,6 +507,10 @@ export const auth = betterAuth({
       create: {
         before: async (account, context) => {
           const modifiedAccount = { ...account }
+
+          // Nexora edition: the company identity provider may be set in Réglages, so its
+          // verified-email claim alone never takes over an owner's or admin's account.
+          await assertNexoraOidcLinkAllowed(account, { loadOAuthState: () => getOAuthState() })
 
           if (context?.path.startsWith('/oauth2/callback/')) {
             try {
@@ -1150,12 +1152,9 @@ export const auth = betterAuth({
             throw new APIError('FORBIDDEN', { message: NEXORA_SIGN_UP_REFUSED })
           }
 
-          if (isNexoraOidcRequired && requestEmail && ctx.path.startsWith('/sign-in/email')) {
-            const role = await organizationRoleOfEmail(requestEmail)
-            if (!isPasswordSignInAllowed({ ssoRequired: true, role })) {
-              throw new APIError('FORBIDDEN', { message: NEXORA_SSO_REQUIRED })
-            }
-          }
+          // Nexora « connexion obligatoire » is enforced when the session is created
+          // (`prepareSessionForCreation`), after the password is checked: refusing here, before
+          // it, would tell a member's address from an admin's to anyone typing a wrong password.
 
           // Blocked emails/domains gate both signup and sign-in. OAuth/SSO sign-ins
           // have no email in the body here; the session.create.before hook covers them.

@@ -6,6 +6,7 @@ import {
   diffAgentConfigs,
   diffAgentVersions,
   hasUnsavedAgentChanges,
+  persistedAgentConfig,
   readAgentWorkflow,
 } from '@/lib/nexora/agents'
 import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
@@ -210,5 +211,157 @@ describe('agent workflows', () => {
     expect(hasUnsavedAgentChanges(base, { ...base, welcomeMessage: 'Salut' })).toBe(false)
     expect(hasUnsavedAgentChanges(base, { ...base, name: 'Autre ' })).toBe(true)
     expect(hasUnsavedAgentChanges(base, { ...base, memory: true })).toBe(true)
+  })
+})
+
+/**
+ * What PostgreSQL hands back for a `jsonb` column: object keys reordered (shorter first, then
+ * byte order), `undefined` properties gone. Sub-block values are stored that way.
+ */
+function asStoredJsonb(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(asStoredJsonb)
+  if (value === null || typeof value !== 'object') return value
+  const entries = Object.entries(value).filter(([, entry]) => entry !== undefined)
+  entries.sort(([a], [b]) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0))
+  return Object.fromEntries(entries.map(([key, entry]) => [key, asStoredJsonb(entry)]))
+}
+
+/** The draft as `GET /api/workflows/[id]` returns it after `PUT /state` wrote `written`. */
+function storedAfterWrite(written: AgentState): AgentState {
+  const blocks = Object.fromEntries(
+    Object.entries(written.blocks).map(([id, block]) => [
+      id,
+      { ...block, subBlocks: asStoredJsonb(block.subBlocks) as typeof block.subBlocks },
+    ])
+  )
+  return { ...written, blocks }
+}
+
+/** An MCP tool exactly as the agent form's tool picker builds it (Nexora Connect). */
+const pickedMcpTool = {
+  type: 'mcp',
+  title: 'search_actions',
+  toolId: 'mcp-srv-1-search_actions',
+  params: {
+    serverId: 'mcp-srv-1',
+    serverUrl: 'http://connect.example.invalid/mcp',
+    toolName: 'search_actions',
+    serverName: 'Nexora Connect',
+  },
+  isExpanded: true,
+  usageControl: 'auto' as const,
+  schema: {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'Texte recherché.' },
+      service: { type: 'string', description: 'Service du fournisseur.' },
+      limit: {
+        type: 'integer',
+        description: 'Nombre maximal.',
+        minimum: 1,
+        maximum: 50,
+        default: 10,
+      },
+    },
+    description: 'Recherche des actions du catalogue.',
+  },
+}
+
+/** The agent block's tools as the pc6 database held them after the form saved `pickedMcpTool`. */
+const storedToolsFixture = [
+  {
+    type: 'mcp',
+    title: 'search_actions',
+    params: {
+      serverId: 'mcp-srv-1',
+      toolName: 'search_actions',
+      serverUrl: 'http://connect.example.invalid/mcp',
+      serverName: 'Nexora Connect',
+    },
+    schema: {
+      type: 'object',
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      properties: {
+        limit: {
+          type: 'integer',
+          default: 10,
+          maximum: 50,
+          minimum: 1,
+          description: 'Nombre maximal.',
+        },
+        query: { type: 'string', description: 'Texte recherché.' },
+        service: { type: 'string', description: 'Service du fournisseur.' },
+      },
+      description: 'Recherche des actions du catalogue.',
+    },
+    toolId: 'mcp-srv-1-search_actions',
+    isExpanded: true,
+    usageControl: 'auto',
+  },
+  {
+    type: 'knowledge',
+    title: 'Knowledge',
+    params: { knowledgeBaseSelector: 'kb-1' },
+    toolId: 'knowledge_search',
+    operation: 'search',
+    isExpanded: false,
+    usageControl: 'auto',
+  },
+]
+
+describe('saving an agent over what the database stores', () => {
+  const configured: AgentConfig = {
+    ...base,
+    memory: true,
+    tools: [pickedMcpTool],
+    knowledgeBaseIds: ['kb-1'],
+  }
+
+  it('reads the stored state back as the configuration that produced it', () => {
+    const stored = storedAfterWrite(buildAgentWorkflow(configured))
+    expect(agentBlock(stored).subBlocks.tools.value).toEqual(storedToolsFixture)
+    expect(JSON.stringify(agentBlock(stored).subBlocks.tools.value)).toBe(
+      JSON.stringify(storedToolsFixture)
+    )
+    expect(agentChangedSince(configured, stored)).toBe(false)
+    expect(hasUnsavedAgentChanges(readOrFail(stored), configured)).toBe(false)
+  })
+
+  it('takes the configuration actually written as the next baseline', () => {
+    const written = buildAgentWorkflow(configured)
+    const persisted = persistedAgentConfig(configured, written)
+    expect(persisted).toEqual(configured)
+    expect(agentChangedSince(persisted, storedAfterWrite(written))).toBe(false)
+  })
+
+  it('publishes an edit after save, test and publish without calling it a change made elsewhere', () => {
+    let stored = storedAfterWrite(buildAgentWorkflow({ ...base, memory: true }))
+    const save = (baseline: AgentConfig, config: AgentConfig): AgentConfig => {
+      if (agentChangedSince(baseline, stored)) throw new Error('changed elsewhere')
+      const written = buildAgentWorkflow(config, stored)
+      stored = storedAfterWrite(written)
+      return persistedAgentConfig(config, written)
+    }
+
+    let saved = readOrFail(stored)
+    saved = save(saved, configured)
+    // « Tester » then « Publier »: nothing left to save.
+    expect(hasUnsavedAgentChanges(saved, configured)).toBe(false)
+
+    const edited = { ...configured, instructions: `${configured.instructions} Soyez bref.` }
+    expect(hasUnsavedAgentChanges(saved, edited)).toBe(true)
+    saved = save(saved, edited)
+    expect(readOrFail(stored).instructions).toBe(edited.instructions)
+    expect(hasUnsavedAgentChanges(saved, edited)).toBe(false)
+  })
+
+  it('still refuses when the stored instructions really changed elsewhere', () => {
+    const written = buildAgentWorkflow(configured)
+    const baseline = persistedAgentConfig(configured, written)
+    const elsewhere = storedAfterWrite(
+      buildAgentWorkflow({ ...configured, instructions: 'Tutoyez.' }, written)
+    )
+    expect(agentChangedSince(baseline, elsewhere)).toBe(true)
   })
 })

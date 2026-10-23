@@ -1799,7 +1799,10 @@
       "not-supervised": "WorkStudio is not running under Docker: restart it yourself.",
       "unavailable": "Instance settings are unavailable right now.",
       "invalid": "Check the values you entered.",
-      "unknown": "The operation failed. Try again."
+      "unknown": "The operation failed. Try again.",
+      "restart-in-progress": "WorkStudio is already restarting: wait a few seconds.",
+      "nothing-pending": "No saved setting is waiting to be applied.",
+      "owner-only": "Only the instance owner can change single sign-on."
     },
     "apply": {
       "action": "Apply",
@@ -1833,7 +1836,8 @@
       "requiredHint": "Members can no longer sign in with a password; owners and admins keep it as a fallback.",
       "redirectUri": "Redirect URL to register with the provider",
       "copyRedirectUri": "Copy the redirect URL",
-      "incomplete": "Fill in the issuer, client ID, secret and button name."
+      "incomplete": "Fill in the issuer, client ID, secret and button name.",
+      "ownerOnly": "Only the instance owner can change single sign-on: it decides who can sign in as which account."
     },
     "test": {
       "action": "Test the configuration",
@@ -1886,7 +1890,8 @@
     "testMessage": {
       "subject": "Nexora WorkStudio: test email",
       "text": "Hello,\n\nThis email confirms that Nexora WorkStudio can send messages with the configured SMTP server.\n\nNo action is needed."
-    }
+    },
+    "resendTakesPrecedence": "A Resend key (RESEND_API_KEY) is set in deploy/.env: email goes through Resend, and this SMTP server is only a fallback."
   },
   "accessGroups": {
     "adminsOnly": "Organization admins only.",

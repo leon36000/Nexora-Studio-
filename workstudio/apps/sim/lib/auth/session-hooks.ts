@@ -7,8 +7,29 @@ import { getAccessControlConfig, isEmailBlockedByAccessControl } from '@/lib/aut
 import { getAuthDatabase } from '@/lib/auth/database-context'
 import { clampExpiryForSession } from '@/lib/auth/session-policy'
 import { assertSsoRequirementSatisfied, satisfiesSsoRequirement } from '@/lib/auth/sso-policy'
+import { isNexoraOidcRequired } from '@/lib/core/config/env-flags'
+import { isPasswordSignInAllowed } from '@/lib/nexora/auth-policy'
+import { NEXORA_SSO_REQUIRED } from '@/lib/nexora/auth-refusals'
+import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
 
 const logger = createLogger('SessionHooks')
+
+const NEXORA_OIDC_CALLBACK_PATH = `/oauth2/callback/${NEXORA_OIDC_PROVIDER_ID}`
+
+/**
+ * Nexora edition, « connexion obligatoire »: a member's session comes from the company identity
+ * provider (or derives from one already open); owners and admins keep their password as a
+ * fallback. Checked here, once the credentials are verified, so every password path is covered
+ * (sign-in, sign-up's automatic sign-in, e-mail verification) and a wrong password gets the same
+ * answer whatever the account's role.
+ */
+function assertNexoraSsoRequirementSatisfied(role: string | null, path: string | undefined) {
+  if (!isNexoraOidcRequired) return
+  if (path === NEXORA_OIDC_CALLBACK_PATH || satisfiesSsoRequirement(path)) return
+  if (isPasswordSignInAllowed({ ssoRequired: true, role })) return
+  logger.warn('Blocking a password session while single sign-on is required', { path })
+  throw new APIError('FORBIDDEN', { message: NEXORA_SSO_REQUIRED })
+}
 
 /**
  * Rejects blocked accounts and applies membership policy using the adapter's current transaction.
@@ -60,6 +81,8 @@ export async function prepareSessionForCreation<T extends Session>(
     logger.error('Error reading organization membership', { error, userId: session.userId })
     return { data: session }
   }
+
+  assertNexoraSsoRequirementSatisfied(membership?.role ?? null, context?.path)
 
   if (!membership) return { data: session }
 

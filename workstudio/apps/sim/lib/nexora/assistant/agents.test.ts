@@ -81,6 +81,24 @@ describe('listAssistantAgents', () => {
     expect(has(isNull(schemaMock.chat.archivedAt))).toBe(true)
   })
 
+  it('leaves out an agent whose chat asks for a password, an e-mail code or SSO', async () => {
+    queueTableRows(schemaMock.workflow, [])
+
+    await listAssistantAgents.execute({ principal: member, input: { workspaceId: WORKSPACE_ID } })
+
+    const where = dbChainMockFns.where.mock.calls.at(-1)?.[0]
+    expect(
+      hasMockCondition(
+        where,
+        (node) =>
+          node.type === 'inArray' &&
+          node.column === schemaMock.chat.authType &&
+          JSON.stringify([...(node.values as string[])].sort()) ===
+            JSON.stringify(['public', 'workspace'])
+      )
+    ).toBe(true)
+  })
+
   it('offers each agent once, with its chat welcome message', async () => {
     queueTableRows(schemaMock.workflow, [
       {

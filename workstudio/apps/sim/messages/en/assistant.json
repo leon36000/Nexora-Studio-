@@ -54,7 +54,8 @@
   "notices": {
     "save-failed": "The message could not be saved. Try again.",
     "agent-unpublished": "This agent is no longer published: pick another one in a new conversation.",
-    "upload-failed": "“{name}” could not be uploaded. Try again."
+    "upload-failed": "“{name}” could not be read. Try again.",
+    "attachments-missing": "The files attached to this question are no longer available after the page was reloaded: send the question again with its files."
   },
   "errors": {
     "agent-unavailable": "This agent is no longer available.",

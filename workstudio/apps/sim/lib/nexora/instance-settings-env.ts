@@ -71,8 +71,9 @@ async function smtpVariables(
 }
 
 /**
- * Writes the stored settings into `env`, group by group, only where deploy/.env leaves the group
- * unset: a group is never assembled from both sources. A group whose secret no longer decrypts
+ * Writes the stored settings into `env`, group by group, only where deploy/.env leaves the group's
+ * key variable unset; a group written from the stored settings replaces every one of its
+ * variables, so a group is never assembled from both sources. A group whose secret no longer decrypts
  * (the encryption key changed) is skipped and reported, so WorkStudio still starts.
  */
 export async function applyStoredSettingsToEnv(
@@ -100,8 +101,11 @@ export async function applyStoredSettingsToEnv(
       continue
     }
     if (!variables) continue
+    // Every variable of the group comes from the interface, unset ones included: a password or a
+    // user left in deploy/.env must never reach a server chosen in the interface.
     for (const [name, value] of Object.entries(variables)) {
-      if (value !== undefined && !isSet(env[name])) env[name] = value
+      if (value === undefined) delete env[name]
+      else env[name] = value
     }
     applied.push(group)
   }

@@ -210,6 +210,7 @@ export class LoggingSession {
   private workflowState?: WorkflowState
   private correlation?: NonNullable<ExecutionTrigger['data']>['correlation']
   private trustedExecutionCorrelation?: NonNullable<ExecutionTrigger['data']>['correlation']
+  private memberChatUserId?: string
   private actorUserId: string | null = null
   /** Held directly rather than read off `environment`, which a caller may never build. */
   private workspaceId?: string
@@ -281,6 +282,23 @@ export class LoggingSession {
     correlation: NonNullable<NonNullable<ExecutionTrigger['data']>['correlation']>
   ): void {
     this.trustedExecutionCorrelation = { ...correlation }
+  }
+
+  /**
+   * Nexora edition: names the member a members-only chat run answers, from the chat's verified
+   * session, on the run's trigger; the log then shows what was said only to them and to admins.
+   */
+  setMemberChatUserId(userId: string): void {
+    this.memberChatUserId = userId
+  }
+
+  private trustedTriggerData(triggerData: TriggerData | undefined): TriggerData | undefined {
+    const withCorrelation = this.trustedExecutionCorrelation
+      ? { ...triggerData, correlation: this.trustedExecutionCorrelation }
+      : triggerData
+    return this.memberChatUserId
+      ? { ...withCorrelation, memberChatUserId: this.memberChatUserId }
+      : withCorrelation
   }
 
   /** Adds the trusted execution-ref scope needed to rewrite offloaded trace content. */
@@ -819,9 +837,7 @@ export class LoggingSession {
     }
 
     try {
-      const effectiveTriggerData = this.trustedExecutionCorrelation
-        ? { ...triggerData, correlation: this.trustedExecutionCorrelation }
-        : triggerData
+      const effectiveTriggerData = this.trustedTriggerData(triggerData)
       this.trigger = createTriggerObject(this.triggerType, effectiveTriggerData)
       this.correlation = effectiveTriggerData?.correlation
       this.environment = createEnvironmentObject(
@@ -1360,9 +1376,7 @@ export class LoggingSession {
           deploymentVersionId,
           workflowState,
         } = params
-        const effectiveTriggerData = this.trustedExecutionCorrelation
-          ? { ...triggerData, correlation: this.trustedExecutionCorrelation }
-          : triggerData
+        const effectiveTriggerData = this.trustedTriggerData(triggerData)
         this.trigger = createTriggerObject(this.triggerType, effectiveTriggerData)
         this.correlation = effectiveTriggerData?.correlation
         this.environment = createEnvironmentObject(

@@ -6003,6 +6003,14 @@ export const usageLog = pgTable(
       table.createdAt
     ),
     executionIdIdx: index('usage_log_execution_id_idx').on(table.executionId),
+    /**
+     * Nexora edition: the monthly budget gate and Réglages › Consommation sum the model rows of
+     * a period across the whole instance; no other index leads with `created_at`.
+     */
+    createdAtCategoryIdx: index('usage_log_created_at_category_idx').on(
+      table.createdAt,
+      table.category
+    ),
   })
 )
 

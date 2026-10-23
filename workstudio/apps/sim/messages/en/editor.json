@@ -1167,7 +1167,8 @@
     "mcpServerModal": {
       "selectServer": "Select MCP server",
       "selectTool": "Select tool",
-      "selectServerFirst": "Select server first"
+      "selectServerFirst": "Select server first",
+      "search": "Search..."
     },
     "messagesInput": {
       "roles": {
@@ -1240,7 +1241,8 @@
       "createSandbox": "Create Sandbox",
       "typeOrSelect": "Type or select an option...",
       "modelUnavailable": "This model is not available on this instance.",
-      "useNexoraModel": "Use the Nexora model"
+      "useNexoraModel": "Use the Nexora model",
+      "search": "Search..."
     },
     "dropdown": {
       "selectOption": "Select an option...",

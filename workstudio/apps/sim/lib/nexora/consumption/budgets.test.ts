@@ -199,7 +199,14 @@ describe('checkBudget', () => {
 
     const result = await checkBudget('ws-quiet', null, OPTIONS)
 
-    expect(result).toMatchObject({ allowed: false, reason: 'instance', usage: 10_500, cap: 10_000 })
+    expect(result).toMatchObject({
+      allowed: false,
+      reason: 'instance',
+      code: 'MONTHLY_BUDGET_EXCEEDED',
+      message: 'Budget mensuel de l’instance atteint : contactez votre administrateur.',
+      usage: 10_500,
+      cap: 10_000,
+    })
   })
 
   it('allows again as soon as the cap is raised: a refusal is never served from cache', async () => {

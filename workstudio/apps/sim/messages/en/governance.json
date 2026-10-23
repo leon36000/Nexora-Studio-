@@ -419,7 +419,9 @@
       "tokens": "Tokens",
       "executions": "Runs",
       "energy": "Energy",
-      "footprint": "Carbon footprint"
+      "footprint": "Carbon footprint",
+      "tokensFromApi": "Measured by Nexora API",
+      "tokensFromWorkstudio": "Counted by WorkStudio (Nexora API unavailable)"
     },
     "units": {
       "kWh": "{value} kWh",
@@ -516,6 +518,12 @@
         "instanceExceeded": "Instance budget reached ({usage} / {cap} tokens): new runs are refused.",
         "workspaceWarning": "Workspace “{name}”: {percent}% of the budget used ({usage} / {cap} tokens).",
         "workspaceExceeded": "Workspace “{name}”: budget reached ({usage} / {cap} tokens), new runs are refused."
+      },
+      "errors": {
+        "invalid": "Check the caps: a chosen workspace no longer exists or a value is out of range.",
+        "forbidden": "Instance administrators only.",
+        "unavailable": "The instance organization was not found: the budgets cannot be saved.",
+        "unknown": "Something went wrong. Try again."
       }
     }
   }

@@ -362,6 +362,52 @@ describe('Chat Identifier API Route', () => {
       })
     }, 10000)
 
+    describe('members-only chat memory', () => {
+      async function runWith(authType: string, conversationId: string) {
+        dbChainMockFns.select.mockImplementationOnce(() => ({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue([{ ...mockChatResult[0], authType }]),
+            }),
+          }),
+        }))
+        mockValidateChatAuth.mockResolvedValueOnce({
+          authorized: true,
+          authenticatedEmail: 'b@pme.fr',
+          ...(authType === 'workspace' ? { authenticatedUserId: 'member-b' } : {}),
+        })
+        const req = createMockNextRequest('POST', { input: 'Bonjour', conversationId })
+        const response = await POST(req, createRouteContext({ identifier: 'test-chat' }))
+        expect(response.status).toBe(200)
+        const streamOptions = vi.mocked(createStreamingResponse).mock.calls[0][0]
+        await streamOptions.executeFn({
+          onStream: vi.fn(),
+          onBlockComplete: vi.fn(),
+          abortSignal: new AbortController().signal,
+        })
+        return vi.mocked(executeWorkflow).mock.calls[0]
+      }
+
+      it("keeps another member from reaching a conversation's memory by sending its id", async () => {
+        const [, , input] = await runWith('workspace', 'conversation-of-a')
+
+        expect(input).toMatchObject({ conversationId: 'member-b:conversation-of-a' })
+      })
+
+      it('names the member on the run so its log stays theirs', async () => {
+        const [, , , , options] = await runWith('workspace', 'conversation-of-b')
+
+        expect(options).toMatchObject({ memberChatUserId: 'member-b' })
+      })
+
+      it('leaves the conversation id of a public chat as the visitor sent it', async () => {
+        const [, , input, , options] = await runWith('public', 'visitor-conversation')
+
+        expect(input).toMatchObject({ conversationId: 'visitor-conversation' })
+        expect(options).not.toHaveProperty('memberChatUserId')
+      })
+    })
+
     /** Thinking and tool calls are independent policies: thinking must not drag tool frames along. */
     it('keeps tool calls off when only thinking is enabled', async () => {
       const thinkingChatResult = [

@@ -39,7 +39,7 @@ export function presentMessage(message: AssistantMessageRecord) {
     conversationId: message.conversationId,
     role: message.role,
     content: message.content,
-    files: message.files ?? [],
+    files: (message.files ?? []).map(({ name, type, size }) => ({ name, type, size })),
     usage: message.usage,
     interrupted: message.interrupted,
     createdAt: message.createdAt.toISOString(),

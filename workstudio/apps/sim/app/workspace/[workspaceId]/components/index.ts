@@ -38,7 +38,6 @@ export {
   FILTER_SECTION_LABEL_CLASS,
   SortDropdown,
 } from './resource/components/resource-options'
-export { timeCell } from './resource/components/time-cell'
 export type {
   PaginationConfig,
   ResourceCell,

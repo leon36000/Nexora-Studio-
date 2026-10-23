@@ -172,6 +172,7 @@ export const EditKnowledgeBaseModal = memo(function EditKnowledgeBaseModal({
         <ChipModalError>{error}</ChipModalError>
       </ChipModalBody>
       <ChipModalFooter
+        cancelLabel={t('cancel')}
         onCancel={() => onOpenChange(false)}
         cancelDisabled={isSubmitting}
         primaryAction={{

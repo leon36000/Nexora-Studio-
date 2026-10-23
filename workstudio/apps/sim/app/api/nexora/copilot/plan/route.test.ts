@@ -11,6 +11,7 @@ import { rateLimiterMock } from '@sim/testing/mocks/rate-limiter.mock'
 import { createMockRequest } from '@sim/testing/mocks/request.mock'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
 import { workspaceContextMock } from '@sim/testing/mocks/workspace-context.mock'
+import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
@@ -102,6 +103,24 @@ describe('POST /api/nexora/copilot/plan', () => {
 
     expect(response.status).toBe(503)
     expect(await response.json()).toMatchObject({ code: 'unavailable' })
+  })
+
+  it('stops the model call when the person stops the generation', async () => {
+    const stop = new AbortController()
+    let modelSignal: AbortSignal | null | undefined
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+      modelSignal = init.signal
+      stop.abort()
+      return modelAnswer(JSON.stringify(validPlan))
+    })
+    const request = planRequest({
+      workspaceId: 'workspace-1',
+      description: 'Relancer les factures',
+    })
+
+    await POST(new NextRequest(request, { signal: stop.signal }))
+
+    expect(modelSignal?.aborted).toBe(true)
   })
 
   it('returns the validated plan with its French summary', async () => {

@@ -201,7 +201,8 @@
       "importing": "Importing...",
       "replace": "Replace rows",
       "append": "Append rows"
-    }
+    },
+    "dropHere": "Drop files here"
   },
   "locks": {
     "title": "Table Security",

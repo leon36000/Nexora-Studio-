@@ -1,8 +1,9 @@
 import { AuditAction, AuditResourceType } from '@sim/audit'
 import { requirePrincipalSubjectUserId } from '@sim/auth/principal'
+import { isFolderInWorkspace } from '@sim/platform-authz/workflow'
 import { capabilityGovernedPrincipalUserId } from '@/lib/core/application'
 import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authorized-workspace-use-case'
-import type { OrchestrationErrorCode } from '@/lib/core/orchestration/types'
+import { OrchestrationError, type OrchestrationErrorCode } from '@/lib/core/orchestration/types'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { compilePlan } from '@/lib/nexora/copilot/compile'
 import { loadCopilotCompileContext } from '@/lib/nexora/copilot/context'
@@ -33,11 +34,12 @@ export const generateCopilotPlan = defineAuthorizedWorkspaceUseCase({
   resolveContext: ({ input }: { input: GenerateCopilotPlanInput }) =>
     resolveActiveWorkspaceApplicationContext(input.workspaceId),
   authorizationOptions: {},
-  execute: async ({ input, context }) =>
+  execute: async ({ input, context, request }) =>
     generatePlan({
       description: input.description,
       currentPlan: input.currentPlan,
       context: await loadCopilotCompileContext(context.workspaceId),
+      signal: request?.signal,
     }),
 })
 
@@ -72,6 +74,10 @@ export const createWorkflowFromPlan = defineAuthorizedWorkspaceUseCase({
     resolveActiveWorkspaceApplicationContext(input.workspaceId),
   authorizationOptions: {},
   async execute({ principal, input, context }): Promise<CreatedCopilotWorkflow> {
+    // The importer reports a missing folder as a 400; the dialog needs the 404 to say so.
+    if (input.folderId && !(await isFolderInWorkspace(input.folderId, context.workspaceId))) {
+      throw new OrchestrationError('not_found', 'Dossier introuvable dans cet espace.')
+    }
     const compiled = compilePlan(input.plan, await loadCopilotCompileContext(context.workspaceId))
     const imported = await importWorkflowIntoWorkspaceTransition({
       workspaceId: context.workspaceId,

@@ -419,7 +419,9 @@
       "tokens": "Jetons",
       "executions": "Exécutions",
       "energy": "Énergie",
-      "footprint": "Empreinte carbone"
+      "footprint": "Empreinte carbone",
+      "tokensFromApi": "Mesurés par Nexora API",
+      "tokensFromWorkstudio": "Comptés par WorkStudio (Nexora API indisponible)"
     },
     "units": {
       "kWh": "{value} kWh",
@@ -516,6 +518,12 @@
         "instanceExceeded": "Budget de l’instance atteint ({usage} / {cap} jetons) : les nouvelles exécutions sont refusées.",
         "workspaceWarning": "Espace « {name} » : {percent} % du budget utilisé ({usage} / {cap} jetons).",
         "workspaceExceeded": "Espace « {name} » : budget atteint ({usage} / {cap} jetons), les nouvelles exécutions sont refusées."
+      },
+      "errors": {
+        "invalid": "Vérifiez les plafonds : un espace choisi n’existe plus ou une valeur est hors limites.",
+        "forbidden": "Réservé aux administrateurs de l’instance.",
+        "unavailable": "L’organisation de l’instance est introuvable : les budgets ne peuvent pas être enregistrés.",
+        "unknown": "Une erreur est survenue. Réessayez."
       }
     }
   }

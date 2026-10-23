@@ -11,8 +11,10 @@ import { isApiClientError } from '@/lib/api/client/errors'
 import { CONSUMPTION_PERIODS } from '@/lib/api/contracts/nexora-consumption'
 import { saveBlob } from '@/lib/uploads/client/download'
 import {
+  type BudgetDraft,
   budgetAlerts,
   budgetChange,
+  budgetSaveErrorKey,
   draftFromBudgets,
 } from '@/app/workspace/[workspaceId]/settings/components/nexora-consumption/budget-draft'
 import { BudgetsEditor } from '@/app/workspace/[workspaceId]/settings/components/nexora-consumption/budgets-editor'
@@ -70,7 +72,7 @@ export function NexoraConsumption() {
       </SettingsPanel>
     )
   }
-  return <ConsumptionView key={JSON.stringify(data.budgets)} overview={data} />
+  return <ConsumptionView overview={data} />
 }
 
 interface ConsumptionViewProps {
@@ -86,23 +88,34 @@ function ConsumptionView({ overview }: ConsumptionViewProps) {
   )
   const report = useNexoraConsumption(period)
   const update = useUpdateNexoraBudgets()
-  const [initial] = useState(() => draftFromBudgets(overview.budgets))
-  const [draft, setDraft] = useState(initial)
-  const dirty = JSON.stringify(draft) !== JSON.stringify(initial)
+  /**
+   * The saved budgets follow every refetch (usage and alerts move while the page is open); an
+   * edit is kept apart from them, so a refetch never drops a draft in progress.
+   */
+  const initial = draftFromBudgets(overview.budgets)
+  const [edited, setEdited] = useState<BudgetDraft | null>(null)
+  const draft = edited ?? initial
+  const dirty = edited !== null && JSON.stringify(edited) !== JSON.stringify(initial)
   const change = budgetChange(overview.budgets, draft)
   const invalid = change === 'invalid'
 
   useSettingsUnsavedGuard({
     isDirty: dirty,
     navigationBlocked: update.isPending,
-    onDiscard: () => setDraft(initial),
+    onDiscard: () => setEdited(null),
   })
 
   const handleSave = () => {
     if (change === null || change === 'invalid') return
     update.mutate(change, {
-      onSuccess: () => toast.success(t('budgets.saved')),
-      onError: (cause) => toast.error(t('budgets.saveFailed'), { description: cause.message }),
+      onSuccess: () => {
+        setEdited(null)
+        toast.success(t('budgets.saved'))
+      },
+      onError: (cause) =>
+        toast.error(t('budgets.saveFailed'), {
+          description: t(`budgets.errors.${budgetSaveErrorKey(cause)}`),
+        }),
     })
   }
 
@@ -150,7 +163,7 @@ function ConsumptionView({ overview }: ConsumptionViewProps) {
           dirty,
           saving: update.isPending,
           onSave: handleSave,
-          onDiscard: () => setDraft(initial),
+          onDiscard: () => setEdited(null),
           saveDisabled: change === null || invalid,
           saveTooltip: invalid ? t('budgets.invalid') : undefined,
         }),
@@ -211,7 +224,7 @@ function ConsumptionView({ overview }: ConsumptionViewProps) {
           <BudgetsEditor
             overview={overview}
             draft={draft}
-            onDraftChange={setDraft}
+            onDraftChange={setEdited}
             disabled={update.isPending}
             invalid={invalid}
           />

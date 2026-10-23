@@ -2,7 +2,13 @@ import { createLogger } from '@sim/logger'
 import { isRecordLike } from '@sim/utils/object'
 import { truncate } from '@sim/utils/string'
 import type { z } from 'zod'
-import { type CompileContext, CopilotPlanError, compilePlan } from '@/lib/nexora/copilot/compile'
+import {
+  type CompileContext,
+  CopilotPlanError,
+  compilePlan,
+  promptName,
+} from '@/lib/nexora/copilot/compile'
+import { normalizePlanCandidate } from '@/lib/nexora/copilot/normalize-plan'
 import {
   type CopilotPlan,
   type CopilotStep,
@@ -118,12 +124,14 @@ Déclencheur ("trigger", selon "kind") :
 - validation_humaine : {"kind":"validation_humaine","name":"…","message":"ce que la personne valide"} ; sorties response et submission.
 - reponse : {"kind":"reponse","name":"…","fields":[{"name":"…","value":"…"}]} : ce que le workflow renvoie.
 
+Noms (étapes, champs du déclencheur, champs de "output" et de "reponse") : snake_case ASCII, sans accents ni espaces, par exemple "resume_du_texte" et jamais "Résumé du texte". Types des champs de "output" : "string", "number" ou "boolean", rien d'autre.
+
 Références : dans un texte, {{nom_etape.champ}} lit la sortie d'une étape précédente et {{declencheur.champ}} une donnée du déclencheur ; aucune autre forme n'existe. Une étape ne lit que des étapes qui s'exécutent toujours avant elle. Noms d'étape interdits : declencheur, start, webhook, planification, loop, parallel, variable.`
 
 function listedNames(names: readonly string[]): string {
   return names
     .slice(0, MAX_LISTED_NAMES)
-    .map((name) => JSON.stringify(truncate(name, 80)))
+    .map((name) => JSON.stringify(promptName(name)))
     .join(', ')
 }
 
@@ -187,19 +195,42 @@ function balancedEnd(text: string, start: number): number {
   return -1
 }
 
-/** The first complete JSON object in the answer, tolerating text or code fences around it. */
+/** The object itself, or the plan it wraps (`{"plan": {…}}`). */
+function unwrapPlan(value: Record<string, unknown>): Record<string, unknown> {
+  return !('steps' in value) && isRecordLike(value.plan) ? value.plan : value
+}
+
+function looksLikePlan(value: Record<string, unknown>): boolean {
+  return 'steps' in value || 'trigger' in value
+}
+
+/**
+ * The plan object in the answer, tolerating text, code fences, a stray `{` or a `plan` wrapper
+ * around it. Without a plan-shaped object, the first complete object is returned so its errors
+ * reach the model; when a `{` never closes and nothing else is plan-shaped, the answer is taken
+ * as truncated (an inner object such as the trigger is never mistaken for the plan).
+ */
 function extractJsonObject(text: string): Record<string, unknown> | undefined {
+  let firstObject: Record<string, unknown> | undefined
+  let sawUnclosed = false
   let start = text.indexOf('{')
   for (let attempt = 0; start !== -1 && attempt < MAX_JSON_CANDIDATES; attempt++) {
     const end = balancedEnd(text, start)
-    if (end === -1) return undefined
-    try {
-      const value: unknown = JSON.parse(text.slice(start, end + 1))
-      if (isRecordLike(value)) return value
-    } catch {}
+    if (end === -1) {
+      sawUnclosed = true
+    } else {
+      try {
+        const value: unknown = JSON.parse(text.slice(start, end + 1))
+        if (isRecordLike(value)) {
+          const candidate = unwrapPlan(value)
+          if (looksLikePlan(candidate)) return candidate
+          firstObject ??= candidate
+        }
+      } catch {}
+    }
     start = text.indexOf('{', start + 1)
   }
-  return undefined
+  return sawUnclosed ? undefined : firstObject
 }
 
 function formatPath(path: readonly PropertyKey[]): string {
@@ -249,7 +280,7 @@ function checkAnswer(answer: string, context: CompileContext): Attempt {
         "La réponse ne contient pas d'objet JSON complet (réponse vide, tronquée ou sans accolades).",
     }
   }
-  const parsed = copilotPlanSchema.safeParse(candidate)
+  const parsed = copilotPlanSchema.safeParse(normalizePlanCandidate(candidate))
   if (!parsed.success) {
     return {
       error: parsed.error.issues.slice(0, MAX_REPORTED_ISSUES).map(describeIssue).join('\n'),
@@ -263,9 +294,12 @@ function checkAnswer(answer: string, context: CompileContext): Attempt {
   }
 }
 
-async function completeWithNexora(messages: WandMessage[]): Promise<string> {
+async function completeWithNexora(
+  messages: WandMessage[],
+  signal: AbortSignal | undefined
+): Promise<string> {
   if (!isNexoraWandAvailable()) throw new NexoraWandUnavailableError('not configured')
-  const { text } = await nexoraWandComplete({ messages, responseFormat: 'json_object' })
+  const { text } = await nexoraWandComplete({ messages, responseFormat: 'json_object', signal })
   return text
 }
 
@@ -387,15 +421,18 @@ function summarisePlan(plan: CopilotPlan): string[] {
  * that plan with the described change applied), then validates it against the schema and compiles
  * it against the workspace's services and knowledge bases. An invalid answer is sent back once
  * with the reason; a second invalid answer fails with `plan-invalid`. Nothing is created or run:
- * the result is a validated plan for the person to review.
+ * the result is a validated plan for the person to review. `signal` (the request's) stops the
+ * model call when the person stops the generation.
  */
 export async function generatePlan(input: {
   description: string
   currentPlan?: CopilotPlan
   context: CompileContext
   complete?: CopilotModel
+  signal?: AbortSignal
 }): Promise<GeneratedPlan> {
-  const complete = input.complete ?? completeWithNexora
+  const complete =
+    input.complete ?? ((messages: WandMessage[]) => completeWithNexora(messages, input.signal))
   const messages: WandMessage[] = [
     { role: 'system', content: buildSystemPrompt(input.context) },
     { role: 'user', content: buildRequest(input.description, input.currentPlan) },

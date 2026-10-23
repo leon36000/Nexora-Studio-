@@ -37,6 +37,7 @@ export function ModelPicker({ value, onChange, disabled, className }: ModelPicke
       onChange={onChange}
       placeholder={t('placeholder')}
       emptyMessage={t('empty')}
+      searchPlaceholder={t('search')}
       isLoading={isLoading}
       disabled={disabled}
       searchable

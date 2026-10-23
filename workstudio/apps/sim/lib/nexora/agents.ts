@@ -1,5 +1,6 @@
 import { generateId } from '@sim/utils/id'
 import { isRecordLike, toArray, toRecord } from '@sim/utils/object'
+import { normalizedStringify, sanitizeTools } from '@/lib/workflows/comparison/normalize'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
 
 /** The workspace folder agents live in (created on first use). */
@@ -274,16 +275,27 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
  */
 const STATE_FIELDS = ['instructions', 'model', 'tools', 'knowledgeBaseIds', 'memory'] as const
 
+/**
+ * A field as compared and shown. Tools compare on content, not on key order (the database's
+ * `jsonb` stores keys in its own order) nor on whether the editor shows them expanded.
+ */
+function showField<K extends keyof AgentConfig>(field: K, value: AgentConfig[K]): string {
+  if (typeof value === 'string') return value
+  return normalizedStringify(field === 'tools' ? sanitizeTools(value as StoredTool[]) : value)
+}
+
 /** Fields that differ between two versions of an agent, for the version comparison. */
 export function diffAgentConfigs(
   before: AgentConfig,
   after: AgentConfig
 ): { field: keyof AgentConfig; before: string; after: string }[] {
   const fields = Object.keys(before) as (keyof AgentConfig)[]
-  const show = (value: AgentConfig[keyof AgentConfig]) =>
-    typeof value === 'string' ? value : JSON.stringify(value)
   return fields
-    .map((field) => ({ field, before: show(before[field]), after: show(after[field]) }))
+    .map((field) => ({
+      field,
+      before: showField(field, before[field]),
+      after: showField(field, after[field]),
+    }))
     .filter((change) => change.before !== change.after)
 }
 
@@ -314,4 +326,19 @@ export function hasUnsavedAgentChanges(saved: AgentConfig, draft: AgentConfig): 
   return diffAgentConfigs(saved, { ...draft, name: draft.name.trim() }).some(
     ({ field }) => field !== 'welcomeMessage'
   )
+}
+
+/**
+ * The configuration a save actually wrote (`written`, built from `config`), as the form reads it
+ * back: the baseline the next save checks the stored agent against.
+ */
+export function persistedAgentConfig(config: AgentConfig, written: unknown): AgentConfig {
+  const persisted = readAgentWorkflow(written)
+  if (!persisted) return config
+  return {
+    ...persisted,
+    name: config.name,
+    description: config.description,
+    welcomeMessage: config.welcomeMessage,
+  }
 }

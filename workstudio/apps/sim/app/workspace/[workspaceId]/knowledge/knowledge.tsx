@@ -55,7 +55,7 @@ import type {
   SortConfig,
 } from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
 import { FILTER_SECTION_LABEL_CLASS } from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
-import { timeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
+import { useTimeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
 import { resourceListState } from '@/app/workspace/[workspaceId]/components/resource/is-resource-list-empty'
 import type {
   ResourceCell,
@@ -197,6 +197,7 @@ export function Knowledge() {
 }
 
 function KnowledgeContent() {
+  const timeCell = useTimeCell()
   const t = useTranslations('knowledge.list')
   const rootLabel = t('rootLabel')
   const { selectionLabel } = useSelectionLabels()
@@ -727,7 +728,7 @@ function KnowledgeContent() {
           },
         }
       }),
-    [sortedEntries, membersById, folderById, isSearching, rootLabel]
+    [sortedEntries, membersById, folderById, isSearching, rootLabel, timeCell]
   )
 
   /**

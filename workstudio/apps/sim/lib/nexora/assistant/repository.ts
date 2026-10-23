@@ -1,7 +1,9 @@
 import { db } from '@sim/db'
-import { nexoraAssistantConversation, nexoraAssistantMessage } from '@sim/db/schema'
+import { memory, nexoraAssistantConversation, nexoraAssistantMessage } from '@sim/db/schema'
 import { generateId } from '@sim/utils/id'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
+import { lockMemoryConversationInTx } from '@/lib/memory/locks'
+import { memberMemoryKey } from '@/lib/nexora/member-memory'
 
 const CONVERSATION_LIST_LIMIT = 50
 /** A conversation reads back at most its latest messages. */
@@ -11,7 +13,6 @@ type AssistantMessageRole = 'user' | 'assistant'
 
 interface AssistantMessageFile {
   name: string
-  key: string
   type: string
   size: number
 }
@@ -137,13 +138,29 @@ export async function updateConversationTitle(
   return row ?? null
 }
 
-/** Its messages go with it (foreign-key cascade). `false` when it no longer exists. */
-export async function deleteConversation(conversationId: string): Promise<boolean> {
-  const deleted = await db
-    .delete(nexoraAssistantConversation)
-    .where(eq(nexoraAssistantConversation.id, conversationId))
-    .returning({ id: nexoraAssistantConversation.id })
-  return deleted.length > 0
+/**
+ * Its messages go with it (foreign-key cascade), and so does the agent's memory of it: the
+ * member's key, and the bare conversation id older conversations were remembered under. `false`
+ * when it no longer exists.
+ */
+export async function deleteConversation(
+  conversation: Pick<AssistantConversationRecord, 'id' | 'workspaceId' | 'userId'>
+): Promise<boolean> {
+  const memoryKeys = [memberMemoryKey(conversation.userId, conversation.id), conversation.id]
+  return db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(nexoraAssistantConversation)
+      .where(eq(nexoraAssistantConversation.id, conversation.id))
+      .returning({ id: nexoraAssistantConversation.id })
+    if (deleted.length === 0) return false
+    for (const key of memoryKeys) {
+      await lockMemoryConversationInTx(tx, conversation.workspaceId, key)
+    }
+    await tx
+      .delete(memory)
+      .where(and(eq(memory.workspaceId, conversation.workspaceId), inArray(memory.key, memoryKeys)))
+    return true
+  })
 }
 
 /**
@@ -169,7 +186,8 @@ export async function insertMessage(
         conversationId,
         role: message.role,
         content: message.content,
-        files: message.files ?? null,
+        // The column's type still names a storage key: older rows hold one, new ones none.
+        files: (message.files ?? null) as StoredMessageRow['files'],
         usage: message.usage ?? null,
         interrupted: message.interrupted ?? false,
         createdAt: now,

@@ -9,6 +9,7 @@ import { logDelegationAuthorization } from '@/lib/logs/application/authorization
 import { logOperations } from '@/lib/logs/application/operations'
 import { buildCostLedger } from '@/lib/logs/cost-ledger'
 import { materializeExecutionDataForDisplay } from '@/lib/logs/execution/trace-store'
+import { memberChatPayloadGate } from '@/lib/logs/member-chat'
 import {
   logProjectionSubjectUserId,
   projectExecutionData,
@@ -168,7 +169,12 @@ export const getPublicLog = defineAuthorizedWorkspaceUseCase({
         log.workflowFolderId,
         log.workflowName !== null
       ),
-      executionData: projectExecutionData(executionData, projection) as Record<string, unknown>,
+      executionData: projectExecutionData(executionData, {
+        ...projection,
+        hideTraceSpans:
+          projection.hideTraceSpans ||
+          (await memberChatPayloadGate(viewerUserId, context.workspaceId)(log.executionData)),
+      }) as Record<string, unknown>,
     }
   },
 })

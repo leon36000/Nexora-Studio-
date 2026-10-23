@@ -1,6 +1,6 @@
-import { createTranslator, type Messages } from 'next-intl'
+import { useCallback } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import type { ResourceCell } from '@/app/workspace/[workspaceId]/components/resource/resource'
-import enShell from '@/messages/en/shell.json'
 
 const SECOND = 1000
 const MINUTE = 60 * SECOND
@@ -26,7 +26,7 @@ function formatFullDate(date: Date, t: Translate, locale: string): string {
  * - Under 2 days: "X day(s) ago" / "X day(s)"
  * - Beyond 2 days: full date (e.g. "March 4th, 2026")
  */
-function formatTimeCell(
+export function formatTimeCell(
   dateValue: string | Date | null | undefined,
   t: Translate,
   locale: string
@@ -59,15 +59,12 @@ function formatTimeCell(
   return { label: formatFullDate(date, t, locale) }
 }
 
-const englishMessages: Messages = { shell: enShell }
-
-const englishTranslate = createTranslator({
-  locale: 'en',
-  messages: englishMessages,
-  namespace: 'shell.timeCell',
-})
-
-/** English-only variant for row builders outside React; prefer {@link useTimeCell}. */
-export function timeCell(dateValue: string | Date | null | undefined): ResourceCell {
-  return formatTimeCell(dateValue, englishTranslate, 'en')
+/**
+ * The resource lists' date cell in the interface language: « Maintenant », « Il y a 5 minutes »,
+ * « 4 mars 2026 »… Stable while the language does not change, so row builders can depend on it.
+ */
+export function useTimeCell(): (dateValue: string | Date | null | undefined) => ResourceCell {
+  const t = useTranslations('shell.timeCell')
+  const locale = useLocale()
+  return useCallback((dateValue) => formatTimeCell(dateValue, t, locale), [t, locale])
 }

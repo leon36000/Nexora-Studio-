@@ -54,7 +54,8 @@
   "notices": {
     "save-failed": "Le message n'a pas pu être enregistré. Réessayez.",
     "agent-unpublished": "Cet agent n'est plus publié : choisissez-en un autre dans une nouvelle conversation.",
-    "upload-failed": "« {name} » n'a pas pu être envoyé. Réessayez."
+    "upload-failed": "« {name} » n'a pas pu être lu. Réessayez.",
+    "attachments-missing": "Les fichiers joints à cette question ne sont plus disponibles après le rechargement de la page : envoyez la question à nouveau avec ses fichiers."
   },
   "errors": {
     "agent-unavailable": "Cet agent n'est plus disponible.",

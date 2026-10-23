@@ -34,6 +34,13 @@ describe('validateDeploymentAuth for workspace-members deployments', () => {
     )
   })
 
+  it('names the member by user id, so a members-only chat can keep their memory apart', async () => {
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('read')
+    expect(
+      await validateDeploymentAuth('r', resource, post(), { input: 'x' }, 'chat')
+    ).toMatchObject({ authorized: true, authenticatedUserId: 'u-1' })
+  })
+
   it('refuses a signed-in user of another workspace', async () => {
     permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue(null)
     expect(

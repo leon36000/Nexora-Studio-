@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildPlanPreview } from '@/app/workspace/[workspaceId]/components/copilot-dialog/plan-preview'
+import {
+  buildPlanPreview,
+  stepDetails,
+} from '@/app/workspace/[workspaceId]/components/copilot-dialog/plan-preview'
 
 const plan = {
   trigger: { kind: 'planification' },
@@ -57,5 +60,53 @@ describe('buildPlanPreview', () => {
       ['?', '?']
     )
     expect(rows.map((row) => row.type)).toEqual(['unknown', 'unknown'])
+  })
+})
+
+describe('stepDetails', () => {
+  it('gives the whole text the summary cuts: instructions, message, address and body', () => {
+    const instructions = `Vous relancez les clients. ${'Restez courtois. '.repeat(20)}`
+    const url = `https://api.exemple.fr/factures?${'filtre=impayees&'.repeat(20)}`
+    const agent = stepDetails({
+      kind: 'agent',
+      name: 'relance',
+      instructions,
+      message: 'Relancez {{declencheur.client}}',
+      services: ['gmail'],
+      knowledgeBases: ['FAQ'],
+    })
+    const api = stepDetails({
+      kind: 'api',
+      name: 'appel',
+      method: 'POST',
+      url,
+      body: '{\n  "statut": "impayee"\n}',
+    })
+
+    expect(agent).toEqual(
+      expect.arrayContaining([
+        { key: 'instructions', value: instructions },
+        { key: 'message', value: 'Relancez {{declencheur.client}}' },
+        { key: 'services', value: 'gmail' },
+        { key: 'knowledgeBases', value: 'FAQ' },
+      ])
+    )
+    expect(api).toEqual([
+      { key: 'request', value: `POST ${url}` },
+      { key: 'body', value: '{\n  "statut": "impayee"\n}' },
+    ])
+  })
+
+  it('lists what a response returns and what a human validates', () => {
+    expect(
+      stepDetails({
+        kind: 'reponse',
+        name: 'retour',
+        fields: [{ name: 'texte', value: '{{a.b}}' }],
+      })
+    ).toEqual([{ key: 'fields', value: 'texte = {{a.b}}' }])
+    expect(
+      stepDetails({ kind: 'validation_humaine', name: 'ok', message: 'Validez le compte rendu' })
+    ).toEqual([{ key: 'message', value: 'Validez le compte rendu' }])
   })
 })

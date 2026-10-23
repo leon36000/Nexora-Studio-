@@ -30,19 +30,28 @@ export type NexoraSettings = ContractJsonResponse<typeof getNexoraSettingsContra
 export type NexoraSmtpDraft = NonNullable<UpdateNexoraSettingsBody['smtp']>
 
 /** Why a settings call failed, worded by the settings page. */
+const CONFLICT_CODES = [
+  'env-override',
+  'not-supervised',
+  'restart-in-progress',
+  'nothing-pending',
+] as const
+
 export type NexoraSettingsErrorCode =
   | 'forbidden'
-  | 'env-override'
-  | 'not-supervised'
+  | 'owner-only'
+  | (typeof CONFLICT_CODES)[number]
   | 'unavailable'
   | 'invalid'
   | 'unknown'
 
 export function getNexoraSettingsErrorCode(error: unknown): NexoraSettingsErrorCode {
   if (!isApiClientError(error)) return 'unknown'
+  if (error.message === 'owner-only') return 'owner-only'
   if (error.status === 401 || error.status === 403) return 'forbidden'
   if (error.status === 400) return 'invalid'
-  if (error.message === 'env-override' || error.message === 'not-supervised') return error.message
+  const conflict = CONFLICT_CODES.find((code) => code === error.message)
+  if (conflict) return conflict
   if (error.status === 503) return 'unavailable'
   return 'unknown'
 }

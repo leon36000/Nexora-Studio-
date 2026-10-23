@@ -300,4 +300,38 @@ describe('public log application use cases', () => {
     )
     expect(result.nextCursorKeys).toBeNull()
   })
+
+  it('withholds what was said in a members-only chat from a reader who is not its member', async () => {
+    const chatLog = {
+      ...log,
+      executionData: { trigger: { type: 'chat', data: { memberChatUserId: 'member-a' } } },
+    }
+    mocks.getLog.mockResolvedValue(chatLog)
+    mocks.listLogs.mockResolvedValue({ data: [chatLog], nextCursorKeys: null })
+    mocks.materialize.mockResolvedValue({ finalOutput: { content: 'Réponse privée' } })
+
+    const single = await getPublicLog.execute({
+      principal: workspacePrincipal,
+      input: { runId: 'run-1' },
+    })
+    const page = await listPublicLogs.execute({
+      principal: workspacePrincipal,
+      input: {
+        workspaceId: 'workspace-1',
+        filters: {},
+        folderPaths: undefined,
+        sortBy: 'startedAt' as const,
+        sortOrder: 'desc' as const,
+        cursorKeys: undefined,
+        limit: 50,
+        includeFullDetails: false,
+        includeFinalOutput: true,
+        includeTraceSpans: false,
+        includeJobRuns: false,
+      },
+    })
+
+    expect(single.executionData).not.toHaveProperty('finalOutput')
+    expect(page.items[0]?.executionData).not.toHaveProperty('finalOutput')
+  })
 })

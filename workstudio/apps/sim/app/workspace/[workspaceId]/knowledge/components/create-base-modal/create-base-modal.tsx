@@ -501,6 +501,8 @@ export const CreateBaseModal = memo(function CreateBaseModal({
           <ChipModalField
             type='file'
             title={t('uploadDocuments')}
+            label={t('dropFiles')}
+            draggingLabel={t('dropHere')}
             accept={KNOWLEDGE_ACCEPT_ATTRIBUTE}
             multiple
             onChange={processFiles}
@@ -563,6 +565,7 @@ export const CreateBaseModal = memo(function CreateBaseModal({
         </ChipModalBody>
 
         <ChipModalFooter
+          cancelLabel={t('cancel')}
           onCancel={() => handleClose(false)}
           cancelDisabled={isSubmitting}
           primaryAction={{

@@ -45,6 +45,7 @@ export function KnowledgeField({ workspaceId, value, onChange, disabled }: Knowl
         overlayLabel={t('add')}
         placeholder={t('add')}
         emptyMessage={t('none')}
+        searchPlaceholder={t('search')}
         isLoading={isLoading}
         searchable
         disabled={disabled}

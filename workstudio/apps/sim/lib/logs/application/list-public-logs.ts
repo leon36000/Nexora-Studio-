@@ -7,6 +7,7 @@ import { logDelegationAuthorization } from '@/lib/logs/application/authorization
 import { logOperations } from '@/lib/logs/application/operations'
 import { materializeExecutionDataForDisplay } from '@/lib/logs/execution/trace-store'
 import { resolveLogFolderScope } from '@/lib/logs/folder-scope'
+import { memberChatPayloadGate } from '@/lib/logs/member-chat'
 import {
   assertLogCostQueryAllowed,
   type LogFieldProjection,
@@ -142,6 +143,7 @@ export const listPublicLogs = defineAuthorizedWorkspaceUseCase({
      * through unmaterialized rather than being handed a shape that does not
      * describe them.
      */
+    const withholdsMemberChat = memberChatPayloadGate(viewerUserId, context.workspaceId)
     const items = needsMaterialization
       ? await mapWithConcurrency(data, MATERIALIZE_CONCURRENCY, async (log) => {
           const projectedLog = projectRowSpend(log, projection)
@@ -157,10 +159,11 @@ export const listPublicLogs = defineAuthorizedWorkspaceUseCase({
           )
           return {
             log: projectedLog,
-            executionData: projectExecutionData(materialized, projection) as Record<
-              string,
-              unknown
-            >,
+            executionData: projectExecutionData(materialized, {
+              ...projection,
+              hideTraceSpans:
+                projection.hideTraceSpans || (await withholdsMemberChat(log.executionData)),
+            }) as Record<string, unknown>,
           }
         })
       : data.map((log) => ({ log: projectRowSpend(log, projection) }))

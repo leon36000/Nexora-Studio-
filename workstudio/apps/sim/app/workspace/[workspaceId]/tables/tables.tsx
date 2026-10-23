@@ -58,7 +58,7 @@ import {
   ResourceFilterPanel,
   ResourceFilterSection,
 } from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
-import { timeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
+import { useTimeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
 import { resourceListState } from '@/app/workspace/[workspaceId]/components/resource/is-resource-list-empty'
 import type {
   ResourceColumn,
@@ -138,6 +138,7 @@ export function Tables() {
 }
 
 function TablesContent() {
+  const timeCell = useTimeCell()
   const t = useTranslations('tables.list')
   const params = useParams()
   const router = useRouter()
@@ -539,7 +540,7 @@ function TablesContent() {
           },
         }
       }),
-    [sortedEntries, membersById, folderById, isSearching]
+    [sortedEntries, membersById, folderById, isSearching, timeCell]
   )
 
   /**

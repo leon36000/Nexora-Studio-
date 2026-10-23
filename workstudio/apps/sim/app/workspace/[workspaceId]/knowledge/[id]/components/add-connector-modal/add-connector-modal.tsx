@@ -975,12 +975,14 @@ export function AddConnectorModal({
         {step === 'configure' &&
           (slackSetupRequired ? (
             <ChipModalFooter
+              cancelLabel={t('cancel')}
               onCancel={() => closeSetup(false)}
               secondaryActions={setupGuideActions}
               defaultAction='none'
             />
           ) : (
             <ChipModalFooter
+              cancelLabel={t('cancel')}
               onCancel={() => closeSetup(false)}
               secondaryActions={setupGuideActions}
               primaryAction={{

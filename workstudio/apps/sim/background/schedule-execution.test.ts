@@ -21,6 +21,7 @@ vi.mock('@/lib/workflows/schedules/disable-notifications', () => ({
 import {
   applyScheduleFailureUpdate,
   buildScheduleCancellationUpdate,
+  buildScheduleSpendRefusalUpdate,
   buildScheduleSuccessUpdate,
   classifyScheduleExecutionResult,
   releaseScheduleLock,
@@ -138,5 +139,31 @@ describe('schedule cancellation accounting', () => {
     })
     expect(buildScheduleSuccessUpdate(now, nextRunAt)).not.toHaveProperty('lastFailedAt')
     expect(buildScheduleSuccessUpdate(now, nextRunAt)).not.toHaveProperty('status')
+  })
+})
+
+describe('schedule spend refusals', () => {
+  const now = new Date('2026-10-23T12:00:00.000Z')
+  const nextRunAt = new Date('2026-10-23T13:00:00.000Z')
+
+  it('keeps a schedule refused by the monthly budget active and its failure count intact', () => {
+    const update = buildScheduleSpendRefusalUpdate(now, nextRunAt, 'MONTHLY_BUDGET_EXCEEDED')
+
+    expect(update).toEqual({
+      updatedAt: now,
+      nextRunAt,
+      lastQueuedAt: null,
+      infraRetryCount: 0,
+    })
+    expect(update).not.toHaveProperty('failedCount')
+    expect(update).not.toHaveProperty('status')
+  })
+
+  it('still counts a usage-limit refusal toward the auto-disable threshold', () => {
+    const update = buildScheduleSpendRefusalUpdate(now, nextRunAt, 'USAGE_LIMIT_EXCEEDED')
+
+    expect(update).toHaveProperty('failedCount')
+    expect(update).toHaveProperty('status')
+    expect(update).toMatchObject({ nextRunAt, lastFailedAt: now })
   })
 })

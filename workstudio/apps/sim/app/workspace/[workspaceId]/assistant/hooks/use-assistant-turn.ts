@@ -7,28 +7,26 @@ import type {
   AssistantMessage,
   AssistantMessageFile,
 } from '@/lib/api/contracts/nexora-assistant'
-import { uploadInternalFileSession } from '@/lib/uploads/client/session-upload'
+import {
+  type ChatFilePayload,
+  filesForRegeneration,
+  sendQuestion,
+  type TurnNotice,
+} from '@/app/workspace/[workspaceId]/assistant/send-question'
 import {
   type ReplyErrorCode,
   streamAgentReply,
 } from '@/app/workspace/[workspaceId]/assistant/stream-reply'
 import {
-  isAgentUnpublishedError,
   useAppendAssistantMessage,
   useCreateAssistantConversation,
+  useDeleteAssistantConversation,
 } from '@/hooks/queries/nexora-assistant'
 
 const logger = createLogger('NexoraAssistantTurn')
 
 /** A closing tab may send at most 64 KB; a UTF-8 character takes up to 4 bytes. */
 const KEEPALIVE_TEXT_LIMIT = 15_000
-
-interface ChatFilePayload {
-  name: string
-  type: string
-  size: number
-  data: string
-}
 
 /** The exchange in progress, shown after the stored messages until they include it. */
 export interface PendingTurn {
@@ -42,12 +40,6 @@ export interface PendingTurn {
     error: ReplyErrorCode | null
   }
 }
-
-/** Why a message could not be sent, worded by the page. */
-export type TurnNotice =
-  | { kind: 'save-failed' }
-  | { kind: 'agent-unpublished' }
-  | { kind: 'upload-failed'; name: string }
 
 interface SendInput {
   /** `null` starts a new conversation with `agent`. */
@@ -81,25 +73,28 @@ async function toChatFile(file: File): Promise<ChatFilePayload> {
   }
 }
 
-function noticeFor(error: unknown): TurnNotice {
-  return isAgentUnpublishedError(error) ? { kind: 'agent-unpublished' } : { kind: 'save-failed' }
-}
-
 /**
- * One exchange of the Assistant: records the question (with its files, kept in the workspace's
- * storage), sends it to the agent's deployed chat with the conversation as the agent's memory,
+ * One exchange of the Assistant: records the question (with its files' names only: the files go
+ * to the agent, not to storage), sends it to the agent's deployed chat with the conversation as
+ * the agent's memory,
  * streams the answer and records it — marked interrupted when it was stopped, failed or cut by a
  * closing tab. Leaving the page stops the answer and records what was received.
  */
-export function useAssistantTurn(workspaceId: string, onConversationCreated: (id: string) => void) {
+export function useAssistantTurn(
+  workspaceId: string,
+  onConversationCreated: (id: string) => void,
+  onConversationDiscarded: () => void
+) {
   const controllerRef = useRef<AbortController | null>(null)
   const liveRef = useRef<LiveAnswer | null>(null)
   const frameRef = useRef<number | null>(null)
   const sentFilesRef = useRef<{ questionId: string; files: ChatFilePayload[] } | null>(null)
   const { mutateAsync: createConversation } = useCreateAssistantConversation()
+  const { mutateAsync: deleteConversation } = useDeleteAssistantConversation()
   const { mutate: appendMessage, mutateAsync: appendMessageAsync } = useAppendAssistantMessage()
   const [pending, setPending] = useState<PendingTurn | null>(null)
   const [notice, setNotice] = useState<TurnNotice | null>(null)
+  const [preparing, setPreparing] = useState(false)
 
   useEffect(() => {
     const recordCutAnswer = () => {
@@ -134,10 +129,9 @@ export function useAssistantTurn(workspaceId: string, onConversationCreated: (id
     conversationId: string,
     agent: AssistantAgent,
     input: string,
-    files: ChatFilePayload[] | undefined
+    files: ChatFilePayload[] | undefined,
+    controller: AbortController
   ) => {
-    const controller = new AbortController()
-    controllerRef.current = controller
     const live: LiveAnswer = { conversationId, text: '', recorded: false }
     liveRef.current = live
     updateAnswer(conversationId, { status: 'streaming' })
@@ -187,100 +181,98 @@ export function useAssistantTurn(workspaceId: string, onConversationCreated: (id
   /** Resolves `false` when nothing was sent (the draft should be given back). */
   const send = async ({ conversationId, agent, text, files }: SendInput): Promise<boolean> => {
     setNotice(null)
-    let id = conversationId
-    if (!id) {
-      try {
+    // Created now so « Arrêter » also stops the conversation creation, file reading and save.
+    const controller = new AbortController()
+    controllerRef.current = controller
+    const pendingFiles: AssistantMessageFile[] = files.map((file) => ({
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    }))
+    const showPending = (targetId: string) =>
+      setPending({
+        conversationId: targetId,
+        question: { id: null, content: text, files: pendingFiles },
+        answer: { id: null, text: '', status: 'waiting', error: null },
+      })
+    if (conversationId) showPending(conversationId)
+
+    setPreparing(true)
+    const outcome = await sendQuestion({
+      conversationId,
+      files,
+      signal: controller.signal,
+      createConversation: async () => {
         const conversation = await createConversation({
           workspaceId,
           workflowId: agent.workflowId,
           firstMessage: text,
         })
-        id = conversation.id
-        onConversationCreated(id)
-      } catch (error) {
-        setNotice(noticeFor(error))
-        return false
-      }
-    }
-
-    const targetId = id
-    setPending({
-      conversationId: targetId,
-      question: {
-        id: null,
-        content: text,
-        files: files.map((file) => ({
-          name: file.name,
-          key: '',
-          type: file.type,
-          size: file.size,
-        })),
+        return conversation.id
       },
-      answer: { id: null, text: '', status: 'waiting', error: null },
-    })
+      deleteConversation,
+      appendQuestion: (targetId, records) =>
+        appendMessageAsync({
+          conversationId: targetId,
+          role: 'user',
+          content: text,
+          ...(records.length > 0 ? { files: records } : {}),
+        }),
+      readFile: toChatFile,
+      onConversationCreated: (id) => {
+        showPending(id)
+        onConversationCreated(id)
+      },
+      onConversationDiscarded: () => onConversationDiscarded(),
+    }).finally(() => setPreparing(false))
 
-    const records: AssistantMessageFile[] = []
-    const chatFiles: ChatFilePayload[] = []
-    for (const file of files) {
-      try {
-        const [stored, payload] = await Promise.all([
-          uploadInternalFileSession({ purpose: 'mothership_attachment', workspaceId, file }),
-          toChatFile(file),
-        ])
-        records.push({ name: file.name, key: stored.key, type: file.type, size: file.size })
-        chatFiles.push(payload)
-      } catch (error) {
-        logger.warn('Failed to upload an attachment', { name: file.name, error })
-        setPending(null)
-        setNotice({ kind: 'upload-failed', name: file.name })
-        return false
-      }
-    }
-
-    let question: AssistantMessage
-    try {
-      question = await appendMessageAsync({
-        conversationId: targetId,
-        role: 'user',
-        content: text,
-        ...(records.length > 0 ? { files: records } : {}),
-      })
-    } catch (error) {
+    if (outcome.status !== 'sent') {
+      if (controllerRef.current === controller) controllerRef.current = null
       setPending(null)
-      setNotice(noticeFor(error))
+      if (outcome.status === 'failed') setNotice(outcome.notice)
       return false
     }
 
+    const { conversationId: targetId, question, chatFiles } = outcome
     sentFilesRef.current = { questionId: question.id, files: chatFiles }
     setPending((previous) =>
       previous?.conversationId === targetId && previous.question
-        ? { ...previous, question: { ...previous.question, id: question.id, files: records } }
+        ? { ...previous, question: { ...previous.question, id: question.id } }
         : previous
     )
-    void streamAnswer(targetId, agent, text, chatFiles)
+    void streamAnswer(targetId, agent, text, chatFiles, controller)
     return true
   }
 
-  /** Asks the agent again; the files of a question sent from this page are sent again too. */
+  /**
+   * Asks the agent again with the question's files, kept from sending it on this page; after a
+   * reload they are gone, and the person is told so rather than answered without them.
+   */
   const regenerate = (
     conversationId: string,
     agent: AssistantAgent,
     question: AssistantMessage
   ) => {
     setNotice(null)
-    const files =
-      sentFilesRef.current?.questionId === question.id ? sentFilesRef.current.files : undefined
+    const replay = filesForRegeneration(question, sentFilesRef.current)
+    if (!replay) {
+      setNotice({ kind: 'attachments-missing' })
+      return
+    }
+    const controller = new AbortController()
+    controllerRef.current = controller
     setPending({
       conversationId,
       question: null,
       answer: { id: null, text: '', status: 'waiting', error: null },
     })
-    void streamAnswer(conversationId, agent, question.content, files)
+    void streamAnswer(conversationId, agent, question.content, replay.files, controller)
   }
 
   const stop = () => controllerRef.current?.abort()
 
-  const isBusy = pending?.answer.status === 'waiting' || pending?.answer.status === 'streaming'
+  const isBusy =
+    preparing || pending?.answer.status === 'waiting' || pending?.answer.status === 'streaming'
 
   return { pending, notice, isBusy, send, regenerate, stop, dismissNotice: () => setNotice(null) }
 }

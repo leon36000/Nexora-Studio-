@@ -1,4 +1,5 @@
 import { generateId } from '@sim/utils/id'
+import { truncate } from '@sim/utils/string'
 import { normalizeWorkflowBlockName } from '@sim/workflow-types/workflow'
 import { createMcpToolId } from '@/lib/mcp/shared'
 import { NEXORA_CONNECT_SERVER_NAME } from '@/lib/nexora/connect'
@@ -133,6 +134,34 @@ function comparable(name: string): string {
   return name.normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase()
 }
 
+/** Longest service or knowledge base name the generation prompt shows whole. */
+const PROMPT_NAME_LENGTH = 79
+const TRAILING_ELLIPSIS = /\s*(…|\.\.\.)\s*$/
+
+/** A workspace name as the generation prompt lists it: cut with « … » past the limit. */
+export function promptName(name: string): string {
+  return truncate(name, PROMPT_NAME_LENGTH, '…')
+}
+
+/**
+ * The item a plan names: by its whole name (accents and case aside), or by the prompt's cut form
+ * when exactly one item starts that way; two items sharing the cut form are never guessed between.
+ */
+function findByName<T>(
+  items: readonly T[],
+  nameOf: (item: T) => string,
+  wanted: string
+): T | undefined {
+  const target = comparable(wanted)
+  const exact = items.find((item) => comparable(nameOf(item)) === target)
+  if (exact) return exact
+  const cut = wanted.replace(TRAILING_ELLIPSIS, '').trim()
+  if (cut.length < PROMPT_NAME_LENGTH - 1) return undefined
+  const prefix = comparable(cut)
+  const candidates = items.filter((item) => comparable(nameOf(item)).startsWith(prefix))
+  return candidates.length === 1 ? candidates[0] : undefined
+}
+
 function quoted(names: readonly string[]): string {
   return names.map((name) => `« ${name} »`).join(', ')
 }
@@ -243,14 +272,20 @@ function analyseGraph(
   const columns = new Map<string, number>()
   const visit = (name: string): void => {
     if (ancestors.has(name)) return
-    const own = new Set<string>()
+    const paths: Set<string>[] = []
     let column = 1
     for (const predecessor of predecessors.get(name) ?? []) {
       visit(predecessor)
-      own.add(predecessor)
-      for (const ancestor of ancestors.get(predecessor) ?? []) own.add(ancestor)
+      const throughPredecessor = new Set(ancestors.get(predecessor))
+      throughPredecessor.add(predecessor)
+      paths.push(throughPredecessor)
       column = Math.max(column, (columns.get(predecessor) ?? 0) + 1)
     }
+    // A join runs after whichever branch was taken: only steps on every path have surely run.
+    const [first, ...others] = paths
+    const own = first
+      ? new Set([...first].filter((step) => others.every((path) => path.has(step))))
+      : new Set<string>()
     ancestors.set(name, own)
     columns.set(name, column)
   }
@@ -455,10 +490,9 @@ function agentSubBlocks(
         `Étape « ${step.name} » : Nexora Connect n'est pas configuré, services ignorés (${quoted(step.services)}).`
       )
     } else {
-      const byName = new Map(context.connect.services.map((name) => [comparable(name), name]))
       const known: string[] = []
       for (const service of step.services) {
-        const match = byName.get(comparable(service))
+        const match = findByName(context.connect.services, (name) => name, service)
         if (match && !known.includes(match)) known.push(match)
         if (!match) {
           warnings.push(
@@ -477,10 +511,9 @@ function agentSubBlocks(
   }
 
   if (step.knowledgeBases.length > 0) {
-    const byName = new Map(context.knowledgeBases.map((kb) => [comparable(kb.name), kb]))
     const known: { id: string; name: string }[] = []
     for (const name of step.knowledgeBases) {
-      const match = byName.get(comparable(name))
+      const match = findByName(context.knowledgeBases, (kb) => kb.name, name)
       if (match && !known.includes(match)) known.push(match)
       if (!match) {
         warnings.push(

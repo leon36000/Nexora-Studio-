@@ -195,6 +195,8 @@ services:
       SOCKET_SERVER_URL: http://workstudio-realtime:3002
       NEXT_PUBLIC_SOCKET_URL: ${NEXORA_PUBLIC_REALTIME_URL:-http://localhost:${NEXORA_REALTIME_PORT:-3002}}
       NEXT_TELEMETRY_DISABLED: '1'
+      # « Appliquer » (Réglages › Sécurité) restarts WorkStudio: `restart: unless-stopped` brings it back.
+      NEXORA_SUPERVISED: '1'
       NEXORA_TIME_ZONE: ${NEXORA_TIME_ZONE:-Europe/Paris}
       # Réglages › État: the installed version, and the transcription service to check when it is on.
       NEXORA_VERSION: ${NEXORA_VERSION:-local}
@@ -249,6 +251,7 @@ services:
       NEXORA_OIDC_ISSUER: ${NEXORA_OIDC_ISSUER:-}
       NEXORA_OIDC_CLIENT_ID: ${NEXORA_OIDC_CLIENT_ID:-}
       NEXORA_OIDC_CLIENT_SECRET: ${NEXORA_OIDC_CLIENT_SECRET:-}
+      NEXORA_OIDC_REQUIRED: ${NEXORA_OIDC_REQUIRED:-}
       FROM_EMAIL_ADDRESS: ${NEXORA_EMAIL_FROM:-${FROM_EMAIL_ADDRESS:-}}
       SMTP_HOST: ${NEXORA_SMTP_HOST:-}
       SMTP_PORT: ${NEXORA_SMTP_PORT:-}

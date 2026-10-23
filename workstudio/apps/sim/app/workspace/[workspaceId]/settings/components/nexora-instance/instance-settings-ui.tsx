@@ -53,6 +53,7 @@ interface ApplySettingsNoticeProps {
 export function ApplySettingsNotice({ pending, dirty }: ApplySettingsNoticeProps) {
   const t = useTranslations('settings.instanceSettings.apply')
   const tShared = useTranslations('settings.shared')
+  const tErrors = useTranslations('settings.instanceSettings.errors')
   const apply = useApplyNexoraSettings()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -66,12 +67,15 @@ export function ApplySettingsNotice({ pending, dirty }: ApplySettingsNoticeProps
   let message: string
   if (apply.isPending) message = t('restarting')
   else if (apply.isError) {
+    const code = getNexoraSettingsErrorCode(apply.error)
     message =
       apply.error instanceof NexoraRestartTimeoutError
         ? t('timeout')
-        : getNexoraSettingsErrorCode(apply.error) === 'not-supervised'
+        : code === 'not-supervised'
           ? t('notSupervised')
-          : t('failed')
+          : code === 'restart-in-progress' || code === 'nothing-pending'
+            ? tErrors(code)
+            : t('failed')
   } else message = dirty ? t('saveFirst') : t('pending')
 
   return (

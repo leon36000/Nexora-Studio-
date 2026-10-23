@@ -391,6 +391,7 @@ export function BaseTagsModal({ open, onOpenChange, knowledgeBaseId }: BaseTagsM
         </ChipModalBody>
 
         <ChipModalFooter
+          cancelLabel={t('cancel')}
           onCancel={() => handleClose(false)}
           defaultAction='none'
           primaryAction={{ label: t('close'), onClick: () => handleClose(false) }}
@@ -463,6 +464,7 @@ export function BaseTagsModal({ open, onOpenChange, knowledgeBaseId }: BaseTagsM
           </div>
         </ChipModalBody>
         <ChipModalFooter
+          cancelLabel={t('cancel')}
           onCancel={() => setViewDocumentsDialogOpen(false)}
           primaryAction={{ label: t('close'), onClick: () => setViewDocumentsDialogOpen(false) }}
         />

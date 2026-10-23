@@ -37,6 +37,18 @@
     "create": "Create workflow",
     "creating": "Creating…",
     "startOver": "Start over",
+    "showDetails": "Show the details of step {name}",
+    "hideDetails": "Hide the details of step {name}",
+    "details": {
+      "instructions": "Instructions",
+      "message": "Message",
+      "services": "Services",
+      "knowledgeBases": "Knowledge bases",
+      "output": "Output",
+      "request": "Request",
+      "body": "Body",
+      "fields": "Returned fields"
+    },
     "stepTypes": {
       "manuel": "Manual run",
       "planification": "Schedule",

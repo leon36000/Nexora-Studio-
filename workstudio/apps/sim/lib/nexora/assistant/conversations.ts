@@ -183,7 +183,7 @@ export const deleteAssistantConversation = defineAuthorizedWorkspaceUseCase({
   }) => resolveOwnedConversationContext(principal, input.conversationId),
   authorizationOptions: {},
   async execute({ context }) {
-    if (!(await deleteConversation(context.conversation.id))) conversationNotFound()
+    if (!(await deleteConversation(context.conversation))) conversationNotFound()
     return { conversationId: context.conversation.id }
   },
 })

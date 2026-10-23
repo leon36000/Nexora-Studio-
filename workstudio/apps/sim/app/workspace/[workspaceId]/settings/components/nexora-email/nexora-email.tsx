@@ -167,6 +167,11 @@ function EmailForm({ settings }: EmailFormProps) {
 
         <SettingsSection label={t('title')}>
           <div className='flex flex-col gap-4'>
+            {settings.resendTakesPrecedence && (
+              <p role='status' className='text-[var(--text-muted)] text-small'>
+                {t('resendTakesPrecedence')}
+              </p>
+            )}
             {overridden ? (
               <p className='text-[var(--text-muted)] text-small'>{tShared('envOverride')}</p>
             ) : (

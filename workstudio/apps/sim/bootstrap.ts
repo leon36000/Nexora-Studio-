@@ -18,8 +18,10 @@ if (tlsTrust.unsupported || tlsTrust.error) {
   logger.info('Distrusted compromised CA roots', { removed: tlsTrust.removed })
 }
 // Nexora edition: single sign-on, e-mail and sign-up domains saved in Réglages are read once,
-// here, because Better Auth and the mailer read their configuration when the server loads. A
-// failure only leaves those settings to deploy/.env; WorkStudio still starts.
+// here, because Better Auth and the mailer read their configuration when the server loads.
+// Starting without them would drop the sign-in policy (allowed domains, required single sign-on)
+// for the life of the process, so a database that cannot be read after a few attempts stops the
+// container and Docker starts it again. A secret that no longer decrypts only skips its group.
 try {
   const settings = await loadInstanceSettingsIntoEnv()
   if (settings?.applied.length) logger.info('Applied instance settings', settings)
@@ -27,7 +29,10 @@ try {
     logger.error('Instance settings could not be decrypted; check ENCRYPTION_KEY', settings)
   }
 } catch (error) {
-  logger.error('Could not read the instance settings', { error: getErrorMessage(error) })
+  logger.error('Could not read the instance settings; stopping until the database answers', {
+    error: getErrorMessage(error),
+  })
+  process.exit(1)
 }
 // `server.js` is the Next standalone build artifact, a sibling of this file in
 // the image; it does not exist at type-check time, so the specifier is held in a

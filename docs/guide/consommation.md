@@ -23,6 +23,8 @@ Si Nexora API ne répond pas, le tableau affiche quand même les exécutions et 
 - **Plafonds par espace** : choisissez un espace et son plafond mensuel.
 - **Seuil d'alerte** (80 % par défaut) : un bandeau prévient les administrateurs, et un e-mail part si un service d'e-mail est configuré ([Réglages › E-mail](reglages.md)). Chaque alerte n'est envoyée qu'une fois par mois.
 
-À 100 %, les **nouvelles** exécutions de l'espace sont refusées avec le message « Budget mensuel atteint pour cet espace : contactez votre administrateur. ». Les exécutions déjà en pause (validation humaine, minuterie) reprennent normalement. Un administrateur de l'instance qui lance lui-même une exécution n'est pas bloqué ; les exécutions automatiques (planifications, webhooks, chats publiés) le sont.
+À 100 %, les **nouvelles** exécutions de l'espace sont refusées avec le message « Budget mensuel atteint pour cet espace : contactez votre administrateur. » (ou, quand c'est le plafond de toute l'instance qui est atteint, « Budget mensuel de l'instance atteint : contactez votre administrateur. »). Les exécutions déjà en pause (validation humaine, minuterie) reprennent normalement. Un administrateur de l'instance qui lance lui-même une exécution n'est pas bloqué ; les exécutions automatiques (planifications, webhooks, chats publiés) le sont.
 
 Relever ou retirer un plafond prend effet à l'exécution suivante. Les compteurs repartent de zéro le premier jour du mois.
+
+Une planification refusée par le budget n'est **pas désactivée** : elle reste active et reprend d'elle-même dès que le plafond est relevé ou au mois suivant. Les exécutions refusées gardent une ligne dans les journaux (pour voir pourquoi rien n'a tourné) mais ne sont pas comptées dans les exécutions du tableau.

@@ -40,8 +40,11 @@ const logger = createLogger('NexoraBudgets')
 
 const METADATA_KEY = 'nexoraBudgets'
 const DEFAULT_ALERT_THRESHOLD = 0.8
-const BUDGET_EXCEEDED_MESSAGE =
-  'Budget mensuel atteint pour cet espace : contactez votre administrateur.'
+/** Which cap refused the run: the people refused can tell their administrator which to raise. */
+const BUDGET_EXCEEDED_MESSAGE: Record<BudgetScope, string> = {
+  workspace: 'Budget mensuel atteint pour cet espace : contactez votre administrateur.',
+  instance: 'Budget mensuel de l’instance atteint : contactez votre administrateur.',
+}
 
 /** How long an admission far from every cap is served from cache. */
 const BUDGET_ADMISSION_TTL_MS = 30_000
@@ -486,7 +489,7 @@ export async function checkBudget(
     allowed: false,
     reason: exceeded.scope,
     code: ADMISSION_REJECTION_CODE.MONTHLY_BUDGET_EXCEEDED,
-    message: BUDGET_EXCEEDED_MESSAGE,
+    message: BUDGET_EXCEEDED_MESSAGE[exceeded.scope],
     usage: exceeded.usage,
     cap: exceeded.cap,
   }

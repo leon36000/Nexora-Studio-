@@ -51,7 +51,8 @@ export function SkillImport({ onImport }: SkillImportProps) {
       accept={SKILL_IMPORT_ACCEPT}
       onChange={(files) => void handleFiles(files)}
       loading={importing}
-      label={importing ? t('importing') : undefined}
+      label={importing ? t('importing') : t('dropzone')}
+      draggingLabel={t('dropHere')}
       description={t('uploadDescription')}
       error={error || undefined}
     />

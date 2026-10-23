@@ -17,7 +17,7 @@ const SNAKE_CASE = /^[a-z][a-z0-9_]*$/
  * Names a step cannot take: `declencheur` is the trigger reference, `start` / `webhook` /
  * `planification` are the trigger blocks' names, and the executor reserves the rest.
  */
-const RESERVED_STEP_NAMES = new Set([
+export const RESERVED_STEP_NAMES: ReadonlySet<string> = new Set([
   'declencheur',
   'start',
   'webhook',
@@ -28,7 +28,7 @@ const RESERVED_STEP_NAMES = new Set([
 ])
 
 /** Fields the Start block always provides; a declared field must not hide one. */
-const START_BUILT_IN_FIELDS = new Set(['input', 'files'])
+export const START_BUILT_IN_FIELDS: ReadonlySet<string> = new Set(['input', 'files'])
 
 const identifier = z.string().trim().max(40).regex(SNAKE_CASE)
 const text = (max: number) => z.string().trim().min(1).max(max)

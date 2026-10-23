@@ -307,6 +307,7 @@ export function HelpModal({ open, onOpenChange, workflowId, workspaceId }: HelpM
             type='file'
             title={t('attachImages')}
             label={t('dropImages')}
+            draggingLabel={t('dropImagesHere')}
             description={t('imageFormats')}
             accept={ACCEPTED_IMAGE_TYPES.join(',')}
             multiple

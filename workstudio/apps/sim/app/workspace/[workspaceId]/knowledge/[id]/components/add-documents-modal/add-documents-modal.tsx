@@ -153,6 +153,8 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
         <ChipModalField
           type='file'
           title={tForm('uploadDocuments')}
+          label={tForm('dropFiles')}
+          draggingLabel={tForm('dropHere')}
           accept={KNOWLEDGE_ACCEPT_ATTRIBUTE}
           multiple
           onChange={processFiles}
@@ -230,6 +232,7 @@ export function AddDocumentsModal({ open, onOpenChange, knowledgeBaseId }: AddDo
       </ChipModalBody>
 
       <ChipModalFooter
+        cancelLabel={t('cancel')}
         onCancel={handleClose}
         cancelDisabled={isUploading}
         primaryAction={{

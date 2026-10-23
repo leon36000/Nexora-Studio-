@@ -9,6 +9,7 @@ import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { isCredentialGroupOAuthState } from '@/lib/credential-groups/oauth-state'
 import { getCredentialGroupStandardOAuthProviderFromProviderId } from '@/lib/credential-groups/providers'
 import { enforcePublicCredentialGroupIpRateLimit } from '@/lib/credential-groups/rate-limit'
+import { withoutNexoraMetadataDeep } from '@/lib/nexora/organization-metadata'
 import { handleCredentialGroupOAuthCallback } from '@/app/api/credential-groups/oauth-callback'
 
 export const dynamic = 'force-dynamic'
@@ -158,6 +159,30 @@ function unsupportedOidcResponse(): NextResponse {
   )
 }
 
+/**
+ * Nexora edition: the organization endpoints the plugin still serves (`get-full-organization`,
+ * `list`, `set-active`) return the organization's metadata, where the instance organization keeps
+ * its settings and budgets. Any member may call them, so those keys are removed from the body;
+ * status and headers (session cookies included) are kept.
+ */
+async function withoutNexoraOrganizationMetadata(path: string, response: Response) {
+  if (!path.startsWith('organization/')) return response
+  if (!response.headers.get('content-type')?.includes('application/json')) return response
+  // boundary-raw-json: the plugin owns this endpoint's schema; only metadata keys are removed
+  const body = await response
+    .clone()
+    .json()
+    .catch(() => undefined)
+  if (body === undefined) return response
+  const headers = new Headers(response.headers)
+  headers.delete('content-length')
+  return new Response(JSON.stringify(withoutNexoraMetadataDeep(body)), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
 export const GET = withRouteHandler(async (request: NextRequest) => {
   const path = getAuthPath(request)
   if (UNSUPPORTED_OIDC_PATHS.has(path)) return unsupportedOidcResponse()
@@ -194,7 +219,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     return NextResponse.json(createAnonymousSession())
   }
 
-  return betterAuthGET(request)
+  return withoutNexoraOrganizationMetadata(path, await betterAuthGET(request))
 })
 
 export const POST = withRouteHandler(async (request: NextRequest) => {
@@ -236,5 +261,5 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     )
   }
 
-  return betterAuthPOST(request)
+  return withoutNexoraOrganizationMetadata(path, await betterAuthPOST(request))
 })

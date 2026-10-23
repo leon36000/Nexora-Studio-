@@ -57,6 +57,8 @@ export interface DeploymentAuthBody {
 export interface DeploymentAuthResult {
   authorized: boolean
   authenticatedEmail?: string
+  /** Nexora edition: the member a members-only (`workspace`) deployment let in. */
+  authenticatedUserId?: string
   error?: string
   status?: number
   retryAfterMs?: number
@@ -69,6 +71,7 @@ export interface DeploymentCredentialContext {
   clientIp?: string | null
   sessionPresent?: boolean
   sessionEmail?: string | null
+  sessionUserId?: string | null
   /** Nexora edition: the signed-in user belongs to the deployment's workspace. */
   workspaceMember?: boolean
 }
@@ -213,7 +216,11 @@ export async function validateDeploymentCredentials(
     if (!request.workspaceMember) {
       return { authorized: false, error: 'Only members of this workspace can use this chat' }
     }
-    return { authorized: true, authenticatedEmail: normalizeEmail(request.sessionEmail) }
+    return {
+      authorized: true,
+      authenticatedEmail: normalizeEmail(request.sessionEmail),
+      ...(request.sessionUserId ? { authenticatedUserId: request.sessionUserId } : {}),
+    }
   }
 
   if (authType === 'sso') {

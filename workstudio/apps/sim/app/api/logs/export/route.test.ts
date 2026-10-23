@@ -1,4 +1,5 @@
 import { workflowExecutionLogs } from '@sim/db/schema'
+import { createRouteContext } from '@sim/testing/helpers/http'
 import { authMockFns } from '@sim/testing/mocks/auth.mock'
 import { dbChainMockFns, queueTableRows, resetDbChainMock } from '@sim/testing/mocks/database.mock'
 import {
@@ -234,6 +235,35 @@ describe('GET /api/logs/export', () => {
     expect(lines[1].split(',')[5]).toBe('')
     expect(lines[1]).toContain('span-1')
     expect(lines[1]).not.toContain('0.01')
+  })
+
+  it("leaves out what was said in another member's members-only chat", async () => {
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('write')
+    queueTableRows(workflowExecutionLogs, [
+      logRow(0, {
+        trigger: 'chat',
+        executionData: {
+          trigger: { type: 'chat', data: { memberChatUserId: 'member-a' } },
+          finalOutput: 'Réponse confidentielle',
+          traceSpans: [{ id: 'span-private', name: 'Agent', type: 'agent' }],
+        },
+      }),
+      logRow(1, {
+        trigger: 'chat',
+        executionData: {
+          trigger: { type: 'chat', data: { memberChatUserId: 'user-1' } },
+          finalOutput: 'Ma propre réponse',
+        },
+      }),
+    ])
+
+    const response = await GET(makeRequest(), createRouteContext({}))
+    const lines = (await response.text()).trimEnd().split('\n')
+
+    expect(lines[1]).toContain('execution-0')
+    expect(lines[1]).not.toContain('Réponse confidentielle')
+    expect(lines[1]).not.toContain('span-private')
+    expect(lines[2]).toContain('Ma propre réponse')
   })
 
   it('refuses the download when the group withholds log export', async () => {

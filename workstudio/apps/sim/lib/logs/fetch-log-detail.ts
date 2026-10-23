@@ -18,6 +18,7 @@ import {
 } from '@/lib/logs/execution/progress-markers'
 import { materializeExecutionDataForDisplay } from '@/lib/logs/execution/trace-store'
 import { workflowExecutionOriginSql } from '@/lib/logs/execution-origin'
+import { memberChatPayloadGate } from '@/lib/logs/member-chat'
 import type { TraceSpan } from '@/lib/logs/types'
 
 type LookupColumn = 'id' | 'executionId'
@@ -252,7 +253,12 @@ export async function readLogDetail({
         userId: viewerUserId,
       }
     )
-    const withheldPayloads = hideTraceSpans ? withheldExecutionData(materialized) : materialized
+    const privateToAnother = await memberChatPayloadGate(
+      viewerUserId,
+      workspaceId
+    )(log.executionData)
+    const withheldPayloads =
+      hideTraceSpans || privateToAnother ? withheldExecutionData(materialized) : materialized
     const executionData = hideCostInfo ? withheldSpendData(withheldPayloads) : withheldPayloads
     signal?.throwIfAborted()
 

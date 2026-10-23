@@ -630,6 +630,8 @@ interface ChipModalFileFieldProps extends ChipModalFieldBaseProps {
    * current selection (e.g. `'Uploaded data.json — click or drop to replace'`).
    */
   label?: string
+  /** Replaces `label` while files are dragged over the zone. Defaults to `'Drop files here'`. */
+  draggingLabel?: string
   /**
    * Secondary line inside the drop zone — accepted formats / size limits. Omit
    * for a single-line zone.
@@ -1053,6 +1055,7 @@ function ChipModalFileControl({
   accept,
   multiple = false,
   label = 'Drop files here or click to browse',
+  draggingLabel = 'Drop files here',
   description,
   loading = false,
   disabled,
@@ -1123,7 +1126,7 @@ function ChipModalFileControl({
       />
       {loading ? <Loader animate className='size-[14px] text-[var(--text-tertiary)]' /> : null}
       <OverflowText
-        label={isDragging ? 'Drop files here' : label}
+        label={isDragging ? draggingLabel : label}
         focusTarget='nearest-interactive'
         className='max-w-full text-[var(--text-primary)] text-caption'
       />

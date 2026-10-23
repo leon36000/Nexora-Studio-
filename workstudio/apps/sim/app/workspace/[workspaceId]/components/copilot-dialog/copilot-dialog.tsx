@@ -10,9 +10,11 @@ import {
   ChipModalFooter,
   type ChipModalFooterAction,
   ChipModalHeader,
+  cn,
 } from '@sim/emcn'
 import {
   Calendar,
+  ChevronDown,
   Clock,
   Globe,
   Hand,
@@ -41,6 +43,7 @@ import {
 import {
   buildPlanPreview,
   type PreviewRowType,
+  stepDetails,
 } from '@/app/workspace/[workspaceId]/components/copilot-dialog/plan-preview'
 import { useFolderMap } from '@/hooks/queries/folders'
 import { useCreateCopilotWorkflow, useGenerateCopilotPlan } from '@/hooks/queries/nexora-copilot'
@@ -101,6 +104,7 @@ export function CopilotDialog({
   const [pickedFolderId, setPickedFolderId] = useState<string | null | undefined>(undefined)
   const [error, setError] = useState<CopilotErrorMessage | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [expandedStep, setExpandedStep] = useState<string | null>(null)
 
   const generating = generatePlan.isPending
   const creating = createWorkflow.isPending
@@ -121,6 +125,10 @@ export function CopilotDialog({
     [choices, t]
   )
   const rows = useMemo(() => (draft ? buildPlanPreview(draft.plan, draft.summary) : []), [draft])
+  const detailsByStep = useMemo(
+    () => new Map((draft?.plan.steps ?? []).map((step) => [step.name, stepDetails(step)])),
+    [draft]
+  )
 
   useEffect(() => {
     if (!generating) return
@@ -213,6 +221,8 @@ export function CopilotDialog({
                 <ol className='flex flex-col divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]'>
                   {rows.map((row) => {
                     const Icon = ROW_ICONS[row.type]
+                    const details = row.name === null ? [] : (detailsByStep.get(row.name) ?? [])
+                    const expanded = row.name !== null && expandedStep === row.name
                     return (
                       <li key={row.key} className='flex items-start gap-2.5 px-3 py-2'>
                         <Icon className='mt-[3px] size-[14px] shrink-0 text-[var(--text-icon)]' />
@@ -230,7 +240,34 @@ export function CopilotDialog({
                               {row.sentence ?? t(`stepTypes.${row.type}`)}
                             </p>
                           )}
+                          {expanded && (
+                            <dl className='mt-1 flex flex-col gap-1.5'>
+                              {details.map((detail) => (
+                                <div key={detail.key} className='flex flex-col gap-0.5'>
+                                  <dt className='text-[var(--text-muted)] text-caption'>
+                                    {t(`details.${detail.key}`)}
+                                  </dt>
+                                  <dd className='whitespace-pre-wrap break-words text-[var(--text-body)] text-caption'>
+                                    {detail.value}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          )}
                         </div>
+                        {row.name !== null && details.length > 0 && (
+                          <button
+                            type='button'
+                            aria-expanded={expanded}
+                            aria-label={t(expanded ? 'hideDetails' : 'showDetails', {
+                              name: row.name,
+                            })}
+                            onClick={() => setExpandedStep(expanded ? null : row.name)}
+                            className='mt-[3px] shrink-0 cursor-pointer rounded text-[var(--text-icon)] hover:text-[var(--text-body)]'
+                          >
+                            <ChevronDown className={cn('size-[14px]', !expanded && '-rotate-90')} />
+                          </button>
+                        )}
                       </li>
                     )
                   })}

@@ -1799,7 +1799,10 @@
       "not-supervised": "WorkStudio ne tourne pas sous Docker : redémarrez-le vous-même.",
       "unavailable": "Les réglages de l’instance sont indisponibles pour le moment.",
       "invalid": "Vérifiez les valeurs saisies.",
-      "unknown": "L’opération a échoué. Réessayez."
+      "unknown": "L’opération a échoué. Réessayez.",
+      "restart-in-progress": "WorkStudio redémarre déjà : patientez quelques secondes.",
+      "nothing-pending": "Aucun réglage enregistré n’attend d’être appliqué.",
+      "owner-only": "Seul le propriétaire de l’instance peut modifier la connexion unique."
     },
     "apply": {
       "action": "Appliquer",
@@ -1833,7 +1836,8 @@
       "requiredHint": "Les membres ne peuvent plus se connecter par mot de passe ; propriétaires et administrateurs le gardent en secours.",
       "redirectUri": "URL de redirection à déclarer chez le fournisseur",
       "copyRedirectUri": "Copier l’URL de redirection",
-      "incomplete": "Renseignez l’émetteur, l’identifiant, le secret et le nom du bouton."
+      "incomplete": "Renseignez l’émetteur, l’identifiant, le secret et le nom du bouton.",
+      "ownerOnly": "Seul le propriétaire de l’instance peut modifier la connexion unique : elle décide qui peut se connecter sous quel compte."
     },
     "test": {
       "action": "Tester la configuration",
@@ -1886,7 +1890,8 @@
     "testMessage": {
       "subject": "Nexora WorkStudio : e-mail de test",
       "text": "Bonjour,\n\nCet e-mail confirme que Nexora WorkStudio peut envoyer des messages avec le serveur SMTP configuré.\n\nAucune action n’est nécessaire."
-    }
+    },
+    "resendTakesPrecedence": "Une clé Resend (RESEND_API_KEY) est définie dans deploy/.env : les e-mails partent par Resend, ce serveur SMTP ne sert qu’en secours."
   },
   "accessGroups": {
     "adminsOnly": "Réservé aux administrateurs de l’organisation.",

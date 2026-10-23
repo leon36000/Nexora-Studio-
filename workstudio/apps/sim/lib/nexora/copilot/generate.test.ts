@@ -88,6 +88,80 @@ describe('generatePlan', () => {
     expect(complete).toHaveBeenCalledTimes(1)
   })
 
+  it('skips a brace in the text that never closes and takes the plan after it', async () => {
+    const { complete } = scriptedModel(
+      `Voici le plan { en une étape :\n${JSON.stringify(validPlan)}`
+    )
+
+    const result = await generatePlan({ description: 'Relancer les factures', context, complete })
+
+    expect(result.plan.title).toBe('Relance des factures')
+    expect(complete).toHaveBeenCalledTimes(1)
+  })
+
+  it('unwraps a plan the model nests under "plan"', async () => {
+    const { complete } = scriptedModel(JSON.stringify({ plan: validPlan }))
+
+    const result = await generatePlan({ description: 'Relancer les factures', context, complete })
+
+    expect(result.plan.title).toBe('Relance des factures')
+    expect(complete).toHaveBeenCalledTimes(1)
+  })
+
+  it('fixes French names and a « texte » type itself, without spending the retry', async () => {
+    const summarise = {
+      title: 'Résumé de texte',
+      trigger: {
+        kind: 'manuel',
+        fields: [{ name: 'Texte à résumer', description: 'Le texte saisi au lancement' }],
+      },
+      steps: [
+        {
+          kind: 'agent',
+          name: 'Résumer le texte',
+          instructions: 'Vous résumez un texte en une phrase, en français.',
+          message: 'Résumez en une phrase : {{declencheur.Texte à résumer}}',
+          output: { fields: [{ name: 'Résumé', type: 'texte' }] },
+        },
+        {
+          kind: 'reponse',
+          name: 'Réponse finale',
+          fields: [{ name: 'résumé', value: '{{Résumer le texte.Résumé}}' }],
+        },
+      ],
+    }
+    const { complete } = scriptedModel(JSON.stringify(summarise))
+
+    const result = await generatePlan({
+      description:
+        'Quand je lance le workflow avec un texte, un agent le résume en une phrase en français.',
+      context,
+      complete,
+    })
+
+    expect(complete).toHaveBeenCalledTimes(1)
+    const [agentStep, responseStep] = result.plan.steps
+    expect(agentStep).toMatchObject({
+      name: 'resumer_le_texte',
+      message: 'Résumez en une phrase : {{declencheur.texte_a_resumer}}',
+      output: { fields: [{ name: 'resume', type: 'string' }] },
+    })
+    expect(responseStep).toMatchObject({
+      name: 'reponse_finale',
+      fields: [{ name: 'resume', value: '{{resumer_le_texte.resume}}' }],
+    })
+  })
+
+  it('teaches snake_case names and the allowed output types in the prompt', async () => {
+    const { complete, calls } = scriptedModel(JSON.stringify(validPlan))
+
+    await generatePlan({ description: 'Relancer', context, complete })
+
+    const system = systemPrompt(calls[0])
+    expect(system).toMatch(/snake_case/)
+    expect(system).toContain('"string", "number" ou "boolean"')
+  })
+
   it('retries once with the validation error, then returns the valid plan', async () => {
     const { complete, calls } = scriptedModel(
       JSON.stringify({ ...validPlan, steps: [] }),
@@ -266,6 +340,52 @@ describe('generatePlan', () => {
     const result = await generatePlan({ description: 'Relancer', context, complete })
 
     expect(result.warnings.join(' ')).toContain('salesforce')
+  })
+
+  it('finds a long knowledge base by the shortened name the prompt listed', async () => {
+    const longName = `Procédures internes du service client ${'et du support '.repeat(8)}2026`
+    const longContext: CompileContext = {
+      ...context,
+      knowledgeBases: [
+        { id: 'kb-long', name: longName },
+        { id: 'kb-faq', name: 'FAQ clients' },
+      ],
+    }
+    const complete = vi.fn(async (messages: WandMessage[]) => {
+      const basesLine = systemPrompt(messages)
+        .split('\n')
+        .find((line) => line.startsWith('Bases de connaissances'))
+      const listed = JSON.parse(`[${basesLine?.slice(basesLine.indexOf(': ') + 2, -1)}]`)
+      return JSON.stringify({
+        ...validPlan,
+        steps: [{ ...validPlan.steps[0], knowledgeBases: [listed[0]] }],
+      })
+    })
+
+    const result = await generatePlan({ description: 'Relancer', context: longContext, complete })
+
+    expect(result.warnings).toEqual([])
+  })
+
+  it('does not guess between two knowledge bases that share the shortened name', async () => {
+    const prefix = `Procédures internes du service client ${'et du support '.repeat(8)}`
+    const twinContext: CompileContext = {
+      ...context,
+      knowledgeBases: [
+        { id: 'kb-2025', name: `${prefix}2025` },
+        { id: 'kb-2026', name: `${prefix}2026` },
+      ],
+    }
+    const { complete } = scriptedModel(
+      JSON.stringify({
+        ...validPlan,
+        steps: [{ ...validPlan.steps[0], knowledgeBases: [`${prefix.slice(0, 79)}…`] }],
+      })
+    )
+
+    const result = await generatePlan({ description: 'Relancer', context: twinContext, complete })
+
+    expect(result.warnings.join(' ')).toContain('introuvable')
   })
 
   it('summarises the trigger and each step in French, in order', async () => {

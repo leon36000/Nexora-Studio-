@@ -75,6 +75,7 @@ export function McpServerSelector({
       disabled={disabled}
       editable={false}
       searchable
+      searchPlaceholder={t('search')}
       filterOptions={false}
       isLoading={isLoading}
       error={error instanceof Error ? error.message : null}

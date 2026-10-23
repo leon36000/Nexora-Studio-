@@ -1,3 +1,5 @@
+import type { CopilotStep } from '@/lib/nexora/copilot/plan'
+
 const TRIGGER_TYPES = ['manuel', 'planification', 'webhook', 'chat'] as const
 const STEP_TYPES = [
   'agent',
@@ -56,4 +58,65 @@ export function buildPlanPreview(
       sentence: aligned ? summary[index + 1] : null,
     })),
   ]
+}
+
+/** A detail's label key in `copilot.dialog.details`. */
+type StepDetailKey =
+  | 'instructions'
+  | 'message'
+  | 'services'
+  | 'knowledgeBases'
+  | 'output'
+  | 'request'
+  | 'body'
+  | 'fields'
+
+interface StepDetail {
+  key: StepDetailKey
+  value: string
+}
+
+/**
+ * What a step does in full, for the person to check before « Créer » (the summary cuts long
+ * instructions, messages and addresses). Condition and wait steps have nothing the summary leaves
+ * out, so they have no details.
+ */
+export function stepDetails(step: CopilotStep): StepDetail[] {
+  switch (step.kind) {
+    case 'agent': {
+      const details: StepDetail[] = [
+        { key: 'instructions', value: step.instructions },
+        { key: 'message', value: step.message },
+      ]
+      if (step.services.length > 0)
+        details.push({ key: 'services', value: step.services.join(', ') })
+      if (step.knowledgeBases.length > 0) {
+        details.push({ key: 'knowledgeBases', value: step.knowledgeBases.join(', ') })
+      }
+      if (step.output) {
+        details.push({
+          key: 'output',
+          value: step.output.fields.map((field) => `${field.name} (${field.type})`).join(', '),
+        })
+      }
+      return details
+    }
+    case 'api':
+      return [
+        { key: 'request', value: `${step.method} ${step.url}` },
+        ...(step.body ? [{ key: 'body' as const, value: step.body }] : []),
+      ]
+    case 'validation_humaine':
+      return [{ key: 'message', value: step.message }]
+    case 'reponse':
+      return [
+        {
+          key: 'fields',
+          value: step.fields.map((field) => `${field.name} = ${field.value}`).join('\n'),
+        },
+      ]
+    case 'condition':
+    case 'attente':
+      return []
+  }
 }

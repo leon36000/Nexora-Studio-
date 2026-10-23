@@ -12,6 +12,7 @@ import {
   type AgentConfig,
   agentChangedSince,
   buildAgentWorkflow,
+  persistedAgentConfig,
 } from '@/lib/nexora/agents'
 import { persistImportedWorkflow } from '@/lib/workflows/operations/import-export'
 import { deploymentKeys } from '@/hooks/queries/deployments'
@@ -96,26 +97,33 @@ interface SaveAgentVariables {
  * Writes the agent's draft (the workflow state `buildAgentWorkflow` builds over the stored one,
  * read fresh) and its name and description on the workflow row. The welcome message is saved with
  * the public chat instead. Rejects with `AgentChangedElsewhereError`, writing nothing, when the
- * stored draft no longer holds `baseline`.
+ * stored draft no longer holds `baseline`. Resolves with the configuration written, the baseline of
+ * the next save.
  */
 export function useSaveAgent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ workflowId, config, baseline }: SaveAgentVariables) => {
+    mutationFn: async ({
+      workflowId,
+      config,
+      baseline,
+    }: SaveAgentVariables): Promise<AgentConfig> => {
       const stored = await queryClient.fetchQuery({
         queryKey: workflowKeys.state(workflowId),
         queryFn: ({ signal }) => fetchWorkflowEnvelope(workflowId, signal),
         staleTime: 0,
       })
       if (agentChangedSince(baseline, stored.state)) throw new AgentChangedElsewhereError()
+      const written = buildAgentWorkflow(config, stored.state)
       await requestJson(putWorkflowNormalizedStateContract, {
         params: { id: workflowId },
-        body: buildAgentWorkflow(config, stored.state),
+        body: written,
       })
       await requestJson(updateWorkflowContract, {
         params: { id: workflowId },
         body: { name: config.name, description: config.description },
       })
+      return persistedAgentConfig(config, written)
     },
     onSettled: (_data, _error, { workspaceId, workflowId }) =>
       Promise.all([

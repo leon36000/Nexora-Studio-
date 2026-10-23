@@ -70,7 +70,7 @@ export function MessageItem({
     <article className='flex flex-col gap-1.5'>
       {hasText ? (
         <div className='min-w-0 break-words text-[var(--text-body)] text-sm'>
-          <MarkdownRenderer content={content} />
+          <MarkdownRenderer content={content} sameOriginImages />
         </div>
       ) : isStreaming ? (
         <Loader className='size-[14px] text-[var(--text-muted)]' animate />

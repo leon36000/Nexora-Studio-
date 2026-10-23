@@ -63,8 +63,7 @@ export function AgentForm({
     }
     const config = { ...draft, name }
     try {
-      await saveAgent({ workspaceId, workflowId, config, baseline: saved })
-      setSaved(config)
+      setSaved(await saveAgent({ workspaceId, workflowId, config, baseline: saved }))
       // Keeps what was typed while saving; only the saved name loses its surrounding spaces.
       setDraft((current) => (current.name === draft.name ? { ...current, name } : current))
       return true

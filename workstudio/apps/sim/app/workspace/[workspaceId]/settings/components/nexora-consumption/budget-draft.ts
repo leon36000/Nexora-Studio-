@@ -1,3 +1,4 @@
+import { isApiClientError } from '@/lib/api/client/errors'
 import type { UpdateNexoraBudgetsBody } from '@/lib/api/contracts/nexora-consumption'
 
 /** The largest cap the server accepts, in tokens. */
@@ -142,4 +143,15 @@ export function budgetChange(
   if (Object.keys(workspaceChange).length > 0) change.workspaceMonthlyTokens = workspaceChange
 
   return Object.keys(change).length > 0 ? change : null
+}
+
+/** Why saving the budgets failed, as a message key: the server's own wording is in English. */
+export function budgetSaveErrorKey(
+  error: unknown
+): 'invalid' | 'forbidden' | 'unavailable' | 'unknown' {
+  if (!isApiClientError(error)) return 'unknown'
+  if (error.status === 400) return 'invalid'
+  if (error.status === 401 || error.status === 403) return 'forbidden'
+  if (error.status === 404) return 'unavailable'
+  return 'unknown'
 }

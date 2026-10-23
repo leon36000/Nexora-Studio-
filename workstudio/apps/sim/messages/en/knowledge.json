@@ -101,7 +101,10 @@
       "regexRequired": "Regex pattern is required when using the regex strategy",
       "tooManySeparators": "At most {maxSeparators} separators are allowed",
       "separatorTooLong": "Each separator must be {maxSeparatorLength} characters or less"
-    }
+    },
+    "cancel": "Cancel",
+    "dropFiles": "Drop files here or click to browse",
+    "dropHere": "Drop files here"
   },
   "editBase": {
     "title": "Edit Knowledge Base",
@@ -113,7 +116,8 @@
     "tokens": "tokens",
     "chars": "chars",
     "saving": "Saving...",
-    "save": "Save"
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "reindex": {
     "title": "Embedding model",
@@ -503,7 +507,8 @@
     "nameRequired": "Name is required",
     "failed": "Failed to rename document",
     "renaming": "Renaming...",
-    "rename": "Rename"
+    "rename": "Rename",
+    "cancel": "Cancel"
   },
   "documentContextMenu": {
     "openInNewTab": "Open in new tab",
@@ -536,7 +541,8 @@
     "title": "New Documents",
     "retryUpload": "Retry upload",
     "uploading": "Uploading...",
-    "upload": "Upload"
+    "upload": "Upload",
+    "cancel": "Cancel"
   },
   "upload": {
     "partialFailure": "Failed to upload {count} file(s)",
@@ -574,7 +580,8 @@
     "addConnection": "Add connection",
     "createAndInvite": "Create & Invite",
     "saveConnection": "Save connection",
-    "connectAndSync": "Connect & Sync"
+    "connectAndSync": "Connect & Sync",
+    "cancel": "Cancel"
   },
   "connectorSettings": {
     "personalAccessToken": "Personal Access Token",
@@ -614,7 +621,8 @@
     "views": "Connection views",
     "setupGuide": "Setup guide",
     "saving": "Saving…",
-    "save": "Save"
+    "save": "Save",
+    "cancel": "Cancel"
   },
   "connectorAccess": {
     "syncDocumentsWith": "Sync documents with",

@@ -201,7 +201,8 @@
       "importing": "Importation…",
       "replace": "Remplacer les lignes",
       "append": "Ajouter les lignes"
-    }
+    },
+    "dropHere": "Déposez le fichier ici"
   },
   "locks": {
     "title": "Sécurité de la table",

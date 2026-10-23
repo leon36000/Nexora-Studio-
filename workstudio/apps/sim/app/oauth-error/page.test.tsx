@@ -18,6 +18,7 @@ describe('OAuthErrorPage', () => {
     expect(await descriptionFor('signup_disabled')).toContain('Account creation is disabled')
     expect(await descriptionFor('account_not_linked')).toContain('verify your address')
     expect(await descriptionFor('issuer_mismatch')).toContain('expected identity provider')
+    expect(await descriptionFor('unable_to_link_account')).toContain('Sign in with your password')
   })
 
   it('falls back to a retry message for unknown or prototype-shaped codes', async () => {

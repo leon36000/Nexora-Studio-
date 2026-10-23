@@ -14,7 +14,7 @@ Le fournisseur doit transmettre l'adresse e-mail de l'utilisateur et indiquer qu
 
 ## 2. Configurer Nexora
 
-**Le plus simple : dans l'interface.** Réglages › Sécurité (administrateurs de l'instance) : émetteur, identifiant, secret, nom du bouton, **Tester**, **Enregistrer** puis **Appliquer** (WorkStudio redémarre en 20 secondes environ). Voir [Réglages et gouvernance](reglages.md).
+**Le plus simple : dans l'interface.** Réglages › Sécurité (propriétaire de l'instance ; les administrateurs la voient en lecture seule) : émetteur, identifiant, secret, nom du bouton, **Tester**, **Enregistrer** puis **Appliquer** (WorkStudio redémarre en 20 secondes environ). Voir [Réglages et gouvernance](reglages.md).
 
 **Ou dans `deploy/.env`**, qui reste prioritaire sur l'interface :
 
@@ -23,6 +23,8 @@ NEXORA_OIDC_NAME=Mon entreprise
 NEXORA_OIDC_ISSUER=https://sso.mon-entreprise.fr/realms/pme
 NEXORA_OIDC_CLIENT_ID=nexora
 NEXORA_OIDC_CLIENT_SECRET=<le secret client>
+# Facultatif : les membres ne se connectent plus par mot de passe (propriétaire et administrateurs le gardent).
+NEXORA_OIDC_REQUIRED=true
 ```
 
 `NEXORA_OIDC_ISSUER` est l'« émetteur » de votre fournisseur. Nexora lit sa configuration à l'adresse `<émetteur>/.well-known/openid-configuration` et vérifie chaque connexion avec l'émetteur que cette configuration annonce. Les quatre variables sont nécessaires : sans `NEXORA_OIDC_NAME`, le bouton n'apparaît pas et le SSO reste désactivé.

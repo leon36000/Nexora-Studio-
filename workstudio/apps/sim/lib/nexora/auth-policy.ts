@@ -1,11 +1,10 @@
 import { db } from '@sim/db'
-import { invitation, member, user } from '@sim/db/schema'
+import { invitation } from '@sim/db/schema'
 import { isOrgAdminRole } from '@sim/platform-authz/workspace'
 import { normalizeEmail } from '@sim/utils/string'
 import { and, eq, gt, sql } from 'drizzle-orm'
 import type { AccessControlConfig } from '@/lib/auth/access-control'
 import { env } from '@/lib/core/config/env'
-import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
 
 /**
  * Nexora edition: who may create an account and who may sign in with a password.
@@ -82,23 +81,4 @@ async function hasPendingInvitation(email: string): Promise<boolean> {
     )
     .limit(1)
   return Boolean(row)
-}
-
-/**
- * The organization role of the account behind `email`: in the instance organization when the
- * instance has one, else its highest role anywhere. `null` without an account or a membership.
- */
-export async function organizationRoleOfEmail(email: string): Promise<string | null> {
-  const instanceOrganizationId = await getInstanceOrganizationId()
-  const rows = await db
-    .select({ role: member.role })
-    .from(member)
-    .innerJoin(user, eq(user.id, member.userId))
-    .where(
-      and(
-        sql`lower(${user.email}) = ${normalizeEmail(email)}`,
-        instanceOrganizationId ? eq(member.organizationId, instanceOrganizationId) : undefined
-      )
-    )
-  return rows.find((row) => isOrgAdminRole(row.role))?.role ?? rows[0]?.role ?? null
 }

@@ -66,7 +66,12 @@ export function ConsumptionReport({ report }: ConsumptionReportProps) {
             value={measured ? compact(measured.requests) : unavailable}
             title={measured ? integer(measured.requests) : undefined}
           />
-          <Tile label={t('tiles.tokens')} value={compact(tokens)} title={integer(tokens)} />
+          <Tile
+            label={t('tiles.tokens')}
+            value={compact(tokens)}
+            title={integer(tokens)}
+            detail={measured ? t('tiles.tokensFromApi') : t('tiles.tokensFromWorkstudio')}
+          />
           <Tile
             label={t('tiles.executions')}
             value={compact(workstudio.executions)}

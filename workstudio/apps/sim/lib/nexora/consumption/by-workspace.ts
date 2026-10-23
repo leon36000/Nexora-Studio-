@@ -3,6 +3,7 @@ import { usageLog, user, workflowExecutionLogs, workspace } from '@sim/db/schema
 import { and, type Column, eq, gte, inArray, isNotNull, lt, type SQL, sql } from 'drizzle-orm'
 import { assertValidTimezone } from '@/lib/core/utils/timezone'
 import type { DbClient } from '@/lib/db/types'
+import { startedRunCondition } from '@/lib/execution/refused-run-log'
 
 /**
  * WorkStudio's own consumption per workspace and per person, from two tables:
@@ -14,7 +15,8 @@ import type { DbClient } from '@/lib/db/types'
  *   deleted workspace's ledger rows survive with `workspace_id` set to null, so its tokens stay
  *   in the instance totals.
  * - executions per workspace: `workflow_execution_logs` (one row per run, `workspace_id`,
- *   `started_at`), so a run that called no model still counts. The token and actor figures of
+ *   `started_at`), so a run that called no model still counts; a run refused at admission (a
+ *   monthly budget, a rate limit) keeps its row for its owner but is not counted. The token and actor figures of
  *   an execution row move to object storage once its payload is externalized, which is why
  *   tokens are read from the ledger and not from there.
  *
@@ -127,7 +129,8 @@ export async function readWorkspaceConsumption({
   const modelRows = and(...inLedgerPeriod, inArray(usageLog.category, [...MODEL_USAGE_CATEGORIES]))
   const inRunPeriod = and(
     gte(workflowExecutionLogs.startedAt, start),
-    lt(workflowExecutionLogs.startedAt, end)
+    lt(workflowExecutionLogs.startedAt, end),
+    startedRunCondition()
   )
 
   const [tokenRows, userExecutionRows, tokenDayRows, workspaceExecutionRows, executionDayRows] =

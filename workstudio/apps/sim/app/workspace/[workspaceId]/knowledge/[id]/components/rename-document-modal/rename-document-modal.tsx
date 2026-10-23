@@ -97,6 +97,7 @@ export function RenameDocumentModal({
         <ChipModalError>{error}</ChipModalError>
       </ChipModalBody>
       <ChipModalFooter
+        cancelLabel={t('cancel')}
         onCancel={() => onOpenChange(false)}
         cancelDisabled={isSubmitting}
         primaryAction={{

@@ -71,8 +71,28 @@ describe('applying stored instance settings at startup', () => {
     expect(result.applied).toEqual(['sso', 'smtp', 'domains'])
     expect(env.NEXT_PUBLIC_NEXORA_OIDC_NAME).toBe('PME')
     expect(env.SMTP_PORT).toBe('587')
-    // The sender address set in deploy/.env still wins over the one typed in the interface.
-    expect(env.FROM_EMAIL_ADDRESS).toBe('env@pme.fr')
+    expect(env.FROM_EMAIL_ADDRESS).toBe('n@pme.fr')
+  })
+
+  it('takes a group applied from the interface entirely from it, even past stray deploy/.env values', async () => {
+    const env: Record<string, string | undefined> = {
+      SMTP_USER: 'env-user',
+      SMTP_PASS: 'env-password',
+      FROM_EMAIL_ADDRESS: 'env@pme.fr',
+      NEXORA_OIDC_REQUIRED: 'false',
+      NEXORA_OIDC_CLIENT_SECRET: 'env-secret',
+    }
+    await applyStoredSettingsToEnv(
+      env,
+      { ...stored, smtp: { host: 'smtp.pme.fr', port: 587 } },
+      decrypt
+    )
+    expect(env.SMTP_HOST).toBe('smtp.pme.fr')
+    expect(env.SMTP_USER).toBeUndefined()
+    expect(env.SMTP_PASS).toBeUndefined()
+    expect(env.FROM_EMAIL_ADDRESS).toBeUndefined()
+    expect(env.NEXORA_OIDC_REQUIRED).toBe('true')
+    expect(env.NEXORA_OIDC_CLIENT_SECRET).toBe('s3cret')
   })
 
   it('skips an incomplete single sign-on, which would show a button nobody can use', async () => {

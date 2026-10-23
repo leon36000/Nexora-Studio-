@@ -11,6 +11,7 @@ import { importWorkflowMock, importWorkflowMockFns } from '@sim/testing/mocks/im
 import { rateLimiterMock } from '@sim/testing/mocks/rate-limiter.mock'
 import { realtimeNotifyMock } from '@sim/testing/mocks/realtime-notify.mock'
 import { createMockRequest } from '@sim/testing/mocks/request.mock'
+import { workflowAuthzMockFns } from '@sim/testing/mocks/workflow-authz.mock'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
 import { workspaceContextMock } from '@sim/testing/mocks/workspace-context.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -129,13 +130,20 @@ describe('POST /api/nexora/copilot/create', () => {
     expect(parseWorkflowJson(params.workflow).errors).toEqual([])
   })
 
-  it('answers 404 when the folder is not in the workspace', async () => {
-    importWorkflow.mockResolvedValue({ success: false, status: 404, error: 'Folder not found' })
+  it('answers 404 « dossier introuvable » when the folder is not in the workspace', async () => {
+    workflowAuthzMockFns.mockIsFolderInWorkspace.mockResolvedValueOnce(false)
+    importWorkflow.mockResolvedValue({
+      success: false,
+      status: 400,
+      error: 'Target folder not found',
+    })
 
     const response = await POST(
       createRequest({ workspaceId: 'workspace-1', plan, folderId: 'folder-elsewhere' })
     )
 
     expect(response.status).toBe(404)
+    expect((await response.json()).error).toMatch(/dossier introuvable/i)
+    expect(importWorkflow).not.toHaveBeenCalled()
   })
 })

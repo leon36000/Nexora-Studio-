@@ -32,10 +32,17 @@ case "$command" in *". /bootstrap/nexora-admin.env"*) ok "WorkStudio reads its m
 mounts="$(python3 -I -c 'import json,sys; v=json.load(sys.stdin)["services"]["workstudio"].get("volumes",[]); print(" ".join(m.get("target","") if isinstance(m,dict) else m for m in v))' <<< "$rendered")"
 case " $mounts " in *" /app/apps/sim/uploads "*) ok "uploaded files are kept in a volume" ;; *) ko "uploaded files are kept in a volume (mounts: $mounts)" ;; esac
 
+# « Appliquer » restarts WorkStudio only when something brings it back; SSO is optional by default.
+[ "$(value NEXORA_SUPERVISED)" = "1" ] && ok "WorkStudio knows it is restarted by Docker" || ko "WorkStudio knows it is restarted by Docker"
+[ -z "$(value NEXORA_OIDC_REQUIRED)" ] && ok "single sign-on is not required by default" || ko "single sign-on is not required by default (got: $(value NEXORA_OIDC_REQUIRED))"
+
 # The default model's name is fixed: WorkStudio, the bootstrap and Nexora API must agree on it.
 printf "NEXORA_MODEL_NAME=assistant\n" >> "$env_file"
 rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"
 [ "$(value NEXORA_DEFAULT_MODEL)" = "nexora-default" ] && ok "the default model is always nexora-default" || ko "the default model is always nexora-default (got: $(value NEXORA_DEFAULT_MODEL))"
+required_env="$(mktemp)"; cp "$env_file" "$required_env"; printf "NEXORA_OIDC_REQUIRED=true\n" >> "$required_env"
+required="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$required_env" config --format json 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["workstudio"]["environment"].get("NEXORA_OIDC_REQUIRED") or "")')"; rm -f "$required_env"
+[ "$required" = "true" ] && ok "« connexion obligatoire » set in deploy/.env reaches WorkStudio" || ko "« connexion obligatoire » set in deploy/.env reaches WorkStudio (got: $required)"
 
 # HTTPS: Caddy serves the public domain only when the « https » profile is on.
 has_service() { python3 -I -c 'import json,sys; print(sys.argv[1] in json.load(sys.stdin)["services"])' "$1" <<< "$rendered"; }

@@ -38,6 +38,7 @@ import { RateLimiter } from '@/lib/core/rate-limiter/rate-limiter'
 import type { SubscriptionPlan } from '@/lib/core/rate-limiter/types'
 import { withDatabaseReadRetry } from '@/lib/db/read-retry'
 import { claimBlockedRunLog } from '@/lib/execution/blocked-run-log'
+import { markRefusedRunLog } from '@/lib/execution/refused-run-log'
 import { LoggingSession, type SessionStartParams } from '@/lib/logs/execution/logging-session'
 import { checkBudget } from '@/lib/nexora/consumption/budgets'
 import type { CoreTriggerType } from '@/stores/logs/filters/types'
@@ -424,6 +425,10 @@ export async function preprocessExecution(
       return
     }
     await recordPreprocessingError(record)
+    // The row tells the owner why nothing ran; the mark keeps it out of execution counts.
+    if (logPreprocessingErrors && failure.code) {
+      await markRefusedRunLog(record.executionId, failure.code)
+    }
   }
 
   logger.info(`[${requestId}] Starting execution preprocessing`, {

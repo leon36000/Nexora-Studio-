@@ -32,6 +32,8 @@ interface OAuthErrorPageProps {
  * - SSO required: the person's organization refuses a social sign-in.
  * - `email_not_found`: the provider returned no email claim.
  * - `issuer_mismatch`: the callback's `iss` is not the discovered issuer.
+ * - `unable_to_link_account`: Nexora refused to link the company identity provider to an
+ *   existing account (`lib/nexora/oidc-link.ts`).
  */
 const FRIENDLY_KEYS = {
   access_denied: 'access_denied',
@@ -41,6 +43,7 @@ const FRIENDLY_KEYS = {
   [SSO_REQUIRED_ERROR_CODE]: 'ssoRequired',
   email_not_found: 'email_not_found',
   issuer_mismatch: 'issuer_mismatch',
+  unable_to_link_account: 'linkRefused',
 } as const
 
 type FriendlyKey = (typeof FRIENDLY_KEYS)[keyof typeof FRIENDLY_KEYS]

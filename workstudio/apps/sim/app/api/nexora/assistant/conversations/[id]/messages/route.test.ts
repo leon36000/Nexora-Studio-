@@ -124,4 +124,56 @@ describe('POST /api/nexora/assistant/conversations/[id]/messages', () => {
       },
     })
   })
+
+  it('stores only the name, type and size of an attached file, never a storage key sent by the page', async () => {
+    queueTableRows(schemaMock.nexoraAssistantConversation, [conversationRow])
+    queueTableRows(schemaMock.workflow, [
+      {
+        workflowId: 'agent-1',
+        name: 'Agent RH',
+        description: null,
+        chatIdentifier: 'agent-rh',
+        customizations: {},
+      },
+    ])
+    const legacyFile = {
+      name: 'ancien.pdf',
+      key: 'workspace/workspace-1/ancien.pdf',
+      type: 'application/pdf',
+      size: 10,
+    }
+    dbChainMockFns.returning
+      .mockImplementationOnce(async () => [{ id: 'conversation-1' }])
+      .mockImplementationOnce(async () => [
+        {
+          id: 'message-1',
+          conversationId: 'conversation-1',
+          role: 'user',
+          content: 'Voici le contrat',
+          files: [legacyFile],
+          usage: null,
+          interrupted: false,
+          createdAt: new Date('2026-10-01T10:06:00.000Z'),
+        },
+      ])
+
+    const response = await append({
+      role: 'user',
+      content: 'Voici le contrat',
+      files: [
+        {
+          name: 'contrat.pdf',
+          key: 'workspace/workspace-2/secret.pdf',
+          type: 'application/pdf',
+          size: 1200,
+        },
+      ],
+    })
+
+    expect(response.status).toBe(201)
+    const inserted = dbChainMockFns.values.mock.calls.at(-1)?.[0] as { files?: unknown }
+    expect(inserted.files).toEqual([{ name: 'contrat.pdf', type: 'application/pdf', size: 1200 }])
+    const { message } = await response.json()
+    expect(message.files).toEqual([{ name: 'ancien.pdf', type: 'application/pdf', size: 10 }])
+  })
 })

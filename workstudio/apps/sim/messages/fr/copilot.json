@@ -37,6 +37,18 @@
     "create": "Créer le workflow",
     "creating": "Création…",
     "startOver": "Recommencer",
+    "showDetails": "Voir le détail de l’étape {name}",
+    "hideDetails": "Masquer le détail de l’étape {name}",
+    "details": {
+      "instructions": "Consignes",
+      "message": "Message",
+      "services": "Services",
+      "knowledgeBases": "Bases de connaissances",
+      "output": "Sortie",
+      "request": "Requête",
+      "body": "Corps",
+      "fields": "Champs renvoyés"
+    },
     "stepTypes": {
       "manuel": "Lancement manuel",
       "planification": "Planification",

@@ -16,6 +16,7 @@ import {
   assertBillingAttributionSnapshot,
   type BillingAttributionSnapshot,
 } from '@/lib/billing/core/attribution'
+import { ADMISSION_REJECTION_CODE } from '@/lib/core/admission/rejection'
 import { classifyTransientAdmissionFailure } from '@/lib/core/admission/transient-failure'
 import type { AsyncExecutionCorrelation } from '@/lib/core/async-jobs/types'
 import {
@@ -106,6 +107,24 @@ export function buildScheduleFailureUpdate(
     status: scheduleStatusAfterFailedCountIncrement(),
     ...resetScheduleInfraRetryCount(),
   }
+}
+
+/**
+ * A 402 refusal: the run was refused on spend, not because the workflow is broken. The Nexora
+ * monthly budget clears by itself on the 1st or when an administrator raises the cap, so a
+ * schedule refused by it keeps its cadence and its failure count, like a rate-limit refusal; a
+ * usage-limit refusal still counts toward the auto-disable threshold, so an abandoned over-limit
+ * schedule eventually stops.
+ */
+export function buildScheduleSpendRefusalUpdate(
+  now: Date,
+  nextRunAt: Date,
+  code: string | undefined
+): WorkflowScheduleUpdate {
+  if (code !== ADMISSION_REJECTION_CODE.MONTHLY_BUDGET_EXCEEDED) {
+    return buildScheduleFailureUpdate(now, nextRunAt)
+  }
+  return { updatedAt: now, nextRunAt, lastQueuedAt: null, ...resetScheduleInfraRetryCount() }
 }
 
 type RunWorkflowResult =
@@ -1047,17 +1066,19 @@ export async function executeScheduleJob(
                * clear on billing-period rollover or upgrade. Keep retrying at the normal
                * cadence, but count each hit toward the shared auto-disable threshold so an
                * abandoned over-limit schedule eventually stops instead of running forever.
-               * A successful run resets failedCount, so transient overages self-heal.
+               * A successful run resets failedCount, so transient overages self-heal. A
+               * monthly budget refusal is not counted (see buildScheduleSpendRefusalUpdate).
                */
               const nextRunAt =
                 (await calculateNextRunFromDeployment(payload, requestId)) ??
                 new Date(now.getTime() + 60 * 60 * 1000)
-              logger.warn(`[${requestId}] Usage limit exceeded, counting as failed run`, {
+              logger.warn(`[${requestId}] Run refused on spend, advancing to the next run`, {
                 scheduleId: payload.scheduleId,
+                code: preprocessingError.code,
                 nextRunAt: nextRunAt.toISOString(),
               })
               await updateClaimedSchedule(
-                buildScheduleFailureUpdate(now, nextRunAt),
+                buildScheduleSpendRefusalUpdate(now, nextRunAt, preprocessingError.code),
                 `Error updating schedule ${payload.scheduleId} after usage limit check`,
                 'consecutive_failures'
               )

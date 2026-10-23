@@ -8,7 +8,8 @@
   "model": {
     "placeholder": "Choisir un modèle",
     "default": "Modèle par défaut (nexora-default)",
-    "empty": "Aucun modèle disponible"
+    "empty": "Aucun modèle disponible",
+    "search": "Rechercher un modèle…"
   },
   "playground": {
     "metaTitle": "Playground",
@@ -76,11 +77,13 @@
       "missing": "Introuvable",
       "remove": "Retirer {name}",
       "workflowTitle": "Workflow {name}",
-      "none": "Aucun outil"
+      "none": "Aucun outil",
+      "search": "Rechercher un outil…"
     },
     "knowledge": {
       "add": "Ajouter des bases",
-      "none": "Aucune base de connaissances"
+      "none": "Aucune base de connaissances",
+      "search": "Rechercher une base…"
     },
     "memory": {
       "on": "Oui",

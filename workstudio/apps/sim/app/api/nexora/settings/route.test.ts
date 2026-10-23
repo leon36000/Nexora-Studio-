@@ -1,6 +1,7 @@
 import { authMockFns } from '@sim/testing/mocks/auth.mock'
 import { encryptionMock, encryptionMockFns } from '@sim/testing/mocks/encryption.mock'
 import { resetEnvMock, setEnv } from '@sim/testing/mocks/env.mock'
+import { resetEnvFlagsMock, setEnvFlags } from '@sim/testing/mocks/env-flags.mock'
 import {
   nexoraAdminAccessMock,
   nexoraAdminAccessMockFns,
@@ -12,9 +13,11 @@ const store = vi.hoisted(() => ({
   read: vi.fn(),
   save: vi.fn(),
   applied: vi.fn(),
+  revoke: vi.fn(),
   sendTestEmail: vi.fn(),
   checkOidcDiscovery: vi.fn(),
   supervised: vi.fn(),
+  inProgress: vi.fn(),
   restart: vi.fn(),
 }))
 
@@ -27,6 +30,7 @@ vi.mock('@/lib/nexora/instance-settings', async (importOriginal) => {
     readInstanceSettings: store.read,
     saveInstanceSettings: store.save,
     recordSettingsApplied: store.applied,
+    revokeMemberSessions: store.revoke,
   }
 })
 
@@ -37,6 +41,7 @@ vi.mock('@/lib/nexora/settings-checks', () => ({
 
 vi.mock('@/lib/nexora/restart', () => ({
   isRestartSupervised: store.supervised,
+  isRestartInProgress: store.inProgress,
   scheduleGracefulRestart: store.restart,
 }))
 
@@ -74,15 +79,23 @@ function request(method: string, path: string, body?: unknown) {
 
 describe('Nexora instance settings routes', () => {
   beforeEach(() => {
-    authorize.mockResolvedValue({ ok: true, userId: 'u-admin', organizationId: 'org-1' })
+    authorize.mockResolvedValue({
+      ok: true,
+      userId: 'u-admin',
+      organizationId: 'org-1',
+      role: 'owner',
+    })
     authMockFns.mockGetSession.mockResolvedValue({ user: { id: 'u-admin', email: 'admin@pme.fr' } })
     store.read.mockResolvedValue(stored)
     store.save.mockImplementation(async () => ({ ...stored, revision: 4 }))
     store.supervised.mockReturnValue(true)
+    store.inProgress.mockReturnValue(false)
+    store.restart.mockReturnValue(true)
   })
 
   afterEach(() => {
     resetEnvMock()
+    resetEnvFlagsMock()
   })
 
   it('serves, saves, sends and restarts nothing for a non-admin', async () => {
@@ -162,18 +175,62 @@ describe('Nexora instance settings routes', () => {
     store.sendTestEmail.mockResolvedValue({ ok: true })
     const response = await TEST_EMAIL(
       request('POST', '/api/nexora/settings/test-email', {
-        smtp: { host: 'smtp2.pme.fr', port: 465, user: 'nexora' },
+        smtp: { host: 'smtp.pme.fr', port: 465, user: 'nexora' },
       }),
       {}
     )
     expect(await response.json()).toEqual({ ok: true, sentTo: 'admin@pme.fr' })
     expect(store.sendTestEmail.mock.calls[0][0]).toMatchObject({
-      host: 'smtp2.pme.fr',
+      host: 'smtp.pme.fr',
       port: 465,
       password: 'smtp-secret',
     })
     expect(store.sendTestEmail.mock.calls[0][1]).toBe('admin@pme.fr')
     expect(store.save).not.toHaveBeenCalled()
+  })
+
+  it('never sends the stored SMTP password to another server or another user', async () => {
+    store.sendTestEmail.mockResolvedValue({ ok: true })
+    for (const smtp of [
+      { host: 'smtp.attacker.example', port: 587, user: 'nexora' },
+      { host: 'smtp.pme.fr', port: 587, user: 'someone-else' },
+    ]) {
+      await TEST_EMAIL(request('POST', '/api/nexora/settings/test-email', { smtp }), {})
+    }
+    for (const [sent] of store.sendTestEmail.mock.calls) {
+      expect(sent).not.toHaveProperty('password')
+    }
+  })
+
+  it('lets only the owner change single sign-on; admins keep the other settings', async () => {
+    authorize.mockResolvedValue({ ok: true, userId: 'u-a', organizationId: 'org-1', role: 'admin' })
+    expect((await (await GET(request('GET', '/api/nexora/settings'), {})).json()).canEditSso).toBe(
+      false
+    )
+    for (const change of [
+      { sso: { issuer: 'https://idp.attacker.example', clientId: 'c', buttonName: 'PME' } },
+      { sso: null },
+    ]) {
+      const refused = await PUT(request('PUT', '/api/nexora/settings', change), {})
+      expect([refused.status, (await refused.json()).error]).toEqual([403, 'owner-only'])
+    }
+    expect(store.save).not.toHaveBeenCalled()
+
+    const domains = await PUT(
+      request('PUT', '/api/nexora/settings', { allowedDomains: ['pme.fr'] }),
+      {}
+    )
+    expect(domains.status).toBe(200)
+
+    authorize.mockResolvedValue({ ok: true, userId: 'u-o', organizationId: 'org-1', role: 'owner' })
+    const owner = await PUT(
+      request('PUT', '/api/nexora/settings', {
+        sso: { issuer: 'https://sso.pme.fr/realms/pme', clientId: 'workstudio', buttonName: 'PME' },
+      }),
+      {}
+    )
+    expect(owner.status).toBe(200)
+    expect((await owner.json()).canEditSso).toBe(true)
   })
 
   it('answers a failed SMTP test with its cause and never echoes the password', async () => {
@@ -215,5 +272,35 @@ describe('Nexora instance settings routes', () => {
       3
     )
     expect(store.restart).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses to apply while a restart is under way, or when nothing is waiting', async () => {
+    store.inProgress.mockReturnValue(true)
+    const busy = await APPLY(request('POST', '/api/nexora/settings/apply'), {})
+    expect([busy.status, (await busy.json()).error]).toEqual([409, 'restart-in-progress'])
+
+    store.inProgress.mockReturnValue(false)
+    setEnv({ NEXORA_SETTINGS_REVISION: '3' })
+    const idle = await APPLY(request('POST', '/api/nexora/settings/apply'), {})
+    expect([idle.status, (await idle.json()).error]).toEqual([409, 'nothing-pending'])
+
+    expect(store.applied).not.toHaveBeenCalled()
+    expect(store.restart).not.toHaveBeenCalled()
+  })
+
+  it('signs members out when applying makes single sign-on required, admins keep their session', async () => {
+    const apply = () => APPLY(request('POST', '/api/nexora/settings/apply'), {})
+    await apply()
+    expect(store.revoke).not.toHaveBeenCalled()
+
+    store.read.mockResolvedValue({ ...stored, sso: { ...stored.sso, required: true } })
+    expect((await apply()).status).toBe(200)
+    expect(store.revoke).toHaveBeenCalledExactlyOnceWith('org-1')
+
+    /** Already required: the open sessions came through the provider, nobody is signed out. */
+    setEnvFlags({ isNexoraOidcRequired: true })
+    store.revoke.mockClear()
+    await apply()
+    expect(store.revoke).not.toHaveBeenCalled()
   })
 })

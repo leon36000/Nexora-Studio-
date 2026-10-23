@@ -15,7 +15,8 @@ export async function authorizeInstanceAdmin({
 }: {
   requireInstanceOrganization?: boolean
 } = {}): Promise<
-  { ok: true; userId: string; organizationId: string } | { ok: false; status: 401 | 403 }
+  | { ok: true; userId: string; organizationId: string; role: string }
+  | { ok: false; status: 401 | 403 }
 > {
   const session = await getSession()
   if (!session?.user?.id) return { ok: false, status: 401 }
@@ -31,5 +32,10 @@ export async function authorizeInstanceAdmin({
   ) {
     return { ok: false, status: 403 }
   }
-  return { ok: true, userId: session.user.id, organizationId: membership.organizationId }
+  return {
+    ok: true,
+    userId: session.user.id,
+    organizationId: membership.organizationId,
+    role: membership.role,
+  }
 }

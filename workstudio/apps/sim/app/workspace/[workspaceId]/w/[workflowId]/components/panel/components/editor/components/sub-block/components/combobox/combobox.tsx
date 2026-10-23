@@ -570,6 +570,7 @@ export const ComboBox = memo(function ComboBox({
               inputRef={ref as React.RefObject<HTMLInputElement>}
               filterOptions
               searchable={config.searchable}
+              searchPlaceholder={t('search')}
               className={cn('allow-scroll overflow-x-auto', selectedOptionIcon && 'pl-7')}
               inputProps={comboboxInputProps}
               isLoading={isLoadingOptions}

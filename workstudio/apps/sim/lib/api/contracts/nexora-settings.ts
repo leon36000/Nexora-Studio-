@@ -66,6 +66,10 @@ const settingsViewSchema = z.object({
   allowedDomains: z.array(z.string()),
   /** Groups deploy/.env sets: the screen shows them read-only. */
   envOverrides: z.object({ sso: z.boolean(), smtp: z.boolean(), domains: z.boolean() }),
+  /** A Resend key in deploy/.env sends the e-mail before the SMTP server is tried. */
+  resendTakesPrecedence: z.boolean(),
+  /** Only the instance owner changes single sign-on; admins see it read-only. */
+  canEditSso: z.boolean(),
   /** Saved changes the running WorkStudio has not applied yet (« Appliquer » restarts it). */
   pendingApply: z.boolean(),
   /** Redirect URI to register with the identity provider. */

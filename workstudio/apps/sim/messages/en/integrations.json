@@ -162,7 +162,8 @@
       "uploadFile": "Or upload a file",
       "uploaded": "Uploaded {fileName} — click or drop to replace",
       "dropFile": "Drag & drop a .json file, or click to browse",
-      "displayNamePlaceholder": "Auto-populated from client_email"
+      "displayNamePlaceholder": "Auto-populated from client_email",
+      "dropFileHere": "Drop files here"
     },
     "atlassian": {
       "errors": {
@@ -354,7 +355,9 @@
         "unsupportedType": "Unsupported file type. Use .md or .zip files.",
         "zipTooLarge": "ZIP file is too large (max 5 MB)",
         "noSkillInZip": "No SKILL.md file found in the ZIP archive"
-      }
+      },
+      "dropzone": "Drop files here or click to browse",
+      "dropHere": "Drop files here"
     },
     "modal": {
       "createTab": "Create",

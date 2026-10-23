@@ -12,6 +12,7 @@ import { materializeExecutionDataForDisplay } from '@/lib/logs/execution/trace-s
 import { withheldSpendData } from '@/lib/logs/fetch-log-detail'
 import { buildFilterConditions, LogFilterParamsSchema } from '@/lib/logs/filters'
 import { expandFolderIdsWithDescendants } from '@/lib/logs/folder-expansion'
+import { memberChatPayloadGate } from '@/lib/logs/member-chat'
 import { logQuerySelectsCost } from '@/lib/logs/projection'
 import {
   capabilityDeniedBy,
@@ -149,6 +150,8 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       return NextResponse.json({ error: capabilityRefusal('logs.cost') }, { status: 403 })
     }
 
+    const withholdsMemberChat = memberChatPayloadGate(userId, params.workspaceId)
+
     const encoder = new TextEncoder()
     const csvChunks = (async function* () {
       yield encoder.encode(`${header}\n`)
@@ -196,13 +199,15 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
               : materializedRow
             let message: unknown = ''
             let tracesJson = ''
+            const withholdPayloads =
+              hideTraceSpans || (await withholdsMemberChat(row.executionData))
             try {
               /**
                * `finalOutput` is one of the payloads the log-detail projection
                * deletes for this viewer, so exporting it here would hand back in
                * bulk exactly what the detail view withholds one run at a time.
                */
-              if (executionData.finalOutput && !hideTraceSpans) {
+              if (executionData.finalOutput && !withholdPayloads) {
                 message =
                   typeof executionData.finalOutput === 'string'
                     ? executionData.finalOutput
@@ -214,7 +219,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
                * withholds trace spans in the UI would otherwise hand them over
                * in bulk here, which is the larger disclosure of the two.
                */
-              if (executionData.traceSpans && !hideTraceSpans) {
+              if (executionData.traceSpans && !withholdPayloads) {
                 tracesJson = JSON.stringify(executionData.traceSpans) ?? ''
               }
             } catch (rowError) {

@@ -317,6 +317,38 @@ describe('getAssistantConversation', () => {
   })
 })
 
+describe('deleteAssistantConversation', () => {
+  it("deletes the agent's memory of the conversation with it, in the conversation's workspace", async () => {
+    queueTableRows(schemaMock.nexoraAssistantConversation, [conversationRow])
+    dbChainMockFns.returning.mockImplementationOnce(async () => [{ id: 'conversation-1' }])
+
+    await deleteAssistantConversation.execute({
+      principal: owner,
+      input: { conversationId: 'conversation-1' },
+    })
+
+    expect(dbChainMockFns.delete).toHaveBeenCalledWith(schemaMock.memory)
+    expect(
+      anyWhereCondition(
+        (node) =>
+          node.type === 'inArray' &&
+          node.column === schemaMock.memory.key &&
+          Array.isArray(node.values) &&
+          node.values.includes('owner:conversation-1') &&
+          node.values.includes('conversation-1')
+      )
+    ).toBe(true)
+    expect(
+      anyWhereCondition(
+        (node) =>
+          node.type === 'eq' &&
+          node.left === schemaMock.memory.workspaceId &&
+          node.right === WORKSPACE_ID
+      )
+    ).toBe(true)
+  })
+})
+
 describe('appendAssistantMessage', () => {
   function append(overrides: Record<string, unknown> = {}) {
     return appendAssistantMessage.execute({

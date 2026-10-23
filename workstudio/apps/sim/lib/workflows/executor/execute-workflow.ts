@@ -104,6 +104,11 @@ export interface ExecuteWorkflowOptions {
    * trigger genuinely has a person distinct from the one it bills.
    */
   capabilityGovernedUserId?: string | null
+  /**
+   * Nexora edition: the member a members-only deployed chat run answers, from the chat's
+   * verified session; recorded on the log's trigger so only they and admins read its payloads.
+   */
+  memberChatUserId?: string
 }
 
 export interface WorkflowInfo {
@@ -146,6 +151,8 @@ export async function executeWorkflow(
   const executionId = providedExecutionId || generateId()
   const triggerType = streamConfig?.workflowTriggerType || 'api'
   const loggingSession = new LoggingSession(workflowId, executionId, triggerType, requestId)
+  if (streamConfig.memberChatUserId)
+    loggingSession.setMemberChatUserId(streamConfig.memberChatUserId)
   if (streamConfig?.trustedExecutionCorrelation) {
     loggingSession.setTrustedExecutionCorrelation(streamConfig.trustedExecutionCorrelation)
   }

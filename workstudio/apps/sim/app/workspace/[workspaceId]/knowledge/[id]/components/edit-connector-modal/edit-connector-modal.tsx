@@ -95,6 +95,7 @@ export function EditConnectorModal({
       </ChipModalBody>
       {activeTab === 'settings' && (
         <ChipModalFooter
+          cancelLabel={t('cancel')}
           onCancel={() => onOpenChange(false)}
           secondaryActions={
             form.docsUrl

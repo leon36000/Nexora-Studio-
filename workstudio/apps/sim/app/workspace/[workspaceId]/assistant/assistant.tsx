@@ -29,7 +29,6 @@ import {
   assistantParsers,
   assistantUrlKeys,
 } from '@/app/workspace/[workspaceId]/assistant/search-params'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import {
   useAssistantAgents,
   useAssistantConversation,
@@ -69,13 +68,13 @@ export function Assistant({ workspaceId }: AssistantProps) {
     assistantParsers,
     assistantUrlKeys
   )
-  const { canEdit } = useUserPermissionsContext()
   const agentsQuery = useAssistantAgents(workspaceId)
   const conversationsQuery = useAssistantConversations(workspaceId)
   const detailQuery = useAssistantConversation(conversationId || undefined)
   const turn = useAssistantTurn(
     workspaceId,
-    (id) => void setParams({ conversation: id }, { history: 'replace' })
+    (id) => void setParams({ conversation: id }, { history: 'replace' }),
+    () => void setParams({ conversation: null }, { history: 'replace' })
   )
   const [draftAgentId, setDraftAgentId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -328,7 +327,7 @@ export function Assistant({ workspaceId }: AssistantProps) {
                     onSend={() => void handleSend()}
                     onStop={turn.stop}
                     isBusy={turn.isBusy}
-                    canAttach={canEdit && Boolean(activeAgent)}
+                    canAttach={Boolean(activeAgent)}
                   />
                 </>
               )}

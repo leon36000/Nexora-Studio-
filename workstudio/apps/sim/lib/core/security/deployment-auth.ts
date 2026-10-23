@@ -23,6 +23,7 @@ export async function validateDeploymentAuth(
   cookiePrefix: DeploymentAuthKind
 ): Promise<DeploymentAuthResult> {
   let sessionEmail: string | null | undefined
+  let sessionUserId: string | null | undefined
   let sessionPresent = false
   let workspaceMember = false
   const needsSession = resource.authType === 'sso' || resource.authType === 'workspace'
@@ -32,6 +33,7 @@ export async function validateDeploymentAuth(
       const session = await getSession()
       sessionPresent = Boolean(session?.user)
       sessionEmail = session?.user?.email
+      sessionUserId = session?.user?.id
       if (resource.authType === 'workspace' && session?.user?.id && resource.workspaceId) {
         const { getUserEntityPermissions } = await import('@/lib/workspaces/permissions/utils')
         workspaceMember = Boolean(
@@ -52,6 +54,7 @@ export async function validateDeploymentAuth(
       clientIp: getClientIp(request),
       sessionPresent,
       sessionEmail,
+      sessionUserId,
       workspaceMember,
     },
     parsedBody,

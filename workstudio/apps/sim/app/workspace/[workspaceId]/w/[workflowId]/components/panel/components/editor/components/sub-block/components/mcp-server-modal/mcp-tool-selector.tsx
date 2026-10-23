@@ -97,6 +97,7 @@ export function McpToolSelector({
       disabled={isDisabled}
       editable={false}
       searchable
+      searchPlaceholder={t('search')}
       filterOptions={false}
       isLoading={isLoading}
       error={error || null}

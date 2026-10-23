@@ -101,7 +101,10 @@
       "regexRequired": "Un motif regex est obligatoire avec la stratégie regex",
       "tooManySeparators": "{maxSeparators} séparateurs au maximum sont autorisés",
       "separatorTooLong": "Chaque séparateur doit comporter au maximum {maxSeparatorLength} caractères"
-    }
+    },
+    "cancel": "Annuler",
+    "dropFiles": "Déposez des fichiers ici ou cliquez pour parcourir",
+    "dropHere": "Déposez les fichiers ici"
   },
   "editBase": {
     "title": "Modifier la base de connaissances",
@@ -113,7 +116,8 @@
     "tokens": "tokens",
     "chars": "caract.",
     "saving": "Enregistrement…",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "cancel": "Annuler"
   },
   "reindex": {
     "title": "Modèle d'embeddings",
@@ -503,7 +507,8 @@
     "nameRequired": "Le nom est obligatoire",
     "failed": "Impossible de renommer le document",
     "renaming": "Renommage…",
-    "rename": "Renommer"
+    "rename": "Renommer",
+    "cancel": "Annuler"
   },
   "documentContextMenu": {
     "openInNewTab": "Ouvrir dans un nouvel onglet",
@@ -536,7 +541,8 @@
     "title": "Nouveaux documents",
     "retryUpload": "Relancer le téléversement",
     "uploading": "Téléversement…",
-    "upload": "Téléverser"
+    "upload": "Téléverser",
+    "cancel": "Annuler"
   },
   "upload": {
     "partialFailure": "Échec du téléversement de {count, plural, one {# fichier} other {# fichiers}}",
@@ -574,7 +580,8 @@
     "addConnection": "Ajouter une connexion",
     "createAndInvite": "Créer et inviter",
     "saveConnection": "Enregistrer la connexion",
-    "connectAndSync": "Connecter et synchroniser"
+    "connectAndSync": "Connecter et synchroniser",
+    "cancel": "Annuler"
   },
   "connectorSettings": {
     "personalAccessToken": "Jeton d’accès personnel",
@@ -614,7 +621,8 @@
     "views": "Vues de la connexion",
     "setupGuide": "Guide de configuration",
     "saving": "Enregistrement…",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "cancel": "Annuler"
   },
   "connectorAccess": {
     "syncDocumentsWith": "Synchroniser les documents avec",

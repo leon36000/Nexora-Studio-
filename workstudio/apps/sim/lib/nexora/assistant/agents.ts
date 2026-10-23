@@ -3,7 +3,7 @@ import { chat, folder, workflow } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { toStringOrNull } from '@sim/utils/coerce'
 import { toRecord } from '@sim/utils/object'
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authorized-workspace-use-case'
 import { AGENTS_FOLDER } from '@/lib/nexora/agents'
 import { ensureGeneralAssistantAgent } from '@/lib/nexora/assistant/general-agent'
@@ -12,7 +12,16 @@ import { resolveActiveWorkspaceApplicationContext } from '@/lib/workspaces/appli
 
 const logger = createLogger('NexoraAssistantAgents')
 
-/** A published agent: a deployed workflow of the workspace's `Agents` folder with an active chat. */
+/**
+ * Chats the Assistant can talk through with the member's session alone: a password, an e-mail
+ * code or an SSO allow-list would ask the member for more than the Assistant can give.
+ */
+const ASSISTANT_CHAT_AUTH_TYPES = ['public', 'workspace']
+
+/**
+ * A published agent: a deployed workflow of the workspace's `Agents` folder with an active chat
+ * open to the members (members-only or public).
+ */
 export interface AssistantAgent {
   workflowId: string
   name: string
@@ -52,7 +61,8 @@ async function loadPublishedAgents(
         isNull(folder.parentId),
         isNull(folder.deletedAt),
         eq(chat.isActive, true),
-        isNull(chat.archivedAt)
+        isNull(chat.archivedAt),
+        inArray(chat.authType, ASSISTANT_CHAT_AUTH_TYPES)
       )
     )
     .orderBy(asc(workflow.sortOrder), asc(workflow.name), asc(chat.createdAt))

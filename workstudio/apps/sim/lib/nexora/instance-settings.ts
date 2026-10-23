@@ -1,8 +1,10 @@
 import { AuditAction, AuditResourceType, recordAudit } from '@sim/audit'
 import { db } from '@sim/db'
-import { organization } from '@sim/db/schema'
+import { member, organization, session } from '@sim/db/schema'
+import { createLogger } from '@sim/logger'
 import { isRecordLike, omit, toRecord } from '@sim/utils/object'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { invalidateSecurityPolicyVersionCache } from '@/lib/auth/security-policy'
 import { env } from '@/lib/core/config/env'
 import { encryptSecret } from '@/lib/core/security/encryption'
 import { envOverrides, SETTINGS_REVISION_VAR } from '@/lib/nexora/instance-settings-env'
@@ -65,6 +67,8 @@ type Decrypt = (value: string) => Promise<string>
 
 const METADATA_KEY = 'nexoraSettings'
 
+const logger = createLogger('NexoraInstanceSettings')
+
 function text(value: EnvReader[string]): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -75,6 +79,29 @@ function stringEnv(environment: EnvReader): Record<string, string | undefined> {
       key,
       value === undefined ? undefined : String(value),
     ])
+  )
+}
+
+function sameText(a: string | undefined, b: string | undefined): boolean {
+  return (a ?? '').trim().toLowerCase() === (b ?? '').trim().toLowerCase()
+}
+
+/**
+ * A stored secret belongs to one server and one account: it is reused for a change (or a test)
+ * that leaves it blank only while those stay the same, so a changed host never receives it.
+ */
+function sameSmtpAccount(stored: StoredSmtp | undefined, draft: SmtpDraft): boolean {
+  return Boolean(stored) && sameText(stored?.host, draft.host) && sameText(stored?.user, draft.user)
+}
+
+function sameOidcClient(
+  stored: StoredSso | undefined,
+  draft: { issuer: string; clientId: string }
+): boolean {
+  return (
+    Boolean(stored) &&
+    sameText(stored?.issuer.replace(/\/+$/, ''), draft.issuer.replace(/\/+$/, '')) &&
+    stored?.clientId.trim() === draft.clientId.trim()
   )
 }
 
@@ -95,15 +122,22 @@ export async function applySettingsChange(
   if (change.sso === null) next = omit(next, ['sso'])
   else if (change.sso) {
     const { clientSecret, ...rest } = change.sso
-    next.sso = {
-      ...rest,
-      clientSecret: clientSecret ? await encrypt(clientSecret) : stored.sso?.clientSecret,
-    }
+    const secret = clientSecret
+      ? await encrypt(clientSecret)
+      : sameOidcClient(stored.sso, rest)
+        ? stored.sso?.clientSecret
+        : undefined
+    next.sso = { ...rest, ...(secret ? { clientSecret: secret } : {}) }
   }
   if (change.smtp === null) next = omit(next, ['smtp'])
   else if (change.smtp) {
     const { password, ...rest } = change.smtp
-    next.smtp = { ...rest, password: password ? await encrypt(password) : stored.smtp?.password }
+    const secret = password
+      ? await encrypt(password)
+      : sameSmtpAccount(stored.smtp, rest)
+        ? stored.smtp?.password
+        : undefined
+    next.smtp = { ...rest, ...(secret ? { password: secret } : {}) }
   }
   if (change.allowedDomains) next.allowedDomains = normalizeDomains(change.allowedDomains)
   return next
@@ -121,8 +155,60 @@ export function publicSettings(stored: StoredInstanceSettings, environment: EnvR
     smtp: stored.smtp ? { ...smtp, hasPassword: Boolean(password) } : null,
     allowedDomains: stored.allowedDomains ?? [],
     envOverrides: envOverrides(stringEnv(environment)),
+    /** The mailer tries Resend before SMTP: a key in deploy/.env sends the e-mail instead. */
+    resendTakesPrecedence: text(environment.RESEND_API_KEY) !== '',
     pendingApply: (stored.revision ?? 0) !== (Number(environment[SETTINGS_REVISION_VAR]) || 0),
   }
+}
+
+/**
+ * Whether single sign-on will be required once WorkStudio restarts: deploy/.env decides when it
+ * names the provider, else the saved settings, provided they are complete enough to apply.
+ */
+export function isSsoRequiredAfterApply(
+  stored: StoredInstanceSettings,
+  environment: EnvReader
+): boolean {
+  if (envOverrides(stringEnv(environment)).sso) {
+    return ['true', '1'].includes(text(environment.NEXORA_OIDC_REQUIRED).toLowerCase())
+  }
+  const sso = stored.sso
+  return Boolean(
+    sso?.required && sso.issuer && sso.clientId && sso.clientSecret && sso.buttonName?.trim()
+  )
+}
+
+/**
+ * « Connexion obligatoire » applies to new sessions; this ends the members' open ones, so a
+ * password session opened before the change does not outlive it. Owners and admins keep theirs
+ * (they keep the password too), and support impersonation sessions are spared.
+ */
+export async function revokeMemberSessions(organizationId: string): Promise<number> {
+  const revoked = await db.transaction(async (tx) => {
+    const deleted = await tx
+      .delete(session)
+      .where(
+        and(
+          inArray(
+            session.userId,
+            tx
+              .select({ userId: member.userId })
+              .from(member)
+              .where(and(eq(member.organizationId, organizationId), eq(member.role, 'member')))
+          ),
+          isNull(session.impersonatedBy)
+        )
+      )
+      .returning({ id: session.id })
+    await tx
+      .update(organization)
+      .set({ securityPolicyVersion: sql`${organization.securityPolicyVersion} + 1` })
+      .where(eq(organization.id, organizationId))
+    return deleted.length
+  })
+  invalidateSecurityPolicyVersionCache(organizationId)
+  logger.info('Signed members out: single sign-on is now required', { revoked })
+  return revoked
 }
 
 /**
@@ -146,7 +232,7 @@ export async function resolveSmtp(
   }
   if (draft) {
     const { password, ...rest } = draft
-    const storedPassword = stored.smtp?.password
+    const storedPassword = sameSmtpAccount(stored.smtp, rest) ? stored.smtp?.password : undefined
     if (password) return { ...rest, password }
     return storedPassword ? { ...rest, password: await decrypt(storedPassword) } : rest
   }
@@ -200,11 +286,14 @@ async function updateInstanceSettings(
 export function settingsEnvironment(): Record<string, string | undefined> {
   return {
     NEXORA_OIDC_ISSUER: env.NEXORA_OIDC_ISSUER,
+    NEXORA_OIDC_REQUIRED:
+      env.NEXORA_OIDC_REQUIRED === undefined ? undefined : String(env.NEXORA_OIDC_REQUIRED),
     SMTP_HOST: env.SMTP_HOST,
     SMTP_PORT: env.SMTP_PORT === undefined ? undefined : String(env.SMTP_PORT),
     SMTP_USER: env.SMTP_USER,
     SMTP_PASS: env.SMTP_PASS,
     FROM_EMAIL_ADDRESS: env.FROM_EMAIL_ADDRESS,
+    RESEND_API_KEY: env.RESEND_API_KEY,
     ALLOWED_LOGIN_DOMAINS: env.ALLOWED_LOGIN_DOMAINS,
     NEXORA_SETTINGS_FROM_DB: env.NEXORA_SETTINGS_FROM_DB,
     NEXORA_SETTINGS_REVISION: env.NEXORA_SETTINGS_REVISION,

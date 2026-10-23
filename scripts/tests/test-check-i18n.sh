@@ -25,4 +25,11 @@ d="$(tree)"; w "$d" "// Shows the Save button"; expect 0 "comments pass" run "$d
 d="$(tree)"; w "$d" "<p>Enregistrer les modifications</p>"; expect 1 "any hardcoded prose fails (French belongs in messages too)" run "$d"
 d="$(tree)"; printf '<p>Save</p>\n' > "$d/workstudio/apps/sim/app/zone/c.test.tsx"; expect 0 "tests are ignored" run "$d"
 d="$(tree)"; w "$d" "<code>GET /api/v1</code>"; expect 0 "code-like text passes" run "$d"
+d="$(tree)"; w "$d" "$(printf '<ChipCombobox\n  options={options}\n  searchable\n/>')"; expect 1 "searchable combobox left on its English search placeholder fails" run "$d"
+d="$(tree)"; w "$d" "<ChipCombobox options={o} searchable searchPlaceholder={t('search')} />"; expect 0 "searchable combobox with a translated search placeholder passes" run "$d"
+d="$(tree)"; w "$d" "<Combobox options={o} searchable={config.searchable} />"; expect 1 "combobox searchable by config without a search placeholder fails" run "$d"
+d="$(tree)"; w "$d" "<ChipCombobox options={o} value={v} />"; expect 0 "combobox without search passes" run "$d"
+d="$(tree)"; w "$d" "$(printf '<ChipModalField\n  type=\x27file\x27\n  onChange={onFiles}\n/>')"; expect 1 "file drop zone left on its English label fails" run "$d"
+d="$(tree)"; w "$d" "<ChipModalField type='file' label={t('drop')} onChange={onFiles} />"; expect 1 "file drop zone left on its English dragging label fails" run "$d"
+d="$(tree)"; w "$d" "<ChipModalField type='file' label={t('drop')} draggingLabel={t('dropHere')} onChange={onFiles} />"; expect 0 "file drop zone with translated labels passes" run "$d"
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

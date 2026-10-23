@@ -16,7 +16,7 @@ import type {
   SearchConfig,
   SortConfig,
 } from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
-import { timeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
+import { useTimeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
 import {
   Resource,
   type ResourceColumn,
@@ -71,6 +71,7 @@ interface TestsProps {
 }
 
 export function Tests({ workspaceId }: TestsProps) {
+  const timeCell = useTimeCell()
   const router = useRouter()
   const canEdit = useUserPermissionsContext().canEdit === true
   const [{ search }, setFilters] = useQueryStates(testsParsers, testsUrlKeys)
@@ -115,7 +116,7 @@ export function Tests({ workspaceId }: TestsProps) {
           updated: timeCell(test.updatedAt),
         },
       })),
-    [tests, membersById]
+    [tests, membersById, timeCell]
   )
 
   const searchConfig: SearchConfig = {

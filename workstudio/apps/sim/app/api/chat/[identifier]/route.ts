@@ -19,6 +19,7 @@ import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { preprocessExecution } from '@/lib/execution/preprocessing'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
+import { memberMemoryKey } from '@/lib/nexora/member-memory'
 import { ChatFiles } from '@/lib/uploads'
 import { formatOutputSelector } from '@/lib/workflows/streaming/output-selector'
 import { setChatAuthCookie, validateChatAuth } from '@/app/api/chat/utils'
@@ -271,7 +272,14 @@ export const POST = withRouteHandler(
         const { executeWorkflow } = await import('@/lib/workflows/executor/execute-workflow')
         const { SSE_HEADERS } = await import('@/lib/core/utils/sse')
 
-        const workflowInput: any = { input, conversationId }
+        // Nexora edition: a members-only chat keeps each member's agent memory apart.
+        const memberChatUserId =
+          deployment.authType === 'workspace' ? authResult.authenticatedUserId : undefined
+        const memoryConversationId =
+          memberChatUserId && conversationId
+            ? memberMemoryKey(memberChatUserId, conversationId)
+            : conversationId
+        const workflowInput: any = { input, conversationId: memoryConversationId }
         if (files && Array.isArray(files) && files.length > 0) {
           const executionContext = {
             workspaceId,
@@ -388,6 +396,7 @@ export const POST = withRouteHandler(
                 includeThinking,
                 includeToolCalls,
                 agentEvents,
+                ...(memberChatUserId ? { memberChatUserId } : {}),
               },
               executionId
             ),

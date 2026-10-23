@@ -425,6 +425,25 @@ describe('LoggingSession start snapshots', () => {
     )
   })
 
+  it('records on the trigger the member a members-only chat run answered', async () => {
+    const session = new LoggingSession('workflow-1', 'execution-1', 'chat', 'req-1')
+    session.setMemberChatUserId('member-a')
+
+    await session.start({
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+      triggerData: { memberChatUserId: 'forged-by-a-caller' },
+    })
+
+    expect(startWorkflowExecutionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        trigger: expect.objectContaining({
+          data: expect.objectContaining({ memberChatUserId: 'member-a' }),
+        }),
+      })
+    )
+  })
+
   it('does not create a log when hydrating a persisted execution for completion', async () => {
     const session = new LoggingSession('workflow-1', 'execution-existing', 'manual', 'req-existing')
 

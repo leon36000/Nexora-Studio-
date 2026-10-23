@@ -127,6 +127,7 @@ function SecurityForm({ settings }: SecurityFormProps) {
 
   const ssoIncomplete =
     !overrides.sso &&
+    settings.canEditSso &&
     draft.ssoEnabled &&
     (!draft.issuer.trim() ||
       !draft.clientId.trim() ||
@@ -135,7 +136,7 @@ function SecurityForm({ settings }: SecurityFormProps) {
 
   const handleSave = () => {
     const body: UpdateNexoraSettingsBody = {}
-    if (!overrides.sso) {
+    if (!overrides.sso && settings.canEditSso) {
       if (draft.ssoEnabled) {
         body.sso = {
           issuer: draft.issuer.trim(),
@@ -172,7 +173,7 @@ function SecurityForm({ settings }: SecurityFormProps) {
     })
   }
 
-  const ssoLocked = overrides.sso || update.isPending
+  const ssoLocked = overrides.sso || !settings.canEditSso || update.isPending
   const showSsoFields = overrides.sso || draft.ssoEnabled
 
   return (
@@ -191,6 +192,9 @@ function SecurityForm({ settings }: SecurityFormProps) {
 
         <SettingsSection label={t('sso.title')}>
           <div className='flex flex-col gap-4'>
+            {!overrides.sso && !settings.canEditSso && (
+              <p className='text-[var(--text-muted)] text-small'>{t('sso.ownerOnly')}</p>
+            )}
             {overrides.sso ? (
               <p className='text-[var(--text-muted)] text-small'>{tShared('envOverride')}</p>
             ) : (

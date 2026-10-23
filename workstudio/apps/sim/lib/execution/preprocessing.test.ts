@@ -46,6 +46,8 @@ vi.mock('@/lib/core/rate-limiter/rate-limiter', () => ({
 }))
 vi.mock('@/lib/logs/execution/logging-session', () => loggingSessionMock)
 vi.mock('@/lib/nexora/consumption/budgets', () => nexoraBudgetsMock)
+const { mockMarkRefusedRunLog } = vi.hoisted(() => ({ mockMarkRefusedRunLog: vi.fn() }))
+vi.mock('@/lib/execution/refused-run-log', () => ({ markRefusedRunLog: mockMarkRefusedRunLog }))
 
 import { getHighestPrioritySubscription } from '@/lib/billing/core/subscription'
 import { preprocessExecution, WORKFLOW_NOT_DEPLOYED_CODE } from './preprocessing'
@@ -1308,6 +1310,26 @@ describe('preprocessExecution monthly budget gate', () => {
     expect(loggingSession.safeCompleteWithError).toHaveBeenCalledWith(
       expect.objectContaining({ error: expect.objectContaining({ message: BUDGET_MESSAGE }) })
     )
+    expect(mockMarkRefusedRunLog).toHaveBeenCalledExactlyOnceWith(
+      'execution-1',
+      ADMISSION_REJECTION_CODE.MONTHLY_BUDGET_EXCEEDED
+    )
+  })
+
+  it('records no refusal mark when the caller keeps preprocessing failures out of the logs', async () => {
+    overBudgetExceptForThePersonActing()
+
+    await preprocessExecution({
+      workflowId: 'workflow-1',
+      userId: 'owner-1',
+      userIdIsStoredReference: true,
+      triggerType: 'schedule',
+      executionId: 'execution-1',
+      requestId: 'request-1',
+      logPreprocessingErrors: false,
+    })
+
+    expect(mockMarkRefusedRunLog).not.toHaveBeenCalled()
   })
 
   it('lets the person who launched the run through when the budget exempts them', async () => {

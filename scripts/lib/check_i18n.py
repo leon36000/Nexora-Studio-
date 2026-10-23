@@ -6,6 +6,8 @@ Exit: 0 clean, 1 hardcoded text found.
 Covered folders: scripts/data/i18n-covered-dirs.txt (grows as areas are translated).
 Allowed terms (product and brand names shown as-is): scripts/data/i18n-allowed-terms.txt.
 A line can be exempted with a trailing `// i18n-ignore: <reason>` comment.
+emcn elements whose built-in copy is English (a searchable combobox's search placeholder, a file
+drop zone's label) must be given translated copy.
 """
 from __future__ import annotations
 
@@ -23,6 +25,13 @@ TOAST = re.compile(r"\btoast(?:\.\w+)?\(\s*(['\"])(.*?)\1")
 BARE_TEXT = re.compile(r"^\s*([A-ZÀ-Ö][^=;(){}<>`$|&]*?)\s*$")
 WORD = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]{2,}")
 CODE_LIKE = re.compile(r"^[\w./:@#$%&*+=?\-\[\](),;|^~!]*$|^(GET|POST|PUT|PATCH|DELETE)\s+/")
+# emcn components whose built-in copy is English: (element, prop that turns the copy on, prop that replaces it).
+EMCN_ENGLISH_DEFAULTS = (
+    ("ChipCombobox", re.compile(r"\bsearchable\b"), "searchPlaceholder", "« Search... »"),
+    ("Combobox", re.compile(r"\bsearchable\b"), "searchPlaceholder", "« Search... »"),
+    ("ChipModalField", re.compile(r"\btype=['\"]file['\"]"), "label", "« Drop files here or click to browse »"),
+    ("ChipModalField", re.compile(r"\btype=['\"]file['\"]"), "draggingLabel", "« Drop files here »"),
+)
 
 
 def is_prose(text: str, allowed: set[str]) -> bool:
@@ -37,6 +46,34 @@ def is_prose(text: str, allowed: set[str]) -> bool:
         return False
     words = WORD.findall(text)
     return not all(w in allowed or w.isupper() for w in words)
+
+
+def opening_tags(source: str, name: str):
+    """Yields (line number, text) of each `<name ...>` opening tag, braces and strings included."""
+    for match in re.finditer(r"<" + name + r"\b", source):
+        depth, index = 0, match.end()
+        while index < len(source):
+            char = source[index]
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+            elif char == ">" and depth == 0 and source[index - 1] != "=":
+                break
+            index += 1
+        yield source.count("\n", 0, match.start()) + 1, source[match.start() : index + 1]
+
+
+def english_emcn_defaults(source: str) -> list[tuple[int, str]]:
+    """emcn elements left on their English built-in copy (search placeholder, drop zone label)."""
+    hits = []
+    for name, enabled, prop, copy in EMCN_ENGLISH_DEFAULTS:
+        for number, tag in opening_tags(source, name):
+            if "i18n-ignore:" in tag or not enabled.search(tag):
+                continue
+            if not re.search(r"\b" + prop + r"=", tag):
+                hits.append((number, f"<{name}> shows {copy}: pass {prop}"))
+    return hits
 
 
 def main() -> int:
@@ -62,7 +99,10 @@ def main() -> int:
             if rel.endswith(SKIP_SUFFIXES) or "node_modules" in path.parts:
                 continue
             files += 1
-            lines = path.read_text(encoding="utf-8").splitlines()
+            source = path.read_text(encoding="utf-8")
+            lines = source.splitlines()
+            if rel.endswith(".tsx"):
+                hits += [f"{rel}:{number}: {message}" for number, message in english_emcn_defaults(source)]
             for number, line in enumerate(lines, 1):
                 if COMMENT_LINE.match(line) or "i18n-ignore:" in line:
                     continue

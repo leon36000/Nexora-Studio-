@@ -1,5 +1,6 @@
 import { usageLog, user, workflowExecutionLogs, workflowExecutionSnapshots } from '@sim/db/schema'
 import { dbChainMockFns, queueTableRows, resetDbChainMock } from '@sim/testing'
+import { permissionsMock, permissionsMockFns } from '@sim/testing/mocks/permissions.mock'
 import { traceStoreMock, traceStoreMockFns } from '@sim/testing/mocks/trace-store.mock'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -8,6 +9,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/logs/execution/trace-store', () => traceStoreMock)
+
+vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 
 vi.mock('@/lib/logs/execution/hydrate-child-traces', () => ({
   hydrateChildTraces: mocks.hydrateChildTraces,
@@ -235,6 +238,56 @@ describe('readLogDetail', () => {
       // Everything the restriction does not cover is untouched.
       expect(result).toMatchObject({ id: 'log-1', status: 'completed' })
       expect(span).toMatchObject({ id: 'span-1', name: 'Agent 1' })
+    })
+  })
+
+  describe('a run of a members-only chat', () => {
+    const conversation = {
+      workflowInput: { input: 'Mon arrêt maladie commence lundi', conversationId: 'a:c1' },
+      finalOutput: { content: 'Voici la marche à suivre.' },
+      traceSpans: [{ id: 'span-1', name: 'Agent', type: 'agent', duration: 1 }],
+    }
+
+    async function readAs(viewerUserId: string | undefined, role: string | null) {
+      queueWorkflowLogRow({
+        trigger: 'chat',
+        executionData: { trigger: { type: 'chat', data: { memberChatUserId: 'member-a' } } },
+      })
+      queueTableRows(usageLog, [])
+      mockMaterializeExecutionData.mockResolvedValue(structuredClone(conversation))
+      permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue(role)
+      return readLogDetail({
+        viewerUserId,
+        workspaceId: 'workspace-1',
+        lookupColumn: 'id',
+        lookupValue: 'log-1',
+        hideCostInfo: false,
+      })
+    }
+
+    it('withholds what was said from another member of the workspace', async () => {
+      const result = await readAs('member-b', 'write')
+
+      expect(result).toMatchObject({ id: 'log-1', status: 'completed' })
+      expect(result?.executionData).not.toHaveProperty('workflowInput')
+      expect(result?.executionData).not.toHaveProperty('finalOutput')
+      expect(result?.executionData).not.toHaveProperty('traceSpans')
+    })
+
+    it('withholds it from a reader with no person to name', async () => {
+      const result = await readAs(undefined, null)
+
+      expect(result?.executionData).not.toHaveProperty('workflowInput')
+    })
+
+    it.each([
+      ['the member who chatted', 'member-a', 'read'],
+      ['a workspace admin', 'admin-1', 'admin'],
+    ])('shows it to %s', async (_who, viewer, role) => {
+      const result = await readAs(viewer, role)
+
+      expect(result?.executionData.workflowInput).toEqual(conversation.workflowInput)
+      expect(result?.executionData.finalOutput).toEqual(conversation.finalOutput)
     })
   })
 })

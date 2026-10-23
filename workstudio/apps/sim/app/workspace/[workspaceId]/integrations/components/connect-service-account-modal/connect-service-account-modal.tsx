@@ -669,6 +669,7 @@ function GoogleServiceAccountModalForm({
               ? t('google.uploaded', { fileName: uploadedFileName })
               : t('google.dropFile')
           }
+          draggingLabel={t('google.dropFileHere')}
           onChange={handleFileUpload}
         />
 

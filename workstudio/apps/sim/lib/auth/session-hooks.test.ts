@@ -14,6 +14,8 @@ import { SSO_REQUIRED_MESSAGE } from '@/lib/auth/constants'
 import { runWithAuthDatabase } from '@/lib/auth/database-context'
 import { prepareSessionForCreation } from '@/lib/auth/session-hooks'
 import { invalidateSessionPolicyCache } from '@/lib/auth/session-policy'
+import type { DbOrTx } from '@/lib/db/types'
+import { NEXORA_SSO_REQUIRED } from '@/lib/nexora/auth-refusals'
 
 const createdAt = new Date('2026-09-08T00:00:00Z')
 const session: Session = {
@@ -180,5 +182,71 @@ describe('prepareSessionForCreation', () => {
       runWithAuthDatabase(executor, () => prepareSessionForCreation(session))
     ).rejects.toMatchObject({ status: 'FORBIDDEN' })
     expect(limit).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('prepareSessionForCreation with Nexora single sign-on required', () => {
+  beforeEach(() => {
+    setEnvFlags({ isNexoraOidcEnabled: true, isNexoraOidcRequired: true })
+    isBlocked.mockReturnValue(false)
+    vi.spyOn(db, 'select').mockImplementation(() => {
+      throw new Error('Global database read inside the auth transaction')
+    })
+  })
+
+  afterEach(() => {
+    resetEnvFlagsMock()
+  })
+
+  function memberWithRole(role: string | null): DbOrTx {
+    const { executor, limit } = transactionExecutor()
+    limit.mockResolvedValueOnce([{ email: 'person@pme.fr', suspendedAt: null }])
+    limit.mockResolvedValueOnce(role ? [{ organizationId: 'org-1', role }] : [])
+    limit.mockResolvedValue([{ settings: null }])
+    return executor as unknown as DbOrTx
+  }
+
+  it.each(['/sign-in/email', '/sign-up/email', '/email-otp/verify-email', '/verify-email'])(
+    'refuses a member a session opened by %s',
+    async (path) => {
+      await expect(
+        runWithAuthDatabase(memberWithRole('member'), () =>
+          prepareSessionForCreation(session, { path })
+        )
+      ).rejects.toThrow(NEXORA_SSO_REQUIRED)
+    }
+  )
+
+  it('refuses an account outside the instance organization a password session', async () => {
+    await expect(
+      runWithAuthDatabase(memberWithRole(null), () =>
+        prepareSessionForCreation(session, { path: '/sign-up/email' })
+      )
+    ).rejects.toThrow(NEXORA_SSO_REQUIRED)
+  })
+
+  it.each(['owner', 'admin'])('keeps the password of an %s as a fallback', async (role) => {
+    await expect(
+      runWithAuthDatabase(memberWithRole(role), () =>
+        prepareSessionForCreation(session, { path: '/sign-in/email' })
+      )
+    ).resolves.toMatchObject({ data: { activeOrganizationId: 'org-1' } })
+  })
+
+  it('admits a member through the company identity provider', async () => {
+    await expect(
+      runWithAuthDatabase(memberWithRole('member'), () =>
+        prepareSessionForCreation(session, { path: '/oauth2/callback/nexora-oidc' })
+      )
+    ).resolves.toMatchObject({ data: { activeOrganizationId: 'org-1' } })
+  })
+
+  it('does not hold members to it while single sign-on is optional', async () => {
+    setEnvFlags({ isNexoraOidcRequired: false })
+    await expect(
+      runWithAuthDatabase(memberWithRole('member'), () =>
+        prepareSessionForCreation(session, { path: '/sign-up/email' })
+      )
+    ).resolves.toMatchObject({ data: { activeOrganizationId: 'org-1' } })
   })
 })

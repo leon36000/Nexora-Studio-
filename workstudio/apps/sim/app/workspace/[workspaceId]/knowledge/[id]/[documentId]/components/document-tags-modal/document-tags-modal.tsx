@@ -741,6 +741,7 @@ export function DocumentTagsModal({
       </ChipModalBody>
 
       <ChipModalFooter
+        cancelLabel={t('cancel')}
         onCancel={() => handleClose(false)}
         defaultAction='none'
         primaryAction={{ label: t('close'), onClick: () => handleClose(false) }}

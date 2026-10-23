@@ -8,6 +8,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Connexion unique (SSO)](sso.md) | Responsable informatique | Brancher Keycloak, Microsoft Entra ID, Google Workspace ou tout fournisseur OpenID Connect |
 | [Prise en main](prise-en-main.md) | Tous les utilisateurs | Les modèles PME, votre premier workflow, Nexora Connect, la consommation |
 | [Les agents](agents.md) | Tous les utilisateurs | Créer un agent par formulaire, le tester, le publier, ses versions |
+| [L'Assistant](assistant.md) | Tous les utilisateurs | Discuter avec les agents de l'espace, fichiers joints, confidentialité des conversations |
 | [Le Playground](playground.md) | Tous les utilisateurs | Essayer et comparer les modèles |
 | [Les connecteurs](connecteurs.md) | Tous les utilisateurs | Connecter vos services en un clic, cloisonnement par espace, applications OAuth |
 | [Le Copilote](copilote.md) | Tous les utilisateurs | Décrire une automatisation en français et obtenir un workflow prêt à exécuter |

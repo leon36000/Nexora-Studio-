@@ -162,7 +162,8 @@
       "uploadFile": "Ou importez un fichier",
       "uploaded": "{fileName} importé — cliquez ou déposez un fichier pour le remplacer",
       "dropFile": "Glissez-déposez un fichier .json ou cliquez pour parcourir",
-      "displayNamePlaceholder": "Rempli automatiquement à partir de client_email"
+      "displayNamePlaceholder": "Rempli automatiquement à partir de client_email",
+      "dropFileHere": "Déposez le fichier ici"
     },
     "atlassian": {
       "errors": {
@@ -354,7 +355,9 @@
         "unsupportedType": "Type de fichier non pris en charge. Utilisez un fichier .md ou .zip.",
         "zipTooLarge": "Le fichier ZIP est trop volumineux (5 Mo maximum)",
         "noSkillInZip": "Aucun fichier SKILL.md trouvé dans l’archive ZIP"
-      }
+      },
+      "dropzone": "Déposez des fichiers ici ou cliquez pour parcourir",
+      "dropHere": "Déposez les fichiers ici"
     },
     "modal": {
       "createTab": "Créer",

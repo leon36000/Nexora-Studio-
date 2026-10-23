@@ -91,7 +91,7 @@ import {
   ResourceFilterPanel,
   ResourceFilterSection,
 } from '@/app/workspace/[workspaceId]/components/resource/components/resource-options'
-import { timeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
+import { useTimeCell } from '@/app/workspace/[workspaceId]/components/resource/components/time-cell'
 import { resourceListState } from '@/app/workspace/[workspaceId]/components/resource/is-resource-list-empty'
 import type {
   ResourceColumn,
@@ -283,6 +283,7 @@ export function Files() {
 }
 
 function FilesContent() {
+  const timeCell = useTimeCell()
   const t = useTranslations('files.list')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadQueueRef = useRef<Promise<void>>(Promise.resolve()) // i18n-ignore: type signature
@@ -873,7 +874,7 @@ function FilesContent() {
           },
         }
       }),
-    [sortedEntries, membersById, folderSizeMap, folderById, isSearching, fileTypeLabels]
+    [sortedEntries, membersById, folderSizeMap, folderById, isSearching, fileTypeLabels, timeCell]
   )
 
   const rows: ResourceRow[] = useMemo(() => {

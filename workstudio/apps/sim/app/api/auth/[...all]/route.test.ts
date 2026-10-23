@@ -228,6 +228,65 @@ describe('auth catch-all route organization mutations', () => {
   })
 })
 
+describe('auth catch-all route organization reads', () => {
+  const INSTANCE_ORGANIZATION = {
+    id: 'org-1',
+    name: 'PME',
+    metadata: {
+      instanceOrganization: true,
+      nexoraSettings: { smtp: { host: 'smtp.pme.fr', password: 'enc:password' } },
+      nexoraBudgets: { instanceMonthlyTokens: 1_000 },
+    },
+    members: [{ id: 'member-1', role: 'member' }],
+  }
+
+  it('strips the Nexora instance settings from the full organization a member reads', async () => {
+    handlerMocks.betterAuthGET.mockResolvedValueOnce(
+      new Response(JSON.stringify(INSTANCE_ORGANIZATION), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'set-cookie': 'session=kept' },
+      })
+    )
+
+    const response = await GET(
+      createMockRequest({
+        method: 'GET',
+        url: 'http://localhost:3000/api/auth/organization/get-full-organization',
+      }),
+      {}
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('set-cookie')).toBe('session=kept')
+    const body = await response.json()
+    expect(body.metadata).toEqual({ instanceOrganization: true })
+    expect(body.members).toEqual(INSTANCE_ORGANIZATION.members)
+  })
+
+  it('strips them from every organization of the list and from set-active', async () => {
+    handlerMocks.betterAuthGET.mockResolvedValueOnce(
+      Response.json([INSTANCE_ORGANIZATION, { id: 'org-2', metadata: null }])
+    )
+    handlerMocks.betterAuthPOST.mockResolvedValueOnce(Response.json(INSTANCE_ORGANIZATION))
+
+    const listed = await GET(
+      createMockRequest({ method: 'GET', url: 'http://localhost:3000/api/auth/organization/list' }),
+      {}
+    )
+    const activated = await POST(
+      createMockRequest({
+        method: 'POST',
+        body: { organizationId: 'org-1' },
+        url: 'http://localhost:3000/api/auth/organization/set-active',
+      }),
+      {}
+    )
+
+    expect(JSON.stringify(await listed.json())).not.toMatch(/nexora|smtp/i)
+    expect(JSON.stringify(await activated.json())).not.toMatch(/nexora|smtp/i)
+  })
+})
+
 describe('auth catch-all route SSO provider mutations', () => {
   it.each([
     'sso/update-provider',

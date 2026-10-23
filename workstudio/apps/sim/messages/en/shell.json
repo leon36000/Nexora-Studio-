@@ -280,7 +280,8 @@
     "submitting": "Submitting...",
     "error": "Error",
     "success": "Success",
-    "submit": "Submit"
+    "submit": "Submit",
+    "dropImagesHere": "Drop files here"
   },
   "impersonationBanner": {
     "thisUser": "this user",

@@ -410,6 +410,36 @@ describe('compilePlan references', () => {
     expectPlanError(() => compile({ ...conditionPlan, steps }), 'reference-unreachable')
   })
 
+  it('refuses a step after the join that reads a branch which may not have run', () => {
+    const steps = conditionPlan.steps
+      .filter((step) => step.name !== 'brouillon')
+      .map((step) => {
+        if (step.kind === 'condition') return { ...step, then: ['alerte'], else: [] }
+        if (step.name === 'retour') {
+          return { ...step, fields: [{ name: 'alerte', value: '{{alerte.content}}' }] }
+        }
+        return step
+      })
+    try {
+      compile({ ...conditionPlan, steps })
+    } catch (error) {
+      expect(error).toBeInstanceOf(CopilotPlanError)
+      expect((error as CopilotPlanError).code).toBe('reference-unreachable')
+      expect((error as CopilotPlanError).detail).toContain("« alerte » ne s'exécute pas toujours")
+      return
+    }
+    throw new Error('expected the join to refuse {{alerte.content}}')
+  })
+
+  it('lets a step after the join read a step both branches ran after', () => {
+    const steps = conditionPlan.steps.map((step) =>
+      step.name === 'retour'
+        ? { ...step, fields: [{ name: 'urgence', value: '{{tri.urgence}}' }] }
+        : step
+    )
+    expect(() => compile({ ...conditionPlan, steps })).not.toThrow()
+  })
+
   it('refuses a condition on an output that does not exist', () => {
     const steps = conditionPlan.steps.map((step) =>
       step.kind === 'condition'
