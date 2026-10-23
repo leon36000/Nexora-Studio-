@@ -50,15 +50,15 @@
 
 **Files:** `workstudio/apps/sim/lib/nexora/connect.ts` (enregistrement existant du serveur « Nexora Connect »), nouvelle fonction `applyWorkspaceConnectToken(workspaceId, token)` qui met à jour l'en-tête `Authorization` du serveur MCP de l'espace via l'orchestration MCP existante (+ test).
 
-- [ ] **Step 1: Failing test** : après `applyWorkspaceConnectToken`, le serveur MCP de l'espace porte `Bearer <token>` ; les autres espaces gardent le leur ; un espace sans serveur « Nexora Connect » en reçoit un.
-- [ ] **Step 2:** Implémenter ; PASS.
-- [ ] **Step 3: Commit** `feat(j5): chaque espace utilise son propre jeton Nexora Connect`.
+- [x] **Step 1: Failing test** : après `applyWorkspaceConnectToken`, le serveur MCP de l'espace porte `Bearer <token>` ; les autres espaces gardent le leur ; un espace sans serveur « Nexora Connect » en reçoit un.
+- [x] **Step 2:** Implémenter ; PASS.
+- [x] **Step 3: Commit** `feat(j5): chaque espace utilise son propre jeton Nexora Connect`.
 
 ### Task 4: Routes `/api/nexora/connectors/*`
 
 **Files:** contrat `lib/api/contracts/nexora-connectors.ts` ; routes `app/api/nexora/connectors/route.ts` (GET catalogue + état de l'espace), `[service]/route.ts` (GET fiche + setup ; POST clé API/identifiants ; DELETE), `[service]/oauth/route.ts` (POST démarrer), `oauth/[requestId]/route.ts` (GET état) ; `app/api/nexora/connectors/oauth-apps/[service]/route.ts` (PUT/DELETE, admins d'instance) (+ `route.test.ts`).
 
-- [ ] **Step 1: Failing tests** : lecture = membre de l'espace ; écriture = droit d'écriture ; applications OAuth = admin d'instance ; espace étranger ⇒ 403 sans appel à Connect ; erreurs ⇒ codes (`unavailable`, `refused`, `superseded`) ; aucun secret dans les réponses.
+- [ ] **Step 1: Failing tests** : un espace dont Connect ne connaît pas encore de jeton `workstudio-ws-<id>` (espace antérieur à J5) reçoit le sien et son serveur MCP est mis à jour à la première lecture du catalogue ; lecture = membre de l'espace ; écriture = droit d'écriture ; applications OAuth = admin d'instance ; espace étranger ⇒ 403 sans appel à Connect ; erreurs ⇒ codes (`unavailable`, `refused`, `superseded`) ; aucun secret dans les réponses.
 - [ ] **Step 2:** Implémenter ; `check:api-validation:strict`.
 - [ ] **Step 3: Commit** `feat(j5): routes des connecteurs`.
 

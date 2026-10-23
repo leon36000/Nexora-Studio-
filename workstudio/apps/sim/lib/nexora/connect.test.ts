@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ensureNexoraConnectServer, NEXORA_CONNECT_SERVER_NAME } from '@/lib/nexora/connect'
+import {
+  applyWorkspaceConnectToken,
+  ensureNexoraConnectServer,
+  NEXORA_CONNECT_SERVER_NAME,
+} from '@/lib/nexora/connect'
 
 const workspace = { workspaceId: 'ws-1', userId: 'user-1' }
 const config = { url: 'http://nexora-connect:3000/mcp', token: 'runtime-token' }
@@ -41,6 +45,44 @@ describe('ensureNexoraConnectServer', () => {
     const refused = vi.fn().mockResolvedValue({ success: false, errorCode: 'validation_error' })
     await expect(ensureNexoraConnectServer(workspace, { config, create: refused })).resolves.toBe(
       'failed'
+    )
+  })
+})
+
+describe('workspace isolation in Nexora Connect', () => {
+  it('registers a new workspace with its own limited token when Connect administration is set up', async () => {
+    const create = vi.fn().mockResolvedValue({ success: true, serverId: 'srv-1' })
+    const syncToken = vi.fn().mockResolvedValue({ token: 'oct_workspace' })
+    await expect(ensureNexoraConnectServer(workspace, { config, create, syncToken })).resolves.toBe(
+      'created'
+    )
+    expect(syncToken).toHaveBeenCalledWith('ws-1')
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ headers: { Authorization: 'Bearer oct_workspace' } })
+    )
+  })
+
+  it('keeps the shared token when the workspace token cannot be made, rather than no tools at all', async () => {
+    const create = vi.fn().mockResolvedValue({ success: true, serverId: 'srv-1' })
+    const syncToken = vi.fn().mockRejectedValue(new Error('connect down'))
+    await expect(ensureNexoraConnectServer(workspace, { config, create, syncToken })).resolves.toBe(
+      'created'
+    )
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ headers: { Authorization: 'Bearer runtime-token' } })
+    )
+  })
+
+  it('puts a new workspace token on the existing server of that workspace', async () => {
+    const create = vi.fn().mockResolvedValue({ success: true, serverId: 'srv-1', updated: true })
+    await applyWorkspaceConnectToken(workspace, 'oct_new', { config, create })
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: 'ws-1',
+        url: 'http://nexora-connect:3000/mcp',
+        headers: { Authorization: 'Bearer oct_new' },
+        existingServerBehavior: 'update',
+      })
     )
   })
 })
