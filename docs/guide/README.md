@@ -9,6 +9,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Prise en main](prise-en-main.md) | Tous les utilisateurs | Les modèles PME, votre premier workflow, Nexora Connect, la consommation |
 | [Les agents](agents.md) | Tous les utilisateurs | Créer un agent par formulaire, le tester, le publier, ses versions |
 | [Le Playground](playground.md) | Tous les utilisateurs | Essayer et comparer les modèles |
+| [Les connecteurs](connecteurs.md) | Tous les utilisateurs | Connecter vos services en un clic, cloisonnement par espace, applications OAuth |
 | [Les modèles](modeles.md) | Administrateurs | Modèle par défaut, ajouter un modèle local, Mistral AI ou compatible OpenAI, tester, retirer |
 | [Nexora API](nexora-api.md) | Développeurs | L'API de modèles compatible OpenAI : clés, consommation, configuration |
 | [Les workflows](workflows.md) | Tous les utilisateurs | Créer, tester, déployer (API, chat, MCP, déclencheurs) |

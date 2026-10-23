@@ -129,6 +129,77 @@ def main() -> int:
         require(len(tools) >= 5, f"expected ≥ 5 Nexora Connect tools, got {len(tools)}")
         return f"{len(tools)} outils"
 
+    def connectors():
+        # A key-only service Nexora Connect stores without calling the provider: the smoke stays offline.
+        service = "postmark"
+        _, catalog = s.call("GET", f"/api/nexora/connectors?workspaceId={state['ws']}&q={service}", timeout=180)
+        require(any(x.get("service") == service for x in catalog.get("services", [])), f"{service} missing from the catalog")
+        _, detail = s.call("GET", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+        fields = next((a.get("fields") or [] for a in detail.get("auth", []) if a.get("type") == "api_key"), [])
+        require(fields, f"no API key form for {service}: {str(detail)[:200]}")
+        status, body = s.call("POST", "/api/workspaces", {"name": "Fumée Nexora B"}, timeout=300)
+        require(status == 200, f"second workspace creation returned HTTP {status}")
+        ws_b = body["workspace"]["id"]
+        workflows: list[str] = []
+
+        def connect_server(ws: str) -> str:
+            for _ in range(15):
+                _, servers = s.call("GET", f"/api/mcp/servers?workspaceId={ws}")
+                found = [x["id"] for x in servers.get("data", {}).get("servers", []) if x["name"] == "Nexora Connect"]
+                if found:
+                    return found[0]
+                time.sleep(2)
+            raise AssertionError(f"no Nexora Connect server in workspace {ws}")
+
+        def connections_seen_from(ws: str) -> str:
+            """Runs list_connections through the workspace's own Nexora Connect server, as a workflow does."""
+            start, mcp = secrets.token_hex(8), secrets.token_hex(8)
+            sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+            status, body = s.call("POST", "/api/workflows", {"name": "Connecteurs de fumée", "workspaceId": ws})
+            require(status in (200, 201), f"workflow creation returned HTTP {status}")
+            wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+            workflows.append(wf)
+            state_body = {"blocks": {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                mcp: {"id": mcp, "type": "mcp", "name": "Connexions", "position": {"x": 420, "y": 0}, "enabled": True,
+                      "data": {"canonicalModes": {"server": "advanced", "tool": "advanced"}},
+                      "subBlocks": {"operation": sub("operation", "dropdown", "run"),
+                                    "serverReference": sub("serverReference", "short-input", connect_server(ws)),
+                                    "toolReference": sub("toolReference", "short-input", "list_connections"),
+                                    "arguments": sub("arguments", "mcp-dynamic-args", {"service": service})},
+                      "outputs": {}}},
+                "edges": [{"id": secrets.token_hex(8), "source": start, "target": mcp, "sourceHandle": "source", "targetHandle": "target"}],
+                "loops": {}, "parallels": {}}
+            status, body = s.call("PUT", f"/api/workflows/{wf}/state", state_body)
+            require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False, "input": "liste"}, timeout=300)
+            require(status == 200 and body.get("success"), f"run returned HTTP {status}: {str(body.get('error'))[:200]}")
+            return json.dumps(body.get("output"))
+
+        name_a = f"ws-{state['ws']}"
+        try:
+            status, body = s.call("POST", f"/api/nexora/connectors/{service}", {
+                "workspaceId": state["ws"], "authType": "api_key",
+                "values": {f["key"]: f"fumee-{secrets.token_hex(8)}" for f in fields if f.get("required") or f.get("secret")}})
+            require(status == 200, f"connection returned HTTP {status}: {str(body)[:200]}")
+            _, detail = s.call("GET", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+            require(detail.get("connection"), "workspace A does not show its connection")
+            require("fumee-" not in json.dumps(detail), "the key came back to the browser")
+            _, detail_b = s.call("GET", f"/api/nexora/connectors/{service}?workspaceId={ws_b}")
+            require(not detail_b.get("connection"), "workspace B shows workspace A's connection")
+            require(name_a in connections_seen_from(state["ws"]), "workspace A's tools do not see its connection")
+            require(name_a not in connections_seen_from(ws_b), "workspace B's tools see workspace A's connection")
+            status, _ = s.call("DELETE", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+            require(status == 200, f"disconnection returned HTTP {status}")
+            require(name_a not in connections_seen_from(state["ws"]), "connection still visible after disconnection")
+            return f"{service} connecté dans A, invisible depuis B, déconnecté"
+        finally:
+            s.call("DELETE", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+            for wf in workflows:
+                s.call("DELETE", f"/api/workflows/{wf}")
+            s.call("DELETE", f"/api/workspaces/{ws_b}")
+
     def knowledge_base():
         status, body = s.call("POST", "/api/users/me/api-keys", {"name": f"fumee-{secrets.token_hex(3)}"})
         require(status in (200, 201), f"API key creation returned HTTP {status}")
@@ -395,6 +466,7 @@ def main() -> int:
     s.check("Nouvel espace avec les modèles PME", workspace_with_templates)
     s.check("Accueil Nexora (cartes, état, premier lancement)", home)
     s.check("Nexora Connect et ses outils MCP", connect_tools)
+    s.check("Connecteurs : connexion d'espace cloisonnée", connectors)
     s.check("Base de connaissances (embeddings locaux)", knowledge_base)
     s.check("Planification (cron)", schedule)
     s.check("Générer avec l'IA (modèle Nexora)", wand)
