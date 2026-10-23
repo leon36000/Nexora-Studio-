@@ -64,11 +64,11 @@
 **Interfaces:**
 - Consumes: `CRON_SECRET` déjà présent dans `deploy/.env` (généré par `init-env.sh`) et lu par le service `workstudio` — vérifier qu'il l'est ; sinon l'ajouter aux deux services.
 
-- [ ] **Step 1: smoke.py** — contrôle « Planification » : créer un workflow minimal (déclencheur planifié chaque minute + bloc Réponse) via l'API de création utilisée par les modèles PME, le déployer, attendre ≤ 150 s une exécution dans les journaux du workflow.
-- [ ] **Step 2: Lancer** ce contrôle sur la pile pc6 actuelle → échec attendu (aucune exécution).
-- [ ] **Step 3: Implémenter** le service compose et l'image ; construire `cron` sur pc6 ; `compose up -d`.
-- [ ] **Step 4: Vérifier** le contrôle « Planification » → OK ; `docker logs nexora-cron-1` montre des appels 200.
-- [ ] **Step 5: Commit** `feat(j1): service de planification (cron)`.
+- [x] **Step 1: smoke.py** — contrôle « Planification » : créer un workflow minimal (déclencheur planifié chaque minute + bloc Réponse) via l'API de création utilisée par les modèles PME, le déployer, attendre ≤ 150 s une exécution dans les journaux du workflow.
+- [x] **Step 2: Lancer** ce contrôle sur la pile pc6 actuelle → échec attendu (aucune exécution).
+- [x] **Step 3: Implémenter** le service compose et l'image ; construire `cron` sur pc6 ; `compose up -d`.
+- [x] **Step 4: Vérifier** le contrôle « Planification » → OK ; `docker logs nexora-cron-1` montre des appels 200.
+- [x] **Step 5: Commit** `feat(j1): service de planification (cron)`.
 
 ### Task 3: Modèle Nexora par défaut dans tous les blocs à modèle
 

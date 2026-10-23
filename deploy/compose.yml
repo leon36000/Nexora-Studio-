@@ -257,6 +257,23 @@ services:
       retries: 5
       start_period: 30s
 
+  # Background jobs (Sim's scheduler): scheduled workflows, polling triggers (Gmail, Outlook,
+  # IMAP), resuming Wait and human-approval blocks, the outbox and knowledge syncs. It only
+  # calls WorkStudio's API every minute, authenticated by CRON_SECRET (docker/crontab).
+  cron:
+    build:
+      context: ../workstudio
+      dockerfile: docker/cron.Dockerfile
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}cron:${NEXORA_VERSION:-local}
+    restart: on-failure
+    environment:
+      SIM_URL: http://workstudio:3000
+      CRON_SECRET: ${CRON_SECRET:?run scripts/init-env.sh first}
+      TZ: ${NEXORA_TIME_ZONE:-Europe/Paris}
+    depends_on:
+      workstudio:
+        condition: service_healthy
+
   # Local model server, always present: it serves the knowledge-base embeddings (bge-m3) and,
   # when chosen, the chat model (NEXORA_UPSTREAM_URL=http://ollama:11434). CPU by default.
   ollama:

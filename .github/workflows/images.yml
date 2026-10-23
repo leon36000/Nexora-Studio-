@@ -37,6 +37,7 @@ jobs:
           - { name: workstudio-migrations, context: workstudio, dockerfile: workstudio/docker/db.Dockerfile }
           - { name: api, context: services/nexora-api, dockerfile: services/nexora-api/api/Dockerfile }
           - { name: connect, context: services/nexora-connect, dockerfile: services/nexora-connect/docker/Dockerfile }
+          - { name: cron, context: workstudio, dockerfile: workstudio/docker/cron.Dockerfile }
         platform: [linux/amd64, linux/arm64]
     steps:
       # The WorkStudio `next build` outgrows the free 16 GB runner (upstream Sim moved it to a
@@ -97,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [workstudio, workstudio-realtime, workstudio-migrations, api, connect]
+        name: [workstudio, workstudio-realtime, workstudio-migrations, api, connect, cron]
     steps:
       - uses: actions/download-artifact@v4
         with:

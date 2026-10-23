@@ -166,6 +166,32 @@ def main() -> int:
         require(any("samedi" in (r.get("content") or "") for r in results), f"the passage was not found: {str(results)[:300]}")
         return f"{len(results)} passage(s), embeddings locaux"
 
+    def schedule():
+        status, body = s.call("POST", "/api/workflows", {"name": "Fumée planifiée", "workspaceId": state["ws"]})
+        require(status in (200, 201), f"workflow creation returned HTTP {status}: {str(body)[:200]}")
+        wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        require(wf, f"no workflow id: {str(body)[:200]}")
+        block = secrets.token_hex(8)
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        state_body = {"blocks": {block: {
+            "id": block, "type": "schedule", "name": "Planification", "position": {"x": 0, "y": 0}, "enabled": True,
+            "subBlocks": {"scheduleType": sub("scheduleType", "dropdown", "minutes"),
+                          "minutesInterval": sub("minutesInterval", "short-input", "1"),
+                          "timezone": sub("timezone", "dropdown", "UTC")},
+            "outputs": {}}}, "edges": [], "loops": {}, "parallels": {}}
+        status, body = s.call("PUT", f"/api/workflows/{wf}/state", state_body)
+        require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+        status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
+        require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
+        deadline, seen = time.monotonic() + 180, None
+        while time.monotonic() < deadline:
+            _, body = s.call("GET", f"/api/schedules?workflowId={wf}")
+            seen = body.get("schedule") or {}
+            if seen.get("lastRanAt"):
+                return f"exécuté à {seen['lastRanAt']}"
+            time.sleep(10)
+        raise AssertionError(f"the scheduled workflow never ran (cron missing?): {str(seen)[:200]}")
+
     def run_template(name: str):
         def run():
             status, body = s.call("POST", f"/api/workflows/{state['workflows'][name]}/execute", {"useDraftState": True, "stream": False, "input": TEMPLATE_INPUTS[name]}, timeout=600)
@@ -213,6 +239,7 @@ def main() -> int:
     s.check("Nouvel espace avec les modèles PME", workspace_with_templates)
     s.check("Nexora Connect et ses outils MCP", connect_tools)
     s.check("Base de connaissances (embeddings locaux)", knowledge_base)
+    s.check("Planification (cron)", schedule)
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Journal d'audit", audit)
