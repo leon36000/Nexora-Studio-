@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# nexora — pilote une installation de Nexora : démarrer, arrêter, suivre, sauvegarder, restaurer,
+# mettre à jour. Installé par install.sh, qui le lance avec NEXORA_HOME, NEXORA_PROJECT,
+# NEXORA_REPO, NEXORA_REF et NEXORA_BUNDLE.
+set -euo pipefail
+: "${NEXORA_HOME:?NEXORA_HOME manquant}" "${NEXORA_PROJECT:?NEXORA_PROJECT manquant}"
+NEXORA_REPO="${NEXORA_REPO:-leon36000/Nexora-Studio-}"
+NEXORA_REF="${NEXORA_REF:-main}"
+NEXORA_BUNDLE="${NEXORA_BUNDLE:-}"
+ENV_FILE="$NEXORA_HOME/deploy/.env"
+# Data kept by a backup, besides the PostgreSQL databases. `bootstrap` holds keys: encrypted.
+DATA_VOLUMES=(connect-data workstudio-uploads)
+SECRET_VOLUME=bootstrap
+CIPHER=(-aes-256-cbc -pbkdf2 -iter 200000)
+
+compose() { docker compose -p "$NEXORA_PROJECT" -f "$NEXORA_HOME/deploy/compose.yml" --env-file "$ENV_FILE" "$@"; }
+die() { echo "nexora : $*" >&2; exit 1; }
+url() { grep -E '^NEXORA_PUBLIC_URL=' "$ENV_FILE" | tail -1 | cut -d= -f2- | sed "s/^'//; s/'\$//"; }
+env_value() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed "s/^'//; s/'\$//"; }
+
+# The passphrase comes from NEXORA_BACKUP_PASSPHRASE or is typed (twice for a new backup).
+ask_passphrase() {
+  [ -n "${NEXORA_BACKUP_PASSPHRASE:-}" ] && return 0
+  [ -t 0 ] || die "phrase de passe requise : définissez NEXORA_BACKUP_PASSPHRASE ou lancez la commande dans un terminal."
+  local first second
+  read -rsp "Phrase de passe de la sauvegarde : " first; echo
+  [ -n "$first" ] || die "phrase de passe vide."
+  if [ "${1:-}" = confirm ]; then
+    read -rsp "Confirmez la phrase de passe : " second; echo
+    [ "$first" = "$second" ] || die "les deux phrases de passe diffèrent."
+  fi
+  export NEXORA_BACKUP_PASSPHRASE="$first"
+}
+encrypt() { openssl enc "${CIPHER[@]}" -salt -pass env:NEXORA_BACKUP_PASSPHRASE -in "$1" -out "$2"; }
+decrypt() { openssl enc -d "${CIPHER[@]}" -pass env:NEXORA_BACKUP_PASSPHRASE -in "$1" -out "$2" 2> /dev/null; }
+
+# A container image already on this machine that has sh and tar: the PostgreSQL one.
+helper_image() { compose config --images 2> /dev/null | grep -m1 -E 'pgvector|postgres'; }
+volume_size() {
+  docker run --rm --entrypoint sh -v "${NEXORA_PROJECT}_$1:/v:ro" "$IMAGE" -c 'du -sb /v' | cut -f1
+}
+archive_volume() { # archive_volume <volume> <dir> <file>
+  docker run --rm --entrypoint sh -v "${NEXORA_PROJECT}_$1:/v:ro" -v "$2:/out" "$IMAGE" -c "tar czf /out/$3 -C /v ."
+}
+restore_volume() { # restore_volume <volume> <dir> <file>
+  docker volume create --label "com.docker.compose.project=$NEXORA_PROJECT" \
+    --label "com.docker.compose.volume=$1" "${NEXORA_PROJECT}_$1" > /dev/null
+  docker run --rm --entrypoint sh -v "${NEXORA_PROJECT}_$1:/v" -v "$2:/in:ro" "$IMAGE" -c "tar xzf /in/$3 -C /v"
+}
+
+backup() {
+  ask_passphrase confirm
+  IMAGE="$(helper_image)" || true
+  [ -n "${IMAGE:-}" ] || die "configuration illisible : vérifiez $NEXORA_HOME/deploy."
+  local dir="${NEXORA_BACKUP_DIR:-$NEXORA_HOME/backups}" need=0 size free v
+  for v in postgres-data "${DATA_VOLUMES[@]}" "$SECRET_VOLUME"; do
+    size="$(volume_size "$v" 2> /dev/null || echo 0)"
+    need=$((need + ${size:-0}))
+  done
+  mkdir -p "$dir"; chmod 700 "$dir"
+  free="$(df --output=avail -B1 "$dir" | tail -1 | tr -d ' ')"
+  if [ $((need * 2)) -gt "$free" ]; then
+    die "espace disque insuffisant pour la sauvegarde : il manque environ $(((need * 2 - free) / 1000000000 + 1)) Go dans $dir."
+  fi
+
+  WORK="$(mktemp -d)"; chmod 700 "$WORK"; trap 'rm -rf "$WORK"' EXIT
+  echo "Sauvegarde des bases de données…"
+  compose exec -T postgres pg_dumpall -U postgres --clean --if-exists | gzip > "$WORK/postgres.sql.gz"
+  echo "Sauvegarde des fichiers…"
+  for v in "${DATA_VOLUMES[@]}"; do archive_volume "$v" "$WORK" "$v.tar.gz"; done
+  archive_volume "$SECRET_VOLUME" "$WORK" "$SECRET_VOLUME.tar.gz"
+  encrypt "$WORK/$SECRET_VOLUME.tar.gz" "$WORK/$SECRET_VOLUME.tar.gz.enc"; rm -f "$WORK/$SECRET_VOLUME.tar.gz"
+  encrypt "$ENV_FILE" "$WORK/env.enc"
+
+  local files=(postgres.sql.gz) f sums=""
+  for v in "${DATA_VOLUMES[@]}"; do files+=("$v.tar.gz"); done
+  files+=("$SECRET_VOLUME.tar.gz.enc" env.enc)
+  for f in "${files[@]}"; do
+    sums+="${sums:+, }\"$f\": \"$(sha256sum "$WORK/$f" | cut -d' ' -f1)\""
+  done
+  printf '{\n  "version": "%s",\n  "created": "%s",\n  "files": { %s }\n}\n' \
+    "$(env_value NEXORA_VERSION)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sums" > "$WORK/manifest.json"
+
+  local archive="$dir/nexora-$(date +%Y%m%d-%H%M%S).tar"
+  (umask 077; tar cf "$archive" -C "$WORK" manifest.json "${files[@]}")
+  chmod 600 "$archive"
+  echo "Sauvegarde terminée : $archive"
+  echo "Gardez la phrase de passe : sans elle, la sauvegarde ne peut pas être restaurée."
+}
+
+restore() {
+  local archive="${1:-}" name sum
+  [ -n "$archive" ] || die "usage : nexora restore <archive>"
+  [ -f "$archive" ] || die "archive introuvable : $archive"
+  ask_passphrase
+  WORK="$(mktemp -d)"; chmod 700 "$WORK"; trap 'rm -rf "$WORK"' EXIT
+  tar xf "$archive" -C "$WORK" 2> /dev/null || die "archive illisible : rien n'a été modifié."
+  [ -f "$WORK/manifest.json" ] || die "archive incomplète (manifeste absent) : rien n'a été modifié."
+  while read -r name sum; do
+    [ -f "$WORK/$name" ] && [ "$(sha256sum "$WORK/$name" | cut -d' ' -f1)" = "$sum" ] \
+      || die "archive altérée ou incomplète ($name) : rien n'a été modifié."
+  done < <(grep -oE '"[^"]+": "[0-9a-f]{64}"' "$WORK/manifest.json" | sed -E 's/"([^"]+)": "([0-9a-f]+)"/\1 \2/')
+  decrypt "$WORK/env.enc" "$WORK/env" || die "phrase de passe incorrecte : rien n'a été modifié."
+  decrypt "$WORK/$SECRET_VOLUME.tar.gz.enc" "$WORK/$SECRET_VOLUME.tar.gz" \
+    || die "phrase de passe incorrecte : rien n'a été modifié."
+  IMAGE="$(helper_image)" || true
+  [ -n "${IMAGE:-}" ] || die "configuration illisible : vérifiez $NEXORA_HOME/deploy."
+
+  echo "Arrêt de Nexora et remplacement des données…"
+  compose down --remove-orphans
+  local v
+  for v in postgres-data "${DATA_VOLUMES[@]}" "$SECRET_VOLUME"; do docker volume rm -f "${NEXORA_PROJECT}_$v" > /dev/null; done
+  for v in "${DATA_VOLUMES[@]}"; do restore_volume "$v" "$WORK" "$v.tar.gz"; done
+  restore_volume "$SECRET_VOLUME" "$WORK" "$SECRET_VOLUME.tar.gz"
+  install -m 600 "$WORK/env" "$ENV_FILE"
+  echo "Restauration des bases de données…"
+  compose up -d --wait postgres
+  gunzip -c "$WORK/postgres.sql.gz" | compose exec -T postgres psql -U postgres -q -d postgres > /dev/null
+  echo "Redémarrage de Nexora…"
+  compose up -d
+  echo "Restauration terminée : $(url)"
+}
+
+update() {
+  if [ -n "$NEXORA_BUNDLE" ]; then
+    NEXORA_HOME="$NEXORA_HOME" NEXORA_PROJECT="$NEXORA_PROJECT" NEXORA_BUNDLE="$NEXORA_BUNDLE" bash "$NEXORA_BUNDLE/install.sh" --update
+  else
+    curl -fsSL "https://raw.githubusercontent.com/$NEXORA_REPO/$NEXORA_REF/install.sh" \
+      | NEXORA_HOME="$NEXORA_HOME" NEXORA_PROJECT="$NEXORA_PROJECT" NEXORA_REPO="$NEXORA_REPO" NEXORA_REF="$NEXORA_REF" bash -s -- --update
+  fi
+}
+
+uninstall() {
+  if [ "${1:-}" = "--purge" ]; then
+    echo "Supprime Nexora ET toutes ses données (comptes, workflows, base, secrets) dans $NEXORA_HOME."
+    read -r -p "Tapez « supprimer » pour confirmer : " answer
+    [ "$answer" = "supprimer" ] || { echo "Annulé."; exit 1; }
+    compose --profile ollama down -v --remove-orphans
+    rm -rf "$NEXORA_HOME"
+  else
+    compose --profile ollama down --remove-orphans
+    echo "Services arrêtés et supprimés. Données et configuration conservées dans $NEXORA_HOME (nexora uninstall --purge pour tout effacer)."
+  fi
+  rm -f "${NEXORA_LAUNCHER:-}"
+}
+
+case "${1:-help}" in
+  start) compose up -d ;;
+  stop) compose stop ;;
+  restart) compose restart ;;
+  status) compose ps ;;
+  logs) shift; compose logs -f --tail=200 "$@" ;;
+  url) url ;;
+  open) command -v xdg-open > /dev/null && xdg-open "$(url)" || open "$(url)" ;;
+  smoke) shift; "$NEXORA_HOME/scripts/smoke.sh" "$(url)" "$@" ;;
+  backup) backup ;;
+  restore) shift; restore "${1:-}" ;;
+  update) update ;;
+  uninstall) shift; uninstall "${1:-}" ;;
+  *)
+    echo "Usage : nexora start|stop|restart|status|logs [service]|url|open|smoke|backup|restore <archive>|update|uninstall [--purge]" ;;
+esac

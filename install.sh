@@ -38,6 +38,7 @@ BUNDLE_FILES=(
   deploy/postgres/init/01-nexora-api.sql
   deploy/bootstrap/bootstrap.py
   deploy/searxng/settings.yml
+  deploy/nexora-cli.sh
   scripts/init-env.sh
   scripts/smoke.sh
   scripts/smoke.py
@@ -258,49 +259,13 @@ configure() {
 install_cli() {
   mkdir -p "$NEXORA_BIN_DIR"
   local cli="$NEXORA_BIN_DIR/nexora"
+  chmod +x "$NEXORA_HOME/deploy/nexora-cli.sh"
   {
     echo '#!/usr/bin/env bash'
-    echo "# nexora — pilote l'installation de Nexora (écrit par install.sh)."
-    echo 'set -euo pipefail'
-    printf 'NEXORA_HOME=%q\nNEXORA_PROJECT=%q\nNEXORA_REPO=%q\nNEXORA_REF=%q\nNEXORA_BUNDLE=%q\n' \
-      "$NEXORA_HOME" "$NEXORA_PROJECT" "$NEXORA_REPO" "$NEXORA_REF" "$NEXORA_BUNDLE"
-    cat <<'CLI'
-ENV_FILE="$NEXORA_HOME/deploy/.env"
-compose() { docker compose -p "$NEXORA_PROJECT" -f "$NEXORA_HOME/deploy/compose.yml" --env-file "$ENV_FILE" "$@"; }
-url() { grep -E '^NEXORA_PUBLIC_URL=' "$ENV_FILE" | tail -1 | cut -d= -f2-; }
-case "${1:-help}" in
-  start) compose up -d ;;
-  stop) compose stop ;;
-  restart) compose restart ;;
-  status) compose ps ;;
-  logs) shift; compose logs -f --tail=200 "$@" ;;
-  url) url ;;
-  open) command -v xdg-open > /dev/null && xdg-open "$(url)" || open "$(url)" ;;
-  smoke) shift; "$NEXORA_HOME/scripts/smoke.sh" "$(url)" "$@" ;;
-  update)
-    if [ -n "$NEXORA_BUNDLE" ]; then
-      NEXORA_HOME="$NEXORA_HOME" NEXORA_PROJECT="$NEXORA_PROJECT" NEXORA_BUNDLE="$NEXORA_BUNDLE" bash "$NEXORA_BUNDLE/install.sh" --update
-    else
-      curl -fsSL "https://raw.githubusercontent.com/$NEXORA_REPO/$NEXORA_REF/install.sh" \
-        | NEXORA_HOME="$NEXORA_HOME" NEXORA_PROJECT="$NEXORA_PROJECT" NEXORA_REPO="$NEXORA_REPO" NEXORA_REF="$NEXORA_REF" bash -s -- --update
-    fi ;;
-  uninstall)
-    purge=0; [ "${2:-}" = "--purge" ] && purge=1
-    if [ "$purge" -eq 1 ]; then
-      echo "Supprime Nexora ET toutes ses données (comptes, workflows, base, secrets) dans $NEXORA_HOME."
-      read -r -p "Tapez « supprimer » pour confirmer : " answer
-      [ "$answer" = "supprimer" ] || { echo "Annulé."; exit 1; }
-      compose --profile ollama down -v --remove-orphans
-      rm -rf "$NEXORA_HOME"
-    else
-      compose --profile ollama down --remove-orphans
-      echo "Services arrêtés et supprimés. Données et configuration conservées dans $NEXORA_HOME (nexora uninstall --purge pour tout effacer)."
-    fi
-    rm -f "$0" ;;
-  *)
-    echo "Usage : nexora start|stop|restart|status|logs [service]|url|open|smoke|update|uninstall [--purge]" ;;
-esac
-CLI
+    echo "# nexora — lanceur écrit par install.sh ; la commande vit dans $NEXORA_HOME/deploy/nexora-cli.sh."
+    printf 'export NEXORA_HOME=%q NEXORA_PROJECT=%q NEXORA_REPO=%q NEXORA_REF=%q NEXORA_BUNDLE=%q NEXORA_LAUNCHER=%q\n' \
+      "$NEXORA_HOME" "$NEXORA_PROJECT" "$NEXORA_REPO" "$NEXORA_REF" "$NEXORA_BUNDLE" "$cli"
+    echo 'exec bash "$NEXORA_HOME/deploy/nexora-cli.sh" "$@"'
   } > "$cli"
   chmod 755 "$cli"
   info "Commande installée : $cli"
