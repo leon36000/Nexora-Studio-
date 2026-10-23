@@ -4,6 +4,8 @@ import { generateId } from '@sim/utils/id'
 interface TemplateInput {
   name: string
   description: string
+  /** A realistic value, used to run the template once without typing (first launch). */
+  example: string
 }
 
 /** One Agent step. `name` is ASCII so later steps can reference it as `<name.content>`. */
@@ -32,8 +34,16 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     description:
       'Rédige un devis structuré (HT, TVA 20 %, TTC) à partir d’une liste de prestations.',
     inputs: [
-      { name: 'client', description: 'Nom et coordonnées du client' },
-      { name: 'prestations', description: 'Prestations, quantités et prix unitaires HT' },
+      {
+        name: 'client',
+        description: 'Nom et coordonnées du client',
+        example: 'Boulangerie Martin, 12 rue des Lilas, 69003 Lyon',
+      },
+      {
+        name: 'prestations',
+        description: 'Prestations, quantités et prix unitaires HT',
+        example: 'Site vitrine : 1 x 2 400 EUR HT ; Maintenance annuelle : 1 x 360 EUR HT',
+      },
     ],
     steps: [
       {
@@ -48,13 +58,14 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     name: 'Relance de facture impayée',
     description: 'Écrit l’e-mail de relance adapté au niveau de relance (1, 2 ou 3).',
     inputs: [
-      { name: 'client', description: 'Nom du client' },
-      { name: 'facture', description: 'Numéro de la facture' },
-      { name: 'montant', description: 'Montant TTC dû' },
-      { name: 'echeance', description: 'Date d’échéance dépassée' },
+      { name: 'client', description: 'Nom du client', example: 'Garage Durand' },
+      { name: 'facture', description: 'Numéro de la facture', example: 'F-2026-104' },
+      { name: 'montant', description: 'Montant TTC dû', example: '1 250 EUR TTC' },
+      { name: 'echeance', description: 'Date d’échéance dépassée', example: '15/09/2026' },
       {
         name: 'niveau',
         description: 'Niveau de relance : 1 (courtois), 2 (ferme) ou 3 (mise en demeure)',
+        example: '2',
       },
     ],
     steps: [
@@ -71,8 +82,16 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     description:
       'Répond à une question client à partir de votre FAQ, ou propose de transmettre à un conseiller.',
     inputs: [
-      { name: 'question', description: 'Question posée par le client' },
-      { name: 'faq', description: 'Texte de votre FAQ ou de vos conditions' },
+      {
+        name: 'question',
+        description: 'Question posée par le client',
+        example: 'Livrez-vous le samedi ?',
+      },
+      {
+        name: 'faq',
+        description: 'Texte de votre FAQ ou de vos conditions',
+        example: 'Livraison du lundi au samedi, de 8 h à 18 h. Retours acceptés sous 14 jours.',
+      },
     ],
     steps: [
       {
@@ -87,7 +106,14 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     name: 'Tri des e-mails entrants',
     description:
       'Classe un e-mail (catégorie, urgence, résumé), puis prépare un brouillon de réponse adapté.',
-    inputs: [{ name: 'email', description: 'E-mail reçu (expéditeur, objet, corps)' }],
+    inputs: [
+      {
+        name: 'email',
+        description: 'E-mail reçu (expéditeur, objet, corps)',
+        example:
+          "De : client@exemple.fr\nObjet : Facture en double\nBonjour, j'ai reçu deux fois la facture F-88. Pouvez-vous vérifier ?",
+      },
+    ],
     steps: [
       {
         name: 'Classification',
@@ -106,7 +132,14 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     name: 'Compte rendu de réunion',
     description:
       'Transforme une transcription en compte rendu : décisions, actions, responsables, échéances.',
-    inputs: [{ name: 'transcription', description: 'Transcription ou notes brutes de la réunion' }],
+    inputs: [
+      {
+        name: 'transcription',
+        description: 'Transcription ou notes brutes de la réunion',
+        example:
+          'Paul : on lance la campagne le 3 novembre. Anne : je prépare le visuel pour vendredi. Paul : budget validé, 2 000 EUR.',
+      },
+    ],
     steps: [
       {
         name: 'CompteRendu',

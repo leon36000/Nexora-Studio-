@@ -49,3 +49,8 @@ Spec : `docs/superpowers/specs/2026-10-23-nexora-v2-design.md`. Plans : `docs/su
   - Ruling : le test de route simule `@/lib/nexora/admin-access` (la logique d'admin réelle reste couverte par le test de la route d'usage) — un 3ᵉ simulacre local de `instance-org` serait refusé par `check:test-patterns` — coût si faux : aucun.
 - Amorçage réel sur pc6 (23/10) : `compose run nexora-bootstrap` → routeur 1 renommé `qwen2.5:7b` avec l'alias `nexora-default` ; `nexora-admin.env` écrit (0600, propriétaire `nextjs`), clé à permission `admin` ; `POST /v1/chat/completions` avec `model: nexora-default` → 200 ; deuxième exécution sans changement (idempotente) ; `/v1/models` renvoie `{id: "qwen2.5:7b", aliases: ["nexora-default"]}`.
 - Guide `docs/guide/modeles.md` (lié depuis README et reglages) et contrôle de fumée « Modèles » (membre → 403 ; admin : un seul défaut ; ajout compatible OpenAI si `NEXORA_SMOKE_OPENAI_URL/MODEL`, test, défaut aller-retour, défaut non retirable, retrait).
+
+## J3 « Accueil et premier lancement »
+
+- Conception §8quater, plan `2026-10-23-nexora-v2-j3-accueil.md` (écrits pendant que l'interface J2 était construite par un sous-agent, fichiers disjoints).
+- Task 3 (exemples des modèles PME), faite en parallèle de J2 Task 6 : test « every input has an example » rouge (1 échec) puis `lib/nexora` 91/91 ; aucune erreur de type dans les fichiers touchés (les seules erreurs du moment viennent de l'écran Modèles en cours).

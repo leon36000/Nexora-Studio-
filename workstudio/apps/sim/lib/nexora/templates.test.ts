@@ -41,6 +41,14 @@ describe('Nexora SME workflow templates', () => {
     )
   })
 
+  it('gives every input an example value, so a first run works without typing', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      for (const input of template.inputs) {
+        expect(input.example.trim(), `${template.slug}.${input.name}`).not.toBe('')
+      }
+    }
+  })
+
   it('only references inputs the start block declares', () => {
     for (const template of NEXORA_TEMPLATES) {
       const declared = new Set(template.inputs.map((input) => input.name))

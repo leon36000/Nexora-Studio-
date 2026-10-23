@@ -63,8 +63,8 @@
 
 **Files:** Modify: `workstudio/apps/sim/lib/nexora/templates.ts` (+ test existant)
 
-- [ ] **Step 1:** Chaque entrée de modèle PME gagne `example` (valeurs de `TEMPLATE_INPUTS` de `scripts/smoke.py`) ; test : chaque modèle a un exemple non vide pour chaque entrée. Rouge puis vert.
-- [ ] **Step 2: Commit** `feat(j3): valeurs d'exemple des modèles PME`.
+- [x] **Step 1:** Chaque entrée de modèle PME gagne `example` (valeurs de `TEMPLATE_INPUTS` de `scripts/smoke.py`) ; test : chaque modèle a un exemple non vide pour chaque entrée. Rouge puis vert.
+- [x] **Step 2: Commit** `feat(j3): valeurs d'exemple des modèles PME`.
 
 ### Task 4: Interface de l'Accueil et du premier lancement
 
