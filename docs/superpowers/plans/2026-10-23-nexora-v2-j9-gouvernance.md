@@ -48,4 +48,4 @@
 - [x] Interface, tests des aides pures ; commit `feat(j9): groupes d'accès`.
 
 ### Task 5: Guide, fumée, pc6, revue
-- [ ] `docs/guide/reglages.md` ; capture d'e-mails locale (conteneur de test lancé pour l'occasion) et Keycloak de `scripts/dev` ; parcours « Terminé quand » ; revue finale ; push.
+- [x] `docs/guide/reglages.md` ; capture d'e-mails locale (conteneur de test lancé pour l'occasion) et Keycloak de `scripts/dev` ; parcours « Terminé quand » ; revue finale ; push.
