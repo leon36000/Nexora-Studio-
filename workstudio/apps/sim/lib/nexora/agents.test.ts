@@ -37,14 +37,18 @@ describe('agent workflows', () => {
     }
   })
 
-  it('builds a workflow the importer accepts, chat message wired into the agent', () => {
+  it('builds a workflow the importer accepts, the chat message reaching the agent through Start', () => {
     const state = buildAgentWorkflow({ ...base, memory: true })
     const { data, errors } = parseWorkflowJson(JSON.stringify({ version: '1.0', state }))
     expect(errors).toEqual([])
     expect(data).not.toBeNull()
+    expect(Object.values(state.blocks).map((b) => [b.type, b.name])).toEqual([
+      ['start_trigger', 'Start'],
+      ['agent', 'Agent'],
+    ])
     const agent = Object.values(state.blocks).find((b) => b.type === 'agent')
-    expect(JSON.stringify(agent?.subBlocks.messages.value)).toContain('<chat.input>')
-    expect(agent?.subBlocks.conversationId?.value).toBe('<chat.conversationId>')
+    expect(JSON.stringify(agent?.subBlocks.messages.value)).toContain('<start.input>')
+    expect(agent?.subBlocks.conversationId?.value).toBe('<start.conversationId>')
   })
 
   it('refuses a workflow edited beyond the agent shape', () => {

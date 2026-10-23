@@ -42,10 +42,10 @@ interface AgentWorkflowState {
   metadata: { name: string; description: string; welcomeMessage: string }
 }
 
-const CHAT_BLOCK_NAME = 'Chat'
+const START_BLOCK_NAME = 'Start'
 const AGENT_BLOCK_NAME = 'Agent'
-const USER_MESSAGE = '<chat.input>'
-const CONVERSATION_ID = '<chat.conversationId>'
+const USER_MESSAGE = '<start.input>'
+const CONVERSATION_ID = '<start.conversationId>'
 
 /** The tool entry the agent block uses to search one knowledge base (as the tool picker builds it). */
 function knowledgeTool(knowledgeBaseId: string): StoredTool {
@@ -68,9 +68,12 @@ function isKnowledgeTool(tool: StoredTool): boolean {
   return tool.type === 'knowledge' && tool.toolId === 'knowledge_search'
 }
 
-/** The workflow an agent is: Chat trigger → Agent block, in the shape the importer reads. */
+/**
+ * The workflow an agent is: Start → Agent, in the shape the importer reads. Start is the unified
+ * entry point: a deployed chat sends its message as `<start.input>`.
+ */
 export function buildAgentWorkflow(config: AgentConfig): AgentWorkflowState {
-  const chatId = generateId()
+  const startId = generateId()
   const agentId = generateId()
   const subBlocks: AgentBlock['subBlocks'] = {
     messages: {
@@ -98,13 +101,13 @@ export function buildAgentWorkflow(config: AgentConfig): AgentWorkflowState {
   }
   return {
     blocks: {
-      [chatId]: {
-        id: chatId,
-        type: 'chat_trigger',
-        name: CHAT_BLOCK_NAME,
+      [startId]: {
+        id: startId,
+        type: 'start_trigger',
+        name: START_BLOCK_NAME,
         position: { x: 0, y: 0 },
         enabled: true,
-        subBlocks: {},
+        subBlocks: { inputFormat: { id: 'inputFormat', type: 'input-format', value: [] } },
         outputs: {},
       },
       [agentId]: {
@@ -120,7 +123,7 @@ export function buildAgentWorkflow(config: AgentConfig): AgentWorkflowState {
     edges: [
       {
         id: generateId(),
-        source: chatId,
+        source: startId,
         target: agentId,
         sourceHandle: 'source',
         targetHandle: 'target',
@@ -150,14 +153,14 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
     return null
   const blocks = Object.values(state.blocks).filter(isRecordLike)
   if (blocks.length !== 2 || state.edges.length !== 1) return null
-  const chat = blocks.find((b) => b.type === 'chat_trigger' && b.name === CHAT_BLOCK_NAME)
+  const start = blocks.find((b) => b.type === 'start_trigger' && b.name === START_BLOCK_NAME)
   const agent = blocks.find((b) => b.type === 'agent' && b.name === AGENT_BLOCK_NAME)
   const edge = state.edges[0]
   if (
-    !chat ||
+    !start ||
     !agent ||
     !isRecordLike(edge) ||
-    edge.source !== chat.id ||
+    edge.source !== start.id ||
     edge.target !== agent.id
   ) {
     return null
