@@ -36,10 +36,14 @@ class Smoke:
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
         self.results: list[dict] = []
 
-    def call(self, method: str, path: str, body: dict | None = None, timeout: int = 120, raw: bool = False):
-        data = json.dumps(body).encode() if body is not None else None
+    def call(self, method: str, path: str, body: dict | None = None, timeout: int = 120, raw: bool = False,
+             headers: dict | None = None, data: bytes | None = None, content_type: str = "application/json"):
+        if data is None:
+            data = json.dumps(body).encode() if body is not None else None
         request = urllib.request.Request(f"{self.url}{path}", data=data, method=method)
-        request.add_header("Content-Type", "application/json")
+        request.add_header("Content-Type", content_type)
+        for name, value in (headers or {}).items():
+            request.add_header(name, value)
         request.add_header("Origin", self.url)
         request.add_header("Accept-Language", "fr-FR,fr;q=0.9")
         try:
@@ -123,6 +127,45 @@ def main() -> int:
         require(len(tools) >= 5, f"expected ≥ 5 Nexora Connect tools, got {len(tools)}")
         return f"{len(tools)} outils"
 
+    def knowledge_base():
+        status, body = s.call("POST", "/api/users/me/api-keys", {"name": f"fumee-{secrets.token_hex(3)}"})
+        require(status in (200, 201), f"API key creation returned HTTP {status}")
+        key = (body.get("key") or {}).get("key") if isinstance(body.get("key"), dict) else body.get("key") or (body.get("data") or {}).get("key")
+        require(isinstance(key, str) and key, "no API key in the response")
+        auth = {"x-api-key": key}
+        status, body = s.call("POST", "/api/v1/knowledge", {"workspaceId": state["ws"], "name": "Fumée connaissances"}, headers=auth)
+        require(status in (200, 201), f"knowledge base creation returned HTTP {status}: {str(body)[:200]}")
+        data = body.get("data") or body
+        kb_id = (data.get("knowledgeBase") or data).get("id")
+        require(kb_id, f"no knowledge base id: {str(body)[:200]}")
+        boundary = f"nexora{secrets.token_hex(8)}"
+        text = "Horaires de livraison\n\nNexora livre ses clients le samedi de 8 h à 18 h, et en semaine de 7 h à 19 h.\n"
+        form = (
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"workspaceId\"\r\n\r\n{state['ws']}\r\n"
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"livraison.txt\"\r\n"
+            f"Content-Type: text/plain\r\n\r\n{text}\r\n--{boundary}--\r\n"
+        ).encode()
+        status, body = s.call("POST", f"/api/v1/knowledge/{kb_id}/documents", headers=auth, data=form,
+                              content_type=f"multipart/form-data; boundary={boundary}", timeout=180)
+        require(status in (200, 201, 202), f"document upload returned HTTP {status}: {str(body)[:200]}")
+        deadline = time.monotonic() + 240
+        state_seen = None
+        while time.monotonic() < deadline:
+            _, listing = s.call("GET", f"/api/v1/knowledge/{kb_id}/documents?workspaceId={state['ws']}", headers=auth)
+            docs = (listing.get("data") or {}).get("documents") or []
+            state_seen = [(d.get("processingStatus"), d.get("processingError")) for d in docs]
+            if docs and all(d.get("processingStatus") == "completed" for d in docs):
+                break
+            require(not any(d.get("processingStatus") == "failed" for d in docs), f"indexing failed: {state_seen}")
+            time.sleep(5)
+        else:
+            raise AssertionError(f"indexing did not finish in time: {state_seen}")
+        status, body = s.call("POST", "/api/v1/knowledge/search", {"workspaceId": state["ws"], "knowledgeBaseIds": kb_id, "query": "Quand livrez-vous le samedi ?", "topK": 3}, headers=auth)
+        require(status == 200, f"search returned HTTP {status}: {str(body)[:200]}")
+        results = (body.get("data") or {}).get("results") or []
+        require(any("samedi" in (r.get("content") or "") for r in results), f"the passage was not found: {str(results)[:300]}")
+        return f"{len(results)} passage(s), embeddings locaux"
+
     def run_template(name: str):
         def run():
             status, body = s.call("POST", f"/api/workflows/{state['workflows'][name]}/execute", {"useDraftState": True, "stream": False, "input": TEMPLATE_INPUTS[name]}, timeout=600)
@@ -169,6 +212,7 @@ def main() -> int:
     s.check("Interface en français, sans marque tierce", french_ui)
     s.check("Nouvel espace avec les modèles PME", workspace_with_templates)
     s.check("Nexora Connect et ses outils MCP", connect_tools)
+    s.check("Base de connaissances (embeddings locaux)", knowledge_base)
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Journal d'audit", audit)

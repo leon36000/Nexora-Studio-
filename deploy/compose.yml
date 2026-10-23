@@ -2,7 +2,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash
 # ou, depuis les sources : scripts/init-env.sh && docker compose -f deploy/compose.yml up -d --build
 # Images : NEXORA_IMAGE_PREFIX (ex. ghcr.io/leon36000/nexora-) et NEXORA_VERSION (ex. latest) ;
-# par défaut nexora/<service>:local, construites ici. Profil « ollama » : modèle 100 % local.
+# par défaut nexora/<service>:local, construites ici. Ollama sert les embeddings et le modèle local.
 # Services : WorkStudio (app, temps réel, migrations), Nexora API, Nexora Connect, PostgreSQL, Redis.
 # Les ports sont publiés sur NEXORA_BIND_ADDRESS (127.0.0.1 par défaut : cette machine seulement).
 name: nexora
@@ -85,6 +85,9 @@ services:
       postgres:
         condition: service_healthy
       nexora-api-redis:
+        condition: service_healthy
+      # A local chat model must be reachable when Nexora API reads its model list at start.
+      ollama:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8000/health']
@@ -213,6 +216,10 @@ services:
       # One organization per instance: every account joins it as a member, so roles, audit and
       # consumption are governed in one place. Its owner is NEXORA_ORGANIZATION_OWNER_EMAIL, or
       # the first account created. Leave the name empty to let each user found their own.
+      # Knowledge bases embed with the local Ollama (no third-party key, 1024 dimensions).
+      OLLAMA_URL: http://ollama:11434
+      KB_EMBEDDING_MODEL: ollama/${NEXORA_EMBED_MODEL:-bge-m3}
+      EMBEDDING_OUTPUT_DIMS: '1024'
       INSTANCE_ORG_NAME: ${NEXORA_ORGANIZATION_NAME:-}
       INSTANCE_ORG_OWNER_EMAIL: ${NEXORA_ORGANIZATION_OWNER_EMAIL:-}
       # Who may create an account: restrict to your email domains, and close sign-ups once the team is in.
@@ -250,11 +257,10 @@ services:
       retries: 5
       start_period: 30s
 
-  # Optional local model server (profile « ollama », set by install.sh when you choose a model
-  # running on this machine): NEXORA_UPSTREAM_URL=http://ollama:11434. CPU by default.
+  # Local model server, always present: it serves the knowledge-base embeddings (bge-m3) and,
+  # when chosen, the chat model (NEXORA_UPSTREAM_URL=http://ollama:11434). CPU by default.
   ollama:
     image: ollama/ollama:0.12.6
-    profiles: [ollama]
     restart: unless-stopped
     environment:
       OLLAMA_KEEP_ALIVE: 30m

@@ -45,14 +45,14 @@
 **Interfaces:**
 - Produces: variables d'environnement `OLLAMA_URL=http://ollama:11434`, `KB_EMBEDDING_MODEL=ollama/${NEXORA_EMBED_MODEL:-bge-m3}`, `EMBEDDING_OUTPUT_DIMS=1024` dans le service `workstudio` ; fonction shell `pull_ollama_model <model>` dans `install.sh` (télécharge + limite les threads) réutilisée par le modèle de discussion local.
 
-- [ ] **Step 1: Tests shell** — dans `test-install.sh` : pour un choix `mistral`, le journal du faux docker contient `ollama pull bge-m3` et `up -d --wait ollama` ; `COMPOSE_PROFILES` n'est plus `ollama` ; un `.env` v1 contenant `COMPOSE_PROFILES=ollama` reste valide (`nexora update` ne casse pas).
-- [ ] **Step 2: Lancer** `bash scripts/tests/test-install.sh` → échecs attendus sur ces nouveaux cas.
-- [ ] **Step 3: Implémenter** compose (`ollama` permanent, healthcheck conservé), `.env.example`, `install.sh` (`pull_ollama_model`, appelé pour `NEXORA_EMBED_MODEL` toujours, et pour le modèle de discussion si choix local).
-- [ ] **Step 4: Test unitaire** — `resolveConfiguredEmbeddingModel()` avec `KB_EMBEDDING_MODEL=ollama/bge-m3` renvoie `ollama/bge-m3` et `EMBEDDING_OUTPUT_DIMS=1024` donne la cible `{ model: 'ollama/bge-m3', dimensions: 1024 }` ; l'erreur de configuration et l'erreur « modèle en cours de téléchargement » (HTTP 404 `model not found` d'Ollama) produisent un message français via next-intl (`knowledge.errors.embeddingUnavailable`, `knowledge.errors.embeddingModelLoading`).
-- [ ] **Step 5: Implémenter** la traduction des erreurs d'embedding et la détection du 404 Ollama ; vérifier que la recherche d'une base fonctionne **sans reranker** configuré (reranking ignoré proprement, pas d'erreur ni d'appel à un service tiers) et ajouter le test correspondant.
-- [ ] **Step 6: smoke.py** — nouveau contrôle « Base de connaissances » : créer une base dans l'espace de fumée, y déposer un texte court (« Nexora livre le samedi de 8 h à 18 h. »), attendre l'indexation (≤ 120 s), rechercher « samedi » et exiger au moins un passage.
-- [ ] **Step 7: Vérifier** `bash scripts/tests/test-install.sh` (tout passe), vitest du test unitaire, `check:audits`.
-- [ ] **Step 8: Commit** `feat(j1): Ollama permanent, bases de connaissances sur bge-m3 local`.
+- [x] **Step 1: Tests shell** — dans `test-install.sh` : pour un choix `mistral`, le journal du faux docker contient `ollama pull bge-m3` et `up -d --wait ollama` ; `COMPOSE_PROFILES` n'est plus `ollama` ; un `.env` v1 contenant `COMPOSE_PROFILES=ollama` reste valide (`nexora update` ne casse pas).
+- [x] **Step 2: Lancer** `bash scripts/tests/test-install.sh` → échecs attendus sur ces nouveaux cas.
+- [x] **Step 3: Implémenter** compose (`ollama` permanent, healthcheck conservé), `.env.example`, `install.sh` (`pull_ollama_model`, appelé pour `NEXORA_EMBED_MODEL` toujours, et pour le modèle de discussion si choix local).
+- [x] **Step 4: Test unitaire** — `resolveConfiguredEmbeddingModel()` avec `KB_EMBEDDING_MODEL=ollama/bge-m3` renvoie `ollama/bge-m3` et `EMBEDDING_OUTPUT_DIMS=1024` donne la cible `{ model: 'ollama/bge-m3', dimensions: 1024 }` ; l'erreur de configuration et l'erreur « modèle en cours de téléchargement » (HTTP 404 `model not found` d'Ollama) produisent un message français via next-intl (`knowledge.errors.embeddingUnavailable`, `knowledge.errors.embeddingModelLoading`).
+- [x] **Step 5: Implémenter** la traduction des erreurs d'embedding et la détection du 404 Ollama ; vérifier que la recherche d'une base fonctionne **sans reranker** configuré (reranking ignoré proprement, pas d'erreur ni d'appel à un service tiers) et ajouter le test correspondant.
+- [x] **Step 6: smoke.py** — nouveau contrôle « Base de connaissances » : créer une base dans l'espace de fumée, y déposer un texte court (« Nexora livre le samedi de 8 h à 18 h. »), attendre l'indexation (≤ 120 s), rechercher « samedi » et exiger au moins un passage.
+- [x] **Step 7: Vérifier** `bash scripts/tests/test-install.sh` (tout passe), vitest du test unitaire, `check:audits`.
+- [x] **Step 8: Commit** `feat(j1): Ollama permanent, bases de connaissances sur bge-m3 local`.
 
 ### Task 2: Planificateur (cron)
 

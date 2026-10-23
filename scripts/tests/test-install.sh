@@ -19,6 +19,7 @@ case "$*" in
   "compose version"*) echo "Docker Compose version v2.30.0" ;;
   *"config --images"*) printf 'pgvector/pgvector:pg17\nnexora/workstudio:local\n' ;;
   "image inspect"*) exit "${FAKE_LOCAL_EXIT:-1}" ;;
+  *"exec -T ollama"*) exit 0 ;;
   *" pull"*) exit "${FAKE_PULL_EXIT:-0}" ;;
   *" up "*) exit "${FAKE_UP_EXIT:-0}" ;;
 esac
@@ -77,7 +78,8 @@ h3="$(new_home)/nexora"
 NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=local NEXORA_WORKSTUDIO_PORT=3300 \
   NEXORA_HEALTH_TIMEOUT=5 run "$h3" --yes && ok "install with start succeeds" || { ko "install with start succeeds"; cat "$h3.out"; }
 e3="$h3/deploy/.env"
-[ "$(envval COMPOSE_PROFILES "$e3")" = "ollama" ] && ok "local model service enabled" || ko "local model service enabled"
+[ -z "$(envval COMPOSE_PROFILES "$e3")" ] && ok "Ollama is no longer an optional profile" || ko "Ollama is no longer an optional profile"
+grep -q "ollama pull bge-m3" "$h3.log" && ok "downloads the embedding model" || ko "downloads the embedding model"
 [ "$(envval NEXORA_UPSTREAM_URL "$e3")" = "http://ollama:11434" ] && ok "local model URL" || ko "local model URL"
 [ -n "$(envval NEXORA_UPSTREAM_MODEL "$e3")" ] && ok "local model chosen" || ko "local model chosen"
 [ "$(envval NEXORA_WORKSTUDIO_PORT "$e3")" = "3300" ] && ok "port override" || ko "port override"
@@ -97,6 +99,8 @@ h4="$(new_home)/nexora"
 NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
   FAKE_PULL_EXIT=1 NEXORA_HEALTH_TIMEOUT=5 run "$h4" --yes && ok "fallback install succeeds" || { ko "fallback install succeeds"; cat "$h4.out"; }
 grep -q -- "up -d --build" "$h4.log" && ok "builds from the sources" || ko "builds from the sources"
+grep -q "up -d --build --wait ollama" "$h4.log" && grep -q "ollama pull bge-m3" "$h4.log" && ok "Ollama and the embedding model come with any model choice" || ko "Ollama and the embedding model come with any model choice"
+grep -q "ollama pull mistral" "$h4.log" && ko "a remote chat model is not pulled into Ollama" || ok "a remote chat model is not pulled into Ollama"
 [ "$(envval NEXORA_IMAGE_PREFIX "$h4/deploy/.env")" = "nexora/" ] && ok "switches to local images" || ko "switches to local images"
 [ -d "$h4/workstudio" ] && [ -d "$h4/services/nexora-api" ] && ok "sources fetched for the build" || ko "sources fetched for the build"
 
@@ -113,6 +117,12 @@ NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral N
   FAKE_UP_EXIT=1 NEXORA_HEALTH_TIMEOUT=5 run "$h7" --yes && ko "failed start is an error" || ok "failed start is an error"
 grep -q -- "--build" "$h7.log" && ko "failed start does not trigger a build" || ok "failed start does not trigger a build"
 grep -q "nexora logs" "$h7.out" && ok "failed start points to the logs" || ko "failed start points to the logs"
+
+# 5d. An install from v1 (COMPOSE_PROFILES=ollama in deploy/.env) updates cleanly.
+sed -i 's/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=ollama/' "$e3"
+: > "$h3.log"
+NEXORA_HEALTH_TIMEOUT=5 run "$h3" --update && ok "v1 install updates" || { ko "v1 install updates"; cat "$h3.out"; }
+grep -q "ollama pull bge-m3" "$h3.log" && grep -q "ollama pull $(envval NEXORA_UPSTREAM_MODEL "$e3")" "$h3.log" && ok "update pulls the embedding and local chat models" || ko "update pulls the embedding and local chat models"
 
 # 6. Without Docker, the installer stops and says why.
 h5="$(new_home)/nexora"; nodocker="$(new_home)"

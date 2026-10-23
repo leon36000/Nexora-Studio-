@@ -306,7 +306,11 @@
       "numberPlaceholder": "Enter number",
       "valuePlaceholder": "Enter value"
     },
-    "documentPageTitle": "{title} — {parent}"
+    "documentPageTitle": "{title} — {parent}",
+    "errors": {
+      "embeddingUnavailable": "No embedding model is configured for knowledge bases. An administrator must check Nexora's Ollama service (\"nexora status\").",
+      "embeddingModelLoading": "The local embedding model is still downloading. Try again in a few minutes."
+    }
   },
   "document": {
     "rootLabel": "Knowledge bases",

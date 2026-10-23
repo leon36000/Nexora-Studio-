@@ -17,6 +17,15 @@ describe('getConfiguredKbEmbedding', () => {
     mockOllamaMetadata.mockRejectedValue(new Error('no server configured'))
   })
 
+  it('accepts the Nexora configuration: bge-m3 on the bundled Ollama, 1024 dimensions', async () => {
+    mockEnvObject.KB_EMBEDDING_MODEL = 'ollama/bge-m3'
+    mockEnvObject.EMBEDDING_OUTPUT_DIMS = '1024'
+    await expect(getConfiguredKbEmbedding()).resolves.toEqual({
+      model: 'ollama/bge-m3',
+      dimensions: 1024,
+    })
+  })
+
   it('accepts any storable width from a model on the deployment’s own Ollama', async () => {
     mockEnvObject.KB_EMBEDDING_MODEL = 'ollama/nomic-embed-text'
     mockEnvObject.EMBEDDING_OUTPUT_DIMS = '768'

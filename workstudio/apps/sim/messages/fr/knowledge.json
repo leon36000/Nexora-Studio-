@@ -306,7 +306,11 @@
       "numberPlaceholder": "Saisissez un nombre",
       "valuePlaceholder": "Saisissez une valeur"
     },
-    "documentPageTitle": "{title} — {parent}"
+    "documentPageTitle": "{title} — {parent}",
+    "errors": {
+      "embeddingUnavailable": "Aucun modèle d'embeddings n'est configuré pour les bases de connaissances. Un administrateur doit vérifier le service Ollama de Nexora (« nexora status »).",
+      "embeddingModelLoading": "Le modèle d'embeddings local est encore en cours de téléchargement. Réessayez dans quelques minutes."
+    }
   },
   "document": {
     "rootLabel": "Bases de connaissances",

@@ -183,7 +183,7 @@ configure() {
     1|local)
       ask model "Modèle Ollama" "${NEXORA_UPSTREAM_MODEL:-$(default_local_model)}"
       url="http://ollama:11434" key="none"
-      set_env COMPOSE_PROFILES ollama ;;
+      set_env COMPOSE_PROFILES "" ;;
     2|mistral)
       ask model "Modèle Mistral" "${NEXORA_UPSTREAM_MODEL:-mistral-small-latest}"
       ask key "Clé API Mistral" "${NEXORA_UPSTREAM_KEY:-}" secret
@@ -269,6 +269,21 @@ CLI
   case ":$PATH:" in *":$NEXORA_BIN_DIR:"*) ;; *) warn "Ajoutez $NEXORA_BIN_DIR à votre PATH pour utiliser « nexora »." ;; esac
 }
 
+pull_ollama_model() { # pull_ollama_model <model> — downloads once, caps threads
+  local model="${1:-bge-m3}"
+  step "Préparation du modèle local $model (téléchargement la première fois)"
+  compose exec -T ollama ollama pull "$model" || die "Téléchargement du modèle $model impossible. Vérifiez la connexion, puis relancez « nexora update »."
+  # llama.cpp starts one thread per core and collapses (x100 slower) when other programs take
+  # cores; half the cores keeps nearly all the speed of a dedicated machine.
+  local cores threads
+  cores="$(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 4)"
+  threads="${NEXORA_OLLAMA_THREADS:-$(( cores > 1 ? cores / 2 : 1 ))}"
+  case "$model$threads" in *[!A-Za-z0-9._:/-]*) die "Nom de modèle ou nombre de threads invalide." ;; esac
+  compose exec -T ollama sh -c "printf 'FROM $model\\nPARAMETER num_thread $threads\\n' > /tmp/Modelfile && ollama create $model -f /tmp/Modelfile" > /dev/null \
+    || warn "Réglage des threads du modèle impossible : il fonctionnera, plus lentement sur une machine chargée."
+  info "Modèle $model prêt ($threads threads)."
+}
+
 images_present() { # every image of the configuration is already on this machine (docker load, cache)
   local images img
   images="$(compose config --images 2> /dev/null)" || return 1
@@ -296,21 +311,12 @@ start() {
     up+=(--build)
   fi
 
-  # Nexora API reads the model list when it starts: the local model must be there first.
-  if [ "$(get_env COMPOSE_PROFILES)" = "ollama" ]; then
-    local model; model="$(get_env NEXORA_UPSTREAM_MODEL)"
-    compose "${up[@]}" --wait ollama || start_failed
-    step "Téléchargement du modèle local $model (une seule fois)"
-    compose exec -T ollama ollama pull "$model" || die "Téléchargement du modèle $model impossible. Vérifiez la connexion, puis relancez « nexora update »."
-    # llama.cpp starts one thread per core and collapses (x100 slower) when other programs take
-    # cores; half the cores keeps nearly all the speed of a dedicated machine.
-    local cores threads
-    cores="$(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 4)"
-    threads="${NEXORA_OLLAMA_THREADS:-$(( cores > 1 ? cores / 2 : 1 ))}"
-    case "$model$threads" in *[!A-Za-z0-9._:/-]*) die "Nom de modèle ou nombre de threads invalide." ;; esac
-    compose exec -T ollama sh -c "printf 'FROM $model\\nPARAMETER num_thread $threads\\n' > /tmp/Modelfile && ollama create $model -f /tmp/Modelfile" > /dev/null \
-      || warn "Réglage des threads du modèle impossible : il fonctionnera, plus lentement sur une machine chargée."
-    info "Modèle $model prêt ($threads threads)."
+  # Ollama always runs: it serves the knowledge-base embeddings and, when chosen, the chat model.
+  # Nexora API reads the model list when it starts, so the models must be there first.
+  compose "${up[@]}" --wait ollama || start_failed
+  pull_ollama_model "$(get_env NEXORA_EMBED_MODEL)"
+  if [ "$(get_env NEXORA_UPSTREAM_URL)" = "http://ollama:11434" ]; then
+    pull_ollama_model "$(get_env NEXORA_UPSTREAM_MODEL)"
   fi
   compose "${up[@]}" || start_failed
 

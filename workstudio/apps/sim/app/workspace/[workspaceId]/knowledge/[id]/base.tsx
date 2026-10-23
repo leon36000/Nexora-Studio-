@@ -55,6 +55,7 @@ import {
 } from '@/lib/knowledge/documents/types'
 import { type FilterFieldType, getOperatorsForFieldType } from '@/lib/knowledge/filters/types'
 import type { DocumentData } from '@/lib/knowledge/types'
+import { classifyKnowledgeProcessingError } from '@/lib/nexora/knowledge-errors'
 import { formatFileSize } from '@/lib/uploads/utils/file'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import {
@@ -167,6 +168,12 @@ const CONNECTOR_SYNC_DOCUMENT_POLL_INTERVAL_MS = 5000
 const STATUS_FILTER_VALUES = ['all', 'enabled', 'disabled'] as const
 
 type Translator = ReturnType<typeof useTranslations>
+
+/** The stored processing error, or its French explanation when an administrator can fix it. */
+function describeProcessingError(message: string, t: Translator): string {
+  const kind = classifyKnowledgeProcessingError(message)
+  return kind ? t(`errors.${kind}`) : message
+}
 
 interface KnowledgeBaseProps {
   id: string
@@ -1255,7 +1262,7 @@ export function KnowledgeBase({
                       <div className='cursor-help'>{getStatusBadge(doc, t)}</div>
                     </Tooltip.Trigger>
                     <Tooltip.Content side='top' className='max-w-xs'>
-                      {doc.processingError}
+                      {describeProcessingError(doc.processingError, t)}
                     </Tooltip.Content>
                   </Tooltip.Root>
                 ),

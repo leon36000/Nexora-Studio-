@@ -25,3 +25,4 @@ deploy/.env
 # Secrets de développement générés par scripts/dev/up.sh
 scripts/dev/.secrets
 scripts/dev/.extra-env
+.superpowers/
