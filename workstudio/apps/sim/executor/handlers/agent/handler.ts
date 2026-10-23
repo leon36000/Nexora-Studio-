@@ -32,7 +32,10 @@ import {
   resolveAutoModel,
   SIM_AUTO_SYSTEM_PREAMBLE,
 } from '@/lib/model-router/resolve'
-import { deliverDocumentsAsText } from '@/lib/nexora/attachment-text.server'
+import {
+  createDocumentTextBudget,
+  deliverDocumentsAsText,
+} from '@/lib/nexora/attachment-text.server'
 import { importWorkspaceFileSecretProvenanceForModelView } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
 import {
   getFileExtension,
@@ -1751,10 +1754,19 @@ export class AgentBlockHandler implements BlockHandler {
       return messages
     }
 
+    /**
+     * Earlier turns are replayed from memory on every turn, so a file of theirs that cannot
+     * reach the model becomes a note: failing there would fail every later turn as well.
+     */
+    let currentMessageIndex = messages.length - 1
+    while (currentMessageIndex > 0 && messages[currentMessageIndex].role !== 'user') {
+      currentMessageIndex--
+    }
+
     if (
       !supportsFileAttachments(providerId) &&
-      messages.some((message) =>
-        message.files?.some((file) => getProviderAttachmentDelivery(file, providerId) !== 'text')
+      messages[currentMessageIndex]?.files?.some(
+        (file) => getProviderAttachmentDelivery(file, providerId) !== 'text'
       )
     ) {
       throw new Error(`File attachments are not supported for provider "${providerId}"`)
@@ -1763,14 +1775,20 @@ export class AgentBlockHandler implements BlockHandler {
     const nextMessages = [...messages]
 
     const inlineMaxBytes = getInlineHydrationMaxBytes(providerId)
+    const largeFilePathAvailable = canUseProviderLargeFilePath(providerId)
+    const lacksBytes = (file: UserFile) =>
+      !file.base64 && !(largeFilePathAvailable && shouldUseLargeFilePath(file, providerId))
 
     const replayAttachments = selectReplayAttachments(messages)
+    /** Spent newest message first, so the current message's documents come first. */
+    const documentTextBudget = createDocumentTextBudget()
 
-    for (let messageIndex = 0; messageIndex < messages.length; messageIndex++) {
+    for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex--) {
       const message = messages[messageIndex]
       if (!message.files?.length) {
         continue
       }
+      const fromHistory = messageIndex !== currentMessageIndex
       const files = replayAttachments[messageIndex]
       if (files.length === 0) {
         nextMessages[messageIndex] = omit(message, ['files'])
@@ -1825,12 +1843,12 @@ export class AgentBlockHandler implements BlockHandler {
 
         const sourceFile = files[fileIndex]
         const nameProjection = sourceFile ? projectedNameByFile.get(sourceFile) : undefined
-        if (
-          !nameProjection ||
-          !isProviderAttachmentFilenameModelBound(file, providerId, {
-            largeFilePathAvailable: canUseProviderLargeFilePath(providerId),
-          })
-        ) {
+        /** A file the model cannot take is still named, in a note or a refusal. */
+        const nameReachesModel =
+          isProviderAttachmentFilenameModelBound(file, providerId, { largeFilePathAvailable }) ||
+          getProviderAttachmentDelivery(file, providerId) !== 'attachment' ||
+          (fromHistory && lacksBytes(file))
+        if (!nameProjection || !nameReachesModel) {
           return [file]
         }
 
@@ -1856,11 +1874,11 @@ export class AgentBlockHandler implements BlockHandler {
         })
       }
 
-      const missingFile = modelSafeHydratedFiles.find(
-        (file) =>
-          !file.base64 &&
-          !(canUseProviderLargeFilePath(providerId) && shouldUseLargeFilePath(file, providerId))
+      /** A document read as text explains its own missing bytes in a note. */
+      const unavailableFiles = modelSafeHydratedFiles.filter(
+        (file) => lacksBytes(file) && getProviderAttachmentDelivery(file, providerId) !== 'text'
       )
+      const missingFile = fromHistory ? undefined : unavailableFiles[0]
       if (missingFile) {
         const { size: sizeMB, limit: inlineMB } = formatAttachmentSizes(
           missingFile.size,
@@ -1888,18 +1906,26 @@ export class AgentBlockHandler implements BlockHandler {
       }
 
       const omittedCount = hydratedFiles.length - modelSafeHydratedFiles.length
+      const deliverableFiles =
+        unavailableFiles.length > 0
+          ? modelSafeHydratedFiles.filter((file) => !unavailableFiles.includes(file))
+          : modelSafeHydratedFiles
       const delivered = await deliverDocumentsAsText({
         content: message.content,
-        files: modelSafeHydratedFiles,
+        files: deliverableFiles,
         providerId,
         signal: ctx.abortSignal,
+        budget: documentTextBudget,
+        fromHistory,
+        unavailableFiles,
+        inlineMaxBytes,
       })
       const content =
         omittedCount > 0
           ? appendUnavailableAttachmentNotice(delivered.content ?? '', omittedCount)
           : delivered.content
       nextMessages[messageIndex] =
-        delivered.files === modelSafeHydratedFiles || delivered.files.length > 0
+        delivered.files === deliverableFiles || delivered.files.length > 0
           ? { ...message, content, files: delivered.files }
           : { ...omit(message, ['files']), content }
       copyNativeConversationMessage(message, nextMessages[messageIndex])

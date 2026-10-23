@@ -370,6 +370,8 @@ services:
     restart: unless-stopped
     environment:
       OLLAMA_KEEP_ALIVE: 30m
+      # Ollama's default (4 096 tokens) cannot hold a conversation with attached documents.
+      OLLAMA_CONTEXT_LENGTH: ${NEXORA_OLLAMA_CONTEXT_LENGTH:-16384}
     volumes:
       - ollama-data:/root/.ollama
     healthcheck:

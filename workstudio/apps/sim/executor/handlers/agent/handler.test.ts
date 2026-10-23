@@ -1726,7 +1726,7 @@ describe('AgentBlockHandler', () => {
 
       const sent = mockExecuteProviderRequest.mock.calls[0][1].messages.at(-1)
       expect(sent.files).toBeUndefined()
-      expect(sent.content).toMatch(/^Quel est le délai de livraison \?\n\n/)
+      expect(sent.content).toMatch(/\n\nQuel est le délai de livraison \?$/)
       expect(sent.content).toContain('« conditions-livraison.txt »')
       expect(sent.content).toContain('Livraison sous 48 heures ouvrées.')
     })
@@ -1765,6 +1765,39 @@ describe('AgentBlockHandler', () => {
       expect(sent.content).not.toContain('classified')
     })
 
+    it('refuses an unreadable file by its projected name, never the resolved secret', async () => {
+      const registry = new ResolvedSecretTraceRegistry([
+        { name: 'FILE_NAME', plaintext: 'classified.zip', encryptedValue: 'encrypted-name' },
+      ])
+      registry.recordResolvedAtInputPath('FILE_NAME', 'classified.zip', ['files', '0', 'name'])
+      registry.recordResolvedInputProjection(
+        ['files', '0', 'name'],
+        'classified.zip',
+        '{{FILE_NAME}}'
+      )
+      mockContext.resolvedSecretTraceRegistry = registry
+      mockGetProviderFromModel.mockReturnValue('vllm')
+
+      const refusal = handler.execute(mockContext, mockBlock, {
+        model: 'vllm/qwen2.5:7b',
+        userPrompt: 'Ouvre',
+        files: [
+          {
+            id: 'file-1',
+            key: 'workspace/ws-1/classified.zip',
+            name: 'classified.zip',
+            size: 8,
+            type: 'application/zip',
+            base64: 'UEsDBAoAAAA=',
+          },
+        ],
+        apiKey: 'test-api-key',
+      })
+
+      await expect(refusal).rejects.toThrow('« {{FILE_NAME}}.zip »')
+      await expect(refusal).rejects.not.toThrow('classified')
+    })
+
     it('hands a document as text to a provider without attachment support', async () => {
       mockGetProviderFromModel.mockReturnValue('deepseek')
 
@@ -1787,6 +1820,154 @@ describe('AgentBlockHandler', () => {
       const sent = mockExecuteProviderRequest.mock.calls[0][1].messages.at(-1)
       expect(sent.files).toBeUndefined()
       expect(sent.content).toContain('Contenu lisible')
+    })
+
+    it('notes a document over the inline limit instead of failing the turn', async () => {
+      mockGetProviderFromModel.mockReturnValue('vllm')
+      vi.spyOn(userFileBase64, 'hydrateUserFilesWithBase64').mockImplementation(
+        async (value) => value
+      )
+
+      await handler.execute(mockContext, mockBlock, {
+        model: 'vllm/qwen2.5:7b',
+        userPrompt: 'Résume ce catalogue',
+        files: [
+          {
+            id: 'file-1',
+            key: 'workspace/ws-1/catalogue.pdf',
+            name: 'catalogue.pdf',
+            size: 12 * 1024 * 1024,
+            type: 'application/pdf',
+          },
+        ],
+        apiKey: 'test-api-key',
+      })
+
+      const sent = mockExecuteProviderRequest.mock.calls[0][1].messages.at(-1)
+      expect(sent.files).toBeUndefined()
+      expect(sent.content).toContain('« catalogue.pdf »')
+      expect(sent.content).toContain('dépasse la limite de 10 Mo')
+      expect(sent.content).toMatch(/\n\nRésume ce catalogue$/)
+    })
+
+    it.each([
+      {
+        providerId: 'vllm',
+        model: 'vllm/qwen2.5:7b',
+        name: 'archive.zip',
+        type: 'application/zip',
+      },
+      {
+        providerId: 'vllm',
+        model: 'vllm/qwen2.5:7b',
+        name: 'ancien.ppt',
+        type: 'application/vnd.ms-powerpoint',
+      },
+      { providerId: 'deepseek', model: 'deepseek-chat', name: 'photo.png', type: 'image/png' },
+    ])(
+      'replays $name of an earlier turn to $providerId as a note instead of failing',
+      async ({ providerId, model, name, type }) => {
+        mockGetProviderFromModel.mockReturnValue(providerId)
+
+        await handler.execute(mockContext, mockBlock, {
+          model,
+          messages: [
+            {
+              role: 'user',
+              content: 'Ouvre ce fichier',
+              files: [
+                {
+                  id: 'file-1',
+                  key: `workspace/ws-1/${name}`,
+                  name,
+                  url: '',
+                  size: 8,
+                  type,
+                  base64: 'UEsDBAoAAAA=',
+                },
+              ],
+            },
+            { role: 'assistant', content: 'Je ne peux pas le lire.' },
+            { role: 'user', content: 'Et sans le fichier ?' },
+          ],
+          apiKey: 'test-api-key',
+        })
+
+        const sent = mockExecuteProviderRequest.mock.calls[0][1].messages
+        const replayed = sent.find((message: Message) =>
+          message.content?.endsWith('Ouvre ce fichier')
+        )
+        expect(replayed.files).toBeUndefined()
+        expect(replayed.content).toContain(`« ${name} » (message précédent)`)
+        expect(sent.at(-1).content).toBe('Et sans le fichier ?')
+      }
+    )
+
+    it('replays an image of an earlier turn that can no longer be loaded as a note', async () => {
+      mockGetProviderFromModel.mockReturnValue('vllm')
+      vi.spyOn(userFileBase64, 'hydrateUserFilesWithBase64').mockImplementation(
+        async (value) => value
+      )
+
+      await handler.execute(mockContext, mockBlock, {
+        model: 'vllm/qwen2.5:7b',
+        messages: [
+          {
+            role: 'user',
+            content: 'Décris cette photo',
+            files: [
+              {
+                id: 'file-1',
+                key: 'workspace/ws-1/photo.png',
+                name: 'photo.png',
+                url: '',
+                size: 30 * 1024 * 1024,
+                type: 'image/png',
+              },
+            ],
+          },
+          { role: 'assistant', content: 'Une usine.' },
+          { role: 'user', content: 'Et ensuite ?' },
+        ],
+        apiKey: 'test-api-key',
+      })
+
+      const [replayed] = mockExecuteProviderRequest.mock.calls[0][1].messages
+      expect(replayed.files).toBeUndefined()
+      expect(replayed.content).toContain('« photo.png » (message précédent)')
+      expect(replayed.content).toContain('dépasse la limite de 10 Mo')
+    })
+
+    it('spends one text budget on the newest messages first', async () => {
+      mockGetProviderFromModel.mockReturnValue('vllm')
+      const half = 12_000
+      const textFile = (name: string, letter: string) => ({
+        id: `id-${name}`,
+        key: `workspace/ws-1/${name}`,
+        name,
+        url: '',
+        size: half,
+        type: 'text/plain',
+        base64: Buffer.from(letter.repeat(half)).toString('base64'),
+      })
+
+      await handler.execute(mockContext, mockBlock, {
+        model: 'vllm/qwen2.5:7b',
+        messages: [
+          { role: 'user', content: 'Premier', files: [textFile('ancien.txt', 'o')] },
+          { role: 'assistant', content: 'Lu.' },
+          { role: 'user', content: 'Deuxième', files: [textFile('precedent.txt', 'p')] },
+          { role: 'assistant', content: 'Lu.' },
+          { role: 'user', content: 'Troisième', files: [textFile('actuel.txt', 'c')] },
+        ],
+        apiKey: 'test-api-key',
+      })
+
+      const sent = mockExecuteProviderRequest.mock.calls[0][1].messages
+      expect(sent.at(-1).content).toContain('c'.repeat(half))
+      expect(sent[2].content).toContain('p'.repeat(half))
+      expect(sent[0].content).not.toContain('o'.repeat(10))
+      expect(sent[0].content).toContain('contenu non transmis')
     })
 
     it('should reject files for providers without attachment support', async () => {

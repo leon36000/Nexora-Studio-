@@ -172,16 +172,22 @@ function withFileReference(block: AgentBlock): AgentBlock {
   }
 }
 
+/** True when a stored Agent block's sub-blocks hand it the files attached to the chat message. */
+export function readsMessageFiles(subBlocks: unknown): boolean {
+  return toRecord(toRecord(subBlocks).files).value === MESSAGE_FILES
+}
+
 /**
  * A stored Agent block made to read the files attached to the chat message, for agents saved
- * before they did; `null` when it already reads them.
+ * before they did; `null` when it has a `files` field already, whatever its value: an
+ * administrator who changed or cleared it chose so.
  */
 export function withMessageFiles(block: {
   subBlocks: unknown
   data: unknown
 }): { subBlocks: Record<string, unknown>; data: Record<string, unknown> } | null {
   const subBlocks = toRecord(block.subBlocks)
-  if (toRecord(subBlocks.files).value === MESSAGE_FILES) return null
+  if (subBlocks.files !== undefined) return null
   const data = toRecord(block.data)
   return {
     subBlocks: { ...subBlocks, files: { id: 'files', type: 'short-input', value: MESSAGE_FILES } },

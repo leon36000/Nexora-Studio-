@@ -310,7 +310,7 @@ function completeExtractionLimit(message: string): FileParserError {
   return new FileParserError('complexity_limit', `${message} Split or simplify the PDF and retry.`)
 }
 
-function completeBudget(value: number | undefined, ceiling: number): number {
+function extractionBudget(value: number | undefined, ceiling: number): number {
   if (value === undefined) return ceiling
   if (!Number.isSafeInteger(value) || value < 1)
     throw completeExtractionLimit('PDF extraction limits must be positive safe integers.')
@@ -325,14 +325,16 @@ async function extractTextWithinBudget(
   const { signal } = options
   const complete = options.pdfTextMode === 'complete'
   const totalPages = pdf.numPages
-  const maxPages = complete ? completeBudget(options.pdfMaxPages, MAX_PDF_PAGES) : MAX_PDF_PAGES
+  const maxPages = extractionBudget(options.pdfMaxPages, MAX_PDF_PAGES)
   const maxTextBytes = complete
-    ? completeBudget(options.maxTextBytes, MAX_COMPLETE_PDF_TEXT_BYTES)
+    ? extractionBudget(options.maxTextBytes, MAX_COMPLETE_PDF_TEXT_BYTES)
     : MAX_COMPLETE_PDF_TEXT_BYTES
   const pageLimit = Math.min(totalPages, maxPages)
   const pages: PdfPageLines[] = []
 
-  let remainingChars = MAX_PDF_TEXT_CHARS
+  let remainingChars = complete
+    ? MAX_PDF_TEXT_CHARS
+    : extractionBudget(options.previewMaxChars, MAX_PDF_TEXT_CHARS)
   let retainedTextBytes = 0
   let pagesRead = 0
   let truncated = totalPages > pageLimit
@@ -497,6 +499,7 @@ export class PdfParser implements FileParser {
           content: body + notice,
           metadata: {
             pageCount: totalPages,
+            pagesRead,
             source: PDF_PARSER_SOURCE,
             truncated,
             warning: truncated ? PDF_TRUNCATION_WARNING : undefined,

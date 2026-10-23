@@ -4294,7 +4294,6 @@
   "apps/sim/lib/execution/remote-sandbox/workspace-sandboxes.ts#scheduleSandboxBuild",
   "apps/sim/lib/execution/signal.ts#ExecutionSignalHandler",
   "apps/sim/lib/file-parsers/errors.ts#FILE_PARSER_ERROR_CODES",
-  "apps/sim/lib/file-parsers/index.ts#parseFile",
   "apps/sim/lib/file-parsers/json-parser.ts#stripJsonComments",
   "apps/sim/lib/file-parsers/office-text.ts#MAX_OFFICE_TEXT_BYTES=MAX_OFFICE_XML_PART_BYTES",
   "apps/sim/lib/file-parsers/officeparser-module.ts#resolveParseOfficeAsync",

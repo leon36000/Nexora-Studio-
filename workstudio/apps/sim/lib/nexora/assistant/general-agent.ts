@@ -5,10 +5,18 @@ import {
   toPrincipalActor,
 } from '@sim/auth/principal'
 import { db } from '@sim/db'
-import { chat, folder, knowledgeBase, workflow, workflowBlocks } from '@sim/db/schema'
+import {
+  chat,
+  folder,
+  knowledgeBase,
+  workflow,
+  workflowBlocks,
+  workflowDeploymentVersion,
+} from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
+import { toRecord } from '@sim/utils/object'
 import { generateRandomHex } from '@sim/utils/random'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { buildChatDeploymentUrl } from '@/lib/chat-deployments/urls'
@@ -16,7 +24,12 @@ import type { WorkspaceUseCaseAuditEntry } from '@/lib/core/application/authoriz
 import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authorized-workspace-use-case'
 import { acquireLock, releaseLock } from '@/lib/core/config/redis'
 import { createFolder } from '@/lib/folders/orchestration'
-import { AGENTS_FOLDER, buildAgentWorkflow, withMessageFiles } from '@/lib/nexora/agents'
+import {
+  AGENTS_FOLDER,
+  buildAgentWorkflow,
+  readsMessageFiles,
+  withMessageFiles,
+} from '@/lib/nexora/agents'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
 import { importWorkflowIntoWorkspaceTransition } from '@/lib/workflows/operations/import-workflow'
 import { performChatDeploy } from '@/lib/workflows/orchestration'
@@ -51,12 +64,20 @@ export interface GeneralAssistant {
   createdWorkflow: boolean
   /** This call deployed the workflow and published its chat. */
   publishedChat: boolean
+  /** Who may open the chat. */
+  authType: string
 }
 
 interface GeneralAssistantState {
   folderId: string | null
   workflow: { id: string; isDeployed: boolean } | null
-  chat: { id: string; identifier: string; isActive: boolean } | null
+  chat: {
+    id: string
+    identifier: string
+    isActive: boolean
+    title: string
+    authType: string
+  } | null
 }
 
 async function findAgentsFolderId(workspaceId: string): Promise<string | null> {
@@ -96,7 +117,13 @@ async function readGeneralAssistantState(workspaceId: string): Promise<GeneralAs
   if (!existing) return { folderId, workflow: null, chat: null }
 
   const [liveChat] = await db
-    .select({ id: chat.id, identifier: chat.identifier, isActive: chat.isActive })
+    .select({
+      id: chat.id,
+      identifier: chat.identifier,
+      isActive: chat.isActive,
+      title: chat.title,
+      authType: chat.authType,
+    })
     .from(chat)
     .where(and(eq(chat.workflowId, existing.id), isNull(chat.archivedAt)))
     .limit(1)
@@ -111,6 +138,7 @@ function publishedAssistant(state: GeneralAssistantState): GeneralAssistant | nu
     chatIdentifier: state.chat.identifier,
     createdWorkflow: false,
     publishedChat: false,
+    authType: state.chat.authType,
   }
 }
 
@@ -142,10 +170,74 @@ async function findAgentBlock(workflowId: string): Promise<StoredAgentBlock | nu
   return rows.length === 1 ? (rows[0] ?? null) : null
 }
 
-/** An assistant created before agents read the files attached to a message must be upgraded. */
-async function readsMessageFiles(workflowId: string): Promise<boolean> {
-  const block = await findAgentBlock(workflowId)
-  return !block || withMessageFiles(block) === null
+/**
+ * An assistant whose live version predates agents reading the files attached to a message: the
+ * single Agent block of its active deployment has no `files` field. Read from the deployed
+ * version, not the draft, so an upgrade saved to the draft but never deployed is retried.
+ */
+async function liveVersionLacksMessageFiles(workflowId: string): Promise<boolean> {
+  const [active] = await db
+    .select({ state: workflowDeploymentVersion.state })
+    .from(workflowDeploymentVersion)
+    .where(
+      and(
+        eq(workflowDeploymentVersion.workflowId, workflowId),
+        eq(workflowDeploymentVersion.isActive, true)
+      )
+    )
+    .limit(1)
+  if (!active) return false
+  const agents = Object.values(toRecord(toRecord(active.state).blocks)).filter(
+    (block) => toRecord(block).type === 'agent'
+  )
+  return agents.length === 1 && toRecord(toRecord(agents[0]).subBlocks).files === undefined
+}
+
+/**
+ * Makes a published assistant read attached files: its draft Agent block gets the `files`
+ * reference (unless an administrator set that field otherwise) and the workflow is redeployed.
+ * The chat keeps every setting it has (access, title, description, welcome message, outputs):
+ * the redeployment passes only its address and title, which it requires.
+ */
+async function upgradePublishedAssistant(params: {
+  workspaceId: string
+  userId: string
+  actor?: PrincipalActor
+  published: GeneralAssistant
+  chat: { identifier: string; title: string }
+}): Promise<GeneralAssistant> {
+  const { published } = params
+  const agentBlock = await findAgentBlock(published.workflowId)
+  if (!agentBlock) return published
+  const upgrade = withMessageFiles(agentBlock)
+  if (upgrade) {
+    await db
+      .update(workflowBlocks)
+      .set({ subBlocks: upgrade.subBlocks, data: upgrade.data, updatedAt: new Date() })
+      .where(eq(workflowBlocks.id, agentBlock.id))
+  } else if (!readsMessageFiles(agentBlock.subBlocks)) {
+    return published
+  }
+
+  const deployed = await performChatDeploy({
+    workflowId: published.workflowId,
+    userId: params.userId,
+    actorId: params.userId,
+    actor: params.actor,
+    identifier: params.chat.identifier,
+    title: params.chat.title,
+    workspaceId: params.workspaceId,
+    requestId: generateId(),
+    projectLegacyAudit: false,
+  })
+  if (!deployed.success) {
+    throw new Error(deployed.error ?? 'Failed to republish the general assistant')
+  }
+  logger.info('General assistant upgraded to read attached files', {
+    workspaceId: params.workspaceId,
+    workflowId: published.workflowId,
+  })
+  return { ...published, publishedChat: true }
 }
 
 async function ensureAgentsFolder(
@@ -203,9 +295,10 @@ async function createAssistantWorkflow(params: {
 /**
  * Provides the workspace's « Assistant général », idempotently: when its workflow (named
  * {@link GENERAL_ASSISTANT_NAME} in the top-level `Agents` folder) is deployed with an active
- * chat, nothing happens; otherwise the folder and the workflow are created when missing (all
- * the workspace's knowledge bases, conversation memory, the Nexora default model), then it is
- * deployed and its chat published for the workspace's members only.
+ * chat, nothing happens (but for a live version that predates attached files, upgraded by
+ * {@link upgradePublishedAssistant}); otherwise the folder and the workflow are created when
+ * missing (all the workspace's knowledge bases, conversation memory, the Nexora default model),
+ * then it is deployed and its chat published for the workspace's members only.
  *
  * Resolves `null` while another request is creating it. A failure throws, and the next call
  * resumes from what was already created (an unpublished assistant is published, not duplicated).
@@ -217,7 +310,7 @@ async function ensureGeneralAssistant(params: {
 }): Promise<GeneralAssistant | null> {
   const { workspaceId, userId } = params
   const ready = publishedAssistant(await readGeneralAssistantState(workspaceId))
-  if (ready && (await readsMessageFiles(ready.workflowId))) return ready
+  if (ready && !(await liveVersionLacksMessageFiles(ready.workflowId))) return ready
 
   const lockKey = `nexora:general-assistant:${workspaceId}`
   const lockValue = generateId()
@@ -228,11 +321,20 @@ async function ensureGeneralAssistant(params: {
 
   try {
     const state = await readGeneralAssistantState(workspaceId)
+    const published = publishedAssistant(state)
+    if (published && state.chat) {
+      if (!(await liveVersionLacksMessageFiles(published.workflowId))) return published
+      return await upgradePublishedAssistant({
+        workspaceId,
+        userId,
+        actor: params.actor,
+        published,
+        chat: state.chat,
+      })
+    }
+
     const agentBlock = state.workflow ? await findAgentBlock(state.workflow.id) : null
     const upgrade = agentBlock ? withMessageFiles(agentBlock) : null
-    const published = publishedAssistant(state)
-    if (published && !upgrade) return published
-
     if (agentBlock && upgrade) {
       // The redeploy below publishes the upgraded draft.
       await db
@@ -273,6 +375,7 @@ async function ensureGeneralAssistant(params: {
       chatIdentifier: identifier,
       createdWorkflow: !state.workflow,
       publishedChat: true,
+      authType: 'workspace',
     }
   } finally {
     await releaseLock(lockKey, lockValue).catch((error: unknown) =>
@@ -320,7 +423,7 @@ export const ensureGeneralAssistantAgent = defineAuthorizedWorkspaceUseCase({
         metadata: {
           workflowId: result.workflowId,
           identifier: result.chatIdentifier,
-          authType: 'workspace',
+          authType: result.authType,
           chatUrl: buildChatDeploymentUrl(result.chatIdentifier),
         },
       })

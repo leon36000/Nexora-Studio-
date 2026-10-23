@@ -50,8 +50,13 @@ export interface FileParseOptions {
   docxTextMode?: 'complete'
   /** Complete PDF extraction rejects safety limits instead of returning preview text. */
   pdfTextMode?: 'preview' | 'complete'
-  /** Lower page ceiling for complete PDF extraction; defaults to the parser's safe limit. */
+  /**
+   * Lower PDF page ceiling; defaults to the parser's safe limit. Complete extraction rejects a
+   * longer document, preview extraction stops there and reports `truncated` and `pagesRead`.
+   */
   pdfMaxPages?: number
+  /** Lower character ceiling for preview PDF extraction: stops reading once it is spent. */
+  previewMaxChars?: number
 }
 
 export interface FileParser {

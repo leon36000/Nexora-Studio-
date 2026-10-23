@@ -9,7 +9,10 @@
  * - a publishing failure passes silently, or leaves the creation lock held;
  * - the creation is audited without the acting member, or for a no-op;
  * - a workspace the caller has no access to gets an assistant;
- * - an assistant published before agents read attached files keeps ignoring them.
+ * - an assistant published before agents read attached files keeps ignoring them;
+ * - its upgrade is saved but not deployed, and never retried while the live version ignores files;
+ * - the upgrade overwrites the chat settings an administrator chose (access, title, welcome);
+ * - the upgrade puts back a files field an administrator changed or cleared.
  */
 
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
@@ -72,6 +75,37 @@ function queueLookup(rows: { folder?: unknown[]; workflow?: unknown[]; chat?: un
   queueTableRows(schemaMock.folder, rows.folder ?? [])
   queueTableRows(schemaMock.workflow, rows.workflow ?? [])
   queueTableRows(schemaMock.chat, rows.chat ?? [])
+}
+
+/** The active deployed version, whose Agent block has these sub-blocks. */
+function queueActiveVersion(agentSubBlocks: Record<string, unknown>) {
+  queueTableRows(schemaMock.workflowDeploymentVersion, [
+    {
+      state: {
+        blocks: {
+          start: { id: 'start', type: 'start_trigger', subBlocks: {} },
+          'agent-block': { id: 'agent-block', type: 'agent', subBlocks: agentSubBlocks },
+        },
+      },
+    },
+  ])
+}
+
+const LEGACY_SUB_BLOCKS = { model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' } }
+const MESSAGE_FILES_SUB_BLOCK = { id: 'files', type: 'short-input', value: '<start.files>' }
+
+const publishedRows = {
+  folder: [{ id: 'folder-agents' }],
+  workflow: [{ id: 'general-workflow', isDeployed: true }],
+  chat: [
+    {
+      id: 'general-chat',
+      identifier: 'assistant-1a2b3c4d',
+      isActive: true,
+      title: 'Assistant RH',
+      authType: 'email',
+    },
+  ],
 }
 
 beforeEach(() => {
@@ -160,6 +194,7 @@ describe('ensureGeneralAssistantAgent', () => {
       chatIdentifier: deployParams.identifier,
       createdWorkflow: true,
       publishedChat: true,
+      authType: 'workspace',
     })
     expect(releaseLock).toHaveBeenCalledTimes(1)
 
@@ -196,19 +231,15 @@ describe('ensureGeneralAssistantAgent', () => {
     expect(hasMockCondition(knowledgeQuery, isNull(schemaMock.knowledgeBase.deletedAt))).toBe(true)
   })
 
-  it('creates nothing once the assistant is published', async () => {
-    queueLookup({
-      folder: [{ id: 'folder-agents' }],
-      workflow: [{ id: 'general-workflow', isDeployed: true }],
-      chat: [{ id: 'general-chat', identifier: 'assistant-1a2b3c4d', isActive: true }],
+  it.each([
+    ['reads message files', '<start.files>'],
+    ['had its files field cleared by an administrator', ''],
+  ])('creates nothing once the published assistant %s', async (_case, files) => {
+    queueLookup(publishedRows)
+    queueActiveVersion({
+      ...LEGACY_SUB_BLOCKS,
+      files: { ...MESSAGE_FILES_SUB_BLOCK, value: files },
     })
-    queueTableRows(schemaMock.workflowBlocks, [
-      {
-        id: 'agent-block',
-        subBlocks: { files: { id: 'files', type: 'short-input', value: '<start.files>' } },
-        data: { canonicalModes: { files: 'advanced' } },
-      },
-    ])
 
     const result = await ensure()
 
@@ -218,6 +249,7 @@ describe('ensureGeneralAssistantAgent', () => {
       chatIdentifier: 'assistant-1a2b3c4d',
       createdWorkflow: false,
       publishedChat: false,
+      authType: 'email',
     })
     expect(createFolder).not.toHaveBeenCalled()
     expect(mockImportWorkflow).not.toHaveBeenCalled()
@@ -227,40 +259,94 @@ describe('ensureGeneralAssistantAgent', () => {
   })
 
   it('upgrades an assistant published before agents read attached files, then republishes it', async () => {
-    const published = {
-      folder: [{ id: 'folder-agents' }],
-      workflow: [{ id: 'general-workflow', isDeployed: true }],
-      chat: [{ id: 'general-chat', identifier: 'assistant-1a2b3c4d', isActive: true }],
-    }
     const legacyBlock = {
       id: 'agent-block',
-      subBlocks: { model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' } },
+      subBlocks: LEGACY_SUB_BLOCKS,
       data: { canonicalModes: { tools: 'basic' } },
     }
-    queueLookup(published)
-    queueTableRows(schemaMock.workflowBlocks, [legacyBlock])
-    queueLookup(published)
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
     queueTableRows(schemaMock.workflowBlocks, [legacyBlock])
 
     const result = await ensure()
 
     expect(dbChainMockFns.update).toHaveBeenCalledWith(schemaMock.workflowBlocks)
     const [stored] = dbChainMockFns.set.mock.calls.map(([values]) => values)
-    expect(stored.subBlocks).toEqual({
-      model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' },
-      files: { id: 'files', type: 'short-input', value: '<start.files>' },
-    })
+    expect(stored.subBlocks).toEqual({ ...LEGACY_SUB_BLOCKS, files: MESSAGE_FILES_SUB_BLOCK })
     expect(stored.data).toEqual({ canonicalModes: { tools: 'basic', files: 'advanced' } })
-    expect(deployChat).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workflowId: 'general-workflow',
-        identifier: 'assistant-1a2b3c4d',
-        authType: 'workspace',
-        outputConfigs: [{ blockId: 'agent-block', path: 'content' }],
-      })
-    )
+    expect(deployChat).toHaveBeenCalledTimes(1)
+    const [deployParams] = deployChat.mock.calls[0]
+    expect(deployParams).toMatchObject({
+      workflowId: 'general-workflow',
+      identifier: 'assistant-1a2b3c4d',
+      title: 'Assistant RH',
+      workspaceId: WORKSPACE_ID,
+    })
+    for (const chatSetting of [
+      'authType',
+      'description',
+      'customizations',
+      'outputConfigs',
+      'allowedEmails',
+      'password',
+    ]) {
+      expect(deployParams).not.toHaveProperty(chatSetting)
+    }
     expect(result).toMatchObject({ createdWorkflow: false, publishedChat: true })
+    expect(recordAudit.mock.calls.map(([entry]) => entry.metadata?.authType)).toEqual(['email'])
     expect(releaseLock).toHaveBeenCalledTimes(1)
+  })
+
+  it('redeploys an upgrade that was saved but whose deployment failed', async () => {
+    const legacyBlock = { id: 'agent-block', subBlocks: LEGACY_SUB_BLOCKS, data: {} }
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
+    queueTableRows(schemaMock.workflowBlocks, [legacyBlock])
+    deployChat.mockResolvedValueOnce({ success: false, error: 'Deployment failed' })
+
+    await expect(ensure()).rejects.toThrow('Deployment failed')
+    expect(dbChainMockFns.update).toHaveBeenCalledTimes(1)
+
+    const upgradedDraft = {
+      id: 'agent-block',
+      subBlocks: { ...LEGACY_SUB_BLOCKS, files: MESSAGE_FILES_SUB_BLOCK },
+      data: { canonicalModes: { files: 'advanced' } },
+    }
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
+    queueTableRows(schemaMock.workflowBlocks, [upgradedDraft])
+
+    const retried = await ensure()
+
+    expect(deployChat).toHaveBeenCalledTimes(2)
+    expect(dbChainMockFns.update).toHaveBeenCalledTimes(1)
+    expect(retried).toMatchObject({ publishedChat: true })
+  })
+
+  it('leaves an agent whose files field an administrator set otherwise', async () => {
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
+    queueLookup(publishedRows)
+    queueActiveVersion(LEGACY_SUB_BLOCKS)
+    queueTableRows(schemaMock.workflowBlocks, [
+      {
+        id: 'agent-block',
+        subBlocks: { ...LEGACY_SUB_BLOCKS, files: { ...MESSAGE_FILES_SUB_BLOCK, value: '' } },
+        data: {},
+      },
+    ])
+
+    const result = await ensure()
+
+    expect(dbChainMockFns.update).not.toHaveBeenCalled()
+    expect(deployChat).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ workflowId: 'general-workflow', publishedChat: false })
   })
 
   it('publishes an existing unpublished assistant instead of creating a second one', async () => {

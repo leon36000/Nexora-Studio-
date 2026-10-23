@@ -32,6 +32,13 @@ case "$command" in *". /bootstrap/nexora-admin.env"*) ok "WorkStudio reads its m
 mounts="$(python3 -I -c 'import json,sys; v=json.load(sys.stdin)["services"]["workstudio"].get("volumes",[]); print(" ".join(m.get("target","") if isinstance(m,dict) else m for m in v))' <<< "$rendered")"
 case " $mounts " in *" /app/apps/sim/uploads "*) ok "uploaded files are kept in a volume" ;; *) ko "uploaded files are kept in a volume (mounts: $mounts)" ;; esac
 
+# The local model reads attached documents: Ollama's 4 096-token default context cannot hold them.
+ollama_ctx() { python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["ollama"].get("environment",{}).get("OLLAMA_CONTEXT_LENGTH") or "")' <<< "$1"; }
+[ "$(ollama_ctx "$rendered")" = "16384" ] && ok "the local model gets a 16k context by default" || ko "the local model gets a 16k context by default (got: $(ollama_ctx "$rendered"))"
+ctx_env="$(mktemp)"; cp "$env_file" "$ctx_env"; printf "NEXORA_OLLAMA_CONTEXT_LENGTH=32768\n" >> "$ctx_env"
+ctx_rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$ctx_env" config --format json 2>/dev/null)"; rm -f "$ctx_env"
+[ "$(ollama_ctx "$ctx_rendered")" = "32768" ] && ok "the local model context is set in deploy/.env" || ko "the local model context is set in deploy/.env (got: $(ollama_ctx "$ctx_rendered"))"
+
 # « Appliquer » restarts WorkStudio only when something brings it back; SSO is optional by default.
 [ "$(value NEXORA_SUPERVISED)" = "1" ] && ok "WorkStudio knows it is restarted by Docker" || ko "WorkStudio knows it is restarted by Docker"
 [ -z "$(value NEXORA_OIDC_REQUIRED)" ] && ok "single sign-on is not required by default" || ko "single sign-on is not required by default (got: $(value NEXORA_OIDC_REQUIRED))"

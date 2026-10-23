@@ -211,6 +211,39 @@ describe('PdfParser', () => {
     ).rejects.toMatchObject({ name: 'FileParserError', code: 'complexity_limit' })
   }, 30_000)
 
+  it('stops a preview at the caller page ceiling and reports the pages it read', async () => {
+    const doc = await PDFDocument.create()
+    const font = await doc.embedFont(StandardFonts.Helvetica)
+    for (let index = 1; index <= 5; index++) {
+      doc.addPage([595, 842]).drawText(`Page numero ${index}`, { x: 50, y: 400, size: 12, font })
+    }
+
+    const result = await new PdfParser().parseBuffer(Buffer.from(await doc.save()), {
+      pdfMaxPages: 2,
+    })
+
+    expect(result.content).toContain('Page numero 2')
+    expect(result.content).not.toContain('Page numero 3')
+    expect(result.metadata).toMatchObject({ truncated: true, pageCount: 5, pagesRead: 2 })
+  })
+
+  it('stops a preview once the caller character budget is spent', async () => {
+    const doc = await PDFDocument.create()
+    const font = await doc.embedFont(StandardFonts.Helvetica)
+    for (let index = 1; index <= 3; index++) {
+      doc
+        .addPage([595, 842])
+        .drawText(`${'Texte '.repeat(10)}page ${index}`, { x: 20, y: 400, size: 8, font })
+    }
+
+    const result = await new PdfParser().parseBuffer(Buffer.from(await doc.save()), {
+      previewMaxChars: 30,
+    })
+
+    expect(result.content).not.toContain('page 2')
+    expect(result.metadata).toMatchObject({ truncated: true, pageCount: 3, pagesRead: 1 })
+  })
+
   it('rejects malformed PDF input', async () => {
     await expect(new PdfParser().parseBuffer(Buffer.from('%PDF-1.4\nnot a PDF'))).rejects.toThrow(
       /Invalid PDF|PDF structure|document/i

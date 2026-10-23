@@ -49,6 +49,8 @@ Bouton **Ajouter un modèle**, puis trois étapes.
      Le catalogue affiché suit l'usage choisi.
 
      Vous pouvez aussi saisir le nom de tout autre modèle Ollama.
+
+     Un modèle local lit jusqu'à 16 384 jetons à la fois, conversation et documents joints compris (réglage `NEXORA_OLLAMA_CONTEXT_LENGTH` dans `deploy/.env`) : plus de contexte demande plus de mémoire.
    - Pour Mistral AI ou un service compatible : le nom exact du modèle. Mistral AI propose d'office `mistral-small-latest` (Discussion), `mistral-ocr-latest` (Vision / OCR) et `voxtral-mini-latest` (Transcription).
 3. **Confirmation**
    - Un modèle local est téléchargé (barre de progression). Il est limité à la moitié des cœurs du serveur, pour ne pas ralentir le reste.
