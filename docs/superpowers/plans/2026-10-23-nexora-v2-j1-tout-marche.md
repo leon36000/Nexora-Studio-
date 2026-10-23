@@ -99,12 +99,12 @@
 **Interfaces:**
 - Produces: `isNexoraWandAvailable(): boolean` (vrai si `isNexoraOnlyModels` et `VLLM_BASE_URL` défini) ; `nexoraWandComplete(input: { system: string; messages: ChatMessage[]; signal?: AbortSignal }): Promise<{ text: string; usage: { promptTokens: number; completionTokens: number } }>` ; `nexoraWandStream(input): Promise<ReadableStream<Uint8Array>>` qui émet **exactement le même format de flux** que la branche OpenAI actuelle de la route (le lire dans `route.ts` avant d'écrire le test). Appels : `POST ${VLLM_BASE_URL}/chat/completions` (`model: 'nexora-default'`, `stream` selon le cas), clé `VLLM_API_KEY`.
 
-- [ ] **Step 1: Tests** — avec `fetch` simulé : réponse non-streamée → texte et usage ; flux SSE `data: {choices:[{delta:{content}}]}` → mêmes octets que la branche OpenAI pour le même texte ; Nexora API en 503 → la route renvoie 503 avec `wand.errors.modelUnavailable` (français) ; sans `isNexoraWandAvailable` → comportement d'origine inchangé.
-- [ ] **Step 2: Lancer** → échecs.
-- [ ] **Step 3: Implémenter** `lib/nexora/wand.ts` et le branchement dans la route (priorité : Nexora quand disponible, sinon Azure/OpenAI d'origine). Puis `grep -rn "OPENAI_API_KEY\|api.openai.com" workstudio/apps/sim/app workstudio/apps/sim/lib --include=*.ts | grep -v test` : tout autre appel interne de modèle visible par l'utilisateur (titres, résumés, génération) passe aussi par `nexoraWandComplete` sous `NEXORA_ONLY_MODELS` ; consigner au ledger ceux qui restent et pourquoi.
-- [ ] **Step 4: Lancer** → PASS ; `check:audits`, `check:test-types`.
-- [ ] **Step 5: smoke.py** — contrôle « Générer avec l'IA » : `POST /api/wand` (non streamé, prompt « Écris un objet d'e-mail de relance ») → 200 et texte non vide.
-- [ ] **Step 6: Commit** `feat(j1): « Générer avec l'IA » passe par Nexora API`.
+- [x] **Step 1: Tests** — avec `fetch` simulé : réponse non-streamée → texte et usage ; flux SSE `data: {choices:[{delta:{content}}]}` → mêmes octets que la branche OpenAI pour le même texte ; Nexora API en 503 → la route renvoie 503 avec `wand.errors.modelUnavailable` (français) ; sans `isNexoraWandAvailable` → comportement d'origine inchangé.
+- [x] **Step 2: Lancer** → échecs.
+- [x] **Step 3: Implémenter** `lib/nexora/wand.ts` et le branchement dans la route (priorité : Nexora quand disponible, sinon Azure/OpenAI d'origine). Puis `grep -rn "OPENAI_API_KEY\|api.openai.com" workstudio/apps/sim/app workstudio/apps/sim/lib --include=*.ts | grep -v test` : tout autre appel interne de modèle visible par l'utilisateur (titres, résumés, génération) passe aussi par `nexoraWandComplete` sous `NEXORA_ONLY_MODELS` ; consigner au ledger ceux qui restent et pourquoi.
+- [x] **Step 4: Lancer** → PASS ; `check:audits`, `check:test-types`.
+- [x] **Step 5: smoke.py** — contrôle « Générer avec l'IA » : `POST /api/wand` (non streamé, prompt « Écris un objet d'e-mail de relance ») → 200 et texte non vide.
+- [x] **Step 6: Commit** `feat(j1): « Générer avec l'IA » passe par Nexora API`.
 
 ### Task 5: Bloc Function sans bac à sable distant
 
@@ -130,10 +130,10 @@
 **Interfaces:**
 - Produces: `env.SEARXNG_URL` (optionnel, schéma dans `lib/core/config/env.ts`) ; bloc visible seulement si défini.
 
-- [ ] **Step 1: Tests** — l'outil transforme une réponse SearXNG (`results[].title,url,content`) en sortie `{ results: [{ title, url, snippet }] }` ; le bloc est masqué sans `SEARXNG_URL` ; le bloc Search est masqué sans clé Exa ; `test-install.sh` : par défaut pas de profil `search`, avec `NEXORA_WEB_SEARCH=1` le profil est actif.
-- [ ] **Step 2: Lancer** → échecs. **Step 3: Implémenter.** **Step 4: Lancer** → PASS ; audits.
+- [x] **Step 1: Tests** — l'outil transforme une réponse SearXNG (`results[].title,url,content`) en sortie `{ results: [{ title, url, snippet }] }` ; le bloc est masqué sans `SEARXNG_URL` ; le bloc Search est masqué sans clé Exa ; `test-install.sh` : par défaut pas de profil `search`, avec `NEXORA_WEB_SEARCH=1` le profil est actif.
+- [x] **Step 2: Lancer** → échecs. **Step 3: Implémenter.** **Step 4: Lancer** → PASS ; audits.
 - [ ] **Step 5: Vérifier sur pc6** avec le profil `search` activé : un workflow « Recherche web » renvoie des résultats.
-- [ ] **Step 6: Commit** `feat(j1): recherche web SearXNG optionnelle, bloc Search masqué sans clé`.
+- [x] **Step 6: Commit** `feat(j1): recherche web SearXNG optionnelle, bloc Search masqué sans clé`.
 
 ### Task 7: E-mail par SMTP
 
