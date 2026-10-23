@@ -199,6 +199,16 @@ describe('Nexora models routes', () => {
     expect(missing.status).toBe(404)
   })
 
+  it('names a local model the way Ollama lists it: lowercase, with a tag', async () => {
+    admin.pull.mockResolvedValue(new ReadableStream({ start: (c) => c.close() }))
+    admin.add.mockResolvedValue({ ...qwen, id: 9, name: 'llama3.2:latest', isDefault: false })
+    await PULL(post('/api/nexora/models/ollama/pull', { model: 'Llama3.2' }), {})
+    await POST(post('/api/nexora/models', { source: 'ollama', model: 'Mistral' }), {})
+    await POST(post('/api/nexora/models', { source: 'ollama', model: 'qwen2.5:7B' }), {})
+    expect(admin.pull.mock.calls[0][0]).toBe('llama3.2:latest')
+    expect(admin.add.mock.calls.map((c) => c[0].model)).toEqual(['mistral:latest', 'qwen2.5:7b'])
+  })
+
   it('streams the download progress of a local model', async () => {
     admin.pull.mockResolvedValue(
       new ReadableStream({

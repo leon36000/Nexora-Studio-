@@ -151,8 +151,11 @@ export async function pullLocalModel(
 export async function deleteLocalModel(name: string, options: OllamaOptions = {}): Promise<void> {
   assertModelName(name)
   const embeddingModel = env.KB_EMBEDDING_MODEL?.replace(/^ollama\//, '')
-  const base = name.replace(/:latest$/, '')
-  if (PROTECTED_MODELS.has(base) || base === embeddingModel?.replace(/:latest$/, '')) {
+  const base = name.toLowerCase().replace(/:latest$/, '')
+  if (
+    PROTECTED_MODELS.has(base) ||
+    base === embeddingModel?.toLowerCase().replace(/:latest$/, '')
+  ) {
     throw new Error(`${name} is used by the knowledge bases and is kept`)
   }
   const response = await request(options, '/api/delete', {

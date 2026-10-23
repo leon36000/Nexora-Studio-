@@ -1,6 +1,15 @@
-/** An Ollama model reference: `name`, `namespace/name`, each with an optional `:tag`. */
+/** An Ollama model reference: `name`, `namespace/name`, each with an optional `:tag` (lowercase). */
 export const OLLAMA_MODEL_NAME =
-  /^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)?(:[a-z0-9][a-z0-9._-]*)?$/i
+  /^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)?(:[a-z0-9][a-z0-9._-]*)?$/
+
+/**
+ * A model name as Ollama lists it (`llama3.2` → `llama3.2:latest`, `Qwen2.5:7B` → `qwen2.5:7b`):
+ * Nexora API checks a local model by that exact name.
+ */
+export function canonicalOllamaName(name: string): string {
+  const lower = name.trim().toLowerCase()
+  return lower.includes(':') ? lower : `${lower}:latest`
+}
 
 /** The Nexora API alias that names the deployment's default chat model. */
 export const DEFAULT_MODEL_ALIAS = 'nexora-default'

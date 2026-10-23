@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { defineRouteContract } from '@/lib/api/contracts/types'
-import { OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
+import { canonicalOllamaName, OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
 
 const modelSourceSchema = z.enum(['ollama', 'mistral', 'openai-compatible'])
 
@@ -16,7 +16,9 @@ const nexoraModelSchema = z.object({
 const ollamaModelNameSchema = z
   .string()
   .trim()
+  .toLowerCase()
   .regex(OLLAMA_MODEL_NAME, 'Use an Ollama model name such as qwen2.5:7b')
+  .transform(canonicalOllamaName)
 const remoteModelNameSchema = z
   .string()
   .trim()

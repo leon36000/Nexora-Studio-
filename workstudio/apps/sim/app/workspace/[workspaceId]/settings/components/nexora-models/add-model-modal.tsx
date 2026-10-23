@@ -16,7 +16,7 @@ import {
 } from '@sim/emcn'
 import { useFormatter, useTranslations } from 'next-intl'
 import type { NexoraModelSource } from '@/lib/nexora/model-admin'
-import { OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
+import { canonicalOllamaName, OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
 import {
   getNexoraModelErrorCode,
   type NexoraModel,
@@ -111,9 +111,10 @@ export function AddModelModal({
   const isAdding = addModel.isPending
   const isBusy = isDownloading || isAdding
 
-  const ollamaName = ollamaModel.trim()
+  // Shown and sent as Ollama lists it (lowercase, with a tag), the name Nexora API checks.
+  const ollamaName = canonicalOllamaName(ollamaModel)
   const catalogEntry = catalog.find((entry) => entry.name === ollamaName)
-  const ollamaNameValid = OLLAMA_MODEL_NAME.test(ollamaName)
+  const ollamaNameValid = OLLAMA_MODEL_NAME.test(ollamaModel.trim().toLowerCase())
   const needsDownload =
     source === 'ollama' && !(catalogEntry?.installed || isDownloaded(ollamaName, localModels))
 
@@ -345,7 +346,7 @@ export function AddModelModal({
               placeholder={t('ollama.namePlaceholder')}
               autoComplete='off'
               mono
-              error={ollamaName && !ollamaNameValid ? t('ollama.invalidName') : undefined}
+              error={ollamaModel.trim() && !ollamaNameValid ? t('ollama.invalidName') : undefined}
             />
           </>
         )}
