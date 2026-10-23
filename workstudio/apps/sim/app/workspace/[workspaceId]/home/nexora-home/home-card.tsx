@@ -3,7 +3,7 @@ import { OverflowText } from '@sim/emcn'
 import Link from 'next/link'
 
 const CARD_CLASS =
-  'flex min-h-[52px] w-full items-center gap-3 rounded-lg border border-[var(--border)] px-4 py-3 text-left transition-colors hover-hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--surface-hover)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60'
+  'flex min-h-[52px] w-full items-center gap-3 rounded-lg border border-[var(--border)] px-4 py-3 text-left transition-colors hover-hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--selection)] focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
 
 /** Responsive grid the home page lays its cards out in. */
 export const HOME_CARD_GRID = 'grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3'

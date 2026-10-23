@@ -23,12 +23,15 @@
       "usageValue": "{requests, plural, one {# requête} other {# requêtes}} · {tokens, plural, one {# jeton} other {# jetons}}",
       "recentRuns": "Dernières exécutions",
       "noRuns": "Aucune exécution pour l’instant",
+      "runsUnavailable": "Les dernières exécutions n’ont pas pu être chargées.",
       "deletedWorkflow": "Workflow supprimé",
       "runStatus": {
         "success": "Réussie",
         "error": "Échec",
         "running": "En cours",
-        "cancelled": "Annulée"
+        "cancelled": "Annulée",
+        "paused": "En pause",
+        "unknown": "Inconnu"
       }
     },
     "onboarding": {
@@ -38,6 +41,8 @@
       "close": "Fermer",
       "resume": "Reprendre le premier lancement",
       "markDone": "Marquer comme fait",
+      "markDoneStep": "Marquer « {step} » comme fait",
+      "stepDone": "fait",
       "saveFailed": "La progression n’a pas pu être enregistrée.",
       "steps": {
         "organization": {
@@ -50,13 +55,18 @@
         "model": {
           "title": "Votre modèle",
           "current": "Modèle par défaut : {name}",
-          "manage": "Gérer les modèles"
+          "manage": "Gérer les modèles",
+          "unavailable": "indisponible",
+          "test": "Tester",
+          "testing": "Test en cours…",
+          "testQuestion": "Bonjour ! Présentez-vous en une phrase courte.",
+          "testReply": "Réponse en {seconds} s : {reply}"
         },
         "team": {
           "title": "Votre équipe",
           "invite": "Inviter des collègues",
-          "linkHint": "Sans service d’e-mail, copiez le lien d’invitation depuis Réglages › Collaborateurs.",
-          "teammates": "Ouvrir Collaborateurs"
+          "teammates": "Ouvrir Collaborateurs",
+          "noEmailHint": "Aucun service d’e-mail : copiez le lien d’invitation et envoyez-le à vos collègues."
         },
         "tools": {
           "title": "Vos outils",
@@ -67,8 +77,13 @@
           "run": "Générer un devis d’exemple",
           "running": "Génération en cours…",
           "missing": "Le modèle « {template} » est introuvable dans le dossier « {folder} ».",
-          "failed": "Le devis n’a pas pu être généré : {error}",
-          "empty": "Le workflow n’a renvoyé aucun texte."
+          "empty": "Le workflow n’a renvoyé aucun texte.",
+          "noDefaultModel": "Aucun modèle par défaut n’est disponible : choisissez-en un dans Réglages › Modèles.",
+          "errors": {
+            "timeout": "Le modèle met trop de temps à répondre. Réessayez dans un instant ou choisissez un modèle plus rapide dans Réglages › Modèles.",
+            "forbidden": "Vous n’avez pas les droits nécessaires pour exécuter ce modèle de workflow.",
+            "generic": "Le devis n’a pas pu être généré. Réessayez dans un instant."
+          }
         }
       }
     }

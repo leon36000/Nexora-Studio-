@@ -11,8 +11,8 @@ const NO_TEMPLATES: WorkflowMetadata[] = []
  * folder was renamed, removed, or never created (`NEXORA_TEMPLATES_DISABLED`).
  */
 export function useTemplateWorkflows(workspaceId: string) {
-  const { data: folders } = useFolders(workspaceId)
-  const { data: workflows, isLoading } = useWorkflows(workspaceId)
+  const { data: folders, isLoading: foldersLoading } = useFolders(workspaceId)
+  const { data: workflows, isLoading: workflowsLoading } = useWorkflows(workspaceId)
 
   const templates = useMemo(() => {
     const folder = folders?.find(
@@ -24,5 +24,5 @@ export function useTemplateWorkflows(workspaceId: string) {
       .sort((a, b) => a.sortOrder - b.sortOrder)
   }, [folders, workflows])
 
-  return { templates, isLoading }
+  return { templates, isLoading: foldersLoading || workflowsLoading }
 }

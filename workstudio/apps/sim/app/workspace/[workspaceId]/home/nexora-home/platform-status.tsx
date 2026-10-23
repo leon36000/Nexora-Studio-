@@ -4,7 +4,11 @@ import type { ReactNode } from 'react'
 import { Badge, OverflowText, Skeleton } from '@sim/emcn'
 import Link from 'next/link'
 import { useFormatter, useNow, useTranslations } from 'next-intl'
-import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
+import { HomeSection } from '@/app/workspace/[workspaceId]/home/nexora-home/home-section'
+import {
+  type RunStatus,
+  toRunStatus,
+} from '@/app/workspace/[workspaceId]/home/nexora-home/run-status'
 import { type LogFilters, useLogsList } from '@/hooks/queries/logs'
 import { useNexoraUsage } from '@/hooks/queries/nexora-usage'
 
@@ -23,30 +27,14 @@ const RECENT_RUN_FILTERS: LogFilters = {
   sortOrder: 'desc',
 }
 
-type RunStatus = 'success' | 'error' | 'running' | 'cancelled'
-
 const RUN_STATUS_VARIANT = {
   success: 'green',
   error: 'red',
   running: 'amber',
+  paused: 'blue',
   cancelled: 'gray',
+  unknown: 'gray',
 } as const satisfies Record<RunStatus, string>
-
-function toRunStatus(status: string | null): RunStatus {
-  switch (status) {
-    case 'failed':
-      return 'error'
-    case 'cancelled':
-      return 'cancelled'
-    case 'running':
-    case 'pending':
-    case 'redacting':
-    case 'cancelling':
-      return 'running'
-    default:
-      return 'success'
-  }
-}
 
 interface StatusRowProps {
   label: string
@@ -75,6 +63,8 @@ interface PlatformStatusProps {
   workspaceId: string
   /** `undefined` while the home status loads; `null` when Nexora API does not answer. */
   defaultModel: string | null | undefined
+  /** The home status could not be loaded: show the default model as unavailable. */
+  isHomeError: boolean
   isInstanceAdmin: boolean
 }
 
@@ -82,20 +72,26 @@ interface PlatformStatusProps {
 export function PlatformStatus({
   workspaceId,
   defaultModel,
+  isHomeError,
   isInstanceAdmin,
 }: PlatformStatusProps) {
   const t = useTranslations('home.nexoraHome.status')
   const format = useFormatter()
   const now = useNow({ updateInterval: RELATIVE_TIME_REFRESH_MS })
-  const { data: runPages, isLoading: runsLoading } = useLogsList(workspaceId, RECENT_RUN_FILTERS)
+  const {
+    data: runPages,
+    isPending: runsPending,
+    isPlaceholderData: runsFromOtherWorkspace,
+    isError: runsError,
+  } = useLogsList(workspaceId, RECENT_RUN_FILTERS)
   const runs = runPages?.pages[0]?.logs ?? []
 
   return (
-    <SettingsSection label={t('label')}>
+    <HomeSection title={t('label')}>
       <div className='flex flex-col gap-5'>
         <dl className='flex flex-col gap-2'>
           <StatusRow label={t('defaultModel')}>
-            {defaultModel === undefined ? (
+            {defaultModel === undefined && !isHomeError ? (
               <Skeleton className='h-[14px] w-[120px]' />
             ) : (
               (defaultModel ?? t('unavailable'))
@@ -108,8 +104,12 @@ export function PlatformStatus({
           )}
         </dl>
         <div className='flex flex-col gap-2'>
-          <span className='px-0.5 text-[var(--text-muted)] text-small'>{t('recentRuns')}</span>
-          {runsLoading ? (
+          <h3 className='px-0.5 font-normal text-[var(--text-muted)] text-small'>
+            {t('recentRuns')}
+          </h3>
+          {runsError && !runPages ? (
+            <p className='px-0.5 text-[var(--text-muted)] text-small'>{t('runsUnavailable')}</p>
+          ) : runsPending || runsFromOtherWorkspace ? (
             <Skeleton className='h-[120px] w-full rounded-lg' />
           ) : runs.length === 0 ? (
             <p className='px-0.5 text-[var(--text-muted)] text-small'>{t('noRuns')}</p>
@@ -125,7 +125,7 @@ export function PlatformStatus({
                           ? `/workspace/${workspaceId}/logs?executionId=${run.executionId}`
                           : `/workspace/${workspaceId}/logs`
                       }
-                      className='flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover-hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--surface-hover)] focus-visible:outline-none'
+                      className='flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors hover-hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--selection)] focus-visible:outline-offset-2'
                     >
                       <Badge variant={RUN_STATUS_VARIANT[status]} size='sm' dot>
                         {t(`runStatus.${status}`)}
@@ -146,6 +146,6 @@ export function PlatformStatus({
           )}
         </div>
       </div>
-    </SettingsSection>
+    </HomeSection>
   )
 }

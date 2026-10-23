@@ -3,8 +3,8 @@
 import { Connections, FileText, Users } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { HOME_CARD_GRID, HomeCard } from '@/app/workspace/[workspaceId]/home/nexora-home/home-card'
+import { HomeSection } from '@/app/workspace/[workspaceId]/home/nexora-home/home-section'
 import { useTemplateWorkflows } from '@/app/workspace/[workspaceId]/home/nexora-home/use-template-workflows'
-import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 
 interface QuickStartsProps {
   workspaceId: string
@@ -19,7 +19,7 @@ export function QuickStarts({ workspaceId }: QuickStartsProps) {
   const { templates } = useTemplateWorkflows(workspaceId)
 
   return (
-    <SettingsSection label={t('label')}>
+    <HomeSection title={t('label')}>
       <div className={HOME_CARD_GRID}>
         {templates.map((template) => (
           <HomeCard
@@ -40,6 +40,6 @@ export function QuickStarts({ workspaceId }: QuickStartsProps) {
           href={`/workspace/${workspaceId}/connecteurs`}
         />
       </div>
-    </SettingsSection>
+    </HomeSection>
   )
 }

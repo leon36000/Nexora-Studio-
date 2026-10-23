@@ -93,6 +93,8 @@ interface InviteModalProps {
   canInvite?: boolean
   /** Target-organization authority when this modal is rendered outside a workspace. */
   isOrganizationAdmin?: boolean
+  /** Called when at least one person was added or invited. */
+  onInvited?: () => void
 }
 
 /**
@@ -109,6 +111,7 @@ export function InviteModal({
   inviteDisabledReason = null,
   canInvite = true,
   isOrganizationAdmin,
+  onInvited,
 }: InviteModalProps) {
   const t = useTranslations('shell.inviteModal')
   const [emails, setEmails] = useState<string[]>([])
@@ -254,6 +257,7 @@ export function InviteModal({
           }
           if (parts.length > 0) {
             toast.success(parts.join(' · '))
+            onInvited?.()
           }
 
           if (result.failed.length > 0) {

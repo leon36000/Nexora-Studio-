@@ -8,6 +8,7 @@ import { useSession } from '@/lib/auth/client'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { CreateCards } from '@/app/workspace/[workspaceId]/home/nexora-home/create-cards'
 import { OnboardingPanel } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-panel'
+import { shouldOfferResume } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-state'
 import { PlatformStatus } from '@/app/workspace/[workspaceId]/home/nexora-home/platform-status'
 import { QuickStarts } from '@/app/workspace/[workspaceId]/home/nexora-home/quick-starts'
 import { useNexoraHome, useUpdateNexoraOnboarding } from '@/hooks/queries/nexora-home'
@@ -20,7 +21,7 @@ interface NexoraHomeProps {
 export function NexoraHome({ workspaceId }: NexoraHomeProps) {
   const t = useTranslations('home.nexoraHome')
   const { data: session } = useSession()
-  const { data: home } = useNexoraHome()
+  const { data: home, isError: isHomeError } = useNexoraHome()
   const updateOnboarding = useUpdateNexoraOnboarding()
   const [isFirstResultShown, setIsFirstResultShown] = useState(false)
 
@@ -46,7 +47,7 @@ export function NexoraHome({ workspaceId }: NexoraHomeProps) {
             <p className='text-[var(--text-muted)] text-small'>{t('subtitle')}</p>
           </div>
           <div className='flex shrink-0 items-center gap-1'>
-            {onboarding?.dismissed && !isFirstResultShown && (
+            {shouldOfferResume(onboarding) && !isFirstResultShown && (
               <Chip disabled={updateOnboarding.isPending} onClick={handleResume}>
                 {t('onboarding.resume')}
               </Chip>
@@ -67,6 +68,8 @@ export function NexoraHome({ workspaceId }: NexoraHomeProps) {
             completed={onboarding.completed}
             dismissed={onboarding.dismissed}
             defaultModel={home?.defaultModel ?? null}
+            organizationId={home?.organizationId ?? null}
+            emailConfigured={home?.emailConfigured ?? false}
             onFirstRunCompleted={() => setIsFirstResultShown(true)}
             onClose={() => setIsFirstResultShown(false)}
           />
@@ -76,6 +79,7 @@ export function NexoraHome({ workspaceId }: NexoraHomeProps) {
         <PlatformStatus
           workspaceId={workspaceId}
           defaultModel={home ? home.defaultModel : undefined}
+          isHomeError={isHomeError}
           isInstanceAdmin={home?.isInstanceAdmin ?? false}
         />
       </div>

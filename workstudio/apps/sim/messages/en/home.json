@@ -23,12 +23,15 @@
       "usageValue": "{requests, plural, one {# request} other {# requests}} · {tokens, plural, one {# token} other {# tokens}}",
       "recentRuns": "Recent runs",
       "noRuns": "No runs yet",
+      "runsUnavailable": "Recent runs could not be loaded.",
       "deletedWorkflow": "Deleted workflow",
       "runStatus": {
         "success": "Succeeded",
         "error": "Failed",
         "running": "Running",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "paused": "Paused",
+        "unknown": "Unknown"
       }
     },
     "onboarding": {
@@ -38,6 +41,8 @@
       "close": "Close",
       "resume": "Resume the first launch",
       "markDone": "Mark as done",
+      "markDoneStep": "Mark “{step}” as done",
+      "stepDone": "done",
       "saveFailed": "Progress could not be saved.",
       "steps": {
         "organization": {
@@ -50,13 +55,18 @@
         "model": {
           "title": "Your model",
           "current": "Default model: {name}",
-          "manage": "Manage models"
+          "manage": "Manage models",
+          "unavailable": "unavailable",
+          "test": "Test",
+          "testing": "Testing…",
+          "testQuestion": "Hello! Introduce yourself in one short sentence.",
+          "testReply": "Answer in {seconds} s: {reply}"
         },
         "team": {
           "title": "Your team",
           "invite": "Invite teammates",
-          "linkHint": "Without an e-mail service, copy the invitation link from Settings › Teammates.",
-          "teammates": "Open Teammates"
+          "teammates": "Open Teammates",
+          "noEmailHint": "No e-mail service: copy the invitation link and send it to your teammates."
         },
         "tools": {
           "title": "Your tools",
@@ -67,8 +77,13 @@
           "run": "Generate a sample quote",
           "running": "Generating…",
           "missing": "The “{template}” template is missing from the “{folder}” folder.",
-          "failed": "The quote could not be generated: {error}",
-          "empty": "The workflow returned no text."
+          "empty": "The workflow returned no text.",
+          "noDefaultModel": "No default model is available: choose one in Settings › Models.",
+          "errors": {
+            "timeout": "The model is taking too long to answer. Try again in a moment or pick a faster model in Settings › Models.",
+            "forbidden": "You do not have the rights needed to run this workflow template.",
+            "generic": "The quote could not be generated. Try again in a moment."
+          }
         }
       }
     }

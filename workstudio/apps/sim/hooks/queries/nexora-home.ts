@@ -8,7 +8,12 @@ import {
   updateNexoraOnboardingContract,
 } from '@/lib/api/contracts/nexora-home'
 import { executeWorkflowSyncContract } from '@/lib/api/contracts/workflows'
+import { DEFAULT_MODEL_ALIAS } from '@/lib/nexora/model-ids'
 import type { OnboardingStep } from '@/lib/nexora/onboarding-steps'
+import {
+  type PlaygroundErrorCode,
+  streamPlaygroundAnswer,
+} from '@/app/workspace/[workspaceId]/playground/stream-answer'
 import { logKeys } from '@/hooks/queries/logs'
 
 const NEXORA_HOME_STALE_TIME = 60 * 1000
@@ -64,6 +69,55 @@ export function useRunWorkflowOnce() {
       }),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: logKeys.lists() })
+    },
+  })
+}
+
+const DEFAULT_MODEL = `vllm/${DEFAULT_MODEL_ALIAS}`
+const MODEL_TEST_TEMPERATURE = 0.2
+const MODEL_TEST_MAX_TOKENS = 64
+
+/** The default model did not answer the test question; `code` says why. */
+export class DefaultModelTestError extends Error {
+  readonly code: PlaygroundErrorCode
+
+  constructor(code: PlaygroundErrorCode) {
+    super(`The default model test failed (${code})`)
+    this.name = 'DefaultModelTestError'
+    this.code = code
+  }
+}
+
+interface TestDefaultModelVariables {
+  workspaceId: string
+  question: string
+}
+
+/**
+ * Asks the default model one short question through the Playground route (any workspace member
+ * may call it), and resolves with the whole reply and how long it took.
+ */
+export function useTestDefaultModel() {
+  return useMutation({
+    mutationFn: async ({ workspaceId, question }: TestDefaultModelVariables) => {
+      const startedAt = performance.now()
+      let reply = ''
+      const outcome = await streamPlaygroundAnswer({
+        body: {
+          workspaceId,
+          model: DEFAULT_MODEL,
+          messages: [{ role: 'user', content: question }],
+          temperature: MODEL_TEST_TEMPERATURE,
+          maxTokens: MODEL_TEST_MAX_TOKENS,
+        },
+        signal: new AbortController().signal,
+        onChunk: (chunk) => {
+          reply += chunk
+        },
+      })
+      if (outcome.status === 'error') throw new DefaultModelTestError(outcome.code)
+      if (outcome.status !== 'done' || !reply.trim()) throw new DefaultModelTestError('interrupted')
+      return { reply: reply.trim(), latencyMs: performance.now() - startedAt }
     },
   })
 }

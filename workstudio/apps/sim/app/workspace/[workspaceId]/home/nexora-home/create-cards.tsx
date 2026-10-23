@@ -4,8 +4,8 @@ import { Sparkles, Workflow } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { useNewAgent } from '@/app/workspace/[workspaceId]/agents/use-new-agent'
 import { HOME_CARD_GRID, HomeCard } from '@/app/workspace/[workspaceId]/home/nexora-home/home-card'
+import { HomeSection } from '@/app/workspace/[workspaceId]/home/nexora-home/home-section'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import { useWorkflowOperations } from '@/app/workspace/[workspaceId]/w/components/sidebar/hooks/use-workflow-operations'
 
 interface CreateCardsProps {
@@ -25,7 +25,7 @@ export function CreateCards({ workspaceId }: CreateCardsProps) {
   if (permissionsLoading || !canEdit) return null
 
   return (
-    <SettingsSection label={t('label')}>
+    <HomeSection title={t('label')}>
       <div className={HOME_CARD_GRID}>
         <HomeCard
           icon={Workflow}
@@ -40,6 +40,6 @@ export function CreateCards({ workspaceId }: CreateCardsProps) {
           onClick={() => void createAgent()}
         />
       </div>
-    </SettingsSection>
+    </HomeSection>
   )
 }

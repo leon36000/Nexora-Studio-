@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { ONBOARDING_STEPS, type OnboardingStep } from '@/lib/nexora/onboarding-steps'
 import {
   FirstRunStepAction,
+  ModelStepAction,
   OrganizationStepAction,
   TeamStepAction,
 } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-step-actions'
@@ -18,6 +19,10 @@ interface OnboardingPanelProps {
   /** The panel was hidden; it stays on screen only to show the first result just produced. */
   dismissed: boolean
   defaultModel: string | null
+  /** The organization whose first launch this is. */
+  organizationId: string | null
+  /** Invitations can be e-mailed; otherwise the invitation link is copied from Teammates. */
+  emailConfigured: boolean
   /** The first result was produced: keep the panel up so its text stays readable. */
   onFirstRunCompleted: () => void
   /** Closes the panel once the first launch is over. */
@@ -38,6 +43,7 @@ function StepRow({ title, done, onMarkDone, markDoneDisabled, children }: StepRo
   return (
     <li className='flex gap-3 py-3'>
       <Icon
+        aria-hidden
         className={cn(
           'mt-px size-[16px] shrink-0',
           done ? 'text-[var(--brand-blue)]' : 'text-[var(--text-icon)]'
@@ -45,9 +51,16 @@ function StepRow({ title, done, onMarkDone, markDoneDisabled, children }: StepRo
       />
       <div className='flex min-w-0 flex-1 flex-col gap-2'>
         <div className='flex items-center justify-between gap-3'>
-          <span className='text-[var(--text-body)] text-sm'>{title}</span>
+          <span className='text-[var(--text-body)] text-sm'>
+            {title}
+            {done && <span className='sr-only'>{` (${t('stepDone')})`}</span>}
+          </span>
           {!done && onMarkDone && (
-            <Chip disabled={markDoneDisabled} onClick={onMarkDone}>
+            <Chip
+              aria-label={t('markDoneStep', { step: title })}
+              disabled={markDoneDisabled}
+              onClick={onMarkDone}
+            >
               {t('markDone')}
             </Chip>
           )}
@@ -67,6 +80,8 @@ export function OnboardingPanel({
   completed,
   dismissed,
   defaultModel,
+  organizationId,
+  emailConfigured,
   onFirstRunCompleted,
   onClose,
 }: OnboardingPanelProps) {
@@ -84,18 +99,20 @@ export function OnboardingPanel({
   }
 
   const stepAction: Record<OnboardingStep, ReactNode> = {
-    organization: <OrganizationStepAction onDone={() => complete('organization')} />,
-    model: (
-      <div className='flex flex-wrap items-center gap-2'>
-        <span className='text-[var(--text-muted)] text-small'>
-          {t('steps.model.current', { name: defaultModel ?? '—' })}
-        </span>
-        <ChipLink variant='border' href={`/workspace/${workspaceId}/settings/models`}>
-          {t('steps.model.manage')}
-        </ChipLink>
-      </div>
+    organization: (
+      <OrganizationStepAction
+        organizationId={organizationId}
+        onDone={() => complete('organization')}
+      />
     ),
-    team: <TeamStepAction workspaceId={workspaceId} />,
+    model: <ModelStepAction workspaceId={workspaceId} defaultModel={defaultModel} />,
+    team: (
+      <TeamStepAction
+        workspaceId={workspaceId}
+        emailConfigured={emailConfigured}
+        onDone={() => complete('team')}
+      />
+    ),
     tools: (
       <div>
         <ChipLink variant='border' href={`/workspace/${workspaceId}/connecteurs`}>
@@ -104,7 +121,11 @@ export function OnboardingPanel({
       </div>
     ),
     'first-run': (
-      <FirstRunStepAction workspaceId={workspaceId} onDone={() => complete('first-run')} />
+      <FirstRunStepAction
+        workspaceId={workspaceId}
+        hasDefaultModel={defaultModel !== null}
+        onDone={() => complete('first-run')}
+      />
     ),
   }
 
