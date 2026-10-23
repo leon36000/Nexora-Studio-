@@ -37,11 +37,13 @@
 - [x] **Step 2:** `check:migrations`, `drizzle-kit generate` (aucune nouvelle migration), `check:audits` — PASS.
 - [x] **Step 3: Commit** `feat(j6): tables des conversations de l'Assistant`.
 
+> **Ruling (23/10, architecte)** : l'envoi d'un message passe par le **chat déployé** de l'agent (`/api/chat/[identifier]`, déjà en flux, avec `conversationId`, fichiers joints, limites et journaux) appelé par la page ; WorkStudio stocke la conversation (question et réponse enregistrées par la page à la fin du flux, réponse partielle marquée interrompue). Les agents proposés sont ceux du dossier « Agents » qui ont un chat déployé. Raison : ne pas dupliquer le moteur d'exécution ; coût si faux : un agent publié sans chat n'apparaît pas (le formulaire J4 crée toujours le chat).
+
 ### Task 2: Opérations applicatives et routes
 
 **Files:** `workstudio/apps/sim/lib/nexora/assistant/{operations.ts,conversations.ts,run.ts}` (+ tests), contrat `lib/api/contracts/nexora-assistant.ts`, routes `app/api/nexora/assistant/conversations/route.ts` (GET, POST), `[id]/route.ts` (PATCH, DELETE), `[id]/messages/route.ts` (GET, POST flux).
 
-- [ ] **Step 1: Failing tests** : auteur seulement (autre membre ⇒ 404) ; espace sans accès ⇒ 403 ; envoi ⇒ question enregistrée, exécution de la version déployée avec `{ input, conversationId, files }`, réponse enregistrée avec l'usage ; agent non déployé ⇒ code `agent-unpublished` ; titre dérivé du premier message (≤ 60 caractères) ; flux interrompu ⇒ réponse partielle marquée.
+- [ ] **Step 1: Failing tests** : auteur seulement (autre membre ⇒ 404) ; espace sans accès ⇒ 403 ; liste des agents = workflows du dossier « Agents » avec chat déployé (identifiant, message d'accueil) ; ajout de messages (question, réponse avec usage, réponse interrompue) ; titre dérivé du premier message (≤ 60 caractères) ; conversation d'un agent supprimé ⇒ lisible, envoi refusé (`agent-unpublished`).
 - [ ] **Step 2:** Implémenter (compétence `migrate-application-operation` pour la forme des opérations) ; `check:api-validation:strict`.
 - [ ] **Step 3: Commit** `feat(j6): conversations et envoi de messages de l'Assistant`.
 
