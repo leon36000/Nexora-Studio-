@@ -263,6 +263,29 @@ Précise la section 7 ; ces décisions priment.
 
 **Terminé quand** : sur pc6, un groupe « Lecture seule » empêche un membre de modifier un workflow (refus côté serveur) ; un SMTP de test (conteneur local de capture d'e-mails lancé pour l'occasion) reçoit l'e-mail de test et une invitation ; une configuration OIDC vers un fournisseur de test (Keycloak local déjà prévu dans `scripts/dev`) permet de se connecter après « Appliquer » ; tests (chiffrement, priorité du `.env`, droits) et contrôles de fumée « Gouvernance ».
 
+## 8undecies. J10 — conception détaillée (23/10/2026, architecte)
+
+**But** : lire les documents (PDF scannés, images) et transcrire la voix avec des modèles souverains, dans les blocs et les connaissances.
+
+- **Modèles** : Nexora API sert déjà `/v1/ocr` (routeurs `image-to-text`) et `/v1/audio/transcriptions` (routeurs `automatic-speech-recognition`). Réglages › Modèles (J2) gagne l'usage : *Discussion*, *Vision / OCR*, *Transcription* ; sources locales : un modèle de vision Ollama (`qwen2.5vl:3b` / `:7b` au catalogue) et un service de transcription local optionnel (profil compose `voice` : serveur Whisper compatible OpenAI, image épinglée, modèle `small` multilingue par défaut, threads limités) ; sources distantes : Mistral (OCR `mistral-ocr-latest`, transcription `voxtral-mini-latest`) ou compatible OpenAI.
+- **Blocs** : fournisseur « Nexora » pour les blocs existants de vision, d'analyse de fichier (OCR) et de transcription (`vision`, `mistral_parse`/`file`, `stt`), choisi par défaut dans l'édition Nexora ; les autres fournisseurs restent masqués sans clé.
+- **Connaissances** : un PDF scanné ou une image ajoutés à une base passent par l'OCR Nexora quand le texte extrait est vide ; un fichier audio est transcrit puis indexé.
+- **Réindexation** (reportée de J2) : changer le modèle d'embeddings d'une base la réindexe entièrement en arrière-plan (progression affichée), jamais de mélange de vecteurs.
+- **Accueil** : les cartes « Capturer » (Document, Transcription) apparaissent quand un modèle de l'usage correspondant existe.
+
+**Terminé quand** : sur pc6, un PDF scanné ajouté à une base est lisible par la recherche ; un bloc Transcription transcrit un fichier audio français ; le bloc Vision décrit une image ; une base réindexée vers un autre modèle répond toujours ; tests et contrôles de fumée « OCR » et « Transcription ».
+
+## 8duodecies. J11 — conception détaillée (23/10/2026, architecte)
+
+**But** : une installation qu'un prestataire peut exploiter sans être expert.
+
+- **HTTPS automatique** : service Caddy optionnel (profil `https`) devant WorkStudio, Nexora Connect et Nexora API ; l'installateur demande le domaine et l'e-mail ; certificats Let's Encrypt automatiques ; sans domaine public, certificat interne et instructions claires.
+- **Sauvegarde** : `nexora backup` (bases PostgreSQL de WorkStudio et de Nexora API, données de Nexora Connect, fichiers téléversés, `deploy/.env` chiffré par une phrase de passe demandée) vers une archive horodatée ; `nexora backup --schedule quotidien` (planification par le conteneur `cron`, rétention 7 jours) ; `nexora restore <archive>` (instance arrêtée, vérification d'intégrité, restauration, redémarrage, fumée rapide).
+- **Mise à jour sûre** : `nexora update` sauvegarde d'abord, tire les nouvelles images, applique les migrations, lance la fumée rapide et **revient** à la version précédente (images et sauvegarde) si elle échoue.
+- **Santé** : `nexora status` montre l'état de chaque service, le disque libre, la dernière sauvegarde et la version ; Réglages › État (admins) affiche la même chose.
+
+**Terminé quand** : sur pc6, dans une installation isolée par `install.sh` : HTTPS avec certificat interne fonctionne ; une sauvegarde puis une restauration sur une instance vidée retrouvent comptes, workflows, bases et connexions ; une mise à jour volontairement cassée est annulée automatiquement ; tests shell (`scripts/tests/test-*.sh`) et contrôles de fumée.
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
