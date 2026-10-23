@@ -15,6 +15,7 @@ import {
   ListChecks,
   Lock,
   LogIn,
+  Mail,
   Palette,
   PanelLeft,
   Send,
@@ -140,6 +141,7 @@ export type UnifiedSettingsSection =
   | 'usage'
   | 'models'
   | 'connectors'
+  | 'email'
   | 'sso'
   | 'whitelabeling'
   | 'forks'
@@ -764,6 +766,19 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
       requiresEnterprise: true,
       selfHostedOverride: 'always',
       organizationSection: 'security',
+    },
+  },
+  {
+    label: NAV.unified.email.label,
+    icon: Mail,
+    unified: {
+      id: 'email',
+      description: NAV.unified.email.description,
+      group: 'organization',
+      order: 8,
+      requiresHosted: true,
+      requiresEnterprise: true,
+      selfHostedOverride: 'always',
     },
   },
   {

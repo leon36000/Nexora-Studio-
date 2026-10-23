@@ -111,6 +111,10 @@ services:
       NEXORA_UPSTREAM_MODEL: ${NEXORA_UPSTREAM_MODEL}
       NEXORA_UPSTREAM_KEY: ${NEXORA_UPSTREAM_KEY:-none}
       NEXORA_BOOTSTRAP_OWNER: '1001:1001'
+      # Local transcription (profile « voice »): its model is downloaded, then registered as a
+      # transcription model. Empty: nothing to register.
+      NEXORA_WHISPER_URL: ${NEXORA_WHISPER_URL:-}
+      NEXORA_WHISPER_MODEL: ${NEXORA_WHISPER_MODEL:-Systran/faster-whisper-small}
     volumes:
       - ./bootstrap/bootstrap.py:/bootstrap-script/bootstrap.py:ro
       - bootstrap:/bootstrap
@@ -199,13 +203,16 @@ services:
       # Connectors catalog (J5): workspace connections and their tokens, administered server-side.
       NEXORA_CONNECT_ADMIN_TOKEN: ${NEXORA_CONNECT_ADMIN_TOKEN}
       EGRESS_ALLOWED_HOSTS: nexora-api,nexora-connect,searxng
-      # Governance shipped with Nexora: organizations, audit log, usage dashboard.
+      # Governance shipped with Nexora: organizations, audit log, usage dashboard, access groups.
       ORGANIZATIONS_ENABLED: 'true'
       NEXT_PUBLIC_ORGANIZATIONS_ENABLED: 'true'
       AUDIT_LOGS_ENABLED: 'true'
       NEXT_PUBLIC_AUDIT_LOGS_ENABLED: 'true'
       USAGE_MONITORING_ENABLED: 'true'
       NEXT_PUBLIC_USAGE_MONITORING_ENABLED: 'true'
+      # Access groups (Réglages › Groupes d'accès): the permission-group engine refuses on the server.
+      ACCESS_CONTROL_ENABLED: 'true'
+      NEXT_PUBLIC_ACCESS_CONTROL_ENABLED: 'true'
       # Upstream features enabled by default on self-hosted that Nexora v1 does not ship
       # (the mailer needs a copilot backend; branding and session policies have no settings UI).
       INBOX_ENABLED: 'false'
@@ -314,6 +321,29 @@ services:
     depends_on:
       - workstudio
 
+  # Local transcription (profile « voice », off by default; install.sh asks): an OpenAI-compatible
+  # Whisper server (speaches), on the internal network only. Nexora API reaches it at
+  # http://whisper:8000 (NEXORA_WHISPER_URL); the bootstrap downloads the multilingual `small`
+  # model once (about 500 MB, kept in a volume) and registers it. Threads are capped so a long
+  # transcription does not slow down the rest of the server.
+  whisper:
+    image: ghcr.io/speaches-ai/speaches:0.8.3-cpu
+    profiles: [voice]
+    restart: unless-stopped
+    environment:
+      WHISPER__CPU_THREADS: ${NEXORA_WHISPER_THREADS:-4}
+      WHISPER__TTL: '600'
+      ENABLE_UI: 'false'
+      LOG_LEVEL: info
+    volumes:
+      - whisper-models:/home/ubuntu/.cache/huggingface/hub
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
   # Local model server, always present: it serves the knowledge-base embeddings (bge-m3) and,
   # when chosen, the chat model (NEXORA_UPSTREAM_URL=http://ollama:11434). CPU by default.
   ollama:
@@ -331,6 +361,7 @@ services:
 
 volumes:
   ollama-data:
+  whisper-models:
   caddy-data:
   caddy-config:
   workstudio-uploads:

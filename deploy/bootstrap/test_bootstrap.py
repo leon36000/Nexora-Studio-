@@ -45,7 +45,8 @@ class FakeApi(BaseHTTPRequestHandler):
         return self.state["keys"].get(self.headers.get("Authorization", "").removeprefix("Bearer "))
 
     def _body(self):
-        return json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        length = int(self.headers.get("Content-Length") or 0)
+        return json.loads(self.rfile.read(length)) if length else {}
 
     def do_GET(self):
         s, caller, path = self.state, self._caller(), self.path.split("?")[0]
@@ -69,6 +70,9 @@ class FakeApi(BaseHTTPRequestHandler):
 
     def do_POST(self):
         s, body = self.state, self._body()
+        if self.path.startswith("/v1/models/"):  # the transcription service downloads a model
+            s.setdefault("downloads", []).append(self.path.removeprefix("/v1/models/"))
+            return self._json(200, {})
         if self.path == "/v1/auth/login":
             ok = body == {"email": "admin", "password": "pw"}
             return self._json(200, {"value": "admin-key"}) if ok else self._json(401, {})
@@ -91,11 +95,13 @@ class FakeApi(BaseHTTPRequestHandler):
             uid = 300 + len(s["users"]); s["users"][uid] = {"id": uid, **body}
             return self._json(201, {"id": uid})
         if self.path == "/v1/admin/providers":
+            if s.get("unreachable_provider_url") == body["url"]:
+                return self._json(424, {"detail": "not reachable"})
             if any(p["router_id"] == body["router_id"] and p["url"].rstrip("/") == body["url"].lower().rstrip("/") and p["model_name"] == body["model_name"] for p in s["providers"].values()):
                 return self._json(409, {})
             pid = 400 + len(s["providers"]) + s.setdefault("deleted", 0)
             # Like Nexora API, stores the address with a trailing slash.
-            s["providers"][pid] = {"id": pid, "router_id": body["router_id"], "url": body["url"].lower().rstrip("/") + "/", "model_name": body["model_name"], "key": body["key"]}
+            s["providers"][pid] = {"id": pid, "router_id": body["router_id"], "type": body.get("type"), "url": body["url"].lower().rstrip("/") + "/", "model_name": body["model_name"], "key": body["key"], "timeout": body.get("timeout")}
             return self._json(201, {"id": pid})
         if self.path == "/v1/admin/keys":
             user = ADMIN if body["user"] == ADMIN["id"] else s["users"][body["user"]]
@@ -107,6 +113,12 @@ class FakeApi(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         s = self.state
+        if self.path.startswith("/v1/admin/routers/"):
+            rid = int(self.path.rsplit("/", 1)[1])
+            s["routers"].pop(rid)
+            s["providers"] = {k: p for k, p in s["providers"].items() if p["router_id"] != rid}
+            self.send_response(204); self.end_headers()
+            return
         pid = int(self.path.rsplit("/", 1)[1])
         s["providers"].pop(pid); s["deleted"] = s.get("deleted", 0) + 1
         self.send_response(204); self.end_headers()
@@ -142,8 +154,15 @@ class BootstrapTest(unittest.TestCase):
         FakeApi.reset()
         self.out = Path(tempfile.mkdtemp()) / "nexora-api.env"
 
-    def run_bootstrap(self, password="pw", upstream=None):
-        return bootstrap.ensure_workstudio_key(self.url, "admin", password, self.out, wait_seconds=1, upstream=upstream)
+    def run_bootstrap(self, password="pw", upstream=None, voice=None):
+        return bootstrap.ensure_workstudio_key(self.url, "admin", password, self.out, wait_seconds=1, upstream=upstream, voice=voice)
+
+    def voice(self, **overrides):
+        # The fake Nexora API also plays the transcription service (/health, POST /v1/models/<id>).
+        return {"url": self.url, "model": "Systran/faster-whisper-small", "wait_seconds": 1, **overrides}
+
+    def transcription_routers(self):
+        return [r for r in FakeApi.state["routers"].values() if r["type"] == "automatic-speech-recognition"]
 
     def seed_provider(self, url="http://ollama:11434", model="qwen2.5:0.5b", key="none"):
         FakeApi.state["providers"][1] = {"id": 1, "router_id": 10, "url": url, "model_name": model, "key": key}
@@ -315,6 +334,34 @@ class BootstrapTest(unittest.TestCase):
         FakeApi.state["expire_next_session"] = True
         key = self.run_bootstrap()
         self.assertEqual(FakeApi.state["keys"][key]["email"], bootstrap.WORKSTUDIO_EMAIL)
+
+    def test_registers_the_local_transcription_service_once(self):
+        key = self.run_bootstrap(voice=self.voice())
+        self.assertEqual(self.run_bootstrap(voice=self.voice()), key)
+        (router,) = self.transcription_routers()
+        self.assertEqual((router["name"], router["aliases"]), ("whisper-small", []))
+        (provider,) = self.providers_of(router)
+        self.assertEqual(
+            (provider["type"], provider["url"], provider["model_name"], provider["key"], provider["timeout"]),
+            ("openai", self.url.lower() + "/", "Systran/faster-whisper-small", "none", 600),
+        )
+        self.assertEqual(FakeApi.state["downloads"], ["Systran/faster-whisper-small"] * 2)
+        (role,) = FakeApi.state["roles"].values()
+        self.assertIn((router["id"], "rpm"), {(l["router_id"], l["type"]) for l in role["limits"]})
+
+    def test_a_transcription_service_that_does_not_answer_does_not_hold_workstudio_back(self):
+        key = self.run_bootstrap(voice=self.voice(url="http://127.0.0.1:9"))
+        self.assertEqual(FakeApi.state["keys"][key]["email"], bootstrap.WORKSTUDIO_EMAIL)
+        self.assertEqual(self.transcription_routers(), [])
+
+    def test_a_refused_transcription_provider_leaves_no_empty_router(self):
+        FakeApi.state["unreachable_provider_url"] = self.url
+        self.run_bootstrap(voice=self.voice())
+        self.assertEqual(self.transcription_routers(), [])
+
+    def test_names_the_transcription_model_after_its_size(self):
+        self.assertEqual(bootstrap.transcription_router_name("Systran/faster-whisper-small"), "whisper-small")
+        self.assertEqual(bootstrap.transcription_router_name("deepdml/faster-whisper-large-v3-turbo-ct2"), "whisper-large-v3-turbo-ct2")
 
     def test_fails_loudly_on_wrong_admin_password(self):
         with self.assertRaises(bootstrap.BootstrapError):

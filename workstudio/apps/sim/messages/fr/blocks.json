@@ -1538,8 +1538,37 @@
     "description": "Déployer, modifier, rechercher et mesurer une documentation Mintlify"
   },
   "mistral_parse_v3": {
-    "name": "Analyseur Mistral",
-    "description": "Extraire le texte de documents PDF"
+    "name": "Analyse de document (OCR)",
+    "description": "Extraire le texte de PDF et d’images, même scannés",
+    "subBlocks": {
+      "provider": {
+        "title": "Fournisseur"
+      },
+      "nexoraModel": {
+        "title": "Modèle Nexora",
+        "placeholder": "Premier modèle Vision / OCR",
+        "description": "Un modèle Vision / OCR de Réglages › Modèles (Mistral OCR, ou un modèle de vision local qui lit un PDF page par page). Laissez vide pour utiliser le premier ; s’il n’y en a aucun, demandez à un administrateur d’en ajouter un."
+      },
+      "fileUpload": {
+        "title": "Document PDF ou image",
+        "placeholder": "Téléversez un PDF ou une image"
+      },
+      "fileReference": {
+        "title": "Référence de fichier",
+        "placeholder": "Fichier d’un bloc précédent"
+      },
+      "resultType": {
+        "title": "Format de sortie"
+      },
+      "pages": {
+        "title": "Pages",
+        "placeholder": "ex. 0,1,2 (vide pour toutes les pages)"
+      },
+      "apiKey": {
+        "title": "Clé API",
+        "placeholder": "Saisissez votre clé API Mistral"
+      }
+    }
   },
   "modal": {
     "name": "Modal",
@@ -2057,7 +2086,32 @@
   },
   "stt_v2": {
     "name": "Transcription vocale",
-    "description": "Convertir la parole en texte grâce à l'IA"
+    "description": "Convertir la parole en texte grâce à l'IA",
+    "subBlocks": {
+      "provider": {
+        "title": "Fournisseur"
+      },
+      "nexoraModel": {
+        "title": "Modèle Nexora",
+        "placeholder": "Premier modèle de transcription",
+        "description": "Un modèle Transcription de Réglages › Modèles. Laissez vide pour utiliser le premier ; s’il n’y en a aucun, demandez à un administrateur d’en ajouter un. Au-delà de dix minutes, l’enregistrement est transcrit par morceaux, jusqu’à trois heures."
+      },
+      "audioFile": {
+        "title": "Fichier audio ou vidéo",
+        "placeholder": "Téléversez un fichier audio ou vidéo"
+      },
+      "audioFileReference": {
+        "title": "Référence audio ou vidéo",
+        "placeholder": "Audio ou vidéo d’un bloc précédent"
+      },
+      "language": {
+        "title": "Langue"
+      },
+      "apiKey": {
+        "title": "Clé API",
+        "placeholder": "Saisissez votre clé API"
+      }
+    }
   },
   "supabase": {
     "name": "Supabase",
@@ -2250,6 +2304,39 @@
   "video_generator_v3": {
     "name": "Générateur de vidéos",
     "description": "Générer des vidéos à partir de texte grâce à l'IA"
+  },
+  "vision_v2": {
+    "name": "Vision",
+    "description": "Analyser des images avec des modèles de vision",
+    "subBlocks": {
+      "provider": {
+        "title": "Fournisseur"
+      },
+      "imageFile": {
+        "title": "Image",
+        "placeholder": "Téléversez une image"
+      },
+      "imageFileReference": {
+        "title": "Référence d’image",
+        "placeholder": "Image d’un bloc précédent"
+      },
+      "model": {
+        "title": "Modèle de vision"
+      },
+      "nexoraModel": {
+        "title": "Modèle Nexora",
+        "placeholder": "Premier modèle Vision / OCR",
+        "description": "Un modèle Vision / OCR de Réglages › Modèles. Laissez vide pour utiliser le premier ; s’il n’y en a aucun, demandez à un administrateur d’en ajouter un."
+      },
+      "prompt": {
+        "title": "Consigne",
+        "placeholder": "Que voulez-vous savoir de l’image ?"
+      },
+      "apiKey": {
+        "title": "Clé API",
+        "placeholder": "Saisissez votre clé API"
+      }
+    }
   },
   "wait": {
     "name": "Attente",

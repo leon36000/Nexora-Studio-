@@ -74,3 +74,15 @@ export const customToolIdUrlKeys = {
   history: 'push',
   clearOnDefault: true,
 } as const
+
+/** `access-group` deep-links Réglages › Groupes d'accès to one group's detail view. */
+export const accessGroupIdParam = {
+  key: 'access-group',
+  parser: parseAsString,
+} as const
+
+/** Opening a group is a destination → push to history; close with `replace`. */
+export const accessGroupIdUrlKeys = {
+  history: 'push',
+  clearOnDefault: true,
+} as const

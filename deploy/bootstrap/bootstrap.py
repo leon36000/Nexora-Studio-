@@ -12,7 +12,10 @@ then:
   where the WorkStudio container reads it at startup. A key that still belongs to that user is
   kept, so restarts do not pile up keys;
 - writes an admin key as `export NEXORA_API_ADMIN_KEY=...` to `nexora-admin.env`, read by the
-  WorkStudio container only, for its model settings (the admin password stays out of WorkStudio).
+  WorkStudio container only, for its model settings (the admin password stays out of WorkStudio);
+- with the local transcription service (compose profile `voice`, NEXORA_WHISPER_URL set), downloads
+  its model and registers it as a transcription model (`automatic-speech-recognition` router). A
+  service that does not answer is reported and skipped: it never holds WorkStudio back.
 Standard library only.
 """
 from __future__ import annotations
@@ -36,20 +39,26 @@ class SessionExpiredError(BootstrapError):
     """The admin session ended mid-run: Nexora API reuses its session key until it expires."""
 
 
-def _request(method: str, url: str, token: str | None = None, body: dict | None = None) -> tuple[int, dict]:
+def _request(
+    method: str, url: str, token: str | None = None, body: dict | None = None, timeout: float = 15
+) -> tuple[int, dict]:
     data = json.dumps(body).encode() if body is not None else None
     request = urllib.request.Request(url, data=data, method=method)
     request.add_header("Content-Type", "application/json")
     if token:
         request.add_header("Authorization", f"Bearer {token}")
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
-            return response.status, json.loads(response.read() or b"{}")
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            raw = response.read() or b"{}"
+            try:
+                return response.status, json.loads(raw)
+            except ValueError:  # the transcription service answers its downloads in plain text
+                return response.status, {}
     except urllib.error.HTTPError as error:
         return error.code, {}
 
 
-def _wait_until_healthy(base_url: str, wait_seconds: int) -> None:
+def _wait_until_healthy(base_url: str, wait_seconds: int, service: str = "Nexora API") -> None:
     deadline = time.monotonic() + wait_seconds
     while True:
         try:
@@ -58,7 +67,7 @@ def _wait_until_healthy(base_url: str, wait_seconds: int) -> None:
         except OSError:
             pass
         if time.monotonic() >= deadline:
-            raise BootstrapError(f"Nexora API is not reachable at {base_url}")
+            raise BootstrapError(f"{service} is not reachable at {base_url}")
         time.sleep(2)
 
 
@@ -240,6 +249,49 @@ def _sync_default_model(base_url: str, admin_token: str, upstream: dict, fingerp
     _write_private(fingerprint_file, fingerprint + "\n")
 
 
+TRANSCRIPTION_TYPE = "automatic-speech-recognition"
+# The first start downloads the model (about 500 MB for `small`); a CPU transcription takes minutes.
+WHISPER_DOWNLOAD_TIMEOUT = 1800
+WHISPER_PROVIDER_TIMEOUT = 600
+
+
+def transcription_router_name(model: str) -> str:
+    """`Systran/faster-whisper-small` -> `whisper-small`: the name blocks and Réglages › Modèles show."""
+    return model.rsplit("/", 1)[-1].removeprefix("faster-")
+
+
+def _sync_transcription_model(base_url: str, admin_token: str, voice: dict) -> None:
+    """Downloads the local transcription service's model, then registers it once in Nexora API."""
+    url = voice["url"].strip().rstrip("/")
+    model = voice["model"].strip()
+    _wait_until_healthy(url, int(voice.get("wait_seconds", 600)), service="The transcription service")
+    try:
+        status, _ = _request("POST", f"{url}/v1/models/{model}", timeout=WHISPER_DOWNLOAD_TIMEOUT)
+    except OSError as error:
+        raise BootstrapError(f"transcription model download failed ({error})") from error
+    if status not in (200, 201):
+        raise BootstrapError(f"transcription model download failed (HTTP {status})")
+
+    api = f"{base_url}/v1/admin"
+    name = transcription_router_name(model)
+    routers = _call("GET", f"{api}/routers?limit=100", admin_token).get("data", [])
+    existing = next((r for r in routers if r["name"] == name), None)
+    if existing:
+        return  # registered by an earlier start, or chosen by an administrator: left as is
+    created = _call("POST", f"{api}/routers", admin_token, {"name": name, "type": TRANSCRIPTION_TYPE, "aliases": []})
+    status, _ = _request("POST", f"{api}/providers", token=admin_token, body={
+        "router_id": created["id"],
+        "type": "openai",
+        "url": url,
+        "key": "none",
+        "model_name": model,
+        "timeout": WHISPER_PROVIDER_TIMEOUT,
+    }, timeout=120)
+    if status not in (200, 201):
+        _request("DELETE", f"{api}/routers/{created['id']}", token=admin_token)
+        raise BootstrapError(f"Nexora API refused the transcription service (HTTP {status})")
+
+
 ADMIN_KEY_NAME = "nexora-workstudio-admin"
 
 
@@ -276,23 +328,36 @@ def _is_workstudio_key(base_url: str, key: str) -> bool:
 
 
 def ensure_workstudio_key(
-    base_url: str, admin: str, password: str, out: Path, wait_seconds: int = 300, upstream: dict | None = None
+    base_url: str,
+    admin: str,
+    password: str,
+    out: Path,
+    wait_seconds: int = 300,
+    upstream: dict | None = None,
+    voice: dict | None = None,
 ) -> str:
     """WorkStudio's model key: owned by a dedicated user with model access only (least privilege)."""
     base_url = base_url.rstrip("/")
     _wait_until_healthy(base_url, wait_seconds)
     try:
-        return _ensure_signed_in(base_url, admin, password, out, upstream)
+        return _ensure_signed_in(base_url, admin, password, out, upstream, voice)
     except SessionExpiredError:
-        return _ensure_signed_in(base_url, admin, password, out, upstream)
+        return _ensure_signed_in(base_url, admin, password, out, upstream, voice)
 
 
-def _ensure_signed_in(base_url: str, admin: str, password: str, out: Path, upstream: dict | None) -> str:
+def _ensure_signed_in(base_url: str, admin: str, password: str, out: Path, upstream: dict | None, voice: dict | None) -> str:
     status, session = _request("POST", f"{base_url}/v1/auth/login", body={"email": admin, "password": password})
     if status != 200 or not session.get("value"):
         raise BootstrapError(f"Nexora API admin sign-in failed (HTTP {status}); check NEXORA_API_ADMIN_PASSWORD")
     if upstream:
         _sync_default_model(base_url, session["value"], upstream, out.parent / "upstream.sha256")
+    if voice:
+        try:
+            _sync_transcription_model(base_url, session["value"], voice)
+        except SessionExpiredError:
+            raise
+        except BootstrapError as error:
+            print(f"bootstrap: local transcription skipped: {error}", file=sys.stderr)
     user_id = _sync_workstudio_user(base_url, session["value"])
     ensure_admin_key(base_url, session["value"], out.parent / "nexora-admin.env")
 
@@ -320,6 +385,11 @@ def main() -> int:
                 "model": os.environ["NEXORA_UPSTREAM_MODEL"],
                 "key": os.environ.get("NEXORA_UPSTREAM_KEY") or "none",
             } if os.environ.get("NEXORA_UPSTREAM_URL") else None,
+            voice={
+                "url": os.environ["NEXORA_WHISPER_URL"],
+                "model": os.environ.get("NEXORA_WHISPER_MODEL") or "Systran/faster-whisper-small",
+                "wait_seconds": int(os.environ.get("NEXORA_WHISPER_WAIT_SECONDS") or 600),
+            } if os.environ.get("NEXORA_WHISPER_URL", "").strip() else None,
         )
     except (BootstrapError, KeyError, OSError, ValueError) as error:
         print(f"bootstrap: {error}", file=sys.stderr)

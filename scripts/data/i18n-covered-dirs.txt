@@ -41,3 +41,5 @@ workstudio/apps/sim/app/workspace/[workspaceId]/agents
 workstudio/apps/sim/app/workspace/[workspaceId]/connecteurs
 # J6 Assistant
 workstudio/apps/sim/app/workspace/[workspaceId]/assistant
+# J9 Gouvernance : groupes d'accès
+workstudio/apps/sim/ee/access-control/components

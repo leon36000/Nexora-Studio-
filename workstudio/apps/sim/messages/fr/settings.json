@@ -196,8 +196,8 @@
         "description": "Suivez vos demandes et parcourez les accès disponibles."
       },
       "access-control": {
-        "label": "Groupes d’autorisations",
-        "description": "Gérez les groupes d’autorisations de votre organisation."
+        "label": "Groupes d’accès",
+        "description": "Choisissez ce que chaque groupe de membres peut faire."
       },
       "audit-logs": {
         "label": "Journaux d’audit",
@@ -277,7 +277,7 @@
       },
       "security": {
         "label": "Sécurité",
-        "description": "Gérez les politiques de session et consultez les adresses IP sortantes."
+        "description": "Configurez la connexion unique et les inscriptions."
       },
       "data-retention": {
         "label": "Conservation des données",
@@ -302,6 +302,10 @@
       "mothership": {
         "label": "Mothership",
         "description": "Opérations internes Nexora et gestion des licences."
+      },
+      "email": {
+        "label": "E-mail",
+        "description": "Choisissez le serveur SMTP des e-mails envoyés"
       }
     },
     "account": {
@@ -1668,7 +1672,7 @@
   },
   "models": {
     "add": "Ajouter un modèle",
-    "intro": "Le modèle marqué « Par défaut » répond aux blocs réglés sur nexora-default ; les autres apparaissent dans la liste des modèles de chaque bloc.",
+    "intro": "Chaque modèle sert un usage. Discussion : le modèle marqué « Par défaut » répond aux blocs réglés sur nexora-default, les autres apparaissent dans la liste des modèles de chaque bloc. Vision / OCR et Transcription : les blocs Vision, Analyse de document et Transcription vocale les utilisent avec le fournisseur Nexora.",
     "empty": "Aucun modèle pour l’instant.",
     "defaultBadge": "Par défaut",
     "testing": "Test en cours…",
@@ -1677,6 +1681,11 @@
       "ollama": "Local (Ollama)",
       "mistral": "Mistral AI",
       "openai-compatible": "Compatible OpenAI"
+    },
+    "usages": {
+      "chat": "Discussion",
+      "vision": "Vision / OCR",
+      "transcription": "Transcription"
     },
     "actions": {
       "test": "Tester",
@@ -1716,6 +1725,14 @@
     "wizard": {
       "title": "Ajouter un modèle — étape {step} sur 3",
       "next": "Suivant",
+      "usage": {
+        "title": "À quoi sert le modèle ?",
+        "hints": {
+          "chat": "Répond aux blocs Agent, Routeur, Évaluateur et aux autres blocs de discussion.",
+          "vision": "Lit les images et les documents scannés (blocs Vision et Analyse de document).",
+          "transcription": "Transcrit les fichiers audio (bloc Transcription vocale). Le service de transcription local, choisi à l’installation, est ajouté d’office."
+        }
+      },
       "source": {
         "title": "Où tourne le modèle ?",
         "options": {
@@ -1728,7 +1745,8 @@
           "mistral": "Hébergé en Europe par Mistral AI, avec votre clé d’API.",
           "openai-compatible": "Tout service qui expose l’API OpenAI (vLLM, LM Studio, un fournisseur en ligne…)."
         },
-        "ollamaUnavailable": "Le modèle local est indisponible : le service Ollama de ce serveur ne répond pas."
+        "ollamaUnavailable": "Le modèle local est indisponible : le service Ollama de ce serveur ne répond pas.",
+        "transcriptionNoOllama": "Ollama ne transcrit pas la voix : choisissez Mistral AI (Voxtral) ou un service compatible OpenAI, comme un serveur Whisper."
       },
       "ollama": {
         "catalog": "Modèles conseillés",
@@ -1765,6 +1783,227 @@
         "adding": "Ajout…",
         "checkingService": "Vérification du service…"
       }
+    }
+  },
+  "instanceSettings": {
+    "saved": "Enregistré. Appliquez pour que WorkStudio l’utilise.",
+    "secretSet": "••• défini",
+    "envOverride": "Défini dans deploy/.env : modifiez ce fichier puis redémarrez Nexora pour le changer.",
+    "errors": {
+      "forbidden": "Réservé aux administrateurs de l’instance.",
+      "env-override": "Ce réglage est défini dans deploy/.env, qui reste prioritaire.",
+      "not-supervised": "WorkStudio ne tourne pas sous Docker : redémarrez-le vous-même.",
+      "unavailable": "Les réglages de l’instance sont indisponibles pour le moment.",
+      "invalid": "Vérifiez les valeurs saisies.",
+      "unknown": "L’opération a échoué. Réessayez."
+    },
+    "apply": {
+      "action": "Appliquer",
+      "pending": "Des réglages enregistrés attendent d’être appliqués : WorkStudio doit redémarrer (environ 20 secondes).",
+      "saveFirst": "Enregistrez vos modifications avant de les appliquer.",
+      "restarting": "WorkStudio redémarre… La page se rechargera dès qu’il répond (environ 20 secondes).",
+      "timeout": "WorkStudio n’a pas redémarré seul. Lancez « nexora status » sur le serveur, puis rechargez la page.",
+      "notSupervised": "WorkStudio ne tourne pas sous Docker : redémarrez-le vous-même pour appliquer les réglages.",
+      "failed": "Le redémarrage n’a pas pu être demandé. Réessayez.",
+      "dialog": {
+        "title": "Redémarrer WorkStudio ?",
+        "text": "Les réglages enregistrés s’appliquent au démarrage : WorkStudio sera indisponible environ 20 secondes et les pages ouvertes se rechargeront.",
+        "executions": "Une exécution en cours peut être interrompue ; les workflows en attente (validation, minuterie) reprennent normalement. Choisissez un moment calme.",
+        "confirm": "Redémarrer"
+      }
+    }
+  },
+  "instanceSecurity": {
+    "loadError": "Impossible de charger les réglages de sécurité.",
+    "sso": {
+      "title": "Connexion unique (SSO)",
+      "enabled": "Connexion avec le fournisseur d’identité de l’entreprise",
+      "issuer": "Émetteur OpenID Connect",
+      "issuerHint": "L’adresse du domaine (realm) chez le fournisseur ; WorkStudio y lit /.well-known/openid-configuration.",
+      "issuerPlaceholder": "https://sso.entreprise.fr/realms/entreprise",
+      "clientId": "Identifiant client",
+      "clientSecret": "Secret client",
+      "buttonName": "Nom du bouton",
+      "buttonNameHint": "Affiché « Se connecter avec … » sur la page de connexion.",
+      "required": "Connexion unique obligatoire",
+      "requiredHint": "Les membres ne peuvent plus se connecter par mot de passe ; propriétaires et administrateurs le gardent en secours.",
+      "redirectUri": "URL de redirection à déclarer chez le fournisseur",
+      "copyRedirectUri": "Copier l’URL de redirection",
+      "incomplete": "Renseignez l’émetteur, l’identifiant, le secret et le nom du bouton."
+    },
+    "test": {
+      "action": "Tester la configuration",
+      "testing": "Test en cours…",
+      "success": "Fournisseur joignable : {issuer}",
+      "issuerMismatch": "Le fournisseur annonce l’adresse {issuer} : c’est vers elle que les navigateurs seront envoyés. Vérifiez qu’elle est joignable depuis les postes.",
+      "failures": {
+        "not-configured": "Saisissez d’abord l’émetteur.",
+        "invalid-issuer": "L’émetteur doit commencer par http:// ou https://.",
+        "unreachable": "Fournisseur injoignable depuis le serveur : vérifiez l’adresse et le réseau.",
+        "timeout": "Le fournisseur n’a pas répondu à temps.",
+        "not-found": "Aucune configuration OpenID Connect à cette adresse : vérifiez l’émetteur (le domaine ou realm).",
+        "invalid": "La réponse du fournisseur n’est pas une configuration OpenID Connect valide."
+      }
+    },
+    "domains": {
+      "title": "Inscription",
+      "label": "Domaines autorisés à s’inscrire seuls",
+      "hint": "Séparés par des virgules. Les autres adresses doivent être invitées. Vide : toute personne qui atteint WorkStudio peut s’inscrire.",
+      "placeholder": "entreprise.fr, filiale.fr"
+    }
+  },
+  "instanceEmail": {
+    "loadError": "Impossible de charger les réglages d’e-mail.",
+    "title": "Serveur SMTP",
+    "enabled": "Envoyer les e-mails par ce serveur",
+    "host": "Serveur",
+    "hostPlaceholder": "smtp.entreprise.fr",
+    "port": "Port",
+    "user": "Utilisateur",
+    "password": "Mot de passe",
+    "from": "Expéditeur",
+    "fromHint": "Adresse acceptée par le serveur, par exemple « Nexora <nexora@entreprise.fr> ».",
+    "fromPlaceholder": "Nexora <nexora@entreprise.fr>",
+    "incomplete": "Renseignez le serveur et un port valide.",
+    "test": {
+      "action": "Envoyer un e-mail de test",
+      "sending": "Envoi…",
+      "success": "E-mail de test envoyé à {address}.",
+      "failures": {
+        "not-configured": "Aucun serveur SMTP n’est configuré.",
+        "auth": "Le serveur a refusé l’utilisateur ou le mot de passe.",
+        "connection": "Serveur injoignable : vérifiez l’adresse, le port et le pare-feu.",
+        "timeout": "Le serveur n’a pas répondu à temps.",
+        "tls": "Échec du chiffrement : essayez le port 587 (STARTTLS) ou 465 (TLS).",
+        "rejected": "Le serveur a refusé le message : vérifiez l’adresse d’expéditeur.",
+        "unknown": "L’envoi a échoué."
+      }
+    },
+    "testMessage": {
+      "subject": "Nexora WorkStudio : e-mail de test",
+      "text": "Bonjour,\n\nCet e-mail confirme que Nexora WorkStudio peut envoyer des messages avec le serveur SMTP configuré.\n\nAucune action n’est nécessaire."
+    }
+  },
+  "accessGroups": {
+    "adminsOnly": "Réservé aux administrateurs de l’organisation.",
+    "loadError": "Impossible de charger les groupes d’accès.",
+    "saved": "Groupe enregistré.",
+    "back": "Groupes",
+    "list": {
+      "create": "Créer un groupe",
+      "empty": "Aucun groupe : tout le monde a tous les droits de son rôle. Créez un groupe pour restreindre.",
+      "allWorkspaces": "Tous les espaces",
+      "workspaces": "{count, plural, one {# espace} other {# espaces}}",
+      "everyoneElse": "tous les membres hors autres groupes",
+      "everyoneInWorkspaces": "tous les membres de ces espaces",
+      "members": "{count, plural, one {# membre} other {# membres}}",
+      "defaultBadge": "Par défaut",
+      "open": "Ouvrir {name}"
+    },
+    "templates": {
+      "read-only": {
+        "name": "Lecture seule",
+        "description": "Consulter et lancer les workflows, sans construire, déployer, exposer ni administrer."
+      },
+      "creators": {
+        "name": "Créateurs",
+        "description": "Construire et déployer dans l’organisation, sans partage public ni nouvel espace."
+      },
+      "admins": {
+        "name": "Administrateurs",
+        "description": "Toutes les capacités."
+      }
+    },
+    "create": {
+      "title": "Créer un groupe d’accès",
+      "template": "Modèle",
+      "name": "Nom",
+      "scope": "Portée",
+      "workspaces": "Espaces de travail"
+    },
+    "scope": {
+      "default": "Tous les espaces (groupe par défaut)",
+      "workspaces": "Espaces choisis",
+      "defaultHint": "Le groupe par défaut s’applique à tous les membres qui ne sont dans aucun autre groupe.",
+      "workspacesHint": "Sans membre ajouté, le groupe s’applique à tous les membres de ces espaces.",
+      "noWorkspaces": "Aucun espace de travail dans l’organisation."
+    },
+    "detail": {
+      "general": "Groupe",
+      "name": "Nom",
+      "capabilities": "Ce que le groupe peut faire",
+      "applyTemplate": "Appliquer un modèle",
+      "defaultGroupOnly": "réglé par le groupe par défaut",
+      "incomplete": "Donnez un nom et choisissez au moins un espace."
+    },
+    "members": {
+      "title": "Membres",
+      "add": "Ajouter un membre",
+      "adding": "Ajout…",
+      "search": "Rechercher un membre",
+      "empty": "Aucun membre : le groupe s’applique à tous les membres de ses espaces.",
+      "remove": "Retirer du groupe",
+      "actions": "Actions pour {name}"
+    },
+    "deleteDialog": {
+      "title": "Supprimer le groupe ?",
+      "textBefore": "Le groupe ",
+      "textAfter": " sera supprimé ; ses membres retrouvent les droits du groupe par défaut ou de leur rôle."
+    },
+    "categories": {
+      "deployment": "Déploiement",
+      "tools": "Outils",
+      "knowledge": "Connaissances",
+      "tables": "Tables",
+      "files": "Fichiers",
+      "modules": "Modules",
+      "credentials": "Identifiants et accès",
+      "collaboration": "Collaboration",
+      "logs": "Journaux",
+      "other": "Autres"
+    },
+    "capabilities": {
+      "hideTraceSpans": "Voir le détail des étapes (traces) dans les journaux",
+      "disableLogExport": "Exporter les journaux d’exécution",
+      "hideCostInfo": "Voir le coût des exécutions",
+      "hideKnowledgeBaseTab": "Utiliser les bases de connaissances",
+      "disableKnowledgeBaseCreation": "Créer des bases de connaissances",
+      "disableKnowledgeBaseFileUpload": "Téléverser des documents dans les bases",
+      "disableKnowledgeBaseExport": "Exporter une base de connaissances",
+      "hideTablesTab": "Utiliser les tables",
+      "disableTableCreation": "Créer des tables",
+      "disableTableExport": "Exporter une table",
+      "hideFilesTab": "Utiliser les fichiers de l’espace",
+      "disablePublicFileSharing": "Partager un fichier par lien public",
+      "disableBulkFileDownload": "Télécharger des dossiers entiers",
+      "hideCopilot": "Construire et modifier avec Chat",
+      "hideInboxTab": "Utiliser Nexora Mailer",
+      "hideSandboxesTab": "Gérer les bacs à sable",
+      "disableMcpTools": "Utiliser les outils MCP (dont Nexora Connect)",
+      "disableCustomTools": "Utiliser des outils personnalisés",
+      "disableSkills": "Utiliser des compétences",
+      "disableToolAutoApproval": "Approuver automatiquement les appels d’outils",
+      "hideIntegrationsTab": "Gérer les connexions aux intégrations",
+      "hideSecretsTab": "Gérer les secrets de l’espace",
+      "hideApiKeysTab": "Gérer les clés d’API de l’espace",
+      "disablePersonalApiKeys": "Utiliser une clé d’API personnelle",
+      "disablePersonalCredentials": "Connecter des identifiants personnels",
+      "disableCliAccess": "Utiliser la ligne de commande (CLI)",
+      "disableOAuthAppAccess": "Autoriser des applications OAuth",
+      "disableInvitations": "Inviter des personnes",
+      "disableWorkspaceCreation": "Créer des espaces de travail",
+      "hideOrgMemberDirectory": "Voir l’annuaire des membres",
+      "disablePublicApi": "Appeler les workflows par l’API publique",
+      "hideDeployApi": "Déployer un workflow en API",
+      "hideDeployMcp": "Exposer un workflow comme serveur MCP",
+      "hideDeployChatbot": "Publier un workflow en chat",
+      "disableWebhookTriggers": "Déclencher un workflow par webhook entrant"
+    },
+    "errors": {
+      "conflict": "Conflit : ce nom est déjà pris, un groupe par défaut existe déjà, ou ce membre est déjà dans un autre groupe de ces espaces.",
+      "forbidden": "Réservé aux administrateurs de l’organisation.",
+      "invalid": "Vérifiez les valeurs saisies.",
+      "unknown": "L’opération a échoué. Réessayez."
     }
   }
 }

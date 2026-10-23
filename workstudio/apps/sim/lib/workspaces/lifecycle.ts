@@ -105,6 +105,10 @@ export async function archiveWorkspace(
   options.deliverStops?.(outcome.effects.stoppedRuns)
 
   await finishEnvironmentArchive(outcome.effects, options.requestId)
+  // Nexora edition: the workspace's connections and token leave Nexora Connect too (best effort).
+  void import('@/lib/nexora/connect').then(({ forgetWorkspaceInConnect }) =>
+    forgetWorkspaceInConnect(workspaceId)
+  )
 
   return {
     archived: !workspaceRecord.archivedAt,

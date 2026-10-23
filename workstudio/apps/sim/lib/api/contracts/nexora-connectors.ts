@@ -74,7 +74,14 @@ export const getConnectorContract = defineRouteContract({
           fields: z.array(setupFieldSchema).optional(),
         })
       ),
-      oauth: z.object({ configured: z.boolean(), redirectUri: z.string().nullable() }).nullable(),
+      oauth: z
+        .object({
+          configured: z.boolean(),
+          /** Whether a provider can reach Nexora Connect's callback (it has a public address). */
+          available: z.boolean(),
+          redirectUri: z.string().nullable(),
+        })
+        .nullable(),
       actions: z.array(z.object({ id: z.string(), name: z.string(), description: z.string() })),
       connection: connectionSchema.nullable(),
       canManage: z.boolean(),
@@ -123,7 +130,10 @@ export const startConnectorOAuthContract = defineRouteContract({
 export const connectorOAuthStatusContract = defineRouteContract({
   method: 'GET',
   path: '/api/nexora/connectors/oauth/[requestId]',
-  params: z.object({ requestId: z.string().regex(/^[\w-]{1,128}$/, 'invalid request id') }),
+  /** The handle the start route returned: Connect's request id bound to the workspace. */
+  params: z.object({
+    requestId: z.string().regex(/^[\w-]{1,128}\.[0-9a-f]{64}$/, 'invalid request id'),
+  }),
   query: z.object({ workspaceId: workspaceIdSchema }),
   response: {
     mode: 'json',

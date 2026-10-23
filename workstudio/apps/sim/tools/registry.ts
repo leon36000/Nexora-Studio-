@@ -3579,7 +3579,12 @@ import {
   mintlifyTriggerPreviewTool,
   mintlifyTriggerUpdateTool,
 } from '@/tools/mintlify'
-import { mistralParserTool, mistralParserV2Tool, mistralParserV3Tool } from '@/tools/mistral'
+import {
+  mistralParserTool,
+  mistralParserV2Tool,
+  mistralParserV3Tool,
+  ocrNexoraTool,
+} from '@/tools/mistral'
 import { modalCallFunctionTool, modalChatCompletionTool, modalListModelsTool } from '@/tools/modal'
 import {
   mondayArchiveItemTool,
@@ -5856,6 +5861,8 @@ import {
   elevenLabsSttV2Tool,
   geminiSttTool,
   geminiSttV2Tool,
+  nexoraSttTool,
+  nexoraSttV2Tool,
   whisperSttTool,
   whisperSttV2Tool,
 } from '@/tools/stt'
@@ -6286,7 +6293,7 @@ import {
   runwayVideoTool,
   veoVideoTool,
 } from '@/tools/video'
-import { visionTool, visionToolV2 } from '@/tools/vision'
+import { visionNexoraTool, visionTool, visionToolV2 } from '@/tools/vision'
 import {
   wealthboxReadContactTool,
   wealthboxReadNoteTool,
@@ -6934,6 +6941,7 @@ export const tools: Record<string, ExecutableToolConfig> = {
   gamma_list_folders: gammaListFoldersTool,
   vision_tool: visionTool,
   vision_tool_v2: visionToolV2,
+  vision_nexora: visionNexoraTool,
   file_parser: fileParseTool,
   file_parser_v2: fileParserV2Tool,
   file_parser_v3: fileParserV3Tool,
@@ -10746,6 +10754,7 @@ export const tools: Record<string, ExecutableToolConfig> = {
   mistral_parser: mistralParserTool,
   mistral_parser_v2: mistralParserV2Tool,
   mistral_parser_v3: mistralParserV3Tool,
+  ocr_nexora: ocrNexoraTool,
   reducto_parser: reductoParserTool,
   reducto_parser_v2: reductoParserV2Tool,
   textract_analyze_expense: textractAnalyzeExpenseTool,
@@ -10899,6 +10908,8 @@ export const tools: Record<string, ExecutableToolConfig> = {
   stt_assemblyai_v2: assemblyaiSttV2Tool,
   stt_gemini: geminiSttTool,
   stt_gemini_v2: geminiSttV2Tool,
+  stt_nexora: nexoraSttTool,
+  stt_nexora_v2: nexoraSttV2Tool,
   tts_openai: openaiTtsTool,
   tts_deepgram: deepgramTtsTool,
   tts_elevenlabs: elevenLabsTtsUnifiedTool,

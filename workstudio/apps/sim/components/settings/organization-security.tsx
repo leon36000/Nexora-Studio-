@@ -2,14 +2,13 @@
 
 import { ChipCopyInput } from '@sim/emcn'
 import { useTranslations } from 'next-intl'
-import { SettingsPanel } from '@/components/settings/settings-panel'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
+import { NexoraSecuritySettings } from '@/app/workspace/[workspaceId]/settings/components/nexora-security/nexora-security'
 import {
   SettingsEmptyState,
   SettingsQueryErrorState,
 } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
-import { SessionPolicySettings } from '@/ee/session-policy/components/session-policy-settings'
 import { useOrganizationNetwork } from '@/hooks/queries/organization-network'
 
 interface OrganizationSecuritySettingsProps {
@@ -19,19 +18,15 @@ interface OrganizationSecuritySettingsProps {
 export function OrganizationSecuritySettings({
   organizationId,
 }: OrganizationSecuritySettingsProps) {
-  const t = useTranslations('settings.organizationSecurity')
-  const { hosted, features } = useDeploymentShape()
+  const { hosted } = useDeploymentShape()
 
+  // Nexora edition: single sign-on and sign-up domains lead the page (its header comes from
+  // there). Session policies have no settings screen in this edition, and the outbound
+  // addresses belong to the hosted gateway, absent from a self-hosted instance.
   return (
     <div className='flex flex-col gap-7'>
-      {hosted || features.sessionPolicies ? (
-        <SettingsSection label={t('sessionPolicies')}>
-          <SessionPolicySettings key={organizationId} organizationId={organizationId} />
-        </SettingsSection>
-      ) : (
-        <SettingsPanel />
-      )}
-      <OrganizationNetworkSection organizationId={organizationId} />
+      <NexoraSecuritySettings />
+      {hosted && <OrganizationNetworkSection organizationId={organizationId} />}
     </div>
   )
 }

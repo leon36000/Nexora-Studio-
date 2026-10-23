@@ -145,9 +145,9 @@ export function SettingsSidebar({
             hostContext.features?.credentialGroups
         )
       }
-      // Nexora edition: the models and the connectors' OAuth apps serve the whole instance;
-      // only its admins manage them.
-      if (item.id === 'models' || item.id === 'connectors') {
+      // Nexora edition: the models, the connectors' OAuth apps and the outgoing e-mail serve
+      // the whole instance; only its admins manage them.
+      if (item.id === 'models' || item.id === 'connectors' || item.id === 'email') {
         return Boolean(hostContext.hostOrganizationId && isOrgAdminOrOwner)
       }
       if (item.id === 'requests') {

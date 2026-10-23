@@ -1539,7 +1539,36 @@
   },
   "mistral_parse_v3": {
     "name": "Mistral Parser",
-    "description": "Extract text from PDF documents"
+    "description": "Extract text from PDF documents",
+    "subBlocks": {
+      "provider": {
+        "title": "Provider"
+      },
+      "nexoraModel": {
+        "title": "Nexora model",
+        "placeholder": "First Vision / OCR model",
+        "description": "A Vision / OCR model from Settings › Models (Mistral OCR, or a local vision model that reads a PDF page by page). Leave empty to use the first one; without one, ask an administrator to add it."
+      },
+      "fileUpload": {
+        "title": "PDF Document",
+        "placeholder": "Upload a PDF document"
+      },
+      "fileReference": {
+        "title": "File Reference",
+        "placeholder": "File reference from previous block"
+      },
+      "resultType": {
+        "title": "Output Format"
+      },
+      "pages": {
+        "title": "Specific Pages",
+        "placeholder": "e.g. 0,1,2 (leave empty for all pages)"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "placeholder": "Enter your Mistral API key"
+      }
+    }
   },
   "modal": {
     "name": "Modal",
@@ -2057,7 +2086,32 @@
   },
   "stt_v2": {
     "name": "Speech-to-Text",
-    "description": "Convert speech to text using AI"
+    "description": "Convert speech to text using AI",
+    "subBlocks": {
+      "provider": {
+        "title": "Provider"
+      },
+      "nexoraModel": {
+        "title": "Nexora model",
+        "placeholder": "First Transcription model",
+        "description": "A Transcription model from Settings › Models. Leave empty to use the first one; without one, ask an administrator to add it. Recordings longer than ten minutes are transcribed piece by piece, up to three hours."
+      },
+      "audioFile": {
+        "title": "Audio/Video File",
+        "placeholder": "Upload an audio or video file"
+      },
+      "audioFileReference": {
+        "title": "Audio/Video File Reference",
+        "placeholder": "Reference audio/video from previous blocks"
+      },
+      "language": {
+        "title": "Language"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "placeholder": "Enter your API key"
+      }
+    }
   },
   "supabase": {
     "name": "Supabase",
@@ -2250,6 +2304,39 @@
   "video_generator_v3": {
     "name": "Video Generator",
     "description": "Generate videos from text using AI"
+  },
+  "vision_v2": {
+    "name": "Vision",
+    "description": "Analyze images with vision models",
+    "subBlocks": {
+      "provider": {
+        "title": "Provider"
+      },
+      "imageFile": {
+        "title": "Image File",
+        "placeholder": "Upload an image file"
+      },
+      "imageFileReference": {
+        "title": "Image File Reference",
+        "placeholder": "Reference an image from previous blocks"
+      },
+      "model": {
+        "title": "Vision Model"
+      },
+      "nexoraModel": {
+        "title": "Nexora model",
+        "placeholder": "First Vision / OCR model",
+        "description": "A Vision / OCR model from Settings › Models. Leave empty to use the first one; without one, ask an administrator to add it."
+      },
+      "prompt": {
+        "title": "Prompt",
+        "placeholder": "Enter prompt for image analysis"
+      },
+      "apiKey": {
+        "title": "API Key",
+        "placeholder": "Enter your API key"
+      }
+    }
   },
   "wait": {
     "name": "Wait",

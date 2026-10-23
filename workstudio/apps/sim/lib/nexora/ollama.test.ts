@@ -27,15 +27,17 @@ async function events(stream: ReadableStream<Uint8Array>) {
 }
 
 describe('catalog', () => {
-  it('recommends French-capable models with their disk and memory needs', () => {
-    expect(OLLAMA_CATALOG.map((m) => m.name)).toEqual([
-      'qwen2.5:3b',
-      'qwen2.5:7b',
-      'qwen2.5:14b',
-      'mistral:7b',
-      'mistral-nemo:12b',
-      'llama3.1:8b',
-      'gemma2:9b',
+  it('recommends French-capable models with their usage, disk and memory needs', () => {
+    expect(OLLAMA_CATALOG.map((m) => [m.name, m.usage])).toEqual([
+      ['qwen2.5:3b', 'chat'],
+      ['qwen2.5:7b', 'chat'],
+      ['qwen2.5:14b', 'chat'],
+      ['mistral:7b', 'chat'],
+      ['mistral-nemo:12b', 'chat'],
+      ['llama3.1:8b', 'chat'],
+      ['gemma2:9b', 'chat'],
+      ['qwen2.5vl:3b', 'vision'],
+      ['qwen2.5vl:7b', 'vision'],
     ])
     for (const model of OLLAMA_CATALOG) {
       expect(model.memoryGb).toBeGreaterThan(model.diskGb)

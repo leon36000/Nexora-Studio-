@@ -45,6 +45,29 @@ ports="$(python3 -I -c 'import json,sys; c=json.load(sys.stdin)["services"].get(
 python3 -I -c 'import json,sys; c=json.load(sys.stdin)["services"]["caddy"]; assert c["environment"]["NEXORA_DOMAIN"]=="nexora.pme-test.fr" and any(v.get("target")=="/etc/caddy/Caddyfile" for v in c["volumes"])' <<< "$https_rendered" 2>/dev/null \
   && ok "HTTPS proxy gets the domain and its Caddyfile" || ko "HTTPS proxy gets the domain and its Caddyfile"
 
+# Local transcription (profile « voice »): off by default; on, a pinned Whisper server reachable only
+# on the internal network, with capped threads, registered by the bootstrap.
+[ "$(has_service whisper)" = "False" ] && ok "no transcription service by default" || ko "no transcription service by default"
+[ -z "$(python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["nexora-bootstrap"]["environment"].get("NEXORA_WHISPER_URL") or "")' <<< "$rendered")" ] \
+  && ok "the bootstrap registers no transcription service by default" || ko "the bootstrap registers no transcription service by default"
+voice_env="$(mktemp)"; cp "$env_file" "$voice_env"
+printf "COMPOSE_PROFILES=voice\nNEXORA_WHISPER_URL=http://whisper:8000\n" >> "$voice_env"
+voice_rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$voice_env" config --format json 2>/dev/null)"; rm -f "$voice_env"
+python3 -I -c '
+import json, re, sys
+services = json.load(sys.stdin)["services"]
+w = services["whisper"]
+assert re.search(r":\d+\.\d+\.\d+(-[a-z0-9]+)?$", w["image"]), w["image"]
+assert not w.get("ports"), w.get("ports")
+assert int(w["environment"]["WHISPER__CPU_THREADS"]) >= 1
+assert any(v.get("type") == "volume" for v in w.get("volumes", []))
+b = services["nexora-bootstrap"]["environment"]
+assert b["NEXORA_WHISPER_URL"] == "http://whisper:8000"
+assert "whisper-small" in b["NEXORA_WHISPER_MODEL"]
+' <<< "$voice_rendered" 2>/dev/null \
+  && ok "transcription service: pinned image, internal only, capped threads, registered by the bootstrap" \
+  || ko "transcription service: pinned image, internal only, capped threads, registered by the bootstrap"
+
 # install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
 printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"
 rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"

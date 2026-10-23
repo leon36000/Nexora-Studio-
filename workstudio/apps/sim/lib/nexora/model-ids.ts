@@ -15,11 +15,31 @@ export function canonicalOllamaName(name: string): string {
 export const DEFAULT_MODEL_ALIAS = 'nexora-default'
 
 /**
- * Model ids offered to blocks, from Nexora API's `/v1/models`: every router name and every alias
- * (the default model is the router carrying `nexora-default`), prefixed `vllm/`, the default alias
- * first and each id once.
+ * What a model is used for (Réglages › Modèles): chatting (Agent and the other chat blocks),
+ * reading images and documents (Vision, OCR), or transcribing speech. Each usage is a Nexora API
+ * router type.
  */
-export function listedModelIds(models: ReadonlyArray<{ id: string; aliases?: unknown }>): string[] {
+export const NEXORA_MODEL_USAGES = ['chat', 'vision', 'transcription'] as const
+export type NexoraModelUsage = (typeof NEXORA_MODEL_USAGES)[number]
+
+export const ROUTER_TYPE_BY_USAGE: Record<NexoraModelUsage, string> = {
+  chat: 'text-generation',
+  vision: 'image-to-text',
+  transcription: 'automatic-speech-recognition',
+}
+
+/** The usage a Nexora API router type serves, `null` for the types WorkStudio does not manage. */
+export function usageOfRouterType(type: string): NexoraModelUsage | null {
+  return NEXORA_MODEL_USAGES.find((usage) => ROUTER_TYPE_BY_USAGE[usage] === type) ?? null
+}
+
+interface ServedModel {
+  id: string
+  type?: unknown
+  aliases?: unknown
+}
+
+function namesOf(models: ReadonlyArray<ServedModel>): string[] {
   const names: string[] = []
   for (const model of models) {
     const aliases = Array.isArray(model.aliases) ? model.aliases : []
@@ -27,6 +47,27 @@ export function listedModelIds(models: ReadonlyArray<{ id: string; aliases?: unk
       if (typeof name === 'string' && name.trim() && !names.includes(name)) names.push(name)
     }
   }
+  return names
+}
+
+/** Names (and aliases) of the models Nexora API's `/v1/models` serves for one usage. */
+export function modelNamesOfUsage(
+  models: ReadonlyArray<ServedModel>,
+  usage: NexoraModelUsage
+): string[] {
+  return namesOf(models.filter((model) => model.type === ROUTER_TYPE_BY_USAGE[usage]))
+}
+
+/**
+ * Model ids offered to the chat blocks, from Nexora API's `/v1/models`: every chat router name and
+ * every alias (the default model is the router carrying `nexora-default`), prefixed `vllm/`, the
+ * default alias first and each id once. Vision and transcription models are left out; an entry
+ * without a type is kept.
+ */
+export function listedModelIds(models: ReadonlyArray<ServedModel>): string[] {
+  const names = namesOf(
+    models.filter((model) => model.type === undefined || model.type === ROUTER_TYPE_BY_USAGE.chat)
+  )
   const ordered = names.includes(DEFAULT_MODEL_ALIAS)
     ? [DEFAULT_MODEL_ALIAS, ...names.filter((name) => name !== DEFAULT_MODEL_ALIAS)]
     : names

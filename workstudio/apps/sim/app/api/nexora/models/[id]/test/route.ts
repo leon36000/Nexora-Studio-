@@ -10,7 +10,10 @@ interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-/** Asks a model one short question, by the name blocks use, and times the answer. */
+/**
+ * Tries a model by the name blocks use, on its own kind of input (a question, a sample image, a
+ * second of sound), and times the answer.
+ */
 export const POST = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
   const access = await authorizeInstanceAdmin({ requireInstanceOrganization: true })
   if (!access.ok) return deniedResponse(access.status)
@@ -19,7 +22,7 @@ export const POST = withRouteHandler(async (request: NextRequest, context: Route
   try {
     const model = (await listNexoraModels()).find((m) => m.id === parsed.data.params.id)
     if (!model) return NextResponse.json({ error: 'not-found' }, { status: 404 })
-    return NextResponse.json(await testNexoraModel(model.name))
+    return NextResponse.json(await testNexoraModel(model.name, {}, model.usage))
   } catch (error) {
     const response = modelErrorResponse(error)
     if (response) return response

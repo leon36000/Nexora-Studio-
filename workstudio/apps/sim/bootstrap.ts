@@ -6,6 +6,8 @@
 import { createLogger } from '@sim/logger'
 import { loadRuntimeSecrets } from '@sim/runtime-secrets'
 import { distrustCompromisedRoots } from '@sim/security/tls-trust'
+import { getErrorMessage } from '@sim/utils/errors'
+import { loadInstanceSettingsIntoEnv } from '@/lib/nexora/startup-settings'
 
 const tlsTrust = distrustCompromisedRoots()
 await loadRuntimeSecrets()
@@ -14,6 +16,18 @@ if (tlsTrust.unsupported || tlsTrust.error) {
   logger.error('Could not distrust compromised CA roots', tlsTrust)
 } else if (tlsTrust.removed.length > 0) {
   logger.info('Distrusted compromised CA roots', { removed: tlsTrust.removed })
+}
+// Nexora edition: single sign-on, e-mail and sign-up domains saved in Réglages are read once,
+// here, because Better Auth and the mailer read their configuration when the server loads. A
+// failure only leaves those settings to deploy/.env; WorkStudio still starts.
+try {
+  const settings = await loadInstanceSettingsIntoEnv()
+  if (settings?.applied.length) logger.info('Applied instance settings', settings)
+  if (settings?.failed.length) {
+    logger.error('Instance settings could not be decrypted; check ENCRYPTION_KEY', settings)
+  }
+} catch (error) {
+  logger.error('Could not read the instance settings', { error: getErrorMessage(error) })
 }
 // `server.js` is the Next standalone build artifact, a sibling of this file in
 // the image; it does not exist at type-check time, so the specifier is held in a

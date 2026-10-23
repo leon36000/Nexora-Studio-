@@ -93,6 +93,16 @@ es="$hs/deploy/.env"
 [ "$(envval NEXORA_PREVIEW_BLOCKS "$es")" = "searxng" ] && ok "Web Search block revealed" || ko "Web Search block revealed"
 [ "$(envval NEXORA_SEARXNG_SECRET "$es" | wc -c)" -ge 33 ] && ok "SearXNG secret generated" || ko "SearXNG secret generated"
 
+# 1b'. Local transcription stays off unless asked; on, its profile joins the others.
+[ -z "$(envval NEXORA_WHISPER_URL "$e")" ] && ok "local transcription off by default" || ko "local transcription off by default"
+hv="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_WEB_SEARCH=1 NEXORA_VOICE=1 run "$hv" --yes --no-start && ok "install with local transcription succeeds" || { ko "install with local transcription succeeds"; cat "$hv.out"; }
+ev="$hv/deploy/.env"
+[ "$(envval COMPOSE_PROFILES "$ev")" = "search,voice" ] && ok "transcription profile added to web search" || ko "transcription profile added to web search (got: $(envval COMPOSE_PROFILES "$ev"))"
+[ "$(envval NEXORA_WHISPER_URL "$ev")" = "http://whisper:8000" ] && ok "the bootstrap registers the transcription service" || ko "the bootstrap registers the transcription service"
+[ "$(envval NEXORA_WHISPER_THREADS "$ev")" -ge 1 ] 2> /dev/null && ok "transcription threads capped" || ko "transcription threads capped"
+
 # 1c. Outgoing email by SMTP, given as environment values in unattended mode.
 hm="$(new_home)/nexora"
 NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \

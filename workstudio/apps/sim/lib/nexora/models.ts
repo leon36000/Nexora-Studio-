@@ -14,6 +14,36 @@ export const MODEL_DEFAULT_BLOCK_TYPES: readonly string[] = [
   'guardrails',
 ]
 
+/**
+ * Nexora edition: blocks with a « Nexora » provider (a vision, OCR or transcription model served by
+ * Nexora API, no key to enter). New blocks of these types start on it.
+ */
+const NEXORA_PROVIDER_BLOCK_TYPES: readonly string[] = [
+  'vision_v2',
+  'stt',
+  'stt_v2',
+  'mistral_parse_v3',
+]
+
+/** The `provider` value of a block's « Nexora » option. */
+export const NEXORA_BLOCK_PROVIDER = 'nexora'
+
+/**
+ * Whether a new block's sub-block starts on the « Nexora » provider: only in the Nexora edition,
+ * recognized by its default chat model being served by Nexora API (`vllm/…`).
+ */
+export function receivesNexoraProvider(
+  blockType: string,
+  subBlockId: string,
+  defaultChatModel: string | null | undefined
+): boolean {
+  return (
+    subBlockId === 'provider' &&
+    NEXORA_PROVIDER_BLOCK_TYPES.includes(blockType) &&
+    pickNexoraDefaultModel(defaultChatModel ? [defaultChatModel] : []) !== null
+  )
+}
+
 /** Whether a new block's sub-block is seeded with the deployment's default chat model. */
 export function receivesDefaultModel(blockType: string, subBlockId: string): boolean {
   return subBlockId === 'model' && MODEL_DEFAULT_BLOCK_TYPES.includes(blockType)

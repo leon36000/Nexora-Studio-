@@ -1,6 +1,11 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { env } from '@/lib/core/config/env'
-import { DEFAULT_MODEL_ALIAS } from '@/lib/nexora/model-ids'
+import {
+  DEFAULT_MODEL_ALIAS,
+  type NexoraModelUsage,
+  ROUTER_TYPE_BY_USAGE,
+  usageOfRouterType,
+} from '@/lib/nexora/model-ids'
 
 /** Where a model runs: the bundled Ollama, Mistral AI, or any OpenAI-compatible service. */
 export type NexoraModelSource = 'ollama' | 'mistral' | 'openai-compatible'
@@ -11,6 +16,8 @@ export interface NexoraModel {
   /** The name blocks use (`vllm/<name>`). */
   name: string
   isDefault: boolean
+  /** Chat, vision/OCR or transcription: the Nexora API router type. */
+  usage: NexoraModelUsage
   source: NexoraModelSource
   providerModel: string
   providerUrl: string | null
@@ -19,6 +26,8 @@ export interface NexoraModel {
 export interface AddNexoraModelInput {
   source: NexoraModelSource
   model: string
+  /** Chat by default. */
+  usage?: NexoraModelUsage
   /** Address of an OpenAI-compatible service, without `/v1`. */
   url?: string
   key?: string
@@ -89,6 +98,15 @@ const ROUTER_FIELDS = [
   'cost_prompt_tokens',
   'cost_completion_tokens',
 ] as const
+/** Chat answers come fast; a local vision or transcription model on a CPU takes minutes. */
+const PROVIDER_TIMEOUT_SECONDS: Record<NexoraModelUsage, number> = {
+  chat: 120,
+  vision: 600,
+  transcription: 600,
+}
+/** A short sample read by « Tester » on a vision model: the word « Nexora », black on white. */
+const SAMPLE_IMAGE =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABAAgMAAAAi1dC4AAAADFBMVEUEBAT///+lpaVZWVnj7/xyAAAACXBIWXMAAAsTAAALEwEAmpwYAAABmUlEQVRIx+3UP26DMBQG8A8sBqSSTOxdcoSoa46QgUeiJAPq2KUcwUfoYrVDh6zNlCOwdKzUhSN06Rkqtd8zUZsBD3SMsIRkMD/g/cGQwQMjGclILomUByebwyCyRiJLM5Ckw0k0nMTDCf5BWiX35kPuXnzyjhPhdJtuvnitn+QkJZBJZaSOZQfMpYpsVum1XtLMSSjh1nA2E+t1DCXoJzYh0eV8hZxV4syfe9L2kn1GsohLfg5u1KUVXIXp261sMeslzxGJTaVJxF7BFcjXyKvu+QHyZEj0/lRqaFTtSokuHvjmPvKIByOYfjcZkxXxcCvMmDwpGwSIw7vRmJmngg23AzM+q2LxKQmQ5vqPJGdkESYLRgBzhd8PUxKJNBMXIhp0t1ZxdoqFRGsUIEv4jHFY3wIt8+zJvAyRHQkbpXz1pSww26Ht3lKESEFS4/OYaMPwyaaB+FjifYjwJlkyO0nXlqxG7IkNZ4zpkpWSrvlrsDpKasRBYlnqI4xbcBsAe5H9pWSNeS85389Ogz9nNw7jzj+SkVwY+QFHMuj69VKfAwAAAABJRU5ErkJggg=='
 /** Local files the knowledge bases need, whatever the model list says. */
 const PROTECTED_LOCAL_MODELS = new Set(['bge-m3'])
 
@@ -179,38 +197,49 @@ function createClient(options: NexoraModelAdminOptions) {
   return { config, fetchFn, call, expectOk, routers, providers, updateRouter }
 }
 
-function toModel(router: ApiRouter, provider: ApiProvider | undefined): NexoraModel {
+function toModel(
+  router: ApiRouter,
+  usage: NexoraModelUsage,
+  provider: ApiProvider | undefined
+): NexoraModel {
   return {
     id: router.id,
     name: router.name,
     isDefault: (router.aliases ?? []).includes(DEFAULT_MODEL_ALIAS),
+    usage,
     source: sourceOf(provider?.url ?? null),
     providerModel: provider?.model_name ?? router.name,
     providerUrl: provider?.url ? normalizeUrl(provider.url) : null,
   }
 }
 
-/** The chat models Nexora API serves, the default one first. */
+/** The chat, vision and transcription models Nexora API serves, the default one first. */
 export async function listNexoraModels(
   options: NexoraModelAdminOptions = {}
 ): Promise<NexoraModel[]> {
   const client = createClient(options)
   const [routers, providers] = await Promise.all([client.routers(), client.providers()])
-  const models = routers
-    .filter((router) => router.type === 'text-generation')
-    .map((router) =>
+  const models = routers.flatMap((router) => {
+    const usage = usageOfRouterType(router.type)
+    if (!usage) return []
+    return [
       toModel(
         router,
+        usage,
         providers.find((p) => p.router_id === router.id)
-      )
-    )
+      ),
+    ]
+  })
   return [...models.filter((m) => m.isDefault), ...models.filter((m) => !m.isDefault)]
 }
 
 /**
- * Adds a model as its own Nexora API router and provider, then lets WorkStudio's key use it
- * (a role without a limit for a router is refused by Nexora API). Nexora API checks that the
- * provider answers before saving it; when it does not, the new router is removed again.
+ * Adds a model as its own Nexora API router (typed after its usage) and provider, then lets
+ * WorkStudio's key use it (a role without a limit for a router is refused by Nexora API). Nexora
+ * API checks that the provider answers before saving it; when it does not, the new router is
+ * removed again. Mistral OCR and Voxtral need Nexora API's Mistral provider type (its own OCR
+ * route, audio through chat); every other model is reached as an OpenAI-compatible service, a
+ * local vision model through chat completions.
  */
 export async function addNexoraModel(
   input: AddNexoraModelInput,
@@ -219,9 +248,13 @@ export async function addNexoraModel(
   const client = createClient(options)
   const name = input.model.trim()
   const key = input.key?.trim() || 'none'
+  const usage = input.usage ?? 'chat'
   if (!name) throw new NexoraModelError('invalid', 'model name is empty')
   if (input.source === 'mistral' && key === 'none') {
     throw new NexoraModelError('invalid', 'a Mistral AI key is required')
+  }
+  if (input.source === 'ollama' && usage === 'transcription') {
+    throw new NexoraModelError('invalid', 'Ollama cannot transcribe speech')
   }
   const url =
     input.source === 'ollama'
@@ -236,7 +269,7 @@ export async function addNexoraModel(
     throw new NexoraModelError('duplicate', `${name} already exists`)
   }
   const created = await client.call<{ id?: number }>('POST', '/v1/admin/routers', {
-    body: { name, type: 'text-generation', aliases: [] },
+    body: { name, type: ROUTER_TYPE_BY_USAGE[usage], aliases: [] },
   })
   if (created.status === 409) throw new NexoraModelError('duplicate', `${name} already exists`)
   const routerId = created.data.id
@@ -248,11 +281,11 @@ export async function addNexoraModel(
     .call<{ id?: number; detail?: string }>('POST', '/v1/admin/providers', {
       body: {
         router_id: routerId,
-        type: 'openai',
+        type: input.source === 'mistral' && usage !== 'chat' ? 'mistral' : 'openai',
         url,
         key,
         model_name: name,
-        timeout: 120,
+        timeout: PROVIDER_TIMEOUT_SECONDS[usage],
         ...(input.totalParams ? { model_total_params: Math.round(input.totalParams) } : {}),
       },
       timeoutMs: 120_000,
@@ -289,6 +322,7 @@ export async function addNexoraModel(
     id: routerId,
     name,
     isDefault: false,
+    usage,
     source: input.source,
     providerModel: name,
     providerUrl: url,
@@ -326,7 +360,7 @@ export async function setDefaultNexoraModel(
 }
 
 /**
- * Removes a model (its router and providers). The default model cannot go. Returns the
+ * Removes a model of any usage (its router and providers). The default model cannot go. Returns the
  * bundled Ollama's model name when no remaining model uses it, so its file can be deleted.
  */
 export async function removeNexoraModel(
@@ -336,7 +370,7 @@ export async function removeNexoraModel(
   const client = createClient(options)
   const [routers, providers] = await Promise.all([client.routers(), client.providers()])
   const isDefault = (r: ApiRouter) => (r.aliases ?? []).includes(DEFAULT_MODEL_ALIAS)
-  const router = routers.find((r) => r.id === id && r.type === 'text-generation')
+  const router = routers.find((r) => r.id === id && usageOfRouterType(r.type) !== null)
   if (!router) throw new NexoraModelError('not-found', `model ${id} not found`)
   if (isDefault(router))
     throw new NexoraModelError('is-default', 'the default model cannot be removed')
@@ -363,13 +397,66 @@ export async function removeNexoraModel(
   return { removedLocalModel: local.model_name }
 }
 
-/** Asks a model one short question with WorkStudio's own key, like a block would. */
-export async function testNexoraModel(
+/** One second of silence, as a 16 kHz mono WAV: enough for a transcription model to answer. */
+function silentWav(seconds = 1, sampleRate = 16_000): Uint8Array<ArrayBuffer> {
+  const dataBytes = seconds * sampleRate * 2
+  const wav = new Uint8Array(new ArrayBuffer(44 + dataBytes))
+  const view = new DataView(wav.buffer)
+  const ascii = (offset: number, text: string) => {
+    for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i))
+  }
+  ascii(0, 'RIFF')
+  view.setUint32(4, 36 + dataBytes, true)
+  ascii(8, 'WAVE')
+  ascii(12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * 2, true)
+  view.setUint16(32, 2, true)
+  view.setUint16(34, 16, true)
+  ascii(36, 'data')
+  view.setUint32(40, dataBytes, true)
+  return wav
+}
+
+async function testRequest(
+  client: ReturnType<typeof createClient>,
   name: string,
-  options: NexoraModelAdminOptions = {}
-): Promise<{ latencyMs: number; reply: string }> {
-  const client = createClient(options)
-  const started = performance.now()
+  usage: NexoraModelUsage
+): Promise<{ status: number; reply: string; detail?: string }> {
+  if (usage === 'vision') {
+    const { status, data } = await client.call<{
+      pages?: { markdown?: string | null }[]
+      detail?: string
+    }>('POST', '/v1/ocr', {
+      token: client.config.apiKey,
+      timeoutMs: 600_000,
+      body: { model: name, document: { type: 'image_url', image_url: SAMPLE_IMAGE } },
+    })
+    const reply = (data.pages ?? []).map((page) => page.markdown ?? '').join('\n')
+    return { status, reply, detail: data.detail }
+  }
+  if (usage === 'transcription') {
+    const form = new FormData()
+    form.append('file', new Blob([silentWav()], { type: 'audio/wav' }), 'nexora-test.wav')
+    form.append('model', name)
+    let response: Response
+    try {
+      // boundary-raw-fetch: Nexora API is a separate service, not a same-origin route
+      response = await client.fetchFn(`${client.config.adminBaseUrl}/v1/audio/transcriptions`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${client.config.apiKey}` },
+        body: form,
+        signal: AbortSignal.timeout(600_000),
+      })
+    } catch (error) {
+      throw new NexoraModelAdminUnavailableError(getErrorMessage(error, 'request failed'))
+    }
+    const data = (await response.json().catch(() => ({}))) as { text?: string; detail?: string }
+    return { status: response.status, reply: data.text ?? '', detail: data.detail }
+  }
   const { status, data } = await client.call<{
     choices?: { message?: { content?: string } }[]
     detail?: string
@@ -383,12 +470,24 @@ export async function testNexoraModel(
       temperature: 0,
     },
   })
+  return { status, reply: data.choices?.[0]?.message?.content ?? '', detail: data.detail }
+}
+
+/**
+ * Tries a model with WorkStudio's own key, like a block would: a short question for a chat
+ * model, a sample image for a vision model, a second of silence for a transcription model.
+ */
+export async function testNexoraModel(
+  name: string,
+  options: NexoraModelAdminOptions = {},
+  usage: NexoraModelUsage = 'chat'
+): Promise<{ latencyMs: number; reply: string }> {
+  const client = createClient(options)
+  const started = performance.now()
+  const { status, reply, detail } = await testRequest(client, name, usage)
   if (status === 404) throw new NexoraModelError('not-found', `${name} is not served`)
   if (status >= 400) {
-    throw new NexoraModelError('unreachable', data.detail ?? `model answered HTTP ${status}`)
+    throw new NexoraModelError('unreachable', detail ?? `model answered HTTP ${status}`)
   }
-  return {
-    latencyMs: Math.round(performance.now() - started),
-    reply: (data.choices?.[0]?.message?.content ?? '').trim(),
-  }
+  return { latencyMs: Math.round(performance.now() - started), reply: reply.trim() }
 }

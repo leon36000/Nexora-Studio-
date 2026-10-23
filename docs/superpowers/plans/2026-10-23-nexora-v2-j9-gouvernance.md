@@ -1,6 +1,6 @@
 # J9 « Gouvernance dans l'interface » Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** gouverner l'instance depuis l'interface : groupes d'accès, SSO, e-mail, domaines autorisés.
 
@@ -30,22 +30,22 @@
 ### Task 1: Réglages d'instance chiffrés
 
 **Files:** `lib/nexora/instance-settings.ts` (+ tests) : lecture/écriture (SSO, SMTP, domaines) dans une ligne de réglages (métadonnées de l'organisation d'instance), chiffrement, priorité du `.env`.
-- [ ] Tests RED→GREEN ; commit `feat(j9): réglages d'instance chiffrés`.
+- [x] Tests RED→GREEN ; commit `feat(j9): réglages d'instance chiffrés`.
 
 ### Task 2: E-mail et domaines
 
 **Files:** le service d'envoi lit SMTP à chaud (réglages puis `.env`), route d'e-mail de test, contrôle des domaines à l'inscription (existant `NEXORA_ALLOWED_EMAIL_DOMAINS` + réglages), routes et section Réglages › E-mail.
-- [ ] Tests RED→GREEN (priorités, test d'envoi, domaine refusé) ; commit `feat(j9): e-mail et domaines autorisés dans l'interface`.
+- [x] Tests RED→GREEN (priorités, test d'envoi, domaine refusé) ; commit `feat(j9): e-mail et domaines autorisés dans l'interface`.
 
 ### Task 3: SSO
 
 **Files:** `lib/nexora/oidc.ts` (lecture des réglages au démarrage si `.env` vide), route « tester » (découverte OIDC) et « appliquer » (enregistre puis arrête proprement le processus ; le conteneur repart), section Réglages › Sécurité.
-- [ ] Tests RED→GREEN ; commit `feat(j9): connexion unique réglable dans l'interface`.
+- [x] Tests RED→GREEN ; commit `feat(j9): connexion unique réglable dans l'interface`.
 
 ### Task 4: Groupes d'accès
 
 **Files:** `ee/access-control/components/access-control.tsx` (remplacement clean-room : liste des groupes, membres, cases en français, modèles « Lecture seule », « Créateurs », « Administrateurs ») sur l'API existante.
-- [ ] Interface, tests des aides pures ; commit `feat(j9): groupes d'accès`.
+- [x] Interface, tests des aides pures ; commit `feat(j9): groupes d'accès`.
 
 ### Task 5: Guide, fumée, pc6, revue
 - [ ] `docs/guide/reglages.md` ; capture d'e-mails locale (conteneur de test lancé pour l'occasion) et Keycloak de `scripts/dev` ; parcours « Terminé quand » ; revue finale ; push.

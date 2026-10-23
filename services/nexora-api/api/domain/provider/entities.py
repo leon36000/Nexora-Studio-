@@ -70,8 +70,10 @@ COMPATIBLE_PROVIDER_TYPES: dict[RouterType, list[str]] = {
         ProviderType.TEI.value,
         ProviderType.VLLM.value,
     ],
-    RouterType.IMAGE_TO_TEXT: [  # ocr
+    RouterType.IMAGE_TO_TEXT: [  # ocr; Nexora: openai/vllm serve it with a vision model (chat completions)
         ProviderType.MISTRAL.value,
+        ProviderType.OPENAI.value,
+        ProviderType.VLLM.value,
     ],
 }
 

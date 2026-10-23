@@ -659,6 +659,12 @@ export const isNexoraOidcEnabled = Boolean(
 )
 
 /**
+ * Nexora edition: members must sign in through the company identity provider (Réglages ›
+ * Sécurité, « Connexion obligatoire »). Owners and admins keep their password as a fallback.
+ */
+export const isNexoraOidcRequired = isNexoraOidcEnabled && isTruthy(env.NEXORA_OIDC_REQUIRED)
+
+/**
  * Is email/password signup disabled
  * When true, new registrations via email/password are blocked at the server level.
  * Existing users can still sign in with email/password.

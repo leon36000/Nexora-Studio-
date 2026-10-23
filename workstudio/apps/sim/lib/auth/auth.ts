@@ -133,6 +133,7 @@ import {
   isGoogleAuthDisabled,
   isHosted,
   isMicrosoftAuthDisabled,
+  isNexoraOidcRequired,
   isOrganizationsEnabled,
   isRegistrationDisabled,
   isSignupMxValidationEnabled,
@@ -154,6 +155,12 @@ import { validateSignupEmailMx } from '@/lib/messaging/email/validation.server'
 import { isEmailVerificationEffectivelyEnabled } from '@/lib/messaging/email/verification'
 import { scheduleLifecycleEmail } from '@/lib/messaging/lifecycle'
 import { APP_ENTRY_PATH } from '@/lib/navigation/paths'
+import {
+  isNexoraSignUpAllowed,
+  isPasswordSignInAllowed,
+  organizationRoleOfEmail,
+} from '@/lib/nexora/auth-policy'
+import { NEXORA_SIGN_UP_REFUSED, NEXORA_SSO_REQUIRED } from '@/lib/nexora/auth-refusals'
 import { buildNexoraOidcProvider } from '@/lib/nexora/oidc'
 import { clearRecordedRevocation } from '@/lib/oauth/credential-service'
 import {
@@ -358,6 +365,11 @@ export const auth = betterAuth({
           const accessControl = await getAccessControlConfig()
           if (isEmailBlockedByAccessControl(user.email, accessControl)) {
             throw new Error('Sign-ups from this email are not allowed.')
+          }
+          // Nexora edition: every way of creating an account (email, social, single sign-on)
+          // honours the allowed domains; an outside address needs a pending invitation.
+          if (user.email && !(await isNexoraSignUpAllowed(user.email, accessControl))) {
+            throw new APIError('FORBIDDEN', { message: NEXORA_SIGN_UP_REFUSED })
           }
           return { data: user }
         },
@@ -1128,18 +1140,20 @@ export const auth = betterAuth({
           // Banning an existing account is owned by better-auth's admin plugin (a
           // `session.create.before` hook that blocks banned users at sign-in across
           // all providers), so it is not re-checked here.
-          const hasAllowlist =
-            accessControl.allowedLoginEmails.length > 0 ||
-            accessControl.allowedLoginDomains.length > 0
-          if (hasAllowlist && requestEmail) {
-            const emailDomain = requestEmail.split('@')[1]
-            const isAllowed =
-              accessControl.allowedLoginEmails.includes(requestEmail) ||
-              (!!emailDomain && accessControl.allowedLoginDomains.includes(emailDomain))
-            if (!isAllowed) {
-              throw new APIError('FORBIDDEN', {
-                message: 'Access restricted. Please contact your administrator.',
-              })
+          // Nexora edition: the allowlists govern account creation only (an invited outside
+          // address must keep signing in), so sign-in is not checked against them.
+          if (
+            isSignUp &&
+            requestEmail &&
+            !(await isNexoraSignUpAllowed(requestEmail, accessControl))
+          ) {
+            throw new APIError('FORBIDDEN', { message: NEXORA_SIGN_UP_REFUSED })
+          }
+
+          if (isNexoraOidcRequired && requestEmail && ctx.path.startsWith('/sign-in/email')) {
+            const role = await organizationRoleOfEmail(requestEmail)
+            if (!isPasswordSignInAllowed({ ssoRequired: true, role })) {
+              throw new APIError('FORBIDDEN', { message: NEXORA_SSO_REQUIRED })
             }
           }
 

@@ -1,0 +1,89 @@
+import pytest
+
+from api.domain.ocr.entities import CreateOCRBody, OCRDocumentURLChunk, OCRImageURL, OCRImageURLChunk
+from api.domain.provider.entities import ProviderEndpoint, ProviderRequest, ProviderType
+from api.domain.provider.errors import ProviderAdapterValidationRequestError
+from api.infrastructure.http import HttpProviderResponse
+from api.infrastructure.http.adapters.ocr.mistral import MistralOcrAdapter
+from api.infrastructure.http.adapters.ocr.openai import OpenaiOcrAdapter
+from api.tests.unit.use_case.factories import ProviderFactory
+
+PNG = "data:image/png;base64,iVBORw0KGgo="
+
+
+def _request(document, prompt: str | None = None, request_id: str = "req-1") -> ProviderRequest:
+    body = CreateOCRBody(document=document, document_annotation_prompt=prompt, model="ocr-router")
+    return ProviderRequest(id=request_id, endpoint=ProviderEndpoint.OCR, payload=body)
+
+
+@pytest.fixture
+def adapter() -> OpenaiOcrAdapter:
+    return OpenaiOcrAdapter(provider=ProviderFactory(type=ProviderType.OPENAI, url="http://ollama:11434", model_name="qwen2.5vl:3b"))
+
+
+class TestOpenaiOcrAdapter:
+    def test_should_ask_the_vision_model_to_transcribe_the_image_through_chat_completions(self, adapter):
+        # Act
+        result = adapter.to_http_request(request=_request(OCRImageURLChunk(image_url=PNG)))
+
+        # Assert
+        assert result.url == "http://ollama:11434/v1/chat/completions"
+        assert result.body["model"] == "qwen2.5vl:3b"
+        assert result.body["temperature"] == 0
+        assert result.body["stream"] is False
+        content = result.body["messages"][0]["content"]
+        assert content[0]["type"] == "text" and "Markdown" in content[0]["text"]
+        assert content[1] == {"type": "image_url", "image_url": {"url": PNG}}
+
+    def test_should_read_an_image_given_as_an_object_or_as_an_image_document(self, adapter):
+        for document in (OCRImageURLChunk(image_url=OCRImageURL(url=PNG)), OCRDocumentURLChunk(document_url=PNG)):
+            result = adapter.to_http_request(request=_request(document))
+            assert result.body["messages"][0]["content"][1]["image_url"]["url"] == PNG
+
+    def test_should_ask_the_annotation_prompt_instead_of_a_transcription(self, adapter):
+        result = adapter.to_http_request(request=_request(OCRImageURLChunk(image_url=PNG), prompt="Décris l'image"))
+        assert result.body["messages"][0]["content"][0] == {"type": "text", "text": "Décris l'image"}
+
+    def test_should_refuse_a_pdf_a_vision_model_cannot_read(self, adapter):
+        # Act
+        result = adapter.to_http_request(request=_request(OCRDocumentURLChunk(document_url="data:application/pdf;base64,JVBERi0=")))
+
+        # Assert
+        assert isinstance(result, ProviderAdapterValidationRequestError)
+        assert "image" in str(result.errors)
+
+    def test_should_return_the_transcription_as_a_single_page(self, adapter):
+        # Arrange
+        response = HttpProviderResponse(
+            data={
+                "choices": [{"message": {"role": "assistant", "content": "# Facture\\n\\nTotal : 12 €"}}],
+                "usage": {"prompt_tokens": 900, "completion_tokens": 12},
+            }
+        )
+
+        # Act
+        result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG), request_id="req-9"))
+
+        # Assert
+        assert result.data.id == "req-9"
+        assert result.data.model == "ocr-router"
+        assert [(page.index, page.markdown, page.images) for page in result.data.pages] == [(0, "# Facture\\n\\nTotal : 12 €", [])]
+        assert result.data.document_annotation is None
+        assert result.data.usage_info.pages_processed == 1
+
+    def test_should_return_the_answer_to_an_annotation_prompt_as_the_document_annotation(self, adapter):
+        response = HttpProviderResponse(data={"choices": [{"message": {"content": "Un chat roux."}}]})
+        result = adapter.to_provider_response(http_response=response, request=_request(OCRImageURLChunk(image_url=PNG), prompt="Décris"))
+        assert result.data.document_annotation == "Un chat roux."
+        assert result.data.pages[0].markdown == "Un chat roux."
+
+
+class TestMistralOcrAdapter:
+    def test_should_not_forward_an_annotation_prompt_without_its_format(self):
+        # Nexora API has no `document_annotation_format` to forward, and Mistral refuses a prompt without it.
+        adapter = MistralOcrAdapter(
+            provider=ProviderFactory(type=ProviderType.MISTRAL, url="https://api.mistral.ai", model_name="mistral-ocr-latest")
+        )
+        result = adapter.to_http_request(request=_request(OCRImageURLChunk(image_url=PNG), prompt="Décris"))
+        assert "document_annotation_prompt" not in result.body
+        assert result.body["model"] == "mistral-ocr-latest"

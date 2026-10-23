@@ -220,6 +220,10 @@
         },
         "sso": {
           "primary_provider_changed": "Primary SSO provider changed"
+        },
+        "instance_settings": {
+          "updated": "Instance settings updated",
+          "applied": "Instance settings applied (restart)"
         }
       },
       "org_member": {

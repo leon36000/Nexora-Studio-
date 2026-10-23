@@ -116,12 +116,17 @@ export const VisionBlock: BlockConfig = {
   },
 }
 
+/** Nexora edition: the provider of the v2 block; `external` (or unset) keeps the upstream models. */
+const NOT_NEXORA = { field: 'provider', value: 'nexora', not: true } as const
+const ON_NEXORA = { field: 'provider', value: 'nexora' } as const
+
 export const VisionV2Block: BlockConfig = {
   ...VisionBlock,
   type: 'vision_v2',
   name: 'Vision',
   description: 'Analyze images with vision models',
-  hideFromToolbar: true,
+  // Nexora edition: shown, with the « Nexora » provider (a vision model of Réglages › Modèles).
+  hideFromToolbar: false,
   canvasPresentation: {
     defaultTitle: 'Vision',
     sentences: {
@@ -132,18 +137,24 @@ export const VisionV2Block: BlockConfig = {
     },
   },
   tools: {
-    access: ['vision_tool_v2'],
+    access: ['vision_tool_v2', 'vision_nexora'],
     config: {
-      tool: createVersionedToolSelector({
-        baseToolSelector: () => 'vision_tool',
-        suffix: '_v2',
-        fallbackToolId: 'vision_tool_v2',
-      }),
+      tool: (params) =>
+        params.provider === 'nexora'
+          ? 'vision_nexora'
+          : createVersionedToolSelector({
+              baseToolSelector: () => 'vision_tool',
+              suffix: '_v2',
+              fallbackToolId: 'vision_tool_v2',
+            })(params),
       params: (params) => {
         // imageFile is the canonical param for both basic and advanced modes
         const imageFile = normalizeFileInput(params.imageFile, {
           single: true,
         })
+        if (params.provider === 'nexora') {
+          return { imageFile, model: params.nexoraModel, prompt: params.prompt }
+        }
         return {
           ...params,
           imageFile,
@@ -152,6 +163,16 @@ export const VisionV2Block: BlockConfig = {
     },
   },
   subBlocks: [
+    {
+      id: 'provider',
+      title: 'Provider',
+      type: 'dropdown',
+      options: [
+        { label: 'Nexora', id: 'nexora' },
+        { label: 'OpenAI, Anthropic, Google', id: 'external' },
+      ],
+      value: () => 'external',
+    },
     {
       id: 'imageFile',
       title: 'Image File',
@@ -178,6 +199,16 @@ export const VisionV2Block: BlockConfig = {
       type: 'dropdown',
       options: VISION_MODEL_OPTIONS,
       value: () => 'gpt-5.2',
+      condition: NOT_NEXORA,
+    },
+    {
+      id: 'nexoraModel',
+      title: 'Nexora model',
+      type: 'short-input',
+      placeholder: 'First Vision / OCR model',
+      description:
+        'A Vision / OCR model from Settings › Models. Leave empty to use the first one; without one, ask an administrator to add it.',
+      condition: ON_NEXORA,
     },
     {
       id: 'prompt',
@@ -192,10 +223,13 @@ export const VisionV2Block: BlockConfig = {
       type: 'short-input',
       placeholder: 'Enter your API key',
       password: true,
-      required: true,
+      required: { field: 'provider', value: 'nexora', not: true },
+      condition: NOT_NEXORA,
     },
   ],
   inputs: {
+    provider: { type: 'string', description: 'Nexora, or another provider with its API key' },
+    nexoraModel: { type: 'string', description: 'Nexora vision model' },
     apiKey: { type: 'string', description: 'Provider API key' },
     imageFile: { type: 'json', description: 'Image file (UserFile)' },
     model: { type: 'string', description: 'Vision model' },

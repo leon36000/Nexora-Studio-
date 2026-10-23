@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { classifyOllamaPullError, listedModelIds } from '@/lib/nexora/model-ids'
+import {
+  classifyOllamaPullError,
+  listedModelIds,
+  modelNamesOfUsage,
+  usageOfRouterType,
+} from '@/lib/nexora/model-ids'
 
 describe('listedModelIds', () => {
   it('lists every Nexora API alias as a model, the default alias first', () => {
@@ -18,6 +23,32 @@ describe('listedModelIds', () => {
         { id: 'llama3.1:8b', aliases: 'nexora-default' },
       ])
     ).toEqual(['vllm/qwen2.5:7b', 'vllm/llama3.1:8b'])
+  })
+})
+
+describe('model usages', () => {
+  const served = [
+    { id: 'qwen2.5:7b', type: 'text-generation', aliases: ['nexora-default'] },
+    { id: 'qwen2.5vl:3b', type: 'image-to-text', aliases: ['ocr'] },
+    { id: 'whisper-small', type: 'automatic-speech-recognition' },
+    { id: 'bge-m3', type: 'text-embeddings-inference' },
+  ]
+
+  it('offers only chat models to the chat blocks', () => {
+    expect(listedModelIds(served)).toEqual(['vllm/nexora-default', 'vllm/qwen2.5:7b'])
+  })
+
+  it('names the models of each usage, by router type', () => {
+    expect(modelNamesOfUsage(served, 'vision')).toEqual(['qwen2.5vl:3b', 'ocr'])
+    expect(modelNamesOfUsage(served, 'transcription')).toEqual(['whisper-small'])
+    expect(modelNamesOfUsage(served, 'chat')).toEqual(['qwen2.5:7b', 'nexora-default'])
+  })
+
+  it('maps router types to usages and ignores the others', () => {
+    expect(usageOfRouterType('image-to-text')).toBe('vision')
+    expect(usageOfRouterType('automatic-speech-recognition')).toBe('transcription')
+    expect(usageOfRouterType('text-generation')).toBe('chat')
+    expect(usageOfRouterType('text-embeddings-inference')).toBeNull()
   })
 })
 

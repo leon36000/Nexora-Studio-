@@ -9,7 +9,11 @@
  * workspace route for a function only the canvas drop handler calls.
  */
 
-import { receivesDefaultModel } from '@/lib/nexora/models'
+import {
+  NEXORA_BLOCK_PROVIDER,
+  receivesDefaultModel,
+  receivesNexoraProvider,
+} from '@/lib/nexora/models'
 import type { SeedValueGate } from '@/lib/permission-groups/operation-access'
 import { getEffectiveBlockOutputs } from '@/lib/workflows/blocks/outputs'
 import { createDefaultInputFormatField } from '@/lib/workflows/input-format'
@@ -111,6 +115,9 @@ export function prepareBlockState(options: PrepareBlockStateOptions): BlockState
 
       if (agentDefaultModel && receivesDefaultModel(type, subBlock.id)) {
         initialValue = agentDefaultModel
+      }
+      if (receivesNexoraProvider(type, subBlock.id, agentDefaultModel)) {
+        initialValue = NEXORA_BLOCK_PROVIDER
       }
 
       if (

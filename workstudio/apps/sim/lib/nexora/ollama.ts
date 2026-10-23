@@ -1,22 +1,31 @@
 import { availableParallelism } from 'node:os'
 import { getErrorMessage } from '@sim/utils/errors'
 import { env } from '@/lib/core/config/env'
-import { OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
+import { type NexoraModelUsage, OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
 
 /**
- * Local models recommended for French-speaking SMEs on the bundled Ollama: disk size of the
- * download, memory to run it comfortably on a CPU server, and size in billions of parameters
- * (for the carbon footprint Nexora API computes).
+ * Local models recommended for French-speaking SMEs on the bundled Ollama: usage (chat, or vision
+ * for reading images and scanned documents), disk size of the download, memory to run it
+ * comfortably on a CPU server, and size in billions of parameters (for the carbon footprint
+ * Nexora API computes).
  */
 export const OLLAMA_CATALOG = [
-  { name: 'qwen2.5:3b', diskGb: 1.9, memoryGb: 4, paramsB: 3 },
-  { name: 'qwen2.5:7b', diskGb: 4.7, memoryGb: 8, paramsB: 7 },
-  { name: 'qwen2.5:14b', diskGb: 9, memoryGb: 16, paramsB: 14 },
-  { name: 'mistral:7b', diskGb: 4.1, memoryGb: 8, paramsB: 7 },
-  { name: 'mistral-nemo:12b', diskGb: 7.1, memoryGb: 12, paramsB: 12 },
-  { name: 'llama3.1:8b', diskGb: 4.9, memoryGb: 8, paramsB: 8 },
-  { name: 'gemma2:9b', diskGb: 5.4, memoryGb: 10, paramsB: 9 },
-] as const
+  { name: 'qwen2.5:3b', usage: 'chat', diskGb: 1.9, memoryGb: 4, paramsB: 3 },
+  { name: 'qwen2.5:7b', usage: 'chat', diskGb: 4.7, memoryGb: 8, paramsB: 7 },
+  { name: 'qwen2.5:14b', usage: 'chat', diskGb: 9, memoryGb: 16, paramsB: 14 },
+  { name: 'mistral:7b', usage: 'chat', diskGb: 4.1, memoryGb: 8, paramsB: 7 },
+  { name: 'mistral-nemo:12b', usage: 'chat', diskGb: 7.1, memoryGb: 12, paramsB: 12 },
+  { name: 'llama3.1:8b', usage: 'chat', diskGb: 4.9, memoryGb: 8, paramsB: 8 },
+  { name: 'gemma2:9b', usage: 'chat', diskGb: 5.4, memoryGb: 10, paramsB: 9 },
+  { name: 'qwen2.5vl:3b', usage: 'vision', diskGb: 3.2, memoryGb: 6, paramsB: 3.8 },
+  { name: 'qwen2.5vl:7b', usage: 'vision', diskGb: 6, memoryGb: 10, paramsB: 8.3 },
+] as const satisfies readonly {
+  name: string
+  usage: NexoraModelUsage
+  diskGb: number
+  memoryGb: number
+  paramsB: number
+}[]
 
 /** Local files the knowledge bases need (`bge-m3`, or `bge-m3:latest`). */
 const PROTECTED_MODELS = new Set(['bge-m3'])

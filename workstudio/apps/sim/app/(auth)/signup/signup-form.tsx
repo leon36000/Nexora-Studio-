@@ -13,6 +13,7 @@ import { useTrackingConsent } from '@/lib/consent/tracking-consent'
 import { getEnv, isFalsy } from '@/lib/core/config/env'
 import { isSsoEnabled } from '@/lib/core/config/env-flags'
 import { validateCallbackUrl } from '@/lib/core/security/input-validation'
+import { NEXORA_SIGN_UP_REFUSED } from '@/lib/nexora/auth-refusals'
 import { captureEvent } from '@/lib/posthog/client'
 import {
   buildAuthCrossLink,
@@ -232,7 +233,10 @@ function SignupFormContent({
             const errorMessage: string[] = [t('signup.errors.createFailed')]
 
             let errorCode = 'unknown'
-            if (ctx.error.code?.includes('USER_ALREADY_EXISTS')) {
+            if (ctx.error.message === NEXORA_SIGN_UP_REFUSED) {
+              errorCode = 'invitation_required'
+              setEmailError(t('signup.errors.invitationRequired'))
+            } else if (ctx.error.code?.includes('USER_ALREADY_EXISTS')) {
               errorCode = 'user_already_exists'
               setEmailError(t('signup.errors.userExists'))
             } else if (

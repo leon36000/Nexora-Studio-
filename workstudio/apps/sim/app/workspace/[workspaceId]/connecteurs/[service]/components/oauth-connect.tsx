@@ -22,8 +22,9 @@ interface OAuthConnectProps {
 
 /**
  * « Se connecter avec … »: the provider's consent opens in a window while the page follows the
- * request. Without the operator's OAuth application (Réglages › Connecteurs) the button is
- * replaced by what an administrator has to do.
+ * request. Without a public address for Nexora Connect (the provider could not send the person
+ * back), OAuth is shown as unavailable; without the operator's OAuth application (Réglages ›
+ * Connecteurs) the button is replaced by what an administrator has to do.
  */
 export function OAuthConnect({ workspaceId, service, serviceName, oauth }: OAuthConnectProps) {
   const t = useTranslations('connectors')
@@ -32,7 +33,7 @@ export function OAuthConnect({ workspaceId, service, serviceName, oauth }: OAuth
 
   useEffect(() => () => controllerRef.current?.abort(), [])
 
-  if (!oauth) {
+  if (!oauth?.available) {
     return <p className='text-[var(--text-muted)] text-small'>{t('detail.oauth.unavailable')}</p>
   }
   if (!oauth.configured) {

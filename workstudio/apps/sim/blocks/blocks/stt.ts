@@ -7,6 +7,8 @@ import { createVersionedToolSelector, normalizeFileInput } from '@/blocks/utils'
 const AUDIO_FIELD = ['audioFile', 'audioFileReference', 'audioUrl'] as const
 /* v2 drops the URL input, keeping only the upload/reference pair. */
 const AUDIO_V2_FIELD = ['audioFile', 'audioFileReference'] as const
+/** Nexora edition: a transcription model of Réglages › Modèles, served by Nexora API, no key. */
+const NOT_NEXORA = { field: 'provider', value: 'nexora', not: true } as const
 
 export const SttBlock: BlockConfig = {
   type: 'stt',
@@ -39,6 +41,7 @@ export const SttBlock: BlockConfig = {
       title: 'Provider',
       type: 'dropdown',
       options: [
+        { label: 'Nexora', id: 'nexora' },
         { label: 'OpenAI Whisper', id: 'whisper' },
         { label: 'Deepgram', id: 'deepgram' },
         { label: 'ElevenLabs', id: 'elevenlabs' },
@@ -123,6 +126,16 @@ export const SttBlock: BlockConfig = {
       required: true,
     },
 
+    {
+      id: 'nexoraModel',
+      title: 'Nexora model',
+      type: 'short-input',
+      placeholder: 'First Transcription model',
+      description:
+        'A Transcription model from Settings › Models. Leave empty to use the first one; without one, ask an administrator to add it. Recordings longer than ten minutes are transcribed piece by piece, up to three hours.',
+      condition: { field: 'provider', value: 'nexora' },
+    },
+
     // Audio/Video file upload (basic mode)
     {
       id: 'audioFile',
@@ -199,6 +212,7 @@ export const SttBlock: BlockConfig = {
       ],
       value: () => 'none',
       required: true,
+      condition: NOT_NEXORA,
     },
 
     // Speaker diarization (Deepgram/AssemblyAI only)
@@ -254,11 +268,19 @@ export const SttBlock: BlockConfig = {
       placeholder: 'Enter your API key',
       password: true,
       required: true,
+      condition: NOT_NEXORA,
     },
   ],
 
   tools: {
-    access: ['stt_whisper', 'stt_deepgram', 'stt_elevenlabs', 'stt_assemblyai', 'stt_gemini'],
+    access: [
+      'stt_whisper',
+      'stt_deepgram',
+      'stt_elevenlabs',
+      'stt_assemblyai',
+      'stt_gemini',
+      'stt_nexora',
+    ],
     config: {
       tool: (params) => {
         // Select tool based on provider
@@ -273,6 +295,8 @@ export const SttBlock: BlockConfig = {
             return 'stt_assemblyai'
           case 'gemini':
             return 'stt_gemini'
+          case 'nexora':
+            return 'stt_nexora'
           default:
             return 'stt_whisper'
         }
@@ -286,7 +310,7 @@ export const SttBlock: BlockConfig = {
         return {
           provider: params.provider,
           apiKey: params.apiKey,
-          model: params.model,
+          model: params.provider === 'nexora' ? params.nexoraModel : params.model,
           audioFile,
           audioUrl: params.audioUrl,
           language: params.language,
@@ -305,8 +329,9 @@ export const SttBlock: BlockConfig = {
   inputs: {
     provider: {
       type: 'string',
-      description: 'STT provider (whisper, deepgram, elevenlabs, assemblyai, gemini)',
+      description: 'STT provider (nexora, whisper, deepgram, elevenlabs, assemblyai, gemini)',
     },
+    nexoraModel: { type: 'string', description: 'Nexora transcription model' },
     apiKey: { type: 'string', description: 'Provider API key' },
     model: {
       type: 'string',
@@ -395,6 +420,7 @@ export const SttV2Block: BlockConfig = {
       'stt_elevenlabs_v2',
       'stt_assemblyai_v2',
       'stt_gemini_v2',
+      'stt_nexora_v2',
     ],
     config: {
       tool: createVersionedToolSelector({
@@ -410,6 +436,8 @@ export const SttV2Block: BlockConfig = {
               return 'stt_assemblyai'
             case 'gemini':
               return 'stt_gemini'
+            case 'nexora':
+              return 'stt_nexora'
             default:
               return 'stt_whisper'
           }
@@ -426,7 +454,7 @@ export const SttV2Block: BlockConfig = {
         return {
           provider: params.provider,
           apiKey: params.apiKey,
-          model: params.model,
+          model: params.provider === 'nexora' ? params.nexoraModel : params.model,
           audioFile,
           language: params.language,
           timestamps: params.timestamps,

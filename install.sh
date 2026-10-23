@@ -245,6 +245,24 @@ configure() {
       set_env NEXORA_PREVIEW_BLOCKS "" ;;
   esac
 
+  # Local transcription: a Whisper server on this machine (profile « voice »), about 1.5 GB with its
+  # model; a quarter of the cores so a long recording does not slow everything else down.
+  local voice
+  ask voice "Activer la transcription vocale locale (Whisper, environ 1,5 Go) ? (o/N)" "${NEXORA_VOICE:-0}"
+  case "$voice" in
+    1|o|O|oui|y|yes)
+      local voice_profiles cores
+      cores="$(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 4)"
+      set_env NEXORA_VOICE 1
+      set_env NEXORA_WHISPER_URL "http://whisper:8000"
+      set_env NEXORA_WHISPER_THREADS "${NEXORA_WHISPER_THREADS:-$(( cores > 7 ? cores / 4 : 2 ))}"
+      voice_profiles="$(get_env COMPOSE_PROFILES)"
+      case ",$voice_profiles," in *,voice,*) ;; *) set_env COMPOSE_PROFILES "${voice_profiles:+$voice_profiles,}voice" ;; esac ;;
+    *)
+      set_env NEXORA_VOICE 0
+      set_env NEXORA_WHISPER_URL "" ;;
+  esac
+
   set_env NEXORA_ORGANIZATION_NAME "$org"
   set_env NEXORA_ORGANIZATION_OWNER_EMAIL "$email"
   set_env NEXORA_ALLOWED_EMAIL_DOMAINS "$domains"

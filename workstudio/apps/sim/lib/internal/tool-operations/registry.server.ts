@@ -1113,6 +1113,14 @@ const STAGEHAND_TOOL_IDS = ['stagehand_agent', 'stagehand_extract'] as const
 
 const VISION_TOOL_IDS = ['vision_tool', 'vision_tool_v2'] as const
 
+/** Nexora edition: the « Nexora » provider of the Vision, OCR and Speech-to-Text blocks. */
+const NEXORA_DOCUMENT_AI_TOOL_IDS = [
+  'vision_nexora',
+  'ocr_nexora',
+  'stt_nexora',
+  'stt_nexora_v2',
+] as const
+
 const GITHUB_TOOL_IDS = [
   'github_comment',
   'github_comment_v2',
@@ -1704,6 +1712,10 @@ registerFamily(handlerLoaders, STAGEHAND_TOOL_IDS, async () => {
 })
 registerFamily(handlerLoaders, VISION_TOOL_IDS, async () => {
   return (await import('@/lib/internal/vision/execute-tool')).executeVisionTool
+})
+registerFamily(handlerLoaders, NEXORA_DOCUMENT_AI_TOOL_IDS, async () => {
+  return (await import('@/lib/internal/nexora-document-ai/execute-tool'))
+    .executeNexoraDocumentAiTool
 })
 registerFamily(handlerLoaders, GITHUB_TOOL_IDS, async () => {
   return (await import('@/lib/internal/github/execute-tool')).executeGitHubTool

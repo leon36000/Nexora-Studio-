@@ -19,7 +19,6 @@ import { db } from '@sim/db'
 import { member, organization, user } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
-import { slugify } from '@sim/utils/string'
 import { eq, sql } from 'drizzle-orm'
 import {
   createOrganizationWithOwnerTx,
@@ -29,6 +28,7 @@ import { env } from '@/lib/core/config/env'
 import { isBillingEnabled } from '@/lib/core/config/env-flags'
 import { acquireAdvisoryXactLock } from '@/lib/db/advisory-locks'
 import type { DbOrTx } from '@/lib/db/types'
+import { deriveInstanceOrganizationSlug } from '@/lib/nexora/instance-settings-env'
 
 const logger = createLogger('InstanceOrganization')
 
@@ -55,9 +55,12 @@ export function getInstanceOrganizationConfig(): InstanceOrganizationConfig | nu
   const name = env.INSTANCE_ORG_NAME?.trim()
   if (!name) return null
 
-  // Nexora edition: accents are folded first, so « Société » yields `societe`, not `soci-t`.
-  const slug =
-    env.INSTANCE_ORG_SLUG?.trim() || slugify(name.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+  // Nexora edition: accents are folded first, so « Société » yields `societe`, not `soci-t`. The
+  // container bootstrap derives the same slug to find the stored instance settings.
+  const slug = deriveInstanceOrganizationSlug({
+    INSTANCE_ORG_NAME: name,
+    INSTANCE_ORG_SLUG: env.INSTANCE_ORG_SLUG,
+  })
   if (!slug) {
     logger.error('INSTANCE_ORG_NAME does not yield a usable slug; set INSTANCE_ORG_SLUG', { name })
     return null

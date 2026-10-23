@@ -60,6 +60,9 @@ const NexoraModels = dynamic(() => SECTION_MODULES.models().then((m) => m.Nexora
 const NexoraConnectorApps = dynamic(() =>
   SECTION_MODULES.connectors().then((m) => m.NexoraConnectorApps)
 )
+const NexoraEmailSettings = dynamic(() =>
+  SECTION_MODULES.email().then((m) => m.NexoraEmailSettings)
+)
 const Desktop = dynamic(() => SECTION_MODULES.desktop().then((m) => m.Desktop))
 const Browser = dynamic(() => SECTION_MODULES.browser().then((m) => m.Browser))
 const Terminal = dynamic(() => SECTION_MODULES.terminal().then((m) => m.Terminal))
@@ -146,6 +149,7 @@ function SettingsPageContent({ section }: SettingsPageProps) {
       {effectiveSection === 'connectors' && organizationId && (
         <NexoraConnectorApps workspaceId={hostContext.workspace.id} />
       )}
+      {effectiveSection === 'email' && organizationId && <NexoraEmailSettings />}
       {effectiveSection === 'apikeys' && <ApiKeys scope='combined' />}
       {billingEnabled && effectiveSection === 'billing' && (
         <Billing

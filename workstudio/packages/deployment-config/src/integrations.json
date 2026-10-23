@@ -17654,16 +17654,20 @@
         {
           "name": "Mistral PDF Parser",
           "description": "Parse PDF documents using Mistral OCR API"
+        },
+        {
+          "name": "Nexora OCR",
+          "description": "Extract the text of a PDF or an image with an OCR or vision model served by Nexora API (Réglages › Modèles, usage Vision / OCR)."
         }
       ],
-      "operationCount": 1,
+      "operationCount": 2,
       "triggers": [],
       "triggerCount": 0,
       "authType": "api-key",
       "category": "tools",
       "integrationType": "ai",
       "tags": ["document-processing", "ocr"],
-      "updatedAt": "2026-10-14"
+      "updatedAt": "2026-10-23"
     },
     {
       "type": "modal",

@@ -1,6 +1,6 @@
 # J10 « Document AI et voix » Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** OCR, vision et transcription souverains dans les blocs et les connaissances ; réindexation des bases.
 
@@ -27,10 +27,10 @@
 ---
 
 ### Task 1: Usages de modèles et sources locales
-- [ ] Réglages › Modèles : usage (Discussion, Vision/OCR, Transcription) à l'ajout (routeurs `image-to-text`, `automatic-speech-recognition`) ; catalogue Ollama vision (`qwen2.5vl:3b`, `qwen2.5vl:7b`) ; profil compose `voice` (Whisper, image épinglée) ; tests (client d'administration, compose) ; commit.
+- [x] Réglages › Modèles : usage (Discussion, Vision/OCR, Transcription) à l'ajout (routeurs `image-to-text`, `automatic-speech-recognition`) ; catalogue Ollama vision (`qwen2.5vl:3b`, `qwen2.5vl:7b`) ; profil compose `voice` (Whisper, image épinglée) ; tests (client d'administration, compose) ; commit.
 
 ### Task 2: Fournisseur « Nexora » dans les blocs
-- [ ] Vision, analyse de fichier (OCR), transcription : fournisseur par défaut dans l'édition Nexora ; tests des outils (corps de requête, réponses) ; commit.
+- [x] Vision, analyse de fichier (OCR), transcription : fournisseur par défaut dans l'édition Nexora ; tests des outils (corps de requête, réponses) ; commit.
 
 ### Task 3: Connaissances
 - [ ] Repli OCR quand l'extraction de texte est vide ; transcription des fichiers audio ; tests ; commit.

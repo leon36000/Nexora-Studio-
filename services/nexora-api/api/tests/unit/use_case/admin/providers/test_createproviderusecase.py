@@ -129,6 +129,8 @@ COMPATIBLE_PROVIDER_ROUTER_PAIRS: list[tuple[RouterType, ProviderType]] = [
     (RouterType.TEXT_CLASSIFICATION, ProviderType.TEI),
     (RouterType.TEXT_CLASSIFICATION, ProviderType.VLLM),
     (RouterType.IMAGE_TO_TEXT, ProviderType.MISTRAL),
+    (RouterType.IMAGE_TO_TEXT, ProviderType.OPENAI),
+    (RouterType.IMAGE_TO_TEXT, ProviderType.VLLM),
 ]
 
 INCOMPATIBLE_PROVIDER_ROUTER_PAIRS: list[tuple[RouterType, ProviderType]] = [
@@ -137,9 +139,7 @@ INCOMPATIBLE_PROVIDER_ROUTER_PAIRS: list[tuple[RouterType, ProviderType]] = [
     (RouterType.TEXT_CLASSIFICATION, ProviderType.OPENAI),
     (RouterType.TEXT_CLASSIFICATION, ProviderType.MISTRAL),
     (RouterType.IMAGE_TO_TEXT, ProviderType.ALBERT),
-    (RouterType.IMAGE_TO_TEXT, ProviderType.OPENAI),
     (RouterType.IMAGE_TO_TEXT, ProviderType.TEI),
-    (RouterType.IMAGE_TO_TEXT, ProviderType.VLLM),
 ]
 
 

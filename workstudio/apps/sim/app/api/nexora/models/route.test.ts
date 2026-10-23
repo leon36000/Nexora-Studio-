@@ -63,6 +63,7 @@ const qwen = {
   id: 7,
   name: 'qwen2.5:7b',
   isDefault: true,
+  usage: 'chat',
   source: 'ollama',
   providerModel: 'qwen2.5:7b',
   providerUrl: 'http://ollama:11434',
@@ -200,9 +201,42 @@ describe('Nexora models routes', () => {
     admin.test.mockResolvedValue({ latencyMs: 812, reply: 'Bonjour' })
     const response = await TEST(post('/api/nexora/models/7/test'), createRouteContext({ id: '7' }))
     expect(await response.json()).toEqual({ latencyMs: 812, reply: 'Bonjour' })
-    expect(admin.test).toHaveBeenCalledWith('qwen2.5:7b')
+    expect(admin.test).toHaveBeenCalledWith('qwen2.5:7b', {}, 'chat')
     const missing = await TEST(post('/api/nexora/models/99/test'), createRouteContext({ id: '99' }))
     expect(missing.status).toBe(404)
+  })
+
+  it('adds a model for its usage, chat when none is given, and refuses Ollama transcription', async () => {
+    admin.add.mockResolvedValue({ ...qwen, id: 9, isDefault: false })
+    await POST(
+      post('/api/nexora/models', { source: 'ollama', model: 'qwen2.5vl:3b', usage: 'vision' }),
+      {}
+    )
+    await POST(
+      post('/api/nexora/models', {
+        source: 'openai-compatible',
+        model: 'Systran/faster-whisper-small',
+        url: 'http://whisper:8000',
+        usage: 'transcription',
+      }),
+      {}
+    )
+    await POST(post('/api/nexora/models', { source: 'mistral', model: 'm', key: 'k' }), {})
+    expect(admin.add.mock.calls.map((c) => c[0].usage)).toEqual(['vision', 'transcription', 'chat'])
+
+    const refused = await POST(
+      post('/api/nexora/models', { source: 'ollama', model: 'whisper', usage: 'transcription' }),
+      {}
+    )
+    expect(refused.status).toBe(400)
+    expect(admin.add).toHaveBeenCalledTimes(3)
+  })
+
+  it('tests a vision model on its own kind of input', async () => {
+    admin.list.mockResolvedValue([{ ...qwen, id: 8, name: 'qwen2.5vl:3b', usage: 'vision' }])
+    admin.test.mockResolvedValue({ latencyMs: 3000, reply: 'Nexora' })
+    await TEST(post('/api/nexora/models/8/test'), createRouteContext({ id: '8' }))
+    expect(admin.test).toHaveBeenCalledWith('qwen2.5vl:3b', {}, 'vision')
   })
 
   it('names a local model the way Ollama lists it: lowercase, with a tag', async () => {

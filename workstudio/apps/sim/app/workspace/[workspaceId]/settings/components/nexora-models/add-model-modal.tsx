@@ -19,6 +19,8 @@ import type { NexoraModelSource } from '@/lib/nexora/model-admin'
 import {
   canonicalOllamaName,
   classifyOllamaPullError,
+  NEXORA_MODEL_USAGES,
+  type NexoraModelUsage,
   OLLAMA_MODEL_NAME,
 } from '@/lib/nexora/model-ids'
 import {
@@ -35,7 +37,12 @@ const WIZARD_STEPS = ['source', 'model', 'confirm'] as const
 type WizardStep = (typeof WIZARD_STEPS)[number]
 
 const MODEL_SOURCES: readonly NexoraModelSource[] = ['ollama', 'mistral', 'openai-compatible']
-const DEFAULT_MISTRAL_MODEL = 'mistral-small-latest'
+/** Mistral AI's model for each usage: chat, OCR (Mistral Document AI) and Voxtral transcription. */
+const DEFAULT_MISTRAL_MODEL: Record<NexoraModelUsage, string> = {
+  chat: 'mistral-small-latest',
+  vision: 'mistral-ocr-latest',
+  transcription: 'voxtral-mini-latest',
+}
 const SERVICE_URL = /^https?:\/\/[^\s/]+(\/\S*)?$/
 const REMOTE_MODEL_NAME = /^\S{1,128}$/
 const BYTES_PER_GB = 1_000_000_000
@@ -82,9 +89,10 @@ export function AddModelModal({
   const pullModel = usePullOllamaModel()
 
   const [step, setStep] = useState<WizardStep>('source')
+  const [usage, setUsage] = useState<NexoraModelUsage>('chat')
   const [source, setSource] = useState<NexoraModelSource | null>(null)
   const [ollamaModel, setOllamaModel] = useState('')
-  const [mistralModel, setMistralModel] = useState(DEFAULT_MISTRAL_MODEL)
+  const [mistralModel, setMistralModel] = useState(DEFAULT_MISTRAL_MODEL.chat)
   const [mistralKey, setMistralKey] = useState('')
   const [serviceUrl, setServiceUrl] = useState('')
   const [serviceModel, setServiceModel] = useState('')
@@ -97,9 +105,10 @@ export function AddModelModal({
     setWasOpen(open)
     if (open) {
       setStep('source')
+      setUsage('chat')
       setSource(null)
       setOllamaModel('')
-      setMistralModel(DEFAULT_MISTRAL_MODEL)
+      setMistralModel(DEFAULT_MISTRAL_MODEL.chat)
       setMistralKey('')
       setServiceUrl('')
       setServiceModel('')
@@ -114,6 +123,18 @@ export function AddModelModal({
   const isDownloading = pullModel.isPending
   const isAdding = addModel.isPending
   const isBusy = isDownloading || isAdding
+
+  // Ollama serves chat and vision models; it does not transcribe speech.
+  const isSourceAvailable = (candidate: NexoraModelSource) =>
+    candidate !== 'ollama' || (ollamaAvailable && usage !== 'transcription')
+  const usageCatalog = catalog.filter((entry) => entry.usage === usage)
+
+  const chooseUsage = (next: NexoraModelUsage) => {
+    setUsage(next)
+    setMistralModel(DEFAULT_MISTRAL_MODEL[next])
+    setOllamaModel('')
+    if (next === 'transcription' && source === 'ollama') setSource(null)
+  }
 
   // Shown and sent as Ollama lists it (lowercase, with a tag), the name Nexora API checks.
   const ollamaName = canonicalOllamaName(ollamaModel)
@@ -184,6 +205,7 @@ export function AddModelModal({
         const result = await addModel.mutateAsync({
           source: 'ollama',
           model: ollamaName,
+          usage: usage === 'vision' ? 'vision' : 'chat',
           ...(catalogEntry ? { totalParams: catalogEntry.paramsB } : {}),
         })
         added = result.model
@@ -191,6 +213,7 @@ export function AddModelModal({
         const result = await addModel.mutateAsync({
           source: 'mistral',
           model: mistralModel.trim(),
+          usage,
           key: mistralKey.trim(),
         })
         added = result.model
@@ -199,6 +222,7 @@ export function AddModelModal({
         const result = await addModel.mutateAsync({
           source: 'openai-compatible',
           model: serviceModel.trim(),
+          usage,
           url: serviceUrl.trim(),
           ...(key ? { key } : {}),
         })
@@ -262,7 +286,11 @@ export function AddModelModal({
 
   const sourceHint = [
     source ? t(`source.hints.${source}`) : null,
-    ollamaAvailable ? null : t('source.ollamaUnavailable'),
+    usage === 'transcription'
+      ? t('source.transcriptionNoOllama')
+      : ollamaAvailable
+        ? null
+        : t('source.ollamaUnavailable'),
   ]
     .filter(Boolean)
     .join(' ')
@@ -289,25 +317,42 @@ export function AddModelModal({
       </ChipModalHeader>
       <ChipModalBody>
         {step === 'source' && (
-          <ChipModalField type='custom' title={t('source.title')} hint={sourceHint || undefined}>
-            <ChipButtonGroup
-              value={source ?? undefined}
-              onValueChange={(value) => {
-                const next = MODEL_SOURCES.find((candidate) => candidate === value)
-                if (next) setSource(next)
-              }}
-            >
-              {MODEL_SOURCES.map((candidate) => (
-                <ChipButtonGroupItem
-                  key={candidate}
-                  value={candidate}
-                  disabled={candidate === 'ollama' && !ollamaAvailable}
-                >
-                  {t(`source.options.${candidate}`)}
-                </ChipButtonGroupItem>
-              ))}
-            </ChipButtonGroup>
-          </ChipModalField>
+          <>
+            <ChipModalField type='custom' title={t('usage.title')} hint={t(`usage.hints.${usage}`)}>
+              <ChipButtonGroup
+                value={usage}
+                onValueChange={(value) => {
+                  const next = NEXORA_MODEL_USAGES.find((candidate) => candidate === value)
+                  if (next) chooseUsage(next)
+                }}
+              >
+                {NEXORA_MODEL_USAGES.map((candidate) => (
+                  <ChipButtonGroupItem key={candidate} value={candidate}>
+                    {tModels(`usages.${candidate}`)}
+                  </ChipButtonGroupItem>
+                ))}
+              </ChipButtonGroup>
+            </ChipModalField>
+            <ChipModalField type='custom' title={t('source.title')} hint={sourceHint || undefined}>
+              <ChipButtonGroup
+                value={source ?? undefined}
+                onValueChange={(value) => {
+                  const next = MODEL_SOURCES.find((candidate) => candidate === value)
+                  if (next && isSourceAvailable(next)) setSource(next)
+                }}
+              >
+                {MODEL_SOURCES.map((candidate) => (
+                  <ChipButtonGroupItem
+                    key={candidate}
+                    value={candidate}
+                    disabled={!isSourceAvailable(candidate)}
+                  >
+                    {t(`source.options.${candidate}`)}
+                  </ChipButtonGroupItem>
+                ))}
+              </ChipButtonGroup>
+            </ChipModalField>
+          </>
         )}
 
         {step === 'model' && source === 'ollama' && (
@@ -318,7 +363,7 @@ export function AddModelModal({
                 aria-label={t('ollama.catalog')}
                 className='flex flex-col gap-1'
               >
-                {catalog.map((entry) => {
+                {usageCatalog.map((entry) => {
                   const selected = entry.name === ollamaName
                   return (
                     <button
@@ -430,7 +475,9 @@ export function AddModelModal({
           <>
             <ChipModalField type='custom' title={t('confirm.summary')}>
               <div className='flex flex-col gap-0.5 text-sm'>
-                <span className='text-[var(--text-body)]'>{t(`source.options.${source}`)}</span>
+                <span className='text-[var(--text-body)]'>
+                  {`${tModels(`usages.${usage}`)} · ${t(`source.options.${source}`)}`}
+                </span>
                 <span className='break-all font-mono text-[var(--text-muted)]'>
                   {source === 'ollama'
                     ? ollamaName

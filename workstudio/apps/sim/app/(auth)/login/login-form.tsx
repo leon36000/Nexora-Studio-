@@ -22,6 +22,7 @@ import { isSsoEnabled } from '@/lib/core/config/env-flags'
 import { validateCallbackUrl } from '@/lib/core/security/input-validation'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { quickValidateEmail } from '@/lib/messaging/email/validation'
+import { NEXORA_SSO_REQUIRED } from '@/lib/nexora/auth-refusals'
 import { buildAuthCrossLink, DEFAULT_POST_AUTH_ROUTE } from '@/app/(auth)/auth-redirect'
 import {
   AuthDivider,
@@ -184,7 +185,11 @@ export default function LoginPage({
               setResetSuccessMessage(null)
               setPasswordErrors([])
               setShowValidationError(false)
-              setPolicyError(ctx.error.message)
+              setPolicyError(
+                ctx.error.message === NEXORA_SSO_REQUIRED
+                  ? t('login.errors.ssoRequired')
+                  : ctx.error.message
+              )
               return
             }
 

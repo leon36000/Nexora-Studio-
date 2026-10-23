@@ -29,9 +29,10 @@ const SKELETON_ROWS = [0, 1, 2] as const
 const TEST_REPLY_MAX_LENGTH = 160
 
 /**
- * Réglages › Modèles: the chat models Nexora API serves to every block. Instance admins add one
- * (a local Ollama model, Mistral AI, or any OpenAI-compatible service), test it, make it the
- * default behind `nexora-default`, or remove it.
+ * Réglages › Modèles: the models Nexora API serves to every block, each for one usage (chat,
+ * vision/OCR, transcription). Instance admins add one (a local Ollama model, Mistral AI, or any
+ * OpenAI-compatible service), test it, make a chat model the default behind `nexora-default`, or
+ * remove it.
  */
 export function NexoraModels() {
   const t = useTranslations('settings.models')
@@ -47,7 +48,12 @@ export function NexoraModels() {
   const describeError = (cause: unknown) => t(`errors.${getNexoraModelErrorCode(cause)}`)
 
   const describeSource = (model: NexoraModel) =>
-    [t(`sources.${model.source}`), model.providerModel, model.providerUrl]
+    [
+      t(`usages.${model.usage}`),
+      t(`sources.${model.source}`),
+      model.providerModel,
+      model.providerUrl,
+    ]
       .filter(Boolean)
       .join(' · ')
 
@@ -155,7 +161,8 @@ export function NexoraModels() {
                           disabled: isTesting,
                           onSelect: () => handleTest(model),
                         },
-                        ...(model.isDefault
+                        // Only a chat model can answer nexora-default.
+                        ...(model.isDefault || model.usage !== 'chat'
                           ? []
                           : [
                               {

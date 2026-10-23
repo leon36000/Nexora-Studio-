@@ -23,6 +23,8 @@ from api.infrastructure.http.adapters.models.tei import TeiModelsAdapter
 from api.infrastructure.http.adapters.models.vllm import VllmModelsAdapter
 from api.infrastructure.http.adapters.ocr.albert import AlbertOcrAdapter
 from api.infrastructure.http.adapters.ocr.mistral import MistralOcrAdapter
+from api.infrastructure.http.adapters.ocr.openai import OpenaiOcrAdapter
+from api.infrastructure.http.adapters.ocr.vllm import VllmOcrAdapter
 from api.infrastructure.http.adapters.rerank.albert import AlbertRerankAdapter
 from api.infrastructure.http.adapters.rerank.tei import TeiRerankAdapter
 from api.infrastructure.http.adapters.rerank.vllm import VllmRerankAdapter
@@ -63,6 +65,8 @@ class HttpProviderAdapterBuilder:
         ProviderEndpoint.OCR: {
             ProviderType.ALBERT: AlbertOcrAdapter,
             ProviderType.MISTRAL: MistralOcrAdapter,
+            ProviderType.OPENAI: OpenaiOcrAdapter,
+            ProviderType.VLLM: VllmOcrAdapter,
         },
         ProviderEndpoint.RERANK: {
             ProviderType.ALBERT: AlbertRerankAdapter,

@@ -60,6 +60,8 @@ function fakeNexoraApi() {
     down: false,
     patches: 0,
     routerLists: 0,
+    ocrRequests: [] as { document: { image_url: string } }[],
+    transcriptionFiles: [] as File[],
     /** Simulates another admin making this router the default between two reads. */
     makeDefaultOnSecondList: null as number | null,
   }
@@ -67,12 +69,13 @@ function fakeNexoraApi() {
   function addRouter(
     name: string,
     aliases: string[],
-    provider: Omit<FakeProvider, 'id' | 'router_id' | 'type'>
+    provider: Omit<FakeProvider, 'id' | 'router_id' | 'type'>,
+    type = 'text-generation'
   ) {
     const router: FakeRouter = {
       id: nextId++,
       name,
-      type: 'text-generation',
+      type,
       aliases,
       load_balancing_strategy: 'shuffle',
       cost_prompt_tokens: 0,
@@ -93,7 +96,7 @@ function fakeNexoraApi() {
     const url = new URL(String(input))
     const method = init?.method ?? 'GET'
     const auth = new Headers(init?.headers).get('Authorization')
-    const body = init?.body ? JSON.parse(String(init.body)) : undefined
+    const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
     const path = url.pathname
 
     if (path === '/v1/chat/completions') {
@@ -101,6 +104,23 @@ function fakeNexoraApi() {
       const known = state.routers.some((r) => [r.name, ...r.aliases].includes(body.model))
       if (!known) return jsonResponse({ detail: 'Model not found' }, 404)
       return jsonResponse({ choices: [{ message: { content: ` Bonjour (${body.model}) ` } }] })
+    }
+    if (path === '/v1/ocr') {
+      if (auth !== `Bearer ${API_KEY}`) return jsonResponse({}, 401)
+      const router = state.routers.find((r) => [r.name, ...r.aliases].includes(body.model))
+      if (router?.type !== 'image-to-text') return jsonResponse({ detail: 'Model not found' }, 404)
+      state.ocrRequests.push(body)
+      return jsonResponse({ pages: [{ index: 0, images: [], markdown: ' Nexora ' }] })
+    }
+    if (path === '/v1/audio/transcriptions') {
+      if (auth !== `Bearer ${API_KEY}`) return jsonResponse({}, 401)
+      const form = init?.body as FormData
+      const router = state.routers.find((r) => [r.name, ...r.aliases].includes(String(form.get('model'))))
+      if (router?.type !== 'automatic-speech-recognition') {
+        return jsonResponse({ detail: 'Model not found' }, 404)
+      }
+      state.transcriptionFiles.push(form.get('file') as File)
+      return jsonResponse({ text: ' Bonjour. ' })
     }
     if (auth !== `Bearer ${ADMIN_KEY}`) return jsonResponse({}, 401)
 
@@ -212,6 +232,128 @@ describe('listNexoraModels', () => {
       ['qwen2.5:7b', 'ollama', true],
       ['mistral-small-latest', 'mistral', false],
     ])
+  })
+})
+
+describe('model usages', () => {
+  it('lists vision and transcription models with their usage, never the embedding models', async () => {
+    const { addRouter, options } = setup()
+    addRouter(
+      'qwen2.5vl:3b',
+      [],
+      { url: 'http://ollama:11434', model_name: 'qwen2.5vl:3b' },
+      'image-to-text'
+    )
+    addRouter(
+      'whisper-small',
+      [],
+      { url: 'http://whisper:8000', model_name: 'Systran/faster-whisper-small' },
+      'automatic-speech-recognition'
+    )
+    addRouter(
+      'bge-m3',
+      [],
+      { url: 'http://ollama:11434', model_name: 'bge-m3' },
+      'text-embeddings-inference'
+    )
+    const models = await listNexoraModels(options)
+    expect(models.map((m) => [m.name, m.usage, m.isDefault])).toEqual([
+      ['qwen2.5:7b', 'chat', true],
+      ['qwen2.5vl:3b', 'vision', false],
+      ['whisper-small', 'transcription', false],
+    ])
+  })
+
+  it('adds a local vision model as an image-to-text router read by chat completions', async () => {
+    const { state, options } = setup()
+    const model = await addNexoraModel(
+      { source: 'ollama', model: 'qwen2.5vl:3b', usage: 'vision', totalParams: 3.8 },
+      options
+    )
+    expect(model).toMatchObject({ usage: 'vision', isDefault: false })
+    expect(state.routers.find((r) => r.id === model.id)?.type).toBe('image-to-text')
+    expect(state.providers.find((p) => p.router_id === model.id)).toMatchObject({
+      type: 'openai',
+      url: 'http://ollama:11434',
+      timeout: 600,
+    })
+  })
+
+  it('adds Mistral OCR and Voxtral through the Mistral provider type', async () => {
+    const { state, options } = setup()
+    const ocr = await addNexoraModel(
+      { source: 'mistral', model: 'mistral-ocr-latest', key: 'k', usage: 'vision' },
+      options
+    )
+    const voice = await addNexoraModel(
+      { source: 'mistral', model: 'voxtral-mini-latest', key: 'k', usage: 'transcription' },
+      options
+    )
+    expect(state.routers.find((r) => r.id === voice.id)?.type).toBe('automatic-speech-recognition')
+    expect(state.providers.find((p) => p.router_id === ocr.id)?.type).toBe('mistral')
+    expect(state.providers.find((p) => p.router_id === voice.id)?.type).toBe('mistral')
+  })
+
+  it('keeps chat models on the OpenAI-compatible provider type', async () => {
+    const { state, options } = setup()
+    const chat = await addNexoraModel(
+      { source: 'mistral', model: 'mistral-small-latest', key: 'k' },
+      options
+    )
+    expect(chat.usage).toBe('chat')
+    expect(state.providers.find((p) => p.router_id === chat.id)).toMatchObject({
+      type: 'openai',
+      timeout: 120,
+    })
+  })
+
+  it('refuses a transcription model on Ollama, which cannot transcribe, before creating anything', async () => {
+    const { state, options } = setup()
+    await expect(
+      addNexoraModel({ source: 'ollama', model: 'whisper:small', usage: 'transcription' }, options)
+    ).rejects.toMatchObject({ code: 'invalid' })
+    expect(state.routers).toHaveLength(1)
+  })
+
+  it('never makes a vision or transcription model the default, but removes it', async () => {
+    const { state, options } = setup()
+    const vision = await addNexoraModel(
+      { source: 'ollama', model: 'qwen2.5vl:3b', usage: 'vision' },
+      options
+    )
+    await expect(setDefaultNexoraModel(vision.id, options)).rejects.toMatchObject({
+      code: 'not-found',
+    })
+    expect(state.patches).toBe(0)
+    expect(await removeNexoraModel(vision.id, options)).toEqual({
+      removedLocalModel: 'qwen2.5vl:3b',
+    })
+  })
+
+  it('tests a vision model on a sample image and a transcription model on a short sound', async () => {
+    const { state, addRouter, options } = setup()
+    addRouter(
+      'qwen2.5vl:3b',
+      [],
+      { url: 'http://ollama:11434', model_name: 'qwen2.5vl:3b' },
+      'image-to-text'
+    )
+    addRouter(
+      'whisper-small',
+      [],
+      { url: 'http://whisper:8000', model_name: 'w' },
+      'automatic-speech-recognition'
+    )
+
+    expect((await testNexoraModel('qwen2.5vl:3b', options, 'vision')).reply).toBe('Nexora')
+    expect(state.ocrRequests[0].document.image_url).toMatch(/^data:image\/png;base64,/)
+
+    expect((await testNexoraModel('whisper-small', options, 'transcription')).reply).toBe(
+      'Bonjour.'
+    )
+    const sound = state.transcriptionFiles[0]
+    expect(sound.type).toBe('audio/wav')
+    expect(new TextDecoder().decode((await sound.arrayBuffer()).slice(0, 4))).toBe('RIFF')
   })
 })
 

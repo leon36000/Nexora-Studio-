@@ -1,13 +1,15 @@
 import { z } from 'zod'
 import { defineRouteContract } from '@/lib/api/contracts/types'
-import { canonicalOllamaName, OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
+import { canonicalOllamaName, NEXORA_MODEL_USAGES, OLLAMA_MODEL_NAME } from '@/lib/nexora/model-ids'
 
 const modelSourceSchema = z.enum(['ollama', 'mistral', 'openai-compatible'])
+const modelUsageSchema = z.enum(NEXORA_MODEL_USAGES)
 
 const nexoraModelSchema = z.object({
   id: z.number().int(),
   name: z.string(),
   isDefault: z.boolean(),
+  usage: modelUsageSchema,
   source: modelSourceSchema,
   providerModel: z.string(),
   providerUrl: z.string().nullable(),
@@ -29,7 +31,10 @@ const keySchema = z.string().trim().max(512, 'key is too long')
 
 const modelIdParamsSchema = z.object({ id: z.coerce.number().int().positive() })
 
-/** Chat models served by Nexora API, the bundled Ollama's catalog and downloads (Réglages › Modèles). */
+/**
+ * Chat, vision and transcription models served by Nexora API, the bundled Ollama's catalog and
+ * downloads (Réglages › Modèles).
+ */
 export const listNexoraModelsContract = defineRouteContract({
   method: 'GET',
   path: '/api/nexora/models',
@@ -40,6 +45,7 @@ export const listNexoraModelsContract = defineRouteContract({
       catalog: z.array(
         z.object({
           name: z.string(),
+          usage: modelUsageSchema,
           diskGb: z.number(),
           memoryGb: z.number(),
           paramsB: z.number(),
@@ -56,15 +62,19 @@ const addNexoraModelBodySchema = z.discriminatedUnion('source', [
   z.object({
     source: z.literal('ollama'),
     model: ollamaModelNameSchema,
+    // Ollama serves chat and vision models; it cannot transcribe speech.
+    usage: z.enum(['chat', 'vision']).default('chat'),
     totalParams: z.number().min(0).max(2000).optional(),
   }),
   z.object({
     source: z.literal('mistral'),
     model: remoteModelNameSchema,
+    usage: modelUsageSchema.default('chat'),
     key: keySchema.min(1, 'a Mistral AI key is required'),
   }),
   z.object({
     source: z.literal('openai-compatible'),
+    usage: modelUsageSchema.default('chat'),
     model: remoteModelNameSchema,
     url: z
       .string()

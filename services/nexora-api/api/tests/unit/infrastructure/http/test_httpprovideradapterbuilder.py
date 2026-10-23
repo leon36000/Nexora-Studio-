@@ -16,6 +16,7 @@ from api.infrastructure.http.adapters.models.mistral import MistralModelsAdapter
 from api.infrastructure.http.adapters.models.tei import TeiModelsAdapter
 from api.infrastructure.http.adapters.models.vllm import VllmModelsAdapter
 from api.infrastructure.http.adapters.ocr import OcrAdapter
+from api.infrastructure.http.adapters.ocr.openai import OpenaiOcrAdapter
 from api.infrastructure.http.adapters.rerank import RerankAdapter
 from api.infrastructure.http.adapters.rerank.tei import TeiRerankAdapter
 from api.infrastructure.http.adapters.rerank.vllm import VllmRerankAdapter
@@ -196,6 +197,19 @@ class TestHttpProviderAdapterBuilder:
         # Assert
         assert isinstance(result, OcrAdapter)
 
+    @pytest.mark.parametrize("provider_type", [ProviderType.OPENAI, ProviderType.VLLM])
+    def test_should_return_vision_ocr_adapter_for_openai_compatible_providers(
+        self, http_provider_adapter_builder: HttpProviderAdapterBuilder, provider_type: ProviderType
+    ):
+        # Arrange
+        provider = ProviderFactory(type=provider_type, url="http://ollama:11434")
+
+        # Act
+        result = http_provider_adapter_builder.build(endpoint=ProviderEndpoint.OCR, provider=provider)
+
+        # Assert
+        assert isinstance(result, OpenaiOcrAdapter)
+
     def test_should_return_openai_audio_transcriptions_adapter_for_openai_provider(self, http_provider_adapter_builder: HttpProviderAdapterBuilder):
         # Arrange
         provider = ProviderFactory(type=ProviderType.OPENAI, url="https://openai.test")
@@ -359,13 +373,11 @@ class TestHttpProviderAdapterBuilder:
             (ProviderType.ALBERT, ProviderEndpoint.METRICS),
             (ProviderType.MISTRAL, ProviderEndpoint.RERANK),
             (ProviderType.OPENAI, ProviderEndpoint.METRICS),
-            (ProviderType.OPENAI, ProviderEndpoint.OCR),
             (ProviderType.OPENAI, ProviderEndpoint.RERANK),
             (ProviderType.TEI, ProviderEndpoint.AUDIO_TRANSCRIPTIONS),
             (ProviderType.TEI, ProviderEndpoint.CHAT_COMPLETIONS),
             (ProviderType.TEI, ProviderEndpoint.METRICS),
             (ProviderType.TEI, ProviderEndpoint.OCR),
-            (ProviderType.VLLM, ProviderEndpoint.OCR),
         ],
     )
     def test_should_return_unsupported_provider_endpoint_error_when_adapter_is_not_found(

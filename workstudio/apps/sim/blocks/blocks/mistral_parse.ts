@@ -324,11 +324,31 @@ export const MistralParseV3Block: BlockConfig = {
   },
   subBlocks: [
     {
+      id: 'provider',
+      title: 'Provider',
+      type: 'dropdown',
+      options: [
+        { label: 'Mistral', id: 'mistral' },
+        { label: 'Nexora', id: 'nexora' },
+      ],
+      value: () => 'mistral',
+    },
+    {
+      id: 'nexoraModel',
+      title: 'Nexora model',
+      type: 'short-input',
+      placeholder: 'First Vision / OCR model',
+      description:
+        'A Vision / OCR model from Settings › Models (Mistral OCR, or a local vision model that reads a PDF page by page). Leave empty to use the first one; without one, ask an administrator to add it.',
+      condition: { field: 'provider', value: 'nexora' },
+    },
+    {
       id: 'fileUpload',
       title: 'PDF Document',
       type: 'file-upload' as SubBlockType,
       canonicalParamId: 'file',
-      acceptedTypes: 'application/pdf',
+      // Nexora edition: Mistral OCR and the Nexora provider also read images.
+      acceptedTypes: 'application/pdf,image/png,image/jpeg,image/webp',
       placeholder: 'Upload a PDF document',
       mode: 'basic',
       maxSize: 50,
@@ -367,18 +387,20 @@ export const MistralParseV3Block: BlockConfig = {
       password: true,
       required: true,
       hideWhenHosted: true,
+      condition: { field: 'provider', value: 'nexora', not: true },
     },
   ],
   tools: {
-    access: ['mistral_parser_v3'],
+    access: ['mistral_parser_v3', 'ocr_nexora'],
     config: {
-      tool: () => 'mistral_parser_v3',
+      tool: (params) => (params.provider === 'nexora' ? 'ocr_nexora' : 'mistral_parser_v3'),
       params: (params) => {
         const parameters: Record<string, unknown> = {
           resultType: params.resultType || 'markdown',
         }
-
-        if (params.apiKey?.trim()) {
+        if (params.provider === 'nexora') {
+          parameters.model = params.nexoraModel
+        } else if (params.apiKey?.trim()) {
           parameters.apiKey = params.apiKey.trim()
         }
 
@@ -422,6 +444,11 @@ export const MistralParseV3Block: BlockConfig = {
     },
   },
   inputs: {
+    provider: {
+      type: 'string',
+      description: 'Mistral (API key) or Nexora (a model of the instance)',
+    },
+    nexoraModel: { type: 'string', description: 'Nexora OCR model' },
     file: { type: 'json', description: 'Document input (file upload or file reference)' },
     apiKey: { type: 'string', description: 'Mistral API key' },
     resultType: { type: 'string', description: 'Output format type' },
