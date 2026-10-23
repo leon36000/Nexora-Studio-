@@ -37,12 +37,17 @@ jobs:
           - { name: connect, context: services/nexora-connect, dockerfile: services/nexora-connect/docker/Dockerfile }
         platform: [linux/amd64, linux/arm64]
     steps:
-      - name: Free disk space and add swap
+      # The WorkStudio `next build` outgrows the free 16 GB runner (upstream Sim moved it to a
+      # larger runner). Turbopack reserves far more address space than it touches, so the
+      # kernel's overcommit heuristic refuses it first ("cannot allocate memory"): allow
+      # overcommit and back it with swap on this throwaway runner.
+      - name: Free disk space, add swap, allow overcommit
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           sudo swapoff -a || true
-          sudo fallocate -l 8G /swapfile-build && sudo chmod 600 /swapfile-build
+          sudo fallocate -l 16G /swapfile-build && sudo chmod 600 /swapfile-build
           sudo mkswap /swapfile-build && sudo swapon /swapfile-build
+          sudo sysctl -w vm.overcommit_memory=1 vm.swappiness=60
           free -h && df -h /
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
