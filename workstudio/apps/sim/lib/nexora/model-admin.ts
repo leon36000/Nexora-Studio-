@@ -306,7 +306,7 @@ export async function setDefaultNexoraModel(
 ): Promise<void> {
   const client = createClient(options)
   const routers = await client.routers()
-  const target = routers.find((r) => r.id === id)
+  const target = routers.find((r) => r.id === id && r.type === 'text-generation')
   if (!target) throw new NexoraModelError('not-found', `model ${id} not found`)
   if ((target.aliases ?? []).includes(DEFAULT_MODEL_ALIAS)) return
   const previous = routers.find((r) => (r.aliases ?? []).includes(DEFAULT_MODEL_ALIAS))
@@ -335,9 +335,14 @@ export async function removeNexoraModel(
 ): Promise<{ removedLocalModel: string | null }> {
   const client = createClient(options)
   const [routers, providers] = await Promise.all([client.routers(), client.providers()])
-  const router = routers.find((r) => r.id === id)
+  const isDefault = (r: ApiRouter) => (r.aliases ?? []).includes(DEFAULT_MODEL_ALIAS)
+  const router = routers.find((r) => r.id === id && r.type === 'text-generation')
   if (!router) throw new NexoraModelError('not-found', `model ${id} not found`)
-  if ((router.aliases ?? []).includes(DEFAULT_MODEL_ALIAS)) {
+  if (isDefault(router))
+    throw new NexoraModelError('is-default', 'the default model cannot be removed')
+  // Another admin may have made it the default meanwhile: read it again right before deleting.
+  const current = (await client.routers()).find((r) => r.id === id)
+  if (current && isDefault(current)) {
     throw new NexoraModelError('is-default', 'the default model cannot be removed')
   }
   await client.expectOk('DELETE', `/v1/admin/routers/${id}`)

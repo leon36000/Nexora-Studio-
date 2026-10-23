@@ -117,6 +117,8 @@ class FakeApi(BaseHTTPRequestHandler):
                 return self._json(422, {})
             if self._names_taken([body["name"], *body["aliases"]], except_id=rid):
                 return self._json(409, {})
+            if s.get("refuse_alias_on_create") and rid != 10 and "nexora-default" in body["aliases"]:
+                return self._json(500, {})
             s["routers"][rid].update(body)
             return self._json(200, {"id": rid})
         s["roles"][rid].update(body); s["role_updates"] += 1
@@ -197,6 +199,32 @@ class BootstrapTest(unittest.TestCase):
         self.assertEqual((default["name"], provider["model_name"]), ("mistral-small-latest", "mistral-small-latest"))
         self.assertEqual(FakeApi.state["routers"][10]["aliases"], [])
 
+    def test_a_lost_default_is_given_back_to_the_env_model(self):
+        upstream = {"router": "nexora-default", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"}
+        FakeApi.state["routers"][10] = FakeApi.router(10, "nexora-default")
+        self.seed_provider(model="qwen2.5:7b")
+        self.run_bootstrap(upstream=upstream)
+        FakeApi.state["routers"][10]["aliases"] = []  # e.g. a crash between the two PATCHes of a move
+        self.run_bootstrap(upstream=upstream)
+        self.assertEqual(self.default_router("nexora-default")["id"], 10)
+
+    def test_a_lost_default_is_created_from_the_env_when_its_router_is_gone(self):
+        FakeApi.state["routers"] = {11: FakeApi.router(11, "mistral-small-latest")}
+        self.run_bootstrap(upstream={"router": "nexora-default", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"})
+        default = self.default_router("nexora-default")
+        self.assertEqual(default["name"], "qwen2.5:7b")
+        (provider,) = self.providers_of(default)
+        self.assertEqual(provider["model_name"], "qwen2.5:7b")
+
+    def test_the_alias_goes_back_when_the_new_default_refuses_it(self):
+        FakeApi.state["routers"][10] = FakeApi.router(10, "nexora-default")
+        self.seed_provider(model="qwen2.5:7b")
+        self.run_bootstrap(upstream={"router": "nexora-default", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"})
+        FakeApi.state["refuse_alias_on_create"] = True
+        with self.assertRaises(bootstrap.BootstrapError):
+            self.run_bootstrap(upstream={"router": "nexora-default", "url": "https://api.mistral.ai", "model": "mistral-small-latest", "key": "k"})
+        self.assertIn("nexora-default", FakeApi.state["routers"][10]["aliases"])
+
     def test_admin_key_is_written_then_reused(self):
         self.run_bootstrap()
         admin_file = self.out.parent / "nexora-admin.env"
@@ -238,8 +266,9 @@ class BootstrapTest(unittest.TestCase):
         self.assertEqual(list(FakeApi.state["providers"]), [1])
 
     def test_leaves_an_unseeded_model_to_the_api(self):
-        self.run_bootstrap(upstream={"router": "absent", "url": "http://x:1", "model": "m", "key": "none"})
-        self.assertEqual(FakeApi.state["providers"], {})
+        FakeApi.reset(routers=())
+        self.run_bootstrap(upstream={"router": "nexora-default", "url": "http://x:1", "model": "m", "key": "none"})
+        self.assertEqual((FakeApi.state["routers"], FakeApi.state["providers"]), ({}, {}))
 
     def test_creates_a_least_privilege_key_and_writes_a_private_env_file(self):
         key = self.run_bootstrap()

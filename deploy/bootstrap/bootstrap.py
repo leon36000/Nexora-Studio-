@@ -176,6 +176,17 @@ def _point_router_at(api: str, token: str, router: dict, upstream: dict, url: st
             _call("DELETE", f"{api}/providers/{provider['id']}", token)
 
 
+def _router_for_model(api: str, token: str, routers: list, upstream: dict, url: str) -> dict:
+    """The router named after the deploy/.env model, created and pointed at its upstream if missing."""
+    existing = next((r for r in routers if r["name"] == upstream["model"]), None)
+    if existing:
+        return existing
+    created = _call("POST", f"{api}/routers", token, {"name": upstream["model"], "type": "text-generation", "aliases": []})
+    router = {"id": created["id"], "name": upstream["model"], "type": "text-generation", "aliases": [], "load_balancing_strategy": "shuffle", "cost_prompt_tokens": 0.0, "cost_completion_tokens": 0.0}
+    _point_router_at(api, token, router, upstream, url)
+    return router
+
+
 def _sync_default_model(base_url: str, admin_token: str, upstream: dict, fingerprint_file: Path) -> None:
     """The default model is the router carrying the alias `upstream["router"]` (nexora-default).
 
@@ -187,16 +198,23 @@ def _sync_default_model(base_url: str, admin_token: str, upstream: dict, fingerp
     api = f"{base_url}/v1/admin"
     alias = upstream["router"]
     routers = _call("GET", f"{api}/routers?limit=100", admin_token).get("data", [])
+    if not routers:
+        return  # Not seeded yet: Nexora API creates its models from its configuration.
     holder = next((r for r in routers if r["name"] == alias or alias in r.get("aliases", [])), None)
+    url = upstream["url"].strip().rstrip("/").lower()
+    fingerprint = hashlib.sha256(f"{url}|{upstream['model']}|{upstream['key']}".encode()).hexdigest()
     if not holder:
-        return  # Not seeded yet: Nexora API creates it from its configuration.
+        # The default was lost (a move interrupted midway, its router removed): give it back to the
+        # deploy/.env model, so nexora-default always answers.
+        target = _router_for_model(api, admin_token, routers, upstream, url)
+        _update_router(api, admin_token, target, aliases=[*target.get("aliases", []), alias])
+        _write_private(fingerprint_file, fingerprint + "\n")
+        return
     if holder["name"] == alias:
         providers = _providers(api, admin_token, holder)
         model = providers[0]["model_name"] if providers else alias
         _update_router(api, admin_token, holder, name=_free_name([r for r in routers if r is not holder], model), aliases=[*holder.get("aliases", []), alias])
 
-    url = upstream["url"].strip().rstrip("/").lower()
-    fingerprint = hashlib.sha256(f"{url}|{upstream['model']}|{upstream['key']}".encode()).hexdigest()
     previous = fingerprint_file.read_text().strip() if fingerprint_file.exists() else None
     if previous == fingerprint:
         return
@@ -208,12 +226,17 @@ def _sync_default_model(base_url: str, admin_token: str, upstream: dict, fingerp
 
     target = next((r for r in routers if r["name"] == upstream["model"]), None)
     if target is None:
-        created = _call("POST", f"{api}/routers", admin_token, {"name": upstream["model"], "type": "text-generation", "aliases": []})
-        target = {"id": created["id"], "name": upstream["model"], "type": "text-generation", "aliases": [], "load_balancing_strategy": "shuffle", "cost_prompt_tokens": 0.0, "cost_completion_tokens": 0.0}
-    _point_router_at(api, admin_token, target, upstream, url)
+        target = _router_for_model(api, admin_token, routers, upstream, url)
+    else:
+        _point_router_at(api, admin_token, target, upstream, url)
     if target["id"] != holder["id"]:
-        _update_router(api, admin_token, holder, aliases=[a for a in holder["aliases"] if a != alias])
-        _update_router(api, admin_token, target, aliases=[*target.get("aliases", []), alias])
+        kept = holder["aliases"]
+        _update_router(api, admin_token, holder, aliases=[a for a in kept if a != alias])
+        try:
+            _update_router(api, admin_token, target, aliases=[*target.get("aliases", []), alias])
+        except BootstrapError:
+            _update_router(api, admin_token, holder, aliases=kept)  # never leave nexora-default unanswered
+            raise
     _write_private(fingerprint_file, fingerprint + "\n")
 
 

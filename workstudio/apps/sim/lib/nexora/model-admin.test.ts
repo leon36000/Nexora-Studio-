@@ -59,6 +59,9 @@ function fakeNexoraApi() {
     failPatchOfRouter: null as number | null,
     down: false,
     patches: 0,
+    routerLists: 0,
+    /** Simulates another admin making this router the default between two reads. */
+    makeDefaultOnSecondList: null as number | null,
   }
 
   function addRouter(
@@ -102,6 +105,13 @@ function fakeNexoraApi() {
     if (auth !== `Bearer ${ADMIN_KEY}`) return jsonResponse({}, 401)
 
     if (path === '/v1/admin/routers' && method === 'GET') {
+      state.routerLists++
+      if (state.makeDefaultOnSecondList !== null && state.routerLists === 2) {
+        for (const r of state.routers) r.aliases = r.aliases.filter((a) => a !== 'nexora-default')
+        state.routers
+          .find((r) => r.id === state.makeDefaultOnSecondList)
+          ?.aliases.push('nexora-default')
+      }
       return jsonResponse({ data: state.routers.map((r) => ({ ...r, aliases: [...r.aliases] })) })
     }
     if (path === '/v1/admin/routers' && method === 'POST') {
@@ -293,6 +303,16 @@ describe('setDefaultNexoraModel', () => {
     expect(state.patches).toBe(0)
   })
 
+  it('only makes a chat model the default', async () => {
+    const { state, addRouter, options } = setup()
+    const embed = addRouter('bge-m3', [], { url: 'http://ollama:11434/', model_name: 'bge-m3' })
+    embed.type = 'text-embeddings-inference'
+    await expect(setDefaultNexoraModel(embed.id, options)).rejects.toMatchObject({
+      code: 'not-found',
+    })
+    expect(state.patches).toBe(0)
+  })
+
   it('reports an unknown model', async () => {
     const { options } = setup()
     await expect(setDefaultNexoraModel(9999, options)).rejects.toMatchObject({ code: 'not-found' })
@@ -303,6 +323,20 @@ describe('removeNexoraModel', () => {
   it('refuses to remove the default model', async () => {
     const { qwen, options } = setup()
     await expect(removeNexoraModel(qwen.id, options)).rejects.toMatchObject({ code: 'is-default' })
+  })
+
+  it('re-checks the default just before deleting, so a concurrent default change is not lost', async () => {
+    const { state, options } = setup()
+    const mistral = await addNexoraModel(
+      { source: 'mistral', model: 'mistral-small-latest', key: 'k' },
+      options
+    )
+    state.routerLists = 0
+    state.makeDefaultOnSecondList = mistral.id
+    await expect(removeNexoraModel(mistral.id, options)).rejects.toMatchObject({
+      code: 'is-default',
+    })
+    expect(state.routers.some((r) => r.id === mistral.id)).toBe(true)
   })
 
   it('names the local model to delete only when no other model uses it, never bge-m3', async () => {
