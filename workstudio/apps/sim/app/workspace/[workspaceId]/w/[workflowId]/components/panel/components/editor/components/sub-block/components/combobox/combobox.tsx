@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Combobox, type ComboboxOption, cn } from '@sim/emcn'
+import { Button, Combobox, type ComboboxOption, cn } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { useReactFlow } from '@xyflow/react'
 import { useTranslations } from 'next-intl'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
+import { unavailableModelReplacement } from '@/lib/nexora/models'
 import type { SelectorKey } from '@/lib/selectors/manifest'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import { getDependsOnFields } from '@/lib/workflows/subblocks/dependencies'
@@ -351,6 +352,12 @@ export const ComboBox = memo(function ComboBox({
     return typeof match === 'string' ? match : match.label
   }, [value, evaluatedOptions])
 
+  /** Nexora edition: a stored model this instance does not serve, with the model to switch to. */
+  const modelReplacement =
+    isPreview || disabled || isLoadingOptions
+      ? null
+      : unavailableModelReplacement(subBlockId, value, evaluatedOptions.map(getOptionValue))
+
   const [inputValue, setInputValue] = useState(displayValue)
   const [prevDisplayValue, setPrevDisplayValue] = useState(displayValue)
   if (displayValue !== prevDisplayValue) {
@@ -580,6 +587,19 @@ export const ComboBox = memo(function ComboBox({
           )
         }}
       </SubBlockInputController>
+
+      {modelReplacement && (
+        <div className='mt-1.5 flex items-center justify-between gap-2 text-[var(--text-muted)] text-caption'>
+          <span>{t('modelUnavailable')}</span>
+          <Button
+            variant='ghost'
+            className='h-auto p-0'
+            onClick={() => setStoreValue(modelReplacement)}
+          >
+            {t('useNexoraModel')}
+          </Button>
+        </div>
+      )}
 
       {config.createAction === 'sandbox' && (
         <SandboxCreateModal

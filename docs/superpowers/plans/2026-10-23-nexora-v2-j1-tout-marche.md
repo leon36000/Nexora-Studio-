@@ -82,12 +82,12 @@
 **Interfaces:**
 - Produces: `NEXORA_DEFAULT_MODEL_ALIAS = 'nexora-default'` ; `resolveNexoraModel(usage: 'chat' | 'embedding'): string` (chat → `vllm/nexora-default` sous `NEXORA_ONLY_MODELS`, sinon le défaut d'origine ; embedding → valeur de `KB_EMBEDDING_MODEL`) ; `MODEL_SUBBLOCK_BLOCK_TYPES: readonly string[]` = types de blocs dont le sous-bloc `model` reçoit le défaut Nexora (`agent`, `router`, `router_v2`, `evaluator`, `guardrails`, et tout bloc dont `model` vaut un modèle masqué par défaut — à lister en lisant `blocks/blocks/*.ts`).
 
-- [ ] **Step 1: Tests** — `resolveNexoraModel('chat')` vaut `vllm/nexora-default` quand `isNexoraOnlyModels` ; un nouveau bloc Router / Evaluator préparé par `prepare-block-state` a `model = vllm/nexora-default` (et plus `claude-sonnet-5-5`) ; un bloc existant dont le modèle est masqué conserve sa valeur et l'interface affiche « Modèle indisponible sur cette instance » avec une action « Utiliser le modèle Nexora ».
-- [ ] **Step 2: Lancer** → échecs.
-- [ ] **Step 3: Implémenter** `lib/nexora/models.ts`, la généralisation dans `prepare-block-state`, le défaut serveur du contrôle d'hallucination (`resolveNexoraModel('chat')` quand le paramètre est vide), l'affichage du modèle indisponible (messages `editor.model.unavailable`, `editor.model.useNexora`).
-- [ ] **Step 4: Lancer** les tests → PASS ; `check:audits`.
-- [ ] **Step 5: smoke.py** — le contrôle d'exécution des modèles PME couvre déjà l'Agent ; ajouter « Routeur » : un workflow Démarrage → Router (2 routes) préparé avec les défauts de bloc s'exécute sans erreur.
-- [ ] **Step 6: Commit** `feat(j1): modèle Nexora par défaut dans Router, Evaluator, Guardrails`.
+- [x] **Step 1: Tests** — `resolveNexoraModel('chat')` vaut `vllm/nexora-default` quand `isNexoraOnlyModels` ; un nouveau bloc Router / Evaluator préparé par `prepare-block-state` a `model = vllm/nexora-default` (et plus `claude-sonnet-5-5`) ; un bloc existant dont le modèle est masqué conserve sa valeur et l'interface affiche « Modèle indisponible sur cette instance » avec une action « Utiliser le modèle Nexora ».
+- [x] **Step 2: Lancer** → échecs.
+- [x] **Step 3: Implémenter** `lib/nexora/models.ts`, la généralisation dans `prepare-block-state`, le défaut serveur du contrôle d'hallucination (`resolveNexoraModel('chat')` quand le paramètre est vide), l'affichage du modèle indisponible (messages `editor.model.unavailable`, `editor.model.useNexora`).
+- [x] **Step 4: Lancer** les tests → PASS ; `check:audits`.
+- [x] **Step 5: smoke.py** — le contrôle d'exécution des modèles PME couvre déjà l'Agent ; ajouter « Routeur » : un workflow Démarrage → Router (2 routes) préparé avec les défauts de bloc s'exécute sans erreur.
+- [x] **Step 6: Commit** `feat(j1): modèle Nexora par défaut dans Router, Evaluator, Guardrails`.
 
 ### Task 4: « Générer avec l'IA » via Nexora API
 

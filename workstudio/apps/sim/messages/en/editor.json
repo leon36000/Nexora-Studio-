@@ -1235,7 +1235,9 @@
     },
     "combobox": {
       "createSandbox": "Create Sandbox",
-      "typeOrSelect": "Type or select an option..."
+      "typeOrSelect": "Type or select an option...",
+      "modelUnavailable": "This model is not available on this instance.",
+      "useNexoraModel": "Use the Nexora model"
     },
     "dropdown": {
       "selectOption": "Select an option...",

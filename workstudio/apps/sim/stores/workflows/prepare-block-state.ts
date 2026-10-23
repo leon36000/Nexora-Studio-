@@ -9,6 +9,7 @@
  * workspace route for a function only the canvas drop handler calls.
  */
 
+import { receivesDefaultModel } from '@/lib/nexora/models'
 import type { SeedValueGate } from '@/lib/permission-groups/operation-access'
 import { getEffectiveBlockOutputs } from '@/lib/workflows/blocks/outputs'
 import { createDefaultInputFormatField } from '@/lib/workflows/input-format'
@@ -26,7 +27,7 @@ export interface PrepareBlockStateOptions {
   parentId?: string
   extent?: 'parent'
   triggerMode?: boolean
-  /** Preferred model for new Agent blocks; the seed gate still applies. */
+  /** Preferred model for new blocks that ask a chat model (see `receivesDefaultModel`); the seed gate still applies. */
   agentDefaultModel?: string | null
   /**
    * Vetoes a declared default that the creator's permission group denies —
@@ -108,7 +109,7 @@ export function prepareBlockState(options: PrepareBlockStateOptions): BlockState
         initialValue = []
       }
 
-      if (type === 'agent' && subBlock.id === 'model' && agentDefaultModel) {
+      if (agentDefaultModel && receivesDefaultModel(type, subBlock.id)) {
         initialValue = agentDefaultModel
       }
 
