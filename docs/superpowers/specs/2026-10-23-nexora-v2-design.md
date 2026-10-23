@@ -224,6 +224,20 @@ Précise la section 7 ; ces décisions priment.
 
 **Terminé quand** : sur pc6, un membre ouvre l'Assistant, discute avec l'« Assistant général » (réponse en flux, en français), joint un PDF et obtient une réponse qui s'en sert, change d'agent (un agent publié en J4), retrouve ses conversations après rechargement ; un autre membre ne voit pas ces conversations ; tests des routes (auteur seulement, espace étranger refusé, version déployée exécutée) et contrôle de fumée « Assistant ».
 
+## 8octies. J7 — conception détaillée (23/10/2026, architecte)
+
+**But** : « Décrivez votre automatisation » → un workflow prêt à exécuter, généré par le modèle Nexora, modifiable ensuite dans l'éditeur.
+
+**Pourquoi un plan intermédiaire** : un modèle local de 7 milliards de paramètres ne produit pas de façon fiable l'état complet d'un workflow (centaines de champs) ; il produit bien un **plan** court et typé. Le modèle écrit donc un plan JSON dans un petit langage d'étapes ; un **compilateur déterministe** (comme `buildAgentWorkflow` et les modèles PME) le transforme en workflow, validé par `parseWorkflowJson` avant import.
+
+**Le plan** (validé par zod ; au plus 12 étapes) : un déclencheur (`manuel` avec champs d'entrée, `planification` avec fréquence, `webhook`, `chat`) puis des étapes parmi `agent` (consignes, outils Nexora Connect par nom de service, bases de connaissances par nom, sortie structurée facultative), `condition` (une règle simple sur une sortie précédente, deux branches), `api` (méthode, adresse), `attente` (durée), `validation_humaine` (message), `reponse` (ce que le workflow renvoie). Les références entre étapes s'écrivent `{{nom_etape.champ}}` et sont traduites en `<bloc.sortie>`.
+
+**Génération** : route `POST /api/nexora/copilot/plan` (membres avec droit d'écriture) : description (et plan courant pour « modifier »), catalogue court en français des étapes, des services connectés de l'espace (J5) et des bases de l'espace ; appel à `nexora-default` en mode JSON (sortie structurée si le modèle la permet, sinon extraction du premier objet JSON) ; validation ; en cas d'erreur, **une** relance avec le message d'erreur ; renvoie le plan et son résumé en français. `POST /api/nexora/copilot/create` compile et importe dans le dossier choisi (opération applicative), puis ouvre l'éditeur.
+
+**Interface** : carte « Décrire une automatisation » sur l'Accueil (section Créer) et bouton « Avec l'IA » à côté de « Nouveau workflow » ; fenêtre : zone de description + exemples cliquables, aperçu du plan en étapes lisibles (icône, nom, ce que fait l'étape), « Modifier » (nouvelle consigne en langage naturel), « Créer le workflow ».
+
+**Terminé quand** : sur pc6 avec `qwen2.5:7b`, cinq descriptions types produisent chacune un workflow valide qui s'exécute (relance de factures chaque lundi ; tri d'e-mails reçus par webhook avec condition urgent/non urgent ; réponse à une question avec une base de connaissances ; compte rendu de réunion avec validation humaine ; appel d'API puis résumé) ; tests du compilateur (chaque type d'étape, références, branches) et de la validation (plan invalide ⇒ relance puis erreur en français) ; contrôle de fumée « Copilote ».
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
