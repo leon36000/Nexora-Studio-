@@ -3,7 +3,7 @@ import { env } from '@/lib/core/config/env'
 import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
 
 /** Model alias Nexora API resolves to the deployment's default chat model. */
-export const NEXORA_DEFAULT_MODEL_ALIAS = 'nexora-default'
+const NEXORA_DEFAULT_MODEL_ALIAS = 'nexora-default'
 
 export interface WandMessage {
   role: 'user' | 'assistant' | 'system'

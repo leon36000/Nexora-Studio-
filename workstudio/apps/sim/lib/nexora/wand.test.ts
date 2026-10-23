@@ -29,7 +29,6 @@ describe('Nexora wand', () => {
     vi.stubGlobal('fetch', fetchMock)
   })
   afterEach(() => {
-    vi.unstubAllGlobals()
     fetchMock.mockReset()
   })
 

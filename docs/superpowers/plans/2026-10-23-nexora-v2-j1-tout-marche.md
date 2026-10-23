@@ -115,9 +115,9 @@
 **Interfaces:**
 - Consumes: `isRemoteSandboxEnabled` (`lib/core/config/env-flags.ts`), sa projection publique `NEXT_PUBLIC_SANDBOXES_ENABLED`.
 
-- [ ] **Step 1: Test** — sans bac à sable : les options Python et Shell sont absentes du sélecteur de langage, JavaScript reste et est la valeur par défaut ; un bloc existant en Python affiche `editor.function.sandboxUnavailable` (« Python et Shell demandent un bac à sable d'exécution, non configuré sur cette instance. JavaScript reste disponible. »).
-- [ ] **Step 2: Lancer** → échec. **Step 3: Implémenter.** **Step 4: Lancer** → PASS ; audits.
-- [ ] **Step 5: Commit** `fix(j1): Function sans bac à sable : Python/Shell masqués et expliqués`.
+- [x] **Step 1: Test** — sans bac à sable : les options Python et Shell sont absentes du sélecteur de langage, JavaScript reste et est la valeur par défaut ; un bloc existant en Python affiche `editor.function.sandboxUnavailable` (« Python et Shell demandent un bac à sable d'exécution, non configuré sur cette instance. JavaScript reste disponible. »).
+- [x] **Step 2: Lancer** → échec. **Step 3: Implémenter.** **Step 4: Lancer** → PASS ; audits.
+- [x] **Step 5: Commit** `fix(j1): Function sans bac à sable : Python/Shell masqués et expliqués`.
 
 ### Task 6: Recherche web souveraine (SearXNG, désactivée par défaut)
 

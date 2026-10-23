@@ -1,9 +1,19 @@
 import { CodeIcon } from '@/components/icons'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { getDeploymentShape } from '@/lib/core/config/deployment-shape'
+import { getEnv, isTruthy } from '@/lib/core/config/env'
 import { CodeLanguage, getLanguageDisplayName } from '@/lib/execution/languages'
 import { SANDBOX_OUTPUT_DIR } from '@/lib/execution/remote-sandbox/paths'
 import type { BlockConfig } from '@/blocks/types'
+
+/**
+ * Nexora edition: Python (and Shell) run only in a remote sandbox (E2B or Daytona). Without one,
+ * the block offers JavaScript only and explains why to a block that already uses them. The
+ * public flag is the browser's readiness projection of the server-side sandbox check.
+ */
+const isRemoteSandboxReady = () => isTruthy(getEnv('NEXT_PUBLIC_SANDBOXES_ENABLED'))
+/** A language value no block holds: hides the sandbox notice once a sandbox is configured. */
+const SANDBOX_READY_SENTINEL = '__sandbox_ready__'
 
 export const FunctionBlock: BlockConfig = {
   type: 'function',
@@ -36,13 +46,27 @@ export const FunctionBlock: BlockConfig = {
       type: 'dropdown',
       options: () => [
         { label: getLanguageDisplayName(CodeLanguage.JavaScript), id: CodeLanguage.JavaScript },
-        { label: getLanguageDisplayName(CodeLanguage.Python), id: CodeLanguage.Python },
+        ...(isRemoteSandboxReady()
+          ? [{ label: getLanguageDisplayName(CodeLanguage.Python), id: CodeLanguage.Python }]
+          : []),
         ...(getDeploymentShape().features.sandboxes
           ? [{ label: getLanguageDisplayName(CodeLanguage.Shell), id: CodeLanguage.Shell }]
           : []),
       ],
       placeholder: 'Select language',
       value: () => CodeLanguage.JavaScript,
+    },
+    {
+      id: 'sandboxNotice',
+      type: 'text',
+      defaultValue:
+        'Python and Shell need a remote execution sandbox, which is not configured on this instance. JavaScript remains available.',
+      condition: () => ({
+        field: 'language',
+        value: isRemoteSandboxReady()
+          ? SANDBOX_READY_SENTINEL
+          : [CodeLanguage.Python, CodeLanguage.Shell],
+      }),
     },
     {
       id: 'code',
