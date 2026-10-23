@@ -1,5 +1,6 @@
 import { SearchIcon } from '@/components/icons'
 import { docsUrl } from '@/lib/branding/docs-url'
+import { getEnv, isTruthy } from '@/lib/core/config/env'
 import type { BlockConfig } from '@/blocks/types'
 import { IntegrationType } from '@/blocks/types'
 
@@ -10,6 +11,10 @@ export const SearchBlock: BlockConfig = {
   longDescription: 'Search the web using the Search tool. Each search costs $0.01 per query.',
   bgColor: '#3B82F6',
   icon: SearchIcon,
+  /** Nexora edition: Exa is a paid third-party service; shown only when its key is configured. */
+  get hideFromToolbar() {
+    return !isTruthy(getEnv('NEXT_PUBLIC_EXA_SEARCH_ENABLED'))
+  },
   canvasPresentation: {
     defaultTitle: 'Search',
     sentences: {

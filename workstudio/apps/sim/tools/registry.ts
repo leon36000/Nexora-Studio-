@@ -4951,6 +4951,7 @@ import {
   updateSupplierTool as sapS4HanaUpdateSupplierTool,
 } from '@/tools/sap_s4hana'
 import { searchTool } from '@/tools/search'
+import { searxngSearchTool } from '@/tools/searxng'
 import {
   secretsManagerCreateSecretTool,
   secretsManagerDeleteSecretTool,
@@ -6921,6 +6922,7 @@ export const tools: Record<string, ExecutableToolConfig> = {
   buffer_get_posts: bufferGetPostsTool,
   openai_embeddings: openAIEmbeddingsTool,
   http_request: httpRequestTool,
+  searxng_search: searxngSearchTool,
   webhook_request: webhookRequestTool,
   huggingface_chat: huggingfaceChatTool,
   llm_chat: llmChatTool,

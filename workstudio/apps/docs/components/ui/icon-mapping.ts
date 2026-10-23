@@ -611,6 +611,7 @@ export const blockTypeToIconMap: Record<string, IconComponent> = {
   sap_s4hana: SapS4HanaIcon,
   schedule: Clock,
   search: SearchIcon,
+  searxng: SearchIcon,
   secrets_manager: SecretsManagerIcon,
   semrush: SemrushIcon,
   sendblue: SendblueIcon,

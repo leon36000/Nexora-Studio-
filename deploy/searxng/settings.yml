@@ -1,0 +1,17 @@
+# Nexora — SearXNG (recherche web, profil compose « search », désactivé par défaut).
+# Le secret vient de la variable SEARXNG_SECRET (deploy/.env : NEXORA_SEARXNG_SECRET).
+use_default_settings: true
+general:
+  instance_name: Nexora
+server:
+  limiter: false
+  image_proxy: false
+  public_instance: false
+search:
+  safe_search: 1
+  default_lang: fr
+  formats:
+    - html
+    - json
+ui:
+  default_locale: fr

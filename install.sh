@@ -37,6 +37,7 @@ BUNDLE_FILES=(
   deploy/nexora-api/config.yml
   deploy/postgres/init/01-nexora-api.sql
   deploy/bootstrap/bootstrap.py
+  deploy/searxng/settings.yml
   scripts/init-env.sh
   scripts/smoke.sh
   scripts/smoke.py
@@ -198,6 +199,18 @@ configure() {
       key="${key:-none}"
       set_env COMPOSE_PROFILES "" ;;
     *) rm -f "$ENV_FILE"; die "Choix de modèle inconnu : $choice" ;;
+  esac
+
+  local web
+  ask web "Activer la recherche web ? Vos requêtes partiront vers des moteurs publics (o/N)" "${NEXORA_WEB_SEARCH:-0}"
+  case "$web" in
+    1|o|O|oui|y|yes)
+      set_env NEXORA_WEB_SEARCH 1
+      set_env NEXORA_SEARXNG_URL "http://searxng:8080"
+      set_env COMPOSE_PROFILES search ;;
+    *)
+      set_env NEXORA_WEB_SEARCH 0
+      set_env NEXORA_SEARXNG_URL "" ;;
   esac
 
   set_env NEXORA_ORGANIZATION_NAME "$org"

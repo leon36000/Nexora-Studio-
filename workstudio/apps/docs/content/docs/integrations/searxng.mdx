@@ -1,0 +1,35 @@
+---
+title: Web Search
+description: Search the web without an API key
+integration:
+  type: "searxng"
+  color: "#3B82F6"
+---
+
+
+## Use the block [#usage-instructions]
+
+Search the web through the meta-search engine installed with Nexora. No API key and no per-query cost; queries are sent to public search engines.
+
+## Actions
+
+### Web Search
+
+Search the web through the instance SearXNG meta-search engine. Returns the title, link and snippet of each result.
+
+#### Input
+
+| Parameter | Type | Required | Description |
+| --------- | ---- | -------- | ----------- |
+| `query` | string | Yes | The search query to execute |
+| `maxResults` | number | No | Maximum number of results to return \(default: 10\) |
+| `baseUrl` | string | No | SearXNG address, filled by the block from the instance configuration |
+| `language` | string | No | Search language code \(default: fr\) |
+
+#### Output
+
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `results` | array | Search results with title, url and snippet |
+
+

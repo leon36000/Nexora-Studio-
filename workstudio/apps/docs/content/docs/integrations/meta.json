@@ -236,6 +236,7 @@
     "salesforce-service-account",
     "sap_concur",
     "sap_s4hana",
+    "searxng",
     "secrets_manager",
     "semrush",
     "sendblue",

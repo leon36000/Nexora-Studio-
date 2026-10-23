@@ -63,6 +63,16 @@ grep -q "=change-me$" "$e" && ko "no placeholder left" || ok "no placeholder lef
 grep -q "sk-test" "$h.out" && ko "key not printed" || ok "key not printed"
 grep -q " up " "$h.log" 2>/dev/null && ko "--no-start starts nothing" || ok "--no-start starts nothing"
 
+# 1b. Web search stays off unless asked: queries would leave the instance.
+[ "$(envval NEXORA_WEB_SEARCH "$e")" = "0" ] && [ -z "$(envval NEXORA_SEARXNG_URL "$e")" ] && ok "web search off by default" || ko "web search off by default"
+hs="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_WEB_SEARCH=1 run "$hs" --yes --no-start && ok "install with web search succeeds" || { ko "install with web search succeeds"; cat "$hs.out"; }
+es="$hs/deploy/.env"
+[ "$(envval COMPOSE_PROFILES "$es")" = "search" ] && ok "web search service enabled" || ko "web search service enabled"
+[ "$(envval NEXORA_SEARXNG_URL "$es")" = "http://searxng:8080" ] && ok "WorkStudio points at SearXNG" || ko "WorkStudio points at SearXNG"
+[ "$(envval NEXORA_SEARXNG_SECRET "$es" | wc -c)" -ge 33 ] && ok "SearXNG secret generated" || ko "SearXNG secret generated"
+
 # 2. A second run keeps the existing configuration and secrets.
 before="$(sha256sum "$e")"
 NEXORA_ORGANIZATION_NAME=Autre NEXORA_ORGANIZATION_OWNER_EMAIL=x@y.fr run "$h" --yes --no-start

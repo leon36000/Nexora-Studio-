@@ -197,7 +197,7 @@ services:
       # Tools: Nexora Connect is preconfigured as an MCP server in every workspace.
       NEXORA_CONNECT_MCP_URL: http://nexora-connect:3000/mcp
       NEXORA_CONNECT_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN}
-      EGRESS_ALLOWED_HOSTS: nexora-api,nexora-connect
+      EGRESS_ALLOWED_HOSTS: nexora-api,nexora-connect,searxng
       # Governance shipped with Nexora: organizations, audit log, usage dashboard.
       ORGANIZATIONS_ENABLED: 'true'
       NEXT_PUBLIC_ORGANIZATIONS_ENABLED: 'true'
@@ -218,6 +218,9 @@ services:
       # the first account created. Leave the name empty to let each user found their own.
       # Knowledge bases embed with the local Ollama (no third-party key, 1024 dimensions).
       OLLAMA_URL: http://ollama:11434
+      # Web search block, only when the administrator enabled SearXNG.
+      SEARXNG_URL: ${NEXORA_SEARXNG_URL:-}
+      NEXT_PUBLIC_WEB_SEARCH_ENABLED: ${NEXORA_WEB_SEARCH:-0}
       KB_EMBEDDING_MODEL: ollama/${NEXORA_EMBED_MODEL:-bge-m3}
       EMBEDDING_OUTPUT_DIMS: '1024'
       INSTANCE_ORG_NAME: ${NEXORA_ORGANIZATION_NAME:-}
@@ -273,6 +276,17 @@ services:
     depends_on:
       workstudio:
         condition: service_healthy
+
+  # Optional web search (profile « search », off by default): queries leave the instance towards
+  # public search engines, so the administrator enables it explicitly (install.sh asks).
+  searxng:
+    image: searxng/searxng:2026.10.17-1c10abe2d
+    profiles: [search]
+    restart: unless-stopped
+    environment:
+      SEARXNG_SECRET: ${NEXORA_SEARXNG_SECRET:-}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
 
   # Local model server, always present: it serves the knowledge-base embeddings (bge-m3) and,
   # when chosen, the chat model (NEXORA_UPSTREAM_URL=http://ollama:11434). CPU by default.

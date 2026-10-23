@@ -315,6 +315,7 @@ import { SapConcurBlock, SapConcurBlockMeta } from '@/blocks/blocks/sap_concur'
 import { SapS4HanaBlock, SapS4HanaBlockMeta } from '@/blocks/blocks/sap_s4hana'
 import { ScheduleBlock } from '@/blocks/blocks/schedule'
 import { SearchBlock } from '@/blocks/blocks/search'
+import { SearxngBlock, SearxngBlockMeta } from '@/blocks/blocks/searxng'
 import { SecretsManagerBlock, SecretsManagerBlockMeta } from '@/blocks/blocks/secrets_manager'
 import { SemrushBlock, SemrushBlockMeta } from '@/blocks/blocks/semrush'
 import { SendblueBlock, SendblueBlockMeta } from '@/blocks/blocks/sendblue'
@@ -496,6 +497,7 @@ export const BLOCK_REGISTRY: Record<string, BlockConfig> = {
   file_v4: FileV4Block,
   file_v5: FileV5Block,
   findymail: FindymailBlock,
+  searxng: SearxngBlock,
   zerobounce: ZeroBounceBlock,
   neverbounce: NeverBounceBlock,
   millionverifier: MillionVerifierBlock,
@@ -1017,6 +1019,7 @@ export const BLOCK_META_REGISTRY: Record<string, BlockMeta> = {
   salesforce: SalesforceBlockMeta,
   sap_concur: SapConcurBlockMeta,
   sap_s4hana: SapS4HanaBlockMeta,
+  searxng: SearxngBlockMeta,
   secrets_manager: SecretsManagerBlockMeta,
   semrush: SemrushBlockMeta,
   sendblue: SendblueBlockMeta,
