@@ -1,5 +1,5 @@
 /** The Nexora API alias that names the deployment's default chat model. */
-const DEFAULT_MODEL_ALIAS = 'nexora-default'
+export const DEFAULT_MODEL_ALIAS = 'nexora-default'
 
 /**
  * Model ids offered to blocks, from Nexora API's `/v1/models`: every router name and every alias

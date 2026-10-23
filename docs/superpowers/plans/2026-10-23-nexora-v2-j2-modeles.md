@@ -87,7 +87,7 @@
   - Constantes : `DEFAULT_MODEL_ALIAS = 'nexora-default'`, `OLLAMA_PROVIDER_URL = 'http://ollama:11434'`, `MISTRAL_PROVIDER_URL = 'https://api.mistral.ai'`.
 - Consumes: `env.VLLM_BASE_URL` (base admin = sans `/v1`), `env.NEXORA_API_ADMIN_KEY`, `env.VLLM_API_KEY` (pour le test).
 
-- [ ] **Step 1: Write failing tests** contre un **faux Nexora API en mémoire** (stub de `fetch` qui tient routeurs/fournisseurs/rôles et applique les mêmes règles : alias uniques, PATCH complet, 400 `ProviderNotReachable` configurable) :
+- [x] **Step 1: Write failing tests** contre un **faux Nexora API en mémoire** (stub de `fetch` qui tient routeurs/fournisseurs/rôles et applique les mêmes règles : alias uniques, PATCH complet, 400 `ProviderNotReachable` configurable) :
   - `adds a model as its own router, provider and unlimited workstudio limits` (état du faux : routeur nommé d'après le modèle, fournisseur `openai` à l'URL de la source, rôle `workstudio` avec 4 limites `null` pour ce routeur)
   - `maps an unreachable provider to NexoraModelError('unreachable') and leaves no empty router`
   - `refuses a duplicate name with NexoraModelError('duplicate')`
@@ -97,10 +97,10 @@
   - `reports removedLocalModel only for the last ollama router of that model, never bge-m3`
   - `throws NexoraModelAdminUnavailableError without an admin key or when the API answers 401/5xx`
   - `testNexoraModel returns the reply and a latency`
-- [ ] **Step 2: Run** `LANG=en_US.UTF-8 bunx vitest run lib/nexora/model-admin.test.ts` — Expected: FAIL (module absent).
-- [ ] **Step 3: Implement** `model-admin.ts` (fetch brut annoté `// boundary-raw-fetch: Nexora API is a separate service`, origine statique depuis l'env ; source déduite de l'URL du fournisseur ; création : POST router → POST provider (si échec : DELETE router, puis erreur) → PATCH rôle `workstudio` en ajoutant les limites `rpm/rpd/tpm/tpd: null` du nouveau routeur ; défaut : PATCH ancien sans alias, PATCH nouveau avec alias, rétablissement sur échec).
-- [ ] **Step 4: Run** le test — Expected: 9 PASS.
-- [ ] **Step 5: Commit** `feat(j2): client d'administration des modèles Nexora API`.
+- [x] **Step 2: Run** `LANG=en_US.UTF-8 bunx vitest run lib/nexora/model-admin.test.ts` — Expected: FAIL (module absent).
+- [x] **Step 3: Implement** `model-admin.ts` (fetch brut annoté `// boundary-raw-fetch: Nexora API is a separate service`, origine statique depuis l'env ; source déduite de l'URL du fournisseur ; création : POST router → POST provider (si échec : DELETE router, puis erreur) → PATCH rôle `workstudio` en ajoutant les limites `rpm/rpd/tpm/tpd: null` du nouveau routeur ; défaut : PATCH ancien sans alias, PATCH nouveau avec alias, rétablissement sur échec).
+- [x] **Step 4: Run** le test — Expected: 9 PASS.
+- [x] **Step 5: Commit** `feat(j2): client d'administration des modèles Nexora API`.
 
 ### Task 4: Ollama fourni — catalogue, présents, téléchargement
 

@@ -292,6 +292,7 @@ export const env = createEnv({
     NEXORA_OIDC_CLIENT_ID:                 z.string().min(1).optional(),           // Nexora edition: OIDC client id registered for WorkStudio
     NEXORA_OIDC_CLIENT_SECRET:             z.string().min(1).optional(),           // Nexora edition: OIDC client secret
     NEXORA_DEFAULT_MODEL:                  z.string().optional(),                  // Nexora edition: Nexora API model the SME templates start with (default nexora-default)
+    NEXORA_API_ADMIN_KEY:                  z.string().optional(),                  // Nexora edition: Nexora API admin key written by the bootstrap, for Réglages › Modèles (server only)
     NEXORA_TEMPLATES_DISABLED:             z.boolean().optional(),                 // Nexora edition: skip the « Modèles PME » folder in new workspaces
     BLACKLISTED_MODELS:                    z.string().optional(),                  // Comma-separated model names/prefixes to hide (e.g., "gpt-4,claude-*")
     ALLOWED_MCP_DOMAINS:                   z.string().optional(),                  // Comma-separated domains for MCP servers (e.g., "internal.company.com,mcp.example.org"). Empty = all allowed.
