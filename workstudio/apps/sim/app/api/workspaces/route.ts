@@ -11,6 +11,7 @@ import { parseRequest } from '@/lib/api/server'
 import { getSession } from '@/lib/auth'
 import { getActiveOrganizationId } from '@/lib/auth/session-response'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { defaultWorkspaceName } from '@/lib/nexora/workspace-name'
 import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { createWorkspace } from '@/lib/workspaces/create'
@@ -246,8 +247,7 @@ async function createDefaultWorkspace(
     governingPermissionGroupOrganizationId: string | null
   }
 ) {
-  const firstName = userName?.split(' ')[0] || null
-  const workspaceName = firstName ? `${firstName}'s Workspace` : 'My Workspace'
+  const workspaceName = defaultWorkspaceName(userName)
   return createWorkspace({
     userId,
     name: workspaceName,

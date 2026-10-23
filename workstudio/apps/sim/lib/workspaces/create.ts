@@ -7,6 +7,7 @@ import { PlatformEvents } from '@/lib/core/telemetry'
 import type { DbTransaction } from '@/lib/db/types'
 import { ensureNexoraConnectServer } from '@/lib/nexora/connect'
 import { seedNexoraTemplates } from '@/lib/nexora/seed-templates'
+import { defaultWorkspaceName } from '@/lib/nexora/workspace-name'
 import { createProjectRecord } from '@/lib/projects/membership'
 import { buildDefaultWorkflowArtifacts } from '@/lib/workflows/defaults'
 import { insertNewWorkflowRow } from '@/lib/workflows/persistence/new-workflow-row'
@@ -293,11 +294,10 @@ export async function createDefaultPersonalWorkspaceInTransaction(
   tx: DbTransaction,
   params: { userId: string; userName: string | null | undefined }
 ): Promise<CreatedWorkspace> {
-  const firstName = params.userName?.split(' ')[0] || null
   return createWorkspaceInTransaction(tx, {
     userId: params.userId,
     observedOrganizationId: null,
-    name: firstName ? `${firstName}'s Workspace` : 'My Workspace',
+    name: defaultWorkspaceName(params.userName),
     organizationId: null,
     workspaceMode: WORKSPACE_MODE.PERSONAL,
     billedAccountUserId: params.userId,

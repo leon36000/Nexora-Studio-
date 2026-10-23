@@ -184,14 +184,18 @@ def main() -> int:
         require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
         status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
         require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
-        deadline, seen = time.monotonic() + 180, None
-        while time.monotonic() < deadline:
-            _, body = s.call("GET", f"/api/schedules?workflowId={wf}")
-            seen = body.get("schedule") or {}
-            if seen.get("lastRanAt"):
-                return f"exécuté à {seen['lastRanAt']}"
-            time.sleep(10)
-        raise AssertionError(f"the scheduled workflow never ran (cron missing?): {str(seen)[:200]}")
+        try:
+            deadline, seen = time.monotonic() + 180, None
+            while time.monotonic() < deadline:
+                _, body = s.call("GET", f"/api/schedules?workflowId={wf}")
+                seen = body.get("schedule") or {}
+                if seen.get("lastRanAt"):
+                    return f"exécuté à {seen['lastRanAt']}"
+                time.sleep(10)
+            raise AssertionError(f"the scheduled workflow never ran (cron missing?): {str(seen)[:200]}")
+        finally:
+            # A schedule left behind would run every minute forever.
+            s.call("DELETE", f"/api/workflows/{wf}")
 
     def wand():
         status, body = s.call("POST", "/api/wand", {"prompt": "Écris un objet d'e-mail court pour relancer une facture impayée.", "workspaceId": state["ws"], "stream": False}, timeout=300)

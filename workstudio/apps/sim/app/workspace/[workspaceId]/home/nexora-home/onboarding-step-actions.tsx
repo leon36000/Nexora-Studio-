@@ -14,6 +14,7 @@ import {
 import { Loader } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
 import { toRecordOrNull } from '@sim/utils/object'
+import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { NEXORA_TEMPLATES, NEXORA_TEMPLATES_FOLDER } from '@/lib/nexora/templates'
 import { InviteModal } from '@/app/workspace/[workspaceId]/components/invite-modal'
@@ -23,6 +24,11 @@ import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/provide
 import { useRunWorkflowOnce } from '@/hooks/queries/nexora-home'
 import { useOrganization, useUpdateOrganization } from '@/hooks/queries/organization'
 import { useWorkspaceInvitePolicy } from '@/hooks/use-workspace-invite-policy'
+
+/** Loaded on demand: the quote is shown only after the sample run. */
+const MarkdownRenderer = dynamic(
+  () => import('@/app/(interfaces)/chat/components/message/components/markdown-renderer')
+)
 
 const QUOTE_TEMPLATE = NEXORA_TEMPLATES.find((template) => template.slug === 'devis')
 
@@ -194,12 +200,12 @@ export function FirstRunStepAction({ workspaceId, onDone }: FirstRunStepActionPr
         <div
           ref={setResultElement}
           className={cn(
-            'max-h-[320px] overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border)] px-3 py-2 text-[var(--text-body)] text-small',
+            'max-h-[320px] overflow-y-auto rounded-lg border border-[var(--border)] px-3 py-2 text-[var(--text-body)] text-small',
             scrollFadeClass
           )}
           {...scrollFadeAttributes(resultEdges)}
         >
-          {text}
+          <MarkdownRenderer content={text} />
         </div>
       )}
     </div>
