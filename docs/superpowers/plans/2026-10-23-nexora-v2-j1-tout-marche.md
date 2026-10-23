@@ -132,7 +132,7 @@
 
 - [x] **Step 1: Tests** — l'outil transforme une réponse SearXNG (`results[].title,url,content`) en sortie `{ results: [{ title, url, snippet }] }` ; le bloc est masqué sans `SEARXNG_URL` ; le bloc Search est masqué sans clé Exa ; `test-install.sh` : par défaut pas de profil `search`, avec `NEXORA_WEB_SEARCH=1` le profil est actif.
 - [x] **Step 2: Lancer** → échecs. **Step 3: Implémenter.** **Step 4: Lancer** → PASS ; audits.
-- [ ] **Step 5: Vérifier sur pc6** avec le profil `search` activé : un workflow « Recherche web » renvoie des résultats.
+- [x] **Step 5: Vérifier sur pc6** avec le profil `search` activé : un workflow « Recherche web » renvoie des résultats.
 - [x] **Step 6: Commit** `feat(j1): recherche web SearXNG optionnelle, bloc Search masqué sans clé`.
 
 ### Task 7: E-mail par SMTP
@@ -156,7 +156,7 @@
 - [x] **Step 1:** ajouter les dossiers à `i18n-covered-dirs.txt` ; lancer `scripts/check-i18n.sh` → liste des chaînes à traduire (échec attendu).
 - [x] **Step 2: Implémenter** les traductions (e-mails : les modèles react-email reçoivent la locale du destinataire ou le français par défaut ; tests de rendu d'un e-mail en `fr`).
 - [x] **Step 3: Vérifier** `check-i18n` 0, `check-brand` 0, tests des composants, `check:audits`.
-- [ ] **Step 4: smoke.py** — le chat public d'un workflow déployé (`/chat/<identifiant>`) est servi avec `lang="fr"` et sans « Ask me anything ».
+- [x] **Step 4: smoke.py** — le chat public d'un workflow déployé (`/chat/<identifiant>`) est servi avec `lang="fr"` et sans « Ask me anything ».
 - [x] **Step 5: Commit** `feat(j1): chat public, invitations, e-mails et compétences en français ; lien mort retiré`.
 
 ### Task 9: Traduction des métadonnées de blocs — mécanisme et blocs cœur
@@ -175,7 +175,7 @@
 - [x] **Step 2: Lancer** → échecs.
 - [x] **Step 3: Implémenter** `translateBlockConfig` et son branchement dans les points de rendu (hook `useTranslatedBlockConfig(type)` côté client).
 - [x] **Step 4: Remplir** `blocks.json` (fr et en) : blocs cœur complets ; nom et description des blocs d'intégration (les noms de marques ne se traduisent pas), par lots de ~50 avec relecture d'un échantillon.
-- [ ] **Step 5: Vérifier** tests → PASS ; `check:audits` ; dans le navigateur (`scripts/dev/up.sh` + next dev), la barre d'outils et le panneau d'un bloc Agent et d'un bloc Slack sont en français.
+- [x] **Step 5: Vérifier** tests → PASS ; `check:audits` ; dans le navigateur (`scripts/dev/up.sh` + next dev), la barre d'outils et le panneau d'un bloc Agent et d'un bloc Slack sont en français.
 - [x] **Step 6: Commit** (un par lot si nécessaire) `feat(j1): blocs en français (mécanisme, blocs cœur, noms et descriptions des intégrations)`.
 
 ### Task 10: Aide contextuelle en français
@@ -194,8 +194,8 @@
 
 ### Task 11: Vérification de J1 et livraison
 
-- [ ] **Step 1:** suite complète : `tsc` 0, vitest complet vert, `check:audits`, `check:test-types`, `scripts/check-{no-ee,brand,licenses,i18n}.sh`, tests shell (`scripts/tests/test-*.sh`), `python3 -I deploy/bootstrap/test_bootstrap.py`.
-- [ ] **Step 2:** reconstruire les images (`workstudio`, `cron`) sur pc6, `compose up -d`, télécharger `bge-m3`, puis `NEXORA_SMOKE_ADMIN_* scripts/smoke.sh http://localhost:3200` : tous les contrôles, anciens et nouveaux (base de connaissances, planification, routeur, générer avec l'IA, chat public), verts.
-- [ ] **Step 3:** installation fraîche isolée (procédure de la tâche 16 v1 : projet `nexora-itest`, ports 3300…) puis fumée, puis `nexora uninstall --purge`.
+- [x] **Step 1:** suite complète : `tsc` 0, vitest complet vert, `check:audits`, `check:test-types`, `scripts/check-{no-ee,brand,licenses,i18n}.sh`, tests shell (`scripts/tests/test-*.sh`), `python3 -I deploy/bootstrap/test_bootstrap.py`.
+- [x] **Step 2:** reconstruire les images (`workstudio`, `cron`) sur pc6, `compose up -d`, télécharger `bge-m3`, puis `NEXORA_SMOKE_ADMIN_* scripts/smoke.sh http://localhost:3200` : tous les contrôles, anciens et nouveaux (base de connaissances, planification, routeur, générer avec l'IA, chat public), verts.
+- [x] **Step 3:** installation fraîche isolée (procédure de la tâche 16 v1 : projet `nexora-itest`, ports 3300…) puis fumée, puis `nexora uninstall --purge`.
 - [ ] **Step 4:** ledger v2 (`docs/superpowers/plans/2026-10-23-nexora-v2-ledger.md`) : preuves et décisions ; mémoire projet.
 - [ ] **Step 5:** `git push origin main`.
