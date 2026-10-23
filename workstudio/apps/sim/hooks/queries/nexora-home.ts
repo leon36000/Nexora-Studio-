@@ -34,6 +34,20 @@ export function useNexoraHome() {
   })
 }
 
+/**
+ * Which model usages have a model on this instance (`null` while Nexora API does not answer), from
+ * the home status: the block editor's Nexora provider reads it too.
+ */
+export function useNexoraModelUsages(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: nexoraHomeKeys.state(),
+    queryFn: ({ signal }) => requestJson(getNexoraHomeContract, { signal }),
+    staleTime: NEXORA_HOME_STALE_TIME,
+    enabled: options?.enabled ?? true,
+    select: (home) => home.modelUsages,
+  })
+}
+
 interface OnboardingChange {
   complete?: OnboardingStep
   dismissed?: boolean

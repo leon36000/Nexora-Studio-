@@ -11,6 +11,21 @@
       "agent": "Agent",
       "assistant": "Assistant"
     },
+    "capture": {
+      "label": "Capture",
+      "document": {
+        "card": "Read a document",
+        "name": "Read a document",
+        "description": "Extracts the text of a PDF, even scanned, or of an image with a Vision / OCR model of this instance."
+      },
+      "transcription": {
+        "card": "Transcribe a recording",
+        "name": "Transcribe a recording",
+        "description": "Transcribes an audio or video file with a transcription model of this instance."
+      },
+      "noModel": "To read scanned documents or transcribe recordings, add a Vision / OCR or Transcription model in <link>Settings › Models</link>.",
+      "createFailed": "The workflow could not be created."
+    },
     "quickStarts": {
       "label": "Quick starts",
       "invite": "Invite your team",

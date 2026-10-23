@@ -196,6 +196,9 @@ services:
       NEXT_PUBLIC_SOCKET_URL: ${NEXORA_PUBLIC_REALTIME_URL:-http://localhost:${NEXORA_REALTIME_PORT:-3002}}
       NEXT_TELEMETRY_DISABLED: '1'
       NEXORA_TIME_ZONE: ${NEXORA_TIME_ZONE:-Europe/Paris}
+      # Réglages › État: the installed version, and the transcription service to check when it is on.
+      NEXORA_VERSION: ${NEXORA_VERSION:-local}
+      NEXORA_WHISPER_URL: ${NEXORA_WHISPER_URL:-}
       # Models: everything goes through Nexora API (OpenAI-compatible), shown as « Nexora ».
       VLLM_BASE_URL: http://nexora-api:8000/v1
       NEXORA_ONLY_MODELS: 'true'

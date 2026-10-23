@@ -18,6 +18,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Les blocs](blocs.md) | Tous les utilisateurs | Agent, Routeur, Condition, Fonction, Validation humaine, déclencheurs… |
 | [Intégrations et outils](integrations.md) | Tous les utilisateurs | Nexora Connect, blocs d'intégration, recherche web |
 | [Les connaissances](connaissances.md) | Tous les utilisateurs | Bases de documents et recherche par vos agents |
+| [Documents et voix](documents-et-voix.md) | Tous les utilisateurs | Lire les documents scannés et les images, transcrire les enregistrements, réindexer une base |
 | [Les tables](tables.md) | Tous les utilisateurs | Données structurées utilisées par vos workflows |
 | [Les journaux](journaux.md) | Tous les utilisateurs | Suivre et relancer les exécutions |
 | [Outils MCP](outils-mcp.md) | Utilisateurs avancés | Serveurs MCP, exposer vos workflows |

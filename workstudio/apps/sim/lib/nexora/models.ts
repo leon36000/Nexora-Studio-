@@ -1,3 +1,4 @@
+import type { NexoraModelUsage } from '@/lib/nexora/model-ids'
 import { pickNexoraDefaultModel } from '@/providers/nexora'
 
 /**
@@ -16,14 +17,23 @@ export const MODEL_DEFAULT_BLOCK_TYPES: readonly string[] = [
 
 /**
  * Nexora edition: blocks with a « Nexora » provider (a vision, OCR or transcription model served by
- * Nexora API, no key to enter). New blocks of these types start on it.
+ * Nexora API, no key to enter), and the model usage that provider needs. New blocks of these types
+ * start on it.
  */
-const NEXORA_PROVIDER_BLOCK_TYPES: readonly string[] = [
-  'vision_v2',
-  'stt',
-  'stt_v2',
-  'mistral_parse_v3',
-]
+const NEXORA_PROVIDER_USAGE: Readonly<Record<string, NexoraModelUsage>> = {
+  vision_v2: 'vision',
+  mistral_parse_v3: 'vision',
+  stt: 'transcription',
+  stt_v2: 'transcription',
+}
+
+/** The model usage a block's « Nexora » provider needs, `null` for a block without one. */
+export function nexoraProviderUsage(blockType: string): NexoraModelUsage | null {
+  return Object.hasOwn(NEXORA_PROVIDER_USAGE, blockType) ? NEXORA_PROVIDER_USAGE[blockType] : null
+}
+
+/** The sub-block naming the Nexora model of a block's « Nexora » provider (empty: the first one). */
+export const NEXORA_MODEL_SUBBLOCK_ID = 'nexoraModel'
 
 /** The `provider` value of a block's « Nexora » option. */
 export const NEXORA_BLOCK_PROVIDER = 'nexora'
@@ -39,7 +49,7 @@ export function receivesNexoraProvider(
 ): boolean {
   return (
     subBlockId === 'provider' &&
-    NEXORA_PROVIDER_BLOCK_TYPES.includes(blockType) &&
+    nexoraProviderUsage(blockType) !== null &&
     pickNexoraDefaultModel(defaultChatModel ? [defaultChatModel] : []) !== null
   )
 }

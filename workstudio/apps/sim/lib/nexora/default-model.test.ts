@@ -1,10 +1,10 @@
 import { jsonResponse } from '@sim/testing/helpers/http'
 import { describe, expect, it, vi } from 'vitest'
-import { fetchDefaultModelName } from '@/lib/nexora/default-model'
+import { fetchModelStatus } from '@/lib/nexora/default-model'
 
 const config = { baseUrl: 'http://nexora-api:8000/v1', apiKey: 'workstudio-key' }
 
-describe('fetchDefaultModelName', () => {
+describe('fetchModelStatus', () => {
   it('names the model carrying the nexora-default alias', async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse({
@@ -14,19 +14,46 @@ describe('fetchDefaultModelName', () => {
         ],
       })
     )
-    expect(await fetchDefaultModelName({ config, fetchFn })).toBe('qwen2.5:7b')
+    expect((await fetchModelStatus({ config, fetchFn })).defaultModel).toBe('qwen2.5:7b')
     expect(fetchFn.mock.calls[0][0]).toBe('http://nexora-api:8000/v1/models')
   })
 
-  it('answers null rather than failing when Nexora API is down, refuses, or has no default', async () => {
+  it('says which usages have a model, from the same list', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      jsonResponse({
+        data: [
+          { id: 'qwen2.5:7b', type: 'text-generation', aliases: ['nexora-default'] },
+          { id: 'whisper-small', type: 'automatic-speech-recognition', aliases: [] },
+        ],
+      })
+    )
+    expect((await fetchModelStatus({ config, fetchFn })).usages).toEqual({
+      chat: true,
+      vision: false,
+      transcription: true,
+    })
+  })
+
+  it('knows the usages even without a default model', async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ data: [{ id: 'ocr', type: 'image-to-text' }] }))
+    expect(await fetchModelStatus({ config, fetchFn })).toEqual({
+      defaultModel: null,
+      usages: { chat: false, vision: true, transcription: false },
+    })
+  })
+
+  it('answers unknown rather than failing when Nexora API is down, refuses, or is not configured', async () => {
+    const unknown = { defaultModel: null, usages: null }
     const down = vi.fn().mockRejectedValue(new TypeError('fetch failed'))
     const refused = vi.fn().mockResolvedValue(jsonResponse({}, 401))
-    const none = vi.fn().mockResolvedValue(jsonResponse({ data: [{ id: 'a', aliases: [] }] }))
-    for (const fetchFn of [down, refused, none]) {
-      expect(await fetchDefaultModelName({ config, fetchFn })).toBeNull()
+    const garbled = vi.fn().mockResolvedValue(jsonResponse({ data: 'nope' }))
+    for (const fetchFn of [down, refused, garbled]) {
+      expect(await fetchModelStatus({ config, fetchFn })).toEqual(unknown)
     }
     expect(
-      await fetchDefaultModelName({ config: { baseUrl: '', apiKey: '' }, fetchFn: none })
-    ).toBeNull()
+      await fetchModelStatus({ config: { baseUrl: '', apiKey: '' }, fetchFn: refused })
+    ).toEqual(unknown)
   })
 })

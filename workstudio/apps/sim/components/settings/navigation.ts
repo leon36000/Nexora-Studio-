@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import {
   BrainCircuit,
   ChartColumn,
+  CircleCheck,
   ClipboardList,
   Connections,
   Credit,
@@ -142,6 +143,7 @@ export type UnifiedSettingsSection =
   | 'models'
   | 'connectors'
   | 'email'
+  | 'status'
   | 'sso'
   | 'whitelabeling'
   | 'forks'
@@ -776,6 +778,19 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
       description: NAV.unified.email.description,
       group: 'organization',
       order: 8,
+      requiresHosted: true,
+      requiresEnterprise: true,
+      selfHostedOverride: 'always',
+    },
+  },
+  {
+    label: NAV.unified.status.label,
+    icon: CircleCheck,
+    unified: {
+      id: 'status',
+      description: NAV.unified.status.description,
+      group: 'organization',
+      order: 11,
       requiresHosted: true,
       requiresEnterprise: true,
       selfHostedOverride: 'always',

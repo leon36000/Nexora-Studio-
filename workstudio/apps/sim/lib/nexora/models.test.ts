@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   MODEL_DEFAULT_BLOCK_TYPES,
+  nexoraProviderUsage,
   receivesDefaultModel,
+  receivesNexoraProvider,
   unavailableModelReplacement,
 } from '@/lib/nexora/models'
 
@@ -39,5 +41,26 @@ describe('unavailableModelReplacement', () => {
   it('stays silent while the model list is not loaded or has no Nexora model', () => {
     expect(unavailableModelReplacement('model', 'claude-sonnet-5-5', [])).toBeNull()
     expect(unavailableModelReplacement('model', 'claude-sonnet-5-5', ['gpt-4o'])).toBeNull()
+  })
+})
+
+describe('nexoraProviderUsage', () => {
+  it('names the model usage the Nexora provider of each block needs', () => {
+    expect(nexoraProviderUsage('vision_v2')).toBe('vision')
+    expect(nexoraProviderUsage('mistral_parse_v3')).toBe('vision')
+    expect(nexoraProviderUsage('stt')).toBe('transcription')
+    expect(nexoraProviderUsage('stt_v2')).toBe('transcription')
+  })
+
+  it('has no usage for a block without the Nexora provider', () => {
+    expect(nexoraProviderUsage('agent')).toBeNull()
+    expect(nexoraProviderUsage('vision')).toBeNull()
+  })
+
+  it('starts exactly those blocks on the Nexora provider in the Nexora edition', () => {
+    for (const type of ['vision_v2', 'mistral_parse_v3', 'stt', 'stt_v2']) {
+      expect(receivesNexoraProvider(type, 'provider', 'vllm/nexora-default')).toBe(true)
+    }
+    expect(receivesNexoraProvider('agent', 'provider', 'vllm/nexora-default')).toBe(false)
   })
 })

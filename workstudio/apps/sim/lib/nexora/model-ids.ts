@@ -58,6 +58,22 @@ export function modelNamesOfUsage(
   return namesOf(models.filter((model) => model.type === ROUTER_TYPE_BY_USAGE[usage]))
 }
 
+/** Whether each usage has at least one model on this instance. */
+export type NexoraModelUsages = Record<NexoraModelUsage, boolean>
+
+/**
+ * Which usages have at least one model, from Nexora API's `/v1/models` (WorkStudio's own key, no
+ * admin right). An untyped entry counts as a chat model, as in {@link listedModelIds}.
+ */
+export function servedUsages(models: ReadonlyArray<ServedModel>): NexoraModelUsages {
+  const served = (usage: NexoraModelUsage) =>
+    models.some(
+      (model) =>
+        model.type === ROUTER_TYPE_BY_USAGE[usage] || (usage === 'chat' && model.type === undefined)
+    )
+  return { chat: served('chat'), vision: served('vision'), transcription: served('transcription') }
+}
+
 /**
  * Model ids offered to the chat blocks, from Nexora API's `/v1/models`: every chat router name and
  * every alias (the default model is the router carrying `nexora-default`), prefixed `vllm/`, the

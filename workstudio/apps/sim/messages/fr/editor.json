@@ -1267,6 +1267,10 @@
       "anywhere": "N'importe où dans l'espace de travail",
       "searchFolders": "Rechercher des dossiers...",
       "noFoldersFound": "Aucun dossier trouvé"
+    },
+    "nexoraUsageNotice": {
+      "vision": "Aucun modèle Vision / OCR sur cette instance : ce bloc échouera. Un administrateur en ajoute un dans Réglages › Modèles.",
+      "transcription": "Aucun modèle de transcription sur cette instance : ce bloc échouera. Un administrateur en ajoute un dans Réglages › Modèles (ou active la transcription locale à l’installation)."
     }
   },
   "panelEditor": {

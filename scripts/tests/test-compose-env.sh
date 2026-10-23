@@ -19,6 +19,9 @@ smtp="$(for k in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS; do value "$k"; done | 
 [ -z "$smtp" ] && ok "no SMTP setting without an SMTP server" || ko "no SMTP setting without an SMTP server (got: $smtp)"
 [ -z "$(value SEARXNG_URL)" ] && [ -z "$(value PREVIEW_BLOCKS)" ] && ok "web search off on a fresh install" || ko "web search off on a fresh install"
 [ "$(value KB_EMBEDDING_MODEL)" = "ollama/bge-m3" ] && ok "knowledge bases embed with the local model" || ko "knowledge bases embed with the local model"
+# Réglages › État shows the installed version and probes the transcription service only when it is on.
+[ "$(value NEXORA_VERSION)" = "local" ] && ok "WorkStudio knows the installed version" || ko "WorkStudio knows the installed version (got: $(value NEXORA_VERSION))"
+[ -z "$(value NEXORA_WHISPER_URL)" ] && ok "no transcription service to check by default" || ko "no transcription service to check by default"
 command="$(python3 -I -c 'import json,sys; print(" ".join(json.load(sys.stdin)["services"]["workstudio"]["command"]))' <<< "$rendered")"
 case "$command" in *". /bootstrap/nexora-admin.env"*) ok "WorkStudio reads its model administration key" ;; *) ko "WorkStudio reads its model administration key" ;; esac
 [ -z "$(value NEXORA_API_ADMIN_PASSWORD)" ] && ok "the Nexora API admin password stays out of WorkStudio" || ko "the Nexora API admin password stays out of WorkStudio"
@@ -64,9 +67,10 @@ assert any(v.get("type") == "volume" for v in w.get("volumes", []))
 b = services["nexora-bootstrap"]["environment"]
 assert b["NEXORA_WHISPER_URL"] == "http://whisper:8000"
 assert "whisper-small" in b["NEXORA_WHISPER_MODEL"]
+assert services["workstudio"]["environment"]["NEXORA_WHISPER_URL"] == "http://whisper:8000"
 ' <<< "$voice_rendered" 2>/dev/null \
-  && ok "transcription service: pinned image, internal only, capped threads, registered by the bootstrap" \
-  || ko "transcription service: pinned image, internal only, capped threads, registered by the bootstrap"
+  && ok "transcription service: pinned image, internal only, capped threads, registered by the bootstrap, checked by WorkStudio" \
+  || ko "transcription service: pinned image, internal only, capped threads, registered by the bootstrap, checked by WorkStudio"
 
 # install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
 printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"

@@ -6,6 +6,7 @@ import { HelpCircle } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { useSession } from '@/lib/auth/client'
 import { docsUrl } from '@/lib/branding/docs-url'
+import { CaptureCards } from '@/app/workspace/[workspaceId]/home/nexora-home/capture-cards'
 import { CreateCards } from '@/app/workspace/[workspaceId]/home/nexora-home/create-cards'
 import { OnboardingPanel } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-panel'
 import { shouldOfferResume } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-state'
@@ -17,7 +18,10 @@ interface NexoraHomeProps {
   workspaceId: string
 }
 
-/** Nexora edition: the workspace home page — create, quick starts, platform status, first launch. */
+/**
+ * Nexora edition: the workspace home page — create, capture, quick starts, platform status, first
+ * launch.
+ */
 export function NexoraHome({ workspaceId }: NexoraHomeProps) {
   const t = useTranslations('home.nexoraHome')
   const { data: session } = useSession()
@@ -75,6 +79,11 @@ export function NexoraHome({ workspaceId }: NexoraHomeProps) {
           />
         )}
         <CreateCards workspaceId={workspaceId} />
+        <CaptureCards
+          workspaceId={workspaceId}
+          modelUsages={home?.modelUsages}
+          isInstanceAdmin={home?.isInstanceAdmin ?? false}
+        />
         <QuickStarts workspaceId={workspaceId} />
         <PlatformStatus
           workspaceId={workspaceId}

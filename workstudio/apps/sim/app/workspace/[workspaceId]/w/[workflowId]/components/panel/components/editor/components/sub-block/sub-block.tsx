@@ -10,6 +10,7 @@ import {
 } from '@sim/emcn/icons'
 import { isEqual } from 'es-toolkit'
 import { useTranslations } from 'next-intl'
+import { NEXORA_MODEL_SUBBLOCK_ID } from '@/lib/nexora/models'
 import type { FilterRule, SortRule } from '@/lib/table/query-builder/constants'
 import type { FallbackModelEntry } from '@/lib/workflows/blocks/fallback-models'
 import { buildSubBlockValues } from '@/lib/workflows/subblocks/visibility'
@@ -36,6 +37,7 @@ import {
   McpToolSelector,
   MessagesInput,
   ModelFallbackList,
+  NexoraUsageNotice,
   ResponseFormat,
   ScheduleInfo,
   SelectorInput,
@@ -1290,6 +1292,9 @@ function SubBlockComponent({
         externalLink
       )}
       {renderInput()}
+      {config.id === NEXORA_MODEL_SUBBLOCK_ID && !isPreview && (
+        <NexoraUsageNotice blockId={blockId} />
+      )}
     </div>
   )
 }

@@ -14,7 +14,7 @@ const fns = vi.hoisted(() => ({
 
 vi.mock('@/lib/nexora/admin-access', () => nexoraAdminAccessMock)
 vi.mock('@/lib/messaging/email/mailer', () => emailMailerMock)
-vi.mock('@/lib/nexora/default-model', () => ({ fetchDefaultModelName: fns.defaultModel }))
+vi.mock('@/lib/nexora/default-model', () => ({ fetchModelStatus: fns.defaultModel }))
 vi.mock('@/lib/nexora/onboarding', () => ({
   readOnboarding: fns.read,
   updateOnboarding: fns.update,
@@ -26,6 +26,7 @@ import { PATCH } from '@/app/api/nexora/onboarding/route'
 const authorize = nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin
 
 const progress = { completed: ['model'], dismissed: false }
+const usages = { chat: true, vision: true, transcription: false }
 
 function patch(body: unknown) {
   return new NextRequest('http://localhost/api/nexora/onboarding', {
@@ -38,7 +39,7 @@ function patch(body: unknown) {
 describe('Nexora home routes', () => {
   beforeEach(() => {
     authorize.mockResolvedValue({ ok: true, userId: 'u-1', organizationId: 'org-1' })
-    fns.defaultModel.mockResolvedValue('qwen2.5:7b')
+    fns.defaultModel.mockResolvedValue({ defaultModel: 'qwen2.5:7b', usages })
     emailMailerMockFns.mockHasEmailService.mockReturnValue(false)
     fns.read.mockResolvedValue(progress)
     fns.update.mockResolvedValue(progress)
@@ -49,11 +50,12 @@ describe('Nexora home routes', () => {
     expect((await GET(new NextRequest('http://localhost/api/nexora/home'), {})).status).toBe(401)
   })
 
-  it('shows the default model to a plain member, without the first launch', async () => {
+  it('shows the default model and the usages with a model to a plain member, without the first launch', async () => {
     authorize.mockResolvedValue({ ok: false, status: 403 })
     const response = await GET(new NextRequest('http://localhost/api/nexora/home'), {})
     expect(await response.json()).toEqual({
       defaultModel: 'qwen2.5:7b',
+      modelUsages: usages,
       isInstanceAdmin: false,
       onboarding: null,
       organizationId: null,
@@ -66,6 +68,7 @@ describe('Nexora home routes', () => {
     const body = await (await GET(new NextRequest('http://localhost/api/nexora/home'), {})).json()
     expect(body).toEqual({
       defaultModel: 'qwen2.5:7b',
+      modelUsages: usages,
       isInstanceAdmin: true,
       onboarding: progress,
       organizationId: 'org-1',

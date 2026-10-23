@@ -299,6 +299,8 @@ export const env = createEnv({
     NEXORA_DEFAULT_MODEL:                  z.string().optional(),                  // Nexora edition: Nexora API model the SME templates start with (default nexora-default)
     NEXORA_API_ADMIN_KEY:                  z.string().optional(),                  // Nexora edition: Nexora API admin key written by the bootstrap, for Réglages › Modèles (server only)
     NEXORA_TEMPLATES_DISABLED:             z.boolean().optional(),                 // Nexora edition: skip the « Modèles PME » folder in new workspaces
+    NEXORA_VERSION:                        z.string().optional(),                  // Nexora edition: installed Nexora version (deploy/.env), shown in Réglages › État
+    NEXORA_WHISPER_URL:                    z.string().optional(),                  // Nexora edition: local transcription server (profile « voice »), checked by Réglages › État; empty when off
     BLACKLISTED_MODELS:                    z.string().optional(),                  // Comma-separated model names/prefixes to hide (e.g., "gpt-4,claude-*")
     ALLOWED_MCP_DOMAINS:                   z.string().optional(),                  // Comma-separated domains for MCP servers (e.g., "internal.company.com,mcp.example.org"). Empty = all allowed.
     ALLOWED_INTEGRATIONS:                  z.string().optional(),                  // Comma-separated block types to allow (e.g., "slack,github,agent"). Empty = all allowed.

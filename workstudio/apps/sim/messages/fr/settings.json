@@ -306,6 +306,10 @@
       "email": {
         "label": "E-mail",
         "description": "Choisissez le serveur SMTP des e-mails envoyés"
+      },
+      "status": {
+        "label": "État",
+        "description": "Vérifiez les services, le disque et la version"
       }
     },
     "account": {
@@ -2006,6 +2010,41 @@
       "forbidden": "Réservé aux administrateurs de l’organisation.",
       "invalid": "Vérifiez les valeurs saisies.",
       "unknown": "L’opération a échoué. Réessayez."
+    }
+  },
+  "instanceStatus": {
+    "refresh": "Actualiser",
+    "refreshing": "Vérification…",
+    "forbidden": "Seuls les administrateurs de l’instance voient son état.",
+    "loadError": "Impossible de lire l’état de l’instance.",
+    "checkedAt": "Vérifié à {time}",
+    "states": {
+      "up": "Opérationnel",
+      "down": "Injoignable",
+      "not-configured": "Non configuré"
+    },
+    "services": {
+      "title": "Services",
+      "names": {
+        "postgres": "Base de données (PostgreSQL)",
+        "redis": "Cache (Redis)",
+        "nexora-api": "Nexora API",
+        "nexora-connect": "Nexora Connect",
+        "realtime": "Temps réel",
+        "ollama": "Modèles locaux (Ollama)",
+        "searxng": "Recherche web (SearXNG)",
+        "whisper": "Transcription (Whisper)"
+      }
+    },
+    "server": {
+      "title": "Serveur",
+      "version": "Version",
+      "versionUnknown": "Non renseignée",
+      "diskFree": "Disque libre (fichiers déposés)",
+      "diskFreeValue": "{gb} Go",
+      "diskUnknown": "Illisible",
+      "lastBackup": "Dernière sauvegarde",
+      "lastBackupValue": "Voir <command>nexora status</command> sur le serveur"
     }
   }
 }

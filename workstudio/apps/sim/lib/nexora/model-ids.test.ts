@@ -3,6 +3,7 @@ import {
   classifyOllamaPullError,
   listedModelIds,
   modelNamesOfUsage,
+  servedUsages,
   usageOfRouterType,
 } from '@/lib/nexora/model-ids'
 
@@ -66,5 +67,29 @@ describe('classifyOllamaPullError', () => {
       'network'
     )
     expect(classifyOllamaPullError('something unexpected')).toBe('other')
+  })
+})
+
+describe('servedUsages', () => {
+  it('says which usages have at least one model, from the types Nexora API lists', () => {
+    expect(
+      servedUsages([
+        { id: 'qwen2.5:7b', type: 'text-generation' },
+        { id: 'qwen2.5vl:3b', type: 'image-to-text' },
+        { id: 'bge-m3', type: 'text-embeddings-inference' },
+      ])
+    ).toEqual({ chat: true, vision: true, transcription: false })
+  })
+
+  it('has no usage on an instance without models', () => {
+    expect(servedUsages([])).toEqual({ chat: false, vision: false, transcription: false })
+  })
+
+  it('counts an untyped entry as a chat model only, like the chat model list', () => {
+    expect(servedUsages([{ id: 'legacy' }])).toEqual({
+      chat: true,
+      vision: false,
+      transcription: false,
+    })
   })
 })

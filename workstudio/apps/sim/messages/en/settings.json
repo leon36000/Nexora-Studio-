@@ -306,6 +306,10 @@
       "email": {
         "label": "Email",
         "description": "Choose the SMTP server for outgoing email"
+      },
+      "status": {
+        "label": "Status",
+        "description": "Check the services, disk space and version"
       }
     },
     "account": {
@@ -2006,6 +2010,41 @@
       "forbidden": "Organization admins only.",
       "invalid": "Check the values you entered.",
       "unknown": "The operation failed. Try again."
+    }
+  },
+  "instanceStatus": {
+    "refresh": "Refresh",
+    "refreshing": "Checking…",
+    "forbidden": "Only instance admins can see its status.",
+    "loadError": "Unable to read the instance status.",
+    "checkedAt": "Checked at {time}",
+    "states": {
+      "up": "Operational",
+      "down": "Unreachable",
+      "not-configured": "Not configured"
+    },
+    "services": {
+      "title": "Services",
+      "names": {
+        "postgres": "Database (PostgreSQL)",
+        "redis": "Cache (Redis)",
+        "nexora-api": "Nexora API",
+        "nexora-connect": "Nexora Connect",
+        "realtime": "Realtime",
+        "ollama": "Local models (Ollama)",
+        "searxng": "Web search (SearXNG)",
+        "whisper": "Transcription (Whisper)"
+      }
+    },
+    "server": {
+      "title": "Server",
+      "version": "Version",
+      "versionUnknown": "Not set",
+      "diskFree": "Free disk space (uploaded files)",
+      "diskFreeValue": "{gb} GB",
+      "diskUnknown": "Unreadable",
+      "lastBackup": "Last backup",
+      "lastBackupValue": "See <command>nexora status</command> on the server"
     }
   }
 }

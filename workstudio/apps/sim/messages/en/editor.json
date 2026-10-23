@@ -1267,6 +1267,10 @@
       "anywhere": "Anywhere in the workspace",
       "searchFolders": "Search folders...",
       "noFoldersFound": "No folders found"
+    },
+    "nexoraUsageNotice": {
+      "vision": "No Vision / OCR model on this instance: this block will fail. An administrator adds one in Settings › Models.",
+      "transcription": "No transcription model on this instance: this block will fail. An administrator adds one in Settings › Models (or enables local transcription at install)."
     }
   },
   "panelEditor": {

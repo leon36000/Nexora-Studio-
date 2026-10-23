@@ -11,6 +11,21 @@
       "agent": "Agent",
       "assistant": "Assistant"
     },
+    "capture": {
+      "label": "Capturer",
+      "document": {
+        "card": "Lire un document",
+        "name": "Lire un document",
+        "description": "Extrait le texte d’un PDF, même scanné, ou d’une image avec un modèle Vision / OCR de l’instance."
+      },
+      "transcription": {
+        "card": "Transcrire un enregistrement",
+        "name": "Transcrire un enregistrement",
+        "description": "Transcrit un fichier audio ou vidéo avec un modèle de transcription de l’instance."
+      },
+      "noModel": "Pour lire des documents scannés ou transcrire des enregistrements, ajoutez un modèle Vision / OCR ou Transcription dans <link>Réglages › Modèles</link>.",
+      "createFailed": "Le workflow n’a pas pu être créé."
+    },
     "quickStarts": {
       "label": "Démarrages rapides",
       "invite": "Inviter l’équipe",
