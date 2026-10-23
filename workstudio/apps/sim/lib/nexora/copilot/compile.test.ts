@@ -1,7 +1,11 @@
+import { createExecutorContext } from '@sim/testing/factories/executor-context.factory'
+import { createSerializedBlock } from '@sim/testing/factories/serialized-block.factory'
+import { isRecordLike } from '@sim/utils/object'
 import { describe, expect, it } from 'vitest'
 import { type CompileContext, CopilotPlanError, compilePlan } from '@/lib/nexora/copilot/compile'
 import { copilotPlanSchema } from '@/lib/nexora/copilot/plan'
 import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
+import { HumanInTheLoopBlockHandler } from '@/executor/handlers/human-in-the-loop/handler'
 
 const context: CompileContext = {
   model: 'vllm/nexora-default',
@@ -398,6 +402,69 @@ describe('compilePlan conditions', () => {
     expect(value(state, 'envoi', 'builderData')).toContainEqual(
       expect.objectContaining({ name: 'avis', value: '<accord.commentaire>' })
     )
+  })
+
+  const approvalPlan = (rule: Record<string, unknown>, avis = '{{accord.commentaire}}') =>
+    manualPlan([
+      { kind: 'validation_humaine', name: 'accord', message: 'Valider {{declencheur.email}} ?' },
+      { kind: 'condition', name: 'est_valide', if: rule, then: ['envoi'], else: [] },
+      { kind: 'reponse', name: 'envoi', fields: [{ name: 'avis', value: avis }] },
+    ])
+
+  it('asks the approver for a required yes/no, so a run never resumes without one', async () => {
+    const { state } = compile(
+      approvalPlan({ ref: 'accord.approuve', operator: 'egal', value: false })
+    )
+    const accord = block(state, 'accord')
+    const handler = new HumanInTheLoopBlockHandler()
+
+    const output = await handler.execute(
+      createExecutorContext({ workflowId: 'wf-1' }),
+      createSerializedBlock({ id: accord.id, type: accord.type, name: accord.name }),
+      {
+        operation: 'human',
+        builderData: value(state, 'accord', 'builderData'),
+        inputFormat: value(state, 'accord', 'inputFormat'),
+        notification: [],
+      }
+    )
+
+    if (!isRecordLike(output)) throw new Error('expected the paused block output')
+    const form = (
+      output._pauseMetadata as { response: { data: { inputFormat: Record<string, unknown>[] } } }
+    ).response.data.inputFormat
+    expect(form.map((field) => [field.name, field.type, field.required])).toEqual([
+      ['approuve', 'boolean', true],
+      ['commentaire', 'string', false],
+    ])
+  })
+
+  it('refuses a condition comparing the approval to something else than true or false', () => {
+    expectPlanError(
+      () => compile(approvalPlan({ ref: 'accord.approuve', operator: 'egal', value: 'peut-être' })),
+      'condition-invalid'
+    )
+  })
+
+  it('refuses a read of a submitted field the approval form does not have', () => {
+    expectPlanError(
+      () =>
+        compile(
+          approvalPlan(
+            { ref: 'accord.approuve', operator: 'egal', value: true },
+            '{{accord.submission.response}}'
+          )
+        ),
+      'reference-unknown'
+    )
+    expect(() =>
+      compile(
+        approvalPlan(
+          { ref: 'accord.approuve', operator: 'egal', value: true },
+          '{{accord.submission.commentaire}}'
+        )
+      )
+    ).not.toThrow()
   })
 
   it('keeps a quote in the compared value from breaking out of the expression', () => {

@@ -47,7 +47,21 @@
       "output": "Sortie",
       "request": "Requête",
       "body": "Corps",
-      "fields": "Champs renvoyés"
+      "fields": "Champs renvoyés",
+      "tested": "Donnée testée",
+      "rule": "Règle",
+      "then": "Si oui",
+      "else": "Sinon"
+    },
+    "nextSteps": "La suite du workflow",
+    "operators": {
+      "contient": "contient « {value} »",
+      "egal": "est égal à « {value} »",
+      "different": "est différent de « {value} »",
+      "superieur": "est supérieur à {value}",
+      "inferieur": "est inférieur à {value}",
+      "vide": "est vide",
+      "non_vide": "n’est pas vide"
     },
     "stepTypes": {
       "manuel": "Lancement manuel",

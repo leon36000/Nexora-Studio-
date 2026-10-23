@@ -18,7 +18,11 @@ Ouvrez-le depuis la carte **Décrire une automatisation** de l'Accueil, ou le bo
 
 ## Relire le plan
 
-Le plan s'affiche en étapes lisibles : le déclencheur (manuel, planification, webhook, chat), puis chaque étape (agent, condition, appel d'API, attente, validation humaine, réponse) et ce qu'elle fait. Les services Nexora Connect ou les bases de connaissances que le Copilote ne trouve pas dans l'espace apparaissent sous **À vérifier** : le workflow est créé sans eux, ajoutez-les ensuite.
+Le plan s'affiche en étapes lisibles : le déclencheur (manuel, planification, webhook, chat), puis chaque étape (agent, condition, appel d'API, attente, validation humaine, réponse) et ce qu'elle fait. La flèche d'une étape en montre le détail ; pour une condition : la donnée testée, la règle, et les étapes de « Si oui » et de « Sinon », pour repérer une branche inversée avant de créer le workflow.
+
+Sous **À vérifier** apparaissent les services Nexora Connect ou les bases de connaissances que le Copilote ne trouve pas dans l'espace (le workflow est créé sans eux, ajoutez-les ensuite), et chaque correction que le Copilote a faite lui-même sur le plan du modèle (une référence relue autrement, un champ ajouté ou retiré, un nom d'étape rapproché). Le Copilote ne corrige jamais ce qui changerait le comportement du workflow (quelles étapes s'exécutent sur quel chemin, ce que teste une condition, où part un appel d'API) : dans le doute, il redemande un plan au modèle.
+
+Une validation humaine demande toujours une réponse oui/non (obligatoire) et un commentaire facultatif ; une condition qui la suit compare cette réponse à « oui » ou « non ».
 
 - **Modifier** : écrivez ce qu'il faut changer (« ajoute une validation avant l'envoi ») ; le plan est ajusté sans repartir de zéro.
 - **Créer le workflow** : choisissez le dossier ; l'éditeur s'ouvre sur le nouveau workflow.

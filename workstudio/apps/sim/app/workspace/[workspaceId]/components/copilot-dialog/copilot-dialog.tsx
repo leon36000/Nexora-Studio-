@@ -248,7 +248,11 @@ export function CopilotDialog({
                                     {t(`details.${detail.key}`)}
                                   </dt>
                                   <dd className='whitespace-pre-wrap break-words text-[var(--text-body)] text-caption'>
-                                    {detail.value}
+                                    {detail.operator
+                                      ? t(`operators.${detail.operator}`, {
+                                          value: detail.value ?? '',
+                                        })
+                                      : (detail.value ?? t('nextSteps'))}
                                   </dd>
                                 </div>
                               ))}

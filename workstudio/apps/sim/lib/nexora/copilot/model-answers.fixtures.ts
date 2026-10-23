@@ -66,7 +66,8 @@ export const STEPS_INSIDE_BRANCHES = {
 
 /**
  * « Répondre à la question d'un client… FAQ clients » : fields on a chat trigger, steps inside the
- * branches, and a step read by its kind (`{{validation_humaine.submission}}`).
+ * branches, and a step read by its kind (`{{validation_humaine.submission.response}}`). The form
+ * holds no `response`, which would always be empty: that read is refused, and costs the retry.
  */
 export const CHAT_FIELDS_AND_KIND_REFERENCE = {
   title: 'Réponse client via FAQ',

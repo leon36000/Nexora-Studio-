@@ -109,4 +109,35 @@ describe('stepDetails', () => {
       stepDetails({ kind: 'validation_humaine', name: 'ok', message: 'Validez le compte rendu' })
     ).toEqual([{ key: 'message', value: 'Validez le compte rendu' }])
   })
+
+  it('shows what a condition tests and where each answer leads, to spot a wrong branch', () => {
+    expect(
+      stepDetails({
+        kind: 'condition',
+        name: 'est_valide',
+        if: { ref: '{{accord.approuve}}', operator: 'egal', value: 'true' },
+        then: ['envoi', 'archive'],
+        else: [],
+      })
+    ).toEqual([
+      { key: 'tested', value: 'accord.approuve' },
+      { key: 'rule', value: 'true', operator: 'egal' },
+      { key: 'then', value: 'envoi, archive' },
+      { key: 'else', value: null },
+    ])
+    expect(
+      stepDetails({
+        kind: 'condition',
+        name: 'a_reponse',
+        if: { ref: 'faq.reponse', operator: 'non_vide' },
+        then: [],
+        else: ['escalade'],
+      })
+    ).toEqual([
+      { key: 'tested', value: 'faq.reponse' },
+      { key: 'rule', value: '', operator: 'non_vide' },
+      { key: 'then', value: null },
+      { key: 'else', value: 'escalade' },
+    ])
+  })
 })

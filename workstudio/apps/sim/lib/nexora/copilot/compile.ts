@@ -21,6 +21,7 @@ type CopilotPlanErrorCode =
   | 'branch-unknown'
   | 'branch-cycle'
   | 'branch-invalid'
+  | 'condition-invalid'
 
 /** A plan that cannot become a working workflow; `detail` says why, in French, for the model to fix. */
 export class CopilotPlanError extends Error {
@@ -93,11 +94,17 @@ const TRIGGER_BLOCKS = {
 } as const
 
 const START_OUTPUTS = ['input', 'conversationId', 'files']
-/** The form a human validation asks for; once submitted, each field is an output of the step. */
+/**
+ * The form a human validation asks for; once submitted, each field is an output of the step. The
+ * yes/no is required, so a condition on it never meets an answer left « Non renseigné ».
+ */
 const APPROVAL_FORM = [
-  { name: 'approuve', type: 'boolean', description: 'Approuvez-vous ?' },
-  { name: 'commentaire', type: 'string', description: 'Commentaire' },
+  { name: 'approuve', type: 'boolean', description: 'Approuvez-vous ?', required: true },
+  { name: 'commentaire', type: 'string', description: 'Commentaire', required: false },
 ] as const
+const APPROVAL_FIELD = 'approuve'
+/** What a condition on the approval may compare it to. */
+const APPROVAL_VALUES: ReadonlySet<string> = new Set(['true', 'false'])
 const AGENT_METADATA_OUTPUTS = ['model', 'tokens', 'toolCalls']
 
 /** What a later step may read from each kind of step (first path segment). */
@@ -355,6 +362,19 @@ function createReferenceResolver(
         `L'étape « ${readerName} » lit « {{${body}}} », mais l'étape « ${source} » n'a pas de sortie « ${field} » (sorties : ${quoted(outputs)}).`
       )
     }
+    const submitted = rest.split('.')[1]
+    const formFields = APPROVAL_FORM.map((formField) => formField.name)
+    if (
+      sourceStep.kind === 'validation_humaine' &&
+      field === 'submission' &&
+      submitted !== undefined &&
+      !(formFields as string[]).includes(submitted)
+    ) {
+      throw new CopilotPlanError(
+        'reference-unknown',
+        `L'étape « ${readerName} » lit « {{${body}}} », mais le formulaire de « ${source} » n'a que les champs ${quoted(formFields)}.`
+      )
+    }
     if (!ancestors.get(readerName)?.has(source)) {
       throw new CopilotPlanError(
         'reference-unreachable',
@@ -371,13 +391,30 @@ function createReferenceResolver(
     /** A condition operand, written `step.field` or `{{step.field}}`. */
     operand: (ref: string, readerName: string): string =>
       resolve(ref.replace(/^\s*\{\{|\}\}\s*$/g, ''), readerName),
+    /** The human validation whose yes/no the operand reads, if it reads one. */
+    approvalOf: (ref: string): string | undefined => {
+      const match = REFERENCE_BODY.exec(ref.replace(/^\s*\{\{|\}\}\s*$/g, '').trim())
+      if (!match) return undefined
+      const [, source, field, rest] = match
+      if (stepsByName.get(source)?.kind !== 'validation_humaine') return undefined
+      const read = field === 'submission' ? rest.split('.')[1] : field
+      return read === APPROVAL_FIELD ? source : undefined
+    },
   }
 }
 
 type ReferenceResolver = ReturnType<typeof createReferenceResolver>
 
-function inputFormatField(name: string, type: string, description: string) {
-  return { id: generateId(), name, type, value: '', description, collapsed: false }
+function inputFormatField(name: string, type: string, description: string, required = false) {
+  return {
+    id: generateId(),
+    name,
+    type,
+    value: '',
+    description,
+    collapsed: false,
+    ...(required ? { required: true } : {}),
+  }
 }
 
 function builderField(name: string, value: string) {
@@ -576,6 +613,21 @@ function conditionExpression(
   refs: ReferenceResolver
 ): string {
   const operand = refs.operand(step.if.ref, step.name)
+  const approval = refs.approvalOf(step.if.ref)
+  const comparesYesNo =
+    (step.if.operator === 'egal' || step.if.operator === 'different') &&
+    APPROVAL_VALUES.has((step.if.value ?? '').toLowerCase())
+  if (
+    approval &&
+    !comparesYesNo &&
+    step.if.operator !== 'vide' &&
+    step.if.operator !== 'non_vide'
+  ) {
+    throw new CopilotPlanError(
+      'condition-invalid',
+      `La condition « ${step.name} » teste la réponse oui/non de « ${approval} » : comparez-la avec "egal" ou "different" à true ou false.`
+    )
+  }
   const textOf = `String(${operand} ?? '').trim().toLowerCase()`
   const expected = (step.if.value ?? '').toLowerCase()
   switch (step.if.operator) {
@@ -690,7 +742,9 @@ function stepSubBlocks(
         sub(
           'inputFormat',
           'input-format',
-          APPROVAL_FORM.map((field) => inputFormatField(field.name, field.type, field.description))
+          APPROVAL_FORM.map((field) =>
+            inputFormatField(field.name, field.type, field.description, field.required)
+          )
         ),
       ]
     case 'reponse':

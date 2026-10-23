@@ -70,16 +70,25 @@ type StepDetailKey =
   | 'request'
   | 'body'
   | 'fields'
+  | 'tested'
+  | 'rule'
+  | 'then'
+  | 'else'
+
+type ConditionOperator = Extract<CopilotStep, { kind: 'condition' }>['if']['operator']
 
 interface StepDetail {
   key: StepDetailKey
-  value: string
+  /** The detail as written in the plan; `null` for a branch that goes straight to what follows. */
+  value: string | null
+  /** For the rule, the operator, read through `copilot.dialog.operators` with `value`. */
+  operator?: ConditionOperator
 }
 
 /**
  * What a step does in full, for the person to check before « Créer » (the summary cuts long
- * instructions, messages and addresses). Condition and wait steps have nothing the summary leaves
- * out, so they have no details.
+ * instructions, messages and addresses): for a condition, what it tests and the steps each answer
+ * leads to, so a wrong branch shows before the workflow exists. A wait has no details.
  */
 export function stepDetails(step: CopilotStep): StepDetail[] {
   switch (step.kind) {
@@ -116,6 +125,12 @@ export function stepDetails(step: CopilotStep): StepDetail[] {
         },
       ]
     case 'condition':
+      return [
+        { key: 'tested', value: step.if.ref.replace(/^\s*\{\{|\}\}\s*$/g, '').trim() },
+        { key: 'rule', value: step.if.value ?? '', operator: step.if.operator },
+        { key: 'then', value: step.then.length > 0 ? step.then.join(', ') : null },
+        { key: 'else', value: step.else.length > 0 ? step.else.join(', ') : null },
+      ]
     case 'attente':
       return []
   }

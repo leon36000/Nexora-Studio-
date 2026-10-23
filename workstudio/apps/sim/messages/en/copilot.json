@@ -47,7 +47,21 @@
       "output": "Output",
       "request": "Request",
       "body": "Body",
-      "fields": "Returned fields"
+      "fields": "Returned fields",
+      "tested": "Tested value",
+      "rule": "Rule",
+      "then": "If yes",
+      "else": "Otherwise"
+    },
+    "nextSteps": "The rest of the workflow",
+    "operators": {
+      "contient": "contains “{value}”",
+      "egal": "equals “{value}”",
+      "different": "differs from “{value}”",
+      "superieur": "is greater than {value}",
+      "inferieur": "is less than {value}",
+      "vide": "is empty",
+      "non_vide": "is not empty"
     },
     "stepTypes": {
       "manuel": "Manual run",

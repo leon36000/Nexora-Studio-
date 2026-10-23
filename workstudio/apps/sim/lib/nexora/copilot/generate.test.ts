@@ -163,7 +163,6 @@ describe('generatePlan', () => {
   it.each([
     ['a schedule read as trigger data', SCHEDULE_READING_TRIGGER],
     ['steps written inside the branches', STEPS_INSIDE_BRANCHES],
-    ['chat fields and a step read by its kind', CHAT_FIELDS_AND_KIND_REFERENCE],
     ['an output declared on a human validation', VALIDATION_WITH_DECLARED_OUTPUT],
     ['steps read through the trigger', STEPS_READ_THROUGH_TRIGGER],
     ['a field read from an agent without output', AGENT_FIELD_WITHOUT_OUTPUT],
@@ -174,6 +173,24 @@ describe('generatePlan', () => {
 
     expect(complete).toHaveBeenCalledTimes(1)
     expect(result.summary).toHaveLength(result.plan.steps.length + 1)
+  })
+
+  it('asks again when qwen2.5:7b reads a submitted field the approval form never fills', async () => {
+    const fixed = structuredClone(CHAT_FIELDS_AND_KIND_REFERENCE)
+    const branch = fixed.steps[1].else as Record<string, unknown>[]
+    branch[2].fields = [
+      { name: 'reponse', value: '{{confirmation_reponse_personnalisee.commentaire}}' },
+    ]
+    const { complete, calls } = scriptedModel(
+      JSON.stringify(CHAT_FIELDS_AND_KIND_REFERENCE),
+      JSON.stringify(fixed)
+    )
+
+    const result = await generatePlan({ description: 'Répondre', context, complete })
+
+    expect(calls).toHaveLength(2)
+    expect(lastUserMessage(calls[1])).toContain('submission.response')
+    expect(result.plan.steps).toHaveLength(6)
   })
 
   it('shows what the repairs removed among the warnings', async () => {
