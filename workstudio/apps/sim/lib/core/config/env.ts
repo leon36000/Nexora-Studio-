@@ -288,6 +288,8 @@ export const env = createEnv({
     NEXORA_ONLY_MODELS:                    z.boolean().optional(),                 // Nexora edition: offer only the models served by Nexora API (the OpenAI-compatible vllm provider)
     NEXORA_CONNECT_MCP_URL:                z.string().url().optional(),            // Nexora edition: MCP endpoint of Nexora Connect, registered in every new workspace
     NEXORA_CONNECT_TOKEN:                  z.string().min(1).optional(),           // Nexora edition: runtime token sent to Nexora Connect as a bearer header
+    NEXORA_CONNECT_ADMIN_URL:              z.string().url().optional(),            // Nexora edition: Nexora Connect origin for its administration API (defaults to the MCP URL's origin)
+    NEXORA_CONNECT_ADMIN_TOKEN:            z.string().min(1).optional(),           // Nexora edition: Nexora Connect administration token (server only), for the connectors catalog
     NEXORA_OIDC_ISSUER:                    z.string().url().optional(),            // Nexora edition: OpenID Connect issuer for single sign-on (e.g. https://sso.example.fr/realms/pme)
     NEXORA_OIDC_CLIENT_ID:                 z.string().min(1).optional(),           // Nexora edition: OIDC client id registered for WorkStudio
     NEXORA_OIDC_CLIENT_SECRET:             z.string().min(1).optional(),           // Nexora edition: OIDC client secret

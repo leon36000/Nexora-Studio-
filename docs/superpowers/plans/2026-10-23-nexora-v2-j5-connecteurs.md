@@ -42,9 +42,9 @@
 
 **Interfaces:** `workspaceConnectionName(workspaceId)`, `listCatalog(query)` (cache LRU + ETag), `getServiceSetup(service)`, `listWorkspaceConnections(workspaceId)`, `connectWithCredentials(workspaceId, service, authType, values)`, `startOAuth(workspaceId, service) → { requestId, authorizationUrl }`, `getOAuthStatus(requestId)`, `disconnect(workspaceId, service)`, `syncWorkspaceToken(workspaceId) → { token?: string }` (crée ou met à jour `ws-<id>`, renvoie le secret seulement à la création), erreurs `ConnectUnavailableError`, `ConnectRefusedError(code)`.
 
-- [ ] **Step 1: Failing tests** : nom `ws-<id>` valide (≤ 64, motif de Connect) ; création de clé ⇒ `PUT /api/connections/:service` avec `connectionName` et `values` ; jeton créé une fois puis mis à jour (liste complète des connexions de l'espace) ; suppression ⇒ jeton mis à jour ; clé refusée ⇒ `ConnectRefusedError` ; Connect injoignable ⇒ `ConnectUnavailableError` ; aucun secret dans les messages d'erreur.
-- [ ] **Step 2:** Implémenter ; Run tests — PASS.
-- [ ] **Step 3: Commit** `feat(j5): client d'administration de Nexora Connect`.
+- [x] **Step 1: Failing tests** : nom `ws-<id>` valide (≤ 64, motif de Connect) ; création de clé ⇒ `PUT /api/connections/:service` avec `connectionName` et `values` ; jeton créé une fois puis mis à jour (liste complète des connexions de l'espace) ; suppression ⇒ jeton mis à jour ; clé refusée ⇒ `ConnectRefusedError` ; Connect injoignable ⇒ `ConnectUnavailableError` ; aucun secret dans les messages d'erreur.
+- [x] **Step 2:** Implémenter ; Run tests — PASS.
+- [x] **Step 3: Commit** `feat(j5): client d'administration de Nexora Connect`.
 
 ### Task 3: Jeton d'espace dans le serveur MCP de l'espace
 
