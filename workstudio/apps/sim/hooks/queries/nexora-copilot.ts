@@ -10,14 +10,19 @@ import {
 } from '@/lib/api/contracts/nexora-copilot'
 import { invalidateWorkflowLists } from '@/hooks/queries/utils/invalidate-workflow-lists'
 
+interface GenerateCopilotPlanVariables extends GenerateCopilotPlanBody {
+  /** Aborting it cancels the wait (the model can take a minute on a CPU). */
+  signal?: AbortSignal
+}
+
 /**
  * Drafts a workflow plan from a description, or applies a described change to `currentPlan`.
  * Stores nothing: the error's `code` (`plan-invalid`, `rejected`, `unavailable`) tells the dialog what to show.
  */
 export function useGenerateCopilotPlan() {
   return useMutation({
-    mutationFn: (body: GenerateCopilotPlanBody) =>
-      requestJson(generateCopilotPlanContract, { body }),
+    mutationFn: ({ signal, ...body }: GenerateCopilotPlanVariables) =>
+      requestJson(generateCopilotPlanContract, { body, signal }),
   })
 }
 

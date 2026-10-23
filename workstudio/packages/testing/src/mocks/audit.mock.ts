@@ -137,6 +137,7 @@ const AuditAction = {
   ORGANIZATION_SSO_PRIMARY_PROVIDER_CHANGED: 'organization.sso.primary_provider_changed',
   INSTANCE_SETTINGS_UPDATED: 'organization.instance_settings.updated',
   INSTANCE_SETTINGS_APPLIED: 'organization.instance_settings.applied',
+  NEXORA_BUDGETS_UPDATED: 'organization.budgets.updated',
   ORG_MEMBER_ADDED: 'org_member.added',
   ORG_MEMBER_REMOVED: 'org_member.removed',
   ORG_MEMBER_ROLE_CHANGED: 'org_member.role_changed',

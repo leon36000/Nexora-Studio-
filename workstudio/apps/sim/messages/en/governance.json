@@ -224,6 +224,9 @@
         "instance_settings": {
           "updated": "Instance settings updated",
           "applied": "Instance settings applied (restart)"
+        },
+        "budgets": {
+          "updated": "Monthly budgets updated"
         }
       },
       "org_member": {
@@ -399,23 +402,121 @@
       "workspace": "Workspace"
     }
   },
-  "usage": {
-    "loading": "Loading usage…",
-    "unavailable": "Usage is unavailable: Nexora API is not responding.",
-    "forbidden": "Consumption is visible to organization owners and admins only.",
-    "period": "Model consumption of the whole instance, across all users, over the last {days} days, metered by Nexora API.",
-    "empty": "No usage in this period.",
-    "totals": {
-      "requests": "Requests",
-      "promptTokens": "Input tokens",
-      "completionTokens": "Output tokens",
-      "totalTokens": "Total tokens"
+  "consumption": {
+    "loadError": "Consumption could not be loaded.",
+    "forbidden": "Consumption and budgets are visible to instance administrators only.",
+    "period": {
+      "label": "Period",
+      "option": "{days} days"
     },
-    "columns": {
-      "date": "Day",
+    "export": "Export CSV",
+    "exportFileName": "consumption-{days}-days.csv",
+    "apiUnavailable": "Nexora API is not responding: requests, energy and carbon footprint are unavailable. The runs and tokens recorded by WorkStudio are still shown.",
+    "unavailable": "Unavailable",
+    "loadingReport": "Loading consumption…",
+    "tiles": {
       "requests": "Requests",
-      "promptTokens": "Input tokens",
-      "completionTokens": "Output tokens"
+      "tokens": "Tokens",
+      "executions": "Runs",
+      "energy": "Energy",
+      "footprint": "Carbon footprint"
+    },
+    "units": {
+      "kWh": "{value} kWh",
+      "kgCO2eq": "{value} kgCO2eq"
+    },
+    "carEquivalent": "≈ {km} km by car",
+    "co2Source": "Footprint measured by Nexora API. Car equivalent: {factor} kgCO2eq per km ({source}, value recorded on {date}).",
+    "tokensSource": "Tokens and requests measured by Nexora API; runs recorded by WorkStudio.",
+    "daily": {
+      "title": "Per day",
+      "measure": "Measure",
+      "tokens": "Tokens",
+      "executions": "Runs",
+      "chartLabel": "{measure} per day over the last {days} days"
+    },
+    "models": {
+      "title": "Per model",
+      "unavailable": "Unavailable while Nexora API is not responding.",
+      "empty": "No model used in this period.",
+      "columns": {
+        "model": "Model",
+        "requests": "Requests",
+        "tokens": "Tokens",
+        "energy": "kWh",
+        "footprint": "kgCO2eq"
+      }
+    },
+    "workspaces": {
+      "title": "Per workspace",
+      "empty": "No runs in this period.",
+      "deleted": "Deleted workspaces",
+      "archived": "{name} (archived)",
+      "columns": {
+        "workspace": "Workspace",
+        "executions": "Runs",
+        "tokens": "Tokens",
+        "footprint": "kgCO2eq (estimate)"
+      }
+    },
+    "users": {
+      "title": "Per person (top 20)",
+      "empty": "Nobody used a model in this period.",
+      "columns": {
+        "person": "Person",
+        "executions": "Runs",
+        "tokens": "Tokens",
+        "footprint": "kgCO2eq (estimate)"
+      }
+    },
+    "estimateNote": "Footprint per workspace and per person: estimated pro rata of each model's tokens. Models Nexora API does not measure are left out.",
+    "csv": {
+      "columns": {
+        "section": "Section",
+        "label": "Label",
+        "executions": "Runs",
+        "requests": "Requests",
+        "tokens": "Tokens",
+        "kWh": "kWh",
+        "kgCO2eq": "kgCO2eq",
+        "note": "Note"
+      },
+      "sections": {
+        "day": "Day",
+        "model": "Model",
+        "workspace": "Workspace",
+        "person": "Person"
+      },
+      "deletedWorkspace": "Deleted workspaces",
+      "estimate": "estimate"
+    },
+    "budgets": {
+      "title": "Monthly budgets",
+      "month": "Current month: {month}",
+      "instanceCap": "Instance cap (tokens per month)",
+      "threshold": "Alert threshold (%)",
+      "noCap": "No cap",
+      "usage": "{usage} / {cap} tokens this month ({percent}%)",
+      "usageNoCap": "{usage} tokens this month",
+      "workspaceCaps": "Caps per workspace",
+      "workspaceColumn": "Workspace",
+      "capColumn": "Cap (tokens per month)",
+      "usageColumn": "This month",
+      "noWorkspaceCaps": "No workspace has its own cap.",
+      "pickWorkspace": "Add a cap for a workspace",
+      "searchWorkspace": "Search workspaces",
+      "remove": "Remove the cap of {name}",
+      "capPlaceholder": "Tokens per month",
+      "invalid": "Enter caps as whole numbers of tokens and a threshold between 5 and 100%.",
+      "refusalNote": "At 100%, new runs are refused; runs started by an administrator always go through.",
+      "saved": "Budgets saved",
+      "saveFailed": "Budgets were not saved",
+      "banner": {
+        "instanceWarning": "Instance budget: {percent}% used ({usage} / {cap} tokens).",
+        "instanceExceeded": "Instance budget reached ({usage} / {cap} tokens): new runs are refused.",
+        "workspaceWarning": "Workspace “{name}”: {percent}% of the budget used ({usage} / {cap} tokens).",
+        "workspaceExceeded": "Workspace “{name}”: budget reached ({usage} / {cap} tokens), new runs are refused."
+      }
     }
   }
 }

@@ -1,0 +1,64 @@
+{
+  "entry": {
+    "homeCard": "Décrire une automatisation",
+    "sidebarButton": "Nouveau workflow avec l’IA"
+  },
+  "dialog": {
+    "title": "Décrire une automatisation",
+    "close": "Fermer",
+    "cancel": "Annuler",
+    "description": "Ce que doit faire le workflow",
+    "descriptionPlaceholder": "Ex. : chaque lundi, relancer par e-mail les factures impayées",
+    "examples": "Exemples",
+    "example": {
+      "invoicesLabel": "Relance de factures",
+      "invoices": "Chaque lundi à 9 h, relancer par e-mail les clients dont la facture est impayée depuis plus de 30 jours.",
+      "emailTriageLabel": "Tri d’e-mails",
+      "emailTriage": "Quand un e-mail arrive par webhook, déterminer s’il est urgent : si oui, préparer une réponse immédiate ; sinon, le résumer en une phrase pour plus tard.",
+      "knowledgeLabel": "Question sur une base",
+      "knowledge": "Répondre à une question posée dans le chat en s’appuyant sur notre base de connaissances, en citant les documents utilisés.",
+      "meetingLabel": "Compte rendu de réunion",
+      "meeting": "À partir des notes d’une réunion, rédiger un compte rendu (décisions, actions, responsables) et le faire valider par une personne avant de le renvoyer.",
+      "apiLabel": "Appel d’API et résumé",
+      "api": "Appeler une API qui renvoie des données en JSON, puis en faire un résumé clair en français."
+    },
+    "generate": "Générer",
+    "generating": "Le modèle prépare le plan… {seconds, number} s",
+    "generatingHint": "Cela peut prendre jusqu’à une minute.",
+    "stop": "Arrêter",
+    "plan": "Plan",
+    "trigger": "Déclencheur",
+    "warnings": "À vérifier",
+    "change": "Modification",
+    "changePlaceholder": "Ex. : ajoute une validation humaine avant l’envoi",
+    "applyChange": "Modifier",
+    "folder": "Dossier",
+    "root": "Racine de l’espace",
+    "create": "Créer le workflow",
+    "creating": "Création…",
+    "startOver": "Recommencer",
+    "stepTypes": {
+      "manuel": "Lancement manuel",
+      "planification": "Planification",
+      "webhook": "Webhook",
+      "chat": "Chat",
+      "agent": "Agent",
+      "condition": "Condition",
+      "api": "Appel d’API",
+      "attente": "Attente",
+      "validation_humaine": "Validation humaine",
+      "reponse": "Réponse",
+      "unknown": "Étape"
+    },
+    "errors": {
+      "planInvalid": "Le modèle n’a pas produit de plan valide : {detail}",
+      "rejected": "Le modèle a refusé la demande : {reason}",
+      "unavailable": "Le modèle Nexora est indisponible. Réessayez dans un instant.",
+      "rateLimited": "Trop de demandes : patientez une minute avant de réessayer.",
+      "forbidden": "Vous n’avez pas le droit de créer des workflows dans cet espace.",
+      "notFound": "Ce dossier n’existe plus : choisissez-en un autre.",
+      "locked": "Ce dossier est verrouillé : choisissez-en un autre.",
+      "unknown": "La demande a échoué. Réessayez."
+    }
+  }
+}

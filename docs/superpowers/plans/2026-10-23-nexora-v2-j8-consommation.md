@@ -44,8 +44,8 @@
 ### Task 3: Routes et écran
 
 **Files:** contrat `lib/api/contracts/nexora-consumption.ts`, routes `app/api/nexora/consumption/route.ts` (GET), `app/api/nexora/budgets/route.ts` (GET/PUT), section Réglages › Consommation enrichie (période, totaux, CO2 + équivalent, courbes, tableaux par modèle/espace/personne, export CSV, budgets).
-- [ ] **Step 1:** Tests de routes (droits, validation), interface ; `type-check`, `check:audits`, `check-i18n`.
-- [ ] **Step 2: Commit** `feat(j8): écran de consommation et budgets`.
+- [x] **Step 1:** Tests de routes (droits, validation), interface ; `type-check`, `check:audits`, `check-i18n`.
+- [x] **Step 2: Commit** `feat(j8): écran de consommation et budgets`.
 
 ### Task 4: Guide, fumée, pc6, revue
 - [ ] **Step 1:** `docs/guide/consommation.md` ; fumée « Budgets » (budget d'espace minuscule ⇒ exécution refusée ⇒ plafond relevé ⇒ acceptée).

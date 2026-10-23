@@ -190,7 +190,7 @@ export function resetBudgetGateCache(): void {
 }
 
 /** The instance budgets, read fresh, or `null` without an instance organization. */
-async function readBudgets(): Promise<(NexoraBudgets & { organizationId: string }) | null> {
+export async function readBudgets(): Promise<(NexoraBudgets & { organizationId: string }) | null> {
   const organizationId = await getInstanceOrganizationId()
   if (!organizationId) return null
   const [row] = await db

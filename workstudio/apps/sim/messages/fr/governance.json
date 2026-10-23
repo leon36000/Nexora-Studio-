@@ -224,6 +224,9 @@
         "instance_settings": {
           "updated": "Réglages de l’instance modifiés",
           "applied": "Réglages de l’instance appliqués (redémarrage)"
+        },
+        "budgets": {
+          "updated": "Budgets mensuels modifiés"
         }
       },
       "org_member": {
@@ -399,23 +402,121 @@
       "workspace": "Espace"
     }
   },
-  "usage": {
-    "loading": "Chargement de la consommation…",
-    "unavailable": "La consommation n'est pas disponible : Nexora API ne répond pas.",
-    "forbidden": "La consommation est réservée aux propriétaires et administrateurs de l'organisation.",
-    "period": "Consommation de modèles de toute l'instance, tous utilisateurs confondus, sur les {days} derniers jours, mesurée par Nexora API.",
-    "empty": "Aucune utilisation sur la période.",
-    "totals": {
-      "requests": "Requêtes",
-      "promptTokens": "Jetons en entrée",
-      "completionTokens": "Jetons en sortie",
-      "totalTokens": "Jetons au total"
+  "consumption": {
+    "loadError": "La consommation n’a pas pu être chargée.",
+    "forbidden": "La consommation et les budgets sont réservés aux administrateurs de l’instance.",
+    "period": {
+      "label": "Période",
+      "option": "{days} jours"
     },
-    "columns": {
-      "date": "Jour",
+    "export": "Exporter en CSV",
+    "exportFileName": "consommation-{days}-jours.csv",
+    "apiUnavailable": "Nexora API ne répond pas : requêtes, énergie et empreinte carbone sont indisponibles. Les exécutions et jetons enregistrés par WorkStudio restent affichés.",
+    "unavailable": "Indisponible",
+    "loadingReport": "Chargement de la consommation…",
+    "tiles": {
       "requests": "Requêtes",
-      "promptTokens": "Jetons en entrée",
-      "completionTokens": "Jetons en sortie"
+      "tokens": "Jetons",
+      "executions": "Exécutions",
+      "energy": "Énergie",
+      "footprint": "Empreinte carbone"
+    },
+    "units": {
+      "kWh": "{value} kWh",
+      "kgCO2eq": "{value} kgCO2eq"
+    },
+    "carEquivalent": "≈ {km} km en voiture",
+    "co2Source": "Empreinte mesurée par Nexora API. Équivalent voiture : {factor} kgCO2eq par km ({source}, valeur relevée le {date}).",
+    "tokensSource": "Jetons et requêtes mesurés par Nexora API ; exécutions enregistrées par WorkStudio.",
+    "daily": {
+      "title": "Par jour",
+      "measure": "Mesure",
+      "tokens": "Jetons",
+      "executions": "Exécutions",
+      "chartLabel": "{measure} par jour sur les {days} derniers jours"
+    },
+    "models": {
+      "title": "Par modèle",
+      "unavailable": "Indisponible tant que Nexora API ne répond pas.",
+      "empty": "Aucun modèle utilisé sur la période.",
+      "columns": {
+        "model": "Modèle",
+        "requests": "Requêtes",
+        "tokens": "Jetons",
+        "energy": "kWh",
+        "footprint": "kgCO2eq"
+      }
+    },
+    "workspaces": {
+      "title": "Par espace",
+      "empty": "Aucune exécution sur la période.",
+      "deleted": "Espaces supprimés",
+      "archived": "{name} (archivé)",
+      "columns": {
+        "workspace": "Espace",
+        "executions": "Exécutions",
+        "tokens": "Jetons",
+        "footprint": "kgCO2eq (estimation)"
+      }
+    },
+    "users": {
+      "title": "Par personne (20 premières)",
+      "empty": "Personne n’a utilisé de modèle sur la période.",
+      "columns": {
+        "person": "Personne",
+        "executions": "Exécutions",
+        "tokens": "Jetons",
+        "footprint": "kgCO2eq (estimation)"
+      }
+    },
+    "estimateNote": "Empreinte par espace et par personne : estimation au prorata des jetons de chaque modèle. Les modèles que Nexora API ne mesure pas n’y sont pas comptés.",
+    "csv": {
+      "columns": {
+        "section": "Rubrique",
+        "label": "Libellé",
+        "executions": "Exécutions",
+        "requests": "Requêtes",
+        "tokens": "Jetons",
+        "kWh": "kWh",
+        "kgCO2eq": "kgCO2eq",
+        "note": "Note"
+      },
+      "sections": {
+        "day": "Jour",
+        "model": "Modèle",
+        "workspace": "Espace",
+        "person": "Personne"
+      },
+      "deletedWorkspace": "Espaces supprimés",
+      "estimate": "estimation"
+    },
+    "budgets": {
+      "title": "Budgets mensuels",
+      "month": "Mois en cours : {month}",
+      "instanceCap": "Plafond de l’instance (jetons par mois)",
+      "threshold": "Seuil d’alerte (%)",
+      "noCap": "Aucun plafond",
+      "usage": "{usage} / {cap} jetons ce mois-ci ({percent} %)",
+      "usageNoCap": "{usage} jetons ce mois-ci",
+      "workspaceCaps": "Plafonds par espace",
+      "workspaceColumn": "Espace",
+      "capColumn": "Plafond (jetons par mois)",
+      "usageColumn": "Ce mois-ci",
+      "noWorkspaceCaps": "Aucun espace n’a de plafond propre.",
+      "pickWorkspace": "Ajouter un plafond pour un espace",
+      "searchWorkspace": "Rechercher un espace",
+      "remove": "Retirer le plafond de {name}",
+      "capPlaceholder": "Jetons par mois",
+      "invalid": "Saisissez des plafonds en nombres entiers de jetons et un seuil entre 5 et 100 %.",
+      "refusalNote": "À 100 %, les nouvelles exécutions sont refusées ; celles lancées par un administrateur passent toujours.",
+      "saved": "Budgets enregistrés",
+      "saveFailed": "Les budgets n’ont pas été enregistrés",
+      "banner": {
+        "instanceWarning": "Budget de l’instance : {percent} % utilisé ({usage} / {cap} jetons).",
+        "instanceExceeded": "Budget de l’instance atteint ({usage} / {cap} jetons) : les nouvelles exécutions sont refusées.",
+        "workspaceWarning": "Espace « {name} » : {percent} % du budget utilisé ({usage} / {cap} jetons).",
+        "workspaceExceeded": "Espace « {name} » : budget atteint ({usage} / {cap} jetons), les nouvelles exécutions sont refusées."
+      }
     }
   }
 }

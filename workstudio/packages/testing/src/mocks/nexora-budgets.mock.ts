@@ -26,6 +26,7 @@ export const nexoraBudgetsMockFns = {
     alerts: [],
   })),
   mockUpdateBudgets: vi.fn(),
+  mockReadBudgets: vi.fn(),
   mockResetBudgetGateCache: vi.fn(),
 }
 
@@ -34,5 +35,6 @@ export const nexoraBudgetsMock = {
   checkBudget: nexoraBudgetsMockFns.mockCheckBudget,
   parseBudgets: nexoraBudgetsMockFns.mockParseBudgets,
   updateBudgets: nexoraBudgetsMockFns.mockUpdateBudgets,
+  readBudgets: nexoraBudgetsMockFns.mockReadBudgets,
   resetBudgetGateCache: nexoraBudgetsMockFns.mockResetBudgetGateCache,
 }

@@ -22,6 +22,16 @@ const generateCopilotPlanBodySchema = z.object({
 
 export type GenerateCopilotPlanBody = z.input<typeof generateCopilotPlanBodySchema>
 
+const generatedCopilotPlanSchema = z.object({
+  plan: copilotPlanSchema,
+  /** The trigger, then each step, as one French sentence each. */
+  summary: z.array(z.string()),
+  /** Unknown services or knowledge bases the workflow will ignore. */
+  warnings: z.array(z.string()),
+})
+
+export type GeneratedCopilotPlan = z.output<typeof generatedCopilotPlanSchema>
+
 /**
  * Asks the Nexora model for a workflow plan (nothing is created). Errors carry a `code`:
  * `plan-invalid` (422, the model's plan stayed invalid after one retry), `rejected` (422, the model
@@ -31,16 +41,7 @@ export const generateCopilotPlanContract = defineRouteContract({
   method: 'POST',
   path: '/api/nexora/copilot/plan',
   body: generateCopilotPlanBodySchema,
-  response: {
-    mode: 'json',
-    schema: z.object({
-      plan: copilotPlanSchema,
-      /** The trigger, then each step, as one French sentence each. */
-      summary: z.array(z.string()),
-      /** Unknown services or knowledge bases the workflow will ignore. */
-      warnings: z.array(z.string()),
-    }),
-  },
+  response: { mode: 'json', schema: generatedCopilotPlanSchema },
 })
 
 const createCopilotWorkflowBodySchema = z.object({

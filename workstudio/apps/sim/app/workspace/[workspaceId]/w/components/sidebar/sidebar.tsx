@@ -42,6 +42,7 @@ import {
   Sparkles,
   Table,
   Task,
+  Wand,
   Workflow,
 } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
@@ -60,6 +61,7 @@ import { DOCS_URL, SLACK_COMMUNITY_URL } from '@/lib/help-links'
 import { SIM_RESOURCES_DRAG_TYPE } from '@/lib/mothership/resource-types'
 import { captureEvent } from '@/lib/posthog/client'
 import { LOGO_ACCEPT_ATTRIBUTE } from '@/lib/uploads/client/logo-file'
+import { LazyCopilotDialog } from '@/app/workspace/[workspaceId]/components/copilot-dialog'
 import { useSidebarChrome } from '@/app/workspace/[workspaceId]/components/workspace-chrome'
 import { CONNECT_MODE } from '@/app/workspace/[workspaceId]/integrations/connect-route'
 import { useFeatureFlag } from '@/app/workspace/[workspaceId]/providers/feature-flags-provider'
@@ -410,6 +412,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   const { isCollapsed: isCollapsedProp, isPeeking, onToggle: toggleCollapsed } = useSidebarChrome()
   const isCollapsed = isCollapsedProp && !isPeeking
   const t = useTranslations('shell.sidebar')
+  const tCopilot = useTranslations('copilot.entry')
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workflowId = params.workflowId as string | undefined
@@ -467,6 +470,8 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
 
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false)
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false)
+  const [copilotFolderIds, setCopilotFolderIds] = useState<Array<string | null | undefined>>([])
 
   /** Listens for external events to open help modal */
   useEffect(() => {
@@ -1229,6 +1234,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
     }
   }, [createWorkflow])
 
+  const handleOpenCopilot = () => {
+    const openWorkflowFolderId = workflowId
+      ? regularWorkflows.find((workflow) => workflow.id === workflowId)?.folderId
+      : null
+    setCopilotFolderIds([useFolderStore.getState().lastSelectedFolderId, openWorkflowFolderId])
+    setIsCopilotOpen(true)
+  }
+
   const handleCreateFolder = useCallback(async () => {
     const folderId = await createFolder()
     if (folderId) {
@@ -1790,6 +1803,23 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            {!permissionsLoading && canEdit && (
+                              <Tooltip.Root>
+                                <Tooltip.Trigger asChild>
+                                  <Button
+                                    aria-label={tCopilot('sidebarButton')}
+                                    variant='quiet'
+                                    size='icon'
+                                    onClick={handleOpenCopilot}
+                                  >
+                                    <Wand className='size-[14px]' />
+                                  </Button>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>
+                                  <p>{tCopilot('sidebarButton')}</p>
+                                </Tooltip.Content>
+                              </Tooltip.Root>
+                            )}
                             <Tooltip.Root>
                               <Tooltip.Trigger asChild>
                                 <Button
@@ -2001,6 +2031,15 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         onCreateFolder={handleCreateFolder}
         onImportWorkflow={handleImportWorkflow}
       />
+
+      {!permissionsLoading && canEdit && (
+        <LazyCopilotDialog
+          workspaceId={workspaceId}
+          open={isCopilotOpen}
+          onOpenChange={setIsCopilotOpen}
+          suggestedFolderIds={copilotFolderIds}
+        />
+      )}
 
       <HelpModal
         open={isHelpModalOpen}

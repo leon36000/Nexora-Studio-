@@ -1,0 +1,64 @@
+{
+  "entry": {
+    "homeCard": "Describe an automation",
+    "sidebarButton": "New workflow with AI"
+  },
+  "dialog": {
+    "title": "Describe an automation",
+    "close": "Close",
+    "cancel": "Cancel",
+    "description": "What the workflow should do",
+    "descriptionPlaceholder": "E.g. every Monday, email a reminder for unpaid invoices",
+    "examples": "Examples",
+    "example": {
+      "invoicesLabel": "Invoice reminders",
+      "invoices": "Every Monday at 9 am, email a reminder to customers whose invoice has been unpaid for more than 30 days.",
+      "emailTriageLabel": "Email triage",
+      "emailTriage": "When an email arrives through a webhook, decide whether it is urgent: if so, draft an immediate reply; otherwise, summarize it in one sentence for later.",
+      "knowledgeLabel": "Question on a knowledge base",
+      "knowledge": "Answer a question asked in the chat using our knowledge base, citing the documents used.",
+      "meetingLabel": "Meeting minutes",
+      "meeting": "From a meeting's notes, write the minutes (decisions, actions, owners) and have a person approve them before returning them.",
+      "apiLabel": "API call and summary",
+      "api": "Call an API that returns JSON data, then write a clear summary of it."
+    },
+    "generate": "Generate",
+    "generating": "The model is preparing the plan… {seconds, number} s",
+    "generatingHint": "This can take up to a minute.",
+    "stop": "Stop",
+    "plan": "Plan",
+    "trigger": "Trigger",
+    "warnings": "To check",
+    "change": "Change",
+    "changePlaceholder": "E.g. add a human approval before sending",
+    "applyChange": "Modify",
+    "folder": "Folder",
+    "root": "Workspace root",
+    "create": "Create workflow",
+    "creating": "Creating…",
+    "startOver": "Start over",
+    "stepTypes": {
+      "manuel": "Manual run",
+      "planification": "Schedule",
+      "webhook": "Webhook",
+      "chat": "Chat",
+      "agent": "Agent",
+      "condition": "Condition",
+      "api": "API call",
+      "attente": "Wait",
+      "validation_humaine": "Human approval",
+      "reponse": "Response",
+      "unknown": "Step"
+    },
+    "errors": {
+      "planInvalid": "The model did not produce a valid plan: {detail}",
+      "rejected": "The model refused the request: {reason}",
+      "unavailable": "The Nexora model is unavailable. Try again in a moment.",
+      "rateLimited": "Too many requests: wait a minute before trying again.",
+      "forbidden": "You are not allowed to create workflows in this workspace.",
+      "notFound": "This folder no longer exists: choose another one.",
+      "locked": "This folder is locked: choose another one.",
+      "unknown": "The request failed. Try again."
+    }
+  }
+}

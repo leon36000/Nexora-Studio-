@@ -47,8 +47,8 @@
 
 **Files:** fenêtre `app/workspace/[workspaceId]/components/copilot-dialog/` (description, exemples, aperçu des étapes, Modifier, Créer), carte « Décrire une automatisation » de l'Accueil, bouton « Avec l'IA » de la barre latérale, messages `messages/{fr,en}/copilot.json`.
 
-- [ ] **Step 1:** Construire ; `type-check`, `check:audits`, `check-i18n` — PASS.
-- [ ] **Step 2: Commit** `feat(j7): Copilote dans l'Accueil et la barre latérale`.
+- [x] **Step 1:** Construire ; `type-check`, `check:audits`, `check-i18n` — PASS.
+- [x] **Step 2: Commit** `feat(j7): Copilote dans l'Accueil et la barre latérale`.
 
 ### Task 4: Guide, fumée, pc6, revue
 
