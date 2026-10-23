@@ -4,6 +4,7 @@ import 'streamdown/styles.css'
 import { CopyCodeButton, Tooltip } from '@sim/emcn'
 import { useTranslations } from 'next-intl'
 import { extractTextContent } from '@/lib/core/utils/react-node-text'
+import { imageSourcePolicy } from '@/app/(interfaces)/chat/components/message/components/image-source'
 
 function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
   const t = useTranslations('interfaces.chat')
@@ -14,6 +15,34 @@ function MarkdownImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImage
       className='my-3 h-auto max-w-full rounded-md'
       {...props}
     />
+  )
+}
+
+/**
+ * Nexora edition: an image of this origin or inline is shown; any other one becomes a link the
+ * reader may follow, so a model's answer cannot make the page call a third party on its own.
+ */
+function SameOriginMarkdownImage({
+  src,
+  alt,
+  ...props
+}: React.ImgHTMLAttributes<HTMLImageElement>) {
+  const t = useTranslations('interfaces.chat')
+  const source = typeof src === 'string' ? src : ''
+  const origin = typeof window === 'undefined' ? '' : window.location.origin
+  const policy = imageSourcePolicy(source, origin)
+  if (policy === 'embed') return <MarkdownImage src={source} alt={alt} {...props} />
+  const label = t('externalImage', { name: alt || source })
+  if (policy === 'text') return <span>{label}</span>
+  return (
+    <a
+      href={source}
+      className='text-[var(--text-primary)] underline decoration-dashed underline-offset-4'
+      target='_blank'
+      rel='noopener noreferrer'
+    >
+      {label}
+    </a>
   )
 }
 
@@ -165,10 +194,24 @@ const COMPONENTS = {
   img: MarkdownImage,
 }
 
-const MarkdownRenderer = memo(function MarkdownRenderer({ content }: { content: string }) {
+const SAME_ORIGIN_IMAGE_COMPONENTS = { ...COMPONENTS, img: SameOriginMarkdownImage }
+
+interface MarkdownRendererProps {
+  content: string
+  /** Shows only images of this origin or inline ones; others become links. */
+  sameOriginImages?: boolean
+}
+
+const MarkdownRenderer = memo(function MarkdownRenderer({
+  content,
+  sameOriginImages = false,
+}: MarkdownRendererProps) {
   return (
     <div className='space-y-4 break-words font-sans text-[var(--text-primary)] text-base leading-relaxed'>
-      <Streamdown mode='static' components={COMPONENTS}>
+      <Streamdown
+        mode='static'
+        components={sameOriginImages ? SAME_ORIGIN_IMAGE_COMPONENTS : COMPONENTS}
+      >
         {content.trim()}
       </Streamdown>
     </div>

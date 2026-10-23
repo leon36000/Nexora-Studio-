@@ -25,7 +25,6 @@ import { CHAT_REQUEST_TIMEOUT_MS } from '@/app/(interfaces)/chat/constants'
 import { useChatStreaming } from '@/app/(interfaces)/chat/hooks'
 import SSOAuth from '@/ee/sso/components/sso-auth'
 import { useDeployedChatConfig } from '@/hooks/queries/chats'
-import { useGitHubStars } from '@/hooks/queries/github-stars'
 import { useMobileViewport } from '@/hooks/use-mobile-viewport'
 
 const logger = createLogger('ChatClient')
@@ -86,7 +85,6 @@ export default function ChatClient({ identifier }: { identifier: string }) {
   const ignoreScrollRef = useRef(false)
 
   const { data: chatConfigResult, error: chatConfigError } = useDeployedChatConfig(identifier)
-  const { data: starCount } = useGitHubStars()
 
   const authRequired = chatConfigResult?.kind === 'auth' ? chatConfigResult.authType : null
   const chatConfig = chatConfigResult?.kind === 'config' ? chatConfigResult.config : null
@@ -333,7 +331,7 @@ export default function ChatClient({ identifier }: { identifier: string }) {
   return (
     <ChatViewport>
       <DesktopTitleBarLane />
-      <ChatHeader chatConfig={chatConfig} starCount={starCount} />
+      <ChatHeader chatConfig={chatConfig} />
 
       <ChatMessageContainer
         messages={displayMessages}

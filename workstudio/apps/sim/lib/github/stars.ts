@@ -1,13 +1,4 @@
-import { createLogger } from '@sim/logger'
-import { env } from '@/lib/core/config/env'
-
-const logger = createLogger('GitHubStars')
-
-/**
- * Floor shown only when the live GitHub count can't be fetched. Kept a touch
- * below the real count (~28.9k as of 2026-06) so it never overstates, and
- * bumped periodically.
- */
+/** Static count shown on the marketing pages; never fetched from GitHub (no third-party call). */
 const FALLBACK_STAR_COUNT = 28900
 
 /**
@@ -20,36 +11,11 @@ export function formatStarCount(num: number): string {
 }
 
 /**
- * Fetches the Sim repository's GitHub star count, formatted for display.
+ * The project's GitHub star count, formatted for display.
  *
- * Server-only. The upstream fetch is cached for 1 hour via Next.js fetch
- * caching, so statically rendered pages (landing) and the `/api/stars`
- * route share one cached value. Falls back to a static count on failure —
- * never throws.
+ * Nexora edition: an instance makes no third-party call by default (no request to GitHub from
+ * the server), so this returns the static floor.
  */
 export async function getGitHubStars(): Promise<string> {
-  try {
-    const token = env.GITHUB_TOKEN
-    const response = await fetch('https://api.github.com/repos/leon36000/Nexora-Studio-', {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'Nexora/1.0',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      next: { revalidate: 3600 },
-      cache: 'force-cache',
-    })
-
-    if (!response.ok) {
-      logger.warn('GitHub API request failed:', response.status)
-      return formatStarCount(FALLBACK_STAR_COUNT)
-    }
-
-    const data = await response.json()
-    return formatStarCount(Number(data?.stargazers_count ?? FALLBACK_STAR_COUNT))
-  } catch (error) {
-    logger.warn('Error fetching GitHub stars:', error)
-    return formatStarCount(FALLBACK_STAR_COUNT)
-  }
+  return formatStarCount(FALLBACK_STAR_COUNT)
 }

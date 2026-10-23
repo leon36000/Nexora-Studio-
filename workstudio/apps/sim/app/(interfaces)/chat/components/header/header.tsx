@@ -4,7 +4,6 @@ import { OverflowText, SimWordmark } from '@sim/emcn'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { GithubIcon } from '@/components/icons'
 import { SITE_URL } from '@/lib/core/utils/urls'
 import { useBrandConfig } from '@/ee/whitelabeling'
 
@@ -18,10 +17,9 @@ interface ChatHeaderProps {
       primaryColor?: string
     }
   } | null
-  starCount: string
 }
 
-export function ChatHeader({ chatConfig, starCount }: ChatHeaderProps) {
+export function ChatHeader({ chatConfig }: ChatHeaderProps) {
   const brand = useBrandConfig()
   const t = useTranslations('interfaces.chat')
   const customImage = chatConfig?.customizations?.imageUrl || chatConfig?.customizations?.logoUrl
@@ -55,16 +53,6 @@ export function ChatHeader({ chatConfig, starCount }: ChatHeaderProps) {
 
       {!brand.logoUrl && (
         <div className='flex shrink-0 items-center gap-4'>
-          <a
-            href='https://github.com/leon36000/Nexora-Studio-'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='hidden items-center gap-2 text-[var(--text-muted)] transition-colors hover-hover:text-[var(--text-primary)] md:flex'
-            aria-label={t('githubStars', { count: starCount })}
-          >
-            <GithubIcon className='size-[16px]' aria-hidden='true' />
-            <span aria-live='polite'>{starCount}</span>
-          </a>
           {/* Only show Nexora logo if no custom branding is set */}
 
           <Link

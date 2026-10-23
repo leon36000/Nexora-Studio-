@@ -98,17 +98,6 @@ export const getVoiceSettingsContract = defineRouteContract({
   },
 })
 
-export const getStarsContract = defineRouteContract({
-  method: 'GET',
-  path: '/api/stars',
-  response: {
-    mode: 'json',
-    schema: z.object({
-      stars: z.string(),
-    }),
-  },
-})
-
 const jobStatusSchema = z.enum(['pending', 'processing', 'completed', 'failed', 'cancelled'])
 
 const jobStatusResponseSchema = z

@@ -4,7 +4,6 @@
     "defaultTitle": "Chat",
     "logoAlt": "{title} logo",
     "navigation": "Chat navigation",
-    "githubStars": "GitHub repository - {count} stars",
     "home": "Nexora home",
     "unavailableTitle": "Chat Unavailable",
     "openApp": "Open Nexora",
@@ -15,6 +14,7 @@
     "copied": "Copied!",
     "copy": "Copy to clipboard",
     "imageAlt": "Image",
+    "externalImage": "External image: {name}",
     "errors": {
       "generic": "Sorry, there was an error processing your message. Please try again.",
       "unavailable": "This chat is currently unavailable. Please try again later."
