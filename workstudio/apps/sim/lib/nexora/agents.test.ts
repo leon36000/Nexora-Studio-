@@ -69,6 +69,16 @@ describe('agent workflows', () => {
     expect(agent?.subBlocks.conversationId?.value).toBe('<start.conversationId>')
   })
 
+  it('passes the files attached to a chat message to the agent', () => {
+    // The Assistant and a published chat send attachments with the message; Start exposes them
+    // as `<start.files>`, which the agent reads through its file reference.
+    const state = buildAgentWorkflow(base)
+    const agent = Object.values(state.blocks).find((b) => b.type === 'agent')
+    expect(agent?.subBlocks.files?.value).toBe('<start.files>')
+    expect(agent?.data?.canonicalModes?.files).toBe('advanced')
+    expect(readAgentWorkflow(state)).not.toBeNull()
+  })
+
   it('refuses a workflow edited beyond the agent shape', () => {
     const state = buildAgentWorkflow(base)
     const extraBlock = structuredClone(state)

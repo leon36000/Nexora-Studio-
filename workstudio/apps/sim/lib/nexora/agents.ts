@@ -29,6 +29,7 @@ interface AgentBlock {
   enabled: boolean
   subBlocks: Record<string, { id: string; type: string; value: unknown }>
   outputs: Record<string, unknown>
+  data?: Record<string, unknown>
 }
 
 interface AgentEdge {
@@ -52,6 +53,8 @@ const START_BLOCK_NAME = 'Start'
 const AGENT_BLOCK_NAME = 'Agent'
 const USER_MESSAGE = '<start.input>'
 const CONVERSATION_ID = '<start.conversationId>'
+/** The files attached to a chat message (Assistant, published chat), handed to the agent. */
+const MESSAGE_FILES = '<start.files>'
 const FORM_MEMORY_TYPES = new Set(['none', 'conversation'])
 
 /** The tool entry the agent block uses to search one knowledge base (as the tool picker builds it). */
@@ -156,7 +159,17 @@ function formSubBlocks(config: AgentConfig, previousTools: StoredTool[]): AgentB
   if (config.memory) {
     subBlocks.conversationId = { id: 'conversationId', type: 'short-input', value: CONVERSATION_ID }
   }
+  subBlocks.files = { id: 'files', type: 'short-input', value: MESSAGE_FILES }
   return subBlocks
+}
+
+/** The agent reads its files from a reference (`<start.files>`), not from an upload field. */
+function withFileReference(block: AgentBlock): AgentBlock {
+  const data = toRecord(block.data)
+  return {
+    ...block,
+    data: { ...data, canonicalModes: { ...toRecord(data.canonicalModes), files: 'advanced' } },
+  }
 }
 
 /**
@@ -178,10 +191,10 @@ export function buildAgentWorkflow(config: AgentConfig, previous?: unknown): Age
     const blocks = structuredClone(shape.state.blocks) as Record<string, AgentBlock>
     const agentId = String(shape.agent.id)
     const previousTools = toArray(subBlockValue(shape.agent, 'tools')).filter(isStoredTool)
-    blocks[agentId] = {
+    blocks[agentId] = withFileReference({
       ...blocks[agentId],
       subBlocks: { ...blocks[agentId].subBlocks, ...formSubBlocks(config, previousTools) },
-    }
+    })
     return {
       blocks,
       edges: structuredClone(shape.state.edges) as AgentEdge[],
@@ -204,7 +217,7 @@ export function buildAgentWorkflow(config: AgentConfig, previous?: unknown): Age
         subBlocks: { inputFormat: { id: 'inputFormat', type: 'input-format', value: [] } },
         outputs: {},
       },
-      [agentId]: {
+      [agentId]: withFileReference({
         id: agentId,
         type: 'agent',
         name: AGENT_BLOCK_NAME,
@@ -212,7 +225,7 @@ export function buildAgentWorkflow(config: AgentConfig, previous?: unknown): Age
         enabled: true,
         subBlocks: formSubBlocks(config, []),
         outputs: {},
-      },
+      }),
     },
     edges: [
       {
