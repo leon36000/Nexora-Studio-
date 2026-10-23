@@ -3,7 +3,7 @@ import { playgroundContract } from '@/lib/api/contracts/nexora-playground'
 import { parseRequest } from '@/lib/api/server'
 import { getSession } from '@/lib/auth'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
-import { NexoraWandUnavailableError, nexoraWandStream } from '@/lib/nexora/wand'
+import { describeWandFailure, nexoraWandStream } from '@/lib/nexora/wand'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
 export const dynamic = 'force-dynamic'
@@ -39,9 +39,13 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       },
     })
   } catch (error) {
-    if (error instanceof NexoraWandUnavailableError) {
-      return NextResponse.json({ error: 'unavailable' }, { status: 503 })
-    }
-    throw error
+    const failure = describeWandFailure(error)
+    if (!failure) throw error
+    return NextResponse.json(
+      failure.code === 'rejected'
+        ? { error: failure.code, reason: failure.reason }
+        : { error: failure.code },
+      { status: failure.status }
+    )
   }
 })

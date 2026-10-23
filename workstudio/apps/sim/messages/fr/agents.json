@@ -31,6 +31,7 @@
     "stopped": "Réponse arrêtée.",
     "errors": {
       "unavailable": "Nexora API est indisponible. Réessayez dans un instant.",
+      "rejected": "Le modèle a refusé la demande : {reason}",
       "forbidden": "Vous n’avez pas accès à cet espace.",
       "invalid": "La demande a été refusée : vérifiez le message et les réglages.",
       "interrupted": "La réponse a été interrompue.",
@@ -55,6 +56,7 @@
     "save": "Enregistrer",
     "saved": "Agent enregistré.",
     "saveFailed": "L’agent n’a pas pu être enregistré.",
+    "changedElsewhere": "L’agent a été modifié ailleurs : rechargez la page.",
     "nameRequired": "Donnez un nom à l’agent.",
     "fields": {
       "name": "Nom",
@@ -105,6 +107,7 @@
     "copy": "Copier le lien",
     "notPublished": "Pas encore publié.",
     "public": "Accessible sans compte (lien public)",
+    "accessSetInEditor": "Accès configuré dans l’éditeur (mot de passe, liste d’e-mails ou SSO) : la publication le conserve.",
     "membersHint": "Réservé aux membres de l’espace connectés à Nexora. Publiez à nouveau pour appliquer un changement.",
     "publicHint": "Toute personne qui a le lien peut discuter avec l’agent (par exemple vos clients) : ne lui donnez pas accès à des documents confidentiels."
   },

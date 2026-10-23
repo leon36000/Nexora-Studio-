@@ -8,6 +8,10 @@ import {
   type SelectedItem,
   SelectedList,
 } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/selected-list'
+import {
+  applyPickedTools,
+  pickerKey,
+} from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/tools-selection'
 import { type McpToolForUI, useMcpTools } from '@/hooks/mcp/use-mcp-tools'
 import { useMcpServers } from '@/hooks/queries/mcp'
 import { useWorkflows } from '@/hooks/queries/workflows'
@@ -27,17 +31,6 @@ function mcpKey(serverId: string, toolName: string): string {
 
 function workflowKey(workflowId: string): string {
   return `workflow:${workflowId}`
-}
-
-/** A tool's picker value; tools the picker does not offer (added in the editor) get none. */
-function pickerKey(tool: StoredTool): string | null {
-  if (tool.type === 'mcp' && tool.params?.serverId && tool.params.toolName) {
-    return mcpKey(tool.params.serverId, tool.params.toolName)
-  }
-  if (tool.type === 'workflow_input' && tool.params?.workflowId) {
-    return workflowKey(tool.params.workflowId)
-  }
-  return null
 }
 
 /** An MCP tool entry, exactly as the block editor's tool picker stores it. */
@@ -89,6 +82,7 @@ export function ToolsField({
     const groups = new Map<string, ComboboxOptionGroup>()
     for (const tool of mcpTools) {
       const key = mcpKey(tool.serverId, tool.name)
+      if (mcpByKey.has(key)) continue
       mcpByKey.set(key, tool)
       const group = groups.get(tool.serverId) ?? {
         section: tool.serverName || t('unknownServer'),
@@ -112,55 +106,49 @@ export function ToolsField({
   }, [mcpTools, servers, workflows, workflowId, t])
 
   const selectedKeys = useMemo(
-    () => value.map(pickerKey).filter((key): key is string => key !== null),
+    () => [...new Set(value.map(pickerKey).filter((key): key is string => key !== null))],
     [value]
   )
 
-  const items = useMemo<SelectedItem[]>(
-    () =>
-      value.map((tool, index) => {
-        const key = pickerKey(tool)
-        if (tool.type === 'mcp' && key) {
-          const serverName = tool.params?.serverName
-          const name = tool.params?.toolName ?? tool.title ?? ''
-          return {
-            key,
-            label: serverName ? `${name} · ${serverName}` : name,
-            missing: !mcpLoading && !catalog.mcpByKey.has(key),
-          }
-        }
-        if (tool.type === 'workflow_input' && key) {
-          const id = tool.params?.workflowId ?? ''
-          const name = catalog.workflowNames.get(id)
-          return {
-            key,
-            label: t('workflowTitle', { name: name ?? id }),
-            missing: !workflowsLoading && name === undefined,
-          }
-        }
-        return { key: `other:${index}`, label: tool.title ?? tool.type, missing: false }
-      }),
-    [value, catalog, mcpLoading, workflowsLoading, t]
-  )
+  const items = useMemo<SelectedItem[]>(() => {
+    const listed = new Set<string>()
+    const result: SelectedItem[] = []
+    value.forEach((tool, index) => {
+      const key = pickerKey(tool)
+      if (key !== null && listed.has(key)) return
+      if (key !== null) listed.add(key)
+      if (tool.type === 'mcp' && key) {
+        const serverName = tool.params?.serverName
+        const name = tool.params?.toolName ?? tool.title ?? ''
+        result.push({
+          key,
+          label: serverName ? `${name} · ${serverName}` : name,
+          missing: !mcpLoading && !catalog.mcpByKey.has(key),
+        })
+      } else if (tool.type === 'workflow_input' && key) {
+        const id = tool.params?.workflowId ?? ''
+        const name = catalog.workflowNames.get(id)
+        result.push({
+          key,
+          label: t('workflowTitle', { name: name ?? id }),
+          missing: !workflowsLoading && name === undefined,
+        })
+      } else {
+        result.push({ key: `other:${index}`, label: tool.title ?? tool.type, missing: false })
+      }
+    })
+    return result
+  }, [value, catalog, mcpLoading, workflowsLoading, t])
+
+  const buildPickedTool = (key: string): StoredTool | null => {
+    const mcpTool = catalog.mcpByKey.get(key)
+    if (mcpTool) return buildMcpTool(mcpTool, catalog.serverUrls.get(mcpTool.serverId))
+    if (key.startsWith('workflow:')) return buildWorkflowTool(key.slice('workflow:'.length))
+    return null
+  }
 
   const handlePickerChange = (keys: string[]) => {
-    const picked = new Set(keys)
-    const current = new Set(selectedKeys)
-    const kept = value.filter((tool) => {
-      const key = pickerKey(tool)
-      return key === null || picked.has(key)
-    })
-    const added: StoredTool[] = []
-    for (const key of keys) {
-      if (current.has(key)) continue
-      const mcpTool = catalog.mcpByKey.get(key)
-      if (mcpTool) {
-        added.push(buildMcpTool(mcpTool, catalog.serverUrls.get(mcpTool.serverId)))
-      } else if (key.startsWith('workflow:')) {
-        added.push(buildWorkflowTool(key.slice('workflow:'.length)))
-      }
-    }
-    onChange([...kept, ...added])
+    onChange(applyPickedTools(value, keys, buildPickedTool))
   }
 
   const handleRemove = (key: string) => {

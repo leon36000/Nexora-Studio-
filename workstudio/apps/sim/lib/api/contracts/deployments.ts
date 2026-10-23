@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { chatAuthTypeSchema } from '@/lib/api/contracts/chats'
 import { nonEmptyIdSchema, versionNumberPathSchema } from '@/lib/api/contracts/primitives'
 import { defineRouteContract } from '@/lib/api/contracts/types'
 import { workflowIdParamsSchema } from '@/lib/api/contracts/workflows'
@@ -226,7 +227,7 @@ export const chatDetailSchema = z.object({
   identifier: z.string(),
   title: z.string(),
   description: z.preprocess((value) => value ?? '', z.string()),
-  authType: z.enum(['public', 'password', 'email', 'sso']),
+  authType: chatAuthTypeSchema,
   allowedEmails: z.preprocess((value) => value ?? [], z.array(z.string())),
   outputConfigs: z.preprocess(
     (value) => value ?? [],

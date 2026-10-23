@@ -242,7 +242,8 @@
     "usageLimitReached": "Usage limit reached",
     "upgrade": "Upgrade",
     "generationFailed": "Generation failed",
-    "modelUnavailable": "The Nexora model is not responding right now. Try again in a moment."
+    "modelUnavailable": "The Nexora model is not responding right now. Try again in a moment.",
+    "modelRejected": "The model refused the request: {reason}"
   },
   "blockOutputFields": {
     "subflowResults": "Array of results from the loop/parallel execution"

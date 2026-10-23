@@ -130,7 +130,12 @@ export function Playground({ workspaceId }: PlaygroundProps) {
       } else if (outcome.status === 'stopped') {
         updateRun(column.id, controller, { status: 'stopped', latencyMs })
       } else {
-        updateRun(column.id, controller, { status: 'error', error: outcome.code, latencyMs })
+        updateRun(column.id, controller, {
+          status: 'error',
+          error: outcome.code,
+          errorReason: outcome.reason,
+          latencyMs,
+        })
       }
       if (controllers.get(column.id) === controller) controllers.delete(column.id)
     })

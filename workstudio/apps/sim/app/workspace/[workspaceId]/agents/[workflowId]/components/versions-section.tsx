@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Badge, Chip, ChipCombobox, ChipConfirmModal, toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { useFormatter, useTranslations } from 'next-intl'
-import { type AgentConfig, diffAgentConfigs, readAgentWorkflow } from '@/lib/nexora/agents'
+import { type AgentConfig, diffAgentVersions, readAgentWorkflow } from '@/lib/nexora/agents'
 import { FormField } from '@/app/workspace/[workspaceId]/agents/components/form-field'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import { useActivateDeploymentVersion, useDeploymentVersions } from '@/hooks/queries/deployments'
@@ -184,7 +184,7 @@ function VersionDiff({ workspaceId, workflowId, from, to }: VersionDiffProps) {
     )
   }
 
-  const changes = diffAgentConfigs(before, after)
+  const changes = diffAgentVersions(before, after)
   if (changes.length === 0) {
     return <p className='pl-0.5 text-[var(--text-muted)] text-small'>{t('versions.noChanges')}</p>
   }

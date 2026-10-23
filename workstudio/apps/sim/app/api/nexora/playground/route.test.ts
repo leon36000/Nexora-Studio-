@@ -6,12 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { mockStream } = vi.hoisted(() => ({ mockStream: vi.fn() }))
 
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
-vi.mock('@/lib/nexora/wand', () => ({
+vi.mock('@/lib/nexora/wand', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/nexora/wand')>()),
   nexoraWandStream: mockStream,
-  NexoraWandUnavailableError: class NexoraWandUnavailableError extends Error {},
 }))
 
-import { NexoraWandUnavailableError } from '@/lib/nexora/wand'
+import { NexoraWandRejectedError, NexoraWandUnavailableError } from '@/lib/nexora/wand'
 import { POST } from '@/app/api/nexora/playground/route'
 
 const body = {
@@ -77,6 +77,7 @@ describe('POST /api/nexora/playground', () => {
         maxTokens: 512,
         reportUsage: true,
         messages: body.messages,
+        signal: expect.any(AbortSignal),
       })
     )
   })
@@ -86,5 +87,12 @@ describe('POST /api/nexora/playground', () => {
     const response = await POST(post(body), {})
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ error: 'unavailable' })
+  })
+
+  it('answers 422 with the model’s short reason when the model refuses the request', async () => {
+    mockStream.mockRejectedValueOnce(new NexoraWandRejectedError('Model not found'))
+    const response = await POST(post(body), {})
+    expect(response.status).toBe(422)
+    expect(await response.json()).toEqual({ error: 'rejected', reason: 'Model not found' })
   })
 })

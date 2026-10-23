@@ -12,7 +12,7 @@ import { invalidateWorkflowLists } from '@/hooks/queries/utils/invalidate-workfl
 
 /**
  * Drafts a workflow plan from a description, or applies a described change to `currentPlan`.
- * Stores nothing: the error's `code` (`plan-invalid`, `unavailable`) tells the dialog what to show.
+ * Stores nothing: the error's `code` (`plan-invalid`, `rejected`, `unavailable`) tells the dialog what to show.
  */
 export function useGenerateCopilotPlan() {
   return useMutation({

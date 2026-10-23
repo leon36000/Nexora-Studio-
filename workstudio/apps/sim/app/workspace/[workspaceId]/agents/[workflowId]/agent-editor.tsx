@@ -9,7 +9,8 @@ import { AgentForm } from '@/app/workspace/[workspaceId]/agents/[workflowId]/com
 import { AgentPageHeader } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/agent-page-header'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import { useChatDeploymentInfo } from '@/hooks/queries/deployments'
-import { useWorkflowMap, useWorkflowState } from '@/hooks/queries/workflows'
+import { useAgentDraftState } from '@/hooks/queries/nexora-agents'
+import { useWorkflowMap } from '@/hooks/queries/workflows'
 
 interface AgentEditorProps {
   workspaceId: string
@@ -23,7 +24,7 @@ interface AgentEditorProps {
 export function AgentEditor({ workspaceId, workflowId }: AgentEditorProps) {
   const t = useTranslations('agents')
   const { canEdit } = useUserPermissionsContext()
-  const { data: state, isLoading, isError } = useWorkflowState(workflowId)
+  const { data: state, isFetchedAfterMount, isError } = useAgentDraftState(workflowId)
   const { data: workflowMap } = useWorkflowMap(workspaceId)
   const chat = useChatDeploymentInfo(workflowId)
   const [chatSettled, setChatSettled] = useState(false)
@@ -45,7 +46,7 @@ export function AgentEditor({ workspaceId, workflowId }: AgentEditorProps) {
     </ChipLink>
   )
 
-  if (config && agentBlockId && chatSettled) {
+  if (config && agentBlockId && isFetchedAfterMount && chatSettled) {
     return (
       <AgentForm
         key={`${workflowId}:${formRevision}`}
@@ -58,7 +59,6 @@ export function AgentEditor({ workspaceId, workflowId }: AgentEditorProps) {
           welcomeMessage:
             chat.existingChat?.customizations?.welcomeMessage ?? t('defaults.welcomeMessage'),
         }}
-        state={state}
         agentBlockId={agentBlockId}
         existingChat={chat.existingChat}
         readOnly={!canEdit}
@@ -67,7 +67,7 @@ export function AgentEditor({ workspaceId, workflowId }: AgentEditorProps) {
     )
   }
 
-  const isPending = isLoading || (Boolean(config) && !chatSettled)
+  const isPending = !isFetchedAfterMount || (Boolean(config) && !chatSettled)
 
   return (
     <div className='min-h-0 flex-1 overflow-y-auto px-6'>

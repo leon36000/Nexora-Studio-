@@ -1,4 +1,7 @@
+import { toStringOrNull } from '@sim/utils/coerce'
 import { getErrorMessage } from '@sim/utils/errors'
+import { toRecord } from '@sim/utils/object'
+import { escapeRegExp, truncate } from '@sim/utils/string'
 import { env } from '@/lib/core/config/env'
 import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
 
@@ -21,6 +24,60 @@ export class NexoraWandUnavailableError extends Error {
     super(`Nexora API is unavailable for generation: ${detail}`)
     this.name = 'NexoraWandUnavailableError'
   }
+}
+
+/**
+ * The model refused the request itself (unknown model, prompt longer than its context, too many
+ * tokens asked…): retrying the same request will not help. `reason` is the short upstream reason,
+ * without the key.
+ */
+export class NexoraWandRejectedError extends Error {
+  constructor(readonly reason: string) {
+    super(`The model refused the request: ${reason}`)
+    this.name = 'NexoraWandRejectedError'
+  }
+}
+
+/**
+ * How a surface answers a failed generation: 422 with the model's reason when it refused the
+ * request, 503 when it could not be reached; `null` for any other error.
+ */
+export function describeWandFailure(
+  error: unknown
+): { status: 422; code: 'rejected'; reason: string } | { status: 503; code: 'unavailable' } | null {
+  if (error instanceof NexoraWandRejectedError) {
+    return { status: 422, code: 'rejected', reason: error.reason }
+  }
+  if (error instanceof NexoraWandUnavailableError) return { status: 503, code: 'unavailable' }
+  return null
+}
+
+/** Upstream statuses that say nothing about the request itself: the service is what failed. */
+const SERVICE_FAILURE_STATUSES = new Set([401, 403, 408, 429])
+const MAX_REASON_LENGTH = 200
+
+/** The upstream error's own message (OpenAI `error.message`, FastAPI `detail`), short and keyless. */
+async function rejectionReason(response: Response): Promise<string> {
+  const text = await response.text().catch(() => '')
+  let body: unknown = null
+  try {
+    body = JSON.parse(text)
+  } catch {
+    body = null
+  }
+  const record = toRecord(body)
+  const message =
+    toStringOrNull(toRecord(record.error).message) ??
+    toStringOrNull(record.error) ??
+    toStringOrNull(record.detail) ??
+    toStringOrNull(record.message) ??
+    `HTTP ${response.status}`
+  const key = env.VLLM_API_KEY
+  const keyless = (key ? message.replace(new RegExp(escapeRegExp(key), 'g'), '***') : message)
+    .replace(/Bearer\s+\S+/gi, 'Bearer ***')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return truncate(keyless, MAX_REASON_LENGTH)
 }
 
 /**
@@ -71,6 +128,9 @@ async function requestCompletion(
     throw new NexoraWandUnavailableError(getErrorMessage(error, 'request failed'))
   }
   if (!response.ok) {
+    if (response.status < 500 && !SERVICE_FAILURE_STATUSES.has(response.status)) {
+      throw new NexoraWandRejectedError(await rejectionReason(response))
+    }
     throw new NexoraWandUnavailableError(`HTTP ${response.status}`)
   }
   return response
@@ -118,54 +178,77 @@ export async function nexoraWandStream(
   const source = response.body
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
-  const emit = (controller: ReadableStreamDefaultController<Uint8Array>, payload: object) =>
+  let emitted = 0
+  const emit = (controller: ReadableStreamDefaultController<Uint8Array>, payload: object) => {
+    emitted += 1
     controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`))
+  }
 
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      if (!source) {
+  if (!source) {
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
         emit(controller, { done: true })
         controller.close()
-        return
-      }
-      const reader = source.getReader()
-      let buffer = ''
-      let lastUsage: WandUsage | null = null
+      },
+    })
+  }
+
+  const reader = source.getReader()
+  let buffer = ''
+  let lastUsage: WandUsage | null = null
+  let cancelled = false
+
+  /** Relays one upstream read; `false` once the answer is over. */
+  const relay = async (controller: ReadableStreamDefaultController<Uint8Array>) => {
+    const { done, value } = await reader.read()
+    if (cancelled) return false
+    if (done) {
+      emit(controller, {
+        done: true,
+        ...(input.reportUsage && lastUsage ? { usage: lastUsage } : {}),
+      })
+      return false
+    }
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      const data = line.trim().startsWith('data:') ? line.trim().slice(5).trim() : ''
+      if (!data || data === '[DONE]') continue
+      let parsed: { choices?: { delta?: { content?: string } }[]; usage?: unknown }
       try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() ?? ''
-          for (const line of lines) {
-            const data = line.trim().startsWith('data:') ? line.trim().slice(5).trim() : ''
-            if (!data || data === '[DONE]') continue
-            let parsed: { choices?: { delta?: { content?: string } }[]; usage?: unknown }
-            try {
-              parsed = JSON.parse(data)
-            } catch {
-              continue
-            }
-            const content = parsed.choices?.[0]?.delta?.content
-            if (content) emit(controller, { chunk: content })
-            const usage = toUsage(parsed.usage)
-            if (usage) {
-              lastUsage = usage
-              await input.onUsage?.(usage)
-            }
-          }
-        }
-        emit(controller, {
-          done: true,
-          ...(input.reportUsage && lastUsage ? { usage: lastUsage } : {}),
-        })
+        parsed = JSON.parse(data)
       } catch {
-        emit(controller, { error: 'Streaming failed', done: true })
-      } finally {
-        reader.releaseLock()
-        controller.close()
+        continue
       }
+      const content = parsed.choices?.[0]?.delta?.content
+      if (content) emit(controller, { chunk: content })
+      const usage = toUsage(parsed.usage)
+      if (usage) {
+        lastUsage = usage
+        await input.onUsage?.(usage)
+      }
+    }
+    return true
+  }
+
+  return new ReadableStream<Uint8Array>({
+    // Reads upstream until this pull relays something: a pull that enqueues nothing is not repeated.
+    async pull(controller) {
+      const before = emitted
+      let more = true
+      try {
+        while (more && emitted === before) more = await relay(controller)
+      } catch {
+        if (cancelled) return
+        emit(controller, { error: 'Streaming failed', done: true })
+        more = false
+      }
+      if (!more && !cancelled) controller.close()
+    },
+    async cancel(reason) {
+      cancelled = true
+      await reader.cancel(reason).catch(() => undefined)
     },
   })
 }

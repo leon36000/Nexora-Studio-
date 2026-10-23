@@ -24,7 +24,8 @@ export type GenerateCopilotPlanBody = z.input<typeof generateCopilotPlanBodySche
 
 /**
  * Asks the Nexora model for a workflow plan (nothing is created). Errors carry a `code`:
- * `plan-invalid` (422, the model's plan stayed invalid after one retry) or `unavailable` (503).
+ * `plan-invalid` (422, the model's plan stayed invalid after one retry), `rejected` (422, the model
+ * refused the request) or `unavailable` (503).
  */
 export const generateCopilotPlanContract = defineRouteContract({
   method: 'POST',

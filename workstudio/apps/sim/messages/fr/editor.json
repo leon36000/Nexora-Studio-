@@ -242,7 +242,8 @@
     "usageLimitReached": "Limite d'utilisation atteinte",
     "upgrade": "Passer à l'offre supérieure",
     "generationFailed": "Échec de la génération",
-    "modelUnavailable": "Le modèle Nexora ne répond pas pour le moment. Réessayez dans un instant."
+    "modelUnavailable": "Le modèle Nexora ne répond pas pour le moment. Réessayez dans un instant.",
+    "modelRejected": "Le modèle a refusé la demande : {reason}"
   },
   "blockOutputFields": {
     "subflowResults": "Tableau des résultats de l'exécution en boucle ou en parallèle"

@@ -62,6 +62,17 @@ describe('streamPlaygroundAnswer', () => {
     expect((await run()).outcome).toEqual({ status: 'error', code: 'forbidden' })
   })
 
+  it('reports a request the model refused with the model’s reason', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ error: 'rejected', reason: 'max_tokens is too large' }, 422)
+    )
+    expect((await run()).outcome).toEqual({
+      status: 'error',
+      code: 'rejected',
+      reason: 'max_tokens is too large',
+    })
+  })
+
   it('ends as stopped, not failed, when the answer is aborted', async () => {
     const controller = new AbortController()
     fetchMock.mockImplementationOnce(async () => {

@@ -11,6 +11,7 @@ import {
 } from '@/lib/nexora/copilot/plan'
 import {
   isNexoraWandAvailable,
+  NexoraWandRejectedError,
   NexoraWandUnavailableError,
   nexoraWandComplete,
   type WandMessage,
@@ -21,11 +22,12 @@ const logger = createLogger('NexoraCopilotGenerate')
 /** One model call: the conversation in, the model's text out. */
 export type CopilotModel = (messages: WandMessage[]) => Promise<string>
 
-type CopilotGenerationErrorCode = 'plan-invalid' | 'unavailable'
+type CopilotGenerationErrorCode = 'plan-invalid' | 'rejected' | 'unavailable'
 
 /**
  * Generation failed: `plan-invalid` when the model's second answer still is not a valid plan
- * (`detail` says why, in French), `unavailable` when the model could not be reached.
+ * (`detail` says why, in French), `rejected` when the model refused the request (`detail` gives
+ * its reason), `unavailable` when the model could not be reached.
  */
 export class CopilotGenerationError extends Error {
   constructor(
@@ -274,6 +276,13 @@ async function ask(complete: CopilotModel, messages: WandMessage[]): Promise<str
     if (error instanceof NexoraWandUnavailableError) {
       logger.warn('Nexora model unavailable for the Copilot', { error: error.message })
       throw new CopilotGenerationError('unavailable', UNAVAILABLE_DETAIL)
+    }
+    if (error instanceof NexoraWandRejectedError) {
+      logger.warn('Nexora model refused the Copilot request', { reason: error.reason })
+      throw new CopilotGenerationError(
+        'rejected',
+        `Le modèle a refusé la demande : ${error.reason}`
+      )
     }
     throw error
   }

@@ -9,7 +9,8 @@ import { CopilotGenerationError, CopilotPlanError } from '@/lib/nexora/copilot'
 /**
  * The Copilot routes' errors carry the `code` the page branches on: a plan that stays invalid
  * (or a submitted plan that cannot compile) is a 422 `plan-invalid` whose `error` says why in
- * French; an unreachable model is a 503 `unavailable`. Everything else follows the orchestration
+ * French; a request the model refused is a 422 `rejected` with its reason; an unreachable model is
+ * a 503 `unavailable`. Everything else follows the orchestration
  * classes (no write access is a 403, a folder outside the workspace a 404).
  */
 export const copilotErrorPolicy = extendInternalErrorPolicy(

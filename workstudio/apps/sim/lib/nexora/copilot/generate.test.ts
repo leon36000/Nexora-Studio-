@@ -7,7 +7,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CompileContext } from '@/lib/nexora/copilot/compile'
 import { CopilotGenerationError, generatePlan } from '@/lib/nexora/copilot/generate'
 import { copilotPlanSchema } from '@/lib/nexora/copilot/plan'
-import { NexoraWandUnavailableError, type WandMessage } from '@/lib/nexora/wand'
+import {
+  NexoraWandRejectedError,
+  NexoraWandUnavailableError,
+  type WandMessage,
+} from '@/lib/nexora/wand'
 
 const context: CompileContext = {
   model: 'vllm/nexora-default',
@@ -233,6 +237,21 @@ describe('generatePlan', () => {
     await expectGenerationError(
       generatePlan({ description: 'Relancer les factures', context, complete }),
       'unavailable'
+    )
+    expect(complete).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports a request the model refused with its reason, in French, without retrying', async () => {
+    const complete = vi.fn(async () => {
+      throw new NexoraWandRejectedError('maximum context length is 8192 tokens')
+    })
+
+    const error = await expectGenerationError(
+      generatePlan({ description: 'Relancer les factures', context, complete }),
+      'rejected'
+    )
+    expect(error.detail).toBe(
+      'Le modèle a refusé la demande : maximum context length is 8192 tokens'
     )
     expect(complete).toHaveBeenCalledTimes(1)
   })

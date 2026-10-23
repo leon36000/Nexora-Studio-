@@ -31,6 +31,7 @@
     "stopped": "Answer stopped.",
     "errors": {
       "unavailable": "Nexora API is unavailable. Try again in a moment.",
+      "rejected": "The model refused the request: {reason}",
       "forbidden": "You do not have access to this workspace.",
       "invalid": "The request was refused: check the message and the settings.",
       "interrupted": "The answer was interrupted.",
@@ -55,6 +56,7 @@
     "save": "Save",
     "saved": "Agent saved.",
     "saveFailed": "The agent could not be saved.",
+    "changedElsewhere": "The agent was changed elsewhere: reload the page.",
     "nameRequired": "Give the agent a name.",
     "fields": {
       "name": "Name",
@@ -105,6 +107,7 @@
     "copy": "Copy link",
     "notPublished": "Not published yet.",
     "public": "Available without an account (public link)",
+    "accessSetInEditor": "Access configured in the editor (password, e-mail list or SSO): publishing keeps it.",
     "membersHint": "Only signed-in members of the workspace. Publish again to apply a change.",
     "publicHint": "Anyone with the link can chat with the agent (for example your customers): do not give it confidential documents."
   },

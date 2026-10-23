@@ -14,6 +14,7 @@ export interface PlaygroundUsage {
 /** Why an answer failed, worded by the Playground. */
 export type PlaygroundErrorCode =
   | 'unavailable'
+  | 'rejected'
   | 'forbidden'
   | 'invalid'
   | 'interrupted'
@@ -22,12 +23,22 @@ export type PlaygroundErrorCode =
 export type PlaygroundOutcome =
   | { status: 'done'; usage: PlaygroundUsage | null }
   | { status: 'stopped' }
-  | { status: 'error'; code: PlaygroundErrorCode }
+  | { status: 'error'; code: PlaygroundErrorCode; reason?: string }
 
 interface StreamAnswerInput {
   body: ContractBodyInput<typeof playgroundContract>
   signal: AbortSignal
   onChunk: (text: string) => void
+}
+
+function toError(error: unknown): Extract<PlaygroundOutcome, { status: 'error' }> {
+  if (isApiClientError(error) && error.status === 422) {
+    const reason = toStringOrNull(toRecord(error.body).reason)
+    return reason
+      ? { status: 'error', code: 'rejected', reason }
+      : { status: 'error', code: 'invalid' }
+  }
+  return { status: 'error', code: toErrorCode(error) }
 }
 
 function toErrorCode(error: unknown): PlaygroundErrorCode {
@@ -74,7 +85,7 @@ export async function streamPlaygroundAnswer({
     })
   } catch (error) {
     if (signal.aborted) return { status: 'stopped' }
-    return { status: 'error', code: toErrorCode(error) }
+    return toError(error)
   }
   if (signal.aborted) return { status: 'stopped' }
   if (failed || !finished) return { status: 'error', code: 'interrupted' }

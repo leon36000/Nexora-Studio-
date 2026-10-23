@@ -1,6 +1,13 @@
+import { flushMicrotasks } from '@sim/testing/helpers/async'
 import { mockEnvObject } from '@sim/testing/mocks/env.mock'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NexoraWandUnavailableError, nexoraWandComplete, nexoraWandStream } from '@/lib/nexora/wand'
+import {
+  describeWandFailure,
+  NexoraWandRejectedError,
+  NexoraWandUnavailableError,
+  nexoraWandComplete,
+  nexoraWandStream,
+} from '@/lib/nexora/wand'
 
 const messages = [
   { role: 'system' as const, content: 'Tu écris des objets d’e-mail.' },
@@ -112,5 +119,75 @@ describe('Nexora wand', () => {
     )
     fetchMock.mockRejectedValue(new TypeError('fetch failed'))
     await expect(nexoraWandStream({ messages })).rejects.toBeInstanceOf(NexoraWandUnavailableError)
+  })
+
+  it('reports a request the model refuses as rejected, with its short reason and no secret', async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json(
+        {
+          error: {
+            message:
+              "This model's maximum context length is 8192 tokens (key sk-workstudio, Bearer sk-workstudio).",
+          },
+        },
+        { status: 400 }
+      )
+    )
+    const refused = await nexoraWandComplete({ messages }).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(NexoraWandRejectedError)
+    const reason = (refused as NexoraWandRejectedError).reason
+    expect(reason).toContain('maximum context length is 8192 tokens')
+    expect(reason).not.toContain('sk-workstudio')
+
+    fetchMock.mockResolvedValueOnce(Response.json({ detail: 'Model not found' }, { status: 404 }))
+    await expect(nexoraWandStream({ messages, model: 'inconnu' })).rejects.toMatchObject({
+      name: 'NexoraWandRejectedError',
+      reason: 'Model not found',
+    })
+  })
+
+  it('keeps reporting a refused key, a rate limit or a server error as unavailable', async () => {
+    for (const status of [401, 403, 429, 500, 502]) {
+      fetchMock.mockResolvedValueOnce(Response.json({ detail: 'nope' }, { status }))
+      await expect(nexoraWandComplete({ messages })).rejects.toBeInstanceOf(
+        NexoraWandUnavailableError
+      )
+    }
+  })
+
+  it('stops reading Nexora API when the reader cancels, without failing', async () => {
+    const cancelUpstream = vi.fn()
+    fetchMock.mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(
+              new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Rel"}}]}\n\n')
+            )
+          },
+          cancel: cancelUpstream,
+        }),
+        { status: 200, headers: { 'Content-Type': 'text/event-stream' } }
+      )
+    )
+    const reader = (await nexoraWandStream({ messages })).getReader()
+    const first = await reader.read()
+    expect(new TextDecoder().decode(first.value)).toBe('data: {"chunk":"Rel"}\n\n')
+    await reader.cancel()
+    await flushMicrotasks(10)
+    expect(cancelUpstream).toHaveBeenCalled()
+  })
+
+  it('tells the surfaces a refused request (422) from an unreachable model (503)', () => {
+    expect(describeWandFailure(new NexoraWandRejectedError('Model not found'))).toEqual({
+      status: 422,
+      code: 'rejected',
+      reason: 'Model not found',
+    })
+    expect(describeWandFailure(new NexoraWandUnavailableError('HTTP 502'))).toEqual({
+      status: 503,
+      code: 'unavailable',
+    })
+    expect(describeWandFailure(new Error('bug'))).toBeNull()
   })
 })

@@ -5,7 +5,7 @@ import { Chip, ChipInput, ChipLink, ChipTextarea, Switch, toast } from '@sim/emc
 import { MessageSquareText, Workflow } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { useTranslations } from 'next-intl'
-import { type AgentConfig, diffAgentConfigs } from '@/lib/nexora/agents'
+import { type AgentConfig, hasUnsavedAgentChanges } from '@/lib/nexora/agents'
 import { AgentPageHeader } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/agent-page-header'
 import { KnowledgeField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/knowledge-field'
 import { PublishSection } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/publish-section'
@@ -15,7 +15,7 @@ import { VersionsSection } from '@/app/workspace/[workspaceId]/agents/[workflowI
 import { FormField } from '@/app/workspace/[workspaceId]/agents/components/form-field'
 import { ModelPicker } from '@/app/workspace/[workspaceId]/agents/components/model-picker'
 import type { ChatDetail } from '@/hooks/queries/deployments'
-import { useSaveAgent } from '@/hooks/queries/nexora-agents'
+import { AgentChangedElsewhereError, useSaveAgent } from '@/hooks/queries/nexora-agents'
 
 const logger = createLogger('NexoraAgentForm')
 
@@ -23,8 +23,6 @@ interface AgentFormProps {
   workspaceId: string
   workflowId: string
   initial: AgentConfig
-  /** The stored draft; saving keeps its block ids. */
-  state: unknown
   agentBlockId: string
   existingChat: ChatDetail | null
   readOnly: boolean
@@ -36,7 +34,6 @@ export function AgentForm({
   workspaceId,
   workflowId,
   initial,
-  state,
   agentBlockId,
   existingChat,
   readOnly,
@@ -49,7 +46,7 @@ export function AgentForm({
   const [nameError, setNameError] = useState(false)
   const [isTestOpen, setIsTestOpen] = useState(false)
 
-  const isDirty = diffAgentConfigs(saved, draft).some(({ field }) => field !== 'welcomeMessage')
+  const isDirty = hasUnsavedAgentChanges(saved, draft)
 
   const update = <K extends keyof AgentConfig>(field: K, value: AgentConfig[K]) => {
     setDraft((previous) => ({ ...previous, [field]: value }))
@@ -66,10 +63,16 @@ export function AgentForm({
     }
     const config = { ...draft, name }
     try {
-      await saveAgent({ workspaceId, workflowId, config, previousState: state })
+      await saveAgent({ workspaceId, workflowId, config, baseline: saved })
       setSaved(config)
+      // Keeps what was typed while saving; only the saved name loses its surrounding spaces.
+      setDraft((current) => (current.name === draft.name ? { ...current, name } : current))
       return true
     } catch (error) {
+      if (error instanceof AgentChangedElsewhereError) {
+        toast.error(t('changedElsewhere'))
+        return false
+      }
       logger.error('Agent save failed', { workflowId, error })
       toast.error(t('saveFailed'))
       return false

@@ -23,8 +23,8 @@ import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { enrichSandboxCapabilities } from '@/lib/execution/remote-sandbox/wand-enricher'
 import {
+  describeWandFailure,
   isNexoraWandAvailable,
-  NexoraWandUnavailableError,
   nexoraWandComplete,
   nexoraWandStream,
   type WandUsage,
@@ -386,12 +386,15 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
         await recordWandUsage(usage)
         return NextResponse.json({ success: true, content: text })
       } catch (error) {
-        if (!(error instanceof NexoraWandUnavailableError)) throw error
-        logger.warn(`[${requestId}] Nexora API unavailable for wand generation`, {
-          error: error.message,
-        })
+        const failure = describeWandFailure(error)
+        if (!failure) throw error
+        logger.warn(`[${requestId}] Nexora API failed the wand generation`, { failure })
         const t = await getTranslations('editor.wand')
-        return NextResponse.json({ success: false, error: t('modelUnavailable') }, { status: 503 })
+        const message =
+          failure.code === 'rejected'
+            ? t('modelRejected', { reason: failure.reason })
+            : t('modelUnavailable')
+        return NextResponse.json({ success: false, error: message }, { status: failure.status })
       }
     }
 

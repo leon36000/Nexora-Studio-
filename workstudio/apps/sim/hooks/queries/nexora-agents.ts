@@ -1,19 +1,47 @@
 'use client'
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import { listFoldersContract } from '@/lib/api/contracts/folders'
 import {
   putWorkflowNormalizedStateContract,
   updateWorkflowContract,
 } from '@/lib/api/contracts/workflows'
-import { AGENTS_FOLDER, type AgentConfig, buildAgentWorkflow } from '@/lib/nexora/agents'
+import {
+  AGENTS_FOLDER,
+  type AgentConfig,
+  agentChangedSince,
+  buildAgentWorkflow,
+} from '@/lib/nexora/agents'
 import { persistImportedWorkflow } from '@/lib/workflows/operations/import-export'
 import { deploymentKeys } from '@/hooks/queries/deployments'
 import { useCreateFolder } from '@/hooks/queries/folders'
+import { fetchWorkflowEnvelope } from '@/hooks/queries/utils/fetch-workflow-envelope'
 import { invalidateWorkflowLists } from '@/hooks/queries/utils/invalidate-workflow-lists'
 import { workflowKeys } from '@/hooks/queries/utils/workflow-keys'
-import { useCreateWorkflow } from '@/hooks/queries/workflows'
+import { useCreateWorkflow, WORKFLOW_STATE_STALE_TIME } from '@/hooks/queries/workflows'
+
+/**
+ * The agent's stored draft, read again each time the agent page opens (the editor's changes do
+ * not reach this cache): the form must start from what is stored, not from a cached copy.
+ */
+export function useAgentDraftState(workflowId: string) {
+  return useQuery({
+    queryKey: workflowKeys.state(workflowId),
+    queryFn: ({ signal }) => fetchWorkflowEnvelope(workflowId, signal),
+    select: (envelope) => envelope.state,
+    staleTime: WORKFLOW_STATE_STALE_TIME,
+    refetchOnMount: 'always',
+  })
+}
+
+/** The stored agent changed since the form loaded it (another tab, the editor): nothing was saved. */
+export class AgentChangedElsewhereError extends Error {
+  constructor() {
+    super('The agent changed since the form loaded it')
+    this.name = 'AgentChangedElsewhereError'
+  }
+}
 
 interface CreateAgentVariables {
   workspaceId: string
@@ -60,21 +88,29 @@ interface SaveAgentVariables {
   workspaceId: string
   workflowId: string
   config: AgentConfig
-  /** The state being replaced; its block ids are kept while it is still in the agent shape. */
-  previousState: unknown
+  /** What the form loaded (or last saved): the stored draft must still hold it. */
+  baseline: AgentConfig
 }
 
 /**
- * Writes the agent's draft (the workflow state `buildAgentWorkflow` builds) and its name and
- * description on the workflow row. The welcome message is saved with the public chat instead.
+ * Writes the agent's draft (the workflow state `buildAgentWorkflow` builds over the stored one,
+ * read fresh) and its name and description on the workflow row. The welcome message is saved with
+ * the public chat instead. Rejects with `AgentChangedElsewhereError`, writing nothing, when the
+ * stored draft no longer holds `baseline`.
  */
 export function useSaveAgent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ workflowId, config, previousState }: SaveAgentVariables) => {
+    mutationFn: async ({ workflowId, config, baseline }: SaveAgentVariables) => {
+      const stored = await queryClient.fetchQuery({
+        queryKey: workflowKeys.state(workflowId),
+        queryFn: ({ signal }) => fetchWorkflowEnvelope(workflowId, signal),
+        staleTime: 0,
+      })
+      if (agentChangedSince(baseline, stored.state)) throw new AgentChangedElsewhereError()
       await requestJson(putWorkflowNormalizedStateContract, {
         params: { id: workflowId },
-        body: buildAgentWorkflow(config, previousState),
+        body: buildAgentWorkflow(config, stored.state),
       })
       await requestJson(updateWorkflowContract, {
         params: { id: workflowId },

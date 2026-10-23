@@ -38,6 +38,7 @@ import {
   workspaceContextMockFns,
 } from '@sim/testing/mocks/workspace-context.mock'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { getChatDetailContract } from '@/lib/api/contracts/deployments'
 import { PermissionGroupCapabilityError } from '@/lib/permission-groups/capability-error'
 
 const mocks = vi.hoisted(() => ({
@@ -181,6 +182,22 @@ describe('internal chat deployment routes', () => {
         isActive: true,
       })
       expect(body).not.toHaveProperty('password')
+    })
+
+    it('serves a members-only chat in a shape the editor can read', async () => {
+      mocks.getChatDeploymentWithWorkspace.mockResolvedValue({
+        chat: chatRow({ authType: 'workspace' }),
+        workspaceId: WORKSPACE_ID,
+      })
+
+      const response = await GET(
+        createMockRequest({ url: `http://localhost:3000/api/chat/manage/${CHAT_ID}` }),
+        params
+      )
+
+      expect(response.status).toBe(200)
+      const detail = getChatDetailContract.response.schema.safeParse(await response.json())
+      expect(detail.success && detail.data.authType).toBe('workspace')
     })
 
     /**

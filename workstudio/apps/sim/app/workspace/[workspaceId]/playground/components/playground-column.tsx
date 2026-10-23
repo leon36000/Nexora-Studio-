@@ -16,6 +16,8 @@ export interface ColumnRun {
   latencyMs?: number
   usage?: PlaygroundUsage | null
   error?: PlaygroundErrorCode
+  /** The model's own reason, when it refused the request. */
+  errorReason?: string
 }
 
 interface PlaygroundColumnProps {
@@ -74,7 +76,7 @@ export function PlaygroundColumn({
         <footer className='flex flex-wrap gap-x-3 gap-y-1 text-caption'>
           {run.status === 'error' && (
             <span className='text-[var(--text-error)]'>
-              {t(`errors.${run.error ?? 'unknown'}`)}
+              {t(`errors.${run.error ?? 'unknown'}`, { reason: run.errorReason ?? '' })}
             </span>
           )}
           {run.status === 'stopped' && (
