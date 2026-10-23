@@ -23,6 +23,7 @@ import {
   foldersOrchestrationMock,
   foldersOrchestrationMockFns,
 } from '@sim/testing/mocks/folders-orchestration.mock'
+import { importWorkflowMock, importWorkflowMockFns } from '@sim/testing/mocks/import-workflow.mock'
 import { redisConfigMockFns } from '@sim/testing/mocks/redis-config.mock'
 import { schemaMock } from '@sim/testing/mocks/schema.mock'
 import {
@@ -33,16 +34,12 @@ import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/wo
 import { workspaceContextMock } from '@sim/testing/mocks/workspace-context.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockImportWorkflow } = vi.hoisted(() => ({ mockImportWorkflow: vi.fn() }))
-
 vi.mock('@sim/audit', () => auditMock)
 vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
 vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
 vi.mock('@/lib/folders/orchestration', () => foldersOrchestrationMock)
 vi.mock('@/lib/workflows/orchestration', () => workflowsOrchestrationMock)
-vi.mock('@/lib/workflows/operations/import-workflow', () => ({
-  importWorkflowIntoWorkspaceTransition: mockImportWorkflow,
-}))
+vi.mock('@/lib/workflows/operations/import-workflow', () => importWorkflowMock)
 
 import { AGENTS_FOLDER, readAgentWorkflow } from '@/lib/nexora/agents'
 import {
@@ -52,6 +49,7 @@ import {
 } from '@/lib/nexora/assistant/general-agent'
 
 const resolvePermission = workspaceAuthzMockFns.mockResolveEffectiveWorkspacePermission
+const mockImportWorkflow = importWorkflowMockFns.mockImportWorkflowIntoWorkspaceTransition
 const createFolder = foldersOrchestrationMockFns.mockCreateFolder
 const deployChat = workflowsOrchestrationMockFns.mockPerformChatDeploy
 const recordAudit = auditMockFns.mockRecordAudit

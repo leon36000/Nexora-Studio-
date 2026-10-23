@@ -53,6 +53,17 @@ describe('Nexora wand', () => {
     })
   })
 
+  it('asks for a JSON object only when the caller wants JSON mode', async () => {
+    fetchMock.mockImplementation(async () =>
+      Response.json({ choices: [{ message: { content: '{"ok":true}' } }] })
+    )
+    await nexoraWandComplete({ messages })
+    await nexoraWandComplete({ messages, responseFormat: 'json_object' })
+    const [plain, json] = fetchMock.mock.calls.map(([, init]) => JSON.parse(init.body))
+    expect(plain).not.toHaveProperty('response_format')
+    expect(json.response_format).toEqual({ type: 'json_object' })
+  })
+
   it('streams in the wand format: one chunk event per delta, then done', async () => {
     fetchMock.mockResolvedValue(
       sse([

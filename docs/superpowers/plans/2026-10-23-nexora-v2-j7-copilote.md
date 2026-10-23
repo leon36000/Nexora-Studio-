@@ -39,9 +39,9 @@
 
 **Files:** `lib/nexora/copilot/generate.ts` (consignes, catalogue, appel `nexora-default`, extraction JSON, une relance), contrat `lib/api/contracts/nexora-copilot.ts`, routes `app/api/nexora/copilot/{plan,create}/route.ts` (+ tests).
 
-- [ ] **Step 1: Failing tests** : réponse avec texte autour du JSON ⇒ extraite ; JSON invalide puis valide ⇒ une relance ; deux échecs ⇒ code `plan-invalid` ; droit d'écriture requis ; création ⇒ workflow importé dans le dossier demandé.
-- [ ] **Step 2:** Implémenter ; `check:api-validation:strict`.
-- [ ] **Step 3: Commit** `feat(j7): génération et création de workflows par le Copilote`.
+- [x] **Step 1: Failing tests** : réponse avec texte autour du JSON ⇒ extraite ; JSON invalide puis valide ⇒ une relance ; deux échecs ⇒ code `plan-invalid` ; droit d'écriture requis ; création ⇒ workflow importé dans le dossier demandé.
+- [x] **Step 2:** Implémenter ; `check:api-validation:strict`.
+- [x] **Step 3: Commit** `feat(j7): génération et création de workflows par le Copilote`.
 
 ### Task 3: Interface
 

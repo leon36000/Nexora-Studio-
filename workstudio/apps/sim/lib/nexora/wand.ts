@@ -36,6 +36,8 @@ interface CompletionSettings {
   model?: string
   temperature?: number
   maxTokens?: number
+  /** `json_object` asks the model for one JSON object (OpenAI JSON mode); text otherwise. */
+  responseFormat?: 'json_object'
 }
 
 async function requestCompletion(
@@ -61,6 +63,7 @@ async function requestCompletion(
         max_tokens: settings.maxTokens ?? 4000,
         stream,
         ...(stream ? { stream_options: { include_usage: true } } : {}),
+        ...(settings.responseFormat ? { response_format: { type: settings.responseFormat } } : {}),
       }),
       signal,
     })
@@ -83,8 +86,11 @@ function toUsage(raw: unknown): WandUsage | null {
 export async function nexoraWandComplete(input: {
   messages: WandMessage[]
   signal?: AbortSignal
+  responseFormat?: CompletionSettings['responseFormat']
 }): Promise<{ text: string; usage: WandUsage }> {
-  const response = await requestCompletion(input.messages, false, input.signal)
+  const response = await requestCompletion(input.messages, false, input.signal, {
+    responseFormat: input.responseFormat,
+  })
   const body = (await response.json()) as {
     choices?: { message?: { content?: string } }[]
     usage?: unknown

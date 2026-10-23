@@ -53,6 +53,10 @@
         // Remove both entries once that page imports the hooks.
         "hooks/queries/nexora-assistant.ts": ["files"],
         "lib/api/contracts/nexora-assistant.ts": ["types"],
+        // Nexora Copilot hooks and client aliases, consumed by the Copilot dialog (J7 task 3).
+        // Remove both entries once that dialog imports the hooks.
+        "hooks/queries/nexora-copilot.ts": ["files"],
+        "lib/api/contracts/nexora-copilot.ts": ["types"],
         "lib/api/contracts/project-file-lifecycle.ts": ["types"],
         "sandboxes/index.ts": ["files"],
         // Nexora edition: clean-room stubs that exist only as the module ids the shared

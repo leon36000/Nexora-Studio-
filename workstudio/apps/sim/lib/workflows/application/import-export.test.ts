@@ -1,6 +1,7 @@
 import { createPersonalApiKeyPrincipal } from '@sim/testing/factories/principal.factory'
 import { auditMock, auditMockFns } from '@sim/testing/mocks/audit.mock'
 import { folderQueriesMock, folderQueriesMockFns } from '@sim/testing/mocks/folder-queries.mock'
+import { importWorkflowMock, importWorkflowMockFns } from '@sim/testing/mocks/import-workflow.mock'
 import { realtimeNotifyMock, realtimeNotifyMockFns } from '@sim/testing/mocks/realtime-notify.mock'
 import {
   workflowContextMock,
@@ -14,7 +15,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const hoisted = vi.hoisted(() => ({
-  importTransition: vi.fn(),
   mappedImport: vi.fn(),
   buildExport: vi.fn(),
   folderLock: vi.fn(),
@@ -34,9 +34,7 @@ vi.mock('@/lib/workflows/application/mapped-import', () => ({
   applyMappedWorkflowImport: hoisted.mappedImport,
 }))
 
-vi.mock('@/lib/workflows/operations/import-workflow', () => ({
-  importWorkflowIntoWorkspaceTransition: hoisted.importTransition,
-}))
+vi.mock('@/lib/workflows/operations/import-workflow', () => importWorkflowMock)
 vi.mock('@/lib/workflows/operations/export-workflow', () => ({
   buildWorkflowExportPayload: hoisted.buildExport,
 }))
@@ -46,6 +44,7 @@ import { exportWorkflow, importWorkflow } from '@/lib/workflows/application/impo
 
 const mocks = {
   ...hoisted,
+  importTransition: importWorkflowMockFns.mockImportWorkflowIntoWorkspaceTransition,
   loadIndex: folderQueriesMockFns.mockLoadActiveFolderPathIndex,
 }
 
