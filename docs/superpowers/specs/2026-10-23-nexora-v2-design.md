@@ -194,6 +194,13 @@ Précise la section 7 ; ces décisions priment.
 
 **Droits** : voir le catalogue = tout membre ; connecter/déconnecter = membres avec droit d'écriture sur l'espace ; applications OAuth = admins d'instance.
 
+**Précisions après relevé de l'API de Nexora Connect (23/10/2026).**
+- *Connexion implicite* : un jeton limité exige aujourd'hui `connectionName` à chaque appel. Notre fork ajoute une règle : si l'appel ne nomme pas de connexion et que le jeton n'autorise qu'une connexion pour ce service, c'est elle qui sert (MCP `execute_action`, `get_action_guide`, HTTP `/v1/actions`). Les modèles n'ont donc rien à savoir du cloisonnement.
+- *Clé API nommée* : `PUT /api/connections/:service` (`authType`, `connectionName`, `values`) ; *suppression* : `DELETE /api/connections/:service` avec `connectionName` ; un remplacement garde l'identifiant, une suppression puis recréation en change (le jeton est alors mis à jour).
+- *OAuth nommé* : `POST /api/oauth/connection-requests` (`service`, `connectionName`) ouvert dans une fenêtre, puis interrogation de `GET /v1/connection-requests/:id` jusqu'à `connected` ; une seule demande OAuth à la fois par service sur l'instance (la suivante remplace la précédente) : message clair si cela arrive.
+- *Catalogue* : `GET /api/providers` (lourd, ~7 Mo, ETag) mis en cache côté serveur WorkStudio et réduit aux champs affichés ; icônes rares, repli sur l'icône du site du service.
+- *Jeton d'espace* : secret rendu une seule fois à la création ; WorkStudio le range dans l'en-tête chiffré du serveur MCP « Nexora Connect » de l'espace et retrouve le jeton par son nom `ws-<id>` pour le mettre à jour.
+
 **Terminé quand** : sur pc6, dans deux espaces, connecter un service à clé API (ex. Brevo ou un service sans OAuth) dans l'espace A, l'utiliser depuis un bloc Agent de A ; vérifier que l'espace B ne voit pas cette connexion (discovery MCP filtrée) ; déconnecter ; tests (nommage, mise à jour du jeton, droits, refus inter-espaces) et contrôle de fumée « Connecteurs ».
 
 ## 9. Ce qui est laissé à l'exécutant
