@@ -39,6 +39,7 @@ interface FakeProvider {
   model_name: string
   key?: string
   model_total_params?: number
+  model_hosting_zone?: string
 }
 
 /**

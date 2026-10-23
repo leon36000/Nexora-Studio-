@@ -1705,6 +1705,90 @@ describe('AgentBlockHandler', () => {
       }
     )
 
+    it('hands a document to a vllm model as text in the user message', async () => {
+      mockGetProviderFromModel.mockReturnValue('vllm')
+
+      await handler.execute(mockContext, mockBlock, {
+        model: 'vllm/qwen2.5:7b',
+        userPrompt: 'Quel est le délai de livraison ?',
+        files: [
+          {
+            id: 'file-1',
+            key: 'workspace/ws-1/conditions-livraison.txt',
+            name: 'conditions-livraison.txt',
+            size: 33,
+            type: 'text/plain',
+            base64: Buffer.from('Livraison sous 48 heures ouvrées.').toString('base64'),
+          },
+        ],
+        apiKey: 'test-api-key',
+      })
+
+      const sent = mockExecuteProviderRequest.mock.calls[0][1].messages.at(-1)
+      expect(sent.files).toBeUndefined()
+      expect(sent.content).toMatch(/^Quel est le délai de livraison \?\n\n/)
+      expect(sent.content).toContain('« conditions-livraison.txt »')
+      expect(sent.content).toContain('Livraison sous 48 heures ouvrées.')
+    })
+
+    it('names a converted document by its projected name, never the resolved secret', async () => {
+      const registry = new ResolvedSecretTraceRegistry([
+        { name: 'FILE_NAME', plaintext: 'classified.txt', encryptedValue: 'encrypted-name' },
+      ])
+      registry.recordResolvedAtInputPath('FILE_NAME', 'classified.txt', ['files', '0', 'name'])
+      registry.recordResolvedInputProjection(
+        ['files', '0', 'name'],
+        'classified.txt',
+        '{{FILE_NAME}}'
+      )
+      mockContext.resolvedSecretTraceRegistry = registry
+      mockGetProviderFromModel.mockReturnValue('vllm')
+
+      await handler.execute(mockContext, mockBlock, {
+        model: 'vllm/qwen2.5:7b',
+        userPrompt: 'Résume',
+        files: [
+          {
+            id: 'file-1',
+            key: 'workspace/ws-1/classified.txt',
+            name: 'classified.txt',
+            size: 5,
+            type: 'text/plain',
+            base64: Buffer.from('Texte').toString('base64'),
+          },
+        ],
+        apiKey: 'test-api-key',
+      })
+
+      const sent = mockExecuteProviderRequest.mock.calls[0][1].messages.at(-1)
+      expect(sent.content).toContain('« {{FILE_NAME}}.txt »')
+      expect(sent.content).not.toContain('classified')
+    })
+
+    it('hands a document as text to a provider without attachment support', async () => {
+      mockGetProviderFromModel.mockReturnValue('deepseek')
+
+      await handler.execute(mockContext, mockBlock, {
+        model: 'deepseek-chat',
+        userPrompt: 'Résume',
+        files: [
+          {
+            id: 'file-1',
+            key: 'workspace/ws-1/notes.txt',
+            name: 'notes.txt',
+            size: 15,
+            type: 'text/plain',
+            base64: Buffer.from('Contenu lisible').toString('base64'),
+          },
+        ],
+        apiKey: 'test-api-key',
+      })
+
+      const sent = mockExecuteProviderRequest.mock.calls[0][1].messages.at(-1)
+      expect(sent.files).toBeUndefined()
+      expect(sent.content).toContain('Contenu lisible')
+    })
+
     it('should reject files for providers without attachment support', async () => {
       const inputs = {
         model: 'deepseek-chat',

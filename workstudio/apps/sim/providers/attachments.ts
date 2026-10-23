@@ -313,8 +313,59 @@ export function isProviderAttachmentFilenameModelBound(
     providerId === 'openai' ||
     provider === 'anthropic' ||
     provider === 'bedrock' ||
-    provider === 'openrouter'
+    provider === 'openrouter' ||
+    TEXT_DOCUMENT_PROVIDERS.has(provider)
   )
+}
+
+/**
+ * Providers whose adapter has no document content part (image-only or no attachments at all).
+ * Nexora edition: their documents reach the model as extracted text in the message.
+ */
+const TEXT_DOCUMENT_PROVIDERS = new Set<AttachmentProvider>([
+  'mistral',
+  'groq',
+  'fireworks',
+  'together',
+  'baseten',
+  'nebius',
+  'ollama',
+  'vllm',
+  'litellm',
+  'xai',
+  'kimi',
+  ...UNSUPPORTED_FILE_PROVIDERS,
+])
+
+/**
+ * How a file reaches the model of a provider: `attachment` leaves it to the provider adapter
+ * (every file of a provider with native documents, images of an image-only provider), `text`
+ * means a document whose extracted text goes into the message (Nexora edition), and
+ * `unsupported` means neither path can carry it.
+ */
+export function getProviderAttachmentDelivery(
+  file: UserFile,
+  providerId: ProviderId | string
+): 'attachment' | 'text' | 'unsupported' {
+  const provider = getAttachmentProvider(providerId)
+  if (!provider) return 'unsupported'
+  if (!TEXT_DOCUMENT_PROVIDERS.has(provider)) return 'attachment'
+
+  const mimeType = inferAttachmentMimeType(file)
+  const contentType = getAttachmentContentType(mimeType)
+  if (contentType === 'document') return 'text'
+  if (
+    contentType &&
+    isMimeTypeSupportedByProvider(
+      provider,
+      mimeType,
+      contentType,
+      getAttachmentExtension(file, mimeType)
+    )
+  ) {
+    return 'attachment'
+  }
+  return 'unsupported'
 }
 
 function getProviderAttachmentFilename(

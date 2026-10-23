@@ -75,7 +75,8 @@ describe('agent workflows', () => {
     const state = buildAgentWorkflow(base)
     const agent = Object.values(state.blocks).find((b) => b.type === 'agent')
     expect(agent?.subBlocks.files?.value).toBe('<start.files>')
-    expect(agent?.data?.canonicalModes?.files).toBe('advanced')
+    const canonicalModes = agent?.data?.canonicalModes as Record<string, string> | undefined
+    expect(canonicalModes?.files).toBe('advanced')
     expect(readAgentWorkflow(state)).not.toBeNull()
   })
 

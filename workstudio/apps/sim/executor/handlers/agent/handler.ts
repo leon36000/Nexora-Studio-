@@ -32,6 +32,7 @@ import {
   resolveAutoModel,
   SIM_AUTO_SYSTEM_PREAMBLE,
 } from '@/lib/model-router/resolve'
+import { deliverDocumentsAsText } from '@/lib/nexora/attachment-text.server'
 import { importWorkspaceFileSecretProvenanceForModelView } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
 import {
   getFileExtension,
@@ -112,6 +113,7 @@ import { resolveVertexCredential } from '@/executor/utils/vertex-credential'
 import { executeProviderRequest } from '@/providers'
 import {
   formatAttachmentSizes,
+  getProviderAttachmentDelivery,
   getProviderFileStrategy,
   isProviderAttachmentFilenameModelBound,
   shouldUseLargeFilePath,
@@ -1749,7 +1751,12 @@ export class AgentBlockHandler implements BlockHandler {
       return messages
     }
 
-    if (!supportsFileAttachments(providerId)) {
+    if (
+      !supportsFileAttachments(providerId) &&
+      messages.some((message) =>
+        message.files?.some((file) => getProviderAttachmentDelivery(file, providerId) !== 'text')
+      )
+    ) {
       throw new Error(`File attachments are not supported for provider "${providerId}"`)
     }
 
@@ -1881,14 +1888,20 @@ export class AgentBlockHandler implements BlockHandler {
       }
 
       const omittedCount = hydratedFiles.length - modelSafeHydratedFiles.length
-      nextMessages[messageIndex] = {
-        ...message,
-        content:
-          omittedCount > 0
-            ? appendUnavailableAttachmentNotice(message.content ?? '', omittedCount)
-            : message.content,
+      const delivered = await deliverDocumentsAsText({
+        content: message.content,
         files: modelSafeHydratedFiles,
-      }
+        providerId,
+        signal: ctx.abortSignal,
+      })
+      const content =
+        omittedCount > 0
+          ? appendUnavailableAttachmentNotice(delivered.content ?? '', omittedCount)
+          : delivered.content
+      nextMessages[messageIndex] =
+        delivered.files === modelSafeHydratedFiles || delivered.files.length > 0
+          ? { ...message, content, files: delivered.files }
+          : { ...omit(message, ['files']), content }
       copyNativeConversationMessage(message, nextMessages[messageIndex])
     }
 
