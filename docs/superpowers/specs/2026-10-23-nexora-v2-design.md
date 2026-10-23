@@ -203,6 +203,25 @@ Précise la section 7 ; ces décisions priment.
 
 **Terminé quand** : sur pc6, dans deux espaces, connecter un service à clé API (ex. Brevo ou un service sans OAuth) dans l'espace A, l'utiliser depuis un bloc Agent de A ; vérifier que l'espace B ne voit pas cette connexion (discovery MCP filtrée) ; déconnecter ; tests (nommage, mise à jour du jeton, droits, refus inter-espaces) et contrôle de fumée « Connecteurs ».
 
+## 8septies. J6 — conception détaillée (23/10/2026, architecte)
+
+**But** : l'« Assistant Nexora » est le chat interne des salariés, dans WorkStudio (une seule application, une seule session), qui donne accès aux agents publiés de l'espace — l'équivalent de Vibe Work / Le Chat entreprise.
+
+**Parcours** (`/workspace/[id]/assistant`, entrée de barre latérale, tous les membres) :
+- à gauche, les **conversations** de la personne (titre généré à partir du premier message, renommer, supprimer), et le bouton « Nouvelle conversation » ;
+- choix de l'**agent** pour une nouvelle conversation : les agents publiés de l'espace (dossier « Agents », déployés) plus « Assistant général » (agent fourni : consignes générales en français sur `nexora-default`, recherche dans toutes les bases de connaissances de l'espace) ;
+- zone de discussion en flux, rendu Markdown, copier une réponse, régénérer ; **fichiers joints** (PDF, images, texte) transmis à l'agent par les fichiers du bloc Start ;
+- les outils et connaissances de l'agent s'appliquent tels quels (connexions de l'espace, J5).
+
+**Backend** :
+- deux tables (migration Drizzle par la procédure `db-migrate`) : `nexora_assistant_conversation` (id, workspaceId, userId, workflowId, title, timestamps) et `nexora_assistant_message` (id, conversationId, role, content, fichiers joints en références, usage, timestamps) ; une conversation n'est visible que de son auteur ; supprimée avec l'espace ;
+- route `POST /api/nexora/assistant/conversations/[id]/messages` : vérifie l'auteur et l'accès à l'espace, exécute le workflow de l'agent (version **déployée**) en flux avec `input`, `conversationId` (mémoire de l'agent) et les fichiers, enregistre la question et la réponse ; routes de liste, création, renommage, suppression ;
+- « Assistant général » : workflow fourni (dossier « Agents »), créé au premier usage avec `buildAgentWorkflow`, publié automatiquement.
+
+**Hors J6** (décision de l'architecte) : les connexions **personnelles** (`u-<userId>`) annoncées en §8sexies passent à un jalon ultérieur : elles exigent un jeton par personne transmis à chaque exécution, que le moteur MCP partagé de l'espace ne permet pas encore proprement ; J6 utilise les connexions de l'espace.
+
+**Terminé quand** : sur pc6, un membre ouvre l'Assistant, discute avec l'« Assistant général » (réponse en flux, en français), joint un PDF et obtient une réponse qui s'en sert, change d'agent (un agent publié en J4), retrouve ses conversations après rechargement ; un autre membre ne voit pas ces conversations ; tests des routes (auteur seulement, espace étranger refusé, version déployée exécutée) et contrôle de fumée « Assistant ».
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
