@@ -200,6 +200,37 @@ def main() -> int:
                 s.call("DELETE", f"/api/workflows/{wf}")
             s.call("DELETE", f"/api/workspaces/{ws_b}")
 
+    def assistant():
+        status, body = s.call("GET", f"/api/nexora/assistant/agents?workspaceId={state['ws']}", timeout=300)
+        require(status == 200 and body.get("agents"), f"agents returned HTTP {status}: {str(body)[:200]}")
+        agent = body["agents"][0]
+        question = "Bonjour, en une phrase : à quoi sers-tu ?"
+        status, body = s.call("POST", "/api/nexora/assistant/conversations", {
+            "workspaceId": state["ws"], "workflowId": agent["workflowId"], "firstMessage": question})
+        require(status == 201, f"conversation creation returned HTTP {status}: {str(body)[:200]}")
+        conversation = body["conversation"]["id"]
+        path = f"/api/nexora/assistant/conversations/{conversation}"
+        try:
+            s.call("POST", f"{path}/messages", {"role": "user", "content": question})
+            status, text = s.call("POST", f"/api/chat/{agent['chatIdentifier']}", {"input": question, "conversationId": conversation}, raw=True, timeout=300)
+            require(status == 200 and "data:" in text, f"agent chat returned HTTP {status}: {text[:200]}")
+            answer = "".join(
+                str(json.loads(line[5:]).get("chunk", "")) for line in text.splitlines()
+                if line.startswith("data:") and line[5:].strip().startswith("{"))
+            require(len(answer.strip()) > 10, f"no streamed answer: {text[:200]}")
+            status, _ = s.call("POST", f"{path}/messages", {"role": "assistant", "content": answer})
+            require(status == 201, f"answer storage returned HTTP {status}")
+            _, detail = s.call("GET", path)
+            require([m["role"] for m in detail.get("messages", [])] == ["user", "assistant"], f"history not kept: {str(detail)[:200]}")
+            status, _ = Smoke(args.url).call("POST", f"/api/chat/{agent['chatIdentifier']}", {"input": question}, raw=True)
+            require(status in (401, 403), f"members-only chat answered an anonymous visitor (HTTP {status})")
+            admin_organization()
+            status, _ = admin.call("GET", path)
+            require(status == 404, f"another member reads the conversation (HTTP {status})")
+            return f"« {agent['name']} » répond en flux ({len(answer)} caractères), historique relu, cloisonné"
+        finally:
+            s.call("DELETE", path)
+
     def knowledge_base():
         status, body = s.call("POST", "/api/users/me/api-keys", {"name": f"fumee-{secrets.token_hex(3)}"})
         require(status in (200, 201), f"API key creation returned HTTP {status}")
@@ -473,6 +504,7 @@ def main() -> int:
     s.check("Chat public en français", public_chat)
     s.check("Playground (réponse en flux)", playground)
     s.check("Agent : publication, chat public, versions", agent)
+    s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:
