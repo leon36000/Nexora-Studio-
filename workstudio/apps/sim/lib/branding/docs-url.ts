@@ -22,6 +22,7 @@ const GUIDE_PAGES: ReadonlyArray<readonly [prefix: string, page: string]> = [
   ['/tables', 'tables.md'],
   ['/mcp', 'outils-mcp.md'],
   ['/search/mcp', 'outils-mcp.md'],
+  ['/models', 'modeles.md'],
   ['/logs-debugging', 'journaux.md'],
   ['/execution', 'journaux.md'],
   ['/platform/', 'reglages.md'],

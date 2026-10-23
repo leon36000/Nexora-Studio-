@@ -2,9 +2,6 @@ import { generateId } from '@sim/utils/id'
 import { isRecordLike, toRecord } from '@sim/utils/object'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
 
-/** Folder holding each workspace's agents. */
-export const AGENTS_FOLDER = 'Agents'
-
 /** What the agent form edits. */
 export interface AgentConfig {
   name: string
@@ -61,6 +58,10 @@ function knowledgeTool(knowledgeBaseId: string): StoredTool {
     isExpanded: false,
     usageControl: 'auto',
   }
+}
+
+function isStoredTool(value: unknown): value is StoredTool {
+  return isRecordLike(value) && typeof value.type === 'string'
 }
 
 function isKnowledgeTool(tool: StoredTool): boolean {
@@ -175,7 +176,7 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
   if (typeof model !== 'string' || (tools !== undefined && !Array.isArray(tools))) return null
   if (memory && subBlockValue(agent, 'conversationId') !== CONVERSATION_ID) return null
 
-  const storedTools = ((tools ?? []) as unknown[]).filter(isRecordLike) as unknown as StoredTool[]
+  const storedTools = ((tools ?? []) as unknown[]).filter(isStoredTool)
   const metadata = toRecord(state.metadata)
   const text = (value: unknown) => (typeof value === 'string' ? value : '')
   return {

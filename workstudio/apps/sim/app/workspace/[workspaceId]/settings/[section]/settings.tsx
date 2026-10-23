@@ -56,6 +56,7 @@ const OrganizationSecuritySettings = dynamic(() =>
   SECTION_MODULES.security().then((m) => m.OrganizationSecuritySettings)
 )
 const UsageMonitoring = dynamic(() => SECTION_MODULES.usage().then((m) => m.UsageMonitoring))
+const NexoraModels = dynamic(() => SECTION_MODULES.models().then((m) => m.NexoraModels))
 const Desktop = dynamic(() => SECTION_MODULES.desktop().then((m) => m.Desktop))
 const Browser = dynamic(() => SECTION_MODULES.browser().then((m) => m.Browser))
 const Terminal = dynamic(() => SECTION_MODULES.terminal().then((m) => m.Terminal))
@@ -138,6 +139,7 @@ function SettingsPageContent({ section }: SettingsPageProps) {
           auditLogsHref={`/workspace/${hostContext.workspace.id}/settings/audit-logs`}
         />
       )}
+      {effectiveSection === 'models' && organizationId && <NexoraModels />}
       {effectiveSection === 'apikeys' && <ApiKeys scope='combined' />}
       {billingEnabled && effectiveSection === 'billing' && (
         <Billing

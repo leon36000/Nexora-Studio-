@@ -223,6 +223,10 @@
         "label": "Consommation",
         "description": "Suivez la consommation de modèles mesurée par Nexora API."
       },
+      "models": {
+        "label": "Modèles",
+        "description": "Choisissez les modèles d’IA de vos workflows"
+      },
       "secrets": {
         "label": "Secrets",
         "description": "Stockez des variables d’environnement pour vos workflows."
@@ -1657,5 +1661,103 @@
     "revoking": "Révocation...",
     "loadingMore": "Chargement…",
     "loadMore": "Charger plus"
+  },
+  "models": {
+    "add": "Ajouter un modèle",
+    "intro": "Le modèle marqué « Par défaut » répond aux blocs réglés sur nexora-default ; les autres apparaissent dans la liste des modèles de chaque bloc.",
+    "empty": "Aucun modèle pour l’instant.",
+    "defaultBadge": "Par défaut",
+    "testing": "Test en cours…",
+    "rowActions": "Actions pour {name}",
+    "sources": {
+      "ollama": "Local (Ollama)",
+      "mistral": "Mistral AI",
+      "openai-compatible": "Compatible OpenAI"
+    },
+    "actions": {
+      "test": "Tester",
+      "makeDefault": "Définir par défaut",
+      "remove": "Retirer",
+      "removeDefaultTooltip": "Choisissez d’abord un autre modèle par défaut."
+    },
+    "test": {
+      "success": "Réponse de {name} en {seconds} s : {reply}",
+      "failed": "{name} ne répond pas"
+    },
+    "defaultChanged": "{name} est maintenant le modèle par défaut.",
+    "added": "{name} a été ajouté.",
+    "removed": "{name} a été retiré.",
+    "removedLocal": "{name} a été retiré et ses fichiers supprimés du serveur.",
+    "removing": "Retrait…",
+    "removeDialog": {
+      "title": "Retirer le modèle",
+      "textBefore": "Retirer ",
+      "textAfter": " ? Les blocs qui l’utilisent devront choisir un autre modèle.",
+      "localFiles": " Ses fichiers seront aussi supprimés du serveur."
+    },
+    "errors": {
+      "unavailable": "L’administration des modèles est indisponible (Nexora API injoignable).",
+      "duplicate": "Un modèle porte déjà ce nom.",
+      "is-default": "Le modèle par défaut ne peut pas être retiré : choisissez d’abord un autre modèle par défaut.",
+      "not-found": "Ce modèle n’existe plus : la liste a été actualisée.",
+      "invalid": "Vérifiez les informations saisies : l’une d’elles n’est pas valide.",
+      "unreachable": "Le service ne répond pas : vérifiez l’adresse, le nom du modèle et la clé.",
+      "forbidden": "Seuls les administrateurs de l’organisation peuvent gérer les modèles.",
+      "unknown": "L’opération a échoué. Réessayez dans un instant.",
+      "download": "Le téléchargement a échoué : {detail}"
+    },
+    "wizard": {
+      "title": "Ajouter un modèle — étape {step} sur 3",
+      "next": "Suivant",
+      "source": {
+        "title": "Où tourne le modèle ?",
+        "options": {
+          "ollama": "Local (Ollama)",
+          "mistral": "Mistral AI",
+          "openai-compatible": "Compatible OpenAI"
+        },
+        "hints": {
+          "ollama": "Sur ce serveur : les données ne sortent pas de votre infrastructure.",
+          "mistral": "Hébergé en Europe par Mistral AI, avec votre clé d’API.",
+          "openai-compatible": "Tout service qui expose l’API OpenAI (vLLM, LM Studio, un fournisseur en ligne…)."
+        },
+        "ollamaUnavailable": "Le modèle local est indisponible : le service Ollama de ce serveur ne répond pas."
+      },
+      "ollama": {
+        "catalog": "Modèles conseillés",
+        "size": "{disk} Go à télécharger · {memory} Go de mémoire conseillés",
+        "installed": "Installé",
+        "name": "Nom du modèle Ollama",
+        "namePlaceholder": "qwen2.5:7b",
+        "invalidName": "Saisissez un nom de modèle Ollama, par exemple qwen2.5:7b."
+      },
+      "mistral": {
+        "model": "Modèle",
+        "key": "Clé d’API Mistral AI"
+      },
+      "service": {
+        "url": "Adresse du service",
+        "urlPlaceholder": "https://… (sans /v1)",
+        "invalidUrl": "L’adresse doit commencer par http:// ou https://.",
+        "model": "Modèle",
+        "key": "Clé d’API (facultative)"
+      },
+      "confirm": {
+        "summary": "Modèle à ajouter",
+        "download": "Téléchargement",
+        "downloadNotice": "Le modèle sera téléchargé sur ce serveur avant d’être ajouté.",
+        "downloadNoticeSize": "Le modèle sera téléchargé sur ce serveur ({disk} Go) avant d’être ajouté.",
+        "downloading": "Téléchargement : {percent} % ({done} Go sur {total} Go)",
+        "verifyingFiles": "Vérification des fichiers…",
+        "finishing": "Finalisation…",
+        "preparing": "Préparation…",
+        "cancelled": "Téléchargement annulé.",
+        "cancelDownload": "Annuler le téléchargement",
+        "downloadingAction": "Téléchargement…",
+        "downloadAndAdd": "Télécharger et ajouter",
+        "adding": "Ajout…",
+        "checkingService": "Vérification du service…"
+      }
+    }
   }
 }

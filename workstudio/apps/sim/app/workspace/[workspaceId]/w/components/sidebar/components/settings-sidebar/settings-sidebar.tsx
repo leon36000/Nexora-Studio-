@@ -145,6 +145,10 @@ export function SettingsSidebar({
             hostContext.features?.credentialGroups
         )
       }
+      // Nexora edition: the models serve the whole instance; only its admins manage them.
+      if (item.id === 'models') {
+        return Boolean(hostContext.hostOrganizationId && isOrgAdminOrOwner)
+      }
       if (item.id === 'requests') {
         return Boolean(hostContext.hostOrganizationId)
       }

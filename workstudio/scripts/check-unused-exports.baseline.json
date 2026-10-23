@@ -1009,7 +1009,6 @@
   "apps/sim/hooks/queries/personal-search-integrations.ts#PERSONAL_SEARCH_INTEGRATIONS_STALE_TIME",
   "apps/sim/hooks/queries/pinned-items.ts#usePinnedItems",
   "apps/sim/hooks/queries/providers.ts#PROVIDER_MODELS_STALE_TIME",
-  "apps/sim/hooks/queries/providers.ts#providerKeys",
   "apps/sim/hooks/queries/providers.ts#providerModelsQueryOptions",
   "apps/sim/hooks/queries/public-shares.ts#FILE_SHARE_STALE_TIME",
   "apps/sim/hooks/queries/resume-execution.ts#PausedExecutionSummary",

@@ -157,9 +157,9 @@
 - Consumes: contrats de Task 5 via `requestJson` ; flux de téléchargement lu en `fetch` brut annoté.
 - Produces: hooks `useNexoraModels()`, `useAddNexoraModel()`, `useSetDefaultNexoraModel()`, `useRemoveNexoraModel()`, `useTestNexoraModel()` (clés `nexoraModelKeys`, invalidation de la liste et des modèles du fournisseur `vllm` après chaque mutation).
 
-- [ ] **Step 1:** Écrire la page selon `add-settings-page` (`SettingsPanel`, action « Ajouter un modèle »), lignes `SettingsResourceRow` (nom, badge « Par défaut », source, menu Tester / Définir par défaut / Retirer), états vide/indisponible ; assistant `ChipModal` en 3 étapes (Source → Modèle : catalogue avec taille/mémoire ou saisie libre ; Mistral : modèle + clé ; compatible OpenAI : adresse + modèle + clé → Confirmation avec barre de progression du téléchargement pour Ollama).
-- [ ] **Step 2: Run** `bash scripts/check-i18n.sh && bash scripts/check-brand.sh` (racine) et `cd workstudio && bun run type-check && bun run check:audits` — Expected: tout passe.
-- [ ] **Step 3: Commit** `feat(j2): Réglages › Modèles (ajout, test, défaut, retrait)`.
+- [x] **Step 1:** Écrire la page selon `add-settings-page` (`SettingsPanel`, action « Ajouter un modèle »), lignes `SettingsResourceRow` (nom, badge « Par défaut », source, menu Tester / Définir par défaut / Retirer), états vide/indisponible ; assistant `ChipModal` en 3 étapes (Source → Modèle : catalogue avec taille/mémoire ou saisie libre ; Mistral : modèle + clé ; compatible OpenAI : adresse + modèle + clé → Confirmation avec barre de progression du téléchargement pour Ollama).
+- [x] **Step 2: Run** `bash scripts/check-i18n.sh && bash scripts/check-brand.sh` (racine) et `cd workstudio && bun run type-check && bun run check:audits` — Expected: tout passe.
+- [x] **Step 3: Commit** `feat(j2): Réglages › Modèles (ajout, test, défaut, retrait)`.
 
 ### Task 7: Guide, fumée, mise à jour pc6 et critères « Terminé quand »
 

@@ -223,6 +223,10 @@
         "label": "Insights",
         "description": "Explore usage and activity across your organization."
       },
+      "models": {
+        "label": "Models",
+        "description": "Choose the AI models your workflows use"
+      },
       "secrets": {
         "label": "Secrets",
         "description": "Store environment variables for your workflows."
@@ -1657,5 +1661,103 @@
     "revoking": "Revoking...",
     "loadingMore": "Loading…",
     "loadMore": "Load more"
+  },
+  "models": {
+    "add": "Add model",
+    "intro": "The model marked “Default” answers blocks set to nexora-default; the others appear in every block's model list.",
+    "empty": "No models yet.",
+    "defaultBadge": "Default",
+    "testing": "Testing…",
+    "rowActions": "Actions for {name}",
+    "sources": {
+      "ollama": "Local (Ollama)",
+      "mistral": "Mistral AI",
+      "openai-compatible": "OpenAI-compatible"
+    },
+    "actions": {
+      "test": "Test",
+      "makeDefault": "Make default",
+      "remove": "Remove",
+      "removeDefaultTooltip": "Choose another default model first."
+    },
+    "test": {
+      "success": "{name} answered in {seconds} s: {reply}",
+      "failed": "{name} did not answer"
+    },
+    "defaultChanged": "{name} is now the default model.",
+    "added": "{name} was added.",
+    "removed": "{name} was removed.",
+    "removedLocal": "{name} was removed and its files deleted from the server.",
+    "removing": "Removing…",
+    "removeDialog": {
+      "title": "Remove model",
+      "textBefore": "Remove ",
+      "textAfter": "? Blocks that use it will need another model.",
+      "localFiles": " Its files will also be deleted from the server."
+    },
+    "errors": {
+      "unavailable": "Model administration is unavailable (Nexora API cannot be reached).",
+      "duplicate": "A model already has this name.",
+      "is-default": "The default model cannot be removed: choose another default model first.",
+      "not-found": "This model no longer exists: the list was refreshed.",
+      "invalid": "Check what you entered: one of the values is not valid.",
+      "unreachable": "The service does not answer: check the address, the model name and the key.",
+      "forbidden": "Only organization admins can manage models.",
+      "unknown": "Something went wrong. Try again in a moment.",
+      "download": "The download failed: {detail}"
+    },
+    "wizard": {
+      "title": "Add a model — step {step} of 3",
+      "next": "Next",
+      "source": {
+        "title": "Where does the model run?",
+        "options": {
+          "ollama": "Local (Ollama)",
+          "mistral": "Mistral AI",
+          "openai-compatible": "OpenAI-compatible"
+        },
+        "hints": {
+          "ollama": "On this server: data never leaves your infrastructure.",
+          "mistral": "Hosted in Europe by Mistral AI, with your API key.",
+          "openai-compatible": "Any service exposing the OpenAI API (vLLM, LM Studio, an online provider…)."
+        },
+        "ollamaUnavailable": "The local model is unavailable: this server's Ollama service does not answer."
+      },
+      "ollama": {
+        "catalog": "Recommended models",
+        "size": "{disk} GB to download · {memory} GB of memory recommended",
+        "installed": "Installed",
+        "name": "Ollama model name",
+        "namePlaceholder": "qwen2.5:7b",
+        "invalidName": "Enter an Ollama model name, such as qwen2.5:7b."
+      },
+      "mistral": {
+        "model": "Model",
+        "key": "Mistral AI API key"
+      },
+      "service": {
+        "url": "Service address",
+        "urlPlaceholder": "https://… (without /v1)",
+        "invalidUrl": "The address must start with http:// or https://.",
+        "model": "Model",
+        "key": "API key (optional)"
+      },
+      "confirm": {
+        "summary": "Model to add",
+        "download": "Download",
+        "downloadNotice": "The model will be downloaded to this server before it is added.",
+        "downloadNoticeSize": "The model will be downloaded to this server ({disk} GB) before it is added.",
+        "downloading": "Downloading: {percent}% ({done} GB of {total} GB)",
+        "verifyingFiles": "Verifying files…",
+        "finishing": "Finishing…",
+        "preparing": "Preparing…",
+        "cancelled": "Download cancelled.",
+        "cancelDownload": "Cancel download",
+        "downloadingAction": "Downloading…",
+        "downloadAndAdd": "Download and add",
+        "adding": "Adding…",
+        "checkingService": "Checking the service…"
+      }
+    }
   }
 }

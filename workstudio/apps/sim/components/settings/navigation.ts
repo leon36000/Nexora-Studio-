@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import {
+  BrainCircuit,
   ChartColumn,
   ClipboardList,
   Credit,
@@ -136,6 +137,7 @@ export type UnifiedSettingsSection =
   | 'teammates'
   | 'organization'
   | 'usage'
+  | 'models'
   | 'sso'
   | 'whitelabeling'
   | 'forks'
@@ -542,6 +544,20 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
       requiresEnterprise: true,
       selfHostedOverride: 'usageMonitoring',
       organizationSection: 'usage',
+    },
+  },
+  {
+    label: NAV.unified.models.label,
+    icon: BrainCircuit,
+    docsLink: docsUrl('/models'),
+    unified: {
+      id: 'models',
+      description: NAV.unified.models.description,
+      group: 'organization',
+      order: 2,
+      requiresHosted: true,
+      requiresEnterprise: true,
+      selfHostedOverride: 'always',
     },
   },
   {
