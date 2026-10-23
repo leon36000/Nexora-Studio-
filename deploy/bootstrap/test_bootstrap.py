@@ -314,6 +314,21 @@ class BootstrapTest(unittest.TestCase):
         self.assertGreaterEqual(bootstrap.CHAT_PROVIDER_TIMEOUT, 600)
         self.assertEqual((provider["model_hosting_zone"], provider["model_total_params"]), ("FRA", 7))
 
+    def test_a_chat_model_gets_its_size_and_zone_for_the_footprint(self):
+        # Nexora API (EcoLogits) measures energy and CO2 only with the model size and hosting zone.
+        self.seed_provider(model="qwen2.5:7b")
+        FakeApi.state["providers"][1].update({"timeout": 600, "model_hosting_zone": "WOR", "model_total_params": 0, "model_active_params": 0})
+        self.run_bootstrap(upstream={"router": "m10", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"})
+        provider = FakeApi.state["providers"][1]
+        self.assertEqual((provider["model_total_params"], provider["model_active_params"], provider["model_hosting_zone"]), (7, 7, "FRA"))
+
+    def test_a_size_set_by_hand_is_kept(self):
+        self.seed_provider(model="qwen2.5:7b")
+        FakeApi.state["providers"][1].update({"timeout": 600, "model_hosting_zone": "DEU", "model_total_params": 8, "model_active_params": 8})
+        self.run_bootstrap(upstream={"router": "m10", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"})
+        provider = FakeApi.state["providers"][1]
+        self.assertEqual((provider["model_total_params"], provider["model_hosting_zone"]), (8, "DEU"))
+
     def test_a_refused_timeout_update_does_not_hold_workstudio_back(self):
         self.seed_provider()
         FakeApi.state["providers"][1]["timeout"] = 120

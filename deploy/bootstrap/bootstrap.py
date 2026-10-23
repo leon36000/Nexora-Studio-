@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import secrets
 import sys
 import time
@@ -144,6 +145,8 @@ def _sync_workstudio_user(base_url: str, admin_token: str) -> int:
 # A 7B chat model on a CPU-only server needs minutes for a long prompt (agents with tools): a
 # shorter provider timeout turns the wait into « Model is too busy » (503).
 CHAT_PROVIDER_TIMEOUT = 600
+# The instance's own server: a French SME's by default (electricity mix of the footprint).
+LOCAL_HOSTING_ZONE = os.environ.get("NEXORA_HOSTING_ZONE", "FRA")
 PROVIDER_UPDATE_FIELDS = ("router_id", "timeout", "model_hosting_zone", "model_total_params", "model_active_params")
 ROUTER_FIELDS = ("name", "type", "aliases", "load_balancing_strategy", "cost_prompt_tokens", "cost_completion_tokens")
 
@@ -189,20 +192,31 @@ def _point_router_at(api: str, token: str, router: dict, upstream: dict, url: st
             _call("DELETE", f"{api}/providers/{provider['id']}", token)
 
 
-def _raise_chat_timeouts(api: str, token: str) -> None:
-    """Gives every chat provider at least CHAT_PROVIDER_TIMEOUT (installs made with a shorter one)."""
+def model_size_billions(name: str) -> int:
+    """Billions of parameters read from a model name (`qwen2.5:7b` ⇒ 7); 0 when the name does not say."""
+    size = re.search(r"(\d+(?:\.\d+)?)\s*b(?![a-z])", name.lower())
+    return max(1, round(float(size.group(1)))) if size else 0
+
+
+def _complete_chat_providers(api: str, token: str) -> None:
+    """Gives every chat provider CHAT_PROVIDER_TIMEOUT at least, and the size and hosting zone that
+    Nexora API needs to measure energy and CO2 — only where nothing was set by hand."""
     routers = _call("GET", f"{api}/routers?limit=100", token).get("data", [])
     for router in routers:
-        if router.get("type") != "text-generation":
+        if router.get("type") not in ("text-generation", "image-to-text"):
             continue
         for provider in _providers(api, token, router):
-            if (provider.get("timeout") or 0) >= CHAT_PROVIDER_TIMEOUT:
+            size = provider.get("model_total_params") or model_size_billions(provider.get("model_name") or "")
+            zone = provider.get("model_hosting_zone")
+            body = {
+                "router_id": router["id"],
+                "timeout": max(provider.get("timeout") or 0, CHAT_PROVIDER_TIMEOUT),
+                "model_hosting_zone": zone if zone and zone != "WOR" else LOCAL_HOSTING_ZONE,
+                "model_total_params": size,
+                "model_active_params": provider.get("model_active_params") or size,
+            }
+            if all(provider.get(field) == body[field] for field in PROVIDER_UPDATE_FIELDS if field != "router_id"):
                 continue
-            body = {field: provider.get(field) for field in PROVIDER_UPDATE_FIELDS}
-            body.update({"router_id": router["id"], "timeout": CHAT_PROVIDER_TIMEOUT,
-                         "model_hosting_zone": provider.get("model_hosting_zone") or "WOR",
-                         "model_total_params": provider.get("model_total_params") or 0,
-                         "model_active_params": provider.get("model_active_params") or 0})
             _call("PATCH", f"{api}/providers/{provider['id']}", token, body)
 
 
@@ -373,7 +387,7 @@ def _ensure_signed_in(base_url: str, admin: str, password: str, out: Path, upstr
     if upstream:
         _sync_default_model(base_url, session["value"], upstream, out.parent / "upstream.sha256")
     try:
-        _raise_chat_timeouts(f"{base_url}/v1/admin", session["value"])
+        _complete_chat_providers(f"{base_url}/v1/admin", session["value"])
     except SessionExpiredError:
         raise
     except BootstrapError as error:  # a longer timeout is a comfort, never a reason to keep WorkStudio down

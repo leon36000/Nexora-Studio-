@@ -99,6 +99,27 @@ const ROUTER_FIELDS = [
   'cost_completion_tokens',
 ] as const
 /** Chat answers come fast; a local vision or transcription model on a CPU takes minutes. */
+/**
+ * Billions of parameters read from a model name (`qwen2.5:7b` ⇒ 7), so Nexora API can measure the
+ * footprint (EcoLogits needs the size); 0 when the name does not say.
+ */
+function modelSizeBillions(name: string): number {
+  const size = /(\d+(?:\.\d+)?)\s*b(?![a-z])/i.exec(name)
+  return size ? Math.max(1, Math.round(Number(size[1]))) : 0
+}
+
+/**
+ * Where the model runs, for the electricity mix of the footprint: a local model runs on the
+ * instance's server (a French SME's, by default), Mistral AI in France, anything else unknown.
+ */
+function footprintParams(size: number) {
+  return size > 0 ? { model_total_params: size, model_active_params: size } : {}
+}
+
+function hostingZone(source: NexoraModelSource): string {
+  return source === 'openai-compatible' ? 'WOR' : 'FRA'
+}
+
 /** A 7B model on a CPU-only server needs minutes for a long prompt (agents with tools). */
 const PROVIDER_TIMEOUT_SECONDS: Record<NexoraModelUsage, number> = {
   chat: 600,
@@ -287,7 +308,10 @@ export async function addNexoraModel(
         key,
         model_name: name,
         timeout: PROVIDER_TIMEOUT_SECONDS[usage],
-        ...(input.totalParams ? { model_total_params: Math.round(input.totalParams) } : {}),
+        ...footprintParams(
+          input.totalParams ? Math.round(input.totalParams) : modelSizeBillions(name)
+        ),
+        model_hosting_zone: hostingZone(input.source),
       },
       timeoutMs: 120_000,
     })

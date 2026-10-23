@@ -115,7 +115,9 @@ function fakeNexoraApi() {
     if (path === '/v1/audio/transcriptions') {
       if (auth !== `Bearer ${API_KEY}`) return jsonResponse({}, 401)
       const form = init?.body as FormData
-      const router = state.routers.find((r) => [r.name, ...r.aliases].includes(String(form.get('model'))))
+      const router = state.routers.find((r) =>
+        [r.name, ...r.aliases].includes(String(form.get('model')))
+      )
       if (router?.type !== 'automatic-speech-recognition') {
         return jsonResponse({ detail: 'Model not found' }, 404)
       }
@@ -381,6 +383,23 @@ describe('addNexoraModel', () => {
     expect(workstudio?.limits).toEqual(
       ['rpm', 'rpd', 'tpm', 'tpd'].map((type) => ({ router_id: model.id, type, value: null }))
     )
+  })
+
+  it('gives Nexora API the size and hosting zone it needs to measure the footprint', async () => {
+    const { state, options } = setup()
+    const local = await addNexoraModel({ source: 'ollama', model: 'mistral-nemo:12b' }, options)
+    expect(state.providers.find((p) => p.router_id === local.id)).toMatchObject({
+      model_total_params: 12,
+      model_active_params: 12,
+      model_hosting_zone: 'FRA',
+    })
+    const remote = await addNexoraModel(
+      { source: 'openai-compatible', model: 'gpt-mystery', url: 'https://llm.example.com' },
+      options
+    )
+    const unknown = state.providers.find((p) => p.router_id === remote.id)
+    expect(unknown?.model_total_params ?? 0).toBe(0)
+    expect(unknown?.model_hosting_zone ?? 'WOR').toBe('WOR')
   })
 
   it('points a local model at the bundled Ollama without a key', async () => {
