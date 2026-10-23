@@ -384,6 +384,40 @@ def main() -> int:
             state["org"] = organizations[0]["id"]
         return state["org"]
 
+    def copilot():
+        description = "Quand je lance le workflow avec un texte, un agent le résume en une phrase en français."
+        status, body = s.call("POST", "/api/nexora/copilot/plan", {"workspaceId": state["ws"], "description": description}, timeout=600)
+        require(status == 200 and body.get("plan"), f"plan returned HTTP {status}: {str(body)[:300]}")
+        plan = body["plan"]
+        status, created = s.call("POST", "/api/nexora/copilot/create", {"workspaceId": state["ws"], "plan": plan})
+        require(status == 200 and created.get("workflowId"), f"creation returned HTTP {status}: {str(created)[:300]}")
+        wf = created["workflowId"]
+        try:
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
+                                 "input": "La réunion de lundi a fixé la livraison au 15 novembre et le budget à 12 000 euros."}, timeout=600)
+            require(status == 200 and run.get("success"), f"generated workflow run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            return f"« {plan.get('title', '?')} » : {len(plan.get('steps', []))} étape(s), créé et exécuté"
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+
+    def budgets():
+        # A tiny workspace budget refuses the next run; raising it lets runs through again.
+        admin_organization()
+        name = "Devis client"
+        run = lambda: s.call("POST", f"/api/workflows/{state['workflows'][name]}/execute",
+                             {"useDraftState": True, "stream": False, "input": TEMPLATE_INPUTS[name]}, timeout=600)
+        try:
+            status, body = admin.call("PUT", "/api/nexora/budgets", {"workspaceMonthlyTokens": {state["ws"]: 1}})
+            require(status == 200, f"budget save returned HTTP {status}: {str(body)[:200]}")
+            status, body = run()
+            require(status == 402 and "MONTHLY_BUDGET_EXCEEDED" in json.dumps(body), f"run over budget returned HTTP {status}: {str(body)[:200]}")
+            require("Budget mensuel atteint" in json.dumps(body, ensure_ascii=False), "refusal message is not the French one")
+        finally:
+            admin.call("PUT", "/api/nexora/budgets", {"workspaceMonthlyTokens": {state["ws"]: None}})
+        status, body = run()
+        require(status == 200 and body.get("success"), f"run after raising the cap returned HTTP {status}: {str(body.get('error'))[:200]}")
+        return "plafond minuscule ⇒ refus 402 en français, plafond retiré ⇒ exécution acceptée"
+
     def governance():
         # Instance settings: administrators only, secrets never returned, SMTP test e-mail.
         status, _ = s.call("GET", "/api/nexora/settings")
@@ -559,6 +593,8 @@ def main() -> int:
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
+    s.check("Copilote : description ⇒ workflow exécuté", copilot)
+    s.check("Budgets : refus au plafond, reprise après relèvement", budgets)
     s.check("Journal d'audit", audit)
     s.check("Gouvernance : réglages d'instance, e-mail de test", governance)
     s.check("Consommation mesurée par Nexora API", usage)
