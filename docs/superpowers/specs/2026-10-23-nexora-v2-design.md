@@ -167,6 +167,17 @@ Précise la section 7 ; ces décisions priment.
 
 **Terminé quand** (remplace celui de la section 7) : sur pc6, un compte neuf atterrit sur l'Accueil ; l'administrateur suit les 5 étapes et obtient le devis ; un membre simple voit l'Accueil sans le panneau ni la consommation ; tests des routes (état, progression) et contrôle de fumée « Accueil » (la page répond en français avec ses cartes, la route d'état répond).
 
+## 8quinquies. J4 — conception détaillée (23/10/2026, architecte)
+
+**Playground** (`/workspace/[id]/playground`, entrée de barre latérale, tous les membres) : choisir 1 à 3 modèles parmi ceux de Nexora API (liste des blocs), consignes système, message, température et longueur maximale ; réponses en flux côte à côte, avec temps de réponse et jetons ; « Enregistrer comme agent » crée un agent avec ces consignes et le premier modèle. Backend : route `POST /api/nexora/playground` (session et appartenance à l'espace) qui relaie `/v1/chat/completions` de Nexora API en flux avec la clé de WorkStudio (consommation mesurée comme le reste). Pas d'historique enregistré.
+
+**Agents** (`/workspace/[id]/agents`, entrée de barre latérale) : un agent est un **workflow** du dossier « Agents » de l'espace (créé au besoin), de forme fixe : déclencheur Chat → bloc Agent → Réponse. Le formulaire édite : nom, description, consignes, modèle (dont `nexora-default`), outils (outils Nexora Connect, autres workflows de l'espace), connaissances (bases de l'espace, via l'outil de recherche dans les connaissances), mémoire de conversation (oui/non), message d'accueil du chat. Deux fonctions pures font le lien : `buildAgentWorkflow(config)` et `readAgentWorkflow(state) → config | null` ; quand le workflow a été modifié dans l'éditeur au-delà de cette forme, `null` : la page l'indique et propose seulement « Ouvrir dans l'éditeur » (toute la puissance reste disponible, rien n'est écrasé).
+- **Tester** : volet de discussion qui exécute le brouillon (exécution existante, `useDraftState`).
+- **Publier** : déploiement existant + chat déployé existant (lien à partager) ; **Versions** : liste des déploiements (existants), activer une version antérieure, **diff** champ par champ entre deux versions (calculé sur `readAgentWorkflow` de chaque version ; « non comparable » si une version sort de la forme).
+- La carte « Agent » de l'Accueil (J3) ouvre ce formulaire au lieu de l'éditeur.
+
+**Terminé quand** : sur pc6, comparer deux modèles dans le Playground ; créer un agent par le formulaire (consignes, modèle, un outil Nexora Connect, une base de connaissances), le tester, le publier, ouvrir son chat public, modifier les consignes, publier une 2ᵉ version, voir le diff, revenir à la version 1 ; tests des fonctions pures (aller-retour config ↔ workflow, forme non reconnue) et de la route Playground ; contrôle de fumée « Playground » et « Agent ».
+
 ## 9. Ce qui est laissé à l'exécutant
 
 Le découpage en tâches, les noms de fichiers et de composants, la forme exacte des contrats d'API, les tests, et tout choix qui ne change pas le comportement décrit ici, en respectant les conventions du dépôt.
