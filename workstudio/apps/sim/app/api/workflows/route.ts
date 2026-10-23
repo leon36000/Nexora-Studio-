@@ -3,9 +3,11 @@ import { assertFolderMutable, FolderLockedError } from '@sim/platform-authz/work
 import { type NextRequest, NextResponse } from 'next/server'
 import { createWorkflowContract, workflowListQuerySchema } from '@/lib/api/contracts/workflows'
 import { parseRequest } from '@/lib/api/server'
-import { checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { capabilityGovernedAuthUserId, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { performCreateWorkflow } from '@/lib/workflows/orchestration'
 import { listWorkflowsForUser } from '@/lib/workflows/queries'
@@ -115,6 +117,18 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
         { error: 'Write or Admin access required to create workflows in this workspace' },
         { status: 403 }
       )
+    }
+
+    /**
+     * permission-group-enforced: workflows.edit — raw create route, asked after the role check and
+     * only of a governed subject (an internal JWT's user is a run actor, governed by role alone).
+     */
+    const governedUserId = capabilityGovernedAuthUserId(auth)
+    if (
+      governedUserId &&
+      (await isWorkspaceCapabilityWithheld(governedUserId, workspaceId, 'workflows.edit'))
+    ) {
+      return capabilityRefusalResponse('workflows.edit')
     }
 
     await assertFolderMutable(folderId ?? null)

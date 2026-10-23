@@ -221,7 +221,7 @@
       },
       "usage": {
         "label": "Consommation",
-        "description": "Suivez la consommation de modèles mesurée par Nexora API."
+        "description": "Suivez la consommation, l’empreinte et les budgets."
       },
       "models": {
         "label": "Modèles",
@@ -1903,7 +1903,7 @@
     "templates": {
       "read-only": {
         "name": "Lecture seule",
-        "description": "Consulter et lancer les workflows, sans construire, déployer, exposer ni administrer."
+        "description": "Consulter et lancer les workflows, sans les créer ni les modifier, déployer, exposer ou administrer."
       },
       "creators": {
         "name": "Créateurs",
@@ -1951,6 +1951,7 @@
       "textAfter": " sera supprimé ; ses membres retrouvent les droits du groupe par défaut ou de leur rôle."
     },
     "categories": {
+      "workflows": "Workflows",
       "deployment": "Déploiement",
       "tools": "Outils",
       "knowledge": "Connaissances",
@@ -1963,6 +1964,7 @@
       "other": "Autres"
     },
     "capabilities": {
+      "disableWorkflowEditing": "Modifier les workflows",
       "hideTraceSpans": "Voir le détail des étapes (traces) dans les journaux",
       "disableLogExport": "Exporter les journaux d’exécution",
       "hideCostInfo": "Voir le coût des exécutions",

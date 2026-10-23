@@ -160,7 +160,7 @@ describe('POST /api/v1/workflows/import', () => {
     })
   })
 
-  it('requires write permission on the target workspace', async () => {
+  it('requires write permission and the workflow-editing capability on the target workspace', async () => {
     mockValidateWorkspaceAccess.mockResolvedValue(
       NextResponse.json({ error: 'Access denied' }, { status: 403 })
     )
@@ -172,7 +172,7 @@ describe('POST /api/v1/workflows/import', () => {
       expect.anything(),
       'user-1',
       WORKSPACE_ID,
-      'none',
+      'workflows.edit',
       'write'
     )
     expect(mockPerformCreateWorkflow).not.toHaveBeenCalled()

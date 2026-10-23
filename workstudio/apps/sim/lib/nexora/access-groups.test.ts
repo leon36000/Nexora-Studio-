@@ -35,6 +35,12 @@ describe('access group templates', () => {
     }
   })
 
+  it('keeps read-only members from editing a workflow, while creators and admins edit', () => {
+    expect(templateConfig('read-only').disableWorkflowEditing).toBe(true)
+    expect(templateConfig('creators').disableWorkflowEditing).toBe(false)
+    expect(templateConfig('admins').disableWorkflowEditing).toBe(false)
+  })
+
   it('lets read-only members still run workflows that call tools and connectors', () => {
     const readOnly = templateConfig('read-only')
     expect(readOnly.disableMcpTools).toBe(false)

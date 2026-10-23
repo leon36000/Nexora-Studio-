@@ -12,9 +12,11 @@ import { eq } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { workflowVariablesContract } from '@/lib/api/contracts/workflows'
 import { parseRequest } from '@/lib/api/server'
-import { checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { capabilityGovernedAuthUserId, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import type { Variable } from '@/stores/variables/types'
 
 const logger = createLogger('WorkflowVariablesAPI')
@@ -53,6 +55,23 @@ export const POST = withRouteHandler(
           { error: authorization.message || 'Access denied' },
           { status: authorization.status || 403 }
         )
+      }
+
+      /**
+       * permission-group-enforced: workflows.edit — raw variables write, asked after the role
+       * check and only of a governed subject (an internal JWT's user is governed by role alone).
+       */
+      const governedUserId = capabilityGovernedAuthUserId(auth)
+      if (
+        governedUserId &&
+        workflowData.workspaceId &&
+        (await isWorkspaceCapabilityWithheld(
+          governedUserId,
+          workflowData.workspaceId,
+          'workflows.edit'
+        ))
+      ) {
+        return capabilityRefusalResponse('workflows.edit')
       }
 
       await assertWorkflowMutable(workflowId)

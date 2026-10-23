@@ -7,6 +7,8 @@ import { getSession } from '@/lib/auth'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { restoreFolder } from '@/lib/folders/orchestration'
 import { folderMutationStatus } from '@/lib/folders/status'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
@@ -29,6 +31,14 @@ export const POST = withRouteHandler(async (request: NextRequest, context: Route
     const permission = await getUserEntityPermissions(session.user.id, 'workspace', workspaceId)
     if (permission !== 'admin' && permission !== 'write') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    /** permission-group-enforced: workflows.edit — restoring a workflow folder restores its workflows. */
+    if (
+      resourceType === 'workflow' &&
+      (await isWorkspaceCapabilityWithheld(session.user.id, workspaceId, 'workflows.edit'))
+    ) {
+      return capabilityRefusalResponse('workflows.edit')
     }
 
     const result = await restoreFolder({

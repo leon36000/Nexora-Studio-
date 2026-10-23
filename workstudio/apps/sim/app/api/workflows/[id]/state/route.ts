@@ -7,9 +7,11 @@ import { eq, sql } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { putWorkflowNormalizedStateContract } from '@/lib/api/contracts/workflows'
 import { parseRequest } from '@/lib/api/server'
-import { checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { capabilityGovernedAuthUserId, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { saveWorkflowNormalizedState } from '@/lib/workflows/persistence/save-normalized-state'
 import { loadWorkflowFromNormalizedTables } from '@/lib/workflows/persistence/utils'
 
@@ -107,11 +109,34 @@ export const PUT = withRouteHandler(
       const parsed = await parseRequest(putWorkflowNormalizedStateContract, request, context)
       if (!parsed.success) return parsed.response
 
+      const authorization = await authorizeWorkflowByWorkspacePermission({
+        workflowId,
+        userId,
+        action: 'write',
+      })
+      /**
+       * permission-group-enforced: workflows.edit — the editor's legacy whole-graph save is a raw
+       * route with no operation to declare it on. Asked only once the role allows the write, so a
+       * non-member learns nothing about the group, and only of a governed subject: an internal
+       * JWT's user is the run's actor, which carries a role, not capabilities.
+       */
+      const governedUserId = capabilityGovernedAuthUserId(auth)
+      const workspaceId = authorization.workflow?.workspaceId
+      if (
+        authorization.allowed &&
+        governedUserId &&
+        workspaceId &&
+        (await isWorkspaceCapabilityWithheld(governedUserId, workspaceId, 'workflows.edit'))
+      ) {
+        return capabilityRefusalResponse('workflows.edit')
+      }
+
       const result = await saveWorkflowNormalizedState({
         requestId,
         workflowId,
         userId,
         state: parsed.data.body,
+        authorization,
       })
 
       if (!result.success) {

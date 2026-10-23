@@ -88,23 +88,21 @@ export const workflowOperations = {
     contentDelivery: 'none',
     ...COPILOT_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: the workflow module has no hide key, so creating a workflow is governed by workspace role alone
   create: defineWorkspaceOperation({
     id: 'workflows.create',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: renaming or re-describing a workflow is governed by workspace role
   update: defineWorkspaceOperation({
     id: 'workflows.update',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
@@ -122,14 +120,16 @@ export const workflowOperations = {
    * Personal keys keep the capability, so headless authoring is unaffected for a
    * credential that names a human.
    *
-   * permission-group-exempt: which blocks a member may store is judged against allowedIntegrations inside replaceWorkflowNormalizedState, which this use case passes the principal's human subject to, not by a capability the authorization funnel can apply
+   * Which blocks a member may store is still judged against `allowedIntegrations`
+   * inside `replaceWorkflowNormalizedState`; `workflows.edit` decides whether the
+   * member may write the graph at all.
    */
   replaceState: defineWorkspaceOperation({
     id: 'workflows.state.replace',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'deny',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...HUMAN_WORKFLOW_PRINCIPAL_POLICY,
   }),
@@ -150,24 +150,25 @@ export const workflowOperations = {
    * credential that names a human. Re-open this to workspace keys only once the
    * three lookups can express a workspace-scoped policy that fails closed.
    *
-   * permission-group-exempt: which blocks a member may store is judged against allowedIntegrations inside replaceWorkflowNormalizedState, which this use case passes the principal's human subject to, not by a capability the authorization funnel can apply
+   * Which blocks a member may store is still judged against `allowedIntegrations`
+   * inside `replaceWorkflowNormalizedState`; `workflows.edit` decides whether the
+   * member may edit the graph at all.
    */
   applyOperations: defineWorkspaceOperation({
     id: 'workflows.operations.apply',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'deny',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...HUMAN_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: restoring a soft-deleted workflow is governed by workspace role
   restore: defineWorkspaceOperation({
     id: 'workflows.restore',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
@@ -179,33 +180,30 @@ export const workflowOperations = {
     capability: 'none',
     principalKinds: ['session'],
   }),
-  // permission-group-exempt: workflow variables are workflow content, governed by workspace role
   applyVariableOperations: defineWorkspaceOperation({
     id: 'workflows.variables.apply_operations',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: moving workflows between folders is placement, governed by workspace role
   moveBulk: defineWorkspaceOperation({
     id: 'workflows.bulk.move',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: duplicating copies a graph the caller may already read into the same workspace, so it crosses no capability boundary
   duplicate: defineWorkspaceOperation({
     id: 'workflows.duplicate',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
@@ -246,13 +244,12 @@ export const workflowOperations = {
     contentDelivery: 'none',
     ...COPILOT_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: deleting a workflow is governed by workspace role
   delete: defineWorkspaceOperation({
     id: 'workflows.delete',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
@@ -266,33 +263,30 @@ export const workflowOperations = {
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: the workflow folder tree has no hide key; arranging it is governed by workspace role
   createFolder: defineWorkspaceOperation({
     id: 'workflows.folders.create',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: the workflow folder tree has no hide key; arranging it is governed by workspace role
   relocateFolder: defineWorkspaceOperation({
     id: 'workflows.folders.relocate',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: the workflow folder tree has no hide key; arranging it is governed by workspace role
   deleteFolder: defineWorkspaceOperation({
     id: 'workflows.folders.delete',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
@@ -351,23 +345,21 @@ export const workflowOperations = {
     contentDelivery: 'none',
     ...WORKFLOW_DEPLOYMENT_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: reverting the draft to an earlier version edits workflow content; deployment capabilities govern what is served, not what is edited
   revertVersion: defineWorkspaceOperation({
     id: 'workflows.versions.revert',
     oauthScope: 'api:write',
     minimumRole: 'admin',
     workspaceApiKey: 'deny',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...HUMAN_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: a version's name and description are metadata on workflow content, governed by workspace role
   updateVersion: defineWorkspaceOperation({
     id: 'workflows.versions.update',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
@@ -411,25 +403,22 @@ export const workflowOperations = {
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  /**
-   * permission-group-exempt: preview uses the same authoring permission and block policy as import.
-   */
+  /** Preview uses the same authoring permission, capability, and block policy as import. */
   importPreview: defineWorkspaceOperation({
     id: 'workflows.import.preview',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),
-  // permission-group-exempt: importing is workflow authoring governed by workspace role; the blocks the payload carries are judged against allowedIntegrations before they are persisted
   import: defineWorkspaceOperation({
     id: 'workflows.import',
     oauthScope: 'api:write',
     minimumRole: 'write',
     workspaceApiKey: 'allow',
-    capability: 'none',
+    capability: 'workflows.edit',
     contentDelivery: 'none',
     ...ALL_WORKFLOW_PRINCIPAL_POLICY,
   }),

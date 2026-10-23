@@ -14,6 +14,10 @@ import {
   resetDbChainMock,
   schemaMock,
 } from '@sim/testing'
+import {
+  permissionGroupScopeMock,
+  permissionGroupScopeMockFns,
+} from '@sim/testing/mocks/permission-group-scope.mock'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockDeleteFolder = foldersOrchestrationMockFns.mockDeleteFolder
@@ -24,8 +28,19 @@ const mockGetUserEntityPermissions = permissionsMockFns.mockGetUserEntityPermiss
 vi.mock('@sim/audit', () => auditMock)
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 vi.mock('@/lib/folders/orchestration', () => foldersOrchestrationMock)
+vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { DELETE, PUT } from '@/app/api/folders/[id]/route'
+
+const mockResolveGroupConfig = permissionGroupScopeMockFns.mockResolvePermissionGroupConfig
+
+function withholdWorkflowEditing() {
+  mockResolveGroupConfig.mockResolvedValue({
+    ...DEFAULT_PERMISSION_GROUP_CONFIG,
+    disableWorkflowEditing: true,
+  })
+}
 
 const TEST_USER: MockUser = {
   id: 'user-123',
@@ -68,6 +83,8 @@ describe('Individual Folder API Route', () => {
       success: true,
       deletedItems: { folders: 1, workflows: 0 },
     })
+    mockResolveGroupConfig.mockReset()
+    mockResolveGroupConfig.mockResolvedValue(null)
   })
 
   describe('PUT /api/folders/[id]', () => {
@@ -87,6 +104,25 @@ describe('Individual Folder API Route', () => {
 
       const data = await response.json()
       expect(data).toHaveProperty('error', 'Write access required to update folders')
+    })
+
+    it('refuses renaming a workflow folder to a member whose group withholds workflow editing', async () => {
+      mockAuthenticatedUser()
+      withholdWorkflowEditing()
+      queueFolderLookup()
+
+      const response = await PUT(
+        createMockRequest(
+          'PUT',
+          { name: 'Renamed' },
+          {},
+          'http://localhost:3000/api/folders/folder-1?resourceType=workflow'
+        ),
+        { params: Promise.resolve({ id: 'folder-1' }) }
+      )
+
+      expect(response.status).toBe(403)
+      expect(mockUpdateFolder).not.toHaveBeenCalled()
     })
 
     it('rejects a locked write on a resource type that has no lock semantics', async () => {
@@ -111,6 +147,47 @@ describe('Individual Folder API Route', () => {
   })
 
   describe('DELETE /api/folders/[id]', () => {
+    it('refuses deleting a workflow folder, which archives its workflows, to a restricted member', async () => {
+      mockAuthenticatedUser()
+      withholdWorkflowEditing()
+      queueFolderLookup()
+
+      const response = await DELETE(
+        createMockRequest(
+          'DELETE',
+          undefined,
+          {},
+          'http://localhost:3000/api/folders/folder-1?resourceType=workflow'
+        ),
+        { params: Promise.resolve({ id: 'folder-1' }) }
+      )
+
+      expect(response.status).toBe(403)
+      expect((await response.json()).details).toEqual({
+        code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED',
+      })
+      expect(mockDeleteFolder).not.toHaveBeenCalled()
+    })
+
+    it('still lets that member delete a knowledge base folder', async () => {
+      mockAuthenticatedUser()
+      withholdWorkflowEditing()
+      queueFolderLookup()
+
+      const response = await DELETE(
+        createMockRequest(
+          'DELETE',
+          undefined,
+          {},
+          'http://localhost:3000/api/folders/folder-1?resourceType=knowledge_base'
+        ),
+        { params: Promise.resolve({ id: 'folder-1' }) }
+      )
+
+      expect(response.status).toBe(200)
+      expect(mockDeleteFolder).toHaveBeenCalledTimes(1)
+    })
+
     it('surfaces a delete-locked resource as 423, not a generic 500', async () => {
       mockAuthenticatedUser()
       queueFolderLookup()

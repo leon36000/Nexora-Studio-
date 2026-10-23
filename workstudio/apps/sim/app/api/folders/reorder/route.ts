@@ -12,6 +12,8 @@ import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { withTransactionRetry } from '@/lib/db/transaction'
 import { acquireFolderMutationLock } from '@/lib/folders/locks'
 import { folderResourceSupportsLocking } from '@/lib/folders/resource-traits'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
 const logger = createLogger('FolderReorderAPI')
@@ -36,6 +38,14 @@ export const PUT = withRouteHandler(async (req: NextRequest) => {
         `[${requestId}] User ${session.user.id} lacks write permission for workspace ${workspaceId}`
       )
       return NextResponse.json({ error: 'Write access required' }, { status: 403 })
+    }
+
+    /** permission-group-enforced: workflows.edit — a workflow folder is workflow placement. */
+    if (
+      resourceType === 'workflow' &&
+      (await isWorkspaceCapabilityWithheld(session.user.id, workspaceId, 'workflows.edit'))
+    ) {
+      return capabilityRefusalResponse('workflows.edit')
     }
 
     return await withTransactionRetry(

@@ -13,9 +13,11 @@ import { eq, inArray } from 'drizzle-orm'
 import { type NextRequest, NextResponse } from 'next/server'
 import { reorderWorkflowsContract } from '@/lib/api/contracts/workflows'
 import { parseRequest } from '@/lib/api/server'
-import { checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { capabilityGovernedAuthUserId, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { notifyWorkspaceWorkflowsChanged } from '@/lib/realtime/notify'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
@@ -41,6 +43,15 @@ export const PUT = withRouteHandler(async (req: NextRequest) => {
         `[${requestId}] User ${userId} lacks write permission for workspace ${workspaceId}`
       )
       return NextResponse.json({ error: 'Write access required' }, { status: 403 })
+    }
+
+    /** permission-group-enforced: workflows.edit — raw reorder route, after the role check. */
+    const governedUserId = capabilityGovernedAuthUserId(auth)
+    if (
+      governedUserId &&
+      (await isWorkspaceCapabilityWithheld(governedUserId, workspaceId, 'workflows.edit'))
+    ) {
+      return capabilityRefusalResponse('workflows.edit')
     }
 
     const workflowIds = updates.map((u) => u.id)

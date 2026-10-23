@@ -16,6 +16,7 @@ export type AccessCapabilityKey = {
 
 /** Display order of the themes; a theme the engine adds later lands in `other`. */
 export const ACCESS_CAPABILITY_CATEGORIES = [
+  'workflows',
   'deployment',
   'tools',
   'knowledge',
@@ -31,6 +32,7 @@ export const ACCESS_CAPABILITY_CATEGORIES = [
 type AccessCapabilityCategory = (typeof ACCESS_CAPABILITY_CATEGORIES)[number]
 
 const CATEGORY_BY_ENGINE_LABEL: Record<string, AccessCapabilityCategory> = {
+  Workflows: 'workflows',
   Deployment: 'deployment',
   Tools: 'tools',
   'Knowledge Base': 'knowledge',
@@ -75,7 +77,7 @@ interface AccessGroupTemplate {
 }
 
 /**
- * « Lecture seule »: consult and run, never build, deploy, expose or administer. Tools and
+ * « Lecture seule »: consult and run, never build, edit, deploy, expose or administer. Tools and
  * connectors stay usable, otherwise the workflows these members run would fail.
  * « Créateurs »: build and deploy inside the organization, no public exposure or new workspace.
  * « Administrateurs »: everything.
@@ -84,6 +86,7 @@ export const ACCESS_GROUP_TEMPLATES: readonly AccessGroupTemplate[] = [
   {
     id: 'read-only',
     withheld: [
+      'disableWorkflowEditing',
       'hideCopilot',
       'hideDeployApi',
       'hideDeployMcp',

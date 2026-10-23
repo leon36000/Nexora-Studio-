@@ -59,6 +59,7 @@ export const CAPABILITY_IDS = [
   'sandboxes.use',
   'knowledge.export',
   'project_issues.use',
+  'workflows.edit',
 ] as const
 
 export type PermissionGroupCapability = (typeof CAPABILITY_IDS)[number]
@@ -439,6 +440,13 @@ export const CAPABILITY_RULES = {
     describe: 'Project Issues access',
     deniedBy: (config: PermissionGroupConfig, projectId: string) =>
       config.deniedPartialAccessProjectIssues.includes(projectId),
+  },
+  'workflows.edit': {
+    kind: 'static',
+    configKeys: ['disableWorkflowEditing'],
+    detailCode: 'PERMISSION_GROUP_CAPABILITY_BLOCKED',
+    describe: 'Editing workflows',
+    deniedBy: (config) => config.disableWorkflowEditing,
   },
 } satisfies { readonly [K in PermissionGroupCapability]: CapabilityRule }
 

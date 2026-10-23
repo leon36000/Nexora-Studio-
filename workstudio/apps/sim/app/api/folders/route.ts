@@ -9,6 +9,8 @@ import { createFolder } from '@/lib/folders/orchestration'
 import { listFoldersForWorkspace, toFolderApi } from '@/lib/folders/queries'
 import { folderResourceSupportsLocking } from '@/lib/folders/resource-traits'
 import { folderMutationStatus } from '@/lib/folders/status'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
@@ -76,6 +78,14 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
         { error: 'Write or Admin access required to create folders' },
         { status: 403 }
       )
+    }
+
+    /** permission-group-enforced: workflows.edit — a workflow folder is workflow placement. */
+    if (
+      resourceType === 'workflow' &&
+      (await isWorkspaceCapabilityWithheld(session.user.id, workspaceId, 'workflows.edit'))
+    ) {
+      return capabilityRefusalResponse('workflows.edit')
     }
 
     // Folder locking is a workflow-only feature; other resource types leave `locked` false.

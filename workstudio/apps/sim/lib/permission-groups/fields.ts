@@ -527,6 +527,18 @@ export const PERMISSION_GROUP_FIELDS = {
     default: null,
     enforcement: 'default',
   },
+  /**
+   * Nexora edition, appended after the preference because declaration order is the wire order.
+   * Enforced on every workflow-writing operation (`workflows.edit`), on the raw editor routes,
+   * and on the realtime socket, which asks the app through `/api/internal/workflow-edit-access`.
+   */
+  disableWorkflowEditing: booleanRestriction('capability', {
+    scope: 'workspace',
+    id: 'disable-workflow-editing',
+    label: 'Workflow Editing',
+    category: 'Workflows',
+    hint: 'Revoke workflow editing. Members cannot create, change, move, or delete a workflow; they can still open and run one.',
+  }),
 } satisfies Record<string, PermissionGroupField>
 
 export type PermissionGroupFields = typeof PERMISSION_GROUP_FIELDS

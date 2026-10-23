@@ -9,14 +9,22 @@ import {
   permissionsMockFns,
   workflowAuthzMockFns,
 } from '@sim/testing'
+import { createRouteContext } from '@sim/testing/helpers/http'
+import {
+  permissionGroupScopeMock,
+  permissionGroupScopeMockFns,
+} from '@sim/testing/mocks/permission-group-scope.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetUserEntityPermissions = permissionsMockFns.mockGetUserEntityPermissions
+const mockResolveGroupConfig = permissionGroupScopeMockFns.mockResolvePermissionGroupConfig
 
 vi.mock('@sim/audit', () => auditMock)
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
+vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
 import { db } from '@sim/db'
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET, POST } from '@/app/api/folders/route'
 
 const mockDb = db as any
@@ -144,6 +152,8 @@ describe('Folders API Route', () => {
     mockTransaction.mockImplementation(createMockTransaction({}))
 
     mockGetUserEntityPermissions.mockResolvedValue('admin')
+    mockResolveGroupConfig.mockReset()
+    mockResolveGroupConfig.mockResolvedValue(null)
   })
 
   describe('GET /api/folders', () => {
@@ -231,6 +241,51 @@ describe('Folders API Route', () => {
       expect(response.status).toBe(400)
       const data = await response.json()
       expect(data.error).toBe('Parent folder not found')
+    })
+
+    it('refuses a workflow folder to a member whose group withholds workflow editing', async () => {
+      mockAuthenticatedUser()
+      mockResolveGroupConfig.mockResolvedValue({
+        ...DEFAULT_PERMISSION_GROUP_CONFIG,
+        disableWorkflowEditing: true,
+      })
+
+      const response = await POST(
+        createMockRequest('POST', {
+          name: 'Archives',
+          workspaceId: 'workspace-123',
+          resourceType: 'workflow',
+        }),
+        createRouteContext({})
+      )
+
+      expect(response.status).toBe(403)
+      expect((await response.json()).details).toEqual({
+        code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED',
+      })
+      expect(mockTransaction).not.toHaveBeenCalled()
+    })
+
+    it('leaves table folders to that member, since the restriction names workflows only', async () => {
+      mockAuthenticatedUser()
+      mockResolveGroupConfig.mockResolvedValue({
+        ...DEFAULT_PERMISSION_GROUP_CONFIG,
+        disableWorkflowEditing: true,
+      })
+      mockTransaction.mockImplementationOnce(
+        createMockTransaction({ selectResults: [[{ total: 0 }]], insertResult: [mockFolders[0]] })
+      )
+
+      const response = await POST(
+        createMockRequest('POST', {
+          name: 'Exports',
+          workspaceId: 'workspace-123',
+          resourceType: 'table',
+        }),
+        createRouteContext({})
+      )
+
+      expect(response.status).toBe(200)
     })
 
     it('should return 403 when user has only read permissions', async () => {

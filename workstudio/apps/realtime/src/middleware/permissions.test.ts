@@ -12,9 +12,17 @@ import { databaseMock, dbChainMockFns } from '@sim/testing/mocks/database.mock'
 import { workflowAuthzMock, workflowAuthzMockFns } from '@sim/testing/mocks/workflow-authz.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const { mockIsWorkflowEditingWithheld } = vi.hoisted(() => ({
+  mockIsWorkflowEditingWithheld: vi.fn(async () => false),
+}))
+
 vi.mock('@sim/platform-authz/workflow', () => workflowAuthzMock)
 
 vi.mock('@sim/db', () => databaseMock)
+
+vi.mock('@/middleware/workflow-edit-access', () => ({
+  isWorkflowEditingWithheld: mockIsWorkflowEditingWithheld,
+}))
 
 import {
   checkRolePermission,
@@ -226,5 +234,87 @@ describe('verifyWorkflowAccess role-cache refresh', () => {
 
     mockAuthorize.mockRejectedValue(new Error('must not re-query'))
     expect(await resolveCurrentWorkflowRole(userId, workflowId, 'read')).toBe('write')
+  })
+})
+
+/**
+ * A « Lecture seule » group withholds `workflows.edit`. The socket must then treat a writer (or a
+ * workspace admin) exactly like a read-only member: every persisted operation refused, live.
+ */
+describe('workflow editing withheld by a permission group', () => {
+  let workflowCounter = 0
+  let workflowId: string
+  const userId = 'pg-user'
+
+  function authorizedAs(workspacePermission: 'read' | 'write' | 'admin') {
+    return {
+      allowed: true,
+      status: 200,
+      workflow: { id: workflowId, workspaceId: 'ws-1' },
+      workspacePermission,
+    }
+  }
+
+  beforeEach(() => {
+    workflowCounter += 1
+    workflowId = `pg-wf-${workflowCounter}`
+    mockIsWorkflowEditingWithheld.mockReset()
+    mockIsWorkflowEditingWithheld.mockResolvedValue(false)
+  })
+
+  it('refuses every persisted operation to a writer whose group withholds editing', async () => {
+    mockAuthorize.mockResolvedValue(authorizedAs('write'))
+    mockIsWorkflowEditingWithheld.mockResolvedValue(true)
+
+    for (const operation of ALL_SOCKET_OPERATIONS) {
+      const result = await checkWorkflowOperationPermission(userId, workflowId, operation, 'write')
+      expect(result.allowed, operation).toBe(false)
+      expect(result.role, operation).toBe('read')
+    }
+    expect(mockIsWorkflowEditingWithheld).toHaveBeenCalledWith(userId, workflowId)
+  })
+
+  it('refuses a workspace admin the same way, so the role does not override the group', async () => {
+    mockAuthorize.mockResolvedValue(authorizedAs('admin'))
+    mockIsWorkflowEditingWithheld.mockResolvedValue(true)
+
+    const result = await checkWorkflowOperationPermission(userId, workflowId, 'update', 'admin')
+
+    expect(result.allowed).toBe(false)
+    expect(result.role).toBe('read')
+  })
+
+  it('keeps a writer whose group allows editing', async () => {
+    mockAuthorize.mockResolvedValue(authorizedAs('write'))
+
+    const result = await checkWorkflowOperationPermission(userId, workflowId, 'update', 'write')
+
+    expect(result.allowed).toBe(true)
+    expect(result.role).toBe('write')
+  })
+
+  it('does not ask the app about a read-only member, who can write nothing anyway', async () => {
+    mockAuthorize.mockResolvedValue(authorizedAs('read'))
+
+    await checkWorkflowOperationPermission(userId, workflowId, 'update', 'read')
+
+    expect(mockIsWorkflowEditingWithheld).not.toHaveBeenCalled()
+  })
+
+  it('joins a restricted writer as read-only', async () => {
+    mockAuthorize.mockResolvedValue(authorizedAs('write'))
+    mockIsWorkflowEditingWithheld.mockResolvedValue(true)
+
+    await expect(verifyWorkflowAccess(userId, workflowId)).resolves.toMatchObject({
+      hasAccess: true,
+      role: 'read',
+    })
+  })
+
+  it('fails the join as retryable instead of granting write when the app cannot answer', async () => {
+    mockAuthorize.mockResolvedValue(authorizedAs('write'))
+    mockIsWorkflowEditingWithheld.mockRejectedValue(new Error('app unreachable'))
+
+    await expect(verifyWorkflowAccess(userId, workflowId)).rejects.toThrow('app unreachable')
   })
 })

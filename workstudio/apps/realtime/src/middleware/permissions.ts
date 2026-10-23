@@ -16,6 +16,7 @@ import {
 import { isProjectRoom, ROOM_TYPES, type RoomRef, roomName } from '@sim/realtime-protocol/rooms'
 import { and, eq, isNull } from 'drizzle-orm'
 import { fetchProjectRoomAccess } from '@/handlers/file-list-app'
+import { isWorkflowEditingWithheld } from '@/middleware/workflow-edit-access'
 
 const logger = createLogger('SocketPermissions')
 
@@ -207,6 +208,24 @@ function commitRoleDecision(key: string, role: string | null, readSeq: number): 
 }
 
 /**
+ * The permission a workflow room grants: the workspace role, lowered to `read` when the user's
+ * permission group withholds workflow editing (a « Lecture seule » group). Lowering the role
+ * rather than adding a second check keeps one decision for every write gate, the cache and the
+ * sweep: `read` holds no socket operation at all.
+ *
+ * Only a role that could write is asked about, so a read-only member costs no callback. A failed
+ * callback throws, which the callers already treat as transient rather than as a grant.
+ */
+async function foldWorkflowEditing(
+  userId: string,
+  workflowId: string,
+  permission: PermissionType | null
+): Promise<PermissionType | null> {
+  if (permission !== 'write' && permission !== 'admin') return permission
+  return (await isWorkflowEditingWithheld(userId, workflowId)) ? 'read' : permission
+}
+
+/**
  * Reads a user's authoritative effective workspace permission for a room, or
  * `null` when they have none. Workflow rooms go through their own dedicated
  * authorizer; every other room type resolves through the shared
@@ -234,7 +253,8 @@ async function readAuthoritativeRoomPermission(
       userId,
       action: 'read',
     })
-    return authorization.allowed ? (authorization.workspacePermission ?? null) : null
+    if (!authorization.allowed) return null
+    return foldWorkflowEditing(userId, room.id, authorization.workspacePermission ?? null)
   }
 
   const authorization = await authorizeRoom({ userId, room, action: 'read' })
@@ -427,14 +447,17 @@ export async function verifyWorkflowAccess(
       userId,
       action: 'read',
     })
+    const permission = authorization.allowed
+      ? await foldWorkflowEditing(userId, workflowId, authorization.workspacePermission ?? null)
+      : null
 
     commitRoleDecision(
       roleCacheKey(userId, { type: ROOM_TYPES.WORKFLOW, id: workflowId }),
-      authorization.allowed ? (authorization.workspacePermission ?? null) : null,
+      permission,
       readSeq
     )
 
-    if (!authorization.allowed || !authorization.workspacePermission) {
+    if (!permission) {
       logger.warn(
         `User ${userId} is not permitted to access workflow ${workflowId}: ${authorization.message}`
       )
@@ -442,11 +465,11 @@ export async function verifyWorkflowAccess(
     }
 
     logger.debug(
-      `User ${userId} has ${authorization.workspacePermission} access to workflow ${workflowId} (${workflowName}) via workspace ${workspaceId}`
+      `User ${userId} has ${permission} access to workflow ${workflowId} (${workflowName}) via workspace ${workspaceId}`
     )
     return {
       hasAccess: true,
-      role: authorization.workspacePermission,
+      role: permission,
       workspaceId: workspaceId || undefined,
     }
   } catch (error) {

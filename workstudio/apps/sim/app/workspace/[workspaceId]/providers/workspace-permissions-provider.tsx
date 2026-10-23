@@ -7,6 +7,7 @@ import { createLogger } from '@sim/logger'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import { useSocket } from '@/app/workspace/providers/socket-provider'
+import { useUserPermissionConfig } from '@/ee/access-control/hooks/permission-groups'
 import {
   useWorkspacePermissionsQuery,
   type WorkspacePermissions,
@@ -117,7 +118,9 @@ interface WorkspacePermissionsProviderProps {
 
 /**
  * Provides workspace permissions and connection-aware user access throughout the app.
- * Enforces read-only mode when offline to prevent data loss.
+ * Enforces read-only mode when offline to prevent data loss, and on an open workflow when the
+ * member's permission group withholds workflow editing (« Lecture seule »): the server and the
+ * realtime socket refuse those writes, so the editor must not offer them.
  */
 export function WorkspacePermissionsProvider({
   children,
@@ -170,6 +173,10 @@ export function WorkspacePermissionsProvider({
 
   const permissionsError = permissionsErrorObj?.message ?? null
 
+  const { data: permissionGroup } = useUserPermissionConfig(workspaceId)
+  const isWorkflowEditingWithheld =
+    Boolean(urlWorkflowId) && permissionGroup?.config?.disableWorkflowEditing === true
+
   const updatePermissions = useCallback(
     (newPermissions: WorkspacePermissions) => {
       if (!workspaceId) return
@@ -189,7 +196,7 @@ export function WorkspacePermissionsProvider({
   )
 
   const userPermissions = useMemo((): WorkspaceUserPermissions & { isOfflineMode?: boolean } => {
-    if (isOfflineMode || isJoinBlocked) {
+    if (isOfflineMode || isJoinBlocked || isWorkflowEditingWithheld) {
       return {
         ...baseUserPermissions,
         canEdit: false,
@@ -203,7 +210,7 @@ export function WorkspacePermissionsProvider({
       ...baseUserPermissions,
       isOfflineMode: false,
     }
-  }, [baseUserPermissions, isOfflineMode, isJoinBlocked])
+  }, [baseUserPermissions, isOfflineMode, isJoinBlocked, isWorkflowEditingWithheld])
 
   const contextValue = useMemo(
     () => ({

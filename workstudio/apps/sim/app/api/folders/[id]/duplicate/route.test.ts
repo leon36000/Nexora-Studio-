@@ -23,8 +23,13 @@ import {
   foldersOrchestrationMock,
   foldersOrchestrationMockFns,
 } from '@sim/testing/mocks/folders-orchestration.mock'
+import {
+  permissionGroupScopeMock,
+  permissionGroupScopeMockFns,
+} from '@sim/testing/mocks/permission-group-scope.mock'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_FOLDERS_PER_WORKSPACE } from '@/lib/folders/constants'
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 
 const {
   mockDeduplicateFolderName,
@@ -49,6 +54,7 @@ vi.mock('@/lib/folders/naming', () => ({ deduplicateFolderName: mockDeduplicateF
 vi.mock('@/lib/workflows/persistence/duplicate', () => ({
   duplicateWorkflow: mockDuplicateWorkflow,
 }))
+vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
 import { POST } from '@/app/api/folders/[id]/duplicate/route'
 
@@ -115,6 +121,24 @@ describe('POST /api/folders/[id]/duplicate', () => {
     mockNextFolderSortOrder.mockResolvedValue(0)
     mockDeduplicateFolderName.mockImplementation(async (_tx, _ws, _parent, name) => name)
     mockDuplicateWorkflow.mockResolvedValue({ id: 'wf-copy' })
+    permissionGroupScopeMockFns.mockResolvePermissionGroupConfig.mockReset()
+    permissionGroupScopeMockFns.mockResolvePermissionGroupConfig.mockResolvedValue(null)
+  })
+
+  it('refuses to copy a folder of workflows for a member whose group withholds editing', async () => {
+    permissionGroupScopeMockFns.mockResolvePermissionGroupConfig.mockResolvedValue({
+      ...DEFAULT_PERMISSION_GROUP_CONFIG,
+      disableWorkflowEditing: true,
+    })
+    queueDuplicationReads({
+      skeleton: [{ id: SOURCE_FOLDER_ID, parentId: null }],
+      activeFolderCount: 0,
+    })
+
+    const response = await POST(duplicateRequest(), routeContext)
+
+    expect(response.status).toBe(403)
+    expect(mockDuplicateWorkflow).not.toHaveBeenCalled()
   })
 
   it('refuses a single-folder duplicate once the workspace is at the ceiling', async () => {

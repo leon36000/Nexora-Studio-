@@ -13,6 +13,12 @@ const EnvSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   INTERNAL_API_SECRET: z.string().min(32),
   NEXT_PUBLIC_APP_URL: z.string().url(),
+  /**
+   * Where this server reaches the app for its internal callbacks, when the public URL does not
+   * resolve from here (a container whose `localhost` is itself): `http://workstudio:3000` in the
+   * Nexora compose. Defaults to {@link NEXT_PUBLIC_APP_URL}.
+   */
+  INTERNAL_API_BASE_URL: z.string().url().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
   PORT: z.coerce.number().int().positive().default(3002),
   /** Listen address. `0.0.0.0` inside a container; `127.0.0.1` keeps a host process off the network. */
@@ -49,4 +55,9 @@ export const isAuthDisabled = env.DISABLE_AUTH === true && !isHosted
 
 export function getBaseUrl(): string {
   return env.NEXT_PUBLIC_APP_URL
+}
+
+/** The app's base URL for server-to-server callbacks; see `INTERNAL_API_BASE_URL`. */
+export function getInternalAppUrl(): string {
+  return (env.INTERNAL_API_BASE_URL ?? env.NEXT_PUBLIC_APP_URL).replace(/\/+$/, '')
 }

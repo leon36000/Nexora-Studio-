@@ -2,14 +2,23 @@
  * Tests for the folder reorder API route.
  */
 import { authMockFns, createMockRequest, permissionsMock, permissionsMockFns } from '@sim/testing'
+import { createRouteContext } from '@sim/testing/helpers/http'
+import {
+  permissionGroupScopeMock,
+  permissionGroupScopeMockFns,
+} from '@sim/testing/mocks/permission-group-scope.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetUserEntityPermissions = permissionsMockFns.mockGetUserEntityPermissions
 
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
+vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
 import { db } from '@sim/db'
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { PUT } from '@/app/api/folders/reorder/route'
+
+const mockResolveGroupConfig = permissionGroupScopeMockFns.mockResolvePermissionGroupConfig
 
 const mockDb = db as any
 
@@ -28,6 +37,8 @@ describe('PUT /api/folders/reorder', () => {
 
     authMockFns.mockGetSession.mockResolvedValue({ user: { id: 'user-123' } })
     mockGetUserEntityPermissions.mockResolvedValue('admin')
+    mockResolveGroupConfig.mockReset()
+    mockResolveGroupConfig.mockResolvedValue(null)
 
     mockFrom.mockReturnValue({ where: mockWhere })
 
@@ -41,6 +52,25 @@ describe('PUT /api/folders/reorder', () => {
         update: mockTxUpdate,
       })
     )
+  })
+
+  it('refuses reordering workflow folders to a member whose group withholds workflow editing', async () => {
+    mockResolveGroupConfig.mockResolvedValue({
+      ...DEFAULT_PERMISSION_GROUP_CONFIG,
+      disableWorkflowEditing: true,
+    })
+
+    const response = await PUT(
+      createMockRequest('PUT', {
+        workspaceId: 'workspace-123',
+        resourceType: 'workflow',
+        updates: [{ id: 'folder-1', sortOrder: 0 }],
+      }),
+      createRouteContext({})
+    )
+
+    expect(response.status).toBe(403)
+    expect(mockDb.transaction).not.toHaveBeenCalled()
   })
 
   it('maps a sibling-name collision from a reparent to a 409', async () => {

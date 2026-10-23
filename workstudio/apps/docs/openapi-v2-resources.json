@@ -6953,7 +6953,8 @@
                             "disableOAuthAppAccess": false,
                             "disableKnowledgeBaseExport": false,
                             "deniedPartialAccessProjectIssues": [],
-                            "defaultAgentModel": null
+                            "defaultAgentModel": null,
+                            "disableWorkflowEditing": false
                           },
                           "isDefault": false,
                           "membershipMode": "inherit",
@@ -7113,7 +7114,8 @@
                           "disableOAuthAppAccess": false,
                           "disableKnowledgeBaseExport": false,
                           "deniedPartialAccessProjectIssues": [],
-                          "defaultAgentModel": null
+                          "defaultAgentModel": null,
+                          "disableWorkflowEditing": false
                         },
                         "isDefault": false,
                         "membershipMode": "inherit",
@@ -7273,7 +7275,8 @@
                           "disableOAuthAppAccess": false,
                           "disableKnowledgeBaseExport": false,
                           "deniedPartialAccessProjectIssues": [],
-                          "defaultAgentModel": null
+                          "defaultAgentModel": null,
+                          "disableWorkflowEditing": false
                         },
                         "isDefault": false,
                         "membershipMode": "inherit",
@@ -7441,7 +7444,8 @@
                           "disableOAuthAppAccess": false,
                           "disableKnowledgeBaseExport": false,
                           "deniedPartialAccessProjectIssues": [],
-                          "defaultAgentModel": null
+                          "defaultAgentModel": null,
+                          "disableWorkflowEditing": false
                         },
                         "isDefault": false,
                         "membershipMode": "inherit",
@@ -21207,6 +21211,10 @@
                   }
                 ],
                 "description": "Default model for new Agent blocks. Null uses the platform default."
+              },
+              "disableWorkflowEditing": {
+                "type": "boolean",
+                "description": "Revoke workflow editing. Members cannot create, change, move, or delete a workflow; they can still open and run one."
               }
             },
             "required": [
@@ -21253,7 +21261,8 @@
               "disableOAuthAppAccess",
               "disableKnowledgeBaseExport",
               "deniedPartialAccessProjectIssues",
-              "defaultAgentModel"
+              "defaultAgentModel",
+              "disableWorkflowEditing"
             ],
             "additionalProperties": false,
             "description": "Resolved group settings. True disables a boolean capability; null allowlists permit every value and empty allowlists permit none. defaultAgentModel selects the default for new Agent blocks without restricting model selection."
@@ -21385,7 +21394,8 @@
                   "disableOAuthAppAccess": false,
                   "disableKnowledgeBaseExport": false,
                   "deniedPartialAccessProjectIssues": [],
-                  "defaultAgentModel": null
+                  "defaultAgentModel": null,
+                  "disableWorkflowEditing": false
                 },
                 "isDefault": false,
                 "membershipMode": "inherit",
@@ -21462,7 +21472,8 @@
                 "disableOAuthAppAccess": false,
                 "disableKnowledgeBaseExport": false,
                 "deniedPartialAccessProjectIssues": [],
-                "defaultAgentModel": null
+                "defaultAgentModel": null,
+                "disableWorkflowEditing": false
               },
               "isDefault": false,
               "membershipMode": "inherit",
@@ -21737,6 +21748,10 @@
                   }
                 ],
                 "description": "Default model for new Agent blocks. Null uses the platform default."
+              },
+              "disableWorkflowEditing": {
+                "type": "boolean",
+                "description": "Revoke workflow editing. Members cannot create, change, move, or delete a workflow; they can still open and run one."
               }
             },
             "additionalProperties": false,
@@ -21830,7 +21845,8 @@
                 "disableOAuthAppAccess": false,
                 "disableKnowledgeBaseExport": false,
                 "deniedPartialAccessProjectIssues": [],
-                "defaultAgentModel": null
+                "defaultAgentModel": null,
+                "disableWorkflowEditing": false
               },
               "isDefault": false,
               "membershipMode": "inherit",
@@ -21905,7 +21921,8 @@
                 "disableOAuthAppAccess": false,
                 "disableKnowledgeBaseExport": false,
                 "deniedPartialAccessProjectIssues": [],
-                "defaultAgentModel": null
+                "defaultAgentModel": null,
+                "disableWorkflowEditing": false
               },
               "isDefault": false,
               "membershipMode": "inherit",
@@ -22187,6 +22204,10 @@
                   }
                 ],
                 "description": "Default model for new Agent blocks. Null uses the platform default."
+              },
+              "disableWorkflowEditing": {
+                "type": "boolean",
+                "description": "Revoke workflow editing. Members cannot create, change, move, or delete a workflow; they can still open and run one."
               }
             },
             "additionalProperties": false,
@@ -24551,6 +24572,10 @@
                       }
                     ],
                     "description": "Default model for new Agent blocks. Null uses the platform default."
+                  },
+                  "disableWorkflowEditing": {
+                    "type": "boolean",
+                    "description": "Revoke workflow editing. Members cannot create, change, move, or delete a workflow; they can still open and run one."
                   }
                 },
                 "required": [
@@ -24597,7 +24622,8 @@
                   "disableOAuthAppAccess",
                   "disableKnowledgeBaseExport",
                   "deniedPartialAccessProjectIssues",
-                  "defaultAgentModel"
+                  "defaultAgentModel",
+                  "disableWorkflowEditing"
                 ],
                 "additionalProperties": false
               },
@@ -26622,7 +26648,7 @@
             "description": "Access request being reviewed."
           },
           "changes": {
-            "maxItems": 43,
+            "maxItems": 44,
             "type": "array",
             "items": {
               "type": "object",
@@ -26672,7 +26698,8 @@
                     "hideSandboxesTab",
                     "disableOAuthAppAccess",
                     "disableKnowledgeBaseExport",
-                    "deniedPartialAccessProjectIssues"
+                    "deniedPartialAccessProjectIssues",
+                    "disableWorkflowEditing"
                   ],
                   "description": "Permission restriction changed by approval."
                 },
@@ -27094,7 +27121,7 @@
             "description": "Access request being reviewed."
           },
           "changes": {
-            "maxItems": 43,
+            "maxItems": 44,
             "type": "array",
             "items": {
               "type": "object",
@@ -27144,7 +27171,8 @@
                     "hideSandboxesTab",
                     "disableOAuthAppAccess",
                     "disableKnowledgeBaseExport",
-                    "deniedPartialAccessProjectIssues"
+                    "deniedPartialAccessProjectIssues",
+                    "disableWorkflowEditing"
                   ],
                   "description": "Permission restriction changed by approval."
                 },

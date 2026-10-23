@@ -8,9 +8,11 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { type NextRequest, NextResponse } from 'next/server'
 import { restoreWorkflowContract } from '@/lib/api/contracts/workflows'
 import { parseRequest } from '@/lib/api/server'
-import { checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { capabilityGovernedAuthUserId, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { performRestoreWorkflow } from '@/lib/workflows/orchestration'
 import { getWorkflowById } from '@/lib/workflows/utils'
@@ -44,6 +46,18 @@ export const POST = withRouteHandler(
         )
         if (permission !== 'admin' && permission !== 'write') {
           return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+        }
+        /** permission-group-enforced: workflows.edit — raw restore route, after the role check. */
+        const governedUserId = capabilityGovernedAuthUserId(auth)
+        if (
+          governedUserId &&
+          (await isWorkspaceCapabilityWithheld(
+            governedUserId,
+            workflowData.workspaceId,
+            'workflows.edit'
+          ))
+        ) {
+          return capabilityRefusalResponse('workflows.edit')
         }
       } else if (workflowData.userId !== auth.userId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

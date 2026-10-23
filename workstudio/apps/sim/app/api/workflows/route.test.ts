@@ -13,10 +13,18 @@ import {
   workflowsPersistenceUtilsMock,
   workflowsPersistenceUtilsMockFns,
 } from '@sim/testing'
+import { createRouteContext } from '@sim/testing/helpers/http'
+import {
+  permissionGroupScopeMock,
+  permissionGroupScopeMockFns,
+} from '@sim/testing/mocks/permission-group-scope.mock'
 import { telemetryMock } from '@sim/testing/mocks/telemetry.mock'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetUserEntityPermissions = permissionsMockFns.mockGetUserEntityPermissions
+const mockResolveGroupConfig = permissionGroupScopeMockFns.mockResolvePermissionGroupConfig
+
+vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
 vi.mock('@sim/audit', () => auditMock)
 
@@ -36,6 +44,8 @@ vi.mock('@/lib/workflows/defaults', () => ({
 
 vi.mock('@/lib/workflows/persistence/utils', () => workflowsPersistenceUtilsMock)
 
+import { AuthType, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { POST } from '@/app/api/workflows/route'
 
 describe('Workflows API Route - POST ordering', () => {
@@ -60,10 +70,35 @@ describe('Workflows API Route - POST ordering', () => {
       userEmail: 'test@example.com',
     })
     mockGetUserEntityPermissions.mockResolvedValue('write')
+    mockResolveGroupConfig.mockReset()
+    mockResolveGroupConfig.mockResolvedValue(null)
     workflowAuthzMockFns.mockAssertFolderMutable.mockResolvedValue(undefined)
     workflowsPersistenceUtilsMockFns.mockSaveWorkflowToNormalizedTables.mockResolvedValue({
       success: true,
     })
+  })
+
+  it('refuses a member whose group withholds workflow editing, creating nothing', async () => {
+    vi.mocked(checkSessionOrInternalAuth).mockResolvedValue({
+      success: true,
+      userId: 'user-123',
+      authType: AuthType.SESSION,
+    })
+    mockResolveGroupConfig.mockResolvedValue({
+      ...DEFAULT_PERMISSION_GROUP_CONFIG,
+      disableWorkflowEditing: true,
+    })
+
+    const response = await POST(
+      createMockRequest('POST', { name: 'Relances', workspaceId: 'workspace-123' }),
+      createRouteContext({})
+    )
+
+    expect(response.status).toBe(403)
+    expect((await response.json()).details).toEqual({
+      code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED',
+    })
+    expect(dbChainMockFns.insert).not.toHaveBeenCalled()
   })
 
   it('rejects creating a workflow inside a locked folder', async () => {

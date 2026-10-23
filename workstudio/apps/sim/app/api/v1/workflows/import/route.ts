@@ -68,7 +68,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       rateLimit,
       userId,
       workspaceId,
-      'none',
+      'workflows.edit',
       'write'
     )
     if (accessError) return accessError

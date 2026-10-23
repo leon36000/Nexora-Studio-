@@ -20,6 +20,8 @@ import { assertFolderCollectionHasRoom, toFolderApi } from '@/lib/folders/querie
 import { isWorkspaceFolder } from '@/lib/folders/scope'
 import { folderMutationStatus } from '@/lib/folders/status'
 import { collectDescendantFolderIds } from '@/lib/folders/subtree'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { duplicateWorkflow } from '@/lib/workflows/persistence/duplicate'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
@@ -97,6 +99,17 @@ export const POST = withRouteHandler(
           403,
           'Access denied'
         )
+      }
+
+      /** permission-group-enforced: workflows.edit — duplicating a folder copies its workflows. */
+      if (
+        await isWorkspaceCapabilityWithheld(
+          session.user.id,
+          sourceFolder.workspaceId,
+          'workflows.edit'
+        )
+      ) {
+        return capabilityRefusalResponse('workflows.edit')
       }
 
       const targetWorkspaceId = workspaceId || sourceFolder.workspaceId

@@ -160,6 +160,9 @@ services:
     restart: unless-stopped
     environment:
       <<: *workstudio-env
+      # Rappels internes vers l'application (droits d'édition des workflows) : l'URL publique
+      # (localhost côté hôte) ne désigne pas l'application depuis ce conteneur.
+      INTERNAL_API_BASE_URL: http://workstudio:3000
     ports:
       - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_REALTIME_PORT:-3002}:3002'
     depends_on:

@@ -8,6 +8,10 @@ import {
   workflowAuthzMockFns,
   workflowsUtilsMock,
 } from '@sim/testing'
+import {
+  permissionGroupScopeMock,
+  permissionGroupScopeMockFns,
+} from '@sim/testing/mocks/permission-group-scope.mock'
 import { NextRequest } from 'next/server'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -15,6 +19,11 @@ vi.mock('@sim/audit', () => auditMock)
 
 vi.mock('@/lib/workflows/utils', () => workflowsUtilsMock)
 
+vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
+
+import { db } from '@sim/db'
+import { AuthType, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET, POST } from '@/app/api/workflows/[id]/variables/route'
 
 describe('Workflow Variables API Route', () => {
@@ -94,6 +103,37 @@ describe('Workflow Variables API Route', () => {
       expect(response.status).toBe(403)
       const data = await response.json()
       expect(data.error).toBe('Unauthorized: Access denied to write this workflow')
+    })
+
+    it('refuses a writer whose group withholds workflow editing, writing nothing', async () => {
+      vi.mocked(checkSessionOrInternalAuth).mockResolvedValueOnce({
+        success: true,
+        userId: 'user-123',
+        authType: AuthType.SESSION,
+      })
+      workflowAuthzMockFns.mockAuthorizeWorkflowByWorkspacePermission.mockResolvedValueOnce({
+        allowed: true,
+        status: 200,
+        workflow: { id: 'workflow-123', workspaceId: 'workspace-456', variables: {} },
+        workspacePermission: 'write',
+      })
+      permissionGroupScopeMockFns.mockResolvePermissionGroupConfig.mockResolvedValueOnce({
+        ...DEFAULT_PERMISSION_GROUP_CONFIG,
+        disableWorkflowEditing: true,
+      })
+
+      const req = new NextRequest('http://localhost:3000/api/workflows/workflow-123/variables', {
+        method: 'POST',
+        body: JSON.stringify({ variables: {} }),
+      })
+
+      const response = await POST(req, { params: Promise.resolve({ id: 'workflow-123' }) })
+
+      expect(response.status).toBe(403)
+      expect((await response.json()).details).toEqual({
+        code: 'PERMISSION_GROUP_CAPABILITY_BLOCKED',
+      })
+      expect(vi.mocked(db.update)).not.toHaveBeenCalled()
     })
   })
 })

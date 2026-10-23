@@ -2618,6 +2618,7 @@ export type CreatePermissionGroupBody = {
     disableKnowledgeBaseExport?: boolean
     deniedPartialAccessProjectIssues?: Array<string>
     defaultAgentModel?: string | null
+    disableWorkflowEditing?: boolean
   }
   isDefault?: boolean
   workspaceIds?: Array<string>
@@ -2673,6 +2674,7 @@ type CreatePermissionGroupResponseRef0 = {
     disableKnowledgeBaseExport: boolean
     deniedPartialAccessProjectIssues: Array<string>
     defaultAgentModel: string | null
+    disableWorkflowEditing: boolean
   }
   isDefault: boolean
   membershipMode: string
@@ -6242,6 +6244,7 @@ type GetPermissionGroupResponseRef0 = {
     disableKnowledgeBaseExport: boolean
     deniedPartialAccessProjectIssues: Array<string>
     defaultAgentModel: string | null
+    disableWorkflowEditing: boolean
   }
   isDefault: boolean
   membershipMode: string
@@ -7607,6 +7610,7 @@ type GetWorkspacePermissionConfigResponseRef0 = {
     disableKnowledgeBaseExport: boolean
     deniedPartialAccessProjectIssues: Array<string>
     defaultAgentModel: string | null
+    disableWorkflowEditing: boolean
   } | null
   entitled: boolean
   organizationId: string | null
@@ -9194,6 +9198,7 @@ type ListPermissionGroupsResponseRef0 = {
     disableKnowledgeBaseExport: boolean
     deniedPartialAccessProjectIssues: Array<string>
     defaultAgentModel: string | null
+    disableWorkflowEditing: boolean
   }
   isDefault: boolean
   membershipMode: string
@@ -10423,6 +10428,7 @@ type PreviewOrganizationAccessRequestResponseRef0 = {
       | 'disableOAuthAppAccess'
       | 'disableKnowledgeBaseExport'
       | 'deniedPartialAccessProjectIssues'
+      | 'disableWorkflowEditing'
     label: string
     before: boolean | Array<string> | string | null
     after: boolean | Array<string> | string | null
@@ -10532,6 +10538,7 @@ type PreviewOrganizationAccessRequestResponseRef1 = {
       | 'disableOAuthAppAccess'
       | 'disableKnowledgeBaseExport'
       | 'deniedPartialAccessProjectIssues'
+      | 'disableWorkflowEditing'
     label: string
     before: boolean | Array<string> | string | null
     after: boolean | Array<string> | string | null
@@ -13882,6 +13889,7 @@ export type UpdatePermissionGroupBody = {
     disableKnowledgeBaseExport?: boolean
     deniedPartialAccessProjectIssues?: Array<string>
     defaultAgentModel?: string | null
+    disableWorkflowEditing?: boolean
   }
   isDefault?: boolean
   workspaceIds?: Array<string>
@@ -13937,6 +13945,7 @@ type UpdatePermissionGroupResponseRef0 = {
     disableKnowledgeBaseExport: boolean
     deniedPartialAccessProjectIssues: Array<string>
     defaultAgentModel: string | null
+    disableWorkflowEditing: boolean
   }
   isDefault: boolean
   membershipMode: string

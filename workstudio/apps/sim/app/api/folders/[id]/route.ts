@@ -14,6 +14,8 @@ import { toFolderApi } from '@/lib/folders/queries'
 import { folderResourceSupportsLocking } from '@/lib/folders/resource-traits'
 import { isWorkspaceFolder } from '@/lib/folders/scope'
 import { folderMutationStatus } from '@/lib/folders/status'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
@@ -80,6 +82,18 @@ export const PUT = withRouteHandler(
           { error: 'Write access required to update folders' },
           { status: 403 }
         )
+      }
+
+      /** permission-group-enforced: workflows.edit — a workflow folder is workflow placement. */
+      if (
+        resourceType === 'workflow' &&
+        (await isWorkspaceCapabilityWithheld(
+          session.user.id,
+          existingFolder.workspaceId,
+          'workflows.edit'
+        ))
+      ) {
+        return capabilityRefusalResponse('workflows.edit')
       }
 
       // Locking is workflow-only. Reject the field outright for the other types rather than
@@ -183,6 +197,21 @@ export const DELETE = withRouteHandler(
           { error: 'Write or Admin access required to delete folders' },
           { status: 403 }
         )
+      }
+
+      /**
+       * permission-group-enforced: workflows.edit — deleting a workflow folder archives the
+       * workflows inside it.
+       */
+      if (
+        resourceType === 'workflow' &&
+        (await isWorkspaceCapabilityWithheld(
+          session.user.id,
+          existingFolder.workspaceId,
+          'workflows.edit'
+        ))
+      ) {
+        return capabilityRefusalResponse('workflows.edit')
       }
 
       if (folderResourceSupportsLocking(resourceType)) {

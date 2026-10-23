@@ -1,13 +1,18 @@
 import { AuditAction, AuditResourceType, recordAudit } from '@sim/audit'
 import { createLogger } from '@sim/logger'
-import { FolderLockedError } from '@sim/platform-authz/workflow'
+import {
+  authorizeWorkflowByWorkspacePermission,
+  FolderLockedError,
+} from '@sim/platform-authz/workflow'
 import { type NextRequest, NextResponse } from 'next/server'
 import { duplicateWorkflowContract } from '@/lib/api/contracts/workflows'
 import { parseRequest } from '@/lib/api/server'
-import { checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
+import { capabilityGovernedAuthUserId, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
 import { PlatformEvents } from '@/lib/core/telemetry'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { isWorkspaceCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusalResponse } from '@/lib/permission-groups/capability-response'
 import { captureServerEvent } from '@/lib/posthog/server'
 import { duplicateWorkflow } from '@/lib/workflows/persistence/duplicate'
 
@@ -33,6 +38,28 @@ export const POST = withRouteHandler(
       const parsed = await parseRequest(duplicateWorkflowContract, req, context)
       if (!parsed.success) return parsed.response
       const { name, description, workspaceId, folderId, newId } = parsed.data.body
+
+      /**
+       * permission-group-enforced: workflows.edit — raw duplicate route. The copy lands in the
+       * source's own workspace (cross-workspace copies are refused below), so the group is asked
+       * there, once the role allows writing it, and only of a governed subject.
+       */
+      const governedUserId = capabilityGovernedAuthUserId(auth)
+      if (governedUserId) {
+        const source = await authorizeWorkflowByWorkspacePermission({
+          workflowId: sourceWorkflowId,
+          userId,
+          action: 'write',
+        })
+        const sourceWorkspaceId = source.workflow?.workspaceId
+        if (
+          source.allowed &&
+          sourceWorkspaceId &&
+          (await isWorkspaceCapabilityWithheld(governedUserId, sourceWorkspaceId, 'workflows.edit'))
+        ) {
+          return capabilityRefusalResponse('workflows.edit')
+        }
+      }
 
       logger.info(`[${requestId}] Duplicating workflow ${sourceWorkflowId} for user ${userId}`)
 
