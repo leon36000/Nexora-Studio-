@@ -25,6 +25,11 @@ case "$command" in *". /bootstrap/nexora-admin.env"*) ok "WorkStudio reads its m
 
 [ -n "$(value NEXORA_CONNECT_ADMIN_TOKEN)" ] && ok "WorkStudio can administer Nexora Connect (connectors catalog)" || ko "WorkStudio can administer Nexora Connect (connectors catalog)"
 
+# The default model's name is fixed: WorkStudio, the bootstrap and Nexora API must agree on it.
+printf "NEXORA_MODEL_NAME=assistant\n" >> "$env_file"
+rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"
+[ "$(value NEXORA_DEFAULT_MODEL)" = "nexora-default" ] && ok "the default model is always nexora-default" || ko "the default model is always nexora-default (got: $(value NEXORA_DEFAULT_MODEL))"
+
 # install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
 printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"
 rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"

@@ -14,7 +14,7 @@ settings:
   auth_bootsrap_admin_password: ${NEXORA_API_ADMIN_PASSWORD}
 
 models:
-  - name: ${NEXORA_MODEL_NAME:-nexora-default}
+  - name: nexora-default
     type: text-generation
     providers:
       - type: openai

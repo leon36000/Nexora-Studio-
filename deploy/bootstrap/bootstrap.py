@@ -284,7 +284,7 @@ def main() -> int:
             os.environ["NEXORA_API_ADMIN_PASSWORD"],
             Path(os.environ.get("NEXORA_BOOTSTRAP_FILE", "/bootstrap/nexora-api.env")),
             upstream={
-                "router": os.environ.get("NEXORA_MODEL_NAME", "nexora-default"),
+                "router": "nexora-default",
                 "url": os.environ["NEXORA_UPSTREAM_URL"],
                 "model": os.environ["NEXORA_UPSTREAM_MODEL"],
                 "key": os.environ.get("NEXORA_UPSTREAM_KEY") or "none",

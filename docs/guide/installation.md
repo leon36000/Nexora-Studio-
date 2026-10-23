@@ -62,7 +62,6 @@ Le script crée `deploy/.env`, lisible par vous seul, et génère tous les secre
 | `NEXORA_UPSTREAM_URL` | L'adresse de votre modèle, sans `/v1` |
 | `NEXORA_UPSTREAM_MODEL` | Le nom du modèle chez ce fournisseur |
 | `NEXORA_UPSTREAM_KEY` | La clé du fournisseur (`none` pour Ollama ou vLLM sans clé) |
-| `NEXORA_MODEL_NAME` | Le nom affiché dans Nexora (`nexora-default` par défaut) |
 
 ## 3. Lancer
 

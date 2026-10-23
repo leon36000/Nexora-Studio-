@@ -71,7 +71,6 @@ services:
       NEXORA_API_REDIS_PASSWORD: ${NEXORA_API_REDIS_PASSWORD}
       NEXORA_API_SECRET_KEY: ${NEXORA_API_SECRET_KEY:?run scripts/init-env.sh first}
       NEXORA_API_ADMIN_PASSWORD: ${NEXORA_API_ADMIN_PASSWORD:?run scripts/init-env.sh first}
-      NEXORA_MODEL_NAME: ${NEXORA_MODEL_NAME:-nexora-default}
       NEXORA_UPSTREAM_URL: ${NEXORA_UPSTREAM_URL:?set the model provider in deploy/.env}
       NEXORA_UPSTREAM_MODEL: ${NEXORA_UPSTREAM_MODEL:?set the model provider in deploy/.env}
       NEXORA_UPSTREAM_KEY: ${NEXORA_UPSTREAM_KEY:-none}
@@ -108,7 +107,6 @@ services:
       NEXORA_API_ADMIN_PASSWORD: ${NEXORA_API_ADMIN_PASSWORD}
       NEXORA_BOOTSTRAP_FILE: /bootstrap/nexora-api.env
       # Re-applied at every start, so a model changed in deploy/.env takes effect.
-      NEXORA_MODEL_NAME: ${NEXORA_MODEL_NAME:-nexora-default}
       NEXORA_UPSTREAM_URL: ${NEXORA_UPSTREAM_URL}
       NEXORA_UPSTREAM_MODEL: ${NEXORA_UPSTREAM_MODEL}
       NEXORA_UPSTREAM_KEY: ${NEXORA_UPSTREAM_KEY:-none}
@@ -194,7 +192,7 @@ services:
       # Models: everything goes through Nexora API (OpenAI-compatible), shown as « Nexora ».
       VLLM_BASE_URL: http://nexora-api:8000/v1
       NEXORA_ONLY_MODELS: 'true'
-      NEXORA_DEFAULT_MODEL: ${NEXORA_MODEL_NAME:-nexora-default}
+      NEXORA_DEFAULT_MODEL: nexora-default
       # Tools: Nexora Connect is preconfigured as an MCP server in every workspace.
       NEXORA_CONNECT_MCP_URL: http://nexora-connect:3000/mcp
       NEXORA_CONNECT_TOKEN: ${NEXORA_CONNECT_RUNTIME_TOKEN}
