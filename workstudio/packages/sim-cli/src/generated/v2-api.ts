@@ -7100,7 +7100,7 @@ type GetWorkflowChatDeploymentResponseRef2 = {
   title: string
   description: string
   isActive: boolean
-  authType: 'public' | 'password' | 'email' | 'sso'
+  authType: 'public' | 'password' | 'email' | 'sso' | 'workspace'
   hasPassword: boolean
   allowedEmails: Array<string>
   customizations: GetWorkflowChatDeploymentResponseRef0
@@ -7906,7 +7906,7 @@ type ListChatDeploymentsResponseRef0 = {
   title: string
   description: string
   isActive: boolean
-  authType: 'public' | 'password' | 'email' | 'sso'
+  authType: 'public' | 'password' | 'email' | 'sso' | 'workspace'
   outputConfigs: Array<ListChatDeploymentsResponseRef1>
   includeThinking: boolean
   includeToolCalls: boolean
@@ -11848,7 +11848,7 @@ export type ReplaceWorkflowChatDeploymentBody = {
   title: string
   description?: string
   customizations?: ReplaceWorkflowChatDeploymentBodyRef0
-  authType?: 'public' | 'password' | 'email' | 'sso'
+  authType?: 'public' | 'password' | 'email' | 'sso' | 'workspace'
   password?: string
   allowedEmails?: Array<string>
   outputConfigs?: Array<ReplaceWorkflowChatDeploymentBodyRef1>
@@ -11877,7 +11877,7 @@ type ReplaceWorkflowChatDeploymentResponseRef2 = {
   title: string
   description: string
   isActive: boolean
-  authType: 'public' | 'password' | 'email' | 'sso'
+  authType: 'public' | 'password' | 'email' | 'sso' | 'workspace'
   hasPassword: boolean
   allowedEmails: Array<string>
   customizations: ReplaceWorkflowChatDeploymentResponseRef0
@@ -21970,7 +21970,7 @@ export const V2_OPERATIONS = {
       },
       authType: {
         kind: 'enum',
-        values: ['public', 'password', 'email', 'sso'] as const,
+        values: ['public', 'password', 'email', 'sso', 'workspace'] as const,
         default: 'public',
         describe:
           'How visitors are gated. `public` leaves the chat open to anyone holding the URL.',

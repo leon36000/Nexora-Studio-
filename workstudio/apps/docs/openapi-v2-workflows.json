@@ -13585,7 +13585,7 @@
           },
           "authType": {
             "type": "string",
-            "enum": ["public", "password", "email", "sso"],
+            "enum": ["public", "password", "email", "sso", "workspace"],
             "description": "How visitors are gated: `public` (no gate), `password`, `email`, or `sso`."
           },
           "outputConfigs": {
@@ -13768,7 +13768,7 @@
           },
           "authType": {
             "type": "string",
-            "enum": ["public", "password", "email", "sso"],
+            "enum": ["public", "password", "email", "sso", "workspace"],
             "description": "How visitors are gated: `public` (no gate), `password`, `email`, or `sso`."
           },
           "hasPassword": {
@@ -14000,7 +14000,7 @@
             "description": "How visitors are gated. `public` leaves the chat open to anyone holding the URL.",
             "default": "public",
             "type": "string",
-            "enum": ["public", "password", "email", "sso"]
+            "enum": ["public", "password", "email", "sso", "workspace"]
           },
           "password": {
             "description": "Write-only password of 15 to 1024 characters, not only whitespace. Required whenever `authType` is `password`, and rejected otherwise. Never readable back. Taken literally, except that a request from the Nexora agent resolves a whole-value `{{ENV_VAR}}` reference to that variable before the rules apply.",
