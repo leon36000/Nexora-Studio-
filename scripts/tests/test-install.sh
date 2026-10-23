@@ -59,6 +59,19 @@ e="$h/deploy/.env"
 [ -z "$(envval COMPOSE_PROFILES "$e")" ] && ok "no local model service" || ko "no local model service"
 [ "$(envval BETTER_AUTH_SECRET "$e" | wc -c)" -ge 33 ] && ok "secrets generated" || ko "secrets generated"
 [ -x "$h-bin/nexora" ] && ok "nexora command installed" || ko "nexora command installed"
+
+# HTTPS with a domain: public addresses in https, Caddy profile on, certificate choice kept.
+hs="$(new_home)/nexora"
+NEXORA_ORGANIZATION_NAME="PME" NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral \
+  NEXORA_UPSTREAM_KEY=sk-test NEXORA_DOMAIN=nexora.pme-test.fr NEXORA_TLS=internal run "$hs" --yes --no-start \
+  && ok "install with a domain" || { ko "install with a domain"; cat "$hs.out"; }
+es="$hs/deploy/.env"
+[ "$(envval NEXORA_PUBLIC_URL "$es")" = "https://nexora.pme-test.fr" ] && ok "public address in https" || ko "public address in https"
+[ "$(envval NEXORA_PUBLIC_REALTIME_URL "$es")" = "https://nexora.pme-test.fr" ] && ok "realtime through the same domain" || ko "realtime through the same domain"
+[ "$(envval NEXORA_CONNECT_PUBLIC_URL "$es")" = "https://connect.nexora.pme-test.fr" ] && ok "Connect on its subdomain" || ko "Connect on its subdomain"
+case ",$(envval COMPOSE_PROFILES "$es")," in *",https,"*) ok "HTTPS profile on" ;; *) ko "HTTPS profile on" ;; esac
+[ "$(envval NEXORA_TLS "$es")" = "internal" ] && ok "certificate choice kept" || ko "certificate choice kept"
+[ -f "$hs/deploy/caddy/Caddyfile" ] && ok "Caddyfile shipped" || ko "Caddyfile shipped"
 PATH="$fakebin:$PATH" FAKE_LOG="$h.cli.log" "$h-bin/nexora" status > /dev/null 2>&1
 grep -q "compose -p .* ps" "$h.cli.log" 2>/dev/null && ok "nexora runs the shipped command" || ko "nexora runs the shipped command"
 PATH="$fakebin:$PATH" "$h-bin/nexora" help 2>&1 | grep -q "backup" && ok "nexora offers backup and restore" || ko "nexora offers backup and restore"

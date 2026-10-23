@@ -39,6 +39,7 @@ BUNDLE_FILES=(
   deploy/bootstrap/bootstrap.py
   deploy/searxng/settings.yml
   deploy/nexora-cli.sh
+  deploy/caddy/Caddyfile
   scripts/init-env.sh
   scripts/smoke.sh
   scripts/smoke.py
@@ -181,6 +182,11 @@ configure() {
   case "$WEBMAIL_DOMAINS" in *" $domain "*) domain="" ;; esac
   ask domains "Domaines e-mail autorisés à s'inscrire (vide = tout le monde)" "${NEXORA_ALLOWED_EMAIL_DOMAINS-$domain}"
   ask port "Port de Nexora WorkStudio" "${NEXORA_WORKSTUDIO_PORT:-$(get_env NEXORA_WORKSTUDIO_PORT)}"
+  local site="" tls=""
+  ask site "Nom de domaine pour un accès HTTPS (vide = accès local seulement)" "${NEXORA_DOMAIN:-$(get_env NEXORA_DOMAIN)}"
+  if [ -n "$site" ]; then
+    ask tls "E-mail pour le certificat Let's Encrypt (« internal » = certificat local)" "${NEXORA_TLS:-$email}"
+  fi
 
   if [ "$YES" -eq 0 ]; then
     info ""
@@ -244,6 +250,16 @@ configure() {
   set_env NEXORA_ALLOWED_EMAIL_DOMAINS "$domains"
   set_env NEXORA_WORKSTUDIO_PORT "$port"
   if [ -z "${NEXORA_PUBLIC_URL+x}" ]; then set_env NEXORA_PUBLIC_URL "http://localhost:$port"; fi
+  if [ -n "$site" ]; then
+    # Caddy serves https://<domaine> (WorkStudio, temps réel), connect.<domaine> and api.<domaine>.
+    set_env NEXORA_DOMAIN "$site"
+    set_env NEXORA_TLS "$tls"
+    set_env NEXORA_PUBLIC_URL "https://$site"
+    set_env NEXORA_PUBLIC_REALTIME_URL "https://$site"
+    set_env NEXORA_CONNECT_PUBLIC_URL "https://connect.$site"
+    local profiles; profiles="$(get_env COMPOSE_PROFILES)"
+    case ",$profiles," in *,https,*) ;; *) set_env COMPOSE_PROFILES "${profiles:+$profiles,}https" ;; esac
+  fi
   set_env NEXORA_UPSTREAM_URL "$url"
   set_env NEXORA_UPSTREAM_MODEL "$model"
   set_env NEXORA_UPSTREAM_KEY "$key"

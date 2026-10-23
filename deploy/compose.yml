@@ -296,6 +296,24 @@ services:
     volumes:
       - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
 
+  # HTTPS in front of WorkStudio, Nexora Connect and Nexora API (profile « https », install.sh).
+  caddy:
+    image: caddy:2.8.4-alpine
+    profiles: ['https']
+    restart: unless-stopped
+    environment:
+      NEXORA_DOMAIN: ${NEXORA_DOMAIN:-}
+      NEXORA_TLS: ${NEXORA_TLS:-internal}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - workstudio
+
   # Local model server, always present: it serves the knowledge-base embeddings (bge-m3) and,
   # when chosen, the chat model (NEXORA_UPSTREAM_URL=http://ollama:11434). CPU by default.
   ollama:
@@ -313,6 +331,8 @@ services:
 
 volumes:
   ollama-data:
+  caddy-data:
+  caddy-config:
   workstudio-uploads:
   postgres-data:
   redis-data:

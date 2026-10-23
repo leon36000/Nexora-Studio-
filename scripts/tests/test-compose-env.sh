@@ -34,6 +34,17 @@ printf "NEXORA_MODEL_NAME=assistant\n" >> "$env_file"
 rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"
 [ "$(value NEXORA_DEFAULT_MODEL)" = "nexora-default" ] && ok "the default model is always nexora-default" || ko "the default model is always nexora-default (got: $(value NEXORA_DEFAULT_MODEL))"
 
+# HTTPS: Caddy serves the public domain only when the « https » profile is on.
+has_service() { python3 -I -c 'import json,sys; print(sys.argv[1] in json.load(sys.stdin)["services"])' "$1" <<< "$rendered"; }
+[ "$(has_service caddy)" = "False" ] && ok "no HTTPS proxy by default" || ko "no HTTPS proxy by default"
+https_env="$(mktemp)"; cp "$env_file" "$https_env"
+printf "NEXORA_DOMAIN=nexora.pme-test.fr\nNEXORA_TLS=internal\nCOMPOSE_PROFILES=https\n" >> "$https_env"
+https_rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$https_env" config --format json 2>/dev/null)"; rm -f "$https_env"
+ports="$(python3 -I -c 'import json,sys; c=json.load(sys.stdin)["services"].get("caddy",{}); print(" ".join(str(p.get("published")) for p in c.get("ports",[])))' <<< "$https_rendered")"
+[ "$ports" = "80 443" ] && ok "HTTPS proxy publishes 80 and 443" || ko "HTTPS proxy publishes 80 and 443 (got: $ports)"
+python3 -I -c 'import json,sys; c=json.load(sys.stdin)["services"]["caddy"]; assert c["environment"]["NEXORA_DOMAIN"]=="nexora.pme-test.fr" and any(v.get("target")=="/etc/caddy/Caddyfile" for v in c["volumes"])' <<< "$https_rendered" 2>/dev/null \
+  && ok "HTTPS proxy gets the domain and its Caddyfile" || ko "HTTPS proxy gets the domain and its Caddyfile"
+
 # install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
 printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"
 rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$env_file" config --format json 2>/dev/null)"

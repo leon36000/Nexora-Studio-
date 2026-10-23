@@ -1,0 +1,22 @@
+# Nexora — HTTPS en façade (profil compose « https »).
+# NEXORA_DOMAIN : le domaine public ; NEXORA_TLS : une adresse e-mail (certificat Let's Encrypt,
+# le domaine doit pointer vers ce serveur, ports 80 et 443 ouverts) ou « internal » (certificat
+# local, à approuver sur les postes).
+
+{$NEXORA_DOMAIN} {
+	tls {$NEXORA_TLS}
+	encode zstd gzip
+	@realtime path /socket.io/*
+	reverse_proxy @realtime workstudio-realtime:3002
+	reverse_proxy workstudio:3000
+}
+
+connect.{$NEXORA_DOMAIN} {
+	tls {$NEXORA_TLS}
+	reverse_proxy nexora-connect:3000
+}
+
+api.{$NEXORA_DOMAIN} {
+	tls {$NEXORA_TLS}
+	reverse_proxy nexora-api:8000
+}
