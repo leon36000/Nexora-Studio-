@@ -58,9 +58,9 @@
 
 **Files:** contrat `lib/api/contracts/nexora-connectors.ts` ; routes `app/api/nexora/connectors/route.ts` (GET catalogue + état de l'espace), `[service]/route.ts` (GET fiche + setup ; POST clé API/identifiants ; DELETE), `[service]/oauth/route.ts` (POST démarrer), `oauth/[requestId]/route.ts` (GET état) ; `app/api/nexora/connectors/oauth-apps/[service]/route.ts` (PUT/DELETE, admins d'instance) (+ `route.test.ts`).
 
-- [ ] **Step 1: Failing tests** : un espace dont Connect ne connaît pas encore de jeton `workstudio-ws-<id>` (espace antérieur à J5) reçoit le sien et son serveur MCP est mis à jour à la première lecture du catalogue ; lecture = membre de l'espace ; écriture = droit d'écriture ; applications OAuth = admin d'instance ; espace étranger ⇒ 403 sans appel à Connect ; erreurs ⇒ codes (`unavailable`, `refused`, `superseded`) ; aucun secret dans les réponses.
-- [ ] **Step 2:** Implémenter ; `check:api-validation:strict`.
-- [ ] **Step 3: Commit** `feat(j5): routes des connecteurs`.
+- [x] **Step 1: Failing tests** : un espace dont Connect ne connaît pas encore de jeton `workstudio-ws-<id>` (espace antérieur à J5) reçoit le sien et son serveur MCP est mis à jour à la première lecture du catalogue ; lecture = membre de l'espace ; écriture = droit d'écriture ; applications OAuth = admin d'instance ; espace étranger ⇒ 403 sans appel à Connect ; erreurs ⇒ codes (`unavailable`, `refused`, `superseded`) ; aucun secret dans les réponses.
+- [x] **Step 2:** Implémenter ; `check:api-validation:strict`.
+- [x] **Step 3: Commit** `feat(j5): routes des connecteurs`.
 
 ### Task 5: Interface « Connecteurs »
 

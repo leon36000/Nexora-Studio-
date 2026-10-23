@@ -1,14 +1,17 @@
+import {
+  nexoraAdminAccessMock,
+  nexoraAdminAccessMockFns,
+} from '@sim/testing/mocks/nexora-admin-access.mock'
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const fns = vi.hoisted(() => ({
-  authorize: vi.fn(),
   defaultModel: vi.fn(),
   read: vi.fn(),
   update: vi.fn(),
 }))
 
-vi.mock('@/lib/nexora/admin-access', () => ({ authorizeInstanceAdmin: fns.authorize }))
+vi.mock('@/lib/nexora/admin-access', () => nexoraAdminAccessMock)
 vi.mock('@/lib/nexora/default-model', () => ({ fetchDefaultModelName: fns.defaultModel }))
 vi.mock('@/lib/nexora/onboarding', () => ({
   readOnboarding: fns.read,
@@ -17,6 +20,8 @@ vi.mock('@/lib/nexora/onboarding', () => ({
 
 import { GET } from '@/app/api/nexora/home/route'
 import { PATCH } from '@/app/api/nexora/onboarding/route'
+
+const authorize = nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin
 
 const progress = { completed: ['model'], dismissed: false }
 
@@ -30,19 +35,19 @@ function patch(body: unknown) {
 
 describe('Nexora home routes', () => {
   beforeEach(() => {
-    fns.authorize.mockResolvedValue({ ok: true, userId: 'u-1', organizationId: 'org-1' })
+    authorize.mockResolvedValue({ ok: true, userId: 'u-1', organizationId: 'org-1' })
     fns.defaultModel.mockResolvedValue('qwen2.5:7b')
     fns.read.mockResolvedValue(progress)
     fns.update.mockResolvedValue(progress)
   })
 
   it('requires a session', async () => {
-    fns.authorize.mockResolvedValue({ ok: false, status: 401 })
+    authorize.mockResolvedValue({ ok: false, status: 401 })
     expect((await GET(new NextRequest('http://localhost/api/nexora/home'), {})).status).toBe(401)
   })
 
   it('shows the default model to a plain member, without the first launch', async () => {
-    fns.authorize.mockResolvedValue({ ok: false, status: 403 })
+    authorize.mockResolvedValue({ ok: false, status: 403 })
     const response = await GET(new NextRequest('http://localhost/api/nexora/home'), {})
     expect(await response.json()).toEqual({
       defaultModel: 'qwen2.5:7b',
@@ -63,7 +68,7 @@ describe('Nexora home routes', () => {
   })
 
   it('lets only an admin record progress, and only known steps', async () => {
-    fns.authorize.mockResolvedValueOnce({ ok: false, status: 403 })
+    authorize.mockResolvedValueOnce({ ok: false, status: 403 })
     expect((await PATCH(patch({ complete: 'model' }), {})).status).toBe(403)
     expect((await PATCH(patch({ complete: 'hack' }), {})).status).toBe(400)
     expect((await PATCH(patch({}), {})).status).toBe(400)

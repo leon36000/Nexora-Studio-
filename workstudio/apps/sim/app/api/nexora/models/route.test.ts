@@ -1,9 +1,12 @@
 import { createRouteContext } from '@sim/testing/helpers/http'
+import {
+  nexoraAdminAccessMock,
+  nexoraAdminAccessMockFns,
+} from '@sim/testing/mocks/nexora-admin-access.mock'
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const admin = vi.hoisted(() => ({
-  authorize: vi.fn(),
   list: vi.fn(),
   add: vi.fn(),
   setDefault: vi.fn(),
@@ -14,7 +17,7 @@ const admin = vi.hoisted(() => ({
   deleteLocal: vi.fn(),
 }))
 
-vi.mock('@/lib/nexora/admin-access', () => ({ authorizeInstanceAdmin: admin.authorize }))
+vi.mock('@/lib/nexora/admin-access', () => nexoraAdminAccessMock)
 
 vi.mock('@/lib/nexora/model-admin', () => {
   class NexoraModelAdminUnavailableError extends Error {}
@@ -47,6 +50,9 @@ vi.mock('@/lib/nexora/ollama', () => ({
 
 import { NexoraModelAdminUnavailableError, NexoraModelError } from '@/lib/nexora/model-admin'
 import { OllamaUnavailableError } from '@/lib/nexora/ollama'
+
+const authorize = nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin
+
 import { POST as SET_DEFAULT } from '@/app/api/nexora/models/[id]/default/route'
 import { DELETE } from '@/app/api/nexora/models/[id]/route'
 import { POST as TEST } from '@/app/api/nexora/models/[id]/test/route'
@@ -72,14 +78,14 @@ function post(path: string, body?: unknown) {
 
 describe('Nexora models routes', () => {
   beforeEach(() => {
-    admin.authorize.mockResolvedValue({ ok: true, userId: 'u-1' })
+    authorize.mockResolvedValue({ ok: true, userId: 'u-1' })
     admin.list.mockResolvedValue([qwen])
     admin.localModels.mockResolvedValue(['qwen2.5:7b', 'qwen2.5:3b'])
     admin.deleteLocal.mockResolvedValue(undefined)
   })
 
   it('serves nothing and touches nothing for a non-admin', async () => {
-    admin.authorize.mockResolvedValue({ ok: false, status: 403 })
+    authorize.mockResolvedValue({ ok: false, status: 403 })
     const responses = [
       await GET(new NextRequest('http://localhost/api/nexora/models'), {}),
       await POST(post('/api/nexora/models', { source: 'ollama', model: 'qwen2.5:3b' }), {}),
@@ -93,7 +99,7 @@ describe('Nexora models routes', () => {
     ]
     expect(responses.map((r) => r.status)).toEqual([403, 403, 403, 403, 403, 403])
     // Models serve every user: they require the instance organization's admins, never a self-founded org.
-    for (const call of admin.authorize.mock.calls) {
+    for (const call of authorize.mock.calls) {
       expect(call[0]).toEqual({ requireInstanceOrganization: true })
     }
     for (const fn of [
