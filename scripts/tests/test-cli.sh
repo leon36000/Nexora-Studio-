@@ -136,4 +136,38 @@ FAKE_UPDATE_EXIT=1 update_cli "$h10" && ko "update that cannot install reported"
 grep -q "smoke" "$h10.log" && ko "no smoke after a failed install" || ok "no smoke after a failed install"
 grep -q "tag pgvector/pgvector:pg17-nexora-avant-maj pgvector/pgvector:pg17" "$h10.log" && ok "rollback after a failed install" || ko "rollback after a failed install"
 
+# 9. Daily backups: a user crontab line (no root), a private passphrase file, 7 days kept.
+cat > "$fakebin/crontab" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+  -l) [ -f "$FAKE_CRONTAB" ] && cat "$FAKE_CRONTAB" || { echo "no crontab for user" >&2; exit 1; } ;;
+  -) cat > "$FAKE_CRONTAB" ;;
+esac
+EOF
+chmod +x "$fakebin/crontab"
+h11="$(new_home)"; export FAKE_CRONTAB="$h11.crontab"
+echo "0 6 * * * /usr/bin/autre-tache" > "$FAKE_CRONTAB"
+NEXORA_BACKUP_PASSPHRASE='phrase planifiée' cli "$h11" backup --schedule quotidien && ok "schedule accepted" || { ko "schedule accepted"; cat "$h11.out"; }
+NEXORA_BACKUP_PASSPHRASE='phrase planifiée' cli "$h11" backup --schedule quotidien
+[ "$(grep -c "backup --auto" "$FAKE_CRONTAB")" = "1" ] && ok "one daily line, even when scheduled twice" || ko "one daily line, even when scheduled twice ($(cat "$FAKE_CRONTAB"))"
+grep -q "autre-tache" "$FAKE_CRONTAB" && ok "other crontab lines kept" || ko "other crontab lines kept"
+pass_file="$h11/deploy/.backup-passphrase"
+[ "$(stat -c %a "$pass_file" 2>/dev/null)" = "600" ] && ok "passphrase file is private" || ko "passphrase file is private"
+grep -q "phrase planifiée" "$h11/deploy/.env" && ko "passphrase kept out of .env" || ok "passphrase kept out of .env"
+
+mkdir -p "$h11/backups"
+for f in nexora-auto-20200101-023000.tar nexora-20200101-120000.tar; do : > "$h11/backups/$f"; touch -d '10 days ago' "$h11/backups/$f"; done
+: > "$h11/backups/nexora-auto-recent.tar"; touch -d '2 days ago' "$h11/backups/nexora-auto-recent.tar"
+cli "$h11" backup --auto && ok "scheduled backup runs without a terminal" || { ko "scheduled backup runs without a terminal"; cat "$h11.out"; }
+ls "$h11"/backups/nexora-auto-2*.tar 2>/dev/null | grep -qv 20200101 && ok "scheduled archive written" || ko "scheduled archive written"
+[ ! -e "$h11/backups/nexora-auto-20200101-023000.tar" ] && ok "scheduled archives older than 7 days removed" || ko "scheduled archives older than 7 days removed"
+[ -e "$h11/backups/nexora-auto-recent.tar" ] && ok "recent scheduled archives kept" || ko "recent scheduled archives kept"
+[ -e "$h11/backups/nexora-20200101-120000.tar" ] && ok "manual archives never removed" || ko "manual archives never removed"
+
+cli "$h11" backup --schedule off && ok "unschedule accepted" || ko "unschedule accepted"
+grep -q "backup --auto" "$FAKE_CRONTAB" && ko "daily line removed" || ok "daily line removed"
+grep -q "autre-tache" "$FAKE_CRONTAB" && ok "other lines kept on unschedule" || ko "other lines kept on unschedule"
+[ ! -e "$pass_file" ] && ok "passphrase file removed" || ko "passphrase file removed"
+cli "$h11" backup --schedule hebdomadaire && ko "unknown frequency refused" || ok "unknown frequency refused"
+
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

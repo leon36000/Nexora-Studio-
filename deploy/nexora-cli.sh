@@ -12,6 +12,9 @@ ENV_FILE="$NEXORA_HOME/deploy/.env"
 DATA_VOLUMES=(connect-data workstudio-uploads)
 SECRET_VOLUME=bootstrap
 CIPHER=(-aes-256-cbc -pbkdf2 -iter 200000)
+# Scheduled backups read their passphrase here (0600, never in .env) and keep 7 days of archives.
+PASSPHRASE_FILE="$NEXORA_HOME/deploy/.backup-passphrase"
+BACKUP_RETENTION_DAYS=7
 ROLLBACK_SUFFIX=nexora-avant-maj
 TMP_DIRS=()
 trap 'rm -rf "${TMP_DIRS[@]}"' EXIT
@@ -25,6 +28,9 @@ env_value() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed "s/^'//;
 # The passphrase comes from NEXORA_BACKUP_PASSPHRASE or is typed (twice for a new backup).
 ask_passphrase() {
   [ -n "${NEXORA_BACKUP_PASSPHRASE:-}" ] && return 0
+  if [ "${AUTO_BACKUP:-0}" = 1 ] && [ -r "$PASSPHRASE_FILE" ]; then
+    NEXORA_BACKUP_PASSPHRASE="$(cat "$PASSPHRASE_FILE")"; export NEXORA_BACKUP_PASSPHRASE; return 0
+  fi
   [ -t 0 ] || die "phrase de passe requise : définissez NEXORA_BACKUP_PASSPHRASE ou lancez la commande dans un terminal."
   local first second
   read -rsp "Phrase de passe de la sauvegarde : " first; echo
@@ -85,7 +91,7 @@ backup() {
   printf '{\n  "version": "%s",\n  "created": "%s",\n  "files": { %s }\n}\n' \
     "$(env_value NEXORA_VERSION)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sums" > "$WORK/manifest.json"
 
-  local archive="$dir/nexora-$(date +%Y%m%d-%H%M%S).tar"
+  local archive="$dir/nexora-${ARCHIVE_KIND:-}$(date +%Y%m%d-%H%M%S).tar"
   (umask 077; tar cf "$archive" -C "$WORK" manifest.json "${files[@]}")
   chmod 600 "$archive"
   LAST_BACKUP="$archive"
@@ -122,8 +128,39 @@ restore() {
   compose up -d --wait postgres
   gunzip -c "$WORK/postgres.sql.gz" | compose exec -T postgres psql -U postgres -q -d postgres > /dev/null
   echo "Redémarrage de Nexora…"
-  compose up -d
-  echo "Restauration terminée : $(url)"
+  compose up -d --wait || die "Nexora redémarre mal après la restauration : nexora status, puis nexora logs."
+  echo "Restauration terminée : $(url) (vérification complète : nexora smoke --quick)"
+}
+
+# A line in the user's own crontab (no root needed). The cron container is not used: it would
+# need the Docker socket, i.e. root on the host, to dump the databases and the volumes.
+schedule_backup() { # schedule_backup quotidien|off
+  local marker="# nexora-backup:$NEXORA_PROJECT" current
+  case "${1:-}" in quotidien|off) ;; *) die "usage : nexora backup [--schedule quotidien|off]" ;; esac
+  command -v crontab > /dev/null || die "crontab est absent de ce serveur : planifiez « nexora backup --auto » avec l'outil de votre choix."
+  current="$(crontab -l 2> /dev/null | grep -vF "$marker" || true)"
+  if [ "$1" = off ]; then
+    printf '%s\n' "$current" | sed '/^$/d' | crontab -
+    rm -f "$PASSPHRASE_FILE"
+    echo "Sauvegarde quotidienne désactivée."
+    return 0
+  fi
+  ask_passphrase confirm
+  (umask 077; printf '%s\n' "$NEXORA_BACKUP_PASSPHRASE" > "$PASSPHRASE_FILE")
+  chmod 600 "$PASSPHRASE_FILE"
+  local dir="${NEXORA_BACKUP_DIR:-$NEXORA_HOME/backups}" job
+  mkdir -p "$dir"; chmod 700 "$dir"
+  job="$(printf 'NEXORA_HOME=%q NEXORA_PROJECT=%q NEXORA_REPO=%q NEXORA_REF=%q NEXORA_BUNDLE=%q bash %q backup --auto >> %q 2>&1' \
+    "$NEXORA_HOME" "$NEXORA_PROJECT" "$NEXORA_REPO" "$NEXORA_REF" "$NEXORA_BUNDLE" "$NEXORA_HOME/deploy/nexora-cli.sh" "$dir/sauvegardes.log")"
+  printf '%s\n%s\n' "$current" "30 2 * * * $job $marker" | sed '/^$/d' | crontab -
+  echo "Sauvegarde quotidienne planifiée à 2 h 30 dans $dir ($BACKUP_RETENTION_DAYS jours conservés)."
+  echo "La phrase de passe est gardée dans $PASSPHRASE_FILE (lisible par vous seul) : copiez les archives ailleurs, pas ce fichier."
+}
+
+# A scheduled run: no terminal, passphrase from its file, old scheduled archives pruned.
+auto_backup() {
+  AUTO_BACKUP=1 ARCHIVE_KIND=auto- backup
+  find "${NEXORA_BACKUP_DIR:-$NEXORA_HOME/backups}" -maxdepth 1 -name 'nexora-auto-*.tar' -mtime "+$((BACKUP_RETENTION_DAYS - 1))" -delete
 }
 
 rollback_tag() { case "${1##*/}" in *:*) echo "$1-$ROLLBACK_SUFFIX" ;; *) echo "$1:latest-$ROLLBACK_SUFFIX" ;; esac; }
@@ -162,14 +199,22 @@ install_update() {
   fi
 }
 
+unschedule_if_any() {
+  if command -v crontab > /dev/null && crontab -l 2> /dev/null | grep -qF "# nexora-backup:$NEXORA_PROJECT"; then
+    schedule_backup off
+  fi
+}
+
 uninstall() {
   if [ "${1:-}" = "--purge" ]; then
     echo "Supprime Nexora ET toutes ses données (comptes, workflows, base, secrets) dans $NEXORA_HOME."
     read -r -p "Tapez « supprimer » pour confirmer : " answer
     [ "$answer" = "supprimer" ] || { echo "Annulé."; exit 1; }
+    unschedule_if_any
     compose --profile ollama down -v --remove-orphans
     rm -rf "$NEXORA_HOME"
   else
+    unschedule_if_any
     compose --profile ollama down --remove-orphans
     echo "Services arrêtés et supprimés. Données et configuration conservées dans $NEXORA_HOME (nexora uninstall --purge pour tout effacer)."
   fi
@@ -196,10 +241,16 @@ case "${1:-help}" in
   url) url ;;
   open) command -v xdg-open > /dev/null && xdg-open "$(url)" || open "$(url)" ;;
   smoke) shift; "$NEXORA_HOME/scripts/smoke.sh" "$(url)" "$@" ;;
-  backup) backup ;;
+  backup)
+    case "${2:-}" in
+      --schedule) schedule_backup "${3:-}" ;;
+      --auto) auto_backup ;;
+      "") backup ;;
+      *) die "usage : nexora backup [--schedule quotidien|off]" ;;
+    esac ;;
   restore) shift; restore "${1:-}" ;;
   update) update ;;
   uninstall) shift; uninstall "${1:-}" ;;
   *)
-    echo "Usage : nexora start|stop|restart|status|logs [service]|url|open|smoke|backup|restore <archive>|update|uninstall [--purge]" ;;
+    echo "Usage : nexora start|stop|restart|status|logs [service]|url|open|smoke|backup [--schedule quotidien|off]|restore <archive>|update|uninstall [--purge]" ;;
 esac
