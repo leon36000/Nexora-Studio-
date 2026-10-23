@@ -42,18 +42,18 @@
 - Produces: fichier `/bootstrap/nexora-admin.env` contenant `export NEXORA_API_ADMIN_KEY=<clé>` (0600) ; routeur par défaut = celui dont `aliases` contient `nexora-default`.
 - Produces (Python): `DEFAULT_ALIAS = "nexora-default"`, `_migrate_default_router(base_url, token) -> dict` (renvoie le routeur porteur), `ensure_admin_key(base_url, token, out: Path) -> str`.
 
-- [ ] **Step 1: Write the failing tests** dans `test_bootstrap.py` :
+- [x] **Step 1: Write the failing tests** dans `test_bootstrap.py` :
   - `test_router_named_default_gets_model_name_and_alias` : routeur `{name:"nexora-default", aliases:[]}` avec fournisseur `model_name="qwen2.5:7b"` → après `ensure_workstudio_key`, nom `qwen2.5:7b`, aliases `["nexora-default"]`.
   - `test_renamed_router_avoids_taken_name` : un routeur `qwen2.5:7b` existe déjà → nom `qwen2.5:7b (2)`.
   - `test_same_fingerprint_keeps_ui_choice` : empreinte enregistrée = celle du `.env`, mais le porteur de l'alias a un autre fournisseur → aucun fournisseur créé ni supprimé.
   - `test_changed_fingerprint_updates_alias_router` : `.env` change → le fournisseur du routeur porteur est remplacé par l'amont du `.env`.
   - `test_admin_key_written_then_reused` : premier passage écrit `nexora-admin.env` (0600, `export NEXORA_API_ADMIN_KEY=`), le second réutilise la même clé.
   - `test_revoked_admin_key_is_replaced` : clé du fichier inconnue de l'API → nouvelle clé écrite.
-- [ ] **Step 2: Run** `python3 -I deploy/bootstrap/test_bootstrap.py` — Expected: les 6 nouveaux tests FAIL, les 11 anciens passent.
-- [ ] **Step 3: Implement** dans `bootstrap.py` : `_migrate_default_router` (GET routers, si l'un est nommé `nexora-default` : nom = `model_name` de son premier fournisseur, suffixe ` (n)` si pris, PATCH avec tous les champs du routeur + alias) appelé avant `_sync_upstream_provider` ; `_sync_upstream_provider` cible le porteur de l'alias, et ne fait rien si `previous == fingerprint` (enregistre l'empreinte si `previous is None` et fournisseur conforme, comme aujourd'hui) ; `ensure_admin_key` (lit `nexora-admin.env`, garde la clé si `GET /v1/me` répond 200 avec permission `admin`, sinon `POST /v1/admin/keys {"name":"nexora-workstudio-admin","user":<id admin de /v1/me>}`), appelé depuis `_ensure_signed_in` avec `out.parent / "nexora-admin.env"`.
-- [ ] **Step 4: Run** `python3 -I deploy/bootstrap/test_bootstrap.py` — Expected: 17 tests OK.
-- [ ] **Step 5: compose** : la commande du service `workstudio` source aussi `/bootstrap/nexora-admin.env` s'il existe ; `test-compose-env.sh` vérifie la présence de `nexora-admin.env` dans la commande rendue et l'absence de `NEXORA_API_ADMIN_PASSWORD` dans l'environnement de `workstudio`. Run `bash scripts/tests/test-compose-env.sh` — Expected: PASS.
-- [ ] **Step 6: Commit** `feat(j2): amorçage — alias nexora-default, empreinte seule, clé d'administration`.
+- [x] **Step 2: Run** `python3 -I deploy/bootstrap/test_bootstrap.py` — Expected: les 6 nouveaux tests FAIL, les 11 anciens passent.
+- [x] **Step 3: Implement** dans `bootstrap.py` : `_migrate_default_router` (GET routers, si l'un est nommé `nexora-default` : nom = `model_name` de son premier fournisseur, suffixe ` (n)` si pris, PATCH avec tous les champs du routeur + alias) appelé avant `_sync_upstream_provider` ; `_sync_upstream_provider` cible le porteur de l'alias, et ne fait rien si `previous == fingerprint` (enregistre l'empreinte si `previous is None` et fournisseur conforme, comme aujourd'hui) ; `ensure_admin_key` (lit `nexora-admin.env`, garde la clé si `GET /v1/me` répond 200 avec permission `admin`, sinon `POST /v1/admin/keys {"name":"nexora-workstudio-admin","user":<id admin de /v1/me>}`), appelé depuis `_ensure_signed_in` avec `out.parent / "nexora-admin.env"`.
+- [x] **Step 4: Run** `python3 -I deploy/bootstrap/test_bootstrap.py` — Expected: 17 tests OK.
+- [x] **Step 5: compose** : la commande du service `workstudio` source aussi `/bootstrap/nexora-admin.env` s'il existe ; `test-compose-env.sh` vérifie la présence de `nexora-admin.env` dans la commande rendue et l'absence de `NEXORA_API_ADMIN_PASSWORD` dans l'environnement de `workstudio`. Run `bash scripts/tests/test-compose-env.sh` — Expected: PASS.
+- [x] **Step 6: Commit** `feat(j2): amorçage — alias nexora-default, empreinte seule, clé d'administration`.
 
 ### Task 2: Les alias apparaissent dans la liste des modèles des blocs
 

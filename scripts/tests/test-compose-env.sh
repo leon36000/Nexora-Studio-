@@ -19,6 +19,9 @@ smtp="$(for k in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS; do value "$k"; done | 
 [ -z "$smtp" ] && ok "no SMTP setting without an SMTP server" || ko "no SMTP setting without an SMTP server (got: $smtp)"
 [ -z "$(value SEARXNG_URL)" ] && [ -z "$(value PREVIEW_BLOCKS)" ] && ok "web search off on a fresh install" || ko "web search off on a fresh install"
 [ "$(value KB_EMBEDDING_MODEL)" = "ollama/bge-m3" ] && ok "knowledge bases embed with the local model" || ko "knowledge bases embed with the local model"
+command="$(python3 -I -c 'import json,sys; print(" ".join(json.load(sys.stdin)["services"]["workstudio"]["command"]))' <<< "$rendered")"
+case "$command" in *". /bootstrap/nexora-admin.env"*) ok "WorkStudio reads its model administration key" ;; *) ko "WorkStudio reads its model administration key" ;; esac
+[ -z "$(value NEXORA_API_ADMIN_PASSWORD)" ] && ok "the Nexora API admin password stays out of WorkStudio" || ko "the Nexora API admin password stays out of WorkStudio"
 
 # install.sh writes values holding $ or # between single quotes: Compose must keep them as is.
 printf "NEXORA_SMTP_HOST=smtp.pme-test.fr\nNEXORA_SMTP_PASS='p@ss\$word #2'\n" >> "$env_file"

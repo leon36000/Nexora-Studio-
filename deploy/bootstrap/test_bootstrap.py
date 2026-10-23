@@ -21,7 +21,14 @@ class FakeApi(BaseHTTPRequestHandler):
 
     @classmethod
     def reset(cls, routers=(10, 11)):
-        cls.state = {"routers": list(routers), "providers": {}, "roles": {}, "orgs": {}, "users": {}, "keys": {"admin-key": ADMIN}, "role_updates": 0}
+        cls.state = {"routers": {r: cls.router(r, f"m{r}") for r in routers}, "providers": {}, "roles": {}, "orgs": {}, "users": {}, "keys": {"admin-key": ADMIN}, "role_updates": 0}
+
+    @staticmethod
+    def router(rid, name, aliases=()):
+        return {"id": rid, "name": name, "type": "text-generation", "aliases": list(aliases), "load_balancing_strategy": "shuffle", "cost_prompt_tokens": 0.0, "cost_completion_tokens": 0.0}
+
+    def _names_taken(self, names, except_id=None):
+        return any(r["id"] != except_id and ({r["name"], *r["aliases"]} & set(names)) for r in self.state["routers"].values())
 
     def log_message(self, *args):
         pass
@@ -55,7 +62,7 @@ class FakeApi(BaseHTTPRequestHandler):
             router_id = int(self.path.split("router_id=")[1].split("&")[0])
             listed = [{k: v for k, v in p.items() if k != "key"} for p in s["providers"].values() if p["router_id"] == router_id]
             return self._json(200, {"data": listed})
-        listing = {"/v1/admin/routers": [{"id": r, "name": f"m{r}"} for r in s["routers"]], "/v1/admin/roles": list(s["roles"].values()), "/v1/admin/organizations": list(s["orgs"].values()), "/v1/admin/users": list(s["users"].values())}
+        listing = {"/v1/admin/routers": list(s["routers"].values()), "/v1/admin/roles": list(s["roles"].values()), "/v1/admin/organizations": list(s["orgs"].values()), "/v1/admin/users": list(s["users"].values())}
         return self._json(200, {"data": listing[path]}) if path in listing else self._json(404, {})
 
     def do_POST(self):
@@ -66,6 +73,12 @@ class FakeApi(BaseHTTPRequestHandler):
         caller = self._caller()
         if not caller or "admin" not in caller["permissions"]:
             return self._json(403, {})
+        if self.path == "/v1/admin/routers":
+            names = [body["name"], *body.get("aliases", [])]
+            if self._names_taken(names):
+                return self._json(409, {})
+            rid = 500 + len(s["routers"]); s["routers"][rid] = {**self.router(rid, body["name"], body.get("aliases", [])), "type": body["type"]}
+            return self._json(201, {"id": rid})
         if self.path == "/v1/admin/roles":
             rid = 100 + len(s["roles"]); s["roles"][rid] = {"id": rid, **body}
             return self._json(201, {"id": rid})
@@ -83,9 +96,10 @@ class FakeApi(BaseHTTPRequestHandler):
             s["providers"][pid] = {"id": pid, "router_id": body["router_id"], "url": body["url"].lower().rstrip("/") + "/", "model_name": body["model_name"], "key": body["key"]}
             return self._json(201, {"id": pid})
         if self.path == "/v1/admin/keys":
-            user = s["users"][body["user"]]
+            user = ADMIN if body["user"] == ADMIN["id"] else s["users"][body["user"]]
             key = f"key-{len(s['keys'])}"
-            s["keys"][key] = {"id": user["id"], "email": user["email"], "permissions": s["roles"][user["role_id"]]["permissions"]}
+            permissions = user["permissions"] if user is ADMIN else s["roles"][user["role_id"]]["permissions"]
+            s["keys"][key] = {"id": user["id"], "email": user["email"], "permissions": permissions}
             return self._json(201, {"value": key})
         return self._json(404, {})
 
@@ -98,6 +112,13 @@ class FakeApi(BaseHTTPRequestHandler):
     def do_PATCH(self):
         s, body = self.state, self._body()
         rid = int(self.path.rsplit("/", 1)[1])
+        if self.path.startswith("/v1/admin/routers/"):
+            if set(body) != {"name", "type", "aliases", "load_balancing_strategy", "cost_prompt_tokens", "cost_completion_tokens"}:
+                return self._json(422, {})
+            if self._names_taken([body["name"], *body["aliases"]], except_id=rid):
+                return self._json(409, {})
+            s["routers"][rid].update(body)
+            return self._json(200, {"id": rid})
         s["roles"][rid].update(body); s["role_updates"] += 1
         return self._json(200, {"id": rid})
 
@@ -123,11 +144,77 @@ class BootstrapTest(unittest.TestCase):
     def seed_provider(self, url="http://ollama:11434", model="qwen2.5:0.5b", key="none"):
         FakeApi.state["providers"][1] = {"id": 1, "router_id": 10, "url": url, "model_name": model, "key": key}
 
-    def test_points_the_model_at_the_upstream_set_in_deploy_env(self):
+    def default_router(self, alias="m10"):
+        (router,) = [r for r in FakeApi.state["routers"].values() if alias in r["aliases"]]
+        return router
+
+    def providers_of(self, router):
+        return [p for p in FakeApi.state["providers"].values() if p["router_id"] == router["id"]]
+
+    def test_points_the_default_model_at_the_upstream_set_in_deploy_env(self):
         self.seed_provider()
         self.run_bootstrap(upstream={"router": "m10", "url": "http://Host.docker.internal:18141/", "model": "qwen2.5:7b", "key": "none"})
-        (provider,) = [p for p in FakeApi.state["providers"].values() if p["router_id"] == 10]
+        default = self.default_router()
+        (provider,) = self.providers_of(default)
+        self.assertEqual(default["name"], "qwen2.5:7b")
         self.assertEqual((provider["url"], provider["model_name"]), ("http://host.docker.internal:18141/", "qwen2.5:7b"))
+        self.assertEqual(FakeApi.state["routers"][10]["name"], "qwen2.5:0.5b")  # the previous model stays available
+
+    def test_router_named_default_gets_model_name_and_alias(self):
+        FakeApi.state["routers"][10] = FakeApi.router(10, "nexora-default")
+        self.seed_provider(model="qwen2.5:7b")
+        self.run_bootstrap(upstream={"router": "nexora-default", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"})
+        self.assertEqual((FakeApi.state["routers"][10]["name"], FakeApi.state["routers"][10]["aliases"]), ("qwen2.5:7b", ["nexora-default"]))
+        self.assertEqual(list(FakeApi.state["providers"]), [1])
+
+    def test_renamed_router_avoids_a_taken_name(self):
+        FakeApi.state["routers"][10] = FakeApi.router(10, "nexora-default")
+        FakeApi.state["routers"][11] = FakeApi.router(11, "qwen2.5:7b")
+        self.seed_provider(model="qwen2.5:7b")
+        self.run_bootstrap(upstream={"router": "nexora-default", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"})
+        self.assertEqual(FakeApi.state["routers"][10]["name"], "qwen2.5:7b (2)")
+
+    def test_same_fingerprint_keeps_the_default_chosen_in_the_interface(self):
+        upstream = {"router": "nexora-default", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"}
+        FakeApi.state["routers"][10] = FakeApi.router(10, "nexora-default")
+        self.seed_provider(model="qwen2.5:7b")
+        self.run_bootstrap(upstream=upstream)
+        # The interface moves the alias to another model.
+        FakeApi.state["routers"][10]["aliases"] = []
+        FakeApi.state["routers"][11]["aliases"] = ["nexora-default"]
+        FakeApi.state["providers"][2] = {"id": 2, "router_id": 11, "url": "https://api.mistral.ai/", "model_name": "mistral-small-latest", "key": "k"}
+        before = (dict(FakeApi.state["providers"]), [dict(r) for r in FakeApi.state["routers"].values()])
+        self.run_bootstrap(upstream=upstream)
+        self.assertEqual((dict(FakeApi.state["providers"]), [dict(r) for r in FakeApi.state["routers"].values()]), before)
+
+    def test_changed_fingerprint_makes_the_new_upstream_the_default(self):
+        FakeApi.state["routers"][10] = FakeApi.router(10, "nexora-default")
+        self.seed_provider(model="qwen2.5:7b")
+        self.run_bootstrap(upstream={"router": "nexora-default", "url": "http://ollama:11434", "model": "qwen2.5:7b", "key": "none"})
+        self.run_bootstrap(upstream={"router": "nexora-default", "url": "https://api.mistral.ai", "model": "mistral-small-latest", "key": "k"})
+        default = self.default_router("nexora-default")
+        (provider,) = self.providers_of(default)
+        self.assertEqual((default["name"], provider["model_name"]), ("mistral-small-latest", "mistral-small-latest"))
+        self.assertEqual(FakeApi.state["routers"][10]["aliases"], [])
+
+    def test_admin_key_is_written_then_reused(self):
+        self.run_bootstrap()
+        admin_file = self.out.parent / "nexora-admin.env"
+        first = admin_file.read_text()
+        self.assertRegex(first, r"^export NEXORA_API_ADMIN_KEY=\S+\n$")
+        self.assertEqual(oct(os.stat(admin_file).st_mode & 0o777), "0o600")
+        key = first.strip().split("=", 1)[1]
+        self.assertIn("admin", FakeApi.state["keys"][key]["permissions"])
+        self.run_bootstrap()
+        self.assertEqual(admin_file.read_text(), first)
+
+    def test_revoked_admin_key_is_replaced(self):
+        admin_file = self.out.parent / "nexora-admin.env"
+        admin_file.write_text("export NEXORA_API_ADMIN_KEY=revoked\n")
+        self.run_bootstrap()
+        key = admin_file.read_text().strip().split("=", 1)[1]
+        self.assertNotEqual(key, "revoked")
+        self.assertIn("admin", FakeApi.state["keys"][key]["permissions"])
 
     def test_a_synced_provider_stays_put_on_the_next_start(self):
         upstream = {"router": "m10", "url": "http://host.docker.internal:18141", "model": "qwen2.5:7b", "key": "none"}
@@ -171,7 +258,7 @@ class BootstrapTest(unittest.TestCase):
 
     def test_keeps_a_working_key_and_covers_models_added_later(self):
         first = self.run_bootstrap()
-        FakeApi.state["routers"].append(12)
+        FakeApi.state["routers"][12] = FakeApi.router(12, "m12")
         self.assertEqual(self.run_bootstrap(), first)
         self.assertEqual(len(FakeApi.state["users"]), 1)
         (role,) = FakeApi.state["roles"].values()

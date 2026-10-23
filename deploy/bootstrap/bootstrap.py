@@ -2,14 +2,17 @@
 
 Runs once per `docker compose up`, after Nexora API is healthy. Signs in as the bootstrap admin,
 then:
-- points the Nexora model at NEXORA_UPSTREAM_URL/MODEL/KEY. Nexora API reads its model list only
-  on its very first start, so without this a model changed in deploy/.env would never apply.
-  The provider list hides keys: a fingerprint of the applied upstream, kept next to the key file,
-  tells a new key apart;
+- keeps the default model (the router carrying the `nexora-default` alias) on
+  NEXORA_UPSTREAM_URL/MODEL/KEY when those change. Nexora API reads its model list only on its very
+  first start, so without this a model changed in deploy/.env would never apply. The provider list
+  hides keys: a fingerprint of the applied upstream, kept next to the key file, tells a new key
+  apart, and an unchanged fingerprint leaves a default chosen in WorkStudio's interface alone;
 - keeps a dedicated `workstudio` user (role without admin permission, unlimited on every model)
   in sync, and writes that user's key as `export VLLM_API_KEY=...` to the shared bootstrap volume,
   where the WorkStudio container reads it at startup. A key that still belongs to that user is
-  kept, so restarts do not pile up keys.
+  kept, so restarts do not pile up keys;
+- writes an admin key as `export NEXORA_API_ADMIN_KEY=...` to `nexora-admin.env`, read by the
+  WorkStudio container only, for its model settings (the admin password stays out of WorkStudio).
 Standard library only.
 """
 from __future__ import annotations
@@ -129,26 +132,38 @@ def _sync_workstudio_user(base_url: str, admin_token: str) -> int:
     })["id"]
 
 
-def _sync_upstream_provider(base_url: str, admin_token: str, upstream: dict, fingerprint_file: Path) -> None:
-    """Replaces the model's providers with the configured upstream when it changed."""
-    api = f"{base_url}/v1/admin"
-    router = _find(_call("GET", f"{api}/routers?limit=100", admin_token).get("data", []), name=upstream["router"])
-    if not router:
-        return  # Not seeded yet: Nexora API creates it from its configuration.
-    url = upstream["url"].strip().rstrip("/").lower()
-    fingerprint = hashlib.sha256(f"{url}|{upstream['model']}|{upstream['key']}".encode()).hexdigest()
-    previous = fingerprint_file.read_text().strip() if fingerprint_file.exists() else None
-    providers = _call("GET", f"{api}/providers?router_id={router['id']}&limit=100", admin_token).get("data", [])
+ROUTER_FIELDS = ("name", "type", "aliases", "load_balancing_strategy", "cost_prompt_tokens", "cost_completion_tokens")
+
+
+def _update_router(api: str, token: str, router: dict, **changes) -> None:
+    body = {field: router[field] for field in ROUTER_FIELDS}
+    body.update(changes)
+    _call("PATCH", f"{api}/routers/{router['id']}", token, body)
+    router.update(changes)
+
+
+def _free_name(routers: list, name: str) -> str:
+    taken = {n for r in routers for n in (r["name"], *r.get("aliases", []))}
+    candidate, n = name, 1
+    while candidate in taken:
+        n += 1
+        candidate = f"{name} ({n})"
+    return candidate
+
+
+def _providers(api: str, token: str, router: dict) -> list:
+    return _call("GET", f"{api}/providers?router_id={router['id']}&limit=100", token).get("data", [])
+
+
+def _point_router_at(api: str, token: str, router: dict, upstream: dict, url: str) -> None:
+    """Makes `upstream` the router's only provider (same address and model with a new key: replaced)."""
+    providers = _providers(api, token, router)
     current = next(
         (p for p in providers if (p.get("url") or "").rstrip("/") == url and p.get("model_name") == upstream["model"]), None
     )
-
-    if current and len(providers) == 1 and previous in (None, fingerprint):
-        _write_private(fingerprint_file, fingerprint + "\n")
-        return
     if current:  # Same address and model, new key: the API refuses a duplicate, so drop it first.
-        _call("DELETE", f"{api}/providers/{current['id']}", admin_token)
-    created = _call("POST", f"{api}/providers", admin_token, {
+        _call("DELETE", f"{api}/providers/{current['id']}", token)
+    created = _call("POST", f"{api}/providers", token, {
         "router_id": router["id"],
         "type": "openai",
         "url": url,
@@ -158,8 +173,70 @@ def _sync_upstream_provider(base_url: str, admin_token: str, upstream: dict, fin
     })
     for provider in providers:
         if provider["id"] not in (created.get("id"), current and current["id"]):
-            _call("DELETE", f"{api}/providers/{provider['id']}", admin_token)
+            _call("DELETE", f"{api}/providers/{provider['id']}", token)
+
+
+def _sync_default_model(base_url: str, admin_token: str, upstream: dict, fingerprint_file: Path) -> None:
+    """The default model is the router carrying the alias `upstream["router"]` (nexora-default).
+
+    A router still *named* after the alias (Nexora API's first start) is renamed after its model and
+    given the alias. The upstream of deploy/.env applies only when it changed since the last run, so
+    a default chosen in WorkStudio's interface survives restarts: the .env model then becomes the
+    default (its own router, created if needed) and the previous default stays available.
+    """
+    api = f"{base_url}/v1/admin"
+    alias = upstream["router"]
+    routers = _call("GET", f"{api}/routers?limit=100", admin_token).get("data", [])
+    holder = next((r for r in routers if r["name"] == alias or alias in r.get("aliases", [])), None)
+    if not holder:
+        return  # Not seeded yet: Nexora API creates it from its configuration.
+    if holder["name"] == alias:
+        providers = _providers(api, admin_token, holder)
+        model = providers[0]["model_name"] if providers else alias
+        _update_router(api, admin_token, holder, name=_free_name([r for r in routers if r is not holder], model), aliases=[*holder.get("aliases", []), alias])
+
+    url = upstream["url"].strip().rstrip("/").lower()
+    fingerprint = hashlib.sha256(f"{url}|{upstream['model']}|{upstream['key']}".encode()).hexdigest()
+    previous = fingerprint_file.read_text().strip() if fingerprint_file.exists() else None
+    if previous == fingerprint:
+        return
+    if previous is None:
+        providers = _providers(api, admin_token, holder)
+        if len(providers) == 1 and (providers[0].get("url") or "").rstrip("/") == url and providers[0].get("model_name") == upstream["model"]:
+            _write_private(fingerprint_file, fingerprint + "\n")
+            return
+
+    target = next((r for r in routers if r["name"] == upstream["model"]), None)
+    if target is None:
+        created = _call("POST", f"{api}/routers", admin_token, {"name": upstream["model"], "type": "text-generation", "aliases": []})
+        target = {"id": created["id"], "name": upstream["model"], "type": "text-generation", "aliases": [], "load_balancing_strategy": "shuffle", "cost_prompt_tokens": 0.0, "cost_completion_tokens": 0.0}
+    _point_router_at(api, admin_token, target, upstream, url)
+    if target["id"] != holder["id"]:
+        _update_router(api, admin_token, holder, aliases=[a for a in holder["aliases"] if a != alias])
+        _update_router(api, admin_token, target, aliases=[*target.get("aliases", []), alias])
     _write_private(fingerprint_file, fingerprint + "\n")
+
+
+ADMIN_KEY_NAME = "nexora-workstudio-admin"
+
+
+def ensure_admin_key(base_url: str, admin_token: str, out: Path) -> str:
+    """WorkStudio's model administration key (Réglages › Modèles): the admin password never reaches WorkStudio."""
+    existing = None
+    if out.exists():
+        for line in out.read_text().splitlines():
+            if line.startswith("export NEXORA_API_ADMIN_KEY="):
+                existing = line.split("=", 1)[1].strip() or None
+    if existing:
+        status, me = _request("GET", f"{base_url}/v1/me", token=existing)
+        if status == 200 and "admin" in me.get("permissions", []):
+            return existing
+    admin = _call("GET", f"{base_url}/v1/me", admin_token)
+    created = _call("POST", f"{base_url}/v1/admin/keys", admin_token, {"name": ADMIN_KEY_NAME, "user": admin["id"]})
+    if not created.get("value"):
+        raise BootstrapError("Nexora API returned no admin key value")
+    _write_private(out, f"export NEXORA_API_ADMIN_KEY={created['value']}\n")
+    return created["value"]
 
 
 def _is_workstudio_key(base_url: str, key: str) -> bool:
@@ -184,8 +261,9 @@ def _ensure_signed_in(base_url: str, admin: str, password: str, out: Path, upstr
     if status != 200 or not session.get("value"):
         raise BootstrapError(f"Nexora API admin sign-in failed (HTTP {status}); check NEXORA_API_ADMIN_PASSWORD")
     if upstream:
-        _sync_upstream_provider(base_url, session["value"], upstream, out.parent / "upstream.sha256")
+        _sync_default_model(base_url, session["value"], upstream, out.parent / "upstream.sha256")
     user_id = _sync_workstudio_user(base_url, session["value"])
+    ensure_admin_key(base_url, session["value"], out.parent / "nexora-admin.env")
 
     existing = _read_existing_key(out)
     if existing and _is_workstudio_key(base_url, existing):

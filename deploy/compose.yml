@@ -180,7 +180,8 @@ services:
       dockerfile: docker/app.Dockerfile
     image: ${NEXORA_IMAGE_PREFIX:-nexora/}workstudio:${NEXORA_VERSION:-local}
     restart: unless-stopped
-    command: ['/bin/sh', '-c', '. /bootstrap/nexora-api.env && exec bun apps/sim/bootstrap.js']
+    # nexora-admin.env: the model administration key (Réglages › Modèles), absent on older volumes.
+    command: ['/bin/sh', '-c', '. /bootstrap/nexora-api.env && { [ ! -f /bootstrap/nexora-admin.env ] || . /bootstrap/nexora-admin.env; } && exec bun apps/sim/bootstrap.js']
     environment:
       <<: *workstudio-env
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?run scripts/init-env.sh first}
