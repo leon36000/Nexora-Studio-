@@ -1,0 +1,180 @@
+{
+  "url": "http://localhost:3200",
+  "results": [
+    {
+      "check": "Inscription d'un compte",
+      "status": "pass",
+      "seconds": 0.4,
+      "detail": "smoke-78736a95@nexora.test",
+      "error": null
+    },
+    {
+      "check": "Interface en français, sans marque tierce",
+      "status": "pass",
+      "seconds": 0.9,
+      "detail": "lang=\"fr\", « Connexion »",
+      "error": null
+    },
+    {
+      "check": "Nouvel espace avec les modèles PME",
+      "status": "pass",
+      "seconds": 2.3,
+      "detail": "5 modèles PME",
+      "error": null
+    },
+    {
+      "check": "Accueil Nexora (cartes, état, premier lancement)",
+      "status": "pass",
+      "seconds": 0.9,
+      "detail": "modèle par défaut qwen2.5:7b, premier lancement : 5/5 étapes",
+      "error": null
+    },
+    {
+      "check": "Nexora Connect et ses outils MCP",
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": "5 outils",
+      "error": null
+    },
+    {
+      "check": "Connecteurs : connexion d'espace cloisonnée",
+      "status": "pass",
+      "seconds": 1.9,
+      "detail": "postmark connecté dans A, invisible depuis B, déconnecté",
+      "error": null
+    },
+    {
+      "check": "Base de connaissances (embeddings locaux)",
+      "status": "pass",
+      "seconds": 5.5,
+      "detail": "1 passage(s), embeddings locaux",
+      "error": null
+    },
+    {
+      "check": "Planification (cron)",
+      "status": "pass",
+      "seconds": 50.5,
+      "detail": "exécuté à 2026-10-23T11:59:09.088Z",
+      "error": null
+    },
+    {
+      "check": "Générer avec l'IA (modèle Nexora)",
+      "status": "pass",
+      "seconds": 10.5,
+      "detail": "« Objet : Relance de facture\n\nBonjour [Nom du destinataire],\n\n »",
+      "error": null
+    },
+    {
+      "check": "Chat public en français",
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": "lang=\"fr\" (HTTP 200)",
+      "error": null
+    },
+    {
+      "check": "Playground (réponse en flux)",
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": "« Bonjour! » (3 jetons)",
+      "error": null
+    },
+    {
+      "check": "Agent : publication, chat public, versions",
+      "status": "pass",
+      "seconds": 3.0,
+      "detail": "publié (agent-fumee-32e95899), chat public répond, 2 versions",
+      "error": null
+    },
+    {
+      "check": "Assistant : conversation en flux, historique, cloisonnement",
+      "status": "pass",
+      "seconds": 11.2,
+      "detail": "« Assistant général » répond en flux (145 caractères), historique relu, cloisonné",
+      "error": null
+    },
+    {
+      "check": "Recherche web (SearXNG)",
+      "status": "pass",
+      "seconds": 1.4,
+      "detail": "résultats reçus de SearXNG",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Devis client »",
+      "status": "pass",
+      "seconds": 15.8,
+      "detail": "742 caractères",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Relance de facture impayée »",
+      "status": "pass",
+      "seconds": 13.9,
+      "detail": "505 caractères",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Réponse support (FAQ) »",
+      "status": "pass",
+      "seconds": 5.5,
+      "detail": "112 caractères",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Tri des e-mails entrants »",
+      "status": "pass",
+      "seconds": 14.9,
+      "detail": "447 caractères",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Compte rendu de réunion »",
+      "status": "pass",
+      "seconds": 13.3,
+      "detail": "730 caractères",
+      "error": null
+    },
+    {
+      "check": "Copilote : description ⇒ workflow exécuté",
+      "status": "fail",
+      "seconds": 58.6,
+      "detail": null,
+      "error": "generated workflow run returned HTTP 200: None"
+    },
+    {
+      "check": "Budgets : refus au plafond, reprise après relèvement",
+      "status": "pass",
+      "seconds": 29.9,
+      "detail": "plafond minuscule ⇒ alerte enregistrée et refus 402 en français, plafond retiré ⇒ exécution acceptée",
+      "error": null
+    },
+    {
+      "check": "Journal d'audit",
+      "status": "pass",
+      "seconds": 0.0,
+      "detail": "workspace.created du membre tracé",
+      "error": null
+    },
+    {
+      "check": "Gouvernance : réglages d'instance, e-mail de test",
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": "réservés aux administrateurs, e-mail de test reçu par nexora-verif-mailpit, mot de passe chiffré jamais renvoyé",
+      "error": null
+    },
+    {
+      "check": "Consommation mesurée par Nexora API",
+      "status": "pass",
+      "seconds": 0.0,
+      "detail": "152 requêtes, 62202 jetons",
+      "error": null
+    },
+    {
+      "check": "Modèles : liste, ajout, test, défaut, retrait",
+      "status": "fail",
+      "seconds": 0.1,
+      "detail": null,
+      "error": "adding qwen2.5:0.5b returned HTTP 409: {'error': 'duplicate'}"
+    }
+  ]
+}

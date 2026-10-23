@@ -395,9 +395,13 @@ def main() -> int:
         require(status == 200 and created.get("workflowId"), f"creation returned HTTP {status}: {str(created)[:300]}")
         wf = created["workflowId"]
         try:
-            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
-                                 "input": "La réunion de lundi a fixé la livraison au 15 novembre et le budget à 12 000 euros."}, timeout=600)
-            require(status == 200 and run.get("success"), f"generated workflow run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            text = "La réunion de lundi a fixé la livraison au 15 novembre et le budget à 12 000 euros."
+            fields = [f["name"] for f in (plan.get("trigger") or {}).get("fields") or []]
+            run_input = {name: text for name in fields} if fields else text
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False, "input": run_input}, timeout=600)
+            # A plan ending with a « réponse » step answers with that step's body instead of {success, output}.
+            require(status == 200 and run.get("success") is not False and not run.get("error"), f"generated workflow run returned HTTP {status}: {str(run)[:200]}")
+            require(len(json.dumps(run, ensure_ascii=False)) > 40, f"empty answer from the generated workflow: {str(run)[:200]}")
             return f"« {plan.get('title', '?')} » : {len(plan.get('steps', []))} étape(s), créé et exécuté"
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
@@ -479,9 +483,13 @@ def main() -> int:
         if not (url and name):
             return f"{len(body['models'])} modèle(s), défaut {original['name']} (ajout non testé : NEXORA_SMOKE_OPENAI_URL/MODEL absents)"
         alias = name
-        status, added = admin.call("POST", "/api/nexora/models", {"source": "openai-compatible", "model": alias, "url": url}, timeout=180)
-        require(status == 200, f"adding {alias} returned HTTP {status}: {added}")
-        model_id = added["model"]["id"]
+        existing = next((m for m in body["models"] if m["name"] == alias), None)
+        if existing:  # already added by an administrator: tested and moved, but kept
+            model_id = existing["id"]
+        else:
+            status, added = admin.call("POST", "/api/nexora/models", {"source": "openai-compatible", "model": alias, "url": url}, timeout=180)
+            require(status == 200, f"adding {alias} returned HTTP {status}: {added}")
+            model_id = added["model"]["id"]
         try:
             status, tested = admin.call("POST", f"/api/nexora/models/{model_id}/test", timeout=300)
             require(status == 200 and tested.get("reply"), f"testing {alias} returned HTTP {status}: {tested}")
@@ -493,11 +501,11 @@ def main() -> int:
             require(status == 409 and refused.get("error") == "is-default", f"the default model could be removed (HTTP {status})")
         finally:
             admin.call("POST", f"/api/nexora/models/{original['id']}/default")
-            status, _ = admin.call("DELETE", f"/api/nexora/models/{model_id}")
+            status = 200 if existing else admin.call("DELETE", f"/api/nexora/models/{model_id}")[0]
         require(status == 200, f"removing {alias} returned HTTP {status}")
         _, body = admin.call("GET", "/api/nexora/models")
         require([m["id"] for m in body["models"] if m["isDefault"]] == [original["id"]], "the default did not come back")
-        return f"{alias} ajouté, testé ({tested['latencyMs']} ms), défaut aller-retour, retiré"
+        return f"{alias} {'déjà présent' if existing else 'ajouté'}, testé ({tested['latencyMs']} ms), défaut aller-retour{'' if existing else ', retiré'}"
 
     def home():
         status, html = s.call("GET", f"/workspace/{state['ws']}/home", raw=True)

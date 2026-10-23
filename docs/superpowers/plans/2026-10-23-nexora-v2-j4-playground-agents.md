@@ -64,5 +64,5 @@
 ### Task 4: Guide, fumée, pc6, revue
 
 - [x] **Step 1:** `docs/guide/agents.md` et `docs/guide/playground.md` ; fumée « Playground » (flux reçu, usage) et « Agent » (création par l'état produit, exécution, déploiement, chat public répond, 2ᵉ version, revert).
-- [ ] **Step 2:** pc6 : reconstruction, fumée complète, rapport `docs/verification/smoke-j4-*.json` ; navigateur : parcours « Terminé quand » de §8quinquies.
-- [ ] **Step 3:** Suite complète, audits, revue finale, corrections TDD, push.
+- [x] **Step 2:** pc6 : reconstruction, fumée complète, rapport `docs/verification/smoke-j4-*.json` ; navigateur : parcours « Terminé quand » de §8quinquies.
+- [x] **Step 3:** Suite complète, audits, revue finale, corrections TDD, push.
