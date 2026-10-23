@@ -198,7 +198,7 @@ export function Assistant({ workspaceId }: AssistantProps) {
   const isReadOnly = Boolean(conversationId) && Boolean(detail) && !detail?.agent
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col md:flex-row'>
+    <div className='flex h-full min-h-0 flex-1 flex-col md:flex-row'>
       <ConversationList
         conversations={conversationsQuery.data ?? []}
         isLoading={conversationsQuery.isLoading}
