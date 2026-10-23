@@ -96,8 +96,13 @@ grep -q "tres-secret-123" "$h6/deploy/.env" && ok ".env restored" || ko ".env re
 [ "$(stat -c %a "$h6/deploy/.env")" = "600" ] && ok "restored .env is private" || ko "restored .env is private"
 tail -1 "$h6.log" | grep -q " up -d" && ok "instance restarted last" || ko "instance restarted last"
 
-# 7. Existing commands still work.
+# 7. Existing commands still work; status also shows version, free disk and last backup.
 h7="$(new_home)"; cli "$h7" status; grep -q "compose -p nexora-t .* ps" "$h7.log" && ok "status" || ko "status"
+grep -q "Version : 2.0.0" "$h7.out" && ok "status shows the version" || ko "status shows the version"
+grep -q "Disque libre : .* Go" "$h7.out" && ok "status shows free disk" || ko "status shows free disk"
+grep -q "Dernière sauvegarde : aucune" "$h7.out" && ok "status says when no backup exists" || ko "status says when no backup exists"
+mkdir -p "$h7/backups"; : > "$h7/backups/nexora-20261023-101500.tar"; cli "$h7" status
+grep -q "Dernière sauvegarde : .*nexora-20261023-101500.tar" "$h7.out" && ok "status shows the last backup" || ko "status shows the last backup"
 cli "$h7" url; grep -q "http://localhost:3000" "$h7.out" && ok "url" || ko "url"
 
 # 8. Safe update: backup first, then update, quick smoke; on failure, previous images and data come back.

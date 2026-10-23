@@ -176,11 +176,22 @@ uninstall() {
   rm -f "${NEXORA_LAUNCHER:-}"
 }
 
+status() {
+  compose ps
+  local dir="${NEXORA_BACKUP_DIR:-$NEXORA_HOME/backups}" last free
+  last="$(ls -1t "$dir"/nexora-*.tar 2> /dev/null | head -1 || true)"
+  free="$(df --output=avail -B1 "$NEXORA_HOME" | tail -1 | tr -d ' ')"
+  echo
+  echo "Version : $(env_value NEXORA_VERSION)"
+  echo "Disque libre : $((free / 1000000000)) Go"
+  echo "Dernière sauvegarde : ${last:-aucune (nexora backup)}"
+}
+
 case "${1:-help}" in
   start) compose up -d ;;
   stop) compose stop ;;
   restart) compose restart ;;
-  status) compose ps ;;
+  status) status ;;
   logs) shift; compose logs -f --tail=200 "$@" ;;
   url) url ;;
   open) command -v xdg-open > /dev/null && xdg-open "$(url)" || open "$(url)" ;;
