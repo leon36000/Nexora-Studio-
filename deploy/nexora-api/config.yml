@@ -21,4 +21,4 @@ models:
         url: ${NEXORA_UPSTREAM_URL}
         key: ${NEXORA_UPSTREAM_KEY:-none}
         model_name: ${NEXORA_UPSTREAM_MODEL}
-        timeout: 120
+        timeout: 600

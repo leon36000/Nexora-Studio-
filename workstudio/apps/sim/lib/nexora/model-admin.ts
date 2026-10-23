@@ -99,8 +99,9 @@ const ROUTER_FIELDS = [
   'cost_completion_tokens',
 ] as const
 /** Chat answers come fast; a local vision or transcription model on a CPU takes minutes. */
+/** A 7B model on a CPU-only server needs minutes for a long prompt (agents with tools). */
 const PROVIDER_TIMEOUT_SECONDS: Record<NexoraModelUsage, number> = {
-  chat: 120,
+  chat: 600,
   vision: 600,
   transcription: 600,
 }

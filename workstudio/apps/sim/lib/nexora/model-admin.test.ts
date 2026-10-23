@@ -303,7 +303,7 @@ describe('model usages', () => {
     expect(chat.usage).toBe('chat')
     expect(state.providers.find((p) => p.router_id === chat.id)).toMatchObject({
       type: 'openai',
-      timeout: 120,
+      timeout: 600,
     })
   })
 

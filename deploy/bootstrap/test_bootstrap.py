@@ -135,6 +135,14 @@ class FakeApi(BaseHTTPRequestHandler):
                 return self._json(500, {})
             s["routers"][rid].update(body)
             return self._json(200, {"id": rid})
+        if self.path.startswith("/v1/admin/providers/"):
+            # Full-body update, as Nexora API requires.
+            if s.get("refuse_provider_update"):
+                return self._json(422, {})
+            if set(body) != {"router_id", "timeout", "model_hosting_zone", "model_total_params", "model_active_params"}:
+                return self._json(422, {})
+            s["providers"][rid].update(body)
+            return self._json(200, {"id": rid})
         s["roles"][rid].update(body); s["role_updates"] += 1
         return self._json(200, {"id": rid})
 
@@ -295,6 +303,29 @@ class BootstrapTest(unittest.TestCase):
         self.seed_provider()
         self.run_bootstrap(upstream={"router": "m10", "url": "http://ollama:11434", "model": "qwen2.5:0.5b", "key": "none"})
         self.assertEqual(list(FakeApi.state["providers"]), [1])
+
+    def test_a_chat_model_gets_time_to_answer_on_a_cpu(self):
+        # A 7B model on a CPU-only server needs minutes for a long prompt (agents with tools).
+        self.seed_provider()
+        FakeApi.state["providers"][1].update({"timeout": 120, "model_hosting_zone": "FRA", "model_total_params": 7, "model_active_params": 7})
+        self.run_bootstrap(upstream={"router": "m10", "url": "http://ollama:11434", "model": "qwen2.5:0.5b", "key": "none"})
+        provider = FakeApi.state["providers"][1]
+        self.assertEqual(provider["timeout"], bootstrap.CHAT_PROVIDER_TIMEOUT)
+        self.assertGreaterEqual(bootstrap.CHAT_PROVIDER_TIMEOUT, 600)
+        self.assertEqual((provider["model_hosting_zone"], provider["model_total_params"]), ("FRA", 7))
+
+    def test_a_refused_timeout_update_does_not_hold_workstudio_back(self):
+        self.seed_provider()
+        FakeApi.state["providers"][1]["timeout"] = 120
+        FakeApi.state["refuse_provider_update"] = True
+        self.run_bootstrap(upstream={"router": "m10", "url": "http://ollama:11434", "model": "qwen2.5:0.5b", "key": "none"})
+        self.assertTrue(self.out.exists())
+
+    def test_a_new_chat_provider_gets_the_long_timeout(self):
+        self.seed_provider()
+        self.run_bootstrap(upstream={"router": "m10", "url": "http://host.docker.internal:18141", "model": "qwen2.5:7b", "key": "none"})
+        (provider,) = self.providers_of(self.default_router())
+        self.assertEqual(provider["timeout"], bootstrap.CHAT_PROVIDER_TIMEOUT)
 
     def test_leaves_an_unseeded_model_to_the_api(self):
         FakeApi.reset(routers=())

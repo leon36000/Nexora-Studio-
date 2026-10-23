@@ -141,6 +141,10 @@ def _sync_workstudio_user(base_url: str, admin_token: str) -> int:
     })["id"]
 
 
+# A 7B chat model on a CPU-only server needs minutes for a long prompt (agents with tools): a
+# shorter provider timeout turns the wait into « Model is too busy » (503).
+CHAT_PROVIDER_TIMEOUT = 600
+PROVIDER_UPDATE_FIELDS = ("router_id", "timeout", "model_hosting_zone", "model_total_params", "model_active_params")
 ROUTER_FIELDS = ("name", "type", "aliases", "load_balancing_strategy", "cost_prompt_tokens", "cost_completion_tokens")
 
 
@@ -178,11 +182,28 @@ def _point_router_at(api: str, token: str, router: dict, upstream: dict, url: st
         "url": url,
         "key": upstream["key"],
         "model_name": upstream["model"],
-        "timeout": 120,
+        "timeout": CHAT_PROVIDER_TIMEOUT,
     })
     for provider in providers:
         if provider["id"] not in (created.get("id"), current and current["id"]):
             _call("DELETE", f"{api}/providers/{provider['id']}", token)
+
+
+def _raise_chat_timeouts(api: str, token: str) -> None:
+    """Gives every chat provider at least CHAT_PROVIDER_TIMEOUT (installs made with a shorter one)."""
+    routers = _call("GET", f"{api}/routers?limit=100", token).get("data", [])
+    for router in routers:
+        if router.get("type") != "text-generation":
+            continue
+        for provider in _providers(api, token, router):
+            if (provider.get("timeout") or 0) >= CHAT_PROVIDER_TIMEOUT:
+                continue
+            body = {field: provider.get(field) for field in PROVIDER_UPDATE_FIELDS}
+            body.update({"router_id": router["id"], "timeout": CHAT_PROVIDER_TIMEOUT,
+                         "model_hosting_zone": provider.get("model_hosting_zone") or "WOR",
+                         "model_total_params": provider.get("model_total_params") or 0,
+                         "model_active_params": provider.get("model_active_params") or 0})
+            _call("PATCH", f"{api}/providers/{provider['id']}", token, body)
 
 
 def _router_for_model(api: str, token: str, routers: list, upstream: dict, url: str) -> dict:
@@ -351,6 +372,12 @@ def _ensure_signed_in(base_url: str, admin: str, password: str, out: Path, upstr
         raise BootstrapError(f"Nexora API admin sign-in failed (HTTP {status}); check NEXORA_API_ADMIN_PASSWORD")
     if upstream:
         _sync_default_model(base_url, session["value"], upstream, out.parent / "upstream.sha256")
+    try:
+        _raise_chat_timeouts(f"{base_url}/v1/admin", session["value"])
+    except SessionExpiredError:
+        raise
+    except BootstrapError as error:  # a longer timeout is a comfort, never a reason to keep WorkStudio down
+        print(f"bootstrap: chat timeouts left as they are: {error}", file=sys.stderr)
     if voice:
         try:
             _sync_transcription_model(base_url, session["value"], voice)
