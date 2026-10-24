@@ -28,7 +28,7 @@ vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 
 vi.mock('@/lib/credentials/environment', () => credentialsEnvironmentMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET, PUT } from '@/app/api/workspaces/[id]/environment/route'
 

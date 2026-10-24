@@ -89,6 +89,7 @@
     "value": "Valeur",
     "valuesByDate": "Valeurs par date",
     "weekdays": "Di,Lu,Ma,Me,Je,Ve,Sa",
+    "weekStartsOn": "1",
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière"
   },

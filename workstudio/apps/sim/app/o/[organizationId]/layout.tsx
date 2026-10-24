@@ -2,6 +2,8 @@ import { createLogger } from '@sim/logger'
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { NextIntlClientProvider } from 'next-intl'
+import { getMessages } from 'next-intl/server'
 import { SettingsNavigationProvider } from '@/components/settings/settings-navigation-provider'
 import { getSession } from '@/lib/auth'
 import { getActiveOrganizationId } from '@/lib/auth/session-response'
@@ -93,39 +95,43 @@ export default async function OrganizationLayout({
     isChangelogEnabled(organizationId),
     isProjectsEnabled(),
   ])
+  /** The organization home embeds workflow canvases, which read the block catalog. */
+  const messages = await getMessages()
   const initialSidebarCollapsed = cookieStore.get('sidebar_collapsed')?.value === '1'
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <FeatureFlagsProvider
-        flags={{
-          dashboards: dashboardsEnabled,
-          'workflow-tests': workflowTestsEnabled,
-          changelog: changelogEnabled,
-          'mothership-model-selector': modelSelectorEnabled,
-          'mothership-computer-use': computerUseEnabled,
-          'mothership-plan-mode': benchmarkEnabled,
-          'mothership-memory-spaces': benchmarkEnabled,
-          projects: projectsEnabled,
-        }}
-      >
-        <OrganizationProvider context={context}>
-          <GlobalCommandsProvider>
-            <WorkspaceViewport className='workspace-root'>
-              <ImpersonationBanner />
-              <SessionExpired />
-              <SettingsNavigationProvider>
-                <WorkspaceChrome
-                  sidebar={<OrganizationSidebar benchmarkEnabled={benchmarkEnabled} />}
-                  initialSidebarCollapsed={initialSidebarCollapsed}
-                >
-                  {children}
-                </WorkspaceChrome>
-              </SettingsNavigationProvider>
-            </WorkspaceViewport>
-          </GlobalCommandsProvider>
-        </OrganizationProvider>
-      </FeatureFlagsProvider>
-    </HydrationBoundary>
+    <NextIntlClientProvider messages={messages}>
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <FeatureFlagsProvider
+          flags={{
+            dashboards: dashboardsEnabled,
+            'workflow-tests': workflowTestsEnabled,
+            changelog: changelogEnabled,
+            'mothership-model-selector': modelSelectorEnabled,
+            'mothership-computer-use': computerUseEnabled,
+            'mothership-plan-mode': benchmarkEnabled,
+            'mothership-memory-spaces': benchmarkEnabled,
+            projects: projectsEnabled,
+          }}
+        >
+          <OrganizationProvider context={context}>
+            <GlobalCommandsProvider>
+              <WorkspaceViewport className='workspace-root'>
+                <ImpersonationBanner />
+                <SessionExpired />
+                <SettingsNavigationProvider>
+                  <WorkspaceChrome
+                    sidebar={<OrganizationSidebar benchmarkEnabled={benchmarkEnabled} />}
+                    initialSidebarCollapsed={initialSidebarCollapsed}
+                  >
+                    {children}
+                  </WorkspaceChrome>
+                </SettingsNavigationProvider>
+              </WorkspaceViewport>
+            </GlobalCommandsProvider>
+          </OrganizationProvider>
+        </FeatureFlagsProvider>
+      </HydrationBoundary>
+    </NextIntlClientProvider>
   )
 }

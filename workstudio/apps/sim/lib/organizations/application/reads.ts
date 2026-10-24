@@ -29,8 +29,8 @@ import {
   requireOrganizationInvitationRecord,
   requireOrganizationRecord,
 } from '@/lib/organizations/queries'
-import { refuseCapability } from '@/lib/permission-groups/capabilities'
 import { isOrganizationCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 
 export interface OrganizationInput {
   organizationId: string

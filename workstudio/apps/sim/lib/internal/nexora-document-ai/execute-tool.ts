@@ -5,12 +5,14 @@ import { DEFAULT_MAX_JSON_BODY_BYTES } from '@/lib/api/server/validation'
 import { extractAudioFromVideo, isVideoFile } from '@/lib/audio/extractor'
 import { validateOpaqueModelInputProvenance } from '@/lib/execution/model-input-provenance'
 import {
+  nexoraExtractInputSchema,
   nexoraOcrInputSchema,
   nexoraSttInputSchema,
   nexoraVisionInputSchema,
 } from '@/lib/internal/nexora-document-ai/schema'
 import type { InternalToolOperationHandler } from '@/lib/internal/tool-operations/types'
 import { NexoraDocumentAiError } from '@/lib/nexora/document-ai/client'
+import { extractDocumentData } from '@/lib/nexora/document-ai/extraction'
 import { ocrDocument } from '@/lib/nexora/document-ai/ocr'
 import { transcribeWithNexora } from '@/lib/nexora/document-ai/transcription'
 import { describeImage } from '@/lib/nexora/document-ai/vision'
@@ -26,10 +28,11 @@ import { assertToolFileAccess } from '@/app/api/files/authorization'
 
 const logger = createLogger('NexoraDocumentAiTool')
 
-/** The « Nexora » provider of the Vision, document parsing (OCR) and Speech-to-Text blocks. */
+/** The « Nexora » provider of the Vision, OCR and Speech-to-Text blocks, and « Extraire des données ». */
 const NEXORA_DOCUMENT_AI_TOOL_IDS = [
   'vision_nexora',
   'ocr_nexora',
+  'nexora_extract',
   'stt_nexora',
   'stt_nexora_v2',
 ] as const
@@ -139,6 +142,25 @@ export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (
         {
           file: document.buffer,
           mimeType: document.mimeType,
+          model: parsed.data.model,
+          pages: parsed.data.pages,
+        },
+        { signal }
+      )
+      return Response.json({ success: true, output })
+    }
+
+    if (toolId === 'nexora_extract') {
+      const parsed = nexoraExtractInputSchema.safeParse(request.input)
+      if (!parsed.success) return invalid(parsed.error)
+      const document = await readToolFile(parsed.data.file, userId, requestId, signal)
+      const output = await extractDocumentData(
+        {
+          file: document.buffer,
+          mimeType: document.mimeType,
+          fields: parsed.data.fields,
+          instructions: parsed.data.instructions,
+          visionModel: parsed.data.visionModel,
           model: parsed.data.model,
           pages: parsed.data.pages,
         },

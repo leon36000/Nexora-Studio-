@@ -74,6 +74,7 @@ const keyColumns = {
   name: nexoraApiKey.name,
   scope: nexoraApiKey.scope,
   workspaceId: nexoraApiKey.workspaceId,
+  createdBy: nexoraApiKey.createdBy,
   allowedModels: nexoraApiKey.allowedModels,
   allowAgents: nexoraApiKey.allowAgents,
   monthlyTokenCap: nexoraApiKey.monthlyTokenCap,
@@ -92,6 +93,7 @@ function toGatewayKey(row: KeyRow): GatewayKey {
     name: row.name ?? '',
     scope: row.scope === 'instance' ? 'instance' : 'workspace',
     workspaceId: row.workspaceId ?? null,
+    createdBy: row.createdBy ?? null,
     allowedModels: Array.isArray(row.allowedModels) ? row.allowedModels : null,
     allowAgents: row.allowAgents ?? true,
     monthlyTokenCap: row.monthlyTokenCap ?? null,
@@ -101,63 +103,128 @@ function toGatewayKey(row: KeyRow): GatewayKey {
   }
 }
 
-/** The key whose value hashes to `hash`, revoked and expired ones included (they answer 401). */
+/**
+ * The key whose value hashes to `hash`, revoked and expired ones included (they answer 401). A
+ * key of a deleted (archived) workspace reads as revoked, even if the archive did not revoke it.
+ */
 export async function findNexoraApiKeyByHash(hash: string): Promise<GatewayKey | null> {
   const [row] = await db
-    .select(keyColumns)
+    .select({ ...keyColumns, workspaceArchivedAt: workspace.archivedAt })
     .from(nexoraApiKey)
+    .leftJoin(workspace, eq(workspace.id, nexoraApiKey.workspaceId))
     .where(eq(nexoraApiKey.keyHash, hash))
     .limit(1)
-  return row ? toGatewayKey(row) : null
+  if (!row) return null
+  const key = toGatewayKey(row)
+  return {
+    ...key,
+    revokedAt:
+      key.revokedAt ?? (key.scope === 'workspace' ? (row.workspaceArchivedAt ?? null) : null),
+  }
 }
 
-/** Tokens (prompt + completion) the key used since the 1st of the month containing `now`. */
-export async function monthTokensOfKey(keyId: string, now = new Date()): Promise<number> {
-  const { first, next } = monthDays(now)
-  const [row] = await db
-    .select({
-      tokens: sql<string>`COALESCE(SUM(${nexoraApiKeyUsage.promptTokens} + ${nexoraApiKeyUsage.completionTokens}), 0)`,
-    })
-    .from(nexoraApiKeyUsage)
-    .where(
-      and(
-        eq(nexoraApiKeyUsage.keyId, keyId),
-        gte(nexoraApiKeyUsage.day, first),
-        lt(nexoraApiKeyUsage.day, next)
-      )
-    )
-  return Number(row?.tokens ?? 0) || 0
+/** What a call reserved of its key's month, to settle once it knows what it used. */
+export interface NexoraApiKeyReservation {
+  keyId: string
+  /** The local day the reservation was written on (settled on that same row). */
+  day: string
+  model: string
+  reservedTokens: number
 }
 
-/** Adds one call to the key's usage of the day (local to the instance) for `model`. */
-export async function recordNexoraApiKeyUsage(entry: {
+type ReservationOutcome =
+  | { admitted: true; handle: NexoraApiKeyReservation }
+  | { admitted: false; monthTokens: number }
+
+/**
+ * Reserves `tokens` (an estimate) of the key's month for one call, counted at once in the key's
+ * usage so concurrent calls see it. Under the key row's lock, a capped key is admitted only while
+ * its month (reservations included) is below the cap; one call admitted just below the cap can
+ * still go past it by what it uses.
+ */
+export async function reserveNexoraApiKeyTokens(input: {
   keyId: string
   model: string
-  promptTokens: number
-  completionTokens: number
+  tokens: number
+  monthlyTokenCap: number | null
   now?: Date
-}): Promise<void> {
-  const day = localDay(entry.now ?? new Date())
-  const prompt = Math.max(0, Math.round(entry.promptTokens))
-  const completion = Math.max(0, Math.round(entry.completionTokens))
+}): Promise<ReservationOutcome> {
+  const now = input.now ?? new Date()
+  const day = localDay(now)
+  const { first, next } = monthDays(now)
+  const tokens = Math.max(0, Math.round(input.tokens))
+  return db.transaction(async (tx) => {
+    if (input.monthlyTokenCap !== null) {
+      await tx
+        .select({ id: nexoraApiKey.id })
+        .from(nexoraApiKey)
+        .where(eq(nexoraApiKey.id, input.keyId))
+        .for('update')
+      const [row] = await tx
+        .select({
+          tokens: sql<string>`COALESCE(SUM(${nexoraApiKeyUsage.promptTokens} + ${nexoraApiKeyUsage.completionTokens}), 0)`,
+        })
+        .from(nexoraApiKeyUsage)
+        .where(
+          and(
+            eq(nexoraApiKeyUsage.keyId, input.keyId),
+            gte(nexoraApiKeyUsage.day, first),
+            lt(nexoraApiKeyUsage.day, next)
+          )
+        )
+      const monthTokens = Number(row?.tokens ?? 0) || 0
+      if (monthTokens >= input.monthlyTokenCap) return { admitted: false, monthTokens }
+    }
+    await tx
+      .insert(nexoraApiKeyUsage)
+      .values({
+        keyId: input.keyId,
+        day,
+        model: input.model,
+        requests: 1,
+        promptTokens: tokens,
+        completionTokens: 0,
+      })
+      .onConflictDoUpdate({
+        target: [nexoraApiKeyUsage.keyId, nexoraApiKeyUsage.day, nexoraApiKeyUsage.model],
+        set: {
+          requests: sql`${nexoraApiKeyUsage.requests} + 1`,
+          promptTokens: sql`${nexoraApiKeyUsage.promptTokens} + ${tokens}`,
+        },
+      })
+    return {
+      admitted: true,
+      handle: { keyId: input.keyId, day, model: input.model, reservedTokens: tokens },
+    }
+  })
+}
+
+/**
+ * Replaces a reservation with what the call used, on the reservation's own row. `released`
+ * withdraws the call altogether (it never reached a model): no request, no tokens.
+ */
+export async function settleNexoraApiKeyTokens(
+  input: NexoraApiKeyReservation &
+    ({ released: true } | { released?: false; promptTokens: number; completionTokens: number })
+): Promise<void> {
+  const prompt = input.released ? 0 : Math.max(0, Math.round(input.promptTokens))
+  const completion = input.released ? 0 : Math.max(0, Math.round(input.completionTokens))
   await db
-    .insert(nexoraApiKeyUsage)
-    .values({
-      keyId: entry.keyId,
-      day,
-      model: entry.model,
-      requests: 1,
-      promptTokens: prompt,
-      completionTokens: completion,
+    .update(nexoraApiKeyUsage)
+    .set({
+      requests: input.released
+        ? sql`GREATEST(${nexoraApiKeyUsage.requests} - 1, 0)`
+        : nexoraApiKeyUsage.requests,
+      promptTokens: sql`GREATEST(${nexoraApiKeyUsage.promptTokens} - ${input.reservedTokens} + ${prompt}, 0)`,
+      completionTokens: sql`${nexoraApiKeyUsage.completionTokens} + ${completion}`,
     })
-    .onConflictDoUpdate({
-      target: [nexoraApiKeyUsage.keyId, nexoraApiKeyUsage.day, nexoraApiKeyUsage.model],
-      set: {
-        requests: sql`${nexoraApiKeyUsage.requests} + 1`,
-        promptTokens: sql`${nexoraApiKeyUsage.promptTokens} + ${prompt}`,
-        completionTokens: sql`${nexoraApiKeyUsage.completionTokens} + ${completion}`,
-      },
-    })
+    .where(
+      and(
+        eq(nexoraApiKeyUsage.keyId, input.keyId),
+        eq(nexoraApiKeyUsage.day, input.day),
+        eq(nexoraApiKeyUsage.model, input.model)
+      )
+    )
 }
 
 /** Marks the key used, at most once a minute (display only, never awaited by a request). */
@@ -277,27 +344,30 @@ export async function insertNexoraApiKey(input: {
   return { id, value }
 }
 
-/** Revokes a key of the scope; `null` when no such key exists there. Revoking twice is a no-op. */
+/**
+ * Revokes a key of the scope; `null` when no such key exists there. Revoking twice changes
+ * nothing and says so (`alreadyRevoked`), so the caller records the revocation once.
+ */
 export async function revokeNexoraApiKey(input: {
   keyId: string
   scope: NexoraApiKeyScope
   workspaceId: string | null
   revokedBy: string
   now?: Date
-}): Promise<{ id: string; name: string } | null> {
+}): Promise<{ id: string; name: string; alreadyRevoked: boolean } | null> {
   const scope = scopeCondition(input.scope, input.workspaceId)
   const [revoked] = await db
     .update(nexoraApiKey)
     .set({ revokedAt: input.now ?? new Date(), revokedBy: input.revokedBy })
     .where(and(eq(nexoraApiKey.id, input.keyId), scope, isNull(nexoraApiKey.revokedAt)))
     .returning({ id: nexoraApiKey.id, name: nexoraApiKey.name })
-  if (revoked) return revoked
+  if (revoked) return { ...revoked, alreadyRevoked: false }
   const [existing] = await db
     .select({ id: nexoraApiKey.id, name: nexoraApiKey.name })
     .from(nexoraApiKey)
     .where(and(eq(nexoraApiKey.id, input.keyId), scope))
     .limit(1)
-  return existing ?? null
+  return existing ? { ...existing, alreadyRevoked: true } : null
 }
 
 /** One key's use over a period of local days, for Réglages › Consommation. */

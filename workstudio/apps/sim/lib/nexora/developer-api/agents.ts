@@ -3,7 +3,7 @@ import { folder, workflow } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { generateId } from '@sim/utils/id'
-import { isRecordLike, toRecordOrNull } from '@sim/utils/object'
+import { toRecordOrNull } from '@sim/utils/object'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { releaseExecutionSlot } from '@/lib/billing/calculations/usage-reservation'
 import { generateRequestId } from '@/lib/core/utils/request'
@@ -12,14 +12,22 @@ import { preprocessExecution } from '@/lib/execution/preprocessing'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { AGENTS_FOLDER } from '@/lib/nexora/agents'
 import {
-  type AgentRunUsage,
   buildAgentInput,
   collectAgentAnswer,
+  settledRunUsage,
   toOpenAiChunks,
 } from '@/lib/nexora/developer-api/agent-format'
 import { GatewayError, gatewayErrors } from '@/lib/nexora/developer-api/errors'
-import { type GatewayCall, recordUsage } from '@/lib/nexora/developer-api/gateway'
-import { AGENT_MODEL_PREFIX, agentReference } from '@/lib/nexora/developer-api/policy'
+import {
+  type GatewayCall,
+  reserveSpending,
+  type SpendingReservation,
+} from '@/lib/nexora/developer-api/gateway'
+import {
+  AGENT_MODEL_PREFIX,
+  agentReference,
+  estimateCallTokens,
+} from '@/lib/nexora/developer-api/policy'
 import { loadDeployedWorkflowState } from '@/lib/workflows/persistence/utils'
 import { formatOutputSelector } from '@/lib/workflows/streaming/output-selector'
 import type { ExecutionResult } from '@/executor/types'
@@ -101,32 +109,6 @@ async function resolveApiAgent(workspaceId: string, model: string): Promise<ApiA
   throw gatewayErrors.agentNotFound(reference)
 }
 
-function tokensOf(output: unknown): AgentRunUsage {
-  if (!isRecordLike(output) || !isRecordLike(output.tokens)) {
-    return { promptTokens: 0, completionTokens: 0 }
-  }
-  const { tokens } = output
-  const read = (...values: unknown[]) => {
-    const value = values.find((entry) => typeof entry === 'number' && Number.isFinite(entry))
-    return typeof value === 'number' ? Math.max(0, Math.round(value)) : 0
-  }
-  return {
-    promptTokens: read(tokens.input, tokens.prompt),
-    completionTokens: read(tokens.output, tokens.completion),
-  }
-}
-
-/** Tokens of every model call of a run, read from its block logs. */
-function runUsage(result: ExecutionResult | null): AgentRunUsage {
-  const usage = { promptTokens: 0, completionTokens: 0 }
-  for (const log of result?.logs ?? []) {
-    const used = tokensOf(log.output)
-    usage.promptTokens += used.promptTokens
-    usage.completionTokens += used.completionTokens
-  }
-  return usage
-}
-
 /** The block whose `content` answers: the agent block of the deployed version. */
 async function answerBlockId(agent: ApiAgent, workspaceId: string): Promise<string> {
   const deployed = await loadDeployedWorkflowState(agent.workflowId, workspaceId).catch(
@@ -152,7 +134,7 @@ async function answerBlockId(agent: ApiAgent, workspaceId: string): Promise<stri
  */
 export async function runAgentCompletion(
   call: GatewayCall,
-  body: { model: string; messages: unknown[]; stream?: boolean },
+  body: { model: string; messages: unknown[]; stream?: boolean; max_tokens?: unknown },
   request: Request
 ): Promise<Response> {
   const workspaceId = call.key.workspaceId
@@ -162,6 +144,33 @@ export async function runAgentCompletion(
   const modelId =
     agentModelIds(await listApiAgents(workspaceId)).get(agent.workflowId) ?? body.model
   const blockId = await answerBlockId(agent, workspaceId)
+  const reservation = await reserveSpending(
+    call.key,
+    modelId,
+    estimateCallTokens(input.length, body.max_tokens)
+  )
+  try {
+    return await startAgentRun(
+      call,
+      body,
+      request,
+      { agent, workspaceId, modelId, blockId, input },
+      reservation
+    )
+  } catch (error) {
+    await reservation.release()
+    throw error
+  }
+}
+
+async function startAgentRun(
+  call: GatewayCall,
+  body: { stream?: boolean },
+  request: Request,
+  target: { agent: ApiAgent; workspaceId: string; modelId: string; blockId: string; input: string },
+  reservation: SpendingReservation
+): Promise<Response> {
+  const { agent, workspaceId, modelId, blockId, input } = target
 
   const requestId = generateRequestId()
   const executionId = generateId()
@@ -189,16 +198,11 @@ export async function runAgentCompletion(
 
   const { actorUserId, billingAttribution, workflowRecord } = preprocess
   const selectedOutputs = [formatOutputSelector(blockId, 'content')]
-  let result: ExecutionResult | null = null
-  let usageRecorded = false
-  const settleUsage = async (): Promise<AgentRunUsage> => {
-    const usage = runUsage(result)
-    if (!usageRecorded) {
-      usageRecorded = true
-      await recordUsage(call.key, modelId, usage.promptTokens, usage.completionTokens)
-    }
-    return usage
-  }
+  let settleRun: (result: ExecutionResult | null) => void = () => {}
+  const run = new Promise<ExecutionResult | null>((resolve) => {
+    settleRun = resolve
+  })
+  const settleUsage = settledRunUsage(run, (usage) => reservation.settle(usage))
 
   let simStream: ReadableStream<Uint8Array>
   try {
@@ -215,42 +219,48 @@ export async function runAgentCompletion(
       userId: actorUserId,
       requestSignal: request.signal,
       executeFn: async ({ onStream, onBlockComplete, abortSignal }) => {
-        result = await executeWorkflow(
-          {
-            id: agent.workflowId,
-            userId: workflowRecord.userId,
-            workspaceId,
-            isDeployed: workflowRecord.isDeployed ?? true,
-            variables: (workflowRecord.variables as Record<string, unknown>) ?? undefined,
-          },
-          requestId,
-          { input, conversationId: `api-${executionId}` },
-          actorUserId,
-          {
-            enabled: true,
-            principal: {
-              kind: 'system',
-              serviceId: 'public_api',
+        let result: ExecutionResult | null = null
+        try {
+          result = await executeWorkflow(
+            {
+              id: agent.workflowId,
+              userId: workflowRecord.userId,
               workspaceId,
-              workflowId: agent.workflowId,
+              isDeployed: workflowRecord.isDeployed ?? true,
+              variables: (workflowRecord.variables as Record<string, unknown>) ?? undefined,
             },
-            selectedOutputs,
-            isSecureMode: true,
-            workflowTriggerType: 'api',
-            onStream,
-            onBlockComplete: (completedBlockId, data) =>
-              onBlockComplete(completedBlockId, data.output, data.outputBlockId),
-            skipLoggingComplete: true,
-            abortSignal,
-            executionMode: 'stream',
-            billingAttribution,
-          },
-          executionId
-        )
-        return result
+            requestId,
+            { input, conversationId: `api-${executionId}` },
+            actorUserId,
+            {
+              enabled: true,
+              principal: {
+                kind: 'system',
+                serviceId: 'public_api',
+                workspaceId,
+                workflowId: agent.workflowId,
+              },
+              selectedOutputs,
+              isSecureMode: true,
+              workflowTriggerType: 'api',
+              onStream,
+              onBlockComplete: (completedBlockId, data) =>
+                onBlockComplete(completedBlockId, data.output, data.outputBlockId),
+              skipLoggingComplete: true,
+              abortSignal,
+              executionMode: 'stream',
+              billingAttribution,
+            },
+            executionId
+          )
+          return result
+        } finally {
+          settleRun(result)
+        }
       },
     })
   } catch (error) {
+    settleRun(null)
     await releaseExecutionSlot(executionId)
     logger.error('Published agent could not start', {
       workflowId: agent.workflowId,

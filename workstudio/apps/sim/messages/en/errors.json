@@ -62,5 +62,12 @@
     "knowledge_export": "Exporting a knowledge base",
     "project_issues_use": "Project Issues access",
     "workflows_edit": "Editing workflows"
+  },
+  "extraction": {
+    "noAnswer": "The model returned no readable data",
+    "noAnswerBecause": "The model returned no readable data ({reason})",
+    "missing": "Field “{field}” is missing from the document",
+    "invalid": "“{field}” is unreadable ({type} expected): {value}",
+    "totals": "Net + VAT ({sum}) differs from the gross total ({gross})"
   }
 }

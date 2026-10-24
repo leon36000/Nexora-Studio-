@@ -23,6 +23,7 @@ export const MODEL_DEFAULT_BLOCK_TYPES: readonly string[] = [
 const NEXORA_PROVIDER_USAGE: Readonly<Record<string, NexoraModelUsage>> = {
   vision_v2: 'vision',
   mistral_parse_v3: 'vision',
+  nexora_extract: 'vision',
   stt: 'transcription',
   stt_v2: 'transcription',
 }

@@ -20,7 +20,7 @@ vi.mock('@/lib/workflows/persistence/save-normalized-state', () => ({
 }))
 
 import { AuthType, checkSessionOrInternalAuth } from '@/lib/auth/hybrid'
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { PUT } from '@/app/api/workflows/[id]/state/route'
 

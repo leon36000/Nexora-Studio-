@@ -1,14 +1,16 @@
-import { isRecordLike, toRecord } from '@sim/utils/object'
+import { toRecord } from '@sim/utils/object'
 import { SSE_HEADERS } from '@/lib/core/utils/sse'
 import { agentModelIds, listApiAgents } from '@/lib/nexora/developer-api/agents'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import {
   admitModel,
-  admitSpending,
   type GatewayCall,
-  recordUsage,
+  reserveSpending,
+  type SpendingReservation,
 } from '@/lib/nexora/developer-api/gateway'
-import { agentRefusal, modelRefusal } from '@/lib/nexora/developer-api/policy'
+import { keyModelConfig } from '@/lib/nexora/developer-api/key-model-policy'
+import { keyModelRefusal } from '@/lib/nexora/developer-api/model-gate'
+import { agentRefusal, estimateCallTokens, modelRefusal } from '@/lib/nexora/developer-api/policy'
 import { relayWithUsage } from '@/lib/nexora/developer-api/sse'
 import {
   callUpstream,
@@ -25,11 +27,16 @@ function tokens(value: unknown): number {
 
 /** The models (and, for a workspace key, the published agents) this key may call. */
 export async function listGatewayModels(call: GatewayCall) {
-  const [models, resolve] = await Promise.all([listUpstreamModels(), routerResolver()])
+  const [models, resolve, config] = await Promise.all([
+    listUpstreamModels(),
+    routerResolver(),
+    keyModelConfig(call.key),
+  ])
   const allowed = models.filter(
     (model) =>
-      modelRefusal(call.key, model.id, resolve) === null ||
-      model.aliases.some((alias) => modelRefusal(call.key, alias, resolve) === null)
+      keyModelRefusal(config, model.id, resolve) === null &&
+      (modelRefusal(call.key, model.id, resolve) === null ||
+        model.aliases.some((alias) => modelRefusal(call.key, alias, resolve) === null))
   )
   const data: Record<string, unknown>[] = allowed.map((model) => ({
     ...model,
@@ -68,60 +75,108 @@ export async function retrieveGatewayModel(call: GatewayCall, id: string) {
   return model
 }
 
+/** Calls Nexora API for an admitted call; a call that never got an answer releases its reservation. */
+async function callReserved(
+  reservation: SpendingReservation,
+  model: string,
+  ...args: Parameters<typeof callUpstream>
+): Promise<Response> {
+  let upstream: Response
+  try {
+    upstream = await callUpstream(...args)
+  } catch (error) {
+    await reservation.release()
+    throw error
+  }
+  if (!upstream.ok) {
+    await reservation.release()
+    throw await upstreamError(upstream, model)
+  }
+  return upstream
+}
+
 /** Relays a chat completion to Nexora API (streamed or not) and records its tokens on the key. */
 export async function relayChatCompletion(
   call: GatewayCall,
   body: Record<string, unknown> & { model: string; stream?: boolean },
   signal: AbortSignal
 ): Promise<Response> {
-  await admitModel(call.key, body.model)
-  await admitSpending(call.key)
-  const upstream = await callUpstream('/chat/completions', {
+  const usageModel = await admitModel(call.key, body.model)
+  const reservation = await reserveSpending(
+    call.key,
+    usageModel,
+    estimateCallTokens(
+      JSON.stringify(body.messages ?? '').length,
+      body.max_completion_tokens ?? body.max_tokens
+    )
+  )
+  const upstream = await callReserved(reservation, body.model, '/chat/completions', {
     method: 'POST',
     body: JSON.stringify(body),
     contentType: 'application/json',
     signal,
   })
-  if (!upstream.ok) throw await upstreamError(upstream, body.model)
 
   if (body.stream && upstream.body) {
     const relayed = relayWithUsage(upstream.body, (usage) => {
-      void recordUsage(
-        call.key,
-        usage.model ?? body.model,
-        usage.promptTokens,
-        usage.completionTokens
-      )
+      void reservation.settle({
+        // A stream cut short tells no prompt size: the estimate stands for it.
+        promptTokens: usage.estimated ? reservation.estimate.promptTokens : usage.promptTokens,
+        completionTokens: usage.completionTokens,
+      })
     })
     return new Response(relayed, { status: 200, headers: { ...SSE_HEADERS, ...call.headers } })
   }
 
-  const completion: unknown = await upstream.json()
+  const completion: unknown = await upstream.json().catch(async (error: unknown) => {
+    await reservation.settle(reservation.estimate)
+    throw error
+  })
   const usage = toRecord(toRecord(completion).usage)
-  const model =
-    isRecordLike(completion) && typeof completion.model === 'string' ? completion.model : body.model
-  await recordUsage(call.key, model, tokens(usage.prompt_tokens), tokens(usage.completion_tokens))
+  await reservation.settle({
+    promptTokens: tokens(usage.prompt_tokens),
+    completionTokens: tokens(usage.completion_tokens),
+  })
   return Response.json(completion, { headers: call.headers })
 }
 
-/** Relays an embeddings request and records its tokens on the key. */
+function embeddingInputCharacters(input: unknown): number {
+  if (typeof input === 'string') return input.length
+  if (!Array.isArray(input)) return 0
+  return input.reduce<number>(
+    (total, entry) =>
+      total + (typeof entry === 'string' ? entry.length : Array.isArray(entry) ? entry.length : 1),
+    0
+  )
+}
+
+/** Relays an embeddings request and records its tokens on the key, under the router's name. */
 export async function relayEmbeddings(
   call: GatewayCall,
   body: Record<string, unknown> & { model: string },
   signal: AbortSignal
 ): Promise<Response> {
-  await admitModel(call.key, body.model)
-  await admitSpending(call.key)
-  const upstream = await callUpstream('/embeddings', {
+  const usageModel = await admitModel(call.key, body.model)
+  const reservation = await reserveSpending(
+    call.key,
+    usageModel,
+    estimateCallTokens(embeddingInputCharacters(body.input), 0, { answers: false })
+  )
+  const upstream = await callReserved(reservation, body.model, '/embeddings', {
     method: 'POST',
     body: JSON.stringify(body),
     contentType: 'application/json',
     signal,
   })
-  if (!upstream.ok) throw await upstreamError(upstream, body.model)
-  const result: unknown = await upstream.json()
+  const result: unknown = await upstream.json().catch(async (error: unknown) => {
+    await reservation.settle(reservation.estimate)
+    throw error
+  })
   const usage = toRecord(toRecord(result).usage)
-  await recordUsage(call.key, body.model, tokens(usage.prompt_tokens ?? usage.total_tokens), 0)
+  await reservation.settle({
+    promptTokens: tokens(usage.prompt_tokens ?? usage.total_tokens),
+    completionTokens: 0,
+  })
   return Response.json(result, { headers: call.headers })
 }
 
@@ -135,15 +190,17 @@ export async function relayTranscription(
   if (typeof model !== 'string' || !model.trim()) {
     throw gatewayErrors.invalidRequest('Indiquez le modèle de transcription (champ « model »).')
   }
-  await admitModel(call.key, model)
-  await admitSpending(call.key)
-  const upstream = await callUpstream('/audio/transcriptions', {
+  const usageModel = await admitModel(call.key, model)
+  const reservation = await reserveSpending(call.key, usageModel, {
+    promptTokens: 0,
+    completionTokens: 0,
+  })
+  const upstream = await callReserved(reservation, model, '/audio/transcriptions', {
     method: 'POST',
     body: form,
     signal,
   })
-  if (!upstream.ok) throw await upstreamError(upstream, model)
-  await recordUsage(call.key, model, 0, 0)
+  await reservation.settle({ promptTokens: 0, completionTokens: 0 })
   return new Response(upstream.body, {
     status: upstream.status,
     headers: {

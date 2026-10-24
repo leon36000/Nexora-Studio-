@@ -18,18 +18,21 @@ const QUOTED_VALUE = /"([^"]+)"|([^\s"'(),;<>]+@[^\s"'(),;<>]+\.[a-z]{2,})/gi
  * event. The log shows instead the French label of the action (`actions.<action>`) and, as the
  * detail, the name of the resource it concerns — or, when the entry names none, the names and
  * addresses its description quotes (`Transferred ownership to bob@pme.fr` ⇒ `bob@pme.fr`), never
- * the English sentence itself; the CSV export keeps the stored description. An action without a
- * label keeps its code.
+ * the English sentence itself; the CSV export keeps the stored description. An entry that names
+ * nothing is detailed by its action's label (`noDetail` for an action without one). An action
+ * without a label keeps its code.
  */
 export function describeAuditEntry(
   entry: AuditEntryText,
   t: AuditTranslator
 ): { label: string; detail: string } {
   const key = `actions.${entry.action}`
-  const label = t.has(key) ? t(key) : entry.action
+  const known = t.has(key)
+  const label = known ? t(key) : entry.action
   if (entry.resourceName) return { label, detail: entry.resourceName }
   const quoted = [...(entry.description ?? '').matchAll(QUOTED_VALUE)].map(
     (match) => match[1] ?? match[2]
   )
-  return { label, detail: quoted.length > 0 ? quoted.join(', ') : '—' }
+  if (quoted.length > 0) return { label, detail: quoted.join(', ') }
+  return { label, detail: known ? label : t('noDetail') }
 }

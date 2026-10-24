@@ -1,9 +1,9 @@
 import type { DbOrTx } from '@/lib/db/types'
 import {
   CAPABILITY_RULES,
-  refuseCapability,
   type StaticPermissionGroupCapability,
 } from '@/lib/permission-groups/capabilities'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { resolvePermissionGroupConfig } from '@/lib/permission-groups/config-scope.server'
 import type { PermissionGroupConfig } from '@/lib/permission-groups/fields'
 import {
@@ -16,7 +16,7 @@ import {
  * assertions through one module; {@link CAPABILITY_RULES} remains its only
  * definition.
  */
-export { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+export { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 
 /**
  * The one way to ask whether a permission group withholds a capability.

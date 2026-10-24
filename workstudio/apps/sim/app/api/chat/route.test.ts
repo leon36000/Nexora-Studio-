@@ -52,7 +52,7 @@ vi.mock('@/lib/chat-deployments/queries', () => ({
 vi.mock('@/lib/workflows/orchestration', () => workflowsOrchestrationMock)
 vi.mock('@/ee/access-control/utils/permission-check', () => permissionCheckMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { POST } from '@/app/api/chat/route'
 
 const { mockPerformChatDeploy } = workflowsOrchestrationMockFns

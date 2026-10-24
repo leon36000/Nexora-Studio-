@@ -8,9 +8,13 @@ import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import { answerGateway, gatewayParseOptions } from '@/app/api/nexora/v1/surface'
 
-type UnknownEndpointContext = { params: Promise<{ path: string[] }> }
+function unknownPath(path: string[] | undefined): string {
+  return path?.length ? `/v1/${path.join('/')}` : '/v1'
+}
 
-/** Any other `/v1` path: a French 404 in OpenAI's shape, naming the endpoints that exist. */
+type UnknownEndpointContext = { params: Promise<{ path?: string[] }> }
+
+/** `/v1` itself or any other `/v1` path: a French 404 in OpenAI's shape, naming the endpoints. */
 export const GET = withRouteHandler((request: NextRequest, context: UnknownEndpointContext) =>
   answerGateway(async () => {
     const parsed = await parseRequest(
@@ -20,7 +24,7 @@ export const GET = withRouteHandler((request: NextRequest, context: UnknownEndpo
       gatewayParseOptions
     )
     if (!parsed.success) return parsed.response
-    throw gatewayErrors.notFound(`/v1/${parsed.data.params.path.join('/')}`)
+    throw gatewayErrors.notFound(unknownPath(parsed.data.params.path))
   })
 )
 
@@ -33,6 +37,6 @@ export const POST = withRouteHandler((request: NextRequest, context: UnknownEndp
       gatewayParseOptions
     )
     if (!parsed.success) return parsed.response
-    throw gatewayErrors.notFound(`/v1/${parsed.data.params.path.join('/')}`)
+    throw gatewayErrors.notFound(unknownPath(parsed.data.params.path))
   })
 )

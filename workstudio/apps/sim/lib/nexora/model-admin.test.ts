@@ -596,7 +596,18 @@ describe('testNexoraModel', () => {
     expect(state.chatRequests[1]?.tools).toHaveLength(1)
     state.toolsStatus = 400
     expect((await testNexoraModel('nexora-default', options)).capabilities.tools).toBe(false)
+    state.toolsStatus = 422
+    expect((await testNexoraModel('nexora-default', options)).capabilities.tools).toBe(false)
     state.toolsStatus = 502
     expect((await testNexoraModel('nexora-default', options)).capabilities.tools).toBeNull()
   })
+
+  it.each([401, 403, 404, 408, 429])(
+    'leaves tool support unknown when the tools probe answers HTTP %i',
+    async (status) => {
+      const { options, state } = setup()
+      state.toolsStatus = status
+      expect((await testNexoraModel('nexora-default', options)).capabilities.tools).toBeNull()
+    }
+  )
 })

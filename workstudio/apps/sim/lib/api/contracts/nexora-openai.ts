@@ -109,19 +109,20 @@ export const nexoraOpenApiContract = defineRouteContract({
   },
 })
 
-const unknownEndpointParams = z.object({ path: z.array(z.string()).max(20) })
+/** Absent for `/v1` itself (optional catch-all). */
+const unknownEndpointParams = z.object({ path: z.array(z.string()).max(20).optional() })
 
-/** Any other path under `/v1`: a French 404 in OpenAI's shape. */
+/** `/v1` itself and any other path under it: a French 404 in OpenAI's shape. */
 export const nexoraUnknownGetContract = defineRouteContract({
   method: 'GET',
-  path: '/api/nexora/v1/[...path]',
+  path: '/api/nexora/v1/[[...path]]',
   params: unknownEndpointParams,
   response: { mode: 'stream' },
 })
 
 export const nexoraUnknownPostContract = defineRouteContract({
   method: 'POST',
-  path: '/api/nexora/v1/[...path]',
+  path: '/api/nexora/v1/[[...path]]',
   params: unknownEndpointParams,
   response: { mode: 'stream' },
 })

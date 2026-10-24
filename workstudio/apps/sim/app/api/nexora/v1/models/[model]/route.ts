@@ -15,7 +15,7 @@ export const GET = withRouteHandler(
       const call = await authenticateGatewayCall(request)
       const parsed = await parseRequest(nexoraModelContract, request, context, gatewayParseOptions)
       if (!parsed.success) return parsed.response
-      const model = await retrieveGatewayModel(call, decodeURIComponent(parsed.data.params.model))
+      const model = await retrieveGatewayModel(call, parsed.data.params.model)
       return Response.json(model, { headers: call.headers })
     })
 )

@@ -26,7 +26,7 @@ vi.mock('@/lib/logs/stats-queries', () => ({
 
 vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { GET } from '@/app/api/logs/stats/route'
 
 const resolveGroupConfigMock = permissionGroupScopeMockFns.mockResolvePermissionGroupConfig

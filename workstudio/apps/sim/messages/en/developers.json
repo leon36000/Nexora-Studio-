@@ -32,6 +32,7 @@
     "title": "Call from your code",
     "notice": "Before calling",
     "unpublished": "Publish the agent to call it through the API.",
+    "callableByKeys": "Callable through the API in its published version, with any key of this workspace that allows « Published agents », even when the agent is for workspace members only.",
     "model": "Id: {model}",
     "alternate": "The same agent by its id, which does not change when it is renamed",
     "keyTitle": "Key",

@@ -1117,6 +1117,7 @@ const VISION_TOOL_IDS = ['vision_tool', 'vision_tool_v2'] as const
 const NEXORA_DOCUMENT_AI_TOOL_IDS = [
   'vision_nexora',
   'ocr_nexora',
+  'nexora_extract',
   'stt_nexora',
   'stt_nexora_v2',
 ] as const

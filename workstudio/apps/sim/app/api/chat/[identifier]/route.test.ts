@@ -408,6 +408,66 @@ describe('Chat Identifier API Route', () => {
       })
     })
 
+    describe('reasoning frames', () => {
+      async function streamConfigFor(
+        authType: string,
+        auth: Record<string, unknown>,
+        includeThinking = false
+      ) {
+        dbChainMockFns.select.mockImplementationOnce(() => ({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue([{ ...mockChatResult[0], authType, includeThinking }]),
+            }),
+          }),
+        }))
+        mockValidateChatAuth.mockResolvedValueOnce({ authorized: true, ...auth })
+        const req = createMockNextRequest(
+          'POST',
+          { input: 'Bonjour' },
+          { 'X-Sim-Stream-Protocol': 'agent-events-v1' }
+        )
+        const response = await POST(req, createRouteContext({ identifier: 'test-chat' }))
+        expect(response.status).toBe(200)
+        const options = vi.mocked(createStreamingResponse).mock.calls[0][0]
+        await options.executeFn({
+          onStream: vi.fn(),
+          onBlockComplete: vi.fn(),
+          abortSignal: new AbortController().signal,
+        })
+        return {
+          stream: options.streamConfig,
+          execute: vi.mocked(executeWorkflow).mock.calls[0][4],
+        }
+      }
+
+      it('never reach an anonymous visitor of a public chat, even with the protocol header', async () => {
+        const { stream, execute } = await streamConfigFor('public', {})
+
+        expect(stream).toMatchObject({ includeThinking: false })
+        expect(execute).toMatchObject({ includeThinking: false })
+      })
+
+      it('never reach a password or email visitor without the owner opting in', async () => {
+        for (const authType of ['password', 'email']) {
+          vi.mocked(createStreamingResponse).mockClear()
+          vi.mocked(executeWorkflow).mockClear()
+          const { stream } = await streamConfigFor(authType, { authenticatedEmail: 'a@pme.fr' })
+          expect(stream).toMatchObject({ includeThinking: false })
+        }
+      })
+
+      it('reach an authenticated member of a members-only chat (the Assistant)', async () => {
+        const { stream, execute } = await streamConfigFor('workspace', {
+          authenticatedUserId: 'member-a',
+          authenticatedEmail: 'a@pme.fr',
+        })
+
+        expect(stream).toMatchObject({ includeThinking: true })
+        expect(execute).toMatchObject({ includeThinking: true, agentEvents: true })
+      })
+    })
+
     /** Thinking and tool calls are independent policies: thinking must not drag tool frames along. */
     it('keeps tool calls off when only thinking is enabled', async () => {
       const thinkingChatResult = [

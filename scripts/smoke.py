@@ -31,36 +31,75 @@ TEMPLATE_INPUTS = {
 }
 
 
-# 5×7 glyphs for the OCR check's test image (standard library only: no imaging package needed).
+# 5×7 glyphs for the OCR and extraction checks' test images (standard library only: no imaging package needed).
 _GLYPHS = {
-    "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
-    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
-    "X": ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
-    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
-    "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
     "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
-    "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+    "B": ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+    "C": ["01110", "10001", "10000", "10000", "10000", "10001", "01110"],
+    "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+    "F": ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+    "G": ["01110", "10001", "10000", "10111", "10001", "10001", "01111"],
+    "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "I": ["01110", "00100", "00100", "00100", "00100", "00100", "01110"],
+    "J": ["00111", "00010", "00010", "00010", "00010", "10010", "01100"],
+    "K": ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
+    "L": ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+    "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "P": ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
+    "Q": ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
+    "R": ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+    "S": ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+    "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+    "U": ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+    "V": ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+    "W": ["10001", "10001", "10001", "10101", "10101", "10101", "01010"],
+    "X": ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+    "Y": ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+    "Z": ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
     "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+    "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+    "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+    "3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+    "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+    "5": ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
     "6": ["00110", "01000", "10000", "11110", "10001", "10001", "01110"],
+    "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+    "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+    "9": ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
     " ": ["00000"] * 7,
+    "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
+    ".": ["00000", "00000", "00000", "00000", "00000", "01100", "01100"],
+    ",": ["00000", "00000", "00000", "00000", "01100", "00100", "01000"],
+    ":": ["00000", "01100", "01100", "00000", "01100", "01100", "00000"],
+    "/": ["00001", "00010", "00010", "00100", "01000", "01000", "10000"],
+    "%": ["11001", "11010", "00010", "00100", "01000", "01011", "10011"],
 }
 
 
 def text_png(text: str, scale: int = 14) -> bytes:
-    """Black text on white, as an 8-bit greyscale PNG."""
+    """Black text on white, as an 8-bit greyscale PNG; one line of the image per line of `text`."""
     import struct
     import zlib
 
-    columns = []
-    for char in text:
-        glyph = _GLYPHS[char]
-        columns.extend([[row[c] == "1" for row in glyph] for c in range(5)])
-        columns.append([False] * 7)
-    margin = 3
-    width, height = (len(columns) + 2 * margin) * scale, (7 + 2 * margin) * scale
+    lines = []
+    for text_line in text.split("\n"):
+        columns = []
+        for char in text_line:
+            glyph = _GLYPHS[char]
+            columns.extend([[row[c] == "1" for row in glyph] for c in range(5)])
+            columns.append([False] * 7)
+        lines.append(columns)
+    margin, line_height = 3, 10
+    width = (max(len(columns) for columns in lines) + 2 * margin) * scale
+    height = (line_height * len(lines) - 3 + 2 * margin) * scale
     rows = []
     for y in range(height):
-        gy = y // scale - margin
+        gy_all = y // scale - margin
+        number, gy = divmod(gy_all, line_height) if gy_all >= 0 else (-1, -1)
+        columns = lines[number] if 0 <= number < len(lines) else []
         line = bytearray([0])  # filter: none
         for x in range(width):
             gx = x // scale - margin
@@ -496,6 +535,59 @@ def main() -> int:
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
 
+    INVOICE_COLUMNS = [("numero", "string"), ("date", "date"), ("fournisseur", "string"), ("client", "string"),
+                       ("total_ht", "number"), ("total_tva", "number"), ("total_ttc", "number"), ("date_echeance", "date"),
+                       ("devise", "string"), ("a_verifier", "boolean"), ("motifs", "string")]
+    INVOICE_LINES = ["FACTURE FA-2026-0142", "DATE : 12/03/2026", "ATELIER DUBOIS SARL",
+                     "TOTAL HT : 1 250,00 EUR", "TVA 20 % : 250,00 EUR", "TOTAL TTC : 1 500,00 EUR"]
+
+    def extraction():
+        if not (usages().get("vision") and usages().get("chat")):
+            return "non testé : il faut un modèle « Vision / OCR » et un modèle de discussion (Réglages › Modèles)"
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        status, body = s.call("POST", "/api/table", {"name": f"Factures_fumee_{secrets.token_hex(3)}", "workspaceId": state["ws"],
+                                                     "schema": {"columns": [{"name": n, "type": t} for n, t in INVOICE_COLUMNS]}})
+        require(status in (200, 201), f"table creation returned HTTP {status}: {str(body)[:200]}")
+        definition = (body.get("data") or {}).get("table", {})
+        table = definition.get("id")
+        # Rows are stored by stable column id: read them back by column name.
+        column_names = {c["id"]: c["name"] for c in (definition.get("schema") or {}).get("columns", []) if c.get("id")}
+        status, body = s.call("POST", "/api/workflows", {"name": f"Extraction de fumée {secrets.token_hex(3)}", "workspaceId": state["ws"]})
+        wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        try:
+            start, extract, save = secrets.token_hex(8), secrets.token_hex(8), secrets.token_hex(8)
+            edge = lambda a, b: {"id": secrets.token_hex(8), "source": a, "target": b, "sourceHandle": "source", "targetHandle": "target"}
+            status, _ = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [{"id": secrets.token_hex(4), "name": "document", "type": "file[]", "value": ""}])}, "outputs": {}},
+                extract: {"id": extract, "type": "nexora_extract", "name": "Extraction", "position": {"x": 420, "y": 0}, "enabled": True,
+                          "subBlocks": {"fileReference": sub("fileReference", "short-input", "<start.document>"), "template": sub("template", "dropdown", "invoice")},
+                          "outputs": {}, "data": {"canonicalModes": {"file": "advanced"}}},
+                save: {"id": save, "type": "table_v2", "name": "Enregistrement", "position": {"x": 840, "y": 0}, "enabled": True,
+                       "subBlocks": {"operation": sub("operation", "dropdown", "insert_row"), "tableSelector": sub("tableSelector", "table-selector", table),
+                                     "data": sub("data", "code", "<extraction.row>")}, "outputs": {}, "data": {"canonicalModes": {"tableId": "basic"}}}},
+                "edges": [edge(start, extract), edge(extract, save)], "loops": {}, "parallels": {}})
+            require(status == 200, f"state save returned HTTP {status}")
+            pdf_lines = ["Facture FA-2026-0142", "Date : 12/03/2026", "Atelier Dubois SARL",
+                         "Total HT : 1 250,00 EUR", "TVA 20 % : 250,00 EUR", "Total TTC : 1 500,00 EUR"]
+            documents = [("facture.pdf", "application/pdf", text_pdf(pdf_lines)),
+                         ("facture-scannee.png", "image/png", text_png("\n".join(INVOICE_LINES), scale=4))]
+            for name, mime, data in documents:
+                status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
+                                     "input": {"document": [{"name": name, "mimeType": mime, "data": base64.b64encode(data).decode()}]}}, timeout=900)
+                require(status == 200 and run.get("success"), f"{name}: run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            status, body = s.call("GET", f"/api/table/{table}/rows?workspaceId={state['ws']}&limit=10")
+            rows = [{column_names.get(k, k): v for k, v in (row.get("data") or {}).items()} for row in (body.get("data") or {}).get("rows", [])]
+            require(status == 200 and len(rows) == 2, f"expected 2 rows in the table, got HTTP {status}: {str(body)[:200]}")
+            for row in rows:
+                got = (str(row.get("numero")), str(row.get("date"))[:10], str(row.get("fournisseur")).upper(), row.get("total_ht"), row.get("total_tva"), row.get("total_ttc"))
+                require(got == ("FA-2026-0142", "2026-03-12", "ATELIER DUBOIS SARL", 1250, 250, 1500), f"unexpected row: {row}")
+                require(row.get("a_verifier") is False, f"row flagged « à vérifier »: {row.get('motifs')}")
+            return "facture PDF et facture scannée : six champs exacts, deux lignes dans la table, rien « à vérifier »"
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+            s.call("DELETE", f"/api/table/{table}?workspaceId={state['ws']}")
+
     def transcription():
         audio, expected = os.environ.get("NEXORA_SMOKE_AUDIO", ""), os.environ.get("NEXORA_SMOKE_AUDIO_TEXT", "")
         if not usages().get("transcription"):
@@ -873,6 +965,7 @@ def main() -> int:
         s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Lecture de document (OCR, modèle de vision local)", ocr)
     s.check("Transcription vocale (modèle local)", transcription)
+    s.check("Extraction : facture PDF et scannée ⇒ table « Factures »", extraction)
     s.check("Copilote : description ⇒ workflow exécuté", copilot)
     s.check("Budgets : refus au plafond, reprise après relèvement", budgets)
     s.check("Journal d'audit", audit)

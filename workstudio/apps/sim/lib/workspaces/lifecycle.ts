@@ -7,6 +7,7 @@ import {
   knowledgeBase,
   knowledgeConnector,
   mcpServers,
+  nexoraApiKey,
   userTableDefinitions,
   workflow,
   workflowMcpServer,
@@ -282,6 +283,12 @@ async function archiveWorkspaceRecordsInTransaction(
   await tx
     .delete(apiKey)
     .where(and(eq(apiKey.workspaceId, workspaceId), eq(apiKey.type, 'workspace')))
+
+  // Nexora edition: the developer API keys of the workspace stop with it (a restore does not revive them).
+  await tx
+    .update(nexoraApiKey)
+    .set({ revokedAt: now })
+    .where(and(eq(nexoraApiKey.workspaceId, workspaceId), isNull(nexoraApiKey.revokedAt)))
 
   /** Every server is announced, so a retry still invalidates; only live ones are stamped. */
   const servers = await tx

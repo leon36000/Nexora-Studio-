@@ -21,7 +21,7 @@ vi.mock('@/app/api/table/utils', () => tableRouteUtilsMock)
 
 vi.mock('@/lib/table/rows/service', () => tableRowsServiceMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET } from '@/app/api/table/[tableId]/export/route'
 

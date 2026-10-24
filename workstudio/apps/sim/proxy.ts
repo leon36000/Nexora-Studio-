@@ -499,7 +499,9 @@ export const config = {
     // proxy makes Next buffer the body, cutting it off at its 10 MB proxy limit, and those bodies
     // are whole files or document snapshots. They only answer the app's own origin anyway.
     '/api/((?!desktop/tool/(?:import|file)$|internal/file-doc/persist$|internal/project-file-doc/[^/]+/[^/]+/persist$|v[12]/knowledge/[^/]+/documents$|v1/files$).*)',
-    // Next's image optimizer fetches public editorial images without a User-Agent.
-    '/((?!api/|api$|_next/static|_next/image|(?:blog|changelog)/.*\\.(?:avif|gif|jpe?g|png|svg|webp)$|ingest|favicon.ico|logo/|landing/|static/|footer/|social/|enterprise/|favicon/|twitter/|robots.txt|sitemap.xml).*)',
+    // Next's image optimizer fetches public editorial images without a User-Agent. Nexora edition:
+    // the developer API (`/v1`, rewritten to `/api/nexora/v1`) is server-to-server: no page rules,
+    // no CORS, and its routes bound their own bodies (an audio file goes past the 10 MB clamp).
+    '/((?!api/|api$|v1/|v1$|_next/static|_next/image|(?:blog|changelog)/.*\\.(?:avif|gif|jpe?g|png|svg|webp)$|ingest|favicon.ico|logo/|landing/|static/|footer/|social/|enterprise/|favicon/|twitter/|robots.txt|sitemap.xml).*)',
   ],
 }

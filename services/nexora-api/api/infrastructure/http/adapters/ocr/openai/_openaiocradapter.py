@@ -43,6 +43,12 @@ def unwrap_transcription(answer: str) -> str:
     return text if text != answer.strip() else answer
 
 
+def _vision_question(request: ProviderRequest) -> str | None:
+    """The prompt the vision model answers itself; with an annotation format, it guides the annotation step instead."""
+    payload = request.payload
+    return None if payload.document_annotation_format else payload.document_annotation_prompt
+
+
 def _inline_image(url: str) -> bool:
     return url.startswith("data:image/")
 
@@ -77,7 +83,7 @@ class OpenaiOcrAdapter(OcrAdapter):
                 errors=[{"loc": ["body", "document"], "msg": "send the image inline, as a data:image/… URL", "type": "value_error"}],
             )
 
-        prompt = request.payload.document_annotation_prompt or TRANSCRIPTION_PROMPT
+        prompt = _vision_question(request) or TRANSCRIPTION_PROMPT
         return HttpProviderRequest(
             method=self.TARGET_ENDPOINT_METHOD,
             url=self._build_target_url(base_url=self.provider.url, target_endpoint_route=self.TARGET_ENDPOINT_ROUTE),
@@ -113,11 +119,11 @@ class OpenaiOcrAdapter(OcrAdapter):
                     OCRPageObject(
                         index=0,
                         images=[],
-                        markdown=content if request.payload.document_annotation_prompt else unwrap_transcription(content),
+                        markdown=content if _vision_question(request) else unwrap_transcription(content),
                         truncated=truncated or None,
                     )
                 ],
-                document_annotation=content if request.payload.document_annotation_prompt else None,
+                document_annotation=content if _vision_question(request) else None,
                 usage_info=OCRUsage(pages_processed=1),
             )
         except (KeyError, IndexError, TypeError) as error:

@@ -18,8 +18,15 @@ function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate()
 }
 
-function getFirstDayOfMonth(year: number, month: number): number {
-  return new Date(year, month, 1).getDay()
+/** Blank cells before the 1st: how far its weekday lies from the first day of the week. */
+function getLeadingBlanks(year: number, month: number, weekStartsOn: number): number {
+  return (new Date(year, month, 1).getDay() - weekStartsOn + 7) % 7
+}
+
+/** The labels' first day of the week, `0` (Sunday) when unset or invalid. */
+function weekStartOf(labels: { weekStartsOn: string }): number {
+  const day = Number(labels.weekStartsOn)
+  return Number.isInteger(day) && day >= 0 && day <= 6 ? day : 0
 }
 
 function pad2(value: number): string {
@@ -277,6 +284,7 @@ export function Calendar(props: CalendarProps) {
 }
 
 function useCalendarView(seed: Date | null) {
+  const weekStartsOn = weekStartOf(useEmcnLabels())
   const today = useMemo(() => new Date(), [])
   const [view, setView] = useState(() => {
     const base = seed ?? today
@@ -298,13 +306,13 @@ function useCalendarView(seed: Date | null) {
     )
 
   const cells = useMemo<(number | null)[]>(() => {
-    const leading = getFirstDayOfMonth(view.year, view.month)
+    const leading = getLeadingBlanks(view.year, view.month, weekStartsOn)
     const total = getDaysInMonth(view.year, view.month)
     const result: (number | null)[] = []
     for (let i = 0; i < leading; i++) result.push(null)
     for (let day = 1; day <= total; day++) result.push(day)
     return result
-  }, [view])
+  }, [view, weekStartsOn])
 
   return { today, view, setView, goToPrevMonth, goToNextMonth, cells }
 }
@@ -334,11 +342,14 @@ function CalendarHeader({
 
 function WeekdayRow() {
   const labels = useEmcnLabels()
+  const start = weekStartOf(labels)
+  const sundayFirst = labels.weekdays.split(',')
+  const weekdays = [...sundayFirst.slice(start), ...sundayFirst.slice(0, start)]
   return (
     <div className='grid grid-cols-7'>
-      {labels.weekdays.split(',').map((weekday) => (
+      {weekdays.map((weekday, index) => (
         <div
-          key={weekday}
+          key={(index + start) % 7}
           className='flex h-[28px] items-center justify-center text-[var(--text-muted)] text-caption'
         >
           {weekday}

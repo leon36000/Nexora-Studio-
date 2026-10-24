@@ -534,8 +534,8 @@ async function testRequest(
 }
 
 /**
- * Whether the model accepts a tool definition: a refusal of the request (4xx) says no, a service
- * failure says nothing.
+ * Whether the model accepts a tool definition: a refused request body (400, 422) says no; any
+ * other answer (authentication, rate limit, timeout, service failure) says nothing (`null`).
  */
 async function probeTools(
   client: ReturnType<typeof createClient>,
@@ -554,7 +554,7 @@ async function probeTools(
       },
     })
     if (status < 300) return true
-    return status < 500 ? false : null
+    return status === 400 || status === 422 ? false : null
   } catch {
     return null
   }

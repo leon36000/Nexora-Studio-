@@ -1,3 +1,4 @@
+import { omit } from '@sim/utils/object'
 import type { AbstractIntlMessages } from 'next-intl'
 import type { Locale } from '@/lib/i18n/config'
 import enAgents from '@/messages/en/agents.json'
@@ -136,4 +137,16 @@ function mergeMessages(
 /** Messages for a locale, with English filling any key a translation lacks. */
 export function getLocaleMessages(locale: Locale): AbstractIntlMessages {
   return locale === 'en' ? MESSAGES.en : mergeMessages(MESSAGES.en, MESSAGES[locale])
+}
+
+/**
+ * Namespaces only the workspace reads in the browser (the block catalog: canvas, editor, previews).
+ * The root layout leaves them out, so public pages (chat, sign-in, invitations) do not download
+ * them; `app/workspace/layout.tsx` provides every namespace again.
+ */
+export const WORKSPACE_ONLY_NAMESPACES = ['blocks'] as const
+
+/** The messages the root layout sends to every page: all but {@link WORKSPACE_ONLY_NAMESPACES}. */
+export function pageMessages(messages: AbstractIntlMessages): AbstractIntlMessages {
+  return omit(messages, [...WORKSPACE_ONLY_NAMESPACES])
 }

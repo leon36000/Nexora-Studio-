@@ -46,7 +46,7 @@ vi.mock('@/lib/mothership/request/session/explicit-abort', () => ({
 
 import { organizationSearchChat } from '@/lib/knowledge/application/chat'
 import { resolveSearchChatCitations } from '@/lib/knowledge/application/chat-citations'
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 
 const persistTurn = mothershipChatMessagesMockFns.mockPersistCopilotChatTurn
 

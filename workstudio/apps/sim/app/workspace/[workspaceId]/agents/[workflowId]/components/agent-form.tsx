@@ -29,6 +29,8 @@ interface AgentFormProps {
   initial: AgentConfig
   agentBlockId: string
   existingChat: ChatDetail | null
+  /** The deployed version exists: the developer API can call the agent. */
+  isDeployed: boolean
   readOnly: boolean
   onVersionActivated: () => void
 }
@@ -40,6 +42,7 @@ export function AgentForm({
   initial,
   agentBlockId,
   existingChat,
+  isDeployed,
   readOnly,
   onVersionActivated,
 }: AgentFormProps) {
@@ -111,7 +114,7 @@ export function AgentForm({
               workspaceId={workspaceId}
               model={`agent:${initial.name}`}
               alternateModel={`agent:${workflowId}`}
-              notice={existingChat ? undefined : tCode('unpublished')}
+              notice={isDeployed ? tCode('callableByKeys') : tCode('unpublished')}
             />
             {!readOnly && (
               <Chip

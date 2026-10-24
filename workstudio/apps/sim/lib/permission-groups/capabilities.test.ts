@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  CAPABILITY_IDS,
-  CAPABILITY_RULES,
-  capabilityRefusal,
-} from '@/lib/permission-groups/capabilities'
+import { CAPABILITY_IDS, CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
 import {
   DEFAULT_PERMISSION_GROUP_CONFIG,
   type PermissionGroupConfig,
@@ -51,12 +47,6 @@ describe('knowledge capability rules', () => {
 })
 
 describe('capability refusal', () => {
-  it('is worded in the instance language, French by default', () => {
-    expect(capabilityRefusal('workflows.edit')).toBe(
-      'Non autorisé par le groupe d’accès de votre organisation : modification des workflows.'
-    )
-  })
-
   it('names every capability in French, and in English with its original subject', () => {
     const missing = CAPABILITY_IDS.filter((id) => {
       const key = id.replaceAll('.', '_')

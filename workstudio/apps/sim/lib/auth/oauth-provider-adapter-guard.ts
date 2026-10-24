@@ -6,7 +6,7 @@ import type { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { APIError } from 'better-auth/api'
 import { inArray } from 'drizzle-orm'
 import { getOAuthIssuedResource } from '@/lib/auth/oauth-resource'
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { isCapabilityWithheldForUser } from '@/lib/permission-groups/user-scope.server'
 
 type BetterAuthAdapter = ReturnType<ReturnType<typeof drizzleAdapter>>

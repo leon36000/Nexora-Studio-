@@ -7,6 +7,8 @@ import {
 } from '@/lib/core/application/authorized-organization-use-case'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import { nexoraApiKeyOperations } from '@/lib/nexora/developer-api/application/operations'
+import { readKeyModelConfig } from '@/lib/nexora/developer-api/key-model-policy'
+import { assertKeyModelsWithinGroup } from '@/lib/nexora/developer-api/model-gate'
 import {
   insertNexoraApiKey,
   type ListedNexoraApiKey,
@@ -15,6 +17,7 @@ import {
   type NexoraApiKeySettings,
   revokeNexoraApiKey,
 } from '@/lib/nexora/developer-api/repository'
+import { routerResolver } from '@/lib/nexora/developer-api/upstream'
 import { loadActiveWorkspaceApplicationContext } from '@/lib/workspaces/application/context'
 
 async function resolveWorkspace(workspaceId: string) {
@@ -54,6 +57,11 @@ async function createKey(
   createdBy: string,
   settings: NexoraApiKeySettings
 ) {
+  const [config, resolve] = await Promise.all([
+    readKeyModelConfig({ scope, workspaceId, createdBy }),
+    routerResolver(),
+  ])
+  assertKeyModelsWithinGroup(config, settings.allowedModels, resolve)
   const { id, value } = await insertNexoraApiKey({ scope, workspaceId, createdBy, settings })
   return { key: await findListed(scope, workspaceId, id), value }
 }
@@ -66,7 +74,10 @@ async function revokeKey(
 ) {
   const revoked = await revokeNexoraApiKey({ keyId, scope, workspaceId, revokedBy })
   if (!revoked) throw new OrchestrationError('not_found', 'API key not found')
-  return { key: await findListed(scope, workspaceId, keyId) }
+  return {
+    key: await findListed(scope, workspaceId, keyId),
+    alreadyRevoked: revoked.alreadyRevoked,
+  }
 }
 
 interface WorkspaceInput {
@@ -116,14 +127,17 @@ export const revokeWorkspaceNexoraApiKey = defineAuthorizedWorkspaceUseCase({
       input.keyId,
       requirePrincipalSubjectUserId(principal)
     ),
-  projectAudit: ({ result }) => ({
-    action: AuditAction.API_KEY_REVOKED,
-    resourceType: AuditResourceType.API_KEY,
-    resourceId: result.key.id,
-    resourceName: result.key.name,
-    description: `Revoked developer API key "${result.key.name}"`,
-    metadata: auditMetadata(result.key),
-  }),
+  projectAudit: ({ result }) =>
+    result.alreadyRevoked
+      ? []
+      : {
+          action: AuditAction.API_KEY_REVOKED,
+          resourceType: AuditResourceType.API_KEY,
+          resourceId: result.key.id,
+          resourceName: result.key.name,
+          description: `Revoked developer API key "${result.key.name}"`,
+          metadata: auditMetadata(result.key),
+        },
 })
 
 interface InstanceInput {
@@ -159,12 +173,15 @@ export const revokeInstanceNexoraApiKey = defineAuthorizedOrganizationUseCase({
   operation: nexoraApiKeyOperations.revokeInstance,
   execute: ({ input, principal }: OrganizationUseCaseContext<InstanceInput & { keyId: string }>) =>
     revokeKey('instance', null, input.keyId, requirePrincipalSubjectUserId(principal)),
-  projectAudit: ({ result, input }) => ({
-    action: AuditAction.API_KEY_REVOKED,
-    resourceType: AuditResourceType.API_KEY,
-    resourceId: result.key.id,
-    resourceName: result.key.name,
-    description: `Revoked instance developer API key "${result.key.name}"`,
-    metadata: { ...auditMetadata(result.key), organizationId: input.organizationId },
-  }),
+  projectAudit: ({ result, input }) =>
+    result.alreadyRevoked
+      ? []
+      : {
+          action: AuditAction.API_KEY_REVOKED,
+          resourceType: AuditResourceType.API_KEY,
+          resourceId: result.key.id,
+          resourceName: result.key.name,
+          description: `Revoked instance developer API key "${result.key.name}"`,
+          metadata: { ...auditMetadata(result.key), organizationId: input.organizationId },
+        },
 })

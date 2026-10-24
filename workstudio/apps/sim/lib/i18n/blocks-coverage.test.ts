@@ -33,6 +33,7 @@ const CORE_BLOCK_TYPES = [
   'searxng',
   'thinking',
   'note',
+  'nexora_extract',
 ]
 
 /**

@@ -6,6 +6,7 @@
     "loadFailed": "Le journal d'audit n'a pas pu être chargé.",
     "empty": "Aucun événement pour le moment.",
     "system": "Système",
+    "noDetail": "Aucun détail enregistré",
     "loadMore": "Afficher plus",
     "loadingMore": "Chargement…",
     "columns": {

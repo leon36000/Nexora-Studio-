@@ -12,8 +12,11 @@ from api.tests.unit.use_case.factories import ProviderFactory
 PNG = "data:image/png;base64,iVBORw0KGgo="
 
 
-def _request(document, prompt: str | None = None, request_id: str = "req-1") -> ProviderRequest:
-    body = CreateOCRBody(document=document, document_annotation_prompt=prompt, model="ocr-router")
+FORMAT = {"type": "json_schema", "json_schema": {"name": "facture", "schema": {"type": "object", "properties": {"numero": {"type": "string"}}}}}
+
+
+def _request(document, prompt: str | None = None, request_id: str = "req-1", **extra) -> ProviderRequest:
+    body = CreateOCRBody(document=document, document_annotation_prompt=prompt, model="ocr-router", **extra)
     return ProviderRequest(id=request_id, endpoint=ProviderEndpoint.OCR, payload=body)
 
 
@@ -159,8 +162,31 @@ class TestOpenaiOcrAdapter:
         assert result.data.document_annotation == "Un chat roux."
         assert result.data.pages[0].markdown == "Un chat roux."
 
+    def test_should_transcribe_when_an_annotation_format_is_given(self, adapter):
+        # The prompt then guides the annotation step (a chat model), not a question to the vision model.
+        request = _request(OCRImageURLChunk(image_url=PNG), prompt="Montants en euros", document_annotation_format=FORMAT)
+        result = adapter.to_http_request(request=request)
+        assert "Markdown" in result.body["messages"][0]["content"][0]["text"]
+        assert "response_format" not in result.body and "annotation_model" not in result.body
+
+        response = HttpProviderResponse(data={"choices": [{"message": {"content": "Facture FA-12"}}]})
+        data = adapter.to_provider_response(http_response=response, request=request).data
+        assert data.document_annotation is None
+        assert data.pages[0].markdown == "Facture FA-12"
+
 
 class TestMistralOcrAdapter:
+    def test_should_forward_the_annotation_format_to_mistral(self):
+        adapter = MistralOcrAdapter(
+            provider=ProviderFactory(type=ProviderType.MISTRAL, url="https://api.mistral.ai", model_name="mistral-ocr-latest")
+        )
+        request = _request(OCRImageURLChunk(image_url=PNG), prompt="Montants en euros", document_annotation_format=FORMAT, annotation_model="glm")
+        result = adapter.to_http_request(request=request)
+        assert result.body["document_annotation_format"] == FORMAT
+        assert result.body["document_annotation_prompt"] == "Montants en euros"
+        # Mistral refuses unknown fields: Nexora's extension stays here.
+        assert "annotation_model" not in result.body
+
     def test_should_not_forward_an_annotation_prompt_without_its_format(self):
         # Nexora API has no `document_annotation_format` to forward, and Mistral refuses a prompt without it.
         adapter = MistralOcrAdapter(

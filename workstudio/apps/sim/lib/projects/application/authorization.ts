@@ -13,7 +13,8 @@ import { PrincipalKindAuthorizationError } from '@/lib/core/application/workspac
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import { textArrayLiteral } from '@/lib/db/arrays'
 import type { DbTransaction } from '@/lib/db/types'
-import { CAPABILITY_RULES, refuseCapability } from '@/lib/permission-groups/capabilities'
+import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { acquirePermissionGroupOrgLock } from '@/lib/permission-groups/locks'
 import { resolveVerifiedUserAccessControlContext } from '@/lib/permission-groups/resolve.server'
 import {

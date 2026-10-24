@@ -7,6 +7,59 @@ export interface AgentRunUsage {
   completionTokens: number
 }
 
+/** The part of an execution result its usage is read from: the block logs. */
+interface RunLogs {
+  logs?: readonly { output?: unknown }[]
+}
+
+function tokensOf(output: unknown): AgentRunUsage {
+  if (!isRecordLike(output) || !isRecordLike(output.tokens)) {
+    return { promptTokens: 0, completionTokens: 0 }
+  }
+  const { tokens } = output
+  const read = (...values: unknown[]) => {
+    const value = values.find((entry) => typeof entry === 'number' && Number.isFinite(entry))
+    return typeof value === 'number' ? Math.max(0, Math.round(value)) : 0
+  }
+  return {
+    promptTokens: read(tokens.input, tokens.prompt),
+    completionTokens: read(tokens.output, tokens.completion),
+  }
+}
+
+/** Tokens of every model call of a run, read from its block logs. */
+function runUsage(result: RunLogs | null): AgentRunUsage {
+  const usage = { promptTokens: 0, completionTokens: 0 }
+  for (const log of result?.logs ?? []) {
+    const used = tokensOf(log.output)
+    usage.promptTokens += used.promptTokens
+    usage.completionTokens += used.completionTokens
+  }
+  return usage
+}
+
+/**
+ * Reads a run's usage once the run has settled, and records it once. A stream the caller cancels
+ * mid-run asks before the run ends: it waits for the aborted run, whose logs hold the tokens
+ * already spent, rather than recording nothing.
+ */
+export function settledRunUsage(
+  run: Promise<RunLogs | null>,
+  record: (usage: AgentRunUsage) => Promise<void>
+): () => Promise<AgentRunUsage> {
+  let settled: Promise<AgentRunUsage> | null = null
+  return () => {
+    settled ??= run
+      .catch(() => null)
+      .then(async (result) => {
+        const usage = runUsage(result)
+        await record(usage)
+        return usage
+      })
+    return settled
+  }
+}
+
 const HISTORY_HEADING = 'Échanges précédents :'
 const MESSAGE_HEADING = 'Message :'
 const ROLE_LABELS: Record<string, string> = { user: 'Utilisateur', assistant: 'Assistant' }

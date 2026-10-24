@@ -75,6 +75,12 @@ export const gatewayErrors = {
         ? `Le modèle « ${model} » n’est pas autorisé pour cette clé. Modèles autorisés : ${allowed.join(', ')}.`
         : `Le modèle « ${model} » n’est pas autorisé pour cette clé.`
     ),
+  modelNotAllowedByGroup: (model: string) =>
+    new GatewayError(
+      403,
+      'model_not_allowed',
+      `Le modèle « ${model} » n’est pas autorisé par le groupe d’accès de la personne qui a créé cette clé (Réglages › Groupes d’accès).`
+    ),
   agentsNotAllowed: (model: string) =>
     new GatewayError(
       403,
@@ -118,6 +124,20 @@ export const gatewayErrors = {
     ),
   modelNotFound: (model: string) =>
     new GatewayError(404, 'model_not_found', `Modèle « ${model} » introuvable sur cette instance.`),
+  fileTooLarge: (megabytes: number) =>
+    new GatewayError(
+      413,
+      'file_too_large',
+      `Fichier trop volumineux : ${megabytes} Mo au plus par fichier audio. Découpez l’enregistrement.`,
+      'invalid_request_error'
+    ),
+  requestTooLarge: (megabytes: number) =>
+    new GatewayError(
+      413,
+      'request_too_large',
+      `Requête trop volumineuse : ${megabytes} Mo au plus.`,
+      'invalid_request_error'
+    ),
   invalidRequest: (message: string, code = 'invalid_request') =>
     new GatewayError(400, code, message),
   notFound: (path: string) =>

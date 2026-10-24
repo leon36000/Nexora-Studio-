@@ -29,7 +29,7 @@ vi.mock('@/lib/posthog/server', () => posthogServerMock)
 vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
 vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { DELETE, PUT } from '@/app/api/workspaces/[id]/api-keys/[keyId]/route'
 

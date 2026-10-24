@@ -1,12 +1,13 @@
-from typing import assert_never
+from typing import NoReturn, assert_never
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Security
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
-from api.dependencies import create_ocr_use_case_factory
+from api.dependencies import annotate_document_use_case_factory, create_ocr_use_case_factory
 from api.domain.key.entities import Key
 from api.domain.model.errors import StatusCodeModelError, TooBusyModelError, UnknownModelError
+from api.domain.ocr.entities import OCR
 from api.domain.provider.errors import (
     NoAvailableProviderError,
     ProviderAdapterValidationRequestError,
@@ -28,7 +29,16 @@ from api.infrastructure.fastapi.endpoints.exceptions import (
 )
 from api.infrastructure.fastapi.routes import EndpointRoute, RouterName
 from api.infrastructure.fastapi.schemas.ocr import CreateOCRBody, OCRResponse
-from api.use_cases.ocr import CreateOCRCommand, CreateOCRUseCase, CreateOCRUseCaseSuccess
+from api.use_cases.ocr import (
+    DEFAULT_ANNOTATION_MODEL,
+    AnnotateDocumentCommand,
+    AnnotateDocumentUseCase,
+    AnnotationFailed,
+    AnnotationSucceeded,
+    CreateOCRCommand,
+    CreateOCRUseCase,
+    CreateOCRUseCaseSuccess,
+)
 
 router = APIRouter(prefix="/v1", tags=[RouterName.OCR.upper()])
 
@@ -50,6 +60,7 @@ router = APIRouter(prefix="/v1", tags=[RouterName.OCR.upper()])
 async def create_ocr(
     body: CreateOCRBody = Body(description="The OCR creation request."),
     create_ocr_use_case: CreateOCRUseCase = Depends(create_ocr_use_case_factory),
+    annotate_document_use_case: AnnotateDocumentUseCase = Depends(annotate_document_use_case_factory),
     authenticated_user: AuthenticatedUserView = Depends(get_authenticated_user),
     autenticated_key: Key = Depends(get_authenticated_key),
 ) -> JSONResponse:
@@ -58,10 +69,47 @@ async def create_ocr(
     """
     command = CreateOCRCommand(payload=body.model_dump(), authenticated_user=authenticated_user, authenticated_key=autenticated_key)
     result = await create_ocr_use_case.execute(command)
+    if not isinstance(result, CreateOCRUseCaseSuccess):
+        _raise_for(result, model=body.model)
+    data, headers = result.data, result.headers
 
+    # Nexora: an OCR model that does not annotate itself (a local vision model) hands the text to a chat model.
+    if body.document_annotation_format is not None and data.document_annotation is None:
+        annotation_model = body.annotation_model or DEFAULT_ANNOTATION_MODEL
+        annotation = await annotate_document_use_case.execute(
+            AnnotateDocumentCommand(
+                markdown=_document_text(data),
+                response_format=body.document_annotation_format.model_dump(),
+                prompt=body.document_annotation_prompt,
+                model=annotation_model,
+                authenticated_user=authenticated_user,
+                authenticated_key=autenticated_key,
+            )
+        )
+        match annotation:
+            case AnnotationSucceeded(annotation=text):
+                data.document_annotation = text
+            case AnnotationFailed(reason=reason):
+                data.document_annotation_error = reason
+            case error:
+                _raise_for(error, model=annotation_model)
+
+    return JSONResponse(content=OCRResponse.model_validate(data.model_dump()).model_dump(), status_code=200, headers=headers)
+
+
+def _document_text(data: OCR) -> str:
+    """The pages' Markdown, each table put back in place of its placeholder."""
+    texts = []
+    for page in data.pages:
+        text = page.markdown or ""
+        for table in page.tables:
+            text = text.replace(f"[{table.id}]({table.id})", table.content)
+        texts.append(text)
+    return "\n\n".join(text for text in texts if text.strip())
+
+
+def _raise_for(result, model: str) -> NoReturn:
     match result:
-        case CreateOCRUseCaseSuccess(data=data, headers=headers):
-            return JSONResponse(content=OCRResponse.model_validate(data.model_dump()).model_dump(), status_code=200, headers=headers)
         case NoAvailableProviderError():
             raise ModelIsTooBusyExceptionHTTPException()
         case ProviderAdapterValidationRequestError(errors=errors):
@@ -72,15 +120,11 @@ async def create_ocr(
             raise UnsupportedProviderEndpointHTTPException(endpoint=endpoint, provider_type=provider_type)
         case RouterRateLimitExceededError(id=_, limit_type=limit_type, headers=headers):
             raise RateLimitExceededHTTPException(limit_type=limit_type, headers=headers)
-        case RouterNotFoundError():
-            raise ModelNotFoundHTTPException(name=body.model)
-        case RouterHasNoProvidersError():
-            raise ModelNotFoundHTTPException(name=body.model)
+        case RouterNotFoundError() | RouterHasNoProvidersError() | UserHasNoAccessToRouterError():
+            raise ModelNotFoundHTTPException(name=model)
         case RouterHasWrongTypeError(actual_type=actual_type, expected_type=expected_type):
             raise WrongModelTypeHTTPException(expected_type=expected_type, actual_type=actual_type)
-        case UserHasNoAccessToRouterError():
-            raise ModelNotFoundHTTPException(name=body.model)
-        case TooBusyModelError(detail=detail):
+        case TooBusyModelError():
             raise ModelIsTooBusyExceptionHTTPException()
         case StatusCodeModelError(status_code=status_code, detail=detail):
             raise HTTPException(status_code=status_code, detail=detail)

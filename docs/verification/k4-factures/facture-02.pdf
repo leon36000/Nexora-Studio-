@@ -1,0 +1,85 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 2084 >>
+stream
+BT /F2 16 Tf 50.0 790.0 Td (Boulangerie Martin) Tj ET
+BT /F1 10 Tf 50.0 772.0 Td (3 place du Marché, 38000 Grenoble) Tj ET
+BT /F1 10 Tf 50.0 758.0 Td (SIRET 812 345 678 00021 - contact@exemple.fr) Tj ET
+BT /F2 24 Tf 360.0 790.0 Td (FACTURE) Tj ET
+BT /F1 11 Tf 360.0 766.0 Td (Facture n° F2026/0087) Tj ET
+BT /F1 11 Tf 360.0 750.0 Td (Date : 5 février 2026) Tj ET
+BT /F2 10 Tf 360.0 700.0 Td (Client :) Tj ET
+BT /F1 10 Tf 360.0 686.0 Td (PME Démo SAS) Tj ET
+BT /F1 10 Tf 360.0 672.0 Td (8 avenue des Tilleuls) Tj ET
+BT /F1 10 Tf 360.0 658.0 Td (69007 Lyon) Tj ET
+50 598 250 22 re S
+BT /F2 9.5 Tf 55.0 605.0 Td (Désignation) Tj ET
+300 598 60 22 re S
+BT /F2 9.5 Tf 339.8 605.0 Td (Qté) Tj ET
+360 598 90 22 re S
+BT /F2 9.5 Tf 368.0 605.0 Td (Prix unitaire HT) Tj ET
+450 598 95 22 re S
+BT /F2 9.5 Tf 501.0 605.0 Td (Total HT) Tj ET
+50 576 250 22 re S
+BT /F1 9.5 Tf 55.0 583.0 Td (Plateau viennoiseries \(lot de 40\)) Tj ET
+300 576 60 22 re S
+BT /F1 9.5 Tf 349.2 583.0 Td (5) Tj ET
+360 576 90 22 re S
+BT /F1 9.5 Tf 420.2 583.0 Td (45,00) Tj ET
+450 576 95 22 re S
+BT /F1 9.5 Tf 510.5 583.0 Td (225,00) Tj ET
+50 554 250 22 re S
+BT /F1 9.5 Tf 55.0 561.0 Td (Pains spéciaux) Tj ET
+300 554 60 22 re S
+BT /F1 9.5 Tf 344.5 561.0 Td (31) Tj ET
+360 554 90 22 re S
+BT /F1 9.5 Tf 425.0 561.0 Td (3,00) Tj ET
+450 554 95 22 re S
+BT /F1 9.5 Tf 515.2 561.0 Td (93,00) Tj ET
+50 532 250 22 re S
+BT /F1 9.5 Tf 55.0 539.0 Td (Livraison) Tj ET
+300 532 60 22 re S
+BT /F1 9.5 Tf 349.2 539.0 Td (1) Tj ET
+360 532 90 22 re S
+BT /F1 9.5 Tf 425.0 539.0 Td (0,18) Tj ET
+450 532 95 22 re S
+BT /F1 9.5 Tf 520.0 539.0 Td (0,18) Tj ET
+BT /F1 11 Tf 330.0 502.0 Td (Montant HT) Tj ET
+BT /F1 11 Tf 496.0 502.0 Td (318,18 €) Tj ET
+BT /F1 11 Tf 330.0 484.0 Td (TVA 10 %) Tj ET
+BT /F1 11 Tf 501.5 484.0 Td (31,82 €) Tj ET
+BT /F2 11 Tf 330.0 466.0 Td (Net à payer) Tj ET
+BT /F2 11 Tf 496.0 466.0 Td (350,00 €) Tj ET
+BT /F1 9 Tf 50.0 120.0 Td (Conditions de paiement : 30 jours fin de mois. Pénalités de retard : 3 fois le taux légal.) Tj ET
+BT /F1 9 Tf 50.0 106.0 Td (IBAN FR76 3000 6000 0112 3456 7890 189 - BIC AGRIFRPP) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000002387 00000 n 
+0000002484 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2586
+%%EOF

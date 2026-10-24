@@ -9,6 +9,7 @@ import { FILE_DELIVERY_CSP_PATH_PATTERN, getMainCSPPolicy } from '@/lib/core/sec
 import { HttpError } from '@/lib/core/utils/http-error'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { MAX_CALL_CHAIN_DEPTH, parseCallChain, SIM_VIA_HEADER } from '@/lib/execution/call-chain'
+import { localeOfRequest, runWithRequestLocale } from '@/lib/i18n/request-locale.server'
 import { withPermissionGroupScope } from '@/lib/permission-groups/request-scope.server'
 
 const fileDeliveryPath = new RegExp(`^${FILE_DELIVERY_CSP_PATH_PATTERN}$`)
@@ -181,7 +182,9 @@ export function withRouteHandler<T>(
     return runWithRequestContext(requestContext, async () => {
       let response: NextResponse | Response
       try {
-        response = await withPermissionGroupScope(() => handler(request, context))
+        response = await runWithRequestLocale(localeOfRequest(request), () =>
+          withPermissionGroupScope(() => handler(request, context))
+        )
       } catch (error) {
         const duration = Date.now() - startTime
         /** A query failure names its bound values in the message; they are user data. */

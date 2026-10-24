@@ -236,6 +236,17 @@ describe('proxy matcher', () => {
     expect(matches('/api/v1/files')).toBe(false)
   })
 
+  it('leaves the OpenAI-compatible developer API alone: no page rules, no 10 MB body buffering', () => {
+    expect(matches('/v1')).toBe(false)
+    expect(matches('/v1/models')).toBe(false)
+    expect(matches('/v1/chat/completions')).toBe(false)
+    expect(matches('/v1/audio/transcriptions')).toBe(false)
+  })
+
+  it('still runs for pages whose name only starts like the developer API', () => {
+    expect(matches('/v1beta')).toBe(true)
+  })
+
   it('runs for the marketing documents, so the indexing policy reaches them', () => {
     expect(matches('/index.md')).toBe(true)
     expect(matches('/llms.txt')).toBe(true)

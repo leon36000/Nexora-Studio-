@@ -43,6 +43,66 @@ Dans l'édition Nexora, ces blocs démarrent sur le fournisseur **Nexora** : pas
 - Avec Mistral OCR, le PDF est lu d'un seul tenant. Un modèle de vision ne lit que des images : Nexora lui envoie alors le PDF page par page, 50 pages au plus par exécution.
 - Les autres fournisseurs (OpenAI, Deepgram…) restent disponibles avec leur propre clé API.
 
+## Extraire des données
+
+Nexora lit une facture, un devis, un bon de commande ou une note de frais et en renvoie les champs (numéro, date, fournisseur, montants…) en JSON vérifié, prêt à ranger dans une table. Il faut un modèle **Vision / OCR** (il lit les scans et les images) et un modèle de **discussion** (il remplit les champs ; le modèle par défaut de l'instance si vous n'en choisissez pas d'autre).
+
+### Depuis l'accueil
+
+Dans **Capturer**, la carte **Extraire des données** (visible quand les deux modèles existent) demande :
+- le **type de document** : Facture, Devis, Bon de commande ou Note de frais ;
+- **Ranger chaque document dans une table** (activé par défaut) : Nexora crée la table « Factures » (ou « Devis », « Bons_de_commande », « Notes_de_frais »), avec une colonne par champ plus `a_verifier` et `motifs`. Si une table de ce nom a déjà ces colonnes, elle est réutilisée ; sinon une nouvelle table est créée (« Factures_2 »…).
+
+Le workflow créé enchaîne **Start** (un fichier `document`) → **Extraire des données** → **Table** (insérer une ligne). Lancez-le avec un PDF ou une image : une ligne s'ajoute à la table par document.
+
+### Le bloc « Extraire des données »
+
+| Réglage | Ce qu'il fait |
+|---|---|
+| **Document** | un PDF (numérique ou scanné) ou une image (PNG, JPEG, WebP), 50 Mo au plus |
+| **Champs à extraire** | un modèle prêt, ou **Mes propres champs** : une ligne par champ, avec son **nom** (lettres, chiffres et `_`, pour devenir une colonne de table), son **type** (texte, nombre, booléen, objet, liste) et sa **description** (ce que le modèle doit chercher ; c'est elle qui guide l'extraction). La **valeur** sert d'exemple facultatif. Pour une date, écrivez « date au format AAAA-MM-JJ » dans la description |
+| **Consignes** | facultatif : ce qu'il faut savoir de ces documents (« les montants sont en euros », « le fournisseur est l'émetteur, pas le client ») |
+| **Modèle de lecture**, **Modèle d'extraction**, **Pages** | en mode avancé : un autre modèle Vision / OCR ou de discussion de Réglages › Modèles, et les pages à lire (à partir de 0) |
+
+Les modèles prêts :
+
+| Modèle | Champs (les obligatoires en gras) |
+|---|---|
+| Facture | **numero**, **date**, **fournisseur**, client, **total_ht**, **total_tva**, **total_ttc**, date_echeance, devise |
+| Devis | **numero**, **date**, **fournisseur**, client, objet, **total_ht**, total_tva, total_ttc, date_validite |
+| Bon de commande | **numero**, **date**, **acheteur**, **fournisseur**, total_ht, total_ttc, date_livraison, adresse_livraison |
+| Note de frais | **date**, **commercant**, **categorie**, **montant_ttc**, montant_tva, devise, moyen_paiement |
+
+Le bloc renvoie :
+- `data` : un champ par clé, `null` quand le document ne le donne pas ; les montants en nombres (« 1 234,56 € » devient `1234.56`), les dates en `AAAA-MM-JJ` (« 15/03/2026 », « 15 mars 2026 ») ;
+- `toVerify` (« à vérifier ») : vrai quand un champ obligatoire manque, qu'une valeur est illisible (un montant qui n'est pas un nombre, une date impossible), que HT + TVA ne fait pas le TTC (à 2 centimes près) ou que le modèle n'a pas répondu de données lisibles ; `issues` en donne les raisons. Le bloc **ne s'arrête pas** dans ces cas : le document est rangé, marqué à vérifier, pour qu'une personne le relise ;
+- `row` : `data` plus `a_verifier` et `motifs`, à donner tel quel à un bloc Table (« insérer une ligne ») ;
+- `markdown` : le document tel qu'il a été lu, tableaux compris.
+
+### Comment le document est lu
+
+- Un **PDF numérique** (avec du texte sélectionnable) est lu **par Nexora API elle-même**, sans modèle : texte dans l'ordre de lecture, titres, et **tableaux à filets restitués en tableaux Markdown**. C'est immédiat, et rien ne part vers un modèle à cette étape.
+- Une **image** ou un **PDF scanné** est lu page par page par le modèle Vision / OCR (environ une minute par page avec `qwen2.5vl:3b` sur un serveur sans carte graphique), **10 pages scannées au plus** par extraction : au-delà, choisissez les pages (champ **Pages**).
+- Le texte lu est ensuite donné au modèle de discussion avec le schéma des champs (format JSON imposé quand le serveur de modèles le permet) ; la réflexion d'un modèle à raisonnement est écartée. Avec GLM 5.3, comptez quelques secondes ; avec `qwen2.5:7b` sur CPU, 15 à 30 secondes par document.
+
+Un tableau sans filets (sans bordures tracées) n'est pas reconnu comme tableau : son texte reste lu ligne à ligne, ce qui suffit en général à l'extraction.
+
+### Par l'API de Nexora API
+
+`POST /v1/ocr` de Nexora API accepte, comme celle de Mistral, `document_annotation_format` (`{"type": "json_schema", "json_schema": {"name": …, "schema": {…}}}`) et `document_annotation_prompt`, et renvoie le JSON dans `document_annotation` (une chaîne). Sont aussi acceptés `table_format` (`markdown` ou `html` : tableaux à part dans `pages[].tables`, avec un renvoi `[tbl-0.md](tbl-0.md)` dans le Markdown) et `pages` (`[0, 2]` ou `"0-2"`). Extensions Nexora : `annotation_model` (le modèle de discussion qui remplit le schéma, `nexora-default` par défaut) et, en réponse, `document_annotation_error` quand le modèle n'a pas rendu de JSON. Avec un modèle Mistral OCR, l'annotation est faite par Mistral.
+
+```bash
+curl -s http://127.0.0.1:8000/v1/ocr -H "Authorization: Bearer $CLE" -H 'Content-Type: application/json' -d '{
+  "model": "qwen2.5vl:3b",
+  "document": {"type": "document_url", "document_url": "data:application/pdf;base64,…"},
+  "document_annotation_format": {"type": "json_schema", "json_schema": {"name": "facture", "schema": {
+    "type": "object", "properties": {"numero": {"type": ["string", "null"]}, "total_ttc": {"type": ["number", "null"]}},
+    "required": ["numero", "total_ttc"], "additionalProperties": false}}}
+}'
+```
+
+Cette route n'est pas encore relayée par l'API développeur de WorkStudio (`<instance>/v1`, clés `sk-nexora-…`) : elle s'appelle sur Nexora API, avec une clé de Nexora API.
+
 ## Dans vos bases de connaissances
 
 Une base accepte, en plus des documents habituels :
@@ -82,6 +142,7 @@ Les passages d'une base sont indexés avec un modèle d'embeddings (`bge-m3` par
 |---|---|
 | Bloc Analyse de document avec un modèle de vision (PDF lu page par page) | 50 pages par exécution : au-delà, le bloc refuse ; choisissez des pages (champ « Pages ») ou ajoutez le document à une base de connaissances |
 | Fichier envoyé au bloc Analyse de document | 50 Mo |
+| Bloc Extraire des données | 10 pages scannées par extraction (un PDF numérique n'a pas cette limite) ; 100 champs |
 | Enregistrement (blocs et bases) | transcrit par morceaux (10 minutes dans un bloc, 3 minutes dans une base) ; au-delà de **3 heures**, il est refusé : découpez le fichier |
 | Page ou morceau lu dans une base | doit tenir dans une étape de traitement (environ 8 minutes) ; sinon le document échoue avec « Page (ou morceau) trop long pour ce serveur » |
 | Image envoyée au modèle | réduite à 1 568 pixels de côté et 5 Mo |

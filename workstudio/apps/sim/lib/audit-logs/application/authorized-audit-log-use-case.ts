@@ -22,7 +22,7 @@ import {
   OrchestrationError,
   type OrchestrationRequestContext,
 } from '@/lib/core/orchestration/types'
-import { refuseCapability } from '@/lib/permission-groups/capabilities'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { isCapabilityWithheldForUser } from '@/lib/permission-groups/user-scope.server'
 import { resolveActiveWorkspaceApplicationContext } from '@/lib/workspaces/application/context'
 

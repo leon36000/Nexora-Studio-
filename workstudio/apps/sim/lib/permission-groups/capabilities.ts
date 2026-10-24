@@ -1,13 +1,8 @@
-import { createTranslator } from 'next-intl'
 import type { ForbiddenDetailCode } from '@/lib/core/application/forbidden'
-import { DEFAULT_LOCALE } from '@/lib/i18n/config'
-import { PermissionGroupCapabilityError } from '@/lib/permission-groups/capability-error'
 import type {
   PermissionGroupConfig,
   PermissionGroupConfigKey,
 } from '@/lib/permission-groups/fields'
-import enErrors from '@/messages/en/errors.json'
-import frErrors from '@/messages/fr/errors.json'
 
 /**
  * Every capability a permission group can withhold.
@@ -102,48 +97,6 @@ export interface ParameterizedCapabilityRule extends CapabilityRuleBase {
 }
 
 export type CapabilityRule = StaticCapabilityRule | ParameterizedCapabilityRule
-
-let refusalTranslator: ReturnType<typeof createRefusalTranslator> | undefined
-
-/** Only the small `errors` zone is loaded: client modules import this file for its types. */
-function createRefusalTranslator() {
-  const errors = DEFAULT_LOCALE === 'en' ? enErrors : frErrors
-  return createTranslator({ locale: DEFAULT_LOCALE, messages: { errors }, namespace: 'errors' })
-}
-
-/**
- * The one sentence every capability refusal uses, wherever it is raised.
- *
- * Shared so the funnel, a raw route gating inline, and a parameterized rule
- * asserted from a use case cannot word the same refusal three ways. Each rule's
- * `describe` is written to read as this sentence's subject.
- *
- * Nexora edition: raised far from any request (use cases, repositories), so it is
- * worded in the instance default language, like `FeatureDisabledError` and the
- * e-mails. The English messages keep the original sentence and `describe` subjects.
- */
-export function capabilityRefusal(capability: PermissionGroupCapability): string {
-  refusalTranslator ??= createRefusalTranslator()
-  const t = refusalTranslator
-  return t('capabilityRefusal', {
-    subject: t(`capabilities.${capability.replaceAll('.', '_')}` as 'capabilities.workflows_edit'),
-  })
-}
-
-/**
- * Throws {@link capabilityRefusal} as the error the surfaces project.
- *
- * Accepts any capability, static or parameterized, because a parameterized one
- * is refused from a call site rather than by the funnel and still has to read
- * identically.
- */
-export function refuseCapability(capability: PermissionGroupCapability): never {
-  throw new PermissionGroupCapabilityError(
-    capability,
-    CAPABILITY_RULES[capability].detailCode,
-    capabilityRefusal(capability)
-  )
-}
 
 /** An allowlist denies a member when it is set and does not name it; `null` names everything. */
 function allowlistDenies(allowed: readonly string[] | null, member: string): boolean {

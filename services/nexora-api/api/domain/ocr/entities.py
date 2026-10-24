@@ -26,6 +26,12 @@ class OCRImageURLChunk(BaseModel):
 class CreateOCRBody(ForwardablePayload):
     document: OCRDocumentURLChunk | OCRImageURLChunk
     document_annotation_prompt: str | None = None
+    # Mistral's response format: {"type": "json_schema", "json_schema": {"name", "schema", ...}}.
+    document_annotation_format: dict | None = None
+    table_format: Literal["markdown", "html"] | None = None
+    pages: list[int] | str | None = None
+    # Nexora: the chat model that fills `document_annotation_format` when the OCR model does not.
+    annotation_model: str | None = None
     model: str
 
     def get_prompts(self) -> list[str]:
@@ -53,9 +59,16 @@ class OCRImageObject(BaseModel):
     top_left_y: int | None = None
 
 
+class OCRTableObject(BaseModel):
+    id: str
+    content: str
+    format: Literal["markdown", "html"]
+
+
 class OCRPageObject(BaseModel):
     dimensions: OCRPageDimensions | None = None
     images: list[OCRImageObject]
+    tables: list[OCRTableObject] = []
     index: int
     markdown: str | None = None
     # Nexora: the model stopped at its answer length limit; the page text may be cut.
@@ -66,6 +79,8 @@ class OCR(ProviderJsonResponse):
     id: str
     model: str
     document_annotation: str | None = None
+    # Nexora: why `document_annotation` stayed empty although a format was asked.
+    document_annotation_error: str | None = None
     pages: list[OCRPageObject]
     usage: Annotated[Usage, Field(default_factory=Usage)]
     usage_info: OCRUsage | None = None

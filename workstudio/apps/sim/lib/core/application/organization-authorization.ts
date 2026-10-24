@@ -18,8 +18,8 @@ import type { OrganizationOperation } from '@/lib/core/application/organization-
 import { PrincipalKindAuthorizationError } from '@/lib/core/application/workspace-authorization'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import type { DbOrTx } from '@/lib/db/types'
-import { refuseCapability } from '@/lib/permission-groups/capabilities'
 import { capabilityDeniedBy } from '@/lib/permission-groups/capability-assertions'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { getUserPermissionConfigForOrganization } from '@/lib/permission-groups/resolve.server'
 
 export class OrganizationMembershipNotFoundError extends OrchestrationError {

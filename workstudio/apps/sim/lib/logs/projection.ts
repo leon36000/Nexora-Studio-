@@ -1,8 +1,8 @@
 import type { Principal } from '@sim/auth/principal'
 import { capabilityGovernedPrincipalUserId } from '@/lib/core/application'
 import { withheldExecutionData, withheldSpendData } from '@/lib/logs/fetch-log-detail'
-import { refuseCapability } from '@/lib/permission-groups/capabilities'
 import { capabilityDeniedBy } from '@/lib/permission-groups/capability-assertions'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { resolvePermissionGroupConfig } from '@/lib/permission-groups/config-scope.server'
 
 /**

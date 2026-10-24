@@ -6,6 +6,7 @@ import {
   agentRefusal,
   authenticationRefusal,
   capRefusal,
+  estimateCallTokens,
   type GatewayKey,
   modelRefusal,
   readBearerKey,
@@ -19,6 +20,7 @@ function key(overrides: Partial<GatewayKey> = {}): GatewayKey {
     name: 'n8n',
     scope: 'workspace',
     workspaceId: 'ws-1',
+    createdBy: 'user-1',
     allowedModels: null,
     allowAgents: true,
     monthlyTokenCap: null,
@@ -162,5 +164,35 @@ describe('capRefusal', () => {
       type: 'insufficient_quota',
     })
     expect(refusal?.message).toContain('Plafond mensuel')
+  })
+})
+
+describe("estimateCallTokens (what a call reserves of its key's month)", () => {
+  it('counts the prompt at four characters a token plus a default answer', () => {
+    expect(estimateCallTokens(400, undefined)).toEqual({
+      promptTokens: 100,
+      completionTokens: 1024,
+    })
+  })
+
+  it('reserves the answer the caller asked for', () => {
+    expect(estimateCallTokens(4, 50)).toEqual({ promptTokens: 1, completionTokens: 50 })
+  })
+
+  it('bounds a huge max_tokens so one call cannot reserve the whole month', () => {
+    expect(estimateCallTokens(0, 1_000_000).completionTokens).toBe(8192)
+  })
+
+  it('falls back to the default answer for a max_tokens that is not a positive number', () => {
+    for (const value of [0, -5, Number.NaN, '100', null]) {
+      expect(estimateCallTokens(0, value).completionTokens).toBe(1024)
+    }
+  })
+
+  it('reserves no answer for a call that only reads (embeddings)', () => {
+    expect(estimateCallTokens(40, 0, { answers: false })).toEqual({
+      promptTokens: 10,
+      completionTokens: 0,
+    })
   })
 })

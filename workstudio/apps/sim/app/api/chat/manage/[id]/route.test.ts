@@ -61,7 +61,7 @@ vi.mock('@/lib/workflows/orchestration', () => workflowsOrchestrationMock)
 vi.mock('@/lib/workflows/deployment-status', () => workflowDeploymentStatusMock)
 vi.mock('@/ee/access-control/utils/permission-check', () => permissionCheckMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { GET, PATCH } from '@/app/api/chat/manage/[id]/route'
 
 const { mockGetWorkflowDeploymentSummary, mockPerformFullDeploy, mockPerformChatUndeploy } =

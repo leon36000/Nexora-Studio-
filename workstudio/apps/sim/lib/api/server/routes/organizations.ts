@@ -9,7 +9,8 @@ import { OrganizationMembershipNotFoundError } from '@/lib/core/application/orga
 import { isRetryableTransactionError } from '@/lib/db/transaction'
 import { InvitationNotPendingError } from '@/lib/invitations/errors'
 import { WorkspaceInvitationError } from '@/lib/invitations/workspace-invitations'
-import { CAPABILITY_RULES, capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { v2CaughtOrchestrationError, v2Error } from '@/app/api/v2/lib/response'
 import { InvitationsNotAllowedError } from '@/ee/access-control/utils/permission-check'
 

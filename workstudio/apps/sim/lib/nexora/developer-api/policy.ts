@@ -10,6 +10,8 @@ export interface GatewayKey {
   name: string
   scope: 'workspace' | 'instance'
   workspaceId: string | null
+  /** Who created the key (gone when that account was deleted): a key never outranks its creator. */
+  createdBy: string | null
   /** Nexora API model names (aliases allowed); `null` for every model. */
   allowedModels: string[] | null
   allowAgents: boolean
@@ -100,4 +102,28 @@ export function agentRefusal(key: GatewayKey, model = 'agent'): GatewayError | n
 export function capRefusal(key: GatewayKey, monthTokens: number): GatewayError | null {
   if (key.monthlyTokenCap === null || monthTokens < key.monthlyTokenCap) return null
   return gatewayErrors.monthlyCapReached(key.monthlyTokenCap)
+}
+
+const CHARACTERS_PER_TOKEN = 4
+/** What a call reserves for its answer when it does not say (`max_tokens`). */
+const DEFAULT_ANSWER_RESERVE = 1_024
+/** The most a call reserves for its answer, whatever `max_tokens` it sends. */
+const MAX_ANSWER_RESERVE = 8_192
+
+/**
+ * What a call reserves of its key's month before it runs, settled afterwards with what it used:
+ * its prompt at four characters a token, and its answer (`max_tokens`, bounded).
+ */
+export function estimateCallTokens(
+  promptCharacters: number,
+  maxTokens: unknown,
+  { answers = true }: { answers?: boolean } = {}
+): { promptTokens: number; completionTokens: number } {
+  const promptTokens = Math.ceil(Math.max(0, promptCharacters) / CHARACTERS_PER_TOKEN)
+  if (!answers) return { promptTokens, completionTokens: 0 }
+  const asked =
+    typeof maxTokens === 'number' && Number.isFinite(maxTokens) && maxTokens > 0
+      ? Math.ceil(maxTokens)
+      : DEFAULT_ANSWER_RESERVE
+  return { promptTokens, completionTokens: Math.min(asked, MAX_ANSWER_RESERVE) }
 }

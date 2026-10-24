@@ -101,11 +101,23 @@ export function mergeModelCard(
   return { ...toRecord(metadata), [METADATA_KEY]: cards }
 }
 
-/** A bare service name (`http://whisper:8000`): another container of the instance itself. */
+/**
+ * The product's own compose services (`deploy/compose.yml`) a model URL may name. Any other
+ * host, dotless or not (a LAN machine, `localhost`, a developer's container), may lead off the
+ * server.
+ */
+const INSTANCE_MODEL_SERVICES: ReadonlySet<string> = new Set([
+  'whisper',
+  'ollama',
+  'nexora-api',
+  'searxng',
+])
+
+/** A service of the instance itself by its compose name (`http://whisper:8000`). */
 function isInstanceService(url: string | null | undefined): boolean {
   if (!url) return false
   try {
-    return !new URL(url).hostname.includes('.')
+    return INSTANCE_MODEL_SERVICES.has(new URL(url).hostname.toLowerCase())
   } catch {
     return false
   }
@@ -114,8 +126,8 @@ function isInstanceService(url: string | null | undefined): boolean {
 /**
  * A model's card as the settings page shows it: a model on the bundled Ollama runs on this
  * server, Mistral AI hosts in the EU, and an OpenAI-compatible service is off the instance until
- * an administrator declares otherwise — unless it is a bare service name of the instance itself
- * (the bundled transcription service). A tunnel through `host.docker.internal` stays off the
+ * an administrator declares otherwise — unless it is a bundled service of the instance by its
+ * compose name (the transcription service). A tunnel through `host.docker.internal` stays off the
  * instance: it may lead anywhere.
  */
 export function resolveModelCard(

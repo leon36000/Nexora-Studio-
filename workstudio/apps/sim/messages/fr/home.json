@@ -24,6 +24,32 @@
         "description": "Transcrit un fichier audio ou vidéo avec un modèle de transcription de l’instance."
       },
       "noModel": "Pour lire des documents scannés ou transcrire des enregistrements, ajoutez un modèle Vision / OCR ou Transcription dans <link>Réglages › Modèles</link>.",
+      "extraction": {
+        "card": "Extraire des données",
+        "names": {
+          "invoice": "Extraction de factures",
+          "quote": "Extraction de devis",
+          "purchase_order": "Extraction de bons de commande",
+          "expense_report": "Extraction de notes de frais"
+        },
+        "description": "Lit chaque document avec les modèles de l’instance et en extrait les champs vérifiés.",
+        "descriptionWithTable": "Lit chaque document avec les modèles de l’instance et range ses champs vérifiés dans la table « {table} ».",
+        "modal": {
+          "title": "Extraire des données",
+          "template": "Type de document",
+          "templates": {
+            "invoice": "Facture",
+            "quote": "Devis",
+            "purchase_order": "Bon de commande",
+            "expense_report": "Note de frais"
+          },
+          "saveToTable": "Ranger chaque document dans une table",
+          "tableHint": "Table « {name} » : une colonne par champ, plus « a_verifier » et « motifs ».",
+          "create": "Créer le workflow",
+          "creating": "Création…",
+          "tableFailed": "La table n’a pas pu être créée."
+        }
+      },
       "createFailed": "Le workflow n’a pas pu être créé."
     },
     "quickStarts": {

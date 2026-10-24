@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import {
   CAPABILITY_RULES,
-  capabilityRefusal,
   type PermissionGroupCapability,
 } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 
 /**
  * The 403 a raw route returns when a permission group withholds a capability,

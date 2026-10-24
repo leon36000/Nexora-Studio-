@@ -58,7 +58,7 @@ vi.mock('@/lib/logs/snapshot-sanitizer', () => ({
 }))
 vi.mock('@/app/api/v1/logs/meta', () => v1LogsMetaMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET as getLogDetail } from '@/app/api/v1/logs/[id]/route'
 import { GET as getExecution } from '@/app/api/v1/logs/executions/[executionId]/route'

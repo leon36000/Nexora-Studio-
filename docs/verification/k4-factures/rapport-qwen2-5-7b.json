@@ -1,0 +1,400 @@
+{
+  "date": "2026-10-23 20:56",
+  "lecture": "qwen2.5vl:3b",
+  "structuration": "qwen2.5:7b",
+  "exactitude": 0.9167,
+  "champs_exacts": 55,
+  "champs": 60,
+  "factures": [
+    {
+      "fichier": "facture-01.pdf",
+      "secondes": 38.6,
+      "exacts": 6,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "FA-2026-0142",
+          "lu": "FA-2026-0142",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-03-12",
+          "lu": "2026-03-12",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Atelier Dubois SARL",
+          "lu": "Atelier Dubois SARL",
+          "exact": true
+        },
+        "total_ht": {
+          "attendu": 1250.0,
+          "lu": 1250,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 250.0,
+          "lu": 250,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 1500.0,
+          "lu": 1500,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-02.pdf",
+      "secondes": 19.8,
+      "exacts": 6,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "F2026/0087",
+          "lu": "F2026/0087",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-02-05",
+          "lu": "2026-02-05",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Boulangerie Martin",
+          "lu": "Boulangerie Martin",
+          "exact": true
+        },
+        "total_ht": {
+          "attendu": 318.18,
+          "lu": 318.18,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 31.82,
+          "lu": 31.82,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 350.0,
+          "lu": 350.0,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-03.pdf",
+      "secondes": 20.8,
+      "exacts": 6,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "2026-INV-311",
+          "lu": "2026-INV-311",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-01-28",
+          "lu": "2026-01-28",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Imprimerie Lefèvre & Fils",
+          "lu": "Imprimerie Lefèvre & Fils",
+          "exact": true
+        },
+        "total_ht": {
+          "attendu": 2480.0,
+          "lu": 2480,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 496.0,
+          "lu": 496,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 2976.0,
+          "lu": 2976,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-04.pdf",
+      "secondes": 19.8,
+      "exacts": 6,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "FAC-00921",
+          "lu": "FAC-00921",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-04-17",
+          "lu": "2026-04-17",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Garage Durand",
+          "lu": "Garage Durand",
+          "exact": true
+        },
+        "total_ht": {
+          "attendu": 645.5,
+          "lu": 645.5,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 129.1,
+          "lu": 129.1,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 774.6,
+          "lu": 774.6,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-05.pdf",
+      "secondes": 16.4,
+      "exacts": 5,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "2026-1043",
+          "lu": "2026-1043",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-05-09",
+          "lu": "2026-05-09",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Librairie du Parc",
+          "lu": null,
+          "exact": false
+        },
+        "total_ht": {
+          "attendu": 189.57,
+          "lu": 189.57,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 10.43,
+          "lu": 10.43,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 200.0,
+          "lu": 200.0,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-06-scan.png",
+      "secondes": 398.9,
+      "exacts": 5,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "FA-2026-0217",
+          "lu": "FA-2026-0217",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-06-21",
+          "lu": "2026-06-21",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Menuiserie Roche",
+          "lu": null,
+          "exact": false
+        },
+        "total_ht": {
+          "attendu": 3600.0,
+          "lu": 3600.0,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 720.0,
+          "lu": 720.0,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 4320.0,
+          "lu": 4320.0,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-07-scan.jpg",
+      "secondes": 131.7,
+      "exacts": 6,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "F-77-2026",
+          "lu": "F-77-2026",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-07-02",
+          "lu": "2026-07-02",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Traiteur Les Saveurs",
+          "lu": "Traiteur Les Saveurs",
+          "exact": true
+        },
+        "total_ht": {
+          "attendu": 1090.91,
+          "lu": 1090.91,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 109.09,
+          "lu": 109.09,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 1200.0,
+          "lu": 1200,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-08-scan.pdf",
+      "secondes": 89.7,
+      "exacts": 6,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "FC2026-058",
+          "lu": "FC2026-058",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-08-14",
+          "lu": "2026-08-14",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Électricité Moreau SAS",
+          "lu": "Électricité Moreau SAS",
+          "exact": true
+        },
+        "total_ht": {
+          "attendu": 860.0,
+          "lu": 860,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 172.0,
+          "lu": 172,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 1032.0,
+          "lu": 1032,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-09-scan.jpg",
+      "secondes": 109.0,
+      "exacts": 5,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "2026/0412",
+          "lu": "2026/0412",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-09-30",
+          "lu": "2026-09-30",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Nettoyage Pro Services",
+          "lu": null,
+          "exact": false
+        },
+        "total_ht": {
+          "attendu": 520.0,
+          "lu": 520.0,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 104.0,
+          "lu": 104.0,
+          "exact": true
+        },
+        "total_ttc": {
+          "attendu": 624.0,
+          "lu": 624.0,
+          "exact": true
+        }
+      },
+      "erreur": null
+    },
+    {
+      "fichier": "facture-10-scan.pdf",
+      "secondes": 78.8,
+      "exacts": 4,
+      "lecture_tronquee": false,
+      "champs": {
+        "numero": {
+          "attendu": "FA26-1189",
+          "lu": "FA26-1189",
+          "exact": true
+        },
+        "date": {
+          "attendu": "2026-10-06",
+          "lu": "2026-10-06",
+          "exact": true
+        },
+        "fournisseur": {
+          "attendu": "Transports Bernard",
+          "lu": "Parc logistique Nord, 67000 Strasbourg\nSIRET 812 345 678 00021 - contact@example.fr",
+          "exact": false
+        },
+        "total_ht": {
+          "attendu": 1875.25,
+          "lu": 1875.25,
+          "exact": true
+        },
+        "total_tva": {
+          "attendu": 375.05,
+          "lu": null,
+          "exact": false
+        },
+        "total_ttc": {
+          "attendu": 2250.3,
+          "lu": 2250.3,
+          "exact": true
+        }
+      },
+      "erreur": null
+    }
+  ]
+}

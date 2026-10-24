@@ -61,6 +61,7 @@ export function AgentEditor({ workspaceId, workflowId }: AgentEditorProps) {
         }}
         agentBlockId={agentBlockId}
         existingChat={chat.existingChat}
+        isDeployed={Boolean(workflow?.isDeployed || chat.existingChat)}
         readOnly={!canEdit}
         onVersionActivated={() => setFormRevision((revision) => revision + 1)}
       />

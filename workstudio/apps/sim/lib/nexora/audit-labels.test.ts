@@ -6,6 +6,7 @@ import frGovernance from '@/messages/fr/governance.json'
 const french: Record<string, string> = {
   'actions.workspace.created': 'Espace créé',
   'actions.organization.sso_policy.updated': 'Politique SSO modifiée',
+  noDetail: 'Aucun détail enregistré',
 }
 const t: AuditTranslator = Object.assign((key: string) => french[key] ?? key, {
   has: (key: string) => key in french,
@@ -40,8 +41,14 @@ describe('describeAuditEntry', () => {
       describeAuditEntry({ action: 'workspace.created', description, resourceName: null }, t).detail
     expect(detail('Renamed workspace "Ventes" to "Ventes 2026"')).toBe('Ventes, Ventes 2026')
     expect(detail('Invited ana@pme.fr and bob@pme.fr as admin')).toBe('ana@pme.fr, bob@pme.fr')
-    expect(detail('Rotated the signing key')).toBe('—')
-    expect(detail(null)).toBe('—')
+  })
+
+  it('details an entry that names nothing with the French label of its action, never a dash', () => {
+    const detail = (action: string, description: string | null) =>
+      describeAuditEntry({ action, description, resourceName: null }, t).detail
+    expect(detail('workspace.created', 'Rotated the signing key')).toBe('Espace créé')
+    expect(detail('workspace.created', null)).toBe('Espace créé')
+    expect(detail('brand.new', null)).toBe('Aucun détail enregistré')
   })
 
   it('falls back to the code for an unknown action, still without English', () => {

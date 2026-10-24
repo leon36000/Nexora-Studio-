@@ -12,7 +12,7 @@ vi.mock('@/lib/permission-groups/resolve.server', () => permissionGroupsResolveM
 import { SIM_CLI_CLIENT_ID } from '@/lib/auth/oauth-provider'
 import { authorizeOrganizationOperation } from '@/lib/core/application/organization-authorization'
 import { defineOrganizationOperation } from '@/lib/core/application/organization-operation'
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 
 const mocks = {

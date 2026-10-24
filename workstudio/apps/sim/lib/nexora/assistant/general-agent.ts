@@ -362,8 +362,8 @@ async function ensureGeneralAssistant(params: {
       customizations: { welcomeMessage: GENERAL_ASSISTANT_WELCOME },
       authType: 'workspace',
       outputConfigs: agentBlockId ? [{ blockId: agentBlockId, path: 'content' }] : undefined,
-      // A reasoning model's reasoning reaches the Assistant (folded), never the answer text.
-      includeThinking: true,
+      // Members see the reasoning through their session (chat route); the chat itself never shares it.
+      includeThinking: false,
       workspaceId,
       requestId,
       projectLegacyAudit: false,

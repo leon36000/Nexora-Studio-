@@ -6651,6 +6651,61 @@
     "name": "New Relic",
     "description": "Interroger les données d'observabilité et enregistrer des déploiements dans New Relic"
   },
+  "nexora_extract": {
+    "name": "Extraire des données",
+    "description": "Extraire les champs d’une facture, d’un devis ou de tout document",
+    "longDescription": "Lit un PDF (même scanné) ou une image avec les modèles de votre instance et renvoie, en JSON vérifié, les champs d’une facture, d’un devis, d’un bon de commande, d’une note de frais ou de votre propre schéma. Une valeur absente, illisible ou incohérente lève « à vérifier ».",
+    "subBlocks": {
+      "fileUpload": {
+        "title": "Document",
+        "placeholder": "Téléversez un PDF ou une image"
+      },
+      "fileReference": {
+        "title": "Référence de fichier",
+        "placeholder": "Fichier d’un bloc précédent"
+      },
+      "template": {
+        "title": "Champs à extraire",
+        "options": {
+          "invoice": "Facture",
+          "quote": "Devis",
+          "purchase_order": "Bon de commande",
+          "expense_report": "Note de frais",
+          "custom": "Mes propres champs"
+        }
+      },
+      "fields": {
+        "title": "Champs",
+        "description": "Une ligne par champ : son nom (lettres, chiffres et _), son type et ce qu’il contient. Valeur : un exemple facultatif."
+      },
+      "instructions": {
+        "title": "Consignes",
+        "placeholder": "Facultatif : ce qu’il faut savoir de ces documents (devise, noms des fournisseurs…)"
+      },
+      "nexoraModel": {
+        "title": "Modèle de lecture",
+        "placeholder": "Premier modèle Vision / OCR",
+        "description": "Un modèle Vision / OCR de Réglages › Modèles, qui lit les scans et les images. Laissez vide pour utiliser le premier."
+      },
+      "model": {
+        "title": "Modèle d’extraction",
+        "placeholder": "Modèle par défaut",
+        "description": "Un modèle de discussion de Réglages › Modèles, qui remplit les champs. Laissez vide pour utiliser le modèle par défaut."
+      },
+      "pages": {
+        "title": "Pages",
+        "placeholder": "ex. 0,1 (vide pour toutes les pages ; 10 pages scannées au plus)"
+      }
+    },
+    "defaultTitle": "Extraire des données",
+    "sentences": {
+      "default": {
+        "0": "Extraire les champs",
+        "1": "de type",
+        "2": "depuis"
+      }
+    }
+  },
   "note": {
     "name": "Note",
     "description": "Ajouter des annotations contextuelles directement sur le canevas du workflow.",

@@ -6,6 +6,7 @@
     "loadFailed": "The audit log could not be loaded.",
     "empty": "No events yet.",
     "system": "System",
+    "noDetail": "No details recorded",
     "loadMore": "Show more",
     "loadingMore": "Loading…",
     "columns": {

@@ -3,7 +3,7 @@ import { nexoraChatCompletionsContract } from '@/lib/api/contracts/nexora-openai
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { runAgentCompletion } from '@/lib/nexora/developer-api/agents'
-import { admitSpending, authenticateGatewayCall } from '@/lib/nexora/developer-api/gateway'
+import { authenticateGatewayCall } from '@/lib/nexora/developer-api/gateway'
 import { relayChatCompletion } from '@/lib/nexora/developer-api/models'
 import { agentRefusal, isAgentModel } from '@/lib/nexora/developer-api/policy'
 import { answerGateway, gatewayParseOptions } from '@/app/api/nexora/v1/surface'
@@ -29,7 +29,6 @@ export const POST = withRouteHandler((request: NextRequest) =>
     if (!isAgentModel(body.model)) return relayChatCompletion(call, body, request.signal)
     const refusal = agentRefusal(call.key, body.model)
     if (refusal) throw refusal
-    await admitSpending(call.key)
     return runAgentCompletion(call, body, request)
   })
 )

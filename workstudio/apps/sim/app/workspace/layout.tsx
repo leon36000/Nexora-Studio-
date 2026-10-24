@@ -1,26 +1,20 @@
-'use client'
-
-import { useSession } from '@/lib/auth/client'
-import { SocketProvider } from '@/app/workspace/providers/socket-provider'
+import { NextIntlClientProvider } from 'next-intl'
+import { getMessages } from 'next-intl/server'
+import { WorkspaceRoot } from '@/app/workspace/workspace-root'
 
 interface WorkspaceRootLayoutProps {
   children: React.ReactNode
 }
 
-export default function WorkspaceRootLayout({ children }: WorkspaceRootLayoutProps) {
-  const session = useSession()
-
-  const user = session.data?.user
-    ? {
-        id: session.data.user.id,
-        name: session.data.user.name ?? undefined,
-        email: session.data.user.email,
-      }
-    : undefined
-
+/**
+ * Gives the workspace every message namespace, the block catalog included, which the root layout
+ * keeps off public pages (see `pageMessages`).
+ */
+export default async function WorkspaceRootLayout({ children }: WorkspaceRootLayoutProps) {
+  const messages = await getMessages()
   return (
-    <SocketProvider user={user}>
-      <div className='workspace-root'>{children}</div>
-    </SocketProvider>
+    <NextIntlClientProvider messages={messages}>
+      <WorkspaceRoot>{children}</WorkspaceRoot>
+    </NextIntlClientProvider>
   )
 }

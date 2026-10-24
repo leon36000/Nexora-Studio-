@@ -70,7 +70,7 @@ from api.use_cases.embeddings import CreateEmbeddingsUseCase
 from api.use_cases.health import GetHealthModelsUseCase
 from api.use_cases.me import GetMeUseCase, UpdateMeUseCase
 from api.use_cases.models import GetModelsUseCase, GetOneModelUseCase
-from api.use_cases.ocr import CreateOCRUseCase
+from api.use_cases.ocr import AnnotateDocumentUseCase, CreateOCRUseCase
 from api.use_cases.reranks import CreateRerankUseCase
 from api.use_cases.services import ProviderCapabilitiesProbe
 from api.use_cases.usage import GetUsagesUseCase
@@ -418,6 +418,12 @@ def create_ocr_use_case_factory(
         usage_context=_usage_context(),
         usage_repository=usage_repository,
     )
+
+
+def annotate_document_use_case_factory(
+    chat_completions_use_case: CreateChatCompletionsUseCase = Depends(create_chat_completions_use_case_factory),
+) -> AnnotateDocumentUseCase:
+    return AnnotateDocumentUseCase(chat_completions_use_case=chat_completions_use_case)
 
 
 # organization use cases

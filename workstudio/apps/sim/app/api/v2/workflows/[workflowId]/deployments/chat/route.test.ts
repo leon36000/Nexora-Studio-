@@ -59,7 +59,7 @@ vi.mock('@/lib/api/server/routes/v2-api-key-auth', () => v2ApiKeyAuthModuleMock)
 vi.mock('@/lib/core/rate-limiter', () => v2RateLimiterModuleMock)
 
 import { markCopilotRequest } from '@/lib/api/server/routes/copilot-request'
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { performChatDeploy as realPerformChatDeploy } from '@/lib/workflows/orchestration/chat-deploy'
 import { DELETE, GET, PUT } from '@/app/api/v2/workflows/[workflowId]/deployments/chat/route'
 

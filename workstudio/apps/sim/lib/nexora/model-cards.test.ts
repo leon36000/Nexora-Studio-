@@ -81,6 +81,28 @@ describe('resolveModelCard', () => {
     ).toBe('external')
   })
 
+  it.each([
+    'http://gpu-box:8000/v1',
+    'http://localhost:11434/v1',
+    'http://nexora-dev-ollama:11434/v1',
+    'http://pc1-lan:4400/v1',
+  ])(
+    'keeps a dotless host that is not a service of the instance (%s) off the instance',
+    (providerUrl) => {
+      expect(resolveModelCard({ ...glm, providerUrl }).location).toBe('external')
+    }
+  )
+
+  it('recognizes the bundled services by name whatever the port, path or case', () => {
+    for (const providerUrl of [
+      'http://ollama:11434/v1',
+      'http://WHISPER/v1',
+      'https://nexora-api:8000',
+    ]) {
+      expect(resolveModelCard({ ...glm, providerUrl }).location).toBe('local')
+    }
+  })
+
   it('reports unknown capabilities as unknown, and vision from the usage', () => {
     expect(resolveModelCard(glm)).toEqual({
       reasoning: null,

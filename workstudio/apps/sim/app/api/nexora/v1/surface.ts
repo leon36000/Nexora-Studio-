@@ -11,8 +11,12 @@ import {
 
 const logger = createLogger('NexoraDeveloperApiRoutes')
 
-/** A chat request can carry long conversations; the proxy clamps anything above its own limit. */
-const MAX_JSON_BODY_BYTES = 20 * 1024 * 1024
+/**
+ * A chat request can carry long conversations. The proxy leaves `/v1` unbuffered (no 10 MB
+ * clamp), so this is the real limit of a JSON body.
+ */
+const MAX_JSON_MEGABYTES = 20
+const MAX_JSON_BODY_BYTES = MAX_JSON_MEGABYTES * 1024 * 1024
 
 function openAiJson(error: GatewayError) {
   return NextResponse.json(openAiErrorBody(error), { status: error.status })
@@ -25,8 +29,7 @@ export const gatewayParseOptions: ParseRequestOptions = {
     openAiJson(gatewayErrors.invalidRequest(getValidationErrorMessage(error, 'Requête invalide.'))),
   invalidJsonResponse: () =>
     openAiJson(gatewayErrors.invalidRequest('Le corps de la requête n’est pas un JSON valide.')),
-  payloadTooLargeResponse: () =>
-    openAiJson(new GatewayError(413, 'request_too_large', 'Requête trop volumineuse.')),
+  payloadTooLargeResponse: () => openAiJson(gatewayErrors.requestTooLarge(MAX_JSON_MEGABYTES)),
 }
 
 /**

@@ -67,7 +67,7 @@ vi.mock('@sim/audit', () => auditMock)
 
 import { getPublicLog } from '@/lib/logs/application/get-public-log'
 import { listPublicLogs } from '@/lib/logs/application/list-public-logs'
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 
 const mocks = {

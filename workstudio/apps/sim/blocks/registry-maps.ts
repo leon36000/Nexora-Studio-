@@ -251,6 +251,7 @@ import { Neo4jBlock, Neo4jBlockMeta } from '@/blocks/blocks/neo4j'
 import { NetSuiteBlock, NetSuiteBlockMeta } from '@/blocks/blocks/netsuite'
 import { NeverBounceBlock, NeverBounceBlockMeta } from '@/blocks/blocks/neverbounce'
 import { NewRelicBlock, NewRelicBlockMeta } from '@/blocks/blocks/new_relic'
+import { NexoraExtractBlock } from '@/blocks/blocks/nexora_extract'
 import { NoteBlock } from '@/blocks/blocks/note'
 import {
   NotionBlock,
@@ -624,6 +625,7 @@ export const BLOCK_REGISTRY: Record<string, BlockConfig> = {
   neo4j: Neo4jBlock,
   netsuite: NetSuiteBlock,
   new_relic: NewRelicBlock,
+  nexora_extract: NexoraExtractBlock,
   note: NoteBlock,
   notion: NotionBlock,
   notion_v2: NotionV2Block,

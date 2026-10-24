@@ -340,7 +340,10 @@ export const POST = withRouteHandler(
           variables: (workflowRecord?.variables as Record<string, unknown>) ?? undefined,
         }
 
-        const { includeThinking, includeToolCalls } = deployment
+        // Nexora edition: a signed-in member of a members-only chat (the Assistant) sees a
+        // reasoning model's reasoning; any other visitor only when the owner turned it on.
+        const includeThinking = deployment.includeThinking || memberChatUserId !== undefined
+        const { includeToolCalls } = deployment
         const agentEvents = shouldEmitAgentStreamEvents({
           includeThinking,
           includeToolCalls,

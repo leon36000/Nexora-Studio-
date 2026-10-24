@@ -214,6 +214,32 @@ class ProviderRequestForwardingUseCase[TCommand: ForwardingCommand, TResult]:
         | UnsupportedProviderEndpointError
     ):
         provider = await self._select_provider(router=router)
+        return await self._send_to_provider(
+            provider=provider,
+            authenticated_user=authenticated_user,
+            router=router,
+            prompt_tokens=prompt_tokens,
+            payload=payload,
+            request_id=request_id,
+        )
+
+    async def _send_to_provider(
+        self,
+        provider: Provider,
+        authenticated_user: AuthenticatedUserView,
+        router: Router,
+        prompt_tokens: int,
+        payload: ForwardablePayload,
+        request_id: str,
+    ) -> (
+        ProviderResponse
+        | ProviderAdapterValidationRequestError
+        | TooBusyModelError
+        | UnknownModelError
+        | StatusCodeModelError
+        | ProviderAdapterValidationResponseError
+        | UnsupportedProviderEndpointError
+    ):
         request = ProviderRequest(id=request_id, endpoint=self.ENDPOINT, payload=payload)
 
         async with self._inflight(provider=provider):

@@ -142,6 +142,15 @@ export async function upstreamError(response: Response, model: string): Promise<
       'invalid_request'
     )
   }
+  // A 401/403 refuses WorkStudio's own key to Nexora API: the instance's fault, not the caller's.
+  if (response.status === 401 || response.status === 403) {
+    logger.error('Nexora API refused the instance key', { status: response.status })
+    return new GatewayError(
+      502,
+      'upstream_error',
+      'Le service de modèles de l’instance (Nexora API) a refusé l’accès de WorkStudio : votre clé n’est pas en cause, prévenez l’administrateur.'
+    )
+  }
   return new GatewayError(
     response.status >= 500 ? 502 : response.status,
     'upstream_error',

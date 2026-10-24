@@ -37,7 +37,7 @@ vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
 
 vi.mock('@/lib/permission-groups/config-scope.server', () => permissionGroupScopeMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { GET, PATCH } from '@/app/api/workspaces/[id]/inbox/route'
 

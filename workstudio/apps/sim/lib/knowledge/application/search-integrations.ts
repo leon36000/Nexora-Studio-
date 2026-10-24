@@ -25,8 +25,8 @@ import {
   lockOrganizationSearchApproval,
 } from '@/lib/knowledge/search/integration-policy'
 import { GITHUB_INSTALLATION_PROVIDER_ID } from '@/lib/oauth/github-installation-types'
-import { refuseCapability } from '@/lib/permission-groups/capabilities'
 import { isOrganizationCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { NativeSearchError } from '@/lib/sim-search/live/http'
 import {
   addOrganizationSearchMcpProvider,
@@ -183,7 +183,10 @@ export const approveSearchIntegration = defineAuthorizedKnowledgeUseCase({
     if (!organizationId) throw new OrchestrationError('validation', 'Organization is required')
     const source = LIVE_SEARCH_SOURCE_TYPES.find(([type]) => type === input.connectorType)
     if (!source) {
-      throw new OrchestrationError('validation', 'This integration is not supported by Nexora Search')
+      throw new OrchestrationError(
+        'validation',
+        'This integration is not supported by Nexora Search'
+      )
     }
     if (
       input.approved &&

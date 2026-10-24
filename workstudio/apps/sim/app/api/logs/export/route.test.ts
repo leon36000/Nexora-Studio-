@@ -31,7 +31,7 @@ vi.mock('@/lib/core/utils/concurrency', () => ({
   mapWithConcurrency: mockMapWithConcurrency,
 }))
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { GET } from '@/app/api/logs/export/route'
 
 const { mockMaterializeExecutionDataForDisplay } = traceStoreMockFns

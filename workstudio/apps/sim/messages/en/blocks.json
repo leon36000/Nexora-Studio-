@@ -6651,6 +6651,61 @@
     "name": "New Relic",
     "description": "Query observability data and record deployments in New Relic"
   },
+  "nexora_extract": {
+    "name": "Extract Data",
+    "description": "Extract the fields of an invoice, a quote or any document",
+    "longDescription": "Reads a PDF (even scanned) or an image with the models of your instance and returns the fields of an invoice, a quote, a purchase order, an expense report or your own schema as checked JSON. A value that is missing, unreadable or inconsistent sets « to check ».",
+    "subBlocks": {
+      "fileUpload": {
+        "title": "Document",
+        "placeholder": "Upload a PDF or an image"
+      },
+      "fileReference": {
+        "title": "File Reference",
+        "placeholder": "File reference from previous block"
+      },
+      "template": {
+        "title": "Fields to extract",
+        "options": {
+          "invoice": "Invoice",
+          "quote": "Quote",
+          "purchase_order": "Purchase order",
+          "expense_report": "Expense report",
+          "custom": "My own fields"
+        }
+      },
+      "fields": {
+        "title": "Fields",
+        "description": "One row per field: its name (letters, digits and _), its type and what it is. Value: an optional example."
+      },
+      "instructions": {
+        "title": "Instructions",
+        "placeholder": "Optional: what to know about these documents (currency, supplier names…)"
+      },
+      "nexoraModel": {
+        "title": "Reading model",
+        "placeholder": "First Vision / OCR model",
+        "description": "A Vision / OCR model from Settings › Models that reads scans and images. Leave empty to use the first one."
+      },
+      "model": {
+        "title": "Extraction model",
+        "placeholder": "Default model",
+        "description": "A chat model from Settings › Models that fills the fields. Leave empty to use the default model."
+      },
+      "pages": {
+        "title": "Pages",
+        "placeholder": "e.g. 0,1 (leave empty for all pages; at most 10 scanned pages)"
+      }
+    },
+    "defaultTitle": "Extract Data",
+    "sentences": {
+      "default": {
+        "0": "Extract the fields",
+        "1": "of",
+        "2": "from"
+      }
+    }
+  },
   "note": {
     "name": "Note",
     "description": "Add contextual annotations directly onto the workflow canvas.",

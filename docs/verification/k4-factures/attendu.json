@@ -1,0 +1,82 @@
+{
+  "facture-01.pdf": {
+    "numero": "FA-2026-0142",
+    "date": "2026-03-12",
+    "fournisseur": "Atelier Dubois SARL",
+    "total_ht": 1250.0,
+    "total_tva": 250.0,
+    "total_ttc": 1500.0
+  },
+  "facture-02.pdf": {
+    "numero": "F2026/0087",
+    "date": "2026-02-05",
+    "fournisseur": "Boulangerie Martin",
+    "total_ht": 318.18,
+    "total_tva": 31.82,
+    "total_ttc": 350.0
+  },
+  "facture-03.pdf": {
+    "numero": "2026-INV-311",
+    "date": "2026-01-28",
+    "fournisseur": "Imprimerie Lefèvre & Fils",
+    "total_ht": 2480.0,
+    "total_tva": 496.0,
+    "total_ttc": 2976.0
+  },
+  "facture-04.pdf": {
+    "numero": "FAC-00921",
+    "date": "2026-04-17",
+    "fournisseur": "Garage Durand",
+    "total_ht": 645.5,
+    "total_tva": 129.1,
+    "total_ttc": 774.6
+  },
+  "facture-05.pdf": {
+    "numero": "2026-1043",
+    "date": "2026-05-09",
+    "fournisseur": "Librairie du Parc",
+    "total_ht": 189.57,
+    "total_tva": 10.43,
+    "total_ttc": 200.0
+  },
+  "facture-06-scan.png": {
+    "numero": "FA-2026-0217",
+    "date": "2026-06-21",
+    "fournisseur": "Menuiserie Roche",
+    "total_ht": 3600.0,
+    "total_tva": 720.0,
+    "total_ttc": 4320.0
+  },
+  "facture-07-scan.jpg": {
+    "numero": "F-77-2026",
+    "date": "2026-07-02",
+    "fournisseur": "Traiteur Les Saveurs",
+    "total_ht": 1090.91,
+    "total_tva": 109.09,
+    "total_ttc": 1200.0
+  },
+  "facture-08-scan.pdf": {
+    "numero": "FC2026-058",
+    "date": "2026-08-14",
+    "fournisseur": "Électricité Moreau SAS",
+    "total_ht": 860.0,
+    "total_tva": 172.0,
+    "total_ttc": 1032.0
+  },
+  "facture-09-scan.jpg": {
+    "numero": "2026/0412",
+    "date": "2026-09-30",
+    "fournisseur": "Nettoyage Pro Services",
+    "total_ht": 520.0,
+    "total_tva": 104.0,
+    "total_ttc": 624.0
+  },
+  "facture-10-scan.pdf": {
+    "numero": "FA26-1189",
+    "date": "2026-10-06",
+    "fournisseur": "Transports Bernard",
+    "total_ht": 1875.25,
+    "total_tva": 375.05,
+    "total_ttc": 2250.3
+  }
+}

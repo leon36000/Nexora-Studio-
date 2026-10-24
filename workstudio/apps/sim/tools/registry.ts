@@ -3675,6 +3675,7 @@ import {
   newRelicNrqlQueryTool,
   newRelicSearchEntitiesTool,
 } from '@/tools/new_relic'
+import { nexoraExtractTool } from '@/tools/nexora'
 import {
   notionAddDatabaseRowTool,
   notionAddDatabaseRowV2Tool,
@@ -9297,6 +9298,7 @@ export const tools: Record<string, ExecutableToolConfig> = {
   neo4j_create: neo4jCreateTool,
   neo4j_merge: neo4jMergeTool,
   neo4j_update: neo4jUpdateTool,
+  nexora_extract: nexoraExtractTool,
   neo4j_delete: neo4jDeleteTool,
   neo4j_execute: neo4jExecuteTool,
   neo4j_introspect: neo4jIntrospectTool,

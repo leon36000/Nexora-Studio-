@@ -1,11 +1,13 @@
 /**
  * @vitest-environment node
  */
-import { describe, expect, it } from 'vitest'
+import { createDeferred } from '@sim/testing/helpers/deferred'
+import { describe, expect, it, vi } from 'vitest'
 import {
   type AgentRunUsage,
   buildAgentInput,
   collectAgentAnswer,
+  settledRunUsage,
   toOpenAiChunks,
 } from '@/lib/nexora/developer-api/agent-format'
 
@@ -199,5 +201,49 @@ describe('collectAgentAnswer', () => {
       simStream([sse({ event: 'error', error: 'Agent indisponible' }), 'data: "[DONE]"\n\n'])
     )
     expect(answer).toEqual({ content: '', error: 'Agent indisponible' })
+  })
+})
+
+describe('settledRunUsage', () => {
+  const runOf = (tokens: { input: number; output: number }[]) => ({
+    logs: tokens.map((used) => ({ output: { content: 'x', tokens: used } })),
+  })
+
+  it('records what an aborted run spent when the caller cancels before it ends', async () => {
+    const run = createDeferred<ReturnType<typeof runOf> | null>()
+    const record = vi.fn(async (_usage: AgentRunUsage) => {})
+    const readUsage = settledRunUsage(run.promise, record)
+
+    const cancelled = readUsage()
+    run.resolve(
+      runOf([
+        { input: 120, output: 7 },
+        { input: 30, output: 3 },
+      ])
+    )
+
+    expect(await cancelled).toEqual({ promptTokens: 150, completionTokens: 10 })
+    expect(record).toHaveBeenCalledTimes(1)
+    expect(record).toHaveBeenCalledWith({ promptTokens: 150, completionTokens: 10 })
+  })
+
+  it('records once however many times the stream asks', async () => {
+    const record = vi.fn(async (_usage: AgentRunUsage) => {})
+    const readUsage = settledRunUsage(Promise.resolve(runOf([{ input: 1, output: 1 }])), record)
+
+    await Promise.all([readUsage(), readUsage()])
+    await readUsage()
+
+    expect(record).toHaveBeenCalledTimes(1)
+  })
+
+  it('records nothing spent for a run that failed to produce a result', async () => {
+    const record = vi.fn(async (_usage: AgentRunUsage) => {})
+
+    expect(await settledRunUsage(Promise.resolve(null), record)()).toEqual({
+      promptTokens: 0,
+      completionTokens: 0,
+    })
+    expect(record).toHaveBeenCalledTimes(1)
   })
 })

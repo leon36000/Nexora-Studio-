@@ -2,7 +2,8 @@
 
 import { type ForbiddenDetailCode, ForbiddenOperationError } from '@/lib/core/application/forbidden'
 import { isBlockTypeAccessControlExempt } from '@/lib/permission-groups/block-access'
-import { CAPABILITY_RULES, refuseCapability } from '@/lib/permission-groups/capabilities'
+import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import type { PermissionGroupConfig } from '@/lib/permission-groups/fields'
 import {
   resolveAccessControlBlockType,

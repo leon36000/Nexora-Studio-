@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -273,10 +273,80 @@ describe('migration safety audit', () => {
     expect(code).toBe(0)
   }, 30_000)
 
-  it('passes against a real base ref with no new migrations', async () => {
-    const { code, stdout } = await runAudit('HEAD')
+  describe('against a base ref', () => {
+    const NOT_NULL = 'ALTER TABLE "jobs" ADD COLUMN "owner" text NOT NULL;'
 
-    expect(code).toBe(0)
-    expect(stdout).toContain('No new migrations to check')
-  }, 30_000)
+    /**
+     * A git repository whose workspace sits in a subdirectory (`ws/`), as in a fork vendored under
+     * a parent repository: git reports paths from the repository root (`ws/packages/...`).
+     */
+    async function nestedRepo(): Promise<{
+      workspace: string
+      git: (...args: string[]) => Promise<void>
+    }> {
+      const repo = mkdtempSync(path.join(tmpdir(), 'migration-nested-'))
+      tempDirs.push(repo)
+      const workspace = path.join(repo, 'ws')
+      mkdirSync(path.join(workspace, 'scripts'), { recursive: true })
+      mkdirSync(path.join(workspace, 'packages/db/migrations'), { recursive: true })
+      copyFileSync(SCRIPT, path.join(workspace, 'scripts/check-migrations-safety.ts'))
+      writeFileSync(path.join(workspace, 'packages/db/migrations/0000_init.sql'), 'SELECT 1;')
+      const git = async (...args: string[]) => {
+        await execFileAsync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+          cwd: repo,
+        })
+      }
+      await git('init', '--quiet', '--initial-branch=main')
+      await git('add', '.')
+      await git('commit', '--quiet', '-m', 'base')
+      await git('tag', 'base')
+      return { workspace, git }
+    }
+
+    async function auditIn(workspace: string, base: string) {
+      try {
+        const { stdout, stderr } = await execFileAsync(
+          'bun',
+          ['run', path.join(workspace, 'scripts/check-migrations-safety.ts'), base],
+          { cwd: workspace }
+        )
+        return { code: 0, output: `${stdout}${stderr}` }
+      } catch (error) {
+        const failure = error as { code?: number; stdout?: string; stderr?: string }
+        return { code: failure.code ?? 1, output: `${failure.stdout ?? ''}${failure.stderr ?? ''}` }
+      }
+    }
+
+    it('checks a committed migration when the workspace is a subdirectory of the repository', async () => {
+      const { workspace, git } = await nestedRepo()
+      writeFileSync(path.join(workspace, 'packages/db/migrations/0001_owner.sql'), NOT_NULL)
+      await git('add', '.')
+      await git('commit', '--quiet', '-m', 'owner')
+
+      const { code, output } = await auditIn(workspace, 'base')
+
+      expect(output).toContain('add-not-null-no-default')
+      expect(output).not.toContain('No new migrations to check')
+      expect(code).toBe(1)
+    }, 30_000)
+
+    it('checks an uncommitted migration when the workspace is a subdirectory of the repository', async () => {
+      const { workspace } = await nestedRepo()
+      writeFileSync(path.join(workspace, 'packages/db/migrations/0001_owner.sql'), NOT_NULL)
+
+      const { code, output } = await auditIn(workspace, 'base')
+
+      expect(output).toContain('add-not-null-no-default')
+      expect(code).toBe(1)
+    }, 30_000)
+
+    it('passes against a base ref with no new migrations', async () => {
+      const { workspace } = await nestedRepo()
+
+      const { code, output } = await auditIn(workspace, 'base')
+
+      expect(code).toBe(0)
+      expect(output).toContain('No new migrations to check')
+    }, 30_000)
+  })
 })

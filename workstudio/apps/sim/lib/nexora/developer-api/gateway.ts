@@ -3,6 +3,8 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { RateLimiter } from '@/lib/core/rate-limiter'
 import { checkBudget } from '@/lib/nexora/consumption/budgets'
 import { GatewayError, gatewayErrors } from '@/lib/nexora/developer-api/errors'
+import { keyModelConfig } from '@/lib/nexora/developer-api/key-model-policy'
+import { keyModelRefusal } from '@/lib/nexora/developer-api/model-gate'
 import {
   authenticationRefusal,
   capRefusal,
@@ -13,8 +15,8 @@ import {
 import {
   findNexoraApiKeyByHash,
   hashNexoraApiKey,
-  monthTokensOfKey,
-  recordNexoraApiKeyUsage,
+  reserveNexoraApiKeyTokens,
+  settleNexoraApiKeyTokens,
   touchNexoraApiKey,
 } from '@/lib/nexora/developer-api/repository'
 import { routerResolver } from '@/lib/nexora/developer-api/upstream'
@@ -63,40 +65,82 @@ export async function authenticateGatewayCall(request: Request): Promise<Gateway
   return { key, headers }
 }
 
+/** What a call used, to settle its reservation. */
+export interface CallUsage {
+  promptTokens: number
+  completionTokens: number
+}
+
 /**
- * Whether the key may spend tokens now: its monthly cap, then the budgets of its workspace and of
- * the instance (a workspace key; an instance key answers to its own cap). Throws when refused.
+ * A call's reservation of its key's month: settled once with what it used, or released when the
+ * call never reached a model. Further calls are no-ops; a failed write is logged, never surfaced.
  */
-export async function admitSpending(key: GatewayKey): Promise<void> {
-  const capped = capRefusal(key, key.monthlyTokenCap === null ? 0 : await monthTokensOfKey(key.id))
-  if (capped) throw capped
-  if (key.scope === 'workspace' && key.workspaceId) {
-    const budget = await checkBudget(key.workspaceId, null)
-    if (!budget.allowed) throw gatewayErrors.budgetReached(budget.message)
-  }
+export interface SpendingReservation {
+  readonly estimate: CallUsage
+  settle(usage: CallUsage): Promise<void>
+  release(): Promise<void>
 }
 
-/** Throws a 403 when the key may not call `model`. */
-export async function admitModel(key: GatewayKey, model: string): Promise<void> {
-  if (key.allowedModels === null) return
-  const refusal = modelRefusal(key, model, await routerResolver())
-  if (refusal) throw refusal
-}
-
-/** Records one call in the key's usage; a failed write is logged, never surfaced to the caller. */
-export async function recordUsage(
+/**
+ * Admits a call that may spend tokens and reserves its estimate under `model` (the name its usage
+ * is recorded under): the key's monthly cap, atomically, then the budgets of its workspace and of
+ * the instance (a workspace key; an instance key answers to its own cap). Throws when refused.
+ * Budgets are read from a short cache, so concurrent calls can go slightly past one.
+ */
+export async function reserveSpending(
   key: GatewayKey,
   model: string,
-  promptTokens: number,
-  completionTokens: number
-): Promise<void> {
-  try {
-    await recordNexoraApiKeyUsage({ keyId: key.id, model, promptTokens, completionTokens })
-  } catch (error) {
-    logger.error('Could not record a developer API call', {
-      keyId: key.id,
-      model,
-      error: getErrorMessage(error),
-    })
+  estimate: CallUsage
+): Promise<SpendingReservation> {
+  const outcome = await reserveNexoraApiKeyTokens({
+    keyId: key.id,
+    model,
+    tokens: estimate.promptTokens + estimate.completionTokens,
+    monthlyTokenCap: key.monthlyTokenCap,
+  })
+  if (!outcome.admitted) {
+    throw capRefusal(key, outcome.monthTokens) ?? gatewayErrors.monthlyCapReached(0)
   }
+  const { handle } = outcome
+  let done = false
+  const finish = async (usage: CallUsage | null) => {
+    if (done) return
+    done = true
+    try {
+      await settleNexoraApiKeyTokens(
+        usage ? { ...handle, ...usage } : { ...handle, released: true }
+      )
+    } catch (error) {
+      logger.error('Could not settle a developer API call', {
+        keyId: key.id,
+        model,
+        error: getErrorMessage(error),
+      })
+    }
+  }
+  const reservation: SpendingReservation = {
+    estimate,
+    settle: (usage) => finish(usage),
+    release: () => finish(null),
+  }
+  if (key.scope === 'workspace' && key.workspaceId) {
+    const budget = await checkBudget(key.workspaceId, null)
+    if (!budget.allowed) {
+      await reservation.release()
+      throw gatewayErrors.budgetReached(budget.message)
+    }
+  }
+  return reservation
+}
+
+/**
+ * Throws a 403 when the key may not call `model`: its own model list, then the access group that
+ * governs it (its creator's, so a later restriction applies to keys already created). Returns the
+ * name the call's usage is recorded under: the router behind an alias, or the name as sent.
+ */
+export async function admitModel(key: GatewayKey, model: string): Promise<string> {
+  const [resolve, config] = await Promise.all([routerResolver(), keyModelConfig(key)])
+  const refusal = modelRefusal(key, model, resolve) ?? keyModelRefusal(config, model, resolve)
+  if (refusal) throw refusal
+  return resolve(model) ?? model.trim()
 }

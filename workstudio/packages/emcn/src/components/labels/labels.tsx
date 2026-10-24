@@ -105,6 +105,8 @@ const EMCN_DEFAULT_LABELS = {
   valuesByDate: 'Values by date',
   /** Weekday initials, Sunday first, comma-separated. */
   weekdays: 'Su,Mo,Tu,We,Th,Fr,Sa',
+  /** The weekday calendars start their weeks on, `0` (Sunday) to `6` (Saturday). */
+  weekStartsOn: '0',
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
 } as const

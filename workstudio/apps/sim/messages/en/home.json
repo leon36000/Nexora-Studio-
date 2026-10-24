@@ -24,6 +24,32 @@
         "description": "Transcribes an audio or video file with a transcription model of this instance."
       },
       "noModel": "To read scanned documents or transcribe recordings, add a Vision / OCR or Transcription model in <link>Settings › Models</link>.",
+      "extraction": {
+        "card": "Extract data",
+        "names": {
+          "invoice": "Invoice extraction",
+          "quote": "Quote extraction",
+          "purchase_order": "Purchase order extraction",
+          "expense_report": "Expense report extraction"
+        },
+        "description": "Reads each document with the models of the instance and extracts its checked fields.",
+        "descriptionWithTable": "Reads each document with the models of the instance and saves its checked fields in the “{table}” table.",
+        "modal": {
+          "title": "Extract data",
+          "template": "Document type",
+          "templates": {
+            "invoice": "Invoice",
+            "quote": "Quote",
+            "purchase_order": "Purchase order",
+            "expense_report": "Expense report"
+          },
+          "saveToTable": "Save each document in a table",
+          "tableHint": "“{name}” table: one column per field, plus “a_verifier” and “motifs”.",
+          "create": "Create the workflow",
+          "creating": "Creating…",
+          "tableFailed": "The table could not be created."
+        }
+      },
       "createFailed": "The workflow could not be created."
     },
     "quickStarts": {

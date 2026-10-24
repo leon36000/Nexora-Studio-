@@ -102,7 +102,7 @@ export function PublishSection({
             emails: [],
             welcomeMessage,
             selectedOutputBlocks,
-            includeThinking: true,
+            includeThinking: false,
             includeToolCalls: false,
           },
         })

@@ -28,8 +28,8 @@ import {
   getUserOrganization,
 } from '@/lib/billing/organizations/membership'
 import { env } from '@/lib/core/config/env'
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
 import { isEntitledOrganizationCapabilityWithheld } from '@/lib/permission-groups/capability-assertions'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { acquirePermissionGroupOrgLock } from '@/lib/permission-groups/locks'
 import { isOrganizationPermissionRegimeActive } from '@/lib/permission-groups/resolve.server'
 

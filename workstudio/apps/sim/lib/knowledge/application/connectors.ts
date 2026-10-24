@@ -115,7 +115,8 @@ import type {
 } from '@/lib/knowledge/orchestration/shared'
 import { credentialProviderMatchesService, type ServiceProviderIdentity } from '@/lib/oauth'
 import { ServiceAccountTokenError } from '@/lib/oauth/credential-service'
-import { CAPABILITY_RULES, refuseCapability } from '@/lib/permission-groups/capabilities'
+import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { resolvePermissionGroupConfig } from '@/lib/permission-groups/config-scope.server'
 import { getUserPermissionConfigForOrganization } from '@/lib/permission-groups/resolve.server'
 import { getConnectorApiKeyConfig, isConnectorCredentialTypeAllowed } from '@/connectors/auth'
@@ -1336,7 +1337,10 @@ export const updateKnowledgeConnectorDocuments = defineAuthorizedKnowledgeUseCas
     const documentIds = [...new Set(input.documentIds)]
     const restoring = input.operation === 'restore'
     if (restoring && !requiresConnectorIndexing(context.knowledgeBase.isSearchIndex)) {
-      throw new OrchestrationError('validation', 'This search index is inactive; use Nexora Search.')
+      throw new OrchestrationError(
+        'validation',
+        'This search index is inactive; use Nexora Search.'
+      )
     }
     const access = await context.access.get()
     const updated = await db.transaction(async (tx) => {

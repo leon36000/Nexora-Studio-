@@ -499,6 +499,10 @@ class BaseRefUnusableError extends Error {
 /** New migration files on this branch vs base, plus uncommitted ones locally. */
 function changedMigrationFiles(baseRef: string): string[] {
   const files = new Set<string>()
+  /* `git diff --name-only` and `git status --porcelain` print paths from the repository root,
+     which is a parent of ROOT when this workspace is vendored in a larger repository. */
+  const prefix = git(['rev-parse', '--show-prefix']) ?? ''
+  const fromRoot = (p: string) => (prefix && p.startsWith(prefix) ? p.slice(prefix.length) : p)
   const inDir = (p: string) => p.startsWith(`${MIGRATIONS_DIR}/`) && p.endsWith('.sql')
 
   const mergeBase = git(['merge-base', baseRef, 'HEAD']) ?? baseRef
@@ -514,12 +518,15 @@ function changedMigrationFiles(baseRef: string): string[] {
   /* Only a missing git binary is a legitimate skip, and `resolveFiles` detects that
      separately. A diff that fails with git present means the ref is unusable. */
   if (committed === null) throw new BaseRefUnusableError(baseRef)
-  for (const f of committed.split('\n')) if (inDir(f)) files.add(f)
+  for (const raw of committed.split('\n')) {
+    const f = fromRoot(raw)
+    if (inDir(f)) files.add(f)
+  }
 
   const status = git(['status', '--porcelain', '--', MIGRATIONS_DIR])
   if (status) {
     for (const raw of status.split('\n')) {
-      const p = raw.slice(3).trim()
+      const p = fromRoot(raw.slice(3).trim())
       if (inDir(p)) files.add(p)
     }
   }

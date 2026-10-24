@@ -18,4 +18,6 @@ Les polices commerciales livrées par le projet d'origine (Season Sans, Söhne) 
 
 Les dépendances de ces composants (paquets npm et PyPI) gardent leurs propres licences, déclarées dans leurs fichiers de verrouillage (`bun.lock`, `package-lock.json`, `uv.lock`).
 
+Lecture des PDF numériques par Nexora API (v3, K4) : pdfplumber 0.11.10 et pdfminer.six (MIT), pypdfium2 5.14.0 (Apache-2.0 ou BSD-3-Clause ; il embarque PDFium, BSD-3-Clause), Pillow 12.3.0 (MIT-CMU), et leurs dépendances cryptography (Apache-2.0 ou BSD-3-Clause), cffi (MIT) et charset-normalizer (MIT). Docling (MIT) a été écarté : ses dépendances (PyTorch et des bibliothèques CUDA sous licence propriétaire NVIDIA, environ 3,4 Go de paquets) ne conviennent pas au serveur visé.
+
 Les noms et marques des services tiers cités par les intégrations (Slack, Google, etc.) restent la propriété de leurs titulaires. Ils ne sont utilisés que pour identifier ces intégrations.

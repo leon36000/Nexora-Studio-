@@ -70,7 +70,7 @@ Un modèle servi par une passerelle **sort de votre serveur** : sa fiche affiche
 ## Les modèles à raisonnement
 
 Certains modèles (GLM 5.3, DeepSeek R1, Qwen 3…) **réfléchissent avant de répondre**. Leur réflexion arrive à part — dans un champ `reasoning_content` ou `reasoning`, ou entre balises `<think>…</think>` au début de la réponse pour les modèles Ollama de type qwen3 ou deepseek-r1. Nexora la lit sous ces trois formes et la tient toujours **à l'écart de la réponse** :
-- **Playground**, **Assistant** et chats d'agents : un volet **Réflexion** repliable s'affiche en direct au-dessus de la réponse, puis se replie quand la réponse commence ;
+- **Playground**, **Assistant** et chats d'agents réservés aux membres : un volet **Réflexion** repliable s'affiche en direct au-dessus de la réponse, puis se replie quand la réponse commence ;
 - sortie `content` d'un bloc, plans du **Copilote**, texte de **Générer avec l'IA** : la réflexion n'y figure jamais ;
 - elle reste consultable dans les traces d'exécution (Journaux).
 
@@ -78,7 +78,7 @@ Ce que cela change :
 - **La réponse arrive plus tard** : le premier mot de la réponse peut attendre que la réflexion soit finie. Ce n'est pas une panne ; le Playground et l'Assistant montrent la réflexion pendant ce temps.
 - **Les jetons comptent** : la réflexion consomme des jetons de sortie. Une **longueur maximale** trop basse peut être entièrement prise par la réflexion : la réponse est alors vide. Laissez de la marge (1 024 jetons au moins).
 - **Effort de raisonnement** (Playground, formulaire d'agent, bloc Agent en mode avancé) : *Faible*, *Moyen* ou *Élevé* sont transmis au modèle (`reasoning_effort`). Un modèle qui refuse ce réglage répond quand même, avec son effort par défaut ; le Playground le signale. *Par défaut* n'envoie rien.
-- Dans un chat publié, la réflexion n'est transmise qu'aux clients qui la demandent (en-tête `X-Sim-Stream-Protocol: agent-events-v1`) ; le chat public ne l'affiche pas.
+- Dans un chat publié, la réflexion n'est transmise qu'aux **membres de l'espace connectés** à un agent réservé aux membres (c'est ainsi que l'Assistant la reçoit), et seulement aux clients qui la demandent (en-tête `X-Sim-Stream-Protocol: agent-events-v1`). Un visiteur d'un agent public, ou d'un chat protégé par mot de passe ou par e-mail, ne la reçoit jamais, même avec l'en-tête — sauf si le propriétaire active explicitement « Inclure le raisonnement » dans la fenêtre de déploiement du chat, dans l'éditeur.
 
 ## Fiche d'un modèle
 

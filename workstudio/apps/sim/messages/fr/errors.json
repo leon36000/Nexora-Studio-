@@ -62,5 +62,12 @@
     "knowledge_export": "export d’une base de connaissances",
     "project_issues_use": "accès aux tickets de projet",
     "workflows_edit": "modification des workflows"
+  },
+  "extraction": {
+    "noAnswer": "Le modèle n’a pas renvoyé de données lisibles",
+    "noAnswerBecause": "Le modèle n’a pas renvoyé de données lisibles ({reason})",
+    "missing": "Champ « {field} » absent du document",
+    "invalid": "« {field} » illisible ({type} attendu) : {value}",
+    "totals": "HT + TVA ({sum}) différent du TTC ({gross})"
   }
 }

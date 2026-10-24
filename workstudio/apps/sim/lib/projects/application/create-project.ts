@@ -4,7 +4,7 @@ import { getPostgresConstraintName, getPostgresErrorCode } from '@sim/utils/erro
 import { recordProjectedUseCaseAuditEntries } from '@/lib/core/application/authorized-workspace-use-case'
 import type { OperationUseCase } from '@/lib/core/application/operation'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
-import { refuseCapability } from '@/lib/permission-groups/capabilities'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { requireProjectPrincipal } from '@/lib/projects/application/authorization'
 import { projectOperations } from '@/lib/projects/application/operations'
 import type { CreateProjectInput } from '@/lib/projects/create-input'

@@ -3,7 +3,7 @@ import { recordProjectedUseCaseAuditEntries } from '@/lib/core/application/autho
 import type { OperationUseCase } from '@/lib/core/application/operation'
 import { authorizeOrganizationOperation } from '@/lib/core/application/organization-authorization'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
-import { refuseCapability } from '@/lib/permission-groups/capabilities'
+import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
 import { organizationWorkspaceOperations } from '@/lib/workspaces/application/organization-operations'
 import { createWorkspace } from '@/lib/workspaces/create'
 import {

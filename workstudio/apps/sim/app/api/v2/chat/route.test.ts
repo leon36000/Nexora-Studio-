@@ -112,7 +112,8 @@ environmentUtilsMockFns.mockGetPersonalAndWorkspaceEnv.mockResolvedValue({
 })
 
 import { chatOperations } from '@/lib/mothership/application/operations'
-import { CAPABILITY_RULES, capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { DEFAULT_PERMISSION_GROUP_CONFIG } from '@/lib/permission-groups/fields'
 import { POST } from '@/app/api/v2/chat/route'
 

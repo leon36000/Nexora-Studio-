@@ -29,7 +29,7 @@ vi.mock('@/lib/core/rate-limiter', () => rateLimiterMock)
 
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 
-import { capabilityRefusal } from '@/lib/permission-groups/capabilities'
+import { capabilityRefusal } from '@/lib/permission-groups/capability-refusal.server'
 import { POST } from '@/app/api/cli/auth/approve/route'
 
 const mockEnforceUserRateLimit = rateLimiterMockFns.mockEnforceUserRateLimit
