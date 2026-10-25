@@ -299,6 +299,25 @@ describe('recordTrace — le service de données personnelles complète les moti
     expect(stored[0].trace.maskedCount).toBe(4)
   })
 
+  it('écrit les marques des traces ([IBAN], [E-MAIL]) et non celles du service, comme sans service', async () => {
+    const serviceMarks = vi.fn(async (texts: string[]) => ({
+      texts: texts.map((text) =>
+        text
+          .replaceAll(IBAN, '<IBAN_CODE>')
+          .replaceAll(COMPACT_IBAN, '<IBAN_CODE>')
+          .replaceAll('jean@exemple.fr', '<EMAIL_ADDRESS>')
+          .replaceAll('Marie Dupont', '<PERSON>')
+      ),
+      found: 3,
+    }))
+    const { all, stored } = deps({}, { maskNames: serviceMarks })
+    await recordTrace(draft({ input: `Mon IBAN est ${IBAN}, écris à Marie Dupont` }), all)
+    expect(stored[0].trace.inputPreview).toBe('Mon IBAN est [IBAN], écris à <PERSON>')
+    expect(stored[0].spans[0].output).toBe('Je note [IBAN] pour [E-MAIL]')
+    expect(JSON.stringify(stored)).not.toContain('<IBAN_CODE>')
+    expect(JSON.stringify(stored)).not.toContain('<EMAIL_ADDRESS>')
+  })
+
   it('stocke quand même la trace, masquée par les motifs seuls, si le service ne répond pas', async () => {
     const failing = vi.fn(async () => {
       throw new Error('ECONNREFUSED')

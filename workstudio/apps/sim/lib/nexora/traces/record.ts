@@ -5,7 +5,12 @@ import { protectTexts } from '@/lib/nexora/data-protection/masking'
 import { capDraft } from '@/lib/nexora/traces/caps'
 import { co2ForSpans } from '@/lib/nexora/traces/co2'
 import { exportTrace } from '@/lib/nexora/traces/otlp'
-import { type RedactionMode, redactText, redactValue } from '@/lib/nexora/traces/redaction'
+import {
+  type RedactionMode,
+  redactText,
+  redactValue,
+  withTraceMarks,
+} from '@/lib/nexora/traces/redaction'
 import { insertTrace } from '@/lib/nexora/traces/repository'
 import { loadTraceSettings, type TraceSettings } from '@/lib/nexora/traces/settings'
 import type { StoredTrace } from '@/lib/nexora/traces/stored'
@@ -204,7 +209,7 @@ async function maskNamesInDraft(
   try {
     const result = await deps.maskNames(texts)
     if (result.texts.length !== texts.length) throw new Error('The service returned a short answer')
-    result.texts.forEach((value, index) => apply[index](value))
+    result.texts.forEach((value, index) => apply[index](withTraceMarks(value)))
     return { draft: copy, masked: result.found }
   } catch (error) {
     logger.warn('Names could not be masked in a trace; the patterns alone masked it', {

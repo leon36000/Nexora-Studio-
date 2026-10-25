@@ -51,7 +51,7 @@ Trois niveaux, réglables par un administrateur :
 - **Strict** : aucun contenu n'est conservé — ni questions, ni réponses, ni raisonnement, ni message d'erreur —, seulement l'arbre, les noms, les durées, les jetons et le statut.
 - **Aucun masquage** : à réserver à une instance de confiance.
 
-Quand une politique d'espace masque ou refuse des données avant l'envoi à un modèle hors instance, le panneau le dit (« Données personnelles masquées avant l'envoi à … : IBAN ×1 ») ; voir [Gouvernance avancée et garde-fous](gouvernance.md). Avec le service local de détection, les noms sont masqués aussi.
+Quand une politique d'espace masque ou refuse des données avant l'envoi à un modèle hors instance, le panneau le dit (« Données personnelles masquées avant l'envoi à … : IBAN ×1 ») ; voir [Gouvernance avancée et garde-fous](gouvernance.md). Avec le service local de détection, les noms sont masqués aussi (`<PERSON>`) ; les e-mails, IBAN, cartes et téléphones gardent les mêmes marques (`[E-MAIL]`, `[IBAN]`…) avec ou sans le service.
 
 Le masquage repose sur des motifs : c'est un filet de sécurité, pas une garantie. Un nom, une adresse postale ou un numéro écrit de façon inhabituelle peuvent rester lisibles. Pour des données très sensibles, choisissez le niveau strict.
 
