@@ -37,6 +37,7 @@ import {
   deliverDocumentsAsText,
 } from '@/lib/nexora/attachment-text.server'
 import { dropUnavailableBuiltinTools } from '@/lib/nexora/builtin-tools'
+import { APPROVAL_FIELD, pendingActionsView } from '@/lib/nexora/tool-confirmation/deferred'
 import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
 import { collectProducedFiles } from '@/lib/nexora/tool-files'
 import { importWorkspaceFileSecretProvenanceForModelView } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
@@ -70,7 +71,13 @@ import {
   validateBlockType,
   validateModelProvider,
 } from '@/ee/access-control/utils/permission-check'
-import { AGENT, BlockType, DEFAULTS, stripCustomToolPrefix } from '@/executor/constants'
+import {
+  AGENT,
+  BlockType,
+  DEFAULTS,
+  PAUSE_RESUME,
+  stripCustomToolPrefix,
+} from '@/executor/constants'
 import { isRetryableBlockError } from '@/executor/execution/block-retry'
 import {
   getMemoryMessageAppendKey,
@@ -90,6 +97,7 @@ import type {
   StreamingConfig,
   ToolInput,
 } from '@/executor/handlers/agent/types'
+import { HumanInTheLoopBlockHandler } from '@/executor/handlers/human-in-the-loop/handler'
 import { parseResponseFormat } from '@/executor/handlers/shared/response-format'
 import type {
   BlockHandler,
@@ -134,6 +142,7 @@ import {
   getInlineHydrationMaxBytes,
 } from '@/providers/file-attachments.server'
 import { isAutoModel, isEvaluationModel, SIM_AUTO_MODEL_ID } from '@/providers/models'
+import type { DeferredAction } from '@/providers/runtime-context'
 import { isRunAbortError } from '@/providers/streaming-tool-loop-shared'
 import {
   type ProviderToolInputProvenance,
@@ -3048,6 +3057,8 @@ export class AgentBlockHandler implements BlockHandler {
       }
 
       const { blockData, blockNameMapping } = collectBlockData(ctx)
+      // Nexora edition: flagged actions nobody could answer live wait for this run's pause.
+      const deferredActions: DeferredAction[] = []
       const agentMemoryRetrieval = agentConversation?.memoryId
         ? createAgentMemoryRetrievalTool({
             executionContext: ctx,
@@ -3111,10 +3122,16 @@ export class AgentBlockHandler implements BlockHandler {
           agentMemoryContext: agentConversation
             ? { historyTokens: providerRequest.memoryHistoryTokens }
             : undefined,
+          deferredActions,
         }
       )
 
-      return this.processProviderResponse(response, block, responseFormat, ctx)
+      return await this.withApprovalPause(
+        ctx,
+        block,
+        this.processProviderResponse(response, block, responseFormat, ctx),
+        deferredActions
+      )
     } catch (error) {
       ctx.errorResolvedSecretTraceRegistry = this.createErrorRegistry(
         providerErrorRegistry,
@@ -3245,6 +3262,52 @@ export class AgentBlockHandler implements BlockHandler {
     }
     await memoryService.appendToMemory(ctx, inputs, { role: 'assistant', content })
     await agentConversation?.finalize(content, model)
+  }
+
+  /**
+   * Nexora edition: when the agent asked for actions flagged « Demander avant d'agir » and nobody
+   * followed the run, the block ends in the workflow's own human pause: one « Autoriser » switch.
+   * The held actions travel with the paused output and run at resume only if approved.
+   */
+  private async withApprovalPause(
+    ctx: ExecutionContext,
+    block: SerializedBlock,
+    result: BlockOutput | StreamingExecution,
+    deferred: DeferredAction[]
+  ): Promise<BlockOutput | StreamingExecution> {
+    if (deferred.length === 0) return result
+    const pause = await new HumanInTheLoopBlockHandler().executeWithNode(
+      ctx,
+      block,
+      {
+        operation: PAUSE_RESUME.OPERATION.HUMAN,
+        // What the person is asked to allow, as the resume page shows it (persisted with the pause).
+        builderData: deferred.map((action) => ({
+          name: action.title,
+          type: 'string',
+          value: action.summary,
+        })),
+        inputFormat: [
+          // i18n-ignore: stored with the paused run, in the instance's default language
+          { name: APPROVAL_FIELD, label: 'Autoriser ces actions', type: 'boolean', value: false },
+        ],
+      },
+      { nodeId: block.id }
+    )
+    const pauseOutput = toRecord(pause)
+    const paused = {
+      response: pauseOutput.response,
+      _pauseMetadata: pauseOutput._pauseMetadata,
+      ...(pauseOutput.url ? { url: pauseOutput.url } : {}),
+      ...(pauseOutput.resumeEndpoint ? { resumeEndpoint: pauseOutput.resumeEndpoint } : {}),
+      pendingActions: pendingActionsView(deferred),
+      _deferredActions: deferred,
+    }
+    if (this.isStreamingExecution(result)) {
+      Object.assign((result as StreamingExecution).execution.output, paused)
+      return result
+    }
+    return { ...toRecord(result), ...paused }
   }
 
   private processProviderResponse(
