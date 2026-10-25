@@ -1,0 +1,59 @@
+{
+ "duration": 61.5,
+ "segments": [
+  {
+   "speaker": "Marie",
+   "start": 0.0,
+   "end": 5.793,
+   "text": "Bonjour à tous, merci d'être là. Nous faisons aujourd'hui le point de lancement de la campagne d'automne."
+  },
+  {
+   "speaker": "Marie",
+   "start": 6.773,
+   "end": 13.913,
+   "text": "L'objectif de cette réunion est de fixer les dates, le budget et de répartir les actions avant la fin de la semaine."
+  },
+  {
+   "speaker": "Paul",
+   "start": 15.039,
+   "end": 22.079,
+   "text": "Bonjour Marie, bonjour Claire. J'ai préparé un résumé des retours clients, je peux commencer si vous voulez."
+  },
+  {
+   "speaker": "Marie",
+   "start": 23.212,
+   "end": 25.232,
+   "text": "Oui, vas-y Paul, on t'écoute."
+  },
+  {
+   "speaker": "Paul",
+   "start": 25.946,
+   "end": 33.034,
+   "text": "Depuis le mois dernier, j'ai rencontré douze clients. Neuf d'entre eux souhaitent une offre de fin d'année sur les coffrets cadeaux."
+  },
+  {
+   "speaker": "Paul",
+   "start": 33.643,
+   "end": 41.611,
+   "text": "La Boulangerie Martin à Lyon est la plus enthousiaste. Elle propose même de commander trois cents coffrets dès le départ."
+  },
+  {
+   "speaker": "Claire",
+   "start": 42.511,
+   "end": 45.912,
+   "text": "Trois cents coffrets, cela représente combien en chiffre d'affaires ?"
+  },
+  {
+   "speaker": "Paul",
+   "start": 46.732,
+   "end": 53.02,
+   "text": "Avec le tarif actuel, environ dix-huit mille euros hors taxes pour cette seule commande."
+  },
+  {
+   "speaker": "Claire",
+   "start": 54.268,
+   "end": 60.932,
+   "text": "D'accord. Il faudra que je vérifie la trésorerie, car nous devons avancer les achats de matières premières."
+  }
+ ]
+}

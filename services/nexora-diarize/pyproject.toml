@@ -1,0 +1,34 @@
+[project]
+name = "nexora-diarize"
+version = "0.1.0"
+description = "Nexora: qui parle quand dans un enregistrement (sherpa-onnx, CPU, hors ligne)."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.162.0",
+    "uvicorn==0.54.0",
+    "python-multipart==0.0.32",
+    "sherpa-onnx==1.12.40",
+    "av==19.0.2",
+    "numpy>=2.0,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["nexora_diarize*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 150
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP"]
