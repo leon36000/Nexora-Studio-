@@ -381,10 +381,13 @@ export const POST = withRouteHandler(
           requestSignal: request.signal,
           requestHeaders: request.headers,
           executeFn: async ({ onStream, onBlockComplete, abortSignal, emitFrame }) => {
-            // Nexora edition: a person who follows this run (agent-events-v1) can answer
-            // « Demander avant d'agir »; any other client gets those actions deferred.
+            // Nexora edition: a member who follows this run (agent-events-v1) answers
+            // « Demander avant d'agir » for it; any other client, and every visitor of a chat not
+            // reserved for members, gets those actions deferred to the workspace's own pause.
             const unregisterConfirmations = clientAcceptsAgentStreamProtocol(request.headers)
-              ? registerConfirmationSink(executionId, emitFrame)
+              ? registerConfirmationSink(executionId, emitFrame, {
+                  followerMayAnswer: memberChatUserId !== undefined,
+                })
               : undefined
             // Nexora edition: the run's tool calls act as the member who is talking.
             const unregisterMember = memberChatUserId

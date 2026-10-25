@@ -19,19 +19,39 @@ export type ConfirmationFrame =
 
 type ConfirmationSink = (frame: ConfirmationFrame) => void
 
-type SinkGlobal = typeof globalThis & { _nexoraConfirmationSinks?: Map<string, ConfirmationSink> }
+interface RegisteredSink {
+  sink: ConfirmationSink
+  followerMayAnswer: boolean
+}
+
+type SinkGlobal = typeof globalThis & { _nexoraConfirmationSinks?: Map<string, RegisteredSink> }
 const holder = globalThis as SinkGlobal
 holder._nexoraConfirmationSinks ??= new Map()
 const sinks = holder._nexoraConfirmationSinks
 
-/** Registers the sink of a run; the returned function unregisters it (when the stream ends). */
-export function registerConfirmationSink(executionId: string, sink: ConfirmationSink): () => void {
-  sinks.set(executionId, sink)
+/**
+ * Registers the sink of a run; the returned function unregisters it (when the stream ends).
+ * `followerMayAnswer` says whether the person on the other end of the stream may allow the run's
+ * actions: a member of the workspace may; the visitor of a public chat may not, since he would be
+ * approving what his own request made the workspace's connections do. Closed unless granted.
+ */
+export function registerConfirmationSink(
+  executionId: string,
+  sink: ConfirmationSink,
+  options: { followerMayAnswer?: boolean } = {}
+): () => void {
+  const registered: RegisteredSink = { sink, followerMayAnswer: options.followerMayAnswer === true }
+  sinks.set(executionId, registered)
   return () => {
-    if (sinks.get(executionId) === sink) sinks.delete(executionId)
+    if (sinks.get(executionId) === registered) sinks.delete(executionId)
   }
 }
 
 export function getConfirmationSink(executionId: string | undefined): ConfirmationSink | undefined {
-  return executionId ? sinks.get(executionId) : undefined
+  return executionId ? sinks.get(executionId)?.sink : undefined
+}
+
+/** Whether the person following this run may answer « Autoriser » for it (never a public visitor). */
+export function followerMayAnswer(executionId: string | undefined): boolean {
+  return executionId ? sinks.get(executionId)?.followerMayAnswer === true : false
 }

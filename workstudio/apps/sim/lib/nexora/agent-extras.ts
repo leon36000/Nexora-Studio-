@@ -163,17 +163,24 @@ function readDelegations(data: unknown): DelegationNote[] {
 const EXTRAS_MARKER = '<!--nexora-extras:'
 const EXTRAS_END = '-->'
 
+/** A marker the model wrote: kept readable but no longer a marker, so it is never read back as extras. */
+function withoutMarker(text: string): string {
+  return text.replaceAll(EXTRAS_MARKER, `&lt;${EXTRAS_MARKER.slice(1)}`)
+}
+
 /**
  * The text of an answer to keep, with its files and sources after it as an HTML comment (which a
  * Markdown view does not show). The Assistant stores answers as text; carrying the extras this way
- * keeps them across a reload without a new column.
+ * keeps them across a reload without a new column. A marker the model itself wrote in the text is
+ * defused first, so only the one added here can be read back (no forged « sources »).
  */
 export function withExtras(text: string, extras: AnswerExtras): string {
+  const safeText = withoutMarker(text)
   if (extras.files.length === 0 && extras.sources.length === 0 && !extras.delegations?.length) {
-    return text
+    return safeText
   }
   const json = JSON.stringify(extras).replaceAll('-->', '--\\u003e')
-  return `${text}\n\n${EXTRAS_MARKER}${json}${EXTRAS_END}`
+  return `${safeText}\n\n${EXTRAS_MARKER}${json}${EXTRAS_END}`
 }
 
 /** A stored answer split back into its text and its extras; a damaged marker leaves just the text. */
