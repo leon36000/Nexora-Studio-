@@ -186,16 +186,19 @@ function toUsage(raw: unknown): WandUsage | null {
 }
 
 /** One generation, whole: the trimmed answer (never the model's reasoning) and its token usage. */
-export async function nexoraWandComplete(input: {
-  messages: WandMessage[]
-  signal?: AbortSignal
-  responseFormat?: CompletionSettings['responseFormat']
-  trace?: CallTraceContext
-}): Promise<{ text: string; usage: WandUsage }> {
+export async function nexoraWandComplete(
+  input: {
+    messages: WandMessage[]
+    signal?: AbortSignal
+  } & Pick<CompletionSettings, 'responseFormat' | 'trace' | 'model' | 'temperature' | 'maxTokens'>
+): Promise<{ text: string; usage: WandUsage }> {
   const trace = beginTrace(input, input.messages)
   try {
     const { response } = await requestCompletion(input.messages, false, input.signal, {
       responseFormat: input.responseFormat,
+      model: input.model,
+      temperature: input.temperature,
+      maxTokens: input.maxTokens,
     })
     const body = (await response.json()) as {
       choices?: { message?: unknown }[]
