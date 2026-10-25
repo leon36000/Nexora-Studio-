@@ -186,6 +186,12 @@ import {
   v2UpdatePermissionGroupContract,
 } from '@/lib/api/contracts/v2/permission-groups'
 import {
+  v2CreatePromptContract,
+  v2CreatePromptVersionContract,
+  v2GetPromptContract,
+  v2ListPromptsContract,
+} from '@/lib/api/contracts/v2/prompts'
+import {
   v2CreateSandboxContract,
   v2DeleteSandboxContract,
   v2GetSandboxContract,
@@ -766,6 +772,21 @@ export const V2_MCP_OPERATIONS = {
       import('@/app/api/v2/organizations/[organizationId]/permission-groups/route').then(
         (route) => route.POST
       ),
+  },
+  createPrompt: {
+    contract: v2CreatePromptContract,
+    summary: 'Create prompt',
+    description:
+      'Create a prompt with its version 1, which both the `production` and `test` labels point at. The name is unique within the workspace regardless of case. Requires workspace write access.\n\nOAuth scope: `api:write`.',
+    handler: () => import('@/app/api/v2/prompts/route').then((route) => route.POST),
+  },
+  createPromptVersion: {
+    contract: v2CreatePromptVersionContract,
+    summary: 'Create prompt version',
+    description:
+      'Save the next version of a prompt, by id or name. Labels stay where they were: agents keep their version until a label is moved in the interface. Requires workspace write access.\n\nOAuth scope: `api:write`.',
+    handler: () =>
+      import('@/app/api/v2/prompts/[promptId]/versions/route').then((route) => route.POST),
   },
   createSandbox: {
     contract: v2CreateSandboxContract,
@@ -1443,6 +1464,13 @@ export const V2_MCP_OPERATIONS = {
         (route) => route.GET
       ),
   },
+  getPrompt: {
+    contract: v2GetPromptContract,
+    summary: 'Get prompt',
+    description:
+      'Get a prompt, by id or name, with the text of the version a label points at (`production` when neither `label` nor `version` is given) or of a given version. Moving a label in the interface changes what this returns. Requires workspace read access.\n\nOAuth scope: `api:read`.',
+    handler: () => import('@/app/api/v2/prompts/[promptId]/route').then((route) => route.GET),
+  },
   getRowEnrichment: {
     contract: v2GetRowEnrichmentContract,
     summary: 'Get row group run',
@@ -1999,6 +2027,13 @@ export const V2_MCP_OPERATIONS = {
       import('@/app/api/v2/organizations/[organizationId]/permission-groups/route').then(
         (route) => route.GET
       ),
+  },
+  listPrompts: {
+    contract: v2ListPromptsContract,
+    summary: 'List prompts',
+    description:
+      'List the prompts of a workspace with cursor pagination, with where each label points. Prompt texts are omitted; use Get prompt to read one. Requires workspace read access.\n\nOAuth scope: `api:read`.',
+    handler: () => import('@/app/api/v2/prompts/route').then((route) => route.GET),
   },
   listSandboxes: {
     contract: v2ListSandboxesContract,

@@ -10,6 +10,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Les agents](agents.md) | Tous les utilisateurs | Créer un agent par formulaire, le tester, le publier, ses versions |
 | [L'Assistant](assistant.md) | Tous les utilisateurs | Discuter avec les agents de l'espace, fichiers joints, confidentialité des conversations |
 | [Le Playground](playground.md) | Tous les utilisateurs | Essayer et comparer les modèles |
+| [Les prompts](prompts.md) | Tous les utilisateurs | Consignes réutilisables et versionnées, étiquettes `production` et `test`, utilisation dans les agents, API |
 | [Les connecteurs](connecteurs.md) | Tous les utilisateurs | Connecter vos services en un clic, cloisonnement par espace, applications OAuth |
 | [Le Copilote](copilote.md) | Tous les utilisateurs | Décrire une automatisation en français et obtenir un workflow prêt à exécuter |
 | [Consommation et budgets](consommation.md) | Administrateurs | Qui consomme quoi, empreinte carbone, plafonds mensuels |

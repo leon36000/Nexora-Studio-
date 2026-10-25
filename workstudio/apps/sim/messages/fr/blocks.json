@@ -16,6 +16,21 @@
         "title": "Messages",
         "placeholder": "Saisissez les messages…"
       },
+      "promptId": {
+        "title": "Prompt de consignes",
+        "placeholder": "Utiliser le message système ci-dessus"
+      },
+      "promptLabel": {
+        "title": "Version du prompt",
+        "options": {
+          "production": "production",
+          "test": "test",
+          "latest": "Dernière version"
+        }
+      },
+      "promptVariables": {
+        "title": "Variables du prompt"
+      },
       "model": {
         "title": "Modèle",
         "placeholder": "Saisissez ou sélectionnez un modèle…",

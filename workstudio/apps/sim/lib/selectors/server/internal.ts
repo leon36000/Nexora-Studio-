@@ -8,6 +8,7 @@ import {
   listKnowledgeDocuments,
   readKnowledgeDocument,
 } from '@/lib/knowledge/application/documents'
+import { listPromptsUseCase } from '@/lib/nexora/prompts/application/use-cases'
 import { getServiceConfigByProviderId } from '@/lib/oauth/utils'
 import {
   getWorkspaceSandboxUseCase,
@@ -294,6 +295,22 @@ export const internalSelectorAttachments = {
         )
       )
       return listSelectorResult([...names].sort().map((name) => ({ id: name, label: name })))
+    },
+  },
+  'workspace.prompts': {
+    destination: 'fixed',
+    async execute(args: ExecuteServerSelectorArgs) {
+      if (!args.workspaceId) throw new SelectorContextUnavailableError()
+      const { data } = await listPromptsUseCase.execute({
+        principal: nestedSelectorPrincipal(args.principal, args.workspaceId, listPromptsUseCase),
+        input: { workspaceId: args.workspaceId },
+      })
+      const options = data.map((prompt) => ({ id: prompt.id, label: prompt.name }))
+      if (args.request.kind === 'detail') {
+        const detailId = args.request.id
+        return detailSelectorResult(options.find((option) => option.id === detailId) ?? null)
+      }
+      return listSelectorResult(options)
     },
   },
   'workspace.sandboxes': {

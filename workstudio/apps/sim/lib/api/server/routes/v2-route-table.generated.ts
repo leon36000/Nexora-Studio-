@@ -561,6 +561,18 @@ export const V2_ROUTES: readonly V2RouteEntry[] = [
     load: () => import('@/app/api/v2/projects/[projectId]/files/uploads/[uploadId]/parts/route'),
   },
   {
+    pattern: '/api/v2/prompts',
+    load: () => import('@/app/api/v2/prompts/route'),
+  },
+  {
+    pattern: '/api/v2/prompts/{promptId}',
+    load: () => import('@/app/api/v2/prompts/[promptId]/route'),
+  },
+  {
+    pattern: '/api/v2/prompts/{promptId}/versions',
+    load: () => import('@/app/api/v2/prompts/[promptId]/versions/route'),
+  },
+  {
     pattern: '/api/v2/sandboxes',
     load: () => import('@/app/api/v2/sandboxes/route'),
   },
