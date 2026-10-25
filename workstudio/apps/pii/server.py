@@ -8,6 +8,7 @@ single PII_URL serves both.
 
 import json
 import logging
+import os
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -53,18 +54,16 @@ from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 from pydantic import BaseModel, model_validator
 
+from french import french_recognizers
+from languages import parse_spacy_models
+
 # Languages served. Each needs its spaCy model installed in the image; the
 # es/it/pl/fi predefined recognizers (ES_NIF, IT_FISCAL_CODE, PL_PESEL, ...)
-# auto-load once their NLP engine is present.
+# auto-load once their NLP engine is present. Nexora edition: `PII_SPACY_MODELS`
+# (`fr:fr_core_news_sm,en:en_core_web_sm`) replaces the five large models.
 NLP_CONFIGURATION = {
     "nlp_engine_name": "spacy",
-    "models": [
-        {"lang_code": "en", "model_name": "en_core_web_lg"},
-        {"lang_code": "es", "model_name": "es_core_news_lg"},
-        {"lang_code": "it", "model_name": "it_core_news_lg"},
-        {"lang_code": "pl", "model_name": "pl_core_news_lg"},
-        {"lang_code": "fi", "model_name": "fi_core_news_lg"},
-    ],
+    "models": parse_spacy_models(os.environ.get("PII_SPACY_MODELS")),
 }
 SUPPORTED_LANGUAGES = [m["lang_code"] for m in NLP_CONFIGURATION["models"]]
 
@@ -149,7 +148,15 @@ def _register_common_recognizers(analyzer: AnalyzerEngine) -> None:
             )
         )
     for recognizer_cls in EXTRA_RECOGNIZERS:
-        analyzer.registry.add_recognizer(recognizer_cls())
+        recognizer = recognizer_cls()
+        # A national recognizer of a language this image does not serve could never fire.
+        if recognizer.supported_language in SUPPORTED_LANGUAGES:
+            analyzer.registry.add_recognizer(recognizer)
+    # Nexora edition: NIR, payment cards and phone numbers for French (replacing Presidio's own phone one).
+    if "fr" in SUPPORTED_LANGUAGES:
+        for recognizer in french_recognizers("fr"):
+            analyzer.registry.remove_recognizer(recognizer.name, "fr")
+            analyzer.registry.add_recognizer(recognizer)
 
 
 def build_analyzer() -> AnalyzerEngine:
@@ -541,6 +548,15 @@ def run_anonymize(
     )
 
 
+def require_language(language: str) -> None:
+    """422 for a language this image has no model for (Presidio would fail with an opaque 500)."""
+    if language not in SUPPORTED_LANGUAGES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Language {language!r} is not served by this PII service (served: {', '.join(SUPPORTED_LANGUAGES)})",
+        )
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -548,11 +564,13 @@ def health() -> dict[str, str]:
 
 @app.get("/supportedentities")
 def supported_entities(language: str = "en") -> list[str]:
+    require_language(language)
     return analyzer.get_supported_entities(language)
 
 
 @app.post("/analyze")
 def analyze(req: AnalyzeRequest) -> list[dict[str, Any]]:
+    require_language(req.language)
     started = time.perf_counter()
     recognizers, custom_ids = build_custom_recognizers(req.patterns, req.language)
     entities = resolve_entities(req.entities, custom_ids)
@@ -578,6 +596,7 @@ def analyze(req: AnalyzeRequest) -> list[dict[str, Any]]:
 def analyze_batch(req: AnalyzeBatchRequest) -> list[list[dict[str, Any]]]:
     """Analyze many texts in one pass (spaCy nlp.pipe), returning one span list
     per input in request order — the batched counterpart to /analyze."""
+    require_language(req.language)
     recognizers, custom_ids = build_custom_recognizers(req.patterns, req.language)
     entities = resolve_entities(req.entities, custom_ids)
     results = _analyze_many(req.texts, req.language, entities, req.score_threshold, recognizers)
@@ -630,6 +649,7 @@ def redact(req: RedactRequest) -> dict[str, str]:
     counterpart to /analyze followed by /anonymize). Returns masked text; a text
     with no detected PII passes through unchanged. The analyzer results feed the
     anonymizer directly (no dict round-trip)."""
+    require_language(req.language)
     started = time.perf_counter()
     recognizers, custom_ids = build_custom_recognizers(req.patterns, req.language)
     entities = resolve_entities(req.entities, custom_ids)
@@ -662,6 +682,7 @@ def redact_batch(req: RedactBatchRequest) -> dict[str, list[str]]:
     unchanged. Analysis batches through spaCy nlp.pipe; the analyzer results feed
     the anonymizer directly (no dict round-trip), and anonymization runs only on
     texts that actually matched."""
+    require_language(req.language)
     started = time.perf_counter()
     recognizers, custom_ids = build_custom_recognizers(req.patterns, req.language)
     entities = resolve_entities(req.entities, custom_ids)
