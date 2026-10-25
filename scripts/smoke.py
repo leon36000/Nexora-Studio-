@@ -1527,8 +1527,8 @@ print(json.dumps(summary))
             s.call("DELETE", f"/api/workflows/{wf}")
 
     def agent_chat(name: str, slug: str, instructions: str, tools: list[dict], outputs: list[str],
-                   user_message: str = "<start.input>") -> tuple[str, str, str]:
-        """Publishes a throwaway public chat on one Agent block with these tools; returns (workflow, identifier, block)."""
+                   user_message: str = "<start.input>", auth_type: str = "public") -> tuple[str, str, str]:
+        """Publishes a throwaway chat (public unless `auth_type` says otherwise) on one Agent block with these tools; returns (workflow, identifier, block)."""
         status, body = s.call("POST", "/api/workflows", {"name": f"{name} {secrets.token_hex(3)}", "workspaceId": state["ws"]})
         require(status in (200, 201), f"workflow creation returned HTTP {status}")
         wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
@@ -1550,7 +1550,7 @@ print(json.dumps(summary))
         require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
         identifier = f"{slug}-{secrets.token_hex(4)}"
         status, body = s.call("POST", "/api/chat", {
-            "workflowId": wf, "identifier": identifier, "title": name, "authType": "public",
+            "workflowId": wf, "identifier": identifier, "title": name, "authType": auth_type,
             "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
             "outputConfigs": [{"blockId": block, "path": path} for path in outputs]})
         require(status in (200, 201), f"chat publication returned HTTP {status}: {str(body)[:200]}")
@@ -1701,7 +1701,8 @@ print(json.dumps(summary))
 
         def publish(name: str, description: str, instructions: str, tools: list[dict] | None = None,
                     handoffs: list[tuple[str, str]] | None = None, skills: list[dict] | None = None,
-                    workflow: str | None = None, memory: bool = True, agent_model: str | None = None) -> tuple[str, str, str]:
+                    workflow: str | None = None, memory: bool = True, agent_model: str | None = None,
+                    auth_type: str = "public") -> tuple[str, str, str]:
             """Creates (or rewrites) an agent in the « Agents » folder and deploys it; returns (workflow, block, chat identifier)."""
             wf = workflow
             if wf is None:
@@ -1733,7 +1734,7 @@ print(json.dumps(summary))
             require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
             identifier = f"deleg-{secrets.token_hex(5)}"
             status, body = s.call("POST", "/api/chat", {
-                "workflowId": wf, "identifier": identifier, "title": name, "authType": "public",
+                "workflowId": wf, "identifier": identifier, "title": name, "authType": auth_type,
                 "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
                 "outputConfigs": [{"blockId": block, "path": "content"}]})
             require(status in (200, 201), f"chat publication returned HTTP {status}: {str(body)[:200]}")
@@ -1898,7 +1899,8 @@ print(json.dumps(summary))
                     tools=[connect_tool], agent_model="vllm/nexora-default")
                 _, _, relais_chat = publish("Agent relais", "Relais.",
                                             "Tu es un relais : pour toute demande d'envoi d'e-mail, confie-la à l'agent courrier, puis rapporte sa réponse en une phrase.",
-                                            handoffs=[(courrier, "reply")], agent_model="vllm/nexora-default")
+                                            handoffs=[(courrier, "reply")], agent_model="vllm/nexora-default",
+                                            auth_type="workspace")
                 request = urllib.request.Request(f"{s.url}/api/chat/{relais_chat}", method="POST", headers={
                     "Content-Type": "application/json", "Origin": s.origin, "X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"},
                     data=json.dumps({"input": "Envoie un e-mail de relance au client : sujet « Relance facture F-118 »", "conversationId": secrets.token_hex(8)}).encode())
@@ -1980,7 +1982,7 @@ print(json.dumps(summary))
                 "Tu es l'assistant administratif d'une PME. Pour envoyer un e-mail, appelle l'outil execute_action avec actionId « postmark.send_email » "
                 "et un input {From, To, Subject, TextBody}. Ne demande jamais de précision : utilise From « contact@exemple.fr », To « client@exemple.fr ». "
                 "Réponds en français en une phrase en disant si l'e-mail est parti.",
-                [connect_tool], ["content"])
+                [connect_tool], ["content"], auth_type="workspace")
             question = "Envoie un e-mail de relance au client : sujet « Relance facture F-118 », message « Bonjour, votre facture est en retard. »"
             before = connect_runs(action)
 
@@ -2024,6 +2026,20 @@ print(json.dumps(summary))
             asked_and_answered("allow")
             if before is not None:
                 require(connect_runs(action) == before + 1, "Nexora Connect did not run the action once it was allowed")
+            # The visitor of a public chat never allows what the workspace's connections would do: no card, nothing sent.
+            _, public_identifier, _ = agent_chat(
+                "Confirmation de fumée (public)", "confirmation-fumee-public",
+                "Tu es l'assistant administratif d'une PME. Pour envoyer un e-mail, appelle l'outil execute_action avec actionId « postmark.send_email » "
+                "et un input {From, To, Subject, TextBody}. Ne demande jamais de précision : utilise From « contact@exemple.fr », To « client@exemple.fr ».",
+                [connect_tool], ["content"])
+            mark_public = connect_runs(action)
+            status, text = s.call("POST", f"/api/chat/{public_identifier}", {"input": question, "conversationId": secrets.token_hex(8)},
+                                  raw=True, timeout=600, headers={"X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"})
+            require(status == 200, f"the public chat returned HTTP {status}: {text[:300]}")
+            require('"event":"confirmation"' not in text.replace(" ", ""), "a visitor of a public chat was handed a confirmation card")
+            time.sleep(2)
+            if before is not None:
+                require(connect_runs(action) == mark_public, "Nexora Connect ran the action for the visitor of a public chat")
             # A run nobody follows (the editor, a schedule, the API): the same question pauses the workflow instead.
             run_wf, _, _ = agent_chat(
                 "Confirmation de fumée (run)", "confirmation-fumee-run",
