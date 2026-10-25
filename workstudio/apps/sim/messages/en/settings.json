@@ -2126,6 +2126,11 @@
       "forbidden": "Organization admins only.",
       "invalid": "Check the values you entered.",
       "unknown": "The operation failed. Try again."
+    },
+    "models": {
+      "title": "Models the group can choose",
+      "empty": "No chat model has been added.",
+      "default": "default"
     }
   },
   "instanceStatus": {

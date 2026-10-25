@@ -2126,6 +2126,11 @@
       "forbidden": "Réservé aux administrateurs de l’organisation.",
       "invalid": "Vérifiez les valeurs saisies.",
       "unknown": "L’opération a échoué. Réessayez."
+    },
+    "models": {
+      "title": "Modèles que le groupe peut choisir",
+      "empty": "Aucun modèle de discussion n’est ajouté.",
+      "default": "par défaut"
     }
   },
   "instanceStatus": {

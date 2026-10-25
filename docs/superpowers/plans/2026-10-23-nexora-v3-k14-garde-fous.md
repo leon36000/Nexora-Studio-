@@ -190,16 +190,16 @@
 ## Tâche 9 : Modèles interdits par groupe d'accès
 
 **Fichiers :**
-- Modifier : `ee/access-control/components/access-group-detail.tsx` (section « Modèles », sélecteur multiple avec la localisation de chaque modèle), `ee/access-control/utils/permission-check.ts` (alias résolus dans `validateModelProvider`/`assertPermissionsAllowed`), `app/api/nexora/playground/route.ts`, `lib/nexora/wand.ts` (utilisateur et espace connus ⇒ garde de groupe), `ee/access-control/hooks/permission-groups.ts` si le corps de mise à jour ne porte pas `deniedModels`, messages `settings.accessGroups`
+- Modifier : `ee/access-control/components/access-group-detail.tsx` (section « Modèles », sélecteur multiple avec la localisation de chaque modèle), `ee/access-control/utils/permission-check.ts` (alias résolus dans `validateModelProvider`/`assertPermissionsAllowed`), `app/api/nexora/playground/route.ts` (le Playground est le seul appel direct où la personne choisit le modèle ; « Générer » et le Copilote utilisent le modèle par défaut de l'instance, que le groupe écarte avec « Chat »), `ee/access-control/components/group-models.tsx` et `denied-models.ts` (sélecteur), messages `settings.accessGroups`
 - Tests : `permission-check.test.ts`, test de route du Playground, brouillon du groupe
 
 **Interfaces :**
-- Produit : `deniedModels` modifiable depuis l'interface (identifiants `vllm/<nom>`, alias compris) ; un modèle refusé l'est aussi sous chacun de ses alias ; refus ⇒ `ModelNotAllowedError` dans un bloc, 403 `model_not_allowed` par la passerelle (déjà là), 403 en français par le Playground, « Générer » et le Copilote : « Votre groupe d'accès ne vous autorise pas le modèle {nom}. ».
+- Produit : `deniedModels` modifiable depuis l'interface (identifiants `vllm/<nom>`, alias compris) ; un modèle refusé l'est aussi sous chacun de ses alias ; refus ⇒ `ModelNotAllowedError` dans un bloc, 403 `model_not_allowed` par la passerelle (déjà là), 403 en français par le Playground : « Votre groupe d'accès ne vous autorise pas le modèle « {nom} ». ».
 
-- [ ] **Étape 1 : tests rouges** : groupe qui interdit `vllm/cloud-glm-5-3` ⇒ `validateModelProvider(user, ws, 'vllm/nexora-default')` refuse quand l'alias désigne GLM 5.3, accepte `vllm/qwen2.5:7b` ; Playground : 403 pour l'utilisateur du groupe, 200 pour un autre ; passerelle : clé créée par un membre du groupe ⇒ 403 (existant, revalidé) ; brouillon : ajouter/retirer un modèle, la liste vide n'est pas la liste complète.
-- [ ] **Étape 2 : voir échouer.**
-- [ ] **Étape 3 : implémenter** ; skill `validate-permission-group-item` rejouée sur `deniedModels` (champ, parseur tolérant, sélecteur, garde, tests).
-- [ ] **Étape 4 : tests verts** + `check:permission-group-enforcement` (comptes inchangés) + `check:application-graph` + `check:capability-subject`.
+- [x] **Étape 1 : tests rouges** : groupe qui interdit `vllm/cloud-glm-5-3` ⇒ `validateModelProvider(user, ws, 'vllm/nexora-default')` refuse quand l'alias désigne GLM 5.3, accepte `vllm/qwen2.5:7b` ; Playground : 403 pour l'utilisateur du groupe, 200 pour un autre ; passerelle : clé créée par un membre du groupe ⇒ 403 (existant, revalidé) ; brouillon : ajouter/retirer un modèle, la liste vide n'est pas la liste complète.
+- [x] **Étape 2 : voir échouer.**
+- [x] **Étape 3 : implémenter** ; skill `validate-permission-group-item` rejouée sur `deniedModels` (champ, parseur tolérant, sélecteur, garde, tests).
+- [x] **Étape 4 : tests verts** + `check:permission-group-enforcement` (comptes inchangés) + `check:application-graph` + `check:capability-subject`.
 - [ ] **Étape 5 : preuve réelle** : groupe « Comptabilité » créé sur une copie jetable de la base ; un membre ne peut pas choisir GLM 5.3 dans un bloc Agent (exécution refusée), ni par une clé d'espace créée par lui (403 en français), ni dans le Playground ; un autre membre le peut.
 - [ ] **Étape 6 : commit** `feat(k14): modèles interdits par groupe d'accès (sélecteur, alias, Playground)`.
 
