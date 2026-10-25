@@ -101,10 +101,12 @@ function cacheKey(text: string): string {
 }
 
 /**
- * Masks the personal data of every text: the patterns first (deterministic, no dependency), then —
- * when the local service is installed — the service, which also recognizes names. Returns the
- * masked texts in the order given and what was found. A text the service has already seen is not
- * analysed again (an agent resends its whole conversation at every turn).
+ * Masks the personal data of every text. With the local service installed, the service reads the
+ * text as it was written — it recognizes names, and a `[E-MAIL]` mark beside a name would make its
+ * model see a person in the mark — and the patterns (keys, tokens, anything the service does not
+ * know) then go over what it returns. Without it, the patterns alone (IBAN with its check digits,
+ * e-mail, card, phone, secrets). Returns the masked texts in the order given and what was found. A
+ * text already seen is not analysed again (an agent resends its whole conversation at every turn).
  *
  * When `PII_URL` is set and the service does not answer, this throws
  * {@link PersonalDataServiceError}: a policy that cannot be applied must not let the text through.
@@ -114,22 +116,25 @@ export async function protectTexts(
   deps: MaskingDeps = defaultDeps
 ): Promise<{ texts: string[]; found: FoundPersonalData }> {
   const found: FoundPersonalData = {}
-  const patterned = texts.map((text) => (text ? maskByPatterns(text) : { text, found: {} }))
-  for (const item of patterned) {
-    for (const [entity, count] of Object.entries(item.found)) add(found, entity, count)
+  const addAll = (more: FoundPersonalData) => {
+    for (const [entity, count] of Object.entries(more)) add(found, entity, count)
   }
-  if (!deps.serviceConfigured()) return { texts: patterned.map((item) => item.text), found }
+  if (!deps.serviceConfigured()) {
+    const masked = texts.map((text) => (text ? maskByPatterns(text) : { text, found: {} }))
+    for (const item of masked) addAll(item.found)
+    return { texts: masked.map((item) => item.text), found }
+  }
 
-  const result = patterned.map((item) => item.text)
+  const result = [...texts]
   const pending: Array<{ index: number; key: string }> = []
   const firstOfKey = new Map<string, number>()
-  patterned.forEach((item, index) => {
-    if (!item.text) return
-    const key = cacheKey(item.text)
+  texts.forEach((text, index) => {
+    if (!text) return
+    const key = cacheKey(text)
     const known = protectedCache.get(key)
     if (known) {
       result[index] = known.text
-      for (const [entity, count] of Object.entries(known.found)) add(found, entity, count)
+      addAll(known.found)
     } else if (!firstOfKey.has(key)) {
       firstOfKey.set(key, index)
       pending.push({ index, key })
@@ -139,7 +144,7 @@ export async function protectTexts(
   if (pending.length > 0) {
     let masked: string[]
     try {
-      masked = await deps.maskWithService(pending.map(({ index }) => patterned[index].text))
+      masked = await deps.maskWithService(pending.map(({ index }) => texts[index]))
       if (masked.length !== pending.length) throw new Error('The service returned a short answer')
     } catch (error) {
       logger.error('The personal-data service could not mask a request', {
@@ -148,25 +153,25 @@ export async function protectTexts(
       throw new PersonalDataServiceError()
     }
     pending.forEach(({ index, key }, position) => {
-      const before = serviceTokens(patterned[index].text)
       const itemFound: FoundPersonalData = {}
+      const before = serviceTokens(texts[index])
       for (const [entity, count] of serviceTokens(masked[position])) {
         add(itemFound, entity, count - (before.get(entity) ?? 0))
       }
-      const entry = { text: masked[position], found: itemFound }
-      if (patterned[index].text.length <= CACHED_TEXT_CHARS) protectedCache.set(key, entry)
+      const patterned = maskByPatterns(masked[position])
+      for (const [entity, count] of Object.entries(patterned.found)) add(itemFound, entity, count)
+      const entry = { text: patterned.text, found: itemFound }
+      if (texts[index].length <= CACHED_TEXT_CHARS) protectedCache.set(key, entry)
       result[index] = entry.text
-      for (const [entity, count] of Object.entries(itemFound)) add(found, entity, count)
+      addAll(itemFound)
     })
     // A duplicate of a pending text, in the same call, takes its answer.
-    patterned.forEach((item, index) => {
-      if (!item.text) return
-      const key = cacheKey(item.text)
-      const first = firstOfKey.get(key)
+    texts.forEach((text, index) => {
+      if (!text) return
+      const first = firstOfKey.get(cacheKey(text))
       if (first !== undefined && first !== index) {
         result[index] = result[first]
-        const entry = protectedCache.get(key)
-        for (const [entity, count] of Object.entries(entry?.found ?? {})) add(found, entity, count)
+        addAll(protectedCache.get(cacheKey(text))?.found ?? {})
       }
     })
   }

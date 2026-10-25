@@ -85,11 +85,29 @@ describe('protectTexts with the local service', () => {
     expect(result.found).toEqual({ IBAN_CODE: 1, PERSON: 1 })
   })
 
-  it('never hands the service what the patterns already masked', async () => {
+  it('hands the service the text as it was written: a [E-MAIL] mark beside a name makes it see a person in the mark', async () => {
     const service = fakeService()
     await protectTexts([`Mon IBAN ${IBAN} et marie@exemple.fr`], deps(service))
     expect(service).toHaveBeenCalledTimes(1)
-    expect(service.mock.calls[0][0]).toEqual(['Mon IBAN [IBAN] et [E-MAIL]'])
+    expect(service.mock.calls[0][0]).toEqual([`Mon IBAN ${IBAN} et marie@exemple.fr`])
+  })
+
+  it('still masks with the patterns what the service does not know, such as a key, and counts it', async () => {
+    const result = await protectTexts(
+      ['Marie Dupont a envoyé Bearer abcdefghijklmnop12345'],
+      deps(fakeService())
+    )
+    expect(result.texts[0]).toBe('<PERSON> a envoyé [SECRET]')
+    expect(result.found).toEqual({ PERSON: 1, SECRET: 1 })
+  })
+
+  it('counts what the service masked itself (an IBAN it recognizes) once, not twice', async () => {
+    const service = vi.fn(async (texts: string[]) =>
+      texts.map((text) => text.replace(IBAN, '<IBAN_CODE>'))
+    )
+    const result = await protectTexts([`IBAN ${IBAN}`], deps(service))
+    expect(result.texts[0]).toBe('IBAN <IBAN_CODE>')
+    expect(result.found).toEqual({ IBAN_CODE: 1 })
   })
 
   it('asks the service only for the texts that are not empty, once for all of them', async () => {
