@@ -1,12 +1,10 @@
-import { isRecordLike } from '@sim/utils/object'
-
 /**
  * Nexora edition: « Demander avant d'agir ». An agent's MCP tool can be flagged so the person is
  * asked before it runs. For Nexora Connect, whose `execute_action` runs any action of its catalogue,
  * only actions that write or destroy ask; reading does not.
  */
 
-export const NEXORA_CONNECT_SERVER_NAME = 'Nexora Connect'
+const NEXORA_CONNECT_SERVER_NAME = 'Nexora Connect'
 const EXECUTE_ACTION_TOOL = 'execute_action'
 
 /** Nexora Connect's tools that only read: the form does not offer the switch for them. */
@@ -32,7 +30,7 @@ export interface ToolConfirmationSpec {
   title: string
 }
 
-export type OperationType = 'read' | 'write' | 'destructive'
+type OperationType = 'read' | 'write' | 'destructive'
 
 /** What Nexora Connect says an action does, `null` when it does not know the action. */
 export type ActionOperationLookup = (actionId: string) => Promise<OperationType | null>
@@ -63,9 +61,4 @@ export async function needsConfirmation(
   }
   if (operation === 'read') return { needed: false }
   return { needed: true, title: actionId }
-}
-
-/** The `isRecordLike` payload of a tool call's arguments, `{}` for anything else. */
-export function argumentsOf(value: unknown): Record<string, unknown> {
-  return isRecordLike(value) ? value : {}
 }

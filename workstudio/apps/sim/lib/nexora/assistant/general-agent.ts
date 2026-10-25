@@ -200,7 +200,10 @@ async function liveVersionNeedsUpgrade(workflowId: string): Promise<boolean> {
   )
   if (agents.length !== 1) return false
   const agent = toRecord(agents[0])
-  return toRecord(agent.subBlocks).files === undefined || withAssistantTools(agent) !== null
+  return (
+    toRecord(agent.subBlocks).files === undefined ||
+    withAssistantTools({ subBlocks: agent.subBlocks, data: agent.data }) !== null
+  )
 }
 
 /**

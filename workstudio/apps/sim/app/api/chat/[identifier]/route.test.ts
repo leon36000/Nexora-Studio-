@@ -344,6 +344,7 @@ describe('Chat Identifier API Route', () => {
       const streamOptions = vi.mocked(createStreamingResponse).mock.calls[0][0]
       await streamOptions.executeFn({
         onStream: vi.fn(),
+        emitFrame: vi.fn(),
         onBlockComplete: vi.fn(),
         abortSignal: new AbortController().signal,
       })
@@ -382,6 +383,7 @@ describe('Chat Identifier API Route', () => {
         const streamOptions = vi.mocked(createStreamingResponse).mock.calls[0][0]
         await streamOptions.executeFn({
           onStream: vi.fn(),
+          emitFrame: vi.fn(),
           onBlockComplete: vi.fn(),
           abortSignal: new AbortController().signal,
         })
@@ -432,6 +434,7 @@ describe('Chat Identifier API Route', () => {
         const options = vi.mocked(createStreamingResponse).mock.calls[0][0]
         await options.executeFn({
           onStream: vi.fn(),
+          emitFrame: vi.fn(),
           onBlockComplete: vi.fn(),
           abortSignal: new AbortController().signal,
         })
@@ -508,6 +511,7 @@ describe('Chat Identifier API Route', () => {
 
       await options.executeFn({
         onStream: vi.fn(),
+        emitFrame: vi.fn(),
         onBlockComplete: vi.fn(),
         abortSignal: new AbortController().signal,
       })

@@ -5,7 +5,7 @@
  * busy until then.
  */
 
-export interface ConfirmationRequestData {
+interface ConfirmationRequestData {
   id: string
   token: string
   title: string

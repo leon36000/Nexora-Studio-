@@ -1,4 +1,4 @@
-import { isRecordLike } from '@sim/utils/object'
+import { isRecordLike, toRecordOrNull } from '@sim/utils/object'
 import { isUserFileWithMetadata } from '@/lib/core/utils/user-file'
 import type { UserFile } from '@/executor/types'
 
@@ -12,11 +12,7 @@ export function collectProducedFiles(toolCalls: unknown): UserFile[] {
   const files = new Map<string, UserFile>()
   for (const call of toolCalls) {
     if (!isRecordLike(call)) continue
-    const outcome = isRecordLike(call.result)
-      ? call.result
-      : isRecordLike(call.output)
-        ? call.output
-        : null
+    const outcome = isRecordLike(call.result) ? call.result : toRecordOrNull(call.output)
     if (!outcome || !Array.isArray(outcome.files)) continue
     for (const candidate of outcome.files) {
       if (isUserFileWithMetadata(candidate) && !files.has(candidate.id)) {

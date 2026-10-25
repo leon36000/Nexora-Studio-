@@ -162,7 +162,7 @@
 
 **Fichiers :** `scripts/smoke.py` (contrôles « Interpréteur », « Citations », « Confirmation »), `docs/guide/agents.md`, `docs/guide/assistant.md`, `docs/guide/interpreteur.md` (installation, sécurité, limites, évasion), `docs/guide/reglages.md`, `docs/guide/README.md`, `docs/superpowers/plans/2026-10-23-nexora-v3-ledger.md` (section K5).
 
-- [ ] **Étape 1 :** contrôles de fumée (ignorés avec la raison quand l'exécution de code n'est pas activée ou Connect absent) ; lancés contre le serveur de développement sur la pile de pc6.
-- [ ] **Étape 2 :** guides et ledger (décisions R1–R14, preuves).
-- [ ] **Étape 3 :** vérifications : biome sur les fichiers touchés, `bun run type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, vitest ciblé, tests shell de `deploy/`, `check-i18n/brand/no-ee/licenses`, suite d'évasion, preuves en direct (Excel ⇒ graphique et totaux, réponse citée, refus ⇒ rien d'envoyé) avec GLM 5.3 puis `qwen2.5:7b`.
-- [ ] **Étape 4 :** commit sur la branche (sans pousser).
+- [x] **Étape 1 :** contrôles de fumée (ignorés avec la raison quand l'exécution de code n'est pas activée ou Connect absent) ; lancés contre le serveur de développement sur la pile de pc6.
+- [x] **Étape 2 :** guides et ledger (décisions R1–R14, preuves).
+- [x] **Étape 3 :** vérifications : biome sur les fichiers touchés, `bun run type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, vitest ciblé, tests shell de `deploy/`, `check-i18n/brand/no-ee/licenses`, suite d'évasion, preuves en direct (Excel ⇒ graphique et totaux, réponse citée, refus ⇒ rien d'envoyé) avec GLM 5.3 puis `qwen2.5:7b`.
+- [x] **Étape 4 :** commit sur la branche (sans pousser).

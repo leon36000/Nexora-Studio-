@@ -1,4 +1,4 @@
-import { isRecordLike } from '@sim/utils/object'
+import { isRecordLike, toRecord } from '@sim/utils/object'
 import { executeMcpTool } from '@/lib/internal/mcp/execute-tool'
 import type { InternalToolOperationContext } from '@/lib/internal/tool-operations/types'
 import {
@@ -9,7 +9,7 @@ import {
 } from '@/lib/nexora/tool-confirmation/deferred'
 
 /** The actions an Agent block held back before its run paused, when its output carries any. */
-export function deferredActionsOf(output: unknown): DeferredAgentAction[] {
+function deferredActionsOf(output: unknown): DeferredAgentAction[] {
   if (!isRecordLike(output) || !Array.isArray(output._deferredActions)) return []
   return output._deferredActions.flatMap((entry) =>
     isRecordLike(entry) &&
@@ -46,7 +46,7 @@ async function runMcpAction(
   })
   const body: unknown = await response.json().catch(() => null)
   if (isRecordLike(body) && body.success === true) {
-    const data = isRecordLike(body.data) ? body.data : {}
+    const data = toRecord(body.data)
     return { success: true, output: data.output ?? body.data }
   }
   return {

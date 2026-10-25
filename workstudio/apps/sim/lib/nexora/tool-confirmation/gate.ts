@@ -29,7 +29,7 @@ interface GateInput {
 }
 
 /** What the person is shown the action would do: the input of a Nexora Connect action, else the arguments. */
-export function summarizeCall(args: Record<string, unknown>): string {
+function summarizeCall(args: Record<string, unknown>): string {
   const shown = typeof args.actionId === 'string' && 'input' in args ? args.input : args
   return truncate(JSON.stringify(shown) ?? '', SUMMARY_CHARS)
 }

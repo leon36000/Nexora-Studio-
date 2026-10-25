@@ -45,14 +45,10 @@ describe('citation registry', () => {
       knowledgeOutput
     )
     const second = registry.numberResults('searxng_search', {}, webOutput)
-    expect(
-      (first as typeof knowledgeOutput & { results: Array<{ ref: number }> }).results.map(
-        (r) => r.ref
-      )
-    ).toEqual([1, 2])
-    expect(
-      (second as typeof webOutput & { results: Array<{ ref: number }> }).results.map((r) => r.ref)
-    ).toEqual([3])
+    const refsOf = (output: unknown): number[] =>
+      (output as { results: Array<{ ref: number }> }).results.map((r) => r.ref)
+    expect(refsOf(first)).toEqual([1, 2])
+    expect(refsOf(second)).toEqual([3])
     expect(registry.sources().map((source) => [source.index, source.kind, source.title])).toEqual([
       [1, 'document', 'CGV.pdf'],
       [2, 'document', 'FAQ.md'],

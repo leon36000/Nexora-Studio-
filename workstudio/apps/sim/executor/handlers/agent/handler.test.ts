@@ -2995,6 +2995,7 @@ describe('AgentBlockHandler', () => {
         providerTiming: { total: 100 },
         cost: undefined,
         files: [],
+        sources: [],
       })
     })
 
