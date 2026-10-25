@@ -1,0 +1,363 @@
+{
+  "navLabel": "Évaluations",
+  "metaTitle": "Évaluations",
+  "campaignMetaTitle": "Campagne d’évaluation",
+  "datasetMetaTitle": "Jeu de tests",
+  "compareMetaTitle": "Comparaison de campagnes",
+  "title": "Évaluations",
+  "help": "Aide",
+  "cancel": "Annuler",
+  "tabs": {
+    "campaigns": "Campagnes",
+    "datasets": "Jeux de tests",
+    "judges": "Juges",
+    "schedules": "Planifications"
+  },
+  "status": {
+    "pending": "En attente",
+    "running": "En cours",
+    "completed": "Terminée",
+    "cancelled": "Annulée",
+    "interrupted": "Interrompue",
+    "failed": "En échec",
+    "done": "Terminé",
+    "error": "Erreur"
+  },
+  "verdicts": {
+    "pass": "Réussi",
+    "fail": "Échec",
+    "error": "Erreur"
+  },
+  "alerts": {
+    "title": "Alertes d’évaluation",
+    "belowThreshold": "« {campaign} » : {target} réussit {rate} des questions, sous le seuil de {threshold}.",
+    "noResult": "« {campaign} » : {target} n’a produit aucun résultat exploitable.",
+    "campaignStopped": "« {campaign} » s’est arrêtée avant la fin (budget mensuel atteint ou erreur).",
+    "view": "Voir",
+    "acknowledge": "Acquitter",
+    "acknowledgeFailed": "L’alerte n’a pas pu être acquittée."
+  },
+  "campaigns": {
+    "new": "Nouvelle campagne",
+    "loadFailed": "Les campagnes n’ont pas pu être chargées.",
+    "empty": "Aucune campagne. Créez un jeu de tests et un juge, puis lancez votre première campagne.",
+    "progress": "{finished} / {total}"
+  },
+  "datasets": {
+    "new": "Nouveau jeu de tests",
+    "loadFailed": "Les jeux de tests n’ont pas pu être chargés.",
+    "empty": "Aucun jeu de tests. Importez un fichier, une table, des traces ou vos conversations avec l’Assistant.",
+    "summary": "{rows, plural, one {# ligne} other {# lignes}} · {annotated} annotée(s)"
+  },
+  "judges": {
+    "new": "Nouveau juge",
+    "loadFailed": "Les juges n’ont pas pu être chargés.",
+    "empty": "Aucun juge. Un juge décide si une réponse est bonne : un modèle qui classe ou note, ou une règle.",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "deleteFailed": "Le juge n’a pas pu être supprimé.",
+    "deleteTitle": "Supprimer le juge « {name} » ?",
+    "deleteText": "Un juge utilisé par une campagne ou une planification ne peut pas être supprimé."
+  },
+  "schedules": {
+    "new": "Nouvelle planification",
+    "loadFailed": "Les planifications n’ont pas pu être chargées.",
+    "empty": "Aucune planification. Une campagne planifiée tourne seule, la nuit par exemple, et lève une alerte sous le seuil.",
+    "timetable": "{cron} ({timezone})",
+    "threshold": "alerte sous {value} %",
+    "next": "Prochain lancement : {date}",
+    "last": "Dernier lancement : {date}",
+    "run": "Lancer maintenant",
+    "delete": "Supprimer",
+    "runFailed": "La campagne n’a pas pu être lancée.",
+    "deleteFailed": "La planification n’a pas pu être supprimée.",
+    "deleteTitle": "Supprimer la planification « {name} » ?",
+    "deleteText": "Les campagnes déjà lancées sont conservées."
+  },
+  "targets": {
+    "kind": "Type de cible",
+    "kinds": {
+      "model": "Modèle",
+      "prompt": "Prompt",
+      "agent": "Agent"
+    },
+    "remove": "Retirer cette cible",
+    "system": "Consignes (facultatif)",
+    "choosePrompt": "Choisir un prompt",
+    "chooseAgent": "Choisir un agent publié",
+    "selectors": {
+      "production": "@production",
+      "test": "@test",
+      "latest": "Dernière version"
+    },
+    "add": "Ajouter une cible"
+  },
+  "campaignModal": {
+    "title": "Nouvelle campagne",
+    "name": "Nom",
+    "dataset": "Jeu de tests",
+    "datasetOption": "{name} ({rows, plural, one {# ligne} other {# lignes}})",
+    "noDataset": "Aucun jeu de tests",
+    "judge": "Juge",
+    "noJudge": "Aucun juge",
+    "targets": "Cibles à comparer",
+    "concurrency": "Questions en parallèle",
+    "concurrencyHint": "2 par défaut : l’Assistant garde la priorité et un modèle local sur processeur est lent.",
+    "threshold": "Seuil d’alerte (% de réussite)",
+    "thresholdHint": "Laissez vide pour ne pas lever d’alerte.",
+    "thresholdInvalid": "Saisissez un nombre entre 0 et 100.",
+    "failed": "La campagne n’a pas pu être lancée.",
+    "starting": "Lancement…",
+    "start": "Lancer la campagne"
+  },
+  "scheduleModal": {
+    "title": "Nouvelle planification",
+    "name": "Nom",
+    "when": "Quand",
+    "presets": {
+      "nightly3": "Chaque nuit à 3 h",
+      "nightly2": "Chaque nuit à 2 h",
+      "weekly": "Chaque lundi à 7 h",
+      "hourly": "Chaque heure",
+      "custom": "Expression personnalisée"
+    },
+    "cron": "Expression",
+    "cronHint": "Cinq champs : minute heure jour mois jour-de-semaine, par exemple 0 3 * * *.",
+    "timezone": "Fuseau horaire",
+    "dataset": "Jeu de tests",
+    "noDataset": "Aucun jeu de tests",
+    "judge": "Juge",
+    "noJudge": "Aucun juge",
+    "targets": "Cibles à évaluer",
+    "threshold": "Seuil d’alerte (% de réussite)",
+    "thresholdHint": "Une alerte apparaît sur la page, et part par e-mail si le serveur d’e-mail est configuré, quand une cible réussit moins que ce seuil.",
+    "thresholdInvalid": "Saisissez un nombre entre 0 et 100.",
+    "failed": "La planification n’a pas pu être enregistrée.",
+    "saving": "Enregistrement…",
+    "save": "Planifier"
+  },
+  "judgeModal": {
+    "title": "Nouveau juge",
+    "editTitle": "Modifier le juge",
+    "name": "Nom",
+    "kind": "Type de juge",
+    "kinds": {
+      "llm_class": "Modèle qui classe",
+      "llm_score": "Modèle qui note",
+      "contains": "Règle : contient",
+      "regex": "Règle : expression régulière",
+      "json_valid": "Règle : JSON valide",
+      "semantic": "Proximité sémantique"
+    },
+    "model": "Modèle du juge",
+    "instructions": "Consignes du juge",
+    "instructionsHint": "Ce qu’une bonne réponse doit contenir. La question, la réponse attendue, la consigne de la ligne et la réponse à juger lui sont transmises.",
+    "labels": "Étiquettes possibles",
+    "labelsHint": "Séparées par des virgules, par exemple : correct, incorrect.",
+    "passLabels": "Étiquettes qui valent une réussite",
+    "min": "Note minimale",
+    "max": "Note maximale",
+    "passAt": "Réussite à partir de",
+    "passAtHint": "Une note égale ou supérieure à ce seuil vaut une réussite.",
+    "contains": {
+      "source": "Texte à chercher",
+      "expected": "La réponse attendue",
+      "text": "Un texte fixe",
+      "value": "Texte"
+    },
+    "pattern": "Expression régulière",
+    "patternHint": "Sans assertions ni références arrière : la vérification reste rapide.",
+    "case": "Casse",
+    "caseIgnore": "Ignorée",
+    "caseRespect": "Respectée",
+    "keys": "Clés obligatoires",
+    "keysHint": "Séparées par des virgules. Vide : le JSON doit seulement être valide.",
+    "similarity": "Proximité minimale",
+    "similarityHint": "De 0 à 1 : le cosinus des embeddings de la réponse et de la réponse attendue (modèle local de l’instance).",
+    "try": {
+      "title": "Essayer",
+      "hint": "Le juge est essayé sur 10 lignes au plus, en commençant par celles qui portent une annotation.",
+      "noDataset": "Créez d’abord un jeu de tests pour essayer ce juge.",
+      "dataset": "Jeu de tests",
+      "run": "Essayer sur 10 lignes",
+      "running": "Essai en cours…",
+      "agreement": "Accord avec vos annotations : {matched} sur {total} ({rate})",
+      "noAnnotation": "Aucune des lignes essayées n’est annotée : pas d’accord à mesurer.",
+      "human": "Vous",
+      "judge": "Juge",
+      "expectedUsed": "(réponse attendue)"
+    },
+    "verdicts": {
+      "pass": "Réussi",
+      "fail": "Échec",
+      "error": "Erreur"
+    },
+    "failed": "Le juge n’a pas pu être enregistré.",
+    "tryFailed": "L’essai a échoué.",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer le juge"
+  },
+  "datasetModal": {
+    "title": "Nouveau jeu de tests",
+    "name": "Nom",
+    "description": "Description",
+    "source": "Source",
+    "sources": {
+      "file": "Fichier",
+      "table": "Table",
+      "traces": "Traces",
+      "conversations": "Conversations",
+      "empty": "Vide"
+    },
+    "file": {
+      "title": "Fichier CSV ou JSONL",
+      "picked": "{name} — cliquez pour le remplacer",
+      "drop": "Déposez un fichier ou cliquez pour le choisir",
+      "dragging": "Déposez le fichier ici",
+      "formats": "CSV ou JSONL, 25 Mo au plus. Colonnes reconnues : question, attendu, consigne, réponse, verdict, justification."
+    },
+    "fileTooLarge": "Ce fichier dépasse 25 Mo.",
+    "loading": "Chargement…",
+    "table": {
+      "title": "Table de l’espace",
+      "choose": "Choisir une table",
+      "option": "{name} ({rows, plural, one {# ligne} other {# lignes}})",
+      "hint": "Les lignes sont copiées : modifier la table ensuite ne change pas les campagnes déjà lancées."
+    },
+    "traces": {
+      "title": "Traces à importer",
+      "hint": "Chaque trace devient une ligne : sa question et la réponse obtenue. Vous ne voyez que les traces que vous pouvez lire.",
+      "empty": "Aucune trace récente."
+    },
+    "conversations": {
+      "title": "Vos conversations avec l’Assistant",
+      "consent": "J’accepte que mes questions et les réponses de ces conversations servent de lignes de test pour cet espace.",
+      "empty": "Vous n’avez aucune conversation avec l’Assistant dans cet espace."
+    },
+    "skipped": "{count, plural, one {# ligne ignorée (sans question).} other {# lignes ignorées (sans question ou illisibles).}}",
+    "failed": "Le jeu de tests n’a pas pu être créé.",
+    "creating": "Création…",
+    "create": "Créer le jeu de tests"
+  },
+  "summary": {
+    "target": "Cible",
+    "passRate": "Réussite",
+    "meanScore": "Note moyenne",
+    "latencyP50": "Latence p50",
+    "latencyP95": "Latence p95",
+    "tokens": "Jetons",
+    "co2": "CO₂",
+    "errors": "Erreurs",
+    "passed": "{passed} réussies sur {finished} terminées"
+  },
+  "campaign": {
+    "back": "Évaluations",
+    "loadFailed": "La campagne n’a pas pu être chargée.",
+    "cancel": "Annuler la campagne",
+    "delete": "Supprimer",
+    "context": "Jeu de tests : {dataset} · Juge : {judge} · {concurrency, plural, one {# question} other {# questions}} en parallèle",
+    "progress": "{finished} éléments terminés sur {total}",
+    "started": "lancée le {date}",
+    "duration": "durée {value}",
+    "threshold": "Alerte sous {value} de réussite",
+    "statistics": "Statistiques par cible",
+    "compare": "Comparer deux séries",
+    "versus": "contre",
+    "compareAction": "Comparer",
+    "answers": "Réponses",
+    "views": {
+      "all": "Toutes",
+      "problems": "Échecs et erreurs"
+    },
+    "question": "Question",
+    "expected": "Attendu : {value}",
+    "cancelTitle": "Annuler cette campagne ?",
+    "cancelText": "Les éléments en cours sont interrompus, les autres ne partiront pas. Les résultats déjà obtenus sont conservés.",
+    "deleteTitle": "Supprimer cette campagne ?",
+    "deleteText": "Ses résultats et ses statistiques seront perdus.",
+    "keep": "Conserver",
+    "actionFailed": "L’action a échoué."
+  },
+  "rowModal": {
+    "title": "Ajouter une ligne",
+    "editTitle": "Modifier la ligne",
+    "input": "Question",
+    "expected": "Réponse attendue",
+    "guidance": "Consigne de notation",
+    "guidanceHint": "Ce que le juge doit vérifier pour cette question seulement.",
+    "candidate": "Réponse annotée",
+    "candidateHint": "Une réponse que vous avez jugée vous-même : elle sert à mesurer l’accord d’un juge avec vous.",
+    "verdict": "Votre verdict",
+    "verdicts": {
+      "none": "Pas d’annotation",
+      "pass": "Réussi",
+      "fail": "Échec"
+    },
+    "note": "Justification",
+    "failed": "La ligne n’a pas pu être enregistrée.",
+    "saving": "Enregistrement…",
+    "save": "Enregistrer"
+  },
+  "dataset": {
+    "back": "Jeux de tests",
+    "loadFailed": "Le jeu de tests n’a pas pu être chargé.",
+    "addRow": "Ajouter une ligne",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "summary": "{rows, plural, one {# ligne} other {# lignes}} · {annotated} annotée(s) · source : {source}",
+    "sources": {
+      "manual": "saisie",
+      "empty": "saisie",
+      "csv": "fichier CSV",
+      "jsonl": "fichier JSONL",
+      "table": "table",
+      "traces": "traces",
+      "conversations": "conversations"
+    },
+    "empty": "Ce jeu de tests est vide.",
+    "input": "Question",
+    "expected": "Réponse attendue",
+    "annotation": "Annotation",
+    "verdicts": {
+      "pass": "Réussi",
+      "fail": "Échec"
+    },
+    "edit": "Modifier",
+    "deleteRow": "Retirer",
+    "deleteRowFailed": "La ligne n’a pas pu être retirée.",
+    "deleteFailed": "Le jeu de tests n’a pas pu être supprimé (une campagne ou une planification l’utilise peut-être).",
+    "deleteTitle": "Supprimer le jeu de tests « {name} » ?",
+    "deleteText": "Ses lignes seront perdues. Les campagnes déjà lancées gardent leur copie.",
+    "previous": "Précédentes",
+    "next": "Suivantes",
+    "page": "Lignes {from} à {to} sur {total}"
+  },
+  "comparison": {
+    "back": "Évaluations",
+    "loadFailed": "La comparaison n’a pas pu être chargée.",
+    "title": "Comparaison ligne à ligne",
+    "statistics": "Statistiques",
+    "rows": "Lignes",
+    "counts": {
+      "improved": "{count, plural, one {# amélioration} other {# améliorations}}",
+      "regressed": "{count, plural, one {# régression} other {# régressions}}",
+      "same": "{count, plural, one {# ligne identique} other {# lignes identiques}}",
+      "missing": "{count, plural, one {# ligne absente d’un côté} other {# lignes absentes d’un côté}}"
+    },
+    "filters": {
+      "all": "Toutes",
+      "differences": "Différences",
+      "regressed": "Régressions",
+      "improved": "Améliorations"
+    },
+    "question": "Question",
+    "change": "Évolution",
+    "changes": {
+      "improved": "Amélioration",
+      "regressed": "Régression",
+      "same": "Identique",
+      "only_a": "Seulement en A",
+      "only_b": "Seulement en B"
+    }
+  }
+}

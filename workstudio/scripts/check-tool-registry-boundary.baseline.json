@@ -206,6 +206,53 @@
       "modules": 3,
       "gateways": {}
     },
+    "app/workspace/[workspaceId]/evaluations/campaigns/[campaignId]/page.tsx": {
+      "modules": 1263,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/evaluations/campaigns/[campaignId]/campaign-detail.tsx": 1262,
+        "apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx": 1238,
+        "apps/sim/triggers/registry.ts": 597,
+        "apps/sim/blocks/registry.ts": 395,
+        "apps/sim/blocks/registry-maps.ts": 392,
+        "apps/sim/lib/api/contracts/index.ts": 56,
+        "apps/sim/triggers/plane/index.ts": 46,
+        "apps/sim/stores/workflows/registry/store.ts": 39
+      }
+    },
+    "app/workspace/[workspaceId]/evaluations/compare/page.tsx": {
+      "modules": 26,
+      "gateways": {}
+    },
+    "app/workspace/[workspaceId]/evaluations/datasets/[datasetId]/page.tsx": {
+      "modules": 1259,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/evaluations/datasets/[datasetId]/dataset-detail.tsx": 1258,
+        "apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx": 1238,
+        "apps/sim/triggers/registry.ts": 597,
+        "apps/sim/blocks/registry.ts": 395,
+        "apps/sim/blocks/registry-maps.ts": 392,
+        "apps/sim/lib/api/contracts/index.ts": 56,
+        "apps/sim/triggers/plane/index.ts": 46,
+        "apps/sim/stores/workflows/registry/store.ts": 39
+      }
+    },
+    "app/workspace/[workspaceId]/evaluations/loading.tsx": {
+      "modules": 1,
+      "gateways": {}
+    },
+    "app/workspace/[workspaceId]/evaluations/page.tsx": {
+      "modules": 1280,
+      "gateways": {
+        "apps/sim/app/workspace/[workspaceId]/evaluations/evaluations.tsx": 1278,
+        "apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx": 1236,
+        "apps/sim/triggers/registry.ts": 597,
+        "apps/sim/blocks/registry.ts": 395,
+        "apps/sim/blocks/registry-maps.ts": 392,
+        "apps/sim/lib/api/contracts/index.ts": 56,
+        "apps/sim/triggers/plane/index.ts": 46,
+        "apps/sim/stores/workflows/registry/store.ts": 39
+      }
+    },
     "app/workspace/[workspaceId]/files/[fileId]/loading.tsx": {
       "modules": 17,
       "gateways": {}

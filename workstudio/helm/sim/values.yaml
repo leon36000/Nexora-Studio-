@@ -1525,6 +1525,17 @@ cronjobs:
       successfulJobsHistoryLimit: 3
       failedJobsHistoryLimit: 1
 
+    # Nexora edition: starts the scheduled evaluation campaigns and takes over the campaigns
+    # whose server stopped.
+    runNexoraEvaluations:
+      enabled: true
+      name: run-nexora-evaluations
+      schedule: "*/1 * * * *"
+      path: "/api/cron/run-nexora-evaluations"
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 1
+
     # Nexora edition: trace retention, and Assistant conversation retention when the
     # administrator set one.
     purgeNexoraTraces:

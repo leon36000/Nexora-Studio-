@@ -12,6 +12,7 @@ import { preprocessExecution } from '@/lib/execution/preprocessing'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { AGENTS_FOLDER } from '@/lib/nexora/agents'
 import {
+  type AgentRunUsage,
   buildAgentInput,
   collectAgentAnswer,
   settledRunUsage,
@@ -29,6 +30,7 @@ import {
   estimateCallTokens,
 } from '@/lib/nexora/developer-api/policy'
 import { noteRunOrigin } from '@/lib/nexora/traces/run-origin'
+import type { RunOriginHint } from '@/lib/nexora/traces/types'
 import { loadDeployedWorkflowState } from '@/lib/workflows/persistence/utils'
 import { formatOutputSelector } from '@/lib/workflows/streaming/output-selector'
 import type { ExecutionResult } from '@/executor/types'
@@ -111,7 +113,7 @@ async function resolveApiAgent(workspaceId: string, model: string): Promise<ApiA
 }
 
 /** The block whose `content` answers: the agent block of the deployed version. */
-async function answerBlockId(agent: ApiAgent, workspaceId: string): Promise<string> {
+export async function answerBlockId(agent: ApiAgent, workspaceId: string): Promise<string> {
   const deployed = await loadDeployedWorkflowState(agent.workflowId, workspaceId).catch(
     (error: unknown) => {
       logger.warn('Published agent has no deployed version', {
@@ -164,18 +166,31 @@ export async function runAgentCompletion(
   }
 }
 
-async function startAgentRun(
-  call: GatewayCall,
-  body: { stream?: boolean },
-  request: Request,
-  target: { agent: ApiAgent; workspaceId: string; modelId: string; blockId: string; input: string },
-  reservation: SpendingReservation
-): Promise<Response> {
-  const { agent, workspaceId, modelId, blockId, input } = target
+/** A published agent's run that has started: its stream of events, and how to read its settled usage. */
+export interface AgentRunLaunch {
+  executionId: string
+  simStream: ReadableStream<Uint8Array>
+  settleUsage: () => Promise<AgentRunUsage>
+}
 
+/**
+ * Starts the deployed version of a published agent as an API run of its workspace (execution log,
+ * usage ledger, budgets, trace). `record` receives the run's tokens once it ends; `origin` says
+ * which developer key called it, when one did.
+ */
+export async function launchAgentRun(input: {
+  agent: ApiAgent
+  workspaceId: string
+  blockId: string
+  text: string
+  signal: AbortSignal
+  origin: RunOriginHint | null
+  record: (usage: AgentRunUsage) => Promise<void>
+}): Promise<AgentRunLaunch> {
+  const { agent, workspaceId, blockId, text, signal, origin, record } = input
   const requestId = generateRequestId()
   const executionId = generateId()
-  noteRunOrigin(executionId, { source: 'api_key', apiKeyId: call.key.id })
+  if (origin) noteRunOrigin(executionId, origin)
   const loggingSession = new LoggingSession(agent.workflowId, executionId, 'api', requestId)
   const preprocess = await preprocessExecution({
     workflowId: agent.workflowId,
@@ -204,7 +219,7 @@ async function startAgentRun(
   const run = new Promise<ExecutionResult | null>((resolve) => {
     settleRun = resolve
   })
-  const settleUsage = settledRunUsage(run, (usage) => reservation.settle(usage))
+  const settleUsage = settledRunUsage(run, record)
 
   let simStream: ReadableStream<Uint8Array>
   try {
@@ -219,7 +234,7 @@ async function startAgentRun(
       workspaceId,
       workflowId: agent.workflowId,
       userId: actorUserId,
-      requestSignal: request.signal,
+      requestSignal: signal,
       executeFn: async ({ onStream, onBlockComplete, abortSignal }) => {
         let result: ExecutionResult | null = null
         try {
@@ -232,7 +247,7 @@ async function startAgentRun(
               variables: (workflowRecord.variables as Record<string, unknown>) ?? undefined,
             },
             requestId,
-            { input, conversationId: `api-${executionId}` },
+            { input: text, conversationId: `api-${executionId}` },
             actorUserId,
             {
               enabled: true,
@@ -270,6 +285,26 @@ async function startAgentRun(
     })
     throw new GatewayError(500, 'agent_failed', 'L’agent n’a pas pu démarrer. Réessayez.')
   }
+  return { executionId, simStream, settleUsage }
+}
+
+async function startAgentRun(
+  call: GatewayCall,
+  body: { stream?: boolean },
+  request: Request,
+  target: { agent: ApiAgent; workspaceId: string; modelId: string; blockId: string; input: string },
+  reservation: SpendingReservation
+): Promise<Response> {
+  const { agent, workspaceId, modelId, blockId, input } = target
+  const { executionId, simStream, settleUsage } = await launchAgentRun({
+    agent,
+    workspaceId,
+    blockId,
+    text: input,
+    signal: request.signal,
+    origin: { source: 'api_key', apiKeyId: call.key.id },
+    record: (usage) => reservation.settle(usage),
+  })
 
   const meta = {
     id: `chatcmpl-${executionId}`,
