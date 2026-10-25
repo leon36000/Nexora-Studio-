@@ -21,7 +21,7 @@ Tailles maximales : **20 Mo** pour un corps JSON (`413 request_too_large`), **25
 
 ## Clés
 
-Créez la clé dans **Réglages › Clés API**, section « Nexora API : modèles et agents » :
+Créez la clé dans **Réglages › Clés d’API Nexora**, section « Nexora API : modèles et agents » :
 
 - **Nom** : pour la reconnaître (« n8n de la comptabilité »).
 - **Portée** : *cet espace* (ses modèles et ses agents publiés) ou *toute l'instance* (les modèles seulement, administrateurs de l'instance uniquement).

@@ -579,9 +579,10 @@ def main() -> int:
             status, body = s.call("GET", f"/api/table/{table}/rows?workspaceId={state['ws']}&limit=10")
             rows = [{column_names.get(k, k): v for k, v in (row.get("data") or {}).items()} for row in (body.get("data") or {}).get("rows", [])]
             require(status == 200 and len(rows) == 2, f"expected 2 rows in the table, got HTTP {status}: {str(body)[:200]}")
+            expected = ("FA-2026-0142", "2026-03-12", "ATELIER DUBOIS SARL", 1250, 250, 1500)
             for row in rows:
                 got = (str(row.get("numero")), str(row.get("date"))[:10], str(row.get("fournisseur")).upper(), row.get("total_ht"), row.get("total_tva"), row.get("total_ttc"))
-                require(got == ("FA-2026-0142", "2026-03-12", "ATELIER DUBOIS SARL", 1250, 250, 1500), f"unexpected row: {row}")
+                require(got == expected, f"unexpected row: {got} (attendu {expected}) ; lignes de la table : {[(r.get('numero'), r.get('total_ttc')) for r in rows]}")
                 require(row.get("a_verifier") is False, f"row flagged « à vérifier »: {row.get('motifs')}")
             return "facture PDF et facture scannée : six champs exacts, deux lignes dans la table, rien « à vérifier »"
         finally:
