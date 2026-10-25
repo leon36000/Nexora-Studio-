@@ -65,6 +65,10 @@ const PRICING_BY_PROVIDER: Record<
       diskUsdPerGiBSecond: DAYTONA_DISK_USD_PER_GIB_SECOND,
     },
   },
+  nexora: {
+    resources: { vcpu: 1, memoryGiB: 1, diskGiB: 0 },
+    rates: { cpuUsdPerVcpuSecond: 0, memoryUsdPerGiBSecond: 0, diskUsdPerGiBSecond: 0 },
+  },
 }
 
 export function createSandboxPricing(

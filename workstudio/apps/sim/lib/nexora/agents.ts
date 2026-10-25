@@ -17,6 +17,10 @@ export interface AgentConfig {
   /** Tools other than knowledge search: Nexora Connect (MCP) tools, other workflows. */
   tools: StoredTool[]
   knowledgeBaseIds: string[]
+  /** The Python interpreter tool (Function block set to Python): analysis, calculations, charts. */
+  codeInterpreter: boolean
+  /** The web search tool (SearXNG), when the instance enables it. */
+  webSearch: boolean
   /** Keep the conversation across messages of one chat. */
   memory: boolean
   /** Sent as `reasoning_effort` to a reasoning model; `auto` sends nothing. */
@@ -78,6 +82,43 @@ function knowledgeTool(knowledgeBaseId: string): StoredTool {
     isExpanded: false,
     usageControl: 'auto',
   }
+}
+
+/** The tool entry of the Python interpreter: a Function block fixed to Python, fed the chat's files. */
+function codeInterpreterTool(): StoredTool {
+  return {
+    type: 'function',
+    title: 'Code interpreter', // i18n-ignore: persisted tool title, as the tool picker stores it
+    toolId: 'function_execute',
+    params: { language: 'python', files: MESSAGE_FILES },
+    isExpanded: false,
+    usageControl: 'auto',
+  }
+}
+
+function isCodeInterpreterTool(tool: StoredTool): boolean {
+  return (
+    tool.type === 'function' &&
+    tool.toolId === 'function_execute' &&
+    tool.params?.language === 'python' &&
+    tool.params?.files === MESSAGE_FILES
+  )
+}
+
+/** The tool entry of the web search (the SearXNG block's own search). */
+function webSearchTool(): StoredTool {
+  return {
+    type: 'searxng',
+    title: 'Web search', // i18n-ignore: persisted tool title, as the tool picker stores it
+    toolId: 'searxng_search',
+    params: {},
+    isExpanded: false,
+    usageControl: 'auto',
+  }
+}
+
+function isWebSearchTool(tool: StoredTool): boolean {
+  return tool.type === 'searxng' && tool.toolId === 'searxng_search'
 }
 
 function isStoredTool(value: unknown): value is StoredTool {
@@ -142,6 +183,8 @@ function formSubBlocks(config: AgentConfig, previousTools: StoredTool[]): AgentB
     const id = knowledgeBaseOf(tool)
     if (id && !previousKnowledge.has(id)) previousKnowledge.set(id, tool)
   }
+  const previousInterpreter = previousTools.find(isCodeInterpreterTool)
+  const previousSearch = previousTools.find(isWebSearchTool)
   const subBlocks: AgentBlock['subBlocks'] = {
     messages: {
       id: 'messages',
@@ -158,6 +201,8 @@ function formSubBlocks(config: AgentConfig, previousTools: StoredTool[]): AgentB
       value: [
         ...config.tools,
         ...config.knowledgeBaseIds.map((id) => previousKnowledge.get(id) ?? knowledgeTool(id)),
+        ...(config.codeInterpreter ? [previousInterpreter ?? codeInterpreterTool()] : []),
+        ...(config.webSearch ? [previousSearch ?? webSearchTool()] : []),
       ],
     },
     memoryType: {
@@ -311,8 +356,13 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
     description: text(metadata.description),
     instructions: system.content,
     model,
-    tools: storedTools.filter((tool) => knowledgeBaseOf(tool) === null),
+    tools: storedTools.filter(
+      (tool) =>
+        knowledgeBaseOf(tool) === null && !isCodeInterpreterTool(tool) && !isWebSearchTool(tool)
+    ),
     knowledgeBaseIds: storedTools.map(knowledgeBaseOf).filter((id): id is string => id !== null),
+    codeInterpreter: storedTools.some(isCodeInterpreterTool),
+    webSearch: storedTools.some(isWebSearchTool),
     memory,
     reasoningEffort,
     welcomeMessage: text(metadata.welcomeMessage),
@@ -328,6 +378,8 @@ const STATE_FIELDS = [
   'model',
   'tools',
   'knowledgeBaseIds',
+  'codeInterpreter',
+  'webSearch',
   'memory',
   'reasoningEffort',
 ] as const

@@ -80,7 +80,9 @@
       "knowledgeBaseIds": "Connaissances",
       "memory": "Mémoire de conversation",
       "reasoningEffort": "Effort de raisonnement",
-      "welcomeMessage": "Message d’accueil"
+      "welcomeMessage": "Message d’accueil",
+      "codeInterpreter": "Interpréteur de code",
+      "webSearch": "Recherche web"
     },
     "welcomeHint": "Enregistré avec le chat public, à la publication.",
     "tools": {
@@ -101,6 +103,18 @@
     "memory": {
       "on": "Oui",
       "off": "Non"
+    },
+    "builtinTools": {
+      "codeInterpreter": {
+        "label": "Interpréteur de code",
+        "hint": "Permet à l’agent d’exécuter du Python (sans réseau) pour calculer, analyser des fichiers et tracer des graphiques.",
+        "unavailable": "Indisponible : un administrateur doit installer et autoriser l’exécution de code (Réglages › Exécution de code)."
+      },
+      "webSearch": {
+        "label": "Recherche web",
+        "hint": "Permet à l’agent de chercher sur le web. Ses requêtes sortent de l’instance par le moteur de recherche que vous avez configuré.",
+        "unavailable": "Indisponible : la recherche web n’est pas activée sur cette instance."
+      }
     }
   },
   "test": {

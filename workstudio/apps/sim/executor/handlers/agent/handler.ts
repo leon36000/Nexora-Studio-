@@ -36,6 +36,8 @@ import {
   createDocumentTextBudget,
   deliverDocumentsAsText,
 } from '@/lib/nexora/attachment-text.server'
+import { dropUnavailableBuiltinTools } from '@/lib/nexora/builtin-tools'
+import { collectProducedFiles } from '@/lib/nexora/tool-files'
 import { importWorkspaceFileSecretProvenanceForModelView } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
 import {
   getFileExtension,
@@ -915,9 +917,10 @@ export class AgentBlockHandler implements BlockHandler {
       return { tools: [], inputProvenance: new Map() }
     }
 
+    const offered = new Set(await dropUnavailableBuiltinTools(inputTools))
     const filtered = inputTools
       .map((tool, localIndex) => ({ tool, toolIndex: toolIndexByRef?.get(tool) ?? localIndex }))
-      .filter(({ tool }) => (tool.usageControl || 'auto') !== 'none')
+      .filter(({ tool }) => (tool.usageControl || 'auto') !== 'none' && offered.has(tool))
 
     this.assertInputPathsDoNotResolveSecrets(
       ctx,
@@ -3364,6 +3367,7 @@ export class AgentBlockHandler implements BlockHandler {
       },
       providerTiming: result.timing,
       cost: result.cost,
+      files: collectProducedFiles(result.toolCalls),
     }
   }
 

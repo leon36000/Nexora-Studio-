@@ -144,6 +144,7 @@ export type UnifiedSettingsSection =
   | 'connectors'
   | 'email'
   | 'status'
+  | 'code-execution'
   | 'sso'
   | 'whitelabeling'
   | 'forks'
@@ -778,6 +779,19 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
       description: NAV.unified.email.description,
       group: 'organization',
       order: 8,
+      requiresHosted: true,
+      requiresEnterprise: true,
+      selfHostedOverride: 'always',
+    },
+  },
+  {
+    label: NAV.unified['code-execution'].label,
+    icon: TerminalWindow,
+    unified: {
+      id: 'code-execution',
+      description: NAV.unified['code-execution'].description,
+      group: 'organization',
+      order: 10,
       requiresHosted: true,
       requiresEnterprise: true,
       selfHostedOverride: 'always',

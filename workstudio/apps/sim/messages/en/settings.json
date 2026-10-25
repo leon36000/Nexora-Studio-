@@ -310,6 +310,10 @@
       "status": {
         "label": "Status",
         "description": "Check the services, disk space and version"
+      },
+      "code-execution": {
+        "label": "Code execution",
+        "description": "Allow the Python interpreter and see its limits"
       }
     },
     "account": {
@@ -2144,6 +2148,44 @@
       "diskUnknown": "Unreadable",
       "lastBackup": "Last backup",
       "lastBackupValue": "See <command>nexora status</command> on the server"
+    }
+  },
+  "codeExecution": {
+    "forbidden": "Only instance administrators manage code execution.",
+    "loadError": "Could not read the code execution setting.",
+    "intro": "The Python interpreter lets agents and Function blocks analyze files, compute and draw charts. The code runs in a throwaway container with no network, a read-only system and limited CPU, memory, disk, processes and time.",
+    "notInstalled": "The interpreter is not installed on this server. Run « nexora code on » on the server (or answer yes to the code interpreter question when installing), then come back here.",
+    "unreachable": "The interpreter is installed but does not answer. Check the code-sandbox service with « nexora logs code-sandbox ».",
+    "switchLabel": "Allow code execution",
+    "switchHint": "Off by default. When on, agents with the Code interpreter tool and Python Function blocks can run code. Turning it off stops it within seconds.",
+    "updatedAt": "Changed on {date}",
+    "saveError": "Could not change the setting.",
+    "notInstalledError": "Install the interpreter on the server first.",
+    "limits": {
+      "title": "Limits of each run",
+      "cpus": "Processor cores",
+      "memory": "Memory",
+      "tmpfs": "Temporary files",
+      "pids": "Processes",
+      "time": "Duration",
+      "parallel": "Simultaneous runs",
+      "runtime": "Isolation",
+      "values": {
+        "cpus": "{count}",
+        "memory": "{count} MB",
+        "tmpfs": "{count} MB",
+        "pids": "{count}",
+        "time": "{count} s",
+        "parallel": "{count}"
+      }
+    },
+    "security": {
+      "title": "Isolation",
+      "network": "No network: the code cannot reach the internet, the server or Nexora's services.",
+      "files": "Read-only system, temporary files only, removed after each run.",
+      "privileges": "Non-administrator user, no privilege, default system call filter.",
+      "limits": "Memory, processes, disk and duration are capped; a run that exceeds them is stopped.",
+      "shared": "The container shares the server's kernel. For stronger isolation, ask your administrator to install gVisor (runsc) and set NEXORA_CODE_RUNTIME."
     }
   }
 }

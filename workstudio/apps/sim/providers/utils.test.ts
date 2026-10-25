@@ -1732,6 +1732,55 @@ describe('transformBlockTool knowledge-base identities', () => {
   })
 })
 
+describe('transformBlockTool code interpreter', () => {
+  const functionBlockDef = {
+    type: 'function',
+    inputs: {},
+    subBlocks: [],
+    tools: { access: ['function_execute'], config: { tool: () => 'function_execute' } },
+  }
+  const getAllBlocks = () => [functionBlockDef]
+  const getTool = (id: string) => ({
+    id,
+    name: 'Function Execute',
+    description: 'Execute JavaScript, Python, or shell scripts in a secure sandbox.',
+    params: {
+      code: {
+        type: 'string',
+        required: true,
+        visibility: 'user-or-llm',
+        description: 'Source code',
+      },
+      language: {
+        type: 'string',
+        required: false,
+        visibility: 'user-only',
+        description: 'Language',
+      },
+    },
+  })
+
+  const transformFunction = (params: Record<string, unknown>) =>
+    transformBlockTool({ type: 'function', params }, { getAllBlocks, getTool })
+
+  it('tells the model a Python tool has no network and where files live', async () => {
+    const result = await transformFunction({ language: 'python' })
+    expect(result?.id).toBe('function_execute')
+    expect(result?.description).toContain('Python 3')
+    expect(result?.description).toContain('/tmp/sim/inputs')
+    expect(result?.description).toContain('/tmp/sim/outputs')
+    expect(result?.description).toMatch(/no network/i)
+    expect(result?.description).not.toMatch(/shell scripts|fetch\(\)/i)
+  })
+
+  it('leaves the general Function description alone for other languages', async () => {
+    const result = await transformFunction({ language: 'javascript' })
+    expect(result?.description).toBe(
+      'Execute JavaScript, Python, or shell scripts in a secure sandbox.'
+    )
+  })
+})
+
 describe('prepareToolExecution invoker identity hand-off', () => {
   const tool = { params: {}, parameters: {} }
 

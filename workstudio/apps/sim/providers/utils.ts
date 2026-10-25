@@ -15,6 +15,7 @@ import {
   normalizeStringRecord,
   normalizeWorkflowVariables,
 } from '@/lib/core/utils/records'
+import { PYTHON_INTERPRETER_TOOL_DESCRIPTION } from '@/lib/execution/python-tool-description'
 import type { CustomBlockToolBinding } from '@/lib/workflows/custom-blocks/operations'
 import { isFileFieldType, type WorkflowInputField } from '@/lib/workflows/input-format'
 import {
@@ -893,6 +894,9 @@ export async function transformBlockTool(
       }
     }
   } else if (toolId === 'function_execute') {
+    if (resolvedResourceParams.language === 'python') {
+      toolDescription = PYTHON_INTERPRETER_TOOL_DESCRIPTION
+    }
     if (resolvedResourceParams.secretScope === 'selected') {
       // Scoping alone would leave the model guessing: the secrets are injected
       // server-side and nothing else advertises them. Names only — values never

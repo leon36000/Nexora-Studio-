@@ -266,6 +266,8 @@ export const env = createEnv({
     XAI_API_KEY_2:                         z.string().min(1).optional(),           // Additional xAI API key for load balancing
     XAI_API_KEY_3:                         z.string().min(1).optional(),           // Additional xAI API key for load balancing
     OLLAMA_URL:                            z.string().url().optional(),            // Ollama local LLM server URL
+    NEXORA_CODE_SANDBOX_URL:               z.string().url().optional(),            // Nexora edition: code sandbox controller (profile « code »), Python without network
+    NEXORA_CODE_SANDBOX_TOKEN:             z.string().min(32).optional(),          // Nexora edition: bearer token of the code sandbox controller
     SEARXNG_URL:                           z.string().url().optional(),            // Nexora edition: SearXNG meta-search engine behind the « Web Search » block (off unless the admin enables it)
     VLLM_BASE_URL:                         z.string().url().optional(),            // vLLM self-hosted base URL (OpenAI-compatible)
     VLLM_API_KEY:                          z.string().optional(),                  // Optional bearer token for vLLM

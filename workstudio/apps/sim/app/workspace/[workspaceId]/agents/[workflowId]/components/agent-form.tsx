@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl'
 import { type AgentConfig, hasUnsavedAgentChanges } from '@/lib/nexora/agents'
 import { REASONING_EFFORTS } from '@/lib/nexora/reasoning'
 import { AgentPageHeader } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/agent-page-header'
+import { BuiltinToolSwitches } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/builtin-tool-switches'
 import { KnowledgeField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/knowledge-field'
 import { PublishSection } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/publish-section'
 import { TestPanel } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/test-panel'
@@ -191,6 +192,12 @@ export function AgentForm({
                 onChange={(tools) => update('tools', tools)}
               />
             </FormField>
+            <BuiltinToolSwitches
+              codeInterpreter={draft.codeInterpreter}
+              webSearch={draft.webSearch}
+              disabled={readOnly}
+              onChange={(field, value) => update(field, value)}
+            />
             <FormField label={t('fields.knowledgeBaseIds')}>
               <KnowledgeField
                 workspaceId={workspaceId}

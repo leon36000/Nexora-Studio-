@@ -1,6 +1,7 @@
 import { getSelectedSandboxProviderId } from '@/lib/core/config/env-capabilities.server'
 import { daytonaProvider } from '@/lib/execution/remote-sandbox/daytona'
 import { e2bProvider } from '@/lib/execution/remote-sandbox/e2b'
+import { isCodeSandboxConfigured, nexoraProvider } from '@/lib/execution/remote-sandbox/nexora'
 import type { SandboxProvider, SandboxProviderId } from '@/lib/execution/remote-sandbox/types'
 
 /**
@@ -11,11 +12,13 @@ import type { SandboxProvider, SandboxProviderId } from '@/lib/execution/remote-
 const PROVIDERS: Record<SandboxProviderId, SandboxProvider> = {
   e2b: e2bProvider,
   daytona: daytonaProvider,
+  nexora: nexoraProvider,
 }
 
 /**
- * Resolves which provider serves this execution from the `SANDBOX_PROVIDER` env
- * var (defaulting to E2B).
+ * Resolves which provider serves this execution: the Nexora code sandbox when its
+ * controller is configured (`NEXORA_CODE_SANDBOX_URL`), otherwise the `SANDBOX_PROVIDER`
+ * env var (defaulting to E2B).
  *
  * Selection is deliberately resolved ONCE, before the sandbox is created, and is
  * never revisited mid-execution: user code has side effects (HTTP calls, S3
@@ -24,6 +27,7 @@ const PROVIDERS: Record<SandboxProviderId, SandboxProvider> = {
  * `SANDBOX_PROVIDER` and redeploy; in-flight executions are unaffected.
  */
 export function resolveProvider(): SandboxProvider {
+  if (isCodeSandboxConfigured()) return PROVIDERS.nexora
   const configured = getSelectedSandboxProviderId()
   return PROVIDERS[configured]
 }

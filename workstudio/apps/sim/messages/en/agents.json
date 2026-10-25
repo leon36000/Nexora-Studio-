@@ -80,7 +80,9 @@
       "knowledgeBaseIds": "Knowledge",
       "memory": "Conversation memory",
       "reasoningEffort": "Reasoning effort",
-      "welcomeMessage": "Welcome message"
+      "welcomeMessage": "Welcome message",
+      "codeInterpreter": "Code interpreter",
+      "webSearch": "Web search"
     },
     "welcomeHint": "Saved with the public chat, when publishing.",
     "tools": {
@@ -101,6 +103,18 @@
     "memory": {
       "on": "Yes",
       "off": "No"
+    },
+    "builtinTools": {
+      "codeInterpreter": {
+        "label": "Code interpreter",
+        "hint": "Lets the agent run Python (no network) to compute, analyze files and draw charts.",
+        "unavailable": "Not available: an administrator must install and allow code execution (Settings › Code execution)."
+      },
+      "webSearch": {
+        "label": "Web search",
+        "hint": "Lets the agent search the web. Its queries leave the instance through the search engine you configured.",
+        "unavailable": "Not available: web search is not enabled on this instance."
+      }
     }
   },
   "test": {
