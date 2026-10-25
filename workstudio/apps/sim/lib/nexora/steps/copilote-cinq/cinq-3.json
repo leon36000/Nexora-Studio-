@@ -1,0 +1,124 @@
+{
+  "description": "Répondre à une question avec la base de connaissances FAQ.",
+  "plan": {
+    "title": "Réponse aux questions via la FAQ",
+    "trigger": {
+      "kind": "chat"
+    },
+    "steps": [
+      {
+        "kind": "agent",
+        "name": "reponse_faq",
+        "instructions": "Vous êtes l'assistant d'une PME. Répondez à la question posée en vous appuyant sur la base de connaissances FAQ. Vouvoyez l'utilisateur et restez clair et concis.",
+        "message": "Question posée : {{declencheur.input}}",
+        "services": [],
+        "knowledgeBases": [
+          "FAQ"
+        ]
+      }
+    ]
+  },
+  "state": {
+    "blocks": {
+      "c65e8348-c18f-4f84-a3d7-40ffb83864be": {
+        "id": "c65e8348-c18f-4f84-a3d7-40ffb83864be",
+        "type": "start_trigger",
+        "name": "Start",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "subBlocks": {
+          "nexoraView": {
+            "id": "nexoraView",
+            "type": "short-input",
+            "value": "etapes"
+          },
+          "inputFormat": {
+            "id": "inputFormat",
+            "type": "input-format",
+            "value": []
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "f79864c4-1432-4d70-94ba-9a800b291ef9": {
+        "id": "f79864c4-1432-4d70-94ba-9a800b291ef9",
+        "type": "agent",
+        "name": "reponse_faq",
+        "position": {
+          "x": 420,
+          "y": 0
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous êtes l'assistant d'une PME. Répondez à la question posée en vous appuyant sur la base de connaissances FAQ. Vouvoyez l'utilisateur et restez clair et concis."
+              },
+              {
+                "role": "user",
+                "content": "Question posée : <start.input>"
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      }
+    },
+    "edges": [
+      {
+        "id": "5085a6df-4682-42d1-a1ac-0ff9e82a91bc",
+        "source": "c65e8348-c18f-4f84-a3d7-40ffb83864be",
+        "target": "f79864c4-1432-4d70-94ba-9a800b291ef9",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      }
+    ],
+    "loops": {},
+    "parallels": {},
+    "lastSaved": 1792911873979,
+    "isDeployed": false,
+    "deployedAt": null,
+    "metadata": {
+      "name": "Réponse aux questions via la FAQ",
+      "description": ""
+    }
+  }
+}

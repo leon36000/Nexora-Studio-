@@ -1,0 +1,406 @@
+{
+  "description": "Rédiger le compte rendu d'une réunion, puis le faire valider avant envoi.",
+  "plan": {
+    "title": "Compte rendu de réunion validé",
+    "trigger": {
+      "kind": "manuel",
+      "fields": [
+        {
+          "name": "notes_de_reunion",
+          "description": "Notes ou transcription de la réunion"
+        }
+      ]
+    },
+    "steps": [
+      {
+        "kind": "agent",
+        "name": "redaction_compte_rendu",
+        "instructions": "Vous rédigez des comptes rendus de réunion pour une PME. Style clair, structuré et professionnel, en français.",
+        "message": "Rédigez le compte rendu de la réunion suivante, avec les points clés, les décisions prises et les actions à mener : {{declencheur.notes_de_reunion}}",
+        "services": [],
+        "knowledgeBases": [],
+        "output": {
+          "fields": [
+            {
+              "name": "compte_rendu",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "validation_humaine",
+        "name": "validation_compte_rendu",
+        "message": "Validez-vous ce compte rendu avant envoi ? Vous pouvez laisser un commentaire pour demander des modifications.\n\n{{redaction_compte_rendu.compte_rendu}}"
+      },
+      {
+        "kind": "condition",
+        "name": "est_approuve",
+        "if": {
+          "ref": "validation_compte_rendu.approuve",
+          "operator": "egal",
+          "value": "true"
+        },
+        "then": [
+          "envoi_compte_rendu"
+        ],
+        "else": [
+          "revision_compte_rendu"
+        ]
+      },
+      {
+        "kind": "agent",
+        "name": "envoi_compte_rendu",
+        "instructions": "Vous envoyez des comptes rendus de réunion aux participants, en les vouvoyant.",
+        "message": "Envoyez ce compte rendu de réunion aux participants : {{redaction_compte_rendu.compte_rendu}}",
+        "services": [],
+        "knowledgeBases": []
+      },
+      {
+        "kind": "agent",
+        "name": "revision_compte_rendu",
+        "instructions": "Vous intégrez les retours d'un validateur dans un compte rendu de réunion, en français et en vouvoyant.",
+        "message": "Reprenez ce compte rendu en tenant compte du commentaire suivant : {{redaction_compte_rendu.compte_rendu}} — Commentaire : {{validation_compte_rendu.commentaire}}",
+        "services": [],
+        "knowledgeBases": []
+      }
+    ]
+  },
+  "state": {
+    "blocks": {
+      "8181a3be-c464-4bcd-814d-037493bf6101": {
+        "id": "8181a3be-c464-4bcd-814d-037493bf6101",
+        "type": "start_trigger",
+        "name": "Start",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "subBlocks": {
+          "nexoraView": {
+            "id": "nexoraView",
+            "type": "short-input",
+            "value": "etapes"
+          },
+          "inputFormat": {
+            "id": "inputFormat",
+            "type": "input-format",
+            "value": [
+              {
+                "id": "e2b77759-f820-44ed-b115-00d9f65c0807",
+                "name": "notes_de_reunion",
+                "type": "string",
+                "value": "",
+                "collapsed": false,
+                "description": "Notes ou transcription de la réunion"
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "e8a5c9f5-9b49-47e2-b3ca-fbec67f1be8f": {
+        "id": "e8a5c9f5-9b49-47e2-b3ca-fbec67f1be8f",
+        "type": "agent",
+        "name": "redaction_compte_rendu",
+        "position": {
+          "x": 420,
+          "y": 0
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous rédigez des comptes rendus de réunion pour une PME. Style clair, structuré et professionnel, en français."
+              },
+              {
+                "role": "user",
+                "content": "Rédigez le compte rendu de la réunion suivante, avec les points clés, les décisions prises et les actions à mener : <start.notes_de_reunion>"
+              }
+            ]
+          },
+          "responseFormat": {
+            "id": "responseFormat",
+            "type": "code",
+            "value": "{\n  \"name\": \"redaction_compte_rendu\",\n  \"schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"compte_rendu\": {\n        \"type\": \"string\"\n      }\n    },\n    \"required\": [\n      \"compte_rendu\"\n    ],\n    \"additionalProperties\": false\n  },\n  \"strict\": true\n}"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      },
+      "65bea162-805a-4b1d-89c4-6223ba528ffa": {
+        "id": "65bea162-805a-4b1d-89c4-6223ba528ffa",
+        "type": "human_in_the_loop_v2",
+        "name": "validation_compte_rendu",
+        "position": {
+          "x": 840,
+          "y": 0
+        },
+        "subBlocks": {
+          "builderData": {
+            "id": "builderData",
+            "type": "response-format",
+            "value": [
+              {
+                "id": "304ec3f5-975a-4e5e-a8ec-8bdaa2ccc9e7",
+                "name": "message",
+                "type": "string",
+                "value": "Validez-vous ce compte rendu avant envoi ? Vous pouvez laisser un commentaire pour demander des modifications.\n\n<redaction_compte_rendu.compte_rendu>",
+                "collapsed": false
+              }
+            ]
+          },
+          "inputFormat": {
+            "id": "inputFormat",
+            "type": "input-format",
+            "value": [
+              {
+                "id": "50944967-ea17-40bd-9752-d651ece683b5",
+                "name": "approuve",
+                "type": "boolean",
+                "value": "",
+                "required": true,
+                "collapsed": false,
+                "description": "Approuvez-vous ?"
+              },
+              {
+                "id": "c0e3cc21-9de5-45c1-856c-dea7c3407adb",
+                "name": "commentaire",
+                "type": "string",
+                "value": "",
+                "collapsed": false,
+                "description": "Commentaire"
+              }
+            ]
+          },
+          "notification": {
+            "id": "notification",
+            "type": "tool-input",
+            "value": []
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "f9b5c88b-6bd4-48f3-8903-17d917bb1ad1": {
+        "id": "f9b5c88b-6bd4-48f3-8903-17d917bb1ad1",
+        "type": "condition",
+        "name": "est_approuve",
+        "position": {
+          "x": 1260,
+          "y": 0
+        },
+        "subBlocks": {
+          "conditions": {
+            "id": "conditions",
+            "type": "condition-input",
+            "value": "[{\"id\":\"f9b5c88b-6bd4-48f3-8903-17d917bb1ad1-if\",\"title\":\"if\",\"value\":\"String(<validation_compte_rendu.approuve> ?? '').trim().toLowerCase() === \\\"true\\\"\"},{\"id\":\"f9b5c88b-6bd4-48f3-8903-17d917bb1ad1-else\",\"title\":\"else\",\"value\":\"\"}]"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "96846c1b-a85a-4c16-8dd4-e513a3f91de3": {
+        "id": "96846c1b-a85a-4c16-8dd4-e513a3f91de3",
+        "type": "agent",
+        "name": "envoi_compte_rendu",
+        "position": {
+          "x": 1680,
+          "y": -260
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous envoyez des comptes rendus de réunion aux participants, en les vouvoyant."
+              },
+              {
+                "role": "user",
+                "content": "Envoyez ce compte rendu de réunion aux participants : <redaction_compte_rendu.compte_rendu>"
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      },
+      "f2910415-dbb0-49fa-a151-6269a1147aa2": {
+        "id": "f2910415-dbb0-49fa-a151-6269a1147aa2",
+        "type": "agent",
+        "name": "revision_compte_rendu",
+        "position": {
+          "x": 1680,
+          "y": 260
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous intégrez les retours d'un validateur dans un compte rendu de réunion, en français et en vouvoyant."
+              },
+              {
+                "role": "user",
+                "content": "Reprenez ce compte rendu en tenant compte du commentaire suivant : <redaction_compte_rendu.compte_rendu> — Commentaire : <validation_compte_rendu.commentaire>"
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      }
+    },
+    "edges": [
+      {
+        "id": "913cf315-4436-49d4-b522-c55ef5c4a64c",
+        "source": "e8a5c9f5-9b49-47e2-b3ca-fbec67f1be8f",
+        "target": "65bea162-805a-4b1d-89c4-6223ba528ffa",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "6dec29ac-e643-489f-945e-10b4e24b344d",
+        "source": "f9b5c88b-6bd4-48f3-8903-17d917bb1ad1",
+        "target": "96846c1b-a85a-4c16-8dd4-e513a3f91de3",
+        "sourceHandle": "condition-f9b5c88b-6bd4-48f3-8903-17d917bb1ad1-if",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "efd0be55-bb63-4fae-ab04-c33bea0c9446",
+        "source": "8181a3be-c464-4bcd-814d-037493bf6101",
+        "target": "e8a5c9f5-9b49-47e2-b3ca-fbec67f1be8f",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "e597af9e-5221-4d24-9221-45288bf58f7c",
+        "source": "f9b5c88b-6bd4-48f3-8903-17d917bb1ad1",
+        "target": "f2910415-dbb0-49fa-a151-6269a1147aa2",
+        "sourceHandle": "condition-f9b5c88b-6bd4-48f3-8903-17d917bb1ad1-else",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "44b3fab0-c65f-4430-8b0b-3a9548a82ab6",
+        "source": "65bea162-805a-4b1d-89c4-6223ba528ffa",
+        "target": "f9b5c88b-6bd4-48f3-8903-17d917bb1ad1",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      }
+    ],
+    "loops": {},
+    "parallels": {},
+    "lastSaved": 1792911878777,
+    "isDeployed": false,
+    "deployedAt": null,
+    "metadata": {
+      "name": "Compte rendu de réunion validé",
+      "description": ""
+    }
+  }
+}
