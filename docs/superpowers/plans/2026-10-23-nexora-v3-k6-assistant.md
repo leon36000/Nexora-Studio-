@@ -129,4 +129,4 @@
 - [x] `docs/guide/assistant.md` (+ renvois dans `connecteurs.md`, `copilote.md`).
 - [x] Contrôle de fumée « Assistant étendu » dans `scripts/smoke.py` (deux membres, projet à deux conversations, workflow « Devis client » par formulaire, tâche « tous les matins à 8 h » créée puis tâche à la minute exécutée, cloisonnement 404).
 - [x] Ledger : section K6 avec les « Ruling ».
-- [ ] Vérifications finales : biome sur les fichiers, `type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations`, suite complète, `check-i18n/brand/no-ee/licenses` ; fusion de `main`, commit. *(voir le ledger pour les résultats)*
+- [x] Vérifications finales : biome sur les fichiers, `type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations`, suite complète, `check-i18n/brand/no-ee/licenses` ; fusion de `main`, commit. *(voir le ledger pour les résultats)*
