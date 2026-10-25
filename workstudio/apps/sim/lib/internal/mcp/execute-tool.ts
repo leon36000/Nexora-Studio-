@@ -27,8 +27,6 @@ import {
   McpToolsNotAllowedError,
 } from '@/lib/mcp/application/execute-tool'
 import { McpOauthRedirectRequired } from '@/lib/mcp/oauth'
-import { resolveActingMember } from '@/lib/nexora/acting-member'
-import { PersonalConnectUnavailableError } from '@/lib/nexora/personal-connect'
 import { McpOauthAuthorizationRequiredError } from '@/lib/mcp/types'
 import {
   categorizeError,
@@ -41,6 +39,8 @@ import {
   createCopilotApplicationPrincipal,
   requireTrustedCopilotExecutionContext,
 } from '@/lib/mothership/auth/application-delegation'
+import { resolveActingMember } from '@/lib/nexora/acting-member'
+import { PersonalConnectUnavailableError } from '@/lib/nexora/personal-connect'
 import {
   ResolvedSecretTraceProvenanceAccumulator,
   type ResolvedSecretTraceRegistry,

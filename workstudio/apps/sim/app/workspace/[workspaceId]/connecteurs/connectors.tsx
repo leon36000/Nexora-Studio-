@@ -39,7 +39,10 @@ interface ConnectorsProps {
  */
 export function Connectors({ workspaceId }: ConnectorsProps) {
   const t = useTranslations('connectors')
-  const [{ search, category, scope }, setFilters] = useQueryStates(connectorsParsers, connectorsUrlKeys)
+  const [{ search, category, scope }, setFilters] = useQueryStates(
+    connectorsParsers,
+    connectorsUrlKeys
+  )
   const setSearch = useDebouncedSearchSetter((value, options) =>
     setFilters({ search: value }, options)
   )

@@ -428,7 +428,10 @@ describe('Chat Identifier API Route', () => {
 
         expect(actingDuring).toBe('member-b')
         await expect(
-          resolveActingMember({ executionId: String(executionId), workspaceId: 'workspace-1' }, noDeps)
+          resolveActingMember(
+            { executionId: String(executionId), workspaceId: 'workspace-1' },
+            noDeps
+          )
         ).resolves.toBeNull()
       })
 

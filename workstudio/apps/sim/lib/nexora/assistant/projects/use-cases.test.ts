@@ -10,10 +10,7 @@
 
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
-import {
-  workspaceContextMock,
-  workspaceContextMockFns,
-} from '@sim/testing/mocks/workspace-context.mock'
+import { workspaceContextMock } from '@sim/testing/mocks/workspace-context.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const repository = vi.hoisted(() => ({
@@ -35,8 +32,8 @@ vi.mock('@/lib/nexora/assistant/projects/file-text', () => fileText)
 
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import {
-  addAssistantProjectFile,
   AssistantProjectRefusedError,
+  addAssistantProjectFile,
   createAssistantProject,
   deleteAssistantProject,
   deleteAssistantProjectFile,
@@ -68,7 +65,11 @@ beforeEach(() => {
 
 describe('project ownership', () => {
   const attempts: [string, () => Promise<unknown>][] = [
-    ['read', () => getAssistantProject.execute({ principal: colleague, input: { projectId: 'project-1' } })],
+    [
+      'read',
+      () =>
+        getAssistantProject.execute({ principal: colleague, input: { projectId: 'project-1' } }),
+    ],
     [
       'update',
       () =>
@@ -77,13 +78,20 @@ describe('project ownership', () => {
           input: { projectId: 'project-1', instructions: 'Volé' },
         }),
     ],
-    ['delete', () => deleteAssistantProject.execute({ principal: colleague, input: { projectId: 'project-1' } })],
+    [
+      'delete',
+      () =>
+        deleteAssistantProject.execute({ principal: colleague, input: { projectId: 'project-1' } }),
+    ],
     [
       'add a file',
       () =>
         addAssistantProjectFile.execute({
           principal: colleague,
-          input: { projectId: 'project-1', file: { name: 'a.txt', type: 'text/plain', data: 'YQ==' } },
+          input: {
+            projectId: 'project-1',
+            file: { name: 'a.txt', type: 'text/plain', data: 'YQ==' },
+          },
         }),
     ],
     [
@@ -96,15 +104,18 @@ describe('project ownership', () => {
     ],
   ]
 
-  it.each(attempts)('answers not found to another member who tries to %s', async (_name, attempt) => {
-    await expect(attempt()).rejects.toMatchObject({ code: 'not_found' })
-    expect(workspaceAuthzMockFns.mockResolveEffectiveWorkspacePermission).not.toHaveBeenCalled()
-    expect(repository.updateProject).not.toHaveBeenCalled()
-    expect(repository.deleteProject).not.toHaveBeenCalled()
-    expect(repository.addProjectFile).not.toHaveBeenCalled()
-    expect(repository.deleteProjectFile).not.toHaveBeenCalled()
-    expect(fileText.readProjectFile).not.toHaveBeenCalled()
-  })
+  it.each(attempts)(
+    'answers not found to another member who tries to %s',
+    async (_name, attempt) => {
+      await expect(attempt()).rejects.toMatchObject({ code: 'not_found' })
+      expect(workspaceAuthzMockFns.mockResolveEffectiveWorkspacePermission).not.toHaveBeenCalled()
+      expect(repository.updateProject).not.toHaveBeenCalled()
+      expect(repository.deleteProject).not.toHaveBeenCalled()
+      expect(repository.addProjectFile).not.toHaveBeenCalled()
+      expect(repository.deleteProjectFile).not.toHaveBeenCalled()
+      expect(fileText.readProjectFile).not.toHaveBeenCalled()
+    }
+  )
 
   it('answers not found for a project that does not exist', async () => {
     repository.loadProject.mockResolvedValue(null)
@@ -183,7 +194,9 @@ describe('project files', () => {
     'refuses a %s file with its reason and stores nothing',
     async (reason) => {
       fileText.readProjectFile.mockResolvedValue({ ok: false, reason })
-      await expect(addAssistantProjectFile.execute({ principal: owner, input })).rejects.toMatchObject({
+      await expect(
+        addAssistantProjectFile.execute({ principal: owner, input })
+      ).rejects.toMatchObject({
         reason,
       })
       expect(repository.addProjectFile).not.toHaveBeenCalled()
@@ -203,7 +216,9 @@ describe('project files', () => {
   it('answers not found when the project disappeared while the file was read', async () => {
     fileText.readProjectFile.mockResolvedValue({ ok: true, text: 'x', size: 1 })
     repository.addProjectFile.mockResolvedValue({ status: 'gone' })
-    await expect(addAssistantProjectFile.execute({ principal: owner, input })).rejects.toMatchObject({
+    await expect(
+      addAssistantProjectFile.execute({ principal: owner, input })
+    ).rejects.toMatchObject({
       code: 'not_found',
     })
   })

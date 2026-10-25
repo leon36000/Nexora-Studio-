@@ -6,10 +6,10 @@ const PERIODS = 'jour|semaine|mois|matin|soir|année|an'
 
 const SCHEDULE_PHRASES: readonly RegExp[] = [
   new RegExp(`(?:^|[^\\p{L}])chaque (?:${WEEKDAYS}|${PERIODS})(?![\\p{L}])`, 'iu'),
-  new RegExp(`(?:^|[^\\p{L}])chaque \\d{1,2}(?:er|e)? du mois(?![\\p{L}])`, 'iu'),
-  new RegExp(`(?:^|[^\\p{L}])tous les (?:\\d+ )?(?:jours|matins|soirs|mois|ans)(?![\\p{L}])`, 'iu'),
+  /(?:^|[^\p{L}])chaque \d{1,2}(?:er|e)? du mois(?![\p{L}])/iu,
+  /(?:^|[^\p{L}])tous les (?:\d+ )?(?:jours|matins|soirs|mois|ans)(?![\p{L}])/iu,
   new RegExp(`(?:^|[^\\p{L}])tous les (?:${WEEKDAYS})s(?![\\p{L}])`, 'iu'),
-  new RegExp(`(?:^|[^\\p{L}])toutes les (?:\\d+ )?(?:minutes|heures|semaines)(?![\\p{L}])`, 'iu'),
+  /(?:^|[^\p{L}])toutes les (?:\d+ )?(?:minutes|heures|semaines)(?![\p{L}])/iu,
   new RegExp(`(?:^|[^\\p{L}])du (?:${WEEKDAYS}) au (?:${WEEKDAYS})(?![\\p{L}])`, 'iu'),
   /(?:^|[^\p{L}])une fois par (?:jour|semaine|mois)(?![\p{L}])/iu,
 ]

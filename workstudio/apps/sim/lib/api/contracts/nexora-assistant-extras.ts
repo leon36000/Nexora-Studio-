@@ -4,7 +4,6 @@ import { defineRouteContract } from '@/lib/api/contracts/types'
 import { copilotPlanSchema } from '@/lib/nexora/copilot/plan'
 
 const assistantSkillSchema = z.object({ name: z.string(), description: z.string() })
-export type AssistantSkill = z.output<typeof assistantSkillSchema>
 
 /** The workspace's skills, by name and description, for the `@` picker (read-only). */
 export const listAssistantSkillsContract = defineRouteContract({
@@ -57,7 +56,6 @@ const assistantTaskRunSchema = z.object({
   endedAt: z.string().nullable(),
   output: z.string().nullable(),
 })
-export type AssistantTaskRun = z.output<typeof assistantTaskRunSchema>
 
 export const planAssistantTaskContract = defineRouteContract({
   method: 'POST',
@@ -158,7 +156,6 @@ const publishableWorkflowSchema = z.object({
   isDeployed: z.boolean(),
   published: z.boolean(),
 })
-export type PublishableAssistantWorkflow = z.output<typeof publishableWorkflowSchema>
 
 /** What a writer may publish (writers only). */
 export const listPublishableAssistantWorkflowsContract = defineRouteContract({

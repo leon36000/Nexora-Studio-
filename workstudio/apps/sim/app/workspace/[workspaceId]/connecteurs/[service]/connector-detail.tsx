@@ -228,7 +228,9 @@ export function ConnectorDetail({ workspaceId, service, scope }: ConnectorDetail
 
         <SettingsSection
           label={
-            scope === 'personal' ? t('detail.personalConnectionSection') : t('detail.connectionSection')
+            scope === 'personal'
+              ? t('detail.personalConnectionSection')
+              : t('detail.connectionSection')
           }
         >
           {connectionBody}

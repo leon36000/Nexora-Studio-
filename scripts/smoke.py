@@ -2112,6 +2112,262 @@ print(json.dumps(summary))
                 if leftover:
                     s.call("DELETE", f"{base}/datasets/{leftover}?workspaceId={ws}")
 
+    def assistant_extended():
+        """K6: the Assistant does what Vibe Work does. Two members of one workspace (A creates it, B
+        writes in it, C only reads): projects share their files between conversations and stay
+        private, `@skills` reach the agent, a published workflow launches from its form (and its
+        validation is answered in the thread), a scheduled task is planned from a sentence, runs on
+        the planner and stays its author's, and each member's own connection is used only in their
+        own conversations."""
+        ws = state["ws"]
+        general = None
+        cleanups: list = []
+
+        def member(permission: str) -> "Smoke":
+            client = Smoke(args.url, args.origin)
+            address = f"smoke-{secrets.token_hex(4)}@nexora.test"
+            status, _ = client.call("POST", "/api/auth/sign-up/email", {"email": address, "password": secrets.token_hex(16), "name": "Membre de fumée"})
+            require(status == 200, f"sign-up of a second member returned HTTP {status}")
+            status, body = s.call("POST", "/api/workspaces/invitations/batch", {"workspaceIds": [ws], "emails": [address], "permission": permission})
+            require(status == 200 and body.get("added"), f"inviting a {permission} member returned HTTP {status}: {str(body)[:200]}")
+            return client
+
+        def answer_of(client: "Smoke", conversation: str, text: str) -> str:
+            status, out = client.call("POST", f"/api/chat/{general['chatIdentifier']}", {"input": text, "conversationId": conversation},
+                                      raw=True, timeout=600)
+            require(status == 200, f"agent chat returned HTTP {status}: {out[:300]}")
+            frames = sse_frames(out)
+            require(not any(f.get("event") == "error" for f in frames), f"agent chat reported an error: {out[:400]}")
+            return "".join(str(f.get("chunk", "")) for f in frames)
+
+        def new_conversation(client: "Smoke", title: str, project: str | None = None) -> str:
+            body = {"workspaceId": ws, "workflowId": general["workflowId"], "firstMessage": title}
+            if project:
+                body["projectId"] = project
+            status, created = client.call("POST", "/api/nexora/assistant/conversations", body)
+            require(status == 201, f"conversation creation returned HTTP {status}: {str(created)[:200]}")
+            cleanups.append(lambda c=client, i=created["conversation"]["id"]: c.call("DELETE", f"/api/nexora/assistant/conversations/{i}"))
+            return created["conversation"]["id"]
+
+        notes: list[str] = []
+        try:
+            writer, reader = member("write"), member("read")
+            status, listed = s.call("GET", f"/api/nexora/assistant/agents?workspaceId={ws}", timeout=300)
+            require(status == 200 and listed.get("agents"), f"agents returned HTTP {status}")
+            general = listed["agents"][0]
+
+            # --- Projects: shared files, private to their author.
+            status, body = s.call("POST", "/api/nexora/assistant/projects",
+                                  {"workspaceId": ws, "name": "Projet de fumée", "instructions": "Vouvoyez toujours le client."})
+            require(status == 201, f"project creation returned HTTP {status}: {str(body)[:200]}")
+            project = body["project"]["id"]
+            cleanups.append(lambda: s.call("DELETE", f"/api/nexora/assistant/projects/{project}"))
+            terms = "Conditions de livraison : la livraison est offerte à partir de 80 euros d'achat. En dessous, elle coûte 6 euros."
+            status, body = s.call("POST", f"/api/nexora/assistant/projects/{project}/files",
+                                  {"name": "conditions.txt", "type": "text/plain", "data": "data:text/plain;base64," + base64.b64encode(terms.encode()).decode()})
+            require(status == 201, f"project file returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/nexora/assistant/projects/{project}/files",
+                                  {"name": "outil.exe", "type": "application/octet-stream", "data": base64.b64encode(b"MZ").decode()})
+            require(status == 400 and body.get("code") == "unsupported", f"an executable was not refused: HTTP {status} {str(body)[:200]}")
+            for method, path, payload in (("GET", f"/api/nexora/assistant/projects/{project}", None),
+                                          ("PATCH", f"/api/nexora/assistant/projects/{project}", {"instructions": "Volé"}),
+                                          ("POST", f"/api/nexora/assistant/projects/{project}/files", {"name": "a.txt", "type": "text/plain", "data": "YQ=="}),
+                                          ("DELETE", f"/api/nexora/assistant/projects/{project}", None)):
+                status, _ = writer.call(method, path, payload)
+                require(status == 404, f"another member reaches the project ({method}): HTTP {status}")
+            _, theirs = writer.call("GET", f"/api/nexora/assistant/projects?workspaceId={ws}")
+            require(not theirs.get("projects"), "another member lists the project")
+            status, _ = writer.call("POST", "/api/nexora/assistant/conversations",
+                                    {"workspaceId": ws, "workflowId": general["workflowId"], "firstMessage": "Volé", "projectId": project})
+            require(status == 404, f"another member opens a conversation in the project: HTTP {status}")
+            question = "D'après mes documents, à partir de quel montant la livraison est-elle offerte ? Répondez en une phrase."
+            for number in (1, 2):
+                conversation = new_conversation(s, f"Conversation {number} du projet", project)
+                reply = answer_of(s, conversation, question)
+                require("80" in reply, f"conversation {number} of the project does not know its file: {reply[:300]}")
+            notes.append("projet : fichier partagé par 2 conversations, autre membre ⇒ 404")
+
+            # --- Skills called with @.
+            code = f"CODE-{secrets.token_hex(3).upper()}"
+            skill = f"fumee-{secrets.token_hex(3)}"
+            status, body = s.call("POST", "/api/skills", {"workspaceId": ws, "skills": [
+                {"name": skill, "description": "Compétence de fumée", "content": f"Règle de l’entreprise pour ce message : commencez votre réponse par la référence interne {code}, puis répondez normalement."}]})
+            require(status == 200, f"skill creation returned HTTP {status}: {str(body)[:200]}")
+            skill_id = body["data"][0]["id"]
+            cleanups.append(lambda: s.call("DELETE", f"/api/skills?id={skill_id}&workspaceId={ws}"))
+            _, offered = reader.call("GET", f"/api/nexora/assistant/skills?workspaceId={ws}")
+            require(skill in [x["name"] for x in offered.get("skills", [])], f"the skill is not offered behind @: {offered}")
+            require("content" not in json.dumps(offered), "the skill's content came back to the list")
+            reply = answer_of(s, secrets.token_hex(6), f"@{skill} Bonjour")
+            require(code in reply, f"the skill did not reach the agent: {reply[:300]}")
+            notes.append("compétence @ lue par l'agent")
+
+            # --- A workflow published in the Assistant, launched from its form.
+            quote = state["workflows"]["Devis client"]
+            status, _ = reader.call("PUT", f"/api/nexora/assistant/workflows/{quote}", {"workspaceId": ws})
+            require(status == 403, f"a reader publishes a workflow: HTTP {status}")
+            status, body = s.call("PUT", f"/api/nexora/assistant/workflows/{quote}", {"workspaceId": ws})
+            require(status == 200, f"publication returned HTTP {status}: {str(body)[:300]}")
+            cleanups.append(lambda: s.call("DELETE", f"/api/nexora/assistant/workflows/{quote}?workspaceId={ws}"))
+            _, published = reader.call("GET", f"/api/nexora/assistant/workflows?workspaceId={ws}")
+            form = next((x for x in published.get("workflows", []) if x["workflowId"] == quote), None)
+            require(form and [f["name"] for f in form["fields"]] == ["client", "prestations"], f"the form is not the Start block's: {form}")
+            status, run = writer.call("POST", f"/api/workflows/{quote}/execute",
+                                      {"useDraftState": False, "stream": False, "input": TEMPLATE_INPUTS["Devis client"]}, timeout=600)
+            require(status == 200 and run.get("success"), f"the form's run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            quote_text = str((run.get("output") or {}).get("content", ""))
+            require("TVA" in quote_text, f"the quote has no VAT: {quote_text[:200]}")
+            conversation = new_conversation(writer, "Devis client")
+            card = {"kind": "workflow_run", "payload": {"workflowId": quote, "name": "Devis client", "executionId": run.get("executionId"),
+                                                         "status": "completed", "output": quote_text, "error": None}}
+            status, posted = writer.call("POST", f"/api/nexora/assistant/conversations/{conversation}/messages",
+                                         {"role": "assistant", "content": "Devis client : terminé", "card": card})
+            require(status == 201 and posted["message"]["card"]["kind"] == "workflow_run", f"card storage returned HTTP {status}: {str(posted)[:200]}")
+            status, _ = s.call("PATCH", f"/api/nexora/assistant/conversations/{conversation}/messages/{posted['message']['id']}", {"card": card})
+            require(status == 404, f"another member changes a card: HTTP {status}")
+            notes.append(f"workflow « Devis client » lancé par son formulaire ({len(quote_text)} caractères), carte dans le fil")
+
+            # The same form, for a workflow that waits for a validation: answered in the thread.
+            validated = state["workflows"].get("Réponse client validée avant envoi")
+            if validated:
+                _, loaded = s.call("GET", f"/api/workflows/{validated}")
+                saved = (loaded.get("data") or loaded)["state"]
+                for block in saved["blocks"].values():
+                    if block["type"] == "smtp":
+                        for key, value in {"smtpHost": "127.0.0.1", "smtpPort": "9", "smtpUsername": "x", "smtpPassword": "x", "smtpSecure": "None", "from": "fumee@nexora.test"}.items():
+                            block["subBlocks"].setdefault(key, {"id": key, "type": "short-input", "value": ""})["value"] = value
+                s.call("PUT", f"/api/workflows/{validated}/state", saved)
+                status, body = s.call("PUT", f"/api/nexora/assistant/workflows/{validated}", {"workspaceId": ws})
+                require(status == 200, f"publication of the validated workflow returned HTTP {status}: {str(body)[:300]}")
+                cleanups.append(lambda: s.call("DELETE", f"/api/nexora/assistant/workflows/{validated}?workspaceId={ws}"))
+                status, run = writer.call("POST", f"/api/workflows/{validated}/execute", {"useDraftState": False, "stream": False, "input": {
+                    "message": "Pouvez-vous confirmer la date de livraison ?", "destinataire": "client@exemple.fr"}}, timeout=600)
+                require(status == 200, f"the validated workflow's run returned HTTP {status}: {str(run)[:300]}")
+                paused = (run.get("output") or {}).get("data") or {}
+                resume = (paused.get("_resume") or {}).get("apiUrl", "")
+                require(resume, f"the run did not wait for a validation: {str(run)[:300]}")
+                names = [f.get("name") for f in paused.get("inputFormat") or []]
+                require("approuve" in names, f"the validation does not ask yes or no: {names}")
+                status, resumed = writer.call("POST", urllib.parse.urlsplit(resume).path, {"input": {"submission": {"approuve": False}}}, timeout=600)
+                require(status == 200, f"answering the validation returned HTTP {status}: {str(resumed)[:300]}")
+                notes.append("validation humaine répondue (refus) par l'API de reprise")
+
+            # --- A scheduled task, planned from a sentence.
+            request = "tous les matins à 8 h, résume mes e-mails"
+            status, _ = reader.call("POST", "/api/nexora/assistant/tasks/plan", {"workspaceId": ws, "request": request})
+            require(status == 403, f"a reader plans a task: HTTP {status}")
+            status, plan = writer.call("POST", "/api/nexora/assistant/tasks/plan", {"workspaceId": ws, "request": request}, timeout=300)
+            require(status == 200, f"task planning returned HTTP {status}: {str(plan)[:300]}")
+            require(plan["plan"]["trigger"]["kind"] == "planification" and "8" in plan["schedule"], f"the plan is not a schedule at 8: {plan['schedule']}")
+            status, made = writer.call("POST", "/api/nexora/assistant/tasks", {"workspaceId": ws, "request": request, "plan": plan["plan"]}, timeout=300)
+            require(status == 201, f"task creation returned HTTP {status}: {str(made)[:300]}")
+            task = made["task"]
+            cleanups.append(lambda: writer.call("DELETE", f"/api/nexora/assistant/tasks/{task['id']}"))
+            require(task["schedule"] and re.match(r"^0 8 \* \* \*$", task["schedule"]["cronExpression"] or ""), f"the schedule is not every day at 8: {task['schedule']}")
+            _, listing = s.call("GET", f"/api/nexora/assistant/tasks?workspaceId={ws}")
+            require(not listing.get("tasks"), "another member lists the task")
+            for method, path, payload in (("PATCH", f"/api/nexora/assistant/tasks/{task['id']}", {"enabled": False}),
+                                          ("DELETE", f"/api/nexora/assistant/tasks/{task['id']}", None),
+                                          ("GET", f"/api/nexora/assistant/tasks/{task['id']}/runs", None)):
+                status, _ = s.call(method, path, payload)
+                require(status == 404, f"another member reaches the task ({method}): HTTP {status}")
+            status, off = writer.call("PATCH", f"/api/nexora/assistant/tasks/{task['id']}", {"enabled": False})
+            require(status == 200 and off["task"]["schedule"]["status"] == "disabled", f"disabling returned HTTP {status}: {str(off)[:200]}")
+            status, on = writer.call("PATCH", f"/api/nexora/assistant/tasks/{task['id']}", {"enabled": True})
+            require(status == 200 and on["task"]["schedule"]["status"] == "active" and on["task"]["schedule"]["nextRunAt"], f"enabling returned HTTP {status}: {str(on)[:200]}")
+            notes.append("tâche « tous les matins à 8 h » créée en conversation (0 8 * * *), désactivable, cloisonnée")
+
+            # A task that fires within the minute: the planner (cron) runs it as its author.
+            status, plan = writer.call("POST", "/api/nexora/assistant/tasks/plan", {"workspaceId": ws, "request": "toutes les minutes, écris un mot de bienvenue"}, timeout=300)
+            require(status == 200, f"planning the minute task returned HTTP {status}: {str(plan)[:300]}")
+            status, made = writer.call("POST", "/api/nexora/assistant/tasks", {"workspaceId": ws, "request": "toutes les minutes", "plan": plan["plan"]}, timeout=300)
+            require(status == 201, f"minute task creation returned HTTP {status}: {str(made)[:300]}")
+            minute = made["task"]
+            cleanups.append(lambda: writer.call("DELETE", f"/api/nexora/assistant/tasks/{minute['id']}"))
+            secret = os.environ.get("NEXORA_SMOKE_CRON_SECRET", "")
+            deadline, runs = time.monotonic() + 240, []
+            while time.monotonic() < deadline and not runs:
+                if secret:
+                    s.call("GET", "/api/schedules/execute", headers={"Authorization": f"Bearer {secret}"}, timeout=180)
+                _, body = writer.call("GET", f"/api/nexora/assistant/tasks/{minute['id']}/runs")
+                runs = body.get("runs", [])
+                if not runs:
+                    time.sleep(15)
+            require(runs and runs[0]["trigger"] == "schedule", f"the planner never ran the task (cron missing?): {runs}")
+            notes.append(f"tâche à la minute exécutée par {'l’horloge simulée' if secret else 'le cron'} ({runs[0]['status']})")
+
+            # --- Personal connections: each member's own, used only in their own conversations.
+            service = "postmark"
+            for who in (s, writer):
+                status, body = who.call("POST", f"/api/nexora/connectors/{service}", {
+                    "workspaceId": ws, "scope": "personal", "authType": "api_key", "values": {"apiKey": f"fumee-{secrets.token_hex(8)}"}}, timeout=180)
+                require(status == 200, f"personal connection returned HTTP {status}: {str(body)[:200]}")
+                cleanups.append(lambda who=who: who.call("DELETE", f"/api/nexora/connectors/{service}?workspaceId={ws}&scope=personal"))
+                require("fumee-" not in json.dumps(body), "the key came back to the browser")
+            for who, other in ((s, writer), (writer, s)):
+                _, mine = who.call("GET", f"/api/nexora/connectors/{service}?workspaceId={ws}&scope=personal")
+                require(mine.get("connection"), "a member does not see their own connection")
+            _, shared = reader.call("GET", f"/api/nexora/connectors/{service}?workspaceId={ws}&scope=personal")
+            require(not shared.get("connection"), "a member without connection sees one")
+            _, workspace_wide = s.call("GET", f"/api/nexora/connectors/{service}?workspaceId={ws}")
+            require(not workspace_wide.get("connection"), "a personal connection became the workspace's")
+
+            def connections_seen_in_chat(client: "Smoke", identifier: str) -> str:
+                status, text = client.call("POST", f"/api/chat/{identifier}", {"input": "liste", "conversationId": secrets.token_hex(6)}, raw=True, timeout=300)
+                require(status == 200, f"members chat returned HTTP {status}: {text[:300]}")
+                return text
+
+            server = None
+            for _ in range(15):
+                _, servers = s.call("GET", f"/api/mcp/servers?workspaceId={ws}")
+                found = [x["id"] for x in servers.get("data", {}).get("servers", []) if x["name"] == "Nexora Connect"]
+                if found:
+                    server = found[0]
+                    break
+                time.sleep(2)
+            require(server, "no Nexora Connect server in the workspace")
+            status, body = s.call("POST", "/api/workflows", {"name": f"Boîte de fumée {secrets.token_hex(3)}", "workspaceId": ws})
+            require(status in (200, 201), f"workflow creation returned HTTP {status}")
+            mailbox_wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+            cleanups.append(lambda: s.call("DELETE", f"/api/workflows/{mailbox_wf}"))
+            start, mcp = secrets.token_hex(8), secrets.token_hex(8)
+            sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+            status, body = s.call("PUT", f"/api/workflows/{mailbox_wf}/state", {"blocks": {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                mcp: {"id": mcp, "type": "mcp", "name": "Connexions", "position": {"x": 420, "y": 0}, "enabled": True,
+                      "data": {"canonicalModes": {"server": "advanced", "tool": "advanced"}},
+                      "subBlocks": {"operation": sub("operation", "dropdown", "run"),
+                                    "serverReference": sub("serverReference", "short-input", server),
+                                    "toolReference": sub("toolReference", "short-input", "list_connections"),
+                                    "arguments": sub("arguments", "mcp-dynamic-args", {"service": service})},
+                      "outputs": {}}},
+                "edges": [{"id": secrets.token_hex(8), "source": start, "target": mcp, "sourceHandle": "source", "targetHandle": "target"}],
+                "loops": {}, "parallels": {}})
+            require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/workflows/{mailbox_wf}/deploy", {})
+            require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
+            identifier = f"boite-fumee-{secrets.token_hex(4)}"
+            status, body = s.call("POST", "/api/chat", {"workflowId": mailbox_wf, "identifier": identifier, "title": "Boîte de fumée",
+                                                         "authType": "workspace", "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
+                                                         "outputConfigs": [{"blockId": mcp, "path": "structuredContent"}]})
+            require(status in (200, 201), f"members chat publication returned HTTP {status}: {str(body)[:200]}")
+            _, me = s.call("GET", "/api/auth/get-session")
+            _, them = writer.call("GET", "/api/auth/get-session")
+            mine_id, theirs_id = me["user"]["id"], them["user"]["id"]
+            seen_by_a = connections_seen_in_chat(s, identifier)
+            seen_by_b = connections_seen_in_chat(writer, identifier)
+            require(f"u-{mine_id}" in seen_by_a and f"u-{theirs_id}" not in seen_by_a, f"A's chat sees: {seen_by_a[:400]}")
+            require(f"u-{theirs_id}" in seen_by_b and f"u-{mine_id}" not in seen_by_b, f"B's chat sees: {seen_by_b[:400]}")
+            notes.append("2 membres : chacun ne voit que sa connexion Postmark dans ses conversations")
+        finally:
+            for cleanup in reversed(cleanups):
+                try:
+                    cleanup()
+                except Exception:  # noqa: BLE001 - the cleanup never hides the failure
+                    pass
+        return " ; ".join(notes)
+
     if args.quick:
         # On demand (operators): the platform answers in French, a workspace gets its templates, a
         # template runs through the model. Needs no admin credentials, but signs up an account:
@@ -2139,6 +2395,7 @@ print(json.dumps(summary))
     s.check("Agent : publication, chat public, versions", agent)
     s.check("Prompts : étiquette production déplacée sans republier, API v2", prompts)
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
+    s.check("Assistant étendu : projets, compétences @, workflow par formulaire, tâche planifiée, connexions personnelles", assistant_extended)
     s.check("Interpréteur : classeur Excel ⇒ graphique et totaux exacts", interpreter)
     s.check("Citations : réponse tirée d'une base ⇒ « Sources [1] » avec lien", citations)
     s.check("Confirmation : refus ⇒ aucune action, accord ⇒ une seule", confirmation)

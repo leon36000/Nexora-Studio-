@@ -35,3 +35,7 @@ Rien n'est exécuté avant que vous lanciez le workflow vous-même.
 - Le Copilote n'utilise que le modèle de votre instance (`nexora-default`) : vos descriptions ne partent chez aucun tiers.
 - Le texte que vous écrivez décrit l'automatisation ; il ne peut pas donner d'autres ordres au Copilote.
 - Messages possibles : *le modèle n'a pas produit de plan valide* (reformulez plus simplement), *le modèle a refusé la demande* (raison affichée), *Nexora API indisponible* (réessayez), *trop de demandes* (patientez une minute).
+
+## Depuis l'Assistant
+
+L'[Assistant](assistant.md) s'appuie sur le Copilote pour les **tâches planifiées** : une phrase comme « chaque lundi à 9 h, … » lui fait préparer un plan à déclencheur planifié, relu puis créé à votre nom dans le dossier « Tâches planifiées ». Le Copilote y connaît aussi les services que vous avez connectés vous-même ([Connecteurs](connecteurs.md)).

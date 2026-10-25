@@ -68,7 +68,10 @@ export async function loadCopilotCompileContext(
       ? {
           serverId: server.id,
           services: [
-            ...new Set([...(await connectedServices(workspaceId)), ...(options.extraServices ?? [])]),
+            ...new Set([
+              ...(await connectedServices(workspaceId)),
+              ...(options.extraServices ?? []),
+            ]),
           ],
         }
       : undefined,

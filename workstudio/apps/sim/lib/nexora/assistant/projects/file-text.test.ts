@@ -31,7 +31,11 @@ describe('readProjectFile', () => {
 
   it('refuses a format it cannot read, an empty file and a file that is not what its name says', async () => {
     expect(
-      await readProjectFile({ name: 'outil.exe', type: 'application/octet-stream', data: dataUrl('MZ') })
+      await readProjectFile({
+        name: 'outil.exe',
+        type: 'application/octet-stream',
+        data: dataUrl('MZ'),
+      })
     ).toEqual({ ok: false, reason: 'unsupported' })
     expect(await readProjectFile({ name: 'vide.txt', type: 'text/plain', data: '' })).toEqual({
       ok: false,

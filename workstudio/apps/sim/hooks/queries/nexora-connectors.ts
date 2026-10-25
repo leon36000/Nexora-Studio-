@@ -152,7 +152,13 @@ interface ConnectWithCredentialsVariables extends ConnectorTarget {
 export function useConnectConnector() {
   const invalidate = useInvalidateConnector()
   return useMutation({
-    mutationFn: ({ workspaceId, service, scope, authType, values }: ConnectWithCredentialsVariables) =>
+    mutationFn: ({
+      workspaceId,
+      service,
+      scope,
+      authType,
+      values,
+    }: ConnectWithCredentialsVariables) =>
       requestJson(connectConnectorContract, {
         params: { service },
         body: { workspaceId, ...(scope === 'personal' ? { scope } : {}), authType, values },

@@ -10,6 +10,10 @@
  */
 
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
+import {
+  workflowsOrchestrationMock,
+  workflowsOrchestrationMockFns,
+} from '@sim/testing/mocks/workflows-orchestration.mock'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
 import { workspaceContextMock } from '@sim/testing/mocks/workspace-context.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,8 +24,8 @@ const mocks = vi.hoisted(() => ({
   loadWorkflowFacts: vi.fn(),
   publishWorkflow: vi.fn(),
   unpublishWorkflow: vi.fn(),
-  performFullDeploy: vi.fn(),
 }))
+const performFullDeploy = workflowsOrchestrationMockFns.mockPerformFullDeploy
 
 vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
 vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
@@ -32,7 +36,7 @@ vi.mock('@/lib/nexora/assistant/workflows/repository', () => ({
   publishWorkflow: mocks.publishWorkflow,
   unpublishWorkflow: mocks.unpublishWorkflow,
 }))
-vi.mock('@/lib/workflows/orchestration', () => ({ performFullDeploy: mocks.performFullDeploy }))
+vi.mock('@/lib/workflows/orchestration', () => workflowsOrchestrationMock)
 
 import {
   AssistantWorkflowDeployError,
@@ -54,7 +58,7 @@ beforeEach(() => {
     name: 'Devis client',
     isDeployed: true,
   })
-  mocks.performFullDeploy.mockResolvedValue({ success: true })
+  performFullDeploy.mockResolvedValue({ success: true })
 })
 
 describe('listAssistantWorkflows', () => {
@@ -67,7 +71,10 @@ describe('listAssistantWorkflows', () => {
         description: 'Rédige un devis',
         state: {
           blocks: {
-            s: { type: 'start_trigger', subBlocks: { inputFormat: { value: [{ name: 'client', type: 'string' }] } } },
+            s: {
+              type: 'start_trigger',
+              subBlocks: { inputFormat: { value: [{ name: 'client', type: 'string' }] } },
+            },
           },
         },
       },
@@ -77,7 +84,10 @@ describe('listAssistantWorkflows', () => {
         description: null,
         state: {
           blocks: {
-            s: { type: 'start_trigger', subBlocks: { inputFormat: { value: [{ name: 'facture', type: 'file[]' }] } } },
+            s: {
+              type: 'start_trigger',
+              subBlocks: { inputFormat: { value: [{ name: 'facture', type: 'file[]' }] } },
+            },
           },
         },
       },
@@ -129,7 +139,9 @@ describe('publishing', () => {
 
   it('refuses a reader before looking at the workflow', async () => {
     workspaceAuthzMockFns.mockResolveEffectiveWorkspacePermission.mockResolvedValue('read')
-    await expect(publishAssistantWorkflow.execute({ principal: writer, input })).rejects.toMatchObject({
+    await expect(
+      publishAssistantWorkflow.execute({ principal: writer, input })
+    ).rejects.toMatchObject({
       code: 'forbidden',
     })
     expect(mocks.loadWorkflowFacts).not.toHaveBeenCalled()
@@ -137,20 +149,25 @@ describe('publishing', () => {
   })
 
   it.each([
-    ['of another workspace', { id: 'workflow-1', workspaceId: 'workspace-2', name: 'x', isDeployed: true }],
+    [
+      'of another workspace',
+      { id: 'workflow-1', workspaceId: 'workspace-2', name: 'x', isDeployed: true },
+    ],
     ['that does not exist', null],
   ])('answers not found for a workflow %s', async (_name, facts) => {
     mocks.loadWorkflowFacts.mockResolvedValue(facts)
-    await expect(publishAssistantWorkflow.execute({ principal: writer, input })).rejects.toMatchObject({
+    await expect(
+      publishAssistantWorkflow.execute({ principal: writer, input })
+    ).rejects.toMatchObject({
       code: 'not_found',
     })
-    expect(mocks.performFullDeploy).not.toHaveBeenCalled()
+    expect(performFullDeploy).not.toHaveBeenCalled()
     expect(mocks.publishWorkflow).not.toHaveBeenCalled()
   })
 
   it('publishes a deployed workflow as it is', async () => {
     await publishAssistantWorkflow.execute({ principal: writer, input })
-    expect(mocks.performFullDeploy).not.toHaveBeenCalled()
+    expect(performFullDeploy).not.toHaveBeenCalled()
     expect(mocks.publishWorkflow).toHaveBeenCalledWith(WORKSPACE_ID, 'workflow-1', 'writer')
   })
 
@@ -162,7 +179,7 @@ describe('publishing', () => {
       isDeployed: false,
     })
     await publishAssistantWorkflow.execute({ principal: writer, input })
-    expect(mocks.performFullDeploy).toHaveBeenCalledWith(
+    expect(performFullDeploy).toHaveBeenCalledWith(
       expect.objectContaining({ workflowId: 'workflow-1', userId: 'writer' })
     )
     expect(mocks.publishWorkflow).toHaveBeenCalled()
@@ -175,10 +192,10 @@ describe('publishing', () => {
       name: 'Devis client',
       isDeployed: false,
     })
-    mocks.performFullDeploy.mockResolvedValue({ success: false, error: 'Aucun agent configuré' })
-    await expect(publishAssistantWorkflow.execute({ principal: writer, input })).rejects.toBeInstanceOf(
-      AssistantWorkflowDeployError
-    )
+    performFullDeploy.mockResolvedValue({ success: false, error: 'Aucun agent configuré' })
+    await expect(
+      publishAssistantWorkflow.execute({ principal: writer, input })
+    ).rejects.toBeInstanceOf(AssistantWorkflowDeployError)
     expect(mocks.publishWorkflow).not.toHaveBeenCalled()
   })
 

@@ -45,8 +45,6 @@ const assistantProjectFileSchema = z.object({
   size: z.number().int(),
   createdAt: z.string(),
 })
-export type AssistantProjectFile = z.output<typeof assistantProjectFileSchema>
-export type AssistantProjectSummary = z.output<typeof assistantProjectSummarySchema>
 
 /** The error `code` a file the project cannot take answers with (see `AssistantProjectRefusedError`). */
 export const ASSISTANT_PROJECT_REFUSAL_CODES = [

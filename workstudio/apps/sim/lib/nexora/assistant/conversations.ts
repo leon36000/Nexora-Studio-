@@ -8,6 +8,7 @@ import { assistantOperations } from '@/lib/nexora/assistant/operations'
 import { loadProject } from '@/lib/nexora/assistant/projects/repository'
 import {
   type AssistantConversationRecord,
+  type AssistantMessageCard,
   type AssistantMessageRecord,
   deleteConversation,
   insertConversation,
@@ -15,7 +16,6 @@ import {
   listConversations,
   listMessages,
   loadConversation,
-  type AssistantMessageCard,
   type NewAssistantMessage,
   updateConversationTitle,
   updateMessageCard,

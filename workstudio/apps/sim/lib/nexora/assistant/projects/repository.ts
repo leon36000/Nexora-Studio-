@@ -8,8 +8,8 @@ import { generateId } from '@sim/utils/id'
 import { and, asc, count, desc, eq, sql } from 'drizzle-orm'
 
 /** A project holds at most this many files and this much text altogether. */
-export const PROJECT_MAX_FILES = 10
-export const PROJECT_MAX_TEXT_CHARS = 200_000
+const PROJECT_MAX_FILES = 10
+const PROJECT_MAX_TEXT_CHARS = 200_000
 const PROJECT_LIST_LIMIT = 100
 
 export interface ProjectRecord {
@@ -73,14 +73,12 @@ export async function loadProject(projectId: string): Promise<ProjectRecord | nu
 }
 
 /** One member's projects of one workspace, most recently changed first, with their file counts. */
-export async function listProjects(
-  workspaceId: string,
-  userId: string
-): Promise<ProjectSummary[]> {
+export async function listProjects(workspaceId: string, userId: string): Promise<ProjectSummary[]> {
   const rows = await db
     .select({
       ...projectColumns,
-      fileCount: sql<number>`(select count(*)::int from ${nexoraAssistantProjectFile} where ${nexoraAssistantProjectFile.projectId} = ${nexoraAssistantProject.id})`,
+      // Written out: drizzle leaves columns unqualified, and a bare `id` would read the file's.
+      fileCount: sql<number>`(select count(*)::int from "nexora_assistant_project_file" as "file" where "file"."project_id" = "nexora_assistant_project"."id")`,
     })
     .from(nexoraAssistantProject)
     .where(

@@ -17,13 +17,13 @@
 
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
 import { auditMock, auditMockFns } from '@sim/testing/mocks/audit.mock'
-import { resetEnvMock, setEnv } from '@sim/testing/mocks/env.mock'
 import {
   dbChainMockFns,
   hasMockCondition,
   queueTableRows,
   resetDbChainMock,
 } from '@sim/testing/mocks/database.mock'
+import { resetEnvMock, setEnv } from '@sim/testing/mocks/env.mock'
 import {
   foldersOrchestrationMock,
   foldersOrchestrationMockFns,
@@ -358,14 +358,22 @@ describe('ensureGeneralAssistantAgent', () => {
 
   describe('web search', () => {
     const readsFiles = { ...LEGACY_SUB_BLOCKS, files: MESSAGE_FILES_SUB_BLOCK }
-    const interpreter = { type: 'function', toolId: 'function_execute', params: { language: 'python' } }
+    const interpreter = {
+      type: 'function',
+      toolId: 'function_execute',
+      params: { language: 'python' },
+    }
 
     beforeEach(() => resetEnvMock())
 
     it('offers the search once to an assistant, when the instance has the search service', async () => {
       setEnv({ SEARXNG_URL: 'http://searxng:8080' })
       const tools = { tools: { id: 'tools', type: 'tool-input', value: [interpreter] } }
-      const block = { id: 'agent-block', subBlocks: { ...readsFiles, ...tools }, data: CURRENT_REVISION }
+      const block = {
+        id: 'agent-block',
+        subBlocks: { ...readsFiles, ...tools },
+        data: CURRENT_REVISION,
+      }
       queueLookup(publishedRows)
       queueActiveVersion({ ...readsFiles, ...tools }, CURRENT_REVISION)
       queueLookup(publishedRows)
@@ -379,7 +387,10 @@ describe('ensureGeneralAssistantAgent', () => {
         interpreter,
         expect.objectContaining({ type: 'searxng', toolId: 'searxng_search' }),
       ])
-      expect(stored.data).toMatchObject({ ...CURRENT_REVISION, nexoraAssistantWebSearchRevision: 1 })
+      expect(stored.data).toMatchObject({
+        ...CURRENT_REVISION,
+        nexoraAssistantWebSearchRevision: 1,
+      })
       expect(deployChat).toHaveBeenCalledTimes(1)
     })
 

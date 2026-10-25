@@ -26,10 +26,7 @@ interface ConversationFacts {
 export interface PrepareInputDependencies {
   loadConversation: (conversationId: string) => Promise<ConversationFacts | null>
   loadProjectContext: (projectId: string) => Promise<ProjectContext | null>
-  loadSkills: (
-    workspaceId: string,
-    names: string[]
-  ) => Promise<{ name: string; content: string }[]>
+  loadSkills: (workspaceId: string, names: string[]) => Promise<{ name: string; content: string }[]>
   markProjectVersion: (conversationId: string, version: number) => Promise<void>
 }
 
@@ -116,7 +113,9 @@ export async function prepareAssistantInput(
   const blocks: string[] = []
   let versionToRecord: { conversationId: string; version: number } | null = null
 
-  const conversation = input.conversationId ? await deps.loadConversation(input.conversationId) : null
+  const conversation = input.conversationId
+    ? await deps.loadConversation(input.conversationId)
+    : null
   const own =
     conversation !== null &&
     conversation.userId === input.userId &&

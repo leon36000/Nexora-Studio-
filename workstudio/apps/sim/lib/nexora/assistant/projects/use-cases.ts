@@ -178,13 +178,8 @@ export const addAssistantProjectFile = defineAuthorizedWorkspaceUseCase({
 
 export const deleteAssistantProjectFile = defineAuthorizedWorkspaceUseCase({
   operation: assistantOperations.deleteProjectFile,
-  resolveContext: ({
-    principal,
-    input,
-  }: {
-    principal: SessionPrincipal
-    input: DeleteFileInput
-  }) => resolveOwnedProjectContext(principal, input.projectId),
+  resolveContext: ({ principal, input }: { principal: SessionPrincipal; input: DeleteFileInput }) =>
+    resolveOwnedProjectContext(principal, input.projectId),
   authorizationOptions: {},
   async execute({ context, input }) {
     if (!(await deleteProjectFile(context.project.id, input.fileId))) projectNotFound()

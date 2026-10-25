@@ -7,6 +7,7 @@ import { LRUCache } from 'lru-cache'
 import { env } from '@/lib/core/config/env'
 import { decryptSecret, encryptSecret } from '@/lib/core/security/encryption'
 import { acquireAdvisoryXactLock, withLockTimeout } from '@/lib/db/advisory-locks'
+import type { DbOrTx } from '@/lib/db/types'
 import { generateMcpServerId } from '@/lib/mcp/utils'
 import {
   ConnectRefusedError,
@@ -52,9 +53,10 @@ export interface PersonalConnectDependencies {
     token?: string
     grantHash: string
   }>
-  readRow: (member: Member) => Promise<TokenRow | null>
-  writeRow: (member: Member, row: TokenRow) => Promise<void>
-  withLock: <T>(key: string, work: () => Promise<T>) => Promise<T>
+  /** `executor` is the transaction holding the member's lock, when there is one. */
+  readRow: (member: Member, executor?: DbOrTx) => Promise<TokenRow | null>
+  writeRow: (member: Member, row: TokenRow, executor?: DbOrTx) => Promise<void>
+  withLock: <T>(key: string, work: (executor?: DbOrTx) => Promise<T>) => Promise<T>
   encrypt: (value: string) => Promise<string>
   decrypt: (value: string) => Promise<string>
   now?: () => number
@@ -88,8 +90,8 @@ export function createPersonalConnectResolver(deps: PersonalConnectDependencies)
     }
     if (personal.length === 0) return null
 
-    const token = await deps.withLock(key, async () => {
-      const row = await deps.readRow(member)
+    const token = await deps.withLock(key, async (executor) => {
+      const row = await deps.readRow(member, executor)
       if (row && fresh.has(key)) return deps.decrypt(row.tokenEncrypted)
       let synced: Awaited<ReturnType<PersonalConnectDependencies['sync']>>
       try {
@@ -102,16 +104,20 @@ export function createPersonalConnectResolver(deps: PersonalConnectDependencies)
       }
       fresh.set(key, true)
       if (synced.token) {
-        await deps.writeRow(member, {
-          connectTokenId: synced.tokenId,
-          tokenEncrypted: await deps.encrypt(synced.token),
-          grantHash: synced.grantHash,
-        })
+        await deps.writeRow(
+          member,
+          {
+            connectTokenId: synced.tokenId,
+            tokenEncrypted: await deps.encrypt(synced.token),
+            grantHash: synced.grantHash,
+          },
+          executor
+        )
         return synced.token
       }
       if (!row) throw new PersonalConnectUnavailableError()
       if (row.grantHash !== synced.grantHash) {
-        await deps.writeRow(member, { ...row, grantHash: synced.grantHash })
+        await deps.writeRow(member, { ...row, grantHash: synced.grantHash }, executor)
       }
       return deps.decrypt(row.tokenEncrypted)
     })
@@ -127,12 +133,12 @@ export function createPersonalConnectResolver(deps: PersonalConnectDependencies)
   }
 }
 
-async function lockMember<T>(key: string, work: () => Promise<T>): Promise<T> {
+async function lockMember<T>(key: string, work: (executor?: DbOrTx) => Promise<T>): Promise<T> {
   return db.transaction(async (tx) => {
     await withLockTimeout(tx, LOCK_TIMEOUT_MS, () =>
       acquireAdvisoryXactLock(tx, 'nexora_personal_connect_token', key)
     )
-    return work()
+    return work(tx)
   })
 }
 
@@ -140,8 +146,8 @@ const resolver = createPersonalConnectResolver({
   isConfigured: () => Boolean(env.NEXORA_CONNECT_ADMIN_TOKEN?.trim()),
   listPersonal: (userId) => listPersonalConnections(userId),
   sync: (input) => syncPersonalToken(input),
-  readRow: async ({ userId, workspaceId }) => {
-    const [row] = await db
+  readRow: async ({ userId, workspaceId }, executor = db) => {
+    const [row] = await executor
       .select({
         connectTokenId: nexoraPersonalConnectToken.connectTokenId,
         tokenEncrypted: nexoraPersonalConnectToken.tokenEncrypted,
@@ -157,9 +163,9 @@ const resolver = createPersonalConnectResolver({
       .limit(1)
     return row ?? null
   },
-  writeRow: async ({ userId, workspaceId }, row) => {
+  writeRow: async ({ userId, workspaceId }, row, executor = db) => {
     const now = new Date()
-    await db
+    await executor
       .insert(nexoraPersonalConnectToken)
       .values({ id: generateId(), userId, workspaceId, ...row, createdAt: now, updatedAt: now })
       .onConflictDoUpdate({
@@ -176,7 +182,7 @@ const resolver = createPersonalConnectResolver({
  * Headers acting as the member in Nexora Connect (see {@link createPersonalConnectResolver}).
  * Throws {@link PersonalConnectUnavailableError} rather than ever acting as the workspace.
  */
-export function resolvePersonalConnectHeaders(member: Member): Promise<Record<string, string> | null> {
+function resolvePersonalConnectHeaders(member: Member): Promise<Record<string, string> | null> {
   return resolver.resolve(member).catch((error: unknown) => {
     if (error instanceof PersonalConnectUnavailableError) {
       logger.warn('Personal connections unavailable', { workspaceId: member.workspaceId })

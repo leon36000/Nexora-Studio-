@@ -26,7 +26,8 @@ export function describeCron(cron: string): string {
   if (hourField === '*' && dayField === '*' && weekdayField === '*') {
     if (minuteField === '*') return 'Toutes les minutes'
     const every = /^\*\/(\d{1,2})$/.exec(minuteField)
-    if (every) return Number(every[1]) === 1 ? 'Toutes les minutes' : `Toutes les ${every[1]} minutes`
+    if (every)
+      return Number(every[1]) === 1 ? 'Toutes les minutes' : `Toutes les ${every[1]} minutes`
     const minute = integer(minuteField, 59)
     if (minute === null) return fallback
     return minute === 0 ? 'Toutes les heures' : `Toutes les heures, à la minute ${minute}`

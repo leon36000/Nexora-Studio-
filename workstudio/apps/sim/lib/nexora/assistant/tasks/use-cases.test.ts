@@ -11,6 +11,10 @@
  */
 
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
+import {
+  workflowsOrchestrationMock,
+  workflowsOrchestrationMockFns,
+} from '@sim/testing/mocks/workflows-orchestration.mock'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
 import {
   workspaceContextMock,
@@ -22,8 +26,6 @@ const mocks = vi.hoisted(() => ({
   generatePlan: vi.fn(),
   loadCopilotCompileContext: vi.fn(),
   createWorkflowFromPlan: vi.fn(),
-  performFullDeploy: vi.fn(),
-  performDeleteWorkflow: vi.fn(),
   listPersonalConnections: vi.fn(),
   ensureTasksFolder: vi.fn(),
   loadTask: vi.fn(),
@@ -44,10 +46,7 @@ vi.mock('@/lib/nexora/copilot/context', () => ({
 vi.mock('@/lib/nexora/copilot/use-cases', () => ({
   createWorkflowFromPlan: { execute: mocks.createWorkflowFromPlan },
 }))
-vi.mock('@/lib/workflows/orchestration', () => ({
-  performFullDeploy: mocks.performFullDeploy,
-  performDeleteWorkflow: mocks.performDeleteWorkflow,
-}))
+vi.mock('@/lib/workflows/orchestration', () => workflowsOrchestrationMock)
 vi.mock('@/lib/nexora/connect-admin', () => ({
   listPersonalConnections: mocks.listPersonalConnections,
 }))
@@ -72,12 +71,16 @@ import {
   planAssistantTask,
   setAssistantTaskEnabled,
 } from '@/lib/nexora/assistant/tasks/use-cases'
+import type { CopilotPlan } from '@/lib/nexora/copilot/plan'
+
+const performFullDeploy = workflowsOrchestrationMockFns.mockPerformFullDeploy
+const performDeleteWorkflow = workflowsOrchestrationMockFns.mockPerformDeleteWorkflow
 
 const WORKSPACE_ID = 'workspace-1'
 const owner = createSessionPrincipal({ userId: 'owner', sessionId: 'session-owner' })
 const colleague = createSessionPrincipal({ userId: 'colleague', sessionId: 'session-colleague' })
 
-const scheduledPlan = {
+const scheduledPlan: CopilotPlan = {
   title: 'Résumé des e-mails',
   trigger: { kind: 'planification', frequency: 'jour', time: '08:00' },
   steps: [
@@ -91,7 +94,7 @@ const scheduledPlan = {
     },
   ],
 }
-const manualPlan = { ...scheduledPlan, trigger: { kind: 'manuel', fields: [] } }
+const manualPlan: CopilotPlan = { ...scheduledPlan, trigger: { kind: 'manuel', fields: [] } }
 
 const taskRow = {
   id: 'task-1',
@@ -128,8 +131,8 @@ beforeEach(() => {
     workflow: { id: 'workflow-1', name: 'Résumé des e-mails' },
     warnings: [],
   })
-  mocks.performFullDeploy.mockResolvedValue({ success: true })
-  mocks.performDeleteWorkflow.mockResolvedValue({ success: true })
+  performFullDeploy.mockResolvedValue({ success: true })
+  performDeleteWorkflow.mockResolvedValue({ success: true })
   mocks.insertTask.mockResolvedValue(taskRow)
   mocks.loadSchedule.mockResolvedValue(schedule)
   mocks.setScheduleEnabled.mockResolvedValue({ ...schedule, status: 'disabled', nextRunAt: null })
@@ -147,17 +150,26 @@ describe('task ownership', () => {
           input: { taskId: 'task-1', enabled: false },
         }),
     ],
-    ['delete', () => deleteAssistantTask.execute({ principal: colleague, input: { taskId: 'task-1' } })],
-    ['read the runs of', () => listAssistantTaskRuns.execute({ principal: colleague, input: { taskId: 'task-1' } })],
+    [
+      'delete',
+      () => deleteAssistantTask.execute({ principal: colleague, input: { taskId: 'task-1' } }),
+    ],
+    [
+      'read the runs of',
+      () => listAssistantTaskRuns.execute({ principal: colleague, input: { taskId: 'task-1' } }),
+    ],
   ]
 
-  it.each(attempts)('answers not found to another member who tries to %s a task', async (_name, attempt) => {
-    await expect(attempt()).rejects.toMatchObject({ code: 'not_found' })
-    expect(workspaceAuthzMockFns.mockResolveEffectiveWorkspacePermission).not.toHaveBeenCalled()
-    expect(mocks.setScheduleEnabled).not.toHaveBeenCalled()
-    expect(mocks.performDeleteWorkflow).not.toHaveBeenCalled()
-    expect(mocks.listRecentRuns).not.toHaveBeenCalled()
-  })
+  it.each(attempts)(
+    'answers not found to another member who tries to %s a task',
+    async (_name, attempt) => {
+      await expect(attempt()).rejects.toMatchObject({ code: 'not_found' })
+      expect(workspaceAuthzMockFns.mockResolveEffectiveWorkspacePermission).not.toHaveBeenCalled()
+      expect(mocks.setScheduleEnabled).not.toHaveBeenCalled()
+      expect(performDeleteWorkflow).not.toHaveBeenCalled()
+      expect(mocks.listRecentRuns).not.toHaveBeenCalled()
+    }
+  )
 })
 
 describe('planAssistantTask', () => {
@@ -208,7 +220,7 @@ describe('createAssistantTask', () => {
         input: { workspaceId: WORKSPACE_ID, plan: scheduledPlan, folderId: 'folder-1' },
       })
     )
-    expect(mocks.performFullDeploy).toHaveBeenCalledWith(
+    expect(performFullDeploy).toHaveBeenCalledWith(
       expect.objectContaining({ workflowId: 'workflow-1', userId: 'owner' })
     )
     expect(mocks.insertTask).toHaveBeenCalledWith({
@@ -230,11 +242,11 @@ describe('createAssistantTask', () => {
   })
 
   it('leaves no workflow and no task behind when the deployment fails', async () => {
-    mocks.performFullDeploy.mockResolvedValue({ success: false, error: 'invalid schedule' })
+    performFullDeploy.mockResolvedValue({ success: false, error: 'invalid schedule' })
     await expect(createAssistantTask.execute({ principal: owner, input })).rejects.toMatchObject({
       reason: 'deploy-failed',
     })
-    expect(mocks.performDeleteWorkflow).toHaveBeenCalledWith(
+    expect(performDeleteWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ workflowId: 'workflow-1', userId: 'owner' })
     )
     expect(mocks.insertTask).not.toHaveBeenCalled()
@@ -262,20 +274,27 @@ describe('enabling, disabling and deleting a task', () => {
   it('answers not found when the task’s schedule is gone', async () => {
     mocks.setScheduleEnabled.mockResolvedValue(null)
     await expect(
-      setAssistantTaskEnabled.execute({ principal: owner, input: { taskId: 'task-1', enabled: true } })
+      setAssistantTaskEnabled.execute({
+        principal: owner,
+        input: { taskId: 'task-1', enabled: true },
+      })
     ).rejects.toMatchObject({ code: 'not_found' })
   })
 
   it('deletes the task’s workflow and forgets the task', async () => {
     await deleteAssistantTask.execute({ principal: owner, input: { taskId: 'task-1' } })
-    expect(mocks.performDeleteWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({ workflowId: 'workflow-1', userId: 'owner', skipLastWorkflowGuard: true })
+    expect(performDeleteWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowId: 'workflow-1',
+        userId: 'owner',
+        skipLastWorkflowGuard: true,
+      })
     )
     expect(mocks.deleteTask).toHaveBeenCalledWith('task-1')
   })
 
   it('still forgets a task whose workflow was already deleted in the editor', async () => {
-    mocks.performDeleteWorkflow.mockResolvedValue({ success: false, errorCode: 'not_found' })
+    performDeleteWorkflow.mockResolvedValue({ success: false, errorCode: 'not_found' })
     await deleteAssistantTask.execute({ principal: owner, input: { taskId: 'task-1' } })
     expect(mocks.deleteTask).toHaveBeenCalledWith('task-1')
   })
@@ -284,9 +303,19 @@ describe('enabling, disabling and deleting a task', () => {
 describe('listAssistantTaskRuns', () => {
   it('reads the runs of the task’s workflow only', async () => {
     mocks.listRecentRuns.mockResolvedValue([
-      { executionId: 'e-1', status: 'completed', trigger: 'schedule', startedAt: new Date(), endedAt: new Date(), output: 'Trois e-mails.' },
+      {
+        executionId: 'e-1',
+        status: 'completed',
+        trigger: 'schedule',
+        startedAt: new Date(),
+        endedAt: new Date(),
+        output: 'Trois e-mails.',
+      },
     ])
-    const { runs } = await listAssistantTaskRuns.execute({ principal: owner, input: { taskId: 'task-1' } })
+    const { runs } = await listAssistantTaskRuns.execute({
+      principal: owner,
+      input: { taskId: 'task-1' },
+    })
     expect(mocks.listRecentRuns).toHaveBeenCalledWith(WORKSPACE_ID, 'workflow-1', 10)
     expect(runs).toHaveLength(1)
   })

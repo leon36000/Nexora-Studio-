@@ -142,7 +142,13 @@ export function readRunResult(body: {
       pause: null,
     }
   }
-  return { status: 'completed', executionId, output: outputText(body.output), error: null, pause: null }
+  return {
+    status: 'completed',
+    executionId,
+    output: outputText(body.output),
+    error: null,
+    pause: null,
+  }
 }
 
 /**

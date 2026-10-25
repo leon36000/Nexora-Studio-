@@ -398,7 +398,12 @@ describe('createAssistantConversation in a project', () => {
   function createIn(projectId: string) {
     return createAssistantConversation.execute({
       principal: owner,
-      input: { workspaceId: WORKSPACE_ID, workflowId: 'agent-1', firstMessage: 'Bonjour', projectId },
+      input: {
+        workspaceId: WORKSPACE_ID,
+        workflowId: 'agent-1',
+        firstMessage: 'Bonjour',
+        projectId,
+      },
     })
   }
 

@@ -15,13 +15,24 @@ describe('formFieldsFromState', () => {
   it('turns the Start block’s fields into form fields, in their order', () => {
     const { fields, needsFiles } = formFieldsFromState(
       startState([
-        { name: 'client', type: 'string', description: 'Nom et coordonnées du client', value: 'Boulangerie Martin' },
+        {
+          name: 'client',
+          type: 'string',
+          description: 'Nom et coordonnées du client',
+          value: 'Boulangerie Martin',
+        },
         { name: 'quantite', type: 'number', description: '', value: '' },
         { name: 'urgent', type: 'boolean', description: 'Urgent ?', required: true },
       ])
     )
     expect(fields).toEqual([
-      { name: 'client', label: 'Nom et coordonnées du client', type: 'string', required: false, example: 'Boulangerie Martin' },
+      {
+        name: 'client',
+        label: 'Nom et coordonnées du client',
+        type: 'string',
+        required: false,
+        example: 'Boulangerie Martin',
+      },
       { name: 'quantite', label: 'quantite', type: 'number', required: false, example: '' },
       { name: 'urgent', label: 'Urgent ?', type: 'boolean', required: true, example: '' },
     ])
@@ -50,8 +61,12 @@ describe('formFieldsFromState', () => {
   })
 
   it('ignores fields without a name and a workflow without a Start block or fields', () => {
-    expect(formFieldsFromState(startState([{ type: 'string' }, { name: '  ', type: 'string' }])).fields).toEqual([])
-    expect(formFieldsFromState({ blocks: { a: { type: 'agent', subBlocks: {} } } }).fields).toEqual([])
+    expect(
+      formFieldsFromState(startState([{ type: 'string' }, { name: '  ', type: 'string' }])).fields
+    ).toEqual([])
+    expect(formFieldsFromState({ blocks: { a: { type: 'agent', subBlocks: {} } } }).fields).toEqual(
+      []
+    )
     expect(formFieldsFromState(null).fields).toEqual([])
     expect(formFieldsFromState(startState('not a list')).fields).toEqual([])
   })

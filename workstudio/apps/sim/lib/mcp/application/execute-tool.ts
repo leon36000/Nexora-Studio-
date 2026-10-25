@@ -16,8 +16,8 @@ import {
 import { mcpServerOperations } from '@/lib/mcp/application/operations'
 import { mcpService } from '@/lib/mcp/service'
 import { compileMcpToolSchema } from '@/lib/mcp/tool-schema'
-import { connectHeadersForMember } from '@/lib/nexora/personal-connect'
 import type { McpTool, McpToolCall, McpToolResult } from '@/lib/mcp/types'
+import { connectHeadersForMember } from '@/lib/nexora/personal-connect'
 import {
   assertPermissionsAllowed,
   McpToolsNotAllowedError,

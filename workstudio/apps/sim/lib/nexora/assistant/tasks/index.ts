@@ -1,5 +1,5 @@
 export { describeCron } from './cron-label'
-export type { TaskRecord, TaskRun, TaskSchedule, TaskWithSchedule } from './repository'
+export type { TaskSchedule, TaskWithSchedule } from './repository'
 export {
   AssistantTaskPlanError,
   createAssistantTask,

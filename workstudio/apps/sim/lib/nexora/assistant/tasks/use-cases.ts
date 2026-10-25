@@ -4,13 +4,9 @@ import {
   toPrincipalActor,
 } from '@sim/auth/principal'
 import { createLogger } from '@sim/logger'
-import { generateRequestId } from '@/lib/core/utils/request'
 import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authorized-workspace-use-case'
-import {
-  OrchestrationError,
-  type OrchestrationErrorCode,
-} from '@/lib/core/orchestration/types'
-import { listPersonalConnections } from '@/lib/nexora/connect-admin'
+import { OrchestrationError, type OrchestrationErrorCode } from '@/lib/core/orchestration/types'
+import { generateRequestId } from '@/lib/core/utils/request'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
 import { ensureTasksFolder } from '@/lib/nexora/assistant/tasks/folder'
 import {
@@ -23,6 +19,7 @@ import {
   setScheduleEnabled,
   type TaskRecord,
 } from '@/lib/nexora/assistant/tasks/repository'
+import { listPersonalConnections } from '@/lib/nexora/connect-admin'
 import { loadCopilotCompileContext } from '@/lib/nexora/copilot/context'
 import { generatePlan } from '@/lib/nexora/copilot/generate'
 import type { CopilotPlan } from '@/lib/nexora/copilot/plan'
@@ -125,7 +122,12 @@ export const planAssistantTask = defineAuthorizedWorkspaceUseCase({
       description: `Tâche personnelle planifiée : le déclencheur doit être une planification, jamais un lancement manuel. ${input.request}`,
       context: await loadCopilotCompileContext(context.workspaceId, { extraServices }),
       signal: request?.signal,
-      trace: { source: 'copilot', workspaceId: context.workspaceId, userId, name: 'Tâche planifiée' },
+      trace: {
+        source: 'copilot',
+        workspaceId: context.workspaceId,
+        userId,
+        name: 'Tâche planifiée',
+      },
     })
     assertScheduled(generated.plan)
     return {
@@ -229,7 +231,10 @@ export const deleteAssistantTask = defineAuthorizedWorkspaceUseCase({
     })
     // Already deleted in the editor: the task is forgotten all the same.
     if (!deleted.success && deleted.errorCode !== 'not_found') {
-      throw new OrchestrationError(deleted.errorCode ?? 'internal', deleted.error ?? 'The task was not deleted')
+      throw new OrchestrationError(
+        deleted.errorCode ?? 'internal',
+        deleted.error ?? 'The task was not deleted'
+      )
     }
     await deleteTask(context.task.id)
     return { taskId: context.task.id }

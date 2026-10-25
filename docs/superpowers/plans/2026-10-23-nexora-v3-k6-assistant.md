@@ -85,48 +85,48 @@
 **Opérations :** `nexora.assistant.connections.{list,connect,startOAuth,disconnect}` (rôle `read`, session seule).
 **Routes :** `GET|POST /api/nexora/assistant/connections`, `POST …/connections/[service]/oauth`, `DELETE …/connections/[service]`, `GET …/connections/oauth/[requestId]` (poignée signée par personne).
 
-- [ ] Tests de route rouges : liste ne contient que les connexions de l'appelant ; aucune valeur secrète ne revient ; l'autre membre ne peut pas suivre l'OAuth de l'appelant (404) ; après connexion/déconnexion le jeton est marqué périmé.
-- [ ] Panneau « Mes connexions » dans l'Assistant (catalogue des services de messagerie en tête : Gmail, Outlook, IMAP/SMTP ; formulaire généré des champs du service).
+- [x] Tests de route (`app/api/nexora/connectors/personal.test.ts`) : liste limitée à l'appelant, aucune valeur secrète renvoyée, OAuth lié à la personne (autre membre ⇒ 404, gardé vérifiée par mutation), grâce du jeton oubliée après connexion/déconnexion. **Écart au plan** : les routes personnelles sont le périmètre `scope=personal` des routes Connecteurs existantes, pas des routes `assistant/connections`.
+- [x] « Mes connexions » : bascule « De l'espace / Mes connexions » de la page Connecteurs (catalogue, fiche, formulaire, OAuth réutilisés) et lien depuis l'Assistant.
 
 ### Task 7 : projets
 
 **Opérations :** `nexora.assistant.projects.{list,create,read,update,delete,files.add,files.delete}`. Fichiers : texte extrait (`attachment-text.server`), 10 fichiers et 200 000 caractères au plus par projet, binaire refusé. Conversation : `projectId` choisi à la création.
 
-- [ ] Tests rouges : autre membre ⇒ 404 (lecture, mise à jour, suppression, ajout de fichier) ; fichier trop gros / illisible ⇒ refus explicite ; supprimer le projet détache ses conversations (elles restent lisibles) ; modifier consignes/fichiers incrémente `version`.
-- [ ] Page : sélecteur de projet dans « Nouvelle conversation », panneau Projets (consignes, fichiers).
+- [x] Tests rouges : autre membre ⇒ 404 (lecture, mise à jour, suppression, ajout de fichier) ; fichier trop gros / illisible ⇒ refus explicite ; supprimer le projet détache ses conversations (elles restent lisibles) ; modifier consignes/fichiers incrémente `version`.
+- [x] Page : sélecteur de projet dans « Nouvelle conversation », panneau Projets (consignes, fichiers).
 
 ### Task 8 : préparation de l'entrée du chat (`prepare-input.ts`) — projets et `@compétences`
 
 **Interfaces — produit :** `prepareAssistantInput(input: { workspaceId, userId, conversationId?, text }): Promise<{ text: string; commit(): Promise<void> }>`.
 
-- [ ] Tests rouges : conversation d'un projet ⇒ consignes et fichiers placés avant la question à la première question et quand `version` a changé, jamais sinon ; `@nom` d'une compétence de l'espace ⇒ son contenu ajouté (une fois par nom) ; `@inconnu` laissé tel quel ; conversation d'un autre membre ⇒ aucun contexte ; texte du projet plafonné à 20 000 caractères.
-- [ ] Brancher dans la route du chat pour les chats « membres » seulement ; `commit()` après le flux terminé sans erreur.
-- [ ] Liste des compétences (lecture seule) : `GET /api/nexora/assistant/skills?workspaceId=` ; sélecteur `@` du compositeur.
+- [x] Tests rouges : conversation d'un projet ⇒ consignes et fichiers placés avant la question à la première question et quand `version` a changé, jamais sinon ; `@nom` d'une compétence de l'espace ⇒ son contenu ajouté (une fois par nom) ; `@inconnu` laissé tel quel ; conversation d'un autre membre ⇒ aucun contexte ; texte du projet plafonné à 16 000 caractères.
+- [x] Brancher dans la route du chat pour les chats « membres » seulement ; `commit()` après le flux terminé sans erreur.
+- [x] Liste des compétences (lecture seule) : `GET /api/nexora/assistant/skills?workspaceId=` ; sélecteur `@` du compositeur.
 
 ### Task 9 : tâches planifiées
 
 **Opérations :** `nexora.assistant.tasks.{plan,create,list,setEnabled,delete,runs}`. `plan` : Copilote `generatePlan` avec le contexte élargi aux services personnels de la personne, déclencheur forcé à une planification ; `create` : `createWorkflowFromPlan` dans le dossier « Tâches planifiées » puis `performFullDeploy` (le planificateur n'exécute que le déployé), ligne `nexoraAssistantTask`.
 
-- [ ] Tests rouges : une description sans horaire ⇒ plan refusé (« précisez quand ») ; `create` crée workflow + déploiement + tâche ; `setEnabled(false)` désactive la planification (statut `disabled`), `true` la réactive avec une prochaine échéance ; `delete` archive le workflow et supprime la tâche ; autre membre ⇒ 404 ; une tâche dont le workflow a disparu ⇒ ligne nettoyée à la lecture ; `runs` ne renvoie que des exécutions de ce workflow.
-- [ ] Détection d'une phrase de planification dans le compositeur (« chaque lundi », « tous les matins à 8 h »…) ⇒ proposition « Planifier cette tâche ? » ; carte de tâche dans le fil et panneau « Tâches planifiées ».
-- [ ] Contexte du Copilote : `loadCopilotCompileContext(workspaceId, { extraServices })`.
+- [x] Tests rouges : une description sans horaire ⇒ plan refusé (« précisez quand ») ; `create` crée workflow + déploiement + tâche ; `setEnabled(false)` désactive la planification (statut `disabled`), `true` la réactive avec une prochaine échéance ; `delete` archive le workflow et supprime la tâche ; autre membre ⇒ 404 ; une tâche dont le workflow a disparu ⇒ ligne nettoyée à la lecture ; `runs` ne renvoie que des exécutions de ce workflow.
+- [x] Détection d'une phrase de planification dans le compositeur (« chaque lundi », « tous les matins à 8 h »…) ⇒ proposition « Planifier cette tâche ? » ; carte de tâche dans le fil et panneau « Tâches planifiées ».
+- [x] Contexte du Copilote : `loadCopilotCompileContext(workspaceId, { extraServices })`.
 
 ### Task 10 : workflows publiés dans l'Assistant
 
 **Opérations :** `nexora.assistant.workflows.{list,publish,unpublish}` (liste : `read` ; publication : `write`). La liste donne, pour chaque workflow déployé publié, ses champs (`inputFormat` du Start de la version active).
 
-- [ ] Tests rouges : `fieldsFromStartBlock` (types texte/nombre/booléen, ordre, champs sans nom ignorés) ; lecteur ne peut pas publier (403) ; workflow non déployé ou archivé absent de la liste ; autre espace ⇒ 404.
-- [ ] `lib/nexora/assistant/workflow-runs.ts` : lecture de la réponse d'exécution ⇒ carte `{ status: 'completed'|'paused'|'failed', text, pause? }`, entrée de reprise (oui/non + commentaire) ; carte enregistrée dans le fil (`kind = 'workflow_run'`) et mise à jour après validation.
-- [ ] Lanceur : choix du workflow, formulaire généré, exécution, carte de résultat avec « Approuver / Refuser » quand le run est en pause.
+- [x] Tests rouges : `fieldsFromStartBlock` (types texte/nombre/booléen, ordre, champs sans nom ignorés) ; lecteur ne peut pas publier (403) ; workflow non déployé ou archivé absent de la liste ; autre espace ⇒ 404.
+- [x] `lib/nexora/assistant/workflow-run.ts` : lecture de la réponse d'exécution ⇒ résultat `{ status, output, error, pause }`, entrée du formulaire, réponse de reprise ; carte enregistrée dans le fil (`kind = 'workflow_run'`) et mise à jour après validation (`PATCH …/messages/[messageId]`).
+- [x] Lanceur : choix du workflow, formulaire généré, exécution, carte de résultat avec « Approuver / Refuser » quand le run est en pause.
 
 ### Task 11 : recherche web, « Ouvrir dans l'éditeur », réglage administrateur
 
-- [ ] `lib/nexora/assistant/web-search.ts` : réglage d'instance `nexoraAssistantWebSearch` (comme `code-execution.ts`), activé seulement si `SEARXNG_URL` ; l'Assistant général reçoit/perd l'outil à l'ouverture suivante (réconciliation en tests : réglage activé ⇒ outil ajouté ; désactivé ⇒ retiré ; absence de SearXNG ⇒ jamais).
-- [ ] Interrupteur dans Réglages (administrateurs d'instance) ; lien « Ouvrir dans l'éditeur » dans l'en-tête d'une conversation d'agent, présent pour les rédacteurs seulement (test de la fonction `canOpenInEditor(permission)`).
+- [x] `lib/nexora/assistant/web-search.ts` : l'Assistant général reçoit l'outil une fois, à l'ouverture suivante, quand l'instance a le service de recherche (`SEARXNG_URL`) ; marque de révision pour respecter un retrait. **Écart au plan** : pas de réglage d'instance supplémentaire (voir le ledger).
+- [x] Lien « Ouvrir dans l'éditeur » dans l'en-tête d'une conversation d'agent, pour les rédacteurs seulement (`canOpenInEditor`, testé).
 
 ### Task 12 : guide, fumée, ledger, vérifications
 
-- [ ] `docs/guide/assistant.md` (+ renvois dans `connecteurs.md`, `copilote.md`).
-- [ ] Contrôle de fumée « Assistant étendu » dans `scripts/smoke.py` (deux membres, projet à deux conversations, workflow « Devis client » par formulaire, tâche « tous les matins à 8 h » créée puis tâche à la minute exécutée, cloisonnement 404).
-- [ ] Ledger : section K6 avec les « Ruling ».
-- [ ] Vérifications finales : biome sur les fichiers, `type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations`, suite complète, `check-i18n/brand/no-ee/licenses` ; fusion de `main`, commit.
+- [x] `docs/guide/assistant.md` (+ renvois dans `connecteurs.md`, `copilote.md`).
+- [x] Contrôle de fumée « Assistant étendu » dans `scripts/smoke.py` (deux membres, projet à deux conversations, workflow « Devis client » par formulaire, tâche « tous les matins à 8 h » créée puis tâche à la minute exécutée, cloisonnement 404).
+- [x] Ledger : section K6 avec les « Ruling ».
+- [ ] Vérifications finales : biome sur les fichiers, `type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations`, suite complète, `check-i18n/brand/no-ee/licenses` ; fusion de `main`, commit. *(voir le ledger pour les résultats)*

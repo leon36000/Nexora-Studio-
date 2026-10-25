@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { generateMcpServerId } from '@/lib/mcp/utils'
+import { ConnectUnavailableError } from '@/lib/nexora/connect-admin'
 import {
   createPersonalConnectResolver,
   isNexoraConnectServer,
-  PersonalConnectUnavailableError,
   type PersonalConnectDependencies,
+  PersonalConnectUnavailableError,
 } from '@/lib/nexora/personal-connect'
-import { ConnectUnavailableError } from '@/lib/nexora/connect-admin'
 
 const WS = 'workspace-1'
 const ALICE = 'user-alice'
@@ -42,7 +42,11 @@ function world() {
         return { tokenId: input.existingTokenId, grantHash: state.grant }
       }
       state.issued++
-      return { tokenId: `tok-${state.issued}`, token: `oct_secret_${state.issued}`, grantHash: state.grant }
+      return {
+        tokenId: `tok-${state.issued}`,
+        token: `oct_secret_${state.issued}`,
+        grantHash: state.grant,
+      }
     }),
     readRow: vi.fn(async () => state.row),
     writeRow: vi.fn(async (_member, row) => {
@@ -141,9 +145,9 @@ describe('isNexoraConnectServer', () => {
 
   it('recognizes the workspace’s own Nexora Connect server and nothing else', () => {
     expect(isNexoraConnectServer(generateMcpServerId(WS, url), WS, url)).toBe(true)
-    expect(isNexoraConnectServer(generateMcpServerId(WS, 'https://other.example/mcp'), WS, url)).toBe(
-      false
-    )
+    expect(
+      isNexoraConnectServer(generateMcpServerId(WS, 'https://other.example/mcp'), WS, url)
+    ).toBe(false)
     expect(isNexoraConnectServer(generateMcpServerId('workspace-2', url), WS, url)).toBe(false)
   })
 

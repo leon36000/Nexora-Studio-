@@ -8,9 +8,11 @@ const logger = createLogger('NexoraAssistantProjectFile')
 export const PROJECT_FILE_MAX_BYTES = 5 * 1024 * 1024
 export const PROJECT_FILE_MAX_CHARS = 100_000
 
-export type ProjectFileRefusal = 'too-large' | 'unsupported' | 'unreadable' | 'empty'
+type ProjectFileRefusal = 'too-large' | 'unsupported' | 'unreadable' | 'empty'
 
-type ProjectFileReading = { ok: true; text: string; size: number } | { ok: false; reason: ProjectFileRefusal }
+type ProjectFileReading =
+  | { ok: true; text: string; size: number }
+  | { ok: false; reason: ProjectFileRefusal }
 
 const DATA_URL_PREFIX = /^data:[^,]*;base64,/
 

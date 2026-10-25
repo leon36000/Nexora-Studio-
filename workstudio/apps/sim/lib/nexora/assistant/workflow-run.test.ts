@@ -72,7 +72,9 @@ describe('readRunResult', () => {
   })
 
   it('reads a failed run, with the reason', () => {
-    expect(readRunResult({ success: false, executionId: 'e-2', error: 'Modèle indisponible' })).toEqual({
+    expect(
+      readRunResult({ success: false, executionId: 'e-2', error: 'Modèle indisponible' })
+    ).toEqual({
       status: 'failed',
       executionId: 'e-2',
       output: null,

@@ -1,8 +1,8 @@
 import { db } from '@sim/db'
 import { memory, nexoraAssistantConversation, nexoraAssistantMessage } from '@sim/db/schema'
 import { generateId } from '@sim/utils/id'
-import { type AssistantCard, assistantCardSchema } from '@/lib/api/contracts/nexora-assistant'
 import { and, desc, eq, inArray } from 'drizzle-orm'
+import { type AssistantCard, assistantCardSchema } from '@/lib/api/contracts/nexora-assistant'
 import { lockMemoryConversationInTx } from '@/lib/memory/locks'
 import { memberMemoryKey } from '@/lib/nexora/member-memory'
 

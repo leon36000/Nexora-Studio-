@@ -20,18 +20,27 @@ describe('resolveActingMember', () => {
   it('is the member whose Assistant conversation the run serves, while it runs', async () => {
     const unregister = registerRunMember('exec-1', 'alice')
     await expect(
-      resolveActingMember({ executionId: 'exec-1', workflowId: 'wf-agent', workspaceId: WS }, deps())
+      resolveActingMember(
+        { executionId: 'exec-1', workflowId: 'wf-agent', workspaceId: WS },
+        deps()
+      )
     ).resolves.toBe('alice')
     unregister()
     await expect(
-      resolveActingMember({ executionId: 'exec-1', workflowId: 'wf-agent', workspaceId: WS }, deps())
+      resolveActingMember(
+        { executionId: 'exec-1', workflowId: 'wf-agent', workspaceId: WS },
+        deps()
+      )
     ).resolves.toBeNull()
   })
 
   it('does not let a run registered by one member serve another execution', async () => {
     const unregister = registerRunMember('exec-1', 'alice')
     await expect(
-      resolveActingMember({ executionId: 'exec-2', workflowId: 'wf-agent', workspaceId: WS }, deps())
+      resolveActingMember(
+        { executionId: 'exec-2', workflowId: 'wf-agent', workspaceId: WS },
+        deps()
+      )
     ).resolves.toBeNull()
     unregister()
   })

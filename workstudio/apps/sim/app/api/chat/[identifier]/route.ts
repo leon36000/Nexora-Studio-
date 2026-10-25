@@ -292,7 +292,10 @@ export const POST = withRouteHandler(
                 text: input,
               })
             : null
-        const workflowInput: any = { input: prepared?.text ?? input, conversationId: memoryConversationId }
+        const workflowInput: any = {
+          input: prepared?.text ?? input,
+          conversationId: memoryConversationId,
+        }
         if (files && Array.isArray(files) && files.length > 0) {
           const executionContext = {
             workspaceId,

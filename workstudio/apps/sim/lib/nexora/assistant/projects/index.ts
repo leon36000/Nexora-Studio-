@@ -1,6 +1,11 @@
+export type {
+  ProjectFileRecord,
+  ProjectRecord,
+  ProjectSummary,
+} from './repository'
 export {
-  addAssistantProjectFile,
   AssistantProjectRefusedError,
+  addAssistantProjectFile,
   createAssistantProject,
   deleteAssistantProject,
   deleteAssistantProjectFile,
@@ -8,9 +13,3 @@ export {
   listAssistantProjects,
   updateAssistantProject,
 } from './use-cases'
-export type {
-  ProjectContext,
-  ProjectFileRecord,
-  ProjectRecord,
-  ProjectSummary,
-} from './repository'

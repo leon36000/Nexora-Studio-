@@ -7,6 +7,7 @@ import {
 } from '@sim/db/schema'
 import { generateId } from '@sim/utils/id'
 import { toRecord } from '@sim/utils/object'
+import { truncate } from '@sim/utils/string'
 import { and, desc, eq, isNull } from 'drizzle-orm'
 import { materializeExecutionDataForDisplay } from '@/lib/logs/execution/trace-store'
 import { validateCronExpression } from '@/lib/workflows/schedules/utils'
@@ -196,7 +197,7 @@ function outputText(finalOutput: unknown): string | null {
   const record = toRecord(finalOutput)
   const candidate = record.content ?? record.response ?? record.result ?? finalOutput
   const text = typeof candidate === 'string' ? candidate : JSON.stringify(candidate)
-  return text.length > RUN_OUTPUT_MAX_CHARS ? `${text.slice(0, RUN_OUTPUT_MAX_CHARS)}…` : text
+  return truncate(text, RUN_OUTPUT_MAX_CHARS, '…')
 }
 
 /** The workflow's most recent runs, newest first, each with its final output as short text. */

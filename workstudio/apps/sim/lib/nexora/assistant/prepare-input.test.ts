@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  type PrepareInputDependencies,
   PROJECT_CONTEXT_MAX_CHARS,
+  type PrepareInputDependencies,
   prepareAssistantInput,
 } from '@/lib/nexora/assistant/prepare-input'
 
@@ -155,7 +155,10 @@ describe('prepareAssistantInput — @skills', () => {
   it('adds the content of the skills the message names, once each', async () => {
     const d = deps({ loadSkills: vi.fn(async () => [devis]) })
     const prepared = await prepareAssistantInput(
-      input({ conversationId: undefined, text: '@redaction-devis fais le devis, puis @redaction-devis encore' }),
+      input({
+        conversationId: undefined,
+        text: '@redaction-devis fais le devis, puis @redaction-devis encore',
+      }),
       d
     )
     expect(d.loadSkills).toHaveBeenCalledWith(WS, ['redaction-devis'])
