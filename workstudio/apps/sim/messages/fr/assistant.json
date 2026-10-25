@@ -34,7 +34,9 @@
     "copied": "Réponse copiée",
     "regenerate": "Régénérer la réponse",
     "retry": "Réessayer",
-    "attachment": "Fichier joint : {name}"
+    "attachment": "Fichier joint : {name}",
+    "readAloud": "Lire à voix haute",
+    "readAloudStop": "Arrêter la lecture"
   },
   "composer": {
     "label": "Votre message",
@@ -42,7 +44,11 @@
     "attach": "Joindre un fichier",
     "removeFile": "Retirer {name}",
     "send": "Envoyer",
-    "stop": "Arrêter"
+    "stop": "Arrêter",
+    "dictate": "Dicter un message",
+    "dictateStop": "Arrêter la dictée",
+    "dictating": "Enregistrement…",
+    "transcribing": "Transcription…"
   },
   "attachments": {
     "too-large": "« {name} » dépasse {max} Mo.",
@@ -65,5 +71,25 @@
     "failed": "L'agent n'a pas pu répondre.",
     "interrupted": "La réponse a été interrompue.",
     "unknown": "L'agent n'a pas pu répondre. Réessayez."
+  },
+  "voice": {
+    "dictationErrors": {
+      "denied": "Le micro est refusé : autorisez-le dans votre navigateur, puis réessayez.",
+      "unsupported": "Ce navigateur ne peut pas enregistrer : le micro exige une adresse sécurisée (https).",
+      "empty": "Aucune parole n’a été entendue. Réessayez.",
+      "no-model": "Aucun modèle de transcription sur cette instance : demandez à un administrateur d’en ajouter un.",
+      "unavailable": "Le service de transcription ne répond pas. Réessayez dans un instant.",
+      "too-long": "L’enregistrement est trop long pour une dictée.",
+      "failed": "La dictée a échoué. Réessayez."
+    },
+    "readAloudErrors": {
+      "empty": "Cette réponse ne contient rien à lire.",
+      "no-model": "Aucun modèle de synthèse vocale sur cette instance : demandez à un administrateur d’en ajouter un.",
+      "unavailable": "Le service de voix ne répond pas. Réessayez dans un instant.",
+      "too-long": "Ce texte est trop long pour être lu.",
+      "failed": "La lecture à voix haute a échoué. Réessayez.",
+      "denied": "La lecture à voix haute a échoué. Réessayez.",
+      "unsupported": "La lecture à voix haute a échoué. Réessayez."
+    }
   }
 }

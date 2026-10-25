@@ -144,7 +144,7 @@ export const gatewayErrors = {
     new GatewayError(
       404,
       'unknown_endpoint',
-      `Point d’accès inconnu : ${path}. Points d’accès disponibles : /v1/models, /v1/chat/completions, /v1/embeddings, /v1/audio/transcriptions.`
+      `Point d’accès inconnu : ${path}. Points d’accès disponibles : /v1/models, /v1/chat/completions, /v1/embeddings, /v1/audio/transcriptions, /v1/audio/speech.`
     ),
   unavailable: () =>
     new GatewayError(

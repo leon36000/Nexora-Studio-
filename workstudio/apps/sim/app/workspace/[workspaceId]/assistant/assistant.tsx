@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Chip, ChipCombobox, OverflowText } from '@sim/emcn'
 import { Loader, RefreshCw } from '@sim/emcn/icons'
 import { generateId } from '@sim/utils/id'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { isApiClientError } from '@/lib/api/client/errors'
 import type {
@@ -25,15 +25,23 @@ import {
   MessageItem,
 } from '@/app/workspace/[workspaceId]/assistant/components'
 import { useAssistantTurn } from '@/app/workspace/[workspaceId]/assistant/hooks/use-assistant-turn'
+import { useReadAloud } from '@/app/workspace/[workspaceId]/assistant/hooks/use-read-aloud'
 import {
   assistantParsers,
   assistantUrlKeys,
 } from '@/app/workspace/[workspaceId]/assistant/search-params'
+import { useNexoraModelUsages } from '@/hooks/queries/nexora-home'
 import {
   useAssistantAgents,
   useAssistantConversation,
   useAssistantConversations,
 } from '@/hooks/queries/nexora-assistant'
+
+/** The dictated words after what is already typed, on the same line unless it ended one. */
+function appendDictation(draft: string, text: string): string {
+  if (!draft.trim()) return text
+  return `${draft.replace(/[ \t]+$/, '')}${draft.endsWith('\n') ? '' : ' '}${text}`
+}
 
 const NO_AGENTS: AssistantAgent[] = []
 const NO_MESSAGES: AssistantMessage[] = []
@@ -65,6 +73,8 @@ export function Assistant({ workspaceId }: AssistantProps) {
   const threadRef = useRef<HTMLDivElement>(null)
   const stickToBottomRef = useRef(true)
   const t = useTranslations('assistant')
+  const tVoice = useTranslations('assistant.voice.readAloudErrors')
+  const locale = useLocale()
   const [{ conversation: conversationId }, setParams] = useQueryStates(
     assistantParsers,
     assistantUrlKeys
@@ -77,6 +87,8 @@ export function Assistant({ workspaceId }: AssistantProps) {
     (id) => void setParams({ conversation: id }, { history: 'replace' }),
     () => void setParams({ conversation: null }, { history: 'replace' })
   )
+  const modelUsages = useNexoraModelUsages()
+  const readAloud = useReadAloud(workspaceId)
   const [draftAgentId, setDraftAgentId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [draftFiles, setDraftFiles] = useState<DraftFile[]>([])
@@ -277,6 +289,15 @@ export function Assistant({ workspaceId }: AssistantProps) {
                       ? regenerate
                       : undefined
                   }
+                  readAloud={
+                    modelUsages.data?.speech && item.role === 'assistant'
+                      ? {
+                          phase:
+                            readAloud.reading?.key === item.key ? readAloud.reading.phase : 'idle',
+                          onToggle: () => void readAloud.toggle(item.key, item.content),
+                        }
+                      : undefined
+                  }
                 />
               ))
             )}
@@ -295,6 +316,11 @@ export function Assistant({ workspaceId }: AssistantProps) {
                 <p className='text-[var(--text-muted)] text-small'>{t('thread.unpublished')}</p>
               ) : (
                 <>
+                  {readAloud.error && (
+                    <p role='alert' className='text-[var(--text-error)] text-caption'>
+                      {tVoice(readAloud.error)}
+                    </p>
+                  )}
                   {(turn.notice || refusals.length > 0) && (
                     <ul className='flex flex-col gap-0.5 text-[var(--text-error)] text-caption'>
                       {turn.notice && (
@@ -331,6 +357,15 @@ export function Assistant({ workspaceId }: AssistantProps) {
                     onStop={turn.stop}
                     isBusy={turn.isBusy}
                     canAttach={Boolean(activeAgent)}
+                    dictation={
+                      modelUsages.data?.transcription
+                        ? {
+                            workspaceId,
+                            language: locale === 'en' ? 'en' : 'fr',
+                            onText: (text) => setDraft((previous) => appendDictation(previous, text)),
+                          }
+                        : undefined
+                    }
                   />
                 </>
               )}

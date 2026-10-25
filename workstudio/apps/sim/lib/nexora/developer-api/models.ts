@@ -20,6 +20,7 @@ import {
   upstreamError,
 } from '@/lib/nexora/developer-api/upstream'
 import { readMessageReasoning } from '@/lib/nexora/reasoning'
+import { MAX_SPEECH_CHARACTERS } from '@/lib/nexora/voice/client'
 import { beginCallTrace } from '@/lib/nexora/traces/call'
 
 const OWNED_BY_AGENT = 'nexora-agent'
@@ -233,6 +234,39 @@ export async function relayEmbeddings(
     completionTokens: 0,
   })
   return Response.json(result, { headers: call.headers })
+}
+
+/**
+ * Relays a speech synthesis (`/v1/audio/speech`, JSON in, audio out) and records the call on the
+ * key: the characters of the text count as its prompt, the audio has no tokens.
+ */
+export async function relaySpeech(
+  call: GatewayCall,
+  body: Record<string, unknown> & { model: string; input: string },
+  signal: AbortSignal
+): Promise<Response> {
+  if (body.input.length > MAX_SPEECH_CHARACTERS) {
+    throw gatewayErrors.invalidRequest(
+      `Le texte à lire fait ${body.input.length} caractères ; l’API en accepte 4 096 au plus (champ « input »).`
+    )
+  }
+  const usageModel = await admitModel(call.key, body.model)
+  const estimate = estimateCallTokens(body.input.length, 0, { answers: false })
+  const reservation = await reserveSpending(call.key, usageModel, estimate)
+  const upstream = await callReserved(reservation, body.model, '/audio/speech', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    contentType: 'application/json',
+    signal,
+  })
+  await reservation.settle(estimate)
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: {
+      'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/mpeg',
+      ...call.headers,
+    },
+  })
 }
 
 /** Relays an audio transcription (multipart) and records the call on the key. */
