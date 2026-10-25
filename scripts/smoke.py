@@ -1053,6 +1053,99 @@ def main() -> int:
             if wf:
                 s.call("DELETE", f"/api/workflows/{wf}")
 
+    def connect_runs(action: str) -> int | None:
+        """How many times Nexora Connect ran `action` through MCP (its own run log); None without access to it."""
+        base, token = os.environ.get("NEXORA_SMOKE_CONNECT_URL", ""), os.environ.get("NEXORA_SMOKE_CONNECT_TOKEN", "")
+        if not base or not token:
+            return None
+        request = urllib.request.Request(f"{base.rstrip('/')}/api/runs?actionId={action}&caller=mcp&limit=100",
+                                         headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = json.loads(response.read())
+        runs = body.get("data", body) if isinstance(body, dict) else body
+        runs = runs.get("items", runs) if isinstance(runs, dict) else runs
+        return len(runs)
+
+    def confirmation():
+        service, action = "postmark", "postmark.send_email"
+        _, detail = s.call("GET", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+        fields = next((a.get("fields") or [] for a in detail.get("auth", []) if a.get("type") == "api_key"), [])
+        require(fields, f"no API key form for {service}")
+        status, body = s.call("POST", f"/api/nexora/connectors/{service}", {
+            "workspaceId": state["ws"], "authType": "api_key",
+            "values": {f["key"]: f"fumee-{secrets.token_hex(8)}" for f in fields if f.get("required") or f.get("secret")}})
+        require(status == 200, f"connection returned HTTP {status}: {str(body)[:200]}")
+        wf = None
+        try:
+            tool = None
+            for _ in range(15):
+                _, discovered = s.call("GET", f"/api/mcp/tools/discover?workspaceId={state['ws']}", timeout=180)
+                tool = next((t for t in discovered.get("data", {}).get("tools", []) if t.get("name") == "execute_action"
+                             and t.get("serverName") == "Nexora Connect"), None)
+                if tool:
+                    break
+                time.sleep(2)
+            require(tool, "Nexora Connect's execute_action tool is missing")
+            connect_tool = {"type": "mcp", "title": "execute_action", "toolId": f"mcp-{tool['serverId']}-execute_action", "usageControl": "auto",
+                            "requireConfirmation": True, "isExpanded": False,
+                            "params": {"serverId": tool["serverId"], "toolName": "execute_action", "serverName": "Nexora Connect"},
+                            "schema": {**tool["inputSchema"], "description": tool.get("description", "")}}
+            wf, identifier, _ = agent_chat(
+                "Confirmation de fumée", "confirmation-fumee",
+                "Tu es l'assistant administratif d'une PME. Pour envoyer un e-mail, appelle l'outil execute_action avec actionId « postmark.send_email » "
+                "et un input {From, To, Subject, TextBody}. Ne demande jamais de précision : utilise From « contact@exemple.fr », To « client@exemple.fr ». "
+                "Réponds en français en une phrase en disant si l'e-mail est parti.",
+                [connect_tool], ["content"])
+            question = "Envoie un e-mail de relance au client : sujet « Relance facture F-118 », message « Bonjour, votre facture est en retard. »"
+            before = connect_runs(action)
+
+            def asked_and_answered(decision: str) -> str:
+                """Streams one question; answers the first confirmation card with `decision`; returns the final answer."""
+                body = {"input": question, "conversationId": secrets.token_hex(8)}
+                request = urllib.request.Request(f"{s.url}/api/chat/{identifier}", data=json.dumps(body).encode(), method="POST",
+                                                 headers={"Content-Type": "application/json", "Origin": s.origin,
+                                                          "X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"})
+                answered, text = False, []
+                try:
+                    stream = s.opener.open(request, timeout=600)
+                except urllib.error.HTTPError as error:
+                    raise AssertionError(f"chat returned HTTP {error.code}: {error.read().decode()[:300]}") from error
+                with stream:
+                    for raw in stream:
+                        line = raw.decode().strip()
+                        if not line.startswith("data:") or not line[5:].strip().startswith("{"):
+                            continue
+                        frame = json.loads(line[5:])
+                        if frame.get("event") == "confirmation" and not answered:
+                            data = frame["data"]
+                            require(data["title"] == action, f"the card names {data['title']!r}, not the action")
+                            require("client@exemple.fr" in data["summary"], f"the card does not show what would be sent: {data['summary'][:200]}")
+                            status, _ = s.call("POST", f"/api/nexora/tool-confirmations/{data['id']}", {"token": "x" * 40, "decision": "allow"})
+                            require(status == 403, f"a wrong token was accepted (HTTP {status})")
+                            status, _ = s.call("POST", f"/api/nexora/tool-confirmations/{data['id']}", {"token": data["token"], "decision": decision})
+                            require(status == 200, f"the answer was refused (HTTP {status})")
+                            answered = True
+                        elif "chunk" in frame:
+                            text.append(str(frame["chunk"]))
+                        elif frame.get("event") == "error":
+                            raise AssertionError(f"chat reported an error: {frame}")
+                require(answered, "the agent did not ask before sending the e-mail")
+                return "".join(text)
+
+            refusal = asked_and_answered("deny")
+            if before is not None:
+                require(connect_runs(action) == before, "Nexora Connect ran the action although it was refused")
+            time.sleep(1)
+            asked_and_answered("allow")
+            if before is not None:
+                require(connect_runs(action) == before + 1, "Nexora Connect did not run the action once it was allowed")
+            proof = "journal de Connect : 0 envoi après le refus, 1 après l'accord" if before is not None else "journal de Connect non consulté"
+            return f"carte « Autoriser / Refuser » ⇒ refus sans envoi, puis accord ({proof}) ; réponse après refus : {refusal[:80]}"
+        finally:
+            s.call("DELETE", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+            if wf:
+                s.call("DELETE", f"/api/workflows/{wf}")
+
     if args.quick:
         # On demand (operators): the platform answers in French, a workspace gets its templates, a
         # template runs through the model. Needs no admin credentials, but signs up an account:
@@ -1080,6 +1173,7 @@ def main() -> int:
     s.check("Agent : publication, chat public, versions", agent)
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
     s.check("Interpréteur : classeur Excel ⇒ graphique et totaux exacts", interpreter)
+    s.check("Confirmation : refus ⇒ aucune action, accord ⇒ une seule", confirmation)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)

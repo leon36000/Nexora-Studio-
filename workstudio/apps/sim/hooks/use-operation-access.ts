@@ -109,10 +109,7 @@ export function useOperationAccess(): OperationAccess {
         : null)
     const isReady = !isLoading
     const isAgentDefaultReady =
-      isReady &&
-      isPermissionReady &&
-      !isPermissionFetching &&
-      blacklistedProviders.isSuccess
+      isReady && isPermissionReady && !isPermissionFetching && blacklistedProviders.isSuccess
     return {
       isAgentDefaultReady,
       refetchModelSettings,

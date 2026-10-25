@@ -93,7 +93,9 @@
       "remove": "Retirer {name}",
       "workflowTitle": "Workflow {name}",
       "none": "Aucun outil",
-      "search": "Rechercher un outil…"
+      "search": "Rechercher un outil…",
+      "confirm": "Demander avant d’agir avec {name}",
+      "confirmHint": "Vous demande d’autoriser ou de refuser chaque utilisation de cet outil avant qu’il ne s’exécute."
     },
     "knowledge": {
       "add": "Ajouter des bases",

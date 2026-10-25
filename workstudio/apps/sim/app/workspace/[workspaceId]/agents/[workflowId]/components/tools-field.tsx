@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { ChipCombobox, type ComboboxOptionGroup } from '@sim/emcn'
 import { useTranslations } from 'next-intl'
+import { asksByDefault } from '@/lib/nexora/tool-confirmation/policy'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
 import {
   type SelectedItem,
@@ -47,6 +48,7 @@ function buildMcpTool(tool: McpToolForUI, serverUrl: string | undefined): Stored
     },
     isExpanded: true,
     usageControl: 'auto',
+    requireConfirmation: asksByDefault(tool.serverName, tool.name),
     schema: { ...tool.inputSchema, description: tool.description },
   }
 }
@@ -124,6 +126,9 @@ export function ToolsField({
           key,
           label: serverName ? `${name} · ${serverName}` : name,
           missing: !mcpLoading && !catalog.mcpByKey.has(key),
+          ...(asksByDefault(serverName, name)
+            ? { confirm: tool.requireConfirmation === true }
+            : {}),
         })
       } else if (tool.type === 'workflow_input' && key) {
         const id = tool.params?.workflowId ?? ''
@@ -151,6 +156,14 @@ export function ToolsField({
     onChange(applyPickedTools(value, keys, buildPickedTool))
   }
 
+  const handleConfirmChange = (key: string, confirm: boolean) => {
+    onChange(
+      value.map((tool) =>
+        pickerKey(tool) === key ? { ...tool, requireConfirmation: confirm } : tool
+      )
+    )
+  }
+
   const handleRemove = (key: string) => {
     onChange(value.filter((tool, index) => (pickerKey(tool) ?? `other:${index}`) !== key))
   }
@@ -171,7 +184,12 @@ export function ToolsField({
         searchable
         disabled={disabled}
       />
-      <SelectedList items={items} onRemove={handleRemove} disabled={disabled} />
+      <SelectedList
+        items={items}
+        onRemove={handleRemove}
+        onConfirmChange={handleConfirmChange}
+        disabled={disabled}
+      />
     </div>
   )
 }

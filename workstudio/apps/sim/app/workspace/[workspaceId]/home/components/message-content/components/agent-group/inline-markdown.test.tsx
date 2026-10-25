@@ -11,7 +11,9 @@ function flattenText(node: React.ReactNode): string {
 
 describe('renderInlineMarkdown', () => {
   it('renders links as their label text', () => {
-    const parts = renderInlineMarkdown('see [the docs](https://workstudio.example.com/docs) for more')
+    const parts = renderInlineMarkdown(
+      'see [the docs](https://workstudio.example.com/docs) for more'
+    )
     expect(flattenText(parts)).toBe('see the docs for more')
   })
 

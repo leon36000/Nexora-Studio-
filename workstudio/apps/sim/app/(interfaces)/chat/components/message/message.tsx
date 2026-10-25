@@ -9,6 +9,12 @@ import {
   AgentStreamToolCallsChrome,
 } from '@/components/agent-stream/agent-stream-chrome'
 import type { AgentStreamToolCall } from '@/components/agent-stream/tool-call-lifecycle'
+import type { CitationSource } from '@/lib/nexora/citations'
+import type { ConfirmationItem } from '@/lib/nexora/tool-confirmation/client-state'
+import {
+  ConfirmationCard,
+  SourcesFooter,
+} from '@/app/(interfaces)/chat/components/message/components/agent-extras'
 import {
   ChatFileDownload,
   ChatFileDownloadAll,
@@ -57,6 +63,11 @@ export interface ChatMessage {
   isToolStreaming?: boolean
   attachments?: ChatAttachment[]
   files?: ChatFile[]
+  /** Nexora edition: the numbered sources the answer's searches returned (« Sources [1] [2] »). */
+  sources?: CitationSource[]
+  /** Nexora edition: « Autoriser / Refuser » cards for the actions the agent asks to run. */
+  confirmations?: ConfirmationItem[]
+  onAnswerConfirmation?: (id: string, decision: 'allow' | 'deny') => void
 }
 
 const HTML_ESCAPES: Record<string, string> = {
@@ -264,12 +275,26 @@ export const ClientChatMessage = memo(function ClientChatMessage({
                 </div>
               )}
             </div>
+            {message.confirmations?.map((item) => (
+              <ConfirmationCard
+                key={item.id}
+                title={item.title}
+                summary={item.summary}
+                state={item.state}
+                busy={item.busy}
+                problem={item.problem}
+                onAnswer={(decision) => message.onAnswerConfirmation?.(item.id, decision)}
+              />
+            ))}
             {message.files && message.files.length > 0 && (
               <div className='flex flex-wrap gap-2'>
                 {message.files.map((file) => (
                   <ChatFileDownload key={file.id} file={file} />
                 ))}
               </div>
+            )}
+            {message.sources && !message.isStreaming && typeof cleanTextContent === 'string' && (
+              <SourcesFooter answer={cleanTextContent} sources={message.sources} />
             )}
             {message.type === 'assistant' && !isJsonObject && !message.isInitialMessage && (
               <div className='flex items-center justify-start space-x-2'>

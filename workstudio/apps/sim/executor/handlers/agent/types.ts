@@ -78,6 +78,8 @@ export interface ToolInput {
   usageControl?: 'auto' | 'force' | 'none'
   /** Resolved value from the variable-capable tool mode input. */
   usageControlExpression?: unknown
+  /** Nexora edition: ask the person before this tool runs. */
+  requireConfirmation?: boolean
   operation?: string
   /** Database ID for custom tools (new reference format) */
   customToolId?: string

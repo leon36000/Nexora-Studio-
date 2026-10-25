@@ -69,7 +69,11 @@ export function PublishSection({
 
   const handlePublish = async () => {
     if (!(await ensureSaved())) return
-    const selectedOutputBlocks = [formatInternalOutputSelector(agentBlockId, 'content')]
+    const selectedOutputBlocks = [
+      formatInternalOutputSelector(agentBlockId, 'content'),
+      formatInternalOutputSelector(agentBlockId, 'files'),
+      formatInternalOutputSelector(agentBlockId, 'sources'),
+    ]
     try {
       if (existingChat) {
         const formData: ChatFormData = {

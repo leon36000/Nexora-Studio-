@@ -1,0 +1,132 @@
+import { isRecordLike } from '@sim/utils/object'
+import type { CitationSource } from '@/lib/nexora/citations'
+import { isChatOutputFrame } from '@/lib/workflows/streaming/agent-stream-protocol'
+
+/**
+ * Nexora edition: what an agent's answer carries besides its text — the files its tools produced
+ * (charts, workbooks) and the numbered sources its searches returned — read from the `output`
+ * frames of a chat stream (the Assistant and the published chats share this).
+ */
+
+export interface ProducedFile {
+  name: string
+  type: string
+  size: number
+  /** Same-origin link to download or show the file. */
+  url: string
+}
+
+export type AgentOutput =
+  | { kind: 'files'; files: ProducedFile[] }
+  | { kind: 'sources'; sources: CitationSource[] }
+
+/** The path and query of a file link (so it is fetched from this origin), `null` for anything else. */
+export function sameOriginPath(link: string): string | null {
+  if (!link) return null
+  if (link.startsWith('/') && !link.startsWith('//')) return link
+  try {
+    const url = new URL(link)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+      ? `${url.pathname}${url.search}`
+      : null
+  } catch {
+    return null
+  }
+}
+
+function readFiles(data: unknown): ProducedFile[] {
+  if (!Array.isArray(data)) return []
+  return data.flatMap((entry) => {
+    if (!isRecordLike(entry) || typeof entry.name !== 'string' || typeof entry.url !== 'string') {
+      return []
+    }
+    const url = sameOriginPath(entry.url)
+    if (!url) return []
+    return [
+      {
+        name: entry.name,
+        type: typeof entry.type === 'string' ? entry.type : 'application/octet-stream',
+        size: typeof entry.size === 'number' ? entry.size : 0,
+        url,
+      },
+    ]
+  })
+}
+
+function readSources(data: unknown): CitationSource[] {
+  if (!Array.isArray(data)) return []
+  return data.flatMap((entry) => {
+    if (
+      !isRecordLike(entry) ||
+      typeof entry.index !== 'number' ||
+      typeof entry.title !== 'string' ||
+      (entry.kind !== 'document' && entry.kind !== 'web')
+    ) {
+      return []
+    }
+    const url =
+      typeof entry.url === 'string' && sameOriginPath(entry.url) !== null ? entry.url : undefined
+    return [
+      {
+        index: entry.index,
+        kind: entry.kind,
+        title: entry.title,
+        ...(url ? { url } : {}),
+        ...(typeof entry.excerpt === 'string' ? { excerpt: entry.excerpt } : {}),
+      },
+    ]
+  })
+}
+
+/** What an `output` frame of an agent block adds to the answer, `null` when it adds nothing. */
+export function readAgentOutputFrame(frame: unknown): AgentOutput | null {
+  if (!isChatOutputFrame(frame)) return null
+  if (frame.path === 'files') {
+    if (!Array.isArray(frame.data)) return null
+    return { kind: 'files', files: readFiles(frame.data) }
+  }
+  if (frame.path === 'sources') {
+    if (!Array.isArray(frame.data)) return null
+    return { kind: 'sources', sources: readSources(frame.data) }
+  }
+  return null
+}
+
+export interface AnswerExtras {
+  files: ProducedFile[]
+  sources: CitationSource[]
+}
+
+const EXTRAS_MARKER = '<!--nexora-extras:'
+const EXTRAS_END = '-->'
+
+/**
+ * The text of an answer to keep, with its files and sources after it as an HTML comment (which a
+ * Markdown view does not show). The Assistant stores answers as text; carrying the extras this way
+ * keeps them across a reload without a new column.
+ */
+export function withExtras(text: string, extras: AnswerExtras): string {
+  if (extras.files.length === 0 && extras.sources.length === 0) return text
+  const json = JSON.stringify(extras).replaceAll('-->', '--\\u003e')
+  return `${text}\n\n${EXTRAS_MARKER}${json}${EXTRAS_END}`
+}
+
+/** A stored answer split back into its text and its extras; a damaged marker leaves just the text. */
+export function splitExtras(stored: string): { text: string; extras: AnswerExtras } {
+  const none: AnswerExtras = { files: [], sources: [] }
+  const start = stored.lastIndexOf(EXTRAS_MARKER)
+  if (start === -1 || !stored.endsWith(EXTRAS_END)) return { text: stored, extras: none }
+  const text = stored.slice(0, start).trimEnd()
+  try {
+    const parsed: unknown = JSON.parse(
+      stored.slice(start + EXTRAS_MARKER.length, stored.length - EXTRAS_END.length)
+    )
+    if (!isRecordLike(parsed)) return { text, extras: none }
+    return {
+      text,
+      extras: { files: readFiles(parsed.files), sources: readSources(parsed.sources) },
+    }
+  } catch {
+    return { text, extras: none }
+  }
+}

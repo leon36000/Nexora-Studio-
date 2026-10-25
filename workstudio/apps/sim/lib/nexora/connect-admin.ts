@@ -406,3 +406,39 @@ export async function setOAuthApp(
     redirectUri: textOrNull(saved.expectedRedirectUri),
   }
 }
+
+export type ActionOperationType = 'read' | 'write' | 'destructive'
+
+const ACTION_ID = /^[a-z0-9_-]+\.[A-Za-z0-9_.-]+$/
+const operationTypes = new LRUCache<string, ActionOperationType | 'unknown'>({
+  max: 2_000,
+  ttl: 10 * 60 * 1000,
+})
+
+/**
+ * What Nexora Connect says an action of its catalogue does (read, write or destructive); `null`
+ * when it does not know the action. The answer is kept ten minutes: the catalogue changes with
+ * Connect's version, not per request. An unreachable Connect throws.
+ */
+export async function getActionOperationType(
+  actionId: string,
+  options: ConnectAdminOptions = {}
+): Promise<ActionOperationType | null> {
+  if (!ACTION_ID.test(actionId)) return null
+  const known = operationTypes.get(actionId)
+  if (known !== undefined) return known === 'unknown' ? null : known
+  const call = createClient(options)
+  let operation: ActionOperationType | null
+  try {
+    const detail = toRecord(
+      await call<unknown>('GET', `/api/actions/${encodeURIComponent(actionId)}`)
+    )
+    const type = detail.operationType
+    operation = type === 'read' || type === 'write' || type === 'destructive' ? type : null
+  } catch (error) {
+    if (!(error instanceof ConnectRefusedError)) throw error
+    operation = null
+  }
+  operationTypes.set(actionId, operation ?? 'unknown')
+  return operation
+}

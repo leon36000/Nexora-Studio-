@@ -31,6 +31,8 @@ export interface StoredTool {
   operation?: string
   usageControl?: 'auto' | 'force' | 'none'
   usageControlExpression?: string
+  /** Nexora edition: ask the person before this tool runs (« Demander avant d'agir »). */
+  requireConfirmation?: boolean
 }
 
 export interface ParsedStoredTool extends Omit<StoredTool, 'params'> {
@@ -73,6 +75,9 @@ export function parseStoredToolInputValue(value: unknown): ParsedStoredTool[] {
             ? record.usageControlExpression
             : undefined,
         isExpanded: typeof record.isExpanded === 'boolean' ? record.isExpanded : undefined,
+        ...(typeof record.requireConfirmation === 'boolean'
+          ? { requireConfirmation: record.requireConfirmation }
+          : {}),
         schema: isRecordLike(record.schema) ? (record.schema as StoredToolSchema) : undefined,
       },
     ]

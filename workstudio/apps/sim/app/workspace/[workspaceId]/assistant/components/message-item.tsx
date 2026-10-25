@@ -5,6 +5,13 @@ import { Check, Duplicate, Loader, Paperclip, RefreshCw } from '@sim/emcn/icons'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import type { AssistantMessageFile } from '@/lib/api/contracts/nexora-assistant'
+import type { AnswerExtras } from '@/lib/nexora/agent-extras'
+import type { ConfirmationItem } from '@/lib/nexora/tool-confirmation/client-state'
+import {
+  ConfirmationCard,
+  ProducedFiles,
+  SourcesFooter,
+} from '@/app/(interfaces)/chat/components/message/components/agent-extras'
 import { ThinkingPanel } from '@/app/workspace/[workspaceId]/components/thinking-panel/thinking-panel'
 
 /** Loaded on demand: keeps the Markdown renderer out of the page's first bundle. */
@@ -26,6 +33,11 @@ interface MessageItemProps {
   error?: string
   /** Shown on the last answer only, when the agent can still be asked. */
   onRegenerate?: () => void
+  /** Files its tools produced and the sources its searches returned. */
+  extras?: AnswerExtras
+  /** « Autoriser / Refuser » cards: the agent waits for the person before it acts. */
+  confirmations?: ConfirmationItem[]
+  onAnswerConfirmation?: (id: string, decision: 'allow' | 'deny') => void
 }
 
 /** One message of the thread: the question as typed, the answer rendered as Markdown. */
@@ -38,6 +50,9 @@ export function MessageItem({
   note,
   error,
   onRegenerate,
+  extras,
+  confirmations,
+  onAnswerConfirmation,
 }: MessageItemProps) {
   const t = useTranslations('assistant.thread')
   const { copied, copy } = useCopyToClipboard()
@@ -80,6 +95,21 @@ export function MessageItem({
       ) : isStreaming && !thinking ? (
         <Loader className='size-[14px] text-[var(--text-muted)]' animate />
       ) : null}
+      {confirmations?.map((item) => (
+        <ConfirmationCard
+          key={item.id}
+          title={item.title}
+          summary={item.summary}
+          state={item.state}
+          busy={item.busy}
+          problem={item.problem}
+          onAnswer={(decision) => onAnswerConfirmation?.(item.id, decision)}
+        />
+      ))}
+      {extras && !isStreaming && <ProducedFiles files={extras.files} />}
+      {extras && hasText && !isStreaming && (
+        <SourcesFooter answer={content} sources={extras.sources} />
+      )}
       {(note || error) && (
         <p
           className={cn(

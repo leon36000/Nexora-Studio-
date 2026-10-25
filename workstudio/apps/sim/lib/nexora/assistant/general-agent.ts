@@ -50,6 +50,8 @@ const GENERAL_ASSISTANT_INSTRUCTIONS = [
   "Quand la question concerne l'entreprise, cherchez d'abord dans les bases de connaissances, puis citez les documents sur lesquels votre réponse s'appuie.",
   'Si la demande est ambiguë, posez une question pour la préciser avant de répondre.',
 ].join('\n')
+/** What the Assistant's chat shows of the Agent block: its answer, the files it produced, its sources. */
+const ASSISTANT_OUTPUT_PATHS = ['content', 'files', 'sources'] as const
 /** The model id as blocks store it: the Nexora API's default model. */
 const GENERAL_ASSISTANT_MODEL = 'vllm/nexora-default'
 
@@ -273,6 +275,9 @@ async function createAssistantWorkflow(params: {
     model: GENERAL_ASSISTANT_MODEL,
     tools: [],
     knowledgeBaseIds,
+    // Withdrawn at run time while code execution is off (see dropUnavailableBuiltinTools).
+    codeInterpreter: true,
+    webSearch: false,
     memory: true,
     reasoningEffort: 'auto',
     welcomeMessage: GENERAL_ASSISTANT_WELCOME,
@@ -361,7 +366,9 @@ async function ensureGeneralAssistant(params: {
       description: GENERAL_ASSISTANT_DESCRIPTION,
       customizations: { welcomeMessage: GENERAL_ASSISTANT_WELCOME },
       authType: 'workspace',
-      outputConfigs: agentBlockId ? [{ blockId: agentBlockId, path: 'content' }] : undefined,
+      outputConfigs: agentBlockId
+        ? ASSISTANT_OUTPUT_PATHS.map((path) => ({ blockId: agentBlockId, path }))
+        : undefined,
       // Members see the reasoning through their session (chat route); the chat itself never shares it.
       includeThinking: false,
       workspaceId,

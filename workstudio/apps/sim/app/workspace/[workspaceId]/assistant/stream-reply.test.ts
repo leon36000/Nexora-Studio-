@@ -40,11 +40,11 @@ describe('streamAgentReply', () => {
     })
   })
 
-  it('asks for the agent-events protocol, so a reasoning model’s reasoning can come apart', async () => {
+  it('asks for the agent-events and chat-outputs protocols, so reasoning, files and sources come apart from the answer', async () => {
     fetchMock.mockResolvedValueOnce(sseResponse([{ event: 'final', data: { success: true } }]))
     await run()
     const headers = new Headers(fetchMock.mock.calls[0][1]?.headers)
-    expect(headers.get('x-sim-stream-protocol')).toBe('agent-events-v1')
+    expect(headers.get('x-sim-stream-protocol')).toBe('agent-events-v1, chat-outputs-v1')
   })
 
   it('reports the reasoning apart and never mixes it into the answer', async () => {
@@ -66,6 +66,82 @@ describe('streamAgentReply', () => {
     })
     expect(outcome).toEqual({ status: 'done', text: 'Bonjour' })
     expect(thoughts).toEqual(['Je ', 'Je réfléchis.'])
+  })
+
+  it('reports the files and the numbered sources the agent returns beside its answer', async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        { blockId: 'agent', chunk: 'Livraison offerte dès 80 € [1].' },
+        {
+          blockId: 'agent',
+          event: 'output',
+          path: 'files',
+          data: [
+            {
+              name: 'ventes.png',
+              type: 'image/png',
+              size: 9,
+              url: 'http://x.test/api/files/serve/k',
+            },
+          ],
+        },
+        {
+          blockId: 'agent',
+          event: 'output',
+          path: 'sources',
+          data: [{ index: 1, kind: 'document', title: 'CGV.pdf' }],
+        },
+        { event: 'final', data: { success: true, output: {} } },
+      ])
+    )
+    const extras: unknown[] = []
+    const outcome = await streamAgentReply({
+      chatIdentifier: 'assistant-general',
+      body: { input: 'Bonjour', conversationId: 'conv-1' },
+      signal: new AbortController().signal,
+      onText: () => {},
+      onExtras: (value) => extras.push(value),
+    })
+    expect(outcome.status).toBe('done')
+    expect(extras.at(-1)).toEqual({
+      files: [{ name: 'ventes.png', type: 'image/png', size: 9, url: '/api/files/serve/k' }],
+      sources: [{ index: 1, kind: 'document', title: 'CGV.pdf' }],
+    })
+    expect(outcome).toMatchObject({
+      files: [{ name: 'ventes.png' }],
+      sources: [{ title: 'CGV.pdf' }],
+    })
+  })
+
+  it('hands the person each confirmation request, then its end', async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        {
+          event: 'confirmation',
+          data: {
+            id: 'req-1',
+            token: 't'.repeat(40),
+            title: 'postmark.send_email',
+            toolName: 'execute_action',
+            summary: '{"to":"a@b.fr"}',
+            expiresAt: '2026-10-24T10:00:00.000Z',
+          },
+        },
+        { event: 'confirmation_end', data: { id: 'req-1', decision: 'deny' } },
+        { blockId: 'agent', chunk: "Je n'ai rien envoyé." },
+        { event: 'final', data: { success: true, output: {} } },
+      ])
+    )
+    const seen: string[] = []
+    await streamAgentReply({
+      chatIdentifier: 'assistant-general',
+      body: { input: 'Envoie', conversationId: 'conv-1' },
+      signal: new AbortController().signal,
+      onText: () => {},
+      onConfirmation: (request) => seen.push(`demande ${request.id} ${request.title}`),
+      onConfirmationEnd: (end) => seen.push(`fin ${end.id} ${end.decision}`),
+    })
+    expect(seen).toEqual(['demande req-1 postmark.send_email', 'fin req-1 deny'])
   })
 
   it('accumulates the answer chunks and reports the whole text so far', async () => {

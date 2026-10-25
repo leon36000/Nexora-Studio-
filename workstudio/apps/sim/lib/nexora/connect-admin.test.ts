@@ -6,6 +6,7 @@ import {
   ConnectUnavailableError,
   connectWithCredentials,
   disconnect,
+  getActionOperationType,
   getOAuthStatus,
   getServiceDetail,
   listCatalog,
@@ -547,5 +548,37 @@ describe('concurrent token upkeep of one workspace', () => {
     const tokens = connect.state.tokens.filter((t) => t.name === `workstudio-ws-${WS}`)
     expect(tokens).toHaveLength(1)
     expect(server()?.headers.Authorization).toBe(`Bearer oct_secret_${tokens[0].id}`)
+  })
+})
+
+describe('getActionOperationType', () => {
+  const config = { baseUrl: 'http://connect.test', adminToken: ADMIN }
+
+  it('reads what Nexora Connect says an action does, and keeps the answer for a while', async () => {
+    const asked: string[] = []
+    const fetchFn = (async (input: RequestInfo | URL) => {
+      asked.push(String(input))
+      return jsonResponse({ id: 'postmark.send_email', operationType: 'write' })
+    }) as typeof fetch
+    expect(await getActionOperationType('postmark.send_email', { config, fetchFn })).toBe('write')
+    expect(await getActionOperationType('postmark.send_email', { config, fetchFn })).toBe('write')
+    expect(asked).toEqual(['http://connect.test/api/actions/postmark.send_email'])
+  })
+
+  it('answers null for an action Connect does not know, and throws when Connect is unreachable', async () => {
+    const unknown = (async () =>
+      jsonResponse({ error: { code: 'not_found' } }, 404)) as typeof fetch
+    expect(await getActionOperationType('inconnue.action', { config, fetchFn: unknown })).toBeNull()
+    const down = (async () => jsonResponse({}, 502)) as typeof fetch
+    await expect(
+      getActionOperationType('autre.action', { config, fetchFn: down })
+    ).rejects.toBeInstanceOf(ConnectUnavailableError)
+  })
+
+  it('does not call Connect for an action id that is not an identifier', async () => {
+    const fetchFn = (async () => {
+      throw new Error('should not be called')
+    }) as typeof fetch
+    expect(await getActionOperationType('../admin/tokens', { config, fetchFn })).toBeNull()
   })
 })

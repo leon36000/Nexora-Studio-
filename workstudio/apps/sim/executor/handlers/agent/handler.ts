@@ -37,6 +37,7 @@ import {
   deliverDocumentsAsText,
 } from '@/lib/nexora/attachment-text.server'
 import { dropUnavailableBuiltinTools } from '@/lib/nexora/builtin-tools'
+import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
 import { collectProducedFiles } from '@/lib/nexora/tool-files'
 import { importWorkspaceFileSecretProvenanceForModelView } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
 import {
@@ -1380,6 +1381,16 @@ export class AgentBlockHandler implements BlockHandler {
       schema: mcpTool.inputSchema,
       userProvidedParams,
       usageControl: tool.usageControl,
+      ...(tool.requireConfirmation === true
+        ? {
+            confirmation: {
+              required: true,
+              serverName: mcpTool.serverName,
+              toolName,
+              title: toolName,
+            },
+          }
+        : {}),
     })
   }
 
@@ -1390,6 +1401,7 @@ export class AgentBlockHandler implements BlockHandler {
     schema: McpToolSchema
     userProvidedParams: Record<string, unknown>
     usageControl?: 'auto' | 'force' | 'none'
+    confirmation?: ToolConfirmationSpec
   }): Promise<ProviderToolConfig> {
     const filteredSchema = filterSchemaForLLM(config.schema, config.userProvidedParams)
     const toolId = createMcpToolId(config.serverId, config.toolName)
@@ -1414,6 +1426,7 @@ export class AgentBlockHandler implements BlockHandler {
       },
       params: config.userProvidedParams,
       usageControl: config.usageControl || 'auto',
+      ...(config.confirmation ? { confirmation: config.confirmation } : {}),
       paramsTransform: (params: Record<string, unknown>) => decodeToolParams(params, paramShapes),
       ...(jsonShapedParamKeys.length > 0 && { jsonShapedParamKeys }),
     }
@@ -3272,6 +3285,9 @@ export class AgentBlockHandler implements BlockHandler {
       if (isRecordLike(execution.output) && execution.output.files === undefined) {
         execution.output.files = collectProducedFiles(toRecord(execution.output.toolCalls).list)
       }
+      if (isRecordLike(execution.output) && execution.output.sources === undefined) {
+        execution.output.sources = []
+      }
     }
 
     return streamingExec
@@ -3356,6 +3372,7 @@ export class AgentBlockHandler implements BlockHandler {
     toolCalls?: Array<any>
     timing?: any
     cost?: any
+    sources?: unknown[]
   }) {
     return {
       model: result.model,
@@ -3371,6 +3388,7 @@ export class AgentBlockHandler implements BlockHandler {
       providerTiming: result.timing,
       cost: result.cost,
       files: collectProducedFiles(result.toolCalls),
+      sources: result.sources ?? [],
     }
   }
 

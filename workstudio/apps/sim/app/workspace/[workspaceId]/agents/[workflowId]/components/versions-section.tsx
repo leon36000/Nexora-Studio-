@@ -203,6 +203,9 @@ function VersionDiff({ workspaceId, workflowId, from, to }: VersionDiffProps) {
         )
       case 'memory':
         return config.memory ? t('editor.memory.on') : t('editor.memory.off')
+      case 'codeInterpreter':
+      case 'webSearch':
+        return config[field] ? t('editor.memory.on') : t('editor.memory.off')
       case 'model':
         return config.model.replace(/^vllm\//, '')
       case 'reasoningEffort':

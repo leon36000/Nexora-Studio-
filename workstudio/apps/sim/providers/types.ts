@@ -1,5 +1,7 @@
 import type { BillingAttributionSnapshot } from '@/lib/billing/core/attribution'
 import { UserFailure } from '@/lib/core/errors/user-failure'
+import type { CitationSource } from '@/lib/nexora/citations'
+import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
 import type { CustomBlockInputFieldType } from '@/blocks/custom/build-config'
 import type { ProviderTimingSegment, StreamingExecution, UserFile } from '@/executor/types'
 
@@ -86,6 +88,8 @@ export type TimeSegment = ProviderTimingSegment
 
 export interface ProviderResponse {
   content: string
+  /** Nexora edition: the numbered sources the search tools returned during this response. */
+  sources?: CitationSource[]
   /** Structured answers returned by a native evaluation model. */
   answers?: Record<string, unknown>
   model: string
@@ -136,6 +140,8 @@ export interface ProviderToolConfig {
     required: string[]
   }
   usageControl?: ToolUsageControl
+  /** Nexora edition: this tool asks the person before it runs (« Demander avant d'agir »). */
+  confirmation?: ToolConfirmationSpec
   /**
    * Params the model may never supply, because the tool declares them
    * `user-only` or `hidden`. Stripped from the model's arguments before they

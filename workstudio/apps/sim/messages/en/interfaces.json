@@ -68,6 +68,25 @@
       "sendFailed": "Failed to send verification code",
       "invalidCode": "Invalid verification code",
       "resendFailed": "Failed to resend verification code"
+    },
+    "agentExtras": {
+      "sources": "Sources",
+      "sourcesConsulted": "Sources consulted",
+      "openSource": "Open source {index}: {title}",
+      "files": "Files produced",
+      "download": "Download {name}",
+      "imageAlt": "Chart or image produced: {name}",
+      "confirm": {
+        "title": "Allow this action?",
+        "allow": "Allow",
+        "deny": "Refuse",
+        "pending": "Waiting for your answer",
+        "allowed": "Allowed",
+        "denied": "Refused — nothing was done",
+        "expired": "No answer — nothing was done",
+        "failed": "Your answer could not be sent. Try again.",
+        "alreadyAnswered": "This request was already answered or has expired."
+      }
     }
   },
   "resume": {

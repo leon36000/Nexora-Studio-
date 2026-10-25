@@ -93,7 +93,9 @@
       "remove": "Remove {name}",
       "workflowTitle": "Workflow {name}",
       "none": "No tools",
-      "search": "Search..."
+      "search": "Search...",
+      "confirm": "Ask before acting with {name}",
+      "confirmHint": "Asks you to allow or refuse each use of this tool before it runs."
     },
     "knowledge": {
       "add": "Add knowledge bases",

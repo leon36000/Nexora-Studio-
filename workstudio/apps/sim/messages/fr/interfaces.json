@@ -68,6 +68,25 @@
       "sendFailed": "Impossible d’envoyer le code de vérification",
       "invalidCode": "Code de vérification invalide",
       "resendFailed": "Impossible de renvoyer le code de vérification"
+    },
+    "agentExtras": {
+      "sources": "Sources",
+      "sourcesConsulted": "Sources consultées",
+      "openSource": "Ouvrir la source {index} : {title}",
+      "files": "Fichiers produits",
+      "download": "Télécharger {name}",
+      "imageAlt": "Graphique ou image produit : {name}",
+      "confirm": {
+        "title": "Autoriser cette action ?",
+        "allow": "Autoriser",
+        "deny": "Refuser",
+        "pending": "En attente de votre réponse",
+        "allowed": "Autorisée",
+        "denied": "Refusée — rien n’a été fait",
+        "expired": "Sans réponse — rien n’a été fait",
+        "failed": "Votre réponse n’a pas pu être envoyée. Réessayez.",
+        "alreadyAnswered": "Cette demande a déjà reçu une réponse ou a expiré."
+      }
     }
   },
   "resume": {
