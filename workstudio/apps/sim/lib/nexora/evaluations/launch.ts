@@ -76,7 +76,7 @@ function modelLabel(model: string): string {
 }
 
 /** Gives each target its key (`t1`…) and the name the tables show; checks what it refers to. */
-async function resolveTargets(
+export async function resolveTargets(
   workspaceId: string,
   inputs: readonly TargetInput[],
   deps: LaunchDeps

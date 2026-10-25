@@ -566,6 +566,34 @@ export async function insertCampaignWithItems(input: {
   return toCampaign(created)
 }
 
+/** A campaign that could not even start (a schedule whose test set is empty, say), kept so the failure shows. */
+export async function insertFailedCampaign(
+  input: {
+    workspaceId: string
+    name: string
+    datasetId: string
+    judgeId: string
+    targets: EvalTarget[]
+    concurrency: number
+    alertThreshold: number | null
+    scheduleId: string | null
+    createdBy: string | null
+  },
+  error: string
+): Promise<CampaignRecord> {
+  const [created] = await db
+    .insert(nexoraEvalCampaign)
+    .values({
+      id: generateId(),
+      ...input,
+      status: 'failed',
+      error,
+      finishedAt: new Date(),
+    })
+    .returning()
+  return toCampaign(created)
+}
+
 export async function getCampaign(
   workspaceId: string,
   campaignId: string

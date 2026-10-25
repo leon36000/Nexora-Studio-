@@ -7,6 +7,7 @@ import {
   type JudgeDeps,
   parseJudgeReply,
   runJudge,
+  validateJudgeConfig,
 } from '@/lib/nexora/evaluations/judge'
 import { cosineSimilarity } from '@/lib/nexora/evaluations/semantic'
 import type { LlmClassJudgeConfig, LlmScoreJudgeConfig } from '@/lib/nexora/evaluations/types'
@@ -207,5 +208,32 @@ describe('exécution d’un juge', () => {
       deps()
     )
     expect(run.verdict).toBe('error')
+  })
+})
+
+describe('validation des réglages d’un juge', () => {
+  it('accepte des réglages cohérents', () => {
+    expect(validateJudgeConfig(classConfig)).toBeNull()
+    expect(validateJudgeConfig(scoreConfig)).toBeNull()
+    expect(validateJudgeConfig({ kind: 'semantic', model: 'bge-m3', passAt: 0.8 })).toBeNull()
+  })
+
+  it('refuse des étiquettes de réussite hors liste, ou sans étiquette d’échec', () => {
+    expect(validateJudgeConfig({ ...classConfig, passLabels: ['bon'] })).toMatch(/bon/)
+    expect(validateJudgeConfig({ ...classConfig, passLabels: ['correct', 'incorrect'] })).toMatch(
+      /échec/
+    )
+    expect(validateJudgeConfig({ ...classConfig, labels: ['a', 'A'], passLabels: ['a'] })).toMatch(
+      /différentes/
+    )
+  })
+
+  it('refuse une échelle de notes incohérente', () => {
+    expect(validateJudgeConfig({ ...scoreConfig, min: 5, max: 5, passAt: 5 })).toMatch(/minimale/)
+    expect(validateJudgeConfig({ ...scoreConfig, passAt: 11 })).toMatch(/seuil/i)
+  })
+
+  it('fait valider les règles par leur propre contrôle', () => {
+    expect(validateJudgeConfig({ kind: 'regex', pattern: '', caseSensitive: false })).not.toBeNull()
   })
 })

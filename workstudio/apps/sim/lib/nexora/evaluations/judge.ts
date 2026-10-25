@@ -1,7 +1,7 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { isRecordLike } from '@sim/utils/object'
 import { truncate } from '@sim/utils/string'
-import { evaluateRule } from '@/lib/nexora/evaluations/rules'
+import { evaluateRule, validateRuleConfig } from '@/lib/nexora/evaluations/rules'
 import { cosineSimilarity } from '@/lib/nexora/evaluations/semantic'
 import type {
   JudgeConfig,
@@ -209,5 +209,32 @@ export async function runJudge(
       note: `Le juge n’a pas pu répondre : ${getErrorMessage(error, 'erreur inconnue')}`,
       usage: null,
     }
+  }
+}
+
+/** The reason a judge's settings cannot be used, in French, or `null` when they can. */
+export function validateJudgeConfig(config: JudgeConfig): string | null {
+  switch (config.kind) {
+    case 'llm_class': {
+      const labels = config.labels.map((label) => label.trim().toLowerCase())
+      if (new Set(labels).size !== labels.length) return 'Les étiquettes doivent être différentes.'
+      const unknown = config.passLabels.filter((label) => !config.labels.includes(label))
+      if (unknown.length > 0) {
+        return `Les étiquettes de réussite doivent faire partie des étiquettes : ${unknown.join(', ')}.`
+      }
+      return config.passLabels.length >= config.labels.length
+        ? 'Au moins une étiquette doit désigner un échec.'
+        : null
+    }
+    case 'llm_score':
+      if (config.min >= config.max)
+        return 'La note minimale doit être inférieure à la note maximale.'
+      return config.passAt < config.min || config.passAt > config.max
+        ? 'Le seuil de réussite doit être compris entre la note minimale et la note maximale.'
+        : null
+    case 'semantic':
+      return null
+    default:
+      return validateRuleConfig(config)
   }
 }
