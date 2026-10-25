@@ -89,6 +89,16 @@ FORWARD_SCENARIOS = [
         provider_kwargs={"model_hosting_zone": HostingZone.FRA},
     ),
     ForwardScenario(
+        name="audio-speech",
+        url=f"/v1{EndpointRoute.AUDIO_SPEECH}",
+        router_type=RouterType.TEXT_TO_SPEECH,
+        provider_type=ProviderType.OPENAI,
+        provider_path="/v1/audio/speech",
+        build_response=lambda: httpx.Response(200, content=b"RIFF$\x00\x00\x00WAVEfmt ", headers={"Content-Type": "audio/wav"}),
+        request_body={"model": ROUTER_NAME, "input": "Bonjour à tous"},
+        provider_kwargs={"model_hosting_zone": HostingZone.FRA},
+    ),
+    ForwardScenario(
         name="embeddings",
         url=f"/v1{EndpointRoute.EMBEDDINGS}",
         router_type=RouterType.TEXT_EMBEDDINGS_INFERENCE,

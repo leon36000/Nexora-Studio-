@@ -1,7 +1,6 @@
 import { AuditAction, AuditResourceType } from '@sim/audit'
 import { defineAuthorizedAuditLogUseCase } from '@/lib/audit-logs/application/authorized-audit-log-use-case'
 import { auditLogOperations } from '@/lib/audit-logs/application/operations'
-import { AUDIT_LOG_CSV_HEADER, toAuditLogCsvRow } from '@/lib/audit-logs/csv'
 import {
   type AuditLogFilterParams,
   buildFilterConditions,
@@ -10,6 +9,9 @@ import {
   queryAuditLogs,
 } from '@/lib/audit-logs/query'
 import { OrchestrationError } from '@/lib/core/orchestration/types'
+import { requestLocale } from '@/lib/i18n/request-locale.server'
+import { auditCsvFormat } from '@/lib/nexora/audit-csv'
+import { instanceTimeZone } from '@/lib/nexora/consumption/period'
 
 const EXPORT_MAX_ROWS = 10_000
 const EXPORT_PAGE_ROWS = 100
@@ -44,10 +46,12 @@ export const exportAuditLogs = defineAuthorizedAuditLogUseCase({
       includeDeparted: input.includeDeparted,
     })
     const conditions = [scope, ...buildFilterConditions(input.filters)]
-    const lines = [AUDIT_LOG_CSV_HEADER]
+    // Nexora edition: a French request gets a file a French spreadsheet opens (`;`, dates, labels).
+    const format = auditCsvFormat(requestLocale(), instanceTimeZone())
+    const lines = [format.header]
     let rowCount = 0
     let cursor: string | undefined
-    let bytes = Buffer.byteLength(AUDIT_LOG_CSV_HEADER, 'utf8')
+    let bytes = format.headerBytes
     let truncated = false
     pages: while (rowCount < EXPORT_MAX_ROWS && bytes < EXPORT_MAX_BYTES) {
       request?.signal?.throwIfAborted()
@@ -58,7 +62,7 @@ export const exportAuditLogs = defineAuthorizedAuditLogUseCase({
         EXPORT_MAX_BYTES
       )
       for (const row of page.data) {
-        const line = toAuditLogCsvRow(row, EXPORT_MAX_BYTES - bytes - 1)
+        const line = format.row(row, EXPORT_MAX_BYTES - bytes - 1)
         if (line === undefined) {
           truncated = true
           break pages
@@ -75,7 +79,7 @@ export const exportAuditLogs = defineAuthorizedAuditLogUseCase({
       cursor = page.nextCursor
       truncated = rowCount >= EXPORT_MAX_ROWS || bytes >= EXPORT_MAX_BYTES
     }
-    return { csv: lines.join('\n'), rowCount, truncated }
+    return { csv: format.join(lines), rowCount, truncated }
   },
   projectAudit: ({ input, result }) => ({
     action: AuditAction.AUDIT_LOGS_EXPORTED,

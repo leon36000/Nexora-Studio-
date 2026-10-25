@@ -145,6 +145,7 @@ export type UnifiedSettingsSection =
   | 'email'
   | 'status'
   | 'code-execution'
+  | 'data-protection'
   | 'sso'
   | 'whitelabeling'
   | 'forks'
@@ -805,6 +806,19 @@ export const SETTINGS_SECTION_REGISTRY: readonly SettingsSectionRegistryEntry[] 
       description: NAV.unified.status.description,
       group: 'organization',
       order: 11,
+      requiresHosted: true,
+      requiresEnterprise: true,
+      selfHostedOverride: 'always',
+    },
+  },
+  {
+    label: NAV.unified['data-protection'].label,
+    icon: ShieldCheck,
+    unified: {
+      id: 'data-protection',
+      description: NAV.unified['data-protection'].description,
+      group: 'organization',
+      order: 12,
       requiresHosted: true,
       requiresEnterprise: true,
       selfHostedOverride: 'always',

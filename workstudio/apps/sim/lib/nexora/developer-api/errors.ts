@@ -81,6 +81,10 @@ export const gatewayErrors = {
       'model_not_allowed',
       `Le modèle « ${model} » n’est pas autorisé par le groupe d’accès de la personne qui a créé cette clé (Réglages › Groupes d’accès).`
     ),
+  personalDataNotAllowed: (message: string) =>
+    new GatewayError(403, 'personal_data_not_allowed', message),
+  personalDataProtectionUnavailable: (message: string) =>
+    new GatewayError(503, 'personal_data_protection_unavailable', message),
   agentsNotAllowed: (model: string) =>
     new GatewayError(
       403,
@@ -138,13 +142,38 @@ export const gatewayErrors = {
       `Requête trop volumineuse : ${megabytes} Mo au plus.`,
       'invalid_request_error'
     ),
+  batchFileTooLarge: (megabytes: number) =>
+    new GatewayError(
+      413,
+      'file_too_large',
+      `Fichier trop volumineux : ${megabytes} Mo au plus par fichier de lot. Découpez-le en plusieurs fichiers.`,
+      'invalid_request_error'
+    ),
+  fileNotFound: (fileId: string) =>
+    new GatewayError(404, 'file_not_found', `Fichier « ${fileId} » introuvable pour cette clé.`),
+  batchNotFound: (batchId: string) =>
+    new GatewayError(404, 'batch_not_found', `Lot « ${batchId} » introuvable pour cette clé.`),
+  batchNotCancellable: (status: string) =>
+    new GatewayError(
+      409,
+      'batch_not_cancellable',
+      `Ce lot ne peut plus être annulé : son statut est « ${status} ».`,
+      'invalid_request_error'
+    ),
+  batchQueueFull: (waiting: number, limit: number) =>
+    new GatewayError(
+      429,
+      'batch_queue_full',
+      `Trop de requêtes en attente dans les lots en cours (${waiting} sur ${limit}). Attendez la fin d’un lot ou annulez-en un.`,
+      'rate_limit_error'
+    ),
   invalidRequest: (message: string, code = 'invalid_request') =>
     new GatewayError(400, code, message),
   notFound: (path: string) =>
     new GatewayError(
       404,
       'unknown_endpoint',
-      `Point d’accès inconnu : ${path}. Points d’accès disponibles : /v1/models, /v1/chat/completions, /v1/embeddings, /v1/audio/transcriptions.`
+      `Point d’accès inconnu : ${path}. Points d’accès disponibles : /v1/models, /v1/chat/completions, /v1/embeddings, /v1/audio/transcriptions, /v1/audio/speech, /v1/files, /v1/batches.`
     ),
   unavailable: () =>
     new GatewayError(

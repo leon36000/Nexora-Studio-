@@ -1,6 +1,7 @@
 import { toRecord, toRecordOrNull } from '@sim/utils/object'
 import { generateRandomHex } from '@sim/utils/random'
 import type { TraceSpan } from '@/lib/logs/types'
+import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
 import { lastUserText, messagesToText, modelLabel, valueToText } from '@/lib/nexora/traces/text'
 import type {
   RunOriginHint,
@@ -28,6 +29,8 @@ interface ExecutionInput {
   finalOutput: unknown
   tokens: { input: number; output: number } | null
   hint?: RunOriginHint
+  /** What the personal-data policy did to the run's model calls. */
+  protection?: ProtectionNote[]
 }
 
 const KNOWLEDGE_TOOL = /^knowledge_/
@@ -149,7 +152,10 @@ export function draftFromExecution(input: ExecutionInput): TraceDraft {
       outputTokens: 0,
       input: null,
       output: null,
-      attributes: { blockType: 'workflow' },
+      attributes: {
+        blockType: 'workflow',
+        ...(input.protection?.length ? { dataProtection: input.protection } : {}),
+      },
     },
   ]
   const state: WalkState = { spans, pendingMessages: null }

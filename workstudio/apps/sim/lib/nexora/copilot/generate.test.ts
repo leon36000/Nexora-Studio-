@@ -16,6 +16,10 @@ import {
 } from '@/lib/nexora/copilot/model-answers.fixtures'
 import { copilotPlanSchema } from '@/lib/nexora/copilot/plan'
 import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+} from '@/lib/nexora/data-protection/errors'
+import {
   NexoraWandRejectedError,
   NexoraWandUnavailableError,
   type WandMessage,
@@ -377,6 +381,29 @@ describe('generatePlan', () => {
       'Le modèle a refusé la demande : maximum context length is 8192 tokens'
     )
     expect(complete).toHaveBeenCalledTimes(1)
+  })
+
+  it('tells the person, in French, that the workspace policy stopped a description holding personal data', async () => {
+    const complete = vi.fn(async () => {
+      throw new PersonalDataRefusedError({ EMAIL_ADDRESS: 1 })
+    })
+    const error = await expectGenerationError(
+      generatePlan({ description: 'Écrire à marie@exemple.fr', context, complete }),
+      'rejected'
+    )
+    expect(error.detail).toContain('la politique de cet espace interdit')
+    expect(complete).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports a protection that cannot be applied as unavailable, with its own wording', async () => {
+    const complete = vi.fn(async () => {
+      throw new PersonalDataServiceError()
+    })
+    const error = await expectGenerationError(
+      generatePlan({ description: 'Relancer', context, complete }),
+      'unavailable'
+    )
+    expect(error.detail).toContain('n’a pas été envoyée')
   })
 
   it('keeps an unknown service as a warning, not a failure', async () => {

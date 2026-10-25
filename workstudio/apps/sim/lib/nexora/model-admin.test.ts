@@ -63,6 +63,7 @@ function fakeNexoraApi() {
     routerLists: 0,
     ocrRequests: [] as { document: { image_url: string } }[],
     transcriptionFiles: [] as File[],
+    speechRequests: [] as Record<string, unknown>[],
     /** Simulates another admin making this router the default between two reads. */
     makeDefaultOnSecondList: null as number | null,
     chatRequests: [] as Record<string, unknown>[],
@@ -135,6 +136,13 @@ function fakeNexoraApi() {
       }
       state.transcriptionFiles.push(form.get('file') as File)
       return jsonResponse({ text: ' Bonjour. ' })
+    }
+    if (path === '/v1/audio/speech') {
+      if (auth !== `Bearer ${API_KEY}`) return jsonResponse({}, 401)
+      const router = state.routers.find((r) => [r.name, ...r.aliases].includes(body.model))
+      if (router?.type !== 'text-to-speech') return jsonResponse({ detail: 'Model not found' }, 404)
+      state.speechRequests.push(body)
+      return new Response(new Uint8Array(2048), { headers: { 'Content-Type': 'audio/wav' } })
     }
     if (auth !== `Bearer ${ADMIN_KEY}`) return jsonResponse({}, 401)
 
@@ -327,6 +335,71 @@ describe('model usages', () => {
       addNexoraModel({ source: 'ollama', model: 'whisper:small', usage: 'transcription' }, options)
     ).rejects.toMatchObject({ code: 'invalid' })
     expect(state.routers).toHaveLength(1)
+  })
+
+  it('lists a speech synthesis model with its usage', async () => {
+    const { addRouter, options } = setup()
+    addRouter(
+      'piper-fr-fr-siwis-medium',
+      [],
+      { url: 'http://whisper:8000', model_name: 'speaches-ai/piper-fr_FR-siwis-medium' },
+      'text-to-speech'
+    )
+    const models = await listNexoraModels(options)
+    expect(models.map((m) => [m.name, m.usage])).toContainEqual([
+      'piper-fr-fr-siwis-medium',
+      'speech',
+    ])
+  })
+
+  it('adds a speech model as a text-to-speech router on an OpenAI-compatible service', async () => {
+    const { state, options } = setup()
+    const voice = await addNexoraModel(
+      {
+        source: 'openai-compatible',
+        url: 'http://whisper:8000',
+        model: 'speaches-ai/piper-fr_FR-siwis-medium',
+        usage: 'speech',
+      },
+      options
+    )
+    expect(voice.usage).toBe('speech')
+    expect(state.routers.find((r) => r.id === voice.id)?.type).toBe('text-to-speech')
+    expect(state.providers.find((p) => p.router_id === voice.id)).toMatchObject({
+      type: 'openai',
+      timeout: 600,
+    })
+  })
+
+  it.each(['ollama', 'mistral'] as const)(
+    'refuses a speech model on %s, which does not synthesize speech here, before creating anything',
+    async (source) => {
+      const { state, options } = setup()
+      await expect(
+        addNexoraModel({ source, model: 'une-voix', key: 'k', usage: 'speech' }, options)
+      ).rejects.toMatchObject({ code: 'invalid' })
+      expect(state.routers).toHaveLength(1)
+    }
+  )
+
+  it('tests a speech model by having it say a sentence, and reports the size of the audio', async () => {
+    const { state, addRouter, options } = setup()
+    addRouter(
+      'piper-fr-fr-siwis-medium',
+      [],
+      { url: 'http://whisper:8000', model_name: 'v' },
+      'text-to-speech'
+    )
+    const result = await testNexoraModel('piper-fr-fr-siwis-medium', options, 'speech')
+    expect(result.reply).toBe('audio/wav, 2048 bytes')
+    expect(state.speechRequests[0]).toMatchObject({
+      model: 'piper-fr-fr-siwis-medium',
+      response_format: 'wav',
+    })
+    expect(String(state.speechRequests[0].input).length).toBeGreaterThan(10)
+    await expect(testNexoraModel('unknown-voice', options, 'speech')).rejects.toMatchObject({
+      code: 'not-found',
+    })
   })
 
   it('never makes a vision or transcription model the default, but removes it', async () => {

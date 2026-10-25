@@ -10,6 +10,7 @@ from api.domain.router.entities import Router, RouterType
 
 
 class ProviderEndpoint(StrEnum):
+    AUDIO_SPEECH = "/audio/speech"
     AUDIO_TRANSCRIPTIONS = "/audio/transcriptions"
     CHAT_COMPLETIONS = "/chat/completions"
     EMBEDDINGS = "/embeddings"
@@ -49,6 +50,10 @@ COMPATIBLE_PROVIDER_TYPES: dict[RouterType, list[str]] = {
     RouterType.AUTOMATIC_SPEECH_RECOGNITION: [  # audio transcriptions
         ProviderType.ALBERT.value,
         ProviderType.MISTRAL.value,
+        ProviderType.OPENAI.value,
+        ProviderType.VLLM.value,
+    ],
+    RouterType.TEXT_TO_SPEECH: [  # audio speech; Nexora: speaches (Piper, Kokoro) speaks the OpenAI route
         ProviderType.OPENAI.value,
         ProviderType.VLLM.value,
     ],
@@ -152,22 +157,30 @@ class ProviderMetrics(ProviderJsonResponse):
     running_requests: float
 
 
+class AudioSpeech(BaseModel):
+    content: Annotated[bytes, Field(description="The synthesized audio, as the provider produced it.")]
+    media_type: Annotated[str, Field(description="The media type of the audio (`audio/wav`, `audio/mpeg`…).")]
+
+
 class ProviderResponse(BaseModel):
     data: Annotated[ProviderJsonResponse | None, Field(default=None, description="The JSON data to use for the response.")]
     text: Annotated[str | None, Field(default=None, description="The text data to use for the response.")]
+    audio: Annotated[AudioSpeech | None, Field(default=None, description="The binary audio to use for the response.")]
 
     @model_validator(mode="after")
     def validate_data_and_text(self) -> "ProviderResponse":
-        if self.data is not None and self.text is not None:
-            raise ValueError("data and text cannot be set at the same time")
+        carried = [value for value in (self.data, self.text, self.audio) if value is not None]
+        if len(carried) > 1:
+            raise ValueError("data, text and audio cannot be set at the same time")
 
-        if self.data is None and self.text is None:
-            raise ValueError("data and text cannot be None at the same time")
+        if not carried:
+            raise ValueError("data, text and audio cannot all be None at the same time")
 
         return self
 
     def get_completions(self) -> list[str]:
         if self.data is not None:
             return self.data.get_completions()
-        else:
-            return [self.text.strip()]
+        if self.audio is not None:
+            return []
+        return [self.text.strip()]

@@ -15,6 +15,7 @@ export interface PlaygroundUsage {
 export type PlaygroundErrorCode =
   | 'unavailable'
   | 'rejected'
+  | 'policy'
   | 'forbidden'
   | 'invalid'
   | 'interrupted'
@@ -38,12 +39,25 @@ interface StreamAnswerInput {
   onThinking?: (text: string) => void
 }
 
+const POLICY_ERRORS: ReadonlySet<string> = new Set([
+  'personal_data',
+  'personal_data_unavailable',
+  'model_not_allowed',
+])
+
 function toError(error: unknown): Extract<PlaygroundOutcome, { status: 'error' }> {
-  if (isApiClientError(error) && error.status === 422) {
-    const reason = toStringOrNull(toRecord(error.body).reason)
-    return reason
-      ? { status: 'error', code: 'rejected', reason }
-      : { status: 'error', code: 'invalid' }
+  if (isApiClientError(error)) {
+    const body = toRecord(error.body)
+    const reason = toStringOrNull(body.reason)
+    // The instance's own rules (personal-data policy, access group) say why in French: shown as is.
+    if (reason && POLICY_ERRORS.has(toStringOrNull(body.error) ?? '')) {
+      return { status: 'error', code: 'policy', reason }
+    }
+    if (error.status === 422) {
+      return reason
+        ? { status: 'error', code: 'rejected', reason }
+        : { status: 'error', code: 'invalid' }
+    }
   }
   return { status: 'error', code: toErrorCode(error) }
 }

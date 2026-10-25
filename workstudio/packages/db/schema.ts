@@ -9091,3 +9091,119 @@ export const nexoraEvalAlert = pgTable(
     check('nexora_eval_alert_kind_check', sql`${t.kind} IN ('below_threshold', 'failed')`),
   ]
 )
+
+/**
+ * Nexora edition: a file of the OpenAI-compatible files API (`/v1/files`) or of the batches screen.
+ * `workspaceId` is null for a file of an instance key. An input file keeps its text; a batch's
+ * output and error files are read from its items, so they hold no content.
+ */
+export const nexoraBatchFile = pgTable(
+  'nexora_batch_file',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').references(() => workspace.id, { onDelete: 'cascade' }),
+    apiKeyId: text('api_key_id').references(() => nexoraApiKey.id, { onDelete: 'set null' }),
+    purpose: text('purpose').notNull(),
+    outputKind: text('output_kind'),
+    batchId: text('batch_id'),
+    filename: text('filename').notNull(),
+    bytes: integer('bytes').notNull().default(0),
+    lineCount: integer('line_count').notNull().default(0),
+    content: text('content'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at'),
+  },
+  (t) => [
+    index('nexora_batch_file_scope_idx').on(t.workspaceId, t.purpose, t.createdAt.desc()),
+    index('nexora_batch_file_batch_idx').on(t.batchId),
+    check('nexora_batch_file_purpose_check', sql`${t.purpose} IN ('batch', 'batch_output')`),
+    check(
+      'nexora_batch_file_output_kind_check',
+      sql`${t.outputKind} IS NULL OR ${t.outputKind} IN ('output', 'error')`
+    ),
+  ]
+)
+
+/**
+ * Nexora edition: a batch of model calls run in the background at low priority, either created
+ * through `/v1/batches` (`source` `api`, one model, requests of an input file) or from a table
+ * (`source` `table`, one cell per row). `leaseOwner`/`leaseUntil` let another process adopt a batch
+ * whose server restarted.
+ */
+export const nexoraBatch = pgTable(
+  'nexora_batch',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').references(() => workspace.id, { onDelete: 'cascade' }),
+    apiKeyId: text('api_key_id').references(() => nexoraApiKey.id, { onDelete: 'set null' }),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    source: text('source').notNull(),
+    name: text('name'),
+    endpoint: text('endpoint').notNull(),
+    model: text('model').notNull(),
+    status: text('status').notNull().default('in_progress'),
+    inputFileId: text('input_file_id'),
+    outputFileId: text('output_file_id'),
+    errorFileId: text('error_file_id'),
+    metadata: jsonb('metadata'),
+    config: jsonb('config'),
+    tableId: text('table_id'),
+    concurrency: integer('concurrency').notNull().default(2),
+    total: integer('total').notNull().default(0),
+    completed: integer('completed').notNull().default(0),
+    failed: integer('failed').notNull().default(0),
+    promptTokens: integer('prompt_tokens').notNull().default(0),
+    completionTokens: integer('completion_tokens').notNull().default(0),
+    errors: jsonb('errors'),
+    leaseOwner: text('lease_owner'),
+    leaseUntil: timestamp('lease_until'),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+    cancelRequestedAt: timestamp('cancel_requested_at'),
+  },
+  (t) => [
+    index('nexora_batch_scope_idx').on(t.workspaceId, t.createdAt.desc()),
+    index('nexora_batch_lease_idx').on(t.status, t.leaseUntil),
+    check('nexora_batch_source_check', sql`${t.source} IN ('api', 'table')`),
+    check(
+      'nexora_batch_status_check',
+      sql`${t.status} IN ('in_progress', 'cancelling', 'completed', 'failed', 'expired', 'cancelled')`
+    ),
+  ]
+)
+
+/** Nexora edition: one request of a batch, with its response or its error. */
+export const nexoraBatchItem = pgTable(
+  'nexora_batch_item',
+  {
+    id: text('id').primaryKey(),
+    batchId: text('batch_id')
+      .notNull()
+      .references(() => nexoraBatch.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    customId: text('custom_id').notNull(),
+    request: jsonb('request').notNull(),
+    rowRef: text('row_ref'),
+    status: text('status').notNull().default('pending'),
+    attempt: integer('attempt').notNull().default(0),
+    response: jsonb('response'),
+    answer: text('answer'),
+    error: jsonb('error'),
+    promptTokens: integer('prompt_tokens').notNull().default(0),
+    completionTokens: integer('completion_tokens').notNull().default(0),
+    latencyMs: integer('latency_ms'),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+  },
+  (t) => [
+    uniqueIndex('nexora_batch_item_custom_idx').on(t.batchId, t.customId),
+    uniqueIndex('nexora_batch_item_position_idx').on(t.batchId, t.position),
+    index('nexora_batch_item_queue_idx').on(t.batchId, t.status, t.position),
+    check(
+      'nexora_batch_item_status_check',
+      sql`${t.status} IN ('pending', 'running', 'done', 'error')`
+    ),
+  ]
+)

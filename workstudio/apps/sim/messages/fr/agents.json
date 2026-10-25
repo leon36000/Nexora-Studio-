@@ -41,6 +41,7 @@
     "errors": {
       "unavailable": "Nexora API est indisponible. Réessayez dans un instant.",
       "rejected": "Le modèle a refusé la demande : {reason}",
+      "policy": "{reason}",
       "forbidden": "Vous n’avez pas accès à cet espace.",
       "invalid": "La demande a été refusée : vérifiez le message et les réglages.",
       "interrupted": "La réponse a été interrompue.",

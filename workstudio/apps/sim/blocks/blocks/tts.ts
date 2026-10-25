@@ -2,6 +2,9 @@ import { TTSIcon } from '@/components/icons'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { AuthMode, type BlockConfig, IntegrationType } from '@/blocks/types'
 
+/** Nexora edition: a Speech synthesis model of Réglages › Modèles, served by Nexora API, no key. */
+const NOT_NEXORA = { field: 'provider', value: 'nexora', not: true } as const
+
 /** Voice picker id, which differs by provider — first available wins. */
 const VOICE_FIELD = ['voice', 'voiceId'] as const
 
@@ -33,6 +36,7 @@ export const TtsBlock: BlockConfig = {
       title: 'Provider',
       type: 'dropdown',
       options: [
+        { label: 'Nexora', id: 'nexora' },
         { label: 'OpenAI TTS', id: 'openai' },
         { label: 'Deepgram Aura', id: 'deepgram' },
         { label: 'ElevenLabs', id: 'elevenlabs' },
@@ -51,6 +55,53 @@ export const TtsBlock: BlockConfig = {
       type: 'long-input',
       placeholder: 'Enter the text to convert to speech...',
       required: true,
+    },
+
+    {
+      id: 'nexoraModel',
+      title: 'Nexora model',
+      type: 'short-input',
+      placeholder: 'First Speech synthesis model',
+      description:
+        'A Speech synthesis model from Settings › Models. Leave empty to use the first one; without one, ask an administrator to add it (or to enable the local voice at install). With the local voice, nothing leaves your server.',
+      condition: { field: 'provider', value: 'nexora' },
+    },
+
+    {
+      id: 'voice',
+      title: 'Voice',
+      type: 'short-input',
+      placeholder: 'Default voice of the model',
+      condition: { field: 'provider', value: 'nexora' },
+      dependsOn: ['provider'],
+      required: false,
+    },
+
+    {
+      id: 'responseFormat',
+      title: 'Audio Format',
+      type: 'dropdown',
+      condition: { field: 'provider', value: 'nexora' },
+      options: [
+        { label: 'WAV', id: 'wav' },
+        { label: 'MP3', id: 'mp3' },
+      ],
+      value: () => 'wav',
+      dependsOn: ['provider'],
+      required: false,
+    },
+
+    {
+      id: 'speed',
+      title: 'Speed',
+      type: 'slider',
+      condition: { field: 'provider', value: 'nexora' },
+      min: 0.5,
+      max: 2.0,
+      step: 0.1,
+      value: () => '1.0',
+      dependsOn: ['provider'],
+      required: false,
     },
 
     {
@@ -436,11 +487,13 @@ export const TtsBlock: BlockConfig = {
       placeholder: 'Enter your API key',
       password: true,
       required: true,
+      condition: NOT_NEXORA,
     },
   ],
 
   tools: {
     access: [
+      'tts_nexora',
       'tts_openai',
       'tts_deepgram',
       'tts_elevenlabs',
@@ -452,6 +505,8 @@ export const TtsBlock: BlockConfig = {
     config: {
       tool: (params) => {
         switch (params.provider) {
+          case 'nexora':
+            return 'tts_nexora'
           case 'openai':
             return 'tts_openai'
           case 'deepgram':
@@ -474,6 +529,16 @@ export const TtsBlock: BlockConfig = {
         const baseParams = {
           text: params.text,
           apiKey: params.apiKey,
+        }
+
+        if (params.provider === 'nexora') {
+          return {
+            text: params.text,
+            model: params.nexoraModel,
+            voice: params.voice,
+            responseFormat: params.responseFormat,
+            speed: params.speed ? Number(params.speed) : undefined,
+          }
         }
 
         if (params.provider === 'openai') {
@@ -553,8 +618,10 @@ export const TtsBlock: BlockConfig = {
   inputs: {
     provider: {
       type: 'string',
-      description: 'TTS provider (openai, deepgram, elevenlabs, cartesia, google, azure, playht)',
+      description:
+        'TTS provider (nexora, openai, deepgram, elevenlabs, cartesia, google, azure, playht)',
     },
+    nexoraModel: { type: 'string', description: 'Nexora speech synthesis model' },
     text: { type: 'string', description: 'Text to convert to speech' },
     apiKey: { type: 'string', description: 'Provider API key' },
     // OpenAI

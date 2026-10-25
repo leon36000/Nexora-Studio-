@@ -1272,7 +1272,8 @@
     },
     "nexoraUsageNotice": {
       "vision": "No Vision / OCR model on this instance: this block will fail. An administrator adds one in Settings › Models.",
-      "transcription": "No transcription model on this instance: this block will fail. An administrator adds one in Settings › Models (or enables local transcription at install)."
+      "transcription": "No transcription model on this instance: this block will fail. An administrator adds one in Settings › Models (or enables local transcription at install).",
+      "speech": "No speech synthesis model on this instance: this block will fail. An administrator adds one in Settings › Models (or enables the local voice at install)."
     }
   },
   "workflowsPage": {

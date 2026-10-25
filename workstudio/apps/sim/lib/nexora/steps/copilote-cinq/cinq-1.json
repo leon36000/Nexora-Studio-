@@ -1,0 +1,140 @@
+{
+  "description": "Chaque lundi à 9 h, relancer par e-mail les factures impayées.",
+  "plan": {
+    "title": "Relance des factures impayées",
+    "trigger": {
+      "kind": "planification",
+      "frequency": "semaine",
+      "time": "09:00",
+      "weekday": "lundi"
+    },
+    "steps": [
+      {
+        "kind": "agent",
+        "name": "relance",
+        "instructions": "Vous gérez les relances de factures d'une PME. Ton courtois et professionnel, en vouvoyant le client.",
+        "message": "Trouvez les factures impayées depuis plus de 30 jours et envoyez une relance par e-mail à chaque client.",
+        "services": ["gmail"],
+        "knowledgeBases": []
+      }
+    ]
+  },
+  "state": {
+    "blocks": {
+      "868bcc9a-5c89-4cc7-bb1c-8d2ad0cb12e9": {
+        "id": "868bcc9a-5c89-4cc7-bb1c-8d2ad0cb12e9",
+        "type": "schedule",
+        "name": "Planification",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "subBlocks": {
+          "timezone": {
+            "id": "timezone",
+            "type": "dropdown",
+            "value": "Europe/Paris"
+          },
+          "weeklyDay": {
+            "id": "weeklyDay",
+            "type": "dropdown",
+            "value": "MON"
+          },
+          "nexoraView": {
+            "id": "nexoraView",
+            "type": "short-input",
+            "value": "etapes"
+          },
+          "scheduleType": {
+            "id": "scheduleType",
+            "type": "dropdown",
+            "value": "weekly"
+          },
+          "weeklyDayTime": {
+            "id": "weeklyDayTime",
+            "type": "time-input",
+            "value": "09:00"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "9f0ca434-f548-4655-93f9-22b3ba9ed0b3": {
+        "id": "9f0ca434-f548-4655-93f9-22b3ba9ed0b3",
+        "type": "agent",
+        "name": "relance",
+        "position": {
+          "x": 420,
+          "y": 0
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous gérez les relances de factures d'une PME. Ton courtois et professionnel, en vouvoyant le client."
+              },
+              {
+                "role": "user",
+                "content": "Trouvez les factures impayées depuis plus de 30 jours et envoyez une relance par e-mail à chaque client."
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      }
+    },
+    "edges": [
+      {
+        "id": "ee430f0b-3517-45b3-b363-48cd3b0d4de6",
+        "source": "868bcc9a-5c89-4cc7-bb1c-8d2ad0cb12e9",
+        "target": "9f0ca434-f548-4655-93f9-22b3ba9ed0b3",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      }
+    ],
+    "loops": {},
+    "parallels": {},
+    "lastSaved": 1792911841157,
+    "isDeployed": false,
+    "deployedAt": null,
+    "metadata": {
+      "name": "Relance des factures impayées",
+      "description": ""
+    }
+  }
+}

@@ -4,6 +4,7 @@ import type { Locale } from '@/lib/i18n/config'
 import enAgents from '@/messages/en/agents.json'
 import enAssistant from '@/messages/en/assistant.json'
 import enAuth from '@/messages/en/auth.json'
+import enBatches from '@/messages/en/batches.json'
 import enBlocks from '@/messages/en/blocks.json'
 import enCommon from '@/messages/en/common.json'
 import enConnectors from '@/messages/en/connectors.json'
@@ -22,11 +23,13 @@ import enKnowledge from '@/messages/en/knowledge.json'
 import enLogs from '@/messages/en/logs.json'
 import enSettings from '@/messages/en/settings.json'
 import enShell from '@/messages/en/shell.json'
+import enSteps from '@/messages/en/steps.json'
 import enTables from '@/messages/en/tables.json'
 import enTraces from '@/messages/en/traces.json'
 import frAgents from '@/messages/fr/agents.json'
 import frAssistant from '@/messages/fr/assistant.json'
 import frAuth from '@/messages/fr/auth.json'
+import frBatches from '@/messages/fr/batches.json'
 import frBlocks from '@/messages/fr/blocks.json'
 import frCommon from '@/messages/fr/common.json'
 import frConnectors from '@/messages/fr/connectors.json'
@@ -45,6 +48,7 @@ import frKnowledge from '@/messages/fr/knowledge.json'
 import frLogs from '@/messages/fr/logs.json'
 import frSettings from '@/messages/fr/settings.json'
 import frShell from '@/messages/fr/shell.json'
+import frSteps from '@/messages/fr/steps.json'
 import frTables from '@/messages/fr/tables.json'
 import frTraces from '@/messages/fr/traces.json'
 
@@ -73,6 +77,8 @@ export const MESSAGE_NAMESPACES = [
   'developers',
   'traces',
   'evaluations',
+  'batches',
+  'steps',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -101,6 +107,8 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     developers: frDevelopers,
     traces: frTraces,
     evaluations: frEvaluations,
+    batches: frBatches,
+    steps: frSteps,
   },
   en: {
     common: enCommon,
@@ -126,6 +134,8 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     developers: enDevelopers,
     traces: enTraces,
     evaluations: enEvaluations,
+    batches: enBatches,
+    steps: enSteps,
   },
 }
 

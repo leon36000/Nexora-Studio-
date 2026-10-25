@@ -22,6 +22,7 @@ class RouterType(StrEnum):
     TEXT_CLASSIFICATION = "text-classification"
     TEXT_EMBEDDINGS_INFERENCE = "text-embeddings-inference"
     TEXT_GENERATION = "text-generation"
+    TEXT_TO_SPEECH = "text-to-speech"
 
 
 class Router(BaseModel):

@@ -1,6 +1,7 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { SSE_HEADERS } from '@/lib/core/utils/sse'
+import { noteInteractiveActivity } from '@/lib/nexora/background-load'
 import { agentModelIds, listApiAgents } from '@/lib/nexora/developer-api/agents'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import {
@@ -11,7 +12,13 @@ import {
 } from '@/lib/nexora/developer-api/gateway'
 import { keyModelConfig } from '@/lib/nexora/developer-api/key-model-policy'
 import { keyModelRefusal } from '@/lib/nexora/developer-api/model-gate'
-import { agentRefusal, estimateCallTokens, modelRefusal } from '@/lib/nexora/developer-api/policy'
+import {
+  agentRefusal,
+  embeddingInputCharacters,
+  estimateCallTokens,
+  modelRefusal,
+} from '@/lib/nexora/developer-api/policy'
+import { protectedMessages } from '@/lib/nexora/developer-api/protected-messages'
 import { type RelayedText, relayWithUsage } from '@/lib/nexora/developer-api/sse'
 import {
   callUpstream,
@@ -21,6 +28,7 @@ import {
 } from '@/lib/nexora/developer-api/upstream'
 import { readMessageReasoning } from '@/lib/nexora/reasoning'
 import { beginCallTrace } from '@/lib/nexora/traces/call'
+import { MAX_SPEECH_CHARACTERS } from '@/lib/nexora/voice/client'
 
 const OWNED_BY_AGENT = 'nexora-agent'
 
@@ -108,7 +116,10 @@ export async function relayChatCompletion(
   body: Record<string, unknown> & { model: string; stream?: boolean },
   signal: AbortSignal
 ): Promise<Response> {
+  noteInteractiveActivity()
   const usageModel = await admitModel(call.key, body.model)
+  const { messages, protection } = await protectedMessages(call.key, usageModel, body.messages)
+  if (messages !== body.messages) body = { ...body, messages }
   const reservation = await reserveSpending(
     call.key,
     usageModel,
@@ -124,6 +135,7 @@ export async function relayChatCompletion(
       userId: null,
       apiKeyId: call.key.id,
       name: `API · ${call.key.name}`,
+      protection,
     },
     body.model,
     body.messages
@@ -195,16 +207,6 @@ export async function relayChatCompletion(
   return Response.json(completion, { headers: call.headers })
 }
 
-function embeddingInputCharacters(input: unknown): number {
-  if (typeof input === 'string') return input.length
-  if (!Array.isArray(input)) return 0
-  return input.reduce<number>(
-    (total, entry) =>
-      total + (typeof entry === 'string' ? entry.length : Array.isArray(entry) ? entry.length : 1),
-    0
-  )
-}
-
 /** Relays an embeddings request and records its tokens on the key, under the router's name. */
 export async function relayEmbeddings(
   call: GatewayCall,
@@ -233,6 +235,39 @@ export async function relayEmbeddings(
     completionTokens: 0,
   })
   return Response.json(result, { headers: call.headers })
+}
+
+/**
+ * Relays a speech synthesis (`/v1/audio/speech`, JSON in, audio out) and records the call on the
+ * key: the characters of the text count as its prompt, the audio has no tokens.
+ */
+export async function relaySpeech(
+  call: GatewayCall,
+  body: Record<string, unknown> & { model: string; input: string },
+  signal: AbortSignal
+): Promise<Response> {
+  if (body.input.length > MAX_SPEECH_CHARACTERS) {
+    throw gatewayErrors.invalidRequest(
+      `Le texte à lire fait ${body.input.length} caractères ; l’API en accepte 4 096 au plus (champ « input »).`
+    )
+  }
+  const usageModel = await admitModel(call.key, body.model)
+  const estimate = estimateCallTokens(body.input.length, 0, { answers: false })
+  const reservation = await reserveSpending(call.key, usageModel, estimate)
+  const upstream = await callReserved(reservation, body.model, '/audio/speech', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    contentType: 'application/json',
+    signal,
+  })
+  await reservation.settle(estimate)
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: {
+      'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/mpeg',
+      ...call.headers,
+    },
+  })
 }
 
 /** Relays an audio transcription (multipart) and records the call on the key. */

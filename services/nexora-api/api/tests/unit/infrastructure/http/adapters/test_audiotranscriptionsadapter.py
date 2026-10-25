@@ -98,3 +98,50 @@ class TestMistralAudioTranscriptionsAdapter:
         ]
         assert result.files == {}
         assert result.form == {}
+
+
+class TestDiarizedTranscriptionsAdapter:
+    def _diarized_request(self) -> ProviderRequest:
+        form = CreateAudioTranscriptionsForm(
+            file=CreateAudioTranscriptionsFile(name="reunion.wav", file=mock_audio_file(), content_type="audio/wav", size=11),
+            model="audio-router",
+            language="fr",
+            prompt="Vocabulaire : Nexora.",
+            response_format=AudioTranscriptionsResponseFormat.DIARIZED_JSON,
+            temperature=0.0,
+            num_speakers=3,
+        )
+        return ProviderRequest(id="req-1", endpoint=ProviderEndpoint.AUDIO_TRANSCRIPTIONS, payload=form)
+
+    def test_should_ask_the_provider_for_word_timestamps_and_keep_nexora_fields_to_itself(self):
+        # Arrange
+        adapter = AudioTranscriptionsAdapter(provider=ProviderFactory(type=ProviderType.OPENAI, url="http://whisper:8000", model_name="whisper-1"))
+
+        # Act
+        result = adapter.to_http_request(request=self._diarized_request())
+
+        # Assert
+        assert result.form["response_format"] == "verbose_json"
+        assert result.form["timestamp_granularities[]"] == ["word"]
+        assert result.form["prompt"] == "Vocabulaire : Nexora."
+        assert "num_speakers" not in result.form
+
+    def test_should_read_the_words_and_segments_of_a_verbose_answer(self):
+        # Arrange
+        adapter = AudioTranscriptionsAdapter(provider=ProviderFactory(type=ProviderType.OPENAI, url="http://whisper:8000"))
+        answer = HttpProviderResponse(
+            data={
+                "text": "Bonjour à tous",
+                "language": "french",
+                "duration": 2.0,
+                "words": [{"start": 0.0, "end": 0.4, "word": " Bonjour", "probability": 0.9}],
+                "segments": [{"id": 0, "start": 0.0, "end": 1.0, "text": " Bonjour", "tokens": [1, 2]}],
+            }
+        )
+
+        # Act
+        result = adapter.to_provider_response(request=self._diarized_request(), http_response=answer)
+
+        # Assert
+        assert [(w.word, w.start, w.end) for w in result.data.words] == [(" Bonjour", 0.0, 0.4)]
+        assert result.data.segments[0].text == " Bonjour"

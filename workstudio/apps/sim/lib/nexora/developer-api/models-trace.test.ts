@@ -28,6 +28,7 @@ vi.mock('@/lib/nexora/developer-api/agents', () => ({
 }))
 vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: mockRecord }))
 
+import { interactiveBusy } from '@/lib/nexora/background-load'
 import type { GatewayCall } from '@/lib/nexora/developer-api/gateway'
 import { relayChatCompletion } from '@/lib/nexora/developer-api/models'
 
@@ -53,6 +54,14 @@ describe('relayChatCompletion — trace', () => {
       settle,
       release,
     })
+  })
+
+  it('signale un appel interactif : les lots et les campagnes lui cèdent la place', async () => {
+    mockCallUpstream.mockResolvedValue(
+      Response.json({ choices: [{ message: { content: 'ok' } }], usage: {} })
+    )
+    await relayChatCompletion(call, body, new AbortController().signal)
+    expect(await interactiveBusy()).toBe(true)
   })
 
   it('trace un appel sans flux : clé, espace, réponse, jetons', async () => {

@@ -1,4 +1,9 @@
 import { authMockFns, createSession } from '@sim/testing'
+import {
+  MockModelNotAllowedError,
+  permissionCheckMock,
+  permissionCheckMockFns,
+} from '@sim/testing/mocks/permission-check.mock'
 import { permissionsMock, permissionsMockFns } from '@sim/testing/mocks/permissions.mock'
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,11 +11,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { mockStream } = vi.hoisted(() => ({ mockStream: vi.fn() }))
 
 vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
+vi.mock('@/ee/access-control/utils/permission-check', () => permissionCheckMock)
 vi.mock('@/lib/nexora/wand', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/nexora/wand')>()),
   nexoraWandStream: mockStream,
 }))
 
+import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+} from '@/lib/nexora/data-protection/errors'
 import { NexoraWandRejectedError, NexoraWandUnavailableError } from '@/lib/nexora/wand'
 import { POST } from '@/app/api/nexora/playground/route'
 
@@ -105,5 +115,43 @@ describe('POST /api/nexora/playground', () => {
     const response = await POST(post(body), {})
     expect(response.status).toBe(422)
     expect(await response.json()).toEqual({ error: 'rejected', reason: 'Model not found' })
+  })
+
+  it('answers 403 with the reason when the workspace policy forbids sending that personal data', async () => {
+    mockStream.mockRejectedValueOnce(new PersonalDataRefusedError({ IBAN_CODE: 1 }))
+    const response = await POST(post(body), {})
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({
+      error: 'personal_data',
+      reason: expect.stringContaining('IBAN'),
+    })
+  })
+
+  it('answers 503 with the reason when the protection cannot be applied', async () => {
+    mockStream.mockRejectedValueOnce(new PersonalDataServiceError())
+    const response = await POST(post(body), {})
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({
+      error: 'personal_data_unavailable',
+      reason: expect.stringContaining('n’a pas été envoyée'),
+    })
+  })
+
+  it('refuses, in French, a model the member’s access group denies, before any call', async () => {
+    permissionCheckMockFns.mockValidateModelProvider.mockRejectedValueOnce(
+      new MockModelNotAllowedError('vllm/mistral-small-latest')
+    )
+    const response = await POST(post(body), {})
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({
+      error: 'model_not_allowed',
+      reason: 'Votre groupe d’accès ne vous autorise pas le modèle « mistral-small-latest ».',
+    })
+    expect(permissionCheckMockFns.mockValidateModelProvider).toHaveBeenCalledWith(
+      'u-1',
+      'ws-1',
+      'vllm/mistral-small-latest'
+    )
+    expect(mockStream).not.toHaveBeenCalled()
   })
 })

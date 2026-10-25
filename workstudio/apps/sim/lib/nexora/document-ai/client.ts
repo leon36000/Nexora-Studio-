@@ -12,6 +12,7 @@ type NexoraDocumentAiErrorCode =
   | 'unavailable'
   | 'too-many-pages'
   | 'too-long'
+  | 'diarization-unavailable'
 
 const STATUS_BY_CODE: Record<NexoraDocumentAiErrorCode, number> = {
   'not-configured': 503,
@@ -21,6 +22,7 @@ const STATUS_BY_CODE: Record<NexoraDocumentAiErrorCode, number> = {
   unavailable: 502,
   'too-many-pages': 413,
   'too-long': 413,
+  'diarization-unavailable': 503,
 }
 
 /** A Nexora vision, OCR or transcription request that cannot be served, with a code callers map. */
@@ -47,6 +49,8 @@ export interface NexoraApiOptions {
   config?: NexoraApiConfig
   fetchFn?: typeof fetch
   signal?: AbortSignal
+  /** How long one request may last; a meeting transcribed whole needs more than the default. */
+  timeoutMs?: number
 }
 
 /** A CPU vision or transcription model takes minutes; Nexora API itself waits up to 600 s. */
@@ -73,7 +77,7 @@ export async function callNexoraApi(
   options: NexoraApiOptions = {}
 ): Promise<{ status: number; data: Record<string, unknown> }> {
   const { config, fetchFn } = resolve(options)
-  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const timeout = AbortSignal.timeout(options.timeoutMs ?? REQUEST_TIMEOUT_MS)
   let response: Response
   try {
     // boundary-raw-fetch: Nexora API is a separate service, not a same-origin route
@@ -95,6 +99,50 @@ export async function callNexoraApi(
   }
   const data = toRecord(await response.json().catch(() => ({})))
   return { status: response.status, data }
+}
+
+/**
+ * Like {@link callNexoraApi} for an answer that is bytes (speech synthesis): a success keeps its
+ * bytes and type, a refusal is read as JSON so `assertAnswered` can word it.
+ */
+export async function callNexoraApiForBytes(
+  path: string,
+  body: string,
+  options: NexoraApiOptions = {}
+): Promise<{ status: number; bytes: Buffer; contentType: string; data: Record<string, unknown> }> {
+  const { config, fetchFn } = resolve(options)
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  let response: Response
+  try {
+    // boundary-raw-fetch: Nexora API is a separate service, not a same-origin route
+    response = await fetchFn(`${config.baseUrl}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+      },
+      body,
+      signal: options.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
+    })
+  } catch (error) {
+    options.signal?.throwIfAborted()
+    throw new NexoraDocumentAiError(
+      'unavailable',
+      `Nexora API did not answer: ${getErrorMessage(error, 'request failed')}`
+    )
+  }
+  const bytes = Buffer.from(await response.arrayBuffer())
+  const contentType = (response.headers.get('Content-Type') ?? '').split(';')[0].trim()
+  const isJson = contentType === 'application/json' || !response.ok
+  let data: Record<string, unknown> = {}
+  if (isJson) {
+    try {
+      data = toRecord(JSON.parse(bytes.toString('utf8')))
+    } catch {
+      data = {}
+    }
+  }
+  return { status: response.status, bytes, contentType, data }
 }
 
 /** Nexora API's own explanation of a refusal (`detail`, a string or FastAPI's list of errors). */

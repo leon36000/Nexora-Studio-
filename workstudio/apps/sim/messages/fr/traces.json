@@ -72,7 +72,20 @@
     "truncated": "Contenu coupé aux limites de stockage",
     "privateNote": "Visible de son auteur et des administrateurs de l’espace",
     "execution": "Voir dans les journaux",
-    "interrupted": "Réponse interrompue"
+    "interrupted": "Réponse interrompue",
+    "protectionMask": "Données personnelles masquées avant l’envoi à {model} : {items}",
+    "protectionRefuse": "Envoi à {model} refusé par la politique de l’espace : {items}",
+    "protectionItem": "{entity} ×{count}"
+  },
+  "protectionEntities": {
+    "IBAN_CODE": "IBAN",
+    "EMAIL_ADDRESS": "e-mail",
+    "PHONE_NUMBER": "téléphone",
+    "CREDIT_CARD": "carte bancaire",
+    "PERSON": "nom de personne",
+    "IP_ADDRESS": "adresse IP",
+    "FR_NIR": "numéro de sécurité sociale",
+    "SECRET": "clé ou jeton secret"
   },
   "kinds": {
     "model": "Modèle",

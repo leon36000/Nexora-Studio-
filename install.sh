@@ -249,10 +249,11 @@ configure() {
       set_env NEXORA_PREVIEW_BLOCKS "" ;;
   esac
 
-  # Local transcription: a Whisper server on this machine (profile « voice »), about 1.5 GB with its
-  # model; a quarter of the cores so a long recording does not slow everything else down.
+  # Local voice: a Whisper server and a French voice on this machine, and the diarization service
+  # (profile « voice »), about 2 GB with the models; a quarter of the cores for Whisper so a long
+  # recording does not slow everything else down.
   local voice
-  ask voice "Activer la transcription vocale locale (Whisper, environ 1,5 Go) ? (o/N)" "${NEXORA_VOICE:-0}"
+  ask voice "Activer la voix locale (transcription, synthèse vocale, intervenants ; environ 2 Go) ? (o/N)" "${NEXORA_VOICE:-0}"
   case "$voice" in
     1|o|O|oui|y|yes)
       local voice_profiles cores
@@ -288,6 +289,26 @@ configure() {
       set_env NEXORA_CODE 0
       set_env NEXORA_CODE_SANDBOX_URL ""
       set_env COMPOSE_PROFILES "$code_profiles" ;;
+  esac
+
+  # Personal-data detection (profile « pii »): a small service on this machine, about 800 MB.
+  local pii
+  ask pii "Activer la détection locale des données personnelles (noms, IBAN, e-mails ; environ 800 Mo) ? (o/N)" "${NEXORA_PII:-0}"
+  case "$pii" in
+    1|o|O|oui|y|yes)
+      local pii_profiles
+      set_env NEXORA_PII 1
+      set_env NEXORA_PII_URL "http://pii:5001"
+      pii_profiles="$(get_env COMPOSE_PROFILES)"
+      case ",$pii_profiles," in *,pii,*) ;; *) set_env COMPOSE_PROFILES "${pii_profiles:+$pii_profiles,}pii" ;; esac ;;
+    *)
+      local pii_kept
+      pii_kept="$(get_env COMPOSE_PROFILES)"
+      pii_kept=",$pii_kept,"; pii_kept="${pii_kept//,pii,/,}"
+      pii_kept="${pii_kept#,}"; pii_kept="${pii_kept%,}"
+      set_env COMPOSE_PROFILES "$pii_kept"
+      set_env NEXORA_PII 0
+      set_env NEXORA_PII_URL "" ;;
   esac
 
   set_env NEXORA_ORGANIZATION_NAME "$org"

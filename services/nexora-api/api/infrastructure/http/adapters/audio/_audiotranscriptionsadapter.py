@@ -2,7 +2,7 @@ from http import HTTPMethod
 
 from pydantic import ValidationError
 
-from api.domain.audio.entities import AudioTranscriptions
+from api.domain.audio.entities import AudioTranscriptions, AudioTranscriptionsResponseFormat
 from api.domain.provider.entities import ProviderEndpoint, ProviderRequest, ProviderResponse
 from api.domain.provider.errors import ProviderAdapterValidationRequestError, ProviderAdapterValidationResponseError
 from api.infrastructure.http._httpproviderrequest import HttpProviderRequest
@@ -21,10 +21,14 @@ class AudioTranscriptionsAdapter(HttpProviderAdapter):
         http_request = HttpProviderRequest(
             method=self.TARGET_ENDPOINT_METHOD,
             url=target_url,
-            form=request.payload.model_dump(exclude_none=True, exclude={"file"}),
+            form=request.payload.model_dump(exclude_none=True, exclude={"file", "num_speakers"}),
             files={"file": (request.payload.file.name, request.payload.file.file, request.payload.file.content_type)},
         )
         http_request.form["model"] = self.provider.model_name
+        if request.payload.response_format == AudioTranscriptionsResponseFormat.DIARIZED_JSON:
+            # Nexora: the speakers come from the diarization service; Whisper supplies the words and their times.
+            http_request.form["response_format"] = AudioTranscriptionsResponseFormat.VERBOSE_JSON.value
+            http_request.form["timestamp_granularities[]"] = ["word"]
 
         return http_request
 

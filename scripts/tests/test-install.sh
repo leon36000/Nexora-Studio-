@@ -123,6 +123,20 @@ NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral N
   NEXORA_WEB_SEARCH=1 NEXORA_CODE=0 run "$hc" --yes --no-start
 case ",$(envval COMPOSE_PROFILES "$ec")," in *,code,*) ko "code profile removed when answered no" ;; *) ok "code profile removed when answered no" ;; esac
 
+# 1b''. Personal-data detection stays off unless asked; on, its profile joins the others and only it leaves when answered no.
+[ -z "$(envval NEXORA_PII_URL "$e")" ] && [ "$(envval NEXORA_PII "$e")" = "0" ] && ok "personal-data detection off by default" || ko "personal-data detection off by default"
+hp="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_WEB_SEARCH=1 NEXORA_VOICE=1 NEXORA_PII=1 run "$hp" --yes --no-start && ok "install with personal-data detection succeeds" || { ko "install with personal-data detection succeeds"; cat "$hp.out"; }
+ep="$hp/deploy/.env"
+[ "$(envval COMPOSE_PROFILES "$ep")" = "search,voice,pii" ] && ok "personal-data profile added to the others" || ko "personal-data profile added to the others (got: $(envval COMPOSE_PROFILES "$ep"))"
+[ "$(envval NEXORA_PII_URL "$ep")" = "http://pii:5001" ] && ok "WorkStudio is pointed at the personal-data service" || ko "WorkStudio is pointed at the personal-data service"
+rm -f "$ep"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_WEB_SEARCH=1 NEXORA_VOICE=1 NEXORA_PII=0 run "$hp" --yes --no-start
+[ "$(envval COMPOSE_PROFILES "$ep")" = "search,voice" ] && ok "personal-data profile removed when answered no, the others kept" || ko "personal-data profile removed when answered no, the others kept (got: $(envval COMPOSE_PROFILES "$ep"))"
+[ -z "$(envval NEXORA_PII_URL "$ep")" ] && ok "WorkStudio no longer asks the personal-data service" || ko "WorkStudio no longer asks the personal-data service"
+
 # 1c. Outgoing email by SMTP, given as environment values in unattended mode.
 hm="$(new_home)/nexora"
 NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \

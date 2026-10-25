@@ -1,10 +1,49 @@
 import { describe, expect, it } from 'vitest'
 import {
+  coercePiiLanguage,
   getEntityGroupsForLanguage,
+  getServedEntityGroups,
   normalizeRuleStages,
+  PII_ENTITIES_BY_LANGUAGE,
+  PII_LANGUAGES,
   sanitizeCustomPatterns,
   stripNerEntities,
 } from '@/lib/guardrails/pii-entities'
+
+describe('languages the Nexora PII service serves', () => {
+  it('serves French and English, and nothing the image has no model for', () => {
+    expect(PII_LANGUAGES.map((language) => language.value)).toEqual(['fr', 'en'])
+    expect(coercePiiLanguage('fr')).toBe('fr')
+    expect(coercePiiLanguage('es')).toBeUndefined()
+  })
+
+  it('recognizes IBAN, e-mail, names, phone and the French social-security number in French', () => {
+    const french = PII_ENTITIES_BY_LANGUAGE.fr
+    for (const entity of [
+      'IBAN_CODE',
+      'EMAIL_ADDRESS',
+      'PERSON',
+      'PHONE_NUMBER',
+      'CREDIT_CARD',
+      'FR_NIR',
+    ]) {
+      expect(french.has(entity as never)).toBe(true)
+    }
+    expect(french.has('US_SSN' as never)).toBe(false)
+    expect(PII_ENTITIES_BY_LANGUAGE.en.has('FR_NIR' as never)).toBe(false)
+  })
+
+  it('offers a block only the entities one of the served languages recognizes', () => {
+    const offered = getServedEntityGroups().flatMap((group) =>
+      group.entities.map((entity) => entity.value)
+    )
+    expect(offered).toContain('FR_NIR')
+    expect(offered).toContain('IBAN_CODE')
+    expect(offered).toContain('US_SSN')
+    expect(offered).not.toContain('ES_NIF')
+    expect(offered).not.toContain('PL_PESEL')
+  })
+})
 
 describe('stripNerEntities', () => {
   it('drops NER entities and keeps regex/checksum ones (order preserved)', () => {

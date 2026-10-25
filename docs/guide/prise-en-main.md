@@ -22,15 +22,30 @@ Tant qu'il n'est pas terminé, l'Accueil des administrateurs affiche cinq étape
 
 ## Les modèles PME
 
-Chaque nouvel espace de travail contient le dossier **« Modèles PME »**. Ouvrez un modèle, cliquez sur **Exécuter**, remplissez les champs d'entrée :
+Chaque nouvel espace de travail contient le dossier **« Modèles PME »**, soit **20 modèles** qui s'ouvrent dans la [vue Étapes](etapes.md). Ouvrez un modèle, vérifiez les **Données d'exemple** du déclencheur (déjà remplies, sauf les adresses e-mail), puis **Tester le workflow** ou **Exécuter** :
 
-| Modèle | Ce qu'il fait | Champs |
-|---|---|---|
-| Devis client | Rédige un devis : tableau HT, TVA 20 %, TTC, validité, conditions | client, prestations |
-| Relance de facture impayée | Écrit la relance adaptée au niveau 1 (courtois), 2 (ferme) ou 3 (mise en demeure) | client, facture, montant, échéance, niveau |
-| Réponse support (FAQ) | Répond à partir de votre FAQ, sinon propose un rappel par un conseiller | question, faq |
-| Tri des e-mails entrants | Classe l'e-mail (catégorie, urgence, résumé), puis prépare un brouillon de réponse | email |
-| Compte rendu de réunion | Décisions, actions, responsables, échéances | transcription |
+| Modèle | Ce qu'il fait |
+|---|---|
+| Devis client | Rédige un devis : tableau HT, TVA 20 %, TTC, validité, conditions |
+| Relance de facture impayée | Écrit la relance adaptée au niveau 1 (courtois), 2 (ferme) ou 3 (mise en demeure) |
+| Relance de devis sans réponse | Relance commerciale aimable, avec un échange de 15 minutes proposé |
+| Réponse support (FAQ) | Répond à partir de votre FAQ, sinon propose un rappel par un conseiller |
+| Tri des e-mails entrants | Classe l'e-mail (catégorie, urgence, résumé), puis prépare un brouillon de réponse |
+| Réponse client validée avant envoi | Brouillon, validation par une personne, puis envoi par e-mail seulement si elle approuve |
+| Réponse à une réclamation | Réponse empathique avec un geste commercial adapté |
+| Réponse à un avis client | Réponse publique posée à un avis, positif ou critique |
+| Contrôle d'une facture fournisseur | Extrait les données, vérifie les calculs et conclut « À payer » ou « À vérifier » |
+| Résumé d'un contrat | Résumé, délais, montants et clauses à faire relire (ne remplace pas un juriste) |
+| Compte rendu de réunion | Enregistrement, transcription par intervenant, compte rendu, validation, e-mail |
+| Compte rendu d'entretien | Met en forme les notes d'un entretien : engagements, prochaines étapes |
+| Ordre du jour de réunion | Ordre du jour chronométré à partir des sujets |
+| Rapport d'activité hebdomadaire | Réalisations, chiffres clés, difficultés, priorités |
+| Offre d'emploi | Annonce claire, sans critère discriminant |
+| Accueil d'un nouveau salarié | E-mail d'accueil et liste de préparation |
+| Fiche produit | Titre, description, points forts et méta-description pour le site |
+| Publication réseaux sociaux | Trois publications (LinkedIn, Facebook, Instagram) |
+| Newsletter mensuelle | Objets au choix, introduction, rubriques, appel à l'action |
+| Traduction professionnelle | Traduit en gardant le ton, puis signale les points délicats |
 
 Dupliquez un modèle pour l'adapter : modifiez les consignes des blocs **Agent**, ajoutez des blocs (envoi d'e-mail, table, outil Nexora Connect…).
 

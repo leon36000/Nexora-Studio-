@@ -314,6 +314,10 @@
       "code-execution": {
         "label": "Exécution de code",
         "description": "Autorisez l’interpréteur Python et voyez ses limites"
+      },
+      "data-protection": {
+        "label": "Données personnelles",
+        "description": "Protégez les données envoyées aux modèles hors instance"
       }
     },
     "account": {
@@ -1762,10 +1766,21 @@
       "mistral": "Mistral AI",
       "openai-compatible": "Compatible OpenAI"
     },
+    "lexicon": {
+      "title": "Lexique de l’entreprise",
+      "label": "Termes du lexique, un par ligne",
+      "placeholder": "Nexora\nBoulangerie Martin\nGarage Durand",
+      "hint": "Un terme par ligne, 100 au plus : noms de personnes, de clients, de produits que la transcription doit bien écrire.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Lexique enregistré",
+      "failed": "Le lexique n’a pas pu être enregistré"
+    },
     "usages": {
       "chat": "Discussion",
       "vision": "Vision / OCR",
-      "transcription": "Transcription"
+      "transcription": "Transcription",
+      "speech": "Synthèse vocale"
     },
     "actions": {
       "test": "Tester",
@@ -1832,7 +1847,8 @@
         "hints": {
           "chat": "Répond aux blocs Agent, Routeur, Évaluateur et aux autres blocs de discussion.",
           "vision": "Lit les images et les documents scannés (blocs Vision et Analyse de document).",
-          "transcription": "Transcrit les fichiers audio (bloc Transcription vocale). Le service de transcription local, choisi à l’installation, est ajouté d’office."
+          "transcription": "Transcrit les fichiers audio (bloc Transcription vocale). Le service de transcription local, choisi à l’installation, est ajouté d’office.",
+          "speech": "Lit un texte à voix haute (bloc Synthèse vocale, « Lire à voix haute » de l’Assistant, API). La voix française locale, choisie à l’installation, est ajoutée d’office."
         }
       },
       "source": {
@@ -1848,7 +1864,8 @@
           "openai-compatible": "Tout service qui expose l’API OpenAI (vLLM, LM Studio, un fournisseur en ligne…)."
         },
         "ollamaUnavailable": "Le modèle local est indisponible : le service Ollama de ce serveur ne répond pas.",
-        "transcriptionNoOllama": "Ollama ne transcrit pas la voix : choisissez Mistral AI (Voxtral) ou un service compatible OpenAI, comme un serveur Whisper."
+        "transcriptionNoOllama": "Ollama ne transcrit pas la voix : choisissez Mistral AI (Voxtral) ou un service compatible OpenAI, comme un serveur Whisper.",
+        "speechOnlyOpenAi": "Ollama et Mistral AI ne servent pas la synthèse vocale ici : choisissez un service compatible OpenAI, comme le serveur de voix local."
       },
       "ollama": {
         "catalog": "Modèles conseillés",
@@ -2113,6 +2130,11 @@
       "forbidden": "Réservé aux administrateurs de l’organisation.",
       "invalid": "Vérifiez les valeurs saisies.",
       "unknown": "L’opération a échoué. Réessayez."
+    },
+    "models": {
+      "title": "Modèles que le groupe peut choisir",
+      "empty": "Aucun modèle de discussion n’est ajouté.",
+      "default": "par défaut"
     }
   },
   "instanceStatus": {
@@ -2186,6 +2208,32 @@
       "privileges": "Utilisateur sans droits d’administration, aucun privilège, filtre d’appels système par défaut.",
       "limits": "Mémoire, processus, disque et durée plafonnés ; une exécution qui les dépasse est arrêtée.",
       "shared": "Le conteneur partage le noyau du serveur. Pour une isolation plus forte, demandez à votre administrateur d’installer gVisor (runsc) et de renseigner NEXORA_CODE_RUNTIME."
+    }
+  },
+  "dataProtection": {
+    "loadError": "Impossible de charger la politique de données personnelles.",
+    "saved": "Politique enregistrée.",
+    "saveError": "La politique n’a pas pu être enregistrée.",
+    "modes": {
+      "allow": "Autoriser",
+      "mask": "Masquer",
+      "refuse": "Refuser"
+    },
+    "inherit": "Comme l’instance ({mode})",
+    "service": {
+      "title": "Détection",
+      "running": "Le service local de détection répond : noms, IBAN, e-mails, téléphones, cartes et numéros de sécurité sociale sont reconnus.",
+      "down": "Le service local de détection ne répond pas : tant qu’il est arrêté, les demandes concernées par une politique « Masquer » ou « Refuser » ne partent pas.",
+      "notInstalled": "Le service local de détection n’est pas installé : seuls les IBAN, e-mails, cartes et téléphones sont reconnus, pas les noms."
+    },
+    "instance": {
+      "title": "Modèles hors instance, par défaut",
+      "hint": "Autoriser envoie les données telles quelles ; Masquer les remplace par [IBAN], <PERSON>… avant l’envoi ; Refuser arrête la demande. Les modèles sur ce serveur ne sont jamais concernés."
+    },
+    "workspaces": {
+      "title": "Par espace",
+      "empty": "Aucun espace.",
+      "archived": "Archivé"
     }
   }
 }

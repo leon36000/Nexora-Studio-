@@ -9,6 +9,16 @@ import {
   nexoraTranscribe,
   resolveUsageModel,
 } from '@/lib/nexora/document-ai/client'
+import { createLongFetch } from '@/lib/nexora/long-fetch.server'
+import { nexoraTranscribeDiarized } from '@/lib/nexora/voice/client'
+import { buildTranscriptionPrompt } from '@/lib/nexora/voice/lexicon'
+import { readVoiceLexicon } from '@/lib/nexora/voice/lexicon-store'
+import {
+  MEETING_MAX_SECONDS,
+  type MeetingInput,
+  type MeetingTranscript,
+  transcribeMeeting,
+} from '@/lib/nexora/voice/meeting'
 
 /** Ten minutes of speech: a few minutes of work for a CPU Whisper, well inside each request's limit. */
 const CHUNK_SECONDS = 600
@@ -194,15 +204,88 @@ export async function transcribeWithNexora(
   > = {}
 ): Promise<{ transcript: string; duration?: number; model: string }> {
   const model = await resolveUsageModel('transcription', input.model, options)
+  const prompt = buildTranscriptionPrompt(await readVoiceLexicon(), input.prompt)
   const result = await transcribeAudio(input, {
     ...resume,
     measure: (audio) => measureWithFfprobe(audio, options.signal),
     cut: (audio, chunk) => cutWithFfmpeg(audio, chunk, options.signal),
     transcribe: (piece, signal) =>
       nexoraTranscribe(
-        { ...piece, model, language: input.language, prompt: input.prompt },
+        { ...piece, model, language: input.language, prompt },
         { ...options, signal: signal ?? options.signal }
       ),
   })
+  return { ...result, model }
+}
+
+/**
+ * A meeting goes in one request that lasts as long as Whisper and the diarization need: tens of
+ * minutes for an hour on a CPU. The default of twenty minutes would cut it.
+ */
+const MEETING_REQUEST_MS = 75 * 60 * 1000
+let meetingFetch: typeof fetch | undefined
+
+function getMeetingFetch(): typeof fetch {
+  meetingFetch ??= createLongFetch(MEETING_REQUEST_MS)
+  return meetingFetch
+}
+
+export interface TranscribeMeetingWithNexoraInput extends MeetingInput {
+  model?: string | null
+}
+
+/** The recording as a small 16 kHz mono MP3 (also what browsers record in), or unchanged without FFmpeg. */
+async function prepareMeetingAudio(
+  input: MeetingInput,
+  signal?: AbortSignal
+): Promise<MeetingInput> {
+  try {
+    const audio = await cutWithFfmpeg(
+      input,
+      { start: 0, duration: MEETING_MAX_SECONDS + 60 },
+      signal
+    )
+    return { ...input, audio, mimeType: 'audio/mpeg', fileName: 'reunion.mp3' }
+  } catch {
+    signal?.throwIfAborted()
+    return input
+  }
+}
+
+/**
+ * A meeting told by speaker, with the company's lexicon: the whole recording goes to Nexora API in
+ * one request (`diarized_json`), so « Intervenant 1 » stays the same voice from start to end.
+ */
+export async function transcribeMeetingWithNexora(
+  input: TranscribeMeetingWithNexoraInput,
+  options: NexoraApiOptions = {}
+): Promise<MeetingTranscript & { model: string }> {
+  const model = await resolveUsageModel('transcription', input.model, options)
+  const prompt = buildTranscriptionPrompt(await readVoiceLexicon(), input.prompt)
+  const longOptions: NexoraApiOptions = {
+    ...options,
+    timeoutMs: MEETING_REQUEST_MS,
+    fetchFn: options.fetchFn ?? getMeetingFetch(),
+  }
+  const result = await transcribeMeeting(
+    { ...input, prompt },
+    {
+      measure: (audio) => measureWithFfprobe(audio, options.signal),
+      prepare: (audio) => prepareMeetingAudio(audio, options.signal),
+      diarized: (piece) => nexoraTranscribeDiarized({ ...piece, model }, longOptions),
+      plain: (piece) =>
+        nexoraTranscribe(
+          {
+            audio: piece.audio,
+            mimeType: piece.mimeType,
+            fileName: piece.fileName,
+            model,
+            language: piece.language,
+            prompt: piece.prompt,
+          },
+          longOptions
+        ),
+    }
+  )
   return { ...result, model }
 }

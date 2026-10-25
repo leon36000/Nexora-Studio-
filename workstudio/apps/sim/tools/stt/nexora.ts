@@ -13,6 +13,9 @@ interface NexoraSttParams {
   audioFileReference?: UserFile | UserFile[]
   language?: string
   prompt?: string
+  /** Tell the speakers apart (« Intervenant 1 », « Intervenant 2 »…). */
+  diarization?: boolean
+  numSpeakers?: number
 }
 
 const params: InternalToolConfig<NexoraSttParams>['params'] = {
@@ -45,6 +48,18 @@ const params: InternalToolConfig<NexoraSttParams>['params'] = {
     required: false,
     visibility: 'user-or-llm',
     description: 'Optional text to guide the transcription (names, vocabulary).',
+  },
+  diarization: {
+    type: 'boolean',
+    required: false,
+    visibility: 'user-only',
+    description: 'Tell the speakers apart (a meeting of one hour at most)',
+  },
+  numSpeakers: {
+    type: 'number',
+    required: false,
+    visibility: 'user-only',
+    description: 'Number of speakers, when known',
   },
 }
 
@@ -95,6 +110,8 @@ export const nexoraSttTool: InternalToolConfig<NexoraSttParams, SttResponse> = {
       audioFileReference: input.audioFileReference,
       language: input.language || 'auto',
       prompt: input.prompt,
+      diarization: input.diarization === true,
+      numSpeakers: input.numSpeakers,
     }),
   },
 
@@ -103,6 +120,22 @@ export const nexoraSttTool: InternalToolConfig<NexoraSttParams, SttResponse> = {
     transcript: { type: 'string', description: 'Full transcribed text' },
     language: { type: 'string', description: 'Specified language', optional: true },
     duration: { type: 'number', description: 'Audio duration in seconds', optional: true },
+    segments: {
+      type: 'array',
+      description: 'Segments with their times and speakers',
+      optional: true,
+    },
+    transcriptBySpeaker: {
+      type: 'string',
+      description: 'Transcript with one line per turn of speech',
+      optional: true,
+    },
+    speakers: { type: 'number', description: 'Number of speakers told apart', optional: true },
+    warning: {
+      type: 'string',
+      description: 'Why the speakers were not told apart',
+      optional: true,
+    },
   },
 }
 

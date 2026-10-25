@@ -1,6 +1,6 @@
 # Le Copilote
 
-Décrivez une automatisation en français : le **Copilote** prépare un workflow prêt à exécuter, avec le modèle Nexora de votre instance. Vous le relisez, vous l'ajustez, puis vous le créez ; il reste ensuite modifiable dans l'éditeur comme n'importe quel workflow.
+Décrivez une automatisation en français : le **Copilote** prépare un workflow prêt à exécuter, avec le modèle Nexora de votre instance. Vous le relisez, vous l'ajustez, puis vous le créez ; il s'ouvre ensuite dans la [vue Étapes](etapes.md) et reste modifiable dans le canevas (**Mode avancé**) comme n'importe quel workflow.
 
 Ouvrez-le depuis la carte **Décrire une automatisation** de l'Accueil, ou le bouton **Nouveau workflow avec l'IA** de la barre latérale (membres avec droit d'écriture).
 

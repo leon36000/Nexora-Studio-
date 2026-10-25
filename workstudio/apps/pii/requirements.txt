@@ -5,6 +5,11 @@ spacy==3.8.14
 fastapi==0.138.0
 uvicorn[standard]==0.49.0
 
+# spaCy's own range allows preshed 3.0.14, whose build cannot load any model
+# ("OverflowError: Python int too large to convert to C ssize_t" in Tokenizer.rules),
+# which leaves the service unable to start. 3.0.13 loads them (checked on Python 3.12).
+preshed==3.0.13
+
 # The English spaCy model (en_core_web_lg, ~400MB) is fetched + pinned in the
 # Dockerfile via curl-with-retry rather than here — a direct pip wheel URL
 # truncates on flaky networks and fails wheel validation.

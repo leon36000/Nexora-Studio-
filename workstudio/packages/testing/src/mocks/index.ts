@@ -573,6 +573,10 @@ export {
 export { nexoraAdminAccessMock, nexoraAdminAccessMockFns } from './nexora-admin-access.mock'
 export { nexoraBudgetsMock, nexoraBudgetsMockFns } from './nexora-budgets.mock'
 export {
+  nexoraDataProtectionMock,
+  nexoraDataProtectionMockFns,
+} from './nexora-data-protection.mock'
+export {
   nextNavigationMock,
   nextNavigationMockFns,
 } from './next-navigation.mock'

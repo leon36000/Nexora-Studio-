@@ -12,6 +12,9 @@ settings:
   auth_secret_key: ${NEXORA_API_SECRET_KEY}
   auth_bootsrap_admin_username: admin
   auth_bootsrap_admin_password: ${NEXORA_API_ADMIN_PASSWORD}
+  # Speaker diarization: the « voice » profile's service (an absent service answers « unreachable »).
+  audio_diarization_url: ${NEXORA_DIARIZE_URL:-http://diarize:8001}
+  audio_diarization_timeout: 1800
 
 models:
   - name: nexora-default

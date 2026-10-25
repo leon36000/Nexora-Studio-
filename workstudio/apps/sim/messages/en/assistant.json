@@ -34,7 +34,9 @@
     "copied": "Answer copied",
     "regenerate": "Regenerate answer",
     "retry": "Try again",
-    "attachment": "Attached file: {name}"
+    "attachment": "Attached file: {name}",
+    "readAloud": "Read aloud",
+    "readAloudStop": "Stop reading"
   },
   "composer": {
     "label": "Your message",
@@ -42,7 +44,11 @@
     "attach": "Attach a file",
     "removeFile": "Remove {name}",
     "send": "Send",
-    "stop": "Stop"
+    "stop": "Stop",
+    "dictate": "Dictate a message",
+    "dictateStop": "Stop dictating",
+    "dictating": "Recording…",
+    "transcribing": "Transcribing…"
   },
   "attachments": {
     "too-large": "“{name}” is larger than {max} MB.",
@@ -65,5 +71,25 @@
     "failed": "The agent could not answer.",
     "interrupted": "The answer was interrupted.",
     "unknown": "The agent could not answer. Try again."
+  },
+  "voice": {
+    "dictationErrors": {
+      "denied": "The microphone is blocked: allow it in your browser, then try again.",
+      "unsupported": "This browser cannot record: the microphone needs a secure address (https).",
+      "empty": "No speech was heard. Try again.",
+      "no-model": "No transcription model on this instance: ask an administrator to add one.",
+      "unavailable": "The transcription service is not answering. Try again in a moment.",
+      "too-long": "The recording is too long for a dictation.",
+      "failed": "The dictation failed. Try again."
+    },
+    "readAloudErrors": {
+      "empty": "This answer has nothing to read.",
+      "no-model": "No speech synthesis model on this instance: ask an administrator to add one.",
+      "unavailable": "The voice service is not answering. Try again in a moment.",
+      "too-long": "This text is too long to read.",
+      "failed": "Reading aloud failed. Try again.",
+      "denied": "Reading aloud failed. Try again.",
+      "unsupported": "Reading aloud failed. Try again."
+    }
   }
 }

@@ -4,6 +4,14 @@ import { toRecord } from '@sim/utils/object'
 import { escapeRegExp, truncate } from '@sim/utils/string'
 import { env } from '@/lib/core/config/env'
 import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
+import { noteInteractiveActivity } from '@/lib/nexora/background-load'
+import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+  PersonalDataUnsupportedError,
+} from '@/lib/nexora/data-protection/errors'
+import { guardChatMessages } from '@/lib/nexora/data-protection/guard'
+import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
 import {
   createThinkTagSplitter,
   isReasoningEffortRejection,
@@ -56,11 +64,22 @@ export class NexoraWandRejectedError extends Error {
  */
 export function describeWandFailure(
   error: unknown
-): { status: 422; code: 'rejected'; reason: string } | { status: 503; code: 'unavailable' } | null {
+):
+  | { status: 422; code: 'rejected'; reason: string }
+  | { status: 503; code: 'unavailable' }
+  | { status: 403; code: 'personal_data'; reason: string }
+  | { status: 503; code: 'personal_data_unavailable'; reason: string }
+  | null {
   if (error instanceof NexoraWandRejectedError) {
     return { status: 422, code: 'rejected', reason: error.reason }
   }
   if (error instanceof NexoraWandUnavailableError) return { status: 503, code: 'unavailable' }
+  if (error instanceof PersonalDataRefusedError || error instanceof PersonalDataUnsupportedError) {
+    return { status: 403, code: 'personal_data', reason: error.message }
+  }
+  if (error instanceof PersonalDataServiceError) {
+    return { status: 503, code: 'personal_data_unavailable', reason: error.message }
+  }
   return null
 }
 
@@ -173,10 +192,46 @@ function failureReason(error: unknown): string {
   return getErrorMessage(error, 'Échec de la génération')
 }
 
-function beginTrace(settings: CompletionSettings, messages: WandMessage[]): CallTrace | null {
+function beginTrace(
+  settings: CompletionSettings,
+  messages: WandMessage[],
+  protection: ProtectionNote | null = null
+): CallTrace | null {
   return settings.trace
-    ? beginCallTrace(settings.trace, settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS, messages)
+    ? beginCallTrace(
+        { ...settings.trace, protection },
+        settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS,
+        messages
+      )
     : null
+}
+
+/**
+ * The messages as they may go to the model: the personal-data policy of the caller's workspace
+ * applied, and a refused request traced as such before the error goes up.
+ */
+async function guardMessages(
+  settings: CompletionSettings,
+  messages: WandMessage[]
+): Promise<{ messages: WandMessage[]; protection: ProtectionNote | null }> {
+  try {
+    const guarded = await guardChatMessages({
+      messages,
+      model: settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS,
+      workspaceId: settings.trace?.workspaceId ?? null,
+    })
+    return {
+      messages: guarded.messages === messages ? messages : [...guarded.messages],
+      protection: guarded.applied,
+    }
+  } catch (error) {
+    beginTrace(settings, messages)?.finish({
+      answer: null,
+      usage: null,
+      error: failureReason(error),
+    })
+    throw error
+  }
 }
 
 function toUsage(raw: unknown): WandUsage | null {
@@ -192,9 +247,10 @@ export async function nexoraWandComplete(
     signal?: AbortSignal
   } & Pick<CompletionSettings, 'responseFormat' | 'trace' | 'model' | 'temperature' | 'maxTokens'>
 ): Promise<{ text: string; usage: WandUsage }> {
-  const trace = beginTrace(input, input.messages)
+  const { messages, protection } = await guardMessages(input, input.messages)
+  const trace = beginTrace(input, messages, protection)
   try {
-    const { response } = await requestCompletion(input.messages, false, input.signal, {
+    const { response } = await requestCompletion(messages, false, input.signal, {
       responseFormat: input.responseFormat,
       model: input.model,
       temperature: input.temperature,
@@ -240,10 +296,12 @@ export async function nexoraWandStream(
     includeThinking?: boolean
   } & CompletionSettings
 ): Promise<ReadableStream<Uint8Array>> {
-  const trace = beginTrace(input, input.messages)
+  noteInteractiveActivity()
+  const { messages, protection } = await guardMessages(input, input.messages)
+  const trace = beginTrace(input, messages, protection)
   let outcome: CompletionResponse
   try {
-    outcome = await requestCompletion(input.messages, true, input.signal, input)
+    outcome = await requestCompletion(messages, true, input.signal, input)
   } catch (error) {
     trace?.finish({ answer: null, usage: null, error: failureReason(error) })
     throw error

@@ -173,6 +173,7 @@ export const AuditAction = {
   INSTANCE_SETTINGS_UPDATED: 'organization.instance_settings.updated',
   INSTANCE_SETTINGS_APPLIED: 'organization.instance_settings.applied',
   NEXORA_BUDGETS_UPDATED: 'organization.budgets.updated',
+  NEXORA_DATA_PROTECTION_UPDATED: 'organization.data_protection.updated',
   NEXORA_TRACE_SETTINGS_UPDATED: 'organization.trace_settings.updated',
   NEXORA_TRACES_PURGED: 'organization.traces.purged',
   ORG_MEMBER_ADDED: 'org_member.added',
@@ -217,6 +218,10 @@ export const AuditAction = {
   EVALUATION_SCHEDULE_SAVED: 'evaluation_schedule.saved',
   EVALUATION_SCHEDULE_DELETED: 'evaluation_schedule.deleted',
   EVALUATION_ALERT_ACKNOWLEDGED: 'evaluation_alert.acknowledged',
+
+  BATCH_LAUNCHED: 'batch.launched',
+  BATCH_CANCELLED: 'batch.cancelled',
+  BATCH_DELETED: 'batch.deleted',
 
   PROJECT_CREATED: 'project.created',
   PROJECT_UPDATED: 'project.updated',
@@ -324,6 +329,7 @@ export const AuditResourceType = {
   PERMISSION_ACCESS_REQUEST: 'permission_access_request',
   PROMPT: 'prompt',
   EVALUATION: 'evaluation',
+  BATCH: 'batch',
   PROJECT: 'project',
   SANDBOX: 'sandbox',
   SCHEDULE: 'schedule',

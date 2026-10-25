@@ -2,9 +2,10 @@
 
 import { useRef } from 'react'
 import { Button, Chip, ChipTextarea, Tooltip } from '@sim/emcn'
-import { Paperclip, Send, Square, X } from '@sim/emcn/icons'
+import { Mic, Paperclip, Send, Square, X } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { CHAT_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
+import { useDictation } from '@/app/workspace/[workspaceId]/assistant/hooks/use-dictation'
 
 /** A file waiting to be sent with the next message. */
 export interface DraftFile {
@@ -24,6 +25,60 @@ interface ComposerProps {
   isBusy: boolean
   /** Hidden for members who cannot store files in the workspace. */
   canAttach: boolean
+  /** The microphone, offered when the instance has a Transcription model. */
+  dictation?: { workspaceId: string; language: string; onText: (text: string) => void }
+}
+
+interface DictationButtonProps {
+  workspaceId: string
+  language: string
+  onText: (text: string) => void
+  disabled: boolean
+}
+
+/** The microphone: records, then puts the transcribed words in the message box. */
+function DictationButton({ workspaceId, language, onText, disabled }: DictationButtonProps) {
+  const t = useTranslations('assistant.composer')
+  const tErrors = useTranslations('assistant.voice.dictationErrors')
+  const { status, error, start, stop } = useDictation({
+    workspaceId,
+    language,
+    onText,
+  })
+  const isRecording = status === 'recording'
+  const isTranscribing = status === 'transcribing'
+  const label = isRecording ? t('dictateStop') : t('dictate')
+
+  return (
+    <>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <Button
+            type='button'
+            variant={isRecording ? 'primary' : 'quiet'}
+            size='icon'
+            onClick={() => (isRecording ? stop() : void start())}
+            disabled={disabled || isTranscribing}
+            aria-label={label}
+            aria-pressed={isRecording}
+          >
+            {isRecording ? <Square className='size-[14px]' /> : <Mic className='size-[14px]' />}
+          </Button>
+        </Tooltip.Trigger>
+        <Tooltip.Content>{label}</Tooltip.Content>
+      </Tooltip.Root>
+      {(isRecording || isTranscribing) && (
+        <span role='status' className='text-[var(--text-muted)] text-caption'>
+          {isRecording ? t('dictating') : t('transcribing')}
+        </span>
+      )}
+      {error && (
+        <span role='alert' className='text-[var(--text-error)] text-caption'>
+          {tErrors(error)}
+        </span>
+      )}
+    </>
+  )
 }
 
 /** The message box: Enter sends, Shift+Enter starts a new line; files are attached below it. */
@@ -37,6 +92,7 @@ export function Composer({
   onStop,
   isBusy,
   canAttach,
+  dictation,
 }: ComposerProps) {
   const t = useTranslations('assistant.composer')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -110,6 +166,14 @@ export function Composer({
               }}
             />
           </>
+        )}
+        {dictation && (
+          <DictationButton
+            workspaceId={dictation.workspaceId}
+            language={dictation.language}
+            onText={dictation.onText}
+            disabled={isBusy}
+          />
         )}
         <div className='ml-auto'>
           {isBusy ? (

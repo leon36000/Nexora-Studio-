@@ -132,6 +132,66 @@ assert w["NEXORA_CODE_SANDBOX_TOKEN"] == c["environment"]["NEXORA_CODE_SANDBOX_T
   && ok "code interpreter: only its controller holds the Docker socket, no published port, token shared with WorkStudio" \
   || ko "code interpreter: only its controller holds the Docker socket, no published port, token shared with WorkStudio"
 
+# Speaker diarization and speech synthesis (profile « voice »): one more internal service, built here,
+# its models baked into the image; the Whisper server fetches the French voice with its own model.
+[ "$(has_service diarize)" = "False" ] && ok "no diarization service by default" || ko "no diarization service by default"
+python3 -I -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+d = services["diarize"]
+assert d["profiles"] == ["voice"], d.get("profiles")
+assert not d.get("ports"), d.get("ports")
+assert d["build"]["context"].endswith("services/nexora-diarize"), d["build"]
+assert d["image"].endswith("diarize:local"), d["image"]
+assert int(d["environment"]["NEXORA_DIARIZE_THREADS"]) >= 1
+assert d["healthcheck"]["test"][0] == "CMD"
+assert services["nexora-api"]["environment"]["NEXORA_DIARIZE_URL"] == "http://diarize:8001"
+assert "audio_diarization_url" not in services["nexora-api"]["environment"]
+assert "nexora-api" not in d.get("depends_on", {}), "the diarization service never gates Nexora API"
+assert "diarize" not in services["nexora-api"].get("depends_on", {}), "an absent profile must not block Nexora API"
+' <<< "$voice_rendered" 2>/dev/null \
+  && ok "diarization service: internal only, built here, own profile, address given to Nexora API" \
+  || ko "diarization service: internal only, built here, own profile, address given to Nexora API"
+python3 -I -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+voice = "speaches-ai/piper-fr_FR-siwis-medium"
+assert services["whisper"]["environment"]["NEXORA_TTS_MODEL"] == voice, services["whisper"]["environment"]
+assert services["nexora-bootstrap"]["environment"]["NEXORA_TTS_MODEL"] == voice
+' <<< "$voice_rendered" 2>/dev/null \
+  && ok "the French voice is fetched with the Whisper model and registered by the bootstrap" \
+  || ko "the French voice is fetched with the Whisper model and registered by the bootstrap"
+python3 -I - "$ROOT/deploy/nexora-api/config.yml" <<'PY' && ok "Nexora API config asks the diarization service named by NEXORA_DIARIZE_URL" || ko "Nexora API config asks the diarization service named by NEXORA_DIARIZE_URL"
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+assert re.search(r"^\s+audio_diarization_url: \$\{NEXORA_DIARIZE_URL:-http://diarize:8001\}$", text, re.M), text
+PY
+
+# Personal-data detection (profile « pii »): off by default; on, one internal service built here
+# (Presidio, French and English small models), read by WorkStudio through PII_URL. Nothing waits for it.
+[ "$(has_service pii)" = "False" ] && ok "no personal-data service by default" || ko "no personal-data service by default"
+[ -z "$(value PII_URL)" ] && ok "WorkStudio asks no personal-data service by default" || ko "WorkStudio asks no personal-data service by default (got: $(value PII_URL))"
+pii_env="$(mktemp)"; cp "$env_file" "$pii_env"
+printf "COMPOSE_PROFILES=pii\nNEXORA_PII_URL=http://pii:5001\n" >> "$pii_env"
+pii_rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$pii_env" config --format json 2>/dev/null)"; rm -f "$pii_env"
+python3 -I -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+p = services["pii"]
+assert p["profiles"] == ["pii"], p.get("profiles")
+assert not p.get("ports"), p.get("ports")
+assert p["build"]["context"].endswith("workstudio"), p["build"]
+assert p["build"]["dockerfile"] == "docker/pii.Dockerfile", p["build"]
+assert p["image"].endswith("pii:local"), p["image"]
+assert p["restart"] == "unless-stopped", p.get("restart")
+assert int(p["mem_limit"]) >= 512 * 1024 * 1024, p.get("mem_limit")
+assert p["healthcheck"]["test"][0] == "CMD"
+assert services["workstudio"]["environment"]["PII_URL"] == "http://pii:5001", services["workstudio"]["environment"].get("PII_URL")
+assert "pii" not in services["workstudio"].get("depends_on", {}), "an absent profile must not block WorkStudio"
+' <<< "$pii_rendered" 2>/dev/null \
+  && ok "personal-data service: internal only, built here, own profile, address given to WorkStudio" \
+  || ko "personal-data service: internal only, built here, own profile, address given to WorkStudio"
+
 # The developer API (<domain>/v1, OpenAI format) streams through Caddy without compression.
 caddyfile="$ROOT/deploy/caddy/Caddyfile"
 python3 -I - "$caddyfile" <<'PY' && ok "Caddy relays /v1 unbuffered and uncompressed" || ko "Caddy relays /v1 unbuffered and uncompressed"

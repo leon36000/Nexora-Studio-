@@ -25,6 +25,7 @@ import {
 } from '@sim/emcn'
 import {
   Building,
+  ClipboardList,
   Code,
   Connections,
   Dashboard,
@@ -421,6 +422,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   const tDevelopers = useTranslations('developers.page')
   const tTraces = useTranslations('traces')
   const tEvaluations = useTranslations('evaluations')
+  const tBatches = useTranslations('batches')
   const navCopy = useSettingsNavCopy()
   const params = useParams()
   const workspaceId = params.workspaceId as string
@@ -855,6 +857,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           hidden: chatEnabled,
         },
         {
+          // Nexora edition: long jobs run in the background (a table's rows through a model, API batches).
+          id: 'batches',
+          label: tBatches('navLabel'),
+          icon: ClipboardList,
+          href: `/workspace/${workspaceId}/batches`,
+          hidden: chatEnabled,
+        },
+        {
           id: 'home',
           label: chatEnabled ? t('nav.newChat') : t('nav.newWorkflow'),
           icon: chatEnabled ? Home : Plus,
@@ -898,6 +908,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
       tDevelopers,
       tTraces,
       tEvaluations,
+      tBatches,
       workspaceId,
       createWorkflow,
       canEdit,

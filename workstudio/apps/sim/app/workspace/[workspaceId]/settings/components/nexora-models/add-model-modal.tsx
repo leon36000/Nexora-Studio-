@@ -37,11 +37,15 @@ const WIZARD_STEPS = ['source', 'model', 'confirm'] as const
 type WizardStep = (typeof WIZARD_STEPS)[number]
 
 const MODEL_SOURCES: readonly NexoraModelSource[] = ['ollama', 'mistral', 'openai-compatible']
-/** Mistral AI's model for each usage: chat, OCR (Mistral Document AI) and Voxtral transcription. */
+/**
+ * Mistral AI's model for each usage: chat, OCR (Mistral Document AI) and Voxtral transcription;
+ * speech synthesis is not offered through Mistral AI (empty).
+ */
 const DEFAULT_MISTRAL_MODEL: Record<NexoraModelUsage, string> = {
   chat: 'mistral-small-latest',
   vision: 'mistral-ocr-latest',
   transcription: 'voxtral-mini-latest',
+  speech: '',
 }
 const SERVICE_URL = /^https?:\/\/[^\s/]+(\/\S*)?$/
 const REMOTE_MODEL_NAME = /^\S{1,128}$/
@@ -124,16 +128,24 @@ export function AddModelModal({
   const isAdding = addModel.isPending
   const isBusy = isDownloading || isAdding
 
-  // Ollama serves chat and vision models; it does not transcribe speech.
-  const isSourceAvailable = (candidate: NexoraModelSource) =>
-    candidate !== 'ollama' || (ollamaAvailable && usage !== 'transcription')
+  // Ollama serves chat and vision models, it neither transcribes nor synthesizes speech; speech
+  // synthesis is reached through an OpenAI-compatible service only.
+  const isSourceAvailable = (candidate: NexoraModelSource) => {
+    if (usage === 'speech') return candidate === 'openai-compatible'
+    return candidate !== 'ollama' || (ollamaAvailable && usage !== 'transcription')
+  }
   const usageCatalog = catalog.filter((entry) => entry.usage === usage)
 
   const chooseUsage = (next: NexoraModelUsage) => {
     setUsage(next)
     setMistralModel(DEFAULT_MISTRAL_MODEL[next])
     setOllamaModel('')
-    if (next === 'transcription' && source === 'ollama') setSource(null)
+    if (
+      (next === 'transcription' && source === 'ollama') ||
+      (next === 'speech' && source !== 'openai-compatible')
+    ) {
+      setSource(null)
+    }
   }
 
   // Shown and sent as Ollama lists it (lowercase, with a tag), the name Nexora API checks.
@@ -288,9 +300,11 @@ export function AddModelModal({
     source ? t(`source.hints.${source}`) : null,
     usage === 'transcription'
       ? t('source.transcriptionNoOllama')
-      : ollamaAvailable
-        ? null
-        : t('source.ollamaUnavailable'),
+      : usage === 'speech'
+        ? t('source.speechOnlyOpenAi')
+        : ollamaAvailable
+          ? null
+          : t('source.ollamaUnavailable'),
   ]
     .filter(Boolean)
     .join(' ')

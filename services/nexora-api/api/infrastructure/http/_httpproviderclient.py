@@ -18,6 +18,9 @@ from ._httpproviderresponse import HttpProviderResponse
 
 logger = logging.getLogger(__name__)
 
+# Answers kept as bytes: decoding synthesized audio as text would corrupt it.
+BINARY_MEDIA_TYPES = ("audio/", "application/octet-stream")
+
 
 class HttpProviderClient(ProviderClient):
     def __init__(self, adapter_builder: HttpProviderAdapterBuilder):
@@ -89,6 +92,10 @@ class HttpProviderClient(ProviderClient):
                 except JSONDecodeError:
                     message = response.text
                 return StatusCodeModelError(status_code=response.status_code, detail=message)
+
+        content_type = response.headers.get("Content-Type", "")
+        if content_type.startswith(BINARY_MEDIA_TYPES):
+            return HttpProviderResponse(content=response.content, media_type=content_type.split(";")[0].strip())
 
         if response.headers.get("Content-Type") == "application/json":
             data, text = response.json(), None

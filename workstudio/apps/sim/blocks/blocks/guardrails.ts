@@ -1,6 +1,6 @@
 import { ShieldCheckIcon } from '@/components/icons'
 import { docsUrl } from '@/lib/branding/docs-url'
-import { PII_ENTITY_GROUPS, PII_LANGUAGES } from '@/lib/guardrails/pii-entities'
+import { getServedEntityGroups, PII_LANGUAGES } from '@/lib/guardrails/pii-entities'
 import type { BlockConfig } from '@/blocks/types'
 import {
   getModelOptions,
@@ -191,8 +191,8 @@ Return ONLY the regex pattern - no explanations, no quotes, no forward slashes, 
       type: 'grouped-checkbox-list',
       maxHeight: 400,
       // Driven by the shared catalog (includes VIN and custom recognizers) so the
-      // block and the Data Retention settings never drift.
-      options: PII_ENTITY_GROUPS.flatMap((group) =>
+      // block and the Data Retention settings never drift; limited to what the served languages detect.
+      options: getServedEntityGroups().flatMap((group) =>
         group.entities.map((entity) => ({
           label: entity.label,
           id: entity.value,
@@ -226,7 +226,7 @@ Return ONLY the regex pattern - no explanations, no quotes, no forward slashes, 
       title: 'Language',
       type: 'dropdown',
       options: PII_LANGUAGES.map((language) => ({ label: language.label, id: language.value })),
-      defaultValue: 'en',
+      defaultValue: 'fr',
       condition: {
         field: 'validationType',
         value: ['pii'],
