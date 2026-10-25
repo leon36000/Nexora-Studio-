@@ -29,6 +29,8 @@ interface TargetsFieldProps {
   value: NexoraEvalTargetInput[]
   onChange: (value: NexoraEvalTargetInput[]) => void
   disabled?: boolean
+  /** One target only (a batch has a single model, prompt or agent): no « add » button. */
+  single?: boolean
 }
 
 /** A model id the Playground offers: the instance's own router (`vllm/…`). */
@@ -64,7 +66,13 @@ export function targetsComplete(targets: readonly NexoraEvalTargetInput[]): bool
  * What a campaign evaluates: up to eight targets, each a model, a version of a prompt run on a
  * model, or a published agent. Prompt versions are pinned when the campaign starts.
  */
-export function TargetsField({ workspaceId, value, onChange, disabled }: TargetsFieldProps) {
+export function TargetsField({
+  workspaceId,
+  value,
+  onChange,
+  disabled,
+  single,
+}: TargetsFieldProps) {
   const t = useTranslations('evaluations.targets')
   const { data: modelList } = useProviderModels('vllm')
   const { data: prompts } = useNexoraPrompts(workspaceId)
@@ -172,7 +180,7 @@ export function TargetsField({ workspaceId, value, onChange, disabled }: Targets
           )}
         </div>
       ))}
-      {value.length < MAX_TARGETS && (
+      {!single && value.length < MAX_TARGETS && (
         <Chip
           leftIcon={Plus}
           className='self-start'

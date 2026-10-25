@@ -13,6 +13,8 @@ export interface TargetContext {
   userId: string | null
   campaignName: string
   signal: AbortSignal
+  /** Caps the model's answer (a short classification needs few tokens on a slow local model). */
+  maxTokens?: number
 }
 
 export interface TargetResult {
@@ -28,6 +30,7 @@ export interface TargetDeps {
     messages: WandMessage[]
     model: string
     temperature: number
+    maxTokens?: number
     signal: AbortSignal
     trace: CallTraceContext
   }) => Promise<{ text: string; usage: WandUsage }>
@@ -103,6 +106,7 @@ export async function runTarget(
     messages,
     model: wireModel(target.model),
     temperature: 0,
+    maxTokens: context.maxTokens,
     signal: context.signal,
     trace: {
       source: 'playground',

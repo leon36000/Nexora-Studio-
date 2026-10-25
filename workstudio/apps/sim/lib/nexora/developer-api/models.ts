@@ -1,13 +1,7 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { SSE_HEADERS } from '@/lib/core/utils/sse'
-import {
-  PersonalDataRefusedError,
-  PersonalDataServiceError,
-  PersonalDataUnsupportedError,
-} from '@/lib/nexora/data-protection/errors'
-import { guardChatMessages } from '@/lib/nexora/data-protection/guard'
-import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
+import { noteInteractiveActivity } from '@/lib/nexora/background-load'
 import { agentModelIds, listApiAgents } from '@/lib/nexora/developer-api/agents'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import {
@@ -18,7 +12,13 @@ import {
 } from '@/lib/nexora/developer-api/gateway'
 import { keyModelConfig } from '@/lib/nexora/developer-api/key-model-policy'
 import { keyModelRefusal } from '@/lib/nexora/developer-api/model-gate'
-import { agentRefusal, estimateCallTokens, modelRefusal } from '@/lib/nexora/developer-api/policy'
+import {
+  agentRefusal,
+  embeddingInputCharacters,
+  estimateCallTokens,
+  modelRefusal,
+} from '@/lib/nexora/developer-api/policy'
+import { protectedMessages } from '@/lib/nexora/developer-api/protected-messages'
 import { type RelayedText, relayWithUsage } from '@/lib/nexora/developer-api/sse'
 import {
   callUpstream,
@@ -110,46 +110,15 @@ async function callReserved(
   return upstream
 }
 
-/**
- * The messages of a call as they may go to a model off this server: the personal-data policy of
- * the key's workspace (the instance's for an instance key) applied, a refusal answered 403 in the
- * OpenAI error shape.
- */
-async function protectedMessages(
-  call: GatewayCall,
-  model: string,
-  messages: unknown
-): Promise<{ messages: unknown; protection: ProtectionNote | null }> {
-  if (!Array.isArray(messages)) return { messages, protection: null }
-  try {
-    const guarded = await guardChatMessages({
-      messages,
-      model,
-      workspaceId: call.key.workspaceId,
-    })
-    return { messages: guarded.messages, protection: guarded.applied }
-  } catch (error) {
-    if (
-      error instanceof PersonalDataRefusedError ||
-      error instanceof PersonalDataUnsupportedError
-    ) {
-      throw gatewayErrors.personalDataNotAllowed(error.message)
-    }
-    if (error instanceof PersonalDataServiceError) {
-      throw gatewayErrors.personalDataProtectionUnavailable(error.message)
-    }
-    throw error
-  }
-}
-
 /** Relays a chat completion to Nexora API (streamed or not) and records its tokens on the key. */
 export async function relayChatCompletion(
   call: GatewayCall,
   body: Record<string, unknown> & { model: string; stream?: boolean },
   signal: AbortSignal
 ): Promise<Response> {
+  noteInteractiveActivity()
   const usageModel = await admitModel(call.key, body.model)
-  const { messages, protection } = await protectedMessages(call, usageModel, body.messages)
+  const { messages, protection } = await protectedMessages(call.key, usageModel, body.messages)
   if (messages !== body.messages) body = { ...body, messages }
   const reservation = await reserveSpending(
     call.key,
@@ -236,16 +205,6 @@ export async function relayChatCompletion(
     error: null,
   })
   return Response.json(completion, { headers: call.headers })
-}
-
-function embeddingInputCharacters(input: unknown): number {
-  if (typeof input === 'string') return input.length
-  if (!Array.isArray(input)) return 0
-  return input.reduce<number>(
-    (total, entry) =>
-      total + (typeof entry === 'string' ? entry.length : Array.isArray(entry) ? entry.length : 1),
-    0
-  )
 }
 
 /** Relays an embeddings request and records its tokens on the key, under the router's name. */

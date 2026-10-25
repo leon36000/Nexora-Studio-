@@ -4,6 +4,7 @@ import type { Locale } from '@/lib/i18n/config'
 import enAgents from '@/messages/en/agents.json'
 import enAssistant from '@/messages/en/assistant.json'
 import enAuth from '@/messages/en/auth.json'
+import enBatches from '@/messages/en/batches.json'
 import enBlocks from '@/messages/en/blocks.json'
 import enCommon from '@/messages/en/common.json'
 import enConnectors from '@/messages/en/connectors.json'
@@ -28,6 +29,7 @@ import enTraces from '@/messages/en/traces.json'
 import frAgents from '@/messages/fr/agents.json'
 import frAssistant from '@/messages/fr/assistant.json'
 import frAuth from '@/messages/fr/auth.json'
+import frBatches from '@/messages/fr/batches.json'
 import frBlocks from '@/messages/fr/blocks.json'
 import frCommon from '@/messages/fr/common.json'
 import frConnectors from '@/messages/fr/connectors.json'
@@ -75,6 +77,7 @@ export const MESSAGE_NAMESPACES = [
   'developers',
   'traces',
   'evaluations',
+  'batches',
   'steps',
 ] as const
 
@@ -104,6 +107,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     developers: frDevelopers,
     traces: frTraces,
     evaluations: frEvaluations,
+    batches: frBatches,
     steps: frSteps,
   },
   en: {
@@ -130,6 +134,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     developers: enDevelopers,
     traces: enTraces,
     evaluations: enEvaluations,
+    batches: enBatches,
     steps: enSteps,
   },
 }

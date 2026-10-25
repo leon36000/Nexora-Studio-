@@ -108,11 +108,20 @@ function toGatewayKey(row: KeyRow): GatewayKey {
  * key of a deleted (archived) workspace reads as revoked, even if the archive did not revoke it.
  */
 export async function findNexoraApiKeyByHash(hash: string): Promise<GatewayKey | null> {
+  return findKey(eq(nexoraApiKey.keyHash, hash))
+}
+
+/** The key with this id, read like {@link findNexoraApiKeyByHash}: a background batch rechecks it for every request. */
+export async function findNexoraApiKeyById(keyId: string): Promise<GatewayKey | null> {
+  return findKey(eq(nexoraApiKey.id, keyId))
+}
+
+async function findKey(condition: SQL): Promise<GatewayKey | null> {
   const [row] = await db
     .select({ ...keyColumns, workspaceArchivedAt: workspace.archivedAt })
     .from(nexoraApiKey)
     .leftJoin(workspace, eq(workspace.id, nexoraApiKey.workspaceId))
-    .where(eq(nexoraApiKey.keyHash, hash))
+    .where(condition)
     .limit(1)
   if (!row) return null
   const key = toGatewayKey(row)

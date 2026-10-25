@@ -1,0 +1,30 @@
+{
+  "fichier": "file-ZMpH569nHpVMpdeEhtfC63on",
+  "lot": "batch_NWrGv0FNEAuIEcJCz_7StjZv",
+  "modele": "qwen2.5:7b",
+  "requetes": 500,
+  "duree_s": 805.5,
+  "statut": "completed",
+  "compteurs": {
+    "total": 500,
+    "reussies": 500,
+    "echouees": 0
+  },
+  "jetons": {
+    "entree": 58191,
+    "sortie": 1248
+  },
+  "sortie": {
+    "lignes": 500,
+    "identifiants_distincts": 500,
+    "doublons": 0,
+    "manquants": 0,
+    "exactitude": 0.956
+  },
+  "reprise": {
+    "serveur_tue_apres_lignes": 128,
+    "methode": "kill -9 du serveur de développement, relancé en 8 s",
+    "adopte_par_le_cron_apres_s": 87,
+    "note": "le bail de 90 s expire, la route cron run-nexora-evaluations appelle tickBatches et reprend le lot ; aucune ligne refaite ni perdue (500 identifiants distincts, 0 doublon, 0 manquant)"
+  }
+}

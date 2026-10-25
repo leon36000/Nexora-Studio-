@@ -396,6 +396,11 @@
       },
       "evaluation_alert": {
         "acknowledged": "Alerte d’évaluation acquittée"
+      },
+      "batch": {
+        "launched": "Lot de traitement lancé",
+        "cancelled": "Lot de traitement annulé",
+        "deleted": "Lot de traitement supprimé"
       }
     },
     "resourceTypes": {
@@ -439,7 +444,8 @@
       "workflow": "Workflow",
       "workspace": "Espace",
       "prompt": "Prompt",
-      "evaluation": "Évaluation"
+      "evaluation": "Évaluation",
+      "batch": "Lot de traitement"
     }
   },
   "consumption": {

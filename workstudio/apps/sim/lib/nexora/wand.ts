@@ -4,6 +4,7 @@ import { toRecord } from '@sim/utils/object'
 import { escapeRegExp, truncate } from '@sim/utils/string'
 import { env } from '@/lib/core/config/env'
 import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
+import { noteInteractiveActivity } from '@/lib/nexora/background-load'
 import {
   PersonalDataRefusedError,
   PersonalDataServiceError,
@@ -295,6 +296,7 @@ export async function nexoraWandStream(
     includeThinking?: boolean
   } & CompletionSettings
 ): Promise<ReadableStream<Uint8Array>> {
+  noteInteractiveActivity()
   const { messages, protection } = await guardMessages(input, input.messages)
   const trace = beginTrace(input, messages, protection)
   let outcome: CompletionResponse

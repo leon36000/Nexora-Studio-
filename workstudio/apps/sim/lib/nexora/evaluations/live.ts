@@ -1,11 +1,12 @@
 import { db } from '@sim/db'
-import { member, user, workflowExecutionLogs } from '@sim/db/schema'
+import { member, user } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { sleep } from '@sim/utils/helpers'
 import { generateShortId } from '@sim/utils/id'
-import { and, eq, gt, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { hasEmailService, sendEmail } from '@/lib/messaging/email/mailer'
+import { instanceLimiter, interactiveBusy } from '@/lib/nexora/background-load'
 import { checkBudget } from '@/lib/nexora/consumption/budgets'
 import { collectAgentAnswer } from '@/lib/nexora/developer-api/agent-format'
 import { answerBlockId, launchAgentRun, listApiAgents } from '@/lib/nexora/developer-api/agents'
@@ -24,12 +25,7 @@ import {
   readCampaignStatus,
   releaseItem,
 } from '@/lib/nexora/evaluations/repository'
-import {
-  createLimiter,
-  type RunnerDeps,
-  type RunnerStore,
-  runCampaign,
-} from '@/lib/nexora/evaluations/runner'
+import { type RunnerDeps, type RunnerStore, runCampaign } from '@/lib/nexora/evaluations/runner'
 import { runDueSchedules } from '@/lib/nexora/evaluations/schedule'
 import { embedTexts } from '@/lib/nexora/evaluations/semantic'
 import type { SummaryItem } from '@/lib/nexora/evaluations/stats'
@@ -42,22 +38,19 @@ import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
 
 const logger = createLogger('NexoraEvaluations')
 
-/** Model calls of all campaigns at once on this server: the Assistant keeps the rest of the CPU. */
-const INSTANCE_CALL_LIMIT = 4
 /** A running campaign renews its lease this often; a stopped server loses it after `LEASE_MS`. */
 const LEASE_MS = 120_000
-const INTERACTIVE_LOOKBACK_MS = 10 * 60_000
 
-const limiter = createLimiter(INSTANCE_CALL_LIMIT)
 const running = new Map<string, AbortController>()
 const owner = `${process.pid}-${generateShortId(8)}`
 
-const targetDeps: TargetDeps = {
+export const targetDeps: TargetDeps = {
   complete: (input) =>
     nexoraWandComplete({
       messages: input.messages,
       model: input.model,
       temperature: input.temperature,
+      maxTokens: input.maxTokens,
       signal: input.signal,
       trace: input.trace,
     }),
@@ -87,22 +80,6 @@ const targetDeps: TargetDeps = {
     return { content: answer.content, usage, executionId: launch.executionId }
   },
   now: Date.now,
-}
-
-/** Whether a person is waiting on a workflow run right now (the Assistant, a chat, the editor). */
-async function interactiveBusy(): Promise<boolean> {
-  const [row] = await db
-    .select({ id: workflowExecutionLogs.id })
-    .from(workflowExecutionLogs)
-    .where(
-      and(
-        eq(workflowExecutionLogs.status, 'running'),
-        inArray(workflowExecutionLogs.trigger, ['chat', 'manual']),
-        gt(workflowExecutionLogs.startedAt, new Date(Date.now() - INTERACTIVE_LOOKBACK_MS))
-      )
-    )
-    .limit(1)
-  return Boolean(row)
 }
 
 async function loadSeries(campaignId: string): Promise<Map<string, SummaryItem[]>> {
@@ -207,7 +184,7 @@ function runnerDeps(signal: AbortSignal): RunnerDeps {
         logger.error('Evaluation alerts failed', { error: getErrorMessage(error) })
       )
     },
-    limiter,
+    limiter: instanceLimiter,
     externalSignal: signal,
   }
 }

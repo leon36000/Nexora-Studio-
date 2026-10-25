@@ -5,6 +5,7 @@ import { runEvalCronContract } from '@/lib/api/contracts/nexora-evaluations'
 import { parseRequest } from '@/lib/api/server'
 import { verifyCronAuth } from '@/lib/auth/internal'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
+import { tickBatches } from '@/lib/nexora/batches/live'
 import { tickEvaluations } from '@/lib/nexora/evaluations/live'
 
 export const dynamic = 'force-dynamic'
@@ -14,8 +15,9 @@ const logger = createLogger('RunNexoraEvaluationsAPI')
 
 /**
  * Nexora edition, every minute: starts the campaigns of the scheduled evaluations whose time has
- * come, then takes over the campaigns nobody runs (their server stopped). The campaigns
- * themselves run in the background of this process; the call returns at once. `asOf` (an ISO
+ * come, then takes over the campaigns nobody runs (their server stopped); batches (K13) ride the
+ * same tick: those nobody runs are adopted, old ones are purged. Campaigns and batches run in the
+ * background of this process; the call returns at once. `asOf` (an ISO
  * date, with the cron secret) plays the clock of another moment, for tests of night schedules.
  */
 export const GET = withRouteHandler(async (request: NextRequest) => {
@@ -27,11 +29,16 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   const { asOf } = parsed.data.query
 
   try {
-    const summary = await tickEvaluations(asOf ? new Date(asOf) : new Date())
+    const now = asOf ? new Date(asOf) : new Date()
+    const summary = await tickEvaluations(now)
     if (summary.started.length > 0 || summary.resumed.length > 0 || summary.failed.length > 0) {
       logger.info('Evaluation schedules ticked', summary)
     }
-    return NextResponse.json({ success: true, ...summary })
+    const batches = await tickBatches(now).catch((error: unknown) => {
+      logger.error('Failed to tick the batches', { error })
+      return { error: getErrorMessage(error, 'Failed to tick the batches') }
+    })
+    return NextResponse.json({ success: true, ...summary, batches })
   } catch (error) {
     logger.error('Failed to tick the evaluation schedules', { error })
     return NextResponse.json(

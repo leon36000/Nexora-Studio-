@@ -322,7 +322,7 @@ export const listEvalImportSourcesContract = defineRouteContract({
 
 const promptSelectorSchema = z.enum(['production', 'test', 'latest'])
 
-const targetInputSchema = z.discriminatedUnion('kind', [
+export const targetInputSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('model'),
     model: modelIdSchema,
