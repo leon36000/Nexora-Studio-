@@ -77,7 +77,7 @@ describe('resolveEffectivePiiRedaction', () => {
             id: 'r-1',
             workspaceId: 'ws-1',
             stages: {
-              input: stage(true, ['PERSON'], 'es'),
+              input: stage(true, ['PERSON'], 'fr'),
               blockOutputs: stage(true, ['EMAIL_ADDRESS']),
               logs: stage(true, ['US_SSN', 'PHONE_NUMBER']),
             },
@@ -86,7 +86,7 @@ describe('resolveEffectivePiiRedaction', () => {
         workspaceId: 'ws-1',
       })
       expect(result).toEqual({
-        input: { enabled: true, entityTypes: ['PERSON'], language: 'es', customPatterns: [] },
+        input: { enabled: true, entityTypes: ['PERSON'], language: 'fr', customPatterns: [] },
         blockOutputs: {
           enabled: true,
           entityTypes: ['EMAIL_ADDRESS'],

@@ -88,12 +88,12 @@
 **Interfaces :**
 - Produit : `PII_LANGUAGES` = `fr`, `en` ; `DEFAULT_PII_LANGUAGE` = `fr` ; `SUPPORTED_PII_ENTITIES.FR_NIR` ('Numéro de sécurité sociale (NIR)'). Les entités nationales es/it/pl/fi restent déclarées mais ne sont proposées que pour leur langue (inchangé), et l'image Nexora ne sert plus que `fr` et `en` : une langue non servie n'est plus proposée.
 
-- [ ] **Étape 1 : tests rouges** : `coercePiiLanguage('fr')` accepté, `'es'` refusé ; `PII_ENTITIES_BY_LANGUAGE.fr` contient `IBAN_CODE`, `EMAIL_ADDRESS`, `PERSON`, `PHONE_NUMBER`, `FR_NIR` et ni `US_SSN` ni `ES_NIF` ; le bloc propose `fr` par défaut.
-- [ ] **Étape 2 : voir échouer** — `bun run --cwd workstudio/apps/sim vitest run lib/guardrails`.
-- [ ] **Étape 3 : implémenter** ; vérifier que `ee/data-retention` et les contrats qui lisent `PII_LANGUAGE_CODES` suivent (recherche des consommateurs, tests existants mis à jour).
-- [ ] **Étape 4 : tests verts** (guardrails, data-retention, contrats).
+- [x] **Étape 1 : tests rouges** : `coercePiiLanguage('fr')` accepté, `'es'` refusé ; `PII_ENTITIES_BY_LANGUAGE.fr` contient `IBAN_CODE`, `EMAIL_ADDRESS`, `PERSON`, `PHONE_NUMBER`, `FR_NIR` et ni `US_SSN` ni `ES_NIF` ; le bloc propose `fr` par défaut.
+- [x] **Étape 2 : voir échouer** — `bun run --cwd workstudio/apps/sim vitest run lib/guardrails`.
+- [x] **Étape 3 : implémenter** ; vérifier que `ee/data-retention` et les contrats qui lisent `PII_LANGUAGE_CODES` suivent (recherche des consommateurs, tests existants mis à jour).
+- [x] **Étape 4 : tests verts** (guardrails, data-retention, contrats).
 - [ ] **Étape 5 : preuve réelle** : `next dev` sur 127.0.0.1:3220 avec `PII_URL` vers le conteneur jetable de la tâche 1 ; un workflow Garde-fous « Détection de données personnelles » (types IBAN_CODE, EMAIL_ADDRESS, mode bloquer) exécuté sur « Mon IBAN est FR76 3000 6000 0112 3456 7890 189, écrivez à marie@exemple.fr » ⇒ non validé, `detectedEntities` = IBAN_CODE + EMAIL_ADDRESS ; en mode masquer ⇒ texte masqué.
-- [ ] **Étape 6 : commit** `feat(k14): garde-fous en français (langue, NIR)`.
+- [x] **Étape 6 : commit** `feat(k14): garde-fous en français (langue, NIR)`.
 
 ## Tâche 4 : Politique par espace — stockage, cas d'usage, contrat, route
 
