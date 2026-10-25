@@ -56,4 +56,6 @@ Sans groupe, chacun a les droits de son **rôle** dans l'espace (lecture, écrit
 2. Choisir la **portée** : tous les espaces (groupe par défaut, pour tous les membres qui ne sont dans aucun autre groupe) ou des espaces choisis.
 3. Ajuster **ce que le groupe peut faire** (déploiement, outils, connaissances, tables, fichiers, journaux…) et ajouter ses **membres**. Sans membre ajouté, un groupe limité à des espaces s'applique à tous les membres de ces espaces.
 
+Un groupe choisit aussi **les modèles que ses membres peuvent utiliser**, et chaque espace a sa [politique de données personnelles](gouvernance.md) ; le journal d'audit s'exporte pour un tableur français. Tout est détaillé dans [Gouvernance avancée et garde-fous](gouvernance.md).
+
 Supprimer un groupe rend à ses membres les droits du groupe par défaut ou de leur rôle.

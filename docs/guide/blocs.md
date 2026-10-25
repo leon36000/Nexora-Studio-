@@ -49,6 +49,8 @@ Note une réponse selon des **critères** que vous définissez (exactitude, ton,
 
 Vérifie un contenu avant de continuer : JSON valide, expression régulière, données personnelles, ou réponse fidèle à vos connaissances (contrôle d'hallucination avec le modèle Nexora).
 
+La détection des **données personnelles** (noms, e-mails, IBAN, téléphones, cartes, numéro de sécurité sociale) utilise le service local de l'instance, en français par défaut : choisissez les types à chercher et l'action (**bloquer** la demande ou **masquer** les données). Le service est décrit dans [Gouvernance avancée et garde-fous](gouvernance.md) ; sans lui, ce type de contrôle ne peut pas fonctionner (le bloc indique que la validation a échoué).
+
 <a id="function"></a>
 ## Fonction
 

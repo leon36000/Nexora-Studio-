@@ -237,9 +237,9 @@
 
 **Interfaces :** contrôle de fumée « Garde-fous : détection IBAN + e-mail, politique « masquer » vue dans la trace, groupe sans GLM 5.3 (bloc et API), export CSV » ; indispensable : chaque sous-contrôle dit ce qu'il a vérifié.
 
-- [ ] **Étape 1 : écrire le guide** (service local et son poids, politiques, groupes, modération, export, ce qui n'est pas couvert : motifs seulement sans service, noms avec fautes, SAML hors périmètre) ; lien vérifié par `check-brand` et le test d'index.
+- [x] **Étape 1 : écrire le guide** (service local et son poids, politiques, groupes, modération, export, ce qui n'est pas couvert : motifs seulement sans service, noms avec fautes, SAML hors périmètre) ; lien vérifié par `check-brand` et le test d'index.
 - [ ] **Étape 2 : écrire le contrôle de fumée** et le jouer sur le serveur de développement contre la pile de pc6 (GLM 5.3 par défaut) ; le sous-contrôle du service PII est facultatif tant que le profil n'est pas déployé (message « profil pii absent » explicite, jamais un succès).
-- [ ] **Étape 3 : commit** `docs(k14): guide de la gouvernance, contrôle de fumée « Garde-fous »`.
+- [x] **Étape 3 : commit** `docs(k14): guide de la gouvernance, contrôle de fumée « Garde-fous »`.
 
 ## Tâche 13 : Vérification finale, ledger, fusion de `main`
 
