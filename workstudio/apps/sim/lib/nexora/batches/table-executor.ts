@@ -4,12 +4,18 @@ import { OrchestrationError } from '@/lib/core/orchestration/types'
 import type { ItemOutcome } from '@/lib/nexora/batches/engine'
 import type { BatchRecord, ItemRecord, NewBatch, NewItem } from '@/lib/nexora/batches/repository'
 import {
+  type BatchProblem,
   DEFAULT_BATCH_CONCURRENCY,
   MAX_BATCH_CONCURRENCY,
   MAX_BATCH_LINES,
   MAX_COMPLETION_HOURS,
   MAX_PENDING_LINES,
 } from '@/lib/nexora/batches/types'
+import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+  PersonalDataUnsupportedError,
+} from '@/lib/nexora/data-protection/errors'
 import type { TargetInput } from '@/lib/nexora/evaluations/launch'
 import type { TargetContext, TargetResult } from '@/lib/nexora/evaluations/targets'
 import type { EvalTarget } from '@/lib/nexora/evaluations/types'
@@ -246,6 +252,29 @@ function isBudgetRefusal(error: unknown): boolean {
   )
 }
 
+/** A failure that may pass in a moment: the model service or the personal-data service not answering. */
+function isTransient(error: unknown): boolean {
+  return error instanceof NexoraWandUnavailableError || error instanceof PersonalDataServiceError
+}
+
+/** The code and French message a failed row is recorded under. */
+function problemOf(error: unknown): BatchProblem {
+  if (error instanceof NexoraWandRejectedError) {
+    return { code: 'model_rejected', message: `Le modèle a refusé la requête : ${error.reason}` }
+  }
+  if (error instanceof NexoraWandUnavailableError) {
+    return { code: 'model_busy', message: 'Le modèle est occupé ou injoignable.' }
+  }
+  if (
+    error instanceof PersonalDataRefusedError ||
+    error instanceof PersonalDataUnsupportedError ||
+    error instanceof PersonalDataServiceError
+  ) {
+    return { code: error.code, message: error.message }
+  }
+  return { code: 'target_failed', message: getErrorMessage(error, 'La cible n’a pas pu répondre.') }
+}
+
 /**
  * Runs one row of a table batch: the monthly budget is checked first (reached ⇒ the whole batch
  * stops), the target answers the row's text, and the answer goes to the result column. A busy or
@@ -300,24 +329,10 @@ export async function executeTableItem(
         message: getErrorMessage(error, 'Budget mensuel atteint.'),
       }
     }
-    const unavailable = error instanceof NexoraWandUnavailableError
     return {
       kind: 'error',
-      retryable: unavailable,
-      problem: {
-        code:
-          error instanceof NexoraWandRejectedError
-            ? 'model_rejected'
-            : unavailable
-              ? 'model_busy'
-              : 'target_failed',
-        message:
-          error instanceof NexoraWandRejectedError
-            ? `Le modèle a refusé la requête : ${error.reason}`
-            : unavailable
-              ? 'Le modèle est occupé ou injoignable.'
-              : getErrorMessage(error, 'La cible n’a pas pu répondre.'),
-      },
+      retryable: isTransient(error),
+      problem: problemOf(error),
       response: null,
       latencyMs: null,
     }

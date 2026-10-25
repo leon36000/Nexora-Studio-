@@ -402,7 +402,9 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
         const message =
           failure.code === 'rejected'
             ? t('modelRejected', { reason: failure.reason })
-            : t('modelUnavailable')
+            : 'reason' in failure
+              ? failure.reason
+              : t('modelUnavailable')
         return NextResponse.json({ success: false, error: message }, { status: failure.status })
       }
     }

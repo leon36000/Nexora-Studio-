@@ -239,6 +239,9 @@ services:
       OLLAMA_URL: http://ollama:11434
       # Web search block, only when the administrator enabled SearXNG.
       SEARXNG_URL: ${NEXORA_SEARXNG_URL:-}
+      # Personal-data detection (profile « pii »): the Garde-fous block, the data-protection policies and the
+      # trace masking ask this service; empty when the profile is off (patterns only).
+      PII_URL: ${NEXORA_PII_URL:-}
       PREVIEW_BLOCKS: ${NEXORA_PREVIEW_BLOCKS:-}
       KB_EMBEDDING_MODEL: ollama/${NEXORA_EMBED_MODEL:-bge-m3}
       NEXT_PUBLIC_KB_EMBEDDING_MODEL: ollama/${NEXORA_EMBED_MODEL:-bge-m3}
@@ -389,6 +392,25 @@ services:
       timeout: 5s
       retries: 30
       start_period: 15s
+
+  # Personal-data detection (profile « pii », off by default; install.sh asks): Presidio with the small
+  # French and English spaCy models, on the CPU, offline, internal network only (about 800 MB of image,
+  # 300 MB of memory). WorkStudio reaches it at http://pii:5001 (NEXORA_PII_URL): Garde-fous block,
+  # « données personnelles » policies per workspace, name masking in traces. Nothing waits for it.
+  pii:
+    build:
+      context: ../workstudio
+      dockerfile: docker/pii.Dockerfile
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}pii:${NEXORA_VERSION:-local}
+    profiles: [pii]
+    restart: unless-stopped
+    mem_limit: 1g
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:5001/health']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   # Local model server, always present: it serves the knowledge-base embeddings (bge-m3) and,
   # when chosen, the chat model (NEXORA_UPSTREAM_URL=http://ollama:11434). CPU by default.

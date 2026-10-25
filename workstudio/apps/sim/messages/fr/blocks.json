@@ -3805,7 +3805,8 @@
           "IN_VEHICLE_REGISTRATION": "Immatriculation de véhicule indienne",
           "IN_VOTER": "Carte d'électeur indienne",
           "IN_PASSPORT": "Passeport indien",
-          "FI_PERSONAL_IDENTITY_CODE": "Code d'identité personnel finlandais"
+          "FI_PERSONAL_IDENTITY_CODE": "Code d'identité personnel finlandais",
+          "FR_NIR": "Numéro de sécurité sociale (NIR)"
         }
       },
       "piiMode": {
@@ -3818,11 +3819,8 @@
       "piiLanguage": {
         "title": "Langue",
         "options": {
-          "en": "Anglais",
-          "es": "Espagnol",
-          "it": "Italien",
-          "pl": "Polonais",
-          "fi": "Finnois"
+          "fr": "Français",
+          "en": "Anglais"
         }
       },
       "piiCustomPatterns": {

@@ -11,6 +11,10 @@ import { TERMINAL_BATCH_STATUSES } from '@/lib/nexora/batches/types'
 import type { TargetInput } from '@/lib/nexora/evaluations/launch'
 import { listTables } from '@/lib/table/service'
 import { resolveActiveWorkspaceApplicationContext } from '@/lib/workspaces/application/context'
+import {
+  ModelNotAllowedError,
+  validateModelProvider,
+} from '@/ee/access-control/utils/permission-check'
 
 const authorizationOptions = {}
 const OP = nexoraBatchOperations
@@ -94,6 +98,22 @@ export const listSourcesUseCase = defineAuthorizedWorkspaceUseCase({
   },
 })
 
+/** Refuses a model the person's access group does not allow (as the Playground does). */
+async function requireModelAllowed(userId: string, workspaceId: string, model: string) {
+  const name = model.replace(/^vllm\//, '')
+  try {
+    await validateModelProvider(userId, workspaceId, name)
+  } catch (error) {
+    if (error instanceof ModelNotAllowedError) {
+      throw new OrchestrationError(
+        'forbidden',
+        `Votre groupe d’accès ne vous autorise pas le modèle « ${name} ».`
+      )
+    }
+    throw error
+  }
+}
+
 export const launchBatchUseCase = defineAuthorizedWorkspaceUseCase({
   operation: OP.launchBatch,
   resolveContext: ({
@@ -112,9 +132,13 @@ export const launchBatchUseCase = defineAuthorizedWorkspaceUseCase({
   }) => resolveActiveWorkspaceApplicationContext(input.workspaceId),
   authorizationOptions,
   execute: async ({ context, input, principal }) => {
+    const userId = requirePrincipalSubjectUserId(principal)
+    if (input.target.kind !== 'agent') {
+      await requireModelAllowed(userId, context.workspaceId, input.target.model)
+    }
     const batch = await launchTableBatch({
       workspaceId: context.workspaceId,
-      userId: requirePrincipalSubjectUserId(principal),
+      userId,
       tableId: input.tableId,
       name: input.name,
       target: input.target,

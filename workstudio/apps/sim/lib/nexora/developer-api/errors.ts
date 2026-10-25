@@ -81,6 +81,10 @@ export const gatewayErrors = {
       'model_not_allowed',
       `Le modèle « ${model} » n’est pas autorisé par le groupe d’accès de la personne qui a créé cette clé (Réglages › Groupes d’accès).`
     ),
+  personalDataNotAllowed: (message: string) =>
+    new GatewayError(403, 'personal_data_not_allowed', message),
+  personalDataProtectionUnavailable: (message: string) =>
+    new GatewayError(503, 'personal_data_protection_unavailable', message),
   agentsNotAllowed: (model: string) =>
     new GatewayError(
       403,

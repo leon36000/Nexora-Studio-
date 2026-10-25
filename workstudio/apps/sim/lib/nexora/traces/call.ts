@@ -1,3 +1,4 @@
+import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
 import { draftFromCall } from '@/lib/nexora/traces/from-call'
 import { recordTrace } from '@/lib/nexora/traces/record'
 import type { TraceDraft, TraceSource } from '@/lib/nexora/traces/types'
@@ -9,6 +10,8 @@ export interface CallTraceContext {
   userId: string | null
   apiKeyId?: string | null
   name: string
+  /** What the personal-data policy did to the messages before they were sent, if anything. */
+  protection?: ProtectionNote | null
 }
 
 interface CallResult {
@@ -54,6 +57,7 @@ export function beginCallTrace(
           userId: context.userId,
           apiKeyId: context.apiKeyId ?? null,
           name: context.name,
+          protection: context.protection ?? null,
           model,
           startedAt: new Date(startedAt),
           durationMs: Math.max(0, deps.now() - startedAt),

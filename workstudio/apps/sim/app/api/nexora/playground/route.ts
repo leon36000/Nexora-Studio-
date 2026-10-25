@@ -5,6 +5,10 @@ import { getSession } from '@/lib/auth'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { describeWandFailure, nexoraWandStream } from '@/lib/nexora/wand'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
+import {
+  ModelNotAllowedError,
+  validateModelProvider,
+} from '@/ee/access-control/utils/permission-check'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +28,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   try {
+    await validateModelProvider(session.user.id, workspaceId, model)
     const stream = await nexoraWandStream({
       messages,
       model: model.replace(/^vllm\//, ''),
@@ -47,10 +52,19 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       },
     })
   } catch (error) {
+    if (error instanceof ModelNotAllowedError) {
+      return NextResponse.json(
+        {
+          error: 'model_not_allowed',
+          reason: `Votre groupe d’accès ne vous autorise pas le modèle « ${model.replace(/^vllm\//, '')} ».`,
+        },
+        { status: 403 }
+      )
+    }
     const failure = describeWandFailure(error)
     if (!failure) throw error
     return NextResponse.json(
-      failure.code === 'rejected'
+      'reason' in failure
         ? { error: failure.code, reason: failure.reason }
         : { error: failure.code },
       { status: failure.status }

@@ -61,6 +61,10 @@ export const SECTION_MODULES = {
     import('@/app/workspace/[workspaceId]/settings/components/nexora-email/nexora-email'),
   status: () =>
     import('@/app/workspace/[workspaceId]/settings/components/nexora-status/nexora-status'),
+  'data-protection': () =>
+    import(
+      '@/app/workspace/[workspaceId]/settings/components/nexora-data-protection/nexora-data-protection'
+    ),
   desktop: () => import('@/app/workspace/[workspaceId]/settings/components/desktop/desktop'),
   browser: () => import('@/app/workspace/[workspaceId]/settings/components/browser/browser'),
   terminal: () => import('@/app/workspace/[workspaceId]/settings/components/terminal/terminal'),

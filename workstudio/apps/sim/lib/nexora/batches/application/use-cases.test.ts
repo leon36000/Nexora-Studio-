@@ -1,5 +1,10 @@
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
 import { auditMock, auditMockFns } from '@sim/testing/mocks/audit.mock'
+import {
+  MockModelNotAllowedError,
+  permissionCheckMock,
+  permissionCheckMockFns,
+} from '@sim/testing/mocks/permission-check.mock'
 import { tableServiceMock, tableServiceMockFns } from '@sim/testing/mocks/table-service.mock'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
 import { workspaceContextMock } from '@sim/testing/mocks/workspace-context.mock'
@@ -22,6 +27,7 @@ vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
 vi.mock('@/lib/nexora/batches/repository', () => repo)
 vi.mock('@/lib/nexora/batches/live', () => live)
 vi.mock('@/lib/table/service', () => tableServiceMock)
+vi.mock('@/ee/access-control/utils/permission-check', () => permissionCheckMock)
 
 import {
   cancelBatchUseCase,
@@ -127,6 +133,56 @@ describe('batch use cases', () => {
           metadata: expect.objectContaining({ requests: 8 }),
         })
       )
+    })
+  })
+
+  describe('the access group of the person who starts the batch', () => {
+    it('refuses a model the group does not allow, before anything is created', async () => {
+      permissionCheckMockFns.mockValidateModelProvider.mockRejectedValueOnce(
+        new MockModelNotAllowedError('cloud-glm-5-3')
+      )
+      await expect(
+        launchBatchUseCase.execute({
+          principal: member,
+          input: { ...launchInput, target: { kind: 'model', model: 'vllm/cloud-glm-5-3' } },
+        })
+      ).rejects.toMatchObject({
+        code: 'forbidden',
+        message: expect.stringContaining('cloud-glm-5-3'),
+      })
+      expect(permissionCheckMockFns.mockValidateModelProvider).toHaveBeenCalledWith(
+        'user-1',
+        WORKSPACE,
+        'cloud-glm-5-3'
+      )
+      expect(live.launchTableBatch).not.toHaveBeenCalled()
+    })
+
+    it('checks the model of a prompt target too, and none for an agent', async () => {
+      live.launchTableBatch.mockResolvedValue(batchRecord())
+      await launchBatchUseCase.execute({
+        principal: member,
+        input: {
+          ...launchInput,
+          target: {
+            kind: 'prompt',
+            model: 'vllm/qwen2.5:7b',
+            promptId: 'p1',
+            selector: 'production',
+          },
+        },
+      })
+      expect(permissionCheckMockFns.mockValidateModelProvider).toHaveBeenCalledWith(
+        'user-1',
+        WORKSPACE,
+        'qwen2.5:7b'
+      )
+      permissionCheckMockFns.mockValidateModelProvider.mockClear()
+      await launchBatchUseCase.execute({
+        principal: member,
+        input: { ...launchInput, target: { kind: 'agent', workflowId: 'wf-1' } },
+      })
+      expect(permissionCheckMockFns.mockValidateModelProvider).not.toHaveBeenCalled()
     })
   })
 

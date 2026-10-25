@@ -64,6 +64,9 @@ const NexoraEmailSettings = dynamic(() =>
   SECTION_MODULES.email().then((m) => m.NexoraEmailSettings)
 )
 const NexoraStatus = dynamic(() => SECTION_MODULES.status().then((m) => m.NexoraStatus))
+const NexoraDataProtectionSettings = dynamic(() =>
+  SECTION_MODULES['data-protection']().then((m) => m.NexoraDataProtectionSettings)
+)
 const Desktop = dynamic(() => SECTION_MODULES.desktop().then((m) => m.Desktop))
 const Browser = dynamic(() => SECTION_MODULES.browser().then((m) => m.Browser))
 const Terminal = dynamic(() => SECTION_MODULES.terminal().then((m) => m.Terminal))
@@ -152,6 +155,7 @@ function SettingsPageContent({ section }: SettingsPageProps) {
       )}
       {effectiveSection === 'email' && organizationId && <NexoraEmailSettings />}
       {effectiveSection === 'status' && organizationId && <NexoraStatus />}
+      {effectiveSection === 'data-protection' && organizationId && <NexoraDataProtectionSettings />}
       {effectiveSection === 'apikeys' && <ApiKeys scope='combined' />}
       {billingEnabled && effectiveSection === 'billing' && (
         <Billing

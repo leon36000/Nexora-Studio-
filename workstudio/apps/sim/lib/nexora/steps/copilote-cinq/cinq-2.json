@@ -1,0 +1,383 @@
+{
+  "description": "Trier les e-mails reçus par webhook : urgent ou non urgent.",
+  "plan": {
+    "title": "Tri des e-mails par urgence",
+    "trigger": {
+      "kind": "webhook"
+    },
+    "steps": [
+      {
+        "kind": "agent",
+        "name": "tri",
+        "instructions": "Vous classez les e-mails reçus par une PME selon leur urgence.",
+        "message": "Classez cet e-mail (urgence : haute ou normale) : {{declencheur.email}}",
+        "services": [],
+        "knowledgeBases": [],
+        "output": {
+          "fields": [
+            {
+              "name": "urgence",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "condition",
+        "name": "est_urgent",
+        "if": {
+          "ref": "tri.urgence",
+          "operator": "egal",
+          "value": "haute"
+        },
+        "then": ["traitement_urgent", "alerte_equipe"],
+        "else": ["accuse_reception"]
+      },
+      {
+        "kind": "agent",
+        "name": "traitement_urgent",
+        "instructions": "Vous traitez les e-mails urgents d'une PME.",
+        "message": "Résumez cet e-mail urgent et proposez les actions à mener : {{declencheur.email}}",
+        "services": [],
+        "knowledgeBases": []
+      },
+      {
+        "kind": "agent",
+        "name": "alerte_equipe",
+        "instructions": "Vous prévenez l'équipe des demandes urgentes.",
+        "message": "Rédigez une alerte courte pour cet e-mail urgent : {{declencheur.email}}",
+        "services": [],
+        "knowledgeBases": []
+      },
+      {
+        "kind": "agent",
+        "name": "accuse_reception",
+        "instructions": "Vous accusez réception des e-mails reçus par une PME.",
+        "message": "Rédigez un accusé de réception pour cet e-mail : {{declencheur.email}}",
+        "services": [],
+        "knowledgeBases": []
+      }
+    ]
+  },
+  "state": {
+    "blocks": {
+      "e7c7b717-594d-44c5-8c6e-5afe1cadd8d0": {
+        "id": "e7c7b717-594d-44c5-8c6e-5afe1cadd8d0",
+        "type": "agent",
+        "name": "accuse_reception",
+        "position": {
+          "x": 1260,
+          "y": 260
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous accusez réception des e-mails reçus par une PME."
+              },
+              {
+                "role": "user",
+                "content": "Rédigez un accusé de réception pour cet e-mail : <webhook.email>"
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      },
+      "151ce391-9519-40e3-9976-67652387c8ce": {
+        "id": "151ce391-9519-40e3-9976-67652387c8ce",
+        "type": "generic_webhook",
+        "name": "Webhook",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "subBlocks": {
+          "token": {
+            "id": "token",
+            "type": "short-input",
+            "value": "jeton-de-test"
+          },
+          "nexoraView": {
+            "id": "nexoraView",
+            "type": "short-input",
+            "value": "etapes"
+          },
+          "requireAuth": {
+            "id": "requireAuth",
+            "type": "switch",
+            "value": true
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "039b888d-7cfd-4cc0-92b0-624099ad3d43": {
+        "id": "039b888d-7cfd-4cc0-92b0-624099ad3d43",
+        "type": "agent",
+        "name": "tri",
+        "position": {
+          "x": 420,
+          "y": 0
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous classez les e-mails reçus par une PME selon leur urgence."
+              },
+              {
+                "role": "user",
+                "content": "Classez cet e-mail (urgence : haute ou normale) : <webhook.email>"
+              }
+            ]
+          },
+          "responseFormat": {
+            "id": "responseFormat",
+            "type": "code",
+            "value": "{\n  \"name\": \"tri\",\n  \"schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"urgence\": {\n        \"type\": \"string\"\n      }\n    },\n    \"required\": [\n      \"urgence\"\n    ],\n    \"additionalProperties\": false\n  },\n  \"strict\": true\n}"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      },
+      "7c8ac313-c203-4d55-915a-0d100a6bfc47": {
+        "id": "7c8ac313-c203-4d55-915a-0d100a6bfc47",
+        "type": "condition",
+        "name": "est_urgent",
+        "position": {
+          "x": 840,
+          "y": 0
+        },
+        "subBlocks": {
+          "conditions": {
+            "id": "conditions",
+            "type": "condition-input",
+            "value": "[{\"id\":\"7c8ac313-c203-4d55-915a-0d100a6bfc47-if\",\"title\":\"if\",\"value\":\"String(<tri.urgence> ?? '').trim().toLowerCase() === \\\"haute\\\"\"},{\"id\":\"7c8ac313-c203-4d55-915a-0d100a6bfc47-else\",\"title\":\"else\",\"value\":\"\"}]"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "5f5232ee-7298-4f1e-921d-fd19f872a99a": {
+        "id": "5f5232ee-7298-4f1e-921d-fd19f872a99a",
+        "type": "agent",
+        "name": "traitement_urgent",
+        "position": {
+          "x": 1260,
+          "y": -260
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous traitez les e-mails urgents d'une PME."
+              },
+              {
+                "role": "user",
+                "content": "Résumez cet e-mail urgent et proposez les actions à mener : <webhook.email>"
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      },
+      "01a746ac-ec86-4760-b703-3a98912b7d7c": {
+        "id": "01a746ac-ec86-4760-b703-3a98912b7d7c",
+        "type": "agent",
+        "name": "alerte_equipe",
+        "position": {
+          "x": 1680,
+          "y": -260
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous prévenez l'équipe des demandes urgentes."
+              },
+              {
+                "role": "user",
+                "content": "Rédigez une alerte courte pour cet e-mail urgent : <webhook.email>"
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      }
+    },
+    "edges": [
+      {
+        "id": "ef235c63-3c8b-46b6-a3b5-5396e1cafb34",
+        "source": "5f5232ee-7298-4f1e-921d-fd19f872a99a",
+        "target": "01a746ac-ec86-4760-b703-3a98912b7d7c",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "cf174c64-f7ee-4ca5-a332-e3932c5c63e9",
+        "source": "151ce391-9519-40e3-9976-67652387c8ce",
+        "target": "039b888d-7cfd-4cc0-92b0-624099ad3d43",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "c26e8c20-a2cc-4ffd-8743-41bb48e9049f",
+        "source": "7c8ac313-c203-4d55-915a-0d100a6bfc47",
+        "target": "5f5232ee-7298-4f1e-921d-fd19f872a99a",
+        "sourceHandle": "condition-7c8ac313-c203-4d55-915a-0d100a6bfc47-if",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "e6421233-97a6-4739-849a-d5eed9d131af",
+        "source": "039b888d-7cfd-4cc0-92b0-624099ad3d43",
+        "target": "7c8ac313-c203-4d55-915a-0d100a6bfc47",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "7c5349da-7c7d-40a7-9989-e09d83f827fa",
+        "source": "7c8ac313-c203-4d55-915a-0d100a6bfc47",
+        "target": "e7c7b717-594d-44c5-8c6e-5afe1cadd8d0",
+        "sourceHandle": "condition-7c8ac313-c203-4d55-915a-0d100a6bfc47-else",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      }
+    ],
+    "loops": {},
+    "parallels": {},
+    "lastSaved": 1792911863152,
+    "isDeployed": false,
+    "deployedAt": null,
+    "metadata": {
+      "name": "Tri des e-mails par urgence",
+      "description": ""
+    }
+  }
+}

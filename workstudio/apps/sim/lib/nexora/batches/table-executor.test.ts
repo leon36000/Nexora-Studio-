@@ -10,6 +10,10 @@ import {
   type TableExecutorDeps,
   type TableInfo,
 } from '@/lib/nexora/batches/table-executor'
+import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+} from '@/lib/nexora/data-protection/errors'
 import type { EvalTarget } from '@/lib/nexora/evaluations/types'
 import { NexoraWandRejectedError, NexoraWandUnavailableError } from '@/lib/nexora/wand'
 
@@ -323,6 +327,34 @@ describe('executeTableItem', () => {
       problem: { code: 'empty_answer', message: expect.stringContaining('plafond') },
     })
     expect(writeCell).not.toHaveBeenCalled()
+  })
+
+  it('fails the row without trying again when the workspace policy forbids sending its personal data', async () => {
+    const { deps, writeCell, signal } = executorSetup({
+      runTarget: vi.fn(async () => {
+        throw new PersonalDataRefusedError({ IBAN_CODE: 1 })
+      }),
+    })
+    const outcome = await executeTableItem(batch, item, signal, deps)
+    expect(outcome).toMatchObject({
+      kind: 'error',
+      retryable: false,
+      problem: { code: 'personal_data_not_allowed', message: expect.stringContaining('IBAN') },
+    })
+    expect(writeCell).not.toHaveBeenCalled()
+  })
+
+  it('tries the row again when the personal-data service does not answer', async () => {
+    const { deps, signal } = executorSetup({
+      runTarget: vi.fn(async () => {
+        throw new PersonalDataServiceError()
+      }),
+    })
+    expect(await executeTableItem(batch, item, signal, deps)).toMatchObject({
+      kind: 'error',
+      retryable: true,
+      problem: { code: 'personal_data_service_unavailable' },
+    })
   })
 
   it('reports an abort as such, writing nothing', async () => {

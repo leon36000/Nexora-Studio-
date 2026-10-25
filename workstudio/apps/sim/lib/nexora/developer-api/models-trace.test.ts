@@ -28,8 +28,8 @@ vi.mock('@/lib/nexora/developer-api/agents', () => ({
 }))
 vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: mockRecord }))
 
-import type { GatewayCall } from '@/lib/nexora/developer-api/gateway'
 import { interactiveBusy } from '@/lib/nexora/background-load'
+import type { GatewayCall } from '@/lib/nexora/developer-api/gateway'
 import { relayChatCompletion } from '@/lib/nexora/developer-api/models'
 
 const call = {

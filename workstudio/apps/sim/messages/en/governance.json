@@ -231,6 +231,9 @@
         "budgets": {
           "updated": "Monthly budgets updated"
         },
+        "data_protection": {
+          "updated": "Personal data policy updated"
+        },
         "trace_settings": {
           "updated": "Trace settings updated"
         },

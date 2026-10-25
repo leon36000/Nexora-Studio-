@@ -64,6 +64,7 @@ import {
   CommandList,
   DiffControls,
   Panel,
+  StepsLayer,
   Terminal,
 } from '@/app/workspace/[workspaceId]/w/[workflowId]/components'
 import { BlockMenu } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/block-menu'
@@ -5304,6 +5305,10 @@ const WorkflowContent = React.memo(
                     </>
                   )}
                 </>
+              )}
+
+              {!embedded && isWorkflowReady && (
+                <StepsLayer workflowId={workflowIdParam} canEdit={effectivePermissions.canEdit} />
               )}
 
               {!embedded && isWorkflowReady && isWorkflowEmpty && effectivePermissions.canEdit && (

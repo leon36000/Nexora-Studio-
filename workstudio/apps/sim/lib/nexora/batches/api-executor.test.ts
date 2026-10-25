@@ -62,6 +62,7 @@ function setup(overrides: Partial<ApiExecutorDeps> = {}) {
     now: () => NOW,
     loadKey: vi.fn(async () => key),
     admitModel: vi.fn(async (_key, model) => model),
+    protectMessages: vi.fn(async (_key, _model, messages) => ({ messages, protection: null })),
     reserveSpending: vi.fn(async () => reservation),
     callUpstream: vi.fn(async () => Response.json(completion)),
     beginTrace: vi.fn(() => ({ finish })),
@@ -165,6 +166,51 @@ describe('executeApiItem', () => {
     })
     const outcome = await executeApiItem(batch, item, signal, deps)
     expect(outcome).toMatchObject({ kind: 'error', retryable: false, problem: { code } })
+    expect(deps.callUpstream).not.toHaveBeenCalled()
+  })
+
+  it('sends the messages the personal-data policy of the key’s workspace let through, and traces the protection', async () => {
+    const masked = [{ role: 'user', content: 'Mon IBAN est <IBAN_CODE>' }]
+    const protection = { mode: 'mask', found: { IBAN_CODE: 1 } } as never
+    const { deps, signal } = setup({
+      protectMessages: vi.fn(async () => ({ messages: masked, protection })),
+    })
+    await executeApiItem(batch, item, signal, deps)
+    const sent = JSON.parse(
+      String((vi.mocked(deps.callUpstream).mock.calls[0][1] as { body: string }).body)
+    )
+    expect(sent.messages).toEqual(masked)
+    expect(deps.beginTrace).toHaveBeenCalledWith(
+      expect.objectContaining({ protection }),
+      'qwen2.5:7b',
+      masked
+    )
+  })
+
+  it('fails the request without any call when the policy forbids sending its personal data', async () => {
+    const { deps, signal } = setup({
+      protectMessages: vi.fn(async () => {
+        throw gatewayErrors.personalDataNotAllowed('IBAN interdit hors instance')
+      }),
+    })
+    const outcome = await executeApiItem(batch, item, signal, deps)
+    expect(outcome).toMatchObject({
+      kind: 'error',
+      retryable: false,
+      problem: { code: 'personal_data_not_allowed', status: 403 },
+    })
+    expect(deps.reserveSpending).not.toHaveBeenCalled()
+    expect(deps.callUpstream).not.toHaveBeenCalled()
+  })
+
+  it('tries the request again when the personal-data service does not answer', async () => {
+    const { deps, signal } = setup({
+      protectMessages: vi.fn(async () => {
+        throw gatewayErrors.personalDataProtectionUnavailable('service injoignable')
+      }),
+    })
+    const outcome = await executeApiItem(batch, item, signal, deps)
+    expect(outcome).toMatchObject({ kind: 'error', retryable: true })
     expect(deps.callUpstream).not.toHaveBeenCalled()
   })
 

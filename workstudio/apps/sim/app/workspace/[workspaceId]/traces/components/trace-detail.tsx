@@ -5,6 +5,7 @@ import { Badge, cn, Skeleton } from '@sim/emcn'
 import { Lock } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import type { NexoraTraceSpan } from '@/lib/api/contracts/nexora-traces'
+import { protectionLines } from '@/app/workspace/[workspaceId]/traces/utils/protection'
 import {
   flattenSpanTree,
   formatCo2,
@@ -63,6 +64,7 @@ export function TraceDetail({ scope, traceId, locale }: TraceDetailProps) {
   const { data, isPending, isError } = useNexoraTrace(scope, traceId)
   const [selection, setSelection] = useState<{ traceId: string; spanId: string } | null>(null)
   const rows = useMemo(() => flattenSpanTree(data?.spans ?? []), [data?.spans])
+  const protection = useMemo(() => protectionLines(data?.spans ?? []), [data?.spans])
 
   if (isPending) return <Skeleton className='h-64 w-full rounded-lg' />
   if (isError || !data) {
@@ -113,6 +115,29 @@ export function TraceDetail({ scope, traceId, locale }: TraceDetailProps) {
             {t('detail.error')} : {trace.error}
           </p>
         )}
+        {protection.map((line) => {
+          const items = line.found
+            .map(({ entity, count }) =>
+              t('detail.protectionItem', {
+                entity: t.has(`protectionEntities.${entity}`)
+                  ? t(`protectionEntities.${entity}` as 'protectionEntities.PERSON')
+                  : entity,
+                count,
+              })
+            )
+            .join(', ')
+          return (
+            <p
+              key={`${line.mode}-${line.model}`}
+              className='text-[var(--text-secondary)] text-caption'
+            >
+              {t(line.mode === 'mask' ? 'detail.protectionMask' : 'detail.protectionRefuse', {
+                model: line.model,
+                items,
+              })}
+            </p>
+          )
+        })}
         <div className='flex flex-wrap gap-x-4 text-[var(--text-muted)] text-caption'>
           {trace.visibility === 'private' && <span>{t('detail.privateNote')}</span>}
           {trace.maskedCount > 0 && <span>{t('detail.masked', { count: trace.maskedCount })}</span>}

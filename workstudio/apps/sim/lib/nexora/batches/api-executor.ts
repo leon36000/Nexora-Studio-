@@ -3,6 +3,7 @@ import { toRecord } from '@sim/utils/object'
 import type { ItemOutcome } from '@/lib/nexora/batches/engine'
 import type { BatchRecord, ItemRecord } from '@/lib/nexora/batches/repository'
 import { type BatchEndpoint, UPSTREAM_PATH } from '@/lib/nexora/batches/types'
+import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
 import { GatewayError } from '@/lib/nexora/developer-api/errors'
 import type { SpendingReservation } from '@/lib/nexora/developer-api/gateway'
 import {
@@ -20,6 +21,12 @@ export interface ApiExecutorDeps {
   now: () => Date
   loadKey: (keyId: string) => Promise<GatewayKey | null>
   admitModel: (key: GatewayKey, model: string) => Promise<string>
+  /** The personal-data policy of the key's workspace, applied to the messages of a chat request. */
+  protectMessages: (
+    key: GatewayKey,
+    model: string,
+    messages: unknown
+  ) => Promise<{ messages: unknown; protection: ProtectionNote | null }>
   reserveSpending: (
     key: GatewayKey,
     model: string,
@@ -39,7 +46,8 @@ function tokens(value: unknown): number {
 function refusal(error: GatewayError): ItemOutcome {
   return {
     kind: 'error',
-    retryable: false,
+    // A service that does not answer (503) may answer in a moment; every other refusal stays.
+    retryable: error.status === 503,
     problem: { code: error.code, message: error.message, status: error.status },
     response: null,
     latencyMs: null,
@@ -77,13 +85,19 @@ export async function executeApiItem(
   if (keyRefusal) return refusal(keyRefusal)
 
   const endpoint = batch.endpoint as BatchEndpoint
-  const body = item.request
+  let body = item.request
   const model = typeof body.model === 'string' ? body.model : batch.model
   const isChat = endpoint === '/v1/chat/completions'
 
   let reservation: SpendingReservation
+  let protection: ProtectionNote | null = null
   try {
     const usageModel = await deps.admitModel(key, model)
+    if (isChat) {
+      const guarded = await deps.protectMessages(key, usageModel, body.messages)
+      protection = guarded.protection
+      if (guarded.messages !== body.messages) body = { ...body, messages: guarded.messages }
+    }
     reservation = await deps.reserveSpending(
       key,
       usageModel,
@@ -106,6 +120,7 @@ export async function executeApiItem(
       userId: null,
       apiKeyId: key.id,
       name: `API · lot · ${key.name}`,
+      protection,
     },
     model,
     isChat ? body.messages : body.input

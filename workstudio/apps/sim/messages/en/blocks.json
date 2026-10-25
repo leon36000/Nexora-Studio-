@@ -3805,7 +3805,8 @@
           "IN_VEHICLE_REGISTRATION": "Indian vehicle registration",
           "IN_VOTER": "Indian voter ID",
           "IN_PASSPORT": "Indian passport",
-          "FI_PERSONAL_IDENTITY_CODE": "Finnish Personal Identity Code"
+          "FI_PERSONAL_IDENTITY_CODE": "Finnish Personal Identity Code",
+          "FR_NIR": "French social security number (NIR)"
         }
       },
       "piiMode": {
@@ -3818,11 +3819,8 @@
       "piiLanguage": {
         "title": "Language",
         "options": {
-          "en": "English",
-          "es": "Spanish",
-          "it": "Italian",
-          "pl": "Polish",
-          "fi": "Finnish"
+          "fr": "French",
+          "en": "English"
         }
       },
       "piiCustomPatterns": {

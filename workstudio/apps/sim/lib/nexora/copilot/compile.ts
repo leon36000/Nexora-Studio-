@@ -4,6 +4,7 @@ import { normalizeWorkflowBlockName } from '@sim/workflow-types/workflow'
 import { createMcpToolId } from '@/lib/mcp/shared'
 import { NEXORA_CONNECT_SERVER_NAME } from '@/lib/nexora/connect'
 import type { CopilotPlan, CopilotStep, CopilotTrigger } from '@/lib/nexora/copilot/plan'
+import { STEPS_MARKER } from '@/lib/nexora/steps/mode'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
 
 /** What the plan's names resolve against in the workspace it is created in. */
@@ -799,13 +800,10 @@ export function compilePlan(
   const idOf = (name: string): string => ids.get(name) ?? ''
 
   const blocks: Record<string, CompiledBlock> = {
-    [triggerId]: toBlock(
-      triggerId,
-      trigger.type,
-      trigger.name,
-      { x: 0, y: 0 },
-      triggerSubBlocks(plan.trigger, warnings)
-    ),
+    [triggerId]: toBlock(triggerId, trigger.type, trigger.name, { x: 0, y: 0 }, [
+      ...triggerSubBlocks(plan.trigger, warnings),
+      sub(STEPS_MARKER.id, STEPS_MARKER.type, STEPS_MARKER.value),
+    ]),
   }
   for (const step of plan.steps) {
     const id = idOf(step.name)

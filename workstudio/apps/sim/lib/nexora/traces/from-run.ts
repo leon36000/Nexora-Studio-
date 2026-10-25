@@ -6,6 +6,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { eq } from 'drizzle-orm'
 import type { WorkflowExecutionLog } from '@/lib/logs/types'
+import { type ProtectionNote, takeExecutionProtection } from '@/lib/nexora/data-protection/notes'
 import { draftFromExecution } from '@/lib/nexora/traces/from-execution'
 import { recordTrace } from '@/lib/nexora/traces/record'
 import { takeRunOrigin } from '@/lib/nexora/traces/run-origin'
@@ -17,6 +18,7 @@ export interface RunTraceDeps {
   workflowName: (workflowId: string) => Promise<string | null>
   record: (draft: TraceDraft) => Promise<void>
   takeOrigin: (executionId: string) => RunOriginHint | undefined
+  takeProtection: (executionId: string) => ProtectionNote[]
 }
 
 const defaultDeps: RunTraceDeps = {
@@ -30,6 +32,7 @@ const defaultDeps: RunTraceDeps = {
   },
   record: (draft) => recordTrace(draft),
   takeOrigin: takeRunOrigin,
+  takeProtection: takeExecutionProtection,
 }
 
 interface RunTraceInput {
@@ -53,6 +56,7 @@ export async function recordRunTrace(
   try {
     const hint = deps.takeOrigin(log.executionId)
     if (status === 'pending' || !workspaceId) return
+    const protection = deps.takeProtection(log.executionId)
     const data = log.executionData
     const tokens = toRecord(data.tokens)
     const input = toNumberOrNull(tokens.input)
@@ -81,6 +85,7 @@ export async function recordRunTrace(
         tokens:
           input !== null || output !== null ? { input: input ?? 0, output: output ?? 0 } : null,
         hint,
+        protection,
       })
     )
   } catch (error) {

@@ -18,6 +18,7 @@ import {
   estimateCallTokens,
   modelRefusal,
 } from '@/lib/nexora/developer-api/policy'
+import { protectedMessages } from '@/lib/nexora/developer-api/protected-messages'
 import { type RelayedText, relayWithUsage } from '@/lib/nexora/developer-api/sse'
 import {
   callUpstream,
@@ -117,6 +118,8 @@ export async function relayChatCompletion(
 ): Promise<Response> {
   noteInteractiveActivity()
   const usageModel = await admitModel(call.key, body.model)
+  const { messages, protection } = await protectedMessages(call.key, usageModel, body.messages)
+  if (messages !== body.messages) body = { ...body, messages }
   const reservation = await reserveSpending(
     call.key,
     usageModel,
@@ -132,6 +135,7 @@ export async function relayChatCompletion(
       userId: null,
       apiKeyId: call.key.id,
       name: `API · ${call.key.name}`,
+      protection,
     },
     body.model,
     body.messages

@@ -1,6 +1,16 @@
 import { flushMicrotasks } from '@sim/testing/helpers/async'
 import { mockEnvObject } from '@sim/testing/mocks/env.mock'
+import {
+  nexoraDataProtectionMock,
+  nexoraDataProtectionMockFns,
+} from '@sim/testing/mocks/nexora-data-protection.mock'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+} from '@/lib/nexora/data-protection/errors'
+import { resetProtectionCache } from '@/lib/nexora/data-protection/masking'
+import { isOffInstanceModel } from '@/lib/nexora/data-protection/model-location'
 import { recordTrace } from '@/lib/nexora/traces/record'
 import {
   describeWandFailure,
@@ -11,6 +21,10 @@ import {
 } from '@/lib/nexora/wand'
 
 vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: vi.fn(() => Promise.resolve()) }))
+vi.mock('@/lib/nexora/data-protection/policy', () => nexoraDataProtectionMock)
+vi.mock('@/lib/nexora/data-protection/model-location', () => ({
+  isOffInstanceModel: vi.fn(async () => true),
+}))
 
 const messages = [
   { role: 'system' as const, content: 'Tu écris des objets d’e-mail.' },
@@ -422,6 +436,129 @@ describe('Nexora wand', () => {
       )
       await nexoraWandComplete({ messages })
       expect(recordTrace).not.toHaveBeenCalled()
+    })
+  })
+})
+
+describe('Nexora wand under a personal-data policy', () => {
+  const fetchMock = vi.fn()
+  const IBAN = 'FR76 3000 6000 0112 3456 7890 189'
+  const sensitive = [
+    { role: 'system' as const, content: 'Tu rédiges des relances.' },
+    {
+      role: 'user' as const,
+      content: `Relance pour le client, IBAN ${IBAN}, écrire à marie@exemple.fr`,
+    },
+  ]
+  const trace = {
+    source: 'playground' as const,
+    workspaceId: 'ws-compta',
+    userId: 'u-1',
+    name: 'Playground',
+  }
+
+  function answer(): void {
+    fetchMock.mockResolvedValue(
+      Response.json({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 3 } })
+    )
+  }
+
+  beforeEach(() => {
+    mockEnvObject.VLLM_BASE_URL = 'http://nexora-api:8000/v1'
+    mockEnvObject.PII_URL = undefined
+    vi.stubGlobal('fetch', fetchMock)
+    resetProtectionCache()
+    vi.mocked(isOffInstanceModel).mockResolvedValue(true)
+    nexoraDataProtectionMockFns.mockLoadDataProtection.mockResolvedValue({
+      defaultMode: 'allow',
+      workspaceModes: { 'ws-compta': 'mask', 'ws-ventes': 'refuse' },
+    })
+  })
+  afterEach(() => {
+    fetchMock.mockReset()
+    nexoraDataProtectionMockFns.mockLoadDataProtection.mockReset()
+  })
+
+  it('sends a model off the instance the question masked when the workspace says « masquer »', async () => {
+    answer()
+    await nexoraWandComplete({ messages: sensitive, trace, model: 'cloud-glm-5-3' })
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body).messages
+    expect(sent[1].content).toBe('Relance pour le client, IBAN [IBAN], écrire à [E-MAIL]')
+    expect(sent[0].content).toBe('Tu rédiges des relances.')
+    expect(JSON.stringify(sent)).not.toContain('FR76')
+  })
+
+  it('masks a streamed Playground answer too, before the first byte leaves', async () => {
+    fetchMock.mockResolvedValue(
+      sse(['data: {"choices":[{"delta":{"content":"ok"}}]}', 'data: [DONE]'])
+    )
+    const text = await readAll(
+      await nexoraWandStream({ messages: sensitive, trace, model: 'cloud-glm-5-3' })
+    )
+    expect(text).toContain('"chunk":"ok"')
+    expect(JSON.stringify(JSON.parse(fetchMock.mock.calls[0][1].body).messages)).not.toContain(
+      'FR76'
+    )
+  })
+
+  it('shows on the trace of the call what was masked before it left', async () => {
+    answer()
+    await nexoraWandComplete({ messages: sensitive, trace, model: 'cloud-glm-5-3' })
+    await flushMicrotasks()
+    const span = vi.mocked(recordTrace).mock.calls[0][0].spans[0]
+    expect(span.attributes.dataProtection).toEqual([
+      {
+        mode: 'mask',
+        model: 'cloud-glm-5-3',
+        found: { IBAN_CODE: 1, EMAIL_ADDRESS: 1 },
+        masked: 2,
+      },
+    ])
+    expect(span.input).toContain('[IBAN]')
+    expect(span.input).not.toContain('FR76')
+  })
+
+  it('sends a model on this server the question untouched', async () => {
+    answer()
+    vi.mocked(isOffInstanceModel).mockResolvedValue(false)
+    await nexoraWandComplete({ messages: sensitive, trace, model: 'qwen2.5:7b' })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).messages).toEqual(sensitive)
+  })
+
+  it('stops a request holding personal data, before any call, when the workspace says « refuser »', async () => {
+    await expect(
+      nexoraWandComplete({ messages: sensitive, trace: { ...trace, workspaceId: 'ws-ventes' } })
+    ).rejects.toBeInstanceOf(PersonalDataRefusedError)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('traces the refused request with its reason', async () => {
+    await expect(
+      nexoraWandComplete({ messages: sensitive, trace: { ...trace, workspaceId: 'ws-ventes' } })
+    ).rejects.toThrow()
+    await flushMicrotasks()
+    expect(vi.mocked(recordTrace)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(recordTrace).mock.calls[0][0]).toMatchObject({
+      status: 'error',
+      error: expect.stringContaining('données personnelles'),
+    })
+  })
+
+  it('leaves a workspace without a mode to the instance default (allow here)', async () => {
+    answer()
+    await nexoraWandComplete({ messages: sensitive, trace: { ...trace, workspaceId: 'ws-autre' } })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).messages).toEqual(sensitive)
+  })
+
+  it('tells each surface what to answer: 403 for a refusal, 503 when the protection cannot be applied', () => {
+    expect(describeWandFailure(new PersonalDataRefusedError({ IBAN_CODE: 1 }))).toMatchObject({
+      status: 403,
+      code: 'personal_data',
+      reason: expect.stringContaining('IBAN'),
+    })
+    expect(describeWandFailure(new PersonalDataServiceError())).toMatchObject({
+      status: 503,
+      code: 'personal_data_unavailable',
     })
   })
 })

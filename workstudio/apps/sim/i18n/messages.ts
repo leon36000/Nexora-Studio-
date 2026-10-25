@@ -23,6 +23,7 @@ import enKnowledge from '@/messages/en/knowledge.json'
 import enLogs from '@/messages/en/logs.json'
 import enSettings from '@/messages/en/settings.json'
 import enShell from '@/messages/en/shell.json'
+import enSteps from '@/messages/en/steps.json'
 import enTables from '@/messages/en/tables.json'
 import enTraces from '@/messages/en/traces.json'
 import frAgents from '@/messages/fr/agents.json'
@@ -47,6 +48,7 @@ import frKnowledge from '@/messages/fr/knowledge.json'
 import frLogs from '@/messages/fr/logs.json'
 import frSettings from '@/messages/fr/settings.json'
 import frShell from '@/messages/fr/shell.json'
+import frSteps from '@/messages/fr/steps.json'
 import frTables from '@/messages/fr/tables.json'
 import frTraces from '@/messages/fr/traces.json'
 
@@ -76,6 +78,7 @@ export const MESSAGE_NAMESPACES = [
   'traces',
   'evaluations',
   'batches',
+  'steps',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -105,6 +108,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     traces: frTraces,
     evaluations: frEvaluations,
     batches: frBatches,
+    steps: frSteps,
   },
   en: {
     common: enCommon,
@@ -131,6 +135,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     traces: enTraces,
     evaluations: enEvaluations,
     batches: enBatches,
+    steps: enSteps,
   },
 }
 

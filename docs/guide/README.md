@@ -13,6 +13,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Les prompts](prompts.md) | Tous les utilisateurs | Consignes réutilisables et versionnées, étiquettes `production` et `test`, utilisation dans les agents, API |
 | [Les connecteurs](connecteurs.md) | Tous les utilisateurs | Connecter vos services en un clic, cloisonnement par espace, applications OAuth |
 | [Le Copilote](copilote.md) | Tous les utilisateurs | Décrire une automatisation en français et obtenir un workflow prêt à exécuter |
+| [La vue Étapes](etapes.md) | Tous les utilisateurs | Lire et régler un workflow en cartes, sans le canevas ; test pas à pas ; retour au mode avancé |
 | [Consommation et budgets](consommation.md) | Administrateurs | Qui consomme quoi, empreinte carbone, plafonds mensuels |
 | [Les modèles](modeles.md) | Administrateurs | Modèle par défaut, ajouter un modèle local, Mistral AI ou compatible OpenAI, tester, retirer |
 | [L'API des développeurs](api-developpeurs.md) | Développeurs | Modèles et agents au format OpenAI : clés dans l'interface, exemples Python, TypeScript, cURL et n8n, erreurs |
@@ -27,6 +28,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Documents et voix](documents-et-voix.md) | Tous les utilisateurs | Lire les documents scannés et les images, transcrire les enregistrements, réindexer une base |
 | [Les tables](tables.md) | Tous les utilisateurs | Données structurées utilisées par vos workflows |
 | [Les journaux](journaux.md) | Tous les utilisateurs | Suivre et relancer les exécutions |
+| [Gouvernance avancée et garde-fous](gouvernance.md) | Administrateurs | Détection locale des données personnelles, politiques par espace, modèles par groupe d'accès, export du journal d'audit |
 | [Outils MCP](outils-mcp.md) | Utilisateurs avancés | Serveurs MCP, exposer vos workflows |
 | [Réglages et gouvernance](reglages.md) | Administrateurs | Membres, audit, consommation, secrets |
 

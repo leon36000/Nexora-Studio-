@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import argparse
 import base64
+import csv
 import http.cookiejar
 import http.server
 import io
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import subprocess
 import sys
@@ -38,6 +40,19 @@ TEMPLATE_INPUTS = {
     "Compte rendu de réunion": {},
 }
 MEETING_TEMPLATE = "Compte rendu de réunion"
+# The 20 SME templates every new workspace receives (K7); the five first ones are run by the checks below.
+SME_TEMPLATES = [
+    "Devis client", "Relance de facture impayée", "Réponse support (FAQ)", "Tri des e-mails entrants",
+    "Compte rendu de réunion", "Offre d’emploi", "Fiche produit", "Publication réseaux sociaux",
+    "Réponse à une réclamation", "Newsletter mensuelle", "Relance de devis sans réponse",
+    "Rapport d’activité hebdomadaire", "Traduction professionnelle", "Résumé d’un contrat",
+    "Contrôle d’une facture fournisseur", "Accueil d’un nouveau salarié", "Réponse à un avis client",
+    "Ordre du jour de réunion", "Réponse client validée avant envoi", "Compte rendu d’entretien",
+]
+# What the Steps view reads: one trigger carrying the marker, then blocks of the step catalog (K7).
+STEP_TRIGGERS = {"start_trigger", "generic_webhook", "schedule", "chat_trigger"}
+STEP_BLOCKS = {"agent", "condition", "api", "wait", "human_in_the_loop_v2", "response", "smtp", "stt_v2",
+               "table_v2", "knowledge", "function", "mcp", "workflow", "variables"}
 # Three voices (a woman, a man, a second woman), 61 s, made by the local French voices.
 MEETING_AUDIO = Path(__file__).resolve().parent.parent / "docs" / "verification" / "k12-reunion" / "reunion-courte.mp3"
 
@@ -795,6 +810,75 @@ def main() -> int:
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
 
+    def etapes():
+        # K7. The Steps view opens what the Copilot and the SME templates build, and edits it in place:
+        # the workflow the canvas loads is the same one, with only the touched step changed.
+        def opens_in_steps(saved: dict) -> list:
+            blocks, edges = saved["blocks"], saved["edges"]
+            triggers = [b for b in blocks.values() if b["type"] in STEP_TRIGGERS]
+            require(len(triggers) == 1, f"{len(triggers)} déclencheur(s)")
+            marker = (triggers[0].get("subBlocks") or {}).get("nexoraView", {}).get("value")
+            require(marker == "etapes", "le déclencheur ne porte pas le repère « Étapes »")
+            require(not saved.get("loops") and not saved.get("parallels"), "boucle ou parallèle : forme non reconnue")
+            foreign = sorted({b["type"] for b in blocks.values() if b["type"] not in STEP_TRIGGERS | STEP_BLOCKS})
+            require(not foreign, f"blocs hors catalogue : {foreign}")
+            reached, queue = {triggers[0]["id"]}, [triggers[0]["id"]]
+            while queue:
+                current = queue.pop()
+                for edge in edges:
+                    if edge["source"] == current and edge["target"] not in reached:
+                        reached.add(edge["target"])
+                        queue.append(edge["target"])
+            require(reached == set(blocks), "des blocs ne sont reliés à aucune étape")
+            return [b["name"] for b in blocks.values()]
+
+        def load(wf: str) -> dict:
+            status, loaded = s.call("GET", f"/api/workflows/{wf}")
+            require(status == 200, f"état HTTP {status}")
+            return (loaded.get("data") or loaded)["state"]
+
+        missing = [name for name in SME_TEMPLATES if name not in state["workflows"]]
+        require(not missing, f"modèles PME absents : {missing}")
+        for name in SME_TEMPLATES:
+            try:
+                opens_in_steps(load(state["workflows"][name]))
+            except AssertionError as error:
+                raise AssertionError(f"modèle « {name} » : {error}") from error
+
+        description = "Quand je lance le workflow avec un texte, un agent le résume en une phrase en français."
+        status, body = s.call("POST", "/api/nexora/copilot/plan", {"workspaceId": state["ws"], "description": description}, timeout=600)
+        require(status == 200 and body.get("plan"), f"plan HTTP {status}: {str(body)[:300]}")
+        plan = body["plan"]
+        status, created = s.call("POST", "/api/nexora/copilot/create", {"workspaceId": state["ws"], "plan": plan})
+        require(status == 200 and created.get("workflowId"), f"création HTTP {status}: {str(created)[:300]}")
+        wf = created["workflowId"]
+        try:
+            before = load(wf)
+            names = opens_in_steps(before)
+            agent = next((b for b in before["blocks"].values() if b["type"] == "agent"), None)
+            require(agent, "le plan du Copilote n'a pas d'étape « agent »")
+            # « Modifier une étape » : le message de l'agent, comme le formulaire de l'éditeur l'écrit.
+            marker = f"ÉTAPES-{secrets.token_hex(3)}"
+            messages = agent["subBlocks"]["messages"]["value"]
+            messages[-1]["content"] = f"{messages[-1]['content']}\nTermine ta réponse par le mot {marker}."
+            status, _ = s.call("PUT", f"/api/workflows/{wf}/state", before)
+            require(status == 200, f"enregistrement HTTP {status}")
+            # « Retour au canevas » : le même workflow, la même forme, seule l'étape touchée a changé.
+            after = load(wf)
+            require(opens_in_steps(after) == names, "les étapes ont changé de nom ou d'ordre")
+            require({k: v["type"] for k, v in after["blocks"].items()} == {k: v["type"] for k, v in before["blocks"].items()}, "la forme du workflow a changé")
+            require(sorted((e["source"], e["target"], e.get("sourceHandle")) for e in after["edges"]) ==
+                    sorted((e["source"], e["target"], e.get("sourceHandle")) for e in before["edges"]), "les liens ont changé")
+            require(marker in json.dumps(after["blocks"][agent["id"]]["subBlocks"]["messages"], ensure_ascii=False), "la modification n'est pas revenue")
+            fields = [f["name"] for f in (plan.get("trigger") or {}).get("fields") or []]
+            text = "La réunion de lundi a fixé la livraison au 15 novembre et le budget à 12 000 euros."
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
+                                 "input": {name: text for name in fields} if fields else text}, timeout=600)
+            require(status == 200 and run.get("success") is not False and not run.get("error"), f"exécution HTTP {status}: {str(run)[:200]}")
+            return f"{len(SME_TEMPLATES)} modèles PME ouverts en Étapes ; « {plan.get('title', '?')} » créé par le Copilote, étape modifiée, forme intacte, exécuté"
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+
     def budgets():
         # A tiny workspace budget refuses the next run; raising it lets runs through again.
         admin_organization()
@@ -1466,6 +1550,154 @@ print(json.dumps(summary))
                 s.call("DELETE", f"/api/workspaces/{state['ws']}/api-keys/{key_id}")
             s.call("DELETE", f"/api/nexora/prompts/{prompt_id}?workspaceId={state['ws']}")
 
+    def guardrails():
+        """K14: the Garde-fous block finds an IBAN and an e-mail (local service); a workspace whose
+        policy says « masquer » sends a question holding an IBAN to the off-instance default model
+        masked, and its trace says so; « refuser » stops it with a 403; an access group that
+        denies the default model refuses it in a block, in the Playground and to a key's call; the
+        audit export opens as a French spreadsheet file. Sub-checks that need the local service, or
+        a default model off the instance, say so instead of passing."""
+        ws = state["ws"]
+        org = admin_organization()
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        iban = "FR76 3000 6000 0112 3456 7890 189"
+        email_address = "marie.dupont@exemple.fr"
+        notes: list[str] = []
+
+        status, models = admin.call("GET", "/api/nexora/models")
+        require(status == 200, f"models returned HTTP {status}")
+        default = next((m for m in models["models"] if m["isDefault"] and m["usage"] == "chat"), None)
+        require(default, "the instance has no default chat model")
+        status, overview = admin.call("GET", "/api/nexora/data-protection")
+        require(status == 200, f"data-protection returned HTTP {status}: {str(overview)[:200]}")
+        service = overview["service"]
+        original = overview["policy"]["workspaceModes"].get(ws)
+
+        def set_mode(mode):
+            status, body = admin.call("PUT", "/api/nexora/data-protection", {"workspaceModes": {ws: mode}})
+            require(status == 200, f"policy change returned HTTP {status}: {str(body)[:200]}")
+
+        def run_workflow(name: str, block_type: str, sub_blocks: dict, run_input) -> tuple[str, int, dict]:
+            status, body = s.call("POST", "/api/workflows", {"name": f"{name} {secrets.token_hex(3)}", "workspaceId": ws})
+            require(status in (200, 201), f"workflow creation returned HTTP {status}")
+            wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+            start, block = secrets.token_hex(8), secrets.token_hex(8)
+            status, _ = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                block: {"id": block, "type": block_type, "name": "Bloc", "position": {"x": 420, "y": 0}, "enabled": True,
+                        "subBlocks": {k: sub(k, t, v) for k, (t, v) in sub_blocks.items()}, "outputs": {}}},
+                "edges": [{"id": secrets.token_hex(8), "source": start, "target": block, "sourceHandle": "source", "targetHandle": "target"}],
+                "loops": {}, "parallels": {}})
+            require(status == 200, f"state save returned HTTP {status}")
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False, "input": run_input}, timeout=600)
+            return wf, status, run
+
+        def playground(question: str):
+            return s.call("POST", "/api/nexora/playground", {
+                "workspaceId": ws, "model": f"vllm/{default['name']}", "temperature": 0.2, "maxTokens": 256,
+                "messages": [{"role": "user", "content": question}]}, raw=True, timeout=300)
+
+        # (a) the Garde-fous block
+        if service["reachable"]:
+            wf, status, run = run_workflow(
+                "Garde-fous de fumée", "guardrails",
+                {"input": ("long-input", "<start.input>"), "validationType": ("dropdown", "pii"),
+                 "piiEntityTypes": ("grouped-checkbox-list", ["IBAN_CODE", "EMAIL_ADDRESS"]),
+                 "piiMode": ("dropdown", "block"), "piiLanguage": ("dropdown", "fr")},
+                f"Mon IBAN est {iban}, écrivez à {email_address}.")
+            try:
+                require(status == 200, f"guardrails run returned HTTP {status}: {str(run)[:200]}")
+                out = run.get("output") or {}
+                found = sorted({str(e.get("type")) for e in (out.get("detectedEntities") or []) if isinstance(e, dict)})
+                require(out.get("passed") is False and found == ["EMAIL_ADDRESS", "IBAN_CODE"], f"the block did not find both: {str(out)[:300]}")
+                notes.append("bloc Garde-fous : IBAN + e-mail détectés")
+            finally:
+                s.call("DELETE", f"/api/workflows/{wf}")
+        else:
+            notes.append("NON TESTÉ : bloc Garde-fous (service PII absent : profil « pii »)")
+
+        # (b) « masquer » : the question leaves masked, the trace says so
+        question = f"Mon IBAN est {iban}. Réponds seulement : bien reçu."
+        if default["card"]["location"] != "external":
+            notes.append(f"NON TESTÉ : politique « masquer » (le modèle par défaut est {default['card']['location']}, pas « Hors instance »)")
+        else:
+            try:
+                set_mode("mask")
+                status, text = playground(question)
+                require(status == 200, f"Playground under « masquer » returned HTTP {status}: {text[:200]}")
+                deadline, found = time.monotonic() + 8, None
+                while time.monotonic() < deadline and not found:
+                    _, listing = s.call("GET", f"/api/nexora/traces?workspaceId={ws}&limit=20")
+                    for trace in listing.get("traces", []):
+                        if trace["source"] != "playground":
+                            continue
+                        _, detail = s.call("GET", f"/api/nexora/traces/{trace['id']}?workspaceId={ws}")
+                        span = next((sp for sp in detail["spans"] if sp["kind"] == "model"), None)
+                        if span and "dataProtection" in span["attributes"]:
+                            found = span
+                            break
+                    if not found:
+                        time.sleep(0.5)
+                require(found, "no Playground trace carries the data-protection note")
+                note = found["attributes"]["dataProtection"][0]
+                require(note["mode"] == "mask" and note["found"].get("IBAN_CODE") == 1, f"unexpected note: {note}")
+                require("3000 6000" not in json.dumps(found), "the IBAN is readable in the trace")
+                notes.append("« masquer » : la trace note l'IBAN masqué avant l'envoi")
+
+                # (c) « refuser »
+                set_mode("refuse")
+                status, refused = s.call("POST", "/api/nexora/playground", {
+                    "workspaceId": ws, "model": f"vllm/{default['name']}", "messages": [{"role": "user", "content": question}]})
+                require(status == 403 and refused.get("error") == "personal_data" and "IBAN" in refused.get("reason", ""),
+                        f"Playground under « refuser »: HTTP {status} {refused}")
+                notes.append("« refuser » : 403 en français")
+            finally:
+                set_mode(original)
+
+        # (d) an access group that denies the default model (« Comptabilité »)
+        key_value = key_id = group_id = None
+        try:
+            status, body = s.call("POST", "/api/nexora/api-keys", {"workspaceId": ws, "name": f"fumee-groupe-{secrets.token_hex(3)}"})
+            require(status == 200, f"key creation returned HTTP {status}")
+            key_value, key_id = body["value"], body["key"]["id"]
+            status, body = admin.call("POST", f"/api/organizations/{org}/permission-groups", {
+                "name": f"Comptabilité fumée {secrets.token_hex(3)}", "workspaceIds": [ws],
+                "config": {"deniedModels": [f"vllm/{default['name']}"]}})
+            require(status in (200, 201), f"group creation returned HTTP {status}: {str(body)[:200]}")
+            group_id = (body.get("permissionGroup") or {}).get("id")
+            status, text = playground("Bonjour")
+            require(status == 403 and "model_not_allowed" in text, f"Playground with a denied model: HTTP {status} {text[:200]}")
+            wf, status, run = run_workflow(
+                "Bloc interdit de fumée", "agent",
+                {"model": ("combobox", "vllm/nexora-default"),
+                 "messages": ("messages-input", [{"role": "user", "content": "Bonjour"}]), "memoryType": ("dropdown", "none")},
+                {})
+            try:
+                dump = json.dumps(run, ensure_ascii=False)
+                require(not (status == 200 and run.get("success")) and "not allowed" in dump, f"agent block with a denied model: HTTP {status} {dump[:300]}")
+            finally:
+                s.call("DELETE", f"/api/workflows/{wf}")
+            status, refused = s.call("POST", "/v1/chat/completions", {"model": "nexora-default", "messages": [{"role": "user", "content": "x"}]},
+                                     headers={"Authorization": f"Bearer {key_value}"})
+            require(status == 403 and refused["error"]["code"] == "model_not_allowed", f"key call with a denied model: HTTP {status} {refused}")
+            notes.append("groupe sans le modèle par défaut : refusé dans un bloc, au Playground (403) et par une clé (403)")
+        finally:
+            if group_id:
+                admin.call("DELETE", f"/api/organizations/{org}/permission-groups/{group_id}")
+            if key_id:
+                s.call("DELETE", f"/api/nexora/api-keys/{key_id}?workspaceId={ws}")
+
+        # (e) the audit export, as a French spreadsheet opens it
+        status, raw = admin.call("GET", f"/api/audit-logs/export?organizationId={org}", raw=True)
+        require(status == 200, f"audit export returned HTTP {status}")
+        require(raw.startswith("\ufeffDate;Action;"), f"the export does not start with a byte-order mark and French headers: {raw[:80]!r}")
+        rows = list(csv.reader(raw.lstrip("\ufeff").splitlines(keepends=True), delimiter=";"))
+        require(len(rows) > 1 and len({len(r) for r in rows[:50]}) == 1, "the rows do not share one column count")
+        require(re.fullmatch(r"\d\d/\d\d/\d{4} \d\d:\d\d:\d\d", rows[1][0]), f"date not in jj/mm/aaaa hh:mm:ss: {rows[1][0]!r}")
+        notes.append(f"export CSV : « ; », dates françaises, {len(rows) - 1} lignes")
+        return " ; ".join(notes)
+
     def evaluations():
         """K10: a test set, a judge and a campaign comparing two targets run in the background; the
         statistics and the row-by-row comparison are read, a failing target under its threshold
@@ -1596,6 +1828,7 @@ print(json.dumps(summary))
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     s.check("Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement", traces)
+    s.check("Garde-fous : IBAN et e-mail, politique masquer / refuser, groupe sans modèle, export CSV", guardrails)
     s.check("Évaluations : campagne, statistiques, comparaison, alerte, annulation, planification", evaluations)
     s.check("Lots : fichier JSONL par le client openai, sortie, fichier invalide, annulation, table classée", batches)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
@@ -1609,6 +1842,7 @@ print(json.dumps(summary))
     s.check("Réunion : intervenants par voix, compte rendu, validation", meeting)
     s.check("Extraction : facture PDF et scannée ⇒ table « Factures »", extraction)
     s.check("Copilote : description ⇒ workflow exécuté", copilot)
+    s.check("Étapes : modèles PME et Copilote ouverts en Étapes, étape modifiée, forme intacte, exécution", etapes)
     s.check("Budgets : refus au plafond, reprise après relèvement", budgets)
     s.check("Journal d'audit", audit)
     s.check("Gouvernance : réglages d'instance, e-mail de test", governance)

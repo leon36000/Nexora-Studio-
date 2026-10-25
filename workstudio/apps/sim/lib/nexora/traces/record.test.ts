@@ -109,6 +109,19 @@ describe('recordTrace — masquage', () => {
     expect(spans[0].inputTokens).toBe(100)
   })
 
+  it('en mode « strict » garde pourtant ce que la barrière a masqué : des types et des nombres, aucun contenu', async () => {
+    const { all, stored } = deps({ redaction: 'strict' })
+    const note = { mode: 'mask', model: 'cloud-glm-5-3', found: { IBAN_CODE: 1 }, masked: 1 }
+    await recordTrace(
+      draft({ spans: [span({ attributes: { finishReason: 'stop', dataProtection: [note] } })] }),
+      all
+    )
+    expect(stored[0].spans[0].attributes).toEqual({
+      finishReason: 'stop',
+      dataProtection: [note],
+    })
+  })
+
   it('en mode « none » garde le contenu tel quel', async () => {
     const { all, stored } = deps({ redaction: 'none' })
     await recordTrace(draft(), all)
@@ -254,5 +267,60 @@ describe('recordTrace — export OTLP', () => {
       }
     )
     await expect(recordTrace(draft(), all)).resolves.toBeUndefined()
+  })
+})
+
+describe('recordTrace — le service de données personnelles complète les motifs', () => {
+  /** Stands in for the local service: it knows « Marie Dupont » and counts what it replaced. */
+  const maskNames = vi.fn(async (texts: string[]) => {
+    let found = 0
+    const masked = texts.map((text) => {
+      if (!text.includes('Marie Dupont')) return text
+      found += 1
+      return text.replaceAll('Marie Dupont', '<PERSON>')
+    })
+    return { texts: masked, found }
+  })
+  const named = draft({
+    input: 'Écris à Marie Dupont',
+    output: 'Bonjour Marie Dupont',
+    error: null,
+    status: 'ok',
+    spans: [span({ input: 'user: Marie Dupont', output: 'Marie Dupont, bonjour', attributes: {} })],
+  })
+
+  it('masque aussi les noms, dans la conversation et dans chaque étape, et les compte', async () => {
+    const { all, stored } = deps({}, { maskNames })
+    await recordTrace(named, all)
+    const written = JSON.stringify(stored)
+    expect(written).not.toContain('Marie Dupont')
+    expect(stored[0].trace.inputPreview).toBe('Écris à <PERSON>')
+    expect(stored[0].spans[0].input).toBe('user: <PERSON>')
+    expect(stored[0].trace.maskedCount).toBe(4)
+  })
+
+  it('stocke quand même la trace, masquée par les motifs seuls, si le service ne répond pas', async () => {
+    const failing = vi.fn(async () => {
+      throw new Error('ECONNREFUSED')
+    })
+    const { all, stored } = deps({}, { maskNames: failing })
+    await recordTrace(draft(), all)
+    expect(stored).toHaveLength(1)
+    expect(JSON.stringify(stored)).not.toContain('3000 6000')
+  })
+
+  it('ne demande rien au service en mode « none » ni en mode « strict »', async () => {
+    const asked = vi.fn(maskNames)
+    for (const redaction of ['none', 'strict'] as const) {
+      const { all } = deps({ redaction }, { maskNames: asked })
+      await recordTrace(named, all)
+    }
+    expect(asked).not.toHaveBeenCalled()
+  })
+
+  it('ne fait rien de plus quand le service n’est pas installé', async () => {
+    const { all, stored } = deps({}, { maskNames: undefined })
+    await recordTrace(named, all)
+    expect(stored[0].trace.inputPreview).toBe('Écris à Marie Dupont')
   })
 })
