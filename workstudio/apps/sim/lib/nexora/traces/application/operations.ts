@@ -9,7 +9,6 @@ const workspacePolicy = {
 const instancePolicy = {
   minimumRole: 'admin',
   principalKinds: ['session'],
-  capability: 'none',
 } as const
 
 /**
@@ -44,27 +43,36 @@ export const nexoraTraceOperations = Object.freeze({
   listInstance: defineOrganizationOperation({
     ...instancePolicy,
     id: 'organization.nexora_traces.list',
+    capability: 'none',
   }),
   // permission-group-exempt: instance administrators govern the traces of no workspace.
   readInstance: defineOrganizationOperation({
     ...instancePolicy,
     id: 'organization.nexora_traces.read',
+    capability: 'none',
   }),
   // permission-group-exempt: instance administrators govern the trace settings.
   readSettings: defineOrganizationOperation({
     ...instancePolicy,
     id: 'organization.nexora_traces.settings.read',
+    capability: 'none',
   }),
   // permission-group-exempt: instance administrators govern the trace settings.
   updateSettings: defineOrganizationOperation({
     ...instancePolicy,
     id: 'organization.nexora_traces.settings.update',
+    capability: 'none',
   }),
   // permission-group-exempt: instance administrators govern the trace settings.
   testExport: defineOrganizationOperation({
     ...instancePolicy,
     id: 'organization.nexora_traces.settings.test_export',
+    capability: 'none',
   }),
   // permission-group-exempt: instance administrators govern retention.
-  purge: defineOrganizationOperation({ ...instancePolicy, id: 'organization.nexora_traces.purge' }),
+  purge: defineOrganizationOperation({
+    ...instancePolicy,
+    id: 'organization.nexora_traces.purge',
+    capability: 'none',
+  }),
 })
