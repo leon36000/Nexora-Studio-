@@ -6,6 +6,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { eq } from 'drizzle-orm'
 import type { WorkflowExecutionLog } from '@/lib/logs/types'
+import { resolveActingMember } from '@/lib/nexora/acting-member'
 import { type ProtectionNote, takeExecutionProtection } from '@/lib/nexora/data-protection/notes'
 import { draftFromExecution } from '@/lib/nexora/traces/from-execution'
 import { recordTrace } from '@/lib/nexora/traces/record'
@@ -19,6 +20,8 @@ export interface RunTraceDeps {
   record: (draft: TraceDraft) => Promise<void>
   takeOrigin: (executionId: string) => RunOriginHint | undefined
   takeProtection: (executionId: string) => ProtectionNote[]
+  /** Whom the run's tool calls acted for: the member whose chat or personal task it was. */
+  actingMember: (input: Parameters<typeof resolveActingMember>[0]) => Promise<string | null>
 }
 
 const defaultDeps: RunTraceDeps = {
@@ -33,6 +36,7 @@ const defaultDeps: RunTraceDeps = {
   record: (draft) => recordTrace(draft),
   takeOrigin: takeRunOrigin,
   takeProtection: takeExecutionProtection,
+  actingMember: (input) => resolveActingMember(input),
 }
 
 interface RunTraceInput {
@@ -63,6 +67,17 @@ export async function recordRunTrace(
     const output = toNumberOrNull(tokens.output)
     const workflowId = log.workflowId ?? ''
     const failed = status !== 'completed'
+    const memberChatUserId = toStringOrNull(
+      toRecord(toRecord(data.trigger).data).memberChatUserId
+    )
+    const actingMemberUserId = memberChatUserId
+      ? null
+      : await deps.actingMember({
+          executionId: log.executionId,
+          workflowId,
+          workspaceId,
+          actorUserId: actorUserId ?? undefined,
+        })
     await deps.record(
       draftFromExecution({
         executionId: log.executionId,
@@ -70,7 +85,8 @@ export async function recordRunTrace(
         workflow: { id: workflowId, name: (await deps.workflowName(workflowId)) ?? workflowId },
         traceSpans: data.traceSpans ?? [],
         trigger: log.trigger,
-        memberChatUserId: toStringOrNull(toRecord(toRecord(data.trigger).data).memberChatUserId),
+        memberChatUserId,
+        actingMemberUserId,
         actorUserId,
         status: failed ? 'error' : 'ok',
         durationMs: log.totalDurationMs,

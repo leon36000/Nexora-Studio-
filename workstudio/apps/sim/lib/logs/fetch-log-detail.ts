@@ -256,7 +256,7 @@ export async function readLogDetail({
     const privateToAnother = await memberChatPayloadGate(
       viewerUserId,
       workspaceId
-    )(log.executionData)
+    )(log.executionData, { workflowId: log.workflowId })
     const withheldPayloads =
       hideTraceSpans || privateToAnother ? withheldExecutionData(materialized) : materialized
     const executionData = hideCostInfo ? withheldSpendData(withheldPayloads) : withheldPayloads

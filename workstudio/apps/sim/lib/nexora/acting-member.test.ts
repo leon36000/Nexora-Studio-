@@ -12,6 +12,7 @@ function deps(overrides: Partial<ActingMemberDependencies> = {}): ActingMemberDe
   return {
     taskOwner: async (workflowId) => (workflowId === TASK_WORKFLOW ? 'alice' : null),
     executionTrigger: async () => null,
+    activeDeployer: async () => 'alice',
     ...overrides,
   }
 }
@@ -79,5 +80,43 @@ describe('resolveActingMember', () => {
         deps({ executionTrigger: async () => 'schedule' })
       )
     ).resolves.toBeNull()
+  })
+
+  it('is nobody when a colleague deployed the version the planner starts', async () => {
+    await expect(
+      resolveActingMember(
+        { executionId: 'exec-7', workflowId: TASK_WORKFLOW, workspaceId: WS },
+        deps({ executionTrigger: async () => 'schedule', activeDeployer: async () => 'bob' })
+      )
+    ).resolves.toBeNull()
+  })
+
+  it('is nobody when the owner runs by hand a task whose version a colleague deployed', async () => {
+    await expect(
+      resolveActingMember(
+        { executionId: 'exec-8', workflowId: TASK_WORKFLOW, workspaceId: WS, actorUserId: 'alice' },
+        deps({ executionTrigger: async () => 'manual', activeDeployer: async () => 'bob' })
+      )
+    ).resolves.toBeNull()
+  })
+
+  it('is nobody when the task has no known deployer (no active version, API deployment)', async () => {
+    await expect(
+      resolveActingMember(
+        { executionId: 'exec-9', workflowId: TASK_WORKFLOW, workspaceId: WS },
+        deps({ executionTrigger: async () => 'schedule', activeDeployer: async () => null })
+      )
+    ).resolves.toBeNull()
+  })
+
+  it('does not apply the deployer rule to the member whose conversation the run serves', async () => {
+    const unregister = registerRunMember('exec-10', 'alice')
+    await expect(
+      resolveActingMember(
+        { executionId: 'exec-10', workflowId: TASK_WORKFLOW, workspaceId: WS },
+        deps({ activeDeployer: async () => 'bob' })
+      )
+    ).resolves.toBe('alice')
+    unregister()
   })
 })

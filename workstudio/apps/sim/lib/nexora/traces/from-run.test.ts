@@ -47,6 +47,7 @@ function deps(over: Partial<RunTraceDeps> = {}) {
     }),
     takeOrigin: () => undefined,
     takeProtection: () => [],
+    actingMember: async () => null,
     ...over,
   }
   return { all, recorded }
@@ -79,6 +80,48 @@ describe('recordRunTrace', () => {
       input: 'Question',
       output: 'Réponse',
     })
+  })
+
+  it('réserve au propriétaire la trace d’une tâche planifiée qui agit pour lui', async () => {
+    const acting = vi.fn(async () => 'owner-1')
+    const { all, recorded } = deps({ actingMember: acting })
+    await recordRunTrace(
+      input({ log: log({ trigger: { type: 'schedule', source: 'schedule', timestamp: 'x' } }, 'schedule') }),
+      all
+    )
+    expect(acting).toHaveBeenCalledWith({
+      executionId: 'exec-1',
+      workflowId: 'wf-1',
+      workspaceId: 'ws-1',
+      actorUserId: 'actor-1',
+    })
+    expect(recorded[0]).toMatchObject({
+      source: 'workflow',
+      visibility: 'private',
+      userId: 'owner-1',
+    })
+  })
+
+  it('laisse visible de l’espace la trace d’un workflow qui n’agit pour personne', async () => {
+    const { all, recorded } = deps()
+    await recordRunTrace(
+      input({ log: log({ trigger: { type: 'schedule', source: 'schedule', timestamp: 'x' } }, 'schedule') }),
+      all
+    )
+    expect(recorded[0]).toMatchObject({ visibility: 'workspace', userId: 'actor-1' })
+  })
+
+  it('n’enregistre pas une trace dont on ne sait pas si elle est personnelle', async () => {
+    const { all } = deps({
+      actingMember: async () => {
+        throw new Error('base indisponible')
+      },
+    })
+    await recordRunTrace(
+      input({ log: log({ trigger: { type: 'schedule', source: 'schedule', timestamp: 'x' } }, 'schedule') }),
+      all
+    )
+    expect(all.record).not.toHaveBeenCalled()
   })
 
   it('porte sur la trace ce que la barrière a masqué pendant l’exécution', async () => {

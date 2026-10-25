@@ -126,6 +126,15 @@ describe('trace administration routes', () => {
     expect(mockSave).not.toHaveBeenCalled()
   })
 
+  it('refuse une horloge simulée sans espace : elle ne purge jamais toute l’instance', async () => {
+    const response = await purgePost(
+      call('POST', '/api/nexora/traces/purge', { asOf: '2026-12-01T00:00:00.000Z' }),
+      {}
+    )
+    expect(response.status).toBe(400)
+    expect(mockPurge).not.toHaveBeenCalled()
+  })
+
   it('purge avec une horloge simulée, limitée à un espace', async () => {
     const response = await purgePost(
       call('POST', '/api/nexora/traces/purge', {

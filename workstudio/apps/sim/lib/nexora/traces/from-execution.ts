@@ -21,6 +21,11 @@ interface ExecutionInput {
   trigger: string
   /** Set when a signed-in member chatted with a members-only deployed chat (the Assistant). */
   memberChatUserId: string | null
+  /**
+   * The member whose accounts the run used without a chat (a scheduled personal task), as
+   * `resolveActingMember` says; their run is as private as their chat.
+   */
+  actingMemberUserId: string | null
   actorUserId: string | null
   status: 'ok' | 'error'
   durationMs: number
@@ -190,13 +195,14 @@ export function draftFromExecution(input: ExecutionInput): TraceDraft {
   const outputTokens =
     input.tokens?.output ?? modelSpans.reduce((sum, span) => sum + span.outputTokens, 0)
   const source = traceSource(input)
+  const privateOwner = input.memberChatUserId ?? input.actingMemberUserId
   const failure = spans.find((span) => span.status === 'error' && span.attributes.error)
   return {
     id: generateRandomHex(32),
     workspaceId: input.workspaceId,
-    userId: input.memberChatUserId ?? input.actorUserId,
+    userId: privateOwner ?? input.actorUserId,
     source,
-    visibility: input.memberChatUserId ? 'private' : 'workspace',
+    visibility: privateOwner ? 'private' : 'workspace',
     name: input.workflow.name,
     agentId: input.workflow.id,
     agentName: input.workflow.name,

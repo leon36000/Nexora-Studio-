@@ -1289,9 +1289,11 @@ print(json.dumps(summary))
     def traces():
         """K8: every model call becomes a trace. A question to a members-only agent that searches a
         knowledge base shows up in Traces within 5 s as model → knowledge → model; an IBAN typed in
-        it is masked everywhere; « duration > 10 s » finds a slow run only; a purge one day on,
-        with a simulated clock, empties the workspace's traces; a test OTLP collector receives the
-        spans of a Playground call; a person outside the workspace reads none of them."""
+        it is masked everywhere; « duration > 10 s » finds a slow run only; a purge with a
+        simulated clock, bounded to the test workspace, empties its traces and leaves the instance's
+        retention alone; a test OTLP collector receives the spans of a Playground call (skipped when
+        the instance already has an export configured: its header values cannot be read back, so they
+        could not be restored); a person outside the workspace reads none of them."""
         ws = state["ws"]
         if "kb" not in state:
             knowledge_base()
@@ -1333,6 +1335,11 @@ print(json.dumps(summary))
             "loops": {}, "parallels": {}}
         wait_wf = None
         collector = None
+        status, current = admin.call("GET", "/api/nexora/traces/settings")
+        require(status == 200, f"trace settings read returned HTTP {status}: {str(current)[:200]}")
+        current_otlp = current["settings"]["otlp"]
+        instance_exports = bool(current_otlp.get("enabled") or current_otlp.get("endpoint") or current_otlp.get("headers"))
+        otlp_touched = False
         try:
             status, body = s.call("PUT", f"/api/workflows/{agent_wf}/state", agent_state)
             require(status == 200, f"agent state save returned HTTP {status}: {str(body)[:200]}")
@@ -1402,46 +1409,48 @@ print(json.dumps(summary))
                     f"the duration filter keeps fast traces: {[t['durationMs'] for t in over_ten]}")
 
             # (e) a test OTLP collector receives the spans of a Playground call
-            received: list[dict] = []
-
-            class Collector(http.server.BaseHTTPRequestHandler):
-                def do_POST(self):
-                    body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
-                    received.append({"path": self.path, "auth": self.headers.get("X-Collector-Key"), "body": json.loads(body or b"{}")})
-                    self.send_response(200)
-                    self.send_header("Content-Type", "application/json")
-                    self.end_headers()
-                    self.wfile.write(b"{}")
-
-                def log_message(self, *args):
-                    pass
-
-            collector = http.server.ThreadingHTTPServer(("0.0.0.0", 0), Collector)
-            threading.Thread(target=collector.serve_forever, daemon=True).start()
-            collector_host = os.environ.get("NEXORA_SMOKE_COLLECTOR_HOST", "127.0.0.1")
-            endpoint = f"http://{collector_host}:{collector.server_address[1]}/v1/traces"
-            status, saved = admin.call("PUT", "/api/nexora/traces/settings", {"otlp": {"enabled": True, "endpoint": endpoint, "headers": [{"name": "X-Collector-Key", "value": "cle-de-fumee"}]}})
-            require(status == 200, f"OTLP settings returned HTTP {status}: {str(saved)[:200]}")
-            require("cle-de-fumee" not in json.dumps(saved), "an export header value came back from the settings")
-            status, tested = admin.call("POST", "/api/nexora/traces/settings/test-export", {})
-            require(status == 200 and tested.get("ok"), f"export test failed: {tested}")
-            marker = f"export-{secrets.token_hex(3)}"
-            status, text = s.call("POST", "/api/nexora/playground", {"workspaceId": ws, "model": "vllm/nexora-default", "temperature": 0.2, "maxTokens": 512,
-                                  "messages": [{"role": "user", "content": f"Réponds simplement « {marker} »."}]}, raw=True, timeout=300)
-            require(status == 200, f"playground returned HTTP {status}")
-            deadline = time.monotonic() + 10
             spans: list[dict] = []
-            while time.monotonic() < deadline and not spans:
-                for item in received:
-                    for resource in item["body"].get("resourceSpans", []):
-                        for scope in resource.get("scopeSpans", []):
-                            spans += [sp for sp in scope.get("spans", []) if marker in json.dumps(sp)]
-                time.sleep(0.4)
-            require(spans, f"the collector got no span of the Playground call ({len(received)} request(s))")
-            require(any(r["auth"] == "cle-de-fumee" for r in received), "the collector did not get the configured header")
-            attrs = {a["key"] for sp in spans for a in sp["attributes"]}
-            require({"gen_ai.request.model", "gen_ai.usage.input_tokens"} <= attrs, f"missing gen_ai attributes: {sorted(attrs)}")
-            admin.call("PUT", "/api/nexora/traces/settings", {"otlp": {"enabled": False, "headers": []}})
+            if not instance_exports:
+                received: list[dict] = []
+
+                class Collector(http.server.BaseHTTPRequestHandler):
+                    def do_POST(self):
+                        body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                        received.append({"path": self.path, "auth": self.headers.get("X-Collector-Key"), "body": json.loads(body or b"{}")})
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(b"{}")
+
+                    def log_message(self, *args):
+                        pass
+
+                collector = http.server.ThreadingHTTPServer(("0.0.0.0", 0), Collector)
+                threading.Thread(target=collector.serve_forever, daemon=True).start()
+                collector_host = os.environ.get("NEXORA_SMOKE_COLLECTOR_HOST", "127.0.0.1")
+                endpoint = f"http://{collector_host}:{collector.server_address[1]}/v1/traces"
+                otlp_touched = True
+                status, saved = admin.call("PUT", "/api/nexora/traces/settings", {"otlp": {"enabled": True, "endpoint": endpoint, "headers": [{"name": "X-Collector-Key", "value": "cle-de-fumee"}]}})
+                require(status == 200, f"OTLP settings returned HTTP {status}: {str(saved)[:200]}")
+                require("cle-de-fumee" not in json.dumps(saved), "an export header value came back from the settings")
+                status, tested = admin.call("POST", "/api/nexora/traces/settings/test-export", {})
+                require(status == 200 and tested.get("ok"), f"export test failed: {tested}")
+                marker = f"export-{secrets.token_hex(3)}"
+                status, text = s.call("POST", "/api/nexora/playground", {"workspaceId": ws, "model": "vllm/nexora-default", "temperature": 0.2, "maxTokens": 512,
+                                      "messages": [{"role": "user", "content": f"Réponds simplement « {marker} »."}]}, raw=True, timeout=300)
+                require(status == 200, f"playground returned HTTP {status}")
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline and not spans:
+                    for item in received:
+                        for resource in item["body"].get("resourceSpans", []):
+                            for scope in resource.get("scopeSpans", []):
+                                spans += [sp for sp in scope.get("spans", []) if marker in json.dumps(sp)]
+                    time.sleep(0.4)
+                require(spans, f"the collector got no span of the Playground call ({len(received)} request(s))")
+                require(any(r["auth"] == "cle-de-fumee" for r in received), "the collector did not get the configured header")
+                attrs = {a["key"] for sp in spans for a in sp["attributes"]}
+                require({"gen_ai.request.model", "gen_ai.usage.input_tokens"} <= attrs, f"missing gen_ai attributes: {sorted(attrs)}")
+                admin.call("PUT", "/api/nexora/traces/settings", {"otlp": {"enabled": False, "endpoint": "", "headers": []}})
 
             # (f) a person outside the workspace reads nothing of it
             outsider = Smoke(args.url, args.origin)
@@ -1454,20 +1463,21 @@ print(json.dumps(summary))
             status, _ = outsider.call("GET", "/api/nexora/traces/settings")
             require(status == 403, f"a plain member reads the trace settings (HTTP {status})")
 
-            # (d) retention of one day, clock two days ahead: the workspace's traces are purged
-            status, _ = admin.call("PUT", "/api/nexora/traces/settings", {"retentionDays": 1})
-            require(status == 200, f"retention change returned HTTP {status}")
+            # (d) clock past the instance's own retention: the test workspace's traces are purged, nothing else
             before = len(traces_of(s))
             require(before >= 3, f"too few traces before the purge: {before}")
-            as_of = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(time.time() + 2 * 86400))
+            retention_days = current["settings"]["retentionDays"]
+            as_of = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(time.time() + (retention_days + 1) * 86400))
             status, purged = admin.call("POST", "/api/nexora/traces/purge", {"workspaceId": ws, "asOf": as_of})
             require(status == 200 and purged["deletedTraces"] >= before, f"purge returned HTTP {status}: {purged}")
             require(not traces_of(s), "traces remain after the simulated purge")
             return (f"arbre modèle → connaissances → modèle en {appeared:.1f} s, IBAN et e-mail masqués ({found[0]['maskedCount']} masquages), "
-                    f"« durée > 10 s » ⇒ {len(over_ten)} sur {fast_total}, collecteur OTLP : {len(spans)} span(s), "
+                    f"« durée > 10 s » ⇒ {len(over_ten)} sur {fast_total}, collecteur OTLP : "
+                    f"{'ignoré (export déjà configuré)' if instance_exports else f'{len(spans)} span(s)'}, "
                     f"purge simulée : {purged['deletedTraces']} traces, extérieur refusé")
         finally:
-            admin.call("PUT", "/api/nexora/traces/settings", {"retentionDays": 30, "otlp": {"enabled": False, "headers": []}})
+            if otlp_touched:
+                admin.call("PUT", "/api/nexora/traces/settings", {"otlp": {"enabled": False, "endpoint": "", "headers": []}})
             if collector:
                 collector.shutdown()
             s.call("DELETE", f"/api/workflows/{agent_wf}")
