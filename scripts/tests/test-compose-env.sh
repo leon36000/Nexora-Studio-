@@ -142,6 +142,31 @@ text = open(sys.argv[1], encoding="utf-8").read()
 assert re.search(r"^\s+audio_diarization_url: \$\{NEXORA_DIARIZE_URL:-http://diarize:8001\}$", text, re.M), text
 PY
 
+# Personal-data detection (profile « pii »): off by default; on, one internal service built here
+# (Presidio, French and English small models), read by WorkStudio through PII_URL. Nothing waits for it.
+[ "$(has_service pii)" = "False" ] && ok "no personal-data service by default" || ko "no personal-data service by default"
+[ -z "$(value PII_URL)" ] && ok "WorkStudio asks no personal-data service by default" || ko "WorkStudio asks no personal-data service by default (got: $(value PII_URL))"
+pii_env="$(mktemp)"; cp "$env_file" "$pii_env"
+printf "COMPOSE_PROFILES=pii\nNEXORA_PII_URL=http://pii:5001\n" >> "$pii_env"
+pii_rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$pii_env" config --format json 2>/dev/null)"; rm -f "$pii_env"
+python3 -I -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+p = services["pii"]
+assert p["profiles"] == ["pii"], p.get("profiles")
+assert not p.get("ports"), p.get("ports")
+assert p["build"]["context"].endswith("workstudio"), p["build"]
+assert p["build"]["dockerfile"] == "docker/pii.Dockerfile", p["build"]
+assert p["image"].endswith("pii:local"), p["image"]
+assert p["restart"] == "unless-stopped", p.get("restart")
+assert int(p["mem_limit"]) >= 512 * 1024 * 1024, p.get("mem_limit")
+assert p["healthcheck"]["test"][0] == "CMD"
+assert services["workstudio"]["environment"]["PII_URL"] == "http://pii:5001", services["workstudio"]["environment"].get("PII_URL")
+assert "pii" not in services["workstudio"].get("depends_on", {}), "an absent profile must not block WorkStudio"
+' <<< "$pii_rendered" 2>/dev/null \
+  && ok "personal-data service: internal only, built here, own profile, address given to WorkStudio" \
+  || ko "personal-data service: internal only, built here, own profile, address given to WorkStudio"
+
 # The developer API (<domain>/v1, OpenAI format) streams through Caddy without compression.
 caddyfile="$ROOT/deploy/caddy/Caddyfile"
 python3 -I - "$caddyfile" <<'PY' && ok "Caddy relays /v1 unbuffered and uncompressed" || ko "Caddy relays /v1 unbuffered and uncompressed"

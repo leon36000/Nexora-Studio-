@@ -27,6 +27,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Documents et voix](documents-et-voix.md) | Tous les utilisateurs | Lire les documents scannés et les images, transcrire les enregistrements, réindexer une base |
 | [Les tables](tables.md) | Tous les utilisateurs | Données structurées utilisées par vos workflows |
 | [Les journaux](journaux.md) | Tous les utilisateurs | Suivre et relancer les exécutions |
+| [Gouvernance avancée et garde-fous](gouvernance.md) | Administrateurs | Détection locale des données personnelles, politiques par espace, modèles par groupe d'accès, export du journal d'audit |
 | [Outils MCP](outils-mcp.md) | Utilisateurs avancés | Serveurs MCP, exposer vos workflows |
 | [Réglages et gouvernance](reglages.md) | Administrateurs | Membres, audit, consommation, secrets |
 

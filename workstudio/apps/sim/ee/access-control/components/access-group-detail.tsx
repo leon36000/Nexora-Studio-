@@ -25,6 +25,8 @@ import {
 } from '@/app/workspace/[workspaceId]/settings/components/settings-resource-row'
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import { accessGroupErrorKey } from '@/ee/access-control/components/access-group-errors'
+import { sameModelList } from '@/ee/access-control/components/denied-models'
+import { GroupModels } from '@/ee/access-control/components/group-models'
 import { WorkspaceChecklist } from '@/ee/access-control/components/workspace-checklist'
 import {
   type PermissionGroup,
@@ -43,6 +45,8 @@ interface GroupDraft {
   name: string
   workspaceIds: string[]
   withheld: Withheld
+  /** The WorkStudio ids (`vllm/<name>`) of the models the group may not use. */
+  deniedModels: string[]
 }
 
 function draftFrom(group: PermissionGroup): GroupDraft {
@@ -52,6 +56,7 @@ function draftFrom(group: PermissionGroup): GroupDraft {
     withheld: Object.fromEntries(
       ACCESS_GROUP_CAPABILITIES.map(({ key }) => [key, group.config[key] === true])
     ) as Withheld,
+    deniedModels: [...(group.config.deniedModels ?? [])],
   }
 }
 
@@ -59,7 +64,8 @@ function sameDraft(a: GroupDraft, b: GroupDraft): boolean {
   return (
     a.name.trim() === b.name.trim() &&
     [...a.workspaceIds].sort().join(',') === [...b.workspaceIds].sort().join(',') &&
-    ACCESS_GROUP_CAPABILITIES.every(({ key }) => a.withheld[key] === b.withheld[key])
+    ACCESS_GROUP_CAPABILITIES.every(({ key }) => a.withheld[key] === b.withheld[key]) &&
+    sameModelList(a.deniedModels, b.deniedModels)
   )
 }
 
@@ -98,7 +104,7 @@ export function AccessGroupDetail({ organizationId, group, onClose }: AccessGrou
         groupId: group.id,
         body: {
           name: draft.name.trim(),
-          config: draft.withheld,
+          config: { ...draft.withheld, deniedModels: draft.deniedModels },
           ...(group.isDefault ? {} : { workspaceIds: draft.workspaceIds }),
         },
       },
@@ -242,6 +248,12 @@ export function AccessGroupDetail({ organizationId, group, onClose }: AccessGrou
               })}
             </div>
           </SettingsSection>
+
+          <GroupModels
+            denied={draft.deniedModels}
+            disabled={update.isPending}
+            onChange={(deniedModels) => setDraft((current) => ({ ...current, deniedModels }))}
+          />
         </div>
       </SettingsPanel>
 

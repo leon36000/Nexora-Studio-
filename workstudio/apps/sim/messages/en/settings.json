@@ -310,6 +310,10 @@
       "status": {
         "label": "Status",
         "description": "Check the services, disk space and version"
+      },
+      "data-protection": {
+        "label": "Personal data",
+        "description": "Protect the data sent to models outside the instance"
       }
     },
     "account": {
@@ -2122,6 +2126,11 @@
       "forbidden": "Organization admins only.",
       "invalid": "Check the values you entered.",
       "unknown": "The operation failed. Try again."
+    },
+    "models": {
+      "title": "Models the group can choose",
+      "empty": "No chat model has been added.",
+      "default": "default"
     }
   },
   "instanceStatus": {
@@ -2157,6 +2166,32 @@
       "diskUnknown": "Unreadable",
       "lastBackup": "Last backup",
       "lastBackupValue": "See <command>nexora status</command> on the server"
+    }
+  },
+  "dataProtection": {
+    "loadError": "The personal data policy could not be loaded.",
+    "saved": "Policy saved.",
+    "saveError": "The policy could not be saved.",
+    "modes": {
+      "allow": "Allow",
+      "mask": "Mask",
+      "refuse": "Refuse"
+    },
+    "inherit": "Same as the instance ({mode})",
+    "service": {
+      "title": "Detection",
+      "running": "The local detection service answers: names, IBANs, e-mails, phone numbers, cards and social security numbers are recognized.",
+      "down": "The local detection service does not answer: while it is stopped, requests covered by a « Mask » or « Refuse » policy are not sent.",
+      "notInstalled": "The local detection service is not installed: only IBANs, e-mails, cards and phone numbers are recognized, not names."
+    },
+    "instance": {
+      "title": "Models outside the instance, by default",
+      "hint": "Allow sends data as it is; Mask replaces it with [IBAN], <PERSON>… before sending; Refuse stops the request. Models on this server are never concerned."
+    },
+    "workspaces": {
+      "title": "By workspace",
+      "empty": "No workspace.",
+      "archived": "Archived"
     }
   }
 }

@@ -8,6 +8,7 @@ import {
 } from '@/lib/memory/context-policy'
 import { getConversationTokenCount } from '@/lib/memory/context-tokens'
 import type { ConversationProtocol } from '@/lib/memory/conversation-types'
+import { protectProviderPayload } from '@/lib/nexora/data-protection/provider-payload'
 import {
   conversationAttachmentTokenSurcharge,
   conversationAttachmentTokensByReference,
@@ -290,6 +291,8 @@ export async function prepareConversationGeneration<T>(
   protocol: ConversationProtocol,
   payload: T
 ): Promise<T> {
+  // Nexora edition: the workspace's personal-data policy, before the turn leaves for the model.
+  payload = await protectProviderPayload(request, protocol, payload)
   const runtime = getConversationRequestContext(request)
   await assertRunWithinUsageLimit(runtime)
   if (!runtime?.agentConversation) return payload

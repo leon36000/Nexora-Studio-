@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import argparse
 import base64
+import csv
 import http.cookiejar
 import http.server
 import io
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import sys
 import threading
@@ -1439,6 +1441,154 @@ def main() -> int:
                 s.call("DELETE", f"/api/workspaces/{state['ws']}/api-keys/{key_id}")
             s.call("DELETE", f"/api/nexora/prompts/{prompt_id}?workspaceId={state['ws']}")
 
+    def guardrails():
+        """K14: the Garde-fous block finds an IBAN and an e-mail (local service); a workspace whose
+        policy says « masquer » sends a question holding an IBAN to the off-instance default model
+        masked, and its trace says so; « refuser » stops it with a 403; an access group that
+        denies the default model refuses it in a block, in the Playground and to a key's call; the
+        audit export opens as a French spreadsheet file. Sub-checks that need the local service, or
+        a default model off the instance, say so instead of passing."""
+        ws = state["ws"]
+        org = admin_organization()
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        iban = "FR76 3000 6000 0112 3456 7890 189"
+        email_address = "marie.dupont@exemple.fr"
+        notes: list[str] = []
+
+        status, models = admin.call("GET", "/api/nexora/models")
+        require(status == 200, f"models returned HTTP {status}")
+        default = next((m for m in models["models"] if m["isDefault"] and m["usage"] == "chat"), None)
+        require(default, "the instance has no default chat model")
+        status, overview = admin.call("GET", "/api/nexora/data-protection")
+        require(status == 200, f"data-protection returned HTTP {status}: {str(overview)[:200]}")
+        service = overview["service"]
+        original = overview["policy"]["workspaceModes"].get(ws)
+
+        def set_mode(mode):
+            status, body = admin.call("PUT", "/api/nexora/data-protection", {"workspaceModes": {ws: mode}})
+            require(status == 200, f"policy change returned HTTP {status}: {str(body)[:200]}")
+
+        def run_workflow(name: str, block_type: str, sub_blocks: dict, run_input) -> tuple[str, int, dict]:
+            status, body = s.call("POST", "/api/workflows", {"name": f"{name} {secrets.token_hex(3)}", "workspaceId": ws})
+            require(status in (200, 201), f"workflow creation returned HTTP {status}")
+            wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+            start, block = secrets.token_hex(8), secrets.token_hex(8)
+            status, _ = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                block: {"id": block, "type": block_type, "name": "Bloc", "position": {"x": 420, "y": 0}, "enabled": True,
+                        "subBlocks": {k: sub(k, t, v) for k, (t, v) in sub_blocks.items()}, "outputs": {}}},
+                "edges": [{"id": secrets.token_hex(8), "source": start, "target": block, "sourceHandle": "source", "targetHandle": "target"}],
+                "loops": {}, "parallels": {}})
+            require(status == 200, f"state save returned HTTP {status}")
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False, "input": run_input}, timeout=600)
+            return wf, status, run
+
+        def playground(question: str):
+            return s.call("POST", "/api/nexora/playground", {
+                "workspaceId": ws, "model": f"vllm/{default['name']}", "temperature": 0.2, "maxTokens": 256,
+                "messages": [{"role": "user", "content": question}]}, raw=True, timeout=300)
+
+        # (a) the Garde-fous block
+        if service["reachable"]:
+            wf, status, run = run_workflow(
+                "Garde-fous de fumée", "guardrails",
+                {"input": ("long-input", "<start.input>"), "validationType": ("dropdown", "pii"),
+                 "piiEntityTypes": ("grouped-checkbox-list", ["IBAN_CODE", "EMAIL_ADDRESS"]),
+                 "piiMode": ("dropdown", "block"), "piiLanguage": ("dropdown", "fr")},
+                f"Mon IBAN est {iban}, écrivez à {email_address}.")
+            try:
+                require(status == 200, f"guardrails run returned HTTP {status}: {str(run)[:200]}")
+                out = run.get("output") or {}
+                found = sorted({str(e.get("type")) for e in (out.get("detectedEntities") or []) if isinstance(e, dict)})
+                require(out.get("passed") is False and found == ["EMAIL_ADDRESS", "IBAN_CODE"], f"the block did not find both: {str(out)[:300]}")
+                notes.append("bloc Garde-fous : IBAN + e-mail détectés")
+            finally:
+                s.call("DELETE", f"/api/workflows/{wf}")
+        else:
+            notes.append("NON TESTÉ : bloc Garde-fous (service PII absent : profil « pii »)")
+
+        # (b) « masquer » : the question leaves masked, the trace says so
+        question = f"Mon IBAN est {iban}. Réponds seulement : bien reçu."
+        if default["card"]["location"] != "external":
+            notes.append(f"NON TESTÉ : politique « masquer » (le modèle par défaut est {default['card']['location']}, pas « Hors instance »)")
+        else:
+            try:
+                set_mode("mask")
+                status, text = playground(question)
+                require(status == 200, f"Playground under « masquer » returned HTTP {status}: {text[:200]}")
+                deadline, found = time.monotonic() + 8, None
+                while time.monotonic() < deadline and not found:
+                    _, listing = s.call("GET", f"/api/nexora/traces?workspaceId={ws}&limit=20")
+                    for trace in listing.get("traces", []):
+                        if trace["source"] != "playground":
+                            continue
+                        _, detail = s.call("GET", f"/api/nexora/traces/{trace['id']}?workspaceId={ws}")
+                        span = next((sp for sp in detail["spans"] if sp["kind"] == "model"), None)
+                        if span and "dataProtection" in span["attributes"]:
+                            found = span
+                            break
+                    if not found:
+                        time.sleep(0.5)
+                require(found, "no Playground trace carries the data-protection note")
+                note = found["attributes"]["dataProtection"][0]
+                require(note["mode"] == "mask" and note["found"].get("IBAN_CODE") == 1, f"unexpected note: {note}")
+                require("3000 6000" not in json.dumps(found), "the IBAN is readable in the trace")
+                notes.append("« masquer » : la trace note l'IBAN masqué avant l'envoi")
+
+                # (c) « refuser »
+                set_mode("refuse")
+                status, refused = s.call("POST", "/api/nexora/playground", {
+                    "workspaceId": ws, "model": f"vllm/{default['name']}", "messages": [{"role": "user", "content": question}]})
+                require(status == 403 and refused.get("error") == "personal_data" and "IBAN" in refused.get("reason", ""),
+                        f"Playground under « refuser »: HTTP {status} {refused}")
+                notes.append("« refuser » : 403 en français")
+            finally:
+                set_mode(original)
+
+        # (d) an access group that denies the default model (« Comptabilité »)
+        key_value = key_id = group_id = None
+        try:
+            status, body = s.call("POST", "/api/nexora/api-keys", {"workspaceId": ws, "name": f"fumee-groupe-{secrets.token_hex(3)}"})
+            require(status == 200, f"key creation returned HTTP {status}")
+            key_value, key_id = body["value"], body["key"]["id"]
+            status, body = admin.call("POST", f"/api/organizations/{org}/permission-groups", {
+                "name": f"Comptabilité fumée {secrets.token_hex(3)}", "workspaceIds": [ws],
+                "config": {"deniedModels": [f"vllm/{default['name']}"]}})
+            require(status in (200, 201), f"group creation returned HTTP {status}: {str(body)[:200]}")
+            group_id = (body.get("permissionGroup") or {}).get("id")
+            status, text = playground("Bonjour")
+            require(status == 403 and "model_not_allowed" in text, f"Playground with a denied model: HTTP {status} {text[:200]}")
+            wf, status, run = run_workflow(
+                "Bloc interdit de fumée", "agent",
+                {"model": ("combobox", "vllm/nexora-default"),
+                 "messages": ("messages-input", [{"role": "user", "content": "Bonjour"}]), "memoryType": ("dropdown", "none")},
+                {})
+            try:
+                dump = json.dumps(run, ensure_ascii=False)
+                require(not (status == 200 and run.get("success")) and "not allowed" in dump, f"agent block with a denied model: HTTP {status} {dump[:300]}")
+            finally:
+                s.call("DELETE", f"/api/workflows/{wf}")
+            status, refused = s.call("POST", "/v1/chat/completions", {"model": "nexora-default", "messages": [{"role": "user", "content": "x"}]},
+                                     headers={"Authorization": f"Bearer {key_value}"})
+            require(status == 403 and refused["error"]["code"] == "model_not_allowed", f"key call with a denied model: HTTP {status} {refused}")
+            notes.append("groupe sans le modèle par défaut : refusé dans un bloc, au Playground (403) et par une clé (403)")
+        finally:
+            if group_id:
+                admin.call("DELETE", f"/api/organizations/{org}/permission-groups/{group_id}")
+            if key_id:
+                s.call("DELETE", f"/api/nexora/api-keys/{key_id}?workspaceId={ws}")
+
+        # (e) the audit export, as a French spreadsheet opens it
+        status, raw = admin.call("GET", f"/api/audit-logs/export?organizationId={org}", raw=True)
+        require(status == 200, f"audit export returned HTTP {status}")
+        require(raw.startswith("\ufeffDate;Action;"), f"the export does not start with a byte-order mark and French headers: {raw[:80]!r}")
+        rows = list(csv.reader(raw.lstrip("\ufeff").splitlines(keepends=True), delimiter=";"))
+        require(len(rows) > 1 and len({len(r) for r in rows[:50]}) == 1, "the rows do not share one column count")
+        require(re.fullmatch(r"\d\d/\d\d/\d{4} \d\d:\d\d:\d\d", rows[1][0]), f"date not in jj/mm/aaaa hh:mm:ss: {rows[1][0]!r}")
+        notes.append(f"export CSV : « ; », dates françaises, {len(rows) - 1} lignes")
+        return " ; ".join(notes)
+
     def evaluations():
         """K10: a test set, a judge and a campaign comparing two targets run in the background; the
         statistics and the row-by-row comparison are read, a failing target under its threshold
@@ -1569,6 +1719,7 @@ def main() -> int:
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     s.check("Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement", traces)
+    s.check("Garde-fous : IBAN et e-mail, politique masquer / refuser, groupe sans modèle, export CSV", guardrails)
     s.check("Évaluations : campagne, statistiques, comparaison, alerte, annulation, planification", evaluations)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)

@@ -51,12 +51,15 @@ export const SUPPORTED_PII_ENTITIES = {
   IN_VOTER: 'Indian voter ID',
   IN_PASSPORT: 'Indian passport',
   FI_PERSONAL_IDENTITY_CODE: 'Finnish Personal Identity Code',
+
+  // France (Nexora edition: recognizer in apps/pii/french.py)
+  FR_NIR: 'French social security number (NIR)',
 } as const
 
 export type PIIEntityType = keyof typeof SUPPORTED_PII_ENTITIES
 
 /** Entity types grouped by region, for a grouped checkbox picker. */
-export const PII_ENTITY_GROUPS: ReadonlyArray<{
+const PII_ENTITY_GROUPS: ReadonlyArray<{
   label: string
   entities: ReadonlyArray<{ value: PIIEntityType; label: string }>
 }> = [
@@ -82,6 +85,7 @@ export const PII_ENTITY_GROUPS: ReadonlyArray<{
     label: 'United States',
     entities: ['US_SSN', 'US_PASSPORT', 'US_DRIVER_LICENSE', 'US_BANK_NUMBER', 'US_ITIN'],
   },
+  { label: 'France', entities: ['FR_NIR'] },
   { label: 'United Kingdom', entities: ['UK_NHS', 'UK_NINO'] },
   {
     label: 'Other regions',
@@ -119,13 +123,11 @@ export const PII_ENTITY_GROUPS: ReadonlyArray<{
 /**
  * Languages the Presidio image has NLP models for. The analyzer only recognizes a
  * language's entities when its model is loaded, so this set must match the image.
+ * Nexora edition: the image serves French and English (`PII_SPACY_MODELS`).
  */
 export const PII_LANGUAGES = [
+  { value: 'fr', label: 'French' },
   { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'it', label: 'Italian' },
-  { value: 'pl', label: 'Polish' },
-  { value: 'fi', label: 'Finnish' },
 ] as const
 
 export type PIILanguage = (typeof PII_LANGUAGES)[number]['value']
@@ -175,11 +177,12 @@ const GLOBAL_PII_ENTITIES: readonly PIIEntityType[] = [
  * Entity types each language recognizes, mirroring the recognizer registration in
  * `apps/pii/server.py`: globals + NER + VIN everywhere, plus the locale-specific
  * id recognizers under the language they're registered for (US/UK/AU/IN/SG ids
- * are English; es/it/pl/fi carry only their own national ids). Keep in sync with
+ * are English; the French social-security number is French). Keep in sync with
  * the image — a stale entry only no-ops (redaction fails safe), it never leaks.
  * `/supportedentities` is the authoritative source if this ever needs to go live.
  */
 export const PII_ENTITIES_BY_LANGUAGE: Record<PIILanguage, ReadonlySet<PIIEntityType>> = {
+  fr: new Set<PIIEntityType>([...GLOBAL_PII_ENTITIES, 'FR_NIR']),
   en: new Set<PIIEntityType>([
     ...GLOBAL_PII_ENTITIES,
     'US_SSN',
@@ -201,17 +204,6 @@ export const PII_ENTITIES_BY_LANGUAGE: Record<PIILanguage, ReadonlySet<PIIEntity
     'SG_NRIC_FIN',
     'SG_UEN',
   ]),
-  es: new Set<PIIEntityType>([...GLOBAL_PII_ENTITIES, 'ES_NIF', 'ES_NIE']),
-  it: new Set<PIIEntityType>([
-    ...GLOBAL_PII_ENTITIES,
-    'IT_FISCAL_CODE',
-    'IT_DRIVER_LICENSE',
-    'IT_VAT_CODE',
-    'IT_PASSPORT',
-    'IT_IDENTITY_CARD',
-  ]),
-  pl: new Set<PIIEntityType>([...GLOBAL_PII_ENTITIES, 'PL_PESEL']),
-  fi: new Set<PIIEntityType>([...GLOBAL_PII_ENTITIES, 'FI_PERSONAL_IDENTITY_CODE']),
 }
 
 /** True when the entity has a recognizer for the given language. */
@@ -255,6 +247,19 @@ export function getEntityGroupsForLanguage(language: PIILanguage, opts?: { regex
       (e) =>
         isEntitySupportedForLanguage(e.value, language) &&
         (!regexOnly || !NER_PII_ENTITIES.has(e.value))
+    ),
+  })).filter((group) => group.entities.length > 0)
+}
+
+/**
+ * {@link PII_ENTITY_GROUPS} reduced to the entities one of the served languages recognizes: what
+ * the Guardrails block offers, so that no one ticks a type this installation cannot detect.
+ */
+export function getServedEntityGroups() {
+  return PII_ENTITY_GROUPS.map((group) => ({
+    label: group.label,
+    entities: group.entities.filter((entity) =>
+      PII_LANGUAGES.some((language) => isEntitySupportedForLanguage(entity.value, language.value))
     ),
   })).filter((group) => group.entities.length > 0)
 }

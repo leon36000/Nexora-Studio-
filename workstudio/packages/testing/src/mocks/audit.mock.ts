@@ -140,6 +140,7 @@ const AuditAction = {
   INSTANCE_SETTINGS_UPDATED: 'organization.instance_settings.updated',
   INSTANCE_SETTINGS_APPLIED: 'organization.instance_settings.applied',
   NEXORA_BUDGETS_UPDATED: 'organization.budgets.updated',
+  NEXORA_DATA_PROTECTION_UPDATED: 'organization.data_protection.updated',
   NEXORA_TRACE_SETTINGS_UPDATED: 'organization.trace_settings.updated',
   NEXORA_TRACES_PURGED: 'organization.traces.purged',
   ORG_MEMBER_ADDED: 'org_member.added',

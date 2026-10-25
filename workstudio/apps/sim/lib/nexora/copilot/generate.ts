@@ -17,6 +17,7 @@ import {
 } from '@/lib/nexora/copilot/plan'
 import type { CallTraceContext } from '@/lib/nexora/traces/call'
 import {
+  describeWandFailure,
   isNexoraWandAvailable,
   NexoraWandRejectedError,
   NexoraWandUnavailableError,
@@ -327,6 +328,14 @@ async function ask(complete: CopilotModel, messages: WandMessage[]): Promise<str
     if (error instanceof NexoraWandUnavailableError) {
       logger.warn('Nexora model unavailable for the Copilot', { error: error.message })
       throw new CopilotGenerationError('unavailable', UNAVAILABLE_DETAIL)
+    }
+    const policy = describeWandFailure(error)
+    if (policy && 'reason' in policy && policy.code !== 'rejected') {
+      logger.warn('The personal-data policy stopped the Copilot request', { code: policy.code })
+      throw new CopilotGenerationError(
+        policy.status === 503 ? 'unavailable' : 'rejected',
+        policy.reason
+      )
     }
     if (error instanceof NexoraWandRejectedError) {
       logger.warn('Nexora model refused the Copilot request', { reason: error.reason })

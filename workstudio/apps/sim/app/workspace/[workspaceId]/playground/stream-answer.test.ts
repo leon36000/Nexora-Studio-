@@ -100,6 +100,18 @@ describe('streamPlaygroundAnswer', () => {
     })
   })
 
+  it('shows the reason of a refusal by the personal-data policy instead of a bare « forbidden »', async () => {
+    const reason = 'Cette demande contient des données personnelles (IBAN).'
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'personal_data', reason }, 403))
+    expect((await run()).outcome).toEqual({ status: 'error', code: 'policy', reason })
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ error: 'personal_data_unavailable', reason }, 503)
+    )
+    expect((await run()).outcome).toEqual({ status: 'error', code: 'policy', reason })
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'model_not_allowed', reason }, 403))
+    expect((await run()).outcome).toEqual({ status: 'error', code: 'policy', reason })
+  })
+
   it('ends as stopped, not failed, when the answer is aborted', async () => {
     const controller = new AbortController()
     fetchMock.mockImplementationOnce(async () => {

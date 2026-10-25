@@ -1,6 +1,7 @@
 // Nexora clean-room replacement — written from core call sites only, Apache-2.0 core untouched.
 
 import { type ForbiddenDetailCode, ForbiddenOperationError } from '@/lib/core/application/forbidden'
+import { routerResolver } from '@/lib/nexora/developer-api/upstream'
 import { isBlockTypeAccessControlExempt } from '@/lib/permission-groups/block-access'
 import { CAPABILITY_RULES } from '@/lib/permission-groups/capabilities'
 import { refuseCapability } from '@/lib/permission-groups/capability-refusal.server'
@@ -111,6 +112,29 @@ export class PublicApiNotAllowedError extends NotAllowedError {
   }
 }
 
+/**
+ * Whether the group lets a model through: the gate on the id as given, then — when the group
+ * denies models — on the model an alias designates. `nexora-default` is whatever model the
+ * administrator made the default (GLM 5.3 on pc6), so denying that model must deny its aliases;
+ * an alias list that cannot be read leaves the exact-name check.
+ */
+async function isModelAllowed(
+  config: PermissionGroupConfig | null,
+  model: string
+): Promise<boolean> {
+  const gate = createModelAccessGate(config)
+  if (!gate(model)) return false
+  if (!config?.deniedModels?.length) return true
+  const name = model.replace(/^vllm\//i, '')
+  let router: string | null = null
+  try {
+    router = (await routerResolver())(name)
+  } catch {
+    return true
+  }
+  return !router || router.toLowerCase() === name.toLowerCase() || gate(`vllm/${router}`)
+}
+
 async function loadConfig(
   userId: string | null | undefined,
   workspaceId: string | null | undefined
@@ -141,7 +165,7 @@ export async function validateModelProvider(
   _ctx?: unknown
 ): Promise<void> {
   const config = await loadConfig(userId, workspaceId)
-  if (!createModelAccessGate(config)(model)) throw new ModelNotAllowedError(model)
+  if (!(await isModelAllowed(config, model))) throw new ModelNotAllowedError(model)
 }
 
 export async function assertPermissionsAllowed(args: {
@@ -165,7 +189,7 @@ export async function assertPermissionsAllowed(args: {
       throw new ToolNotAllowedError(args.toolId)
     }
   }
-  if (args.model && !createModelAccessGate(config)(args.model)) {
+  if (args.model && !(await isModelAllowed(config, args.model))) {
     throw new ModelNotAllowedError(args.model)
   }
 }

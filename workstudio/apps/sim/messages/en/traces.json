@@ -72,7 +72,20 @@
     "truncated": "Content cut to the storage limits",
     "privateNote": "Visible to its author and the workspace administrators",
     "execution": "See in the logs",
-    "interrupted": "Answer interrupted"
+    "interrupted": "Answer interrupted",
+    "protectionMask": "Personal data masked before sending to {model}: {items}",
+    "protectionRefuse": "Sending to {model} refused by the workspace policy: {items}",
+    "protectionItem": "{entity} ×{count}"
+  },
+  "protectionEntities": {
+    "IBAN_CODE": "IBAN",
+    "EMAIL_ADDRESS": "e-mail",
+    "PHONE_NUMBER": "phone number",
+    "CREDIT_CARD": "bank card",
+    "PERSON": "person name",
+    "IP_ADDRESS": "IP address",
+    "FR_NIR": "social security number",
+    "SECRET": "key or secret token"
   },
   "kinds": {
     "model": "Model",

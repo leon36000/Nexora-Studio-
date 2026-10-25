@@ -1,4 +1,5 @@
 import { generateRandomHex } from '@sim/utils/random'
+import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
 import { lastUserText, messagesToText, modelLabel } from '@/lib/nexora/traces/text'
 import { PRIVATE_SOURCES, type TraceDraft, type TraceSource } from '@/lib/nexora/traces/types'
 
@@ -19,6 +20,8 @@ interface CallInput {
   reasoning?: string | null
   /** The person stopped the answer before its end. */
   interrupted?: boolean
+  /** What the personal-data policy did to the messages before they were sent. */
+  protection?: ProtectionNote | null
 }
 
 /** The trace of one direct model call (Playground, Copilot, « Generate », a key-called model): one model span. */
@@ -64,6 +67,7 @@ export function draftFromCall(call: CallInput): TraceDraft {
         attributes: {
           ...(call.reasoning ? { reasoning: call.reasoning } : {}),
           ...(call.interrupted ? { interrupted: true } : {}),
+          ...(call.protection ? { dataProtection: [call.protection] } : {}),
         },
       },
     ],
