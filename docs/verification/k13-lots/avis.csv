@@ -1,0 +1,501 @@
+numero,avis,attendu
+483,"Bonjour, Le conseiller a été aimable et m'a remplacé l'appareil défectueux en quelques jours. À bon entendeur.",sav
+23,À l'attention de l'équipe : Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation. Merci.,sav
+480,À l'attention de l'équipe : Les frais cachés ajoutés à la fin font grimper la facture bien au-dessus du prix affiché.,prix
+318,"La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. À bon entendeur.",produit
+368,Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter.,prix
+228,Avis client : Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction.,prix
+13,Avis client : On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. Je reste à votre disposition.,livraison
+14,L'écran présente un pixel mort et une teinte jaune sur le bord gauche.,produit
+424,Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction. Voilà mon retour.,prix
+499,Petit retour : Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation. Merci.,sav
+441,"Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures.",livraison
+282,"Salut, Le produit sent fort le plastique brûlé à l'allumage.",produit
+425,"Bonjour, Le carton est arrivé écrasé : le transport a visiblement été très brutal. À bon entendeur.",livraison
+36,Avis client : Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. Je reste à votre disposition.,prix
+408,À l'attention de l'équipe : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. Bonne journée !,prix
+114,À l'attention de l'équipe : La notice est incompréhensible et il manquait deux vis dans le sachet de fixation.,produit
+196,"Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout. Voilà mon retour.",prix
+380,Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Voilà mon retour.,prix
+87,"À l'attention de l'équipe : Le service après-vente m'a promis un rappel sous 48 heures, rien n'est venu. Bonne journée !",sav
+2,"Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche.",produit
+231,Avis client : Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Cordialement.,sav
+358,Je me permets de vous écrire : L'écran présente un pixel mort et une teinte jaune sur le bord gauche. Je reste à votre disposition.,produit
+481,"Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Voilà mon retour.",livraison
+413,"Bonjour, Le transporteur a déposé le colis chez un voisin que je ne connais pas. À bon entendeur.",livraison
+393,"Bonjour, On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande.",livraison
+334,À l'attention de l'équipe : L'écran présente un pixel mort et une teinte jaune sur le bord gauche.,produit
+106,"Salut, Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. Merci.",produit
+466,"Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. Merci.",produit
+445,"Bonjour, Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé. Voilà mon retour.",livraison
+122,"Avis client : La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. Merci.",produit
+432,"Un prix abordable et clair, sans mauvaise surprise sur le total. Voilà mon retour.",prix
+207,Avis client : L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Merci.,sav
+345,Le transporteur a déposé le colis chez un voisin que je ne connais pas.,livraison
+166,"Bonsoir, La poignée s'est cassée dès la première semaine, le plastique est très fragile. À bon entendeur.",produit
+70,La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Bonne journée !,produit
+242,La batterie tient à peine deux heures alors que la fiche technique en promet huit.,produit
+382,"La poignée s'est cassée dès la première semaine, le plastique est très fragile. Voilà mon retour.",produit
+81,On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande.,livraison
+302,"Pour information : L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous. Voilà mon retour.",produit
+317,"Pour information : Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement.",livraison
+57,"Salut, Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement.",livraison
+66,"Salut, La notice est incompréhensible et il manquait deux vis dans le sachet de fixation. À bon entendeur.",produit
+474,Avis client : La notice est incompréhensible et il manquait deux vis dans le sachet de fixation. Merci.,produit
+447,À l'attention de l'équipe : Le conseiller a été aimable et m'a remplacé l'appareil défectueux en quelques jours.,sav
+85,"Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Bonne journée !",livraison
+287,Avis client : L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Bonne journée !,sav
+300,"Salut, Le prix de la livraison dépasse celui de l'article lui-même. Voilà mon retour.",prix
+109,Je me permets de vous écrire : Le point relais était fermé quand je suis passé récupérer mon paquet.,livraison
+134,Petit retour : La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Merci.,produit
+310,"Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche.",produit
+489,Le carton est arrivé écrasé : le transport a visiblement été très brutal.,livraison
+131,Avis client : L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Merci.,sav
+86,Pour information : La notice est incompréhensible et il manquait deux vis dans le sachet de fixation. À bon entendeur.,produit
+351,"Bonjour, Le service après-vente m'a promis un rappel sous 48 heures, rien n'est venu. Cordialement.",sav
+299,Le conseiller a été aimable et m'a remplacé l'appareil défectueux en quelques jours.,sav
+182,Le produit sent fort le plastique brûlé à l'allumage.,produit
+311,Le chat d'assistance est resté sans réponse pendant plus d'une heure. Voilà mon retour.,sav
+420,"Bonjour, Un prix abordable et clair, sans mauvaise surprise sur le total. Bonne journée !",prix
+133,"Petit retour : Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. Cordialement.",livraison
+250,La notice est incompréhensible et il manquait deux vis dans le sachet de fixation. Bonne journée !,produit
+407,"Bonsoir, Le conseiller a été aimable et m'a remplacé l'appareil défectueux en quelques jours. Cordialement.",sav
+485,"Salut, On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. À bon entendeur.",livraison
+84,"Petit retour : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Bonne journée !",prix
+268,"Je me permets de vous écrire : L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée.",prix
+364,"Avis client : Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout.",prix
+417,"Bonsoir, Le point relais était fermé quand je suis passé récupérer mon paquet. À bon entendeur.",livraison
+357,"Avis client : Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures.",livraison
+181,"Bonsoir, Le transporteur a déposé le colis chez un voisin que je ne connais pas. À bon entendeur.",livraison
+418,"Pour information : Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche. Bonne journée !",produit
+463,À l'attention de l'équipe : Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours.,sav
+284,Pour information : Le prix de la livraison dépasse celui de l'article lui-même.,prix
+473,"Salut, J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures. Merci.",livraison
+335,Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation. Je reste à votre disposition.,sav
+324,À l'attention de l'équipe : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande.,prix
+280,"Je me permets de vous écrire : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage.",prix
+469,On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. Merci.,livraison
+24,"Bonjour, Un prix abordable et clair, sans mauvaise surprise sur le total. Cordialement.",prix
+176,"Salut, Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Voilà mon retour.",prix
+193,J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures. À bon entendeur.,livraison
+297,"Petit retour : Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures.",livraison
+32,À l'attention de l'équipe : Le prix de la livraison dépasse celui de l'article lui-même.,prix
+135,"Bonjour, J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Bonne journée !",sav
+201,"Pour information : Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement. Je reste à votre disposition.",livraison
+476,Avis client : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. Bonne journée !,prix
+65,"Salut, Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé. Cordialement.",livraison
+83,Pour information : Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain.,sav
+438,Pour information : La notice est incompréhensible et il manquait deux vis dans le sachet de fixation.,produit
+22,"Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. Bonne journée !",produit
+163,Pour information : J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Je reste à votre disposition.,sav
+257,Pour information : Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé. Cordialement.,livraison
+186,La batterie tient à peine deux heures alors que la fiche technique en promet huit.,produit
+251,À l'attention de l'équipe : Le chat d'assistance est resté sans réponse pendant plus d'une heure. Bonne journée !,sav
+478,"Bonjour, La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. À bon entendeur.",produit
+39,"Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté. Je reste à votre disposition.",sav
+235,Je me permets de vous écrire : Remboursement obtenu en trois jours après un échange courtois avec le support. Cordialement.,sav
+452,"Bonsoir, Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. À bon entendeur.",prix
+426,"Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. À bon entendeur.",produit
+208,"À l'attention de l'équipe : Un prix abordable et clair, sans mauvaise surprise sur le total. Cordialement.",prix
+162,Je me permets de vous écrire : La batterie tient à peine deux heures alors que la fiche technique en promet huit. À bon entendeur.,produit
+471,À l'attention de l'équipe : Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours.,sav
+90,"La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé.",produit
+461,"Bonsoir, Le carton est arrivé écrasé : le transport a visiblement été très brutal. Merci.",livraison
+446,Petit retour : Le produit sent fort le plastique brûlé à l'allumage.,produit
+258,"La poignée s'est cassée dès la première semaine, le plastique est très fragile.",produit
+230,Pour information : Le produit sent fort le plastique brûlé à l'allumage.,produit
+77,À l'attention de l'équipe : Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé. Merci.,livraison
+266,"Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche. Bonne journée !",produit
+118,Avis client : Le produit sent fort le plastique brûlé à l'allumage. Bonne journée !,produit
+112,"Bonjour, Un prix abordable et clair, sans mauvaise surprise sur le total. À bon entendeur.",prix
+288,"Pour information : L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée. Bonne journée !",prix
+37,Pour information : Le carton est arrivé écrasé : le transport a visiblement été très brutal. Voilà mon retour.,livraison
+101,À l'attention de l'équipe : Le point relais était fermé quand je suis passé récupérer mon paquet. Merci.,livraison
+259,"Salut, J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Voilà mon retour.",sav
+51,"Bonsoir, Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain.",sav
+12,"Bonjour, Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. Merci.",prix
+274,"La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. Bonne journée !",produit
+416,Pour information : Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter.,prix
+470,"La poignée s'est cassée dès la première semaine, le plastique est très fragile.",produit
+321,"À l'attention de l'équipe : Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. À bon entendeur.",livraison
+210,L'écran présente un pixel mort et une teinte jaune sur le bord gauche.,produit
+249,"Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Voilà mon retour.",livraison
+192,"Petit retour : Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout.",prix
+323,Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation.,sav
+226,À l'attention de l'équipe : La notice est incompréhensible et il manquait deux vis dans le sachet de fixation.,produit
+491,"Pour information : Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté.",sav
+35,J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Cordialement.,sav
+261,Le transporteur a déposé le colis chez un voisin que je ne connais pas. À bon entendeur.,livraison
+237,"Bonsoir, Le point relais était fermé quand je suis passé récupérer mon paquet.",livraison
+306,"Salut, L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous.",produit
+75,Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation. À bon entendeur.,sav
+20,"Bonsoir, L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée.",prix
+354,"À l'attention de l'équipe : Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. Bonne journée !",produit
+136,"L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée. Merci.",prix
+105,Pour information : Le point relais était fermé quand je suis passé récupérer mon paquet. À bon entendeur.,livraison
+270,Je me permets de vous écrire : La taille ne correspond pas au guide : le vêtement est beaucoup trop petit. Cordialement.,produit
+6,"Salut, La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main.",produit
+19,Remboursement obtenu en trois jours après un échange courtois avec le support. Cordialement.,sav
+326,"Petit retour : L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous. Merci.",produit
+346,"Bonsoir, La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. À bon entendeur.",produit
+352,Je me permets de vous écrire : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. À bon entendeur.,prix
+454,Je me permets de vous écrire : La batterie tient à peine deux heures alors que la fiche technique en promet huit.,produit
+384,"Bonjour, Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Je reste à votre disposition.",prix
+1,À l'attention de l'équipe : Le transporteur a déposé le colis chez un voisin que je ne connais pas. Je reste à votre disposition.,livraison
+245,"Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Voilà mon retour.",livraison
+96,"Petit retour : Je trouve la facturation trop chère, d'autant que le montant change chaque mois. Cordialement.",prix
+286,"Je me permets de vous écrire : La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. Merci.",produit
+490,"Pour information : Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois.",produit
+151,Pour information : Le retour du produit défectueux a été refusé sans explication par la hotline.,sav
+17,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Merci.",livraison
+494,À l'attention de l'équipe : La taille ne correspond pas au guide : le vêtement est beaucoup trop petit. Cordialement.,produit
+137,Je me permets de vous écrire : Le carton est arrivé écrasé : le transport a visiblement été très brutal. Bonne journée !,livraison
+260,"Avis client : Un prix abordable et clair, sans mauvaise surprise sur le total.",prix
+327,Avis client : J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier.,sav
+173,Avis client : Le transporteur a déposé le colis chez un voisin que je ne connais pas. Bonne journée !,livraison
+104,Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. À bon entendeur.,prix
+170,L'écran présente un pixel mort et une teinte jaune sur le bord gauche. Je reste à votre disposition.,produit
+164,"Avis client : L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée.",prix
+281,On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande.,livraison
+440,"Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Voilà mon retour.",prix
+442,"Salut, La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. À bon entendeur.",produit
+44,"Je me permets de vous écrire : L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée.",prix
+333,À l'attention de l'équipe : Le carton est arrivé écrasé : le transport a visiblement été très brutal.,livraison
+220,"Je me permets de vous écrire : Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout. Bonne journée !",prix
+144,"Bonsoir, Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. À bon entendeur.",prix
+328,"Je me permets de vous écrire : Je trouve la facturation trop chère, d'autant que le montant change chaque mois. Je reste à votre disposition.",prix
+448,Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Merci.,prix
+161,Je me permets de vous écrire : Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé. Je reste à votre disposition.,livraison
+18,"Petit retour : Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. Je reste à votre disposition.",produit
+254,"Bonjour, L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous. Bonne journée !",produit
+458,"Salut, Le produit sent fort le plastique brûlé à l'allumage. Cordialement.",produit
+455,"Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté.",sav
+399,Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation. Bonne journée !,sav
+401,J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures.,livraison
+444,"Bonsoir, Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. À bon entendeur.",prix
+56,"À l'attention de l'équipe : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Je reste à votre disposition.",prix
+241,"Pour information : La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Merci.",livraison
+98,"La poignée s'est cassée dès la première semaine, le plastique est très fragile. Merci.",produit
+187,Je me permets de vous écrire : Remboursement obtenu en trois jours après un échange courtois avec le support. Voilà mon retour.,sav
+338,"La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. Je reste à votre disposition.",produit
+95,Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain.,sav
+248,"Pour information : Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout.",prix
+25,"Bonsoir, Livraison très rapide, reçu le lendemain de la commande, emballage soigné.",livraison
+472,À l'attention de l'équipe : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande.,prix
+156,Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. À bon entendeur.,prix
+72,"Excellent rapport qualité-prix, je ne pensais pas payer aussi peu pour cela. Merci.",prix
+462,"Salut, La poignée s'est cassée dès la première semaine, le plastique est très fragile. Bonne journée !",produit
+78,"À l'attention de l'équipe : L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous. Merci.",produit
+394,La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Merci.,produit
+217,"Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. Merci.",livraison
+467,"Bonjour, Le chat d'assistance est resté sans réponse pendant plus d'une heure. Je reste à votre disposition.",sav
+337,Petit retour : J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures. Je reste à votre disposition.,livraison
+169,Le carton est arrivé écrasé : le transport a visiblement été très brutal.,livraison
+200,"Bonsoir, Un prix abordable et clair, sans mauvaise surprise sur le total.",prix
+27,Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain.,sav
+349,À l'attention de l'équipe : On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. Je reste à votre disposition.,livraison
+410,"Salut, La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température.",produit
+373,"Avis client : La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. À bon entendeur.",livraison
+356,"Bonjour, Le coût de l'option supplémentaire est exorbitant par rapport au service rendu.",prix
+179,"Bonjour, Le chat d'assistance est resté sans réponse pendant plus d'une heure. Cordialement.",sav
+439,"Bonjour, Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté. À bon entendeur.",sav
+160,"Bonsoir, Les frais cachés ajoutés à la fin font grimper la facture bien au-dessus du prix affiché. À bon entendeur.",prix
+47,"Je me permets de vous écrire : Le service après-vente m'a promis un rappel sous 48 heures, rien n'est venu. Merci.",sav
+412,"L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée. À bon entendeur.",prix
+350,"Avis client : La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main.",produit
+53,J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures.,livraison
+154,"Salut, La taille ne correspond pas au guide : le vêtement est beaucoup trop petit.",produit
+198,"Pour information : La poignée s'est cassée dès la première semaine, le plastique est très fragile.",produit
+244,"Salut, Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Bonne journée !",prix
+367,"Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté. Merci.",sav
+243,À l'attention de l'équipe : Le retour du produit défectueux a été refusé sans explication par la hotline. Voilà mon retour.,sav
+30,"Salut, Le produit sent fort le plastique brûlé à l'allumage. À bon entendeur.",produit
+430,La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Cordialement.,produit
+431,Le conseiller a été aimable et m'a remplacé l'appareil défectueux en quelques jours. Je reste à votre disposition.,sav
+165,"Pour information : La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Je reste à votre disposition.",livraison
+414,La taille ne correspond pas au guide : le vêtement est beaucoup trop petit. Je reste à votre disposition.,produit
+495,À l'attention de l'équipe : Remboursement obtenu en trois jours après un échange courtois avec le support. Merci.,sav
+120,"Bonsoir, L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée.",prix
+397,À l'attention de l'équipe : Le carton est arrivé écrasé : le transport a visiblement été très brutal. Voilà mon retour.,livraison
+43,Pour information : Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Voilà mon retour.,sav
+436,"Bonjour, Je trouve la facturation trop chère, d'autant que le montant change chaque mois. À bon entendeur.",prix
+40,"Je me permets de vous écrire : L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée. Merci.",prix
+191,Avis client : On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation.,sav
+429,"Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement.",livraison
+46,"Pour information : Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche. Je reste à votre disposition.",produit
+400,"Bonsoir, Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter.",prix
+113,"Salut, Le transporteur a déposé le colis chez un voisin que je ne connais pas.",livraison
+42,"Bonjour, La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. À bon entendeur.",produit
+285,"Je me permets de vous écrire : Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. Bonne journée !",livraison
+294,Avis client : La batterie tient à peine deux heures alors que la fiche technique en promet huit. Voilà mon retour.,produit
+396,"Je me permets de vous écrire : Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout.",prix
+107,On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation. Merci.,sav
+252,Pour information : Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. Je reste à votre disposition.,prix
+41,"Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus. Je reste à votre disposition.",livraison
+171,"Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté. Bonne journée !",sav
+69,"Pour information : Livraison très rapide, reçu le lendemain de la commande, emballage soigné. Cordialement.",livraison
+379,"Bonsoir, Remboursement obtenu en trois jours après un échange courtois avec le support. Bonne journée !",sav
+99,Pour information : J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier.,sav
+127,"À l'attention de l'équipe : Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté.",sav
+138,Avis client : L'écran présente un pixel mort et une teinte jaune sur le bord gauche.,produit
+157,Petit retour : Le point relais était fermé quand je suis passé récupérer mon paquet. Merci.,livraison
+275,"Salut, Le chat d'assistance est resté sans réponse pendant plus d'une heure. Voilà mon retour.",sav
+404,"Bonsoir, Le prix de la livraison dépasse celui de l'article lui-même. Cordialement.",prix
+130,"Salut, La taille ne correspond pas au guide : le vêtement est beaucoup trop petit.",produit
+142,Avis client : La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Cordialement.,produit
+376,Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. Merci.,prix
+76,À l'attention de l'équipe : Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. Voilà mon retour.,prix
+174,"Bonjour, La taille ne correspond pas au guide : le vêtement est beaucoup trop petit. Cordialement.",produit
+238,"Salut, La notice est incompréhensible et il manquait deux vis dans le sachet de fixation.",produit
+205,Je me permets de vous écrire : Le point relais était fermé quand je suis passé récupérer mon paquet. Bonne journée !,livraison
+155,"Bonsoir, Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Voilà mon retour.",sav
+233,"Salut, Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Voilà mon retour.",livraison
+315,Petit retour : Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Cordialement.,sav
+128,Le prix de la livraison dépasse celui de l'article lui-même. Voilà mon retour.,prix
+375,Petit retour : On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation.,sav
+188,Je me permets de vous écrire : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande.,prix
+450,"Je me permets de vous écrire : La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. Cordialement.",produit
+28,"Je me permets de vous écrire : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. À bon entendeur.",prix
+68,"Un prix abordable et clair, sans mauvaise surprise sur le total.",prix
+406,L'écran présente un pixel mort et une teinte jaune sur le bord gauche. Bonne journée !,produit
+216,Pour information : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. À bon entendeur.,prix
+89,"Bonsoir, Livraison très rapide, reçu le lendemain de la commande, emballage soigné. Merci.",livraison
+59,Je me permets de vous écrire : Le conseiller a été aimable et m'a remplacé l'appareil défectueux en quelques jours. Je reste à votre disposition.,sav
+3,À l'attention de l'équipe : Le conseiller a été aimable et m'a remplacé l'appareil défectueux en quelques jours.,sav
+93,"Bonsoir, On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. Bonne journée !",livraison
+336,Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction.,prix
+423,"Le service après-vente m'a promis un rappel sous 48 heures, rien n'est venu. Voilà mon retour.",sav
+264,Pour information : Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. Voilà mon retour.,prix
+322,"Petit retour : La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. Voilà mon retour.",produit
+292,"Je trouve la facturation trop chère, d'autant que le montant change chaque mois.",prix
+402,"Bonjour, Le produit sent fort le plastique brûlé à l'allumage.",produit
+119,Le retour du produit défectueux a été refusé sans explication par la hotline. Bonne journée !,sav
+159,Je me permets de vous écrire : Remboursement obtenu en trois jours après un échange courtois avec le support.,sav
+10,"Bonjour, La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. Bonne journée !",produit
+221,"Bonjour, On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. À bon entendeur.",livraison
+91,Le chat d'assistance est resté sans réponse pendant plus d'une heure.,sav
+283,On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation. Merci.,sav
+329,Petit retour : J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures. Cordialement.,livraison
+7,Remboursement obtenu en trois jours après un échange courtois avec le support. Cordialement.,sav
+49,"Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus. À bon entendeur.",livraison
+298,"Petit retour : Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche. Voilà mon retour.",produit
+150,Pour information : La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Voilà mon retour.,produit
+73,"À l'attention de l'équipe : Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. Voilà mon retour.",livraison
+267,"Bonjour, Le chat d'assistance est resté sans réponse pendant plus d'une heure. À bon entendeur.",sav
+227,"Bonsoir, Le chat d'assistance est resté sans réponse pendant plus d'une heure. Cordialement.",sav
+443,"Salut, L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Voilà mon retour.",sav
+369,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. À bon entendeur.",livraison
+132,"À l'attention de l'équipe : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Cordialement.",prix
+60,"Bonsoir, Le prix de la livraison dépasse celui de l'article lui-même. Bonne journée !",prix
+341,"Salut, Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus. Bonne journée !",livraison
+477,"Bonjour, Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus. Je reste à votre disposition.",livraison
+139,Avis client : J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Voilà mon retour.,sav
+50,La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température.,produit
+419,À l'attention de l'équipe : Le retour du produit défectueux a été refusé sans explication par la hotline.,sav
+167,"Pour information : Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté.",sav
+117,"Bonjour, Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus. Voilà mon retour.",livraison
+449,"Petit retour : Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures.",livraison
+218,"Bonjour, La poignée s'est cassée dès la première semaine, le plastique est très fragile. Cordialement.",produit
+184,"À l'attention de l'équipe : L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée. Bonne journée !",prix
+4,"Bonsoir, Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. Merci.",prix
+500,"Pour information : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Merci.",prix
+185,"Avis client : Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Bonne journée !",livraison
+484,Avis client : Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. Merci.,prix
+71,"Bonjour, Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Cordialement.",sav
+265,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien.",livraison
+486,"À l'attention de l'équipe : La poignée s'est cassée dès la première semaine, le plastique est très fragile.",produit
+219,Pour information : Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Voilà mon retour.,sav
+178,"Salut, La poignée s'est cassée dès la première semaine, le plastique est très fragile. Bonne journée !",produit
+303,À l'attention de l'équipe : On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation. Bonne journée !,sav
+111,Remboursement obtenu en trois jours après un échange courtois avec le support.,sav
+213,Le transporteur a déposé le colis chez un voisin que je ne connais pas.,livraison
+374,"Bonjour, L'écran présente un pixel mort et une teinte jaune sur le bord gauche. Bonne journée !",produit
+468,"Bonsoir, Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Cordialement.",prix
+277,J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures.,livraison
+304,"Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. Cordialement.",prix
+74,"Pour information : La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. À bon entendeur.",produit
+339,Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Cordialement.,sav
+240,"À l'attention de l'équipe : Un prix abordable et clair, sans mauvaise surprise sur le total. Cordialement.",prix
+493,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien.",livraison
+197,Le point relais était fermé quand je suis passé récupérer mon paquet. Bonne journée !,livraison
+437,"À l'attention de l'équipe : Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement.",livraison
+212,"Je trouve la facturation trop chère, d'autant que le montant change chaque mois. Je reste à votre disposition.",prix
+214,"Salut, La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Je reste à votre disposition.",produit
+55,À l'attention de l'équipe : Le chat d'assistance est resté sans réponse pendant plus d'une heure. Bonne journée !,sav
+143,Pour information : Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. À bon entendeur.,sav
+464,"Pour information : Excellent rapport qualité-prix, je ne pensais pas payer aussi peu pour cela.",prix
+247,Je me permets de vous écrire : Remboursement obtenu en trois jours après un échange courtois avec le support. Cordialement.,sav
+177,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Je reste à votre disposition.",livraison
+421,"Salut, Le point relais était fermé quand je suis passé récupérer mon paquet. Merci.",livraison
+209,"Pour information : Livraison très rapide, reçu le lendemain de la commande, emballage soigné.",livraison
+21,Petit retour : Le carton est arrivé écrasé : le transport a visiblement été très brutal.,livraison
+355,Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Merci.,sav
+290,Petit retour : La notice est incompréhensible et il manquait deux vis dans le sachet de fixation.,produit
+307,"Bonjour, Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. À bon entendeur.",sav
+488,Pour information : Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction. Cordialement.,prix
+433,"Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. Je reste à votre disposition.",livraison
+309,Le carton est arrivé écrasé : le transport a visiblement été très brutal.,livraison
+305,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Bonne journée !",livraison
+492,Petit retour : Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction. Merci.,prix
+403,Je me permets de vous écrire : Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Bonne journée !,sav
+347,Je me permets de vous écrire : Le retour du produit défectueux a été refusé sans explication par la hotline. Bonne journée !,sav
+239,"Bonsoir, Le retour du produit défectueux a été refusé sans explication par la hotline.",sav
+11,Pour information : L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Je reste à votre disposition.,sav
+88,"Bonsoir, Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Merci.",prix
+269,"À l'attention de l'équipe : Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement. Cordialement.",livraison
+61,"Bonjour, Le carton est arrivé écrasé : le transport a visiblement été très brutal. Cordialement.",livraison
+316,"Bonjour, Excellent rapport qualité-prix, je ne pensais pas payer aussi peu pour cela. Voilà mon retour.",prix
+451,Avis client : L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Je reste à votre disposition.,sav
+172,"Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout. À bon entendeur.",prix
+246,Pour information : La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température.,produit
+434,"Salut, La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. Voilà mon retour.",produit
+92,"L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée. Bonne journée !",prix
+291,Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation.,sav
+26,"Bonjour, La taille ne correspond pas au guide : le vêtement est beaucoup trop petit. Voilà mon retour.",produit
+381,"Bonjour, Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. À bon entendeur.",livraison
+203,Je me permets de vous écrire : Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Merci.,sav
+278,"Pour information : Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche.",produit
+97,À l'attention de l'équipe : Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé. Cordialement.,livraison
+340,Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction. Je reste à votre disposition.,prix
+271,"Salut, Remboursement obtenu en trois jours après un échange courtois avec le support. Je reste à votre disposition.",sav
+82,"Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. Bonne journée !",produit
+140,À l'attention de l'équipe : Les frais cachés ajoutés à la fin font grimper la facture bien au-dessus du prix affiché. Je reste à votre disposition.,prix
+253,"Avis client : Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement. Cordialement.",livraison
+405,J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures. Cordialement.,livraison
+497,Pour information : Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé. Bonne journée !,livraison
+308,À l'attention de l'équipe : Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Cordialement.,prix
+262,La notice est incompréhensible et il manquait deux vis dans le sachet de fixation.,produit
+62,"Salut, Le produit sent fort le plastique brûlé à l'allumage. Cordialement.",produit
+223,"Bonjour, J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Merci.",sav
+395,Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Je reste à votre disposition.,sav
+332,"Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout. Bonne journée !",prix
+236,Le prix de la livraison dépasse celui de l'article lui-même. Merci.,prix
+45,"Pour information : La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Merci.",livraison
+149,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien.",livraison
+116,"Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout.",prix
+325,"Salut, On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. Je reste à votre disposition.",livraison
+370,Petit retour : L'écran présente un pixel mort et une teinte jaune sur le bord gauche.,produit
+153,"Salut, On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. Merci.",livraison
+344,"À l'attention de l'équipe : Excellent rapport qualité-prix, je ne pensais pas payer aussi peu pour cela. Je reste à votre disposition.",prix
+363,Pour information : J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier.,sav
+457,"Bonsoir, On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande.",livraison
+126,"Bonsoir, La poignée s'est cassée dès la première semaine, le plastique est très fragile.",produit
+204,"Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage.",prix
+496,"Je me permets de vous écrire : Excellent rapport qualité-prix, je ne pensais pas payer aussi peu pour cela.",prix
+79,"Bonsoir, Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Voilà mon retour.",sav
+392,"Petit retour : Un prix abordable et clair, sans mauvaise surprise sur le total. Cordialement.",prix
+388,"Bonsoir, Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction.",prix
+123,Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. À bon entendeur.,sav
+175,Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation. Je reste à votre disposition.,sav
+15,Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain.,sav
+411,"Bonsoir, Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain.",sav
+479,Je me permets de vous écrire : Remboursement obtenu en trois jours après un échange courtois avec le support.,sav
+348,"Bonjour, Les frais cachés ajoutés à la fin font grimper la facture bien au-dessus du prix affiché. Voilà mon retour.",prix
+272,Petit retour : Les frais cachés ajoutés à la fin font grimper la facture bien au-dessus du prix affiché.,prix
+314,Petit retour : La batterie tient à peine deux heures alors que la fiche technique en promet huit. Je reste à votre disposition.,produit
+391,À l'attention de l'équipe : On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation. Merci.,sav
+189,"Pour information : Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. Merci.",livraison
+103,"Salut, J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Cordialement.",sav
+202,"Bonjour, La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température.",produit
+255,Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Cordialement.,sav
+199,"Bonjour, Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Je reste à votre disposition.",sav
+225,"À l'attention de l'équipe : Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. À bon entendeur.",livraison
+390,"La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. Je reste à votre disposition.",produit
+387,J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier.,sav
+366,L'écran présente un pixel mort et une teinte jaune sur le bord gauche.,produit
+168,Avis client : Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Voilà mon retour.,prix
+422,"Bonsoir, Le produit sent fort le plastique brûlé à l'allumage. Merci.",produit
+386,"Bonsoir, Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche. Bonne journée !",produit
+296,"Bonjour, Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction. Voilà mon retour.",prix
+121,On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande. Cordialement.,livraison
+435,"Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté. Cordialement.",sav
+152,"Avis client : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage.",prix
+378,"Très bon produit, simple à monter, robuste, il fonctionne parfaitement depuis trois mois. À bon entendeur.",produit
+16,"Bonsoir, Les frais cachés ajoutés à la fin font grimper la facture bien au-dessus du prix affiché.",prix
+365,"Bonjour, Le livreur a laissé le carton devant la porte sous la pluie, sans sonner. Bonne journée !",livraison
+147,"Bonsoir, Le chat d'assistance est resté sans réponse pendant plus d'une heure. Je reste à votre disposition.",sav
+94,"Pour information : Les couleurs ne correspondent pas du tout aux photos du site, le tissu est rêche. À bon entendeur.",produit
+279,L'équipe du support a répondu avec patience et a trouvé une solution à ma panne.,sav
+224,"Bonsoir, Excellent rapport qualité-prix, je ne pensais pas payer aussi peu pour cela. Cordialement.",prix
+234,Avis client : L'écran présente un pixel mort et une teinte jaune sur le bord gauche.,produit
+342,À l'attention de l'équipe : La notice est incompréhensible et il manquait deux vis dans le sachet de fixation. Merci.,produit
+301,"Bonjour, Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus. Je reste à votre disposition.",livraison
+409,"Je me permets de vous écrire : Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus. À bon entendeur.",livraison
+222,"Salut, L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous.",produit
+29,Petit retour : On m'a livré à la mauvaise adresse alors que tout était correct dans ma commande.,livraison
+100,Avis client : Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Voilà mon retour.,prix
+110,Je me permets de vous écrire : La batterie tient à peine deux heures alors que la fiche technique en promet huit. Voilà mon retour.,produit
+256,Je me permets de vous écrire : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande. Je reste à votre disposition.,prix
+115,Je me permets de vous écrire : Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Cordialement.,sav
+158,Avis client : La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Je reste à votre disposition.,produit
+312,Le prix de la livraison dépasse celui de l'article lui-même. Bonne journée !,prix
+456,Le prix de la livraison dépasse celui de l'article lui-même.,prix
+343,À l'attention de l'équipe : On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation. Cordialement.,sav
+206,Le produit sent fort le plastique brûlé à l'allumage. Merci.,produit
+273,"Je me permets de vous écrire : La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. À bon entendeur.",livraison
+276,"Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout.",prix
+102,"À l'attention de l'équipe : La poignée s'est cassée dès la première semaine, le plastique est très fragile. À bon entendeur.",produit
+385,"Bonjour, Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures.",livraison
+5,"Pour information : Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement.",livraison
+313,"La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Voilà mon retour.",livraison
+475,Pour information : L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. À bon entendeur.,sav
+52,Les frais cachés ajoutés à la fin font grimper la facture bien au-dessus du prix affiché. Je reste à votre disposition.,prix
+183,L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Voilà mon retour.,sav
+331,"Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté.",sav
+190,À l'attention de l'équipe : L'écran présente un pixel mort et une teinte jaune sur le bord gauche. À bon entendeur.,produit
+460,Le coût de l'option supplémentaire est exorbitant par rapport au service rendu. Voilà mon retour.,prix
+194,À l'attention de l'équipe : Le produit sent fort le plastique brûlé à l'allumage. Voilà mon retour.,produit
+360,"Salut, Excellent rapport qualité-prix, je ne pensais pas payer aussi peu pour cela. Voilà mon retour.",prix
+48,Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. Voilà mon retour.,prix
+293,"Pour information : La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. Bonne journée !",livraison
+8,Pour information : Le prix de la livraison dépasse celui de l'article lui-même. Merci.,prix
+38,"Je me permets de vous écrire : La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. Je reste à votre disposition.",produit
+108,Je me permets de vous écrire : Le prix a augmenté de vingt pour cent entre mon panier et la validation de la commande.,prix
+58,À l'attention de l'équipe : L'écran présente un pixel mort et une teinte jaune sur le bord gauche. Merci.,produit
+353,"Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Bonne journée !",livraison
+427,Avis client : Remboursement obtenu en trois jours après un échange courtois avec le support. Bonne journée !,sav
+377,"Mon colis est resté bloqué trois jours dans un entrepôt de tri, le suivi ne bougeait plus.",livraison
+54,La batterie tient à peine deux heures alors que la fiche technique en promet huit.,produit
+229,"Bonjour, Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures.",livraison
+482,"Bonjour, L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous. Voilà mon retour.",produit
+428,"Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout. Je reste à votre disposition.",prix
+319,"Salut, Le conseiller au téléphone m'a raccroché au nez pendant que j'exposais ma réclamation. Cordialement.",sav
+63,J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier.,sav
+80,"À l'attention de l'équipe : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. À bon entendeur.",prix
+361,J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures.,livraison
+459,"Bonjour, Remboursement obtenu en trois jours après un échange courtois avec le support. À bon entendeur.",sav
+125,"Salut, La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien.",livraison
+371,À l'attention de l'équipe : Remboursement obtenu en trois jours après un échange courtois avec le support. Voilà mon retour.,sav
+34,"Pour information : La lame est bien affûtée, l'ensemble est équilibré et agréable à tenir en main. Je reste à votre disposition.",produit
+215,Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours. Bonne journée !,sav
+498,"Salut, La cafetière fait un bruit anormal et l'eau ne chauffe plus à la bonne température. Bonne journée !",produit
+64,"Je me permets de vous écrire : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage.",prix
+359,Petit retour : Le retour du produit défectueux a été refusé sans explication par la hotline. Cordialement.,sav
+295,"Bonjour, Le réparateur agréé m'a donné un rendez-vous, puis ne s'est pas présenté. Cordialement.",sav
+289,"Bonjour, Le carton est arrivé écrasé : le transport a visiblement été très brutal.",livraison
+124,Pour information : Le coût de l'option supplémentaire est exorbitant par rapport au service rendu.,prix
+487,"Bonsoir, J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Merci.",sav
+67,Avis client : Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain. Je reste à votre disposition.,sav
+398,"Bonsoir, La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé.",produit
+383,Aucune réponse à mes trois e-mails de réclamation envoyés en quinze jours.,sav
+31,J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier. Je reste à votre disposition.,sav
+145,"À l'attention de l'équipe : Livraison très rapide, reçu le lendemain de la commande, emballage soigné. Cordialement.",livraison
+9,J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures. Merci.,livraison
+129,"Livraison très rapide, reçu le lendemain de la commande, emballage soigné. Voilà mon retour.",livraison
+330,Avis client : Le produit sent fort le plastique brûlé à l'allumage.,produit
+141,Je me permets de vous écrire : J'ai choisi la livraison express et le colis est bien arrivé en moins de vingt-quatre heures. Merci.,livraison
+372,"Pour information : Le tarif est beaucoup trop élevé pour ce que propose l'article, on trouve moins cher partout.",prix
+415,J'ai appelé le service client quatre fois et personne n'a pu m'expliquer où en était mon dossier.,sav
+389,Je me permets de vous écrire : Le colis est arrivé avec quatre jours de retard et le transporteur n'a pas appelé.,livraison
+232,Avis client : Les soldes sont réelles : la remise de moitié m'a convaincu d'acheter. À bon entendeur.,prix
+263,Petit retour : On m'a renvoyé de service en service sans jamais résoudre mon problème de facturation. Merci.,sav
+465,"Bonjour, La date de livraison annoncée n'a pas été respectée, j'ai dû prendre un jour de congé pour rien. À bon entendeur.",livraison
+320,"À l'attention de l'équipe : Même article, quinze euros moins cher chez un concurrent le jour même : c'est dommage. À bon entendeur.",prix
+148,Une promotion intéressante : j'ai économisé trente euros grâce au code de réduction.,prix
+362,"Bonsoir, L'aspirateur perd de la puissance après dix minutes d'utilisation, la qualité n'est pas au rendez-vous. À bon entendeur.",produit
+33,"Avis client : Le suivi indiquait une livraison le matin, elle a eu lieu à vingt et une heures. Bonne journée !",livraison
+146,"Petit retour : La finition est impeccable, le matériau est solide et le produit fait exactement ce qui est annoncé. Voilà mon retour.",produit
+211,"Salut, Prise en charge de la garantie très efficace : le technicien est passé dès le lendemain.",sav
+195,"Bonjour, L'équipe du support a répondu avec patience et a trouvé une solution à ma panne. Cordialement.",sav
+180,"Bonsoir, L'abonnement est cher pour ce qu'il inclut, et la hausse annoncée n'est pas justifiée. À bon entendeur.",prix
+453,"Expédition rapide et suivi précis jusqu'à la porte, rien à redire sur l'acheminement. Je reste à votre disposition.",livraison

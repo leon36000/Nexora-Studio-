@@ -20,6 +20,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import subprocess
 import sys
 import threading
 import wave
@@ -1053,6 +1054,114 @@ def main() -> int:
         return (f"clé créée, « {model_answer.strip()[:30]} » ({model_usage.get('completion_tokens', '?')} jetons), "
                 f"agent « {agent['name']} » répond en flux, 403 hors liste, 401 révoquée, {row['requests']} requêtes en consommation")
 
+    def batches():
+        """K13: a JSONL file goes through the official `openai` client (files.create then batches.create),
+        the batch finishes with its output file and usage, an invalid file fails with its line numbers, a
+        running batch can be cancelled, and a table is processed from the screen's API into a new column."""
+        ws = state["ws"]
+        repo_python = Path(__file__).resolve().parent.parent / ".nexora-work" / "oa-venv" / "bin" / "python"
+        python = os.environ.get("NEXORA_OA_PYTHON") or str(repo_python)
+        if not Path(python).exists():
+            venv = Path(python).parent.parent
+            subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True, timeout=300)
+            subprocess.run([str(venv / "bin" / "pip"), "install", "-q", "openai"], check=True, timeout=900)
+        status, body = s.call("POST", "/api/nexora/api-keys", {"workspaceId": ws, "name": f"fumee-lots-{secrets.token_hex(3)}"})
+        require(status == 200 and str(body.get("value", "")).startswith("sk-nexora-"), f"key creation returned HTTP {status}: {str(body)[:200]}")
+        key, value = body["key"], body["value"]
+        script = r'''
+import json, os, time
+from openai import OpenAI
+client = OpenAI(base_url=os.environ["NEXORA_URL"], api_key=os.environ["NEXORA_KEY"])
+model = "nexora-default"
+
+def lines(count, prefix):
+    return ("\n".join(json.dumps({"custom_id": f"{prefix}-{i}", "method": "POST", "url": "/v1/chat/completions",
+        "body": {"model": model, "max_tokens": 1024, "messages": [{"role": "user", "content": f"Réponds par le seul mot ok (essai {i})."}]}}) for i in range(count)) + "\n").encode()
+
+def wait(batch, until, seconds):
+    start = time.time()
+    while batch.status not in until and time.time() - start < seconds:
+        time.sleep(2)
+        batch = client.batches.retrieve(batch.id)
+    return batch
+
+summary = {}
+file = client.files.create(file=("lot.jsonl", lines(3, "a")), purpose="batch")
+batch = client.batches.create(input_file_id=file.id, endpoint="/v1/chat/completions", completion_window="24h", metadata={"fumee": "k13"})
+summary["created"] = [batch.status, batch.request_counts.total]
+batch = wait(batch, ("completed", "failed", "expired", "cancelled"), 420)
+summary["status"] = batch.status
+summary["counts"] = [batch.request_counts.completed, batch.request_counts.failed, batch.request_counts.total]
+summary["tokens"] = batch.usage.total_tokens if batch.usage else 0
+out = client.files.content(batch.output_file_id).text.splitlines() if batch.output_file_id else []
+summary["output"] = sorted(json.loads(line)["custom_id"] for line in out)
+summary["answers"] = [json.loads(line)["response"]["status_code"] for line in out]
+summary["listed"] = batch.id in [b.id for b in client.batches.list(limit=20).data]
+summary["file_listed"] = file.id in [f.id for f in client.files.list(purpose="batch").data]
+
+bad = client.files.create(file=("mauvais.jsonl", b'{"custom_id": "x", "body": {"model": "nexora-default", "messages": []}}\n{pas du json\n'), purpose="batch")
+failed = client.batches.create(input_file_id=bad.id, endpoint="/v1/chat/completions", completion_window="24h")
+summary["invalid"] = [failed.status, [[e.code, e.line] for e in failed.errors.data] if failed.errors else None]
+
+big = client.files.create(file=("long.jsonl", lines(30, "b")), purpose="batch")
+running = client.batches.create(input_file_id=big.id, endpoint="/v1/chat/completions", completion_window="24h")
+cancelling = client.batches.cancel(running.id)
+summary["cancel"] = cancelling.status
+running = wait(cancelling, ("cancelled", "completed"), 180)
+summary["cancelled"] = [running.status, running.request_counts.completed + running.request_counts.failed, running.request_counts.total]
+print(json.dumps(summary))
+'''
+        try:
+            run = subprocess.run([python, "-I", "-c", script], capture_output=True, text=True, timeout=900,
+                                 env={"NEXORA_URL": f"{s.url}/v1", "NEXORA_KEY": value, "PATH": os.environ.get("PATH", "")})
+            require(run.returncode == 0, f"openai client failed: {(run.stderr or run.stdout)[-400:]}")
+            summary = json.loads(run.stdout.strip().splitlines()[-1])
+        finally:
+            s.call("DELETE", f"/api/nexora/api-keys/{key['id']}?workspaceId={ws}")
+        require(summary["created"] == ["in_progress", 3], f"batch creation: {summary['created']}")
+        require(summary["status"] == "completed" and summary["counts"] == [3, 0, 3], f"batch result: {summary['status']} {summary['counts']}")
+        require(summary["output"] == ["a-0", "a-1", "a-2"] and set(summary["answers"]) == {200}, f"output file: {summary['output']} {summary['answers']}")
+        require(summary["tokens"] > 0 and summary["listed"] and summary["file_listed"], f"usage or lists: {summary}")
+        require(summary["invalid"] == ["failed", [["invalid_json_line", 2]]], f"invalid file: {summary['invalid']}")
+        require(summary["cancel"] in ("cancelling", "cancelled") and summary["cancelled"][0] == "cancelled" and summary["cancelled"][1] == summary["cancelled"][2],
+                f"cancellation: {summary['cancel']} {summary['cancelled']}")
+
+        csv_text = "numero,avis\n1,Livraison très rapide\n2,Produit cassé à l'arrivée\n3,Service client injoignable\n"
+        data, content_type = multipart({"workspaceId": ws}, "file", "avis-lots.csv", "text/csv", csv_text.encode())
+        status, imported = s.call("POST", "/api/table/import-csv", data=data, content_type=content_type, timeout=300)
+        require(status == 200, f"CSV import returned HTTP {status}: {str(imported)[:200]}")
+        table_id = imported["data"]["table"]["id"]
+        for _ in range(30):
+            _, sources = s.call("GET", f"/api/nexora/batches/sources?workspaceId={ws}")
+            if any(t["id"] == table_id and t["rowCount"] == 3 for t in sources.get("tables", [])):
+                break
+            time.sleep(1)
+        status, created = s.call("POST", "/api/nexora/batches", {
+            "workspaceId": ws, "name": "Fumée lots", "tableId": table_id, "target": {"kind": "model", "model": "vllm/nexora-default"},
+            "template": "Classe cet avis en un mot (livraison, produit ou service) : {{avis}}", "outputColumnName": "Sujet",
+            "concurrency": 2, "expiresInHours": 24}, timeout=120)
+        require(status == 200, f"table batch creation returned HTTP {status}: {str(created)[:300]}")
+        batch_id = created["batch"]["id"]
+        try:
+            batch = created["batch"]
+            for _ in range(150):
+                status, read = s.call("GET", f"/api/nexora/batches/{batch_id}?workspaceId={ws}&limit=10")
+                require(status == 200, f"batch read returned HTTP {status}")
+                batch = read["batch"]
+                if batch["status"] not in ("in_progress", "cancelling"):
+                    break
+                time.sleep(2)
+            require(batch["status"] == "completed" and batch["completed"] == 3 and batch["failed"] == 0, f"table batch: {batch}")
+            status, csv_export = s.call("GET", f"/api/nexora/batches/{batch_id}/export?workspaceId={ws}", raw=True)
+            rows = [line.split(";") for line in csv_export.lstrip("﻿").strip().split("\r\n")]
+            require(status == 200 and len(rows) == 4 and all(row[3].strip() for row in rows[1:]), f"CSV export: {csv_export[:300]}")
+            status, listed = s.call("GET", f"/api/nexora/batches?workspaceId={ws}")
+            require(status == 200 and len(listed["batches"]) >= 3, f"batches list: {status} {len(listed.get('batches', []))}")
+        finally:
+            s.call("DELETE", f"/api/nexora/batches/{batch_id}?workspaceId={ws}")
+        return (f"openai : lot de 3 requêtes terminé ({summary['tokens']} jetons), fichier invalide refusé ligne 2, "
+                f"annulation ({summary['cancelled'][1]}/{summary['cancelled'][2]} traitées), table classée : « {rows[1][3][:20]} »")
+
     def traces():
         """K8: every model call becomes a trace. A question to a members-only agent that searches a
         knowledge base shows up in Traces within 5 s as model → knowledge → model; an IBAN typed in
@@ -1488,6 +1597,7 @@ def main() -> int:
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     s.check("Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement", traces)
     s.check("Évaluations : campagne, statistiques, comparaison, alerte, annulation, planification", evaluations)
+    s.check("Lots : fichier JSONL par le client openai, sortie, fichier invalide, annulation, table classée", batches)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:

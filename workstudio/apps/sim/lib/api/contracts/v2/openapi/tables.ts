@@ -2002,11 +2002,7 @@ export const tablesOpenApiDocument = defineOpenApiDocument({
     description:
       'Version 2 of the Nexora REST API for tables, typed columns, rows, saved views, workflow groups, folders, imports, and exports. Row data is keyed by column name.',
     version: '2.0.0',
-    contact: {
-      name: 'Nexora Support',
-      email: 'support@example.com',
-      url: 'https://workstudio.example.com',
-    },
+    contact: { name: 'Nexora Support', email: 'support@example.com', url: 'https://workstudio.example.com' },
     license: { name: 'Apache 2.0', url: 'https://www.apache.org/licenses/LICENSE-2.0.html' },
   },
   servers: [{ url: 'https://workstudio.example.com', description: 'Production' }],

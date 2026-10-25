@@ -2,6 +2,7 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { sleep } from '@sim/utils/helpers'
 import { generateShortId } from '@sim/utils/id'
+import { LRUCache } from 'lru-cache'
 import { generateRequestId } from '@/lib/core/utils/request'
 import { instanceLimiter, interactiveBusy } from '@/lib/nexora/background-load'
 import { type ApiExecutorDeps, executeApiItem } from '@/lib/nexora/batches/api-executor'
@@ -40,6 +41,20 @@ const RETENTION_DAYS = 90
 const TABLE_PAGE = 1000
 
 const running = new Map<string, AbortController>()
+
+/**
+ * The table a running batch writes into, read again at most every 30 s: loading a table also counts
+ * its rows, which a batch of thousands of answers must not do for each one.
+ */
+const tableCache = new LRUCache<string, TableDefinition>({ max: 50, ttl: 30_000 })
+
+async function loadTable(tableId: string): Promise<TableDefinition | null> {
+  const cached = tableCache.get(tableId)
+  if (cached) return cached
+  const table = await getTableById(tableId)
+  if (table) tableCache.set(tableId, table)
+  return table
+}
 const owner = `${process.pid}-${generateShortId(8)}`
 
 function toTableInfo(table: TableDefinition): TableInfo {
@@ -66,7 +81,7 @@ const tableExecutorDeps: TableExecutorDeps = {
   },
   runTarget: (target, row, context) => runTarget(target, row, context, targetDeps),
   writeCell: async (tableId, workspaceId, rowId, columnId, value) => {
-    const table = await getTableById(tableId)
+    const table = await loadTable(tableId)
     if (!table || table.workspaceId !== workspaceId) throw new Error('La table n’existe plus.')
     try {
       await updateRow(

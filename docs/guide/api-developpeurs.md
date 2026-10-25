@@ -15,9 +15,11 @@ Dans WorkStudio, la page **Développeurs** (barre latérale) rassemble l'adresse
 | `POST /v1/chat/completions` | conversation, en flux (`"stream": true`) ou non |
 | `POST /v1/embeddings` | vecteurs (bases de connaissances externes) |
 | `POST /v1/audio/transcriptions` | transcription d'un fichier audio (profil « voix ») |
+| `POST /v1/files`, `GET /v1/files/{id}/content`… | fichiers JSONL d'un lot et fichiers de résultats ([Les traitements par lot](lots.md)) |
+| `POST /v1/batches`, `GET /v1/batches/{id}`, `POST /v1/batches/{id}/cancel` | lots de requêtes exécutés en arrière-plan, à priorité basse ([Les traitements par lot](lots.md)) |
 | `GET /v1/openapi.json` | description OpenAPI, sans clé |
 
-Tailles maximales : **20 Mo** pour un corps JSON (`413 request_too_large`), **25 Mo** pour un fichier audio (`413 file_too_large`). L'API est faite pour les appels **de serveur à serveur** (n8n, scripts, back-ends) : elle n'envoie pas d'en-têtes CORS, un navigateur ne peut donc pas l'appeler depuis une autre origine ; une clé ne doit jamais être placée dans une page web.
+Tailles maximales : **20 Mo** pour un corps JSON (`413 request_too_large`), **25 Mo** pour un fichier audio ou un fichier de lot (`413 file_too_large`). L'API est faite pour les appels **de serveur à serveur** (n8n, scripts, back-ends) : elle n'envoie pas d'en-têtes CORS, un navigateur ne peut donc pas l'appeler depuis une autre origine ; une clé ne doit jamais être placée dans une page web.
 
 ## Clés
 
@@ -92,8 +94,13 @@ Les erreurs suivent le format d'OpenAI (`{"error": {"message", "type", "code"}}`
 | 402 | `monthly_budget_reached` | budget mensuel de l'espace ou de l'instance atteint (Réglages › Consommation) |
 | 429 | `rate_limit_exceeded` | trop de requêtes par minute (en-têtes `x-ratelimit-*`, `Retry-After`) |
 | 429 | `monthly_cap_reached` | plafond mensuel de la clé atteint |
+| 404, 409, 429 | `file_not_found`, `batch_not_found`, `batch_not_cancellable`, `batch_queue_full` | fichiers et lots : voir [Les traitements par lot](lots.md#par-lapi) |
 | 502 | `upstream_error` | Nexora API a refusé ou n'a pas pu traiter la requête (y compris quand elle refuse la clé propre de WorkStudio : votre clé n'est pas en cause) |
 | 503 | `service_unavailable`, `model_busy` | Nexora API ne répond pas, ou le modèle est occupé |
+
+## Traitements par lot
+
+Pour traiter des centaines de requêtes sans bloquer personne, envoyez un fichier JSONL à `/v1/files` puis créez un lot avec `/v1/batches` : le client `openai` (`client.files.create`, `client.batches.create`) fonctionne tel quel. Le lot tourne en arrière-plan à priorité basse, un seul modèle par lot, 24 heures de validité par défaut. Tout est dans [Les traitements par lot](lots.md).
 
 ## SDK
 

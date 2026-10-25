@@ -42,7 +42,7 @@
     "column": "Name of the new column",
     "columnHint": "Each row's answer is written there. Letters, digits and underscores (accents are removed).",
     "maxTokens": "Maximum answer length (tokens)",
-    "maxTokensHint": "A classification needs few tokens: a low value speeds a local model up noticeably. Empty: no cap.",
+    "maxTokensHint": "A classification needs few tokens: a low value speeds a local model up noticeably. Empty: no cap. A reasoning model (GLM 5.3) spends its tokens thinking: leave empty with it.",
     "maxTokensInvalid": "Enter a whole number between 1 and 8192, or leave empty.",
     "concurrency": "Simultaneous requests",
     "expires": "Expiry",

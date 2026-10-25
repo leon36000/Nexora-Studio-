@@ -45,6 +45,31 @@ def multipart(fields: dict, file_field: str, file_name: str, content: bytes) -> 
     return body, f"multipart/form-data; boundary={boundary}"
 
 
+def percentile(valeurs: list, p: float) -> float:
+    ordre = sorted(valeurs)
+    rang = max(0, min(len(ordre) - 1, round(p * (len(ordre) - 1))))
+    return ordre[rang]
+
+
+def latences(s: Smoke, ws: str, n: int, modele: str) -> dict:
+    """Latence de bout en bout (flux complet) de n questions interactives du Playground, l'une après l'autre."""
+    durees = []
+    for i in range(n):
+        debut = time.time()
+        status, texte = s.call("POST", "/api/nexora/playground", {
+            "workspaceId": ws, "model": modele,
+            "messages": [{"role": "user", "content": f"Réponds en une phrase courte : quelle est la capitale du pays numéro {i % 7 + 1} de ta liste préférée ?"}],
+            "temperature": 0.2, "maxTokens": 256}, raw=True, timeout=300)
+        assert status == 200, (status, texte[:200])
+        assert '"done"' in texte, texte[:200]
+        durees.append(time.time() - debut)
+        time.sleep(0.5)
+    return {
+        "n": n, "p50_s": round(percentile(durees, 0.5), 2), "p95_s": round(percentile(durees, 0.95), 2),
+        "moyenne_s": round(sum(durees) / n, 2), "max_s": round(max(durees), 2), "durees_s": [round(d, 2) for d in durees],
+    }
+
+
 def normalise(texte: str) -> str:
     mot = (texte or "").strip().lower().strip(" .\"'«»:")
     for categorie in CATEGORIES:
@@ -63,12 +88,16 @@ def main() -> int:
     parser.add_argument("--report", default=str(ICI / "rapport.json"))
     parser.add_argument("--kill-after", type=int, default=0, help="kill -9 du serveur après N lignes traitées")
     parser.add_argument("--pid", type=int, default=0)
+    parser.add_argument("--latence", type=int, default=0, help="nombre de questions interactives (Playground) avant puis pendant le lot")
+    parser.add_argument("--modele-interactif", default="vllm/nexora-default", help="modèle des questions interactives (GLM 5.3 par défaut)")
+    parser.add_argument("--email", help="compte de test à créer (sinon jetable aléatoire)")
+    parser.add_argument("--password")
     args = parser.parse_args()
 
     s = Smoke(args.url)
     rapport: dict = {"modele": args.model, "concurrence": args.concurrency, "etapes": []}
-    email = f"k13-{secrets.token_hex(4)}@nexora.test"
-    status, body = s.call("POST", "/api/auth/sign-up/email", {"email": email, "password": secrets.token_hex(16), "name": "K13 Lots"}, timeout=300)
+    email = args.email or f"k13-{secrets.token_hex(4)}@nexora.test"
+    status, body = s.call("POST", "/api/auth/sign-up/email", {"email": email, "password": args.password or secrets.token_hex(16), "name": "K13 Lots"}, timeout=300)
     assert status == 200, (status, body)
     status, body = s.call("POST", "/api/workspaces", {"name": "Lots K13 : 500 avis"}, timeout=600)
     assert status == 200, (status, str(body)[:300])
@@ -91,6 +120,10 @@ def main() -> int:
     assert table and table["rowCount"] == attendues, f"table importée incomplète : {table}"
     print(f"table {table['name']} : {table['rowCount']} lignes, colonnes {table['columns']}")
 
+    if args.latence:
+        rapport["latence_sans_lot"] = latences(s, ws, args.latence, args.modele_interactif)
+        print("latence sans lot :", {k: v for k, v in rapport["latence_sans_lot"].items() if k != "durees_s"}, flush=True)
+
     debut = time.time()
     status, body = s.call("POST", "/api/nexora/batches", {
         "workspaceId": ws, "name": "Classement des avis", "tableId": table_id,
@@ -103,11 +136,25 @@ def main() -> int:
     rapport["batchId"] = lot["id"]
     print(f"lot {lot['id']} lancé : {lot['total']} requêtes")
 
+    if args.latence:
+        time.sleep(15)
+        _, etat = s.call("GET", f"/api/nexora/batches/{lot['id']}?workspaceId={ws}&limit=1")
+        rapport["avancement_au_debut_de_la_mesure"] = etat["batch"]["completed"] + etat["batch"]["failed"]
+        rapport["latence_pendant_le_lot"] = latences(s, ws, args.latence, args.modele_interactif)
+        _, etat = s.call("GET", f"/api/nexora/batches/{lot['id']}?workspaceId={ws}&limit=1")
+        rapport["avancement_a_la_fin_de_la_mesure"] = etat["batch"]["completed"] + etat["batch"]["failed"]
+        avant, pendant = rapport["latence_sans_lot"]["p95_s"], rapport["latence_pendant_le_lot"]["p95_s"]
+        rapport["hausse_p95"] = round(pendant / avant - 1, 3)
+        print("latence pendant le lot :", {k: v for k, v in rapport["latence_pendant_le_lot"].items() if k != "durees_s"}, "hausse du p95 :", rapport["hausse_p95"], flush=True)
+
     tue = False
     dernier = -1
     while lot["status"] in ("in_progress", "cancelling"):
         time.sleep(3)
-        status, body = s.call("GET", f"/api/nexora/batches/{lot['id']}?workspaceId={ws}&limit=1")
+        try:
+            status, body = s.call("GET", f"/api/nexora/batches/{lot['id']}?workspaceId={ws}&limit=1", timeout=30)
+        except OSError:
+            status, body = 0, {}
         if status != 200:
             print("lecture impossible (serveur arrêté ?)", status)
             time.sleep(2)

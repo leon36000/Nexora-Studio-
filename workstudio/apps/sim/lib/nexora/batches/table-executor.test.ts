@@ -307,6 +307,24 @@ describe('executeTableItem', () => {
     })
   })
 
+  it('fails the row, writing nothing, when the model answers nothing (a reasoning model out of tokens)', async () => {
+    const { deps, writeCell, signal } = executorSetup({
+      runTarget: vi.fn(async () => ({
+        answer: '   ',
+        latencyMs: 40,
+        usage: { promptTokens: 12, completionTokens: 6 },
+        executionId: null,
+      })),
+    })
+    const outcome = await executeTableItem(batch, item, signal, deps)
+    expect(outcome).toMatchObject({
+      kind: 'error',
+      retryable: false,
+      problem: { code: 'empty_answer', message: expect.stringContaining('plafond') },
+    })
+    expect(writeCell).not.toHaveBeenCalled()
+  })
+
   it('reports an abort as such, writing nothing', async () => {
     const controller = new AbortController()
     const { deps, writeCell } = executorSetup({

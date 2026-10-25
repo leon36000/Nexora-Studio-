@@ -42,7 +42,7 @@
     "column": "Nom de la nouvelle colonne",
     "columnHint": "La réponse de chaque ligne y est écrite. Lettres, chiffres et tirets bas (les accents sont retirés).",
     "maxTokens": "Longueur maximale de la réponse (jetons)",
-    "maxTokensHint": "Un classement tient en peu de jetons : une valeur basse accélère nettement un modèle local. Vide : pas de plafond.",
+    "maxTokensHint": "Un classement tient en peu de jetons : une valeur basse accélère nettement un modèle local. Vide : pas de plafond. Un modèle à raisonnement (GLM 5.3) consomme ses jetons à réfléchir : laissez vide avec lui.",
     "maxTokensInvalid": "Saisissez un nombre entier entre 1 et 8192, ou laissez vide.",
     "concurrency": "Requêtes simultanées",
     "expires": "Expiration",

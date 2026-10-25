@@ -70,15 +70,11 @@ export const v2WorkflowMcpServerSchema = z
     id: z.string().describe('Unique workflow-MCP server identifier.'),
     name: z.string().describe('Server display name, shown to connecting MCP clients.'),
     description: z.string().nullable().describe('Optional server description, or null when unset.'),
-    isPublic: z
-      .boolean()
-      .describe('Whether the server answers MCP clients without a Nexora API key.'),
+    isPublic: z.boolean().describe('Whether the server answers MCP clients without a Nexora API key.'),
     mcpServerUrl: z
       .string()
       .describe('MCP client endpoint. Use this returned URL instead of constructing one.')
-      .meta({
-        examples: ['https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2'],
-      }),
+      .meta({ examples: ['https://workstudio.example.com/api/mcp/serve/wfmcp_01J8ZK3QW4M6X2R9T7B5C0V2'] }),
     createdAt: z
       .string()
       .describe('ISO 8601 timestamp when the server was created.')

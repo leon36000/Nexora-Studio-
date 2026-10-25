@@ -44,7 +44,8 @@ Créés (tous sous `workstudio/apps/sim/` sauf mention) :
 - `lib/nexora/batches/openai.ts` — cas d'usage OpenAI (fichiers, lots) et présentateurs.
 - `lib/nexora/batches/csv.ts` — export CSV des résultats.
 - `lib/nexora/batches/application/{operations,use-cases}.ts` — opérations d'espace (écran).
-- `lib/api/contracts/nexora-batches.ts` — contrats de l'écran et des lots OpenAI JSON.
+- `lib/api/contracts/nexora-batches.ts` (écran) et `nexora-openai-batches.ts` (lots OpenAI) — contrats.
+- `lib/nexora/batches/present.ts` — présentateurs de l'écran.
 - `app/api/nexora/v1/{files,batches}/…/route.ts` — surface OpenAI.
 - `app/api/nexora/batches/…/route.ts` — surface de l'écran.
 - `hooks/queries/nexora-batches.ts`, `app/workspace/[workspaceId]/batches/…`, `messages/{fr,en}/batches.json`.
@@ -57,9 +58,9 @@ Modifiés : `evaluations/live.ts` (importe le limiteur commun), `evaluations/tar
 
 ### Tâche 1 : Préparation
 
-- [ ] `bun install` dans `workstudio/` ; vérifier que le test existant `lib/nexora/evaluations/runner.test.ts` passe (base verte).
-- [ ] Créer le venv `.nexora-work/oa-venv` avec `openai` (comme K3) et un Postgres jetable `k13-pg-test` (image de la pile, port libre) ; vérifier 30 Go libres.
-- [ ] Lire `.claude/rules/sim-api-contracts.md`, `sim-queries.md`, `sim-components.md`, `sim-ui-copy.md`, `sim-testing.md` et les skills `migrate-application-operation`, `db-migrate`.
+- [x] `bun install` dans `workstudio/` ; vérifier que le test existant `lib/nexora/evaluations/runner.test.ts` passe (base verte).
+- [x] Créer le venv `.nexora-work/oa-venv` avec `openai` (comme K3) et un Postgres jetable `k13-pg-test` (image de la pile, port libre) ; vérifier 30 Go libres.
+- [x] Lire `.claude/rules/sim-api-contracts.md`, `sim-queries.md`, `sim-components.md`, `sim-ui-copy.md`, `sim-testing.md` et les skills `migrate-application-operation`, `db-migrate`.
 
 ### Tâche 2 : Charge d'arrière-plan commune (extraction K10)
 
@@ -67,9 +68,9 @@ Modifiés : `evaluations/live.ts` (importe le limiteur commun), `evaluations/tar
 
 **Interfaces — Produces :** `instanceLimiter: Limiter` (4 appels), `interactiveBusy(): Promise<boolean>` (exécution `chat`/`manual` en cours depuis moins de 10 min **ou** activité interactive notée il y a moins de 15 s), `noteInteractiveActivity(now?: number): void`.
 
-- [ ] Test rouge : `noteInteractiveActivity` ⇒ `interactiveBusy()` vrai pendant 15 s puis faux (horloge injectée) ; le limiteur est partagé (le même objet pour les deux importeurs).
-- [ ] Déplacer `limiter`, `INSTANCE_CALL_LIMIT`, `interactiveBusy` de `evaluations/live.ts` vers le nouveau module ; `live.ts` les importe ; `runner.test.ts` reste vert.
-- [ ] Appeler `noteInteractiveActivity()` au début de `relayChatCompletion` (appel par clé) et des routes Playground/Copilote qui appellent `nexoraWandStream` (hors campagnes et lots).
+- [x] Test rouge : `noteInteractiveActivity` ⇒ `interactiveBusy()` vrai pendant 15 s puis faux (horloge injectée) ; le limiteur est partagé (le même objet pour les deux importeurs).
+- [x] Déplacer `limiter`, `INSTANCE_CALL_LIMIT`, `interactiveBusy` de `evaluations/live.ts` vers le nouveau module ; `live.ts` les importe ; `runner.test.ts` reste vert.
+- [x] Appeler `noteInteractiveActivity()` au début de `relayChatCompletion` (appel par clé) et des routes Playground/Copilote qui appellent `nexoraWandStream` (hors campagnes et lots).
 
 ### Tâche 3 : Schéma et migration 0449
 
@@ -80,7 +81,7 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 - `nexora_batch` : `id` (`batch_…`), `workspace_id` nullable, `api_key_id`, `created_by`, `source` (`api` | `table`), `endpoint`, `model`, `status` (`in_progress`, `cancelling`, `completed`, `failed`, `expired`, `cancelled`), `input_file_id`, `output_file_id`, `error_file_id`, `metadata` jsonb, `config` jsonb (lots de table : cible, gabarit, colonne), `table_id`, `name`, `concurrency`, `total`/`completed`/`failed` entiers, `prompt_tokens`, `completion_tokens`, `errors` jsonb, `lease_owner`, `lease_until`, `expires_at`, `created_at`, `started_at`, `finished_at`, `cancel_requested_at`.
 - `nexora_batch_item` : `id`, `batch_id` cascade, `position`, `custom_id`, `request` jsonb, `row_ref` text nullable, `status` (`pending`, `running`, `done`, `error`), `attempt`, `response` jsonb, `answer` text, `error` jsonb, `prompt_tokens`, `completion_tokens`, `latency_ms`, `started_at`, `finished_at` ; index unique `(batch_id, custom_id)`, index file d'attente `(batch_id, status, position)`.
 
-- [ ] Écrire `schema.ts` puis générer la migration avec `drizzle-kit generate` (renommer en `0449_nexora_batches`) ; vérifier le `when` > 1792900664423 et `idx` 449 ; `check:migrations main` sans bloquant ; appliquer sur le Postgres jetable.
+- [x] Écrire `schema.ts` puis générer la migration avec `drizzle-kit generate` (renommer en `0449_nexora_batches`) ; vérifier le `when` > 1792900664423 et `idx` 449 ; `check:migrations main` sans bloquant ; appliquer sur le Postgres jetable.
 
 ### Tâche 4 : JSONL, validation, formats (pur)
 
@@ -91,8 +92,8 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 - `parseCompletionWindow(value: unknown): { ok: true; hours: number } | { ok: false; message: string }`.
 - `outputLine(item): string`, `errorLine(item): string` (formes OpenAI).
 
-- [ ] Tests rouges : fichier vide ⇒ `empty_file` ; ligne 3 non JSON ⇒ `invalid_json_line` ligne 3 ; `custom_id` en double ⇒ `duplicate_custom_id` avec les deux numéros ; `method` ≠ POST ou `url` ≠ endpoint ⇒ `invalid_url` ; modèles différents ⇒ `model_mismatch` ; `stream: true` ⇒ `invalid_request` ; plus de 10 000 lignes ⇒ `too_many_tasks` ; modèle absent ⇒ `model_required` ; erreurs plafonnées à 20 ; fenêtre `24h`, `1h`, `168h`, `7d` valides, `0h`, `200h`, `8d`, `abc` refusées.
-- [ ] Implémenter ; sans aucune dépendance de base.
+- [x] Tests rouges : fichier vide ⇒ `empty_file` ; ligne 3 non JSON ⇒ `invalid_json_line` ligne 3 ; `custom_id` en double ⇒ `duplicate_custom_id` avec les deux numéros ; `method` ≠ POST ou `url` ≠ endpoint ⇒ `invalid_url` ; modèles différents ⇒ `model_mismatch` ; `stream: true` ⇒ `invalid_request` ; plus de 10 000 lignes ⇒ `too_many_tasks` ; modèle absent ⇒ `model_required` ; erreurs plafonnées à 20 ; fenêtre `24h`, `1h`, `168h`, `7d` valides, `0h`, `200h`, `8d`, `abc` refusées.
+- [x] Implémenter ; sans aucune dépendance de base.
 
 ### Tâche 5 : Dépôt (Drizzle)
 
@@ -100,8 +101,8 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 
 **Interfaces — Produces** (toutes les lectures filtrent par `scope: { workspaceId: string | null }`) : `insertFile`, `getFile`, `listFiles`, `softDeleteFile`, `insertBatchWithItems`, `getBatch`, `listBatches`, `acquireBatch(id, owner, now, leaseUntil)` (remet les éléments `running` en `pending`), `heartbeat`, `claimNextItem(batchId, now)` (`FOR UPDATE SKIP LOCKED`, abandonne après 3 tentatives), `completeItem`, `failItem`, `releaseItem`, `finishBatch(id, owner, status, now)` (transition atomique, marque les éléments ouverts en erreur `batch_cancelled`/`batch_expired`), `requestCancel`, `countOpenItems`, `listAdoptableBatchIds(now)` (bail expiré, ou `cancelling`, ou échéance dépassée), `pendingLinesInScope`, `streamItems(batchId, kind, afterPosition, limit)`, `purgeFinishedBefore(date)`.
 
-- [ ] Tests d'intégration rouges (Postgres jetable) : réclamation concurrente (20 réclamations ⇒ pas de doublon) ; reprise ⇒ `running` redevient `pending` ; `finishBatch` par un propriétaire périmé ⇒ refus ; isolement par espace (un autre espace ⇒ `null`) ; clé d'instance (`workspace_id` null) isolée des espaces ; `pendingLinesInScope` ; page de sortie ordonnée ; purge à 90 jours.
-- [ ] Implémenter.
+- [x] Tests d'intégration rouges (Postgres jetable) : réclamation concurrente (20 réclamations ⇒ pas de doublon) ; reprise ⇒ `running` redevient `pending` ; `finishBatch` par un propriétaire périmé ⇒ refus ; isolement par espace (un autre espace ⇒ `null`) ; clé d'instance (`workspace_id` null) isolée des espaces ; `pendingLinesInScope` ; page de sortie ordonnée ; purge à 90 jours.
+- [x] Implémenter.
 
 ### Tâche 6 : Moteur
 
@@ -110,8 +111,8 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 **Interfaces — Produces :** `runBatch(batchId: string, deps: EngineDeps): Promise<'completed' | 'cancelled' | 'expired' | 'interrupted' | 'failed' | 'skipped'>` ; `EngineDeps = { store, owner, leaseMs, now, sleep, every, limiter, interactiveBusy, executeItem(batch, item, signal): Promise<ItemOutcome>, externalSignal? }` ; `ItemOutcome = { kind: 'done'; ... } | { kind: 'error'; retryable: boolean; ... } | { kind: 'aborted' }`.
 - Consomme `createLimiter`, `INTERACTIVE_WAIT_MAX_MS` de `evaluations/runner.ts`.
 
-- [ ] Tests rouges (magasin en mémoire, horloge simulée) : plafond de concurrence du lot ; plafond du limiteur commun ; chaque lot attend au plus 30 s derrière une activité interactive, et **pas du tout après** le dernier élément ; reprise : 3 interruptions successives ⇒ résultat unique par `custom_id` ; annulation ⇒ appels interrompus (`signal`), éléments restants `batch_cancelled` ; échéance ⇒ `expired` ; erreur réessayable ⇒ 3 tentatives puis erreur ; erreur définitive ⇒ pas de nouvelle tentative ; bail perdu ⇒ `interrupted` sans toucher à l'état.
-- [ ] Implémenter en réutilisant `createLimiter`/`INTERACTIVE_WAIT_MAX_MS` ; retirer chaque garde ⇒ le test correspondant rougit.
+- [x] Tests rouges (magasin en mémoire, horloge simulée) : plafond de concurrence du lot ; plafond du limiteur commun ; chaque lot attend au plus 30 s derrière une activité interactive, et **pas du tout après** le dernier élément ; reprise : 3 interruptions successives ⇒ résultat unique par `custom_id` ; annulation ⇒ appels interrompus (`signal`), éléments restants `batch_cancelled` ; échéance ⇒ `expired` ; erreur réessayable ⇒ 3 tentatives puis erreur ; erreur définitive ⇒ pas de nouvelle tentative ; bail perdu ⇒ `interrupted` sans toucher à l'état.
+- [x] Implémenter en réutilisant `createLimiter`/`INTERACTIVE_WAIT_MAX_MS` ; retirer chaque garde ⇒ le test correspondant rougit.
 
 ### Tâche 7 : Exécuteur des lots d'API
 
@@ -119,8 +120,8 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 
 **Interfaces — Produces :** `executeApiItem(batch, item, signal, deps): Promise<ItemOutcome>` — recharge la clé (révoquée/expirée ⇒ erreur définitive `revoked_api_key`/`expired_api_key`), `admitModel`, `reserveSpending` (plafond ⇒ `monthly_cap_reached`, budget ⇒ `monthly_budget_reached`, erreurs définitives), appel `callUpstream` sur le chemin du point d'accès, règlement de la réservation (jetons réels), trace K8 `source: 'api_key'` nommée `Lot · <clé>`, usage cumulé.
 
-- [ ] Tests rouges : succès ⇒ `done` avec corps et jetons réglés ; 503/réseau ⇒ réessayable ; 400 ⇒ définitif avec le corps d'erreur du modèle ; clé révoquée ⇒ aucun appel amont ; plafond atteint ⇒ aucun appel amont ; réservation libérée si l'appel n'aboutit pas ; abandon (`signal`) ⇒ `aborted` et réservation libérée.
-- [ ] Implémenter.
+- [x] Tests rouges : succès ⇒ `done` avec corps et jetons réglés ; 503/réseau ⇒ réessayable ; 400 ⇒ définitif avec le corps d'erreur du modèle ; clé révoquée ⇒ aucun appel amont ; plafond atteint ⇒ aucun appel amont ; réservation libérée si l'appel n'aboutit pas ; abandon (`signal`) ⇒ `aborted` et réservation libérée.
+- [x] Implémenter.
 
 ### Tâche 8 : Lots de table (gabarit, colonne, exécuteur)
 
@@ -128,8 +129,8 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 
 **Interfaces — Produces :** `renderTemplate(template: string, row: Record<string, unknown>): string` (`{{Nom de colonne}}`, insensible à la casse, valeurs absentes ⇒ vide) ; `createTableBatch(input, deps): Promise<BatchRecord>` (table de l'espace, colonne de résultat créée par `addTableColumn` type `string`, nom assaini, existante ⇒ erreur 400 français, éléments de toutes les lignes dont le gabarit rend un texte non vide, plafond 10 000, lignes ignorées comptées) ; `executeTableItem(batch, item, signal, deps)` (budget vérifié avant, `runTarget` K10, écriture de la cellule par `updateRow`, ligne supprimée ⇒ élément terminé avec la mention « ligne supprimée »).
 
-- [ ] Tests rouges : gabarit ; table d'un autre espace ⇒ introuvable ; colonne existante ⇒ refus ; 12 000 lignes ⇒ refus ; ligne vide ignorée ; exécution écrit la cellule par identifiant de colonne ; budget atteint ⇒ élément libéré et lot interrompu (comme K10) ; ligne supprimée en cours de route.
-- [ ] Implémenter.
+- [x] Tests rouges : gabarit ; table d'un autre espace ⇒ introuvable ; colonne existante ⇒ refus ; 12 000 lignes ⇒ refus ; ligne vide ignorée ; exécution écrit la cellule par identifiant de colonne ; budget atteint ⇒ élément libéré et lot interrompu (comme K10) ; ligne supprimée en cours de route.
+- [x] Implémenter.
 
 ### Tâche 9 : Câblage réel et reprise
 
@@ -137,8 +138,8 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 
 **Interfaces — Produces :** `startBatch(batchId): void` (une fois par processus), `abortBatch(batchId): void`, `tickBatches(now: Date): Promise<{ resumed: string[]; purged: number }>`.
 
-- [ ] Test rouge du cron : la réponse contient `batches.resumed` ; adoption d'un lot dont le bail est expiré.
-- [ ] Implémenter ; `tickEvaluations` ne change pas, la route appelle les deux.
+- [x] Test rouge du cron : la réponse contient `batches.resumed` ; adoption d'un lot dont le bail est expiré.
+- [x] Implémenter ; `tickEvaluations` ne change pas, la route appelle les deux.
 
 ### Tâche 10 : Surface OpenAI (`/v1/files`, `/v1/batches`)
 
@@ -146,8 +147,8 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 
 **Interfaces — Produces :** `createFile(call, {filename, bytes, text, purpose})`, `createBatchFromFile(call, body)` (404 fichier inconnu ; 400 endpoint ≠ `/v1/chat/completions`/`/v1/embeddings`, fenêtre, métadonnées ; entrée invalide ⇒ lot `failed` avec `errors.data[]` et numéros de ligne ; 403 modèle via `admitModel` ; 429 au-delà de 50 000 lignes en attente), `cancelBatch`, `readBatchContent(file)` (flux de lignes), présentateurs `fileObject`, `batchObject`.
 
-- [ ] Tests rouges : un fichier d'un autre espace ⇒ 404 ; purpose ≠ `batch` ⇒ 400 ; fichier > 25 Mo ⇒ 413 ; modèle non autorisé ⇒ 403 ; liste paginée (`limit`, `after`, `has_more`) ; `batch.request_counts` ; contenu d'un fichier de sortie = une ligne JSON par élément terminé ; annulation d'un lot terminé ⇒ 409.
-- [ ] Routes : `authenticateGatewayCall`, `answerGateway`, limites de corps (`/v1/files` multipart borné à 25 Mo, lecture par flux), `dynamic = 'force-dynamic'`, contrats `defineRouteContract` pour les corps JSON ; `check:api-validation:strict` vert.
+- [x] Tests rouges : un fichier d'un autre espace ⇒ 404 ; purpose ≠ `batch` ⇒ 400 ; fichier > 25 Mo ⇒ 413 ; modèle non autorisé ⇒ 403 ; liste paginée (`limit`, `after`, `has_more`) ; `batch.request_counts` ; contenu d'un fichier de sortie = une ligne JSON par élément terminé ; annulation d'un lot terminé ⇒ 409.
+- [x] Routes : `authenticateGatewayCall`, `answerGateway`, limites de corps (`/v1/files` multipart borné à 25 Mo, lecture par flux), `dynamic = 'force-dynamic'`, contrats `defineRouteContract` pour les corps JSON ; `check:api-validation:strict` vert.
 
 ### Tâche 11 : Opérations et routes de l'écran
 
@@ -155,23 +156,23 @@ Tables (toutes neuves, `onDelete: cascade` depuis `workspace`) :
 
 Opérations d'espace (session seulement, comme K10) : `list` et `read` (lecture), `sources` (écriture : tables et cibles), `create`, `cancel`, `delete` (écriture), `export` (lecture). Audit (`AuditResourceType`) à la création, l'annulation et la suppression.
 
-- [ ] Tests rouges : lecteur ne crée pas de lot (403) ; un lot d'un autre espace ⇒ introuvable ; export CSV en `;` avec BOM, guillemets doublés, protection contre l'injection de formule (`=`, `+`, `-`, `@` en tête).
-- [ ] Implémenter.
+- [x] Tests rouges : lecteur ne crée pas de lot (403) ; un lot d'un autre espace ⇒ introuvable ; export CSV en `;` avec BOM, guillemets doublés, protection contre l'injection de formule (`=`, `+`, `-`, `@` en tête).
+- [x] Implémenter.
 
 ### Tâche 12 : Écran « Traitements par lot »
 
 **Files :** Create `hooks/queries/nexora-batches.ts`, `app/workspace/[workspaceId]/batches/{page,loading,batches,search-params}.tsx|ts`, `components/{batch-modal,batch-list,batch-detail}.tsx`, `messages/{fr,en}/batches.json` ; Modify la barre latérale (entrée « Traitements par lot » après « Évaluations »).
 
-- [ ] Liste (statut, progression, durée, modèle, source API/table), fenêtre de création (table de l'espace ou **import d'un CSV** par le hook d'import existant, choix modèle / prompt K9 / agent, gabarit `{{colonne}}`, nom de la colonne de résultat, plafond de jetons, concurrence 1–4, durée d'expiration), détail avec progression rafraîchie, annulation, export CSV, lien vers la table, lots d'API visibles en lecture/annulation.
-- [ ] Respecter `sim-components.md`, `sim-queries.md` (clés, `staleTime` nommés, `signal`), `sim-ui-copy.md`, `sim-url-state.md` ; textes en français ; `check-i18n` vert.
-- [ ] Parcours au navigateur intégré (captures dans `docs/verification/k13-lots/`).
+- [x] Liste (statut, progression, durée, modèle, source API/table), fenêtre de création (table de l'espace ou **import d'un CSV** par le hook d'import existant, choix modèle / prompt K9 / agent, gabarit `{{colonne}}`, nom de la colonne de résultat, plafond de jetons, concurrence 1–4, durée d'expiration), détail avec progression rafraîchie, annulation, export CSV, lien vers la table, lots d'API visibles en lecture/annulation.
+- [x] Respecter `sim-components.md`, `sim-queries.md` (clés, `staleTime` nommés, `signal`), `sim-ui-copy.md`, `sim-url-state.md` ; textes en français ; `check-i18n` vert.
+- [x] Parcours au navigateur intégré (captures dans `docs/verification/k13-lots/`).
 
 ### Tâche 13 : Guide, index, fumée
 
 **Files :** Create `docs/guide/lots.md` ; Modify `docs/guide/README.md`, `docs/guide/api-developpeurs.md`, `scripts/smoke.py`.
 
-- [ ] Guide (API : Python `client.files.create` + `client.batches.create`, cURL, formats, statuts, erreurs, limites, expiration, reprise ; écran ; consommation) ; tableau d'index et liens croisés.
-- [ ] Contrôle « Lots : fichier JSONL, lot par le client openai, sortie, annulation, lot de table » dans `smoke.py` (venv `.nexora-work/oa-venv`) ; relancer la fumée existante pour vérifier qu'elle reste verte.
+- [x] Guide (API : Python `client.files.create` + `client.batches.create`, cURL, formats, statuts, erreurs, limites, expiration, reprise ; écran ; consommation) ; tableau d'index et liens croisés.
+- [x] Contrôle « Lots : fichier JSONL, lot par le client openai, sortie, annulation, lot de table » dans `smoke.py` (venv `.nexora-work/oa-venv`) ; relancer la fumée existante pour vérifier qu'elle reste verte.
 
 ### Tâche 14 : Preuves sur pc6
 

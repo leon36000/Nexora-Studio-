@@ -323,6 +323,20 @@ export async function executeTableItem(
     }
   }
 
+  if (!result.answer.trim()) {
+    return {
+      kind: 'error',
+      retryable: false,
+      problem: {
+        code: 'empty_answer',
+        message:
+          'Le modèle n’a rien répondu. Un modèle à raisonnement peut avoir épuisé le plafond de jetons : relevez-le ou videz-le.',
+      },
+      response: null,
+      latencyMs: result.latencyMs,
+    }
+  }
+
   try {
     await deps.writeCell(
       batch.tableId,
