@@ -1,6 +1,7 @@
 /**
  * @vitest-environment node
  */
+import { toRecord } from '@sim/utils/object'
 import { describe, expect, it, vi } from 'vitest'
 import { type RecordDeps, recordTrace } from '@/lib/nexora/traces/record'
 import { DEFAULT_TRACE_SETTINGS, type TraceSettings } from '@/lib/nexora/traces/settings'
@@ -371,7 +372,7 @@ describe('recordTrace — le service de données personnelles complète les moti
       }),
       all
     )
-    const { attributes } = stored[0].spans[0]
+    const attributes = toRecord(stored[0].spans[0].attributes)
     expect(attributes.reasoning).toBe('<PERSON> veut un devis')
     expect(attributes.error).toBe('Échec pour <PERSON>')
     expect(attributes.finishReason).toBe('Marie Dupont')

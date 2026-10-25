@@ -1,17 +1,15 @@
 /**
  * @vitest-environment node
  */
+import { permissionsMock, permissionsMockFns } from '@sim/testing/mocks/permissions.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   taskOwnerOf: vi.fn(),
-  getUserEntityPermissions: vi.fn(),
 }))
 
 vi.mock('@/lib/nexora/acting-member', () => ({ taskOwnerOf: mocks.taskOwnerOf }))
-vi.mock('@/lib/workspaces/permissions/utils', () => ({
-  getUserEntityPermissions: mocks.getUserEntityPermissions,
-}))
+vi.mock('@/lib/workspaces/permissions/utils', () => permissionsMock)
 
 import { memberChatPayloadGate } from '@/lib/logs/member-chat'
 
@@ -22,13 +20,13 @@ const plainRun = { trigger: { data: {} } }
 describe('memberChatPayloadGate', () => {
   beforeEach(() => {
     mocks.taskOwnerOf.mockReset().mockResolvedValue(null)
-    mocks.getUserEntityPermissions.mockReset().mockResolvedValue('write')
+    permissionsMockFns.mockGetUserEntityPermissions.mockReset().mockResolvedValue('write')
   })
 
   it('withholds a members-only chat from a colleague, not from its member or an admin', async () => {
     await expect(memberChatPayloadGate('bob', WS)(memberChatRun)).resolves.toBe(true)
     await expect(memberChatPayloadGate('alice', WS)(memberChatRun)).resolves.toBe(false)
-    mocks.getUserEntityPermissions.mockResolvedValue('admin')
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('admin')
     await expect(memberChatPayloadGate('bob', WS)(memberChatRun)).resolves.toBe(false)
   })
 
@@ -37,7 +35,7 @@ describe('memberChatPayloadGate', () => {
     const run = { workflowId: 'wf-task' }
     await expect(memberChatPayloadGate('bob', WS)(plainRun, run)).resolves.toBe(true)
     await expect(memberChatPayloadGate('alice', WS)(plainRun, run)).resolves.toBe(false)
-    mocks.getUserEntityPermissions.mockResolvedValue('admin')
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('admin')
     await expect(memberChatPayloadGate('bob', WS)(plainRun, run)).resolves.toBe(false)
   })
 

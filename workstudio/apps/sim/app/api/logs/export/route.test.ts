@@ -11,10 +11,13 @@ import { createMockRequest } from '@sim/testing/mocks/request.mock'
 import { traceStoreMock, traceStoreMockFns } from '@sim/testing/mocks/trace-store.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockExpandFolderIdsWithDescendants, mockMapWithConcurrency } = vi.hoisted(() => ({
-  mockExpandFolderIdsWithDescendants: vi.fn(),
-  mockMapWithConcurrency: vi.fn(),
-}))
+const { mockExpandFolderIdsWithDescendants, mockMapWithConcurrency, mockTaskOwnerOf } = vi.hoisted(
+  () => ({
+    mockExpandFolderIdsWithDescendants: vi.fn(),
+    mockMapWithConcurrency: vi.fn(),
+    mockTaskOwnerOf: vi.fn(),
+  })
+)
 
 vi.mock('@/lib/permission-groups/resolve.server', () => permissionGroupsResolveMock)
 
@@ -25,6 +28,8 @@ vi.mock('@/lib/logs/folder-expansion', () => ({
 }))
 
 vi.mock('@/lib/logs/execution/trace-store', () => traceStoreMock)
+
+vi.mock('@/lib/nexora/acting-member', () => ({ taskOwnerOf: mockTaskOwnerOf }))
 
 vi.mock('@/lib/core/utils/concurrency', () => ({
   MATERIALIZE_CONCURRENCY: 20,
@@ -264,6 +269,32 @@ describe('GET /api/logs/export', () => {
     expect(lines[1]).not.toContain('Réponse confidentielle')
     expect(lines[1]).not.toContain('span-private')
     expect(lines[2]).toContain('Ma propre réponse')
+  })
+
+  it("leaves out what a member's scheduled personal task read and wrote", async () => {
+    permissionsMockFns.mockGetUserEntityPermissions.mockResolvedValue('write')
+    mockTaskOwnerOf.mockImplementation(async (workflowId: string) =>
+      workflowId === 'workflow-task' ? 'member-a' : null
+    )
+    queueTableRows(workflowExecutionLogs, [
+      logRow(0, {
+        workflowId: 'workflow-task',
+        trigger: 'schedule',
+        executionData: {
+          finalOutput: 'Boîte de réception confidentielle',
+          traceSpans: [{ id: 'span-inbox', name: 'Connect', type: 'tool' }],
+        },
+      }),
+      logRow(1, { executionData: { finalOutput: 'Sortie ordinaire' } }),
+    ])
+
+    const response = await GET(makeRequest(), createRouteContext({}))
+    const lines = (await response.text()).trimEnd().split('\n')
+
+    expect(lines[1]).toContain('execution-0')
+    expect(lines[1]).not.toContain('Boîte de réception confidentielle')
+    expect(lines[1]).not.toContain('span-inbox')
+    expect(lines[2]).toContain('Sortie ordinaire')
   })
 
   it('refuses the download when the group withholds log export', async () => {

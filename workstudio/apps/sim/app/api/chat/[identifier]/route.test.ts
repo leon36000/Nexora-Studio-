@@ -415,7 +415,11 @@ describe('Chat Identifier API Route', () => {
       })
 
       it('lets the run’s tool calls act as the member while it runs, and no longer afterwards', async () => {
-        const noDeps = { taskOwner: async () => null, executionTrigger: async () => null }
+        const noDeps = {
+          taskOwner: async () => null,
+          executionTrigger: async () => null,
+          activeDeployer: async () => null,
+        }
         let actingDuring: string | null = null
         vi.mocked(executeWorkflow).mockImplementationOnce(async (...args: unknown[]) => {
           actingDuring = await resolveActingMember(
