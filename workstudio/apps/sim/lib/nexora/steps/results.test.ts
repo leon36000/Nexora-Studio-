@@ -26,7 +26,11 @@ describe('stepResultsFrom', () => {
       }),
     ])
     expect(results.has('a')).toBe(false)
-    expect(results.get('b')).toEqual({ status: 'success', durationMs: 1200, output: { content: 'ok' } })
+    expect(results.get('b')).toEqual({
+      status: 'success',
+      durationMs: 1200,
+      output: { content: 'ok' },
+    })
   })
 
   it('distingue une étape en cours, réussie et en erreur', () => {

@@ -25,7 +25,10 @@ const MISSING_FIELDS = /^(.+?) is missing required fields?:?\s*(.*)$/i
 /** First match wins: the specific causes come before the general ones (a timeout before a 5xx). */
 const RULES: readonly { key: StepErrorKey; test: RegExp }[] = [
   { key: 'budget', test: /budget mensuel|\b402\b|monthly (token )?budget/i },
-  { key: 'modelNotFound', test: /model\b.{0,60}\b(not found|does not exist|unknown)|unknown model|no such model/i },
+  {
+    key: 'modelNotFound',
+    test: /model\b.{0,60}\b(not found|does not exist|unknown)|unknown model|no such model/i,
+  },
   { key: 'timeout', test: /timed? ?out|timeout|ETIMEDOUT|aborted/i },
   { key: 'egress', test: /egress|not allowed|private (address|network)|blocked/i },
   { key: 'smtp', test: /smtp|EAUTH|\b535\b/i },
@@ -33,9 +36,15 @@ const RULES: readonly { key: StepErrorKey; test: RegExp }[] = [
   { key: 'notFound', test: /\b404\b|not found/i },
   { key: 'rateLimit', test: /\b429\b|too many requests|rate limit/i },
   { key: 'server', test: /\b5\d\d\b|internal server error|bad gateway|service unavailable/i },
-  { key: 'network', test: /ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|fetch failed|network error|getaddrinfo/i },
+  {
+    key: 'network',
+    test: /ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|fetch failed|network error|getaddrinfo/i,
+  },
   { key: 'json', test: /unexpected token|invalid json|JSON\.parse|json at position/i },
-  { key: 'reference', test: /cannot read propert|is not defined|undefined \(reading|unresolved|invalid reference/i },
+  {
+    key: 'reference',
+    test: /cannot read propert|is not defined|undefined \(reading|unresolved|invalid reference/i,
+  },
 ]
 
 /**

@@ -21,7 +21,13 @@ function recognized(state: unknown) {
 function copyOf(index: number) {
   return structuredClone(compiled[index].state) as {
     blocks: Record<string, Record<string, unknown> & { type: string; name: string }>
-    edges: { id: string; source: string; target: string; sourceHandle: string; targetHandle: string }[]
+    edges: {
+      id: string
+      source: string
+      target: string
+      sourceHandle: string
+      targetHandle: string
+    }[]
     loops: Record<string, unknown>
     parallels: Record<string, unknown>
   }
@@ -41,9 +47,13 @@ describe('readSteps : les cinq workflows types du Copilote', () => {
       const document = recognized(state)
       const mainNames = document.steps.map((step) => step.name)
       const inBranches = new Set(
-        plan.steps.flatMap((step) => (step.kind === 'condition' ? [...step.then, ...step.else] : []))
+        plan.steps.flatMap((step) =>
+          step.kind === 'condition' ? [...step.then, ...step.else] : []
+        )
       )
-      expect(mainNames).toEqual(plan.steps.map((step) => step.name).filter((n) => !inBranches.has(n)))
+      expect(mainNames).toEqual(
+        plan.steps.map((step) => step.name).filter((n) => !inBranches.has(n))
+      )
       for (const step of plan.steps) {
         if (step.kind !== 'condition') continue
         const read = document.steps.find((candidate) => candidate.name === step.name)
@@ -62,7 +72,10 @@ describe('readSteps : les cinq workflows types du Copilote', () => {
         .map((edge) => `${edge.source}|${edge.sourceHandle}|${edge.target}`)
         .sort()
       const expected = linksOf(document)
-        .map((link) => `${link.from}|${link.handle === 'source' ? 'source' : `condition-${link.from}-${link.handle}`}|${link.to}`)
+        .map(
+          (link) =>
+            `${link.from}|${link.handle === 'source' ? 'source' : `condition-${link.from}-${link.handle}`}|${link.to}`
+        )
         .sort()
       expect(expected).toEqual(actual)
     }
@@ -98,7 +111,13 @@ describe('readSteps : formes refusées (lecture seule)', () => {
 
   it('refuse deux déclencheurs', () => {
     const state = copyOf(0)
-    state.blocks.extra = { id: 'extra', type: 'start_trigger', name: 'Start', subBlocks: {}, enabled: true }
+    state.blocks.extra = {
+      id: 'extra',
+      type: 'start_trigger',
+      name: 'Start',
+      subBlocks: {},
+      enabled: true,
+    }
     expect(refusal(state).reasons).toContain('several-triggers')
   })
 

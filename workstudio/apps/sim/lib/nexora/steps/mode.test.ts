@@ -15,15 +15,22 @@ describe('resolveEditorMode', () => {
   })
 
   it('respecte le choix de la personne, même en lecture seule', () => {
-    expect(resolveEditorMode({ preference: 'canvas', marked: true, recognized: true })).toBe('canvas')
-    expect(resolveEditorMode({ preference: 'steps', marked: false, recognized: false })).toBe('steps')
+    expect(resolveEditorMode({ preference: 'canvas', marked: true, recognized: true })).toBe(
+      'canvas'
+    )
+    expect(resolveEditorMode({ preference: 'steps', marked: false, recognized: false })).toBe(
+      'steps'
+    )
   })
 })
 
 describe('hasStepsMarker', () => {
   const trigger = (type: string, value: unknown) => ({
     blocks: {
-      a: { type, subBlocks: { [STEPS_MARKER.id]: { id: STEPS_MARKER.id, type: 'short-input', value } } },
+      a: {
+        type,
+        subBlocks: { [STEPS_MARKER.id]: { id: STEPS_MARKER.id, type: 'short-input', value } },
+      },
     },
   })
 

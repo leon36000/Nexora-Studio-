@@ -29,7 +29,9 @@ const document = (state: unknown) => {
 const stepIds = (state: unknown): string[] =>
   document(state).steps.flatMap((step) => [
     step.blockId,
-    ...(step.branches ? [...step.branches.if, ...step.branches.else].map((s: StepNode) => s.blockId) : []),
+    ...(step.branches
+      ? [...step.branches.if, ...step.branches.else].map((s: StepNode) => s.blockId)
+      : []),
   ])
 
 const edgeKeys = (state: StepsState): string[] =>
@@ -68,7 +70,13 @@ describe('planInsert', () => {
     'ajoute une étape après chacune des étapes du workflow %i, et le retrait la défait',
     (_index, state) => {
       for (const anchor of [document(state).trigger.blockId, ...stepIds(state)]) {
-        const patch = planInsert(state, { after: anchor }, agent, { blockId: 'nouvelle', name: 'nouvelle' }, ids)
+        const patch = planInsert(
+          state,
+          { after: anchor },
+          agent,
+          { blockId: 'nouvelle', name: 'nouvelle' },
+          ids
+        )
         const inserted = applyPatch(state, patch)
         const reading = document(inserted)
         expect(stepIds(inserted)).toHaveLength(stepIds(state).length + 1)
@@ -94,7 +102,10 @@ describe('planInsert', () => {
       ids
     )
     const read = document(applyPatch(state, patch)).steps.find((step) => step.branches)
-    expect(read?.branches?.if.map((s) => s.blockId)).toEqual(['debut', condition.branches?.if[0].blockId])
+    expect(read?.branches?.if.map((s) => s.blockId)).toEqual([
+      'debut',
+      condition.branches?.if[0].blockId,
+    ])
   })
 
   it('met une branche vide en chemin direct puis la remplit (compte rendu : côté « sinon »)', () => {
@@ -144,17 +155,23 @@ describe('planInsert', () => {
         ids
       )
     expect(insertCondition).toThrow(StepsEditError)
-    expect(() => planInsert(state, { after: 'inconnu' }, agent, { blockId: 'x', name: 'x' }, ids)).toThrow(
-      StepsEditError
-    )
+    expect(() =>
+      planInsert(state, { after: 'inconnu' }, agent, { blockId: 'x', name: 'x' }, ids)
+    ).toThrow(StepsEditError)
   })
 
   it('refuse d’écrire dans un workflow dont la forme n’est pas reconnue', () => {
     const broken = structuredClone(states[0])
     broken.edges.pop()
-    expect(() => planInsert(broken, { after: document(states[0]).trigger.blockId }, agent, { blockId: 'x', name: 'x' }, ids)).toThrow(
-      StepsEditError
-    )
+    expect(() =>
+      planInsert(
+        broken,
+        { after: document(states[0]).trigger.blockId },
+        agent,
+        { blockId: 'x', name: 'x' },
+        ids
+      )
+    ).toThrow(StepsEditError)
   })
 })
 
@@ -165,7 +182,8 @@ describe('planRemove', () => {
       for (const id of stepIds(state)) {
         const after = applyPatch(state, planRemove(state, id, ids))
         const removed = document(state).steps.find((step) => step.blockId === id)
-        const lost = 1 + (removed?.branches ? removed.branches.if.length + removed.branches.else.length : 0)
+        const lost =
+          1 + (removed?.branches ? removed.branches.if.length + removed.branches.else.length : 0)
         expect(stepIds(after)).toHaveLength(stepIds(state).length - lost)
         expect(after.blocks[id]).toBeUndefined()
         const known = new Set(Object.keys(after.blocks))
@@ -185,7 +203,9 @@ describe('planRemove', () => {
   })
 
   it('ne retire pas le déclencheur', () => {
-    expect(() => planRemove(states[0], document(states[0]).trigger.blockId, ids)).toThrow(StepsEditError)
+    expect(() => planRemove(states[0], document(states[0]).trigger.blockId, ids)).toThrow(
+      StepsEditError
+    )
   })
 })
 
@@ -209,8 +229,21 @@ describe('planMove', () => {
   it('échange deux étapes voisines de la ligne principale', () => {
     const state = states[4]
     const [appel, resumer] = document(state).steps
-    const moved = applyPatch(state, planMove(state, appel.blockId, 'down', ids) ?? { addBlocks: [], removeBlockIds: [], addEdges: [], removeEdgeIds: [], positions: {} })
-    expect(document(moved).steps.slice(0, 2).map((s) => s.blockId)).toEqual([resumer.blockId, appel.blockId])
+    const moved = applyPatch(
+      state,
+      planMove(state, appel.blockId, 'down', ids) ?? {
+        addBlocks: [],
+        removeBlockIds: [],
+        addEdges: [],
+        removeEdgeIds: [],
+        positions: {},
+      }
+    )
+    expect(
+      document(moved)
+        .steps.slice(0, 2)
+        .map((s) => s.blockId)
+    ).toEqual([resumer.blockId, appel.blockId])
   })
 
   it('ne bouge pas la première étape vers le haut ni la dernière vers le bas', () => {
@@ -232,9 +265,21 @@ describe('planMove', () => {
   it('les liens relus après un déplacement sont exactement les arêtes', () => {
     const state = states[3]
     const rediger = document(state).steps[0]
-    const moved = applyPatch(state, planMove(state, rediger.blockId, 'down', ids) ?? { addBlocks: [], removeBlockIds: [], addEdges: [], removeEdgeIds: [], positions: {} })
+    const moved = applyPatch(
+      state,
+      planMove(state, rediger.blockId, 'down', ids) ?? {
+        addBlocks: [],
+        removeBlockIds: [],
+        addEdges: [],
+        removeEdgeIds: [],
+        positions: {},
+      }
+    )
     const expected = linksOf(document(moved))
-      .map((link) => `${link.from}|${link.handle === 'source' ? 'source' : `condition-${link.from}-${link.handle}`}|${link.to}`)
+      .map(
+        (link) =>
+          `${link.from}|${link.handle === 'source' ? 'source' : `condition-${link.from}-${link.handle}`}|${link.to}`
+      )
       .sort()
     expect(edgeKeys(moved)).toEqual(expected)
   })

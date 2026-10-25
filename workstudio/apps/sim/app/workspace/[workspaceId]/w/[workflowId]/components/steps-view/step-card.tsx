@@ -168,7 +168,9 @@ export const StepCard = memo(function StepCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align='end' side='bottom' sideOffset={6}>
-              <DropdownMenuItem onSelect={() => onSelect(blockId)}>{t('view.open')}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onSelect(blockId)}>
+                {t('view.open')}
+              </DropdownMenuItem>
               <DropdownMenuItem disabled={testDisabled} onSelect={() => onTestUntil(blockId)}>
                 <Play />
                 {t('test.runUntil')}

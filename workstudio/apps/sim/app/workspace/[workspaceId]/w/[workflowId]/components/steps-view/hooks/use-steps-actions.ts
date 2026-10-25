@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
 import type { Edge } from '@xyflow/react'
-import { getDefaultBlockName } from '@/lib/workflows/blocks/canvas-presentation'
 import { catalogEntryById } from '@/lib/nexora/steps/catalog'
 import {
   type InsertPoint,
@@ -12,6 +11,7 @@ import {
   type StepsPatch,
   type StepsState,
 } from '@/lib/nexora/steps/edit'
+import { getDefaultBlockName } from '@/lib/workflows/blocks/canvas-presentation'
 import { getBlock } from '@/blocks'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
 import { useOperationAccess } from '@/hooks/use-operation-access'
@@ -82,7 +82,10 @@ export function useStepsActions({ onFailure, onAgentNotReady }: UseStepsActionsP
       }
       const state = currentState()
       const blockId = generateId()
-      const name = getUniqueBlockName(getDefaultBlockName(config), useWorkflowStore.getState().blocks)
+      const name = getUniqueBlockName(
+        getDefaultBlockName(config),
+        useWorkflowStore.getState().blocks
+      )
       try {
         const patch = planInsert(state, point, entry, { blockId, name })
         const block = prepareBlockState({

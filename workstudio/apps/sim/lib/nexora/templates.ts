@@ -215,7 +215,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   {
     slug: 'offre-emploi',
     name: 'Offre d’emploi',
-    description: 'Rédige une annonce claire et attractive à partir du poste, des missions et du profil.',
+    description:
+      'Rédige une annonce claire et attractive à partir du poste, des missions et du profil.',
     inputs: [
       { name: 'poste', description: 'Intitulé du poste', example: 'Chargé(e) de clientèle' },
       {
@@ -240,7 +241,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   {
     slug: 'fiche-produit',
     name: 'Fiche produit',
-    description: 'Transforme des caractéristiques techniques en fiche produit prête pour votre site.',
+    description:
+      'Transforme des caractéristiques techniques en fiche produit prête pour votre site.',
     inputs: [
       { name: 'produit', description: 'Nom du produit', example: 'Panier garni du terroir' },
       {
@@ -260,7 +262,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   {
     slug: 'reseaux-sociaux',
     name: 'Publication réseaux sociaux',
-    description: 'Propose trois publications (LinkedIn, Facebook, Instagram) à partir d’une actualité.',
+    description:
+      'Propose trois publications (LinkedIn, Facebook, Instagram) à partir d’une actualité.',
     inputs: [
       {
         name: 'actualite',
@@ -310,7 +313,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'infos',
         description: 'Actualités, nouveautés, événements du mois',
-        example: 'Nouvelle gamme bio ; salon de Lyon le 12 ; horaires d’hiver à partir du 1er novembre',
+        example:
+          'Nouvelle gamme bio ; salon de Lyon le 12 ; horaires d’hiver à partir du 1er novembre',
       },
       { name: 'cible', description: 'À qui s’adresse la lettre', example: 'clients particuliers' },
     ],
@@ -499,8 +503,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   {
     slug: 'reponse-validee',
     name: 'Réponse client validée avant envoi',
-    description:
-      'Rédige la réponse à un client, la soumet à validation, puis l’envoie par e-mail.',
+    description: 'Rédige la réponse à un client, la soumet à validation, puis l’envoie par e-mail.',
     inputs: [
       {
         name: 'message',

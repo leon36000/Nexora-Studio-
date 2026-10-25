@@ -1,5 +1,5 @@
-import { truncate } from '@sim/utils/string'
 import { isRecordLike, toArray, toRecord } from '@sim/utils/object'
+import { truncate } from '@sim/utils/string'
 import { catalogEntryOf, subBlockValues } from '@/lib/nexora/steps/catalog'
 
 /** A card's one-line summary: a key under `steps.summary` and the values it names. */
@@ -14,13 +14,33 @@ const text = (value: unknown): string => (typeof value === 'string' ? value : ''
 
 /** The rules `compilePlan` writes (`conditionExpression`), read back as a rule in words. */
 const RULE_FORMS: readonly { key: string; test: RegExp; withValue: boolean }[] = [
-  { key: 'condition.contient', test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\)\.includes\("(.*)"\)$/, withValue: true },
-  { key: 'condition.egal', test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) === "(.*)"$/, withValue: true },
-  { key: 'condition.different', test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) !== "(.*)"$/, withValue: true },
+  {
+    key: 'condition.contient',
+    test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\)\.includes\("(.*)"\)$/,
+    withValue: true,
+  },
+  {
+    key: 'condition.egal',
+    test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) === "(.*)"$/,
+    withValue: true,
+  },
+  {
+    key: 'condition.different',
+    test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) !== "(.*)"$/,
+    withValue: true,
+  },
   { key: 'condition.superieur', test: /^Number\((<[^>]+>)\) > (-?[\d.]+)$/, withValue: true },
   { key: 'condition.inferieur', test: /^Number\((<[^>]+>)\) < (-?[\d.]+)$/, withValue: true },
-  { key: 'condition.vide', test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) === ''$/, withValue: false },
-  { key: 'condition.non_vide', test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) !== ''$/, withValue: false },
+  {
+    key: 'condition.vide',
+    test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) === ''$/,
+    withValue: false,
+  },
+  {
+    key: 'condition.non_vide',
+    test: /^String\((<[^>]+>) \?\? ''\)\.trim\(\)\.toLowerCase\(\) !== ''$/,
+    withValue: false,
+  },
 ]
 
 function summarizeCondition(values: Record<string, unknown>): StepSummary | null {
@@ -39,7 +59,10 @@ function summarizeCondition(values: Record<string, unknown>): StepSummary | null
     const ref = match[1].slice(1, -1)
     return { key: form.key, values: form.withValue ? { ref, value: match[2] } : { ref } }
   }
-  return { key: 'condition.custom', values: { expression: truncate(expression, SUMMARY_LENGTH, '…') } }
+  return {
+    key: 'condition.custom',
+    values: { expression: truncate(expression, SUMMARY_LENGTH, '…') },
+  }
 }
 
 function userMessage(values: Record<string, unknown>): string {
@@ -64,14 +87,24 @@ export function summarizeStep(block: { type: string; subBlocks?: unknown }): Ste
   switch (entry.id) {
     case 'agent': {
       const request = userMessage(values)
-      return request ? { key: 'agent', values: { request: truncate(request, SUMMARY_LENGTH, '…') } } : null
+      return request
+        ? { key: 'agent', values: { request: truncate(request, SUMMARY_LENGTH, '…') } }
+        : null
     }
     case 'condition':
       return summarizeCondition(values)
     case 'api-get':
     case 'api-send': {
       const url = text(values.url).trim()
-      return url ? { key: 'api', values: { method: text(values.method) || 'GET', url: truncate(url, SUMMARY_LENGTH, '…') } } : null
+      return url
+        ? {
+            key: 'api',
+            values: {
+              method: text(values.method) || 'GET',
+              url: truncate(url, SUMMARY_LENGTH, '…'),
+            },
+          }
+        : null
     }
     case 'wait': {
       const amount = text(values.timeValue).trim()
@@ -88,7 +121,9 @@ export function summarizeStep(block: { type: string; subBlocks?: unknown }): Ste
     }
     case 'email': {
       const to = text(values.to).trim()
-      return to ? { key: 'email', values: { to, subject: truncate(text(values.subject), 60, '…') } } : null
+      return to
+        ? { key: 'email', values: { to, subject: truncate(text(values.subject), 60, '…') } }
+        : null
     }
     default:
       return null

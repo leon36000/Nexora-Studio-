@@ -25,8 +25,16 @@ export function useStepsModel(workflowId: string) {
     [blocks, edges, loops, parallels]
   )
   const marked = useMemo(() => hasStepsMarker({ blocks }), [blocks])
-  const current = useMemo(() => mergeSubblockStateWithValues(blocks, values ?? {}), [blocks, values])
+  const current = useMemo(
+    () => mergeSubblockStateWithValues(blocks, values ?? {}),
+    [blocks, values]
+  )
   const mode = resolveEditorMode({ preference, marked, recognized: reading.recognized })
 
-  return { reading, blocks: current, mode, setMode: (next: 'steps' | 'canvas') => setPreference(workflowId, next) }
+  return {
+    reading,
+    blocks: current,
+    mode,
+    setMode: (next: 'steps' | 'canvas') => setPreference(workflowId, next),
+  }
 }

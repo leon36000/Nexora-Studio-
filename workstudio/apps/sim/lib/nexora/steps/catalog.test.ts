@@ -2,13 +2,13 @@
  * @vitest-environment node
  */
 import { describe, expect, it, vi } from 'vitest'
-import { getBlock } from '@/blocks/registry'
 import {
   catalogEntryById,
   catalogEntryOf,
   isTriggerType,
   STEP_CATALOG,
 } from '@/lib/nexora/steps/catalog'
+import { getBlock } from '@/blocks/registry'
 
 const block = (type: string, values: Record<string, unknown> = {}) => ({
   type,

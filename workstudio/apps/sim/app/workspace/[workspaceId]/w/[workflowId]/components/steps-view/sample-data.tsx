@@ -18,7 +18,9 @@ interface InputField {
 function inputFieldsOf(value: unknown): InputField[] {
   return toArray(value)
     .filter(isRecordLike)
-    .filter((field): field is InputField => typeof field.name === 'string' && field.name.trim() !== '')
+    .filter(
+      (field): field is InputField => typeof field.name === 'string' && field.name.trim() !== ''
+    )
     .map((field) => ({ ...field, type: typeof field.type === 'string' ? field.type : 'string' }))
 }
 

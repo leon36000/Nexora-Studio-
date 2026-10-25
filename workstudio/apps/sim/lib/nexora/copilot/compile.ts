@@ -800,16 +800,10 @@ export function compilePlan(
   const idOf = (name: string): string => ids.get(name) ?? ''
 
   const blocks: Record<string, CompiledBlock> = {
-    [triggerId]: toBlock(
-      triggerId,
-      trigger.type,
-      trigger.name,
-      { x: 0, y: 0 },
-      [
-        ...triggerSubBlocks(plan.trigger, warnings),
-        sub(STEPS_MARKER.id, STEPS_MARKER.type, STEPS_MARKER.value),
-      ]
-    ),
+    [triggerId]: toBlock(triggerId, trigger.type, trigger.name, { x: 0, y: 0 }, [
+      ...triggerSubBlocks(plan.trigger, warnings),
+      sub(STEPS_MARKER.id, STEPS_MARKER.type, STEPS_MARKER.value),
+    ]),
   }
   for (const step of plan.steps) {
     const id = idOf(step.name)

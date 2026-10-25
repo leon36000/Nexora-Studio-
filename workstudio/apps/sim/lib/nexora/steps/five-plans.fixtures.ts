@@ -18,7 +18,11 @@ const RAW_PLANS: unknown[] = [
         instructions: 'Vous rédigez des relances de paiement courtoises, en français.',
         message: 'Rédigez un e-mail de relance pour les factures impayées depuis plus de 30 jours.',
       },
-      { kind: 'reponse', name: 'resultat', fields: [{ name: 'relances', value: '{{rediger_relances.content}}' }] },
+      {
+        kind: 'reponse',
+        name: 'resultat',
+        fields: [{ name: 'relances', value: '{{rediger_relances.content}}' }],
+      },
     ],
   },
   {
@@ -50,7 +54,11 @@ const RAW_PLANS: unknown[] = [
         name: 'archiver',
         fields: [{ name: 'statut', value: 'archivé' }],
       },
-      { kind: 'reponse', name: 'conclusion', fields: [{ name: 'categorie', value: '{{classer.categorie}}' }] },
+      {
+        kind: 'reponse',
+        name: 'conclusion',
+        fields: [{ name: 'categorie', value: '{{classer.categorie}}' }],
+      },
     ],
   },
   {
@@ -103,7 +111,11 @@ const RAW_PLANS: unknown[] = [
         message: 'Résumez : {{appel.data}}',
       },
       { kind: 'attente', name: 'pause', seconds: 5 },
-      { kind: 'reponse', name: 'resultat', fields: [{ name: 'resume', value: '{{resumer.content}}' }] },
+      {
+        kind: 'reponse',
+        name: 'resultat',
+        fields: [{ name: 'resume', value: '{{resumer.content}}' }],
+      },
     ],
   },
 ]

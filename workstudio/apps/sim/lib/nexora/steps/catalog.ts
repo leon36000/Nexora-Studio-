@@ -36,7 +36,11 @@ export function isTriggerType(type: string): boolean {
   return TRIGGER_BLOCK_TYPES.has(type)
 }
 
-const TABLE_WRITES: ReadonlySet<unknown> = new Set(['insert_row', 'upsert_row', 'batch_insert_rows'])
+const TABLE_WRITES: ReadonlySet<unknown> = new Set([
+  'insert_row',
+  'upsert_row',
+  'batch_insert_rows',
+])
 
 /**
  * About twenty-five steps in the words of an SME. Specific entries come before the general one of
@@ -50,7 +54,8 @@ export const STEP_CATALOG: readonly CatalogEntry[] = [
     blockType: 'api',
     category: 'essentiel',
     preset: { method: 'POST' },
-    matches: (values) => values.method !== undefined && values.method !== '' && values.method !== 'GET',
+    matches: (values) =>
+      values.method !== undefined && values.method !== '' && values.method !== 'GET',
   },
   { id: 'api-get', blockType: 'api', category: 'essentiel', preset: { method: 'GET' } },
   { id: 'wait', blockType: 'wait', category: 'essentiel' },
@@ -67,7 +72,12 @@ export const STEP_CATALOG: readonly CatalogEntry[] = [
     preset: { operation: 'insert_row' },
     matches: (values) => TABLE_WRITES.has(values.operation),
   },
-  { id: 'table-read', blockType: 'table_v2', category: 'donnees', preset: { operation: 'query_rows' } },
+  {
+    id: 'table-read',
+    blockType: 'table_v2',
+    category: 'donnees',
+    preset: { operation: 'query_rows' },
+  },
   { id: 'knowledge', blockType: 'knowledge', category: 'donnees' },
   { id: 'extract', blockType: 'nexora_extract', category: 'donnees' },
   { id: 'file', blockType: 'file_v5', category: 'donnees' },
@@ -104,5 +114,9 @@ export function catalogEntryOf(block: { type: string; subBlocks?: unknown }): Ca
   const sameType = STEP_CATALOG.filter((entry) => entry.blockType === block.type)
   if (sameType.length === 0) return null
   const values = subBlockValues(block)
-  return sameType.find((entry) => entry.matches?.(values)) ?? sameType.find((entry) => !entry.matches) ?? null
+  return (
+    sameType.find((entry) => entry.matches?.(values)) ??
+    sameType.find((entry) => !entry.matches) ??
+    null
+  )
 }

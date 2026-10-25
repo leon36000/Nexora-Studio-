@@ -37,6 +37,19 @@ TEMPLATE_INPUTS = {
     "Compte rendu de réunion": {},
 }
 MEETING_TEMPLATE = "Compte rendu de réunion"
+# The 20 SME templates every new workspace receives (K7); the five first ones are run by the checks below.
+SME_TEMPLATES = [
+    "Devis client", "Relance de facture impayée", "Réponse support (FAQ)", "Tri des e-mails entrants",
+    "Compte rendu de réunion", "Offre d’emploi", "Fiche produit", "Publication réseaux sociaux",
+    "Réponse à une réclamation", "Newsletter mensuelle", "Relance de devis sans réponse",
+    "Rapport d’activité hebdomadaire", "Traduction professionnelle", "Résumé d’un contrat",
+    "Contrôle d’une facture fournisseur", "Accueil d’un nouveau salarié", "Réponse à un avis client",
+    "Ordre du jour de réunion", "Réponse client validée avant envoi", "Compte rendu d’entretien",
+]
+# What the Steps view reads: one trigger carrying the marker, then blocks of the step catalog (K7).
+STEP_TRIGGERS = {"start_trigger", "generic_webhook", "schedule", "chat_trigger"}
+STEP_BLOCKS = {"agent", "condition", "api", "wait", "human_in_the_loop_v2", "response", "smtp", "stt_v2",
+               "table_v2", "knowledge", "function", "mcp", "workflow", "variables"}
 # Three voices (a woman, a man, a second woman), 61 s, made by the local French voices.
 MEETING_AUDIO = Path(__file__).resolve().parent.parent / "docs" / "verification" / "k12-reunion" / "reunion-courte.mp3"
 
@@ -794,6 +807,75 @@ def main() -> int:
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
 
+    def etapes():
+        # K7. The Steps view opens what the Copilot and the SME templates build, and edits it in place:
+        # the workflow the canvas loads is the same one, with only the touched step changed.
+        def opens_in_steps(saved: dict) -> list:
+            blocks, edges = saved["blocks"], saved["edges"]
+            triggers = [b for b in blocks.values() if b["type"] in STEP_TRIGGERS]
+            require(len(triggers) == 1, f"{len(triggers)} déclencheur(s)")
+            marker = (triggers[0].get("subBlocks") or {}).get("nexoraView", {}).get("value")
+            require(marker == "etapes", "le déclencheur ne porte pas le repère « Étapes »")
+            require(not saved.get("loops") and not saved.get("parallels"), "boucle ou parallèle : forme non reconnue")
+            foreign = sorted({b["type"] for b in blocks.values() if b["type"] not in STEP_TRIGGERS | STEP_BLOCKS})
+            require(not foreign, f"blocs hors catalogue : {foreign}")
+            reached, queue = {triggers[0]["id"]}, [triggers[0]["id"]]
+            while queue:
+                current = queue.pop()
+                for edge in edges:
+                    if edge["source"] == current and edge["target"] not in reached:
+                        reached.add(edge["target"])
+                        queue.append(edge["target"])
+            require(reached == set(blocks), "des blocs ne sont reliés à aucune étape")
+            return [b["name"] for b in blocks.values()]
+
+        def load(wf: str) -> dict:
+            status, loaded = s.call("GET", f"/api/workflows/{wf}")
+            require(status == 200, f"état HTTP {status}")
+            return (loaded.get("data") or loaded)["state"]
+
+        missing = [name for name in SME_TEMPLATES if name not in state["workflows"]]
+        require(not missing, f"modèles PME absents : {missing}")
+        for name in SME_TEMPLATES:
+            try:
+                opens_in_steps(load(state["workflows"][name]))
+            except AssertionError as error:
+                raise AssertionError(f"modèle « {name} » : {error}") from error
+
+        description = "Quand je lance le workflow avec un texte, un agent le résume en une phrase en français."
+        status, body = s.call("POST", "/api/nexora/copilot/plan", {"workspaceId": state["ws"], "description": description}, timeout=600)
+        require(status == 200 and body.get("plan"), f"plan HTTP {status}: {str(body)[:300]}")
+        plan = body["plan"]
+        status, created = s.call("POST", "/api/nexora/copilot/create", {"workspaceId": state["ws"], "plan": plan})
+        require(status == 200 and created.get("workflowId"), f"création HTTP {status}: {str(created)[:300]}")
+        wf = created["workflowId"]
+        try:
+            before = load(wf)
+            names = opens_in_steps(before)
+            agent = next((b for b in before["blocks"].values() if b["type"] == "agent"), None)
+            require(agent, "le plan du Copilote n'a pas d'étape « agent »")
+            # « Modifier une étape » : le message de l'agent, comme le formulaire de l'éditeur l'écrit.
+            marker = f"ÉTAPES-{secrets.token_hex(3)}"
+            messages = agent["subBlocks"]["messages"]["value"]
+            messages[-1]["content"] = f"{messages[-1]['content']}\nTermine ta réponse par le mot {marker}."
+            status, _ = s.call("PUT", f"/api/workflows/{wf}/state", before)
+            require(status == 200, f"enregistrement HTTP {status}")
+            # « Retour au canevas » : le même workflow, la même forme, seule l'étape touchée a changé.
+            after = load(wf)
+            require(opens_in_steps(after) == names, "les étapes ont changé de nom ou d'ordre")
+            require({k: v["type"] for k, v in after["blocks"].items()} == {k: v["type"] for k, v in before["blocks"].items()}, "la forme du workflow a changé")
+            require(sorted((e["source"], e["target"], e.get("sourceHandle")) for e in after["edges"]) ==
+                    sorted((e["source"], e["target"], e.get("sourceHandle")) for e in before["edges"]), "les liens ont changé")
+            require(marker in json.dumps(after["blocks"][agent["id"]]["subBlocks"]["messages"], ensure_ascii=False), "la modification n'est pas revenue")
+            fields = [f["name"] for f in (plan.get("trigger") or {}).get("fields") or []]
+            text = "La réunion de lundi a fixé la livraison au 15 novembre et le budget à 12 000 euros."
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
+                                 "input": {name: text for name in fields} if fields else text}, timeout=600)
+            require(status == 200 and run.get("success") is not False and not run.get("error"), f"exécution HTTP {status}: {str(run)[:200]}")
+            return f"{len(SME_TEMPLATES)} modèles PME ouverts en Étapes ; « {plan.get('title', '?')} » créé par le Copilote, étape modifiée, forme intacte, exécuté"
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+
     def budgets():
         # A tiny workspace budget refuses the next run; raising it lets runs through again.
         admin_organization()
@@ -1499,6 +1581,7 @@ def main() -> int:
     s.check("Réunion : intervenants par voix, compte rendu, validation", meeting)
     s.check("Extraction : facture PDF et scannée ⇒ table « Factures »", extraction)
     s.check("Copilote : description ⇒ workflow exécuté", copilot)
+    s.check("Étapes : modèles PME et Copilote ouverts en Étapes, étape modifiée, forme intacte, exécution", etapes)
     s.check("Budgets : refus au plafond, reprise après relèvement", budgets)
     s.check("Journal d'audit", audit)
     s.check("Gouvernance : réglages d'instance, e-mail de test", governance)

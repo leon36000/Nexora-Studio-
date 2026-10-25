@@ -25,7 +25,7 @@ describe('explainStepError', () => {
     ['getaddrinfo ENOTFOUND exemple.invalid', 'network'],
     ['fetch failed', 'network'],
     ['Unexpected token < in JSON at position 0', 'json'],
-    ['Cannot read properties of undefined (reading \'categorie\')', 'reference'],
+    ["Cannot read properties of undefined (reading 'categorie')", 'reference'],
     ['SMTP connection failed: Invalid login 535', 'smtp'],
   ])('« %s » ⇒ %s', (message, key) => {
     expect(explainStepError(message).key).toBe(key)

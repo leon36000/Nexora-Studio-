@@ -68,7 +68,8 @@ export function linksOf(document: StepsDocument): StepLink[] {
       members.slice(1).forEach((member, i) => {
         links.push({ from: members[i].blockId, handle: 'source', to: member.blockId })
       })
-      if (next) links.push({ from: members[members.length - 1].blockId, handle: 'source', to: next })
+      if (next)
+        links.push({ from: members[members.length - 1].blockId, handle: 'source', to: next })
     }
   })
   return links
@@ -93,7 +94,8 @@ interface RawEdge {
 
 /** The handle an edge leaves its source by: `source`, a condition's `if` / `else`, or `other` (an error handle…). */
 export function edgeHandleOf(source: string, sourceHandle: unknown): LinkHandle | 'other' {
-  if (sourceHandle === undefined || sourceHandle === null || sourceHandle === 'source') return 'source'
+  if (sourceHandle === undefined || sourceHandle === null || sourceHandle === 'source')
+    return 'source'
   if (sourceHandle === `condition-${source}-if`) return 'if'
   if (sourceHandle === `condition-${source}-else`) return 'else'
   return 'other'
@@ -125,7 +127,8 @@ function readBlocks(state: Record<string, unknown>): RawBlock[] {
 function readEdges(state: Record<string, unknown>): RawEdge[] {
   const edges: RawEdge[] = []
   for (const edge of toArray(state.edges)) {
-    if (!isRecordLike(edge) || typeof edge.source !== 'string' || typeof edge.target !== 'string') continue
+    if (!isRecordLike(edge) || typeof edge.source !== 'string' || typeof edge.target !== 'string')
+      continue
     edges.push({
       source: edge.source,
       target: edge.target,
@@ -154,7 +157,11 @@ function fallbackOrder(blocks: RawBlock[], edges: RawEdge[]): string[] {
   return order
 }
 
-const refuse = (reasons: Iterable<StepsRefusal>, blocks: RawBlock[], edges: RawEdge[]): StepsReading => ({
+const refuse = (
+  reasons: Iterable<StepsRefusal>,
+  blocks: RawBlock[],
+  edges: RawEdge[]
+): StepsReading => ({
   recognized: false,
   reasons: [...new Set(reasons)],
   order: fallbackOrder(blocks, edges),
@@ -174,12 +181,18 @@ export function readSteps(state: unknown): StepsReading {
   const triggers = blocks.filter((block) => isTriggerType(block.type))
   if (triggers.length === 0) reasons.add('no-trigger')
   if (triggers.length > 1) reasons.add('several-triggers')
-  if (Object.keys(toRecord(state.loops)).length > 0 || Object.keys(toRecord(state.parallels)).length > 0) {
+  if (
+    Object.keys(toRecord(state.loops)).length > 0 ||
+    Object.keys(toRecord(state.parallels)).length > 0
+  ) {
     reasons.add('subflow')
   }
   for (const block of blocks) {
     if (block.type === 'loop' || block.type === 'parallel' || block.parentId) reasons.add('subflow')
-    else if (!isTriggerType(block.type) && catalogEntryOf({ type: block.type, subBlocks: block.raw.subBlocks }) === null) {
+    else if (
+      !isTriggerType(block.type) &&
+      catalogEntryOf({ type: block.type, subBlocks: block.raw.subBlocks }) === null
+    ) {
       reasons.add('unknown-block')
     }
     if (!block.enabled) reasons.add('disabled-block')
@@ -209,7 +222,9 @@ export function readSteps(state: unknown): StepsReading {
   }
   const hasOtherHandles = (block: RawBlock): boolean =>
     (outgoing.get(block.id) ?? []).some((edge) =>
-      isCondition(block) ? edge.handle === 'source' || edge.handle === 'other' : edge.handle !== 'source'
+      isCondition(block)
+        ? edge.handle === 'source' || edge.handle === 'other'
+        : edge.handle !== 'source'
     )
 
   /** Blocks along the `source` handle from `start`, stopping after a condition or a repeat. */
@@ -252,9 +267,13 @@ export function readSteps(state: unknown): StepsReading {
     const elseChain = chainFrom(elseTarget)
     const elseSet = new Set(elseChain)
     const join = ifChain.find((id) => elseSet.has(id))
-    const cut = (chain: string[]): string[] => (join === undefined ? chain : chain.slice(0, chain.indexOf(join)))
+    const cut = (chain: string[]): string[] =>
+      join === undefined ? chain : chain.slice(0, chain.indexOf(join))
     const members = { if: cut(ifChain), else: cut(elseChain) }
-    const memberBlocks = { if: members.if.map((id) => byId.get(id)), else: members.else.map((id) => byId.get(id)) }
+    const memberBlocks = {
+      if: members.if.map((id) => byId.get(id)),
+      else: members.else.map((id) => byId.get(id)),
+    }
     for (const side of ['if', 'else'] as const) {
       for (const member of memberBlocks[side]) {
         if (!member) return refuse(['extra-edges'], blocks, edges)
@@ -276,9 +295,14 @@ export function readSteps(state: unknown): StepsReading {
     steps,
   }
   const key = (from: string, handle: string, to: string): string => `${from}|${handle}|${to}`
-  const expected = linksOf(document).map((link) => key(link.from, link.handle, link.to)).sort()
+  const expected = linksOf(document)
+    .map((link) => key(link.from, link.handle, link.to))
+    .sort()
   const actual = edges.map((edge) => key(edge.source, edge.handle, edge.target)).sort()
-  if (expected.length !== actual.length || expected.some((value, index) => value !== actual[index])) {
+  if (
+    expected.length !== actual.length ||
+    expected.some((value, index) => value !== actual[index])
+  ) {
     return refuse(['extra-edges'], blocks, edges)
   }
   if (blocks.some((block) => !visited.has(block.id))) return refuse(['unreachable'], blocks, edges)

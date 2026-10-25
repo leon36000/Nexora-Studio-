@@ -161,7 +161,13 @@ function patchBetween(
     const current = state.blocks[id]?.position
     if (!current || current.x !== position.x || current.y !== position.y) positions[id] = position
   }
-  return { addBlocks: blocks.add, removeBlockIds: blocks.remove, addEdges, removeEdgeIds, positions }
+  return {
+    addBlocks: blocks.add,
+    removeBlockIds: blocks.remove,
+    addEdges,
+    removeEdgeIds,
+    positions,
+  }
 }
 
 /** Adds `entry` as a new step at `point`: after a step (or the trigger), or first in a branch. */

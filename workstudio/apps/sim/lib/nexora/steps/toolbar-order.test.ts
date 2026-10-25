@@ -2,7 +2,11 @@
  * @vitest-environment node
  */
 import { describe, expect, it } from 'vitest'
-import { ESSENTIAL_BLOCK_TYPES, splitCoreBlocks, splitIntegrations } from '@/lib/nexora/steps/toolbar-order'
+import {
+  ESSENTIAL_BLOCK_TYPES,
+  splitCoreBlocks,
+  splitIntegrations,
+} from '@/lib/nexora/steps/toolbar-order'
 
 const item = (type: string, name = type) => ({ type, name })
 
@@ -20,7 +24,9 @@ describe('splitCoreBlocks', () => {
   })
 
   it('n’invente pas un essentiel absent et ne perd aucun bloc', () => {
-    const all = ESSENTIAL_BLOCK_TYPES.slice(0, 3).map((type) => item(type)).concat([item('x', 'X')])
+    const all = ESSENTIAL_BLOCK_TYPES.slice(0, 3)
+      .map((type) => item(type))
+      .concat([item('x', 'X')])
     const { essentials, others } = splitCoreBlocks(all)
     expect(essentials.length + others.length).toBe(all.length)
     expect(new Set([...essentials, ...others].map((i) => i.type)).size).toBe(all.length)

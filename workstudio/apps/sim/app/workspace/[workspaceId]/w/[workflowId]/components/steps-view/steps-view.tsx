@@ -7,12 +7,12 @@ import type { BlockState } from '@sim/workflow-types/workflow'
 import { useTranslations } from 'next-intl'
 import { catalogEntryOf, isTriggerType } from '@/lib/nexora/steps/catalog'
 import type { InsertPoint } from '@/lib/nexora/steps/edit'
-import type { StepNode, StepsRefusal, StepsReading } from '@/lib/nexora/steps/read'
+import type { StepNode, StepsReading, StepsRefusal } from '@/lib/nexora/steps/read'
 import { stepResultsFrom } from '@/lib/nexora/steps/results'
+import { useStepsActions } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/hooks/use-steps-actions'
 import { StepCard } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/step-card'
 import { StepConnector } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/step-connector'
 import { TriggerCard } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/trigger-card'
-import { useStepsActions } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/hooks/use-steps-actions'
 import { useWorkflowExecution } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-workflow-execution'
 import { usePanelEditorStore } from '@/stores/panel'
 import { useWorkflowConsoleEntries } from '@/stores/terminal'
@@ -59,7 +59,8 @@ export function StepsView({
   })
 
   const editable = canEdit && reading.recognized
-  const insertAt = (point: InsertPoint) => (entry: { id: string }) => actions.insert(point, entry.id)
+  const insertAt = (point: InsertPoint) => (entry: { id: string }) =>
+    actions.insert(point, entry.id)
 
   const requestRemoval = (blockId: string, count: number) => {
     if (count > 0) setPendingRemoval({ blockId, count })
@@ -133,12 +134,17 @@ export function StepsView({
               {(['if', 'else'] as const).map((side) => {
                 const members = step.branches?.[side] ?? []
                 return (
-                  <section key={side} aria-label={t(side === 'if' ? 'view.branchIf' : 'view.branchElse')}>
+                  <section
+                    key={side}
+                    aria-label={t(side === 'if' ? 'view.branchIf' : 'view.branchElse')}
+                  >
                     <span className='text-[var(--text-secondary)] text-small'>
                       {t(side === 'if' ? 'view.branchIf' : 'view.branchElse')}
                     </span>
                     {members.length === 0 && (
-                      <p className='text-[var(--text-muted)] text-caption'>{t('view.emptyBranch')}</p>
+                      <p className='text-[var(--text-muted)] text-caption'>
+                        {t('view.emptyBranch')}
+                      </p>
                     )}
                     {connector({ branch: { condition: step.blockId, side } }, false)}
                     {members.map((member, memberIndex) => (
@@ -174,11 +180,15 @@ export function StepsView({
         return (
           <Fragment key={blockId}>
             <div className='h-3 w-px self-center bg-[var(--border)]' />
-            {renderCard({ blockId, name: block.name, blockType: block.type, entryId: entry?.id ?? null }, index, {
+            {renderCard(
+              { blockId, name: block.name, blockType: block.type, entryId: entry?.id ?? null },
               index,
-              length: order.length,
-              removalCount: 0,
-            })}
+              {
+                index,
+                length: order.length,
+                removalCount: 0,
+              }
+            )}
           </Fragment>
         )
       })}

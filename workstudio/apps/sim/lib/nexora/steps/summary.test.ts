@@ -22,16 +22,33 @@ describe('summarizeStep', () => {
   })
 
   it.each([
-    ['String(<a.b> ?? \'\').trim().toLowerCase().includes("retard")', 'condition.contient', { ref: 'a.b', value: 'retard' }],
-    ['String(<a.b> ?? \'\').trim().toLowerCase() !== "non"', 'condition.different', { ref: 'a.b', value: 'non' }],
+    [
+      'String(<a.b> ?? \'\').trim().toLowerCase().includes("retard")',
+      'condition.contient',
+      { ref: 'a.b', value: 'retard' },
+    ],
+    [
+      'String(<a.b> ?? \'\').trim().toLowerCase() !== "non"',
+      'condition.different',
+      { ref: 'a.b', value: 'non' },
+    ],
     ['Number(<a.b>) > 100', 'condition.superieur', { ref: 'a.b', value: '100' }],
     ['Number(<a.b>) < 5', 'condition.inferieur', { ref: 'a.b', value: '5' }],
-    ['String(<a.b> ?? \'\').trim().toLowerCase() === \'\'', 'condition.vide', { ref: 'a.b' }],
-    ['String(<a.b> ?? \'\').trim().toLowerCase() !== \'\'', 'condition.non_vide', { ref: 'a.b' }],
+    ["String(<a.b> ?? '').trim().toLowerCase() === ''", 'condition.vide', { ref: 'a.b' }],
+    ["String(<a.b> ?? '').trim().toLowerCase() !== ''", 'condition.non_vide', { ref: 'a.b' }],
   ])('relit la règle %s', (expression, key, values) => {
     const block = {
       type: 'condition',
-      subBlocks: { conditions: { id: 'conditions', type: 'condition-input', value: JSON.stringify([{ id: 'x-if', title: 'if', value: expression }, { id: 'x-else', title: 'else', value: '' }]) } },
+      subBlocks: {
+        conditions: {
+          id: 'conditions',
+          type: 'condition-input',
+          value: JSON.stringify([
+            { id: 'x-if', title: 'if', value: expression },
+            { id: 'x-else', title: 'else', value: '' },
+          ]),
+        },
+      },
     }
     expect(summarizeStep(block)).toEqual({ key, values })
   })
@@ -39,9 +56,18 @@ describe('summarizeStep', () => {
   it('montre une règle écrite à la main telle quelle', () => {
     const block = {
       type: 'condition',
-      subBlocks: { conditions: { id: 'conditions', type: 'condition-input', value: JSON.stringify([{ id: 'x-if', title: 'if', value: '<a.b> === 3' }]) } },
+      subBlocks: {
+        conditions: {
+          id: 'conditions',
+          type: 'condition-input',
+          value: JSON.stringify([{ id: 'x-if', title: 'if', value: '<a.b> === 3' }]),
+        },
+      },
     }
-    expect(summarizeStep(block)).toEqual({ key: 'condition.custom', values: { expression: '<a.b> === 3' } })
+    expect(summarizeStep(block)).toEqual({
+      key: 'condition.custom',
+      values: { expression: '<a.b> === 3' },
+    })
   })
 
   it('résume un appel d’API, une attente, une réponse et une consigne d’agent', () => {
@@ -49,15 +75,30 @@ describe('summarizeStep', () => {
       key: 'api',
       values: { method: 'GET', url: '<start.url>' },
     })
-    expect(summarizeStep(blockNamed(4, 'pause'))).toEqual({ key: 'wait', values: { amount: '5', unit: 'seconds' } })
-    expect(summarizeStep(blockNamed(4, 'resultat'))).toEqual({ key: 'response', values: { fields: 'resume' } })
+    expect(summarizeStep(blockNamed(4, 'pause'))).toEqual({
+      key: 'wait',
+      values: { amount: '5', unit: 'seconds' },
+    })
+    expect(summarizeStep(blockNamed(4, 'resultat'))).toEqual({
+      key: 'response',
+      values: { fields: 'resume' },
+    })
     expect(summarizeStep(blockNamed(4, 'resumer'))?.key).toBe('agent')
   })
 
   it('coupe une consigne trop longue et ne renvoie rien pour un bloc sans résumé', () => {
     const long = {
       type: 'agent',
-      subBlocks: { messages: { id: 'messages', type: 'messages-input', value: [{ role: 'system', content: 's' }, { role: 'user', content: 'x'.repeat(300) }] } },
+      subBlocks: {
+        messages: {
+          id: 'messages',
+          type: 'messages-input',
+          value: [
+            { role: 'system', content: 's' },
+            { role: 'user', content: 'x'.repeat(300) },
+          ],
+        },
+      },
     }
     const summary = summarizeStep(long)
     expect(summary?.values.request.length).toBeLessThanOrEqual(101)

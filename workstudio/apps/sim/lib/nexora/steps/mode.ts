@@ -14,7 +14,8 @@ export type EditorMode = 'steps' | 'canvas'
 export function hasStepsMarker(state: unknown): boolean {
   if (!isRecordLike(state)) return false
   return Object.values(toRecord(state.blocks)).some((block) => {
-    if (!isRecordLike(block) || typeof block.type !== 'string' || !isTriggerType(block.type)) return false
+    if (!isRecordLike(block) || typeof block.type !== 'string' || !isTriggerType(block.type))
+      return false
     const marker = toRecord(toRecord(block.subBlocks)[STEPS_MARKER.id])
     return marker.value === STEPS_MARKER.value
   })

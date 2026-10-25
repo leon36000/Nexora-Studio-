@@ -54,7 +54,12 @@ export function StepPicker({ children, allowCondition, onPick, onOpenToolbar }: 
   return (
     <DropdownMenu onOpenChange={(open) => !open && setQuery('')}>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align='start' side='bottom' sideOffset={6} className='max-h-[420px] w-[320px]'>
+      <DropdownMenuContent
+        align='start'
+        side='bottom'
+        sideOffset={6}
+        className='max-h-[420px] w-[320px]'
+      >
         <DropdownMenuSearchInput
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -68,14 +73,13 @@ export function StepPicker({ children, allowCondition, onPick, onOpenToolbar }: 
           <div key={group.category}>
             <DropdownMenuLabel>{t(`categories.${group.category}`)}</DropdownMenuLabel>
             {group.entries.map((entry) => (
-              <DropdownMenuItem key={entry.id} onSelect={() => onPick(entry)}>
+              <DropdownMenuItem
+                key={entry.id}
+                title={t(`catalog.${entry.id}.description`)}
+                onSelect={() => onPick(entry)}
+              >
                 <BlockTile blockType={entry.blockType} size='md' />
-                <span className='flex min-w-0 flex-col'>
-                  <span>{t(`catalog.${entry.id}.label`)}</span>
-                  <span className='text-[var(--text-muted)] text-caption'>
-                    {t(`catalog.${entry.id}.description`)}
-                  </span>
-                </span>
+                {t(`catalog.${entry.id}.label`)}
               </DropdownMenuItem>
             ))}
           </div>

@@ -2,8 +2,8 @@
 
 import { Chip } from '@sim/emcn'
 import { useTranslations } from 'next-intl'
-import { StepsView } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/steps-view'
 import { useStepsModel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/hooks/use-steps-model'
+import { StepsView } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/steps-view'
 import { usePanelStore } from '@/stores/panel'
 
 interface StepsLayerProps {
@@ -27,7 +27,11 @@ export function StepsLayer({ workflowId, canEdit }: StepsLayerProps) {
 
   return (
     <>
-      <div role='group' aria-label={t('mode.label')} className='absolute top-3 left-3 z-[30] flex gap-1'>
+      <div
+        role='group'
+        aria-label={t('mode.label')}
+        className='absolute top-3 left-3 z-[30] flex gap-1'
+      >
         <Chip active={mode === 'steps'} onClick={() => setMode('steps')}>
           {t('mode.steps')}
         </Chip>
@@ -36,10 +40,7 @@ export function StepsLayer({ workflowId, canEdit }: StepsLayerProps) {
         </Chip>
       </div>
       {mode === 'steps' && (
-        <div
-          data-steps-view
-          className='absolute inset-0 z-[20] overflow-y-auto bg-[var(--bg)]'
-        >
+        <div data-steps-view className='absolute inset-0 z-[20] overflow-y-auto bg-[var(--bg)]'>
           <div className='mx-auto w-full max-w-[720px] px-4 pt-16'>
             <StepsView
               workflowId={workflowId}

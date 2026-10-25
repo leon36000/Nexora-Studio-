@@ -5,6 +5,7 @@ Un **workflow** automatise une tâche : il part d'un déclencheur, enchaîne des
 ## Créer
 
 - Dans la barre latérale, **Nouveau workflow**, ou dupliquez un **modèle PME** (dossier « Modèles PME »).
+- Pour débuter, la [vue Étapes](etapes.md) montre le workflow en cartes, de haut en bas : ajoutez, déplacez et réglez les étapes sans le canevas. Le bouton **Mode avancé** ouvre le canevas.
 - Glissez les blocs depuis la barre d'outils, reliez-les, réglez-les dans l'éditeur (voir [Les blocs](blocs.md)).
 - Le bouton **« Générer avec l'IA »** (baguette) dans un champ rédige pour vous des consignes, du code ou du JSON avec le modèle Nexora.
 
