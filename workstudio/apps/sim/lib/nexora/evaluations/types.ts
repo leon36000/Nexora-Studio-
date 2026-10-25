@@ -87,13 +87,18 @@ export interface ModelTarget extends TargetBase {
   system: string | null
 }
 
-/** A K9 prompt pinned to the version the campaign started with, run on a model. */
+/**
+ * A K9 prompt run on a model, pinned to one version: the one `selector` pointed at when the
+ * campaign started (`null`: a version chosen by number). A schedule keeps its selector and pins
+ * the version again each time it runs.
+ */
 export interface PromptTarget extends TargetBase {
   kind: 'prompt'
   model: string
   promptId: string
   promptName: string
   version: number
+  selector: 'production' | 'test' | 'latest' | null
   variables: Record<string, string>
 }
 
