@@ -71,14 +71,47 @@ describe('model gate of an access group', () => {
     expect(mockRouterResolver).not.toHaveBeenCalled()
   })
 
-  it('still refuses the exact name when the alias list cannot be read', async () => {
-    mockRouterResolver.mockRejectedValue(new Error('Nexora API unreachable'))
-    await expect(validateModelProvider('u-1', 'ws-1', 'vllm/cloud-glm-5-3')).rejects.toBeInstanceOf(
+  it('refuses the bare name too: the Playground and table batches pass it without vllm/', async () => {
+    for (const bare of ['cloud-glm-5-3', 'Cloud-GLM-5-3']) {
+      await expect(validateModelProvider('u-1', 'ws-1', bare)).rejects.toBeInstanceOf(
+        ModelNotAllowedError
+      )
+    }
+    await expect(
+      assertPermissionsAllowed({ userId: 'u-1', workspaceId: 'ws-1', model: 'cloud-glm-5-3' })
+    ).rejects.toBeInstanceOf(ModelNotAllowedError)
+  })
+
+  it('refuses the bare name even when the router answers its own name', async () => {
+    mockRouterResolver.mockResolvedValue((name: string) => name)
+    await expect(validateModelProvider('u-1', 'ws-1', 'cloud-glm-5-3')).rejects.toBeInstanceOf(
       ModelNotAllowedError
     )
-    await expect(
-      validateModelProvider('u-1', 'ws-1', 'vllm/nexora-default')
-    ).resolves.toBeUndefined()
+  })
+
+  it('lets a bare name the group does not deny through', async () => {
+    await expect(validateModelProvider('u-1', 'ws-1', 'qwen2.5:7b')).resolves.toBeUndefined()
+  })
+
+  it('fails closed when the alias list cannot be read: names that could be an alias are refused', async () => {
+    mockRouterResolver.mockRejectedValue(new Error('Nexora API unreachable'))
+    for (const name of [
+      'vllm/cloud-glm-5-3',
+      'cloud-glm-5-3',
+      'vllm/nexora-default',
+      'nexora-default',
+      'vllm/qwen2.5:7b',
+    ]) {
+      await expect(validateModelProvider('u-1', 'ws-1', name)).rejects.toBeInstanceOf(
+        ModelNotAllowedError
+      )
+    }
+  })
+
+  it('keeps the models that are not Nexora names when the alias list cannot be read', async () => {
+    mockRouterResolver.mockRejectedValue(new Error('Nexora API unreachable'))
+    await expect(validateModelProvider('u-1', 'ws-1', 'gpt-4o')).resolves.toBeUndefined()
+    await expect(validateModelProvider('u-1', 'ws-1', 'openai/gpt-4o')).resolves.toBeUndefined()
   })
 
   it('governs no one when the caller has no group', async () => {

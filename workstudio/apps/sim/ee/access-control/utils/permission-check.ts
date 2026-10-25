@@ -18,6 +18,7 @@ import {
   resolveVerifiedUserAccessControlContext,
   resolveWorkspaceGroup,
 } from '@/lib/permission-groups/resolve.server'
+import { isKnownModelId } from '@/providers/models'
 
 /**
  * Enforcement glue rebuilt on the core's own policy engine (`@/lib/permission-groups`).
@@ -112,11 +113,26 @@ export class PublicApiNotAllowedError extends NotAllowedError {
   }
 }
 
+const VLLM_PREFIX = /^vllm\//i
+
+/**
+ * The Nexora API name a model id designates: the Playground and table batches pass it bare, the
+ * blocks as `vllm/<name>`. `null` for an id of another provider (`openai/…`), which no Nexora
+ * alias can stand for.
+ */
+function nexoraModelName(model: string): string | null {
+  const trimmed = model.trim()
+  const name = trimmed.replace(VLLM_PREFIX, '')
+  return VLLM_PREFIX.test(trimmed) || !name.includes('/') ? name : null
+}
+
 /**
  * Whether the group lets a model through: the gate on the id as given, then — when the group
- * denies models — on the model an alias designates. `nexora-default` is whatever model the
- * administrator made the default (GLM 5.3 on pc6), so denying that model must deny its aliases;
- * an alias list that cannot be read leaves the exact-name check.
+ * denies models — on `vllm/<name>` (the form the denylist holds, whether the caller wrote the
+ * prefix or not) and on `vllm/<router>`, the model an alias designates. `nexora-default` is
+ * whatever model the administrator made the default (GLM 5.3 on pc6), so denying that model must
+ * deny its aliases. When the alias list cannot be read, a name that could be an alias is refused
+ * (fail closed); a model of a known provider (`gpt-4o`, `openai/…`) is not a Nexora name.
  */
 async function isModelAllowed(
   config: PermissionGroupConfig | null,
@@ -125,14 +141,16 @@ async function isModelAllowed(
   const gate = createModelAccessGate(config)
   if (!gate(model)) return false
   if (!config?.deniedModels?.length) return true
-  const name = model.replace(/^vllm\//i, '')
-  let router: string | null = null
+  const name = nexoraModelName(model)
+  if (name === null) return true
+  if (!gate(`vllm/${name}`)) return false
+  let router: string | null
   try {
-    router = (await routerResolver())(name)
+    router = (await routerResolver({ strict: true }))(name)
   } catch {
-    return true
+    return !VLLM_PREFIX.test(model.trim()) && isKnownModelId(name)
   }
-  return !router || router.toLowerCase() === name.toLowerCase() || gate(`vllm/${router}`)
+  return !router || gate(`vllm/${router}`)
 }
 
 async function loadConfig(
