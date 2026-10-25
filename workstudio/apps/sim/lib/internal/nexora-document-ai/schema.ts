@@ -51,5 +51,7 @@ export const nexoraSttInputSchema = z.object({
   model: modelSchema,
   language: z.string().max(16).optional(),
   prompt: z.string().max(4000).optional(),
+  diarization: z.boolean().optional(),
+  numSpeakers: z.coerce.number().int().min(1).max(20).optional(),
   ...provenance,
 })

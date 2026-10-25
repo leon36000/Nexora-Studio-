@@ -7,6 +7,7 @@ const modelUsagesSchema = z.object({
   chat: z.boolean(),
   vision: z.boolean(),
   transcription: z.boolean(),
+  speech: z.boolean(),
 })
 
 const onboardingSchema = z.object({

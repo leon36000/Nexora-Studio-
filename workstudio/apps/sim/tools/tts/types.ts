@@ -9,6 +9,17 @@ export type TtsProvider =
   | 'google'
   | 'azure'
   | 'playht'
+  | 'nexora'
+
+// Nexora TTS Types: a Speech synthesis model of Réglages › Modèles, no key
+export interface NexoraTtsParams {
+  text: string
+  /** Empty: the first Speech synthesis model. */
+  model?: string
+  voice?: string
+  responseFormat?: 'wav' | 'mp3'
+  speed?: number // 0.25 to 4.0
+}
 
 // OpenAI TTS Types
 export interface OpenAiTtsParams {

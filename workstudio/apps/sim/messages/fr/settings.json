@@ -1758,10 +1758,21 @@
       "mistral": "Mistral AI",
       "openai-compatible": "Compatible OpenAI"
     },
+    "lexicon": {
+      "title": "Lexique de l’entreprise",
+      "label": "Termes du lexique, un par ligne",
+      "placeholder": "Nexora\nBoulangerie Martin\nGarage Durand",
+      "hint": "Un terme par ligne, 100 au plus : noms de personnes, de clients, de produits que la transcription doit bien écrire.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Lexique enregistré",
+      "failed": "Le lexique n’a pas pu être enregistré"
+    },
     "usages": {
       "chat": "Discussion",
       "vision": "Vision / OCR",
-      "transcription": "Transcription"
+      "transcription": "Transcription",
+      "speech": "Synthèse vocale"
     },
     "actions": {
       "test": "Tester",
@@ -1828,7 +1839,8 @@
         "hints": {
           "chat": "Répond aux blocs Agent, Routeur, Évaluateur et aux autres blocs de discussion.",
           "vision": "Lit les images et les documents scannés (blocs Vision et Analyse de document).",
-          "transcription": "Transcrit les fichiers audio (bloc Transcription vocale). Le service de transcription local, choisi à l’installation, est ajouté d’office."
+          "transcription": "Transcrit les fichiers audio (bloc Transcription vocale). Le service de transcription local, choisi à l’installation, est ajouté d’office.",
+          "speech": "Lit un texte à voix haute (bloc Synthèse vocale, « Lire à voix haute » de l’Assistant, API). La voix française locale, choisie à l’installation, est ajoutée d’office."
         }
       },
       "source": {
@@ -1844,7 +1856,8 @@
           "openai-compatible": "Tout service qui expose l’API OpenAI (vLLM, LM Studio, un fournisseur en ligne…)."
         },
         "ollamaUnavailable": "Le modèle local est indisponible : le service Ollama de ce serveur ne répond pas.",
-        "transcriptionNoOllama": "Ollama ne transcrit pas la voix : choisissez Mistral AI (Voxtral) ou un service compatible OpenAI, comme un serveur Whisper."
+        "transcriptionNoOllama": "Ollama ne transcrit pas la voix : choisissez Mistral AI (Voxtral) ou un service compatible OpenAI, comme un serveur Whisper.",
+        "speechOnlyOpenAi": "Ollama et Mistral AI ne servent pas la synthèse vocale ici : choisissez un service compatible OpenAI, comme le serveur de voix local."
       },
       "ollama": {
         "catalog": "Modèles conseillés",

@@ -6,6 +6,7 @@ import { Plus } from '@sim/emcn/icons'
 import { truncate } from '@sim/utils/string'
 import { useFormatter, useTranslations } from 'next-intl'
 import { AddModelModal } from '@/app/workspace/[workspaceId]/settings/components/nexora-models/add-model-modal'
+import { VoiceLexicon } from '@/app/workspace/[workspaceId]/settings/components/nexora-models/voice-lexicon'
 import { ModelCardModal } from '@/app/workspace/[workspaceId]/settings/components/nexora-models/model-card-modal'
 import { RowActionsMenu } from '@/app/workspace/[workspaceId]/settings/components/row-actions-menu'
 import {
@@ -239,6 +240,7 @@ export function NexoraModels() {
             })}
           </div>
         )}
+        <VoiceLexicon />
       </div>
     )
   }

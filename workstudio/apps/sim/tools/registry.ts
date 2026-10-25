@@ -6138,6 +6138,7 @@ import {
   deepgramTtsTool,
   elevenLabsTtsUnifiedTool,
   googleTtsTool,
+  nexoraTtsTool,
   openaiTtsTool,
   playhtTtsTool,
 } from '@/tools/tts'
@@ -10912,6 +10913,7 @@ export const tools: Record<string, ExecutableToolConfig> = {
   stt_gemini_v2: geminiSttV2Tool,
   stt_nexora: nexoraSttTool,
   stt_nexora_v2: nexoraSttV2Tool,
+  tts_nexora: nexoraTtsTool,
   tts_openai: openaiTtsTool,
   tts_deepgram: deepgramTtsTool,
   tts_elevenlabs: elevenLabsTtsUnifiedTool,

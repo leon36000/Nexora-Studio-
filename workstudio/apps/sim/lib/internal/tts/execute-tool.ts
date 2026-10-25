@@ -14,6 +14,7 @@ import {
   executeElevenLabsTts,
   executeGoogleTts,
   executeLegacyElevenLabsTts,
+  executeNexoraTts,
   executeOpenAiTts,
   executePlayHtTts,
   type TtsOperationContext,
@@ -29,6 +30,15 @@ const auth = {
 }
 
 const schemas = {
+  tts_nexora: z.object({
+    text: z
+      .string({ error: 'Missing required fields: text' })
+      .min(1, 'Missing required fields: text'),
+    model: z.string().nullable().optional(),
+    voice: z.string().optional(),
+    responseFormat: z.enum(['wav', 'mp3']).optional(),
+    speed: z.coerce.number().min(0.25).max(4).optional(),
+  }),
   elevenlabs_tts: z.object({
     ...auth,
     voiceId: z.string().min(1),
@@ -197,6 +207,8 @@ export const executeTtsTool: InternalToolOperationHandler = async (request) => {
   switch (request.toolId) {
     case 'elevenlabs_tts':
       return executeOperation(schemas.elevenlabs_tts, request, executeLegacyElevenLabsTts, true)
+    case 'tts_nexora':
+      return executeOperation(schemas.tts_nexora, request, executeNexoraTts)
     case 'tts_openai':
       return executeOperation(schemas.tts_openai, request, executeOpenAiTts)
     case 'tts_deepgram':

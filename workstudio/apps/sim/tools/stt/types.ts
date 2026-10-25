@@ -87,5 +87,8 @@ export interface SttResponse extends ToolResponse {
     sentiment?: Record<string, unknown>[]
     entities?: Record<string, unknown>[]
     summary?: string
+    transcriptBySpeaker?: string
+    speakers?: number
+    warning?: string
   }
 }

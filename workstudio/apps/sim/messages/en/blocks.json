@@ -12111,6 +12111,11 @@
       "diarization": {
         "title": "Speaker Diarization"
       },
+      "numSpeakers": {
+        "title": "Number of speakers",
+        "placeholder": "Detected automatically",
+        "description": "Leave empty to let the voice service count the speakers. A meeting is told apart as a whole, for one hour at most."
+      },
       "translateToEnglish": {
         "title": "Translate to English"
       },
@@ -13024,7 +13029,27 @@
   },
   "tts": {
     "name": "Text-to-Speech",
-    "description": "Convert text to speech using AI voices"
+    "description": "Convert text to speech using AI voices",
+    "subBlocks": {
+      "provider": {
+        "title": "Provider",
+        "options": {
+          "nexora": "Nexora",
+          "openai": "OpenAI TTS",
+          "deepgram": "Deepgram Aura",
+          "elevenlabs": "ElevenLabs",
+          "cartesia": "Cartesia Sonic",
+          "google": "Google Cloud TTS",
+          "azure": "Azure TTS",
+          "playht": "PlayHT"
+        }
+      },
+      "nexoraModel": {
+        "title": "Nexora model",
+        "placeholder": "First Speech synthesis model",
+        "description": "A Speech synthesis model from Settings › Models. Leave empty to use the first one; without one, ask an administrator to add it (or to enable the local voice at install). With the local voice, nothing leaves your server."
+      }
+    }
   },
   "twilio_sms": {
     "name": "Twilio SMS",
