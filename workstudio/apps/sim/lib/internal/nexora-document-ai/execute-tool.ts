@@ -11,14 +11,20 @@ import {
   nexoraVisionInputSchema,
 } from '@/lib/internal/nexora-document-ai/schema'
 import type { InternalToolOperationHandler } from '@/lib/internal/tool-operations/types'
-import { NexoraDocumentAiError } from '@/lib/nexora/document-ai/client'
+import {
+  PersonalDataServiceError,
+  PersonalDataUnsupportedError,
+} from '@/lib/nexora/data-protection/errors'
+import { NexoraDocumentAiError, resolveUsageModel } from '@/lib/nexora/document-ai/client'
 import { extractDocumentData } from '@/lib/nexora/document-ai/extraction'
 import { ocrDocument } from '@/lib/nexora/document-ai/ocr'
+import { assertDocumentCallNeedsNoProtection } from '@/lib/nexora/document-ai/protection'
 import {
   transcribeMeetingWithNexora,
   transcribeWithNexora,
 } from '@/lib/nexora/document-ai/transcription'
 import { describeImage } from '@/lib/nexora/document-ai/vision'
+import { DEFAULT_MODEL_ALIAS, type NexoraModelUsage } from '@/lib/nexora/model-ids'
 import {
   isModelSafeWorkspaceFileKey,
   MODEL_UNSAFE_WORKSPACE_FILE_ERROR_MESSAGE,
@@ -97,6 +103,25 @@ function invalid(error: z.ZodError): Response {
   )
 }
 
+/**
+ * A scan or a recording cannot be masked: when the workspace protects personal data, the call is
+ * stopped if the model that reads it is off this server.
+ */
+async function assertDocumentModelsAllowed(
+  workspaceId: string | undefined,
+  models: ReadonlyArray<{ usage: NexoraModelUsage; requested: string | null | undefined }>,
+  signal?: AbortSignal
+): Promise<void> {
+  await assertDocumentCallNeedsNoProtection({
+    workspaceId,
+    models: models.map(
+      ({ usage, requested }) =>
+        () =>
+          resolveUsageModel(usage, requested, { signal })
+    ),
+  })
+}
+
 export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (request) => {
   request.signal?.throwIfAborted()
   const toolId = request.toolId
@@ -123,6 +148,11 @@ export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (
     if (toolId === 'vision_nexora') {
       const parsed = nexoraVisionInputSchema.safeParse(request.input)
       if (!parsed.success) return invalid(parsed.error)
+      await assertDocumentModelsAllowed(
+        request.context.workspaceId,
+        [{ usage: 'vision', requested: parsed.data.model }],
+        signal
+      )
       const image = await readToolFile(parsed.data.imageFile, userId, requestId, signal)
       const output = await describeImage(
         {
@@ -140,6 +170,11 @@ export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (
     if (toolId === 'ocr_nexora') {
       const parsed = nexoraOcrInputSchema.safeParse(request.input)
       if (!parsed.success) return invalid(parsed.error)
+      await assertDocumentModelsAllowed(
+        request.context.workspaceId,
+        [{ usage: 'vision', requested: parsed.data.model }],
+        signal
+      )
       const document = await readToolFile(parsed.data.file, userId, requestId, signal)
       const output = await ocrDocument(
         {
@@ -156,6 +191,13 @@ export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (
     if (toolId === 'nexora_extract') {
       const parsed = nexoraExtractInputSchema.safeParse(request.input)
       if (!parsed.success) return invalid(parsed.error)
+      await assertDocumentCallNeedsNoProtection({
+        workspaceId: request.context.workspaceId,
+        models: [
+          () => resolveUsageModel('vision', parsed.data.visionModel, { signal }),
+          async () => parsed.data.model?.trim().replace(/^vllm\//, '') || DEFAULT_MODEL_ALIAS,
+        ],
+      })
       const document = await readToolFile(parsed.data.file, userId, requestId, signal)
       const output = await extractDocumentData(
         {
@@ -178,6 +220,11 @@ export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (
     if (!source) {
       return Response.json({ success: false, error: 'An audio file is required' }, { status: 400 })
     }
+    await assertDocumentModelsAllowed(
+      request.context.workspaceId,
+      [{ usage: 'transcription', requested: parsed.data.model }],
+      signal
+    )
     const audio = await readToolFile(source, userId, requestId, signal)
     let { buffer, mimeType, name } = audio
     if (isVideoFile(mimeType)) {
@@ -242,7 +289,12 @@ export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (
     })
   } catch (error) {
     signal?.throwIfAborted()
-    if (error instanceof NexoraDocumentAiError || error instanceof FileRefusedError) {
+    if (
+      error instanceof NexoraDocumentAiError ||
+      error instanceof FileRefusedError ||
+      error instanceof PersonalDataUnsupportedError ||
+      error instanceof PersonalDataServiceError
+    ) {
       return Response.json({ success: false, error: error.message }, { status: error.status })
     }
     const message = getErrorMessage(error, 'Unknown error')

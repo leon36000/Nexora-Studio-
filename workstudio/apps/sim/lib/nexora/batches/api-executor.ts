@@ -27,6 +27,12 @@ export interface ApiExecutorDeps {
     model: string,
     messages: unknown
   ) => Promise<{ messages: unknown; protection: ProtectionNote | null }>
+  /** The same policy for the input of an embeddings request: every text of it. */
+  protectInput: (
+    key: GatewayKey,
+    model: string,
+    input: unknown
+  ) => Promise<{ input: unknown; protection: ProtectionNote | null }>
   reserveSpending: (
     key: GatewayKey,
     model: string,
@@ -97,6 +103,10 @@ export async function executeApiItem(
       const guarded = await deps.protectMessages(key, usageModel, body.messages)
       protection = guarded.protection
       if (guarded.messages !== body.messages) body = { ...body, messages: guarded.messages }
+    } else {
+      const guarded = await deps.protectInput(key, usageModel, body.input)
+      protection = guarded.protection
+      if (guarded.input !== body.input) body = { ...body, input: guarded.input }
     }
     reservation = await deps.reserveSpending(
       key,

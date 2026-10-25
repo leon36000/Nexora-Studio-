@@ -18,7 +18,11 @@ import {
   estimateCallTokens,
   modelRefusal,
 } from '@/lib/nexora/developer-api/policy'
-import { protectedMessages } from '@/lib/nexora/developer-api/protected-messages'
+import {
+  assertGatewayCallNeedsNoProtection,
+  protectedEmbeddingInput,
+  protectedMessages,
+} from '@/lib/nexora/developer-api/protected-messages'
 import { type RelayedText, relayWithUsage } from '@/lib/nexora/developer-api/sse'
 import {
   callUpstream,
@@ -214,6 +218,8 @@ export async function relayEmbeddings(
   signal: AbortSignal
 ): Promise<Response> {
   const usageModel = await admitModel(call.key, body.model)
+  const { input } = await protectedEmbeddingInput(call.key, usageModel, body.input)
+  if (input !== body.input) body = { ...body, input }
   const reservation = await reserveSpending(
     call.key,
     usageModel,
@@ -252,6 +258,7 @@ export async function relaySpeech(
     )
   }
   const usageModel = await admitModel(call.key, body.model)
+  await assertGatewayCallNeedsNoProtection(call.key, usageModel)
   const estimate = estimateCallTokens(body.input.length, 0, { answers: false })
   const reservation = await reserveSpending(call.key, usageModel, estimate)
   const upstream = await callReserved(reservation, body.model, '/audio/speech', {
@@ -281,6 +288,7 @@ export async function relayTranscription(
     throw gatewayErrors.invalidRequest('Indiquez le modèle de transcription (champ « model »).')
   }
   const usageModel = await admitModel(call.key, model)
+  await assertGatewayCallNeedsNoProtection(call.key, usageModel)
   const reservation = await reserveSpending(call.key, usageModel, {
     promptTokens: 0,
     completionTokens: 0,

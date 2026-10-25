@@ -63,6 +63,7 @@ function setup(overrides: Partial<ApiExecutorDeps> = {}) {
     loadKey: vi.fn(async () => key),
     admitModel: vi.fn(async (_key, model) => model),
     protectMessages: vi.fn(async (_key, _model, messages) => ({ messages, protection: null })),
+    protectInput: vi.fn(async (_key, _model, input) => ({ input, protection: null })),
     reserveSpending: vi.fn(async () => reservation),
     callUpstream: vi.fn(async () => Response.json(completion)),
     beginTrace: vi.fn(() => ({ finish })),
@@ -121,6 +122,55 @@ describe('executeApiItem', () => {
     )
     expect(vi.mocked(deps.callUpstream).mock.calls[0][0]).toBe('/embeddings')
     expect(outcome.kind).toBe('done')
+  })
+
+  describe('personal-data policy of an embeddings batch', () => {
+    const embeddingBatch = { ...batch, endpoint: '/v1/embeddings' } as BatchRecord
+    const embeddingItem = (input: unknown) =>
+      ({ ...item, request: { model: 'nomic', input } }) as ItemRecord
+    const embeddings = () =>
+      Response.json({ data: [{ embedding: [0.1] }], usage: { prompt_tokens: 4 } })
+
+    it('sends the input the policy let through, and traces the protection', async () => {
+      const protection = { mode: 'mask', found: { IBAN_CODE: 1 } } as never
+      const { deps, signal } = setup({
+        callUpstream: vi.fn(async () => embeddings()),
+        protectInput: vi.fn(async () => ({ input: 'IBAN [IBAN]', protection })),
+      })
+      await executeApiItem(embeddingBatch, embeddingItem('IBAN FR76 3000'), signal, deps)
+      expect(deps.protectInput).toHaveBeenCalledWith(key, 'nomic', 'IBAN FR76 3000')
+      const sent = JSON.parse(
+        String((vi.mocked(deps.callUpstream).mock.calls[0][1] as { body: string }).body)
+      )
+      expect(sent.input).toBe('IBAN [IBAN]')
+      expect(deps.beginTrace).toHaveBeenCalledWith(
+        expect.objectContaining({ protection }),
+        'nomic',
+        'IBAN [IBAN]'
+      )
+    })
+
+    it('fails the line without any call when the policy forbids sending its personal data', async () => {
+      const { deps, signal } = setup({
+        protectInput: vi.fn(async () => {
+          throw gatewayErrors.personalDataNotAllowed('IBAN interdit hors instance')
+        }),
+      })
+      const outcome = await executeApiItem(embeddingBatch, embeddingItem('x'), signal, deps)
+      expect(outcome).toMatchObject({
+        kind: 'error',
+        retryable: false,
+        problem: { code: 'personal_data_not_allowed', status: 403 },
+      })
+      expect(deps.reserveSpending).not.toHaveBeenCalled()
+      expect(deps.callUpstream).not.toHaveBeenCalled()
+    })
+
+    it('does not ask the input policy for a chat line', async () => {
+      const { deps, signal } = setup()
+      await executeApiItem(batch, item, signal, deps)
+      expect(deps.protectInput).not.toHaveBeenCalled()
+    })
   })
 
   it.each([

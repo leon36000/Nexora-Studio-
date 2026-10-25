@@ -39,7 +39,12 @@ vi.mock('@/lib/nexora/data-protection/model-location', () => ({
 
 import { resetProtectionCache } from '@/lib/nexora/data-protection/masking'
 import type { GatewayCall } from '@/lib/nexora/developer-api/gateway'
-import { relayChatCompletion } from '@/lib/nexora/developer-api/models'
+import {
+  relayChatCompletion,
+  relayEmbeddings,
+  relaySpeech,
+  relayTranscription,
+} from '@/lib/nexora/developer-api/models'
 
 const IBAN = 'FR76 3000 6000 0112 3456 7890 189'
 
@@ -132,5 +137,113 @@ describe('relayChatCompletion — personal-data policy', () => {
       code: 'personal_data_protection_unavailable',
     })
     expect(mockCallUpstream).not.toHaveBeenCalled()
+  })
+})
+
+describe('the other calls of the gateway — personal-data policy', () => {
+  const signal = new AbortController().signal
+  const sentBody = () => JSON.parse(mockCallUpstream.mock.calls[0][1].body)
+
+  beforeEach(() => {
+    mockEnvObject.PII_URL = undefined
+    resetProtectionCache()
+    mockAdmit.mockResolvedValue('nomic-embed')
+    mockReserve.mockResolvedValue({
+      estimate: { promptTokens: 5, completionTokens: 0 },
+      settle,
+      release,
+    })
+    mockCallUpstream.mockImplementation(async () =>
+      Response.json({ data: [{ embedding: [0.1] }], usage: { prompt_tokens: 3 } })
+    )
+    nexoraDataProtectionMockFns.mockLoadDataProtection.mockResolvedValue({
+      defaultMode: 'refuse',
+      workspaceModes: { 'ws-mask': 'mask', 'ws-open': 'allow' },
+    })
+  })
+
+  describe('embeddings', () => {
+    const texts = [`Mon IBAN est ${IBAN}`, 'une phrase propre']
+
+    it('masks every text of the input for a workspace that says « masquer »', async () => {
+      await relayEmbeddings(keyCall('ws-mask'), { model: 'nomic-embed', input: texts }, signal)
+      expect(sentBody().input).toEqual(['Mon IBAN est [IBAN]', 'une phrase propre'])
+    })
+
+    it('masks a single text input too, and leaves token lists alone', async () => {
+      await relayEmbeddings(keyCall('ws-mask'), { model: 'nomic-embed', input: texts[0] }, signal)
+      expect(sentBody().input).toBe('Mon IBAN est [IBAN]')
+      mockCallUpstream.mockClear()
+      await relayEmbeddings(
+        keyCall('ws-mask'),
+        { model: 'nomic-embed', input: [[1, 2, 3]] },
+        signal
+      )
+      expect(sentBody().input).toEqual([[1, 2, 3]])
+    })
+
+    it('answers 403, spending nothing and calling nobody, when the policy refuses', async () => {
+      await expect(
+        relayEmbeddings(keyCall('ws-compta'), { model: 'nomic-embed', input: texts }, signal)
+      ).rejects.toMatchObject({ status: 403, code: 'personal_data_not_allowed' })
+      expect(mockReserve).not.toHaveBeenCalled()
+      expect(mockCallUpstream).not.toHaveBeenCalled()
+    })
+
+    it('relays untouched for a workspace that allows personal data', async () => {
+      await relayEmbeddings(keyCall('ws-open'), { model: 'nomic-embed', input: texts }, signal)
+      expect(sentBody().input).toEqual(texts)
+    })
+
+    it('answers 503 when the policy cannot be read, rather than relay unprotected', async () => {
+      nexoraDataProtectionMockFns.mockLoadDataProtection.mockRejectedValue(new Error('db down'))
+      await expect(
+        relayEmbeddings(keyCall('ws-mask'), { model: 'nomic-embed', input: texts }, signal)
+      ).rejects.toMatchObject({ status: 503, code: 'personal_data_protection_unavailable' })
+      expect(mockCallUpstream).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('speech and transcription, which cannot be masked', () => {
+    const form = () => {
+      const data = new FormData()
+      data.append('model', 'whisper')
+      data.append('file', new Blob(['audio']), 'a.mp3')
+      return data
+    }
+
+    it('refuses to read a text aloud with a model off the instance when the workspace protects its data', async () => {
+      for (const workspace of ['ws-mask', 'ws-compta']) {
+        await expect(
+          relaySpeech(keyCall(workspace), { model: 'tts', input: 'Bonjour' }, signal)
+        ).rejects.toMatchObject({ status: 403, code: 'personal_data_not_allowed' })
+      }
+      expect(mockReserve).not.toHaveBeenCalled()
+      expect(mockCallUpstream).not.toHaveBeenCalled()
+    })
+
+    it('refuses to transcribe a recording with a model off the instance when the workspace protects its data', async () => {
+      for (const workspace of ['ws-mask', 'ws-compta']) {
+        await expect(relayTranscription(keyCall(workspace), form(), signal)).rejects.toMatchObject({
+          status: 403,
+          code: 'personal_data_not_allowed',
+        })
+      }
+      expect(mockCallUpstream).not.toHaveBeenCalled()
+    })
+
+    it('relays both for a workspace that allows personal data', async () => {
+      mockCallUpstream.mockImplementation(async () => new Response('audio'))
+      await relaySpeech(keyCall('ws-open'), { model: 'tts', input: 'Bonjour' }, signal)
+      await relayTranscription(keyCall('ws-open'), form(), signal)
+      expect(mockCallUpstream).toHaveBeenCalledTimes(2)
+    })
+
+    it('stops with a 503 when the policy cannot be read', async () => {
+      nexoraDataProtectionMockFns.mockLoadDataProtection.mockRejectedValue(new Error('db down'))
+      await expect(
+        relaySpeech(keyCall('ws-open'), { model: 'tts', input: 'Bonjour' }, signal)
+      ).rejects.toMatchObject({ status: 503 })
+    })
   })
 })
