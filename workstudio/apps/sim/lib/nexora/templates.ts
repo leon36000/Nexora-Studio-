@@ -695,6 +695,14 @@ function stepBlock(
   }
 }
 
+/**
+ * What a Start field holds in the template: its example, so a first test needs no typing. An
+ * address stays empty, because a run may send a real e-mail to it.
+ */
+function sampleValue(input: TemplateInput): string {
+  return input.type === 'file' || /^\S+@\S+$/.test(input.example) ? '' : input.example
+}
+
 /** Workflow state (Start → one block per step) in the shape the workflow importer reads. */
 export function buildTemplateWorkflow(
   template: NexoraTemplate,
@@ -717,7 +725,7 @@ export function buildTemplateWorkflow(
             id: generateId(),
             name: input.name,
             type: input.type === 'file' ? 'file[]' : 'string',
-            value: '',
+            value: sampleValue(input),
             description: input.description,
             collapsed: false,
           })),

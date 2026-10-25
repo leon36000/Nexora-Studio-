@@ -25,6 +25,7 @@ import { ChevronDown, Lock, Search } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
 import { translatedBlockName } from '@/lib/i18n/blocks'
+import { splitCoreBlocks, splitIntegrations } from '@/lib/nexora/steps/toolbar-order'
 import { captureEvent } from '@/lib/posthog/client'
 import { getTriggersForSidebar, hasTriggerCapability } from '@/lib/workflows/triggers/utils'
 import { useWorkflowScope } from '@/app/workspace/[workspaceId]/providers/workflow-scope-provider'
@@ -391,16 +392,21 @@ interface ToolbarRef {
 export const Toolbar = memo(
   forwardRef<ToolbarRef, ToolbarProps>(function Toolbar({ isActive = true }: ToolbarProps, ref) {
     const t = useTranslations('editor.toolbar')
+    const tSteps = useTranslations('steps.toolbar')
     const rootRef = useRef<HTMLDivElement>(null)
     const searchInputRef = useRef<HTMLInputElement>(null)
     const triggerItemRefs = useRef<Array<HTMLDivElement | null>>([])
+    const essentialItemRefs = useRef<Array<HTMLDivElement | null>>([])
     const blockItemRefs = useRef<Array<HTMLDivElement | null>>([])
+    const connectItemRefs = useRef<Array<HTMLDivElement | null>>([])
     const customBlockItemRefs = useRef<Array<HTMLDivElement | null>>([])
     const toolItemRefs = useRef<Array<HTMLDivElement | null>>([])
     const restrictedItemRefs = useRef<Array<HTMLDivElement | null>>([])
 
     const triggerRefCallbacks = useRef<Record<number, (el: HTMLDivElement | null) => void>>({})
+    const essentialRefCallbacks = useRef<Record<number, (el: HTMLDivElement | null) => void>>({})
     const blockRefCallbacks = useRef<Record<number, (el: HTMLDivElement | null) => void>>({})
+    const connectRefCallbacks = useRef<Record<number, (el: HTMLDivElement | null) => void>>({})
     const customBlockRefCallbacks = useRef<Record<number, (el: HTMLDivElement | null) => void>>({})
     const toolRefCallbacks = useRef<Record<number, (el: HTMLDivElement | null) => void>>({})
     const restrictedRefCallbacks = useRef<Record<number, (el: HTMLDivElement | null) => void>>({})
@@ -412,6 +418,24 @@ export const Toolbar = memo(
         }
       }
       return triggerRefCallbacks.current[index]
+    }, [])
+
+    const getEssentialRefCallback = useCallback((index: number) => {
+      if (!essentialRefCallbacks.current[index]) {
+        essentialRefCallbacks.current[index] = (el) => {
+          essentialItemRefs.current[index] = el
+        }
+      }
+      return essentialRefCallbacks.current[index]
+    }, [])
+
+    const getConnectRefCallback = useCallback((index: number) => {
+      if (!connectRefCallbacks.current[index]) {
+        connectRefCallbacks.current[index] = (el) => {
+          connectItemRefs.current[index] = el
+        }
+      }
+      return connectRefCallbacks.current[index]
     }, [])
 
     const getBlockRefCallback = useCallback((index: number) => {
@@ -638,14 +662,25 @@ export const Toolbar = memo(
       return restrictedItems.filter((item) => item.name.toLowerCase().includes(normalizedQuery))
     }, [restrictedItems, isSearching, normalizedQuery])
 
+    const { essentials: filteredEssentials, others: filteredOtherBlocks } = useMemo(
+      () => splitCoreBlocks(filteredBlocks),
+      [filteredBlocks]
+    )
+    const { connect: filteredConnect, direct: filteredDirect } = useMemo(
+      () => splitIntegrations(filteredTools),
+      [filteredTools]
+    )
+
     /**
      * Trim ref arrays to current filtered length to prevent stale refs from
      * polluting keyboard navigation when items disappear (search, sandbox).
      */
     triggerItemRefs.current.length = filteredTriggers.length
-    blockItemRefs.current.length = filteredBlocks.length
+    essentialItemRefs.current.length = filteredEssentials.length
+    blockItemRefs.current.length = filteredOtherBlocks.length
+    connectItemRefs.current.length = filteredConnect.length
     customBlockItemRefs.current.length = filteredCustomBlocks.length
-    toolItemRefs.current.length = filteredTools.length
+    toolItemRefs.current.length = filteredDirect.length
     restrictedItemRefs.current.length = filteredRestrictedItems.length
 
     /**
@@ -655,9 +690,11 @@ export const Toolbar = memo(
      */
     const sectionExpanded: Record<ToolbarSectionKey, boolean> = {
       triggers: isSearching ? filteredTriggers.length > 0 : expandedSections.triggers,
-      blocks: isSearching ? filteredBlocks.length > 0 : expandedSections.blocks,
+      essentials: isSearching ? filteredEssentials.length > 0 : expandedSections.essentials,
+      blocks: isSearching ? filteredOtherBlocks.length > 0 : expandedSections.blocks,
+      connect: isSearching ? filteredConnect.length > 0 : expandedSections.connect,
       customBlocks: isSearching ? filteredCustomBlocks.length > 0 : expandedSections.customBlocks,
-      tools: isSearching ? filteredTools.length > 0 : expandedSections.tools,
+      tools: isSearching ? filteredDirect.length > 0 : expandedSections.tools,
     }
 
     const handleSectionToggle = useCallback(
@@ -770,6 +807,12 @@ export const Toolbar = memo(
               : [],
           },
           {
+            key: 'essentials',
+            items: sectionExpanded.essentials
+              ? essentialItemRefs.current.filter((el): el is HTMLDivElement => el !== null)
+              : [],
+          },
+          {
             key: 'blocks',
             items: sectionExpanded.blocks
               ? blockItemRefs.current.filter((el): el is HTMLDivElement => el !== null)
@@ -779,6 +822,12 @@ export const Toolbar = memo(
             key: 'customBlocks',
             items: sectionExpanded.customBlocks
               ? customBlockItemRefs.current.filter((el): el is HTMLDivElement => el !== null)
+              : [],
+          },
+          {
+            key: 'connect',
+            items: sectionExpanded.connect
+              ? connectItemRefs.current.filter((el): el is HTMLDivElement => el !== null)
               : [],
           },
           {
@@ -865,7 +914,9 @@ export const Toolbar = memo(
       isActive,
       isSearchActive,
       sectionExpanded.triggers,
+      sectionExpanded.essentials,
       sectionExpanded.blocks,
+      sectionExpanded.connect,
       sectionExpanded.customBlocks,
       sectionExpanded.tools,
     ])
@@ -937,10 +988,25 @@ export const Toolbar = memo(
             onContextMenu={handleItemContextMenu}
           />
           <ToolbarSection
-            label={t('coreBlocks')}
-            tooltip={t('coreBlocksTooltip')}
+            label={tSteps('essentials')}
+            tooltip={tSteps('essentialsTooltip')}
+            sectionKey='essentials'
+            items={filteredEssentials}
+            isTrigger={false}
+            expanded={sectionExpanded.essentials}
+            searching={isSearching}
+            animate={animationsEnabled}
+            onToggle={handleSectionToggle}
+            getItemRef={getEssentialRefCallback}
+            onDragStart={handleDragStart}
+            onItemClick={handleItemClick}
+            onContextMenu={handleItemContextMenu}
+          />
+          <ToolbarSection
+            label={tSteps('otherBlocks')}
+            tooltip={tSteps('otherBlocksTooltip')}
             sectionKey='blocks'
-            items={filteredBlocks}
+            items={filteredOtherBlocks}
             isTrigger={false}
             expanded={sectionExpanded.blocks}
             searching={isSearching}
@@ -969,10 +1035,25 @@ export const Toolbar = memo(
             />
           )}
           <ToolbarSection
-            label={t('integrations')}
-            tooltip={t('integrationsTooltip')}
+            label={tSteps('connect')}
+            tooltip={tSteps('connectTooltip')}
+            sectionKey='connect'
+            items={filteredConnect}
+            isTrigger={false}
+            expanded={sectionExpanded.connect}
+            searching={isSearching}
+            animate={animationsEnabled}
+            onToggle={handleSectionToggle}
+            getItemRef={getConnectRefCallback}
+            onDragStart={handleDragStart}
+            onItemClick={handleItemClick}
+            onContextMenu={handleItemContextMenu}
+          />
+          <ToolbarSection
+            label={tSteps('directIntegrations')}
+            tooltip={tSteps('directIntegrationsTooltip')}
             sectionKey='tools'
-            items={filteredTools}
+            items={filteredDirect}
             isTrigger={false}
             expanded={sectionExpanded.tools}
             searching={isSearching}

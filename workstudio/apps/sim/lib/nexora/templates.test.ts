@@ -53,6 +53,19 @@ describe('Nexora SME workflow templates', () => {
     }
   })
 
+  it('fills the start fields with their example so a test runs without typing, except addresses', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      const state = buildTemplateWorkflow(template, 'vllm/nexora-default')
+      const start = Object.values(state.blocks).find((block) => block.type === 'start_trigger')
+      const fields = start?.subBlocks.inputFormat.value as { name: string; value: string }[]
+      for (const input of template.inputs.filter((candidate) => candidate.type !== 'file')) {
+        const field = fields.find((candidate) => candidate.name === input.name)
+        const isAddress = /^\S+@\S+$/.test(input.example)
+        expect(field?.value, `${template.slug}.${input.name}`).toBe(isAddress ? '' : input.example)
+      }
+    }
+  })
+
   it('only references inputs the start block declares', () => {
     for (const template of NEXORA_TEMPLATES) {
       const declared = new Set(template.inputs.map((input) => input.name))
