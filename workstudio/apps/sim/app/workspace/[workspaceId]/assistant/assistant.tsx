@@ -1,18 +1,21 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Chip, ChipCombobox, OverflowText } from '@sim/emcn'
-import { Loader, RefreshCw } from '@sim/emcn/icons'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Chip, ChipCombobox, ChipLink, OverflowText } from '@sim/emcn'
+import { ArrowUpRight, Loader, RefreshCw } from '@sim/emcn/icons'
 import { generateId } from '@sim/utils/id'
 import { useLocale, useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import { isApiClientError } from '@/lib/api/client/errors'
 import type {
   AssistantAgent,
+  AssistantCard,
   AssistantMessage,
   AssistantMessageFile,
 } from '@/lib/api/contracts/nexora-assistant'
+import type { AssistantTask } from '@/lib/api/contracts/nexora-assistant-extras'
 import { type AnswerExtras, splitExtras } from '@/lib/nexora/agent-extras'
+import { canOpenInEditor, looksLikeScheduledTask } from '@/lib/nexora/assistant/schedule-phrase'
 import type { MentionableSkill } from '@/lib/nexora/skills-mention'
 import type { ConfirmationItem } from '@/lib/nexora/tool-confirmation/client-state'
 import {
@@ -22,12 +25,18 @@ import {
   admitAttachments,
 } from '@/app/workspace/[workspaceId]/assistant/attachments'
 import {
+  AssistantTools,
   Composer,
   ConversationList,
   type DraftFile,
   MessageItem,
 } from '@/app/workspace/[workspaceId]/assistant/components'
+import type { LaunchedWorkflow } from '@/app/workspace/[workspaceId]/assistant/components/workflow-launcher'
 import { useAssistantTurn } from '@/app/workspace/[workspaceId]/assistant/hooks/use-assistant-turn'
+import {
+  useRecordCardTurn,
+  useResolveWorkflowRun,
+} from '@/app/workspace/[workspaceId]/assistant/hooks/use-cards'
 import { useReadAloud } from '@/app/workspace/[workspaceId]/assistant/hooks/use-read-aloud'
 import {
   assistantParsers,
@@ -38,6 +47,10 @@ import {
   useAssistantConversation,
   useAssistantConversations,
 } from '@/hooks/queries/nexora-assistant'
+import {
+  useAssistantCanEdit,
+  useAssistantProjects,
+} from '@/hooks/queries/nexora-assistant-extended'
 import { useNexoraModelUsages } from '@/hooks/queries/nexora-home'
 import { useWorkspaceSkills } from '@/hooks/queries/nexora-skills'
 
@@ -47,7 +60,35 @@ function appendDictation(draft: string, text: string): string {
   return `${draft.replace(/[ \t]+$/, '')}${draft.endsWith('\n') ? '' : ' '}${text}`
 }
 
+/** The Assistant's panels load when first opened: they keep their forms out of the page's first bundle. */
+const ProjectsModal = lazy(() =>
+  import('@/app/workspace/[workspaceId]/assistant/components/projects-modal').then((m) => ({
+    default: m.ProjectsModal,
+  }))
+)
+const TasksModal = lazy(() =>
+  import('@/app/workspace/[workspaceId]/assistant/components/tasks-modal').then((m) => ({
+    default: m.TasksModal,
+  }))
+)
+const WorkflowLauncher = lazy(() =>
+  import('@/app/workspace/[workspaceId]/assistant/components/workflow-launcher').then((m) => ({
+    default: m.WorkflowLauncher,
+  }))
+)
+const WorkflowsManageModal = lazy(() =>
+  import('@/app/workspace/[workspaceId]/assistant/components/workflows-manage-modal').then((m) => ({
+    default: m.WorkflowsManageModal,
+  }))
+)
+const ScheduleProposal = lazy(() =>
+  import('@/app/workspace/[workspaceId]/assistant/components/schedule-proposal').then((m) => ({
+    default: m.ScheduleProposal,
+  }))
+)
+
 const NO_AGENTS: AssistantAgent[] = []
+const NO_PROJECTS: { id: string; name: string }[] = []
 const NO_SKILLS: MentionableSkill[] = []
 const NO_MESSAGES: AssistantMessage[] = []
 const NO_FILES: AssistantMessageFile[] = []
@@ -68,7 +109,12 @@ interface ThreadItem {
   extras: AnswerExtras
   /** The « Autoriser / Refuser » cards of the answer being streamed. */
   confirmations?: ConfirmationItem[]
+  /** A workflow run or a created task, shown in place of text. */
+  card?: AssistantCard | null
 }
+
+/** « Sans projet » in the project picker of a new conversation. */
+const NO_PROJECT = 'none'
 
 interface AssistantProps {
   workspaceId: string
@@ -101,7 +147,19 @@ export function Assistant({ workspaceId }: AssistantProps) {
   )
   const modelUsages = useNexoraModelUsages()
   const readAloud = useReadAloud(workspaceId)
+  // Writers also schedule tasks, answer validations and manage published workflows.
+  const canEdit = useAssistantCanEdit(workspaceId)
+  const tTasks = useTranslations('assistant.tasks')
+  const tWorkflows = useTranslations('assistant.workflows')
+  const projectsQuery = useAssistantProjects(workspaceId)
+  const recordCardTurn = useRecordCardTurn(workspaceId)
+  const runResolution = useResolveWorkflowRun()
   const [draftAgentId, setDraftAgentId] = useState<string | null>(null)
+  const [draftProjectId, setDraftProjectId] = useState<string>(NO_PROJECT)
+  const [proposalFor, setProposalFor] = useState<string | null>(null)
+  const [openPanel, setOpenPanel] = useState<
+    'projects' | 'tasks' | 'launcher' | 'published' | null
+  >(null)
   const [draft, setDraft] = useState('')
   const [draftFiles, setDraftFiles] = useState<DraftFile[]>([])
   const [refusals, setRefusals] = useState<AttachmentRefusal[]>([])
@@ -114,6 +172,11 @@ export function Assistant({ workspaceId }: AssistantProps) {
   const messages = detail?.messages ?? NO_MESSAGES
   const newAgent = agents.find((agent) => agent.workflowId === draftAgentId) ?? agents[0]
   const activeAgent = conversationId ? (detail?.agent ?? null) : (newAgent ?? null)
+  const projects = projectsQuery.data ?? NO_PROJECTS
+  const draftProject = projects.find((project) => project.id === draftProjectId)
+  const conversationProject = detail?.conversation.projectId
+    ? projects.find((project) => project.id === detail.conversation.projectId)
+    : undefined
   const pending = turn.pending?.conversationId === conversationId ? turn.pending : null
 
   const storedIds = useMemo(() => new Set(messages.map((message) => message.id)), [messages])
@@ -135,6 +198,7 @@ export function Assistant({ workspaceId }: AssistantProps) {
       isStreaming: false,
       note: message.interrupted ? t('thread.interrupted') : undefined,
       extras,
+      card: message.card,
     }
   })
   if (pending?.question && !(pending.question.id && storedIds.has(pending.question.id))) {
@@ -201,9 +265,15 @@ export function Assistant({ workspaceId }: AssistantProps) {
     }
   }
 
-  const handleSend = async () => {
+  const handleSend = async (options: { skipProposal?: boolean } = {}) => {
     const text = draft.trim()
     if (!activeAgent || !text || turn.isBusy) return
+    // A message that reads as « chaque lundi, … » is offered as a scheduled task first.
+    if (!options.skipProposal && canEdit && looksLikeScheduledTask(text)) {
+      setProposalFor(text)
+      return
+    }
+    setProposalFor(null)
     const files = draftFiles
     setDraft('')
     setDraftFiles([])
@@ -214,11 +284,68 @@ export function Assistant({ workspaceId }: AssistantProps) {
       agent: activeAgent,
       text,
       files: files.map((draftFile) => draftFile.file),
+      ...(draftProject ? { projectId: draftProject.id } : {}),
     })
     if (!sent) {
       setDraft((current) => current || text)
       setDraftFiles((current) => (current.length > 0 ? current : files))
     }
+  }
+
+  /** The conversation a card goes to: the open one while its agent answers, else a new one. */
+  const cardTarget = () => {
+    const agent = (conversationId ? detail?.agent : null) ?? agents[0]
+    if (!agent) return null
+    return {
+      agent,
+      conversationId: conversationId && detail?.agent ? conversationId : null,
+      projectId: draftProject?.id,
+    }
+  }
+
+  const showCardTurn = async (input: { question: string; answer: string; card: AssistantCard }) => {
+    const target = cardTarget()
+    if (!target) throw new Error('No agent can hold this conversation')
+    const recorded = await recordCardTurn({ ...target, ...input })
+    stickToBottomRef.current = true
+    void setParams({ conversation: recorded.conversationId }, { history: 'replace' })
+  }
+
+  const handleTaskCreated = async (task: AssistantTask, request: string) => {
+    setProposalFor(null)
+    await showCardTurn({
+      question: request,
+      answer: tTasks('createdMessage', { title: task.title }),
+      card: {
+        kind: 'task',
+        payload: {
+          taskId: task.id,
+          title: task.title,
+          schedule: task.schedule?.label ?? '',
+          request,
+        },
+      },
+    }).then(() => setDraft(''))
+  }
+
+  const handleWorkflowLaunched = async ({ workflow, inputs, result }: LaunchedWorkflow) => {
+    await showCardTurn({
+      question: tWorkflows('launchQuestion', { name: workflow.name }),
+      answer: tWorkflows(`summary.${result.status}`, { name: workflow.name }),
+      card: {
+        kind: 'workflow_run',
+        payload: {
+          workflowId: workflow.workflowId,
+          name: workflow.name,
+          executionId: result.executionId,
+          status: result.status,
+          inputs,
+          output: result.output,
+          error: result.error,
+          pause: result.pause,
+        },
+      },
+    })
   }
 
   const detailError =
@@ -242,6 +369,16 @@ export function Assistant({ workspaceId }: AssistantProps) {
         onDeleted={(id) => {
           if (id === conversationId) void setParams({ conversation: null }, { history: 'replace' })
         }}
+        tools={
+          <AssistantTools
+            workspaceId={workspaceId}
+            canWrite={canEdit}
+            onOpenProjects={() => setOpenPanel('projects')}
+            onOpenTasks={() => setOpenPanel('tasks')}
+            onOpenLauncher={() => setOpenPanel('launcher')}
+            onOpenPublished={() => setOpenPanel('published')}
+          />
+        }
       />
       <section className='flex min-h-0 min-w-0 flex-1 flex-col'>
         <header className='flex min-h-[52px] items-center gap-3 border-[var(--border)] border-b px-6 py-2'>
@@ -253,12 +390,40 @@ export function Assistant({ workspaceId }: AssistantProps) {
           </h1>
           {conversationId ? (
             detail && (
-              <span className='shrink-0 text-[var(--text-muted)] text-small'>
-                {detail.agent?.name ?? t('agents.unpublished')}
-              </span>
+              <div className='flex shrink-0 items-center gap-3'>
+                {conversationProject && (
+                  <span className='text-[var(--text-muted)] text-small'>
+                    {t('projects.inProject', { name: conversationProject.name })}
+                  </span>
+                )}
+                <span className='text-[var(--text-muted)] text-small'>
+                  {detail.agent?.name ?? t('agents.unpublished')}
+                </span>
+                {detail.agent && canOpenInEditor(canEdit ? 'write' : 'read') && (
+                  <ChipLink
+                    href={`/workspace/${workspaceId}/agents/${detail.agent.workflowId}`}
+                    rightIcon={ArrowUpRight}
+                  >
+                    {t('header.openEditor')}
+                  </ChipLink>
+                )}
+              </div>
             )
           ) : agents.length > 0 ? (
             <div className='flex shrink-0 items-center gap-2'>
+              {projects.length > 0 && (
+                <ChipCombobox
+                  options={[
+                    { label: t('projects.none'), value: NO_PROJECT },
+                    ...projects.map((project) => ({ label: project.name, value: project.id })),
+                  ]}
+                  value={draftProject?.id ?? NO_PROJECT}
+                  onChange={setDraftProjectId}
+                  disabled={turn.isBusy}
+                  aria-label={t('projects.label')}
+                  className='w-[200px]'
+                />
+              )}
               <span className='text-[var(--text-muted)] text-small'>{t('agents.label')}</span>
               <ChipCombobox
                 options={agents.map((agent) => ({ label: agent.name, value: agent.workflowId }))}
@@ -308,6 +473,21 @@ export function Assistant({ workspaceId }: AssistantProps) {
                   onAnswerConfirmation={(id, decision) =>
                     void turn.answerConfirmation(id, decision)
                   }
+                  card={item.card}
+                  canAnswerRun={canEdit}
+                  isAnsweringRun={runResolution.answeringId === item.key}
+                  runAnswerFailed={runResolution.failedId === item.key}
+                  onAnswerRun={(answer) => {
+                    if (item.card?.kind !== 'workflow_run' || !conversationId) return
+                    void runResolution.resolve({
+                      conversationId,
+                      messageId: item.key,
+                      card: item.card,
+                      approved: answer.approved,
+                      comment: answer.comment,
+                    })
+                  }}
+                  onOpenTasks={() => setOpenPanel('tasks')}
                   onRegenerate={
                     item === lastItem && item.role === 'assistant' && canAskAgain
                       ? regenerate
@@ -367,6 +547,16 @@ export function Assistant({ workspaceId }: AssistantProps) {
                       ))}
                     </ul>
                   )}
+                  {proposalFor !== null && proposalFor === draft.trim() && (
+                    <Suspense fallback={null}>
+                      <ScheduleProposal
+                        workspaceId={workspaceId}
+                        request={proposalFor}
+                        onSendToAgent={() => void handleSend({ skipProposal: true })}
+                        onCreated={(task, request) => void handleTaskCreated(task, request)}
+                      />
+                    </Suspense>
+                  )}
                   <Composer
                     value={draft}
                     onChange={setDraft}
@@ -399,6 +589,41 @@ export function Assistant({ workspaceId }: AssistantProps) {
           </div>
         )}
       </section>
+      <Suspense fallback={null}>
+        {openPanel === 'projects' && (
+          <ProjectsModal
+            workspaceId={workspaceId}
+            open
+            onOpenChange={(open) => setOpenPanel(open ? 'projects' : null)}
+            onProjectDeleted={(projectId) => {
+              if (draftProjectId === projectId) setDraftProjectId(NO_PROJECT)
+            }}
+          />
+        )}
+        {openPanel === 'tasks' && (
+          <TasksModal
+            workspaceId={workspaceId}
+            open
+            onOpenChange={(open) => setOpenPanel(open ? 'tasks' : null)}
+            canOpenEditor={canOpenInEditor(canEdit ? 'write' : 'read')}
+          />
+        )}
+        {openPanel === 'launcher' && (
+          <WorkflowLauncher
+            workspaceId={workspaceId}
+            open
+            onOpenChange={(open) => setOpenPanel(open ? 'launcher' : null)}
+            onLaunched={handleWorkflowLaunched}
+          />
+        )}
+        {canEdit && openPanel === 'published' && (
+          <WorkflowsManageModal
+            workspaceId={workspaceId}
+            open
+            onOpenChange={(open) => setOpenPanel(open ? 'published' : null)}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

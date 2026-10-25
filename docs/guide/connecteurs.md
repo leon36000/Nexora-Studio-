@@ -26,6 +26,15 @@ Une seule demande OAuth peut être en cours à la fois pour un même service sur
 
 Chaque espace possède le serveur d'outils **Nexora Connect** ([Outils MCP](outils-mcp.md)). Ajoutez-le aux **Outils** d'un agent ou d'un bloc Agent : le modèle trouve l'action utile (`search_actions`), lit son mode d'emploi (`get_action_guide`) et l'exécute (`execute_action`) avec la connexion de l'espace, sans que vous ayez à la nommer. Le bloc **MCP** permet aussi d'appeler une action précise dans un workflow.
 
+## Connexions personnelles
+
+Une connexion peut aussi appartenir à **une personne** plutôt qu'à l'espace. Dans **Connecteurs**, le bouton **Mes connexions** (ou le lien du même nom dans l'[Assistant](assistant.md)) bascule le catalogue en mode personnel : **tous les membres** de l'espace, lecteurs compris, peuvent y connecter **leur** compte (clé API, identifiants ou OAuth, comme ci-dessus) et le déconnecter.
+
+- Une connexion personnelle n'est utilisée que dans **les conversations de son propriétaire** dans l'Assistant et dans **ses tâches planifiées**. Ni un autre membre, ni un administrateur, ni un workflow lancé par quelqu'un d'autre ne peut s'en servir.
+- Pour un service que la personne a connecté elle-même, la connexion personnelle **l'emporte** sur celle de l'espace dans ses conversations ; pour les autres services, celle de l'espace reste utilisée.
+- Chaque personne a, dans Nexora Connect, son propre jeton d'accès, limité à ses connexions et à celles de l'espace. Ce jeton est conservé chiffré par WorkStudio et n'est jamais renvoyé à une page, une réponse d'API, un journal ou une trace. Si Nexora Connect est injoignable, l'outil échoue : il ne retombe jamais sur la connexion de l'espace à la place d'un compte personnel.
+- Une connexion personnelle appartient à la personne pour toute l'instance : elle la retrouve dans chacun de ses espaces.
+
 ## Cloisonnement entre espaces
 
 Une connexion appartient à **un seul espace**. Les outils Nexora Connect d'un espace utilisent un jeton qui n'ouvre que les connexions de cet espace : un autre espace de la même instance ne voit ni ne peut utiliser vos comptes. Les services sans authentification (données publiques) restent disponibles partout.

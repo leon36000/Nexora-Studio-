@@ -49,6 +49,11 @@
       "storage": "Stockage",
       "subscriptions": "Abonnements",
       "video": "Vidéo"
+    },
+    "scopeLabel": "Connexions",
+    "scope": {
+      "workspace": "De l’espace",
+      "personal": "Mes connexions"
     }
   },
   "detail": {
@@ -173,7 +178,8 @@
         "closed": "La fenêtre a été fermée avant la fin de la connexion.",
         "timeout": "Aucune réponse au bout de 10 minutes : la demande a été abandonnée."
       }
-    }
+    },
+    "personalConnectionSection": "Ma connexion personnelle"
   },
   "errors": {
     "unavailable": "Nexora Connect est injoignable. Réessayez dans un instant.",

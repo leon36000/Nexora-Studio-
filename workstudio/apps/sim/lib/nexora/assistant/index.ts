@@ -7,5 +7,6 @@ export {
   getAssistantConversation,
   listAssistantConversations,
   renameAssistantConversation,
+  updateAssistantMessage,
 } from './conversations'
 export type { AssistantConversationRecord, AssistantMessageRecord } from './repository'

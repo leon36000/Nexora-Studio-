@@ -6,6 +6,7 @@ import { requestJson } from '@/lib/api/client/request'
 import {
   type AppendAssistantMessageBody,
   ASSISTANT_AGENT_UNPUBLISHED_CODE,
+  type AssistantCard,
   appendAssistantMessageContract,
   type CreateAssistantConversationBody,
   createAssistantConversationContract,
@@ -15,6 +16,7 @@ import {
   listAssistantConversationsContract,
   type RenameAssistantConversationBody,
   renameAssistantConversationContract,
+  updateAssistantMessageContract,
 } from '@/lib/api/contracts/nexora-assistant'
 
 const ASSISTANT_AGENTS_STALE_TIME = 60 * 1000
@@ -130,6 +132,30 @@ export function useDeleteAssistantConversation() {
       queryClient.removeQueries({ queryKey: assistantKeys.detail(conversationId) })
       queryClient.invalidateQueries({ queryKey: assistantKeys.lists() })
     },
+  })
+}
+
+/** Replaces the card of one of the conversation's messages (a run once its validation is answered). */
+export function useUpdateAssistantMessageCard() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      conversationId,
+      messageId,
+      card,
+    }: {
+      conversationId: string
+      messageId: string
+      card: AssistantCard
+    }) => {
+      const data = await requestJson(updateAssistantMessageContract, {
+        params: { id: conversationId, messageId },
+        body: { card },
+      })
+      return data.message
+    },
+    onSuccess: (message) =>
+      queryClient.invalidateQueries({ queryKey: assistantKeys.detail(message.conversationId) }),
   })
 }
 

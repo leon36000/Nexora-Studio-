@@ -4,17 +4,23 @@ import { type IsolationDependencies, reconcileWorkspaceConnect } from '@/lib/nex
 import {
   ConnectRefusedError,
   ConnectUnavailableError,
+  connectPersonalWithCredentials,
   connectWithCredentials,
   disconnect,
+  disconnectPersonal,
   getActionOperationType,
   getOAuthStatus,
   getServiceDetail,
   listCatalog,
+  listPersonalConnections,
   listWorkspaceConnections,
+  personalConnectionName,
   removeWorkspaceFromConnect,
+  revokePersonalToken,
   revokeWorkspaceToken,
   setOAuthApp,
   startOAuth,
+  syncPersonalToken,
   syncWorkspaceToken,
   workspaceConnectionName,
 } from '@/lib/nexora/connect-admin'
@@ -580,5 +586,129 @@ describe('getActionOperationType', () => {
       throw new Error('should not be called')
     }) as typeof fetch
     expect(await getActionOperationType('../admin/tokens', { config, fetchFn })).toBeNull()
+  })
+})
+
+describe('Nexora Connect personal connections', () => {
+  const ALICE = 'user-alice-0001'
+  const BOB = 'user-bob-0002'
+
+  it('names a member’s connection u-<userId>, within Connect’s naming rule', () => {
+    expect(personalConnectionName(ALICE)).toBe(`u-${ALICE}`)
+    expect(personalConnectionName('3f2b8c1e-5a47-4b1d-9c0e-7d6a1e2f3b4c')).toMatch(
+      /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/
+    )
+  })
+
+  it('lists, connects and disconnects only the member’s own connections', async () => {
+    const { state, options } = setup()
+    await connectPersonalWithCredentials(ALICE, 'brevo', 'api_key', { apiKey: 'a' }, options)
+    await connectPersonalWithCredentials(BOB, 'brevo', 'api_key', { apiKey: 'b' }, options)
+    await connectWithCredentials(WS, 'slack', 'api_key', { apiKey: 'c' }, options)
+    expect(state.connections.map((c) => c.connectionName)).toEqual([
+      `u-${ALICE}`,
+      `u-${BOB}`,
+      `ws-${WS}`,
+    ])
+    expect((await listPersonalConnections(ALICE, options)).map((c) => c.service)).toEqual(['brevo'])
+    expect(await listWorkspaceConnections(WS, options)).toHaveLength(1)
+
+    await disconnectPersonal(ALICE, 'brevo', options)
+    expect(await listPersonalConnections(ALICE, options)).toEqual([])
+    expect(await listPersonalConnections(BOB, options)).toHaveLength(1)
+    await expect(disconnectPersonal(ALICE, 'brevo', options)).resolves.toBeUndefined()
+  })
+
+  it('grants a member their connections, and the workspace’s only for services they did not connect', async () => {
+    const { state, options } = setup()
+    await connectPersonalWithCredentials(ALICE, 'brevo', 'api_key', { apiKey: 'a' }, options)
+    await connectWithCredentials(WS, 'brevo', 'api_key', { apiKey: 'w1' }, options)
+    await connectWithCredentials(WS, 'slack', 'api_key', { apiKey: 'w2' }, options)
+    await connectPersonalWithCredentials(BOB, 'slack', 'api_key', { apiKey: 'b' }, options)
+    const id = (name: string, service: string) =>
+      state.connections.find((c) => c.connectionName === name && c.service === service)?.id
+
+    const synced = await syncPersonalToken({ userId: ALICE, workspaceId: WS }, options)
+    expect(synced.token).toMatch(/^oct_/)
+    const token = state.tokens.find((t) => t.id === synced.tokenId)
+    expect(token?.name).toBe(`workstudio-u-${ALICE}-w-${WS}`)
+    // Alice's own brevo wins over the workspace's brevo; the workspace's slack stays reachable.
+    expect([...(token?.allowedConnections ?? [])].sort()).toEqual(
+      [id(`u-${ALICE}`, 'brevo'), id(`ws-${WS}`, 'slack')].sort()
+    )
+    expect(token?.allowedConnections).not.toContain(id(`u-${BOB}`, 'slack'))
+    expect(token?.allowedConnections).not.toContain(id(`ws-${WS}`, 'brevo'))
+  })
+
+  it('updates the same token when the grant changes and keeps the secret out of the second answer', async () => {
+    const { state, options } = setup()
+    await connectPersonalWithCredentials(ALICE, 'brevo', 'api_key', { apiKey: 'a' }, options)
+    const first = await syncPersonalToken({ userId: ALICE, workspaceId: WS }, options)
+    const unchanged = await syncPersonalToken(
+      { userId: ALICE, workspaceId: WS, existingTokenId: first.tokenId },
+      options
+    )
+    expect(unchanged).toMatchObject({ tokenId: first.tokenId, grantHash: first.grantHash })
+    expect(unchanged.token).toBeUndefined()
+    expect(state.tokenUpdates).toBe(0)
+
+    await connectWithCredentials(WS, 'slack', 'api_key', { apiKey: 'w' }, options)
+    const changed = await syncPersonalToken(
+      { userId: ALICE, workspaceId: WS, existingTokenId: first.tokenId },
+      options
+    )
+    expect(changed.tokenId).toBe(first.tokenId)
+    expect(changed.token).toBeUndefined()
+    expect(changed.grantHash).not.toBe(first.grantHash)
+    expect(state.tokenUpdates).toBe(1)
+    expect(state.tokens).toHaveLength(1)
+  })
+
+  it('makes a fresh token when the stored one no longer exists in Connect', async () => {
+    const { state, options } = setup()
+    await connectPersonalWithCredentials(ALICE, 'brevo', 'api_key', { apiKey: 'a' }, options)
+    const first = await syncPersonalToken({ userId: ALICE, workspaceId: WS }, options)
+    state.tokens = []
+    const again = await syncPersonalToken(
+      { userId: ALICE, workspaceId: WS, existingTokenId: first.tokenId },
+      options
+    )
+    expect(again.token).toMatch(/^oct_/)
+    expect(again.tokenId).not.toBe(first.tokenId)
+  })
+
+  it('never grants every connection: a member with nothing gets the no-connection sentinel', async () => {
+    const { state, options } = setup()
+    await syncPersonalToken({ userId: ALICE, workspaceId: WS }, options)
+    expect(state.tokens[0].allowedConnections).toEqual(['nexora-no-connection'])
+  })
+
+  it('revokes a personal token', async () => {
+    const { state, options } = setup()
+    const synced = await syncPersonalToken({ userId: ALICE, workspaceId: WS }, options)
+    await revokePersonalToken(synced.tokenId, options)
+    expect(state.tokens).toEqual([])
+  })
+
+  it('never puts a key or a token in an error message', async () => {
+    const { state, options } = setup()
+    state.rejectKeys.add('alice-secret-key')
+    const message = await connectPersonalWithCredentials(
+      ALICE,
+      'brevo',
+      'api_key',
+      { apiKey: 'alice-secret-key' },
+      options
+    ).then(
+      () => '',
+      (error: Error) => error.message
+    )
+    expect(message).not.toContain('alice-secret-key')
+    state.down = true
+    const unreachable = await syncPersonalToken({ userId: ALICE, workspaceId: WS }, options).then(
+      () => '',
+      (error: Error) => error.message
+    )
+    expect(unreachable).not.toMatch(/oct_/)
   })
 })

@@ -120,6 +120,7 @@ describe('POST /api/nexora/assistant/conversations/[id]/messages', () => {
         files: [],
         usage: null,
         interrupted: false,
+        card: null,
         createdAt: '2026-10-01T10:06:00.000Z',
       },
     })

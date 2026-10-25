@@ -25,6 +25,7 @@ export const POST = defineInternalJsonRoute({
     usage: body.usage,
     interrupted: body.interrupted,
     files: body.files,
+    card: body.card,
   }),
   useCase: appendAssistantMessage,
   present: ({ message }) => ({ message: presentMessage(message) }),

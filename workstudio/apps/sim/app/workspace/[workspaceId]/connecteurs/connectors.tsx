@@ -39,13 +39,16 @@ interface ConnectorsProps {
  */
 export function Connectors({ workspaceId }: ConnectorsProps) {
   const t = useTranslations('connectors')
-  const [{ search, category }, setFilters] = useQueryStates(connectorsParsers, connectorsUrlKeys)
+  const [{ search, category, scope }, setFilters] = useQueryStates(
+    connectorsParsers,
+    connectorsUrlKeys
+  )
   const setSearch = useDebouncedSearchSetter((value, options) =>
     setFilters({ search: value }, options)
   )
   const query = useDebounce(search.trim(), SEARCH_DEBOUNCE_MS)
-  const catalog = useConnectorCatalog(workspaceId, { query, category })
-  const unfiltered = useConnectorCatalog(workspaceId, NO_FILTERS)
+  const catalog = useConnectorCatalog(workspaceId, { query, category, scope })
+  const unfiltered = useConnectorCatalog(workspaceId, { ...NO_FILTERS, scope })
 
   const services = useMemo(
     () => catalog.data?.pages.flatMap((page) => page.services) ?? [],
@@ -98,7 +101,9 @@ export function Connectors({ workspaceId }: ConnectorsProps) {
                   </Badge>
                 ) : undefined
               }
-              href={`/workspace/${workspaceId}/connecteurs/${encodeURIComponent(service.service)}`}
+              href={`/workspace/${workspaceId}/connecteurs/${encodeURIComponent(service.service)}${
+                scope === 'personal' ? '?scope=personal' : ''
+              }`}
               clickLabel={t('catalog.open', { name: service.displayName })}
               navigable
             />
@@ -133,6 +138,18 @@ export function Connectors({ workspaceId }: ConnectorsProps) {
       }
     >
       <div className='flex flex-col gap-3'>
+        <nav aria-label={t('catalog.scopeLabel')} className='flex gap-1'>
+          {(['workspace', 'personal'] as const).map((value) => (
+            <Chip
+              key={value}
+              active={scope === value}
+              aria-pressed={scope === value}
+              onClick={() => void setFilters({ scope: value })}
+            >
+              {t(`catalog.scope.${value}`)}
+            </Chip>
+          ))}
+        </nav>
         <ChipInput
           icon={Search}
           className='w-full'

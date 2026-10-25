@@ -3116,6 +3116,13 @@
       "when": 1792909013787,
       "tag": "0449_nexora_batches",
       "breakpoints": true
+    },
+    {
+      "idx": 451,
+      "version": "7",
+      "when": 1792917235900,
+      "tag": "0451_nexora_assistant_extended",
+      "breakpoints": true
     }
   ]
 }

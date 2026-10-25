@@ -43,6 +43,7 @@ import {
   getAssistantConversation,
   listAssistantConversations,
   renameAssistantConversation,
+  updateAssistantMessage,
 } from '@/lib/nexora/assistant'
 
 const mocks = {
@@ -267,6 +268,168 @@ describe('createAssistantConversation', () => {
     expect(inserted.title).toBe(expectedTitle)
     expect(inserted.title.length).toBeLessThanOrEqual(60)
     expect(inserted.userId).toBe('owner')
+  })
+})
+
+describe('message cards', () => {
+  const card = {
+    kind: 'workflow_run' as const,
+    payload: {
+      workflowId: 'workflow-1',
+      name: 'Devis client',
+      executionId: 'execution-1',
+      status: 'paused' as const,
+      output: null,
+      error: null,
+      pause: {
+        resumePath: '/api/resume/workflow-1/execution-1/context-1',
+        message: 'Valider le devis ?',
+        fields: [],
+      },
+    },
+  }
+
+  it('stores a card with the answer that carries it', async () => {
+    queueTableRows(schemaMock.nexoraAssistantConversation, [conversationRow])
+    dbChainMockFns.returning
+      .mockImplementationOnce(async () => [{ id: 'conversation-1' }])
+      .mockImplementationOnce(async () => [
+        {
+          id: 'message-2',
+          conversationId: 'conversation-1',
+          role: 'assistant',
+          content: 'Devis client : en attente de validation',
+          files: null,
+          usage: null,
+          interrupted: false,
+          kind: card.kind,
+          payload: card.payload,
+          createdAt: new Date('2026-10-01T10:06:00.000Z'),
+        },
+      ])
+
+    const { message } = await appendAssistantMessage.execute({
+      principal: owner,
+      input: {
+        conversationId: 'conversation-1',
+        role: 'assistant',
+        content: 'Devis client : en attente de validation',
+        card,
+      },
+    })
+
+    const stored = dbChainMockFns.values.mock.calls[0]?.[0] as { kind: string; payload: unknown }
+    expect(stored.kind).toBe('workflow_run')
+    expect(stored.payload).toEqual(card.payload)
+    expect(message.card).toEqual(card)
+  })
+
+  it('reads a stored card that no longer fits its schema as no card, not as a failure', async () => {
+    queueTableRows(schemaMock.nexoraAssistantConversation, [conversationRow])
+    queueTableRows(schemaMock.nexoraAssistantMessage, [
+      {
+        id: 'message-3',
+        conversationId: 'conversation-1',
+        role: 'assistant',
+        content: 'ancien',
+        files: null,
+        usage: null,
+        interrupted: false,
+        kind: 'workflow_run',
+        payload: { unexpected: true },
+        createdAt: new Date('2026-10-01T10:00:00.000Z'),
+      },
+    ])
+    queueTableRows(schemaMock.workflow, [])
+
+    const result = await getAssistantConversation.execute({
+      principal: owner,
+      input: { conversationId: 'conversation-1' },
+    })
+
+    expect(result.messages[0]?.card).toBeNull()
+  })
+
+  it('answers not found to another member who tries to change a card, and changes nothing', async () => {
+    queueTableRows(schemaMock.nexoraAssistantConversation, [conversationRow])
+
+    await expect(
+      updateAssistantMessage.execute({
+        principal: colleague,
+        input: { conversationId: 'conversation-1', messageId: 'message-2', card },
+      })
+    ).rejects.toMatchObject({ code: 'not_found' })
+    expect(dbChainMockFns.update).not.toHaveBeenCalled()
+  })
+
+  it('answers not found when the message is not a card of that kind', async () => {
+    queueTableRows(schemaMock.nexoraAssistantConversation, [conversationRow])
+    dbChainMockFns.returning.mockImplementationOnce(async () => [])
+
+    await expect(
+      updateAssistantMessage.execute({
+        principal: owner,
+        input: { conversationId: 'conversation-1', messageId: 'message-1', card },
+      })
+    ).rejects.toMatchObject({ code: 'not_found' })
+    expect(
+      anyWhereCondition(
+        (node) =>
+          node.type === 'eq' &&
+          node.left === schemaMock.nexoraAssistantMessage.kind &&
+          node.right === 'workflow_run'
+      )
+    ).toBe(true)
+  })
+})
+
+describe('createAssistantConversation in a project', () => {
+  const projectRow = {
+    id: 'project-1',
+    workspaceId: WORKSPACE_ID,
+    userId: 'owner',
+    name: 'Offre Lyon',
+    instructions: '',
+    version: 2,
+    createdAt: new Date('2026-10-01T10:00:00.000Z'),
+    updatedAt: new Date('2026-10-01T10:00:00.000Z'),
+  }
+
+  function createIn(projectId: string) {
+    return createAssistantConversation.execute({
+      principal: owner,
+      input: {
+        workspaceId: WORKSPACE_ID,
+        workflowId: 'agent-1',
+        firstMessage: 'Bonjour',
+        projectId,
+      },
+    })
+  }
+
+  it('attaches the conversation to one of the caller’s own projects', async () => {
+    queueTableRows(schemaMock.workflow, [publishedAgentRow])
+    queueTableRows(schemaMock.nexoraAssistantProject, [projectRow])
+    dbChainMockFns.returning.mockImplementationOnce(async () => [
+      { ...conversationRow, projectId: 'project-1' },
+    ])
+
+    await createIn('project-1')
+
+    const inserted = dbChainMockFns.values.mock.calls[0]?.[0] as { projectId: string | null }
+    expect(inserted.projectId).toBe('project-1')
+  })
+
+  it.each([
+    ['another member’s', { ...projectRow, userId: 'colleague' }],
+    ['another workspace’s', { ...projectRow, workspaceId: 'workspace-2' }],
+    ['a missing', null],
+  ])('answers not found for %s project and creates nothing', async (_name, row) => {
+    queueTableRows(schemaMock.workflow, [publishedAgentRow])
+    queueTableRows(schemaMock.nexoraAssistantProject, row ? [row] : [])
+
+    await expect(createIn('project-1')).rejects.toMatchObject({ code: 'not_found' })
+    expect(dbChainMockFns.insert).not.toHaveBeenCalled()
   })
 })
 

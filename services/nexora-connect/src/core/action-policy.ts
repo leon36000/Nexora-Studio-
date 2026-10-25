@@ -55,12 +55,12 @@ export interface PolicyCallerOptions {
 }
 
 /**
- * Nexora: WorkStudio names a workspace's connection `ws-<workspaceId>` and grants it only to that
- * workspace's token. A caller whose access is not limited to listed connections (the deployment's
- * shared runtime token, an unrestricted stored token, a JWT) never reaches one; only the
- * administrator and a token that lists it do.
+ * Nexora: WorkStudio names a workspace's connection `ws-<workspaceId>` and a member's own
+ * connection `u-<userId>`, and grants each only to the token made for it. A caller whose access is
+ * not limited to listed connections (the deployment's shared runtime token, an unrestricted stored
+ * token, a JWT) never reaches one; only the administrator and a token that lists it do.
  */
-const workspaceConnectionPrefix = "ws-";
+const reservedConnectionPrefixes = ["ws-", "u-"] as const;
 
 export interface RuntimePolicyState {
   deployment: PolicyRules;
@@ -266,11 +266,11 @@ export class ActionPolicySnapshot {
   evaluateConnection(connection?: ConnectionRef): ActionPolicyDecision {
     const connectionId = connection?.id;
     if (this.allowedConnections.length === 0) {
-      if (!this.admin && connection?.connectionName?.startsWith(workspaceConnectionPrefix)) {
+      if (!this.admin && reservedConnectionPrefixes.some((prefix) => connection?.connectionName?.startsWith(prefix))) {
         return {
           allowed: false,
           code: "connection_not_allowed",
-          message: `${connection.connectionName} connection is reserved to its workspace token.`,
+          message: `${connection.connectionName} connection is reserved to the token made for it.`,
           checks: [{ source: "token", outcome: "allow_miss" }],
         };
       }

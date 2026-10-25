@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import {
   Button,
   Chip,
@@ -39,6 +39,8 @@ interface ConversationListProps {
   onSelect: (id: string) => void
   onNew: () => void
   onDeleted: (id: string) => void
+  /** The Assistant's other surfaces (projects, tasks, workflows), under « Nouvelle conversation ». */
+  tools?: ReactNode
 }
 
 /** The member's own conversations, most recently active first, with « Nouvelle conversation ». */
@@ -50,6 +52,7 @@ export function ConversationList({
   onSelect,
   onNew,
   onDeleted,
+  tools,
 }: ConversationListProps) {
   const t = useTranslations('assistant.conversations')
   const [renaming, setRenaming] = useState<ConversationSummary | null>(null)
@@ -62,6 +65,7 @@ export function ConversationList({
         <Chip leftIcon={Plus} onClick={onNew} className='w-full justify-start'>
           {t('new')}
         </Chip>
+        {tools}
       </div>
       <nav className='min-h-0 flex-1 overflow-y-auto px-3 pb-3' aria-label={t('label')}>
         {isLoading ? (

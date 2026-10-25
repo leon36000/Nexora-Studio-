@@ -1,3 +1,4 @@
+import { sha256Hex } from '@sim/security/hash'
 import { getErrorMessage } from '@sim/utils/errors'
 import { isRecordLike, toArray, toRecord, toRecordOrNull } from '@sim/utils/object'
 import { LRUCache } from 'lru-cache'
@@ -264,6 +265,158 @@ export async function removeWorkspaceFromConnect(
     await disconnect(workspaceId, connection.service, options)
   }
   await revokeWorkspaceToken(workspaceId, options)
+}
+
+/** Name of a member's own connection in Nexora Connect (one per service and member, instance-wide). */
+export function personalConnectionName(userId: string): string {
+  return `u-${userId}`
+}
+
+function personalTokenName(userId: string, workspaceId: string): string {
+  return `workstudio-u-${userId}-w-${workspaceId}`
+}
+
+async function listConnectionsNamed(
+  call: ReturnType<typeof createClient>,
+  name: string
+): Promise<WorkspaceConnection[]> {
+  const connections = toArray(await call<unknown>('GET', '/api/connections')).filter(isRecordLike)
+  return connections
+    .filter((c) => c.connectionName === name && c.virtual !== true && typeof c.id === 'string')
+    .map((c) => ({ id: String(c.id), service: String(c.service), authType: String(c.authType) }))
+}
+
+/** The member's own stored connections (virtual no-auth services excluded). */
+export async function listPersonalConnections(
+  userId: string,
+  options: ConnectAdminOptions = {}
+): Promise<WorkspaceConnection[]> {
+  return listConnectionsNamed(createClient(options), personalConnectionName(userId))
+}
+
+/** Saves (or replaces) the member's connection to `service` with an API key or custom credentials. */
+export async function connectPersonalWithCredentials(
+  userId: string,
+  service: string,
+  authType: 'api_key' | 'custom_credential',
+  values: Record<string, string>,
+  options: ConnectAdminOptions = {}
+): Promise<WorkspaceConnection> {
+  const call = createClient(options)
+  const saved = await call<Record<string, unknown>>(
+    'PUT',
+    `/api/connections/${encodeURIComponent(service)}`,
+    { authType, connectionName: personalConnectionName(userId), values }
+  )
+  return { id: String(saved.id), service, authType }
+}
+
+/** Starts the OAuth consent for the member's own connection to `service`. */
+export async function startPersonalOAuth(
+  userId: string,
+  service: string,
+  options: ConnectAdminOptions = {}
+): Promise<{ requestId: string; authorizationUrl: string }> {
+  const call = createClient(options)
+  const request = await call<Record<string, unknown>>('POST', '/api/oauth/connection-requests', {
+    service,
+    connectionName: personalConnectionName(userId),
+  })
+  return {
+    requestId: String(request.connectionRequestId),
+    authorizationUrl: String(request.authorizationUrl),
+  }
+}
+
+/** Removes the member's connection to `service`; one already removed counts as removed. */
+export async function disconnectPersonal(
+  userId: string,
+  service: string,
+  options: ConnectAdminOptions = {}
+): Promise<void> {
+  const call = createClient(options)
+  try {
+    await call('DELETE', `/api/connections/${encodeURIComponent(service)}`, {
+      connectionName: personalConnectionName(userId),
+    })
+  } catch (error) {
+    if (error instanceof ConnectRefusedError && error.code === 'connection_not_found') return
+    throw error
+  }
+}
+
+interface PersonalTokenSync {
+  tokenId: string
+  /** The secret, only when the token was just created; Connect shows it once. */
+  token?: string
+  grantHash: string
+}
+
+/**
+ * Keeps the member's runtime token for one workspace limited to exactly: their own connections,
+ * and the workspace's for the services they did not connect themselves (their own wins, so a call
+ * that names no connection has one answer). Created when `existingTokenId` is absent or no longer
+ * known to Connect (the secret comes back then); otherwise only its grant is brought in line, and
+ * only when it differs. Callers serialize per member and workspace.
+ */
+export async function syncPersonalToken(
+  input: { userId: string; workspaceId: string; existingTokenId?: string },
+  options: ConnectAdminOptions = {}
+): Promise<PersonalTokenSync> {
+  const call = createClient(options)
+  const [personal, workspace, tokens] = await Promise.all([
+    listConnectionsNamed(call, personalConnectionName(input.userId)),
+    listConnectionsNamed(call, workspaceConnectionName(input.workspaceId)),
+    call<unknown>('GET', '/api/runtime-tokens').then((list) => toArray(list).filter(isRecordLike)),
+  ])
+  const own = new Set(personal.map((c) => c.service))
+  const granted = [...personal, ...workspace.filter((c) => !own.has(c.service))].map((c) => c.id)
+  const allowedConnections = granted.length > 0 ? granted : [NO_CONNECTION_GRANT]
+  const grantHash = sha256Hex([...allowedConnections].sort().join('\n'))
+  const policy: TokenPolicy = {
+    allowedActions: [],
+    blockedActions: [],
+    allowedProxies: [],
+    allowedConnections,
+    allowedTriggers: [],
+  }
+  const name = personalTokenName(input.userId, input.workspaceId)
+  const existing = input.existingTokenId
+    ? tokens.find((t) => t.id === input.existingTokenId && t.name === name)
+    : undefined
+  if (existing) {
+    if (!samePolicy(existing, policy)) {
+      await call('PUT', `/api/runtime-tokens/${existing.id}`, policy)
+    }
+    return { tokenId: String(existing.id), grantHash }
+  }
+  // No token we can use: any other one of this name has a secret nobody holds.
+  for (const stale of tokens.filter((t) => t.name === name && typeof t.id === 'string')) {
+    await call('DELETE', `/api/runtime-tokens/${stale.id}`)
+  }
+  const created = await call<Record<string, unknown>>('POST', '/api/runtime-tokens', {
+    name,
+    ...policy,
+  })
+  return {
+    tokenId: String(toRecord(created.record).id),
+    token: String(created.token),
+    grantHash,
+  }
+}
+
+/** Revokes a member's runtime token; one already gone counts as revoked. */
+export async function revokePersonalToken(
+  tokenId: string,
+  options: ConnectAdminOptions = {}
+): Promise<void> {
+  const call = createClient(options)
+  try {
+    await call('DELETE', `/api/runtime-tokens/${encodeURIComponent(tokenId)}`)
+  } catch (error) {
+    if (error instanceof ConnectRefusedError && error.code === 'runtime_token_not_found') return
+    throw error
+  }
 }
 
 export interface CatalogService {

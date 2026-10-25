@@ -1,0 +1,176 @@
+import { z } from 'zod'
+import { workspaceIdSchema } from '@/lib/api/contracts/primitives'
+import { defineRouteContract } from '@/lib/api/contracts/types'
+import { copilotPlanSchema } from '@/lib/nexora/copilot/plan'
+
+const taskIdParamsSchema = z.object({
+  taskId: z.string().min(1, 'Task ID is required').max(128, 'Task ID is too long'),
+})
+
+/** What the member said they want (« tous les matins à 8 h, résume mes e-mails »). */
+const taskRequestSchema = z
+  .string()
+  .trim()
+  .min(1, 'request is required')
+  .max(2000, 'request is too long')
+
+/** The codes a task that cannot be planned or created answers with. */
+export const ASSISTANT_TASK_ERROR_CODES = ['no-schedule', 'deploy-failed'] as const
+
+const taskScheduleSchema = z.object({
+  status: z.string(),
+  cronExpression: z.string().nullable(),
+  /** The cron expression as a French sentence. */
+  label: z.string(),
+  timezone: z.string(),
+  nextRunAt: z.string().nullable(),
+  lastRanAt: z.string().nullable(),
+})
+
+const assistantTaskSchema = z.object({
+  id: z.string(),
+  workflowId: z.string(),
+  title: z.string(),
+  request: z.string(),
+  createdAt: z.string(),
+  /** `null` when the schedule is gone (the workflow was undeployed in the editor). */
+  schedule: taskScheduleSchema.nullable(),
+})
+export type AssistantTask = z.output<typeof assistantTaskSchema>
+
+const assistantTaskRunSchema = z.object({
+  executionId: z.string(),
+  status: z.string(),
+  trigger: z.string(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+  output: z.string().nullable(),
+})
+
+export const planAssistantTaskContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/nexora/assistant/tasks/plan',
+  body: z.object({ workspaceId: workspaceIdSchema, request: taskRequestSchema }),
+  response: {
+    mode: 'json',
+    schema: z.object({
+      plan: copilotPlanSchema,
+      /** The trigger, then each step, as one French sentence each. */
+      summary: z.array(z.string()),
+      warnings: z.array(z.string()),
+      /** When the task will run, as a French sentence. */
+      schedule: z.string(),
+    }),
+  },
+})
+
+export const listAssistantTasksContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/nexora/assistant/tasks',
+  query: z.object({ workspaceId: workspaceIdSchema }),
+  response: { mode: 'json', schema: z.object({ tasks: z.array(assistantTaskSchema) }) },
+})
+
+export const createAssistantTaskContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/nexora/assistant/tasks',
+  body: z.object({
+    workspaceId: workspaceIdSchema,
+    request: taskRequestSchema,
+    plan: copilotPlanSchema,
+  }),
+  response: {
+    mode: 'json',
+    schema: z.object({ task: assistantTaskSchema, warnings: z.array(z.string()) }),
+    status: 201,
+  },
+})
+
+export const setAssistantTaskEnabledContract = defineRouteContract({
+  method: 'PATCH',
+  path: '/api/nexora/assistant/tasks/[taskId]',
+  params: taskIdParamsSchema,
+  body: z.object({ enabled: z.boolean() }),
+  response: { mode: 'json', schema: z.object({ task: assistantTaskSchema }) },
+})
+
+export const deleteAssistantTaskContract = defineRouteContract({
+  method: 'DELETE',
+  path: '/api/nexora/assistant/tasks/[taskId]',
+  params: taskIdParamsSchema,
+  response: { mode: 'json', schema: z.object({ success: z.literal(true) }) },
+})
+
+export const listAssistantTaskRunsContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/nexora/assistant/tasks/[taskId]/runs',
+  params: taskIdParamsSchema,
+  response: { mode: 'json', schema: z.object({ runs: z.array(assistantTaskRunSchema) }) },
+})
+
+const workflowIdParamsSchema = z.object({
+  workflowId: z.string().min(1, 'Workflow ID is required').max(128, 'Workflow ID is too long'),
+})
+
+const assistantWorkflowFieldSchema = z.object({
+  name: z.string(),
+  label: z.string(),
+  type: z.enum(['string', 'number', 'boolean', 'json']),
+  required: z.boolean(),
+  example: z.string(),
+})
+export type AssistantWorkflowField = z.output<typeof assistantWorkflowFieldSchema>
+
+const assistantWorkflowSchema = z.object({
+  workflowId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  /** The form: the fields of the workflow's Start block. */
+  fields: z.array(assistantWorkflowFieldSchema),
+  /** The workflow asks for files, which the form cannot send. */
+  needsFiles: z.boolean(),
+})
+export type AssistantWorkflow = z.output<typeof assistantWorkflowSchema>
+
+/** The workflows a writer published for the Assistant, with their forms. */
+export const listAssistantWorkflowsContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/nexora/assistant/workflows',
+  query: z.object({ workspaceId: workspaceIdSchema }),
+  response: { mode: 'json', schema: z.object({ workflows: z.array(assistantWorkflowSchema) }) },
+})
+
+const publishableWorkflowSchema = z.object({
+  workflowId: z.string(),
+  name: z.string(),
+  isDeployed: z.boolean(),
+  published: z.boolean(),
+})
+
+/** What a writer may publish (writers only). */
+export const listPublishableAssistantWorkflowsContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/nexora/assistant/workflows/publishable',
+  query: z.object({ workspaceId: workspaceIdSchema }),
+  response: {
+    mode: 'json',
+    schema: z.object({ workflows: z.array(publishableWorkflowSchema) }),
+  },
+})
+
+/** Publishes the workflow for the Assistant, deploying it first when it is not (writers only). */
+export const publishAssistantWorkflowContract = defineRouteContract({
+  method: 'PUT',
+  path: '/api/nexora/assistant/workflows/[workflowId]',
+  params: workflowIdParamsSchema,
+  body: z.object({ workspaceId: workspaceIdSchema }),
+  response: { mode: 'json', schema: z.object({ success: z.literal(true) }) },
+})
+
+export const unpublishAssistantWorkflowContract = defineRouteContract({
+  method: 'DELETE',
+  path: '/api/nexora/assistant/workflows/[workflowId]',
+  params: workflowIdParamsSchema,
+  query: z.object({ workspaceId: workspaceIdSchema }),
+  response: { mode: 'json', schema: z.object({ success: z.literal(true) }) },
+})

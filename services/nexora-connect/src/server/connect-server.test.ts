@@ -4656,3 +4656,89 @@ describe("Nexora workspace connections", () => {
     }
   });
 });
+
+describe("Nexora personal connections", () => {
+  // WorkStudio names a member's own connection `u-<userId>` and reaches it only with that member's
+  // runtime token. Neither the shared runtime token nor a workspace token may ever use one.
+  async function personalFixture() {
+    const runtimeTokens = new RuntimeTokenService(new MemoryRuntimeTokenStore());
+    const app = createTestServer([{ ...apiKeyProvider, actions: [echoAction] }], {
+      auth: { adminToken: "admin-token", runtimeToken: "shared-token" },
+      runtimeTokens,
+      providerLoader: new ProxyProviderLoader(),
+    }).createApp();
+    const admin = { authorization: "Bearer admin-token", "content-type": "application/json" };
+    const connect = async (connectionName: string, apiKey: string) => {
+      const saved = await app.request("/api/connections/example", {
+        method: "PUT",
+        headers: admin,
+        body: JSON.stringify({ authType: "api_key", connectionName, values: { apiKey } }),
+      });
+      return ((await saved.json()) as { id: string }).id;
+    };
+    const tokenFor = async (name: string, allowedConnections: string[]) => {
+      const created = await app.request("/api/runtime-tokens", {
+        method: "POST",
+        headers: admin,
+        body: JSON.stringify({
+          name,
+          allowedActions: [],
+          blockedActions: [],
+          allowedProxies: ["example"],
+          allowedConnections,
+        }),
+      });
+      return ((await created.json()) as { token: string }).token;
+    };
+    const aliceConnection = await connect("u-alice", "alice-key");
+    const bobConnection = await connect("u-bob", "bob-key");
+    const workspaceConnection = await connect("ws-a", "workspace-key");
+    return {
+      app,
+      aliceConnection,
+      aliceToken: await tokenFor("workstudio-u-alice-w-a", [aliceConnection]),
+      bobToken: await tokenFor("workstudio-u-bob-w-a", [bobConnection]),
+      workspaceToken: await tokenFor("workstudio-ws-a", [workspaceConnection]),
+    };
+  }
+
+  function run(app: Awaited<ReturnType<typeof personalFixture>>["app"], token: string, body: object) {
+    return app.request("/v1/actions/example.echo", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ input: {}, ...body }),
+    });
+  }
+
+  it("refuses a personal connection to the shared runtime token, to a workspace token and to another member", async () => {
+    const { app, aliceConnection, aliceToken, bobToken, workspaceToken } = await personalFixture();
+
+    const shared = await run(app, "shared-token", { connectionName: "u-alice" });
+    expect(shared.status).toBe(403);
+    await expect(shared.json()).resolves.toMatchObject({ errorCode: "connection_not_allowed" });
+    const sharedById = await app.request("/v1/actions/example.echo", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer shared-token",
+        "content-type": "application/json",
+        "x-oo-connector-app-id": aliceConnection,
+      },
+      body: JSON.stringify({ input: {} }),
+    });
+    expect(sharedById.status).toBe(403);
+    expect((await run(app, workspaceToken, { connectionName: "u-alice" })).status).toBe(403);
+    expect((await run(app, bobToken, { connectionName: "u-alice" })).status).toBe(403);
+
+    expect((await run(app, aliceToken, { connectionName: "u-alice" })).status).toBe(200);
+    expect((await run(app, "admin-token", { connectionName: "u-alice" })).status).toBe(200);
+  });
+
+  it("hides personal connections from the shared runtime token's discovery", async () => {
+    const { app } = await personalFixture();
+    const apps = (await (
+      await app.request("/v1/apps", { headers: { authorization: "Bearer shared-token" } })
+    ).json()) as { data: Array<{ alias: string }> };
+    expect(apps.data.map((entry) => entry.alias)).not.toContain("u-alice");
+    expect(apps.data.map((entry) => entry.alias)).not.toContain("u-bob");
+  });
+});

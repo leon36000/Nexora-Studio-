@@ -5,8 +5,10 @@ import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authori
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import { type AssistantAgent, findPublishedAgent } from '@/lib/nexora/assistant/agents'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
+import { loadProject } from '@/lib/nexora/assistant/projects/repository'
 import {
   type AssistantConversationRecord,
+  type AssistantMessageCard,
   type AssistantMessageRecord,
   deleteConversation,
   insertConversation,
@@ -16,6 +18,7 @@ import {
   loadConversation,
   type NewAssistantMessage,
   updateConversationTitle,
+  updateMessageCard,
 } from '@/lib/nexora/assistant/repository'
 import {
   type ActiveWorkspaceApplicationContext,
@@ -58,6 +61,8 @@ interface WorkspaceInput {
 interface CreateConversationInput extends WorkspaceInput {
   workflowId: string
   firstMessage: string
+  /** One of the caller's own projects of the workspace. */
+  projectId?: string
 }
 
 interface ConversationInput {
@@ -116,11 +121,22 @@ export const createAssistantConversation = defineAuthorizedWorkspaceUseCase({
   async execute({ principal, context, input }) {
     const agent = await findPublishedAgent(context.workspaceId, input.workflowId)
     if (!agent) throw new AssistantAgentUnpublishedError()
+    if (input.projectId) {
+      const project = await loadProject(input.projectId)
+      if (
+        !project ||
+        project.userId !== principal.userId ||
+        project.workspaceId !== context.workspaceId
+      ) {
+        throw new OrchestrationError('not_found', 'Project not found')
+      }
+    }
     const conversation = await insertConversation({
       workspaceId: context.workspaceId,
       userId: principal.userId,
       workflowId: agent.workflowId,
       title: deriveConversationTitle(input.firstMessage),
+      projectId: input.projectId,
     })
     return { conversation }
   },
@@ -215,8 +231,35 @@ export const appendAssistantMessage = defineAuthorizedWorkspaceUseCase({
       usage: input.usage,
       interrupted: input.interrupted,
       files: input.files,
+      card: input.card,
     })
     if (!message) conversationNotFound()
+    return { message }
+  },
+})
+
+interface UpdateMessageInput extends ConversationInput {
+  messageId: string
+  card: AssistantMessageCard
+}
+
+/**
+ * Replaces the card of a message of the member's own conversation (a workflow run, once its
+ * validation was answered). A message that is not a card of that kind is not found.
+ */
+export const updateAssistantMessage = defineAuthorizedWorkspaceUseCase({
+  operation: assistantOperations.updateMessage,
+  resolveContext: ({
+    principal,
+    input,
+  }: {
+    principal: SessionPrincipal
+    input: UpdateMessageInput
+  }) => resolveOwnedConversationContext(principal, input.conversationId),
+  authorizationOptions: {},
+  async execute({ context, input }) {
+    const message = await updateMessageCard(context.conversation.id, input.messageId, input.card)
+    if (!message) throw new OrchestrationError('not_found', 'Message not found')
     return { message }
   },
 })

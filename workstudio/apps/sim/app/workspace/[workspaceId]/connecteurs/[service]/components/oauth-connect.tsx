@@ -6,6 +6,7 @@ import { Loader } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import {
   type ConnectorDetail,
+  type ConnectorScope,
   getConnectorErrorCode,
   useConnectConnectorWithOAuth,
 } from '@/hooks/queries/nexora-connectors'
@@ -15,6 +16,7 @@ const POPUP_FEATURES = 'popup,width=560,height=720'
 
 interface OAuthConnectProps {
   workspaceId: string
+  scope: ConnectorScope
   service: string
   serviceName: string
   oauth: ConnectorDetail['oauth']
@@ -26,7 +28,13 @@ interface OAuthConnectProps {
  * back), OAuth is shown as unavailable; without the operator's OAuth application (Réglages ›
  * Connecteurs) the button is replaced by what an administrator has to do.
  */
-export function OAuthConnect({ workspaceId, service, serviceName, oauth }: OAuthConnectProps) {
+export function OAuthConnect({
+  workspaceId,
+  scope,
+  service,
+  serviceName,
+  oauth,
+}: OAuthConnectProps) {
   const t = useTranslations('connectors')
   const controllerRef = useRef<AbortController | null>(null)
   const connect = useConnectConnectorWithOAuth()
@@ -59,7 +67,7 @@ export function OAuthConnect({ workspaceId, service, serviceName, oauth }: OAuth
     const controller = new AbortController()
     controllerRef.current = controller
     connect.mutate(
-      { workspaceId, service, popup, signal: controller.signal },
+      { workspaceId, service, scope, popup, signal: controller.signal },
       {
         onSuccess: (outcome) => {
           if (!popup.closed) popup.close()

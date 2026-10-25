@@ -42,14 +42,14 @@
     "label": "Your message",
     "placeholder": "Write your message… (Enter to send, Shift+Enter for a new line)",
     "attach": "Attach a file",
-    "skills": "Skills",
     "removeFile": "Remove {name}",
     "send": "Send",
     "stop": "Stop",
     "dictate": "Dictate a message",
     "dictateStop": "Stop dictating",
     "dictating": "Recording…",
-    "transcribing": "Transcribing…"
+    "transcribing": "Transcribing…",
+    "skills": "Skills"
   },
   "attachments": {
     "too-large": "“{name}” is larger than {max} MB.",
@@ -91,6 +91,152 @@
       "failed": "Reading aloud failed. Try again.",
       "denied": "Reading aloud failed. Try again.",
       "unsupported": "Reading aloud failed. Try again."
+    }
+  },
+  "header": {
+    "openEditor": "Open in the editor"
+  },
+  "tools": {
+    "label": "Assistant tools",
+    "projects": "Projects",
+    "tasks": "Scheduled tasks",
+    "launch": "Launch a workflow",
+    "manage": "Manage published workflows",
+    "connections": "My connections"
+  },
+  "projects": {
+    "title": "Projects",
+    "none": "No project",
+    "label": "Project",
+    "inProject": "Project: {name}",
+    "empty": "No project yet.",
+    "loadFailed": "Could not load your projects.",
+    "close": "Close",
+    "create": "New project",
+    "createConfirm": "Create",
+    "name": "Name",
+    "instructions": "Instructions",
+    "instructionsPlaceholder": "What the agent should know or follow in every conversation of this project",
+    "files": "Files",
+    "limits": "Up to 10 files, 5 MB and 100,000 characters each. Only the text of the files is kept.",
+    "addFile": "Add a file",
+    "addingFile": "Reading the file…",
+    "removeFile": "Remove {name}",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleteTitle": "Delete the project",
+    "deleteText": "\"{name}\" and its files will be deleted. Its conversations stay, outside any project.",
+    "deleteFailed": "The project could not be deleted.",
+    "saveFailed": "The change could not be saved.",
+    "fileFailed": "The file could not be added.",
+    "fileCount": "{count, plural, =0 {No files} one {# file} other {# files}}",
+    "refusals": {
+      "unsupported": "This file format is not supported.",
+      "unreadable": "This file is unreadable or damaged.",
+      "empty": "This file contains no text.",
+      "too-large": "This file is too large: 5 MB and 100,000 characters at most.",
+      "project-full": "The project is full: 10 files and 200,000 characters at most."
+    }
+  },
+  "tasks": {
+    "propose": "Schedule this task?",
+    "schedule": "Schedule",
+    "sendToAgent": "Send to the agent",
+    "planTitle": "Schedule a task",
+    "planning": "Preparing the plan…",
+    "warnings": "To check",
+    "cancel": "Cancel",
+    "create": "Create the task",
+    "creating": "Creating…",
+    "title": "Scheduled tasks",
+    "empty": "No scheduled task. For example, write \"every Monday at 9 am, summarize my e-mails\".",
+    "loadFailed": "Could not load your tasks.",
+    "deleteTitle": "Delete the task",
+    "deleteText": "\"{title}\" and its workflow will be deleted. It will no longer run.",
+    "deleteFailed": "The task could not be deleted.",
+    "delete": "Delete",
+    "noSchedule": "Schedule not found",
+    "next": "Next run: {date}",
+    "off": "Off",
+    "toggle": "Turn on \"{title}\"",
+    "toggleFailed": "The change could not be saved.",
+    "hideRuns": "Hide runs",
+    "showRuns": "Last runs",
+    "openEditor": "Open in the editor",
+    "runsFailed": "Could not load the runs.",
+    "noRuns": "No run yet.",
+    "createdMessage": "Scheduled task: {title}",
+    "errors": {
+      "no-schedule": "Say when the task should run, for example \"every Monday at 9 am\".",
+      "deploy-failed": "The task could not be started. Try again.",
+      "plan-invalid": "The model did not produce a valid plan. Rephrase more simply.",
+      "rejected": "The model refused the request. Rephrase it.",
+      "unavailable": "The Nexora model is unavailable right now.",
+      "unknown": "The task could not be prepared. Try again."
+    },
+    "runStatus": {
+      "completed": "Succeeded",
+      "failed": "Failed",
+      "running": "Running",
+      "pending": "Pending",
+      "paused": "Paused",
+      "cancelled": "Cancelled",
+      "queued": "Queued"
+    }
+  },
+  "workflows": {
+    "launchTitle": "Launch a workflow",
+    "close": "Close",
+    "empty": "No published workflow. An editor can publish some from \"Manage published workflows\".",
+    "loadFailed": "Could not load the workflows.",
+    "back": "Back",
+    "run": "Launch",
+    "runningShort": "Running…",
+    "running": "The workflow is running, this may take a moment.",
+    "needsFiles": "This workflow asks for files: launch it from the editor.",
+    "noFields": "This workflow asks for no information.",
+    "fieldErrors": {
+      "required": "This field is required.",
+      "number": "Enter a number.",
+      "json": "Enter valid JSON."
+    },
+    "runFailed": "The workflow could not be launched.",
+    "recordFailed": "The result could not be added to the conversation.",
+    "yes": "Yes",
+    "no": "No",
+    "launchQuestion": "Launch the workflow \"{name}\"",
+    "summary": {
+      "completed": "Workflow \"{name}\" finished.",
+      "failed": "Workflow \"{name}\" failed.",
+      "paused": "Workflow \"{name}\": waiting for validation."
+    },
+    "manageTitle": "Published workflows",
+    "deployNote": "Publishing a workflow deploys it if it is not deployed yet.",
+    "manageEmpty": "No workflow in this workspace.",
+    "notDeployed": "Not deployed",
+    "publishLabel": "Publish \"{name}\"",
+    "saveFailed": "The change could not be saved."
+  },
+  "card": {
+    "workflow": {
+      "title": "Workflow: {name}",
+      "completed": "Finished",
+      "refused": "Refused",
+      "failedBadge": "Failed",
+      "awaiting": "Waiting for validation",
+      "failed": "The workflow failed.",
+      "noResult": "No result to show.",
+      "comment": "Comment (optional)",
+      "approve": "Approve",
+      "refuse": "Refuse",
+      "answerFailed": "The answer could not be sent. Try again.",
+      "readerWaits": "Waiting for validation by an editor."
+    },
+    "task": {
+      "title": "Scheduled task: {title}",
+      "manage": "See my tasks"
     }
   }
 }

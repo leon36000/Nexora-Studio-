@@ -22,6 +22,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm'
 import { buildChatDeploymentUrl } from '@/lib/chat-deployments/urls'
 import type { WorkspaceUseCaseAuditEntry } from '@/lib/core/application/authorized-workspace-use-case'
 import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authorized-workspace-use-case'
+import { env } from '@/lib/core/config/env'
 import { acquireLock, releaseLock } from '@/lib/core/config/redis'
 import { createFolder } from '@/lib/folders/orchestration'
 import {
@@ -32,6 +33,7 @@ import {
   withMessageFiles,
 } from '@/lib/nexora/agents'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
+import { withWebSearchTool } from '@/lib/nexora/assistant/web-search'
 import { importWorkflowIntoWorkspaceTransition } from '@/lib/workflows/operations/import-workflow'
 import { performChatDeploy } from '@/lib/workflows/orchestration'
 import { resolveActiveWorkspaceApplicationContext } from '@/lib/workspaces/application/context'
@@ -200,9 +202,11 @@ async function liveVersionNeedsUpgrade(workflowId: string): Promise<boolean> {
   )
   if (agents.length !== 1) return false
   const agent = toRecord(agents[0])
+  const block = { subBlocks: agent.subBlocks, data: agent.data }
   return (
     toRecord(agent.subBlocks).files === undefined ||
-    withAssistantTools({ subBlocks: agent.subBlocks, data: agent.data }) !== null
+    withAssistantTools(block) !== null ||
+    (Boolean(env.SEARXNG_URL) && withWebSearchTool(block) !== null)
   )
 }
 
@@ -224,7 +228,11 @@ async function upgradePublishedAssistant(params: {
   if (!agentBlock) return published
   const filesUpgrade = withMessageFiles(agentBlock)
   const toolsUpgrade = withAssistantTools(filesUpgrade ?? agentBlock)
-  const upgrade = toolsUpgrade ?? filesUpgrade
+  // With the web search installed, the Assistant is offered it once (see `withWebSearchTool`).
+  const searchUpgrade = env.SEARXNG_URL
+    ? withWebSearchTool(toolsUpgrade ?? filesUpgrade ?? agentBlock)
+    : null
+  const upgrade = searchUpgrade ?? toolsUpgrade ?? filesUpgrade
   if (upgrade) {
     await db
       .update(workflowBlocks)
@@ -245,7 +253,9 @@ async function upgradePublishedAssistant(params: {
     requestId: generateId(),
     projectLegacyAudit: false,
     // The interpreter's files and the sources come to the chat as outputs of the Agent block.
-    ...(toolsUpgrade ? { outputConfigs: assistantOutputConfigs(agentBlock.id) } : {}),
+    ...(toolsUpgrade || searchUpgrade
+      ? { outputConfigs: assistantOutputConfigs(agentBlock.id) }
+      : {}),
   })
   if (!deployed.success) {
     throw new Error(deployed.error ?? 'Failed to republish the general assistant')
@@ -359,9 +369,12 @@ async function ensureGeneralAssistant(params: {
 
     const agentBlock = state.workflow ? await findAgentBlock(state.workflow.id) : null
     const filesUpgrade = agentBlock ? withMessageFiles(agentBlock) : null
-    const upgrade = agentBlock
-      ? (withAssistantTools(filesUpgrade ?? agentBlock) ?? filesUpgrade)
-      : null
+    const toolsUpgrade = agentBlock ? withAssistantTools(filesUpgrade ?? agentBlock) : null
+    const searchUpgrade =
+      agentBlock && env.SEARXNG_URL
+        ? withWebSearchTool(toolsUpgrade ?? filesUpgrade ?? agentBlock)
+        : null
+    const upgrade = searchUpgrade ?? toolsUpgrade ?? filesUpgrade
     if (agentBlock && upgrade) {
       // The redeploy below publishes the upgraded draft.
       await db

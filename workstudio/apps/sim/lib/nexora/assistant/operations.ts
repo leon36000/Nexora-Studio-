@@ -65,8 +65,123 @@ export const assistantOperations = {
     capability: 'none',
   }),
   // permission-group-exempt: a member's own private conversations, under workspace membership only.
+  updateMessage: defineWorkspaceOperation({
+    id: 'nexora.assistant.messages.update',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private conversations, under workspace membership only.
   appendMessage: defineWorkspaceOperation({
     id: 'nexora.assistant.messages.append',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  /**
+   * Plans, then creates, a member's scheduled task: the Copilot writes a workflow and it is
+   * deployed, so it needs the same write access (and capability) as creating a workflow.
+   */
+  planTask: defineWorkspaceOperation({
+    id: 'nexora.assistant.tasks.plan',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
+    capability: 'workflows.edit',
+  }),
+  createTask: defineWorkspaceOperation({
+    id: 'nexora.assistant.tasks.create',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
+    capability: 'workflows.edit',
+  }),
+  // permission-group-exempt: a member's own scheduled tasks, under workspace membership only.
+  listTasks: defineWorkspaceOperation({
+    id: 'nexora.assistant.tasks.list',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own scheduled tasks, under workspace membership only.
+  setTaskEnabled: defineWorkspaceOperation({
+    id: 'nexora.assistant.tasks.setEnabled',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own scheduled tasks, under workspace membership only.
+  deleteTask: defineWorkspaceOperation({
+    id: 'nexora.assistant.tasks.delete',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own scheduled tasks, under workspace membership only.
+  listTaskRuns: defineWorkspaceOperation({
+    id: 'nexora.assistant.tasks.runs',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: lists the workflows a writer made available, which members may already run.
+  listWorkflows: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.list',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: only lists names a writer already sees in the editor.
+  listPublishableWorkflows: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.listPublishable',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
+    capability: 'none',
+  }),
+  /** Publishing deploys the workflow when it is not, hence the deployment capability. */
+  publishWorkflow: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.publish',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
+    capability: 'deploy.api',
+  }),
+  // permission-group-exempt: withdraws a workflow from the Assistant; nothing is deployed or removed.
+  unpublishWorkflow: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.unpublish',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private projects, under workspace membership only.
+  listProjects: defineWorkspaceOperation({
+    id: 'nexora.assistant.projects.list',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private projects, under workspace membership only.
+  createProject: defineWorkspaceOperation({
+    id: 'nexora.assistant.projects.create',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private projects, under workspace membership only.
+  readProject: defineWorkspaceOperation({
+    id: 'nexora.assistant.projects.read',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private projects, under workspace membership only.
+  updateProject: defineWorkspaceOperation({
+    id: 'nexora.assistant.projects.update',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private projects, under workspace membership only.
+  deleteProject: defineWorkspaceOperation({
+    id: 'nexora.assistant.projects.delete',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private projects, under workspace membership only.
+  addProjectFile: defineWorkspaceOperation({
+    id: 'nexora.assistant.projects.files.add',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private projects, under workspace membership only.
+  deleteProjectFile: defineWorkspaceOperation({
+    id: 'nexora.assistant.projects.files.delete',
     ...ASSISTANT_POLICY,
     capability: 'none',
   }),
