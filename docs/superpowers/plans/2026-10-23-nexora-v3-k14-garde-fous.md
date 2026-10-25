@@ -224,10 +224,10 @@
 **Interfaces :**
 - Produit : `auditCsvHeader(locale): string`, `toAuditCsvRow(row, locale, maxBytes): string | undefined`, `AUDIT_CSV_BOM` ; en français : séparateur `;`, fin de ligne `\r\n`, BOM UTF-8, dates `jj/mm/aaaa hh:mm:ss` (fuseau de l'instance), en-têtes français, action avec le libellé de l'écran (`describeAuditEntry`/libellés), nombres avec virgule décimale, cellules neutralisées contre les formules ; en anglais : comportement actuel.
 
-- [ ] **Étape 1 : tests rouges** : une ligne type ⇒ `25/10/2026 14:03:12;Politique de données personnelles modifiée;…` ; `=SOMME(A1)` ⇒ `'=SOMME(A1)` ; guillemets doublés, retour à la ligne entre guillemets ; nombre `1234.5` dans une colonne numérique ⇒ `1234,5` ; BOM en tête ; export tronqué annoncé (`X-Export-Truncated`) ; locale anglaise inchangée.
-- [ ] **Étape 2 : voir échouer, implémenter, tests verts** (+ intégration `export.integration.ts` sur Postgres jetable).
-- [ ] **Étape 3 : preuve** : fichier téléchargé de l'instance de développement relu par `python3 -c "import csv"` avec `delimiter=';'` (14 colonnes partout) et ouvert avec LibreOffice (`soffice --headless --convert-to ods`, locale `fr_FR`) si disponible — sinon vérification du BOM, du séparateur et des dates par script ; consigner.
-- [ ] **Étape 4 : commit** `feat(k14): export CSV du journal d'audit pour tableur français`.
+- [x] **Étape 1 : tests rouges** : une ligne type ⇒ `25/10/2026 14:03:12;Politique de données personnelles modifiée;…` ; `=SOMME(A1)` ⇒ `'=SOMME(A1)` ; guillemets doublés, retour à la ligne entre guillemets ; nombre `1234.5` dans une colonne numérique ⇒ `1234,5` ; BOM en tête ; export tronqué annoncé (`X-Export-Truncated`) ; locale anglaise inchangée.
+- [x] **Étape 2 : voir échouer, implémenter, tests verts** (+ intégration `export.integration.ts` sur Postgres jetable).
+- [x] **Étape 3 : preuve** : fichier téléchargé de l'instance de développement relu par `python3 -c "import csv"` avec `delimiter=';'` (14 colonnes partout) et ouvert avec LibreOffice (`soffice --headless --convert-to ods`, locale `fr_FR`) si disponible — sinon vérification du BOM, du séparateur et des dates par script ; consigner.
+- [x] **Étape 4 : commit** `feat(k14): export CSV du journal d'audit pour tableur français`.
 
 ## Tâche 12 : Guide, contrôle de fumée « Garde-fous »
 
