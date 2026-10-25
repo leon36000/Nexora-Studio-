@@ -9,6 +9,7 @@
 | Serveur d'e-mail (SMTP) | Réglages › E-mail | Administrateurs de l'instance |
 | Modèles d'IA (par défaut, ajout, test) | Réglages › Modèles ([guide](modeles.md)) | Administrateurs de l'instance |
 | Applications OAuth des connecteurs | Réglages › Connecteurs ([guide](connecteurs.md)) | Administrateurs de l'instance |
+| Exécution de code (interpréteur Python) | Réglages › Exécution de code ([guide](interpreteur.md)) | Administrateurs de l'instance |
 | Consommation, empreinte, budgets | Réglages › Consommation | Administrateurs de l'instance |
 | Journal d'audit | Réglages › Journal d'audit | Administrateurs |
 | Secrets et variables d'environnement | Réglages › Secrets | Membres de l'espace |

@@ -35,8 +35,8 @@
 | R4 | Intégration côté WorkStudio comme **fournisseur de bac à sable `nexora`** (interface `SandboxProvider` d'E2B/Daytona) : le chemin Python du bloc Fonction est réutilisé sans copie. Choisi quand `NEXORA_CODE_SANDBOX_URL` est défini ; Python seulement (JavaScript avec `import` et Shell restent refusés). | Les images de dépendances par espace (« bacs à sable » de Sim) ne sont pas proposées avec ce fournisseur. |
 | R5 | Défauts : 1 CPU, 1 Go de mémoire (tmpfs compris), `/tmp` 256 Mo, 64 processus, 120 s par exécution, 600 s de vie par bac, 2 bacs simultanés (429 au-delà), réglables par `NEXORA_CODE_*`. | Un traitement plus gros demande de régler ces valeurs dans `deploy/.env`. |
 | R6 | Réglage « Exécution de code » dans les **métadonnées de l'organisation d'instance** (`nexoraCodeExecution`, comme `nexoraModelCards`), lu à l'exécution avec un cache LRU de 15 s, sans redémarrage ; audit à chaque changement. | Un administrateur qui coupe l'exécution attend au plus 15 s. |
-| R7 | Outil dédié **`nexora_code_interpreter`** (consigne en français pour le modèle, Python imposé, fichiers de la conversation montés sous `/tmp/sim/inputs`, sortie sous `/tmp/sim/outputs`) avec un bloc caché du même nom pour que le bloc Agent le convertisse comme tout outil de bloc ; pas d'outil `function_execute` brut (sa description parle de `fetch`, de JavaScript et du Shell, faux ici). | Un bloc de plus dans le registre (caché de la barre d'outils). |
-| R8 | Les fichiers produits sortent par la **sortie `files` de l'agent** et les trames `output` existantes (`chat-outputs-v1`) : l'Assistant négocie désormais ce protocole et affiche les images de même origine et un lien de téléchargement. | Les agents publiés avant K5 n'ont que `content` dans leurs sorties : republier pour obtenir les fichiers. |
+| R7 *(révisée à l'exécution)* | L'outil « Interpréteur de code » est le **bloc Fonction réglé sur Python** (`function_execute`, `params.language = 'python'`, `files = <start.files>`), avec une description propre au Python (`lib/execution/python-tool-description.ts`, substituée dans `transformBlockTool`) : un nouvel identifiant d'outil aurait dû reproduire tout ce que `tools/index.ts` fait de spécial pour `function_execute` (secrets, coût, fichiers, profil de bac à sable). Le formulaire le pose et le relit comme un interrupteur (`AgentConfig.codeInterpreter`). | `function_execute` est partagé avec le bloc Fonction ; seule la valeur `language` distingue l'interpréteur de l'agent. |
+| R8 *(précisée)* | Les fichiers produits sortent par la **sortie `files` de l'agent** et les trames `output` existantes (`chat-outputs-v1`, qui portent désormais `path`) ; l'Assistant négocie ce protocole. Les fichiers et sources d'une réponse sont **conservés dans le texte du message** (commentaire HTML final `<!--nexora-extras:{…}-->`, invisible en Markdown) : **aucune migration** (K9 en ajoute une en parallèle, deux `0442` se heurteraient). | Un export SQL des messages montre ce commentaire ; « Copier » ne le copie pas. Les agents publiés avant K5 n'ont que `content` dans leurs sorties : republier pour obtenir les fichiers (l'Assistant général est mis à niveau seul). |
 | R9 | Citations : numérotation **globale par tour d'agent** des résultats de `knowledge_search*` et `searxng_search` (`ref`), consigne ajoutée au message système quand l'agent a l'un de ces outils ; `sources` ne garde que les numéros cités ; lien interne `/workspace/<ws>/knowledge/<base>/<document>` pour un document téléversé, `sourceUrl` pour un connecteur, l'URL pour le web ; extrait affiché au clic. Trame SSE `sources` dédiée (pas une sortie sélectionnée, qu'un chat afficherait en texte). | Un visiteur anonyme d'un chat public voit le titre et l'extrait mais le lien interne lui demande de se connecter. |
 | R10 | **Confirmation interactive par attente dans la boucle** (même exécution, même principal, pas de reconstruction de l'appel) pour les chats publiés et l'Assistant ; jeton de décision aléatoire envoyé seulement dans le flux de la personne qui converse, empreinte SHA-256 dans Redis, décision unique (`SET NX`), 10 min de délai puis refus ; commentaire SSE toutes les 15 s pendant l'attente. | Une exécution attend jusqu'à 10 min ; plusieurs processus WorkStudio sont pris en charge par Redis. |
 | R11 | **Exécution de workflow** (non interactive) : action différée, réponse « en attente » au modèle, pause humaine existante (`_pauseMetadata`, formulaire Autoriser/Refuser) ; la reprise exécute l'action enregistrée **une seule fois**, dans le contexte de l'exécution d'origine, et expose `actions` aux blocs suivants. | Le texte de l'agent est écrit avant l'action : il ne commente pas son résultat. |
@@ -74,17 +74,15 @@
 - [x] **Étape 3 :** écrire `sandbox.py` (`Settings.from_env()`, `DockerClient`, `SandboxService`, `Handler`, `main()`), `runner.py` (exécute le fichier de code dans `__main__`, écrit `{name, value, traceback}` dans le fichier d'erreur donné, copie le cache de polices matplotlib préconstruit vers `MPLCONFIGDIR`), le `Dockerfile` (utilisateur `sandbox` 10001, cache matplotlib construit à l'image, `HEALTHCHECK`) et le service compose (`profiles: [code]`, socket monté seulement ici, pas de port publié, réseau interne par défaut).
 - [x] **Étape 4 :** tests verts ; `bash scripts/tests/test-compose-env.sh` et `test-init-env.sh` verts (profil `code` absent par défaut, jeton généré, `NEXORA_CODE_SANDBOX_URL` vide par défaut et `http://code-sandbox:8080` avec le profil).
 
-### Tâche 2 : suite d'évasion et contrôle de fonctionnement
+### Tâche 2 : contrôle d'isolation et de fonctionnement (la suite d'évasion n'est PAS livrée)
 
-**Fichiers :** créer `scripts/verification/interpreteur-evasion.py` (client HTTP du contrôleur, bibliothèque standard) et `scripts/verification/interpreteur-evasion.sh` (construit l'image, lance un contrôleur jetable étiqueté `nexora.k5-verif=1` sur un réseau privé, lance la suite, rapport JSON, nettoie) ; rapport consigné dans `docs/verification/k5-interpreteur/evasion.json`.
+**Fichiers :** `scripts/verification/interpreteur-isolation.py` (relit la configuration Docker réelle d'un bac), `docs/verification/k5-interpreteur/isolation.json` (résultat), fumée « Interpréteur » de `scripts/smoke.py` (fonctionnement).
 
-**Interfaces :** consomme l'API de la tâche 1. Produit un rapport `{checks:[{name, status:'bloqué'|'ÉCHEC', detail, durationMs}]}` ; code de sortie 1 si un seul contrôle n'est pas bloqué.
+> **Écart au brief (24/10/2026).** Le brief demande une suite d'évasion **dynamique** (réseau, `/etc` et hôte, bombe de processus, boucle infinie, 10 Go de mémoire, disque rempli, élévation de privilèges). Sa rédaction par cette session a été arrêtée **deux fois** par un filtre de sécurité de la plateforme ; la consigne est de ne pas la reproduire. Elle n'est donc **pas livrée**. Ce qui l'est à la place : (1) les 27 tests du contrôleur, qui épinglent chaque réglage d'isolation et la logique de bornes (délai ⇒ conteneur détruit, sortie plafonnée, chemins hors `/tmp` refusés, saturation ⇒ 429, jeton) ; (2) `interpreteur-isolation.py`, qui relit les réglages que Docker applique **réellement** à un conteneur vivant (17 contrôles) ; (3) la fumée « Interpréteur » (fonctionnement réel). **À faire par la session principale ou le fondateur avant d'activer l'exécution de code en production** : écrire et lancer la suite d'évasion dynamique sur pc6 (le contrôleur est testable tel quel : `docs/guide/interpreteur.md`). Tant qu'elle n'a pas été passée, l'exécution de code reste désactivée par défaut.
 
-- [ ] **Étape 1 :** écrire les contrôles, chacun « bloqué » seulement si l'attaque échoue : réseau (TCP vers 1.1.1.1:53, vers l'hôte `172.17.0.1`, résolution DNS de `nexora-api`, seule interface `lo`) ; lecture de `/etc` et de l'hôte (`/etc/shadow` illisible, `/etc/os-release` = image Debian et pas l'hôte, aucun socket Docker, aucun montage de l'hôte hors fichiers réseau de Docker, aucune valeur du jeton du contrôleur dans `/proc/*/environ`) ; bombe de processus (fork en boucle ⇒ limite atteinte, bac suivant utilisable) ; boucle infinie (`timeoutMs` 5 000 ⇒ `timedOut` en moins de 15 s) ; 10 Go en mémoire (⇒ `MemoryError` ou `oomKilled`) ; disque rempli (2 Go dans `/tmp` ⇒ `ENOSPC` à 256 Mo, écriture dans `/` et `/home` ⇒ `EROFS`) ; élévation de privilèges (`os.setuid(0)`, `su`, binaire setuid, `unshare(CLONE_NEWUSER)`, `mount`, `CapEff == 0`, `NoNewPrivs == 1`) ; exécution d'un binaire déposé dans `/tmp` (`noexec`) ; chemins hors `/tmp` refusés par l'API ; requête sans jeton ⇒ 401 ; troisième bac ⇒ 429.
-- [ ] **Étape 2 :** contrôle de fonctionnement dans la même suite : un classeur `ventes.xlsx` (openpyxl) ⇒ pandas somme par mois ⇒ PNG matplotlib + CSV + XLSX dans `/tmp/sim/outputs`, totaux exacts.
-- [ ] **Étape 3 :** lancer la suite sur pc6 ; tous les contrôles « bloqué », rapport versionné.
-
-> **Bloqué (24/10/2026)** : la rédaction de cette suite par la session K5 a été interrompue deux fois par un filtre de sécurité. Elle n'est pas livrée par cette session ; le contrôleur (tâche 1) est prêt à être vérifié par une autre voie (session principale ou fondateur). Tant que la suite n'a pas été passée, l'exécution de code reste désactivée par défaut et ne doit pas être activée en production.
+- [x] **Étape 1 :** contrôle des réglages réels d'un conteneur vivant (17/17 conformes sur pc6).
+- [x] **Étape 2 :** contrôle de fonctionnement : classeur Excel ⇒ pandas ⇒ PNG + CSV, total exact (6 340,75), vérifié par le contrôleur seul puis par l'agent et l'Assistant (fumée).
+- [ ] **Étape 3 :** suite d'évasion dynamique : **non livrée** (voir l'écart ci-dessus).
 
 ### Tâche 3 : fournisseur `nexora` et réglage « Exécution de code »
 
@@ -99,10 +97,10 @@
 **Interfaces :**
 - Produit : `nexoraProvider: SandboxProvider` ; `isCodeSandboxConfigured(): boolean` ; `isCodeExecutionEnabled(): Promise<boolean>` ; `readCodeExecutionSetting(organizationId: string): Promise<{enabled: boolean; updatedAt?: string}>` ; `updateCodeExecutionSetting(organizationId: string, enabled: boolean): Promise<...>` ; contrats `getNexoraCodeExecutionContract` / `updateNexoraCodeExecutionContract` (vue `{configured, enabled, limits?}`).
 
-- [ ] **Étape 1 : tests rouges** : `nexora.test.ts` (faux contrôleur HTTP local : `create` ⇒ `runCode` renvoie stdout/stderr/erreur Python au format `{name, value, traceback}` ; `timedOut` repris ; 429 ⇒ erreur « Exécution de code saturée… » ; `listFiles`/`readFileWithLimit` respectent `maxBytes` ; `kill` idempotent ; `create('shell')` refusé) ; `code-execution.test.ts` (désactivé par défaut, activé seulement si configuré **et** réglé, cache invalidé après mise à jour) ; `route.test.ts` (membre ⇒ 403, administrateur ⇒ 200, audit) ; `execute-request` : Python refusé quand désactivé avec le message français, accepté quand activé (fournisseur simulé).
-- [ ] **Étape 2 :** lancer ⇒ rouge.
-- [ ] **Étape 3 :** implémenter ; section Réglages (interrupteur, état du service, limites, avertissement de sécurité, lien vers le guide).
-- [ ] **Étape 4 :** vert ; `type-check`.
+- [x] **Étape 1 : tests rouges** : `nexora.test.ts` (faux contrôleur HTTP local : `create` ⇒ `runCode` renvoie stdout/stderr/erreur Python au format `{name, value, traceback}` ; `timedOut` repris ; 429 ⇒ erreur « Exécution de code saturée… » ; `listFiles`/`readFileWithLimit` respectent `maxBytes` ; `kill` idempotent ; `create('shell')` refusé) ; `code-execution.test.ts` (désactivé par défaut, activé seulement si configuré **et** réglé, cache invalidé après mise à jour) ; `route.test.ts` (membre ⇒ 403, administrateur ⇒ 200, audit) ; `execute-request` : Python refusé quand désactivé avec le message français, accepté quand activé (fournisseur simulé).
+- [x] **Étape 2 :** lancer ⇒ rouge.
+- [x] **Étape 3 :** implémenter ; section Réglages (interrupteur, état du service, limites, avertissement de sécurité, lien vers le guide).
+- [x] **Étape 4 :** vert ; `type-check`.
 
 ### Tâche 4 : outil « Interpréteur de code », formulaire, Assistant, fichiers produits
 
@@ -117,10 +115,10 @@
 - Consomme : `isCodeExecutionEnabled()` (tâche 3).
 - Produit : `CODE_INTERPRETER_TOOL_ID = 'nexora_code_interpreter'` ; `AgentConfig.codeInterpreter: boolean`, `AgentConfig.webSearch: boolean` ; sortie d'agent `files: UserFile[]`.
 
-- [ ] **Étape 1 : tests rouges** : `agents.test.ts` (aller-retour `codeInterpreter`/`webSearch` ⇔ outils `nexora_code_interpreter` avec `files: '<start.files>'` et `searxng`, configuration d'avant K5 ⇒ `false`) ; `general-agent.test.ts` (outil ajouté si activé, retiré sinon, sorties `files`) ; `stream-reply.test.ts` (trame `output` porteuse d'un `UserFile` ⇒ `onFiles`).
-- [ ] **Étape 2 :** rouge.
-- [ ] **Étape 3 :** implémenter.
-- [ ] **Étape 4 :** vert ; parcours réel : Assistant + classeur ⇒ graphique affiché et totaux exacts.
+- [x] **Étape 1 : tests rouges** : `agents.test.ts` (aller-retour `codeInterpreter`/`webSearch` ⇔ outils `nexora_code_interpreter` avec `files: '<start.files>'` et `searxng`, configuration d'avant K5 ⇒ `false`) ; `general-agent.test.ts` (outil ajouté si activé, retiré sinon, sorties `files`) ; `stream-reply.test.ts` (trame `output` porteuse d'un `UserFile` ⇒ `onFiles`).
+- [x] **Étape 2 :** rouge.
+- [x] **Étape 3 :** implémenter.
+- [x] **Étape 4 :** vert ; parcours réel : Assistant + classeur ⇒ graphique affiché et totaux exacts.
 
 ### Tâche 5 : citations numérotées et « Sources [1] [2] »
 
@@ -131,10 +129,10 @@
 **Interfaces :**
 - Produit : `type CitationSource = { index: number; kind: 'document' | 'web'; title: string; url?: string; excerpt?: string }` ; `createCitationRegistry(workspaceId?: string): CitationRegistry` avec `numberResults(toolId: string, toolParams: Record<string, unknown>, output: unknown): unknown` et `sources(): CitationSource[]` ; `citedSources(content: string, sources: CitationSource[]): CitationSource[]` ; `CITATION_INSTRUCTIONS` ; trame `{blockId, event: 'sources', data: CitationSource[]}`.
 
-- [ ] **Étape 1 : tests rouges** `citations.test.ts` : deux recherches successives ⇒ `ref` 1–3 puis 4–5 ; résultat web ⇒ `kind: 'web'`, `url` ; document téléversé ⇒ lien interne avec `kbName`/`docName` ; `citedSources("… [2] et [5][1]")` ⇒ 2, 5, 1 dans l'ordre d'apparition, sans doublon ; numéro absent (`[9]`) ignoré ; texte sans crochet ⇒ `[]` ; `[1]` dans un bloc de code ignoré. `streaming.test.ts` : sortie d'agent avec `sources` ⇒ trame `sources` avant `final`. `stream-reply.test.ts` : trame `sources` ⇒ `onSources`.
-- [ ] **Étape 2 :** rouge.
-- [ ] **Étape 3 :** implémenter ; pied « Sources » : puces `[n] titre` cliquables (lien s'il existe, sinon extrait dans une infobulle) ; numéros `[n]` du texte rendus en liens vers l'ancre de la source.
-- [ ] **Étape 4 :** vert ; parcours réel : question sur une base ⇒ réponse citée et sources cliquables.
+- [x] **Étape 1 : tests rouges** `citations.test.ts` : deux recherches successives ⇒ `ref` 1–3 puis 4–5 ; résultat web ⇒ `kind: 'web'`, `url` ; document téléversé ⇒ lien interne avec `kbName`/`docName` ; `citedSources("… [2] et [5][1]")` ⇒ 2, 5, 1 dans l'ordre d'apparition, sans doublon ; numéro absent (`[9]`) ignoré ; texte sans crochet ⇒ `[]` ; `[1]` dans un bloc de code ignoré. `streaming.test.ts` : sortie d'agent avec `sources` ⇒ trame `sources` avant `final`. `stream-reply.test.ts` : trame `sources` ⇒ `onSources`.
+- [x] **Étape 2 :** rouge.
+- [x] **Étape 3 :** implémenter ; pied « Sources » : puces `[n] titre` cliquables (lien s'il existe, sinon extrait dans une infobulle) ; numéros `[n]` du texte rendus en liens vers l'ancre de la source.
+- [x] **Étape 4 :** vert ; parcours réel : question sur une base ⇒ réponse citée et sources cliquables.
 
 ### Tâche 6 : confirmation d'action interactive
 
@@ -146,10 +144,10 @@
 **Interfaces :**
 - Produit : `type ConfirmationDecision = 'allow' | 'deny'` ; `createConfirmationRequest(input): Promise<{id: string; token: string; expiresAt: string}>` ; `decideConfirmation(id: string, token: string, decision: ConfirmationDecision, decidedBy?: string): Promise<'decided' | 'already_decided' | 'expired' | 'forbidden'>` ; `waitForConfirmation(id: string, timeoutMs: number, signal?: AbortSignal): Promise<ConfirmationDecision | null>` ; `ToolConfirmationGate { mode: 'interactive' | 'deferred'; executionId: string; ... }` ; `needsConfirmation(tool, args): Promise<{needed: boolean; title: string}>`.
 
-- [ ] **Étape 1 : tests rouges** : `store.test.ts` (jeton faux ⇒ `forbidden` ; deux décisions ⇒ une seule retenue ; après délai ⇒ `expired` ; jeton jamais stocké en clair) ; `policy.test.ts` (Connect `execute_action` avec `postmark.send_email` (write) ⇒ confirmer ; action `read` ⇒ non ; action inconnue ou catalogue injoignable ⇒ confirmer ; outil MCP marqué ⇒ confirmer, non marqué ⇒ non) ; `runtime-context` (portillon interactif : refus ⇒ `executeTool` jamais appelé et résultat « refusée » ; accord ⇒ appelé une fois ; délai ⇒ refus) ; `route.test.ts` (403/409/200) ; `streaming.test.ts` (demande publiée ⇒ trame `confirmation` pendant l'exécution du bloc) ; `agents`/`tool-input` (drapeau conservé par l'analyseur et le formulaire).
-- [ ] **Étape 2 :** rouge.
-- [ ] **Étape 3 :** implémenter.
-- [ ] **Étape 4 :** vert ; parcours réel : agent Postmark ⇒ carte ⇒ « Refuser » ⇒ aucune exécution `postmark.send_email` dans le journal de Connect (`GET /api/runs?actionId=postmark.send_email`), puis « Autoriser » ⇒ une exécution.
+- [x] **Étape 1 : tests rouges** : `store.test.ts` (jeton faux ⇒ `forbidden` ; deux décisions ⇒ une seule retenue ; après délai ⇒ `expired` ; jeton jamais stocké en clair) ; `policy.test.ts` (Connect `execute_action` avec `postmark.send_email` (write) ⇒ confirmer ; action `read` ⇒ non ; action inconnue ou catalogue injoignable ⇒ confirmer ; outil MCP marqué ⇒ confirmer, non marqué ⇒ non) ; `runtime-context` (portillon interactif : refus ⇒ `executeTool` jamais appelé et résultat « refusée » ; accord ⇒ appelé une fois ; délai ⇒ refus) ; `route.test.ts` (403/409/200) ; `streaming.test.ts` (demande publiée ⇒ trame `confirmation` pendant l'exécution du bloc) ; `agents`/`tool-input` (drapeau conservé par l'analyseur et le formulaire).
+- [x] **Étape 2 :** rouge.
+- [x] **Étape 3 :** implémenter.
+- [x] **Étape 4 :** vert ; parcours réel : agent Postmark ⇒ carte ⇒ « Refuser » ⇒ aucune exécution `postmark.send_email` dans le journal de Connect (`GET /api/runs?actionId=postmark.send_email`), puis « Autoriser » ⇒ une exécution.
 
 ### Tâche 7 : confirmation dans les exécutions de workflow (pause existante)
 
@@ -157,8 +155,8 @@
 
 **Interfaces :** produit `settleDeferredActions(pending: DeferredAgentAction[], submission: Record<string, unknown>, context): Promise<SettledAgentAction[]>` ; sortie de l'agent repris `actions: [{title, decision, success, output?, error?}]`.
 
-- [ ] **Étape 1 : tests rouges** `deferred.test.ts` (refus ⇒ `executeTool` jamais appelé ; accord ⇒ appelé une fois avec les paramètres enregistrés ; reprise rejouée ⇒ pas de seconde exécution) et test du gestionnaire (actions différées ⇒ `_pauseMetadata.pauseKind === 'human'`).
-- [ ] **Étape 2 :** rouge. **Étape 3 :** implémenter. **Étape 4 :** vert.
+- [x] **Étape 1 : tests rouges** `deferred.test.ts` (refus ⇒ `executeTool` jamais appelé ; accord ⇒ appelé une fois avec les paramètres enregistrés ; reprise rejouée ⇒ pas de seconde exécution) et test du gestionnaire (actions différées ⇒ `_pauseMetadata.pauseKind === 'human'`).
+- [x] **Étape 2 :** rouge. **Étape 3 :** implémenter. **Étape 4 :** vert.
 
 ### Tâche 8 : fumée, guides, ledger, vérification
 

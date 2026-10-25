@@ -29,5 +29,10 @@ export NEXORA_SMOKE_SMTP_HOST=nexora-verif-mailpit NEXORA_SMOKE_SMTP_PORT=1025 \
   NEXORA_SMOKE_OPENAI_URL=http://host.docker.internal:18141 NEXORA_SMOKE_OPENAI_MODEL=qwen2.5:0.5b \
   NEXORA_SMOKE_AUDIO="$audio" NEXORA_SMOKE_AUDIO_TEXT=croissants NEXORA_SMOKE_WEB_SEARCH=1
 
+# « Confirmation » checks Nexora Connect's own run log (admin token and published port of the stack).
+export NEXORA_SMOKE_CONNECT_URL="http://127.0.0.1:$(grep -E '^NEXORA_CONNECT_PORT=' "$root/deploy/.env" | cut -d= -f2-)"
+NEXORA_SMOKE_CONNECT_TOKEN="$(grep -E '^NEXORA_CONNECT_ADMIN_TOKEN=' "$root/deploy/.env" | cut -d= -f2-)"
+export NEXORA_SMOKE_CONNECT_TOKEN
+
 origin="$(grep -E '^NEXORA_PUBLIC_URL=' "$root/deploy/.env" | cut -d= -f2-)"
 exec python3 -I "$root/scripts/smoke.py" --url http://127.0.0.1:3200 --origin "$origin" --report "$report" "$@"

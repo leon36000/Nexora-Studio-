@@ -9,6 +9,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Prise en main](prise-en-main.md) | Tous les utilisateurs | Les modèles PME, votre premier workflow, Nexora Connect, la consommation |
 | [Les agents](agents.md) | Tous les utilisateurs | Créer un agent par formulaire, le tester, le publier, ses versions |
 | [L'Assistant](assistant.md) | Tous les utilisateurs | Discuter avec les agents de l'espace, fichiers joints, confidentialité des conversations |
+| [L'interpréteur de code](interpreteur.md) | Administrateurs | Installer et autoriser l'exécution de code Python des agents, ses limites et sa sécurité |
 | [Le Playground](playground.md) | Tous les utilisateurs | Essayer et comparer les modèles |
 | [Les connecteurs](connecteurs.md) | Tous les utilisateurs | Connecter vos services en un clic, cloisonnement par espace, applications OAuth |
 | [Le Copilote](copilote.md) | Tous les utilisateurs | Décrire une automatisation en français et obtenir un workflow prêt à exécuter |

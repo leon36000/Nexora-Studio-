@@ -14,7 +14,15 @@ Ouvrez **Assistant** dans la barre latérale (ou la carte *Assistant* de l'Accue
 
 L'**Assistant général** est un agent fourni avec Nexora : il répond en français avec le modèle par défaut de l'instance, se souvient de la conversation en cours et cherche dans les bases de connaissances de l'espace. Il est créé et publié automatiquement la première fois qu'un membre ouvre l'Assistant ; s'il est supprimé ou dépublié, il revient à l'ouverture suivante.
 
+Il sait aussi **exécuter du code Python** pour analyser un fichier joint et tracer un graphique, quand l'interpréteur est autorisé par un administrateur. Les Assistants créés avant cette possibilité la reçoivent automatiquement à la première ouverture suivante, sauf si un administrateur a retiré l'outil de l'agent.
+
 Les bases de connaissances qu'il consulte sont celles qui existaient à sa création : une base ajoutée ensuite n'y entre pas d'elle-même (ouvrez l'agent dans [Les agents](agents.md) pour l'ajouter).
+
+## Calculer, tracer, citer, demander
+
+- **Tableurs et graphiques.** Joignez un classeur Excel ou un CSV et demandez « fais un graphique par mois » : l'Assistant exécute du Python, affiche le **graphique** sous sa réponse (avec un bouton de téléchargement) et donne des totaux calculés, pas estimés. Les fichiers produits (PNG, CSV, XLSX) restent affichés quand vous rouvrez la conversation. Disponible quand un administrateur a installé l'interpréteur et l'a autorisé : [L'interpréteur de code](interpreteur.md).
+- **Sources.** Une réponse tirée des bases de connaissances cite ses sources : sous la réponse, **Sources [1] [2]** ouvre le document (ou la page d'origine).
+- **Autoriser ou refuser.** Si un agent doit agir pour vous (envoyer un e-mail, par exemple), une carte **Autoriser cette action ?** montre ce qu'il va faire. **Refuser** n'exécute rien ; l'action n'a pas lieu non plus si vous ne répondez pas.
 
 ## Discuter
 
