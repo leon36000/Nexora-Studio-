@@ -19,14 +19,20 @@ import {
   rowsFromRecords,
   rowsFromTraces,
 } from '@/lib/nexora/evaluations/import'
-import { validateJudgeConfig } from '@/lib/nexora/evaluations/judge'
-import { resolveTargets, type TargetInput, targetsToInputs } from '@/lib/nexora/evaluations/launch'
+import { judgeModels, validateJudgeConfig } from '@/lib/nexora/evaluations/judge'
+import {
+  resolveTargets,
+  type TargetInput,
+  targetModels,
+  targetsToInputs,
+} from '@/lib/nexora/evaluations/launch'
 import {
   abortCampaign,
   judgeLive,
   launchEvaluationCampaign,
   liveLaunchDeps,
 } from '@/lib/nexora/evaluations/live'
+import { requireEvaluationModelsAllowed } from '@/lib/nexora/evaluations/model-access'
 import * as repository from '@/lib/nexora/evaluations/repository'
 import { nextRunAfter, validateSchedule } from '@/lib/nexora/evaluations/schedule'
 import {
@@ -376,12 +382,17 @@ export const saveJudgeUseCase = defineAuthorizedWorkspaceUseCase({
   authorizationOptions,
   execute: async ({ context, input, principal }) => {
     requireValidJudge(input.config)
+    const userId = requirePrincipalSubjectUserId(principal)
+    await requireEvaluationModelsAllowed(
+      { userId, workspaceId: context.workspaceId },
+      judgeModels(input.config)
+    )
     return repository.saveJudge({
       id: input.judgeId,
       workspaceId: context.workspaceId,
       name: input.name,
       config: input.config,
-      createdBy: requirePrincipalSubjectUserId(principal),
+      createdBy: userId,
     })
   },
   projectAudit: ({ result }) => ({
@@ -434,6 +445,11 @@ export const tryJudgeUseCase = defineAuthorizedWorkspaceUseCase({
   authorizationOptions,
   execute: async ({ context, input, principal }) => {
     requireValidJudge(input.config)
+    const userId = requirePrincipalSubjectUserId(principal)
+    await requireEvaluationModelsAllowed(
+      { userId, workspaceId: context.workspaceId },
+      judgeModels(input.config)
+    )
     const dataset = await requireDataset(context.workspaceId, input.datasetId)
     const chosen = rowsToTry(
       await repository.listRows(dataset.id, { limit: MAX_DATASET_ROWS, offset: 0 }),
@@ -445,7 +461,6 @@ export const tryJudgeUseCase = defineAuthorizedWorkspaceUseCase({
         'Ce jeu de tests n’a aucune ligne avec une réponse (annotée ou attendue) à juger.'
       )
     }
-    const userId = requirePrincipalSubjectUserId(principal)
     const controller = new AbortController()
     const results = new Array<Awaited<ReturnType<typeof judgeOne>>>(chosen.length)
     const judgeOne = async (row: repository.RowRecord) => {
@@ -707,6 +722,10 @@ export const saveScheduleUseCase = defineAuthorizedWorkspaceUseCase({
     if (!dataset) notFound('Jeu de tests')
     if (!judge) notFound('Juge')
     const targets = await resolveTargets(context.workspaceId, input.targets, liveLaunchDeps)
+    await requireEvaluationModelsAllowed(
+      { userId: requirePrincipalSubjectUserId(principal), workspaceId: context.workspaceId },
+      [...targetModels(targets), ...judgeModels(judge.config)]
+    )
     const values = {
       name: input.name,
       cron: input.cron,

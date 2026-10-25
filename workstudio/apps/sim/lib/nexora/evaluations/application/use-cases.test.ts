@@ -1,6 +1,11 @@
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
 import { auditMock, auditMockFns } from '@sim/testing/mocks/audit.mock'
 import {
+  MockModelNotAllowedError,
+  permissionCheckMock,
+  permissionCheckMockFns,
+} from '@sim/testing/mocks/permission-check.mock'
+import {
   tableRowsServiceMock,
   tableRowsServiceMockFns,
 } from '@sim/testing/mocks/table-rows-service.mock'
@@ -34,6 +39,7 @@ const { repo, live, traces, assistant } = vi.hoisted(() => ({
 }))
 
 vi.mock('@sim/audit', () => auditMock)
+vi.mock('@/ee/access-control/utils/permission-check', () => permissionCheckMock)
 vi.mock('@sim/platform-authz/workspace', () => workspaceAuthzMock)
 vi.mock('@/lib/workspaces/application/context', () => workspaceContextMock)
 vi.mock('@/lib/nexora/evaluations/repository', () => repo)
@@ -408,6 +414,79 @@ describe('evaluation use cases', () => {
       ).rejects.toMatchObject({ code: 'validation' })
       expect(repo.insertSchedule).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('access group of the member who sets up an evaluation', () => {
+  beforeEach(() => {
+    workspaceContextMockFns.mockResolveActiveWorkspaceApplicationContext.mockResolvedValue({
+      workspaceId: WORKSPACE,
+      workspaceOrganizationId: null,
+      allowPersonalApiKeys: true,
+      billedAccountUserId: 'owner-1',
+    })
+    workspaceAuthzMockFns.mockResolveEffectiveWorkspacePermission.mockResolvedValue('write')
+    permissionCheckMockFns.mockValidateModelProvider.mockImplementation(
+      async (_userId: unknown, _workspaceId: unknown, model: unknown) => {
+        if (String(model).endsWith('cloud-glm-5-3'))
+          throw new MockModelNotAllowedError('cloud-glm-5-3')
+      }
+    )
+  })
+
+  const llmJudge = {
+    kind: 'llm_class' as const,
+    model: 'vllm/cloud-glm-5-3',
+    instructions: '',
+    labels: ['bon', 'mauvais'],
+    passLabels: ['bon'],
+  }
+
+  it('refuses to save a judge whose model the group denies', async () => {
+    await expect(
+      saveJudgeUseCase.execute({
+        principal: member,
+        input: { workspaceId: WORKSPACE, name: 'Juge', config: llmJudge },
+      })
+    ).rejects.toMatchObject({ code: 'forbidden' })
+    expect(repo.saveJudge).not.toHaveBeenCalled()
+  })
+
+  it('refuses to try a judge on a model the group denies, before any call', async () => {
+    repo.getDataset.mockResolvedValue({ id: 'ds-1', name: 'FAQ' })
+    repo.listRows.mockResolvedValue([row('1', { expected: 'ok' })])
+    await expect(
+      tryJudgeUseCase.execute({
+        principal: member,
+        input: { workspaceId: WORKSPACE, datasetId: 'ds-1', limit: 10, config: llmJudge },
+      })
+    ).rejects.toMatchObject({ code: 'forbidden' })
+    expect(live.judgeLive).not.toHaveBeenCalled()
+  })
+
+  it('refuses a schedule aimed at a model the group denies', async () => {
+    repo.getDataset.mockResolvedValue({ id: 'ds-1', name: 'FAQ' })
+    repo.getJudge.mockResolvedValue({
+      id: 'j-1',
+      config: { kind: 'contains', value: 'x', caseSensitive: false },
+    })
+    await expect(
+      saveScheduleUseCase.execute({
+        principal: member,
+        input: {
+          workspaceId: WORKSPACE,
+          name: 'Nuit',
+          cron: '0 3 * * *',
+          timezone: 'Europe/Paris',
+          datasetId: 'ds-1',
+          judgeId: 'j-1',
+          targets: [{ kind: 'model', model: 'cloud-glm-5-3' }],
+          concurrency: 2,
+          enabled: true,
+        },
+      })
+    ).rejects.toMatchObject({ code: 'forbidden' })
+    expect(repo.insertSchedule).not.toHaveBeenCalled()
   })
 })
 

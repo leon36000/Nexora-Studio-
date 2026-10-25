@@ -2,6 +2,8 @@
  * @vitest-environment node
  */
 import { describe, expect, it, vi } from 'vitest'
+import { OrchestrationError } from '@/lib/core/orchestration/types'
+import { type LaunchDeps, launchCampaign, targetsToInputs } from '@/lib/nexora/evaluations/launch'
 import type { CampaignRecord, ScheduleRecord } from '@/lib/nexora/evaluations/repository'
 import {
   nextRunAfter,
@@ -99,5 +101,56 @@ describe('runDueSchedules', () => {
     const dependencies = deps({ claim: vi.fn(async () => []) })
     expect(await runDueSchedules(now, dependencies)).toEqual({ started: [], failed: [] })
     expect(dependencies.launch).not.toHaveBeenCalled()
+  })
+})
+
+describe('planification et groupe d’accès', () => {
+  it('ne lance pas la campagne d’une planification dont le modèle est devenu interdit, et le dit', async () => {
+    const insertCampaign = vi.fn()
+    const launchDeps: LaunchDeps = {
+      getDataset: vi.fn(async () => ({ id: 'ds-1' })),
+      listAllRows: vi.fn(async () => []),
+      getJudge: vi.fn(async () => ({
+        id: 'judge-1',
+        config: { kind: 'contains' as const, value: null, caseSensitive: false },
+      })),
+      findPrompt: vi.fn(),
+      resolvePromptVersion: vi.fn(),
+      listAgents: vi.fn(),
+      insertCampaign,
+      start: vi.fn(),
+      requireModelsAllowed: vi.fn(async (_access, models) => {
+        if (models.includes('a')) {
+          throw new OrchestrationError(
+            'forbidden',
+            'Votre groupe d’accès ne vous autorise pas le modèle « a ».'
+          )
+        }
+      }),
+    }
+    const onLaunchFailed = vi.fn(async () => {})
+    const outcome = await runDueSchedules(new Date('2026-11-03T02:00:30Z'), {
+      claim: vi.fn(async () => [schedule('s1', 'Nuit')]),
+      launch: (due) =>
+        launchCampaign(
+          {
+            workspaceId: due.workspaceId,
+            name: due.name,
+            datasetId: due.datasetId,
+            judgeId: due.judgeId,
+            targets: targetsToInputs(due.targets),
+            createdBy: due.createdBy,
+          },
+          launchDeps
+        ),
+      onLaunchFailed,
+      setLastCampaign: vi.fn(),
+    })
+    expect(outcome).toEqual({ started: [], failed: ['s1'] })
+    expect(insertCampaign).not.toHaveBeenCalled()
+    expect(onLaunchFailed).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 's1' }),
+      expect.stringContaining('groupe d’accès')
+    )
   })
 })
