@@ -1,0 +1,243 @@
+{
+  "description": "Appeler une API puis résumer la réponse.",
+  "plan": {
+    "title": "Résumé de réponse d'API",
+    "trigger": {
+      "kind": "manuel",
+      "fields": []
+    },
+    "steps": [
+      {
+        "kind": "api",
+        "name": "appel_api",
+        "method": "GET",
+        "url": "https://exemple.com/api/donnees"
+      },
+      {
+        "kind": "agent",
+        "name": "resume",
+        "instructions": "Vous rédigez des résumés clairs et concis en français, en vouvoyant le lecteur.",
+        "message": "Résumez la réponse suivante de l'API : {{appel_api.data}}",
+        "services": [],
+        "knowledgeBases": [],
+        "output": {
+          "fields": [
+            {
+              "name": "resume_de_la_reponse",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "reponse",
+        "name": "reponse_finale",
+        "fields": [
+          {
+            "name": "resume",
+            "value": "{{resume.resume_de_la_reponse}}"
+          }
+        ]
+      }
+    ]
+  },
+  "state": {
+    "blocks": {
+      "0c99ec56-8a03-4dcc-82bb-c3e4fe6bdfe2": {
+        "id": "0c99ec56-8a03-4dcc-82bb-c3e4fe6bdfe2",
+        "type": "start_trigger",
+        "name": "Start",
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "subBlocks": {
+          "nexoraView": {
+            "id": "nexoraView",
+            "type": "short-input",
+            "value": "etapes"
+          },
+          "inputFormat": {
+            "id": "inputFormat",
+            "type": "input-format",
+            "value": []
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "7a42aa1b-ca68-4ab6-8760-a9df37dc64a1": {
+        "id": "7a42aa1b-ca68-4ab6-8760-a9df37dc64a1",
+        "type": "api",
+        "name": "appel_api",
+        "position": {
+          "x": 420,
+          "y": 0
+        },
+        "subBlocks": {
+          "url": {
+            "id": "url",
+            "type": "short-input",
+            "value": "https://exemple.com/api/donnees"
+          },
+          "method": {
+            "id": "method",
+            "type": "dropdown",
+            "value": "GET"
+          },
+          "redirectPolicyVersion": {
+            "id": "redirectPolicyVersion",
+            "type": "short-input",
+            "value": "standard-v1"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      },
+      "77500d78-5c74-4cde-a61f-da0ab66d5233": {
+        "id": "77500d78-5c74-4cde-a61f-da0ab66d5233",
+        "type": "agent",
+        "name": "resume",
+        "position": {
+          "x": 840,
+          "y": 0
+        },
+        "subBlocks": {
+          "model": {
+            "id": "model",
+            "type": "combobox",
+            "value": "vllm/nexora-default"
+          },
+          "tools": {
+            "id": "tools",
+            "type": "tool-input",
+            "value": []
+          },
+          "messages": {
+            "id": "messages",
+            "type": "messages-input",
+            "value": [
+              {
+                "role": "system",
+                "content": "Vous rédigez des résumés clairs et concis en français, en vouvoyant le lecteur."
+              },
+              {
+                "role": "user",
+                "content": "Résumez la réponse suivante de l'API : <appel_api.data>"
+              }
+            ]
+          },
+          "responseFormat": {
+            "id": "responseFormat",
+            "type": "code",
+            "value": "{\n  \"name\": \"resume\",\n  \"schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"resume_de_la_reponse\": {\n        \"type\": \"string\"\n      }\n    },\n    \"required\": [\n      \"resume_de_la_reponse\"\n    ],\n    \"additionalProperties\": false\n  },\n  \"strict\": true\n}"
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {
+          "canonicalModes": {
+            "vertexCredential": "basic",
+            "files": "basic"
+          }
+        },
+        "locked": false
+      },
+      "555f56ed-a040-4641-b82e-41bc703acc8d": {
+        "id": "555f56ed-a040-4641-b82e-41bc703acc8d",
+        "type": "response",
+        "name": "reponse_finale",
+        "position": {
+          "x": 1260,
+          "y": 0
+        },
+        "subBlocks": {
+          "dataMode": {
+            "id": "dataMode",
+            "type": "dropdown",
+            "value": "structured"
+          },
+          "builderData": {
+            "id": "builderData",
+            "type": "response-format",
+            "value": [
+              {
+                "id": "eea7e8dc-fd21-4c75-92cd-0cbf2bd75c0c",
+                "name": "resume",
+                "type": "string",
+                "value": "<resume.resume_de_la_reponse>",
+                "collapsed": false
+              }
+            ]
+          }
+        },
+        "outputs": {},
+        "enabled": true,
+        "horizontalHandles": true,
+        "height": 0,
+        "advancedMode": false,
+        "errorEnabled": false,
+        "triggerMode": false,
+        "data": {},
+        "locked": false
+      }
+    },
+    "edges": [
+      {
+        "id": "da56190a-2400-4f66-93a9-e211e425f3cb",
+        "source": "77500d78-5c74-4cde-a61f-da0ab66d5233",
+        "target": "555f56ed-a040-4641-b82e-41bc703acc8d",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "a875664d-7c4e-46e5-a925-0c87ca2364f5",
+        "source": "7a42aa1b-ca68-4ab6-8760-a9df37dc64a1",
+        "target": "77500d78-5c74-4cde-a61f-da0ab66d5233",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      },
+      {
+        "id": "206b34e4-c07d-420a-bcbc-9cdf4f5ac002",
+        "source": "0c99ec56-8a03-4dcc-82bb-c3e4fe6bdfe2",
+        "target": "7a42aa1b-ca68-4ab6-8760-a9df37dc64a1",
+        "sourceHandle": "source",
+        "targetHandle": "target",
+        "type": "default",
+        "data": {}
+      }
+    ],
+    "loops": {},
+    "parallels": {},
+    "lastSaved": 1792911885294,
+    "isDeployed": false,
+    "deployedAt": null,
+    "metadata": {
+      "name": "Résumé de réponse d'API",
+      "description": ""
+    }
+  }
+}
