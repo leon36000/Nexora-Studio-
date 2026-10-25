@@ -178,13 +178,13 @@ Opérations d'espace (session seulement, comme K10) : `list` et `read` (lecture)
 
 **Files :** `docs/verification/k13-lots/` (jeu de 500 lignes, scripts de mesure, rapports).
 
-- [ ] Jeu de 500 avis fictifs en 4 classes (`generer.py`, graine fixe, attendu connu).
-- [ ] 500 lignes classées par `qwen2.5:7b` (`max_tokens` bas) : durée, exactitude, par l'écran (lot de table) **et** par `client.batches.create`.
-- [ ] Latence p95 d'une requête interactive GLM 5.3 (30 requêtes séquentielles) sans lot puis pendant le lot : écart ≤ 30 % ; mesure consignée.
-- [ ] Redémarrage (`kill -9` du serveur de développement) au milieu du lot ⇒ reprise, 500 résultats, aucun doublon.
-- [ ] Nettoyage : serveur de dev arrêté, `.next/dev` supprimé, Postgres jetable supprimé.
+- [x] Jeu de 500 avis fictifs en 4 classes (`generer.py`, graine fixe, attendu connu).
+- [x] 500 lignes classées par `qwen2.5:7b` (`max_tokens` bas) : durée, exactitude, par l'écran (lot de table) **et** par `client.batches.create`.
+- [x] Latence p95 d'une requête interactive GLM 5.3 (30 requêtes séquentielles) sans lot puis pendant le lot : écart ≤ 30 % ; mesure consignée.
+- [x] Redémarrage (`kill -9` du serveur de développement) au milieu du lot ⇒ reprise, 500 résultats, aucun doublon.
+- [x] Nettoyage : serveur de dev arrêté, `.next/dev` supprimé, Postgres jetable supprimé.
 
 ### Tâche 15 : Fin de jalon
 
-- [ ] `git merge main` ; vérifications (biome sur les fichiers ; `type-check` ; `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations` ; suite complète ; `check-i18n/brand/no-ee/licenses`).
-- [ ] Ledger : section K13 (décisions « Ruling : … — pourquoi — coût si faux », preuves, à faire après déploiement) ; plan coché ; commit en français.
+- [x] `git merge main` ; vérifications (biome sur les fichiers ; `type-check` ; `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations` ; suite complète ; `check-i18n/brand/no-ee/licenses`).
+- [x] Ledger : section K13 (décisions « Ruling : … — pourquoi — coût si faux », preuves, à faire après déploiement) ; plan coché ; commit en français.
