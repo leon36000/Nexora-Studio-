@@ -14,13 +14,16 @@ from __future__ import annotations
 import argparse
 import base64
 import http.cookiejar
+import io
 import json
 import os
 import secrets
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+import zipfile
 
 TEMPLATE_INPUTS = {
     "Devis client": {"client": "Boulangerie Martin, Lyon", "prestations": "Site vitrine : 1 x 2400 EUR HT"},
@@ -130,6 +133,37 @@ def text_pdf(lines: list[str]) -> bytes:
     out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n" + "".join(f"{o:010d} 00000 n \n" for o in offsets)
     out += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n"
     return out.encode("latin-1")
+
+
+def sales_workbook(rows: list[tuple[str, float]]) -> bytes:
+    """A one-sheet .xlsx (month, sales) built with the standard library only."""
+    cells = ['<row r="1"><c r="A1" t="inlineStr"><is><t>mois</t></is></c><c r="B1" t="inlineStr"><is><t>ventes</t></is></c></row>']
+    for number, (month, amount) in enumerate(rows, 2):
+        cells.append(f'<row r="{number}"><c r="A{number}" t="inlineStr"><is><t>{month}</t></is></c><c r="B{number}"><v>{amount}</v></c></row>')
+    parts = {
+        "[Content_Types].xml": '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
+        "_rels/.rels": '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+        "xl/workbook.xml": '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Ventes" sheetId="1" r:id="rId1"/></sheets></workbook>',
+        "xl/_rels/workbook.xml.rels": '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>',
+        "xl/worksheets/sheet1.xml": '<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + "".join(cells) + "</sheetData></worksheet>",
+    }
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, content in parts.items():
+            archive.writestr(name, content)
+    return buffer.getvalue()
+
+
+def sse_frames(text: str) -> list[dict]:
+    """The JSON frames of a streamed chat answer."""
+    frames = []
+    for line in text.splitlines():
+        if line.startswith("data:") and line[5:].strip().startswith("{"):
+            try:
+                frames.append(json.loads(line[5:]))
+            except json.JSONDecodeError:
+                continue
+    return frames
 
 
 class _LocalSecureCookies(http.cookiejar.DefaultCookiePolicy):
@@ -932,6 +966,93 @@ def main() -> int:
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
 
+    def agent_chat(name: str, slug: str, instructions: str, tools: list[dict], outputs: list[str]) -> tuple[str, str, str]:
+        """Publishes a throwaway public chat on one Agent block with these tools; returns (workflow, identifier, block)."""
+        status, body = s.call("POST", "/api/workflows", {"name": f"{name} {secrets.token_hex(3)}", "workspaceId": state["ws"]})
+        require(status in (200, 201), f"workflow creation returned HTTP {status}")
+        wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        start, block = secrets.token_hex(8), secrets.token_hex(8)
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        status, body = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": {
+            start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                    "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+            block: {"id": block, "type": "agent", "name": "Agent", "position": {"x": 420, "y": 0}, "enabled": True,
+                    "subBlocks": {"messages": sub("messages", "messages-input", [{"role": "system", "content": instructions}, {"role": "user", "content": "<start.input>"}]),
+                                  "model": sub("model", "combobox", "vllm/nexora-default"),
+                                  "tools": sub("tools", "tool-input", tools),
+                                  "files": sub("files", "short-input", "<start.files>")},
+                    "outputs": {}, "data": {"canonicalModes": {"files": "advanced"}}}},
+            "edges": [{"id": secrets.token_hex(8), "source": start, "target": block, "sourceHandle": "source", "targetHandle": "target"}],
+            "loops": {}, "parallels": {}})
+        require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+        status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
+        require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
+        identifier = f"{slug}-{secrets.token_hex(4)}"
+        status, body = s.call("POST", "/api/chat", {
+            "workflowId": wf, "identifier": identifier, "title": name, "authType": "public",
+            "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
+            "outputConfigs": [{"blockId": block, "path": path} for path in outputs]})
+        require(status in (200, 201), f"chat publication returned HTTP {status}: {str(body)[:200]}")
+        return wf, identifier, block
+
+    def ask(identifier: str, question: str, files: list[dict] | None = None, timeout: int = 600) -> tuple[str, list[dict], list[dict]]:
+        """One question to a published chat with every streamed event; returns (answer, frames, output files)."""
+        body: dict = {"input": question, "conversationId": secrets.token_hex(8)}
+        if files:
+            body["files"] = files
+        status, text = s.call("POST", f"/api/chat/{identifier}", body, raw=True, timeout=timeout,
+                              headers={"X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"})
+        require(status == 200, f"chat returned HTTP {status}: {text[:300]}")
+        frames = sse_frames(text)
+        require(not any(f.get("event") == "error" for f in frames), f"chat reported an error: {text[:400]}")
+        answer = "".join(str(f.get("chunk", "")) for f in frames)
+        produced = [item for f in frames if f.get("event") == "output" and isinstance(f.get("data"), list)
+                    for item in f["data"] if isinstance(item, dict) and item.get("name")]
+        return answer, frames, produced
+
+    def interpreter():
+        admin_organization()
+        status, view = admin.call("GET", "/api/nexora/code-execution")
+        require(status == 200, f"code execution setting returned HTTP {status}")
+        if not view.get("configured"):
+            return "ignoré : le service « code » n'est pas installé (nexora code on)"
+        was_enabled = view["enabled"]
+        wf = None
+        try:
+            status, view = admin.call("PUT", "/api/nexora/code-execution", {"enabled": True})
+            require(status == 200 and view["enabled"] and view["reachable"], f"enabling returned HTTP {status}: {str(view)[:200]}")
+            status, tools = s.call("GET", "/api/nexora/agent-tools")
+            require(status == 200 and tools.get("codeInterpreter"), f"the interpreter is not offered to members: {tools}")
+            interpreter_tool = {"type": "function", "title": "Interpréteur de code", "toolId": "function_execute", "usageControl": "auto",
+                                "params": {"language": "python", "files": "<start.files>"}}
+            wf, identifier, _ = agent_chat(
+                "Interpréteur de fumée", "interpreteur-fumee",
+                "Tu es analyste de données dans une PME. Pour tout calcul ou graphique tu utilises l'interpréteur de code, jamais de tête. Réponds en français en une ou deux phrases avec le total exact.",
+                [interpreter_tool], ["content", "files"])
+            sales = [("janvier", 1200.0), ("février", 1850.5), ("mars", 990.0), ("avril", 2300.25)]
+            book = sales_workbook(sales)
+            attachment = {"name": "ventes.xlsx", "size": len(book),
+                          "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                          "data": "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + base64.b64encode(book).decode()}
+            answer, frames, produced = ask(identifier, "Voici nos ventes (fichier Excel) : fais un graphique par mois et donne le total des ventes.", [attachment])
+            total = sum(amount for _, amount in sales)
+            digits = answer.replace("\u202f", "").replace("\u00a0", "").replace(" ", "").replace(",", ".")
+            require(f"{total:g}" in digits or f"{total:.2f}" in digits, f"the answer does not give the exact total {total}: {answer[:300]}")
+            images = [f for f in produced if str(f.get("type", "")).startswith("image/")]
+            require(images, f"no chart came back with the answer ({[f.get('event') for f in frames if 'chunk' not in f]}, final: {json.dumps(next((f for f in frames if f.get('event') == 'final'), {}))[:600]}): {answer[:80]}")
+            link = urllib.parse.urlsplit(images[0].get("url", ""))
+            with s.opener.open(urllib.request.Request(f"{s.url}{link.path}" + (f"?{link.query}" if link.query else "")), timeout=60) as download:
+                picture = download.read()
+            require(picture[:8] == b"\x89PNG\r\n\x1a\n", f"the chart is not a PNG image ({len(picture)} bytes)")
+            admin.call("PUT", "/api/nexora/code-execution", {"enabled": False})
+            refused, _, nothing = ask(identifier, "Refais le graphique des ventes.", [attachment])
+            require(not nothing, "a chart was produced while code execution is off")
+            return f"graphique {images[0]['name']} et total {total:g} exacts ; sans autorisation, plus de graphique"
+        finally:
+            admin.call("PUT", "/api/nexora/code-execution", {"enabled": was_enabled})
+            if wf:
+                s.call("DELETE", f"/api/workflows/{wf}")
+
     if args.quick:
         # On demand (operators): the platform answers in French, a workspace gets its templates, a
         # template runs through the model. Needs no admin credentials, but signs up an account:
@@ -958,6 +1079,7 @@ def main() -> int:
     s.check("Playground : réflexion séparée de la réponse", playground_reasoning)
     s.check("Agent : publication, chat public, versions", agent)
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
+    s.check("Interpréteur : classeur Excel ⇒ graphique et totaux exacts", interpreter)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)

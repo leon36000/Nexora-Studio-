@@ -1,6 +1,6 @@
 import { createLogger } from '@sim/logger'
 import { getErrorMessage, toError } from '@sim/utils/errors'
-import { isPlainRecord, isRecordLike, omit } from '@sim/utils/object'
+import { isPlainRecord, isRecordLike, omit, toRecord } from '@sim/utils/object'
 import { truncate } from '@sim/utils/string'
 import { markFailureKind } from '@/lib/core/errors/failure-log'
 import { isTimeoutAbortReason } from '@/lib/core/execution-limits/types'
@@ -3269,6 +3269,9 @@ export class AgentBlockHandler implements BlockHandler {
       if (block.metadata?.id) execution.blockType = block.metadata.id
       execution.blockId = block.id
       execution.isStreaming = true
+      if (isRecordLike(execution.output) && execution.output.files === undefined) {
+        execution.output.files = collectProducedFiles(toRecord(execution.output.toolCalls).list)
+      }
     }
 
     return streamingExec

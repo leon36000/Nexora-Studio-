@@ -9,6 +9,7 @@ import json
 import sys
 import threading
 import unittest
+import urllib.parse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -230,6 +231,22 @@ class ServiceTest(unittest.TestCase):
         self.docker.exec_results = [sandbox.ExecResult(exit_code=3, stdout=b"", stderr=b"")]
         with self.assertRaises(sandbox.TooLarge):
             self.service.read_file(created["sandboxId"], "/tmp/sim/outputs/a.png", 10)
+
+
+class DockerClientTest(unittest.TestCase):
+    def test_list_encodes_the_label_filter_in_the_url(self):
+        seen = []
+
+        class Recording(sandbox.DockerClient):
+            def request(self, method, path, body=None, timeout=30.0):
+                seen.append(path)
+                return 200, []
+
+        Recording("/nonexistent").list("nexora.code-sandbox=test")
+        path = seen[0]
+        self.assertNotRegex(path, r"[\s\"{}]")
+        query = urllib.parse.parse_qs(urllib.parse.urlsplit(path).query)
+        self.assertEqual(json.loads(query["filters"][0]), {"label": ["nexora.code-sandbox=test"]})
 
 
 class DemuxTest(unittest.TestCase):

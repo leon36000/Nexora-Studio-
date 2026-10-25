@@ -32,6 +32,7 @@ import struct
 import sys
 import threading
 import time
+import urllib.parse
 from dataclasses import dataclass, field, replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -312,7 +313,7 @@ class DockerClient:
         self.request("DELETE", f"/containers/{container_id}?force=true")
 
     def list(self, label: str) -> list:
-        filters = json.dumps({"label": [label]})
+        filters = urllib.parse.quote(json.dumps({"label": [label]}))
         status, body = self.request("GET", f"/containers/json?all=1&filters={filters}")
         return body if status == 200 and isinstance(body, list) else []
 
