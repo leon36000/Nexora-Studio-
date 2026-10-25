@@ -7,14 +7,18 @@ import {
 import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
 
 describe('Nexora SME workflow templates', () => {
-  it('ships the five SME templates', () => {
-    expect(NEXORA_TEMPLATES.map((t) => t.slug)).toEqual([
+  it('ships the twenty SME templates, the five original ones first', () => {
+    const slugs = NEXORA_TEMPLATES.map((t) => t.slug)
+    expect(slugs.slice(0, 5)).toEqual([
       'devis',
       'relance-facture',
       'support-faq',
       'tri-emails',
       'compte-rendu',
     ])
+    expect(slugs).toHaveLength(20)
+    expect(new Set(slugs).size).toBe(20)
+    expect(new Set(NEXORA_TEMPLATES.map((t) => t.name)).size).toBe(20)
   })
 
   it.each(NEXORA_TEMPLATES.map((t) => [t.slug, t] as const))(
@@ -165,12 +169,29 @@ describe('Compte rendu de réunion', () => {
     for (const reference of references) expect(order).toContain(reference)
   })
 
-  it('leaves the four other templates as plain Start → Agent workflows', () => {
-    for (const template of NEXORA_TEMPLATES.filter((candidate) => candidate !== meeting)) {
+  it('leaves the templates made of agent steps only as plain Start → Agent workflows', () => {
+    const plain = NEXORA_TEMPLATES.filter((candidate) =>
+      candidate.steps.every((step) => step.kind === undefined)
+    )
+    expect(plain.length).toBeGreaterThanOrEqual(15)
+    for (const template of plain) {
       const types = Object.values(buildTemplateWorkflow(template, 'vllm/x').blocks).map(
         (block) => block.type
       )
       expect(new Set(types)).toEqual(new Set(['start_trigger', 'agent']))
     }
+  })
+
+  it('sends a reply to the customer only after a person approved it', () => {
+    const reply = NEXORA_TEMPLATES.find((candidate) => candidate.slug === 'reponse-validee')
+    if (!reply) throw new Error('the validated-reply template is missing')
+    const state = buildTemplateWorkflow(reply, 'vllm/nexora-default')
+    expect(Object.values(state.blocks).map((block) => block.type)).toEqual([
+      'start_trigger',
+      'agent',
+      'human_in_the_loop_v2',
+      'condition',
+      'smtp',
+    ])
   })
 })

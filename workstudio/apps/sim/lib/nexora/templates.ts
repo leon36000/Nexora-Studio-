@@ -1,4 +1,5 @@
 import { generateId } from '@sim/utils/id'
+import { STEPS_MARKER } from '@/lib/nexora/steps/mode'
 
 /** One field of the template's Start block, referenced in prompts as `<start.name>`. */
 interface TemplateInput {
@@ -211,6 +212,350 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       },
     ],
   },
+  {
+    slug: 'offre-emploi',
+    name: 'Offre d’emploi',
+    description: 'Rédige une annonce claire et attractive à partir du poste, des missions et du profil.',
+    inputs: [
+      { name: 'poste', description: 'Intitulé du poste', example: 'Chargé(e) de clientèle' },
+      {
+        name: 'missions',
+        description: 'Missions principales',
+        example: 'Suivre le portefeuille clients, préparer les devis, relancer les impayés',
+      },
+      {
+        name: 'profil',
+        description: 'Profil recherché et conditions (contrat, lieu, salaire)',
+        example: 'Bac+2 commerce, 2 ans d’expérience ; CDI à Lyon ; 32 000 EUR brut par an',
+      },
+    ],
+    steps: [
+      {
+        name: 'Annonce',
+        system: `${STYLE} Vous rédigez des offres d’emploi honnêtes, sans discrimination.`,
+        user: 'Rédigez une offre d’emploi pour le poste « <start.poste> ».\n\nMissions : <start.missions>\n\nProfil et conditions : <start.profil>\n\nStructure : présentation de l’entreprise (une phrase à compléter entre crochets), missions, profil recherché, conditions, comment candidater. Aucun critère d’âge, de sexe ou d’origine.',
+      },
+    ],
+  },
+  {
+    slug: 'fiche-produit',
+    name: 'Fiche produit',
+    description: 'Transforme des caractéristiques techniques en fiche produit prête pour votre site.',
+    inputs: [
+      { name: 'produit', description: 'Nom du produit', example: 'Panier garni du terroir' },
+      {
+        name: 'caracteristiques',
+        description: 'Caractéristiques, composition, prix',
+        example: 'Confiture de figues, miel de lavande, terrine de canard ; 3,2 kg ; 49 EUR TTC',
+      },
+    ],
+    steps: [
+      {
+        name: 'Fiche',
+        system: `${STYLE} Vous écrivez des fiches produit claires pour un site de vente en ligne.`,
+        user: 'Rédigez la fiche du produit « <start.produit> » à partir de : <start.caracteristiques>\n\nFournissez un titre, une description de 80 mots, cinq points forts en liste, puis une méta-description de 150 caractères au plus. N’inventez aucune caractéristique.',
+      },
+    ],
+  },
+  {
+    slug: 'reseaux-sociaux',
+    name: 'Publication réseaux sociaux',
+    description: 'Propose trois publications (LinkedIn, Facebook, Instagram) à partir d’une actualité.',
+    inputs: [
+      {
+        name: 'actualite',
+        description: 'Ce que vous voulez annoncer',
+        example: 'Nous ouvrons un second atelier à Villeurbanne le 4 novembre',
+      },
+      { name: 'ton', description: 'Ton souhaité', example: 'chaleureux et professionnel' },
+    ],
+    steps: [
+      {
+        name: 'Publications',
+        system: `${STYLE} Vous animez les réseaux sociaux d’une petite entreprise.`,
+        user: 'Actualité : <start.actualite>\n\nTon : <start.ton>\n\nÉcrivez trois publications adaptées à LinkedIn (professionnelle, 600 caractères au plus), Facebook (conviviale) et Instagram (courte, avec cinq mots-clés). Terminez chacune par un appel à l’action.',
+      },
+    ],
+  },
+  {
+    slug: 'reclamation',
+    name: 'Réponse à une réclamation',
+    description:
+      'Prépare une réponse empathique à une réclamation, avec une proposition de geste commercial.',
+    inputs: [
+      {
+        name: 'reclamation',
+        description: 'Texte de la réclamation du client',
+        example: 'Ma commande est arrivée avec trois jours de retard et un article était abîmé.',
+      },
+      {
+        name: 'marge',
+        description: 'Ce que vous pouvez proposer (remise, remplacement, remboursement)',
+        example: 'Remplacement de l’article et 10 % de remise sur la prochaine commande',
+      },
+    ],
+    steps: [
+      {
+        name: 'Reponse',
+        system: `${STYLE} Vous traitez les réclamations avec empathie, sans reconnaître de faute juridique.`,
+        user: 'Réclamation du client :\n<start.reclamation>\n\nGestes possibles : <start.marge>\n\nRédigez la réponse (objet + corps) : remerciez le client de son retour, reformulez le problème, présentez vos excuses, proposez le geste adapté et indiquez la suite concrète.',
+      },
+    ],
+  },
+  {
+    slug: 'newsletter',
+    name: 'Newsletter mensuelle',
+    description: 'Compose la newsletter du mois à partir de vos informations brutes.',
+    inputs: [
+      {
+        name: 'infos',
+        description: 'Actualités, nouveautés, événements du mois',
+        example: 'Nouvelle gamme bio ; salon de Lyon le 12 ; horaires d’hiver à partir du 1er novembre',
+      },
+      { name: 'cible', description: 'À qui s’adresse la lettre', example: 'clients particuliers' },
+    ],
+    steps: [
+      {
+        name: 'Newsletter',
+        system: `${STYLE} Vous rédigez des newsletters courtes et agréables à lire.`,
+        user: 'Informations du mois : <start.infos>\n\nLecteurs : <start.cible>\n\nÉcrivez la newsletter : trois objets d’e-mail au choix, une introduction chaleureuse, une rubrique par information, puis un mot de la fin avec un appel à l’action.',
+      },
+    ],
+  },
+  {
+    slug: 'relance-devis',
+    name: 'Relance de devis sans réponse',
+    description: 'Rédige une relance commerciale aimable pour un devis resté sans réponse.',
+    inputs: [
+      { name: 'client', description: 'Nom du client', example: 'Cabinet Lefèvre' },
+      {
+        name: 'devis',
+        description: 'Référence et objet du devis',
+        example: 'D-2026-041, refonte du site',
+      },
+      { name: 'envoi', description: 'Date d’envoi du devis', example: '02/10/2026' },
+    ],
+    steps: [
+      {
+        name: 'Relance',
+        system: `${STYLE} Vous relancez les prospects sans les brusquer.`,
+        user: 'Rédigez un e-mail (objet + corps) pour relancer <start.client> au sujet du devis <start.devis>, envoyé le <start.envoi>. Proposez un échange de 15 minutes, rappelez la durée de validité de 30 jours et laissez une porte de sortie polie.',
+      },
+    ],
+  },
+  {
+    slug: 'rapport-hebdo',
+    name: 'Rapport d’activité hebdomadaire',
+    description: 'Met en forme vos notes de la semaine en rapport clair pour la direction.',
+    inputs: [
+      {
+        name: 'notes',
+        description: 'Vos notes en vrac de la semaine',
+        example:
+          '3 devis envoyés, 1 signé (4 200 EUR) ; retard fournisseur sur la commande 88 ; recrutement : 2 entretiens',
+      },
+    ],
+    steps: [
+      {
+        name: 'Rapport',
+        system: `${STYLE} Vous rédigez des rapports d’activité synthétiques.`,
+        user: 'Notes de la semaine :\n<start.notes>\n\nPrésentez : réalisations, chiffres clés, difficultés rencontrées, décisions à prendre, priorités de la semaine suivante. Une phrase par point, aucun chiffre inventé.',
+      },
+    ],
+  },
+  {
+    slug: 'traduction',
+    name: 'Traduction professionnelle',
+    description:
+      'Traduit un texte en conservant le ton professionnel, puis signale les points délicats.',
+    inputs: [
+      {
+        name: 'texte',
+        description: 'Texte à traduire',
+        example: 'Merci pour votre commande. Elle sera expédiée sous 48 heures ouvrées.',
+      },
+      { name: 'langue', description: 'Langue cible', example: 'anglais' },
+    ],
+    steps: [
+      {
+        name: 'Traduction',
+        system: `${STYLE} Vous êtes traducteur professionnel.`,
+        user: 'Traduisez en <start.langue> le texte suivant, en gardant le ton et la mise en forme :\n<start.texte>\n\nAjoutez ensuite, sous le titre « Points d’attention », les expressions dont la traduction est délicate.',
+      },
+    ],
+  },
+  {
+    slug: 'resume-contrat',
+    name: 'Résumé d’un contrat',
+    description:
+      'Résume un contrat et signale les clauses à faire relire (ne remplace pas un avocat).',
+    inputs: [
+      {
+        name: 'contrat',
+        description: 'Texte du contrat',
+        example:
+          'Article 4 : le contrat est reconduit tacitement pour un an, sauf dénonciation trois mois avant l’échéance. Article 7 : pénalité de 15 % du montant annuel en cas de résiliation anticipée.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Resume',
+        system: `${STYLE} Vous aidez à comprendre un contrat. Vous ne donnez jamais de conseil juridique : vous résumez et vous signalez.`,
+        user: 'Contrat :\n<start.contrat>\n\nDonnez : un résumé en dix lignes, les dates et délais, les montants, puis la liste des clauses à faire relire par un juriste (reconduction tacite, pénalités, résiliation, responsabilité). Terminez par : « Ce résumé ne remplace pas l’avis d’un juriste. »',
+      },
+    ],
+  },
+  {
+    slug: 'controle-facture',
+    name: 'Contrôle d’une facture fournisseur',
+    description:
+      'Extrait les données d’une facture, puis vérifie les calculs et les mentions obligatoires.',
+    inputs: [
+      {
+        name: 'facture',
+        description: 'Texte de la facture',
+        example:
+          'Facture F-9921 du 12/10/2026, Papeterie Dubois, SIRET 123 456 789 00012. Ramettes : 10 x 4,50 EUR HT = 45,00 EUR HT. TVA 20 % : 9,00 EUR. Total TTC : 54,00 EUR.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Extraction',
+        system: `${STYLE} Vous lisez des factures avec rigueur.`,
+        user: 'Extrayez de cette facture, en JSON, les clés « fournisseur », « numero », « date », « total_ht », « tva », « total_ttc » et « siret » (null si absent) :\n<start.facture>',
+      },
+      {
+        name: 'Controle',
+        system: `${STYLE} Vous contrôlez des factures fournisseur avant paiement.`,
+        user: 'Données extraites : <extraction.content>\n\nTexte d’origine :\n<start.facture>\n\nVérifiez : total HT + TVA = total TTC, taux de TVA plausible, SIRET présent, numéro et date présents. Concluez par « À PAYER » ou « À VÉRIFIER », avec la liste des anomalies.',
+      },
+    ],
+  },
+  {
+    slug: 'accueil-salarie',
+    name: 'Accueil d’un nouveau salarié',
+    description: 'Prépare l’e-mail d’accueil et la liste des choses à faire avant le premier jour.',
+    inputs: [
+      { name: 'prenom', description: 'Prénom du salarié', example: 'Camille' },
+      {
+        name: 'poste',
+        description: 'Poste et service',
+        example: 'Assistante comptable, service finance',
+      },
+      {
+        name: 'arrivee',
+        description: 'Date et lieu d’arrivée',
+        example: 'lundi 2 novembre à 9 h, 12 rue des Lilas, Lyon',
+      },
+    ],
+    steps: [
+      {
+        name: 'Accueil',
+        system: `${STYLE} Vous préparez l’arrivée de nouveaux collègues.`,
+        user: 'Préparez pour <start.prenom> (<start.poste>), qui arrive le <start.arrivee> : un e-mail d’accueil chaleureux, puis une liste de préparation en deux parties : « À préparer par l’entreprise » (poste de travail, accès, badge, contrat) et « À apporter par le salarié ».',
+      },
+    ],
+  },
+  {
+    slug: 'avis-client',
+    name: 'Réponse à un avis client',
+    description: 'Répond à un avis en ligne, positif ou négatif, avec le bon ton.',
+    inputs: [
+      {
+        name: 'avis',
+        description: 'Texte de l’avis',
+        example: 'Très bon accueil mais deux heures d’attente pour récupérer ma commande. Dommage.',
+      },
+      { name: 'note', description: 'Note donnée (sur 5)', example: '3' },
+    ],
+    steps: [
+      {
+        name: 'Reponse',
+        system: `${STYLE} Vous répondez aux avis publics au nom de l’entreprise : ton posé, jamais défensif.`,
+        user: 'Avis (<start.note> sur 5) :\n<start.avis>\n\nRédigez une réponse publique de 60 mots au plus : remerciez, répondez au point soulevé, annoncez une action concrète si l’avis est critique, et n’indiquez aucune donnée personnelle.',
+      },
+    ],
+  },
+  {
+    slug: 'ordre-du-jour',
+    name: 'Ordre du jour de réunion',
+    description: 'Construit un ordre du jour chronométré à partir des sujets à traiter.',
+    inputs: [
+      {
+        name: 'sujets',
+        description: 'Sujets à aborder',
+        example: 'Budget 2027 ; recrutement ; choix du nouveau logiciel de caisse',
+      },
+      { name: 'duree', description: 'Durée totale', example: '1 h 30' },
+    ],
+    steps: [
+      {
+        name: 'Ordre',
+        system: `${STYLE} Vous organisez des réunions efficaces.`,
+        user: 'Sujets : <start.sujets>\n\nDurée disponible : <start.duree>\n\nProposez un ordre du jour chronométré (ordre logique, temps par sujet, qui présente, décision attendue) et une phrase d’ouverture de la réunion.',
+      },
+    ],
+  },
+  {
+    slug: 'reponse-validee',
+    name: 'Réponse client validée avant envoi',
+    description:
+      'Rédige la réponse à un client, la soumet à validation, puis l’envoie par e-mail.',
+    inputs: [
+      {
+        name: 'message',
+        description: 'Message reçu du client',
+        example: 'Pouvez-vous me confirmer la date de livraison de ma commande 5521 ?',
+      },
+      {
+        name: 'destinataire',
+        description: 'Adresse e-mail du client',
+        example: 'client@exemple.fr',
+      },
+    ],
+    steps: [
+      {
+        name: 'Brouillon',
+        system: `${STYLE} Vous préparez des réponses que l’équipe relira avant envoi.`,
+        user: 'Message du client :\n<start.message>\n\nRédigez la réponse (sans objet ni signature) ; si une information manque, signalez-la entre crochets.',
+      },
+      {
+        kind: 'approval',
+        name: 'Validation',
+        shows: [{ name: 'reponse', value: '<brouillon.content>' }],
+      },
+      { kind: 'gate', name: 'Approbation', approved: '<validation.approuve>' },
+      {
+        kind: 'email',
+        name: 'Email',
+        to: '<start.destinataire>',
+        subject: 'Réponse à votre message',
+        body: '<brouillon.content>',
+      },
+    ],
+  },
+  {
+    slug: 'cr-entretien',
+    name: 'Compte rendu d’entretien',
+    description:
+      'Met en forme les notes d’un entretien (client, candidat ou annuel) en compte rendu.',
+    inputs: [
+      {
+        name: 'notes',
+        description: 'Notes prises pendant l’entretien',
+        example:
+          'Client satisfait du service, demande un tarif dégressif au-delà de 20 commandes, veut une visite en décembre.',
+      },
+      { name: 'type', description: 'Type d’entretien', example: 'entretien client' },
+    ],
+    steps: [
+      {
+        name: 'CompteRenduEntretien',
+        system: `${STYLE} Vous rédigez des comptes rendus d’entretien factuels.`,
+        user: 'Type d’entretien : <start.type>\n\nNotes :\n<start.notes>\n\nRédigez : contexte, points abordés, engagements pris de part et d’autre (qui, quoi, quand), prochaines étapes. Distinguez les faits des impressions.',
+      },
+    ],
+  },
 ]
 
 /** The Nexora API model templates start with: `NEXORA_DEFAULT_MODEL`, else `nexora-default`. */
@@ -364,6 +709,7 @@ export function buildTemplateWorkflow(
       position: { x: 0, y: 0 },
       enabled: true,
       subBlocks: {
+        [STEPS_MARKER.id]: { ...STEPS_MARKER },
         inputFormat: {
           id: 'inputFormat',
           type: 'input-format',
