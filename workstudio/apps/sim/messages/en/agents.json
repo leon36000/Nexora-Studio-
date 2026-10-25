@@ -188,7 +188,7 @@
       "content": "Text",
       "note": "Version note"
     },
-    "variablesHint": "Write '{{name}}' for a variable: the agent using the prompt gives its value.",
+    "variablesHint": "Write '{{variable}}' for a variable: the agent using the prompt gives its value.",
     "back": "Prompts",
     "delete": "Delete",
     "versions": "Versions",
