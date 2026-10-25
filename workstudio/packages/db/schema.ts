@@ -8955,10 +8955,10 @@ export const nexoraEvalSchedule = pgTable(
     timezone: text('timezone').notNull(),
     datasetId: text('dataset_id')
       .notNull()
-      .references(() => nexoraEvalDataset.id, { onDelete: 'restrict' }),
+      .references(() => nexoraEvalDataset.id, { onDelete: 'no action' }),
     judgeId: text('judge_id')
       .notNull()
-      .references(() => nexoraEvalJudge.id, { onDelete: 'restrict' }),
+      .references(() => nexoraEvalJudge.id, { onDelete: 'no action' }),
     targets: jsonb('targets').notNull(),
     concurrency: integer('concurrency').notNull().default(2),
     alertThreshold: real('alert_threshold'),
@@ -8991,10 +8991,10 @@ export const nexoraEvalCampaign = pgTable(
     name: text('name').notNull(),
     datasetId: text('dataset_id')
       .notNull()
-      .references(() => nexoraEvalDataset.id, { onDelete: 'restrict' }),
+      .references(() => nexoraEvalDataset.id, { onDelete: 'no action' }),
     judgeId: text('judge_id')
       .notNull()
-      .references(() => nexoraEvalJudge.id, { onDelete: 'restrict' }),
+      .references(() => nexoraEvalJudge.id, { onDelete: 'no action' }),
     targets: jsonb('targets').notNull(),
     concurrency: integer('concurrency').notNull().default(2),
     alertThreshold: real('alert_threshold'),

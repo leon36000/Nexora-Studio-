@@ -1,5 +1,5 @@
 {
-  "id": "b8aa2504-3dbf-4a33-8414-f4f39e8afad4",
+  "id": "5cf9bf88-3f81-4b37-bd8b-99fcf4831de5",
   "prevId": "0b96b788-03ee-4fd0-b75b-158d60fad44e",
   "version": "7",
   "dialect": "postgresql",
@@ -16011,7 +16011,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "nexora_eval_campaign_judge_id_nexora_eval_judge_id_fk": {
@@ -16024,7 +16024,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "nexora_eval_campaign_schedule_id_nexora_eval_schedule_id_fk": {
@@ -16833,7 +16833,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "nexora_eval_schedule_judge_id_nexora_eval_judge_id_fk": {
@@ -16846,7 +16846,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "no action",
           "onUpdate": "no action"
         },
         "nexora_eval_schedule_created_by_user_id_fk": {
