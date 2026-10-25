@@ -1,6 +1,7 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { env } from '@/lib/core/config/env'
+import { nexoraLongFetch } from '@/lib/nexora/long-fetch.server'
 import { modelNamesOfUsage, type NexoraModelUsage } from '@/lib/nexora/model-ids'
 
 type NexoraDocumentAiErrorCode =
@@ -62,7 +63,7 @@ function resolve(options: NexoraApiOptions) {
       'Nexora API is not configured (VLLM_BASE_URL)'
     )
   }
-  return { config, fetchFn: options.fetchFn ?? fetch }
+  return { config, fetchFn: options.fetchFn ?? nexoraLongFetch }
 }
 
 /** Calls Nexora API with WorkStudio's key, like a block calling a chat model. */

@@ -50,6 +50,7 @@ import { createLogger } from '@sim/logger'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
+import { useSettingsNavCopy } from '@/components/settings/use-settings-nav-copy'
 import type { DesktopChatActivity } from '@/lib/api/contracts/desktop-executor'
 import { useSession } from '@/lib/auth/client'
 import { canViewWorkspaceBillingSettings } from '@/lib/billing/workspace-permissions'
@@ -415,6 +416,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   const t = useTranslations('shell.sidebar')
   const tCopilot = useTranslations('copilot.entry')
   const tDevelopers = useTranslations('developers.page')
+  const navCopy = useSettingsNavCopy()
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workflowId = params.workflowId as string | undefined
@@ -957,11 +959,11 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         id === 'recently-deleted' ||
         (id === 'billing' && canViewWorkspaceBillingSettings(hostContext, profile?.id))
     )
-    .map(({ id, label, icon }) => ({
-      label,
-      icon,
-      href: getSettingsHref({ section: id }),
-      onNavigate: () => handleOpenSettings(id),
+    .map((item) => ({
+      label: navCopy.label(item),
+      icon: item.icon,
+      href: getSettingsHref({ section: item.id }),
+      onNavigate: () => handleOpenSettings(item.id),
     }))
 
   if (organizationHref) {

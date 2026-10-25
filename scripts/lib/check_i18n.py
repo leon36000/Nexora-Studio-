@@ -12,6 +12,8 @@ labels file must be translated in apps/sim/messages/fr/<namespace>.json, and its
 must be the default itself.
 Allowed terms (product and brand names shown as-is): scripts/data/i18n-allowed-terms.txt.
 A line can be exempted with a trailing `// i18n-ignore: <reason>` comment.
+Dates, numbers and settings-catalog labels must follow the interface language: `formatDate` /
+`formatDateTime` (English) and an `en-US` literal are refused, `allNavigationItems` needs `useSettingsNavCopy`.
 emcn elements whose built-in copy is English (a searchable combobox's search placeholder, a file
 drop zone's label) must be given translated copy.
 """
@@ -26,7 +28,12 @@ SKIP_SUFFIXES = (".test.ts", ".test.tsx", ".dom.test.tsx", ".integration.ts", ".
 COMMENT_LINE = re.compile(r"^\s*(//|/\*|\*)")
 JSX_TEXT = re.compile(r"(?<![=-])>([^<>{}`]*?)<")
 ATTRIBUTE = re.compile(r"\b(?:placeholder|title|aria-label|alt|label|tooltip|description)=(['\"])(.*?)\1")
-PROPERTY = re.compile(r"\b(?:label|title|description|placeholder|tooltip|emptyText|heading|subtitle|confirmText|cancelText|buttonText)\s*:\s*(['\"])(.*?)\1")
+# `keyLabel` names a third-party provider (« Cohere »), shown as-is.
+PROPERTY = re.compile(
+    r"\b(?:label|title|description|placeholder|tooltip|emptyText|heading|subtitle|confirmText|cancelText|buttonText"
+    r"|(?!keyLabel\b)[a-z]\w*(?:Label|Title|Description|Placeholder|Tooltip|Heading|Caption|Hint|Message))"
+    r"\s*:\s*(['\"])(.*?)\1"
+)
 TOAST = re.compile(r"\btoast(?:\.\w+)?\(\s*(['\"])(.*?)\1")
 BARE_TEXT = re.compile(r"^\s*([A-ZÀ-Ö][^=;(){}<>`$|&]*?)\s*$")
 WORD = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]{2,}")
@@ -36,6 +43,9 @@ TEMPLATE = re.compile(r"`([^`]*)`")
 DEFAULTS_MARKER = re.compile(r"//\s*i18n-defaults:\s*([\w.]+)")
 DEFAULTS_ENTRY = re.compile(r"^[ \t]*(\w+):\s*(['\"])([^'\"\n]*)\2,?[ \t]*$", re.M)
 MESSAGES_DIR = "workstudio/apps/sim/messages"
+NAVIGATION_CATALOG_IMPORT = re.compile(r"import\s*\{[^}]*\ballNavigationItems\b[^}]*\}\s*from")
+ENGLISH_DATE_FORMATTER_IMPORT = re.compile(r"import\s*\{[^}]*\bformatDate(?:Time)?\b[^}]*\}\s*from\s*['\"]@sim/utils/formatting['\"]")
+ENGLISH_LOCALE_LITERAL = re.compile(r"\b(?:toLocale(?:Date|Time)?String|Intl\.(?:DateTimeFormat|NumberFormat))\(\s*['\"]en-US['\"]")
 CODE_OPERATOR = re.compile(r"&&|\|\||\?\?|=>|===|!==|\)\.")
 CLASS_TOKEN = re.compile(r"[-\[\]:/!#.%()0-9]")
 CLASS_WORDS = {
@@ -102,6 +112,27 @@ def english_emcn_defaults(source: str) -> list[tuple[int, str]]:
                 continue
             if not re.search(r"\b" + prop + r"=", tag):
                 hits.append((number, f"<{name}> shows {copy}: pass {prop}"))
+    return hits
+
+
+def english_formatting(source: str) -> list[tuple[int, str]]:
+    """Dates and catalog labels that bypass the interface language."""
+    hits = []
+    for match in ENGLISH_DATE_FORMATTER_IMPORT.finditer(source):
+        number = source.count("\n", 0, match.start()) + 1
+        hits.append((number, "formatDate/formatDateTime from @sim/utils/formatting are English: use useDateFormat()"))
+    for match in ENGLISH_LOCALE_LITERAL.finditer(source):
+        number = source.count("\n", 0, match.start()) + 1
+        line = source.splitlines()[number - 1]
+        if "i18n-ignore:" not in line:
+            hits.append((number, "formatted in en-US: use the interface locale (useLocale() / useDateFormat())"))
+    if (
+        NAVIGATION_CATALOG_IMPORT.search(source)
+        and "useSettingsNavCopy" not in source
+        and "export const allNavigationItems" not in source
+    ):
+        number = source.count("\n", 0, NAVIGATION_CATALOG_IMPORT.search(source).start()) + 1
+        hits.append((number, "settings catalog labels are English values: read them with useSettingsNavCopy()"))
     return hits
 
 
@@ -220,6 +251,7 @@ def main() -> int:
             source = path.read_text(encoding="utf-8")
             if rel.endswith(".tsx"):
                 hits += [f"{rel}:{number}: {message}" for number, message in english_emcn_defaults(source)]
+            hits += [f"{rel}:{number}: {message}" for number, message in english_formatting(source)]
             hits += scan_lines(rel, source, allowed)
     for hit in hits:
         print(hit)

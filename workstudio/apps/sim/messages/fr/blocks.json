@@ -5300,6 +5300,9 @@
     "name": "Journaux",
     "description": "Interroger les exécutions de workflows et obtenir leur détail"
   },
+  "loop": {
+    "name": "Boucle"
+  },
   "loops": {
     "name": "Loops",
     "description": "Gérer des contacts et envoyer des e-mails avec Loops"
@@ -7780,6 +7783,9 @@
   "pagerduty": {
     "name": "PagerDuty",
     "description": "Gérer incidents et plannings d'astreinte avec PagerDuty"
+  },
+  "parallel": {
+    "name": "Parallèle"
   },
   "parallel_ai": {
     "name": "Parallel AI",

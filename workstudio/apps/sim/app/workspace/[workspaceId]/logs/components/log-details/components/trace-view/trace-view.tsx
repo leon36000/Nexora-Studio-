@@ -49,6 +49,7 @@ import {
 import { BlockTile } from '@/blocks/block-tile'
 import { isCustomBlockType } from '@/blocks/custom/build-config'
 import { useCodeViewerFeatures } from '@/hooks/use-code-viewer'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 /**
  * Why a custom block's steps are not shown under it, as message keys under `logs.trace`.
@@ -661,6 +662,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
  */
 const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpan | null }) {
   const t = useTranslations('logs.trace')
+  const { locale } = useDateFormat()
   if (!span) {
     return (
       <div className='flex h-full items-center justify-center p-6 text-[var(--text-tertiary)] text-caption'>
@@ -710,14 +712,14 @@ const TraceDetailPane = memo(function TraceDetailPane({ span }: { span: TraceSpa
   if (span.finishReason) metaEntries.push({ label: t('finishReason'), value: span.finishReason })
   const ttftFormatted = formatTtft(span.ttft)
   if (ttftFormatted) metaEntries.push({ label: 'TTFT', value: ttftFormatted })
-  const tpsFormatted = isModelSpan ? formatTps(span.tokens?.output, duration) : undefined
+  const tpsFormatted = isModelSpan ? formatTps(span.tokens?.output, duration, locale) : undefined
   if (tpsFormatted) metaEntries.push({ label: t('throughput'), value: tpsFormatted })
-  const inputTokens = formatTokenCount(span.tokens?.input)
-  const outputTokens = formatTokenCount(span.tokens?.output)
-  const totalTokens = formatTokenCount(span.tokens?.total)
-  const cacheRead = formatTokenCount(span.tokens?.cacheRead)
-  const cacheWrite = formatTokenCount(span.tokens?.cacheWrite)
-  const reasoning = formatTokenCount(span.tokens?.reasoning)
+  const inputTokens = formatTokenCount(span.tokens?.input, locale)
+  const outputTokens = formatTokenCount(span.tokens?.output, locale)
+  const totalTokens = formatTokenCount(span.tokens?.total, locale)
+  const cacheRead = formatTokenCount(span.tokens?.cacheRead, locale)
+  const cacheWrite = formatTokenCount(span.tokens?.cacheWrite, locale)
+  const reasoning = formatTokenCount(span.tokens?.reasoning, locale)
   if (inputTokens) metaEntries.push({ label: t('inputTokens'), value: inputTokens })
   if (outputTokens) metaEntries.push({ label: t('outputTokens'), value: outputTokens })
   if (totalTokens) metaEntries.push({ label: t('totalTokens'), value: totalTokens })

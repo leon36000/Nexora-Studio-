@@ -42,6 +42,7 @@ export {
   type NoteSearchRange,
 } from './note/search-highlight'
 export {
+  displaySubflowName,
   type SubflowNodeData,
   SubflowNodeView,
 } from './subflow/node-view'

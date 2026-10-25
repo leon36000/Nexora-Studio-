@@ -20,7 +20,6 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { RefreshCw } from '@sim/emcn/icons'
-import { formatDateTime } from '@sim/utils/formatting'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -35,6 +34,7 @@ import {
   useResumeContext,
   useResumeExecutionDetail,
 } from '@/hooks/queries/resume-execution'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 interface NormalizedInputField {
   id: string
@@ -85,7 +85,7 @@ export function selectInitialResumeContextId(
   )
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, formatDateTime: (date: Date) => string): string {
   if (!value) return '—'
   try {
     return formatDateTime(new Date(value))
@@ -187,6 +187,7 @@ export default function ResumeExecutionPage({
 }: ResumeExecutionPageProps) {
   const { workflowId, executionId } = params
   const t = useTranslations('interfaces.resume')
+  const { formatDateTime } = useDateFormat()
   const router = useRouter()
   const queryClient = useQueryClient()
 
@@ -846,7 +847,9 @@ export default function ResumeExecutionPage({
                   <div>
                     <Label>{getBlockName(selectedDetail.pausePoint)}</Label>
                     <p className='mt-[2px] text-[var(--text-muted)] text-caption'>
-                      {t('pausedAt', { date: formatDate(selectedDetail.pausePoint.registeredAt) })}
+                      {t('pausedAt', {
+                        date: formatDate(selectedDetail.pausePoint.registeredAt, formatDateTime),
+                      })}
                     </p>
                   </div>
                   <div className='flex items-center gap-2'>

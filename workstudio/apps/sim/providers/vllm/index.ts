@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 import type { ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions'
 import { env } from '@/lib/core/config/env'
 import { createPinnedFetch, validateUrlWithDNS } from '@/lib/core/security/input-validation.server'
+import { nexoraLongFetch } from '@/lib/nexora/long-fetch.server'
 import { listedModelIds } from '@/lib/nexora/model-ids'
 import { isReasoningEffortRejection, readMessageReasoning } from '@/lib/nexora/reasoning'
 import type { StreamingExecution } from '@/executor/types'
@@ -205,7 +206,7 @@ export const vllmProvider: ProviderConfig = {
           ...openAICompatTransport(),
           apiKey,
           baseURL: apiBaseUrl,
-          ...(pinnedFetch ? { fetch: pinnedFetch } : {}),
+          fetch: pinnedFetch ?? nexoraLongFetch,
         })
     )
 

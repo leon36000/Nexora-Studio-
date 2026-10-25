@@ -14,8 +14,6 @@ export type FolderedHeaderResourceType = Extract<
 >
 
 export interface FolderedResourceHeaderMeta {
-  /** Root crumb label, and the page title at the workspace root. */
-  rootLabel: string
   /** Icon on the root crumb, which is also what opens the header's "Path" popover. */
   rootIcon: ComponentType<{ className?: string }>
   /** Path segment of the list page under `/workspace/[workspaceId]/`. */
@@ -23,7 +21,9 @@ export interface FolderedResourceHeaderMeta {
 }
 
 /**
- * The per-resource facts a foldered header needs, in one place.
+ * The per-resource facts a foldered header needs, in one place. The root crumb's label is not one
+ * of them: it is the interface-language title of the resource's own messages (`files.list.title`,
+ * `tables.list.title`, `knowledge.list.rootLabel`).
  *
  * Each was previously restated at every surface rendering that resource — list page, detail
  * page, and for knowledge bases the document and chunk views — which is how one trail ends up
@@ -33,9 +33,9 @@ export const FOLDERED_RESOURCE_HEADERS: Record<
   FolderedHeaderResourceType,
   FolderedResourceHeaderMeta
 > = {
-  file: { rootLabel: 'Files', rootIcon: FileIcon, listSegment: 'files' },
-  knowledge_base: { rootLabel: 'Knowledge bases', rootIcon: Database, listSegment: 'knowledge' },
-  table: { rootLabel: 'Tables', rootIcon: TableIcon, listSegment: 'tables' },
+  file: { rootIcon: FileIcon, listSegment: 'files' },
+  knowledge_base: { rootIcon: Database, listSegment: 'knowledge' },
+  table: { rootIcon: TableIcon, listSegment: 'tables' },
 }
 
 /**

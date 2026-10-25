@@ -8,6 +8,7 @@ import {
 import { realtimeNotifyMock } from '@sim/testing/mocks/realtime-notify.mock'
 import { tableBillingMock } from '@sim/testing/mocks/table-billing.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { runWithRequestLocale } from '@/lib/i18n/request-locale.server'
 import type { TableSchema } from '@/lib/table/types'
 
 vi.mock('@/lib/realtime/notify', () => realtimeNotifyMock)
@@ -137,5 +138,39 @@ describe('getTableById job derivation', () => {
           node.type === 'isNull' && node.column === schemaMock.userTableDefinitions.archivedAt
       )
     ).toBe(false)
+  })
+})
+
+/**
+ * The starter view is seeded server-side, far from the browser: it is worded in the language of
+ * the request being answered, else the instance default (French).
+ */
+describe('createTable starter view', () => {
+  beforeEach(() => {
+    resetDbChainMock()
+  })
+
+  function starterView() {
+    const call = dbChainMockFns.values.mock.calls
+      .map(([row]) => row as Record<string, unknown>)
+      .find((row) => row?.isDefault === true)
+    return call
+  }
+
+  async function createIn(locale: 'fr' | 'en') {
+    queueTableRows(schemaMock.userTableDefinitions, [{ count: 0 }])
+    await runWithRequestLocale(locale, () =>
+      create({ columns: [{ id: 'col_nom', name: 'nom', type: 'string' }] } as TableSchema)
+    ).catch(() => undefined)
+  }
+
+  it('is named « Par défaut » for a French request', async () => {
+    await createIn('fr')
+    expect(starterView()).toMatchObject({ name: 'Par défaut', isDefault: true })
+  })
+
+  it('keeps the original « Default » for an English request', async () => {
+    await createIn('en')
+    expect(starterView()).toMatchObject({ name: 'Default', isDefault: true })
   })
 })

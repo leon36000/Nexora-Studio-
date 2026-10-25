@@ -101,6 +101,7 @@ import {
   useRetryExecution,
 } from '@/hooks/queries/logs'
 import { useWorkflowMap, useWorkflows } from '@/hooks/queries/workflows'
+import { useDateFormat } from '@/hooks/use-date-format'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useUrlSort } from '@/hooks/use-url-sort'
 import { useFilterStore } from '@/stores/logs/filters/store'
@@ -244,6 +245,7 @@ export default function Logs() {
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const t = useTranslations('logs')
+  const { locale } = useDateFormat()
 
   const {
     timeRange,
@@ -791,7 +793,7 @@ export default function Logs() {
   const rows: ResourceRow[] = useMemo(
     () =>
       logs.map((log) => {
-        const formattedDate = formatDate(log.createdAt)
+        const formattedDate = formatDate(log.createdAt, locale)
         const displayStatus = getDisplayStatus(log.status)
         const workflowName = getLogWorkflowLabel(log, {
           untitledJob: t('workflow.untitledJob'),
@@ -824,7 +826,7 @@ export default function Logs() {
           },
         }
       }),
-    [logs, t]
+    [logs, t, locale]
   )
 
   const hasNextLog = selectedLogIndex >= 0 && selectedLogIndex < logs.length - 1 // i18n-ignore: comparison, not text

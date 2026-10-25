@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { ChipDropdown, Plus, toast } from '@sim/emcn'
 import { getErrorMessage } from '@sim/utils/errors'
-import { formatDate } from '@sim/utils/formatting'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -38,6 +37,7 @@ import {
   useWorkspacePermissionsQuery,
   useWorkspacesQuery,
 } from '@/hooks/queries/workspace'
+import { useDateFormat } from '@/hooks/use-date-format'
 import { useWorkspaceInvitePolicy } from '@/hooks/use-workspace-invite-policy'
 
 const ROLE_VALUES = ['read', 'write', 'admin'] as const
@@ -83,6 +83,7 @@ export function Teammates() {
   const t = useTranslations('settings.teammates')
   const tShared = useTranslations('settings.shared')
   const tRoleLock = useTranslations('settings.permissions.roleLock')
+  const { formatDate } = useDateFormat()
   const roleOptions = ROLE_VALUES.map((value) => ({ value, label: t(`roles.${value}`) }))
   const params = useParams()
   const workspaceId = (params?.workspaceId as string) || ''

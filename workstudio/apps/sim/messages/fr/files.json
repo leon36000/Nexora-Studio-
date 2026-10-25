@@ -356,6 +356,11 @@
       "deleteColumn": "Supprimer la colonne",
       "deleteTable": "Supprimer le tableau"
     },
+    "rawMarkdownBadges": {
+      "rawHtml": "HTML brut",
+      "footnote": "Note de bas de page",
+      "footnoteRef": "Appel de note"
+    },
     "codeBlock": {
       "plainText": "Texte brut",
       "showDashboard": "Afficher le tableau de bord",

@@ -16,7 +16,6 @@ import {
 import { createLogger } from '@sim/logger'
 import { isOrgAdminRole } from '@sim/platform-authz/predicates'
 import { getErrorMessage } from '@sim/utils/errors'
-import { formatDate } from '@sim/utils/formatting'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useSession, useSubscription } from '@/lib/auth/client'
@@ -65,6 +64,7 @@ import {
   useSubscriptionData,
   useUpdateUsageLimit,
 } from '@/hooks/queries/subscription'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 const logger = createLogger('Billing')
 
@@ -114,6 +114,7 @@ export function Billing({ scope, organizationId, creditUsageHref }: BillingProps
   const router = useRouter()
   const t = useTranslations('settings.billing')
   const tShared = useTranslations('settings.shared')
+  const { formatDate } = useDateFormat()
   const isOrganizationScope = scope === 'organization'
 
   const {

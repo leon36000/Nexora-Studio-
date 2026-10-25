@@ -85,6 +85,7 @@ import {
   workflowEditorPath,
 } from '@/app/workspace/[workspaceId]/logs/utils'
 import { useCodeViewerFeatures } from '@/hooks/use-code-viewer'
+import { useDateFormat } from '@/hooks/use-date-format'
 import { usePermissionConfig } from '@/hooks/use-permission-config'
 import { formatCost } from '@/providers/utils'
 import { useLogDetailsUIStore } from '@/stores/logs/store'
@@ -324,6 +325,7 @@ interface LogDetailsContentProps {
 export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentProps) {
   const t = useTranslations('logs.details')
   const tLogs = useTranslations('logs')
+  const { locale } = useDateFormat()
   const [isExecutionSnapshotOpen, setIsExecutionSnapshotOpen] = useState(false)
   const [activeTab, setActiveTab] = useQueryState(logDetailsTabParam.key, {
     ...logDetailsTabParam.parser,
@@ -450,7 +452,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
     }
   }, [log.costLedger, log.cost, t])
 
-  const formattedTimestamp = formatDate(log.createdAt)
+  const formattedTimestamp = formatDate(log.createdAt, locale)
   const logStatus = getDisplayStatus(log.status)
 
   /**

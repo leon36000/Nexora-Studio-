@@ -5300,6 +5300,9 @@
     "name": "Logs",
     "description": "Query workflow runs and fetch run details"
   },
+  "loop": {
+    "name": "Loop"
+  },
   "loops": {
     "name": "Loops",
     "description": "Manage contacts and send emails with Loops"
@@ -7780,6 +7783,9 @@
   "pagerduty": {
     "name": "PagerDuty",
     "description": "Manage incidents and on-call schedules with PagerDuty"
+  },
+  "parallel": {
+    "name": "Parallel"
   },
   "parallel_ai": {
     "name": "Parallel AI",

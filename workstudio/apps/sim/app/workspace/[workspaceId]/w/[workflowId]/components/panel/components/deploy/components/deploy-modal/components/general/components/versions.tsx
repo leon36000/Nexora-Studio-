@@ -14,11 +14,11 @@ import {
   Tooltip,
 } from '@sim/emcn'
 import { Columns2, FileText, MoreVertical, Pencil, RefreshCw, SendToBack } from '@sim/emcn/icons'
-import { formatDateTime } from '@sim/utils/formatting'
 import { useTranslations } from 'next-intl'
 import type { WorkflowDeploymentVersionResponse } from '@/lib/workflows/persistence/utils'
 import { formatVersionLabel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel/components/deploy/components/deploy-modal/components/general/format-version-label'
 import { useUpdateDeploymentVersion } from '@/hooks/queries/deployments'
+import { useDateFormat } from '@/hooks/use-date-format'
 import { VersionDescriptionModal } from './version-description-modal'
 
 const HEADER_TEXT_CLASS = 'text-[var(--text-tertiary)] text-caption'
@@ -60,6 +60,7 @@ export function Versions({
   onCompare,
 }: VersionsProps) {
   const t = useTranslations('editor.deploy.versions')
+  const { formatDateTime } = useDateFormat()
   const [editingVersion, setEditingVersion] = useState<number | null>(null)
   const [editValue, setEditValue] = useState('')
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)

@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react'
 import { ChipLink } from '@sim/emcn'
-import { formatDateTime } from '@sim/utils/formatting'
 import { useTranslations } from 'next-intl'
 import { SettingsActionChip } from '@/components/settings/settings-header'
 import type { SecretUsageEntryPayload, SecretUsageScope } from '@/lib/api/contracts'
@@ -15,6 +14,7 @@ import {
 } from '@/app/workspace/[workspaceId]/settings/components/activity-log'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import { useSecretUsage } from '@/hooks/queries/credentials'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 interface SecretUsagePanelProps {
   workspaceId: string
@@ -42,6 +42,7 @@ function usedBy(entry: SecretUsageEntryPayload, t: ReturnType<typeof useTranslat
 export function SecretUsagePanel({ workspaceId, secretName, scope }: SecretUsagePanelProps) {
   const t = useTranslations('settings.secretDetail.usage')
   const tDetail = useTranslations('settings.secretDetail')
+  const { formatDateTime } = useDateFormat()
   const { data, isPending, isError } = useSecretUsage({ workspaceId, name: secretName, scope })
 
   /**

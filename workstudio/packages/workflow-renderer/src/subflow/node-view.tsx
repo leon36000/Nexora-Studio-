@@ -135,7 +135,7 @@ const GENERATED_SUBFLOW_NAME = { loop: /^Loop(\s+\d+)?$/, parallel: /^Parallel(\
  * still the generated `Loop 2` / `Parallel` — then the type label in the interface language, with
  * the same copy number.
  */
-function displaySubflowName(
+export function displaySubflowName(
   storedName: string | undefined,
   kind: 'loop' | 'parallel',
   typeLabel: string

@@ -17,7 +17,6 @@ import {
 } from '@sim/emcn'
 import { Trash } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
-import { formatDate } from '@sim/utils/formatting'
 import { useTranslations } from 'next-intl'
 import {
   ALL_TAG_SLOTS,
@@ -33,6 +32,7 @@ import {
 } from '@/hooks/kb/use-knowledge-base-tag-definitions'
 import { type TagDefinitionInput, useTagDefinitions } from '@/hooks/kb/use-tag-definitions'
 import { useNextAvailableSlotMutation, useUpdateDocumentTags } from '@/hooks/queries/kb/knowledge'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 const logger = createLogger('DocumentTagsModal')
 
@@ -52,7 +52,8 @@ function getValueForFieldType(
 function formatValueForDisplay(
   value: string,
   fieldType: string,
-  booleanLabels: { true: string; false: string }
+  booleanLabels: { true: string; false: string },
+  formatDate: (date: Date) => string
 ): string {
   if (!value) return ''
   switch (fieldType) {
@@ -93,6 +94,7 @@ export function DocumentTagsModal({
 }: DocumentTagsModalProps) {
   const t = useTranslations('knowledge.documentTags')
   const tFieldTypes = useTranslations('knowledge.fieldTypes')
+  const { formatDate } = useDateFormat()
   const booleanLabels = { true: t('true'), false: t('false') }
   const booleanOptions = [
     { label: booleanLabels.true, value: 'true' },
@@ -414,7 +416,7 @@ export function DocumentTagsModal({
                   </span>
                   <div className='mb-[-1.5px] h-[14px] w-[1.25px] shrink-0 rounded-full bg-[var(--border-1)]' />
                   <span className='min-w-0 flex-1 truncate text-[var(--text-muted)] text-caption'>
-                    {formatValueForDisplay(tag.value, tag.fieldType, booleanLabels)}
+                    {formatValueForDisplay(tag.value, tag.fieldType, booleanLabels, formatDate)}
                   </span>
                   <div className='flex shrink-0 items-center gap-1'>
                     <Button

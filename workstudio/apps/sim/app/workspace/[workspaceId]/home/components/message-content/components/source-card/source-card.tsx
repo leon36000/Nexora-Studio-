@@ -17,7 +17,6 @@ import {
   useCopyToClipboard,
 } from '@sim/emcn'
 import { Check, Link as LinkIcon, MoreHorizontal, Sparkles } from '@sim/emcn/icons'
-import { formatDate } from '@sim/utils/formatting'
 import { findTermMatches, queryTerms } from '@/lib/knowledge/search/snippet'
 import { inter } from '@/app/_styles/fonts/inter/inter'
 import {
@@ -27,6 +26,7 @@ import {
 } from '@/app/workspace/[workspaceId]/home/components/message-content/components/source-chip'
 import { useSourceNavigation } from '@/app/workspace/[workspaceId]/home/components/message-content/components/source-history-context'
 import type { SourceTagData } from '@/app/workspace/[workspaceId]/home/components/message-content/components/special-tags'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 const SOURCE_ROW_CLASSES = cn(
   'not-prose flex items-start gap-2 px-2 py-2 transition-colors focus-within:bg-[var(--surface-hover)]',
@@ -116,6 +116,7 @@ interface SourceCardProps {
 /** Source results share the same document identity and actions across search and cited evidence. */
 export function SourceCard({ source, query, onSummarize, dense = false }: SourceCardProps) {
   const navigate = useSourceNavigation(source)
+  const { formatDate } = useDateFormat()
   const updatedAt = parseUpdatedAt(source.updatedAt)
   const meta = [
     sourceSiteName(source),

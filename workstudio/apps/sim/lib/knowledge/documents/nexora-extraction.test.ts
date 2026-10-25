@@ -36,6 +36,10 @@ vi.mock('@/lib/media/ffmpeg-process', () => ({
 }))
 vi.mock('@/lib/uploads/core/storage-service', () => storageServiceMock)
 vi.mock('@/lib/file-parsers', () => fileParsersMock)
+// Nexora API calls go through a long-wait fetch; the test answers them with its stubbed global fetch.
+vi.mock('@/lib/nexora/long-fetch.server', () => ({
+  nexoraLongFetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
+}))
 vi.mock('@/lib/uploads/utils/file.server', () => fileUtilsServerMock)
 
 import { ProviderCapacityDeferredError } from '@/lib/core/rate-limiter/provider-capacity-error'

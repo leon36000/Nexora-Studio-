@@ -149,11 +149,28 @@ function verbatimParse(raw: string): JSONContent[] {
   return trimmed ? [{ type: 'text', text: trimmed }] : []
 }
 
+export type RawMarkdownBadge = 'rawHtml' | 'footnote' | 'footnoteRef'
+
+/**
+ * The text of the badge each verbatim node wears. Tiptap builds these nodes outside React, so the
+ * editor hands over the interface-language texts (`setRawMarkdownBadgeLabels`) before it creates
+ * its extensions; the original English is what shows until then.
+ */
+const badgeLabels: Record<RawMarkdownBadge, string> = {
+  rawHtml: 'Raw HTML',
+  footnote: 'Footnote',
+  footnoteRef: 'Footnote ref',
+}
+
+export function setRawMarkdownBadgeLabels(labels: Record<RawMarkdownBadge, string>) {
+  Object.assign(badgeLabels, labels)
+}
+
 interface VerbatimNodeOptions {
   name: string
   /** Whether this node sits among block content (own line) or inline content (mid-paragraph). */
   inline: boolean
-  badgeLabel: string
+  badge: RawMarkdownBadge
 }
 
 /**
@@ -163,7 +180,7 @@ interface VerbatimNodeOptions {
  * off the returned config by `@tiptap/markdown`'s `MarkdownManager` (see
  * `node_modules/@tiptap/markdown/src/MarkdownManager.ts`), independent of the node's `name`.
  */
-function verbatimNodeConfig({ name, inline, badgeLabel }: VerbatimNodeOptions) {
+function verbatimNodeConfig({ name, inline, badge }: VerbatimNodeOptions) {
   return {
     name,
     inline,
@@ -191,7 +208,7 @@ function verbatimNodeConfig({ name, inline, badgeLabel }: VerbatimNodeOptions) {
         inline ? 'span' : 'div',
         mergeAttributes(HTMLAttributes, {
           'data-raw-markdown': name,
-          'data-raw-markdown-label': badgeLabel,
+          'data-raw-markdown-label': badgeLabels[badge],
           class: inline ? 'raw-markdown-inline' : 'raw-markdown-block',
         }),
         0,
@@ -326,7 +343,7 @@ function tokenizeRawHtmlBlockTag(src: string): MarkdownToken | undefined {
 const SKIP_BLOCK_HTML_TAGS = /^<(img|br)\b[^>]*\/?>\s*$/i
 
 export const RawHtmlBlock = Node.create({
-  ...verbatimNodeConfig({ name: 'rawHtmlBlock', inline: false, badgeLabel: 'Raw HTML' }),
+  ...verbatimNodeConfig({ name: 'rawHtmlBlock', inline: false, badge: 'rawHtml' }),
   markdownTokenName: 'html',
   markdownTokenizer: {
     name: 'rawHtmlBlockTag',
@@ -387,7 +404,7 @@ function tokenizeFootnoteDef(src: string): MarkdownToken | undefined {
  * marked has no footnote syntax at all, so without this tokenizer the definition is swallowed as a
  * plain paragraph and the reference/definition link is lost. */
 export const FootnoteDef = Node.create({
-  ...verbatimNodeConfig({ name: 'footnoteDef', inline: false, badgeLabel: 'Footnote' }),
+  ...verbatimNodeConfig({ name: 'footnoteDef', inline: false, badge: 'footnote' }),
   markdownTokenName: 'footnoteDef',
   markdownTokenizer: {
     name: 'footnoteDef',
@@ -409,7 +426,7 @@ const FOOTNOTE_REF_RE = /^\[\^[^\]]+\]/
 
 /** Footnote reference (`text[^id]`) — verbatim passthrough, same rationale as {@link FootnoteDef}. */
 export const FootnoteRef = Node.create({
-  ...verbatimNodeConfig({ name: 'footnoteRef', inline: true, badgeLabel: 'Footnote ref' }),
+  ...verbatimNodeConfig({ name: 'footnoteRef', inline: true, badge: 'footnoteRef' }),
   markdownTokenName: 'footnoteRef',
   markdownTokenizer: {
     name: 'footnoteRef',
@@ -464,7 +481,7 @@ function tokenizeRawInlineHtml(src: string): MarkdownToken | undefined {
  * `blockTokens`/`inlineTokens` in `node_modules/marked/lib/marked.esm.js`), so this reliably wins
  * the race against marked's default inline HTML/tag tokenizer. */
 export const RawInlineHtml = Node.create({
-  ...verbatimNodeConfig({ name: 'rawInlineHtml', inline: true, badgeLabel: 'Raw HTML' }),
+  ...verbatimNodeConfig({ name: 'rawInlineHtml', inline: true, badge: 'rawHtml' }),
   markdownTokenName: 'rawInlineHtml',
   markdownTokenizer: {
     name: 'rawInlineHtml',

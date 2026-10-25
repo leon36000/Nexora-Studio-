@@ -35,7 +35,7 @@ export interface MicrosoftDataverseCredentialPolicy {
 }
 
 const DEFAULT_POLICY: MicrosoftDataverseCredentialPolicy = {
-  actionLabel: 'Update access',
+  actionLabel: 'Update access', // i18n-ignore: not displayed, the UI renders actionLabelKey
   actionLabelKey: 'updateAccess',
   applies: false,
   bindingState: null,

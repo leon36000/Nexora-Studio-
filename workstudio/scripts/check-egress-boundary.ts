@@ -78,6 +78,10 @@ const ALLOWED = new Set([
   'apps/sim/lib/internal/oracledb/connect-proxy.ts',
   // Streaming MCP transport, built on the guard's pinned dispatcher.
   'apps/sim/lib/mcp/pinned-fetch.ts',
+  // Calls to Nexora API, the instance's own service at the address the administrator sets
+  // (VLLM_BASE_URL): never a user- or model-supplied URL. Only the wait differs from the runtime's
+  // fetch (20 minutes instead of 5 for the response headers).
+  'apps/sim/lib/nexora/long-fetch.server.ts',
 ])
 
 function walk(dir: string, out: string[] = []): string[] {

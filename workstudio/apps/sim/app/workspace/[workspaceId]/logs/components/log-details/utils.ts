@@ -2,6 +2,7 @@ import type React from 'react'
 import { perceivedBrightness } from '@sim/utils/color'
 import { AgentSkillsIcon, WorkflowIcon } from '@/components/icons'
 import { formatCreditCost } from '@/lib/billing/credits/conversion'
+import type { Locale } from '@/lib/i18n/config'
 import { hasUnhandledError } from '@/lib/logs/execution/trace-spans/trace-spans'
 import type { TraceSpan } from '@/lib/logs/types'
 import { LoopTool } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/subflows/loop/loop-config'
@@ -102,9 +103,17 @@ export function parseTime(value?: string | number | null): number {
   return Number.isFinite(ms) ? ms : 0
 }
 
-export function formatTokenCount(value: number | undefined): string | undefined {
+/** Thousands are grouped the way the interface language writes them (`12 345` / `12,345`). */
+function numberLocale(locale: Locale): string {
+  return locale === 'fr' ? 'fr-FR' : 'en-US'
+}
+
+export function formatTokenCount(
+  value: number | undefined,
+  locale: Locale = 'en'
+): string | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined
-  return value.toLocaleString('en-US')
+  return value.toLocaleString(numberLocale(locale))
 }
 
 export function formatTtft(ms: number | undefined): string | undefined {
@@ -115,12 +124,13 @@ export function formatTtft(ms: number | undefined): string | undefined {
 
 export function formatTps(
   outputTokens: number | undefined,
-  durationMs: number
+  durationMs: number,
+  locale: Locale = 'en'
 ): string | undefined {
   if (typeof outputTokens !== 'number' || !(outputTokens > 0)) return undefined
   if (!(durationMs > 0)) return undefined
   const tps = Math.round(outputTokens / (durationMs / 1000))
-  return tps > 0 ? `${tps.toLocaleString('en-US')} tok/s` : undefined
+  return tps > 0 ? `${tps.toLocaleString(numberLocale(locale))} tok/s` : undefined
 }
 
 export function getDisplayName(span: TraceSpan): string {
