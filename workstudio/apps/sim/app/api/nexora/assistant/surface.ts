@@ -125,6 +125,7 @@ export function presentMessage(message: AssistantMessageRecord) {
     files: (message.files ?? []).map(({ name, type, size }) => ({ name, type, size })),
     usage: message.usage,
     interrupted: message.interrupted,
+    card: message.card,
     createdAt: message.createdAt.toISOString(),
   }
 }

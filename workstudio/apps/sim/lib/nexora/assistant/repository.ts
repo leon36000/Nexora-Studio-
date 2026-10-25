@@ -1,6 +1,7 @@
 import { db } from '@sim/db'
 import { memory, nexoraAssistantConversation, nexoraAssistantMessage } from '@sim/db/schema'
 import { generateId } from '@sim/utils/id'
+import { type AssistantCard, assistantCardSchema } from '@/lib/api/contracts/nexora-assistant'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { lockMemoryConversationInTx } from '@/lib/memory/locks'
 import { memberMemoryKey } from '@/lib/nexora/member-memory'
@@ -36,6 +37,9 @@ export interface AssistantConversationRecord {
   updatedAt: Date
 }
 
+/** A card the thread shows in place of text (a workflow run, a task just created). */
+export type AssistantMessageCard = AssistantCard
+
 export interface AssistantMessageRecord {
   id: string
   conversationId: string
@@ -44,6 +48,7 @@ export interface AssistantMessageRecord {
   files: AssistantMessageFile[] | null
   usage: AssistantMessageUsage | null
   interrupted: boolean
+  card: AssistantMessageCard | null
   createdAt: Date
 }
 
@@ -53,6 +58,7 @@ export interface NewAssistantMessage {
   usage?: AssistantMessageUsage
   interrupted?: boolean
   files?: AssistantMessageFile[]
+  card?: AssistantMessageCard
 }
 
 const conversationColumns = {
@@ -84,7 +90,10 @@ function toMessageRecord(row: StoredMessageRow): AssistantMessageRecord {
   if (row.role !== 'user' && row.role !== 'assistant') {
     throw new Error(`Assistant message ${row.id} has an unknown role`)
   }
-  return { ...row, role: row.role }
+  const { kind, payload, ...rest } = row
+  // A stored card that no longer fits its schema is shown as no card rather than failing the read.
+  const parsed = assistantCardSchema.safeParse({ kind, payload })
+  return { ...rest, role: row.role, card: parsed.success ? parsed.data : null }
 }
 
 /** One member's conversations of one workspace, most recently active first. */
@@ -171,6 +180,29 @@ export async function deleteConversation(
 }
 
 /**
+ * Replaces the card of a message of the conversation, when that message already is a card of the
+ * same kind (a run waiting for a validation, once answered). `null` when it is not.
+ */
+export async function updateMessageCard(
+  conversationId: string,
+  messageId: string,
+  card: AssistantMessageCard
+): Promise<AssistantMessageRecord | null> {
+  const [row] = await db
+    .update(nexoraAssistantMessage)
+    .set({ payload: card.payload })
+    .where(
+      and(
+        eq(nexoraAssistantMessage.id, messageId),
+        eq(nexoraAssistantMessage.conversationId, conversationId),
+        eq(nexoraAssistantMessage.kind, card.kind)
+      )
+    )
+    .returning()
+  return row ? toMessageRecord(row) : null
+}
+
+/**
  * Stores one message and marks the conversation active, atomically. `null` when the
  * conversation was deleted meanwhile: nothing is stored.
  */
@@ -197,6 +229,8 @@ export async function insertMessage(
         files: (message.files ?? null) as StoredMessageRow['files'],
         usage: message.usage ?? null,
         interrupted: message.interrupted ?? false,
+        kind: message.card?.kind ?? null,
+        payload: message.card?.payload ?? null,
         createdAt: now,
       })
       .returning()

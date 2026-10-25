@@ -15,8 +15,10 @@ import {
   listConversations,
   listMessages,
   loadConversation,
+  type AssistantMessageCard,
   type NewAssistantMessage,
   updateConversationTitle,
+  updateMessageCard,
 } from '@/lib/nexora/assistant/repository'
 import {
   type ActiveWorkspaceApplicationContext,
@@ -229,8 +231,35 @@ export const appendAssistantMessage = defineAuthorizedWorkspaceUseCase({
       usage: input.usage,
       interrupted: input.interrupted,
       files: input.files,
+      card: input.card,
     })
     if (!message) conversationNotFound()
+    return { message }
+  },
+})
+
+interface UpdateMessageInput extends ConversationInput {
+  messageId: string
+  card: AssistantMessageCard
+}
+
+/**
+ * Replaces the card of a message of the member's own conversation (a workflow run, once its
+ * validation was answered). A message that is not a card of that kind is not found.
+ */
+export const updateAssistantMessage = defineAuthorizedWorkspaceUseCase({
+  operation: assistantOperations.updateMessage,
+  resolveContext: ({
+    principal,
+    input,
+  }: {
+    principal: SessionPrincipal
+    input: UpdateMessageInput
+  }) => resolveOwnedConversationContext(principal, input.conversationId),
+  authorizationOptions: {},
+  async execute({ context, input }) {
+    const message = await updateMessageCard(context.conversation.id, input.messageId, input.card)
+    if (!message) throw new OrchestrationError('not_found', 'Message not found')
     return { message }
   },
 })

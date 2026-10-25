@@ -119,3 +119,71 @@ export const listAssistantTaskRunsContract = defineRouteContract({
   params: taskIdParamsSchema,
   response: { mode: 'json', schema: z.object({ runs: z.array(assistantTaskRunSchema) }) },
 })
+
+const workflowIdParamsSchema = z.object({
+  workflowId: z.string().min(1, 'Workflow ID is required').max(128, 'Workflow ID is too long'),
+})
+
+const assistantWorkflowFieldSchema = z.object({
+  name: z.string(),
+  label: z.string(),
+  type: z.enum(['string', 'number', 'boolean', 'json']),
+  required: z.boolean(),
+  example: z.string(),
+})
+export type AssistantWorkflowField = z.output<typeof assistantWorkflowFieldSchema>
+
+const assistantWorkflowSchema = z.object({
+  workflowId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  /** The form: the fields of the workflow's Start block. */
+  fields: z.array(assistantWorkflowFieldSchema),
+  /** The workflow asks for files, which the form cannot send. */
+  needsFiles: z.boolean(),
+})
+export type AssistantWorkflow = z.output<typeof assistantWorkflowSchema>
+
+/** The workflows a writer published for the Assistant, with their forms. */
+export const listAssistantWorkflowsContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/nexora/assistant/workflows',
+  query: z.object({ workspaceId: workspaceIdSchema }),
+  response: { mode: 'json', schema: z.object({ workflows: z.array(assistantWorkflowSchema) }) },
+})
+
+const publishableWorkflowSchema = z.object({
+  workflowId: z.string(),
+  name: z.string(),
+  isDeployed: z.boolean(),
+  published: z.boolean(),
+})
+export type PublishableAssistantWorkflow = z.output<typeof publishableWorkflowSchema>
+
+/** What a writer may publish (writers only). */
+export const listPublishableAssistantWorkflowsContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/nexora/assistant/workflows/publishable',
+  query: z.object({ workspaceId: workspaceIdSchema }),
+  response: {
+    mode: 'json',
+    schema: z.object({ workflows: z.array(publishableWorkflowSchema) }),
+  },
+})
+
+/** Publishes the workflow for the Assistant, deploying it first when it is not (writers only). */
+export const publishAssistantWorkflowContract = defineRouteContract({
+  method: 'PUT',
+  path: '/api/nexora/assistant/workflows/[workflowId]',
+  params: workflowIdParamsSchema,
+  body: z.object({ workspaceId: workspaceIdSchema }),
+  response: { mode: 'json', schema: z.object({ success: z.literal(true) }) },
+})
+
+export const unpublishAssistantWorkflowContract = defineRouteContract({
+  method: 'DELETE',
+  path: '/api/nexora/assistant/workflows/[workflowId]',
+  params: workflowIdParamsSchema,
+  query: z.object({ workspaceId: workspaceIdSchema }),
+  response: { mode: 'json', schema: z.object({ success: z.literal(true) }) },
+})

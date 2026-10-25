@@ -65,6 +65,12 @@ export const assistantOperations = {
     capability: 'none',
   }),
   // permission-group-exempt: a member's own private conversations, under workspace membership only.
+  updateMessage: defineWorkspaceOperation({
+    id: 'nexora.assistant.messages.update',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: a member's own private conversations, under workspace membership only.
   appendMessage: defineWorkspaceOperation({
     id: 'nexora.assistant.messages.append',
     ...ASSISTANT_POLICY,
@@ -108,6 +114,33 @@ export const assistantOperations = {
   listTaskRuns: defineWorkspaceOperation({
     id: 'nexora.assistant.tasks.runs',
     ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: lists the workflows a writer made available, which members may already run.
+  listWorkflows: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.list',
+    ...ASSISTANT_POLICY,
+    capability: 'none',
+  }),
+  // permission-group-exempt: only lists names a writer already sees in the editor.
+  listPublishableWorkflows: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.listPublishable',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
+    capability: 'none',
+  }),
+  /** Publishing deploys the workflow when it is not, hence the deployment capability. */
+  publishWorkflow: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.publish',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
+    capability: 'deploy.api',
+  }),
+  // permission-group-exempt: withdraws a workflow from the Assistant; nothing is deployed or removed.
+  unpublishWorkflow: defineWorkspaceOperation({
+    id: 'nexora.assistant.workflows.unpublish',
+    ...ASSISTANT_POLICY,
+    minimumRole: 'write',
     capability: 'none',
   }),
   // permission-group-exempt: lists the workspace's skills' names, which every member may already read.

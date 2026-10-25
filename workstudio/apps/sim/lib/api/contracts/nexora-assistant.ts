@@ -61,6 +61,52 @@ const assistantMessageUsageSchema = z.object({
   completionTokens: z.number().int().min(0, 'completionTokens cannot be negative'),
 })
 
+const workflowRunPayloadSchema = z.object({
+  workflowId: z.string().min(1).max(128),
+  name: z.string().max(255),
+  executionId: z.string().max(128).nullable(),
+  status: z.enum(['completed', 'paused', 'failed']),
+  /** What the person typed in the form, to show above the result. */
+  inputs: z.record(z.string().max(128), z.string().max(4_000)).optional(),
+  output: z.string().max(ASSISTANT_MESSAGE_MAX_LENGTH).nullable(),
+  error: z.string().max(4_000).nullable(),
+  /** The validation the run waits for, until someone answers it. */
+  pause: z
+    .object({
+      /** Where the answer is sent: the resume API of this application, nothing else. */
+      resumePath: z.string().regex(/^\/api\/resume\/[\w-]{1,128}\/[\w-]{1,128}\/[\w-]{1,128}$/),
+      message: z.string().max(4_000).nullable(),
+      fields: z
+        .array(
+          z.object({
+            name: z.string().min(1).max(128),
+            label: z.string().max(500),
+            type: z.enum(['string', 'number', 'boolean']),
+            required: z.boolean(),
+          })
+        )
+        .max(20),
+    })
+    .nullable()
+    .optional(),
+  resolution: z.enum(['approved', 'refused']).nullable().optional(),
+})
+
+const taskPayloadSchema = z.object({
+  taskId: z.string().min(1).max(128),
+  title: z.string().max(255),
+  /** When the task runs, as a French sentence. */
+  schedule: z.string().max(255),
+  request: z.string().max(2_000),
+})
+
+/** A card the thread shows in place of text: a workflow run, or a scheduled task just created. */
+export const assistantCardSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('workflow_run'), payload: workflowRunPayloadSchema }),
+  z.object({ kind: z.literal('task'), payload: taskPayloadSchema }),
+])
+export type AssistantCard = z.output<typeof assistantCardSchema>
+
 const assistantMessageSchema = z.object({
   id: z.string(),
   conversationId: z.string(),
@@ -69,6 +115,7 @@ const assistantMessageSchema = z.object({
   files: z.array(assistantMessageFileSchema),
   usage: assistantMessageUsageSchema.nullable(),
   interrupted: z.boolean(),
+  card: assistantCardSchema.nullable(),
   createdAt: z.string(),
 })
 export type AssistantMessage = z.output<typeof assistantMessageSchema>
@@ -172,13 +219,31 @@ const appendAssistantMessageBodySchema = z
       .array(assistantMessageFileSchema)
       .max(MAX_ATTACHED_FILES, `files cannot exceed ${MAX_ATTACHED_FILES} items`)
       .optional(),
+    /** Only an answer can be a card. */
+    card: assistantCardSchema.optional(),
   })
   .superRefine((body, ctx) => {
     if (body.role === 'user' && body.content.trim() === '') {
       ctx.addIssue({ code: 'custom', path: ['content'], message: 'A question cannot be empty' })
     }
+    if (body.card && body.role !== 'assistant') {
+      ctx.addIssue({ code: 'custom', path: ['card'], message: 'Only an answer can be a card' })
+    }
   })
 export type AppendAssistantMessageBody = z.input<typeof appendAssistantMessageBodySchema>
+
+const messageParamsSchema = conversationParamsSchema.extend({
+  messageId: z.string().min(1, 'Message ID is required').max(128, 'Message ID is too long'),
+})
+
+/** Replaces the card of a message that already is one of that kind (a run once validated). */
+export const updateAssistantMessageContract = defineRouteContract({
+  method: 'PATCH',
+  path: '/api/nexora/assistant/conversations/[id]/messages/[messageId]',
+  params: messageParamsSchema,
+  body: z.object({ card: assistantCardSchema }),
+  response: { mode: 'json', schema: z.object({ message: assistantMessageSchema }) },
+})
 
 export const appendAssistantMessageContract = defineRouteContract({
   method: 'POST',
