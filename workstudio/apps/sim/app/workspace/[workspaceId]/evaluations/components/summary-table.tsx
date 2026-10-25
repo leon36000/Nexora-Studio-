@@ -9,7 +9,7 @@ import {
 } from '@/app/workspace/[workspaceId]/evaluations/utils/format'
 import { formatCo2, formatDuration } from '@/app/workspace/[workspaceId]/traces/utils/span-tree'
 
-export interface SummaryRow {
+interface SummaryRow {
   key: string
   label: string
   summary: NexoraEvalSummary

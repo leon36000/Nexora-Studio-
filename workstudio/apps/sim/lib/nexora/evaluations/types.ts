@@ -21,20 +21,20 @@ export interface JudgeSubject {
   guidance: string | null
 }
 
-export interface ContainsRuleConfig {
+interface ContainsRuleConfig {
   kind: 'contains'
   /** The text to find, or `null` to look for the row's expected answer. */
   value: string | null
   caseSensitive: boolean
 }
 
-export interface RegexRuleConfig {
+interface RegexRuleConfig {
   kind: 'regex'
   pattern: string
   caseSensitive: boolean
 }
 
-export interface JsonValidRuleConfig {
+interface JsonValidRuleConfig {
   kind: 'json_valid'
   /** Keys the JSON object must have; none asks only for valid JSON. */
   requiredKeys: string[]

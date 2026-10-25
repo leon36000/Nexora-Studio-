@@ -312,7 +312,6 @@ const importSourcesSchema = z.object({
     z.object({ id: z.string(), title: z.string(), updatedAt: z.iso.datetime() })
   ),
 })
-export type NexoraEvalImportSources = z.output<typeof importSourcesSchema>
 
 export const listEvalImportSourcesContract = defineRouteContract({
   method: 'GET',
@@ -355,7 +354,6 @@ const campaignStatusSchema = z.enum([
   'interrupted',
   'failed',
 ])
-export type NexoraEvalCampaignStatus = z.output<typeof campaignStatusSchema>
 
 const campaignSchema = z.object({
   id: z.string(),
@@ -608,6 +606,22 @@ const alertSchema = z.object({
   acknowledgedAt: z.iso.datetime().nullable(),
 })
 export type NexoraEvalAlert = z.output<typeof alertSchema>
+
+/** The cron tick; `asOf` plays the clock of another moment (a night schedule under test). */
+export const runEvalCronContract = defineRouteContract({
+  method: 'GET',
+  path: '/api/cron/run-nexora-evaluations',
+  query: z.object({ asOf: z.iso.datetime().optional() }),
+  response: {
+    mode: 'json',
+    schema: z.object({
+      success: z.literal(true),
+      started: z.array(z.string()),
+      failed: z.array(z.string()),
+      resumed: z.array(z.string()),
+    }),
+  },
+})
 
 export const listEvalAlertsContract = defineRouteContract({
   method: 'GET',

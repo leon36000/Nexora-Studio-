@@ -35,7 +35,6 @@ import {
   compareSeries,
   type SeriesItem,
   summarizeItems,
-  type TargetSummary,
 } from '@/lib/nexora/evaluations/stats'
 import {
   type JudgeConfig,
@@ -821,5 +820,3 @@ export const acknowledgeAlertUseCase = defineAuthorizedWorkspaceUseCase({
     description: 'Acknowledged evaluation alert',
   }),
 })
-
-export type { TargetSummary }

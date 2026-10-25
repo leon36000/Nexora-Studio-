@@ -103,7 +103,7 @@
 - `nexoraWandComplete(input: { messages; signal?; responseFormat?; trace?; model?: string; temperature?: number; maxTokens?: number }): Promise<{ text: string; usage: WandUsage }>`
 - `buildJudgeMessages(config: LlmJudgeConfig, subject: JudgeSubject): WandMessage[]` ; `parseJudgeReply(config: LlmJudgeConfig, reply: string): JudgeOutcome`
 - `runJudge(config: JudgeConfig, subject: JudgeSubject, deps: JudgeDeps): Promise<JudgeOutcome & { usage: WandUsage | null }>` où `JudgeDeps = { complete: (…) => …; embed: (texts: string[], model: string) => Promise<number[][]> }`
-- `cosineSimilarity(a: number[], b: number[]): number` ; `embedTexts(texts: string[], model: string, signal?: AbortSignal): Promise<number[][]>` (Ollama de l'instance, `/api/embed`, comme les bases de connaissances)
+- `cosineSimilarity(a: number[], b: number[]): number` ; `embedTexts(texts: string[], model: string, signal?: AbortSignal): Promise<number[][]>` (Ollama de l'instance, `/api/embed`, comme les bases de connaissances) (Ollama de l'instance, `/api/embed`, comme les bases de connaissances)
 
 - [x] **Étape 1 : tests rouges** : réponse `{"verdict":"correct","note":"…"}` ; clôture ```json ; `<think>` en tête ; texte libre ⇒ `error` avec la réponse brute ; classification : étiquette hors liste ⇒ `error` ; note : `7/10` et `{"score":7}` lus, hors bornes ⇒ `error`, seuil `passAt` ; sémantique : cosinus de vecteurs colinéaires = 1, orthogonaux = 0, vecteur nul ⇒ 0 sans NaN, seuil ; `nexoraWandComplete` envoie le modèle, la température 0 et `max_tokens` demandés.
 - [x] **Étape 2 : rouge, implémenter, vert.**
@@ -174,35 +174,35 @@
 
 **Fichiers :** `app/workspace/[workspaceId]/evaluations/**`, `hooks/queries/nexora-evaluations.ts`, `messages/{fr,en}/evaluations.json`, `i18n/messages.ts`, `sidebar.tsx`, `i18n-covered-dirs.txt`.
 
-- [ ] **Étape 1 : crochets React Query** (clés hiérarchiques, `signal`, invalidation).
-- [ ] **Étape 2 : page** `evaluations` : bandeau d'alertes (accusé de réception), onglets Campagnes / Jeux de tests / Juges / Planifications (nuqs `onglet`), listes et fenêtres de création ; rafraîchissement automatique des campagnes en cours.
-- [ ] **Étape 3 : pages** jeu de tests (lignes, ajout, annotations) et campagne (progression, tableau de synthèse par cible, matrice lignes × cibles, annulation, bouton « Comparer ») ; page de comparaison `evaluations/comparer`.
-- [ ] **Étape 4 : fenêtres** import d'un jeu (fichier CSV/JSONL, table, traces, conversations avec case d'accord), juge (type, consignes, « Essayer » sur 10 lignes avec accord), campagne (jeu, juge, cibles, concurrence, seuil), planification (cron simple ou expression, fuseau, seuil).
-- [ ] **Étape 5 : vérifier** `check-i18n`, `check-brand`, `type-check`, parcours au navigateur (captures `docs/verification/k10-evaluations/`).
-- [ ] **Étape 6 : commit.**
+- [x] **Étape 1 : crochets React Query** (clés hiérarchiques, `signal`, invalidation).
+- [x] **Étape 2 : page** `evaluations` : bandeau d'alertes (accusé de réception), onglets Campagnes / Jeux de tests / Juges / Planifications (nuqs `onglet`), listes et fenêtres de création ; rafraîchissement automatique des campagnes en cours.
+- [x] **Étape 3 : pages** jeu de tests (lignes, ajout, annotations) et campagne (progression, tableau de synthèse par cible, matrice lignes × cibles, annulation, bouton « Comparer ») ; page de comparaison `evaluations/comparer`.
+- [x] **Étape 4 : fenêtres** import d'un jeu (fichier CSV/JSONL, table, traces, conversations avec case d'accord), juge (type, consignes, « Essayer » sur 10 lignes avec accord), campagne (jeu, juge, cibles, concurrence, seuil), planification (cron simple ou expression, fuseau, seuil).
+- [x] **Étape 5 : vérifier** `check-i18n`, `check-brand`, `type-check`, parcours au navigateur (captures `docs/verification/k10-evaluations/`).
+- [x] **Étape 6 : commit.**
 
 ### Tâche 11 : Jeu « FAQ tarifs » et preuves réelles
 
 **Fichiers :** `docs/verification/k10-faq/` : `faq-tarifs.jsonl` (30 questions, réponses attendues, consigne de notation, 10 annotations avec réponse candidate, verdict et justification), `prompt-v1.md`, `prompt-v2.md`, `lancer.py` (crée jeu, juge, prompts, campagne ; mesure l'accord ; planification), `rapport.md`.
 
-- [ ] **Étape 1 : écrire le jeu** (grille tarifaire fictive cohérente, 30 questions variées : prix, remises, durées, options, cas limites « non communiqué »).
-- [ ] **Étape 2 : campagne réelle** sur pc6 (serveur de développement 127.0.0.1:3217 contre la pile) : `qwen2.5:7b` + prompt v2, GLM 5.3 + prompt v1, GLM 5.3 + prompt v2 ; le tableau de comparaison est affiché ; mesures de durée.
-- [ ] **Étape 3 : accord du juge** avec les 10 annotations ≥ 80 % (« Essayer ») ; si en dessous, ajuster les consignes du juge (pas les annotations).
-- [ ] **Étape 4 : campagne planifiée** la nuit (`0 3 * * *`, Europe/Paris) déclenchée par le cron avec `asOf` simulé ⇒ alerte sous le seuil (bandeau, e-mail capturé par le Mailpit de pc6 si SMTP essayé).
-- [ ] **Étape 5 : commit des preuves.**
+- [x] **Étape 1 : écrire le jeu** (grille tarifaire fictive cohérente, 30 questions variées : prix, remises, durées, options, cas limites « non communiqué »).
+- [x] **Étape 2 : campagne réelle** sur pc6 (serveur de développement 127.0.0.1:3217 contre la pile) : `qwen2.5:7b` + prompt v2, GLM 5.3 + prompt v1, GLM 5.3 + prompt v2 ; le tableau de comparaison est affiché ; mesures de durée.
+- [x] **Étape 3 : accord du juge** avec les 10 annotations ≥ 80 % (« Essayer ») ; si en dessous, ajuster les consignes du juge (pas les annotations).
+- [x] **Étape 4 : campagne planifiée** la nuit (`0 3 * * *`, Europe/Paris) déclenchée par le cron avec `asOf` simulé ⇒ alerte sous le seuil (bandeau, e-mail capturé par le Mailpit de pc6 si SMTP essayé).
+- [x] **Étape 5 : commit des preuves.**
 
 ### Tâche 12 : Guide, fumée, ledger
 
 **Fichiers :** `docs/guide/evaluations.md`, index des guides, `scripts/smoke.py` (contrôle « Évaluations »), `docs/superpowers/plans/2026-10-23-nexora-v3-ledger.md` (section K10).
 
-- [ ] **Étape 1 : guide en français** (jeux, juges, campagnes, lecture des statistiques, comparaison, seuils, planification, limites).
-- [ ] **Étape 2 : fumée** : jeu de 3 lignes, juge « contient », campagne sur un modèle, statistiques, comparaison de deux cibles, annulation, alerte d'une planification avec `asOf`.
-- [ ] **Étape 3 : ledger** : décisions « Ruling : … — pourquoi — coût si faux », preuves, vérifications à faire après déploiement.
-- [ ] **Étape 4 : commit.**
+- [x] **Étape 1 : guide en français** (jeux, juges, campagnes, lecture des statistiques, comparaison, seuils, planification, limites).
+- [x] **Étape 2 : fumée** : jeu de 3 lignes, juge « contient », campagne sur un modèle, statistiques, comparaison de deux cibles, annulation, alerte d'une planification avec `asOf`.
+- [x] **Étape 3 : ledger** : décisions « Ruling : … — pourquoi — coût si faux », preuves, vérifications à faire après déploiement.
+- [x] **Étape 4 : commit.**
 
 ### Tâche 13 : Fusion et vérifications finales
 
-- [ ] `git merge main` (résoudre les conflits).
-- [ ] `biome check` sur les fichiers touchés ; `bun run type-check` ; `check:audits` ; `check:test-types` ; `check:api-validation:strict` ; `check:migrations` ; suite complète `LANG=en_US.UTF-8 bun run --cwd workstudio/apps/sim test` ; `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`.
-- [ ] Arrêter le serveur de développement et le Postgres jetable, supprimer `.next/dev`.
-- [ ] Commit final sur la branche (sans pousser ni fusionner dans `main`).
+- [x] `git merge main` (résoudre les conflits).
+- [x] `biome check` sur les fichiers touchés ; `bun run type-check` ; `check:audits` ; `check:test-types` ; `check:api-validation:strict` ; `check:migrations` ; suite complète `LANG=en_US.UTF-8 bun run --cwd workstudio/apps/sim test` ; `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`.
+- [x] Arrêter le serveur de développement et le Postgres jetable, supprimer `.next/dev`.
+- [x] Commit final sur la branche (sans pousser ni fusionner dans `main`).

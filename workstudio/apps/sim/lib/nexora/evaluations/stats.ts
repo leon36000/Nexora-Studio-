@@ -98,7 +98,7 @@ export interface SeriesItem {
   latencyMs: number | null
 }
 
-export type RowChange = 'improved' | 'regressed' | 'same' | 'only_a' | 'only_b'
+type RowChange = 'improved' | 'regressed' | 'same' | 'only_a' | 'only_b'
 
 export interface ComparedRow {
   rowId: string

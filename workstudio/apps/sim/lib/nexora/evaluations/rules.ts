@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@sim/utils/errors'
 import { compileLinearRegex } from '@/lib/core/security/linear-regex'
 import type { JudgeOutcome, JudgeSubject, RuleJudgeConfig } from '@/lib/nexora/evaluations/types'
 
@@ -78,7 +79,7 @@ function evaluateJson(
   try {
     parsed = JSON.parse(stripFence(subject.answer))
   } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : 'syntaxe invalide'
+    const detail = getErrorMessage(cause, 'syntaxe invalide')
     return fail(`JSON invalide : ${detail}`)
   }
   if (config.requiredKeys.length === 0) return pass('JSON valide.')

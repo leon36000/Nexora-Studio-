@@ -1,6 +1,8 @@
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { type NextRequest, NextResponse } from 'next/server'
+import { runEvalCronContract } from '@/lib/api/contracts/nexora-evaluations'
+import { parseRequest } from '@/lib/api/server'
 import { verifyCronAuth } from '@/lib/auth/internal'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { tickEvaluations } from '@/lib/nexora/evaluations/live'
@@ -20,13 +22,12 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
   const authError = verifyCronAuth(request, 'evaluation schedules')
   if (authError) return authError
 
-  const asOf = request.nextUrl.searchParams.get('asOf')
-  const now = asOf ? new Date(asOf) : new Date()
-  if (Number.isNaN(now.getTime())) {
-    return NextResponse.json({ error: 'asOf must be an ISO date' }, { status: 400 })
-  }
+  const parsed = await parseRequest(runEvalCronContract, request, {})
+  if (!parsed.success) return parsed.response
+  const { asOf } = parsed.data.query
+
   try {
-    const summary = await tickEvaluations(now)
+    const summary = await tickEvaluations(asOf ? new Date(asOf) : new Date())
     if (summary.started.length > 0 || summary.resumed.length > 0 || summary.failed.length > 0) {
       logger.info('Evaluation schedules ticked', summary)
     }

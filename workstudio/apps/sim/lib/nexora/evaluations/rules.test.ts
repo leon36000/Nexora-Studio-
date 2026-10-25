@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { evaluateRule, validateRuleConfig } from '@/lib/nexora/evaluations/rules'
+import type { RuleJudgeConfig } from '@/lib/nexora/evaluations/types'
 
 const subject = (answer: string, expected: string | null = null) => ({
   input: 'Quelle est la question ?',
@@ -66,7 +67,7 @@ describe('règle « expression régulière »', () => {
 })
 
 describe('règle « JSON valide »', () => {
-  const plain = { kind: 'json_valid', requiredKeys: [] } as const
+  const plain: RuleJudgeConfig = { kind: 'json_valid', requiredKeys: [] }
 
   it('accepte un objet, un tableau et un JSON entouré d’une clôture', () => {
     expect(evaluateRule(plain, subject('{"a": 1}')).verdict).toBe('pass')
@@ -81,7 +82,7 @@ describe('règle « JSON valide »', () => {
   })
 
   it('exige les clés demandées sur un objet', () => {
-    const config = { kind: 'json_valid', requiredKeys: ['prix', 'devise'] } as const
+    const config: RuleJudgeConfig = { kind: 'json_valid', requiredKeys: ['prix', 'devise'] }
     expect(evaluateRule(config, subject('{"prix": 3, "devise": "EUR"}')).verdict).toBe('pass')
     const missing = evaluateRule(config, subject('{"prix": 3}'))
     expect(missing.verdict).toBe('fail')

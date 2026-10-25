@@ -1,5 +1,10 @@
 import { createSessionPrincipal } from '@sim/testing/factories/principal.factory'
 import { auditMock, auditMockFns } from '@sim/testing/mocks/audit.mock'
+import {
+  tableRowsServiceMock,
+  tableRowsServiceMockFns,
+} from '@sim/testing/mocks/table-rows-service.mock'
+import { tableServiceMock, tableServiceMockFns } from '@sim/testing/mocks/table-service.mock'
 import { workspaceAuthzMock, workspaceAuthzMockFns } from '@sim/testing/mocks/workspace-authz.mock'
 import {
   workspaceContextMock,
@@ -39,8 +44,8 @@ vi.mock('@/lib/nexora/traces/repository', () => ({
 }))
 vi.mock('@/lib/nexora/traces/viewer', () => ({ resolveTraceViewer: traces.resolveTraceViewer }))
 vi.mock('@/lib/nexora/assistant/repository', () => assistant)
-vi.mock('@/lib/table/service', () => ({ getTableById: vi.fn(), listTables: vi.fn() }))
-vi.mock('@/lib/table/rows/service', () => ({ queryRows: vi.fn() }))
+vi.mock('@/lib/table/service', () => tableServiceMock)
+vi.mock('@/lib/table/rows/service', () => tableRowsServiceMock)
 
 import {
   cancelCampaignUseCase,
@@ -234,6 +239,47 @@ describe('evaluation use cases', () => {
           rows: [expect.objectContaining({ input: 'Prix ?', sourceRef: 'trace:trace-1' })],
         })
       )
+    })
+
+    it('imports a table of the workspace by its column names, whatever keys the rows use', async () => {
+      tableServiceMockFns.mockGetTableById.mockResolvedValue({
+        id: 'tbl-1',
+        workspaceId: WORKSPACE,
+        schema: {
+          columns: [
+            { id: 'col_a', name: 'question' },
+            { id: 'col_b', name: 'attendu' },
+          ],
+        },
+      })
+      tableRowsServiceMockFns.mockQueryRows.mockResolvedValue({
+        rows: [
+          { data: { col_a: 'Prix ?', col_b: '49 €' } },
+          { data: { col_a: 'Essai ?', col_b: '14 jours' } },
+        ],
+      })
+      await create({ kind: 'table', tableId: 'tbl-1' })
+      expect(repo.insertDataset).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: 'table',
+          rows: [
+            expect.objectContaining({ input: 'Prix ?', expected: '49 €' }),
+            expect.objectContaining({ input: 'Essai ?', expected: '14 jours' }),
+          ],
+        })
+      )
+    })
+
+    it('never imports a table of another workspace', async () => {
+      tableServiceMockFns.mockGetTableById.mockResolvedValue({
+        id: 'tbl-1',
+        workspaceId: 'other-workspace',
+        schema: { columns: [{ id: 'col_a', name: 'question' }] },
+      })
+      await expect(create({ kind: 'table', tableId: 'tbl-1' })).rejects.toMatchObject({
+        code: 'not_found',
+      })
+      expect(tableRowsServiceMockFns.mockQueryRows).not.toHaveBeenCalled()
     })
 
     it('explains a file with no usable row instead of creating an empty set', async () => {

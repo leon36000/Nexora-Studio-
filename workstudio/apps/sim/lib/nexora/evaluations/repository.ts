@@ -722,16 +722,6 @@ export async function listItems(
   return rows.map(toItem)
 }
 
-/** One item with its whole answer. */
-export async function getItem(campaignId: string, itemId: string): Promise<ItemRecord | null> {
-  const [row] = await db
-    .select(itemColumns(null))
-    .from(nexoraEvalItem)
-    .where(and(eq(nexoraEvalItem.id, itemId), eq(nexoraEvalItem.campaignId, campaignId)))
-    .limit(1)
-  return row ? toItem(row) : null
-}
-
 /** Takes the next pending item for this worker (counting the attempt), `null` when none is left. */
 export async function claimNextItem(campaignId: string, now: Date): Promise<ItemRecord | null> {
   return db.transaction(async (tx) => {

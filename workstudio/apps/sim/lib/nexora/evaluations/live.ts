@@ -18,7 +18,18 @@ import {
   targetsToInputs,
 } from '@/lib/nexora/evaluations/launch'
 import * as repository from '@/lib/nexora/evaluations/repository'
-import { createLimiter, type RunnerDeps, runCampaign } from '@/lib/nexora/evaluations/runner'
+import {
+  countOpenItems,
+  failItem,
+  readCampaignStatus,
+  releaseItem,
+} from '@/lib/nexora/evaluations/repository'
+import {
+  createLimiter,
+  type RunnerDeps,
+  type RunnerStore,
+  runCampaign,
+} from '@/lib/nexora/evaluations/runner'
 import { runDueSchedules } from '@/lib/nexora/evaluations/schedule'
 import { embedTexts } from '@/lib/nexora/evaluations/semantic'
 import type { SummaryItem } from '@/lib/nexora/evaluations/stats'
@@ -158,9 +169,22 @@ export function judgeLive(
   })
 }
 
+const runnerStore: RunnerStore = {
+  acquireCampaign: repository.acquireCampaign,
+  heartbeat: repository.heartbeat,
+  claimNextItem: repository.claimNextItem,
+  completeItem: repository.completeItem,
+  failItem,
+  releaseItem,
+  finishCampaign: repository.finishCampaign,
+  readCampaignStatus,
+  countOpenItems,
+  getJudge: repository.getJudge,
+}
+
 function runnerDeps(signal: AbortSignal): RunnerDeps {
   return {
-    store: repository,
+    store: runnerStore,
     owner,
     leaseMs: LEASE_MS,
     now: () => new Date(),
@@ -189,7 +213,7 @@ function runnerDeps(signal: AbortSignal): RunnerDeps {
 }
 
 /** Starts a campaign in the background of this process, once; the cron adopts it if this one dies. */
-export function startCampaign(campaignId: string): void {
+function startCampaign(campaignId: string): void {
   if (running.has(campaignId)) return
   const controller = new AbortController()
   running.set(campaignId, controller)
@@ -207,7 +231,7 @@ export function abortCampaign(campaignId: string): void {
 }
 
 /** Takes over the campaigns nobody runs (their server stopped, or they never started). */
-export async function resumeCampaigns(now: Date): Promise<string[]> {
+async function resumeCampaigns(now: Date): Promise<string[]> {
   const adoptable = (await repository.listAdoptableCampaignIds(now)).filter(
     (id) => !running.has(id)
   )
