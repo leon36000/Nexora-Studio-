@@ -236,6 +236,10 @@ services:
       OLLAMA_URL: http://ollama:11434
       # Web search block, only when the administrator enabled SearXNG.
       SEARXNG_URL: ${NEXORA_SEARXNG_URL:-}
+      # Code interpreter (profile « code »): the sandbox controller; an administrator still switches
+      # code execution on in Réglages › Exécution de code.
+      NEXORA_CODE_SANDBOX_URL: ${NEXORA_CODE_SANDBOX_URL:-}
+      NEXORA_CODE_SANDBOX_TOKEN: ${NEXORA_CODE_SANDBOX_TOKEN:-}
       PREVIEW_BLOCKS: ${NEXORA_PREVIEW_BLOCKS:-}
       KB_EMBEDDING_MODEL: ollama/${NEXORA_EMBED_MODEL:-bge-m3}
       NEXT_PUBLIC_KB_EMBEDDING_MODEL: ollama/${NEXORA_EMBED_MODEL:-bge-m3}
@@ -311,6 +315,31 @@ services:
       SEARXNG_SECRET: ${NEXORA_SEARXNG_SECRET:-}
     volumes:
       - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+
+  # Optional code interpreter (profile « code », off by default; install.sh asks): runs AI-written
+  # Python in throwaway containers of this image, without network, read-only, user 10001, no
+  # capability, bounded CPU, memory, /tmp, processes and time (docs/guide/interpreteur.md). This
+  # controller is the only service that sees the Docker socket; WorkStudio calls it with a token.
+  code-sandbox:
+    build:
+      context: ./code
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}code:${NEXORA_VERSION:-local}
+    profiles: [code]
+    restart: unless-stopped
+    environment:
+      NEXORA_CODE_SANDBOX_TOKEN: ${NEXORA_CODE_SANDBOX_TOKEN:-}
+      NEXORA_CODE_IMAGE: ${NEXORA_IMAGE_PREFIX:-nexora/}code:${NEXORA_VERSION:-local}
+      NEXORA_CODE_CPUS: ${NEXORA_CODE_CPUS:-1}
+      NEXORA_CODE_MEMORY_MB: ${NEXORA_CODE_MEMORY_MB:-1024}
+      NEXORA_CODE_TMPFS_MB: ${NEXORA_CODE_TMPFS_MB:-256}
+      NEXORA_CODE_PIDS: ${NEXORA_CODE_PIDS:-64}
+      NEXORA_CODE_MAX_SECONDS: ${NEXORA_CODE_MAX_SECONDS:-120}
+      NEXORA_CODE_MAX_LIFETIME_SECONDS: ${NEXORA_CODE_MAX_LIFETIME_SECONDS:-600}
+      NEXORA_CODE_MAX_SANDBOXES: ${NEXORA_CODE_MAX_SANDBOXES:-2}
+      # « runsc » when the administrator installed gVisor on this server (stronger isolation).
+      NEXORA_CODE_RUNTIME: ${NEXORA_CODE_RUNTIME:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   # HTTPS in front of WorkStudio, Nexora Connect and Nexora API (profile « https », install.sh).
   caddy:

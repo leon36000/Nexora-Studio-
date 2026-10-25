@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # nexora — pilote une installation de Nexora : démarrer, arrêter, suivre, vérifier, sauvegarder,
-# restaurer, mettre à jour, passer en HTTPS. Installé par install.sh, qui le lance avec NEXORA_HOME,
-# NEXORA_PROJECT, NEXORA_REPO, NEXORA_REF et NEXORA_BUNDLE.
+# restaurer, mettre à jour, passer en HTTPS, installer l'interpréteur de code. Installé par
+# install.sh, qui le lance avec NEXORA_HOME, NEXORA_PROJECT, NEXORA_REPO, NEXORA_REF et NEXORA_BUNDLE.
 set -euo pipefail
 : "${NEXORA_HOME:?NEXORA_HOME manquant}" "${NEXORA_PROJECT:?NEXORA_PROJECT manquant}"
 NEXORA_REPO="${NEXORA_REPO:-leon36000/Nexora-Studio-}"
@@ -530,6 +530,35 @@ https_setup() { # https_setup <domaine> [e-mail|internal]
   fi
 }
 
+# --- Code interpreter ------------------------------------------------------------------------------
+# « nexora code on » installs the sandbox controller (profile « code ») with a token generated once;
+# an administrator still switches code execution on in Réglages › Exécution de code.
+code_setup() { # code_setup on|off
+  local profiles
+  profiles=",$(env_value COMPOSE_PROFILES),"; profiles="${profiles//,code,/,}"
+  profiles="${profiles#,}"; profiles="${profiles%,}"
+  case "${1:-}" in
+    on)
+      if [ "$(env_value NEXORA_CODE_SANDBOX_TOKEN | wc -c)" -lt 33 ] || [ "$(env_value NEXORA_CODE_SANDBOX_TOKEN)" = change-me ]; then
+        set_env_line NEXORA_CODE_SANDBOX_TOKEN "$(openssl rand -hex 32)"
+      fi
+      set_env_line NEXORA_CODE 1
+      set_env_line NEXORA_CODE_SANDBOX_URL "http://code-sandbox:8080"
+      set_env_line COMPOSE_PROFILES "${profiles:+$profiles,}code"
+      echo "Installation de l'interpréteur de code…"
+      compose up -d
+      echo "Interpréteur installé. Un administrateur l'active dans Réglages › Exécution de code." ;;
+    off)
+      set_env_line NEXORA_CODE 0
+      set_env_line NEXORA_CODE_SANDBOX_URL ""
+      set_env_line COMPOSE_PROFILES "$profiles"
+      compose --profile code rm -f -s code-sandbox
+      compose up -d
+      echo "Interpréteur de code retiré." ;;
+    *) die "usage : nexora code on|off" ;;
+  esac
+}
+
 # --- Uninstall -------------------------------------------------------------------------------------
 # Every profile (HTTPS, web search, transcription…), so that `down` stops them all.
 profile_args() {
@@ -624,9 +653,10 @@ case "${1:-help}" in
   restore) shift; restore "$@" ;;
   update) update ;;
   https) shift; https_setup "$@" ;;
+  code) shift; code_setup "${1:-}" ;;
   uninstall) shift; uninstall "${1:-}" ;;
   *)
-    echo "Usage : nexora start|stop|restart|status|logs [service]|url|open|check|smoke [--quick]|backup [--schedule quotidien|off]|restore [--yes] <archive>|update|https <domaine> [e-mail|internal]|uninstall [--purge]" ;;
+    echo "Usage : nexora start|stop|restart|status|logs [service]|url|open|check|smoke [--quick]|backup [--schedule quotidien|off]|restore [--yes] <archive>|update|https <domaine> [e-mail|internal]|code on|off|uninstall [--purge]" ;;
 esac
 exit $?
 }

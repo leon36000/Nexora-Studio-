@@ -477,4 +477,24 @@ ev() { grep -E "^$1=" "$h13/deploy/.env" | tail -1 | cut -d= -f2-; }
 grep -q " up -d" "$h13.log" && ok "https: applied" || ko "https: applied"
 cli "$h13" https 'bad domain;rm' && ko "https: invalid domain refused" || ok "https: invalid domain refused"
 
+# 13. Code interpreter later: « nexora code on » generates its token once, sets the address and adds
+# the « code » profile; « off » removes them and stops the controller.
+h14="$(new_home)"; printf 'COMPOSE_PROFILES=search\nNEXORA_CODE_SANDBOX_URL=\n' >> "$h14/deploy/.env"; : > "$h14.log"
+cli "$h14" code on && ok "code on accepted" || { ko "code on accepted"; cat "$h14.out"; }
+ev14() { grep -E "^$1=" "$h14/deploy/.env" | tail -1 | cut -d= -f2-; }
+token="$(ev14 NEXORA_CODE_SANDBOX_TOKEN)"
+[ "${#token}" -ge 32 ] && ok "code on: token generated" || ko "code on: token generated (got ${#token} characters)"
+[ "$(ev14 NEXORA_CODE_SANDBOX_URL)" = http://code-sandbox:8080 ] && ok "code on: controller address" || ko "code on: controller address ($(ev14 NEXORA_CODE_SANDBOX_URL))"
+[ "$(ev14 COMPOSE_PROFILES)" = search,code ] && ok "code on: profile added to the others" || ko "code on: profile added to the others ($(ev14 COMPOSE_PROFILES))"
+grep -q " up -d" "$h14.log" && ok "code on: applied" || ko "code on: applied"
+cli "$h14" code on
+[ "$(ev14 NEXORA_CODE_SANDBOX_TOKEN)" = "$token" ] && [ "$(grep -c '^NEXORA_CODE_SANDBOX_TOKEN=' "$h14/deploy/.env")" = 1 ] && ok "code on twice: same token" || ko "code on twice: same token"
+[ "$(ev14 COMPOSE_PROFILES)" = search,code ] && ok "code on twice: profile once" || ko "code on twice: profile once ($(ev14 COMPOSE_PROFILES))"
+: > "$h14.log"
+cli "$h14" code off && ok "code off accepted" || { ko "code off accepted"; cat "$h14.out"; }
+[ "$(ev14 COMPOSE_PROFILES)" = search ] && [ -z "$(ev14 NEXORA_CODE_SANDBOX_URL)" ] && ok "code off: profile and address removed" || ko "code off: profile and address removed"
+grep -q "rm -f -s code-sandbox\|stop code-sandbox" "$h14.log" && ok "code off: controller stopped" || ko "code off: controller stopped ($(cat "$h14.log"))"
+[ "$(stat -c %a "$h14/deploy/.env")" = 600 ] && ok "code: .env stays private" || ko "code: .env stays private"
+cli "$h14" code maybe && ko "code: unknown argument refused" || ok "code: unknown argument refused"
+
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

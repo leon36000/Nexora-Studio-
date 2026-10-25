@@ -101,6 +101,31 @@ assert any(v.get("target", "").endswith("fetch-whisper-model.py") and v.get("rea
   && ok "transcription server offline; its model fetched once before it starts" \
   || ko "transcription server offline; its model fetched once before it starts"
 
+# Code interpreter (profile « code »): off by default; on, only its controller sees the Docker socket,
+# it publishes no port, and WorkStudio reaches it with a token.
+[ "$(has_service code-sandbox)" = "False" ] && ok "no code interpreter by default" || ko "no code interpreter by default"
+[ -z "$(value NEXORA_CODE_SANDBOX_URL)" ] && ok "WorkStudio has no code sandbox by default" || ko "WorkStudio has no code sandbox by default"
+code_env="$(mktemp)"; cp "$env_file" "$code_env"
+printf "COMPOSE_PROFILES=code\nNEXORA_CODE_SANDBOX_URL=http://code-sandbox:8080\n" >> "$code_env"
+code_rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$code_env" config --format json 2>/dev/null)"; rm -f "$code_env"
+python3 -I -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+c = services["code-sandbox"]
+assert not c.get("ports"), c.get("ports")
+assert any(v.get("target") == "/var/run/docker.sock" for v in c.get("volumes", [])), c.get("volumes")
+assert len(c["environment"]["NEXORA_CODE_SANDBOX_TOKEN"]) >= 32
+assert c["environment"]["NEXORA_CODE_IMAGE"] == c["image"], (c["environment"]["NEXORA_CODE_IMAGE"], c["image"])
+for name, service in services.items():
+    if name != "code-sandbox":
+        assert not any("docker.sock" in str(v) for v in service.get("volumes", [])), name
+w = services["workstudio"]["environment"]
+assert w["NEXORA_CODE_SANDBOX_URL"] == "http://code-sandbox:8080"
+assert w["NEXORA_CODE_SANDBOX_TOKEN"] == c["environment"]["NEXORA_CODE_SANDBOX_TOKEN"]
+' <<< "$code_rendered" 2>/dev/null \
+  && ok "code interpreter: only its controller holds the Docker socket, no published port, token shared with WorkStudio" \
+  || ko "code interpreter: only its controller holds the Docker socket, no published port, token shared with WorkStudio"
+
 # The developer API (<domain>/v1, OpenAI format) streams through Caddy without compression.
 caddyfile="$ROOT/deploy/caddy/Caddyfile"
 python3 -I - "$caddyfile" <<'PY' && ok "Caddy relays /v1 unbuffered and uncompressed" || ko "Caddy relays /v1 unbuffered and uncompressed"
