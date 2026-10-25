@@ -87,6 +87,7 @@ const base = {
   workflow: { id: 'wf-1', name: 'Assistant général' },
   trigger: 'chat',
   memberChatUserId: null as string | null,
+  actingMemberUserId: null as string | null,
   actorUserId: 'actor-1' as string | null,
   status: 'ok' as const,
   durationMs: 2400,
@@ -297,6 +298,20 @@ describe('draftFromExecution', () => {
         source: 'assistant',
         visibility: 'private',
         userId: 'member-1',
+      })
+    })
+
+    it('une tâche planifiée qui agit pour son propriétaire est privée et lui appartient, source « workflow »', () => {
+      const draft = draftFromExecution({
+        ...base,
+        trigger: 'schedule',
+        actingMemberUserId: 'owner-1',
+        traceSpans: [],
+      })
+      expect(draft).toMatchObject({
+        source: 'workflow',
+        visibility: 'private',
+        userId: 'owner-1',
       })
     })
 

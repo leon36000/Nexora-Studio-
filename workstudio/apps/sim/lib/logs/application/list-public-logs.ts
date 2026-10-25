@@ -162,7 +162,8 @@ export const listPublicLogs = defineAuthorizedWorkspaceUseCase({
             executionData: projectExecutionData(materialized, {
               ...projection,
               hideTraceSpans:
-                projection.hideTraceSpans || (await withholdsMemberChat(log.executionData)),
+                projection.hideTraceSpans ||
+                (await withholdsMemberChat(log.executionData, { workflowId: log.workflowId })),
             }) as Record<string, unknown>,
           }
         })

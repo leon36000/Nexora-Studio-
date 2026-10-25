@@ -86,6 +86,11 @@ const databaseDependencies: ActingMemberDependencies = {
   },
 }
 
+/** The owner of the Assistant task whose workflow this is; `null` for any other workflow. */
+export function taskOwnerOf(workflowId: string, workspaceId: string): Promise<string | null> {
+  return databaseDependencies.taskOwner(workflowId, workspaceId)
+}
+
 interface ActingMemberInput {
   executionId?: string
   workflowId?: string

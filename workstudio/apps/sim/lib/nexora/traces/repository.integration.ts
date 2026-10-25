@@ -352,6 +352,37 @@ describe('visibilité', () => {
     )
   })
 
+  it('cache la trace d’une tâche planifiée de son propriétaire à un collègue, dans la liste, la recherche et les facettes', async () => {
+    const owner = await seedUser('Propriétaire')
+    const colleague = await seedUser('Collègue')
+    const workspaceId = await seedWorkspace(owner)
+    await insertTrace(
+      stored({
+        workspaceId,
+        userId: owner,
+        visibility: 'private',
+        source: 'workflow',
+        name: 'Résumé de ma boîte',
+        agentId: 'wf-task',
+        agentName: 'Résumé de ma boîte',
+        searchText: 'virement fournisseur',
+      })
+    )
+
+    expect((await listTraces({ workspaceId, limit: 50 }, member(colleague))).traces).toEqual([])
+    expect(
+      (await listTraces({ workspaceId, limit: 50, q: 'virement' }, member(colleague))).traces
+    ).toEqual([])
+    expect((await listFacets(workspaceId, member(colleague))).agents.map((a) => a.id)).not.toContain(
+      'wf-task'
+    )
+    expect(
+      (await listTraces({ workspaceId, limit: 50, q: 'virement' }, member(owner))).traces.map(
+        (t) => t.name
+      )
+    ).toEqual(['Résumé de ma boîte'])
+  })
+
   it('ne mélange jamais les espaces', async () => {
     const owner = await seedUser('propriétaire')
     const first = await seedWorkspace(owner)

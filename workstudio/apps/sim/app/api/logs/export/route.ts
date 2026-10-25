@@ -200,7 +200,8 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
             let message: unknown = ''
             let tracesJson = ''
             const withholdPayloads =
-              hideTraceSpans || (await withholdsMemberChat(row.executionData))
+              hideTraceSpans ||
+              (await withholdsMemberChat(row.executionData, { workflowId: row.workflowId }))
             try {
               /**
                * `finalOutput` is one of the payloads the log-detail projection

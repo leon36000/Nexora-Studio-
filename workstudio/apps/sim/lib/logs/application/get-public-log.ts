@@ -173,7 +173,9 @@ export const getPublicLog = defineAuthorizedWorkspaceUseCase({
         ...projection,
         hideTraceSpans:
           projection.hideTraceSpans ||
-          (await memberChatPayloadGate(viewerUserId, context.workspaceId)(log.executionData)),
+          (await memberChatPayloadGate(viewerUserId, context.workspaceId)(log.executionData, {
+            workflowId: log.workflowId,
+          })),
       }) as Record<string, unknown>,
     }
   },
