@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyDelegationFrame,
   readAgentOutputFrame,
   sameOriginPath,
   splitExtras,
@@ -107,5 +108,113 @@ describe('answers kept with their files and sources', () => {
     })
     const forged = withExtras('x', extras).replace('/api/files/serve/k', 'javascript:alert(1)')
     expect(splitExtras(forged).extras.files).toEqual([])
+  })
+})
+
+describe('delegations shown with an answer', () => {
+  const start = (id: string, agent: string) => ({
+    event: 'delegation' as const,
+    data: { id, agentId: `wf-${id}`, agent, mode: 'reply' as const, phase: 'start' as const },
+  })
+  const end = (id: string, agent: string, ok: boolean, message?: string) => ({
+    event: 'delegation' as const,
+    data: {
+      id,
+      agentId: `wf-${id}`,
+      agent,
+      mode: 'reply' as const,
+      phase: 'end' as const,
+      ok,
+      ...(message ? { message } : {}),
+    },
+  })
+
+  it('shows an agent answering from the moment the delegation starts, then as done', () => {
+    const running = applyDelegationFrame([], start('a', 'Agent tarifs'))
+    expect(running).toEqual([
+      { id: 'a', agentId: 'wf-a', agent: 'Agent tarifs', mode: 'reply', status: 'running' },
+    ])
+    expect(applyDelegationFrame(running, end('a', 'Agent tarifs', true))[0].status).toBe('done')
+  })
+
+  it('keeps the French reason of a delegation that was stopped', () => {
+    const notes = applyDelegationFrame(
+      applyDelegationFrame([], start('a', 'Assistant général')),
+      end(
+        'a',
+        'Assistant général',
+        false,
+        'Boucle de délégation : « Assistant général » a déjà été sollicité.'
+      )
+    )
+    expect(notes[0]).toMatchObject({
+      status: 'failed',
+      message: 'Boucle de délégation : « Assistant général » a déjà été sollicité.',
+    })
+  })
+
+  it('shows a delegation that ends without having started (a refusal) as failed', () => {
+    const notes = applyDelegationFrame([], end('b', 'Agent SAV', false, 'Limite atteinte'))
+    expect(notes).toEqual([
+      {
+        id: 'b',
+        agentId: 'wf-b',
+        agent: 'Agent SAV',
+        mode: 'reply',
+        status: 'failed',
+        message: 'Limite atteinte',
+      },
+    ])
+  })
+
+  it('keeps several delegations of one answer in the order they started', () => {
+    let notes = applyDelegationFrame([], start('a', 'Agent tarifs'))
+    notes = applyDelegationFrame(notes, start('b', 'Agent SAV'))
+    notes = applyDelegationFrame(notes, end('b', 'Agent SAV', true))
+    expect(notes.map((note) => [note.agent, note.status])).toEqual([
+      ['Agent tarifs', 'running'],
+      ['Agent SAV', 'done'],
+    ])
+  })
+
+  it('stores them with the answer and reads them back; an older answer has none', () => {
+    const delegations = [
+      {
+        id: 'a',
+        agentId: 'wf-a',
+        agent: 'Agent tarifs',
+        mode: 'reply' as const,
+        status: 'done' as const,
+      },
+    ]
+    const stored = withExtras('La baguette coûte 1,20 euro.', {
+      files: [],
+      sources: [],
+      delegations,
+    })
+    expect(splitExtras(stored)).toEqual({
+      text: 'La baguette coûte 1,20 euro.',
+      extras: { files: [], sources: [], delegations },
+    })
+    expect(splitExtras('Bonjour').extras.delegations).toBeUndefined()
+  })
+
+  it('stores a delegation that was still running when the answer was cut as stopped', () => {
+    const stored = withExtras('Un instant', {
+      files: [],
+      sources: [],
+      delegations: [
+        { id: 'a', agentId: 'wf-a', agent: 'Agent tarifs', mode: 'reply', status: 'running' },
+      ],
+    })
+    expect(splitExtras(stored).extras.delegations?.[0].status).toBe('failed')
+  })
+
+  it('ignores a damaged delegation entry', () => {
+    const stored =
+      'x\n\n<!--nexora-extras:{"delegations":[{"agent":3},{"id":"b","agentId":"wf-b","agent":"X","mode":"broadcast","status":"done"},{"id":"a","agentId":"wf-a","agent":"Agent tarifs","mode":"reply","status":"done"}]}-->'
+    expect(splitExtras(stored).extras.delegations).toEqual([
+      { id: 'a', agentId: 'wf-a', agent: 'Agent tarifs', mode: 'reply', status: 'done' },
+    ])
   })
 })

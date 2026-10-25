@@ -95,7 +95,7 @@
 - [x] Tests rouges : autre membre ⇒ 404 (lecture, mise à jour, suppression, ajout de fichier) ; fichier trop gros / illisible ⇒ refus explicite ; supprimer le projet détache ses conversations (elles restent lisibles) ; modifier consignes/fichiers incrémente `version`.
 - [x] Page : sélecteur de projet dans « Nouvelle conversation », panneau Projets (consignes, fichiers).
 
-### Task 8 : préparation de l'entrée du chat (`prepare-input.ts`) — projets et `@compétences`
+### Task 8 : préparation de l'entrée du chat (`prepare-input.ts`) — projets (les `@compétences` sont celles de K11, fusionnées dans `main` : liste et injection de K6 retirées)
 
 **Interfaces — produit :** `prepareAssistantInput(input: { workspaceId, userId, conversationId?, text }): Promise<{ text: string; commit(): Promise<void> }>`.
 

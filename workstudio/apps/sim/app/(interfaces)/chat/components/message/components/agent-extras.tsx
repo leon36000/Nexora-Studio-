@@ -1,8 +1,9 @@
 'use client'
 
-import { Download } from '@sim/emcn'
+import { cn, Download } from '@sim/emcn'
+import { Check, Loader, X } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
-import type { ProducedFile } from '@/lib/nexora/agent-extras'
+import type { DelegationNote, ProducedFile } from '@/lib/nexora/agent-extras'
 import { type CitationSource, citedSourceIndexes } from '@/lib/nexora/citations'
 
 /**
@@ -90,6 +91,39 @@ export function ProducedFiles({ files }: { files: ProducedFile[] }) {
         ))}
       </ul>
     </section>
+  )
+}
+
+/**
+ * The agents the answering agent handed a request to: « Agent tarifs répond… » while it answers,
+ * then « Agent tarifs a répondu » (or « La main est passée à… », or why it could not).
+ */
+export function DelegationNotes({ notes }: { notes: DelegationNote[] }) {
+  const t = useTranslations('interfaces.chat.agentExtras.delegation')
+  if (notes.length === 0) return null
+  return (
+    <ul aria-label={t('label')} className='flex flex-col gap-1'>
+      {notes.map((note) => (
+        <li
+          key={note.id}
+          role={note.status === 'failed' ? 'alert' : 'status'}
+          className={cn(
+            'flex items-start gap-1.5 text-caption',
+            note.status === 'failed' ? 'text-[var(--text-error)]' : 'text-[var(--text-muted)]'
+          )}
+        >
+          {note.status === 'running' && <Loader className='mt-0.5 size-[12px] shrink-0' animate />}
+          {note.status === 'done' && <Check className='mt-0.5 size-[12px] shrink-0' />}
+          {note.status === 'failed' && <X className='mt-0.5 size-[12px] shrink-0' />}
+          <span className='min-w-0 break-words'>
+            {note.status === 'running' && t('running', { agent: note.agent })}
+            {note.status === 'done' &&
+              t(note.mode === 'transfer' ? 'transferred' : 'done', { agent: note.agent })}
+            {note.status === 'failed' && (note.message ?? t('failed', { agent: note.agent }))}
+          </span>
+        </li>
+      ))}
+    </ul>
   )
 }
 

@@ -76,7 +76,9 @@ describe.skipIf(!baseUrl || !adminToken)('personal connections in Nexora Connect
   it('refuses a member’s token the other member’s connection, by name', async () => {
     const catalog = await fetch(`${baseUrl}/api/providers`, {
       headers: { Authorization: `Bearer ${adminToken}` },
-    }).then((response) => response.json() as Promise<{ service: string; actions?: { id: string }[] }[]>)
+    }).then(
+      (response) => response.json() as Promise<{ service: string; actions?: { id: string }[] }[]>
+    )
     const actionId = catalog.find((entry) => entry.service === 'postmark')?.actions?.[0]?.id
     expect(actionId).toBeTruthy()
     const secret = issued.alice?.secret ?? ''

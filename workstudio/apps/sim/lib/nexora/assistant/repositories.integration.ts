@@ -9,12 +9,6 @@ import postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { resolveActingMember } from '@/lib/nexora/acting-member'
 import {
-  insertConversation,
-  insertMessage,
-  listMessages,
-  updateMessageCard,
-} from '@/lib/nexora/assistant/repository'
-import {
   addProjectFile,
   deleteProject,
   insertProject,
@@ -24,6 +18,12 @@ import {
   loadProjectContext,
   updateProject,
 } from '@/lib/nexora/assistant/projects/repository'
+import {
+  insertConversation,
+  insertMessage,
+  listMessages,
+  updateMessageCard,
+} from '@/lib/nexora/assistant/repository'
 import {
   deleteTask,
   insertTask,
@@ -111,9 +111,9 @@ describe('Assistant extended storage', () => {
       })
       expect(added.status).toBe('added')
       expect((await loadProject(project.id))?.version).toBe(2)
-      expect((await listProjects(workspaceId, ownerId)).find((p) => p.id === project.id)).toMatchObject(
-        { fileCount: 1 }
-      )
+      expect(
+        (await listProjects(workspaceId, ownerId)).find((p) => p.id === project.id)
+      ).toMatchObject({ fileCount: 1 })
 
       await updateProject(project.id, { instructions: 'Tutoyer.' })
       expect((await loadProject(project.id))?.version).toBe(3)
@@ -126,7 +126,12 @@ describe('Assistant extended storage', () => {
     })
 
     it('refuses an eleventh file and a file that would exceed the text limit', async () => {
-      const crowded = await insertProject({ workspaceId, userId: ownerId, name: 'Plein', instructions: '' })
+      const crowded = await insertProject({
+        workspaceId,
+        userId: ownerId,
+        name: 'Plein',
+        instructions: '',
+      })
       for (let index = 0; index < 10; index++) {
         const outcome = await addProjectFile(crowded.id, {
           name: `f${index}.txt`,
@@ -137,12 +142,23 @@ describe('Assistant extended storage', () => {
         expect(outcome.status).toBe('added')
       }
       expect(
-        (await addProjectFile(crowded.id, { name: 'de-trop.txt', type: 'text/plain', size: 1, text: 'x' }))
-          .status
+        (
+          await addProjectFile(crowded.id, {
+            name: 'de-trop.txt',
+            type: 'text/plain',
+            size: 1,
+            text: 'x',
+          })
+        ).status
       ).toBe('full')
       expect(await listProjectFiles(crowded.id)).toHaveLength(10)
 
-      const heavy = await insertProject({ workspaceId, userId: ownerId, name: 'Lourd', instructions: '' })
+      const heavy = await insertProject({
+        workspaceId,
+        userId: ownerId,
+        name: 'Lourd',
+        instructions: '',
+      })
       const big = (name: string, length: number) => ({
         name,
         type: 'text/plain',
@@ -155,7 +171,12 @@ describe('Assistant extended storage', () => {
     })
 
     it('answers gone for a project deleted meanwhile, and detaches the conversations of a deleted one', async () => {
-      const project = await insertProject({ workspaceId, userId: ownerId, name: 'À supprimer', instructions: '' })
+      const project = await insertProject({
+        workspaceId,
+        userId: ownerId,
+        name: 'À supprimer',
+        instructions: '',
+      })
       const conversation = await insertConversation({
         workspaceId,
         userId: ownerId,
@@ -166,11 +187,19 @@ describe('Assistant extended storage', () => {
       expect(conversation.projectId).toBe(project.id)
 
       expect(await deleteProject(project.id)).toBe(true)
-      const [row] = await control`SELECT project_id FROM nexora_assistant_conversation WHERE id = ${conversation.id}`
+      const [row] =
+        await control`SELECT project_id FROM nexora_assistant_conversation WHERE id = ${conversation.id}`
       expect(row.project_id).toBeNull()
       expect(await deleteProject(project.id)).toBe(false)
       expect(
-        (await addProjectFile(project.id, { name: 'x.txt', type: 'text/plain', size: 1, text: 'x' })).status
+        (
+          await addProjectFile(project.id, {
+            name: 'x.txt',
+            type: 'text/plain',
+            size: 1,
+            text: 'x',
+          })
+        ).status
       ).toBe('gone')
     })
   })
@@ -220,11 +249,26 @@ describe('Assistant extended storage', () => {
       await control`INSERT INTO workflow_execution_logs (id, workflow_id, workspace_id, execution_id, state_snapshot_id, level, trigger, started_at)
         VALUES (${generateId()}, ${taskWorkflowId}, ${workspaceId}, ${manual}, ${snapshotId}, 'info', 'manual', now())`
 
-      const scheduled = await resolveActingMember({ executionId, workflowId: taskWorkflowId, workspaceId, actorUserId: colleagueId })
+      const scheduled = await resolveActingMember({
+        executionId,
+        workflowId: taskWorkflowId,
+        workspaceId,
+        actorUserId: colleagueId,
+      })
       expect(scheduled).toBe(ownerId)
-      const byColleague = await resolveActingMember({ executionId: manual, workflowId: taskWorkflowId, workspaceId, actorUserId: colleagueId })
+      const byColleague = await resolveActingMember({
+        executionId: manual,
+        workflowId: taskWorkflowId,
+        workspaceId,
+        actorUserId: colleagueId,
+      })
       expect(byColleague).toBeNull()
-      const byOwner = await resolveActingMember({ executionId: manual, workflowId: taskWorkflowId, workspaceId, actorUserId: ownerId })
+      const byOwner = await resolveActingMember({
+        executionId: manual,
+        workflowId: taskWorkflowId,
+        workspaceId,
+        actorUserId: ownerId,
+      })
       expect(byOwner).toBe(ownerId)
     })
 
@@ -241,14 +285,20 @@ describe('Assistant extended storage', () => {
       expect(publishable.map((w) => w.workflowId)).toContain(taskWorkflowId)
       expect(publishable.map((w) => w.workflowId)).not.toContain(agentWorkflowId)
       expect(publishable.map((w) => w.workflowId)).not.toContain(archivedWorkflowId)
-      expect(publishable.find((w) => w.workflowId === taskWorkflowId)).toMatchObject({ published: false, isDeployed: true })
+      expect(publishable.find((w) => w.workflowId === taskWorkflowId)).toMatchObject({
+        published: false,
+        isDeployed: true,
+      })
       expect(await listPublishedWorkflows(workspaceId)).toEqual([])
 
       await publishWorkflow(workspaceId, taskWorkflowId, ownerId)
       await publishWorkflow(workspaceId, taskWorkflowId, ownerId)
       const published = await listPublishedWorkflows(workspaceId)
       expect(published).toMatchObject([{ workflowId: taskWorkflowId, name: 'Devis client' }])
-      expect((await listPublishableWorkflows(workspaceId)).find((w) => w.workflowId === taskWorkflowId)?.published).toBe(true)
+      expect(
+        (await listPublishableWorkflows(workspaceId)).find((w) => w.workflowId === taskWorkflowId)
+          ?.published
+      ).toBe(true)
 
       await unpublishWorkflow(workspaceId, taskWorkflowId)
       expect(await listPublishedWorkflows(workspaceId)).toEqual([])

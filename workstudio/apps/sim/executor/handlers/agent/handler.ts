@@ -37,6 +37,11 @@ import {
   deliverDocumentsAsText,
 } from '@/lib/nexora/attachment-text.server'
 import { dropUnavailableBuiltinTools } from '@/lib/nexora/builtin-tools'
+import {
+  buildAgentDelegationTools,
+  readHandoffInputs,
+  runTransferredTurn,
+} from '@/lib/nexora/delegation/agent-block'
 import { PromptResolutionError, resolvePromptReference } from '@/lib/nexora/prompts/resolve'
 import { APPROVAL_FIELD, pendingActionsView } from '@/lib/nexora/tool-confirmation/deferred'
 import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
@@ -96,6 +101,7 @@ import {
   buildLoadSkillTool,
   buildSkillsSystemPromptSection,
   resolveSkillMetadata,
+  skillNamesToLoad,
 } from '@/executor/handlers/agent/skills-resolver'
 import type {
   AgentInputs,
@@ -379,6 +385,9 @@ export class AgentBlockHandler implements BlockHandler {
     inputs: AgentInputs,
     nodeMetadata?: BlockNodeMetadata
   ): Promise<BlockOutput | StreamingExecution> {
+    // Nexora edition: a conversation handed to another agent is answered by that agent.
+    const transferred = await runTransferredTurn(inputs, ctx)
+    if (transferred) return transferred
     const reference = readPromptReference(inputs)
     if (!reference) return this.executeAgent(ctx, block, inputs, nodeMetadata)
     if (!ctx.workspaceId) {
@@ -559,7 +568,7 @@ export class AgentBlockHandler implements BlockHandler {
       )
 
       const skillInputs = filteredInputs.skills ?? []
-      let skillMetadata: Array<{ name: string; description: string }> = []
+      let skillMetadata: Array<{ name: string; description: string; content?: string }> = []
       if (skillInputs.length > 0 && ctx.workspaceId) {
         await assertPermissionsAllowed({
           userId: ctx.userId,
@@ -568,10 +577,22 @@ export class AgentBlockHandler implements BlockHandler {
           ctx,
         })
         skillMetadata = await resolveSkillMetadata(skillInputs, ctx.workspaceId)
-        if (skillMetadata.length > 0) {
-          const skillNames = skillMetadata.map((s) => s.name)
+        const skillNames = skillNamesToLoad(skillMetadata)
+        if (skillNames.length > 0) {
           formatted.tools.push(buildLoadSkillTool(skillNames))
         }
+      }
+
+      // Nexora edition: one tool per published agent this agent may hand a request to.
+      const handoffs = readHandoffInputs(filteredInputs)
+      if (handoffs.length > 0 && ctx.workspaceId) {
+        formatted.tools.push(
+          ...(await buildAgentDelegationTools({
+            workspaceId: ctx.workspaceId,
+            handoffs,
+            conversationId: filteredInputs.conversationId,
+          }))
+        )
       }
 
       const streamingConfig = this.getStreamingConfig(ctx, block)
@@ -1535,7 +1556,7 @@ export class AgentBlockHandler implements BlockHandler {
     ctx: ExecutionContext,
     inputs: AgentInputs,
     modelInputs: AgentInputs,
-    skillMetadata: Array<{ name: string; description: string }>,
+    skillMetadata: Array<{ name: string; description: string; content?: string }>,
     fileProjection: ReturnType<AgentBlockHandler['projectFileNamesForModel']>,
     agentConversation?: AgentTurnSession
   ): Promise<Message[] | undefined> {

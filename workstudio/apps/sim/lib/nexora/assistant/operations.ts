@@ -143,12 +143,6 @@ export const assistantOperations = {
     minimumRole: 'write',
     capability: 'none',
   }),
-  // permission-group-exempt: lists the workspace's skills' names, which every member may already read.
-  listSkills: defineWorkspaceOperation({
-    id: 'nexora.assistant.skills.list',
-    ...ASSISTANT_POLICY,
-    capability: 'none',
-  }),
   // permission-group-exempt: a member's own private projects, under workspace membership only.
   listProjects: defineWorkspaceOperation({
     id: 'nexora.assistant.projects.list',

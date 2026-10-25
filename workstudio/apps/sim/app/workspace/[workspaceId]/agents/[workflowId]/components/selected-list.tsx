@@ -1,6 +1,6 @@
 'use client'
 
-import { Badge, Button, OverflowText, Switch, Tooltip } from '@sim/emcn'
+import { Badge, Button, ChipSelect, OverflowText, Switch, Tooltip } from '@sim/emcn'
 import { X } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 
@@ -11,17 +11,26 @@ export interface SelectedItem {
   missing: boolean
   /** Tools that can act: whether the person is asked before each use (« Demander avant d'agir »). */
   confirm?: boolean
+  /** A choice made for this row (« Peut confier à »: how the called agent takes part). */
+  choice?: { value: string; label: string; options: Array<{ value: string; label: string }> }
 }
 
 interface SelectedListProps {
   items: SelectedItem[]
   onRemove: (key: string) => void
   onConfirmChange?: (key: string, confirm: boolean) => void
+  onChoiceChange?: (key: string, value: string) => void
   disabled?: boolean
 }
 
 /** What a picker field holds, one removable row each; a reference that disappeared is marked. */
-export function SelectedList({ items, onRemove, onConfirmChange, disabled }: SelectedListProps) {
+export function SelectedList({
+  items,
+  onRemove,
+  onConfirmChange,
+  onChoiceChange,
+  disabled,
+}: SelectedListProps) {
   const t = useTranslations('agents.editor.tools')
   if (items.length === 0) return null
 
@@ -37,6 +46,15 @@ export function SelectedList({ items, onRemove, onConfirmChange, disabled }: Sel
             <Badge variant='amber' size='sm'>
               {t('missing')}
             </Badge>
+          )}
+          {item.choice && onChoiceChange && (
+            <ChipSelect
+              aria-label={item.choice.label}
+              value={item.choice.value}
+              disabled={disabled}
+              onChange={(value) => onChoiceChange(item.key, value)}
+              options={item.choice.options}
+            />
           )}
           {item.confirm !== undefined && onConfirmChange && (
             <Tooltip.Root>

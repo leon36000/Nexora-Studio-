@@ -16,10 +16,8 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { useTranslations } from 'next-intl'
 import type { AssistantWorkflow } from '@/lib/api/contracts/nexora-assistant-extras'
 import { buildRunInput, type readRunResult } from '@/lib/nexora/assistant/workflow-run'
-import {
-  useAssistantWorkflows,
-  useRunAssistantWorkflow,
-} from '@/hooks/queries/nexora-assistant-extended'
+import { useAssistantWorkflows } from '@/hooks/queries/nexora-assistant-extended'
+import { useRunAssistantWorkflow } from '@/hooks/queries/nexora-assistant-runs'
 
 type RunResult = ReturnType<typeof readRunResult>
 

@@ -24,9 +24,9 @@ Les bases de connaissances qu'il consulte sont celles qui existaient à sa créa
 - **Sources.** Une réponse tirée des bases de connaissances cite ses sources : sous la réponse, **Sources [1] [2]** ouvre le document (ou la page d'origine).
 - **Autoriser ou refuser.** Si un agent doit agir pour vous (envoyer un e-mail, par exemple), une carte **Autoriser cette action ?** montre ce qu'il va faire. **Refuser** n'exécute rien ; l'action n'a pas lieu non plus si vous ne répondez pas.
 
-## Aller plus loin : projets, compétences, workflows, tâches, connexions
+## Aller plus loin : projets, workflows, tâches, connexions
 
-Ces possibilités s'ouvrent depuis la colonne de gauche de l'Assistant (**Projets**, **Tâches planifiées**, **Lancer un workflow**, **Mes connexions**) et depuis le compositeur (`@`).
+Ces possibilités s'ouvrent depuis la colonne de gauche de l'Assistant (**Projets**, **Tâches planifiées**, **Lancer un workflow**, **Mes connexions**).
 
 ### Les projets
 
@@ -35,10 +35,6 @@ Un **projet** réunit des **consignes** et des **fichiers** communs à plusieurs
 - Un projet n'est visible que de **son auteur** : un autre membre, administrateur compris, reçoit « introuvable », y compris en connaissant l'identifiant.
 - Supprimer un projet supprime ses fichiers ; ses conversations restent, sans projet.
 - Le projet conserve **le texte** de ses fichiers, pas les fichiers eux-mêmes.
-
-### Les compétences, avec `@`
-
-Les **compétences** sont celles de l'espace (page Compétences, créées par les rédacteurs). Dans le compositeur, tapez `@` : la liste des compétences s'ouvre, filtrée à mesure que vous écrivez ; choisissez-en une (ou tapez son nom). Son texte est transmis à l'agent avec votre message, **pour ce message seulement** ; jusqu'à trois compétences par message. Ici elles sont en lecture seule : créez-les et modifiez-les dans l'espace.
 
 ### Lancer un workflow depuis l'Assistant
 

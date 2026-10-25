@@ -16,6 +16,7 @@ import type {
 import type { AssistantTask } from '@/lib/api/contracts/nexora-assistant-extras'
 import { type AnswerExtras, splitExtras } from '@/lib/nexora/agent-extras'
 import { canOpenInEditor, looksLikeScheduledTask } from '@/lib/nexora/assistant/schedule-phrase'
+import type { MentionableSkill } from '@/lib/nexora/skills-mention'
 import type { ConfirmationItem } from '@/lib/nexora/tool-confirmation/client-state'
 import {
   ASSISTANT_MAX_FILE_BYTES,
@@ -49,9 +50,9 @@ import {
 import {
   useAssistantCanEdit,
   useAssistantProjects,
-  useAssistantSkills,
 } from '@/hooks/queries/nexora-assistant-extended'
 import { useNexoraModelUsages } from '@/hooks/queries/nexora-home'
+import { useWorkspaceSkills } from '@/hooks/queries/nexora-skills'
 
 /** The dictated words after what is already typed, on the same line unless it ended one. */
 function appendDictation(draft: string, text: string): string {
@@ -88,6 +89,7 @@ const ScheduleProposal = lazy(() =>
 
 const NO_AGENTS: AssistantAgent[] = []
 const NO_PROJECTS: { id: string; name: string }[] = []
+const NO_SKILLS: MentionableSkill[] = []
 const NO_MESSAGES: AssistantMessage[] = []
 const NO_FILES: AssistantMessageFile[] = []
 const NO_EXTRAS: AnswerExtras = { files: [], sources: [] }
@@ -135,10 +137,13 @@ export function Assistant({ workspaceId }: AssistantProps) {
   const agentsQuery = useAssistantAgents(workspaceId)
   const conversationsQuery = useAssistantConversations(workspaceId)
   const detailQuery = useAssistantConversation(conversationId || undefined)
+  const { data: skills } = useWorkspaceSkills(workspaceId)
+  const mentionableSkills = skills ?? NO_SKILLS
   const turn = useAssistantTurn(
     workspaceId,
     (id) => void setParams({ conversation: id }, { history: 'replace' }),
-    () => void setParams({ conversation: null }, { history: 'replace' })
+    () => void setParams({ conversation: null }, { history: 'replace' }),
+    mentionableSkills
   )
   const modelUsages = useNexoraModelUsages()
   const readAloud = useReadAloud(workspaceId)
@@ -147,7 +152,6 @@ export function Assistant({ workspaceId }: AssistantProps) {
   const tTasks = useTranslations('assistant.tasks')
   const tWorkflows = useTranslations('assistant.workflows')
   const projectsQuery = useAssistantProjects(workspaceId)
-  const skillsQuery = useAssistantSkills(workspaceId)
   const recordCardTurn = useRecordCardTurn(workspaceId)
   const runResolution = useResolveWorkflowRun()
   const [draftAgentId, setDraftAgentId] = useState<string | null>(null)
@@ -556,7 +560,6 @@ export function Assistant({ workspaceId }: AssistantProps) {
                   <Composer
                     value={draft}
                     onChange={setDraft}
-                    skills={skillsQuery.data}
                     files={draftFiles}
                     onAddFiles={handleAddFiles}
                     onRemoveFile={(id) =>
@@ -568,6 +571,7 @@ export function Assistant({ workspaceId }: AssistantProps) {
                     onStop={turn.stop}
                     isBusy={turn.isBusy}
                     canAttach={Boolean(activeAgent)}
+                    skills={mentionableSkills}
                     dictation={
                       modelUsages.data?.transcription
                         ? {

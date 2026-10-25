@@ -7,7 +7,6 @@ import {
   ASSISTANT_TASK_ERROR_CODES,
   createAssistantTaskContract,
   deleteAssistantTaskContract,
-  listAssistantSkillsContract,
   listAssistantTaskRunsContract,
   listAssistantTasksContract,
   listAssistantWorkflowsContract,
@@ -27,13 +26,11 @@ import {
   listAssistantProjectsContract,
   updateAssistantProjectContract,
 } from '@/lib/api/contracts/nexora-assistant-projects'
-import { executeWorkflowSyncContract } from '@/lib/api/contracts/workflows'
 import { getWorkspacePermissionsContract } from '@/lib/api/contracts/workspaces'
 import { readRunResult } from '@/lib/nexora/assistant/workflow-run'
 import type { CopilotPlan } from '@/lib/nexora/copilot/plan'
 
 const ASSISTANT_PROJECTS_STALE_TIME = 30 * 1000
-const ASSISTANT_SKILLS_STALE_TIME = 60 * 1000
 const ASSISTANT_TASKS_STALE_TIME = 30 * 1000
 const ASSISTANT_TASK_RUNS_STALE_TIME = 15 * 1000
 const ASSISTANT_WORKFLOWS_STALE_TIME = 30 * 1000
@@ -47,7 +44,6 @@ const extendedKeys = {
   project: (projectId?: string) => [...extendedKeys.projectDetails(), projectId ?? ''] as const,
   permission: (workspaceId?: string) =>
     [...extendedKeys.all, 'permission', workspaceId ?? ''] as const,
-  skills: (workspaceId?: string) => [...extendedKeys.all, 'skills', workspaceId ?? ''] as const,
   taskLists: () => [...extendedKeys.all, 'tasks'] as const,
   tasks: (workspaceId?: string) => [...extendedKeys.taskLists(), workspaceId ?? ''] as const,
   taskRuns: (taskId?: string) => [...extendedKeys.all, 'task-runs', taskId ?? ''] as const,
@@ -228,22 +224,6 @@ export function useDeleteAssistantProjectFile() {
   })
 }
 
-/** The workspace's skills, by name and description, for the `@` picker. */
-export function useAssistantSkills(workspaceId?: string) {
-  return useQuery({
-    queryKey: extendedKeys.skills(workspaceId),
-    queryFn: async ({ signal }) => {
-      const data = await requestJson(listAssistantSkillsContract, {
-        query: { workspaceId: workspaceId as string },
-        signal,
-      })
-      return data.skills
-    },
-    enabled: Boolean(workspaceId),
-    staleTime: ASSISTANT_SKILLS_STALE_TIME,
-  })
-}
-
 /** The caller's own scheduled tasks, newest first, with their schedules. */
 export function useAssistantTasks(workspaceId?: string, enabled = true) {
   return useQuery({
@@ -382,28 +362,6 @@ export function useSetAssistantWorkflowPublished() {
             query: { workspaceId },
           }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: extendedKeys.workflowLists() }),
-  })
-}
-
-/** Runs the deployed version of a published workflow and reads its result (or its pause). */
-export function useRunAssistantWorkflow() {
-  return useMutation({
-    mutationFn: async ({
-      workflowId,
-      input,
-      signal,
-    }: {
-      workflowId: string
-      input: Record<string, unknown>
-      signal?: AbortSignal
-    }) => {
-      const body = await requestJson(executeWorkflowSyncContract, {
-        params: { id: workflowId },
-        body: { useDraftState: false, stream: false, input },
-        signal,
-      })
-      return readRunResult(body)
-    },
   })
 }
 

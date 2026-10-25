@@ -9,6 +9,7 @@ import type { AnswerExtras } from '@/lib/nexora/agent-extras'
 import type { ConfirmationItem } from '@/lib/nexora/tool-confirmation/client-state'
 import {
   ConfirmationCard,
+  DelegationNotes,
   ProducedFiles,
   SourcesFooter,
 } from '@/app/(interfaces)/chat/components/message/components/agent-extras'
@@ -127,6 +128,7 @@ export function MessageItem({
 
   return (
     <article className='flex flex-col gap-1.5'>
+      {extras?.delegations && <DelegationNotes notes={extras.delegations} />}
       <ThinkingPanel text={thinking} streaming={isStreaming} answerStarted={hasText} />
       {hasText ? (
         <div className='min-w-0 break-words text-[var(--text-body)] text-sm'>

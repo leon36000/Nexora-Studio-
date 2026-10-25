@@ -21,7 +21,6 @@ function deps(overrides: Partial<PrepareInputDependencies> = {}): PrepareInputDe
       instructions: 'Toujours vouvoyer le client.',
       files: [{ name: 'conditions.txt', text: 'Livraison offerte dès 80 euros.' }],
     })),
-    loadSkills: vi.fn(async () => []),
     markProjectVersion: vi.fn(async () => undefined),
     ...overrides,
   }
@@ -35,7 +34,7 @@ const input = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 })
 
-describe('prepareAssistantInput — projects', () => {
+describe('prepareAssistantInput', () => {
   let d: PrepareInputDependencies
   beforeEach(() => {
     d = deps()
@@ -146,64 +145,5 @@ describe('prepareAssistantInput — projects', () => {
     })
     const prepared = await prepareAssistantInput(input(), d)
     await expect(prepared.commit()).resolves.toBeUndefined()
-  })
-})
-
-describe('prepareAssistantInput — @skills', () => {
-  const devis = { name: 'redaction-devis', content: 'Un devis comporte HT, TVA et TTC.' }
-
-  it('adds the content of the skills the message names, once each', async () => {
-    const d = deps({ loadSkills: vi.fn(async () => [devis]) })
-    const prepared = await prepareAssistantInput(
-      input({
-        conversationId: undefined,
-        text: '@redaction-devis fais le devis, puis @redaction-devis encore',
-      }),
-      d
-    )
-    expect(d.loadSkills).toHaveBeenCalledWith(WS, ['redaction-devis'])
-    expect(prepared.text.match(/Un devis comporte HT/g)).toHaveLength(1)
-    expect(prepared.text).toContain('@redaction-devis fais le devis')
-  })
-
-  it('leaves an unknown mention and an e-mail address alone', async () => {
-    const d = deps({ loadSkills: vi.fn(async () => []) })
-    const prepared = await prepareAssistantInput(
-      input({ conversationId: undefined, text: 'écris à paul@pme.fr et @inconnu' }),
-      d
-    )
-    expect(prepared.text).toBe('écris à paul@pme.fr et @inconnu')
-    expect(d.loadSkills).toHaveBeenCalledWith(WS, ['inconnu'])
-  })
-
-  it('asks for the skills of the chat’s workspace only, and for at most three', async () => {
-    const d = deps({ loadSkills: vi.fn(async () => []) })
-    await prepareAssistantInput(
-      input({ conversationId: undefined, text: '@a1 @b2 @c3 @d4 @e5' }),
-      d
-    )
-    expect(d.loadSkills).toHaveBeenCalledWith(WS, ['a1', 'b2', 'c3'])
-  })
-
-  it('does not look up skills when the message mentions none', async () => {
-    const d = deps()
-    await prepareAssistantInput(input({ conversationId: undefined }), d)
-    expect(d.loadSkills).not.toHaveBeenCalled()
-  })
-
-  it('still adds skills for a conversation that is not the caller’s, but never its project', async () => {
-    const d = deps({
-      loadConversation: vi.fn(async () => ({
-        id: 'conversation-1',
-        workspaceId: WS,
-        userId: 'bob',
-        projectId: 'project-1',
-        projectVersion: null,
-      })),
-      loadSkills: vi.fn(async () => [devis]),
-    })
-    const prepared = await prepareAssistantInput(input({ text: '@redaction-devis vite' }), d)
-    expect(prepared.text).toContain('Un devis comporte HT')
-    expect(prepared.text).not.toContain('Toujours vouvoyer')
   })
 })

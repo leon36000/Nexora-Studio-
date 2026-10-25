@@ -3,16 +3,6 @@ import { workspaceIdSchema } from '@/lib/api/contracts/primitives'
 import { defineRouteContract } from '@/lib/api/contracts/types'
 import { copilotPlanSchema } from '@/lib/nexora/copilot/plan'
 
-const assistantSkillSchema = z.object({ name: z.string(), description: z.string() })
-
-/** The workspace's skills, by name and description, for the `@` picker (read-only). */
-export const listAssistantSkillsContract = defineRouteContract({
-  method: 'GET',
-  path: '/api/nexora/assistant/skills',
-  query: z.object({ workspaceId: workspaceIdSchema }),
-  response: { mode: 'json', schema: z.object({ skills: z.array(assistantSkillSchema) }) },
-})
-
 const taskIdParamsSchema = z.object({
   taskId: z.string().min(1, 'Task ID is required').max(128, 'Task ID is too long'),
 })

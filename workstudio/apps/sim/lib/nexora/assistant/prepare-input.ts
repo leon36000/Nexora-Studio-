@@ -1,7 +1,7 @@
 import { db } from '@sim/db'
-import { nexoraAssistantConversation, skill } from '@sim/db/schema'
+import { nexoraAssistantConversation } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
-import { and, eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { loadProjectContext, type ProjectContext } from '@/lib/nexora/assistant/projects/repository'
 import { loadConversation } from '@/lib/nexora/assistant/repository'
 
@@ -9,11 +9,6 @@ const logger = createLogger('NexoraAssistantInput')
 
 /** What a project may put in front of the agent with one question (about 4 000 tokens of French). */
 export const PROJECT_CONTEXT_MAX_CHARS = 16_000
-const SKILL_MAX_CHARS = 8_000
-const MAX_SKILLS = 3
-
-/** `@name` of a skill: kebab-case, not the end of a word or of an address (`paul@pme.fr`). */
-const SKILL_MENTION = /(?<![\w.@-])@([a-z0-9]+(?:-[a-z0-9]+)*)/g
 
 interface ConversationFacts {
   id: string
@@ -26,18 +21,12 @@ interface ConversationFacts {
 export interface PrepareInputDependencies {
   loadConversation: (conversationId: string) => Promise<ConversationFacts | null>
   loadProjectContext: (projectId: string) => Promise<ProjectContext | null>
-  loadSkills: (workspaceId: string, names: string[]) => Promise<{ name: string; content: string }[]>
   markProjectVersion: (conversationId: string, version: number) => Promise<void>
 }
 
 const databaseDependencies: PrepareInputDependencies = {
   loadConversation,
   loadProjectContext,
-  loadSkills: (workspaceId, names) =>
-    db
-      .select({ name: skill.name, content: skill.content })
-      .from(skill)
-      .where(and(eq(skill.workspaceId, workspaceId), inArray(skill.name, names))),
   markProjectVersion: async (conversationId, version) => {
     await db
       .update(nexoraAssistantConversation)
@@ -59,15 +48,6 @@ interface PreparedInput {
   text: string
   /** Call once the answer succeeded, so a failed answer gives the same context again. */
   commit: () => Promise<void>
-}
-
-function mentionedSkills(text: string): string[] {
-  const names = new Set<string>()
-  for (const match of text.matchAll(SKILL_MENTION)) {
-    names.add(match[1])
-    if (names.size === MAX_SKILLS) break
-  }
-  return [...names]
 }
 
 function projectBlock(context: ProjectContext): string {
@@ -92,18 +72,10 @@ function projectBlock(context: ProjectContext): string {
   return lines.join('\n')
 }
 
-function skillBlock(found: { name: string; content: string }): string {
-  return [
-    `[Compétence « ${found.name} » : suivez ces instructions pour ce message]`,
-    found.content.slice(0, SKILL_MAX_CHARS),
-    '[Fin de la compétence]',
-  ].join('\n')
-}
-
 /**
  * Nexora edition: what the Assistant places before a question sent to its agent — the project's
  * instructions and files (only to its own conversation, the first time and again after the
- * project changed) and the skills the message names with `@`. A conversation of someone else, or
+ * project changed; the skills named with `@` are added by the page). A conversation of someone else, or
  * of another workspace, shares nothing: its project is never read.
  */
 export async function prepareAssistantInput(
@@ -125,15 +97,6 @@ export async function prepareAssistantInput(
     if (context && context.version !== conversation.projectVersion) {
       blocks.push(projectBlock(context))
       versionToRecord = { conversationId: conversation.id, version: context.version }
-    }
-  }
-
-  const names = mentionedSkills(input.text)
-  if (names.length > 0) {
-    const found = await deps.loadSkills(input.workspaceId, names)
-    for (const name of names) {
-      const match = found.find((candidate) => candidate.name === name)
-      if (match) blocks.push(skillBlock(match))
     }
   }
 
