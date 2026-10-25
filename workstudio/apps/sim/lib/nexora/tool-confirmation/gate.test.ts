@@ -21,7 +21,9 @@ let unregister: () => void
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
   frames = []
-  unregister = registerConfirmationSink('exec-1', (frame) => frames.push(frame))
+  unregister = registerConfirmationSink('exec-1', (frame) => frames.push(frame), {
+    followerMayAnswer: true,
+  })
 })
 afterEach(() => {
   unregister()
@@ -119,6 +121,66 @@ describe('gateToolCall', () => {
     })
     expect(outcome).toMatchObject({ kind: 'deferred', title: 'postmark.send_email' })
     expect(frames).toEqual([])
-    unregister = registerConfirmationSink('exec-1', (frame) => frames.push(frame))
+    unregister = registerConfirmationSink('exec-1', (frame) => frames.push(frame), {
+      followerMayAnswer: true,
+    })
+  })
+
+  describe('a visitor of a public chat who follows the run', () => {
+    beforeEach(() => {
+      unregister()
+      unregister = registerConfirmationSink('exec-1', (frame) => frames.push(frame), {
+        followerMayAnswer: false,
+      })
+    })
+
+    it('cannot allow a write himself: it is deferred to the workspace, and no token is handed out', async () => {
+      const outcome = await gateToolCall({
+        spec: sendEmail,
+        args,
+        executionId: 'exec-1',
+        lookupOperation: write,
+      })
+      expect(outcome).toMatchObject({ kind: 'deferred', title: 'postmark.send_email' })
+      expect(frames).toEqual([])
+    })
+
+    it('cannot allow a destructive action himself either', async () => {
+      const outcome = await gateToolCall({
+        spec: sendEmail,
+        args: { actionId: 'crm.delete_contact', input: { id: '42' } },
+        executionId: 'exec-1',
+        lookupOperation: async () => 'destructive',
+      })
+      expect(outcome).toMatchObject({ kind: 'deferred', title: 'crm.delete_contact' })
+      expect(frames).toEqual([])
+    })
+
+    it('cannot allow a flagged tool whose effect is unknown', async () => {
+      const outcome = await gateToolCall({
+        spec: {
+          required: true,
+          serverName: 'CRM maison',
+          toolName: 'update_deal',
+          title: 'update_deal',
+        },
+        args: { id: '1' },
+        executionId: 'exec-1',
+        lookupOperation: write,
+      })
+      expect(outcome).toMatchObject({ kind: 'deferred' })
+      expect(frames).toEqual([])
+    })
+
+    it('still lets a read run without asking', async () => {
+      const outcome = await gateToolCall({
+        spec: sendEmail,
+        args: { actionId: 'crm.list_contacts', input: {} },
+        executionId: 'exec-1',
+        lookupOperation: async () => 'read',
+      })
+      expect(outcome).toEqual({ kind: 'proceed' })
+      expect(frames).toEqual([])
+    })
   })
 })

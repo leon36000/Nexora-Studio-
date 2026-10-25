@@ -122,6 +122,7 @@ vi.mock('@/lib/core/rate-limiter', () => rateLimiterMock)
 import { RATE_LIMITS } from '@/lib/core/rate-limiter/types'
 import { preprocessExecution } from '@/lib/execution/preprocessing'
 import { resolveActingMember } from '@/lib/nexora/acting-member'
+import { followerMayAnswer } from '@/lib/nexora/tool-confirmation/sinks'
 import { executeWorkflow } from '@/lib/workflows/executor/execute-workflow'
 import { createStreamingResponse } from '@/lib/workflows/streaming/streaming'
 import { POST } from '@/app/api/chat/[identifier]/route'
@@ -472,6 +473,59 @@ describe('Chat Identifier API Route', () => {
 
         expect(input).toMatchObject({ conversationId: 'visitor-conversation' })
         expect(options).not.toHaveProperty('memberChatUserId')
+      })
+    })
+
+    describe('« Demander avant d’agir » on a followed run', () => {
+      async function mayVisitorAnswer(authType: string, auth: Record<string, unknown>) {
+        dbChainMockFns.select.mockImplementationOnce(() => ({
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue([{ ...mockChatResult[0], authType }]),
+            }),
+          }),
+        }))
+        mockValidateChatAuth.mockResolvedValueOnce({ authorized: true, ...auth })
+        let during: boolean | null = null
+        vi.mocked(executeWorkflow).mockImplementationOnce(async (...args: unknown[]) => {
+          during = followerMayAnswer(String(args[5]))
+          return { success: true, output: {} } as never
+        })
+        const req = createMockNextRequest(
+          'POST',
+          { input: 'Bonjour' },
+          { 'X-Sim-Stream-Protocol': 'agent-events-v1' }
+        )
+        const response = await POST(req, createRouteContext({ identifier: 'test-chat' }))
+        expect(response.status).toBe(200)
+        const options = vi.mocked(createStreamingResponse).mock.calls[0][0]
+        await options.executeFn({
+          onStream: vi.fn(),
+          emitFrame: vi.fn(),
+          onBlockComplete: vi.fn(),
+          abortSignal: new AbortController().signal,
+        })
+        return during
+      }
+
+      it('never lets an anonymous visitor of a public chat allow an action of the workspace', async () => {
+        expect(await mayVisitorAnswer('public', {})).toBe(false)
+      })
+
+      it('never lets a password or email visitor allow an action of the workspace', async () => {
+        for (const authType of ['password', 'email']) {
+          vi.mocked(createStreamingResponse).mockClear()
+          expect(await mayVisitorAnswer(authType, { authenticatedEmail: 'a@pme.fr' })).toBe(false)
+        }
+      })
+
+      it('leaves a member of a members-only chat answering for the run they are in', async () => {
+        expect(
+          await mayVisitorAnswer('workspace', {
+            authenticatedUserId: 'member-a',
+            authenticatedEmail: 'a@pme.fr',
+          })
+        ).toBe(true)
       })
     })
 

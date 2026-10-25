@@ -4,7 +4,7 @@ import {
   needsConfirmation,
   type ToolConfirmationSpec,
 } from '@/lib/nexora/tool-confirmation/policy'
-import { getConfirmationSink } from '@/lib/nexora/tool-confirmation/sinks'
+import { followerMayAnswer, getConfirmationSink } from '@/lib/nexora/tool-confirmation/sinks'
 import {
   CONFIRMATION_TTL_SECONDS,
   createConfirmationRequest,
@@ -16,7 +16,7 @@ const SUMMARY_CHARS = 600
 export type GateOutcome =
   | { kind: 'proceed' }
   | { kind: 'denied'; reason: 'user' | 'timeout' }
-  /** Nobody follows this run: the action waits for the run's own approval pause. */
+  /** Nobody who may answer follows this run: the action waits for the run's own approval pause. */
   | { kind: 'deferred'; title: string; summary: string }
 
 interface GateInput {
@@ -37,7 +37,9 @@ function summarizeCall(args: Record<string, unknown>): string {
 /**
  * Decides whether a tool call may run now: unflagged calls proceed; flagged ones ask the person
  * who follows the run and wait for « Autoriser » or « Refuser » (no answer, or a cancelled run, is
- * a refusal); a run nobody follows defers the call.
+ * a refusal); a run nobody follows defers the call, and so does a run only a public visitor
+ * follows: he may not allow what the workspace's connections would do, so the call waits for the
+ * workspace's own approval pause. Reads never reach this point (they are not flagged to ask).
  */
 export async function gateToolCall(input: GateInput): Promise<GateOutcome> {
   const decision = await needsConfirmation(input.spec, input.args, input.lookupOperation)
@@ -45,7 +47,9 @@ export async function gateToolCall(input: GateInput): Promise<GateOutcome> {
   const title = decision.title ?? input.spec.title
   const summary = summarizeCall(input.args)
   const sink = getConfirmationSink(input.executionId)
-  if (!sink || !input.executionId) return { kind: 'deferred', title, summary }
+  if (!sink || !input.executionId || !followerMayAnswer(input.executionId)) {
+    return { kind: 'deferred', title, summary }
+  }
 
   const request = await createConfirmationRequest({
     executionId: input.executionId,

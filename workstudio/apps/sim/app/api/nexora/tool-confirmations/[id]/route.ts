@@ -12,8 +12,9 @@ interface RouteContext {
 
 /**
  * Raw route: a confirmation request belongs to one running agent, and the one-time token that
- * proves who may answer travelled only in the stream of the person talking to it — so a public
- * chat visitor can answer for their own run, and nobody else can.
+ * proves who may answer travelled only in the stream of the member talking to it — a visitor of a
+ * public chat is never handed one (the gate defers his run's actions to the workspace), and nobody
+ * else can answer.
  */
 export const POST = withRouteHandler(async (request: NextRequest, context: RouteContext) => {
   const parsed = await parseRequest(answerToolConfirmationContract, request, context)
