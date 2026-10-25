@@ -133,20 +133,20 @@ Consignées aussi dans le ledger (section K8).
 
 **Fichiers :** `app/workspace/[workspaceId]/traces/{page.tsx,traces.tsx,components/{trace-filters,trace-list,trace-detail,span-tree,trace-settings-modal}.tsx}`, `hooks/queries/nexora-traces.ts`, entrée dans `w/components/sidebar/sidebar.tsx`, `messages/{fr,en}/traces.json` (+ déclaration dans le chargeur de messages), tests des utilitaires (arbre, libellés de durée, filtres ↔ URL).
 
-- [ ] **Étape 1 : tests rouges** des fonctions pures : construction de l'arbre depuis `parentId`, durée lisible (« 850 ms », « 12,4 s »), filtres ⇄ paramètres d'URL (nuqs).
-- [ ] **Étape 2 :** écran selon `sim-components.md`, `sim-queries.md`, `sim-url-state.md`, `sim-ui-copy.md` : liste (heure, nom, source, modèle, durée, jetons, CO₂, statut), filtres (espace courant, agent, modèle, clé, statut, durée > 1 s / 5 s / 10 s / 30 s, texte, période), détail à droite avec l'arbre de spans et les entrées/sorties masquées, état vide en français, réglages (administrateurs de l'instance : activer, rétention, masquage, conversations, OTLP, essai d'envoi, « Purger maintenant »).
-- [ ] **Étape 3 :** parcours au navigateur sur mon `next dev` ; captures dans `docs/verification/k8-traces/`.
+- [x] **Étape 1 : tests rouges** des fonctions pures : construction de l'arbre depuis `parentId`, durée lisible (« 850 ms », « 12,4 s »), filtres ⇄ paramètres d'URL (nuqs).
+- [x] **Étape 2 :** écran selon `sim-components.md`, `sim-queries.md`, `sim-url-state.md`, `sim-ui-copy.md` : liste (heure, nom, source, modèle, durée, jetons, CO₂, statut), filtres (espace courant, agent, modèle, clé, statut, durée > 1 s / 5 s / 10 s / 30 s, texte, période), détail à droite avec l'arbre de spans et les entrées/sorties masquées, état vide en français, réglages (administrateurs de l'instance : activer, rétention, masquage, conversations, OTLP, essai d'envoi, « Purger maintenant »).
+- [x] **Étape 3 :** parcours au navigateur sur mon `next dev` ; captures dans `docs/verification/k8-traces/`.
 
 ### Tâche 11 : Guide, fumée, ledger
 
 **Fichiers :** `docs/guide/traces.md`, `docs/guide/README.md` (lien), `README.md` (ligne), `scripts/smoke.py` (contrôle « Traces »), `docs/superpowers/plans/2026-10-23-nexora-v3-ledger.md` (section K8).
 
-- [ ] **Étape 1 :** guide en français (lire une trace, filtres, masquage et ses limites, rétention, export vers Langfuse/Phoenix/Grafana, visibilité des traces privées).
-- [ ] **Étape 2 :** contrôle de fumée « Traces » : (a) question à l'Assistant (agent avec base de connaissances) ⇒ la trace apparaît en moins de 5 s avec l'arbre modèle → outil → modèle ; (b) IBAN saisi ⇒ masqué dans le détail ; (c) workflow avec attente de 11 s ⇒ filtre « durée > 10 s » ne rend que lui ; (d) purge avec rétention de 1 jour et horloge simulée ⇒ traces de l'espace supprimées, autres espaces intacts, rétention remise à 30 ; (e) collecteur OTLP de test dans le script ⇒ reçoit les spans d'un appel Playground ; (f) un membre ne voit pas la trace privée d'un autre.
-- [ ] **Étape 3 :** ledger : décisions D1–D11, preuves, ce qu'il reste à vérifier après déploiement.
+- [x] **Étape 1 :** guide en français (lire une trace, filtres, masquage et ses limites, rétention, export vers Langfuse/Phoenix/Grafana, visibilité des traces privées).
+- [x] **Étape 2 :** contrôle de fumée « Traces » : (a) question à l'Assistant (agent avec base de connaissances) ⇒ la trace apparaît en moins de 5 s avec l'arbre modèle → outil → modèle ; (b) IBAN saisi ⇒ masqué dans le détail ; (c) workflow avec attente de 11 s ⇒ filtre « durée > 10 s » ne rend que lui ; (d) purge avec rétention de 1 jour et horloge simulée ⇒ traces de l'espace supprimées, autres espaces intacts, rétention remise à 30 ; (e) collecteur OTLP de test dans le script ⇒ reçoit les spans d'un appel Playground ; (f) un membre ne voit pas la trace privée d'un autre.
+- [x] **Étape 3 :** ledger : décisions D1–D11, preuves, ce qu'il reste à vérifier après déploiement.
 
 ### Tâche 12 : Vérifications et validation
 
-- [ ] **Étape 1 :** biome sur les fichiers touchés ; `bun run type-check` (racine `workstudio/`) ; `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations` ; vitest ciblé et d'intégration ; `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`.
-- [ ] **Étape 2 :** serveur de développement sur la pile de pc6 : fumée « Traces » verte avec GLM 5.3, puis arrêt du serveur et suppression de `.next/dev`.
-- [ ] **Étape 3 :** commit sur la branche (message en français, signature Claude), sans pousser ni fusionner.
+- [x] **Étape 1 :** biome sur les fichiers touchés ; `bun run type-check` (racine `workstudio/`) ; `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations` ; vitest ciblé et d'intégration ; `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`.
+- [x] **Étape 2 :** serveur de développement sur la pile de pc6 : fumée « Traces » verte avec GLM 5.3, puis arrêt du serveur et suppression de `.next/dev`.
+- [x] **Étape 3 :** commit sur la branche (message en français, signature Claude), sans pousser ni fusionner.

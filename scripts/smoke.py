@@ -964,6 +964,7 @@ def main() -> int:
             require(status in (200, 201), f"members-only chat publication returned HTTP {status}: {str(body)[:200]}")
 
             # (a) a question that needs the knowledge base: its tree appears in under 5 s
+            traces_of(s)  # a first read warms the route, so the 5 s measure below is the trace's latency alone
             question = "Quand livrez-vous le samedi ? Cherchez dans la base de connaissances."
             status, text = s.call("POST", f"/api/chat/{identifier}", {"input": question, "conversationId": secrets.token_hex(8)}, raw=True, timeout=300)
             require(status == 200 and '"event":"error"' not in text, f"chat returned HTTP {status}: {text[:200]}")
