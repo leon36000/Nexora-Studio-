@@ -196,6 +196,10 @@ services:
       API_ENCRYPTION_KEY: ${API_ENCRYPTION_KEY:?run scripts/init-env.sh first}
       CRON_SECRET: ${CRON_SECRET:?run scripts/init-env.sh first}
       SOCKET_SERVER_URL: http://workstudio-realtime:3002
+      # Appels de l'application vers ses propres routes (bloc Garde-fous, outils internes) : l'URL
+      # publique (http://localhost:3200 sur une machine de test) ne désigne pas l'application
+      # depuis son propre conteneur.
+      INTERNAL_API_BASE_URL: http://workstudio:3000
       NEXT_PUBLIC_SOCKET_URL: ${NEXORA_PUBLIC_REALTIME_URL:-http://localhost:${NEXORA_REALTIME_PORT:-3002}}
       NEXT_TELEMETRY_DISABLED: '1'
       # « Appliquer » (Réglages › Sécurité) restarts WorkStudio: `restart: unless-stopped` brings it back.

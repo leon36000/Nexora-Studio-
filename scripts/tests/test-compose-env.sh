@@ -28,6 +28,10 @@ case "$command" in *". /bootstrap/nexora-admin.env"*) ok "WorkStudio reads its m
 
 [ -n "$(value NEXORA_CONNECT_ADMIN_TOKEN)" ] && ok "WorkStudio can administer Nexora Connect (connectors catalog)" || ko "WorkStudio can administer Nexora Connect (connectors catalog)"
 
+# The Garde-fous block and other internal calls go from the app to its own routes: the public URL
+# (http://localhost:3200 on a test machine) does not designate the app from inside its container.
+[ "$(value INTERNAL_API_BASE_URL)" = "http://workstudio:3000" ] && ok "WorkStudio calls its own routes by the internal address" || ko "WorkStudio calls its own routes by the internal address (got: $(value INTERNAL_API_BASE_URL))"
+
 # Uploaded files (knowledge documents, workspace files) must outlive container updates.
 mounts="$(python3 -I -c 'import json,sys; v=json.load(sys.stdin)["services"]["workstudio"].get("volumes",[]); print(" ".join(m.get("target","") if isinstance(m,dict) else m for m in v))' <<< "$rendered")"
 case " $mounts " in *" /app/apps/sim/uploads "*) ok "uploaded files are kept in a volume" ;; *) ko "uploaded files are kept in a volume (mounts: $mounts)" ;; esac
