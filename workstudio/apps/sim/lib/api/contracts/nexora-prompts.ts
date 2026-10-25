@@ -1,10 +1,7 @@
 import { z } from 'zod'
 import { nonEmptyIdSchema, workspaceIdSchema } from '@/lib/api/contracts/primitives'
 import { defineRouteContract } from '@/lib/api/contracts/types'
-import {
-  PROMPT_LABELS,
-  PROMPT_VARIABLE_TYPES,
-} from '@/lib/nexora/prompts/template'
+import { PROMPT_LABELS, PROMPT_VARIABLE_TYPES } from '@/lib/nexora/prompts/template'
 
 /** A prompt's text: long enough for detailed instructions, bounded like a skill body. */
 const MAX_PROMPT_CONTENT = 50_000
