@@ -134,7 +134,10 @@ describe('Compte rendu de réunion', () => {
   })
 
   it('shows the minutes to a person who approves before anything is sent', () => {
-    const shown = sub('human_in_the_loop_v2', 'builderData').value as { name: string; value: string }[]
+    const shown = sub('human_in_the_loop_v2', 'builderData').value as {
+      name: string
+      value: string
+    }[]
     expect(shown).toEqual([
       expect.objectContaining({ name: 'compteRendu', value: '<compterendu.content>' }),
     ])

@@ -88,6 +88,9 @@ describe('executeNexoraTts', () => {
       expect.anything()
     )
     expect(mockUploadFile).not.toHaveBeenCalled()
-    expect(result).toMatchObject({ audioUrl: 'https://execution.example/tts-nexora.wav', provider: 'nexora' })
+    expect(result).toMatchObject({
+      audioUrl: 'https://execution.example/tts-nexora.wav',
+      provider: 'nexora',
+    })
   })
 })

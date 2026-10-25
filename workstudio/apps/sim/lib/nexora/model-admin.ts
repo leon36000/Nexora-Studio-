@@ -543,7 +543,10 @@ async function testRequest(
       return { status: response.status, reply: '', detail: failure.detail }
     }
     const audio = await response.arrayBuffer()
-    return { status: response.status, reply: `${response.headers.get('content-type') ?? 'audio'}, ${audio.byteLength} bytes` }
+    return {
+      status: response.status,
+      reply: `${response.headers.get('content-type') ?? 'audio'}, ${audio.byteLength} bytes`,
+    }
   }
   const { status, data } = await client.call<{
     choices?: { message?: unknown }[]

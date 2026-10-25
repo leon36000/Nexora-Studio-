@@ -1,8 +1,8 @@
 """HTTP face of the diarization service: `POST /diarize` (multipart `file`, optional `num_speakers`) and `GET /health`."""
 
-from collections.abc import Callable
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any, Protocol
 
@@ -42,7 +42,9 @@ def create_app(diarizer: SupportsDiarize, decode: Callable[[bytes], Any] = decod
             raise HTTPException(status_code=422, detail=str(error)) from error
         duration = len(samples) / SAMPLE_RATE
         if duration > max_seconds:
-            raise HTTPException(status_code=422, detail=f"the recording is too long ({round(duration / 60)} min); the limit is {max_seconds // 60} min")
+            raise HTTPException(
+                status_code=422, detail=f"the recording is too long ({round(duration / 60)} min); the limit is {max_seconds // 60} min"
+            )
         try:
             turns = await run_in_threadpool(diarizer.diarize, samples, num_speakers)
         except Exception:

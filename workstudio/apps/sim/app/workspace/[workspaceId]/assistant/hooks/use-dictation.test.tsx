@@ -8,7 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const { mockDictate } = vi.hoisted(() => ({ mockDictate: vi.fn() }))
 
 vi.mock('@/app/workspace/[workspaceId]/assistant/voice-client', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/app/workspace/[workspaceId]/assistant/voice-client')>()),
+  ...(await importOriginal<
+    typeof import('@/app/workspace/[workspaceId]/assistant/voice-client')
+  >()),
   dictateRecording: mockDictate,
 }))
 

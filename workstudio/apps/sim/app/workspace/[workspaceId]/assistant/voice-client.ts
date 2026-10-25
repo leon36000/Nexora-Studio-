@@ -50,7 +50,7 @@ export async function dictateRecording({
       body: form,
       signal,
     })
-  } catch (error) {
+  } catch {
     signal.throwIfAborted()
     throw new VoiceError('unavailable')
   }
@@ -76,7 +76,7 @@ export async function speakPiece({
       body: JSON.stringify({ workspaceId, text }),
       signal,
     })
-  } catch (error) {
+  } catch {
     signal.throwIfAborted()
     throw new VoiceError('unavailable')
   }

@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { assistantDictateContract } from '@/lib/api/contracts/nexora-voice'
+import { parseRequest } from '@/lib/api/server'
 import {
   isPayloadSizeLimitError,
   MAX_MULTIPART_OVERHEAD_BYTES,
@@ -21,6 +23,8 @@ const LANGUAGES: ReadonlySet<string> = new Set(['fr', 'en', 'auto'])
  * message box. Members of the workspace only; the recording is not kept.
  */
 export const POST = withRouteHandler(async (request: NextRequest) => {
+  const parsed = await parseRequest(assistantDictateContract, request, {})
+  if (!parsed.success) return parsed.response
   let form: FormData
   try {
     form = await readFormDataWithLimit(request, {
@@ -29,7 +33,10 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     })
   } catch (error) {
     if (isPayloadSizeLimitError(error)) {
-      return NextResponse.json({ error: 'too-long', message: 'Recording too large' }, { status: 413 })
+      return NextResponse.json(
+        { error: 'too-long', message: 'Recording too large' },
+        { status: 413 }
+      )
     }
     return NextResponse.json({ error: 'Invalid multipart form' }, { status: 400 })
   }

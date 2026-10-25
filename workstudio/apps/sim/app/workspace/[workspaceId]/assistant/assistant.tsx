@@ -30,12 +30,12 @@ import {
   assistantParsers,
   assistantUrlKeys,
 } from '@/app/workspace/[workspaceId]/assistant/search-params'
-import { useNexoraModelUsages } from '@/hooks/queries/nexora-home'
 import {
   useAssistantAgents,
   useAssistantConversation,
   useAssistantConversations,
 } from '@/hooks/queries/nexora-assistant'
+import { useNexoraModelUsages } from '@/hooks/queries/nexora-home'
 
 /** The dictated words after what is already typed, on the same line unless it ended one. */
 function appendDictation(draft: string, text: string): string {
@@ -362,7 +362,8 @@ export function Assistant({ workspaceId }: AssistantProps) {
                         ? {
                             workspaceId,
                             language: locale === 'en' ? 'en' : 'fr',
-                            onText: (text) => setDraft((previous) => appendDictation(previous, text)),
+                            onText: (text) =>
+                              setDraft((previous) => appendDictation(previous, text)),
                           }
                         : undefined
                     }

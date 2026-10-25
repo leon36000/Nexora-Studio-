@@ -230,7 +230,6 @@ interface TemplateBlock {
   data?: { canonicalModes: Record<string, 'basic' | 'advanced'> }
 }
 
-
 type TemplateWorkflowState = {
   blocks: Record<string, TemplateBlock>
   edges: {

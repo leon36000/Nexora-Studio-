@@ -113,7 +113,5 @@ export function useReadAloud(workspaceId: string) {
 
   useEffect(() => stop, [stop])
 
-  const dismissError = useCallback(() => setError(null), [])
-
-  return { reading, error, toggle, dismissError }
+  return { reading, error, toggle }
 }

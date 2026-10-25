@@ -31,7 +31,9 @@ describe('readVoiceLexicon', () => {
   })
 
   it('serves the next read from memory, so a transcription costs no extra query', async () => {
-    queueTableRows(schemaMock.organization, [{ metadata: { nexoraVoice: { lexicon: ['Nexora'] } } }])
+    queueTableRows(schemaMock.organization, [
+      { metadata: { nexoraVoice: { lexicon: ['Nexora'] } } },
+    ])
     await readVoiceLexicon()
     dbChainMockFns.limit.mockClear()
     expect(await readVoiceLexicon()).toEqual(['Nexora'])
@@ -41,20 +43,25 @@ describe('readVoiceLexicon', () => {
   it('never blocks a transcription: a failed read gives no lexicon, and is read again next time', async () => {
     instanceOrgMockFns.mockGetInstanceOrganizationId.mockRejectedValueOnce(new Error('db down'))
     expect(await readVoiceLexicon()).toEqual([])
-    queueTableRows(schemaMock.organization, [{ metadata: { nexoraVoice: { lexicon: ['Nexora'] } } }])
+    queueTableRows(schemaMock.organization, [
+      { metadata: { nexoraVoice: { lexicon: ['Nexora'] } } },
+    ])
     expect(await readVoiceLexicon()).toEqual(['Nexora'])
   })
 })
 
 describe('saveVoiceLexicon', () => {
   it('keeps every other metadata key and the next read sees the new terms at once', async () => {
-    queueTableRows(schemaMock.organization, [{ metadata: { nexoraBudgets: { alertThreshold: 0.8 } } }])
+    queueTableRows(schemaMock.organization, [
+      { metadata: { nexoraBudgets: { alertThreshold: 0.8 } } },
+    ])
 
     const saved = await saveVoiceLexicon('org-instance', ['Nexora', 'Nexora', 'Boulangerie Martin'])
 
     expect(saved).toEqual(['Nexora', 'Boulangerie Martin'])
-    const written = (dbChainMockFns.set.mock.calls.at(-1)?.[0] as { metadata: Record<string, unknown> })
-      .metadata
+    const written = (
+      dbChainMockFns.set.mock.calls.at(-1)?.[0] as { metadata: Record<string, unknown> }
+    ).metadata
     expect(written.nexoraBudgets).toEqual({ alertThreshold: 0.8 })
     expect(written.nexoraVoice).toEqual({ lexicon: ['Nexora', 'Boulangerie Martin'] })
     dbChainMockFns.limit.mockClear()

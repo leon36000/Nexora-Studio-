@@ -6,20 +6,25 @@ import { chunkForSpeech, speechText } from '@/lib/nexora/voice/speech-text'
 
 describe('speechText', () => {
   it('reads titles, emphasis and lists as plain sentences', () => {
-    const markdown = '## Résumé\n\nLe budget est **validé** à *12 000 euros*.\n\n- Paul appelle\n- Anne prépare'
-    expect(speechText(markdown)).toBe('Résumé.\n\nLe budget est validé à 12 000 euros.\n\nPaul appelle.\nAnne prépare.')
+    const markdown =
+      '## Résumé\n\nLe budget est **validé** à *12 000 euros*.\n\n- Paul appelle\n- Anne prépare'
+    expect(speechText(markdown)).toBe(
+      'Résumé.\n\nLe budget est validé à 12 000 euros.\n\nPaul appelle.\nAnne prépare.'
+    )
   })
 
   it('keeps the words of a link and drops its address, and says nothing of an image', () => {
-    expect(speechText('Voir [le guide](https://exemple.fr/guide) et ![logo](https://exemple.fr/l.png) ici.')).toBe(
-      'Voir le guide et ici.'
-    )
+    expect(
+      speechText(
+        'Voir [le guide](https://exemple.fr/guide) et ![logo](https://exemple.fr/l.png) ici.'
+      )
+    ).toBe('Voir le guide et ici.')
   })
 
   it('does not read code blocks aloud, but keeps inline code words', () => {
-    expect(speechText('Lancez `nexora update` :\n\n```bash\nnexora update\n```\n\nPuis attendez.')).toBe(
-      'Lancez nexora update :\n\nPuis attendez.'
-    )
+    expect(
+      speechText('Lancez `nexora update` :\n\n```bash\nnexora update\n```\n\nPuis attendez.')
+    ).toBe('Lancez nexora update :\n\nPuis attendez.')
   })
 
   it('reads a table row by row, cells separated by commas', () => {

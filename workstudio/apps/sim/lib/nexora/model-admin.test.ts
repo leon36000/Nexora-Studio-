@@ -346,18 +346,29 @@ describe('model usages', () => {
       'text-to-speech'
     )
     const models = await listNexoraModels(options)
-    expect(models.map((m) => [m.name, m.usage])).toContainEqual(['piper-fr-fr-siwis-medium', 'speech'])
+    expect(models.map((m) => [m.name, m.usage])).toContainEqual([
+      'piper-fr-fr-siwis-medium',
+      'speech',
+    ])
   })
 
   it('adds a speech model as a text-to-speech router on an OpenAI-compatible service', async () => {
     const { state, options } = setup()
     const voice = await addNexoraModel(
-      { source: 'openai-compatible', url: 'http://whisper:8000', model: 'speaches-ai/piper-fr_FR-siwis-medium', usage: 'speech' },
+      {
+        source: 'openai-compatible',
+        url: 'http://whisper:8000',
+        model: 'speaches-ai/piper-fr_FR-siwis-medium',
+        usage: 'speech',
+      },
       options
     )
     expect(voice.usage).toBe('speech')
     expect(state.routers.find((r) => r.id === voice.id)?.type).toBe('text-to-speech')
-    expect(state.providers.find((p) => p.router_id === voice.id)).toMatchObject({ type: 'openai', timeout: 600 })
+    expect(state.providers.find((p) => p.router_id === voice.id)).toMatchObject({
+      type: 'openai',
+      timeout: 600,
+    })
   })
 
   it.each(['ollama', 'mistral'] as const)(
@@ -381,9 +392,14 @@ describe('model usages', () => {
     )
     const result = await testNexoraModel('piper-fr-fr-siwis-medium', options, 'speech')
     expect(result.reply).toBe('audio/wav, 2048 bytes')
-    expect(state.speechRequests[0]).toMatchObject({ model: 'piper-fr-fr-siwis-medium', response_format: 'wav' })
+    expect(state.speechRequests[0]).toMatchObject({
+      model: 'piper-fr-fr-siwis-medium',
+      response_format: 'wav',
+    })
     expect(String(state.speechRequests[0].input).length).toBeGreaterThan(10)
-    await expect(testNexoraModel('unknown-voice', options, 'speech')).rejects.toMatchObject({ code: 'not-found' })
+    await expect(testNexoraModel('unknown-voice', options, 'speech')).rejects.toMatchObject({
+      code: 'not-found',
+    })
   })
 
   it('never makes a vision or transcription model the default, but removes it', async () => {

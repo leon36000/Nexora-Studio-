@@ -4,12 +4,12 @@ The running service never contacts the network: everything it needs is baked int
 """
 
 import hashlib
-from pathlib import Path
 import shutil
 import sys
 import tarfile
 import tempfile
 import urllib.request
+from pathlib import Path
 
 RELEASES = "https://github.com/k2-fsa/sherpa-onnx/releases/download"
 # Segmentation: pyannote segmentation 3.0 exported to ONNX by k2-fsa (MIT, Copyright CNRS), with its LICENSE file.

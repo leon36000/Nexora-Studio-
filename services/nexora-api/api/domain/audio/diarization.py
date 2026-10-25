@@ -61,7 +61,7 @@ def assign_speakers(words: list[TimedWord], turns: list[SpeakerTurn]) -> list[Se
 
 def _speaker_of(word: TimedWord, turns: list[SpeakerTurn], first: int) -> int | None:
     best_overlap, best_speaker = 0.0, None
-    nearest_distance, nearest_speaker = MAX_DISTANCE_TO_TURN + 1, None
+    nearest_distance, nearest_speaker = float("inf"), None
     for turn in turns[first:]:
         if turn.start > word.end + MAX_DISTANCE_TO_TURN:
             break
@@ -74,4 +74,4 @@ def _speaker_of(word: TimedWord, turns: list[SpeakerTurn], first: int) -> int | 
 
     if best_speaker is not None:
         return best_speaker
-    return nearest_speaker if nearest_distance <= MAX_DISTANCE_TO_TURN else None
+    return nearest_speaker

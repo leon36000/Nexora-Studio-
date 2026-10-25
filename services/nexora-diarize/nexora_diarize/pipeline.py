@@ -7,10 +7,10 @@ different two voices must be to count as two speakers; it is fixed by measuremen
 ledger), and `num_speakers` overrides it when the caller knows the count.
 """
 
-from dataclasses import dataclass
 import logging
-from pathlib import Path
 import threading
+from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import sherpa_onnx

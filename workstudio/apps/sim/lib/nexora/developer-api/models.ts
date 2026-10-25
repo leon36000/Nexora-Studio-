@@ -20,8 +20,8 @@ import {
   upstreamError,
 } from '@/lib/nexora/developer-api/upstream'
 import { readMessageReasoning } from '@/lib/nexora/reasoning'
-import { MAX_SPEECH_CHARACTERS } from '@/lib/nexora/voice/client'
 import { beginCallTrace } from '@/lib/nexora/traces/call'
+import { MAX_SPEECH_CHARACTERS } from '@/lib/nexora/voice/client'
 
 const OWNED_BY_AGENT = 'nexora-agent'
 

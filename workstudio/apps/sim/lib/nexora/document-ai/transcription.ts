@@ -130,7 +130,7 @@ export async function transcribeAudio(
   return { transcript: texts.filter(Boolean).join(' '), duration }
 }
 
-export async function measureWithFfprobe(input: AudioInput, signal?: AbortSignal): Promise<number | null> {
+async function measureWithFfprobe(input: AudioInput, signal?: AbortSignal): Promise<number | null> {
   try {
     const { duration } = await getAudioMetadata(input.audio, input.mimeType, signal)
     return duration > 0 ? duration : null
@@ -140,7 +140,7 @@ export async function measureWithFfprobe(input: AudioInput, signal?: AbortSignal
   }
 }
 
-export async function cutWithFfmpeg(
+async function cutWithFfmpeg(
   input: AudioInput,
   chunk: AudioChunk,
   signal?: AbortSignal
@@ -230,7 +230,10 @@ export interface TranscribeMeetingWithNexoraInput extends MeetingInput {
 }
 
 /** The recording as a small 16 kHz mono MP3 (also what browsers record in), or unchanged without FFmpeg. */
-async function prepareMeetingAudio(input: MeetingInput, signal?: AbortSignal): Promise<MeetingInput> {
+async function prepareMeetingAudio(
+  input: MeetingInput,
+  signal?: AbortSignal
+): Promise<MeetingInput> {
   try {
     const audio = await cutWithFfmpeg(
       input,

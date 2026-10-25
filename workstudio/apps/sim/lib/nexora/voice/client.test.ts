@@ -73,17 +73,21 @@ describe('nexoraSpeak', () => {
 
   it('reports a model that is not served as « no model », and an unreachable API as unavailable', async () => {
     const missing = api(() => jsonResponse({ detail: 'Model piper not found.' }, 404))
-    await expect(nexoraSpeak({ text: 'Bonjour', model: 'piper' }, missing.options)).rejects.toMatchObject({
+    await expect(
+      nexoraSpeak({ text: 'Bonjour', model: 'piper' }, missing.options)
+    ).rejects.toMatchObject({
       code: 'no-model',
     })
 
     const down = api(() => {
       throw new TypeError('fetch failed')
     })
-    await expect(nexoraSpeak({ text: 'Bonjour', model: 'piper' }, down.options)).rejects.toBeInstanceOf(
-      NexoraDocumentAiError
-    )
-    await expect(nexoraSpeak({ text: 'Bonjour', model: 'piper' }, down.options)).rejects.toMatchObject({
+    await expect(
+      nexoraSpeak({ text: 'Bonjour', model: 'piper' }, down.options)
+    ).rejects.toBeInstanceOf(NexoraDocumentAiError)
+    await expect(
+      nexoraSpeak({ text: 'Bonjour', model: 'piper' }, down.options)
+    ).rejects.toMatchObject({
       code: 'unavailable',
     })
   })

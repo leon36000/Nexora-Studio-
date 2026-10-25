@@ -140,7 +140,10 @@ export function AddModelModal({
     setUsage(next)
     setMistralModel(DEFAULT_MISTRAL_MODEL[next])
     setOllamaModel('')
-    if ((next === 'transcription' && source === 'ollama') || (next === 'speech' && source !== 'openai-compatible')) {
+    if (
+      (next === 'transcription' && source === 'ollama') ||
+      (next === 'speech' && source !== 'openai-compatible')
+    ) {
       setSource(null)
     }
   }

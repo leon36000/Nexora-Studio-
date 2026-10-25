@@ -98,7 +98,8 @@ describe('dictateRecording', () => {
 describe('speakPiece', () => {
   it('returns the audio of a piece of text as a blob of its type', async () => {
     const fetchFn = vi.fn(
-      async () => new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'audio/wav' } })
+      async () =>
+        new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'audio/wav' } })
     )
 
     const audio = await speakPiece({
@@ -117,7 +118,12 @@ describe('speakPiece', () => {
   it('maps a refusal to a code', async () => {
     const fetchFn = async () => jsonResponse({ error: 'no-model' }, 400)
     await expect(
-      speakPiece({ workspaceId: 'ws-1', text: 'Bonjour.', signal, fetchFn: fetchFn as unknown as typeof fetch })
+      speakPiece({
+        workspaceId: 'ws-1',
+        text: 'Bonjour.',
+        signal,
+        fetchFn: fetchFn as unknown as typeof fetch,
+      })
     ).rejects.toMatchObject({ code: 'no-model' })
   })
 })

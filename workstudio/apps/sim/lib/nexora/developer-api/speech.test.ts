@@ -96,11 +96,7 @@ describe('relaySpeech', () => {
 
   it('refuses a text over the 4 096 characters of the API, in French, before any call', async () => {
     await expect(
-      relaySpeech(
-        call,
-        { model: 'voix', input: 'x'.repeat(4097) },
-        new AbortController().signal
-      )
+      relaySpeech(call, { model: 'voix', input: 'x'.repeat(4097) }, new AbortController().signal)
     ).rejects.toMatchObject({ status: 400, message: expect.stringContaining('4 096') })
     expect(mockCallUpstream).not.toHaveBeenCalled()
     expect(mockReserve).not.toHaveBeenCalled()

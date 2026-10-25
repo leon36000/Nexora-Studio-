@@ -14,7 +14,8 @@ export function speechText(markdown: string): string {
     }
     if (inFence) continue
     let line = raw.trim()
-    if (/^[-*_]{3,}$/.test(line) || /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(line)) continue
+    if (/^[-*_]{3,}$/.test(line) || /^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(line))
+      continue
     const isHeading = /^#{1,6}\s+/.test(line)
     line = line
       .replace(/^#{1,6}\s+/, '')
@@ -44,12 +45,19 @@ export function speechText(markdown: string): string {
     const listed = /^(?:\s*(?:[-*+]|\d+[.)])\s+)/.test(raw)
     lines.push(isHeading || listed ? (SENTENCE_END.test(line) ? line : `${line}.`) : line)
   }
-  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+  return lines
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
 }
 
 /** Pieces of at most `max` characters, cut after a sentence (or at a space when one is longer). */
 export function chunkForSpeech(text: string, max = SPEECH_CHUNK_CHARACTERS): string[] {
-  const sentences = text.replace(/\s+/g, ' ').trim().match(/[^.!?…]+(?:[.!?…]+|$)\s*/g) ?? []
+  const sentences =
+    text
+      .replace(/\s+/g, ' ')
+      .trim()
+      .match(/[^.!?…]+(?:[.!?…]+|$)\s*/g) ?? []
   const chunks: string[] = []
   let current = ''
   const flush = () => {

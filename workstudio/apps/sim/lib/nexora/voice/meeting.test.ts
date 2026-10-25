@@ -1,11 +1,12 @@
 /**
  * @vitest-environment node
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, type Mock, vi } from 'vitest'
 import { NexoraDocumentAiError } from '@/lib/nexora/document-ai/client'
 import {
   formatSpeakerTranscript,
   MEETING_MAX_SECONDS,
+  type MeetingSteps,
   speakerLabel,
   transcribeMeeting,
 } from '@/lib/nexora/voice/meeting'
@@ -60,12 +61,14 @@ describe('transcribeMeeting', () => {
     segments: [segment('speaker_1', 'Bonjour'), segment('speaker_2', 'Salut', 3)],
   }
 
-  function steps(overrides: Record<string, unknown> = {}) {
+  type Steps = { [K in keyof MeetingSteps]: Mock<MeetingSteps[K]> }
+
+  function steps(overrides: Partial<Steps> = {}): Steps {
     return {
-      measure: vi.fn(async () => 600),
-      prepare: vi.fn(async (audio: typeof input) => audio),
-      diarized: vi.fn(async () => diarized),
-      plain: vi.fn(async () => 'Bonjour Salut'),
+      measure: vi.fn<MeetingSteps['measure']>(async () => 600),
+      prepare: vi.fn<MeetingSteps['prepare']>(async (audio) => audio),
+      diarized: vi.fn<MeetingSteps['diarized']>(async () => diarized),
+      plain: vi.fn<MeetingSteps['plain']>(async () => 'Bonjour Salut'),
       ...overrides,
     }
   }
@@ -76,7 +79,10 @@ describe('transcribeMeeting', () => {
     const result = await transcribeMeeting(input, run)
 
     expect(run.diarized).toHaveBeenCalledTimes(1)
-    expect(run.diarized.mock.calls[0][0]).toMatchObject({ prompt: 'Vocabulaire : Nexora.', numSpeakers: 2 })
+    expect(run.diarized.mock.calls[0][0]).toMatchObject({
+      prompt: 'Vocabulaire : Nexora.',
+      numSpeakers: 2,
+    })
     expect(result).toMatchObject({
       transcript: 'Bonjour Salut',
       speakers: 2,
@@ -89,7 +95,7 @@ describe('transcribeMeeting', () => {
 
   it('counts one speaker for a monologue, never a second one', async () => {
     const run = steps({
-      diarized: vi.fn(async () => ({
+      diarized: vi.fn<MeetingSteps['diarized']>(async () => ({
         text: 'Je dicte.',
         segments: [segment('speaker_1', 'Je dicte.')],
       })),
@@ -98,7 +104,9 @@ describe('transcribeMeeting', () => {
   })
 
   it('refuses before any work a meeting longer than an hour, naming the limit', async () => {
-    const run = steps({ measure: vi.fn(async () => MEETING_MAX_SECONDS + 60) })
+    const run = steps({
+      measure: vi.fn<MeetingSteps['measure']>(async () => MEETING_MAX_SECONDS + 60),
+    })
 
     await expect(transcribeMeeting(input, run)).rejects.toMatchObject({
       code: 'too-long',
@@ -109,15 +117,15 @@ describe('transcribeMeeting', () => {
   })
 
   it('accepts a meeting of exactly an hour', async () => {
-    const run = steps({ measure: vi.fn(async () => MEETING_MAX_SECONDS) })
+    const run = steps({ measure: vi.fn<MeetingSteps['measure']>(async () => MEETING_MAX_SECONDS) })
     await expect(transcribeMeeting(input, run)).resolves.toMatchObject({ speakers: 2 })
   })
 
   it('sends a recording of unknown length only when it is small', async () => {
-    const small = steps({ measure: vi.fn(async () => null) })
+    const small = steps({ measure: vi.fn<MeetingSteps['measure']>(async () => null) })
     await expect(transcribeMeeting(input, small)).resolves.toMatchObject({ speakers: 2 })
 
-    const big = steps({ measure: vi.fn(async () => null) })
+    const big = steps({ measure: vi.fn<MeetingSteps['measure']>(async () => null) })
     await expect(
       transcribeMeeting({ ...input, audio: Buffer.alloc(26 * 1024 * 1024) }, big)
     ).rejects.toMatchObject({ code: 'too-long' })
@@ -126,7 +134,7 @@ describe('transcribeMeeting', () => {
 
   it('falls back on the plain text, with a warning, when the instance cannot tell the speakers', async () => {
     const run = steps({
-      diarized: vi.fn(async () => {
+      diarized: vi.fn<MeetingSteps['diarized']>(async () => {
         throw new NexoraDocumentAiError('diarization-unavailable', 'no service')
       }),
     })
@@ -144,7 +152,7 @@ describe('transcribeMeeting', () => {
 
   it('does not hide any other failure behind that fallback', async () => {
     const run = steps({
-      diarized: vi.fn(async () => {
+      diarized: vi.fn<MeetingSteps['diarized']>(async () => {
         throw new NexoraDocumentAiError('unavailable', 'Nexora API did not answer')
       }),
     })
@@ -154,7 +162,10 @@ describe('transcribeMeeting', () => {
 
   it('sends the prepared recording, not the original', async () => {
     const run = steps({
-      prepare: vi.fn(async (audio: typeof input) => ({ ...audio, fileName: 'prepared.mp3' })),
+      prepare: vi.fn<MeetingSteps['prepare']>(async (audio) => ({
+        ...audio,
+        fileName: 'prepared.mp3',
+      })),
     })
     await transcribeMeeting(input, run)
     expect(run.diarized.mock.calls[0][0]).toMatchObject({ fileName: 'prepared.mp3' })

@@ -40,7 +40,7 @@ interface DictationButtonProps {
 function DictationButton({ workspaceId, language, onText, disabled }: DictationButtonProps) {
   const t = useTranslations('assistant.composer')
   const tErrors = useTranslations('assistant.voice.dictationErrors')
-  const { status, error, start, stop, dismissError } = useDictation({
+  const { status, error, start, stop } = useDictation({
     workspaceId,
     language,
     onText,
@@ -73,14 +73,9 @@ function DictationButton({ workspaceId, language, onText, disabled }: DictationB
         </span>
       )}
       {error && (
-        <button
-          type='button'
-          onClick={dismissError}
-          role='alert'
-          className='text-left text-[var(--text-error)] text-caption'
-        >
+        <span role='alert' className='text-[var(--text-error)] text-caption'>
           {tErrors(error)}
-        </button>
+        </span>
       )}
     </>
   )

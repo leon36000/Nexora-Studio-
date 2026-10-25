@@ -131,7 +131,11 @@ export const nexoraSttTool: InternalToolConfig<NexoraSttParams, SttResponse> = {
       optional: true,
     },
     speakers: { type: 'number', description: 'Number of speakers told apart', optional: true },
-    warning: { type: 'string', description: 'Why the speakers were not told apart', optional: true },
+    warning: {
+      type: 'string',
+      description: 'Why the speakers were not told apart',
+      optional: true,
+    },
   },
 }
 

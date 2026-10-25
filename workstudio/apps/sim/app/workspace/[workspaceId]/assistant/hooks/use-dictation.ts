@@ -105,15 +105,16 @@ export function useDictation({ workspaceId, language, onText }: UseDictationProp
     }
     recorder.start()
     setStatus('recording')
-    timerRef.current = setTimeout(() => recorder.state !== 'inactive' && recorder.stop(), MAX_DICTATION_MS)
+    timerRef.current = setTimeout(
+      () => recorder.state !== 'inactive' && recorder.stop(),
+      MAX_DICTATION_MS
+    )
   }, [release])
 
   const stop = useCallback(() => {
     const recorder = recorderRef.current
     if (recorder && recorder.state !== 'inactive') recorder.stop()
   }, [])
-
-  const dismissError = useCallback(() => setError(null), [])
 
   useEffect(
     () => () => {
@@ -128,5 +129,5 @@ export function useDictation({ workspaceId, language, onText }: UseDictationProp
     [release]
   )
 
-  return { status, error, start, stop, dismissError }
+  return { status, error, start, stop }
 }
