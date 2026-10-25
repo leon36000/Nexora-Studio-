@@ -72,12 +72,12 @@
 - Consomme : image de la tâche 1.
 - Produit : `NEXORA_PII_URL` (vide par défaut ; `http://pii:5001` quand le profil est activé) lu par WorkStudio comme `PII_URL` ; `EGRESS_ALLOWED_HOSTS` inchangé (le client PII n'utilise pas la barrière de sortie des utilisateurs : adresse fixée par l'administrateur, comme `VLLM_BASE_URL`).
 
-- [ ] **Étape 1 : tests rouges** dans `test-compose-env.sh` : par défaut aucun service `pii` rendu et `PII_URL` vide ; avec `COMPOSE_PROFILES=pii` + `NEXORA_PII_URL=http://pii:5001` : service construit depuis `workstudio`, profil `pii`, pas de port publié, santé `/health`, mémoire plafonnée, `PII_URL` dans `workstudio`. Dans `test-install.sh` : réponse « oui » ajoute le profil et l'adresse, « non » les retire sans toucher aux autres profils.
-- [ ] **Étape 2 : voir échouer** — `bash scripts/tests/test-compose-env.sh scripts/tests/test-install.sh`.
-- [ ] **Étape 3 : implémenter** service `pii` (build `../workstudio`, `docker/pii.Dockerfile`, `restart: unless-stopped`, `mem_limit` d'après la mesure, `healthcheck` sur `/health` avec `start_period` généreux), variable `PII_URL: ${NEXORA_PII_URL:-}` dans `workstudio`, question d'installation sur le modèle de la voix.
-- [ ] **Étape 4 : tests verts** + `bash scripts/tests/test-*.sh`.
-- [ ] **Étape 5 : conteneurs jetables** — `docker compose -p k14pii … --profile pii up -d pii` sur un port libre avec un fichier d'environnement jetable, `/health` puis suppression (`down -v`), sans toucher au projet `nexora`.
-- [ ] **Étape 6 : commit** `feat(k14): profil compose « pii » et question d'installation`.
+- [x] **Étape 1 : tests rouges** dans `test-compose-env.sh` : par défaut aucun service `pii` rendu et `PII_URL` vide ; avec `COMPOSE_PROFILES=pii` + `NEXORA_PII_URL=http://pii:5001` : service construit depuis `workstudio`, profil `pii`, pas de port publié, santé `/health`, mémoire plafonnée, `PII_URL` dans `workstudio`. Dans `test-install.sh` : réponse « oui » ajoute le profil et l'adresse, « non » les retire sans toucher aux autres profils.
+- [x] **Étape 2 : voir échouer** — `bash scripts/tests/test-compose-env.sh scripts/tests/test-install.sh`.
+- [x] **Étape 3 : implémenter** service `pii` (build `../workstudio`, `docker/pii.Dockerfile`, `restart: unless-stopped`, `mem_limit` d'après la mesure, `healthcheck` sur `/health` avec `start_period` généreux), variable `PII_URL: ${NEXORA_PII_URL:-}` dans `workstudio`, question d'installation sur le modèle de la voix.
+- [x] **Étape 4 : tests verts** + `bash scripts/tests/test-*.sh`.
+- [x] **Étape 5 : conteneurs jetables** — `docker compose -p k14pii … --profile pii up -d pii` sur un port libre avec un fichier d'environnement jetable, `/health` puis suppression (`down -v`), sans toucher au projet `nexora`.
+- [x] **Étape 6 : commit** `feat(k14): profil compose « pii » et question d'installation`.
 
 ## Tâche 3 : Le bloc Garde-fous détecte un IBAN et un e-mail (en français)
 

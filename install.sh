@@ -274,6 +274,26 @@ configure() {
       set_env NEXORA_WHISPER_URL "" ;;
   esac
 
+  # Personal-data detection (profile « pii »): a small service on this machine, about 800 MB.
+  local pii
+  ask pii "Activer la détection locale des données personnelles (noms, IBAN, e-mails ; environ 800 Mo) ? (o/N)" "${NEXORA_PII:-0}"
+  case "$pii" in
+    1|o|O|oui|y|yes)
+      local pii_profiles
+      set_env NEXORA_PII 1
+      set_env NEXORA_PII_URL "http://pii:5001"
+      pii_profiles="$(get_env COMPOSE_PROFILES)"
+      case ",$pii_profiles," in *,pii,*) ;; *) set_env COMPOSE_PROFILES "${pii_profiles:+$pii_profiles,}pii" ;; esac ;;
+    *)
+      local pii_kept
+      pii_kept="$(get_env COMPOSE_PROFILES)"
+      pii_kept=",$pii_kept,"; pii_kept="${pii_kept//,pii,/,}"
+      pii_kept="${pii_kept#,}"; pii_kept="${pii_kept%,}"
+      set_env COMPOSE_PROFILES "$pii_kept"
+      set_env NEXORA_PII 0
+      set_env NEXORA_PII_URL "" ;;
+  esac
+
   set_env NEXORA_ORGANIZATION_NAME "$org"
   set_env NEXORA_ORGANIZATION_OWNER_EMAIL "$email"
   set_env NEXORA_ALLOWED_EMAIL_DOMAINS "$domains"

@@ -33,4 +33,14 @@ Voix locale (v3, K12), profil `voice` de `deploy/compose.yml` — aucun de ces c
 
 Écartés : pyannote.audio avec ses modèles d'empreintes (accès conditionné par un formulaire Hugging Face), NVIDIA NeMo TitaNet-small (licence du modèle non vérifiable), Reverb diarization de Rev.com (licence propre), piper1-gpl (GPL-3.0).
 
+Détection locale des données personnelles (v3, K14), profil `pii` de `deploy/compose.yml` — le code du service est celui du cœur (`workstudio/apps/pii`, Apache-2.0) ; les composants suivants sont tirés à la construction de l'image, jamais copiés dans le dépôt :
+
+| Composant | Rôle | Licence | Remarque |
+|---|---|---|---|
+| Presidio analyzer et anonymizer 2.2.362 (microsoft/presidio) | reconnaissance et masquage des données personnelles | MIT | |
+| spaCy 3.8.14 (explosion/spaCy) | analyse du texte (entités nommées) | MIT | |
+| `en_core_web_sm` 3.8.0 | modèle anglais | MIT | somme SHA-256 vérifiée à la construction (`workstudio/docker/pii-models.sha256`) |
+| `fr_core_news_sm` 3.8.0 | modèle français : reconnaît les noms de personnes | LGPL-LR (Lesser General Public License For Linguistic Resources ; corpus UD French Sequoia et WikiNER) | **n'est pas une licence permissive.** Ressource de données utilisée telle quelle par un service séparé, tirée à la construction de l'image, non modifiée et non redistribuée par Nexora. Pour s'en passer : construire avec `--build-arg SPACY_MODELS="en_core_web_sm-3.8.0" --build-arg PII_SPACY_MODELS="en:en_core_web_sm"` (les motifs et sommes de contrôle — IBAN, e-mail, carte, téléphone, numéro de sécurité sociale — restent actifs, les noms ne sont plus reconnus en français) |
+| phonenumbers, tldextract, regex, FastAPI, uvicorn | dépendances de Presidio et du service | Apache-2.0, BSD-3-Clause, Apache-2.0, MIT, BSD-3-Clause | |
+
 Les noms et marques des services tiers cités par les intégrations (Slack, Google, etc.) restent la propriété de leurs titulaires. Ils ne sont utilisés que pour identifier ces intégrations.
