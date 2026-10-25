@@ -205,6 +205,8 @@ services:
       # « Appliquer » (Réglages › Sécurité) restarts WorkStudio: `restart: unless-stopped` brings it back.
       NEXORA_SUPERVISED: '1'
       NEXORA_TIME_ZONE: ${NEXORA_TIME_ZONE:-Europe/Paris}
+      # Délégation entre agents: how many agents may be chained (1 to 10).
+      NEXORA_DELEGATION_MAX_DEPTH: ${NEXORA_DELEGATION_MAX_DEPTH:-3}
       # Réglages › État: the installed version, and the transcription service to check when it is on.
       NEXORA_VERSION: ${NEXORA_VERSION:-local}
       NEXORA_WHISPER_URL: ${NEXORA_WHISPER_URL:-}

@@ -1,5 +1,6 @@
 import { generateId } from '@sim/utils/id'
 import { isRecordLike, toArray, toRecord } from '@sim/utils/object'
+import { type AgentHandoff, handoffsToRows, rowsToHandoffs } from '@/lib/nexora/delegation/handoffs'
 import { PROMPT_SELECTORS, type PromptSelector } from '@/lib/nexora/prompts/template'
 import { REASONING_EFFORTS, type ReasoningEffort } from '@/lib/nexora/reasoning'
 import { normalizedStringify, sanitizeTools } from '@/lib/workflows/comparison/normalize'
@@ -28,7 +29,18 @@ export interface AgentConfig {
   reasoningEffort: AgentReasoningEffort
   /** Instructions read at run time from a versioned prompt of the workspace; `null`: `instructions`. */
   instructionsPrompt: AgentInstructionsPrompt | null
+  /** « Peut confier à »: agents this one may hand a request to (published agents of the workspace). */
+  handoffs: AgentHandoff[]
+  /** Skills of the workspace the agent can load when relevant. */
+  skills: AgentSkill[]
   welcomeMessage: string
+}
+
+/** A skill as the Agent block stores it (`skills` field). */
+export interface AgentSkill {
+  skillId: string
+  name: string
+  description: string
 }
 
 export interface AgentInstructionsPrompt {
@@ -84,6 +96,43 @@ function readInstructionsPrompt(
     variables[cells.Key.trim()] = cells.Value
   }
   return { promptId, label, variables }
+}
+
+/** Skill entries as stored, keyed by skill id: the editor may keep more on them than the form shows. */
+function skillSubBlock(
+  skills: readonly AgentSkill[],
+  previous: readonly Record<string, unknown>[]
+): AgentBlock['subBlocks'] {
+  const previousById = new Map(previous.map((entry) => [entry.skillId, entry]))
+  return {
+    skills: {
+      id: 'skills',
+      type: 'skill-input',
+      value: skills.map((skill) => previousById.get(skill.skillId) ?? { ...skill }),
+    },
+  }
+}
+
+/**
+ * The skills an Agent block holds: none for an agent saved before (or cleared), `undefined` when an
+ * entry has no skill id and the form cannot show it faithfully.
+ */
+function readSkills(agent: Record<string, unknown>): AgentSkill[] | undefined {
+  const stored = subBlockValue(agent, 'skills')
+  if (stored === undefined || stored === null) return []
+  if (!Array.isArray(stored)) return undefined
+  const skills: AgentSkill[] = []
+  for (const entry of stored) {
+    if (!isRecordLike(entry) || typeof entry.skillId !== 'string' || !entry.skillId) {
+      return undefined
+    }
+    skills.push({
+      skillId: entry.skillId,
+      name: typeof entry.name === 'string' ? entry.name : '',
+      description: typeof entry.description === 'string' ? entry.description : '',
+    })
+  }
+  return skills
 }
 
 interface AgentBlock {
@@ -228,7 +277,11 @@ function agentShape(state: unknown): {
 }
 
 /** The agent block's sub-blocks the form owns, for `config`. */
-function formSubBlocks(config: AgentConfig, previousTools: StoredTool[]): AgentBlock['subBlocks'] {
+function formSubBlocks(
+  config: AgentConfig,
+  previousTools: StoredTool[],
+  previousSkills: Record<string, unknown>[]
+): AgentBlock['subBlocks'] {
   const previousKnowledge = new Map<string, StoredTool>()
   for (const tool of previousTools) {
     const id = knowledgeBaseOf(tool)
@@ -263,6 +316,8 @@ function formSubBlocks(config: AgentConfig, previousTools: StoredTool[]): AgentB
     },
     reasoningEffort: { id: 'reasoningEffort', type: 'combobox', value: config.reasoningEffort },
     ...promptSubBlocks(config.instructionsPrompt),
+    handoffs: { id: 'handoffs', type: 'table', value: handoffsToRows(config.handoffs) },
+    ...skillSubBlock(config.skills, previousSkills),
   }
   if (config.memory) {
     subBlocks.conversationId = { id: 'conversationId', type: 'short-input', value: CONVERSATION_ID }
@@ -349,9 +404,13 @@ export function buildAgentWorkflow(config: AgentConfig, previous?: unknown): Age
     const blocks = structuredClone(shape.state.blocks) as Record<string, AgentBlock>
     const agentId = String(shape.agent.id)
     const previousTools = toArray(subBlockValue(shape.agent, 'tools')).filter(isStoredTool)
+    const previousSkills = toArray(subBlockValue(shape.agent, 'skills')).filter(isRecordLike)
     blocks[agentId] = withFileReference({
       ...blocks[agentId],
-      subBlocks: { ...blocks[agentId].subBlocks, ...formSubBlocks(config, previousTools) },
+      subBlocks: {
+        ...blocks[agentId].subBlocks,
+        ...formSubBlocks(config, previousTools, previousSkills),
+      },
     })
     return {
       blocks,
@@ -381,7 +440,7 @@ export function buildAgentWorkflow(config: AgentConfig, previous?: unknown): Age
         name: AGENT_BLOCK_NAME,
         position: { x: 420, y: 0 },
         enabled: true,
-        subBlocks: formSubBlocks(config, []),
+        subBlocks: formSubBlocks(config, [], []),
         outputs: {},
       }),
     },
@@ -428,6 +487,9 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
   if (!isFormReasoningEffort(reasoningEffort)) return null
   const instructionsPrompt = readInstructionsPrompt(agent)
   if (instructionsPrompt === undefined) return null
+  const handoffs = rowsToHandoffs(subBlockValue(agent, 'handoffs'))
+  const skills = readSkills(agent)
+  if (handoffs === null || skills === undefined) return null
 
   const storedTools = toArray(tools).filter(isStoredTool)
   const metadata = toRecord(shape.state.metadata)
@@ -447,6 +509,8 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
     memory,
     reasoningEffort,
     instructionsPrompt,
+    handoffs,
+    skills,
     welcomeMessage: text(metadata.welcomeMessage),
   }
 }
@@ -465,6 +529,8 @@ const STATE_FIELDS = [
   'memory',
   'reasoningEffort',
   'instructionsPrompt',
+  'handoffs',
+  'skills',
 ] as const
 
 /**

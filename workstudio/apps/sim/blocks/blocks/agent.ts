@@ -329,6 +329,18 @@ Return ONLY the JSON array.`,
       },
     },
     {
+      // Nexora edition: agents this one may hand a request to (workflow id, mode `reply` or `transfer`).
+      id: 'handoffs',
+      title: 'Can delegate to',
+      type: 'table',
+      columns: ['Agent', 'Mode'],
+      condition: {
+        field: 'model',
+        value: MODELS_WITHOUT_CHAT_CONTROLS,
+        not: true,
+      },
+    },
+    {
       id: 'memoryType',
       title: 'Memory',
       type: 'dropdown',
@@ -576,6 +588,10 @@ Return ONLY the JSON array.`,
       description: 'Prompt version to use: production, test or latest',
     },
     promptVariables: { type: 'json', description: 'Values of the prompt variables' },
+    handoffs: {
+      type: 'json',
+      description: 'Published agents this agent may hand a request to, with the mode of each',
+    },
     memoryType: {
       type: 'string',
       description:

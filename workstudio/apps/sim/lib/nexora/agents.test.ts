@@ -24,6 +24,8 @@ const base: AgentConfig = {
   memory: false,
   reasoningEffort: 'auto',
   instructionsPrompt: null,
+  handoffs: [],
+  skills: [],
   welcomeMessage: 'Bonjour, que puis-je pour vous ?',
 }
 
@@ -451,6 +453,86 @@ describe('agent instructions taken from a versioned prompt', () => {
     expect(diffAgentVersions(fromPrompt, moved).map(({ field }) => field)).toEqual([
       'instructionsPrompt',
     ])
+  })
+})
+
+describe('agents that can hand a request to other agents', () => {
+  const delegating: AgentConfig = {
+    ...base,
+    handoffs: [
+      { agentId: 'wf-tarifs', mode: 'reply' },
+      { agentId: 'wf-sav', mode: 'transfer' },
+    ],
+  }
+
+  it("round-trips « Peut confier à » with each agent's mode", () => {
+    expect(readAgentWorkflow(buildAgentWorkflow(delegating))).toEqual(delegating)
+  })
+
+  it('stores the list where the Agent block reads it, one table row per agent', () => {
+    expect(agentBlock(buildAgentWorkflow(delegating)).subBlocks.handoffs.value).toEqual([
+      { id: expect.any(String), cells: { Agent: 'wf-tarifs', Mode: 'reply' } },
+      { id: expect.any(String), cells: { Agent: 'wf-sav', Mode: 'transfer' } },
+    ])
+  })
+
+  it('reads an agent saved before K11 as handing nothing to anyone', () => {
+    const state = buildAgentWorkflow(base)
+    const agent = agentBlock(state)
+    const { handoffs: _handoffs, skills: _skills, ...older } = agent.subBlocks
+    agent.subBlocks = older
+    expect(readOrFail(state)).toMatchObject({ handoffs: [], skills: [] })
+  })
+
+  it('goes read-only rather than rewrite a list the form cannot show', () => {
+    const state = buildAgentWorkflow(delegating)
+    agentBlock(state).subBlocks.handoffs.value = [
+      { id: '1', cells: { Agent: 'wf-tarifs', Mode: 'broadcast' } },
+    ]
+    expect(readAgentWorkflow(state)).toBeNull()
+  })
+
+  it('counts a change of « Peut confier à » as a change between versions', () => {
+    const changed: AgentConfig = {
+      ...delegating,
+      handoffs: [{ agentId: 'wf-tarifs', mode: 'transfer' }],
+    }
+    expect(diffAgentVersions(delegating, changed).map(({ field }) => field)).toEqual(['handoffs'])
+    expect(hasUnsavedAgentChanges(delegating, changed)).toBe(true)
+  })
+})
+
+describe('skills chosen in the agent form', () => {
+  const skill = {
+    skillId: 'skill-1',
+    name: 'ton-entreprise',
+    description: 'Ton de l’entreprise : vouvoiement, chaleureux et bref.',
+  }
+  const withSkill: AgentConfig = { ...base, skills: [skill] }
+
+  it("round-trips the skills into the block's own skills field", () => {
+    const state = buildAgentWorkflow(withSkill)
+    expect(agentBlock(state).subBlocks.skills.value).toEqual([skill])
+    expect(readOrFail(state)).toEqual(withSkill)
+  })
+
+  it('keeps what the editor stored on a skill the form keeps', () => {
+    const first = buildAgentWorkflow(withSkill)
+    agentBlock(first).subBlocks.skills.value = [{ ...skill, label: 'production' }]
+    const rewritten = buildAgentWorkflow(withSkill, first)
+    expect(agentBlock(rewritten).subBlocks.skills.value).toEqual([
+      { ...skill, label: 'production' },
+    ])
+  })
+
+  it('goes read-only when a skill entry has no identifier', () => {
+    const state = buildAgentWorkflow(withSkill)
+    agentBlock(state).subBlocks.skills.value = [{ name: 'sans-id' }]
+    expect(readAgentWorkflow(state)).toBeNull()
+  })
+
+  it('counts adding a skill as a change between versions', () => {
+    expect(diffAgentVersions(base, withSkill).map(({ field }) => field)).toEqual(['skills'])
   })
 })
 

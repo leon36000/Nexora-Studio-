@@ -8,6 +8,7 @@ import type {
   AssistantMessageFile,
 } from '@/lib/api/contracts/nexora-assistant'
 import { type AnswerExtras, withExtras } from '@/lib/nexora/agent-extras'
+import { type MentionableSkill, withSkillInstructions } from '@/lib/nexora/skills-mention'
 import { confirmationsReducer } from '@/lib/nexora/tool-confirmation/client-state'
 import {
   type ChatFilePayload,
@@ -49,6 +50,7 @@ export interface PendingTurn {
 }
 
 const NO_EXTRAS: AnswerExtras = { files: [], sources: [] }
+const NO_SKILLS: readonly MentionableSkill[] = []
 
 interface SendInput {
   /** `null` starts a new conversation with `agent`. */
@@ -94,7 +96,9 @@ async function toChatFile(file: File): Promise<ChatFilePayload> {
 export function useAssistantTurn(
   workspaceId: string,
   onConversationCreated: (id: string) => void,
-  onConversationDiscarded: () => void
+  onConversationDiscarded: () => void,
+  /** Skills a message may invoke with `@`: their instructions go to the agent with the question. */
+  skills: readonly MentionableSkill[] = NO_SKILLS
 ) {
   const controllerRef = useRef<AbortController | null>(null)
   const liveRef = useRef<LiveAnswer | null>(null)
@@ -192,9 +196,11 @@ export function useAssistantTurn(
     }
     if (controllerRef.current === controller) controllerRef.current = null
     if (liveRef.current === live) liveRef.current = null
+    const delegations = outcome.delegations ?? live.extras.delegations
     const finalExtras: AnswerExtras = {
       files: outcome.files ?? live.extras.files,
       sources: outcome.sources ?? live.extras.sources,
+      ...(delegations ? { delegations } : {}),
     }
     updateAnswer(conversationId, {
       text: outcome.text,
@@ -288,7 +294,7 @@ export function useAssistantTurn(
         ? { ...previous, question: { ...previous.question, id: question.id } }
         : previous
     )
-    void streamAnswer(targetId, agent, text, chatFiles, controller)
+    void streamAnswer(targetId, agent, withSkillInstructions(text, skills), chatFiles, controller)
     return true
   }
 
@@ -321,7 +327,13 @@ export function useAssistantTurn(
         extras: NO_EXTRAS,
       },
     })
-    void streamAnswer(conversationId, agent, question.content, replay.files, controller)
+    void streamAnswer(
+      conversationId,
+      agent,
+      withSkillInstructions(question.content, skills),
+      replay.files,
+      controller
+    )
   }
 
   const stop = () => controllerRef.current?.abort()

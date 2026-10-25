@@ -4,7 +4,12 @@ import { isApiClientError, isValidationError } from '@/lib/api/client/errors'
 import { requestRaw } from '@/lib/api/client/request'
 import { type DeployedChatPostBody, deployedChatPostContract } from '@/lib/api/contracts/chats'
 import { readSSEEvents } from '@/lib/core/utils/sse'
-import { type AnswerExtras, readAgentOutputFrame } from '@/lib/nexora/agent-extras'
+import {
+  type AnswerExtras,
+  applyDelegationFrame,
+  type DelegationNote,
+  readAgentOutputFrame,
+} from '@/lib/nexora/agent-extras'
 import {
   AGENT_STREAM_PROTOCOL_HEADER_LABEL,
   AGENT_STREAM_PROTOCOL_V1,
@@ -15,6 +20,7 @@ import {
   isChatChunkResetFrame,
   isChatConfirmationEndFrame,
   isChatConfirmationFrame,
+  isChatDelegationFrame,
   isChatErrorFrame,
   isChatFinalFrame,
   isChatThinkingFrame,
@@ -93,6 +99,13 @@ export async function streamAgentReply({
   onConfirmationEnd,
 }: StreamAgentReplyInput): Promise<ReplyOutcome> {
   const extras: AnswerExtras = { files: [], sources: [] }
+  let delegations: DelegationNote[] = []
+  /** The extras as they stand, with the delegations only once an agent was asked. */
+  const snapshot = (): AnswerExtras => ({
+    files: extras.files,
+    sources: extras.sources,
+    ...(delegations.length > 0 ? { delegations } : {}),
+  })
   let thinking = ''
   const blockOrder: string[] = []
   const blockText = new Map<string, string>()
@@ -127,7 +140,12 @@ export async function streamAgentReply({
         if (output) {
           if (output.kind === 'files') extras.files = output.files
           else extras.sources = output.sources
-          onExtras?.({ files: extras.files, sources: extras.sources })
+          onExtras?.(snapshot())
+          return false
+        }
+        if (isChatDelegationFrame(frame)) {
+          delegations = applyDelegationFrame(delegations, frame)
+          onExtras?.(snapshot())
           return false
         }
         if (isChatConfirmationFrame(frame)) {
@@ -177,7 +195,8 @@ export async function streamAgentReply({
     if (signal.aborted) return { status: 'stopped', text }
     return { status: 'error', code: toErrorCode(error), text }
   }
-  const carried = extras.files.length > 0 || extras.sources.length > 0 ? extras : {}
+  const carried =
+    extras.files.length > 0 || extras.sources.length > 0 || delegations.length > 0 ? snapshot() : {}
   if (signal.aborted) return { status: 'stopped', text, ...carried }
   if (ending.terminal === null) return { status: 'error', code: 'interrupted', text, ...carried }
   if (ending.terminal === 'failed') return { status: 'error', code: 'failed', text, ...carried }

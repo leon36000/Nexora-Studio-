@@ -76,6 +76,13 @@
       "files": "Fichiers produits",
       "download": "Télécharger {name}",
       "imageAlt": "Graphique ou image produit : {name}",
+      "delegation": {
+        "label": "Agents sollicités",
+        "running": "{agent} répond…",
+        "done": "{agent} a répondu",
+        "transferred": "La main est passée à {agent}",
+        "failed": "{agent} n’a pas pu répondre"
+      },
       "confirm": {
         "title": "Autoriser cette action ?",
         "allow": "Autoriser",

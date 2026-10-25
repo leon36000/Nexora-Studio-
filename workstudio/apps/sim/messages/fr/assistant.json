@@ -42,6 +42,7 @@
     "label": "Votre message",
     "placeholder": "Écrivez votre message… (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)",
     "attach": "Joindre un fichier",
+    "skills": "Compétences",
     "removeFile": "Retirer {name}",
     "send": "Envoyer",
     "stop": "Arrêter",

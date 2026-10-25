@@ -85,7 +85,9 @@
       "welcomeMessage": "Message d’accueil",
       "instructionsPrompt": "Prompt des consignes",
       "codeInterpreter": "Interpréteur de code",
-      "webSearch": "Recherche web"
+      "webSearch": "Recherche web",
+      "handoffs": "Peut confier à",
+      "skills": "Compétences"
     },
     "welcomeHint": "Enregistré avec le chat public, à la publication.",
     "tools": {
@@ -99,6 +101,21 @@
       "search": "Rechercher un outil…",
       "confirm": "Demander avant d’agir avec {name}",
       "confirmHint": "Vous demande d’autoriser ou de refuser chaque utilisation de cet outil avant qu’il ne s’exécute."
+    },
+    "handoffs": {
+      "add": "Ajouter des agents",
+      "none": "Aucun autre agent publié",
+      "search": "Rechercher un agent…",
+      "mode": "Mode pour {name}",
+      "modeReply": "Répond, je reprends",
+      "modeTransfer": "Passe la main",
+      "hint": "« Répond, je reprends » : l’agent appelé répond puis cet agent reprend. « Passe la main » : l’agent appelé poursuit seul la conversation.",
+      "memoryNeeded": "Pour passer la main, activez la mémoire de conversation : sans elle, l’agent appelé ne répond qu’à cette demande."
+    },
+    "skills": {
+      "add": "Ajouter des compétences",
+      "none": "Aucune compétence dans cet espace",
+      "search": "Rechercher une compétence…"
     },
     "knowledge": {
       "add": "Ajouter des bases",

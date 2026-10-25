@@ -27,6 +27,8 @@ export interface AgentInputs {
   promptLabel?: string
   /** Values of the prompt's `{{variables}}`: table rows (`Key`, `Value`) or an object. */
   promptVariables?: unknown
+  /** Nexora edition: published agents this one may hand a request to (table rows `Agent`, `Mode`). */
+  handoffs?: unknown
   // Legacy inputs (backward compatible)
   systemPrompt?: string
   userPrompt?: string | object

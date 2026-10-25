@@ -76,6 +76,13 @@
       "files": "Files produced",
       "download": "Download {name}",
       "imageAlt": "Chart or image produced: {name}",
+      "delegation": {
+        "label": "Agents asked",
+        "running": "{agent} is answering…",
+        "done": "{agent} answered",
+        "transferred": "The conversation was handed over to {agent}",
+        "failed": "{agent} could not answer"
+      },
       "confirm": {
         "title": "Allow this action?",
         "allow": "Allow",

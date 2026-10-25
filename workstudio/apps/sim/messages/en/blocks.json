@@ -116,6 +116,9 @@
       "skills": {
         "title": "Skills"
       },
+      "handoffs": {
+        "title": "Can delegate to"
+      },
       "memoryType": {
         "title": "Memory",
         "placeholder": "Select memory...",

@@ -1,6 +1,9 @@
 import { isRecordLike } from '@sim/utils/object'
 import type { CitationSource } from '@/lib/nexora/citations'
-import { isChatOutputFrame } from '@/lib/workflows/streaming/agent-stream-protocol'
+import {
+  type ChatStreamDelegationFrame,
+  isChatOutputFrame,
+} from '@/lib/workflows/streaming/agent-stream-protocol'
 
 /**
  * Nexora edition: what an agent's answer carries besides its text — the files its tools produced
@@ -92,9 +95,69 @@ export function readAgentOutputFrame(frame: unknown): AgentOutput | null {
   return null
 }
 
+/** An agent the answering agent handed a request to (« Agent tarifs répond… »). */
+export interface DelegationNote {
+  id: string
+  agentId: string
+  agent: string
+  mode: 'reply' | 'transfer'
+  status: 'running' | 'done' | 'failed'
+  /** Why a delegation did not happen, in French. */
+  message?: string
+}
+
 export interface AnswerExtras {
   files: ProducedFile[]
   sources: CitationSource[]
+  /** Absent on an answer that delegated nothing, and on answers stored before delegation existed. */
+  delegations?: DelegationNote[]
+}
+
+/** The delegations of an answer after one more `delegation` frame of its stream. */
+export function applyDelegationFrame(
+  notes: readonly DelegationNote[],
+  frame: ChatStreamDelegationFrame
+): DelegationNote[] {
+  const { data } = frame
+  const base = { id: data.id, agentId: data.agentId, agent: data.agent, mode: data.mode }
+  if (data.phase === 'start') {
+    return [...notes, { ...base, status: 'running' }]
+  }
+  const ended: DelegationNote = {
+    ...base,
+    status: data.ok ? 'done' : 'failed',
+    ...(data.message ? { message: data.message } : {}),
+  }
+  return notes.some((note) => note.id === data.id)
+    ? notes.map((note) => (note.id === data.id ? ended : note))
+    : [...notes, ended]
+}
+
+function readDelegations(data: unknown): DelegationNote[] {
+  if (!Array.isArray(data)) return []
+  return data.flatMap((entry): DelegationNote[] => {
+    if (
+      !isRecordLike(entry) ||
+      typeof entry.id !== 'string' ||
+      typeof entry.agentId !== 'string' ||
+      typeof entry.agent !== 'string' ||
+      (entry.mode !== 'reply' && entry.mode !== 'transfer') ||
+      (entry.status !== 'running' && entry.status !== 'done' && entry.status !== 'failed')
+    ) {
+      return []
+    }
+    return [
+      {
+        id: entry.id,
+        agentId: entry.agentId,
+        agent: entry.agent,
+        mode: entry.mode,
+        // A delegation still running when the answer was stored was cut: it did not finish.
+        status: entry.status === 'running' ? 'failed' : entry.status,
+        ...(typeof entry.message === 'string' ? { message: entry.message } : {}),
+      },
+    ]
+  })
 }
 
 const EXTRAS_MARKER = '<!--nexora-extras:'
@@ -106,7 +169,9 @@ const EXTRAS_END = '-->'
  * keeps them across a reload without a new column.
  */
 export function withExtras(text: string, extras: AnswerExtras): string {
-  if (extras.files.length === 0 && extras.sources.length === 0) return text
+  if (extras.files.length === 0 && extras.sources.length === 0 && !extras.delegations?.length) {
+    return text
+  }
   const json = JSON.stringify(extras).replaceAll('-->', '--\\u003e')
   return `${text}\n\n${EXTRAS_MARKER}${json}${EXTRAS_END}`
 }
@@ -122,9 +187,14 @@ export function splitExtras(stored: string): { text: string; extras: AnswerExtra
       stored.slice(start + EXTRAS_MARKER.length, stored.length - EXTRAS_END.length)
     )
     if (!isRecordLike(parsed)) return { text, extras: none }
+    const delegations = readDelegations(parsed.delegations)
     return {
       text,
-      extras: { files: readFiles(parsed.files), sources: readSources(parsed.sources) },
+      extras: {
+        files: readFiles(parsed.files),
+        sources: readSources(parsed.sources),
+        ...(delegations.length > 0 ? { delegations } : {}),
+      },
     }
   } catch {
     return { text, extras: none }

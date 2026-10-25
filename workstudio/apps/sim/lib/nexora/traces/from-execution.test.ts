@@ -177,6 +177,58 @@ describe('draftFromExecution', () => {
     expect(draft.spans.map((s) => s.kind)).toEqual(['step', 'step', 'tool', 'delegation'])
   })
 
+  it('montre un appel de l’outil de délégation comme une délégation à l’agent appelé', () => {
+    const delegatedSpan = (id: string, name: string, extra: Partial<TraceSpan> = {}) =>
+      span({
+        id,
+        name,
+        type: 'tool',
+        input: { question: 'Combien coûte la baguette ?' },
+        output: {
+          agent: 'Agent tarifs',
+          answer: 'La baguette coûte 1,20 euro.',
+          childWorkflowName: 'Agent tarifs',
+        },
+        ...extra,
+      })
+    const spans = [
+      span({
+        id: 'root',
+        name: 'Workflow Execution',
+        type: 'workflow',
+        children: [
+          span({
+            id: 'agent',
+            name: 'Agent',
+            type: 'agent',
+            blockId: 'b1',
+            children: [
+              delegatedSpan('d1', 'delegate_to_agent'),
+              delegatedSpan('d2', 'delegate_to_agent__2'),
+              delegatedSpan('d3', 'delegate_to_agent', {
+                status: 'error',
+                output: { error: 'Boucle de délégation : « A » a déjà été sollicité.' },
+              }),
+            ],
+          }),
+        ],
+      }),
+    ]
+    const draft = draftFromExecution({ ...base, traceSpans: spans })
+    const delegations = draft.spans.filter((s) => s.kind === 'delegation')
+    expect(delegations.map((s) => s.name)).toEqual([
+      'Délégation → Agent tarifs',
+      'Délégation → Agent tarifs',
+      'Délégation',
+    ])
+    expect(delegations[0]).toMatchObject({
+      input: expect.stringContaining('Combien coûte la baguette ?'),
+      output: 'La baguette coûte 1,20 euro.',
+    })
+    expect(delegations[2].status).toBe('error')
+    expect(delegations[2].output).toContain('Boucle de délégation')
+  })
+
   it('un trace sans aucun span garde un span racine', () => {
     const draft = draftFromExecution({ ...base, traceSpans: [] })
     expect(draft.spans).toHaveLength(1)

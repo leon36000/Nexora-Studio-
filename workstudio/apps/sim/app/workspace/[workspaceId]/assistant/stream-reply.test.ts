@@ -113,6 +113,41 @@ describe('streamAgentReply', () => {
     })
   })
 
+  it('shows which agent answers while it answers, and keeps it with the finished answer', async () => {
+    const delegation = (phase: 'start' | 'end', ok?: boolean) => ({
+      event: 'delegation',
+      data: {
+        id: 'd-1',
+        agentId: 'wf-tarifs',
+        agent: 'Agent tarifs',
+        mode: 'reply',
+        phase,
+        ...(ok === undefined ? {} : { ok }),
+      },
+    })
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        delegation('start'),
+        delegation('end', true),
+        { blockId: 'agent', chunk: 'La baguette coûte 1,20 euro.' },
+        { event: 'final', data: { success: true, output: {} } },
+      ])
+    )
+    const extras: Array<{ delegations?: Array<{ status: string }> }> = []
+    const outcome = await streamAgentReply({
+      chatIdentifier: 'assistant-general',
+      body: { input: 'Bonjour', conversationId: 'conv-1' },
+      signal: new AbortController().signal,
+      onText: () => {},
+      onExtras: (value) => extras.push(value),
+    })
+    expect(extras.map((value) => value.delegations?.[0]?.status)).toEqual(['running', 'done'])
+    expect(outcome).toMatchObject({
+      status: 'done',
+      delegations: [{ agent: 'Agent tarifs', status: 'done' }],
+    })
+  })
+
   it('hands the person each confirmation request, then its end', async () => {
     fetchMock.mockResolvedValueOnce(
       sseResponse([

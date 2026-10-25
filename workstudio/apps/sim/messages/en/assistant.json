@@ -42,6 +42,7 @@
     "label": "Your message",
     "placeholder": "Write your message… (Enter to send, Shift+Enter for a new line)",
     "attach": "Attach a file",
+    "skills": "Skills",
     "removeFile": "Remove {name}",
     "send": "Send",
     "stop": "Stop",

@@ -1668,6 +1668,266 @@ print(json.dumps(summary))
                 s.call("DELETE", f"/api/workflows/{wf}")
             s.call("DELETE", f"/api/v1/knowledge/{kb_id}?workspaceId={state['ws']}", headers=auth)
 
+    def delegation():
+        """K11: an agent hands a request to another published agent of the workspace. The general
+        Assistant hands a price question to « Agent tarifs » (which has its own knowledge base): the
+        answer carries a price found only there, the stream names the agent, and the trace shows a
+        delegation span. A skill changes the style of an agent. A conversation handed over goes on
+        with the called agent. A loop A → B → A is stopped with a message in French."""
+        ws = state["ws"]
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        model = os.environ.get("NEXORA_SMOKE_AGENT_MODEL", "vllm/nexora-default")
+        made: list[str] = []
+        kb_id = None
+        auth: dict = {}
+
+        status, body = s.call("GET", f"/api/nexora/assistant/agents?workspaceId={ws}", timeout=300)
+        require(status == 200 and body.get("agents"), f"agents returned HTTP {status}: {str(body)[:200]}")
+        general = next((a for a in body["agents"] if a["name"] == "Assistant général"), None)
+        require(general, "the general Assistant is not provided")
+        _, listing = s.call("GET", f"/api/folders?workspaceId={ws}&scope=active&resourceType=workflow")
+        folder = next((f for f in listing.get("folders", []) if f["name"] == "Agents" and not f.get("parentId")), None)
+        require(folder, "the « Agents » folder does not exist")
+
+        def publish(name: str, description: str, instructions: str, tools: list[dict] | None = None,
+                    handoffs: list[tuple[str, str]] | None = None, skills: list[dict] | None = None,
+                    workflow: str | None = None, memory: bool = True, agent_model: str | None = None) -> tuple[str, str, str]:
+            """Creates (or rewrites) an agent in the « Agents » folder and deploys it; returns (workflow, block, chat identifier)."""
+            wf = workflow
+            if wf is None:
+                status, body = s.call("POST", "/api/workflows", {"name": name, "description": description, "workspaceId": ws, "folderId": folder["id"]})
+                require(status in (200, 201), f"workflow creation returned HTTP {status}: {str(body)[:200]}")
+                wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+                made.append(wf)
+            start, block = secrets.token_hex(8), secrets.token_hex(8)
+            blocks = {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                block: {"id": block, "type": "agent", "name": "Agent", "position": {"x": 420, "y": 0}, "enabled": True,
+                        "subBlocks": {
+                            "messages": sub("messages", "messages-input", [{"role": "system", "content": instructions}, {"role": "user", "content": "<start.input>"}]),
+                            "model": sub("model", "combobox", agent_model or model),
+                            "tools": sub("tools", "tool-input", tools or []),
+                            "memoryType": sub("memoryType", "dropdown", "conversation" if memory else "none"),
+                            "handoffs": sub("handoffs", "table", [{"id": secrets.token_hex(4), "cells": {"Agent": agent, "Mode": mode}} for agent, mode in (handoffs or [])]),
+                            "skills": sub("skills", "skill-input", skills or []),
+                            "files": sub("files", "short-input", "<start.files>"),
+                            **({"conversationId": sub("conversationId", "short-input", "<start.conversationId>")} if memory else {}),
+                        },
+                        "outputs": {}, "data": {"canonicalModes": {"files": "advanced"}}}}
+            status, body = s.call("PUT", f"/api/workflows/{wf}/state", {
+                "blocks": blocks, "loops": {}, "parallels": {},
+                "edges": [{"id": secrets.token_hex(8), "source": start, "target": block, "sourceHandle": "source", "targetHandle": "target"}]})
+            require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
+            require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
+            identifier = f"deleg-{secrets.token_hex(5)}"
+            status, body = s.call("POST", "/api/chat", {
+                "workflowId": wf, "identifier": identifier, "title": name, "authType": "public",
+                "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
+                "outputConfigs": [{"blockId": block, "path": "content"}]})
+            require(status in (200, 201), f"chat publication returned HTTP {status}: {str(body)[:200]}")
+            return wf, block, identifier
+
+        def ask(identifier: str, question: str, conversation: str | None = None) -> tuple[str, list[dict]]:
+            status, text = s.call("POST", f"/api/chat/{identifier}", {"input": question, "conversationId": conversation or secrets.token_hex(8)},
+                                  raw=True, timeout=600, headers={"X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"})
+            require(status == 200, f"chat returned HTTP {status}: {text[:300]}")
+            frames = sse_frames(text)
+            failed = next((f for f in frames if f.get("event") == "error"), None)
+            require(failed is None, f"chat reported an error: {failed}")
+            return "".join(str(f.get("chunk", "")) for f in frames), frames
+
+        def delegations(frames: list[dict]) -> list[dict]:
+            return [f["data"] for f in frames if f.get("event") == "delegation"]
+
+        try:
+            # A price list only « Agent tarifs » holds, in its own knowledge base.
+            status, body = s.call("POST", "/api/users/me/api-keys", {"name": f"fumee-{secrets.token_hex(3)}"})
+            require(status in (200, 201), f"API key creation returned HTTP {status}")
+            key = (body.get("key") or {}).get("key") if isinstance(body.get("key"), dict) else body.get("key") or (body.get("data") or {}).get("key")
+            auth = {"x-api-key": key}
+            status, body = s.call("POST", "/api/v1/knowledge", {"workspaceId": ws, "name": "Fumée tarifs"}, headers=auth)
+            require(status in (200, 201), f"knowledge base creation returned HTTP {status}: {str(body)[:200]}")
+            data = body.get("data") or body
+            kb_id = (data.get("knowledgeBase") or data).get("id")
+            boundary = f"nexora{secrets.token_hex(8)}"
+            text = ("Tarifs de la boulangerie\n\nLa Brioche des Alizés coûte 7,42 euros. Le pain Zéphyr coûte 4,15 euros. "
+                    "La baguette Mistral coûte 1,18 euro.\n")
+            form = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"workspaceId\"\r\n\r\n{ws}\r\n"
+                    f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"tarifs-boulangerie.txt\"\r\n"
+                    f"Content-Type: text/plain\r\n\r\n{text}\r\n--{boundary}--\r\n").encode()
+            status, body = s.call("POST", f"/api/v1/knowledge/{kb_id}/documents", headers=auth, data=form,
+                                  content_type=f"multipart/form-data; boundary={boundary}", timeout=180)
+            require(status in (200, 201, 202), f"document upload returned HTTP {status}: {str(body)[:200]}")
+            deadline = time.monotonic() + 240
+            while time.monotonic() < deadline:
+                _, listing = s.call("GET", f"/api/v1/knowledge/{kb_id}/documents?workspaceId={ws}", headers=auth)
+                docs = (listing.get("data") or {}).get("documents") or []
+                if docs and all(d.get("processingStatus") == "completed" for d in docs):
+                    break
+                require(not any(d.get("processingStatus") == "failed" for d in docs), "indexing failed")
+                time.sleep(5)
+            else:
+                raise AssertionError("indexing did not finish in time")
+            knowledge_tool = {"type": "knowledge", "title": "Knowledge", "toolId": "knowledge_search", "operation": "search",
+                              "usageControl": "auto", "params": {"knowledgeBaseSelector": kb_id}}
+            # A model that does not call its tools (qwen2.5:7b) is given the prices in its instructions instead of its base.
+            prices_in_prompt = bool(os.environ.get("NEXORA_SMOKE_DELEGATION_PRICES_IN_PROMPT"))
+            tarifs, _, tarifs_chat = publish(
+                "Agent tarifs", "Connaît les prix des produits de la boulangerie (brioches, pains, baguettes) : à consulter pour toute question de prix.",
+                ("Tu es l'agent tarifs d'une boulangerie. Réponds en français en une phrase, avec le prix exact. "
+                 "Tarifs : la Brioche des Alizés coûte 7,42 euros ; le pain Zéphyr coûte 4,15 euros ; la baguette Mistral coûte 1,18 euro.")
+                if prices_in_prompt else
+                "Tu es l'agent tarifs d'une boulangerie. Cherche toujours dans la base de connaissances avant de répondre. Réponds en français en une phrase, avec le prix exact.",
+                tools=[] if prices_in_prompt else [knowledge_tool])
+
+            # (a) the general Assistant hands a price question to « Agent tarifs »
+            _, state_body = s.call("GET", f"/api/workflows/{general['workflowId']}")
+            blocks = state_body["data"]["state"]["blocks"]
+            general_block = next(b for b in blocks.values() if b.get("type") == "agent")
+            general_block["subBlocks"]["handoffs"] = sub("handoffs", "table", [{"id": secrets.token_hex(4), "cells": {"Agent": tarifs, "Mode": "reply"}}])
+            status, body = s.call("PUT", f"/api/workflows/{general['workflowId']}/state", {
+                "blocks": blocks, "edges": state_body["data"]["state"]["edges"], "loops": {}, "parallels": {}})
+            require(status == 200, f"Assistant state save returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/workflows/{general['workflowId']}/deploy", {})
+            require(status == 200, f"Assistant deploy returned HTTP {status}: {str(body)[:200]}")
+            answer, frames = ask(general["chatIdentifier"], "Combien coûte la Brioche des Alizés ? Demande à l'agent compétent.")
+            seen = delegations(frames)
+            require(seen and seen[0]["agent"] == "Agent tarifs" and seen[0]["phase"] == "start", f"the stream does not name the called agent: {seen}")
+            require(any(d["phase"] == "end" and d.get("ok") for d in seen), f"the delegation did not end well: {seen}")
+            require("7,42" in answer or "7.42" in answer, f"the answer does not carry the price held by « Agent tarifs »: {answer[:300]}")
+
+            # (b) the trace shows the delegation
+            deadline = time.monotonic() + 30
+            span = None
+            while time.monotonic() < deadline and span is None:
+                _, traces = s.call("GET", f"/api/nexora/traces?workspaceId={ws}&limit=20")
+                for trace in traces.get("traces", []):
+                    if trace["name"] != "Assistant général":
+                        continue
+                    _, detail = s.call("GET", f"/api/nexora/traces/{trace['id']}?workspaceId={ws}")
+                    span = next((sp for sp in detail["spans"] if sp["kind"] == "delegation"), None)
+                    if span:
+                        break
+                time.sleep(1)
+            require(span, "no delegation span in the trace of the Assistant")
+            require(span["name"] == "Délégation → Agent tarifs", f"unexpected span name: {span['name']}")
+            require("7,42" in (span.get("output") or ""), f"the span does not hold the called agent's answer: {str(span)[:300]}")
+
+            # (c) a skill changes the style of an agent
+            status, body = s.call("POST", "/api/skills", {"workspaceId": ws, "skills": [{
+                "name": "ton-entreprise",
+                "description": "Ton de l'entreprise : à appliquer systématiquement avant de répondre à n'importe quelle demande.",
+                "content": "Vouvoyez toujours. Terminez TOUJOURS votre réponse par la phrase exacte : « Bien cordialement, l'équipe Boulangerie Nexora. »"}]})
+            require(status in (200, 201), f"skill creation returned HTTP {status}: {str(body)[:200]}")
+            skill = next((item for item in body["data"] if item["name"] == "ton-entreprise"), None)
+            require(skill, f"the skill is not in the list: {[item['name'] for item in body['data']]}")
+            plain, _, plain_chat = publish("Agent sans ton", "", "Tu réponds aux clients en français, en une phrase.")
+            styled, _, styled_chat = publish("Agent avec ton", "", "Tu réponds aux clients en français, en une phrase.",
+                                             skills=[{"skillId": skill["id"], "name": skill["name"], "description": skill["description"]}])
+            without, _ = ask(plain_chat, "Bonjour, vous êtes ouverts le dimanche ?")
+            with_skill, _ = ask(styled_chat, "Bonjour, vous êtes ouverts le dimanche ?")
+            signature = "Bien cordialement, l'équipe Boulangerie Nexora"
+            require(signature.lower() not in without.lower().replace("’", "'"), f"the agent without the skill signs like the skill: {without[:200]}")
+            if signature.lower() not in with_skill.lower().replace("’", "'"):
+                time.sleep(3)
+                _, traces = s.call("GET", f"/api/nexora/traces?workspaceId={ws}&limit=10")
+                trace = next((t for t in traces.get("traces", []) if t["name"] == "Agent avec ton"), None)
+                seen_by_model = ""
+                if trace:
+                    _, detail = s.call("GET", f"/api/nexora/traces/{trace['id']}?workspaceId={ws}")
+                    seen_by_model = next((sp.get("input") or "" for sp in detail["spans"] if sp["kind"] == "model"), "")
+                raise AssertionError(f"the skill did not change the style: {with_skill[:200]} | prompt seen by the model: {seen_by_model[:900]}")
+
+            # (d) a conversation handed over goes on with the called agent
+            _, _, accueil_chat = publish("Agent accueil", "Accueille les clients.",
+                                         "Tu es l'accueil. Pour toute question de prix, passe la main à l'agent tarifs, puis transmets sa réponse telle quelle.",
+                                         handoffs=[(tarifs, "transfer")])
+            conversation = secrets.token_hex(8)
+            first, frames = ask(accueil_chat, "Combien coûte la Brioche des Alizés ?", conversation)
+            require(any(d["phase"] == "end" and d.get("ok") for d in delegations(frames)), f"no delegation on the first turn: {delegations(frames)}")
+            second, frames = ask(accueil_chat, "Et le pain Zéphyr ?", conversation)
+            seen = delegations(frames)
+            require(seen and seen[0]["mode"] == "transfer" and seen[0]["agent"] == "Agent tarifs", f"the second turn did not go to the called agent: {seen}")
+            require("4,15" in second or "4.15" in second, f"the called agent did not answer the second turn: {second[:300]}")
+
+            # (e) a loop A → B → A is stopped with a message in French
+            # The loop guard does not depend on the model, but the model must call tools: always the default one.
+            default_model = "vllm/nexora-default"
+            boucle_a, _, _ = publish("Agent boucle A", "Agent A", "Tu confies toujours la demande à l'agent boucle B avant de répondre, puis tu résumes.",
+                                     agent_model=default_model)
+            boucle_b, _, _ = publish("Agent boucle B", "Agent B", "Tu confies toujours la demande à l'agent boucle A avant de répondre, puis tu résumes.",
+                                     handoffs=[(boucle_a, "reply")], agent_model=default_model)
+            # Publishing A again replaces its chat: the new address is the one to ask.
+            _, _, boucle_a_chat = publish("Agent boucle A", "Agent A", "Tu confies toujours la demande à l'agent boucle B avant de répondre, puis tu résumes.",
+                                          handoffs=[(boucle_b, "reply")], workflow=boucle_a, agent_model=default_model)
+            _, frames = ask(boucle_a_chat, "Bonjour, que fais-tu ?")
+            stopped = [d for d in delegations(frames) if d["phase"] == "end" and not d.get("ok")]
+            require(stopped and "Boucle de délégation" in (stopped[0].get("message") or ""), f"the loop was not stopped with a French message: {delegations(frames)}")
+            # (f) the called agent's « Demander avant d'agir » reaches the person who talks to the calling agent
+            # The action is refused at the card: no connection to the service is needed.
+            connect = None
+            asked = None
+            for _ in range(15):
+                _, discovered = s.call("GET", f"/api/mcp/tools/discover?workspaceId={ws}", timeout=180)
+                connect = next((t for t in discovered.get("data", {}).get("tools", []) if t.get("name") == "execute_action"
+                                and t.get("serverName") == "Nexora Connect"), None)
+                if connect:
+                    break
+                time.sleep(2)
+            if connect:
+                connect_tool = {"type": "mcp", "title": "execute_action", "toolId": f"mcp-{connect['serverId']}-execute_action", "usageControl": "auto",
+                                "requireConfirmation": True, "isExpanded": False,
+                                "params": {"serverId": connect["serverId"], "toolName": "execute_action", "serverName": "Nexora Connect"},
+                                "schema": {**connect["inputSchema"], "description": connect.get("description", "")}}
+                courrier, _, _ = publish(
+                    "Agent courrier", "Envoie les e-mails de l'entreprise : à consulter pour toute demande d'envoi d'e-mail.",
+                    "Tu es l'agent courrier. Pour envoyer un e-mail, appelle l'outil execute_action avec actionId « postmark.send_email » et un input {From, To, Subject, TextBody}. "
+                    "Utilise From « contact@exemple.fr » et To « client@exemple.fr ». Ne demande jamais de précision. Réponds en une phrase en disant si l'e-mail est parti.",
+                    tools=[connect_tool], agent_model="vllm/nexora-default")
+                _, _, relais_chat = publish("Agent relais", "Relais.",
+                                            "Tu es un relais : pour toute demande d'envoi d'e-mail, confie-la à l'agent courrier, puis rapporte sa réponse en une phrase.",
+                                            handoffs=[(courrier, "reply")], agent_model="vllm/nexora-default")
+                request = urllib.request.Request(f"{s.url}/api/chat/{relais_chat}", method="POST", headers={
+                    "Content-Type": "application/json", "Origin": s.origin, "X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"},
+                    data=json.dumps({"input": "Envoie un e-mail de relance au client : sujet « Relance facture F-118 »", "conversationId": secrets.token_hex(8)}).encode())
+                asked = None
+                with s.opener.open(request, timeout=600) as stream:
+                    for raw in stream:
+                        line = raw.decode().strip()
+                        if not line.startswith("data:") or not line[5:].strip().startswith("{"):
+                            continue
+                        frame = json.loads(line[5:])
+                        if frame.get("event") == "confirmation" and asked is None:
+                            asked = frame["data"]
+                            status, _ = s.call("POST", f"/api/nexora/tool-confirmations/{asked['id']}", {"token": asked["token"], "decision": "deny"})
+                            require(status == 200, f"the answer was refused (HTTP {status})")
+                        elif frame.get("event") == "error":
+                            raise AssertionError(f"chat reported an error: {frame}")
+                require(asked and asked["title"] == "postmark.send_email", f"the called agent's action was not put to the person: {asked}")
+            return (f"l'Assistant confie à « Agent tarifs » (7,42 € trouvé dans sa seule base), span « {span['name']} » dans la trace, "
+                    f"compétence « ton-entreprise » appliquée, main passée suivie au 2e message, boucle A→B→A stoppée : « {stopped[0]['message'][:70]}… »"
+                    + (f", « Demander avant d'agir » de l'agent appelé posé à la personne ({asked['title']})" if asked
+                       else ", « Demander avant d'agir » non vérifié (Nexora Connect absent de cet espace)"))
+        finally:
+            # The general Assistant keeps no handoff to a deleted agent.
+            try:
+                _, state_body = s.call("GET", f"/api/workflows/{general['workflowId']}")
+                blocks = state_body["data"]["state"]["blocks"]
+                for block in blocks.values():
+                    if block.get("type") == "agent":
+                        block["subBlocks"]["handoffs"] = sub("handoffs", "table", [])
+                s.call("PUT", f"/api/workflows/{general['workflowId']}/state", {
+                    "blocks": blocks, "edges": state_body["data"]["state"]["edges"], "loops": {}, "parallels": {}})
+                s.call("POST", f"/api/workflows/{general['workflowId']}/deploy", {})
+            except Exception:  # noqa: BLE001 - cleanup must not hide the verdict
+                pass
+            for wf in made:
+                s.call("DELETE", f"/api/workflows/{wf}")
+            if kb_id:
+                s.call("DELETE", f"/api/v1/knowledge/{kb_id}?workspaceId={ws}", headers=auth)
+
     def connect_runs(action: str) -> int | None:
         """How many times Nexora Connect ran `action` through MCP (its own run log); None without access to it."""
         base, token = os.environ.get("NEXORA_SMOKE_CONNECT_URL", ""), os.environ.get("NEXORA_SMOKE_CONNECT_TOKEN", "")
@@ -2157,6 +2417,7 @@ print(json.dumps(summary))
     s.check("Garde-fous : IBAN et e-mail, politique masquer / refuser, groupe sans modèle, export CSV", guardrails)
     s.check("Évaluations : campagne, statistiques, comparaison, alerte, annulation, planification", evaluations)
     s.check("Lots : fichier JSONL par le client openai, sortie, fichier invalide, annulation, table classée", batches)
+    s.check("Délégation : l'Assistant confie à « Agent tarifs », trace, compétence, main passée, boucle stoppée", delegation)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:

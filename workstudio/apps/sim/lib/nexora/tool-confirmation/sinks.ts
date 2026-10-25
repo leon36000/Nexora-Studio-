@@ -1,16 +1,21 @@
 import type {
   ChatStreamConfirmationEndFrame,
   ChatStreamConfirmationFrame,
+  ChatStreamDelegationFrame,
 } from '@/lib/workflows/streaming/agent-stream-protocol'
 
 /**
  * Nexora edition: who can answer a confirmation request of a running agent. A chat that streams to
  * a person registers where to send the request (its stream) under the run's execution id; a run
  * nobody follows (schedule, API, editor) registers nothing, and its confirmations are deferred.
+ * The same channel carries the delegation frames (« Agent tarifs répond… ») to that person.
  * Kept on `globalThis` so the chat route and the agent loop share it however they were bundled.
  */
 
-export type ConfirmationFrame = ChatStreamConfirmationFrame | ChatStreamConfirmationEndFrame
+export type ConfirmationFrame =
+  | ChatStreamConfirmationFrame
+  | ChatStreamConfirmationEndFrame
+  | ChatStreamDelegationFrame
 
 type ConfirmationSink = (frame: ConfirmationFrame) => void
 

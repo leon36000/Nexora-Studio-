@@ -75,6 +75,22 @@ const { mockDiscoverMcpServerToolsAsExecutor, mockOpenAgentTurnSession } = vi.ho
   mockOpenAgentTurnSession: vi.fn().mockResolvedValue(undefined),
 }))
 
+const { mockLoadDelegationTargets, mockResolveTransferTarget, mockExecuteDelegation } = vi.hoisted(
+  () => ({
+    mockLoadDelegationTargets: vi.fn(),
+    mockResolveTransferTarget: vi.fn(),
+    mockExecuteDelegation: vi.fn(),
+  })
+)
+
+vi.mock('@/lib/nexora/delegation/targets', () => ({
+  loadDelegationTargets: mockLoadDelegationTargets,
+}))
+vi.mock('@/lib/nexora/delegation/transfer', () => ({
+  resolveTransferTarget: mockResolveTransferTarget,
+}))
+vi.mock('@/lib/nexora/delegation/execute', () => ({ executeDelegation: mockExecuteDelegation }))
+
 vi.mock('@/lib/memory/agent-turn-session', () => ({
   openAgentTurnSession: mockOpenAgentTurnSession,
 }))
@@ -3661,6 +3677,73 @@ describe('AgentBlockHandler', () => {
         expect(tools[0].id).toBe('custom_formatReport')
         expect(tools[0].parameters.required).not.toContain('format')
       })
+    })
+  })
+
+  describe('delegation to other agents', () => {
+    const handoffRows = [
+      { id: '1', cells: { Agent: 'wf-tarifs', Mode: 'reply' } },
+      { id: '2', cells: { Agent: 'wf-retire', Mode: 'reply' } },
+    ]
+
+    beforeEach(() => {
+      mockContext.workspaceId = 'workspace-1'
+      mockContext.workflowId = 'wf-assistant'
+      mockLoadDelegationTargets.mockResolvedValue([])
+      mockResolveTransferTarget.mockResolvedValue(null)
+    })
+
+    it('offers the model one delegation tool per published agent of « Peut confier à »', async () => {
+      mockLoadDelegationTargets.mockResolvedValueOnce([
+        {
+          target: { workflowId: 'wf-tarifs', name: 'Agent tarifs', description: null },
+          handoff: { agentId: 'wf-tarifs', mode: 'reply' },
+        },
+      ])
+
+      await handler.execute(mockContext, mockBlock, {
+        model: 'gpt-4o',
+        userPrompt: 'Combien coûte la baguette ?',
+        handoffs: handoffRows,
+        conversationId: 'conv-1',
+      })
+
+      const tools = mockExecuteProviderRequest.mock.calls[0][1].tools
+      expect(tools).toContainEqual(
+        expect.objectContaining({
+          id: 'delegate_to_agent',
+          params: { agentId: 'wf-tarifs', mode: 'reply', conversationId: 'conv-1' },
+        })
+      )
+      expect(tools.filter((tool: { id: string }) => tool.id === 'delegate_to_agent')).toHaveLength(
+        1
+      )
+    })
+
+    it('offers no delegation tool to an agent without « Peut confier à »', async () => {
+      await handler.execute(mockContext, mockBlock, { model: 'gpt-4o', userPrompt: 'Bonjour' })
+
+      expect(mockLoadDelegationTargets).not.toHaveBeenCalled()
+      const tools = mockExecuteProviderRequest.mock.calls[0][1].tools ?? []
+      expect(tools.some((tool: { id: string }) => tool.id === 'delegate_to_agent')).toBe(false)
+    })
+
+    it('hands the turn to the agent the conversation was passed to, without asking its own model', async () => {
+      mockResolveTransferTarget.mockResolvedValueOnce({ agentId: 'wf-tarifs', mode: 'transfer' })
+      mockExecuteDelegation.mockResolvedValueOnce({
+        success: true,
+        output: { agent: 'Agent tarifs', answer: '60 euros.' },
+      })
+
+      const result = await handler.execute(mockContext, mockBlock, {
+        model: 'gpt-4o',
+        userPrompt: 'Et pour 50 baguettes ?',
+        handoffs: [{ id: '1', cells: { Agent: 'wf-tarifs', Mode: 'transfer' } }],
+        conversationId: 'conv-1',
+      })
+
+      expect(result).toMatchObject({ content: '60 euros.' })
+      expect(mockExecuteProviderRequest).not.toHaveBeenCalled()
     })
   })
 
