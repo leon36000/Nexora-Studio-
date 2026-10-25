@@ -1,0 +1,248 @@
+{
+  "catalog": {
+    "agent": {
+      "label": "Demander à l’IA",
+      "description": "Un agent lit, réfléchit et rédige."
+    },
+    "condition": {
+      "label": "Si… alors…",
+      "description": "Choisit un chemin selon une règle."
+    },
+    "api-get": {
+      "label": "Lire des données d’une API",
+      "description": "Appelle une adresse web et récupère la réponse."
+    },
+    "api-send": {
+      "label": "Envoyer des données à une API",
+      "description": "Envoie des informations vers un autre service."
+    },
+    "wait": {
+      "label": "Attendre",
+      "description": "Laisse passer un délai avant la suite."
+    },
+    "human": {
+      "label": "Demander une validation",
+      "description": "Une personne approuve ou refuse avant la suite."
+    },
+    "response": {
+      "label": "Répondre",
+      "description": "Renvoie le résultat final du workflow."
+    },
+    "email": {
+      "label": "Envoyer un e-mail",
+      "description": "Envoie un message par votre serveur d’e-mail."
+    },
+    "slack": {
+      "label": "Message Slack",
+      "description": "Publie un message dans un canal Slack."
+    },
+    "teams": {
+      "label": "Message Teams",
+      "description": "Publie un message dans Microsoft Teams."
+    },
+    "sms": {
+      "label": "Envoyer un SMS",
+      "description": "Envoie un texto à un numéro de téléphone."
+    },
+    "table-add": {
+      "label": "Ajouter une ligne à une table",
+      "description": "Enregistre une ligne dans une table de l’espace."
+    },
+    "table-read": {
+      "label": "Lire une table",
+      "description": "Retrouve des lignes d’une table de l’espace."
+    },
+    "knowledge": {
+      "label": "Chercher dans les connaissances",
+      "description": "Retrouve les passages utiles d’une base de connaissances."
+    },
+    "extract": {
+      "label": "Extraire d’un document",
+      "description": "Lit une facture ou un formulaire et en tire des champs."
+    },
+    "file": {
+      "label": "Lire un fichier",
+      "description": "Récupère le contenu d’un fichier de l’espace."
+    },
+    "variables": {
+      "label": "Mémoriser une valeur",
+      "description": "Garde une valeur pour les étapes suivantes."
+    },
+    "transcription": {
+      "label": "Transcrire un enregistrement",
+      "description": "Transforme un enregistrement audio en texte."
+    },
+    "speech": {
+      "label": "Lire un texte à voix haute",
+      "description": "Produit un fichier audio à partir d’un texte."
+    },
+    "translate": {
+      "label": "Traduire",
+      "description": "Traduit un texte dans une autre langue."
+    },
+    "vision": {
+      "label": "Analyser une image",
+      "description": "Décrit ou interroge une image."
+    },
+    "web-search": {
+      "label": "Rechercher sur le web",
+      "description": "Lance une recherche sur le web."
+    },
+    "connect": {
+      "label": "Action Nexora Connect",
+      "description": "Agit dans l’un de vos services connectés."
+    },
+    "subworkflow": {
+      "label": "Lancer un autre workflow",
+      "description": "Réutilise un workflow existant comme une étape."
+    },
+    "function": {
+      "label": "Calcul en JavaScript",
+      "description": "Applique un petit calcul ou une transformation."
+    }
+  },
+  "categories": {
+    "essentiel": "Essentiel",
+    "communication": "Messages",
+    "donnees": "Données et fichiers",
+    "ia": "Intelligence artificielle",
+    "connect": "Nexora Connect",
+    "controle": "Contrôle"
+  },
+  "triggers": {
+    "start_trigger": "Lancement manuel ou par chat",
+    "generic_webhook": "Appel d’un webhook",
+    "schedule": "Planification",
+    "chat_trigger": "Message dans un chat"
+  },
+  "view": {
+    "title": "Étapes",
+    "trigger": "Déclencheur",
+    "stepNumber": "Étape {number}",
+    "addStep": "Ajouter une étape",
+    "addInBranch": "Ajouter dans cette branche",
+    "branchIf": "Si oui",
+    "branchElse": "Sinon",
+    "emptyBranch": "Rien à faire dans ce cas",
+    "noSteps": "Ce workflow n’a pas encore d’étape.",
+    "unknownBlock": "Bloc avancé",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "remove": "Supprimer l’étape",
+    "removeWithBranches": "Supprimer la condition et ses {count} étapes",
+    "open": "Régler cette étape",
+    "close": "Fermer le réglage",
+    "listLabel": "Liste des étapes du workflow",
+    "mode": {
+      "label": "Affichage du workflow",
+      "steps": "Étapes",
+      "canvas": "Canevas",
+      "advanced": "Mode avancé"
+    },
+    "readOnly": {
+      "title": "Lecture seule",
+      "body": "Ce workflow est organisé d’une façon que la vue Étapes ne sait pas modifier sans risque. Vous pouvez le lire ici ; pour le modifier, ouvrez-le dans le canevas.",
+      "openCanvas": "Ouvrir dans le canevas"
+    },
+    "refusal": {
+      "no-trigger": "Il n’a pas de déclencheur.",
+      "several-triggers": "Il a plusieurs déclencheurs.",
+      "unknown-block": "Il contient un bloc avancé que le catalogue d’étapes ne couvre pas.",
+      "disabled-block": "Un de ses blocs est désactivé.",
+      "locked-block": "Un de ses blocs est verrouillé.",
+      "subflow": "Il contient une boucle ou une exécution en parallèle.",
+      "extra-edges": "Ses liens ne forment pas une simple suite d’étapes.",
+      "unreachable": "Certains blocs ne sont reliés à aucune étape.",
+      "branch-in-branch": "Une condition se trouve dans la branche d’une autre condition."
+    },
+    "locked": "Ce workflow est verrouillé ou vous n’avez pas le droit de le modifier.",
+    "loading": "Chargement des étapes…",
+    "editFailed": "Cette modification n’a pas pu être faite.",
+    "cancel": "Annuler",
+    "agentNotReady": "Les modèles ne sont pas encore prêts : réessayez dans un instant.",
+    "removeConfirm": "Cette condition contient {count, plural, one {# étape} other {# étapes}} : elles seront supprimées avec elle."
+  },
+  "picker": {
+    "title": "Choisir une étape",
+    "search": "Rechercher une étape",
+    "empty": "Aucune étape ne correspond.",
+    "moreBlocks": "Plus de blocs dans le canevas",
+    "conditionInBranch": "Une condition ne peut pas se placer dans une branche."
+  },
+  "summary": {
+    "agent": "Demande : {request}",
+    "condition": {
+      "contient": "Si {ref} contient « {value} »",
+      "egal": "Si {ref} est égal à « {value} »",
+      "different": "Si {ref} est différent de « {value} »",
+      "superieur": "Si {ref} est supérieur à {value}",
+      "inferieur": "Si {ref} est inférieur à {value}",
+      "vide": "Si {ref} est vide",
+      "non_vide": "Si {ref} n’est pas vide",
+      "custom": "Règle : {expression}"
+    },
+    "api": "{method} {url}",
+    "wait": "Attendre {amount} {unit}",
+    "human": "Soumis à validation : {shown}",
+    "response": "Renvoie : {fields}",
+    "email": "À {to} — {subject}",
+    "units": {
+      "seconds": "s",
+      "minutes": "min",
+      "hours": "h",
+      "days": "j"
+    }
+  },
+  "test": {
+    "title": "Test",
+    "run": "Tester le workflow",
+    "running": "Test en cours…",
+    "cancel": "Arrêter",
+    "runUntil": "Tester jusqu’ici",
+    "sampleData": "Données d’exemple",
+    "sampleDataHint": "Ces valeurs remplacent ce que le déclencheur recevrait. Elles sont gardées avec le workflow.",
+    "noInputs": "Ce déclencheur n’attend aucune donnée : lancez le test directement.",
+    "inputsSchedule": "Une planification ne reçoit aucune donnée.",
+    "inputsWebhook": "Le test d’un webhook utilise un exemple de contenu.",
+    "status": {
+      "idle": "Pas encore testée",
+      "running": "En cours",
+      "success": "Réussie",
+      "error": "En erreur"
+    },
+    "duration": "{seconds} s",
+    "showResult": "Voir le résultat",
+    "hideResult": "Masquer le résultat",
+    "noResult": "Aucun résultat à afficher.",
+    "errorTitle": "Que s’est-il passé ?",
+    "originalMessage": "Message d’origine",
+    "fixHint": "Corrigez l’étape puis relancez le test.",
+    "locked": "Le test n’est pas disponible tant qu’une exécution est en cours."
+  },
+  "errors": {
+    "missingFields": "L’étape « {block} » n’est pas complète : il manque {fields}. Ouvrez-la et remplissez ces champs.",
+    "budget": "Le budget mensuel de jetons de l’espace est atteint. Demandez à un administrateur de le relever.",
+    "modelNotFound": "Le modèle choisi n’existe pas ou n’est plus disponible. Choisissez un autre modèle dans l’étape.",
+    "timeout": "L’étape a mis trop de temps à répondre. Réessayez, ou simplifiez la demande.",
+    "egress": "Cette adresse est bloquée par la sécurité de l’instance. Un administrateur doit l’autoriser dans les réglages réseau.",
+    "auth": "Le service distant a refusé l’accès : vérifiez la clé ou la connexion utilisée par cette étape.",
+    "notFound": "L’adresse appelée n’existe pas (erreur 404). Vérifiez-la.",
+    "rateLimit": "Le service distant limite le nombre de demandes. Patientez un peu avant de relancer.",
+    "server": "Le service distant est en panne ou surchargé. Réessayez plus tard.",
+    "network": "Le service distant est injoignable. Vérifiez l’adresse et la connexion réseau.",
+    "json": "La réponse reçue n’est pas dans le format attendu (JSON invalide).",
+    "reference": "Cette étape lit une valeur qui n’existe pas : vérifiez les noms des étapes et des champs cités.",
+    "smtp": "Le serveur d’e-mail a refusé la connexion. Vérifiez-le dans Réglages › E-mail.",
+    "unknown": "Une erreur inattendue est survenue dans cette étape."
+  },
+  "toolbar": {
+    "essentials": "Essentiels",
+    "essentialsTooltip": "Les blocs les plus utilisés, dans l’ordre d’une automatisation.",
+    "otherBlocks": "Autres blocs",
+    "otherBlocksTooltip": "Tous les autres blocs de base, par ordre alphabétique.",
+    "connect": "Nexora Connect",
+    "connectTooltip": "Agir dans plus de 1 600 services connectés avec un seul bloc.",
+    "directIntegrations": "Intégrations directes",
+    "directIntegrationsTooltip": "Un bloc par service, avec ses réglages propres. Nexora Connect couvre déjà la plupart de ces services."
+  }
+}

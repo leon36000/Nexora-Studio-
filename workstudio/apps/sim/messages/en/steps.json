@@ -1,0 +1,248 @@
+{
+  "catalog": {
+    "agent": {
+      "label": "Ask the AI",
+      "description": "An agent reads, thinks and writes."
+    },
+    "condition": {
+      "label": "If… then…",
+      "description": "Picks a path according to a rule."
+    },
+    "api-get": {
+      "label": "Read data from an API",
+      "description": "Calls a web address and gets the answer."
+    },
+    "api-send": {
+      "label": "Send data to an API",
+      "description": "Sends information to another service."
+    },
+    "wait": {
+      "label": "Wait",
+      "description": "Lets a delay pass before the next step."
+    },
+    "human": {
+      "label": "Ask for approval",
+      "description": "A person approves or refuses before the workflow goes on."
+    },
+    "response": {
+      "label": "Reply",
+      "description": "Returns the final result of the workflow."
+    },
+    "email": {
+      "label": "Send an email",
+      "description": "Sends a message through your email server."
+    },
+    "slack": {
+      "label": "Slack message",
+      "description": "Posts a message in a Slack channel."
+    },
+    "teams": {
+      "label": "Teams message",
+      "description": "Posts a message in Microsoft Teams."
+    },
+    "sms": {
+      "label": "Send a text message",
+      "description": "Sends a text to a phone number."
+    },
+    "table-add": {
+      "label": "Add a row to a table",
+      "description": "Saves a row in a workspace table."
+    },
+    "table-read": {
+      "label": "Read a table",
+      "description": "Finds rows in a workspace table."
+    },
+    "knowledge": {
+      "label": "Search the knowledge",
+      "description": "Finds the useful passages of a knowledge base."
+    },
+    "extract": {
+      "label": "Extract from a document",
+      "description": "Reads an invoice or a form and pulls fields out of it."
+    },
+    "file": {
+      "label": "Read a file",
+      "description": "Gets the content of a workspace file."
+    },
+    "variables": {
+      "label": "Remember a value",
+      "description": "Keeps a value for the next steps."
+    },
+    "transcription": {
+      "label": "Transcribe a recording",
+      "description": "Turns an audio recording into text."
+    },
+    "speech": {
+      "label": "Read a text aloud",
+      "description": "Produces an audio file from a text."
+    },
+    "translate": {
+      "label": "Translate",
+      "description": "Translates a text into another language."
+    },
+    "vision": {
+      "label": "Analyze an image",
+      "description": "Describes or questions an image."
+    },
+    "web-search": {
+      "label": "Search the web",
+      "description": "Runs a web search."
+    },
+    "connect": {
+      "label": "Nexora Connect action",
+      "description": "Acts in one of your connected services."
+    },
+    "subworkflow": {
+      "label": "Run another workflow",
+      "description": "Reuses an existing workflow as a step."
+    },
+    "function": {
+      "label": "JavaScript calculation",
+      "description": "Applies a small calculation or transformation."
+    }
+  },
+  "categories": {
+    "essentiel": "Essentials",
+    "communication": "Messages",
+    "donnees": "Data and files",
+    "ia": "Artificial intelligence",
+    "connect": "Nexora Connect",
+    "controle": "Control"
+  },
+  "triggers": {
+    "start_trigger": "Manual or chat launch",
+    "generic_webhook": "Webhook call",
+    "schedule": "Schedule",
+    "chat_trigger": "Chat message"
+  },
+  "view": {
+    "title": "Steps",
+    "trigger": "Trigger",
+    "stepNumber": "Step {number}",
+    "addStep": "Add a step",
+    "addInBranch": "Add in this branch",
+    "branchIf": "If yes",
+    "branchElse": "Otherwise",
+    "emptyBranch": "Nothing to do in this case",
+    "noSteps": "This workflow has no step yet.",
+    "unknownBlock": "Advanced block",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "remove": "Delete the step",
+    "removeWithBranches": "Delete the condition and its {count} steps",
+    "open": "Set up this step",
+    "close": "Close the settings",
+    "listLabel": "List of the workflow steps",
+    "mode": {
+      "label": "Workflow display",
+      "steps": "Steps",
+      "canvas": "Canvas",
+      "advanced": "Advanced mode"
+    },
+    "readOnly": {
+      "title": "Read only",
+      "body": "This workflow is organized in a way the Steps view cannot edit safely. You can read it here; to edit it, open it in the canvas.",
+      "openCanvas": "Open in the canvas"
+    },
+    "refusal": {
+      "no-trigger": "It has no trigger.",
+      "several-triggers": "It has several triggers.",
+      "unknown-block": "It contains an advanced block the step catalog does not cover.",
+      "disabled-block": "One of its blocks is disabled.",
+      "locked-block": "One of its blocks is locked.",
+      "subflow": "It contains a loop or a parallel run.",
+      "extra-edges": "Its links are not a simple sequence of steps.",
+      "unreachable": "Some blocks are not linked to any step.",
+      "branch-in-branch": "A condition sits inside the branch of another condition."
+    },
+    "locked": "This workflow is locked or you are not allowed to edit it.",
+    "loading": "Loading the steps…",
+    "editFailed": "This change could not be made.",
+    "cancel": "Cancel",
+    "agentNotReady": "The models are not ready yet: try again in a moment.",
+    "removeConfirm": "This condition holds {count, plural, one {# step} other {# steps}}: they will be deleted with it."
+  },
+  "picker": {
+    "title": "Choose a step",
+    "search": "Search for a step",
+    "empty": "No step matches.",
+    "moreBlocks": "More blocks in the canvas",
+    "conditionInBranch": "A condition cannot be placed inside a branch."
+  },
+  "summary": {
+    "agent": "Request: {request}",
+    "condition": {
+      "contient": "If {ref} contains “{value}”",
+      "egal": "If {ref} equals “{value}”",
+      "different": "If {ref} differs from “{value}”",
+      "superieur": "If {ref} is greater than {value}",
+      "inferieur": "If {ref} is less than {value}",
+      "vide": "If {ref} is empty",
+      "non_vide": "If {ref} is not empty",
+      "custom": "Rule: {expression}"
+    },
+    "api": "{method} {url}",
+    "wait": "Wait {amount} {unit}",
+    "human": "Sent for approval: {shown}",
+    "response": "Returns: {fields}",
+    "email": "To {to} — {subject}",
+    "units": {
+      "seconds": "s",
+      "minutes": "min",
+      "hours": "h",
+      "days": "d"
+    }
+  },
+  "test": {
+    "title": "Test",
+    "run": "Test the workflow",
+    "running": "Test running…",
+    "cancel": "Stop",
+    "runUntil": "Test up to here",
+    "sampleData": "Sample data",
+    "sampleDataHint": "These values replace what the trigger would receive. They are kept with the workflow.",
+    "noInputs": "This trigger expects no data: run the test directly.",
+    "inputsSchedule": "A schedule receives no data.",
+    "inputsWebhook": "Testing a webhook uses an example payload.",
+    "status": {
+      "idle": "Not tested yet",
+      "running": "Running",
+      "success": "Succeeded",
+      "error": "Failed"
+    },
+    "duration": "{seconds} s",
+    "showResult": "See the result",
+    "hideResult": "Hide the result",
+    "noResult": "No result to show.",
+    "errorTitle": "What happened?",
+    "originalMessage": "Original message",
+    "fixHint": "Fix the step, then run the test again.",
+    "locked": "The test is not available while a run is in progress."
+  },
+  "errors": {
+    "missingFields": "The step “{block}” is not complete: {fields} is missing. Open it and fill these fields in.",
+    "budget": "The workspace's monthly token budget is reached. Ask an administrator to raise it.",
+    "modelNotFound": "The chosen model does not exist or is no longer available. Pick another model in the step.",
+    "timeout": "The step took too long to answer. Try again, or simplify the request.",
+    "egress": "This address is blocked by the instance security. An administrator must allow it in the network settings.",
+    "auth": "The remote service refused access: check the key or the connection this step uses.",
+    "notFound": "The address called does not exist (error 404). Check it.",
+    "rateLimit": "The remote service limits the number of requests. Wait a moment before running again.",
+    "server": "The remote service is down or overloaded. Try again later.",
+    "network": "The remote service cannot be reached. Check the address and the network connection.",
+    "json": "The answer received is not in the expected format (invalid JSON).",
+    "reference": "This step reads a value that does not exist: check the names of the steps and fields it mentions.",
+    "smtp": "The email server refused the connection. Check it in Settings › Email.",
+    "unknown": "An unexpected error occurred in this step."
+  },
+  "toolbar": {
+    "essentials": "Essentials",
+    "essentialsTooltip": "The most used blocks, in the order of an automation.",
+    "otherBlocks": "Other blocks",
+    "otherBlocksTooltip": "All the other core blocks, alphabetically.",
+    "connect": "Nexora Connect",
+    "connectTooltip": "Act in more than 1,600 connected services with a single block.",
+    "directIntegrations": "Direct integrations",
+    "directIntegrationsTooltip": "One block per service, with its own settings. Nexora Connect already covers most of these services."
+  }
+}
