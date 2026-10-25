@@ -285,6 +285,8 @@ export function Files() {
 function FilesContent() {
   const timeCell = useTimeCell()
   const t = useTranslations('files.list')
+  /** Root crumb and page title: « Fichiers ». */
+  const rootLabel = t('title')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadQueueRef = useRef<Promise<void>>(Promise.resolve()) // i18n-ignore: type signature
   const saveRef = useRef<(() => Promise<void>) | null>(null) // i18n-ignore: type signature
@@ -841,7 +843,7 @@ function FilesContent() {
                */
               location: isSearching
                 ? {
-                    label: folderLocationLabel(folder.parentId, folderById, FILES_HEADER.rootLabel),
+                    label: folderLocationLabel(folder.parentId, folderById, rootLabel),
                   }
                 : EMPTY_LOCATION_CELL,
             },
@@ -869,7 +871,7 @@ function FilesContent() {
             owner: ownerCell(file.uploadedBy, membersById),
             updated: timeCell(file.updatedAt),
             location: isSearching
-              ? { label: folderLocationLabel(file.folderId, folderById, FILES_HEADER.rootLabel) }
+              ? { label: folderLocationLabel(file.folderId, folderById, rootLabel) }
               : EMPTY_LOCATION_CELL,
           },
         }
@@ -1331,7 +1333,7 @@ function FilesContent() {
     if (!selectedFile) return []
 
     return folderBreadcrumbItems({
-      rootLabel: FILES_HEADER.rootLabel,
+      rootLabel,
       rootIcon: FILES_HEADER.rootIcon,
       breadcrumbs: breadcrumbFolderChain(selectedFile.folderId, folderById),
       onNavigate: (folderId) =>
@@ -1933,7 +1935,7 @@ function FilesContent() {
   const loadingBreadcrumbs = useMemo(
     (): BreadcrumbItem[] =>
       folderBreadcrumbItems({
-        rootLabel: FILES_HEADER.rootLabel,
+        rootLabel,
         rootIcon: FILES_HEADER.rootIcon,
         breadcrumbs: listFolderChain,
         onNavigate: (folderId) =>
@@ -1948,7 +1950,7 @@ function FilesContent() {
   const listBreadcrumbs = useMemo(
     (): BreadcrumbItem[] =>
       folderBreadcrumbItems({
-        rootLabel: FILES_HEADER.rootLabel,
+        rootLabel,
         rootIcon: FILES_HEADER.rootIcon,
         breadcrumbs: listFolderChain,
         onNavigate: navigateToFolder,
@@ -2005,7 +2007,7 @@ function FilesContent() {
     () =>
       buildMoveOptionsExcludingSubtrees({
         folders,
-        rootLabel: t('title'),
+        rootLabel,
         excludeFolderIds: selectedFolderIds,
         descendantsByFolderId: descendantFolderIdsByFolderId,
       }),
@@ -2307,7 +2309,7 @@ function FilesContent() {
       <Resource onContextMenu={handleContentContextMenu}>
         <Resource.Header
           icon={FILES_HEADER.rootIcon}
-          title={FILES_HEADER.rootLabel}
+          title={rootLabel}
           breadcrumbs={listBreadcrumbs}
           breadcrumbDrop={rowDragDropConfig.breadcrumb}
           actions={headerActionsConfig}

@@ -1,6 +1,7 @@
 import { flushMicrotasks } from '@sim/testing/helpers/async'
 import { mockEnvObject } from '@sim/testing/mocks/env.mock'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { recordTrace } from '@/lib/nexora/traces/record'
 import {
   describeWandFailure,
   NexoraWandRejectedError,
@@ -8,6 +9,8 @@ import {
   nexoraWandComplete,
   nexoraWandStream,
 } from '@/lib/nexora/wand'
+
+vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: vi.fn(() => Promise.resolve()) }))
 
 const messages = [
   { role: 'system' as const, content: 'Tu écris des objets d’e-mail.' },
@@ -288,6 +291,118 @@ describe('Nexora wand', () => {
       fetchMock.mockResolvedValueOnce(sse(['data: [DONE]']))
       await readAll(await nexoraWandStream({ messages }))
       expect(JSON.parse(fetchMock.mock.calls[2][1].body)).not.toHaveProperty('reasoning_effort')
+    })
+  })
+
+  describe('traces', () => {
+    const trace = {
+      source: 'copilot' as const,
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+      name: 'Copilote',
+    }
+    const lastDraft = () => vi.mocked(recordTrace).mock.calls.at(-1)?.[0]
+
+    it('records one trace for a whole answer, with its text, tokens and the model', async () => {
+      fetchMock.mockResolvedValue(
+        Response.json({
+          choices: [{ message: { content: ' Relance : facture F-104 ' } }],
+          usage: { prompt_tokens: 12, completion_tokens: 6 },
+        })
+      )
+      await nexoraWandComplete({ messages, trace })
+      expect(recordTrace).toHaveBeenCalledTimes(1)
+      expect(lastDraft()).toMatchObject({
+        source: 'copilot',
+        visibility: 'private',
+        workspaceId: 'ws-1',
+        userId: 'user-1',
+        status: 'ok',
+        output: 'Relance : facture F-104',
+        inputTokens: 12,
+        outputTokens: 6,
+        input: 'Relance de facture',
+      })
+      expect(lastDraft()?.spans[0].model).toBe('nexora-default')
+    })
+
+    it('records a streamed answer once it is over: text, reasoning and usage', async () => {
+      fetchMock.mockResolvedValue(
+        sse([
+          'data: {"choices":[{"delta":{"reasoning_content":"Je cherche."}}]}',
+          'data: {"choices":[{"delta":{"content":"Rel"}}]}',
+          'data: {"choices":[{"delta":{"content":"ance"}}]}',
+          'data: {"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":2}}',
+          'data: [DONE]',
+        ])
+      )
+      await readAll(
+        await nexoraWandStream({
+          messages,
+          model: 'cloud-glm-5-3',
+          trace: { ...trace, source: 'playground', name: 'Playground' },
+        })
+      )
+      expect(recordTrace).toHaveBeenCalledTimes(1)
+      expect(lastDraft()).toMatchObject({
+        source: 'playground',
+        output: 'Relance',
+        inputTokens: 3,
+        outputTokens: 2,
+        status: 'ok',
+      })
+      expect(lastDraft()?.spans[0]).toMatchObject({ model: 'cloud-glm-5-3' })
+      expect(lastDraft()?.spans[0].attributes.reasoning).toBe('Je cherche.')
+    })
+
+    it('records a stream the reader stopped as an interrupted answer, once', async () => {
+      const body = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Début"}}]}\n\n')
+          )
+        },
+      })
+      fetchMock.mockResolvedValue(new Response(body, { status: 200 }))
+      const stream = await nexoraWandStream({ messages, trace })
+      const reader = stream.getReader()
+      await reader.read()
+      await reader.cancel()
+      await flushMicrotasks()
+      expect(recordTrace).toHaveBeenCalledTimes(1)
+      expect(lastDraft()?.output).toBe('Début')
+      expect(lastDraft()?.spans[0].attributes.interrupted).toBe(true)
+    })
+
+    it('records a refused or unreachable model as a failed trace, and still reports the failure', async () => {
+      fetchMock.mockResolvedValue(
+        Response.json({ error: { message: 'context too long' } }, { status: 400 })
+      )
+      await expect(nexoraWandComplete({ messages, trace })).rejects.toBeInstanceOf(
+        NexoraWandRejectedError
+      )
+      expect(lastDraft()).toMatchObject({
+        status: 'error',
+        error: expect.stringContaining('context too long'),
+      })
+
+      fetchMock.mockResolvedValue(new Response('busy', { status: 503 }))
+      await expect(nexoraWandStream({ messages, trace })).rejects.toBeInstanceOf(
+        NexoraWandUnavailableError
+      )
+      expect(recordTrace).toHaveBeenCalledTimes(2)
+      expect(lastDraft()).toMatchObject({ status: 'error' })
+    })
+
+    it('records nothing when the caller gave no trace context', async () => {
+      fetchMock.mockResolvedValue(
+        Response.json({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        })
+      )
+      await nexoraWandComplete({ messages })
+      expect(recordTrace).not.toHaveBeenCalled()
     })
   })
 })

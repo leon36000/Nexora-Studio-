@@ -22,6 +22,7 @@ import enLogs from '@/messages/en/logs.json'
 import enSettings from '@/messages/en/settings.json'
 import enShell from '@/messages/en/shell.json'
 import enTables from '@/messages/en/tables.json'
+import enTraces from '@/messages/en/traces.json'
 import frAgents from '@/messages/fr/agents.json'
 import frAssistant from '@/messages/fr/assistant.json'
 import frAuth from '@/messages/fr/auth.json'
@@ -43,6 +44,7 @@ import frLogs from '@/messages/fr/logs.json'
 import frSettings from '@/messages/fr/settings.json'
 import frShell from '@/messages/fr/shell.json'
 import frTables from '@/messages/fr/tables.json'
+import frTraces from '@/messages/fr/traces.json'
 
 /** Message namespaces, one JSON file per interface area under `messages/<locale>/`. */
 export const MESSAGE_NAMESPACES = [
@@ -67,6 +69,7 @@ export const MESSAGE_NAMESPACES = [
   'assistant',
   'copilot',
   'developers',
+  'traces',
 ] as const
 
 /** Every message of every namespace, per locale. */
@@ -93,6 +96,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     assistant: frAssistant,
     copilot: frCopilot,
     developers: frDevelopers,
+    traces: frTraces,
   },
   en: {
     common: enCommon,
@@ -116,6 +120,7 @@ export const MESSAGES: Record<Locale, AbstractIntlMessages> = {
     assistant: enAssistant,
     copilot: enCopilot,
     developers: enDevelopers,
+    traces: enTraces,
   },
 }
 

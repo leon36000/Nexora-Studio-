@@ -36,6 +36,7 @@ export function useNewAgent(workspaceId: string) {
         webSearch: false,
         memory: true,
         reasoningEffort: 'auto',
+        instructionsPrompt: null,
         welcomeMessage: t('welcomeMessage'),
         ...overrides,
       }

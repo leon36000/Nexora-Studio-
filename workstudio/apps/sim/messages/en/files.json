@@ -356,6 +356,11 @@
       "deleteColumn": "Delete column",
       "deleteTable": "Delete table"
     },
+    "rawMarkdownBadges": {
+      "rawHtml": "Raw HTML",
+      "footnote": "Footnote",
+      "footnoteRef": "Footnote ref"
+    },
     "codeBlock": {
       "plainText": "Plain text",
       "showDashboard": "Show dashboard",

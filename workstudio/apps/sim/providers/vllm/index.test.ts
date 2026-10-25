@@ -35,6 +35,7 @@ vi.mock('@/stores/providers', () => ({
   useProvidersStore: { getState: () => ({ setProviderModels: vi.fn() }) },
 }))
 
+import { nexoraLongFetch } from '@/lib/nexora/long-fetch.server'
 import { clearProviderClientCacheForTests } from '@/providers/client-cache'
 import type { AgentStreamEvent } from '@/providers/stream-events'
 import type { ProviderToolConfig } from '@/providers/types'
@@ -194,7 +195,8 @@ describe('vllmProvider', () => {
       expect(mockValidateUrlWithDNS).not.toHaveBeenCalled()
       expect(mockCreatePinnedFetch).not.toHaveBeenCalled()
       expect(openAIArgs()[0].baseURL).toBe('http://localhost:8000/v1')
-      expect(openAIArgs()[0].fetch).toBeUndefined()
+      // A model answering on a CPU can take longer than the runtime's 5-minute wait for headers.
+      expect(openAIArgs()[0].fetch).toBe(nexoraLongFetch)
     })
 
     it('does not duplicate an existing /v1 API prefix', async () => {

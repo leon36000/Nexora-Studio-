@@ -1,9 +1,13 @@
 import { resetEnvMock, setEnv } from '@sim/testing/mocks/env.mock'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import {
+  defaultTableColumnName,
+  defaultTableViewName,
+  generateUniqueTableName,
   getBillingDisabledTableLimits,
   getDeleteSnapshotBatchSize,
   getMaxRowSizeBytes,
+  NAME_PATTERN,
   TABLE_LIMITS,
 } from '@/lib/table/constants'
 
@@ -65,5 +69,41 @@ describe('getDeleteSnapshotBatchSize', () => {
 
     setEnv({ TABLE_MAX_ROW_SIZE_BYTES: '1' })
     expect(getDeleteSnapshotBatchSize()).toBe(TABLE_LIMITS.DELETE_BATCH_SIZE)
+  })
+})
+
+describe('generateUniqueTableName', () => {
+  it('numbers French tables from 1: table_1, table_2…', () => {
+    expect(generateUniqueTableName([], 'fr')).toBe('table_1')
+    expect(generateUniqueTableName(['table_1'], 'fr')).toBe('table_2')
+  })
+
+  it('takes the first free number, whatever the case of the names already used', () => {
+    expect(generateUniqueTableName(['table_1', 'TABLE_2', 'table_4'], 'fr')).toBe('table_3')
+  })
+
+  it('is French by default, and always a valid table name', () => {
+    expect(generateUniqueTableName([])).toBe('table_1')
+    expect(NAME_PATTERN.test(generateUniqueTableName(['table_1']))).toBe(true)
+  })
+
+  it('keeps the original space-themed names in English', () => {
+    const name = generateUniqueTableName([], 'en')
+    expect(name).toMatch(/^[a-z]+_[a-z]+$/)
+    expect(name).not.toMatch(/^table_/)
+    expect(NAME_PATTERN.test(name)).toBe(true)
+  })
+})
+
+describe('default names a new table starts with', () => {
+  it('names the starter view « Par défaut » in French and « Default » in English', () => {
+    expect(defaultTableViewName('fr')).toBe('Par défaut')
+    expect(defaultTableViewName('en')).toBe('Default')
+  })
+
+  it('names the starter column « nom » in French and « name » in English, both valid column names', () => {
+    expect(defaultTableColumnName('fr')).toBe('nom')
+    expect(defaultTableColumnName('en')).toBe('name')
+    expect(NAME_PATTERN.test(defaultTableColumnName('fr'))).toBe(true)
   })
 })

@@ -30,5 +30,5 @@ scripts/dev/.extra-env
 # Fichier temporaire de déploiement sur pc6 (git show HEAD:deploy/compose.yml)
 deploy/.compose-head.yml
 
-# Fichiers de travail des sessions (journaux, venv, rapports)
+# Espace de travail local des vérifications et des agents (jamais versionné)
 .nexora-work/

@@ -30,6 +30,7 @@
     "meta",
     "organizations",
     "permission-groups",
+    "prompts",
     "sandboxes",
     "secrets",
     "selectors",

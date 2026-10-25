@@ -30,6 +30,7 @@ vi.mock('@/lib/workflows/defaults', () => ({
 vi.mock('@/lib/workspaces/policy', () => workspacesPolicyMock)
 
 import type { DbOrTx } from '@/lib/db/types'
+import { runWithRequestLocale } from '@/lib/i18n/request-locale.server'
 import {
   createDefaultPersonalWorkspaceInTransaction,
   createWorkspace,
@@ -140,6 +141,44 @@ describe('createDefaultPersonalWorkspaceInTransaction', () => {
       organizationId: null,
       observedOrganizationId: null,
       governingPermissionGroupOrganizationId: null,
+    })
+  })
+
+  /**
+   * The starter workflow is seeded far from the browser: it is named in the language of the
+   * request being answered (the instance default, French, outside a request).
+   */
+  describe('starter workflow', () => {
+    async function seed(locale: 'fr' | 'en') {
+      mockLockWorkspaceCreationContext.mockResolvedValue({ billedAccountUserId: 'user-1' })
+      queueTableRows(workspace, [{ archivedAt: null, forkSyncNewWorkflowsExcluded: false }])
+      const tx = dbChainMock.db as unknown as Parameters<
+        typeof createDefaultPersonalWorkspaceInTransaction
+      >[0]
+      await runWithRequestLocale(locale, () =>
+        createDefaultPersonalWorkspaceInTransaction(tx, { userId: 'user-1', userName: 'Ada' })
+      )
+      return dbChainMockFns.values.mock.calls
+        .map(([row]) => row as Record<string, unknown>)
+        .find((row) => typeof row?.description === 'string')
+    }
+
+    beforeEach(() => {
+      resetDbChainMock()
+    })
+
+    it('is « Agent par défaut » for a French request', async () => {
+      expect(await seed('fr')).toMatchObject({
+        name: 'Agent par défaut',
+        description: 'Votre premier workflow : commencez à construire ici !',
+      })
+    })
+
+    it('keeps the original « default-agent » for an English request', async () => {
+      expect(await seed('en')).toMatchObject({
+        name: 'default-agent',
+        description: 'Your first workflow - start building here!',
+      })
     })
   })
 })

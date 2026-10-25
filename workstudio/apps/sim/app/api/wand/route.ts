@@ -365,18 +365,27 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
           requestId,
           false
         )
+      const trace = {
+        source: 'wand',
+        workspaceId,
+        userId: actorUserId,
+        name: 'Générer avec l’IA',
+      } as const
       try {
         if (stream) {
-          return new Response(await nexoraWandStream({ messages, onUsage: recordWandUsage }), {
-            headers: {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache, no-transform',
-              Connection: 'keep-alive',
-              'X-Accel-Buffering': 'no',
-            },
-          })
+          return new Response(
+            await nexoraWandStream({ messages, onUsage: recordWandUsage, trace }),
+            {
+              headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache, no-transform',
+                Connection: 'keep-alive',
+                'X-Accel-Buffering': 'no',
+              },
+            }
+          )
         }
-        const { text, usage } = await nexoraWandComplete({ messages })
+        const { text, usage } = await nexoraWandComplete({ messages, trace })
         if (!text) {
           return NextResponse.json(
             { success: false, error: 'Failed to generate content. AI response was empty.' },

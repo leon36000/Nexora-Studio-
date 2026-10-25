@@ -21,6 +21,7 @@ import {
 import { Check, Pencil, Pin, Plus, Trash } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import type { TableViewWire } from '@/lib/api/contracts/tables'
+import { viewDisplayName } from '@/lib/table/views/display-name'
 import { resolveTableViewSelection } from '@/app/workspace/[workspaceId]/tables/[tableId]/view-state'
 
 /** Matches the breadcrumb location popover's hover-intent grace period. */
@@ -72,7 +73,8 @@ export const ViewsMenu = memo(function ViewsMenu({
   const { activeView, defaultView } = resolveTableViewSelection(views, activeViewId)
   const deleteTarget = views.find((view) => view.id === deleteTargetId)
   const hasDefaultView = defaultView !== null
-  const label = activeView?.name ?? allRowsViewLabel
+  const defaultViewName = t('defaultName')
+  const label = activeView ? viewDisplayName(activeView, defaultViewName) : allRowsViewLabel
 
   const cancelScheduledClose = () => {
     if (closeTimeoutRef.current) {
@@ -162,7 +164,7 @@ export const ViewsMenu = memo(function ViewsMenu({
           {views.map((view) => (
             <ViewRow
               key={view.id}
-              label={view.name}
+              label={viewDisplayName(view, defaultViewName)}
               isActive={view.id === activeViewId}
               onSelect={() => runAndClose(() => onSelect(view.id))}
               defaultState={{
@@ -216,7 +218,10 @@ export const ViewsMenu = memo(function ViewsMenu({
         title={t('deleteTitle')}
         text={[
           t('deletePrefix'),
-          { text: deleteTarget?.name ?? t('thisView'), bold: true },
+          {
+            text: deleteTarget ? viewDisplayName(deleteTarget, defaultViewName) : t('thisView'),
+            bold: true,
+          },
           t('deleteQuestionEnd'),
           { text: t('cannotUndo'), error: true },
         ]}

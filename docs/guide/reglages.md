@@ -11,10 +11,10 @@
 | Applications OAuth des connecteurs | Réglages › Connecteurs ([guide](connecteurs.md)) | Administrateurs de l'instance |
 | Exécution de code (interpréteur Python) | Réglages › Exécution de code ([guide](interpreteur.md)) | Administrateurs de l'instance |
 | Consommation, empreinte, budgets | Réglages › Consommation | Administrateurs de l'instance |
-| Journal d'audit | Réglages › Journal d'audit | Administrateurs |
+| Journal d'audit | Réglages › Journaux d’audit | Administrateurs |
 | Secrets et variables d'environnement | Réglages › Secrets | Membres de l'espace |
 | Outils MCP (Nexora Connect…) | Réglages › Outils MCP | Membres de l'espace |
-| Clés d'API (workflows) | Réglages › Clés API | Membres |
+| Clés d'API (workflows) | Réglages › Clés d’API Nexora | Membres |
 
 Les **administrateurs de l'instance** sont le propriétaire et les administrateurs de l'organisation créée à l'installation.
 

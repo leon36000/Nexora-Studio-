@@ -33,6 +33,7 @@ import {
   FootnoteDefWithView,
   RawHtmlBlockWithView,
 } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/raw-markdown-snippet'
+import { setRawMarkdownBadgeLabels } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/raw-markdown-snippet-schema'
 import { SlashCommand } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/slash-command/slash-command'
 
 const FileCollaborationCaret = CollaborationCaret.extend({
@@ -85,6 +86,7 @@ export function createMarkdownEditorExtensions({
   pasteAdmission,
   copy,
 }: MarkdownEditorExtensionOptions): Extensions {
+  if (copy) setRawMarkdownBadgeLabels(copy.rawMarkdownBadges)
   return [
     ...createMarkdownContentExtensions(
       {

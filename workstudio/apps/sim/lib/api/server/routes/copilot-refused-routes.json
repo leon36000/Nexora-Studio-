@@ -256,6 +256,26 @@
   },
   {
     "method": "GET",
+    "path": "/api/v2/prompts",
+    "operation": "nexora_prompts.list"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/prompts",
+    "operation": "nexora_prompts.create"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v2/prompts/[promptId]",
+    "operation": "nexora_prompts.read"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v2/prompts/[promptId]/versions",
+    "operation": "nexora_prompts.versions.create"
+  },
+  {
+    "method": "GET",
     "path": "/api/v2/tables/[tableId]/exports/[exportId]/download",
     "operation": "tables.exports.download"
   },

@@ -3,6 +3,7 @@ import { Badge, formatChartLatency } from '@sim/emcn'
 import { formatRelativeTime } from '@sim/utils/formatting'
 import { format } from 'date-fns'
 import { useTranslations } from 'next-intl'
+import type { Locale } from '@/lib/i18n/config'
 import { getIntegrationMetadata } from '@/lib/logs/get-trigger-options'
 import { DELETED_WORKFLOW_LABEL } from '@/lib/workflows/labels'
 import { getBlock } from '@/blocks/registry'
@@ -267,10 +268,15 @@ export function formatLatency(ms: number): string {
   return formatChartLatency(ms)
 }
 
-export const formatDate = (dateString: string) => {
+/**
+ * The timestamp of a log in every shape the logs screens need. `locale` is the interface language:
+ * the list and details dates read « 24 OCT. 14:02 » in French, `OCT 24 2:02 PM` in English.
+ */
+export const formatDate = (dateString: string, locale: Locale = 'en') => {
   const date = new Date(dateString)
+  const french = locale === 'fr' && !Number.isNaN(date.getTime())
   return {
-    full: date.toLocaleDateString('en-US', {
+    full: date.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -287,8 +293,12 @@ export const formatDate = (dateString: string) => {
     }),
     formatted: format(date, 'HH:mm:ss'),
     compact: format(date, 'MMM d HH:mm:ss'),
-    compactDate: format(date, 'MMM d').toUpperCase(),
-    compactTime: format(date, 'h:mm a'),
+    compactDate: french
+      ? date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase()
+      : format(date, 'MMM d').toUpperCase(),
+    compactTime: french
+      ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })
+      : format(date, 'h:mm a'),
     relative: formatRelativeTime(dateString),
   }
 }

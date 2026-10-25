@@ -39,6 +39,12 @@ ctx_env="$(mktemp)"; cp "$env_file" "$ctx_env"; printf "NEXORA_OLLAMA_CONTEXT_LE
 ctx_rendered="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$ctx_env" config --format json 2>/dev/null)"; rm -f "$ctx_env"
 [ "$(ollama_ctx "$ctx_rendered")" = "32768" ] && ok "the local model context is set in deploy/.env" || ko "the local model context is set in deploy/.env (got: $(ollama_ctx "$ctx_rendered"))"
 
+# Background jobs: the scheduler clock never changes (a local zone loses an hour every autumn,
+# when 02:00–03:00 happens twice), and the service comes back after a host reboot.
+cron_field() { python3 -I -c 'import json,sys; c=json.load(sys.stdin)["services"]["cron"]; print(c.get("environment",{}).get("TZ","") if sys.argv[1]=="tz" else c.get("restart",""))' "$1" <<< "$rendered"; }
+[ "$(cron_field tz)" = "UTC" ] && ok "the job scheduler runs on UTC" || ko "the job scheduler runs on UTC (got: $(cron_field tz))"
+[ "$(cron_field restart)" = "unless-stopped" ] && ok "the job scheduler restarts after a reboot" || ko "the job scheduler restarts after a reboot (got: $(cron_field restart))"
+
 # « Appliquer » restarts WorkStudio only when something brings it back; SSO is optional by default.
 [ "$(value NEXORA_SUPERVISED)" = "1" ] && ok "WorkStudio knows it is restarted by Docker" || ko "WorkStudio knows it is restarted by Docker"
 [ -z "$(value NEXORA_OIDC_REQUIRED)" ] && ok "single sign-on is not required by default" || ko "single sign-on is not required by default (got: $(value NEXORA_OIDC_REQUIRED))"

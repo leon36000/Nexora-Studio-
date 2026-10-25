@@ -292,6 +292,7 @@ async function createAssistantWorkflow(params: {
     webSearch: false,
     memory: true,
     reasoningEffort: 'auto',
+    instructionsPrompt: null,
     welcomeMessage: GENERAL_ASSISTANT_WELCOME,
   })
   const imported = await importWorkflowIntoWorkspaceTransition({

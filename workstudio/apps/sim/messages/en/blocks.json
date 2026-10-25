@@ -16,6 +16,21 @@
         "title": "Messages",
         "placeholder": "Enter messages..."
       },
+      "promptId": {
+        "title": "Instructions prompt",
+        "placeholder": "Use the system message above"
+      },
+      "promptLabel": {
+        "title": "Prompt version",
+        "options": {
+          "production": "production",
+          "test": "test",
+          "latest": "Latest version"
+        }
+      },
+      "promptVariables": {
+        "title": "Prompt variables"
+      },
       "model": {
         "title": "Model",
         "placeholder": "Type or select a model...",
@@ -5300,6 +5315,9 @@
     "name": "Logs",
     "description": "Query workflow runs and fetch run details"
   },
+  "loop": {
+    "name": "Loop"
+  },
   "loops": {
     "name": "Loops",
     "description": "Manage contacts and send emails with Loops"
@@ -7780,6 +7798,9 @@
   "pagerduty": {
     "name": "PagerDuty",
     "description": "Manage incidents and on-call schedules with PagerDuty"
+  },
+  "parallel": {
+    "name": "Parallel"
   },
   "parallel_ai": {
     "name": "Parallel AI",

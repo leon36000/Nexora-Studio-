@@ -33,6 +33,12 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
       includeThinking: true,
       reportUsage: true,
       signal: request.signal,
+      trace: {
+        source: 'playground',
+        workspaceId,
+        userId: session.user.id,
+        name: 'Playground',
+      },
     })
     return new NextResponse(stream, {
       headers: {

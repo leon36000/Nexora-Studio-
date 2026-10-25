@@ -11,11 +11,13 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [L'Assistant](assistant.md) | Tous les utilisateurs | Discuter avec les agents de l'espace, fichiers joints, confidentialité des conversations |
 | [L'interpréteur de code](interpreteur.md) | Administrateurs | Installer et autoriser l'exécution de code Python des agents, ses limites et sa sécurité |
 | [Le Playground](playground.md) | Tous les utilisateurs | Essayer et comparer les modèles |
+| [Les prompts](prompts.md) | Tous les utilisateurs | Consignes réutilisables et versionnées, étiquettes `production` et `test`, utilisation dans les agents, API |
 | [Les connecteurs](connecteurs.md) | Tous les utilisateurs | Connecter vos services en un clic, cloisonnement par espace, applications OAuth |
 | [Le Copilote](copilote.md) | Tous les utilisateurs | Décrire une automatisation en français et obtenir un workflow prêt à exécuter |
 | [Consommation et budgets](consommation.md) | Administrateurs | Qui consomme quoi, empreinte carbone, plafonds mensuels |
 | [Les modèles](modeles.md) | Administrateurs | Modèle par défaut, ajouter un modèle local, Mistral AI ou compatible OpenAI, tester, retirer |
 | [L'API des développeurs](api-developpeurs.md) | Développeurs | Modèles et agents au format OpenAI : clés dans l'interface, exemples Python, TypeScript, cURL et n8n, erreurs |
+| [Les traces](traces.md) | Tous les utilisateurs, administrateurs | Voir ce que chaque appel de modèle a fait, masquage des données personnelles, conservation, export vers Langfuse, Phoenix ou Grafana |
 | [Nexora API](nexora-api.md) | Exploitants | La passerelle de modèles en direct : clés d'administration, configuration |
 | [Les workflows](workflows.md) | Tous les utilisateurs | Créer, tester, déployer (API, chat, MCP, déclencheurs) |
 | [Les blocs](blocs.md) | Tous les utilisateurs | Agent, Routeur, Condition, Fonction, Validation humaine, déclencheurs… |

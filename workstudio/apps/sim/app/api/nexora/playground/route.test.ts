@@ -78,6 +78,7 @@ describe('POST /api/nexora/playground', () => {
         reportUsage: true,
         messages: body.messages,
         signal: expect.any(AbortSignal),
+        trace: { source: 'playground', workspaceId: 'ws-1', userId: 'u-1', name: 'Playground' },
       })
     )
   })

@@ -1,5 +1,6 @@
 import { generateId } from '@sim/utils/id'
 import { isRecordLike, toArray, toRecord } from '@sim/utils/object'
+import { PROMPT_SELECTORS, type PromptSelector } from '@/lib/nexora/prompts/template'
 import { REASONING_EFFORTS, type ReasoningEffort } from '@/lib/nexora/reasoning'
 import { normalizedStringify, sanitizeTools } from '@/lib/workflows/comparison/normalize'
 import type { StoredTool } from '@/lib/workflows/tool-input/types'
@@ -25,7 +26,16 @@ export interface AgentConfig {
   memory: boolean
   /** Sent as `reasoning_effort` to a reasoning model; `auto` sends nothing. */
   reasoningEffort: AgentReasoningEffort
+  /** Instructions read at run time from a versioned prompt of the workspace; `null`: `instructions`. */
+  instructionsPrompt: AgentInstructionsPrompt | null
   welcomeMessage: string
+}
+
+export interface AgentInstructionsPrompt {
+  promptId: string
+  label: PromptSelector
+  /** Values of the prompt's `{{variables}}`, by name. */
+  variables: Record<string, string>
 }
 
 type AgentReasoningEffort = 'auto' | ReasoningEffort
@@ -33,6 +43,47 @@ const FORM_REASONING_EFFORTS: readonly string[] = ['auto', ...REASONING_EFFORTS]
 
 function isFormReasoningEffort(value: unknown): value is AgentReasoningEffort {
   return typeof value === 'string' && FORM_REASONING_EFFORTS.includes(value)
+}
+
+function isPromptSelector(value: unknown): value is PromptSelector {
+  return typeof value === 'string' && (PROMPT_SELECTORS as readonly string[]).includes(value)
+}
+
+/** The prompt sub-blocks of the Agent block, for `prompt` (an empty reference when `null`). */
+function promptSubBlocks(prompt: AgentInstructionsPrompt | null): AgentBlock['subBlocks'] {
+  return {
+    promptId: { id: 'promptId', type: 'combobox', value: prompt?.promptId ?? '' },
+    promptLabel: { id: 'promptLabel', type: 'dropdown', value: prompt?.label ?? 'production' },
+    promptVariables: {
+      id: 'promptVariables',
+      type: 'table',
+      value: Object.entries(prompt?.variables ?? {}).map(([key, value]) => ({
+        id: generateId(),
+        cells: { Key: key, Value: value },
+      })),
+    },
+  }
+}
+
+/**
+ * The prompt an Agent block reads its instructions from: `null` without one (an agent saved
+ * before prompts existed has none), `undefined` when the form cannot show it faithfully.
+ */
+function readInstructionsPrompt(
+  agent: Record<string, unknown>
+): AgentInstructionsPrompt | null | undefined {
+  const promptId = subBlockValue(agent, 'promptId')
+  if (promptId === undefined || promptId === null || promptId === '') return null
+  const label = subBlockValue(agent, 'promptLabel') ?? 'production'
+  if (typeof promptId !== 'string' || !isPromptSelector(label)) return undefined
+  const variables: Record<string, string> = {}
+  for (const row of toArray(subBlockValue(agent, 'promptVariables'))) {
+    const cells = toRecord(toRecord(row).cells)
+    if (typeof cells.Key !== 'string' || !cells.Key.trim()) continue
+    if (typeof cells.Value !== 'string') return undefined
+    variables[cells.Key.trim()] = cells.Value
+  }
+  return { promptId, label, variables }
 }
 
 interface AgentBlock {
@@ -211,6 +262,7 @@ function formSubBlocks(config: AgentConfig, previousTools: StoredTool[]): AgentB
       value: config.memory ? 'conversation' : 'none',
     },
     reasoningEffort: { id: 'reasoningEffort', type: 'combobox', value: config.reasoningEffort },
+    ...promptSubBlocks(config.instructionsPrompt),
   }
   if (config.memory) {
     subBlocks.conversationId = { id: 'conversationId', type: 'short-input', value: CONVERSATION_ID }
@@ -374,6 +426,8 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
   if (memory && subBlockValue(agent, 'conversationId') !== CONVERSATION_ID) return null
   const reasoningEffort = subBlockValue(agent, 'reasoningEffort') || 'auto'
   if (!isFormReasoningEffort(reasoningEffort)) return null
+  const instructionsPrompt = readInstructionsPrompt(agent)
+  if (instructionsPrompt === undefined) return null
 
   const storedTools = toArray(tools).filter(isStoredTool)
   const metadata = toRecord(shape.state.metadata)
@@ -392,6 +446,7 @@ export function readAgentWorkflow(state: unknown): AgentConfig | null {
     webSearch: storedTools.some(isWebSearchTool),
     memory,
     reasoningEffort,
+    instructionsPrompt,
     welcomeMessage: text(metadata.welcomeMessage),
   }
 }
@@ -409,6 +464,7 @@ const STATE_FIELDS = [
   'webSearch',
   'memory',
   'reasoningEffort',
+  'instructionsPrompt',
 ] as const
 
 /**

@@ -140,6 +140,8 @@ const AuditAction = {
   INSTANCE_SETTINGS_UPDATED: 'organization.instance_settings.updated',
   INSTANCE_SETTINGS_APPLIED: 'organization.instance_settings.applied',
   NEXORA_BUDGETS_UPDATED: 'organization.budgets.updated',
+  NEXORA_TRACE_SETTINGS_UPDATED: 'organization.trace_settings.updated',
+  NEXORA_TRACES_PURGED: 'organization.traces.purged',
   ORG_MEMBER_ADDED: 'org_member.added',
   ORG_MEMBER_REMOVED: 'org_member.removed',
   ORG_MEMBER_ROLE_CHANGED: 'org_member.role_changed',
@@ -165,6 +167,11 @@ const AuditAction = {
   PERMISSION_ACCESS_REQUEST_CANCELLED: 'permission_access_request.cancelled',
   PERMISSION_ACCESS_REQUEST_CLOSED: 'permission_access_request.closed',
   PERMISSION_ACCESS_REQUEST_SETTINGS_CHANGED: 'permission_access_request.settings_changed',
+
+  PROMPT_CREATED: 'prompt.created',
+  PROMPT_VERSION_CREATED: 'prompt.version_created',
+  PROMPT_LABEL_MOVED: 'prompt.label_moved',
+  PROMPT_DELETED: 'prompt.deleted',
 
   PROJECT_CREATED: 'project.created',
   PROJECT_UPDATED: 'project.updated',
@@ -258,6 +265,7 @@ const AuditResourceType = {
   PASSWORD: 'password',
   PERMISSION_GROUP: 'permission_group',
   PERMISSION_ACCESS_REQUEST: 'permission_access_request',
+  PROMPT: 'prompt',
   PROJECT: 'project',
   SANDBOX: 'sandbox',
   SCHEDULE: 'schedule',

@@ -29,7 +29,7 @@ Bouton **Ajouter un modèle**, puis trois étapes.
    - L'usage : Discussion (proposé d'office), Vision / OCR ou Transcription.
    - **Modèle local** : il tourne sur votre serveur (Ollama, fourni avec Nexora). Vos données ne sortent pas.
    - **Mistral AI** : les modèles de Mistral, avec votre clé API (console.mistral.ai).
-   - **Service compatible OpenAI** : vLLM, un autre Ollama, un fournisseur compatible… Adresse **sans** `/v1`, nom du modèle, clé si le service en demande une.
+   - **Compatible OpenAI** : vLLM, un autre Ollama, un fournisseur compatible… Adresse **sans** `/v1`, nom du modèle, clé si le service en demande une.
    - Ollama ne transcrit pas la voix : pour la Transcription, choisissez Mistral AI ou un service compatible OpenAI (un serveur Whisper).
 2. **Modèle**
    - Pour un modèle local, un catalogue recommandé pour le français, avec la place disque et la mémoire conseillée :
@@ -60,7 +60,7 @@ Bouton **Ajouter un modèle**, puis trois étapes.
 
 Une passerelle [LiteLLM](https://docs.litellm.ai/) expose sous une seule adresse compatible OpenAI des modèles hébergés ailleurs (GLM, Mistral, modèles d'un fournisseur cloud…). Pour en utiliser un :
 
-1. **Ajouter un modèle** › usage **Discussion** › **Service compatible OpenAI**.
+1. **Ajouter un modèle** › usage **Discussion** › **Compatible OpenAI**.
 2. **Adresse** : celle de la passerelle, **sans** `/v1` (par exemple `http://passerelle.interne:4000`). Elle doit être joignable depuis le conteneur Nexora API : une passerelle sur la machine hôte s'écrit `http://host.docker.internal:<port>`.
 3. **Nom du modèle** : le nom du modèle tel que la passerelle le publie (`model_name` de sa configuration, par exemple `cloud-glm-5-3`), et la **clé** de la passerelle.
 4. Nexora vérifie que le modèle répond avant de l'enregistrer. **Tester** remplit ensuite sa fiche (voir plus bas).

@@ -4761,6 +4761,119 @@ sim permission-groups update <groupId> [options]
 
 API request and response schemas: [updatePermissionGroup](/api-reference/permission-groups/updatePermissionGroup).
 
+## sim prompts
+
+### sim prompts create
+
+Create prompt
+
+```bash
+sim prompts create [options]
+```
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--name <value>` | Yes | Name, unique within the workspace regardless of case. |
+| `--description <value>` | No | What the prompt is for. Defaults to "". |
+| `--content <value>` | Yes | Text of version 1, with `{{variables}}`. |
+| `--variables <json\|@file>` | No | Declarations of the variables. A placeholder without one is a `text` variable; a declaration without a placeholder is dropped. Defaults to []. (JSON, or @path / @- to read a file or stdin). |
+| `--note <value>` | No | Note of version 1. Defaults to "". |
+
+</CommandTable>
+
+API request and response schemas: [createPrompt](/api-reference/prompts/createPrompt).
+
+### sim prompts versions create
+
+Create prompt version
+
+```bash
+sim prompts versions create <promptId> [options]
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `promptId` | Yes | Prompt identifier, or its name. |
+
+</CommandTable>
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--content <value>` | Yes | Text of the new version, with `{{variables}}`. |
+| `--variables <json\|@file>` | No | Declarations of the variables. A placeholder without one is a `text` variable; a declaration without a placeholder is dropped. Defaults to []. (JSON, or @path / @- to read a file or stdin). |
+| `--note <value>` | No | What changed in this version. Defaults to "". |
+
+</CommandTable>
+
+API request and response schemas: [createPromptVersion](/api-reference/prompts/createPromptVersion).
+
+### sim prompts get
+
+Get prompt
+
+```bash
+sim prompts get <promptId> [options]
+```
+
+**Arguments**
+
+<CommandTable>
+
+| Argument | Required | Description |
+| --- | --- | --- |
+| `promptId` | Yes | Prompt identifier, or its name. |
+
+</CommandTable>
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--label <value>` | No | Return the version this label points at. Defaults to `production`. Accepted values: `production`, `test`. |
+| `--to-version <value>` | No | Return this version number instead of a labelled one. |
+
+</CommandTable>
+
+API request and response schemas: [getPrompt](/api-reference/prompts/getPrompt).
+
+### sim prompts list
+
+List prompts
+
+```bash
+sim prompts list [options]
+```
+
+**Options**
+
+<CommandTable>
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--search <value>` | No | Case-insensitive substring match against the prompt name. |
+| `--sort-by <value>` | No | Field used to sort the result. Do not rely on case-insensitive ordering when sorting by `name`. Defaults to "name". Accepted values: `name`, `createdAt`, `updatedAt`. |
+| `--sort-order <value>` | No | Sort direction. Defaults to "asc". Accepted values: `asc`, `desc`. |
+| `--limit <n>` | No | Maximum items to return (0 for everything). Defaults to `100`. |
+| `--cursor <value>` | No | Continue from nextCursor returned by a previous result. |
+
+</CommandTable>
+
+API request and response schemas: [listPrompts](/api-reference/prompts/listPrompts).
+
 ## sim sandboxes
 
 Manage reusable dependency sets for Function blocks.
@@ -5021,7 +5134,7 @@ sim selectors get [options]
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--selector-key <value>` | Yes | Registered selector key from an import or sync preview, such as `gmail.labels`. Accepted values: `airtable.bases`, `airtable.tables`, `asana.workspaces`, `attio.lists`, `attio.objects`, `bigquery.datasets`, `bigquery.tables`, `bitbucket.workspaces`, `bitbucket.repositories`, `calcom.eventTypes`, `calcom.schedules`, `clickup.workspaces`, `clickup.spaces`, `clickup.folders`, `clickup.lists`, `coda.docs`, `coda.pages`, `coda.tables`, `coda.columns`, `coda.rows`, `coda.formulas`, `coda.controls`, `coda.folders`, `coda.permissions`, `confluence.spaces`, `confluence.spacesById`, `confluence.pages`, `google.tasks.lists`, `fivetran.groups`, `fivetran.connections`, `gmail.labels`, `google.calendar`, `google.drive`, `google.sheets`, `harmonic.savedSearches`, `helpscout.mailboxes`, `helpscout.assignees`, `hubspot.lists`, `hubspot.owners`, `hubspot.pipelines`, `hubspot.pipelineStages`, `hubspot.properties`, `jsm.requestTypes`, `jsm.serviceDesks`, `microsoft.planner.plans`, `notion.databases`, `notion.pages`, `netsuite.recordTypes`, `netsuite.asyncTasks`, `pipedrive.pipelines`, `sharepoint.lists`, `trello.boards`, `zoho_desk.organizations`, `zoho_desk.departments`, `zoho_desk.agents`, `zoom.meetings`, `slack.channels`, `snowflake.databases`, `snowflake.schemas`, `snowflake.tables`, `snowflake.warehouses`, `snowflake.roles`, `snowflake.fileFormats`, `snowflake.procedures`, `slack.users`, `outlook.folders`, `outlook.calendars`, `microsoft.teams`, `microsoft.chats`, `microsoft.channels`, `microsoft.planner`, `onedrive.files`, `onedrive.folders`, `sharepoint.sites`, `microsoft.excel`, `microsoft.excel.drives`, `microsoft.excel.sheets`, `microsoft.word`, `wealthbox.contacts`, `jira.issues`, `jira.projects`, `jira.projectKeys`, `linear.projects`, `linear.teams`, `monday.boards`, `monday.groups`, `webflow.sites`, `webflow.collections`, `webflow.items`, `planetscale.databases`, `powerbi.workspaces`, `powerbi.datasets`, `powerbi.reports`, `planetscale.branches`, `planetscale.backups`, `planetscale.deployRequests`, `cloudwatch.logGroups`, `cloudwatch.logStreams`, `imap.mailboxes`, `mcp.tools`, `managedAgent.agents`, `managedAgent.environments`, `managedAgent.vaults`, `managedAgent.memoryStores`, `knowledge.documents`, `sim.workflows`, `table.columns`, `table.outputColumns`, `workspace.secretNames`, `workspace.sandboxes`, `providers.ollamaEmbeddingModels`, `providers.openrouterEmbeddingModels`. |
+| `--selector-key <value>` | Yes | Registered selector key from an import or sync preview, such as `gmail.labels`. Accepted values: `airtable.bases`, `airtable.tables`, `asana.workspaces`, `attio.lists`, `attio.objects`, `bigquery.datasets`, `bigquery.tables`, `bitbucket.workspaces`, `bitbucket.repositories`, `calcom.eventTypes`, `calcom.schedules`, `clickup.workspaces`, `clickup.spaces`, `clickup.folders`, `clickup.lists`, `coda.docs`, `coda.pages`, `coda.tables`, `coda.columns`, `coda.rows`, `coda.formulas`, `coda.controls`, `coda.folders`, `coda.permissions`, `confluence.spaces`, `confluence.spacesById`, `confluence.pages`, `google.tasks.lists`, `fivetran.groups`, `fivetran.connections`, `gmail.labels`, `google.calendar`, `google.drive`, `google.sheets`, `harmonic.savedSearches`, `helpscout.mailboxes`, `helpscout.assignees`, `hubspot.lists`, `hubspot.owners`, `hubspot.pipelines`, `hubspot.pipelineStages`, `hubspot.properties`, `jsm.requestTypes`, `jsm.serviceDesks`, `microsoft.planner.plans`, `notion.databases`, `notion.pages`, `netsuite.recordTypes`, `netsuite.asyncTasks`, `pipedrive.pipelines`, `sharepoint.lists`, `trello.boards`, `zoho_desk.organizations`, `zoho_desk.departments`, `zoho_desk.agents`, `zoom.meetings`, `slack.channels`, `snowflake.databases`, `snowflake.schemas`, `snowflake.tables`, `snowflake.warehouses`, `snowflake.roles`, `snowflake.fileFormats`, `snowflake.procedures`, `slack.users`, `outlook.folders`, `outlook.calendars`, `microsoft.teams`, `microsoft.chats`, `microsoft.channels`, `microsoft.planner`, `onedrive.files`, `onedrive.folders`, `sharepoint.sites`, `microsoft.excel`, `microsoft.excel.drives`, `microsoft.excel.sheets`, `microsoft.word`, `wealthbox.contacts`, `jira.issues`, `jira.projects`, `jira.projectKeys`, `linear.projects`, `linear.teams`, `monday.boards`, `monday.groups`, `webflow.sites`, `webflow.collections`, `webflow.items`, `planetscale.databases`, `powerbi.workspaces`, `powerbi.datasets`, `powerbi.reports`, `planetscale.branches`, `planetscale.backups`, `planetscale.deployRequests`, `cloudwatch.logGroups`, `cloudwatch.logStreams`, `imap.mailboxes`, `mcp.tools`, `managedAgent.agents`, `managedAgent.environments`, `managedAgent.vaults`, `managedAgent.memoryStores`, `knowledge.documents`, `sim.workflows`, `table.columns`, `table.outputColumns`, `workspace.secretNames`, `workspace.prompts`, `workspace.sandboxes`, `providers.ollamaEmbeddingModels`, `providers.openrouterEmbeddingModels`. |
 | `--context <json\|@file>` | No | Only the dependencies declared by the selector, such as oauthCredential and channelId. Missing OAuth connections require human authorization. Defaults to &#123;&#125;. (JSON, or @path / @- to read a file or stdin). |
 | `--id <value>` | Yes | Provider option ID to resolve with the same selector and declared context. |
 
@@ -5043,7 +5156,7 @@ sim selectors list [options]
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--selector-key <value>` | Yes | Registered selector key from an import or sync preview, such as `gmail.labels`. Accepted values: `airtable.bases`, `airtable.tables`, `asana.workspaces`, `attio.lists`, `attio.objects`, `bigquery.datasets`, `bigquery.tables`, `bitbucket.workspaces`, `bitbucket.repositories`, `calcom.eventTypes`, `calcom.schedules`, `clickup.workspaces`, `clickup.spaces`, `clickup.folders`, `clickup.lists`, `coda.docs`, `coda.pages`, `coda.tables`, `coda.columns`, `coda.rows`, `coda.formulas`, `coda.controls`, `coda.folders`, `coda.permissions`, `confluence.spaces`, `confluence.spacesById`, `confluence.pages`, `google.tasks.lists`, `fivetran.groups`, `fivetran.connections`, `gmail.labels`, `google.calendar`, `google.drive`, `google.sheets`, `harmonic.savedSearches`, `helpscout.mailboxes`, `helpscout.assignees`, `hubspot.lists`, `hubspot.owners`, `hubspot.pipelines`, `hubspot.pipelineStages`, `hubspot.properties`, `jsm.requestTypes`, `jsm.serviceDesks`, `microsoft.planner.plans`, `notion.databases`, `notion.pages`, `netsuite.recordTypes`, `netsuite.asyncTasks`, `pipedrive.pipelines`, `sharepoint.lists`, `trello.boards`, `zoho_desk.organizations`, `zoho_desk.departments`, `zoho_desk.agents`, `zoom.meetings`, `slack.channels`, `snowflake.databases`, `snowflake.schemas`, `snowflake.tables`, `snowflake.warehouses`, `snowflake.roles`, `snowflake.fileFormats`, `snowflake.procedures`, `slack.users`, `outlook.folders`, `outlook.calendars`, `microsoft.teams`, `microsoft.chats`, `microsoft.channels`, `microsoft.planner`, `onedrive.files`, `onedrive.folders`, `sharepoint.sites`, `microsoft.excel`, `microsoft.excel.drives`, `microsoft.excel.sheets`, `microsoft.word`, `wealthbox.contacts`, `jira.issues`, `jira.projects`, `jira.projectKeys`, `linear.projects`, `linear.teams`, `monday.boards`, `monday.groups`, `webflow.sites`, `webflow.collections`, `webflow.items`, `planetscale.databases`, `powerbi.workspaces`, `powerbi.datasets`, `powerbi.reports`, `planetscale.branches`, `planetscale.backups`, `planetscale.deployRequests`, `cloudwatch.logGroups`, `cloudwatch.logStreams`, `imap.mailboxes`, `mcp.tools`, `managedAgent.agents`, `managedAgent.environments`, `managedAgent.vaults`, `managedAgent.memoryStores`, `knowledge.documents`, `sim.workflows`, `table.columns`, `table.outputColumns`, `workspace.secretNames`, `workspace.sandboxes`, `providers.ollamaEmbeddingModels`, `providers.openrouterEmbeddingModels`. |
+| `--selector-key <value>` | Yes | Registered selector key from an import or sync preview, such as `gmail.labels`. Accepted values: `airtable.bases`, `airtable.tables`, `asana.workspaces`, `attio.lists`, `attio.objects`, `bigquery.datasets`, `bigquery.tables`, `bitbucket.workspaces`, `bitbucket.repositories`, `calcom.eventTypes`, `calcom.schedules`, `clickup.workspaces`, `clickup.spaces`, `clickup.folders`, `clickup.lists`, `coda.docs`, `coda.pages`, `coda.tables`, `coda.columns`, `coda.rows`, `coda.formulas`, `coda.controls`, `coda.folders`, `coda.permissions`, `confluence.spaces`, `confluence.spacesById`, `confluence.pages`, `google.tasks.lists`, `fivetran.groups`, `fivetran.connections`, `gmail.labels`, `google.calendar`, `google.drive`, `google.sheets`, `harmonic.savedSearches`, `helpscout.mailboxes`, `helpscout.assignees`, `hubspot.lists`, `hubspot.owners`, `hubspot.pipelines`, `hubspot.pipelineStages`, `hubspot.properties`, `jsm.requestTypes`, `jsm.serviceDesks`, `microsoft.planner.plans`, `notion.databases`, `notion.pages`, `netsuite.recordTypes`, `netsuite.asyncTasks`, `pipedrive.pipelines`, `sharepoint.lists`, `trello.boards`, `zoho_desk.organizations`, `zoho_desk.departments`, `zoho_desk.agents`, `zoom.meetings`, `slack.channels`, `snowflake.databases`, `snowflake.schemas`, `snowflake.tables`, `snowflake.warehouses`, `snowflake.roles`, `snowflake.fileFormats`, `snowflake.procedures`, `slack.users`, `outlook.folders`, `outlook.calendars`, `microsoft.teams`, `microsoft.chats`, `microsoft.channels`, `microsoft.planner`, `onedrive.files`, `onedrive.folders`, `sharepoint.sites`, `microsoft.excel`, `microsoft.excel.drives`, `microsoft.excel.sheets`, `microsoft.word`, `wealthbox.contacts`, `jira.issues`, `jira.projects`, `jira.projectKeys`, `linear.projects`, `linear.teams`, `monday.boards`, `monday.groups`, `webflow.sites`, `webflow.collections`, `webflow.items`, `planetscale.databases`, `powerbi.workspaces`, `powerbi.datasets`, `powerbi.reports`, `planetscale.branches`, `planetscale.backups`, `planetscale.deployRequests`, `cloudwatch.logGroups`, `cloudwatch.logStreams`, `imap.mailboxes`, `mcp.tools`, `managedAgent.agents`, `managedAgent.environments`, `managedAgent.vaults`, `managedAgent.memoryStores`, `knowledge.documents`, `sim.workflows`, `table.columns`, `table.outputColumns`, `workspace.secretNames`, `workspace.prompts`, `workspace.sandboxes`, `providers.ollamaEmbeddingModels`, `providers.openrouterEmbeddingModels`. |
 | `--context <json\|@file>` | No | Only the dependencies declared by the selector, such as oauthCredential and channelId. Missing OAuth connections require human authorization. Defaults to &#123;&#125;. (JSON, or @path / @- to read a file or stdin). |
 | `--search <value>` | No | Provider option search text. |
 | `--cursor <value>` | No | Continue from nextCursor returned by a previous result. |

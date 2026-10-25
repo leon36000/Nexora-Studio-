@@ -4,6 +4,7 @@
 
 import { randomInt, randomItem } from '@sim/utils/random'
 import { env, envNumber } from '@/lib/core/config/env'
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/config'
 
 /**
  * Maximum tables addressable by identifier in one bulk request. Matches the
@@ -12,7 +13,20 @@ import { env, envNumber } from '@/lib/core/config/env'
  */
 export const MAX_TABLE_BATCH_ITEMS = 100
 
-export const DEFAULT_TABLE_VIEW_NAME = 'Default'
+/** The names of the starter view, in the interface language (the original is « Default »). */
+const DEFAULT_TABLE_VIEW_NAMES: Record<Locale, string> = { fr: 'Par défaut', en: 'Default' }
+
+/** Every name a starter view has been seeded under, so each reads in the viewer's language. */
+export const SEEDED_TABLE_VIEW_NAMES: readonly string[] = Object.values(DEFAULT_TABLE_VIEW_NAMES)
+
+export function defaultTableViewName(locale: Locale): string {
+  return DEFAULT_TABLE_VIEW_NAMES[locale]
+}
+
+/** The column a new table starts with (the original is « name »); a valid {@link NAME_PATTERN} name. */
+export function defaultTableColumnName(locale: Locale): string {
+  return locale === 'fr' ? 'nom' : 'name'
+}
 
 export const TABLE_LIMITS = {
   MAX_TABLES_PER_WORKSPACE: 100,
@@ -499,11 +513,23 @@ const TABLE_NAME_NOUNS = [
 ] as const
 
 /**
- * Generates a unique space-themed table name that doesn't collide with existing names.
- * Uses lowercase with underscores to satisfy NAME_PATTERN validation.
+ * Generates a unique table name that doesn't collide with existing names. Lowercase with
+ * underscores to satisfy NAME_PATTERN validation (so « Table 1 » is not allowed): French tables
+ * are numbered `table_1`, `table_2`… (first free number); English keeps the original random
+ * space-themed names.
  */
-export function generateUniqueTableName(existingNames: string[]): string {
+export function generateUniqueTableName(
+  existingNames: string[],
+  locale: Locale = DEFAULT_LOCALE
+): string {
   const taken = new Set(existingNames.map((n) => n.toLowerCase()))
+
+  if (locale === 'fr') {
+    let number = 1
+    while (taken.has(`table_${number}`)) number++
+    return `table_${number}`
+  }
+
   const maxAttempts = 50
 
   for (let i = 0; i < maxAttempts; i++) {

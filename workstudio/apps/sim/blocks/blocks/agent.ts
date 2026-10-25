@@ -129,6 +129,43 @@ Return ONLY the JSON array.`,
       },
     },
     {
+      // Nexora edition: a versioned prompt of the workspace, read at run time, replaces the system message.
+      id: 'promptId',
+      title: 'Instructions prompt',
+      type: 'combobox',
+      selectorKey: 'workspace.prompts',
+      placeholder: 'Use the system message above',
+      searchable: true,
+      emptyIsValid: true,
+      clearOnMissingOption: true,
+      condition: { field: 'model', value: EVALUATION_MODELS, not: true },
+    },
+    {
+      id: 'promptLabel',
+      title: 'Prompt version',
+      type: 'dropdown',
+      options: [
+        { label: 'production', id: 'production' },
+        { label: 'test', id: 'test' },
+        { label: 'Latest version', id: 'latest' },
+      ],
+      defaultValue: 'production',
+      condition: (values) =>
+        typeof values?.promptId === 'string' && values.promptId
+          ? { field: 'promptId', value: values.promptId }
+          : { field: 'promptId', value: '__no_prompt__' },
+    },
+    {
+      id: 'promptVariables',
+      title: 'Prompt variables',
+      type: 'table',
+      columns: ['Key', 'Value'],
+      condition: (values) =>
+        typeof values?.promptId === 'string' && values.promptId
+          ? { field: 'promptId', value: values.promptId }
+          : { field: 'promptId', value: '__no_prompt__' },
+    },
+    {
       id: 'model',
       title: 'Model',
       type: 'combobox',
@@ -530,6 +567,15 @@ Return ONLY the JSON array.`,
         'Array of message objects with role and content: [{ role: "system", content: "..." }, { role: "user", content: "..." }]',
     },
     files: { type: 'array', description: 'Files to include with the latest user message' },
+    promptId: {
+      type: 'string',
+      description: 'Versioned prompt of the workspace used as the system message, read at run time',
+    },
+    promptLabel: {
+      type: 'string',
+      description: 'Prompt version to use: production, test or latest',
+    },
+    promptVariables: { type: 'json', description: 'Values of the prompt variables' },
     memoryType: {
       type: 'string',
       description:
@@ -648,6 +694,10 @@ Return ONLY the JSON array.`,
       description: 'Provider timing information',
     },
     cost: { type: 'json', description: 'Cost of the API call' },
+    prompt: {
+      type: 'json',
+      description: 'Prompt version the agent ran with (id, name, version, label)',
+    },
     interactionId: {
       type: 'string',
       description: 'Interaction ID for multi-turn deep research follow-ups',

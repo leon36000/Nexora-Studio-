@@ -93,7 +93,9 @@ export const tableConstantsMockFns = {
  */
 export const tableConstantsMock = {
   MAX_TABLE_BATCH_ITEMS: 100,
-  DEFAULT_TABLE_VIEW_NAME: 'Default',
+  SEEDED_TABLE_VIEW_NAMES: ['Par défaut', 'Default'],
+  defaultTableViewName: (locale: 'fr' | 'en') => (locale === 'fr' ? 'Par défaut' : 'Default'),
+  defaultTableColumnName: (locale: 'fr' | 'en') => (locale === 'fr' ? 'nom' : 'name'),
   TABLE_LIMITS,
   DEFAULT_TABLE_PLAN_LIMITS,
   MAX_RUN_TARGET_ROW_IDS: DEFAULT_TABLE_PLAN_LIMITS.enterprise.maxRowsPerTable,

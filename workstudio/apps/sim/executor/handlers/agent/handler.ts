@@ -37,6 +37,7 @@ import {
   deliverDocumentsAsText,
 } from '@/lib/nexora/attachment-text.server'
 import { dropUnavailableBuiltinTools } from '@/lib/nexora/builtin-tools'
+import { PromptResolutionError, resolvePromptReference } from '@/lib/nexora/prompts/resolve'
 import { APPROVAL_FIELD, pendingActionsView } from '@/lib/nexora/tool-confirmation/deferred'
 import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
 import { collectProducedFiles } from '@/lib/nexora/tool-files'
@@ -85,6 +86,12 @@ import {
   memoryService,
   selectReplayAttachments,
 } from '@/executor/handlers/agent/memory'
+import {
+  applyResolvedPrompt,
+  promptVariableInputPaths,
+  readPromptReference,
+  withPromptOutput,
+} from '@/executor/handlers/agent/prompt-reference'
 import {
   buildLoadSkillTool,
   buildSkillsSystemPromptSection,
@@ -362,7 +369,39 @@ export class AgentBlockHandler implements BlockHandler {
     return block.metadata?.id === BlockType.AGENT
   }
 
+  /**
+   * Nexora edition: a block whose instructions come from a versioned prompt resolves it first,
+   * so a moved label applies from the next run, and records the version in its output.
+   */
   async execute(
+    ctx: ExecutionContext,
+    block: SerializedBlock,
+    inputs: AgentInputs,
+    nodeMetadata?: BlockNodeMetadata
+  ): Promise<BlockOutput | StreamingExecution> {
+    const reference = readPromptReference(inputs)
+    if (!reference) return this.executeAgent(ctx, block, inputs, nodeMetadata)
+    if (!ctx.workspaceId) {
+      throw new PromptResolutionError(
+        'Un prompt de consignes ne se lit que dans un espace de travail.'
+      )
+    }
+    this.assertInputPathsDoNotResolveSecrets(
+      ctx,
+      promptVariableInputPaths(inputs),
+      'Les variables d’un prompt de consignes ne peuvent pas contenir de secret.'
+    )
+    const prompt = await resolvePromptReference(ctx.workspaceId, reference)
+    const output = await this.executeAgent(
+      ctx,
+      block,
+      applyResolvedPrompt(inputs, prompt),
+      nodeMetadata
+    )
+    return withPromptOutput(output, prompt)
+  }
+
+  private async executeAgent(
     ctx: ExecutionContext,
     block: SerializedBlock,
     inputs: AgentInputs,

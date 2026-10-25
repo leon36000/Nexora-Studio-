@@ -2,21 +2,21 @@
 
 import { File as FileIcon } from '@sim/emcn/icons'
 import { noop } from '@sim/utils/helpers'
-import { FOLDERED_RESOURCE_HEADERS } from '@/app/workspace/[workspaceId]/components/folders/foldered-resources'
+import { useTranslations } from 'next-intl'
 import { ResourceChromeFallback } from '@/app/workspace/[workspaceId]/components/resource/components/resource-chrome-fallback'
 import type { BreadcrumbItem } from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
-
-const FILES_HEADER = FOLDERED_RESOURCE_HEADERS.file
 
 /**
  * Transcribes the trail the loaded page shows while its record resolves (`loadingBreadcrumbs` in
  * `files.tsx`): the root crumb plus a terminal `…`, with no icon on the leaf — so the fallback and
  * the page paint the same two crumbs and only the label changes.
  */
-const BREADCRUMBS: BreadcrumbItem[] = [
-  { label: FILES_HEADER.rootLabel, icon: FileIcon, onClick: noop },
-  { label: '…', terminal: true },
-]
+function fallbackBreadcrumbs(rootLabel: string): BreadcrumbItem[] {
+  return [
+    { label: rootLabel, icon: FileIcon, onClick: noop },
+    { label: '…', terminal: true },
+  ]
+}
 
 /**
  * Fallback for the file DETAIL route. Without it the segment inherits the Files list fallback, which
@@ -29,5 +29,6 @@ const BREADCRUMBS: BreadcrumbItem[] = [
  * and then changing reads as a glitch.
  */
 export default function FilesFileLoading() {
-  return <ResourceChromeFallback icon={FileIcon} breadcrumbs={BREADCRUMBS} />
+  const t = useTranslations('files.list')
+  return <ResourceChromeFallback icon={FileIcon} breadcrumbs={fallbackBreadcrumbs(t('title'))} />
 }

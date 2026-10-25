@@ -8723,3 +8723,149 @@ export const nexoraApiKeyUsage = pgTable(
     index('nexora_api_key_usage_day_idx').on(t.day),
   ]
 )
+
+/**
+ * Nexora edition: a reusable prompt of a workspace, shared with every member. Its text lives in
+ * immutable versions; the `production` and `test` labels point at one version each, and agents
+ * referencing a label read it at run time.
+ */
+export const nexoraPrompt = pgTable(
+  'nexora_prompt',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('nexora_prompt_workspace_name_idx').on(t.workspaceId, sql`lower(${t.name})`),
+    index('nexora_prompt_workspace_updated_idx').on(t.workspaceId, t.updatedAt),
+  ]
+)
+
+/** Nexora edition: one immutable version of a prompt (text, typed `{{variables}}`, note). */
+export const nexoraPromptVersion = pgTable(
+  'nexora_prompt_version',
+  {
+    id: text('id').primaryKey(),
+    promptId: text('prompt_id')
+      .notNull()
+      .references(() => nexoraPrompt.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    content: text('content').notNull(),
+    variables: jsonb('variables')
+      .$type<
+        Array<{
+          name: string
+          type: 'text' | 'number' | 'boolean'
+          description?: string
+          defaultValue?: string
+        }>
+      >()
+      .notNull()
+      .default([]),
+    note: text('note').notNull().default(''),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('nexora_prompt_version_number_idx').on(t.promptId, t.version)]
+)
+
+/** Nexora edition: where a prompt's label (`production`, `test`) points. */
+export const nexoraPromptLabel = pgTable(
+  'nexora_prompt_label',
+  {
+    promptId: text('prompt_id')
+      .notNull()
+      .references(() => nexoraPrompt.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    versionId: text('version_id')
+      .notNull()
+      .references(() => nexoraPromptVersion.id, { onDelete: 'cascade' }),
+    updatedBy: text('updated_by').references(() => user.id, { onDelete: 'set null' }),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.promptId, t.label] })]
+)
+
+/**
+ * Nexora edition: one row per trace of a model call (a Playground answer, an agent or Assistant
+ * run, a key-called model, a workflow run), with what the Traces screen filters on. Content is
+ * masked before it is written. `visibility = 'private'` traces are read only by their `userId` and
+ * the workspace's administrators. Indexed rather than partitioned: filters are all covered by the
+ * indexes below and the retention purge deletes by `started_at` in batches.
+ */
+export const nexoraTrace = pgTable(
+  'nexora_trace',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').references(() => workspace.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+    apiKeyId: text('api_key_id').references(() => nexoraApiKey.id, { onDelete: 'set null' }),
+    source: text('source').notNull(),
+    visibility: text('visibility').notNull().default('workspace'),
+    name: text('name').notNull(),
+    agentId: text('agent_id'),
+    agentName: text('agent_name'),
+    model: text('model'),
+    models: text('models').array().notNull().default(sql`'{}'::text[]`),
+    status: text('status').notNull(),
+    error: text('error'),
+    startedAt: timestamp('started_at').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    kgCo2eq: doublePrecision('kg_co2eq'),
+    spanCount: integer('span_count').notNull().default(0),
+    toolCount: integer('tool_count').notNull().default(0),
+    truncated: boolean('truncated').notNull().default(false),
+    maskedCount: integer('masked_count').notNull().default(0),
+    executionId: text('execution_id'),
+    inputPreview: text('input_preview'),
+    outputPreview: text('output_preview'),
+    searchText: text('search_text'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('nexora_trace_workspace_started_idx').on(t.workspaceId, t.startedAt.desc(), t.id.desc()),
+    index('nexora_trace_started_idx').on(t.startedAt),
+    index('nexora_trace_user_started_idx').on(t.userId, t.startedAt),
+    index('nexora_trace_api_key_started_idx').on(t.apiKeyId, t.startedAt),
+    uniqueIndex('nexora_trace_execution_idx').on(t.executionId),
+    check('nexora_trace_visibility_check', sql`${t.visibility} IN ('workspace', 'private')`),
+  ]
+)
+
+/** Nexora edition: the spans of a {@link nexoraTrace}, in tree order (`position`); deleted with it. */
+export const nexoraTraceSpan = pgTable(
+  'nexora_trace_span',
+  {
+    traceId: text('trace_id')
+      .notNull()
+      .references(() => nexoraTrace.id, { onDelete: 'cascade' }),
+    id: text('id').notNull(),
+    parentId: text('parent_id'),
+    position: integer('position').notNull(),
+    kind: text('kind').notNull(),
+    name: text('name').notNull(),
+    model: text('model'),
+    startedAt: timestamp('started_at').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    status: text('status').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    kgCo2eq: doublePrecision('kg_co2eq'),
+    input: text('input'),
+    output: text('output'),
+    attributes: jsonb('attributes').notNull().default(sql`'{}'::jsonb`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.traceId, t.id] }),
+    index('nexora_trace_span_order_idx').on(t.traceId, t.position),
+  ]
+)

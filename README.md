@@ -45,6 +45,7 @@ Installation manuelle depuis les sources, options et sauvegarde : voir le [guide
 - **Vos outils** : Nexora Connect est déjà branché dans chaque espace (Brevo, Google, Microsoft, Slack…).
 - **La gouvernance** : organisations, rôles, journal d'audit, tableau de consommation, connexion unique (SSO OpenID Connect).
 - **Une API pour les développeurs** : modèles et agents publiés au format OpenAI sous `https://<votre domaine>/v1`, clés gouvernées dans l'interface (voir [l'API des développeurs](docs/guide/api-developpeurs.md)).
+- **Des traces de chaque appel de modèle** : arbre des étapes, jetons, durée et CO₂, données personnelles masquées avant stockage, conservation réglable, export OTLP facultatif (voir [les traces](docs/guide/traces.md)).
 - **Une installation en une commande**, sur votre serveur, en amd64 comme en arm64.
 
 ## Vérifier une installation

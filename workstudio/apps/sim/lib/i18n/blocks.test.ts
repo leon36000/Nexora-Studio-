@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   type BlockTranslator,
   displayBlockName,
+  displaySubflowBlockName,
   translateBlockConfig,
   translatedBlockName,
 } from '@/lib/i18n/blocks'
@@ -134,6 +135,8 @@ const french: Record<string, string> = {
   'gmail_v2.subBlocks.summary.variants.CalendarName.title': 'Nom de l’agenda',
   'gmail_v2.subBlocks.priority.title': 'Priorité',
   'start_trigger.name': 'Démarrage',
+  'loop.name': 'Boucle',
+  'parallel.name': 'Parallèle',
 }
 
 const t: BlockTranslator = Object.assign((key: string) => french[key] ?? key, {
@@ -294,5 +297,23 @@ describe('translatedBlockName', () => {
   it('gives the French name when there is one, the source name otherwise', () => {
     expect(translatedBlockName('function', 'Function', t)).toBe('Fonction')
     expect(translatedBlockName('slack', 'Slack', t)).toBe('Slack')
+  })
+})
+
+describe('displaySubflowBlockName', () => {
+  it('names the toolbar entries of the two containers in French', () => {
+    expect(translatedBlockName('loop', 'Loop', t)).toBe('Boucle')
+    expect(translatedBlockName('parallel', 'Parallel', t)).toBe('Parallèle')
+  })
+
+  it('shows a generated container name in French, with its copy number', () => {
+    expect(displaySubflowBlockName('Loop', 'loop', t)).toBe('Boucle')
+    expect(displaySubflowBlockName('Loop 2', 'loop', t)).toBe('Boucle 2')
+    expect(displaySubflowBlockName('Parallel 3', 'parallel', t)).toBe('Parallèle 3')
+  })
+
+  it('shows a name the member chose as typed: its references stay valid', () => {
+    expect(displaySubflowBlockName('Relances', 'loop', t)).toBe('Relances')
+    expect(displaySubflowBlockName('Parallel 3', 'loop', t)).toBe('Parallel 3')
   })
 })

@@ -1,11 +1,14 @@
 import { useTranslations } from 'next-intl'
 import type { ImageUploadCopy } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/image-upload'
+import type { RawMarkdownBadge } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/raw-markdown-snippet-schema'
 import type { SlashCommandTitles } from '@/app/workspace/[workspaceId]/files/components/file-viewer/rich-markdown-editor/slash-command/commands'
 
 /** Text the plain extensions render, translated by the React host that builds the editor. */
 export interface MarkdownEditorCopy {
   slashCommandTitles: SlashCommandTitles
   imageUpload: ImageUploadCopy
+  /** The badges of the nodes that keep their markdown source (raw HTML, footnotes). */
+  rawMarkdownBadges: Record<RawMarkdownBadge, string>
 }
 
 /** The {@link MarkdownEditorCopy} for the current locale, read once when a host builds its extensions. */
@@ -32,6 +35,11 @@ export function useMarkdownEditorCopy(): MarkdownEditorCopy {
       cancel: t('imageUpload.cancel'),
       cancelAriaLabel: (label) => t('imageUpload.cancelAriaLabel', { label }),
       cancelTitle: t('imageUpload.cancelTitle'),
+    },
+    rawMarkdownBadges: {
+      rawHtml: t('rawMarkdownBadges.rawHtml'),
+      footnote: t('rawMarkdownBadges.footnote'),
+      footnoteRef: t('rawMarkdownBadges.footnoteRef'),
     },
   }
 }

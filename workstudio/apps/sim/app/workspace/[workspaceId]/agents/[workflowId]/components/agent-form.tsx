@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Chip, ChipInput, ChipLink, ChipSelect, ChipTextarea, Switch, toast } from '@sim/emcn'
+import { Chip, ChipInput, ChipLink, ChipSelect, Switch, toast } from '@sim/emcn'
 import { MessageSquareText, Workflow } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { useTranslations } from 'next-intl'
@@ -9,6 +9,7 @@ import { type AgentConfig, hasUnsavedAgentChanges } from '@/lib/nexora/agents'
 import { REASONING_EFFORTS } from '@/lib/nexora/reasoning'
 import { AgentPageHeader } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/agent-page-header'
 import { BuiltinToolSwitches } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/builtin-tool-switches'
+import { InstructionsField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/instructions-field'
 import { KnowledgeField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/knowledge-field'
 import { PublishSection } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/publish-section'
 import { TestPanel } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/test-panel'
@@ -150,14 +151,17 @@ export function AgentForm({
                 onChange={(event) => update('description', event.target.value)}
               />
             </FormField>
-            <FormField label={t('fields.instructions')} htmlFor='agent-instructions'>
-              <ChipTextarea
-                id='agent-instructions'
-                value={draft.instructions}
+            <FormField
+              label={t('fields.instructions')}
+              htmlFor={draft.instructionsPrompt ? undefined : 'agent-instructions'}
+            >
+              <InstructionsField
+                workspaceId={workspaceId}
+                instructions={draft.instructions}
+                prompt={draft.instructionsPrompt}
                 disabled={readOnly}
-                rows={8}
-                resizable
-                onChange={(event) => update('instructions', event.target.value)}
+                onInstructionsChange={(instructions) => update('instructions', instructions)}
+                onPromptChange={(prompt) => update('instructionsPrompt', prompt)}
               />
             </FormField>
             <FormField label={t('fields.model')}>

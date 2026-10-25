@@ -230,6 +230,12 @@
         },
         "budgets": {
           "updated": "Monthly budgets updated"
+        },
+        "trace_settings": {
+          "updated": "Trace settings updated"
+        },
+        "traces": {
+          "purged": "Traces purged"
         }
       },
       "org_member": {
@@ -361,6 +367,12 @@
       "scim_group_mapping": {
         "upserted": "SCIM group mapping saved",
         "deleted": "SCIM group mapping deleted"
+      },
+      "prompt": {
+        "created": "Prompt created",
+        "version_created": "Prompt version created",
+        "label_moved": "Prompt label moved",
+        "deleted": "Prompt deleted"
       }
     },
     "resourceTypes": {
@@ -402,7 +414,8 @@
       "user": "User",
       "webhook": "Webhook",
       "workflow": "Workflow",
-      "workspace": "Workspace"
+      "workspace": "Workspace",
+      "prompt": "Prompt"
     }
   },
   "consumption": {

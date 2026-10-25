@@ -10,7 +10,11 @@ import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
 import type { TableDefinition } from '@/lib/table'
-import { generateUniqueTableName, MAX_TABLE_BATCH_ITEMS } from '@/lib/table/constants'
+import {
+  defaultTableColumnName,
+  generateUniqueTableName,
+  MAX_TABLE_BATCH_ITEMS,
+} from '@/lib/table/constants'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import type {
   MoveOptionNode,
@@ -105,6 +109,7 @@ import { useWorkspaceMembersQuery, type WorkspaceMember } from '@/hooks/queries/
 import { useContextMenu } from '@/hooks/use-context-menu'
 import { useDebouncedSearchSetter } from '@/hooks/use-debounced-search-setter'
 import { useInlineRename } from '@/hooks/use-inline-rename'
+import { useInterfaceLocale } from '@/hooks/use-interface-locale'
 import { usePermissionConfig } from '@/hooks/use-permission-config'
 import { useResourceListPreferences } from '@/hooks/use-resource-list-preferences'
 import { useSearchFilterValue } from '@/hooks/use-search-filter-value'
@@ -118,9 +123,6 @@ const logger = createLogger('Tables')
 /** This list's private drag MIME, so a drag started on another list is never mistaken for one
  *  of these rows. */
 const TABLE_ROW_DRAG_MIME = 'application/x-sim-workspace-table-rows'
-
-/** Root label for breadcrumbs and the "move to workspace root" destination. */
-const ROOT_LABEL = FOLDERED_RESOURCE_HEADERS.table.rootLabel
 
 const EMPTY_TABLES: TableDefinition[] = []
 
@@ -140,6 +142,9 @@ export function Tables() {
 function TablesContent() {
   const timeCell = useTimeCell()
   const t = useTranslations('tables.list')
+  /** Root label for breadcrumbs and the "move to workspace root" destination. */
+  const rootLabel = t('title')
+  const locale = useInterfaceLocale()
   const params = useParams()
   const router = useRouter()
   const workspaceId = params.workspaceId as string
@@ -508,7 +513,7 @@ function TablesContent() {
               updated: timeCell(item.folder.updatedAt),
               /** A folder's location is its parent's path, not its own. */
               location: isSearching
-                ? { label: folderLocationLabel(item.folder.parentId, folderById, ROOT_LABEL) }
+                ? { label: folderLocationLabel(item.folder.parentId, folderById, rootLabel) }
                 : EMPTY_LOCATION_CELL,
             },
           })
@@ -535,7 +540,7 @@ function TablesContent() {
             owner: ownerCell(table.createdBy, membersById),
             updated: timeCell(table.updatedAt),
             location: isSearching
-              ? { label: folderLocationLabel(table.folderId, folderById, ROOT_LABEL) }
+              ? { label: folderLocationLabel(table.folderId, folderById, rootLabel) }
               : EMPTY_LOCATION_CELL,
           },
         }
@@ -669,7 +674,7 @@ function TablesContent() {
     () =>
       folderBreadcrumbItems({
         breadcrumbs: folderChain,
-        rootLabel: ROOT_LABEL,
+        rootLabel,
         rootIcon: FOLDERED_RESOURCE_HEADERS.table.rootIcon,
         onNavigate: openFolder,
         currentFolderActions,
@@ -906,7 +911,7 @@ function TablesContent() {
 
   /** Move targets for a table: every folder, since a table has no subtree. */
   const tableMoveOptions: MoveOptionNode[] = useMemo(
-    () => buildMoveOptions({ folders, rootLabel: ROOT_LABEL }),
+    () => buildMoveOptions({ folders, rootLabel }),
     [folders]
   )
 
@@ -915,7 +920,7 @@ function TablesContent() {
       activeFolder
         ? buildMoveOptionsExcludingSubtrees({
             folders,
-            rootLabel: ROOT_LABEL,
+            rootLabel,
             excludeFolderIds: [activeFolder.id],
             descendantsByFolderId: descendantFolderIds,
           })
@@ -931,7 +936,7 @@ function TablesContent() {
     () =>
       buildMoveOptionsExcludingSubtrees({
         folders,
-        rootLabel: ROOT_LABEL,
+        rootLabel,
         excludeFolderIds: selectedFolderIds,
         descendantsByFolderId: descendantFolderIds,
       }),
@@ -1250,13 +1255,13 @@ function TablesContent() {
   const createTableAsync = createTable.mutateAsync
   const handleCreateTable = useCallback(async () => {
     const existingNames = tables.map((t) => t.name)
-    const name = generateUniqueTableName(existingNames)
+    const name = generateUniqueTableName(existingNames, locale)
     try {
       const result = await createTableAsync({
         name,
         folderId: currentFolderId,
         schema: {
-          columns: [{ name: 'name', type: 'string' }],
+          columns: [{ name: defaultTableColumnName(locale), type: 'string' }],
         },
         initialRowCount: 1,
       })
@@ -1267,7 +1272,7 @@ function TablesContent() {
     } catch (err) {
       logger.error('Failed to create table:', err)
     }
-  }, [tables, router, workspaceId, currentFolderId, createTableAsync])
+  }, [tables, router, workspaceId, currentFolderId, createTableAsync, locale])
 
   const createFolderAsync = createFolder.mutateAsync
   const handleCreateFolder = useCallback(async () => {
@@ -1379,7 +1384,7 @@ function TablesContent() {
       <Resource onContextMenu={handleContentContextMenu}>
         <Resource.Header
           icon={FOLDERED_RESOURCE_HEADERS.table.rootIcon}
-          title={ROOT_LABEL}
+          title={rootLabel}
           breadcrumbs={breadcrumbs}
           actions={headerActions}
           aside={headerAside}

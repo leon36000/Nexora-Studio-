@@ -29,7 +29,9 @@ import {
   Connections,
   Dashboard,
   Database,
+  Eye,
   Files,
+  FileText,
   Integration,
   MessageSquareText,
   MoreHorizontal,
@@ -50,6 +52,7 @@ import { createLogger } from '@sim/logger'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
+import { useSettingsNavCopy } from '@/components/settings/use-settings-nav-copy'
 import type { DesktopChatActivity } from '@/lib/api/contracts/desktop-executor'
 import { useSession } from '@/lib/auth/client'
 import { canViewWorkspaceBillingSettings } from '@/lib/billing/workspace-permissions'
@@ -415,6 +418,8 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   const t = useTranslations('shell.sidebar')
   const tCopilot = useTranslations('copilot.entry')
   const tDevelopers = useTranslations('developers.page')
+  const tTraces = useTranslations('traces')
+  const navCopy = useSettingsNavCopy()
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const workflowId = params.workflowId as string | undefined
@@ -808,6 +813,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           hidden: chatEnabled,
         },
         {
+          // Nexora edition: versioned prompts that agents read at run time.
+          id: 'prompts',
+          label: t('nav.prompts'),
+          icon: FileText,
+          href: `/workspace/${workspaceId}/prompts`,
+          hidden: chatEnabled,
+        },
+        {
           // Nexora edition: the Nexora Connect catalog, connected per workspace.
           id: 'connectors',
           label: t('nav.connectors'),
@@ -821,6 +834,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           label: tDevelopers('navLabel'),
           icon: Code,
           href: `/workspace/${workspaceId}/developpeurs`,
+          hidden: chatEnabled,
+        },
+        {
+          // Nexora edition: the trace of every model call (agents, Assistant, Playground, keys).
+          id: 'traces',
+          label: tTraces('navLabel'),
+          icon: Eye,
+          href: `/workspace/${workspaceId}/traces`,
           hidden: chatEnabled,
         },
         {
@@ -865,6 +886,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
     [
       t,
       tDevelopers,
+      tTraces,
       workspaceId,
       createWorkflow,
       canEdit,
@@ -957,11 +979,11 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
         id === 'recently-deleted' ||
         (id === 'billing' && canViewWorkspaceBillingSettings(hostContext, profile?.id))
     )
-    .map(({ id, label, icon }) => ({
-      label,
-      icon,
-      href: getSettingsHref({ section: id }),
-      onNavigate: () => handleOpenSettings(id),
+    .map((item) => ({
+      label: navCopy.label(item),
+      icon: item.icon,
+      href: getSettingsHref({ section: item.id }),
+      onNavigate: () => handleOpenSettings(item.id),
     }))
 
   if (organizationHref) {
