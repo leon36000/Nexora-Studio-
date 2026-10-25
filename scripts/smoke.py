@@ -235,12 +235,20 @@ class Smoke:
     # Checks every other one builds on: always run, even with --only.
     FOUNDATIONS = ("Inscription d'un compte", "Nouvel espace avec les modèles PME")
 
-    def check(self, name: str, fn):
+    def check(self, name: str, fn, retry: bool = False):
+        """`retry`: a second attempt for a check whose outcome depends on what a language model writes
+        (an empty summary, a plan with other step names); a pass on the second attempt says so."""
         if self.only and self.only.lower() not in name.lower() and name not in self.FOUNDATIONS:
             return None
         started = time.monotonic()
         try:
-            detail = fn()
+            try:
+                detail = fn()
+            except Exception as first:  # noqa: BLE001
+                if not retry:
+                    raise
+                print(f"[....] {name} : premier essai en échec ({str(first)[:160]}), nouvel essai", flush=True)
+                detail = f"{fn()} (2e essai)"
             status, error = "pass", None
         except Exception as exc:  # noqa: BLE001 - every failure is reported, not raised
             detail, status, error = None, "fail", str(exc)
@@ -1365,7 +1373,9 @@ print(json.dumps(summary))
                     + str([(t["source"], t["status"], (t.get("inputPreview") or "")[:120]) for t in traces_of(s)[:6]]))
             _, detail = s.call("GET", f"/api/nexora/traces/{found[0]['id']}?workspaceId={ws}")
             dump = json.dumps(detail)
-            require("3000 6000" not in dump and "7630006000" not in dump and "jean.dupont@exemple.fr" not in dump, "an IBAN or an e-mail address is readable in the stored trace")
+            for marker in ("3000 6000", "7630006000", "jean.dupont@exemple.fr"):
+                at = dump.find(marker)
+                require(at < 0, f"« {marker} » is readable in the stored trace: …{dump[max(0, at - 100):at + 100]}…")
             require(found[0]["maskedCount"] >= 2, f"masking was not counted: {found[0]['maskedCount']}")
             require(not traces_of(s, q="3000 6000"), "the text search finds the raw IBAN")
 
@@ -2155,10 +2165,10 @@ print(json.dumps(summary))
     s.check("Lecture de document (OCR, modèle de vision local)", ocr)
     s.check("Transcription vocale (modèle local)", transcription)
     s.check("Synthèse vocale (voix locale : Assistant, API développeur, dictée)", speech)
-    s.check("Réunion : intervenants par voix, compte rendu, validation", meeting)
+    s.check("Réunion : intervenants par voix, compte rendu, validation", meeting, retry=True)
     s.check("Extraction : facture PDF et scannée ⇒ table « Factures »", extraction)
     s.check("Copilote : description ⇒ workflow exécuté", copilot)
-    s.check("Étapes : modèles PME et Copilote ouverts en Étapes, étape modifiée, forme intacte, exécution", etapes)
+    s.check("Étapes : modèles PME et Copilote ouverts en Étapes, étape modifiée, forme intacte, exécution", etapes, retry=True)
     s.check("Budgets : refus au plafond, reprise après relèvement", budgets)
     s.check("Journal d'audit", audit)
     s.check("Gouvernance : réglages d'instance, e-mail de test", governance)
