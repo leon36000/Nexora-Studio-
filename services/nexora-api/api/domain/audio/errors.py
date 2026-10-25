@@ -5,3 +5,8 @@ from dataclasses import dataclass
 class AudioFileSizeLimitExceededError:
     size: int
     expected_size: int | None
+
+
+@dataclass
+class AudioDiarizationUnavailableError:
+    reason: str

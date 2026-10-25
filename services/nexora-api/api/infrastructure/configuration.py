@@ -288,6 +288,8 @@ class Settings(ConfigBaseModel):
 
     # audio
     audio_file_size_limit: Annotated[int | None, Field(default=None, ge=0, description="Maximum size of the audio file in bytes. If not provided, the audio file size limit is not applied.", examples=[100_000_000])]  # fmt: off
+    audio_diarization_url: Annotated[str | None, Field(default=None, description="Base URL of the Nexora diarization service (`POST /diarize`). Without it, `response_format=diarized_json` is refused.", examples=["http://diarize:8001"])]  # fmt: off
+    audio_diarization_timeout: Annotated[int, Field(default=900, ge=1, description="Seconds the diarization service may take to answer for one recording.")]  # fmt: off
 
     @model_validator(mode="after")
     def validate_model(self) -> Any:

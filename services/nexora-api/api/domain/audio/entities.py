@@ -155,10 +155,18 @@ class Segment(BaseModel):
     speaker: Annotated[str | None, Field(default=None, description="Speaker label assigned by diarization, if available.")]
 
 
+class TimedWord(BaseModel):
+    start: Annotated[float, Field(description="Start time of the word in seconds.")]
+    end: Annotated[float, Field(description="End time of the word in seconds.")]
+    word: Annotated[str, Field(description="The word, with its leading space when the provider gives one.")]
+
+
 class AudioTranscriptions(ProviderJsonResponse):
     id: str
     model: str
     text: str
+    segments: list[Segment] | None = None
+    words: list[TimedWord] | None = None
     usage: Annotated[Usage, Field(default_factory=Usage)]
 
     def get_completions(self) -> list[str]:
@@ -179,6 +187,7 @@ class CreateAudioTranscriptionsForm(ForwardablePayload):
     prompt: str
     response_format: AudioTranscriptionsResponseFormat
     temperature: float
+    num_speakers: int | None = None
 
     def get_prompts(self) -> list[str]:
         return [self.prompt]

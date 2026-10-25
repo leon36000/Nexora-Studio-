@@ -6,6 +6,7 @@ import redis.asyncio as redis
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.domain.audio import AudioDiarizer
 from api.domain.auth import AuthSsoSessionValidator
 from api.domain.key import KeyEncoder, KeyRepository
 from api.domain.model import ModelEnvironmentalImpactsComputer, ModelQuery, ModelTokenizer
@@ -26,7 +27,7 @@ from api.infrastructure.context import global_context
 from api.infrastructure.contextvars import ContextVarsUsageContext
 from api.infrastructure.ecologit import EcologitModelEnvironmentalImpactsComputer
 from api.infrastructure.fastapi.dependencies import request_context
-from api.infrastructure.http import HttpAuthSsoSessionValidator, HttpProviderAdapterBuilder, HttpProviderClient
+from api.infrastructure.http import HttpAudioDiarizer, HttpAuthSsoSessionValidator, HttpProviderAdapterBuilder, HttpProviderClient
 from api.infrastructure.jwt import JwtKeyEncoder
 from api.infrastructure.langfuse import LangfuseUsageRepository
 from api.infrastructure.postgres import (
@@ -216,6 +217,11 @@ def _usage_repository(
 
 
 # audio use cases
+def _audio_diarizer(configuration: Configuration) -> AudioDiarizer | None:
+    url = (configuration.settings.audio_diarization_url or "").strip()
+    return HttpAudioDiarizer(url=url, timeout=configuration.settings.audio_diarization_timeout) if url else None
+
+
 def create_audio_speech_use_case_factory(
     postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
     redis_client: Redis = Depends(get_redis_client),
@@ -261,6 +267,7 @@ def create_audio_transcriptions_use_case_factory(
         usage_context=_usage_context(),
         usage_repository=usage_repository,
         audio_file_size_limit=configuration.settings.audio_file_size_limit,
+        audio_diarizer=_audio_diarizer(configuration),
     )
 
 

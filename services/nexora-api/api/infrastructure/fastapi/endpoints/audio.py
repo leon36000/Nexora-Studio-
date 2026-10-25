@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 
 from api.dependencies import create_audio_speech_use_case_factory, create_audio_transcriptions_use_case_factory
 from api.domain.audio.entities import CreateAudioSpeechBody, CreateAudioTranscriptionsFile
-from api.domain.audio.errors import AudioFileSizeLimitExceededError
+from api.domain.audio.errors import AudioDiarizationUnavailableError, AudioFileSizeLimitExceededError
 from api.domain.key.entities import Key
 from api.domain.model.errors import StatusCodeModelError, TooBusyModelError, UnknownModelError
 from api.domain.provider.errors import (
@@ -78,16 +78,16 @@ async def create_audio_transcription(
 
     match result:
         case CreateAudioTranscriptionsJsonUseCaseSuccess(data=data, headers=headers, media_type=media_type):
-            return JSONResponse(
-                content=AudioTranscriptionsResponse.model_validate(data.model_dump()).model_dump(),
-                status_code=200,
-                headers=headers,
-                media_type=media_type,
-            )
+            content = AudioTranscriptionsResponse.model_validate(data.model_dump()).model_dump()
+            if content.get("words") is None:
+                content.pop("words", None)
+            return JSONResponse(content=content, status_code=200, headers=headers, media_type=media_type)
         case CreateAudioTranscriptionsTextUseCaseSuccess(text=text, headers=headers, media_type=media_type):
             return PlainTextResponse(content=text, status_code=200, headers=headers, media_type=media_type)
         case AudioFileSizeLimitExceededError(size=size, expected_size=expected_size):
             raise FileSizeLimitExceededHTTPException(size=size, expected_size=expected_size)
+        case AudioDiarizationUnavailableError(reason=reason):
+            raise HTTPException(status_code=501, detail=f"Speaker diarization is not available: {reason}.")
         case NoAvailableProviderError():
             raise ModelIsTooBusyExceptionHTTPException()
         case ProviderAdapterValidationRequestError(errors=errors):
