@@ -458,3 +458,15 @@ Revue en lecture seule (Opus) de K4–K14 : 2 critiques, 6 importants, 12 mineur
 **Vérifications** : type-check 26/26, `check:audits` 60/60, `check:test-types`, `check:api-validation:strict`, i18n, brand, no-ee, licences ; suite `apps/sim` 3572 fichiers, 40 374 tests verts. Déploiement pc6 de `main` complet (images reconstruites, migration 0451 appliquée, 446/446). Fumée complète GLM 5.3 : 40/43 au premier passage ; les 3 échecs (Confirmation, Délégation = effet voulu de I4 sur des tests qui interrogeaient un chat public ; Transcription = mot ambigu) corrigés dans la fumée et verts seuls ; les 40 autres contrôles verts.
 
 **Mineurs différés** (constats de la revue, non corrigés) : M2 (écritures d'élément d'évaluation sans contrôle de bail), M4 (redirections OTLP), M7 (lots et fichiers par espace plutôt que par clé), M8 (pas de quota de stockage sur `/v1/files`), M9 (suppression d'un fichier laisse les requêtes de lot), M11 (deux bacs de code pour toute l'instance, contrôleur peu durci), M12 (tests qui simulent la porte). Non traités : images (`image_url`) hors instance sous politique PII (décision produit), embeddings de bases de connaissances et extraction d'image sémantique, vérification d'une campagne déjà en cours, K4 non relu en profondeur.
+
+### Seconde passe : `qwen2.5:7b` par défaut (CPU, 25/10)
+
+`scripts/verification/modele-defaut.py` ajoute le modèle (Ollama de dev, `host.docker.internal:18141`), le teste et le met par défaut ; il le remet ensuite (GLM 5.3 restauré, identifiant 10). Rapport : `docs/verification/smoke-v3-pc6-qwen-2026-10-25.json`. Résultat : **37/43**. Les 6 échecs sont des limites du modèle 7B sur CPU, pas du produit :
+- Playground « réflexion séparée » : qwen n'a pas de raisonnement, le Playground refuse l'effort (422) comme prévu ; la fumée accepte désormais ce refus.
+- Interpréteur Excel : le modèle écrit un code qui échoue puis ne donne pas le total exact.
+- Citations : il répond « [35 €] » entre crochets au lieu du montant seul.
+- Confirmation (run en pause) : il écrit l'appel d'outil en texte au lieu de l'émettre.
+- Délégation : il répond lui-même (3,50 €) au lieu de déléguer à « Agent tarifs » (7,42 €).
+- Extraction : fournisseur lu « NONE » sur une facture scannée.
+
+Tout ce qui dépend de la vitesse (cron, flux, lots, évaluations, traces, voix, réunion, lecture de documents, API développeur, garde-fous, budgets) est vert avec le modèle CPU. Les cinq scénarios d'agents à outils exigent un modèle capable d'appeler des outils : c'est le rôle de GLM 5.3 ou d'un modèle plus gros (à noter dans le guide d'installation : un 7B local ne suffit pas pour les agents à outils).

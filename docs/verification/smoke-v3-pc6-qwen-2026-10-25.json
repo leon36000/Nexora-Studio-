@@ -1,0 +1,306 @@
+{
+  "url": "http://127.0.0.1:3200",
+  "results": [
+    {
+      "check": "Inscription d'un compte",
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": "smoke-74e968bc@nexora.test",
+      "error": null
+    },
+    {
+      "check": "Interface en français, sans marque tierce",
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": "lang=\"fr\", « Connexion »",
+      "error": null
+    },
+    {
+      "check": "Nouvel espace avec les modèles PME",
+      "status": "pass",
+      "seconds": 2.1,
+      "detail": "5 modèles PME",
+      "error": null
+    },
+    {
+      "check": "Accueil Nexora (cartes, état, premier lancement)",
+      "status": "pass",
+      "seconds": 0.2,
+      "detail": "modèle par défaut qwen2.5:7b, premier lancement : 5/5 étapes",
+      "error": null
+    },
+    {
+      "check": "Nexora Connect et ses outils MCP",
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": "5 outils",
+      "error": null
+    },
+    {
+      "check": "Connecteurs : connexion d'espace cloisonnée",
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": "postmark connecté dans A, invisible depuis B, déconnecté",
+      "error": null
+    },
+    {
+      "check": "Base de connaissances (embeddings locaux)",
+      "status": "pass",
+      "seconds": 5.3,
+      "detail": "1 passage(s), embeddings locaux",
+      "error": null
+    },
+    {
+      "check": "Planification (cron)",
+      "status": "pass",
+      "seconds": 80.3,
+      "detail": "exécuté à 2026-10-25T11:19:22.868Z",
+      "error": null
+    },
+    {
+      "check": "Générer avec l'IA (modèle Nexora)",
+      "status": "pass",
+      "seconds": 13.7,
+      "detail": "« Objet : Relance de facture\n\nBonjour [Nom du destinataire],\n\n »",
+      "error": null
+    },
+    {
+      "check": "Chat public en français",
+      "status": "pass",
+      "seconds": 0.0,
+      "detail": "lang=\"fr\" (HTTP 200)",
+      "error": null
+    },
+    {
+      "check": "Playground (réponse en flux)",
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": "« Bonjour! » (3 jetons)",
+      "error": null
+    },
+    {
+      "check": "Playground : réflexion séparée de la réponse",
+      "status": "fail",
+      "seconds": 0.1,
+      "detail": null,
+      "error": "playground returned HTTP 422: {\"error\":\"rejected\",\"reason\":\"\\\"qwen2.5:7b\\\" does not support thinking\"}"
+    },
+    {
+      "check": "Agent : publication, chat public, versions",
+      "status": "pass",
+      "seconds": 3.1,
+      "detail": "publié (agent-fumee-dcbbb2c3), chat public répond, 2 versions",
+      "error": null
+    },
+    {
+      "check": "Prompts : étiquette production déplacée sans republier, API v2",
+      "status": "pass",
+      "seconds": 3.5,
+      "detail": "POMME (v1) → CERISE (v2) sans republier → POMME (v1) ; API v2 avec une clé d'espace",
+      "error": null
+    },
+    {
+      "check": "Assistant : conversation en flux, historique, cloisonnement",
+      "status": "pass",
+      "seconds": 17.6,
+      "detail": "« Assistant général » répond en flux (166 caractères), lit un PDF joint, historique relu, cloisonné",
+      "error": null
+    },
+    {
+      "check": "Assistant étendu : projets, workflow par formulaire, tâche planifiée, connexions personnelles",
+      "status": "pass",
+      "seconds": 137.6,
+      "detail": "projet : fichier partagé par 2 conversations, autre membre ⇒ 404 ; workflow « Devis client » lancé par son formulaire (868 caractères), carte dans le fil ; validation humaine répondue (refus) par l'API de reprise ; tâche « tous les matins à 8 h » créée en conversation (0 8 * * *), désactivable, cloisonnée ; tâche à la minute exécutée par le cron (running) ; 2 membres : chacun ne voit que sa connexion Postmark dans ses conversations",
+      "error": null
+    },
+    {
+      "check": "Interpréteur : classeur Excel ⇒ graphique et totaux exacts",
+      "status": "fail",
+      "seconds": 44.9,
+      "detail": null,
+      "error": "the answer does not give the exact total 6340.75: L'importation de `month_abbr` depuis `datetime` n'est pas directement possible, je vais utiliser une approche alternative pour nommer les mois. Voici le graphique des ventes par mois et le total des ventes : 6240.75 €."
+    },
+    {
+      "check": "Citations : réponse tirée d'une base ⇒ « Sources [1] » avec lien",
+      "status": "fail",
+      "seconds": 14.7,
+      "detail": null,
+      "error": "the answer does not give the amount: La livraison est offerte à partir d'un montant minimum de [35 €]."
+    },
+    {
+      "check": "Confirmation : refus ⇒ aucune action, accord ⇒ une seule",
+      "status": "fail",
+      "seconds": 73.4,
+      "detail": null,
+      "error": "the run did not pause for approval: {'success': True, 'executionId': 'e0e6dd9d-fe79-4d3b-acef-936eccbbe8a3', 'output': {'content': 'IGHL\\n{\"name\": \"mcp-7028ad5e-execute_action\", \"arguments\": {\"actionId\": \"postmark.send_email\", \"input\": {\"From\": \"contact@exemple.fr\", \"To\": \"client@exemple.fr\", \"Subject\": \"Relance facture F-118\", \"TextBody\": \"Bonjour, votre facture est en retard.\"}}}\\n</tool_call>', 'model': 'vllm/nexora-default', 'tokens': {'input': 410, 'output': 86, 'total': 496}, 'toolCalls': {'list': [], 'count': 0}, 'providerT"
+    },
+    {
+      "check": "API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403",
+      "status": "pass",
+      "seconds": 19.1,
+      "detail": "clé créée, « Bonjour! » (3 jetons), agent « Assistant général » répond en flux, 403 hors liste, 401 révoquée, 2 requêtes en consommation",
+      "error": null
+    },
+    {
+      "check": "Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement",
+      "status": "pass",
+      "seconds": 31.7,
+      "detail": "arbre modèle → connaissances → modèle en 0.4 s, IBAN et e-mail masqués (15 masquages), « durée > 10 s » ⇒ 10 sur 30, collecteur OTLP : ignoré (export déjà configuré), purge simulée : 31 traces, extérieur refusé",
+      "error": null
+    },
+    {
+      "check": "Garde-fous : IBAN et e-mail, politique masquer / refuser, groupe sans modèle, export CSV",
+      "status": "pass",
+      "seconds": 7.3,
+      "detail": "bloc Garde-fous : IBAN + e-mail détectés ; « masquer » : la trace note l'IBAN masqué avant l'envoi ; « refuser » : 403 en français ; groupe sans le modèle par défaut : refusé dans un bloc, au Playground (403) et par une clé (403) ; export CSV : « ; », dates françaises, 4635 lignes",
+      "error": null
+    },
+    {
+      "check": "Évaluations : campagne, statistiques, comparaison, alerte, annulation, planification",
+      "status": "pass",
+      "seconds": 31.4,
+      "detail": "jeu de 3 lignes, 2 cibles : réussite 100 % et 0 %, comparaison 3 améliorations, alerte levée puis acquittée, annulation, planification lancée",
+      "error": null
+    },
+    {
+      "check": "Lots : fichier JSONL par le client openai, sortie, fichier invalide, annulation, table classée",
+      "status": "pass",
+      "seconds": 6.5,
+      "detail": "openai : lot de 3 requêtes terminé (135 jetons), fichier invalide refusé ligne 2, annulation (30/30 traitées), table classée : « Livraison »",
+      "error": null
+    },
+    {
+      "check": "Délégation : l'Assistant confie à « Agent tarifs », trace, compétence, main passée, boucle stoppée",
+      "status": "fail",
+      "seconds": 56.0,
+      "detail": null,
+      "error": "the answer does not carry the price held by « Agent tarifs »: La brioche des Alizés coûte 3,50 euros."
+    },
+    {
+      "check": "Recherche web (SearXNG)",
+      "status": "pass",
+      "seconds": 1.0,
+      "detail": "résultats reçus de SearXNG",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Devis client »",
+      "status": "pass",
+      "seconds": 20.5,
+      "detail": "827 caractères",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Relance de facture impayée »",
+      "status": "pass",
+      "seconds": 14.6,
+      "detail": "611 caractères",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Réponse support (FAQ) »",
+      "status": "pass",
+      "seconds": 4.8,
+      "detail": "94 caractères",
+      "error": null
+    },
+    {
+      "check": "Exécution du modèle « Tri des e-mails entrants »",
+      "status": "pass",
+      "seconds": 16.1,
+      "detail": "428 caractères",
+      "error": null
+    },
+    {
+      "check": "Lecture de document (OCR, modèle de vision local)",
+      "status": "pass",
+      "seconds": 14.8,
+      "detail": "texte d'une image relu par le modèle de vision local, sans préambule",
+      "error": null
+    },
+    {
+      "check": "Transcription vocale (modèle local)",
+      "status": "pass",
+      "seconds": 2.9,
+      "detail": "« Bonjour, ici la Boulangerie-Martin. Nous confirmons la livra… »",
+      "error": null
+    },
+    {
+      "check": "Synthèse vocale (voix locale : Assistant, API développeur, dictée)",
+      "status": "pass",
+      "seconds": 3.2,
+      "detail": "WAV de 3.9 s par l'Assistant et par /v1/audio/speech, 401 sans clé, 400 au-delà de 4 096 caractères ; dictée relue : « bonjour, la livraison de vos croissants aura lieu … »",
+      "error": null
+    },
+    {
+      "check": "Réunion : intervenants par voix, compte rendu, validation",
+      "status": "pass",
+      "seconds": 119.1,
+      "detail": "3 intervenants (Intervenant 1, Intervenant 2, Intervenant 3), 7 prises de parole ; modèle PME : compte rendu de 1179 caractères, arrêt à la validation, reprise acceptée (e-mail non vérifié : NEXORA_SMOKE_MEETING_MAIL absent)",
+      "error": null
+    },
+    {
+      "check": "Extraction : facture PDF et scannée ⇒ table « Factures »",
+      "status": "fail",
+      "seconds": 103.5,
+      "detail": null,
+      "error": "FA-2026-0217 : lu ('2026-06-21', 'NONE', 3600, 720, 4320), attendu ('2026-06-21', 'MENUISERIE ROCHE', 3600.0, 720.0, 4320.0)"
+    },
+    {
+      "check": "Copilote : description ⇒ workflow exécuté",
+      "status": "pass",
+      "seconds": 55.7,
+      "detail": "« Résumé d'un texte » : 1 étape(s), créé et exécuté",
+      "error": null
+    },
+    {
+      "check": "Étapes : modèles PME et Copilote ouverts en Étapes, étape modifiée, forme intacte, exécution",
+      "status": "pass",
+      "seconds": 68.0,
+      "detail": "20 modèles PME ouverts en Étapes ; « Résumé d'un texte » créé par le Copilote, étape modifiée, forme intacte, exécuté",
+      "error": null
+    },
+    {
+      "check": "Budgets : refus au plafond, reprise après relèvement",
+      "status": "pass",
+      "seconds": 41.8,
+      "detail": "plafond minuscule ⇒ alerte enregistrée et refus 402 en français, plafond retiré ⇒ exécution acceptée",
+      "error": null
+    },
+    {
+      "check": "Journal d'audit",
+      "status": "pass",
+      "seconds": 0.0,
+      "detail": "workspace.created du membre tracé",
+      "error": null
+    },
+    {
+      "check": "Gouvernance : réglages d'instance, e-mail de test",
+      "status": "pass",
+      "seconds": 0.0,
+      "detail": "réservés aux administrateurs, e-mail non testé (NEXORA_SMOKE_SMTP_HOST absent ou SMTP déjà configuré)",
+      "error": null
+    },
+    {
+      "check": "Consommation mesurée par Nexora API",
+      "status": "pass",
+      "seconds": 0.0,
+      "detail": "3802 requêtes, 1298148 jetons",
+      "error": null
+    },
+    {
+      "check": "Modèles : liste, ajout, test, défaut, retrait",
+      "status": "pass",
+      "seconds": 1.4,
+      "detail": "qwen2.5:0.5b déjà présent, testé (373 ms), défaut aller-retour",
+      "error": null
+    },
+    {
+      "check": "Modèles : fiche du modèle par défaut (test, raisonnement, localisation)",
+      "status": "pass",
+      "seconds": 6.5,
+      "detail": "qwen2.5:7b : « Je suis Qwen, un assistant virtuel créé  » (1870 ms), outils, external",
+      "error": null
+    }
+  ]
+}

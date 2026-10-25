@@ -1058,6 +1058,8 @@ def main() -> int:
             "workspaceId": state["ws"], "model": "vllm/nexora-default",
             "messages": [{"role": "user", "content": "Combien font 17 × 3 ? Réponds par le nombre seul."}],
             "temperature": 0.2, "maxTokens": 2048, "reasoningEffort": "low"}, raw=True, timeout=300)
+        if status == 422 and "does not support thinking" in text:  # a model without reasoning: the effort is refused, as it must be
+            return "modèle par défaut sans raisonnement : l'effort de réflexion est refusé (422), rien à séparer"
         require(status == 200, f"playground returned HTTP {status}: {text[:200]}")
         events = [json.loads(line[5:]) for line in text.splitlines() if line.startswith("data:")]
         answer = "".join(e.get("chunk", "") for e in events)
