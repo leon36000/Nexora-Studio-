@@ -45,14 +45,17 @@ export const defaultGuardDeps: GuardDeps = {
 }
 
 /** Where a message keeps text a person or a document wrote. */
-type Slot = { message: number; part: number | null; text: string }
+type Slot =
+  | { kind: 'content'; message: number; text: string }
+  | { kind: 'part'; message: number; part: number; text: string }
+  | { kind: 'toolArguments'; message: number; call: number; text: string }
 
 function textSlots(messages: readonly ChatMessageLike[]): Slot[] {
   const slots: Slot[] = []
   messages.forEach((message, index) => {
     const { content } = message
     if (typeof content === 'string') {
-      slots.push({ message: index, part: null, text: content })
+      slots.push({ kind: 'content', message: index, text: content })
     } else if (Array.isArray(content)) {
       content.forEach((part, partIndex) => {
         if (
@@ -60,7 +63,16 @@ function textSlots(messages: readonly ChatMessageLike[]): Slot[] {
           (part.type === 'text' || part.type === 'input_text') &&
           typeof part.text === 'string'
         ) {
-          slots.push({ message: index, part: partIndex, text: part.text })
+          slots.push({ kind: 'part', message: index, part: partIndex, text: part.text })
+        }
+      })
+    }
+    const { tool_calls: toolCalls } = message as { tool_calls?: unknown }
+    if (Array.isArray(toolCalls)) {
+      toolCalls.forEach((call, callIndex) => {
+        const args = isRecordLike(call) && isRecordLike(call.function) && call.function.arguments
+        if (typeof args === 'string') {
+          slots.push({ kind: 'toolArguments', message: index, call: callIndex, text: args })
         }
       })
     }
@@ -77,18 +89,22 @@ function withTexts<M extends ChatMessageLike>(
   const copied = new Set<number>()
   slots.forEach((slot, index) => {
     if (texts[index] === slot.text) return
-    const original = copies[slot.message]
     if (!copied.has(slot.message)) {
-      copies[slot.message] = { ...original }
+      copies[slot.message] = { ...copies[slot.message] }
       copied.add(slot.message)
     }
     const copy = copies[slot.message] as Record<string, unknown>
-    if (slot.part === null) {
+    if (slot.kind === 'content') {
       copy.content = texts[index]
-    } else {
+    } else if (slot.kind === 'part') {
       const parts = [...(copy.content as unknown[])]
       parts[slot.part] = { ...(parts[slot.part] as Record<string, unknown>), text: texts[index] }
       copy.content = parts
+    } else {
+      const calls = [...(copy.tool_calls as unknown[])]
+      const call = calls[slot.call] as { function: Record<string, unknown> }
+      calls[slot.call] = { ...call, function: { ...call.function, arguments: texts[index] } }
+      copy.tool_calls = calls
     }
   })
   return copies
@@ -106,11 +122,37 @@ async function policyOrStop(deps: GuardDeps): Promise<DataProtectionPolicy> {
 }
 
 /**
+ * The policy applied to texts about to go to `model`: unchanged when the mode is `allow` or the
+ * model is on this server (or nothing was found), masked when the mode is `mask`, refused with
+ * {@link PersonalDataRefusedError} when it is `refuse`.
+ */
+async function protectForModel(
+  texts: readonly string[],
+  input: Pick<GuardInput<ChatMessageLike>, 'model' | 'workspaceId'>,
+  deps: GuardDeps
+): Promise<{ texts: readonly string[]; applied: ProtectionNote | null }> {
+  const unchanged = { texts, applied: null }
+  const mode = resolveMode(await policyOrStop(deps), input.workspaceId)
+  if (mode === 'allow') return unchanged
+  if (!(await deps.isOffInstance(input.model))) return unchanged
+
+  const protectedTexts = await deps.protect(texts)
+  const masked = Object.values(protectedTexts.found).reduce((sum, count) => sum + count, 0)
+  if (masked === 0) return unchanged
+  if (mode === 'refuse') throw new PersonalDataRefusedError(protectedTexts.found)
+  return {
+    texts: protectedTexts.texts,
+    applied: { mode: 'mask', model: input.model, found: protectedTexts.found, masked },
+  }
+}
+
+/**
  * Applies the personal-data policy of the workspace to the messages of a call before they go to a
- * model. Only a model off this server is concerned; with the mode `mask` the messages come back
- * as a masked copy (the caller's own are never touched), with `refuse` a request that holds
- * personal data is stopped with {@link PersonalDataRefusedError}. `applied` says what was done, for
- * the trace; it is `null` when nothing was masked.
+ * model: the text of the messages and the arguments of their tool calls. Only a model off this
+ * server is concerned; with the mode `mask` the messages come back as a masked copy (the caller's
+ * own are never touched), with `refuse` a request that holds personal data is stopped with
+ * {@link PersonalDataRefusedError}. `applied` says what was done, for the trace; it is `null` when
+ * nothing was masked. Images are not read.
  *
  * Throws {@link PersonalDataServiceError} when the policy cannot be read or the local service
  * does not answer: an unprotected request is not sent.
@@ -119,20 +161,26 @@ export async function guardChatMessages<M extends ChatMessageLike>(
   input: GuardInput<M>,
   deps: GuardDeps = defaultGuardDeps
 ): Promise<{ messages: readonly M[]; applied: ProtectionNote | null }> {
-  const unchanged = { messages: input.messages, applied: null }
-  const mode = resolveMode(await policyOrStop(deps), input.workspaceId)
-  if (mode === 'allow') return unchanged
-  if (!(await deps.isOffInstance(input.model))) return unchanged
-
   const slots = textSlots(input.messages)
-  const { texts, found } = await deps.protect(slots.map((slot) => slot.text))
-  const masked = Object.values(found).reduce((sum, count) => sum + count, 0)
-  if (masked === 0) return unchanged
-  if (mode === 'refuse') throw new PersonalDataRefusedError(found)
-  return {
-    messages: withTexts(input.messages, slots, texts),
-    applied: { mode: 'mask', model: input.model, found, masked },
-  }
+  const result = await protectForModel(
+    slots.map((slot) => slot.text),
+    input,
+    deps
+  )
+  if (result.applied === null) return { messages: input.messages, applied: null }
+  return { messages: withTexts(input.messages, slots, result.texts), applied: result.applied }
+}
+
+/**
+ * The same policy for plain texts (the inputs of an embeddings call): the texts come back in the
+ * order given, masked when the mode is `mask`, and the whole call is refused when one of them holds
+ * personal data and the mode is `refuse`.
+ */
+export async function guardTexts(
+  input: { texts: readonly string[] } & Pick<GuardInput<ChatMessageLike>, 'model' | 'workspaceId'>,
+  deps: GuardDeps = defaultGuardDeps
+): Promise<{ texts: readonly string[]; applied: ProtectionNote | null }> {
+  return protectForModel(input.texts, input, deps)
 }
 
 /**

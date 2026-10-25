@@ -3,7 +3,7 @@ import {
   PersonalDataRefusedError,
   PersonalDataServiceError,
 } from '@/lib/nexora/data-protection/errors'
-import { type GuardDeps, guardChatMessages } from '@/lib/nexora/data-protection/guard'
+import { type GuardDeps, guardChatMessages, guardTexts } from '@/lib/nexora/data-protection/guard'
 import type { DataProtectionPolicy } from '@/lib/nexora/data-protection/policy'
 
 const IBAN = 'FR76 3000 6000 0112 3456 7890 189'
@@ -102,7 +102,7 @@ describe('guardChatMessages', () => {
     expect(result.applied).toBeNull()
   })
 
-  it('masks the text parts of a message and keeps images, tool calls and empty content as they are', async () => {
+  it('masks the text parts of a message and keeps images, tool names and empty content as they are', async () => {
     const { deps } = setup(mask)
     const image = { type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } }
     const toolCalls = [{ id: 'call-1', type: 'function', function: { name: 'f', arguments: '{}' } }]
@@ -121,6 +121,62 @@ describe('guardChatMessages', () => {
       { role: 'tool', tool_call_id: 'call-1', content: 'Résultat pour <PERSON>' },
     ])
     expect((result.messages[0].content as unknown[])[1]).toBe(image)
+  })
+
+  it('masks the arguments of the tool calls an assistant message carries, on a copy', async () => {
+    const { deps } = setup(mask)
+    const messages = [
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'c1',
+            type: 'function',
+            function: { name: 'virement', arguments: `{"iban":"${IBAN}"}` },
+          },
+          { id: 'c2', type: 'function', function: { name: 'rien', arguments: '{}' } },
+        ],
+      },
+    ]
+    const result = await guardChatMessages(
+      { messages, model: 'vllm/cloud-glm-5-3', workspaceId: 'ws-1' },
+      deps
+    )
+    expect(result.messages[0]).toEqual({
+      role: 'assistant',
+      content: null,
+      tool_calls: [
+        {
+          id: 'c1',
+          type: 'function',
+          function: { name: 'virement', arguments: '{"iban":"[IBAN]"}' },
+        },
+        { id: 'c2', type: 'function', function: { name: 'rien', arguments: '{}' } },
+      ],
+    })
+    expect(messages[0].tool_calls[0].function.arguments).toContain(IBAN)
+    expect(result.applied).toMatchObject({ mode: 'mask', masked: 1 })
+  })
+
+  it('refuses a request whose only personal data is in a tool call', async () => {
+    const { deps } = setup(refuse)
+    const messages = [
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            id: 'c1',
+            type: 'function',
+            function: { name: 'virement', arguments: `{"iban":"${IBAN}"}` },
+          },
+        ],
+      },
+    ]
+    await expect(
+      guardChatMessages({ messages, model: 'vllm/cloud-glm-5-3', workspaceId: 'ws-1' }, deps)
+    ).rejects.toBeInstanceOf(PersonalDataRefusedError)
   })
 
   it('refuses, naming what it found, and sends nothing, when the policy says so', async () => {
@@ -185,6 +241,52 @@ describe('guardChatMessages', () => {
         { messages: conversation, model: 'vllm/cloud-glm-5-3', workspaceId: 'ws-1' },
         deps
       )
+    ).rejects.toBeInstanceOf(PersonalDataServiceError)
+  })
+})
+
+describe('guardTexts', () => {
+  it('lets texts through, untouched and unasked, when the policy allows', async () => {
+    const { deps, protectSpy } = setup(allow)
+    const texts = [`IBAN ${IBAN}`]
+    const result = await guardTexts({ texts, model: 'embed', workspaceId: 'ws-1' }, deps)
+    expect(result.texts).toBe(texts)
+    expect(protectSpy).not.toHaveBeenCalled()
+  })
+
+  it('leaves the texts sent to a model on this server as they are', async () => {
+    const { deps, protectSpy } = setup(refuse, { offInstance: false })
+    const texts = [`IBAN ${IBAN}`]
+    const result = await guardTexts({ texts, model: 'embed', workspaceId: 'ws-1' }, deps)
+    expect(result.texts).toBe(texts)
+    expect(protectSpy).not.toHaveBeenCalled()
+  })
+
+  it('masks every text bound for a model off the instance, in order', async () => {
+    const { deps } = setup(mask)
+    const result = await guardTexts(
+      { texts: ['propre', `IBAN ${IBAN}`, 'Marie Dupont'], model: 'embed', workspaceId: 'ws-1' },
+      deps
+    )
+    expect(result.texts).toEqual(['propre', 'IBAN [IBAN]', '<PERSON>'])
+    expect(result.applied).toMatchObject({ mode: 'mask', masked: 2 })
+  })
+
+  it('refuses, sending nothing, when one text among many holds personal data', async () => {
+    const { deps } = setup(refuse)
+    const texts = [...Array.from({ length: 50 }, () => 'propre'), `IBAN ${IBAN}`]
+    await expect(
+      guardTexts({ texts, model: 'embed', workspaceId: 'ws-1' }, deps)
+    ).rejects.toBeInstanceOf(PersonalDataRefusedError)
+  })
+
+  it('stops rather than send unprotected when the policy cannot be read', async () => {
+    const { deps } = setup(mask)
+    deps.loadPolicy = async () => {
+      throw new Error('database down')
+    }
+    await expect(
+      guardTexts({ texts: ['x'], model: 'embed', workspaceId: 'ws-1' }, deps)
     ).rejects.toBeInstanceOf(PersonalDataServiceError)
   })
 })

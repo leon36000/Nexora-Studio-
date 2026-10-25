@@ -18,6 +18,7 @@ import {
   launchCampaign,
   targetsToInputs,
 } from '@/lib/nexora/evaluations/launch'
+import { requireEvaluationModelsAllowed } from '@/lib/nexora/evaluations/model-access'
 import * as repository from '@/lib/nexora/evaluations/repository'
 import {
   countOpenItems,
@@ -235,6 +236,7 @@ export const liveLaunchDeps: LaunchDeps = {
     (await listApiAgents(workspaceId)).map(({ workflowId, name }) => ({ workflowId, name })),
   insertCampaign: repository.insertCampaignWithItems,
   start: startCampaign,
+  requireModelsAllowed: requireEvaluationModelsAllowed,
 }
 
 export function launchEvaluationCampaign(input: LaunchInput) {

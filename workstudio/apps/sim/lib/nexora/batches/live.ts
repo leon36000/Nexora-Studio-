@@ -19,7 +19,10 @@ import {
 } from '@/lib/nexora/batches/table-executor'
 import { checkBudget } from '@/lib/nexora/consumption/budgets'
 import { admitModel, reserveSpending } from '@/lib/nexora/developer-api/gateway'
-import { protectedMessages } from '@/lib/nexora/developer-api/protected-messages'
+import {
+  protectedEmbeddingInput,
+  protectedMessages,
+} from '@/lib/nexora/developer-api/protected-messages'
 import { findNexoraApiKeyById } from '@/lib/nexora/developer-api/repository'
 import { callUpstream, listUpstreamModels } from '@/lib/nexora/developer-api/upstream'
 import { resolveTargets } from '@/lib/nexora/evaluations/launch'
@@ -71,6 +74,7 @@ const apiDeps: ApiExecutorDeps = {
   loadKey: findNexoraApiKeyById,
   admitModel,
   protectMessages: protectedMessages,
+  protectInput: protectedEmbeddingInput,
   reserveSpending,
   callUpstream: (path, init) => callUpstream(path, init),
   beginTrace: beginCallTrace,

@@ -95,6 +95,8 @@ import {
   getKnowledgeOpaqueModelInputRegistry,
   projectKnowledgeModelInput,
 } from '@/lib/knowledge/model-input-provenance'
+import { PersonalDataUnsupportedError } from '@/lib/nexora/data-protection/errors'
+import { assertDocumentCallNeedsNoProtection } from '@/lib/nexora/document-ai/protection'
 import {
   NO_OCR_MODEL_MESSAGE,
   NO_SPEECH_MESSAGE,
@@ -573,7 +575,7 @@ async function parseDocument(
   metadata?: FileParseMetadata
 }> {
   if (isKnowledgeAudio(filename, mimeType))
-    return transcribeRecording(fileUrl, filename, mimeType, access)
+    return transcribeRecording(fileUrl, filename, mimeType, access, workspaceId)
   mimeType = await resolveScanType(fileUrl, filename, mimeType, access)
   const isPDF = mimeType === 'application/pdf'
   const isImage = OCR_IMAGE_MIME_TYPES.has(mimeType)
@@ -602,7 +604,7 @@ async function parseDocument(
           : undefined
       if (embedded) return embedded
       if (isPDF) await access.progress?.update({ noTextLayer: true })
-      return parseWithNexoraOcr(buffer, filename, mimeType, access)
+      return parseWithNexoraOcr(buffer, filename, mimeType, access, workspaceId)
     }
 
     if (ocrProvider === 'azure-mistral' || ocrProvider === 'mistral') {
@@ -657,6 +659,24 @@ async function resolveScanType(
 }
 
 /**
+ * A scan or a recording cannot be masked: a workspace that protects personal data does not have
+ * them read by a model off this server.
+ */
+async function assertKnowledgeReaderAllowed(
+  workspaceId: string | null | undefined,
+  resolveModel: () => Promise<string | null>
+): Promise<void> {
+  try {
+    await assertDocumentCallNeedsNoProtection({ workspaceId, models: [resolveModel] })
+  } catch (error) {
+    if (error instanceof PersonalDataUnsupportedError) {
+      throw new PermanentDocumentProcessingError('unsupported_file_type', error.message)
+    }
+    throw error
+  }
+}
+
+/**
  * Reads a scan or an image with the first Vision / OCR model of Réglages › Modèles. A PDF is read
  * in small batches saved as OCR checkpoints, so a long scan spans processing slices and restarts
  * without reading a page twice. Without such a model the document keeps whatever text layer it
@@ -666,7 +686,8 @@ async function parseWithNexoraOcr(
   buffer: Buffer,
   filename: string,
   mimeType: string,
-  access: SourceFileAccess
+  access: SourceFileAccess,
+  workspaceId?: string | null
 ): Promise<{
   content: string
   processingMethod: 'nexora-ocr' | 'file-parser'
@@ -692,6 +713,7 @@ async function parseWithNexoraOcr(
     throw new PermanentDocumentProcessingError('no_extractable_text', NO_OCR_MODEL_MESSAGE)
   }
 
+  await assertKnowledgeReaderAllowed(workspaceId, async () => model)
   assertKnowledgeOpaqueModelInputSafe()
   logger.info('Using Nexora OCR', { model })
   let content: string
@@ -749,7 +771,8 @@ async function transcribeRecording(
   fileUrl: string,
   filename: string,
   mimeType: string,
-  access: SourceFileAccess
+  access: SourceFileAccess,
+  workspaceId?: string | null
 ): Promise<{ content: string; processingMethod: 'nexora-transcription' }> {
   if (!isNexoraDocumentAiConfigured()) {
     throw new PermanentDocumentProcessingError(
@@ -757,6 +780,9 @@ async function transcribeRecording(
       TRANSCRIPTION_NOT_CONFIGURED_MESSAGE
     )
   }
+  await assertKnowledgeReaderAllowed(workspaceId, () =>
+    resolveNexoraKnowledgeModel('transcription', access.signal)
+  )
   const audio = await downloadFileForBase64(fileUrl, access)
   access.signal?.throwIfAborted()
   assertKnowledgeOpaqueModelInputSafe()

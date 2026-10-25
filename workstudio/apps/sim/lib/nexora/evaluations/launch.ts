@@ -1,8 +1,11 @@
 import { OrchestrationError } from '@/lib/core/orchestration/types'
+import { judgeModels } from '@/lib/nexora/evaluations/judge'
+import type { EvaluationAccess } from '@/lib/nexora/evaluations/model-access'
 import type { CampaignRecord, RowRecord } from '@/lib/nexora/evaluations/repository'
 import {
   DEFAULT_CAMPAIGN_CONCURRENCY,
   type EvalTarget,
+  type JudgeConfig,
   MAX_CAMPAIGN_CONCURRENCY,
   MAX_CAMPAIGN_ITEMS,
 } from '@/lib/nexora/evaluations/types'
@@ -41,7 +44,12 @@ export interface LaunchInput {
 export interface LaunchDeps {
   getDataset: (workspaceId: string, datasetId: string) => Promise<{ id: string } | null>
   listAllRows: (datasetId: string) => Promise<RowRecord[]>
-  getJudge: (workspaceId: string, judgeId: string) => Promise<{ id: string } | null>
+  getJudge: (
+    workspaceId: string,
+    judgeId: string
+  ) => Promise<{ id: string; config: JudgeConfig } | null>
+  /** Refuses (403) a model the launcher's access group denies; see `requireEvaluationModelsAllowed`. */
+  requireModelsAllowed: (access: EvaluationAccess, models: readonly string[]) => Promise<void>
   findPrompt: (
     workspaceId: string,
     promptRef: string
@@ -142,6 +150,11 @@ export async function resolveTargets(
   })
 }
 
+/** The models a list of targets calls (an agent's own models are governed where it runs). */
+export function targetModels(targets: readonly EvalTarget[]): string[] {
+  return targets.flatMap((target) => (target.kind === 'agent' ? [] : [target.model]))
+}
+
 /** The requests a stored list of targets stands for: a schedule asks for them again each time. */
 export function targetsToInputs(targets: readonly EvalTarget[]): TargetInput[] {
   return targets.map((target): TargetInput => {
@@ -175,6 +188,10 @@ export async function launchCampaign(
   if (!dataset) throw new OrchestrationError('not_found', 'Jeu de tests introuvable')
   if (!judge) throw new OrchestrationError('not_found', 'Juge introuvable')
   const targets = await resolveTargets(input.workspaceId, input.targets, deps)
+  await deps.requireModelsAllowed({ userId: input.createdBy, workspaceId: input.workspaceId }, [
+    ...targetModels(targets),
+    ...judgeModels(judge.config),
+  ])
   const rows = await deps.listAllRows(dataset.id)
   if (rows.length === 0) invalid('Ce jeu de tests est vide : ajoutez-y des lignes.')
   const items = rows.length * targets.length

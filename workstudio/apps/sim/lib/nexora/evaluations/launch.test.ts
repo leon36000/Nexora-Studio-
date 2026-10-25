@@ -31,7 +31,11 @@ function deps(overrides: Partial<LaunchDeps> = {}): LaunchDeps {
   return {
     getDataset: vi.fn(async () => ({ id: 'ds-1' })),
     listAllRows: vi.fn(async () => rows(3)),
-    getJudge: vi.fn(async () => ({ id: 'judge-1' })),
+    getJudge: vi.fn(async () => ({
+      id: 'judge-1',
+      config: { kind: 'contains' as const, value: null, caseSensitive: false },
+    })),
+    requireModelsAllowed: vi.fn(async () => {}),
     findPrompt: vi.fn(async () => ({ id: 'prompt-1', name: 'FAQ tarifs' })),
     resolvePromptVersion: vi.fn(async (_promptId, pick) =>
       'version' in pick ? { version: pick.version } : { version: pick.selector === 'test' ? 3 : 2 }
@@ -217,6 +221,61 @@ describe('lancement', () => {
     const dependencies = deps()
     const campaign = await launchCampaign(base, dependencies)
     expect(dependencies.start).toHaveBeenCalledWith(campaign.id)
+  })
+})
+
+describe('groupe d’accès', () => {
+  const llmJudge = {
+    id: 'judge-1',
+    config: {
+      kind: 'llm_class' as const,
+      model: 'vllm/cloud-glm-5-3',
+      instructions: '',
+      labels: ['bon', 'mauvais'],
+      passLabels: ['bon'],
+    },
+  }
+
+  it('demande si le groupe du lanceur autorise les modèles des cibles et celui du juge', async () => {
+    const dependencies = deps({ getJudge: vi.fn(async () => llmJudge) })
+    await launchCampaign(
+      {
+        ...base,
+        targets: [
+          { kind: 'model', model: 'vllm/qwen2.5:7b' },
+          { kind: 'prompt', model: 'qwen2.5:7b', promptId: 'prompt-1', selector: 'production' },
+          { kind: 'agent', workflowId: 'wf-1' },
+        ],
+      },
+      dependencies
+    )
+    expect(dependencies.requireModelsAllowed).toHaveBeenCalledWith(
+      { userId: 'user-1', workspaceId: 'ws-1' },
+      ['vllm/qwen2.5:7b', 'qwen2.5:7b', 'vllm/cloud-glm-5-3']
+    )
+  })
+
+  it('ne demande rien pour un juge à règle et un agent seul', async () => {
+    const dependencies = deps()
+    await launchCampaign(
+      { ...base, targets: [{ kind: 'agent', workflowId: 'wf-1' }] },
+      dependencies
+    )
+    expect(dependencies.requireModelsAllowed).toHaveBeenCalledWith(
+      { userId: 'user-1', workspaceId: 'ws-1' },
+      []
+    )
+  })
+
+  it('ne crée ni ne démarre rien quand un modèle est interdit', async () => {
+    const dependencies = deps({
+      requireModelsAllowed: vi.fn(async () => {
+        throw new OrchestrationError('forbidden', 'modèle interdit')
+      }),
+    })
+    expect(await codeOf(launchCampaign(base, dependencies))).toBe('forbidden')
+    expect(dependencies.insertCampaign).not.toHaveBeenCalled()
+    expect(dependencies.start).not.toHaveBeenCalled()
   })
 })
 

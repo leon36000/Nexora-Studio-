@@ -212,6 +212,13 @@ export async function runJudge(
   }
 }
 
+/** The models a judge calls: its LLM or its embeddings model, none for a rule. */
+export function judgeModels(config: JudgeConfig): string[] {
+  return config.kind === 'llm_class' || config.kind === 'llm_score' || config.kind === 'semantic'
+    ? [config.model]
+    : []
+}
+
 /** The reason a judge's settings cannot be used, in French, or `null` when they can. */
 export function validateJudgeConfig(config: JudgeConfig): string | null {
   switch (config.kind) {

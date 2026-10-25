@@ -68,13 +68,17 @@ export async function listUpstreamModels(): Promise<UpstreamModel[]> {
 
 /**
  * Maps a model name or alias (case-insensitive) to its router name. Built from the model list, or
- * resolving nothing when it cannot be read (the policy then compares exact names).
+ * resolving nothing when it cannot be read (the policy then compares exact names). With
+ * `strict`, an unreadable list throws instead, for a caller that must fail closed.
  */
-export async function routerResolver(): Promise<(name: string) => string | null> {
+export async function routerResolver(options?: {
+  strict?: boolean
+}): Promise<(name: string) => string | null> {
   let models: UpstreamModel[] = []
   try {
     models = await listUpstreamModels()
-  } catch {
+  } catch (error) {
+    if (options?.strict) throw error
     return () => null
   }
   const byName = new Map<string, string>()
