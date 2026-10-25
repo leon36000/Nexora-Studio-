@@ -8,13 +8,16 @@ import {
 } from '@sim/testing/mocks/nexora-data-protection.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockAdmit, mockReserve, mockCallUpstream, settle, release } = vi.hoisted(() => ({
-  mockAdmit: vi.fn(),
-  mockReserve: vi.fn(),
-  mockCallUpstream: vi.fn(),
-  settle: vi.fn(),
-  release: vi.fn(),
-}))
+const { mockAdmit, mockReserve, mockCallUpstream, mockRecord, settle, release } = vi.hoisted(
+  () => ({
+    mockRecord: vi.fn(),
+    mockAdmit: vi.fn(),
+    mockReserve: vi.fn(),
+    mockCallUpstream: vi.fn(),
+    settle: vi.fn(),
+    release: vi.fn(),
+  })
+)
 
 vi.mock('@/lib/nexora/developer-api/gateway', () => ({
   admitModel: mockAdmit,
@@ -28,7 +31,7 @@ vi.mock('@/lib/nexora/developer-api/agents', () => ({
   agentModelIds: vi.fn(),
   listApiAgents: vi.fn(),
 }))
-vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: vi.fn() }))
+vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: mockRecord }))
 vi.mock('@/lib/nexora/data-protection/policy', () => nexoraDataProtectionMock)
 vi.mock('@/lib/nexora/data-protection/model-location', () => ({
   isOffInstanceModel: vi.fn(async () => true),
@@ -88,6 +91,18 @@ describe('relayChatCompletion — personal-data policy', () => {
     const sent = JSON.parse(mockCallUpstream.mock.calls[0][1].body)
     expect(sent.messages[0].content).toBe('Mon IBAN est [IBAN], écrivez à [E-MAIL]')
     expect(sent.model).toBe('nexora-default')
+  })
+
+  it('shows on the trace of the key’s call what was masked', async () => {
+    await relayChatCompletion(keyCall('ws-mask'), body, new AbortController().signal)
+    expect(mockRecord.mock.calls[0][0].spans[0].attributes.dataProtection).toEqual([
+      {
+        mode: 'mask',
+        model: 'cloud-glm-5-3',
+        found: { IBAN_CODE: 1, EMAIL_ADDRESS: 1 },
+        masked: 2,
+      },
+    ])
   })
 
   it('answers 403 in the OpenAI shape, spending nothing and calling nobody, when the policy refuses', async () => {

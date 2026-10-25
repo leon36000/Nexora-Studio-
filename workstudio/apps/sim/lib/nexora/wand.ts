@@ -10,6 +10,7 @@ import {
   PersonalDataUnsupportedError,
 } from '@/lib/nexora/data-protection/errors'
 import { guardChatMessages } from '@/lib/nexora/data-protection/guard'
+import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
 import {
   createThinkTagSplitter,
   isReasoningEffortRejection,
@@ -190,9 +191,17 @@ function failureReason(error: unknown): string {
   return getErrorMessage(error, 'Échec de la génération')
 }
 
-function beginTrace(settings: CompletionSettings, messages: WandMessage[]): CallTrace | null {
+function beginTrace(
+  settings: CompletionSettings,
+  messages: WandMessage[],
+  protection: ProtectionNote | null = null
+): CallTrace | null {
   return settings.trace
-    ? beginCallTrace(settings.trace, settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS, messages)
+    ? beginCallTrace(
+        { ...settings.trace, protection },
+        settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS,
+        messages
+      )
     : null
 }
 
@@ -203,14 +212,17 @@ function beginTrace(settings: CompletionSettings, messages: WandMessage[]): Call
 async function guardMessages(
   settings: CompletionSettings,
   messages: WandMessage[]
-): Promise<WandMessage[]> {
+): Promise<{ messages: WandMessage[]; protection: ProtectionNote | null }> {
   try {
     const guarded = await guardChatMessages({
       messages,
       model: settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS,
       workspaceId: settings.trace?.workspaceId ?? null,
     })
-    return guarded.messages === messages ? messages : [...guarded.messages]
+    return {
+      messages: guarded.messages === messages ? messages : [...guarded.messages],
+      protection: guarded.applied,
+    }
   } catch (error) {
     beginTrace(settings, messages)?.finish({
       answer: null,
@@ -234,8 +246,8 @@ export async function nexoraWandComplete(
     signal?: AbortSignal
   } & Pick<CompletionSettings, 'responseFormat' | 'trace' | 'model' | 'temperature' | 'maxTokens'>
 ): Promise<{ text: string; usage: WandUsage }> {
-  const messages = await guardMessages(input, input.messages)
-  const trace = beginTrace(input, messages)
+  const { messages, protection } = await guardMessages(input, input.messages)
+  const trace = beginTrace(input, messages, protection)
   try {
     const { response } = await requestCompletion(messages, false, input.signal, {
       responseFormat: input.responseFormat,
@@ -283,8 +295,8 @@ export async function nexoraWandStream(
     includeThinking?: boolean
   } & CompletionSettings
 ): Promise<ReadableStream<Uint8Array>> {
-  const messages = await guardMessages(input, input.messages)
-  const trace = beginTrace(input, messages)
+  const { messages, protection } = await guardMessages(input, input.messages)
+  const trace = beginTrace(input, messages, protection)
   let outcome: CompletionResponse
   try {
     outcome = await requestCompletion(messages, true, input.signal, input)

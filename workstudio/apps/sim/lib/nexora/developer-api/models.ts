@@ -7,6 +7,7 @@ import {
   PersonalDataUnsupportedError,
 } from '@/lib/nexora/data-protection/errors'
 import { guardChatMessages } from '@/lib/nexora/data-protection/guard'
+import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
 import { agentModelIds, listApiAgents } from '@/lib/nexora/developer-api/agents'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import {
@@ -118,11 +119,15 @@ async function protectedMessages(
   call: GatewayCall,
   model: string,
   messages: unknown
-): Promise<unknown> {
-  if (!Array.isArray(messages)) return messages
+): Promise<{ messages: unknown; protection: ProtectionNote | null }> {
+  if (!Array.isArray(messages)) return { messages, protection: null }
   try {
-    return (await guardChatMessages({ messages, model, workspaceId: call.key.workspaceId }))
-      .messages
+    const guarded = await guardChatMessages({
+      messages,
+      model,
+      workspaceId: call.key.workspaceId,
+    })
+    return { messages: guarded.messages, protection: guarded.applied }
   } catch (error) {
     if (
       error instanceof PersonalDataRefusedError ||
@@ -144,7 +149,7 @@ export async function relayChatCompletion(
   signal: AbortSignal
 ): Promise<Response> {
   const usageModel = await admitModel(call.key, body.model)
-  const messages = await protectedMessages(call, usageModel, body.messages)
+  const { messages, protection } = await protectedMessages(call, usageModel, body.messages)
   if (messages !== body.messages) body = { ...body, messages }
   const reservation = await reserveSpending(
     call.key,
@@ -161,6 +166,7 @@ export async function relayChatCompletion(
       userId: null,
       apiKeyId: call.key.id,
       name: `API · ${call.key.name}`,
+      protection,
     },
     body.model,
     body.messages

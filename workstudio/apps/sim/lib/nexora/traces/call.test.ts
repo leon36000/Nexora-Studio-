@@ -28,6 +28,36 @@ function setup(times: number[]) {
   }
 }
 
+describe('beginCallTrace — données personnelles', () => {
+  it('porte sur le span modèle ce que la barrière a masqué avant l’envoi', () => {
+    const recorded: TraceDraft[] = []
+    const note = {
+      mode: 'mask' as const,
+      model: 'cloud-glm-5-3',
+      found: { IBAN_CODE: 1 },
+      masked: 1,
+    }
+    beginCallTrace({ ...context, protection: note }, 'cloud-glm-5-3', messages, {
+      now: () => 0,
+      record: async (draft) => {
+        recorded.push(draft)
+      },
+    }).finish({ answer: 'ok', usage: null, error: null })
+    expect(recorded[0].spans[0].attributes.dataProtection).toEqual([note])
+  })
+
+  it('n’ajoute rien quand rien n’a été masqué', () => {
+    const recorded: TraceDraft[] = []
+    beginCallTrace(context, 'cloud-glm-5-3', messages, {
+      now: () => 0,
+      record: async (draft) => {
+        recorded.push(draft)
+      },
+    }).finish({ answer: 'ok', usage: null, error: null })
+    expect(recorded[0].spans[0].attributes).not.toHaveProperty('dataProtection')
+  })
+})
+
 describe('beginCallTrace', () => {
   it('enregistre la durée entre le début et la fin, la réponse et les jetons', () => {
     const { recorded, begin } = setup([1000, 3500])

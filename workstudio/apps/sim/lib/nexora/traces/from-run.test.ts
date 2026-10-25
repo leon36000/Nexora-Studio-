@@ -46,6 +46,7 @@ function deps(over: Partial<RunTraceDeps> = {}) {
       recorded.push(draft)
     }),
     takeOrigin: () => undefined,
+    takeProtection: () => [],
     ...over,
   }
   return { all, recorded }
@@ -78,6 +79,27 @@ describe('recordRunTrace', () => {
       input: 'Question',
       output: 'Réponse',
     })
+  })
+
+  it('porte sur la trace ce que la barrière a masqué pendant l’exécution', async () => {
+    const note = {
+      mode: 'mask' as const,
+      model: 'vllm/cloud-glm-5-3',
+      found: { IBAN_CODE: 1 },
+      masked: 1,
+    }
+    const taken = vi.fn(() => [note])
+    const { all, recorded } = deps({ takeProtection: taken })
+    await recordRunTrace(input(), all)
+    expect(taken).toHaveBeenCalledWith('exec-1')
+    expect(recorded[0].spans[0].attributes.dataProtection).toEqual([note])
+  })
+
+  it('garde la note d’une exécution en pause pour sa reprise', async () => {
+    const taken = vi.fn(() => [])
+    const { all } = deps({ takeProtection: taken })
+    await recordRunTrace(input({ status: 'pending' }), all)
+    expect(taken).not.toHaveBeenCalled()
   })
 
   it('n’enregistre pas une exécution en pause : la reprise la complétera', async () => {

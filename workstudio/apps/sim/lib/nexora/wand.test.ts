@@ -501,6 +501,23 @@ describe('Nexora wand under a personal-data policy', () => {
     )
   })
 
+  it('shows on the trace of the call what was masked before it left', async () => {
+    answer()
+    await nexoraWandComplete({ messages: sensitive, trace, model: 'cloud-glm-5-3' })
+    await flushMicrotasks()
+    const span = vi.mocked(recordTrace).mock.calls[0][0].spans[0]
+    expect(span.attributes.dataProtection).toEqual([
+      {
+        mode: 'mask',
+        model: 'cloud-glm-5-3',
+        found: { IBAN_CODE: 1, EMAIL_ADDRESS: 1 },
+        masked: 2,
+      },
+    ])
+    expect(span.input).toContain('[IBAN]')
+    expect(span.input).not.toContain('FR76')
+  })
+
   it('sends a model on this server the question untouched', async () => {
     answer()
     vi.mocked(isOffInstanceModel).mockResolvedValue(false)

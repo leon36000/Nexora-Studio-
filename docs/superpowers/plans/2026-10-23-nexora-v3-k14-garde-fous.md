@@ -166,10 +166,10 @@
 - Consomme : `ProtectionNote`, `takeExecutionProtection`, `maskPIIBatch`.
 - Produit : span modèle avec `attributes.dataProtection = ProtectionNote` ; le détail de la trace affiche « Données personnelles masquées avant l'envoi à {modèle} : IBAN ×1 » (ou « refusées ») ; `recordTrace` masque en plus les noms (service PII, entités `PERSON`) en mode `standard` quand `PII_URL` est posé ; service muet ⇒ les motifs seuls ont déjà masqué (la trace ne bloque jamais : avertissement journalisé).
 
-- [ ] **Étape 1 : tests rouges** : appel direct masqué ⇒ trace avec l'attribut et le nombre ; exécution d'agent avec note ⇒ attribut sur le span racine ; `recordTrace` avec faux service ⇒ « Bonjour Marie Dupont » devient « Bonjour <PERSON> » après les motifs ; service en échec ⇒ trace stockée avec le seul masquage par motifs ; mode `none` et `strict` inchangés.
-- [ ] **Étape 2 : voir échouer.**
-- [ ] **Étape 3 : implémenter.**
-- [ ] **Étape 4 : tests verts** (traces, wand, relais) ; vérification d'interface au navigateur à la tâche 8.
+- [x] **Étape 1 : tests rouges** : appel direct masqué ⇒ trace avec l'attribut et le nombre ; exécution d'agent avec note ⇒ attribut sur le span racine ; `recordTrace` avec faux service ⇒ « Bonjour Marie Dupont » devient « Bonjour <PERSON> » après les motifs ; service en échec ⇒ trace stockée avec le seul masquage par motifs ; mode `none` et `strict` inchangés.
+- [x] **Étape 2 : voir échouer.**
+- [x] **Étape 3 : implémenter.**
+- [x] **Étape 4 : tests verts** (traces, wand, relais) ; vérification d'interface au navigateur à la tâche 8.
 - [ ] **Étape 5 : commit** `feat(k14): la trace montre les données masquées ; le service PII complète le masquage des traces`.
 
 ## Tâche 8 : Réglages › Données personnelles (politique par espace)
