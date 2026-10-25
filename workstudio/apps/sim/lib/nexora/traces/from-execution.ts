@@ -1,4 +1,4 @@
-import { isRecordLike, toRecord } from '@sim/utils/object'
+import { toRecord, toRecordOrNull } from '@sim/utils/object'
 import { generateRandomHex } from '@sim/utils/random'
 import type { TraceSpan } from '@/lib/logs/types'
 import { lastUserText, messagesToText, modelLabel, valueToText } from '@/lib/nexora/traces/text'
@@ -122,7 +122,7 @@ function traceSource(input: ExecutionInput): TraceSource {
 }
 
 function conversationInput(workflowInput: unknown): string | null {
-  const record = isRecordLike(workflowInput) ? workflowInput : null
+  const record = toRecordOrNull(workflowInput)
   if (record && typeof record.input === 'string') return record.input || null
   if (typeof workflowInput === 'string') return workflowInput || null
   return lastUserText(record?.messages) ?? valueToText(workflowInput)
