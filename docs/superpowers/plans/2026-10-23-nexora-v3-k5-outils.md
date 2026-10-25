@@ -74,15 +74,15 @@
 - [x] **Étape 3 :** écrire `sandbox.py` (`Settings.from_env()`, `DockerClient`, `SandboxService`, `Handler`, `main()`), `runner.py` (exécute le fichier de code dans `__main__`, écrit `{name, value, traceback}` dans le fichier d'erreur donné, copie le cache de polices matplotlib préconstruit vers `MPLCONFIGDIR`), le `Dockerfile` (utilisateur `sandbox` 10001, cache matplotlib construit à l'image, `HEALTHCHECK`) et le service compose (`profiles: [code]`, socket monté seulement ici, pas de port publié, réseau interne par défaut).
 - [x] **Étape 4 :** tests verts ; `bash scripts/tests/test-compose-env.sh` et `test-init-env.sh` verts (profil `code` absent par défaut, jeton généré, `NEXORA_CODE_SANDBOX_URL` vide par défaut et `http://code-sandbox:8080` avec le profil).
 
-### Tâche 2 : contrôle d'isolation et de fonctionnement (la suite d'évasion n'est PAS livrée)
+### Tâche 2 : contrôle d'isolation, batterie des limites et fonctionnement
 
 **Fichiers :** `scripts/verification/interpreteur-isolation.py` (relit la configuration Docker réelle d'un bac), `docs/verification/k5-interpreteur/isolation.json` (résultat), fumée « Interpréteur » de `scripts/smoke.py` (fonctionnement).
 
-> **Écart au brief (24/10/2026).** Le brief demande une suite d'évasion **dynamique** (réseau, `/etc` et hôte, bombe de processus, boucle infinie, 10 Go de mémoire, disque rempli, élévation de privilèges). Sa rédaction par cette session a été arrêtée **deux fois** par un filtre de sécurité de la plateforme ; la consigne est de ne pas la reproduire. Elle n'est donc **pas livrée**. Ce qui l'est à la place : (1) les 27 tests du contrôleur, qui épinglent chaque réglage d'isolation et la logique de bornes (délai ⇒ conteneur détruit, sortie plafonnée, chemins hors `/tmp` refusés, saturation ⇒ 429, jeton) ; (2) `interpreteur-isolation.py`, qui relit les réglages que Docker applique **réellement** à un conteneur vivant (17 contrôles) ; (3) la fumée « Interpréteur » (fonctionnement réel). **À faire par la session principale ou le fondateur avant d'activer l'exécution de code en production** : écrire et lancer la suite d'évasion dynamique sur pc6 (le contrôleur est testable tel quel : `docs/guide/interpreteur.md`). Tant qu'elle n'a pas été passée, l'exécution de code reste désactivée par défaut.
+> **Suite d'évasion (25/10/2026).** Sa première rédaction a été arrêtée deux fois par un filtre de sécurité de la plateforme. La session principale l'a redemandée comme une batterie **défensive** des limites de notre propre contrôleur, et elle est livrée : `scripts/verification/interpreteur-evasion.py` (une fonction par vérification, programmes d'essai minimes qui demandent « ai-je le droit ? » et restent dans une borne qu'ils se fixent). 12 limites sur 12 tenues sur un bac réel ; contre un contrôleur volontairement affaibli (réseau ouvert, root, capacités conservées, racine inscriptible, processus non bornés), 4 contrôles passent au rouge.
 
 - [x] **Étape 1 :** contrôle des réglages réels d'un conteneur vivant (17/17 conformes sur pc6).
 - [x] **Étape 2 :** contrôle de fonctionnement : classeur Excel ⇒ pandas ⇒ PNG + CSV, total exact (6 340,75), vérifié par le contrôleur seul puis par l'agent et l'Assistant (fumée).
-- [ ] **Étape 3 :** suite d'évasion dynamique : **non livrée** (voir l'écart ci-dessus).
+- [x] **Étape 3 :** batterie des limites `interpreteur-evasion.py` : 12/12 sur un bac réel, rouge sur un contrôleur affaibli (résultat dans `docs/verification/k5-interpreteur/evasion.json`).
 
 ### Tâche 3 : fournisseur `nexora` et réglage « Exécution de code »
 

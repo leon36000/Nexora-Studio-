@@ -53,6 +53,8 @@ Ce que le service fait **par conception** :
 
 Le script `scripts/verification/interpreteur-isolation.py` relit la configuration que Docker applique réellement à un conteneur de l'interpréteur (réseau, système de fichiers, capacités, limites, secrets) et la compare à cette liste ; son dernier résultat est dans `docs/verification/k5-interpreteur/isolation.json`. À lancer après chaque mise à jour de Docker ou de l'image.
 
+Le script `scripts/verification/interpreteur-evasion.py` vérifie, lui, que les limites **tiennent en pratique** : il soumet à un vrai bac de petits programmes Python qui demandent « ai-je le droit ? » ou « jusqu'où puis-je aller ? » et vérifie que tout est refusé ou borné — aucun accès sortant ni résolution de nom, aucun fichier de l'hôte lisible ni réglage du noyau inscriptible, création de processus plafonnée, boucle infinie interrompue au délai (bac détruit), mémoire plafonnée (processus arrêté), disque plafonné par l'espace temporaire, aucun privilège (utilisateur 10001, capacités vides, pas de `setuid`, pas d'exécution depuis `/tmp`, système en lecture seule), sortie tronquée, chemins hors `/tmp` et variables dangereuses refusés, jeton exigé, saturation à 429, durée de vie plafonnée, aucun conteneur laissé derrière. Chaque programme reste dans une borne qu'il se fixe (au plus 3 fois le plafond de processus, 2 fois celui de mémoire et d'espace temporaire). Son dernier résultat est dans `docs/verification/k5-interpreteur/evasion.json`. À lancer avant d'activer l'exécution de code, puis après chaque mise à jour de Docker ou de l'image.
+
 ## Dépannage
 
 | Symptôme | Cause probable |
