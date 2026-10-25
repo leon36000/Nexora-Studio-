@@ -310,6 +310,10 @@
       "status": {
         "label": "État",
         "description": "Vérifiez les services, le disque et la version"
+      },
+      "data-protection": {
+        "label": "Données personnelles",
+        "description": "Protégez les données envoyées aux modèles hors instance"
       }
     },
     "account": {
@@ -2157,6 +2161,32 @@
       "diskUnknown": "Illisible",
       "lastBackup": "Dernière sauvegarde",
       "lastBackupValue": "Voir <command>nexora status</command> sur le serveur"
+    }
+  },
+  "dataProtection": {
+    "loadError": "Impossible de charger la politique de données personnelles.",
+    "saved": "Politique enregistrée.",
+    "saveError": "La politique n’a pas pu être enregistrée.",
+    "modes": {
+      "allow": "Autoriser",
+      "mask": "Masquer",
+      "refuse": "Refuser"
+    },
+    "inherit": "Comme l’instance ({mode})",
+    "service": {
+      "title": "Détection",
+      "running": "Le service local de détection répond : noms, IBAN, e-mails, téléphones, cartes et numéros de sécurité sociale sont reconnus.",
+      "down": "Le service local de détection ne répond pas : tant qu’il est arrêté, les demandes concernées par une politique « Masquer » ou « Refuser » ne partent pas.",
+      "notInstalled": "Le service local de détection n’est pas installé : seuls les IBAN, e-mails, cartes et téléphones sont reconnus, pas les noms."
+    },
+    "instance": {
+      "title": "Modèles hors instance, par défaut",
+      "hint": "Autoriser envoie les données telles quelles ; Masquer les remplace par [IBAN], <PERSON>… avant l’envoi ; Refuser arrête la demande. Les modèles sur ce serveur ne sont jamais concernés."
+    },
+    "workspaces": {
+      "title": "Par espace",
+      "empty": "Aucun espace.",
+      "archived": "Archivé"
     }
   }
 }

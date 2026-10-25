@@ -2,7 +2,7 @@ import { toNumberOrNull, toStringOrNull } from '@sim/utils/coerce'
 import { isRecordLike } from '@sim/utils/object'
 
 /** What the personal-data policy did to the messages of one model, as the trace screen words it. */
-export interface ProtectionLine {
+interface ProtectionLine {
   mode: 'mask' | 'refuse'
   model: string
   found: Array<{ entity: string; count: number }>

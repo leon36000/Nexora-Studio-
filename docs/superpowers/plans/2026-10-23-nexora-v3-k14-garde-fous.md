@@ -182,8 +182,8 @@
 - Consomme : hooks de la tâche 4.
 - Produit : page « Données personnelles » : état du service (« Service local actif » / « Non installé : seuls les motifs (IBAN, e-mail, carte, téléphone) sont masqués »), valeur d'instance par défaut et une ligne par espace (Autoriser / Masquer / Refuser, « suit la valeur d'instance »), mention des modèles concernés (« Hors instance »), enregistrement avec audit.
 
-- [ ] **Étape 1 : test rouge** du brouillon (`draft.test.ts` : changement minimal envoyé, retour à « suit la valeur d'instance », bouton Enregistrer inactif sans changement) ; couverture des clés de messages fr/en par `check-i18n`.
-- [ ] **Étape 2 : voir échouer, implémenter, tests verts.**
+- [x] **Étape 1 : test rouge** du brouillon (`draft.test.ts` : changement minimal envoyé, retour à « suit la valeur d'instance », bouton Enregistrer inactif sans changement) ; couverture des clés de messages fr/en par `check-i18n`.
+- [x] **Étape 2 : voir échouer, implémenter, tests verts.**
 - [ ] **Étape 3 : parcours au navigateur** (serveur de développement :3220) : ouverture, changement d'un espace en « Masquer », enregistrement, ligne d'audit « Politique de données personnelles modifiée » ; captures dans `docs/verification/k14-garde-fous/`.
 - [ ] **Étape 4 : commit** `feat(k14): Réglages › Données personnelles`.
 

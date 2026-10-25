@@ -14,7 +14,7 @@ const ENTITY_LABELS: Record<string, string> = {
 }
 
 /** `IBAN, e-mail` for the types found, in the order of {@link ENTITY_LABELS}. */
-export function describeFoundPersonalData(found: FoundPersonalData): string {
+function describeFoundPersonalData(found: FoundPersonalData): string {
   const present = Object.keys(found).filter((entity) => found[entity] > 0)
   const known = Object.keys(ENTITY_LABELS).filter((entity) => present.includes(entity))
   const others = present.filter((entity) => !(entity in ENTITY_LABELS))

@@ -77,11 +77,6 @@ const indexCache = new LRUCache<'index', LocationIndex>({
   fetchMethod: () => buildLocationIndex(),
 })
 
-/** Test seam. */
-export function resetModelLocationCache(): void {
-  indexCache.clear()
-}
-
 /**
  * Whether a model sends what it is given outside this server — what the instance calls
  * « Hors instance ». The id is a WorkStudio model id (`vllm/<name>`, `ollama/<name>`) or a Nexora

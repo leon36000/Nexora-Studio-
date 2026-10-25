@@ -59,7 +59,7 @@ export const SUPPORTED_PII_ENTITIES = {
 export type PIIEntityType = keyof typeof SUPPORTED_PII_ENTITIES
 
 /** Entity types grouped by region, for a grouped checkbox picker. */
-export const PII_ENTITY_GROUPS: ReadonlyArray<{
+const PII_ENTITY_GROUPS: ReadonlyArray<{
   label: string
   entities: ReadonlyArray<{ value: PIIEntityType; label: string }>
 }> = [

@@ -12,7 +12,7 @@ import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
  * kept in the instance organization's `metadata.nexoraDataProtection` (server-only state, like the
  * budgets). Nothing is protected until an administrator chooses: the default is `allow`.
  */
-export const PERSONAL_DATA_MODES = ['allow', 'mask', 'refuse'] as const
+const PERSONAL_DATA_MODES = ['allow', 'mask', 'refuse'] as const
 export type PersonalDataMode = (typeof PERSONAL_DATA_MODES)[number]
 
 export interface DataProtectionPolicy {
@@ -109,11 +109,6 @@ export async function loadDataProtection(): Promise<DataProtectionPolicy> {
   const policy = await policyCache.fetch('policy')
   if (!policy) throw new Error('The personal-data policy could not be read')
   return policy
-}
-
-/** Drops the cached policy. Test seam; production clears it through {@link updateDataProtection}. */
-export function resetDataProtectionCache(): void {
-  policyCache.clear()
 }
 
 /** Applies a change under a row lock, keeping every other metadata key. */

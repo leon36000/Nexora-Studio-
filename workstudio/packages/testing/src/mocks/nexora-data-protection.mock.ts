@@ -18,7 +18,6 @@ export const nexoraDataProtectionMockFns = {
   })),
   mockReadDataProtection: vi.fn(),
   mockUpdateDataProtection: vi.fn(),
-  mockResetDataProtectionCache: vi.fn(),
 }
 
 /** Static mock module for `@/lib/nexora/data-protection/policy`. */
@@ -27,7 +26,6 @@ export const nexoraDataProtectionMock = {
   loadDataProtection: nexoraDataProtectionMockFns.mockLoadDataProtection,
   readDataProtection: nexoraDataProtectionMockFns.mockReadDataProtection,
   updateDataProtection: nexoraDataProtectionMockFns.mockUpdateDataProtection,
-  resetDataProtectionCache: nexoraDataProtectionMockFns.mockResetDataProtectionCache,
   parseDataProtection: vi.fn(() => ({ defaultMode: 'allow', workspaceModes: {} })),
   applyDataProtectionChange: vi.fn(),
   resolveMode: vi.fn((policy: PolicyLike, workspaceId: string | null) =>
