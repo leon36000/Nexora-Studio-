@@ -32,6 +32,7 @@ class EndpointRoute(StrEnum):
     ADMIN_ROUTERS = "/admin/routers"
     ADMIN_KEYS = "/admin/keys"
     ADMIN_USERS = "/admin/users"
+    AUDIO_SPEECH = "/audio/speech"
     AUDIO_TRANSCRIPTIONS = "/audio/transcriptions"
     AUTH_LOGIN = "/auth/login"
     AUTH_SSO_LOGIN = "/auth/sso/login"
