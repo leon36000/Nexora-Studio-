@@ -1272,7 +1272,8 @@
     },
     "nexoraUsageNotice": {
       "vision": "Aucun modèle Vision / OCR sur cette instance : ce bloc échouera. Un administrateur en ajoute un dans Réglages › Modèles.",
-      "transcription": "Aucun modèle de transcription sur cette instance : ce bloc échouera. Un administrateur en ajoute un dans Réglages › Modèles (ou active la transcription locale à l’installation)."
+      "transcription": "Aucun modèle de transcription sur cette instance : ce bloc échouera. Un administrateur en ajoute un dans Réglages › Modèles (ou active la transcription locale à l’installation).",
+      "speech": "Aucun modèle de synthèse vocale sur cette instance : ce bloc échouera. Un administrateur en ajoute un dans Réglages › Modèles (ou active la voix locale à l’installation)."
     }
   },
   "workflowsPage": {

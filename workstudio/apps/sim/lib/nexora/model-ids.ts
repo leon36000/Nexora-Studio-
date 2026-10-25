@@ -16,10 +16,10 @@ export const DEFAULT_MODEL_ALIAS = 'nexora-default'
 
 /**
  * What a model is used for (Réglages › Modèles): chatting (Agent and the other chat blocks),
- * reading images and documents (Vision, OCR), or transcribing speech. Each usage is a Nexora API
- * router type.
+ * reading images and documents (Vision, OCR), transcribing speech, or speaking (speech synthesis).
+ * Each usage is a Nexora API router type.
  */
-export const NEXORA_MODEL_USAGES = ['chat', 'vision', 'transcription'] as const
+export const NEXORA_MODEL_USAGES = ['chat', 'vision', 'transcription', 'speech'] as const
 export type NexoraModelUsage = (typeof NEXORA_MODEL_USAGES)[number]
 
 /** Where a model keeps the data it is sent: on this server, hosted in the EU, or off the instance. */
@@ -34,6 +34,7 @@ export const ROUTER_TYPE_BY_USAGE: Record<NexoraModelUsage, string> = {
   chat: 'text-generation',
   vision: 'image-to-text',
   transcription: 'automatic-speech-recognition',
+  speech: 'text-to-speech',
 }
 
 /** The usage a Nexora API router type serves, `null` for the types WorkStudio does not manage. */
@@ -79,7 +80,12 @@ export function servedUsages(models: ReadonlyArray<ServedModel>): NexoraModelUsa
       (model) =>
         model.type === ROUTER_TYPE_BY_USAGE[usage] || (usage === 'chat' && model.type === undefined)
     )
-  return { chat: served('chat'), vision: served('vision'), transcription: served('transcription') }
+  return {
+    chat: served('chat'),
+    vision: served('vision'),
+    transcription: served('transcription'),
+    speech: served('speech'),
+  }
 }
 
 /**

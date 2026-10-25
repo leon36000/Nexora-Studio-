@@ -1758,10 +1758,21 @@
       "mistral": "Mistral AI",
       "openai-compatible": "OpenAI-compatible"
     },
+    "lexicon": {
+      "title": "Company lexicon",
+      "label": "Lexicon terms, one per line",
+      "placeholder": "Nexora\nMartin Bakery\nDurand Garage",
+      "hint": "One term per line, 100 at most: names of people, customers and products the transcription must spell right.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Lexicon saved",
+      "failed": "The lexicon could not be saved"
+    },
     "usages": {
       "chat": "Chat",
       "vision": "Vision / OCR",
-      "transcription": "Transcription"
+      "transcription": "Transcription",
+      "speech": "Speech synthesis"
     },
     "actions": {
       "test": "Test",
@@ -1828,7 +1839,8 @@
         "hints": {
           "chat": "Answers the Agent, Router, Evaluator and other chat blocks.",
           "vision": "Reads images and scanned documents (Vision and Document parsing blocks).",
-          "transcription": "Transcribes audio files (Speech-to-Text block). The local transcription service, chosen at installation, is added automatically."
+          "transcription": "Transcribes audio files (Speech-to-Text block). The local transcription service, chosen at installation, is added automatically.",
+          "speech": "Reads a text aloud (Text-to-Speech block, the Assistant's \"Read aloud\", API). The local French voice, chosen at installation, is added automatically."
         }
       },
       "source": {
@@ -1844,7 +1856,8 @@
           "openai-compatible": "Any service exposing the OpenAI API (vLLM, LM Studio, an online provider…)."
         },
         "ollamaUnavailable": "The local model is unavailable: this server's Ollama service does not answer.",
-        "transcriptionNoOllama": "Ollama does not transcribe speech: choose Mistral AI (Voxtral) or an OpenAI-compatible service, such as a Whisper server."
+        "transcriptionNoOllama": "Ollama does not transcribe speech: choose Mistral AI (Voxtral) or an OpenAI-compatible service, such as a Whisper server.",
+        "speechOnlyOpenAi": "Ollama and Mistral AI do not serve speech synthesis here: choose an OpenAI-compatible service, such as the local voice server."
       },
       "ollama": {
         "catalog": "Recommended models",

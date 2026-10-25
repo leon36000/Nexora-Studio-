@@ -1,3 +1,4 @@
+from ._createaudiospeechusecase import CreateAudioSpeechCommand, CreateAudioSpeechUseCase, CreateAudioSpeechUseCaseSuccess
 from ._createaudiotranscriptionsusecase import (
     CreateAudioTranscriptionsCommand,
     CreateAudioTranscriptionsJsonUseCaseSuccess,
@@ -6,6 +7,9 @@ from ._createaudiotranscriptionsusecase import (
 )
 
 __all__ = [
+    "CreateAudioSpeechCommand",
+    "CreateAudioSpeechUseCase",
+    "CreateAudioSpeechUseCaseSuccess",
     "CreateAudioTranscriptionsCommand",
     "CreateAudioTranscriptionsJsonUseCaseSuccess",
     "CreateAudioTranscriptionsTextUseCaseSuccess",

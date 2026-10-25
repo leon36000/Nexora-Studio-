@@ -6,7 +6,8 @@ import pytest_asyncio
 import respx
 
 from api.dependencies import create_audio_transcriptions_use_case_factory
-from api.domain.audio.errors import AudioFileSizeLimitExceededError
+from api.domain.audio.entities import AudioTranscriptions, Segment
+from api.domain.audio.errors import AudioDiarizationUnavailableError, AudioFileSizeLimitExceededError
 from api.domain.model.errors import StatusCodeModelError, TooBusyModelError, UnknownModelError
 from api.domain.provider.entities import HostingZone, ProviderEndpoint, ProviderType
 from api.domain.provider.errors import (
@@ -25,7 +26,7 @@ from api.tests.integration.conftest import override_global_context
 from api.tests.integration.endpoints.utils import DEFAULT_PROVIDER_URL, mock_audio_transcriptions_responses
 from api.tests.integration.factories.sql import RouterSQLFactory, UserSQLFactory
 from api.tests.integration.factories.vllm import VllmAudioTranscriptionsResponseFactory
-from api.use_cases.audio import CreateAudioTranscriptionsTextUseCaseSuccess
+from api.use_cases.audio import CreateAudioTranscriptionsJsonUseCaseSuccess, CreateAudioTranscriptionsTextUseCaseSuccess
 
 URL = f"/v1{EndpointRoute.AUDIO_TRANSCRIPTIONS}"
 
@@ -149,6 +150,11 @@ class TestCreateAudioTranscriptions:
                 "File size limit exceeded. Expected: 50 Bytes. Actual: 100 Bytes.",
             ),
             (
+                AudioDiarizationUnavailableError(reason="the diarization service is unreachable"),
+                501,
+                "Speaker diarization is not available: the diarization service is unreachable.",
+            ),
+            (
                 RouterHasWrongTypeError(id=1, actual_type=RouterType.TEXT_GENERATION, expected_type=RouterType.AUTOMATIC_SPEECH_RECOGNITION),
                 422,
                 "Model has wrong type. Expected: automatic-speech-recognition. Actual: text-generation.",
@@ -255,3 +261,42 @@ class TestCreateAudioTranscriptions:
 
         assert response.status_code == expected_status
         assert response.json().get("detail") == expected_detail
+
+
+@pytest.mark.asyncio(loop_scope="session")
+class TestDiarizedTranscriptionResponse:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, db_session, test_redis_pool):
+        self.user = UserSQLFactory(name="Alice", email="alice@example.com")
+        self.key = await create_key(db_session, name="user_key", user=self.user)
+        with override_global_context(redis_pool=test_redis_pool, tokenizer=MagicMock()):
+            yield
+
+    async def test_answers_the_segments_with_their_speakers_and_without_the_words(self, client: AsyncClient, app):
+        transcription = AudioTranscriptions(
+            id="t",
+            model=DEFAULT_MODEL_NAME,
+            text="Bonjour Salut",
+            segments=[
+                Segment(id=0, text="Bonjour", start=0.0, end=0.5, speaker="speaker_1"),
+                Segment(id=1, text="Salut", start=3.0, end=3.5, speaker="speaker_2"),
+            ],
+        )
+        mock_use_case = AsyncMock()
+        mock_use_case.execute.return_value = CreateAudioTranscriptionsJsonUseCaseSuccess(
+            data=transcription, headers={}, media_type="application/json"
+        )
+        app.dependency_overrides[create_audio_transcriptions_use_case_factory] = lambda: mock_use_case
+
+        response = await client.post(
+            url=URL,
+            headers={"Authorization": f"Bearer {self.key.token}"},
+            files=_valid_files(),
+            data=_valid_data(response_format="diarized_json", num_speakers="2"),
+        )
+
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert [(s["speaker"], s["text"]) for s in body["segments"]] == [("speaker_1", "Bonjour"), ("speaker_2", "Salut")]
+        assert "words" not in body
+        assert mock_use_case.execute.await_args.args[0].payload.num_speakers == 2

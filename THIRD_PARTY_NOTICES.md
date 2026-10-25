@@ -20,4 +20,17 @@ Les dépendances de ces composants (paquets npm et PyPI) gardent leurs propres l
 
 Lecture des PDF numériques par Nexora API (v3, K4) : pdfplumber 0.11.10 et pdfminer.six (MIT), pypdfium2 5.14.0 (Apache-2.0 ou BSD-3-Clause ; il embarque PDFium, BSD-3-Clause), Pillow 12.3.0 (MIT-CMU), et leurs dépendances cryptography (Apache-2.0 ou BSD-3-Clause), cffi (MIT) et charset-normalizer (MIT). Docling (MIT) a été écarté : ses dépendances (PyTorch et des bibliothèques CUDA sous licence propriétaire NVIDIA, environ 3,4 Go de paquets) ne conviennent pas au serveur visé.
 
+Voix locale (v3, K12), profil `voice` de `deploy/compose.yml` — aucun de ces composants n'est copié dans le dépôt, ils sont tirés à l'installation ou à la construction de l'image :
+
+| Composant | Rôle | Licence | Remarque |
+|---|---|---|---|
+| speaches 0.8.3 (speaches-ai/speaches) | serveur de transcription (faster-whisper, modèle `Systran/faster-whisper-small`, MIT) et de synthèse vocale compatible OpenAI | MIT | image officielle tirée par le client, non redistribuée par Nexora. Elle embarque piper-tts et piper-phonemize (MIT), qui lient espeak-ng (GPL-3.0) : service séparé, joint par HTTP, sans lien avec le code de Nexora |
+| Voix `speaches-ai/piper-fr_FR-siwis-medium` | voix française par défaut de la synthèse vocale | CC-BY-4.0 (jeu de données SIWIS, Université d'Édimbourg) | usage commercial permis avec attribution : « Voix siwis, SIWIS French Speech Synthesis Database, Université d'Édimbourg, CC-BY-4.0 » |
+| sherpa-onnx 1.12.40 (k2-fsa/sherpa-onnx) | service `nexora-diarize` : segmentation, empreintes de voix et regroupement des intervenants, sur CPU | Apache-2.0 | |
+| pyannote/segmentation-3.0, exporté en ONNX par k2-fsa | segmentation en tours de parole (service `nexora-diarize`) | MIT (© CNRS), fichier de licence livré avec le modèle | distribué par k2-fsa sur GitHub, sans condition d'accès Hugging Face |
+| ERes2Net (3D-Speaker, `3dspeaker_speech_eres2net_sv_en_voxceleb_16k`) | empreintes de voix (service `nexora-diarize`) | Apache-2.0 | |
+| PyAV 19 (PyAV-Org/PyAV) | décodage des enregistrements (service `nexora-diarize`) | BSD-3-Clause ; FFmpeg embarqué en LGPL-2.1 | |
+
+Écartés : pyannote.audio avec ses modèles d'empreintes (accès conditionné par un formulaire Hugging Face), NVIDIA NeMo TitaNet-small (licence du modèle non vérifiable), Reverb diarization de Rev.com (licence propre), piper1-gpl (GPL-3.0).
+
 Les noms et marques des services tiers cités par les intégrations (Slack, Google, etc.) restent la propriété de leurs titulaires. Ils ne sont utilisés que pour identifier ces intégrations.

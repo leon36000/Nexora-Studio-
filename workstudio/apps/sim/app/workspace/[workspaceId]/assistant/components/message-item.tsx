@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, cn, Tooltip, useCopyToClipboard } from '@sim/emcn'
-import { Check, Duplicate, Loader, Paperclip, RefreshCw } from '@sim/emcn/icons'
+import { AudioIcon, Check, Duplicate, Loader, Paperclip, RefreshCw, Square } from '@sim/emcn/icons'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import type { AssistantMessageFile } from '@/lib/api/contracts/nexora-assistant'
@@ -26,6 +26,8 @@ interface MessageItemProps {
   error?: string
   /** Shown on the last answer only, when the agent can still be asked. */
   onRegenerate?: () => void
+  /** « Lire à voix haute », offered when the instance has a Speech synthesis model. */
+  readAloud?: { phase: 'idle' | 'loading' | 'playing'; onToggle: () => void }
 }
 
 /** One message of the thread: the question as typed, the answer rendered as Markdown. */
@@ -38,6 +40,7 @@ export function MessageItem({
   note,
   error,
   onRegenerate,
+  readAloud,
 }: MessageItemProps) {
   const t = useTranslations('assistant.thread')
   const { copied, copy } = useCopyToClipboard()
@@ -110,6 +113,31 @@ export function MessageItem({
                 </Button>
               </Tooltip.Trigger>
               <Tooltip.Content>{copied ? t('copied') : t('copy')}</Tooltip.Content>
+            </Tooltip.Root>
+          )}
+          {hasText && readAloud && (
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <Button
+                  type='button'
+                  variant='quiet'
+                  size='icon'
+                  onClick={readAloud.onToggle}
+                  aria-label={readAloud.phase === 'idle' ? t('readAloud') : t('readAloudStop')}
+                  aria-pressed={readAloud.phase !== 'idle'}
+                >
+                  {readAloud.phase === 'loading' ? (
+                    <Loader className='size-[14px]' animate />
+                  ) : readAloud.phase === 'playing' ? (
+                    <Square className='size-[14px]' />
+                  ) : (
+                    <AudioIcon className='size-[14px]' />
+                  )}
+                </Button>
+              </Tooltip.Trigger>
+              <Tooltip.Content>
+                {readAloud.phase === 'idle' ? t('readAloud') : t('readAloudStop')}
+              </Tooltip.Content>
             </Tooltip.Root>
           )}
           {onRegenerate && (

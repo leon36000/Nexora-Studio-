@@ -15,6 +15,8 @@ import {
   type TtsAudioResult,
 } from '@/lib/internal/tts/client'
 import { getTtsFileExtension } from '@/lib/internal/tts/formats'
+import { resolveUsageModel } from '@/lib/nexora/document-ai/client'
+import { nexoraSpeak } from '@/lib/nexora/voice/client'
 import { StorageService } from '@/lib/uploads'
 import { uploadExecutionFile } from '@/lib/uploads/contexts/execution'
 import type { ElevenLabsTtsParams } from '@/tools/elevenlabs/types'
@@ -22,6 +24,7 @@ import type {
   DeepgramTtsParams,
   ElevenLabsTtsUnifiedParams,
   GoogleTtsParams,
+  NexoraTtsParams,
   PlayHtTtsParams,
   TtsProvider,
   TtsResponse,
@@ -137,6 +140,26 @@ export async function executeOpenAiTts(
     'openai',
     input.text,
     await synthesizeOpenAi(input, context.signal),
+    context
+  )
+}
+
+/** The Nexora provider: the text said by a Speech synthesis model of Réglages › Modèles. */
+export async function executeNexoraTts(
+  input: Omit<NexoraTtsParams, 'model'> & { model?: string | null },
+  context: TtsOperationContext
+): Promise<TtsResponse> {
+  const options = { signal: context.signal }
+  const model = await resolveUsageModel('speech', input.model ?? undefined, options)
+  const format = input.responseFormat ?? 'wav'
+  const spoken = await nexoraSpeak(
+    { text: input.text, model, voice: input.voice, format, speed: input.speed },
+    options
+  )
+  return storeUnifiedAudio(
+    'nexora',
+    input.text,
+    { audioBuffer: spoken.audio, format, mimeType: spoken.mimeType },
     context
   )
 }

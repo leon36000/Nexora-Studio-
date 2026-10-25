@@ -3,8 +3,8 @@ from api.domain.provider.errors import UnsupportedProviderEndpointError
 from api.infrastructure.http.adapters import HttpProviderAdapter
 from api.infrastructure.http.adapters.audio.albert import AlbertAudioTranscriptionsAdapter
 from api.infrastructure.http.adapters.audio.mistral import MistralAudioTranscriptionsAdapter
-from api.infrastructure.http.adapters.audio.openai import OpenaiAudioTranscriptionsAdapter
-from api.infrastructure.http.adapters.audio.vllm import VllmAudioTranscriptionsAdapter
+from api.infrastructure.http.adapters.audio.openai import OpenaiAudioSpeechAdapter, OpenaiAudioTranscriptionsAdapter
+from api.infrastructure.http.adapters.audio.vllm import VllmAudioSpeechAdapter, VllmAudioTranscriptionsAdapter
 from api.infrastructure.http.adapters.chat.albert import AlbertChatCompletionsAdapter
 from api.infrastructure.http.adapters.chat.mistral import MistralChatCompletionsAdapter
 from api.infrastructure.http.adapters.chat.openai import OpenaiChatCompletionsAdapter
@@ -32,6 +32,10 @@ from api.infrastructure.http.adapters.rerank.vllm import VllmRerankAdapter
 
 class HttpProviderAdapterBuilder:
     ADAPTER_REGISTRY = {
+        ProviderEndpoint.AUDIO_SPEECH: {
+            ProviderType.OPENAI: OpenaiAudioSpeechAdapter,
+            ProviderType.VLLM: VllmAudioSpeechAdapter,
+        },
         ProviderEndpoint.AUDIO_TRANSCRIPTIONS: {
             ProviderType.ALBERT: AlbertAudioTranscriptionsAdapter,
             ProviderType.MISTRAL: MistralAudioTranscriptionsAdapter,

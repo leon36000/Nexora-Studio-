@@ -14,7 +14,10 @@ import type { InternalToolOperationHandler } from '@/lib/internal/tool-operation
 import { NexoraDocumentAiError } from '@/lib/nexora/document-ai/client'
 import { extractDocumentData } from '@/lib/nexora/document-ai/extraction'
 import { ocrDocument } from '@/lib/nexora/document-ai/ocr'
-import { transcribeWithNexora } from '@/lib/nexora/document-ai/transcription'
+import {
+  transcribeMeetingWithNexora,
+  transcribeWithNexora,
+} from '@/lib/nexora/document-ai/transcription'
 import { describeImage } from '@/lib/nexora/document-ai/vision'
 import {
   isModelSafeWorkspaceFileKey,
@@ -187,6 +190,34 @@ export const executeNexoraDocumentAiTool: InternalToolOperationHandler = async (
       buffer = extracted.buffer
       mimeType = 'audio/mpeg'
       name = name.replace(/\.[^.]+$/, '.mp3')
+    }
+    if (parsed.data.diarization) {
+      const meeting = await transcribeMeetingWithNexora(
+        {
+          audio: buffer,
+          mimeType,
+          fileName: name,
+          model: parsed.data.model,
+          language: parsed.data.language,
+          prompt: parsed.data.prompt,
+          numSpeakers: parsed.data.numSpeakers,
+        },
+        { signal }
+      )
+      return Response.json({
+        success: true,
+        output: {
+          transcript: meeting.transcript,
+          transcriptBySpeaker: meeting.transcriptBySpeaker,
+          speakers: meeting.speakers,
+          segments: meeting.segments,
+          ...(meeting.warning ? { warning: meeting.warning } : {}),
+          ...(parsed.data.language && parsed.data.language !== 'auto'
+            ? { language: parsed.data.language }
+            : {}),
+          ...(meeting.duration !== undefined ? { duration: meeting.duration } : {}),
+        },
+      })
     }
     const result = await transcribeWithNexora(
       {

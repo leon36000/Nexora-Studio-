@@ -5,6 +5,7 @@ from pydantic import Field
 
 from api.domain import BaseModel, ForwardablePayload
 from api.domain.model.entities import ProviderJsonResponse
+from api.domain.provider.entities import AudioSpeech as AudioSpeech
 from api.domain.usage.entities import Usage
 
 # Supported language from https://github.com/huggingface/transformers/blob/main/src/transformers/models/whisper/tokenization_whisper.py
@@ -154,10 +155,18 @@ class Segment(BaseModel):
     speaker: Annotated[str | None, Field(default=None, description="Speaker label assigned by diarization, if available.")]
 
 
+class TimedWord(BaseModel):
+    start: Annotated[float, Field(description="Start time of the word in seconds.")]
+    end: Annotated[float, Field(description="End time of the word in seconds.")]
+    word: Annotated[str, Field(description="The word, with its leading space when the provider gives one.")]
+
+
 class AudioTranscriptions(ProviderJsonResponse):
     id: str
     model: str
     text: str
+    segments: list[Segment] | None = None
+    words: list[TimedWord] | None = None
     usage: Annotated[Usage, Field(default_factory=Usage)]
 
     def get_completions(self) -> list[str]:
@@ -178,9 +187,45 @@ class CreateAudioTranscriptionsForm(ForwardablePayload):
     prompt: str
     response_format: AudioTranscriptionsResponseFormat
     temperature: float
+    num_speakers: int | None = None
 
     def get_prompts(self) -> list[str]:
         return [self.prompt]
 
     def get_files(self) -> dict:
         return {"file": (self.file.name, self.file.file, self.file.content_type)}
+
+
+class AudioSpeechResponseFormat(StrEnum):
+    MP3 = ("mp3", "audio/mpeg")
+    WAV = ("wav", "audio/wav")
+    FLAC = ("flac", "audio/flac")
+    PCM = ("pcm", "audio/pcm")
+
+    def __new__(cls, value: str, media_type: str):
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj.media_type = media_type
+
+        return obj
+
+
+AUDIO_SPEECH_MAX_CHARACTERS = 4096
+
+
+class CreateAudioSpeechBody(ForwardablePayload):
+    model: str
+    input: Annotated[
+        str, Field(min_length=1, max_length=AUDIO_SPEECH_MAX_CHARACTERS, description="The text to turn into speech (4 096 characters at most).")
+    ]
+    voice: Annotated[
+        str, Field(default="default", min_length=1, description="The voice of the model; the local voice server ignores names it does not know.")
+    ]
+    response_format: Annotated[
+        AudioSpeechResponseFormat,
+        Field(default=AudioSpeechResponseFormat.MP3, description="The audio format: `mp3` (default), `wav`, `flac` or `pcm`."),
+    ]
+    speed: Annotated[float, Field(default=1.0, ge=0.25, le=4.0, description="The speed of the speech, from 0.25 to 4.0.")]
+
+    def get_prompts(self) -> list[str]:
+        return [self.input]

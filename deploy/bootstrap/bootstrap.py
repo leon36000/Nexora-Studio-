@@ -303,14 +303,23 @@ def _sync_default_model(base_url: str, admin_token: str, upstream: dict, fingerp
 
 
 TRANSCRIPTION_TYPE = "automatic-speech-recognition"
+SPEECH_TYPE = "text-to-speech"
 # The first start downloads the model (about 500 MB for `small`); a CPU transcription takes minutes.
 WHISPER_DOWNLOAD_TIMEOUT = 1800
-WHISPER_PROVIDER_TIMEOUT = 600
+# A meeting of an hour is transcribed in one request (the speakers of two requests cannot be matched):
+# tens of minutes on a CPU. A voice is said in seconds.
+TRANSCRIPTION_PROVIDER_TIMEOUT = 3600
+SPEECH_PROVIDER_TIMEOUT = 600
 
 
 def transcription_router_name(model: str) -> str:
     """`Systran/faster-whisper-small` -> `whisper-small`: the name blocks and Réglages › Modèles show."""
     return model.rsplit("/", 1)[-1].removeprefix("faster-")
+
+
+def speech_router_name(model: str) -> str:
+    """`speaches-ai/piper-fr_FR-siwis-medium` -> `piper-fr-fr-siwis-medium`: the voice model's name in Réglages › Modèles."""
+    return model.rsplit("/", 1)[-1].replace("_", "-").lower()
 
 
 def _has_local_model(url: str, model: str) -> bool:
@@ -323,43 +332,74 @@ def _has_local_model(url: str, model: str) -> bool:
 
 
 def _sync_transcription_model(base_url: str, admin_token: str, voice: dict) -> None:
-    """Registers the local transcription service's model once in Nexora API.
+    """Registers the local voice service's models once in Nexora API: transcription, then speech.
 
-    The service fetches its model itself before it starts, then runs offline (HF_HUB_OFFLINE); the
-    bootstrap asks it to download only when the model is still missing, which an offline service
-    refuses: the error then names the missing model.
+    The service fetches its models itself before it starts, then runs offline (HF_HUB_OFFLINE); the
+    bootstrap asks it to download only when a model is still missing, which an offline service
+    refuses: the error then names the missing model. A failure of the speech model never loses the
+    transcription one.
     """
     url = voice["url"].strip().rstrip("/")
-    model = voice["model"].strip()
     _wait_until_healthy(url, int(voice.get("wait_seconds", 600)), service="The transcription service")
+    model = voice["model"].strip()
+    _register_local_model(
+        base_url, admin_token, url, model, TRANSCRIPTION_TYPE, transcription_router_name(model), "transcription", TRANSCRIPTION_PROVIDER_TIMEOUT
+    )
+    _raise_voice_timeout(base_url, admin_token, url)
+    speech_model = (voice.get("tts_model") or "").strip()
+    if speech_model:
+        try:
+            _register_local_model(
+                base_url, admin_token, url, speech_model, SPEECH_TYPE, speech_router_name(speech_model), "speech", SPEECH_PROVIDER_TIMEOUT
+            )
+        except SessionExpiredError:
+            raise
+        except BootstrapError as error:
+            print(f"bootstrap: local speech synthesis skipped: {error}", file=sys.stderr)
+
+
+def _raise_voice_timeout(base_url: str, admin_token: str, url: str) -> None:
+    """Gives the local transcription service's providers TRANSCRIPTION_PROVIDER_TIMEOUT at least (never less than set by hand)."""
+    api = f"{base_url}/v1/admin"
+    for router in _call("GET", f"{api}/routers?limit=100", admin_token).get("data", []):
+        if router.get("type") != TRANSCRIPTION_TYPE:
+            continue
+        for provider in _providers(api, admin_token, router):
+            if (provider.get("url") or "").rstrip("/").lower() != url.lower() or (provider.get("timeout") or 0) >= TRANSCRIPTION_PROVIDER_TIMEOUT:
+                continue
+            body = {field: provider.get(field) for field in PROVIDER_UPDATE_FIELDS}
+            body.update({"router_id": router["id"], "timeout": TRANSCRIPTION_PROVIDER_TIMEOUT})
+            _call("PATCH", f"{api}/providers/{provider['id']}", admin_token, body)
+
+
+def _register_local_model(
+    base_url: str, admin_token: str, url: str, model: str, router_type: str, name: str, label: str, timeout: int
+) -> None:
     if not _has_local_model(url, model):
         try:
             status, _ = _request("POST", f"{url}/v1/models/{model}", timeout=WHISPER_DOWNLOAD_TIMEOUT)
         except OSError as error:
-            raise BootstrapError(f"transcription model download failed ({error})") from error
+            raise BootstrapError(f"{label} model download failed ({error})") from error
         if status not in (200, 201):
-            raise BootstrapError(
-                f"transcription model {model} missing and its download failed (HTTP {status}); see `docker compose logs whisper`"
-            )
+            raise BootstrapError(f"{label} model {model} missing and its download failed (HTTP {status}); see `docker compose logs whisper`")
 
     api = f"{base_url}/v1/admin"
-    name = transcription_router_name(model)
     routers = _call("GET", f"{api}/routers?limit=100", admin_token).get("data", [])
     existing = next((r for r in routers if r["name"] == name), None)
     if existing:
         return  # registered by an earlier start, or chosen by an administrator: left as is
-    created = _call("POST", f"{api}/routers", admin_token, {"name": name, "type": TRANSCRIPTION_TYPE, "aliases": []})
+    created = _call("POST", f"{api}/routers", admin_token, {"name": name, "type": router_type, "aliases": []})
     status, _ = _request("POST", f"{api}/providers", token=admin_token, body={
         "router_id": created["id"],
         "type": "openai",
         "url": url,
         "key": "none",
         "model_name": model,
-        "timeout": WHISPER_PROVIDER_TIMEOUT,
+        "timeout": timeout,
     }, timeout=120)
     if status not in (200, 201):
         _request("DELETE", f"{api}/routers/{created['id']}", token=admin_token)
-        raise BootstrapError(f"Nexora API refused the transcription service (HTTP {status})")
+        raise BootstrapError(f"Nexora API refused the {label} service (HTTP {status})")
 
 
 ADMIN_KEY_NAME = "nexora-workstudio-admin"
@@ -464,6 +504,7 @@ def main() -> int:
             voice={
                 "url": os.environ["NEXORA_WHISPER_URL"],
                 "model": os.environ.get("NEXORA_WHISPER_MODEL") or "Systran/faster-whisper-small",
+                "tts_model": os.environ.get("NEXORA_TTS_MODEL") or "speaches-ai/piper-fr_FR-siwis-medium",
                 "wait_seconds": int(os.environ.get("NEXORA_WHISPER_WAIT_SECONDS") or 600),
             } if os.environ.get("NEXORA_WHISPER_URL", "").strip() else None,
         )

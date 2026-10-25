@@ -249,10 +249,11 @@ configure() {
       set_env NEXORA_PREVIEW_BLOCKS "" ;;
   esac
 
-  # Local transcription: a Whisper server on this machine (profile « voice »), about 1.5 GB with its
-  # model; a quarter of the cores so a long recording does not slow everything else down.
+  # Local voice: a Whisper server and a French voice on this machine, and the diarization service
+  # (profile « voice »), about 2 GB with the models; a quarter of the cores for Whisper so a long
+  # recording does not slow everything else down.
   local voice
-  ask voice "Activer la transcription vocale locale (Whisper, environ 1,5 Go) ? (o/N)" "${NEXORA_VOICE:-0}"
+  ask voice "Activer la voix locale (transcription, synthèse vocale, intervenants ; environ 2 Go) ? (o/N)" "${NEXORA_VOICE:-0}"
   case "$voice" in
     1|o|O|oui|y|yes)
       local voice_profiles cores

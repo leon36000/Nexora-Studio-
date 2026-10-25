@@ -71,6 +71,24 @@ export const nexoraTranscriptionsContract = defineRouteContract({
   response: { mode: 'stream' },
 })
 
+const speechBodySchema = z
+  .object({
+    model: modelNameSchema,
+    input: z.string({ error: 'input is required' }).min(1, 'input is required'),
+    voice: z.string().optional(),
+    response_format: z.enum(['mp3', 'wav', 'flac', 'pcm']).optional(),
+    speed: z.number().min(0.25).max(4).optional(),
+  })
+  .passthrough()
+
+/** `POST /v1/audio/speech`: the audio of a text said by a Speech synthesis model. */
+export const nexoraSpeechContract = defineRouteContract({
+  method: 'POST',
+  path: '/api/nexora/v1/audio/speech',
+  body: speechBodySchema,
+  response: { mode: 'stream' },
+})
+
 const modelSchema = z
   .object({ id: z.string(), object: z.literal('model'), owned_by: z.string() })
   .passthrough()

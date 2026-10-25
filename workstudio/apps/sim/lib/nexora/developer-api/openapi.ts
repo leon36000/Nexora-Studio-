@@ -99,6 +99,18 @@ export function buildDeveloperOpenApi(baseUrl: string) {
           responses: { '200': { description: 'Vecteurs au format OpenAI.' }, ...callRefusals },
         },
       },
+      '/audio/speech': {
+        post: {
+          summary: 'Lire un texte à voix haute (synthèse vocale)',
+          requestBody: jsonBody(
+            'Corps OpenAI « audio.speech » : model (un modèle de synthèse vocale), input (4 096 caractères au plus), voice, response_format (mp3, wav, flac, pcm), speed.'
+          ),
+          responses: {
+            '200': { description: 'Le fichier audio, avec son type (audio/mpeg, audio/wav…).' },
+            ...callRefusals,
+          },
+        },
+      },
       '/audio/transcriptions': {
         post: {
           summary: 'Transcrire un fichier audio',

@@ -16,7 +16,7 @@ export const MODEL_DEFAULT_BLOCK_TYPES: readonly string[] = [
 ]
 
 /**
- * Nexora edition: blocks with a « Nexora » provider (a vision, OCR or transcription model served by
+ * Nexora edition: blocks with a « Nexora » provider (a vision, OCR, transcription or speech model served by
  * Nexora API, no key to enter), and the model usage that provider needs. New blocks of these types
  * start on it.
  */
@@ -26,6 +26,7 @@ const NEXORA_PROVIDER_USAGE: Readonly<Record<string, NexoraModelUsage>> = {
   nexora_extract: 'vision',
   stt: 'transcription',
   stt_v2: 'transcription',
+  tts: 'speech',
 }
 
 /** The model usage a block's « Nexora » provider needs, `null` for a block without one. */

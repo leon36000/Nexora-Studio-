@@ -17,7 +17,7 @@ export interface NexoraModel {
   /** The name blocks use (`vllm/<name>`). */
   name: string
   isDefault: boolean
-  /** Chat, vision/OCR or transcription: the Nexora API router type. */
+  /** Chat, vision/OCR, transcription or speech: the Nexora API router type. */
   usage: NexoraModelUsage
   source: NexoraModelSource
   providerModel: string
@@ -125,8 +125,11 @@ function hostingZone(source: NexoraModelSource): string {
 const PROVIDER_TIMEOUT_SECONDS: Record<NexoraModelUsage, number> = {
   chat: 600,
   vision: 600,
-  transcription: 600,
+  transcription: 3600,
+  speech: 600,
 }
+/** What « Tester » has a speech model say. */
+const SPEECH_TEST_TEXT = 'Bonjour, ceci est un essai de la voix de Nexora.'
 /** A short sample read by « Tester » on a vision model: the word « Nexora », black on white. */
 const SAMPLE_IMAGE =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAABAAgMAAAAi1dC4AAAADFBMVEUEBAT///+lpaVZWVnj7/xyAAAACXBIWXMAAAsTAAALEwEAmpwYAAABmUlEQVRIx+3UP26DMBQG8A8sBqSSTOxdcoSoa46QgUeiJAPq2KUcwUfoYrVDh6zNlCOwdKzUhSN06Rkqtd8zUZsBD3SMsIRkMD/g/cGQwQMjGclILomUByebwyCyRiJLM5Ckw0k0nMTDCf5BWiX35kPuXnzyjhPhdJtuvnitn+QkJZBJZaSOZQfMpYpsVum1XtLMSSjh1nA2E+t1DCXoJzYh0eV8hZxV4syfe9L2kn1GsohLfg5u1KUVXIXp261sMeslzxGJTaVJxF7BFcjXyKvu+QHyZEj0/lRqaFTtSokuHvjmPvKIByOYfjcZkxXxcCvMmDwpGwSIw7vRmJmngg23AzM+q2LxKQmQ5vqPJGdkESYLRgBzhd8PUxKJNBMXIhp0t1ZxdoqFRGsUIEv4jHFY3wIt8+zJvAyRHQkbpXz1pSww26Ht3lKESEFS4/OYaMPwyaaB+FjifYjwJlkyO0nXlqxG7IkNZ4zpkpWSrvlrsDpKasRBYlnqI4xbcBsAe5H9pWSNeS85389Ogz9nNw7jzj+SkVwY+QFHMuj69VKfAwAAAABJRU5ErkJggg=='
@@ -278,6 +281,9 @@ export async function addNexoraModel(
   }
   if (input.source === 'ollama' && usage === 'transcription') {
     throw new NexoraModelError('invalid', 'Ollama cannot transcribe speech')
+  }
+  if (usage === 'speech' && input.source !== 'openai-compatible') {
+    throw new NexoraModelError('invalid', 'speech synthesis needs an OpenAI-compatible service')
   }
   const url =
     input.source === 'ollama'
@@ -516,6 +522,32 @@ async function testRequest(
     const data = (await response.json().catch(() => ({}))) as { text?: string; detail?: string }
     return { status: response.status, reply: data.text ?? '', detail: data.detail }
   }
+  if (usage === 'speech') {
+    let response: Response
+    try {
+      // boundary-raw-fetch: Nexora API is a separate service, not a same-origin route
+      response = await client.fetchFn(`${client.config.adminBaseUrl}/v1/audio/speech`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${client.config.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ model: name, input: SPEECH_TEST_TEXT, response_format: 'wav' }),
+        signal: AbortSignal.timeout(600_000),
+      })
+    } catch (error) {
+      throw new NexoraModelAdminUnavailableError(getErrorMessage(error, 'request failed'))
+    }
+    if (!response.ok) {
+      const failure = (await response.json().catch(() => ({}))) as { detail?: string }
+      return { status: response.status, reply: '', detail: failure.detail }
+    }
+    const audio = await response.arrayBuffer()
+    return {
+      status: response.status,
+      reply: `${response.headers.get('content-type') ?? 'audio'}, ${audio.byteLength} bytes`,
+    }
+  }
   const { status, data } = await client.call<{
     choices?: { message?: unknown }[]
     detail?: string
@@ -562,7 +594,7 @@ async function probeTools(
 
 /**
  * Tries a model with WorkStudio's own key, like a block would: a short question for a chat
- * model, a sample image for a vision model, a second of silence for a transcription model. A chat
+ * model, a sample image for a vision model, a second of silence for a transcription model, a short sentence to say for a speech model. A chat
  * model's answer comes without its reasoning; whether it reasons and accepts tools is reported.
  */
 export async function testNexoraModel(

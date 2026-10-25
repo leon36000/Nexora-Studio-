@@ -12111,6 +12111,11 @@
       "diarization": {
         "title": "Identification des locuteurs"
       },
+      "numSpeakers": {
+        "title": "Nombre d’intervenants",
+        "placeholder": "Détecté automatiquement",
+        "description": "Laissez vide pour que le service de voix compte lui-même les intervenants. Une réunion est analysée d’un seul tenant, une heure au plus."
+      },
       "translateToEnglish": {
         "title": "Traduire en anglais"
       },
@@ -13024,7 +13029,27 @@
   },
   "tts": {
     "name": "Synthèse vocale",
-    "description": "Convertir du texte en parole avec des voix IA"
+    "description": "Convertir du texte en parole avec des voix IA",
+    "subBlocks": {
+      "provider": {
+        "title": "Fournisseur",
+        "options": {
+          "nexora": "Nexora",
+          "openai": "OpenAI TTS",
+          "deepgram": "Deepgram Aura",
+          "elevenlabs": "ElevenLabs",
+          "cartesia": "Cartesia Sonic",
+          "google": "Google Cloud TTS",
+          "azure": "Azure TTS",
+          "playht": "PlayHT"
+        }
+      },
+      "nexoraModel": {
+        "title": "Modèle Nexora",
+        "placeholder": "Premier modèle de synthèse vocale",
+        "description": "Un modèle Synthèse vocale de Réglages › Modèles. Laissez vide pour utiliser le premier ; s’il n’y en a aucun, demandez à un administrateur d’en ajouter un (ou d’activer la voix locale à l’installation). Avec la voix locale, rien ne sort de votre serveur."
+      }
+    }
   },
   "twilio_sms": {
     "name": "Twilio SMS",

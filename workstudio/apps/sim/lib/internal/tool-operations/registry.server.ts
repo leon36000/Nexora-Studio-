@@ -980,6 +980,7 @@ const TTS_TOOL_IDS = [
   'tts_deepgram',
   'tts_elevenlabs',
   'tts_google',
+  'tts_nexora',
   'tts_openai',
   'tts_playht',
 ] as const

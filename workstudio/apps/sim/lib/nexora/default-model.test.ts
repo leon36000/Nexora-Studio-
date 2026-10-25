@@ -31,6 +31,7 @@ describe('fetchModelStatus', () => {
       chat: true,
       vision: false,
       transcription: true,
+      speech: false,
     })
   })
 
@@ -40,7 +41,7 @@ describe('fetchModelStatus', () => {
       .mockResolvedValue(jsonResponse({ data: [{ id: 'ocr', type: 'image-to-text' }] }))
     expect(await fetchModelStatus({ config, fetchFn })).toEqual({
       defaultModel: null,
-      usages: { chat: false, vision: true, transcription: false },
+      usages: { chat: false, vision: true, transcription: false, speech: false },
     })
   })
 

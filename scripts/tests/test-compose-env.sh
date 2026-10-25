@@ -107,6 +107,41 @@ assert any(v.get("target", "").endswith("fetch-whisper-model.py") and v.get("rea
   && ok "transcription server offline; its model fetched once before it starts" \
   || ko "transcription server offline; its model fetched once before it starts"
 
+# Speaker diarization and speech synthesis (profile « voice »): one more internal service, built here,
+# its models baked into the image; the Whisper server fetches the French voice with its own model.
+[ "$(has_service diarize)" = "False" ] && ok "no diarization service by default" || ko "no diarization service by default"
+python3 -I -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+d = services["diarize"]
+assert d["profiles"] == ["voice"], d.get("profiles")
+assert not d.get("ports"), d.get("ports")
+assert d["build"]["context"].endswith("services/nexora-diarize"), d["build"]
+assert d["image"].endswith("diarize:local"), d["image"]
+assert int(d["environment"]["NEXORA_DIARIZE_THREADS"]) >= 1
+assert d["healthcheck"]["test"][0] == "CMD"
+assert services["nexora-api"]["environment"]["NEXORA_DIARIZE_URL"] == "http://diarize:8001"
+assert "audio_diarization_url" not in services["nexora-api"]["environment"]
+assert "nexora-api" not in d.get("depends_on", {}), "the diarization service never gates Nexora API"
+assert "diarize" not in services["nexora-api"].get("depends_on", {}), "an absent profile must not block Nexora API"
+' <<< "$voice_rendered" 2>/dev/null \
+  && ok "diarization service: internal only, built here, own profile, address given to Nexora API" \
+  || ko "diarization service: internal only, built here, own profile, address given to Nexora API"
+python3 -I -c '
+import json, sys
+services = json.load(sys.stdin)["services"]
+voice = "speaches-ai/piper-fr_FR-siwis-medium"
+assert services["whisper"]["environment"]["NEXORA_TTS_MODEL"] == voice, services["whisper"]["environment"]
+assert services["nexora-bootstrap"]["environment"]["NEXORA_TTS_MODEL"] == voice
+' <<< "$voice_rendered" 2>/dev/null \
+  && ok "the French voice is fetched with the Whisper model and registered by the bootstrap" \
+  || ko "the French voice is fetched with the Whisper model and registered by the bootstrap"
+python3 -I - "$ROOT/deploy/nexora-api/config.yml" <<'PY' && ok "Nexora API config asks the diarization service named by NEXORA_DIARIZE_URL" || ko "Nexora API config asks the diarization service named by NEXORA_DIARIZE_URL"
+import re, sys
+text = open(sys.argv[1], encoding="utf-8").read()
+assert re.search(r"^\s+audio_diarization_url: \$\{NEXORA_DIARIZE_URL:-http://diarize:8001\}$", text, re.M), text
+PY
+
 # The developer API (<domain>/v1, OpenAI format) streams through Caddy without compression.
 caddyfile="$ROOT/deploy/caddy/Caddyfile"
 python3 -I - "$caddyfile" <<'PY' && ok "Caddy relays /v1 unbuffered and uncompressed" || ko "Caddy relays /v1 unbuffered and uncompressed"

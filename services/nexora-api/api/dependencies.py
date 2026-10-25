@@ -6,6 +6,7 @@ import redis.asyncio as redis
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.domain.audio import AudioDiarizer
 from api.domain.auth import AuthSsoSessionValidator
 from api.domain.key import KeyEncoder, KeyRepository
 from api.domain.model import ModelEnvironmentalImpactsComputer, ModelQuery, ModelTokenizer
@@ -26,7 +27,7 @@ from api.infrastructure.context import global_context
 from api.infrastructure.contextvars import ContextVarsUsageContext
 from api.infrastructure.ecologit import EcologitModelEnvironmentalImpactsComputer
 from api.infrastructure.fastapi.dependencies import request_context
-from api.infrastructure.http import HttpAuthSsoSessionValidator, HttpProviderAdapterBuilder, HttpProviderClient
+from api.infrastructure.http import HttpAudioDiarizer, HttpAuthSsoSessionValidator, HttpProviderAdapterBuilder, HttpProviderClient
 from api.infrastructure.jwt import JwtKeyEncoder
 from api.infrastructure.langfuse import LangfuseUsageRepository
 from api.infrastructure.postgres import (
@@ -63,7 +64,7 @@ from api.use_cases.admin.providers import (
 from api.use_cases.admin.roles import CreateRoleUseCase, DeleteRoleUseCase, GetOneRoleUseCase, GetRolesUseCase, UpdateRoleUseCase
 from api.use_cases.admin.routers import CreateRouterUseCase, DeleteRouterUseCase, GetOneRouterUseCase, GetRoutersUseCase, UpdateRouterUseCase
 from api.use_cases.admin.users import CreateUserUseCase, DeleteUserUseCase, GetOneUserUseCase, GetUsersUseCase, UpdateUserUseCase
-from api.use_cases.audio import CreateAudioTranscriptionsUseCase
+from api.use_cases.audio import CreateAudioSpeechUseCase, CreateAudioTranscriptionsUseCase
 from api.use_cases.auth import AuthLoginUseCase, AuthSsoLoginUseCase
 from api.use_cases.chat import CreateChatCompletionsUseCase
 from api.use_cases.embeddings import CreateEmbeddingsUseCase
@@ -216,6 +217,34 @@ def _usage_repository(
 
 
 # audio use cases
+def _audio_diarizer(configuration: Configuration) -> AudioDiarizer | None:
+    url = (configuration.settings.audio_diarization_url or "").strip()
+    return HttpAudioDiarizer(url=url, timeout=configuration.settings.audio_diarization_timeout) if url else None
+
+
+def create_audio_speech_use_case_factory(
+    postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
+    redis_client: Redis = Depends(get_redis_client),
+    router_rate_limiter: RouterRateLimiter = Depends(_router_rate_limiter),
+    model_environmental_impacts_computer: ModelEnvironmentalImpactsComputer = Depends(_model_environmental_impacts_computer),
+    model_tokenizer: ModelTokenizer = Depends(_model_tokenizer),
+    provider_client: ProviderClient = Depends(_provider_client),
+    usage_repository: UsageRepository = Depends(_usage_repository),
+) -> CreateAudioSpeechUseCase:
+    return CreateAudioSpeechUseCase(
+        model_environmental_impacts_computer=model_environmental_impacts_computer,
+        model_tokenizer=model_tokenizer,
+        provider_client=provider_client,
+        provider_load_balancer=_provider_load_balancer(redis_client),
+        provider_metrics_logger=_provider_metrics_logger(redis_client),
+        provider_repository=_provider_repository(postgres_session),
+        router_rate_limiter=router_rate_limiter,
+        router_repository=_router_repository(postgres_session),
+        usage_context=_usage_context(),
+        usage_repository=usage_repository,
+    )
+
+
 def create_audio_transcriptions_use_case_factory(
     postgres_session: AutocommitSession = Depends(get_autocommit_postgres_session),
     redis_client: Redis = Depends(get_redis_client),
@@ -238,6 +267,7 @@ def create_audio_transcriptions_use_case_factory(
         usage_context=_usage_context(),
         usage_repository=usage_repository,
         audio_file_size_limit=configuration.settings.audio_file_size_limit,
+        audio_diarizer=_audio_diarizer(configuration),
     )
 
 

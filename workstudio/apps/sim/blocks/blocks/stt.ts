@@ -215,12 +215,26 @@ export const SttBlock: BlockConfig = {
       condition: NOT_NEXORA,
     },
 
-    // Speaker diarization (Deepgram/AssemblyAI only)
+    // Speaker diarization (Deepgram/AssemblyAI, and Nexora with its local voice service)
     {
       id: 'diarization',
       title: 'Speaker Diarization',
       type: 'switch',
-      condition: { field: 'provider', value: ['deepgram', 'assemblyai'] },
+      condition: { field: 'provider', value: ['deepgram', 'assemblyai', 'nexora'] },
+    },
+
+    {
+      id: 'numSpeakers',
+      title: 'Number of speakers',
+      type: 'short-input',
+      placeholder: 'Detected automatically',
+      description:
+        'Leave empty to let the voice service count the speakers. A meeting is told apart as a whole, for one hour at most.',
+      condition: {
+        field: 'provider',
+        value: 'nexora',
+        and: { field: 'diarization', value: true },
+      },
     },
 
     // Translate to English (Whisper only)
@@ -316,6 +330,7 @@ export const SttBlock: BlockConfig = {
           language: params.language,
           timestamps: params.timestamps,
           diarization: params.diarization,
+          numSpeakers: params.numSpeakers,
           translateToEnglish: params.translateToEnglish,
           sentiment: params.sentiment,
           entityDetection: params.entityDetection,
@@ -343,6 +358,7 @@ export const SttBlock: BlockConfig = {
     language: { type: 'string', description: 'Language code or auto' },
     timestamps: { type: 'string', description: 'Timestamp granularity (none, sentence, word)' },
     diarization: { type: 'boolean', description: 'Enable speaker diarization' },
+    numSpeakers: { type: 'number', description: 'Number of speakers, when known (Nexora)' },
     translateToEnglish: { type: 'boolean', description: 'Translate to English (Whisper only)' },
     sentiment: { type: 'boolean', description: 'Enable sentiment analysis (AssemblyAI only)' },
     entityDetection: { type: 'boolean', description: 'Enable entity detection (AssemblyAI only)' },
@@ -356,6 +372,21 @@ export const SttBlock: BlockConfig = {
       type: 'array',
       description: 'Timestamped segments with speaker labels',
       condition: { field: 'timestamps', value: 'none', not: true },
+    },
+    transcriptBySpeaker: {
+      type: 'string',
+      description: 'Transcript with one line per turn of speech, « Intervenant 1 : … »',
+      condition: { field: 'provider', value: 'nexora', and: { field: 'diarization', value: true } },
+    },
+    speakers: {
+      type: 'number',
+      description: 'Number of speakers told apart',
+      condition: { field: 'provider', value: 'nexora', and: { field: 'diarization', value: true } },
+    },
+    warning: {
+      type: 'string',
+      description: 'Why the speakers could not be told apart, when they could not',
+      condition: { field: 'provider', value: 'nexora', and: { field: 'diarization', value: true } },
     },
     language: { type: 'string', description: 'Detected or specified language' },
     duration: { type: 'number', description: 'Audio duration in seconds' },
@@ -459,6 +490,7 @@ export const SttV2Block: BlockConfig = {
           language: params.language,
           timestamps: params.timestamps,
           diarization: params.diarization,
+          numSpeakers: params.numSpeakers,
           translateToEnglish: params.translateToEnglish,
           sentiment: params.sentiment,
           entityDetection: params.entityDetection,

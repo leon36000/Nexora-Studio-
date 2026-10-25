@@ -4,16 +4,52 @@ import { generateId } from '@sim/utils/id'
 interface TemplateInput {
   name: string
   description: string
-  /** A realistic value, used to run the template once without typing (first launch). */
+  /** `file` asks for an upload (a recording, a document); text by default. */
+  type?: 'string' | 'file'
+  /** A realistic value, used to run the template once without typing (first launch); empty for a file. */
   example: string
 }
 
 /** One Agent step. `name` is ASCII so later steps can reference it as `<name.content>`. */
-interface TemplateStep {
+interface AgentStep {
+  kind?: undefined
   name: string
   system: string
   user: string
 }
+
+/** Speech-to-Text with the Nexora model, telling the speakers apart: `<name.transcriptBySpeaker>`. */
+interface TranscriptionStep {
+  kind: 'transcription'
+  name: string
+  /** The Start field holding the recording. */
+  recording: string
+}
+
+/** A person reads what the step shows and approves (or not) before the workflow goes on. */
+interface ApprovalStep {
+  kind: 'approval'
+  name: string
+  shows: { name: string; value: string }[]
+}
+
+/** An e-mail by SMTP; the server (host, port, account, sender) is left for the person to fill in. */
+interface EmailStep {
+  kind: 'email'
+  name: string
+  to: string
+  subject: string
+  body: string
+}
+
+/** Lets the workflow go on only when `approved` (a reference such as `<validation.approuve>`) is true. */
+interface GateStep {
+  kind: 'gate'
+  name: string
+  approved: string
+}
+
+type TemplateStep = AgentStep | TranscriptionStep | ApprovalStep | GateStep | EmailStep
 
 export interface NexoraTemplate {
   slug: string
@@ -134,20 +170,44 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     slug: 'compte-rendu',
     name: 'Compte rendu de réunion',
     description:
-      'Transforme une transcription en compte rendu : décisions, actions, responsables, échéances.',
+      'Enregistrement de la réunion → transcription par intervenant → compte rendu → validation → e-mail.',
     inputs: [
       {
-        name: 'transcription',
-        description: 'Transcription ou notes brutes de la réunion',
-        example:
-          'Paul : on lance la campagne le 3 novembre. Anne : je prépare le visuel pour vendredi. Paul : budget validé, 2 000 EUR.',
+        name: 'enregistrement',
+        description: 'Enregistrement audio de la réunion (une heure au plus)',
+        type: 'file',
+        example: '',
+      },
+      {
+        name: 'participants',
+        description: 'Participants, avec leur fonction (facultatif)',
+        example: 'Marie (cheffe de projet), Paul (commercial), Claire (comptable)',
+      },
+      {
+        name: 'destinataire',
+        description: 'Adresse e-mail à laquelle envoyer le compte rendu',
+        example: 'equipe@exemple.fr',
       },
     ],
     steps: [
+      { kind: 'transcription', name: 'Transcription', recording: 'enregistrement' },
       {
         name: 'CompteRendu',
         system: `${STYLE} Vous rédigez des comptes rendus de réunion utiles et concis.`,
-        user: 'Transcription :\n<start.transcription>\n\nRédigez le compte rendu : participants, points abordés, décisions prises, puis un tableau des actions (action, responsable, échéance). Terminez par les questions restées ouvertes.',
+        user: 'Participants indiqués : <start.participants>\n\nTranscription par intervenant (« Intervenant 1 », « Intervenant 2 »… désignent des voix, pas des noms) :\n<transcription.transcriptBySpeaker>\n\nRédigez le compte rendu : participants (rapprochez les noms cités des intervenants quand le texte le permet), points abordés, décisions prises, puis un tableau des actions (action, responsable, échéance). Terminez par les questions restées ouvertes.',
+      },
+      {
+        kind: 'approval',
+        name: 'Validation',
+        shows: [{ name: 'compteRendu', value: '<compterendu.content>' }],
+      },
+      { kind: 'gate', name: 'Approbation', approved: '<validation.approuve>' },
+      {
+        kind: 'email',
+        name: 'Email',
+        to: '<start.destinataire>',
+        subject: 'Compte rendu de réunion',
+        body: '<compterendu.content>',
       },
     ],
   },
@@ -161,12 +221,13 @@ export function resolveTemplateModel(configured: string | undefined): string {
 
 interface TemplateBlock {
   id: string
-  type: 'start_trigger' | 'agent'
+  type: string
   name: string
   position: { x: number; y: number }
   enabled: boolean
   subBlocks: Record<string, { id: string; type: string; value: unknown }>
   outputs: Record<string, never>
+  data?: { canonicalModes: Record<string, 'basic' | 'advanced'> }
 }
 
 type TemplateWorkflowState = {
@@ -182,7 +243,114 @@ type TemplateWorkflowState = {
   parallels: Record<string, never>
 }
 
-/** Workflow state (Start → Agent → …) in the shape the workflow importer reads. */
+function sub(id: string, type: string, value: unknown) {
+  return [id, { id, type, value }] as const
+}
+
+function subBlocksOf(...entries: ReturnType<typeof sub>[]): TemplateBlock['subBlocks'] {
+  return Object.fromEntries(entries)
+}
+
+function formField(name: string, type: string, description: string, required = false) {
+  return {
+    id: generateId(),
+    name,
+    type,
+    value: '',
+    description,
+    collapsed: false,
+    ...(required ? { required: true } : {}),
+  }
+}
+
+/** The block a step becomes, without its id and position. */
+function stepBlock(
+  step: TemplateStep,
+  model: string,
+  blockId: string
+): Pick<TemplateBlock, 'type' | 'subBlocks' | 'data'> {
+  switch (step.kind) {
+    case 'transcription':
+      return {
+        type: 'stt_v2',
+        subBlocks: subBlocksOf(
+          sub('provider', 'dropdown', 'nexora'),
+          sub('audioFileReference', 'short-input', `<start.${step.recording}>`),
+          sub('language', 'dropdown', 'fr'),
+          sub('diarization', 'switch', true)
+        ),
+        data: { canonicalModes: { audioFile: 'advanced' } },
+      }
+    case 'approval':
+      return {
+        type: 'human_in_the_loop_v2',
+        subBlocks: subBlocksOf(
+          sub(
+            'builderData',
+            'response-format',
+            step.shows.map((shown) => ({
+              id: generateId(),
+              name: shown.name,
+              type: 'string',
+              value: shown.value,
+              collapsed: false,
+            }))
+          ),
+          sub('notification', 'tool-input', []),
+          sub('inputFormat', 'input-format', [
+            formField('approuve', 'boolean', 'Approuvez-vous ?', true),
+            formField('commentaire', 'string', 'Commentaire'),
+          ])
+        ),
+      }
+    case 'gate':
+      return {
+        type: 'condition',
+        subBlocks: subBlocksOf(
+          sub(
+            'conditions',
+            'condition-input',
+            JSON.stringify([
+              {
+                id: `${blockId}-if`,
+                title: 'if',
+                value: `String(${step.approved} ?? '').trim().toLowerCase() === "true"`,
+              },
+              { id: `${blockId}-else`, title: 'else', value: '' },
+            ])
+          )
+        ),
+      }
+    case 'email':
+      return {
+        type: 'smtp',
+        subBlocks: subBlocksOf(
+          sub('smtpHost', 'short-input', ''),
+          sub('smtpPort', 'short-input', '587'),
+          sub('smtpUsername', 'short-input', ''),
+          sub('smtpPassword', 'short-input', ''),
+          sub('from', 'short-input', ''),
+          sub('to', 'short-input', step.to),
+          sub('subject', 'short-input', step.subject),
+          sub('body', 'long-input', step.body),
+          sub('contentType', 'dropdown', 'text')
+        ),
+      }
+    default:
+      return {
+        type: 'agent',
+        subBlocks: subBlocksOf(
+          sub('messages', 'messages-input', [
+            { role: 'system', content: step.system },
+            { role: 'user', content: step.user },
+          ]),
+          sub('model', 'combobox', model)
+        ),
+      }
+  }
+}
+
+/** Workflow state (Start → one block per step) in the shape the workflow importer reads. */
 export function buildTemplateWorkflow(
   template: NexoraTemplate,
   model: string
@@ -202,7 +370,7 @@ export function buildTemplateWorkflow(
           value: template.inputs.map((input) => ({
             id: generateId(),
             name: input.name,
-            type: 'string',
+            type: input.type === 'file' ? 'file[]' : 'string',
             value: '',
             description: input.description,
             collapsed: false,
@@ -214,35 +382,26 @@ export function buildTemplateWorkflow(
   }
   const edges: TemplateWorkflowState['edges'] = []
   let previousId = startId
+  let previousHandle = 'source'
   template.steps.forEach((step, index) => {
     const id = generateId()
     blocks[id] = {
       id,
-      type: 'agent',
       name: step.name,
       position: { x: 420 * (index + 1), y: 0 },
       enabled: true,
-      subBlocks: {
-        messages: {
-          id: 'messages',
-          type: 'messages-input',
-          value: [
-            { role: 'system', content: step.system },
-            { role: 'user', content: step.user },
-          ],
-        },
-        model: { id: 'model', type: 'combobox', value: model },
-      },
       outputs: {},
+      ...stepBlock(step, model, id),
     }
     edges.push({
       id: generateId(),
       source: previousId,
       target: id,
-      sourceHandle: 'source',
+      sourceHandle: previousHandle,
       targetHandle: 'target',
     })
     previousId = id
+    previousHandle = step.kind === 'gate' ? `condition-${id}-if` : 'source'
   })
   return { blocks, edges, loops: {}, parallels: {} }
 }
