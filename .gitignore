@@ -26,3 +26,6 @@ deploy/.env
 scripts/dev/.secrets
 scripts/dev/.extra-env
 .superpowers/
+
+# Fichier temporaire de déploiement sur pc6 (git show HEAD:deploy/compose.yml)
+deploy/.compose-head.yml
