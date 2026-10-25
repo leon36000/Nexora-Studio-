@@ -41,12 +41,8 @@
           "operator": "egal",
           "value": "true"
         },
-        "then": [
-          "envoi_compte_rendu"
-        ],
-        "else": [
-          "revision_compte_rendu"
-        ]
+        "then": ["envoi_compte_rendu"],
+        "else": ["revision_compte_rendu"]
       },
       {
         "kind": "agent",

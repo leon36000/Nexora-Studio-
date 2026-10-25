@@ -22,7 +22,7 @@ export class StepsEditError extends Error {
   }
 }
 
-export interface StepsBlock {
+interface StepsBlock {
   id: string
   type: string
   name: string
@@ -32,7 +32,7 @@ export interface StepsBlock {
   [key: string]: unknown
 }
 
-export interface StepsEdge {
+interface StepsEdge {
   id: string
   source: string
   target: string

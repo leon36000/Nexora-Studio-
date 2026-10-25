@@ -120,19 +120,15 @@
     "trigger": "Trigger",
     "stepNumber": "Step {number}",
     "addStep": "Add a step",
-    "addInBranch": "Add in this branch",
     "branchIf": "If yes",
     "branchElse": "Otherwise",
     "emptyBranch": "Nothing to do in this case",
-    "noSteps": "This workflow has no step yet.",
     "unknownBlock": "Advanced block",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "remove": "Delete the step",
     "removeWithBranches": "Delete the condition and its {count} steps",
     "open": "Set up this step",
-    "close": "Close the settings",
-    "listLabel": "List of the workflow steps",
     "mode": {
       "label": "Workflow display",
       "steps": "Steps",
@@ -155,19 +151,15 @@
       "unreachable": "Some blocks are not linked to any step.",
       "branch-in-branch": "A condition sits inside the branch of another condition."
     },
-    "locked": "This workflow is locked or you are not allowed to edit it.",
-    "loading": "Loading the steps…",
     "editFailed": "This change could not be made.",
     "cancel": "Cancel",
     "agentNotReady": "The models are not ready yet: try again in a moment.",
     "removeConfirm": "This condition holds {count, plural, one {# step} other {# steps}}: they will be deleted with it."
   },
   "picker": {
-    "title": "Choose a step",
     "search": "Search for a step",
     "empty": "No step matches.",
-    "moreBlocks": "More blocks in the canvas",
-    "conditionInBranch": "A condition cannot be placed inside a branch."
+    "moreBlocks": "More blocks in the canvas"
   },
   "summary": {
     "agent": "Request: {request}",
@@ -196,7 +188,6 @@
   "test": {
     "title": "Test",
     "run": "Test the workflow",
-    "running": "Test running…",
     "cancel": "Stop",
     "runUntil": "Test up to here",
     "sampleData": "Sample data",
@@ -216,8 +207,7 @@
     "noResult": "No result to show.",
     "errorTitle": "What happened?",
     "originalMessage": "Original message",
-    "fixHint": "Fix the step, then run the test again.",
-    "locked": "The test is not available while a run is in progress."
+    "fixHint": "Fix the step, then run the test again."
   },
   "errors": {
     "missingFields": "The step “{block}” is not complete: {fields} is missing. Open it and fill these fields in.",

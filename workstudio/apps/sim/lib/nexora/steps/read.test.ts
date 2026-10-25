@@ -19,7 +19,7 @@ function recognized(state: unknown) {
 
 /** A copy of a compiled state that a test may break. */
 function copyOf(index: number) {
-  return structuredClone(compiled[index].state) as {
+  return structuredClone(compiled[index].state) as unknown as {
     blocks: Record<string, Record<string, unknown> & { type: string; name: string }>
     edges: {
       id: string

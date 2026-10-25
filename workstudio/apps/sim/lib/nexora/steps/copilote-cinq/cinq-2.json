@@ -30,13 +30,8 @@
           "operator": "egal",
           "value": "haute"
         },
-        "then": [
-          "traitement_urgent",
-          "alerte_equipe"
-        ],
-        "else": [
-          "accuse_reception"
-        ]
+        "then": ["traitement_urgent", "alerte_equipe"],
+        "else": ["accuse_reception"]
       },
       {
         "kind": "agent",

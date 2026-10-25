@@ -14,9 +14,7 @@
         "name": "relance",
         "instructions": "Vous gérez les relances de factures d'une PME. Ton courtois et professionnel, en vouvoyant le client.",
         "message": "Trouvez les factures impayées depuis plus de 30 jours et envoyez une relance par e-mail à chaque client.",
-        "services": [
-          "gmail"
-        ],
+        "services": ["gmail"],
         "knowledgeBases": []
       }
     ]

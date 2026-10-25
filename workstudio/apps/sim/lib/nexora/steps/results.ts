@@ -1,4 +1,4 @@
-export type StepStatus = 'idle' | 'running' | 'success' | 'error'
+type StepStatus = 'idle' | 'running' | 'success' | 'error'
 
 export interface StepResult {
   status: StepStatus

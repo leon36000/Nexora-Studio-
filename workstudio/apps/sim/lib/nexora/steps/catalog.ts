@@ -25,7 +25,7 @@ export interface CatalogEntry {
 }
 
 /** Blocks that start a workflow, as the Copilot and the templates build them. */
-export const TRIGGER_BLOCK_TYPES: ReadonlySet<string> = new Set([
+const TRIGGER_BLOCK_TYPES: ReadonlySet<string> = new Set([
   'start_trigger',
   'generic_webhook',
   'schedule',

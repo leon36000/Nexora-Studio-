@@ -120,19 +120,15 @@
     "trigger": "Déclencheur",
     "stepNumber": "Étape {number}",
     "addStep": "Ajouter une étape",
-    "addInBranch": "Ajouter dans cette branche",
     "branchIf": "Si oui",
     "branchElse": "Sinon",
     "emptyBranch": "Rien à faire dans ce cas",
-    "noSteps": "Ce workflow n’a pas encore d’étape.",
     "unknownBlock": "Bloc avancé",
     "moveUp": "Monter",
     "moveDown": "Descendre",
     "remove": "Supprimer l’étape",
     "removeWithBranches": "Supprimer la condition et ses {count} étapes",
     "open": "Régler cette étape",
-    "close": "Fermer le réglage",
-    "listLabel": "Liste des étapes du workflow",
     "mode": {
       "label": "Affichage du workflow",
       "steps": "Étapes",
@@ -155,19 +151,15 @@
       "unreachable": "Certains blocs ne sont reliés à aucune étape.",
       "branch-in-branch": "Une condition se trouve dans la branche d’une autre condition."
     },
-    "locked": "Ce workflow est verrouillé ou vous n’avez pas le droit de le modifier.",
-    "loading": "Chargement des étapes…",
     "editFailed": "Cette modification n’a pas pu être faite.",
     "cancel": "Annuler",
     "agentNotReady": "Les modèles ne sont pas encore prêts : réessayez dans un instant.",
     "removeConfirm": "Cette condition contient {count, plural, one {# étape} other {# étapes}} : elles seront supprimées avec elle."
   },
   "picker": {
-    "title": "Choisir une étape",
     "search": "Rechercher une étape",
     "empty": "Aucune étape ne correspond.",
-    "moreBlocks": "Plus de blocs dans le canevas",
-    "conditionInBranch": "Une condition ne peut pas se placer dans une branche."
+    "moreBlocks": "Plus de blocs dans le canevas"
   },
   "summary": {
     "agent": "Demande : {request}",
@@ -196,7 +188,6 @@
   "test": {
     "title": "Test",
     "run": "Tester le workflow",
-    "running": "Test en cours…",
     "cancel": "Arrêter",
     "runUntil": "Tester jusqu’ici",
     "sampleData": "Données d’exemple",
@@ -216,8 +207,7 @@
     "noResult": "Aucun résultat à afficher.",
     "errorTitle": "Que s’est-il passé ?",
     "originalMessage": "Message d’origine",
-    "fixHint": "Corrigez l’étape puis relancez le test.",
-    "locked": "Le test n’est pas disponible tant qu’une exécution est en cours."
+    "fixHint": "Corrigez l’étape puis relancez le test."
   },
   "errors": {
     "missingFields": "L’étape « {block} » n’est pas complète : il manque {fields}. Ouvrez-la et remplissez ces champs.",

@@ -38,7 +38,7 @@ Un workflow créé par le Copilote qui devient plus complexe dans le canevas s'o
 
 ## La barre d'outils du canevas
 
-Dans le canevas, l'onglet **Barre d'outils** est trié : **Essentiels** d'abord (l'agent, la condition, l'appel d'API, l'e-mail, la validation, la réponse…), puis **Autres blocs**, puis **Nexora Connect** (un seul bloc pour agir dans plus de 1 600 services connectés), puis les **intégrations directes**, repliées par défaut.
+Dans le canevas, l'onglet **Barre d'outils** est trié : les **Essentiels** d'abord (l'agent, la condition, l'appel d'API, la fonction, les connaissances, la table, la validation, l'attente, la réponse…), puis les **Déclencheurs** (repliés par défaut), les **Autres blocs**, **Nexora Connect** (un seul bloc pour agir dans plus de 1 600 services connectés) et les **Intégrations directes**, repliées par défaut.
 
 ## Ce qu'il faut savoir
 

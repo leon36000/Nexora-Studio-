@@ -2,6 +2,12 @@
  * @vitest-environment node
  */
 import { describe, expect, it } from 'vitest'
+import { catalogEntryById } from '@/lib/nexora/steps/catalog'
+import five1 from '@/lib/nexora/steps/copilote-cinq/cinq-1.json'
+import five2 from '@/lib/nexora/steps/copilote-cinq/cinq-2.json'
+import five3 from '@/lib/nexora/steps/copilote-cinq/cinq-3.json'
+import five4 from '@/lib/nexora/steps/copilote-cinq/cinq-4.json'
+import five5 from '@/lib/nexora/steps/copilote-cinq/cinq-5.json'
 import {
   applyPatch,
   planInsert,
@@ -12,12 +18,6 @@ import {
 } from '@/lib/nexora/steps/edit'
 import { hasStepsMarker, resolveEditorMode } from '@/lib/nexora/steps/mode'
 import { readSteps, type StepNode } from '@/lib/nexora/steps/read'
-import { catalogEntryById } from '@/lib/nexora/steps/catalog'
-import five1 from '@/lib/nexora/steps/copilote-cinq/cinq-1.json'
-import five2 from '@/lib/nexora/steps/copilote-cinq/cinq-2.json'
-import five3 from '@/lib/nexora/steps/copilote-cinq/cinq-3.json'
-import five4 from '@/lib/nexora/steps/copilote-cinq/cinq-4.json'
-import five5 from '@/lib/nexora/steps/copilote-cinq/cinq-5.json'
 
 /**
  * The five typical descriptions of the Copilot, as `scripts/verification/copilote-cinq.py` made them

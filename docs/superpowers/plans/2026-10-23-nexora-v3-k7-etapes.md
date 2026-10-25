@@ -1,6 +1,6 @@
 # K7 — Éditeur pour débutants : mode « Étapes » — plan d'implémentation
 
-> **Pour les agents** : sous-compétence requise : `superpowers:executing-plans` (ou `subagent-driven-development`). Les étapes utilisent des cases à cocher (`- [ ]`) ; elles sont cochées au fur et à mesure.
+> **Pour les agents** : sous-compétence requise : `superpowers:executing-plans` (ou `subagent-driven-development`). Les étapes utilisent des cases à cocher (`- [x]`) ; elles sont cochées au fur et à mesure.
 
 **Objectif** : une vue « Étapes » (liste verticale de cartes) pour lire et modifier un workflow sans canevas, avec aller-retour sans perte vers le canevas (« Mode avancé »), un test pas à pas, une barre d'outils triée et 20 modèles PME.
 
@@ -114,64 +114,71 @@
 
 **Fichiers** : `messages/fr/steps.json`, `messages/en/steps.json`, `i18n/messages.ts`.
 
-- [ ] Ajouter l'espace de noms `steps` (catalogue : libellé et description de chaque entrée ; vue, cartes, sélecteur, test pas à pas, erreurs, bascule, barre d'outils) en français puis en anglais ; l'enregistrer dans `MESSAGE_NAMESPACES` et `MESSAGES`.
-- [ ] Test existant de parité des messages vert ; commit.
+- [x] Ajouter l'espace de noms `steps` (catalogue : libellé et description de chaque entrée ; vue, cartes, sélecteur, test pas à pas, erreurs, bascule, barre d'outils) en français puis en anglais ; l'enregistrer dans `MESSAGE_NAMESPACES` et `MESSAGES`.
+- [x] Test existant de parité des messages vert ; commit.
 
 ### Tâche 6 : préférence de mode et actions
 
 **Fichiers** : `stores/workflows/view-mode/store.ts` (+ `index.ts`), `components/steps-view/hooks/use-steps-actions.ts`.
 
-- [ ] Store Zustand `persist` avec `partialize` (modes par identifiant de workflow, 200 entrées au plus) ; `useEditorMode(workflowId, recognized, marked)` renvoie le mode résolu.
-- [ ] `useStepsActions` : applique un `StepsPatch` par `collaborativeBatchAddBlocks` / `BatchRemoveBlocks` / `BatchAddEdges` / `BatchRemoveEdges` / `BatchUpdatePositions`, blocs créés par `prepareBlockState` avec les valeurs initiales du catalogue ; sélectionne la nouvelle étape dans le panneau.
-- [ ] Vérification de type, commit.
+- [x] Store Zustand `persist` avec `partialize` (modes par identifiant de workflow, 200 entrées au plus) ; `useStepsModel(workflowId)` (dans `components/steps-view/hooks`) renvoie la lecture, les blocs avec leurs valeurs et le mode résolu.
+- [x] `useStepsActions` : applique un `StepsPatch` par `collaborativeBatchAddBlocks` / `BatchRemoveBlocks` / `BatchAddEdges` / `BatchRemoveEdges` / `BatchUpdatePositions`, blocs créés par `prepareBlockState` avec les valeurs initiales du catalogue ; sélectionne la nouvelle étape dans le panneau.
+- [x] Vérification de type, commit.
 
 ### Tâche 7 : vue Étapes
 
 **Fichiers** : `components/steps-view/{steps-view,step-card,step-picker,mode-switch,not-recognized-banner}.tsx`, `index.ts`, `workflow.tsx`.
 
-- [ ] Liste verticale : déclencheur, cartes numérotées, branches « Si oui / Sinon » en retrait, bouton « Ajouter une étape » entre les cartes ; carte = icône, libellé métier, phrase de résumé, état de test ; clic ⇒ ouvre l'éditeur de blocs existant (panneau) sur cette étape ; menu : monter, descendre, supprimer.
-- [ ] Sélecteur d'étapes : catalogue par catégorie, recherche, « Plus de blocs » ouvre la barre d'outils du canevas.
-- [ ] Bascule « Étapes | Canevas » dans l'en-tête ; la vue est superposée au canevas (qui reste monté) ; forme non reconnue ⇒ cartes en lecture seule, bandeau avec raisons et lien « Ouvrir dans le canevas ».
-- [ ] Vérification de type, check-i18n, commit.
+- [x] Liste verticale : déclencheur, cartes numérotées, branches « Si oui / Sinon » en retrait, bouton « Ajouter une étape » entre les cartes ; carte = icône, libellé métier, phrase de résumé, état de test ; clic ⇒ ouvre l'éditeur de blocs existant (panneau) sur cette étape ; menu : monter, descendre, supprimer.
+- [x] Sélecteur d'étapes : catalogue par catégorie, recherche, « Plus de blocs » ouvre la barre d'outils du canevas.
+- [x] Bascule « Étapes | Canevas » dans l'en-tête ; la vue est superposée au canevas (qui reste monté) ; forme non reconnue ⇒ cartes en lecture seule, bandeau avec raisons et lien « Ouvrir dans le canevas ».
+- [x] Vérification de type, check-i18n, commit.
 
 ### Tâche 8 : test pas à pas
 
 **Fichiers** : `components/steps-view/{step-test,sample-data-form}.tsx`.
 
-- [ ] Formulaire « Données d'exemple » (champs du déclencheur, valeurs préremplies) ; bouton « Tester » : lance l'exécution existante, affiche par carte l'état (en attente, en cours, réussi, échec), la sortie, la durée ; « Tester jusqu'ici » sur chaque carte (exécution jusqu'au bloc) ; erreurs expliquées par `explainStepError`, message d'origine repliable.
-- [ ] Vérification de type, commit.
+- [x] Formulaire « Données d'exemple » (champs du déclencheur, valeurs préremplies) ; bouton « Tester » : lance l'exécution existante, affiche par carte l'état (en attente, en cours, réussi, échec), la sortie, la durée ; « Tester jusqu'ici » sur chaque carte (exécution jusqu'au bloc) ; erreurs expliquées par `explainStepError`, message d'origine repliable.
+- [x] Vérification de type, commit.
 
 ### Tâche 9 : barre d'outils triée
 
 **Fichiers** : `lib/nexora/steps/toolbar-order.ts` (+ test), `toolbar.tsx`.
 
-- [ ] Test rouge : `orderToolbarBlocks(items)` met d'abord les essentiels dans l'ordre de la constante `ESSENTIAL_BLOCK_TYPES`, puis les autres blocs par nom ; `groupIntegrations(items)` place « Nexora Connect » (bloc MCP) en tête puis les intégrations directes, repliées par défaut.
-- [ ] Brancher dans `toolbar.tsx` (sections « Essentiels », « Autres blocs », « Nexora Connect », « Intégrations directes »), messages `steps.toolbar.*`, commit.
+- [x] Test rouge : `orderToolbarBlocks(items)` met d'abord les essentiels dans l'ordre de la constante `ESSENTIAL_BLOCK_TYPES`, puis les autres blocs par nom ; `groupIntegrations(items)` place « Nexora Connect » (bloc MCP) en tête puis les intégrations directes, repliées par défaut.
+- [x] Brancher dans `toolbar.tsx` (sections « Essentiels », « Autres blocs », « Nexora Connect », « Intégrations directes »), messages `steps.toolbar.*`, commit.
 
 ### Tâche 10 : marqueur à la création et 20 modèles
 
 **Fichiers** : `copilot/compile.ts`, `compile.test.ts`, `templates.ts`, `templates.test.ts`, `seed-templates.ts`.
 
-- [ ] Test rouge : le déclencheur compilé porte le sous-bloc `nexoraView`, l'état passe `parseWorkflowJson`, `readSteps` le reconnaît ; idem pour chaque modèle PME.
-- [ ] Poser le marqueur dans `compilePlan` et `buildTemplateWorkflow`.
-- [ ] 20 modèles PME : les 5 existants + 15 (voir tâche dans le code : tous des chaînes linéaires Start → agents / validation / condition / e-mail). Adapter `templates.test.ts` : 20 modèles, mêmes garanties (importables, un déclencheur, un agent au moins, exemples non vides, références valides) ; le test « Start → Agent » vise les modèles sans étape spéciale.
-- [ ] Tests verts, commit.
+- [x] Test rouge : le déclencheur compilé porte le sous-bloc `nexoraView`, l'état passe `parseWorkflowJson`, `readSteps` le reconnaît ; idem pour chaque modèle PME.
+- [x] Poser le marqueur dans `compilePlan` et `buildTemplateWorkflow`.
+- [x] 20 modèles PME : les 5 existants + 15 nouveaux (offre d'emploi, fiche produit, réseaux sociaux, réclamation, newsletter, relance de devis, rapport hebdomadaire, traduction, résumé de contrat, contrôle de facture, accueil d'un salarié, avis client, ordre du jour, réponse validée avant envoi, compte rendu d'entretien), tous des chaînes linéaires. Adapter `templates.test.ts` : 20 modèles, mêmes garanties (importables, un déclencheur, un agent au moins, exemples non vides, références valides) ; le test « Start → Agent » vise les modèles sans étape spéciale.
+- [x] Tests verts, commit.
 
 ### Tâche 11 : guide et fumée
 
-- [ ] `docs/guide/etapes.md` (parcours « relance des factures impayées », bascule, test pas à pas, limites) + ligne dans `docs/guide/README.md` ; mise à jour de `copilote.md` et `workflows.md` (liens).
-- [ ] `scripts/smoke.py` : contrôle « Étapes » (création par le Copilote ⇒ marqueur et forme lisible en Étapes ⇒ modification d'une étape par l'état ⇒ retour au canevas ⇒ exécution) ; contrôle que l'espace contient les 20 modèles.
-- [ ] Commit.
+- [x] `docs/guide/etapes.md` (parcours « relance des factures impayées », bascule, test pas à pas, limites) + ligne dans `docs/guide/README.md` ; mise à jour de `copilote.md` et `workflows.md` (liens).
+- [x] `scripts/smoke.py` : contrôle « Étapes » (création par le Copilote ⇒ marqueur et forme lisible en Étapes ⇒ modification d'une étape par l'état ⇒ retour au canevas ⇒ exécution) ; contrôle que l'espace contient les 20 modèles.
+- [x] Commit.
 
 ### Tâche 12 : parcours au navigateur
 
-- [ ] `next dev` sur 127.0.0.1:3221 contre la pile par IP de conteneur ; compte de test ; créer « relance des factures impayées » en mode Étapes sans quitter la vue ; captures et durée dans `docs/verification/k7-etapes/` ; arrêter `next dev`, supprimer `.next/dev`.
+- [x] `next dev` sur 127.0.0.1:3221 contre la pile par IP de conteneur ; compte de test ; créer « relance des factures impayées » en mode Étapes sans quitter la vue ; captures et durée dans `docs/verification/k7-etapes/` ; arrêter `next dev`, supprimer `.next/dev`.
 
 ### Tâche 13 : fin
 
-- [ ] `git merge main`, vérifications (biome sur les fichiers, type-check, audits, test-types, api-validation, suite complète, scripts de contrôle à la racine), ledger (section K7 : décisions « Ruling », preuves), commit.
+- [x] `git merge main`, vérifications (biome sur les fichiers, type-check, audits, test-types, api-validation, suite complète, scripts de contrôle à la racine), ledger (section K7 : décisions « Ruling », preuves), commit.
 
 ## Auto-revue
 
 - Couverture : vue Étapes (T7), aller-retour (T2–T3, T7), test pas à pas (T8), barre d'outils (T9), 20 modèles (T10), mode par défaut (T4, T6, T10), i18n (T5), guide et fumée (T11), parcours (T12). Aucun trou.
 - Les noms (`readSteps`, `planInsert`, `StepsPatch`, `resolveEditorMode`) sont identiques entre les tâches.
+
+## Écarts par rapport au plan (constatés en route)
+
+- Les tests des 5 workflows réels (`real-five.test.ts`, états de `copilote-cinq.py` gardés dans `lib/nexora/steps/copilote-cinq/`) s'ajoutent aux 5 plans simulés de `five-plans.fixtures.ts`.
+- Le test pas à pas lit l'état de chaque carte dans la console de l'éditeur ; une erreur de validation avant lancement n'appartient à aucune carte et s'affiche dans un bandeau en tête (`error-explanation.tsx`).
+- Les lignes du sélecteur d'étapes n'affichent que le libellé ; la description est l'infobulle de la ligne.
+- Les décisions et leur coût sont dans le ledger, section K7.
