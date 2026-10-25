@@ -68,8 +68,8 @@ describe('Assistant extended storage', () => {
         VALUES (${agentWorkflowId}, ${ownerId}, ${workspaceId}, ${agentsFolderId}, 'Assistant général', now(), now(), now())`
       await tx`INSERT INTO workflow (id, user_id, workspace_id, name, archived_at, created_at, updated_at, last_synced)
         VALUES (${archivedWorkflowId}, ${ownerId}, ${workspaceId}, 'Archivé', now(), now(), now(), now())`
-      await tx`INSERT INTO workflow_deployment_version (id, workflow_id, version, state, is_active)
-        VALUES (${generateId()}, ${taskWorkflowId}, 1, ${control.json({ blocks: {} })}, true)`
+      await tx`INSERT INTO workflow_deployment_version (id, workflow_id, version, state, is_active, created_by)
+        VALUES (${generateId()}, ${taskWorkflowId}, 1, ${control.json({ blocks: {} })}, true, ${ownerId})`
       await tx`INSERT INTO workflow_schedule (id, workflow_id, trigger_type, cron_expression, timezone, status, next_run_at)
         VALUES (${scheduleId}, ${taskWorkflowId}, 'schedule', '0 8 * * *', 'Europe/Paris', 'active', now())`
       await tx`INSERT INTO workflow_execution_snapshots (id, workflow_id, state_hash, state_data)
@@ -270,6 +270,24 @@ describe('Assistant extended storage', () => {
         actorUserId: ownerId,
       })
       expect(byOwner).toBe(ownerId)
+    })
+
+    it('lends the owner’s accounts only to a version the owner deployed', async () => {
+      const executionId = generateId()
+      await control`INSERT INTO workflow_execution_logs (id, workflow_id, workspace_id, execution_id, state_snapshot_id, level, trigger, started_at)
+        VALUES (${generateId()}, ${taskWorkflowId}, ${workspaceId}, ${executionId}, ${snapshotId}, 'info', 'schedule', now())`
+      await control`UPDATE workflow_deployment_version SET created_by = ${colleagueId} WHERE workflow_id = ${taskWorkflowId} AND is_active`
+      try {
+        const redeployedByColleague = await resolveActingMember({
+          executionId,
+          workflowId: taskWorkflowId,
+          workspaceId,
+          actorUserId: ownerId,
+        })
+        expect(redeployedByColleague).toBeNull()
+      } finally {
+        await control`UPDATE workflow_deployment_version SET created_by = ${ownerId} WHERE workflow_id = ${taskWorkflowId} AND is_active`
+      }
     })
 
     it('forgets a task', async () => {
